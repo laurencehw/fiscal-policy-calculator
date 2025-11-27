@@ -285,6 +285,10 @@ class TaxPolicy(Policy):
             f"  Avg taxable income: ${bracket_info['avg_taxable_income']:,.0f}"
         )
 
+        # Update policy object with auto-populated values (so UI can display them)
+        self.affected_taxpayers_millions = bracket_info['num_filers'] / 1e6
+        self.avg_taxable_income_in_bracket = bracket_info['avg_taxable_income']
+
         # Calculate revenue change using actual IRS data
         revenue_change = (
             self.rate_change *
