@@ -110,16 +110,81 @@ with st.sidebar:
     st.caption("Built with Streamlit • Data updated 2022")
 
 # Main content tabs
-tab1, tab2, tab3, tab4 = st.tabs(["💰 Tax Policy", "📈 Results & Charts", "📋 Details", "ℹ️ Methodology"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(["💰 Tax Policy", "📈 Results & Charts", "🔀 Compare Policies", "📋 Details", "ℹ️ Methodology"])
 
 with tab1:
-    st.header("Tax Policy Calculator")
+    st.header("Fiscal Policy Calculator")
+
+    # Policy type selector
+    policy_category = st.radio(
+        "Select policy type",
+        ["💰 Tax Policy", "📊 Spending Policy"],
+        horizontal=True,
+        help="Choose whether to analyze tax changes or spending programs"
+    )
+
+    is_spending = policy_category == "📊 Spending Policy"
+
+    if not is_spending:
+        # TAX POLICY SECTION
+        # Preset policies
+        st.subheader("🎯 Quick Start: Choose a Preset Policy")
+
+        preset_policies = {
+            "Custom Policy": {
+                "rate_change": -2.0,
+                "threshold": 500000,
+                "description": "Design your own policy"
+            },
+        "TCJA 2017 High-Income Cut": {
+            "rate_change": -2.6,
+            "threshold": 500000,
+            "description": "Tax Cuts and Jobs Act reduced top rate from 39.6% to 37%"
+        },
+        "Biden 2025 Proposal": {
+            "rate_change": 2.6,
+            "threshold": 400000,
+            "description": "Restore top rate to 39.6% for AGI > $400K"
+        },
+        "Trump 2024 Extension": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Extend TCJA provisions (baseline, no change)"
+        },
+        "Progressive Millionaire Tax": {
+            "rate_change": 5.0,
+            "threshold": 1000000,
+            "description": "5pp surtax on millionaires"
+        },
+        "Middle Class Tax Cut": {
+            "rate_change": -2.0,
+            "threshold": 50000,
+            "description": "2pp cut for households earning $50K+"
+        },
+        "Flat Tax Reform": {
+            "rate_change": -5.0,
+            "threshold": 0,
+            "description": "Simplified flat tax with lower rates across the board"
+        }
+    }
+
+    col_preset, col_info = st.columns([2, 3])
+
+    with col_preset:
+        preset_choice = st.selectbox(
+            "Select a policy to analyze",
+            options=list(preset_policies.keys()),
+            help="Choose a real-world or example policy, or select 'Custom' to design your own"
+        )
+
+    with col_info:
+        if preset_choice != "Custom Policy":
+            st.info(f"📋 **{preset_choice}**\n\n{preset_policies[preset_choice]['description']}")
 
     st.markdown("""
     <div class="info-box">
-    💡 <strong>Quick Start:</strong> Adjust the tax rate and income threshold below.
-    The calculator will automatically use real IRS data to estimate how many people are affected
-    and calculate the revenue impact.
+    💡 <strong>How it works:</strong> The calculator uses real IRS data to automatically determine
+    how many taxpayers are affected and calculates the revenue impact using CBO methodology.
     </div>
     """, unsafe_allow_html=True)
 
@@ -129,16 +194,20 @@ with tab1:
     with col1:
         st.subheader("Policy Parameters")
 
+        # Get preset values
+        preset_data = preset_policies[preset_choice]
+
         # Policy name
-        policy_name = st.text_input("Policy Name", "Tax Rate Change",
+        default_name = preset_choice if preset_choice != "Custom Policy" else "Tax Rate Change"
+        policy_name = st.text_input("Policy Name", default_name,
                                     help="A short name for this policy")
 
-        # Rate change
+        # Rate change - use preset value
         rate_change_pct = st.slider(
             "Tax Rate Change (percentage points)",
             min_value=-10.0,
             max_value=10.0,
-            value=-2.0,
+            value=preset_data["rate_change"],
             step=0.5,
             help="Positive = tax increase, Negative = tax cut"
         )
@@ -150,16 +219,25 @@ with tab1:
             "Middle class ($50K+)": 50000,
             "Upper-middle ($100K+)": 100000,
             "High earners ($200K+)": 200000,
+            "Biden threshold ($400K+)": 400000,
             "Very high ($500K+)": 500000,
             "Millionaires ($1M+)": 1000000,
             "Multi-millionaires ($5M+)": 5000000,
             "Custom": None
         }
 
+        # Find which threshold option matches the preset
+        preset_threshold = preset_data["threshold"]
+        default_threshold_idx = 0
+        for idx, (label, value) in enumerate(threshold_options.items()):
+            if value == preset_threshold:
+                default_threshold_idx = idx
+                break
+
         threshold_choice = st.selectbox(
             "Who is affected?",
             options=list(threshold_options.keys()),
-            index=4,  # Default to $500K+
+            index=default_threshold_idx,
             help="Income threshold for who the policy applies to"
         )
 
@@ -234,6 +312,100 @@ with tab1:
                 help="Behavioral response parameter (0.25 = moderate response)"
             )
 
+    else:
+        # SPENDING POLICY SECTION
+        st.subheader("🎯 Spending Program Calculator")
+
+        st.markdown("""
+        <div class="info-box">
+        💡 <strong>Analyze spending programs:</strong> Calculate the budgetary impact of federal spending increases or cuts
+        across different categories (infrastructure, defense, social programs, etc.).
+        </div>
+        """, unsafe_allow_html=True)
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.subheader("Program Parameters")
+
+            # Program name
+            program_name = st.text_input("Program Name", "Infrastructure Investment",
+                                        help="A short name for this spending program")
+
+            # Spending amount
+            annual_spending = st.number_input(
+                "Annual Spending (Billions)",
+                min_value=-500.0,
+                max_value=500.0,
+                value=100.0,
+                step=10.0,
+                help="Positive = increase spending, Negative = cut spending"
+            )
+
+            # Category
+            spending_category = st.selectbox(
+                "Spending Category",
+                ["Infrastructure", "Defense", "Non-Defense Discretionary", "Mandatory Programs",
+                 "Social Security", "Medicare", "Medicaid", "Education", "Research & Development"],
+                help="Type of spending program"
+            )
+
+        with col2:
+            st.subheader("Economic Parameters")
+
+            # Duration
+            duration = st.slider(
+                "Program Duration (years)",
+                min_value=1,
+                max_value=10,
+                value=10,
+                help="How long the program lasts"
+            )
+
+            # Growth rate
+            growth_rate = st.slider(
+                "Annual Growth Rate (%)",
+                min_value=-5.0,
+                max_value=10.0,
+                value=2.0,
+                step=0.5,
+                help="Real growth rate of spending over time"
+            ) / 100
+
+            # Fiscal multiplier
+            multiplier = st.slider(
+                "Fiscal Multiplier",
+                min_value=0.0,
+                max_value=2.0,
+                value=1.0,
+                step=0.1,
+                help="GDP impact per dollar spent (infrastructure ~1.5, transfers ~0.8)"
+            )
+
+            # One-time or recurring
+            is_one_time = st.checkbox("One-time spending", value=False,
+                                     help="Check if this is a one-time expense (like disaster relief)")
+
+        # Preset examples
+        with st.expander("📋 Example Programs"):
+            st.markdown("""
+            **Infrastructure:**
+            - $100B/year × 10 years (Biden Infrastructure Plan ~$110B/year)
+            - Multiplier: 1.5
+
+            **Defense Increase:**
+            - $50B/year increase
+            - Multiplier: 1.0
+
+            **Social Program Expansion:**
+            - $200B/year (e.g., childcare, paid leave)
+            - Multiplier: 0.8
+
+            **Disaster Relief:**
+            - $50B one-time
+            - Multiplier: 1.2
+            """)
+
     # Calculate button
     st.markdown("---")
 
@@ -251,44 +423,84 @@ if 'results' not in st.session_state:
     st.session_state.results = None
 
 if calculate and MODEL_AVAILABLE:
-    with st.spinner("Calculating policy impact using real IRS data..."):
-        try:
-            # Create policy
-            policy = TaxPolicy(
-                name=policy_name,
-                description=f"{rate_change_pct:+.1f}pp tax rate change for AGI >= ${threshold:,}",
-                policy_type=PolicyType.INCOME_TAX,
-                rate_change=rate_change,
-                affected_income_threshold=threshold,
-                data_year=data_year,
-                duration_years=duration,
-                phase_in_years=phase_in,
-                taxable_income_elasticity=eti,
-            )
+    if is_spending:
+        # Handle spending policy
+        with st.spinner("Calculating spending program impact..."):
+            try:
+                from fiscal_model import SpendingPolicy
 
-            # Override auto-population if manual values provided
-            if manual_taxpayers > 0:
-                policy.affected_taxpayers_millions = manual_taxpayers
-            if manual_avg_income > 0:
-                policy.avg_taxable_income_in_bracket = manual_avg_income
+                # Create spending policy
+                policy = SpendingPolicy(
+                    name=program_name,
+                    description=f"${annual_spending:+.1f}B annual spending for {spending_category}",
+                    policy_type=PolicyType.DISCRETIONARY_NONDEFENSE,
+                    annual_spending_change_billions=annual_spending,
+                    annual_growth_rate=growth_rate,
+                    gdp_multiplier=multiplier,
+                    is_one_time=is_one_time,
+                    category="nondefense",
+                    duration_years=duration,
+                )
 
-            # Score policy
-            scorer = FiscalPolicyScorer(baseline=None, use_real_data=use_real_data)
-            result = scorer.score_policy(policy, dynamic=dynamic_scoring)
+                # Score policy
+                scorer = FiscalPolicyScorer(baseline=None, use_real_data=use_real_data)
+                result = scorer.score_policy(policy, dynamic=dynamic_scoring)
 
-            # Store in session state
-            st.session_state.results = {
-                'policy': policy,
-                'result': result,
-                'scorer': scorer
-            }
+                # Store in session state
+                st.session_state.results = {
+                    'policy': policy,
+                    'result': result,
+                    'scorer': scorer,
+                    'is_spending': True
+                }
 
-            st.success("✅ Calculation complete!")
+                st.success("✅ Calculation complete!")
 
-        except Exception as e:
-            st.error(f"❌ Error calculating policy impact: {e}")
-            import traceback
-            st.code(traceback.format_exc())
+            except Exception as e:
+                st.error(f"❌ Error calculating spending impact: {e}")
+                import traceback
+                st.code(traceback.format_exc())
+    else:
+        # Handle tax policy
+        with st.spinner("Calculating policy impact using real IRS data..."):
+            try:
+                # Create policy
+                policy = TaxPolicy(
+                    name=policy_name,
+                    description=f"{rate_change_pct:+.1f}pp tax rate change for AGI >= ${threshold:,}",
+                    policy_type=PolicyType.INCOME_TAX,
+                    rate_change=rate_change,
+                    affected_income_threshold=threshold,
+                    data_year=data_year,
+                    duration_years=duration,
+                    phase_in_years=phase_in,
+                    taxable_income_elasticity=eti,
+                )
+
+                # Override auto-population if manual values provided
+                if manual_taxpayers > 0:
+                    policy.affected_taxpayers_millions = manual_taxpayers
+                if manual_avg_income > 0:
+                    policy.avg_taxable_income_in_bracket = manual_avg_income
+
+                # Score policy
+                scorer = FiscalPolicyScorer(baseline=None, use_real_data=use_real_data)
+                result = scorer.score_policy(policy, dynamic=dynamic_scoring)
+
+                # Store in session state
+                st.session_state.results = {
+                    'policy': policy,
+                    'result': result,
+                    'scorer': scorer,
+                    'is_spending': False
+                }
+
+                st.success("✅ Calculation complete!")
+
+            except Exception as e:
+                st.error(f"❌ Error calculating policy impact: {e}")
+                import traceback
+                st.code(traceback.format_exc())
 
 # Display results if available
 if st.session_state.results:
@@ -296,12 +508,14 @@ if st.session_state.results:
     policy = result_data['policy']
     result = result_data['result']
     scorer = result_data['scorer']
+    is_spending_result = result_data.get('is_spending', False)
 
     with tab2:
         st.header("📈 Results Summary")
 
         # Key metrics
-        st.subheader("10-Year Budget Impact")
+        policy_label = "Spending Effect" if is_spending_result else "Revenue Effect"
+        st.subheader(f"10-Year Budget Impact - {policy_label}")
 
         total_revenue_effect = result.static_revenue_effect.sum()
         year1_effect = result.static_revenue_effect[0]
@@ -309,18 +523,23 @@ if st.session_state.results:
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
+            if is_spending_result:
+                delta_text = "Deficit increase" if total_revenue_effect < 0 else "Deficit decrease"
+            else:
+                delta_text = "Revenue loss" if total_revenue_effect < 0 else "Revenue gain"
+
             st.metric(
-                "Total Revenue Effect",
-                f"${total_revenue_effect:.1f}B",
-                delta=f"{'Revenue loss' if total_revenue_effect < 0 else 'Revenue gain'}",
+                f"Total {policy_label}",
+                f"${abs(total_revenue_effect):.1f}B",
+                delta=delta_text,
                 delta_color="inverse"
             )
 
         with col2:
             st.metric(
                 "Year 1 Effect",
-                f"${year1_effect:.1f}B",
-                delta=f"{(year1_effect/abs(total_revenue_effect)*100):.0f}% of total" if total_revenue_effect != 0 else "N/A"
+                f"${abs(year1_effect):.1f}B",
+                delta=f"{(abs(year1_effect)/abs(total_revenue_effect)*100):.0f}% of total" if total_revenue_effect != 0 else "N/A"
             )
 
         with col3:
@@ -405,6 +624,121 @@ if st.session_state.results:
 
         st.plotly_chart(fig_cumulative, use_container_width=True)
 
+        # Economic context
+        st.markdown("---")
+        st.subheader("📐 Economic Context")
+
+        col1, col2, col3 = st.columns(3)
+
+        # Assume GDP ~$27T (2024 estimate)
+        gdp_2025 = 27000  # billions
+        pct_of_gdp = (year1_effect / gdp_2025) * 100
+
+        with col1:
+            st.metric(
+                "Year 1 Effect (% of GDP)",
+                f"{pct_of_gdp:.2f}%",
+                help="Revenue effect as percentage of GDP"
+            )
+
+        with col2:
+            # Federal revenue ~$4.9T
+            fed_revenue = 4900  # billions
+            pct_of_revenue = (year1_effect / fed_revenue) * 100
+            st.metric(
+                "% of Federal Revenue",
+                f"{pct_of_revenue:.1f}%",
+                help="Effect as percentage of total federal revenue"
+            )
+
+        with col3:
+            # Per taxpayer effect
+            if policy.affected_taxpayers_millions > 0:
+                per_taxpayer = (year1_effect * 1e9) / (policy.affected_taxpayers_millions * 1e6)
+                st.metric(
+                    "Per Affected Taxpayer",
+                    f"${per_taxpayer:,.0f}",
+                    help="Average tax change per affected taxpayer"
+                )
+
+        # Distributional visualization
+        st.markdown("---")
+        st.subheader("👥 Who Is Affected?")
+
+        # Create distributional breakdown
+        if policy.affected_taxpayers_millions > 0 and threshold > 0:
+            # Get total taxpayers (rough estimate: 150M filers)
+            total_taxpayers = 150.0  # million
+            affected_pct = (policy.affected_taxpayers_millions / total_taxpayers) * 100
+            unaffected_pct = 100 - affected_pct
+
+            fig_dist = go.Figure()
+
+            fig_dist.add_trace(go.Bar(
+                x=['Taxpayers'],
+                y=[unaffected_pct],
+                name=f'Unaffected (<${threshold:,})',
+                marker_color='#90EE90',
+                text=[f'{unaffected_pct:.1f}%<br>({total_taxpayers - policy.affected_taxpayers_millions:.1f}M taxpayers)'],
+                textposition='inside',
+                hovertemplate='<b>Unaffected Taxpayers</b><br>%{y:.1f}% of all filers<br><extra></extra>'
+            ))
+
+            fig_dist.add_trace(go.Bar(
+                x=['Taxpayers'],
+                y=[affected_pct],
+                name=f'Affected (≥${threshold:,})',
+                marker_color='#FF6B6B' if rate_change > 0 else '#4ECDC4',
+                text=[f'{affected_pct:.1f}%<br>({policy.affected_taxpayers_millions:.2f}M taxpayers)'],
+                textposition='inside',
+                hovertemplate='<b>Affected Taxpayers</b><br>%{y:.1f}% of all filers<br><extra></extra>'
+            ))
+
+            fig_dist.update_layout(
+                title=f"Distribution of Tax Change (Threshold: ${threshold:,})",
+                yaxis_title="Percentage of Taxpayers",
+                barmode='stack',
+                showlegend=True,
+                height=400,
+                hovermode='x unified'
+            )
+
+            st.plotly_chart(fig_dist, use_container_width=True)
+
+            # Summary stats
+            col1, col2 = st.columns(2)
+
+            with col1:
+                avg_change = per_taxpayer if policy.affected_taxpayers_millions > 0 else 0
+                direction = "increase" if rate_change > 0 else "cut"
+                st.info(f"""
+                **Tax Change Summary**
+
+                - **{policy.affected_taxpayers_millions:.2f}M** taxpayers affected ({affected_pct:.1f}%)
+                - **${abs(avg_change):,.0f}** average tax {direction} per affected filer
+                - **${policy.avg_taxable_income_in_bracket:,.0f}** average income in affected bracket
+                """)
+
+            with col2:
+                # Top 1% context
+                if threshold >= 500000:
+                    top1_income = 600000  # Rough threshold for top 1%
+                    context_msg = "This policy primarily affects **high-income earners** (top 2% of households)."
+                elif threshold >= 200000:
+                    context_msg = "This policy affects **upper-income households** (roughly top 10%)."
+                elif threshold >= 100000:
+                    context_msg = "This policy affects **upper-middle and high-income households** (roughly top 25%)."
+                else:
+                    context_msg = "This policy has **broad impact** across income groups."
+
+                st.warning(f"""
+                **Income Context**
+
+                {context_msg}
+
+                IRS data from {data_year} automatically populated the affected population and income statistics.
+                """)
+
         # Auto-populated parameters
         st.markdown("---")
         st.subheader("📊 IRS Data Used")
@@ -428,6 +762,168 @@ if st.session_state.results:
                 """)
 
     with tab3:
+        st.header("🔀 Policy Comparison")
+
+        st.markdown("""
+        <div class="info-box">
+        💡 <strong>Compare scenarios:</strong> Select 2-3 policies from the preset library to see how they compare side-by-side.
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Multi-select for policies to compare
+        policies_to_compare = st.multiselect(
+            "Select policies to compare (2-3 recommended)",
+            options=[k for k in preset_policies.keys() if k != "Custom Policy"],
+            default=["TCJA 2017 High-Income Cut", "Biden 2025 Proposal"],
+            max_selections=4
+        )
+
+        if len(policies_to_compare) >= 2:
+            with st.spinner("Calculating and comparing policies..."):
+                try:
+                    comparison_results = []
+
+                    for preset_name in policies_to_compare:
+                        preset = preset_policies[preset_name]
+
+                        # Create policy
+                        comp_policy = TaxPolicy(
+                            name=preset_name,
+                            description=preset['description'],
+                            policy_type=PolicyType.INCOME_TAX,
+                            rate_change=preset['rate_change'] / 100,
+                            affected_income_threshold=preset['threshold'],
+                            data_year=data_year,
+                            duration_years=10,
+                            phase_in_years=0,
+                            taxable_income_elasticity=0.25,
+                        )
+
+                        # Score policy
+                        comp_scorer = FiscalPolicyScorer(baseline=None, use_real_data=use_real_data)
+                        comp_result = comp_scorer.score_policy(comp_policy, dynamic=dynamic_scoring)
+
+                        comparison_results.append({
+                            'name': preset_name,
+                            'policy': comp_policy,
+                            'result': comp_result,
+                            'total_10yr': comp_result.static_revenue_effect.sum(),
+                            'year1': comp_result.static_revenue_effect[0],
+                            'affected_millions': comp_policy.affected_taxpayers_millions,
+                            'avg_income': comp_policy.avg_taxable_income_in_bracket
+                        })
+
+                    # Comparison table
+                    st.subheader("📊 Summary Comparison")
+
+                    comparison_df = pd.DataFrame([{
+                        'Policy': r['name'],
+                        '10-Year Effect ($B)': f"${r['total_10yr']:.1f}",
+                        'Year 1 Effect ($B)': f"${r['year1']:.1f}",
+                        'Affected (M)': f"{r['affected_millions']:.2f}",
+                        'Avg Income': f"${r['avg_income']:,.0f}",
+                        'Per Taxpayer': f"${(r['year1'] * 1e9 / (r['affected_millions'] * 1e6) if r['affected_millions'] > 0 else 0):,.0f}"
+                    } for r in comparison_results])
+
+                    st.dataframe(comparison_df, use_container_width=True, hide_index=True)
+
+                    # Side-by-side bar chart
+                    st.markdown("---")
+                    st.subheader("10-Year Revenue Effect Comparison")
+
+                    fig_compare = go.Figure()
+
+                    for r in comparison_results:
+                        color = '#FF6B6B' if r['total_10yr'] > 0 else '#4ECDC4'
+                        fig_compare.add_trace(go.Bar(
+                            name=r['name'],
+                            x=[r['name']],
+                            y=[r['total_10yr']],
+                            marker_color=color,
+                            text=[f"${r['total_10yr']:.1f}B"],
+                            textposition='outside'
+                        ))
+
+                    fig_compare.update_layout(
+                        xaxis_title="Policy",
+                        yaxis_title="10-Year Revenue Effect (Billions)",
+                        showlegend=False,
+                        height=500,
+                        hovermode='x'
+                    )
+
+                    st.plotly_chart(fig_compare, use_container_width=True)
+
+                    # Year-by-year comparison
+                    st.markdown("---")
+                    st.subheader("Year-by-Year Comparison")
+
+                    fig_timeline_compare = go.Figure()
+
+                    for r in comparison_results:
+                        fig_timeline_compare.add_trace(go.Scatter(
+                            x=r['result'].baseline.years,
+                            y=r['result'].static_revenue_effect,
+                            mode='lines+markers',
+                            name=r['name'],
+                            line=dict(width=3),
+                            marker=dict(size=8)
+                        ))
+
+                    fig_timeline_compare.update_layout(
+                        xaxis_title="Year",
+                        yaxis_title="Revenue Effect (Billions)",
+                        hovermode='x unified',
+                        height=500,
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=1.02,
+                            xanchor="right",
+                            x=1
+                        )
+                    )
+
+                    st.plotly_chart(fig_timeline_compare, use_container_width=True)
+
+                    # Key differences
+                    st.markdown("---")
+                    st.subheader("📝 Key Differences")
+
+                    max_revenue_policy = max(comparison_results, key=lambda x: x['total_10yr'])
+                    min_revenue_policy = min(comparison_results, key=lambda x: x['total_10yr'])
+
+                    col1, col2 = st.columns(2)
+
+                    with col1:
+                        st.success(f"""
+                        **Largest Revenue Raiser**
+
+                        {max_revenue_policy['name']}
+
+                        - **10-Year Effect:** ${max_revenue_policy['total_10yr']:.1f}B
+                        - **Affected:** {max_revenue_policy['affected_millions']:.2f}M taxpayers
+                        """)
+
+                    with col2:
+                        st.error(f"""
+                        **Largest Revenue Cost**
+
+                        {min_revenue_policy['name']}
+
+                        - **10-Year Effect:** ${min_revenue_policy['total_10yr']:.1f}B
+                        - **Affected:** {min_revenue_policy['affected_millions']:.2f}M taxpayers
+                        """)
+
+                except Exception as e:
+                    st.error(f"Error comparing policies: {e}")
+                    import traceback
+                    st.code(traceback.format_exc())
+
+        else:
+            st.info("👆 Select at least 2 policies above to see a comparison")
+
+    with tab4:
         st.header("📋 Detailed Results")
 
         # Policy summary
@@ -501,7 +997,7 @@ if st.session_state.results:
                 mime="application/json"
             )
 
-with tab4:
+with tab5:
     st.header("ℹ️ Methodology")
 
     st.markdown("""
@@ -603,7 +1099,7 @@ with tab4:
 
     ### Questions?
 
-    For more details on the methodology, see the [full documentation](https://github.com/yourusername/fiscal-model).
+    For more details on the methodology, see the [full documentation](https://github.com/laurencehw/fiscal-policy-calculator).
     """)
 
 # Footer
