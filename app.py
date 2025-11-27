@@ -603,7 +603,7 @@ with tab4:
 
     ### Questions?
 
-    For more details on the methodology, see the [full documentation](https://github.com/yourusername/fiscal-model).
+    For more details on the methodology, see the [full documentation](https://github.com/laurencehw/fiscal-policy-calculator).
     """)
 
 # Footer
