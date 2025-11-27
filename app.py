@@ -166,151 +166,151 @@ with tab1:
             "threshold": 0,
             "description": "Simplified flat tax with lower rates across the board"
         }
-    }
-
-    col_preset, col_info = st.columns([2, 3])
-
-    with col_preset:
-        preset_choice = st.selectbox(
-            "Select a policy to analyze",
-            options=list(preset_policies.keys()),
-            help="Choose a real-world or example policy, or select 'Custom' to design your own"
-        )
-
-    with col_info:
-        if preset_choice != "Custom Policy":
-            st.info(f"📋 **{preset_choice}**\n\n{preset_policies[preset_choice]['description']}")
-
-    st.markdown("""
-    <div class="info-box">
-    💡 <strong>How it works:</strong> The calculator uses real IRS data to automatically determine
-    how many taxpayers are affected and calculates the revenue impact using CBO methodology.
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Two-column layout for inputs
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.subheader("Policy Parameters")
-
-        # Get preset values
-        preset_data = preset_policies[preset_choice]
-
-        # Policy name
-        default_name = preset_choice if preset_choice != "Custom Policy" else "Tax Rate Change"
-        policy_name = st.text_input("Policy Name", default_name,
-                                    help="A short name for this policy")
-
-        # Rate change - use preset value
-        rate_change_pct = st.slider(
-            "Tax Rate Change (percentage points)",
-            min_value=-10.0,
-            max_value=10.0,
-            value=preset_data["rate_change"],
-            step=0.5,
-            help="Positive = tax increase, Negative = tax cut"
-        )
-        rate_change = rate_change_pct / 100
-
-        # Income threshold
-        threshold_options = {
-            "All taxpayers ($0+)": 0,
-            "Middle class ($50K+)": 50000,
-            "Upper-middle ($100K+)": 100000,
-            "High earners ($200K+)": 200000,
-            "Biden threshold ($400K+)": 400000,
-            "Very high ($500K+)": 500000,
-            "Millionaires ($1M+)": 1000000,
-            "Multi-millionaires ($5M+)": 5000000,
-            "Custom": None
         }
 
-        # Find which threshold option matches the preset
-        preset_threshold = preset_data["threshold"]
-        default_threshold_idx = 0
-        for idx, (label, value) in enumerate(threshold_options.items()):
-            if value == preset_threshold:
-                default_threshold_idx = idx
-                break
+        col_preset, col_info = st.columns([2, 3])
 
-        threshold_choice = st.selectbox(
-            "Who is affected?",
-            options=list(threshold_options.keys()),
-            index=default_threshold_idx,
-            help="Income threshold for who the policy applies to"
-        )
-
-        if threshold_choice == "Custom":
-            threshold = st.number_input(
-                "Custom threshold ($)",
-                min_value=0,
-                max_value=10000000,
-                value=500000,
-                step=50000,
-                format="%d"
-            )
-        else:
-            threshold = threshold_options[threshold_choice]
-
-    with col2:
-        st.subheader("Advanced Options")
-
-        # Policy type
-        policy_type = st.selectbox(
-            "Policy Type",
-            ["Income Tax Rate", "Capital Gains", "Corporate Tax", "Payroll Tax"],
-            help="Type of tax being changed"
-        )
-
-        # Duration
-        duration = st.slider(
-            "Policy Duration (years)",
-            min_value=1,
-            max_value=10,
-            value=10,
-            help="How long the policy lasts (CBO standard is 10 years)"
-        )
-
-        # Phase-in
-        phase_in = st.slider(
-            "Phase-in Period (years)",
-            min_value=0,
-            max_value=5,
-            value=0,
-            help="Years to gradually phase in the full policy (0 = immediate)"
-        )
-
-        # Show advanced parameters?
-        with st.expander("🔧 Expert Parameters (Optional)"):
-            st.markdown("*Leave blank to auto-populate from IRS data*")
-
-            manual_taxpayers = st.number_input(
-                "Affected taxpayers (millions)",
-                min_value=0.0,
-                max_value=200.0,
-                value=0.0,
-                step=0.1,
-                help="Leave at 0 to auto-populate from IRS data"
+        with col_preset:
+            preset_choice = st.selectbox(
+                "Select a policy to analyze",
+                options=list(preset_policies.keys()),
+                help="Choose a real-world or example policy, or select 'Custom' to design your own"
             )
 
-            manual_avg_income = st.number_input(
-                "Average taxable income in bracket ($)",
+        with col_info:
+            if preset_choice != "Custom Policy":
+                st.info(f"📋 **{preset_choice}**\n\n{preset_policies[preset_choice]['description']}")
+
+        st.markdown("""
+        <div class="info-box">
+        💡 <strong>How it works:</strong> The calculator uses real IRS data to automatically determine
+        how many taxpayers are affected and calculates the revenue impact using CBO methodology.
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Two-column layout for inputs
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.subheader("Policy Parameters")
+
+            # Get preset values
+            preset_data = preset_policies[preset_choice]
+
+            # Policy name
+            default_name = preset_choice if preset_choice != "Custom Policy" else "Tax Rate Change"
+            policy_name = st.text_input("Policy Name", default_name,
+                                        help="A short name for this policy")
+
+            # Rate change - use preset value
+            rate_change_pct = st.slider(
+                "Tax Rate Change (percentage points)",
+                min_value=-10.0,
+                max_value=10.0,
+                value=preset_data["rate_change"],
+                step=0.5,
+                help="Positive = tax increase, Negative = tax cut"
+            )
+            rate_change = rate_change_pct / 100
+
+            # Income threshold
+            threshold_options = {
+                "All taxpayers ($0+)": 0,
+                "Middle class ($50K+)": 50000,
+                "Upper-middle ($100K+)": 100000,
+                "High earners ($200K+)": 200000,
+                "Biden threshold ($400K+)": 400000,
+                "Very high ($500K+)": 500000,
+                "Millionaires ($1M+)": 1000000,
+                "Multi-millionaires ($5M+)": 5000000,
+                "Custom": None
+            }
+
+            # Find which threshold option matches the preset
+            preset_threshold = preset_data["threshold"]
+            default_threshold_idx = 0
+            for idx, (label, value) in enumerate(threshold_options.items()):
+                if value == preset_threshold:
+                    default_threshold_idx = idx
+                    break
+
+            threshold_choice = st.selectbox(
+                "Who is affected?",
+                options=list(threshold_options.keys()),
+                index=default_threshold_idx,
+                help="Income threshold for who the policy applies to"
+            )
+
+            if threshold_choice == "Custom":
+                threshold = st.number_input(
+                    "Custom threshold ($)",
+                    min_value=0,
+                    max_value=10000000,
+                    value=500000,
+                    step=50000,
+                    format="%d"
+                )
+            else:
+                threshold = threshold_options[threshold_choice]
+
+        with col2:
+            st.subheader("Advanced Options")
+
+            # Policy type
+            policy_type = st.selectbox(
+                "Policy Type",
+                ["Income Tax Rate", "Capital Gains", "Corporate Tax", "Payroll Tax"],
+                help="Type of tax being changed"
+            )
+
+            # Duration
+            duration = st.slider(
+                "Policy Duration (years)",
+                min_value=1,
+                max_value=10,
+                value=10,
+                help="How long the policy lasts (CBO standard is 10 years)"
+            )
+
+            # Phase-in
+            phase_in = st.slider(
+                "Phase-in Period (years)",
                 min_value=0,
-                max_value=100000000,
+                max_value=5,
                 value=0,
-                step=50000,
-                help="Leave at 0 to auto-populate from IRS data"
+                help="Years to gradually phase in the full policy (0 = immediate)"
             )
 
-            eti = st.number_input(
-                "Elasticity of Taxable Income (ETI)",
-                min_value=0.0,
-                max_value=2.0,
-                value=0.25,
-                step=0.05,
-                help="Behavioral response parameter (0.25 = moderate response)"
-            )
+            # Show advanced parameters?
+            with st.expander("🔧 Expert Parameters (Optional)"):
+                st.markdown("*Leave blank to auto-populate from IRS data*")
+
+                manual_taxpayers = st.number_input(
+                    "Affected taxpayers (millions)",
+                    min_value=0.0,
+                    max_value=200.0,
+                    value=0.0,
+                    step=0.1,
+                    help="Leave at 0 to auto-populate from IRS data"
+                )
+
+                manual_avg_income = st.number_input(
+                    "Average taxable income in bracket ($)",
+                    min_value=0,
+                    max_value=100000000,
+                    value=0,
+                    step=50000,
+                    help="Leave at 0 to auto-populate from IRS data"
+                )
+
+                eti = st.number_input(
+                    "Elasticity of Taxable Income (ETI)",
+                    min_value=0.0,
+                    max_value=2.0,
+                    value=0.25,
+                    step=0.05,
+                    help="Behavioral response parameter (0.25 = moderate response)"
+                )
 
     else:
         # SPENDING POLICY SECTION
