@@ -513,50 +513,122 @@ if st.session_state.results:
     with tab2:
         st.header("📈 Results Summary")
 
-        # Key metrics
+        # Calculate all the key numbers
+        static_total = result.static_revenue_effect.sum()
+        behavioral_total = result.behavioral_offset.sum()
+        net_total = static_total + behavioral_total  # behavioral_offset is already signed correctly
+        year1_static = result.static_revenue_effect[0]
+        year1_behavioral = result.behavioral_offset[0]
+        year1_net = year1_static + year1_behavioral
+
+        # Determine if this is a tax increase or cut
+        is_tax_increase = static_total > 0
         policy_label = "Spending Effect" if is_spending_result else "Revenue Effect"
-        st.subheader(f"10-Year Budget Impact - {policy_label}")
 
-        total_revenue_effect = result.static_revenue_effect.sum()
-        year1_effect = result.static_revenue_effect[0]
+        st.subheader(f"10-Year Budget Impact")
+        
+        # Show the calculation flow clearly
+        st.markdown("""
+        <div class="info-box">
+        <strong>How to read this:</strong> Static estimate shows the direct revenue effect. 
+        Behavioral offset accounts for how taxpayers change their behavior in response. 
+        The <strong>Net Effect</strong> is what actually hits the budget.
+        </div>
+        """, unsafe_allow_html=True)
 
-        col1, col2, col3, col4 = st.columns(4)
+        # Main metrics in a clear flow: Static → Offset → Net
+        col1, col2, col3 = st.columns(3)
 
         with col1:
+            st.markdown("##### 📊 Static Estimate")
             if is_spending_result:
-                delta_text = "Deficit increase" if total_revenue_effect < 0 else "Deficit decrease"
+                delta_text = "Spending increase" if static_total > 0 else "Spending cut"
             else:
-                delta_text = "Revenue loss" if total_revenue_effect < 0 else "Revenue gain"
-
+                delta_text = "Revenue gain" if static_total > 0 else "Revenue loss"
+            
             st.metric(
-                f"Total {policy_label}",
-                f"${abs(total_revenue_effect):.1f}B",
+                "Before Behavioral Response",
+                f"${abs(static_total):.1f}B",
                 delta=delta_text,
-                delta_color="inverse"
+                delta_color="normal" if static_total > 0 else "inverse"
             )
 
         with col2:
+            st.markdown("##### 🔄 Behavioral Offset")
+            # Behavioral offset reduces the static estimate
+            offset_direction = "reduces estimate" if (behavioral_total < 0 and static_total > 0) or (behavioral_total > 0 and static_total < 0) else "adds to estimate"
             st.metric(
-                "Year 1 Effect",
-                f"${abs(year1_effect):.1f}B",
-                delta=f"{(abs(year1_effect)/abs(total_revenue_effect)*100):.0f}% of total" if total_revenue_effect != 0 else "N/A"
+                "Taxpayer Response",
+                f"${abs(behavioral_total):.1f}B",
+                delta=offset_direction,
+                delta_color="off"
+            )
+            st.caption("ETI-based behavioral adjustment")
+
+        with col3:
+            st.markdown("##### ✅ Net Effect")
+            if is_spending_result:
+                net_delta = "Deficit increase" if net_total < 0 else "Deficit decrease"
+            else:
+                net_delta = "Revenue gain" if net_total > 0 else "Revenue loss"
+            
+            st.metric(
+                "Final Budget Impact",
+                f"${abs(net_total):.1f}B",
+                delta=net_delta,
+                delta_color="normal" if net_total > 0 else "inverse"
+            )
+
+        # Show the math explicitly
+        st.markdown("---")
+        
+        # Calculation breakdown
+        sign_static = "+" if static_total >= 0 else "-"
+        sign_behavioral = "+" if behavioral_total >= 0 else "-"
+        sign_net = "+" if net_total >= 0 else "-"
+        
+        st.markdown(f"""
+        **Calculation:** ${sign_static}${abs(static_total):.1f}B (static) {sign_behavioral} ${abs(behavioral_total):.1f}B (behavioral) = **{sign_net}${abs(net_total):.1f}B (net)**
+        """)
+
+        # Additional context metrics
+        st.markdown("---")
+        st.subheader("📅 Additional Details")
+        
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            st.metric(
+                "Year 1 Net Effect",
+                f"${abs(year1_net):.1f}B",
+                delta=f"{(abs(year1_net)/abs(net_total)*100):.0f}% of 10-yr total" if net_total != 0 else "N/A"
+            )
+
+        with col2:
+            avg_annual = net_total / 10
+            st.metric(
+                "Average Annual (Net)",
+                f"${abs(avg_annual):.1f}B",
+                help="Average net effect per year"
             )
 
         with col3:
-            behavioral_offset_total = result.behavioral_offset.sum()
+            behavioral_pct = (abs(behavioral_total) / abs(static_total) * 100) if static_total != 0 else 0
             st.metric(
-                "Behavioral Offset",
-                f"${behavioral_offset_total:.1f}B",
-                help="Revenue recovered due to taxpayer behavioral responses"
+                "Behavioral Response",
+                f"{behavioral_pct:.0f}%",
+                help="Behavioral offset as % of static estimate"
             )
 
         with col4:
-            avg_annual = total_revenue_effect / 10
-            st.metric(
-                "Average Annual",
-                f"${avg_annual:.1f}B",
-                help="Average effect per year over 10-year window"
-            )
+            # Per taxpayer effect (net)
+            if hasattr(policy, 'affected_taxpayers_millions') and policy.affected_taxpayers_millions > 0:
+                per_taxpayer = (year1_net * 1e9) / (policy.affected_taxpayers_millions * 1e6)
+                st.metric(
+                    "Per Taxpayer (Net)",
+                    f"${abs(per_taxpayer):,.0f}",
+                    help="Average net tax change per affected taxpayer"
+                )
 
         st.markdown("---")
 
@@ -569,57 +641,97 @@ if st.session_state.results:
             'Year': years,
             'Static Effect': result.static_revenue_effect,
             'Behavioral Offset': result.behavioral_offset,
-            'Net Deficit Effect': result.static_deficit_effect + result.behavioral_offset
+            'Net Effect': result.static_revenue_effect + result.behavioral_offset
         })
 
-        # Revenue effect over time
+        # Revenue effect over time - show static, offset, and net
         fig_timeline = go.Figure()
 
+        # Static effect bars
         fig_timeline.add_trace(go.Bar(
             x=df_timeline['Year'],
             y=df_timeline['Static Effect'],
-            name='Static Revenue Effect',
-            marker_color='#1f77b4'
+            name='Static Effect',
+            marker_color='#1f77b4',
+            opacity=0.7
         ))
 
+        # Behavioral offset bars (stacked)
         fig_timeline.add_trace(go.Bar(
             x=df_timeline['Year'],
             y=df_timeline['Behavioral Offset'],
             name='Behavioral Offset',
-            marker_color='#ff7f0e'
+            marker_color='#ff7f0e',
+            opacity=0.7
+        ))
+
+        # Net effect line (this is what matters)
+        fig_timeline.add_trace(go.Scatter(
+            x=df_timeline['Year'],
+            y=df_timeline['Net Effect'],
+            name='Net Effect (Final)',
+            mode='lines+markers',
+            line=dict(color='#2ca02c', width=3),
+            marker=dict(size=10, symbol='diamond')
         ))
 
         fig_timeline.update_layout(
-            title="Revenue Effects by Year",
+            title="Revenue Effects by Year (Static + Behavioral = Net)",
             xaxis_title="Year",
             yaxis_title="Revenue Effect (Billions)",
             barmode='relative',
             hovermode='x unified',
-            height=400
+            height=450,
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="center",
+                x=0.5
+            )
         )
 
         st.plotly_chart(fig_timeline, use_container_width=True)
 
-        # Cumulative effect
-        df_timeline['Cumulative Effect'] = df_timeline['Static Effect'].cumsum()
+        # Cumulative NET effect (this is what CBO reports)
+        df_timeline['Cumulative Net'] = df_timeline['Net Effect'].cumsum()
+        df_timeline['Cumulative Static'] = df_timeline['Static Effect'].cumsum()
 
         fig_cumulative = go.Figure()
 
+        # Static cumulative (lighter, dashed)
         fig_cumulative.add_trace(go.Scatter(
             x=df_timeline['Year'],
-            y=df_timeline['Cumulative Effect'],
+            y=df_timeline['Cumulative Static'],
+            mode='lines',
+            name='Cumulative Static',
+            line=dict(color='#1f77b4', width=2, dash='dash'),
+            opacity=0.6
+        ))
+
+        # Net cumulative (bold, solid) - this is what CBO reports
+        fig_cumulative.add_trace(go.Scatter(
+            x=df_timeline['Year'],
+            y=df_timeline['Cumulative Net'],
             mode='lines+markers',
-            name='Cumulative Revenue Effect',
+            name='Cumulative Net Effect',
             line=dict(color='#2ca02c', width=3),
             marker=dict(size=8)
         ))
 
         fig_cumulative.update_layout(
-            title="Cumulative Revenue Effect",
+            title="Cumulative Effect Over 10 Years (Net is what CBO reports)",
             xaxis_title="Year",
             yaxis_title="Cumulative Effect (Billions)",
             hovermode='x unified',
-            height=400
+            height=400,
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="center",
+                x=0.5
+            )
         )
 
         st.plotly_chart(fig_cumulative, use_container_width=True)
@@ -632,33 +744,33 @@ if st.session_state.results:
 
         # Assume GDP ~$27T (2024 estimate)
         gdp_2025 = 27000  # billions
-        pct_of_gdp = (year1_effect / gdp_2025) * 100
+        pct_of_gdp = (year1_net / gdp_2025) * 100
 
         with col1:
             st.metric(
-                "Year 1 Effect (% of GDP)",
+                "Year 1 Net (% of GDP)",
                 f"{pct_of_gdp:.2f}%",
-                help="Revenue effect as percentage of GDP"
+                help="Net revenue effect as percentage of GDP"
             )
 
         with col2:
             # Federal revenue ~$4.9T
             fed_revenue = 4900  # billions
-            pct_of_revenue = (year1_effect / fed_revenue) * 100
+            pct_of_revenue = (year1_net / fed_revenue) * 100
             st.metric(
                 "% of Federal Revenue",
                 f"{pct_of_revenue:.1f}%",
-                help="Effect as percentage of total federal revenue"
+                help="Net effect as percentage of total federal revenue"
             )
 
         with col3:
             # Per taxpayer effect
             if policy.affected_taxpayers_millions > 0:
-                per_taxpayer = (year1_effect * 1e9) / (policy.affected_taxpayers_millions * 1e6)
+                per_taxpayer_display = (year1_net * 1e9) / (policy.affected_taxpayers_millions * 1e6)
                 st.metric(
                     "Per Affected Taxpayer",
-                    f"${per_taxpayer:,.0f}",
-                    help="Average tax change per affected taxpayer"
+                    f"${per_taxpayer_display:,.0f}",
+                    help="Average net tax change per affected taxpayer"
                 )
 
         # Distributional visualization
@@ -982,8 +1094,10 @@ if st.session_state.results:
                     'duration': duration,
                 },
                 'results': {
-                    'total_10yr_effect': float(total_revenue_effect),
-                    'year1_effect': float(year1_effect),
+                    'static_10yr': float(static_total),
+                    'behavioral_offset_10yr': float(behavioral_total),
+                    'net_10yr_effect': float(net_total),
+                    'year1_net_effect': float(year1_net),
                     'by_year': df_timeline.to_dict('records')
                 }
             }
