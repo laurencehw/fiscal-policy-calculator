@@ -161,7 +161,7 @@ class CBOBaseline:
 
         # Initialize data loaders
         irs_data = IRSSOIData()
-        fred_data = FREDData(api_key="a2efb8590f142e4ff8a528e194b531ef")  # User's API key
+        fred_data = FREDData()  # Uses FRED_API_KEY env var
 
         # Get most recent available IRS data year
         available_years = irs_data.get_data_years_available()
