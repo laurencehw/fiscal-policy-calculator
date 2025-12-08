@@ -162,11 +162,24 @@ class TaxPolicy(Policy):
         if (self.rate_change != 0 and 
             self.affected_taxpayers_millions > 0 and 
             self.avg_taxable_income_in_bracket > 0):
-            # Accurate formula: ΔRevenue = ΔRate × Taxable Income × # Taxpayers
-            # For rate changes on income ABOVE a threshold, we use income in the bracket
+            # Key insight: Rate changes apply only to MARGINAL income above threshold,
+            # not the entire income of affected filers.
+            # 
+            # Example: For a $400K threshold, someone earning $500K only has $100K
+            # subject to the rate change, not the full $500K.
+            #
+            # Formula: ΔRevenue = ΔRate × Marginal_Income × # Taxpayers
+            # where Marginal_Income = Avg_Income - Threshold
+            
+            marginal_income = max(0, self.avg_taxable_income_in_bracket - self.affected_income_threshold)
+            
+            # If threshold is 0 (affects all income), use full average income
+            if self.affected_income_threshold == 0:
+                marginal_income = self.avg_taxable_income_in_bracket
+            
             revenue_change = (
                 self.rate_change *  # e.g., -0.02 for 2pp cut
-                self.avg_taxable_income_in_bracket *  # avg income subject to rate
+                marginal_income *   # income ABOVE threshold subject to rate change
                 self.affected_taxpayers_millions * 1e6  # convert to actual count
             ) / 1e9  # convert to billions
             return revenue_change
@@ -285,10 +298,33 @@ class TaxPolicy(Policy):
             f"  Avg taxable income: ${bracket_info['avg_taxable_income']:,.0f}"
         )
 
-        # Calculate revenue change using actual IRS data
+        # Update policy object with auto-populated values (so UI can display them)
+        self.affected_taxpayers_millions = bracket_info['num_filers'] / 1e6
+        self.avg_taxable_income_in_bracket = bracket_info['avg_taxable_income']
+
+        # Calculate MARGINAL income (income above threshold)
+        # This is crucial: rate changes only apply to income ABOVE the threshold,
+        # not the entire income of affected filers.
+        #
+        # Example: For $400K threshold, someone earning $600K has only $200K
+        # subject to the new rate, not the full $600K.
+        marginal_income = max(0, bracket_info['avg_taxable_income'] - self.affected_income_threshold)
+        
+        # If threshold is 0 (affects all income), use full average income
+        if self.affected_income_threshold == 0:
+            marginal_income = bracket_info['avg_taxable_income']
+
+        logger.info(
+            f"  Avg total income: ${bracket_info['avg_taxable_income']:,.0f}"
+        )
+        logger.info(
+            f"  Marginal income above ${self.affected_income_threshold:,.0f}: ${marginal_income:,.0f}"
+        )
+
+        # Calculate revenue change using MARGINAL income
         revenue_change = (
             self.rate_change *
-            bracket_info['avg_taxable_income'] *
+            marginal_income *
             bracket_info['num_filers']
         ) / 1e9  # Convert to billions
 
