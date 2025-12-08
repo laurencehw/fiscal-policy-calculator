@@ -1,88 +1,146 @@
 # Fiscal Policy Impact Calculator
 
-A web application for estimating the budgetary and economic effects of fiscal policy proposals using real IRS Statistics of Income data and FRED economic indicators.
+A web application for estimating the budgetary and economic effects of fiscal policy proposals using real IRS Statistics of Income data and CBO methodology.
 
-## 🚀 Live Demo
+**🚀 Live App:** https://laurencehw-fiscal-policy-calculator.streamlit.app
 
-**Coming soon:** `https://calculator.lwilsesamson.com`
+---
 
 ## Features
 
-- **Tax Policy Calculator** - Estimate revenue effects of tax rate changes
-- **Real Data Integration** - Uses IRS SOI and FRED economic data
-- **Interactive Charts** - Visualize year-by-year impacts
-- **Auto-Population** - Automatically fills in taxpayer counts and income levels
-- **Export Results** - Download as CSV or JSON
+### Tax Policy Calculator
+- Estimate revenue effects of tax rate changes
+- Auto-populates taxpayer counts from real IRS data (2021-2022)
+- Behavioral response modeling (Elasticity of Taxable Income)
+- Static and dynamic scoring options
 
-## How It Works
+### Spending Policy Calculator
+- Infrastructure, defense, and social program spending
+- Fiscal multiplier effects on GDP
+- One-time vs recurring spending analysis
 
-1. Select a tax rate change (-10% to +10%)
-2. Choose income threshold (e.g., "$500K+")
-3. Click "Calculate Impact"
-4. See revenue effect, distributional impact, and charts
+### Policy Comparison Tool
+- Compare 2-4 policies side-by-side
+- 10-year budget impact charts
+- Year-by-year timeline comparison
 
-The calculator uses Congressional Budget Office (CBO) methodology and real IRS data from 2021-2022.
+### Preset Policies
+- TCJA 2017 High-Income Cut
+- Biden 2025 Proposal
+- Progressive Millionaire Tax
+- Middle Class Tax Cut
+- And more...
+
+---
+
+## Quick Start
+
+### Run Locally
+```bash
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+Open http://localhost:8501 in your browser.
+
+### Use Online
+Visit: https://laurencehw-fiscal-policy-calculator.streamlit.app
+
+---
+
+## Project Structure
+
+```
+Budget tool/
+├── app.py                    # Streamlit web application
+├── fiscal_model/             # Core scoring engine
+│   ├── baseline.py           # Baseline budget projections
+│   ├── policies.py           # Policy definitions
+│   ├── scoring.py            # Static/dynamic scoring
+│   ├── economics.py          # Economic feedback models
+│   └── data/                 # Data integration
+│       ├── irs_soi.py        # IRS SOI data loader
+│       └── fred_data.py      # FRED API integration
+├── planning/                 # Project planning
+│   ├── ROADMAP.md            # Long-term vision & roadmap
+│   └── NEXT_SESSION.md       # Current priorities
+├── docs/                     # Documentation
+│   ├── METHODOLOGY.md        # Scoring methodology
+│   ├── ARCHITECTURE.md       # System design
+│   └── DEPLOYMENT.md         # Deployment guide
+└── archive/                  # Historical session notes
+```
+
+---
+
+## Data Sources
+
+| Source | Data | Usage |
+|--------|------|-------|
+| [IRS SOI](https://www.irs.gov/statistics/soi-tax-stats-individual-income-tax-statistics) | Tax returns by income bracket | Auto-population, revenue estimates |
+| [FRED](https://fred.stlouisfed.org) | GDP, unemployment, interest rates | Economic baseline, multipliers |
+| [CBO](https://www.cbo.gov) | Budget projections, methodology | Scoring framework |
+
+---
+
+## Methodology
+
+The calculator uses Congressional Budget Office (CBO) methodology:
+
+1. **Static Scoring** - Direct revenue effect from rate changes
+2. **Behavioral Response** - Taxpayer response via ETI (Elasticity of Taxable Income)
+3. **Dynamic Scoring** - GDP feedback effects on revenue
+4. **Fiscal Multipliers** - State-dependent (recession vs normal times)
+
+See `docs/METHODOLOGY.md` for details.
+
+---
+
+## Roadmap
+
+| Phase | Focus | Status |
+|-------|-------|--------|
+| 1 | Core calculator & deployment | ✅ Complete |
+| 2 | CBO validation | 🔄 Current |
+| 3 | Distributional analysis | Planned |
+| 4 | Trade policy calculator | Planned |
+| 5 | Multi-model platform | Future |
+
+See `planning/ROADMAP.md` for full roadmap.
+
+---
 
 ## Technology
 
 - **Backend:** Python, NumPy, Pandas
 - **Frontend:** Streamlit
 - **Charts:** Plotly
-- **Data:** IRS Statistics of Income, FRED API
+- **Hosting:** Streamlit Cloud (free)
+- **Data:** IRS SOI, FRED API
 
-## Data Sources
+---
 
-- IRS Statistics of Income (SOI) Individual Income Tax Statistics
-- Federal Reserve Economic Data (FRED)
-- CBO Budget and Economic Outlook
+## Documentation
 
-## Running Locally
+| Document | Description |
+|----------|-------------|
+| `planning/ROADMAP.md` | Long-term vision and feature roadmap |
+| `planning/NEXT_SESSION.md` | Current session priorities |
+| `docs/METHODOLOGY.md` | Scoring methodology details |
+| `docs/ARCHITECTURE.md` | Multi-model system design |
+| `docs/DEPLOYMENT.md` | Deployment and hosting guide |
 
-```bash
-pip install -r requirements.txt
-streamlit run app.py
-```
-
-## Deployment
-
-This app is deployed on Streamlit Cloud.
-
-See `QUICK_DEPLOY.md` for deployment instructions.
-
-## Project Structure
-
-```
-fiscal_model/
-├── __init__.py           # Package exports
-├── policies.py           # Policy parameter definitions
-├── baseline.py           # Baseline budget projections
-├── scoring.py            # Static and dynamic scoring engine
-├── economics.py          # Economic feedback models
-├── data/
-│   ├── irs_soi.py       # IRS data loader
-│   ├── fred_data.py     # FRED API integration
-│   └── validation.py    # Data quality checks
-└── data_files/
-    └── irs_soi/         # IRS CSV data files
-
-app.py                    # Streamlit web application
-```
-
-## Methodology
-
-See `docs/METHODOLOGY.md` for detailed information on:
-- Revenue estimation formulas
-- Behavioral response parameters
-- Fiscal multiplier calibration
-- CBO methodology references
+---
 
 ## License
 
 MIT License
 
+---
+
 ## Author
 
-Built by [Your Name] | [lwilsesamson.com](https://lwilsesamson.com)
+Built by Laurence Wilse-Samson | [lwilsesamson.com](https://lwilsesamson.com)
 
 ---
 

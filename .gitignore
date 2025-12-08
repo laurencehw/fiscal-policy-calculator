@@ -7,32 +7,72 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+*.egg
 
 # Virtual environments
 venv/
 env/
 ENV/
+.venv/
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*.sublime-*
 
 # OS
 .DS_Store
 Thumbs.db
+Desktop.ini
 
 # Jupyter
 .ipynb_checkpoints/
+*.ipynb
 
 # Cache
 *.cache
 .pytest_cache/
+.mypy_cache/
 
-# Data cache
+# Data cache (generated at runtime)
 fiscal_model/data_files/cache/
 
-# Test outputs
+# Logs
 *.log
+logs/
+
+# Test outputs
 test_output/
+htmlcov/
+.coverage
+coverage.xml
+
+# Raw data files (we use converted CSVs)
+*.xls
+*.xlsx
+
+# Copyrighted materials
+literature/
+
+# Local config
+.env
+.env.local
+*.local
+
+# Claude/AI assistant folders
+.claude/
+.cursor/
+
+# Archive/planning (local only)
+archive/
+planning/
+
+# Windows batch files
+*.bat
+
+# Backup files
+*.bak
+*.backup
+*~
