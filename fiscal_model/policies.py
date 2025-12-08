@@ -223,12 +223,16 @@ class TaxPolicy(Policy):
         Estimate behavioral response offset to static revenue estimate.
         Uses elasticity of taxable income (ETI) approach.
 
+        The behavioral offset REDUCES the magnitude of the static estimate:
+        - Tax INCREASE: People reduce taxable income → LESS revenue than expected (negative offset)
+        - Tax CUT: People increase taxable income → LESS revenue loss than expected (positive offset)
+
         Returns:
-            Offset factor (e.g., 0.25 means 25% of static effect is offset)
+            Behavioral offset in billions (opposite sign to static effect)
         """
-        # Revenue offset from behavioral response
-        # Higher ETI = more revenue offset from tax cuts, less gain from tax increases
-        return static_effect * self.taxable_income_elasticity * 0.5
+        # Behavioral response OFFSETS the static estimate
+        # Negative sign ensures offset reduces the magnitude of static effect
+        return -static_effect * self.taxable_income_elasticity * 0.5
 
     def _should_use_irs_data(self) -> bool:
         """
