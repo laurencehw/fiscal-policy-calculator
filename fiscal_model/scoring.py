@@ -9,7 +9,7 @@ import numpy as np
 from typing import Optional, Union, Literal
 
 from .policies import (
-    Policy, TaxPolicy, SpendingPolicy, TransferPolicy, 
+    Policy, TaxPolicy, CapitalGainsPolicy, SpendingPolicy, TransferPolicy,
     PolicyPackage, PolicyType
 )
 from .baseline import BaselineProjection, CBOBaseline
@@ -212,6 +212,7 @@ class FiscalPolicyScorer:
                           If False, use hardcoded fallback values.
         """
         self.start_year = start_year
+        self.use_real_data = use_real_data
 
         if baseline is None:
             generator = CBOBaseline(start_year=start_year, use_real_data=use_real_data)
@@ -381,11 +382,17 @@ class FiscalPolicyScorer:
                 base_rev = self.baseline.corporate_income_tax[i]
             elif policy.policy_type == PolicyType.PAYROLL_TAX:
                 base_rev = self.baseline.payroll_taxes[i]
+            elif policy.policy_type == PolicyType.CAPITAL_GAINS_TAX:
+                # Capital gains policy uses a realizations base; baseline revenue is not used.
+                base_rev = 0.0
             else:
                 base_rev = self.baseline.individual_income_tax[i]  # Default
             
             # Static effect
-            static_annual = policy.estimate_static_revenue_effect(base_rev)
+            static_annual = policy.estimate_static_revenue_effect(
+                base_rev,
+                use_real_data=self.use_real_data,
+            )
             revenue[i] = static_annual * phase
             
             # Behavioral offset (reduces revenue gain from tax increases,

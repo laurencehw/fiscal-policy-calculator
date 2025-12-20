@@ -12,7 +12,7 @@ from typing import Optional
 import numpy as np
 
 from .cbo_scores import CBOScore, KNOWN_SCORES, get_validation_targets
-from ..policies import TaxPolicy, PolicyType
+from ..policies import TaxPolicy, CapitalGainsPolicy, PolicyType
 from ..scoring import FiscalPolicyScorer, ScoringResult
 
 
@@ -82,6 +82,8 @@ def create_policy_from_score(score: CBOScore) -> Optional[TaxPolicy]:
     
     Returns None if the score doesn't have enough parameters.
     """
+    # This helper currently supports income tax rate-change policies that can be
+    # auto-populated from IRS SOI. Other policy types may require additional inputs.
     if score.policy_type != "income_tax":
         return None
     
@@ -97,6 +99,39 @@ def create_policy_from_score(score: CBOScore) -> Optional[TaxPolicy]:
         start_year=2025,
         duration_years=10,
         # Let auto-population handle taxpayer counts
+    )
+
+
+def create_capital_gains_example_from_score(
+    score: CBOScore,
+    *,
+    baseline_capital_gains_rate: float,
+    baseline_realizations_billions: float,
+    realization_elasticity: float = 0.5,
+) -> CapitalGainsPolicy:
+    """
+    Create a CapitalGainsPolicy from a score entry plus required extra inputs.
+
+    Notes:
+    - IRS SOI aggregate tables in this repo do not include capital gains realizations,
+      so the realizations base must be supplied externally.
+    - Many official capital gains estimates bundle multiple provisions (e.g., step-up at death).
+      This helper covers the realizations elasticity channel only.
+    """
+    if score.rate_change is None:
+        raise ValueError("score.rate_change is required")
+
+    return CapitalGainsPolicy(
+        name=f"Validation (Example): {score.name}",
+        description=score.description,
+        policy_type=PolicyType.CAPITAL_GAINS_TAX,
+        rate_change=score.rate_change,
+        affected_income_threshold=score.income_threshold or 0,
+        start_year=2025,
+        duration_years=10,
+        baseline_capital_gains_rate=float(baseline_capital_gains_rate),
+        baseline_realizations_billions=float(baseline_realizations_billions),
+        realization_elasticity=float(realization_elasticity),
     )
 
 

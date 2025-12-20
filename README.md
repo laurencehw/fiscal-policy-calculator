@@ -51,24 +51,30 @@ Visit: https://laurencehw-fiscal-policy-calculator.streamlit.app
 ## Project Structure
 
 ```
-Budget tool/
+fiscal-policy-calculator/
 ├── app.py                    # Streamlit web application
 ├── fiscal_model/             # Core scoring engine
 │   ├── baseline.py           # Baseline budget projections
 │   ├── policies.py           # Policy definitions
 │   ├── scoring.py            # Static/dynamic scoring
 │   ├── economics.py          # Economic feedback models
-│   └── data/                 # Data integration
-│       ├── irs_soi.py        # IRS SOI data loader
-│       └── fred_data.py      # FRED API integration
+│   ├── uncertainty.py        # Uncertainty analysis
+│   ├── reporting.py          # Output formatting
+│   ├── data/                 # Data integration
+│   │   ├── irs_soi.py        # IRS SOI data loader
+│   │   ├── fred_data.py      # FRED API integration
+│   │   └── validation.py     # Data quality checks
+│   ├── data_files/           # Static data files
+│   │   └── irs_soi/          # IRS Statistics of Income CSVs
+│   └── validation/           # Model validation
+│       ├── cbo_scores.py     # Known CBO/JCT scores database
+│       └── compare.py        # Comparison framework
 ├── planning/                 # Project planning
 │   ├── ROADMAP.md            # Long-term vision & roadmap
 │   └── NEXT_SESSION.md       # Current priorities
-├── docs/                     # Documentation
-│   ├── METHODOLOGY.md        # Scoring methodology
-│   ├── ARCHITECTURE.md       # System design
-│   └── DEPLOYMENT.md         # Deployment guide
-└── archive/                  # Historical session notes
+└── docs/                     # Documentation
+    ├── METHODOLOGY.md        # Scoring methodology
+    └── ARCHITECTURE.md       # System design
 ```
 
 ---
@@ -92,21 +98,24 @@ The calculator uses Congressional Budget Office (CBO) methodology:
 3. **Dynamic Scoring** - GDP feedback effects on revenue
 4. **Fiscal Multipliers** - State-dependent (recession vs normal times)
 
-See `docs/METHODOLOGY.md` for details.
+See [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) for details.
 
 ---
 
 ## Roadmap
 
+**Vision**: Replicate methodologies from CBO, JCT, Penn Wharton, Yale Budget Lab, and Tax Policy Center in an interactive, transparent platform.
+
 | Phase | Focus | Status |
 |-------|-------|--------|
 | 1 | Core calculator & deployment | ✅ Complete |
-| 2 | CBO validation | 🔄 Current |
-| 3 | Distributional analysis | Planned |
-| 4 | Trade policy calculator | Planned |
-| 5 | Multi-model platform | Future |
+| 2 | CBO methodology completion | 🔄 Current |
+| 3 | Distributional analysis (TPC-style) | Planned |
+| 4 | Penn Wharton OLG model | Planned |
+| 5 | Trade policy calculator (Yale-style) | Planned |
+| 6 | Multi-model comparison platform | Future |
 
-See `planning/ROADMAP.md` for full roadmap.
+See [`planning/ROADMAP.md`](planning/ROADMAP.md) for full roadmap with technical details.
 
 ---
 
@@ -124,11 +133,10 @@ See `planning/ROADMAP.md` for full roadmap.
 
 | Document | Description |
 |----------|-------------|
-| `planning/ROADMAP.md` | Long-term vision and feature roadmap |
-| `planning/NEXT_SESSION.md` | Current session priorities |
-| `docs/METHODOLOGY.md` | Scoring methodology details |
-| `docs/ARCHITECTURE.md` | Multi-model system design |
-| `docs/DEPLOYMENT.md` | Deployment and hosting guide |
+| [`planning/ROADMAP.md`](planning/ROADMAP.md) | Long-term vision and feature roadmap |
+| [`planning/NEXT_SESSION.md`](planning/NEXT_SESSION.md) | Current session priorities |
+| [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) | Scoring methodology details |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Multi-model system design |
 
 ---
 

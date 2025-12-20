@@ -14,12 +14,14 @@ Example usage:
 """
 
 from fiscal_model.data.irs_soi import IRSSOIData, TaxBracketData
+from fiscal_model.data.capital_gains import CapitalGainsBaseline
 from fiscal_model.data.fred_data import FREDData
 from fiscal_model.data.validation import DataValidator, ValidationResult
 
 __all__ = [
     'IRSSOIData',
     'TaxBracketData',
+    'CapitalGainsBaseline',
     'FREDData',
     'DataValidator',
     'ValidationResult',

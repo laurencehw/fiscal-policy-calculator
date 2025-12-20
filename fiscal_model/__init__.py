@@ -8,6 +8,7 @@ using Congressional Budget Office methodology.
 from .policies import (
     Policy,
     TaxPolicy,
+    CapitalGainsPolicy,
     SpendingPolicy,
     TransferPolicy,
     PolicyPackage,
@@ -26,6 +27,7 @@ __version__ = "1.0.0"
 __all__ = [
     "Policy",
     "TaxPolicy",
+    "CapitalGainsPolicy",
     "SpendingPolicy",
     "TransferPolicy",
     "PolicyPackage",

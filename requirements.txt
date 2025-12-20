@@ -8,6 +8,7 @@ scipy>=1.10.0
 pydantic>=2.0.0
 rich>=13.0.0
 fredapi>=0.5.0  # Federal Reserve Economic Data API
+xlrd>=2.0.1  # pandas read_excel support for legacy .xls (IRS SOI preliminary tables)
 
 
 # Web app dependencies

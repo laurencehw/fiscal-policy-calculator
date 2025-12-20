@@ -234,6 +234,113 @@ class TaxPolicy(Policy):
         # Negative sign ensures offset reduces the magnitude of static effect
         return -static_effect * self.taxable_income_elasticity * 0.5
 
+
+@dataclass
+class CapitalGainsPolicy(TaxPolicy):
+    """
+    Capital gains tax policy with realizations behavioral response.
+
+    Unlike wage income, capital gains realizations respond strongly to the tax rate
+    due to timing/lock-in effects. This policy models that channel explicitly.
+
+    Required inputs (currently user-provided):
+    - baseline_capital_gains_rate: baseline effective marginal rate (0-1) for the affected group
+    - baseline_realizations_billions: taxable realizations base ($B/year) for the affected group
+    - realization_elasticity: elasticity of realizations to the net-of-tax rate (>=0)
+    """
+
+    baseline_capital_gains_rate: float = 0.20
+    baseline_realizations_billions: float = 0.0
+    realization_elasticity: float = 0.5
+
+    def _reform_capital_gains_rate(self) -> float:
+        """
+        Determine the reform capital gains rate.
+
+        Precedence:
+        1) new_rate if provided
+        2) baseline_capital_gains_rate + rate_change
+        """
+        if self.new_rate is not None:
+            return float(self.new_rate)
+        return float(self.baseline_capital_gains_rate + self.rate_change)
+
+    def estimate_static_revenue_effect(self, baseline_revenue: float, use_real_data: bool = True) -> float:
+        """
+        Static effect holding realizations fixed:
+
+            ΔRev_static = (τ1 - τ0) * R0
+
+        where:
+        - τ0 baseline rate
+        - τ1 reform rate
+        - R0 baseline realizations base ($B/year)
+        """
+        _ = baseline_revenue  # Not used for capital gains; base is provided directly.
+        # Auto-populate baseline realizations/rate when requested and not provided.
+        if use_real_data and float(self.baseline_realizations_billions) <= 0:
+            from fiscal_model.data import CapitalGainsBaseline
+
+            year = int(self.data_year) if self.data_year else 2022
+            # Use a by-AGI statutory proxy for τ0 by default (more consistent with threshold targeting).
+            baseline = CapitalGainsBaseline().get_baseline_above_threshold_with_rate_method(
+                year=year,
+                threshold=float(self.affected_income_threshold),
+                rate_method="statutory_by_agi",
+            )
+            # Mutate for downstream display / reuse.
+            self.baseline_realizations_billions = float(baseline["net_capital_gain_billions"])
+            self.baseline_capital_gains_rate = float(baseline["average_effective_tax_rate"])
+
+        tau0 = float(self.baseline_capital_gains_rate)
+        tau1 = float(self._reform_capital_gains_rate())
+        r0 = float(self.baseline_realizations_billions)
+
+        if r0 <= 0:
+            raise ValueError(
+                "baseline_realizations_billions must be > 0 for CapitalGainsPolicy "
+                "(set it manually or enable real-data auto-population)."
+            )
+        if not (0 <= tau0 < 1) or not (0 <= tau1 < 1):
+            raise ValueError("Capital gains rates must be in [0, 1) for CapitalGainsPolicy")
+
+        return (tau1 - tau0) * r0
+
+    def estimate_behavioral_offset(self, static_effect: float) -> float:
+        """
+        Behavioral offset from realizations response (timing/lock-in):
+
+        Realizations response:
+            R1 = R0 * ((1 - τ1) / (1 - τ0)) ** ε
+
+        Total revenue change:
+            ΔRev_total = τ1*R1 - τ0*R0
+
+        Offset returned here is:
+            behavioral_offset = ΔRev_total - ΔRev_static
+        """
+        _ = static_effect  # We recompute consistently from stored parameters.
+        tau0 = float(self.baseline_capital_gains_rate)
+        tau1 = float(self._reform_capital_gains_rate())
+        r0 = float(self.baseline_realizations_billions)
+        eps = float(self.realization_elasticity)
+
+        if r0 <= 0:
+            raise ValueError("baseline_realizations_billions must be > 0 for CapitalGainsPolicy")
+        if eps < 0:
+            raise ValueError("realization_elasticity must be >= 0 for CapitalGainsPolicy")
+        if not (0 <= tau0 < 1) or not (0 <= tau1 < 1):
+            raise ValueError("Capital gains rates must be in [0, 1) for CapitalGainsPolicy")
+
+        net0 = 1 - tau0
+        net1 = 1 - tau1
+        r1 = r0 * (net1 / net0) ** eps
+
+        delta_rev_static = (tau1 - tau0) * r0
+        delta_rev_total = (tau1 * r1) - (tau0 * r0)
+
+        return delta_rev_total - delta_rev_static
+
     def _should_use_irs_data(self) -> bool:
         """
         Check if we should attempt to auto-populate from IRS SOI data.

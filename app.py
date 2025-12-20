@@ -63,7 +63,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent))
 
 try:
-    from fiscal_model import TaxPolicy, PolicyType, FiscalPolicyScorer
+    from fiscal_model import TaxPolicy, CapitalGainsPolicy, PolicyType, FiscalPolicyScorer
     from fiscal_model.baseline import CBOBaseline
     MODEL_AVAILABLE = True
 except ImportError as e:
@@ -283,7 +283,10 @@ with tab1:
 
             # Show advanced parameters?
             with st.expander("🔧 Expert Parameters (Optional)"):
-                st.markdown("*Leave blank to auto-populate from IRS data*")
+                if policy_type == "Capital Gains":
+                    st.markdown("*Capital gains requires a realizations base + baseline rate (IRS SOI tables here do not include realizations).*")
+                else:
+                    st.markdown("*Leave blank to auto-populate from IRS data*")
 
                 manual_taxpayers = st.number_input(
                     "Affected taxpayers (millions)",
@@ -311,6 +314,50 @@ with tab1:
                     step=0.05,
                     help="Behavioral response parameter (0.25 = moderate response)"
                 )
+
+                # Capital gains-specific inputs (realizations elasticity model)
+                if policy_type == "Capital Gains":
+                    st.markdown("**Capital Gains (Realizations Model)**")
+                    cg_base_year = st.selectbox(
+                        "Capital gains baseline year",
+                        options=[2024, 2023, 2022],
+                        index=0,
+                        help="2022 uses IRS SOI preliminary net capital gain by AGI; 2023/2024 are estimated by scaling 2022 shares to Tax Foundation totals."
+                    )
+                    cg_rate_source = st.selectbox(
+                        "Baseline rate source (τ₀)",
+                        options=["Statutory/NIIT proxy (by AGI bracket)", "Tax Foundation avg effective (aggregate)"],
+                        index=0,
+                        help=(
+                            "Statutory proxy computes a weighted τ₀ using AGI brackets (IRS) + a documented rate mapping. "
+                            "Tax Foundation uses a single year-level effective rate (not by AGI). "
+                            "Tax Foundation source: https://taxfoundation.org/data/all/federal/federal-capital-gains-tax-collections-historical-data/"
+                        ),
+                    )
+                    baseline_cg_rate = st.number_input(
+                        "Baseline capital gains tax rate (τ₀)",
+                        min_value=0.0,
+                        max_value=0.99,
+                        value=0.20,
+                        step=0.01,
+                        help="Assumed baseline effective marginal capital gains rate for the affected group"
+                    )
+                    baseline_realizations = st.number_input(
+                        "Baseline taxable capital gains realizations (R₀, $B/year)",
+                        min_value=0.0,
+                        max_value=10000.0,
+                        value=0.0,
+                        step=10.0,
+                        help="If left at 0 and real-data is enabled, we'll auto-populate from IRS/Treasury-derived series (with documented assumptions)."
+                    )
+                    realization_elasticity = st.number_input(
+                        "Realization elasticity (ε)",
+                        min_value=0.0,
+                        max_value=5.0,
+                        value=0.5,
+                        step=0.05,
+                        help="Elasticity of realizations to the net-of-tax rate (timing/lock-in response)"
+                    )
 
     else:
         # SPENDING POLICY SECTION
@@ -464,23 +511,56 @@ if calculate and MODEL_AVAILABLE:
         # Handle tax policy
         with st.spinner("Calculating policy impact using real IRS data..."):
             try:
+                # Map UI to policy type
+                policy_type_map = {
+                    "Income Tax Rate": PolicyType.INCOME_TAX,
+                    "Capital Gains": PolicyType.CAPITAL_GAINS_TAX,
+                    "Corporate Tax": PolicyType.CORPORATE_TAX,
+                    "Payroll Tax": PolicyType.PAYROLL_TAX,
+                }
+                mapped_type = policy_type_map.get(policy_type, PolicyType.INCOME_TAX)
+
                 # Create policy
-                policy = TaxPolicy(
-                    name=policy_name,
-                    description=f"{rate_change_pct:+.1f}pp tax rate change for AGI >= ${threshold:,}",
-                    policy_type=PolicyType.INCOME_TAX,
-                    rate_change=rate_change,
-                    affected_income_threshold=threshold,
-                    data_year=data_year,
-                    duration_years=duration,
-                    phase_in_years=phase_in,
-                    taxable_income_elasticity=eti,
-                )
+                if policy_type == "Capital Gains":
+                    policy = CapitalGainsPolicy(
+                        name=policy_name,
+                        description=f"{rate_change_pct:+.1f}pp capital gains rate change for AGI >= ${threshold:,}",
+                        policy_type=mapped_type,
+                        rate_change=rate_change,
+                        affected_income_threshold=threshold,
+                        data_year=int(cg_base_year),
+                        duration_years=duration,
+                        phase_in_years=phase_in,
+                        baseline_capital_gains_rate=float(baseline_cg_rate),
+                        baseline_realizations_billions=float(baseline_realizations),
+                        realization_elasticity=float(realization_elasticity),
+                    )
+                    # If user wants auto-population, set τ₀=0 and R₀=0. Policy will populate using chosen method.
+                    if baseline_realizations <= 0:
+                        policy.baseline_realizations_billions = 0.0
+                        if cg_rate_source == "Tax Foundation avg effective (aggregate)":
+                            # Pre-fill τ₀ with TF default if provided; otherwise policy will overwrite when auto-populating.
+                            # Setting to 0 forces auto-populate; user can still manually override τ₀ above.
+                            policy.baseline_capital_gains_rate = 0.0
+                        else:
+                            policy.baseline_capital_gains_rate = 0.0
+                else:
+                    policy = TaxPolicy(
+                        name=policy_name,
+                        description=f"{rate_change_pct:+.1f}pp tax rate change for AGI >= ${threshold:,}",
+                        policy_type=mapped_type,
+                        rate_change=rate_change,
+                        affected_income_threshold=threshold,
+                        data_year=data_year,
+                        duration_years=duration,
+                        phase_in_years=phase_in,
+                        taxable_income_elasticity=eti,
+                    )
 
                 # Override auto-population if manual values provided
-                if manual_taxpayers > 0:
+                if policy_type != "Capital Gains" and manual_taxpayers > 0:
                     policy.affected_taxpayers_millions = manual_taxpayers
-                if manual_avg_income > 0:
+                if policy_type != "Capital Gains" and manual_avg_income > 0:
                     policy.avg_taxable_income_in_bracket = manual_avg_income
 
                 # Score policy
