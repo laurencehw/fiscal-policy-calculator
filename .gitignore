@@ -65,9 +65,11 @@ literature/
 .claude/
 .cursor/
 
-# Archive/planning (local only)
+# Archive (local only)
 archive/
-planning/
+
+# Planning docs (tracked)
+# planning/
 
 # Windows batch files
 *.bat
