@@ -12,6 +12,7 @@ A web application for estimating the budgetary and economic effects of fiscal po
 - Estimate revenue effects of tax rate changes
 - Auto-populates taxpayer counts from real IRS data (2021-2022)
 - Behavioral response modeling (Elasticity of Taxable Income)
+- Capital gains scoring with realizations elasticity + baseline ingestion
 - Static and dynamic scoring options
 
 ### Spending Policy Calculator
@@ -62,10 +63,12 @@ fiscal-policy-calculator/
 │   ├── reporting.py          # Output formatting
 │   ├── data/                 # Data integration
 │   │   ├── irs_soi.py        # IRS SOI data loader
+│   │   ├── capital_gains.py  # Capital gains baseline + rate proxies
 │   │   ├── fred_data.py      # FRED API integration
 │   │   └── validation.py     # Data quality checks
 │   ├── data_files/           # Static data files
 │   │   └── irs_soi/          # IRS Statistics of Income CSVs
+│   │   └── capital_gains/    # IRS SOI prelim XLS + documented rate proxies
 │   └── validation/           # Model validation
 │       ├── cbo_scores.py     # Known CBO/JCT scores database
 │       └── compare.py        # Comparison framework
@@ -95,8 +98,9 @@ The calculator uses Congressional Budget Office (CBO) methodology:
 
 1. **Static Scoring** - Direct revenue effect from rate changes
 2. **Behavioral Response** - Taxpayer response via ETI (Elasticity of Taxable Income)
-3. **Dynamic Scoring** - GDP feedback effects on revenue
-4. **Fiscal Multipliers** - State-dependent (recession vs normal times)
+3. **Capital Gains Realizations** - Realizations elasticity model (timing/lock-in), with baseline net capital gains by AGI for 2022 and documented 2023/2024 estimation
+4. **Dynamic Scoring** - GDP feedback effects on revenue
+5. **Fiscal Multipliers** - State-dependent (recession vs normal times)
 
 See [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) for details.
 
@@ -112,7 +116,7 @@ See [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) for details.
 | 2 | CBO methodology completion | 🔄 Current |
 | 3 | Distributional analysis (TPC-style) | Planned |
 | 4 | Penn Wharton OLG model | Planned |
-| 5 | Trade policy calculator (Yale-style) | Planned |
+| 5 | Yale Budget Lab modules (macro + microsim + behavioral + VAT + depreciation + trade) | Planned |
 | 6 | Multi-model comparison platform | Future |
 
 See [`planning/ROADMAP.md`](planning/ROADMAP.md) for full roadmap with technical details.
