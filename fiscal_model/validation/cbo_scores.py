@@ -208,6 +208,80 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         baseline_year=2024,
         notes="Includes taxing unrealized gains at death. High behavioral uncertainty."
     ),
+
+    # -------------------------------------------------------------------------
+    # CAPITAL GAINS TAX ESTIMATES (Isolated for Validation)
+    # -------------------------------------------------------------------------
+
+    "cbo_capgains_2pp_all": CBOScore(
+        policy_id="cbo_capgains_2pp_all",
+        name="CBO: +2pp Capital Gains (All Brackets)",
+        description="Raise statutory rates on long-term capital gains and qualified "
+                   "dividends by 2 percentage points across all brackets (0%→2%, 15%→17%, 20%→22%).",
+        ten_year_cost=-70.0,  # Raises $70B (JCT estimate)
+        source=ScoreSource.JCT,
+        source_date="2018-12",
+        source_url="https://www.cbo.gov/budget-options/54788",
+        rate_change=0.02,
+        income_threshold=0,  # Affects all brackets
+        policy_type="income_tax",
+        baseline_year=2018,
+        budget_window="FY2019-2028",
+        notes="JCT estimate. Reflects behavioral response (deferral). Does not change bracket thresholds."
+    ),
+
+    "pwbm_capgains_39_with_stepup": CBOScore(
+        policy_id="pwbm_capgains_39_with_stepup",
+        name="PWBM: 39.6% Cap Gains (With Step-Up)",
+        description="Raise top capital gains rate to 39.6% for income >$1M, "
+                   "KEEPING step-up basis at death (current law).",
+        ten_year_cost=33.0,  # LOSES $33B due to lock-in effect
+        source=ScoreSource.PWBM,
+        source_date="2021-04",
+        source_url="https://budgetmodel.wharton.upenn.edu/issues/2021/4/23/revenue-effects-of-president-bidens-capital-gains-tax-increase",
+        rate_change=0.196,  # 20% + 3.8% NIIT = 23.8% → 39.6%
+        income_threshold=1000000,
+        policy_type="income_tax",
+        baseline_year=2021,
+        budget_window="FY2022-2031",
+        notes="CRITICAL: With step-up basis, high rates LOSE revenue due to lock-in. "
+              "Taxpayers hold until death to avoid tax entirely."
+    ),
+
+    "pwbm_capgains_39_no_stepup": CBOScore(
+        policy_id="pwbm_capgains_39_no_stepup",
+        name="PWBM: 39.6% Cap Gains (No Step-Up)",
+        description="Raise top capital gains rate to 39.6% for income >$1M, "
+                   "combined with eliminating step-up basis at death.",
+        ten_year_cost=-113.0,  # Raises $113B
+        source=ScoreSource.PWBM,
+        source_date="2021-04",
+        source_url="https://budgetmodel.wharton.upenn.edu/issues/2021/4/23/revenue-effects-of-president-bidens-capital-gains-tax-increase",
+        rate_change=0.196,
+        income_threshold=1000000,
+        policy_type="income_tax",
+        baseline_year=2021,
+        budget_window="FY2022-2031",
+        notes="Without step-up, taxpayers cannot avoid tax by holding until death. "
+              "Lock-in effect is reduced, allowing higher rates to raise revenue."
+    ),
+
+    "treasury_capgains_39_plus_stepup_elim": CBOScore(
+        policy_id="treasury_capgains_39_plus_stepup_elim",
+        name="Treasury: 39.6% + Eliminate Step-Up",
+        description="Biden proposal: 39.6% rate for >$1M income + eliminate step-up "
+                   "basis at death ($1M exemption per person).",
+        ten_year_cost=-322.0,  # Raises $322B combined
+        source=ScoreSource.TREASURY,
+        source_date="2021-05",
+        rate_change=0.196,
+        income_threshold=1000000,
+        policy_type="income_tax",
+        baseline_year=2021,
+        budget_window="FY2022-2031",
+        notes="Combined effect of rate increase + step-up elimination. "
+              "Treasury Green Book estimate (higher than PWBM due to methodology differences)."
+    ),
     
     # -------------------------------------------------------------------------
     # ILLUSTRATIVE POLICIES (For Model Testing)

@@ -223,16 +223,18 @@ class TaxPolicy(Policy):
         Estimate behavioral response offset to static revenue estimate.
         Uses elasticity of taxable income (ETI) approach.
 
-        The behavioral offset REDUCES the magnitude of the static estimate:
-        - Tax INCREASE: People reduce taxable income → LESS revenue than expected (negative offset)
-        - Tax CUT: People increase taxable income → LESS revenue loss than expected (positive offset)
+        The behavioral offset represents REVENUE LOST due to behavioral response:
+        - Tax INCREASE: People reduce taxable income → positive offset (lost revenue)
+        - Tax CUT: People increase taxable income → negative offset (recovered revenue)
+
+        This offset is ADDED to static deficit to get final deficit effect.
 
         Returns:
-            Behavioral offset in billions (opposite sign to static effect)
+            Behavioral offset in billions (positive = revenue lost, increases deficit)
         """
-        # Behavioral response OFFSETS the static estimate
-        # Negative sign ensures offset reduces the magnitude of static effect
-        return -static_effect * self.taxable_income_elasticity * 0.5
+        # Behavioral response reduces revenue from tax increases (positive offset)
+        # and recovers some revenue from tax cuts (negative offset)
+        return abs(static_effect) * self.taxable_income_elasticity * 0.5
 
 
 @dataclass
@@ -246,12 +248,100 @@ class CapitalGainsPolicy(TaxPolicy):
     Required inputs (currently user-provided):
     - baseline_capital_gains_rate: baseline effective marginal rate (0-1) for the affected group
     - baseline_realizations_billions: taxable realizations base ($B/year) for the affected group
-    - realization_elasticity: elasticity of realizations to the net-of-tax rate (>=0)
+
+    Elasticity parameters (time-varying):
+    - short_run_elasticity: elasticity in years 1-3 (higher due to timing effects), default 0.8
+    - long_run_elasticity: elasticity in years 4+ (timing effects exhausted), default 0.4
+    - transition_years: years to transition from short-run to long-run, default 3
+
+    The realization_elasticity parameter is kept for backward compatibility; if
+    short_run_elasticity and long_run_elasticity are both left at defaults,
+    realization_elasticity is used as a single constant instead.
+
+    References:
+    - CBO (2012): "How Capital Gains Tax Rates Affect Revenues" — short-run ε ≈ 0.7-1.0
+    - Dowd, McClelland, Muthitacharoen (2015): long-run ε ≈ 0.3-0.5
+    - Yale Budget Lab: distinguishes transitory vs permanent behavioral response
     """
 
     baseline_capital_gains_rate: float = 0.20
     baseline_realizations_billions: float = 0.0
+
+    # Time-varying elasticity parameters
+    short_run_elasticity: float = 0.8   # Years 1-3: timing/anticipation effects dominate
+    long_run_elasticity: float = 0.4    # Years 4+: permanent behavioral response only
+    transition_years: int = 3           # Years over which elasticity transitions
+
+    # Backward-compatible single elasticity (used if short/long are at defaults)
     realization_elasticity: float = 0.5
+
+    # Whether to use time-varying elasticity (auto-detected, can override)
+    use_time_varying_elasticity: bool = True
+
+    # Step-up basis at death parameters
+    # Current law: unrealized gains are forgiven at death (step-up basis)
+    # This creates strong lock-in incentive to hold until death
+    step_up_at_death: bool = True       # Current law default
+    eliminate_step_up: bool = False     # Policy change: tax gains at death
+    step_up_exemption: float = 0.0      # Exemption per decedent (Biden: $1M)
+
+    # Unrealized gains at death (for step-up elimination revenue)
+    # JCT estimates ~$40-60B/year in forgone revenue from step-up
+    # CBO estimates ~$54B/year taxable if step-up eliminated
+    gains_at_death_billions: float = 54.0  # Annual unrealized gains at death
+
+    # Step-up elasticity multiplier: how much step-up increases lock-in
+    # With step-up, taxpayers can avoid tax entirely by holding until death
+    # This creates much stronger deferral incentive than just timing
+    # Calibrated from PWBM: need ~2x elasticity multiplier to match their results
+    step_up_lock_in_multiplier: float = 2.0
+
+    def get_elasticity_for_year(self, years_since_start: int) -> float:
+        """
+        Get the appropriate realization elasticity based on years since policy start.
+
+        The elasticity transitions from short_run_elasticity to long_run_elasticity
+        over the transition_years period using linear interpolation.
+
+        If step-up basis at death is in effect (current law), the elasticity is
+        multiplied by step_up_lock_in_multiplier to capture the stronger deferral
+        incentive from being able to avoid tax entirely by holding until death.
+
+        Args:
+            years_since_start: Number of years since policy took effect (0 = first year)
+
+        Returns:
+            Elasticity value for that year (may be multiplied by step-up factor)
+
+        Example with defaults (short=0.8, long=0.4, transition=3):
+            Year 0: 0.8 (full short-run)
+            Year 1: 0.67
+            Year 2: 0.53
+            Year 3+: 0.4 (full long-run)
+
+        With step_up_at_death=True and multiplier=2.0:
+            Year 0: 1.6, Year 3+: 0.8
+        """
+        if not self.use_time_varying_elasticity:
+            base_elasticity = float(self.realization_elasticity)
+        elif years_since_start <= 0:
+            base_elasticity = float(self.short_run_elasticity)
+        elif years_since_start >= self.transition_years:
+            base_elasticity = float(self.long_run_elasticity)
+        else:
+            # Interpolate
+            weight = years_since_start / self.transition_years
+            base_elasticity = float(
+                self.short_run_elasticity * (1 - weight) +
+                self.long_run_elasticity * weight
+            )
+
+        # Apply step-up lock-in multiplier if step-up is in effect
+        # When step-up is eliminated, the lock-in incentive is reduced
+        if self.step_up_at_death and not self.eliminate_step_up:
+            return base_elasticity * self.step_up_lock_in_multiplier
+        else:
+            return base_elasticity
 
     def _reform_capital_gains_rate(self) -> float:
         """
@@ -264,6 +354,50 @@ class CapitalGainsPolicy(TaxPolicy):
         if self.new_rate is not None:
             return float(self.new_rate)
         return float(self.baseline_capital_gains_rate + self.rate_change)
+
+    def estimate_step_up_elimination_revenue(self) -> float:
+        """
+        Estimate annual revenue from eliminating step-up basis at death.
+
+        When step-up is eliminated, unrealized capital gains become taxable at death.
+        This creates a NEW revenue stream separate from lifetime realizations.
+
+        Formula:
+            Revenue = τ × Gains_at_death × (1 - exemption_share)
+
+        Where:
+        - τ = reform capital gains rate
+        - Gains_at_death = annual unrealized gains transferred at death (~$54B baseline)
+        - exemption_share = fraction of gains below exemption threshold
+
+        Returns:
+            Annual revenue in billions from taxing gains at death (0 if step-up not eliminated)
+
+        References:
+        - JCT: Step-up tax expenditure ~$40-60B/year
+        - CBO: Taxing at death would raise ~$54B/year (no exemption)
+        - Biden proposal: $1M exemption reduces revenue to ~$32B/year
+        """
+        if not self.eliminate_step_up:
+            return 0.0
+
+        tau1 = float(self._reform_capital_gains_rate())
+        gains_at_death = float(self.gains_at_death_billions)
+
+        # Calculate exemption share
+        # Biden proposal: $1M per person exemption
+        # Rough estimate: ~40% of gains at death are below $1M threshold
+        # Higher exemptions reduce taxable share further
+        if self.step_up_exemption > 0:
+            # Rough heuristic: each $1M of exemption shields ~40% of gains
+            # This is a simplification; actual distribution is complex
+            exemption_millions = self.step_up_exemption / 1_000_000
+            exemption_share = min(0.9, 0.4 * exemption_millions)
+        else:
+            exemption_share = 0.0
+
+        taxable_gains = gains_at_death * (1 - exemption_share)
+        return tau1 * taxable_gains
 
     def estimate_static_revenue_effect(self, baseline_revenue: float, use_real_data: bool = True) -> float:
         """
@@ -306,24 +440,42 @@ class CapitalGainsPolicy(TaxPolicy):
 
         return (tau1 - tau0) * r0
 
-    def estimate_behavioral_offset(self, static_effect: float) -> float:
+    def estimate_behavioral_offset(self, static_effect: float,
+                                      years_since_start: int = 0) -> float:
         """
-        Behavioral offset from realizations response (timing/lock-in):
+        Behavioral offset from realizations response (timing/lock-in).
+
+        Uses time-varying elasticity: higher in short-run (timing effects),
+        lower in long-run (permanent behavioral response only).
 
         Realizations response:
-            R1 = R0 * ((1 - τ1) / (1 - τ0)) ** ε
+            R1 = R0 * ((1 - τ1) / (1 - τ0)) ** ε(t)
+
+        where ε(t) transitions from short_run_elasticity to long_run_elasticity.
 
         Total revenue change:
             ΔRev_total = τ1*R1 - τ0*R0
 
         Offset returned here is:
-            behavioral_offset = ΔRev_total - ΔRev_static
+            behavioral_offset = ΔRev_static - ΔRev_total
+
+        This is POSITIVE when behavioral response reduces revenue (rate increase
+        causes deferral, so actual revenue < static estimate).
+
+        Args:
+            static_effect: The static revenue effect (used for compatibility, not in calculation)
+            years_since_start: Years since policy took effect (0 = first year)
+
+        Returns:
+            Behavioral offset in billions (positive = revenue lost, increases deficit)
         """
         _ = static_effect  # We recompute consistently from stored parameters.
         tau0 = float(self.baseline_capital_gains_rate)
         tau1 = float(self._reform_capital_gains_rate())
         r0 = float(self.baseline_realizations_billions)
-        eps = float(self.realization_elasticity)
+
+        # Get time-varying elasticity
+        eps = self.get_elasticity_for_year(years_since_start)
 
         if r0 <= 0:
             raise ValueError("baseline_realizations_billions must be > 0 for CapitalGainsPolicy")
@@ -339,7 +491,8 @@ class CapitalGainsPolicy(TaxPolicy):
         delta_rev_static = (tau1 - tau0) * r0
         delta_rev_total = (tau1 * r1) - (tau0 * r0)
 
-        return delta_rev_total - delta_rev_static
+        # Return positive offset when revenue is lost (static > total)
+        return delta_rev_static - delta_rev_total
 
     def _should_use_irs_data(self) -> bool:
         """

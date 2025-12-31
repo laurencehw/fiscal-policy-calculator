@@ -12,6 +12,14 @@ from .policies import (
     Policy, TaxPolicy, CapitalGainsPolicy, SpendingPolicy, TransferPolicy,
     PolicyPackage, PolicyType
 )
+from .tcja import TCJAExtensionPolicy
+from .corporate import CorporateTaxPolicy
+from .credits import TaxCreditPolicy, CreditType
+from .estate import EstateTaxPolicy
+from .payroll import PayrollTaxPolicy
+from .amt import AMTPolicy, AMTType
+from .ptc import PremiumTaxCreditPolicy, PTCScenario
+from .tax_expenditures import TaxExpenditurePolicy, TaxExpenditureType
 from .baseline import BaselineProjection, CBOBaseline
 from .economics import EconomicModel, DynamicEffects
 
@@ -368,13 +376,142 @@ class FiscalPolicyScorer:
         n_years = len(self.baseline.years)
         revenue = np.zeros(n_years)
         behavioral = np.zeros(n_years)
-        
+
         for i, year in enumerate(self.baseline.years):
             if not policy.is_active(year):
                 continue
-            
+
             phase = policy.get_phase_in_factor(year)
-            
+
+            # Special handling for TCJA extension (uses component-based costing)
+            if isinstance(policy, TCJAExtensionPolicy):
+                # TCJA uses year-indexed costs with growth rates per component
+                years_since_start = year - policy.start_year
+                # _get_annual_cost returns COST (positive = adds to deficit)
+                # Revenue effect should be NEGATIVE (tax cuts reduce revenue)
+                annual_cost = policy._get_annual_cost(years_since_start)
+                revenue[i] = -annual_cost * phase
+                # TCJA behavioral offset is embedded in calibration; don't double-count
+                behavioral[i] = 0.0
+                continue
+
+            # Special handling for corporate tax (uses profit-based calculation with growth)
+            if isinstance(policy, CorporateTaxPolicy):
+                years_since_start = year - policy.start_year
+                # Get baseline corporate revenue for this year
+                base_rev = self.baseline.corporate_income_tax[i]
+
+                # Static effect from corporate policy (includes international, R&D, etc.)
+                static_annual = policy.estimate_static_revenue_effect(
+                    base_rev,
+                    use_real_data=self.use_real_data,
+                )
+                # Apply growth rate for corporate profits over time (~4%/year)
+                growth_factor = 1.04 ** years_since_start
+                revenue[i] = static_annual * growth_factor * phase
+
+                # Behavioral offset (corporate elasticity, pass-through shifting)
+                behavioral[i] = policy.estimate_behavioral_offset(revenue[i])
+                continue
+
+            # Special handling for tax credits (cost grows with inflation/population)
+            if isinstance(policy, TaxCreditPolicy):
+                years_since_start = year - policy.start_year
+                # Static effect from credit change
+                static_annual = policy.estimate_static_revenue_effect(
+                    0,  # Credits don't use baseline revenue
+                    use_real_data=self.use_real_data,
+                )
+                # Credits grow with inflation + population (~3%/year)
+                growth_factor = 1.03 ** years_since_start
+                revenue[i] = static_annual * growth_factor * phase
+
+                # Behavioral offset (labor supply effects, especially for EITC)
+                behavioral[i] = policy.estimate_behavioral_offset(revenue[i])
+                continue
+
+            # Special handling for estate tax (wealth growth ~3%/year)
+            if isinstance(policy, EstateTaxPolicy):
+                years_since_start = year - policy.start_year
+                # Static effect from exemption/rate changes
+                static_annual = policy.estimate_static_revenue_effect(
+                    0,  # Estate tax uses internal calculations
+                    use_real_data=self.use_real_data,
+                )
+                # Estate tax revenue grows with wealth (~3%/year)
+                growth_factor = 1.03 ** years_since_start
+                revenue[i] = static_annual * growth_factor * phase
+
+                # Behavioral offset (estate planning, gifts)
+                behavioral[i] = policy.estimate_behavioral_offset(revenue[i])
+                continue
+
+            # Special handling for payroll tax (wage growth ~4%/year)
+            if isinstance(policy, PayrollTaxPolicy):
+                years_since_start = year - policy.start_year
+                # Static effect from cap/rate changes
+                static_annual = policy.estimate_static_revenue_effect(
+                    0,  # Payroll tax uses internal calculations
+                    use_real_data=self.use_real_data,
+                )
+                # Payroll tax revenue grows with wages (~4%/year)
+                growth_factor = 1.04 ** years_since_start
+                revenue[i] = static_annual * growth_factor * phase
+
+                # Behavioral offset (labor supply, tax avoidance)
+                behavioral[i] = policy.estimate_behavioral_offset(revenue[i])
+                continue
+
+            # Special handling for AMT (income growth ~3%/year)
+            if isinstance(policy, AMTPolicy):
+                years_since_start = year - policy.start_year
+                # Static effect from exemption/rate changes
+                static_annual = policy.estimate_static_revenue_effect(
+                    0,  # AMT uses internal calculations
+                    use_real_data=self.use_real_data,
+                )
+                # AMT revenue grows with income (~3%/year)
+                growth_factor = 1.03 ** years_since_start
+                revenue[i] = static_annual * growth_factor * phase
+
+                # Behavioral offset (timing, avoidance)
+                behavioral[i] = policy.estimate_behavioral_offset(revenue[i])
+                continue
+
+            # Special handling for Premium Tax Credits (healthcare growth ~4%/year)
+            if isinstance(policy, PremiumTaxCreditPolicy):
+                years_since_start = year - policy.start_year
+                # Static effect from subsidy changes
+                static_annual = policy.estimate_static_revenue_effect(
+                    0,  # PTC uses internal calculations
+                    use_real_data=self.use_real_data,
+                )
+                # Healthcare costs grow ~4%/year
+                growth_factor = 1.04 ** years_since_start
+                revenue[i] = static_annual * growth_factor * phase
+
+                # Behavioral offset (coverage, adverse selection)
+                behavioral[i] = policy.estimate_behavioral_offset(revenue[i])
+                continue
+
+            # Special handling for Tax Expenditures (variable growth by type)
+            if isinstance(policy, TaxExpenditurePolicy):
+                years_since_start = year - policy.start_year
+                # Static effect from expenditure changes
+                static_annual = policy.estimate_static_revenue_effect(
+                    0,  # Tax expenditure uses internal calculations
+                    use_real_data=self.use_real_data,
+                )
+                # Growth rate depends on expenditure type
+                data = policy.get_expenditure_data()
+                growth_rate = data.get("growth_rate", 0.03)
+                growth_factor = (1 + growth_rate) ** years_since_start
+                revenue[i] = static_annual * growth_factor * phase
+
+                # Behavioral offset
+                behavioral[i] = policy.estimate_behavioral_offset(revenue[i])
+                continue
+
             # Get relevant baseline revenue
             if policy.policy_type == PolicyType.INCOME_TAX:
                 base_rev = self.baseline.individual_income_tax[i]
@@ -387,18 +524,28 @@ class FiscalPolicyScorer:
                 base_rev = 0.0
             else:
                 base_rev = self.baseline.individual_income_tax[i]  # Default
-            
+
             # Static effect
             static_annual = policy.estimate_static_revenue_effect(
                 base_rev,
                 use_real_data=self.use_real_data,
             )
             revenue[i] = static_annual * phase
-            
+
+            # For capital gains policies, add step-up elimination revenue if applicable
+            if isinstance(policy, CapitalGainsPolicy) and policy.eliminate_step_up:
+                step_up_revenue = policy.estimate_step_up_elimination_revenue()
+                revenue[i] += step_up_revenue * phase
+
             # Behavioral offset (reduces revenue gain from tax increases,
             # reduces revenue loss from tax cuts)
-            behavioral[i] = policy.estimate_behavioral_offset(revenue[i])
-        
+            # For capital gains, pass years_since_start for time-varying elasticity
+            if isinstance(policy, CapitalGainsPolicy):
+                years_since_start = year - policy.start_year
+                behavioral[i] = policy.estimate_behavioral_offset(revenue[i], years_since_start)
+            else:
+                behavioral[i] = policy.estimate_behavioral_offset(revenue[i])
+
         return revenue, behavioral
     
     def _score_spending_policy(self, policy: SpendingPolicy) -> np.ndarray:

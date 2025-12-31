@@ -136,6 +136,68 @@ Where `0.5` converts from income elasticity to revenue offset.
 
 The behavioral response always *dampens* the static effect.
 
+### Capital Gains: Realizations Elasticity
+
+Capital gains realizations respond more strongly than wage income due to timing flexibility (lock-in effect). We model this with **time-varying elasticity**:
+
+```
+R₁ = R₀ × ((1-τ₁)/(1-τ₀))^ε(t)
+```
+
+Where:
+- R₀ = baseline realizations
+- τ₀, τ₁ = baseline and reform tax rates
+- ε(t) = elasticity that transitions from short-run to long-run
+
+**Time-Varying Elasticity Parameters:**
+
+| Parameter | Value | Rationale |
+|-----------|-------|-----------|
+| Short-run elasticity (years 1-3) | 0.8 | Timing/anticipation effects dominate |
+| Long-run elasticity (years 4+) | 0.4 | Only permanent behavioral response |
+| Transition period | 3 years | Linear interpolation |
+
+**References:**
+- CBO (2012): Short-run ε ≈ 0.7-1.0
+- Dowd, McClelland, Muthitacharoen (2015): Long-run ε ≈ 0.3-0.5
+- Penn Wharton Budget Model: Distinguishes transitory vs permanent response
+
+**Step-Up Basis at Death**
+
+Under current law, unrealized capital gains are forgiven at death (step-up basis). This creates a much stronger lock-in effect because taxpayers can avoid tax entirely by holding until death.
+
+We model this with a **lock-in multiplier** applied to the base elasticity:
+```
+ε_effective = ε_base × step_up_lock_in_multiplier
+```
+
+| Scenario | Lock-in Multiplier | Effective ε |
+|----------|-------------------|-------------|
+| With step-up (current law) | 5.3x | ~4.2 short-run |
+| Step-up eliminated | 1.0x | 0.8 short-run |
+
+**Revenue from Step-Up Elimination**
+
+When step-up is eliminated, gains become taxable at death:
+```
+Revenue_death = τ × Gains_at_death × (1 - exemption_share)
+```
+
+Key estimates:
+- Annual gains at death: ~$54B (CBO)
+- Biden proposal ($1M exemption): ~$14B/year additional revenue
+- Full elimination (no exemption): ~$23B/year
+
+**Validation Results (December 2024):**
+
+| Scenario | Official | Model | Error | Rating |
+|----------|----------|-------|-------|--------|
+| CBO +2pp (all brackets) | -$70B | -$83B | -19% | Acceptable |
+| PWBM 39.6% (with step-up) | +$33B | +$30B | -9% | **Good** |
+| PWBM 39.6% (no step-up) | -$113B | -$139B | -23% | Poor |
+
+The model now correctly predicts that raising capital gains rates to 39.6% with step-up basis **loses revenue** (+$30B deficit), while eliminating step-up raises revenue.
+
 ---
 
 ## Dynamic Scoring

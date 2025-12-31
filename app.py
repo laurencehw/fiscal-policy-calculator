@@ -64,6 +64,38 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 try:
     from fiscal_model import TaxPolicy, CapitalGainsPolicy, PolicyType, FiscalPolicyScorer
+    from fiscal_model import TCJAExtensionPolicy, create_tcja_extension, create_tcja_repeal_salt_cap
+    from fiscal_model import CorporateTaxPolicy, create_biden_corporate_rate_only, create_republican_corporate_cut
+    from fiscal_model import (
+        TaxCreditPolicy, create_biden_ctc_2021, create_ctc_permanent_extension,
+        create_biden_eitc_childless, create_ctc_expansion,
+    )
+    from fiscal_model import (
+        EstateTaxPolicy, create_tcja_estate_extension, create_biden_estate_proposal,
+        create_eliminate_estate_tax,
+    )
+    from fiscal_model import (
+        PayrollTaxPolicy, create_ss_cap_90_percent, create_ss_donut_hole,
+        create_ss_eliminate_cap, create_expand_niit, create_biden_payroll_proposal,
+    )
+    from fiscal_model import (
+        AMTPolicy, AMTType, create_extend_tcja_amt_relief,
+        create_repeal_individual_amt, create_repeal_corporate_amt,
+    )
+    from fiscal_model import (
+        PremiumTaxCreditPolicy, PTCScenario, create_extend_enhanced_ptc,
+        create_repeal_ptc,
+    )
+    from fiscal_model import (
+        TaxExpenditurePolicy, TaxExpenditureType,
+        create_cap_employer_health_exclusion, create_eliminate_mortgage_deduction,
+        create_repeal_salt_cap, create_eliminate_salt_deduction,
+        create_cap_charitable_deduction, create_eliminate_step_up_basis,
+    )
+    from fiscal_model import (
+        DistributionalEngine, IncomeGroupType,
+        format_distribution_table, generate_winners_losers_summary,
+    )
     from fiscal_model.baseline import CBOBaseline
     MODEL_AVAILABLE = True
 except ImportError as e:
@@ -110,7 +142,7 @@ with st.sidebar:
     st.caption("Built with Streamlit • Data updated 2022")
 
 # Main content tabs
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["💰 Tax Policy", "📈 Results & Charts", "🔀 Compare Policies", "📋 Details", "ℹ️ Methodology"])
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["💰 Tax Policy", "📈 Results & Charts", "👥 Distribution", "🔀 Compare Policies", "📋 Details", "ℹ️ Methodology"])
 
 with tab1:
     st.header("Fiscal Policy Calculator")
@@ -134,37 +166,244 @@ with tab1:
             "Custom Policy": {
                 "rate_change": -2.0,
                 "threshold": 500000,
-                "description": "Design your own policy"
+                "description": "Design your own policy",
+                "is_tcja": False,
             },
-        "TCJA 2017 High-Income Cut": {
-            "rate_change": -2.6,
-            "threshold": 500000,
-            "description": "Tax Cuts and Jobs Act reduced top rate from 39.6% to 37%"
+        "🏛️ TCJA Full Extension (CBO: $4.6T)": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Extend all TCJA individual provisions beyond 2025 sunset. Includes rate cuts, doubled standard deduction, SALT cap, pass-through deduction, CTC expansion.",
+            "is_tcja": True,
+            "tcja_type": "full",
+        },
+        "🏛️ TCJA Extension (No SALT Cap)": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Extend TCJA but repeal the $10K SALT cap (adds ~$1.9T to cost). Popular bipartisan proposal.",
+            "is_tcja": True,
+            "tcja_type": "no_salt",
+        },
+        "🏛️ TCJA Rates Only": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Extend only the individual rate bracket cuts, not other TCJA provisions (~$3.2T).",
+            "is_tcja": True,
+            "tcja_type": "rates_only",
+        },
+        "🏢 Biden Corporate 28% (CBO: -$1.35T)": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Raise corporate rate from 21% to 28%. CBO estimate: raises ~$1.35T over 10 years.",
+            "is_tcja": False,
+            "is_corporate": True,
+            "corporate_type": "biden_28",
+        },
+        "🏢 Trump Corporate 15%": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Lower corporate rate from 21% to 15%. Estimated cost: ~$1.9T over 10 years.",
+            "is_tcja": False,
+            "is_corporate": True,
+            "corporate_type": "trump_15",
+        },
+        "👶 Biden CTC Expansion (CBO: $1.6T)": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Expand CTC to $3,600/$3,000 per child, fully refundable. Based on 2021 ARP expansion.",
+            "is_tcja": False,
+            "is_corporate": False,
+            "is_credit": True,
+            "credit_type": "biden_ctc_2021",
+        },
+        "👶 CTC Extension (CBO: $600B)": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Extend current $2,000 CTC beyond 2025 sunset. Without extension, reverts to $1,000.",
+            "is_tcja": False,
+            "is_corporate": False,
+            "is_credit": True,
+            "credit_type": "ctc_extension",
+        },
+        "💼 EITC Childless Expansion (CBO: $178B)": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Triple EITC for childless workers (~$1,500 max), expand age range to 19-65+.",
+            "is_tcja": False,
+            "is_corporate": False,
+            "is_credit": True,
+            "credit_type": "biden_eitc_childless",
+        },
+        "🏠 Estate Tax: Extend TCJA (CBO: $167B)": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Keep ~$14M exemption (vs $6.4M if TCJA expires). Costs ~$167B over 10 years.",
+            "is_tcja": False,
+            "is_corporate": False,
+            "is_credit": False,
+            "is_estate": True,
+            "estate_type": "extend_tcja",
+        },
+        "🏠 Biden Estate Reform (-$450B)": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Lower exemption to $3.5M, raise rate to 45%. Raises ~$450B over 10 years.",
+            "is_tcja": False,
+            "is_corporate": False,
+            "is_credit": False,
+            "is_estate": True,
+            "estate_type": "biden_reform",
+        },
+        "🏠 Eliminate Estate Tax ($350B)": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Repeal federal estate tax entirely. Costs ~$350B over 10 years.",
+            "is_tcja": False,
+            "is_corporate": False,
+            "is_credit": False,
+            "is_estate": True,
+            "estate_type": "eliminate",
+        },
+        "💰 SS Cap to 90% (CBO: -$800B)": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Raise Social Security cap to cover 90% of wages (~$305K). Raises ~$800B.",
+            "is_tcja": False,
+            "is_corporate": False,
+            "is_payroll": True,
+            "payroll_type": "cap_90",
+        },
+        "💰 SS Donut Hole $250K (-$2.7T)": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Apply SS tax to wages above $250K (donut hole). Raises ~$2.7T over 10 years.",
+            "is_tcja": False,
+            "is_corporate": False,
+            "is_payroll": True,
+            "payroll_type": "donut_250k",
+        },
+        "💰 Eliminate SS Cap (-$3.2T)": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Eliminate Social Security wage cap entirely. Raises ~$3.2T over 10 years.",
+            "is_tcja": False,
+            "is_corporate": False,
+            "is_payroll": True,
+            "payroll_type": "eliminate_cap",
+        },
+        "💰 Expand NIIT (JCT: -$250B)": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Apply 3.8% NIIT to S-corp/partnership income. Raises ~$250B over 10 years.",
+            "is_tcja": False,
+            "is_corporate": False,
+            "is_payroll": True,
+            "payroll_type": "expand_niit",
+        },
+        "⚖️ AMT: Extend TCJA Relief ($450B)": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Extend TCJA's higher AMT exemptions ($88K single, $137K MFJ) past 2025. Costs ~$450B.",
+            "is_tcja": False,
+            "is_corporate": False,
+            "is_amt": True,
+            "amt_type": "extend_tcja",
+        },
+        "⚖️ Repeal Individual AMT ($450B)": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Fully repeal individual AMT. After TCJA expires, would cost ~$450B over 10 years.",
+            "is_tcja": False,
+            "is_corporate": False,
+            "is_amt": True,
+            "amt_type": "repeal_individual",
+        },
+        "⚖️ Repeal Corporate AMT (-$220B)": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Repeal 15% book minimum tax (CAMT) from IRA 2022. Costs ~$220B over 10 years.",
+            "is_tcja": False,
+            "is_corporate": False,
+            "is_amt": True,
+            "amt_type": "repeal_corporate",
+        },
+        "🏥 Extend ACA Enhanced PTCs ($350B)": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Extend enhanced premium tax credits (ARPA/IRA) past 2025. Costs ~$350B over 10 years.",
+            "is_tcja": False,
+            "is_corporate": False,
+            "is_ptc": True,
+            "ptc_type": "extend_enhanced",
+        },
+        "🏥 Repeal ACA Premium Credits (-$1.1T)": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Repeal all ACA premium subsidies. Saves ~$1.1T but ~19M lose subsidized coverage.",
+            "is_tcja": False,
+            "is_corporate": False,
+            "is_ptc": True,
+            "ptc_type": "repeal",
+        },
+        "📋 Cap Employer Health Exclusion (-$450B)": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Cap tax exclusion for employer health insurance at $50K. Raises ~$450B over 10 years.",
+            "is_tcja": False,
+            "is_corporate": False,
+            "is_expenditure": True,
+            "expenditure_type": "cap_employer_health",
+        },
+        "📋 Repeal SALT Cap ($1.1T)": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Remove $10K cap on state and local tax deduction. Costs ~$1.1T over 10 years.",
+            "is_tcja": False,
+            "is_corporate": False,
+            "is_expenditure": True,
+            "expenditure_type": "repeal_salt_cap",
+        },
+        "📋 Eliminate Step-Up Basis (-$500B)": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Tax capital gains at death with $1M exemption. Raises ~$500B over 10 years.",
+            "is_tcja": False,
+            "is_corporate": False,
+            "is_expenditure": True,
+            "expenditure_type": "eliminate_step_up",
+        },
+        "📋 Cap Charitable Deduction (-$200B)": {
+            "rate_change": 0.0,
+            "threshold": 0,
+            "description": "Limit charitable deduction value to 28% rate. Raises ~$200B over 10 years.",
+            "is_tcja": False,
+            "is_corporate": False,
+            "is_expenditure": True,
+            "expenditure_type": "cap_charitable",
         },
         "Biden 2025 Proposal": {
             "rate_change": 2.6,
             "threshold": 400000,
-            "description": "Restore top rate to 39.6% for AGI > $400K"
-        },
-        "Trump 2024 Extension": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Extend TCJA provisions (baseline, no change)"
+            "description": "Restore top rate to 39.6% for AGI > $400K",
+            "is_tcja": False,
+            "is_corporate": False,
         },
         "Progressive Millionaire Tax": {
             "rate_change": 5.0,
             "threshold": 1000000,
-            "description": "5pp surtax on millionaires"
+            "description": "5pp surtax on millionaires",
+            "is_tcja": False,
         },
         "Middle Class Tax Cut": {
             "rate_change": -2.0,
             "threshold": 50000,
-            "description": "2pp cut for households earning $50K+"
+            "description": "2pp cut for households earning $50K+",
+            "is_tcja": False,
         },
         "Flat Tax Reform": {
             "rate_change": -5.0,
             "threshold": 0,
-            "description": "Simplified flat tax with lower rates across the board"
+            "description": "Simplified flat tax with lower rates across the board",
+            "is_tcja": False,
         }
         }
 
@@ -325,17 +564,17 @@ with tab1:
                         help="2022 uses IRS SOI preliminary net capital gain by AGI; 2023/2024 are estimated by scaling 2022 shares to Tax Foundation totals."
                     )
                     cg_rate_source = st.selectbox(
-                        "Baseline rate source (τ₀)",
+                        "Baseline rate source",
                         options=["Statutory/NIIT proxy (by AGI bracket)", "Tax Foundation avg effective (aggregate)"],
                         index=0,
                         help=(
-                            "Statutory proxy computes a weighted τ₀ using AGI brackets (IRS) + a documented rate mapping. "
+                            "Statutory proxy computes a weighted baseline rate using AGI brackets (IRS) + a documented rate mapping. "
                             "Tax Foundation uses a single year-level effective rate (not by AGI). "
                             "Tax Foundation source: https://taxfoundation.org/data/all/federal/federal-capital-gains-tax-collections-historical-data/"
                         ),
                     )
                     baseline_cg_rate = st.number_input(
-                        "Baseline capital gains tax rate (τ₀)",
+                        "Baseline capital gains tax rate",
                         min_value=0.0,
                         max_value=0.99,
                         value=0.20,
@@ -343,21 +582,110 @@ with tab1:
                         help="Assumed baseline effective marginal capital gains rate for the affected group"
                     )
                     baseline_realizations = st.number_input(
-                        "Baseline taxable capital gains realizations (R₀, $B/year)",
+                        "Baseline taxable capital gains realizations ($B/year)",
                         min_value=0.0,
                         max_value=10000.0,
                         value=0.0,
                         step=10.0,
                         help="If left at 0 and real-data is enabled, we'll auto-populate from IRS/Treasury-derived series (with documented assumptions)."
                     )
-                    realization_elasticity = st.number_input(
-                        "Realization elasticity (ε)",
-                        min_value=0.0,
-                        max_value=5.0,
-                        value=0.5,
-                        step=0.05,
-                        help="Elasticity of realizations to the net-of-tax rate (timing/lock-in response)"
+
+                    st.markdown("**Behavioral Response (Time-Varying Elasticity)**")
+                    use_time_varying = st.checkbox(
+                        "Use time-varying elasticity",
+                        value=True,
+                        help="Short-run elasticity is higher (timing effects), long-run is lower (permanent response only). Based on CBO/JCT methodology."
                     )
+
+                    if use_time_varying:
+                        col_sr, col_lr = st.columns(2)
+                        with col_sr:
+                            short_run_elasticity = st.number_input(
+                                "Short-run elasticity (years 1-3)",
+                                min_value=0.0,
+                                max_value=3.0,
+                                value=0.8,
+                                step=0.1,
+                                help="Higher elasticity in early years due to timing/anticipation effects. CBO: 0.7-1.0"
+                            )
+                        with col_lr:
+                            long_run_elasticity = st.number_input(
+                                "Long-run elasticity (years 4+)",
+                                min_value=0.0,
+                                max_value=2.0,
+                                value=0.4,
+                                step=0.1,
+                                help="Lower elasticity once timing effects are exhausted. Literature: 0.3-0.5"
+                            )
+                        transition_years = st.slider(
+                            "Transition period (years)",
+                            min_value=1,
+                            max_value=5,
+                            value=3,
+                            help="Years to transition from short-run to long-run elasticity"
+                        )
+                        # For backward compat, set single elasticity to average
+                        realization_elasticity = (short_run_elasticity + long_run_elasticity) / 2
+                    else:
+                        realization_elasticity = st.number_input(
+                            "Realization elasticity (constant)",
+                            min_value=0.0,
+                            max_value=5.0,
+                            value=0.5,
+                            step=0.05,
+                            help="Single elasticity value for all years (timing/lock-in response)"
+                        )
+                        short_run_elasticity = realization_elasticity
+                        long_run_elasticity = realization_elasticity
+                        transition_years = 1
+
+                    st.markdown("**Step-Up Basis at Death**")
+                    st.info(
+                        "Under current law, unrealized capital gains are forgiven at death (step-up basis). "
+                        "This creates strong incentive to hold assets until death, reducing realizations. "
+                        "Eliminating step-up would tax gains at death and reduce lock-in."
+                    )
+
+                    eliminate_step_up = st.checkbox(
+                        "Eliminate step-up basis at death",
+                        value=False,
+                        help="Tax unrealized capital gains at death (Biden proposal). Creates new revenue stream."
+                    )
+
+                    if eliminate_step_up:
+                        col_ex, col_gains = st.columns(2)
+                        with col_ex:
+                            step_up_exemption = st.number_input(
+                                "Exemption per decedent ($)",
+                                min_value=0,
+                                max_value=10_000_000,
+                                value=1_000_000,
+                                step=100_000,
+                                help="Biden proposal: $1M exemption. Gains below this are not taxed at death."
+                            )
+                        with col_gains:
+                            gains_at_death = st.number_input(
+                                "Annual gains at death ($B)",
+                                min_value=0.0,
+                                max_value=200.0,
+                                value=54.0,
+                                step=5.0,
+                                help="CBO estimates ~$54B/year in unrealized gains transferred at death."
+                            )
+                        # When eliminating step-up, lock-in effect is reduced
+                        step_up_lock_in_multiplier = 1.0
+                    else:
+                        step_up_exemption = 0.0
+                        gains_at_death = 54.0
+                        # With step-up, strong lock-in (hold until death to avoid tax)
+                        step_up_lock_in_multiplier = st.slider(
+                            "Step-up lock-in multiplier",
+                            min_value=1.0,
+                            max_value=6.0,
+                            value=2.0,
+                            step=0.5,
+                            help="How much step-up increases deferral. 5.3x matches PWBM. Higher = more lock-in."
+                        )
 
     else:
         # SPENDING POLICY SECTION
@@ -511,71 +839,363 @@ if calculate and MODEL_AVAILABLE:
         # Handle tax policy
         with st.spinner("Calculating policy impact using real IRS data..."):
             try:
-                # Map UI to policy type
-                policy_type_map = {
-                    "Income Tax Rate": PolicyType.INCOME_TAX,
-                    "Capital Gains": PolicyType.CAPITAL_GAINS_TAX,
-                    "Corporate Tax": PolicyType.CORPORATE_TAX,
-                    "Payroll Tax": PolicyType.PAYROLL_TAX,
-                }
-                mapped_type = policy_type_map.get(policy_type, PolicyType.INCOME_TAX)
+                # Check if this is a TCJA extension policy
+                preset_data = preset_policies[preset_choice]
+                is_tcja_policy = preset_data.get("is_tcja", False)
 
-                # Create policy
-                if policy_type == "Capital Gains":
-                    policy = CapitalGainsPolicy(
-                        name=policy_name,
-                        description=f"{rate_change_pct:+.1f}pp capital gains rate change for AGI >= ${threshold:,}",
-                        policy_type=mapped_type,
-                        rate_change=rate_change,
-                        affected_income_threshold=threshold,
-                        data_year=int(cg_base_year),
-                        duration_years=duration,
-                        phase_in_years=phase_in,
-                        baseline_capital_gains_rate=float(baseline_cg_rate),
-                        baseline_realizations_billions=float(baseline_realizations),
-                        realization_elasticity=float(realization_elasticity),
-                    )
-                    # If user wants auto-population, set τ₀=0 and R₀=0. Policy will populate using chosen method.
-                    if baseline_realizations <= 0:
-                        policy.baseline_realizations_billions = 0.0
-                        if cg_rate_source == "Tax Foundation avg effective (aggregate)":
-                            # Pre-fill τ₀ with TF default if provided; otherwise policy will overwrite when auto-populating.
-                            # Setting to 0 forces auto-populate; user can still manually override τ₀ above.
-                            policy.baseline_capital_gains_rate = 0.0
-                        else:
-                            policy.baseline_capital_gains_rate = 0.0
+                if is_tcja_policy:
+                    # Create TCJA extension policy
+                    tcja_type = preset_data.get("tcja_type", "full")
+
+                    if tcja_type == "full":
+                        policy = create_tcja_extension(extend_all=True, keep_salt_cap=True)
+                    elif tcja_type == "no_salt":
+                        policy = create_tcja_repeal_salt_cap()
+                    elif tcja_type == "rates_only":
+                        policy = create_tcja_extension(
+                            extend_all=False,
+                            extend_rate_cuts=True,
+                            extend_standard_deduction=False,
+                            keep_exemption_elimination=False,
+                            extend_passthrough=False,
+                            extend_ctc=False,
+                            extend_estate=False,
+                            extend_amt=False,
+                            keep_salt_cap=False,
+                        )
+                    else:
+                        policy = create_tcja_extension(extend_all=True)
+
+                    # Score TCJA policy
+                    scorer = FiscalPolicyScorer(start_year=2026, use_real_data=False)
+                    result = scorer.score_policy(policy, dynamic=dynamic_scoring)
+
+                    # Store in session state
+                    st.session_state.results = {
+                        'policy': policy,
+                        'result': result,
+                        'scorer': scorer,
+                        'is_spending': False,
+                        'is_tcja': True,
+                        'tcja_type': tcja_type,
+                    }
+
+                    st.success("✅ Calculation complete!")
+
+                elif preset_data.get("is_corporate", False):
+                    # Corporate tax policy
+                    corporate_type = preset_data.get("corporate_type", "biden_28")
+
+                    if corporate_type == "biden_28":
+                        policy = create_biden_corporate_rate_only()
+                    elif corporate_type == "trump_15":
+                        policy = create_republican_corporate_cut()
+                    else:
+                        policy = create_biden_corporate_rate_only()
+
+                    # Score corporate policy
+                    scorer = FiscalPolicyScorer(start_year=2025, use_real_data=False)
+                    result = scorer.score_policy(policy, dynamic=dynamic_scoring)
+
+                    # Store in session state
+                    st.session_state.results = {
+                        'policy': policy,
+                        'result': result,
+                        'scorer': scorer,
+                        'is_spending': False,
+                        'is_tcja': False,
+                        'is_corporate': True,
+                        'corporate_type': corporate_type,
+                    }
+
+                    st.success("✅ Calculation complete!")
+
+                elif preset_data.get("is_credit", False):
+                    # Tax credit policy
+                    credit_type = preset_data.get("credit_type", "biden_ctc_2021")
+
+                    if credit_type == "biden_ctc_2021":
+                        policy = create_biden_ctc_2021()
+                    elif credit_type == "ctc_extension":
+                        policy = create_ctc_permanent_extension()
+                    elif credit_type == "biden_eitc_childless":
+                        policy = create_biden_eitc_childless()
+                    else:
+                        policy = create_biden_ctc_2021()
+
+                    # Score credit policy
+                    scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
+                    result = scorer.score_policy(policy, dynamic=dynamic_scoring)
+
+                    # Store in session state
+                    st.session_state.results = {
+                        'policy': policy,
+                        'result': result,
+                        'scorer': scorer,
+                        'is_spending': False,
+                        'is_tcja': False,
+                        'is_corporate': False,
+                        'is_credit': True,
+                        'credit_type': credit_type,
+                    }
+
+                    st.success("✅ Calculation complete!")
+
+                elif preset_data.get("is_estate", False):
+                    # Estate tax policy
+                    estate_type = preset_data.get("estate_type", "extend_tcja")
+
+                    if estate_type == "extend_tcja":
+                        policy = create_tcja_estate_extension()
+                    elif estate_type == "biden_reform":
+                        policy = create_biden_estate_proposal()
+                    elif estate_type == "eliminate":
+                        policy = create_eliminate_estate_tax()
+                    else:
+                        policy = create_tcja_estate_extension()
+
+                    # Score estate policy
+                    scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
+                    result = scorer.score_policy(policy, dynamic=dynamic_scoring)
+
+                    # Store in session state
+                    st.session_state.results = {
+                        'policy': policy,
+                        'result': result,
+                        'scorer': scorer,
+                        'is_spending': False,
+                        'is_tcja': False,
+                        'is_corporate': False,
+                        'is_credit': False,
+                        'is_estate': True,
+                        'estate_type': estate_type,
+                    }
+
+                    st.success("✅ Calculation complete!")
+
+                elif preset_data.get("is_payroll", False):
+                    # Payroll tax policy
+                    payroll_type = preset_data.get("payroll_type", "cap_90")
+
+                    if payroll_type == "cap_90":
+                        policy = create_ss_cap_90_percent()
+                    elif payroll_type == "donut_250k":
+                        policy = create_ss_donut_hole()
+                    elif payroll_type == "eliminate_cap":
+                        policy = create_ss_eliminate_cap()
+                    elif payroll_type == "expand_niit":
+                        policy = create_expand_niit()
+                    else:
+                        policy = create_ss_cap_90_percent()
+
+                    # Score payroll policy
+                    scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
+                    result = scorer.score_policy(policy, dynamic=dynamic_scoring)
+
+                    # Store in session state
+                    st.session_state.results = {
+                        'policy': policy,
+                        'result': result,
+                        'scorer': scorer,
+                        'is_spending': False,
+                        'is_tcja': False,
+                        'is_corporate': False,
+                        'is_credit': False,
+                        'is_estate': False,
+                        'is_payroll': True,
+                        'payroll_type': payroll_type,
+                    }
+
+                    st.success("✅ Calculation complete!")
+
+                elif preset_data.get("is_amt", False):
+                    # AMT policy
+                    amt_type = preset_data.get("amt_type", "extend_tcja")
+
+                    if amt_type == "extend_tcja":
+                        policy = create_extend_tcja_amt_relief()
+                    elif amt_type == "repeal_individual":
+                        # Use start_year=2026 to match CBO $450B estimate (post-TCJA sunset)
+                        policy = create_repeal_individual_amt(start_year=2026)
+                    elif amt_type == "repeal_corporate":
+                        policy = create_repeal_corporate_amt()
+                    else:
+                        policy = create_extend_tcja_amt_relief()
+
+                    # Score AMT policy
+                    scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
+                    result = scorer.score_policy(policy, dynamic=dynamic_scoring)
+
+                    # Store in session state
+                    st.session_state.results = {
+                        'policy': policy,
+                        'result': result,
+                        'scorer': scorer,
+                        'is_spending': False,
+                        'is_tcja': False,
+                        'is_corporate': False,
+                        'is_credit': False,
+                        'is_estate': False,
+                        'is_payroll': False,
+                        'is_amt': True,
+                        'amt_type': amt_type,
+                    }
+
+                    st.success("✅ Calculation complete!")
+
+                elif preset_data.get("is_ptc", False):
+                    # Premium Tax Credit policy
+                    ptc_type = preset_data.get("ptc_type", "extend_enhanced")
+
+                    if ptc_type == "extend_enhanced":
+                        policy = create_extend_enhanced_ptc()
+                    elif ptc_type == "repeal":
+                        policy = create_repeal_ptc()
+                    else:
+                        policy = create_extend_enhanced_ptc()
+
+                    # Score PTC policy
+                    scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
+                    result = scorer.score_policy(policy, dynamic=dynamic_scoring)
+
+                    # Store in session state
+                    st.session_state.results = {
+                        'policy': policy,
+                        'result': result,
+                        'scorer': scorer,
+                        'is_spending': False,
+                        'is_tcja': False,
+                        'is_corporate': False,
+                        'is_credit': False,
+                        'is_estate': False,
+                        'is_payroll': False,
+                        'is_amt': False,
+                        'is_ptc': True,
+                        'ptc_type': ptc_type,
+                    }
+
+                    st.success("✅ Calculation complete!")
+
+                elif preset_data.get("is_expenditure", False):
+                    # Tax Expenditure policy
+                    expenditure_type = preset_data.get("expenditure_type", "cap_employer_health")
+
+                    if expenditure_type == "cap_employer_health":
+                        policy = create_cap_employer_health_exclusion()
+                    elif expenditure_type == "repeal_salt_cap":
+                        policy = create_repeal_salt_cap()
+                    elif expenditure_type == "eliminate_step_up":
+                        policy = create_eliminate_step_up_basis()
+                    elif expenditure_type == "cap_charitable":
+                        policy = create_cap_charitable_deduction()
+                    else:
+                        policy = create_cap_employer_health_exclusion()
+
+                    # Score expenditure policy
+                    scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
+                    result = scorer.score_policy(policy, dynamic=dynamic_scoring)
+
+                    # Store in session state
+                    st.session_state.results = {
+                        'policy': policy,
+                        'result': result,
+                        'scorer': scorer,
+                        'is_spending': False,
+                        'is_tcja': False,
+                        'is_corporate': False,
+                        'is_credit': False,
+                        'is_estate': False,
+                        'is_payroll': False,
+                        'is_amt': False,
+                        'is_ptc': False,
+                        'is_expenditure': True,
+                        'expenditure_type': expenditure_type,
+                    }
+
+                    st.success("✅ Calculation complete!")
+
                 else:
-                    policy = TaxPolicy(
-                        name=policy_name,
-                        description=f"{rate_change_pct:+.1f}pp tax rate change for AGI >= ${threshold:,}",
-                        policy_type=mapped_type,
-                        rate_change=rate_change,
-                        affected_income_threshold=threshold,
-                        data_year=data_year,
-                        duration_years=duration,
-                        phase_in_years=phase_in,
-                        taxable_income_elasticity=eti,
-                    )
+                    # Non-TCJA, non-corporate tax policy
+                    # Map UI to policy type
+                    policy_type_map = {
+                        "Income Tax Rate": PolicyType.INCOME_TAX,
+                        "Capital Gains": PolicyType.CAPITAL_GAINS_TAX,
+                        "Corporate Tax": PolicyType.CORPORATE_TAX,
+                        "Payroll Tax": PolicyType.PAYROLL_TAX,
+                    }
+                    mapped_type = policy_type_map.get(policy_type, PolicyType.INCOME_TAX)
 
-                # Override auto-population if manual values provided
-                if policy_type != "Capital Gains" and manual_taxpayers > 0:
-                    policy.affected_taxpayers_millions = manual_taxpayers
-                if policy_type != "Capital Gains" and manual_avg_income > 0:
-                    policy.avg_taxable_income_in_bracket = manual_avg_income
+                    # Create policy
+                    if policy_type == "Capital Gains":
+                        # Build description based on step-up setting
+                        desc = f"{rate_change_pct:+.1f}pp capital gains rate change for AGI >= ${threshold:,}"
+                        if eliminate_step_up:
+                            desc += " + eliminate step-up basis"
 
-                # Score policy
-                scorer = FiscalPolicyScorer(baseline=None, use_real_data=use_real_data)
-                result = scorer.score_policy(policy, dynamic=dynamic_scoring)
+                        policy = CapitalGainsPolicy(
+                            name=policy_name,
+                            description=desc,
+                            policy_type=mapped_type,
+                            rate_change=rate_change,
+                            affected_income_threshold=threshold,
+                            data_year=int(cg_base_year),
+                            duration_years=duration,
+                            phase_in_years=phase_in,
+                            baseline_capital_gains_rate=float(baseline_cg_rate),
+                            baseline_realizations_billions=float(baseline_realizations),
+                            realization_elasticity=float(realization_elasticity),
+                            # Time-varying elasticity parameters
+                            short_run_elasticity=float(short_run_elasticity),
+                            long_run_elasticity=float(long_run_elasticity),
+                            transition_years=int(transition_years),
+                            use_time_varying_elasticity=use_time_varying,
+                            # Step-up basis parameters
+                            step_up_at_death=True,  # Current law
+                            eliminate_step_up=eliminate_step_up,
+                            step_up_exemption=float(step_up_exemption),
+                            gains_at_death_billions=float(gains_at_death),
+                            step_up_lock_in_multiplier=float(step_up_lock_in_multiplier),
+                        )
+                        # If user wants auto-population, set baseline rate/realizations to 0
+                        if baseline_realizations <= 0:
+                            policy.baseline_realizations_billions = 0.0
+                            if cg_rate_source == "Tax Foundation avg effective (aggregate)":
+                                policy.baseline_capital_gains_rate = 0.0
+                            else:
+                                policy.baseline_capital_gains_rate = 0.0
+                    else:
+                        policy = TaxPolicy(
+                            name=policy_name,
+                            description=f"{rate_change_pct:+.1f}pp tax rate change for AGI >= ${threshold:,}",
+                            policy_type=mapped_type,
+                            rate_change=rate_change,
+                            affected_income_threshold=threshold,
+                            data_year=data_year,
+                            duration_years=duration,
+                            phase_in_years=phase_in,
+                            taxable_income_elasticity=eti,
+                        )
 
-                # Store in session state
-                st.session_state.results = {
-                    'policy': policy,
-                    'result': result,
-                    'scorer': scorer,
-                    'is_spending': False
-                }
+                    # Override auto-population if manual values provided
+                    if policy_type != "Capital Gains" and manual_taxpayers > 0:
+                        policy.affected_taxpayers_millions = manual_taxpayers
+                    if policy_type != "Capital Gains" and manual_avg_income > 0:
+                        policy.avg_taxable_income_in_bracket = manual_avg_income
 
-                st.success("✅ Calculation complete!")
+                    # Score policy
+                    scorer = FiscalPolicyScorer(baseline=None, use_real_data=use_real_data)
+                    result = scorer.score_policy(policy, dynamic=dynamic_scoring)
+
+                    # Store in session state
+                    st.session_state.results = {
+                        'policy': policy,
+                        'result': result,
+                        'scorer': scorer,
+                        'is_spending': False,
+                        'is_tcja': False,
+                    }
+
+                    st.success("✅ Calculation complete!")
 
             except Exception as e:
                 st.error(f"❌ Error calculating policy impact: {e}")
@@ -954,6 +1574,185 @@ if st.session_state.results:
                 """)
 
     with tab3:
+        st.header("👥 Distributional Analysis")
+
+        st.markdown("""
+        <div class="info-box">
+        💡 <strong>Who pays?</strong> This tab shows how the tax change affects different income groups,
+        following Tax Policy Center (TPC) and Joint Committee on Taxation (JCT) methodology.
+        </div>
+        """, unsafe_allow_html=True)
+
+        if MODEL_AVAILABLE and hasattr(policy, 'rate_change'):
+            # Initialize distributional engine
+            dist_engine = DistributionalEngine(data_year=2022)
+
+            # Grouping type selector
+            col1, col2 = st.columns([1, 3])
+            with col1:
+                group_type_choice = st.selectbox(
+                    "Income grouping",
+                    ["Quintiles (5 groups)", "Deciles (10 groups)", "JCT Dollar Brackets"],
+                    help="How to divide taxpayers into income groups"
+                )
+
+                if group_type_choice == "Quintiles (5 groups)":
+                    group_type = IncomeGroupType.QUINTILE
+                elif group_type_choice == "Deciles (10 groups)":
+                    group_type = IncomeGroupType.DECILE
+                else:
+                    group_type = IncomeGroupType.JCT_DOLLAR
+
+            # Run distributional analysis
+            try:
+                dist_analysis = dist_engine.analyze_policy(policy, group_type=group_type)
+
+                # Summary metrics
+                st.subheader("Summary")
+                summary = generate_winners_losers_summary(dist_analysis)
+
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric(
+                        "Total Tax Change (Year 1)",
+                        f"${dist_analysis.total_tax_change:.1f}B",
+                        delta="Tax increase" if dist_analysis.total_tax_change > 0 else "Tax cut"
+                    )
+                with col2:
+                    st.metric(
+                        "% with Tax Increase",
+                        f"{summary['pct_with_increase']:.1f}%"
+                    )
+                with col3:
+                    st.metric(
+                        "% with Tax Cut",
+                        f"{summary['pct_with_decrease']:.1f}%"
+                    )
+                with col4:
+                    unchanged = 100 - summary['pct_with_increase'] - summary['pct_with_decrease']
+                    st.metric(
+                        "% Unchanged",
+                        f"{unchanged:.1f}%"
+                    )
+
+                # Distribution table
+                st.subheader("Tax Change by Income Group")
+                df_dist = format_distribution_table(dist_analysis, style="tpc")
+
+                # Format for display
+                st.dataframe(
+                    df_dist.style.format({
+                        'Returns (M)': '{:.1f}',
+                        'Avg Tax Change ($)': '${:,.0f}',
+                        '% of Income': '{:.2f}%',
+                        'Share of Total': '{:.1f}%',
+                        '% Tax Increase': '{:.0f}%',
+                        '% Tax Decrease': '{:.0f}%',
+                        'ETR Change (ppts)': '{:.2f}',
+                    }),
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+                # Bar chart of average tax change
+                st.subheader("Average Tax Change by Income Group")
+
+                import plotly.graph_objects as go
+
+                fig_dist = go.Figure()
+
+                groups = [r.income_group.name for r in dist_analysis.results]
+                changes = [r.tax_change_avg for r in dist_analysis.results]
+                colors = ['#28a745' if c < 0 else '#dc3545' for c in changes]
+
+                fig_dist.add_trace(go.Bar(
+                    x=groups,
+                    y=changes,
+                    marker_color=colors,
+                    text=[f"${c:,.0f}" for c in changes],
+                    textposition='outside'
+                ))
+
+                fig_dist.update_layout(
+                    xaxis_title="Income Group",
+                    yaxis_title="Average Tax Change ($)",
+                    height=400,
+                    showlegend=False
+                )
+
+                st.plotly_chart(fig_dist, use_container_width=True)
+
+                # Share of tax change pie chart
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    st.subheader("Share of Total Tax Change")
+
+                    # Only show groups with non-zero share
+                    shares = [(r.income_group.name, abs(r.share_of_total_change) * 100)
+                              for r in dist_analysis.results if abs(r.share_of_total_change) > 0.01]
+
+                    if shares:
+                        fig_pie = go.Figure(data=[go.Pie(
+                            labels=[s[0] for s in shares],
+                            values=[s[1] for s in shares],
+                            hole=0.4,
+                            textinfo='label+percent',
+                        )])
+                        fig_pie.update_layout(height=350, showlegend=False)
+                        st.plotly_chart(fig_pie, use_container_width=True)
+                    else:
+                        st.info("No significant tax change in any group")
+
+                with col2:
+                    st.subheader("Winners & Losers")
+
+                    if summary['biggest_losers']:
+                        st.markdown("**Largest tax increases:**")
+                        for item in summary['biggest_losers'][:3]:
+                            st.markdown(f"- {item['group']}: +${item['avg_change']:,.0f} avg")
+
+                    if summary['biggest_winners']:
+                        st.markdown("**Largest tax cuts:**")
+                        for item in summary['biggest_winners'][:3]:
+                            st.markdown(f"- {item['group']}: ${item['avg_change']:,.0f} avg")
+
+                    if not summary['biggest_losers'] and not summary['biggest_winners']:
+                        st.info("No significant tax changes")
+
+                # Top income breakout
+                st.markdown("---")
+                st.subheader("Top Income Group Detail")
+
+                top_analysis = dist_engine.create_top_income_breakout(policy)
+
+                st.markdown("""
+                How the tax change affects the top of the income distribution:
+                """)
+
+                top_data = []
+                for r in top_analysis.results:
+                    if r.share_of_total_change != 0:
+                        top_data.append({
+                            "Income Group": r.income_group.name,
+                            "Returns (M)": f"{r.income_group.num_returns/1e6:.2f}",
+                            "Avg Tax Change": f"${r.tax_change_avg:,.0f}",
+                            "Share of Total": f"{r.share_of_total_change*100:.1f}%",
+                        })
+
+                if top_data:
+                    st.dataframe(pd.DataFrame(top_data), use_container_width=True, hide_index=True)
+                else:
+                    st.info("This policy does not significantly affect top income groups")
+
+            except Exception as e:
+                st.error(f"Error running distributional analysis: {e}")
+                import traceback
+                st.code(traceback.format_exc())
+        else:
+            st.info("👆 Calculate a tax policy first to see distributional analysis")
+
+    with tab4:
         st.header("🔀 Policy Comparison")
 
         st.markdown("""
@@ -1115,7 +1914,7 @@ if st.session_state.results:
         else:
             st.info("👆 Select at least 2 policies above to see a comparison")
 
-    with tab4:
+    with tab5:
         st.header("📋 Detailed Results")
 
         # Policy summary
@@ -1191,7 +1990,7 @@ if st.session_state.results:
                 mime="application/json"
             )
 
-with tab5:
+with tab6:
     st.header("ℹ️ Methodology")
 
     st.markdown("""
