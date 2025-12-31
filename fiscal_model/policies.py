@@ -217,7 +217,107 @@ class TaxPolicy(Policy):
             return -self.deduction_amount * marginal_rate * self.affected_taxpayers_millions / 1e3
             
         return 0.0
-    
+
+    def _should_use_irs_data(self) -> bool:
+        """
+        Check if we should attempt to auto-populate from IRS SOI data.
+
+        Returns True if:
+        - Rate change is specified (non-zero)
+        - Income threshold is specified
+        - Manual parameters NOT already provided
+        """
+        return (
+            self.rate_change != 0 and
+            self.affected_income_threshold > 0 and
+            self.affected_taxpayers_millions == 0  # Not manually specified
+        )
+
+    def _estimate_from_irs_data(self, baseline_revenue: float) -> float:
+        """
+        Auto-populate parameters from IRS SOI data and estimate revenue effect.
+
+        This method automatically looks up:
+        - Number of filers above the income threshold
+        - Average taxable income in affected brackets
+        - Total tax liability
+
+        Args:
+            baseline_revenue: Baseline revenue (not used in this method)
+
+        Returns:
+            Revenue change in billions
+
+        Raises:
+            FileNotFoundError: If IRS SOI data files not available
+            ValueError: If data lookup fails
+        """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # Import here to avoid circular dependency
+        from fiscal_model.data import IRSSOIData
+
+        # Initialize data loader
+        irs_data = IRSSOIData()
+
+        # Get most recent available data year (or use specified year)
+        available_years = irs_data.get_data_years_available()
+        if not available_years:
+            raise FileNotFoundError(
+                "No IRS SOI data files found. "
+                "See fiscal_model/data_files/irs_soi/README.md for download instructions."
+            )
+
+        year = self.data_year if self.data_year else max(available_years)
+        logger.info(f"Auto-populating tax policy parameters from {year} IRS SOI data")
+
+        # Get filer statistics for income above threshold
+        bracket_info = irs_data.get_filers_by_bracket(
+            year=year,
+            threshold=self.affected_income_threshold
+        )
+
+        logger.info(
+            f"  Affected filers: {bracket_info['num_filers']/1e6:.2f}M "
+            f"(threshold: ${self.affected_income_threshold:,.0f})"
+        )
+        logger.info(
+            f"  Avg taxable income: ${bracket_info['avg_taxable_income']:,.0f}"
+        )
+
+        # Update policy object with auto-populated values (so UI can display them)
+        self.affected_taxpayers_millions = bracket_info['num_filers'] / 1e6
+        self.avg_taxable_income_in_bracket = bracket_info['avg_taxable_income']
+
+        # Calculate MARGINAL income (income above threshold)
+        marginal_income = max(0, bracket_info['avg_taxable_income'] - self.affected_income_threshold)
+
+        # If threshold is 0 (affects all income), use full average income
+        if self.affected_income_threshold == 0:
+            marginal_income = bracket_info['avg_taxable_income']
+
+        logger.info(
+            f"  Avg total income: ${bracket_info['avg_taxable_income']:,.0f}"
+        )
+        logger.info(
+            f"  Marginal income above ${self.affected_income_threshold:,.0f}: ${marginal_income:,.0f}"
+        )
+
+        # Calculate revenue change using MARGINAL income
+        revenue_change = (
+            self.rate_change *
+            marginal_income *
+            bracket_info['num_filers']
+        ) / 1e9  # Convert to billions
+
+        logger.info(
+            f"  Estimated revenue change: ${revenue_change:,.1f}B "
+            f"({self.rate_change*100:+.1f}pp rate change)"
+        )
+
+        return revenue_change
+
     def estimate_behavioral_offset(self, static_effect: float) -> float:
         """
         Estimate behavioral response offset to static revenue estimate.
@@ -493,111 +593,6 @@ class CapitalGainsPolicy(TaxPolicy):
 
         # Return positive offset when revenue is lost (static > total)
         return delta_rev_static - delta_rev_total
-
-    def _should_use_irs_data(self) -> bool:
-        """
-        Check if we should attempt to auto-populate from IRS SOI data.
-
-        Returns True if:
-        - Rate change is specified (non-zero)
-        - Income threshold is specified
-        - Manual parameters NOT already provided
-        """
-        return (
-            self.rate_change != 0 and
-            self.affected_income_threshold > 0 and
-            self.affected_taxpayers_millions == 0  # Not manually specified
-        )
-
-    def _estimate_from_irs_data(self, baseline_revenue: float) -> float:
-        """
-        Auto-populate parameters from IRS SOI data and estimate revenue effect.
-
-        This method automatically looks up:
-        - Number of filers above the income threshold
-        - Average taxable income in affected brackets
-        - Total tax liability
-
-        Args:
-            baseline_revenue: Baseline revenue (not used in this method)
-
-        Returns:
-            Revenue change in billions
-
-        Raises:
-            FileNotFoundError: If IRS SOI data files not available
-            ValueError: If data lookup fails
-        """
-        import logging
-        logger = logging.getLogger(__name__)
-
-        # Import here to avoid circular dependency
-        from fiscal_model.data import IRSSOIData
-
-        # Initialize data loader
-        irs_data = IRSSOIData()
-
-        # Get most recent available data year (or use specified year)
-        available_years = irs_data.get_data_years_available()
-        if not available_years:
-            raise FileNotFoundError(
-                "No IRS SOI data files found. "
-                "See fiscal_model/data_files/irs_soi/README.md for download instructions."
-            )
-
-        year = self.data_year if self.data_year else max(available_years)
-        logger.info(f"Auto-populating tax policy parameters from {year} IRS SOI data")
-
-        # Get filer statistics for income above threshold
-        bracket_info = irs_data.get_filers_by_bracket(
-            year=year,
-            threshold=self.affected_income_threshold
-        )
-
-        logger.info(
-            f"  Affected filers: {bracket_info['num_filers']/1e6:.2f}M "
-            f"(threshold: ${self.affected_income_threshold:,.0f})"
-        )
-        logger.info(
-            f"  Avg taxable income: ${bracket_info['avg_taxable_income']:,.0f}"
-        )
-
-        # Update policy object with auto-populated values (so UI can display them)
-        self.affected_taxpayers_millions = bracket_info['num_filers'] / 1e6
-        self.avg_taxable_income_in_bracket = bracket_info['avg_taxable_income']
-
-        # Calculate MARGINAL income (income above threshold)
-        # This is crucial: rate changes only apply to income ABOVE the threshold,
-        # not the entire income of affected filers.
-        #
-        # Example: For $400K threshold, someone earning $600K has only $200K
-        # subject to the new rate, not the full $600K.
-        marginal_income = max(0, bracket_info['avg_taxable_income'] - self.affected_income_threshold)
-        
-        # If threshold is 0 (affects all income), use full average income
-        if self.affected_income_threshold == 0:
-            marginal_income = bracket_info['avg_taxable_income']
-
-        logger.info(
-            f"  Avg total income: ${bracket_info['avg_taxable_income']:,.0f}"
-        )
-        logger.info(
-            f"  Marginal income above ${self.affected_income_threshold:,.0f}: ${marginal_income:,.0f}"
-        )
-
-        # Calculate revenue change using MARGINAL income
-        revenue_change = (
-            self.rate_change *
-            marginal_income *
-            bracket_info['num_filers']
-        ) / 1e9  # Convert to billions
-
-        logger.info(
-            f"  Estimated revenue change: ${revenue_change:,.1f}B "
-            f"({self.rate_change*100:+.1f}pp rate change)"
-        )
-
-        return revenue_change
 
 
 @dataclass
