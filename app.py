@@ -1755,20 +1755,25 @@ if st.session_state.results:
     with tab4:
         st.header("🔀 Policy Comparison")
 
-        st.markdown("""
-        <div class="info-box">
-        💡 <strong>Compare scenarios:</strong> Select 2-3 policies from the preset library to see how they compare side-by-side.
-        </div>
-        """, unsafe_allow_html=True)
+        # preset_policies is only defined for tax policies, not spending
+        if 'preset_policies' not in dir() or is_spending:
+            st.info("📊 Policy comparison is available for tax policies. Select a tax policy category in the sidebar to use this feature.")
+            policies_to_compare = []
+        else:
+            st.markdown("""
+            <div class="info-box">
+            💡 <strong>Compare scenarios:</strong> Select 2-3 policies from the preset library to see how they compare side-by-side.
+            </div>
+            """, unsafe_allow_html=True)
 
-        # Multi-select for policies to compare
-        comparison_options = [k for k in preset_policies.keys() if k != "Custom Policy"]
-        policies_to_compare = st.multiselect(
-            "Select policies to compare (2-3 recommended)",
-            options=comparison_options,
-            default=comparison_options[:2] if len(comparison_options) >= 2 else comparison_options,
-            max_selections=4
-        )
+            # Multi-select for policies to compare
+            comparison_options = [k for k in preset_policies.keys() if k != "Custom Policy"]
+            policies_to_compare = st.multiselect(
+                "Select policies to compare (2-3 recommended)",
+                options=comparison_options,
+                default=comparison_options[:2] if len(comparison_options) >= 2 else comparison_options,
+                max_selections=4
+            )
 
         if len(policies_to_compare) >= 2:
             with st.spinner("Calculating and comparing policies..."):
