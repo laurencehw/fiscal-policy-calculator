@@ -1762,10 +1762,11 @@ if st.session_state.results:
         """, unsafe_allow_html=True)
 
         # Multi-select for policies to compare
+        comparison_options = [k for k in preset_policies.keys() if k != "Custom Policy"]
         policies_to_compare = st.multiselect(
             "Select policies to compare (2-3 recommended)",
-            options=[k for k in preset_policies.keys() if k != "Custom Policy"],
-            default=["TCJA 2017 High-Income Cut", "Biden 2025 Proposal"],
+            options=comparison_options,
+            default=comparison_options[:2] if len(comparison_options) >= 2 else comparison_options,
             max_selections=4
         )
 
