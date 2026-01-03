@@ -2587,450 +2587,453 @@ if st.session_state.results:
         else:
             st.info("👆 Select at least 2 policies above to see a comparison")
 
-    # =========================================================================
-    # TAB 6: POLICY PACKAGES
-    # =========================================================================
-    with tab6:
-        st.header("📦 Policy Package Builder")
+# =========================================================================
+# TAB 6: POLICY PACKAGES (outside conditional - always visible)
+# =========================================================================
+with tab6:
+    st.header("📦 Policy Package Builder")
 
-        st.markdown("""
-        <div class="info-box">
-        💡 <strong>Build comprehensive tax plans</strong> by combining multiple policies.
-        See the total budget impact and breakdown by component.
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown("""
+    <div class="info-box">
+    💡 <strong>Build comprehensive tax plans</strong> by combining multiple policies.
+    See the total budget impact and breakdown by component.
+    </div>
+    """, unsafe_allow_html=True)
 
-        # Preset packages
-        st.subheader("📋 Preset Policy Packages")
+    # Preset packages
+    st.subheader("📋 Preset Policy Packages")
 
-        preset_packages = {
-            "Biden FY2025 Tax Plan": {
-                "description": "President Biden's proposed tax changes for high earners and corporations",
-                "policies": [
-                    "🏢 Biden Corporate 28% (CBO: -$1.35T)",
-                    "💰 Expand NIIT (JCT: -$250B)",
-                    "📋 Eliminate Step-Up Basis (-$500B)",
-                ],
-                "official_total": -2100,
-                "source": "Treasury FY2025 Budget",
-            },
-            "TCJA Full Extension Package": {
-                "description": "Extend all expiring TCJA provisions plus repeal SALT cap",
-                "policies": [
-                    "🏛️ TCJA Full Extension (CBO: $4.6T)",
-                ],
-                "official_total": 4600,
-                "source": "CBO May 2024",
-            },
-            "TCJA + No SALT Cap": {
-                "description": "Extend TCJA and repeal the $10K SALT deduction cap",
-                "policies": [
-                    "🏛️ TCJA Extension (No SALT Cap)",
-                ],
-                "official_total": 6500,
-                "source": "CBO/JCT estimates",
-            },
-            "Progressive Revenue Package": {
-                "description": "Raise revenue from high earners and corporations",
-                "policies": [
-                    "🏢 Biden Corporate 28% (CBO: -$1.35T)",
-                    "💰 SS Donut Hole $250K (-$2.7T)",
-                    "📋 Eliminate Step-Up Basis (-$500B)",
-                    "📋 Cap Charitable Deduction (-$200B)",
-                ],
-                "official_total": -4750,
-                "source": "Combined estimates",
-            },
-            "Social Security Solvency": {
-                "description": "Payroll tax reforms to extend Social Security solvency",
-                "policies": [
-                    "💰 SS Cap to 90% (CBO: -$800B)",
-                    "💰 Expand NIIT (JCT: -$250B)",
-                ],
-                "official_total": -1050,
-                "source": "CBO/JCT estimates",
-            },
-            "Tax Expenditure Reform": {
-                "description": "Limit major tax expenditures",
-                "policies": [
-                    "📋 Cap Employer Health Exclusion (-$450B)",
-                    "📋 Cap Charitable Deduction (-$200B)",
-                    "📋 Eliminate Step-Up Basis (-$500B)",
-                ],
-                "official_total": -1150,
-                "source": "JCT estimates",
-            },
-        }
+    preset_packages = {
+        "Biden FY2025 Tax Plan": {
+            "description": "President Biden's proposed tax changes for high earners and corporations",
+            "policies": [
+                "🏢 Biden Corporate 28% (CBO: -$1.35T)",
+                "💰 Expand NIIT (JCT: -$250B)",
+                "📋 Eliminate Step-Up Basis (-$500B)",
+            ],
+            "official_total": -2100,
+            "source": "Treasury FY2025 Budget",
+        },
+        "TCJA Full Extension Package": {
+            "description": "Extend all expiring TCJA provisions plus repeal SALT cap",
+            "policies": [
+                "🏛️ TCJA Full Extension (CBO: $4.6T)",
+            ],
+            "official_total": 4600,
+            "source": "CBO May 2024",
+        },
+        "TCJA + No SALT Cap": {
+            "description": "Extend TCJA and repeal the $10K SALT deduction cap",
+            "policies": [
+                "🏛️ TCJA Extension (No SALT Cap)",
+            ],
+            "official_total": 6500,
+            "source": "CBO/JCT estimates",
+        },
+        "Progressive Revenue Package": {
+            "description": "Raise revenue from high earners and corporations",
+            "policies": [
+                "🏢 Biden Corporate 28% (CBO: -$1.35T)",
+                "💰 SS Donut Hole $250K (-$2.7T)",
+                "📋 Eliminate Step-Up Basis (-$500B)",
+                "📋 Cap Charitable Deduction (-$200B)",
+            ],
+            "official_total": -4750,
+            "source": "Combined estimates",
+        },
+        "Social Security Solvency": {
+            "description": "Payroll tax reforms to extend Social Security solvency",
+            "policies": [
+                "💰 SS Cap to 90% (CBO: -$800B)",
+                "💰 Expand NIIT (JCT: -$250B)",
+            ],
+            "official_total": -1050,
+            "source": "CBO/JCT estimates",
+        },
+        "Tax Expenditure Reform": {
+            "description": "Limit major tax expenditures",
+            "policies": [
+                "📋 Cap Employer Health Exclusion (-$450B)",
+                "📋 Cap Charitable Deduction (-$200B)",
+                "📋 Eliminate Step-Up Basis (-$500B)",
+            ],
+            "official_total": -1150,
+            "source": "JCT estimates",
+        },
+    }
 
-        col1, col2 = st.columns([1, 2])
+    col1, col2 = st.columns([1, 2])
 
-        with col1:
-            selected_package = st.selectbox(
-                "Select a preset package",
-                options=["Custom Package"] + list(preset_packages.keys()),
-                help="Choose a predefined policy package or build your own"
-            )
-
-        if selected_package != "Custom Package":
-            package_data = preset_packages[selected_package]
-            with col2:
-                st.info(f"**{selected_package}**: {package_data['description']}")
-
-        st.markdown("---")
-
-        # Policy selection
-        st.subheader("🔧 Select Policies to Combine")
-
-        # Get all available policies from different categories
-        all_scorable_policies = {}
-
-        # Add TCJA policies
-        if 'preset_policies' in dir():
-            for name, data in preset_policies.items():
-                if name != "Custom Policy" and data.get("is_tcja"):
-                    all_scorable_policies[name] = {"category": "TCJA", "data": data}
-                elif name != "Custom Policy" and data.get("is_corporate"):
-                    all_scorable_policies[name] = {"category": "Corporate", "data": data}
-                elif name != "Custom Policy" and data.get("is_credit"):
-                    all_scorable_policies[name] = {"category": "Tax Credits", "data": data}
-                elif name != "Custom Policy" and data.get("is_estate"):
-                    all_scorable_policies[name] = {"category": "Estate Tax", "data": data}
-                elif name != "Custom Policy" and data.get("is_payroll"):
-                    all_scorable_policies[name] = {"category": "Payroll Tax", "data": data}
-                elif name != "Custom Policy" and data.get("is_amt"):
-                    all_scorable_policies[name] = {"category": "AMT", "data": data}
-                elif name != "Custom Policy" and data.get("is_ptc"):
-                    all_scorable_policies[name] = {"category": "Premium Tax Credits", "data": data}
-                elif name != "Custom Policy" and data.get("is_expenditure"):
-                    all_scorable_policies[name] = {"category": "Tax Expenditures", "data": data}
-
-        # Default selection based on preset or empty
-        if selected_package != "Custom Package":
-            default_policies = preset_packages[selected_package]["policies"]
-            # Filter to only include policies that exist
-            default_policies = [p for p in default_policies if p in all_scorable_policies]
-        else:
-            default_policies = []
-
-        # Multi-select for policies
-        selected_policies = st.multiselect(
-            "Select policies to include in your package",
-            options=list(all_scorable_policies.keys()),
-            default=default_policies,
-            help="Choose 2 or more policies to combine into a package"
+    with col1:
+        selected_package = st.selectbox(
+            "Select a preset package",
+            options=["Custom Package"] + list(preset_packages.keys()),
+            help="Choose a predefined policy package or build your own"
         )
 
-        if len(selected_policies) >= 1:
-            st.markdown("---")
-            st.subheader("📊 Package Results")
+    if selected_package != "Custom Package":
+        package_data = preset_packages[selected_package]
+        with col2:
+            st.info(f"**{selected_package}**: {package_data['description']}")
 
-            # Calculate each policy's score
-            package_results = []
-            total_static = 0
-            total_behavioral = 0
-            total_net = 0
+    st.markdown("---")
 
-            with st.spinner("Calculating package impact..."):
-                for policy_name in selected_policies:
-                    try:
-                        policy_info = all_scorable_policies.get(policy_name, {})
-                        policy_data = policy_info.get("data", {})
+    # Policy selection
+    st.subheader("🔧 Select Policies to Combine")
 
-                        # Create and score the policy based on type
-                        if policy_data.get("is_tcja"):
-                            tcja_type = policy_data.get("tcja_type", "full")
-                            if tcja_type == "full":
-                                policy = create_tcja_extension(extend_all=True, keep_salt_cap=True)
-                            elif tcja_type == "no_salt":
-                                policy = create_tcja_repeal_salt_cap()
-                            elif tcja_type == "rates_only":
-                                policy = create_tcja_extension(extend_all=False, extend_rate_cuts=True)
-                            else:
-                                policy = create_tcja_extension(extend_all=True)
-                            scorer = FiscalPolicyScorer(start_year=2026, use_real_data=False)
+    # Get all available policies from different categories
+    all_scorable_policies = {}
 
-                        elif policy_data.get("is_corporate"):
-                            corporate_type = policy_data.get("corporate_type", "biden_28")
-                            if corporate_type == "biden_28":
-                                policy = create_biden_corporate_rate_only()
-                            elif corporate_type == "trump_15":
-                                policy = create_republican_corporate_cut()
-                            else:
-                                policy = create_biden_corporate_rate_only()
-                            scorer = FiscalPolicyScorer(start_year=2025, use_real_data=False)
+    # Add policies from preset_policies (defined in tab1)
+    for name, data in preset_policies.items():
+        if name == "Custom Policy":
+            continue
+        if data.get("is_tcja"):
+            all_scorable_policies[name] = {"category": "TCJA", "data": data}
+        elif data.get("is_corporate"):
+            all_scorable_policies[name] = {"category": "Corporate", "data": data}
+        elif data.get("is_credit"):
+            all_scorable_policies[name] = {"category": "Tax Credits", "data": data}
+        elif data.get("is_estate"):
+            all_scorable_policies[name] = {"category": "Estate Tax", "data": data}
+        elif data.get("is_payroll"):
+            all_scorable_policies[name] = {"category": "Payroll Tax", "data": data}
+        elif data.get("is_amt"):
+            all_scorable_policies[name] = {"category": "AMT", "data": data}
+        elif data.get("is_ptc"):
+            all_scorable_policies[name] = {"category": "Premium Tax Credits", "data": data}
+        elif data.get("is_expenditure"):
+            all_scorable_policies[name] = {"category": "Tax Expenditures", "data": data}
 
-                        elif policy_data.get("is_credit"):
-                            credit_type = policy_data.get("credit_type", "ctc_2021")
-                            if credit_type == "ctc_2021":
-                                policy = create_biden_ctc_2021()
-                            elif credit_type == "ctc_extension":
-                                policy = create_ctc_permanent_extension()
-                            elif credit_type == "eitc_childless":
-                                policy = create_biden_eitc_childless()
-                            else:
-                                policy = create_biden_ctc_2021()
-                            scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
+    # Default selection based on preset or empty
+    if selected_package != "Custom Package":
+        default_policies = preset_packages[selected_package]["policies"]
+        # Filter to only include policies that exist
+        default_policies = [p for p in default_policies if p in all_scorable_policies]
+    else:
+        default_policies = []
 
-                        elif policy_data.get("is_estate"):
-                            estate_type = policy_data.get("estate_type", "extend_tcja")
-                            if estate_type == "extend_tcja":
-                                policy = create_tcja_estate_extension()
-                            elif estate_type == "biden_reform":
-                                policy = create_biden_estate_proposal()
-                            elif estate_type == "eliminate":
-                                policy = create_eliminate_estate_tax()
-                            else:
-                                policy = create_tcja_estate_extension()
-                            scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
+    # Multi-select for policies
+    selected_policies = st.multiselect(
+        "Select policies to include in your package",
+        options=list(all_scorable_policies.keys()),
+        default=default_policies,
+        help="Choose 2 or more policies to combine into a package"
+    )
 
-                        elif policy_data.get("is_payroll"):
-                            payroll_type = policy_data.get("payroll_type", "cap_90")
-                            if payroll_type == "cap_90":
-                                policy = create_ss_cap_90_percent()
-                            elif payroll_type == "donut_250k":
-                                policy = create_ss_donut_hole()
-                            elif payroll_type == "eliminate_cap":
-                                policy = create_ss_eliminate_cap()
-                            elif payroll_type == "expand_niit":
-                                policy = create_expand_niit()
-                            else:
-                                policy = create_ss_cap_90_percent()
-                            scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
+    if len(selected_policies) >= 1:
+        st.markdown("---")
+        st.subheader("📊 Package Results")
 
-                        elif policy_data.get("is_amt"):
-                            amt_type = policy_data.get("amt_type", "extend_tcja")
-                            if amt_type == "extend_tcja":
-                                policy = create_extend_tcja_amt_relief()
-                            elif amt_type == "repeal_individual":
-                                policy = create_repeal_individual_amt()
-                            elif amt_type == "repeal_corporate":
-                                policy = create_repeal_corporate_amt()
-                            else:
-                                policy = create_extend_tcja_amt_relief()
-                            scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
+        # Calculate each policy's score
+        package_results = []
+        total_static = 0
+        total_behavioral = 0
+        total_net = 0
 
-                        elif policy_data.get("is_ptc"):
-                            ptc_type = policy_data.get("ptc_type", "extend_enhanced")
-                            if ptc_type == "extend_enhanced":
-                                policy = create_extend_enhanced_ptc()
-                            elif ptc_type == "repeal_all":
-                                policy = create_repeal_ptc()
-                            else:
-                                policy = create_extend_enhanced_ptc()
-                            scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
+        with st.spinner("Calculating package impact..."):
+            for policy_name in selected_policies:
+                try:
+                    policy_info = all_scorable_policies.get(policy_name, {})
+                    policy_data = policy_info.get("data", {})
 
-                        elif policy_data.get("is_expenditure"):
-                            exp_type = policy_data.get("expenditure_type", "cap_employer_health")
-                            if exp_type == "cap_employer_health":
-                                policy = create_cap_employer_health_exclusion()
-                            elif exp_type == "eliminate_mortgage":
-                                policy = create_eliminate_mortgage_deduction()
-                            elif exp_type == "repeal_salt_cap":
-                                policy = create_repeal_salt_cap()
-                            elif exp_type == "eliminate_salt":
-                                policy = create_eliminate_salt_deduction()
-                            elif exp_type == "cap_charitable":
-                                policy = create_cap_charitable_deduction()
-                            elif exp_type == "eliminate_step_up":
-                                policy = create_eliminate_step_up_basis()
-                            else:
-                                policy = create_cap_employer_health_exclusion()
-                            scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
-
+                    # Create and score the policy based on type
+                    if policy_data.get("is_tcja"):
+                        tcja_type = policy_data.get("tcja_type", "full")
+                        if tcja_type == "full":
+                            policy = create_tcja_extension(extend_all=True, keep_salt_cap=True)
+                        elif tcja_type == "no_salt":
+                            policy = create_tcja_repeal_salt_cap()
+                        elif tcja_type == "rates_only":
+                            policy = create_tcja_extension(extend_all=False, extend_rate_cuts=True)
                         else:
-                            continue
+                            policy = create_tcja_extension(extend_all=True)
+                        scorer = FiscalPolicyScorer(start_year=2026, use_real_data=False)
 
-                        # Score the policy
-                        result = scorer.score_policy(policy, dynamic=False)
-                        static = result.static_revenue_effect.sum()
-                        behavioral = result.behavioral_offset.sum()
-                        net = static + behavioral
+                    elif policy_data.get("is_corporate"):
+                        corporate_type = policy_data.get("corporate_type", "biden_28")
+                        if corporate_type == "biden_28":
+                            policy = create_biden_corporate_rate_only()
+                        elif corporate_type == "trump_15":
+                            policy = create_republican_corporate_cut()
+                        else:
+                            policy = create_biden_corporate_rate_only()
+                        scorer = FiscalPolicyScorer(start_year=2025, use_real_data=False)
 
-                        # Get CBO comparison if available
-                        cbo_data = CBO_SCORE_MAP.get(policy_name, {})
-                        official = cbo_data.get("official_score", None)
+                    elif policy_data.get("is_credit"):
+                        credit_type = policy_data.get("credit_type", "ctc_2021")
+                        if credit_type == "ctc_2021":
+                            policy = create_biden_ctc_2021()
+                        elif credit_type == "ctc_extension":
+                            policy = create_ctc_permanent_extension()
+                        elif credit_type == "eitc_childless":
+                            policy = create_biden_eitc_childless()
+                        else:
+                            policy = create_biden_ctc_2021()
+                        scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
 
-                        package_results.append({
-                            "name": policy_name,
-                            "category": policy_info.get("category", "Other"),
-                            "static": static,
-                            "behavioral": behavioral,
-                            "net": net,
-                            "cbo_net": -net,  # Convert to CBO convention
-                            "official": official,
-                        })
+                    elif policy_data.get("is_estate"):
+                        estate_type = policy_data.get("estate_type", "extend_tcja")
+                        if estate_type == "extend_tcja":
+                            policy = create_tcja_estate_extension()
+                        elif estate_type == "biden_reform":
+                            policy = create_biden_estate_proposal()
+                        elif estate_type == "eliminate":
+                            policy = create_eliminate_estate_tax()
+                        else:
+                            policy = create_tcja_estate_extension()
+                        scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
 
-                        total_static += static
-                        total_behavioral += behavioral
-                        total_net += net
+                    elif policy_data.get("is_payroll"):
+                        payroll_type = policy_data.get("payroll_type", "cap_90")
+                        if payroll_type == "cap_90":
+                            policy = create_ss_cap_90_percent()
+                        elif payroll_type == "donut_250k":
+                            policy = create_ss_donut_hole()
+                        elif payroll_type == "eliminate_cap":
+                            policy = create_ss_eliminate_cap()
+                        elif payroll_type == "expand_niit":
+                            policy = create_expand_niit()
+                        else:
+                            policy = create_ss_cap_90_percent()
+                        scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
 
-                    except Exception as e:
-                        st.warning(f"Could not score {policy_name}: {e}")
+                    elif policy_data.get("is_amt"):
+                        amt_type = policy_data.get("amt_type", "extend_tcja")
+                        if amt_type == "extend_tcja":
+                            policy = create_extend_tcja_amt_relief()
+                        elif amt_type == "repeal_individual":
+                            policy = create_repeal_individual_amt()
+                        elif amt_type == "repeal_corporate":
+                            policy = create_repeal_corporate_amt()
+                        else:
+                            policy = create_extend_tcja_amt_relief()
+                        scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
 
-            if package_results:
-                # Summary metrics
-                col1, col2, col3, col4 = st.columns(4)
+                    elif policy_data.get("is_ptc"):
+                        ptc_type = policy_data.get("ptc_type", "extend_enhanced")
+                        if ptc_type == "extend_enhanced":
+                            policy = create_extend_enhanced_ptc()
+                        elif ptc_type == "repeal_all":
+                            policy = create_repeal_ptc()
+                        else:
+                            policy = create_extend_enhanced_ptc()
+                        scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
 
-                # Convert to CBO convention for display
-                total_cbo = -total_net
+                    elif policy_data.get("is_expenditure"):
+                        exp_type = policy_data.get("expenditure_type", "cap_employer_health")
+                        if exp_type == "cap_employer_health":
+                            policy = create_cap_employer_health_exclusion()
+                        elif exp_type == "eliminate_mortgage":
+                            policy = create_eliminate_mortgage_deduction()
+                        elif exp_type == "repeal_salt_cap":
+                            policy = create_repeal_salt_cap()
+                        elif exp_type == "eliminate_salt":
+                            policy = create_eliminate_salt_deduction()
+                        elif exp_type == "cap_charitable":
+                            policy = create_cap_charitable_deduction()
+                        elif exp_type == "eliminate_step_up":
+                            policy = create_eliminate_step_up_basis()
+                        else:
+                            policy = create_cap_employer_health_exclusion()
+                        scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
 
-                with col1:
-                    st.metric(
-                        "Package Total (10-yr)",
-                        f"${total_cbo:,.0f}B",
-                        delta="Cost" if total_cbo > 0 else "Revenue",
-                        delta_color="inverse" if total_cbo > 0 else "normal"
-                    )
-
-                with col2:
-                    st.metric(
-                        "Policies Included",
-                        f"{len(package_results)}",
-                    )
-
-                with col3:
-                    avg_annual = total_cbo / 10
-                    st.metric(
-                        "Average Annual",
-                        f"${avg_annual:,.0f}B/yr",
-                    )
-
-                with col4:
-                    # Compare to preset if applicable
-                    if selected_package != "Custom Package":
-                        official_total = preset_packages[selected_package]["official_total"]
-                        error = ((total_cbo - official_total) / abs(official_total) * 100) if official_total != 0 else 0
-                        st.metric(
-                            "vs Official Est.",
-                            f"${official_total:,.0f}B",
-                            delta=f"{error:+.1f}% diff",
-                            delta_color="off"
-                        )
-
-                st.markdown("---")
-
-                # Component breakdown table
-                st.subheader("📋 Component Breakdown")
-
-                df_components = pd.DataFrame(package_results)
-                df_components["10-Year Impact"] = df_components["cbo_net"].apply(lambda x: f"${x:,.0f}B")
-                df_components["Official Score"] = df_components["official"].apply(
-                    lambda x: f"${x:,.0f}B" if x is not None else "N/A"
-                )
-                df_components["Category"] = df_components["category"]
-                df_components["Policy"] = df_components["name"]
-
-                # Display table
-                st.dataframe(
-                    df_components[["Policy", "Category", "10-Year Impact", "Official Score"]],
-                    use_container_width=True,
-                    hide_index=True
-                )
-
-                # Visual breakdown
-                st.subheader("📊 Visual Breakdown")
-
-                # Create waterfall-style chart
-                fig_waterfall = go.Figure()
-
-                # Sort by impact
-                df_sorted = df_components.sort_values("cbo_net", ascending=True)
-
-                colors = ['#d62728' if x > 0 else '#2ca02c' for x in df_sorted["cbo_net"]]
-
-                fig_waterfall.add_trace(go.Bar(
-                    y=df_sorted["name"],
-                    x=df_sorted["cbo_net"],
-                    orientation='h',
-                    marker_color=colors,
-                    text=df_sorted["10-Year Impact"],
-                    textposition='auto',
-                ))
-
-                fig_waterfall.update_layout(
-                    title="Policy Package Components (10-Year Impact)",
-                    xaxis_title="Budget Impact ($B, CBO Convention: + = Cost, - = Revenue)",
-                    height=max(300, len(package_results) * 50),
-                    showlegend=False,
-                )
-
-                st.plotly_chart(fig_waterfall, use_container_width=True)
-
-                # Pie chart of absolute values
-                col1, col2 = st.columns(2)
-
-                with col1:
-                    # Separate costs and revenues
-                    costs = df_components[df_components["cbo_net"] > 0]
-                    revenues = df_components[df_components["cbo_net"] < 0]
-
-                    if not costs.empty:
-                        fig_costs = px.pie(
-                            costs,
-                            values=costs["cbo_net"].abs(),
-                            names="name",
-                            title="Cost Components (Deficit Increases)",
-                            color_discrete_sequence=px.colors.sequential.Reds
-                        )
-                        st.plotly_chart(fig_costs, use_container_width=True)
                     else:
-                        st.info("No cost components in this package")
+                        continue
 
-                with col2:
-                    if not revenues.empty:
-                        fig_revenues = px.pie(
-                            revenues,
-                            values=revenues["cbo_net"].abs(),
-                            names="name",
-                            title="Revenue Components (Deficit Decreases)",
-                            color_discrete_sequence=px.colors.sequential.Greens
-                        )
-                        st.plotly_chart(fig_revenues, use_container_width=True)
-                    else:
-                        st.info("No revenue components in this package")
+                    # Score the policy
+                    result = scorer.score_policy(policy, dynamic=False)
+                    static = result.static_revenue_effect.sum()
+                    behavioral = result.behavioral_offset.sum()
+                    net = static + behavioral
 
-                # Export package
-                st.markdown("---")
-                st.subheader("📤 Export Package")
+                    # Get CBO comparison if available
+                    cbo_data = CBO_SCORE_MAP.get(policy_name, {})
+                    official = cbo_data.get("official_score", None)
 
-                export_data = {
-                    "package_name": selected_package,
-                    "total_10_year_impact_billions": total_cbo,
-                    "average_annual_billions": total_cbo / 10,
-                    "num_policies": len(package_results),
-                    "components": [
-                        {
-                            "policy": r["name"],
-                            "category": r["category"],
-                            "impact_billions": r["cbo_net"],
-                            "official_score": r["official"],
-                        }
-                        for r in package_results
-                    ]
-                }
+                    package_results.append({
+                        "name": policy_name,
+                        "category": policy_info.get("category", "Other"),
+                        "static": static,
+                        "behavioral": behavioral,
+                        "net": net,
+                        "cbo_net": -net,  # Convert to CBO convention
+                        "official": official,
+                    })
 
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.download_button(
-                        "📥 Download as JSON",
-                        data=pd.io.json.dumps(export_data, indent=2),
-                        file_name=f"policy_package_{selected_package.replace(' ', '_')}.json",
-                        mime="application/json"
+                    total_static += static
+                    total_behavioral += behavioral
+                    total_net += net
+
+                except Exception as e:
+                    st.warning(f"Could not score {policy_name}: {e}")
+
+        if package_results:
+            # Summary metrics
+            col1, col2, col3, col4 = st.columns(4)
+
+            # Convert to CBO convention for display
+            total_cbo = -total_net
+
+            with col1:
+                st.metric(
+                    "Package Total (10-yr)",
+                    f"${total_cbo:,.0f}B",
+                    delta="Cost" if total_cbo > 0 else "Revenue",
+                    delta_color="inverse" if total_cbo > 0 else "normal"
+                )
+
+            with col2:
+                st.metric(
+                    "Policies Included",
+                    f"{len(package_results)}",
+                )
+
+            with col3:
+                avg_annual = total_cbo / 10
+                st.metric(
+                    "Average Annual",
+                    f"${avg_annual:,.0f}B/yr",
+                )
+
+            with col4:
+                # Compare to preset if applicable
+                if selected_package != "Custom Package":
+                    official_total = preset_packages[selected_package]["official_total"]
+                    error = ((total_cbo - official_total) / abs(official_total) * 100) if official_total != 0 else 0
+                    st.metric(
+                        "vs Official Est.",
+                        f"${official_total:,.0f}B",
+                        delta=f"{error:+.1f}% diff",
+                        delta_color="off"
                     )
 
-                with col2:
-                    csv_data = df_components[["Policy", "Category", "cbo_net", "official"]].copy()
-                    csv_data.columns = ["Policy", "Category", "10-Year Impact ($B)", "Official Score ($B)"]
-                    st.download_button(
-                        "📥 Download as CSV",
-                        data=csv_data.to_csv(index=False),
-                        file_name=f"policy_package_{selected_package.replace(' ', '_')}.csv",
-                        mime="text/csv"
+            st.markdown("---")
+
+            # Component breakdown table
+            st.subheader("📋 Component Breakdown")
+
+            df_components = pd.DataFrame(package_results)
+            df_components["10-Year Impact"] = df_components["cbo_net"].apply(lambda x: f"${x:,.0f}B")
+            df_components["Official Score"] = df_components["official"].apply(
+                lambda x: f"${x:,.0f}B" if x is not None else "N/A"
+            )
+            df_components["Category"] = df_components["category"]
+            df_components["Policy"] = df_components["name"]
+
+            # Display table
+            st.dataframe(
+                df_components[["Policy", "Category", "10-Year Impact", "Official Score"]],
+                use_container_width=True,
+                hide_index=True
+            )
+
+            # Visual breakdown
+            st.subheader("📊 Visual Breakdown")
+
+            # Create waterfall-style chart
+            fig_waterfall = go.Figure()
+
+            # Sort by impact
+            df_sorted = df_components.sort_values("cbo_net", ascending=True)
+
+            colors = ['#d62728' if x > 0 else '#2ca02c' for x in df_sorted["cbo_net"]]
+
+            fig_waterfall.add_trace(go.Bar(
+                y=df_sorted["name"],
+                x=df_sorted["cbo_net"],
+                orientation='h',
+                marker_color=colors,
+                text=df_sorted["10-Year Impact"],
+                textposition='auto',
+            ))
+
+            fig_waterfall.update_layout(
+                title="Policy Package Components (10-Year Impact)",
+                xaxis_title="Budget Impact ($B, CBO Convention: + = Cost, - = Revenue)",
+                height=max(300, len(package_results) * 50),
+                showlegend=False,
+            )
+
+            st.plotly_chart(fig_waterfall, use_container_width=True)
+
+            # Pie chart of absolute values
+            col1, col2 = st.columns(2)
+
+            with col1:
+                # Separate costs and revenues
+                costs = df_components[df_components["cbo_net"] > 0]
+                revenues = df_components[df_components["cbo_net"] < 0]
+
+                if not costs.empty:
+                    fig_costs = px.pie(
+                        costs,
+                        values=costs["cbo_net"].abs(),
+                        names="name",
+                        title="Cost Components (Deficit Increases)",
+                        color_discrete_sequence=px.colors.sequential.Reds
                     )
+                    st.plotly_chart(fig_costs, use_container_width=True)
+                else:
+                    st.info("No cost components in this package")
 
-        else:
-            st.info("👆 Select at least 1 policy above to build a package")
+            with col2:
+                if not revenues.empty:
+                    fig_revenues = px.pie(
+                        revenues,
+                        values=revenues["cbo_net"].abs(),
+                        names="name",
+                        title="Revenue Components (Deficit Decreases)",
+                        color_discrete_sequence=px.colors.sequential.Greens
+                    )
+                    st.plotly_chart(fig_revenues, use_container_width=True)
+                else:
+                    st.info("No revenue components in this package")
 
+            # Export package
+            st.markdown("---")
+            st.subheader("📤 Export Package")
+
+            export_data = {
+                "package_name": selected_package,
+                "total_10_year_impact_billions": total_cbo,
+                "average_annual_billions": total_cbo / 10,
+                "num_policies": len(package_results),
+                "components": [
+                    {
+                        "policy": r["name"],
+                        "category": r["category"],
+                        "impact_billions": r["cbo_net"],
+                        "official_score": r["official"],
+                    }
+                    for r in package_results
+                ]
+            }
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.download_button(
+                    "📥 Download as JSON",
+                    data=pd.io.json.dumps(export_data, indent=2),
+                    file_name=f"policy_package_{selected_package.replace(' ', '_')}.json",
+                    mime="application/json"
+                )
+
+            with col2:
+                csv_data = df_components[["Policy", "Category", "cbo_net", "official"]].copy()
+                csv_data.columns = ["Policy", "Category", "10-Year Impact ($B)", "Official Score ($B)"]
+                st.download_button(
+                    "📥 Download as CSV",
+                    data=csv_data.to_csv(index=False),
+                    file_name=f"policy_package_{selected_package.replace(' ', '_')}.csv",
+                    mime="text/csv"
+                )
+
+    else:
+        st.info("👆 Select at least 1 policy above to build a package")
+
+# Tabs 7 and 8 require results to be calculated
+if st.session_state.results:
     with tab7:
         st.header("📋 Detailed Results")
 
