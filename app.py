@@ -335,7 +335,7 @@ with st.sidebar:
     st.caption("Built with Streamlit • Data updated 2022")
 
 # Main content tabs
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(["💰 Tax Policy", "📈 Results & Charts", "🌍 Dynamic Scoring", "👥 Distribution", "🔀 Compare Policies", "📦 Policy Packages", "📋 Details", "ℹ️ Methodology"])
+tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs(["⚙️ Policy Input", "📈 Results & Charts", "🌍 Dynamic Scoring", "👥 Distribution", "🔀 Compare Policies", "📦 Policy Packages", "📋 Details", "ℹ️ Methodology"])
 
 with tab1:
     st.header("Fiscal Policy Calculator")
@@ -350,12 +350,8 @@ with tab1:
 
     is_spending = policy_category == "📊 Spending Policy"
 
-    if not is_spending:
-        # TAX POLICY SECTION
-        # Preset policies
-        st.subheader("🎯 Quick Start: Choose a Preset Policy")
-
-        preset_policies = {
+    # Define preset_policies at module level so Policy Packages tab can access it
+    preset_policies = {
             "Custom Policy": {
                 "rate_change": -2.0,
                 "threshold": 500000,
@@ -598,7 +594,11 @@ with tab1:
             "description": "Simplified flat tax with lower rates across the board",
             "is_tcja": False,
         }
-        }
+    }
+
+    if not is_spending:
+        # TAX POLICY SECTION
+        st.subheader("🎯 Quick Start: Choose a Preset Policy")
 
         col_preset, col_info = st.columns([2, 3])
 
