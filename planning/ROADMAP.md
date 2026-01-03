@@ -158,41 +158,54 @@ TPC is valuable because they publish **transparent methodology documentation** t
 
 ## Current State
 
-### ✅ What's Built (Phase 1 Complete)
+### ✅ What's Built (Phases 1-5 Complete)
 
 ```
 fiscal_model/
-├── baseline.py       # CBO-style baseline projections (IRS/FRED data)
-├── policies.py       # Tax, spending, transfer policy definitions
-├── scoring.py        # Static + dynamic scoring engine
-├── economics.py      # Fiscal multipliers, state-dependent effects
+├── scoring.py                  # Main scoring orchestrator
+├── policies.py                 # Policy base classes
+├── baseline.py                 # CBO baseline projections
+├── economics.py                # Fiscal multipliers
+├── tcja.py                     # TCJA extension scoring
+├── corporate.py                # Corporate tax policies
+├── credits.py                  # Tax credits (CTC, EITC)
+├── estate.py                   # Estate tax policies
+├── payroll.py                  # Payroll tax (SS, Medicare, NIIT)
+├── amt.py                      # Alternative minimum tax
+├── ptc.py                      # Premium tax credits (ACA)
+├── tax_expenditures.py         # SALT, mortgage, step-up basis
+├── distribution.py             # TPC/JCT-style distributional analysis
+├── models/
+│   └── macro_adapter.py        # FRB/US-calibrated dynamic scoring
 ├── data/
-│   ├── irs_soi.py    # IRS Statistics of Income loader
-│   ├── fred_data.py  # FRED API integration
-│   └── validation.py # Data validation
+│   ├── irs_soi.py              # IRS Statistics of Income loader
+│   ├── capital_gains.py        # Capital gains baseline
+│   └── fred_data.py            # FRED API integration
 └── validation/
-    ├── cbo_scores.py # Known CBO/JCT scores database
-    └── compare.py    # Model vs official comparison
+    ├── cbo_scores.py           # Official CBO/JCT benchmarks (25+)
+    └── compare.py              # Validation framework
 ```
 
 **Capabilities**:
-- ✅ Tax rate change scoring (income, corporate, payroll)
-- ✅ Auto-population from IRS SOI data (taxpayer counts, income)
-- ✅ Behavioral response via Elasticity of Taxable Income (ETI)
-- ✅ Dynamic scoring with GDP/employment feedback
-- ✅ State-dependent fiscal multipliers (recession vs expansion)
-- ✅ Spending policy analysis with multipliers
-- ✅ 10-year budget window projections
-- ✅ Uncertainty ranges
+- ✅ 25+ validated policy types (TCJA, corporate, credits, estate, payroll, AMT, ACA, expenditures)
+- ✅ Auto-population from IRS SOI data (2021-2022)
+- ✅ Behavioral response via ETI, capital gains elasticity
+- ✅ Dynamic scoring with FRB/US-calibrated multipliers
+- ✅ Distributional analysis (TPC/JCT-style tables, winners/losers)
+- ✅ Policy package builder with presets and export
+- ✅ Compare to CBO feature with accuracy ratings
+- ✅ 60 unit tests with GitHub Actions CI
 - ✅ Streamlit web interface (deployed)
-- ✅ CBO validation database (15+ scored policies)
 
-**Validation Status**:
+**Validation Status** (25+ policies within 15% of official):
 | Policy | Official Score | Our Estimate | Error |
 |--------|---------------|--------------|-------|
-| Biden $400K+ (2.6pp) | -$252B | ~-$250B | ~1% |
-| Illustrative 1pp all | -$960B | ~-$900B | ~6% |
-| TCJA Extension | $4,600B | TBD | TBD |
+| TCJA Full Extension | $4,600B | $4,582B | 0.4% |
+| Biden Corporate 28% | -$1,347B | -$1,397B | 3.7% |
+| Biden CTC 2021 | $1,600B | $1,743B | 8.9% |
+| SS Donut Hole $250K | -$2,700B | -$2,371B | 12.2% |
+| Repeal Corporate AMT | $220B | $220B | 0.0% |
+| Cap Employer Health | -$450B | -$450B | 0.1% |
 
 ---
 
@@ -207,77 +220,62 @@ fiscal_model/
 - [x] Streamlit deployment
 - [x] CBO validation framework
 
-### Phase 2: CBO Methodology Completion 🔄 IN PROGRESS
+### Phase 2: CBO Methodology Completion ✅ COMPLETE
+*Shipped: January 2026*
+
+- [x] 25+ policies validated against CBO/JCT benchmarks
+- [x] Full policy type suite (capital gains, estate, credits, payroll, AMT, ACA, expenditures)
+- [x] Corporate tax modeling (Biden 28%, Trump 15%, GILTI/FDII)
+- [x] Capital gains with time-varying elasticity and step-up basis
+- [x] Tax credits (CTC, EITC with phase-in/phase-out)
+- [x] Estate tax (TCJA extension, Biden reform)
+- [x] Payroll tax (SS cap, donut hole, NIIT)
+- [x] AMT (individual and corporate)
+- [x] Premium tax credits (ACA enhanced/original)
+- [x] Tax expenditures (SALT, mortgage, step-up, charitable)
+
+### Phase 3: Distributional Analysis ✅ COMPLETE
+*Shipped: January 2026*
+
+- [x] Income quintile/decile breakdown
+- [x] JCT-style dollar brackets
+- [x] Tax burden by income group
+- [x] Winners/losers percentage
+- [x] Effective tax rate changes
+- [x] Top income breakout (1%, 0.1%)
+- [x] TPC-style output tables
+- [x] Streamlit UI integration
+
+### Phase 4: Dynamic Scoring ✅ COMPLETE
+*Shipped: January 2026*
+
+- [x] FRB/US-calibrated multipliers (spending 1.4x, tax -0.7x)
+- [x] GDP and employment effects
+- [x] Revenue feedback modeling
+- [x] Crowding out effects
+- [x] 10-year projections
+
+### Phase 5: Policy Tools ✅ COMPLETE
+*Shipped: January 2026*
+
+- [x] Compare to CBO feature with accuracy ratings
+- [x] Policy package builder (6 presets)
+- [x] Custom policy combinations
+- [x] JSON/CSV export
+- [x] 60 unit tests
+- [x] GitHub Actions CI
+
+### Phase 6: Documentation & Polish 🔄 CURRENT
 *Target: Q1 2026*
 
-**Goals**:
-- [ ] Complete validation against all CBO/JCT benchmark policies
-- [ ] Implement full suite of policy types (capital gains, estate, credits)
-- [ ] Add corporate tax modeling
-- [ ] Improve dynamic scoring accuracy
-- [ ] Document methodology differences from CBO
+- [x] GitHub Actions CI
+- [x] README update
+- [ ] METHODOLOGY.md update with dynamic scoring
+- [ ] Example Jupyter notebooks
+- [ ] API documentation
+- [ ] Docstrings for public functions
 
-**Key Tasks**:
-1. **Capital Gains Tax Module**
-   - Realization elasticity (timing effects)
-   - Lock-in effect modeling
-   - Step-up basis at death
-   - Align behavioral assumptions with Yale Budget Lab documentation (realizations)
-
-2. **Tax Credit Calculator**
-   - Refundable vs non-refundable
-   - Phase-out modeling
-   - EITC, CTC, education credits
-
-3. **Corporate Tax Improvements**
-   - Pass-through income effects
-   - International provisions (GILTI, FDII)
-   - Depreciation rules (add a first-pass depreciation/expensing submodel; align with Yale Budget Lab depreciation documentation)
-
-4. **Behavioral Responses Beyond ETI (First Pass)**
-   - Income shifting across entity type (e.g., C-corp vs pass-through)
-   - Micro employment effects channel
-
-5. **Validation Targets**
-   - Match 5+ CBO scores within 10%
-   - Document systematic biases
-
-### Phase 3: Distributional Analysis
-*Target: Q2 2026*
-
-**Goals**:
-- [ ] Income quintile/decile breakdown
-- [ ] Tax burden by income group
-- [ ] Winners/losers percentage
-- [ ] Effective tax rate changes
-- [ ] Gini coefficient impact
-- [ ] Support VAT distributional/revenue modeling (Yale Budget Lab reference)
-- [ ] Add non-dollar impacts where feasible (e.g., time burden of tax filing)
-
-**Key Components**:
-
-1. **Income Distribution Engine**
-   ```
-   distributional/
-   ├── income_bins.py      # Standard TPC/JCT income groups
-   ├── burden_calculation.py
-   ├── winners_losers.py
-   └── effective_rates.py
-   ```
-
-2. **Output Tables** (TPC Format)
-   - Cash income quintiles
-   - Expanded income deciles
-   - Tax units with increase/decrease
-   - Average dollar change
-   - Percent change in after-tax income
-
-3. **Data Requirements**
-   - CPS Annual Social and Economic Supplement
-   - IRS Public Use File (if available)
-   - Synthetic microdata fallback
-
-### Phase 4: Penn Wharton OLG Model
+### Phase 7: Penn Wharton OLG Model
 *Target: Q3-Q4 2026*
 
 **Goals**:
@@ -318,8 +316,8 @@ class OLGModel:
     def generational_incidence(self, policy)
 ```
 
-### Phase 5: Trade Policy Calculator
-*Target: Q1 2027*
+### Phase 8: Trade Policy Calculator
+*Target: Q4 2026*
 
 **Goals**:
 - [ ] Tariff revenue scoring
@@ -334,8 +332,8 @@ class OLGModel:
 - Pass-through rates
 - Welfare decomposition (consumer loss, producer gain, tariff revenue)
 
-### Phase 6: Multi-Model Platform
-*Target: Q2 2027*
+### Phase 9: Multi-Model Platform
+*Target: 2027*
 
 **Goals**:
 - [ ] Run same policy through CBO, JCT-inspired microsim, TPC, Yale Budget Lab-style modules, and PWBM
@@ -519,6 +517,6 @@ Priority areas for contribution:
 
 ---
 
-*Last Updated: December 2025*
+*Last Updated: January 2026*
 *Maintainer: Laurence Wilse-Samson*
 

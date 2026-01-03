@@ -2,37 +2,47 @@
 
 [![Tests](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml/badge.svg)](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml)
 
-A web application for estimating the budgetary and economic effects of fiscal policy proposals using real IRS Statistics of Income data and CBO methodology.
+A professional-grade web application for estimating budgetary and economic effects of fiscal policy proposals. Uses real IRS Statistics of Income data and CBO/JCT methodology, with 25+ policies validated within 15% of official scores.
 
-**🚀 Live App:** https://laurencehw-fiscal-policy-calculator.streamlit.app
+**Live App:** https://laurencehw-fiscal-policy-calculator.streamlit.app
 
 ---
 
 ## Features
 
-### Tax Policy Calculator
-- Estimate revenue effects of tax rate changes
-- Auto-populates taxpayer counts from real IRS data (2021-2022)
-- Behavioral response modeling (Elasticity of Taxable Income)
-- Capital gains scoring with realizations elasticity + baseline ingestion
-- Static and dynamic scoring options
+### Policy Scoring Engine
+- **25+ validated policies** — TCJA, corporate tax, credits, estate, payroll, AMT, ACA, tax expenditures
+- **CBO/JCT methodology** — Static scoring, behavioral responses (ETI), dynamic feedback
+- **Real IRS data** — Auto-populates taxpayer counts from 2021-2022 SOI tables
+- **Compare to CBO** — Side-by-side model vs official score comparison with accuracy ratings
 
-### Spending Policy Calculator
-- Infrastructure, defense, and social program spending
-- Fiscal multiplier effects on GDP
-- One-time vs recurring spending analysis
+### Policy Types Supported
+| Category | Examples | Validation |
+|----------|----------|------------|
+| Income Tax | Biden $400K+, TCJA extension | 0.4-1% error |
+| Corporate | Biden 28%, Trump 15% | 3.7% error |
+| Tax Credits | CTC, EITC expansions | 0.9-8.9% error |
+| Estate Tax | TCJA extension, Biden reform | 10% error |
+| Payroll | SS cap reforms, NIIT expansion | 12% error |
+| AMT | Individual & corporate AMT | 0.1% error |
+| ACA | Premium tax credits | 0.3-4.6% error |
+| Tax Expenditures | SALT, mortgage, step-up basis | 0.1-10% error |
 
-### Policy Comparison Tool
-- Compare 2-4 policies side-by-side
-- 10-year budget impact charts
-- Year-by-year timeline comparison
+### Dynamic Scoring
+- **FRB/US-calibrated multipliers** — Spending (1.4x), tax (-0.7x)
+- **GDP and employment effects** — 10-year projections
+- **Revenue feedback** — Macro effects on tax base
+- **Crowding out** — Interest rate and deficit effects
 
-### Preset Policies
-- TCJA 2017 High-Income Cut
-- Biden 2025 Proposal
-- Progressive Millionaire Tax
-- Middle Class Tax Cut
-- And more...
+### Distributional Analysis
+- **TPC/JCT-style tables** — By quintile, decile, or dollar brackets
+- **Winners/losers analysis** — Share of taxpayers affected
+- **Top income breakout** — Top 1%, 0.1% detail
+
+### Policy Package Builder
+- **6 preset packages** — Biden FY2025, TCJA Extension, Progressive Revenue, etc.
+- **Custom combinations** — Mix and match policies
+- **Export** — JSON and CSV download
 
 ---
 
@@ -40,11 +50,15 @@ A web application for estimating the budgetary and economic effects of fiscal po
 
 ### Run Locally
 ```bash
+# Install dependencies
 pip install -r requirements.txt
-streamlit run app.py
-```
 
-Open http://localhost:8501 in your browser.
+# Run the app
+streamlit run fiscal-policy-calculator/app.py
+
+# Run tests
+pytest tests/ -v
+```
 
 ### Use Online
 Visit: https://laurencehw-fiscal-policy-calculator.streamlit.app
@@ -55,54 +69,75 @@ Visit: https://laurencehw-fiscal-policy-calculator.streamlit.app
 
 ```
 fiscal-policy-calculator/
-├── app.py                    # Streamlit web application
-├── fiscal_model/             # Core scoring engine
-│   ├── baseline.py           # Baseline budget projections
-│   ├── policies.py           # Policy definitions
-│   ├── scoring.py            # Static/dynamic scoring
-│   ├── economics.py          # Economic feedback models
-│   ├── uncertainty.py        # Uncertainty analysis
-│   ├── reporting.py          # Output formatting
-│   ├── data/                 # Data integration
-│   │   ├── irs_soi.py        # IRS SOI data loader
-│   │   ├── capital_gains.py  # Capital gains baseline + rate proxies
-│   │   ├── fred_data.py      # FRED API integration
-│   │   └── validation.py     # Data quality checks
-│   ├── data_files/           # Static data files
-│   │   └── irs_soi/          # IRS Statistics of Income CSVs
-│   │   └── capital_gains/    # IRS SOI prelim XLS + documented rate proxies
-│   └── validation/           # Model validation
-│       ├── cbo_scores.py     # Known CBO/JCT scores database
-│       └── compare.py        # Comparison framework
-├── planning/                 # Project planning
-│   ├── ROADMAP.md            # Long-term vision & roadmap
-│   └── NEXT_SESSION.md       # Current priorities
-└── docs/                     # Documentation
-    ├── METHODOLOGY.md        # Scoring methodology
-    └── ARCHITECTURE.md       # System design
+├── app.py                          # Streamlit web application
+├── fiscal_model/                   # Core scoring engine
+│   ├── scoring.py                  # Main scoring orchestrator
+│   ├── policies.py                 # Policy base classes
+│   ├── tcja.py                     # TCJA extension scoring
+│   ├── corporate.py                # Corporate tax policies
+│   ├── credits.py                  # Tax credits (CTC, EITC)
+│   ├── estate.py                   # Estate tax policies
+│   ├── payroll.py                  # Payroll tax (SS, Medicare, NIIT)
+│   ├── amt.py                      # Alternative minimum tax
+│   ├── ptc.py                      # Premium tax credits (ACA)
+│   ├── tax_expenditures.py         # SALT, mortgage, step-up basis
+│   ├── distribution.py             # Distributional analysis engine
+│   ├── economics.py                # Economic feedback models
+│   ├── baseline.py                 # CBO baseline projections
+│   ├── models/
+│   │   └── macro_adapter.py        # FRB/US integration
+│   ├── data/
+│   │   ├── irs_soi.py              # IRS SOI data loader
+│   │   ├── capital_gains.py        # Capital gains baseline
+│   │   └── fred_data.py            # FRED API integration
+│   └── validation/
+│       ├── cbo_scores.py           # Official CBO/JCT benchmarks
+│       └── compare.py              # Validation framework
+├── tests/                          # Unit tests (60 tests)
+│   ├── test_distribution.py
+│   └── test_macro_adapter.py
+├── planning/
+│   ├── ROADMAP.md                  # Long-term vision
+│   └── NEXT_SESSION.md             # Current priorities
+└── docs/
+    ├── METHODOLOGY.md              # Scoring methodology
+    └── ARCHITECTURE.md             # System design
 ```
 
 ---
 
-## Data Sources
+## Validation Results
 
-| Source | Data | Usage |
-|--------|------|-------|
-| [IRS SOI](https://www.irs.gov/statistics/soi-tax-stats-individual-income-tax-statistics) | Tax returns by income bracket | Auto-population, revenue estimates |
-| [FRED](https://fred.stlouisfed.org) | GDP, unemployment, interest rates | Economic baseline, multipliers |
-| [CBO](https://www.cbo.gov) | Budget projections, methodology | Scoring framework |
+25+ policies validated against official CBO/JCT/TPC estimates:
+
+| Policy | Official | Model | Error |
+|--------|----------|-------|-------|
+| TCJA Full Extension | $4,600B | $4,582B | 0.4% |
+| Biden Corporate 28% | -$1,347B | -$1,397B | 3.7% |
+| Biden CTC 2021 | $1,600B | $1,743B | 8.9% |
+| SS Donut Hole $250K | -$2,700B | -$2,371B | 12.2% |
+| Repeal Corporate AMT | $220B | $220B | 0.0% |
+| Cap Employer Health | -$450B | -$450B | 0.1% |
+
+See [`planning/NEXT_SESSION.md`](planning/NEXT_SESSION.md) for full validation table.
 
 ---
 
 ## Methodology
 
-The calculator uses Congressional Budget Office (CBO) methodology:
+The calculator implements CBO/JCT scoring methodology:
 
-1. **Static Scoring** - Direct revenue effect from rate changes
-2. **Behavioral Response** - Taxpayer response via ETI (Elasticity of Taxable Income)
-3. **Capital Gains Realizations** - Realizations elasticity model (timing/lock-in), with baseline net capital gains by AGI for 2022 and documented 2023/2024 estimation
-4. **Dynamic Scoring** - GDP feedback effects on revenue
-5. **Fiscal Multipliers** - State-dependent (recession vs normal times)
+1. **Static Scoring** — Direct revenue effect: `ΔRevenue = ΔRate × Base`
+2. **Behavioral Response** — ETI-based offset: `Offset = -ETI × 0.5 × Static`
+3. **Capital Gains** — Time-varying elasticity (0.8 short-run → 0.4 long-run)
+4. **Dynamic Scoring** — FRB/US-calibrated GDP feedback
+5. **Distributional** — TPC-style incidence by income group
+
+Key parameters:
+- **ETI**: 0.25 (Saez et al. 2012)
+- **Spending multiplier**: 1.4 (FRB/US)
+- **Tax multiplier**: -0.7 (FRB/US)
+- **Corporate incidence**: 75% capital / 25% labor
 
 See [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) for details.
 
@@ -110,39 +145,28 @@ See [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) for details.
 
 ## Roadmap
 
-**Vision**: Replicate methodologies from CBO, JCT, Penn Wharton, Yale Budget Lab, and Tax Policy Center in an interactive, transparent platform.
-
 | Phase | Focus | Status |
 |-------|-------|--------|
 | 1 | Core calculator & deployment | ✅ Complete |
-| 2 | CBO methodology completion | 🔄 Current |
-| 3 | Distributional analysis (TPC-style) | Planned |
-| 4 | Penn Wharton OLG model | Planned |
-| 5 | Yale Budget Lab modules (macro + microsim + behavioral + VAT + depreciation + trade) | Planned |
-| 6 | Multi-model comparison platform | Future |
+| 2 | CBO methodology (25+ policies) | ✅ Complete |
+| 3 | Distributional analysis | ✅ Complete |
+| 4 | Dynamic scoring (FRB/US) | ✅ Complete |
+| 5 | Policy packages & comparison | ✅ Complete |
+| 6 | Documentation & CI/CD | 🔄 Current |
+| 7 | Penn Wharton OLG model | Planned |
+| 8 | Yale Budget Lab modules | Planned |
 
-See [`planning/ROADMAP.md`](planning/ROADMAP.md) for full roadmap with technical details.
+See [`planning/ROADMAP.md`](planning/ROADMAP.md) for full roadmap.
 
 ---
 
 ## Technology
 
-- **Backend:** Python, NumPy, Pandas
-- **Frontend:** Streamlit
-- **Charts:** Plotly
-- **Hosting:** Streamlit Cloud (free)
-- **Data:** IRS SOI, FRED API
-
----
-
-## Documentation
-
-| Document | Description |
-|----------|-------------|
-| [`planning/ROADMAP.md`](planning/ROADMAP.md) | Long-term vision and feature roadmap |
-| [`planning/NEXT_SESSION.md`](planning/NEXT_SESSION.md) | Current session priorities |
-| [`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) | Scoring methodology details |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Multi-model system design |
+- **Backend:** Python 3.10+, NumPy, Pandas, Pydantic
+- **Frontend:** Streamlit, Plotly
+- **Testing:** pytest (60 tests), GitHub Actions CI
+- **Hosting:** Streamlit Cloud
+- **Data:** IRS SOI, FRED API, CBO projections
 
 ---
 
@@ -154,7 +178,7 @@ MIT License
 
 ## Author
 
-Built by Laurence Wilse-Samson | [lwilsesamson.com](https://lwilsesamson.com)
+Built by Laurence Wilse-Samson | NYU Wagner School of Public Policy
 
 ---
 
