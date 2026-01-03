@@ -2608,8 +2608,8 @@ if st.session_state.results:
                 "description": "President Biden's proposed tax changes for high earners and corporations",
                 "policies": [
                     "🏢 Biden Corporate 28% (CBO: -$1.35T)",
-                    "💼 Expand NIIT (-$250B)",
-                    "💀 Eliminate Step-Up Basis (-$500B)",
+                    "💰 Expand NIIT (JCT: -$250B)",
+                    "📋 Eliminate Step-Up Basis (-$500B)",
                 ],
                 "official_total": -2100,
                 "source": "Treasury FY2025 Budget",
@@ -2634,9 +2634,9 @@ if st.session_state.results:
                 "description": "Raise revenue from high earners and corporations",
                 "policies": [
                     "🏢 Biden Corporate 28% (CBO: -$1.35T)",
-                    "💼 SS Donut Hole $250K (-$2.7T)",
-                    "💀 Eliminate Step-Up Basis (-$500B)",
-                    "🎁 Cap Charitable Deduction (-$200B)",
+                    "💰 SS Donut Hole $250K (-$2.7T)",
+                    "📋 Eliminate Step-Up Basis (-$500B)",
+                    "📋 Cap Charitable Deduction (-$200B)",
                 ],
                 "official_total": -4750,
                 "source": "Combined estimates",
@@ -2644,8 +2644,8 @@ if st.session_state.results:
             "Social Security Solvency": {
                 "description": "Payroll tax reforms to extend Social Security solvency",
                 "policies": [
-                    "💼 SS Cap to 90% Coverage (-$800B)",
-                    "💼 Expand NIIT (-$250B)",
+                    "💰 SS Cap to 90% (CBO: -$800B)",
+                    "💰 Expand NIIT (JCT: -$250B)",
                 ],
                 "official_total": -1050,
                 "source": "CBO/JCT estimates",
@@ -2653,9 +2653,9 @@ if st.session_state.results:
             "Tax Expenditure Reform": {
                 "description": "Limit major tax expenditures",
                 "policies": [
-                    "💊 Cap Employer Health Exclusion (-$450B)",
-                    "🎁 Cap Charitable Deduction (-$200B)",
-                    "💀 Eliminate Step-Up Basis (-$500B)",
+                    "📋 Cap Employer Health Exclusion (-$450B)",
+                    "📋 Cap Charitable Deduction (-$200B)",
+                    "📋 Eliminate Step-Up Basis (-$500B)",
                 ],
                 "official_total": -1150,
                 "source": "JCT estimates",
@@ -2784,14 +2784,14 @@ if st.session_state.results:
                             scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
 
                         elif policy_data.get("is_payroll"):
-                            payroll_type = policy_data.get("payroll_type", "ss_90")
-                            if payroll_type == "ss_90":
+                            payroll_type = policy_data.get("payroll_type", "cap_90")
+                            if payroll_type == "cap_90":
                                 policy = create_ss_cap_90_percent()
-                            elif payroll_type == "ss_donut":
+                            elif payroll_type == "donut_250k":
                                 policy = create_ss_donut_hole()
-                            elif payroll_type == "ss_eliminate":
+                            elif payroll_type == "eliminate_cap":
                                 policy = create_ss_eliminate_cap()
-                            elif payroll_type == "niit_expand":
+                            elif payroll_type == "expand_niit":
                                 policy = create_expand_niit()
                             else:
                                 policy = create_ss_cap_90_percent()
@@ -2820,8 +2820,8 @@ if st.session_state.results:
                             scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
 
                         elif policy_data.get("is_expenditure"):
-                            exp_type = policy_data.get("expenditure_type", "cap_health")
-                            if exp_type == "cap_health":
+                            exp_type = policy_data.get("expenditure_type", "cap_employer_health")
+                            if exp_type == "cap_employer_health":
                                 policy = create_cap_employer_health_exclusion()
                             elif exp_type == "eliminate_mortgage":
                                 policy = create_eliminate_mortgage_deduction()
@@ -2831,7 +2831,7 @@ if st.session_state.results:
                                 policy = create_eliminate_salt_deduction()
                             elif exp_type == "cap_charitable":
                                 policy = create_cap_charitable_deduction()
-                            elif exp_type == "eliminate_stepup":
+                            elif exp_type == "eliminate_step_up":
                                 policy = create_eliminate_step_up_basis()
                             else:
                                 policy = create_cap_employer_health_exclusion()
