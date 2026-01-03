@@ -100,12 +100,193 @@ try:
     from fiscal_model.models import (
         FRBUSAdapterLite, SimpleMultiplierAdapter, MacroScenario,
     )
+    from fiscal_model.validation.cbo_scores import KNOWN_SCORES, CBOScore, ScoreSource
     MODEL_AVAILABLE = True
     MACRO_AVAILABLE = True
 except ImportError as e:
     MODEL_AVAILABLE = False
     MACRO_AVAILABLE = False
     st.error(f"⚠️ Could not import fiscal model: {e}")
+
+# =============================================================================
+# CBO SCORE MAPPING - Maps preset policy names to official CBO/JCT scores
+# =============================================================================
+CBO_SCORE_MAP = {
+    # TCJA Extension
+    "🏛️ TCJA Full Extension (CBO: $4.6T)": {
+        "official_score": 4600.0,
+        "source": "CBO",
+        "source_date": "May 2024",
+        "source_url": "https://www.cbo.gov/publication/59710",
+        "notes": "Extend all individual TCJA provisions beyond 2025 sunset",
+    },
+    "🏛️ TCJA Extension (No SALT Cap)": {
+        "official_score": 6500.0,  # ~$4.6T + $1.9T SALT
+        "source": "CBO/JCT",
+        "source_date": "2024",
+        "notes": "TCJA extension + repeal $10K SALT cap (~$1.9T additional)",
+    },
+    "🏛️ TCJA Rates Only": {
+        "official_score": 3200.0,
+        "source": "CBO",
+        "source_date": "2024",
+        "notes": "Extend only individual rate bracket cuts",
+    },
+    # Corporate
+    "🏢 Biden Corporate 28% (CBO: -$1.35T)": {
+        "official_score": -1347.0,
+        "source": "Treasury",
+        "source_date": "March 2024",
+        "source_url": "https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf",
+        "notes": "Increase corporate rate from 21% to 28%",
+    },
+    "🏢 Trump Corporate 15%": {
+        "official_score": 673.0,  # ~$67.3B/yr based on CRFB estimates
+        "source": "CRFB",
+        "source_date": "2024",
+        "notes": "Reduce corporate rate from 21% to 15%",
+    },
+    # Tax Credits
+    "👶 Biden CTC 2021 ($1.6T)": {
+        "official_score": 1600.0,
+        "source": "JCT",
+        "source_date": "2021",
+        "notes": "$3,600/$3,000 per child, fully refundable, monthly payments",
+    },
+    "👶 CTC Permanent Extension ($600B)": {
+        "official_score": 600.0,
+        "source": "CBO",
+        "source_date": "2024",
+        "notes": "Extend current $2,000 CTC beyond 2025",
+    },
+    "👷 EITC Childless Expansion": {
+        "official_score": 178.0,
+        "source": "JCT",
+        "source_date": "2021",
+        "notes": "Triple EITC for childless workers, expand age range",
+    },
+    # Estate Tax
+    "🏠 Estate: Extend TCJA ($167B)": {
+        "official_score": 167.0,
+        "source": "CBO",
+        "source_date": "2024",
+        "notes": "Maintain doubled exemption ($13.6M) beyond 2025",
+    },
+    "🏠 Estate: Biden Reform (-$450B)": {
+        "official_score": -450.0,
+        "source": "Treasury",
+        "source_date": "2024",
+        "notes": "Return to 2009 parameters: $3.5M exemption, 45% rate",
+    },
+    "🏠 Estate: Eliminate Tax": {
+        "official_score": 300.0,  # ~$30B/yr
+        "source": "JCT",
+        "source_date": "2024",
+        "notes": "Repeal federal estate tax entirely",
+    },
+    # Payroll Tax
+    "💼 SS Cap to 90% Coverage (-$800B)": {
+        "official_score": -800.0,
+        "source": "CBO",
+        "source_date": "2024",
+        "notes": "Raise SS wage cap from $168K to ~$305K",
+    },
+    "💼 SS Donut Hole $250K (-$2.7T)": {
+        "official_score": -2700.0,
+        "source": "SS Trustees",
+        "source_date": "2024",
+        "notes": "Apply payroll tax above $250K (donut hole)",
+    },
+    "💼 Eliminate SS Cap (-$3.2T)": {
+        "official_score": -3200.0,
+        "source": "SS Trustees",
+        "source_date": "2024",
+        "notes": "Apply SS tax to all wages (no cap)",
+    },
+    "💼 Expand NIIT (-$250B)": {
+        "official_score": -250.0,
+        "source": "JCT",
+        "source_date": "2024",
+        "notes": "Apply 3.8% NIIT to pass-through business income",
+    },
+    # AMT
+    "⚖️ AMT: Extend TCJA Relief ($450B)": {
+        "official_score": 450.0,
+        "source": "CBO",
+        "source_date": "2024",
+        "notes": "Maintain high AMT exemption beyond 2025",
+    },
+    "⚖️ Repeal Individual AMT ($450B)": {
+        "official_score": 450.0,
+        "source": "CBO",
+        "source_date": "2024",
+        "notes": "Eliminate individual AMT (post-TCJA sunset baseline)",
+    },
+    "⚖️ Repeal Corporate AMT (-$220B)": {
+        "official_score": -220.0,
+        "source": "CBO",
+        "source_date": "2024",
+        "notes": "Repeal 15% corporate book minimum tax (CAMT)",
+    },
+    # Premium Tax Credits
+    "🏥 Extend Enhanced PTCs ($350B)": {
+        "official_score": 350.0,
+        "source": "CBO",
+        "source_date": "2024",
+        "notes": "Extend ACA enhanced premium subsidies beyond 2025",
+    },
+    "🏥 Repeal All PTCs (-$1.1T)": {
+        "official_score": -1100.0,
+        "source": "CBO",
+        "source_date": "2024",
+        "notes": "Eliminate all ACA premium tax credits",
+    },
+    # Tax Expenditures
+    "💊 Cap Employer Health Exclusion (-$450B)": {
+        "official_score": -450.0,
+        "source": "JCT",
+        "source_date": "2024",
+        "notes": "Cap exclusion at 28% rate or ~$25K",
+    },
+    "🏠 Eliminate Mortgage Deduction (-$300B)": {
+        "official_score": -300.0,
+        "source": "JCT",
+        "source_date": "2024",
+        "notes": "Repeal mortgage interest deduction",
+    },
+    "📍 Repeal SALT Cap ($1.1T)": {
+        "official_score": 1100.0,
+        "source": "JCT",
+        "source_date": "2024",
+        "notes": "Remove $10K cap on state/local tax deduction",
+    },
+    "📍 Eliminate SALT Deduction (-$1.2T)": {
+        "official_score": -1200.0,
+        "source": "JCT",
+        "source_date": "2024",
+        "notes": "Repeal state/local tax deduction entirely",
+    },
+    "🎁 Cap Charitable Deduction (-$200B)": {
+        "official_score": -200.0,
+        "source": "Treasury",
+        "source_date": "2024",
+        "notes": "Limit charitable deduction to 28% rate",
+    },
+    "💀 Eliminate Step-Up Basis (-$500B)": {
+        "official_score": -500.0,
+        "source": "Treasury",
+        "source_date": "2024",
+        "notes": "Tax unrealized gains at death (with exemptions)",
+    },
+    # Income Tax
+    "Biden $400K+ Tax Increase": {
+        "official_score": -252.0,
+        "source": "Treasury",
+        "source_date": "March 2024",
+        "source_url": "https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf",
+        "notes": "Restore 39.6% top rate for income above $400K",
+    },
+}
 
 # Title and introduction
 st.markdown('<div class="main-header">📊 Fiscal Policy Impact Calculator</div>', unsafe_allow_html=True)
@@ -890,6 +1071,7 @@ if calculate and MODEL_AVAILABLE:
                         'is_spending': False,
                         'is_tcja': True,
                         'tcja_type': tcja_type,
+                        'policy_name': preset_choice,
                     }
 
                     st.success("✅ Calculation complete!")
@@ -918,6 +1100,7 @@ if calculate and MODEL_AVAILABLE:
                         'is_tcja': False,
                         'is_corporate': True,
                         'corporate_type': corporate_type,
+                        'policy_name': preset_choice,
                     }
 
                     st.success("✅ Calculation complete!")
@@ -949,6 +1132,7 @@ if calculate and MODEL_AVAILABLE:
                         'is_corporate': False,
                         'is_credit': True,
                         'credit_type': credit_type,
+                        'policy_name': preset_choice,
                     }
 
                     st.success("✅ Calculation complete!")
@@ -981,6 +1165,7 @@ if calculate and MODEL_AVAILABLE:
                         'is_credit': False,
                         'is_estate': True,
                         'estate_type': estate_type,
+                        'policy_name': preset_choice,
                     }
 
                     st.success("✅ Calculation complete!")
@@ -1016,6 +1201,7 @@ if calculate and MODEL_AVAILABLE:
                         'is_estate': False,
                         'is_payroll': True,
                         'payroll_type': payroll_type,
+                        'policy_name': preset_choice,
                     }
 
                     st.success("✅ Calculation complete!")
@@ -1050,6 +1236,7 @@ if calculate and MODEL_AVAILABLE:
                         'is_estate': False,
                         'is_payroll': False,
                         'is_amt': True,
+                        'policy_name': preset_choice,
                         'amt_type': amt_type,
                     }
 
@@ -1083,6 +1270,7 @@ if calculate and MODEL_AVAILABLE:
                         'is_payroll': False,
                         'is_amt': False,
                         'is_ptc': True,
+                        'policy_name': preset_choice,
                         'ptc_type': ptc_type,
                     }
 
@@ -1121,6 +1309,7 @@ if calculate and MODEL_AVAILABLE:
                         'is_amt': False,
                         'is_ptc': False,
                         'is_expenditure': True,
+                        'policy_name': preset_choice,
                         'expenditure_type': expenditure_type,
                     }
 
@@ -1205,6 +1394,7 @@ if calculate and MODEL_AVAILABLE:
                         'scorer': scorer,
                         'is_spending': False,
                         'is_tcja': False,
+                        'policy_name': preset_choice,
                     }
 
                     st.success("✅ Calculation complete!")
@@ -1302,6 +1492,143 @@ if st.session_state.results:
         st.markdown(f"""
         **Calculation:** ${sign_static}${abs(static_total):.1f}B (static) {sign_behavioral} ${abs(behavioral_total):.1f}B (behavioral) = **{sign_net}${abs(net_total):.1f}B (net)**
         """)
+
+        # =================================================================
+        # COMPARE TO CBO/JCT SECTION
+        # =================================================================
+        # Check if this policy has an official CBO/JCT score to compare
+        policy_name = result_data.get('policy_name', '')
+        cbo_data = CBO_SCORE_MAP.get(policy_name)
+
+        if cbo_data:
+            st.markdown("---")
+            st.subheader("🏛️ Compare to Official Score")
+
+            official_score = cbo_data['official_score']
+            # CBO convention: positive = cost (deficit increase), negative = revenue (deficit decrease)
+            # Our model: positive = revenue gain, negative = revenue loss
+            # So we negate our score to match CBO convention
+            model_score = -net_total
+
+            # Calculate error
+            if official_score != 0:
+                error_pct = ((model_score - official_score) / abs(official_score)) * 100
+                abs_error_pct = abs(error_pct)
+            else:
+                error_pct = 0
+                abs_error_pct = 0
+
+            # Determine accuracy rating
+            if abs_error_pct <= 5:
+                accuracy_rating = "Excellent"
+                rating_color = "#28a745"  # green
+                rating_emoji = "🎯"
+            elif abs_error_pct <= 10:
+                accuracy_rating = "Good"
+                rating_color = "#17a2b8"  # blue
+                rating_emoji = "✅"
+            elif abs_error_pct <= 15:
+                accuracy_rating = "Acceptable"
+                rating_color = "#ffc107"  # yellow
+                rating_emoji = "⚠️"
+            else:
+                accuracy_rating = "Needs Review"
+                rating_color = "#dc3545"  # red
+                rating_emoji = "❌"
+
+            # Display comparison
+            col1, col2, col3, col4 = st.columns(4)
+
+            with col1:
+                st.metric(
+                    f"Official ({cbo_data['source']})",
+                    f"${official_score:,.0f}B",
+                    help=f"Source: {cbo_data['source']} ({cbo_data['source_date']})"
+                )
+
+            with col2:
+                st.metric(
+                    "Model Estimate",
+                    f"${model_score:,.0f}B",
+                    help="Our model's 10-year estimate"
+                )
+
+            with col3:
+                st.metric(
+                    "Difference",
+                    f"${model_score - official_score:+,.0f}B",
+                    delta=f"{error_pct:+.1f}%",
+                    delta_color="off"
+                )
+
+            with col4:
+                st.markdown(f"""
+                <div style="text-align: center; padding: 0.5rem;">
+                    <span style="font-size: 2rem;">{rating_emoji}</span>
+                    <br>
+                    <span style="color: {rating_color}; font-weight: bold; font-size: 1.1rem;">
+                        {accuracy_rating}
+                    </span>
+                    <br>
+                    <span style="color: #666; font-size: 0.9rem;">
+                        {abs_error_pct:.1f}% error
+                    </span>
+                </div>
+                """, unsafe_allow_html=True)
+
+            # Visual comparison bar
+            st.markdown("##### Score Comparison")
+
+            # Create horizontal bar chart
+            fig_compare = go.Figure()
+
+            # Determine colors based on direction
+            official_color = '#1f77b4'
+            model_color = '#2ca02c' if abs_error_pct <= 10 else '#ff7f0e'
+
+            fig_compare.add_trace(go.Bar(
+                y=['Official Score', 'Model Estimate'],
+                x=[official_score, model_score],
+                orientation='h',
+                marker_color=[official_color, model_color],
+                text=[f"${official_score:,.0f}B", f"${model_score:,.0f}B"],
+                textposition='auto',
+            ))
+
+            fig_compare.update_layout(
+                height=150,
+                margin=dict(l=20, r=20, t=20, b=20),
+                xaxis_title="10-Year Budget Impact ($B)",
+                showlegend=False,
+            )
+
+            st.plotly_chart(fig_compare, use_container_width=True)
+
+            # Source details
+            with st.expander("📋 Source Details"):
+                st.markdown(f"""
+                **Official Estimate:** ${official_score:,.0f}B over 10 years
+
+                **Source:** {cbo_data['source']} ({cbo_data['source_date']})
+
+                **Policy Description:** {cbo_data['notes']}
+
+                **Model Accuracy:**
+                - Error: {error_pct:+.1f}% ({accuracy_rating})
+                - Difference: ${model_score - official_score:+,.0f}B
+                """)
+
+                if cbo_data.get('source_url'):
+                    st.markdown(f"[View Original Source]({cbo_data['source_url']})")
+
+                st.markdown("""
+                ---
+                **Accuracy Ratings:**
+                - 🎯 **Excellent**: Within 5% of official score
+                - ✅ **Good**: Within 10% of official score
+                - ⚠️ **Acceptable**: Within 15% of official score
+                - ❌ **Needs Review**: More than 15% difference
+                """)
 
         # Additional context metrics
         st.markdown("---")
