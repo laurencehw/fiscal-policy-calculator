@@ -3012,9 +3012,10 @@ with tab6:
 
             col1, col2 = st.columns(2)
             with col1:
+                import json
                 st.download_button(
                     "📥 Download as JSON",
-                    data=pd.io.json.dumps(export_data, indent=2),
+                    data=json.dumps(export_data, indent=2),
                     file_name=f"policy_package_{selected_package.replace(' ', '_')}.json",
                     mime="application/json"
                 )
