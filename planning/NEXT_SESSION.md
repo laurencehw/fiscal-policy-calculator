@@ -1,12 +1,49 @@
 # Next Session Priorities
 
-> Current Phase: **Phase 3 — Distributional Analysis** (nearly complete)
+> Current Phase: **Phase 3 — Distributional Analysis** ✅ COMPLETE
 >
 > Last Updated: January 3, 2026
 
 ---
 
-## Session: 2026-01-03
+## Session: 2026-01-03 (Part 2)
+
+### Accomplished
+- ✅ **Compare to CBO Feature**: Side-by-side model vs official score comparison
+  - 25+ policies with official CBO/JCT scores mapped
+  - Accuracy ratings (Excellent <5%, Good <10%, Acceptable <15%)
+  - Visual bar chart comparison
+- ✅ **Policy Package Builder**: Combine multiple policies into packages
+  - 6 preset packages (Biden FY2025, TCJA Extension, Progressive Revenue, etc.)
+  - Custom policy combination via multiselect
+  - Summary metrics with official score comparison
+  - Component breakdown table, waterfall chart, pie charts
+  - JSON and CSV export functionality
+- ✅ **Dynamic Scoring Integration**: FRB/US-Lite adapter working in app
+  - GDP effects, employment impacts, revenue feedback
+  - Crowding out modeling
+- ✅ **UI/UX Improvements**:
+  - Renamed "Tax Policy" tab to "Policy Input" (handles both tax and spending)
+  - Fixed pandas chained assignment warnings
+  - Fixed preset_policies scope for spending policy mode
+
+### What's Next (Priority Order)
+1. **Documentation Sprint**:
+   - Update METHODOLOGY.md with dynamic scoring section
+   - Create example Jupyter notebooks
+   - Add docstrings to public functions
+
+2. **CI/CD Setup**:
+   - GitHub Actions for automated testing
+   - Validation suite runs on each push
+
+3. **Data Updates**:
+   - Add 2023 IRS SOI data when available
+   - Improve FRED caching
+
+---
+
+## Session: 2026-01-03 (Part 1)
 
 ### Accomplished
 - ✅ **Extended Distributional Analysis** to multiple policy types:
@@ -361,10 +398,11 @@ class CapitalGainsPolicy(TaxPolicy):
 - [ ] Add CBO baseline data loader (vs hardcoded)
 
 ### UI Improvements
-- [ ] Add preset policy library (dropdown)
+- [x] Add preset policy library (dropdown) ✅
 - [ ] Show methodology explanation in sidebar
-- [ ] Add "Compare to CBO" feature
-- [ ] Export results to CSV/PDF
+- [x] Add "Compare to CBO" feature ✅
+- [x] Export results to CSV/JSON ✅
+- [x] Policy Package Builder ✅
 
 ---
 
