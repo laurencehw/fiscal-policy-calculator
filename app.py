@@ -2913,13 +2913,13 @@ with tab6:
             # Component breakdown table
             st.subheader("📋 Component Breakdown")
 
-            df_components = pd.DataFrame(package_results)
-            df_components["10-Year Impact"] = df_components["cbo_net"].apply(lambda x: f"${x:,.0f}B")
-            df_components["Official Score"] = df_components["official"].apply(
+            df_components = pd.DataFrame(package_results).copy()
+            df_components.loc[:, "10-Year Impact"] = df_components["cbo_net"].apply(lambda x: f"${x:,.0f}B")
+            df_components.loc[:, "Official Score"] = df_components["official"].apply(
                 lambda x: f"${x:,.0f}B" if x is not None else "N/A"
             )
-            df_components["Category"] = df_components["category"]
-            df_components["Policy"] = df_components["name"]
+            df_components.loc[:, "Category"] = df_components["category"]
+            df_components.loc[:, "Policy"] = df_components["name"]
 
             # Display table
             st.dataframe(
