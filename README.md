@@ -63,6 +63,9 @@ pytest tests/ -v
 ### Use Online
 Visit: https://laurencehw-fiscal-policy-calculator.streamlit.app
 
+### Jupyter Notebook
+See [`notebooks/example_usage.ipynb`](notebooks/example_usage.ipynb) for programmatic usage examples covering all policy types, distributional analysis, and dynamic scoring.
+
 ---
 
 ## Project Structure
@@ -96,6 +99,8 @@ fiscal-policy-calculator/
 ├── tests/                          # Unit tests (60 tests)
 │   ├── test_distribution.py
 │   └── test_macro_adapter.py
+├── notebooks/
+│   └── example_usage.ipynb         # Programmatic usage examples
 ├── planning/
 │   ├── ROADMAP.md                  # Long-term vision
 │   └── NEXT_SESSION.md             # Current priorities

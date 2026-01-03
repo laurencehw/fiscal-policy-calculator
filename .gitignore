@@ -30,6 +30,8 @@ Desktop.ini
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb
+# But allow example notebooks
+!notebooks/*.ipynb
 
 # Cache
 *.cache
