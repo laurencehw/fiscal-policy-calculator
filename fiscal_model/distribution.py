@@ -20,7 +20,24 @@ import numpy as np
 import pandas as pd
 
 from .data.irs_soi import IRSSOIData, TaxBracketData
-from .policies import TaxPolicy, Policy
+from .policies import TaxPolicy, Policy, PolicyType
+
+# Lazy imports for other policy types (avoid circular imports)
+def _get_credit_policy():
+    from .credits import TaxCreditPolicy, CreditType
+    return TaxCreditPolicy, CreditType
+
+def _get_tcja_policy():
+    from .tcja import TCJAExtensionPolicy
+    return TCJAExtensionPolicy
+
+def _get_corporate_policy():
+    from .corporate import CorporateTaxPolicy
+    return CorporateTaxPolicy
+
+def _get_payroll_policy():
+    from .payroll import PayrollTaxPolicy
+    return PayrollTaxPolicy
 
 
 class IncomeGroupType(Enum):
@@ -446,12 +463,19 @@ class DistributionalEngine:
 
     def analyze_policy(
         self,
-        policy: TaxPolicy,
+        policy: Policy,
         group_type: IncomeGroupType = IncomeGroupType.QUINTILE,
         year: Optional[int] = None,
     ) -> DistributionalAnalysis:
         """
         Analyze distributional effects of a tax policy.
+
+        Supports multiple policy types:
+        - TaxPolicy: Basic rate change policies
+        - TaxCreditPolicy: CTC, EITC with phase-in/out
+        - TCJAExtensionPolicy: Multi-component package
+        - CorporateTaxPolicy: Corporate with incidence assumptions
+        - PayrollTaxPolicy: Payroll tax changes
 
         Args:
             policy: Tax policy to analyze
@@ -467,13 +491,28 @@ class DistributionalEngine:
         # Create income groups
         groups = self.create_income_groups(group_type)
 
-        # Calculate tax change for each group
+        # Dispatch to appropriate handler based on policy type
+        policy_class_name = type(policy).__name__
+
+        # Calculate tax change for each group using appropriate handler
         results = []
         total_tax_change = 0.0
         total_affected = 0
 
         for group in groups:
-            result = self._calculate_group_effect(policy, group)
+            # Dispatch based on policy type
+            if policy_class_name == "TaxCreditPolicy":
+                result = self._calculate_credit_effect(policy, group)
+            elif policy_class_name == "TCJAExtensionPolicy":
+                result = self._calculate_tcja_effect(policy, group)
+            elif policy_class_name == "CorporateTaxPolicy":
+                result = self._calculate_corporate_effect(policy, group)
+            elif policy_class_name == "PayrollTaxPolicy":
+                result = self._calculate_payroll_effect(policy, group)
+            else:
+                # Default to basic TaxPolicy handling
+                result = self._calculate_group_effect(policy, group)
+
             results.append(result)
             total_tax_change += result.tax_change_total
             if result.pct_with_increase > 0 or result.pct_with_decrease > 0:
@@ -588,9 +627,458 @@ class DistributionalEngine:
             etr_change=new_etr - baseline_etr,
         )
 
+    def _calculate_credit_effect(
+        self,
+        policy,  # TaxCreditPolicy
+        group: IncomeGroup,
+    ) -> DistributionalResult:
+        """
+        Calculate distributional effect for tax credit policies (CTC, EITC).
+
+        Tax credits are structured with:
+        - Phase-in: Credit increases with income up to a maximum
+        - Plateau: Maximum credit in a range
+        - Phase-out: Credit decreases above a threshold
+
+        Lower-income groups typically benefit more from refundable credits.
+        """
+        # Get policy parameters
+        credit_change = getattr(policy, 'credit_change_per_unit', 0)
+        if credit_change == 0:
+            # Try alternate attribute names
+            credit_change = getattr(policy, 'max_credit_change', 0)
+
+        units_millions = getattr(policy, 'units_affected_millions', 0)
+        is_refundable = getattr(policy, 'is_refundable', True)
+
+        # Phase-out thresholds (credits phase out at higher incomes)
+        # Try multiple attribute names for compatibility
+        phase_out_start = getattr(policy, 'phase_out_threshold_single',
+                           getattr(policy, 'phase_out_threshold', 200_000))
+        phase_out_rate = getattr(policy, 'phase_out_rate', 0.05)
+
+        # Phase-in thresholds (EITC-style, credit phases in with earnings)
+        phase_in_end = getattr(policy, 'phase_in_end', 0)
+
+        group_ceiling = group.ceiling if group.ceiling else float('inf')
+
+        # Determine what fraction of this group receives the credit
+        # Credits tend to benefit middle and lower incomes
+        if group.floor >= phase_out_start:
+            # Above phase-out start - reduced benefit
+            if phase_out_rate > 0:
+                # Calculate how much credit is phased out
+                excess_income = group.avg_agi - phase_out_start
+                credit_reduction = min(1.0, excess_income * phase_out_rate / max(credit_change, 1))
+                affected_fraction = max(0.0, 1.0 - credit_reduction)
+            else:
+                affected_fraction = 0.0
+        elif phase_in_end > 0 and group_ceiling <= phase_in_end:
+            # Below phase-in end - partial benefit (EITC-style)
+            affected_fraction = group.avg_agi / phase_in_end if phase_in_end > 0 else 1.0
+        else:
+            # In plateau range - full benefit
+            affected_fraction = 1.0
+
+        # For non-refundable credits, lower incomes may not benefit fully
+        if not is_refundable and group.avg_tax < abs(credit_change):
+            # Credit limited by tax liability
+            effective_credit = min(abs(credit_change), group.avg_tax)
+            credit_fraction = effective_credit / abs(credit_change) if credit_change != 0 else 0
+            affected_fraction *= credit_fraction
+
+        # Estimate recipients in this group based on income distribution
+        # Credits tend to be claimed more by middle-income groups
+        if group.floor < 50_000:
+            recipient_share = 0.3  # Lower income gets ~30% of credits
+        elif group.floor < 100_000:
+            recipient_share = 0.35  # Middle income gets ~35%
+        elif group.floor < 200_000:
+            recipient_share = 0.25  # Upper-middle gets ~25%
+        else:
+            recipient_share = 0.10  # High income gets ~10%
+
+        # Adjust for population share
+        recipient_share *= (group.num_returns / self.total_returns) * 5  # Normalize
+
+        # Calculate tax change (credits reduce taxes, so negative)
+        units_in_group = units_millions * 1e6 * recipient_share
+        tax_change_total = -credit_change * units_in_group * affected_fraction / 1e9  # In billions
+
+        # Per-return metrics
+        affected_returns = int(min(units_in_group, group.num_returns) * affected_fraction)
+        if affected_returns > 0:
+            tax_change_avg = (tax_change_total * 1e9) / affected_returns
+        else:
+            tax_change_avg = 0.0
+
+        # Calculate as percent of income
+        after_tax_income = group.total_agi - group.baseline_tax
+        tax_change_pct_income = (tax_change_total / after_tax_income) * 100 if after_tax_income > 0 else 0
+
+        # Effective tax rates
+        baseline_etr = group.effective_tax_rate
+        new_tax = group.baseline_tax + tax_change_total
+        new_etr = new_tax / group.total_agi if group.total_agi > 0 else 0
+
+        # Winners/losers (credits typically benefit, so tax decrease)
+        if credit_change > 0:  # Expansion = tax cut
+            pct_with_decrease = recipient_share * affected_fraction * 100
+            pct_with_increase = 0.0
+        elif credit_change < 0:  # Reduction = tax increase
+            pct_with_increase = recipient_share * affected_fraction * 100
+            pct_with_decrease = 0.0
+        else:
+            pct_with_increase = 0.0
+            pct_with_decrease = 0.0
+
+        pct_unchanged = 100 - pct_with_increase - pct_with_decrease
+
+        return DistributionalResult(
+            income_group=group,
+            tax_change_total=tax_change_total,
+            tax_change_avg=tax_change_avg,
+            tax_change_pct_income=tax_change_pct_income,
+            share_of_total_change=0.0,
+            pct_with_increase=pct_with_increase,
+            pct_with_decrease=pct_with_decrease,
+            pct_unchanged=pct_unchanged,
+            baseline_etr=baseline_etr,
+            new_etr=new_etr,
+            etr_change=new_etr - baseline_etr,
+        )
+
+    def _calculate_tcja_effect(
+        self,
+        policy,  # TCJAExtensionPolicy
+        group: IncomeGroup,
+    ) -> DistributionalResult:
+        """
+        Calculate distributional effect for TCJA extension.
+
+        TCJA has multiple components with different distributions:
+        - Rate cuts: Benefit all brackets, top brackets more in $ terms
+        - Standard deduction: Benefit itemizers (middle/upper income)
+        - Personal exemption elimination: Hurt large families
+        - SALT cap: Hurt high-tax state residents (upper income)
+        - CTC expansion: Benefit middle income with children
+        - Pass-through deduction: Benefit business owners (upper income)
+
+        Distribution estimate based on TPC analysis of TCJA.
+        """
+        # Get total cost and components
+        ten_year_cost = getattr(policy, 'ten_year_cost_billions', 4600)
+        extend_salt_cap = getattr(policy, 'extend_salt_cap', True)
+
+        # Annual cost (first year)
+        annual_cost = ten_year_cost / 10.0
+
+        # TPC-based distribution shares by income quintile
+        # Based on TPC "Distributional Analysis of TCJA" (2017)
+        # TCJA benefits skew toward higher incomes
+        if extend_salt_cap:
+            # With SALT cap: top benefits most
+            distribution_shares = {
+                (0, 35_000): 0.02,        # Bottom quintile: 2%
+                (35_000, 65_000): 0.05,   # Second quintile: 5%
+                (65_000, 105_000): 0.10,  # Middle quintile: 10%
+                (105_000, 170_000): 0.18, # Fourth quintile: 18%
+                (170_000, None): 0.65,    # Top quintile: 65%
+            }
+        else:
+            # Without SALT cap: even more tilted to top
+            distribution_shares = {
+                (0, 35_000): 0.02,
+                (35_000, 65_000): 0.04,
+                (65_000, 105_000): 0.08,
+                (105_000, 170_000): 0.16,
+                (170_000, None): 0.70,
+            }
+
+        # Find share for this group
+        group_share = 0.0
+        for (floor, ceiling), share in distribution_shares.items():
+            if group.floor == floor:
+                group_share = share
+                break
+
+        # If not in predefined quintiles, interpolate based on income
+        if group_share == 0.0:
+            # Estimate based on income position
+            if group.ceiling and group.ceiling <= 35_000:
+                group_share = 0.02 * (group.num_returns / self.total_returns) * 5
+            elif group.floor >= 170_000:
+                group_share = 0.65 * (group.num_returns / self.total_returns) * 5
+            else:
+                group_share = 0.15 * (group.num_returns / self.total_returns) * 5
+
+        # TCJA extension increases deficit (costs money)
+        # From taxpayer perspective: positive = tax cut (benefit)
+        # tax_change_total is positive when taxes decrease
+        tax_change_total = -annual_cost * group_share  # Negative = tax cut
+
+        # Per-return metrics
+        if group.num_returns > 0:
+            tax_change_avg = (tax_change_total * 1e9) / group.num_returns
+        else:
+            tax_change_avg = 0.0
+
+        # Calculate as percent of income
+        after_tax_income = group.total_agi - group.baseline_tax
+        tax_change_pct_income = (tax_change_total / after_tax_income) * 100 if after_tax_income > 0 else 0
+
+        # Effective tax rates
+        baseline_etr = group.effective_tax_rate
+        new_tax = group.baseline_tax + tax_change_total
+        new_etr = new_tax / group.total_agi if group.total_agi > 0 else 0
+
+        # TCJA extension = tax cut for almost everyone
+        pct_with_decrease = min(95.0, group_share * 500)  # Most get a cut
+        pct_with_increase = 0.0  # Very few face increase
+        pct_unchanged = 100 - pct_with_decrease
+
+        return DistributionalResult(
+            income_group=group,
+            tax_change_total=tax_change_total,
+            tax_change_avg=tax_change_avg,
+            tax_change_pct_income=tax_change_pct_income,
+            share_of_total_change=0.0,
+            pct_with_increase=pct_with_increase,
+            pct_with_decrease=pct_with_decrease,
+            pct_unchanged=pct_unchanged,
+            baseline_etr=baseline_etr,
+            new_etr=new_etr,
+            etr_change=new_etr - baseline_etr,
+        )
+
+    def _calculate_corporate_effect(
+        self,
+        policy,  # CorporateTaxPolicy
+        group: IncomeGroup,
+    ) -> DistributionalResult:
+        """
+        Calculate distributional effect for corporate tax changes.
+
+        Corporate tax incidence falls on:
+        - Shareholders (capital income): ~50-70%
+        - Workers (wages): ~20-40%
+        - Consumers (prices): ~10-20%
+
+        Using CBO/TPC assumptions:
+        - 75% on capital owners (concentrated at top)
+        - 25% on workers (across income distribution)
+        """
+        # Get policy parameters
+        rate_change = getattr(policy, 'rate_change', 0)
+        baseline_revenue = getattr(policy, 'baseline_revenue_billions', 475)
+
+        # Static revenue effect
+        static_revenue_change = baseline_revenue * (rate_change / 0.21)  # Scale by rate change
+
+        # With behavioral response
+        elasticity = getattr(policy, 'corporate_elasticity', 0.25)
+        behavioral_offset = static_revenue_change * elasticity * 0.5
+        revenue_change = static_revenue_change - behavioral_offset
+
+        # Incidence assumptions (CBO/TPC standard)
+        capital_share = 0.75  # 75% on capital owners
+        labor_share = 0.25   # 25% on workers
+
+        # Capital income is concentrated at top
+        # Based on Federal Reserve SCF data
+        capital_income_shares = {
+            (0, 35_000): 0.01,        # Bottom quintile: 1%
+            (35_000, 65_000): 0.02,   # Second: 2%
+            (65_000, 105_000): 0.05,  # Middle: 5%
+            (105_000, 170_000): 0.12, # Fourth: 12%
+            (170_000, None): 0.80,    # Top: 80%
+        }
+
+        # Labor income more evenly distributed
+        labor_income_shares = {
+            (0, 35_000): 0.08,
+            (35_000, 65_000): 0.12,
+            (65_000, 105_000): 0.18,
+            (105_000, 170_000): 0.25,
+            (170_000, None): 0.37,
+        }
+
+        # Find shares for this group
+        capital_share_group = 0.0
+        labor_share_group = 0.0
+
+        for (floor, ceiling), share in capital_income_shares.items():
+            if group.floor == floor:
+                capital_share_group = share
+                labor_share_group = labor_income_shares[(floor, ceiling)]
+                break
+
+        # If not in predefined quintiles, estimate
+        if capital_share_group == 0.0:
+            if group.floor >= 170_000:
+                capital_share_group = 0.80 * (group.num_returns / self.total_returns) * 5
+                labor_share_group = 0.37 * (group.num_returns / self.total_returns) * 5
+            else:
+                capital_share_group = 0.05 * (group.num_returns / self.total_returns) * 5
+                labor_share_group = 0.15 * (group.num_returns / self.total_returns) * 5
+
+        # Total burden on this group
+        group_burden_share = (capital_share * capital_share_group +
+                             labor_share * labor_share_group)
+
+        # Tax change (positive = tax increase, so rate increase hurts)
+        tax_change_total = revenue_change * group_burden_share
+
+        # Per-return metrics
+        if group.num_returns > 0:
+            tax_change_avg = (tax_change_total * 1e9) / group.num_returns
+        else:
+            tax_change_avg = 0.0
+
+        # Calculate as percent of income
+        after_tax_income = group.total_agi - group.baseline_tax
+        tax_change_pct_income = (tax_change_total / after_tax_income) * 100 if after_tax_income > 0 else 0
+
+        # Effective tax rates (indirect effect)
+        baseline_etr = group.effective_tax_rate
+        new_tax = group.baseline_tax + tax_change_total
+        new_etr = new_tax / group.total_agi if group.total_agi > 0 else 0
+
+        # Winners/losers
+        if rate_change > 0:  # Tax increase
+            pct_with_increase = group_burden_share * 100
+            pct_with_decrease = 0.0
+        elif rate_change < 0:  # Tax cut
+            pct_with_increase = 0.0
+            pct_with_decrease = group_burden_share * 100
+        else:
+            pct_with_increase = 0.0
+            pct_with_decrease = 0.0
+
+        pct_unchanged = 100 - pct_with_increase - pct_with_decrease
+
+        return DistributionalResult(
+            income_group=group,
+            tax_change_total=tax_change_total,
+            tax_change_avg=tax_change_avg,
+            tax_change_pct_income=tax_change_pct_income,
+            share_of_total_change=0.0,
+            pct_with_increase=pct_with_increase,
+            pct_with_decrease=pct_with_decrease,
+            pct_unchanged=pct_unchanged,
+            baseline_etr=baseline_etr,
+            new_etr=new_etr,
+            etr_change=new_etr - baseline_etr,
+        )
+
+    def _calculate_payroll_effect(
+        self,
+        policy,  # PayrollTaxPolicy
+        group: IncomeGroup,
+    ) -> DistributionalResult:
+        """
+        Calculate distributional effect for payroll tax changes.
+
+        Payroll taxes:
+        - Social Security: 12.4% on wages up to cap (~$168K in 2024)
+        - Medicare: 2.9% on all wages + 0.9% NIIT above $200K/$250K
+
+        Changes typically affect:
+        - Cap changes: Only affects income above current cap
+        - Rate changes: Proportional to wages in affected range
+        """
+        # Get policy parameters
+        ss_cap_change = getattr(policy, 'ss_cap_change', 0)
+        current_cap = getattr(policy, 'current_ss_cap', 168_600)
+        new_cap = getattr(policy, 'new_ss_cap', None)
+        rate_change = getattr(policy, 'rate_change', 0)
+        niit_expansion = getattr(policy, 'expand_niit', False)
+
+        group_ceiling = group.ceiling if group.ceiling else float('inf')
+
+        # Determine effect based on policy type
+        if new_cap and new_cap > current_cap:
+            # SS cap increase - affects income between old and new cap
+            if group.floor >= new_cap:
+                # Above new cap - fully affected
+                affected_fraction = 1.0
+                income_affected = min(new_cap - current_cap, group.avg_agi - current_cap)
+            elif group.floor >= current_cap:
+                # Between caps - partially affected
+                affected_fraction = min(1.0, (group_ceiling - current_cap) / (new_cap - current_cap))
+                income_affected = (new_cap - current_cap) * affected_fraction
+            else:
+                # Below current cap - not affected by cap change
+                affected_fraction = 0.0
+                income_affected = 0.0
+
+            # SS tax rate is 12.4% (6.2% employee + 6.2% employer)
+            tax_change_total = income_affected * 0.124 * group.num_returns / 1e9
+
+        elif rate_change != 0:
+            # Rate change on existing base
+            # Affects all income up to cap
+            if group.floor >= current_cap:
+                affected_fraction = 0.0
+            elif group_ceiling <= current_cap:
+                affected_fraction = 1.0
+            else:
+                affected_fraction = (current_cap - group.floor) / (group_ceiling - group.floor)
+
+            taxable_wages = group.total_agi * affected_fraction * 0.7  # ~70% of AGI is wages
+            tax_change_total = taxable_wages * rate_change
+
+        else:
+            # No significant change
+            tax_change_total = 0.0
+            affected_fraction = 0.0
+
+        # Per-return metrics
+        affected_returns = int(group.num_returns * affected_fraction)
+        if affected_returns > 0:
+            tax_change_avg = (tax_change_total * 1e9) / affected_returns
+        else:
+            tax_change_avg = 0.0
+
+        # Calculate as percent of income
+        after_tax_income = group.total_agi - group.baseline_tax
+        tax_change_pct_income = (tax_change_total / after_tax_income) * 100 if after_tax_income > 0 else 0
+
+        # Effective tax rates
+        baseline_etr = group.effective_tax_rate
+        new_tax = group.baseline_tax + tax_change_total
+        new_etr = new_tax / group.total_agi if group.total_agi > 0 else 0
+
+        # Winners/losers
+        if tax_change_total > 0:  # Tax increase
+            pct_with_increase = affected_fraction * 100
+            pct_with_decrease = 0.0
+        elif tax_change_total < 0:  # Tax cut
+            pct_with_increase = 0.0
+            pct_with_decrease = affected_fraction * 100
+        else:
+            pct_with_increase = 0.0
+            pct_with_decrease = 0.0
+
+        pct_unchanged = 100 - pct_with_increase - pct_with_decrease
+
+        return DistributionalResult(
+            income_group=group,
+            tax_change_total=tax_change_total,
+            tax_change_avg=tax_change_avg,
+            tax_change_pct_income=tax_change_pct_income,
+            share_of_total_change=0.0,
+            pct_with_increase=pct_with_increase,
+            pct_with_decrease=pct_with_decrease,
+            pct_unchanged=pct_unchanged,
+            baseline_etr=baseline_etr,
+            new_etr=new_etr,
+            etr_change=new_etr - baseline_etr,
+        )
+
     def create_top_income_breakout(
         self,
-        policy: TaxPolicy,
+        policy: Policy,
         year: Optional[int] = None,
     ) -> DistributionalAnalysis:
         """
@@ -653,9 +1141,20 @@ class DistributionalEngine:
 
         results = []
         total_tax_change = 0.0
+        policy_class_name = type(policy).__name__
 
         for group in groups:
-            result = self._calculate_group_effect(policy, group)
+            # Dispatch based on policy type
+            if policy_class_name == "TaxCreditPolicy":
+                result = self._calculate_credit_effect(policy, group)
+            elif policy_class_name == "TCJAExtensionPolicy":
+                result = self._calculate_tcja_effect(policy, group)
+            elif policy_class_name == "CorporateTaxPolicy":
+                result = self._calculate_corporate_effect(policy, group)
+            elif policy_class_name == "PayrollTaxPolicy":
+                result = self._calculate_payroll_effect(policy, group)
+            else:
+                result = self._calculate_group_effect(policy, group)
             results.append(result)
             total_tax_change += result.tax_change_total
 

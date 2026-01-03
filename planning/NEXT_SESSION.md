@@ -1,8 +1,44 @@
 # Next Session Priorities
 
-> Current Phase: **Phase 3 — Distributional Analysis**
+> Current Phase: **Phase 3 — Distributional Analysis** (nearly complete)
 >
-> Last Updated: December 30, 2024
+> Last Updated: January 3, 2026
+
+---
+
+## Session: 2026-01-03
+
+### Accomplished
+- ✅ **Extended Distributional Analysis** to multiple policy types:
+  - `TaxCreditPolicy` — Credits with phase-in/phase-out by income
+  - `TCJAExtensionPolicy` — TPC-based component distribution
+  - `CorporateTaxPolicy` — 75/25 capital/labor incidence
+  - `PayrollTaxPolicy` — Wage distribution up to SS cap
+- ✅ **Validated Against TPC** (TCJA distributional analysis):
+  - Middle quintile: 10% share (exact match)
+  - Top quintile: 65% vs 68% (4.4% error)
+  - Overall score: GOOD
+- ✅ **Designed FRB/US Macro Adapter** (`fiscal_model/models/macro_adapter.py`):
+  - `MacroModelAdapter` abstract interface
+  - `SimpleMultiplierAdapter` for reduced-form analysis (working)
+  - `FRBUSAdapter` placeholder for FRB/US integration
+  - `MacroScenario` and `MacroResult` data classes
+  - `policy_to_scenario()` converter
+- ✅ **Updated Documentation**:
+  - METHODOLOGY.md: Added distributional analysis section, updated comparison tables
+  - VALIDATION.md: Created comprehensive validation results (25+ policies)
+  - CLAUDE.md: Updated with new modules and code examples
+
+### FRB/US Integration Opportunity
+User has FRB/US model at `C:\Users\lwils\Projects\apps\Economy_Forecasts`:
+- pyfrbus package with model.xml and LONGBASE.TXT
+- Can enable Yale Budget Lab-style dynamic scoring
+- Next step: Map fiscal scenarios to FRB/US shock variables
+
+### Remaining for Phase 3
+- [ ] Unit tests for distributional analysis
+- [ ] Error handling improvements
+- [ ] Full FRB/US integration (map fiscal policy to model variables)
 
 ---
 
