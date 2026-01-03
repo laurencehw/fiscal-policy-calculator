@@ -1,5 +1,7 @@
 # Fiscal Policy Impact Calculator
 
+[![Tests](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml/badge.svg)](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml)
+
 A web application for estimating the budgetary and economic effects of fiscal policy proposals using real IRS Statistics of Income data and CBO methodology.
 
 **🚀 Live App:** https://laurencehw-fiscal-policy-calculator.streamlit.app
