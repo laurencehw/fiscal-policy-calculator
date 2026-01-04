@@ -32,10 +32,17 @@
 - ✅ **CI Verification**: All 6 recent workflow runs passed
   - Tests passing on Python 3.10, 3.11, 3.12
 - ✅ **Documentation Updates**: README updated with notebook reference
+- ✅ **METHODOLOGY.md Expansion**: Comprehensive dynamic scoring documentation
+  - FRB/US-calibrated approach with fiscal multipliers (spending 1.4, tax 0.7)
+  - GDP and employment effect formulas (Okun's Law)
+  - Revenue feedback calculation (marginal rate 0.25)
+  - Crowding out modeling (15% offset rate)
+  - Code examples with MacroScenario and FRBUSAdapterLite
+  - Comparison to CBO, Penn Wharton, Yale models
+  - Dynamic Scoring Parameters appendix
 
 ### What's Next (Priority Order)
 1. **Documentation Sprint** (remaining):
-   - Update METHODOLOGY.md with dynamic scoring section
    - Add docstrings to public functions
    - API documentation
 
@@ -426,10 +433,10 @@ class CapitalGainsPolicy(TaxPolicy):
 ## Medium-Term Goals (This Month)
 
 ### Documentation Sprint
-- [ ] Complete `docs/METHODOLOGY.md` — full scoring methodology
+- [x] Complete `docs/METHODOLOGY.md` — full scoring methodology ✅
 - [ ] Create `docs/VALIDATION.md` — comparison to official scores
 - [ ] Add docstrings to all public functions
-- [ ] Create example notebooks
+- [x] Create example notebooks ✅
 
 ### Data Integration
 - [ ] Add 2023 IRS SOI data when available
