@@ -716,7 +716,23 @@ def create_income_tax_cut(
     duration: int = 10,
     affected_millions: float = 0
 ) -> TaxPolicy:
-    """Create a standard income tax cut policy."""
+    """
+    Create a standard income tax cut policy.
+
+    Args:
+        name: Policy name for identification
+        rate_reduction: Reduction in tax rate as decimal (e.g., 0.02 for 2pp cut)
+        income_threshold: Income threshold for applicability (dollars)
+        start_year: First year policy takes effect
+        duration: Number of years policy is active
+        affected_millions: Estimated affected taxpayers in millions
+
+    Returns:
+        TaxPolicy configured as an income tax cut
+
+    Example:
+        >>> policy = create_income_tax_cut("Top Rate Cut", 0.03, income_threshold=500000)
+    """
     return TaxPolicy(
         name=name,
         description=f"Reduce income tax rate by {rate_reduction*100:.1f} percentage points",
@@ -737,7 +753,23 @@ def create_new_tax_credit(
     start_year: int = 2025,
     duration: int = 10
 ) -> TaxPolicy:
-    """Create a new tax credit policy."""
+    """
+    Create a new tax credit policy.
+
+    Args:
+        name: Policy name for identification
+        amount: Credit amount per taxpayer in dollars
+        refundable: Whether the credit is refundable (paid even if no tax liability)
+        affected_millions: Estimated eligible taxpayers in millions
+        start_year: First year policy takes effect
+        duration: Number of years policy is active
+
+    Returns:
+        TaxPolicy configured as a tax credit
+
+    Example:
+        >>> policy = create_new_tax_credit("New Family Credit", 1000, refundable=True, affected_millions=30)
+    """
     return TaxPolicy(
         name=name,
         description=f"New {'refundable' if refundable else 'non-refundable'} tax credit of ${amount:,.0f}",
@@ -758,7 +790,23 @@ def create_spending_increase(
     duration: int = 10,
     multiplier: float = 1.0
 ) -> SpendingPolicy:
-    """Create a spending increase policy."""
+    """
+    Create a spending increase policy.
+
+    Args:
+        name: Policy name for identification
+        annual_billions: Annual spending increase in billions of dollars
+        category: Spending category ('defense', 'nondefense', or 'mandatory')
+        start_year: First year policy takes effect
+        duration: Number of years policy is active
+        multiplier: GDP multiplier for economic effects (default 1.0)
+
+    Returns:
+        SpendingPolicy configured for the spending increase
+
+    Example:
+        >>> policy = create_spending_increase("Infrastructure", 50, category="nondefense", multiplier=1.5)
+    """
     return SpendingPolicy(
         name=name,
         description=f"Increase {category} spending by ${annual_billions:.1f}B annually",

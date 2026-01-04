@@ -657,10 +657,20 @@ class FiscalPolicyScorer:
 def quick_score(policy: Policy, dynamic: bool = False) -> ScoringResult:
     """
     Convenience function for quick policy scoring.
-    
+
+    Creates a FiscalPolicyScorer with default settings and scores
+    the provided policy. Useful for one-off analyses.
+
+    Args:
+        policy: Policy to score (TaxPolicy, SpendingPolicy, etc.)
+        dynamic: Whether to include dynamic/macroeconomic effects
+
+    Returns:
+        ScoringResult with complete 10-year analysis
+
     Example:
-        result = quick_score(TaxPolicy(...))
-        print(f"10-year cost: ${result.total_10_year_cost:.1f}B")
+        >>> result = quick_score(TaxPolicy(name="Test", rate_change=0.01, ...))
+        >>> print(f"10-year cost: ${result.total_10_year_cost:.1f}B")
     """
     scorer = FiscalPolicyScorer()
     return scorer.score_policy(policy, dynamic=dynamic)
