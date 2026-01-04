@@ -50,12 +50,14 @@
   - policies.py: create_income_tax_cut, create_new_tax_credit, create_spending_increase
   - scoring.py: quick_score
   - Note: Most modules already had comprehensive docstrings
+- ✅ **API Documentation**: Set up pdoc for auto-generated docs
+  - Added pdoc>=14.0.0 to requirements.txt
+  - Created scripts/generate_docs.py
+  - Generated docs/api/ with full module documentation
+  - Updated README and CLAUDE.md with instructions
 
 ### What's Next (Priority Order)
-1. **Documentation Sprint** (remaining):
-   - API documentation (consider auto-generation with sphinx/pdoc)
-
-2. **Data Updates**:
+1. **Data Updates**:
    - Add 2023 IRS SOI data when available
    - Improve FRED caching
 
