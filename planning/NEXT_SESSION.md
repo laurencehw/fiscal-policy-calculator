@@ -46,11 +46,14 @@
   - TCJA component breakdown, capital gains step-up insight
   - Distributional validation vs TPC
   - Known biases, data sources, interpretation guidelines
+- ✅ **Docstrings**: Added to remaining public factory functions
+  - policies.py: create_income_tax_cut, create_new_tax_credit, create_spending_increase
+  - scoring.py: quick_score
+  - Note: Most modules already had comprehensive docstrings
 
 ### What's Next (Priority Order)
 1. **Documentation Sprint** (remaining):
-   - Add docstrings to public functions
-   - API documentation (consider auto-generation)
+   - API documentation (consider auto-generation with sphinx/pdoc)
 
 2. **Data Updates**:
    - Add 2023 IRS SOI data when available
@@ -441,7 +444,7 @@ class CapitalGainsPolicy(TaxPolicy):
 ### Documentation Sprint
 - [x] Complete `docs/METHODOLOGY.md` — full scoring methodology ✅
 - [x] Create `docs/VALIDATION.md` — comparison to official scores ✅
-- [ ] Add docstrings to all public functions
+- [x] Add docstrings to all public functions ✅
 - [x] Create example notebooks ✅
 
 ### Data Integration
