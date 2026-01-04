@@ -14,3 +14,6 @@ xlrd>=2.0.1  # pandas read_excel support for legacy .xls (IRS SOI preliminary ta
 # Web app dependencies
 streamlit>=1.28.0
 plotly>=5.17.0
+
+# Documentation
+pdoc>=14.0.0  # API documentation generator

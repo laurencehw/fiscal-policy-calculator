@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Fiscal Policy Impact Calculator — a web app that estimates budgetary and economic effects of tax and spending proposals. Live at: https://laurencehw-fiscal-policy-calculator.streamlit.app
 
-**Current Phase**: Phase 3 (Distributional Analysis) — see `planning/ROADMAP.md` for full roadmap, `planning/NEXT_SESSION.md` for current priorities.
+**Current Phase**: Phase 6 (Documentation & Polish) — see `planning/ROADMAP.md` for full roadmap, `planning/NEXT_SESSION.md` for current priorities.
 
 ## Commands
 
@@ -29,6 +29,9 @@ python -c "from fiscal_model.validation import compare_to_cbo; compare_to_cbo()"
 
 # Run distributional validation
 python fiscal_model/validation/distributional_validation.py
+
+# Generate API documentation
+python scripts/generate_docs.py
 
 # Quick test a policy
 python -c "from fiscal_model import FiscalPolicyScorer, TaxPolicy; s = FiscalPolicyScorer(); print(s.score_policy(TaxPolicy(name='test', rate_change=0.01, affected_income_threshold=400000)))"

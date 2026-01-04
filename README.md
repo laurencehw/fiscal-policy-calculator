@@ -66,6 +66,12 @@ Visit: https://laurencehw-fiscal-policy-calculator.streamlit.app
 ### Jupyter Notebook
 See [`notebooks/example_usage.ipynb`](notebooks/example_usage.ipynb) for programmatic usage examples covering all policy types, distributional analysis, and dynamic scoring.
 
+### API Documentation
+Browse the [API docs](docs/api/index.html) or regenerate with:
+```bash
+python scripts/generate_docs.py
+```
+
 ---
 
 ## Project Structure
@@ -104,9 +110,13 @@ fiscal-policy-calculator/
 ├── planning/
 │   ├── ROADMAP.md                  # Long-term vision
 │   └── NEXT_SESSION.md             # Current priorities
+├── scripts/
+│   └── generate_docs.py            # API doc generator
 └── docs/
     ├── METHODOLOGY.md              # Scoring methodology
-    └── ARCHITECTURE.md             # System design
+    ├── VALIDATION.md               # CBO comparison report
+    ├── ARCHITECTURE.md             # System design
+    └── api/                        # Auto-generated API docs
 ```
 
 ---
