@@ -40,11 +40,17 @@
   - Code examples with MacroScenario and FRBUSAdapterLite
   - Comparison to CBO, Penn Wharton, Yale models
   - Dynamic Scoring Parameters appendix
+- ✅ **VALIDATION.md Comprehensive Update**: Full comparison to official scores
+  - Executive summary (100% within 15%, 84% within 10%)
+  - 10 policy categories with 25+ policies validated
+  - TCJA component breakdown, capital gains step-up insight
+  - Distributional validation vs TPC
+  - Known biases, data sources, interpretation guidelines
 
 ### What's Next (Priority Order)
 1. **Documentation Sprint** (remaining):
    - Add docstrings to public functions
-   - API documentation
+   - API documentation (consider auto-generation)
 
 2. **Data Updates**:
    - Add 2023 IRS SOI data when available
@@ -434,7 +440,7 @@ class CapitalGainsPolicy(TaxPolicy):
 
 ### Documentation Sprint
 - [x] Complete `docs/METHODOLOGY.md` — full scoring methodology ✅
-- [ ] Create `docs/VALIDATION.md` — comparison to official scores
+- [x] Create `docs/VALIDATION.md` — comparison to official scores ✅
 - [ ] Add docstrings to all public functions
 - [x] Create example notebooks ✅
 
