@@ -1,8 +1,47 @@
 # Next Session Priorities
 
-> Current Phase: **Phase 3 — Distributional Analysis** ✅ COMPLETE
+> Current Phase: **Phase 6 — Documentation & Polish** 🔄 IN PROGRESS
 >
-> Last Updated: January 3, 2026
+> Last Updated: January 4, 2026
+
+---
+
+## Session: 2026-01-04
+
+### Accomplished
+- ✅ **Example Jupyter Notebook**: Created comprehensive `notebooks/example_usage.ipynb`
+  - Basic policy scoring with TaxPolicy
+  - TCJA extension scoring
+  - Corporate tax (Biden 28%, custom configs)
+  - Tax credits (CTC, EITC with phase-in/out)
+  - Payroll tax (SS donut hole, NIIT expansion)
+  - Estate tax reforms
+  - AMT (individual and corporate)
+  - Tax expenditures (employer health cap)
+  - Distributional analysis (quintiles, JCT dollar brackets)
+  - Dynamic scoring with FRB/US-calibrated multipliers
+  - Policy packages with export
+  - IRS SOI data access
+  - Capital gains with time-varying elasticity
+  - Validation against CBO scores
+- ✅ **Fixed Notebook API**: Updated all examples to match actual module APIs
+  - Added required `description` and `policy_type` fields to Policy constructors
+  - Fixed parameter names (credit_change_per_unit, payroll_tax_type, etc.)
+  - Used `.sum()` for 10-year totals on result arrays
+  - Fixed enum values and attribute names
+- ✅ **CI Verification**: All 6 recent workflow runs passed
+  - Tests passing on Python 3.10, 3.11, 3.12
+- ✅ **Documentation Updates**: README updated with notebook reference
+
+### What's Next (Priority Order)
+1. **Documentation Sprint** (remaining):
+   - Update METHODOLOGY.md with dynamic scoring section
+   - Add docstrings to public functions
+   - API documentation
+
+2. **Data Updates**:
+   - Add 2023 IRS SOI data when available
+   - Improve FRED caching
 
 ---
 

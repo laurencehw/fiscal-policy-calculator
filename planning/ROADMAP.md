@@ -270,8 +270,8 @@ fiscal_model/
 
 - [x] GitHub Actions CI
 - [x] README update
+- [x] Example Jupyter notebooks (`notebooks/example_usage.ipynb`)
 - [ ] METHODOLOGY.md update with dynamic scoring
-- [ ] Example Jupyter notebooks
 - [ ] API documentation
 - [ ] Docstrings for public functions
 
@@ -517,6 +517,6 @@ Priority areas for contribution:
 
 ---
 
-*Last Updated: January 2026*
+*Last Updated: January 4, 2026*
 *Maintainer: Laurence Wilse-Samson*
 
