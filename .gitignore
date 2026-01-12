@@ -80,3 +80,5 @@ archive/
 *.bak
 *.backup
 *~
+
+data/

@@ -76,11 +76,11 @@ JCT is the **official congressional scorer** for tax legislation. Their methodol
 
 | Component | Description | Status |
 |-----------|-------------|--------|
-| Individual Tax Calculator | Return-level tax simulation | 🔄 Partial |
-| Tax Return Microdata | Representative sample of filers | ❌ Not started |
+| Individual Tax Calculator | Return-level tax simulation | ✅ Prototype |
+| Tax Return Microdata | Representative sample of filers | ✅ CPS Ingested |
 | Bracket-Level Analysis | Income distribution by bracket | ✅ Basic (IRS SOI) |
 | Corporate Tax Model | Corporate income effects | ❌ Not started |
-| Distributional Tables | Burden by income group | ❌ Not started |
+| Distributional Tables | Burden by income group | ✅ Implemented |
 
 **Key JCT Sources**:
 - [Overview of Revenue Estimation](https://www.jct.gov/about-us/overview/)

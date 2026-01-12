@@ -96,40 +96,32 @@ class FREDData:
 
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        self.cache_file = self.cache_dir / "fred_cache.json"
+        
+        # NOTE: Previous version loaded a monolithic cache file.
+        # We now use individual files per series.
+        logger.info(f"FRED data cache directory: {self.cache_dir}")
 
-        # Load existing cache
-        self._cache = self._load_cache()
-
-    def _load_cache(self) -> Dict[str, Any]:
-        """Load cache from disk."""
-        if self.cache_file.exists():
-            try:
-                with open(self.cache_file, 'r') as f:
-                    cache = json.load(f)
-                logger.info(f"Loaded FRED cache with {len(cache)} entries")
-                return cache
-            except Exception as e:
-                logger.warning(f"Failed to load cache: {e}")
-                return {}
-        return {}
-
-    def _save_cache(self):
-        """Save cache to disk."""
-        try:
-            with open(self.cache_file, 'w') as f:
-                json.dump(self._cache, f, indent=2)
-        except Exception as e:
-            logger.warning(f"Failed to save cache: {e}")
+    def _get_cache_path(self, series_id: str) -> Path:
+        """Get path to cache file for a specific series."""
+        # Sanitize series_id just in case, though FRED IDs are usually safe
+        safe_id = "".join(c for c in series_id if c.isalnum() or c in ('_', '-'))
+        return self.cache_dir / f"{safe_id}.json"
 
     def _is_cache_fresh(self, series_id: str, max_age_hours: int = CACHE_HOURS) -> bool:
         """Check if cached data is still fresh."""
-        if series_id not in self._cache:
+        cache_path = self._get_cache_path(series_id)
+        if not cache_path.exists():
             return False
 
-        cached_time = datetime.fromisoformat(self._cache[series_id]['timestamp'])
-        age = datetime.now() - cached_time
-        return age < timedelta(hours=max_age_hours)
+        try:
+            with open(cache_path, 'r') as f:
+                data = json.load(f)
+            
+            cached_time = datetime.fromisoformat(data['timestamp'])
+            age = datetime.now() - cached_time
+            return age < timedelta(hours=max_age_hours)
+        except Exception:
+            return False
 
     def get_series(self, series_id: str, start_date: Optional[str] = None,
                    use_cache: bool = True) -> pd.Series:
@@ -148,8 +140,11 @@ class FREDData:
             ValueError: If FRED API not available
             Exception: If API call fails and no cache available
         """
+        cache_path = self._get_cache_path(series_id)
+        has_cache = cache_path.exists()
+
         if self.fred is None:
-            if use_cache and series_id in self._cache:
+            if use_cache and has_cache:
                 logger.warning(f"FRED API unavailable, using cached {series_id}")
                 return self._series_from_cache(series_id)
             raise ValueError("FRED API not available and no cache found")
@@ -164,13 +159,16 @@ class FREDData:
             logger.info(f"Fetching {series_id} from FRED API")
             series = self.fred.get_series(series_id, observation_start=start_date)
 
-            # Cache the result
-            self._cache[series_id] = {
+            # Save to cache file
+            cache_data = {
                 'timestamp': datetime.now().isoformat(),
                 'data': series.to_json(),
-                'start_date': start_date
+                'start_date': start_date,
+                'series_id': series_id
             }
-            self._save_cache()
+            
+            with open(cache_path, 'w') as f:
+                json.dump(cache_data, f, indent=2)
 
             return series
 
@@ -178,15 +176,22 @@ class FREDData:
             logger.error(f"FRED API call failed for {series_id}: {e}")
 
             # Try to use stale cache
-            if series_id in self._cache:
+            if has_cache:
                 logger.warning(f"Using stale cached data for {series_id}")
                 return self._series_from_cache(series_id)
 
             raise
 
     def _series_from_cache(self, series_id: str) -> pd.Series:
-        """Reconstruct pandas Series from cached JSON."""
-        cached_json = self._cache[series_id]['data']
+        """Reconstruct pandas Series from cached JSON file."""
+        cache_path = self._get_cache_path(series_id)
+        if not cache_path.exists():
+            raise FileNotFoundError(f"Cache file not found for {series_id}")
+            
+        with open(cache_path, 'r') as f:
+            data = json.load(f)
+            
+        cached_json = data['data']
         return pd.read_json(cached_json, typ='series')
 
     def get_latest_value(self, series_id: str) -> float:
@@ -307,22 +312,43 @@ class FREDData:
             older_than_hours: If specified, only clear cache older than this.
                             If None, clear all cache.
         """
-        if older_than_hours is None:
-            self._cache = {}
-            logger.info("Cleared all FRED cache")
-        else:
-            cutoff = datetime.now() - timedelta(hours=older_than_hours)
-            original_count = len(self._cache)
+        count = 0
+        removed = 0
+        
+        # Iterate over all JSON files in cache directory
+        for cache_path in self.cache_dir.glob("*.json"):
+            # Skip the old monolithic cache file if it still exists
+            if cache_path.name == "fred_cache.json":
+                continue
+                
+            count += 1
+            if older_than_hours is None:
+                try:
+                    cache_path.unlink()
+                    removed += 1
+                except Exception as e:
+                    logger.warning(f"Failed to delete {cache_path}: {e}")
+            else:
+                try:
+                    # Check timestamp inside file
+                    with open(cache_path, 'r') as f:
+                        data = json.load(f)
+                    
+                    cached_time = datetime.fromisoformat(data['timestamp'])
+                    age = datetime.now() - cached_time
+                    
+                    if age > timedelta(hours=older_than_hours):
+                        cache_path.unlink()
+                        removed += 1
+                except Exception:
+                    # If corrupt or unreadable, might as well remove it
+                    try:
+                        cache_path.unlink()
+                        removed += 1
+                    except:
+                        pass
 
-            self._cache = {
-                k: v for k, v in self._cache.items()
-                if datetime.fromisoformat(v['timestamp']) > cutoff
-            }
-
-            removed = original_count - len(self._cache)
-            logger.info(f"Cleared {removed} stale cache entries older than {older_than_hours} hours")
-
-        self._save_cache()
+        logger.info(f"Cleared {removed} cache entries (scanned {count})")
 
     def get_cache_status(self) -> Dict[str, Dict]:
         """
@@ -334,15 +360,25 @@ class FREDData:
         status = {}
         now = datetime.now()
 
-        for series_id, cache_entry in self._cache.items():
-            cached_time = datetime.fromisoformat(cache_entry['timestamp'])
-            age = now - cached_time
-
-            status[series_id] = {
-                'timestamp': cache_entry['timestamp'],
-                'age_hours': age.total_seconds() / 3600,
-                'fresh': age < timedelta(hours=self.CACHE_HOURS)
-            }
+        for cache_path in self.cache_dir.glob("*.json"):
+            if cache_path.name == "fred_cache.json":
+                continue
+                
+            try:
+                with open(cache_path, 'r') as f:
+                    data = json.load(f)
+                
+                series_id = data.get('series_id', cache_path.stem)
+                cached_time = datetime.fromisoformat(data['timestamp'])
+                age = now - cached_time
+                
+                status[series_id] = {
+                    'timestamp': data['timestamp'],
+                    'age_hours': age.total_seconds() / 3600,
+                    'fresh': age < timedelta(hours=self.CACHE_HOURS)
+                }
+            except Exception:
+                status[cache_path.stem] = {'error': 'corrupt'}
 
         return status
 

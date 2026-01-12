@@ -383,7 +383,7 @@ class CapitalGainsPolicy(TaxPolicy):
     # This creates strong lock-in incentive to hold until death
     step_up_at_death: bool = True       # Current law default
     eliminate_step_up: bool = False     # Policy change: tax gains at death
-    step_up_exemption: float = 0.0      # Exemption per decedent (Biden: $1M)
+    step_up_exemption: float = 1_000_000 # Exemption per decedent (Biden: $1M)
 
     # Unrealized gains at death (for step-up elimination revenue)
     # JCT estimates ~$40-60B/year in forgone revenue from step-up
