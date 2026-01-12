@@ -58,22 +58,21 @@ def demo_microsim():
     
     # Merge results
     comparison = baseline.copy()
-    comparison['reform_tax'] = reform_res['final_tax']
-    comparison['tax_change'] = comparison['reform_tax'] - comparison['final_tax']
-    
+    comparison.loc[:, 'reform_tax'] = reform_res['final_tax'].values
+    comparison.loc[:, 'tax_change'] = comparison['reform_tax'] - comparison['final_tax']
+
     # Analyze by number of children (something aggregate models struggle with)
     print("\n   Avg Tax Cut by Number of Children:")
-    grouped = comparison.groupby('children').apply(
-        lambda x: np.average(x['tax_change'], weights=x['weight'])
+    grouped = comparison.groupby('children', group_keys=False).apply(
+        lambda x: np.average(x['tax_change'], weights=x['weight']), include_groups=False
     )
     print(grouped)
-    
+
     # Analyze by Income Decile
-    pd.options.mode.chained_assignment = None # Suppress warnings for demo
-    comparison['decile'] = pd.qcut(comparison['agi'], 10, labels=False, duplicates='drop')
+    comparison.loc[:, 'decile'] = pd.qcut(comparison['agi'], 10, labels=False, duplicates='drop')
     print("\n   Avg Tax Cut by Income Decile (Top 3):")
-    grouped_inc = comparison.groupby('decile').apply(
-        lambda x: np.average(x['tax_change'], weights=x['weight'])
+    grouped_inc = comparison.groupby('decile', group_keys=False).apply(
+        lambda x: np.average(x['tax_change'], weights=x['weight']), include_groups=False
     )
     print(grouped_inc.tail(3))
 

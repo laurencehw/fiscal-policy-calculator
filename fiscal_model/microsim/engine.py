@@ -31,15 +31,15 @@ class MicroTaxCalculator:
         Calculate tax liability for the population.
         """
         df = pop.copy()
-        
+
         # 1. Determine Standard Deduction
-        df['std_deduction'] = np.where(df['married'] == 1, 
-                                     self.std_deduction_married, 
-                                     self.std_deduction_single)
-        
+        df.loc[:, 'std_deduction'] = np.where(df['married'] == 1,
+                                              self.std_deduction_married,
+                                              self.std_deduction_single)
+
         # 2. Taxable Income
         # Max(0, AGI - Deduction)
-        df['taxable_income'] = np.maximum(0, df['agi'] - df['std_deduction'])
+        df.loc[:, 'taxable_income'] = np.maximum(0, df['agi'] - df['std_deduction'])
         
         # 3. Income Tax (Simplified Progressive Calculation)
         # We'll just do a simple tiered calculation for the prototype
@@ -72,8 +72,8 @@ class MicroTaxCalculator:
         last_threshold_adj = np.where(df['married']==1, last_threshold * 2, last_threshold)
         tax += np.maximum(0, df['taxable_income'] - last_threshold_adj) * rates[-1]
         
-        df['income_tax_before_credits'] = tax
-        
+        df.loc[:, 'income_tax_before_credits'] = tax
+
         # 4. Child Tax Credit (with Phase-out)
         # This is where microsim shines: capturing the exact interaction of income & kids
         
@@ -88,13 +88,13 @@ class MicroTaxCalculator:
         excess_income = np.maximum(0, df['agi'] - phaseout_start)
         reduction = np.ceil(excess_income / 1000) * 50 # $50 per $1000
         
-        df['ctc_value'] = np.maximum(0, max_credit - reduction)
-        
+        df.loc[:, 'ctc_value'] = np.maximum(0, max_credit - reduction)
+
         # 5. Final Tax
-        df['final_tax'] = np.maximum(0, df['income_tax_before_credits'] - df['ctc_value'])
-        
+        df.loc[:, 'final_tax'] = np.maximum(0, df['income_tax_before_credits'] - df['ctc_value'])
+
         # Metrics
-        df['effective_tax_rate'] = np.where(df['agi'] > 0, df['final_tax'] / df['agi'], 0)
+        df.loc[:, 'effective_tax_rate'] = np.where(df['agi'] > 0, df['final_tax'] / df['agi'], 0)
         
         return df
 
