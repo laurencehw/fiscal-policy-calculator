@@ -17,7 +17,7 @@ st.set_page_config(
     page_title="Fiscal Policy Calculator",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
 # Custom CSS for better styling
@@ -104,6 +104,8 @@ try:
     from fiscal_model.microsim.data_generator import SyntheticPopulation
     from fiscal_model.long_run.solow_growth import SolowGrowthModel
     from fiscal_model.validation.cbo_scores import KNOWN_SCORES, CBOScore, ScoreSource
+    from fiscal_model.app_data import CBO_SCORE_MAP, PRESET_POLICIES
+    from fiscal_model.preset_handler import create_policy_from_preset
     MODEL_AVAILABLE = True
     MACRO_AVAILABLE = True
 except ImportError as e:
@@ -111,238 +113,75 @@ except ImportError as e:
     MACRO_AVAILABLE = False
     st.error(f"⚠️ Could not import fiscal model: {e}")
 
-# =============================================================================
-# CBO SCORE MAPPING - Maps preset policy names to official CBO/JCT scores
-# =============================================================================
-CBO_SCORE_MAP = {
-    # TCJA Extension
-    "🏛️ TCJA Full Extension (CBO: $4.6T)": {
-        "official_score": 4600.0,
-        "source": "CBO",
-        "source_date": "May 2024",
-        "source_url": "https://www.cbo.gov/publication/59710",
-        "notes": "Extend all individual TCJA provisions beyond 2025 sunset",
-    },
-    "🏛️ TCJA Extension (No SALT Cap)": {
-        "official_score": 6500.0,  # ~$4.6T + $1.9T SALT
-        "source": "CBO/JCT",
-        "source_date": "2024",
-        "notes": "TCJA extension + repeal $10K SALT cap (~$1.9T additional)",
-    },
-    "🏛️ TCJA Rates Only": {
-        "official_score": 3200.0,
-        "source": "CBO",
-        "source_date": "2024",
-        "notes": "Extend only individual rate bracket cuts",
-    },
-    # Corporate
-    "🏢 Biden Corporate 28% (CBO: -$1.35T)": {
-        "official_score": -1347.0,
-        "source": "Treasury",
-        "source_date": "March 2024",
-        "source_url": "https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf",
-        "notes": "Increase corporate rate from 21% to 28%",
-    },
-    "🏢 Trump Corporate 15%": {
-        "official_score": 673.0,  # ~$67.3B/yr based on CRFB estimates
-        "source": "CRFB",
-        "source_date": "2024",
-        "notes": "Reduce corporate rate from 21% to 15%",
-    },
-    # Tax Credits
-    "👶 Biden CTC 2021 ($1.6T)": {
-        "official_score": 1600.0,
-        "source": "JCT",
-        "source_date": "2021",
-        "notes": "$3,600/$3,000 per child, fully refundable, monthly payments",
-    },
-    "👶 CTC Permanent Extension ($600B)": {
-        "official_score": 600.0,
-        "source": "CBO",
-        "source_date": "2024",
-        "notes": "Extend current $2,000 CTC beyond 2025",
-    },
-    "👷 EITC Childless Expansion": {
-        "official_score": 178.0,
-        "source": "JCT",
-        "source_date": "2021",
-        "notes": "Triple EITC for childless workers, expand age range",
-    },
-    # Estate Tax
-    "🏠 Estate: Extend TCJA ($167B)": {
-        "official_score": 167.0,
-        "source": "CBO",
-        "source_date": "2024",
-        "notes": "Maintain doubled exemption ($13.6M) beyond 2025",
-    },
-    "🏠 Estate: Biden Reform (-$450B)": {
-        "official_score": -450.0,
-        "source": "Treasury",
-        "source_date": "2024",
-        "notes": "Return to 2009 parameters: $3.5M exemption, 45% rate",
-    },
-    "🏠 Estate: Eliminate Tax": {
-        "official_score": 300.0,  # ~$30B/yr
-        "source": "JCT",
-        "source_date": "2024",
-        "notes": "Repeal federal estate tax entirely",
-    },
-    # Payroll Tax
-    "💼 SS Cap to 90% Coverage (-$800B)": {
-        "official_score": -800.0,
-        "source": "CBO",
-        "source_date": "2024",
-        "notes": "Raise SS wage cap from $168K to ~$305K",
-    },
-    "💼 SS Donut Hole $250K (-$2.7T)": {
-        "official_score": -2700.0,
-        "source": "SS Trustees",
-        "source_date": "2024",
-        "notes": "Apply payroll tax above $250K (donut hole)",
-    },
-    "💼 Eliminate SS Cap (-$3.2T)": {
-        "official_score": -3200.0,
-        "source": "SS Trustees",
-        "source_date": "2024",
-        "notes": "Apply SS tax to all wages (no cap)",
-    },
-    "💼 Expand NIIT (-$250B)": {
-        "official_score": -250.0,
-        "source": "JCT",
-        "source_date": "2024",
-        "notes": "Apply 3.8% NIIT to pass-through business income",
-    },
-    # AMT
-    "⚖️ AMT: Extend TCJA Relief ($450B)": {
-        "official_score": 450.0,
-        "source": "CBO",
-        "source_date": "2024",
-        "notes": "Maintain high AMT exemption beyond 2025",
-    },
-    "⚖️ Repeal Individual AMT ($450B)": {
-        "official_score": 450.0,
-        "source": "CBO",
-        "source_date": "2024",
-        "notes": "Eliminate individual AMT (post-TCJA sunset baseline)",
-    },
-    "⚖️ Repeal Corporate AMT (-$220B)": {
-        "official_score": -220.0,
-        "source": "CBO",
-        "source_date": "2024",
-        "notes": "Repeal 15% corporate book minimum tax (CAMT)",
-    },
-    # Premium Tax Credits
-    "🏥 Extend Enhanced PTCs ($350B)": {
-        "official_score": 350.0,
-        "source": "CBO",
-        "source_date": "2024",
-        "notes": "Extend ACA enhanced premium subsidies beyond 2025",
-    },
-    "🏥 Repeal All PTCs (-$1.1T)": {
-        "official_score": -1100.0,
-        "source": "CBO",
-        "source_date": "2024",
-        "notes": "Eliminate all ACA premium tax credits",
-    },
-    # Tax Expenditures
-    "💊 Cap Employer Health Exclusion (-$450B)": {
-        "official_score": -450.0,
-        "source": "JCT",
-        "source_date": "2024",
-        "notes": "Cap exclusion at 28% rate or ~$25K",
-    },
-    "🏠 Eliminate Mortgage Deduction (-$300B)": {
-        "official_score": -300.0,
-        "source": "JCT",
-        "source_date": "2024",
-        "notes": "Repeal mortgage interest deduction",
-    },
-    "📍 Repeal SALT Cap ($1.1T)": {
-        "official_score": 1100.0,
-        "source": "JCT",
-        "source_date": "2024",
-        "notes": "Remove $10K cap on state/local tax deduction",
-    },
-    "📍 Eliminate SALT Deduction (-$1.2T)": {
-        "official_score": -1200.0,
-        "source": "JCT",
-        "source_date": "2024",
-        "notes": "Repeal state/local tax deduction entirely",
-    },
-    "🎁 Cap Charitable Deduction (-$200B)": {
-        "official_score": -200.0,
-        "source": "Treasury",
-        "source_date": "2024",
-        "notes": "Limit charitable deduction to 28% rate",
-    },
-    "💀 Eliminate Step-Up Basis (-$500B)": {
-        "official_score": -500.0,
-        "source": "Treasury",
-        "source_date": "2024",
-        "notes": "Tax unrealized gains at death (with exemptions)",
-    },
-    # Income Tax
-    "Biden $400K+ Tax Increase": {
-        "official_score": -252.0,
-        "source": "Treasury",
-        "source_date": "March 2024",
-        "source_url": "https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf",
-        "notes": "Restore 39.6% top rate for income above $400K",
-    },
-}
-
 # Title and introduction
 st.markdown('<div class="main-header">📊 Fiscal Policy Impact Calculator</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-header">Estimate the budgetary and economic effects of tax and spending policies using real IRS and FRED data</div>', unsafe_allow_html=True)
 
-# Sidebar
-with st.sidebar:
-    st.header("⚙️ Settings")
+# Reorganize tabs to reduce clutter
+main_tabs = st.tabs(["📊 Calculator", "📈 Economic Analysis", "🛠️ Tools", "ℹ️ Reference", "⚙️ Settings"])
 
-    st.subheader("Model Options")
-    use_real_data = st.checkbox("Use real IRS/FRED data", value=True,
-                                 help="Uses actual IRS Statistics of Income data and FRED economic indicators")
+# Define Settings Tab content FIRST so variables are available for other tabs
+with main_tabs[4]:
+    st.header("⚙️ Configuration")
+    
+    col_settings_1, col_settings_2 = st.columns(2)
+    
+    with col_settings_1:
+        st.subheader("Model Options")
+        use_real_data = st.checkbox("Use real IRS/FRED data", value=True,
+                                     help="Uses actual IRS Statistics of Income data and FRED economic indicators")
 
-    dynamic_scoring = st.checkbox("Dynamic scoring", value=False,
-                                   help="Include macroeconomic feedback effects (GDP growth, employment, interest rates)")
+        dynamic_scoring = st.checkbox("Dynamic scoring", value=False,
+                                       help="Include macroeconomic feedback effects (GDP growth, employment, interest rates)")
 
-    if dynamic_scoring:
-        macro_model = st.selectbox(
-            "Macro model",
-            ["FRB/US-Lite (Recommended)", "Simple Multiplier"],
-            help="FRB/US-Lite uses Federal Reserve-calibrated multipliers; Simple uses basic Keynesian multipliers"
-        )
+        if dynamic_scoring:
+            macro_model = st.selectbox(
+                "Macro model",
+                ["FRB/US-Lite (Recommended)", "Simple Multiplier"],
+                help="FRB/US-Lite uses Federal Reserve-calibrated multipliers; Simple uses basic Keynesian multipliers"
+            )
 
-    # Microsimulation Toggle
-    use_microsim = st.checkbox("Microsimulation (Experimental)", value=False,
-                                help="Use individual-level tax calculation (JCT-style) instead of bracket averages. Requires CPS data.")
+        # Microsimulation Toggle
+        use_microsim = st.checkbox("Microsimulation (Experimental)", value=False,
+                                    help="Use individual-level tax calculation (JCT-style) instead of bracket averages. Requires CPS data.")
 
-    st.subheader("Data Source")
-    data_year = st.selectbox("IRS data year", [2022, 2021],
-                            help="Year of IRS Statistics of Income data to use")
+        st.subheader("Data Source")
+        data_year = st.selectbox("IRS data year", [2022, 2021],
+                                help="Year of IRS Statistics of Income data to use")
+
+    with col_settings_2:
+        st.subheader("📚 About")
+        st.markdown("""
+        This calculator uses Congressional Budget Office (CBO) methodology to estimate policy impacts.
+
+        **Data Sources:**
+        - IRS Statistics of Income
+        - FRED Economic Data
+        - CBO Baseline Projections
+
+        **Methodology:**
+        - Static revenue estimation
+        - Behavioral responses (ETI)
+        - Dynamic macroeconomic feedback
+        """)
+        st.caption("Built with Streamlit • Data updated 2022")
 
     st.markdown("---")
+    if st.button("🗑️ Reset All", type="primary", help="Clear all inputs, results, and settings to default"):
+        st.session_state.clear()
+        st.rerun()
 
-    st.subheader("📚 About")
-    st.markdown("""
-    This calculator uses Congressional Budget Office (CBO) methodology to estimate policy impacts.
+with main_tabs[0]:
+    tab1, tab2 = st.tabs(["⚙️ Policy Input", "📝 Results Summary"])
 
-    **Data Sources:**
-    - IRS Statistics of Income
-    - FRED Economic Data
-    - CBO Baseline Projections
+with main_tabs[1]:
+    tab3, tab4, tab9 = st.tabs(["🌍 Dynamic Scoring", "👥 Distribution", "⏳ Long-Run Growth"])
 
-    **Methodology:**
-    - Static revenue estimation
-    - Behavioral responses (ETI)
-    - Dynamic macroeconomic feedback
-    """)
+with main_tabs[2]:
+    tab5, tab6 = st.tabs(["🔀 Compare Policies", "📦 Policy Packages"])
 
-    st.markdown("---")
-    st.caption("Built with Streamlit • Data updated 2022")
-
-# Main content tabs
-tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs(["⚙️ Policy Input", "📈 Results & Charts", "🌍 Dynamic Scoring", "👥 Distribution", "🔀 Compare Policies", "📦 Policy Packages", "📋 Details", "ℹ️ Methodology", "⏳ Long-Run Growth"])
+with main_tabs[3]:
+    tab7, tab8 = st.tabs(["📋 Detailed Results", "ℹ️ Methodology"])
 
 with tab1:
     st.header("Fiscal Policy Calculator")
@@ -358,250 +197,8 @@ with tab1:
     is_spending = policy_category == "📊 Spending Policy"
 
     # Define preset_policies at module level so Policy Packages tab can access it
-    preset_policies = {
-            "Custom Policy": {
-                "rate_change": -2.0,
-                "threshold": 500000,
-                "description": "Design your own policy",
-                "is_tcja": False,
-            },
-        "🏛️ TCJA Full Extension (CBO: $4.6T)": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Extend all TCJA individual provisions beyond 2025 sunset. Includes rate cuts, doubled standard deduction, SALT cap, pass-through deduction, CTC expansion.",
-            "is_tcja": True,
-            "tcja_type": "full",
-        },
-        "🏛️ TCJA Extension (No SALT Cap)": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Extend TCJA but repeal the $10K SALT cap (adds ~$1.9T to cost). Popular bipartisan proposal.",
-            "is_tcja": True,
-            "tcja_type": "no_salt",
-        },
-        "🏛️ TCJA Rates Only": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Extend only the individual rate bracket cuts, not other TCJA provisions (~$3.2T).",
-            "is_tcja": True,
-            "tcja_type": "rates_only",
-        },
-        "🏢 Biden Corporate 28% (CBO: -$1.35T)": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Raise corporate rate from 21% to 28%. CBO estimate: raises ~$1.35T over 10 years.",
-            "is_tcja": False,
-            "is_corporate": True,
-            "corporate_type": "biden_28",
-        },
-        "🏢 Trump Corporate 15%": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Lower corporate rate from 21% to 15%. Estimated cost: ~$1.9T over 10 years.",
-            "is_tcja": False,
-            "is_corporate": True,
-            "corporate_type": "trump_15",
-        },
-        "👶 Biden CTC Expansion (CBO: $1.6T)": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Expand CTC to $3,600/$3,000 per child, fully refundable. Based on 2021 ARP expansion.",
-            "is_tcja": False,
-            "is_corporate": False,
-            "is_credit": True,
-            "credit_type": "biden_ctc_2021",
-        },
-        "👶 CTC Extension (CBO: $600B)": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Extend current $2,000 CTC beyond 2025 sunset. Without extension, reverts to $1,000.",
-            "is_tcja": False,
-            "is_corporate": False,
-            "is_credit": True,
-            "credit_type": "ctc_extension",
-        },
-        "💼 EITC Childless Expansion (CBO: $178B)": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Triple EITC for childless workers (~$1,500 max), expand age range to 19-65+.",
-            "is_tcja": False,
-            "is_corporate": False,
-            "is_credit": True,
-            "credit_type": "biden_eitc_childless",
-        },
-        "🏠 Estate Tax: Extend TCJA (CBO: $167B)": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Keep ~$14M exemption (vs $6.4M if TCJA expires). Costs ~$167B over 10 years.",
-            "is_tcja": False,
-            "is_corporate": False,
-            "is_credit": False,
-            "is_estate": True,
-            "estate_type": "extend_tcja",
-        },
-        "🏠 Biden Estate Reform (-$450B)": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Lower exemption to $3.5M, raise rate to 45%. Raises ~$450B over 10 years.",
-            "is_tcja": False,
-            "is_corporate": False,
-            "is_credit": False,
-            "is_estate": True,
-            "estate_type": "biden_reform",
-        },
-        "🏠 Eliminate Estate Tax ($350B)": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Repeal federal estate tax entirely. Costs ~$350B over 10 years.",
-            "is_tcja": False,
-            "is_corporate": False,
-            "is_credit": False,
-            "is_estate": True,
-            "estate_type": "eliminate",
-        },
-        "💰 SS Cap to 90% (CBO: -$800B)": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Raise Social Security cap to cover 90% of wages (~$305K). Raises ~$800B.",
-            "is_tcja": False,
-            "is_corporate": False,
-            "is_payroll": True,
-            "payroll_type": "cap_90",
-        },
-        "💰 SS Donut Hole $250K (-$2.7T)": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Apply SS tax to wages above $250K (donut hole). Raises ~$2.7T over 10 years.",
-            "is_tcja": False,
-            "is_corporate": False,
-            "is_payroll": True,
-            "payroll_type": "donut_250k",
-        },
-        "💰 Eliminate SS Cap (-$3.2T)": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Eliminate Social Security wage cap entirely. Raises ~$3.2T over 10 years.",
-            "is_tcja": False,
-            "is_corporate": False,
-            "is_payroll": True,
-            "payroll_type": "eliminate_cap",
-        },
-        "💰 Expand NIIT (JCT: -$250B)": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Apply 3.8% NIIT to S-corp/partnership income. Raises ~$250B over 10 years.",
-            "is_tcja": False,
-            "is_corporate": False,
-            "is_payroll": True,
-            "payroll_type": "expand_niit",
-        },
-        "⚖️ AMT: Extend TCJA Relief ($450B)": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Extend TCJA's higher AMT exemptions ($88K single, $137K MFJ) past 2025. Costs ~$450B.",
-            "is_tcja": False,
-            "is_corporate": False,
-            "is_amt": True,
-            "amt_type": "extend_tcja",
-        },
-        "⚖️ Repeal Individual AMT ($450B)": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Fully repeal individual AMT. After TCJA expires, would cost ~$450B over 10 years.",
-            "is_tcja": False,
-            "is_corporate": False,
-            "is_amt": True,
-            "amt_type": "repeal_individual",
-        },
-        "⚖️ Repeal Corporate AMT (-$220B)": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Repeal 15% book minimum tax (CAMT) from IRA 2022. Costs ~$220B over 10 years.",
-            "is_tcja": False,
-            "is_corporate": False,
-            "is_amt": True,
-            "amt_type": "repeal_corporate",
-        },
-        "🏥 Extend ACA Enhanced PTCs ($350B)": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Extend enhanced premium tax credits (ARPA/IRA) past 2025. Costs ~$350B over 10 years.",
-            "is_tcja": False,
-            "is_corporate": False,
-            "is_ptc": True,
-            "ptc_type": "extend_enhanced",
-        },
-        "🏥 Repeal ACA Premium Credits (-$1.1T)": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Repeal all ACA premium subsidies. Saves ~$1.1T but ~19M lose subsidized coverage.",
-            "is_tcja": False,
-            "is_corporate": False,
-            "is_ptc": True,
-            "ptc_type": "repeal",
-        },
-        "📋 Cap Employer Health Exclusion (-$450B)": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Cap tax exclusion for employer health insurance at $50K. Raises ~$450B over 10 years.",
-            "is_tcja": False,
-            "is_corporate": False,
-            "is_expenditure": True,
-            "expenditure_type": "cap_employer_health",
-        },
-        "📋 Repeal SALT Cap ($1.1T)": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Remove $10K cap on state and local tax deduction. Costs ~$1.1T over 10 years.",
-            "is_tcja": False,
-            "is_corporate": False,
-            "is_expenditure": True,
-            "expenditure_type": "repeal_salt_cap",
-        },
-        "📋 Eliminate Step-Up Basis (-$500B)": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Tax capital gains at death with $1M exemption. Raises ~$500B over 10 years.",
-            "is_tcja": False,
-            "is_corporate": False,
-            "is_expenditure": True,
-            "expenditure_type": "eliminate_step_up",
-        },
-        "📋 Cap Charitable Deduction (-$200B)": {
-            "rate_change": 0.0,
-            "threshold": 0,
-            "description": "Limit charitable deduction value to 28% rate. Raises ~$200B over 10 years.",
-            "is_tcja": False,
-            "is_corporate": False,
-            "is_expenditure": True,
-            "expenditure_type": "cap_charitable",
-        },
-        "Biden 2025 Proposal": {
-            "rate_change": 2.6,
-            "threshold": 400000,
-            "description": "Restore top rate to 39.6% for AGI > $400K",
-            "is_tcja": False,
-            "is_corporate": False,
-        },
-        "Progressive Millionaire Tax": {
-            "rate_change": 5.0,
-            "threshold": 1000000,
-            "description": "5pp surtax on millionaires",
-            "is_tcja": False,
-        },
-        "Middle Class Tax Cut": {
-            "rate_change": -2.0,
-            "threshold": 50000,
-            "description": "2pp cut for households earning $50K+",
-            "is_tcja": False,
-        },
-        "Flat Tax Reform": {
-            "rate_change": -5.0,
-            "threshold": 0,
-            "description": "Simplified flat tax with lower rates across the board",
-            "is_tcja": False,
-        }
-    }
+    # Use imported preset policies
+    preset_policies = PRESET_POLICIES
 
     if not is_spending:
         # TAX POLICY SECTION
@@ -1105,33 +702,16 @@ if calculate and MODEL_AVAILABLE:
             try:
                 # Check if this is a TCJA extension policy
                 preset_data = preset_policies[preset_choice]
-                is_tcja_policy = preset_data.get("is_tcja", False)
-
-                if is_tcja_policy:
-                    # Create TCJA extension policy
-                    tcja_type = preset_data.get("tcja_type", "full")
-
-                    if tcja_type == "full":
-                        policy = create_tcja_extension(extend_all=True, keep_salt_cap=True)
-                    elif tcja_type == "no_salt":
-                        policy = create_tcja_repeal_salt_cap()
-                    elif tcja_type == "rates_only":
-                        policy = create_tcja_extension(
-                            extend_all=False,
-                            extend_rate_cuts=True,
-                            extend_standard_deduction=False,
-                            keep_exemption_elimination=False,
-                            extend_passthrough=False,
-                            extend_ctc=False,
-                            extend_estate=False,
-                            extend_amt=False,
-                            keep_salt_cap=False,
-                        )
-                    else:
-                        policy = create_tcja_extension(extend_all=True)
-
-                    # Score TCJA policy
-                    scorer = FiscalPolicyScorer(start_year=2026, use_real_data=False)
+                
+                # Try to create policy from preset handler
+                policy = create_policy_from_preset(preset_data)
+                
+                if policy:
+                    # It was a complex preset
+                    # Score policy
+                    # Use policy.start_year if available, else default to 2025
+                    start_year = getattr(policy, 'start_year', 2025)
+                    scorer = FiscalPolicyScorer(start_year=start_year, use_real_data=False)
                     result = scorer.score_policy(policy, dynamic=dynamic_scoring)
 
                     # Store in session state
@@ -1140,254 +720,14 @@ if calculate and MODEL_AVAILABLE:
                         'result': result,
                         'scorer': scorer,
                         'is_spending': False,
-                        'is_tcja': True,
-                        'tcja_type': tcja_type,
                         'policy_name': preset_choice,
-                    }
-
-                    st.success("✅ Calculation complete!")
-
-                elif preset_data.get("is_corporate", False):
-                    # Corporate tax policy
-                    corporate_type = preset_data.get("corporate_type", "biden_28")
-
-                    if corporate_type == "biden_28":
-                        policy = create_biden_corporate_rate_only()
-                    elif corporate_type == "trump_15":
-                        policy = create_republican_corporate_cut()
-                    else:
-                        policy = create_biden_corporate_rate_only()
-
-                    # Score corporate policy
-                    scorer = FiscalPolicyScorer(start_year=2025, use_real_data=False)
-                    result = scorer.score_policy(policy, dynamic=dynamic_scoring)
-
-                    # Store in session state
-                    st.session_state.results = {
-                        'policy': policy,
-                        'result': result,
-                        'scorer': scorer,
-                        'is_spending': False,
-                        'is_tcja': False,
-                        'is_corporate': True,
-                        'corporate_type': corporate_type,
-                        'policy_name': preset_choice,
-                    }
-
-                    st.success("✅ Calculation complete!")
-
-                elif preset_data.get("is_credit", False):
-                    # Tax credit policy
-                    credit_type = preset_data.get("credit_type", "biden_ctc_2021")
-
-                    if credit_type == "biden_ctc_2021":
-                        policy = create_biden_ctc_2021()
-                    elif credit_type == "ctc_extension":
-                        policy = create_ctc_permanent_extension()
-                    elif credit_type == "biden_eitc_childless":
-                        policy = create_biden_eitc_childless()
-                    else:
-                        policy = create_biden_ctc_2021()
-
-                    # Score credit policy
-                    scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
-                    result = scorer.score_policy(policy, dynamic=dynamic_scoring)
-
-                    # Store in session state
-                    st.session_state.results = {
-                        'policy': policy,
-                        'result': result,
-                        'scorer': scorer,
-                        'is_spending': False,
-                        'is_tcja': False,
-                        'is_corporate': False,
-                        'is_credit': True,
-                        'credit_type': credit_type,
-                        'policy_name': preset_choice,
-                    }
-
-                    st.success("✅ Calculation complete!")
-
-                elif preset_data.get("is_estate", False):
-                    # Estate tax policy
-                    estate_type = preset_data.get("estate_type", "extend_tcja")
-
-                    if estate_type == "extend_tcja":
-                        policy = create_tcja_estate_extension()
-                    elif estate_type == "biden_reform":
-                        policy = create_biden_estate_proposal()
-                    elif estate_type == "eliminate":
-                        policy = create_eliminate_estate_tax()
-                    else:
-                        policy = create_tcja_estate_extension()
-
-                    # Score estate policy
-                    scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
-                    result = scorer.score_policy(policy, dynamic=dynamic_scoring)
-
-                    # Store in session state
-                    st.session_state.results = {
-                        'policy': policy,
-                        'result': result,
-                        'scorer': scorer,
-                        'is_spending': False,
-                        'is_tcja': False,
-                        'is_corporate': False,
-                        'is_credit': False,
-                        'is_estate': True,
-                        'estate_type': estate_type,
-                        'policy_name': preset_choice,
-                    }
-
-                    st.success("✅ Calculation complete!")
-
-                elif preset_data.get("is_payroll", False):
-                    # Payroll tax policy
-                    payroll_type = preset_data.get("payroll_type", "cap_90")
-
-                    if payroll_type == "cap_90":
-                        policy = create_ss_cap_90_percent()
-                    elif payroll_type == "donut_250k":
-                        policy = create_ss_donut_hole()
-                    elif payroll_type == "eliminate_cap":
-                        policy = create_ss_eliminate_cap()
-                    elif payroll_type == "expand_niit":
-                        policy = create_expand_niit()
-                    else:
-                        policy = create_ss_cap_90_percent()
-
-                    # Score payroll policy
-                    scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
-                    result = scorer.score_policy(policy, dynamic=dynamic_scoring)
-
-                    # Store in session state
-                    st.session_state.results = {
-                        'policy': policy,
-                        'result': result,
-                        'scorer': scorer,
-                        'is_spending': False,
-                        'is_tcja': False,
-                        'is_corporate': False,
-                        'is_credit': False,
-                        'is_estate': False,
-                        'is_payroll': True,
-                        'payroll_type': payroll_type,
-                        'policy_name': preset_choice,
-                    }
-
-                    st.success("✅ Calculation complete!")
-
-                elif preset_data.get("is_amt", False):
-                    # AMT policy
-                    amt_type = preset_data.get("amt_type", "extend_tcja")
-
-                    if amt_type == "extend_tcja":
-                        policy = create_extend_tcja_amt_relief()
-                    elif amt_type == "repeal_individual":
-                        # Use start_year=2026 to match CBO $450B estimate (post-TCJA sunset)
-                        policy = create_repeal_individual_amt(start_year=2026)
-                    elif amt_type == "repeal_corporate":
-                        policy = create_repeal_corporate_amt()
-                    else:
-                        policy = create_extend_tcja_amt_relief()
-
-                    # Score AMT policy
-                    scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
-                    result = scorer.score_policy(policy, dynamic=dynamic_scoring)
-
-                    # Store in session state
-                    st.session_state.results = {
-                        'policy': policy,
-                        'result': result,
-                        'scorer': scorer,
-                        'is_spending': False,
-                        'is_tcja': False,
-                        'is_corporate': False,
-                        'is_credit': False,
-                        'is_estate': False,
-                        'is_payroll': False,
-                        'is_amt': True,
-                        'policy_name': preset_choice,
-                        'amt_type': amt_type,
-                    }
-
-                    st.success("✅ Calculation complete!")
-
-                elif preset_data.get("is_ptc", False):
-                    # Premium Tax Credit policy
-                    ptc_type = preset_data.get("ptc_type", "extend_enhanced")
-
-                    if ptc_type == "extend_enhanced":
-                        policy = create_extend_enhanced_ptc()
-                    elif ptc_type == "repeal":
-                        policy = create_repeal_ptc()
-                    else:
-                        policy = create_extend_enhanced_ptc()
-
-                    # Score PTC policy
-                    scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
-                    result = scorer.score_policy(policy, dynamic=dynamic_scoring)
-
-                    # Store in session state
-                    st.session_state.results = {
-                        'policy': policy,
-                        'result': result,
-                        'scorer': scorer,
-                        'is_spending': False,
-                        'is_tcja': False,
-                        'is_corporate': False,
-                        'is_credit': False,
-                        'is_estate': False,
-                        'is_payroll': False,
-                        'is_amt': False,
-                        'is_ptc': True,
-                        'policy_name': preset_choice,
-                        'ptc_type': ptc_type,
-                    }
-
-                    st.success("✅ Calculation complete!")
-
-                elif preset_data.get("is_expenditure", False):
-                    # Tax Expenditure policy
-                    expenditure_type = preset_data.get("expenditure_type", "cap_employer_health")
-
-                    if expenditure_type == "cap_employer_health":
-                        policy = create_cap_employer_health_exclusion()
-                    elif expenditure_type == "repeal_salt_cap":
-                        policy = create_repeal_salt_cap()
-                    elif expenditure_type == "eliminate_step_up":
-                        policy = create_eliminate_step_up_basis()
-                    elif expenditure_type == "cap_charitable":
-                        policy = create_cap_charitable_deduction()
-                    else:
-                        policy = create_cap_employer_health_exclusion()
-
-                    # Score expenditure policy
-                    scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
-                    result = scorer.score_policy(policy, dynamic=dynamic_scoring)
-
-                    # Store in session state
-                    st.session_state.results = {
-                        'policy': policy,
-                        'result': result,
-                        'scorer': scorer,
-                        'is_spending': False,
-                        'is_tcja': False,
-                        'is_corporate': False,
-                        'is_credit': False,
-                        'is_estate': False,
-                        'is_payroll': False,
-                        'is_amt': False,
-                        'is_ptc': False,
-                        'is_expenditure': True,
-                        'policy_name': preset_choice,
-                        'expenditure_type': expenditure_type,
+                        **preset_data # Include all preset flags (is_tcja, etc.)
                     }
 
                     st.success("✅ Calculation complete!")
 
                 else:
-                    # Non-TCJA, non-corporate tax policy
+                    # Non-TCJA, non-corporate tax policy (Custom or simple presets)
                     # Map UI to policy type
                     policy_type_map = {
                         "Income Tax Rate": PolicyType.INCOME_TAX,
@@ -2192,7 +1532,7 @@ if st.session_state.results:
         st.header("🔀 Policy Comparison")
 
         # preset_policies is only defined for tax policies, not spending
-        if 'preset_policies' not in dir() or is_spending:
+        if 'PRESET_POLICIES' not in globals() or is_spending:
             st.info("📊 Policy comparison is available for tax policies. Select a tax policy category in the sidebar to use this feature.")
             policies_to_compare = []
         else:
@@ -2203,7 +1543,7 @@ if st.session_state.results:
             """, unsafe_allow_html=True)
 
             # Multi-select for policies to compare
-            comparison_options = [k for k in preset_policies.keys() if k != "Custom Policy"]
+            comparison_options = [k for k in PRESET_POLICIES.keys() if k != "Custom Policy"]
             policies_to_compare = st.multiselect(
                 "Select policies to compare (2-3 recommended)",
                 options=comparison_options,
@@ -2217,7 +1557,7 @@ if st.session_state.results:
                     comparison_results = []
 
                     for preset_name in policies_to_compare:
-                        preset = preset_policies[preset_name]
+                        preset = PRESET_POLICIES[preset_name]
 
                         # Create policy
                         comp_policy = TaxPolicy(
@@ -2454,7 +1794,7 @@ with tab6:
     all_scorable_policies = {}
 
     # Add policies from preset_policies (defined in tab1)
-    for name, data in preset_policies.items():
+    for name, data in PRESET_POLICIES.items():
         if name == "Custom Policy":
             continue
         if data.get("is_tcja"):
@@ -2506,107 +1846,11 @@ with tab6:
                     policy_info = all_scorable_policies.get(policy_name, {})
                     policy_data = policy_info.get("data", {})
 
-                    # Create and score the policy based on type
-                    if policy_data.get("is_tcja"):
-                        tcja_type = policy_data.get("tcja_type", "full")
-                        if tcja_type == "full":
-                            policy = create_tcja_extension(extend_all=True, keep_salt_cap=True)
-                        elif tcja_type == "no_salt":
-                            policy = create_tcja_repeal_salt_cap()
-                        elif tcja_type == "rates_only":
-                            policy = create_tcja_extension(extend_all=False, extend_rate_cuts=True)
-                        else:
-                            policy = create_tcja_extension(extend_all=True)
-                        scorer = FiscalPolicyScorer(start_year=2026, use_real_data=False)
-
-                    elif policy_data.get("is_corporate"):
-                        corporate_type = policy_data.get("corporate_type", "biden_28")
-                        if corporate_type == "biden_28":
-                            policy = create_biden_corporate_rate_only()
-                        elif corporate_type == "trump_15":
-                            policy = create_republican_corporate_cut()
-                        else:
-                            policy = create_biden_corporate_rate_only()
-                        scorer = FiscalPolicyScorer(start_year=2025, use_real_data=False)
-
-                    elif policy_data.get("is_credit"):
-                        credit_type = policy_data.get("credit_type", "ctc_2021")
-                        if credit_type == "ctc_2021":
-                            policy = create_biden_ctc_2021()
-                        elif credit_type == "ctc_extension":
-                            policy = create_ctc_permanent_extension()
-                        elif credit_type == "eitc_childless":
-                            policy = create_biden_eitc_childless()
-                        else:
-                            policy = create_biden_ctc_2021()
+                    # Create policy using the new handler
+                    policy = create_policy_from_preset(policy_data)
+                    
+                    if policy:
                         scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
-
-                    elif policy_data.get("is_estate"):
-                        estate_type = policy_data.get("estate_type", "extend_tcja")
-                        if estate_type == "extend_tcja":
-                            policy = create_tcja_estate_extension()
-                        elif estate_type == "biden_reform":
-                            policy = create_biden_estate_proposal()
-                        elif estate_type == "eliminate":
-                            policy = create_eliminate_estate_tax()
-                        else:
-                            policy = create_tcja_estate_extension()
-                        scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
-
-                    elif policy_data.get("is_payroll"):
-                        payroll_type = policy_data.get("payroll_type", "cap_90")
-                        if payroll_type == "cap_90":
-                            policy = create_ss_cap_90_percent()
-                        elif payroll_type == "donut_250k":
-                            policy = create_ss_donut_hole()
-                        elif payroll_type == "eliminate_cap":
-                            policy = create_ss_eliminate_cap()
-                        elif payroll_type == "expand_niit":
-                            policy = create_expand_niit()
-                        else:
-                            policy = create_ss_cap_90_percent()
-                        scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
-
-                    elif policy_data.get("is_amt"):
-                        amt_type = policy_data.get("amt_type", "extend_tcja")
-                        if amt_type == "extend_tcja":
-                            policy = create_extend_tcja_amt_relief()
-                        elif amt_type == "repeal_individual":
-                            policy = create_repeal_individual_amt()
-                        elif amt_type == "repeal_corporate":
-                            policy = create_repeal_corporate_amt()
-                        else:
-                            policy = create_extend_tcja_amt_relief()
-                        scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
-
-                    elif policy_data.get("is_ptc"):
-                        ptc_type = policy_data.get("ptc_type", "extend_enhanced")
-                        if ptc_type == "extend_enhanced":
-                            policy = create_extend_enhanced_ptc()
-                        elif ptc_type == "repeal_all":
-                            policy = create_repeal_ptc()
-                        else:
-                            policy = create_extend_enhanced_ptc()
-                        scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
-
-                    elif policy_data.get("is_expenditure"):
-                        exp_type = policy_data.get("expenditure_type", "cap_employer_health")
-                        if exp_type == "cap_employer_health":
-                            policy = create_cap_employer_health_exclusion()
-                        elif exp_type == "eliminate_mortgage":
-                            policy = create_eliminate_mortgage_deduction()
-                        elif exp_type == "repeal_salt_cap":
-                            policy = create_repeal_salt_cap()
-                        elif exp_type == "eliminate_salt":
-                            policy = create_eliminate_salt_deduction()
-                        elif exp_type == "cap_charitable":
-                            policy = create_cap_charitable_deduction()
-                        elif exp_type == "eliminate_step_up":
-                            policy = create_eliminate_step_up_basis()
-                        else:
-                            policy = create_cap_employer_health_exclusion()
-                        scorer = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False)
-
                     else:
                         continue
 

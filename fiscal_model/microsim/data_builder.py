@@ -170,6 +170,14 @@ def build_tax_microdata(data_dir: str, output_file: str = "tax_microdata_2024.cs
     print("Done.")
 
 if __name__ == "__main__":
-    # Default path based on user's structure
-    base_dir = r"C:\Users\lwils\Projects\apps\fiscal-policy-calculator\fiscal-policy-calculator\data\asecpub24csv"
-    build_tax_microdata(base_dir)
+    # Default path relative to this script
+    # Assumes structure: project/fiscal_model/microsim/data_builder.py
+    # Data at: project/data/asecpub24csv
+    project_root = Path(__file__).resolve().parents[2]
+    base_dir = project_root / "data" / "asecpub24csv"
+    
+    if base_dir.exists():
+        build_tax_microdata(str(base_dir))
+    else:
+        print(f"Data directory not found at {base_dir}")
+        print("Please provide path or ensure data is in project/data/asecpub24csv")
