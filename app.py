@@ -5,6 +5,8 @@ A web application for estimating the budgetary and economic effects of
 fiscal policy proposals using real IRS and FRED data.
 """
 
+import json
+
 import streamlit as st
 import numpy as np
 import pandas as pd
@@ -2025,7 +2027,6 @@ with tab6:
 
             col1, col2 = st.columns(2)
             with col1:
-                import json
                 st.download_button(
                     "📥 Download as JSON",
                     data=json.dumps(export_data, indent=2),
@@ -2062,8 +2063,8 @@ if st.session_state.results:
         is_spending_result = result_data.get('is_spending', False)
 
         # Extract values from policy object safely
-        policy_rate_change = getattr(policy, 'rate_change', 0) * 100 if hasattr(policy, 'rate_change') else 0
-        policy_threshold = getattr(policy, 'affected_income_threshold', 0) if hasattr(policy, 'affected_income_threshold') else 0
+        policy_rate_change = getattr(policy, 'rate_change', 0) * 100
+        policy_threshold = getattr(policy, 'affected_income_threshold', 0)
         policy_duration = getattr(policy, 'duration_years', 10)
         policy_phase_in = getattr(policy, 'phase_in_years', 0)
         policy_data_year = getattr(policy, 'data_year', 2022)
@@ -2148,7 +2149,6 @@ if st.session_state.results:
                     }
                 }
 
-                import json
                 json_str = json.dumps(export_data, indent=2)
                 st.download_button(
                     label="📥 Download as JSON",
