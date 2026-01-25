@@ -5,6 +5,8 @@ A web application for estimating the budgetary and economic effects of
 fiscal policy proposals using real IRS and FRED data.
 """
 
+import json
+
 import streamlit as st
 import numpy as np
 import pandas as pd
@@ -2025,7 +2027,6 @@ with tab6:
 
             col1, col2 = st.columns(2)
             with col1:
-                import json
                 st.download_button(
                     "📥 Download as JSON",
                     data=json.dumps(export_data, indent=2),
@@ -2048,81 +2049,113 @@ with tab6:
 
 # Tabs 7 and 8 require results to be calculated
 if st.session_state.results:
-    with tab7:
-        st.header("📋 Detailed Results")
+    result_data = st.session_state.results
 
-        # Policy summary
-        st.subheader("Policy Details")
+    # Handle microsim results separately
+    if result_data.get('is_microsim'):
+        with tab7:
+            st.header("📋 Detailed Results")
+            st.info("Microsimulation results are displayed in the Results Summary tab.")
+    else:
+        # Standard aggregate model results
+        policy = result_data['policy']
+        result = result_data['result']
+        is_spending_result = result_data.get('is_spending', False)
 
-        policy_details = {
-            "Policy Name": policy.name,
-            "Description": policy.description,
-            "Policy Type": policy.policy_type.value,
-            "Rate Change": f"{rate_change_pct:+.1f} percentage points",
-            "Income Threshold": f"${threshold:,}" if threshold > 0 else "All taxpayers",
-            "Duration": f"{duration} years",
-            "Phase-in Period": f"{phase_in} years" if phase_in > 0 else "Immediate",
-            "Data Year": data_year,
-        }
+        # Extract values from policy object safely
+        policy_rate_change = getattr(policy, 'rate_change', 0) * 100
+        policy_threshold = getattr(policy, 'affected_income_threshold', 0)
+        policy_duration = getattr(policy, 'duration_years', 10)
+        policy_phase_in = getattr(policy, 'phase_in_years', 0)
+        policy_data_year = getattr(policy, 'data_year', 2022)
 
-        st.table(pd.DataFrame.from_dict(policy_details, orient='index', columns=['Value']))
+        # Calculate totals from result
+        static_total = result.static_revenue_effect.sum()
+        behavioral_total = result.behavioral_offset.sum()
+        net_total = static_total + behavioral_total
+        year1_net = result.static_revenue_effect[0] + result.behavioral_offset[0]
+        years = result.baseline.years
 
-        st.markdown("---")
+        with tab7:
+            st.header("📋 Detailed Results")
 
-        # Year-by-year table
-        st.subheader("Year-by-Year Breakdown")
+            # Policy summary
+            st.subheader("Policy Details")
 
-        detailed_df = pd.DataFrame({
-            'Year': years,
-            'Static Revenue Effect ($B)': [f"${x:.2f}" for x in result.static_revenue_effect],
-            'Behavioral Offset ($B)': [f"${x:.2f}" for x in result.behavioral_offset],
-            'Net Deficit Effect ($B)': [f"${x:.2f}" for x in (result.static_deficit_effect + result.behavioral_offset)],
-        })
-
-        st.dataframe(detailed_df, use_container_width=True, hide_index=True)
-
-        # Download data
-        st.markdown("---")
-        st.subheader("💾 Export Results")
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            # CSV export
-            csv = detailed_df.to_csv(index=False)
-            st.download_button(
-                label="📥 Download as CSV",
-                data=csv,
-                file_name=f"fiscal_impact_{policy_name.replace(' ', '_')}.csv",
-                mime="text/csv"
-            )
-
-        with col2:
-            # JSON export
-            export_data = {
-                'policy': {
-                    'name': policy.name,
-                    'rate_change': rate_change,
-                    'threshold': threshold,
-                    'duration': duration,
-                },
-                'results': {
-                    'static_10yr': float(static_total),
-                    'behavioral_offset_10yr': float(behavioral_total),
-                    'net_10yr_effect': float(net_total),
-                    'year1_net_effect': float(year1_net),
-                    'by_year': df_timeline.to_dict('records')
-                }
+            policy_details = {
+                "Policy Name": policy.name,
+                "Description": policy.description,
+                "Policy Type": policy.policy_type.value,
             }
 
-            import json
-            json_str = json.dumps(export_data, indent=2)
-            st.download_button(
-                label="📥 Download as JSON",
-                data=json_str,
-                file_name=f"fiscal_impact_{policy_name.replace(' ', '_')}.json",
-                mime="application/json"
-            )
+            # Add rate change and threshold only for tax policies
+            if not is_spending_result and policy_rate_change != 0:
+                policy_details["Rate Change"] = f"{policy_rate_change:+.1f} percentage points"
+            if not is_spending_result and policy_threshold > 0:
+                policy_details["Income Threshold"] = f"${policy_threshold:,}"
+
+            policy_details["Duration"] = f"{policy_duration} years"
+            if policy_phase_in > 0:
+                policy_details["Phase-in Period"] = f"{policy_phase_in} years"
+            policy_details["Data Year"] = policy_data_year
+
+            st.table(pd.DataFrame.from_dict(policy_details, orient='index', columns=['Value']))
+
+            st.markdown("---")
+
+            # Year-by-year table
+            st.subheader("Year-by-Year Breakdown")
+
+            detailed_df = pd.DataFrame({
+                'Year': years,
+                'Static Revenue Effect ($B)': [f"${x:.2f}" for x in result.static_revenue_effect],
+                'Behavioral Offset ($B)': [f"${x:.2f}" for x in result.behavioral_offset],
+                'Net Deficit Effect ($B)': [f"${x:.2f}" for x in (result.static_deficit_effect + result.behavioral_offset)],
+            })
+
+            st.dataframe(detailed_df, use_container_width=True, hide_index=True)
+
+            # Download data
+            st.markdown("---")
+            st.subheader("💾 Export Results")
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                # CSV export
+                csv = detailed_df.to_csv(index=False)
+                st.download_button(
+                    label="📥 Download as CSV",
+                    data=csv,
+                    file_name=f"fiscal_impact_{policy.name.replace(' ', '_')}.csv",
+                    mime="text/csv"
+                )
+
+            with col2:
+                # JSON export
+                export_data = {
+                    'policy': {
+                        'name': policy.name,
+                        'rate_change': policy_rate_change / 100,
+                        'threshold': policy_threshold,
+                        'duration': policy_duration,
+                    },
+                    'results': {
+                        'static_10yr': float(static_total),
+                        'behavioral_offset_10yr': float(behavioral_total),
+                        'net_10yr_effect': float(net_total),
+                        'year1_net_effect': float(year1_net),
+                        'by_year': detailed_df.to_dict('records')
+                    }
+                }
+
+                json_str = json.dumps(export_data, indent=2)
+                st.download_button(
+                    label="📥 Download as JSON",
+                    data=json_str,
+                    file_name=f"fiscal_impact_{policy.name.replace(' ', '_')}.json",
+                    mime="application/json"
+                )
 
     with tab8:
         st.header("ℹ️ Methodology")
@@ -2134,63 +2167,67 @@ if st.session_state.results:
 
     with tab9:
         st.header("⏳ Long-Run Growth & Crowding Out")
-        
+
         st.markdown("""
         <div class="info-box">
-        💡 <strong>Capital Crowding Out:</strong> This model simulates how fiscal deficits affect the 
-        nation's capital stock over a 30-year horizon. Larger deficits reduce private investment, 
+        💡 <strong>Capital Crowding Out:</strong> This model simulates how fiscal deficits affect the
+        nation's capital stock over a 30-year horizon. Larger deficits reduce private investment,
         leading to lower future GDP and wages.
         </div>
         """, unsafe_allow_html=True)
 
-        if st.session_state.results is not None:
+        if st.session_state.results is not None and not st.session_state.results.get('is_microsim'):
             # Get deficit path (positive = increases deficit)
-            res_obj = st.session_state.results['result']
-            deficit_path = res_obj.static_deficit_effect + res_obj.behavioral_offset
-            
-            # Run Solow Model
-            solow = SolowGrowthModel()
-            lr_res = solow.run_simulation(deficits=deficit_path, horizon=30)
-            
-            # 1. Summary Metrics
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("GDP Effect (Year 10)", f"{lr_res.gdp_pct_change[9]:.2f}%")
-            with col2:
-                st.metric("GDP Effect (Year 30)", f"{lr_res.gdp_pct_change[29]:.2f}%")
-            with col3:
-                # Long run wage effect
-                wage_change = (lr_res.wages[29] / lr_res.wages[0] - 1) * 100
-                st.metric("Long-Run Wage Effect", f"{lr_res.gdp_pct_change[29] * 0.7:.2f}%", 
-                         help="Estimated impact on real wages driven by capital stock changes.")
+            res_obj = st.session_state.results.get('result')
+            if res_obj is None:
+                st.info("Long-run projections require aggregate model results. Run a policy calculation first.")
+            else:
+                deficit_path = res_obj.static_deficit_effect + res_obj.behavioral_offset
 
-            st.markdown("---")
-            
-            # 2. Charts
-            c1, c2 = st.columns(2)
-            
-            with c1:
-                st.subheader("GDP Trajectory (% Change)")
-                fig_gdp = px.line(x=lr_res.years, y=lr_res.gdp_pct_change,
-                                labels={'x': 'Year', 'y': '% Change from Baseline'})
-                fig_gdp.add_hline(y=0, line_dash="dash", line_color="gray")
-                st.plotly_chart(fig_gdp, use_container_width=True)
-                
-            with c2:
-                st.subheader("Capital Stock (% Change)")
-                cap_pct_change = (lr_res.capital_stock / lr_res.capital_stock[0] - 1) * 100
-                # Correcting to compare against a baseline capital stock path
-                # For simplicity in prototype, show change from initial
-                fig_cap = px.line(x=lr_res.years, y=cap_pct_change,
-                                labels={'x': 'Year', 'y': '% Change in Capital'})
-                st.plotly_chart(fig_cap, use_container_width=True)
-                
-            st.info("""
-            **Methodology Note:** This projection uses a Solow-Swan growth model calibrated to the US economy 
-            (Capital Share = 0.35, Depreciation = 5%). It assumes that 100% of the deficit increase 
-            reduces private investment (crowding out). This matches the 'closed economy' assumptions 
-            often used as a conservative benchmark by CBO and Penn Wharton.
-            """)
+                # Run Solow Model
+                solow = SolowGrowthModel()
+                lr_res = solow.run_simulation(deficits=deficit_path, horizon=30)
+
+                # 1. Summary Metrics
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("GDP Effect (Year 10)", f"{lr_res.gdp_pct_change[9]:.2f}%")
+                with col2:
+                    st.metric("GDP Effect (Year 30)", f"{lr_res.gdp_pct_change[29]:.2f}%")
+                with col3:
+                    # Long run wage effect
+                    st.metric("Long-Run Wage Effect", f"{lr_res.gdp_pct_change[29] * 0.7:.2f}%",
+                             help="Estimated impact on real wages driven by capital stock changes.")
+
+                st.markdown("---")
+
+                # 2. Charts
+                c1, c2 = st.columns(2)
+
+                with c1:
+                    st.subheader("GDP Trajectory (% Change)")
+                    fig_gdp = px.line(x=lr_res.years, y=lr_res.gdp_pct_change,
+                                    labels={'x': 'Year', 'y': '% Change from Baseline'})
+                    fig_gdp.add_hline(y=0, line_dash="dash", line_color="gray")
+                    st.plotly_chart(fig_gdp, use_container_width=True)
+
+                with c2:
+                    st.subheader("Capital Stock (% Change)")
+                    cap_pct_change = (lr_res.capital_stock / lr_res.capital_stock[0] - 1) * 100
+                    # Correcting to compare against a baseline capital stock path
+                    # For simplicity in prototype, show change from initial
+                    fig_cap = px.line(x=lr_res.years, y=cap_pct_change,
+                                    labels={'x': 'Year', 'y': '% Change in Capital'})
+                    st.plotly_chart(fig_cap, use_container_width=True)
+
+                st.info("""
+                **Methodology Note:** This projection uses a Solow-Swan growth model calibrated to the US economy
+                (Capital Share = 0.35, Depreciation = 5%). It assumes that 100% of the deficit increase
+                reduces private investment (crowding out). This matches the 'closed economy' assumptions
+                often used as a conservative benchmark by CBO and Penn Wharton.
+                """)
+        elif st.session_state.results is not None and st.session_state.results.get('is_microsim'):
+            st.info("Long-run growth projections are not available for microsimulation results.")
         else:
             st.info("👆 Calculate a policy impact in the first tab to see long-run projections.")
 
