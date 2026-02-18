@@ -10,35 +10,35 @@ from typing import Any
 from .controller_utils import run_with_spinner_feedback
 
 
-def render_policy_input_tab(st_module: Any, tab1: Any, deps: Any) -> dict[str, Any]:
+def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
     """
-    Render policy input controls and return interaction context.
+    Render policy input controls in the sidebar and return interaction context.
     """
-    with tab1:
-        st_module.header("Fiscal Policy Calculator")
-        policy_category = st_module.radio(
-            "Select policy type",
-            ["💰 Tax Policy", "📊 Spending Policy"],
-            horizontal=True,
-            help="Choose whether to analyze tax changes or spending programs",
-        )
-        is_spending = policy_category == "📊 Spending Policy"
+    policy_category = st_module.radio(
+        "Select policy type",
+        ["💰 Tax Policy", "📊 Spending Policy"],
+        horizontal=True,
+        help="Choose whether to analyze tax changes or spending programs",
+    )
+    is_spending = policy_category == "📊 Spending Policy"
 
-        preset_policies = deps.PRESET_POLICIES
-        tax_inputs: dict[str, Any] = {}
-        spending_inputs: dict[str, Any] = {}
-        if not is_spending:
-            tax_inputs = deps.render_tax_policy_inputs(st_module, preset_policies)
-        else:
-            spending_inputs = deps.render_spending_policy_inputs(st_module)
+    preset_policies = deps.PRESET_POLICIES
+    tax_inputs: dict[str, Any] = {}
+    spending_inputs: dict[str, Any] = {}
+    
+    if not is_spending:
+        tax_inputs = deps.render_tax_policy_inputs(st_module, preset_policies)
+    else:
+        spending_inputs = deps.render_spending_policy_inputs(st_module)
 
-        st_module.markdown("---")
-        col_calc, col_clear = st_module.columns([3, 1])
-        with col_calc:
-            calculate = st_module.button("🚀 Calculate Impact", type="primary", use_container_width=True)
-        with col_clear:
-            if st_module.button("🔄 Reset", use_container_width=True):
-                st_module.rerun()
+    st_module.markdown("---")
+    
+    # Calculate button is primary action
+    calculate = st_module.button("🚀 Calculate Impact", type="primary", use_container_width=True)
+    
+    # Reset button
+    if st_module.button("🔄 Reset", use_container_width=True):
+        st_module.rerun()
 
     return {
         "is_spending": is_spending,

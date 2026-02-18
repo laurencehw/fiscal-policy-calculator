@@ -36,12 +36,13 @@ class SolowGrowthModel:
     def __init__(self, 
                  alpha: float = 0.35, 
                  delta: float = 0.05, 
-                 savings_rate: float = 0.18,
+                 savings_rate: float = 0.21, # Calibrated to maintain K/Y ~ 3
                  tfp_growth: float = 0.015,
                  pop_growth: float = 0.005,
-                 initial_k: float = 75000.0, # $75 Trillion initial capital stock
+                 initial_k: float = 84000.0, # ~$84T (approx 3x GDP)
                  initial_l: float = 165.0,   # 165 Million workers
-                 initial_a: float = 1.0):
+                 initial_a: float = 19.32,   # Calibrated for Y ~ $28T
+                 crowding_out_pct: float = 0.33): # CBO standard: 33 cents per dollar
         self.alpha = alpha
         self.delta = delta
         self.s = savings_rate
@@ -50,6 +51,7 @@ class SolowGrowthModel:
         self.initial_k = initial_k
         self.initial_l = initial_l
         self.initial_a = initial_a
+        self.crowding_out_pct = crowding_out_pct
 
     def production_function(self, k: float, l: float, a: float) -> float:
         """Cobb-Douglas production: Y = A * K^alpha * L^(1-alpha)"""
@@ -73,7 +75,11 @@ class SolowGrowthModel:
         # Extend deficits if needed
         if len(deficits) < horizon:
             last_val = deficits[-1] if len(deficits) > 0 else 0
-            deficits = np.append(deficits, [last_val] * (horizon - len(deficits)))
+            # If deficits is empty, create array of zeros
+            if len(deficits) == 0:
+                deficits = np.zeros(horizon)
+            else:
+                deficits = np.append(deficits, [last_val] * (horizon - len(deficits)))
             
         # Initialize arrays
         k = np.zeros(horizon)
@@ -108,18 +114,27 @@ class SolowGrowthModel:
             
             # 2. Calculate Investment (Crowding Out)
             # Standard: I = S = s * Y
-            # With Government: I = s * Y - Deficit
-            # Deficits reduce the supply of loanable funds for private investment
-            investment = (self.s * y_curr) - deficits[t]
-            inv[t] = investment
+            # With Government: I = s * Y - (Deficit * CrowdingOut%)
+            # CBO assumes foreign capital inflows offset ~67% of deficit, 
+            # so only ~33% crowds out domestic investment.
             
-            # Base Investment
-            inv_base = (self.s * y_base)
+            investment_base = (self.s * y_base)
+            
+            # Deficit reduces national saving available for private investment
+            # crowding_out_pct determines how much of the deficit comes from domestic savings
+            crowded_out_amount = deficits[t] * self.crowding_out_pct
+            
+            investment = (self.s * y_curr) - crowded_out_amount
+            
+            # Ensure gross investment doesn't go negative (unlikely but possible in extreme scenarios)
+            investment = max(0, investment)
+            
+            inv[t] = investment
             
             # 3. Capital Accumulation for next period
             # K(t+1) = (1-delta)K(t) + I(t)
             k_curr = (1 - self.delta) * k_curr + investment
-            k_base = (1 - self.delta) * k_base + inv_base
+            k_base = (1 - self.delta) * k_base + investment_base
             
             # 4. Exogenous Growth (TFP and Labor)
             l_curr *= (1 + self.n)
@@ -128,10 +143,12 @@ class SolowGrowthModel:
             a_base *= (1 + self.g)
             
         # Simple wage calculation (Marginal Product of Labor)
+        # w = (1-alpha) * Y/L
         wages = (1 - self.alpha) * (y / l)
         
         # Simple interest rate calculation (Marginal Product of Capital)
-        interest = self.alpha * (y / k)
+        # r = alpha * Y/K - delta
+        interest = (self.alpha * (y / k)) - self.delta
         
         return LongRunResult(
             years=years,

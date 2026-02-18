@@ -30,11 +30,11 @@ from fiscal_model.ui import (
 from fiscal_model.ui.calculation_controller import (
     ensure_results_state,
     execute_calculation_if_requested,
-    render_policy_input_tab,
+    render_sidebar_inputs,
 )
 from fiscal_model.ui.controller_utils import run_with_spinner_feedback
 from fiscal_model.ui.settings_controller import render_settings_tab
-from fiscal_model.ui.tabs_controller import build_nested_tabs, render_footer, render_result_tabs
+from fiscal_model.ui.tabs_controller import build_main_tabs, render_footer, render_result_tabs
 from fiscal_model.ui.tabs import (
     render_detailed_results_tab,
     render_distribution_tab,
@@ -228,11 +228,11 @@ def test_spending_policy_input_helpers_importable():
     assert callable(run_main_app)
     assert callable(build_app_dependencies)
     assert callable(render_settings_tab)
-    assert callable(render_policy_input_tab)
+    assert callable(render_sidebar_inputs)
     assert callable(ensure_results_state)
     assert callable(execute_calculation_if_requested)
     assert callable(run_with_spinner_feedback)
-    assert callable(build_nested_tabs)
+    assert callable(build_main_tabs)
     assert callable(render_result_tabs)
     assert callable(render_footer)
     assert callable(render_tax_policy_inputs)

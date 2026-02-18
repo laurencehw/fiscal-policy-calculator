@@ -36,8 +36,26 @@ def render_long_run_growth_tab(
             st_module.info("Long-run projections require aggregate model results. Run a policy calculation first.")
             return
 
+        # Parameters
+        with st_module.expander("⚙️ Model Assumptions", expanded=False):
+            crowding_out = st_module.slider(
+                "Crowding Out % (Share of deficit reducing investment)",
+                min_value=0,
+                max_value=100,
+                value=33,
+                step=1,
+                help="Percentage of the deficit that crowds out domestic private investment. "
+                     "CBO assumes ~33% (meaning 67% is offset by foreign capital inflows). "
+                     "100% = Closed Economy (Maximum Impact). 0% = Small Open Economy (No Impact)."
+            ) / 100.0
+            
+            st_module.caption(
+                f"Current assumption: For every $1.00 of deficit, private investment falls by ${crowding_out:.2f}. "
+                f"Foreign capital inflows cover the remaining ${(1-crowding_out):.2f}."
+            )
+
         deficit_path = res_obj.static_deficit_effect + res_obj.behavioral_offset
-        solow = solow_growth_model_cls()
+        solow = solow_growth_model_cls(crowding_out_pct=crowding_out)
         lr_res = solow.run_simulation(deficits=deficit_path, horizon=30)
 
         col1, col2, col3 = st_module.columns(3)
@@ -77,11 +95,10 @@ def render_long_run_growth_tab(
 
         st_module.info(
             """
-                **Methodology Note:** This projection uses a Solow-Swan growth model calibrated to the US economy
-                (Capital Share = 0.35, Depreciation = 5%). It assumes that 100% of the deficit increase
-                reduces private investment (crowding out). This matches the 'closed economy' assumptions
-                often used as a conservative benchmark by CBO and Penn Wharton.
-                """
+            **Methodology Note:** This projection uses a Solow-Swan growth model calibrated to the US economy
+            (Capital Share = 0.35, Depreciation = 5%). The "Crowding Out" parameter determines how much
+            government deficits reduce private investment.
+            """
         )
     elif session_results is not None and session_results.get("is_microsim"):
         st_module.info("Long-run growth projections are not available for microsimulation results.")

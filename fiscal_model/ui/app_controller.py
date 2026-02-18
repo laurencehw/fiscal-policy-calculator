@@ -10,10 +10,10 @@ from typing import Any
 from .calculation_controller import (
     ensure_results_state,
     execute_calculation_if_requested,
-    render_policy_input_tab,
+    render_sidebar_inputs,
 )
 from .settings_controller import render_settings_tab
-from .tabs_controller import build_nested_tabs, render_footer, render_result_tabs
+from .tabs_controller import build_main_tabs, render_footer, render_result_tabs
 
 
 def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Path) -> None:
@@ -29,11 +29,18 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         unsafe_allow_html=True,
     )
 
-    main_tabs = st_module.tabs(["📊 Calculator", "📈 Economic Analysis", "🛠️ Tools", "ℹ️ Reference", "⚙️ Settings"])
-    settings = render_settings_tab(st_module=st_module, settings_tab=main_tabs[4])
-    tabs = build_nested_tabs(st_module=st_module, main_tabs=main_tabs)
+    # Sidebar Inputs
+    with st_module.sidebar:
+        st_module.header("⚙️ Policy Configuration")
+        calc_context = render_sidebar_inputs(st_module=st_module, deps=deps)
+        
+        st_module.markdown("---")
+        with st_module.expander("⚙️ Global Settings"):
+            settings = render_settings_tab(st_module=st_module, settings_tab=st_module)
 
-    calc_context = render_policy_input_tab(st_module=st_module, tab1=tabs["tab1"], deps=deps)
+    # Main Area Results
+    tabs = build_main_tabs(st_module=st_module)
+    
     ensure_results_state(st_module=st_module)
     execute_calculation_if_requested(
         st_module=st_module,
