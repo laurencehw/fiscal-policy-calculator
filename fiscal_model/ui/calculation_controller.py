@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+import time
 
 from .controller_utils import run_with_spinner_feedback
 
@@ -14,6 +15,24 @@ def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
     """
     Render policy input controls in the sidebar and return interaction context.
     """
+    mode = st_module.selectbox(
+        "Mode",
+        options=["📊 Single Policy", "🔀 Compare Policies", "📦 Policy Packages"],
+        index=0,
+        help="Choose a workflow: score one policy, compare presets, or build packages.",
+    )
+
+    if mode != "📊 Single Policy":
+        st_module.info("Use the main **🛠️ Tools** tab to run this workflow.")
+        return {
+            "mode": mode,
+            "is_spending": False,
+            "preset_policies": deps.PRESET_POLICIES,
+            "tax_inputs": {},
+            "spending_inputs": {},
+            "calculate": False,
+        }
+
     policy_category = st_module.radio(
         "Select policy type",
         ["💰 Tax Policy", "📊 Spending Policy"],
@@ -41,6 +60,7 @@ def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
         st_module.rerun()
 
     return {
+        "mode": mode,
         "is_spending": is_spending,
         "preset_policies": preset_policies,
         "tax_inputs": tax_inputs,
@@ -71,6 +91,7 @@ def execute_calculation_if_requested(
     if not (calc_context["calculate"] and model_available):
         return
 
+    run_id = calc_context.get("run_id")
     is_spending = calc_context["is_spending"]
     preset_policies = calc_context["preset_policies"]
     tax_inputs = calc_context["tax_inputs"]
@@ -91,13 +112,17 @@ def execute_calculation_if_requested(
                     pd_module=deps.pd,
                 )
 
-        run_with_spinner_feedback(
+        ok = run_with_spinner_feedback(
             st_module=st_module,
             spinner_message="Running microsimulation on individual tax units...",
             success_message="✅ Microsimulation complete!",
             error_prefix="❌ Microsimulation failed",
             action_fn=_run_microsim,
         )
+        if ok and run_id:
+            st_module.session_state.last_run_id = run_id
+            st_module.session_state.results_run_id = run_id
+            st_module.session_state.last_run_at = time.time()
         return
 
     if is_spending:
@@ -111,13 +136,17 @@ def execute_calculation_if_requested(
                     dynamic_scoring=dynamic_scoring,
                 )
 
-        run_with_spinner_feedback(
+        ok = run_with_spinner_feedback(
             st_module=st_module,
             spinner_message="Calculating spending program impact...",
             success_message="✅ Calculation complete!",
             error_prefix="❌ Error calculating spending impact",
             action_fn=_run_spending,
         )
+        if ok and run_id:
+            st_module.session_state.last_run_id = run_id
+            st_module.session_state.results_run_id = run_id
+            st_module.session_state.last_run_at = time.time()
         return
 
     def _run_tax() -> None:
@@ -156,10 +185,14 @@ def execute_calculation_if_requested(
                 step_up_lock_in_multiplier=float(tax_inputs["step_up_lock_in_multiplier"]),
             )
 
-    run_with_spinner_feedback(
+    ok = run_with_spinner_feedback(
         st_module=st_module,
         spinner_message="Calculating policy impact using real IRS data...",
         success_message="✅ Calculation complete!",
         error_prefix="❌ Error calculating policy impact",
         action_fn=_run_tax,
     )
+    if ok and run_id:
+        st_module.session_state.last_run_id = run_id
+        st_module.session_state.results_run_id = run_id
+        st_module.session_state.last_run_at = time.time()

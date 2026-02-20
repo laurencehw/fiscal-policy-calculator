@@ -12,11 +12,57 @@ def render_tax_policy_inputs(st_module: Any, preset_policies: dict[str, dict[str
     Render tax policy input controls and return selected values.
     """
     st_module.markdown("### 🎯 Quick Start")
-    
+
+    def _preset_category(preset: dict[str, Any]) -> str:
+        if preset.get("is_tcja"):
+            return "TCJA"
+        if preset.get("is_corporate"):
+            return "Corporate"
+        if preset.get("is_credit"):
+            return "Credits"
+        if preset.get("is_estate"):
+            return "Estate"
+        if preset.get("is_payroll"):
+            return "Payroll"
+        if preset.get("is_amt"):
+            return "AMT"
+        if preset.get("is_ptc"):
+            return "ACA PTC"
+        if preset.get("is_expenditure"):
+            return "Tax Expenditures"
+        return "Other"
+
+    preset_search = st_module.text_input(
+        "Search presets",
+        value="",
+        key="preset_search",
+        placeholder="e.g., TCJA, corporate, CTC…",
+        help="Filter by name/description",
+    )
+    preset_category = st_module.selectbox(
+        "Preset category",
+        options=["All", "TCJA", "Corporate", "Credits", "Estate", "Payroll", "AMT", "ACA PTC", "Tax Expenditures", "Other"],
+        index=0,
+        key="preset_category",
+    )
+
+    filtered: list[str] = []
+    needle = preset_search.strip().lower()
+    for name, preset in preset_policies.items():
+        if name == "Custom Policy":
+            continue
+        if preset_category != "All" and _preset_category(preset) != preset_category:
+            continue
+        if needle and needle not in (name.lower() + " " + preset.get("description", "").lower()):
+            continue
+        filtered.append(name)
+
+    preset_options = ["Custom Policy", *filtered]
     preset_choice = st_module.selectbox(
         "Select a policy to analyze",
-        options=list(preset_policies.keys()),
-        help="Choose a real-world or example policy, or select 'Custom' to design your own",
+        options=preset_options,
+        key="preset_choice",
+        help="Choose a real-world preset or select 'Custom Policy' to design your own",
     )
 
     if preset_choice != "Custom Policy":
@@ -29,6 +75,13 @@ def render_tax_policy_inputs(st_module: Any, preset_policies: dict[str, dict[str
 
     default_name = preset_choice if preset_choice != "Custom Policy" else "Tax Rate Change"
     policy_name = st_module.text_input("Policy Name", default_name, help="A short name for this policy")
+
+    policy_type = st_module.selectbox(
+        "Policy Type",
+        ["Income Tax Rate", "Capital Gains", "Corporate Tax", "Payroll Tax"],
+        index=0,
+        help="Type of tax being changed",
+    )
 
     rate_change_pct = st_module.slider(
         "Tax Rate Change (pp)",
@@ -78,12 +131,7 @@ def render_tax_policy_inputs(st_module: Any, preset_policies: dict[str, dict[str
     else:
         threshold = threshold_options[threshold_choice]
 
-    with st_module.expander("📝 Policy Details & Timing", expanded=False):
-        policy_type = st_module.selectbox(
-            "Policy Type",
-            ["Income Tax Rate", "Capital Gains", "Corporate Tax", "Payroll Tax"],
-            help="Type of tax being changed",
-        )
+    with st_module.expander("🕒 Policy Timing", expanded=False):
         duration = st_module.slider(
             "Policy Duration (years)",
             min_value=1,
@@ -99,55 +147,28 @@ def render_tax_policy_inputs(st_module: Any, preset_policies: dict[str, dict[str
             help="Years to gradually phase in the full policy (0 = immediate)",
         )
 
-    with st_module.expander("🔧 Expert Parameters", expanded=False):
-        if policy_type == "Capital Gains":
-            st_module.caption(
-                "*Capital gains requires a realizations base + baseline rate.*"
-            )
-        else:
-            st_module.caption("*Leave blank to auto-populate from IRS data*")
+    manual_taxpayers = 0.0
+    manual_avg_income = 0
+    eti = 0.25
 
-        manual_taxpayers = st_module.number_input(
-            "Affected taxpayers (millions)",
-            min_value=0.0,
-            max_value=200.0,
-            value=0.0,
-            step=0.1,
-            help="Leave at 0 to auto-populate from IRS data",
-        )
-        manual_avg_income = st_module.number_input(
-            "Average taxable income ($)",
-            min_value=0,
-            max_value=100000000,
-            value=0,
-            step=50000,
-            help="Leave at 0 to auto-populate from IRS data",
-        )
-        eti = st_module.number_input(
-            "Elasticity (ETI)",
-            min_value=0.0,
-            max_value=2.0,
-            value=0.25,
-            step=0.05,
-            help="Behavioral response parameter (0.25 = moderate response)",
-        )
+    cg_base_year = 2024
+    cg_rate_source = "Statutory/NIIT proxy (by AGI bracket)"
+    baseline_cg_rate = 0.20
+    baseline_realizations = 0.0
+    use_time_varying = True
+    short_run_elasticity = 0.8
+    long_run_elasticity = 0.4
+    transition_years = 3
+    realization_elasticity = (short_run_elasticity + long_run_elasticity) / 2
+    eliminate_step_up = False
+    step_up_exemption = 0.0
+    gains_at_death = 54.0
+    step_up_lock_in_multiplier = 2.0
 
-        cg_base_year = 2024
-        cg_rate_source = "Statutory/NIIT proxy (by AGI bracket)"
-        baseline_cg_rate = 0.20
-        baseline_realizations = 0.0
-        use_time_varying = True
-        short_run_elasticity = 0.8
-        long_run_elasticity = 0.4
-        transition_years = 3
-        realization_elasticity = (short_run_elasticity + long_run_elasticity) / 2
-        eliminate_step_up = False
-        step_up_exemption = 0.0
-        gains_at_death = 54.0
-        step_up_lock_in_multiplier = 2.0
+    if policy_type == "Capital Gains":
+        with st_module.expander("📈 Capital Gains Model", expanded=True):
+            st_module.caption("*Realizations base + baseline rate are required for capital gains scoring.*")
 
-        if policy_type == "Capital Gains":
-            st_module.markdown("**Capital Gains Model**")
             cg_base_year = st_module.selectbox(
                 "Baseline year",
                 options=[2024, 2023, 2022],
@@ -174,6 +195,7 @@ def render_tax_policy_inputs(st_module: Any, preset_policies: dict[str, dict[str
                 max_value=10000.0,
                 value=0.0,
                 step=10.0,
+                help="Leave at 0 to attempt auto-population (when available).",
             )
 
             use_time_varying = st_module.checkbox(
@@ -237,6 +259,34 @@ def render_tax_policy_inputs(st_module: Any, preset_policies: dict[str, dict[str
                     value=2.0,
                     step=0.5,
                 )
+    else:
+        with st_module.expander("🔧 Expert Parameters", expanded=False):
+            st_module.caption("*Leave blank to auto-populate from IRS data*")
+
+            manual_taxpayers = st_module.number_input(
+                "Affected taxpayers (millions)",
+                min_value=0.0,
+                max_value=200.0,
+                value=0.0,
+                step=0.1,
+                help="Leave at 0 to auto-populate from IRS data",
+            )
+            manual_avg_income = st_module.number_input(
+                "Average taxable income ($)",
+                min_value=0,
+                max_value=100000000,
+                value=0,
+                step=50000,
+                help="Leave at 0 to auto-populate from IRS data",
+            )
+            eti = st_module.number_input(
+                "Elasticity (ETI)",
+                min_value=0.0,
+                max_value=2.0,
+                value=0.25,
+                step=0.05,
+                help="Behavioral response parameter (0.25 = moderate response)",
+            )
 
     return {
         "preset_choice": preset_choice,

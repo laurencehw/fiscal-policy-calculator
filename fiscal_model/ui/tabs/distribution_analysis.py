@@ -18,6 +18,7 @@ def render_distribution_tab(
     income_group_type_cls: Any,
     format_distribution_table_fn: Any,
     winners_losers_summary_fn: Any,
+    run_id: str | None = None,
 ) -> None:
     """
     Render distributional analysis tab content.
@@ -55,7 +56,12 @@ def render_distribution_tab(
             group_type = income_group_type_cls.JCT_DOLLAR
 
     try:
-        dist_analysis = dist_engine.analyze_policy(policy, group_type=group_type)
+        cache_key = f"dist:{run_id}:{group_type.name}" if run_id else None
+        dist_analysis = st_module.session_state.get(cache_key) if cache_key else None
+        if dist_analysis is None:
+            dist_analysis = dist_engine.analyze_policy(policy, group_type=group_type)
+            if cache_key:
+                st_module.session_state[cache_key] = dist_analysis
         st_module.subheader("Summary")
         summary = winners_losers_summary_fn(dist_analysis)
 
@@ -164,7 +170,12 @@ def render_distribution_tab(
 
         st_module.markdown("---")
         st_module.subheader("Top Income Group Detail")
-        top_analysis = dist_engine.create_top_income_breakout(policy)
+        top_cache_key = f"dist_top:{run_id}" if run_id else None
+        top_analysis = st_module.session_state.get(top_cache_key) if top_cache_key else None
+        if top_analysis is None:
+            top_analysis = dist_engine.create_top_income_breakout(policy)
+            if top_cache_key:
+                st_module.session_state[top_cache_key] = top_analysis
         st_module.markdown(
             """
                 How the tax change affects the top of the income distribution:

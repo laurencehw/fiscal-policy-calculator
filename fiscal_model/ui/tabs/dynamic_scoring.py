@@ -19,6 +19,7 @@ def render_dynamic_scoring_tab(
     frbus_adapter_lite_cls: Any,
     simple_multiplier_adapter_cls: Any,
     build_macro_scenario_fn: Any,
+    run_id: str | None = None,
 ) -> None:
     """
     Render dynamic scoring analysis tab content.
@@ -86,7 +87,12 @@ def render_dynamic_scoring_tab(
             adapter = frbus_adapter_lite_cls()
             model_name = "FRB/US-Lite (Federal Reserve calibrated)"
 
-        macro_result = adapter.run(scenario)
+        cache_key = f"macro:{run_id}:{macro_model_name}" if run_id else None
+        macro_result = st_module.session_state.get(cache_key) if cache_key else None
+        if macro_result is None:
+            macro_result = adapter.run(scenario)
+            if cache_key:
+                st_module.session_state[cache_key] = macro_result
         st_module.caption(f"Model: **{model_name}**")
         st_module.subheader("10-Year Macroeconomic Effects")
 

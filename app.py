@@ -12,7 +12,7 @@ st.set_page_config(
     page_title="Fiscal Policy Calculator",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 sys.path.insert(0, str(Path(__file__).parent))
