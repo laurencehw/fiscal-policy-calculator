@@ -4,9 +4,9 @@ Calculation workflow helpers.
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 from typing import Any
-import time
 
 from .controller_utils import run_with_spinner_feedback
 
@@ -44,17 +44,17 @@ def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
     preset_policies = deps.PRESET_POLICIES
     tax_inputs: dict[str, Any] = {}
     spending_inputs: dict[str, Any] = {}
-    
+
     if not is_spending:
         tax_inputs = deps.render_tax_policy_inputs(st_module, preset_policies)
     else:
         spending_inputs = deps.render_spending_policy_inputs(st_module)
 
     st_module.markdown("---")
-    
+
     # Calculate button is primary action
     calculate = st_module.button("🚀 Calculate Impact", type="primary", use_container_width=True)
-    
+
     # Reset button
     if st_module.button("🔄 Reset", use_container_width=True):
         st_module.rerun()

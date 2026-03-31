@@ -8,24 +8,25 @@ Tests cover:
 - Policy to scenario conversion
 """
 
-import pytest
-import numpy as np
 import sys
 from pathlib import Path
+
+import numpy as np
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from fiscal_model.models import (
-    MacroScenario,
-    MacroResult,
-    SimpleMultiplierAdapter,
+    FiscalClosureType,
     FRBUSAdapter,
     FRBUSAdapterLite,
-    FiscalClosureType,
+    MacroResult,
+    MacroScenario,
     MonetaryPolicyRule,
+    SimpleMultiplierAdapter,
     policy_to_scenario,
 )
-from fiscal_model.policies import TaxPolicy, PolicyType
+from fiscal_model.policies import PolicyType, TaxPolicy
 
 
 class TestMacroScenario:

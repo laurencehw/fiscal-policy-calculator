@@ -20,12 +20,12 @@ Current Law (2025):
 - NIIT: 3.8% on investment income over $200K/$250K
 """
 
-from dataclasses import dataclass, field
-from typing import Optional, Literal
+from dataclasses import dataclass
 from enum import Enum
+
 import numpy as np
 
-from .policies import Policy, TaxPolicy, PolicyType
+from .policies import PolicyType, TaxPolicy
 
 
 class PayrollTaxType(Enum):
@@ -152,9 +152,9 @@ class PayrollTaxPolicy(TaxPolicy):
 
     # Social Security cap changes
     ss_cap_change: float = 0.0  # Dollar change in cap
-    ss_new_cap: Optional[float] = None  # Set specific cap
+    ss_new_cap: float | None = None  # Set specific cap
     ss_eliminate_cap: bool = False  # Eliminate cap entirely
-    ss_donut_hole_start: Optional[float] = None  # Donut hole threshold (e.g., $250K)
+    ss_donut_hole_start: float | None = None  # Donut hole threshold (e.g., $250K)
     ss_cover_90_pct: bool = False  # Raise cap to cover 90% of wages
 
     # Rate changes
@@ -174,7 +174,7 @@ class PayrollTaxPolicy(TaxPolicy):
     tax_avoidance_elasticity: float = 0.15  # Shifting income to avoid tax
 
     # Calibrated annual revenue change
-    annual_revenue_change_billions: Optional[float] = None
+    annual_revenue_change_billions: float | None = None
 
     def __post_init__(self):
         """Set default policy type."""
@@ -182,7 +182,7 @@ class PayrollTaxPolicy(TaxPolicy):
             self.policy_type = PolicyType.PAYROLL_TAX
         super().__post_init__()
 
-    def get_effective_ss_cap(self, year: int) -> Optional[float]:
+    def get_effective_ss_cap(self, year: int) -> float | None:
         """Get the effective Social Security wage cap for a given year."""
         if self.ss_eliminate_cap:
             return None  # No cap

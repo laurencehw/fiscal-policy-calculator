@@ -31,11 +31,11 @@ CBO Estimates:
 """
 
 from dataclasses import dataclass, field
-from typing import Optional, Literal
 from enum import Enum
+
 import numpy as np
 
-from .policies import Policy, TaxPolicy, PolicyType
+from .policies import PolicyType, TaxPolicy
 
 
 class PTCScenario(Enum):
@@ -196,13 +196,13 @@ class PremiumTaxCreditPolicy(TaxPolicy):
 
     # Premium cap modifications
     modify_premium_cap: bool = False
-    new_premium_cap_max: Optional[float] = None  # New max cap (e.g., 0.085)
+    new_premium_cap_max: float | None = None  # New max cap (e.g., 0.085)
     premium_cap_change: float = 0.0  # Change to all caps
 
     # Income limit modifications
     modify_income_limit: bool = False
-    new_upper_fpl_limit: Optional[float] = None  # New upper limit (e.g., 600% FPL)
-    new_lower_fpl_limit: Optional[float] = None  # New lower limit
+    new_upper_fpl_limit: float | None = None  # New upper limit (e.g., 600% FPL)
+    new_lower_fpl_limit: float | None = None  # New lower limit
 
     # Behavioral parameters
     coverage_elasticity: float = 0.3  # Coverage response to subsidy changes
@@ -213,7 +213,7 @@ class PremiumTaxCreditPolicy(TaxPolicy):
     healthcare_growth_rate: float = 0.04  # 4%/year premium growth
 
     # Calibration
-    annual_revenue_change_billions: Optional[float] = None
+    annual_revenue_change_billions: float | None = None
 
     def __post_init__(self):
         """Set default policy type."""

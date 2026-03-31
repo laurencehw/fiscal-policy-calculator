@@ -19,8 +19,8 @@ from fiscal_model.ui import (
     build_app_dependencies,
     build_macro_scenario,
     build_scorable_policy_map,
-    calculate_tax_policy_result,
     calculate_spending_policy_result,
+    calculate_tax_policy_result,
     render_spending_policy_inputs,
     render_tax_policy_inputs,
     run_main_app,
@@ -33,17 +33,17 @@ from fiscal_model.ui.calculation_controller import (
 )
 from fiscal_model.ui.controller_utils import run_with_spinner_feedback
 from fiscal_model.ui.settings_controller import render_settings_tab
-from fiscal_model.ui.tabs_controller import build_main_tabs, render_footer, render_result_tabs
 from fiscal_model.ui.tabs import (
     render_detailed_results_tab,
     render_distribution_tab,
     render_dynamic_scoring_tab,
     render_long_run_growth_tab,
     render_methodology_tab,
-    render_policy_package_tab,
     render_policy_comparison_tab,
+    render_policy_package_tab,
     render_results_summary_tab,
 )
+from fiscal_model.ui.tabs_controller import build_main_tabs, render_footer, render_result_tabs
 
 
 def test_package_level_app_data_imports():

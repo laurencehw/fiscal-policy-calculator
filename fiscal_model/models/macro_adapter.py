@@ -20,9 +20,9 @@ References:
 
 import os
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
 from enum import Enum
+
 import numpy as np
 import pandas as pd
 
@@ -64,8 +64,8 @@ class MacroScenario:
 
     # Fiscal paths (billions, by year relative to baseline)
     # Positive = higher than baseline
-    receipts_change: Optional[np.ndarray] = None   # Federal revenue change
-    outlays_change: Optional[np.ndarray] = None    # Federal spending change
+    receipts_change: np.ndarray | None = None   # Federal revenue change
+    outlays_change: np.ndarray | None = None    # Federal spending change
 
     # Closure assumptions
     fiscal_closure: FiscalClosureType = FiscalClosureType.LUMP_SUM_TAXES
@@ -77,7 +77,7 @@ class MacroScenario:
 
     # Debt dynamics
     initial_debt_gdp: float = 1.0   # Starting debt-to-GDP ratio
-    target_debt_gdp: Optional[float] = None  # Long-run target
+    target_debt_gdp: float | None = None  # Long-run target
 
     def __post_init__(self):
         if self.receipts_change is None:
@@ -116,8 +116,8 @@ class MacroResult:
     interest_cost_billions: np.ndarray     # Change in interest expense
 
     # Investment and capital
-    investment_pct: Optional[np.ndarray] = None
-    capital_stock_pct: Optional[np.ndarray] = None
+    investment_pct: np.ndarray | None = None
+    capital_stock_pct: np.ndarray | None = None
 
     @property
     def cumulative_gdp_effect(self) -> float:
@@ -366,8 +366,8 @@ class FRBUSAdapter(MacroModelAdapter):
 
     def __init__(
         self,
-        model_path: Optional[str] = None,
-        data_path: Optional[str] = None,
+        model_path: str | None = None,
+        data_path: str | None = None,
         use_mce: bool = False,
         fiscal_closure: FiscalClosureType = FiscalClosureType.SURPLUS_RATIO,
     ):
@@ -564,7 +564,6 @@ class FRBUSAdapter(MacroModelAdapter):
 
     def _quarter_ranges(self, start, n_quarters):
         """Generate quarter period ranges."""
-        import pandas as pd
         for i in range(n_quarters):
             q = start + i
             yield q, q
@@ -753,7 +752,7 @@ class FRBUSAdapterLite(MacroModelAdapter):
 def policy_to_scenario(
     policy,
     scoring_result,
-    scenario_name: Optional[str] = None,
+    scenario_name: str | None = None,
 ) -> MacroScenario:
     """
     Convert a scored fiscal policy to a MacroScenario.
@@ -804,17 +803,17 @@ def policy_to_scenario(
 # =============================================================================
 
 __all__ = [
-    # Enums
-    "FiscalClosureType",
-    "MonetaryPolicyRule",
-    # Data classes
-    "MacroScenario",
-    "MacroResult",
-    # Adapters
-    "MacroModelAdapter",
-    "SimpleMultiplierAdapter",
     "FRBUSAdapter",
     "FRBUSAdapterLite",
+    # Enums
+    "FiscalClosureType",
+    # Adapters
+    "MacroModelAdapter",
+    "MacroResult",
+    # Data classes
+    "MacroScenario",
+    "MonetaryPolicyRule",
+    "SimpleMultiplierAdapter",
     # Helpers
     "policy_to_scenario",
 ]

@@ -28,24 +28,24 @@ Example usage:
 
 from .macro_adapter import (
     FiscalClosureType,
-    MonetaryPolicyRule,
-    MacroScenario,
-    MacroResult,
-    MacroModelAdapter,
-    SimpleMultiplierAdapter,
     FRBUSAdapter,
     FRBUSAdapterLite,
+    MacroModelAdapter,
+    MacroResult,
+    MacroScenario,
+    MonetaryPolicyRule,
+    SimpleMultiplierAdapter,
     policy_to_scenario,
 )
 
 __all__ = [
-    "FiscalClosureType",
-    "MonetaryPolicyRule",
-    "MacroScenario",
-    "MacroResult",
-    "MacroModelAdapter",
-    "SimpleMultiplierAdapter",
     "FRBUSAdapter",
     "FRBUSAdapterLite",
+    "FiscalClosureType",
+    "MacroModelAdapter",
+    "MacroResult",
+    "MacroScenario",
+    "MonetaryPolicyRule",
+    "SimpleMultiplierAdapter",
     "policy_to_scenario",
 ]

@@ -8,19 +8,20 @@ Tests cover:
 - Output formatting
 """
 
-import pytest
 import sys
 from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from fiscal_model.distribution import (
-    IncomeGroupType,
     DistributionalAnalysis,
+    IncomeGroupType,
     format_distribution_table,
     generate_winners_losers_summary,
 )
-from fiscal_model.policies import TaxPolicy, PolicyType
+from fiscal_model.policies import PolicyType, TaxPolicy
 
 
 class TestIncomeGroups:
@@ -223,7 +224,7 @@ class TestTCJADistribution:
         # TPC shares (approximate)
         tpc_shares = [0.02, 0.05, 0.10, 0.18, 0.65]
 
-        for i, (r, expected) in enumerate(zip(result.results, tpc_shares)):
+        for _i, (r, expected) in enumerate(zip(result.results, tpc_shares, strict=False)):
             actual = abs(r.share_of_total_change)
             # Allow 50% relative error (TPC uses different methodology)
             assert abs(actual - expected) < expected * 0.6 or expected < 0.05
@@ -235,7 +236,7 @@ class TestCreditDistribution:
     @pytest.fixture
     def ctc_policy(self):
         """CTC expansion policy fixture."""
-        from fiscal_model.credits import TaxCreditPolicy, CreditType
+        from fiscal_model.credits import CreditType, TaxCreditPolicy
 
         return TaxCreditPolicy(
             name="CTC Expansion",

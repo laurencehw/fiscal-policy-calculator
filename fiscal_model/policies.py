@@ -6,9 +6,8 @@ tax policies, spending policies, and transfer programs.
 """
 
 from dataclasses import dataclass, field
-from typing import Optional, Literal
 from enum import Enum
-import numpy as np
+from typing import Literal
 
 
 class PolicyType(Enum):
@@ -22,13 +21,13 @@ class PolicyType(Enum):
     EXCISE_TAX = "excise_tax"
     TAX_CREDIT = "tax_credit"
     TAX_DEDUCTION = "tax_deduction"
-    
+
     # Spending policies
     DISCRETIONARY_DEFENSE = "discretionary_defense"
     DISCRETIONARY_NONDEFENSE = "discretionary_nondefense"
     MANDATORY_SPENDING = "mandatory_spending"
     INFRASTRUCTURE = "infrastructure"
-    
+
     # Transfer programs
     SOCIAL_SECURITY = "social_security"
     MEDICARE = "medicare"
@@ -42,7 +41,7 @@ class PolicyType(Enum):
 class Policy:
     """
     Base class for fiscal policy proposals.
-    
+
     Attributes:
         name: Short descriptive name
         description: Detailed description of the policy
@@ -59,7 +58,7 @@ class Policy:
     duration_years: int = 10
     phase_in_years: int = 1
     sunset: bool = False
-    
+
     def __post_init__(self):
         if self.duration_years <= 0:
             raise ValueError(f"duration_years must be positive, got {self.duration_years}")
@@ -75,63 +74,61 @@ class Policy:
         """
         if year < self.start_year:
             return 0.0
-        
+
         years_since_start = year - self.start_year
-        
+
         if self.sunset and years_since_start >= self.duration_years:
             return 0.0
-            
+
         if self.phase_in_years <= 1:
             return 1.0
-            
+
         return min(1.0, (years_since_start + 1) / self.phase_in_years)
-    
+
     def is_active(self, year: int) -> bool:
         """Check if policy is active in a given year."""
         if year < self.start_year:
             return False
-        if self.sunset and year >= self.start_year + self.duration_years:
-            return False
-        return True
+        return not (self.sunset and year >= self.start_year + self.duration_years)
 
 
 @dataclass
 class TaxPolicy(Policy):
     """
     Tax policy proposal with detailed parameters.
-    
+
     Supports various tax changes including rate changes, threshold changes,
     new credits/deductions, and base broadening.
     """
     # Rate changes
     rate_change: float = 0.0  # Change in tax rate (e.g., -0.02 for 2pp reduction)
-    new_rate: Optional[float] = None  # Alternative: specify new rate directly
-    
+    new_rate: float | None = None  # Alternative: specify new rate directly
+
     # Who is affected
     affected_income_threshold: float = 0.0  # Income threshold for applicability
-    affected_income_cap: Optional[float] = None  # Upper bound if applicable
-    
+    affected_income_cap: float | None = None  # Upper bound if applicable
+
     # For credits/deductions
     credit_amount: float = 0.0  # Per-taxpayer credit amount
     credit_refundable: bool = False  # Is the credit refundable?
     deduction_amount: float = 0.0  # Deduction amount
-    
+
     # Affected population
     affected_taxpayers_millions: float = 0.0  # Estimated affected population
-    
+
     # Behavioral parameters (CBO-style elasticities)
     taxable_income_elasticity: float = 0.25  # ETI - key behavioral parameter
     labor_supply_elasticity: float = 0.1  # Compensated labor supply elasticity
-    
+
     # Revenue estimate override (if known from external source)
-    annual_revenue_change_billions: Optional[float] = None
-    
+    annual_revenue_change_billions: float | None = None
+
     # More granular inputs for accurate static estimation
     avg_taxable_income_in_bracket: float = 0.0  # Average taxable income of affected filers
     marginal_rate_before: float = 0.0  # Current marginal rate in affected bracket
 
     # Data integration
-    data_year: Optional[int] = None  # IRS data year to use (None = most recent available)
+    data_year: int | None = None  # IRS data year to use (None = most recent available)
 
     def __post_init__(self):
         super().__post_init__()
@@ -182,31 +179,31 @@ class TaxPolicy(Policy):
                 # Fall through to existing logic
 
         # PREFERRED: Use bracket-level calculation if data provided
-        if (self.rate_change != 0 and 
-            self.affected_taxpayers_millions > 0 and 
+        if (self.rate_change != 0 and
+            self.affected_taxpayers_millions > 0 and
             self.avg_taxable_income_in_bracket > 0):
             # Key insight: Rate changes apply only to MARGINAL income above threshold,
             # not the entire income of affected filers.
-            # 
+            #
             # Example: For a $400K threshold, someone earning $500K only has $100K
             # subject to the rate change, not the full $500K.
             #
             # Formula: ΔRevenue = ΔRate × Marginal_Income × # Taxpayers
             # where Marginal_Income = Avg_Income - Threshold
-            
+
             marginal_income = max(0, self.avg_taxable_income_in_bracket - self.affected_income_threshold)
-            
+
             # If threshold is 0 (affects all income), use full average income
             if self.affected_income_threshold == 0:
                 marginal_income = self.avg_taxable_income_in_bracket
-            
+
             revenue_change = (
                 self.rate_change *  # e.g., -0.02 for 2pp cut
                 marginal_income *   # income ABOVE threshold subject to rate change
                 self.affected_taxpayers_millions * 1e6  # convert to actual count
             ) / 1e9  # convert to billions
             return revenue_change
-        
+
         # FALLBACK: Simple proportional estimation (less accurate)
         if self.rate_change != 0:
             # Estimate affected share of total revenue
@@ -225,20 +222,20 @@ class TaxPolicy(Policy):
                     affected_share = 0.90
             else:
                 affected_share = 1.0  # Affects all brackets
-            
+
             # Revenue change = baseline × affected share × (rate change / avg rate)
             avg_effective_rate = 0.18  # Average effective income tax rate
             return baseline_revenue * affected_share * (self.rate_change / avg_effective_rate)
-            
+
         # Credit/deduction effects
         if self.credit_amount != 0 and self.affected_taxpayers_millions > 0:
             return -self.credit_amount * self.affected_taxpayers_millions / 1e3
-            
+
         if self.deduction_amount != 0 and self.affected_taxpayers_millions > 0:
             # Deduction value depends on marginal rate
             marginal_rate = self.marginal_rate_before if self.marginal_rate_before > 0 else 0.25
             return -self.deduction_amount * marginal_rate * self.affected_taxpayers_millions / 1e3
-            
+
         return 0.0
 
     def _should_use_irs_data(self) -> bool:
@@ -635,23 +632,23 @@ class CapitalGainsPolicy(TaxPolicy):
 class SpendingPolicy(Policy):
     """
     Spending policy proposal.
-    
+
     Covers discretionary and mandatory spending changes.
     """
     # Annual spending change
     annual_spending_change_billions: float = 0.0
-    
+
     # Growth rate for spending (real, after start year)
     annual_growth_rate: float = 0.02  # Default 2% real growth
-    
+
     # Economic impact parameters
     gdp_multiplier: float = 1.0  # Fiscal multiplier for GDP impact
     employment_per_billion: float = 10000  # Jobs per billion dollars
-    
+
     # Spending characteristics
     is_one_time: bool = False  # One-time vs recurring spending
     category: Literal["defense", "nondefense", "mandatory"] = "nondefense"
-    
+
     def __post_init__(self):
         super().__post_init__()
         # Set policy_type based on category if not already matching
@@ -664,24 +661,24 @@ class SpendingPolicy(Policy):
         if expected_type and self.policy_type != expected_type:
             self.policy_type = expected_type
 
-    def get_spending_in_year(self, year: int, start_amount: Optional[float] = None) -> float:
+    def get_spending_in_year(self, year: int, start_amount: float | None = None) -> float:
         """
         Calculate spending amount for a given year, including growth.
         """
         if not self.is_active(year):
             return 0.0
-            
+
         base = start_amount if start_amount else self.annual_spending_change_billions
         years_since_start = year - self.start_year
-        
+
         phase_factor = self.get_phase_in_factor(year)
-        
+
         if self.is_one_time and years_since_start > 0:
             return 0.0
-            
+
         # Apply growth rate
         growth_factor = (1 + self.annual_growth_rate) ** years_since_start
-        
+
         return base * growth_factor * phase_factor
 
 
@@ -693,32 +690,32 @@ class TransferPolicy(Policy):
     # Benefit changes
     benefit_change_percent: float = 0.0  # Percentage change in benefits
     benefit_change_dollars: float = 0.0  # Dollar change per beneficiary
-    
+
     # Eligibility changes
     eligibility_age_change: float = 0.0  # Change in eligibility age (years)
     new_beneficiaries_millions: float = 0.0  # Net new beneficiaries
-    
+
     # Cost estimates
     annual_cost_change_billions: float = 0.0
-    
+
     # Behavioral responses
     labor_force_participation_effect: float = 0.0  # Effect on labor force participation
-    
+
     def estimate_cost_effect(self, baseline_cost: float) -> float:
         """
         Estimate change in program costs.
         """
         if self.annual_cost_change_billions != 0:
             return self.annual_cost_change_billions
-            
+
         # Benefit change effect
         cost_change = baseline_cost * self.benefit_change_percent
-        
+
         # New beneficiaries (assume average benefit)
         if self.new_beneficiaries_millions != 0:
             avg_benefit = baseline_cost / 60  # Rough estimate per million beneficiaries
             cost_change += avg_benefit * self.new_beneficiaries_millions
-            
+
         return cost_change
 
 
@@ -726,29 +723,29 @@ class TransferPolicy(Policy):
 class PolicyPackage:
     """
     A package of multiple policies analyzed together.
-    
+
     Allows for interaction effects between policies.
     """
     name: str
     description: str
     policies: list[Policy] = field(default_factory=list)
-    
+
     # Interaction parameters
     interaction_factor: float = 1.0  # Adjustment for policy interactions
-    
+
     def add_policy(self, policy: Policy):
         """Add a policy to the package."""
         self.policies.append(policy)
-        
+
     def get_all_years(self) -> tuple[int, int]:
         """Get the range of years covered by all policies."""
         if not self.policies:
             return (2025, 2034)
-            
+
         start = min(p.start_year for p in self.policies)
         end = max(p.start_year + p.duration_years for p in self.policies)
         return (start, end)
-    
+
     def get_active_policies(self, year: int) -> list[Policy]:
         """Get all policies active in a given year."""
         return [p for p in self.policies if p.is_active(year)]
@@ -858,7 +855,7 @@ def create_spending_increase(
     return SpendingPolicy(
         name=name,
         description=f"Increase {category} spending by ${annual_billions:.1f}B annually",
-        policy_type=PolicyType.DISCRETIONARY_NONDEFENSE if category == "nondefense" 
+        policy_type=PolicyType.DISCRETIONARY_NONDEFENSE if category == "nondefense"
                    else PolicyType.DISCRETIONARY_DEFENSE if category == "defense"
                    else PolicyType.MANDATORY_SPENDING,
         annual_spending_change_billions=annual_billions,

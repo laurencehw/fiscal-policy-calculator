@@ -42,7 +42,7 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
 
     # Main Area Results
     tabs = build_main_tabs(st_module=st_module, mode=calc_context["mode"])
-    
+
     ensure_results_state(st_module=st_module)
     execute_calculation_if_requested(
         st_module=st_module,

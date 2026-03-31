@@ -8,18 +8,17 @@ TransferPolicy, PolicyPackage, and convenience factory functions.
 import pytest
 
 from fiscal_model.policies import (
-    Policy,
-    PolicyType,
-    TaxPolicy,
     CapitalGainsPolicy,
-    SpendingPolicy,
-    TransferPolicy,
+    Policy,
     PolicyPackage,
+    PolicyType,
+    SpendingPolicy,
+    TaxPolicy,
+    TransferPolicy,
     create_income_tax_cut,
     create_new_tax_credit,
     create_spending_increase,
 )
-
 
 # =============================================================================
 # FIXTURES

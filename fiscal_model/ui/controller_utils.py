@@ -4,10 +4,10 @@ Shared utilities for UI controller modules.
 
 from __future__ import annotations
 
-from typing import Any, Callable
-
 import hashlib
 import json
+from collections.abc import Callable
+from typing import Any
 
 
 def run_with_spinner_feedback(

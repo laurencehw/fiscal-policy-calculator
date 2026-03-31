@@ -18,12 +18,9 @@ References:
 - JCT (2017): TCJA corporate cut ~$329B net
 """
 
-from dataclasses import dataclass, field
-from typing import Optional, Literal
-import numpy as np
+from dataclasses import dataclass
 
-from .policies import TaxPolicy, PolicyType
-
+from .policies import PolicyType, TaxPolicy
 
 # =============================================================================
 # CORPORATE TAX BASELINE DATA
@@ -76,7 +73,7 @@ class CorporateTaxPolicy(TaxPolicy):
     # Rate change (additive, e.g., +0.07 for 21%→28%)
     rate_change: float = 0.0
     baseline_rate: float = CURRENT_CORPORATE_RATE
-    new_rate: Optional[float] = None  # Alternative: specify new rate directly
+    new_rate: float | None = None  # Alternative: specify new rate directly
 
     # Behavioral response
     # Corporate income elasticity is lower than individual ETI

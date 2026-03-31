@@ -4,37 +4,37 @@ Preset policy handler for the Fiscal Policy Calculator.
 Creates policy objects from preset configurations.
 """
 
-from typing import Optional, Any
+from typing import Any
 
 # Import policy factory functions
 from fiscal_model import (
-    create_tcja_extension,
-    create_tcja_repeal_salt_cap,
     create_biden_corporate_rate_only,
-    create_republican_corporate_cut,
     create_biden_ctc_2021,
-    create_ctc_permanent_extension,
     create_biden_eitc_childless,
-    create_tcja_estate_extension,
     create_biden_estate_proposal,
+    create_cap_charitable_deduction,
+    create_cap_employer_health_exclusion,
+    create_ctc_permanent_extension,
     create_eliminate_estate_tax,
+    create_eliminate_step_up_basis,
+    create_expand_niit,
+    create_extend_enhanced_ptc,
+    create_extend_tcja_amt_relief,
+    create_repeal_corporate_amt,
+    create_repeal_individual_amt,
+    create_repeal_ptc,
+    create_repeal_salt_cap,
+    create_republican_corporate_cut,
     create_ss_cap_90_percent,
     create_ss_donut_hole,
     create_ss_eliminate_cap,
-    create_expand_niit,
-    create_extend_tcja_amt_relief,
-    create_repeal_individual_amt,
-    create_repeal_corporate_amt,
-    create_extend_enhanced_ptc,
-    create_repeal_ptc,
-    create_cap_employer_health_exclusion,
-    create_repeal_salt_cap,
-    create_eliminate_step_up_basis,
-    create_cap_charitable_deduction,
+    create_tcja_estate_extension,
+    create_tcja_extension,
+    create_tcja_repeal_salt_cap,
 )
 
 
-def create_policy_from_preset(preset_data: dict) -> Optional[Any]:
+def create_policy_from_preset(preset_data: dict) -> Any | None:
     """
     Create a policy object from preset configuration data.
 

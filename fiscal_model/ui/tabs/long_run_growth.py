@@ -49,14 +49,14 @@ def render_long_run_growth_tab(
                      "CBO assumes ~33% (meaning 67% is offset by foreign capital inflows). "
                      "100% = Closed Economy (Maximum Impact). 0% = Small Open Economy (No Impact)."
             ) / 100.0
-            
+
             st_module.caption(
                 f"Current assumption: For every $1.00 of deficit, private investment falls by ${crowding_out:.2f}. "
                 f"Foreign capital inflows cover the remaining ${(1-crowding_out):.2f}."
             )
 
         deficit_path = res_obj.static_deficit_effect + res_obj.behavioral_offset
-        crowding_out_pct = int(round(crowding_out * 100))
+        crowding_out_pct = round(crowding_out * 100)
         cache_key = f"solow:{run_id}:{crowding_out_pct}" if run_id else None
 
         lr_res = st_module.session_state.get(cache_key) if cache_key else None

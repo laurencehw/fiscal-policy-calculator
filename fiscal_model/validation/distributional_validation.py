@@ -14,7 +14,7 @@ References:
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+
 import numpy as np
 
 
@@ -27,7 +27,7 @@ class DistributionalBenchmark:
 
     # By quintile: (avg_change_dollars, share_of_total)
     # Negative = tax cut, positive = tax increase
-    quintile_data: Dict[str, tuple]
+    quintile_data: dict[str, tuple]
 
     notes: str = ""
 
@@ -86,7 +86,7 @@ CORPORATE_INCIDENCE = {
 }
 
 
-def validate_tcja_distribution(model_results) -> Dict:
+def validate_tcja_distribution(model_results) -> dict:
     """
     Validate TCJA distributional results against TPC benchmarks.
 
@@ -156,10 +156,10 @@ def validate_tcja_distribution(model_results) -> Dict:
     return results
 
 
-def print_validation_report(validation_results: Dict):
+def print_validation_report(validation_results: dict):
     """Print a formatted validation report."""
     print(f"\n{'='*70}")
-    print(f"DISTRIBUTIONAL VALIDATION REPORT")
+    print("DISTRIBUTIONAL VALIDATION REPORT")
     print(f"{'='*70}")
     print(f"Benchmark: {validation_results['benchmark']}")
     print(f"Benchmark Year: {validation_results['benchmark_year']}")

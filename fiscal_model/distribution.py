@@ -15,16 +15,16 @@ Key features:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Tuple, Union
-import numpy as np
+
 import pandas as pd
 
 from .data.irs_soi import IRSSOIData, TaxBracketData
-from .policies import TaxPolicy, Policy, PolicyType
+from .policies import Policy, TaxPolicy
+
 
 # Lazy imports for other policy types (avoid circular imports)
 def _get_credit_policy():
-    from .credits import TaxCreditPolicy, CreditType
+    from .credits import CreditType, TaxCreditPolicy
     return TaxCreditPolicy, CreditType
 
 def _get_tcja_policy():
@@ -117,7 +117,7 @@ class IncomeGroup:
     """
     name: str
     floor: float
-    ceiling: Optional[float]
+    ceiling: float | None
     num_returns: int = 0
     total_agi: float = 0.0
     total_taxable_income: float = 0.0
@@ -197,15 +197,15 @@ class DistributionalAnalysis:
     policy: Policy
     year: int
     group_type: IncomeGroupType
-    results: List[DistributionalResult] = field(default_factory=list)
+    results: list[DistributionalResult] = field(default_factory=list)
     total_tax_change: float = 0.0
     total_affected_returns: int = 0
 
-    def get_winners(self) -> List[DistributionalResult]:
+    def get_winners(self) -> list[DistributionalResult]:
         """Get income groups that receive a net tax cut."""
         return [r for r in self.results if r.tax_change_avg < 0]
 
-    def get_losers(self) -> List[DistributionalResult]:
+    def get_losers(self) -> list[DistributionalResult]:
         """Get income groups that face a net tax increase."""
         return [r for r in self.results if r.tax_change_avg > 0]
 
@@ -286,7 +286,7 @@ class DistributionalEngine:
         return self._irs_data
 
     @property
-    def brackets(self) -> List[TaxBracketData]:
+    def brackets(self) -> list[TaxBracketData]:
         """Lazy load bracket data."""
         if self._brackets is None:
             try:
@@ -303,7 +303,7 @@ class DistributionalEngine:
             self._total_returns = sum(b.num_returns for b in self.brackets)
         return self._total_returns
 
-    def _generate_synthetic_brackets(self) -> List[TaxBracketData]:
+    def _generate_synthetic_brackets(self) -> list[TaxBracketData]:
         """
         Generate synthetic bracket data based on typical distributions.
 
@@ -350,8 +350,8 @@ class DistributionalEngine:
     def create_income_groups(
         self,
         group_type: IncomeGroupType = IncomeGroupType.QUINTILE,
-        custom_brackets: Optional[List[Tuple[float, Optional[float]]]] = None,
-    ) -> List[IncomeGroup]:
+        custom_brackets: list[tuple[float, float | None]] | None = None,
+    ) -> list[IncomeGroup]:
         """
         Create income groups by aggregating IRS brackets.
 
@@ -435,10 +435,7 @@ class DistributionalEngine:
                     bracket_width = bracket_ceiling - bracket_floor
                     overlap_width = overlap_end - overlap_start
 
-                    if bracket_width > 0:
-                        overlap_fraction = overlap_width / bracket_width
-                    else:
-                        overlap_fraction = 1.0
+                    overlap_fraction = overlap_width / bracket_width if bracket_width > 0 else 1.0
 
                     # For simplicity, use full bracket if >50% overlap
                     # This avoids complex income distribution assumptions
@@ -465,7 +462,7 @@ class DistributionalEngine:
         self,
         policy: Policy,
         group_type: IncomeGroupType = IncomeGroupType.QUINTILE,
-        year: Optional[int] = None,
+        year: int | None = None,
     ) -> DistributionalAnalysis:
         """
         Analyze distributional effects of a tax policy.
@@ -797,7 +794,7 @@ class DistributionalEngine:
 
         # Find share for this group
         group_share = 0.0
-        for (floor, ceiling), share in distribution_shares.items():
+        for (floor, _ceiling), share in distribution_shares.items():
             if group.floor == floor:
                 group_share = share
                 break
@@ -988,11 +985,11 @@ class DistributionalEngine:
         - Rate changes: Proportional to wages in affected range
         """
         # Get policy parameters
-        ss_cap_change = getattr(policy, 'ss_cap_change', 0)
+        getattr(policy, 'ss_cap_change', 0)
         current_cap = getattr(policy, 'current_ss_cap', 168_600)
         new_cap = getattr(policy, 'new_ss_cap', None)
         rate_change = getattr(policy, 'rate_change', 0)
-        niit_expansion = getattr(policy, 'expand_niit', False)
+        getattr(policy, 'expand_niit', False)
 
         group_ceiling = group.ceiling if group.ceiling else float('inf')
 
@@ -1079,21 +1076,13 @@ class DistributionalEngine:
     def create_top_income_breakout(
         self,
         policy: Policy,
-        year: Optional[int] = None,
+        year: int | None = None,
     ) -> DistributionalAnalysis:
         """
         Create detailed breakout for top income groups.
 
         Includes Top 20%, Top 10%, Top 5%, Top 1%, Top 0.1%.
         """
-        custom_brackets = [
-            (0, 170_000),           # Bottom 80%
-            (170_000, 215_000),     # 80-90%
-            (215_000, 335_000),     # 90-95%
-            (335_000, 800_000),     # 95-99%
-            (800_000, 3_500_000),   # 99-99.9%
-            (3_500_000, None),      # Top 0.1%
-        ]
 
         thresholds = [
             ("Bottom 80%", 0, 170_000),
@@ -1224,7 +1213,7 @@ def format_distribution_table(
     return df[available_cols]
 
 
-def generate_winners_losers_summary(analysis: DistributionalAnalysis) -> Dict:
+def generate_winners_losers_summary(analysis: DistributionalAnalysis) -> dict:
     """
     Generate summary of winners and losers from policy change.
 
@@ -1276,19 +1265,19 @@ def generate_winners_losers_summary(analysis: DistributionalAnalysis) -> Dict:
 # =============================================================================
 
 __all__ = [
-    # Enums
-    "IncomeGroupType",
-    # Data classes
-    "IncomeGroup",
-    "DistributionalResult",
+    "DECILE_THRESHOLDS_2024",
+    "JCT_DOLLAR_BRACKETS",
+    # Constants
+    "QUINTILE_THRESHOLDS_2024",
+    "TOP_INCOME_THRESHOLDS_2024",
     "DistributionalAnalysis",
     # Engine
     "DistributionalEngine",
-    # Constants
-    "QUINTILE_THRESHOLDS_2024",
-    "DECILE_THRESHOLDS_2024",
-    "TOP_INCOME_THRESHOLDS_2024",
-    "JCT_DOLLAR_BRACKETS",
+    "DistributionalResult",
+    # Data classes
+    "IncomeGroup",
+    # Enums
+    "IncomeGroupType",
     # Helper functions
     "format_distribution_table",
     "generate_winners_losers_summary",

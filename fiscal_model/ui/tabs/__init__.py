@@ -17,7 +17,7 @@ __all__ = [
     "render_dynamic_scoring_tab",
     "render_long_run_growth_tab",
     "render_methodology_tab",
-    "render_policy_package_tab",
     "render_policy_comparison_tab",
+    "render_policy_package_tab",
     "render_results_summary_tab",
 ]

@@ -28,7 +28,11 @@ from fiscal_model.preset_handler import create_policy_from_preset
 from .app_controller import run_main_app
 from .helpers import build_macro_scenario
 from .policy_execution import calculate_tax_policy_result, run_microsim_calculation
-from .policy_input import calculate_spending_policy_result, render_spending_policy_inputs, render_tax_policy_inputs
+from .policy_input import (
+    calculate_spending_policy_result,
+    render_spending_policy_inputs,
+    render_tax_policy_inputs,
+)
 from .policy_packages import PRESET_POLICY_PACKAGES
 from .styles import apply_app_styles
 from .tabs import (

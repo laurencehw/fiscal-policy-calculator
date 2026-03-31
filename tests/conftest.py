@@ -2,17 +2,17 @@
 Pytest fixtures for fiscal policy calculator tests.
 """
 
-import pytest
-import numpy as np
 import sys
 from pathlib import Path
+
+import numpy as np
+import pytest
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from fiscal_model.policies import TaxPolicy, PolicyType
 from fiscal_model.distribution import DistributionalEngine
-
+from fiscal_model.policies import PolicyType, TaxPolicy
 
 # =============================================================================
 # POLICY FIXTURES

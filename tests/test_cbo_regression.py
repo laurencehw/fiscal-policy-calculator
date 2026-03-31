@@ -8,11 +8,11 @@ environments (avoids dependency on external data files).
 
 import pytest
 
-from fiscal_model.scoring import FiscalPolicyScorer
-from fiscal_model.tcja import create_tcja_extension
+from fiscal_model.amt import create_repeal_corporate_amt
 from fiscal_model.corporate import create_biden_corporate_rate_only
 from fiscal_model.credits import create_biden_ctc_2021
-from fiscal_model.amt import create_repeal_corporate_amt
+from fiscal_model.scoring import FiscalPolicyScorer
+from fiscal_model.tcja import create_tcja_extension
 
 
 @pytest.fixture

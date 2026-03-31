@@ -13,19 +13,23 @@ Tests cover:
 - quick_score convenience function
 """
 
-import pytest
-import numpy as np
 import sys
 from pathlib import Path
 
+import numpy as np
+import pytest
+
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from fiscal_model.scoring import FiscalPolicyScorer, ScoringResult, quick_score
-from fiscal_model.policies import (
-    TaxPolicy, SpendingPolicy, TransferPolicy, PolicyPackage, PolicyType
-)
 from fiscal_model.baseline import CBOBaseline
-
+from fiscal_model.policies import (
+    PolicyPackage,
+    PolicyType,
+    SpendingPolicy,
+    TaxPolicy,
+    TransferPolicy,
+)
+from fiscal_model.scoring import FiscalPolicyScorer, ScoringResult, quick_score
 
 # =============================================================================
 # FIXTURES

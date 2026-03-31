@@ -70,7 +70,7 @@ def render_tax_policy_inputs(st_module: Any, preset_policies: dict[str, dict[str
 
     st_module.markdown("---")
     st_module.markdown("### ⚙️ Policy Parameters")
-    
+
     preset_data = preset_policies[preset_choice]
 
     default_name = preset_choice if preset_choice != "Custom Policy" else "Tax Rate Change"

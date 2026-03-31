@@ -6,22 +6,21 @@ condition-adjusted multipliers, calculate_effects for TaxPolicy and
 SpendingPolicy, DynamicEffects properties, and interest rate effects.
 """
 
-import pytest
 import numpy as np
+import pytest
 
-from fiscal_model.policies import (
-    TaxPolicy,
-    SpendingPolicy,
-    TransferPolicy,
-    PolicyType,
-)
 from fiscal_model.baseline import CBOBaseline
 from fiscal_model.economics import (
+    DynamicEffects,
     EconomicConditions,
     EconomicModel,
-    DynamicEffects,
 )
-
+from fiscal_model.policies import (
+    PolicyType,
+    SpendingPolicy,
+    TaxPolicy,
+    TransferPolicy,
+)
 
 # =============================================================================
 # FIXTURES
