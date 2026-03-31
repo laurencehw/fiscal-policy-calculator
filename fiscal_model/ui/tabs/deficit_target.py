@@ -131,27 +131,20 @@ def render_deficit_target_tab(
     selected_policies: list[str] = []
     total_impact = 0.0
 
-    st_module.markdown("### :green[Revenue Raisers] (reduce the deficit)")
-    for cat_name, policies in sorted(revenue_raisers.items()):
-        with st_module.expander(
-            f"**{cat_name}** ({len(policies)} options)", expanded=False
-        ):
-            for policy_name, score in policies:
-                label = f"{policy_name} — saves \\${abs(score):,.0f}B"
-                if st_module.checkbox(label, key=f"dt_{policy_name}"):
-                    selected_policies.append(policy_name)
-                    total_impact += score
-
-    st_module.markdown("### :red[Tax Cuts & New Spending] (increase the deficit)")
-    for cat_name, policies in sorted(deficit_increasers.items()):
-        with st_module.expander(
-            f"**{cat_name}** ({len(policies)} options)", expanded=False
-        ):
-            for policy_name, score in policies:
-                label = f"{policy_name} — costs \\${abs(score):,.0f}B"
-                if st_module.checkbox(label, key=f"dt_{policy_name}"):
-                    selected_policies.append(policy_name)
-                    total_impact += score
+    for header, data, verb in [
+        (":green[Revenue Raisers] (reduce the deficit)", revenue_raisers, "saves"),
+        (":red[Tax Cuts & New Spending] (increase the deficit)", deficit_increasers, "costs"),
+    ]:
+        st_module.markdown(f"### {header}")
+        for cat_name, policies in sorted(data.items()):
+            with st_module.expander(
+                f"**{cat_name}** ({len(policies)} options)", expanded=False
+            ):
+                for policy_name, score in policies:
+                    label = f"{policy_name} — {verb} \\${abs(score):,.0f}B"
+                    if st_module.checkbox(label, key=f"dt_{policy_name}"):
+                        selected_policies.append(policy_name)
+                        total_impact += score
 
     # Warn about overlapping policies
     _overlap_groups = {

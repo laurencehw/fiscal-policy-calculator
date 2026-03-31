@@ -8,6 +8,13 @@ from typing import Any
 
 from fiscal_model.ui.helpers import TEXTBOOK_HOME
 
+_ANALYSIS_CONTEXT = {
+    "Distribution": "How does this policy affect different income groups?",
+    "Dynamic Scoring": "GDP and employment effects using FRB/US-calibrated multipliers.",
+    "Long-Run Growth": "Long-run growth projections using a Solow framework.",
+    "Details": "Year-by-year breakdown of all scoring components.",
+}
+
 
 def build_main_tabs(st_module: Any, mode: str) -> dict[str, Any]:
     """
@@ -172,12 +179,6 @@ def render_result_tabs(
             label_visibility="collapsed",
         )
 
-        _ANALYSIS_CONTEXT = {
-            "Distribution": "How does this policy affect different income groups?",
-            "Dynamic Scoring": "GDP and employment effects using FRB/US-calibrated multipliers.",
-            "Long-Run Growth": "Long-run growth projections using a Solow framework.",
-            "Details": "Year-by-year breakdown of all scoring components.",
-        }
         st_module.caption(_ANALYSIS_CONTEXT.get(view, ""))
 
         if view == "Distribution":
