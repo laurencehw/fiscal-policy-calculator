@@ -202,7 +202,7 @@ class BudgetReport:
             colors = ['green', 'red', 'blue']
 
             # Filter out zero values
-            non_zero = [(l, v, c) for l, v, c in zip(labels, values, colors, strict=False) if v > 0]
+            non_zero = [(lbl, v, c) for lbl, v, c in zip(labels, values, colors, strict=False) if v > 0]
             if non_zero:
                 labels, values, colors = zip(*non_zero, strict=False)
                 ax4.pie(values, labels=labels, colors=colors, autopct='%1.1f%%',

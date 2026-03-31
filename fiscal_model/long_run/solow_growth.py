@@ -53,9 +53,9 @@ class SolowGrowthModel:
         self.initial_a = initial_a
         self.crowding_out_pct = crowding_out_pct
 
-    def production_function(self, k: float, l: float, a: float) -> float:
+    def production_function(self, k: float, labor: float, a: float) -> float:
         """Cobb-Douglas production: Y = A * K^alpha * L^(1-alpha)"""
-        return a * (k ** self.alpha) * (l ** (1 - self.alpha))
+        return a * (k ** self.alpha) * (labor ** (1 - self.alpha))
 
     def run_simulation(self,
                        deficits: np.ndarray,
@@ -83,7 +83,7 @@ class SolowGrowthModel:
 
         # Initialize arrays
         k = np.zeros(horizon)
-        l = np.zeros(horizon)
+        labor = np.zeros(horizon)
         a = np.zeros(horizon)
         y = np.zeros(horizon)
         inv = np.zeros(horizon)
@@ -101,7 +101,7 @@ class SolowGrowthModel:
 
         for t in range(horizon):
             # Track values
-            l[t] = l_curr
+            labor[t] = l_curr
             a[t] = a_curr
 
             # 1. Calculate Output
@@ -144,7 +144,7 @@ class SolowGrowthModel:
 
         # Simple wage calculation (Marginal Product of Labor)
         # w = (1-alpha) * Y/L
-        wages = (1 - self.alpha) * (y / l)
+        wages = (1 - self.alpha) * (y / labor)
 
         # Simple interest rate calculation (Marginal Product of Capital)
         # r = alpha * Y/K - delta

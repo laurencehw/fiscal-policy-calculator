@@ -11,17 +11,15 @@ def build_main_tabs(st_module: Any, mode: str) -> dict[str, Any]:
     """
     Create main result tabs layout and return named tab references.
     """
-    single_policy = mode == "📊 Single Policy"
-
-    tab_labels = ["📊 Summary", "📈 Analysis", "🛠️ Tools"]
-    ordered = tab_labels if single_policy else ["🛠️ Tools", "📊 Summary", "📈 Analysis"]
-    tabs = st_module.tabs(ordered)
-    tab_map = dict(zip(ordered, tabs, strict=False))
+    tab_labels = ["Results", "Analysis", "Methodology", "Tools"]
+    tabs = st_module.tabs(tab_labels)
+    tab_map = dict(zip(tab_labels, tabs, strict=False))
 
     return {
-        "tab_summary": tab_map["📊 Summary"],
-        "tab_analysis": tab_map["📈 Analysis"],
-        "tab_tools": tab_map["🛠️ Tools"],
+        "tab_summary": tab_map["Results"],
+        "tab_analysis": tab_map["Analysis"],
+        "tab_methodology": tab_map["Methodology"],
+        "tab_tools": tab_map["Tools"],
     }
 
 
@@ -35,7 +33,7 @@ def render_result_tabs(
     mode: str,
 ) -> None:
     """
-    Render post-calculation tabs (results, analysis, tools, reference).
+    Render post-calculation tabs (results, analysis, methodology, tools).
     """
     single_policy = mode == "📊 Single Policy"
     current_run_id = getattr(st_module.session_state, "current_run_id", None)
@@ -44,6 +42,11 @@ def render_result_tabs(
     )
     is_stale = bool(results_run_id and current_run_id and results_run_id != current_run_id)
 
+    # ── Methodology tab (always visible) ─────────────────────────────────
+    with tabs["tab_methodology"]:
+        deps.render_methodology_tab(st_module=st_module)
+
+    # ── Tools tab ────────────────────────────────────────────────────────
     with tabs["tab_tools"]:
         if mode == "🔀 Compare Policies":
             deps.render_policy_comparison_tab(
@@ -67,31 +70,72 @@ def render_result_tabs(
                 fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
             )
         else:
-            st_module.info("Select a mode in the sidebar to access comparison and packages.")
+            st_module.subheader("Policy comparison and packages")
+            st_module.markdown(
+                "These tools let you compare multiple proposals or build "
+                "combined policy packages. They're available when you select "
+                "**Compare Policies** or **Policy Packages** mode in the "
+                "sidebar."
+            )
 
-        with st_module.expander("ℹ️ Methodology", expanded=False):
-            deps.render_methodology_tab(st_module=st_module)
-
+    # ── Results and Analysis for non-single-policy modes ─────────────────
     if not single_policy:
         with tabs["tab_summary"]:
-            st_module.info("Use **📊 Single Policy** mode to view Summary and Analysis.")
+            st_module.info("Use **Single Policy** mode to view Results and Analysis.")
         with tabs["tab_analysis"]:
-            st_module.info("Use **📊 Single Policy** mode to view Summary and Analysis.")
+            st_module.info("Use **Single Policy** mode to view Results and Analysis.")
         return
 
+    # ── Onboarding state (no results yet) ────────────────────────────────
     if not st_module.session_state.results:
         with tabs["tab_summary"]:
-            st_module.info("👈 Configure a policy in the sidebar and click 'Calculate Impact' to see results.")
+            st_module.markdown("### Welcome to the Fiscal Policy Calculator")
+            st_module.markdown(
+                "Select a tax or spending proposal in the sidebar and click "
+                "**Calculate Impact** to see its 10-year budgetary effect.\n\n"
+                "**Quick examples to try:**"
+            )
+            col_a, col_b, col_c = st_module.columns(3)
+            with col_a:
+                st_module.markdown(
+                    "**TCJA Extension**  \n"
+                    "Extend all Tax Cuts and Jobs Act provisions  \n"
+                    "*CBO estimate: +$4.6T*"
+                )
+            with col_b:
+                st_module.markdown(
+                    "**Biden Corporate 28%**  \n"
+                    "Raise corporate rate from 21% to 28%  \n"
+                    "*CBO estimate: -$1.35T*"
+                )
+            with col_c:
+                st_module.markdown(
+                    "**SS Donut Hole**  \n"
+                    "Apply SS tax above $250K  \n"
+                    "*CBO estimate: -$2.7T*"
+                )
+            st_module.markdown("---")
+            st_module.caption(
+                "This calculator uses CBO methodology with IRS Statistics of Income data. "
+                "25+ policies validated within 15% of official CBO/JCT scores."
+            )
         with tabs["tab_analysis"]:
-            st_module.info("👈 Run a calculation to unlock analysis views.")
+            st_module.info(
+                "Run a calculation to unlock analysis views "
+                "(distribution, dynamic scoring, long-run growth)."
+            )
         return
 
+    # ── Results with data ────────────────────────────────────────────────
     result_data = st_module.session_state.results
     policy = result_data.get("policy")
 
     with tabs["tab_summary"]:
         if is_stale:
-            st_module.warning("Inputs changed since the last run. Click **🚀 Calculate Impact** to refresh results.")
+            st_module.warning(
+                "Inputs changed since the last run. "
+                "Click **Calculate Impact** to refresh results."
+            )
         deps.render_results_summary_tab(
             st_module=st_module,
             result_data=result_data,
@@ -100,15 +144,23 @@ def render_result_tabs(
 
     with tabs["tab_analysis"]:
         if is_stale:
-            st_module.warning("Inputs changed since the last run. Click **🚀 Calculate Impact** to refresh results.")
+            st_module.warning(
+                "Inputs changed since the last run. "
+                "Click **Calculate Impact** to refresh results."
+            )
         view = st_module.radio(
             "Analysis view",
-            options=["👥 Distribution", "🌍 Dynamic Scoring", "⏳ Long-Run Growth", "📋 Details"],
+            options=[
+                "Distribution",
+                "Dynamic Scoring",
+                "Long-Run Growth",
+                "Details",
+            ],
             horizontal=True,
             label_visibility="collapsed",
         )
 
-        if view == "👥 Distribution":
+        if view == "Distribution":
             deps.render_distribution_tab(
                 st_module=st_module,
                 model_available=model_available,
@@ -119,7 +171,7 @@ def render_result_tabs(
                 winners_losers_summary_fn=deps.generate_winners_losers_summary,
                 run_id=results_run_id,
             )
-        elif view == "🌍 Dynamic Scoring":
+        elif view == "Dynamic Scoring":
             deps.render_dynamic_scoring_tab(
                 st_module=st_module,
                 dynamic_scoring=settings["dynamic_scoring"],
@@ -131,7 +183,7 @@ def render_result_tabs(
                 build_macro_scenario_fn=deps.build_macro_scenario,
                 run_id=results_run_id,
             )
-        elif view == "⏳ Long-Run Growth":
+        elif view == "Long-Run Growth":
             deps.render_long_run_growth_tab(
                 st_module=st_module,
                 session_results=result_data,
@@ -139,18 +191,22 @@ def render_result_tabs(
                 run_id=results_run_id,
             )
         else:
-            deps.render_detailed_results_tab(st_module=st_module, result_data=result_data)
+            deps.render_detailed_results_tab(
+                st_module=st_module, result_data=result_data
+            )
 
 
 def render_footer(st_module: Any) -> None:
     """
-    Render app footer.
+    Render app footer with version and validation info.
     """
     st_module.markdown("---")
     st_module.caption(
-        """
-**Fiscal Policy Impact Calculator** | Built with Streamlit |
-Data: IRS Statistics of Income, FRED, CBO |
-Methodology: Congressional Budget Office scoring framework
-"""
+        "**Fiscal Policy Impact Calculator** v1.0 · "
+        "25 policies validated against CBO/JCT · "
+        "302 unit tests · "
+        "Data: IRS SOI 2022, FRED, CBO Feb 2024 · "
+        "[Methodology](https://github.com/laurencehw/fiscal-policy-calculator"
+        "/blob/main/docs/METHODOLOGY.md) · "
+        "[Source code](https://github.com/laurencehw/fiscal-policy-calculator)"
     )
