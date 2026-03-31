@@ -32,6 +32,13 @@ from fiscal_model import (
     create_tcja_extension,
     create_tcja_repeal_salt_cap,
 )
+from fiscal_model.climate import (
+    create_carbon_tax_25,
+    create_carbon_tax_50,
+    create_extend_ira,
+    create_repeal_ev_credits,
+    create_repeal_ira_credits,
+)
 from fiscal_model.enforcement import (
     create_double_enforcement,
     create_high_income_enforcement,
@@ -48,6 +55,13 @@ from fiscal_model.pharma import (
     create_expand_drug_negotiation,
     create_insulin_cap_all,
     create_reference_pricing,
+)
+from fiscal_model.trade import (
+    create_auto_tariff_25,
+    create_reciprocal_tariffs,
+    create_steel_tariff_25,
+    create_trump_china_60,
+    create_trump_universal_10,
 )
 
 
@@ -95,6 +109,12 @@ def create_policy_from_preset(preset_data: dict) -> Any | None:
 
     elif preset_data.get("is_pharma", False):
         return _create_pharma_policy(preset_data)
+
+    elif preset_data.get("is_trade", False):
+        return _create_trade_policy(preset_data)
+
+    elif preset_data.get("is_climate", False):
+        return _create_climate_policy(preset_data)
 
     # Not a complex preset - return None to indicate caller should handle
     return None
@@ -267,3 +287,39 @@ def _create_pharma_policy(preset_data: dict):
         return create_comprehensive_pharma_reform()
     else:
         return create_expand_drug_negotiation()
+
+
+def _create_trade_policy(preset_data: dict):
+    """Create trade/tariff policy based on type."""
+    trade_type = preset_data.get("trade_type", "universal_10")
+
+    if trade_type == "universal_10":
+        return create_trump_universal_10()
+    elif trade_type == "china_60":
+        return create_trump_china_60()
+    elif trade_type == "auto_25":
+        return create_auto_tariff_25()
+    elif trade_type == "steel_25":
+        return create_steel_tariff_25()
+    elif trade_type == "reciprocal":
+        return create_reciprocal_tariffs()
+    else:
+        return create_trump_universal_10()
+
+
+def _create_climate_policy(preset_data: dict):
+    """Create climate/energy policy based on type."""
+    climate_type = preset_data.get("climate_type", "carbon_50")
+
+    if climate_type == "repeal_ira":
+        return create_repeal_ira_credits()
+    elif climate_type == "carbon_50":
+        return create_carbon_tax_50()
+    elif climate_type == "carbon_25":
+        return create_carbon_tax_25()
+    elif climate_type == "repeal_ev":
+        return create_repeal_ev_credits()
+    elif climate_type == "extend_ira":
+        return create_extend_ira()
+    else:
+        return create_carbon_tax_50()
