@@ -48,15 +48,23 @@ select = [
 ]
 ignore = [
     "E501",   # line too long (handled by formatter)
+    "E741",   # ambiguous variable name (l used in Solow model for labor)
+    "B904",   # raise from (too noisy for existing code)
     "B905",   # zip without strict
+    "SIM102", # nested if statements (readability preference)
     "SIM108", # ternary operator (readability preference)
+    "RUF001", # ambiguous unicode in strings (intentional info symbol)
+    "RUF002", # ambiguous unicode in docstrings (intentional × symbol)
+    "RUF003", # ambiguous unicode in comments (intentional × symbol)
     "RUF012", # mutable class variables (dataclass pattern)
+    "RUF046", # unnecessary int() call
     "UP007",  # Optional[X] vs X | None (keep for compatibility)
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["B011", "SIM300"]
-"fiscal_model/validation/*" = ["E501"]
+"fiscal_model/validation/*" = ["E501", "B007", "F541"]
+"fiscal_model/microsim/*" = ["F541"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["fiscal_model"]
