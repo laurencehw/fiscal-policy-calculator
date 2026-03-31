@@ -65,6 +65,8 @@ def test_preset_factory_covers_flagged_presets():
         "is_international",
         "is_enforcement",
         "is_pharma",
+        "is_trade",
+        "is_climate",
     ]
 
     for name, preset in PRESET_POLICIES.items():

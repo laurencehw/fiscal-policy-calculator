@@ -241,6 +241,44 @@ CBO_SCORE_MAP = {
         "source_date": "2021",
         "notes": "Cap Medicare drug prices at 120% of international average",
     },
+    # Trade / Tariffs
+    "🏭 Trump Universal 10% Tariff (-$2T)": {
+        "official_score": -2000.0,
+        "source": "Tax Foundation / Yale Budget Lab",
+        "source_date": "2024",
+        "notes": "10% tariff on all imports, ~\\$1,700/household cost",
+    },
+    "🏭 Trump 60% China Tariff (-$500B)": {
+        "official_score": -500.0,
+        "source": "Tax Foundation",
+        "source_date": "2024",
+        "notes": "60% tariff on Chinese imports",
+    },
+    "🏭 25% Auto Tariff (-$100B)": {
+        "official_score": -100.0,
+        "source": "CRFB",
+        "source_date": "2024",
+        "notes": "25% tariff on auto imports",
+    },
+    # Climate / Energy
+    "🌱 Repeal IRA Clean Energy Credits ($783B)": {
+        "official_score": 783.0,
+        "source": "CBO",
+        "source_date": "March 2024",
+        "notes": "Full repeal of IRA clean energy tax credits",
+    },
+    "🌱 Carbon Tax \\$50/ton (-$1.7T)": {
+        "official_score": -1700.0,
+        "source": "CBO-style estimate",
+        "source_date": "2024",
+        "notes": "\\$50/ton CO2 tax with 5% annual escalator",
+    },
+    "🌱 Repeal EV Credits ($200B)": {
+        "official_score": 200.0,
+        "source": "CBO",
+        "source_date": "2024",
+        "notes": "Repeal \\$7,500 EV tax credit",
+    },
 }
 
 
@@ -580,5 +618,87 @@ PRESET_POLICIES = {
         "is_tcja": False,
         "is_pharma": True,
         "pharma_type": "comprehensive",
+    },
+    # Trade / Tariff Presets
+    "🏭 Trump Universal 10% Tariff (-$2T)": {
+        "rate_change": 0.0,
+        "threshold": 0,
+        "description": "10% tariff on all imports. Raises ~\\$2T but costs ~\\$1,700/household in higher prices.",
+        "is_tcja": False,
+        "is_trade": True,
+        "trade_type": "universal_10",
+    },
+    "🏭 Trump 60% China Tariff (-$500B)": {
+        "rate_change": 0.0,
+        "threshold": 0,
+        "description": "60% tariff on all Chinese imports (~\\$430B base). Raises ~\\$500B over 10 years.",
+        "is_tcja": False,
+        "is_trade": True,
+        "trade_type": "china_60",
+    },
+    "🏭 25% Auto Tariff (-$100B)": {
+        "rate_change": 0.0,
+        "threshold": 0,
+        "description": "25% tariff on imported vehicles and parts (~\\$380B base). Raises ~\\$100B.",
+        "is_tcja": False,
+        "is_trade": True,
+        "trade_type": "auto_25",
+    },
+    "🏭 25% Steel/Aluminum Tariff (-$15B)": {
+        "rate_change": 0.0,
+        "threshold": 0,
+        "description": "25% tariff on steel and aluminum imports (~\\$50B base).",
+        "is_tcja": False,
+        "is_trade": True,
+        "trade_type": "steel_25",
+    },
+    "🏭 Reciprocal Tariffs (-$1.2T)": {
+        "rate_change": 0.0,
+        "threshold": 0,
+        "description": "Match trading partners' tariff rates (~20pp average increase). Raises ~\\$1.2T.",
+        "is_tcja": False,
+        "is_trade": True,
+        "trade_type": "reciprocal",
+    },
+    # Climate / Energy Presets
+    "🌱 Repeal IRA Clean Energy Credits ($783B)": {
+        "rate_change": 0.0,
+        "threshold": 0,
+        "description": "Full repeal of IRA clean energy tax credits. Saves ~\\$783B over 10 years (CBO March 2024).",
+        "is_tcja": False,
+        "is_climate": True,
+        "climate_type": "repeal_ira",
+    },
+    "🌱 Carbon Tax \\$50/ton (-$1.7T)": {
+        "rate_change": 0.0,
+        "threshold": 0,
+        "description": "\\$50/ton CO2 tax with 5% annual escalator. Raises ~\\$1.7T over 10 years.",
+        "is_tcja": False,
+        "is_climate": True,
+        "climate_type": "carbon_50",
+    },
+    "🌱 Carbon Tax \\$25/ton (-$1.0T)": {
+        "rate_change": 0.0,
+        "threshold": 0,
+        "description": "\\$25/ton CO2 starter tax with 5% annual escalator. Raises ~\\$1.0T over 10 years.",
+        "is_tcja": False,
+        "is_climate": True,
+        "climate_type": "carbon_25",
+    },
+    "🌱 Repeal EV Credits ($200B)": {
+        "rate_change": 0.0,
+        "threshold": 0,
+        "description": "Repeal \\$7,500 EV tax credit. Saves ~\\$200B over 10 years.",
+        "is_tcja": False,
+        "is_climate": True,
+        "climate_type": "repeal_ev",
+    },
+    "🌱 Extend IRA Credits Beyond 2032 ($400B)": {
+        "rate_change": 0.0,
+        "threshold": 0,
+        "description": "Extend IRA clean energy credits 5 years beyond 2032 sunset. Costs ~\\$400B additional.",
+        "is_tcja": False,
+        "is_climate": True,
+        "climate_type": "extend_ira",
     },
 }

@@ -22,6 +22,8 @@ _CATEGORY_ORDER = [
     "Tax Expenditures",
     "IRS Enforcement",
     "Drug Pricing",
+    "Trade / Tariffs",
+    "Climate / Energy",
     "Income Tax",
 ]
 
@@ -49,6 +51,10 @@ def _preset_category(preset: dict[str, Any]) -> str:
         return "IRS Enforcement"
     if preset.get("is_pharma"):
         return "Drug Pricing"
+    if preset.get("is_trade"):
+        return "Trade / Tariffs"
+    if preset.get("is_climate"):
+        return "Climate / Energy"
     return "Income Tax"
 
 
