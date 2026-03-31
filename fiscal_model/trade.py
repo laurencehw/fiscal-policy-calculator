@@ -42,6 +42,13 @@ TRADE_BASELINE = {
     "tariff_avoidance_rate": 0.05,
     # Effective coverage: not all imports subject (exemptions, existing tariffs, de minimis)
     "universal_coverage_rate": 0.70,  # ~70% of imports effectively covered
+    # Non-linear tariff response thresholds
+    "high_tariff_threshold": 0.30,  # Above 30%, substitution accelerates
+    "high_tariff_elasticity_multiplier": 2.0,  # Elasticity doubles above threshold
+    "min_volume_factor": 0.20,  # Floor: imports never fall below 20% of base
+    # China-specific: existing tariffs already cover much of the base
+    "china_existing_avg_tariff": 0.20,  # ~20% weighted average existing tariff on China
+    "china_effective_coverage": 0.50,  # ~50% of base effectively new-to-tariff
 }
 
 
@@ -94,13 +101,18 @@ class TariffPolicy(TaxPolicy):
         base = self.import_base_billions
         rate = self.tariff_rate_change
         # Import volume declines with tariff rate (non-linear at high rates)
-        # At low rates (<15%): mostly linear elasticity
-        # At high rates (>30%): substitution accelerates, some imports cease entirely
-        if rate > 0.30:
-            volume_effect = 1 + self.import_elasticity * 0.30 + (rate - 0.30) * self.import_elasticity * 2.0
+        threshold = TRADE_BASELINE["high_tariff_threshold"]
+        hi_mult = TRADE_BASELINE["high_tariff_elasticity_multiplier"]
+        floor = TRADE_BASELINE["min_volume_factor"]
+        if rate > threshold:
+            volume_effect = (
+                1
+                + self.import_elasticity * threshold
+                + (rate - threshold) * self.import_elasticity * hi_mult
+            )
         else:
             volume_effect = 1 + self.import_elasticity * rate
-        return rate * base * max(0.2, volume_effect)
+        return rate * base * max(floor, volume_effect)
 
     def estimate_behavioral_offset(self, static_effect: float) -> float:
         return abs(static_effect) * TRADE_BASELINE["tariff_avoidance_rate"]
@@ -151,27 +163,27 @@ def create_trump_universal_10() -> TariffPolicy:
 
 
 def create_trump_china_60() -> TariffPolicy:
-    # Existing tariffs already cover ~$300B at 25%; incremental is ~40pp on $430B
-    # But Tax Foundation scores incremental revenue only at ~$50B/yr
-    # Many imports have already shifted or will be substituted at 60%
+    # Use full base with incremental rate; the model's volume_effect
+    # handles substitution via import_elasticity (no pre-shrinking)
+    existing_tariff = TRADE_BASELINE["china_existing_avg_tariff"]
     return TariffPolicy(
         name="Trump 60% China Tariff",
         description="60% tariff on all Chinese imports (~\\$430B base). Raises ~\\$500B/10yr.",
-        tariff_rate_change=0.40,  # Incremental above existing ~20% average
+        tariff_rate_change=0.60 - existing_tariff,  # Incremental above existing ~20%
         target_country="china",
-        import_base_billions=TRADE_BASELINE["china_imports_billions"] * 0.5,  # Reduced base after substitution
+        import_base_billions=TRADE_BASELINE["china_imports_billions"],
+        import_elasticity=-0.7,  # Higher elasticity for China (more substitution available)
     )
 
 
 def create_auto_tariff_25() -> TariffPolicy:
-    # Incremental above existing ~2.5% auto tariff; effective base smaller
-    # due to exemptions (USMCA, parts vs finished vehicles)
+    # USMCA exempts ~65% of auto imports; effective base is ~35%
     return TariffPolicy(
         name="25% Auto Tariff",
         description="25% tariff on imported vehicles and parts (~\\$380B base).",
-        tariff_rate_change=0.225,  # Incremental above existing ~2.5%
+        tariff_rate_change=0.25,
         target_sector="autos",
-        import_base_billions=TRADE_BASELINE["auto_imports_billions"] * 0.35,  # Effective base after USMCA
+        import_base_billions=TRADE_BASELINE["auto_imports_billions"] * 0.35,
     )
 
 

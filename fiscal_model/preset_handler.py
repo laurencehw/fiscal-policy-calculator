@@ -304,7 +304,7 @@ def _create_trade_policy(preset_data: dict):
     elif trade_type == "reciprocal":
         return create_reciprocal_tariffs()
     else:
-        return create_trump_universal_10()
+        raise ValueError(f"Unknown trade_type: {trade_type}")
 
 
 def _create_climate_policy(preset_data: dict):
@@ -322,4 +322,4 @@ def _create_climate_policy(preset_data: dict):
     elif climate_type == "extend_ira":
         return create_extend_ira()
     else:
-        return create_carbon_tax_50()
+        raise ValueError(f"Unknown climate_type: {climate_type}")
