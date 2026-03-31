@@ -103,33 +103,37 @@ def render_results_summary_tab(
     )
 
     # Plain-English interpretation
-    annual_avg = final_deficit_total / 10
-    gdp_baseline = 30_000  # ~$30T nominal GDP
-    pct_of_gdp = abs(final_deficit_total) / gdp_baseline * 100
+    n_years = len(result.years)
+    annual_avg = final_deficit_total / n_years
+    gdp_baseline = float(result.baseline.nominal_gdp[0]) if result.baseline.nominal_gdp[0] > 0 else 30_000
+    pct_of_gdp = abs(annual_avg) / gdp_baseline * 100
 
     if final_deficit_total > 100:
         interpretation = (
             f"This policy would **add approximately ${final_deficit_total:,.0f} billion** "
-            f"to the federal deficit over 10 years — roughly "
+            f"to the federal deficit over {n_years} years — roughly "
             f"**${abs(annual_avg):,.0f}B per year**, or about "
-            f"**{pct_of_gdp:.1f}% of GDP**."
+            f"**{pct_of_gdp:.1f}% of GDP annually**."
         )
     elif final_deficit_total < -100:
         interpretation = (
             f"This policy would **reduce the federal deficit by approximately "
-            f"${abs(final_deficit_total):,.0f} billion** over 10 years — roughly "
+            f"${abs(final_deficit_total):,.0f} billion** over {n_years} years — roughly "
             f"**${abs(annual_avg):,.0f}B per year** in new revenue or savings, "
-            f"or about **{pct_of_gdp:.1f}% of GDP**."
+            f"or about **{pct_of_gdp:.1f}% of GDP annually**."
         )
     elif abs(final_deficit_total) > 1:
         direction = "increase" if final_deficit_total > 0 else "decrease"
         interpretation = (
             f"This policy would **{direction} the deficit by about "
-            f"${abs(final_deficit_total):,.0f} billion** over 10 years "
+            f"${abs(final_deficit_total):,.0f} billion** over {n_years} years "
             f"(${abs(annual_avg):,.0f}B/year) — a relatively modest fiscal impact."
         )
     else:
-        interpretation = "This policy has **negligible fiscal impact** over the 10-year window."
+        interpretation = (
+            f"This policy has **negligible fiscal impact** over the "
+            f"{n_years}-year window."
+        )
 
     st_module.markdown(interpretation)
 
@@ -341,7 +345,8 @@ def render_results_summary_tab(
             st_module.markdown("**Data**")
             st_module.markdown("- IRS Statistics of Income")
             st_module.markdown("- FRED Economic Data")
-            st_module.markdown("- CBO Baseline (Feb 2024)")
+            baseline_year = result.baseline.start_year
+            st_module.markdown(f"- CBO Baseline (FY{baseline_year})")
         with a3:
             st_module.markdown("**Methodology**")
             st_module.markdown("- Static + behavioral scoring")

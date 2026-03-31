@@ -110,11 +110,14 @@ def render_tax_policy_inputs(
         display_name = _strip_emoji_prefix(preset_choice)
         desc = preset_data["description"]
 
-        # Determine fiscal direction from description keywords
-        desc_lower = desc.lower()
-        if any(w in desc_lower for w in ["raise", "saves", "revenue"]):
+        # Use the CBO score sign from the preset name to determine direction
+        # Names like "(CBO: -$1.35T)" indicate revenue-raising (negative = reduces deficit)
+        # Names like "(CBO: $4.6T)" indicate deficit-increasing (positive = costs money)
+        import re as _re
+        score_match = _re.search(r'\((?:CBO|JCT):\s*(-?\$[\d.]+[TB])\)', preset_choice)
+        if score_match and score_match.group(1).startswith("-"):
             st_module.success(f"**{display_name}**\n\n{desc}")
-        elif any(w in desc_lower for w in ["cost", "repeal", "cut", "reduce", "lower", "extend", "expand"]):
+        elif score_match:
             st_module.warning(f"**{display_name}**\n\n{desc}")
         else:
             st_module.info(f"**{display_name}**\n\n{desc}")
