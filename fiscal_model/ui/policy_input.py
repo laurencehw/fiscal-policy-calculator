@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from fiscal_model.ui.helpers import TEXTBOOK_LINKS
+
 # ---------------------------------------------------------------------------
 # Preset category helpers
 # ---------------------------------------------------------------------------
@@ -150,12 +152,8 @@ def render_tax_policy_inputs(
                 "using FRB/US-calibrated multipliers\n\n"
                 "Data sources: IRS Statistics of Income, FRED, CBO Baseline Projections.\n\n"
                 "For deeper background, see "
-                "[Optimal Taxation (Ch 16)]"
-                "(https://laurence-wilse-samson.gitbook.io/textbooks/"
-                "public-economcis/chapters/ch16_optimal_taxation) and "
-                "[The Federal Budget (Ch 22)]"
-                "(https://laurence-wilse-samson.gitbook.io/textbooks/"
-                "public-economcis/chapters/ch22_federal_budget) "
+                f"[Optimal Taxation (Ch 16)]({TEXTBOOK_LINKS['optimal_taxation']}) and "
+                f"[The Federal Budget (Ch 22)]({TEXTBOOK_LINKS['federal_budget']}) "
                 "in the textbook."
             )
 

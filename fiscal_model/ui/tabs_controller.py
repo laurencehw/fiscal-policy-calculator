@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from fiscal_model.ui.helpers import TEXTBOOK_HOME
+
 
 def build_main_tabs(st_module: Any, mode: str) -> dict[str, Any]:
     """
@@ -226,7 +228,6 @@ def render_footer(st_module: Any) -> None:
         "Data: IRS SOI 2022, FRED, CBO Feb 2024 · "
         "[Methodology](https://github.com/laurencehw/fiscal-policy-calculator"
         "/blob/main/docs/METHODOLOGY.md) · "
-        "[Textbook](https://laurence-wilse-samson.gitbook.io/textbooks/"
-        "public-economcis) · "
+        f"[Textbook]({TEXTBOOK_HOME}) · "
         "[Source code](https://github.com/laurencehw/fiscal-policy-calculator)"
     )

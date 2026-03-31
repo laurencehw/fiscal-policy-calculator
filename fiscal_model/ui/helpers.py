@@ -9,6 +9,7 @@ from typing import Any
 import numpy as np
 
 # ── Textbook links ──────────────────────────────────────────────────────
+# NOTE: "public-economcis" is the actual GitBook slug (intentional spelling).
 _TEXTBOOK_BASE = (
     "https://laurence-wilse-samson.gitbook.io/textbooks/public-economcis/chapters"
 )
