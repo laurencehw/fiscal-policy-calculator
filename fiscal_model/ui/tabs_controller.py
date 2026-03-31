@@ -11,7 +11,7 @@ def build_main_tabs(st_module: Any, mode: str) -> dict[str, Any]:
     """
     Create main result tabs layout and return named tab references.
     """
-    tab_labels = ["Results", "Analysis", "Methodology", "Tools"]
+    tab_labels = ["Results", "Analysis", "Methodology", "Deficit Planner", "Tools"]
     tabs = st_module.tabs(tab_labels)
     tab_map = dict(zip(tab_labels, tabs, strict=False))
 
@@ -19,6 +19,7 @@ def build_main_tabs(st_module: Any, mode: str) -> dict[str, Any]:
         "tab_summary": tab_map["Results"],
         "tab_analysis": tab_map["Analysis"],
         "tab_methodology": tab_map["Methodology"],
+        "tab_deficit": tab_map["Deficit Planner"],
         "tab_tools": tab_map["Tools"],
     }
 
@@ -45,6 +46,16 @@ def render_result_tabs(
     # ── Methodology tab (always visible) ─────────────────────────────────
     with tabs["tab_methodology"]:
         deps.render_methodology_tab(st_module=st_module)
+
+    # ── Deficit Planner tab (always visible) ─────────────────────────────
+    with tabs["tab_deficit"]:
+        deps.render_deficit_target_tab(
+            st_module=st_module,
+            preset_policies=deps.PRESET_POLICIES,
+            cbo_score_map=deps.CBO_SCORE_MAP,
+            create_policy_from_preset_fn=deps.create_policy_from_preset,
+            fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
+        )
 
     # ── Tools tab ────────────────────────────────────────────────────────
     with tabs["tab_tools"]:
