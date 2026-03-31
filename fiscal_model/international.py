@@ -43,6 +43,9 @@ INTERNATIONAL_BASELINE = {
     "gilti_revenue_billions": 25.0,  # Current GILTI revenue ~$25B/yr
     "gilti_qbai_exemption_rate": 0.10,  # 10% return on QBAI exempt
     "gilti_high_tax_exclusion_rate": 0.90,  # 90% of US rate threshold
+    "gilti_qbai_exempt_income_billions": 100.0,  # ~$100B currently exempt
+    "gilti_cbc_revenue_multiplier": 1.35,  # ~35% revenue increase from per-country
+    "current_corporate_rate": 0.21,  # US statutory corporate rate
 
     # FDII (current law)
     "fdii_deduction_rate": 0.375,  # 37.5% deduction -> 13.125% effective
@@ -57,6 +60,9 @@ INTERNATIONAL_BASELINE = {
     "pillar_two_rate": 0.15,  # Global minimum 15%
     "undertaxed_profits_billions": 120.0,  # US MNE profits taxed below 15%
     "foreign_undertaxed_in_us_billions": 30.0,  # Foreign MNE profits in US below 15%
+    "pillar_two_carveout_fraction": 0.6,  # ~60% subject after substance carve-outs (OECD)
+    "utpr_capture_rate": 0.5,  # ~50% of undertaxed profits captured by UTPR
+    "behavioral_offset_factor": 0.3,  # Lower than domestic (anti-avoidance rules)
 }
 
 # CBO/JCT/Treasury estimates for validation
@@ -117,13 +123,7 @@ class InternationalTaxPolicy(TaxPolicy):
 
     def __post_init__(self):
         self.policy_type = PolicyType.CORPORATE_TAX
-        # Don't call TaxPolicy validation on rate_change since we use structural modeling
-        if self.start_year < 2000 or self.start_year > 2100:
-            raise ValueError(f"start_year must be between 2000 and 2100, got {self.start_year}")
-        if self.duration_years <= 0:
-            raise ValueError(f"duration_years must be positive, got {self.duration_years}")
-        if self.phase_in_years < 1:
-            raise ValueError(f"phase_in_years must be >= 1, got {self.phase_in_years}")
+        super().__post_init__()
 
     def estimate_static_revenue_effect(self, baseline_revenue: float,
                                        use_real_data: bool = True) -> float:
@@ -149,13 +149,12 @@ class InternationalTaxPolicy(TaxPolicy):
 
         # Country-by-country increases effective rate by eliminating cross-crediting
         # CBO estimates ~30-40% revenue increase from per-country
-        cbc_multiplier = 1.35 if self.gilti_country_by_country else 1.0
+        cbc_multiplier = base["gilti_cbc_revenue_multiplier"] if self.gilti_country_by_country else 1.0
 
         # QBAI exemption elimination adds to the base
         qbai_addition = 0.0
         if self.gilti_eliminate_qbai:
-            # 10% return on ~$1T tangible assets = ~$100B currently exempt
-            qbai_addition = 100.0 * new_rate
+            qbai_addition = base["gilti_qbai_exempt_income_billions"] * new_rate
 
         new_revenue = (gilti_base * new_rate * cbc_multiplier) + qbai_addition
         return new_revenue - current_revenue
@@ -171,7 +170,7 @@ class InternationalTaxPolicy(TaxPolicy):
 
         # Modified FDII rate
         if self.fdii_new_rate is not None:
-            current_effective = 0.21 * (1 - base["fdii_deduction_rate"])  # 13.125%
+            current_effective = base["current_corporate_rate"] * (1 - base["fdii_deduction_rate"])
             new_effective = self.fdii_new_rate
             fdii_base = base["fdii_base_billions"]
             return (new_effective - current_effective) * fdii_base
@@ -189,10 +188,7 @@ class InternationalTaxPolicy(TaxPolicy):
         undertaxed = base["undertaxed_profits_billions"]
         rate_gap = max(0, self.pillar_two_rate - base["tax_haven_rate"])
 
-        # Only a fraction actually subject (exclusions, substance carve-outs)
-        effective_fraction = 0.6  # ~60% after carve-outs
-
-        return undertaxed * rate_gap * effective_fraction
+        return undertaxed * rate_gap * base["pillar_two_carveout_fraction"]
 
     def _estimate_utpr(self) -> float:
         """Revenue from Undertaxed Profits Rule."""
@@ -204,14 +200,14 @@ class InternationalTaxPolicy(TaxPolicy):
         foreign_undertaxed = base["foreign_undertaxed_in_us_billions"]
         rate_gap = max(0, self.pillar_two_rate - base["tax_haven_rate"])
 
-        return foreign_undertaxed * rate_gap * 0.5  # 50% capture rate
+        return foreign_undertaxed * rate_gap * base["utpr_capture_rate"]
 
     def estimate_behavioral_offset(self, static_effect: float) -> float:
         """Behavioral response to international tax changes."""
         # International provisions have lower behavioral offset than domestic
         # because they're harder to avoid (anti-avoidance rules)
         # But profit shifting elasticity still matters
-        base_offset = abs(static_effect) * self.profit_shifting_elasticity * 0.3
+        base_offset = abs(static_effect) * self.profit_shifting_elasticity * INTERNATIONAL_BASELINE["behavioral_offset_factor"]
         return base_offset
 
     def get_component_breakdown(self) -> dict:

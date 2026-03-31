@@ -34,6 +34,8 @@ ENFORCEMENT_BASELINE = {
     "current_audit_rate_high_income": 0.02,  # 2% for >$1M (was 16% in 2010)
     "current_audit_rate_corporate": 0.01,  # ~1% for large corps
     "revenue_per_dollar_marginal": 5.0,  # First-dollar ROI (diminishes)
+    "avoidance_response_rate": 0.05,  # 5% behavioral offset from increased avoidance
+    "medicare_insulin_share": 0.4,  # ~40% of insulin users are on Medicare
 }
 
 CBO_ENFORCEMENT_ESTIMATES = {
@@ -81,14 +83,7 @@ class IRSEnforcementPolicy(TaxPolicy):
 
     def __post_init__(self):
         self.policy_type = PolicyType.INCOME_TAX
-        # Skip rate_change validation since this isn't a rate-based policy
-        if self.start_year < 2000 or self.start_year > 2100:
-            raise ValueError(f"start_year must be between 2000 and 2100, got {self.start_year}")
-        if self.duration_years <= 0:
-            raise ValueError(f"duration_years must be positive, got {self.duration_years}")
-        if self.phase_in_years < 1:
-            raise ValueError(f"phase_in_years must be >= 1, got {self.phase_in_years}")
-
+        super().__post_init__()
         # Calculate annual from total if only total provided
         if self.annual_enforcement_spending_billions == 0 and self.total_10yr_spending_billions > 0:
             self.annual_enforcement_spending_billions = self.total_10yr_spending_billions / self.duration_years
@@ -124,22 +119,14 @@ class IRSEnforcementPolicy(TaxPolicy):
         # Add voluntary compliance boost (deterrence effect)
         total_revenue *= (1 + self.voluntary_compliance_boost)
 
-        # Average over ramp-up period
-        # Year 1: 30%, Year 2: 60%, Year 3: 90%, Year 4+: 100%
-        ramp_factor = sum(
-            min(1.0, (y + 1) / self.ramp_up_years)
-            for y in range(self.duration_years)
-        ) / self.duration_years
-
-        # Return as negative (reduces deficit)
-        # But subtract the cost of enforcement spending itself
-        net_revenue = (total_revenue * ramp_factor) - annual_spending
+        # Return steady-state net revenue (ramp-up handled by scorer's phase_in_factor)
+        net_revenue = total_revenue - annual_spending
         return net_revenue  # Positive = net revenue gain
 
     def estimate_behavioral_offset(self, static_effect: float) -> float:
         """Enforcement has minimal behavioral offset — it's not changing rates."""
         # Small offset for increased avoidance in response to higher audit rates
-        return abs(static_effect) * 0.05
+        return abs(static_effect) * ENFORCEMENT_BASELINE["avoidance_response_rate"]
 
     def get_roi_summary(self) -> dict:
         """Summary of enforcement ROI."""

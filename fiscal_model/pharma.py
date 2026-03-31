@@ -46,6 +46,9 @@ PHARMA_BASELINE = {
     "insulin_users_millions": 8.4,  # Americans using insulin
     "insulin_avg_cost_per_year": 6000,  # Average annual insulin cost
     "part_d_oop_cap": 2000,  # IRA 2025 out-of-pocket cap
+    "additional_drug_productivity": 0.6,  # Additional drugs 60% as productive as first 20
+    "exclusivity_delay_savings_pct": 0.3,  # Earlier negotiation captures ~30% more per drug
+    "medicare_insulin_share": 0.4,  # ~40% of insulin users are on Medicare
 }
 
 CBO_PHARMA_ESTIMATES = {
@@ -102,12 +105,7 @@ class DrugPricingPolicy(Policy):
 
     def __post_init__(self):
         self.policy_type = PolicyType.MANDATORY_SPENDING
-        if self.start_year < 2000 or self.start_year > 2100:
-            raise ValueError(f"start_year must be between 2000 and 2100, got {self.start_year}")
-        if self.duration_years <= 0:
-            raise ValueError(f"duration_years must be positive, got {self.duration_years}")
-        if self.phase_in_years < 1:
-            raise ValueError(f"phase_in_years must be >= 1, got {self.phase_in_years}")
+        super().__post_init__()
 
     def estimate_cost_effect(self, baseline_cost: float = 0.0) -> float:
         """
@@ -142,7 +140,7 @@ class DrugPricingPolicy(Policy):
         if additional_drugs > 0:
             # First 20 drugs cover ~50% of Part D spending
             # Next 30 cover ~25%, etc.
-            additional_savings = additional_drugs * ira_per_drug * 0.6  # 60% as productive
+            additional_savings = additional_drugs * ira_per_drug * base["additional_drug_productivity"]
         else:
             additional_savings = 0.0
 
@@ -150,7 +148,7 @@ class DrugPricingPolicy(Policy):
         delay_savings = 0.0
         if self.remove_exclusivity_delay:
             # Earlier negotiation captures 2-3 more years of savings per drug
-            delay_savings = self.negotiation_drug_count * ira_per_drug * 0.3
+            delay_savings = self.negotiation_drug_count * ira_per_drug * base["exclusivity_delay_savings_pct"]
 
         return additional_savings + delay_savings
 
@@ -179,8 +177,8 @@ class DrugPricingPolicy(Policy):
 
         per_person_savings = current_cost - annual_cap
 
-        # Only Medicare share (about 40% of insulin users)
-        medicare_share = 0.4
+        # Only Medicare share
+        medicare_share = base["medicare_insulin_share"]
         if self.extend_to_private:
             medicare_share = 1.0
 
