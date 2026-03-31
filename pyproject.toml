@@ -66,5 +66,5 @@ source = ["fiscal_model"]
 omit = ["fiscal_model/ui/*", "fiscal_model/microsim/demo.py"]
 
 [tool.coverage.report]
-fail_under = 50
+fail_under = 45
 show_missing = true

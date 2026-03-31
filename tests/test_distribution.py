@@ -271,11 +271,15 @@ class TestCreditDistribution:
         # Lower/middle quintiles should benefit more per capita than top
         # (because credit phases out)
         middle_avg = abs(result.results[2].tax_change_avg)
-        abs(result.results[4].tax_change_avg)
+        top_avg = abs(result.results[4].tax_change_avg)
 
-        # Middle should get comparable or better benefit per capita
-        # (may not always hold due to income distribution assumptions)
-        assert middle_avg > 0  # At least some benefit to middle
+        # Middle quintile should receive some benefit
+        assert middle_avg > 0, "Middle quintile should get some benefit"
+        # Top quintile should receive less per capita due to phase-out
+        # (allow small tolerance since model distributional assumptions are approximate)
+        assert top_avg <= middle_avg * 1.5, (
+            f"Credit phase-out: top ({top_avg:.0f}) should not vastly exceed middle ({middle_avg:.0f})"
+        )
 
 
 class TestPayrollDistribution:

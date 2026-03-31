@@ -361,9 +361,6 @@ class FRBUSAdapter(MacroModelAdapter):
     def description(self) -> str:
         return "Federal Reserve Board's US macroeconomic model"
 
-    DEFAULT_MODEL_PATH = os.environ.get("FRBUS_MODEL_PATH")
-    DEFAULT_DATA_PATH = os.environ.get("FRBUS_DATA_PATH")
-
     def __init__(
         self,
         model_path: str | None = None,
@@ -375,13 +372,13 @@ class FRBUSAdapter(MacroModelAdapter):
         Initialize FRB/US adapter.
 
         Args:
-            model_path: Path to model.xml file (defaults to Economy_Forecasts location)
-            data_path: Path to LONGBASE.TXT data file
+            model_path: Path to model.xml file (defaults to FRBUS_MODEL_PATH env var)
+            data_path: Path to LONGBASE.TXT data file (defaults to FRBUS_DATA_PATH env var)
             use_mce: Use model-consistent expectations (rational expectations)
             fiscal_closure: How to handle long-run fiscal sustainability
         """
-        self.model_path = model_path or self.DEFAULT_MODEL_PATH
-        self.data_path = data_path or self.DEFAULT_DATA_PATH
+        self.model_path = model_path or os.environ.get("FRBUS_MODEL_PATH")
+        self.data_path = data_path or os.environ.get("FRBUS_DATA_PATH")
         if self.model_path is None or self.data_path is None:
             raise FileNotFoundError(
                 "FRB/US model files not configured. Set FRBUS_MODEL_PATH and "

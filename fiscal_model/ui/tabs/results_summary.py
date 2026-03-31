@@ -4,6 +4,7 @@ Results summary tab renderer.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import pandas as pd
@@ -292,6 +293,8 @@ def render_results_summary_tab(
     st_module.download_button(
         label="Download Results as CSV",
         data=csv_data,
-        file_name=f"fiscal_results_{policy.name.replace(' ', '_').lower()}.csv",
+        file_name="fiscal_results_{}.csv".format(
+            re.sub(r"[^\w\-]", "_", policy.name).strip("_").lower()
+        ),
         mime="text/csv",
     )
