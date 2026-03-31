@@ -170,6 +170,14 @@ def render_result_tabs(
             label_visibility="collapsed",
         )
 
+        _ANALYSIS_CONTEXT = {
+            "Distribution": "How does this policy affect different income groups?",
+            "Dynamic Scoring": "GDP and employment effects using FRB/US-calibrated multipliers.",
+            "Long-Run Growth": "Long-run growth projections using a Solow framework.",
+            "Details": "Year-by-year breakdown of all scoring components.",
+        }
+        st_module.caption(_ANALYSIS_CONTEXT.get(view, ""))
+
         if view == "Distribution":
             deps.render_distribution_tab(
                 st_module=st_module,
@@ -218,5 +226,7 @@ def render_footer(st_module: Any) -> None:
         "Data: IRS SOI 2022, FRED, CBO Feb 2024 · "
         "[Methodology](https://github.com/laurencehw/fiscal-policy-calculator"
         "/blob/main/docs/METHODOLOGY.md) · "
+        "[Textbook](https://laurence-wilse-samson.gitbook.io/textbooks/"
+        "public-economcis) · "
         "[Source code](https://github.com/laurencehw/fiscal-policy-calculator)"
     )

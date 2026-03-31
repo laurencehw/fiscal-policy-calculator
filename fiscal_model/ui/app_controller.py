@@ -24,7 +24,9 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
     st_module.title("Fiscal Policy Impact Calculator")
     st_module.caption(
         "Estimate the 10-year budgetary and economic effects of U.S. tax and "
-        "spending proposals. Powered by IRS data, FRED, and CBO methodology."
+        "spending proposals. Powered by IRS data, FRED, and CBO methodology. "
+        "Companion to the [Public Economics textbook]"
+        "(https://laurence-wilse-samson.gitbook.io/textbooks/public-economcis)."
     )
 
     # Sidebar

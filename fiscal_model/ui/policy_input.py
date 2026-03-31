@@ -148,7 +148,15 @@ def render_tax_policy_inputs(
                 "[Saez et al. 2012](https://eml.berkeley.edu/~saez/saez-slemrod-giertzJEL12.pdf))\n"
                 "3. **Dynamic feedback** *(optional)* — GDP and employment effects "
                 "using FRB/US-calibrated multipliers\n\n"
-                "Data sources: IRS Statistics of Income, FRED, CBO Baseline Projections."
+                "Data sources: IRS Statistics of Income, FRED, CBO Baseline Projections.\n\n"
+                "For deeper background, see "
+                "[Optimal Taxation (Ch 16)]"
+                "(https://laurence-wilse-samson.gitbook.io/textbooks/"
+                "public-economcis/chapters/ch16_optimal_taxation) and "
+                "[The Federal Budget (Ch 22)]"
+                "(https://laurence-wilse-samson.gitbook.io/textbooks/"
+                "public-economcis/chapters/ch22_federal_budget) "
+                "in the textbook."
             )
 
     # ── Custom path ──────────────────────────────────────────────────────
