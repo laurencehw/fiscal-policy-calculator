@@ -36,6 +36,7 @@ from .policy_input import (
 from .policy_packages import PRESET_POLICY_PACKAGES
 from .styles import apply_app_styles
 from .tabs import (
+    render_deficit_target_tab,
     render_detailed_results_tab,
     render_distribution_tab,
     render_dynamic_scoring_tab,
@@ -77,6 +78,7 @@ def build_app_dependencies(pd_module: Any) -> SimpleNamespace:
         calculate_spending_policy_result=calculate_spending_policy_result,
         run_microsim_calculation=run_microsim_calculation,
         build_macro_scenario=build_macro_scenario,
+        render_deficit_target_tab=render_deficit_target_tab,
         render_results_summary_tab=render_results_summary_tab,
         render_dynamic_scoring_tab=render_dynamic_scoring_tab,
         render_distribution_tab=render_distribution_tab,
