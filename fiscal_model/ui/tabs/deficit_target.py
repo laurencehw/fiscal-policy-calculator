@@ -12,10 +12,9 @@ import plotly.graph_objects as go
 
 def render_deficit_target_tab(
     st_module: Any,
-    preset_policies: dict[str, dict[str, Any]],
     cbo_score_map: dict[str, dict[str, Any]],
-    create_policy_from_preset_fn: Any,
     fiscal_policy_scorer_cls: Any,
+    use_real_data: bool = False,
 ) -> None:
     """Interactive deficit reduction target builder."""
 
@@ -61,9 +60,8 @@ def render_deficit_target_tab(
         "The chart below updates to show progress toward your target."
     )
 
-    # Build policy menu grouped by category — only show policies with CBO scores
-    # so we can compute the impact
-    scorable_policies = {}
+    # Build policy menu grouped by category
+    scorable_policies: dict[str, float] = {}
     for name, data in cbo_score_map.items():
         score = data.get("official_score", 0)
         if score != 0:
@@ -72,7 +70,6 @@ def render_deficit_target_tab(
     # Group by rough category using emoji prefix
     categories: dict[str, list[tuple[str, float]]] = {}
     for name, score in scorable_policies.items():
-        # Determine category from emoji or first word
         if name.startswith("\U0001f3db"):
             cat = "TCJA / Individual"
         elif name.startswith("\U0001f3e2"):
@@ -108,35 +105,61 @@ def render_deficit_target_tab(
     total_impact = 0.0
 
     for cat_name, policies in sorted(categories.items()):
-        with st_module.expander(f"**{cat_name}** ({len(policies)} options)", expanded=False):
+        with st_module.expander(
+            f"**{cat_name}** ({len(policies)} options)", expanded=False
+        ):
             for policy_name, score in policies:
-                direction = "raises" if score < 0 else "costs"
+                direction = "reduces deficit by" if score < 0 else "increases deficit by"
                 label = f"{policy_name} — {direction} \\${abs(score):,.0f}B"
                 if st_module.checkbox(label, key=f"dt_{policy_name}"):
                     selected_policies.append(policy_name)
                     total_impact += score
 
+    # Warn about overlapping policies
+    _overlap_groups = {
+        "Biden International Package": ["Biden GILTI Reform", "Repeal FDII"],
+    }
+    for package, components in _overlap_groups.items():
+        pkg_selected = any(package in p for p in selected_policies)
+        component_selected = [c for c in components if any(c in p for p in selected_policies)]
+        if pkg_selected and component_selected:
+            st_module.warning(
+                f"**Overlap detected:** You selected both the *{package}* "
+                f"and its component(s) ({', '.join(component_selected)}). "
+                f"The package already includes these — selecting both double-counts."
+            )
+
     # Calculate results
     st_module.markdown("---")
 
-    # Get baseline
-    scorer = fiscal_policy_scorer_cls(use_real_data=False)
+    # Get baseline — use 10-year average for more accurate comparison
+    scorer = fiscal_policy_scorer_cls(use_real_data=use_real_data)
     baseline = scorer.baseline
-    baseline_deficit_yr1 = float(baseline.deficit[0])
-    baseline_gdp_yr1 = float(baseline.nominal_gdp[0])
-    baseline_deficit_pct = baseline_deficit_yr1 / baseline_gdp_yr1 * 100
 
-    # Compute adjusted deficit
-    # total_impact is 10-year; annual is /10
-    annual_impact = total_impact / 10
-    adjusted_deficit = baseline_deficit_yr1 + annual_impact  # positive score = more deficit
-    adjusted_pct = adjusted_deficit / baseline_gdp_yr1 * 100
+    if len(baseline.deficit) == 0 or len(baseline.nominal_gdp) == 0:
+        st_module.error("Baseline data unavailable.")
+        return
+
+    baseline_deficit_avg = float(baseline.deficit.mean())
+    baseline_gdp_avg = float(baseline.nominal_gdp.mean())
+    baseline_deficit_pct = (
+        baseline_deficit_avg / baseline_gdp_avg * 100
+        if baseline_gdp_avg > 0
+        else 0.0
+    )
+
+    # Compute adjusted deficit using 10-year averages
+    annual_impact = total_impact / len(baseline.years)
+    adjusted_deficit = baseline_deficit_avg + annual_impact
+    adjusted_pct = (
+        adjusted_deficit / baseline_gdp_avg * 100 if baseline_gdp_avg > 0 else 0.0
+    )
 
     if target_type == "Deficit as % of GDP":
-        target_deficit = target_value / 100 * baseline_gdp_yr1
+        target_deficit = target_value / 100 * baseline_gdp_avg
         target_label = f"{target_value}% of GDP"
     else:
-        target_deficit = target_value
+        target_deficit = float(target_value)
         target_label = f"\\${target_value:,}B"
 
     remaining = adjusted_deficit - target_deficit
@@ -145,8 +168,8 @@ def render_deficit_target_tab(
     c1, c2, c3, c4 = st_module.columns(4)
     with c1:
         st_module.metric(
-            "Baseline deficit",
-            f"\\${baseline_deficit_yr1:,.0f}B",
+            "Avg baseline deficit",
+            f"\\${baseline_deficit_avg:,.0f}B/yr",
             delta=f"{baseline_deficit_pct:.1f}% of GDP",
             delta_color="off",
         )
@@ -160,7 +183,7 @@ def render_deficit_target_tab(
     with c3:
         st_module.metric(
             "Adjusted deficit",
-            f"\\${adjusted_deficit:,.0f}B",
+            f"\\${adjusted_deficit:,.0f}B/yr",
             delta=f"{adjusted_pct:.1f}% of GDP",
             delta_color="off",
         )
@@ -169,40 +192,39 @@ def render_deficit_target_tab(
             st_module.metric(
                 "Target status",
                 "Target met!",
-                delta=f"\\${abs(remaining):,.0f}B surplus",
+                delta=f"\\${abs(remaining):,.0f}B below target",
                 delta_color="normal",
             )
         else:
             st_module.metric(
                 "Remaining gap",
-                f"\\${remaining:,.0f}B",
+                f"\\${remaining:,.0f}B/yr",
                 delta="More cuts needed",
                 delta_color="inverse",
             )
 
     # Progress bar
-    if baseline_deficit_yr1 > target_deficit:
+    denominator = baseline_deficit_avg - target_deficit
+    if denominator > 0:
         progress = max(
-            0,
-            min(
-                1.0,
-                (baseline_deficit_yr1 - adjusted_deficit)
-                / (baseline_deficit_yr1 - target_deficit),
-            ),
+            0.0,
+            min(1.0, (baseline_deficit_avg - adjusted_deficit) / denominator),
         )
     else:
         progress = 1.0
-    st_module.progress(progress, text=f"Progress toward {target_label}: {progress * 100:.0f}%")
+    st_module.progress(
+        progress, text=f"Progress toward {target_label}: {progress * 100:.0f}%"
+    )
 
     # Waterfall chart
     if selected_policies:
         labels = ["Baseline"]
-        values: list[float] = [baseline_deficit_yr1]
+        values: list[float] = [baseline_deficit_avg]
         measures = ["absolute"]
 
         for pname in selected_policies:
             score = scorable_policies.get(pname, 0)
-            annual = score / 10
+            annual = score / len(baseline.years)
             labels.append(pname[:30] + "..." if len(pname) > 30 else pname)
             values.append(annual)
             measures.append("relative")
@@ -227,7 +249,6 @@ def render_deficit_target_tab(
                 totals={"marker": {"color": "#1f77b4"}},
             )
         )
-        # Add target line
         fig.add_hline(
             y=target_deficit,
             line_dash="dash",
@@ -238,14 +259,15 @@ def render_deficit_target_tab(
         fig.update_layout(
             margin=dict(l=20, r=20, t=40, b=100),
             height=400,
-            yaxis_title="Annual Deficit (\\$B)",
+            yaxis_title="Average Annual Deficit (\\$B)",
             xaxis_tickangle=-45,
             showlegend=False,
         )
         st_module.plotly_chart(fig, use_container_width=True)
 
-    # Selected policies table
+    # Selected policies table (use plain $ — st.dataframe renders raw text, not markdown)
     if selected_policies:
+        n_years = len(baseline.years)
         st_module.subheader("Selected policies")
         rows = []
         for pname in selected_policies:
@@ -254,9 +276,19 @@ def render_deficit_target_tab(
             rows.append(
                 {
                     "Policy": pname,
-                    "10-Year Impact": f"\\${score:+,.0f}B",
-                    "Annual": f"\\${score / 10:+,.0f}B",
+                    "10-Year Impact": f"${score:+,.0f}B",
+                    "Annual": f"${score / n_years:+,.0f}B",
                     "Source": source,
                 }
             )
-        st_module.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
+        df_table = pd.DataFrame(rows)
+        st_module.dataframe(df_table, hide_index=True, use_container_width=True)
+
+        # CSV export
+        csv_data = df_table.to_csv(index=False)
+        st_module.download_button(
+            label="Download package as CSV",
+            data=csv_data,
+            file_name="deficit_reduction_package.csv",
+            mime="text/csv",
+        )
