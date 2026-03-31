@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Fiscal Policy Impact Calculator — a web app that estimates budgetary and economic effects of tax and spending proposals. Live at: https://laurencehw-fiscal-policy-calculator.streamlit.app
 
-**Current Phase**: Phase 6 (Documentation & Polish) — see `planning/ROADMAP.md` for full roadmap, `planning/NEXT_SESSION.md` for current priorities.
+See `planning/ROADMAP.md` for the full roadmap and next priorities.
 
 ## Commands
 
@@ -15,9 +15,9 @@ Fiscal Policy Impact Calculator — a web app that estimates budgetary and econo
 pip install -r requirements.txt
 
 # Run app locally
-streamlit run fiscal-policy-calculator/app.py
+streamlit run app.py
 
-# Run unit tests (60 tests)
+# Run unit tests (382 tests)
 pytest tests/ -v
 
 # Run specific test file
