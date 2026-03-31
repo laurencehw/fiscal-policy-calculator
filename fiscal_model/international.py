@@ -167,13 +167,15 @@ class InternationalTaxPolicy(TaxPolicy):
         if self.gilti_eliminate_qbai:
             qbai_addition = base["gilti_qbai_exempt_income_billions"] * new_rate
 
-        gross_new_revenue = (gilti_base * new_rate * cbc_multiplier) + qbai_addition
-        gross_delta = gross_new_revenue - current_revenue
+        # Compare reform parameters against baseline to avoid baseline mismatch
+        # (theoretical baseline 250*0.105 ≈ $26.25B ≠ calibrated $25B)
+        gross_delta = (gilti_base * (new_rate * cbc_multiplier - base["gilti_rate"])) + qbai_addition
 
         # Apply FTC offset — many MNEs get foreign tax credits that reduce
-        # the incremental US tax from GILTI reform
+        # the incremental US tax from GILTI reform.
+        # Only applies to positive delta (tax increases); tax cuts aren't offset by FTCs.
         ftc_offset = base.get("gilti_ftc_offset_rate", 0.0)
-        return gross_delta * (1 - ftc_offset)
+        return gross_delta * (1 - ftc_offset) if gross_delta > 0 else gross_delta
 
     def _estimate_fdii_reform(self) -> float:
         """Revenue from FDII reform/repeal."""
