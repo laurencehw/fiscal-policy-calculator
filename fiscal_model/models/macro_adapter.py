@@ -407,17 +407,17 @@ class FRBUSAdapter(MacroModelAdapter):
             recent_gdp = self._data['xgdpn'].iloc[-1]
             self._baseline_gdp = recent_gdp / 1_000_000  # Convert to trillions
 
-        except ImportError as e:
+        except ImportError as err:
             raise ImportError(
-                f"pyfrbus not installed or not found. Error: {e}\n"
+                f"pyfrbus not installed or not found. Error: {err}\n"
                 "Install from: https://www.federalreserve.gov/econres/us-models-package.htm"
-            )
-        except FileNotFoundError as e:
+            ) from err
+        except FileNotFoundError as err:
             raise FileNotFoundError(
-                f"FRB/US model files not found: {e}\n"
+                f"FRB/US model files not found: {err}\n"
                 f"Model path: {self.model_path}\n"
                 f"Data path: {self.data_path}"
-            )
+            ) from err
 
     def run(self, scenario: MacroScenario) -> MacroResult:
         """
