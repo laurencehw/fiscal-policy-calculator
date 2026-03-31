@@ -45,7 +45,6 @@ INTERNATIONAL_BASELINE = {
     "gilti_base_billions": 250.0,  # Gross taxable GILTI ~$250B/year
     "gilti_revenue_billions": 25.0,  # Current GILTI revenue ~$25B/yr (after FTCs)
     "gilti_qbai_exemption_rate": 0.10,  # 10% return on QBAI exempt
-    "gilti_high_tax_exclusion_rate": 0.90,  # 90% of US rate threshold
     # Net QBAI exempt income after FTCs — Treasury estimates smaller effective base
     "gilti_qbai_exempt_income_billions": 40.0,  # ~$40B net (many MNEs already above threshold)
     # CBC multiplier — per-country eliminates cross-crediting but many jurisdictions
@@ -118,7 +117,6 @@ class InternationalTaxPolicy(TaxPolicy):
     gilti_country_by_country: bool = False  # Switch from blended to per-country
     gilti_new_rate: float | None = None  # New effective GILTI rate (e.g., 0.21)
     gilti_eliminate_qbai: bool = False  # Remove 10% QBAI exemption
-    gilti_eliminate_high_tax_exclusion: bool = False
 
     # FDII parameters
     fdii_repeal: bool = False
