@@ -1,0 +1,70 @@
+[project]
+name = "fiscal-policy-calculator"
+version = "1.0.0"
+description = "Fiscal Policy Impact Calculator — estimates budgetary and economic effects of tax and spending proposals"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+
+dependencies = [
+    "numpy>=1.24.0,<3",
+    "pandas>=2.0.0,<3",
+    "matplotlib>=3.7.0,<4",
+    "scipy>=1.10.0,<2",
+    "pydantic>=2.0.0,<3",
+    "rich>=13.0.0,<14",
+    "fredapi>=0.5.0,<1",
+    "xlrd>=2.0.1,<3",
+    "streamlit>=1.28.0,<2",
+    "plotly>=5.17.0,<6",
+    "pdoc>=14.0.0,<15",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.4.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "RUF",  # ruff-specific rules
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B905",   # zip without strict
+    "SIM108", # ternary operator (readability preference)
+    "RUF012", # mutable class variables (dataclass pattern)
+    "UP007",  # Optional[X] vs X | None (keep for compatibility)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011", "SIM300"]
+"fiscal_model/validation/*" = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["fiscal_model"]
+
+[tool.coverage.run]
+source = ["fiscal_model"]
+omit = ["fiscal_model/ui/*", "fiscal_model/microsim/demo.py"]
+
+[tool.coverage.report]
+fail_under = 45
+show_missing = true

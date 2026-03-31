@@ -4,10 +4,10 @@ Shared utilities for UI controller modules.
 
 from __future__ import annotations
 
-from typing import Any, Callable
-
 import hashlib
 import json
+from collections.abc import Callable
+from typing import Any
 
 
 def run_with_spinner_feedback(
@@ -26,10 +26,11 @@ def run_with_spinner_feedback(
             st_module.success(success_message)
             return True
         except Exception as e:
-            st_module.error(f"{error_prefix}: {e}")
             import traceback
 
-            st_module.code(traceback.format_exc())
+            st_module.error(f"{error_prefix}: {e}")
+            with st_module.expander("Show technical details"):
+                st_module.code(traceback.format_exc())
             return False
 
 

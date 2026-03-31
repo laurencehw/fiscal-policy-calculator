@@ -4,6 +4,7 @@ Results summary tab renderer.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import pandas as pd
@@ -265,3 +266,35 @@ def render_results_summary_tab(
             yaxis_title="Cumulative Deficit Impact ($B)",
         )
         st_module.plotly_chart(fig_cum, use_container_width=True)
+
+    # Export section
+    st_module.markdown("---")
+    st_module.subheader("📥 Export Results")
+
+    years = result.baseline.years
+    export_data = {
+        "Year": years,
+        "Static Revenue Effect ($B)": result.static_revenue_effect,
+        "Static Spending Effect ($B)": result.static_spending_effect,
+        "Static Deficit Effect ($B)": result.static_deficit_effect,
+        "Behavioral Offset ($B)": result.behavioral_offset,
+        "Final Deficit Effect ($B)": result.final_deficit_effect,
+        "Low Estimate ($B)": result.low_estimate,
+        "High Estimate ($B)": result.high_estimate,
+    }
+    if result.dynamic_effects:
+        export_data["GDP Effect ($B)"] = result.dynamic_effects.gdp_level_change
+        export_data["GDP Effect (%)"] = result.dynamic_effects.gdp_percent_change
+        export_data["Employment (thousands)"] = result.dynamic_effects.employment_change
+        export_data["Revenue Feedback ($B)"] = result.dynamic_effects.revenue_feedback
+
+    df_export = pd.DataFrame(export_data)
+    csv_data = df_export.to_csv(index=False)
+    st_module.download_button(
+        label="Download Results as CSV",
+        data=csv_data,
+        file_name="fiscal_results_{}.csv".format(
+            re.sub(r"[^\w\-]", "_", policy.name).strip("_").lower()
+        ),
+        mime="text/csv",
+    )

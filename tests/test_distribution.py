@@ -8,24 +8,20 @@ Tests cover:
 - Output formatting
 """
 
-import pytest
-import numpy as np
 import sys
 from pathlib import Path
+
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from fiscal_model.distribution import (
-    DistributionalEngine,
-    IncomeGroupType,
     DistributionalAnalysis,
-    DistributionalResult,
-    IncomeGroup,
+    IncomeGroupType,
     format_distribution_table,
     generate_winners_losers_summary,
-    QUINTILE_THRESHOLDS_2024,
 )
-from fiscal_model.policies import TaxPolicy, PolicyType
+from fiscal_model.policies import PolicyType, TaxPolicy
 
 
 class TestIncomeGroups:
@@ -228,7 +224,7 @@ class TestTCJADistribution:
         # TPC shares (approximate)
         tpc_shares = [0.02, 0.05, 0.10, 0.18, 0.65]
 
-        for i, (r, expected) in enumerate(zip(result.results, tpc_shares)):
+        for _i, (r, expected) in enumerate(zip(result.results, tpc_shares, strict=False)):
             actual = abs(r.share_of_total_change)
             # Allow 50% relative error (TPC uses different methodology)
             assert abs(actual - expected) < expected * 0.6 or expected < 0.05
@@ -240,7 +236,7 @@ class TestCreditDistribution:
     @pytest.fixture
     def ctc_policy(self):
         """CTC expansion policy fixture."""
-        from fiscal_model.credits import TaxCreditPolicy, CreditType
+        from fiscal_model.credits import CreditType, TaxCreditPolicy
 
         return TaxCreditPolicy(
             name="CTC Expansion",
@@ -277,9 +273,13 @@ class TestCreditDistribution:
         middle_avg = abs(result.results[2].tax_change_avg)
         top_avg = abs(result.results[4].tax_change_avg)
 
-        # Middle should get comparable or better benefit per capita
-        # (may not always hold due to income distribution assumptions)
-        assert middle_avg > 0  # At least some benefit to middle
+        # Middle quintile should receive some benefit
+        assert middle_avg > 0, "Middle quintile should get some benefit"
+        # Top quintile should receive less per capita due to phase-out
+        # (allow small tolerance since model distributional assumptions are approximate)
+        assert top_avg <= middle_avg * 1.5, (
+            f"Credit phase-out: top ({top_avg:.0f}) should not vastly exceed middle ({middle_avg:.0f})"
+        )
 
 
 class TestPayrollDistribution:
@@ -441,15 +441,13 @@ class TestEdgeCases:
         assert abs(result.total_tax_change) < 10  # Less than $10B
 
     def test_negative_threshold(self, distribution_engine):
-        """Test policy with negative threshold (should be treated as 0)."""
-        policy = TaxPolicy(
-            name="Negative Threshold",
-            description="Negative threshold",
-            policy_type=PolicyType.INCOME_TAX,
-            rate_change=0.01,
-            affected_income_threshold=-1000,
-        )
-
-        # Should not raise error
-        result = distribution_engine.analyze_policy(policy)
-        assert result is not None
+        """Test policy with negative threshold raises ValueError."""
+        import pytest
+        with pytest.raises(ValueError, match="affected_income_threshold must be >= 0"):
+            TaxPolicy(
+                name="Negative Threshold",
+                description="Negative threshold",
+                policy_type=PolicyType.INCOME_TAX,
+                rate_change=0.01,
+                affected_income_threshold=-1000,
+            )

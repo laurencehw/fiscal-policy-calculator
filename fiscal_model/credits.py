@@ -19,12 +19,13 @@ CBO/JCT References:
 - Permanent CTC+EITC expansion: ~$1.6T over 10 years
 """
 
-from dataclasses import dataclass, field
-from typing import Optional, Literal
+from dataclasses import dataclass
 from enum import Enum
+from typing import Literal
+
 import numpy as np
 
-from .policies import Policy, TaxPolicy, PolicyType
+from .policies import PolicyType, TaxPolicy
 
 
 class CreditType(Enum):
@@ -180,7 +181,7 @@ class TaxCreditPolicy(TaxPolicy):
     remove_phase_out: bool = False
 
     # Expand qualifying criteria
-    expand_qualifying_age: Optional[int] = None  # e.g., 18 instead of 17
+    expand_qualifying_age: int | None = None  # e.g., 18 instead of 17
     include_childless_adults: bool = False  # For EITC expansion
 
     # Behavioral parameters
@@ -194,6 +195,7 @@ class TaxCreditPolicy(TaxPolicy):
         """Set default policy type for credits."""
         if self.policy_type == PolicyType.INCOME_TAX:
             self.policy_type = PolicyType.TAX_CREDIT
+        super().__post_init__()
 
     def calculate_credit_for_income(
         self,
@@ -340,7 +342,7 @@ def create_ctc_expansion(
     remove_phase_out: bool = False,
     start_year: int = 2025,
     duration_years: int = 10,
-    name: Optional[str] = None,
+    name: str | None = None,
 ) -> TaxCreditPolicy:
     """
     Create a Child Tax Credit expansion policy.

@@ -20,11 +20,9 @@ References:
 - CBO Budget Options: https://www.cbo.gov/publication/59710
 """
 
-from dataclasses import dataclass, field
-from typing import Optional, Literal
-import numpy as np
+from dataclasses import dataclass
 
-from .policies import TaxPolicy, PolicyPackage, PolicyType
+from .policies import PolicyType, TaxPolicy
 
 
 @dataclass
@@ -38,7 +36,7 @@ class TCJAComponent:
     name: str
     description: str
     ten_year_cost_billions: float  # Positive = increases deficit
-    annual_cost_billions: Optional[float] = None  # First year cost
+    annual_cost_billions: float | None = None  # First year cost
     growth_rate: float = 0.03  # Annual cost growth rate (nominal)
 
     # For validation

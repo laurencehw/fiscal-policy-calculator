@@ -33,11 +33,11 @@ Corporate AMT (IRA 2022, permanent):
 """
 
 from dataclasses import dataclass, field
-from typing import Optional, Literal
 from enum import Enum
+
 import numpy as np
 
-from .policies import Policy, TaxPolicy, PolicyType
+from .policies import PolicyType, TaxPolicy
 
 
 class AMTType(Enum):
@@ -177,8 +177,8 @@ class AMTPolicy(TaxPolicy):
 
     # Exemption changes (individual AMT)
     exemption_change: float = 0.0  # Dollar change in exemption
-    new_exemption_single: Optional[float] = None
-    new_exemption_mfj: Optional[float] = None
+    new_exemption_single: float | None = None
+    new_exemption_mfj: float | None = None
 
     # Full repeal options
     repeal_individual_amt: bool = False
@@ -186,8 +186,8 @@ class AMTPolicy(TaxPolicy):
 
     # Rate changes
     rate_change: float = 0.0  # Change to both tiers
-    new_first_tier_rate: Optional[float] = None  # 26% default
-    new_second_tier_rate: Optional[float] = None  # 28% default
+    new_first_tier_rate: float | None = None  # 26% default
+    new_second_tier_rate: float | None = None  # 28% default
 
     # Phase-out changes
     phase_out_threshold_change: float = 0.0  # Change to phase-out start
@@ -200,12 +200,13 @@ class AMTPolicy(TaxPolicy):
     base_year: int = 2024
 
     # Calibration
-    annual_revenue_change_billions: Optional[float] = None
+    annual_revenue_change_billions: float | None = None
 
     def __post_init__(self):
         """Set default policy type."""
         if self.policy_type == PolicyType.INCOME_TAX:
             self.policy_type = PolicyType.INCOME_TAX  # AMT is part of income tax
+        super().__post_init__()
 
     def get_exemption_for_year(
         self,
@@ -345,17 +346,17 @@ class AMTPolicy(TaxPolicy):
             return -CBO_AMT_ESTIMATES["extend_tcja_annual"]
 
         # Calculate from exemption changes
-        baseline_exemption = AMT_EXEMPTIONS_TCJA.get(
+        AMT_EXEMPTIONS_TCJA.get(
             self.start_year + 1,
             AMT_EXEMPTIONS_TCJA[2026]
         )[1]  # MFJ
 
-        policy_exemption = self.get_exemption_for_year(self.start_year + 1, "mfj")
+        self.get_exemption_for_year(self.start_year + 1, "mfj")
 
         # Estimate revenue based on taxpayer count and average liability
         baseline_taxpayers = self.estimate_affected_taxpayers(self.start_year + 1)
         # Approximate new taxpayer count
-        old_policy = AMTPolicy(amt_type=AMTType.INDIVIDUAL)  # Default policy
+        AMTPolicy(amt_type=AMTType.INDIVIDUAL)  # Default policy
         policy_taxpayers = self.estimate_affected_taxpayers(self.start_year + 1)
 
         # Get average liability (inversely related to exemption for those affected)

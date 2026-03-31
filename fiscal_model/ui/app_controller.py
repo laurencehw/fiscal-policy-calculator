@@ -23,26 +23,27 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
     """
     st_module.title("Fiscal Policy Impact Calculator")
     st_module.caption(
-        "Estimate the budgetary and economic effects of tax and spending policies using real IRS and FRED data."
+        "Estimate the 10-year budgetary and economic effects of U.S. tax and "
+        "spending proposals. Powered by IRS data, FRED, and CBO methodology."
     )
 
-    # Sidebar Inputs
+    # Sidebar
     with st_module.sidebar:
-        st_module.header("⚙️ Policy Configuration")
+        st_module.header("Policy Configuration")
         calc_context = render_sidebar_inputs(st_module=st_module, deps=deps)
 
         st_module.markdown("---")
         settings = render_settings_tab(
             st_module=st_module,
-            settings_tab=st_module.expander("⚙️ Global Settings"),
+            settings_tab=st_module.expander("Model settings", expanded=False),
         )
 
     calc_context["run_id"] = compute_run_id(calc_context=calc_context, settings=settings)
     st_module.session_state.current_run_id = calc_context["run_id"]
 
-    # Main Area Results
+    # Main area
     tabs = build_main_tabs(st_module=st_module, mode=calc_context["mode"])
-    
+
     ensure_results_state(st_module=st_module)
     execute_calculation_if_requested(
         st_module=st_module,

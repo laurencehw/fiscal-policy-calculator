@@ -24,11 +24,12 @@ Data sources:
 """
 
 from dataclasses import dataclass, field
-from typing import Optional, Literal, List
 from enum import Enum
+from typing import Literal
+
 import numpy as np
 
-from .policies import Policy, TaxPolicy, PolicyType
+from .policies import PolicyType, TaxPolicy
 
 
 class TaxExpenditureType(Enum):
@@ -239,12 +240,12 @@ class TaxExpenditurePolicy(TaxPolicy):
     action: Literal["eliminate", "cap", "phase_out", "convert", "expand"] = "cap"
 
     # Cap parameters
-    cap_amount: Optional[float] = None  # Dollar cap on deduction/exclusion
-    cap_rate: Optional[float] = None  # Rate cap (e.g., 28% for itemized)
+    cap_amount: float | None = None  # Dollar cap on deduction/exclusion
+    cap_rate: float | None = None  # Rate cap (e.g., 28% for itemized)
 
     # Phase-out parameters
-    phase_out_start: Optional[float] = None  # Income where phase-out begins
-    phase_out_end: Optional[float] = None  # Income where fully phased out
+    phase_out_start: float | None = None  # Income where phase-out begins
+    phase_out_end: float | None = None  # Income where fully phased out
     phase_out_rate: float = 0.03  # 3% reduction per $1,000 (Pease-style)
 
     # Conversion parameters
@@ -252,19 +253,20 @@ class TaxExpenditurePolicy(TaxPolicy):
     credit_rate: float = 0.15  # Credit rate if converting
 
     # Expansion parameters (for policies like SALT cap repeal)
-    expand_limit: Optional[float] = None  # New higher limit
+    expand_limit: float | None = None  # New higher limit
 
     # Behavioral parameters
     behavioral_elasticity: float = 0.2  # Response to incentive changes
     participation_change: float = 0.0  # Change in take-up rate
 
     # Calibration
-    annual_revenue_change_billions: Optional[float] = None
+    annual_revenue_change_billions: float | None = None
 
     def __post_init__(self):
         """Set policy type."""
         if self.policy_type == PolicyType.INCOME_TAX:
             self.policy_type = PolicyType.TAX_DEDUCTION
+        super().__post_init__()
 
     def get_expenditure_data(self) -> dict:
         """Get baseline data for this expenditure type."""

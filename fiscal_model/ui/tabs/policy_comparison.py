@@ -41,7 +41,7 @@ def render_policy_comparison_tab(
             unsafe_allow_html=True,
         )
 
-        comparison_options = [k for k in preset_policies.keys() if k != "Custom Policy"]
+        comparison_options = [k for k in preset_policies if k != "Custom Policy"]
         policies_to_compare = st_module.multiselect(
             "Select policies to compare (2-3 recommended)",
             options=comparison_options,

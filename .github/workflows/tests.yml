@@ -36,6 +36,11 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-cov
 
+      - name: Lint with ruff
+        run: |
+          pip install ruff
+          ruff check fiscal_model/ tests/ --output-format=github
+
       - name: Run tests with coverage
         run: |
           pytest tests/ -v --tb=short --cov=fiscal_model --cov-report=term-missing

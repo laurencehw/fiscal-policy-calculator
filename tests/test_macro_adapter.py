@@ -8,24 +8,25 @@ Tests cover:
 - Policy to scenario conversion
 """
 
-import pytest
-import numpy as np
 import sys
 from pathlib import Path
+
+import numpy as np
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from fiscal_model.models import (
-    MacroScenario,
-    MacroResult,
-    SimpleMultiplierAdapter,
+    FiscalClosureType,
     FRBUSAdapter,
     FRBUSAdapterLite,
-    FiscalClosureType,
+    MacroResult,
+    MacroScenario,
     MonetaryPolicyRule,
+    SimpleMultiplierAdapter,
     policy_to_scenario,
 )
-from fiscal_model.policies import TaxPolicy, PolicyType
+from fiscal_model.policies import PolicyType, TaxPolicy
 
 
 class TestMacroScenario:
@@ -227,7 +228,10 @@ class TestFRBUSAdapter:
 
     def test_adapter_properties(self):
         """Test FRBUS adapter properties."""
-        adapter = FRBUSAdapter()
+        adapter = FRBUSAdapter(
+            model_path="/tmp/model.xml",
+            data_path="/tmp/LONGBASE.TXT",
+        )
 
         assert adapter.name == "FRB/US"
         assert "Federal Reserve" in adapter.description
@@ -244,13 +248,18 @@ class TestFRBUSAdapter:
         with pytest.raises((ImportError, FileNotFoundError)):
             adapter.run(scenario)
 
-    def test_default_paths(self):
-        """Test that default paths are set correctly."""
-        adapter = FRBUSAdapter()
-
-        assert "Economy_Forecasts" in adapter.model_path
-        assert "model.xml" in adapter.model_path
-        assert "LONGBASE.TXT" in adapter.data_path
+    def test_missing_paths_raises_error(self):
+        """Test that missing paths raise a clear error."""
+        import os
+        # Ensure env vars are not set
+        env = os.environ.copy()
+        os.environ.pop("FRBUS_MODEL_PATH", None)
+        os.environ.pop("FRBUS_DATA_PATH", None)
+        try:
+            with pytest.raises(FileNotFoundError, match="FRBUS_MODEL_PATH"):
+                FRBUSAdapter()
+        finally:
+            os.environ.update(env)
 
 
 class TestFRBUSAdapterLite:

@@ -5,7 +5,8 @@ Policy package builder tab renderer.
 from __future__ import annotations
 
 import json
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import pandas as pd
 import plotly.express as px
@@ -44,7 +45,7 @@ def render_policy_package_tab(
     with col1:
         selected_package = st_module.selectbox(
             "Select a preset package",
-            options=["Custom Package"] + list(preset_packages.keys()),
+            options=["Custom Package", *list(preset_packages.keys())],
             help="Choose a predefined policy package or build your own",
         )
 

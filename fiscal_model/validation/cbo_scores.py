@@ -11,8 +11,8 @@ Positive values = increases deficit (costs), negative = reduces deficit (savings
 """
 
 from dataclasses import dataclass
-from typing import Optional, Literal
 from enum import Enum
+from typing import Literal
 
 
 class ScoreSource(Enum):
@@ -29,7 +29,7 @@ class ScoreSource(Enum):
 class CBOScore:
     """
     A known official budget score for a policy.
-    
+
     Attributes:
         policy_id: Unique identifier for the policy
         name: Short policy name
@@ -38,12 +38,12 @@ class CBOScore:
         source: Which organization produced the estimate
         source_date: When the estimate was published
         source_url: Link to the official document
-        
+
         # Policy parameters (for replication)
         rate_change: Tax rate change (if applicable)
         income_threshold: Income threshold (if applicable)
         policy_type: Type of policy
-        
+
         # Context
         baseline_year: What baseline was used
         notes: Additional context or caveats
@@ -54,21 +54,21 @@ class CBOScore:
     ten_year_cost: float  # Billions, positive = increases deficit
     source: ScoreSource
     source_date: str  # YYYY-MM format
-    source_url: Optional[str] = None
-    
+    source_url: str | None = None
+
     # Policy parameters for replication
-    rate_change: Optional[float] = None
-    income_threshold: Optional[float] = None
+    rate_change: float | None = None
+    income_threshold: float | None = None
     policy_type: Literal["income_tax", "corporate_tax", "spending", "other"] = "income_tax"
-    
+
     # Scoring details
-    first_year_cost: Optional[float] = None  # First year effect if known
+    first_year_cost: float | None = None  # First year effect if known
     is_dynamic: bool = False  # Whether this is a dynamic score
-    
+
     # Context
     baseline_year: int = 2024
     budget_window: str = "FY2025-2034"
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 # =============================================================================
@@ -76,11 +76,11 @@ class CBOScore:
 # =============================================================================
 
 KNOWN_SCORES: dict[str, CBOScore] = {
-    
+
     # -------------------------------------------------------------------------
     # TAX CUTS AND JOBS ACT (TCJA) 2017
     # -------------------------------------------------------------------------
-    
+
     "tcja_2017_full": CBOScore(
         policy_id="tcja_2017_full",
         name="TCJA 2017 (Full Package)",
@@ -97,7 +97,7 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         budget_window="FY2018-2027",
         notes="Static score. JCT estimated dynamic score would reduce cost by ~$400B."
     ),
-    
+
     "tcja_2017_individual": CBOScore(
         policy_id="tcja_2017_individual",
         name="TCJA 2017 Individual Provisions",
@@ -113,7 +113,7 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         budget_window="FY2018-2027",
         notes="Individual provisions sunset after 2025."
     ),
-    
+
     "tcja_2017_corporate": CBOScore(
         policy_id="tcja_2017_corporate",
         name="TCJA 2017 Corporate Rate Cut",
@@ -126,11 +126,11 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         baseline_year=2017,
         notes="Permanent provision. Gross cost ~$1.4T offset by base broadening."
     ),
-    
+
     # -------------------------------------------------------------------------
     # TCJA EXTENSION PROPOSALS (2025)
     # -------------------------------------------------------------------------
-    
+
     "tcja_extension_full": CBOScore(
         policy_id="tcja_extension_full",
         name="TCJA Full Extension (2025+)",
@@ -144,11 +144,11 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         budget_window="FY2025-2034",
         notes="Cost varies significantly depending on baseline assumptions."
     ),
-    
+
     # -------------------------------------------------------------------------
     # BIDEN ADMINISTRATION PROPOSALS
     # -------------------------------------------------------------------------
-    
+
     "biden_high_income_tax": CBOScore(
         policy_id="biden_high_income_tax",
         name="Biden High-Income Tax Increase",
@@ -166,7 +166,7 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         budget_window="FY2025-2034",
         notes="Treasury Green Book FY2025. Combined with other provisions."
     ),
-    
+
     "biden_corporate_28": CBOScore(
         policy_id="biden_corporate_28",
         name="Biden Corporate Rate to 28%",
@@ -179,7 +179,7 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         baseline_year=2024,
         notes="FY2025 Budget proposal."
     ),
-    
+
     "biden_billionaire_minimum": CBOScore(
         policy_id="biden_billionaire_minimum",
         name="Billionaire Minimum Income Tax",
@@ -193,7 +193,7 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         baseline_year=2024,
         notes="Novel policy - high uncertainty. Wealth threshold, not income."
     ),
-    
+
     "biden_capital_gains_39": CBOScore(
         policy_id="biden_capital_gains_39",
         name="Biden Capital Gains at 39.6%",
@@ -282,11 +282,11 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         notes="Combined effect of rate increase + step-up elimination. "
               "Treasury Green Book estimate (higher than PWBM due to methodology differences)."
     ),
-    
+
     # -------------------------------------------------------------------------
     # ILLUSTRATIVE POLICIES (For Model Testing)
     # -------------------------------------------------------------------------
-    
+
     "illustrative_1pp_all": CBOScore(
         policy_id="illustrative_1pp_all",
         name="1pp Rate Increase (All Brackets)",
@@ -302,7 +302,7 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         baseline_year=2023,
         notes="Rule of thumb: 1pp ≈ $85-100B/year. JCT tax expenditure estimates."
     ),
-    
+
     "illustrative_top_rate_5pp": CBOScore(
         policy_id="illustrative_top_rate_5pp",
         name="5pp Top Rate Increase ($1M+)",
@@ -318,7 +318,7 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         baseline_year=2023,
         notes="Illustrative estimate. Very high earners have most income above threshold."
     ),
-    
+
     "illustrative_500k_2pp": CBOScore(
         policy_id="illustrative_500k_2pp",
         name="2pp Rate Cut ($500K+)",
@@ -334,11 +334,11 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         baseline_year=2023,
         notes="Illustrative estimate. Uses marginal income above threshold."
     ),
-    
+
     # -------------------------------------------------------------------------
     # INFRASTRUCTURE / SPENDING
     # -------------------------------------------------------------------------
-    
+
     "iija_2021": CBOScore(
         policy_id="iija_2021",
         name="Infrastructure Investment and Jobs Act",
@@ -353,7 +353,7 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         budget_window="FY2022-2031",
         notes="Gross spending ~$550B, partially offset by various provisions."
     ),
-    
+
     "ira_2022": CBOScore(
         policy_id="ira_2022",
         name="Inflation Reduction Act 2022",
@@ -368,11 +368,11 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         budget_window="FY2022-2031",
         notes="Excludes ~$200B from IRS enforcement (not scored under budget rules)."
     ),
-    
+
     # -------------------------------------------------------------------------
     # ADDITIONAL CBO EXAMPLES (December 2024 Update)
     # -------------------------------------------------------------------------
-    
+
     "build_back_better_2021": CBOScore(
         policy_id="build_back_better_2021",
         name="Build Back Better Act (2021 House)",
@@ -387,7 +387,7 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         budget_window="FY2022-2031",
         notes="Would be $3T+ if sunsets made permanent. Key methodological debate."
     ),
-    
+
     "fiscal_responsibility_act_2023": CBOScore(
         policy_id="fiscal_responsibility_act_2023",
         name="Fiscal Responsibility Act of 2023",
@@ -402,7 +402,7 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         budget_window="FY2023-2033",
         notes="Savings from spending caps vs baseline inflation growth."
     ),
-    
+
     "social_security_fairness_2023": CBOScore(
         policy_id="social_security_fairness_2023",
         name="Social Security Fairness Act of 2023",
@@ -417,7 +417,7 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         budget_window="FY2024-2034",
         notes="Affects state/local workers with pensions from non-covered employment."
     ),
-    
+
     "limit_save_grow_2023": CBOScore(
         policy_id="limit_save_grow_2023",
         name="Limit, Save, Grow Act of 2023",
@@ -432,7 +432,7 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         budget_window="FY2023-2033",
         notes="Large savings from strict spending caps and program repeals."
     ),
-    
+
     "tax_relief_workers_2024": CBOScore(
         policy_id="tax_relief_workers_2024",
         name="Tax Relief for American Families and Workers Act 2024",
@@ -447,7 +447,7 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         budget_window="FY2024-2033",
         notes="Example of offsetting tax cuts with closing loopholes."
     ),
-    
+
     "biden_2025_budget": CBOScore(
         policy_id="biden_2025_budget",
         name="Biden FY2025 Budget Analysis",
@@ -462,7 +462,7 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         budget_window="FY2025-2034",
         notes="Tax increases on high earners more than offset spending increases."
     ),
-    
+
     "ndaa_2025": CBOScore(
         policy_id="ndaa_2025",
         name="NDAA FY2025 (S. 4638)",
@@ -517,7 +517,7 @@ CBO_METHODOLOGY_NOTES = {
 # HELPER FUNCTIONS
 # =============================================================================
 
-def get_score(policy_id: str) -> Optional[CBOScore]:
+def get_score(policy_id: str) -> CBOScore | None:
     """Get a known score by policy ID."""
     return KNOWN_SCORES.get(policy_id)
 
@@ -535,7 +535,7 @@ def list_available_policies() -> list[str]:
 def get_validation_targets() -> list[CBOScore]:
     """
     Get scores suitable for model validation.
-    
+
     Returns scores that:
     - Have specific rate_change and income_threshold parameters
     - Are income tax policies (our model's strength)

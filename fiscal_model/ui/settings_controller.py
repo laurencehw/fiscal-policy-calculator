@@ -14,62 +14,65 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
     macro_model = None
 
     with settings_tab:
-        st_module.header("⚙️ Configuration")
+        dynamic_scoring = st_module.checkbox(
+            "Enable dynamic scoring",
+            value=False,
+            help=(
+                "Add macroeconomic feedback to the estimate. "
+                "A tax cut that boosts GDP generates some offsetting revenue; "
+                "a spending increase may crowd out private investment. "
+                "Uses FRB/US-calibrated multipliers from the Federal Reserve."
+            ),
+        )
+        if dynamic_scoring:
+            macro_model = st_module.selectbox(
+                "Macro model",
+                ["FRB/US-Lite (recommended)", "Simple Multiplier"],
+                help=(
+                    "**FRB/US-Lite** — Federal Reserve-calibrated multipliers "
+                    "(spending 1.4x, tax 0.7x, with decay). "
+                    "**Simple Multiplier** — basic Keynesian approach."
+                ),
+            )
 
-        col_settings_1, col_settings_2 = st_module.columns(2)
-        with col_settings_1:
-            st_module.subheader("Model Options")
+        with st_module.expander("Data & methodology"):
             use_real_data = st_module.checkbox(
                 "Use real IRS/FRED data",
                 value=True,
-                help="Uses actual IRS Statistics of Income data and FRED economic indicators",
+                help=(
+                    "When enabled, the model auto-populates taxpayer counts and "
+                    "income levels from IRS Statistics of Income tables, and GDP "
+                    "from the St. Louis Fed (FRED). When disabled, uses CBO-based "
+                    "hardcoded estimates."
+                ),
             )
-            dynamic_scoring = st_module.checkbox(
-                "Dynamic scoring",
-                value=False,
-                help="Include macroeconomic feedback effects (GDP growth, employment, interest rates)",
-            )
-            if dynamic_scoring:
-                macro_model = st_module.selectbox(
-                    "Macro model",
-                    ["FRB/US-Lite (Recommended)", "Simple Multiplier"],
-                    help="FRB/US-Lite uses Federal Reserve-calibrated multipliers; Simple uses basic Keynesian multipliers",
-                )
 
-            use_microsim = st_module.checkbox(
-                "Microsimulation (Experimental)",
-                value=False,
-                help="Use individual-level tax calculation (JCT-style) instead of bracket averages. Requires CPS data.",
-            )
             data_year = st_module.selectbox(
                 "IRS data year",
                 [2022, 2021],
-                help="Year of IRS Statistics of Income data to use",
+                help=(
+                    "Which year of IRS Statistics of Income data to use for "
+                    "taxpayer counts and income distributions."
+                ),
             )
 
-        with col_settings_2:
-            st_module.subheader("📚 About")
-            st_module.markdown(
-                """
-        This calculator uses Congressional Budget Office (CBO) methodology to estimate policy impacts.
-
-        **Data Sources:**
-        - IRS Statistics of Income
-        - FRED Economic Data
-        - CBO Baseline Projections
-
-        **Methodology:**
-        - Static revenue estimation
-        - Behavioral responses (ETI)
-        - Dynamic macroeconomic feedback
-        """
+            use_microsim = st_module.checkbox(
+                "Microsimulation mode (experimental)",
+                value=False,
+                help=(
+                    "Calculate taxes for individual households (JCT-style) instead of "
+                    "bracket averages. More accurate for policies with phase-outs, "
+                    "but requires CPS microdata and is slower."
+                ),
             )
-            st_module.caption("Built with Streamlit • Data updated 2022")
 
-        st_module.markdown("---")
-        if st_module.button("🗑️ Reset All", type="primary", help="Clear all inputs, results, and settings to default"):
-            st_module.session_state.clear()
-            st_module.rerun()
+            st_module.markdown("---")
+            st_module.caption(
+                "**Methodology:** CBO-style static scoring with behavioral "
+                "adjustments (ETI = 0.25). Data from IRS SOI, FRED, and "
+                "CBO Baseline Projections. "
+                "[Full methodology →](https://github.com/laurencehw/fiscal-policy-calculator/blob/main/docs/METHODOLOGY.md)"
+            )
 
     return {
         "use_real_data": use_real_data,

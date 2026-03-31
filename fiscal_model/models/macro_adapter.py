@@ -18,10 +18,11 @@ References:
 - FRB/US Documentation: https://www.federalreserve.gov/econres/us-models-about.htm
 """
 
+import os
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
 from enum import Enum
+
 import numpy as np
 import pandas as pd
 
@@ -63,8 +64,8 @@ class MacroScenario:
 
     # Fiscal paths (billions, by year relative to baseline)
     # Positive = higher than baseline
-    receipts_change: Optional[np.ndarray] = None   # Federal revenue change
-    outlays_change: Optional[np.ndarray] = None    # Federal spending change
+    receipts_change: np.ndarray | None = None   # Federal revenue change
+    outlays_change: np.ndarray | None = None    # Federal spending change
 
     # Closure assumptions
     fiscal_closure: FiscalClosureType = FiscalClosureType.LUMP_SUM_TAXES
@@ -76,7 +77,7 @@ class MacroScenario:
 
     # Debt dynamics
     initial_debt_gdp: float = 1.0   # Starting debt-to-GDP ratio
-    target_debt_gdp: Optional[float] = None  # Long-run target
+    target_debt_gdp: float | None = None  # Long-run target
 
     def __post_init__(self):
         if self.receipts_change is None:
@@ -115,8 +116,8 @@ class MacroResult:
     interest_cost_billions: np.ndarray     # Change in interest expense
 
     # Investment and capital
-    investment_pct: Optional[np.ndarray] = None
-    capital_stock_pct: Optional[np.ndarray] = None
+    investment_pct: np.ndarray | None = None
+    capital_stock_pct: np.ndarray | None = None
 
     @property
     def cumulative_gdp_effect(self) -> float:
@@ -324,6 +325,10 @@ class FRBUSAdapter(MacroModelAdapter):
     """
     Adapter for the Federal Reserve's FRB/US model.
 
+    NOTE: Requires pyfrbus package and FRB/US model files.
+    Set FRBUS_MODEL_PATH and FRBUS_DATA_PATH environment variables
+    to point to your local FRB/US installation.
+
     Requires pyfrbus package and model data files from:
     https://www.federalreserve.gov/econres/us-models-package.htm
 
@@ -356,14 +361,10 @@ class FRBUSAdapter(MacroModelAdapter):
     def description(self) -> str:
         return "Federal Reserve Board's US macroeconomic model"
 
-    # Default paths relative to Economy_Forecasts project
-    DEFAULT_MODEL_PATH = r"C:\Users\lwils\Projects\apps\Economy_Forecasts\models\frbus\models\model.xml"
-    DEFAULT_DATA_PATH = r"C:\Users\lwils\Projects\apps\Economy_Forecasts\models\frbus\data\LONGBASE.TXT"
-
     def __init__(
         self,
-        model_path: Optional[str] = None,
-        data_path: Optional[str] = None,
+        model_path: str | None = None,
+        data_path: str | None = None,
         use_mce: bool = False,
         fiscal_closure: FiscalClosureType = FiscalClosureType.SURPLUS_RATIO,
     ):
@@ -371,13 +372,18 @@ class FRBUSAdapter(MacroModelAdapter):
         Initialize FRB/US adapter.
 
         Args:
-            model_path: Path to model.xml file (defaults to Economy_Forecasts location)
-            data_path: Path to LONGBASE.TXT data file
+            model_path: Path to model.xml file (defaults to FRBUS_MODEL_PATH env var)
+            data_path: Path to LONGBASE.TXT data file (defaults to FRBUS_DATA_PATH env var)
             use_mce: Use model-consistent expectations (rational expectations)
             fiscal_closure: How to handle long-run fiscal sustainability
         """
-        self.model_path = model_path or self.DEFAULT_MODEL_PATH
-        self.data_path = data_path or self.DEFAULT_DATA_PATH
+        self.model_path = model_path or os.environ.get("FRBUS_MODEL_PATH")
+        self.data_path = data_path or os.environ.get("FRBUS_DATA_PATH")
+        if self.model_path is None or self.data_path is None:
+            raise FileNotFoundError(
+                "FRB/US model files not configured. Set FRBUS_MODEL_PATH and "
+                "FRBUS_DATA_PATH environment variables."
+            )
         self.use_mce = use_mce
         self.fiscal_closure = fiscal_closure
         self._model = None
@@ -390,12 +396,6 @@ class FRBUSAdapter(MacroModelAdapter):
             return
 
         try:
-            # Add pyfrbus to path
-            import sys
-            frbus_path = r"C:\Users\lwils\Projects\apps\Economy_Forecasts\models\frbus"
-            if frbus_path not in sys.path:
-                sys.path.insert(0, frbus_path)
-
             from pyfrbus.frbus import Frbus
             from pyfrbus.load_data import load_data
 
@@ -561,7 +561,6 @@ class FRBUSAdapter(MacroModelAdapter):
 
     def _quarter_ranges(self, start, n_quarters):
         """Generate quarter period ranges."""
-        import pandas as pd
         for i in range(n_quarters):
             q = start + i
             yield q, q
@@ -750,7 +749,7 @@ class FRBUSAdapterLite(MacroModelAdapter):
 def policy_to_scenario(
     policy,
     scoring_result,
-    scenario_name: Optional[str] = None,
+    scenario_name: str | None = None,
 ) -> MacroScenario:
     """
     Convert a scored fiscal policy to a MacroScenario.
@@ -801,17 +800,17 @@ def policy_to_scenario(
 # =============================================================================
 
 __all__ = [
-    # Enums
-    "FiscalClosureType",
-    "MonetaryPolicyRule",
-    # Data classes
-    "MacroScenario",
-    "MacroResult",
-    # Adapters
-    "MacroModelAdapter",
-    "SimpleMultiplierAdapter",
     "FRBUSAdapter",
     "FRBUSAdapterLite",
+    # Enums
+    "FiscalClosureType",
+    # Adapters
+    "MacroModelAdapter",
+    "MacroResult",
+    # Data classes
+    "MacroScenario",
+    "MonetaryPolicyRule",
+    "SimpleMultiplierAdapter",
     # Helpers
     "policy_to_scenario",
 ]

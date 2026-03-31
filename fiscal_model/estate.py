@@ -24,12 +24,12 @@ Scheduled 2026 (post-TCJA sunset):
 - Revenue projected to increase to ~$50B/year
 """
 
-from dataclasses import dataclass, field
-from typing import Optional, Literal
+from dataclasses import dataclass
 from enum import Enum
+
 import numpy as np
 
-from .policies import Policy, TaxPolicy, PolicyType
+from .policies import PolicyType, TaxPolicy
 
 
 class EstateTaxScenario(Enum):
@@ -134,16 +134,16 @@ class EstateTaxPolicy(TaxPolicy):
 
     # Exemption changes
     exemption_change: float = 0.0  # Dollar change in exemption
-    new_exemption: Optional[float] = None  # Set specific exemption level
+    new_exemption: float | None = None  # Set specific exemption level
     extend_tcja_exemption: bool = False  # Keep ~$14M exemption beyond 2025
 
     # Rate changes
     rate_change: float = 0.0  # Change in estate tax rate
-    new_rate: Optional[float] = None  # Set specific rate
+    new_rate: float | None = None  # Set specific rate
 
     # Portability (unused exemption transfers to surviving spouse)
     modify_portability: bool = False
-    portability_cap: Optional[float] = None  # Cap on portable amount
+    portability_cap: float | None = None  # Cap on portable amount
 
     # Behavioral parameters
     planning_elasticity: float = 0.15  # Response to policy changes
@@ -157,12 +157,13 @@ class EstateTaxPolicy(TaxPolicy):
     base_year: int = 2024
 
     # Calibration
-    annual_revenue_change_billions: Optional[float] = None
+    annual_revenue_change_billions: float | None = None
 
     def __post_init__(self):
         """Set default policy type."""
         if self.policy_type == PolicyType.INCOME_TAX:
             self.policy_type = PolicyType.ESTATE_TAX
+        super().__post_init__()
 
     def get_exemption_for_year(self, year: int, policy_active: bool = True) -> float:
         """
@@ -406,7 +407,7 @@ def create_estate_rate_change(
     rate_change: float,
     start_year: int = 2025,
     duration_years: int = 10,
-    name: Optional[str] = None,
+    name: str | None = None,
 ) -> EstateTaxPolicy:
     """
     Create a simple estate tax rate change.
@@ -445,7 +446,7 @@ def create_estate_exemption_change(
     new_exemption: float,
     start_year: int = 2025,
     duration_years: int = 10,
-    name: Optional[str] = None,
+    name: str | None = None,
 ) -> EstateTaxPolicy:
     """
     Create an estate tax exemption change policy.
