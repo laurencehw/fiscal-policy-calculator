@@ -49,6 +49,9 @@ TRADE_BASELINE = {
     # China-specific: existing tariffs already cover much of the base
     "china_existing_avg_tariff": 0.20,  # ~20% weighted average existing tariff on China
     "china_effective_coverage": 0.50,  # ~50% of base effectively new-to-tariff
+    # Auto-specific
+    "auto_existing_avg_tariff": 0.025,  # ~2.5% current auto tariff
+    "auto_usmca_exempt_share": 0.65,  # ~65% exempt under USMCA
 }
 
 
@@ -168,7 +171,7 @@ def create_trump_china_60() -> TariffPolicy:
     existing_tariff = TRADE_BASELINE["china_existing_avg_tariff"]
     return TariffPolicy(
         name="Trump 60% China Tariff",
-        description="60% tariff on all Chinese imports (~\\$430B base). Raises ~\\$500B/10yr.",
+        description="60% tariff on Chinese imports (~\\$215B effective base after existing tariffs). Raises ~\\$500B/10yr.",
         tariff_rate_change=0.60 - existing_tariff,  # Incremental above existing ~20%
         target_country="china",
         import_base_billions=(
@@ -184,9 +187,12 @@ def create_auto_tariff_25() -> TariffPolicy:
     return TariffPolicy(
         name="25% Auto Tariff",
         description="25% tariff on imported vehicles and parts (~\\$380B base).",
-        tariff_rate_change=0.25 - 0.025,  # Incremental above existing ~2.5%
+        tariff_rate_change=0.25 - TRADE_BASELINE["auto_existing_avg_tariff"],
         target_sector="autos",
-        import_base_billions=TRADE_BASELINE["auto_imports_billions"] * 0.35,
+        import_base_billions=(
+            TRADE_BASELINE["auto_imports_billions"]
+            * (1 - TRADE_BASELINE["auto_usmca_exempt_share"])
+        ),
     )
 
 
