@@ -265,6 +265,7 @@ class TaxExpenditurePolicy(TaxPolicy):
         """Set policy type."""
         if self.policy_type == PolicyType.INCOME_TAX:
             self.policy_type = PolicyType.TAX_DEDUCTION
+        super().__post_init__()
 
     def get_expenditure_data(self) -> dict:
         """Get baseline data for this expenditure type."""

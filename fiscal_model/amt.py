@@ -206,6 +206,7 @@ class AMTPolicy(TaxPolicy):
         """Set default policy type."""
         if self.policy_type == PolicyType.INCOME_TAX:
             self.policy_type = PolicyType.INCOME_TAX  # AMT is part of income tax
+        super().__post_init__()
 
     def get_exemption_for_year(
         self,

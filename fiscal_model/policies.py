@@ -60,6 +60,14 @@ class Policy:
     phase_in_years: int = 1
     sunset: bool = False
     
+    def __post_init__(self):
+        if self.duration_years <= 0:
+            raise ValueError(f"duration_years must be positive, got {self.duration_years}")
+        if self.phase_in_years < 1:
+            raise ValueError(f"phase_in_years must be >= 1, got {self.phase_in_years}")
+        if self.start_year < 2000 or self.start_year > 2100:
+            raise ValueError(f"start_year must be between 2000 and 2100, got {self.start_year}")
+
     def get_phase_in_factor(self, year: int) -> float:
         """
         Calculate the phase-in factor for a given year.
@@ -124,6 +132,21 @@ class TaxPolicy(Policy):
 
     # Data integration
     data_year: Optional[int] = None  # IRS data year to use (None = most recent available)
+
+    def __post_init__(self):
+        super().__post_init__()
+        if not (-1.0 <= self.rate_change <= 1.0):
+            raise ValueError(f"rate_change must be between -1.0 and 1.0, got {self.rate_change}")
+        if self.new_rate is not None and not (0.0 <= self.new_rate <= 1.0):
+            raise ValueError(f"new_rate must be between 0.0 and 1.0, got {self.new_rate}")
+        if self.affected_income_threshold < 0:
+            raise ValueError(f"affected_income_threshold must be >= 0, got {self.affected_income_threshold}")
+        if self.taxable_income_elasticity < 0:
+            raise ValueError(f"taxable_income_elasticity must be >= 0, got {self.taxable_income_elasticity}")
+        if self.labor_supply_elasticity < 0:
+            raise ValueError(f"labor_supply_elasticity must be >= 0, got {self.labor_supply_elasticity}")
+        if self.affected_taxpayers_millions < 0:
+            raise ValueError(f"affected_taxpayers_millions must be >= 0, got {self.affected_taxpayers_millions}")
 
     def estimate_static_revenue_effect(self, baseline_revenue: float,
                                        use_real_data: bool = True) -> float:
@@ -396,6 +419,19 @@ class CapitalGainsPolicy(TaxPolicy):
     # Calibrated from PWBM: need ~2x elasticity multiplier to match their results
     step_up_lock_in_multiplier: float = 2.0
 
+    def __post_init__(self):
+        super().__post_init__()
+        if not (0 <= self.baseline_capital_gains_rate <= 1):
+            raise ValueError(f"baseline_capital_gains_rate must be between 0 and 1, got {self.baseline_capital_gains_rate}")
+        if self.short_run_elasticity < 0:
+            raise ValueError(f"short_run_elasticity must be >= 0, got {self.short_run_elasticity}")
+        if self.long_run_elasticity < 0:
+            raise ValueError(f"long_run_elasticity must be >= 0, got {self.long_run_elasticity}")
+        if self.transition_years < 0:
+            raise ValueError(f"transition_years must be >= 0, got {self.transition_years}")
+        if self.step_up_lock_in_multiplier < 0:
+            raise ValueError(f"step_up_lock_in_multiplier must be >= 0, got {self.step_up_lock_in_multiplier}")
+
     def get_elasticity_for_year(self, years_since_start: int) -> float:
         """
         Get the appropriate realization elasticity based on years since policy start.
@@ -616,6 +652,18 @@ class SpendingPolicy(Policy):
     is_one_time: bool = False  # One-time vs recurring spending
     category: Literal["defense", "nondefense", "mandatory"] = "nondefense"
     
+    def __post_init__(self):
+        super().__post_init__()
+        # Set policy_type based on category if not already matching
+        category_to_type = {
+            "defense": PolicyType.DISCRETIONARY_DEFENSE,
+            "nondefense": PolicyType.DISCRETIONARY_NONDEFENSE,
+            "mandatory": PolicyType.MANDATORY_SPENDING,
+        }
+        expected_type = category_to_type.get(self.category)
+        if expected_type and self.policy_type != expected_type:
+            self.policy_type = expected_type
+
     def get_spending_in_year(self, year: int, start_amount: Optional[float] = None) -> float:
         """
         Calculate spending amount for a given year, including growth.

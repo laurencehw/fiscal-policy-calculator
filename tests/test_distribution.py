@@ -9,21 +9,16 @@ Tests cover:
 """
 
 import pytest
-import numpy as np
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from fiscal_model.distribution import (
-    DistributionalEngine,
     IncomeGroupType,
     DistributionalAnalysis,
-    DistributionalResult,
-    IncomeGroup,
     format_distribution_table,
     generate_winners_losers_summary,
-    QUINTILE_THRESHOLDS_2024,
 )
 from fiscal_model.policies import TaxPolicy, PolicyType
 
@@ -275,7 +270,7 @@ class TestCreditDistribution:
         # Lower/middle quintiles should benefit more per capita than top
         # (because credit phases out)
         middle_avg = abs(result.results[2].tax_change_avg)
-        top_avg = abs(result.results[4].tax_change_avg)
+        abs(result.results[4].tax_change_avg)
 
         # Middle should get comparable or better benefit per capita
         # (may not always hold due to income distribution assumptions)
@@ -441,15 +436,13 @@ class TestEdgeCases:
         assert abs(result.total_tax_change) < 10  # Less than $10B
 
     def test_negative_threshold(self, distribution_engine):
-        """Test policy with negative threshold (should be treated as 0)."""
-        policy = TaxPolicy(
-            name="Negative Threshold",
-            description="Negative threshold",
-            policy_type=PolicyType.INCOME_TAX,
-            rate_change=0.01,
-            affected_income_threshold=-1000,
-        )
-
-        # Should not raise error
-        result = distribution_engine.analyze_policy(policy)
-        assert result is not None
+        """Test policy with negative threshold raises ValueError."""
+        import pytest
+        with pytest.raises(ValueError, match="affected_income_threshold must be >= 0"):
+            TaxPolicy(
+                name="Negative Threshold",
+                description="Negative threshold",
+                policy_type=PolicyType.INCOME_TAX,
+                rate_change=0.01,
+                affected_income_threshold=-1000,
+            )

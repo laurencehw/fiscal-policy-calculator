@@ -116,6 +116,7 @@ class CorporateTaxPolicy(TaxPolicy):
     def __post_init__(self):
         """Set policy type to corporate."""
         self.policy_type = PolicyType.CORPORATE_TAX
+        super().__post_init__()
 
     def _get_reform_rate(self) -> float:
         """Get the reform corporate tax rate."""

@@ -1,6 +1,5 @@
 
 import numpy as np
-import pytest
 from fiscal_model.long_run.solow_growth import SolowGrowthModel
 
 def test_solow_growth_model_initialization():

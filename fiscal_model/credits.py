@@ -194,6 +194,7 @@ class TaxCreditPolicy(TaxPolicy):
         """Set default policy type for credits."""
         if self.policy_type == PolicyType.INCOME_TAX:
             self.policy_type = PolicyType.TAX_CREDIT
+        super().__post_init__()
 
     def calculate_credit_for_income(
         self,

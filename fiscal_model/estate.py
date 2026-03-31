@@ -163,6 +163,7 @@ class EstateTaxPolicy(TaxPolicy):
         """Set default policy type."""
         if self.policy_type == PolicyType.INCOME_TAX:
             self.policy_type = PolicyType.ESTATE_TAX
+        super().__post_init__()
 
     def get_exemption_for_year(self, year: int, policy_active: bool = True) -> float:
         """

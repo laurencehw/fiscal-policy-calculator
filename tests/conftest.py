@@ -11,7 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from fiscal_model.policies import TaxPolicy, PolicyType
-from fiscal_model.distribution import DistributionalEngine, IncomeGroupType
+from fiscal_model.distribution import DistributionalEngine
 
 
 # =============================================================================

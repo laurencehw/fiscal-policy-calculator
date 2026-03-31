@@ -180,6 +180,7 @@ class PayrollTaxPolicy(TaxPolicy):
         """Set default policy type."""
         if self.policy_type == PolicyType.INCOME_TAX:
             self.policy_type = PolicyType.PAYROLL_TAX
+        super().__post_init__()
 
     def get_effective_ss_cap(self, year: int) -> Optional[float]:
         """Get the effective Social Security wage cap for a given year."""

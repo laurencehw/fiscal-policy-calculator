@@ -18,6 +18,7 @@ References:
 - FRB/US Documentation: https://www.federalreserve.gov/econres/us-models-about.htm
 """
 
+import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
@@ -324,6 +325,10 @@ class FRBUSAdapter(MacroModelAdapter):
     """
     Adapter for the Federal Reserve's FRB/US model.
 
+    NOTE: Requires pyfrbus package and FRB/US model files.
+    Set FRBUS_MODEL_PATH and FRBUS_DATA_PATH environment variables
+    to point to your local FRB/US installation.
+
     Requires pyfrbus package and model data files from:
     https://www.federalreserve.gov/econres/us-models-package.htm
 
@@ -356,9 +361,8 @@ class FRBUSAdapter(MacroModelAdapter):
     def description(self) -> str:
         return "Federal Reserve Board's US macroeconomic model"
 
-    # Default paths relative to Economy_Forecasts project
-    DEFAULT_MODEL_PATH = r"C:\Users\lwils\Projects\apps\Economy_Forecasts\models\frbus\models\model.xml"
-    DEFAULT_DATA_PATH = r"C:\Users\lwils\Projects\apps\Economy_Forecasts\models\frbus\data\LONGBASE.TXT"
+    DEFAULT_MODEL_PATH = os.environ.get("FRBUS_MODEL_PATH")
+    DEFAULT_DATA_PATH = os.environ.get("FRBUS_DATA_PATH")
 
     def __init__(
         self,
@@ -378,6 +382,11 @@ class FRBUSAdapter(MacroModelAdapter):
         """
         self.model_path = model_path or self.DEFAULT_MODEL_PATH
         self.data_path = data_path or self.DEFAULT_DATA_PATH
+        if self.model_path is None or self.data_path is None:
+            raise FileNotFoundError(
+                "FRB/US model files not configured. Set FRBUS_MODEL_PATH and "
+                "FRBUS_DATA_PATH environment variables."
+            )
         self.use_mce = use_mce
         self.fiscal_closure = fiscal_closure
         self._model = None
@@ -390,12 +399,6 @@ class FRBUSAdapter(MacroModelAdapter):
             return
 
         try:
-            # Add pyfrbus to path
-            import sys
-            frbus_path = r"C:\Users\lwils\Projects\apps\Economy_Forecasts\models\frbus"
-            if frbus_path not in sys.path:
-                sys.path.insert(0, frbus_path)
-
             from pyfrbus.frbus import Frbus
             from pyfrbus.load_data import load_data
 

@@ -219,6 +219,7 @@ class PremiumTaxCreditPolicy(TaxPolicy):
         """Set default policy type."""
         if self.policy_type == PolicyType.INCOME_TAX:
             self.policy_type = PolicyType.TAX_CREDIT
+        super().__post_init__()
 
     def get_premium_cap(
         self,
