@@ -113,24 +113,25 @@ def render_results_summary_tab(
 
     if final_deficit_total > 100:
         interpretation = (
-            f"This policy would **add approximately ${final_deficit_total:,.0f} billion** "
+            f"This policy would **add approximately "
+            f"\\${final_deficit_total:,.0f} billion** "
             f"to the federal deficit over {n_years} years — roughly "
-            f"**${abs(annual_avg):,.0f}B per year**, or about "
+            f"**\\${abs(annual_avg):,.0f}B per year**, or about "
             f"**{pct_of_gdp:.1f}% of GDP annually**."
         )
     elif final_deficit_total < -100:
         interpretation = (
             f"This policy would **reduce the federal deficit by approximately "
-            f"${abs(final_deficit_total):,.0f} billion** over {n_years} years — roughly "
-            f"**${abs(annual_avg):,.0f}B per year** in new revenue or savings, "
+            f"\\${abs(final_deficit_total):,.0f} billion** over {n_years} years — roughly "
+            f"**\\${abs(annual_avg):,.0f}B per year** in new revenue or savings, "
             f"or about **{pct_of_gdp:.1f}% of GDP annually**."
         )
     elif abs(final_deficit_total) > 1:
         direction = "increase" if final_deficit_total > 0 else "decrease"
         interpretation = (
             f"This policy would **{direction} the deficit by about "
-            f"${abs(final_deficit_total):,.0f} billion** over {n_years} years "
-            f"(${abs(annual_avg):,.0f}B/year) — a relatively modest fiscal impact."
+            f"\\${abs(final_deficit_total):,.0f} billion** over {n_years} years "
+            f"(\\${abs(annual_avg):,.0f}B/year) — a relatively modest fiscal impact."
         )
     else:
         interpretation = (
