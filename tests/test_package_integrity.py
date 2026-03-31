@@ -62,6 +62,9 @@ def test_preset_factory_covers_flagged_presets():
         "is_amt",
         "is_ptc",
         "is_expenditure",
+        "is_international",
+        "is_enforcement",
+        "is_pharma",
     ]
 
     for name, preset in PRESET_POLICIES.items():

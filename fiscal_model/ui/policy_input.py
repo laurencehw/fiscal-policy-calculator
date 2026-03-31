@@ -13,12 +13,15 @@ from typing import Any
 _CATEGORY_ORDER = [
     "TCJA / Individual",
     "Corporate",
+    "International Tax",
     "Tax Credits",
     "Estate Tax",
     "Payroll / SS",
     "AMT",
     "ACA / Healthcare",
     "Tax Expenditures",
+    "IRS Enforcement",
+    "Drug Pricing",
     "Income Tax",
 ]
 
@@ -28,6 +31,8 @@ def _preset_category(preset: dict[str, Any]) -> str:
         return "TCJA / Individual"
     if preset.get("is_corporate"):
         return "Corporate"
+    if preset.get("is_international"):
+        return "International Tax"
     if preset.get("is_credit"):
         return "Tax Credits"
     if preset.get("is_estate"):
@@ -40,6 +45,10 @@ def _preset_category(preset: dict[str, Any]) -> str:
         return "ACA / Healthcare"
     if preset.get("is_expenditure"):
         return "Tax Expenditures"
+    if preset.get("is_enforcement"):
+        return "IRS Enforcement"
+    if preset.get("is_pharma"):
+        return "Drug Pricing"
     return "Income Tax"
 
 

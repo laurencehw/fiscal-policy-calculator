@@ -158,17 +158,18 @@ class TestPlotBudgetEffects:
         assert fig is not None
         plt.close(fig)
 
+    @pytest.mark.xfail(
+        reason="errorbar yerr can go negative for certain policies — known upstream issue",
+        raises=ValueError,
+        strict=False,
+    )
     def test_plot_comparison_callable(self, report, second_result):
-        """plot_comparison is callable; may raise ValueError on edge-case data
-        (negative yerr) which is a known upstream issue in reporting.py."""
+        """plot_comparison is callable."""
         import matplotlib.pyplot as plt
         plt.ion()
         try:
             fig = report.plot_comparison([second_result])
             assert fig is not None
             plt.close(fig)
-        except ValueError:
-            # Known issue: errorbar yerr can go negative for certain policies
-            pass
         finally:
             plt.ioff()

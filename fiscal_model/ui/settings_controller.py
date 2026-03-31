@@ -4,6 +4,7 @@ Settings tab rendering helpers.
 
 from __future__ import annotations
 
+import datetime
 from typing import Any
 
 
@@ -56,7 +57,6 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
                 ),
             )
 
-            import datetime
             current_year = datetime.date.today().year
             data_age = current_year - data_year
             if data_age >= 3:

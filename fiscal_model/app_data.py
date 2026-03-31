@@ -184,6 +184,63 @@ CBO_SCORE_MAP = {
         "source_url": "https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf",
         "notes": "Restore 39.6% top rate for income above $400K",
     },
+    # International Tax
+    "🌍 Biden GILTI Reform (-$280B)": {
+        "official_score": -280.0,
+        "source": "Treasury",
+        "source_date": "FY2025 Green Book",
+        "notes": "Country-by-country GILTI at 21%, eliminate QBAI exemption",
+    },
+    "🌍 Repeal FDII (-$200B)": {
+        "official_score": -200.0,
+        "source": "Treasury",
+        "source_date": "FY2025",
+        "notes": "Repeal Foreign-Derived Intangible Income deduction",
+    },
+    "🌍 Pillar Two Adoption (-$80B)": {
+        "official_score": -80.0,
+        "source": "JCT",
+        "source_date": "2023",
+        "notes": "Adopt OECD Pillar Two 15% global minimum tax",
+    },
+    "🌍 Biden International Package (-$700B)": {
+        "official_score": -700.0,
+        "source": "Treasury",
+        "source_date": "FY2025",
+        "notes": "Full package: GILTI reform + FDII repeal + UTPR",
+    },
+    # IRS Enforcement
+    "🔍 IRA Enforcement Funding (-$200B)": {
+        "official_score": -200.0,
+        "source": "CBO",
+        "source_date": "2022",
+        "notes": "IRA $80B enforcement funding, ~$200B net revenue",
+    },
+    "🔍 Double IRS Enforcement (-$340B)": {
+        "official_score": -340.0,
+        "source": "Treasury/Sarin-Summers",
+        "source_date": "2021",
+        "notes": "Double enforcement budget beyond IRA levels",
+    },
+    # Pharmaceutical
+    "💊 Expand Drug Negotiation (-$500B)": {
+        "official_score": -500.0,
+        "source": "CBO/Estimate",
+        "source_date": "2023",
+        "notes": "Negotiate 50 drugs, remove exclusivity delays",
+    },
+    "💊 Universal Insulin Cap (-$15B)": {
+        "official_score": -15.0,
+        "source": "CBO",
+        "source_date": "2022",
+        "notes": "$35/month insulin cap for Medicare and private insurance",
+    },
+    "💊 International Reference Pricing (-$100B)": {
+        "official_score": -100.0,
+        "source": "RAND/Estimate",
+        "source_date": "2021",
+        "notes": "Cap Medicare drug prices at 120% of international average",
+    },
 }
 
 
@@ -432,5 +489,96 @@ PRESET_POLICIES = {
         "threshold": 0,
         "description": "Lower all rates by 5pp (illustrative)",
         "is_tcja": False,
+    },
+    # International Tax Presets
+    "🌍 Biden GILTI Reform (-$280B)": {
+        "rate_change": 0.0,
+        "threshold": 0,
+        "description": "Country-by-country GILTI at 21%, eliminate QBAI exemption. Raises ~$280B over 10 years.",
+        "is_tcja": False,
+        "is_international": True,
+        "international_type": "biden_gilti",
+    },
+    "🌍 Repeal FDII (-$200B)": {
+        "rate_change": 0.0,
+        "threshold": 0,
+        "description": "Repeal Foreign-Derived Intangible Income deduction. Raises ~$200B over 10 years.",
+        "is_tcja": False,
+        "is_international": True,
+        "international_type": "fdii_repeal",
+    },
+    "🌍 Pillar Two Adoption (-$80B)": {
+        "rate_change": 0.0,
+        "threshold": 0,
+        "description": "Adopt OECD Pillar Two 15% global minimum tax. JCT estimate: raises ~$80B.",
+        "is_tcja": False,
+        "is_international": True,
+        "international_type": "pillar_two",
+    },
+    "🌍 Biden International Package (-$700B)": {
+        "rate_change": 0.0,
+        "threshold": 0,
+        "description": "Full Biden international reform: GILTI at 21% per-country + FDII repeal + UTPR. Raises ~$700B.",
+        "is_tcja": False,
+        "is_international": True,
+        "international_type": "biden_full",
+    },
+    # IRS Enforcement Presets
+    "🔍 IRA Enforcement Funding (-$200B)": {
+        "rate_change": 0.0,
+        "threshold": 0,
+        "description": "IRA $80B IRS enforcement over 10 years. CBO: raises ~$200B net after costs.",
+        "is_tcja": False,
+        "is_enforcement": True,
+        "enforcement_type": "ira",
+    },
+    "🔍 Double IRS Enforcement (-$340B)": {
+        "rate_change": 0.0,
+        "threshold": 0,
+        "description": "Double IRS enforcement beyond IRA levels (~$16B/year). Raises ~$340B with diminishing returns.",
+        "is_tcja": False,
+        "is_enforcement": True,
+        "enforcement_type": "double",
+    },
+    "🔍 High-Income Enforcement (-$250B)": {
+        "rate_change": 0.0,
+        "threshold": 0,
+        "description": "Targeted enforcement for >$400K returns and large partnerships. $5B/year, high ROI.",
+        "is_tcja": False,
+        "is_enforcement": True,
+        "enforcement_type": "high_income",
+    },
+    # Pharmaceutical Presets
+    "💊 Expand Drug Negotiation (-$500B)": {
+        "rate_change": 0.0,
+        "threshold": 0,
+        "description": "Negotiate 50 Medicare drugs (vs IRA's 20), remove exclusivity delays. Saves ~$500B.",
+        "is_tcja": False,
+        "is_pharma": True,
+        "pharma_type": "expand_negotiation",
+    },
+    "💊 Universal Insulin Cap (-$15B)": {
+        "rate_change": 0.0,
+        "threshold": 0,
+        "description": "$35/month insulin cap for Medicare and private insurance. Saves ~$15B over 10 years.",
+        "is_tcja": False,
+        "is_pharma": True,
+        "pharma_type": "insulin_cap",
+    },
+    "💊 International Reference Pricing (-$100B)": {
+        "rate_change": 0.0,
+        "threshold": 0,
+        "description": "Cap Medicare drug prices at 120% of OECD international average. Saves ~$100B.",
+        "is_tcja": False,
+        "is_pharma": True,
+        "pharma_type": "reference_pricing",
+    },
+    "💊 Comprehensive Drug Reform (-$600B)": {
+        "rate_change": 0.0,
+        "threshold": 0,
+        "description": "Expanded negotiation + insulin cap + manufacturer discounts. Saves ~$600B over 10 years.",
+        "is_tcja": False,
+        "is_pharma": True,
+        "pharma_type": "comprehensive",
     },
 }

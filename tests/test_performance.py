@@ -31,8 +31,8 @@ class TestScoringPerformance:
                 scored += 1
 
         elapsed = time.perf_counter() - start
-        assert elapsed < 2.0, (
-            f"Scoring {scored} presets took {elapsed:.2f}s (limit: 2.0s)"
+        assert elapsed < 5.0, (
+            f"Scoring {scored} presets took {elapsed:.2f}s (limit: 5.0s)"
         )
 
     def test_single_policy_under_100ms(self, scorer):

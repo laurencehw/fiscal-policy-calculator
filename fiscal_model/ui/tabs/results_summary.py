@@ -434,20 +434,29 @@ def render_results_summary_tab(
                     delta_color="inverse" if delta > 0 else "normal",
                 )
 
-    # Sensitivity analysis
+    # Sensitivity analysis (only for individual income tax policies)
     st_module.markdown("---")
     with st_module.expander("Sensitivity analysis"):
-        st_module.markdown(
-            "How would results change with different behavioral assumptions? "
-            "The Elasticity of Taxable Income (ETI) is the most influential parameter."
+        # Only show ETI sensitivity for individual income tax policies
+        is_individual_tax = (
+            hasattr(policy, "rate_change")
+            and policy.rate_change != 0
+            and hasattr(policy, "policy_type")
+            and str(getattr(policy.policy_type, "value", "")) == "income_tax"
         )
 
-        if hasattr(policy, 'rate_change') and policy.rate_change != 0:
+        if is_individual_tax:
+            st_module.markdown(
+                "How would results change with different behavioral assumptions? "
+                "The Elasticity of Taxable Income (ETI) is the most influential "
+                "parameter for individual income tax policies."
+            )
+
             eti_values = [0.10, 0.15, 0.20, 0.25, 0.30, 0.40, 0.50]
             sensitivity_data = []
 
             for eti_val in eti_values:
-                base_eti = getattr(policy, 'taxable_income_elasticity', 0.25)
+                base_eti = getattr(policy, "taxable_income_elasticity", 0.25)
                 if base_eti > 0:
                     scale = eti_val / base_eti
                 else:
@@ -468,10 +477,9 @@ def render_results_summary_tab(
                 df_sensitivity, hide_index=True, use_container_width=True
             )
             st_module.caption(
-                "Central estimate uses ETI = 0.25 (Saez et al. 2012). "
-                "Lower ETI = less behavioral response = revenue closer to "
-                "static estimate. Higher ETI = more avoidance = less revenue "
-                "from tax increases."
+                "This is a simplified linear projection — actual model results "
+                "may differ due to bracket effects and interaction terms. "
+                "Central estimate uses ETI = 0.25 (Saez et al. 2012)."
             )
         else:
             st_module.info(
