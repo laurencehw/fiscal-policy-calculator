@@ -210,7 +210,7 @@ def create_expand_drug_negotiation() -> DrugPricingPolicy:
     """Expand Medicare drug negotiation beyond IRA."""
     return DrugPricingPolicy(
         name="Expand Drug Negotiation",
-        description="Negotiate 50 drugs (vs IRA's 20), remove exclusivity delays. Estimated: -$500B/10yr.",
+        description="Negotiate 50 drugs (vs IRA's 20), remove exclusivity delays. Estimated: -\\$500B/10yr.",
         policy_type=PolicyType.MANDATORY_SPENDING,
         reform_type=DrugPricingReformType.MEDICARE_NEGOTIATION,
         expand_negotiation=True,
@@ -223,7 +223,7 @@ def create_insulin_cap_all() -> DrugPricingPolicy:
     """$35 insulin cap for all Americans."""
     return DrugPricingPolicy(
         name="Universal Insulin Cap ($35)",
-        description="$35/month insulin cap for Medicare and private insurance. Estimated: -$15B/10yr.",
+        description="\\$35/month insulin cap for Medicare and private insurance. Estimated: -\\$15B/10yr.",
         policy_type=PolicyType.MANDATORY_SPENDING,
         reform_type=DrugPricingReformType.INSULIN_CAP,
         insulin_cap_monthly=35.0,
@@ -234,7 +234,7 @@ def create_reference_pricing() -> DrugPricingPolicy:
     """International reference pricing for Medicare drugs."""
     return DrugPricingPolicy(
         name="International Reference Pricing",
-        description="Cap Medicare drug prices at 120% of international average (OECD). Estimated: -$100B/10yr.",
+        description="Cap Medicare drug prices at 120% of international average (OECD). Estimated: -\\$100B/10yr.",
         policy_type=PolicyType.MANDATORY_SPENDING,
         reform_type=DrugPricingReformType.REFERENCE_PRICING,
         reference_pricing=True,
@@ -245,7 +245,7 @@ def create_comprehensive_pharma_reform() -> DrugPricingPolicy:
     """Comprehensive drug pricing reform package."""
     return DrugPricingPolicy(
         name="Comprehensive Drug Pricing Reform",
-        description="Expanded negotiation + insulin cap + manufacturer discounts. Estimated: -$600B/10yr.",
+        description="Expanded negotiation + insulin cap + manufacturer discounts. Estimated: -\\$600B/10yr.",
         policy_type=PolicyType.MANDATORY_SPENDING,
         reform_type=DrugPricingReformType.COMPREHENSIVE,
         expand_negotiation=True,

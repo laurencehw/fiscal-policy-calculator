@@ -264,21 +264,21 @@ PRESET_POLICIES = {
     "🏛️ TCJA Extension (No SALT Cap)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Extend TCJA but repeal the $10K SALT cap (adds ~$1.9T to cost). Popular bipartisan proposal.",
+        "description": "Extend TCJA but repeal the \\$10K SALT cap (adds ~\\$1.9T to cost). Popular bipartisan proposal.",
         "is_tcja": True,
         "tcja_type": "no_salt",
     },
     "🏛️ TCJA Rates Only": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Extend only the individual rate bracket cuts, not other TCJA provisions (~$3.2T).",
+        "description": "Extend only the individual rate bracket cuts, not other TCJA provisions (~\\$3.2T).",
         "is_tcja": True,
         "tcja_type": "rates_only",
     },
     "🏢 Biden Corporate 28% (CBO: -$1.35T)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Raise corporate rate from 21% to 28%. CBO estimate: raises ~$1.35T over 10 years.",
+        "description": "Raise corporate rate from 21% to 28%. CBO estimate: raises ~\\$1.35T over 10 years.",
         "is_tcja": False,
         "is_corporate": True,
         "corporate_type": "biden_28",
@@ -286,7 +286,7 @@ PRESET_POLICIES = {
     "🏢 Trump Corporate 15%": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Lower corporate rate from 21% to 15%. Estimated cost: ~$1.9T over 10 years.",
+        "description": "Lower corporate rate from 21% to 15%. Estimated cost: ~\\$1.9T over 10 years.",
         "is_tcja": False,
         "is_corporate": True,
         "corporate_type": "trump_15",
@@ -294,7 +294,7 @@ PRESET_POLICIES = {
     "👶 Biden CTC Expansion (CBO: $1.6T)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Expand CTC to $3,600/$3,000 per child, fully refundable. Based on 2021 ARP expansion.",
+        "description": "Expand CTC to \\$3,600/\\$3,000 per child, fully refundable. Based on 2021 ARP expansion.",
         "is_tcja": False,
         "is_corporate": False,
         "is_credit": True,
@@ -303,7 +303,7 @@ PRESET_POLICIES = {
     "👶 CTC Extension (CBO: $600B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Extend current $2,000 CTC beyond 2025 sunset. Without extension, reverts to $1,000.",
+        "description": "Extend current \\$2,000 CTC beyond 2025 sunset. Without extension, reverts to \\$1,000.",
         "is_tcja": False,
         "is_corporate": False,
         "is_credit": True,
@@ -312,7 +312,7 @@ PRESET_POLICIES = {
     "💼 EITC Childless Expansion (CBO: $178B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Triple EITC for childless workers (~$1,500 max), expand age range to 19-65+.",
+        "description": "Triple EITC for childless workers (~\\$1,500 max), expand age range to 19-65+.",
         "is_tcja": False,
         "is_corporate": False,
         "is_credit": True,
@@ -321,7 +321,7 @@ PRESET_POLICIES = {
     "🏠 Estate Tax: Extend TCJA (CBO: $167B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Keep ~$14M exemption (vs $6.4M if TCJA expires). Costs ~$167B over 10 years.",
+        "description": "Keep ~\\$14M exemption (vs \\$6.4M if TCJA expires). Costs ~\\$167B over 10 years.",
         "is_tcja": False,
         "is_corporate": False,
         "is_credit": False,
@@ -331,7 +331,7 @@ PRESET_POLICIES = {
     "🏠 Biden Estate Reform (-$450B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Lower exemption to $3.5M, raise rate to 45%. Raises ~$450B over 10 years.",
+        "description": "Lower exemption to \\$3.5M, raise rate to 45%. Raises ~\\$450B over 10 years.",
         "is_tcja": False,
         "is_corporate": False,
         "is_credit": False,
@@ -341,7 +341,7 @@ PRESET_POLICIES = {
     "🏠 Eliminate Estate Tax ($350B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Repeal federal estate tax entirely. Costs ~$350B over 10 years.",
+        "description": "Repeal federal estate tax entirely. Costs ~\\$350B over 10 years.",
         "is_tcja": False,
         "is_corporate": False,
         "is_credit": False,
@@ -351,7 +351,7 @@ PRESET_POLICIES = {
     "💰 SS Cap to 90% (CBO: -$800B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Raise Social Security cap to cover 90% of wages (~$305K). Raises ~$800B.",
+        "description": "Raise Social Security cap to cover 90% of wages (~\\$305K). Raises ~\\$800B.",
         "is_tcja": False,
         "is_corporate": False,
         "is_payroll": True,
@@ -360,7 +360,7 @@ PRESET_POLICIES = {
     "💰 SS Donut Hole $250K (-$2.7T)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Apply SS tax to wages above $250K (donut hole). Raises ~$2.7T over 10 years.",
+        "description": "Apply SS tax to wages above \\$250K (donut hole). Raises ~\\$2.7T over 10 years.",
         "is_tcja": False,
         "is_corporate": False,
         "is_payroll": True,
@@ -369,7 +369,7 @@ PRESET_POLICIES = {
     "💰 Eliminate SS Cap (-$3.2T)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Eliminate Social Security wage cap entirely. Raises ~$3.2T over 10 years.",
+        "description": "Eliminate Social Security wage cap entirely. Raises ~\\$3.2T over 10 years.",
         "is_tcja": False,
         "is_corporate": False,
         "is_payroll": True,
@@ -378,7 +378,7 @@ PRESET_POLICIES = {
     "💰 Expand NIIT (JCT: -$250B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Apply 3.8% NIIT to S-corp/partnership income. Raises ~$250B over 10 years.",
+        "description": "Apply 3.8% NIIT to S-corp/partnership income. Raises ~\\$250B over 10 years.",
         "is_tcja": False,
         "is_corporate": False,
         "is_payroll": True,
@@ -387,7 +387,7 @@ PRESET_POLICIES = {
     "⚖️ AMT: Extend TCJA Relief ($450B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Extend TCJA's higher AMT exemptions ($88K single, $137K MFJ) past 2025. Costs ~$450B.",
+        "description": "Extend TCJA's higher AMT exemptions (\\$88K single, \\$137K MFJ) past 2025. Costs ~\\$450B.",
         "is_tcja": False,
         "is_corporate": False,
         "is_amt": True,
@@ -396,7 +396,7 @@ PRESET_POLICIES = {
     "⚖️ Repeal Individual AMT ($450B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Fully repeal individual AMT. After TCJA expires, would cost ~$450B over 10 years.",
+        "description": "Fully repeal individual AMT. After TCJA expires, would cost ~\\$450B over 10 years.",
         "is_tcja": False,
         "is_corporate": False,
         "is_amt": True,
@@ -405,7 +405,7 @@ PRESET_POLICIES = {
     "⚖️ Repeal Corporate AMT (-$220B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Repeal 15% book minimum tax (CAMT) from IRA 2022. Costs ~$220B over 10 years.",
+        "description": "Repeal 15% book minimum tax (CAMT) from IRA 2022. Costs ~\\$220B over 10 years.",
         "is_tcja": False,
         "is_corporate": False,
         "is_amt": True,
@@ -414,7 +414,7 @@ PRESET_POLICIES = {
     "🏥 Extend ACA Enhanced PTCs ($350B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Extend enhanced premium tax credits (ARPA/IRA) past 2025. Costs ~$350B over 10 years.",
+        "description": "Extend enhanced premium tax credits (ARPA/IRA) past 2025. Costs ~\\$350B over 10 years.",
         "is_tcja": False,
         "is_corporate": False,
         "is_ptc": True,
@@ -423,7 +423,7 @@ PRESET_POLICIES = {
     "🏥 Repeal ACA Premium Credits (-$1.1T)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Repeal all ACA premium subsidies. Saves ~$1.1T but ~19M lose subsidized coverage.",
+        "description": "Repeal all ACA premium subsidies. Saves ~\\$1.1T but ~19M lose subsidized coverage.",
         "is_tcja": False,
         "is_corporate": False,
         "is_ptc": True,
@@ -432,7 +432,7 @@ PRESET_POLICIES = {
     "📋 Cap Employer Health Exclusion (-$450B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Cap tax exclusion for employer health insurance at $50K. Raises ~$450B over 10 years.",
+        "description": "Cap tax exclusion for employer health insurance at \\$50K. Raises ~\\$450B over 10 years.",
         "is_tcja": False,
         "is_corporate": False,
         "is_expenditure": True,
@@ -441,7 +441,7 @@ PRESET_POLICIES = {
     "📋 Repeal SALT Cap ($1.1T)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Remove $10K cap on state and local tax deduction. Costs ~$1.1T over 10 years.",
+        "description": "Remove \\$10K cap on state and local tax deduction. Costs ~\\$1.1T over 10 years.",
         "is_tcja": False,
         "is_corporate": False,
         "is_expenditure": True,
@@ -450,7 +450,7 @@ PRESET_POLICIES = {
     "📋 Eliminate Step-Up Basis (-$500B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Tax capital gains at death with $1M exemption. Raises ~$500B over 10 years.",
+        "description": "Tax capital gains at death with \\$1M exemption. Raises ~\\$500B over 10 years.",
         "is_tcja": False,
         "is_corporate": False,
         "is_expenditure": True,
@@ -459,7 +459,7 @@ PRESET_POLICIES = {
     "📋 Cap Charitable Deduction (-$200B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Limit charitable deduction value to 28% rate. Raises ~$200B over 10 years.",
+        "description": "Limit charitable deduction value to 28% rate. Raises ~\\$200B over 10 years.",
         "is_tcja": False,
         "is_corporate": False,
         "is_expenditure": True,
@@ -494,7 +494,7 @@ PRESET_POLICIES = {
     "🌍 Biden GILTI Reform (-$280B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Country-by-country GILTI at 21%, eliminate QBAI exemption. Raises ~$280B over 10 years.",
+        "description": "Country-by-country GILTI at 21%, eliminate QBAI exemption. Raises ~\\$280B over 10 years.",
         "is_tcja": False,
         "is_international": True,
         "international_type": "biden_gilti",
@@ -502,7 +502,7 @@ PRESET_POLICIES = {
     "🌍 Repeal FDII (-$200B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Repeal Foreign-Derived Intangible Income deduction. Raises ~$200B over 10 years.",
+        "description": "Repeal Foreign-Derived Intangible Income deduction. Raises ~\\$200B over 10 years.",
         "is_tcja": False,
         "is_international": True,
         "international_type": "fdii_repeal",
@@ -510,7 +510,7 @@ PRESET_POLICIES = {
     "🌍 Pillar Two Adoption (-$80B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Adopt OECD Pillar Two 15% global minimum tax. JCT estimate: raises ~$80B.",
+        "description": "Adopt OECD Pillar Two 15% global minimum tax. JCT estimate: raises ~\\$80B.",
         "is_tcja": False,
         "is_international": True,
         "international_type": "pillar_two",
@@ -518,7 +518,7 @@ PRESET_POLICIES = {
     "🌍 Biden International Package (-$700B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Full Biden international reform: GILTI at 21% per-country + FDII repeal + UTPR. Raises ~$700B.",
+        "description": "Full Biden international reform: GILTI at 21% per-country + FDII repeal + UTPR. Raises ~\\$700B.",
         "is_tcja": False,
         "is_international": True,
         "international_type": "biden_full",
@@ -527,7 +527,7 @@ PRESET_POLICIES = {
     "🔍 IRA Enforcement Funding (-$200B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "IRA $80B IRS enforcement over 10 years. CBO: raises ~$200B net after costs.",
+        "description": "IRA \\$80B IRS enforcement over 10 years. CBO: raises ~\\$200B net after costs.",
         "is_tcja": False,
         "is_enforcement": True,
         "enforcement_type": "ira",
@@ -535,7 +535,7 @@ PRESET_POLICIES = {
     "🔍 Double IRS Enforcement (-$340B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Double IRS enforcement beyond IRA levels (~$16B/year). Raises ~$340B with diminishing returns.",
+        "description": "Double IRS enforcement beyond IRA levels (~\\$16B/year). Raises ~\\$340B with diminishing returns.",
         "is_tcja": False,
         "is_enforcement": True,
         "enforcement_type": "double",
@@ -543,7 +543,7 @@ PRESET_POLICIES = {
     "🔍 High-Income Enforcement (-$250B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Targeted enforcement for >$400K returns and large partnerships. $5B/year, high ROI.",
+        "description": "Targeted enforcement for >\\$400K returns and large partnerships. \\$5B/year, high ROI.",
         "is_tcja": False,
         "is_enforcement": True,
         "enforcement_type": "high_income",
@@ -552,7 +552,7 @@ PRESET_POLICIES = {
     "💊 Expand Drug Negotiation (-$500B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Negotiate 50 Medicare drugs (vs IRA's 20), remove exclusivity delays. Saves ~$500B.",
+        "description": "Negotiate 50 Medicare drugs (vs IRA's 20), remove exclusivity delays. Saves ~\\$500B.",
         "is_tcja": False,
         "is_pharma": True,
         "pharma_type": "expand_negotiation",
@@ -560,7 +560,7 @@ PRESET_POLICIES = {
     "💊 Universal Insulin Cap (-$15B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "$35/month insulin cap for Medicare and private insurance. Saves ~$15B over 10 years.",
+        "description": "\\$35/month insulin cap for Medicare and private insurance. Saves ~\\$15B over 10 years.",
         "is_tcja": False,
         "is_pharma": True,
         "pharma_type": "insulin_cap",
@@ -568,7 +568,7 @@ PRESET_POLICIES = {
     "💊 International Reference Pricing (-$100B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Cap Medicare drug prices at 120% of OECD international average. Saves ~$100B.",
+        "description": "Cap Medicare drug prices at 120% of OECD international average. Saves ~\\$100B.",
         "is_tcja": False,
         "is_pharma": True,
         "pharma_type": "reference_pricing",
@@ -576,7 +576,7 @@ PRESET_POLICIES = {
     "💊 Comprehensive Drug Reform (-$600B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Expanded negotiation + insulin cap + manufacturer discounts. Saves ~$600B over 10 years.",
+        "description": "Expanded negotiation + insulin cap + manufacturer discounts. Saves ~\\$600B over 10 years.",
         "is_tcja": False,
         "is_pharma": True,
         "pharma_type": "comprehensive",

@@ -145,7 +145,7 @@ def create_ira_enforcement() -> IRSEnforcementPolicy:
     """IRA enforcement funding ($80B/10yr)."""
     return IRSEnforcementPolicy(
         name="IRA Enforcement Funding",
-        description="$80B additional IRS enforcement over 10 years (IRA 2022). CBO estimate: raises ~$200B net.",
+        description="\\$80B additional IRS enforcement over 10 years (IRA 2022). CBO estimate: raises ~\\$200B net.",
         policy_type=PolicyType.INCOME_TAX,
         total_10yr_spending_billions=80.0,
         base_roi_multiplier=5.0,
@@ -156,7 +156,7 @@ def create_double_enforcement() -> IRSEnforcementPolicy:
     """Double IRS enforcement beyond IRA."""
     return IRSEnforcementPolicy(
         name="Double IRS Enforcement",
-        description="Double enforcement funding beyond IRA levels (~$16B/year additional). Higher diminishing returns.",
+        description="Double enforcement funding beyond IRA levels (~\\$16B/year additional). Higher diminishing returns.",
         policy_type=PolicyType.INCOME_TAX,
         annual_enforcement_spending_billions=16.0,
         base_roi_multiplier=4.0,  # Lower base ROI at scale
@@ -168,7 +168,7 @@ def create_high_income_enforcement() -> IRSEnforcementPolicy:
     """Targeted high-income and partnership enforcement."""
     return IRSEnforcementPolicy(
         name="High-Income Enforcement",
-        description="Targeted enforcement for >$400K returns and large partnerships. $5B/year additional.",
+        description="Targeted enforcement for >\\$400K returns and large partnerships. \\$5B/year additional.",
         policy_type=PolicyType.INCOME_TAX,
         annual_enforcement_spending_billions=5.0,
         base_roi_multiplier=7.0,  # Higher ROI for targeted high-income
