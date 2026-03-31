@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from fiscal_model.ui.helpers import TEXTBOOK_LINKS
+
 
 def render_methodology_tab(st_module: Any) -> None:
     """
@@ -249,6 +251,25 @@ def render_methodology_tab(st_module: Any) -> None:
         "rather than structural general-equilibrium equations.\n"
         "6. **2-year data lag** — IRS SOI data is from 2022; taxpayer "
         "distributions may have shifted."
+    )
+
+    # ── Textbook reference ─────────────────────────────────────────────
+    st_module.markdown("---")
+    st_module.subheader("Textbook reference")
+    st_module.markdown(
+        "This calculator accompanies *Modern Public Economics: Theory, "
+        "Evidence, and Policy*. Relevant chapters:\n\n"
+        f"- [Optimal Taxation (Ch 16)]({TEXTBOOK_LINKS['optimal_taxation']})"
+        " — theory of efficient tax design\n"
+        f"- [Personal Income Tax (Ch 18)]({TEXTBOOK_LINKS['income_tax']})"
+        " — income tax, labor supply, tax expenditures\n"
+        f"- [Corporate Tax (Ch 19)]({TEXTBOOK_LINKS['corporate_tax']})"
+        " — corporate tax incidence and reform\n"
+        f"- [The Federal Budget (Ch 22)]({TEXTBOOK_LINKS['federal_budget']})"
+        " — CBO scoring, reconciliation, budget process\n"
+        f"- [Fiscal Sustainability (Ch 25)]"
+        f"({TEXTBOOK_LINKS['fiscal_sustainability']})"
+        " — deficits, multipliers, debt dynamics"
     )
 
     # ── References ───────────────────────────────────────────────────────

@@ -8,6 +8,24 @@ from typing import Any
 
 import numpy as np
 
+# ── Textbook links ──────────────────────────────────────────────────────
+# NOTE: "public-economcis" is the actual GitBook slug (intentional spelling).
+_TEXTBOOK_BASE = (
+    "https://laurence-wilse-samson.gitbook.io/textbooks/public-economcis/chapters"
+)
+
+TEXTBOOK_LINKS = {
+    "optimal_taxation": f"{_TEXTBOOK_BASE}/ch16_optimal_taxation",
+    "income_tax": f"{_TEXTBOOK_BASE}/ch18_income_tax",
+    "corporate_tax": f"{_TEXTBOOK_BASE}/ch19_corporate_tax",
+    "federal_budget": f"{_TEXTBOOK_BASE}/ch22_federal_budget",
+    "fiscal_sustainability": f"{_TEXTBOOK_BASE}/ch25_macro_sustainability",
+}
+
+TEXTBOOK_HOME = (
+    "https://laurence-wilse-samson.gitbook.io/textbooks/public-economcis"
+)
+
 
 def build_macro_scenario(policy: Any, result: Any, is_spending_policy: bool, macro_scenario_cls: Any) -> Any:
     """

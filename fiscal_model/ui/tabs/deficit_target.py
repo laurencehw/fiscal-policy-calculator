@@ -9,6 +9,8 @@ from typing import Any
 import pandas as pd
 import plotly.graph_objects as go
 
+from fiscal_model.ui.helpers import TEXTBOOK_LINKS
+
 
 def render_deficit_target_tab(
     st_module: Any,
@@ -20,9 +22,27 @@ def render_deficit_target_tab(
 
     st_module.header("Deficit Reduction Planner")
     st_module.markdown(
-        "Build a package of policies to bring the deficit below a target. "
-        "The baseline CBO projection shows deficits of ~\\$1.4-1.7 trillion/year "
-        "(4-5% of GDP) over the next decade."
+        "The federal government currently spends more than it collects in "
+        "taxes each year. This gap — the **deficit** — adds to the national "
+        "debt. The Congressional Budget Office (CBO) projects deficits of "
+        "roughly \\$1.4–1.7 trillion per year (4–5% of GDP) over the next "
+        "decade.\n\n"
+        "**Why does this matter?** Persistent deficits can raise interest "
+        "rates, crowd out private investment, and limit the government's "
+        "ability to respond to future crises. Many economists consider a "
+        "deficit around 3% of GDP sustainable — meaning debt grows no faster "
+        "than the economy.\n\n"
+        "**How to use this tool:** Set a deficit target below, then select "
+        "policies to include in a package. Policies are grouped into "
+        ":green[**revenue raisers**] (which reduce the deficit) and "
+        ":red[**tax cuts & new spending**] (which increase it). "
+        "The waterfall chart updates as you build your package."
+    )
+    st_module.info(
+        "**Learn more:** "
+        f"[The Federal Budget]({TEXTBOOK_LINKS['federal_budget']}) · "
+        f"[Deficits, Debt & Fiscal Sustainability]"
+        f"({TEXTBOOK_LINKS['fiscal_sustainability']})"
     )
 
     # Target selector
@@ -100,20 +120,31 @@ def render_deficit_target_tab(
             cat = "Other"
         categories.setdefault(cat, []).append((name, score))
 
-    # Display checkboxes by category
+    # Split policies into revenue raisers vs deficit increasers
+    revenue_raisers: dict[str, list[tuple[str, float]]] = {}
+    deficit_increasers: dict[str, list[tuple[str, float]]] = {}
+    for cat_name, policies in categories.items():
+        for policy_name, score in policies:
+            target = revenue_raisers if score < 0 else deficit_increasers
+            target.setdefault(cat_name, []).append((policy_name, score))
+
     selected_policies: list[str] = []
     total_impact = 0.0
 
-    for cat_name, policies in sorted(categories.items()):
-        with st_module.expander(
-            f"**{cat_name}** ({len(policies)} options)", expanded=False
-        ):
-            for policy_name, score in policies:
-                direction = "reduces deficit by" if score < 0 else "increases deficit by"
-                label = f"{policy_name} — {direction} \\${abs(score):,.0f}B"
-                if st_module.checkbox(label, key=f"dt_{policy_name}"):
-                    selected_policies.append(policy_name)
-                    total_impact += score
+    for header, data, verb in [
+        (":green[Revenue Raisers] (reduce the deficit)", revenue_raisers, "saves"),
+        (":red[Tax Cuts & New Spending] (increase the deficit)", deficit_increasers, "costs"),
+    ]:
+        st_module.markdown(f"### {header}")
+        for cat_name, policies in sorted(data.items()):
+            with st_module.expander(
+                f"**{cat_name}** ({len(policies)} options)", expanded=False
+            ):
+                for policy_name, score in policies:
+                    label = f"{policy_name} — {verb} \\${abs(score):,.0f}B"
+                    if st_module.checkbox(label, key=f"dt_{policy_name}"):
+                        selected_policies.append(policy_name)
+                        total_impact += score
 
     # Warn about overlapping policies
     _overlap_groups = {
@@ -276,6 +307,7 @@ def render_deficit_target_tab(
             rows.append(
                 {
                     "Policy": pname,
+                    "Direction": "Revenue Raiser" if score < 0 else "Tax Cut / Spending",
                     "10-Year Impact": f"${score:+,.0f}B",
                     "Annual": f"${score / n_years:+,.0f}B",
                     "Source": source,

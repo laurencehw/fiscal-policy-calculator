@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from fiscal_model.ui.helpers import TEXTBOOK_LINKS
+
 # ---------------------------------------------------------------------------
 # Preset category helpers
 # ---------------------------------------------------------------------------
@@ -148,7 +150,11 @@ def render_tax_policy_inputs(
                 "[Saez et al. 2012](https://eml.berkeley.edu/~saez/saez-slemrod-giertzJEL12.pdf))\n"
                 "3. **Dynamic feedback** *(optional)* — GDP and employment effects "
                 "using FRB/US-calibrated multipliers\n\n"
-                "Data sources: IRS Statistics of Income, FRED, CBO Baseline Projections."
+                "Data sources: IRS Statistics of Income, FRED, CBO Baseline Projections.\n\n"
+                "For deeper background, see "
+                f"[Optimal Taxation (Ch 16)]({TEXTBOOK_LINKS['optimal_taxation']}) and "
+                f"[The Federal Budget (Ch 22)]({TEXTBOOK_LINKS['federal_budget']}) "
+                "in the textbook."
             )
 
     # ── Custom path ──────────────────────────────────────────────────────
