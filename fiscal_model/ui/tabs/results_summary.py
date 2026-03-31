@@ -52,6 +52,9 @@ def render_results_summary_tab(
             color="avg_tax_change",
             color_continuous_scale="RdBu_r",
         )
+        fig.update_layout(
+            meta={"description": "Bar chart showing average tax change per household by number of children"},
+        )
         st_module.plotly_chart(fig, use_container_width=True)
 
         st_module.info(
@@ -205,6 +208,7 @@ def render_results_summary_tab(
             height=320,
             yaxis_title="Deficit Impact ($B, + = increases deficit)",
             showlegend=False,
+            meta={"description": "Waterfall chart showing deficit impact decomposition from static through behavioral and dynamic effects"},
         )
         st_module.plotly_chart(fig_waterfall, use_container_width=True)
 
@@ -277,6 +281,7 @@ def render_results_summary_tab(
             height=300,
             xaxis_title=None,
             yaxis_title="Deficit Impact ($B)",
+            meta={"description": "Bar chart showing year-by-year deficit impact in billions of dollars"},
         )
         st_module.plotly_chart(fig_timeline, use_container_width=True)
 
@@ -321,6 +326,7 @@ def render_results_summary_tab(
                 orientation="h", yanchor="bottom", y=1.02,
                 xanchor="right", x=1,
             ),
+            meta={"description": "Line chart with uncertainty band showing cumulative deficit impact over the budget window"},
         )
         st_module.plotly_chart(fig_cum, use_container_width=True)
         st_module.caption(
@@ -386,3 +392,90 @@ def render_results_summary_tab(
         ),
         mime="text/csv",
     )
+
+    # Side-by-side comparison
+    st_module.markdown("---")
+    st_module.subheader("Compare to another proposal")
+
+    compare_presets = list(cbo_score_map.keys())
+    if compare_presets:
+        compare_choice = st_module.selectbox(
+            "Select a proposal to compare against",
+            options=["(none)", *compare_presets],
+            key="compare_policy_select",
+            help="See how this policy's fiscal impact compares to another.",
+        )
+
+        if compare_choice != "(none)":
+            compare_data = cbo_score_map[compare_choice]
+            compare_official = compare_data["official_score"]
+
+            c1, c2, c3 = st_module.columns(3)
+            with c1:
+                st_module.markdown("**Current policy**")
+                st_module.metric(
+                    policy.name,
+                    f"${final_deficit_total:+,.0f}B",
+                )
+            with c2:
+                st_module.markdown("**Comparison**")
+                st_module.metric(
+                    compare_choice,
+                    f"${compare_official:+,.0f}B",
+                    help=f"Official {compare_data['source']} estimate",
+                )
+            with c3:
+                delta = final_deficit_total - compare_official
+                st_module.markdown("**Difference**")
+                st_module.metric(
+                    "Net difference",
+                    f"${delta:+,.0f}B",
+                    delta=f"{'More costly' if delta > 0 else 'Less costly'}",
+                    delta_color="inverse" if delta > 0 else "normal",
+                )
+
+    # Sensitivity analysis
+    st_module.markdown("---")
+    with st_module.expander("Sensitivity analysis"):
+        st_module.markdown(
+            "How would results change with different behavioral assumptions? "
+            "The Elasticity of Taxable Income (ETI) is the most influential parameter."
+        )
+
+        if hasattr(policy, 'rate_change') and policy.rate_change != 0:
+            eti_values = [0.10, 0.15, 0.20, 0.25, 0.30, 0.40, 0.50]
+            sensitivity_data = []
+
+            for eti_val in eti_values:
+                base_eti = getattr(policy, 'taxable_income_elasticity', 0.25)
+                if base_eti > 0:
+                    scale = eti_val / base_eti
+                else:
+                    scale = 1.0
+                adjusted_behavioral = behavioral_total * scale
+                adjusted_final = (
+                    static_deficit_total + adjusted_behavioral
+                    - dynamic_revenue_feedback_total
+                )
+                sensitivity_data.append({
+                    "ETI": eti_val,
+                    "10-Year Impact ($B)": round(adjusted_final, 1),
+                    "vs. Central": f"${adjusted_final - final_deficit_total:+,.0f}B",
+                })
+
+            df_sensitivity = pd.DataFrame(sensitivity_data)
+            st_module.dataframe(
+                df_sensitivity, hide_index=True, use_container_width=True
+            )
+            st_module.caption(
+                "Central estimate uses ETI = 0.25 (Saez et al. 2012). "
+                "Lower ETI = less behavioral response = revenue closer to "
+                "static estimate. Higher ETI = more avoidance = less revenue "
+                "from tax increases."
+            )
+        else:
+            st_module.info(
+                "Sensitivity analysis is available for policies with rate "
+                "changes. Preset policies use pre-calibrated models where "
+                "ETI sensitivity is embedded in the calibration."
+            )

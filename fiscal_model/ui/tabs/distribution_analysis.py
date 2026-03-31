@@ -126,6 +126,7 @@ def render_distribution_tab(
             yaxis_title="Average Tax Change ($)",
             height=400,
             showlegend=False,
+            meta={"description": "Bar chart showing average tax change in dollars by income group, with green bars for tax cuts and red bars for tax increases"},
         )
         st_module.plotly_chart(fig_dist, use_container_width=True)
 
@@ -148,7 +149,11 @@ def render_distribution_tab(
                         )
                     ]
                 )
-                fig_pie.update_layout(height=350, showlegend=False)
+                fig_pie.update_layout(
+                    height=350,
+                    showlegend=False,
+                    meta={"description": "Pie chart showing each income group's share of the total tax change"},
+                )
                 st_module.plotly_chart(fig_pie, use_container_width=True)
             else:
                 st_module.info("No significant tax change in any group")

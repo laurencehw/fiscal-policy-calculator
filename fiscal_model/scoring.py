@@ -4,6 +4,7 @@ Fiscal Policy Scoring Engine
 Main scoring logic combining static and dynamic analysis.
 """
 
+import logging
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -27,6 +28,8 @@ from .policies import (
 from .ptc import PremiumTaxCreditPolicy
 from .tax_expenditures import TaxExpenditurePolicy
 from .tcja import TCJAExtensionPolicy
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -249,6 +252,8 @@ class FiscalPolicyScorer:
         Returns:
             ScoringResult with complete analysis
         """
+        logger.info("Scoring policy '%s' (dynamic=%s)", policy.name, dynamic)
+
         years = self.baseline.years
         n_years = len(years)
 
@@ -298,7 +303,7 @@ class FiscalPolicyScorer:
             low = final_deficit.copy()
             high = final_deficit.copy()
 
-        return ScoringResult(
+        result = ScoringResult(
             policy=policy,
             baseline=self.baseline,
             years=years,
@@ -311,6 +316,8 @@ class FiscalPolicyScorer:
             low_estimate=low,
             high_estimate=high,
         )
+        logger.info("Policy '%s': 10yr cost $%.1fB", policy.name, result.total_10_year_cost)
+        return result
 
     def score_package(self, package: PolicyPackage,
                      dynamic: bool = False) -> ScoringResult:
@@ -319,6 +326,7 @@ class FiscalPolicyScorer:
 
         Accounts for interactions between policies.
         """
+        logger.info("Scoring package with %d policies", len(package.policies))
         # Score each policy
         results = [self.score_policy(p, dynamic=dynamic) for p in package.policies]
 

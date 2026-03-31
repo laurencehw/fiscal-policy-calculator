@@ -56,6 +56,20 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
                 ),
             )
 
+            import datetime
+            current_year = datetime.date.today().year
+            data_age = current_year - data_year
+            if data_age >= 3:
+                st_module.warning(
+                    f"IRS data is {data_age} years old. Taxpayer distributions "
+                    f"may have shifted. Consider updating to more recent data."
+                )
+            elif data_age >= 2:
+                st_module.caption(
+                    f"Note: Using {data_year} IRS data ({data_age} years old). "
+                    f"This is normal — IRS SOI data has a ~2 year publication lag."
+                )
+
             use_microsim = st_module.checkbox(
                 "Microsimulation mode (experimental)",
                 value=False,

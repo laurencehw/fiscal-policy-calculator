@@ -211,6 +211,7 @@ def render_dynamic_scoring_tab(
             height=400,
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
             hovermode="x unified",
+            meta={"description": "Combined bar and line chart showing annual GDP level effect in percent and cumulative GDP effect in percent-years"},
         )
         st_module.plotly_chart(fig_gdp, use_container_width=True)
 
@@ -233,6 +234,7 @@ def render_dynamic_scoring_tab(
                 yaxis_title="Jobs (Millions)",
                 height=350,
                 hovermode="x",
+                meta={"description": "Area chart showing employment effect in millions of jobs over the budget window"},
             )
             st_module.plotly_chart(fig_emp, use_container_width=True)
 
@@ -252,6 +254,7 @@ def render_dynamic_scoring_tab(
                 yaxis_title="Revenue Feedback ($B)",
                 height=350,
                 hovermode="x",
+                meta={"description": "Bar chart showing annual revenue feedback from macroeconomic effects in billions of dollars"},
             )
             st_module.plotly_chart(fig_rev, use_container_width=True)
 
