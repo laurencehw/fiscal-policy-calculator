@@ -106,11 +106,18 @@ def render_tax_policy_inputs(
         preset_choice = display_names[selected_display]
         preset_data = preset_policies[preset_choice]
 
-        # Show what this preset does
-        st_module.info(
-            f"**{_strip_emoji_prefix(preset_choice)}**\n\n"
-            f"{preset_data['description']}"
-        )
+        # Show what this preset does with fiscal direction indicator
+        display_name = _strip_emoji_prefix(preset_choice)
+        desc = preset_data["description"]
+
+        # Determine fiscal direction from description keywords
+        desc_lower = desc.lower()
+        if any(w in desc_lower for w in ["raise", "saves", "revenue"]):
+            st_module.success(f"**{display_name}**\n\n{desc}")
+        elif any(w in desc_lower for w in ["cost", "repeal", "cut", "reduce", "lower", "extend", "expand"]):
+            st_module.warning(f"**{display_name}**\n\n{desc}")
+        else:
+            st_module.info(f"**{display_name}**\n\n{desc}")
 
         # Show the methodology note
         with st_module.expander("How is this scored?", expanded=False):

@@ -102,6 +102,37 @@ def render_results_summary_tab(
         unsafe_allow_html=True,
     )
 
+    # Plain-English interpretation
+    annual_avg = final_deficit_total / 10
+    gdp_baseline = 30_000  # ~$30T nominal GDP
+    pct_of_gdp = abs(final_deficit_total) / gdp_baseline * 100
+
+    if final_deficit_total > 100:
+        interpretation = (
+            f"This policy would **add approximately ${final_deficit_total:,.0f} billion** "
+            f"to the federal deficit over 10 years — roughly "
+            f"**${abs(annual_avg):,.0f}B per year**, or about "
+            f"**{pct_of_gdp:.1f}% of GDP**."
+        )
+    elif final_deficit_total < -100:
+        interpretation = (
+            f"This policy would **reduce the federal deficit by approximately "
+            f"${abs(final_deficit_total):,.0f} billion** over 10 years — roughly "
+            f"**${abs(annual_avg):,.0f}B per year** in new revenue or savings, "
+            f"or about **{pct_of_gdp:.1f}% of GDP**."
+        )
+    elif abs(final_deficit_total) > 1:
+        direction = "increase" if final_deficit_total > 0 else "decrease"
+        interpretation = (
+            f"This policy would **{direction} the deficit by about "
+            f"${abs(final_deficit_total):,.0f} billion** over 10 years "
+            f"(${abs(annual_avg):,.0f}B/year) — a relatively modest fiscal impact."
+        )
+    else:
+        interpretation = "This policy has **negligible fiscal impact** over the 10-year window."
+
+    st_module.markdown(interpretation)
+
     col_metrics, col_context = st_module.columns([1, 1])
 
     with col_metrics:
@@ -248,24 +279,76 @@ def render_results_summary_tab(
     with c_chart2:
         st_module.subheader("Cumulative Deficit Impact")
         df_timeline["Cumulative"] = df_timeline["Deficit Impact"].cumsum()
+        df_timeline["Cum_Low"] = result.low_estimate.cumsum()
+        df_timeline["Cum_High"] = result.high_estimate.cumsum()
 
         fig_cum = go.Figure()
+
+        # Uncertainty band
+        fig_cum.add_trace(
+            go.Scatter(
+                x=list(df_timeline["Year"]) + list(df_timeline["Year"][::-1]),
+                y=list(df_timeline["Cum_High"]) + list(df_timeline["Cum_Low"][::-1]),
+                fill="toself",
+                fillcolor="rgba(44, 160, 44, 0.15)",
+                line=dict(color="rgba(255,255,255,0)"),
+                name="Uncertainty range",
+                showlegend=True,
+            )
+        )
+
+        # Central estimate
         fig_cum.add_trace(
             go.Scatter(
                 x=df_timeline["Year"],
                 y=df_timeline["Cumulative"],
-                fill="tozeroy",
                 mode="lines+markers",
                 line=dict(color="#2ca02c", width=3),
+                name="Central estimate",
             )
         )
+
         fig_cum.update_layout(
             margin=dict(l=20, r=20, t=20, b=20),
             height=300,
             xaxis_title=None,
             yaxis_title="Cumulative Deficit Impact ($B)",
+            legend=dict(
+                orientation="h", yanchor="bottom", y=1.02,
+                xanchor="right", x=1,
+            ),
         )
         st_module.plotly_chart(fig_cum, use_container_width=True)
+        st_module.caption(
+            "Shaded area shows uncertainty range. "
+            "Uncertainty grows over time, consistent with CBO methodology."
+        )
+
+    # Assumptions panel
+    st_module.markdown("---")
+    with st_module.expander("Assumptions and data sources"):
+        a1, a2, a3 = st_module.columns(3)
+        with a1:
+            st_module.markdown("**Behavioral**")
+            if hasattr(policy, "taxable_income_elasticity"):
+                st_module.markdown(f"- ETI: {policy.taxable_income_elasticity}")
+            if hasattr(policy, "short_run_elasticity") and hasattr(policy, "long_run_elasticity"):
+                st_module.markdown(
+                    f"- CG elasticity: {policy.short_run_elasticity} "
+                    f"(short) / {policy.long_run_elasticity} (long)"
+                )
+        with a2:
+            st_module.markdown("**Data**")
+            st_module.markdown("- IRS Statistics of Income")
+            st_module.markdown("- FRED Economic Data")
+            st_module.markdown("- CBO Baseline (Feb 2024)")
+        with a3:
+            st_module.markdown("**Methodology**")
+            st_module.markdown("- Static + behavioral scoring")
+            if result.dynamic_effects:
+                st_module.markdown("- FRB/US-calibrated multipliers")
+            st_module.markdown("- 10-year budget window")
+            st_module.markdown("- [Full docs](https://github.com/laurencehw/fiscal-policy-calculator/blob/main/docs/METHODOLOGY.md)")
 
     # Export section
     st_module.markdown("---")

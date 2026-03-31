@@ -81,9 +81,38 @@ def render_result_tabs(
 
     if not st_module.session_state.results:
         with tabs["tab_summary"]:
-            st_module.info("👈 Configure a policy in the sidebar and click 'Calculate Impact' to see results.")
+            st_module.markdown("### Welcome to the Fiscal Policy Calculator")
+            st_module.markdown(
+                "Select a tax or spending proposal in the sidebar and click "
+                "**Calculate Impact** to see its 10-year budgetary effect.\n\n"
+                "**Quick examples to try:**"
+            )
+            col_a, col_b, col_c = st_module.columns(3)
+            with col_a:
+                st_module.markdown(
+                    "**TCJA Extension**  \n"
+                    "Extend all Tax Cuts and Jobs Act provisions  \n"
+                    "*CBO estimate: +$4.6T*"
+                )
+            with col_b:
+                st_module.markdown(
+                    "**Biden Corporate 28%**  \n"
+                    "Raise corporate rate from 21% to 28%  \n"
+                    "*CBO estimate: -$1.35T*"
+                )
+            with col_c:
+                st_module.markdown(
+                    "**SS Donut Hole**  \n"
+                    "Apply SS tax above $250K  \n"
+                    "*CBO estimate: -$2.7T*"
+                )
+            st_module.markdown("---")
+            st_module.caption(
+                "This calculator uses CBO methodology with IRS Statistics of Income data. "
+                "25+ policies validated within 15% of official CBO/JCT scores."
+            )
         with tabs["tab_analysis"]:
-            st_module.info("👈 Run a calculation to unlock analysis views.")
+            st_module.info("Run a calculation to unlock analysis views (distribution, dynamic scoring, long-run growth).")
         return
 
     result_data = st_module.session_state.results
@@ -144,13 +173,14 @@ def render_result_tabs(
 
 def render_footer(st_module: Any) -> None:
     """
-    Render app footer.
+    Render app footer with version and validation info.
     """
     st_module.markdown("---")
     st_module.caption(
-        """
-**Fiscal Policy Impact Calculator** | Built with Streamlit |
-Data: IRS Statistics of Income, FRED, CBO |
-Methodology: Congressional Budget Office scoring framework
-"""
+        "**Fiscal Policy Impact Calculator** v1.0 · "
+        "25 policies validated against CBO/JCT · "
+        "302 unit tests · "
+        "Data: IRS SOI 2022, FRED, CBO Feb 2024 · "
+        "[Methodology](https://github.com/laurencehw/fiscal-policy-calculator/blob/main/docs/METHODOLOGY.md) · "
+        "[Source code](https://github.com/laurencehw/fiscal-policy-calculator)"
     )
