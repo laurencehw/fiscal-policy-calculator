@@ -22,7 +22,7 @@ CBO_SCORE_MAP = {
         "official_score": 6500.0,  # ~$4.6T + $1.9T SALT
         "source": "CBO/JCT",
         "source_date": "2024",
-        "notes": "TCJA extension + repeal $10K SALT cap (~$1.9T additional)",
+        "notes": "TCJA extension + repeal \\$10K SALT cap (~\\$1.9T additional)",
     },
     "🏛️ TCJA Rates Only": {
         "official_score": 3200.0,
@@ -49,13 +49,13 @@ CBO_SCORE_MAP = {
         "official_score": 1600.0,
         "source": "JCT",
         "source_date": "2021",
-        "notes": "$3,600/$3,000 per child, fully refundable, monthly payments",
+        "notes": "\\$3,600/\\$3,000 per child, fully refundable, monthly payments",
     },
     "👶 CTC Extension (CBO: $600B)": {
         "official_score": 600.0,
         "source": "CBO",
         "source_date": "2024",
-        "notes": "Extend current $2,000 CTC beyond 2025",
+        "notes": "Extend current \\$2,000 CTC beyond 2025",
     },
     "💼 EITC Childless Expansion (CBO: $178B)": {
         "official_score": 178.0,
@@ -68,13 +68,13 @@ CBO_SCORE_MAP = {
         "official_score": 167.0,
         "source": "CBO",
         "source_date": "2024",
-        "notes": "Maintain doubled exemption ($13.6M) beyond 2025",
+        "notes": "Maintain doubled exemption (\\$13.6M) beyond 2025",
     },
     "🏠 Biden Estate Reform (-$450B)": {
         "official_score": -450.0,
         "source": "Treasury",
         "source_date": "2024",
-        "notes": "Return to 2009 parameters: $3.5M exemption, 45% rate",
+        "notes": "Return to 2009 parameters: \\$3.5M exemption, 45% rate",
     },
     "🏠 Eliminate Estate Tax ($350B)": {
         "official_score": 350.0,  # ~$35B/yr
@@ -87,13 +87,13 @@ CBO_SCORE_MAP = {
         "official_score": -800.0,
         "source": "CBO",
         "source_date": "2024",
-        "notes": "Raise SS wage cap from $168K to ~$305K",
+        "notes": "Raise SS wage cap from \\$168K to ~\\$305K",
     },
     "💰 SS Donut Hole $250K (-$2.7T)": {
         "official_score": -2700.0,
         "source": "SS Trustees",
         "source_date": "2024",
-        "notes": "Apply payroll tax above $250K (donut hole)",
+        "notes": "Apply payroll tax above \\$250K (donut hole)",
     },
     "💰 Eliminate SS Cap (-$3.2T)": {
         "official_score": -3200.0,
@@ -144,7 +144,7 @@ CBO_SCORE_MAP = {
         "official_score": -450.0,
         "source": "JCT",
         "source_date": "2024",
-        "notes": "Cap exclusion at 28% rate or ~$25K",
+        "notes": "Cap exclusion at 28% rate or ~\\$25K",
     },
     "📋 Eliminate Mortgage Deduction (-$300B)": {
         "official_score": -300.0,
@@ -156,7 +156,7 @@ CBO_SCORE_MAP = {
         "official_score": 1100.0,
         "source": "JCT",
         "source_date": "2024",
-        "notes": "Remove $10K cap on state/local tax deduction",
+        "notes": "Remove \\$10K cap on state/local tax deduction",
     },
     "📋 Eliminate SALT Deduction (-$1.2T)": {
         "official_score": -1200.0,
@@ -182,7 +182,7 @@ CBO_SCORE_MAP = {
         "source": "Treasury",
         "source_date": "March 2024",
         "source_url": "https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf",
-        "notes": "Restore 39.6% top rate for income above $400K",
+        "notes": "Restore 39.6% top rate for income above \\$400K",
     },
     # International Tax
     "🌍 Biden GILTI Reform (-$280B)": {
@@ -214,7 +214,7 @@ CBO_SCORE_MAP = {
         "official_score": -200.0,
         "source": "CBO",
         "source_date": "2022",
-        "notes": "IRA $80B enforcement funding, ~$200B net revenue",
+        "notes": "IRA \\$80B enforcement funding, ~\\$200B net revenue",
     },
     "🔍 Double IRS Enforcement (-$340B)": {
         "official_score": -340.0,
@@ -233,7 +233,7 @@ CBO_SCORE_MAP = {
         "official_score": -15.0,
         "source": "CBO",
         "source_date": "2022",
-        "notes": "$35/month insulin cap for Medicare and private insurance",
+        "notes": "\\$35/month insulin cap for Medicare and private insurance",
     },
     "💊 International Reference Pricing (-$100B)": {
         "official_score": -100.0,
@@ -468,7 +468,7 @@ PRESET_POLICIES = {
     "Biden 2025 Proposal": {
         "rate_change": 2.6,
         "threshold": 400000,
-        "description": "Restore top rate to 39.6% for AGI > $400K",
+        "description": "Restore top rate to 39.6% for AGI > \\$400K",
         "is_tcja": False,
         "is_corporate": False,
     },
@@ -481,7 +481,7 @@ PRESET_POLICIES = {
     "Middle Class Tax Cut": {
         "rate_change": -2.0,
         "threshold": 50000,
-        "description": "2pp cut for households earning $50K+",
+        "description": "2pp cut for households earning \\$50K+",
         "is_tcja": False,
     },
     "Flat Tax Reform": {
