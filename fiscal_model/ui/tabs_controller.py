@@ -51,10 +51,9 @@ def render_result_tabs(
     with tabs["tab_deficit"]:
         deps.render_deficit_target_tab(
             st_module=st_module,
-            preset_policies=deps.PRESET_POLICIES,
             cbo_score_map=deps.CBO_SCORE_MAP,
-            create_policy_from_preset_fn=deps.create_policy_from_preset,
             fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
+            use_real_data=settings["use_real_data"],
         )
 
     # ── Tools tab ────────────────────────────────────────────────────────

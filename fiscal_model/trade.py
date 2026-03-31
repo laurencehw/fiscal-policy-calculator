@@ -171,7 +171,10 @@ def create_trump_china_60() -> TariffPolicy:
         description="60% tariff on all Chinese imports (~\\$430B base). Raises ~\\$500B/10yr.",
         tariff_rate_change=0.60 - existing_tariff,  # Incremental above existing ~20%
         target_country="china",
-        import_base_billions=TRADE_BASELINE["china_imports_billions"],
+        import_base_billions=(
+            TRADE_BASELINE["china_imports_billions"]
+            * TRADE_BASELINE["china_effective_coverage"]
+        ),
         import_elasticity=-0.7,  # Higher elasticity for China (more substitution available)
     )
 
@@ -181,7 +184,7 @@ def create_auto_tariff_25() -> TariffPolicy:
     return TariffPolicy(
         name="25% Auto Tariff",
         description="25% tariff on imported vehicles and parts (~\\$380B base).",
-        tariff_rate_change=0.25,
+        tariff_rate_change=0.25 - 0.025,  # Incremental above existing ~2.5%
         target_sector="autos",
         import_base_billions=TRADE_BASELINE["auto_imports_billions"] * 0.35,
     )
