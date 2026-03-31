@@ -152,7 +152,6 @@ class InternationalTaxPolicy(TaxPolicy):
             return 0.0
 
         base = INTERNATIONAL_BASELINE
-        current_revenue = base["gilti_revenue_billions"]
         gilti_base = base["gilti_base_billions"]
 
         # New effective rate
