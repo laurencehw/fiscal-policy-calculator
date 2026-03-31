@@ -20,6 +20,7 @@ References:
 - EIA (2024): Annual Energy Outlook — U.S. CO2 emissions baseline
 """
 
+import math
 from dataclasses import dataclass
 from enum import Enum
 
@@ -224,7 +225,6 @@ class ClimateEnergyPolicy(Policy):
         # Scale behavioral response: sqrt of price ratio gives diminishing returns
         # at high prices but still meaningful reduction at low prices
         price_ratio = price / base["carbon_tax_reference_price"]
-        import math
         price_scale = math.sqrt(min(price_ratio, 4.0))
         # Cumulative behavioral response grows with time and price
         year_factor = min(1.0, (year_offset + 1) / self.duration_years)
@@ -288,8 +288,6 @@ class ClimateEnergyPolicy(Policy):
             reference_price = base["carbon_tax_reference_price"]
             baseline_emissions = base["us_co2_emissions_gt_per_year"]
             behavioral_factor = base["carbon_tax_behavioral_factor"]
-
-            import math
             for yr in range(self.duration_years):
                 price = self.carbon_tax_per_ton * (1 + self.carbon_tax_growth_rate) ** yr
                 price_ratio = price / reference_price

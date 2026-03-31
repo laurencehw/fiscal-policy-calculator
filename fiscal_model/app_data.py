@@ -262,7 +262,7 @@ CBO_SCORE_MAP = {
     },
     # Climate / Energy
     "🌱 Repeal IRA Clean Energy Credits ($783B)": {
-        "official_score": 783.0,
+        "official_score": -783.0,
         "source": "CBO",
         "source_date": "March 2024",
         "notes": "Full repeal of IRA clean energy tax credits",
@@ -274,7 +274,7 @@ CBO_SCORE_MAP = {
         "notes": "\\$50/ton CO2 tax with 5% annual escalator",
     },
     "🌱 Repeal EV Credits ($200B)": {
-        "official_score": 200.0,
+        "official_score": -200.0,
         "source": "CBO",
         "source_date": "2024",
         "notes": "Repeal \\$7,500 EV tax credit",

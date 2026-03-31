@@ -44,7 +44,6 @@ INTERNATIONAL_BASELINE = {
     "gilti_rate": 0.105,  # 10.5% effective rate (50% deduction on 21%)
     "gilti_base_billions": 250.0,  # Gross taxable GILTI ~$250B/year
     "gilti_revenue_billions": 25.0,  # Current GILTI revenue ~$25B/yr (after FTCs)
-    "gilti_qbai_exemption_rate": 0.10,  # 10% return on QBAI exempt
     # Net QBAI exempt income after FTCs — Treasury estimates smaller effective base
     "gilti_qbai_exempt_income_billions": 40.0,  # ~$40B net (many MNEs already above threshold)
     # CBC multiplier — per-country eliminates cross-crediting but many jurisdictions
