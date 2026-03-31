@@ -32,6 +32,23 @@ from fiscal_model import (
     create_tcja_extension,
     create_tcja_repeal_salt_cap,
 )
+from fiscal_model.enforcement import (
+    create_double_enforcement,
+    create_high_income_enforcement,
+    create_ira_enforcement,
+)
+from fiscal_model.international import (
+    create_biden_full_international,
+    create_biden_gilti_reform,
+    create_fdii_repeal,
+    create_pillar_two_adoption,
+)
+from fiscal_model.pharma import (
+    create_comprehensive_pharma_reform,
+    create_expand_drug_negotiation,
+    create_insulin_cap_all,
+    create_reference_pricing,
+)
 
 
 def create_policy_from_preset(preset_data: dict) -> Any | None:
@@ -69,6 +86,15 @@ def create_policy_from_preset(preset_data: dict) -> Any | None:
 
     elif preset_data.get("is_expenditure", False):
         return _create_expenditure_policy(preset_data)
+
+    elif preset_data.get("is_international", False):
+        return _create_international_policy(preset_data)
+
+    elif preset_data.get("is_enforcement", False):
+        return _create_enforcement_policy(preset_data)
+
+    elif preset_data.get("is_pharma", False):
+        return _create_pharma_policy(preset_data)
 
     # Not a complex preset - return None to indicate caller should handle
     return None
@@ -195,3 +221,49 @@ def _create_expenditure_policy(preset_data: dict):
         return create_cap_charitable_deduction()
     else:
         return create_cap_employer_health_exclusion()
+
+
+def _create_international_policy(preset_data: dict):
+    """Create international tax policy based on type."""
+    intl_type = preset_data.get("international_type", "biden_gilti")
+
+    if intl_type == "biden_gilti":
+        return create_biden_gilti_reform()
+    elif intl_type == "fdii_repeal":
+        return create_fdii_repeal()
+    elif intl_type == "pillar_two":
+        return create_pillar_two_adoption()
+    elif intl_type == "biden_full":
+        return create_biden_full_international()
+    else:
+        return create_biden_gilti_reform()
+
+
+def _create_enforcement_policy(preset_data: dict):
+    """Create IRS enforcement policy based on type."""
+    enforcement_type = preset_data.get("enforcement_type", "ira")
+
+    if enforcement_type == "ira":
+        return create_ira_enforcement()
+    elif enforcement_type == "double":
+        return create_double_enforcement()
+    elif enforcement_type == "high_income":
+        return create_high_income_enforcement()
+    else:
+        return create_ira_enforcement()
+
+
+def _create_pharma_policy(preset_data: dict):
+    """Create pharmaceutical pricing policy based on type."""
+    pharma_type = preset_data.get("pharma_type", "expand_negotiation")
+
+    if pharma_type == "expand_negotiation":
+        return create_expand_drug_negotiation()
+    elif pharma_type == "insulin_cap":
+        return create_insulin_cap_all()
+    elif pharma_type == "reference_pricing":
+        return create_reference_pricing()
+    elif pharma_type == "comprehensive":
+        return create_comprehensive_pharma_reform()
+    else:
+        return create_expand_drug_negotiation()
