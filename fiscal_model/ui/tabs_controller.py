@@ -19,54 +19,33 @@ _ANALYSIS_CONTEXT = {
 def build_main_tabs(
     st_module: Any,
     mode: str,
-    state_mode: bool = False,
 ) -> dict[str, Any]:
     """
-    Create main result tabs layout with progressive disclosure.
-    Primary tabs are always visible; advanced tabs are in an expander.
-
-    Args:
-        state_mode: If True, add a State Analysis tab to the primary set.
+    Create main Calculator result tabs. All tabs are always visible (no expander).
+    Generational Analysis, State Analysis, and Methodology are top-level app tabs,
+    not part of the Calculator tab set.
     """
-    # Primary tabs (always visible)
-    primary_labels = ["📊 Results Summary", "👥 Distribution", "🌍 Dynamic Scoring", "📋 Detailed Results"]
-    if state_mode:
-        primary_labels.append("🗺️ State Analysis")
-    primary_tabs = st_module.tabs(primary_labels)
-    tab_map = dict(zip(primary_labels, primary_tabs, strict=False))
+    labels = [
+        "📊 Results Summary",
+        "👥 Distribution",
+        "🌍 Dynamic Scoring",
+        "📋 Detailed Results",
+        "📈 Long-Run Growth",
+        "⚖️ Policy Comparison",
+        "📦 Package Builder",
+    ]
+    tabs = st_module.tabs(labels)
+    tab_map = dict(zip(labels, tabs, strict=False))
 
-    # Create mapping for primary tabs with icons
-    primary_map = {
+    return {
         "tab_summary": tab_map["📊 Results Summary"],
         "tab_distribution": tab_map["👥 Distribution"],
         "tab_dynamic": tab_map["🌍 Dynamic Scoring"],
         "tab_details": tab_map["📋 Detailed Results"],
+        "tab_long_run": tab_map["📈 Long-Run Growth"],
+        "tab_comparison": tab_map["⚖️ Policy Comparison"],
+        "tab_packages": tab_map["📦 Package Builder"],
     }
-    if state_mode:
-        primary_map["tab_state"] = tab_map["🗺️ State Analysis"]
-
-    # Advanced section (in expander)
-    st_module.markdown("---")
-    with st_module.expander("🔬 Advanced Analysis", expanded=False):
-        advanced_labels = [
-            "📈 Long-Run Growth",
-            "🌐 Generational Analysis",
-            "⚖️ Policy Comparison",
-            "📦 Package Builder",
-            "📖 Methodology",
-        ]
-        advanced_tabs = st_module.tabs(advanced_labels)
-        advanced_map = dict(zip(advanced_labels, advanced_tabs, strict=False))
-
-        primary_map.update({
-            "tab_long_run": advanced_map["📈 Long-Run Growth"],
-            "tab_generational": advanced_map["🌐 Generational Analysis"],
-            "tab_comparison": advanced_map["⚖️ Policy Comparison"],
-            "tab_packages": advanced_map["📦 Package Builder"],
-            "tab_methodology": advanced_map["📖 Methodology"],
-        })
-
-    return primary_map
 
 
 def render_result_tabs(
@@ -77,13 +56,11 @@ def render_result_tabs(
     model_available: bool,
     is_spending: bool,
     mode: str,
-    state_mode: bool = False,
-    selected_state: str | None = None,
 ) -> None:
     """
-    Render post-calculation tabs with progressive disclosure.
-    Primary tabs (Results, Distribution, Dynamic, Details) are always visible.
-    Advanced tabs (Long-Run, Comparison, Packages, Methodology) are in an expander.
+    Render post-calculation tabs for the Calculator section.
+    Generational Analysis, State Analysis, and Methodology are top-level app tabs
+    handled in app_controller.py.
     """
     single_policy = mode == "📊 Single Policy"
     current_run_id = getattr(st_module.session_state, "current_run_id", None)
@@ -102,7 +79,6 @@ def render_result_tabs(
             st_module.info("Use **Single Policy** mode to view Results and Analysis.")
         with tabs["tab_details"]:
             st_module.info("Use **Single Policy** mode to view Results and Analysis.")
-        # Handle comparison/packages in advanced section if applicable
         if "tab_comparison" in tabs:
             with tabs["tab_comparison"]:
                 if mode == "🔀 Compare Policies":
@@ -128,14 +104,6 @@ def render_result_tabs(
                         create_policy_from_preset=deps.create_policy_from_preset,
                         fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
                     )
-        if state_mode and "tab_state" in tabs:
-            with tabs["tab_state"]:
-                deps.render_state_analysis_tab(
-                    st_module=st_module,
-                    state=selected_state or "CA",
-                    result_data=None,
-                    run_id=None,
-                )
         return
 
     # ── Onboarding state (no results yet) ────────────────────────────────
@@ -185,19 +153,9 @@ def render_result_tabs(
             st_module.info(
                 "Run a calculation to see detailed year-by-year results."
             )
-        # Populate advanced tabs
         if "tab_long_run" in tabs:
             with tabs["tab_long_run"]:
-                st_module.info(
-                    "Run a calculation to unlock long-run growth projections."
-                )
-        if "tab_generational" in tabs:
-            with tabs["tab_generational"]:
-                deps.render_generational_analysis_tab(
-                    st_module=st_module,
-                    result_data=None,
-                    run_id=None,
-                )
+                st_module.info("Run a calculation to unlock long-run growth projections.")
         if "tab_comparison" in tabs:
             with tabs["tab_comparison"]:
                 st_module.info(
@@ -207,17 +165,6 @@ def render_result_tabs(
             with tabs["tab_packages"]:
                 st_module.info(
                     "Run a calculation, or switch to Policy Packages mode to build combined proposals."
-                )
-        if "tab_methodology" in tabs:
-            with tabs["tab_methodology"]:
-                deps.render_methodology_tab(st_module=st_module)
-        if state_mode and "tab_state" in tabs:
-            with tabs["tab_state"]:
-                deps.render_state_analysis_tab(
-                    st_module=st_module,
-                    state=selected_state or "CA",
-                    result_data=None,
-                    run_id=None,
                 )
         return
 
@@ -283,7 +230,6 @@ def render_result_tabs(
             st_module=st_module, result_data=result_data
         )
 
-    # ── Advanced tabs (inside expander) ──────────────────────────────────
     if "tab_long_run" in tabs:
         with tabs["tab_long_run"]:
             if is_stale:
@@ -295,19 +241,6 @@ def render_result_tabs(
                 st_module=st_module,
                 session_results=result_data,
                 solow_growth_model_cls=deps.SolowGrowthModel,
-                run_id=results_run_id,
-            )
-
-    if "tab_generational" in tabs:
-        with tabs["tab_generational"]:
-            if is_stale:
-                st_module.warning(
-                    "Inputs changed since the last run. "
-                    "Click **Calculate Impact** to refresh results."
-                )
-            deps.render_generational_analysis_tab(
-                st_module=st_module,
-                result_data=result_data,
                 run_id=results_run_id,
             )
 
@@ -349,24 +282,6 @@ def render_result_tabs(
                     "Switch to **Policy Packages** mode in the sidebar to combine "
                     "multiple policies into a comprehensive plan."
                 )
-
-    if "tab_methodology" in tabs:
-        with tabs["tab_methodology"]:
-            deps.render_methodology_tab(st_module=st_module)
-
-    if state_mode and "tab_state" in tabs:
-        with tabs["tab_state"]:
-            if is_stale:
-                st_module.warning(
-                    "Inputs changed since the last run. "
-                    "Click **Calculate Impact** to refresh results."
-                )
-            deps.render_state_analysis_tab(
-                st_module=st_module,
-                state=selected_state or "CA",
-                result_data=result_data,
-                run_id=results_run_id,
-            )
 
 
 def render_footer(st_module: Any) -> None:
