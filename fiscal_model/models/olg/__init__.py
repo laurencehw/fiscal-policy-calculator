@@ -36,6 +36,7 @@ from .generational_accounting import GenerationalAccounting, GenerationalAccount
 from .household import aggregate_household_results, solve_household
 from .model import OLGModel, OLGPolicyResult
 from .parameters import OLGParameters
+from .simple import OLGParams, OLGResult, SimpleOLGModel
 from .pwbm_model import OLGMacroResult, PWBMModel
 from .solver import (
     BroydenSolver,
@@ -47,10 +48,14 @@ from .solver import (
 )
 
 __all__ = [
-    # Entry points
+    # Entry points (AK model)
     "OLGModel",
     "OLGParameters",
     "OLGPolicyResult",
+    # Simple classroom OLG model
+    "SimpleOLGModel",
+    "OLGParams",
+    "OLGResult",
     # PWBMModel adapter
     "PWBMModel",
     "OLGMacroResult",

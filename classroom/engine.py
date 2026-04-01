@@ -528,12 +528,12 @@ class RelativeValidator:
         return float(getattr(result, target_field))
 
     def _run_olg(self, params: dict, target_field: str) -> float:
-        from fiscal_model.models.olg import OLGModel, OLGParams
+        from fiscal_model.models.olg import OLGParams, SimpleOLGModel
 
         olg_params = OLGParams(
             baseline_deficit_gdp=float(params.get("baseline_deficit_gdp", 0.06)),
         )
-        model = OLGModel(params=olg_params)
+        model = SimpleOLGModel(params=olg_params)
         result = model.run(
             debt_shock_pct_gdp=float(params.get("debt_shock_pct_gdp", 0.0)),
             ss_replacement_change=float(params.get("ss_replacement_change", 0.0)),

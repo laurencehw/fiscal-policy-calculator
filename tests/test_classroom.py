@@ -749,49 +749,49 @@ class TestFeedbackEngine:
 class TestOLGModel:
 
     def test_olg_baseline_runs(self):
-        from fiscal_model.models.olg import OLGModel
-        model = OLGModel()
+        from fiscal_model.models.olg import SimpleOLGModel
+        model = SimpleOLGModel()
         result = model.run(scenario_name="Baseline")
         assert result is not None
         assert len(result.years) == model.params.sim_years
 
     def test_olg_gdp_path_positive(self):
-        from fiscal_model.models.olg import OLGModel
-        model = OLGModel()
+        from fiscal_model.models.olg import SimpleOLGModel
+        model = SimpleOLGModel()
         result = model.run()
         assert np.all(result.gdp_path > 0)
 
     def test_olg_wage_path_positive(self):
-        from fiscal_model.models.olg import OLGModel
-        model = OLGModel()
+        from fiscal_model.models.olg import SimpleOLGModel
+        model = SimpleOLGModel()
         result = model.run()
         assert np.all(result.wage_path > 0)
 
     def test_olg_debt_shock_increases_debt(self):
-        from fiscal_model.models.olg import OLGModel
-        model = OLGModel()
+        from fiscal_model.models.olg import SimpleOLGModel
+        model = SimpleOLGModel()
         baseline = model.run()
         shocked = model.run(debt_shock_pct_gdp=0.02)
         # Higher deficit path should lead to higher total debt
         assert shocked.debt_path[-1] > baseline.debt_path[-1]
 
     def test_olg_net_tax_rate_not_all_nan(self):
-        from fiscal_model.models.olg import OLGModel
-        model = OLGModel()
+        from fiscal_model.models.olg import SimpleOLGModel
+        model = SimpleOLGModel()
         result = model.run()
         valid = result.net_tax_rate[~np.isnan(result.net_tax_rate)]
         assert len(valid) > 0
 
     def test_olg_birth_years_span_past_and_future(self):
-        from fiscal_model.models.olg import OLGModel
-        model = OLGModel()
+        from fiscal_model.models.olg import SimpleOLGModel
+        model = SimpleOLGModel()
         result = model.run()
         assert result.birth_years[0] < model.params.base_year
         assert result.birth_years[-1] > model.params.base_year
 
     def test_olg_ss_cut_reduces_transfers(self):
-        from fiscal_model.models.olg import OLGModel
-        model = OLGModel()
+        from fiscal_model.models.olg import SimpleOLGModel
+        model = SimpleOLGModel()
         baseline = model.run()
         ss_reform = model.run(ss_replacement_change=-0.20)
         # SS cut should reduce total transfers (average over cohorts)
@@ -800,8 +800,8 @@ class TestOLGModel:
         assert reform_transfers < baseline_transfers
 
     def test_olg_burden_vs_baseline(self):
-        from fiscal_model.models.olg import OLGModel
-        model = OLGModel()
+        from fiscal_model.models.olg import SimpleOLGModel
+        model = SimpleOLGModel()
         baseline = model.run()
         shocked = model.run(debt_shock_pct_gdp=0.02)
         diff = shocked.burden_vs_baseline(baseline)
@@ -814,8 +814,8 @@ class TestOLGModel:
             assert np.mean(valid_diff) >= 0  # higher debt = higher burden
 
     def test_olg_compare_scenarios(self):
-        from fiscal_model.models.olg import OLGModel
-        model = OLGModel()
+        from fiscal_model.models.olg import SimpleOLGModel
+        model = SimpleOLGModel()
         results = model.compare_scenarios([
             {"scenario_name": "Baseline"},
             {"scenario_name": "High Debt", "debt_shock_pct_gdp": 0.02},
@@ -824,15 +824,15 @@ class TestOLGModel:
         assert "High Debt" in results
 
     def test_olg_params_custom(self):
-        from fiscal_model.models.olg import OLGModel, OLGParams
+        from fiscal_model.models.olg import OLGParams, SimpleOLGModel
         params = OLGParams(sim_years=40, baseline_deficit_gdp=0.04)
-        model = OLGModel(params=params)
+        model = SimpleOLGModel(params=params)
         result = model.run()
         assert len(result.years) == 40
 
     def test_olg_labor_tax_change_reduces_net_wages(self):
-        from fiscal_model.models.olg import OLGModel
-        model = OLGModel()
+        from fiscal_model.models.olg import SimpleOLGModel
+        model = SimpleOLGModel()
         baseline = model.run()
         high_tax = model.run(labor_tax_change=0.05)
         # Higher labor tax → higher pv_taxes for current cohorts
