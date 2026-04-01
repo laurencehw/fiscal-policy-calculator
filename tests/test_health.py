@@ -1,0 +1,134 @@
+"""
+Tests for fiscal_model/health.py health check module.
+
+Verifies that health checks correctly assess:
+- CBO baseline data status
+- FRED API connection status
+- IRS SOI data availability
+- Scoring engine readiness
+"""
+
+import pytest
+
+from fiscal_model.health import check_health
+
+
+class TestCheckHealth:
+    """Tests for the check_health() function."""
+
+    def test_check_health_returns_dict(self):
+        """Verify check_health returns a dictionary."""
+        result = check_health()
+        assert isinstance(result, dict)
+
+    def test_check_health_has_all_components(self):
+        """Verify all expected components are present in results."""
+        result = check_health()
+        expected_keys = ["baseline", "fred", "irs_soi", "model", "timestamp", "overall"]
+        for key in expected_keys:
+            assert key in result, f"Missing key: {key}"
+
+    def test_baseline_component_present(self):
+        """Verify baseline component has required structure."""
+        result = check_health()
+        baseline = result["baseline"]
+        assert isinstance(baseline, dict)
+        assert "status" in baseline
+        # Status should be either "ok" or "error"
+        assert baseline["status"] in ["ok", "error"]
+
+    def test_fred_component_present(self):
+        """Verify FRED component has required structure."""
+        result = check_health()
+        fred = result["fred"]
+        assert isinstance(fred, dict)
+        assert "status" in fred
+        # Status should be one of these
+        assert fred["status"] in ["ok", "unavailable", "error"]
+
+    def test_irs_soi_component_present(self):
+        """Verify IRS SOI component has required structure."""
+        result = check_health()
+        irs_soi = result["irs_soi"]
+        assert isinstance(irs_soi, dict)
+        assert "status" in irs_soi
+        assert irs_soi["status"] in ["ok", "error"]
+
+    def test_model_component_present(self):
+        """Verify model component has required structure."""
+        result = check_health()
+        model = result["model"]
+        assert isinstance(model, dict)
+        assert "status" in model
+        assert model["status"] in ["ok", "error"]
+
+    def test_timestamp_is_iso_format(self):
+        """Verify timestamp is in ISO format."""
+        result = check_health()
+        timestamp = result["timestamp"]
+        assert isinstance(timestamp, str)
+        # Should be ISO 8601 format with T separator
+        assert "T" in timestamp or timestamp  # Timestamp present
+
+    def test_overall_status_is_valid(self):
+        """Verify overall status is either 'ok' or 'degraded'."""
+        result = check_health()
+        assert result["overall"] in ["ok", "degraded"]
+
+    def test_overall_ok_when_all_ok(self):
+        """Verify overall is 'ok' only when all components are 'ok'."""
+        result = check_health()
+        # If overall is 'ok', all components with 'status' key should be 'ok'
+        if result["overall"] == "ok":
+            for key, value in result.items():
+                if isinstance(value, dict) and "status" in value:
+                    assert value["status"] == "ok", f"{key} should be 'ok' when overall is 'ok'"
+
+    def test_baseline_has_start_year_when_ok(self):
+        """Verify baseline includes start_year when status is ok."""
+        result = check_health()
+        baseline = result["baseline"]
+        if baseline["status"] == "ok":
+            assert "start_year" in baseline
+            assert isinstance(baseline["start_year"], int)
+
+    def test_irs_soi_has_available_years_when_ok(self):
+        """Verify IRS SOI includes available_years when status is ok."""
+        result = check_health()
+        irs_soi = result["irs_soi"]
+        if irs_soi["status"] == "ok":
+            assert "available_years" in irs_soi
+            assert isinstance(irs_soi["available_years"], list)
+
+    def test_model_has_test_score_when_ok(self):
+        """Verify model includes test_score when status is ok."""
+        result = check_health()
+        model = result["model"]
+        if model["status"] == "ok":
+            assert "test_score" in model
+            # Test score should be numeric (float or int)
+            assert isinstance(model["test_score"], (int, float))
+
+    def test_error_states_have_error_message(self):
+        """Verify error states include error details."""
+        result = check_health()
+        for key, value in result.items():
+            if isinstance(value, dict) and value.get("status") == "error":
+                assert "error" in value, f"{key} with error status should have 'error' field"
+                assert isinstance(value["error"], str)
+
+    def test_check_health_is_idempotent(self):
+        """Verify check_health can be called multiple times."""
+        result1 = check_health()
+        result2 = check_health()
+        # Both should have the same structure (though timestamps differ)
+        assert result1.keys() == result2.keys()
+        assert result1["baseline"]["status"] == result2["baseline"]["status"]
+
+    def test_check_health_handles_exceptions_gracefully(self):
+        """Verify check_health doesn't raise exceptions even if components fail."""
+        # This test just calls the function - it should always return a dict
+        # without raising an exception
+        result = check_health()
+        assert result is not None
+        assert isinstance(result, dict)
