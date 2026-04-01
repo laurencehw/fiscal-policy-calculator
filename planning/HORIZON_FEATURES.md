@@ -2,9 +2,9 @@
 
 > Fiscal Policy Calculator — Long-Horizon Feature Specifications
 > Last Updated: April 2026
-> Status: Design phase. None of these are implemented yet.
+> Status: All four features implemented (April 2026). This document serves as the technical design reference.
 
-This document covers the four major features planned for the 3–6 month horizon. Each section is written to be concrete enough that a developer can begin implementing from it, without requiring additional design decisions for the core path.
+This document covers the four major features that were planned for the 3–6 month horizon and have now been implemented. Each section documents the design decisions and architecture for reference.
 
 ---
 

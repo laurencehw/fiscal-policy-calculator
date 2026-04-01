@@ -17,7 +17,10 @@ pip install -r requirements.txt
 # Run app locally
 streamlit run app.py
 
-# Run unit tests (382 tests)
+# Run app locally (classroom mode)
+streamlit run classroom_app.py
+
+# Run unit tests (685 tests)
 pytest tests/ -v
 
 # Run specific test file
@@ -190,15 +193,17 @@ where ε(t) transitions from short_run to long_run over transition_years
 
 ## Current Development Priorities
 
-From `planning/NEXT_SESSION.md` (Phase 3 — Distributional Analysis):
-1. ✅ Complete CBO validation suite (25+ policies validated)
-2. ✅ Capital gains, tax credits, corporate, estate, payroll, AMT, PTC modules
-3. ✅ Distributional analysis engine with TPC/JCT-style tables
-4. ✅ Extended distributional analysis to TCJA, corporate, credits, payroll policies
-5. ✅ Validated distributional output against TPC published tables
-6. ✅ Macro adapter interface with FRB/US integration (FRBUSAdapter + FRBUSAdapterLite)
-7. ✅ Unit tests: 60 tests covering distribution + macro adapters
-8. ✅ Dynamic scoring in Streamlit app (GDP effects, employment, revenue feedback)
+All core features and all four horizon features are complete (April 2026). **685 tests passing, 72% coverage.**
+
+Completed:
+1. ✅ 25+ CBO/JCT-validated policies, distributional analysis, dynamic scoring
+2. ✅ Tariff scoring, microsimulation engine, FastAPI endpoints
+3. ✅ OLG model (30-period Auerbach-Kotlikoff, SS/Medicare reform)
+4. ✅ Classroom Mode (7 assignments, PDF export, 80 tests)
+5. ✅ State-Level Modeling (top 10 states, SALT interaction)
+6. ✅ Real-Time Bill Tracker (congress.gov pipeline, LLM extraction, SQLite)
+
+Next: multi-model comparison platform and CPS microsimulation. See `planning/NEXT_STEPS.md`.
 
 ## Target Validation
 
@@ -215,15 +220,13 @@ From `planning/NEXT_SESSION.md` (Phase 3 — Distributional Analysis):
 | **Repeal Corporate AMT** | **$220B** | **$220B** | **0.0%** | ✅ |
 | **Cap Employer Health** | **-$450B** | **-$450B** | **0.1%** | ✅ |
 
-Full validation table in `planning/NEXT_SESSION.md`.
+## Future Architecture
 
-## Future Architecture (Phase 3+)
-
-Multi-model platform with pluggable scoring engines:
+Multi-model platform with pluggable scoring engines (next major milestone):
 - `models/cbo/` — CBO-style conventional + dynamic
 - `models/jct/` — JCT-inspired microsimulation
 - `models/tpc/` — Tax Policy Center distributional
-- `models/pwbm/` — Penn Wharton OLG
+- `models/pwbm/` — Penn Wharton OLG (foundation now in `long_run/`)
 - `models/yale/` — Yale Budget Lab macro + microsim + behavioral
 
 See `docs/ARCHITECTURE.md` for full design including Yale Budget Lab feature-parity checklist.
