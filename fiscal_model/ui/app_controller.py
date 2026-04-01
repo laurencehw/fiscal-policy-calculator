@@ -260,14 +260,14 @@ def _render_state(st_module: Any, deps: Any) -> None:
     """Render the top-level State Analysis tab with its own state selector."""
     from fiscal_model.models.state.database import STATE_NAMES, SUPPORTED_STATES
 
-    state_options = [f"{code} — {STATE_NAMES[code]}" for code in SUPPORTED_STATES]
     state_selection = st_module.selectbox(
         "State",
-        state_options,
+        options=SUPPORTED_STATES,
+        format_func=lambda code: f"{code} — {STATE_NAMES[code]}",
         key="top_level_state_select",
         help="Select a state for combined federal + state analysis.",
     )
-    selected_state = state_selection.split(" — ")[0].strip() if state_selection else "CA"
+    selected_state = state_selection if state_selection else "CA"
 
     result_data = st_module.session_state.get("results")
     run_id = st_module.session_state.get("results_run_id") or st_module.session_state.get("last_run_id")
