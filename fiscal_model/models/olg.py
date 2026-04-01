@@ -27,8 +27,7 @@ References:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -108,7 +107,7 @@ class OLGResult:
         crowding = self.debt_path / self.gdp_path * 0.33 * 100
         return crowding
 
-    def burden_vs_baseline(self, baseline: "OLGResult") -> np.ndarray:
+    def burden_vs_baseline(self, baseline: OLGResult) -> np.ndarray:
         """Net tax rate difference vs. a baseline scenario (pp)."""
         return self.net_tax_rate - baseline.net_tax_rate
 
@@ -132,7 +131,7 @@ class OLGModel:
 
     """
 
-    def __init__(self, params: Optional[OLGParams] = None):
+    def __init__(self, params: OLGParams | None = None):
         self.params = params or OLGParams()
 
     def run(
@@ -176,7 +175,7 @@ class OLGModel:
         # K/Y = 3  →  k_init = K/L = (K/Y) * (Y/L)
         # Y/L ≈ GDP / workforce; US labor force ~170M
         labor_force = 170.0  # millions
-        initial_y_per_worker = p.initial_gdp / labor_force  # $B per million workers ≈ $170K
+        _initial_y_per_worker = p.initial_gdp / labor_force  # $B per million workers ≈ $170K
 
         initial_capital = p.initial_gdp * p.initial_capital_gdp_ratio  # $B
         initial_l = labor_force  # millions
@@ -190,7 +189,7 @@ class OLGModel:
         # Policy paths (applied with ramp)
         debt_shock = debt_shock_pct_gdp * ramp
         tau_l = p.baseline_labor_tax_rate + labor_tax_change * ramp
-        tau_k = p.baseline_capital_tax_rate + capital_tax_change * ramp
+        _tau_k = p.baseline_capital_tax_rate + capital_tax_change * ramp
         ss_repl = p.baseline_ss_replacement + ss_replacement_change * ramp
 
         # --- Simulate production + capital ---
@@ -244,9 +243,9 @@ class OLGModel:
         pv_wages = np.zeros(n_cohorts)
 
         for i, by in enumerate(birth_years):
-            pv_t = 0.0   # present value of taxes paid (discounted to birth year)
-            pv_tr = 0.0  # present value of SS/transfers received
-            pv_w = 0.0   # present value of wages earned
+            _pv_t = 0.0   # present value of taxes paid (discounted to birth year)
+            _pv_tr = 0.0  # present value of SS/transfers received
+            _pv_w = 0.0   # present value of wages earned
 
             # Working life: ages 0..working_years-1  →  years by..by+working_years-1
             for age in range(p.working_years):
@@ -274,13 +273,13 @@ class OLGModel:
                 cal_year = by + retire_age_start + age
                 if cal_year < p.base_year:
                     yr_idx = 0
-                    w_ref = wage[0] * (1 + p.tfp_growth) ** (cal_year - p.base_year)
+                    _w_ref = wage[0] * (1 + p.tfp_growth) ** (cal_year - p.base_year)
                 elif cal_year >= p.base_year + T:
                     yr_idx = T - 1
-                    w_ref = wage[T - 1] * (1 + p.tfp_growth) ** (cal_year - (p.base_year + T - 1))
+                    _w_ref = wage[T - 1] * (1 + p.tfp_growth) ** (cal_year - (p.base_year + T - 1))
                 else:
                     yr_idx = cal_year - p.base_year
-                    w_ref = wage[yr_idx]
+                    _w_ref = wage[yr_idx]
 
                 ss_t = ss_repl[min(yr_idx, T - 1)]
                 disc = (1 + p.discount_rate) ** (-(retire_age_start + age))
