@@ -39,7 +39,7 @@ from .macro_adapter import (
     SimpleMultiplierAdapter,
     policy_to_scenario,
 )
-from .olg import OLGModel, OLGParams, OLGResult
+from .olg import OLGModel, OLGParameters, OLGPolicyResult
 
 # OLG sub-package is available via fiscal_model.models.olg
 # (imported lazily to avoid slowing down the main import)
@@ -53,8 +53,8 @@ __all__ = [
     "MacroScenario",
     "MonetaryPolicyRule",
     "OLGModel",
-    "OLGParams",
-    "OLGResult",
+    "OLGParameters",
+    "OLGPolicyResult",
     "SimpleMultiplierAdapter",
     "policy_to_scenario",
 ]

@@ -16,13 +16,22 @@ _ANALYSIS_CONTEXT = {
 }
 
 
-def build_main_tabs(st_module: Any, mode: str) -> dict[str, Any]:
+def build_main_tabs(
+    st_module: Any,
+    mode: str,
+    state_mode: bool = False,
+) -> dict[str, Any]:
     """
     Create main result tabs layout with progressive disclosure.
     Primary tabs are always visible; advanced tabs are in an expander.
+
+    Args:
+        state_mode: If True, add a State Analysis tab to the primary set.
     """
     # Primary tabs (always visible)
     primary_labels = ["📊 Results Summary", "👥 Distribution", "🌍 Dynamic Scoring", "📋 Detailed Results"]
+    if state_mode:
+        primary_labels.append("🗺️ State Analysis")
     primary_tabs = st_module.tabs(primary_labels)
     tab_map = dict(zip(primary_labels, primary_tabs, strict=False))
 
@@ -33,6 +42,8 @@ def build_main_tabs(st_module: Any, mode: str) -> dict[str, Any]:
         "tab_dynamic": tab_map["🌍 Dynamic Scoring"],
         "tab_details": tab_map["📋 Detailed Results"],
     }
+    if state_mode:
+        primary_map["tab_state"] = tab_map["🗺️ State Analysis"]
 
     # Advanced section (in expander)
     st_module.markdown("---")
@@ -66,6 +77,8 @@ def render_result_tabs(
     model_available: bool,
     is_spending: bool,
     mode: str,
+    state_mode: bool = False,
+    selected_state: str | None = None,
 ) -> None:
     """
     Render post-calculation tabs with progressive disclosure.
@@ -115,6 +128,14 @@ def render_result_tabs(
                         create_policy_from_preset=deps.create_policy_from_preset,
                         fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
                     )
+        if state_mode and "tab_state" in tabs:
+            with tabs["tab_state"]:
+                deps.render_state_analysis_tab(
+                    st_module=st_module,
+                    state=selected_state or "CA",
+                    result_data=None,
+                    run_id=None,
+                )
         return
 
     # ── Onboarding state (no results yet) ────────────────────────────────
@@ -190,6 +211,14 @@ def render_result_tabs(
         if "tab_methodology" in tabs:
             with tabs["tab_methodology"]:
                 deps.render_methodology_tab(st_module=st_module)
+        if state_mode and "tab_state" in tabs:
+            with tabs["tab_state"]:
+                deps.render_state_analysis_tab(
+                    st_module=st_module,
+                    state=selected_state or "CA",
+                    result_data=None,
+                    run_id=None,
+                )
         return
 
     # ── Results with data ────────────────────────────────────────────────
@@ -324,6 +353,20 @@ def render_result_tabs(
     if "tab_methodology" in tabs:
         with tabs["tab_methodology"]:
             deps.render_methodology_tab(st_module=st_module)
+
+    if state_mode and "tab_state" in tabs:
+        with tabs["tab_state"]:
+            if is_stale:
+                st_module.warning(
+                    "Inputs changed since the last run. "
+                    "Click **Calculate Impact** to refresh results."
+                )
+            deps.render_state_analysis_tab(
+                st_module=st_module,
+                state=selected_state or "CA",
+                result_data=result_data,
+                run_id=results_run_id,
+            )
 
 
 def render_footer(st_module: Any) -> None:

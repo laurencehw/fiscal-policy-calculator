@@ -46,6 +46,7 @@ from .tabs import (
     render_policy_comparison_tab,
     render_policy_package_tab,
     render_results_summary_tab,
+    render_state_analysis_tab,
 )
 
 
@@ -89,6 +90,7 @@ def build_app_dependencies(pd_module: Any) -> SimpleNamespace:
         render_methodology_tab=render_methodology_tab,
         render_long_run_growth_tab=render_long_run_growth_tab,
         render_generational_analysis_tab=render_generational_analysis_tab,
+        render_state_analysis_tab=render_state_analysis_tab,
         apply_app_styles=apply_app_styles,
         run_main_app=run_main_app,
         pd=pd_module,

@@ -1,0 +1,11 @@
+state,effective_salt_rate,state_income_tax_rate,local_income_tax_rate,sales_tax_rate,property_tax_effective_rate,avg_salt_deduction_itemizers,pct_itemizers,median_household_income,gini_coefficient,top_1pct_income_share,notes
+CA,0.0884,0.0530,0.0000,0.0854,0.0073,18200,0.191,81575,0.494,0.233,High-income-tax state; property taxes relatively low due to Prop 13
+TX,0.0623,0.0000,0.0000,0.0820,0.0159,9800,0.097,67321,0.469,0.187,No income tax; high property taxes
+FL,0.0534,0.0000,0.0000,0.0720,0.0090,8900,0.082,59227,0.473,0.179,No income tax; moderate property/sales taxes
+NY,0.1218,0.0650,0.0340,0.0885,0.0148,24100,0.215,72108,0.513,0.299,Includes NYC local income tax in avg; very high SALT burden
+PA,0.0891,0.0307,0.0190,0.0634,0.0160,12400,0.123,63463,0.456,0.179,Philadelphia/Pittsburgh local wage taxes included in avg
+IL,0.0978,0.0495,0.0000,0.0887,0.0224,14600,0.134,72205,0.474,0.181,High property taxes drive SALT above income-tax-only states
+OH,0.0812,0.0290,0.0230,0.0728,0.0152,10200,0.108,60568,0.458,0.166,Local municipal income taxes common; avg rate ~2.3%
+GA,0.0691,0.0549,0.0000,0.0737,0.0093,10800,0.108,65030,0.471,0.181,Moderate SALT burden overall
+NC,0.0642,0.0450,0.0000,0.0699,0.0082,9600,0.097,62891,0.467,0.175,Below-average SALT state
+MI,0.0712,0.0405,0.0000,0.0600,0.0145,10100,0.104,61295,0.460,0.168,Relatively moderate SALT burden

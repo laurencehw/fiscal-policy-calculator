@@ -153,7 +153,13 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
 
     # Main area
     render_quick_start(st_module=st_module)
-    tabs = build_main_tabs(st_module=st_module, mode=calc_context["mode"])
+    state_mode = settings.get("state_mode", False)
+    selected_state = settings.get("selected_state", "CA")
+    tabs = build_main_tabs(
+        st_module=st_module,
+        mode=calc_context["mode"],
+        state_mode=state_mode,
+    )
 
     ensure_results_state(st_module=st_module)
     execute_calculation_if_requested(
@@ -173,6 +179,8 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         model_available=model_available,
         is_spending=calc_context["is_spending"],
         mode=calc_context["mode"],
+        state_mode=state_mode,
+        selected_state=selected_state,
     )
 
     render_footer(st_module=st_module)

@@ -98,6 +98,28 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
                 "[Full methodology →](https://github.com/laurencehw/fiscal-policy-calculator/blob/main/docs/METHODOLOGY.md)"
             )
 
+    # State analysis settings (outside the expander for visibility)
+    st_module.markdown("---")
+    state_mode = st_module.checkbox(
+        "State Analysis",
+        value=False,
+        help=(
+            "Add a State Analysis tab showing combined federal + state tax rates, "
+            "SALT interaction effects, and a comparison across the top 10 states. "
+            "Scope: CA, TX, FL, NY, PA, IL, OH, GA, NC, MI."
+        ),
+    )
+    selected_state = None
+    if state_mode:
+        from fiscal_model.models.state.database import STATE_NAMES, SUPPORTED_STATES
+        state_options = [f"{code} — {STATE_NAMES[code]}" for code in SUPPORTED_STATES]
+        state_selection = st_module.selectbox(
+            "State",
+            state_options,
+            help="Select a state for combined federal + state analysis.",
+        )
+        selected_state = state_selection.split(" — ")[0].strip() if state_selection else "CA"
+
     return {
         "use_real_data": use_real_data,
         "dynamic_scoring": dynamic_scoring,
@@ -105,4 +127,6 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
         "use_microsim": use_microsim_general,
         "use_microsim_distribution": use_microsim_distribution,
         "data_year": data_year,
+        "state_mode": state_mode,
+        "selected_state": selected_state,
     }
