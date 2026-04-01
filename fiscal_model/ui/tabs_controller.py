@@ -209,6 +209,7 @@ def render_result_tabs(
             format_distribution_table_fn=deps.format_distribution_table,
             winners_losers_summary_fn=deps.generate_winners_losers_summary,
             run_id=results_run_id,
+            use_microsim=settings.get("use_microsim_distribution", False),
         )
 
     with tabs["tab_dynamic"]:

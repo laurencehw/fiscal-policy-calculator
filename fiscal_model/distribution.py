@@ -529,6 +529,279 @@ class DistributionalEngine:
             total_affected_returns=total_affected,
         )
 
+    def analyze_policy_microsim(
+        self,
+        policy: Policy,
+        microdata: pd.DataFrame | None = None,
+        group_type: IncomeGroupType = IncomeGroupType.QUINTILE,
+        year: int | None = None,
+    ) -> DistributionalAnalysis:
+        """
+        Run distributional analysis using microsimulation.
+
+        Loads individual tax returns (or synthetic microdata) and runs
+        MicroTaxCalculator on baseline and reform, then aggregates
+        results by income group.
+
+        Args:
+            policy: Tax policy to analyze
+            microdata: DataFrame with individual returns. If None, loads from CSV.
+            group_type: Type of income grouping (quintile, decile, etc.)
+            year: Analysis year (defaults to policy start year)
+
+        Returns:
+            DistributionalAnalysis with results for each income group
+        """
+        from fiscal_model.microsim.engine import MicroTaxCalculator
+        from pathlib import Path
+
+        if year is None:
+            year = getattr(policy, 'start_year', 2025)
+
+        # Load microdata if not provided
+        if microdata is None:
+            microdata_path = Path(__file__).parent / 'microsim' / 'tax_microdata_2024.csv'
+            if not microdata_path.exists():
+                raise FileNotFoundError(
+                    f"Microdata not found at {microdata_path}. "
+                    "Please provide microdata or run fiscal_model/microsim/data_builder.py"
+                )
+            microdata = pd.read_csv(microdata_path)
+
+        pop = microdata.copy()
+
+        # Run baseline calculation
+        calc_baseline = MicroTaxCalculator(year=year)
+        baseline = calc_baseline.calculate(pop)
+
+        # Map policy to microsim reforms
+        reforms = self._policy_to_microsim_reforms(policy, year)
+
+        # Run reform calculation
+        calc_reform = MicroTaxCalculator(year=year)
+        reform = calc_reform.apply_reform(pop, reforms)
+
+        # Merge baseline and reform
+        merged = baseline.copy()
+        merged.loc[:, 'reform_tax'] = reform['final_tax'].values
+        merged.loc[:, 'tax_change'] = merged['reform_tax'] - merged['final_tax']
+
+        # Create income groups
+        groups = self._create_groups_from_microdata(merged, group_type)
+
+        # Calculate distributional results
+        results = []
+        total_tax_change = 0.0
+        total_affected = 0
+
+        for group in groups:
+            # Filter to this group
+            in_group = (merged['agi'] >= group.floor) & (
+                (merged['agi'] < group.ceiling) if group.ceiling else (merged['agi'] >= group.floor)
+            )
+            group_data = merged[in_group]
+
+            if len(group_data) == 0:
+                # Empty group
+                result = DistributionalResult(
+                    income_group=group,
+                    tax_change_total=0.0,
+                    tax_change_avg=0.0,
+                    tax_change_pct_income=0.0,
+                    share_of_total_change=0.0,
+                    pct_with_increase=0.0,
+                    pct_with_decrease=0.0,
+                    pct_unchanged=100.0,
+                    baseline_etr=0.0,
+                    new_etr=0.0,
+                    etr_change=0.0,
+                )
+            else:
+                weights = group_data.get('weight', pd.Series(1.0, index=group_data.index)).values
+                total_weight = weights.sum()
+
+                # Aggregate tax change
+                tax_changes = group_data['tax_change'].values
+                weighted_tax_change_total = (tax_changes * weights).sum() / 1e9  # Convert to billions
+                weighted_tax_change_avg = (tax_changes * weights).sum() / total_weight if total_weight > 0 else 0
+
+                # Percent of after-tax income
+                aftertax_income = group_data['agi'].values - group_data['final_tax'].values
+                aftertax_income = np.maximum(aftertax_income, 1)  # Avoid division by zero
+                tax_change_pct_income = (
+                    (weighted_tax_change_avg / aftertax_income.mean()) * 100
+                    if aftertax_income.mean() > 0 else 0
+                )
+
+                # Winners and losers
+                num_increase = (tax_changes > 0.01).sum()
+                num_decrease = (tax_changes < -0.01).sum()
+                num_unchanged = len(tax_changes) - num_increase - num_decrease
+
+                pct_with_increase = (num_increase / len(tax_changes) * 100) if len(tax_changes) > 0 else 0
+                pct_with_decrease = (num_decrease / len(tax_changes) * 100) if len(tax_changes) > 0 else 0
+                pct_unchanged = (num_unchanged / len(tax_changes) * 100) if len(tax_changes) > 0 else 100
+
+                # ETR changes
+                baseline_tax = group_data['final_tax'].values
+                baseline_agi = group_data['agi'].values
+                baseline_etr = (baseline_tax.sum() / baseline_agi.sum()) if baseline_agi.sum() > 0 else 0
+
+                reform_tax = group_data['reform_tax'].values
+                new_etr = (reform_tax.sum() / baseline_agi.sum()) if baseline_agi.sum() > 0 else 0
+
+                result = DistributionalResult(
+                    income_group=group,
+                    tax_change_total=weighted_tax_change_total,
+                    tax_change_avg=weighted_tax_change_avg,
+                    tax_change_pct_income=tax_change_pct_income,
+                    share_of_total_change=0.0,  # Calculated later
+                    pct_with_increase=pct_with_increase,
+                    pct_with_decrease=pct_with_decrease,
+                    pct_unchanged=pct_unchanged,
+                    baseline_etr=baseline_etr,
+                    new_etr=new_etr,
+                    etr_change=new_etr - baseline_etr,
+                )
+
+            results.append(result)
+            total_tax_change += result.tax_change_total
+            if result.pct_with_increase > 0 or result.pct_with_decrease > 0:
+                total_affected += result.income_group.num_returns
+
+        # Calculate share of total change
+        if abs(total_tax_change) > 0.001:
+            for result in results:
+                if total_tax_change != 0:
+                    result.share_of_total_change = result.tax_change_total / total_tax_change
+                else:
+                    result.share_of_total_change = 0.0
+
+        return DistributionalAnalysis(
+            policy=policy,
+            year=year,
+            group_type=group_type,
+            results=results,
+            total_tax_change=total_tax_change,
+            total_affected_returns=total_affected,
+        )
+
+    def _create_groups_from_microdata(
+        self,
+        microdata: pd.DataFrame,
+        group_type: IncomeGroupType,
+    ) -> list[IncomeGroup]:
+        """
+        Create income groups from microdata by aggregating by AGI.
+        """
+        if group_type == IncomeGroupType.QUINTILE:
+            thresholds = [
+                ("Lowest Quintile", 0, 35_000),
+                ("Second Quintile", 35_000, 65_000),
+                ("Middle Quintile", 65_000, 105_000),
+                ("Fourth Quintile", 105_000, 170_000),
+                ("Top Quintile", 170_000, None),
+            ]
+        elif group_type == IncomeGroupType.DECILE:
+            thresholds = [
+                ("1st Decile", 0, 15_000),
+                ("2nd Decile", 15_000, 28_000),
+                ("3rd Decile", 28_000, 42_000),
+                ("4th Decile", 42_000, 55_000),
+                ("5th Decile", 55_000, 72_000),
+                ("6th Decile", 72_000, 92_000),
+                ("7th Decile", 92_000, 118_000),
+                ("8th Decile", 118_000, 155_000),
+                ("9th Decile", 155_000, 220_000),
+                ("10th Decile", 220_000, None),
+            ]
+        elif group_type == IncomeGroupType.JCT_DOLLAR:
+            thresholds = [
+                ("Less than $10K", 0, 10_000),
+                ("$10K-$20K", 10_000, 20_000),
+                ("$20K-$30K", 20_000, 30_000),
+                ("$30K-$40K", 30_000, 40_000),
+                ("$40K-$50K", 40_000, 50_000),
+                ("$50K-$75K", 50_000, 75_000),
+                ("$75K-$100K", 75_000, 100_000),
+                ("$100K-$200K", 100_000, 200_000),
+                ("$200K-$500K", 200_000, 500_000),
+                ("$500K-$1M", 500_000, 1_000_000),
+                ("$1M and over", 1_000_000, None),
+            ]
+        else:
+            raise ValueError(f"Unknown group type: {group_type}")
+
+        groups = []
+        weights = microdata.get('weight', pd.Series(1.0, index=microdata.index)).values
+        total_weight = weights.sum()
+
+        for name, floor, ceiling in thresholds:
+            in_group = (microdata['agi'] >= floor) & (
+                (microdata['agi'] < ceiling) if ceiling else (microdata['agi'] >= floor)
+            )
+            group_data = microdata[in_group]
+
+            if len(group_data) > 0:
+                group_weights = group_data.get('weight', pd.Series(1.0, index=group_data.index)).values
+                num_returns = int(group_weights.sum())
+            else:
+                num_returns = 0
+
+            groups.append(IncomeGroup(
+                name=name,
+                floor=floor,
+                ceiling=ceiling,
+                num_returns=num_returns,
+                total_agi=group_data['agi'].sum() / 1e9 if len(group_data) > 0 else 0.0,
+                total_taxable_income=group_data['taxable_income'].sum() / 1e9 if len(group_data) > 0 else 0.0,
+                baseline_tax=group_data['final_tax'].sum() / 1e9 if len(group_data) > 0 else 0.0,
+                population_share=num_returns / total_weight if total_weight > 0 else 0,
+            ))
+
+        return groups
+
+    def _policy_to_microsim_reforms(self, policy: Policy, year: int = 2025) -> dict:
+        """
+        Convert a Policy object into microsim reform parameters.
+
+        Maps various policy types to the reform dict format for MicroTaxCalculator.apply_reform().
+        """
+        reforms = {}
+
+        # Basic TaxPolicy (rate changes)
+        if hasattr(policy, 'rate_change'):
+            rate_change = getattr(policy, 'rate_change', 0.0)
+            if rate_change != 0:
+                # Assume top rate change for simplicity
+                reforms['new_top_rate'] = 0.37 + rate_change
+
+        # CTC changes
+        if hasattr(policy, 'ctc_change'):
+            ctc_change = getattr(policy, 'ctc_change', 0)
+            if ctc_change != 0:
+                reforms['ctc_amount'] = 2000 + ctc_change
+
+        # EITC expansion
+        if hasattr(policy, 'eitc_expansion_factor'):
+            eitc_expansion = getattr(policy, 'eitc_expansion_factor', 1.0)
+            if eitc_expansion != 1.0:
+                reforms['eitc_expansion'] = eitc_expansion
+
+        # Standard deduction bonus
+        if hasattr(policy, 'std_deduction_bonus'):
+            std_ded_bonus = getattr(policy, 'std_deduction_bonus', 0)
+            if std_ded_bonus != 0:
+                reforms['std_deduction_bonus'] = std_ded_bonus
+
+        # SALT cap
+        if hasattr(policy, 'salt_cap'):
+            salt_cap = getattr(policy, 'salt_cap', 10000)
+            if salt_cap != 10000:
+                reforms['salt_cap'] = salt_cap
+
+        return reforms
+
     def _calculate_group_effect(
         self,
         policy: TaxPolicy,

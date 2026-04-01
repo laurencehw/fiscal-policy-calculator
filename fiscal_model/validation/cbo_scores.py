@@ -510,6 +510,91 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         notes="Highly uncertain. Depends on trade volume response and retaliation. "
               "CBO Feb 2026 baseline incorporates enacted tariffs."
     ),
+
+    # -------------------------------------------------------------------------
+    # INDIVIDUAL TARIFF ESTIMATES (For Granular Validation)
+    # -------------------------------------------------------------------------
+
+    "trump_universal_tariff_10": CBOScore(
+        policy_id="trump_universal_tariff_10",
+        name="Universal 10% Tariff",
+        description="10% tariff on all imports with ~70% effective coverage. "
+                   "Raises ~$2T revenue but costs consumers ~$1,700/household annually.",
+        ten_year_cost=-2000.0,  # Revenue raiser
+        source=ScoreSource.TPC,
+        source_date="2024-10",
+        source_url="https://taxfoundation.org/research/all/federal/trump-tariffs-biden-tariffs/",
+        rate_change=0.10,
+        policy_type="tariff",
+        baseline_year=2025,
+        budget_window="2026-2035",
+        notes="Tax Foundation/Yale Budget Lab estimate. Revenue offset by consumer costs. "
+              "Highly uncertain - depends on trade volume response and pass-through elasticity."
+    ),
+
+    "trump_china_tariff_60": CBOScore(
+        policy_id="trump_china_tariff_60",
+        name="60% China Tariff",
+        description="60% tariff on Chinese imports above existing ~20% average tariff rate. "
+                   "Affects ~$215B of effective import base.",
+        ten_year_cost=-500.0,  # Revenue raiser
+        source=ScoreSource.TPC,
+        source_date="2024-10",
+        source_url="https://taxfoundation.org/research/all/federal/trump-tariffs-biden-tariffs/",
+        rate_change=0.60,
+        policy_type="tariff",
+        baseline_year=2025,
+        budget_window="2026-2035",
+        notes="Tax Foundation estimate. Import substitution reduces revenue significantly "
+              "at this rate. Elasticity effects more pronounced than for universal tariff."
+    ),
+
+    "auto_tariff_25": CBOScore(
+        policy_id="auto_tariff_25",
+        name="25% Auto Tariff",
+        description="25% tariff on imported vehicles and parts. "
+                   "Effective base ~$133B after USMCA exemptions (~65% of total auto imports).",
+        ten_year_cost=-100.0,  # Revenue raiser
+        source=ScoreSource.TPC,
+        source_date="2024-10",
+        rate_change=0.25,
+        policy_type="tariff",
+        baseline_year=2025,
+        budget_window="2026-2035",
+        notes="CRFB/TPC estimate. USMCA exempts significant portion of imports. "
+              "Retaliation risk from trading partners is high."
+    ),
+
+    "steel_aluminum_tariff_25": CBOScore(
+        policy_id="steel_aluminum_tariff_25",
+        name="25% Steel & Aluminum Tariff",
+        description="25% tariff on steel and aluminum imports (~$50B import base).",
+        ten_year_cost=-60.0,  # Revenue raiser
+        source=ScoreSource.TPC,
+        source_date="2024-10",
+        rate_change=0.25,
+        policy_type="tariff",
+        baseline_year=2025,
+        budget_window="2026-2035",
+        notes="TPC estimate. Narrow sectoral tariff with lower revenue impact than broad tariffs. "
+              "Domestic steel/aluminum producers benefit but consuming industries face higher costs."
+    ),
+
+    "reciprocal_tariffs_20": CBOScore(
+        policy_id="reciprocal_tariffs_20",
+        name="Reciprocal Tariffs (~20pp average)",
+        description="Match trading partners' tariff rates, resulting in ~20pp average increase. "
+                   "Affects ~50% of import base (~$1,600B).",
+        ten_year_cost=-1200.0,  # Revenue raiser
+        source=ScoreSource.TPC,
+        source_date="2024-10",
+        rate_change=0.20,
+        policy_type="tariff",
+        baseline_year=2025,
+        budget_window="2026-2035",
+        notes="TPC/Yale Budget Lab estimate. Highly uncertain due to complexity of calculating "
+              "truly reciprocal rates and unpredictable negotiation outcomes."
+    ),
 }
 
 

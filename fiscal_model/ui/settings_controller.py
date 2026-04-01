@@ -70,13 +70,23 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
                     f"This is normal — IRS SOI data has a ~2 year publication lag."
                 )
 
-            use_microsim = st_module.checkbox(
+            use_microsim_general = st_module.checkbox(
                 "Microsimulation mode (experimental)",
                 value=False,
                 help=(
                     "Calculate taxes for individual households (JCT-style) instead of "
                     "bracket averages. More accurate for policies with phase-outs, "
                     "but requires CPS microdata and is slower."
+                ),
+            )
+
+            use_microsim_distribution = st_module.checkbox(
+                "Use microsimulation for distributional analysis",
+                value=False,
+                help=(
+                    "Microsim captures provision interactions (AMT + SALT + CTC phase-outs) "
+                    "that aggregate models miss. Individual-level tax calculation for "
+                    "more accurate 'who pays' analysis."
                 ),
             )
 
@@ -92,6 +102,7 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
         "use_real_data": use_real_data,
         "dynamic_scoring": dynamic_scoring,
         "macro_model": macro_model,
-        "use_microsim": use_microsim,
+        "use_microsim": use_microsim_general,
+        "use_microsim_distribution": use_microsim_distribution,
         "data_year": data_year,
     }

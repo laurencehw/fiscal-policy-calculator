@@ -260,6 +260,18 @@ CBO_SCORE_MAP = {
         "source_date": "2024",
         "notes": "25% tariff on auto imports",
     },
+    "🏭 25% Steel & Aluminum Tariff (-$60B)": {
+        "official_score": -60.0,
+        "source": "Tax Foundation",
+        "source_date": "2024",
+        "notes": "25% tariff on steel and aluminum imports",
+    },
+    "🏭 Reciprocal Tariffs (~20pp) (-$1.2T)": {
+        "official_score": -1200.0,
+        "source": "Tax Foundation / Yale Budget Lab",
+        "source_date": "2024",
+        "notes": "Match trading partners\\' tariff rates (~20pp average increase)",
+    },
     # Climate / Energy
     "🌱 Repeal IRA Clean Energy Credits ($783B)": {
         "official_score": -783.0,

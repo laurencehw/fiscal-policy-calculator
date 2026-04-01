@@ -19,6 +19,7 @@ def render_distribution_tab(
     format_distribution_table_fn: Any,
     winners_losers_summary_fn: Any,
     run_id: str | None = None,
+    use_microsim: bool = False,
 ) -> None:
     """
     Render distributional analysis tab content.
@@ -56,10 +57,14 @@ def render_distribution_tab(
             group_type = income_group_type_cls.JCT_DOLLAR
 
     try:
-        cache_key = f"dist:{run_id}:{group_type.name}" if run_id else None
+        cache_key = f"dist:{run_id}:{group_type.name}:microsim={use_microsim}" if run_id else None
         dist_analysis = st_module.session_state.get(cache_key) if cache_key else None
         if dist_analysis is None:
-            dist_analysis = dist_engine.analyze_policy(policy, group_type=group_type)
+            if use_microsim:
+                dist_analysis = dist_engine.analyze_policy_microsim(policy, group_type=group_type)
+                st_module.info("📊 Using microsimulation (individual-level tax calculation)")
+            else:
+                dist_analysis = dist_engine.analyze_policy(policy, group_type=group_type)
             if cache_key:
                 st_module.session_state[cache_key] = dist_analysis
         st_module.subheader("Summary")
@@ -204,8 +209,128 @@ def render_distribution_tab(
         else:
             st_module.info("This policy does not significantly affect top income groups")
 
+        # Tariff policy consumer impact section
+        try:
+            from fiscal_model.trade import TariffPolicy
+            if isinstance(policy, TariffPolicy):
+                _render_tariff_consumer_impact(st_module, policy)
+        except ImportError:
+            pass
+
     except Exception as e:
         st_module.error(f"Error running distributional analysis: {e}")
         import traceback
 
         st_module.code(traceback.format_exc())
+
+
+def _render_tariff_consumer_impact(st_module: Any, policy: Any) -> None:
+    """
+    Render consumer impact section for tariff policies.
+
+    Shows consumer cost estimates, household impact, retaliation costs,
+    and distributional effects by income quintile.
+    """
+    st_module.markdown("---")
+    st_module.subheader("🏷️ Consumer Price Impact")
+
+    st_module.markdown(
+        "<div class='info-box'>"
+        "💡 <strong>How tariffs affect consumers:</strong> Tariffs increase consumer prices. "
+        "The pass-through rate determines how much of the tariff cost falls on consumers vs. importers. "
+        "Tariffs are regressive — lower-income households spend a larger share of income on tariff-affected goods."
+        "</div>",
+        unsafe_allow_html=True,
+    )
+
+    # Get tariff metrics
+    consumer_cost = policy.estimate_consumer_cost()
+    household_impact = policy.get_household_impact()
+    retaliation_cost = policy.estimate_retaliation_cost()
+    pass_through_rate = policy.pass_through_rate
+
+    # Display three metric columns
+    col1, col2, col3 = st_module.columns(3)
+    with col1:
+        st_module.metric(
+            "Annual Consumer Cost",
+            f"${consumer_cost:.1f}B",
+            help="Total annual cost to consumers from higher import prices",
+        )
+    with col2:
+        st_module.metric(
+            "Cost per Household",
+            f"${household_impact:,.0f}/year",
+            help="Average annual tariff cost per U.S. household",
+        )
+    with col3:
+        st_module.metric(
+            "Annual Export Loss (Retaliation)",
+            f"${retaliation_cost:.1f}B",
+            help="Estimated export losses from trading partner retaliation",
+        )
+
+    # Quintile distribution of consumer costs (regressive impact)
+    st_module.subheader("Consumer Cost by Income Quintile")
+    st_module.markdown(
+        "Tariffs are regressive: lower-income households spend a larger share of income on tariff-affected goods "
+        "(clothing, footwear, appliances, vehicles)."
+    )
+
+    # Define quintile characteristics
+    # Median incomes by quintile (approximate from IRS SOI 2022)
+    median_incomes = {
+        "Lowest Quintile": 15_000,
+        "Second Quintile": 35_000,
+        "Middle Quintile": 55_000,
+        "Fourth Quintile": 85_000,
+        "Top Quintile": 200_000,
+    }
+
+    # Regressivity: share of income spent on tariff-affected goods
+    # (Conservative: tariffs mainly affect consumer goods, not services)
+    spending_shares = {
+        "Lowest Quintile": 0.035,      # 3.5% of income
+        "Second Quintile": 0.028,      # 2.8%
+        "Middle Quintile": 0.022,      # 2.2%
+        "Fourth Quintile": 0.017,      # 1.7%
+        "Top Quintile": 0.009,         # 0.9%
+    }
+
+    # Calculate household consumer costs by quintile
+    quintile_costs = {}
+    for quintile_name, median_income in median_incomes.items():
+        share = spending_shares[quintile_name]
+        cost = median_income * share
+        quintile_costs[quintile_name] = cost
+
+    # Create bar chart
+    fig_quintile = go.Figure()
+    quintile_names = list(quintile_costs.keys())
+    costs = list(quintile_costs.values())
+
+    fig_quintile.add_trace(
+        go.Bar(
+            x=quintile_names,
+            y=costs,
+            marker_color="#e74c3c",
+            text=[f"${c:,.0f}" for c in costs],
+            textposition="outside",
+            showlegend=False,
+        )
+    )
+
+    fig_quintile.update_layout(
+        xaxis_title="Income Group",
+        yaxis_title="Annual Consumer Cost ($)",
+        height=350,
+        meta={"description": "Bar chart showing tariff consumer costs by income quintile, demonstrating regressive impact on lower-income households"},
+    )
+
+    st_module.plotly_chart(fig_quintile, use_container_width=True)
+
+    # Pass-through rate caption
+    st_module.caption(
+        f"Consumer cost estimates assume {pass_through_rate*100:.0f}% tariff pass-through to prices "
+        "(Amiti, Redding & Weinstein 2019)."
+    )
