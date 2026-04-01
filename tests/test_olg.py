@@ -45,7 +45,6 @@ from fiscal_model.models.olg.government import (
 )
 from fiscal_model.models.olg.solver import _oscillation_fraction
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -671,8 +670,8 @@ class TestPWBMModel:
 
     def test_pwbm_run_returns_macro_result(self, small_params):
         """PWBMModel.run() should return an OLGMacroResult."""
-        from fiscal_model.models.olg import PWBMModel
         from fiscal_model.models import MacroScenario
+        from fiscal_model.models.olg import PWBMModel
 
         pwbm = PWBMModel(params=small_params)
         scenario = MacroScenario(
@@ -688,8 +687,8 @@ class TestPWBMModel:
 
     def test_pwbm_confidence_label(self, small_params):
         """Result should carry the OLG confidence label."""
-        from fiscal_model.models.olg import PWBMModel
         from fiscal_model.models import MacroScenario
+        from fiscal_model.models.olg import PWBMModel
 
         pwbm = PWBMModel(params=small_params)
         scenario = MacroScenario(

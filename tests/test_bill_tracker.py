@@ -13,9 +13,7 @@ Coverage:
 from __future__ import annotations
 
 import json
-import tempfile
-from datetime import datetime, timedelta
-from pathlib import Path
+from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -222,7 +220,7 @@ class TestCBOScoreFetcher:
         assert estimates[0].ten_year_cost_billions == -33.5
 
     def test_match_to_bill_by_bill_number(self):
-        from bill_tracker.cbo_fetcher import CBOScoreFetcher, CBOCostEstimate
+        from bill_tracker.cbo_fetcher import CBOCostEstimate, CBOScoreFetcher
         estimate = CBOCostEstimate(
             bill_id="",
             title="Cost Estimate for H.R. 7024 — Tax Relief Act",

@@ -35,12 +35,9 @@ for that with `load_bls_age_earnings_profile`.
 from __future__ import annotations
 
 import logging
-from typing import Callable
 
 import numpy as np
 
-from .firm import output, factor_prices
-from .household import aggregate_household_results
 from .parameters import OLGParameters
 
 logger = logging.getLogger(__name__)
@@ -125,6 +122,7 @@ def calibrate_beta(
     beta_calibrated : float
     """
     import copy
+
     from .solver import OLGSolver
 
     logger.info("Calibrating β for K/Y target = %.2f...", target_ky_ratio)

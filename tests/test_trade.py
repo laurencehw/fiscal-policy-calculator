@@ -15,20 +15,18 @@ Covers:
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from fiscal_model.trade import (
-    TariffPolicy,
-    TRADE_BASELINE,
-    create_trump_universal_10,
-    create_trump_china_60,
-    create_auto_tariff_25,
-    create_steel_tariff_25,
-    create_reciprocal_tariffs,
-)
 from fiscal_model.policies import PolicyType
+from fiscal_model.trade import (
+    TRADE_BASELINE,
+    TariffPolicy,
+    create_auto_tariff_25,
+    create_reciprocal_tariffs,
+    create_steel_tariff_25,
+    create_trump_china_60,
+    create_trump_universal_10,
+)
 
 
 class TestTariffPolicyCreation:

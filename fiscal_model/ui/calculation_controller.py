@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from .controller_utils import run_with_spinner_feedback, render_input_guardrails
+from .controller_utils import render_input_guardrails, run_with_spinner_feedback
 
 
 def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:

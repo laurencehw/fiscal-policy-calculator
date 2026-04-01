@@ -197,7 +197,7 @@ class PWBMModel(MacroModelAdapter):
         debt_path = path.debt_path[:n_out]
         if n_out < n:
             debt_path = np.concatenate([debt_path, np.full(n - n_out, debt_path[-1])])
-        baseline_debt = olg_result.baseline.debt * self._baseline_gdp
+        olg_result.baseline.debt * self._baseline_gdp
         debt_change = (debt_path - olg_result.baseline.debt) * self._baseline_gdp
         interest_cost = np.cumsum(debt_change) * 0.04
 

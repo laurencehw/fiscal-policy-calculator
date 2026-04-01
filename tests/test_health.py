@@ -8,7 +8,6 @@ Verifies that health checks correctly assess:
 - Scoring engine readiness
 """
 
-import pytest
 
 from fiscal_model.health import check_health
 

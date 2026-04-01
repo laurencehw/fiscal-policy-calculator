@@ -4,12 +4,11 @@ pipeline to increase coverage of all validate_*_policy and validate_all_*
 functions.
 """
 
-import pytest
 
+from fiscal_model.validation.cbo_scores import get_validation_targets
 from fiscal_model.validation.compare import (
     ValidationResult,
     _rate_accuracy,
-    create_capital_gains_policy_from_score,
     create_policy_from_score,
     generate_validation_report,
     quick_validate,
@@ -24,10 +23,7 @@ from fiscal_model.validation.compare import (
     validate_all_payroll,
     validate_all_ptc,
     validate_all_tcja,
-    validate_policy,
 )
-from fiscal_model.validation.cbo_scores import KNOWN_SCORES, get_validation_targets
-
 
 # ── Helper tests ────────────────────────────────────────────────────────
 

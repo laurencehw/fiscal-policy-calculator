@@ -8,9 +8,11 @@ and freshness indicators. Connects to SQLite bill database.
 from __future__ import annotations
 
 import json
-from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from bill_tracker.freshness import FreshnessStatus
 
 DEFAULT_DB_PATH = Path(__file__).parent.parent.parent.parent / "fiscal_model" / "data_files" / "bills.db"
 
@@ -327,7 +329,7 @@ def _render_bill_detail(
         st_module.rerun()
 
 
-def _render_freshness_badge(st_module: Any, freshness: "FreshnessStatus") -> None:  # type: ignore[name-defined]
+def _render_freshness_badge(st_module: Any, freshness: FreshnessStatus) -> None:  # type: ignore[name-defined]
     color_map = {
         "green": "🟢",
         "yellow": "🟡",

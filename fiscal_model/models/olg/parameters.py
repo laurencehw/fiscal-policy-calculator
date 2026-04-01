@@ -9,7 +9,6 @@ References:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 import numpy as np
 
@@ -128,7 +127,7 @@ class OLGParameters:
     # ------------------------------------------------------------------
     # Age-earnings profile
     # ------------------------------------------------------------------
-    earnings_profile: Optional[np.ndarray] = field(default=None, repr=False)
+    earnings_profile: np.ndarray | None = field(default=None, repr=False)
     """
     Labor efficiency ε_j for working-age cohorts, shape ``(retirement_age_cohort,)``.
 

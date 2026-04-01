@@ -11,21 +11,21 @@ References:
 - EIA (2024): U.S. emissions baseline and energy outlook
 """
 
-import pytest
 import numpy as np
+import pytest
+
 from fiscal_model.climate import (
-    ClimateEnergyPolicy,
-    ClimatePolicyType,
-    create_repeal_ira_credits,
-    create_carbon_tax_50,
-    create_carbon_tax_25,
-    create_repeal_ev_credits,
-    create_extend_ira,
     CLIMATE_BASELINE,
     CLIMATE_VALIDATION_SCENARIOS,
+    ClimateEnergyPolicy,
+    ClimatePolicyType,
+    create_carbon_tax_25,
+    create_carbon_tax_50,
+    create_extend_ira,
+    create_repeal_ev_credits,
+    create_repeal_ira_credits,
 )
 from fiscal_model.policies import PolicyType
-from fiscal_model.scoring import FiscalPolicyScorer
 
 
 class TestRepealIRACredits:
@@ -251,7 +251,7 @@ class TestRepealEVCredits:
 
         # Calculate total over 10 years
         annual_effect = policy.estimate_cost_effect()
-        ten_year_effect = annual_effect * 10
+        annual_effect * 10
 
         # CBO estimates $200B total
         # So ~$20B/year average
@@ -530,9 +530,8 @@ class TestValidationScenarios:
 
     def test_all_scenarios_produce_valid_results(self):
         """All validation scenarios should produce valid results."""
-        from fiscal_model.climate import CLIMATE_VALIDATION_SCENARIOS
 
-        for scenario_name, scenario_info in CLIMATE_VALIDATION_SCENARIOS.items():
+        for scenario_name, _scenario_info in CLIMATE_VALIDATION_SCENARIOS.items():
             # Create policy based on scenario
             if "repeal_ira" in scenario_name:
                 policy = create_repeal_ira_credits()

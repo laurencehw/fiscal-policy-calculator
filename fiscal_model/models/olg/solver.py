@@ -45,9 +45,9 @@ are exact.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Callable
 
 import numpy as np
 
@@ -308,7 +308,7 @@ class BroydenSolver:
         ss_benefit = compute_ss_benefit(p.ss_replacement_rate, w)
         Y = output(K, p._L_labour, p.alpha, p.tfp)
         ss_out = compute_ss_outlays(ss_benefit, p.cohort_sizes, p.retirement_age_cohort)
-        G = compute_gov_spending(p.gov_spending_gdp, Y)
+        compute_gov_spending(p.gov_spending_gdp, Y)
 
         if override_tau_l is not None:
             tau_l = override_tau_l
@@ -541,7 +541,8 @@ class OLGSolver:
             tau_ss = overrides.get("tau_ss", p.ss_payroll_rate)
             ss_rep = overrides.get("ss_replacement_rate", p.ss_replacement_rate)
 
-            from .firm import factor_prices as fp, output as out
+            from .firm import factor_prices as fp
+            from .firm import output as out
             r, w = fp(K, L, p.alpha, p.delta, p.tfp)
             Y = out(K, L, p.alpha, p.tfp)
             ss_benefit = w * ss_rep
@@ -555,7 +556,7 @@ class OLGSolver:
             else:
                 tau_l = p.labor_tax_rate
 
-            K_new, L_new, c_path, a_path = aggregate_household_results(
+            K_new, L_new, _c_path, _a_path = aggregate_household_results(
                 p, r, w, tau_l, tau_k, tau_ss, ss_benefit
             )
 

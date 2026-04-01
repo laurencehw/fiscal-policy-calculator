@@ -11,25 +11,22 @@ Covers:
 
 from __future__ import annotations
 
-import pytest
 import pandas as pd
-import numpy as np
+import pytest
 
+from fiscal_model.models.state.calculator import FederalStateCalculator
 from fiscal_model.models.state.database import (
-    StateTaxDatabase,
-    StateTaxProfile,
-    SUPPORTED_STATES,
     STATE_NAMES,
+    SUPPORTED_STATES,
+    StateTaxDatabase,
     _parse_json_list,
 )
 from fiscal_model.models.state.salt_interaction import (
-    compute_salt_interaction,
-    compute_salt_across_states,
     SALTInteractionResult,
     _approx_filers_millions,
+    compute_salt_across_states,
+    compute_salt_interaction,
 )
-from fiscal_model.models.state.calculator import FederalStateCalculator
-
 
 # ─── Fixtures ──────────────────────────────────────────────────────────────
 
@@ -95,7 +92,7 @@ def test_compare_top_rates_sorted(db):
     # Should be sorted descending
     assert values == sorted(values, reverse=True)
     # CA should have highest rate (~13.3%)
-    top_state = list(rates.keys())[0]
+    top_state = next(iter(rates.keys()))
     assert top_state == "CA"
 
 

@@ -15,10 +15,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import numpy as np
 import pandas as pd
 
-from .database import StateTaxDatabase, StateTaxProfile
+from .database import StateTaxDatabase
 
 
 @dataclass
@@ -36,7 +35,8 @@ class SALTInteractionResult:
 
     @property
     def description(self) -> str:
-        cap_str = lambda c: f"${c:,.0f}" if c is not None else "uncapped"
+        def cap_str(c):
+            return f"${c:,.0f}" if c is not None else "uncapped"
         return (
             f"SALT cap {cap_str(self.baseline_cap)} → {cap_str(self.reform_cap)}: "
             f"{self.affected_filers:.1f}M filers, "
