@@ -37,6 +37,7 @@ from .macro_adapter import (
     SimpleMultiplierAdapter,
     policy_to_scenario,
 )
+from .olg import OLGModel, OLGParams, OLGResult
 
 __all__ = [
     "FRBUSAdapter",
@@ -46,6 +47,9 @@ __all__ = [
     "MacroResult",
     "MacroScenario",
     "MonetaryPolicyRule",
+    "OLGModel",
+    "OLGParams",
+    "OLGResult",
     "SimpleMultiplierAdapter",
     "policy_to_scenario",
 ]

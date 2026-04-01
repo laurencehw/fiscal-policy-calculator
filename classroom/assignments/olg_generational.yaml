@@ -1,0 +1,233 @@
+id: olg_generational
+title: "Generational Burden: Who Pays for Today's Deficits?"
+description: >
+  Use the Overlapping Generations (OLG) model to analyze how today's fiscal
+  choices affect future generations. Explore how deficit financing crowds out
+  capital, reduces wages, and shifts the tax burden to workers who have not
+  yet been born. Evaluate Social Security reform through a generational lens.
+complexity_levels:
+  - undergraduate
+  - graduate
+  - advanced
+estimated_minutes: 60
+tags:
+  - olg
+  - generational_burden
+  - deficit
+  - social_security
+  - crowding_out
+learning_objectives:
+  - "Interpret generational accounts (lifetime tax rates by birth cohort)"
+  - "Explain the capital crowding-out mechanism in an OLG framework"
+  - "Evaluate how debt financing shifts burden across generations"
+  - "Analyze Social Security reform using lifetime incidence"
+
+exercises:
+  - id: olg_ug_ex1
+    title: "Reading Generational Accounts"
+    type: parameter_exploration
+    complexity: undergraduate
+    prompt: >
+      The OLG model computes a "net lifetime tax rate" for each birth cohort:
+      the ratio of (lifetime taxes paid − lifetime SS benefits received) to
+      lifetime wages earned.
+
+      Under the baseline (current law), the model shows rising net lifetime
+      tax rates for younger cohorts. This is because:
+      (a) The national debt is being passed to future taxpayers
+      (b) Social Security is projected to face funding shortfalls after 2035
+      (c) Capital crowding out reduces wages for future workers
+
+      Run the baseline OLG simulation and report: what is the average net
+      lifetime tax rate for cohorts born 1980-2010 (current workers)?
+
+      Enter the average net tax rate (as a percentage, e.g., enter 28.5 for 28.5%).
+    parameters:
+      - name: debt_shock_pct_gdp
+        label: "Additional annual deficit (% GDP, 0 = baseline)"
+        min: 0.0
+        max: 0.0
+        step: 0.01
+        default: 0.0
+        unit: "% GDP"
+    hints:
+      - level: 1
+        text: >
+          The baseline net tax rate for current workers reflects: labor taxes (~25%),
+          minus Social Security benefits they will receive (~40% of final wage),
+          as a share of lifetime wages. With baseline labor tax 25% and SS
+          replacement 40%, the net rate depends on when cohorts enter/exit.
+          For 1980-2010 cohorts, expect roughly 20-30%.
+      - level: 2
+        text: >
+          Run: from fiscal_model.models.olg import OLGModel; model = OLGModel()
+          result = model.run(); mask = (result.birth_years >= 1980) & (result.birth_years <= 2010)
+          print(result.net_tax_rate[mask].mean())
+    validation:
+      method: relative_to_model
+      policy_type: olg
+      policy_params:
+        debt_shock_pct_gdp: 0.0
+      target_field: mean_net_tax_rate_current
+      tolerance: 0.05
+    expected_insight: >
+      Current workers (born 1980-2010) face substantial net lifetime taxes even
+      before accounting for future deficit burdens. The net tax rate reflects
+      that SS benefits are generous (40% replacement) but labor taxes are high
+      (25%). The generational equity question arises when comparing these rates
+      to those of older cohorts who paid lower taxes and receive higher relative benefits.
+
+  - id: olg_ug_ex2
+    title: "Deficit Spending: Burden on Future Workers"
+    type: comparison
+    complexity: undergraduate
+    prompt: >
+      Compare two scenarios:
+      A) Baseline: current-law deficit path (~6% GDP/year)
+      B) Higher deficit: add 2% of GDP more borrowing each year for 10 years
+
+      In scenario B, the government borrows more now to finance spending
+      (perhaps on infrastructure or social programs). Future taxpayers
+      must service the additional debt.
+
+      Run both scenarios and report: by how many percentage points does the
+      average net lifetime tax rate increase for cohorts born 2025-2060
+      in Scenario B vs. Scenario A?
+    parameters:
+      - name: debt_shock_pct_gdp
+        label: "Additional annual deficit (% GDP)"
+        min: 0.0
+        max: 5.0
+        step: 0.5
+        default: 2.0
+        unit: "% GDP"
+    hints:
+      - level: 1
+        text: >
+          More debt → more crowding out → lower capital stock → lower wages for
+          future workers → but also higher future taxes to service the debt.
+          The net effect on future net tax rates comes through both channels.
+          Run model.run(debt_shock_pct_gdp=2.0) and compare net_tax_rate for
+          birth_years 2025-2060 to the baseline.
+    validation:
+      method: relative_to_model
+      policy_type: olg
+      policy_params:
+        debt_shock_pct_gdp: "{debt_shock_pct_gdp}"
+      target_field: mean_net_tax_rate_future
+      tolerance: 0.05
+    expected_insight: >
+      Each percentage point of GDP in additional annual debt increases future
+      generations' net lifetime tax rates by roughly 0.5-1.0pp, depending on
+      the time horizon and discount rate. This is the "generational transfer"
+      inherent in deficit financing — present generations receive services
+      without paying for them; future generations pay without having received them.
+
+  - id: olg_grad_ex1
+    title: "Social Security Reform: Generational Winners and Losers"
+    type: comparison
+    complexity: graduate
+    prompt: >
+      Social Security faces a projected 75-year actuarial shortfall of ~$22T.
+      Two reform options are commonly proposed:
+
+      Option A: Cut benefits by 20% starting in 2035 (when trust funds are projected
+      to be exhausted). This reduces benefits for current retirees and near-retirees.
+
+      Option B: Increase the payroll tax rate by ~3pp immediately.
+      This spreads the burden across all current workers.
+
+      Compare the generational incidence of each option:
+      1. Which cohorts bear the burden in each scenario?
+      2. For cohorts born 1960-1970, which option is worse?
+      3. Which option is more generationally equitable?
+
+      Use the OLG model's ss_replacement_change parameter to simulate Option A.
+    parameters:
+      - name: ss_replacement_change
+        label: "SS replacement rate change (decimal, -0.20 = 20% cut)"
+        min: -0.30
+        max: 0.10
+        step: 0.01
+        default: -0.20
+        unit: "decimal"
+      - name: labor_tax_change
+        label: "Labor tax change for Option B (decimal, 0.03 = +3pp)"
+        min: 0.0
+        max: 0.05
+        step: 0.005
+        default: 0.00
+        unit: "decimal"
+    hints:
+      - level: 1
+        text: >
+          Option A (benefit cut): primarily affects those already retired or near retirement.
+          Cohorts born 1945-1965 face the largest benefit reduction as a share of
+          their retirement income. Younger cohorts benefit from a more solvent system.
+          Option B (tax increase): affects current workers (born 1960-2000) most.
+          Retirees are unaffected. Compare net_tax_rate for birth years 1960-1970
+          under each option using labor_tax_change=0.03 vs. ss_replacement_change=-0.20.
+    validation:
+      method: none
+    expected_insight: >
+      Option A (benefit cuts) is better for current workers but worse for current
+      retirees. Option B (tax increases) is better for retirees but worse for
+      current workers. Neither is clearly "more equitable" without value judgments
+      about whose consumption should be protected. Politically, benefit cuts face
+      stronger opposition because retirees are better organized and more numerous
+      as voters — explaining why SS reform historically favored tax increases over
+      benefit cuts.
+
+  - id: olg_adv_ex1
+    title: "Generational Accounting: The Auerbach-Gokhale-Kotlikoff Framework"
+    type: open_analysis
+    complexity: advanced
+    prompt: >
+      The Auerbach-Gokhale-Kotlikoff (1991) generational accounting framework
+      estimates the present value of all future net taxes for each cohort,
+      enabling comparison across generations on an equal NPV basis.
+
+      1. Using the OLG model, replicate the structure of a generational account
+         for the following cohorts: born 1960, 1980, 2000, 2020, 2040.
+         Report: (a) PV of taxes paid, (b) PV of SS benefits, (c) net burden,
+         (d) net lifetime tax rate.
+
+      2. Apply the fiscal gap concept: the additional revenue needed today
+         (in perpetuity) to satisfy the government's intertemporal budget constraint.
+         How large is this gap as a % of GDP?
+
+      3. Compare to Kotlikoff (2022) estimates of US fiscal gap (~$200T).
+
+      4. Discuss limitations of the generational accounting framework:
+         - Sensitivity to discount rate assumption
+         - Treatment of government consumption
+         - Uncertainty about future policy
+         - Behavioral responses
+
+      5. Write a 400-word methodological critique of generational accounting.
+    parameters:
+      - name: debt_shock_pct_gdp
+        label: "Baseline deficit shock (% GDP)"
+        min: 0.0
+        max: 3.0
+        step: 0.5
+        default: 0.0
+        unit: "% GDP"
+    hints:
+      - level: 1
+        text: >
+          The fiscal gap = PV(future spending) − PV(future revenue) − current debt.
+          Kotlikoff uses 2% discount rate; CBO uses the risk-free rate (~2.5%).
+          Small changes in discount rate have huge effects on PV calculations
+          over 75-year horizons — a key vulnerability of the framework.
+    validation:
+      method: none
+    expected_insight: >
+      Generational accounting provides a theoretically rigorous but assumption-sensitive
+      framework. The multi-trillion dollar fiscal gap estimates depend heavily on
+      discount rates: at 2% vs. 4%, the same expenditure profile can differ by
+      factor of 10 over 75 years. Moreover, government spending is not welfare-neutral
+      (education, defense, infrastructure build human and physical capital) —
+      treating all spending as a "burden" ignores these benefits. The framework is
+      most useful as a relative comparison tool, not an absolute measure of
+      generational unfairness.

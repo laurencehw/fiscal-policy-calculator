@@ -1,0 +1,234 @@
+id: progressive_vs_flat
+title: "Progressive vs. Flat Tax: Trade-offs in Tax Design"
+description: >
+  Compare a progressive income tax structure with a flat tax proposal.
+  Analyze the revenue, distributional, and efficiency implications of
+  each system, and evaluate common arguments for and against tax simplification.
+complexity_levels:
+  - undergraduate
+  - graduate
+  - advanced
+estimated_minutes: 50
+tags:
+  - income_tax
+  - tax_design
+  - progressivity
+  - flat_tax
+  - efficiency
+learning_objectives:
+  - "Define progressivity using effective vs. marginal tax rates"
+  - "Calculate revenue-neutral flat tax rate"
+  - "Quantify the distributional trade-offs of moving to a flat tax"
+  - "Evaluate efficiency arguments (deadweight loss, compliance costs)"
+
+exercises:
+  - id: flat_ug_ex1
+    title: "What Does the Current System Look Like?"
+    type: parameter_exploration
+    complexity: undergraduate
+    prompt: >
+      The US federal income tax has seven brackets from 10% to 37%.
+      The effective (average) tax rate rises with income but is always
+      below the marginal rate due to bracket structure.
+
+      Using the model, estimate the 10-year revenue effect of:
+      (a) Raising the top rate from 37% to 39.6% (+2.6pp) on income above $400K
+      (b) Cutting the bottom rate from 10% to 8% (−2pp) on income below $50K
+
+      Compare the two effects. Which has a larger revenue impact? Why?
+    parameters:
+      - name: rate_change_top
+        label: "Top rate change (decimal, e.g. 0.026)"
+        min: 0.00
+        max: 0.10
+        step: 0.01
+        default: 0.026
+        unit: "decimal"
+    hints:
+      - level: 1
+        text: >
+          The top bracket applies to ~1.8M filers with high average income.
+          Despite fewer filers, high income per filer means large total taxable
+          income. The bottom bracket applies to ~90M filers but with low
+          average taxable income above the standard deduction.
+          Revenue = ΔRate × TaxableBase × NumFilers × 10 years.
+      - level: 2
+        text: >
+          Top bracket: ~1.8M filers × $800K excess income = $1.44T taxable base/yr
+          × 0.026 = $37B/year = $370B over 10 years.
+          Bottom bracket: ~90M filers × $15K below $50K = $1.35T base/yr
+          × 0.02 = $27B/year = $270B over 10 years.
+          The top bracket has larger revenue impact despite far fewer filers.
+    validation:
+      method: relative_to_model
+      policy_type: income_tax
+      policy_params:
+        name: "Top Rate Change"
+        description: "Top bracket rate change"
+        rate_change: "{rate_change_top}"
+        affected_income_threshold: 400000
+      target_field: total_10_year_cost
+      tolerance: 0.05
+    expected_insight: >
+      Revenue is concentrated in higher brackets because taxable income is heavily
+      skewed. This is why CBO estimates of top-bracket changes (like the Biden
+      $400K+ proposal at $252B/10yr) are large despite affecting few filers —
+      average income in the affected group is ~$1.2M.
+
+  - id: flat_ug_ex2
+    title: "Designing a Revenue-Neutral Flat Tax"
+    type: target_finding
+    complexity: undergraduate
+    prompt: >
+      A flat tax applies a single rate to all taxable income above a personal
+      exemption. To be revenue-neutral, it must raise the same amount as the
+      current system (~$2.2 trillion/year in individual income taxes).
+
+      Given a $15,000 personal exemption, there are roughly 130 million
+      taxable filers with average taxable income of ~$55,000.
+
+      Total taxable base (above exemption) ≈ 130M × ($55,000 − $15,000) = $5.2T
+
+      At what flat rate does revenue = $2.2T?
+      Answer: $2.2T / $5.2T = ____%
+
+      Enter the required flat rate as a percentage (e.g., enter 22.5 for 22.5%).
+    parameters:
+      - name: flat_rate_pct
+        label: "Flat tax rate (%)"
+        min: 10.0
+        max: 40.0
+        step: 0.5
+        default: 22.0
+        unit: "%"
+    hints:
+      - level: 1
+        text: >
+          Revenue-neutral rate = Annual Revenue Target / Taxable Base.
+          With ~$10T effective taxable base: $2,200B / $10,000B = 22%.
+          Enter 22.0.
+      - level: 2
+        text: >
+          The answer is approximately 22-24%. In practice, flat tax proposals
+          (Steve Forbes 17%, Hall-Rabushka 19%) often broaden the base by
+          eliminating deductions, allowing a lower rate.
+    validation:
+      method: range_check
+      min_acceptable: 18.0
+      max_acceptable: 28.0
+    expected_insight: >
+      A revenue-neutral flat tax requires a rate in the 20-25% range, far
+      above the lowest current bracket (10%) and above the rates paid by
+      most middle-class filers. Most flat tax proposals achieve lower rates
+      by also eliminating popular deductions (mortgage interest, charitable),
+      which shifts the political calculus significantly.
+
+  - id: flat_grad_ex1
+    title: "Distributional Effects of Switching to a Flat Tax"
+    type: comparison
+    complexity: graduate
+    prompt: >
+      Analyze the distributional consequences of replacing the current
+      bracketed system with a 22% flat tax (same revenue, broader base).
+
+      Under current law, effective rates (after deductions) range from:
+      - Bottom quintile: ~2% effective rate
+      - Second quintile: ~7%
+      - Middle: ~11%
+      - Fourth: ~15%
+      - Top quintile: ~22%
+      - Top 1%: ~28%
+
+      A 22% flat tax is:
+      - Revenue-neutral for top quintile filers (small impact on them)
+      - A large tax increase for all below-median filers
+      - A large tax cut for top 1% (from 28% to 22%)
+
+      Estimate: what is the annual average tax change for the bottom quintile
+      and the top 1% under a revenue-neutral 22% flat tax? Express in $/household.
+
+      Use distributional model results or your own calculations.
+    parameters:
+      - name: flat_rate_pct
+        label: "Flat rate (%)"
+        min: 15.0
+        max: 30.0
+        step: 0.5
+        default: 22.0
+        unit: "%"
+      - name: exemption_amount
+        label: "Personal exemption ($)"
+        min: 0
+        max: 30000
+        step: 1000
+        default: 15000
+        unit: "$"
+    hints:
+      - level: 1
+        text: >
+          Bottom quintile average income ~$15K. Effective rate 2% → $300/year taxes.
+          At 22% flat rate with $15K exemption: (15K-15K) × 22% = $0 (exempted).
+          So the flat tax with exemption actually helps the bottom quintile if the
+          exemption covers their full income.
+          Top 1% average income ~$1.5M. Current: ~28% × $1.4M = $392K.
+          Flat 22%: 22% × ($1.5M-$15K) = $327K. Savings: ~$65K/year.
+    validation:
+      method: none
+    expected_insight: >
+      With a generous exemption, the flat tax is not necessarily regressive.
+      The key is the exemption level vs. the income of the bottom quintile.
+      Without an exemption, the flat tax is unambiguously regressive.
+      The distributional profile depends heavily on base-broadening provisions.
+
+  - id: flat_adv_ex1
+    title: "Efficiency, Simplicity, and the Politics of Tax Reform"
+    type: open_analysis
+    complexity: advanced
+    prompt: >
+      Evaluate the efficiency and political economy of flat vs. progressive taxes.
+
+      1. Using the ETI literature, estimate the deadweight loss (efficiency cost)
+         of the current top rate (37%) vs. a flat 22% rate. DWL formula:
+         DWL = 0.5 × ETI × ΔRate² × TaxableBase
+
+      2. Quantify compliance cost savings (IRS estimates $200-400B in annual
+         compliance costs; Slemrod 2007 estimates ~13% of revenue).
+
+      3. Assess the Hall-Rabushka flat tax proposal specifically.
+
+      4. Explain why flat taxes have been politically difficult to enact
+         despite their apparent simplicity advantages.
+
+      5. Write a 400-word policy brief recommending for or against a flat tax
+         reform, with your analysis grounded in the model results.
+    parameters:
+      - name: flat_rate_pct
+        label: "Proposed flat rate (%)"
+        min: 15.0
+        max: 30.0
+        step: 0.5
+        default: 22.0
+        unit: "%"
+      - name: eti
+        label: "ETI assumption"
+        min: 0.10
+        max: 1.00
+        step: 0.05
+        default: 0.25
+        unit: "decimal"
+    hints:
+      - level: 1
+        text: >
+          DWL = 0.5 × ETI × (t/(1-t))² × Revenue. At t=37%, ETI=0.25:
+          DWL ≈ 0.5 × 0.25 × (0.37/0.63)² × $1,000B ≈ $43B/year.
+          At t=22%: DWL ≈ 0.5 × 0.25 × (0.22/0.78)² × $1,000B ≈ $11B/year.
+          Savings: ~$32B/year — meaningful but small relative to total revenue.
+    validation:
+      method: none
+    expected_insight: >
+      Flat taxes reduce efficiency costs modestly and may simplify compliance,
+      but the distributional trade-offs are significant. Political resistance stems
+      from losers being more concentrated (middle-class homeowners who lose the
+      mortgage deduction) than winners (diffuse efficiency gains).
+      The most successful tax reforms historically (Reagan 1986, TCJA 2017) combined
+      rate cuts with partial base-broadening, not a clean flat tax.

@@ -1,0 +1,231 @@
+id: distributional_incidence
+title: "Tax Incidence: Who Bears the Burden?"
+description: >
+  Analyze the distributional effects of different fiscal policies.
+  Examine how tax burdens and spending benefits are distributed across
+  the income spectrum — from quintile analysis to understanding who
+  really bears the economic burden of corporate taxes.
+complexity_levels:
+  - undergraduate
+  - graduate
+  - advanced
+estimated_minutes: 55
+tags:
+  - distribution
+  - incidence
+  - quintiles
+  - corporate_tax
+  - regressivity
+learning_objectives:
+  - "Read and interpret distributional tables (TPC/JCT-style)"
+  - "Distinguish statutory from economic incidence"
+  - "Apply labor vs. capital incidence assumptions to corporate taxation"
+  - "Identify regressive vs. progressive policies from distributional data"
+
+exercises:
+  - id: dist_ug_ex1
+    title: "Reading a Distributional Table"
+    type: parameter_exploration
+    complexity: undergraduate
+    prompt: >
+      The distribution tab shows the average tax change per household by
+      income quintile and the share of total tax change going to each group.
+
+      Run a 2pp income tax increase on income above $400,000.
+      Then answer: what share of the total tax increase is borne by the
+      top 1% vs. the bottom 60% combined?
+
+      Enter your estimate of the top-quintile (top 20%) share of the tax change.
+    parameters:
+      - name: rate_change
+        label: "Rate change (decimal)"
+        min: 0.01
+        max: 0.10
+        step: 0.01
+        default: 0.02
+        unit: "decimal"
+      - name: affected_income_threshold
+        label: "Income threshold ($)"
+        min: 100000
+        max: 1000000
+        step: 50000
+        default: 400000
+        unit: "$"
+    hints:
+      - level: 1
+        text: >
+          A tax increase on income above $400K affects almost exclusively
+          the top 1-2% of filers. Look at the "Share of Total Change" column
+          in the distribution table. The top quintile (80th-100th percentile)
+          will bear close to 100% of this tax change.
+      - level: 2
+        text: >
+          For a threshold of $400K, approximately 1.8M filers are affected
+          out of ~150M total. The top 20% starts at roughly $100K income,
+          so some of the top quintile (those with $100K-$400K) are unaffected.
+          The top 1-5% (above $400K) bears nearly all of the burden.
+    validation:
+      method: range_check
+      min_acceptable: 85.0
+      max_acceptable: 100.0
+    expected_insight: >
+      Income taxes with high thresholds are highly concentrated at the top.
+      This is why distributional analysis is essential: headline rate changes
+      need to be paired with base and threshold information to understand
+      who is actually affected.
+
+  - id: dist_ug_ex2
+    title: "Corporate Tax Incidence: Workers vs. Capital Owners"
+    type: comparison
+    complexity: undergraduate
+    prompt: >
+      The corporate income tax is paid by corporations, but who bears the
+      economic burden? There are two major views:
+
+      A) Traditional view: shareholders (capital owners) bear the burden
+         → tax falls on top income quintile
+      B) Open-economy view: capital is mobile internationally, so workers
+         bear the burden through lower wages → tax is more broadly spread
+
+      CBO and JCT split the burden 75% capital / 25% labor.
+
+      Consider a 7pp corporate rate increase (21% → 28%). The model scores
+      this at approximately −$1.35T over 10 years.
+
+      Given the 75/25 split, estimate: if annual corporate tax revenue
+      increases by $135B, how much falls on (a) capital income earners
+      and (b) workers?
+    parameters:
+      - name: rate_change
+        label: "Corporate rate change (decimal)"
+        min: 0.01
+        max: 0.15
+        step: 0.01
+        default: 0.07
+        unit: "decimal"
+      - name: capital_labor_split
+        label: "Capital incidence share (0 = all labor, 1 = all capital)"
+        min: 0.0
+        max: 1.0
+        step: 0.05
+        default: 0.75
+        unit: "decimal"
+    hints:
+      - level: 1
+        text: >
+          At $135B total annual burden and 75/25 split:
+          Capital: $135B × 0.75 = $101.25B
+          Labor: $135B × 0.25 = $33.75B
+          Capital income is concentrated in top quintiles, so ~80% of the
+          capital portion falls on the top 20% → ~$81B on top quintile.
+      - level: 2
+        text: >
+          The empirical literature is unsettled on the capital/labor split.
+          Suárez Serrato & Zidar (2016) find workers bear ~30-40% via wage
+          reductions. The open-economy view (Gravelle 2010) suggests workers
+          bear even more. This matters enormously for distributional analysis.
+    validation:
+      method: range_check
+      min_acceptable: 60.0
+      max_acceptable: 120.0
+    expected_insight: >
+      Corporate tax incidence is contested because it depends on capital mobility
+      and wage determination in general equilibrium. The distributional profile of
+      corporate taxes shifts from regressive to more progressive as you increase
+      the capital-income share — which is why the debate matters for tax reform.
+
+  - id: dist_grad_ex1
+    title: "Regressive vs. Progressive: Comparing Policies"
+    type: comparison
+    complexity: graduate
+    prompt: >
+      Compare the distributional profiles of three policies:
+      1. Universal 10% tariff on all imports
+      2. 2pp income tax cut on income above $400K
+      3. Child Tax Credit expansion ($1,000 increase per child, all filers)
+
+      For each policy, determine whether it is regressive, proportional, or
+      progressive. Define your criterion: a policy is progressive if the
+      average tax change / pre-tax income is higher for upper quintiles.
+
+      Run each in the model and compare the quintile average tax changes.
+      Rank the three policies from most regressive to most progressive.
+    parameters:
+      - name: rate_change
+        label: "Income tax rate change (decimal)"
+        min: -0.05
+        max: 0.05
+        step: 0.01
+        default: -0.02
+        unit: "decimal"
+      - name: affected_income_threshold
+        label: "Income threshold ($)"
+        min: 0
+        max: 1000000
+        step: 50000
+        default: 400000
+        unit: "$"
+    hints:
+      - level: 1
+        text: >
+          Tariffs: consumers pay via higher prices. Low-income households spend
+          a higher share of income on tradeable goods (food, clothing) → regressive.
+          Income tax cut at $400K: benefits flow entirely to top earners → regressive
+          by absolute dollars, but the direction of change is a cut (benefit to rich).
+          CTC expansion: credits go to filers with children at all income levels,
+          but phase-out means top earners get less → progressive.
+    validation:
+      method: none
+    expected_insight: >
+      Most consumption taxes and tariffs are regressive because lower-income
+      households consume a larger fraction of their income. Income taxes above
+      a threshold are progressive in statutory terms but may be offset by
+      behavioral responses. Transfer expansions (CTC, EITC) are the most
+      consistently progressive instruments. The overall distribution of the
+      tax system is the composite of all these effects.
+
+  - id: dist_adv_ex1
+    title: "Lifetime vs. Annual Incidence"
+    type: open_analysis
+    complexity: advanced
+    prompt: >
+      Annual incidence analysis can be misleading because a person's income
+      in any given year may not reflect their lifetime economic position.
+
+      Design a comparison between:
+      1. Annual incidence of a payroll tax cap removal ($250K+ subject to SS tax)
+      2. Lifetime incidence of the same policy (using permanent income rather than
+         annual income to rank households)
+
+      Research and write a 500-word memo addressing:
+      - Why annual and lifetime incidence measures can diverge
+      - How the OLG framework in this model captures lifetime accounts
+      - Which measure is more appropriate for evaluating SS reform
+      - How CBO and JCT handle this distinction
+
+      Use the model's OLG module to compute lifetime net tax rates for
+      the payroll tax cap removal scenario.
+    parameters:
+      - name: rate_change
+        label: "Placeholder parameter"
+        min: 0.0
+        max: 0.1
+        step: 0.01
+        default: 0.01
+        unit: ""
+    hints:
+      - level: 1
+        text: >
+          Lifetime incidence uses permanent income (smoothed over a lifetime)
+          rather than annual income to rank households. The key insight is that
+          many "low-income" filers in a given year are temporarily low-income
+          (students, retirees, small business losses) — not permanently poor.
+    validation:
+      method: none
+    expected_insight: >
+      Lifetime incidence studies (e.g., Fullerton & Rogers 1993) typically show
+      that consumption taxes are less regressive on a lifetime basis than on an
+      annual basis, because lifetime income is more equally distributed than
+      annual income. For Social Security, the lifetime perspective reveals
+      redistribution from high earners to low earners via progressive benefit
+      formulas — something annual incidence misses entirely.
