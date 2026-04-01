@@ -37,12 +37,19 @@ def build_main_tabs(st_module: Any, mode: str) -> dict[str, Any]:
     # Advanced section (in expander)
     st_module.markdown("---")
     with st_module.expander("🔬 Advanced Analysis", expanded=False):
-        advanced_labels = ["📈 Long-Run Growth", "⚖️ Policy Comparison", "📦 Package Builder", "📖 Methodology"]
+        advanced_labels = [
+            "📈 Long-Run Growth",
+            "🌐 Generational Analysis",
+            "⚖️ Policy Comparison",
+            "📦 Package Builder",
+            "📖 Methodology",
+        ]
         advanced_tabs = st_module.tabs(advanced_labels)
         advanced_map = dict(zip(advanced_labels, advanced_tabs, strict=False))
 
         primary_map.update({
             "tab_long_run": advanced_map["📈 Long-Run Growth"],
+            "tab_generational": advanced_map["🌐 Generational Analysis"],
             "tab_comparison": advanced_map["⚖️ Policy Comparison"],
             "tab_packages": advanced_map["📦 Package Builder"],
             "tab_methodology": advanced_map["📖 Methodology"],
@@ -163,6 +170,13 @@ def render_result_tabs(
                 st_module.info(
                     "Run a calculation to unlock long-run growth projections."
                 )
+        if "tab_generational" in tabs:
+            with tabs["tab_generational"]:
+                deps.render_generational_analysis_tab(
+                    st_module=st_module,
+                    result_data=None,
+                    run_id=None,
+                )
         if "tab_comparison" in tabs:
             with tabs["tab_comparison"]:
                 st_module.info(
@@ -252,6 +266,19 @@ def render_result_tabs(
                 st_module=st_module,
                 session_results=result_data,
                 solow_growth_model_cls=deps.SolowGrowthModel,
+                run_id=results_run_id,
+            )
+
+    if "tab_generational" in tabs:
+        with tabs["tab_generational"]:
+            if is_stale:
+                st_module.warning(
+                    "Inputs changed since the last run. "
+                    "Click **Calculate Impact** to refresh results."
+                )
+            deps.render_generational_analysis_tab(
+                st_module=st_module,
+                result_data=result_data,
                 run_id=results_run_id,
             )
 

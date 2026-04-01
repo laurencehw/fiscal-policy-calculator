@@ -8,6 +8,7 @@ Available Models:
 - SimpleMultiplierAdapter: Reduced-form fiscal multiplier model
 - FRBUSAdapter: Federal Reserve's FRB/US model (requires pyfrbus)
 - FRBUSAdapterLite: FRB/US-calibrated model (no pyfrbus required)
+- OLG sub-package: 55-cohort Auerbach-Kotlikoff OLG model
 
 Example usage:
     from fiscal_model.models import SimpleMultiplierAdapter, MacroScenario
@@ -20,10 +21,11 @@ Example usage:
     result = adapter.run(scenario)
     print(f"GDP effect: {result.cumulative_gdp_effect:.2f}%")
 
-    # For FRB/US-calibrated results without pyfrbus:
-    from fiscal_model.models import FRBUSAdapterLite
-    adapter = FRBUSAdapterLite()
-    result = adapter.run(scenario)
+    # OLG model:
+    from fiscal_model.models.olg import OLGModel, OLGParameters
+    model = OLGModel()
+    result = model.analyze_policy({"tau_k": 0.35}, policy_name="Corp 28%")
+    print(result.summary())
 """
 
 from .macro_adapter import (
@@ -37,6 +39,9 @@ from .macro_adapter import (
     SimpleMultiplierAdapter,
     policy_to_scenario,
 )
+
+# OLG sub-package is available via fiscal_model.models.olg
+# (imported lazily to avoid slowing down the main import)
 
 __all__ = [
     "FRBUSAdapter",
