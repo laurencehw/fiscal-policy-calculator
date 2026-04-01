@@ -37,6 +37,14 @@ The calculator scores fiscal policy proposals through a three-stage pipeline:
 
 Plus fully custom policy design with adjustable parameters.
 
+### Additional features
+
+- **Tariff scoring** — 5 presets (universal 10%, China 60%, autos 25%, reciprocal), consumer price impact by income quintile
+- **State-level modeling** — Combined federal + state effective rates for top 10 states, with SALT cap interaction
+- **OLG model** — 30-period Auerbach-Kotlikoff-style generational accounting for Social Security and Medicare reform
+- **Classroom Mode** — 7 interactive assignments (intro → advanced), Laffer curve explorer, PDF export; accessible at `streamlit run classroom_app.py`
+- **Real-Time Bill Tracker** — Pulls active bills from congress.gov, extracts fiscal provisions via LLM, stores in SQLite
+
 ### Validation
 
 25+ policies validated against official CBO/JCT/Treasury scores:
@@ -66,7 +74,8 @@ Visit **[laurencehw-fiscal-policy-calculator.streamlit.app](https://laurencehw-f
 git clone https://github.com/laurencehw/fiscal-policy-calculator.git
 cd fiscal-policy-calculator
 pip install -r requirements.txt
-streamlit run app.py
+streamlit run app.py          # Main policy calculator
+streamlit run classroom_app.py  # Classroom mode
 ```
 
 ### Use as a Python library
@@ -97,6 +106,13 @@ from fiscal_model import create_tcja_extension
 policy = create_tcja_extension(extend_all=True)
 result = FiscalPolicyScorer().score_policy(policy)
 print(f"TCJA extension: ${result.total_10_year_cost:,.0f}B")
+```
+
+```python
+# OLG model for long-run analysis
+from fiscal_model.long_run import OLGModel
+model = OLGModel()
+result = model.score_social_security_reform(payroll_tax_change=0.02)
 ```
 
 ---
@@ -130,13 +146,18 @@ Policy Definition → Static Scoring → Behavioral Offset (ETI) → Dynamic Fee
 | `ptc.py` | ACA premium tax credits |
 | `tax_expenditures.py` | SALT, mortgage, employer health |
 | `models/macro_adapter.py` | FRB/US-calibrated dynamic scoring |
+| `long_run/` | OLG model, Solow growth, generational accounting |
+| `state/` | State-level rate modeling (top 10 states) |
 | `constants.py` | All parameters with source citations |
+| `classroom/` | Assignment engine, feedback, PDF export |
+| `bill_tracker/` | congress.gov pipeline, LLM extraction, SQLite |
 
 ### Data sources
 
 - **IRS Statistics of Income** — Taxpayer counts and income by bracket (Tables 1.1, 3.3)
 - **FRED** — GDP and macroeconomic indicators (St. Louis Fed)
-- **CBO Baseline** — 10-year revenue, spending, and deficit projections (Feb 2024)
+- **CBO Baseline** — 10-year revenue, spending, and deficit projections (Feb 2026)
+- **congress.gov API** — Active bill text and status (Bill Tracker)
 
 ---
 
@@ -157,10 +178,10 @@ The full methodology is documented in the app's **Methodology** tab and in [`doc
 
 ### Known limitations
 
-1. **No microsimulation** — Uses bracket-level IRS data, not individual tax returns
-2. **Simplified corporate** — Pass-through income not fully modeled
-3. **Federal only** — No state or local tax interactions
-4. **Reduced-form dynamic scoring** — Calibrated multipliers, not structural GE model
+1. **Bracket-level microsimulation** — Uses IRS bracket aggregates; CPS-based individual simulation is a planned upgrade
+2. **Simplified corporate pass-through** — Pass-through income not fully modeled
+3. **State modeling approximate** — Top 10 states only; uses representative taxpayer, not microsim
+4. **Reduced-form dynamic scoring** — Calibrated FRB/US multipliers, not structural GE model
 5. **2-year data lag** — IRS SOI data from 2022
 
 ---
@@ -171,8 +192,8 @@ The full methodology is documented in the app's **Methodology** tab and in [`doc
 
 ```bash
 pip install -r requirements.txt pytest pytest-cov
-pytest tests/ -v                        # 382 tests
-pytest tests/ --cov=fiscal_model        # With coverage (~57%)
+pytest tests/ -v                        # 685 tests
+pytest tests/ --cov=fiscal_model        # With coverage (~72%)
 ```
 
 ### Lint
@@ -186,15 +207,21 @@ ruff check fiscal_model/ tests/
 
 ```
 fiscal-policy-calculator/
-├── app.py                    # Streamlit entry point
+├── app.py                    # Main Streamlit entry point
+├── classroom_app.py          # Classroom mode Streamlit app
+├── api.py                    # FastAPI endpoints
 ├── fiscal_model/             # Core scoring engine
 │   ├── ui/                   # Streamlit UI components
 │   │   └── tabs/             # Tab renderers (results, analysis, methodology)
 │   ├── models/               # Macro adapters (FRB/US)
+│   ├── long_run/             # OLG model, Solow growth
+│   ├── state/                # State-level rate modeling
 │   ├── data/                 # IRS SOI, FRED, capital gains loaders
 │   ├── validation/           # CBO score comparison framework
 │   └── constants.py          # All parameters with citations
-├── tests/                    # 382 tests
+├── classroom/                # Assignment engine, feedback, PDF export
+├── bill_tracker/             # congress.gov pipeline, LLM extraction
+├── tests/                    # 685 tests
 ├── docs/                     # Methodology, architecture docs
 ├── planning/                 # Roadmap, session notes
 └── pyproject.toml            # Project config, ruff, pytest
@@ -206,10 +233,10 @@ fiscal-policy-calculator/
 
 Contributions welcome. The most impactful areas:
 
-- **New policy modules** — Trade policy, immigration, climate/energy
-- **Microsimulation** — Individual-level tax calculation using CPS data
-- **Test coverage** — Currently ~57%, targeting 70%+
-- **Accessibility** — Screen reader support, mobile responsive
+- **Multi-model comparison** — CBO-style, TPC microsim, dynamic side-by-side
+- **CPS microsimulation** — Individual-level tax calculation using CPS ASEC data
+- **New policy modules** — Climate/energy, immigration, housing, wealth tax
+- **Data updates** — IRS SOI 2023, CBO auto-loader
 
 Please open an issue first to discuss significant changes.
 
@@ -220,9 +247,10 @@ Please open an issue first to discuss significant changes.
 1. Saez, Slemrod & Giertz (2012). "The Elasticity of Taxable Income." *JEL*, 50(1).
 2. Auerbach & Gorodnichenko (2012). "Measuring Output Responses to Fiscal Policy." *AEJ: EP*, 4(2).
 3. Christiano, Eichenbaum & Rebelo (2011). "When Is the Spending Multiplier Large?" *JPE*, 119(1).
-4. CBO (2024). "The Budget and Economic Outlook: 2024 to 2034."
+4. CBO (2026). "The Budget and Economic Outlook: 2026 to 2036."
 5. Treasury (2024). "General Explanations of the Administration's FY2025 Revenue Proposals."
 6. Yale Budget Lab. [Dynamic Scoring Using FRB/US](https://budgetlab.yale.edu/research/dynamic-scoring-using-frbus-macroeconomic-model).
+7. Auerbach & Kotlikoff (1987). *Dynamic Fiscal Policy*. Cambridge University Press.
 
 ---
 

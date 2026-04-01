@@ -4,16 +4,23 @@
 
 ---
 
-## Current state (March 2026)
+## Current state (April 2026)
 
 ### What's built
 
 - **39 pre-built policy proposals** across 11 categories (TCJA, corporate, international, credits, estate, payroll, AMT, ACA, tax expenditures, IRS enforcement, drug pricing)
 - **CBO-style three-stage scoring**: static + behavioral (ETI) + dynamic (FRB/US)
 - **Distributional analysis**: TPC/JCT-style tables by quintile, decile, and dollar brackets
+- **Tariff scoring**: 5 presets with consumer price impact by quintile
+- **Microsimulation engine**: MFJ brackets, SALT, AMT, EITC, NIIT
+- **FastAPI endpoints**: `/health`, `/presets`, `/score`, `/score/tariff`
+- **OLG model**: 30-period Auerbach-Kotlikoff-style for SS/Medicare reform and generational accounting
+- **Classroom Mode**: 7 assignments (intro → advanced), PDF export, 80 tests
+- **State-Level Modeling**: top 10 states, SALT interaction, combined rate curves
+- **Real-Time Bill Tracker**: congress.gov pipeline, LLM extraction, SQLite storage
 - **Interactive Streamlit app** with methodology documentation, sensitivity analysis, comparison tools, CSV export
 - **25+ policies validated** against CBO/JCT/Treasury within 15%
-- **382 tests**, ~57% coverage, ruff linting, GitHub Actions CI
+- **685 tests**, 72% coverage, ruff linting, GitHub Actions CI
 - **Real data integration**: IRS Statistics of Income, FRED, CBO Baseline
 
 ### Policy modules
@@ -36,55 +43,32 @@
 
 ## Next priorities
 
-### Trade and tariff policy
-- Tariff revenue scoring (ad valorem and specific duties)
-- Consumer price effects (pass-through rates by sector)
-- Retaliation scenarios and trade flow modeling
-- Industry-level employment impacts
+### Multi-model comparison platform
+Run the same policy through CBO-style, TPC-style (microsim), and FRB/US dynamic models side by side. Show divergences and explain why. This is the most impactful remaining architectural feature.
 
-### Microsimulation engine
-- Individual-level tax calculation using CPS ASEC microdata
-- Captures complex provision interactions (AMT + SALT + CTC phase-outs)
-- More accurate distributional analysis
-- Prototype exists (`microsim/`) — needs production hardening
-
-### Multi-model comparison
-- Run the same policy through CBO-style, TPC-style, and dynamic models side by side
-- Explain why models diverge
-- Model selector in the UI
+### CPS microsimulation
+Replace IRS bracket-level data with CPS ASEC microdata for distributional analysis. Would significantly improve accuracy for complex provision interactions (AMT + SALT + CTC phase-outs).
 
 ### Additional policy modules
-- **Climate/energy**: IRA clean energy credits, carbon pricing, EV incentives
-- **Immigration**: Workforce effects on payroll tax base, GDP growth
-- **Housing**: Mortgage deduction reform, first-time buyer credits, LIHTC
-- **Wealth tax**: Unrealized gains, mark-to-market proposals
+- **Climate/energy** — IRA clean energy credits, carbon pricing, EV incentives
+- **Immigration** — Workforce effects on payroll tax base, GDP growth
+- **Housing** — Mortgage deduction reform, first-time buyer credits, LIHTC
+- **Wealth tax** — Unrealized gains, mark-to-market proposals
 
 ---
 
 ## Technical roadmap
 
-### Test coverage to 70%+
-- Streamlit component tests using `AppTest`
-- Integration tests for full scoring pipeline
-- Validation suite as automated CI tests
-
 ### Production hardening
 - Docker containerization
-- Dependency pinning (`pip-compile`)
+- `requirements-lock.txt` with pinned versions (`pip-compile`)
 - Security scanning (bandit)
 - Structured logging throughout
 - Data freshness monitoring
 
-### API
-- FastAPI endpoint for programmatic scoring
-- JSON input/output for policy definitions
-- Batch scoring for policy packages
-
-### Long-run modeling
-- Overlapping Generations (OLG) framework (Penn Wharton style)
-- 30+ year projections for Social Security and Medicare
-- Capital stock evolution and crowding out
-- Generational accounting
+### Data updates
+- IRS SOI 2023 data (filed 2024, published ~2025)
+- CBO baseline auto-loader from `cbo.gov`
 
 ---
 
@@ -120,7 +104,7 @@
 
 See the [README](../README.md) for setup instructions. The most impactful contributions:
 
-1. **New policy modules** — Trade, climate, immigration, housing
-2. **Microsimulation** — CPS-based individual tax calculation
-3. **Test coverage** — Currently ~57%, target 70%+
-4. **Data updates** — IRS SOI 2023 when available
+1. **Multi-model comparison** — CBO-style, TPC microsim, dynamic side-by-side
+2. **New policy modules** — Climate, immigration, housing, wealth tax
+3. **CPS microsimulation** — Individual-level tax calculation
+4. **Data updates** — IRS SOI 2023, CBO auto-loader
