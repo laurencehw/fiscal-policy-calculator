@@ -21,3 +21,8 @@ pdoc>=14.0.0,<15.0  # API documentation generator
 # REST API
 fastapi>=0.109.0,<1.0
 uvicorn>=0.27.0,<1.0
+
+# Bill Tracker
+anthropic>=0.40.0,<1.0    # LLM-based provision extraction (Claude Haiku)
+requests>=2.31.0,<3.0     # congress.gov API + CBO scraping
+beautifulsoup4>=4.12.0,<5.0  # CBO HTML parsing (optional fallback)

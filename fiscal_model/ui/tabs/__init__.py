@@ -12,6 +12,7 @@ from .methodology import render_methodology_tab
 from .package_builder import render_policy_package_tab
 from .policy_comparison import render_policy_comparison_tab
 from .results_summary import render_results_summary_tab
+from .bill_tracker import render_bill_tracker_tab
 from .state_analysis import render_state_analysis_tab
 
 __all__ = [
@@ -25,5 +26,6 @@ __all__ = [
     "render_policy_comparison_tab",
     "render_policy_package_tab",
     "render_results_summary_tab",
+    "render_bill_tracker_tab",
     "render_state_analysis_tab",
 ]

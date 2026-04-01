@@ -136,6 +136,31 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         f"Companion to the [Public Economics textbook]({TEXTBOOK_HOME})."
     )
 
+    # Top-level navigation: Calculator | Bill Tracker
+    top_tabs = st_module.tabs(["📊 Calculator", "📋 Bill Tracker"])
+
+    with top_tabs[0]:
+        _render_calculator(
+            st_module=st_module,
+            deps=deps,
+            model_available=model_available,
+            app_root=app_root,
+        )
+
+    with top_tabs[1]:
+        from .tabs.bill_tracker import render_bill_tracker_tab
+        render_bill_tracker_tab(st_module=st_module)
+
+    render_footer(st_module=st_module)
+
+
+def _render_calculator(
+    st_module: Any,
+    deps: Any,
+    model_available: bool,
+    app_root: Path,
+) -> None:
+    """Render the calculator portion of the app (previously the entire app)."""
     # Sidebar
     with st_module.sidebar:
         st_module.header("Policy Configuration")
@@ -151,7 +176,6 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
     calc_context["run_id"] = compute_run_id(calc_context=calc_context, settings=settings)
     st_module.session_state.current_run_id = calc_context["run_id"]
 
-    # Main area
     render_quick_start(st_module=st_module)
     state_mode = settings.get("state_mode", False)
     selected_state = settings.get("selected_state", "CA")
@@ -182,5 +206,3 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         state_mode=state_mode,
         selected_state=selected_state,
     )
-
-    render_footer(st_module=st_module)

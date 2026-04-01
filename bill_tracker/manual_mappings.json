@@ -1,0 +1,48 @@
+{
+  "_comment": "Manual provision overrides for bills where LLM auto-extraction needs correction.",
+  "_format": "bill_id → {description, policies: [...], override_reason, mapped_by, mapped_date}",
+  "hr-7024-118": {
+    "description": "Tax Relief for American Families and Workers Act of 2024",
+    "policies": [
+      {
+        "policy_type": "credits",
+        "parameters": {
+          "credit_type": "ctc",
+          "credit_amount_billions": 33.5,
+          "expansion_years": 3
+        },
+        "confidence": "high",
+        "provision_text": "Expands Child Tax Credit and restores bonus depreciation and R&D expensing"
+      }
+    ],
+    "override_reason": "Confirmed against CBO score of -$33.5B; CTC expansion + R&D/depreciation provisions",
+    "mapped_by": "Laurence Wilse-Samson",
+    "mapped_date": "2026-04-01"
+  },
+  "hr-1-119": {
+    "description": "One Big Beautiful Bill (Reconciliation 2025) — placeholder until CBO scores",
+    "policies": [
+      {
+        "policy_type": "tcja_extension",
+        "parameters": {
+          "extend_all": true,
+          "keep_salt_cap": true,
+          "extension_years": 10
+        },
+        "confidence": "high",
+        "provision_text": "Extends all TCJA provisions permanently"
+      },
+      {
+        "policy_type": "corporate",
+        "parameters": {
+          "rate_change": -0.01
+        },
+        "confidence": "medium",
+        "provision_text": "Reduces corporate rate from 21% to 20%"
+      }
+    ],
+    "override_reason": "Auto-extraction missed corporate rate cut; TCJA extension confirmed via bill text",
+    "mapped_by": "Laurence Wilse-Samson",
+    "mapped_date": "2026-04-01"
+  }
+}
