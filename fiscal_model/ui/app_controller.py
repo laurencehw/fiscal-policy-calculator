@@ -30,7 +30,6 @@ def render_data_status(st_module: Any, deps: Any) -> None:
         # Get FRED data status if available
         fred_status = "Unknown"
         fred_source = None
-        last_updated = None
         cache_age_days = None
 
         # Try to access FRED data module if available
@@ -39,7 +38,7 @@ def render_data_status(st_module: Any, deps: Any) -> None:
             fred_instance = FREDData()
             data_status = fred_instance.data_status
             fred_source = data_status.get("source", "unknown")
-            last_updated = data_status.get("last_updated")
+            data_status.get("last_updated")
             cache_age_days = data_status.get("cache_age_days")
 
             if fred_source == "live":
@@ -55,8 +54,6 @@ def render_data_status(st_module: Any, deps: Any) -> None:
 
         # Get baseline vintage
         try:
-            from fiscal_model.baseline import BaselineVintage
-            baseline_vintage = BaselineVintage.CBO_FEB_2026.value
             baseline_display = "CBO Feb 2026"
             vintage_color = "green"
         except Exception:

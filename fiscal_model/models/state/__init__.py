@@ -24,14 +24,14 @@ from .salt_interaction import (
 from .validation import TAXSIMClient, ValidationReport
 
 __all__ = [
-    "FederalStateCalculator",
-    "StateTaxDatabase",
-    "StateTaxProfile",
     "STATE_NAMES",
     "SUPPORTED_STATES",
+    "FederalStateCalculator",
     "SALTInteractionResult",
-    "compute_salt_interaction",
-    "compute_salt_across_states",
+    "StateTaxDatabase",
+    "StateTaxProfile",
     "TAXSIMClient",
     "ValidationReport",
+    "compute_salt_across_states",
+    "compute_salt_interaction",
 ]

@@ -55,7 +55,7 @@ __all__ = [
     "OLGModel",
     "OLGParameters",
     "OLGPolicyResult",
-    "SimpleOLGModel",
     "SimpleMultiplierAdapter",
+    "SimpleOLGModel",
     "policy_to_scenario",
 ]

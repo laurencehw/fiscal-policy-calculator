@@ -27,10 +27,6 @@ def render_state_analysis_tab(
     """
     from fiscal_model.models.state import (
         STATE_NAMES,
-        FederalStateCalculator,
-        StateTaxDatabase,
-        compute_salt_across_states,
-        compute_salt_interaction,
     )
 
     state_name = STATE_NAMES.get(state, state)
@@ -230,7 +226,7 @@ def _render_policy_impact(
         )
     with col3:
         st_module.metric(
-            f"Top State Rate",
+            "Top State Rate",
             f"{profile.top_rate * 100:.1f}%",
             help="Existing state marginal rate; combined burden context",
         )
@@ -250,6 +246,8 @@ def _render_salt_section(
     db: Any,
 ) -> None:
     """SALT interaction analysis subsection."""
+    from fiscal_model.models.state import compute_salt_across_states, compute_salt_interaction
+
     st_module.markdown("#### SALT Deduction Interaction")
 
     col1, col2 = st_module.columns(2)
@@ -283,7 +281,6 @@ def _render_salt_section(
     # Cross-state SALT comparison
     with st_module.expander("SALT impact across all 10 states", expanded=False):
         try:
-            import pandas as pd
             salt_df = compute_salt_across_states(
                 baseline_cap=10_000,
                 reform_cap=None,
@@ -310,7 +307,8 @@ def _render_salt_section(
 def _render_state_comparison_table(st_module: Any, db: Any) -> None:
     """Side-by-side comparison of key tax parameters across all 10 states."""
     import pandas as pd
-    from fiscal_model.models.state.database import SUPPORTED_STATES, STATE_NAMES
+
+    from fiscal_model.models.state.database import STATE_NAMES, SUPPORTED_STATES
 
     st_module.markdown("#### Top 10 States: Tax Parameter Comparison")
 

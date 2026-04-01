@@ -16,9 +16,6 @@ constant returns to scale.
 
 from __future__ import annotations
 
-import numpy as np
-
-
 # ---------------------------------------------------------------------------
 # Factor prices
 # ---------------------------------------------------------------------------

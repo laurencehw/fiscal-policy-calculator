@@ -70,7 +70,7 @@ def _interpolate_assumptions(vintage: BaselineVintage) -> dict:
     elif vintage == BaselineVintage.CBO_JAN_2025:
         # Interpolate between Feb 2024 and Feb 2026 (0.5 weighting)
         assumptions = {}
-        for key in _CBO_FEB_2024_ASSUMPTIONS.keys():
+        for key in _CBO_FEB_2024_ASSUMPTIONS:
             assumptions[key] = (
                 _CBO_FEB_2024_ASSUMPTIONS[key] * 0.5 +
                 _CBO_FEB_2026_ASSUMPTIONS[key] * 0.5

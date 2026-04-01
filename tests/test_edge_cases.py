@@ -5,10 +5,11 @@ Tests boundary conditions, extreme values, and invariant properties
 to ensure robustness and correctness across the full input space.
 """
 
-import pytest
 import numpy as np
+import pytest
+
+from fiscal_model.policies import PolicyType, SpendingPolicy, TaxPolicy
 from fiscal_model.scoring import FiscalPolicyScorer
-from fiscal_model.policies import TaxPolicy, SpendingPolicy, TransferPolicy, PolicyType
 
 
 class TestZeroInputs:

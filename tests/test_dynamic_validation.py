@@ -11,11 +11,10 @@ Key references:
 - Yale Budget Lab: FRB/US-calibrated dynamic scoring
 """
 
-import pytest
 import numpy as np
+import pytest
+
 from fiscal_model.models.macro_adapter import FRBUSAdapterLite, MacroScenario
-from fiscal_model.scoring import FiscalPolicyScorer
-from fiscal_model.policies import TaxPolicy, SpendingPolicy, PolicyType
 
 
 class TestTCJADynamicValidation:
@@ -108,8 +107,7 @@ class TestTCJADynamicValidation:
         # Multiplier = GDP effect / fiscal impulse
         # Tax multiplier typically -0.7 to -0.9 (negative because higher taxes reduce output)
         # So tax cuts have positive multiplier
-        fiscal_impulse = np.sum(np.array([-100.0] * 10))
-        gdp_billions = result.cumulative_gdp_effect  # Approximate GDP effect in $B
+        np.sum(np.array([-100.0] * 10))
 
         # Multiplier should be positive for tax cuts
         # A $100B/year tax cut should increase GDP growth
@@ -134,7 +132,6 @@ class TestSpendingDynamicValidation:
 
         # Spending multiplier: effect on GDP from $1 spending change
         # CBO estimates 1.0-1.5 for discretionary, 1.5-2.0 during recession
-        fiscal_impulse = 100.0 * 10  # Total $1T
         # GDP effect should reflect multiplier in reasonable range
         assert result.cumulative_gdp_effect > 0, "Spending should increase GDP"
 
@@ -219,7 +216,6 @@ class TestMacroValidationAgainstCBO:
         # CBO FRB/US multiplier: ~1.4 for discretionary
         # So $1T total spending should increase GDP by ~$1.4T equivalent
         # This is spread over time and diminishing
-        total_spending = 100.0 * 10  # $1T
 
         # Just verify we get a positive, nonzero effect
         assert result.cumulative_gdp_effect > 0, (

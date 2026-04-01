@@ -23,8 +23,6 @@ from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
-import pandas as pd
-
 
 TAXSIM_URL = "https://taxsim.nber.org/taxsim35/"
 
@@ -181,9 +179,10 @@ class TAXSIMClient:
             ValidationReport or None if TAXSIM is unavailable.
         """
         from fiscal_model.microsim.data_generator import SyntheticPopulation
+
         from .calculator import FederalStateCalculator
 
-        rng = np.random.default_rng(seed)
+        np.random.default_rng(seed)
         pop = SyntheticPopulation(seed=seed).generate(n=n_sample)
 
         calc = FederalStateCalculator(state, year=2025)

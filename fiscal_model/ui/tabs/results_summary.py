@@ -450,7 +450,7 @@ Year-by-Year Breakdown:
         for year, deficit_impact in zip(result.years, result.final_deficit_effect):
             text_summary += f"  {year}: ${deficit_impact:+,.1f}B\n"
 
-        text_summary += f"\nAssumptions:\n"
+        text_summary += "\nAssumptions:\n"
         if hasattr(policy, "taxable_income_elasticity"):
             text_summary += f"  Elasticity of Taxable Income (ETI): {policy.taxable_income_elasticity}\n"
         if hasattr(policy, "rate_change"):
@@ -459,7 +459,7 @@ Year-by-Year Breakdown:
             text_summary += f"  Income Threshold: ${policy.affected_income_threshold:,.0f}\n"
 
         text_summary += f"\nData Sources:\n  - IRS Statistics of Income (2022)\n  - FRED Economic Data\n  - CBO Baseline (FY{baseline_year})\n"
-        text_summary += f"\nMethodology: Static + behavioral scoring with FRB/US-calibrated dynamic effects\n"
+        text_summary += "\nMethodology: Static + behavioral scoring with FRB/US-calibrated dynamic effects\n"
 
         with col2:
             st_module.download_button(

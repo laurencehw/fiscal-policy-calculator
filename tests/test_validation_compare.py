@@ -11,22 +11,18 @@ Tests ensure validation functions work correctly with various policy inputs.
 """
 
 import pandas as pd
-import pytest
 
 from fiscal_model.amt import CORPORATE_AMT
 from fiscal_model.constants import (
-    AVG_EFFECTIVE_INCOME_TAX_RATE,
     BASELINE_GROWTH,
     BUDGET_WINDOW_YEARS,
     CG_LONG_RUN_ELASTICITY,
     CG_SHORT_RUN_ELASTICITY,
     CG_TRANSITION_YEARS,
-    CROWDING_OUT_BASE,
     DEFAULT_CAPITAL_ELASTICITY,
     DEFAULT_CORPORATE_ELASTICITY,
     DEFAULT_ETI,
     DEFAULT_LABOR_SUPPLY_ELASTICITY,
-    EFFECTIVE_RATE_MULTIPLIER,
     FALLBACK_BASELINE,
     GDP_RATIOS,
     GROWTH_RATES,
@@ -38,18 +34,19 @@ from fiscal_model.constants import (
     TRANSFER_MULTIPLIER_BASE,
 )
 from fiscal_model.data.validation import DataValidator, ValidationResult
-from fiscal_model.policies import TaxPolicy, PolicyType
+from fiscal_model.policies import TaxPolicy
 from fiscal_model.validation.compare import (
     ValidationResult as ComparisonValidationResult,
-    create_policy_from_score,
+)
+from fiscal_model.validation.compare import (
     _rate_accuracy,
+    create_policy_from_score,
 )
 from fiscal_model.validation.distributional_validation import (
     CORPORATE_INCIDENCE,
-    DistributionalBenchmark,
     TPC_TCJA_2018,
+    DistributionalBenchmark,
 )
-
 
 # =============================================================================
 # CONSTANTS TESTS
@@ -83,14 +80,14 @@ class TestConstants:
         """Verify GROWTH_RATES dict has valid structure."""
         assert isinstance(GROWTH_RATES, dict)
         assert "default" in GROWTH_RATES
-        for key, value in GROWTH_RATES.items():
+        for _key, value in GROWTH_RATES.items():
             assert isinstance(value, (int, float))
             assert 0 <= value <= 0.20  # Growth rates should be reasonable
 
     def test_baseline_growth_dict(self):
         """Verify BASELINE_GROWTH dict has valid structure."""
         assert isinstance(BASELINE_GROWTH, dict)
-        for key, value in BASELINE_GROWTH.items():
+        for _key, value in BASELINE_GROWTH.items():
             assert isinstance(value, (int, float))
             assert 0 <= value <= 0.10  # Growth rates should be reasonable
 

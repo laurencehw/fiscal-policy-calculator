@@ -12,7 +12,6 @@ Covers:
 Tests exercise factory functions, policy creation, and revenue effect calculations.
 """
 
-import pytest
 
 from fiscal_model.amt import (
     AMTPolicy,
@@ -41,13 +40,6 @@ from fiscal_model.estate import (
     create_tcja_estate_extension,
     create_warren_estate_proposal,
 )
-from fiscal_model.pharma import (
-    DrugPricingPolicy,
-    create_comprehensive_pharma_reform,
-    create_expand_drug_negotiation,
-    create_insulin_cap_all,
-    create_reference_pricing,
-)
 from fiscal_model.payroll import (
     PayrollTaxPolicy,
     create_biden_payroll_proposal,
@@ -58,11 +50,18 @@ from fiscal_model.payroll import (
     create_ss_eliminate_cap,
     create_ss_rate_increase,
 )
+from fiscal_model.pharma import (
+    DrugPricingPolicy,
+    create_comprehensive_pharma_reform,
+    create_expand_drug_negotiation,
+    create_insulin_cap_all,
+    create_reference_pricing,
+)
 from fiscal_model.policies import PolicyType
 from fiscal_model.ptc import (
     PremiumTaxCreditPolicy,
-    create_extend_enhanced_ptc,
     create_expand_ptc_eligibility,
+    create_extend_enhanced_ptc,
     create_let_enhanced_expire,
     create_lower_premium_cap,
     create_repeal_ptc,

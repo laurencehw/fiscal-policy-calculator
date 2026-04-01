@@ -49,7 +49,6 @@ import pandas as pd
 
 from .household import compute_cohort_tax_profile
 
-
 # ---------------------------------------------------------------------------
 # Result dataclass
 # ---------------------------------------------------------------------------
@@ -160,7 +159,6 @@ class GenerationalAccounting:
         baseline_ss, reform_ss : SteadyState
         """
         p = self.params
-        N = p.n_cohorts
 
         burden_baseline = self._compute_burden_profile(
             ss=baseline_ss,
@@ -193,7 +191,7 @@ class GenerationalAccounting:
         """
         p = self.params
         N = p.n_cohorts
-        gross_return = 1.0 + r * (1.0 - ss.tau_k)
+        1.0 + r * (1.0 - ss.tau_k)
 
         # Get the full lifetime tax profile for a cohort born today
         full_tax_profile = compute_cohort_tax_profile(

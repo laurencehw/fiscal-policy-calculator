@@ -19,7 +19,6 @@ from typing import Any
 
 import numpy as np
 
-
 # ---------------------------------------------------------------------------
 # Confidence disclaimer
 # ---------------------------------------------------------------------------
@@ -359,7 +358,6 @@ def _render_gen_accounts(st_module: Any, gen_accounts) -> None:
 
     # Table
     with st_module.expander("📊 Burden table by age group", expanded=False):
-        import pandas as pd
         display_df = df[["age", "baseline_burden", "reform_burden", "burden_change"]].copy()
         display_df.columns = ["Age", "Baseline burden", "Reform burden", "Change"]
         display_df = display_df[display_df["age"].isin(range(21, 76, 5))]

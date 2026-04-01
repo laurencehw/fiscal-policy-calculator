@@ -16,8 +16,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import pytest
 import numpy as np
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -37,7 +37,6 @@ from classroom.engine import (
 )
 from classroom.feedback import FeedbackEngine
 from classroom.pdf_export import generate_submission_html
-
 
 # =============================================================================
 # FIXTURES
@@ -370,13 +369,12 @@ class TestRelativeValidator:
 
     def test_param_resolution_multiple_placeholders(self):
         v = RelativeValidator()
-        template = {"combined": "{a}_{b}"}
         # Mixed: one placeholder remaining after resolution of 'a'
         resolved = v._resolve_params({"x": "{a}"}, {"a": 1.5})
         assert resolved["x"] == 1.5
 
     def test_correct_answer_within_tolerance(self):
-        v = RelativeValidator()
+        RelativeValidator()
         spec = ValidationSpec(
             method=ValidationMethod.RELATIVE_TO_MODEL,
             policy_type="income_tax",
@@ -970,11 +968,11 @@ class TestExerciseProgression:
         exercises = assignment.exercises_for_level(ComplexityLevel.UNDERGRADUATE)
         result = ValidationResult(correct=True, student_answer=0, model_answer=None, tolerance=0, message="")
 
-        done, total = tracker.completion_fraction(exercises)
+        done, _total = tracker.completion_fraction(exercises)
         assert done == 0
 
         tracker.mark_complete(exercises[0].id, result)
-        done, total = tracker.completion_fraction(exercises)
+        done, _total = tracker.completion_fraction(exercises)
         assert done == 1
 
     def test_reset_clears_progress_for_new_assignment(self, loader, tracker):
