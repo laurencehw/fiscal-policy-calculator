@@ -307,7 +307,7 @@ def render_footer(st_module: Any) -> None:
     st_module.caption(
         "**Fiscal Policy Impact Calculator** v1.0 · "
         "25 policies validated against CBO/JCT · "
-        "383 unit tests · "
+        "685 unit tests · "
         "Data: IRS SOI 2022, FRED, CBO Feb 2026 · "
         "[Methodology](https://github.com/laurencehw/fiscal-policy-calculator"
         "/blob/main/docs/METHODOLOGY.md) · "
