@@ -26,7 +26,7 @@ def check_health() -> dict[str, Any]:
     try:
         from fiscal_model.baseline import CBOBaseline
         b = CBOBaseline(use_real_data=False)
-        proj = b.generate()
+        _proj = b.generate()
         results["baseline"] = {
             "status": "ok",
             "vintage": b.baseline_vintage_date if hasattr(b, 'baseline_vintage_date') else "unknown",
@@ -59,8 +59,8 @@ def check_health() -> dict[str, Any]:
 
     # Check scorer
     try:
+        from fiscal_model.policies import PolicyType, TaxPolicy
         from fiscal_model.scoring import FiscalPolicyScorer
-        from fiscal_model.policies import TaxPolicy, PolicyType
         scorer = FiscalPolicyScorer(use_real_data=False)
         test_policy = TaxPolicy(
             name="health_check",

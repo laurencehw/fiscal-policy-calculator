@@ -16,6 +16,7 @@ Key features:
 from dataclasses import dataclass, field
 from enum import Enum
 
+import numpy as np
 import pandas as pd
 
 from .data.irs_soi import IRSSOIData, TaxBracketData
@@ -552,8 +553,9 @@ class DistributionalEngine:
         Returns:
             DistributionalAnalysis with results for each income group
         """
-        from fiscal_model.microsim.engine import MicroTaxCalculator
         from pathlib import Path
+
+        from fiscal_model.microsim.engine import MicroTaxCalculator
 
         if year is None:
             year = getattr(policy, 'start_year', 2025)
