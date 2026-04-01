@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from .controller_utils import run_with_spinner_feedback
+from .controller_utils import run_with_spinner_feedback, render_input_guardrails
 
 
 def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
@@ -37,6 +37,10 @@ def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
         spending_inputs = deps.render_spending_policy_inputs(st_module)
 
     st_module.markdown("---")
+
+    # Show input guardrails for tax policies
+    if not is_spending and tax_inputs:
+        render_input_guardrails(st_module=st_module, tax_inputs=tax_inputs)
 
     calculate = st_module.button(
         "Calculate Impact",

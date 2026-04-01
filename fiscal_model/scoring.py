@@ -316,6 +316,15 @@ class FiscalPolicyScorer:
             low_estimate=low,
             high_estimate=high,
         )
+
+        # Edge case: log warning if revenue effect is exactly zero
+        if np.allclose(result.total_10_year_cost, 0.0, atol=0.1):
+            logger.warning(
+                "Policy '%s' scored with near-zero 10-year cost (%.1fB). "
+                "Check that income threshold includes affected taxpayers.",
+                policy.name, result.total_10_year_cost
+            )
+
         logger.info("Policy '%s': 10yr cost $%.1fB", policy.name, result.total_10_year_cost)
         return result
 

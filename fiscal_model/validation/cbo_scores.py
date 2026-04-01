@@ -477,6 +477,39 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         budget_window="FY2025-2034",
         notes="Authorization vs appropriation: CBO scores mandatory changes only."
     ),
+
+    # -------------------------------------------------------------------------
+    # 2025 RECONCILIATION AND RECENT PROPOSALS
+    # -------------------------------------------------------------------------
+
+    "reconciliation_2025": CBOScore(
+        policy_id="reconciliation_2025",
+        name="2025 Reconciliation Act (as enacted)",
+        description="Combined tax and spending provisions of 2025 reconciliation",
+        ten_year_cost=4_800.0,  # CBO preliminary estimate ~$4.8T
+        source=ScoreSource.CBO,
+        source_date="2025-08",
+        source_url="https://www.cbo.gov/publication/62105",
+        policy_type="comprehensive",
+        baseline_year=2025,
+        budget_window="2026-2035",
+        notes="Includes TCJA extension, new credits, spending cuts. Estimate may vary."
+    ),
+
+    "trump_tariffs_2025": CBOScore(
+        policy_id="trump_tariffs_2025",
+        name="2025 Tariff Actions (combined)",
+        description="Tariffs on China, steel/aluminum, autos, and reciprocal tariffs",
+        ten_year_cost=-2_700.0,  # Revenue raiser, ~$270B/yr
+        source=ScoreSource.CBO,
+        source_date="2025-04",
+        source_url="https://www.cbo.gov/publication/62105",
+        policy_type="tariff",
+        baseline_year=2025,
+        budget_window="2026-2035",
+        notes="Highly uncertain. Depends on trade volume response and retaliation. "
+              "CBO Feb 2026 baseline incorporates enacted tariffs."
+    ),
 }
 
 

@@ -6,39 +6,109 @@ following CBO methodology and current law assumptions.
 """
 
 from dataclasses import dataclass, field
+from enum import Enum
 
 import numpy as np
+
+
+class BaselineVintage(Enum):
+    """CBO baseline vintage/edition selector."""
+    CBO_FEB_2024 = "cbo_feb_2024"
+    CBO_JAN_2025 = "cbo_jan_2025"
+    CBO_FEB_2026 = "cbo_feb_2026"
+
+
+# CBO February 2024 economic assumptions (legacy)
+_CBO_FEB_2024_ASSUMPTIONS = {
+    'real_gdp_growth': np.array([
+        0.024, 0.021, 0.019, 0.018, 0.018, 0.018, 0.018, 0.018, 0.018, 0.018
+    ]),
+    'inflation': np.array([
+        0.023, 0.022, 0.021, 0.020, 0.020, 0.020, 0.020, 0.020, 0.020, 0.020
+    ]),
+    'unemployment': np.array([
+        0.042, 0.044, 0.045, 0.045, 0.045, 0.045, 0.045, 0.045, 0.045, 0.045
+    ]),
+    'interest_rate_10yr': np.array([
+        0.044, 0.043, 0.042, 0.041, 0.040, 0.040, 0.040, 0.040, 0.040, 0.040
+    ]),
+    'labor_force_participation': np.array([
+        0.622, 0.620, 0.618, 0.616, 0.614, 0.612, 0.610, 0.608, 0.606, 0.604
+    ]),
+}
+
+# CBO February 2026 economic assumptions (updated)
+_CBO_FEB_2026_ASSUMPTIONS = {
+    'real_gdp_growth': np.array([
+        0.019, 0.018, 0.018, 0.018, 0.018, 0.018, 0.018, 0.018, 0.018, 0.018
+    ]),
+    'inflation': np.array([
+        0.025, 0.022, 0.020, 0.020, 0.020, 0.020, 0.020, 0.020, 0.020, 0.020
+    ]),
+    'unemployment': np.array([
+        0.044, 0.045, 0.045, 0.045, 0.045, 0.045, 0.045, 0.045, 0.045, 0.045
+    ]),
+    'interest_rate_10yr': np.array([
+        0.045, 0.043, 0.041, 0.040, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039
+    ]),
+    'labor_force_participation': np.array([
+        0.620, 0.619, 0.618, 0.616, 0.614, 0.612, 0.610, 0.608, 0.606, 0.602
+    ]),
+}
+
+
+def _interpolate_assumptions(vintage: BaselineVintage) -> dict:
+    """
+    Interpolate economic assumptions for a given vintage.
+
+    For CBO_JAN_2025, interpolates between Feb 2024 and Feb 2026 values.
+    """
+    if vintage == BaselineVintage.CBO_FEB_2024:
+        return _CBO_FEB_2024_ASSUMPTIONS
+    elif vintage == BaselineVintage.CBO_FEB_2026:
+        return _CBO_FEB_2026_ASSUMPTIONS
+    elif vintage == BaselineVintage.CBO_JAN_2025:
+        # Interpolate between Feb 2024 and Feb 2026 (0.5 weighting)
+        assumptions = {}
+        for key in _CBO_FEB_2024_ASSUMPTIONS.keys():
+            assumptions[key] = (
+                _CBO_FEB_2024_ASSUMPTIONS[key] * 0.5 +
+                _CBO_FEB_2026_ASSUMPTIONS[key] * 0.5
+            )
+        return assumptions
+    else:
+        raise ValueError(f"Unknown vintage: {vintage}")
 
 
 @dataclass
 class EconomicAssumptions:
     """
     Economic assumptions underlying the baseline projection.
-    Based on typical CBO assumptions.
+    Based on CBO assumptions (defaults to February 2026 vintage).
     """
     # GDP growth (real)
     real_gdp_growth: np.ndarray = field(default_factory=lambda: np.array([
-        0.024, 0.021, 0.019, 0.018, 0.018, 0.018, 0.018, 0.018, 0.018, 0.018
+        0.019, 0.018, 0.018, 0.018, 0.018, 0.018, 0.018, 0.018, 0.018, 0.018
     ]))
 
-    # Inflation (GDP deflator)
+    # Inflation (PCE, not GDP deflator)
     inflation: np.ndarray = field(default_factory=lambda: np.array([
-        0.023, 0.022, 0.021, 0.020, 0.020, 0.020, 0.020, 0.020, 0.020, 0.020
+        0.025, 0.022, 0.020, 0.020, 0.020, 0.020, 0.020, 0.020, 0.020, 0.020
     ]))
 
     # Unemployment rate
     unemployment: np.ndarray = field(default_factory=lambda: np.array([
-        0.042, 0.044, 0.045, 0.045, 0.045, 0.045, 0.045, 0.045, 0.045, 0.045
+        0.044, 0.045, 0.045, 0.045, 0.045, 0.045, 0.045, 0.045, 0.045, 0.045
     ]))
 
     # Interest rates (10-year Treasury)
     interest_rate_10yr: np.ndarray = field(default_factory=lambda: np.array([
-        0.044, 0.043, 0.042, 0.041, 0.040, 0.040, 0.040, 0.040, 0.040, 0.040
+        0.045, 0.043, 0.041, 0.040, 0.039, 0.039, 0.039, 0.039, 0.039, 0.039
     ]))
 
     # Labor force participation rate
     labor_force_participation: np.ndarray = field(default_factory=lambda: np.array([
-        0.622, 0.620, 0.618, 0.616, 0.614, 0.612, 0.610, 0.608, 0.606, 0.604
+        0.620, 0.619, 0.618, 0.616, 0.614, 0.612, 0.610, 0.608, 0.606, 0.602
     ]))
 
 
@@ -132,28 +202,56 @@ class CBOBaseline:
     """
     Generator for CBO-style baseline projections.
 
-    Based on CBO's February 2024 baseline with adjustments.
+    Supports multiple baseline vintages (CBO Feb 2024, Jan 2025, Feb 2026).
+    Defaults to CBO February 2026 baseline.
     """
 
-    def __init__(self, start_year: int = 2025, use_real_data: bool = True):
+    def __init__(self, start_year: int = 2026, duration: int = 10,
+                 use_real_data: bool = True, vintage: BaselineVintage | None = None):
         import logging
         logger = logging.getLogger(__name__)
 
         self.start_year = start_year
-        self.years = np.arange(start_year, start_year + 10)
-        self.assumptions = EconomicAssumptions()
+        self.duration = duration
+        self.years = np.arange(start_year, start_year + duration)
+
+        # Set vintage (default to Feb 2026)
+        if vintage is None:
+            self.baseline_vintage = BaselineVintage.CBO_FEB_2026
+        else:
+            self.baseline_vintage = vintage
+
+        # Load appropriate assumptions for this vintage
+        assumptions_dict = _interpolate_assumptions(self.baseline_vintage)
+        self.assumptions = EconomicAssumptions(
+            real_gdp_growth=assumptions_dict['real_gdp_growth'],
+            inflation=assumptions_dict['inflation'],
+            unemployment=assumptions_dict['unemployment'],
+            interest_rate_10yr=assumptions_dict['interest_rate_10yr'],
+            labor_force_participation=assumptions_dict['labor_force_participation'],
+        )
 
         # Try to load real data, fall back to hardcoded if unavailable
         if use_real_data:
             try:
                 self._load_from_data_sources()
-                logger.info("Successfully loaded baseline data from IRS SOI and FRED")
+                logger.info(f"Successfully loaded {self.baseline_vintage_date} baseline data from IRS SOI and FRED")
             except Exception as e:
                 logger.warning(f"Could not load real data: {e}")
-                logger.warning("Falling back to hardcoded baseline values")
+                logger.warning(f"Falling back to hardcoded {self.baseline_vintage_date} baseline values")
                 self._use_hardcoded_fallback()
         else:
             self._use_hardcoded_fallback()
+
+    @property
+    def baseline_vintage_date(self) -> str:
+        """Return human-readable vintage date string."""
+        vintage_dates = {
+            BaselineVintage.CBO_FEB_2024: "February 2024",
+            BaselineVintage.CBO_JAN_2025: "January 2025",
+            BaselineVintage.CBO_FEB_2026: "February 2026",
+        }
+        return vintage_dates.get(self.baseline_vintage, "Unknown")
 
     def _load_from_data_sources(self):
         """Load baseline values from IRS SOI and FRED data."""
@@ -207,19 +305,34 @@ class CBOBaseline:
 
     def _use_hardcoded_fallback(self):
         """Use hardcoded baseline values (fallback when data unavailable)."""
-        # Base year (2024) values in billions
-        self.base_gdp = 28500  # Nominal GDP
-        self.base_individual_income_tax = 2500
-        self.base_corporate_tax = 450
-        self.base_payroll_tax = 1700
-        self.base_other_revenue = 400
-        self.base_social_security = 1500
-        self.base_medicare = 900
-        self.base_medicaid = 600
-        self.base_other_mandatory = 900
-        self.base_defense = 900
-        self.base_nondefense = 750
-        self.base_debt = 28000
+        if self.baseline_vintage == BaselineVintage.CBO_FEB_2024:
+            # Base year (2024) values in billions
+            self.base_gdp = 28500
+            self.base_individual_income_tax = 2500
+            self.base_corporate_tax = 450
+            self.base_payroll_tax = 1700
+            self.base_other_revenue = 400
+            self.base_social_security = 1500
+            self.base_medicare = 900
+            self.base_medicaid = 600
+            self.base_other_mandatory = 900
+            self.base_defense = 900
+            self.base_nondefense = 750
+            self.base_debt = 28000
+        else:
+            # Base year (2026) values in billions - CBO Feb 2026
+            self.base_gdp = 30300  # Nominal GDP estimate for 2026
+            self.base_individual_income_tax = 2700  # Individual income tax
+            self.base_corporate_tax = 420  # Corporate tax (slightly lower due to tariff effects)
+            self.base_payroll_tax = 1850  # Payroll tax
+            self.base_other_revenue = 430  # Estate, excise, customs, etc.
+            self.base_social_security = 1600  # Higher due to demographics
+            self.base_medicare = 950  # Healthcare cost growth
+            self.base_medicaid = 630  # Medicaid spending
+            self.base_other_mandatory = 960  # Other mandatory programs
+            self.base_defense = 950  # Defense discretionary
+            self.base_nondefense = 780  # Nondefense discretionary
+            self.base_debt = 29700  # Debt held by public (~98% of GDP)
 
     def generate(self) -> BaselineProjection:
         """Generate a 10-year baseline projection."""

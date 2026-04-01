@@ -105,6 +105,35 @@ def render_results_summary_tab(
         unsafe_allow_html=True,
     )
 
+    # Sensitivity range (ETI ± 0.1)
+    if hasattr(policy, "taxable_income_elasticity") and not is_spending_result:
+        base_eti = getattr(policy, "taxable_income_elasticity", 0.25)
+        eti_low = max(0.05, base_eti - 0.1)
+        eti_high = base_eti + 0.1
+
+        # Scale behavioral response proportionally to ETI change
+        scale_low = eti_low / base_eti if base_eti > 0 else 1.0
+        scale_high = eti_high / base_eti if base_eti > 0 else 1.0
+
+        low_estimate = static_deficit_total + (behavioral_total * scale_low) - dynamic_revenue_feedback_total
+        high_estimate = static_deficit_total + (behavioral_total * scale_high) - dynamic_revenue_feedback_total
+
+        st_module.caption(
+            f"**Sensitivity range:** ${low_estimate:+.1f}B to ${high_estimate:+.1f}B "
+            f"(ETI {eti_low:.2f} to {eti_high:.2f})"
+        )
+
+    # CBO comparison note (if available)
+    policy_name = result_data.get("policy_name", "")
+    cbo_data = cbo_score_map.get(policy_name)
+    if cbo_data:
+        official = cbo_data["official_score"]
+        error_pct = ((final_deficit_total - official) / abs(official)) * 100 if official != 0 else 0
+        st_module.caption(
+            f"📌 **CBO/JCT estimate:** ${official:+,.0f}B | **Model:** ${final_deficit_total:+,.0f}B | "
+            f"**Difference:** {error_pct:+.1f}%"
+        )
+
     # Plain-English interpretation
     n_years = len(result.years)
     annual_avg = final_deficit_total / n_years
@@ -364,35 +393,86 @@ def render_results_summary_tab(
 
     # Export section
     st_module.markdown("---")
-    st_module.subheader("📥 Export Results")
+    with st_module.expander("📥 Export Results", expanded=True):
+        years = result.baseline.years
+        export_data = {
+            "Year": years,
+            "Static Revenue Effect ($B)": result.static_revenue_effect,
+            "Static Spending Effect ($B)": result.static_spending_effect,
+            "Static Deficit Effect ($B)": result.static_deficit_effect,
+            "Behavioral Offset ($B)": result.behavioral_offset,
+            "Final Deficit Effect ($B)": result.final_deficit_effect,
+            "Low Estimate ($B)": result.low_estimate,
+            "High Estimate ($B)": result.high_estimate,
+        }
+        if result.dynamic_effects:
+            export_data["GDP Effect ($B)"] = result.dynamic_effects.gdp_level_change
+            export_data["GDP Effect (%)"] = result.dynamic_effects.gdp_percent_change
+            export_data["Employment (thousands)"] = result.dynamic_effects.employment_change
+            export_data["Revenue Feedback ($B)"] = result.dynamic_effects.revenue_feedback
 
-    years = result.baseline.years
-    export_data = {
-        "Year": years,
-        "Static Revenue Effect ($B)": result.static_revenue_effect,
-        "Static Spending Effect ($B)": result.static_spending_effect,
-        "Static Deficit Effect ($B)": result.static_deficit_effect,
-        "Behavioral Offset ($B)": result.behavioral_offset,
-        "Final Deficit Effect ($B)": result.final_deficit_effect,
-        "Low Estimate ($B)": result.low_estimate,
-        "High Estimate ($B)": result.high_estimate,
-    }
-    if result.dynamic_effects:
-        export_data["GDP Effect ($B)"] = result.dynamic_effects.gdp_level_change
-        export_data["GDP Effect (%)"] = result.dynamic_effects.gdp_percent_change
-        export_data["Employment (thousands)"] = result.dynamic_effects.employment_change
-        export_data["Revenue Feedback ($B)"] = result.dynamic_effects.revenue_feedback
+        df_export = pd.DataFrame(export_data)
+        csv_data = df_export.to_csv(index=False)
 
-    df_export = pd.DataFrame(export_data)
-    csv_data = df_export.to_csv(index=False)
-    st_module.download_button(
-        label="Download Results as CSV",
-        data=csv_data,
-        file_name="fiscal_results_{}.csv".format(
-            re.sub(r"[^\w\-]", "_", policy.name).strip("_").lower()
-        ),
-        mime="text/csv",
-    )
+        col1, col2 = st_module.columns(2)
+
+        with col1:
+            st_module.download_button(
+                label="📊 Download as CSV",
+                data=csv_data,
+                file_name="fiscal_results_{}.csv".format(
+                    re.sub(r"[^\w\-]", "_", policy.name).strip("_").lower()
+                ),
+                mime="text/csv",
+            )
+
+        # Generate formatted text summary for copy-paste
+        baseline_year = result.baseline.start_year
+        cbo_vintage = "CBO Feb 2026"
+        from datetime import date
+        today = date.today().strftime("%B %d, %Y")
+
+        text_summary = f"""FISCAL POLICY IMPACT ANALYSIS
+Policy: {policy.name}
+Baseline: {cbo_vintage}
+Date: {today}
+
+10-Year Deficit Impact: ${final_deficit_total:+,.1f}B
+  Static Revenue Effect: ${static_deficit_total:+,.1f}B
+  Behavioral Offset: ${behavioral_total:+,.1f}B
+  Revenue Feedback: ${dynamic_revenue_feedback_total:+,.1f}B
+
+Year-by-Year Breakdown:
+"""
+        for year, deficit_impact in zip(result.years, result.final_deficit_effect):
+            text_summary += f"  {year}: ${deficit_impact:+,.1f}B\n"
+
+        text_summary += f"\nAssumptions:\n"
+        if hasattr(policy, "taxable_income_elasticity"):
+            text_summary += f"  Elasticity of Taxable Income (ETI): {policy.taxable_income_elasticity}\n"
+        if hasattr(policy, "rate_change"):
+            text_summary += f"  Rate Change: {policy.rate_change * 100:+.2f}pp\n"
+        if hasattr(policy, "affected_income_threshold"):
+            text_summary += f"  Income Threshold: ${policy.affected_income_threshold:,.0f}\n"
+
+        text_summary += f"\nData Sources:\n  - IRS Statistics of Income (2022)\n  - FRED Economic Data\n  - CBO Baseline (FY{baseline_year})\n"
+        text_summary += f"\nMethodology: Static + behavioral scoring with FRB/US-calibrated dynamic effects\n"
+
+        with col2:
+            st_module.download_button(
+                label="📄 Download as Text",
+                data=text_summary,
+                file_name="fiscal_summary_{}.txt".format(
+                    re.sub(r"[^\w\-]", "_", policy.name).strip("_").lower()
+                ),
+                mime="text/plain",
+            )
+
+        st_module.markdown("---")
+        st_module.subheader("Copy Summary for Reports")
+        st_module.caption("Select all text below and copy to paste into documents:")
+
+        st_module.code(text_summary, language="text")
 
     # Side-by-side comparison
     st_module.markdown("---")

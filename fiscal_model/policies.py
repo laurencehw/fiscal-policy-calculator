@@ -5,9 +5,12 @@ Defines the structure for various fiscal policy proposals including
 tax policies, spending policies, and transfer programs.
 """
 
+import logging
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Literal
+
+logger = logging.getLogger(__name__)
 
 
 class PolicyType(Enum):
@@ -144,6 +147,17 @@ class TaxPolicy(Policy):
             raise ValueError(f"labor_supply_elasticity must be >= 0, got {self.labor_supply_elasticity}")
         if self.affected_taxpayers_millions < 0:
             raise ValueError(f"affected_taxpayers_millions must be >= 0, got {self.affected_taxpayers_millions}")
+
+        # Edge case warnings (logged but don't raise)
+        if self.affected_income_threshold > 10_000_000:
+            logger.warning(
+                f"Very high income threshold ${self.affected_income_threshold:,.0f} - few taxpayers affected"
+            )
+
+        if self.taxable_income_elasticity > 0.5:
+            logger.warning(
+                f"ETI of {self.taxable_income_elasticity} exceeds typical range (0.1-0.4)"
+            )
 
     def estimate_static_revenue_effect(self, baseline_revenue: float,
                                        use_real_data: bool = True) -> float:
@@ -355,6 +369,53 @@ class TaxPolicy(Policy):
         # Behavioral response reduces revenue from tax increases (positive offset)
         # and recovers some revenue from tax cuts (negative offset)
         return abs(static_effect) * self.taxable_income_elasticity * 0.5
+
+    def validate_inputs(self) -> list[str]:
+        """
+        Validate inputs and return a list of warning strings for unusual parameters.
+
+        Unlike __post_init__, this does not raise exceptions. Instead, it returns
+        a list of warnings that can be displayed to the user in the UI.
+
+        Returns:
+            List of warning strings (empty if all inputs are reasonable)
+        """
+        warnings = []
+
+        if self.affected_income_threshold > 10_000_000:
+            warnings.append(
+                f"Very high income threshold (${self.affected_income_threshold:,.0f}): "
+                "only a small fraction of taxpayers affected"
+            )
+
+        if self.taxable_income_elasticity > 0.5:
+            warnings.append(
+                f"High ETI ({self.taxable_income_elasticity:.2f}): "
+                "typical range is 0.1-0.4; consider if this is intentional"
+            )
+
+        if self.rate_change > 0.2:
+            warnings.append(
+                f"Large rate increase ({self.rate_change*100:+.1f}pp): "
+                "verify this policy is intended to be highly restrictive"
+            )
+
+        if self.rate_change < -0.2:
+            warnings.append(
+                f"Large rate decrease ({self.rate_change*100:+.1f}pp): "
+                "verify this policy is intended to be highly stimulative"
+            )
+
+        if (self.rate_change != 0 and self.affected_income_threshold == 0
+                and self.affected_taxpayers_millions == 0
+                and self.avg_taxable_income_in_bracket == 0):
+            warnings.append(
+                "Rate change specified but no population data provided: "
+                "cannot estimate revenue impact accurately. "
+                "Consider providing affected_taxpayers_millions or avg_taxable_income_in_bracket"
+            )
+
+        return warnings
 
 
 @dataclass

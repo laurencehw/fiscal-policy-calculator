@@ -260,9 +260,17 @@ class TestCBOBaselineInit:
 
     def test_init_hardcoded_fallback(self):
         """CBOBaseline with use_real_data=False should use hardcoded values."""
-        gen = CBOBaseline(start_year=2025, use_real_data=False)
-        assert gen.base_gdp == 28500, "Hardcoded GDP should be 28500"
-        assert gen.base_individual_income_tax == 2500, "Hardcoded income tax should be 2500"
+        # Default vintage is CBO Feb 2026 with updated GDP
+        gen = CBOBaseline(start_year=2026, use_real_data=False)
+        assert gen.base_gdp == 30300, "Hardcoded GDP should be 30300 (Feb 2026 baseline)"
+        assert gen.base_individual_income_tax == 2700, "Hardcoded income tax should be 2700"
+
+    def test_init_hardcoded_fallback_legacy_vintage(self):
+        """CBOBaseline with Feb 2024 vintage should use legacy hardcoded values."""
+        from fiscal_model.baseline import BaselineVintage
+        gen = CBOBaseline(start_year=2025, use_real_data=False, vintage=BaselineVintage.CBO_FEB_2024)
+        assert gen.base_gdp == 28500, "Legacy GDP should be 28500"
+        assert gen.base_individual_income_tax == 2500, "Legacy income tax should be 2500"
 
     def test_init_custom_start_year(self):
         """CBOBaseline respects custom start year."""
