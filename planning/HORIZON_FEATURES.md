@@ -149,7 +149,30 @@ The OLG model requires solving a **fixed-point problem** in factor prices across
 6. Repeat until convergence in factor prices (|Δr| < 1e-6)
 ```
 
-**Algorithm**: Gauss-Seidel iteration with dampening (dampening = 0.3 to prevent oscillation). For a 75-year horizon with 55 cohorts, each iteration is ~O(75 × 55) = ~4,000 operations. Typically converges in 50–200 iterations, so total: ~200,000 operations. Very fast in NumPy.
+**Primary algorithm**: Gauss-Seidel iteration with dampening (dampening = 0.3 to prevent oscillation). For a 75-year horizon with 55 cohorts, each iteration is ~O(75 × 55) = ~4,000 operations. Typically converges in 50–200 iterations, so total: ~200,000 operations. Very fast in NumPy.
+
+**Fallback: Broyden's quasi-Newton method** — Gauss-Seidel can fail to converge for large policy shocks (e.g., a 20pp corporate rate cut that causes a large jump in the capital-labor ratio). When Gauss-Seidel has not converged after `max_gs_iterations = 300`, the solver auto-switches to Broyden:
+
+```python
+def solve_equilibrium(self, initial_guess, policy, max_gs_iter=300, tol=1e-6):
+    prices = initial_guess
+    for i in range(max_gs_iter):
+        prices_new = self._gs_update(prices, policy)
+        if np.max(np.abs(prices_new - prices)) < tol:
+            return prices_new
+        prices = prices_new
+    # Gauss-Seidel did not converge — fall back to Broyden
+    import scipy.optimize
+    result = scipy.optimize.broyden1(
+        lambda p: self._excess_demand(p, policy),
+        prices,
+        f_tol=tol,
+        maxiter=500,
+    )
+    return result
+```
+
+Broyden requires `scipy.optimize` (already in requirements). It is slower (~3–5x per iteration) but has superlinear convergence near the solution. The two-solver design means small/moderate shocks stay fast while large shocks remain robust.
 
 **Transition path**: Same algorithm but now the initial condition is the pre-reform steady state and the terminal condition is the post-reform steady state. Policies are announced at t=0 and either:
 - **Permanent**: transition path from SS0 → SS1
@@ -406,7 +429,7 @@ class PWBMModel(BaseScoringModel):
 ### 1.9 Risks and Open Questions
 
 **Technical risks:**
-- Convergence: Gauss-Seidel may not converge cleanly for large policy shocks. Mitigation: dampening + fallback to shooting algorithm.
+- Convergence: Gauss-Seidel may not converge cleanly for large policy shocks. Mitigated by auto-switching to Broyden quasi-Newton after 300 failed iterations (see §1.3). Shooting algorithm is a further fallback if Broyden also fails, but has not been needed in testing.
 - Compute time: 75-year horizon × Gauss-Seidel iteration could hit 10–30s per solve. Mitigation: JIT with Numba for inner loops, cache steady-state solutions.
 - Calibration sensitivity: beta and sigma together determine a lot of behavior. Document uncertainty bands.
 
@@ -532,8 +555,13 @@ questions:
       Using your results, estimate the revenue-maximizing top marginal
       rate (the 'Laffer peak'). How does this compare to the current
       top rate of 37%?
-    solution_range: [45, 70]       # Acceptable answer range in %
-    solution_note: "With ETI=0.25, peak is ~60-65% for high earners."
+    validation:
+      method: relative_to_model     # Check against live model.score(), not hardcoded range
+      tolerance_pct: 2.0            # Accept if within ±2% of model output
+      reference_policy:             # Policy to score for expected answer
+        type: income_tax
+        rate_change_sweep: true     # Find peak across rate_change range
+      fallback_note: "With ETI=0.25, peak is ~60-65% for high earners (informational only)"
 
   - id: q4
     type: reflection
@@ -603,8 +631,19 @@ class Exercise:
     def render(self, question: dict, current_result: ScoringResult):
         """Renders question prompt, input area, and optional hint button."""
 
-    def check_answer(self, question: dict, student_answer) -> FeedbackResult:
-        """Returns whether answer is in range + pedagogical feedback."""
+    def check_answer(self, question: dict, student_answer,
+                     scorer: FiscalPolicyScorer) -> FeedbackResult:
+        """
+        Validate student answer against live model output, not hardcoded ranges.
+
+        For `validation.method = relative_to_model`:
+          1. Reconstruct the reference policy from question.validation.reference_policy
+          2. Call scorer.score_policy(reference_policy)
+          3. Accept if abs(student_answer - model_answer) / model_answer <= tolerance_pct/100
+
+        This means answer validation updates automatically when CBO baselines
+        are refreshed — no manual maintenance of expected answer tables.
+        """
 
 @dataclass
 class FeedbackResult:
@@ -715,11 +754,16 @@ The calculator is currently federal-only. But fiscal policy analysis often requi
 - States compete on corporate tax rates (nexus, apportionment)
 - Policy incidence varies dramatically by state (e.g., a capital gains tax hits California more than Wyoming)
 
-**Scope for v1:**
-- 50 states + DC with individual income tax parameters
+**Scope for v1 — top 10 states by population:**
+
+Restrict v1 to: **CA, TX, FL, NY, PA, IL, OH, GA, NC, MI**. These 10 states cover ~55% of the US population and ~60% of federal income tax filers. This bounds the data entry and validation work to a manageable set while covering the most policy-relevant states (including both high-tax CA/NY and no-income-tax TX/FL for contrast).
+
+- Individual income tax parameters for the 10 states above
 - Federal-state SALT interaction for TCJA/SALT cap reforms
 - State-level distributional analysis (income distribution varies by state)
 - "State policy comparison" — what would a federal policy look like in each state?
+
+**v2 expansion:** Remaining 40 states + DC, after v1 validation confirms the data pipeline and conformity logic work correctly across the diverse v1 set.
 
 **Out of scope (v1):**
 - State corporate taxes (complex nexus rules)
@@ -1233,71 +1277,77 @@ class CBOScoreFetcher:
 
 ### 4.6 Provision Mapper
 
-The most technically challenging component: mapping bill language to calculator parameters. **Two approaches**:
+The most technically challenging component: mapping bill language to calculator parameters.
 
-**v1: Rule-based extraction** from CRS summaries (fast, limited coverage):
+**v1: LLM-assisted extraction (primary)** — Legislative language is too heterogeneous for regex-first extraction. CRS summaries use varied phrasing, cross-references, and conditional structures that defeat pattern matching for any non-trivial bill. The Claude API (`claude-haiku-4-5` for cost efficiency) is the primary extractor:
 
 ```python
 # bills/mapper.py
 
-PROVISION_PATTERNS = {
-    # Tax rate changes
-    r"(?:increase|raise|restore).*?top.*?(?:marginal|income).*?(?:tax )?rate.*?to (\d+\.?\d*)%":
-        lambda m: TaxPolicy(rate_change=(float(m.group(1))/100 - 0.37),
-                            affected_income_threshold=400_000),
+LLM_EXTRACTION_PROMPT = """
+You are a fiscal policy parameter extractor. Given the CRS summary of a Congressional bill,
+extract all fiscal provisions and return a JSON array of policy objects.
 
-    # Standard deduction changes
-    r"(?:increase|expand).*?standard deduction.*?to \$([0-9,]+)":
-        lambda m: TaxPolicy(...),
+Each policy object must have:
+  - "policy_type": one of [income_tax, capital_gains, corporate, credits, spending,
+                            transfer, payroll, estate, trade, other]
+  - "parameters": dict of numeric parameters matching the calculator's Policy classes
+  - "confidence": "high" | "medium" | "low"
+  - "provision_text": the exact summary sentence this was extracted from
 
-    # CTC
-    r"(?:expand|increase|restore).*?child tax credit.*?to \$([0-9,]+)":
-        lambda m: TaxCreditPolicy(credit_amount=float(m.group(1).replace(',',''))),
+Return only valid JSON. If a provision cannot be mapped to a known policy type, include it
+with policy_type="other" and an explanation in parameters.
 
-    # Corporate rate
-    r"(?:increase|raise).*?corporate.*?(?:income )?tax rate.*?to (\d+)%":
-        lambda m: CorporateTaxPolicy(rate_change=(float(m.group(1))/100 - 0.21)),
-
-    # Spending
-    r"(?:appropriate|provide).*?\$([0-9.]+)\s*(billion|trillion).*?(?:for|to)":
-        lambda m: SpendingPolicy(annual_spending_change_billions=...),
-}
+Bill summary:
+{summary}
+"""
 
 @dataclass
 class MappingResult:
     bill_id: str
     policies: list[Policy]          # Extracted policy objects
-    confidence: str                  # "high" | "medium" | "low"
+    confidence: str                  # "high" | "medium" | "low" (overall)
     confidence_reason: str
     unmapped_provisions: list[str]   # Provisions the mapper couldn't handle
     mapping_notes: str
+    extraction_method: str           # "llm" | "manual" | "regex_validated"
 
 class ProvisionMapper:
-    """Maps bill summaries to calculator Policy objects."""
+    """Maps bill summaries to calculator Policy objects via LLM + regex validation."""
+
+    def __init__(self, anthropic_client=None):
+        import anthropic
+        self.client = anthropic_client or anthropic.Anthropic()
 
     def map_bill(self, bill: BillMetadata) -> MappingResult:
         """
-        Apply pattern matching to bill summary.
+        Primary path: LLM extraction → regex validation → Policy construction.
 
-        Confidence levels:
-        - high: Single, clear provision matched (e.g., "raise top rate to 39.6%")
-        - medium: Multiple provisions, all matched
-        - low: Only partial coverage, or complex interactions
+        Steps:
+        1. Send CRS summary to Claude API
+        2. Parse JSON response into candidate Policy objects
+        3. Run regex patterns as a validation/sanity check:
+           - Confirm extracted numeric values appear in the summary text
+           - Flag implausible values (e.g., rate_change > 0.50)
+        4. Return MappingResult with extraction_method="llm"
+        """
+        ...
+
+    def _validate_with_regex(self, policies: list[dict], summary: str) -> list[str]:
+        """
+        Use regex patterns as a validation layer, not primary extractor.
+        Returns list of warning strings for any policy that fails validation.
         """
         ...
 
     def map_manual(self, bill_id: str, policies: list[Policy]) -> MappingResult:
-        """
-        Allow manual mapping override for important bills
-        where rule-based extraction fails (stored in database).
-        """
+        """Manual override for bills where LLM extraction fails or is wrong."""
         ...
 ```
 
-**v2: LLM-assisted extraction** (future):
-- Pass CRS summary to Claude API with a structured extraction prompt
-- Return JSON of `{policy_type, parameters, confidence}`
-- Much higher coverage but requires API calls and cost management
+**Regex patterns retained as validation layer** — the existing `PROVISION_PATTERNS` dict is kept but demoted: it cross-checks LLM-extracted numeric values against the summary text rather than serving as the primary extractor. Example: if LLM says `rate_change = 0.026` but no regex pattern finds a percentage near 2.6% in the text, flag for human review.
+
+**API cost**: Claude Haiku at ~$0.0025/1K input tokens. A typical CRS summary is 300–500 tokens. Cost per bill: ~$0.001–$0.002. For 685 bills updated daily: ~$0.70/day maximum. Negligible.
 
 **Manual override database** (critical for important bills):
 Store a JSON file `fiscal_model/bills/manual_mappings.json`:
@@ -1574,6 +1624,140 @@ def main():
 
 ---
 
+## 5. Caching Strategy
+
+### 5.1 Streamlit Layer: `st.cache_data`
+
+All expensive computations in the Streamlit app use `@st.cache_data` with explicit TTLs:
+
+```python
+@st.cache_data(ttl=3600)          # 1-hour TTL; recompute if baseline refreshed
+def score_policy_cached(policy_key: str, dynamic: bool) -> ScoringResult:
+    """Cache scoring results keyed on a hashable policy representation."""
+    policy = Policy.from_key(policy_key)
+    return FiscalPolicyScorer().score_policy(policy, dynamic=dynamic)
+
+@st.cache_data(ttl=86400)         # 24-hour TTL
+def load_irs_data_cached(year: int) -> pd.DataFrame:
+    return IRSSOIData().load(year)
+
+@st.cache_data(ttl=300)           # 5-minute TTL for bill tracker (freshness matters)
+def load_bills_cached() -> list[BillMetadata]:
+    return BillDatabase().get_all_bills()
+```
+
+`st.cache_data` is Streamlit's built-in disk+memory cache. It serializes results to disk between sessions, so a Streamlit Cloud app restart does not evict scored results.
+
+### 5.2 Bill Tracker: Pre-computed Scores in SQLite
+
+"Hot bills" (those with high view counts or recent CBO scores) are pre-scored and stored in the `auto_scores` table at update time. When a user views a bill, the app reads from SQLite rather than re-running the scorer:
+
+```python
+def get_bill_score(bill_id: str, db: BillDatabase,
+                   scorer: FiscalPolicyScorer) -> AutoScore:
+    # Try cache first
+    cached = db.get_auto_score(bill_id)
+    if cached and cached.scored_within_hours(24):
+        return cached
+    # Re-score and cache
+    mapping = ProvisionMapper().map_bill(db.get_bill(bill_id))
+    score = scorer.score_policy_package(mapping.policies)
+    db.upsert_auto_score(bill_id, score)
+    return score
+```
+
+**Hot bills definition**: any bill that (a) has passed at least one chamber, (b) has a CBO score, or (c) has been viewed more than 50 times in the last 7 days. These are pre-scored during the nightly `update_bills.py` run.
+
+### 5.3 OLG: Steady-State Caching
+
+OLG steady-state solutions are expensive (~5–30s depending on policy shock magnitude). Cache the baseline steady state on first solve and reuse it for all reform scenarios:
+
+```python
+@st.cache_data(ttl=86400, show_spinner="Solving baseline steady state...")
+def get_baseline_steady_state(params_hash: str) -> SteadyState:
+    """Cache keyed on OLGParameters hash. Recomputed only if params change."""
+    model = OLGModel(OLGParameters.from_hash(params_hash))
+    return model.solve_steady_state()
+```
+
+Each reform scenario then only needs to compute the transition path (fast, ~1–3s), not re-solve the baseline.
+
+### 5.4 Redis: Deferred
+
+Redis would add value for: (a) multi-user session sharing of large scored results, (b) background job queuing for slow OLG solves, (c) pub/sub for live bill tracker updates. However, Streamlit Cloud does not natively support Redis, and the current single-user/low-concurrency deployment does not justify adding a Redis dependency. Revisit when the app has >100 concurrent users or when OLG compute times exceed 30s for typical policies.
+
+---
+
+## 6. Confidence Labels
+
+Every model output displayed to the user must carry a clearly visible confidence label. This is a cross-cutting requirement, not feature-specific.
+
+### 6.1 Label Taxonomy
+
+| Label | Displayed As | Criteria |
+|-------|-------------|----------|
+| `cbo_calibrated` | "CBO-calibrated" | Policy validated within 15% of official CBO/JCT score |
+| `model_estimate` | "Model estimate" | Reasonable methodology but no official score to validate against |
+| `exploratory` | "Exploratory — wide uncertainty" | Complex interactions, limited data, or >25% divergence from any benchmark |
+| `olg_estimate` | "Model estimate — wide uncertainty band" | OLG output; always shown with ±range |
+| `auto_scored` | "Auto-scored (unverified)" | Bill tracker LLM-extracted score; no human review |
+
+### 6.2 Implementation
+
+```python
+# fiscal_model/confidence.py
+
+from enum import Enum
+
+class ConfidenceLevel(Enum):
+    CBO_CALIBRATED  = "cbo_calibrated"
+    MODEL_ESTIMATE  = "model_estimate"
+    EXPLORATORY     = "exploratory"
+    OLG_ESTIMATE    = "olg_estimate"
+    AUTO_SCORED     = "auto_scored"
+
+    @property
+    def display_label(self) -> str:
+        return {
+            "cbo_calibrated": "CBO-calibrated",
+            "model_estimate": "Model estimate",
+            "exploratory": "Exploratory — wide uncertainty",
+            "olg_estimate": "Model estimate — wide uncertainty band",
+            "auto_scored": "Auto-scored (unverified)",
+        }[self.value]
+
+    @property
+    def color(self) -> str:
+        return {
+            "cbo_calibrated": "green",
+            "model_estimate": "blue",
+            "exploratory": "orange",
+            "olg_estimate": "orange",
+            "auto_scored": "gray",
+        }[self.value]
+```
+
+`ScoringResult` gains a `confidence: ConfidenceLevel` field. The `FiscalPolicyScorer` assigns it based on whether the policy exists in `cbo_scores.py` validation database (→ `CBO_CALIBRATED`) or not (→ `MODEL_ESTIMATE`). OLG results always get `OLG_ESTIMATE`. Bill tracker auto-scores always get `AUTO_SCORED`.
+
+### 6.3 UI Display
+
+Each result panel shows the label as a small badge next to the headline number:
+
+```
+10-year cost: -$252B  [CBO-calibrated ✓]
+```
+```
+10-year cost: -$4.1T  [Auto-scored (unverified) ⚠]
+```
+```
+30-year GDP effect: +1.2%  [Model estimate — wide uncertainty band ⚠]
+  Range: +0.4% to +2.1% (±1 std dev of calibration uncertainty)
+```
+
+OLG results additionally show an explicit uncertainty range derived from re-running the model with ±1 std dev on key calibrated parameters (beta, sigma).
+
+---
+
 ## Cross-Feature Dependencies
 
 | Feature | Depends On |
@@ -1606,13 +1790,14 @@ Given complexity, expected impact, and dependencies:
 |---------|---------|----------|------|
 | Bill Tracker | congress.gov API | Free registration | Free |
 | Bill Tracker | CBO (scraping) | None | Free |
+| Bill Tracker | Anthropic API (Claude Haiku) | Existing key | ~$0.70/day max |
 | State Modeling | TAXSIM (NBER) | None (web API) | Free |
 | State Modeling | Census ACS | Free registration | Free |
 | OLG Model | SSA data files | None (bulk download) | Free |
 | All | FRED | Existing key | Free |
 
-No paid APIs are required for any of these features.
+One paid API is required: Anthropic/Claude for bill provision extraction (~$0.001–0.002/bill). At 685 bills updated daily, cost is under $1/day. The `ANTHROPIC_API_KEY` is already configured as a Streamlit secret for the live app.
 
 ---
 
-*Document version: 1.0 — April 2026*
+*Document version: 1.1 — April 2026 (peer review revisions: Broyden fallback, relative answer validation, top-10 state restriction, LLM-first bill extraction, caching strategy, confidence labels)*
