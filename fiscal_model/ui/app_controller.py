@@ -13,33 +13,41 @@ from .calculation_controller import (
     render_sidebar_inputs,
 )
 from .controller_utils import compute_run_id
-from .helpers import TEXTBOOK_HOME
+from .helpers import TEXTBOOK_HOME, TEXTBOOK_LINKS
 from .settings_controller import render_settings_tab
 from .tabs_controller import build_main_tabs, render_footer, render_result_tabs
+
+_HOW_SCORED_MARKDOWN = (
+    "The calculator applies three steps:\n\n"
+    "1. **Static scoring** — direct revenue effect of the policy change\n"
+    "2. **Behavioral response** — how taxpayers adjust based on the Elasticity of "
+    "Taxable Income (ETI = 0.25, "
+    "[Saez et al. 2012](https://eml.berkeley.edu/~saez/saez-slemrod-giertzJEL12.pdf))\n"
+    "3. **Dynamic feedback** *(optional)* — GDP and employment effects using "
+    "FRB/US-calibrated multipliers\n\n"
+    "Data: IRS Statistics of Income, FRED, CBO Baseline Projections. "
+    "25+ policies validated within 15% of official CBO/JCT scores.\n\n"
+    "For background, see "
+    f"[Optimal Taxation (Ch 16)]({TEXTBOOK_LINKS['optimal_taxation']}) and "
+    f"[The Federal Budget (Ch 22)]({TEXTBOOK_LINKS['federal_budget']}) in the textbook."
+)
 
 
 def render_data_status(st_module: Any, deps: Any) -> None:
     """
-    Render a data status indicator in the sidebar showing:
-    - CBO baseline vintage (green/yellow/red)
-    - FRED data status (live/cached/fallback)
-    - Last update timestamp
-    - Details expander
+    Render a data status indicator in the sidebar showing CBO baseline vintage
+    and FRED data status. Placed at the bottom of the sidebar.
     """
     try:
-        # Get FRED data status if available
         fred_status = "Unknown"
         fred_source = None
-        last_updated = None
         cache_age_days = None
 
-        # Try to access FRED data module if available
         try:
             from fiscal_model.data.fred_data import FREDData
             fred_instance = FREDData()
             data_status = fred_instance.data_status
             fred_source = data_status.get("source", "unknown")
-            last_updated = data_status.get("last_updated")
             cache_age_days = data_status.get("cache_age_days")
 
             if fred_source == "live":
@@ -53,21 +61,17 @@ def render_data_status(st_module: Any, deps: Any) -> None:
         except Exception:
             fred_status = "⚪ Not available"
 
-        # Get baseline vintage
         try:
             from fiscal_model.baseline import BaselineVintage
-            baseline_vintage = BaselineVintage.CBO_FEB_2026.value
             baseline_display = "CBO Feb 2026"
             vintage_color = "green"
         except Exception:
             baseline_display = "Unknown"
             vintage_color = "gray"
 
-        # Render the status section
         st_module.markdown("---")
         st_module.markdown("**📊 Data Status**")
 
-        # Color-coded vintage
         if vintage_color == "green":
             st_module.markdown(f"🟢 **Baseline:** {baseline_display}")
         elif vintage_color == "yellow":
@@ -75,10 +79,8 @@ def render_data_status(st_module: Any, deps: Any) -> None:
         else:
             st_module.markdown(f"⚪ **Baseline:** {baseline_display}")
 
-        # FRED status
         st_module.markdown(f"📡 **Data:** {fred_status}")
 
-        # Details expander
         with st_module.expander("ℹ️ Data details", expanded=False):
             st_module.markdown(
                 "**Baseline:** Uses CBO February 2026 economic assumptions for "
@@ -90,17 +92,19 @@ def render_data_status(st_module: Any, deps: Any) -> None:
                 "with new CBO publications."
             )
     except Exception:
-        # Silently fail if there's any issue with status rendering
         pass
 
 
 def render_quick_start(st_module: Any) -> None:
     """
-    Render a dismissible quick-start guide at the top of the main area.
-    Uses session state to track dismissal.
+    Render a dismissible quick-start guide. Auto-dismissed once results exist.
     """
     if "quick_start_dismissed" not in st_module.session_state:
         st_module.session_state.quick_start_dismissed = False
+
+    # Auto-dismiss once results have been calculated
+    if st_module.session_state.get("results"):
+        st_module.session_state.quick_start_dismissed = True
 
     if not st_module.session_state.quick_start_dismissed:
         col1, col2 = st_module.columns([20, 1])
@@ -128,6 +132,7 @@ def render_quick_start(st_module: Any) -> None:
 def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Path) -> None:
     """
     Render and orchestrate the full Streamlit app flow.
+    Top-level tabs: Calculator | Generational | State | Bill Tracker | Methodology
     """
     st_module.title("Fiscal Policy Impact Calculator")
     st_module.caption(
@@ -136,8 +141,13 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         f"Companion to the [Public Economics textbook]({TEXTBOOK_HOME})."
     )
 
-    # Top-level navigation: Calculator | Bill Tracker
-    top_tabs = st_module.tabs(["📊 Calculator", "📋 Bill Tracker"])
+    top_tabs = st_module.tabs([
+        "📊 Calculator",
+        "🌐 Generational",
+        "🗺️ State",
+        "📋 Bill Tracker",
+        "📖 Methodology",
+    ])
 
     with top_tabs[0]:
         _render_calculator(
@@ -146,12 +156,24 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
             model_available=model_available,
             app_root=app_root,
         )
+        render_footer(st_module=st_module)
 
     with top_tabs[1]:
+        _render_generational(st_module=st_module, deps=deps)
+        render_footer(st_module=st_module)
+
+    with top_tabs[2]:
+        _render_state(st_module=st_module, deps=deps)
+        render_footer(st_module=st_module)
+
+    with top_tabs[3]:
         from .tabs.bill_tracker import render_bill_tracker_tab
         render_bill_tracker_tab(st_module=st_module)
+        render_footer(st_module=st_module)
 
-    render_footer(st_module=st_module)
+    with top_tabs[4]:
+        deps.render_methodology_tab(st_module=st_module)
+        render_footer(st_module=st_module)
 
 
 def _render_calculator(
@@ -160,29 +182,46 @@ def _render_calculator(
     model_available: bool,
     app_root: Path,
 ) -> None:
-    """Render the calculator portion of the app (previously the entire app)."""
-    # Sidebar
+    """Render the Calculator tab: sidebar inputs + results tabs."""
+    # ── Sidebar ──────────────────────────────────────────────────────────
     with st_module.sidebar:
         st_module.header("Policy Configuration")
-        render_data_status(st_module=st_module, deps=deps)
+
+        # 1. Policy inputs (no Calculate button yet)
         calc_context = render_sidebar_inputs(st_module=st_module, deps=deps)
 
-        st_module.markdown("---")
+        # 2. Model settings expander (above Calculate button)
         settings = render_settings_tab(
             st_module=st_module,
-            settings_tab=st_module.expander("Model settings", expanded=False),
+            settings_tab=st_module.expander("⚙️ Model settings", expanded=False),
         )
 
+        # 3. Calculate button
+        st_module.markdown("---")
+        calculate = st_module.button(
+            "Calculate Impact",
+            type="primary",
+            use_container_width=True,
+        )
+        calc_context["calculate"] = calculate
+
+        # 4. Data Status (bottom of sidebar — infrastructure, not decision-relevant)
+        render_data_status(st_module=st_module, deps=deps)
+
+    # ── Main content ─────────────────────────────────────────────────────
     calc_context["run_id"] = compute_run_id(calc_context=calc_context, settings=settings)
     st_module.session_state.current_run_id = calc_context["run_id"]
 
+    # Dismissible welcome guide (auto-hides after first calculation)
     render_quick_start(st_module=st_module)
-    state_mode = settings.get("state_mode", False)
-    selected_state = settings.get("selected_state", "CA")
+
+    # "How is this scored?" — prominent in main content below title
+    with st_module.expander("🔍 How is this scored?", expanded=False):
+        st_module.markdown(_HOW_SCORED_MARKDOWN)
+
     tabs = build_main_tabs(
         st_module=st_module,
         mode=calc_context["mode"],
-        state_mode=state_mode,
     )
 
     ensure_results_state(st_module=st_module)
@@ -203,6 +242,38 @@ def _render_calculator(
         model_available=model_available,
         is_spending=calc_context["is_spending"],
         mode=calc_context["mode"],
-        state_mode=state_mode,
-        selected_state=selected_state,
+    )
+
+
+def _render_generational(st_module: Any, deps: Any) -> None:
+    """Render the top-level Generational Analysis tab."""
+    result_data = st_module.session_state.get("results")
+    run_id = st_module.session_state.get("results_run_id") or st_module.session_state.get("last_run_id")
+    deps.render_generational_analysis_tab(
+        st_module=st_module,
+        result_data=result_data,
+        run_id=run_id,
+    )
+
+
+def _render_state(st_module: Any, deps: Any) -> None:
+    """Render the top-level State Analysis tab with its own state selector."""
+    from fiscal_model.models.state.database import STATE_NAMES, SUPPORTED_STATES
+
+    state_options = [f"{code} — {STATE_NAMES[code]}" for code in SUPPORTED_STATES]
+    state_selection = st_module.selectbox(
+        "State",
+        state_options,
+        key="top_level_state_select",
+        help="Select a state for combined federal + state analysis.",
+    )
+    selected_state = state_selection.split(" — ")[0].strip() if state_selection else "CA"
+
+    result_data = st_module.session_state.get("results")
+    run_id = st_module.session_state.get("results_run_id") or st_module.session_state.get("last_run_id")
+    deps.render_state_analysis_tab(
+        st_module=st_module,
+        state=selected_state,
+        result_data=result_data,
+        run_id=run_id,
     )

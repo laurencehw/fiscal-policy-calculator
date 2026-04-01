@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from fiscal_model.ui.helpers import TEXTBOOK_LINKS
 
 # ---------------------------------------------------------------------------
 # Preset category helpers
@@ -73,22 +72,11 @@ def _strip_emoji_prefix(name: str) -> str:
 # ---------------------------------------------------------------------------
 
 def render_tax_policy_inputs(
-    st_module: Any, preset_policies: dict[str, dict[str, Any]]
+    st_module: Any,
+    preset_policies: dict[str, dict[str, Any]],
+    use_preset: bool = True,
 ) -> dict[str, Any]:
     """Render tax policy input controls and return selected values."""
-
-    # ── Step 1: Choose a starting point ──────────────────────────────────
-    approach = st_module.radio(
-        "How would you like to start?",
-        ["Analyze a known proposal", "Design a custom policy"],
-        index=0,
-        help=(
-            "**Known proposal** — pick from 25+ real-world policies already "
-            "calibrated to CBO/JCT estimates.  \n"
-            "**Custom policy** — set your own tax rate change, threshold, and parameters."
-        ),
-    )
-    use_preset = approach == "Analyze a known proposal"
 
     # ── Preset path ──────────────────────────────────────────────────────
     preset_choice = "Custom Policy"
@@ -123,39 +111,21 @@ def render_tax_policy_inputs(
         preset_choice = display_names[selected_display]
         preset_data = preset_policies[preset_choice]
 
-        # Show what this preset does with fiscal direction indicator
+        # Show what this preset does — collapsible card (default collapsed)
         display_name = _strip_emoji_prefix(preset_choice)
         desc = preset_data["description"]
 
-        # Use the CBO score sign from the preset name to determine direction
-        # Names like "(CBO: -$1.35T)" indicate revenue-raising (negative = reduces deficit)
-        # Names like "(CBO: $4.6T)" indicate deficit-increasing (positive = costs money)
         import re as _re
         score_match = _re.search(r'\((?:CBO|JCT):\s*(-?\$[\d.]+[TB])\)', preset_choice)
         if score_match and score_match.group(1).startswith("-"):
-            st_module.success(f"**{display_name}**\n\n{desc}")
+            direction_icon = "✅"
         elif score_match:
-            st_module.warning(f"**{display_name}**\n\n{desc}")
+            direction_icon = "⚠️"
         else:
-            st_module.info(f"**{display_name}**\n\n{desc}")
+            direction_icon = "📋"
 
-        # Show the methodology note
-        with st_module.expander("How is this scored?", expanded=False):
-            st_module.markdown(
-                "This proposal uses a **pre-calibrated model** that matches "
-                "the official CBO/JCT/Treasury score. The calculator applies:\n\n"
-                "1. **Static scoring** — direct revenue effect of the policy change\n"
-                "2. **Behavioral response** — how taxpayers adjust (e.g., work less, "
-                "shift income) based on the Elasticity of Taxable Income (ETI = 0.25, "
-                "[Saez et al. 2012](https://eml.berkeley.edu/~saez/saez-slemrod-giertzJEL12.pdf))\n"
-                "3. **Dynamic feedback** *(optional)* — GDP and employment effects "
-                "using FRB/US-calibrated multipliers\n\n"
-                "Data sources: IRS Statistics of Income, FRED, CBO Baseline Projections.\n\n"
-                "For deeper background, see "
-                f"[Optimal Taxation (Ch 16)]({TEXTBOOK_LINKS['optimal_taxation']}) and "
-                f"[The Federal Budget (Ch 22)]({TEXTBOOK_LINKS['federal_budget']}) "
-                "in the textbook."
-            )
+        with st_module.expander(f"{direction_icon} {display_name}", expanded=False):
+            st_module.markdown(desc)
 
     # ── Custom path ──────────────────────────────────────────────────────
     # Default values for the return dict

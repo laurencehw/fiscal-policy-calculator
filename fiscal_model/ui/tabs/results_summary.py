@@ -131,9 +131,9 @@ def render_results_summary_tab(
         official = cbo_data["official_score"]
         error_pct = ((final_deficit_total - official) / abs(official)) * 100 if official != 0 else 0
         st_module.markdown(
-            f"<small>📌 <b>CBO/JCT estimate:</b> ${official:+,.0f}B | "
-            f"<b>Model:</b> ${final_deficit_total:+,.0f}B | "
-            f"<b>Difference:</b> {error_pct:+.1f}%</small>",
+            f"<p><small>📌 <b>CBO/JCT estimate:</b> ${official:+,.0f}B &nbsp;·&nbsp; "
+            f"<b>Model:</b> ${final_deficit_total:+,.0f}B &nbsp;·&nbsp; "
+            f"<b>Difference:</b> {error_pct:+.1f}%</small></p>",
             unsafe_allow_html=True,
         )
 

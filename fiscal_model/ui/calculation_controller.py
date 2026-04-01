@@ -14,27 +14,31 @@ from .controller_utils import run_with_spinner_feedback, render_input_guardrails
 def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
     """
     Render policy input controls in the sidebar and return interaction context.
+    Note: the Calculate button is rendered separately in _render_calculator so
+    that Model settings can appear above it.
     """
-    # ── Primary choice: what kind of analysis? ───────────────────────────
-    policy_category = st_module.radio(
-        "What would you like to analyze?",
-        ["Tax policy", "Spending program"],
-        horizontal=True,
+    # ── Single combined choice: preset / custom / spending ───────────────
+    analysis_mode = st_module.radio(
+        "Analyze:",
+        ["📋 Tax proposal (preset)", "✏️ Custom tax policy", "💰 Spending program"],
+        horizontal=False,
         help=(
-            "**Tax policy** — income, corporate, capital gains, payroll, credits, etc.  \n"
+            "**Tax proposal** — pick from 25+ real-world policies calibrated to CBO/JCT estimates.  \n"
+            "**Custom tax policy** — set your own rate change, threshold, and parameters.  \n"
             "**Spending program** — infrastructure, defense, transfers, etc."
         ),
     )
-    is_spending = policy_category == "Spending program"
+    is_spending = analysis_mode == "💰 Spending program"
+    use_preset = analysis_mode == "📋 Tax proposal (preset)"
 
     preset_policies = deps.PRESET_POLICIES
     tax_inputs: dict[str, Any] = {}
     spending_inputs: dict[str, Any] = {}
 
-    if not is_spending:
-        tax_inputs = deps.render_tax_policy_inputs(st_module, preset_policies)
-    else:
+    if is_spending:
         spending_inputs = deps.render_spending_policy_inputs(st_module)
+    else:
+        tax_inputs = deps.render_tax_policy_inputs(st_module, preset_policies, use_preset=use_preset)
 
     st_module.markdown("---")
 
@@ -42,19 +46,13 @@ def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
     if not is_spending and tax_inputs:
         render_input_guardrails(st_module=st_module, tax_inputs=tax_inputs)
 
-    calculate = st_module.button(
-        "Calculate Impact",
-        type="primary",
-        use_container_width=True,
-    )
-
     return {
         "mode": "📊 Single Policy",
         "is_spending": is_spending,
         "preset_policies": preset_policies,
         "tax_inputs": tax_inputs,
         "spending_inputs": spending_inputs,
-        "calculate": calculate,
+        "calculate": False,  # Set by caller after Model settings rendered
     }
 
 
