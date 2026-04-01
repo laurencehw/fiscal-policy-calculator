@@ -1,0 +1,232 @@
+id: tcja_analysis
+title: "The 2017 Tax Cuts and Jobs Act: Revenue and Distributional Effects"
+description: >
+  Analyze the Tax Cuts and Jobs Act of 2017, the largest US tax overhaul in
+  three decades. Estimate the 10-year revenue cost of TCJA extension, break
+  down effects by provision, and examine the distributional implications for
+  different income groups.
+complexity_levels:
+  - undergraduate
+  - graduate
+  - advanced
+estimated_minutes: 60
+tags:
+  - tcja
+  - income_tax
+  - corporate_tax
+  - distribution
+  - tax_reform
+learning_objectives:
+  - "Estimate the 10-year revenue cost of full TCJA extension"
+  - "Decompose the cost across major provisions (rates, SALT, corporate)"
+  - "Explain the distributional pattern of TCJA benefits"
+  - "Assess the role of the SALT cap in the political economy of TCJA"
+
+exercises:
+  - id: tcja_ug_ex1
+    title: "How Much Does TCJA Extension Cost?"
+    type: parameter_exploration
+    complexity: undergraduate
+    prompt: >
+      The Tax Cuts and Jobs Act of 2017 temporarily reduced individual income tax
+      rates, nearly doubled the standard deduction, capped SALT deductions at
+      $10,000, and cut the corporate rate from 35% to 21%. Most individual
+      provisions expire after 2025.
+
+      CBO estimates that a full TCJA extension costs approximately $4.6 trillion
+      over 10 years (2026-2035). Your task is to verify this by scoring the TCJA
+      extension in the model and entering the 10-year deficit increase.
+
+      Use the slider to set the rate_change parameter that approximates the full
+      individual rate cut (approximately −3.7pp average effective rate cut).
+    parameters:
+      - name: rate_change
+        label: "Average rate cut (decimal, negative = cut)"
+        min: -0.10
+        max: 0.00
+        step: 0.005
+        default: -0.037
+        unit: "decimal"
+      - name: affected_income_threshold
+        label: "Income threshold ($, set 0 for all filers)"
+        min: 0
+        max: 500000
+        step: 10000
+        default: 0
+        unit: "$"
+    hints:
+      - level: 1
+        text: >
+          The CBO score for full TCJA extension is $4,600B over 10 years.
+          For this exercise, focus on the individual income tax component.
+          A 3.7pp average rate cut across ~150 million filers yields roughly
+          $3.2-3.5T. Add the corporate cut (~$700B) to approach the full score.
+      - level: 2
+        text: >
+          Use the preset "TCJA Extension (Full)" in the main calculator to see
+          the full model breakdown. The model is calibrated to within 0.4% of
+          the CBO estimate of $4,600B.
+    validation:
+      method: relative_to_model
+      policy_type: income_tax
+      policy_params:
+        name: "TCJA Individual Rates"
+        description: "Individual rate component of TCJA"
+        rate_change: "{rate_change}"
+        affected_income_threshold: "{affected_income_threshold}"
+      target_field: total_10_year_cost
+      tolerance: 0.05
+    expected_insight: >
+      TCJA's individual rate cuts cost roughly $3-3.5T over 10 years, with the
+      corporate rate cut adding ~$700B. The total ~$4.6T cost is the largest
+      revenue-reducing legislation in US history. Whether this "pays for itself"
+      through growth depends critically on dynamic scoring assumptions.
+
+  - id: tcja_ug_ex2
+    title: "The SALT Cap: Who Pays More?"
+    type: comparison
+    complexity: undergraduate
+    prompt: >
+      TCJA capped state and local tax (SALT) deductions at $10,000, affecting
+      high-tax-state residents (CA, NY, NJ) most heavily. CBO estimates
+      removing the SALT cap would cost an additional $1.9 trillion over 10 years.
+
+      Compare two scenarios:
+      A) TCJA extension WITH the $10K SALT cap (baseline)
+      B) TCJA extension WITHOUT the SALT cap (restore full deductibility)
+
+      The difference in 10-year cost between (B) and (A) represents the revenue
+      cost of removing the SALT cap. Estimate this difference.
+    parameters:
+      - name: rate_change
+        label: "Rate cut for comparison"
+        min: -0.05
+        max: 0.00
+        step: 0.005
+        default: -0.02
+        unit: "decimal"
+      - name: affected_income_threshold
+        label: "SALT-affected income threshold ($)"
+        min: 100000
+        max: 1000000
+        step: 50000
+        default: 200000
+        unit: "$"
+    hints:
+      - level: 1
+        text: >
+          The SALT cap primarily affects filers with income above $100K in
+          high-tax states. The revenue cost of removing it comes from the
+          increased deduction value for these filers. Think about the marginal
+          tax rate × the extra deduction amount × affected filers.
+      - level: 2
+        text: >
+          CBO's estimate of $1.9T to remove the SALT cap assumes ~10-12M affected
+          filers, average additional deduction of ~$15,000, at a 35-37% marginal
+          rate: $15K × 35% × 10.5M filers × 10 years ≈ $551B/year... but SALT
+          interactions with AMT and phase-outs make it larger.
+    validation:
+      method: range_check
+      min_acceptable: -2500.0
+      max_acceptable: -1000.0
+    expected_insight: >
+      The SALT cap is highly regressive in reverse: removing it primarily benefits
+      upper-middle-class homeowners in high-tax states. Politically, the tension
+      between deficit reduction and the interests of blue-state Republicans explains
+      why the SALT cap became one of TCJA's most contested provisions.
+
+  - id: tcja_grad_ex1
+    title: "Dynamic Scoring: Does TCJA Pay For Itself?"
+    type: open_analysis
+    complexity: graduate
+    prompt: >
+      Evaluate whether TCJA extension can be argued to "pay for itself" through
+      economic growth. Use the model's dynamic scoring to compute the GDP feedback
+      and revenue offset.
+
+      Steps:
+      1. Score TCJA extension statically (~$4.6T cost)
+      2. Run dynamic scoring: GDP effect, employment change, revenue feedback
+      3. Calculate: how much of the $4.6T is offset by dynamic effects?
+      4. What GDP growth rate would be needed for TCJA to fully pay for itself?
+      5. How does this compare to actual post-2017 GDP growth?
+
+      Write a 300-word assessment of the "pays for itself" argument.
+    parameters:
+      - name: rate_change
+        label: "Rate cut (decimal)"
+        min: -0.10
+        max: 0.00
+        step: 0.005
+        default: -0.037
+        unit: "decimal"
+      - name: affected_income_threshold
+        label: "Income threshold ($)"
+        min: 0
+        max: 200000
+        step: 10000
+        default: 0
+        unit: "$"
+    hints:
+      - level: 1
+        text: >
+          The FRB/US-calibrated model (FRBUSAdapterLite) uses a tax multiplier of −0.7.
+          On $460B/year average revenue loss: GDP boost ≈ $322B/year, revenue feedback
+          ≈ $322B × 0.25 marginal rate ≈ $80B/year = $800B over 10 years.
+          That's an ~17% offset — far from self-financing.
+    validation:
+      method: none
+    expected_insight: >
+      Dynamic scoring recovers ~15-20% of TCJA's cost at standard macro parameters.
+      Self-financing would require GDP growth of ~0.8-1.0pp above baseline each year
+      for a decade — historically unprecedented from a tax cut alone. Post-TCJA growth
+      was broadly in line with pre-existing trends, providing no empirical support
+      for the self-financing claim.
+
+  - id: tcja_adv_ex1
+    title: "Multi-Model Comparison: CBO, JCT, PWBM"
+    type: open_analysis
+    complexity: advanced
+    prompt: >
+      Institutional models disagree significantly on TCJA's effects.
+
+      1. Compare static scores: CBO ($4.6T), JCT ($1.5T conventional),
+         Tax Foundation ($1.8T with dynamic), PWBM ($2.2-3.4T range)
+      2. Explain the methodological sources of divergence:
+         - Treatment of business income (C-corp vs. pass-through)
+         - Dynamic scoring multipliers
+         - Treatment of foreign income (GILTI, FDII repatriation)
+         - Score window (10-year vs. 30-year)
+      3. Using this model, run the TCJA corporate component separately and
+         compare to the CBO estimate of ~$320B for the rate cut alone.
+      4. Write a 400-word comparative methodology note.
+    parameters:
+      - name: rate_change
+        label: "Corporate rate change (decimal, negative = cut)"
+        min: -0.20
+        max: 0.00
+        step: 0.01
+        default: -0.14
+        unit: "decimal"
+      - name: affected_income_threshold
+        label: "Threshold"
+        min: 0
+        max: 1000000
+        step: 50000
+        default: 0
+        unit: "$"
+    hints:
+      - level: 1
+        text: >
+          JCT uses a "Macroeconomic Analysis" procedure distinct from CBO.
+          Key difference: JCT scores the fiscal year effect of provisions,
+          while CBO uses calendar years and a different revenue baseline.
+    validation:
+      method: none
+    expected_insight: >
+      Model divergence on TCJA stems primarily from: (1) pass-through treatment —
+      owners of S-corps and partnerships received a 20% deduction (Section 199A)
+      that some models count as revenue loss and others as economic stimulus;
+      (2) international provisions — GILTI and FDII involve complex netting that
+      affects the score significantly; (3) dynamic assumptions — how much business
+      investment responds to the rate cut drives the feedback loop.

@@ -1,0 +1,264 @@
+id: laffer_curve
+title: "The Laffer Curve: Revenue and Incentives"
+description: >
+  Explore how income tax rate changes affect both government revenue and taxpayer
+  behavior. You will map out the relationship between rates and revenue for high
+  earners, estimate behavioral responses using the Elasticity of Taxable Income
+  (ETI), and identify when higher rates actually collect less revenue.
+complexity_levels:
+  - undergraduate
+  - graduate
+  - advanced
+estimated_minutes: 50
+tags:
+  - income_tax
+  - elasticity
+  - laffer_curve
+  - incentives
+learning_objectives:
+  - "Compute the static revenue effect of a rate change using IRS data"
+  - "Apply the ETI to estimate behavioral offsets"
+  - "Understand when the behavioral offset dominates (revenue-maximizing rate)"
+  - "Explain why estimates differ across individuals and across ETI assumptions"
+
+exercises:
+  - id: laffer_ug_ex1
+    title: "Static Revenue: 2pp Rate Increase on Top Earners"
+    type: parameter_exploration
+    complexity: undergraduate
+    prompt: >
+      The top marginal income tax rate applies to income above $400,000.
+      There are roughly 1.8 million filers in this bracket, with average
+      taxable income of about $1.2 million.
+
+      Using the static formula:
+        ΔRevenue = ΔRate × (Avg_Income − Threshold) × Num_Filers × 10 years
+
+      Set the rate change to 2 percentage points (0.02) and estimate the
+      10-year static revenue gain in billions. Enter your answer below.
+    parameters:
+      - name: rate_change
+        label: "Rate change (decimal, e.g. 0.02 = 2pp)"
+        min: 0.01
+        max: 0.10
+        step: 0.01
+        default: 0.02
+        unit: "decimal"
+        description: "Change in the marginal income tax rate"
+      - name: affected_income_threshold
+        label: "Income threshold ($)"
+        min: 100000
+        max: 1000000
+        step: 50000
+        default: 400000
+        unit: "$"
+        description: "Income level above which the rate applies"
+    hints:
+      - level: 1
+        text: >
+          Start with: ΔRevenue (per year) = ΔRate × (Avg_Income − Threshold) × Num_Filers.
+          For a 2pp increase on $400K+: 0.02 × ($1.2M − $400K) × 1.8M filers.
+          Multiply by 10 for the budget window.
+      - level: 2
+        text: >
+          0.02 × $800,000 × 1,800,000 = $28.8 billion per year → ~$288 billion over 10 years.
+          The model uses real IRS data, so your answer may differ slightly.
+      - level: 3
+        text: >
+          The model score for a 2pp increase on $400K+ income is roughly −$250 to −$280B
+          (negative convention = revenue gain = deficit reduction). Try entering ~$260B.
+    validation:
+      method: relative_to_model
+      policy_type: income_tax
+      policy_params:
+        name: "Student Laffer Policy"
+        description: "2pp increase on $400K+"
+        rate_change: "{rate_change}"
+        affected_income_threshold: "{affected_income_threshold}"
+      target_field: total_static_cost
+      tolerance: 0.02
+    expected_insight: >
+      The static formula shows that revenue scales linearly with the rate change and
+      the taxable income base. With 1.8M filers averaging $800K above the threshold,
+      each percentage point raises ~$14B per year. This is the starting point — before
+      accounting for behavioral responses.
+
+  - id: laffer_ug_ex2
+    title: "Behavioral Offset: The ETI in Action"
+    type: parameter_exploration
+    complexity: undergraduate
+    prompt: >
+      Taxpayers respond to higher rates by reducing taxable income: deferring bonuses,
+      increasing retirement contributions, sheltering income through deductions.
+      The Elasticity of Taxable Income (ETI) measures this response.
+
+      The standard ETI used by CBO is 0.25. The behavioral offset formula is:
+        Offset = −ETI × 0.5 × Static_Revenue
+
+      Given your static estimate from Exercise 1, calculate the behavioral offset
+      and the net revenue effect. Enter the final (net) 10-year revenue change.
+    parameters:
+      - name: rate_change
+        label: "Rate change (decimal)"
+        min: 0.01
+        max: 0.10
+        step: 0.01
+        default: 0.02
+        unit: "decimal"
+      - name: affected_income_threshold
+        label: "Income threshold ($)"
+        min: 100000
+        max: 1000000
+        step: 50000
+        default: 400000
+        unit: "$"
+      - name: taxable_income_elasticity
+        label: "ETI (taxable income elasticity)"
+        min: 0.10
+        max: 0.50
+        step: 0.05
+        default: 0.25
+        unit: "decimal"
+    hints:
+      - level: 1
+        text: >
+          If the static effect is −$288B, the behavioral offset is:
+          −0.25 × 0.5 × −$288B = +$36B (partially offsets the revenue gain).
+          Net = −$288B + $36B = −$252B.
+      - level: 2
+        text: >
+          The ETI = 0.25 means each 1% increase in (1−t) reduces taxable income
+          by 0.25%. The 0.5 factor comes from the "log-linearization" approximation
+          at the midpoint of the rate range.
+    validation:
+      method: relative_to_model
+      policy_type: income_tax
+      policy_params:
+        name: "Student ETI Policy"
+        description: "Rate increase with ETI offset"
+        rate_change: "{rate_change}"
+        affected_income_threshold: "{affected_income_threshold}"
+        taxable_income_elasticity: "{taxable_income_elasticity}"
+      target_field: total_10_year_cost
+      tolerance: 0.02
+    expected_insight: >
+      The ETI shrinks the revenue gain by about 12.5% (= ETI × 0.5 = 0.25 × 0.5).
+      At ETI = 0.25, behavioral responses are relatively modest. If ETI were 1.0
+      (sometimes claimed for top earners), the offset would be 50%, and the
+      revenue-maximizing rate would be around 70%.
+
+  - id: laffer_grad_ex1
+    title: "Revenue-Maximizing Rate"
+    type: target_finding
+    complexity: graduate
+    prompt: >
+      Vary the rate change to find the revenue-maximizing top marginal rate.
+      The current top rate is 37%. At what new rate does further increases stop
+      raising revenue? Use ETI = 0.25.
+
+      The revenue-maximizing rate formula is: t* = 1 / (1 + ETI × (1/(1-t)))
+      — but use the model to verify empirically by trying several rate levels.
+
+      Find the rate change at which the net 10-year revenue is maximized
+      (hint: it is around +35pp to +40pp above the current 37% rate).
+    parameters:
+      - name: rate_change
+        label: "Rate change from 37% baseline (decimal)"
+        min: -0.10
+        max: 0.50
+        step: 0.01
+        default: 0.10
+        unit: "decimal"
+      - name: affected_income_threshold
+        label: "Income threshold ($)"
+        min: 100000
+        max: 1000000
+        step: 50000
+        default: 400000
+        unit: "$"
+      - name: taxable_income_elasticity
+        label: "ETI"
+        min: 0.10
+        max: 1.00
+        step: 0.05
+        default: 0.25
+        unit: "decimal"
+    hints:
+      - level: 1
+        text: >
+          The revenue-maximizing rate from Diamond-Saez (2011) is t* = 1/(1+a×e)
+          where e is the ETI and a ≈ 1.5 (Pareto parameter for top incomes).
+          With e = 0.25: t* ≈ 1/(1+1.5×0.25) ≈ 73%. So adding ~36pp to 37% = 73%.
+      - level: 2
+        text: >
+          At very high rates the behavioral offset equals the static gain, so net
+          revenue approaches zero. Try rate_change = 0.35 (→72%) and 0.40 (→77%)
+          and note that revenue starts falling after the peak.
+      - level: 3
+        text: >
+          Due to model linearity, the peak is approximate. The model finds
+          diminishing returns above ~65-70% effective rate. Score around
+          rate_change = 0.33 for the "close enough" validation to pass.
+    validation:
+      method: relative_to_model
+      policy_type: income_tax
+      policy_params:
+        name: "Revenue-Maximizing Rate Search"
+        description: "Graduate exercise"
+        rate_change: "{rate_change}"
+        affected_income_threshold: "{affected_income_threshold}"
+        taxable_income_elasticity: "{taxable_income_elasticity}"
+      target_field: total_10_year_cost
+      tolerance: 0.02
+    expected_insight: >
+      At ETI = 0.25, the revenue-maximizing top rate is around 70-75% (Diamond-Saez 2011).
+      The US top rate at 37% is well below this peak, meaning there is theoretical
+      room to raise revenue. However, real-world considerations — international
+      mobility, income shifting to corporations, political economy — make the
+      practical peak lower than the theoretical optimum.
+
+  - id: laffer_adv_ex1
+    title: "ETI Sensitivity and Model Comparison"
+    type: open_analysis
+    complexity: advanced
+    prompt: >
+      Conduct a full sensitivity analysis of the Laffer curve for top earners.
+
+      1. Compute the 10-year revenue effect at rate changes from −5pp to +30pp
+         in 1pp increments, using ETI ∈ {0.10, 0.25, 0.40, 0.80}.
+      2. Plot revenue vs. rate for each ETI assumption.
+      3. Identify the revenue-maximizing rate for each ETI.
+      4. Compare your estimates to PWBM (Penn Wharton) and Tax Foundation published
+         scores for similar top-rate increases.
+      5. Write a 200-word methodology note explaining why your estimates differ
+         from the published scores.
+
+      Use the model's batch scoring via: rate_change in np.linspace(-0.05, 0.30, 36)
+    parameters:
+      - name: rate_change
+        label: "Rate change for spot check (decimal)"
+        min: -0.10
+        max: 0.50
+        step: 0.01
+        default: 0.10
+        unit: "decimal"
+      - name: taxable_income_elasticity
+        label: "ETI for spot check"
+        min: 0.10
+        max: 1.00
+        step: 0.05
+        default: 0.25
+        unit: "decimal"
+    hints:
+      - level: 1
+        text: >
+          Use Python: from fiscal_model.scoring import FiscalPolicyScorer; scorer = FiscalPolicyScorer().
+          Loop over rate_changes with scorer.score_policy(policy, dynamic=False).
+    validation:
+      method: none
+    expected_insight: >
+      Higher ETI flattens and shifts left the revenue curve, lowering the peak
+      and making it more sensitive to rate levels. Real-world ETI estimates range
+      from 0.1 (Chetty 2012 for non-top earners) to 0.5+ (Feldstein 1999 for
+      top earners). The choice of ETI is the single largest driver of divergence
+      across institutional models.

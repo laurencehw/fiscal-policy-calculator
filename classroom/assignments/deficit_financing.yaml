@@ -1,0 +1,243 @@
+id: deficit_financing
+title: "Deficit Financing: Crowding Out, Multipliers, and Sustainability"
+description: >
+  Explore how government borrowing affects the economy. Compare deficit-financed
+  spending with tax-financed spending, examine crowding out of private investment,
+  and assess long-run debt sustainability using the primary balance rule.
+complexity_levels:
+  - undergraduate
+  - graduate
+  - advanced
+estimated_minutes: 55
+tags:
+  - deficit
+  - fiscal_multiplier
+  - crowding_out
+  - debt_sustainability
+  - macroeconomics
+learning_objectives:
+  - "Compute fiscal multipliers for spending vs. tax changes"
+  - "Apply the crowding-out framework to estimate private investment displacement"
+  - "Use the debt dynamics equation to assess sustainability"
+  - "Compare Keynesian and Ricardian views of deficit finance"
+
+exercises:
+  - id: deficit_ug_ex1
+    title: "Spending Multiplier: $100B Infrastructure Package"
+    type: parameter_exploration
+    complexity: undergraduate
+    prompt: >
+      The government proposes a $100 billion per year infrastructure investment
+      package, deficit-financed (no offsetting tax increases).
+
+      The spending multiplier measures the total GDP boost per dollar of spending:
+        ΔGDP = Multiplier × ΔSpending
+
+      Standard estimates:
+      - CBO: spending multiplier ~1.0 in normal times
+      - FRB/US calibrated: ~1.4 in year 1, decaying over time
+      - At zero lower bound (recession): 1.5-2.0
+
+      Estimate the year-1 GDP boost and the 10-year cumulative boost
+      from a $100B/year spending increase using a multiplier of 1.4.
+    parameters:
+      - name: annual_change_billions
+        label: "Annual spending change ($B, positive = increase)"
+        min: 10.0
+        max: 500.0
+        step: 10.0
+        default: 100.0
+        unit: "$B/year"
+      - name: multiplier
+        label: "Fiscal multiplier"
+        min: 0.5
+        max: 2.0
+        step: 0.1
+        default: 1.4
+        unit: "x"
+    hints:
+      - level: 1
+        text: >
+          Year-1 GDP boost = $100B × 1.4 = $140B.
+          But multipliers decay as crowding out occurs: year-2 effect ≈ 1.4 × 0.75 = 1.05×,
+          etc. Cumulative 10-year GDP boost ≈ $100B × (1.4 + 1.05 + 0.79 + ...) ≈ $560B.
+          Revenue feedback = 25% of GDP boost ≈ $140B over 10 years.
+      - level: 2
+        text: >
+          Net deficit effect: $1,000B spending (10yr) − $140B revenue feedback = $860B
+          net increase in deficit. The 10-year spending cost is only partially offset
+          by economic growth effects.
+    validation:
+      method: relative_to_model
+      policy_type: spending
+      policy_params:
+        name: "Infrastructure Package"
+        description: "Annual spending increase"
+        annual_change_billions: "{annual_change_billions}"
+      target_field: total_10_year_cost
+      tolerance: 0.05
+    expected_insight: >
+      Spending multipliers above 1.0 mean that each dollar of government spending
+      generates more than a dollar of GDP — initially. But this is temporary:
+      crowding out of private investment and monetary policy normalization erode
+      the multiplier over time. CBO uses a range of 0.5-2.5 depending on the
+      state of the economy and type of spending.
+
+  - id: deficit_ug_ex2
+    title: "Crowding Out: Does Government Borrowing Displace Investment?"
+    type: parameter_exploration
+    complexity: undergraduate
+    prompt: >
+      When the government borrows, it competes with private borrowers for
+      loanable funds, potentially "crowding out" private investment.
+
+      CBO assumes a "crowding out coefficient" of ~$0.33: each dollar of
+      deficit reduces private capital by $0.33 in the long run.
+
+      Given:
+      - US private investment is ~$4.5T/year
+      - Current deficit is ~$1.8T/year (6% of $30T GDP)
+      - Proposed policy adds $200B/year in new borrowing
+
+      Estimate: how much private investment is displaced by the new $200B/year
+      borrowing (using the $0.33 coefficient)?
+    parameters:
+      - name: new_borrowing_billions
+        label: "New annual deficit ($B)"
+        min: 50.0
+        max: 500.0
+        step: 10.0
+        default: 200.0
+        unit: "$B"
+      - name: crowding_out_coefficient
+        label: "Crowding-out coefficient ($ capital per $ debt)"
+        min: 0.0
+        max: 1.0
+        step: 0.05
+        default: 0.33
+        unit: "$ per $"
+    hints:
+      - level: 1
+        text: >
+          Crowding out per year = $200B × $0.33 = $66B reduction in private investment/year.
+          Over 10 years: $660B less private capital.
+          This reduces future GDP: each $1 of capital raises GDP by ~$0.10-0.15/year
+          (MPK ≈ 0.10-0.15). So $660B less capital → ~$66-99B less GDP per year eventually.
+    validation:
+      method: range_check
+      min_acceptable: 40.0
+      max_acceptable: 100.0
+    expected_insight: >
+      At CBO's standard 33% crowding-out coefficient, the $200B annual deficit adds
+      $66B of capital displacement per year — meaningful but not catastrophic in
+      the short run. Over decades, the cumulative capital reduction becomes large
+      enough to visibly affect wages and productivity, which is the central argument
+      for long-run fiscal sustainability.
+
+  - id: deficit_grad_ex1
+    title: "Debt Dynamics: Is Current Debt Sustainable?"
+    type: target_finding
+    complexity: graduate
+    prompt: >
+      The debt dynamics equation: Δ(D/Y) = (r−g)(D/Y) − S
+      where D/Y = debt-to-GDP ratio, r = real interest rate,
+      g = real GDP growth rate, S = primary surplus (positive = surplus)
+
+      Current US parameters (2026):
+      - D/Y = 100% (approx $30T debt / $30T GDP)
+      - r = 2.5% (10-year TIPS yield)
+      - g = 2.0% (CBO baseline real growth)
+      - Primary deficit ≈ 3% of GDP (S = −3%)
+
+      Is current policy sustainable? What primary surplus is needed to
+      stabilize debt at 100%?
+
+      For stabilization: S = (r−g) × D/Y
+      = (0.025 − 0.020) × 1.00 = 0.5% of GDP
+
+      But actual S = −3%. Annual gap = 3.5% of GDP.
+      Enter the required primary balance improvement (pp of GDP) to stabilize.
+    parameters:
+      - name: real_interest_rate_pct
+        label: "Real interest rate (%)"
+        min: 0.0
+        max: 5.0
+        step: 0.1
+        default: 2.5
+        unit: "%"
+      - name: real_growth_pct
+        label: "Real GDP growth (%)"
+        min: 0.0
+        max: 4.0
+        step: 0.1
+        default: 2.0
+        unit: "%"
+      - name: primary_deficit_pct
+        label: "Primary deficit (% of GDP, positive = deficit)"
+        min: -2.0
+        max: 6.0
+        step: 0.1
+        default: 3.0
+        unit: "% GDP"
+    hints:
+      - level: 1
+        text: >
+          Stabilizing condition: S_required = (r−g) × (D/Y).
+          With r=2.5%, g=2.0%, D/Y=100%: S_required = 0.5% surplus.
+          Current S = −3.0% (deficit). Gap = 3.5pp of GDP.
+          To close the gap: need to cut spending or raise taxes by 3.5% of GDP
+          = ~$1.05T/year.
+    validation:
+      method: range_check
+      min_acceptable: 2.5
+      max_acceptable: 5.0
+    expected_insight: >
+      The debt sustainability gap is roughly 3-4pp of GDP annually.
+      This is a large fiscal adjustment by historical standards — comparable
+      to the 1990s Clinton-era consolidation (~2.5pp) or the 2010 UK austerity
+      (~5pp over 5 years). The r vs. g relationship is crucial: if growth exceeds
+      interest rates (as post-WWII), debt can decline without primary surpluses.
+
+  - id: deficit_adv_ex1
+    title: "Fiscal Space and Debt Limits: A Research Exercise"
+    type: open_analysis
+    complexity: advanced
+    prompt: >
+      "Fiscal space" refers to the government's capacity to increase spending
+      or cut taxes without triggering a debt crisis. It is not directly observable.
+
+      1. Use the model's Solow growth simulation to show how a 1pp/year higher
+         deficit path affects the capital stock and wages over 30 years.
+      2. Apply the Blanchard (2019) r<g framework: if real interest rates
+         remain below growth rates, can the US run indefinite primary deficits?
+      3. Quantify the fiscal cost of the "doom loop": if markets demand a
+         +100bp risk premium on US debt due to fiscal concerns, what is the
+         additional annual interest cost (current debt ~$36T)?
+      4. Compare the US fiscal position to: Japan (D/Y=250%), Germany (D/Y=65%),
+         UK (D/Y=100%). What explains the difference in market reaction?
+      5. Write a 500-word analysis of US fiscal sustainability using both
+         the model results and external sources.
+    parameters:
+      - name: additional_deficit_pct_gdp
+        label: "Additional annual deficit (% GDP)"
+        min: 0.0
+        max: 5.0
+        step: 0.5
+        default: 1.0
+        unit: "% GDP"
+    hints:
+      - level: 1
+        text: >
+          Doom loop interest cost: $36T × 0.01 = $360B/year additional interest.
+          At current $1.0T interest expense, this is a 36% increase.
+          Blanchard (2019): r<g since 1980 (with gaps), but this is not guaranteed
+          and does not apply equally to all countries.
+    validation:
+      method: none
+    expected_insight: >
+      The Blanchard framework is theoretically valid but requires r<g to be a
+      persistent equilibrium, not just a temporary favorable condition. US fiscal
+      space is large by conventional metrics but not unlimited. The comparison
+      to Japan suggests markets may tolerate higher debt-to-GDP in reserve-currency
+      countries — but Japan's experience also shows that high debt constrains
+      policy flexibility when shocks arrive.
