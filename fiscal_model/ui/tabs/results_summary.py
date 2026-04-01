@@ -118,9 +118,10 @@ def render_results_summary_tab(
         low_estimate = static_deficit_total + (behavioral_total * scale_low) - dynamic_revenue_feedback_total
         high_estimate = static_deficit_total + (behavioral_total * scale_high) - dynamic_revenue_feedback_total
 
-        st_module.caption(
-            f"**Sensitivity range:** ${low_estimate:+.1f}B to ${high_estimate:+.1f}B "
-            f"(ETI {eti_low:.2f} to {eti_high:.2f})"
+        st_module.markdown(
+            f"<small><b>Sensitivity range:</b> ${low_estimate:+.1f}B to ${high_estimate:+.1f}B "
+            f"(ETI {eti_low:.2f} to {eti_high:.2f})</small>",
+            unsafe_allow_html=True,
         )
 
     # CBO comparison note (if available)
@@ -129,9 +130,11 @@ def render_results_summary_tab(
     if cbo_data:
         official = cbo_data["official_score"]
         error_pct = ((final_deficit_total - official) / abs(official)) * 100 if official != 0 else 0
-        st_module.caption(
-            f"📌 **CBO/JCT estimate:** ${official:+,.0f}B | **Model:** ${final_deficit_total:+,.0f}B | "
-            f"**Difference:** {error_pct:+.1f}%"
+        st_module.markdown(
+            f"<small>📌 <b>CBO/JCT estimate:</b> ${official:+,.0f}B | "
+            f"<b>Model:</b> ${final_deficit_total:+,.0f}B | "
+            f"<b>Difference:</b> {error_pct:+.1f}%</small>",
+            unsafe_allow_html=True,
         )
 
     # Plain-English interpretation
