@@ -60,23 +60,23 @@ class DynamicScoringModel(BaseScoringModel):
     Dynamic scoring with macroeconomic feedback.
 
     Extends conventional scoring with GDP, employment, and interest rate
-    effects using FRB/US-calibrated multipliers. Revenue feedback from
-    GDP growth partially offsets the static cost.
+    effects via EconomicModel (condition-adjusted multipliers). Revenue
+    feedback from GDP growth partially offsets the static cost.
     """
 
-    def __init__(self, use_real_data: bool = True, macro_model: str = "frbus_lite"):
+    def __init__(self, use_real_data: bool = True):
         self._scorer = FiscalPolicyScorer(use_real_data=use_real_data)
-        self._macro_model = macro_model
 
     @property
     def name(self) -> str:
-        return "CBO Dynamic (FRB/US-Lite)"
+        return "CBO Dynamic"
 
     @property
     def methodology(self) -> str:
         return (
             "Static + behavioral + macro feedback. "
-            "FRB/US-calibrated multipliers (spending=1.4, tax=-0.7)."
+            "EconomicModel with condition-adjusted multipliers "
+            "(spending=1.0, tax=0.5 in normal times)."
         )
 
     def score(self, policy: Policy) -> ModelResult:
@@ -102,16 +102,17 @@ class DynamicScoringModel(BaseScoringModel):
         )
 
     def get_assumptions(self) -> dict:
+        # Pull actual parameters from the scorer's economic model
+        params = self._scorer.economic_model.params
         return {
             "scoring_type": "dynamic",
-            "eti": 0.25,
+            "eti": params.get("eti", 0.25),
             "dynamic": True,
-            "macro_model": self._macro_model,
-            "spending_multiplier": 1.4,
-            "tax_multiplier": -0.7,
-            "multiplier_decay": 0.75,
-            "crowding_out": 0.15,
-            "marginal_revenue_rate": 0.25,
+            "spending_multiplier": params.get("spending_multiplier_peak", 1.0),
+            "tax_multiplier": params.get("tax_multiplier", 0.5),
+            "multiplier_decay": params.get("spending_multiplier_decay", 0.7),
+            "crowding_out": params.get("crowding_out", 0.03),
+            "marginal_revenue_rate": params.get("marginal_revenue_rate", 0.25),
         }
 
 
@@ -123,6 +124,8 @@ class MicrosimScoringModel(BaseScoringModel):
     baseline and reform scenarios, computing the weighted tax change
     at the individual level. This captures phase-outs, cliffs, AMT,
     SALT cap, and EITC/CTC interactions that aggregate models miss.
+
+    Requires a TaxPolicy with rate_change and affected_income_threshold.
     """
 
     def __init__(self):
@@ -147,19 +150,24 @@ class MicrosimScoringModel(BaseScoringModel):
     def score(self, policy: Policy) -> ModelResult:
         from fiscal_model.microsim.engine import MicroTaxCalculator
 
+        # Validate required policy attributes
+        if not hasattr(policy, "rate_change") or not hasattr(policy, "affected_income_threshold"):
+            raise ValueError(
+                f"MicrosimScoringModel requires a TaxPolicy with rate_change and "
+                f"affected_income_threshold, got {type(policy).__name__}"
+            )
+
+        rate_change = float(policy.rate_change)
+        threshold = float(policy.affected_income_threshold)
+
         # 1. Baseline tax: compute tax for all records under current law
         baseline_df = self._calc.calculate(self._pop_df)
 
-        # 2. Reform tax: apply rate change to affected filers
-        rate_change = getattr(policy, "rate_change", 0)
-        threshold = getattr(policy, "affected_income_threshold", 0)
-
+        # 2. Reform tax: apply rate change to affected brackets
         if rate_change != 0:
-            # Create a reform calculator with modified rates
             reform_calc = MicroTaxCalculator(year=2025)
 
-            # Shift all bracket rates by the rate change for income above threshold
-            # This is simplified: applies uniformly to all brackets above threshold
+            # Shift bracket rates for income above threshold
             for i, bracket_floor in enumerate(reform_calc.brackets_mfj):
                 if bracket_floor >= threshold:
                     reform_calc.rates_mfj[i] = min(1.0, max(0.0, reform_calc.rates_mfj[i] + rate_change))
@@ -171,19 +179,16 @@ class MicrosimScoringModel(BaseScoringModel):
         else:
             reform_df = baseline_df
 
-        # 3. Compute weighted tax change
+        # 3. Compute weighted tax change per individual
         weights = baseline_df["weight"].values
-        baseline_tax = baseline_df["final_tax"].values
-        reform_tax = reform_df["final_tax"].values
-        tax_change = reform_tax - baseline_tax
+        tax_change = reform_df["final_tax"].values - baseline_df["final_tax"].values
 
         # Weighted annual revenue change (positive = more revenue)
         annual_revenue_change = (tax_change * weights).sum() / 1e9
 
         # Apply growth (~4% nominal) over 10-year window
         annual_effects_revenue = np.array([annual_revenue_change * (1.04 ** i) for i in range(10)])
-        # Deficit effect: negative revenue = positive deficit
-        deficit_effects = -annual_effects_revenue
+        deficit_effects = -annual_effects_revenue  # Negative revenue = positive deficit
 
         ten_year = float(np.sum(deficit_effects))
 
@@ -210,7 +215,7 @@ class MicrosimScoringModel(BaseScoringModel):
         return {
             "scoring_type": "microsimulation",
             "data_source": "CPS ASEC 2024",
-            "tax_units": 56_000,
+            "tax_units": len(self._pop_df),
             "captures": ["phase-outs", "AMT", "SALT cap", "EITC/CTC"],
             "growth_rate": 0.04,
         }

@@ -5,11 +5,14 @@ Uses Current Population Survey (CPS ASEC) microdata to produce precise
 filer counts and income statistics by threshold, replacing the heuristic
 AGI-to-taxable-income adjustment in the IRS SOI pipeline.
 
-The CPS microdata includes individual-level AGI, deductions, and weights,
-enabling exact computation of:
-- Number of filers with taxable income above a threshold
-- Average taxable income for affected filers
+The CPS microdata includes individual-level AGI and population weights,
+enabling more precise estimation of:
+- Number of filers with income above a threshold
+- Average taxable income for affected filers (using standard deduction approximation)
 - Effective tax rates by income group
+
+Note: Taxable income is approximated as max(0, AGI - standard_deduction).
+Itemized deductions are not modeled; actual taxable income may differ.
 
 This module provides a drop-in replacement for IRSSOIData.get_filers_by_bracket()
 with higher fidelity for rate-change policies.
@@ -97,6 +100,9 @@ class CPSAutoPopulator:
         if income_basis not in ("taxable_income", "agi"):
             raise ValueError(f"income_basis must be 'taxable_income' or 'agi', got '{income_basis}'")
 
+        # Normalize threshold (match IRSSOIData.get_filers_by_bracket behavior)
+        threshold = max(0.0, float(threshold))
+
         df = self._df
         mask = df[income_basis] >= threshold
         affected = df[mask]
@@ -153,4 +159,6 @@ class CPSAutoPopulator:
             total_tax += income_in_bracket * rates[i]
 
         denominator = (taxable_income * weights).sum()
-        return (total_tax * weights).sum() / denominator if denominator > 0 else 0.0
+        if np.isclose(denominator, 0.0):
+            return 0.0
+        return (total_tax * weights).sum() / denominator

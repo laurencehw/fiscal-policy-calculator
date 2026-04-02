@@ -125,7 +125,7 @@ class ModelComparison:
         return sum(r.ten_year_cost for r in self.results) / len(self.results)
 
     def to_dataframe(self) -> pd.DataFrame:
-        """Convert comparison to a DataFrame for display."""
+        """Convert comparison to a DataFrame with numeric columns."""
         import pandas as pd_lib
 
         rows = []
@@ -133,11 +133,11 @@ class ModelComparison:
             rows.append({
                 "Model": r.model_name,
                 "Methodology": r.methodology,
-                "10-Year Cost ($B)": f"${r.ten_year_cost:,.0f}",
-                "Annual Avg ($B)": f"${r.average_annual:,.0f}",
-                "Low ($B)": f"${r.low_estimate:,.0f}",
-                "High ($B)": f"${r.high_estimate:,.0f}",
-                "GDP Effect (%)": f"{r.gdp_effect_pct:+.2f}%" if r.gdp_effect_pct else "N/A",
+                "10-Year Cost ($B)": r.ten_year_cost,
+                "Annual Avg ($B)": r.average_annual,
+                "Low ($B)": r.low_estimate,
+                "High ($B)": r.high_estimate,
+                "GDP Effect (%)": r.gdp_effect_pct,
             })
         return pd_lib.DataFrame(rows)
 
