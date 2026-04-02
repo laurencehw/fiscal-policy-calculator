@@ -1,13 +1,13 @@
 # Fiscal Policy Impact Calculator
 
 [![Tests](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml/badge.svg)](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml)
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://laurencehw-fiscal-policy-calculator.streamlit.app)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://fiscal-policy-calculator.streamlit.app)
 ![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 Estimate the 10-year budgetary and economic effects of U.S. tax and spending proposals using CBO methodology, IRS data, and FRB/US-calibrated dynamic scoring.
 
-**[Launch the app](https://laurencehw-fiscal-policy-calculator.streamlit.app)**
+**[Launch the app](https://fiscal-policy-calculator.streamlit.app)**
 
 ---
 
@@ -66,7 +66,7 @@ Plus fully custom policy design with adjustable parameters.
 
 ### Use the web app
 
-Visit **[laurencehw-fiscal-policy-calculator.streamlit.app](https://laurencehw-fiscal-policy-calculator.streamlit.app)** — no installation needed.
+Visit **[fiscal-policy-calculator.streamlit.app](https://fiscal-policy-calculator.streamlit.app)** — no installation needed.
 
 ### Run locally
 
@@ -196,12 +196,26 @@ pytest tests/ -v                        # 685 tests
 pytest tests/ --cov=fiscal_model        # With coverage (~72%)
 ```
 
+### Verify public app availability
+
+```bash
+# Optional: override default URL used by the check
+export FISCAL_POLICY_APP_URL="https://your-app.streamlit.app"
+
+python scripts/check_public_app.py
+```
+
 ### Lint
 
 ```bash
 pip install ruff
 ruff check fiscal_model/ tests/
 ```
+
+### Reproducibility (dependency lock strategy)
+
+- CI now exports a `pip freeze` lock snapshot artifact for each Python version.
+- Use that artifact as the exact dependency lock for reproducing a CI run locally.
 
 ### Project structure
 

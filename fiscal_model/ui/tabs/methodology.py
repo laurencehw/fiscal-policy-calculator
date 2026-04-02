@@ -87,8 +87,8 @@ def render_methodology_tab(st_module: Any) -> None:
             "10-year revenue, spending, and deficit projections under "
             "current law. Forms the baseline against which all policy "
             "changes are measured.\n\n"
-            "*Source:* [CBO Budget Outlook, Feb 2024]"
-            "(https://www.cbo.gov/publication/59710)"
+            "*Source:* [CBO Budget and Economic Outlook, Feb 2026]"
+            "(https://www.cbo.gov/topics/budget)"
         )
 
     # ── Key parameters ───────────────────────────────────────────────────
@@ -244,9 +244,10 @@ def render_methodology_tab(st_module: Any) -> None:
         "provisions (e.g., AMT + SALT + CTC phase-outs) are approximated.\n"
         "2. **Simplified corporate model** — Pass-through income (S-corps, "
         "partnerships) not fully modeled.\n"
-        "3. **Federal only** — No state or local tax interactions.\n"
-        "4. **No trade policy** — Tariffs and trade effects planned for "
-        "a future phase.\n"
+        "3. **State interactions are partial** — state modeling currently "
+        "covers top states with representative-taxpayer assumptions.\n"
+        "4. **Trade module is separate** — tariff scoring is available, but "
+        "integration with all policy modules is still evolving.\n"
         "5. **Reduced-form dynamic scoring** — Uses calibrated multipliers "
         "rather than structural general-equilibrium equations.\n"
         "6. **2-year data lag** — IRS SOI data is from 2022; taxpayer "
@@ -300,7 +301,7 @@ def render_methodology_tab(st_module: Any) -> None:
             "Methodologies.\" [jct.gov](https://www.jct.gov/publications/2017/jcx-1-17/)\n"
             "9. Yale Budget Lab. \"Methodology and Documentation.\" "
             "[budgetlab.yale.edu](https://budgetlab.yale.edu/research)\n"
-            "10. CBO (2024). \"The Budget and Economic Outlook: 2024 to 2034.\"\n\n"
+            "10. CBO (2026). \"The Budget and Economic Outlook: 2026 to 2036.\"\n\n"
             "**Data sources:**\n\n"
             "11. IRS Statistics of Income: [irs.gov/statistics]"
             "(https://www.irs.gov/statistics/soi-tax-stats-individual-income-tax-statistics)\n"

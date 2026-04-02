@@ -4,6 +4,7 @@ Reusable UI-facing helpers that keep app.py focused on rendering.
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 import numpy as np
@@ -25,6 +26,11 @@ TEXTBOOK_LINKS = {
 TEXTBOOK_HOME = (
     "https://laurence-wilse-samson.gitbook.io/textbooks/public-economcis"
 )
+
+PUBLIC_APP_URL = os.getenv(
+    "FISCAL_POLICY_APP_URL",
+    "https://fiscal-policy-calculator.streamlit.app",
+).rstrip("/")
 
 
 def build_macro_scenario(policy: Any, result: Any, is_spending_policy: bool, macro_scenario_cls: Any) -> Any:

@@ -246,9 +246,10 @@ class BudgetReport:
 
         colors = plt.cm.Set2(np.linspace(0, 1, n_policies))
         bars = ax1.bar(x, totals, color=colors)
+        lower_error = np.maximum(0.0, np.array(totals) - np.array(lows))
+        upper_error = np.maximum(0.0, np.array(highs) - np.array(totals))
         ax1.errorbar(x, totals,
-                    yerr=[np.array(totals) - np.array(lows),
-                          np.array(highs) - np.array(totals)],
+                    yerr=[lower_error, upper_error],
                     fmt='none', color='black', capsize=5)
 
         ax1.set_xlabel('Policy')

@@ -7,12 +7,9 @@ URL routing:
 """
 
 from pathlib import Path
-import sys
 
 import pandas as pd
 import streamlit as st
-
-sys.path.insert(0, str(Path(__file__).parent))
 
 # Route to classroom mode before setting page config (set_page_config must
 # be the first Streamlit call, so we read query params first via the dict).

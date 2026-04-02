@@ -1,0 +1,96 @@
+{
+  "generated_at": "2026-04-01T12:00:00Z",
+  "bills": [
+    {
+      "bill_id": "hr1001-119",
+      "bill_type": "hr",
+      "number": "1001",
+      "title": "Middle Class Tax Relief Act",
+      "summary": "Temporarily expands the child tax credit and increases the standard deduction for middle-income households.",
+      "sponsor": "Rep. Smith",
+      "status": "committee",
+      "introduced_date": "2026-02-03",
+      "url": "https://www.congress.gov/bill/119th-congress/house-bill/1001",
+      "cbo_score": {
+        "ten_year_cost_billions": 185.0,
+        "estimate_date": "2026-03-12",
+        "cbo_url": "https://www.cbo.gov"
+      },
+      "auto_score": {
+        "ten_year_cost_billions": 172.0,
+        "static_cost": 160000000000.0,
+        "behavioral_offset": 12000000000.0,
+        "confidence": "medium",
+        "scored_at": "2026-03-13",
+        "policies": [
+          {
+            "policy_type": "tax_credit",
+            "provision_text": "Expand Child Tax Credit to $2,800 for years 2027-2030.",
+            "confidence": "high"
+          }
+        ]
+      }
+    },
+    {
+      "bill_id": "s502-119",
+      "bill_type": "s",
+      "number": "502",
+      "title": "Corporate Competitiveness and Deficit Reduction Act",
+      "summary": "Raises the corporate tax rate and reforms international minimum-tax rules to reduce deficits.",
+      "sponsor": "Sen. Jones",
+      "status": "introduced",
+      "introduced_date": "2026-01-18",
+      "url": "https://www.congress.gov/bill/119th-congress/senate-bill/502",
+      "cbo_score": null,
+      "auto_score": {
+        "ten_year_cost_billions": -420.0,
+        "static_cost": -380000000000.0,
+        "behavioral_offset": -40000000000.0,
+        "confidence": "high",
+        "scored_at": "2026-03-28",
+        "policies": [
+          {
+            "policy_type": "corporate_tax",
+            "provision_text": "Increase corporate statutory rate from 21% to 25%.",
+            "confidence": "high"
+          },
+          {
+            "policy_type": "international_tax",
+            "provision_text": "Apply country-by-country GILTI reforms and tighten FTC rules.",
+            "confidence": "medium"
+          }
+        ]
+      }
+    },
+    {
+      "bill_id": "hr2300-119",
+      "bill_type": "hr",
+      "number": "2300",
+      "title": "Clean Energy Investment Extension Act",
+      "summary": "Extends selected clean energy production and investment credits and modifies EV credit eligibility.",
+      "sponsor": "Rep. Lee",
+      "status": "passed_chamber",
+      "introduced_date": "2025-11-09",
+      "url": "https://www.congress.gov/bill/119th-congress/house-bill/2300",
+      "cbo_score": {
+        "ten_year_cost_billions": 95.0,
+        "estimate_date": "2026-02-21",
+        "cbo_url": "https://www.cbo.gov"
+      },
+      "auto_score": {
+        "ten_year_cost_billions": 102.0,
+        "static_cost": 98000000000.0,
+        "behavioral_offset": 4000000000.0,
+        "confidence": "medium",
+        "scored_at": "2026-02-23",
+        "policies": [
+          {
+            "policy_type": "climate_energy",
+            "provision_text": "Extend IRA clean energy credits for 3 years with phase-down.",
+            "confidence": "medium"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -43,9 +43,14 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pytest tests/ -v --tb=short --cov=fiscal_model --cov-report=term-missing
+          pytest tests/ -v --tb=short --cov=fiscal_model --cov-report=term-missing --cov-fail-under=60
 
-      # Coverage threshold disabled for now - can enable once more tests are added
-      # - name: Check test coverage
-      #   run: |
-      #     pytest tests/ --cov=fiscal_model --cov-fail-under=50
+      - name: Export dependency lock snapshot
+        run: |
+          pip freeze --exclude-editable > requirements-lock-ci.txt
+
+      - name: Upload lock snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: requirements-lock-${{ matrix.python-version }}
+          path: requirements-lock-ci.txt

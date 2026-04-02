@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .calculation_controller import (
+    SINGLE_POLICY_MODE,
     ensure_results_state,
     execute_calculation_if_requested,
     render_sidebar_inputs,
@@ -137,7 +138,8 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
     st_module.caption(
         "Estimate the 10-year budgetary and economic effects of U.S. tax and "
         "spending proposals. Powered by IRS data, FRED, and CBO methodology. "
-        f"Companion to the [Public Economics textbook]({TEXTBOOK_HOME})."
+        f"Companion to the [Public Economics textbook]({TEXTBOOK_HOME}). "
+        "[Classroom Mode](?mode=classroom)."
     )
 
     top_tabs = st_module.tabs([
@@ -166,8 +168,7 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         render_footer(st_module=st_module)
 
     with top_tabs[3]:
-        from .tabs.bill_tracker import render_bill_tracker_tab
-        render_bill_tracker_tab(st_module=st_module)
+        deps.render_bill_tracker_tab(st_module=st_module)
         render_footer(st_module=st_module)
 
     with top_tabs[4]:
@@ -197,15 +198,28 @@ def _render_calculator(
 
         # 3. Calculate button
         st_module.markdown("---")
+        single_policy_mode = calc_context["mode"] == SINGLE_POLICY_MODE
         calculate = st_module.button(
             "Calculate Impact",
             type="primary",
             use_container_width=True,
+            disabled=not single_policy_mode,
         )
+        if not single_policy_mode:
+            st_module.caption(
+                "Calculation runs from the selected workflow tab "
+                "(comparison or package builder)."
+            )
         calc_context["calculate"] = calculate
 
         # 4. Data Status (bottom of sidebar — infrastructure, not decision-relevant)
         render_data_status(st_module=st_module, deps=deps)
+
+        with st_module.expander("🎓 Classroom Mode", expanded=False):
+            st_module.markdown(
+                "Instructor-ready assignments, hints, and export tools.\n\n"
+                "[Open Classroom Mode](?mode=classroom)"
+            )
 
     # ── Main content ─────────────────────────────────────────────────────
     calc_context["run_id"] = compute_run_id(calc_context=calc_context, settings=settings)

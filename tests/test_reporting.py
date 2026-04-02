@@ -158,11 +158,6 @@ class TestPlotBudgetEffects:
         assert fig is not None
         plt.close(fig)
 
-    @pytest.mark.xfail(
-        reason="errorbar yerr can go negative for certain policies — known upstream issue",
-        raises=ValueError,
-        strict=False,
-    )
     def test_plot_comparison_callable(self, report, second_result):
         """plot_comparison is callable."""
         import matplotlib.pyplot as plt

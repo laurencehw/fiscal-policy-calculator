@@ -7,6 +7,7 @@ and freshness indicators. Connects to SQLite bill database.
 
 from __future__ import annotations
 
+from datetime import datetime
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -15,6 +16,7 @@ if TYPE_CHECKING:
     from bill_tracker.freshness import FreshnessStatus
 
 DEFAULT_DB_PATH = Path(__file__).parent.parent.parent.parent / "fiscal_model" / "data_files" / "bills.db"
+DEMO_DATA_PATH = Path(__file__).parent.parent.parent.parent / "fiscal_model" / "data_files" / "bill_tracker_demo.json"
 
 
 def render_bill_tracker_tab(st_module: Any, db_path: str | None = None) -> None:
@@ -29,11 +31,17 @@ def render_bill_tracker_tab(st_module: Any, db_path: str | None = None) -> None:
     st_module.caption("119th Congress (2025–2027) · Fiscal bills tracked daily from congress.gov")
 
     # Load database
-    db = _get_database(db_path)
+    db, using_demo = _get_database(db_path)
 
     if db is None:
         _render_no_db_state(st_module)
         return
+
+    if using_demo:
+        st_module.info(
+            "Showing demo Bill Tracker data. "
+            "Run `python scripts/update_bills.py` to load live congress.gov data."
+        )
 
     # Pipeline status bar
     _render_status_bar(st_module, db)
@@ -362,12 +370,75 @@ def _format_cost(cost: float) -> str:
     return f"{sign}${abs_cost * 1000:.0f}M"
 
 
-def _get_database(db_path: str | None) -> Any | None:
-    """Load the bill database, returning None if not available."""
+class _DemoBillDatabase:
+    """In-memory adapter that mirrors BillDatabase methods for hosted demo mode."""
+
+    def __init__(self, payload: dict[str, Any]) -> None:
+        self._generated_at = payload.get("generated_at")
+        self._bills: list[dict[str, Any]] = payload.get("bills", [])
+        self._cbo_by_bill = {}
+        self._auto_by_bill = {}
+
+        for bill in self._bills:
+            bill_id = bill.get("bill_id")
+            if not bill_id:
+                continue
+            cbo_score = bill.get("cbo_score")
+            auto_score = bill.get("auto_score")
+            if cbo_score:
+                self._cbo_by_bill[bill_id] = cbo_score
+            if auto_score:
+                auto_copy = dict(auto_score)
+                policies = auto_copy.pop("policies", None)
+                if policies is not None:
+                    auto_copy["policies_json"] = json.dumps(policies)
+                self._auto_by_bill[bill_id] = auto_copy
+
+    def get_last_update(self) -> datetime | None:
+        if not self._generated_at:
+            return None
+        try:
+            return datetime.fromisoformat(self._generated_at.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+
+    def count_bills(self) -> int:
+        return len(self._bills)
+
+    def get_all_bills(
+        self,
+        status: str | None = None,
+        has_cbo_score: bool | None = None,
+        limit: int = 500,
+    ) -> list[dict[str, Any]]:
+        filtered: list[dict[str, Any]] = []
+        for bill in self._bills:
+            if status and bill.get("status") != status:
+                continue
+            if has_cbo_score is True and not bill.get("cbo_score"):
+                continue
+            filtered.append(bill)
+            if len(filtered) >= limit:
+                break
+        return filtered
+
+    def get_cbo_score(self, bill_id: str) -> dict[str, Any] | None:
+        return self._cbo_by_bill.get(bill_id)
+
+    def get_auto_score(self, bill_id: str) -> dict[str, Any] | None:
+        return self._auto_by_bill.get(bill_id)
+
+
+def _get_database(db_path: str | None) -> tuple[Any | None, bool]:
+    """Load live database; fall back to demo data when unavailable."""
     try:
         from bill_tracker.database import BillDatabase
         path = db_path or str(DEFAULT_DB_PATH)
         db = BillDatabase(path)
-        return db
+        return db, False
     except Exception:
-        return None
+        try:
+            demo_payload = json.loads(DEMO_DATA_PATH.read_text(encoding="utf-8"))
+            return _DemoBillDatabase(demo_payload), True
+        except Exception:
+            return None, False

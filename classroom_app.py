@@ -13,12 +13,7 @@ Instructor links:
 
 from __future__ import annotations
 
-from pathlib import Path
-import sys
-
 import streamlit as st
-
-sys.path.insert(0, str(Path(__file__).parent))
 
 from classroom.engine import (
     AssignmentLoader,
@@ -30,6 +25,7 @@ from classroom.engine import (
 )
 from classroom.feedback import FeedbackEngine
 from classroom.pdf_export import generate_submission_html
+from fiscal_model.ui.helpers import PUBLIC_APP_URL
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -195,9 +191,8 @@ def _render_sidebar(loader, tracker, url_assignment: str, url_level: str) -> Non
         # Instructor link generator
         with st.expander("📎 Share Assignment Link"):
             if tracker.assignment_id:
-                base = "https://laurencehw-fiscal-policy-calculator.streamlit.app"
                 link = (
-                    f"{base}/?mode=classroom"
+                    f"{PUBLIC_APP_URL}/?mode=classroom"
                     f"&assignment={tracker.assignment_id}"
                     f"&level={tracker.complexity.value}"
                 )

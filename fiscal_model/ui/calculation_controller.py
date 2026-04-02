@@ -10,6 +10,10 @@ from typing import Any
 
 from .controller_utils import render_input_guardrails, run_with_spinner_feedback
 
+SINGLE_POLICY_MODE = "📊 Single Policy"
+COMPARE_POLICIES_MODE = "🔀 Compare Policies"
+POLICY_PACKAGES_MODE = "📦 Policy Packages"
+
 
 def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
     """
@@ -17,7 +21,34 @@ def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
     Note: the Calculate button is rendered separately in _render_calculator so
     that Model settings can appear above it.
     """
-    # ── Single combined choice: preset / custom / spending ───────────────
+    # ── Workflow mode: single policy / compare / package ──────────────────
+    workflow_mode = st_module.radio(
+        "Workflow:",
+        [SINGLE_POLICY_MODE, COMPARE_POLICIES_MODE, POLICY_PACKAGES_MODE],
+        horizontal=False,
+        help=(
+            "**Single Policy** — score one tax or spending proposal.  \n"
+            "**Compare Policies** — compare multiple proposals side-by-side.  \n"
+            "**Policy Packages** — combine multiple proposals into one plan."
+        ),
+    )
+
+    preset_policies = deps.PRESET_POLICIES
+    if workflow_mode != SINGLE_POLICY_MODE:
+        st_module.info(
+            "Use the main tabs to configure this workflow. "
+            "No single-policy inputs are required."
+        )
+        return {
+            "mode": workflow_mode,
+            "is_spending": False,
+            "preset_policies": preset_policies,
+            "tax_inputs": {},
+            "spending_inputs": {},
+            "calculate": False,
+        }
+
+    # ── Single-policy combined choice: preset / custom / spending ─────────
     analysis_mode = st_module.radio(
         "Analyze:",
         ["📋 Tax proposal (preset)", "✏️ Custom tax policy", "💰 Spending program"],
@@ -31,7 +62,6 @@ def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
     is_spending = analysis_mode == "💰 Spending program"
     use_preset = analysis_mode == "📋 Tax proposal (preset)"
 
-    preset_policies = deps.PRESET_POLICIES
     tax_inputs: dict[str, Any] = {}
     spending_inputs: dict[str, Any] = {}
 
@@ -47,7 +77,7 @@ def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
         render_input_guardrails(st_module=st_module, tax_inputs=tax_inputs)
 
     return {
-        "mode": "📊 Single Policy",
+        "mode": workflow_mode,
         "is_spending": is_spending,
         "preset_policies": preset_policies,
         "tax_inputs": tax_inputs,
@@ -71,6 +101,9 @@ def execute_calculation_if_requested(
     settings: dict[str, Any],
 ) -> None:
     """Execute selected calculation branch and write to session state."""
+    if calc_context.get("mode") != SINGLE_POLICY_MODE:
+        return
+
     if not (calc_context["calculate"] and model_available):
         return
 
