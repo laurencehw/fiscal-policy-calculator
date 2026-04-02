@@ -18,6 +18,8 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from tests.conftest import requires_data
+
 from fiscal_model.data.capital_gains import CapitalGainsBaseline
 from fiscal_model.data.fred_data import FREDData
 from fiscal_model.data.irs_soi import IRSSOIData
@@ -26,6 +28,7 @@ from fiscal_model.data.irs_soi import IRSSOIData
 # IRS SOI DATA
 # =============================================================================
 
+@requires_data
 class TestIRSSOIData:
 
     def test_initializes_without_error(self):
@@ -101,6 +104,7 @@ class TestIRSSOIData:
 # CAPITAL GAINS BASELINE
 # =============================================================================
 
+@requires_data
 class TestCapitalGainsBaseline:
 
     def test_initializes_without_error(self):

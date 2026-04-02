@@ -118,7 +118,7 @@ class ScoringResult:
 
         return result
 
-    def to_dataframe(self):
+    def to_dataframe(self) -> "pd.DataFrame":
         """Convert results to pandas DataFrame."""
         import pandas as pd
 

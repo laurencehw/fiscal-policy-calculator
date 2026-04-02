@@ -26,10 +26,29 @@ class _DummyContext:
         return False
 
 
+class _SessionState(dict):
+    """Dict that also supports attribute access (like Streamlit's session_state)."""
+
+    def __getattr__(self, name: str):
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(name) from None
+
+    def __setattr__(self, name: str, value):
+        self[name] = value
+
+    def __delattr__(self, name: str):
+        try:
+            del self[name]
+        except KeyError:
+            raise AttributeError(name) from None
+
+
 class _DummyStreamlit:
     def __init__(self, radio_values: list[str]) -> None:
         self._radio_values = list(radio_values)
-        self.session_state = SimpleNamespace(results=None)
+        self.session_state = _SessionState(results=None)
         self.warnings: list[str] = []
         self.infos: list[str] = []
 
@@ -215,7 +234,7 @@ def test_execute_calculation_single_mode_updates_run_state(monkeypatch):
 
 def test_render_result_tabs_shows_stale_warnings():
     st_module = _DummyStreamlit(radio_values=[])
-    st_module.session_state = SimpleNamespace(
+    st_module.session_state = _SessionState(
         results={"policy": object()},
         current_run_id="current",
         results_run_id="prior",

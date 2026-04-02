@@ -284,7 +284,7 @@ def _render_bill_detail(
                     f"- {conf_icon} **{policy_type}** — {provision_text[:120]}  "
                     f"*(confidence: {confidence})*"
                 )
-        except Exception:
+        except (KeyError, TypeError, ValueError):
             st_module.caption("Could not parse provisions.")
 
     # Official score
@@ -436,9 +436,9 @@ def _get_database(db_path: str | None) -> tuple[Any | None, bool]:
         path = db_path or str(DEFAULT_DB_PATH)
         db = BillDatabase(path)
         return db, False
-    except Exception:
+    except (ImportError, OSError, ValueError):
         try:
             demo_payload = json.loads(DEMO_DATA_PATH.read_text(encoding="utf-8"))
             return _DemoBillDatabase(demo_payload), True
-        except Exception:
+        except (OSError, json.JSONDecodeError, KeyError):
             return None, False
