@@ -366,9 +366,11 @@ class TaxPolicy(Policy):
         Returns:
             Behavioral offset in billions (positive = revenue lost, increases deficit)
         """
-        # Behavioral response reduces revenue from tax increases (positive offset)
-        # and recovers some revenue from tax cuts (negative offset)
-        return abs(static_effect) * self.taxable_income_elasticity * 0.5
+        # For tax INCREASES (static_effect > 0): people shelter income → less revenue
+        #   than static → positive offset (increases deficit relative to static)
+        # For tax CUTS (static_effect < 0): people earn more → less revenue loss
+        #   than static → negative offset (decreases deficit relative to static)
+        return static_effect * self.taxable_income_elasticity * 0.5
 
     def validate_inputs(self) -> list[str]:
         """

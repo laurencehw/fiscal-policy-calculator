@@ -314,8 +314,8 @@ class TaxExpenditurePolicy(TaxPolicy):
                 # Estimate share affected by cap
                 avg_benefit = data.get("avg_benefit", 2000)
                 if self.cap_amount >= avg_benefit:
-                    # Cap above average = small effect
-                    share_affected = 0.1 * (avg_benefit / self.cap_amount)
+                    # Cap above average = small effect (only high claimants affected)
+                    share_affected = 0.1 * (1 - self.cap_amount / (self.cap_amount + avg_benefit))
                 else:
                     # Cap below average = larger effect
                     share_affected = 0.3 + 0.4 * (1 - self.cap_amount / avg_benefit)

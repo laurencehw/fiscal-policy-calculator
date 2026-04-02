@@ -257,17 +257,6 @@ class EconomicModel:
         """
         n_years = len(self.years)
 
-        # Initialize effect arrays
-        np.zeros(n_years)
-        np.zeros(n_years)
-        np.zeros(n_years)
-        np.zeros(n_years)
-        np.zeros(n_years)
-        np.zeros(n_years)
-        np.zeros(n_years)
-        np.zeros(n_years)
-        np.zeros(n_years)
-
         # Calculate effects based on policy type
         if isinstance(policy, TaxPolicy):
             effects = self._tax_policy_effects(policy, static_budget_effect)
