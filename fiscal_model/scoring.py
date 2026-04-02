@@ -92,6 +92,11 @@ class ScoringResult:
     def get_year_effect(self, year: int) -> dict:
         """Get detailed effects for a specific year."""
         idx = year - self.years[0]
+        if idx < 0 or idx >= len(self.years):
+            raise ValueError(
+                f"Year {year} is outside the budget window "
+                f"({self.years[0]}–{self.years[-1]})"
+            )
         result = {
             'year': year,
             'static_revenue': self.static_revenue_effect[idx],

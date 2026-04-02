@@ -223,8 +223,11 @@ class CorporateTaxPolicy(TaxPolicy):
         Returns:
             Behavioral offset in billions (positive = revenue lost)
         """
-        # Base behavioral offset
-        base_offset = abs(static_effect) * self.corporate_elasticity * 0.5
+        # Behavioral offset preserves sign: positive static_effect (revenue gain
+        # from rate increase) → positive offset (some revenue lost to avoidance);
+        # negative static_effect (revenue loss from rate cut) → negative offset
+        # (some revenue recovered from increased activity).
+        base_offset = static_effect * self.corporate_elasticity * 0.5
 
         # Pass-through shift effect
         if self.include_passthrough_effects and self.rate_change != 0:
@@ -266,12 +269,14 @@ class CorporateTaxPolicy(TaxPolicy):
             # Corporate rate > individual: income shifts to pass-through
             shift_amount = marginal_passthrough * self.passthrough_shift_elasticity
             # Net revenue loss: lose corporate tax, but gain some at individual rate
-            net_loss = shift_amount * (new_corporate_rate - individual_effective_rate)
-            return abs(net_loss)  # Return as positive offset (revenue lost)
+            net_loss = shift_amount * rate_differential
+            return net_loss  # Positive offset (revenue lost from shifting)
         else:
             # Corporate rate < individual: income shifts TO C-corp
-            # This is a revenue GAIN (offset reduces the loss)
-            return 0.0  # Captured in base elasticity
+            # Revenue gain from pass-through income moving to higher-taxed corporate
+            shift_amount = marginal_passthrough * self.passthrough_shift_elasticity
+            net_gain = shift_amount * abs(rate_differential)
+            return -net_gain  # Negative offset (revenue gained from shifting)
 
     def get_component_breakdown(self) -> dict:
         """
