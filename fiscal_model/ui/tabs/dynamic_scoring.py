@@ -94,9 +94,9 @@ def _display_budget_comparison(st_module: Any, result_data: Any, macro_result: A
     sign_fb = "+" if macro_result.cumulative_revenue_feedback >= 0 else "-"
     sign_dyn = "+" if dynamic_total >= 0 else "-"
     st_module.markdown(
-        f"""
-                **Calculation:** ${sign_conv}${abs(conventional_total):.0f}B (conventional) {sign_fb} ${abs(macro_result.cumulative_revenue_feedback):.0f}B (feedback) = **{sign_dyn}${abs(dynamic_total):.0f}B (dynamic)**
-                """
+        f"**Calculation:** ${sign_conv}${abs(conventional_total):.0f}B (conventional) {sign_fb} "
+        f"${abs(macro_result.cumulative_revenue_feedback):.0f}B (feedback) = "
+        f"**{sign_dyn}${abs(dynamic_total):.0f}B (dynamic)**"
     )
 
 
@@ -217,45 +217,34 @@ def _display_interest_and_methodology(
     with st_module.expander("📖 Methodology Notes"):
         if isinstance(adapter, frbus_adapter_lite_cls):
             st_module.markdown(
-                """
-                        **FRB/US-Lite Model**
-
-                        This model uses multipliers calibrated to the Federal Reserve's FRB/US model:
-
-                        | Parameter | Value | Source |
-                        |-----------|-------|--------|
-                        | Spending Multiplier | 1.4 (year 1) | FRB/US simulations |
-                        | Tax Multiplier | -0.7 (year 1) | FRB/US simulations |
-                        | Multiplier Decay | 0.75/year | Standard assumption |
-                        | Crowding Out | 15% of deficit | Interest rate response |
-                        | Marginal Tax Rate | 25% | For revenue feedback |
-
-                        **Key Assumptions:**
-                        - Monetary policy follows Taylor rule (not at zero lower bound)
-                        - Fiscal closure via surplus ratio targeting
-                        - No supply-side effects on potential GDP
-
-                        **References:**
-                        - Coenen et al. (2012). "Effects of Fiscal Stimulus in Structural Models"
-                        - CBO (2019). "The Effects of Automatic Stabilizers on the Federal Budget"
-                        """
+                "**FRB/US-Lite Model**\n\n"
+                "This model uses multipliers calibrated to the Federal Reserve's FRB/US model:\n\n"
+                "| Parameter | Value | Source |\n"
+                "|-----------|-------|--------|\n"
+                "| Spending Multiplier | 1.4 (year 1) | FRB/US simulations |\n"
+                "| Tax Multiplier | -0.7 (year 1) | FRB/US simulations |\n"
+                "| Multiplier Decay | 0.75/year | Standard assumption |\n"
+                "| Crowding Out | 15% of deficit | Interest rate response |\n"
+                "| Marginal Tax Rate | 25% | For revenue feedback |\n\n"
+                "**Key Assumptions:**\n"
+                "- Monetary policy follows Taylor rule (not at zero lower bound)\n"
+                "- Fiscal closure via surplus ratio targeting\n"
+                "- No supply-side effects on potential GDP\n\n"
+                "**References:**\n"
+                '- Coenen et al. (2012). "Effects of Fiscal Stimulus in Structural Models"\n'
+                '- CBO (2019). "The Effects of Automatic Stabilizers on the Federal Budget"'
             )
         else:
             st_module.markdown(
-                """
-                        **Simple Multiplier Model**
-
-                        This model uses basic Keynesian fiscal multipliers:
-
-                        | Parameter | Value |
-                        |-----------|-------|
-                        | Spending Multiplier | 1.0 |
-                        | Tax Multiplier | -0.5 |
-                        | Multiplier Decay | 0.9/year |
-                        | Marginal Tax Rate | 25% |
-
-                        This is a simplified model. For more accurate results, use FRB/US-Lite.
-                        """
+                "**Simple Multiplier Model**\n\n"
+                "This model uses basic Keynesian fiscal multipliers:\n\n"
+                "| Parameter | Value |\n"
+                "|-----------|-------|\n"
+                "| Spending Multiplier | 1.0 |\n"
+                "| Tax Multiplier | -0.5 |\n"
+                "| Multiplier Decay | 0.9/year |\n"
+                "| Marginal Tax Rate | 25% |\n\n"
+                "This is a simplified model. For more accurate results, use FRB/US-Lite."
             )
 
 

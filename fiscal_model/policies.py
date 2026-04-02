@@ -323,7 +323,8 @@ class TaxPolicy(Policy):
 
         logger.info(
             f"  Affected filers: {bracket_info['num_filers']/1e6:.2f}M "
-            f"(threshold: ${self.affected_income_threshold:,.0f})"
+            f"(taxable income threshold: ${self.affected_income_threshold:,.0f}, "
+            f"AGI-adjusted lookup: ${agi_threshold:,.0f})"
         )
         logger.info(
             f"  Avg taxable income: ${bracket_info['avg_taxable_income']:,.0f}"

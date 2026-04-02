@@ -323,19 +323,22 @@ class CBOBaseline:
             self.base_nondefense = 750
             self.base_debt = 28000
         else:
-            # Base year (2026) values in billions - CBO Feb 2026
-            self.base_gdp = 30300  # Nominal GDP estimate for 2026
-            self.base_individual_income_tax = 2700  # Individual income tax
-            self.base_corporate_tax = 420  # Corporate tax (slightly lower due to tariff effects)
-            self.base_payroll_tax = 1850  # Payroll tax
-            self.base_other_revenue = 430  # Estate, excise, customs, etc.
-            self.base_social_security = 1600  # Higher due to demographics
-            self.base_medicare = 950  # Healthcare cost growth
-            self.base_medicaid = 630  # Medicaid spending
-            self.base_other_mandatory = 960  # Other mandatory programs
-            self.base_defense = 950  # Defense discretionary
-            self.base_nondefense = 780  # Nondefense discretionary
-            self.base_debt = 29700  # Debt held by public (~98% of GDP)
+            # Base year (FY2026) values in billions — CBO Feb 2026 baseline
+            # Updated March 2026 with FY2025 actuals + CBO FY2026 projections.
+            # Sources: CBO "Budget and Economic Outlook: 2026 to 2036" (Feb 2026),
+            #          Treasury Monthly Statement FY2025 actuals.
+            self.base_gdp = 30800           # Nominal GDP (BEA Q4 2025 SAAR ~$30.5T, CBO FY2026: $30.8T)
+            self.base_individual_income_tax = 2750  # CBO FY2026 projection (FY2025 actual: $2.63T)
+            self.base_corporate_tax = 400   # CBO FY2026 (FY2025: $380B, lower due to tariff disruptions)
+            self.base_payroll_tax = 1900    # CBO FY2026 (FY2025 actual: $1.82T, wage growth ~4%)
+            self.base_other_revenue = 480   # FY2026: higher customs revenue from tariffs (+$50B)
+            self.base_social_security = 1650  # CBO FY2026 (FY2025: $1.55T, 8.7% COLA effect)
+            self.base_medicare = 1000       # CBO FY2026 (FY2025: $940B, healthcare inflation)
+            self.base_medicaid = 650        # CBO FY2026 (FY2025: $620B)
+            self.base_other_mandatory = 980 # CBO FY2026 (includes income security, veterans)
+            self.base_defense = 960         # FY2026 enacted (FY2025: $925B)
+            self.base_nondefense = 790      # FY2026 enacted (FY2025: $770B)
+            self.base_debt = 30200          # CBO: debt held by public (~98% of GDP, Jan 2026 actual)
 
     def generate(self) -> BaselineProjection:
         """Generate a 10-year baseline projection."""

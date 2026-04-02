@@ -311,18 +311,19 @@ class FiscalPolicyScorer:
         Returns:
             ScoringResult with complete analysis
         """
-        # Validate inputs at the scoring boundary
-        if not isinstance(policy, Policy):
+        # Validate inputs at the scoring boundary.
+        # Accept Policy instances or duck-typed objects with estimate_cost_effect().
+        if not isinstance(policy, Policy) and not callable(getattr(policy, "estimate_cost_effect", None)):
             raise TypeError(
-                f"Expected a Policy instance, got {type(policy).__name__}. "
-                "Use TaxPolicy, SpendingPolicy, TransferPolicy, or a subclass."
+                f"Expected a Policy instance or an object with estimate_cost_effect(), "
+                f"got {type(policy).__name__}."
             )
-        if not policy.name:
+        if not getattr(policy, "name", None):
             raise ValueError("Policy must have a non-empty name")
-        if policy.duration_years < 1 or policy.duration_years > 100:
+        duration = getattr(policy, "duration_years", 10)
+        if duration < 1 or duration > 100:
             raise ValueError(
-                f"duration_years={policy.duration_years} is unreasonable; "
-                "expected 1-100"
+                f"duration_years={duration} is unreasonable; expected 1-100"
             )
 
         logger.info("Scoring policy '%s' (dynamic=%s)", policy.name, dynamic)

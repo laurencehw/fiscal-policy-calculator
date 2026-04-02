@@ -109,7 +109,7 @@ def _render_preset_selection(
     display_name = _strip_emoji_prefix(preset_choice)
     desc = preset_data["description"]
 
-    score_match = _re.search(r'\((?:CBO|JCT):\s*(-?\$[\d.]+[TB])\)', preset_choice)
+    score_match = _re.search(r'\((?:CBO|JCT|Trustees):\s*(-?\$[\d.,\-]+[TB])\)', preset_choice)
     if score_match and score_match.group(1).startswith("-"):
         direction_icon = "✅"
     elif score_match:

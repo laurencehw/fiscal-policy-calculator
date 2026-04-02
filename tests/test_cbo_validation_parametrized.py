@@ -82,7 +82,7 @@ class TestCBOValidationAccuracy:
     """
 
     def test_within_order_of_magnitude(self, score, scorer):
-        """Model estimate should be within 100% of official score."""
+        """Model estimate should be within 110% of official score (auto-populated)."""
         result = validate_policy(score, scorer=scorer, dynamic=False)
         if result is None:
             pytest.skip(f"Cannot replicate policy: {score.name}")
