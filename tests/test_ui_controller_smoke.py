@@ -21,7 +21,7 @@ class _DummyContext:
     def __enter__(self):
         return self
 
-    def __exit__(self, exc_type, exc, tb) -> bool:  # noqa: ANN001
+    def __exit__(self, exc_type, exc, tb) -> bool:
         del exc_type, exc, tb
         return False
 
@@ -33,39 +33,39 @@ class _DummyStreamlit:
         self.warnings: list[str] = []
         self.infos: list[str] = []
 
-    def radio(self, *args, **kwargs):  # noqa: ANN001
+    def radio(self, *args, **kwargs):
         del args, kwargs
         return self._radio_values.pop(0)
 
-    def markdown(self, *args, **kwargs):  # noqa: ANN001
+    def markdown(self, *args, **kwargs):
         del args, kwargs
         return None
 
-    def info(self, message: str, *args, **kwargs):  # noqa: ANN001
+    def info(self, message: str, *args, **kwargs):
         del args, kwargs
         self.infos.append(message)
 
-    def warning(self, message: str, *args, **kwargs):  # noqa: ANN001
+    def warning(self, message: str, *args, **kwargs):
         del args, kwargs
         self.warnings.append(message)
 
-    def success(self, *args, **kwargs):  # noqa: ANN001
+    def success(self, *args, **kwargs):
         del args, kwargs
         return None
 
-    def error(self, *args, **kwargs):  # noqa: ANN001
+    def error(self, *args, **kwargs):
         del args, kwargs
         return None
 
-    def spinner(self, *args, **kwargs):  # noqa: ANN001
+    def spinner(self, *args, **kwargs):
         del args, kwargs
         return _DummyContext()
 
-    def subheader(self, *args, **kwargs):  # noqa: ANN001
+    def subheader(self, *args, **kwargs):
         del args, kwargs
         return None
 
-    def caption(self, *args, **kwargs):  # noqa: ANN001
+    def caption(self, *args, **kwargs):
         del args, kwargs
         return None
 

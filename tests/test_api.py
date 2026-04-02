@@ -29,7 +29,7 @@ class _DummyScorer:
     def __init__(self, *args, **kwargs) -> None:
         del args, kwargs
 
-    def score_policy(self, policy, dynamic=False):  # noqa: ANN001
+    def score_policy(self, policy, dynamic=False):
         del policy, dynamic
         return _DummyScoringResult()
 
@@ -103,7 +103,7 @@ def test_score_endpoint_validation_error():
 
 def test_score_endpoint_internal_error_returns_error_payload(monkeypatch):
     class _ExplodingScorer(_DummyScorer):
-        def score_policy(self, policy, dynamic=False):  # noqa: ANN001
+        def score_policy(self, policy, dynamic=False):
             del policy, dynamic
             raise RuntimeError("boom")
 

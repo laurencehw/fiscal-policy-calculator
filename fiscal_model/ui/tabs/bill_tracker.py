@@ -7,8 +7,8 @@ and freshness indicators. Connects to SQLite bill database.
 
 from __future__ import annotations
 
-from datetime import datetime
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
