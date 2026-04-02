@@ -303,7 +303,7 @@ class TaxPolicy(Policy):
                 )
                 data_source = "CPS microdata"
                 logger.info("Auto-populating from CPS microdata (taxable income basis)")
-        except Exception as e:
+        except (ImportError, FileNotFoundError, OSError) as e:
             logger.debug(f"CPS auto-population unavailable: {e}")
 
         # Fall back to IRS SOI if CPS unavailable or empty

@@ -152,4 +152,5 @@ class CPSAutoPopulator:
             income_in_bracket = np.clip(taxable_income - lower, 0, upper - lower)
             total_tax += income_in_bracket * rates[i]
 
-        return (total_tax * weights).sum() / (taxable_income * weights).sum()
+        denominator = (taxable_income * weights).sum()
+        return (total_tax * weights).sum() / denominator if denominator > 0 else 0.0

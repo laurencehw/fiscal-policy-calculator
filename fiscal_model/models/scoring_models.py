@@ -119,13 +119,19 @@ class MicrosimScoringModel(BaseScoringModel):
     """
     Microsimulation-based scoring using CPS microdata.
 
-    Computes policy effects at the individual tax-unit level, capturing
-    phase-outs, cliffs, and interaction effects that aggregate models miss.
+    Runs the MicroTaxCalculator on all 56K CPS ASEC tax units under
+    baseline and reform scenarios, computing the weighted tax change
+    at the individual level. This captures phase-outs, cliffs, AMT,
+    SALT cap, and EITC/CTC interactions that aggregate models miss.
     """
 
     def __init__(self):
+        from fiscal_model.microsim.cps_auto_populator import CPSAutoPopulator
         from fiscal_model.microsim.engine import MicroTaxCalculator
+
         self._calc = MicroTaxCalculator(year=2025)
+        self._cps = CPSAutoPopulator()
+        self._pop_df = self._cps._df.copy()  # Reuse already-loaded CPS data
 
     @property
     def name(self) -> str:
@@ -139,28 +145,50 @@ class MicrosimScoringModel(BaseScoringModel):
         )
 
     def score(self, policy: Policy) -> ModelResult:
-        from fiscal_model.microsim.cps_auto_populator import CPSAutoPopulator
+        from fiscal_model.microsim.engine import MicroTaxCalculator
 
-        # Get baseline and reform tax for all records
-        cps = CPSAutoPopulator()
-        stats = cps.get_filers_by_threshold(
-            threshold=getattr(policy, "affected_income_threshold", 0),
-            income_basis="taxable_income",
-        )
+        # 1. Baseline tax: compute tax for all records under current law
+        baseline_df = self._calc.calculate(self._pop_df)
 
-        # Simplified: use aggregate stats with rate change
+        # 2. Reform tax: apply rate change to affected filers
         rate_change = getattr(policy, "rate_change", 0)
-        marginal_income = max(0, stats["avg_taxable_income"] - getattr(policy, "affected_income_threshold", 0))
-        if getattr(policy, "affected_income_threshold", 0) == 0:
-            marginal_income = stats["avg_taxable_income"]
+        threshold = getattr(policy, "affected_income_threshold", 0)
 
-        annual_effect = rate_change * marginal_income * stats["num_filers"] / 1e9
-        # Apply growth (~4% nominal)
-        annual_effects = np.array([annual_effect * (1.04 ** i) for i in range(10)])
-        # Negate: positive rate_change → negative deficit (revenue gain)
-        deficit_effects = -annual_effects
+        if rate_change != 0:
+            # Create a reform calculator with modified rates
+            reform_calc = MicroTaxCalculator(year=2025)
+
+            # Shift all bracket rates by the rate change for income above threshold
+            # This is simplified: applies uniformly to all brackets above threshold
+            for i, bracket_floor in enumerate(reform_calc.brackets_mfj):
+                if bracket_floor >= threshold:
+                    reform_calc.rates_mfj[i] = min(1.0, max(0.0, reform_calc.rates_mfj[i] + rate_change))
+            for i, bracket_floor in enumerate(reform_calc.brackets_single):
+                if bracket_floor >= threshold:
+                    reform_calc.rates_single[i] = min(1.0, max(0.0, reform_calc.rates_single[i] + rate_change))
+
+            reform_df = reform_calc.calculate(self._pop_df)
+        else:
+            reform_df = baseline_df
+
+        # 3. Compute weighted tax change
+        weights = baseline_df["weight"].values
+        baseline_tax = baseline_df["final_tax"].values
+        reform_tax = reform_df["final_tax"].values
+        tax_change = reform_tax - baseline_tax
+
+        # Weighted annual revenue change (positive = more revenue)
+        annual_revenue_change = (tax_change * weights).sum() / 1e9
+
+        # Apply growth (~4% nominal) over 10-year window
+        annual_effects_revenue = np.array([annual_revenue_change * (1.04 ** i) for i in range(10)])
+        # Deficit effect: negative revenue = positive deficit
+        deficit_effects = -annual_effects_revenue
 
         ten_year = float(np.sum(deficit_effects))
+
+        # Count affected filers
+        n_affected = int(((baseline_df["taxable_income"] >= threshold) * weights).sum()) if threshold > 0 else int(weights.sum())
 
         return ModelResult(
             model_name=self.name,
@@ -170,9 +198,11 @@ class MicrosimScoringModel(BaseScoringModel):
             low_estimate=ten_year * 0.85,
             high_estimate=ten_year * 1.15,
             extras={
-                "affected_filers_millions": stats["num_filers_millions"],
-                "avg_taxable_income": stats["avg_taxable_income"],
+                "affected_filers": n_affected,
+                "affected_filers_millions": n_affected / 1e6,
+                "avg_tax_change": float((tax_change * weights).sum() / weights.sum()),
                 "data_source": "CPS ASEC 2024",
+                "tax_units": len(baseline_df),
             },
         )
 
