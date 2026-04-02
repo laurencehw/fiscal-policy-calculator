@@ -311,6 +311,21 @@ class FiscalPolicyScorer:
         Returns:
             ScoringResult with complete analysis
         """
+        # Validate inputs at the scoring boundary.
+        # Accept Policy instances or duck-typed objects with estimate_cost_effect().
+        if not isinstance(policy, Policy) and not callable(getattr(policy, "estimate_cost_effect", None)):
+            raise TypeError(
+                f"Expected a Policy instance or an object with estimate_cost_effect(), "
+                f"got {type(policy).__name__}."
+            )
+        if not getattr(policy, "name", None):
+            raise ValueError("Policy must have a non-empty name")
+        duration = getattr(policy, "duration_years", 10)
+        if duration < 1 or duration > 100:
+            raise ValueError(
+                f"duration_years={duration} is unreasonable; expected 1-100"
+            )
+
         logger.info("Scoring policy '%s' (dynamic=%s)", policy.name, dynamic)
 
         years = self.baseline.years

@@ -4,6 +4,8 @@ CBO/JCT estimates within tolerance.
 
 Uses FiscalPolicyScorer(use_real_data=False) for consistency across
 environments (avoids dependency on external data files).
+
+Coverage: TCJA, corporate, CTC, AMT, estate, payroll, tax expenditures.
 """
 
 import pytest
@@ -11,7 +13,16 @@ import pytest
 from fiscal_model.amt import create_repeal_corporate_amt
 from fiscal_model.corporate import create_biden_corporate_rate_only
 from fiscal_model.credits import create_biden_ctc_2021
+from fiscal_model.estate import create_biden_estate_proposal, create_tcja_estate_extension
+from fiscal_model.payroll import (
+    create_ss_donut_hole,
+    create_ss_eliminate_cap,
+)
 from fiscal_model.scoring import FiscalPolicyScorer
+from fiscal_model.tax_expenditures import (
+    create_cap_employer_health_exclusion,
+    create_repeal_salt_cap,
+)
 from fiscal_model.tcja import create_tcja_extension
 
 
@@ -109,3 +120,106 @@ class TestRepealCorporateAMTCBORange:
         assert result.total_10_year_cost > 0, (
             "Repealing corporate AMT should increase the deficit"
         )
+
+
+class TestBidenEstateProposalCBORange:
+    """Biden estate reform ($3.5M, 45%) should raise $300-600B. CBO: ~$450B."""
+
+    def test_biden_estate_cbo_range(self, scorer):
+        policy = create_biden_estate_proposal()
+        result = scorer.score_policy(policy)
+        total = result.total_10_year_cost
+        assert -600 <= total <= -300, (
+            f"Biden estate {total:.0f}B outside expected range [-600, -300]"
+        )
+
+    def test_biden_estate_reduces_deficit(self, scorer):
+        """Lowering exemption + raising rate should reduce deficit."""
+        policy = create_biden_estate_proposal()
+        result = scorer.score_policy(policy)
+        assert result.total_10_year_cost < 0
+
+
+class TestTCJAEstateExtensionCBORange:
+    """Extending TCJA estate exemption should cost $100-250B. CBO: ~$167B."""
+
+    def test_tcja_estate_extension_cbo_range(self, scorer):
+        policy = create_tcja_estate_extension()
+        result = scorer.score_policy(policy)
+        total = result.total_10_year_cost
+        assert 100 <= total <= 250, (
+            f"TCJA estate extension {total:.0f}B outside expected range [100, 250]"
+        )
+
+    def test_tcja_estate_extension_increases_deficit(self, scorer):
+        policy = create_tcja_estate_extension()
+        result = scorer.score_policy(policy)
+        assert result.total_10_year_cost > 0
+
+
+class TestSSDonutHoleCBORange:
+    """SS donut hole ($250K+) should raise $1,800-3,500B. Trustees: ~$2,700B."""
+
+    def test_ss_donut_cbo_range(self, scorer):
+        policy = create_ss_donut_hole()
+        result = scorer.score_policy(policy)
+        total = result.total_10_year_cost
+        assert -3500 <= total <= -1800, (
+            f"SS donut hole {total:.0f}B outside expected range [-3500, -1800]"
+        )
+
+    def test_ss_donut_reduces_deficit(self, scorer):
+        policy = create_ss_donut_hole()
+        result = scorer.score_policy(policy)
+        assert result.total_10_year_cost < 0
+
+
+class TestSSEliminateCapCBORange:
+    """Eliminate SS wage cap should raise $2,200-4,000B. Trustees: ~$3,200B."""
+
+    def test_ss_eliminate_cap_cbo_range(self, scorer):
+        policy = create_ss_eliminate_cap()
+        result = scorer.score_policy(policy)
+        total = result.total_10_year_cost
+        assert -4000 <= total <= -2200, (
+            f"SS eliminate cap {total:.0f}B outside expected range [-4000, -2200]"
+        )
+
+    def test_ss_eliminate_cap_reduces_deficit(self, scorer):
+        policy = create_ss_eliminate_cap()
+        result = scorer.score_policy(policy)
+        assert result.total_10_year_cost < 0
+
+
+class TestCapEmployerHealthCBORange:
+    """Cap employer health exclusion should raise $350-550B. CBO: ~$450B."""
+
+    def test_cap_employer_health_cbo_range(self, scorer):
+        policy = create_cap_employer_health_exclusion()
+        result = scorer.score_policy(policy)
+        total = result.total_10_year_cost
+        assert -550 <= total <= -350, (
+            f"Cap employer health {total:.0f}B outside expected range [-550, -350]"
+        )
+
+    def test_cap_employer_health_reduces_deficit(self, scorer):
+        policy = create_cap_employer_health_exclusion()
+        result = scorer.score_policy(policy)
+        assert result.total_10_year_cost < 0
+
+
+class TestRepealSALTCapCBORange:
+    """Repealing SALT cap should cost $800-2,500B. CBO: ~$1,900B."""
+
+    def test_repeal_salt_cap_cbo_range(self, scorer):
+        policy = create_repeal_salt_cap()
+        result = scorer.score_policy(policy)
+        total = result.total_10_year_cost
+        assert 800 <= total <= 2500, (
+            f"Repeal SALT cap {total:.0f}B outside expected range [800, 2500]"
+        )
+
+    def test_repeal_salt_cap_increases_deficit(self, scorer):
+        policy = create_repeal_salt_cap()
+        result = scorer.score_policy(policy)
+        assert result.total_10_year_cost > 0

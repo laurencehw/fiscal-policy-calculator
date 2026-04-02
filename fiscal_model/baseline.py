@@ -281,12 +281,15 @@ class CBOBaseline:
         else:
             # Use ratio from IRS data
             print("FRED not available, estimating GDP from IRS data")
-            self.base_gdp = self.base_individual_income_tax / 0.088  # ~8.8% ratio
+            # Individual income tax ≈ 8.8% of GDP (CBO Historical Budget
+            # Data, FY2024: $2.43T / $27.7T ≈ 8.8%)
+            self.base_gdp = self.base_individual_income_tax / 0.088
 
-        # Corporate tax: Historical ratio to individual income tax (~18%)
+        # Corporate tax: ~18% of individual income tax (CBO FY2024:
+        # $420B corporate / $2,430B individual ≈ 17.3%)
         self.base_corporate_tax = self.base_individual_income_tax * 0.18
 
-        # Payroll tax: ~6% of GDP (historical average)
+        # Payroll tax: ~6% of GDP (CBO FY2024: $1.7T / $27.7T ≈ 6.1%)
         self.base_payroll_tax = self.base_gdp * 0.06
 
         # Other revenue: Estate, excise, customs (~1.4% of GDP)
@@ -320,19 +323,22 @@ class CBOBaseline:
             self.base_nondefense = 750
             self.base_debt = 28000
         else:
-            # Base year (2026) values in billions - CBO Feb 2026
-            self.base_gdp = 30300  # Nominal GDP estimate for 2026
-            self.base_individual_income_tax = 2700  # Individual income tax
-            self.base_corporate_tax = 420  # Corporate tax (slightly lower due to tariff effects)
-            self.base_payroll_tax = 1850  # Payroll tax
-            self.base_other_revenue = 430  # Estate, excise, customs, etc.
-            self.base_social_security = 1600  # Higher due to demographics
-            self.base_medicare = 950  # Healthcare cost growth
-            self.base_medicaid = 630  # Medicaid spending
-            self.base_other_mandatory = 960  # Other mandatory programs
-            self.base_defense = 950  # Defense discretionary
-            self.base_nondefense = 780  # Nondefense discretionary
-            self.base_debt = 29700  # Debt held by public (~98% of GDP)
+            # Base year (FY2026) values in billions — CBO Feb 2026 baseline
+            # Updated March 2026 with FY2025 actuals + CBO FY2026 projections.
+            # Sources: CBO "Budget and Economic Outlook: 2026 to 2036" (Feb 2026),
+            #          Treasury Monthly Statement FY2025 actuals.
+            self.base_gdp = 30800           # Nominal GDP (BEA Q4 2025 SAAR ~$30.5T, CBO FY2026: $30.8T)
+            self.base_individual_income_tax = 2750  # CBO FY2026 projection (FY2025 actual: $2.63T)
+            self.base_corporate_tax = 400   # CBO FY2026 (FY2025: $380B, lower due to tariff disruptions)
+            self.base_payroll_tax = 1900    # CBO FY2026 (FY2025 actual: $1.82T, wage growth ~4%)
+            self.base_other_revenue = 480   # FY2026: higher customs revenue from tariffs (+$50B)
+            self.base_social_security = 1650  # CBO FY2026 (FY2025: $1.55T, 8.7% COLA effect)
+            self.base_medicare = 1000       # CBO FY2026 (FY2025: $940B, healthcare inflation)
+            self.base_medicaid = 650        # CBO FY2026 (FY2025: $620B)
+            self.base_other_mandatory = 980 # CBO FY2026 (includes income security, veterans)
+            self.base_defense = 960         # FY2026 enacted (FY2025: $925B)
+            self.base_nondefense = 790      # FY2026 enacted (FY2025: $770B)
+            self.base_debt = 30200          # CBO: debt held by public (~98% of GDP, Jan 2026 actual)
 
     def generate(self) -> BaselineProjection:
         """Generate a 10-year baseline projection."""
@@ -517,7 +523,9 @@ class CBOBaseline:
         for i in range(10):
             avg_debt = self.base_debt if i == 0 else (proj.debt_held_by_public[i-1] +
                                                        proj.debt_held_by_public[i]) / 2
-            # Effective interest rate is lower than 10-year due to mix of maturities
+            # Effective rate ≈ 75% of 10-year yield due to shorter-maturity mix.
+            # Treasury weighted-average maturity is ~6 years (Treasury Bulletin),
+            # with ~30% in bills/notes <2yr paying lower rates.
             effective_rate = self.assumptions.interest_rate_10yr[i] * 0.75
             interest[i] = avg_debt * effective_rate
 
