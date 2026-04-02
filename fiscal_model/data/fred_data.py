@@ -219,7 +219,13 @@ class FREDData:
 
             if updated_at_str:
                 try:
-                    updated_at = datetime.fromisoformat(updated_at_str)
+                    ts_str = updated_at_str.strip()
+                    if ts_str.endswith("Z"):
+                        ts_str = ts_str[:-1] + "+00:00"
+                    updated_at = datetime.fromisoformat(ts_str)
+                    # Assume UTC for naive timestamps from old cache files
+                    if updated_at.tzinfo is None:
+                        updated_at = updated_at.replace(tzinfo=timezone.utc)
                     cache_age = datetime.now(timezone.utc) - updated_at
                     cache_age_days = int(cache_age.total_seconds() / 86400)
                     is_expired = cache_age > timedelta(days=self.cache_max_age_days)
