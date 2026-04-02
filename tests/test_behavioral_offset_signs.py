@@ -219,9 +219,9 @@ class TestSymmetryInvariant:
         offset = policy.estimate_behavioral_offset(static_effect)
 
         if static_effect > 0:
-            assert offset > 0, f"Offset should be positive for positive static effect"
+            assert offset > 0, "Offset should be positive for positive static effect"
         elif static_effect < 0:
-            assert offset < 0, f"Offset should be negative for negative static effect"
+            assert offset < 0, "Offset should be negative for negative static effect"
 
 
 class TestScoringResultBoundsChecking:
