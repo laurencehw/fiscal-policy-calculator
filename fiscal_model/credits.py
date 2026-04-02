@@ -328,8 +328,8 @@ class TaxCreditPolicy(TaxPolicy):
             # Some income effects on secondary earners, but smaller
             return static_effect * 0.05  # ~5% offset
 
-        # General credits
-        return abs(static_effect) * self.labor_supply_elasticity * 0.3
+        # General credits: offset partially counteracts static effect
+        return static_effect * self.labor_supply_elasticity * 0.3
 
 
 # =============================================================================

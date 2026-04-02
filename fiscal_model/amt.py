@@ -346,17 +346,9 @@ class AMTPolicy(TaxPolicy):
             return -CBO_AMT_ESTIMATES["extend_tcja_annual"]
 
         # Calculate from exemption changes
-        AMT_EXEMPTIONS_TCJA.get(
-            self.start_year + 1,
-            AMT_EXEMPTIONS_TCJA[2026]
-        )[1]  # MFJ
-
-        self.get_exemption_for_year(self.start_year + 1, "mfj")
-
-        # Estimate revenue based on taxpayer count and average liability
-        baseline_taxpayers = self.estimate_affected_taxpayers(self.start_year + 1)
-        # Approximate new taxpayer count
-        AMTPolicy(amt_type=AMTType.INDIVIDUAL)  # Default policy
+        # Compare taxpayer count under this policy vs. current-law baseline
+        baseline_policy = AMTPolicy(amt_type=AMTType.INDIVIDUAL)
+        baseline_taxpayers = baseline_policy.estimate_affected_taxpayers(self.start_year + 1)
         policy_taxpayers = self.estimate_affected_taxpayers(self.start_year + 1)
 
         # Get average liability (inversely related to exemption for those affected)

@@ -4,7 +4,7 @@ FRED data helper with simple file cache, expiry, timeout, and error tracking.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 import logging
 import os
@@ -105,7 +105,7 @@ class FREDData:
             self._write_cache(series_id, live)
             self._data_source = "live"
             self._last_error = None
-            self._last_updated = datetime.utcnow()
+            self._last_updated = datetime.now(timezone.utc)
             self._cache_age_days = 0
             return live
 
@@ -122,7 +122,7 @@ class FREDData:
             else:
                 self._data_source = "cache"
                 self._cache_age_days = cache_age
-            self._last_updated = datetime.utcnow()
+            self._last_updated = datetime.now(timezone.utc)
             return cached
 
         # Last-resort fallback for offline environments (2026 nominal GDP estimate).
@@ -192,7 +192,7 @@ class FREDData:
         path = self._cache_path(series_id)
         payload = {
             "series_id": series_id,
-            "updated_at": datetime.utcnow().isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
             "values": {str(idx): float(val) for idx, val in series.items()},
         }
         path.write_text(json.dumps(payload), encoding="utf-8")
@@ -219,8 +219,14 @@ class FREDData:
 
             if updated_at_str:
                 try:
-                    updated_at = datetime.fromisoformat(updated_at_str)
-                    cache_age = datetime.utcnow() - updated_at
+                    ts_str = updated_at_str.strip()
+                    if ts_str.endswith("Z"):
+                        ts_str = ts_str[:-1] + "+00:00"
+                    updated_at = datetime.fromisoformat(ts_str)
+                    # Assume UTC for naive timestamps from old cache files
+                    if updated_at.tzinfo is None:
+                        updated_at = updated_at.replace(tzinfo=timezone.utc)
+                    cache_age = datetime.now(timezone.utc) - updated_at
                     cache_age_days = int(cache_age.total_seconds() / 86400)
                     is_expired = cache_age > timedelta(days=self.cache_max_age_days)
                 except Exception as e:
