@@ -458,6 +458,67 @@ class TestBillDatabase:
         assert retrieved.year == 2026
         assert retrieved.month == 4
 
+    def test_has_cbo_score_filter_with_direct_insert(self, tmp_db, sample_bill_metadata):
+        """Bills with CBO scores added via direct SQL should appear in filter."""
+        tmp_db.upsert_bill(sample_bill_metadata)
+
+        # No CBO score yet
+        rows = tmp_db.get_all_bills(has_cbo_score=True)
+        assert len(rows) == 0
+
+        # Insert CBO score directly (bypassing upsert_cbo_score)
+        with tmp_db._connect() as conn:
+            conn.execute(
+                "INSERT INTO cbo_estimates (bill_id, ten_year_cost_billions) VALUES (?, ?)",
+                ("hr-1234-119", -50.0),
+            )
+
+        # Flag is still 0, but EXISTS filter should find it
+        rows = tmp_db.get_all_bills(has_cbo_score=True)
+        assert len(rows) == 1
+        assert rows[0]["bill_id"] == "hr-1234-119"
+
+        # NOT EXISTS filter should exclude it
+        rows_no_score = tmp_db.get_all_bills(has_cbo_score=False)
+        assert all(r["bill_id"] != "hr-1234-119" for r in rows_no_score)
+
+    def test_sync_cbo_flags_sets_flag(self, tmp_db, sample_bill_metadata):
+        """sync_cbo_flags should set flag=1 for bills with estimates."""
+        tmp_db.upsert_bill(sample_bill_metadata)
+
+        # Insert directly (flag stays 0)
+        with tmp_db._connect() as conn:
+            conn.execute(
+                "INSERT INTO cbo_estimates (bill_id, ten_year_cost_billions) VALUES (?, ?)",
+                ("hr-1234-119", -50.0),
+            )
+
+        bill = tmp_db.get_bill("hr-1234-119")
+        assert bill["has_cbo_score"] == 0
+
+        updated = tmp_db.sync_cbo_flags()
+        assert updated >= 1
+
+        bill = tmp_db.get_bill("hr-1234-119")
+        assert bill["has_cbo_score"] == 1
+
+    def test_sync_cbo_flags_clears_stale_flag(self, tmp_db, sample_bill_metadata):
+        """sync_cbo_flags should clear flag=1 for bills without estimates."""
+        tmp_db.upsert_bill(sample_bill_metadata)
+
+        # Set flag manually without actual estimate
+        with tmp_db._connect() as conn:
+            conn.execute("UPDATE bills SET has_cbo_score = 1 WHERE bill_id = ?", ("hr-1234-119",))
+
+        bill = tmp_db.get_bill("hr-1234-119")
+        assert bill["has_cbo_score"] == 1
+
+        updated = tmp_db.sync_cbo_flags()
+        assert updated >= 1
+
+        bill = tmp_db.get_bill("hr-1234-119")
+        assert bill["has_cbo_score"] == 0
+
 
 # ==================================================================
 # Freshness tests

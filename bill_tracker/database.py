@@ -56,6 +56,8 @@ CREATE TABLE IF NOT EXISTS cbo_estimates (
     FOREIGN KEY (bill_id) REFERENCES bills(bill_id)
 );
 
+CREATE INDEX IF NOT EXISTS idx_cbo_estimates_bill_id ON cbo_estimates(bill_id);
+
 CREATE TABLE IF NOT EXISTS auto_scores (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     bill_id TEXT,
@@ -182,8 +184,16 @@ class BillDatabase:
             where_clauses.append("congress = ?")
             params.append(congress)
         if has_cbo_score is not None:
-            where_clauses.append("has_cbo_score = ?")
-            params.append(int(has_cbo_score))
+            if has_cbo_score:
+                # Check actual cbo_estimates table, not just the flag
+                # (flag can be stale if scores were added via direct SQL)
+                where_clauses.append(
+                    "EXISTS (SELECT 1 FROM cbo_estimates WHERE cbo_estimates.bill_id = bills.bill_id)"
+                )
+            else:
+                where_clauses.append(
+                    "NOT EXISTS (SELECT 1 FROM cbo_estimates WHERE cbo_estimates.bill_id = bills.bill_id)"
+                )
 
         where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
         params.append(limit)
@@ -243,6 +253,26 @@ class BillDatabase:
                 (bill_id,),
             ).fetchone()
             return dict(row) if row else None
+
+    def sync_cbo_flags(self) -> int:
+        """Sync has_cbo_score flag with actual cbo_estimates rows.
+
+        Bidirectional: sets flag=1 where estimates exist but flag is 0,
+        and clears flag=0 where no estimates exist but flag is 1.
+        Returns total number of rows updated.
+        """
+        with self._connect() as conn:
+            res1 = conn.execute(
+                "UPDATE bills SET has_cbo_score = 1 "
+                "WHERE has_cbo_score = 0 AND EXISTS "
+                "(SELECT 1 FROM cbo_estimates WHERE cbo_estimates.bill_id = bills.bill_id)"
+            )
+            res2 = conn.execute(
+                "UPDATE bills SET has_cbo_score = 0 "
+                "WHERE has_cbo_score = 1 AND NOT EXISTS "
+                "(SELECT 1 FROM cbo_estimates WHERE cbo_estimates.bill_id = bills.bill_id)"
+            )
+            return (res1.rowcount or 0) + (res2.rowcount or 0)
 
     # ------------------------------------------------------------------
     # Auto Scores
