@@ -273,7 +273,9 @@ def _render_exercise(exercise, idx, runner, feedback_engine, tracker) -> None:
 
     with st.expander(header, expanded=(not is_done)):
         st.markdown(f"*{exercise.type.value.replace('_', ' ').title()}*")
-        st.markdown(exercise.prompt)
+        # Escape dollar signs to prevent Streamlit LaTeX rendering
+        prompt_text = exercise.prompt.replace("$", "\\$")
+        st.markdown(prompt_text)
 
         if not exercise.parameters:
             # Open analysis — just submit a text note
@@ -283,8 +285,18 @@ def _render_exercise(exercise, idx, runner, feedback_engine, tracker) -> None:
         # Parameter sliders
         student_params: dict[str, float] = {}
         for param in exercise.parameters:
+            # Avoid appending unit if label already contains it
+            unit_suffix = f" ({param.unit})" if param.unit and param.unit not in param.label else ""
+            label = f"{param.label}{unit_suffix}"
+
+            # Handle degenerate sliders where min == max
+            if float(param.min) >= float(param.max):
+                st.text(f"{label}: {param.default}")
+                student_params[param.name] = float(param.default)
+                continue
+
             val = st.slider(
-                label=f"{param.label} {f'({param.unit})' if param.unit else ''}",
+                label=label,
                 min_value=float(param.min),
                 max_value=float(param.max),
                 value=float(param.default),
@@ -308,7 +320,7 @@ def _render_exercise(exercise, idx, runner, feedback_engine, tracker) -> None:
                 if hints_used > 0:
                     hint_text = runner.get_hint(exercise, hints_used)
                     if hint_text:
-                        st.info(f"**Hint {hints_used}:** {hint_text}")
+                        st.info(f"**Hint {hints_used}:** {hint_text.replace('$', '\\$')}")
 
         # Answer input (for exercises with numeric validation)
         if exercise.validation and exercise.validation.method.value != "none":
@@ -343,7 +355,7 @@ def _render_exercise(exercise, idx, runner, feedback_engine, tracker) -> None:
             if result:
                 st.success(result.message)
             if exercise.expected_insight:
-                st.info(f"**Key insight:** {exercise.expected_insight}")
+                st.info(f"**Key insight:** {exercise.expected_insight.replace('$', '\\$')}")
 
 
 def _render_range_or_open_exercise(exercise, student_params, runner, feedback_engine, tracker, hints_used) -> None:
