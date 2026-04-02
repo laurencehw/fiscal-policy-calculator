@@ -281,12 +281,15 @@ class CBOBaseline:
         else:
             # Use ratio from IRS data
             print("FRED not available, estimating GDP from IRS data")
-            self.base_gdp = self.base_individual_income_tax / 0.088  # ~8.8% ratio
+            # Individual income tax ≈ 8.8% of GDP (CBO Historical Budget
+            # Data, FY2024: $2.43T / $27.7T ≈ 8.8%)
+            self.base_gdp = self.base_individual_income_tax / 0.088
 
-        # Corporate tax: Historical ratio to individual income tax (~18%)
+        # Corporate tax: ~18% of individual income tax (CBO FY2024:
+        # $420B corporate / $2,430B individual ≈ 17.3%)
         self.base_corporate_tax = self.base_individual_income_tax * 0.18
 
-        # Payroll tax: ~6% of GDP (historical average)
+        # Payroll tax: ~6% of GDP (CBO FY2024: $1.7T / $27.7T ≈ 6.1%)
         self.base_payroll_tax = self.base_gdp * 0.06
 
         # Other revenue: Estate, excise, customs (~1.4% of GDP)
@@ -517,7 +520,9 @@ class CBOBaseline:
         for i in range(10):
             avg_debt = self.base_debt if i == 0 else (proj.debt_held_by_public[i-1] +
                                                        proj.debt_held_by_public[i]) / 2
-            # Effective interest rate is lower than 10-year due to mix of maturities
+            # Effective rate ≈ 75% of 10-year yield due to shorter-maturity mix.
+            # Treasury weighted-average maturity is ~6 years (Treasury Bulletin),
+            # with ~30% in bills/notes <2yr paying lower rates.
             effective_rate = self.assumptions.interest_rate_10yr[i] * 0.75
             interest[i] = avg_debt * effective_rate
 

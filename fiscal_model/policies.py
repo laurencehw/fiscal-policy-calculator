@@ -306,10 +306,19 @@ class TaxPolicy(Policy):
         year = self.data_year if self.data_year else max(available_years)
         logger.info(f"Auto-populating tax policy parameters from {year} IRS SOI data")
 
-        # Get filer statistics for income above threshold
+        # IRS SOI brackets are AGI-based, but income tax thresholds apply to
+        # taxable income (AGI minus deductions). For high earners, the standard
+        # deduction (~$30K MFJ) and itemized deductions create a wedge.
+        # Adjust threshold upward to approximate the AGI needed to have
+        # taxable income above the policy threshold.
+        # Average deductions for high earners: ~$40-50K (IRS SOI Table 1.2)
+        agi_deduction_adjustment = 45_000 if self.affected_income_threshold >= 200_000 else 15_000
+        agi_threshold = self.affected_income_threshold + agi_deduction_adjustment
+
+        # Get filer statistics for income above AGI-adjusted threshold
         bracket_info = irs_data.get_filers_by_bracket(
             year=year,
-            threshold=self.affected_income_threshold
+            threshold=agi_threshold
         )
 
         logger.info(
@@ -370,6 +379,12 @@ class TaxPolicy(Policy):
         #   than static → positive offset (increases deficit relative to static)
         # For tax CUTS (static_effect < 0): people earn more → less revenue loss
         #   than static → negative offset (decreases deficit relative to static)
+        #
+        # The 0.5 multiplier converts ETI to a revenue-offset fraction:
+        #   offset ≈ ETI × τ/(1-τ) × base ≈ ETI × 0.5 × static
+        # where τ/(1-τ) ≈ 0.5 at a ~33% average marginal rate.
+        # Reference: Saez, Slemrod & Giertz (2012), "The Elasticity of Taxable
+        # Income with Respect to Marginal Tax Rates", JEL 50(1), pp. 3-50.
         return static_effect * self.taxable_income_elasticity * 0.5
 
     def validate_inputs(self) -> list[str]:

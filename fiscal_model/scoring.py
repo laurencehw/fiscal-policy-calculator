@@ -311,6 +311,20 @@ class FiscalPolicyScorer:
         Returns:
             ScoringResult with complete analysis
         """
+        # Validate inputs at the scoring boundary
+        if not isinstance(policy, Policy):
+            raise TypeError(
+                f"Expected a Policy instance, got {type(policy).__name__}. "
+                "Use TaxPolicy, SpendingPolicy, TransferPolicy, or a subclass."
+            )
+        if not policy.name:
+            raise ValueError("Policy must have a non-empty name")
+        if policy.duration_years < 1 or policy.duration_years > 100:
+            raise ValueError(
+                f"duration_years={policy.duration_years} is unreasonable; "
+                "expected 1-100"
+            )
+
         logger.info("Scoring policy '%s' (dynamic=%s)", policy.name, dynamic)
 
         years = self.baseline.years

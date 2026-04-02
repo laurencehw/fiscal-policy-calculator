@@ -59,15 +59,11 @@ def render_data_status(st_module: Any, deps: Any) -> None:
                 fred_status = "🔴 Fallback (hardcoded values)"
             else:
                 fred_status = "⚪ Not available"
-        except Exception:
+        except (ImportError, OSError, KeyError):
             fred_status = "⚪ Not available"
 
-        try:
-            baseline_display = "CBO Feb 2026"
-            vintage_color = "green"
-        except Exception:
-            baseline_display = "Unknown"
-            vintage_color = "gray"
+        baseline_display = "CBO Feb 2026"
+        vintage_color = "green"
 
         st_module.markdown("---")
         st_module.markdown("**📊 Data Status**")
@@ -91,8 +87,8 @@ def render_data_status(st_module: Any, deps: Any) -> None:
                 "**Last Updated:** Baseline assumptions are updated quarterly "
                 "with new CBO publications."
             )
-    except Exception:
-        pass
+    except (ImportError, OSError, KeyError, AttributeError):
+        pass  # Data status display is non-critical; degrade silently
 
 
 def render_quick_start(st_module: Any) -> None:

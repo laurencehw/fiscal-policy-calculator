@@ -224,6 +224,78 @@ class TestSymmetryInvariant:
             assert offset < 0, "Offset should be negative for negative static effect"
 
 
+# =============================================================================
+# PROPERTY-BASED INVARIANT TESTS
+# =============================================================================
+
+class TestPropertyInvariants:
+    """Property-based tests: invariants that must hold for ALL policy parameters."""
+
+    @pytest.mark.parametrize("eti", [0.1, 0.25, 0.4, 0.5])
+    @pytest.mark.parametrize("static_effect", [-500, -100, -10, 10, 100, 500])
+    def test_offset_sign_always_matches_static(self, eti, static_effect):
+        """INVARIANT: offset sign must equal static_effect sign for any ETI."""
+        policy = TaxPolicy(
+            name="T", description="", policy_type=PolicyType.INCOME_TAX,
+            taxable_income_elasticity=eti,
+        )
+        offset = policy.estimate_behavioral_offset(static_effect)
+        if static_effect > 0:
+            assert offset > 0
+        elif static_effect < 0:
+            assert offset < 0
+        else:
+            assert offset == 0
+
+    @pytest.mark.parametrize("eti", [0.1, 0.25, 0.4, 0.5])
+    @pytest.mark.parametrize("static_effect", [-500, -100, 100, 500])
+    def test_offset_magnitude_less_than_static(self, eti, static_effect):
+        """INVARIANT: |offset| < |static_effect| for ETI in [0, 1]."""
+        policy = TaxPolicy(
+            name="T", description="", policy_type=PolicyType.INCOME_TAX,
+            taxable_income_elasticity=eti,
+        )
+        offset = policy.estimate_behavioral_offset(static_effect)
+        assert abs(offset) < abs(static_effect), (
+            f"ETI={eti}: offset {offset} exceeds static {static_effect}"
+        )
+
+    @pytest.mark.parametrize("eti", [0.1, 0.25, 0.4])
+    def test_higher_eti_means_larger_offset(self, eti):
+        """INVARIANT: higher ETI → larger offset magnitude."""
+        low_eti_policy = TaxPolicy(
+            name="T", description="", policy_type=PolicyType.INCOME_TAX,
+            taxable_income_elasticity=eti,
+        )
+        high_eti_policy = TaxPolicy(
+            name="T", description="", policy_type=PolicyType.INCOME_TAX,
+            taxable_income_elasticity=eti + 0.1,
+        )
+        static = 100.0
+        low_offset = low_eti_policy.estimate_behavioral_offset(static)
+        high_offset = high_eti_policy.estimate_behavioral_offset(static)
+        assert abs(high_offset) > abs(low_offset)
+
+    @pytest.mark.parametrize("rate_change", [-0.05, -0.01, 0.01, 0.05])
+    def test_full_pipeline_behavioral_reduces_static_magnitude(self, scorer, rate_change):
+        """INVARIANT: behavioral response always moves final toward zero vs static.
+
+        For tax increases: final deficit > static deficit (less negative, closer to 0)
+        For tax cuts: final deficit < static deficit (less positive, closer to 0)
+        """
+        policy = TaxPolicy(
+            name="Test", description="", policy_type=PolicyType.INCOME_TAX,
+            rate_change=rate_change, affected_income_threshold=0,
+        )
+        result = scorer.score_policy(policy)
+        static_total = abs(np.sum(result.static_deficit_effect))
+        final_total = abs(np.sum(result.final_deficit_effect))
+        assert final_total < static_total, (
+            f"rate_change={rate_change}: final ({final_total:.1f}) should be "
+            f"closer to zero than static ({static_total:.1f})"
+        )
+
+
 class TestScoringResultBoundsChecking:
     """Test that get_year_effect raises helpful errors for invalid years."""
 
