@@ -1,9 +1,9 @@
 """
-Centralized Streamlit session state keys.
+Centralized definitions for core Streamlit session_state keys and helpers.
 
-All session state key strings used across the UI should be defined here
-to prevent typos and key collisions. Dynamic keys (e.g., cache keys
-with run_id) use helper functions.
+Core session_state key strings used across the UI are defined here to
+prevent typos and key collisions. Dynamic keys (e.g., cache keys with
+run_id) should use the helper functions below.
 """
 
 # =============================================================================
@@ -36,29 +36,22 @@ def bt_show_detail_key(bill_id: str) -> str:
 # CACHE KEYS (dynamic, based on run_id + tab)
 # =============================================================================
 
-def dist_cache_key(run_id: str | None, suffix: str = "") -> str | None:
+def dist_cache_key(run_id: str, suffix: str = "") -> str:
     """Session state key for distributional analysis cache."""
-    if not run_id:
-        return None
-    return f"dist_{run_id}{suffix}"
+    return f"dist:{run_id}{suffix}"
 
 
-def macro_cache_key(run_id: str | None, model: str = "") -> str | None:
+def macro_cache_key(run_id: str, model: str = "") -> str:
     """Session state key for macro/dynamic scoring cache."""
-    if not run_id:
-        return None
-    return f"macro_{run_id}_{model}"
+    base = f"macro:{run_id}"
+    return f"{base}:{model}" if model else base
 
 
-def olg_cache_key(run_id: str | None) -> str | None:
+def olg_cache_key(run_id: str) -> str:
     """Session state key for OLG model cache."""
-    if not run_id:
-        return None
-    return f"olg_{run_id}"
+    return f"olg:{run_id}"
 
 
-def growth_cache_key(run_id: str | None) -> str | None:
+def growth_cache_key(run_id: str) -> str:
     """Session state key for long-run growth cache."""
-    if not run_id:
-        return None
-    return f"growth_{run_id}"
+    return f"growth:{run_id}"

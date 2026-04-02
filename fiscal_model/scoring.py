@@ -4,7 +4,13 @@ Fiscal Policy Scoring Engine
 Main scoring logic combining static and dynamic analysis.
 """
 
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import pandas as pd
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
@@ -118,7 +124,7 @@ class ScoringResult:
 
         return result
 
-    def to_dataframe(self) -> "pd.DataFrame":
+    def to_dataframe(self) -> pd.DataFrame:
         """Convert results to pandas DataFrame."""
         import pandas as pd
 
