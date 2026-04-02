@@ -272,11 +272,11 @@ class CorporateTaxPolicy(TaxPolicy):
             net_loss = shift_amount * rate_differential
             return net_loss  # Positive offset (revenue lost from shifting)
         else:
-            # Corporate rate < individual: income shifts TO C-corp
-            # Revenue gain from pass-through income moving to higher-taxed corporate
+            # Corporate rate < individual: income shifts TO C-corp (lower-taxed),
+            # causing a net revenue loss for the government.
             shift_amount = marginal_passthrough * self.passthrough_shift_elasticity
-            net_gain = shift_amount * abs(rate_differential)
-            return -net_gain  # Negative offset (revenue gained from shifting)
+            net_loss = shift_amount * abs(rate_differential)
+            return net_loss  # Positive offset (revenue lost from shifting)
 
     def get_component_breakdown(self) -> dict:
         """

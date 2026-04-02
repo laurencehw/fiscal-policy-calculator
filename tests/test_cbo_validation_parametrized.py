@@ -31,14 +31,11 @@ _VALIDATION_TARGETS = [
             and t.income_threshold is not None and t.income_threshold >= 1_000_000)
 ]
 
-_SCORER = None
 
-
-def _get_scorer():
-    global _SCORER
-    if _SCORER is None:
-        _SCORER = FiscalPolicyScorer(start_year=2025, use_real_data=True)
-    return _SCORER
+@pytest.fixture(scope="session")
+def scorer():
+    """Session-scoped scorer to avoid re-initializing for each test."""
+    return FiscalPolicyScorer(start_year=2025, use_real_data=True)
 
 
 @pytest.mark.parametrize(
@@ -56,9 +53,9 @@ class TestCBOValidationDirection:
             f"Could not create policy for {score.name}"
         )
 
-    def test_direction_matches(self, score):
+    def test_direction_matches(self, score, scorer):
         """Model should agree with CBO on cost vs savings direction."""
-        result = validate_policy(score, scorer=_get_scorer(), dynamic=False)
+        result = validate_policy(score, scorer=scorer, dynamic=False)
         if result is None:
             pytest.skip(f"Cannot replicate policy: {score.name}")
 
@@ -84,9 +81,9 @@ class TestCBOValidationAccuracy:
     are tested for order-of-magnitude correctness and direction only.
     """
 
-    def test_within_order_of_magnitude(self, score):
+    def test_within_order_of_magnitude(self, score, scorer):
         """Model estimate should be within 100% of official score."""
-        result = validate_policy(score, scorer=_get_scorer(), dynamic=False)
+        result = validate_policy(score, scorer=scorer, dynamic=False)
         if result is None:
             pytest.skip(f"Cannot replicate policy: {score.name}")
 
