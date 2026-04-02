@@ -6,10 +6,9 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
-
-from . import session_keys as SK
 from typing import Any
 
+from . import session_keys as SK
 from .controller_utils import render_input_guardrails, run_with_spinner_feedback
 
 SINGLE_POLICY_MODE = "📊 Single Policy"

@@ -18,11 +18,16 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from tests.conftest import requires_data
-
 from fiscal_model.data.capital_gains import CapitalGainsBaseline
 from fiscal_model.data.fred_data import FREDData
 from fiscal_model.data.irs_soi import IRSSOIData
+
+# Skip marker for tests that require IRS SOI data files on disk
+_data_dir = Path(__file__).parent.parent / "fiscal_model" / "data_files" / "irs_soi"
+requires_data = pytest.mark.skipif(
+    not (_data_dir.is_dir() and any(_data_dir.glob("*.csv"))),
+    reason="IRS SOI data files not available",
+)
 
 # =============================================================================
 # IRS SOI DATA
