@@ -182,8 +182,16 @@ class BillDatabase:
             where_clauses.append("congress = ?")
             params.append(congress)
         if has_cbo_score is not None:
-            where_clauses.append("has_cbo_score = ?")
-            params.append(int(has_cbo_score))
+            if has_cbo_score:
+                # Check actual cbo_estimates table, not just the flag
+                # (flag can be stale if scores were added via direct SQL)
+                where_clauses.append(
+                    "EXISTS (SELECT 1 FROM cbo_estimates WHERE cbo_estimates.bill_id = bills.bill_id)"
+                )
+            else:
+                where_clauses.append(
+                    "NOT EXISTS (SELECT 1 FROM cbo_estimates WHERE cbo_estimates.bill_id = bills.bill_id)"
+                )
 
         where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
         params.append(limit)
@@ -243,6 +251,22 @@ class BillDatabase:
                 (bill_id,),
             ).fetchone()
             return dict(row) if row else None
+
+    def sync_cbo_flags(self) -> int:
+        """Sync has_cbo_score flag with actual cbo_estimates rows.
+
+        Repairs stale flags when CBO scores were added via direct SQL
+        instead of upsert_cbo_score(). Returns number of rows updated.
+        """
+        with self._connect() as conn:
+            result = conn.execute(
+                """
+                UPDATE bills SET has_cbo_score = 1
+                WHERE bill_id IN (SELECT DISTINCT bill_id FROM cbo_estimates)
+                AND has_cbo_score = 0
+                """
+            )
+            return result.rowcount
 
     # ------------------------------------------------------------------
     # Auto Scores
