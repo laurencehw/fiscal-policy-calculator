@@ -56,6 +56,8 @@ CREATE TABLE IF NOT EXISTS cbo_estimates (
     FOREIGN KEY (bill_id) REFERENCES bills(bill_id)
 );
 
+CREATE INDEX IF NOT EXISTS idx_cbo_estimates_bill_id ON cbo_estimates(bill_id);
+
 CREATE TABLE IF NOT EXISTS auto_scores (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     bill_id TEXT,
@@ -255,18 +257,22 @@ class BillDatabase:
     def sync_cbo_flags(self) -> int:
         """Sync has_cbo_score flag with actual cbo_estimates rows.
 
-        Repairs stale flags when CBO scores were added via direct SQL
-        instead of upsert_cbo_score(). Returns number of rows updated.
+        Bidirectional: sets flag=1 where estimates exist but flag is 0,
+        and clears flag=0 where no estimates exist but flag is 1.
+        Returns total number of rows updated.
         """
         with self._connect() as conn:
-            result = conn.execute(
-                """
-                UPDATE bills SET has_cbo_score = 1
-                WHERE bill_id IN (SELECT DISTINCT bill_id FROM cbo_estimates)
-                AND has_cbo_score = 0
-                """
+            res1 = conn.execute(
+                "UPDATE bills SET has_cbo_score = 1 "
+                "WHERE has_cbo_score = 0 AND EXISTS "
+                "(SELECT 1 FROM cbo_estimates WHERE cbo_estimates.bill_id = bills.bill_id)"
             )
-            return result.rowcount
+            res2 = conn.execute(
+                "UPDATE bills SET has_cbo_score = 0 "
+                "WHERE has_cbo_score = 1 AND NOT EXISTS "
+                "(SELECT 1 FROM cbo_estimates WHERE cbo_estimates.bill_id = bills.bill_id)"
+            )
+            return (res1.rowcount or 0) + (res2.rowcount or 0)
 
     # ------------------------------------------------------------------
     # Auto Scores
