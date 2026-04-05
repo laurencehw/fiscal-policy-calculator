@@ -31,7 +31,7 @@ def build_main_tabs(
         "🌍 Dynamic Scoring",
         "📋 Detailed Results",
         "📈 Long-Run Growth",
-        "⚖️ Policy Comparison",
+        "⚖️ Multi-Model Comparison",
         "📦 Package Builder",
     ]
     tabs = st_module.tabs(labels)
@@ -43,7 +43,7 @@ def build_main_tabs(
         "tab_dynamic": tab_map["🌍 Dynamic Scoring"],
         "tab_details": tab_map["📋 Detailed Results"],
         "tab_long_run": tab_map["📈 Long-Run Growth"],
-        "tab_comparison": tab_map["⚖️ Policy Comparison"],
+        "tab_comparison": tab_map["⚖️ Multi-Model Comparison"],
         "tab_packages": tab_map["📦 Package Builder"],
     }
 
@@ -246,7 +246,7 @@ def render_result_tabs(
 
     if "tab_comparison" in tabs:
         with tabs["tab_comparison"]:
-            if mode == "🔀 Compare Policies":
+            if mode == "🔀 Compare Policies" or mode == "📊 Single Policy":
                 deps.render_policy_comparison_tab(
                     st_module=st_module,
                     is_spending=False,
@@ -259,10 +259,10 @@ def render_result_tabs(
                     dynamic_scoring=settings["dynamic_scoring"],
                 )
             else:
-                st_module.subheader("Policy Comparison")
+                st_module.subheader("Multi-Model Comparison")
                 st_module.markdown(
-                    "Switch to **Compare Policies** mode in the sidebar to compare "
-                    "multiple policy proposals side-by-side."
+                    "Switch to **Compare Policies** mode in the sidebar or run a single policy "
+                    "to compare across models (CBO-style vs Dynamic)."
                 )
 
     if "tab_packages" in tabs:

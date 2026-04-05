@@ -20,6 +20,7 @@ from fiscal_model.models.macro_adapter import (
     MacroScenario,
     SimpleMultiplierAdapter,
 )
+from fiscal_model.models.base import BaseScoringModel, CBOStyleModel
 from fiscal_model.policies import CapitalGainsPolicy, PolicyType, SpendingPolicy, TaxPolicy
 from fiscal_model.preset_handler import create_policy_from_preset
 from fiscal_model.scoring import FiscalPolicyScorer
@@ -140,6 +141,8 @@ class AppDependencies:
     render_generational_analysis_tab: Any
     render_bill_tracker_tab: Any
     render_state_analysis_tab: Any
+    BaseScoringModel: type[BaseScoringModel]
+    CBOStyleModel: type[CBOStyleModel]
     apply_app_styles: Any
     run_main_app: Any
     pd: Any
@@ -192,6 +195,8 @@ def build_app_dependencies(pd_module: Any) -> AppDependencies:
         render_generational_analysis_tab=_render_generational_analysis_tab,
         render_bill_tracker_tab=_render_bill_tracker_tab,
         render_state_analysis_tab=_render_state_analysis_tab,
+        BaseScoringModel=BaseScoringModel,
+        CBOStyleModel=CBOStyleModel,
         apply_app_styles=apply_app_styles,
         run_main_app=run_main_app,
         pd=pd_module,

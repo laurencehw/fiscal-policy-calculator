@@ -196,6 +196,17 @@ def _render_calculator(
             settings_tab=st_module.expander("⚙️ Model settings", expanded=False),
         )
 
+        # Apply dark mode via CSS class (better compatibility)
+        if settings.get("dark_mode", False):
+            st_module.markdown(
+                '<style>'
+                'body, .stApp {background-color: #0e1117 !important; color: #fafafa !important;} '
+                '.stMarkdown, p, h1, h2, h3, label {color: #fafafa !important;} '
+                '.metric-card {background-color: #262730 !important;}'
+                '</style>',
+                unsafe_allow_html=True,
+            )
+
         # 3. Calculate button
         st_module.markdown("---")
         single_policy_mode = calc_context["mode"] == SINGLE_POLICY_MODE

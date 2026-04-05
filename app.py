@@ -11,8 +11,8 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-# Route to classroom mode before setting page config (set_page_config must
-# be the first Streamlit call, so we read query params first via the dict).
+# Route to classroom mode before setting page config.
+# Support query params for deep linking: ?policy=TCJA+Full+Extension&dynamic=true
 _mode = st.query_params.get("mode", "")
 
 if _mode == "classroom":

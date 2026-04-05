@@ -36,6 +36,24 @@ APP_STYLES = """
         margin: 1rem 0;
         border-radius: 0.25rem;
     }
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark), .dark-mode {
+        .metric-card {
+            background-color: #262730;
+            color: #fafafa;
+        }
+        .info-box {
+            background-color: #1e3a5f;
+            border-left-color: #4da6ff;
+        }
+        .stMarkdown, .stText, p, h1, h2, h3, h4 {
+            color: #fafafa;
+        }
+    }
+    /* Share button styling */
+    .stButton button[data-testid="baseButton-secondary"] {
+        border-radius: 6px;
+    }
 </style>
 """
 

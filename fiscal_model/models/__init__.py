@@ -28,6 +28,7 @@ Example usage:
     print(result.summary())
 """
 
+from .base import BaseScoringModel, CBOStyleModel, ModelResult
 from .macro_adapter import (
     FiscalClosureType,
     FRBUSAdapter,
@@ -45,12 +46,15 @@ from .olg import OLGModel, OLGParameters, OLGPolicyResult, SimpleOLGModel
 # (imported lazily to avoid slowing down the main import)
 
 __all__ = [
+    "BaseScoringModel",
+    "CBOStyleModel",
     "FRBUSAdapter",
     "FRBUSAdapterLite",
     "FiscalClosureType",
     "MacroModelAdapter",
     "MacroResult",
     "MacroScenario",
+    "ModelResult",
     "MonetaryPolicyRule",
     "OLGModel",
     "OLGParameters",

@@ -65,10 +65,16 @@ def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
     tax_inputs: dict[str, Any] = {}
     spending_inputs: dict[str, Any] = {}
 
+    # Support query param pre-selection
+    query_params = getattr(st_module, "query_params", {})
+    default_preset = query_params.get("policy") or query_params.get("preset")
+
     if is_spending:
         spending_inputs = deps.render_spending_policy_inputs(st_module)
     else:
-        tax_inputs = deps.render_tax_policy_inputs(st_module, preset_policies, use_preset=use_preset)
+        tax_inputs = deps.render_tax_policy_inputs(
+            st_module, preset_policies, use_preset=use_preset, default_preset=default_preset
+        )
 
     st_module.markdown("---")
 

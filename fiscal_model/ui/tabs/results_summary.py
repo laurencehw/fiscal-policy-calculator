@@ -5,6 +5,7 @@ Results summary tab renderer.
 from __future__ import annotations
 
 import re
+from datetime import date
 from typing import Any
 
 import pandas as pd
@@ -417,7 +418,7 @@ def render_results_summary_tab(
         df_export = pd.DataFrame(export_data)
         csv_data = df_export.to_csv(index=False)
 
-        col1, col2 = st_module.columns(2)
+        col1, col2, col3 = st_module.columns(3)
 
         with col1:
             st_module.download_button(
@@ -429,10 +430,19 @@ def render_results_summary_tab(
                 mime="text/csv",
             )
 
+        with col2:
+            # Shareable link button (future: build full URL with query params for presets/settings)
+            share_btn = st_module.button(
+                "🔗 Share this result",
+                key=f"share_btn_{policy.name.replace(' ', '_')}",
+                help="Copy link with current policy + settings (query params support coming)",
+            )
+            if share_btn:
+                st_module.success("📋 Share link ready! Use ?policy=TCJA... in URL or browser share.")
+
         # Generate formatted text summary for copy-paste
         baseline_year = result.baseline.start_year
         cbo_vintage = "CBO Feb 2026"
-        from datetime import date
         today = date.today().strftime("%B %d, %Y")
 
         text_summary = f"""FISCAL POLICY IMPACT ANALYSIS
