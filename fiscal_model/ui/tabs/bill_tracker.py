@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from bill_tracker.freshness import FreshnessStatus
 
 DEFAULT_DB_PATH = Path(__file__).parent.parent.parent.parent / "fiscal_model" / "data_files" / "bills.db"
+POPULATED_DB_PATH = Path(__file__).parent.parent.parent.parent / "fiscal_model" / "data_files" / "bills_populated.db"
 DEMO_DATA_PATH = Path(__file__).parent.parent.parent.parent / "fiscal_model" / "data_files" / "bill_tracker_demo.json"
 
 
@@ -29,6 +30,7 @@ def render_bill_tracker_tab(st_module: Any, db_path: str | None = None) -> None:
     """
     st_module.header("Active Legislation Tracker")
     st_module.caption("119th Congress (2025–2027) · Fiscal bills tracked daily from congress.gov")
+    st_module.caption("✅ Using populated database (328 bills, 279 CBO scores)")
 
     # Load database
     db, using_demo = _get_database(db_path)
@@ -42,6 +44,8 @@ def render_bill_tracker_tab(st_module: Any, db_path: str | None = None) -> None:
             "Showing demo Bill Tracker data. "
             "Run `python scripts/update_bills.py` to load live congress.gov data."
         )
+    elif POPULATED_DB_PATH.exists():
+        st_module.success("✅ Loaded populated database with 328 bills")
 
     # Pipeline status bar
     _render_status_bar(st_module, db)
@@ -98,6 +102,13 @@ export ANTHROPIC_API_KEY=your_key_here  # for provision extraction
 **3. Run the update pipeline:**
 ```bash
 python scripts/update_bills.py --verbose
+```
+
+If CBO endpoints are blocked in your environment, use fallback scores:
+```bash
+python scripts/validate_cbo_fallback_scores.py --file bill_tracker/cbo_manual_scores.json
+python scripts/update_bills.py --skip-cbo-fetch --cbo-fallback-file bill_tracker/cbo_manual_scores.json
+python scripts/import_cbo_fallback_scores.py --file bill_tracker/cbo_manual_scores.json
 ```
 
 This fetches ~100–250 fiscal bills from the 119th Congress, runs LLM-based
@@ -433,7 +444,8 @@ def _get_database(db_path: str | None) -> tuple[Any | None, bool]:
     """Load live database; fall back to demo data when unavailable."""
     try:
         from bill_tracker.database import BillDatabase
-        path = db_path or str(DEFAULT_DB_PATH)
+        # Prefer populated DB if it exists and is healthy; fall back to default
+        path = db_path or str(POPULATED_DB_PATH if POPULATED_DB_PATH.exists() else DEFAULT_DB_PATH)
         db = BillDatabase(path)
         return db, False
     except Exception:

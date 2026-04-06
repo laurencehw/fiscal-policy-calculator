@@ -10,7 +10,7 @@ Pipeline:
 """
 
 from .auto_scorer import AutoScorer, BillScore
-from .cbo_fetcher import CBOCostEstimate, CBOScoreFetcher
+from .cbo_fetcher import CBOCostEstimate, CBOScoreFetcher, load_fallback_estimates
 from .database import BillDatabase
 from .freshness import FreshnessStatus, check_freshness
 from .ingestor import BillIngestor, BillMetadata
@@ -28,4 +28,5 @@ __all__ = [
     "MappingResult",
     "ProvisionMapper",
     "check_freshness",
+    "load_fallback_estimates",
 ]

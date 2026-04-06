@@ -3,6 +3,7 @@ Daily bill tracker update pipeline.
 
 Usage:
     python scripts/update_bills.py [--full-refresh] [--verbose] [--limit N]
+    python scripts/update_bills.py --skip-cbo-fetch --cbo-fallback-file bill_tracker/cbo_manual_scores.json
 
 Schedule:
     Daily at 6 AM UTC via cron or Streamlit Cloud scheduled job:
@@ -14,7 +15,7 @@ Environment variables:
 
 Pipeline:
     1. Fetch new/updated bills from congress.gov (since last run)
-    2. Fetch CBO cost estimates and match to bills
+    2. Fetch CBO cost estimates and match to bills (or load fallback JSON if blocked)
     3. Extract provisions via Claude Haiku LLM (skip if manual override exists)
     4. Auto-score each bill using the calculator's scoring pipeline
     5. Store everything to bills.db
@@ -33,6 +34,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 DEFAULT_DB_PATH = Path(__file__).parent.parent / "fiscal_model" / "data_files" / "bills.db"
+DEFAULT_CBO_FALLBACK_PATH = Path(__file__).parent.parent / "bill_tracker" / "cbo_manual_scores.json"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -70,6 +72,19 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Fetch and map but do not write to database",
     )
+    p.add_argument(
+        "--skip-cbo-fetch",
+        action="store_true",
+        help="Skip live CBO fetch and use fallback file only.",
+    )
+    p.add_argument(
+        "--cbo-fallback-file",
+        default=str(DEFAULT_CBO_FALLBACK_PATH),
+        help=(
+            "Path to JSON fallback CBO scores (used when live CBO is blocked). "
+            f"Default: {DEFAULT_CBO_FALLBACK_PATH}"
+        ),
+    )
     return p
 
 
@@ -105,7 +120,7 @@ def main() -> int:
 
     # Import pipeline components
     from bill_tracker.auto_scorer import AutoScorer
-    from bill_tracker.cbo_fetcher import CBOScoreFetcher
+    from bill_tracker.cbo_fetcher import CBOScoreFetcher, load_fallback_estimates
     from bill_tracker.database import BillDatabase
     from bill_tracker.ingestor import BillIngestor
     from bill_tracker.provision_mapper import ProvisionMapper
@@ -131,9 +146,24 @@ def main() -> int:
     logger.info("Fetched %d bills", len(bills))
 
     # Step 2: Fetch CBO estimates
-    logger.info("Fetching recent CBO cost estimates...")
-    cbo_estimates = cbo.fetch_recent_estimates(since_date=since, limit=200)
-    logger.info("Fetched %d CBO estimates", len(cbo_estimates))
+    cbo_estimates = []
+    if args.skip_cbo_fetch:
+        logger.info("Skipping live CBO fetch (--skip-cbo-fetch enabled).")
+    else:
+        logger.info("Fetching recent CBO cost estimates...")
+        cbo_estimates = cbo.fetch_recent_estimates(since_date=since, limit=200)
+        logger.info("Fetched %d CBO estimates", len(cbo_estimates))
+
+    fallback_estimates = load_fallback_estimates(args.cbo_fallback_file)
+    fallback_by_bill_id = {e.bill_id: e for e in fallback_estimates if e.bill_id}
+    if fallback_estimates:
+        logger.info(
+            "Loaded %d fallback CBO score entries from %s",
+            len(fallback_estimates),
+            args.cbo_fallback_file,
+        )
+    elif args.cbo_fallback_file:
+        logger.info("No fallback CBO scores found at %s", args.cbo_fallback_file)
 
     # Process each bill
     updated = 0
@@ -153,7 +183,13 @@ def main() -> int:
             db.upsert_bill(bill)
 
         # Match CBO estimate
-        cbo_estimate = cbo.match_to_bill(bill.bill_id, bill_title=bill.title)
+        cbo_estimate = cbo.match_to_bill_from_estimates(
+            bill_id=bill.bill_id,
+            bill_title=bill.title,
+            estimates=cbo_estimates,
+        )
+        if cbo_estimate is None:
+            cbo_estimate = fallback_by_bill_id.get(bill.bill_id)
         if cbo_estimate:
             if not args.dry_run:
                 db.upsert_cbo_score(cbo_estimate)

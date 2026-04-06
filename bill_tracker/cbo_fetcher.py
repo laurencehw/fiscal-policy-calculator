@@ -14,6 +14,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from difflib import SequenceMatcher
+from pathlib import Path
 from typing import Any
 
 import requests
@@ -95,10 +96,27 @@ class CBOScoreFetcher:
         2. Fuzzy title match (threshold: 0.65)
         """
         estimates = self.fetch_recent_estimates(limit=200)
+        return self.match_to_bill_from_estimates(
+            bill_id=bill_id,
+            bill_title=bill_title,
+            estimates=estimates,
+        )
+
+    def match_to_bill_from_estimates(
+        self,
+        bill_id: str,
+        bill_title: str,
+        estimates: list[CBOCostEstimate],
+    ) -> CBOCostEstimate | None:
+        """
+        Match a bill against a pre-fetched list of estimates.
+
+        This avoids re-fetching CBO data for every bill in a pipeline run.
+        """
         if not estimates:
             return None
 
-        # Parse bill number from bill_id  (e.g. "hr-1234-119" → "H.R. 1234")
+        # Parse bill number from bill_id (e.g. "hr-1234-119" → "H.R. 1234")
         bill_ref = _bill_id_to_ref(bill_id)
         bill_title_lower = bill_title.lower().strip()
 
@@ -110,8 +128,17 @@ class CBOScoreFetcher:
 
             # Exact bill number match
             if bill_ref and bill_ref.lower() in title_lower:
-                est.bill_id = bill_id
-                return est
+                return CBOCostEstimate(
+                    bill_id=bill_id,
+                    title=est.title,
+                    estimate_date=est.estimate_date,
+                    ten_year_cost_billions=est.ten_year_cost_billions,
+                    annual_costs=list(est.annual_costs),
+                    budget_function=est.budget_function,
+                    dynamic_estimate=est.dynamic_estimate,
+                    pdf_url=est.pdf_url,
+                    cbo_url=est.cbo_url,
+                )
 
             # Fuzzy title match
             if bill_title_lower:
@@ -120,9 +147,20 @@ class CBOScoreFetcher:
                     best_score = score
                     best_match = est
 
-        if best_match:
-            best_match.bill_id = bill_id
-        return best_match
+        if not best_match:
+            return None
+
+        return CBOCostEstimate(
+            bill_id=bill_id,
+            title=best_match.title,
+            estimate_date=best_match.estimate_date,
+            ten_year_cost_billions=best_match.ten_year_cost_billions,
+            annual_costs=list(best_match.annual_costs),
+            budget_function=best_match.budget_function,
+            dynamic_estimate=best_match.dynamic_estimate,
+            pdf_url=best_match.pdf_url,
+            cbo_url=best_match.cbo_url,
+        )
 
     def parse_estimate_html(self, url: str) -> CBOCostEstimate | None:
         """
@@ -267,3 +305,81 @@ def _bill_id_to_ref(bill_id: str) -> str:
     ref_map = {"HR": "H.R.", "S": "S.", "HJRES": "H.J.Res.", "SJRES": "S.J.Res."}
     ref = ref_map.get(bill_type, bill_type)
     return f"{ref} {number}"
+
+
+def load_fallback_estimates(path: str | Path) -> list[CBOCostEstimate]:
+    """
+    Load manually curated CBO scores from JSON.
+
+    Accepted formats:
+    1) {"scores": [ ... ]} or
+    2) [ ... ]
+
+    Required keys per entry:
+    - bill_id
+    - ten_year_cost_billions
+    """
+    file_path = Path(path)
+    if not file_path.exists():
+        return []
+
+    try:
+        payload = json.loads(file_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        logger.warning("Failed to parse fallback CBO file %s: %s", file_path, exc)
+        return []
+
+    items = payload.get("scores", []) if isinstance(payload, dict) else payload
+    if not isinstance(items, list):
+        logger.warning("Fallback CBO file %s has invalid structure.", file_path)
+        return []
+
+    estimates: list[CBOCostEstimate] = []
+    for raw in items:
+        if not isinstance(raw, dict):
+            continue
+        bill_id = str(raw.get("bill_id", "")).strip()
+        if not bill_id:
+            continue
+
+        try:
+            ten_year = float(raw.get("ten_year_cost_billions"))
+        except (TypeError, ValueError):
+            logger.warning(
+                "Skipping fallback CBO score for %s due to invalid ten_year_cost_billions.",
+                bill_id,
+            )
+            continue
+
+        estimate_date = _parse_date(str(raw.get("estimate_date", "")))
+        if estimate_date.year == 1970:
+            estimate_date = datetime.utcnow()
+
+        annual_costs_raw = raw.get("annual_costs", [])
+        annual_costs: list[float] = []
+        if isinstance(annual_costs_raw, list):
+            for value in annual_costs_raw:
+                try:
+                    annual_costs.append(float(value))
+                except (TypeError, ValueError):
+                    continue
+
+        estimates.append(
+            CBOCostEstimate(
+                bill_id=bill_id,
+                title=str(raw.get("title", "")),
+                estimate_date=estimate_date,
+                ten_year_cost_billions=ten_year,
+                annual_costs=annual_costs,
+                budget_function=str(raw.get("budget_function", "")),
+                dynamic_estimate=(
+                    float(raw["dynamic_estimate"])
+                    if raw.get("dynamic_estimate") is not None
+                    else None
+                ),
+                pdf_url=str(raw.get("pdf_url", "")),
+                cbo_url=str(raw.get("cbo_url", "")),
+            )
+        )
+
+    return estimates
