@@ -15,6 +15,20 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
     macro_model = None
 
     with settings_tab:
+        # Dark mode toggle (persisted in session state)
+        if "dark_mode" not in st_module.session_state:
+            st_module.session_state.dark_mode = False
+
+        dark_mode = st_module.checkbox(
+            "🌙 Dark mode",
+            value=st_module.session_state.dark_mode,
+            help="Toggle between light and dark theme. Persists during session.",
+        )
+        if dark_mode != st_module.session_state.dark_mode:
+            st_module.session_state.dark_mode = dark_mode
+            # Force rerun to apply CSS changes
+            st_module.rerun()
+
         dynamic_scoring = st_module.checkbox(
             "Enable dynamic scoring",
             value=False,
@@ -105,4 +119,5 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
         "use_microsim": use_microsim_general,
         "use_microsim_distribution": use_microsim_distribution,
         "data_year": data_year,
+        "dark_mode": dark_mode,
     }

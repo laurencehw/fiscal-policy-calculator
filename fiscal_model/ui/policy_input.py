@@ -74,6 +74,7 @@ def _strip_emoji_prefix(name: str) -> str:
 def _render_preset_selection(
     st_module: Any,
     preset_policies: dict[str, dict[str, Any]],
+    default_preset: str | None = None,
 ) -> str:
     """Render preset category/selection and info display. Returns preset key."""
     # Group presets by category for easy scanning
@@ -86,20 +87,36 @@ def _render_preset_selection(
 
     # Category filter
     available_cats = [c for c in _CATEGORY_ORDER if c in categorized]
+    default_cat_index = 0
+    if default_preset and default_preset in preset_policies:
+        default_cat = _preset_category(preset_policies[default_preset])
+        if default_cat in available_cats:
+            default_cat_index = available_cats.index(default_cat)
+
     selected_cat = st_module.selectbox(
         "Policy area",
         options=available_cats,
-        index=0,
+        index=default_cat_index,
         help="Filter proposals by policy area.",
     )
 
     # Preset selector (within category)
     cat_presets = categorized.get(selected_cat, [])
     display_names = {_strip_emoji_prefix(n): n for n in cat_presets}
+    display_options = list(display_names.keys())
+    default_display = None
+    if default_preset and default_preset in display_names.values():
+        default_display = _strip_emoji_prefix(default_preset)
+    default_display_index = (
+        display_options.index(default_display)
+        if default_display in display_options
+        else 0
+    )
 
     selected_display = st_module.selectbox(
         "Select a proposal",
-        options=list(display_names.keys()),
+        options=display_options,
+        index=default_display_index,
         help="Each proposal is pre-configured with parameters matching official estimates.",
     )
     preset_choice = display_names[selected_display]
@@ -411,14 +428,22 @@ def render_tax_policy_inputs(
     st_module: Any,
     preset_policies: dict[str, dict[str, Any]],
     use_preset: bool = True,
+    default_preset: str | None = None,
 ) -> dict[str, Any]:
-    """Render tax policy input controls and return selected values."""
+    """Render tax policy input controls and return selected values.
+
+    Supports query param pre-selection via default_preset.
+    """
 
     # ── Preset path ──────────────────────────────────────────────────────
-    preset_choice = "Custom Policy"
+    preset_choice = default_preset or "Custom Policy"
 
     if use_preset:
-        preset_choice = _render_preset_selection(st_module, preset_policies)
+        preset_choice = _render_preset_selection(
+            st_module,
+            preset_policies,
+            default_preset=default_preset,
+        )
 
     # ── Default values ───────────────────────────────────────────────────
     policy_name = preset_choice if use_preset else "Tax Rate Change"

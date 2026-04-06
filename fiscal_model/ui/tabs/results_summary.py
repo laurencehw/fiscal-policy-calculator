@@ -5,6 +5,7 @@ Results summary tab renderer.
 from __future__ import annotations
 
 import re
+from datetime import date
 from typing import Any
 
 import pandas as pd
@@ -396,7 +397,7 @@ def _display_export_section(
         df_export = pd.DataFrame(export_data)
         csv_data = df_export.to_csv(index=False)
 
-        col1, col2 = st_module.columns(2)
+        col1, col2, col3 = st_module.columns(3)
 
         with col1:
             st_module.download_button(
@@ -408,10 +409,21 @@ def _display_export_section(
                 mime="text/csv",
             )
 
+        with col2:
+            share_btn = st_module.button(
+                "🔗 Sharing options",
+                key=f"share_btn_{policy.name.replace(' ', '_')}",
+                help="Direct share-link generation is not yet implemented for the current policy and settings.",
+            )
+            if share_btn:
+                st_module.info(
+                    "Shareable links are not available yet in this view. "
+                    "Please use the exported files or copy the text summary below."
+                )
+
         # Generate formatted text summary for copy-paste
         baseline_year = result.baseline.start_year
         cbo_vintage = "CBO Feb 2026"
-        from datetime import date
         today = date.today().strftime("%B %d, %Y")
 
         text_summary = f"""FISCAL POLICY IMPACT ANALYSIS
@@ -440,7 +452,7 @@ Year-by-Year Breakdown:
         text_summary += f"\nData Sources:\n  - IRS Statistics of Income (2022)\n  - FRED Economic Data\n  - CBO Baseline (FY{baseline_year})\n"
         text_summary += "\nMethodology: Static + behavioral scoring with FRB/US-calibrated dynamic effects\n"
 
-        with col2:
+        with col3:
             st_module.download_button(
                 label="📄 Download as Text",
                 data=text_summary,
