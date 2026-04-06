@@ -127,18 +127,20 @@ def render_quick_start(st_module: Any) -> None:
 def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Path) -> None:
     """
     Render and orchestrate the full Streamlit app flow.
-    Top-level tabs: Calculator | Generational | State | Bill Tracker | Methodology
+    Top-level tabs: Calculator | Budget Builder | Generational | State | Bill Tracker | Methodology
     """
     st_module.title("Fiscal Policy Impact Calculator")
     st_module.markdown(
         "Estimate the 10-year budgetary and economic effects of U.S. tax and "
         "spending proposals. Powered by IRS data, FRED, and CBO methodology. "
         f"Companion to the [Public Economics textbook]({TEXTBOOK_HOME}). "
-        "[Classroom Mode](?mode=classroom)."
+        "[Classroom Mode](?mode=classroom).\n\n"
+        "🆕 **Can you balance the budget?** Try the **⚖️ Budget Builder** tab →"
     )
 
     top_tabs = st_module.tabs([
         "📊 Calculator",
+        "⚖️ Budget Builder",
         "🌐 Generational",
         "🗺️ State",
         "📋 Bill Tracker",
@@ -156,6 +158,16 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
 
     with top_tabs[1]:
         try:
+            _render_budget_builder(st_module=st_module, deps=deps)
+        except Exception as exc:
+            st_module.error(
+                f"Budget Builder encountered an error: {type(exc).__name__}: {exc}\n\n"
+                "Try reloading the page."
+            )
+        render_footer(st_module=st_module)
+
+    with top_tabs[2]:
+        try:
             _render_generational(st_module=st_module, deps=deps)
         except Exception as exc:
             st_module.error(
@@ -164,7 +176,7 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
             )
         render_footer(st_module=st_module)
 
-    with top_tabs[2]:
+    with top_tabs[3]:
         try:
             _render_state(st_module=st_module, deps=deps)
         except Exception as exc:
@@ -174,7 +186,7 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
             )
         render_footer(st_module=st_module)
 
-    with top_tabs[3]:
+    with top_tabs[4]:
         try:
             deps.render_bill_tracker_tab(st_module=st_module)
         except Exception as exc:
@@ -184,7 +196,7 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
             )
         render_footer(st_module=st_module)
 
-    with top_tabs[4]:
+    with top_tabs[5]:
         try:
             deps.render_methodology_tab(st_module=st_module)
         except Exception as exc:
@@ -284,6 +296,18 @@ def _render_calculator(
         model_available=model_available,
         is_spending=calc_context["is_spending"],
         mode=calc_context["mode"],
+    )
+
+
+def _render_budget_builder(st_module: Any, deps: Any) -> None:
+    """Render the Budget Builder tab — standalone deficit reduction planner."""
+    from fiscal_model.ui.tabs.deficit_target import render_deficit_target_tab
+
+    render_deficit_target_tab(
+        st_module=st_module,
+        cbo_score_map=deps.CBO_SCORE_MAP,
+        fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
+        use_real_data=True,
     )
 
 
