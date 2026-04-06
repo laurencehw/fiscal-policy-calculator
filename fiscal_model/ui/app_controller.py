@@ -100,7 +100,8 @@ def render_data_status(st_module: Any, deps: Any) -> None:
 
 def render_quick_start(st_module: Any) -> None:
     """
-    Render a dismissible quick-start guide. Auto-dismissed once results exist.
+    Render a dismissible quick-start guide with clickable policy cards.
+    Auto-dismissed once results exist.
     """
     if "quick_start_dismissed" not in st_module.session_state:
         st_module.session_state.quick_start_dismissed = False
@@ -114,13 +115,68 @@ def render_quick_start(st_module: Any) -> None:
         with col1:
             st_module.markdown(
                 "👋 Estimate the 10-year budget impact of any U.S. tax or spending proposal, "
-                "backed by IRS data and CBO methodology.\n\n"
-                "To get started: pick a policy area in the sidebar, select a proposal, then click Calculate Impact."
+                "backed by IRS data and CBO methodology. "
+                "Click a card below to load a preset and run a calculation instantly."
             )
         with col2:
             if st_module.button("✕", key="dismiss_quick_start"):
                 st_module.session_state.quick_start_dismissed = True
                 st_module.rerun()
+
+        c1, c2, c3 = st_module.columns(3)
+
+        with c1:
+            with st_module.container(border=True):
+                st_module.markdown("**TCJA Extension**")
+                st_module.caption("Extend all individual TCJA provisions beyond the 2025 sunset")
+                st_module.markdown(
+                    '<span style="color:#d9534f;font-weight:600">▲ +$4.6T to deficit</span>'
+                    " &nbsp;*(10-yr, CBO)*",
+                    unsafe_allow_html=True,
+                )
+                if st_module.button("Try this →", key="qs_btn_tcja", use_container_width=True):
+                    st_module.session_state["sidebar_workflow_mode"] = SINGLE_POLICY_MODE
+                    st_module.session_state["sidebar_analysis_mode"] = "📋 Tax proposal (preset)"
+                    st_module.session_state["sidebar_policy_area"] = "TCJA / Individual"
+                    st_module.session_state["sidebar_preset_choice"] = "TCJA Full Extension"
+                    st_module.session_state["qs_calculate"] = True
+                    st_module.rerun()
+
+        with c2:
+            with st_module.container(border=True):
+                st_module.markdown("**Biden 400K+ Tax**")
+                st_module.caption("Restore 39.6% top rate on income above $400K")
+                st_module.markdown(
+                    '<span style="color:#5cb85c;font-weight:600">▼ −$252B from deficit</span>'
+                    " &nbsp;*(10-yr, Treasury)*",
+                    unsafe_allow_html=True,
+                )
+                if st_module.button("Try this →", key="qs_btn_biden", use_container_width=True):
+                    st_module.session_state["sidebar_workflow_mode"] = SINGLE_POLICY_MODE
+                    st_module.session_state["sidebar_analysis_mode"] = "📋 Tax proposal (preset)"
+                    st_module.session_state["sidebar_policy_area"] = "Income Tax"
+                    st_module.session_state["sidebar_preset_choice"] = "Biden 2025 Proposal"
+                    st_module.session_state["qs_calculate"] = True
+                    st_module.rerun()
+
+        with c3:
+            with st_module.container(border=True):
+                st_module.markdown("**Infrastructure $100B/yr**")
+                st_module.caption("Federal investment in roads, broadband, and water systems")
+                st_module.markdown(
+                    '<span style="color:#d9534f;font-weight:600">▲ +$1.0T to deficit</span>'
+                    " &nbsp;*(10-yr, est.)*",
+                    unsafe_allow_html=True,
+                )
+                if st_module.button("Try this →", key="qs_btn_infra", use_container_width=True):
+                    st_module.session_state["sidebar_workflow_mode"] = SINGLE_POLICY_MODE
+                    st_module.session_state["sidebar_analysis_mode"] = "💰 Spending program"
+                    st_module.session_state["sidebar_spending_preset"] = (
+                        "Infrastructure Investment ($100B/yr)"
+                    )
+                    st_module.session_state["qs_calculate"] = True
+                    st_module.rerun()
+
         st_module.markdown("---")
 
 
@@ -251,6 +307,11 @@ def _render_calculator(
                 "Calculation runs from the selected workflow tab "
                 "(comparison or package builder)."
             )
+        # Auto-trigger from quick-start card click
+        if getattr(st_module.session_state, "qs_calculate", False):
+            del st_module.session_state["qs_calculate"]
+            if single_policy_mode:
+                calculate = True
         calc_context["calculate"] = calculate
 
         # 4. Data Status (bottom of sidebar — infrastructure, not decision-relevant)

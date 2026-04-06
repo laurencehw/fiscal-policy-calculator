@@ -117,10 +117,19 @@ def render_tax_policy_inputs(
             if default_cat in available_cats:
                 default_cat_index = available_cats.index(default_cat)
 
+        # Defensive: remove invalid cached value before rendering
+        _area_key = "sidebar_policy_area"
+        if (
+            _area_key in st_module.session_state
+            and st_module.session_state[_area_key] not in available_cats
+        ):
+            del st_module.session_state[_area_key]
+
         selected_cat = st_module.selectbox(
             "Policy area",
             options=available_cats,
             index=default_cat_index,
+            key=_area_key,
             help="Filter proposals by policy area.",
         )
 
@@ -135,10 +144,19 @@ def render_tax_policy_inputs(
             else next(iter(short_names.keys()))
         )
 
+        # Defensive: remove cached preset if not valid for the current category
+        _preset_key = "sidebar_preset_choice"
+        if (
+            _preset_key in st_module.session_state
+            and st_module.session_state[_preset_key] not in short_names
+        ):
+            del st_module.session_state[_preset_key]
+
         selected_short = st_module.selectbox(
             "Select a proposal",
             options=list(short_names.keys()),
             index=list(short_names.keys()).index(default_short) if default_short in short_names else 0,
+            key=_preset_key,
             help="Each proposal is pre-configured with parameters matching official estimates.",
         )
         preset_choice = short_names[selected_short]
@@ -571,10 +589,19 @@ def render_spending_policy_inputs(st_module: Any) -> dict[str, Any]:
     st_module.markdown("#### Spending program")
 
     preset_names = list(SPENDING_PRESETS.keys())
+    # Defensive: remove invalid cached value
+    _spending_key = "sidebar_spending_preset"
+    if (
+        _spending_key in st_module.session_state
+        and st_module.session_state[_spending_key] not in preset_names
+    ):
+        del st_module.session_state[_spending_key]
+
     selected_preset = st_module.selectbox(
         "Select a program",
         options=preset_names,
         index=0,
+        key=_spending_key,
         help="Choose a pre-configured spending scenario or define a custom program.",
     )
     preset = SPENDING_PRESETS[selected_preset]
