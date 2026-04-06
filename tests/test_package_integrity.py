@@ -55,8 +55,8 @@ def test_package_level_app_data_imports():
 def test_biden_2025_proposal_in_tcja_dropdown():
     """Regression: Biden 2025 Proposal must appear in the TCJA / Individual category dropdown.
 
-    Biden 2025 Proposal has is_tcja=True so it shows alongside TCJA extension options,
-    making it discoverable for users browsing that policy area.
+    Biden 2025 Proposal uses ui_category="TCJA / Individual" (not is_tcja=True) so it
+    shows alongside TCJA extension options without routing through TCJA scoring.
     """
     from fiscal_model.ui.policy_input import _preset_category, _short_display_name
 
@@ -85,6 +85,51 @@ def test_biden_2025_proposal_in_tcja_dropdown():
             f"both map to '{short}'"
         )
         seen[short] = original_name
+
+
+def test_biden_2025_not_scored_as_tcja():
+    """Regression: Biden 2025 Proposal must NOT route through TCJA scoring.
+
+    With is_tcja=True, create_policy_from_preset() returned a TCJAExtensionPolicy
+    scoring ~$4,582B instead of the correct ~-$252B income tax result.
+    Now is_tcja=False; the preset handler returns None and the caller uses TaxPolicy.
+    """
+    from fiscal_model import FiscalPolicyScorer, TaxPolicy
+
+    preset = PRESET_POLICIES["Biden 2025 Proposal"]
+
+    # is_tcja must be False so the preset handler doesn't route through TCJA scoring
+    assert not preset.get("is_tcja"), (
+        "Biden 2025 Proposal has is_tcja=True, which causes TCJA extension scoring. "
+        "Use ui_category='TCJA / Individual' for dropdown placement instead."
+    )
+
+    # create_policy_from_preset must return None (not a TCJAExtensionPolicy)
+    policy_from_preset = create_policy_from_preset(preset)
+    assert policy_from_preset is None, (
+        f"create_policy_from_preset returned {type(policy_from_preset).__name__} for "
+        "Biden 2025 Proposal — it should return None so the caller builds a TaxPolicy."
+    )
+
+    # Score via TaxPolicy and verify result is near -$252B (not the $4,582B TCJA score)
+    from fiscal_model.policies import PolicyType
+    scorer = FiscalPolicyScorer(use_real_data=True)
+    policy = TaxPolicy(
+        name="Biden 2025 Proposal",
+        description=preset["description"],
+        policy_type=PolicyType.INCOME_TAX,
+        rate_change=preset["rate_change"] / 100,
+        affected_income_threshold=preset["threshold"],
+    )
+    result = scorer.score_policy(policy, dynamic=False)
+    import numpy as np
+    effect = result.final_deficit_effect
+    score_b = float(np.sum(effect)) if hasattr(effect, "__len__") else float(effect)
+
+    assert score_b < 0, f"Biden 2025 should raise revenue (negative deficit effect), got {score_b:.0f}B"
+    assert score_b > -5000, (
+        f"Biden 2025 10-yr score {score_b:.0f}B is implausibly large — TCJA scoring may be leaking through"
+    )
 
 
 def test_preset_factory_covers_flagged_presets():
