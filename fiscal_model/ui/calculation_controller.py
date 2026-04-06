@@ -21,33 +21,8 @@ def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
     Note: the Calculate button is rendered separately in _render_calculator so
     that Model settings can appear above it.
     """
-    # ── Workflow mode: single policy / compare / package ──────────────────
-    workflow_mode = st_module.radio(
-        "Workflow:",
-        [SINGLE_POLICY_MODE, COMPARE_POLICIES_MODE, POLICY_PACKAGES_MODE],
-        horizontal=False,
-        key="sidebar_workflow_mode",
-        help=(
-            "**Single Policy** — score one tax or spending proposal.  \n"
-            "**Compare Policies** — compare multiple proposals side-by-side.  \n"
-            "**Policy Packages** — combine multiple proposals into one plan."
-        ),
-    )
-
+    workflow_mode = SINGLE_POLICY_MODE
     preset_policies = deps.PRESET_POLICIES
-    if workflow_mode != SINGLE_POLICY_MODE:
-        st_module.info(
-            "Use the main tabs to configure this workflow. "
-            "No single-policy inputs are required."
-        )
-        return {
-            "mode": workflow_mode,
-            "is_spending": False,
-            "preset_policies": preset_policies,
-            "tax_inputs": {},
-            "spending_inputs": {},
-            "calculate": False,
-        }
 
     # ── Single-policy combined choice: preset / custom / spending ─────────
     analysis_mode = st_module.radio(

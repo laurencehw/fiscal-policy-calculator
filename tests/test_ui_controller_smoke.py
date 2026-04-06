@@ -8,7 +8,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from fiscal_model.ui.calculation_controller import (
-    COMPARE_POLICIES_MODE,
     POLICY_PACKAGES_MODE,
     SINGLE_POLICY_MODE,
     execute_calculation_if_requested,
@@ -74,24 +73,9 @@ class _DummyStreamlit:
         return _DummyContext()
 
 
-def test_render_sidebar_inputs_compare_mode_short_circuits():
-    st_module = _DummyStreamlit(radio_values=[COMPARE_POLICIES_MODE])
-    deps = SimpleNamespace(
-        PRESET_POLICIES={"Custom Policy": {}},
-        render_tax_policy_inputs=lambda *args, **kwargs: {"unused": True},
-        render_spending_policy_inputs=lambda *args, **kwargs: {"unused": True},
-    )
-
-    context = render_sidebar_inputs(st_module=st_module, deps=deps)
-    assert context["mode"] == COMPARE_POLICIES_MODE
-    assert context["is_spending"] is False
-    assert context["tax_inputs"] == {}
-    assert context["spending_inputs"] == {}
-
-
 def test_render_sidebar_inputs_single_mode_uses_tax_inputs():
     st_module = _DummyStreamlit(
-        radio_values=[SINGLE_POLICY_MODE, "📋 Tax proposal (preset)"]
+        radio_values=["📋 Tax proposal (preset)"]
     )
     deps = SimpleNamespace(
         PRESET_POLICIES={"Custom Policy": {}},

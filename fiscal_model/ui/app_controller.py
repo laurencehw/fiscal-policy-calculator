@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Any
 
 from .calculation_controller import (
-    SINGLE_POLICY_MODE,
     ensure_results_state,
     execute_calculation_if_requested,
     render_sidebar_inputs,
@@ -135,7 +134,6 @@ def render_quick_start(st_module: Any) -> None:
                     unsafe_allow_html=True,
                 )
                 if st_module.button("Try this →", key="qs_btn_tcja", use_container_width=True):
-                    st_module.session_state["sidebar_workflow_mode"] = SINGLE_POLICY_MODE
                     st_module.session_state["sidebar_analysis_mode"] = "📋 Tax proposal (preset)"
                     st_module.session_state["sidebar_policy_area"] = "TCJA / Individual"
                     st_module.session_state["sidebar_preset_choice"] = "TCJA Full Extension"
@@ -152,7 +150,6 @@ def render_quick_start(st_module: Any) -> None:
                     unsafe_allow_html=True,
                 )
                 if st_module.button("Try this →", key="qs_btn_biden", use_container_width=True):
-                    st_module.session_state["sidebar_workflow_mode"] = SINGLE_POLICY_MODE
                     st_module.session_state["sidebar_analysis_mode"] = "📋 Tax proposal (preset)"
                     st_module.session_state["sidebar_policy_area"] = "Income Tax"
                     st_module.session_state["sidebar_preset_choice"] = "Biden 2025 Proposal"
@@ -169,7 +166,6 @@ def render_quick_start(st_module: Any) -> None:
                     unsafe_allow_html=True,
                 )
                 if st_module.button("Try this →", key="qs_btn_infra", use_container_width=True):
-                    st_module.session_state["sidebar_workflow_mode"] = SINGLE_POLICY_MODE
                     st_module.session_state["sidebar_analysis_mode"] = "💰 Spending program"
                     st_module.session_state["sidebar_spending_preset"] = (
                         "Infrastructure Investment ($100B/yr)"
@@ -295,23 +291,15 @@ def _render_calculator(
 
         # 3. Calculate button
         st_module.markdown("---")
-        single_policy_mode = calc_context["mode"] == SINGLE_POLICY_MODE
         calculate = st_module.button(
             "Calculate Impact",
             type="primary",
             use_container_width=True,
-            disabled=not single_policy_mode,
         )
-        if not single_policy_mode:
-            st_module.caption(
-                "Calculation runs from the selected workflow tab "
-                "(comparison or package builder)."
-            )
         # Auto-trigger from quick-start card click
         if getattr(st_module.session_state, "qs_calculate", False):
             del st_module.session_state["qs_calculate"]
-            if single_policy_mode:
-                calculate = True
+            calculate = True
         calc_context["calculate"] = calculate
 
         # 4. Data Status (bottom of sidebar — infrastructure, not decision-relevant)
