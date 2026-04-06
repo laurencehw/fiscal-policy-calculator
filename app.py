@@ -20,10 +20,22 @@ if _mode == "classroom":
     render_classroom_app()
 else:
     st.set_page_config(
-        page_title="Fiscal Policy Calculator",
+        page_title="Fiscal Policy Impact Calculator — CBO-Validated Budget Scoring",
         page_icon="📊",
         layout="wide",
         initial_sidebar_state="expanded",
+    )
+    st.markdown(
+        """
+        <meta name="description" content="Estimate the budgetary impact of tax and spending proposals. 25+ policies validated within 15% of CBO/JCT scores.">
+        <meta property="og:title" content="Fiscal Policy Impact Calculator — CBO-Validated Budget Scoring">
+        <meta property="og:description" content="Estimate the budgetary impact of tax and spending proposals. 25+ policies validated within 15% of CBO/JCT scores.">
+        <meta property="og:type" content="website">
+        <meta name="twitter:card" content="summary">
+        <meta name="twitter:title" content="Fiscal Policy Impact Calculator — CBO-Validated Budget Scoring">
+        <meta name="twitter:description" content="Estimate the budgetary impact of tax and spending proposals. 25+ policies validated within 15% of CBO/JCT scores.">
+        """,
+        unsafe_allow_html=True,
     )
 
     try:

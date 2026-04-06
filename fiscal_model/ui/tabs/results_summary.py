@@ -119,11 +119,17 @@ def render_results_summary_tab(
         low_estimate = static_deficit_total + (behavioral_total * scale_low) - dynamic_revenue_feedback_total
         high_estimate = static_deficit_total + (behavioral_total * scale_high) - dynamic_revenue_feedback_total
 
-        st_module.markdown(
-            f"<small><b>Sensitivity range:</b> ${low_estimate:+.1f}B to ${high_estimate:+.1f}B "
-            f"(ETI {eti_low:.2f} to {eti_high:.2f})</small>",
-            unsafe_allow_html=True,
-        )
+        if abs(high_estimate - low_estimate) >= 0.1:
+            st_module.markdown(
+                f"<small><b>Sensitivity range:</b> ${low_estimate:+.1f}B to ${high_estimate:+.1f}B "
+                f"(ETI {eti_low:.2f} to {eti_high:.2f})</small>",
+                unsafe_allow_html=True,
+            )
+        elif not result.dynamic_effects:
+            st_module.markdown(
+                "<small><i>Enable dynamic scoring for sensitivity analysis.</i></small>",
+                unsafe_allow_html=True,
+            )
 
     # CBO comparison note (if available)
     policy_name = result_data.get("policy_name", "")

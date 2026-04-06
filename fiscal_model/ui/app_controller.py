@@ -58,9 +58,9 @@ def render_data_status(st_module: Any, deps: Any) -> None:
             elif fred_source == "fallback":
                 fred_status = "🔴 Fallback (hardcoded values)"
             else:
-                fred_status = "⚪ Not available"
+                fred_status = None
         except Exception:
-            fred_status = "⚪ Not available"
+            fred_status = None
 
         try:
             baseline_display = "CBO Feb 2026"
@@ -79,7 +79,10 @@ def render_data_status(st_module: Any, deps: Any) -> None:
         else:
             st_module.markdown(f"⚪ **Baseline:** {baseline_display}")
 
-        st_module.markdown(f"📡 **Data:** {fred_status}")
+        if fred_status:
+            st_module.markdown(f"📡 **FRED:** {fred_status}")
+        else:
+            st_module.markdown("📋 **Data:** IRS SOI 2022, CBO Feb 2026")
 
         with st_module.expander("ℹ️ Data details", expanded=False):
             st_module.markdown(
@@ -110,16 +113,9 @@ def render_quick_start(st_module: Any) -> None:
         col1, col2 = st_module.columns([20, 1])
         with col1:
             st_module.markdown(
-                """
-                **👋 Welcome to the Fiscal Policy Calculator**
-
-                Try one of these scenarios to get started:
-                - **TCJA Extension** — Select *TCJA / Individual* → *TCJA Full Extension* from the sidebar
-                - **Biden \\$400K+ Tax** — Select *Income Tax* → *Biden 2025 Proposal* (+2.6pp on income above \\$400K)
-                - **Infrastructure Spending** — Select *Spending program* and model a \\$100B/year program
-
-                Choose a policy in the sidebar, then click **Calculate Impact**.
-                """
+                "**👋 Estimate the 10-year budget impact of any U.S. tax or spending proposal — "
+                "backed by IRS data and CBO methodology.**\n\n"
+                "Pick a policy in the sidebar, then click **Calculate Impact**."
             )
         with col2:
             if st_module.button("✕", key="dismiss_quick_start"):
