@@ -190,7 +190,7 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         "Estimate the 10-year budgetary and economic effects of U.S. tax and "
         "spending proposals. Powered by IRS data, FRED, and CBO methodology. "
         f"Companion to the [Public Economics textbook]({TEXTBOOK_HOME}). "
-        "[Classroom Mode](?mode=classroom).\n\n"
+        "🎓 [**Classroom Mode**](?mode=classroom) — interactive assignments for Public Economics courses.\n\n"
         "🆕 **Can you balance the budget?** Try the **⚖️ Budget Builder** tab →"
     )
 
@@ -319,8 +319,10 @@ def _render_calculator(
 
         with st_module.expander("🎓 Classroom Mode", expanded=False):
             st_module.markdown(
-                "Instructor-ready assignments, hints, and export tools.\n\n"
-                "[Open Classroom Mode](?mode=classroom)"
+                "**Interactive assignments for Public Economics courses.**\n\n"
+                "7 guided assignments with hints, auto-grading, and PDF export for student submissions. "
+                "Covers Laffer curves, TCJA, distributional analysis, and more.\n\n"
+                "[➡️ Open Classroom Mode](?mode=classroom)"
             )
 
     # ── Main content ─────────────────────────────────────────────────────

@@ -4,6 +4,8 @@ Distributional analysis tab renderer.
 
 from __future__ import annotations
 
+import re
+from datetime import date
 from typing import Any
 
 import pandas as pd
@@ -112,6 +114,22 @@ def render_distribution_tab(
             ),
             use_container_width=True,
             hide_index=True,
+        )
+        dist_meta = (
+            f"# Policy: {policy.name}\n"
+            f"# Export Date: {date.today().isoformat()}\n"
+            f"# Model Version: 1.0.0\n"
+            f"# Income Grouping: {group_type_choice}\n"
+            f"# Methodology: TPC/JCT-style distributional analysis\n"
+            f"#\n"
+        )
+        st_module.download_button(
+            label="📊 Download Distribution Table as CSV",
+            data=dist_meta + df_dist.to_csv(index=False),
+            file_name="distribution_{}.csv".format(
+                re.sub(r"[^\w\-]", "_", policy.name).strip("_").lower()
+            ),
+            mime="text/csv",
         )
 
         st_module.subheader("Average Tax Change by Income Group")
