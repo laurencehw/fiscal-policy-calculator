@@ -45,17 +45,35 @@ def _build_policy_for_comparison(
     )
 
 
+def _extract_annual_effects(result: Any, policy: Any) -> np.ndarray:
+    for attr in ("final_deficit_effect", "static_deficit_effect", "static_revenue_effect"):
+        effects = getattr(result, attr, None)
+        if effects is not None:
+            return np.asarray(effects, dtype=float)
+
+    horizon = max(1, int(getattr(policy, "duration_years", 1) or 1))
+    return np.zeros(horizon, dtype=float)
+
+
+def _extract_years(result: Any, policy: Any, annual_effects: np.ndarray) -> np.ndarray:
+    years = getattr(getattr(result, "baseline", None), "years", None)
+    if years is not None:
+        return np.asarray(years)
+
+    start_year = int(getattr(policy, "start_year", 1))
+    return np.arange(start_year, start_year + len(annual_effects))
+
+
 def _score_model(
     policy_name: str,
     model_name: str,
     policy: Any,
-    fiscal_policy_scorer_cls: Any,
-    use_real_data: bool,
+    scorer: Any,
+    dynamic: bool,
 ) -> dict[str, Any]:
-    scorer = fiscal_policy_scorer_cls(baseline=None, use_real_data=use_real_data)
-    result = scorer.score_policy(policy, dynamic=(model_name == DYNAMIC_MODEL))
-    annual_effects = np.asarray(getattr(result, "final_deficit_effect", np.zeros(10)), dtype=float)
-    years = np.asarray(getattr(getattr(result, "baseline", None), "years", np.arange(1, len(annual_effects) + 1)))
+    result = scorer.score_policy(policy, dynamic=dynamic)
+    annual_effects = _extract_annual_effects(result, policy)
+    years = _extract_years(result, policy, annual_effects)
 
     return {
         "policy": policy_name,
@@ -86,8 +104,6 @@ def render_policy_comparison_tab(
     """
     Render multi-model comparison tab content.
     """
-    del dynamic_scoring
-
     st_module.header("🔀 Multi-Model Comparison")
     st_module.markdown(
         """
@@ -112,10 +128,17 @@ def render_policy_comparison_tab(
         default=comparison_options[:1],
         max_selections=4,
     )
+    model_options = [STATIC_MODEL]
+    default_models = [STATIC_MODEL]
+    if dynamic_scoring:
+        model_options.append(DYNAMIC_MODEL)
+        default_models.append(DYNAMIC_MODEL)
+    else:
+        st_module.caption("Enable dynamic scoring in Model settings to compare against FRB/US-Lite.")
     selected_models = st_module.multiselect(
         "Models to compare",
-        options=[STATIC_MODEL, DYNAMIC_MODEL],
-        default=[STATIC_MODEL, DYNAMIC_MODEL],
+        options=model_options,
+        default=default_models,
         max_selections=2,
     )
 
@@ -129,6 +152,7 @@ def render_policy_comparison_tab(
     with st_module.spinner("Running multi-model comparison..."):
         try:
             model_results: list[dict[str, Any]] = []
+            comparison_scorer = fiscal_policy_scorer_cls(baseline=None, use_real_data=use_real_data)
 
             for preset_name in policies_to_compare:
                 preset = preset_policies[preset_name]
@@ -146,8 +170,8 @@ def render_policy_comparison_tab(
                             policy_name=preset_name,
                             model_name=model_name,
                             policy=policy,
-                            fiscal_policy_scorer_cls=fiscal_policy_scorer_cls,
-                            use_real_data=use_real_data,
+                            scorer=comparison_scorer,
+                            dynamic=(model_name == DYNAMIC_MODEL),
                         )
                     )
 

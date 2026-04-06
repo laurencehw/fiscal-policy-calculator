@@ -431,14 +431,16 @@ def render_results_summary_tab(
             )
 
         with col2:
-            # Shareable link button (future: build full URL with query params for presets/settings)
             share_btn = st_module.button(
-                "🔗 Share this result",
+                "🔗 Sharing options",
                 key=f"share_btn_{policy.name.replace(' ', '_')}",
-                help="Copy link with current policy + settings (query params support coming)",
+                help="Direct share-link generation is not yet implemented for the current policy and settings.",
             )
             if share_btn:
-                st_module.success("📋 Share link ready! Use ?policy=TCJA... in URL or browser share.")
+                st_module.info(
+                    "Shareable links are not available yet in this view. "
+                    "Please use the exported files or copy the text summary below."
+                )
 
         # Generate formatted text summary for copy-paste
         baseline_year = result.baseline.start_year
@@ -471,7 +473,7 @@ Year-by-Year Breakdown:
         text_summary += f"\nData Sources:\n  - IRS Statistics of Income (2022)\n  - FRED Economic Data\n  - CBO Baseline (FY{baseline_year})\n"
         text_summary += "\nMethodology: Static + behavioral scoring with FRB/US-calibrated dynamic effects\n"
 
-        with col2:
+        with col3:
             st_module.download_button(
                 label="📄 Download as Text",
                 data=text_summary,

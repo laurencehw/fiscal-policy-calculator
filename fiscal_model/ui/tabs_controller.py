@@ -261,8 +261,8 @@ def render_result_tabs(
             else:
                 st_module.subheader("Multi-Model Comparison")
                 st_module.markdown(
-                    "Switch to **Compare Policies** mode in the sidebar or run a single policy "
-                    "to compare across models (CBO-style vs Dynamic)."
+                    "Switch to **Compare Policies** mode in the sidebar to compare "
+                    "preset policies across models (CBO-style vs Dynamic)."
                 )
 
     if "tab_packages" in tabs:

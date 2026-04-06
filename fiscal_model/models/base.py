@@ -57,30 +57,57 @@ class CBOStyleModel(BaseScoringModel):
     methodology = "Static + ETI behavioral response + optional FRB/US dynamic feedback"
 
     def __init__(self, fiscal_policy_scorer_cls: Any, use_real_data: bool = True):
-        self.scorer_cls = fiscal_policy_scorer_cls
+        self.scorer = fiscal_policy_scorer_cls(use_real_data=use_real_data)
         self.use_real_data = use_real_data
 
     def score(self, policy: Any, dynamic: bool = False, **kwargs: Any) -> ModelResult:
-        scorer = self.scorer_cls(use_real_data=self.use_real_data)
-        result = scorer.score_policy(policy, dynamic=dynamic)
+        del kwargs
+        result = self.scorer.score_policy(policy, dynamic=dynamic)
 
         # Use final_deficit_effect if available, otherwise static_revenue_effect
         if hasattr(result, "final_deficit_effect") and result.final_deficit_effect is not None:
-            annual = result.final_deficit_effect.tolist() if hasattr(result.final_deficit_effect, "tolist") else list(result.final_deficit_effect)
+            annual = (
+                result.final_deficit_effect.tolist()
+                if hasattr(result.final_deficit_effect, "tolist")
+                else list(result.final_deficit_effect)
+            )
             total = sum(annual)
         elif hasattr(result, "static_revenue_effect"):
-            annual = result.static_revenue_effect.tolist() if hasattr(result.static_revenue_effect, "tolist") else list(result.static_revenue_effect)
+            annual = (
+                result.static_revenue_effect.tolist()
+                if hasattr(result.static_revenue_effect, "tolist")
+                else list(result.static_revenue_effect)
+            )
             total = sum(annual)
         else:
-            annual = [0.0] * 10
+            horizon = max(
+                1,
+                int(
+                    getattr(
+                        policy,
+                        "duration_years",
+                        len(getattr(getattr(result, "baseline", None), "years", []) or []),
+                    )
+                    or 1
+                ),
+            )
+            annual = [0.0] * horizon
             total = 0.0
+
+        low_estimate = getattr(result, "low_estimate", None)
+        high_estimate = getattr(result, "high_estimate", None)
+        uncertainty_range = None
+        if low_estimate is not None and high_estimate is not None:
+            low_annual = low_estimate.tolist() if hasattr(low_estimate, "tolist") else list(low_estimate)
+            high_annual = high_estimate.tolist() if hasattr(high_estimate, "tolist") else list(high_estimate)
+            uncertainty_range = (float(sum(low_annual)), float(sum(high_annual)))
 
         return ModelResult(
             model_name=self.name,
             policy_name=getattr(policy, "name", "Unnamed Policy"),
             ten_year_cost=total,
             annual_effects=annual,
-            uncertainty_range=getattr(result, "low_estimate", None),
+            uncertainty_range=uncertainty_range,
             dynamic_effects=getattr(result, "dynamic_effects", None),
             metadata={"dynamic_enabled": dynamic},
         )
