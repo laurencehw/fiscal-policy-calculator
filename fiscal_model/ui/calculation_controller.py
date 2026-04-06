@@ -26,6 +26,7 @@ def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
         "Workflow:",
         [SINGLE_POLICY_MODE, COMPARE_POLICIES_MODE, POLICY_PACKAGES_MODE],
         horizontal=False,
+        key="sidebar_workflow_mode",
         help=(
             "**Single Policy** — score one tax or spending proposal.  \n"
             "**Compare Policies** — compare multiple proposals side-by-side.  \n"
@@ -53,6 +54,7 @@ def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
         "Analyze:",
         ["📋 Tax proposal (preset)", "✏️ Custom tax policy", "💰 Spending program"],
         horizontal=False,
+        key="sidebar_analysis_mode",
         help=(
             "**Tax proposal** — pick from 25+ real-world policies calibrated to CBO/JCT estimates.  \n"
             "**Custom tax policy** — set your own rate change, threshold, and parameters.  \n"
@@ -65,9 +67,13 @@ def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
     tax_inputs: dict[str, Any] = {}
     spending_inputs: dict[str, Any] = {}
 
-    # Support query param pre-selection
+    # Support query param or quick-start card pre-selection
     query_params = getattr(st_module, "query_params", {})
-    default_preset = query_params.get("policy") or query_params.get("preset")
+    default_preset = (
+        query_params.get("policy")
+        or query_params.get("preset")
+        or getattr(st_module.session_state, "qs_preset", None)
+    )
 
     if is_spending:
         spending_inputs = deps.render_spending_policy_inputs(st_module)
