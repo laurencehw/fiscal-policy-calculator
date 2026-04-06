@@ -15,12 +15,12 @@ from fiscal_model.distribution import (
     generate_winners_losers_summary,
 )
 from fiscal_model.long_run.solow_growth import SolowGrowthModel
+from fiscal_model.models.base import BaseScoringModel, CBOStyleModel
 from fiscal_model.models.macro_adapter import (
     FRBUSAdapterLite,
     MacroScenario,
     SimpleMultiplierAdapter,
 )
-from fiscal_model.models.base import BaseScoringModel, CBOStyleModel
 from fiscal_model.policies import CapitalGainsPolicy, PolicyType, SpendingPolicy, TaxPolicy
 from fiscal_model.preset_handler import create_policy_from_preset
 from fiscal_model.scoring import FiscalPolicyScorer

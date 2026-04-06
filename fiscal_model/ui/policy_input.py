@@ -445,7 +445,43 @@ def render_tax_policy_inputs(
             default_preset=default_preset,
         )
 
-    # ── Default values ───────────────────────────────────────────────────
+        # Preset selector (within category)
+        cat_presets = categorized.get(selected_cat, [])
+        display_names = {_strip_emoji_prefix(n): n for n in cat_presets}
+
+        default_display = (
+            _strip_emoji_prefix(default_preset)
+            if default_preset and default_preset in display_names.values()
+            else next(iter(display_names.keys()))
+        )
+
+        selected_display = st_module.selectbox(
+            "Select a proposal",
+            options=list(display_names.keys()),
+            index=list(display_names.keys()).index(default_display) if default_display in display_names else 0,
+            help="Each proposal is pre-configured with parameters matching official estimates.",
+        )
+        preset_choice = display_names[selected_display]
+        preset_data = preset_policies[preset_choice]
+
+        # Show what this preset does — collapsible card (default collapsed)
+        display_name = _strip_emoji_prefix(preset_choice)
+        desc = preset_data["description"]
+
+        import re as _re
+        score_match = _re.search(r'\((?:CBO|JCT):\s*(-?\$[\d.]+[TB])\)', preset_choice)
+        if score_match and score_match.group(1).startswith("-"):
+            direction_icon = "✅"
+        elif score_match:
+            direction_icon = "⚠️"
+        else:
+            direction_icon = "📋"
+
+        with st_module.expander(f"{direction_icon} {display_name}", expanded=False):
+            st_module.markdown(desc)
+
+    # ── Custom path ──────────────────────────────────────────────────────
+    # Default values for the return dict
     policy_name = preset_choice if use_preset else "Tax Rate Change"
     policy_type = "Income Tax Rate"
     rate_change_pct = 0.0
