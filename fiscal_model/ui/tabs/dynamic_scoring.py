@@ -90,7 +90,8 @@ def render_dynamic_scoring_tab(
         cache_key = f"macro:{run_id}:{macro_model_name}" if run_id else None
         macro_result = st_module.session_state.get(cache_key) if cache_key else None
         if macro_result is None:
-            macro_result = adapter.run(scenario)
+            with st_module.spinner("Running macroeconomic model..."):
+                macro_result = adapter.run(scenario)
             if cache_key:
                 st_module.session_state[cache_key] = macro_result
         st_module.caption(f"Model: **{model_name}**")
