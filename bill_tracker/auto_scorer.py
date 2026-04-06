@@ -10,7 +10,10 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from bill_tracker.provision_mapper import MappingResult
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +50,7 @@ class AutoScorer:
             self._scorer = FiscalPolicyScorer(use_real_data=True)
         return self._scorer
 
-    def score(self, mapping_result: "MappingResult") -> BillScore | None:  # type: ignore[name-defined]
+    def score(self, mapping_result: MappingResult) -> BillScore | None:
         """
         Score a bill from its MappingResult.
 
@@ -74,9 +77,16 @@ class AutoScorer:
 
                 result = self.scorer.score_policy(policy_obj, dynamic=False)
 
-                static = getattr(result, "static_revenue_effect", 0.0) or 0.0
-                behavioral = getattr(result, "behavioral_offset", 0.0) or 0.0
-                final = getattr(result, "final_deficit_effect", 0.0) or 0.0
+                def _to_scalar(val: Any) -> float:
+                    """Sum numpy array or cast scalar to float."""
+                    try:
+                        return float(val.sum())
+                    except AttributeError:
+                        return float(val) if val else 0.0
+
+                static = _to_scalar(getattr(result, "static_revenue_effect", 0.0))
+                behavioral = _to_scalar(getattr(result, "behavioral_offset", 0.0))
+                final = _to_scalar(getattr(result, "final_deficit_effect", 0.0))
 
                 total_static += static
                 total_behavioral += behavioral
@@ -125,8 +135,8 @@ class AutoScorer:
 
     def _dispatch(self, policy_type: str, name: str, params: dict) -> Any | None:
         """Dispatch policy_type to the appropriate constructor using factory functions."""
-        from fiscal_model.policies import PolicyType, TaxPolicy, SpendingPolicy
-        from fiscal_model.corporate import create_corporate_rate_change, CorporateTaxPolicy
+        from fiscal_model.corporate import create_corporate_rate_change
+        from fiscal_model.policies import PolicyType, SpendingPolicy, TaxPolicy
         from fiscal_model.tcja import create_tcja_extension
 
         if policy_type == "income_tax":
@@ -158,7 +168,6 @@ class AutoScorer:
 
         if policy_type == "corporate":
             rate = float(params.get("rate_change", 0.0))
-            elasticity = float(params.get("corporate_elasticity", 0.25))
             return create_corporate_rate_change(
                 rate_change=rate,
                 name=name,

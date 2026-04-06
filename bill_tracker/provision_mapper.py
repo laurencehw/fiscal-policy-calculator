@@ -122,11 +122,11 @@ class ProvisionMapper:
                 self._client = anthropic.Anthropic(
                     api_key=os.environ.get("ANTHROPIC_API_KEY")
                 )
-            except ImportError:
+            except ImportError as err:
                 raise RuntimeError(
                     "anthropic package is required for ProvisionMapper. "
                     "Install it: pip install anthropic"
-                )
+                ) from err
         return self._client
 
     # ------------------------------------------------------------------

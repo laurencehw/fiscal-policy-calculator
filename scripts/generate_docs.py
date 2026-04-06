@@ -30,7 +30,7 @@ def main():
         "fiscal_model",
     ]
 
-    print(f"Generating API documentation...")
+    print("Generating API documentation...")
     print(f"Output directory: {output_dir}")
     print(f"Command: {' '.join(cmd)}")
     print()
@@ -44,14 +44,14 @@ def main():
     )
 
     if result.returncode != 0:
-        print(f"Error generating docs:")
+        print("Error generating docs:")
         print(result.stderr)
         sys.exit(1)
 
     if result.stdout:
         print(result.stdout)
 
-    print(f"\nDocumentation generated successfully!")
+    print("\nDocumentation generated successfully!")
     print(f"Open {output_dir / 'index.html'} to view.")
 
 

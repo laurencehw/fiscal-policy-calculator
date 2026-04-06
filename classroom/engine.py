@@ -19,11 +19,9 @@ Assignment lifecycle
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
 
 import yaml
 
@@ -91,10 +89,10 @@ class ValidationSpec:
 class ValidationResult:
     correct: bool
     student_answer: float
-    model_answer: Optional[float]
+    model_answer: float | None
     tolerance: float
     message: str
-    pct_error: Optional[float] = None  # |student - model| / |model|
+    pct_error: float | None = None  # |student - model| / |model|
 
 
 @dataclass
@@ -106,7 +104,7 @@ class Exercise:
     prompt: str
     parameters: list[ExerciseParameter]
     hints: list[Hint]
-    validation: Optional[ValidationSpec]
+    validation: ValidationSpec | None
     expected_insight: str = ""
     solution_notes: str = ""       # instructor-only
 
@@ -239,7 +237,7 @@ class AssignmentLoader:
             description=data.get("description", ""),
         )
 
-    def _parse_validation(self, data: Optional[dict]) -> Optional[ValidationSpec]:
+    def _parse_validation(self, data: dict | None) -> ValidationSpec | None:
         if data is None:
             return None
         return ValidationSpec(
@@ -418,7 +416,7 @@ class RelativeValidator:
 
     def _compute_model_answer(
         self, spec: ValidationSpec, student_params: dict[str, float]
-    ) -> Optional[float]:
+    ) -> float | None:
         """Resolve template params, run scorer, return target_field value."""
         resolved = self._resolve_params(spec.policy_params, student_params)
 
@@ -458,7 +456,7 @@ class RelativeValidator:
         return resolved
 
     def _run_income_tax(self, params: dict, target_field: str) -> float:
-        from fiscal_model.policies import TaxPolicy, PolicyType
+        from fiscal_model.policies import PolicyType, TaxPolicy
         from fiscal_model.scoring import FiscalPolicyScorer
 
         policy = TaxPolicy(
@@ -500,7 +498,7 @@ class RelativeValidator:
         return float(getattr(result, target_field))
 
     def _run_spending(self, params: dict, target_field: str) -> float:
-        from fiscal_model.policies import SpendingPolicy, PolicyType
+        from fiscal_model.policies import PolicyType, SpendingPolicy
         from fiscal_model.scoring import FiscalPolicyScorer
 
         policy = SpendingPolicy(
@@ -514,8 +512,8 @@ class RelativeValidator:
         return float(getattr(result, target_field))
 
     def _run_trade(self, params: dict, target_field: str) -> float:
-        from fiscal_model.trade import TariffPolicy
         from fiscal_model.scoring import FiscalPolicyScorer
+        from fiscal_model.trade import TariffPolicy
 
         policy = TariffPolicy(
             name=str(params.get("name", "Tariff Policy")),
@@ -628,7 +626,7 @@ class ProgressTracker:
         self._s.setdefault("classroom_current_exercise", 0)
 
     @property
-    def assignment_id(self) -> Optional[str]:
+    def assignment_id(self) -> str | None:
         return self._s.get("classroom_assignment_id")
 
     @assignment_id.setter
@@ -670,7 +668,7 @@ class ProgressTracker:
         completed = sum(1 for e in exercises if self.is_complete(e.id))
         return completed, len(exercises)
 
-    def get_answer(self, exercise_id: str) -> Optional[ValidationResult]:
+    def get_answer(self, exercise_id: str) -> ValidationResult | None:
         return self._s["classroom_answers"].get(exercise_id)
 
     def reset(self) -> None:

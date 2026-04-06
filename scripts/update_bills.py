@@ -104,11 +104,11 @@ def main() -> int:
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Import pipeline components
+    from bill_tracker.auto_scorer import AutoScorer
+    from bill_tracker.cbo_fetcher import CBOScoreFetcher
     from bill_tracker.database import BillDatabase
     from bill_tracker.ingestor import BillIngestor
-    from bill_tracker.cbo_fetcher import CBOScoreFetcher
     from bill_tracker.provision_mapper import ProvisionMapper
-    from bill_tracker.auto_scorer import AutoScorer
 
     db = BillDatabase(str(db_path) if not args.dry_run else ":memory:")
     ingestor = BillIngestor(api_key=congress_key)
@@ -134,9 +134,6 @@ def main() -> int:
     logger.info("Fetching recent CBO cost estimates...")
     cbo_estimates = cbo.fetch_recent_estimates(since_date=since, limit=200)
     logger.info("Fetched %d CBO estimates", len(cbo_estimates))
-
-    # Index CBO estimates for quick lookup
-    cbo_by_title = {e.title.lower(): e for e in cbo_estimates if e.title}
 
     # Process each bill
     updated = 0

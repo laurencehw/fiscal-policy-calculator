@@ -13,6 +13,8 @@ Instructor links:
 
 from __future__ import annotations
 
+import contextlib
+
 import streamlit as st
 
 from classroom.engine import (
@@ -146,10 +148,8 @@ def _render_sidebar(loader, tracker, url_assignment: str, url_level: str) -> Non
 
         default_level = ComplexityLevel.UNDERGRADUATE
         if url_level:
-            try:
+            with contextlib.suppress(ValueError):
                 default_level = ComplexityLevel(url_level)
-            except ValueError:
-                pass
 
         complexity_label = st.selectbox(
             "Complexity Level",
@@ -373,7 +373,7 @@ def _render_range_or_open_exercise(exercise, student_params, runner, feedback_en
 
 def _render_open_exercise(exercise, runner, feedback_engine, tracker) -> None:
     """Render an open-ended (no automated validation) exercise."""
-    note = st.text_area(
+    st.text_area(
         "Your analysis / reflection",
         height=200,
         key=f"open_{exercise.id}",

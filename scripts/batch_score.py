@@ -40,8 +40,8 @@ Examples:
 """
 
 import argparse
-import sys
 import csv
+import sys
 from pathlib import Path
 
 # Add parent directory to path for imports
@@ -55,7 +55,7 @@ from fiscal_model.policies import PolicyType
 def load_policy_csv(csv_path):
     """Load policies from CSV file."""
     policies = []
-    with open(csv_path, 'r') as f:
+    with open(csv_path) as f:
         reader = csv.DictReader(f)
         if not reader.fieldnames:
             raise ValueError("CSV file is empty or has no header row")
@@ -297,7 +297,7 @@ def main():
         print(f"Error: Input file not found: {input_path}", file=sys.stderr)
         return 1
 
-    print(f"Batch Policy Scoring")
+    print("Batch Policy Scoring")
     print(f"Input:  {input_path}")
     print(f"Output: {output_path}")
     print(f"Mode:   {'Dynamic' if args.dynamic else 'Static'}")
@@ -309,11 +309,11 @@ def main():
         print(f"Loaded {len(policies)} policies")
 
         # Initialize scorer
-        print(f"\nInitializing scorer...")
+        print("\nInitializing scorer...")
         scorer = FiscalPolicyScorer(use_real_data=True)
 
         # Score each policy
-        print(f"\nScoring policies...")
+        print("\nScoring policies...")
         results = []
         for i, policy_dict in enumerate(policies, start=1):
             if args.verbose:
@@ -332,7 +332,7 @@ def main():
         return 0
 
     except Exception as e:
-        print(f"Error: {str(e)}", file=sys.stderr)
+        print(f"Error: {e!s}", file=sys.stderr)
         return 1
 
 

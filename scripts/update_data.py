@@ -14,17 +14,17 @@ Usage:
 """
 
 import argparse
-import sys
 import os
+import sys
+from datetime import datetime
 from pathlib import Path
-from datetime import datetime, timedelta
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from fiscal_model.data.irs_soi import IRSSOIData
+from fiscal_model.baseline import CBOBaseline
 from fiscal_model.data.fred_data import FREDData
-from fiscal_model.baseline import CBOBaseline, BaselineVintage
+from fiscal_model.data.irs_soi import IRSSOIData
 
 
 def check_irs_data():
@@ -42,7 +42,7 @@ def check_irs_data():
             print("Expected location: fiscal_model/data_files/irs_soi/")
             return False
 
-        print(f"Status: Found")
+        print("Status: Found")
         print(f"Available vintage years: {', '.join(map(str, available_years))}")
         print(f"Most recent year: {max(available_years)}")
 
@@ -66,14 +66,14 @@ def check_irs_data():
                 print(f"  - AGI range: ${min_agi:,.0f} to $top")
                 print(f"  - Largest bracket: {max_filers:,} filers")
 
-            print(f"  - Format: VALID")
+            print("  - Format: VALID")
             return True
         except Exception as e:
-            print(f"  - Format: INVALID - {str(e)}")
+            print(f"  - Format: INVALID - {e!s}")
             return False
 
     except Exception as e:
-        print(f"Status: ERROR - {str(e)}")
+        print(f"Status: ERROR - {e!s}")
         return False
 
 
@@ -115,7 +115,7 @@ def check_fred_data():
         return True
 
     except Exception as e:
-        print(f"Status: ERROR - {str(e)}")
+        print(f"Status: ERROR - {e!s}")
         return False
 
 
@@ -135,7 +135,7 @@ def check_cbo_baseline():
 
         # Try to get economic assumptions
         assumptions = baseline.assumptions
-        print(f"\nEconomic assumptions (Year 1):")
+        print("\nEconomic assumptions (Year 1):")
         print(f"  - Real GDP growth: {assumptions.real_gdp_growth[0]:.1%}")
         print(f"  - Inflation: {assumptions.inflation[0]:.1%}")
         print(f"  - Unemployment: {assumptions.unemployment[0]:.2%}")
@@ -143,7 +143,7 @@ def check_cbo_baseline():
 
         # Try to generate projection
         proj = baseline.generate()
-        print(f"\nBaseline projection generated:")
+        print("\nBaseline projection generated:")
         print(f"  - GDP (Y1): ${proj.nominal_gdp[0]:,.1f}B")
         print(f"  - Total revenues (Y1): ${proj.total_revenues[0]:,.1f}B")
         print(f"  - Total outlays (Y1): ${proj.total_outlays[0]:,.1f}B")
@@ -152,7 +152,7 @@ def check_cbo_baseline():
         return True
 
     except Exception as e:
-        print(f"Status: ERROR - {str(e)}")
+        print(f"Status: ERROR - {e!s}")
         return False
 
 
@@ -184,7 +184,7 @@ def refresh_fred_cache():
             return False
 
     except Exception as e:
-        print(f"ERROR: {str(e)}")
+        print(f"ERROR: {e!s}")
         return False
 
 
@@ -245,7 +245,7 @@ def main():
 
     if args.refresh_fred:
         # Refresh FRED and then check everything
-        refresh_ok = refresh_fred_cache()
+        refresh_fred_cache()
         irs_ok = check_irs_data()
         fred_ok = check_fred_data()
         cbo_ok = check_cbo_baseline()

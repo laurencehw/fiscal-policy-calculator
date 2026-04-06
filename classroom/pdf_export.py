@@ -20,7 +20,6 @@ Usage::
 from __future__ import annotations
 
 import datetime
-from typing import Optional
 
 from .engine import Assignment, ComplexityLevel, ValidationResult
 
@@ -32,7 +31,7 @@ def generate_submission_html(
     answers: dict[str, ValidationResult],
     notes: dict[str, str] | None = None,
     course_name: str = "",
-    date: Optional[datetime.date] = None,
+    date: datetime.date | None = None,
 ) -> str:
     """
     Generate a self-contained HTML submission report.

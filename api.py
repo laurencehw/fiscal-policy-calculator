@@ -10,22 +10,19 @@ Docs at:
     http://localhost:8000/docs
 """
 
+from typing import Any
+
+import numpy as np
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-from typing import Optional, Any
-import numpy as np
 
+from fiscal_model.app_data import CBO_SCORE_MAP, PRESET_POLICIES
 from fiscal_model.health import check_health
-from fiscal_model.scoring import FiscalPolicyScorer
 from fiscal_model.policies import (
-    TaxPolicy,
-    SpendingPolicy,
     PolicyType,
-    TransferPolicy,
+    TaxPolicy,
 )
-from fiscal_model.baseline import CBOBaseline
-from fiscal_model.app_data import PRESET_POLICIES, CBO_SCORE_MAP
-from fiscal_model.models.macro_adapter import FRBUSAdapterLite, MacroScenario
+from fiscal_model.scoring import FiscalPolicyScorer
 
 app = FastAPI(
     title="Fiscal Policy Calculator API",
@@ -83,17 +80,17 @@ class ScorePolicyResponse(BaseModel):
     final_static_effect: float  # Billions
 
     # Dynamic effects (if enabled)
-    gdp_effect: Optional[float] = None  # Percentage points (cumulative)
-    employment_effect: Optional[float] = None  # Thousands of jobs
-    revenue_feedback: Optional[float] = None  # Billions
-    dynamic_adjusted_impact: Optional[float] = None  # Billions
+    gdp_effect: float | None = None  # Percentage points (cumulative)
+    employment_effect: float | None = None  # Thousands of jobs
+    revenue_feedback: float | None = None  # Billions
+    dynamic_adjusted_impact: float | None = None  # Billions
 
     # Year-by-year breakdown
     year_by_year: list[YearlyEffect]
 
     # Metadata
     dynamic_scoring_enabled: bool
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
 
 class ScorePresetRequest(BaseModel):
@@ -108,9 +105,9 @@ class PresetPolicyInfo(BaseModel):
 
     name: str
     description: str
-    cbo_score: Optional[float] = None  # Billions (if available)
-    cbo_source: Optional[str] = None
-    cbo_date: Optional[str] = None
+    cbo_score: float | None = None  # Billions (if available)
+    cbo_source: str | None = None
+    cbo_date: str | None = None
 
 
 class PresetsResponse(BaseModel):
@@ -128,7 +125,7 @@ class ScoreTariffRequest(BaseModel):
     import_base_billions: float = Field(
         3200.0, gt=0, description="Import base (billions)"
     )
-    target_country: Optional[str] = Field(None, description="Target country code")
+    target_country: str | None = Field(None, description="Target country code")
     include_consumer_cost: bool = Field(True, description="Include consumer impact")
     include_retaliation: bool = Field(
         True, description="Include retaliation effects"
@@ -150,7 +147,7 @@ class ScoreTariffResponse(BaseModel):
     policy_name: str
     ten_year_deficit_impact: float  # Billions
     trade_summary: TradeSummary
-    uncertainty_range: Optional[dict[str, float]] = None
+    uncertainty_range: dict[str, float] | None = None
 
 
 class HealthCheckResponse(BaseModel):
@@ -421,7 +418,7 @@ async def score_preset(request: ScorePresetRequest):
         )
 
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @app.post("/score/tariff", response_model=ScoreTariffResponse)
@@ -469,7 +466,7 @@ async def score_tariff(request: ScoreTariffRequest):
         )
 
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 # =============================================================================

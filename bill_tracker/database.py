@@ -13,10 +13,14 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Generator
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from bill_tracker.auto_scorer import BillScore
 
 from .cbo_fetcher import CBOCostEstimate
 from .ingestor import BillMetadata
@@ -248,7 +252,7 @@ class BillDatabase:
     # Auto Scores
     # ------------------------------------------------------------------
 
-    def upsert_auto_score(self, score: "BillScore") -> None:  # type: ignore[name-defined]
+    def upsert_auto_score(self, score: BillScore) -> None:
         with self._connect() as conn:
             conn.execute(
                 """
