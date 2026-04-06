@@ -199,7 +199,7 @@ def _render_bill_card(st_module: Any, bill: dict, db: Any) -> None:
     url = bill.get("url", "")
     bill_type = (bill.get("bill_type") or "").upper()
     number = bill.get("number", "")
-    introduced = bill.get("introduced_date", "")[:10]
+    introduced = _format_date(bill.get("introduced_date", ""))
 
     freshness = freshness_from_db_row(bill)
     cbo_score = db.get_cbo_score(bill_id)
@@ -355,6 +355,17 @@ def _status_label(status: str) -> str:
         "passed_chamber": "Passed Chamber",
         "enacted": "Enacted",
     }.get(status, status.title())
+
+
+def _format_date(date_str: str | None) -> str:
+    """Return YYYY-MM-DD portion of an ISO date string, or 'Date unknown'."""
+    if not date_str:
+        return "Date unknown"
+    date_part = date_str[:10]
+    # Treat Unix epoch as missing (legacy DB rows written before the None fix)
+    if date_part == "1970-01-01":
+        return "Date unknown"
+    return date_part
 
 
 def _format_cost(cost: float) -> str:

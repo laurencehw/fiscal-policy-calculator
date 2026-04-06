@@ -159,19 +159,42 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         render_footer(st_module=st_module)
 
     with top_tabs[1]:
-        _render_generational(st_module=st_module, deps=deps)
+        try:
+            _render_generational(st_module=st_module, deps=deps)
+        except Exception as exc:
+            st_module.error(
+                f"Generational analysis encountered an error: {type(exc).__name__}: {exc}\n\n"
+                "Try clearing the OLG result (adjust a slider) or reloading the page."
+            )
         render_footer(st_module=st_module)
 
     with top_tabs[2]:
-        _render_state(st_module=st_module, deps=deps)
+        try:
+            _render_state(st_module=st_module, deps=deps)
+        except Exception as exc:
+            st_module.error(
+                f"State analysis encountered an error: {type(exc).__name__}: {exc}\n\n"
+                "Try reloading the page."
+            )
         render_footer(st_module=st_module)
 
     with top_tabs[3]:
-        deps.render_bill_tracker_tab(st_module=st_module)
+        try:
+            deps.render_bill_tracker_tab(st_module=st_module)
+        except Exception as exc:
+            st_module.error(
+                f"Bill Tracker encountered an error: {type(exc).__name__}: {exc}\n\n"
+                "Try reloading the page."
+            )
         render_footer(st_module=st_module)
 
     with top_tabs[4]:
-        deps.render_methodology_tab(st_module=st_module)
+        try:
+            deps.render_methodology_tab(st_module=st_module)
+        except Exception as exc:
+            st_module.error(
+                f"Methodology tab encountered an error: {type(exc).__name__}: {exc}"
+            )
         render_footer(st_module=st_module)
 
 
