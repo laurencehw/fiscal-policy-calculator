@@ -115,8 +115,8 @@ def render_quick_start(st_module: Any) -> None:
 
                 Try one of these scenarios to get started:
                 - **TCJA Extension** — Select *TCJA / Individual* → *TCJA Full Extension* from the sidebar
-                - **Biden $400K+ Tax** — Select *Income Tax* → *Biden 2025 Proposal* (+2.6pp on income above $400K)
-                - **Infrastructure Spending** — Select *Spending program* and model a $100B/year program
+                - **Biden \\$400K+ Tax** — Select *Income Tax* → *Biden 2025 Proposal* (+2.6pp on income above \\$400K)
+                - **Infrastructure Spending** — Select *Spending program* and model a \\$100B/year program
 
                 Choose a policy in the sidebar, then click **Calculate Impact**.
                 """
@@ -134,7 +134,7 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
     Top-level tabs: Calculator | Generational | State | Bill Tracker | Methodology
     """
     st_module.title("Fiscal Policy Impact Calculator")
-    st_module.caption(
+    st_module.markdown(
         "Estimate the 10-year budgetary and economic effects of U.S. tax and "
         "spending proposals. Powered by IRS data, FRED, and CBO methodology. "
         f"Companion to the [Public Economics textbook]({TEXTBOOK_HOME}). "
