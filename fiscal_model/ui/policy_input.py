@@ -66,6 +66,20 @@ def _strip_emoji_prefix(name: str) -> str:
     return name
 
 
+def _short_display_name(name: str) -> str:
+    """Strip emoji prefix and trailing '(CBO: $X)' / '(JCT: $X)' score for dropdown."""
+    import re as _re
+    stripped = _strip_emoji_prefix(name)
+    return _re.sub(r'\s*\((?:CBO|JCT):[^)]+\)\s*$', '', stripped).strip()
+
+
+def _extract_cbo_score(name: str) -> str | None:
+    """Return the CBO/JCT score string from a preset name, e.g. 'CBO: $4.6T'."""
+    import re as _re
+    m = _re.search(r'\(((?:CBO|JCT):[^)]+)\)', name)
+    return m.group(1) if m else None
+
+
 # ---------------------------------------------------------------------------
 # Tax policy inputs
 # ---------------------------------------------------------------------------
@@ -110,25 +124,29 @@ def render_tax_policy_inputs(
 
         # Preset selector (within category)
         cat_presets = categorized.get(selected_cat, [])
-        display_names = {_strip_emoji_prefix(n): n for n in cat_presets}
+        # Map short display name → original preset name (for lookup)
+        short_names = {_short_display_name(n): n for n in cat_presets}
 
-        default_display = (
-            _strip_emoji_prefix(default_preset)
-            if default_preset and default_preset in display_names.values()
-            else next(iter(display_names.keys()))
+        default_short = (
+            _short_display_name(default_preset)
+            if default_preset and default_preset in short_names.values()
+            else next(iter(short_names.keys()))
         )
 
-        selected_display = st_module.selectbox(
+        selected_short = st_module.selectbox(
             "Select a proposal",
-            options=list(display_names.keys()),
-            index=list(display_names.keys()).index(default_display) if default_display in display_names else 0,
+            options=list(short_names.keys()),
+            index=list(short_names.keys()).index(default_short) if default_short in short_names else 0,
             help="Each proposal is pre-configured with parameters matching official estimates.",
         )
-        preset_choice = display_names[selected_display]
+        preset_choice = short_names[selected_short]
         preset_data = preset_policies[preset_choice]
 
+        cbo_score = _extract_cbo_score(preset_choice)
+        if cbo_score:
+            st_module.caption(f"Official estimate: {cbo_score}")
+
         # Show what this preset does — collapsible card (default collapsed)
-        display_name = _strip_emoji_prefix(preset_choice)
         desc = preset_data["description"]
 
         import re as _re
@@ -140,7 +158,7 @@ def render_tax_policy_inputs(
         else:
             direction_icon = "📋"
 
-        with st_module.expander(f"{direction_icon} {display_name}", expanded=False):
+        with st_module.expander(f"{direction_icon} {selected_short}", expanded=False):
             st_module.markdown(desc)
 
     # ── Custom path ──────────────────────────────────────────────────────
