@@ -77,9 +77,9 @@ class BillMetadata:
     bill_type: str                       # "hr" | "s" | "hjres" | "sjres"
     title: str
     sponsor: str
-    introduced_date: datetime
+    introduced_date: datetime | None
     latest_action: str
-    latest_action_date: datetime
+    latest_action_date: datetime | None
     status: str                          # "introduced" | "committee" | "passed_chamber" | "enacted"
     crs_subjects: list[str] = field(default_factory=list)
     has_cbo_score: bool = False
@@ -241,8 +241,11 @@ class BillIngestor:
                 state = s.get("state", "")
                 if party and state:
                     sponsor = f"{sponsor} ({party}-{state})"
+                if not sponsor:
+                    sponsor = s.get("fullName", "") or "Unknown"
             else:
-                sponsor = raw.get("sponsor", {}).get("fullName", "Unknown")
+                sponsor_field = raw.get("sponsor") or {}
+                sponsor = sponsor_field.get("fullName", "") or "Unknown"
 
             # Dates
             introduced_date = _parse_date(raw.get("introducedDate", ""))
@@ -286,15 +289,15 @@ class BillIngestor:
             return None
 
 
-def _parse_date(date_str: str) -> datetime:
+def _parse_date(date_str: str) -> datetime | None:
     if not date_str:
-        return datetime(1970, 1, 1)
+        return None
     for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S"):
         try:
             return datetime.strptime(date_str, fmt)
         except ValueError:
             continue
-    return datetime(1970, 1, 1)
+    return None
 
 
 def _ordinal(n: int) -> str:

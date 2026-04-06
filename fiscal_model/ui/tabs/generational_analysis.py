@@ -78,22 +78,25 @@ def render_generational_analysis_tab(
         tau_k = st_module.slider(
             "Capital tax rate (%)",
             min_value=5, max_value=60, value=30, step=1,
+            key="olg_tau_k",
             help="Effective capital income tax rate (corporate + individual).",
         ) / 100.0
     with col2:
         tau_ss = st_module.slider(
             "SS payroll tax rate (%)",
             min_value=0, max_value=20, value=12, step=1,
+            key="olg_tau_ss",
             help="Combined SS payroll tax rate (employee + employer).",
         ) / 100.0
     with col3:
         ss_rep = st_module.slider(
             "SS replacement rate (%)",
             min_value=0, max_value=80, value=40, step=5,
+            key="olg_ss_rep",
             help="SS benefit as % of average wage.",
         ) / 100.0
 
-    compute = st_module.button("Run OLG Analysis", type="primary")
+    compute = st_module.button("Run OLG Analysis", type="primary", key="olg_run_button")
 
     cache_key = f"olg:{run_id}:{tau_k:.3f}:{tau_ss:.3f}:{ss_rep:.3f}"
     olg_result = st_module.session_state.get(cache_key)
@@ -234,9 +237,33 @@ def _render_results(st_module: Any, olg_result) -> None:
     trans = olg_result.transition
     gdp_pct = olg_result.gdp_transition_pct_change()
 
+    # Convergence warning: if reform solver didn't converge cleanly, values
+    # may diverge — clamp to plausible economic ranges and warn the user.
+    from fiscal_model.models.olg.solver import SolverStatus
+    if reform.status not in (SolverStatus.CONVERGED,):
+        st_module.warning(
+            f"OLG solver did not fully converge (status: {reform.status.value}). "
+            "Transition path values may be imprecise; treat as directional only."
+        )
+
+    _GDP_CLAMP = 30.0    # ±30% is extreme but plausible for a large long-run reform
+    _K_CLAMP = 50.0      # ±50% capital stock change
+    _R_CLAMP = 10.0      # ±10 pp interest rate change
+
+    def _safe_clamp(arr, lo, hi):
+        """Replace NaN/Inf with 0 then clamp to [lo, hi]."""
+        a = np.where(np.isfinite(arr), arr, 0.0)
+        return np.clip(a, lo, hi)
+
+    gdp_pct_clamped = _safe_clamp(gdp_pct, -_GDP_CLAMP, _GDP_CLAMP)
+    if not np.allclose(gdp_pct_clamped, gdp_pct, equal_nan=False):
+        st_module.caption(
+            "⚠️ GDP path contained out-of-range values — clamped to ±30% for display."
+        )
+
     fig_trans = go.Figure()
     fig_trans.add_trace(go.Scatter(
-        x=trans.years, y=gdp_pct,
+        x=trans.years, y=gdp_pct_clamped,
         mode="lines", name="GDP % change from baseline",
         line=dict(color="#1f77b4", width=2),
     ))
@@ -245,6 +272,7 @@ def _render_results(st_module: Any, olg_result) -> None:
         title="GDP Change Along Transition Path (% from baseline)",
         xaxis_title="Year",
         yaxis_title="% change from baseline",
+        yaxis=dict(range=[-_GDP_CLAMP, _GDP_CLAMP]),
         height=380,
         margin=dict(l=40, r=40, t=60, b=40),
     )
@@ -253,22 +281,28 @@ def _render_results(st_module: Any, olg_result) -> None:
     # Capital and interest rate sub-charts
     col_a, col_b = st_module.columns(2)
     with col_a:
-        k_pct = (trans.K_path - baseline.K) / max(baseline.K, 1e-10) * 100
+        k_pct_raw = (trans.K_path - baseline.K) / max(baseline.K, 1e-10) * 100
+        k_pct = _safe_clamp(k_pct_raw, -_K_CLAMP, _K_CLAMP)
         fig_k = px.line(
             x=trans.years, y=k_pct,
             labels={"x": "Year", "y": "% change"},
             title="Capital Stock (% change)",
         )
+        fig_k.update_layout(yaxis=dict(range=[-_K_CLAMP, _K_CLAMP]))
         fig_k.add_hline(y=0, line_dash="dash", line_color="gray")
         st_module.plotly_chart(fig_k, use_container_width=True)
 
     with col_b:
-        rate_ppts = (trans.r_path - baseline.r) * 100
+        rate_ppts_raw = (trans.r_path - baseline.r) * 100
+        rate_ppts = _safe_clamp(rate_ppts_raw, -_R_CLAMP, _R_CLAMP)
+        if not np.allclose(rate_ppts, rate_ppts_raw, equal_nan=False):
+            st_module.caption("⚠️ Interest rate path clamped to ±10 pp for display.")
         fig_r = px.line(
             x=trans.years, y=rate_ppts,
             labels={"x": "Year", "y": "pp change"},
             title="Interest Rate (pp change)",
         )
+        fig_r.update_layout(yaxis=dict(range=[-_R_CLAMP, _R_CLAMP]))
         fig_r.add_hline(y=0, line_dash="dash", line_color="gray")
         st_module.plotly_chart(fig_r, use_container_width=True)
 
