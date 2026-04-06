@@ -113,9 +113,9 @@ def render_quick_start(st_module: Any) -> None:
         col1, col2 = st_module.columns([20, 1])
         with col1:
             st_module.markdown(
-                "**👋 Estimate the 10-year budget impact of any U.S. tax or spending proposal — "
-                "backed by IRS data and CBO methodology.**\n\n"
-                "Pick a policy in the sidebar, then click **Calculate Impact**."
+                "👋 Estimate the 10-year budget impact of any U.S. tax or spending proposal, "
+                "backed by IRS data and CBO methodology.\n\n"
+                "To get started: pick a policy area in the sidebar, select a proposal, then click Calculate Impact."
             )
         with col2:
             if st_module.button("✕", key="dismiss_quick_start"):

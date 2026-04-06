@@ -52,35 +52,36 @@ def test_package_level_app_data_imports():
     assert len(PRESET_POLICIES) > 0
 
 
-def test_biden_2025_proposal_in_income_tax_dropdown():
-    """Regression: Biden 2025 Proposal must appear in the Income Tax category dropdown.
+def test_biden_2025_proposal_in_tcja_dropdown():
+    """Regression: Biden 2025 Proposal must appear in the TCJA / Individual category dropdown.
 
-    The _short_display_name() refactor in brave-chaplygin must not filter it out.
+    Biden 2025 Proposal has is_tcja=True so it shows alongside TCJA extension options,
+    making it discoverable for users browsing that policy area.
     """
     from fiscal_model.ui.policy_input import _preset_category, _short_display_name
 
-    # Collect Income Tax presets (no special flags → falls through to Income Tax)
-    income_tax_presets = [
+    # Collect TCJA / Individual presets
+    tcja_presets = [
         n for n, d in PRESET_POLICIES.items()
-        if n != "Custom Policy" and _preset_category(d) == "Income Tax"
+        if n != "Custom Policy" and _preset_category(d) == "TCJA / Individual"
     ]
-    assert "Biden 2025 Proposal" in income_tax_presets, (
-        "Biden 2025 Proposal is missing from PRESET_POLICIES Income Tax category"
+    assert "Biden 2025 Proposal" in tcja_presets, (
+        "Biden 2025 Proposal is missing from PRESET_POLICIES TCJA / Individual category"
     )
 
     # Simulate the short_names dict the selectbox uses
-    short_names = {_short_display_name(n): n for n in income_tax_presets}
+    short_names = {_short_display_name(n): n for n in tcja_presets}
     assert "Biden 2025 Proposal" in short_names, (
         "Biden 2025 Proposal short display name collides with another preset and was overwritten"
     )
     assert short_names["Biden 2025 Proposal"] == "Biden 2025 Proposal"
 
-    # Ensure no collisions exist for any Income Tax preset
+    # Ensure no collisions exist for any TCJA / Individual preset
     seen: dict[str, str] = {}
-    for original_name in income_tax_presets:
+    for original_name in tcja_presets:
         short = _short_display_name(original_name)
         assert short not in seen, (
-            f"Collision in Income Tax dropdown: '{seen[short]}' and '{original_name}' "
+            f"Collision in TCJA / Individual dropdown: '{seen[short]}' and '{original_name}' "
             f"both map to '{short}'"
         )
         seen[short] = original_name
