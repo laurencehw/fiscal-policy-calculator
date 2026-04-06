@@ -50,8 +50,8 @@ def render_bill_tracker_tab(st_module: Any, db_path: str | None = None) -> None:
     # Pipeline status bar
     _render_status_bar(st_module, db)
 
-    # Filters
-    filters = _render_filters(st_module)
+    # Filters (pass db so policy area options can be populated)
+    filters = _render_filters(st_module, db)
 
     # Bill list
     bills = _get_filtered_bills(db, filters)
@@ -147,37 +147,61 @@ def _render_status_bar(st_module: Any, db: Any) -> None:
             st_module.rerun()
 
 
-def _render_filters(st_module: Any) -> dict:
+def _render_filters(st_module: Any, db: Any) -> dict:
     """Render filter controls and return current filter state."""
-    with st_module.expander("Filters", expanded=True):
-        col1, col2, col3 = st_module.columns(3)
+    subjects = _get_unique_subjects(db)
 
+    with st_module.expander("Search & Filters", expanded=True):
+        search_query = st_module.text_input(
+            "Search bills",
+            key="bt_search",
+            placeholder="e.g. 'tax relief', 'HR 1234', or 'Smith'",
+        )
+
+        col1, col2, col3 = st_module.columns(3)
         with col1:
+            status_options = [
+                "All", "introduced", "committee", "passed_chamber", "enacted",
+            ]
             status_filter = st_module.selectbox(
                 "Status",
-                ["All", "introduced", "committee", "passed_chamber", "enacted"],
+                status_options,
                 key="bt_status_filter",
             )
         with col2:
-            cbo_filter = st_module.checkbox("Has CBO score", key="bt_cbo_filter")
-        with col3:
             chamber_filter = st_module.selectbox(
                 "Chamber",
                 ["All", "house", "senate"],
                 key="bt_chamber_filter",
             )
+        with col3:
+            sort_options = ["Date: Newest First", "Date: Oldest First", "Relevance"]
+            sort_order = st_module.selectbox(
+                "Sort by",
+                sort_options,
+                key="bt_sort_order",
+            )
 
-        search_query = st_module.text_input(
-            "Search title/sponsor",
-            key="bt_search",
-            placeholder="e.g. 'tax relief' or 'Smith'",
-        )
+        col4, col5 = st_module.columns([3, 1])
+        with col4:
+            policy_areas: list[str] = []
+            if subjects:
+                policy_areas = st_module.multiselect(
+                    "Policy Area",
+                    options=subjects,
+                    key="bt_policy_areas",
+                    placeholder="All policy areas",
+                )
+        with col5:
+            cbo_filter = st_module.checkbox("Has CBO score", key="bt_cbo_filter")
 
     return {
         "status": status_filter if status_filter != "All" else None,
         "has_cbo_score": cbo_filter if cbo_filter else None,
         "chamber": chamber_filter if chamber_filter != "All" else None,
         "search": search_query.strip().lower() if search_query else None,
+        "policy_areas": list(policy_areas) if policy_areas else None,
+        "sort": sort_order,
     }
 
 
@@ -189,20 +213,88 @@ def _get_filtered_bills(db: Any, filters: dict) -> list[dict]:
         limit=500,
     )
 
-    # Apply chamber and search filters (not in DB query)
+    query = filters.get("search")
+    policy_areas = filters.get("policy_areas")
+    sort_order = filters.get("sort", "Date: Newest First")
+
     result = []
+    relevance_scores: dict[str, int] = {}
+
     for bill in bills:
+        # Chamber filter
         if filters.get("chamber") and bill.get("chamber") != filters["chamber"]:
             continue
-        if filters.get("search"):
-            query = filters["search"]
-            title_match = query in (bill.get("title") or "").lower()
-            sponsor_match = query in (bill.get("sponsor") or "").lower()
-            if not title_match and not sponsor_match:
+
+        # Policy area filter (crs_subjects stored as JSON string)
+        if policy_areas:
+            raw_subjects = bill.get("crs_subjects") or "[]"
+            try:
+                bill_subjects = json.loads(raw_subjects) if isinstance(raw_subjects, str) else raw_subjects
+            except (json.JSONDecodeError, TypeError):
+                bill_subjects = []
+            if not any(s in bill_subjects for s in policy_areas):
                 continue
+
+        # Keyword search across title, sponsor, bill number, and summary
+        if query:
+            score = 0
+            title = (bill.get("title") or "").lower()
+            sponsor = (bill.get("sponsor") or "").lower()
+            number = (bill.get("number") or "").lower()
+            bill_type = (bill.get("bill_type") or "").lower()
+            summary = (bill.get("summary") or "").lower()
+            bill_id = (bill.get("bill_id") or "").lower()
+
+            if query in title:
+                score += 3
+            if query in sponsor:
+                score += 2
+            if query in number or query in bill_id:
+                score += 2
+            # Also match "hr 1234" style queries against combined type+number
+            combined = f"{bill_type} {number}"
+            if query in combined or query.replace(" ", "") in combined.replace(" ", ""):
+                score += 2
+            if query in summary:
+                score += 1
+
+            if score == 0:
+                continue
+            relevance_scores[bill.get("bill_id", "")] = score
+
         result.append(bill)
 
+    # Sort
+    if sort_order == "Date: Oldest First":
+        result.sort(key=lambda b: (b.get("introduced_date") or ""), reverse=False)
+    elif sort_order == "Relevance" and query:
+        result.sort(
+            key=lambda b: relevance_scores.get(b.get("bill_id", ""), 0),
+            reverse=True,
+        )
+    # Default ("Date: Newest First") uses DB ordering (introduced_date DESC)
+
     return result
+
+
+def _get_unique_subjects(db: Any) -> list[str]:
+    """Extract unique CRS subject areas from all bills for the policy area filter."""
+    try:
+        bills = db.get_all_bills(limit=500)
+    except Exception:
+        return []
+
+    subjects: set[str] = set()
+    for bill in bills:
+        raw = bill.get("crs_subjects") or "[]"
+        try:
+            parsed = json.loads(raw) if isinstance(raw, str) else raw
+            if isinstance(parsed, list):
+                subjects.update(s for s in parsed if isinstance(s, str) and s)
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    return sorted(subjects)
 
 
 def _render_bill_card(st_module: Any, bill: dict, db: Any) -> None:
