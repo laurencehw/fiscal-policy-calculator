@@ -84,3 +84,14 @@ archive/
 *~
 
 data/
+
+# Generated API docs
+docs/api/
+
+# SQLite databases (runtime artifacts)
+*.db
+bills.db
+bills_populated.db
+
+# Large microdata files (runtime/generated)
+tax_microdata_2024.csv
