@@ -22,10 +22,18 @@ from fiscal_model.data.capital_gains import CapitalGainsBaseline
 from fiscal_model.data.fred_data import FREDData
 from fiscal_model.data.irs_soi import IRSSOIData
 
+# Skip marker for tests that require IRS SOI data files on disk
+_data_dir = Path(__file__).parent.parent / "fiscal_model" / "data_files" / "irs_soi"
+requires_data = pytest.mark.skipif(
+    not (_data_dir.is_dir() and any(_data_dir.glob("*.csv"))),
+    reason="IRS SOI data files not available",
+)
+
 # =============================================================================
 # IRS SOI DATA
 # =============================================================================
 
+@requires_data
 class TestIRSSOIData:
 
     def test_initializes_without_error(self):
@@ -101,6 +109,7 @@ class TestIRSSOIData:
 # CAPITAL GAINS BASELINE
 # =============================================================================
 
+@requires_data
 class TestCapitalGainsBaseline:
 
     def test_initializes_without_error(self):

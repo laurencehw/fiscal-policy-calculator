@@ -13,74 +13,19 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 
-def render_results_summary_tab(
+def _display_impact_header(
     st_module: Any,
-    result_data: dict[str, Any],
+    final_deficit_total: float,
+    static_deficit_total: float,
+    behavioral_total: float,
+    dynamic_revenue_feedback_total: float,
+    is_spending_result: bool,
+    policy: Any,
+    result: Any,
     cbo_score_map: dict[str, dict[str, Any]],
+    policy_name: str,
 ) -> None:
-    """
-    Render tab2 results summary for microsim or aggregate runs.
-    """
-    if result_data.get("is_microsim"):
-        st_module.header("🔬 Microsimulation Results")
-        st_module.markdown(result_data["source_msg"])
-
-        col1, col2, col3 = st_module.columns(3)
-        rev_change = result_data["revenue_change_billions"]
-
-        with col1:
-            st_module.metric(
-                "Revenue Change (Year 1)",
-                f"${rev_change:+.1f}B",
-                delta="Revenue Gain" if rev_change > 0 else "Revenue Loss",
-                delta_color="normal" if rev_change > 0 else "inverse",
-            )
-        with col2:
-            st_module.metric("Baseline Revenue", f"${result_data['baseline_revenue']:,.1f}B")
-        with col3:
-            st_module.metric("Reform Revenue", f"${result_data['reform_revenue']:,.1f}B")
-
-        st_module.markdown("---")
-        st_module.subheader("👨‍👩‍👧‍👦 Impact by Family Size")
-        st_module.caption("Average tax change per household by number of children. (Negative = Tax Cut)")
-
-        dist_kids = result_data["distribution_kids"]
-        fig = px.bar(
-            dist_kids,
-            x="children",
-            y="avg_tax_change",
-            labels={"children": "Number of Children", "avg_tax_change": "Average Tax Change ($)"},
-            color="avg_tax_change",
-            color_continuous_scale="RdBu_r",
-        )
-        fig.update_layout(
-            meta={"description": "Bar chart showing average tax change per household by number of children"},
-        )
-        st_module.plotly_chart(fig, use_container_width=True)
-
-        st_module.info(
-            """
-            **Why Microsimulation?**
-            Aggregate models use average incomes. Microsimulation calculates taxes for *individual households*,
-            capturing complex interactions like how the Child Tax Credit phase-out overlaps with other provisions.
-            """
-        )
-        return
-
-    policy = result_data["policy"]
-    result = result_data["result"]
-    is_spending_result = result_data.get("is_spending", False)
-
-    st_module.header("📈 Results Summary")
-
-    static_deficit_total = float(result.static_deficit_effect.sum())
-    behavioral_total = float(result.behavioral_offset.sum())
-    dynamic_revenue_feedback_total = (
-        float(result.dynamic_effects.revenue_feedback.sum()) if result.dynamic_effects else 0.0
-    )
-    final_deficit_total = float(result.final_deficit_effect.sum())
-    year1_final = float(result.final_deficit_effect[0])
-
+    """Render the HTML impact card, sensitivity range, CBO note, and interpretation."""
     if final_deficit_total < 0:
         impact_color = "#28a745"
         impact_label = "Deficit Reduction"
@@ -106,13 +51,12 @@ def render_results_summary_tab(
         unsafe_allow_html=True,
     )
 
-    # Sensitivity range (ETI ± 0.1)
+    # Sensitivity range (ETI +/- 0.1)
     if hasattr(policy, "taxable_income_elasticity") and not is_spending_result:
         base_eti = getattr(policy, "taxable_income_elasticity", 0.25)
         eti_low = max(0.05, base_eti - 0.1)
         eti_high = base_eti + 0.1
 
-        # Scale behavioral response proportionally to ETI change
         scale_low = eti_low / base_eti if base_eti > 0 else 1.0
         scale_high = eti_high / base_eti if base_eti > 0 else 1.0
 
@@ -125,8 +69,7 @@ def render_results_summary_tab(
             unsafe_allow_html=True,
         )
 
-    # CBO comparison note (if available)
-    policy_name = result_data.get("policy_name", "")
+    # CBO comparison note
     cbo_data = cbo_score_map.get(policy_name)
     if cbo_data:
         official = cbo_data["official_score"]
@@ -174,6 +117,20 @@ def render_results_summary_tab(
 
     st_module.markdown(interpretation)
 
+
+def _display_metrics_and_waterfall(
+    st_module: Any,
+    static_deficit_total: float,
+    behavioral_total: float,
+    dynamic_revenue_feedback_total: float,
+    final_deficit_total: float,
+    year1_final: float,
+    result: Any,
+    policy: Any,
+    cbo_score_map: dict[str, dict[str, Any]],
+    policy_name: str,
+) -> None:
+    """Render metric cards, waterfall chart, and CBO benchmark / distribution context."""
     col_metrics, col_context = st_module.columns([1, 1])
 
     with col_metrics:
@@ -247,7 +204,6 @@ def render_results_summary_tab(
         st_module.plotly_chart(fig_waterfall, use_container_width=True)
 
     with col_context:
-        policy_name = result_data.get("policy_name", "")
         cbo_data = cbo_score_map.get(policy_name)
 
         if cbo_data:
@@ -286,18 +242,25 @@ def render_results_summary_tab(
             else:
                 st_module.info("No distribution data available for this policy type.")
 
+
+def _display_year_by_year_charts(
+    st_module: Any,
+    result: Any,
+) -> None:
+    """Render the year-by-year bar chart and cumulative line chart with uncertainty band."""
     st_module.markdown("---")
     c_chart1, c_chart2 = st_module.columns(2)
 
+    years = result.baseline.years
+    df_timeline = pd.DataFrame(
+        {
+            "Year": years,
+            "Deficit Impact": result.final_deficit_effect,
+        }
+    )
+
     with c_chart1:
         st_module.subheader("Year-by-Year Deficit Impact")
-        years = result.baseline.years
-        df_timeline = pd.DataFrame(
-            {
-                "Year": years,
-                "Deficit Impact": result.final_deficit_effect,
-            }
-        )
 
         fig_timeline = go.Figure()
         fig_timeline.add_trace(
@@ -368,7 +331,13 @@ def render_results_summary_tab(
             "Uncertainty grows over time, consistent with CBO methodology."
         )
 
-    # Assumptions panel
+
+def _display_assumptions_panel(
+    st_module: Any,
+    policy: Any,
+    result: Any,
+) -> None:
+    """Render the assumptions and data sources expander."""
     st_module.markdown("---")
     with st_module.expander("Assumptions and data sources"):
         a1, a2, a3 = st_module.columns(3)
@@ -395,7 +364,17 @@ def render_results_summary_tab(
             st_module.markdown("- 10-year budget window")
             st_module.markdown("- [Full docs](https://github.com/laurencehw/fiscal-policy-calculator/blob/main/docs/METHODOLOGY.md)")
 
-    # Export section
+
+def _display_export_section(
+    st_module: Any,
+    policy: Any,
+    result: Any,
+    static_deficit_total: float,
+    behavioral_total: float,
+    dynamic_revenue_feedback_total: float,
+    final_deficit_total: float,
+) -> None:
+    """Render CSV and text download buttons plus copy-paste summary."""
     st_module.markdown("---")
     with st_module.expander("📥 Export Results", expanded=True):
         years = result.baseline.years
@@ -489,7 +468,14 @@ Year-by-Year Breakdown:
 
         st_module.code(text_summary, language="text")
 
-    # Side-by-side comparison
+
+def _display_comparison_section(
+    st_module: Any,
+    policy: Any,
+    final_deficit_total: float,
+    cbo_score_map: dict[str, dict[str, Any]],
+) -> None:
+    """Render side-by-side comparison to other proposals."""
     st_module.markdown("---")
     st_module.subheader("Compare to another proposal")
 
@@ -530,10 +516,18 @@ Year-by-Year Breakdown:
                     delta_color="inverse" if delta > 0 else "normal",
                 )
 
-    # Sensitivity analysis (only for individual income tax policies)
+
+def _display_sensitivity_analysis(
+    st_module: Any,
+    policy: Any,
+    static_deficit_total: float,
+    behavioral_total: float,
+    dynamic_revenue_feedback_total: float,
+    final_deficit_total: float,
+) -> None:
+    """Render ETI sensitivity table for individual income tax policies."""
     st_module.markdown("---")
     with st_module.expander("Sensitivity analysis"):
-        # Only show ETI sensitivity for individual income tax policies
         is_individual_tax = (
             hasattr(policy, "rate_change")
             and policy.rate_change != 0
@@ -583,3 +577,129 @@ Year-by-Year Breakdown:
                 "changes. Preset policies use pre-calibrated models where "
                 "ETI sensitivity is embedded in the calibration."
             )
+
+
+def render_results_summary_tab(
+    st_module: Any,
+    result_data: dict[str, Any],
+    cbo_score_map: dict[str, dict[str, Any]],
+) -> None:
+    """
+    Render tab2 results summary for microsim or aggregate runs.
+    """
+    if result_data.get("is_microsim"):
+        st_module.header("🔬 Microsimulation Results")
+        st_module.markdown(result_data["source_msg"])
+
+        col1, col2, col3 = st_module.columns(3)
+        rev_change = result_data["revenue_change_billions"]
+
+        with col1:
+            st_module.metric(
+                "Revenue Change (Year 1)",
+                f"${rev_change:+.1f}B",
+                delta="Revenue Gain" if rev_change > 0 else "Revenue Loss",
+                delta_color="normal" if rev_change > 0 else "inverse",
+            )
+        with col2:
+            st_module.metric("Baseline Revenue", f"${result_data['baseline_revenue']:,.1f}B")
+        with col3:
+            st_module.metric("Reform Revenue", f"${result_data['reform_revenue']:,.1f}B")
+
+        st_module.markdown("---")
+        st_module.subheader("👨‍👩‍👧‍👦 Impact by Family Size")
+        st_module.caption("Average tax change per household by number of children. (Negative = Tax Cut)")
+
+        dist_kids = result_data["distribution_kids"]
+        fig = px.bar(
+            dist_kids,
+            x="children",
+            y="avg_tax_change",
+            labels={"children": "Number of Children", "avg_tax_change": "Average Tax Change ($)"},
+            color="avg_tax_change",
+            color_continuous_scale="RdBu_r",
+        )
+        fig.update_layout(
+            meta={"description": "Bar chart showing average tax change per household by number of children"},
+        )
+        st_module.plotly_chart(fig, use_container_width=True)
+
+        st_module.info(
+            """
+            **Why Microsimulation?**
+            Aggregate models use average incomes. Microsimulation calculates taxes for *individual households*,
+            capturing complex interactions like how the Child Tax Credit phase-out overlaps with other provisions.
+            """
+        )
+        return
+
+    policy = result_data["policy"]
+    result = result_data["result"]
+    is_spending_result = result_data.get("is_spending", False)
+    policy_name = result_data.get("policy_name", "")
+
+    st_module.header("📈 Results Summary")
+
+    static_deficit_total = float(result.static_deficit_effect.sum())
+    behavioral_total = float(result.behavioral_offset.sum())
+    dynamic_revenue_feedback_total = (
+        float(result.dynamic_effects.revenue_feedback.sum()) if result.dynamic_effects else 0.0
+    )
+    final_deficit_total = float(result.final_deficit_effect.sum())
+    year1_final = float(result.final_deficit_effect[0])
+
+    _display_impact_header(
+        st_module,
+        final_deficit_total=final_deficit_total,
+        static_deficit_total=static_deficit_total,
+        behavioral_total=behavioral_total,
+        dynamic_revenue_feedback_total=dynamic_revenue_feedback_total,
+        is_spending_result=is_spending_result,
+        policy=policy,
+        result=result,
+        cbo_score_map=cbo_score_map,
+        policy_name=policy_name,
+    )
+
+    _display_metrics_and_waterfall(
+        st_module,
+        static_deficit_total=static_deficit_total,
+        behavioral_total=behavioral_total,
+        dynamic_revenue_feedback_total=dynamic_revenue_feedback_total,
+        final_deficit_total=final_deficit_total,
+        year1_final=year1_final,
+        result=result,
+        policy=policy,
+        cbo_score_map=cbo_score_map,
+        policy_name=policy_name,
+    )
+
+    _display_year_by_year_charts(st_module, result=result)
+
+    _display_assumptions_panel(st_module, policy=policy, result=result)
+
+    _display_export_section(
+        st_module,
+        policy=policy,
+        result=result,
+        static_deficit_total=static_deficit_total,
+        behavioral_total=behavioral_total,
+        dynamic_revenue_feedback_total=dynamic_revenue_feedback_total,
+        final_deficit_total=final_deficit_total,
+    )
+
+    _display_comparison_section(
+        st_module,
+        policy=policy,
+        final_deficit_total=final_deficit_total,
+        cbo_score_map=cbo_score_map,
+    )
+
+    _display_sensitivity_analysis(
+        st_module,
+        policy=policy,
+        static_deficit_total=static_deficit_total,
+        behavioral_total=behavioral_total,
+        dynamic_revenue_feedback_total=dynamic_revenue_feedback_total,
+        final_deficit_total=final_deficit_total,
+    )

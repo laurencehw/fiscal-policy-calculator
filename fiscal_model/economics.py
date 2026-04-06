@@ -134,29 +134,32 @@ class EconomicModel:
         self.conditions = conditions or EconomicConditions.normal_times()
 
         # Base parameters (adjusted by conditions below)
+        # Sources cited inline; see also docs/METHODOLOGY.md
         self._base_params = {
-            # Base multipliers (adjusted for conditions)
-            'spending_multiplier_base': 1.0,
-            'tax_multiplier_base': 0.5,
-            'transfer_multiplier_base': 0.8,
-            'spending_multiplier_decay': 0.7,  # Annual decay rate
+            # Fiscal multipliers — Ramey (2019), "Ten Years After the Financial
+            # Crisis: What Have We Learned from the Renaissance in Fiscal
+            # Research?", JEP 33(2), pp. 89-114.
+            'spending_multiplier_base': 1.0,   # Consensus normal-times range 0.6-1.5
+            'tax_multiplier_base': 0.5,        # Romer & Romer (2010): 0.5-0.7
+            'transfer_multiplier_base': 0.8,   # Johnson et al. (2006): MPC 0.5-0.9
+            'spending_multiplier_decay': 0.7,  # Annual decay per Blanchard & Perotti
 
             # Supply-side elasticities
-            'labor_supply_elasticity': 0.15,  # Compensated elasticity
-            'capital_elasticity': 0.25,  # Response of capital to after-tax return
-            'eti': 0.25,  # Elasticity of taxable income
+            'labor_supply_elasticity': 0.15,  # Chetty et al. (2012) macro: 0.1-0.2
+            'capital_elasticity': 0.25,       # Hassett & Hubbard (2002): 0.2-0.3
+            'eti': 0.25,                      # Saez, Slemrod & Giertz (2012)
 
-            # Production function
-            'labor_share': 0.65,  # Labor's share of output
-            'capital_share': 0.35,  # Capital's share
-            'tfp_growth': 0.01,  # Annual TFP growth
+            # Production function — BLS, Gollin (2002)
+            'labor_share': 0.65,  # BLS: labor compensation share of GDP
+            'capital_share': 0.35,
+            'tfp_growth': 0.01,   # CBO long-run TFP assumption
 
-            # Interest rate effects
-            'crowding_out_base': 0.03,  # Interest rate increase per $100B deficit
-            'investment_elasticity': -0.5,  # Response of investment to interest rates
+            # Interest rate effects — Laubach (2009): 3-4bp per 1% GDP deficit
+            'crowding_out_base': 0.03,        # ~3bp per $100B ≈ 3bp per 0.3% GDP
+            'investment_elasticity': -0.5,    # Hall & Jorgenson (1967): -0.5 to -1.0
 
-            # Revenue feedback
-            'marginal_revenue_rate': 0.25,  # Avg marginal rate on additional income
+            # Revenue feedback — CBO (2024): avg federal marginal rate ~25%
+            'marginal_revenue_rate': 0.25,
         }
 
         # Apply condition adjustments
@@ -255,19 +258,6 @@ class EconomicModel:
         Returns:
             DynamicEffects container with all calculated effects
         """
-        n_years = len(self.years)
-
-        # Initialize effect arrays
-        np.zeros(n_years)
-        np.zeros(n_years)
-        np.zeros(n_years)
-        np.zeros(n_years)
-        np.zeros(n_years)
-        np.zeros(n_years)
-        np.zeros(n_years)
-        np.zeros(n_years)
-        np.zeros(n_years)
-
         # Calculate effects based on policy type
         if isinstance(policy, TaxPolicy):
             effects = self._tax_policy_effects(policy, static_budget_effect)

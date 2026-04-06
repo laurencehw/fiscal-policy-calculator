@@ -4,7 +4,13 @@ Fiscal Policy Scoring Engine
 Main scoring logic combining static and dynamic analysis.
 """
 
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import pandas as pd
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
@@ -92,6 +98,11 @@ class ScoringResult:
     def get_year_effect(self, year: int) -> dict:
         """Get detailed effects for a specific year."""
         idx = year - self.years[0]
+        if idx < 0 or idx >= len(self.years):
+            raise ValueError(
+                f"Year {year} is outside the budget window "
+                f"({self.years[0]}–{self.years[-1]})"
+            )
         result = {
             'year': year,
             'static_revenue': self.static_revenue_effect[idx],
@@ -113,7 +124,7 @@ class ScoringResult:
 
         return result
 
-    def to_dataframe(self):
+    def to_dataframe(self) -> pd.DataFrame:
         """Convert results to pandas DataFrame."""
         import pandas as pd
 
@@ -306,6 +317,21 @@ class FiscalPolicyScorer:
         Returns:
             ScoringResult with complete analysis
         """
+        # Validate inputs at the scoring boundary.
+        # Accept Policy instances or duck-typed objects with estimate_cost_effect().
+        if not isinstance(policy, Policy) and not callable(getattr(policy, "estimate_cost_effect", None)):
+            raise TypeError(
+                f"Expected a Policy instance or an object with estimate_cost_effect(), "
+                f"got {type(policy).__name__}."
+            )
+        if not getattr(policy, "name", None):
+            raise ValueError("Policy must have a non-empty name")
+        duration = getattr(policy, "duration_years", 10)
+        if duration < 1 or duration > 100:
+            raise ValueError(
+                f"duration_years={duration} is unreasonable; expected 1-100"
+            )
+
         logger.info("Scoring policy '%s' (dynamic=%s)", policy.name, dynamic)
 
         years = self.baseline.years

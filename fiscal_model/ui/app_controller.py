@@ -7,6 +7,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from . import session_keys as SK
 from .calculation_controller import (
     SINGLE_POLICY_MODE,
     ensure_results_state,
@@ -59,15 +60,11 @@ def render_data_status(st_module: Any, deps: Any) -> None:
                 fred_status = "🔴 Fallback (hardcoded values)"
             else:
                 fred_status = "⚪ Not available"
-        except Exception:
+        except (ImportError, OSError, KeyError):
             fred_status = "⚪ Not available"
 
-        try:
-            baseline_display = "CBO Feb 2026"
-            vintage_color = "green"
-        except Exception:
-            baseline_display = "Unknown"
-            vintage_color = "gray"
+        baseline_display = "CBO Feb 2026"
+        vintage_color = "green"
 
         st_module.markdown("---")
         st_module.markdown("**📊 Data Status**")
@@ -91,22 +88,22 @@ def render_data_status(st_module: Any, deps: Any) -> None:
                 "**Last Updated:** Baseline assumptions are updated quarterly "
                 "with new CBO publications."
             )
-    except Exception:
-        pass
+    except (ImportError, OSError, KeyError, AttributeError):
+        pass  # Data status display is non-critical; degrade silently
 
 
 def render_quick_start(st_module: Any) -> None:
     """
     Render a dismissible quick-start guide. Auto-dismissed once results exist.
     """
-    if "quick_start_dismissed" not in st_module.session_state:
-        st_module.session_state.quick_start_dismissed = False
+    if SK.QUICK_START_DISMISSED not in st_module.session_state:
+        st_module.session_state[SK.QUICK_START_DISMISSED] = False
 
     # Auto-dismiss once results have been calculated
-    if st_module.session_state.get("results"):
-        st_module.session_state.quick_start_dismissed = True
+    if st_module.session_state.get(SK.RESULTS):
+        st_module.session_state[SK.QUICK_START_DISMISSED] = True
 
-    if not st_module.session_state.quick_start_dismissed:
+    if not st_module.session_state[SK.QUICK_START_DISMISSED]:
         col1, col2 = st_module.columns([20, 1])
         with col1:
             st_module.markdown(
@@ -124,7 +121,7 @@ def render_quick_start(st_module: Any) -> None:
             )
         with col2:
             if st_module.button("✕", key="dismiss_quick_start"):
-                st_module.session_state.quick_start_dismissed = True
+                st_module.session_state[SK.QUICK_START_DISMISSED] = True
                 st_module.rerun()
         st_module.markdown("---")
 
@@ -234,7 +231,7 @@ def _render_calculator(
 
     # ── Main content ─────────────────────────────────────────────────────
     calc_context["run_id"] = compute_run_id(calc_context=calc_context, settings=settings)
-    st_module.session_state.current_run_id = calc_context["run_id"]
+    st_module.session_state[SK.CURRENT_RUN_ID] = calc_context["run_id"]
 
     # Dismissible welcome guide (auto-hides after first calculation)
     render_quick_start(st_module=st_module)
@@ -271,8 +268,8 @@ def _render_calculator(
 
 def _render_generational(st_module: Any, deps: Any) -> None:
     """Render the top-level Generational Analysis tab."""
-    result_data = st_module.session_state.get("results")
-    run_id = st_module.session_state.get("results_run_id") or st_module.session_state.get("last_run_id")
+    result_data = st_module.session_state.get(SK.RESULTS)
+    run_id = st_module.session_state.get(SK.RESULTS_RUN_ID) or st_module.session_state.get(SK.LAST_RUN_ID)
     deps.render_generational_analysis_tab(
         st_module=st_module,
         result_data=result_data,
@@ -293,8 +290,8 @@ def _render_state(st_module: Any, deps: Any) -> None:
     )
     selected_state = state_selection if state_selection else "CA"
 
-    result_data = st_module.session_state.get("results")
-    run_id = st_module.session_state.get("results_run_id") or st_module.session_state.get("last_run_id")
+    result_data = st_module.session_state.get(SK.RESULTS)
+    run_id = st_module.session_state.get(SK.RESULTS_RUN_ID) or st_module.session_state.get(SK.LAST_RUN_ID)
     deps.render_state_analysis_tab(
         st_module=st_module,
         state=selected_state,

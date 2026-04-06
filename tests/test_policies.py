@@ -283,13 +283,18 @@ class TestTaxPolicyBehavioralOffset:
         assert offset_high / offset_low == pytest.approx(5.0)
 
     def test_formula_value(self):
-        """offset = abs(static) * ETI * 0.5"""
+        """offset = static * ETI * 0.5 (preserves sign for correct deficit direction)"""
         policy = TaxPolicy(
             name="T", description="", policy_type=PolicyType.INCOME_TAX,
             taxable_income_elasticity=0.25,
         )
+        # Tax cut (negative static_effect) → negative offset (recovers revenue)
         offset = policy.estimate_behavioral_offset(-50.0)
-        assert offset == pytest.approx(50.0 * 0.25 * 0.5)
+        assert offset == pytest.approx(-50.0 * 0.25 * 0.5)
+
+        # Tax increase (positive static_effect) → positive offset (loses revenue)
+        offset_increase = policy.estimate_behavioral_offset(50.0)
+        assert offset_increase == pytest.approx(50.0 * 0.25 * 0.5)
 
 
 # =============================================================================

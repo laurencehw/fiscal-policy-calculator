@@ -4,6 +4,7 @@ Policy input helpers — sidebar UI for selecting and configuring policies.
 
 from __future__ import annotations
 
+import re as _re
 from typing import Any
 
 # ---------------------------------------------------------------------------
@@ -67,6 +68,359 @@ def _strip_emoji_prefix(name: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Private helpers for render_tax_policy_inputs
+# ---------------------------------------------------------------------------
+
+def _render_preset_selection(
+    st_module: Any,
+    preset_policies: dict[str, dict[str, Any]],
+    default_preset: str | None = None,
+) -> str:
+    """Render preset category/selection and info display. Returns preset key."""
+    # Group presets by category for easy scanning
+    categorized: dict[str, list[str]] = {}
+    for name, data in preset_policies.items():
+        if name == "Custom Policy":
+            continue
+        cat = _preset_category(data)
+        categorized.setdefault(cat, []).append(name)
+
+    # Category filter
+    available_cats = [c for c in _CATEGORY_ORDER if c in categorized]
+    default_cat_index = 0
+    if default_preset and default_preset in preset_policies:
+        default_cat = _preset_category(preset_policies[default_preset])
+        if default_cat in available_cats:
+            default_cat_index = available_cats.index(default_cat)
+
+    selected_cat = st_module.selectbox(
+        "Policy area",
+        options=available_cats,
+        index=default_cat_index,
+        help="Filter proposals by policy area.",
+    )
+
+    # Preset selector (within category)
+    cat_presets = categorized.get(selected_cat, [])
+    display_names = {_strip_emoji_prefix(n): n for n in cat_presets}
+    display_options = list(display_names.keys())
+    default_display = None
+    if default_preset and default_preset in display_names.values():
+        default_display = _strip_emoji_prefix(default_preset)
+    default_display_index = (
+        display_options.index(default_display)
+        if default_display in display_options
+        else 0
+    )
+
+    selected_display = st_module.selectbox(
+        "Select a proposal",
+        options=display_options,
+        index=default_display_index,
+        help="Each proposal is pre-configured with parameters matching official estimates.",
+    )
+    preset_choice = display_names[selected_display]
+    preset_data = preset_policies[preset_choice]
+
+    # Show what this preset does — collapsible card (default collapsed)
+    display_name = _strip_emoji_prefix(preset_choice)
+    desc = preset_data["description"]
+
+    score_match = _re.search(r'\((?:CBO|JCT|Trustees):\s*(-?\$[\d.,\-]+[TB])\)', preset_choice)
+    if score_match and score_match.group(1).startswith("-"):
+        direction_icon = "✅"
+    elif score_match:
+        direction_icon = "⚠️"
+    else:
+        direction_icon = "📋"
+
+    with st_module.expander(f"{direction_icon} {display_name}", expanded=False):
+        st_module.markdown(desc)
+
+    return preset_choice
+
+
+def _render_basic_policy_inputs(
+    st_module: Any,
+) -> dict[str, Any]:
+    """Render policy name, type, rate change, and threshold controls."""
+    st_module.markdown("---")
+    st_module.markdown("#### Define your policy")
+
+    policy_name = st_module.text_input(
+        "Policy name",
+        "Tax Rate Change",
+        help="A short label for your policy (used in charts and exports).",
+    )
+
+    policy_type = st_module.selectbox(
+        "What type of tax?",
+        ["Income Tax Rate", "Capital Gains", "Corporate Tax", "Payroll Tax"],
+        index=0,
+        help=(
+            "**Income Tax Rate** — changes to individual marginal rates  \n"
+            "**Capital Gains** — changes to rates on investment gains  \n"
+            "**Corporate Tax** — changes to the 21% corporate rate  \n"
+            "**Payroll Tax** — changes to Social Security / Medicare taxes"
+        ),
+    )
+
+    st_module.markdown("##### Rate and scope")
+
+    rate_change_pct = st_module.slider(
+        "Rate change (percentage points)",
+        min_value=-10.0,
+        max_value=10.0,
+        value=-2.0,
+        step=0.5,
+        help=(
+            "How much to change the tax rate. "
+            "**Positive** = tax increase (raises revenue), "
+            "**Negative** = tax cut (costs revenue). "
+            "Example: +2.6pp restores the pre-TCJA top rate."
+        ),
+    )
+    rate_change = rate_change_pct / 100
+
+    threshold_options = {
+        "All taxpayers ($0+)": 0,
+        "Middle income ($50K+)": 50000,
+        "Upper-middle ($100K+)": 100000,
+        "Higher income ($200K+)": 200000,
+        "Top earners ($400K+)": 400000,
+        "High income ($500K+)": 500000,
+        "Millionaires ($1M+)": 1000000,
+        "Custom amount": None,
+    }
+
+    threshold_choice = st_module.selectbox(
+        "Who is affected?",
+        options=list(threshold_options.keys()),
+        index=4,  # Default to $400K+
+        help=(
+            "The income threshold above which the rate change applies. "
+            "Only income *above* this threshold is affected — not total income."
+        ),
+    )
+
+    if threshold_choice == "Custom amount":
+        threshold = st_module.number_input(
+            "Custom income threshold ($)",
+            min_value=0,
+            max_value=10_000_000,
+            value=400_000,
+            step=50_000,
+            format="%d",
+        )
+    else:
+        threshold = threshold_options[threshold_choice]
+
+    return {
+        "policy_name": policy_name,
+        "policy_type": policy_type,
+        "rate_change_pct": rate_change_pct,
+        "rate_change": rate_change,
+        "threshold": threshold,
+    }
+
+
+def _render_policy_timing(
+    st_module: Any,
+) -> dict[str, Any]:
+    """Render duration and phase-in sliders."""
+    with st_module.expander("Policy timing", expanded=False):
+        duration = st_module.slider(
+            "Duration (years)",
+            min_value=1,
+            max_value=10,
+            value=10,
+            help="Standard CBO budget window is 10 years.",
+        )
+        phase_in = st_module.slider(
+            "Phase-in period (years)",
+            min_value=0,
+            max_value=5,
+            value=0,
+            help="Years to gradually ramp up to the full rate change. 0 = immediate.",
+        )
+    return {"duration": duration, "phase_in": phase_in}
+
+
+def _render_capital_gains_params(
+    st_module: Any,
+) -> dict[str, Any]:
+    """Render capital-gains-specific elasticity and step-up parameters."""
+    with st_module.expander("Capital gains parameters", expanded=True):
+        st_module.caption(
+            "Capital gains have unique behavioral dynamics — investors can "
+            "defer realizations, so short-run revenue effects differ from "
+            "long-run. These parameters control that response."
+        )
+
+        cg_base_year = st_module.selectbox(
+            "Baseline year",
+            [2024, 2023, 2022],
+            help="Year from which to draw baseline realizations data.",
+        )
+        baseline_cg_rate = st_module.number_input(
+            "Current effective CG rate",
+            min_value=0.0,
+            max_value=0.99,
+            value=0.238,
+            step=0.01,
+            help="Current combined rate including NIIT "
+            "(20% + 3.8% = 23.8% for top bracket).",
+        )
+        baseline_realizations = st_module.number_input(
+            "Baseline realizations ($B/year)",
+            min_value=0.0,
+            max_value=10000.0,
+            value=0.0,
+            step=10.0,
+            help="Total taxable realizations. Leave at 0 to auto-populate from IRS data.",
+        )
+
+        st_module.markdown("**Behavioral elasticity**")
+        st_module.caption(
+            "How much do investors change behavior in response to rate changes? "
+            "CBO uses ~0.7-1.0 short-run, ~0.3-0.5 long-run "
+            "([CBO 2012](https://www.cbo.gov/publication/43334))."
+        )
+
+        use_time_varying = st_module.checkbox(
+            "Use time-varying elasticity (recommended)",
+            value=True,
+            help="Short-run: timing effects dominate. "
+            "Long-run: only permanent responses remain.",
+        )
+
+        if use_time_varying:
+            short_run_elasticity = st_module.number_input(
+                "Short-run elasticity (years 1-3)",
+                value=0.8,
+                step=0.1,
+                help="Higher because investors can time when to sell.",
+            )
+            long_run_elasticity = st_module.number_input(
+                "Long-run elasticity (years 4+)",
+                value=0.4,
+                step=0.1,
+                help="Lower because timing effects have dissipated.",
+            )
+            transition_years = st_module.slider(
+                "Transition period (years)", min_value=1, max_value=5, value=3,
+            )
+            realization_elasticity = (short_run_elasticity + long_run_elasticity) / 2
+        else:
+            realization_elasticity = st_module.number_input(
+                "Realization elasticity (constant)", value=0.5, step=0.05,
+            )
+            short_run_elasticity = realization_elasticity
+            long_run_elasticity = realization_elasticity
+            transition_years = 1
+
+        st_module.markdown("**Step-up basis at death**")
+        st_module.caption(
+            "Under current law, unrealized gains are forgiven at death "
+            "(\"stepped-up basis\"). This creates a strong incentive to hold "
+            "assets rather than sell."
+        )
+        eliminate_step_up = st_module.checkbox(
+            "Eliminate step-up at death",
+            value=False,
+            help="Tax unrealized gains at death (Biden proposed a $1M exemption).",
+        )
+        if eliminate_step_up:
+            step_up_exemption = st_module.number_input(
+                "Exemption per decedent ($)", value=1_000_000, step=100_000,
+            )
+            gains_at_death = st_module.number_input(
+                "Annual gains at death ($B)", value=54.0, step=5.0,
+                help="CBO estimates ~$54B/year in unrealized gains transferred at death.",
+            )
+            step_up_lock_in_multiplier = 1.0
+        else:
+            step_up_exemption = 0.0
+            gains_at_death = 54.0
+            step_up_lock_in_multiplier = st_module.slider(
+                "Lock-in multiplier",
+                min_value=1.0, max_value=6.0, value=2.0, step=0.5,
+                help=(
+                    "How much step-up increases the incentive to defer. "
+                    "2.0 = calibrated to Penn Wharton estimates."
+                ),
+            )
+
+    return {
+        "cg_base_year": cg_base_year,
+        "baseline_cg_rate": baseline_cg_rate,
+        "baseline_realizations": baseline_realizations,
+        "use_time_varying": use_time_varying,
+        "short_run_elasticity": short_run_elasticity,
+        "long_run_elasticity": long_run_elasticity,
+        "transition_years": transition_years,
+        "realization_elasticity": realization_elasticity,
+        "eliminate_step_up": eliminate_step_up,
+        "step_up_exemption": step_up_exemption,
+        "gains_at_death": gains_at_death,
+        "step_up_lock_in_multiplier": step_up_lock_in_multiplier,
+    }
+
+
+def _render_income_tax_advanced(
+    st_module: Any,
+) -> dict[str, Any]:
+    """Render ETI, taxpayer count, and average income controls."""
+    with st_module.expander("Advanced parameters", expanded=False):
+        st_module.caption(
+            "These are auto-populated from IRS Statistics of Income data when "
+            "left at zero. Override only if you have specific values."
+        )
+        manual_taxpayers = st_module.number_input(
+            "Affected taxpayers (millions)",
+            min_value=0.0,
+            max_value=200.0,
+            value=0.0,
+            step=0.1,
+            help=(
+                "Number of tax filers above the income threshold. "
+                "Leave at 0 to pull from IRS SOI Table 1.1 automatically."
+            ),
+        )
+        manual_avg_income = st_module.number_input(
+            "Average taxable income ($)",
+            min_value=0,
+            max_value=100_000_000,
+            value=0,
+            step=50_000,
+            help=(
+                "Mean AGI of affected filers. "
+                "Leave at 0 to pull from IRS SOI data automatically."
+            ),
+        )
+        eti = st_module.number_input(
+            "Elasticity of Taxable Income (ETI)",
+            min_value=0.0,
+            max_value=2.0,
+            value=0.25,
+            step=0.05,
+            help=(
+                "How much taxable income changes in response to tax rate changes. "
+                "The consensus estimate is **0.25** "
+                "([Saez, Slemrod & Giertz 2012]"
+                "(https://eml.berkeley.edu/~saez/saez-slemrod-giertzJEL12.pdf)). "
+                "Higher = more behavioral response = less revenue."
+            ),
+        )
+
+    return {
+        "manual_taxpayers": manual_taxpayers,
+        "manual_avg_income": manual_avg_income,
+        "eti": eti,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Tax policy inputs
 # ---------------------------------------------------------------------------
 
@@ -85,27 +439,10 @@ def render_tax_policy_inputs(
     preset_choice = default_preset or "Custom Policy"
 
     if use_preset:
-        # Group presets by category for easy scanning
-        categorized: dict[str, list[str]] = {}
-        for name, data in preset_policies.items():
-            if name == "Custom Policy":
-                continue
-            cat = _preset_category(data)
-            categorized.setdefault(cat, []).append(name)
-
-        # Category filter
-        available_cats = [c for c in _CATEGORY_ORDER if c in categorized]
-        default_cat_index = 0
-        if default_preset and default_preset in preset_policies:
-            default_cat = _preset_category(preset_policies[default_preset])
-            if default_cat in available_cats:
-                default_cat_index = available_cats.index(default_cat)
-
-        selected_cat = st_module.selectbox(
-            "Policy area",
-            options=available_cats,
-            index=default_cat_index,
-            help="Filter proposals by policy area.",
+        preset_choice = _render_preset_selection(
+            st_module,
+            preset_policies,
+            default_preset=default_preset,
         )
 
         # Preset selector (within category)
@@ -170,241 +507,41 @@ def render_tax_policy_inputs(
     gains_at_death = 54.0
     step_up_lock_in_multiplier = 2.0
 
+    # ── Custom path ──────────────────────────────────────────────────────
     if not use_preset:
-        st_module.markdown("---")
-        st_module.markdown("#### Define your policy")
+        basic = _render_basic_policy_inputs(st_module)
+        policy_name = basic["policy_name"]
+        policy_type = basic["policy_type"]
+        rate_change_pct = basic["rate_change_pct"]
+        rate_change = basic["rate_change"]
+        threshold = basic["threshold"]
 
-        policy_name = st_module.text_input(
-            "Policy name",
-            "Tax Rate Change",
-            help="A short label for your policy (used in charts and exports).",
-        )
-
-        policy_type = st_module.selectbox(
-            "What type of tax?",
-            ["Income Tax Rate", "Capital Gains", "Corporate Tax", "Payroll Tax"],
-            index=0,
-            help=(
-                "**Income Tax Rate** — changes to individual marginal rates  \n"
-                "**Capital Gains** — changes to rates on investment gains  \n"
-                "**Corporate Tax** — changes to the 21% corporate rate  \n"
-                "**Payroll Tax** — changes to Social Security / Medicare taxes"
-            ),
-        )
-
-        st_module.markdown("##### Rate and scope")
-
-        rate_change_pct = st_module.slider(
-            "Rate change (percentage points)",
-            min_value=-10.0,
-            max_value=10.0,
-            value=-2.0,
-            step=0.5,
-            help=(
-                "How much to change the tax rate. "
-                "**Positive** = tax increase (raises revenue), "
-                "**Negative** = tax cut (costs revenue). "
-                "Example: +2.6pp restores the pre-TCJA top rate."
-            ),
-        )
-        rate_change = rate_change_pct / 100
-
-        threshold_options = {
-            "All taxpayers ($0+)": 0,
-            "Middle income ($50K+)": 50000,
-            "Upper-middle ($100K+)": 100000,
-            "Higher income ($200K+)": 200000,
-            "Top earners ($400K+)": 400000,
-            "High income ($500K+)": 500000,
-            "Millionaires ($1M+)": 1000000,
-            "Custom amount": None,
-        }
-
-        threshold_choice = st_module.selectbox(
-            "Who is affected?",
-            options=list(threshold_options.keys()),
-            index=4,  # Default to $400K+
-            help=(
-                "The income threshold above which the rate change applies. "
-                "Only income *above* this threshold is affected — not total income."
-            ),
-        )
-
-        if threshold_choice == "Custom amount":
-            threshold = st_module.number_input(
-                "Custom income threshold ($)",
-                min_value=0,
-                max_value=10_000_000,
-                value=400_000,
-                step=50_000,
-                format="%d",
-            )
-        else:
-            threshold = threshold_options[threshold_choice]
-
-        # ── Policy timing ────────────────────────────────────────────────
-        with st_module.expander("Policy timing", expanded=False):
-            duration = st_module.slider(
-                "Duration (years)",
-                min_value=1,
-                max_value=10,
-                value=10,
-                help="Standard CBO budget window is 10 years.",
-            )
-            phase_in = st_module.slider(
-                "Phase-in period (years)",
-                min_value=0,
-                max_value=5,
-                value=0,
-                help="Years to gradually ramp up to the full rate change. 0 = immediate.",
-            )
+        timing = _render_policy_timing(st_module)
+        duration = timing["duration"]
+        phase_in = timing["phase_in"]
 
         # ── Capital gains–specific parameters ────────────────────────────
         if policy_type == "Capital Gains":
-            with st_module.expander("Capital gains parameters", expanded=True):
-                st_module.caption(
-                    "Capital gains have unique behavioral dynamics — investors can "
-                    "defer realizations, so short-run revenue effects differ from "
-                    "long-run. These parameters control that response."
-                )
-
-                cg_base_year = st_module.selectbox(
-                    "Baseline year",
-                    [2024, 2023, 2022],
-                    help="Year from which to draw baseline realizations data.",
-                )
-                baseline_cg_rate = st_module.number_input(
-                    "Current effective CG rate",
-                    min_value=0.0,
-                    max_value=0.99,
-                    value=0.238,
-                    step=0.01,
-                    help="Current combined rate including NIIT "
-                    "(20% + 3.8% = 23.8% for top bracket).",
-                )
-                baseline_realizations = st_module.number_input(
-                    "Baseline realizations ($B/year)",
-                    min_value=0.0,
-                    max_value=10000.0,
-                    value=0.0,
-                    step=10.0,
-                    help="Total taxable realizations. Leave at 0 to auto-populate from IRS data.",
-                )
-
-                st_module.markdown("**Behavioral elasticity**")
-                st_module.caption(
-                    "How much do investors change behavior in response to rate changes? "
-                    "CBO uses ~0.7-1.0 short-run, ~0.3-0.5 long-run "
-                    "([CBO 2012](https://www.cbo.gov/publication/43334))."
-                )
-
-                use_time_varying = st_module.checkbox(
-                    "Use time-varying elasticity (recommended)",
-                    value=True,
-                    help="Short-run: timing effects dominate. "
-                    "Long-run: only permanent responses remain.",
-                )
-
-                if use_time_varying:
-                    short_run_elasticity = st_module.number_input(
-                        "Short-run elasticity (years 1-3)",
-                        value=0.8,
-                        step=0.1,
-                        help="Higher because investors can time when to sell.",
-                    )
-                    long_run_elasticity = st_module.number_input(
-                        "Long-run elasticity (years 4+)",
-                        value=0.4,
-                        step=0.1,
-                        help="Lower because timing effects have dissipated.",
-                    )
-                    transition_years = st_module.slider(
-                        "Transition period (years)", min_value=1, max_value=5, value=3,
-                    )
-                    realization_elasticity = (short_run_elasticity + long_run_elasticity) / 2
-                else:
-                    realization_elasticity = st_module.number_input(
-                        "Realization elasticity (constant)", value=0.5, step=0.05,
-                    )
-                    short_run_elasticity = realization_elasticity
-                    long_run_elasticity = realization_elasticity
-                    transition_years = 1
-
-                st_module.markdown("**Step-up basis at death**")
-                st_module.caption(
-                    "Under current law, unrealized gains are forgiven at death "
-                    "(\"stepped-up basis\"). This creates a strong incentive to hold "
-                    "assets rather than sell."
-                )
-                eliminate_step_up = st_module.checkbox(
-                    "Eliminate step-up at death",
-                    value=False,
-                    help="Tax unrealized gains at death (Biden proposed a $1M exemption).",
-                )
-                if eliminate_step_up:
-                    step_up_exemption = st_module.number_input(
-                        "Exemption per decedent ($)", value=1_000_000, step=100_000,
-                    )
-                    gains_at_death = st_module.number_input(
-                        "Annual gains at death ($B)", value=54.0, step=5.0,
-                        help="CBO estimates ~$54B/year in unrealized gains transferred at death.",
-                    )
-                    step_up_lock_in_multiplier = 1.0
-                else:
-                    step_up_exemption = 0.0
-                    gains_at_death = 54.0
-                    step_up_lock_in_multiplier = st_module.slider(
-                        "Lock-in multiplier",
-                        min_value=1.0, max_value=6.0, value=2.0, step=0.5,
-                        help=(
-                            "How much step-up increases the incentive to defer. "
-                            "2.0 = calibrated to Penn Wharton estimates."
-                        ),
-                    )
+            cg = _render_capital_gains_params(st_module)
+            cg_base_year = cg["cg_base_year"]
+            baseline_cg_rate = cg["baseline_cg_rate"]
+            baseline_realizations = cg["baseline_realizations"]
+            use_time_varying = cg["use_time_varying"]
+            short_run_elasticity = cg["short_run_elasticity"]
+            long_run_elasticity = cg["long_run_elasticity"]
+            transition_years = cg["transition_years"]
+            realization_elasticity = cg["realization_elasticity"]
+            eliminate_step_up = cg["eliminate_step_up"]
+            step_up_exemption = cg["step_up_exemption"]
+            gains_at_death = cg["gains_at_death"]
+            step_up_lock_in_multiplier = cg["step_up_lock_in_multiplier"]
 
         # ── Income tax expert parameters ─────────────────────────────────
         else:
-            with st_module.expander("Advanced parameters", expanded=False):
-                st_module.caption(
-                    "These are auto-populated from IRS Statistics of Income data when "
-                    "left at zero. Override only if you have specific values."
-                )
-                manual_taxpayers = st_module.number_input(
-                    "Affected taxpayers (millions)",
-                    min_value=0.0,
-                    max_value=200.0,
-                    value=0.0,
-                    step=0.1,
-                    help=(
-                        "Number of tax filers above the income threshold. "
-                        "Leave at 0 to pull from IRS SOI Table 1.1 automatically."
-                    ),
-                )
-                manual_avg_income = st_module.number_input(
-                    "Average taxable income ($)",
-                    min_value=0,
-                    max_value=100_000_000,
-                    value=0,
-                    step=50_000,
-                    help=(
-                        "Mean AGI of affected filers. "
-                        "Leave at 0 to pull from IRS SOI data automatically."
-                    ),
-                )
-                eti = st_module.number_input(
-                    "Elasticity of Taxable Income (ETI)",
-                    min_value=0.0,
-                    max_value=2.0,
-                    value=0.25,
-                    step=0.05,
-                    help=(
-                        "How much taxable income changes in response to tax rate changes. "
-                        "The consensus estimate is **0.25** "
-                        "([Saez, Slemrod & Giertz 2012]"
-                        "(https://eml.berkeley.edu/~saez/saez-slemrod-giertzJEL12.pdf)). "
-                        "Higher = more behavioral response = less revenue."
-                    ),
-                )
+            advanced = _render_income_tax_advanced(st_module)
+            manual_taxpayers = advanced["manual_taxpayers"]
+            manual_avg_income = advanced["manual_avg_income"]
+            eti = advanced["eti"]
 
     return {
         "preset_choice": preset_choice,
