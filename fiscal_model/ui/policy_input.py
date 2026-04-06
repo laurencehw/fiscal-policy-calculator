@@ -29,6 +29,8 @@ _CATEGORY_ORDER = [
 
 
 def _preset_category(preset: dict[str, Any]) -> str:
+    if preset.get("ui_category"):
+        return preset["ui_category"]
     if preset.get("is_tcja"):
         return "TCJA / Individual"
     if preset.get("is_corporate"):

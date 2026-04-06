@@ -522,8 +522,9 @@ PRESET_POLICIES = {
             "+2.6pp on income above \\$400K, restoring the pre-TCJA 39.6% top rate. "
             "Treasury FY2025 Green Book estimate: raises ~\\$252B over 10 years."
         ),
-        "is_tcja": True,
+        "is_tcja": False,
         "is_corporate": False,
+        "ui_category": "TCJA / Individual",
     },
     "Progressive Millionaire Tax": {
         "rate_change": 5.0,
