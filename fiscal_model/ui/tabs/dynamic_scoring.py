@@ -4,6 +4,8 @@ Dynamic scoring tab renderer.
 
 from __future__ import annotations
 
+import re
+from datetime import date
 from typing import Any
 
 import numpy as np
@@ -283,6 +285,22 @@ def render_dynamic_scoring_tab(
 
         macro_df = macro_result.to_dataframe()
         st_module.dataframe(macro_df, use_container_width=True, hide_index=True)
+        dynamic_meta = (
+            f"# Policy: {policy.name}\n"
+            f"# Export Date: {date.today().isoformat()}\n"
+            f"# Model Version: 1.0.0\n"
+            f"# Dynamic Model: {model_name}\n"
+            f"# Methodology: FRB/US-calibrated macroeconomic multipliers\n"
+            f"#\n"
+        )
+        st_module.download_button(
+            label="📊 Download Dynamic Scoring as CSV",
+            data=dynamic_meta + macro_df.to_csv(index=False),
+            file_name="dynamic_scoring_{}.csv".format(
+                re.sub(r"[^\w\-]", "_", policy.name).strip("_").lower()
+            ),
+            mime="text/csv",
+        )
 
         st_module.markdown("---")
         with st_module.expander("📖 Methodology Notes"):

@@ -105,6 +105,12 @@ def render_results_summary_tab(
         """,
         unsafe_allow_html=True,
     )
+    # Quick-copy headline (code block provides built-in copy button)
+    headline_copy = (
+        f"{policy.name}: ${final_deficit_total:+,.1f}B over 10 years "
+        f"({impact_label}) — Fiscal Policy Calculator, {date.today().strftime('%Y-%m-%d')}"
+    )
+    st_module.code(headline_copy, language=None)
 
     # Sensitivity range (ETI ± 0.1)
     if hasattr(policy, "taxable_income_elasticity") and not is_spending_result:
@@ -422,7 +428,15 @@ def render_results_summary_tab(
             export_data["Revenue Feedback ($B)"] = result.dynamic_effects.revenue_feedback
 
         df_export = pd.DataFrame(export_data)
-        csv_data = df_export.to_csv(index=False)
+        meta_header = (
+            f"# Policy: {policy.name}\n"
+            f"# Export Date: {date.today().isoformat()}\n"
+            f"# Model Version: 1.0.0\n"
+            f"# Baseline: CBO Feb 2026\n"
+            f"# Methodology: Static + behavioral scoring with FRB/US-calibrated dynamic effects\n"
+            f"#\n"
+        )
+        csv_data = meta_header + df_export.to_csv(index=False)
 
         col1, col2, col3 = st_module.columns(3)
 
