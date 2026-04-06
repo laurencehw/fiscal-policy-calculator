@@ -680,7 +680,7 @@ def calculate_spending_policy_result(
         annual_growth_rate=spending_inputs["growth_rate"],
         gdp_multiplier=spending_inputs["multiplier"],
         is_one_time=spending_inputs["is_one_time"],
-        category="nondefense",
+        category=_CATEGORY_TO_MODEL.get(spending_inputs["spending_category"], "nondefense"),
         duration_years=spending_inputs["duration"],
     )
 
