@@ -134,6 +134,7 @@ Policy Definition → Static Scoring → Behavioral Offset (ETI) → Dynamic Fee
 | `baseline.py` | CBO 10-year budget projections |
 | `economics.py` | Dynamic effects, multipliers, GDP feedback |
 | `distribution.py` | TPC/JCT-style distributional tables |
+| `trade.py` | Tariff scoring, consumer price impact, retaliation |
 | `international.py` | GILTI, FDII, Pillar Two, UTPR |
 | `enforcement.py` | IRS enforcement revenue ROI |
 | `pharma.py` | Drug pricing, Medicare negotiation |
@@ -146,8 +147,10 @@ Policy Definition → Static Scoring → Behavioral Offset (ETI) → Dynamic Fee
 | `ptc.py` | ACA premium tax credits |
 | `tax_expenditures.py` | SALT, mortgage, employer health |
 | `models/macro_adapter.py` | FRB/US-calibrated dynamic scoring |
-| `long_run/` | OLG model, Solow growth, generational accounting |
-| `state/` | State-level rate modeling (top 10 states) |
+| `models/olg.py` | Overlapping generations model (Auerbach-Kotlikoff) |
+| `microsim/` | Vectorized individual-level tax calculator |
+| `long_run/` | Solow growth model, generational accounting |
+| `models/state/` | Combined federal + state tax calculator (top 10 states) |
 | `constants.py` | All parameters with source citations |
 | `classroom/` | Assignment engine, feedback, PDF export |
 | `bill_tracker/` | congress.gov pipeline, LLM extraction, SQLite |
