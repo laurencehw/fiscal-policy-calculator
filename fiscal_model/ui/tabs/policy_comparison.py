@@ -4,6 +4,7 @@ Multi-model comparison tab renderer.
 
 from __future__ import annotations
 
+from contextlib import suppress
 from typing import Any
 
 import numpy as np
@@ -26,10 +27,8 @@ def _build_policy_for_comparison(
     policy = create_policy_from_preset(preset)
     if policy is not None:
         if hasattr(policy, "data_year"):
-            try:
+            with suppress(Exception):
                 policy.data_year = data_year
-            except Exception:
-                pass
         return policy
 
     return tax_policy_cls(

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import numpy as np
 from types import SimpleNamespace
+
+import numpy as np
 
 from fiscal_model.app_data import PRESET_POLICIES
 from fiscal_model.models.base import CBOStyleModel

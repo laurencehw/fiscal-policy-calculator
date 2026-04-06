@@ -112,7 +112,11 @@ def render_tax_policy_inputs(
         cat_presets = categorized.get(selected_cat, [])
         display_names = {_strip_emoji_prefix(n): n for n in cat_presets}
 
-        default_display = _strip_emoji_prefix(default_preset) if default_preset and default_preset in display_names.values() else list(display_names.keys())[0]
+        default_display = (
+            _strip_emoji_prefix(default_preset)
+            if default_preset and default_preset in display_names.values()
+            else next(iter(display_names.keys()))
+        )
 
         selected_display = st_module.selectbox(
             "Select a proposal",
