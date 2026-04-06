@@ -33,7 +33,7 @@ def render_methodology_tab(st_module: Any) -> None:
             "*Formula:*  \n"
             "`Revenue = Rate change x Marginal income x Taxpayers`\n\n"
             "Only income *above* the threshold is affected — a filer earning "
-            "$500K with a $400K threshold has $100K of marginal income."
+            "\\$500K with a \\$400K threshold has \\$100K of marginal income."
         )
     with col2:
         st_module.markdown(
@@ -224,14 +224,14 @@ def render_methodology_tab(st_module: Any) -> None:
     st_module.markdown("""
 | Policy | Official score | Model score | Error | Source |
 |--------|---------------|-------------|-------|--------|
-| TCJA Full Extension | $4,600B | $4,582B | 0.4% | CBO |
-| Biden Corporate 28% | -$1,347B | -$1,397B | 3.7% | Treasury |
-| Biden CTC 2021 | $1,600B | $1,743B | 8.9% | JCT |
-| Estate: Biden Reform | -$450B | -$496B | 10.1% | Treasury |
-| SS Donut Hole $250K | -$2,700B | -$2,371B | 12.2% | CBO |
-| Repeal Corporate AMT | $220B | $220B | 0.0% | CBO |
-| Cap Employer Health | -$450B | -$450B | 0.1% | JCT |
-| Biden $400K+ Surtax | -$252B | -$250B | ~1% | Treasury |
+| TCJA Full Extension | \\$4,600B | \\$4,582B | 0.4% | CBO |
+| Biden Corporate 28% | -\\$1,347B | -\\$1,397B | 3.7% | Treasury |
+| Biden CTC 2021 | \\$1,600B | \\$1,743B | 8.9% | JCT |
+| Estate: Biden Reform | -\\$450B | -\\$496B | 10.1% | Treasury |
+| SS Donut Hole \\$250K | -\\$2,700B | -\\$2,371B | 12.2% | CBO |
+| Repeal Corporate AMT | \\$220B | \\$220B | 0.0% | CBO |
+| Cap Employer Health | -\\$450B | -\\$450B | 0.1% | JCT |
+| Biden \\$400K+ Surtax | -\\$252B | -\\$250B | ~1% | Treasury |
 """)
 
     # ── Limitations ──────────────────────────────────────────────────────

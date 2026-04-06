@@ -10,11 +10,6 @@ APP_STYLES = """
         color: #1f77b4;
         margin-bottom: 0.5rem;
     }
-    .sub-header {
-        font-size: 1.2rem;
-        color: #666;
-        margin-bottom: 2rem;
-    }
     .metric-card {
         background-color: #f0f2f6;
         padding: 1rem;
@@ -36,40 +31,37 @@ APP_STYLES = """
         margin: 1rem 0;
         border-radius: 0.25rem;
     }
-    /* Dark mode support */
-    @media (prefers-color-scheme: dark) {
-        .metric-card {
-            background-color: #262730;
-            color: #fafafa;
-        }
-        .info-box {
-            background-color: #1e3a5f;
-            border-left-color: #4da6ff;
-        }
-        .stMarkdown, .stText, p, h1, h2, h3, h4 {
-            color: #fafafa;
-        }
-    }
+    /* Dark mode support — only target our custom components, not broad selectors
+       that conflict with Streamlit's own theming (e.g. white text on white bg). */
     .dark-mode .metric-card {
         background-color: #262730;
-        color: #fafafa;
     }
     .dark-mode .info-box {
         background-color: #1e3a5f;
         border-left-color: #4da6ff;
     }
-    .dark-mode .stMarkdown,
-    .dark-mode .stText,
-    .dark-mode p,
-    .dark-mode h1,
-    .dark-mode h2,
-    .dark-mode h3,
-    .dark-mode h4 {
-        color: #fafafa;
-    }
     /* Share button styling */
     .stButton button[data-testid="baseButton-secondary"] {
         border-radius: 6px;
+    }
+    /* ── Mobile: scrollable tab bar ───────────────────────────────────── */
+    @media screen and (max-width: 640px) {
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 0;
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar {
+            display: none;
+        }
+        .stTabs [data-baseweb="tab"] {
+            white-space: nowrap;
+            padding: 8px 10px;
+            font-size: 0.8rem;
+            min-width: fit-content;
+        }
     }
 </style>
 """

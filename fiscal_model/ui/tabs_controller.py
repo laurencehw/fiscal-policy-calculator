@@ -127,17 +127,17 @@ def render_result_tabs(
                 st_module.markdown(
                     "**TCJA Extension**  \n"
                     "Extend all 2017 tax cut provisions  \n"
-                    "*CBO: +$4.6T over 10 years*"
+                    "*CBO: +\\$4.6T over 10 years*"
                 )
             with col_b:
                 st_module.markdown(
-                    "**Biden $400K+ Tax**  \n"
+                    "**Biden \\$400K+ Tax**  \n"
                     "Restore 39.6% top rate  \n"
-                    "*Treasury: −$252B over 10 years*"
+                    "*Treasury: −\\$252B over 10 years*"
                 )
             with col_c:
                 st_module.markdown(
-                    "**Infrastructure $100B/yr**  \n"
+                    "**Infrastructure \\$100B/yr**  \n"
                     "Select *Spending program* in sidebar  \n"
                     "*Model GDP effects with multipliers*"
                 )

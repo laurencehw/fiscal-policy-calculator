@@ -253,9 +253,9 @@ def _render_salt_section(
     col1, col2 = st_module.columns(2)
     with col1:
         st_module.markdown(
-            f"**Current law (TCJA):** $10,000 SALT cap\n\n"
+            f"**Current law (TCJA):** \\$10,000 SALT cap\n\n"
             f"- {profile.pct_itemizers * 100:.1f}% of {state_name} filers itemize\n"
-            f"- Average SALT deduction (itemizers): ${profile.avg_salt_deduction_itemizers:,.0f}\n"
+            f"- Average SALT deduction (itemizers): \\${profile.avg_salt_deduction_itemizers:,.0f}\n"
             f"- Effective combined state+local rate: {profile.effective_salt_rate * 100:.1f}%"
         )
 
