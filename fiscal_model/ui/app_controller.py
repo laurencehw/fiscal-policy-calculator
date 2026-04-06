@@ -124,54 +124,51 @@ def render_quick_start(st_module: Any) -> None:
 
         c1, c2, c3 = st_module.columns(3)
 
-        with c1:
-            with st_module.container(border=True):
-                st_module.markdown("**TCJA Extension**")
-                st_module.caption("Extend all individual TCJA provisions beyond the 2025 sunset")
-                st_module.markdown(
-                    '<span style="color:#d9534f;font-weight:600">▲ +$4.6T to deficit</span>'
-                    " &nbsp;*(10-yr, CBO)*",
-                    unsafe_allow_html=True,
-                )
-                if st_module.button("Try this →", key="qs_btn_tcja", use_container_width=True):
-                    st_module.session_state["sidebar_analysis_mode"] = "📋 Tax proposal (preset)"
-                    st_module.session_state["sidebar_policy_area"] = "TCJA / Individual"
-                    st_module.session_state["sidebar_preset_choice"] = "TCJA Full Extension"
-                    st_module.session_state["qs_calculate"] = True
-                    st_module.rerun()
+        with c1, st_module.container(border=True):
+            st_module.markdown("**TCJA Extension**")
+            st_module.caption("Extend all individual TCJA provisions beyond the 2025 sunset")
+            st_module.markdown(
+                '<span style="color:#d9534f;font-weight:600">▲ +$4.6T to deficit</span>'
+                " &nbsp;*(10-yr, CBO)*",
+                unsafe_allow_html=True,
+            )
+            if st_module.button("Try this →", key="qs_btn_tcja", use_container_width=True):
+                st_module.session_state["sidebar_analysis_mode"] = "📋 Tax proposal (preset)"
+                st_module.session_state["sidebar_policy_area"] = "TCJA / Individual"
+                st_module.session_state["sidebar_preset_choice"] = "TCJA Full Extension"
+                st_module.session_state["qs_calculate"] = True
+                st_module.rerun()
 
-        with c2:
-            with st_module.container(border=True):
-                st_module.markdown("**Biden 400K+ Tax**")
-                st_module.caption("Restore 39.6% top rate on income above $400K")
-                st_module.markdown(
-                    '<span style="color:#5cb85c;font-weight:600">▼ −$252B from deficit</span>'
-                    " &nbsp;*(10-yr, Treasury)*",
-                    unsafe_allow_html=True,
-                )
-                if st_module.button("Try this →", key="qs_btn_biden", use_container_width=True):
-                    st_module.session_state["sidebar_analysis_mode"] = "📋 Tax proposal (preset)"
-                    st_module.session_state["sidebar_policy_area"] = "Income Tax"
-                    st_module.session_state["sidebar_preset_choice"] = "Biden 2025 Proposal"
-                    st_module.session_state["qs_calculate"] = True
-                    st_module.rerun()
+        with c2, st_module.container(border=True):
+            st_module.markdown("**Biden 400K+ Tax**")
+            st_module.caption("Restore 39.6% top rate on income above $400K")
+            st_module.markdown(
+                '<span style="color:#5cb85c;font-weight:600">▼ −$252B from deficit</span>'
+                " &nbsp;*(10-yr, Treasury)*",
+                unsafe_allow_html=True,
+            )
+            if st_module.button("Try this →", key="qs_btn_biden", use_container_width=True):
+                st_module.session_state["sidebar_analysis_mode"] = "📋 Tax proposal (preset)"
+                st_module.session_state["sidebar_policy_area"] = "Income Tax"
+                st_module.session_state["sidebar_preset_choice"] = "Biden 2025 Proposal"
+                st_module.session_state["qs_calculate"] = True
+                st_module.rerun()
 
-        with c3:
-            with st_module.container(border=True):
-                st_module.markdown("**Infrastructure $100B/yr**")
-                st_module.caption("Federal investment in roads, broadband, and water systems")
-                st_module.markdown(
-                    '<span style="color:#d9534f;font-weight:600">▲ +$1.0T to deficit</span>'
-                    " &nbsp;*(10-yr, est.)*",
-                    unsafe_allow_html=True,
+        with c3, st_module.container(border=True):
+            st_module.markdown("**Infrastructure $100B/yr**")
+            st_module.caption("Federal investment in roads, broadband, and water systems")
+            st_module.markdown(
+                '<span style="color:#d9534f;font-weight:600">▲ +$1.0T to deficit</span>'
+                " &nbsp;*(10-yr, est.)*",
+                unsafe_allow_html=True,
+            )
+            if st_module.button("Try this →", key="qs_btn_infra", use_container_width=True):
+                st_module.session_state["sidebar_analysis_mode"] = "💰 Spending program"
+                st_module.session_state["sidebar_spending_preset"] = (
+                    "Infrastructure Investment ($100B/yr)"
                 )
-                if st_module.button("Try this →", key="qs_btn_infra", use_container_width=True):
-                    st_module.session_state["sidebar_analysis_mode"] = "💰 Spending program"
-                    st_module.session_state["sidebar_spending_preset"] = (
-                        "Infrastructure Investment ($100B/yr)"
-                    )
-                    st_module.session_state["qs_calculate"] = True
-                    st_module.rerun()
+                st_module.session_state["qs_calculate"] = True
+                st_module.rerun()
 
         st_module.markdown("---")
 

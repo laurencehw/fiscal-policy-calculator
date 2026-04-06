@@ -10,8 +10,10 @@ import json
 
 import pytest
 
-from fiscal_model.ui.tabs.bill_tracker import _get_filtered_bills, _get_unique_subjects
-
+from fiscal_model.ui.tabs.bill_tracker import (
+    _get_filtered_bills,
+    _get_unique_subjects,
+)
 
 # ------------------------------------------------------------------
 # Helpers
@@ -282,7 +284,6 @@ class TestSortOrder:
         # "Tax Relief" and "Corporate Tax" are in titles → score ≥ 3
         # All should appear; title matches should precede summary-only matches
         assert len(results) >= 2
-        top_ids = [b["bill_id"] for b in results]
         # hr-1234-119 has "Tax" in title (score 3+), s-500-119 has "tax credits" in summary only
         tax_title_pos = next(i for i, b in enumerate(results) if "tax relief" in b["title"].lower())
         # Should be among first results
