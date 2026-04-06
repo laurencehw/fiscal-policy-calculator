@@ -127,14 +127,20 @@ def _render_status_bar(st_module: Any, db: Any) -> None:
     """Show pipeline status: last updated, total bills tracked."""
     col1, col2, col3 = st_module.columns([2, 1, 1])
     with col1:
-        last_update = db.get_last_update()
-        if last_update:
-            st_module.caption(f"Last updated: {last_update.strftime('%b %d, %Y %I:%M %p UTC')}")
-        else:
-            st_module.caption("Last updated: never")
+        try:
+            last_update = db.get_last_update()
+            if last_update:
+                st_module.caption(f"Last updated: {last_update.strftime('%b %d, %Y %I:%M %p UTC')}")
+            else:
+                st_module.caption("Last updated: never")
+        except Exception:
+            st_module.caption("Last updated: unavailable")
     with col2:
-        total = db.count_bills()
-        st_module.caption(f"{total} bills tracked")
+        try:
+            total = db.count_bills()
+            st_module.caption(f"{total} bills tracked")
+        except Exception:
+            st_module.caption("Bill count unavailable")
     with col3:
         if st_module.button("🔄 Refresh", key="bt_refresh"):
             st_module.cache_data.clear()
@@ -452,12 +458,14 @@ class _DemoBillDatabase:
 
 
 def _get_database(db_path: str | None) -> tuple[Any | None, bool]:
-    """Load live database; fall back to demo data when unavailable."""
+    """Load live database; fall back to demo data when unavailable or corrupt."""
     try:
         from bill_tracker.database import BillDatabase
         # Prefer populated DB if it exists and is healthy; fall back to default
         path = db_path or str(POPULATED_DB_PATH if POPULATED_DB_PATH.exists() else DEFAULT_DB_PATH)
         db = BillDatabase(path)
+        # Smoke-test: if DB is corrupt, this raises sqlite3.DatabaseError
+        db.count_bills()
         return db, False
     except Exception:
         try:
