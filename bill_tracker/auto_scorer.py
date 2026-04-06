@@ -74,17 +74,32 @@ class AutoScorer:
 
                 result = self.scorer.score_policy(policy_obj, dynamic=False)
 
-                static = getattr(result, "static_revenue_effect", 0.0) or 0.0
-                behavioral = getattr(result, "behavioral_offset", 0.0) or 0.0
-                final = getattr(result, "final_deficit_effect", 0.0) or 0.0
+                # score_policy may return numpy arrays (year-by-year); extract scalars
+                import numpy as np
+
+                def _to_scalar(val) -> float:
+                    if val is None:
+                        return 0.0
+                    if hasattr(val, "__len__"):
+                        return float(np.sum(val))
+                    return float(val)
+
+                static = _to_scalar(getattr(result, "static_revenue_effect", None))
+                behavioral = _to_scalar(getattr(result, "behavioral_offset", None))
+                final_raw = getattr(result, "final_deficit_effect", None)
 
                 total_static += static
                 total_behavioral += behavioral
-                total_ten_year += final
 
-                # Spread final effect evenly across years as a simple approximation
-                for i in range(10):
-                    annual_effects[i] += final / 10.0
+                if final_raw is not None and hasattr(final_raw, "__len__") and len(final_raw) >= 10:
+                    for i in range(10):
+                        annual_effects[i] += float(final_raw[i])
+                    total_ten_year += float(np.sum(final_raw))
+                else:
+                    final = _to_scalar(final_raw)
+                    total_ten_year += final
+                    for i in range(10):
+                        annual_effects[i] += final / 10.0
 
                 scored_policies.append(policy_dict)
 
@@ -130,9 +145,9 @@ class AutoScorer:
         from fiscal_model.tcja import create_tcja_extension
 
         if policy_type == "income_tax":
-            rate = float(params.get("rate_change", 0.0))
-            threshold = float(params.get("affected_income_threshold", 400_000))
-            eti = float(params.get("taxable_income_elasticity", 0.25))
+            rate = float(params.get("rate_change") or 0.0)
+            threshold = float(params.get("affected_income_threshold") or 400_000)
+            eti = float(params.get("taxable_income_elasticity") or 0.25)
             return TaxPolicy(
                 name=name,
                 description=f"Income tax rate change of {rate*100:.2f}pp above ${threshold:,.0f}",
@@ -144,8 +159,8 @@ class AutoScorer:
 
         if policy_type == "capital_gains":
             from fiscal_model import CapitalGainsPolicy
-            rate = float(params.get("rate_change", 0.0))
-            threshold = float(params.get("affected_income_threshold", 400_000))
+            rate = float(params.get("rate_change") or 0.0)
+            threshold = float(params.get("affected_income_threshold") or 400_000)
             return CapitalGainsPolicy(
                 name=name,
                 description=f"Capital gains rate change of {rate*100:.2f}pp",
@@ -157,17 +172,29 @@ class AutoScorer:
             )
 
         if policy_type == "corporate":
-            rate = float(params.get("rate_change", 0.0))
-            elasticity = float(params.get("corporate_elasticity", 0.25))
+            rate = float(params.get("rate_change") or 0.0)
             return create_corporate_rate_change(
                 rate_change=rate,
                 name=name,
                 include_behavioral=True,
             )
 
+        if policy_type == "credits":
+            from fiscal_model.credits import TaxCreditPolicy
+            amount = float(params.get("credit_amount_billions") or 0.0)
+            if abs(amount) > 0:
+                return TaxCreditPolicy(
+                    name=name,
+                    description=f"Tax credit: {params.get('credit_type', 'general')}",
+                    policy_type=PolicyType.TAX_CREDIT,
+                    annual_revenue_change_billions=-amount,  # credit = revenue cost
+                    duration_years=int(params.get("expansion_years") or 10),
+                )
+            return None
+
         if policy_type == "spending":
-            amount = float(params.get("spending_change_billions", 0.0))
-            duration = int(params.get("duration_years", 10))
+            amount = float(params.get("spending_change_billions") or 0.0)
+            duration = int(params.get("duration_years") or 10)
             return SpendingPolicy(
                 name=name,
                 description=f"Spending change of ${amount:.1f}B/year",
@@ -184,8 +211,8 @@ class AutoScorer:
 
         if policy_type == "payroll":
             from fiscal_model.payroll import PayrollTaxPolicy
-            rate = float(params.get("rate_change", 0.0))
-            cap_change = float(params.get("cap_change", 0.0))
+            rate = float(params.get("rate_change") or 0.0)
+            cap_change = float(params.get("cap_change") or 0.0)
             return PayrollTaxPolicy(
                 name=name,
                 description=f"Payroll tax change: ss_rate_change={rate}, ss_cap_change={cap_change}",
@@ -196,8 +223,8 @@ class AutoScorer:
 
         if policy_type == "estate":
             from fiscal_model.estate import EstateTaxPolicy
-            rate = float(params.get("rate_change", 0.0))
-            exemption = float(params.get("exemption_change", 0.0))
+            rate = float(params.get("rate_change") or 0.0)
+            exemption = float(params.get("exemption_change") or 0.0)
             return EstateTaxPolicy(
                 name=name,
                 description=f"Estate tax change: rate_change={rate}, exemption_change={exemption}",
