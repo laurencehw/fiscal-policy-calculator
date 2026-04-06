@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+from . import session_keys as SK
 from .controller_utils import render_input_guardrails, run_with_spinner_feedback
 
 SINGLE_POLICY_MODE = "📊 Single Policy"
@@ -94,8 +95,8 @@ def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
 
 def ensure_results_state(st_module: Any) -> None:
     """Initialize results slot in session state when missing."""
-    if "results" not in st_module.session_state:
-        st_module.session_state.results = None
+    if SK.RESULTS not in st_module.session_state:
+        st_module.session_state[SK.RESULTS] = None
 
 
 def execute_calculation_if_requested(
@@ -126,7 +127,7 @@ def execute_calculation_if_requested(
 
     if use_microsim:
         def _run_microsim() -> None:
-            st_module.session_state.results = deps.run_microsim_calculation(
+            st_module.session_state[SK.RESULTS] = deps.run_microsim_calculation(
                 preset_choice=tax_inputs.get("preset_choice", "Custom Policy"),
                 base_dir=app_root,
                 micro_tax_calculator_cls=deps.MicroTaxCalculator,
@@ -142,14 +143,14 @@ def execute_calculation_if_requested(
             action_fn=_run_microsim,
         )
         if ok and run_id:
-            st_module.session_state.last_run_id = run_id
-            st_module.session_state.results_run_id = run_id
-            st_module.session_state.last_run_at = time.time()
+            st_module.session_state[SK.LAST_RUN_ID] = run_id
+            st_module.session_state[SK.RESULTS_RUN_ID] = run_id
+            st_module.session_state[SK.LAST_RUN_AT] = time.time()
         return
 
     if is_spending:
         def _run_spending() -> None:
-            st_module.session_state.results = deps.calculate_spending_policy_result(
+            st_module.session_state[SK.RESULTS] = deps.calculate_spending_policy_result(
                 spending_inputs=spending_inputs,
                 spending_policy_cls=deps.SpendingPolicy,
                 policy_type_discretionary_nondefense=deps.PolicyType.DISCRETIONARY_NONDEFENSE,
@@ -166,13 +167,13 @@ def execute_calculation_if_requested(
             action_fn=_run_spending,
         )
         if ok and run_id:
-            st_module.session_state.last_run_id = run_id
-            st_module.session_state.results_run_id = run_id
-            st_module.session_state.last_run_at = time.time()
+            st_module.session_state[SK.LAST_RUN_ID] = run_id
+            st_module.session_state[SK.RESULTS_RUN_ID] = run_id
+            st_module.session_state[SK.LAST_RUN_AT] = time.time()
         return
 
     def _run_tax() -> None:
-        st_module.session_state.results = deps.calculate_tax_policy_result(
+        st_module.session_state[SK.RESULTS] = deps.calculate_tax_policy_result(
             preset_policies=preset_policies,
             preset_choice=tax_inputs["preset_choice"],
             create_policy_from_preset_fn=deps.create_policy_from_preset,
@@ -215,6 +216,6 @@ def execute_calculation_if_requested(
         action_fn=_run_tax,
     )
     if ok and run_id:
-        st_module.session_state.last_run_id = run_id
-        st_module.session_state.results_run_id = run_id
-        st_module.session_state.last_run_at = time.time()
+        st_module.session_state[SK.LAST_RUN_ID] = run_id
+        st_module.session_state[SK.RESULTS_RUN_ID] = run_id
+        st_module.session_state[SK.LAST_RUN_AT] = time.time()

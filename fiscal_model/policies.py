@@ -289,31 +289,56 @@ class TaxPolicy(Policy):
         import logging
         logger = logging.getLogger(__name__)
 
-        # Import here to avoid circular dependency
-        from fiscal_model.data import IRSSOIData
+        # Try CPS microdata first (individual-level, higher fidelity)
+        bracket_info = None
+        data_source = None
+        try:
+            from fiscal_model.microsim.cps_auto_populator import CPSAutoPopulator
+            if CPSAutoPopulator.is_available():
+                cps = CPSAutoPopulator()
+                # CPS has individual taxable_income → filter directly on it
+                bracket_info = cps.get_filers_by_threshold(
+                    threshold=self.affected_income_threshold,
+                    income_basis="taxable_income",
+                )
+                data_source = "CPS microdata"
+                logger.info("Auto-populating from CPS microdata (taxable income basis)")
+        except (ImportError, FileNotFoundError, OSError):
+            logger.debug("CPS auto-population unavailable", exc_info=True)
 
-        # Initialize data loader
-        irs_data = IRSSOIData()
+        # Fall back to IRS SOI if CPS unavailable or empty
+        if bracket_info is None or bracket_info["num_filers"] == 0:
+            from fiscal_model.data import IRSSOIData
 
-        # Get most recent available data year (or use specified year)
-        available_years = irs_data.get_data_years_available()
-        if not available_years:
-            raise FileNotFoundError(
-                "No IRS SOI data files found. "
-                "See fiscal_model/data_files/irs_soi/README.md for download instructions."
+            irs_data = IRSSOIData()
+            available_years = irs_data.get_data_years_available()
+            if not available_years:
+                raise FileNotFoundError(
+                    "No IRS SOI data files found. "
+                    "See fiscal_model/data_files/irs_soi/README.md for download instructions."
+                )
+
+            year = self.data_year if self.data_year else max(available_years)
+
+            # IRS SOI brackets are AGI-based, but income tax thresholds apply to
+            # taxable income (AGI minus deductions). Adjust threshold upward.
+            # Average deductions for high earners: ~$40-50K (IRS SOI Table 1.2)
+            agi_deduction_adjustment = 45_000 if self.affected_income_threshold >= 200_000 else 15_000
+            agi_threshold = self.affected_income_threshold + agi_deduction_adjustment
+
+            bracket_info = irs_data.get_filers_by_bracket(
+                year=year,
+                threshold=agi_threshold,
+            )
+            data_source = f"{year} IRS SOI (AGI-adjusted)"
+            logger.info(
+                f"Auto-populating from {data_source} "
+                f"(taxable threshold: ${self.affected_income_threshold:,.0f}, "
+                f"AGI lookup: ${agi_threshold:,.0f})"
             )
 
-        year = self.data_year if self.data_year else max(available_years)
-        logger.info(f"Auto-populating tax policy parameters from {year} IRS SOI data")
-
-        # Get filer statistics for income above threshold
-        bracket_info = irs_data.get_filers_by_bracket(
-            year=year,
-            threshold=self.affected_income_threshold
-        )
-
         logger.info(
-            f"  Affected filers: {bracket_info['num_filers']/1e6:.2f}M "
+            f"  [{data_source}] Affected filers: {bracket_info['num_filers']/1e6:.2f}M "
             f"(threshold: ${self.affected_income_threshold:,.0f})"
         )
         logger.info(
@@ -366,9 +391,17 @@ class TaxPolicy(Policy):
         Returns:
             Behavioral offset in billions (positive = revenue lost, increases deficit)
         """
-        # Behavioral response reduces revenue from tax increases (positive offset)
-        # and recovers some revenue from tax cuts (negative offset)
-        return abs(static_effect) * self.taxable_income_elasticity * 0.5
+        # For tax INCREASES (static_effect > 0): people shelter income → less revenue
+        #   than static → positive offset (increases deficit relative to static)
+        # For tax CUTS (static_effect < 0): people earn more → less revenue loss
+        #   than static → negative offset (decreases deficit relative to static)
+        #
+        # The 0.5 multiplier converts ETI to a revenue-offset fraction:
+        #   offset ≈ ETI × τ/(1-τ) × base ≈ ETI × 0.5 × static
+        # where τ/(1-τ) ≈ 0.5 at a ~33% average marginal rate.
+        # Reference: Saez, Slemrod & Giertz (2012), "The Elasticity of Taxable
+        # Income with Respect to Marginal Tax Rates", JEL 50(1), pp. 3-50.
+        return static_effect * self.taxable_income_elasticity * 0.5
 
     def validate_inputs(self) -> list[str]:
         """

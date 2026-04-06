@@ -27,6 +27,11 @@ from classroom.feedback import FeedbackEngine
 from classroom.pdf_export import generate_submission_html
 from fiscal_model.ui.helpers import PUBLIC_APP_URL
 
+
+def _escape_dollars(text: str) -> str:
+    """Escape dollar signs to prevent Streamlit LaTeX rendering."""
+    return text.replace("$", "\\$") if text else text
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -237,11 +242,11 @@ def _render_main_area(assignment, exercises, runner, feedback_engine, tracker) -
 
     # Description
     with st.expander("About this assignment", expanded=False):
-        st.markdown(assignment.description)
+        st.markdown(_escape_dollars(assignment.description))
         if assignment.learning_objectives:
             st.subheader("Learning Objectives")
             for obj in assignment.learning_objectives:
-                st.markdown(f"- {obj}")
+                st.markdown(f"- {_escape_dollars(obj)}")
 
     st.divider()
 
@@ -273,7 +278,9 @@ def _render_exercise(exercise, idx, runner, feedback_engine, tracker) -> None:
 
     with st.expander(header, expanded=(not is_done)):
         st.markdown(f"*{exercise.type.value.replace('_', ' ').title()}*")
-        st.markdown(exercise.prompt)
+        # Escape dollar signs to prevent Streamlit LaTeX rendering
+        prompt_text = _escape_dollars(exercise.prompt)
+        st.markdown(prompt_text)
 
         if not exercise.parameters:
             # Open analysis — just submit a text note
@@ -283,8 +290,20 @@ def _render_exercise(exercise, idx, runner, feedback_engine, tracker) -> None:
         # Parameter sliders
         student_params: dict[str, float] = {}
         for param in exercise.parameters:
+            # Avoid appending unit if label already contains it
+            unit_suffix = f" ({param.unit})" if param.unit and f"({param.unit})" not in param.label else ""
+            label = f"{param.label}{unit_suffix}"
+
+            # Handle degenerate sliders where min == max
+            if param.min >= param.max:
+                # Degenerate slider: clamp to the single valid value
+                fixed_value = param.min
+                st.markdown(f"**{label}**: {fixed_value}")
+                student_params[param.name] = fixed_value
+                continue
+
             val = st.slider(
-                label=f"{param.label} {f'({param.unit})' if param.unit else ''}",
+                label=label,
                 min_value=float(param.min),
                 max_value=float(param.max),
                 value=float(param.default),
@@ -308,7 +327,7 @@ def _render_exercise(exercise, idx, runner, feedback_engine, tracker) -> None:
                 if hints_used > 0:
                     hint_text = runner.get_hint(exercise, hints_used)
                     if hint_text:
-                        st.info(f"**Hint {hints_used}:** {hint_text}")
+                        st.info(f"**Hint {hints_used}:** {_escape_dollars(hint_text)}")
 
         # Answer input (for exercises with numeric validation)
         if exercise.validation and exercise.validation.method.value != "none":
@@ -328,11 +347,11 @@ def _render_exercise(exercise, idx, runner, feedback_engine, tracker) -> None:
                     complexity=tracker.complexity,
                 )
                 if result.correct:
-                    st.success(fb)
+                    st.success(_escape_dollars(fb))
                     tracker.mark_complete(exercise.id, result)
                     st.rerun()
                 else:
-                    st.warning(fb)
+                    st.warning(_escape_dollars(fb))
         else:
             # No numeric validation (range_check on a percentage, etc.)
             _render_range_or_open_exercise(exercise, student_params, runner, feedback_engine, tracker, hints_used)
@@ -341,9 +360,9 @@ def _render_exercise(exercise, idx, runner, feedback_engine, tracker) -> None:
         if is_done:
             result = tracker.get_answer(exercise.id)
             if result:
-                st.success(result.message)
+                st.success(_escape_dollars(result.message))
             if exercise.expected_insight:
-                st.info(f"**Key insight:** {exercise.expected_insight}")
+                st.info(f"**Key insight:** {_escape_dollars(exercise.expected_insight)}")
 
 
 def _render_range_or_open_exercise(exercise, student_params, runner, feedback_engine, tracker, hints_used) -> None:
@@ -362,11 +381,11 @@ def _render_range_or_open_exercise(exercise, student_params, runner, feedback_en
                 hints_used=hints_used, complexity=tracker.complexity,
             )
             if result.correct:
-                st.success(fb)
+                st.success(_escape_dollars(fb))
                 tracker.mark_complete(exercise.id, result)
                 st.rerun()
             else:
-                st.warning(fb)
+                st.warning(_escape_dollars(fb))
     else:
         _render_open_exercise(exercise, runner, feedback_engine, tracker)
 
@@ -394,7 +413,7 @@ def _render_open_exercise(exercise, runner, feedback_engine, tracker) -> None:
             hints_used=tracker.hints_used(exercise.id),
             complexity=tracker.complexity,
         )
-        st.success(fb)
+        st.success(_escape_dollars(fb))
         st.rerun()
 
 

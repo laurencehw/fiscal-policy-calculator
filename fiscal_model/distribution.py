@@ -23,24 +23,6 @@ from .data.irs_soi import IRSSOIData, TaxBracketData
 from .policies import Policy, TaxPolicy
 
 
-# Lazy imports for other policy types (avoid circular imports)
-def _get_credit_policy():
-    from .credits import CreditType, TaxCreditPolicy
-    return TaxCreditPolicy, CreditType
-
-def _get_tcja_policy():
-    from .tcja import TCJAExtensionPolicy
-    return TCJAExtensionPolicy
-
-def _get_corporate_policy():
-    from .corporate import CorporateTaxPolicy
-    return CorporateTaxPolicy
-
-def _get_payroll_policy():
-    from .payroll import PayrollTaxPolicy
-    return PayrollTaxPolicy
-
-
 class IncomeGroupType(Enum):
     """Type of income grouping for distributional analysis."""
     QUINTILE = "quintile"           # 5 equal-population groups
