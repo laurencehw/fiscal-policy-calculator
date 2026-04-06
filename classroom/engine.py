@@ -342,8 +342,7 @@ class RelativeValidator:
             )
 
         pct_error = abs(student_answer - model_answer) / abs(model_answer)
-        # Small epsilon for floating-point boundary cases (e.g., 5.0% vs 5% tolerance)
-        correct = pct_error <= spec.tolerance + 1e-9
+        correct = pct_error <= spec.tolerance
 
         if correct:
             msg = (

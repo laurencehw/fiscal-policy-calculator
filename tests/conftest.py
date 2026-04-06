@@ -2,30 +2,11 @@
 Pytest fixtures for fiscal policy calculator tests.
 """
 
-import os
-
 import numpy as np
 import pytest
 
 from fiscal_model.distribution import DistributionalEngine
 from fiscal_model.policies import PolicyType, TaxPolicy
-
-
-def _irs_data_available() -> bool:
-    """Check if IRS SOI data files are present."""
-    data_dir = os.path.join(
-        os.path.dirname(__file__), "..", "fiscal_model", "data_files", "irs_soi"
-    )
-    return os.path.isdir(data_dir) and any(
-        f.endswith(".csv") for f in os.listdir(data_dir)
-    )
-
-
-# Custom marker: skip tests that require IRS SOI data files
-requires_data = pytest.mark.skipif(
-    not _irs_data_available(),
-    reason="IRS SOI data files not available",
-)
 
 # =============================================================================
 # POLICY FIXTURES

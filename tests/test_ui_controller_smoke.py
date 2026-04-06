@@ -26,29 +26,10 @@ class _DummyContext:
         return False
 
 
-class _SessionState(dict):
-    """Dict that also supports attribute access (like Streamlit's session_state)."""
-
-    def __getattr__(self, name: str):
-        try:
-            return self[name]
-        except KeyError:
-            raise AttributeError(name) from None
-
-    def __setattr__(self, name: str, value):
-        self[name] = value
-
-    def __delattr__(self, name: str):
-        try:
-            del self[name]
-        except KeyError:
-            raise AttributeError(name) from None
-
-
 class _DummyStreamlit:
     def __init__(self, radio_values: list[str]) -> None:
         self._radio_values = list(radio_values)
-        self.session_state = _SessionState(results=None)
+        self.session_state = SimpleNamespace(results=None)
         self.warnings: list[str] = []
         self.infos: list[str] = []
 
@@ -87,6 +68,10 @@ class _DummyStreamlit:
     def caption(self, *args, **kwargs):
         del args, kwargs
         return None
+
+    def expander(self, *args, **kwargs):
+        del args, kwargs
+        return _DummyContext()
 
 
 def test_render_sidebar_inputs_compare_mode_short_circuits():
@@ -234,7 +219,7 @@ def test_execute_calculation_single_mode_updates_run_state(monkeypatch):
 
 def test_render_result_tabs_shows_stale_warnings():
     st_module = _DummyStreamlit(radio_values=[])
-    st_module.session_state = _SessionState(
+    st_module.session_state = SimpleNamespace(
         results={"policy": object()},
         current_run_id="current",
         results_run_id="prior",
@@ -269,11 +254,8 @@ def test_render_result_tabs_shows_stale_warnings():
     tabs = {
         "tab_summary": _DummyContext(),
         "tab_distribution": _DummyContext(),
-        "tab_dynamic": _DummyContext(),
-        "tab_details": _DummyContext(),
-        "tab_long_run": _DummyContext(),
-        "tab_comparison": _DummyContext(),
-        "tab_packages": _DummyContext(),
+        "tab_economic": _DummyContext(),
+        "tab_scoring": _DummyContext(),
     }
     settings = {
         "dynamic_scoring": False,

@@ -7,7 +7,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from . import session_keys as SK
 from .calculation_controller import (
     SINGLE_POLICY_MODE,
     ensure_results_state,
@@ -60,11 +59,15 @@ def render_data_status(st_module: Any, deps: Any) -> None:
                 fred_status = "🔴 Fallback (hardcoded values)"
             else:
                 fred_status = "⚪ Not available"
-        except (ImportError, OSError, KeyError):
+        except Exception:
             fred_status = "⚪ Not available"
 
-        baseline_display = "CBO Feb 2026"
-        vintage_color = "green"
+        try:
+            baseline_display = "CBO Feb 2026"
+            vintage_color = "green"
+        except Exception:
+            baseline_display = "Unknown"
+            vintage_color = "gray"
 
         st_module.markdown("---")
         st_module.markdown("**📊 Data Status**")
@@ -88,22 +91,22 @@ def render_data_status(st_module: Any, deps: Any) -> None:
                 "**Last Updated:** Baseline assumptions are updated quarterly "
                 "with new CBO publications."
             )
-    except (ImportError, OSError, KeyError, AttributeError):
-        pass  # Data status display is non-critical; degrade silently
+    except Exception:
+        pass
 
 
 def render_quick_start(st_module: Any) -> None:
     """
     Render a dismissible quick-start guide. Auto-dismissed once results exist.
     """
-    if SK.QUICK_START_DISMISSED not in st_module.session_state:
-        st_module.session_state[SK.QUICK_START_DISMISSED] = False
+    if "quick_start_dismissed" not in st_module.session_state:
+        st_module.session_state.quick_start_dismissed = False
 
     # Auto-dismiss once results have been calculated
-    if st_module.session_state.get(SK.RESULTS):
-        st_module.session_state[SK.QUICK_START_DISMISSED] = True
+    if st_module.session_state.get("results"):
+        st_module.session_state.quick_start_dismissed = True
 
-    if not st_module.session_state[SK.QUICK_START_DISMISSED]:
+    if not st_module.session_state.quick_start_dismissed:
         col1, col2 = st_module.columns([20, 1])
         with col1:
             st_module.markdown(
@@ -111,17 +114,16 @@ def render_quick_start(st_module: Any) -> None:
                 **👋 Welcome to the Fiscal Policy Calculator**
 
                 Try one of these scenarios to get started:
-                - **TCJA Extension** — What would extending the 2017 tax cuts cost?
-                  Select 'TCJA Full Extension' from presets
-                - **Biden High-Income Tax** — Score a 2.6pp increase on income above $400K
-                - **Infrastructure Spending** — Model a $100B/year infrastructure program
+                - **TCJA Extension** — Select *TCJA / Individual* → *TCJA Full Extension* from the sidebar
+                - **Biden $400K+ Tax** — Select *Income Tax* → *Biden 2025 Proposal* (+2.6pp on income above $400K)
+                - **Infrastructure Spending** — Select *Spending program* and model a $100B/year program
 
-                Select a preset from the sidebar, then click **Calculate** to see results.
+                Choose a policy in the sidebar, then click **Calculate Impact**.
                 """
             )
         with col2:
             if st_module.button("✕", key="dismiss_quick_start"):
-                st_module.session_state[SK.QUICK_START_DISMISSED] = True
+                st_module.session_state.quick_start_dismissed = True
                 st_module.rerun()
         st_module.markdown("---")
 
@@ -231,7 +233,7 @@ def _render_calculator(
 
     # ── Main content ─────────────────────────────────────────────────────
     calc_context["run_id"] = compute_run_id(calc_context=calc_context, settings=settings)
-    st_module.session_state[SK.CURRENT_RUN_ID] = calc_context["run_id"]
+    st_module.session_state.current_run_id = calc_context["run_id"]
 
     # Dismissible welcome guide (auto-hides after first calculation)
     render_quick_start(st_module=st_module)
@@ -268,8 +270,8 @@ def _render_calculator(
 
 def _render_generational(st_module: Any, deps: Any) -> None:
     """Render the top-level Generational Analysis tab."""
-    result_data = st_module.session_state.get(SK.RESULTS)
-    run_id = st_module.session_state.get(SK.RESULTS_RUN_ID) or st_module.session_state.get(SK.LAST_RUN_ID)
+    result_data = st_module.session_state.get("results")
+    run_id = st_module.session_state.get("results_run_id") or st_module.session_state.get("last_run_id")
     deps.render_generational_analysis_tab(
         st_module=st_module,
         result_data=result_data,
@@ -290,8 +292,8 @@ def _render_state(st_module: Any, deps: Any) -> None:
     )
     selected_state = state_selection if state_selection else "CA"
 
-    result_data = st_module.session_state.get(SK.RESULTS)
-    run_id = st_module.session_state.get(SK.RESULTS_RUN_ID) or st_module.session_state.get(SK.LAST_RUN_ID)
+    result_data = st_module.session_state.get("results")
+    run_id = st_module.session_state.get("results_run_id") or st_module.session_state.get("last_run_id")
     deps.render_state_analysis_tab(
         st_module=st_module,
         state=selected_state,

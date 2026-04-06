@@ -44,7 +44,7 @@ def render_state_analysis_tab(
     try:
         db = _load_db(st_module)
         profile = db.get_state(state)
-    except (FileNotFoundError, KeyError, ValueError) as exc:
+    except Exception as exc:
         st_module.error(f"Could not load state tax data: {exc}")
         return
 
@@ -129,7 +129,7 @@ def _render_rate_curves(
     try:
         calc = _load_calculator(st_module, state)
         curve = calc.effective_rate_curve()
-    except (ValueError, KeyError, ZeroDivisionError) as exc:
+    except Exception as exc:
         st_module.warning(f"Could not compute rate curves: {exc}")
         return
 
@@ -275,8 +275,8 @@ def _render_salt_section(
                 f"- Federal revenue cost: ${result_lift.federal_revenue_change_billions:.1f}B / yr\n"
                 f"- Effective state rate change: {result_lift.effective_rate_change * 100:+.2f}pp"
             )
-    except (ValueError, KeyError, AttributeError, ZeroDivisionError):
-        pass  # SALT interaction is optional; degrade silently
+    except Exception:
+        pass
 
     # Cross-state SALT comparison
     with st_module.expander("SALT impact across all 10 states", expanded=False):
@@ -300,7 +300,7 @@ def _render_salt_section(
                 "Revenue effect of lifting SALT cap entirely. "
                 "Positive = federal revenue gain; negative = revenue loss."
             )
-        except (ValueError, KeyError, AttributeError) as exc:
+        except Exception as exc:
             st_module.warning(f"Could not compute cross-state SALT comparison: {exc}")
 
 
@@ -327,7 +327,7 @@ def _render_state_comparison_table(st_module: Any, db: Any) -> None:
                 "Itemizer %": f"{p.pct_itemizers * 100:.1f}%",
                 "Median HH Income": f"${p.median_household_income:,.0f}",
             })
-        except (ValueError, KeyError, AttributeError):
+        except Exception:
             continue
 
     if records:
@@ -353,7 +353,7 @@ def _load_db(st_module: Any, year: int = 2025) -> Any:
     """Load StateTaxDatabase with st.cache_data if available."""
     try:
         return st_module.cache_data(_load_db_impl)(year)
-    except (TypeError, AttributeError):
+    except Exception:
         from fiscal_model.models.state import StateTaxDatabase
         return StateTaxDatabase(year)
 

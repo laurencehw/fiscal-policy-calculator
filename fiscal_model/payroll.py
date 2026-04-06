@@ -397,9 +397,8 @@ def create_ss_rate_increase(
         policy = create_ss_rate_increase(0.01)
     """
     rate_pp = rate_change * 100
-    # Base-year revenue per pp (~$78.5B); grows at ~4%/yr in scoring engine,
-    # averaging ~$90B/yr over the 10-year window.
-    annual_revenue = rate_pp * 78.5
+    # 1pp = ~$90B/year
+    annual_revenue = rate_pp * 78.5  # Calibrated
 
     return PayrollTaxPolicy(
         name=f"SS Rate +{rate_pp:.1f}pp",
