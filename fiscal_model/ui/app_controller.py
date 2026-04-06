@@ -114,12 +114,11 @@ def render_quick_start(st_module: Any) -> None:
                 **👋 Welcome to the Fiscal Policy Calculator**
 
                 Try one of these scenarios to get started:
-                - **TCJA Extension** — What would extending the 2017 tax cuts cost?
-                  Select 'TCJA Full Extension' from presets
-                - **Biden High-Income Tax** — Score a 2.6pp increase on income above $400K
-                - **Infrastructure Spending** — Model a $100B/year infrastructure program
+                - **TCJA Extension** — Select *TCJA / Individual* → *TCJA Full Extension* from the sidebar
+                - **Biden $400K+ Tax** — Select *Income Tax* → *Biden 2025 Proposal* (+2.6pp on income above $400K)
+                - **Infrastructure Spending** — Select *Spending program* and model a $100B/year program
 
-                Select a preset from the sidebar, then click **Calculate** to see results.
+                Choose a policy in the sidebar, then click **Calculate Impact**.
                 """
             )
         with col2:

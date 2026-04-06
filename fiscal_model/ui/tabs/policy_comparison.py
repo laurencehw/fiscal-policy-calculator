@@ -103,17 +103,13 @@ def render_policy_comparison_tab(
     """
     Render multi-model comparison tab content.
     """
-    st_module.header("🔀 Multi-Model Comparison")
+    st_module.header("⚖️ Scoring Models")
     st_module.markdown(
-        """
-        <div class="info-box">
-        💡 Select preset policies to compare across models. Current models: CBO-style
-        (static + ETI) and FRB/US-Lite (dynamic). Complex presets like TCJA and
-        climate policies are loaded through the preset factory, so they use the same
-        construction path as the main calculator.
-        </div>
-        """,
-        unsafe_allow_html=True,
+        "How sensitive are revenue estimates to the choice of scoring methodology? "
+        "Select policies below and compare how **CBO-style static scoring** "
+        "(rate change × tax base, adjusted for behavioral response) differs from "
+        "**FRB/US dynamic scoring** (which adds GDP feedback, employment effects, "
+        "and crowding out). The gap between models shows the range of plausible estimates."
     )
 
     if is_spending or not preset_policies:

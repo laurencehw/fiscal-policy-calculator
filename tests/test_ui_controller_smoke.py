@@ -69,6 +69,10 @@ class _DummyStreamlit:
         del args, kwargs
         return None
 
+    def expander(self, *args, **kwargs):
+        del args, kwargs
+        return _DummyContext()
+
 
 def test_render_sidebar_inputs_compare_mode_short_circuits():
     st_module = _DummyStreamlit(radio_values=[COMPARE_POLICIES_MODE])
@@ -250,11 +254,8 @@ def test_render_result_tabs_shows_stale_warnings():
     tabs = {
         "tab_summary": _DummyContext(),
         "tab_distribution": _DummyContext(),
-        "tab_dynamic": _DummyContext(),
-        "tab_details": _DummyContext(),
-        "tab_long_run": _DummyContext(),
-        "tab_comparison": _DummyContext(),
-        "tab_packages": _DummyContext(),
+        "tab_economic": _DummyContext(),
+        "tab_scoring": _DummyContext(),
     }
     settings = {
         "dynamic_scoring": False,

@@ -177,7 +177,7 @@ CBO_SCORE_MAP = {
         "notes": "Tax unrealized gains at death (with exemptions)",
     },
     # Income Tax
-    "Biden $400K+ Tax Increase": {
+    "Biden 2025 Proposal": {
         "official_score": -252.0,
         "source": "Treasury",
         "source_date": "March 2024",

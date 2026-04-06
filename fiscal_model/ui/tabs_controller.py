@@ -1,5 +1,11 @@
 """
 Tab wiring and render orchestration helpers.
+
+Consolidated tab layout (4 tabs):
+  1. Results & Details — summary metrics, year-by-year breakdown, export
+  2. Distribution — impact by income group
+  3. Economic Effects — dynamic scoring + long-run growth
+  4. Scoring Models — compare static vs dynamic model estimates
 """
 
 from __future__ import annotations
@@ -8,44 +14,48 @@ from typing import Any
 
 from fiscal_model.ui.helpers import TEXTBOOK_HOME
 
-_ANALYSIS_CONTEXT = {
-    "Distribution": "How does this policy affect different income groups?",
-    "Dynamic Scoring": "GDP and employment effects using FRB/US-calibrated multipliers.",
-    "Long-Run Growth": "Long-run growth projections using a Solow framework.",
-    "Details": "Year-by-year breakdown of all scoring components.",
-}
-
 
 def build_main_tabs(
     st_module: Any,
     mode: str,
 ) -> dict[str, Any]:
     """
-    Create main Calculator result tabs. All tabs are always visible (no expander).
-    Generational Analysis, State Analysis, and Methodology are top-level app tabs,
-    not part of the Calculator tab set.
+    Create main Calculator result tabs (4 tabs).
+    Generational Analysis, State Analysis, Bill Tracker, and Methodology are
+    top-level app tabs, not part of the Calculator tab set.
+
+    In Compare Policies or Policy Packages mode, a 5th tab is appended for
+    that workflow.
     """
     labels = [
-        "📊 Results Summary",
+        "📊 Results & Details",
         "👥 Distribution",
-        "🌍 Dynamic Scoring",
-        "📋 Detailed Results",
-        "📈 Long-Run Growth",
-        "⚖️ Multi-Model Comparison",
-        "📦 Package Builder",
+        "🌍 Economic Effects",
+        "⚖️ Scoring Models",
     ]
+
+    # Add workflow-specific tab when not in single-policy mode
+    if mode == "🔀 Compare Policies":
+        labels.append("🔀 Compare Policies")
+    elif mode == "📦 Policy Packages":
+        labels.append("📦 Package Builder")
+
     tabs = st_module.tabs(labels)
     tab_map = dict(zip(labels, tabs, strict=False))
 
-    return {
-        "tab_summary": tab_map["📊 Results Summary"],
+    result = {
+        "tab_summary": tab_map["📊 Results & Details"],
         "tab_distribution": tab_map["👥 Distribution"],
-        "tab_dynamic": tab_map["🌍 Dynamic Scoring"],
-        "tab_details": tab_map["📋 Detailed Results"],
-        "tab_long_run": tab_map["📈 Long-Run Growth"],
-        "tab_comparison": tab_map["⚖️ Multi-Model Comparison"],
-        "tab_packages": tab_map["📦 Package Builder"],
+        "tab_economic": tab_map["🌍 Economic Effects"],
+        "tab_scoring": tab_map["⚖️ Scoring Models"],
     }
+
+    if "🔀 Compare Policies" in tab_map:
+        result["tab_comparison"] = tab_map["🔀 Compare Policies"]
+    if "📦 Package Builder" in tab_map:
+        result["tab_packages"] = tab_map["📦 Package Builder"]
+
+    return result
 
 
 def render_result_tabs(
@@ -59,8 +69,6 @@ def render_result_tabs(
 ) -> None:
     """
     Render post-calculation tabs for the Calculator section.
-    Generational Analysis, State Analysis, and Methodology are top-level app tabs
-    handled in app_controller.py.
     """
     single_policy = mode == "📊 Single Policy"
     current_run_id = getattr(st_module.session_state, "current_run_id", None)
@@ -69,41 +77,40 @@ def render_result_tabs(
     )
     is_stale = bool(results_run_id and current_run_id and results_run_id != current_run_id)
 
-    # ── Results and Analysis for non-single-policy modes ─────────────────
+    # ── Non-single-policy modes ─────────────────────────────────────────
     if not single_policy:
         with tabs["tab_summary"]:
-            st_module.info("Use **Single Policy** mode to view Results and Analysis.")
+            st_module.info("Switch to **Single Policy** mode to score an individual proposal.")
         with tabs["tab_distribution"]:
-            st_module.info("Use **Single Policy** mode to view Results and Analysis.")
-        with tabs["tab_dynamic"]:
-            st_module.info("Use **Single Policy** mode to view Results and Analysis.")
-        with tabs["tab_details"]:
-            st_module.info("Use **Single Policy** mode to view Results and Analysis.")
+            st_module.info("Switch to **Single Policy** mode to see distributional analysis.")
+        with tabs["tab_economic"]:
+            st_module.info("Switch to **Single Policy** mode to see economic effects.")
+        with tabs["tab_scoring"]:
+            st_module.info("Switch to **Single Policy** mode to compare scoring models.")
+
         if "tab_comparison" in tabs:
             with tabs["tab_comparison"]:
-                if mode == "🔀 Compare Policies":
-                    deps.render_policy_comparison_tab(
-                        st_module=st_module,
-                        is_spending=False,
-                        preset_policies=deps.PRESET_POLICIES,
-                        tax_policy_cls=deps.TaxPolicy,
-                        policy_type_income_tax=deps.PolicyType.INCOME_TAX,
-                        fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
-                        data_year=settings["data_year"],
-                        use_real_data=settings["use_real_data"],
-                        dynamic_scoring=settings["dynamic_scoring"],
-                    )
+                deps.render_policy_comparison_tab(
+                    st_module=st_module,
+                    is_spending=False,
+                    preset_policies=deps.PRESET_POLICIES,
+                    tax_policy_cls=deps.TaxPolicy,
+                    policy_type_income_tax=deps.PolicyType.INCOME_TAX,
+                    fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
+                    data_year=settings["data_year"],
+                    use_real_data=settings["use_real_data"],
+                    dynamic_scoring=settings["dynamic_scoring"],
+                )
         if "tab_packages" in tabs:
             with tabs["tab_packages"]:
-                if mode == "📦 Policy Packages":
-                    deps.render_policy_package_tab(
-                        st_module=st_module,
-                        preset_policies=deps.PRESET_POLICIES,
-                        preset_packages=deps.PRESET_POLICY_PACKAGES,
-                        cbo_score_map=deps.CBO_SCORE_MAP,
-                        create_policy_from_preset=deps.create_policy_from_preset,
-                        fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
-                    )
+                deps.render_policy_package_tab(
+                    st_module=st_module,
+                    preset_policies=deps.PRESET_POLICIES,
+                    preset_packages=deps.PRESET_POLICY_PACKAGES,
+                    cbo_score_map=deps.CBO_SCORE_MAP,
+                    create_policy_from_preset=deps.create_policy_from_preset,
+                    fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
+                )
         return
 
     # ── Onboarding state (no results yet) ────────────────────────────────
@@ -119,20 +126,20 @@ def render_result_tabs(
             with col_a:
                 st_module.markdown(
                     "**TCJA Extension**  \n"
-                    "Extend all Tax Cuts and Jobs Act provisions  \n"
-                    "*CBO estimate: +$4.6T*"
+                    "Extend all 2017 tax cut provisions  \n"
+                    "*CBO: +$4.6T over 10 years*"
                 )
             with col_b:
                 st_module.markdown(
-                    "**Biden Corporate 28%**  \n"
-                    "Raise corporate rate from 21% to 28%  \n"
-                    "*CBO estimate: -$1.35T*"
+                    "**Biden $400K+ Tax**  \n"
+                    "Restore 39.6% top rate  \n"
+                    "*Treasury: −$252B over 10 years*"
                 )
             with col_c:
                 st_module.markdown(
-                    "**SS Donut Hole**  \n"
-                    "Apply SS tax above $250K  \n"
-                    "*CBO estimate: -$2.7T*"
+                    "**Infrastructure $100B/yr**  \n"
+                    "Select *Spending program* in sidebar  \n"
+                    "*Model GDP effects with multipliers*"
                 )
             st_module.markdown("---")
             st_module.caption(
@@ -141,37 +148,24 @@ def render_result_tabs(
             )
         with tabs["tab_distribution"]:
             st_module.info(
-                "Run a calculation to unlock distribution analysis "
-                "(showing impacts by income group)."
+                "Run a calculation to see how the policy affects different income groups."
             )
-        with tabs["tab_dynamic"]:
+        with tabs["tab_economic"]:
             st_module.info(
-                "Run a calculation to unlock dynamic scoring "
-                "(GDP and employment effects)."
+                "Run a calculation to see GDP, employment, and long-run growth effects."
             )
-        with tabs["tab_details"]:
+        with tabs["tab_scoring"]:
             st_module.info(
-                "Run a calculation to see detailed year-by-year results."
+                "Run a calculation to compare how different scoring models "
+                "estimate the same policy."
             )
-        if "tab_long_run" in tabs:
-            with tabs["tab_long_run"]:
-                st_module.info("Run a calculation to unlock long-run growth projections.")
-        if "tab_comparison" in tabs:
-            with tabs["tab_comparison"]:
-                st_module.info(
-                    "Run a calculation, or switch to Compare Policies mode to compare multiple proposals."
-                )
-        if "tab_packages" in tabs:
-            with tabs["tab_packages"]:
-                st_module.info(
-                    "Run a calculation, or switch to Policy Packages mode to build combined proposals."
-                )
         return
 
     # ── Results with data ────────────────────────────────────────────────
     result_data = st_module.session_state.results
     policy = result_data.get("policy")
 
+    # Tab 1: Results & Details (merged)
     with tabs["tab_summary"]:
         if is_stale:
             st_module.warning(
@@ -183,7 +177,13 @@ def render_result_tabs(
             result_data=result_data,
             cbo_score_map=deps.CBO_SCORE_MAP,
         )
+        # Detailed breakdown in an expander within the same tab
+        with st_module.expander("📋 Detailed Year-by-Year Breakdown", expanded=False):
+            deps.render_detailed_results_tab(
+                st_module=st_module, result_data=result_data
+            )
 
+    # Tab 2: Distribution
     with tabs["tab_distribution"]:
         if is_stale:
             st_module.warning(
@@ -202,7 +202,8 @@ def render_result_tabs(
             use_microsim=settings.get("use_microsim_distribution", False),
         )
 
-    with tabs["tab_dynamic"]:
+    # Tab 3: Economic Effects (dynamic scoring + long-run growth)
+    with tabs["tab_economic"]:
         if is_stale:
             st_module.warning(
                 "Inputs changed since the last run. "
@@ -219,80 +220,36 @@ def render_result_tabs(
             build_macro_scenario_fn=deps.build_macro_scenario,
             run_id=results_run_id,
         )
-
-    with tabs["tab_details"]:
-        if is_stale:
-            st_module.warning(
-                "Inputs changed since the last run. "
-                "Click **Calculate Impact** to refresh results."
-            )
-        deps.render_detailed_results_tab(
-            st_module=st_module, result_data=result_data
+        # Long-run growth section within the same tab
+        st_module.markdown("---")
+        deps.render_long_run_growth_tab(
+            st_module=st_module,
+            session_results=result_data,
+            solow_growth_model_cls=deps.SolowGrowthModel,
+            run_id=results_run_id,
         )
 
-    if "tab_long_run" in tabs:
-        with tabs["tab_long_run"]:
-            if is_stale:
-                st_module.warning(
-                    "Inputs changed since the last run. "
-                    "Click **Calculate Impact** to refresh results."
-                )
-            deps.render_long_run_growth_tab(
-                st_module=st_module,
-                session_results=result_data,
-                solow_growth_model_cls=deps.SolowGrowthModel,
-                run_id=results_run_id,
-            )
-
-    if "tab_comparison" in tabs:
-        with tabs["tab_comparison"]:
-            if mode == "🔀 Compare Policies" or mode == "📊 Single Policy":
-                deps.render_policy_comparison_tab(
-                    st_module=st_module,
-                    is_spending=False,
-                    preset_policies=deps.PRESET_POLICIES,
-                    tax_policy_cls=deps.TaxPolicy,
-                    policy_type_income_tax=deps.PolicyType.INCOME_TAX,
-                    fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
-                    data_year=settings["data_year"],
-                    use_real_data=settings["use_real_data"],
-                    dynamic_scoring=settings["dynamic_scoring"],
-                )
-            else:
-                st_module.subheader("Multi-Model Comparison")
-                st_module.markdown(
-                    "Switch to **Compare Policies** mode in the sidebar to compare "
-                    "preset policies across models (CBO-style vs Dynamic)."
-                )
-
-    if "tab_packages" in tabs:
-        with tabs["tab_packages"]:
-            if mode == "📦 Policy Packages":
-                deps.render_policy_package_tab(
-                    st_module=st_module,
-                    preset_policies=deps.PRESET_POLICIES,
-                    preset_packages=deps.PRESET_POLICY_PACKAGES,
-                    cbo_score_map=deps.CBO_SCORE_MAP,
-                    create_policy_from_preset=deps.create_policy_from_preset,
-                    fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
-                )
-            else:
-                st_module.subheader("Policy Package Builder")
-                st_module.markdown(
-                    "Switch to **Policy Packages** mode in the sidebar to combine "
-                    "multiple policies into a comprehensive plan."
-                )
+    # Tab 4: Scoring Models
+    with tabs["tab_scoring"]:
+        deps.render_policy_comparison_tab(
+            st_module=st_module,
+            is_spending=is_spending,
+            preset_policies=deps.PRESET_POLICIES,
+            tax_policy_cls=deps.TaxPolicy,
+            policy_type_income_tax=deps.PolicyType.INCOME_TAX,
+            fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
+            data_year=settings["data_year"],
+            use_real_data=settings["use_real_data"],
+            dynamic_scoring=settings["dynamic_scoring"],
+        )
 
 
 def render_footer(st_module: Any) -> None:
-    """
-    Render app footer with version and validation info.
-    """
+    """Render app footer with version and validation info."""
     st_module.markdown("---")
     st_module.caption(
         "**Fiscal Policy Impact Calculator** v1.0 · "
         "25 policies validated against CBO/JCT · "
-        "685 unit tests · "
         "Data: IRS SOI 2022, FRED, CBO Feb 2026 · "
         "[Methodology](https://github.com/laurencehw/fiscal-policy-calculator"
         "/blob/main/docs/METHODOLOGY.md) · "
