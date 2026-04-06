@@ -34,28 +34,15 @@ def build_main_tabs(
         "⚖️ Scoring Models",
     ]
 
-    # Add workflow-specific tab when not in single-policy mode
-    if mode == "🔀 Compare Policies":
-        labels.append("🔀 Compare Policies")
-    elif mode == "📦 Policy Packages":
-        labels.append("📦 Package Builder")
-
     tabs = st_module.tabs(labels)
     tab_map = dict(zip(labels, tabs, strict=False))
 
-    result = {
+    return {
         "tab_summary": tab_map["📊 Results & Details"],
         "tab_distribution": tab_map["👥 Distribution"],
         "tab_economic": tab_map["🌍 Economic Effects"],
         "tab_scoring": tab_map["⚖️ Scoring Models"],
     }
-
-    if "🔀 Compare Policies" in tab_map:
-        result["tab_comparison"] = tab_map["🔀 Compare Policies"]
-    if "📦 Package Builder" in tab_map:
-        result["tab_packages"] = tab_map["📦 Package Builder"]
-
-    return result
 
 
 def render_result_tabs(
@@ -70,48 +57,11 @@ def render_result_tabs(
     """
     Render post-calculation tabs for the Calculator section.
     """
-    single_policy = mode == "📊 Single Policy"
     current_run_id = getattr(st_module.session_state, "current_run_id", None)
     results_run_id = getattr(st_module.session_state, "results_run_id", None) or getattr(
         st_module.session_state, "last_run_id", None
     )
     is_stale = bool(results_run_id and current_run_id and results_run_id != current_run_id)
-
-    # ── Non-single-policy modes ─────────────────────────────────────────
-    if not single_policy:
-        with tabs["tab_summary"]:
-            st_module.info("Switch to **Single Policy** mode to score an individual proposal.")
-        with tabs["tab_distribution"]:
-            st_module.info("Switch to **Single Policy** mode to see distributional analysis.")
-        with tabs["tab_economic"]:
-            st_module.info("Switch to **Single Policy** mode to see economic effects.")
-        with tabs["tab_scoring"]:
-            st_module.info("Switch to **Single Policy** mode to compare scoring models.")
-
-        if "tab_comparison" in tabs:
-            with tabs["tab_comparison"]:
-                deps.render_policy_comparison_tab(
-                    st_module=st_module,
-                    is_spending=False,
-                    preset_policies=deps.PRESET_POLICIES,
-                    tax_policy_cls=deps.TaxPolicy,
-                    policy_type_income_tax=deps.PolicyType.INCOME_TAX,
-                    fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
-                    data_year=settings["data_year"],
-                    use_real_data=settings["use_real_data"],
-                    dynamic_scoring=settings["dynamic_scoring"],
-                )
-        if "tab_packages" in tabs:
-            with tabs["tab_packages"]:
-                deps.render_policy_package_tab(
-                    st_module=st_module,
-                    preset_policies=deps.PRESET_POLICIES,
-                    preset_packages=deps.PRESET_POLICY_PACKAGES,
-                    cbo_score_map=deps.CBO_SCORE_MAP,
-                    create_policy_from_preset=deps.create_policy_from_preset,
-                    fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
-                )
-        return
 
     # ── Onboarding state (no results yet) ────────────────────────────────
     if not st_module.session_state.results:
