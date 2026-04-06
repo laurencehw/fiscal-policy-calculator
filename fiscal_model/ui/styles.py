@@ -35,10 +35,12 @@ APP_STYLES = """
        that conflict with Streamlit's own theming (e.g. white text on white bg). */
     .dark-mode .metric-card {
         background-color: #262730;
+        color: #fafafa;
     }
     .dark-mode .info-box {
         background-color: #1e3a5f;
         border-left-color: #4da6ff;
+        color: #fafafa;
     }
     /* Share button styling */
     .stButton button[data-testid="baseButton-secondary"] {
