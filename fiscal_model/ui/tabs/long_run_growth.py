@@ -51,8 +51,8 @@ def render_long_run_growth_tab(
             ) / 100.0
 
             st_module.caption(
-                f"Current assumption: For every \\$1.00 of deficit, private investment falls by \\${crowding_out:.2f}. "
-                f"Foreign capital inflows cover the remaining \\${(1-crowding_out):.2f}."
+                f"Current assumption: For every $1.00 of deficit, private investment falls by ${crowding_out:.2f}. "
+                f"Foreign capital inflows cover the remaining ${(1-crowding_out):.2f}."
             )
 
         deficit_path = res_obj.static_deficit_effect + res_obj.behavioral_offset

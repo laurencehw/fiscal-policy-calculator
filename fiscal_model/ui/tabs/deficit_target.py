@@ -25,7 +25,7 @@ def render_deficit_target_tab(
         "The federal government currently spends more than it collects in "
         "taxes each year. This gap — the **deficit** — adds to the national "
         "debt. The Congressional Budget Office (CBO) projects deficits of "
-        "roughly \\$1.4–1.7 trillion per year (4–5% of GDP) over the next "
+        "roughly $1.4–1.7 trillion per year (4–5% of GDP) over the next "
         "decade.\n\n"
         "**Why does this matter?** Persistent deficits can raise interest "
         "rates, crowd out private investment, and limit the government's "
@@ -65,12 +65,12 @@ def render_deficit_target_tab(
             )
         else:
             target_value = st_module.slider(
-                "Target deficit (\\$B/year)",
+                "Target deficit ($B/year)",
                 min_value=0,
                 max_value=2000,
                 value=1000,
                 step=100,
-                help="Current: ~\\$1,400B/year.",
+                help="Current: ~$1,400B/year.",
             )
 
     st_module.markdown("---")
@@ -141,7 +141,7 @@ def render_deficit_target_tab(
                 f"**{cat_name}** ({len(policies)} options)", expanded=False
             ):
                 for policy_name, score in policies:
-                    label = f"{policy_name} — {verb} \\${abs(score):,.0f}B"
+                    label = f"{policy_name} — {verb} ${abs(score):,.0f}B"
                     if st_module.checkbox(label, key=f"dt_{policy_name}"):
                         selected_policies.append(policy_name)
                         total_impact += score
@@ -191,7 +191,7 @@ def render_deficit_target_tab(
         target_label = f"{target_value}% of GDP"
     else:
         target_deficit = float(target_value)
-        target_label = f"\\${target_value:,}B"
+        target_label = f"${target_value:,}B"
 
     remaining = adjusted_deficit - target_deficit
 
@@ -200,21 +200,21 @@ def render_deficit_target_tab(
     with c1:
         st_module.metric(
             "Avg baseline deficit",
-            f"\\${baseline_deficit_avg:,.0f}B/yr",
+            f"${baseline_deficit_avg:,.0f}B/yr",
             delta=f"{baseline_deficit_pct:.1f}% of GDP",
             delta_color="off",
         )
     with c2:
         st_module.metric(
             "Your package (10yr)",
-            f"\\${total_impact:+,.0f}B",
+            f"${total_impact:+,.0f}B",
             delta=f"{len(selected_policies)} policies",
             delta_color="off",
         )
     with c3:
         st_module.metric(
             "Adjusted deficit",
-            f"\\${adjusted_deficit:,.0f}B/yr",
+            f"${adjusted_deficit:,.0f}B/yr",
             delta=f"{adjusted_pct:.1f}% of GDP",
             delta_color="off",
         )
@@ -223,13 +223,13 @@ def render_deficit_target_tab(
             st_module.metric(
                 "Target status",
                 "Target met!",
-                delta=f"\\${abs(remaining):,.0f}B below target",
+                delta=f"${abs(remaining):,.0f}B below target",
                 delta_color="normal",
             )
         else:
             st_module.metric(
                 "Remaining gap",
-                f"\\${remaining:,.0f}B/yr",
+                f"${remaining:,.0f}B/yr",
                 delta="More cuts needed",
                 delta_color="inverse",
             )
@@ -271,7 +271,7 @@ def render_deficit_target_tab(
                 x=labels,
                 y=values,
                 text=[
-                    f"\\${v:+,.0f}B" if m == "relative" else f"\\${v:,.0f}B"
+                    f"${v:+,.0f}B" if m == "relative" else f"${v:,.0f}B"
                     for v, m in zip(values, measures)
                 ],
                 textposition="outside",
@@ -290,7 +290,7 @@ def render_deficit_target_tab(
         fig.update_layout(
             margin=dict(l=20, r=20, t=40, b=100),
             height=400,
-            yaxis_title="Average Annual Deficit (\\$B)",
+            yaxis_title="Average Annual Deficit ($B)",
             xaxis_tickangle=-45,
             showlegend=False,
         )

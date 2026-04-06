@@ -55,7 +55,7 @@ PRESET_POLICY_PACKAGES = {
         "source": "CBO May 2024",
     },
     "TCJA + No SALT Cap": {
-        "description": "Extend TCJA and repeal the \\$10K SALT deduction cap",
+        "description": "Extend TCJA and repeal the $10K SALT deduction cap",
         "policies": [
             "🏛️ TCJA Extension (No SALT Cap)",
         ],

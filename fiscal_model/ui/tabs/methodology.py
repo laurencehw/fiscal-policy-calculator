@@ -33,7 +33,7 @@ def render_methodology_tab(st_module: Any) -> None:
             "*Formula:*  \n"
             "`Revenue = Rate change x Marginal income x Taxpayers`\n\n"
             "Only income *above* the threshold is affected — a filer earning "
-            "\\$500K with a \\$400K threshold has \\$100K of marginal income."
+            "$500K with a $400K threshold has $100K of marginal income."
         )
     with col2:
         st_module.markdown(
@@ -134,7 +134,7 @@ def render_methodology_tab(st_module: Any) -> None:
         st_module.markdown(
             "This replicates the scoring of a Biden-style top-rate surtax — "
             "a 2.6 percentage-point increase on taxable income above $400,000. "
-            "The official Treasury estimate for a comparable proposal is **\\$252B** "
+            "The official Treasury estimate for a comparable proposal is **$252B** "
             "in 10-year deficit reduction."
         )
 
@@ -225,8 +225,8 @@ def render_methodology_tab(st_module: Any) -> None:
             r"\approx \$258\text{B}"
         )
         st_module.markdown(
-            "**Official Treasury estimate: \\$252B** — model is within ~2%.  \n\n"
-            "Uncertainty range (CBO-style, 10-year): roughly **\\$200B to \\$320B**, "
+            "**Official Treasury estimate: $252B** — model is within ~2%.  \n\n"
+            "Uncertainty range (CBO-style, 10-year): roughly **$200B to $320B**, "
             "reflecting ETI uncertainty (0.15–0.40) and baseline forecast risk."
         )
 
@@ -256,7 +256,7 @@ def render_methodology_tab(st_module: Any) -> None:
             "The Tax Cuts and Jobs Act (2017) cut individual and corporate taxes "
             "substantially. Most individual provisions expire after 2025; extending "
             "them is the dominant fiscal policy question of the decade. "
-            "**CBO scores the full extension at \\$4,600B** over 2026–2035."
+            "**CBO scores the full extension at $4,600B** over 2026–2035."
         )
         st_module.markdown(
             "Unlike a simple rate change, TCJA cannot be scored with a single "
@@ -327,7 +327,7 @@ def render_methodology_tab(st_module: Any) -> None:
             r"= 1.77 \times \$2{,}600\text{B} \approx \$4{,}582\text{B}"
         )
         st_module.markdown(
-            "**Official CBO estimate: \\$4,600B** — model error is **0.4%**.  \n\n"
+            "**Official CBO estimate: $4,600B** — model error is **0.4%**.  \n\n"
             "This tight match is by design: the calibration factor is set once "
             "against the CBO full-extension score, then held fixed for all "
             "partial-extension calculations."
@@ -337,7 +337,7 @@ def render_methodology_tab(st_module: Any) -> None:
         st_module.markdown("#### Partial extensions")
         st_module.markdown(
             "The calibration approach lets users extend individual provisions. "
-            "Repealing the SALT cap (adding back \\$1,100B raw × 1.77):"
+            "Repealing the SALT cap (adding back $1,100B raw × 1.77):"
         )
         st_module.latex(
             r"\text{No SALT cap} = \$4{,}582\text{B} + 1.77 \times \$1{,}100\text{B} "
@@ -361,13 +361,13 @@ def render_methodology_tab(st_module: Any) -> None:
         )
         st_module.markdown(
             "**Example:** Raise the top long-term capital gains rate from 23.8% "
-            "to 28.0% on gains above \\$1M (a common Biden-era proposal)."
+            "to 28.0% on gains above $1M (a common Biden-era proposal)."
         )
 
         st_module.markdown("#### Step 1 — Baseline and static estimate")
         st_module.markdown(
             "From IRS SOI 2022, total long-term capital gains realizations "
-            "by filers above the \\$1M AGI threshold:"
+            "by filers above the $1M AGI threshold:"
         )
         st_module.markdown("""
 | Variable | Value | Source |
@@ -434,7 +434,7 @@ def render_methodology_tab(st_module: Any) -> None:
             r"= \$127.9\text{B} - \$119.0\text{B} = \$8.9\text{B}"
         )
         st_module.markdown(
-            "The *static* estimate was \\$21B, but only \\$8.9B materializes — "
+            "The *static* estimate was $21B, but only $8.9B materializes — "
             "the behavioral offset absorbs **57%** of the static score in year 1. "
             "Investors are accelerating realizations *before* the rate takes effect "
             "and deferring them *after*."
@@ -474,8 +474,8 @@ def render_methodology_tab(st_module: Any) -> None:
             r"= \$14.8\text{B}"
         )
         st_module.markdown(
-            "Eliminating step-up raises the year 1 revenue take from **\\$8.9B to "
-            "\\$14.8B** — a 66% increase — because investors can no longer avoid "
+            "Eliminating step-up raises the year 1 revenue take from **$8.9B to "
+            "$14.8B** — a 66% increase — because investors can no longer avoid "
             "the tax by holding until death, reducing the lock-in incentive."
         )
 
@@ -603,14 +603,14 @@ def render_methodology_tab(st_module: Any) -> None:
     st_module.markdown("""
 | Policy | Official score | Model score | Error | Source |
 |--------|---------------|-------------|-------|--------|
-| TCJA Full Extension | \\$4,600B | \\$4,582B | 0.4% | CBO |
-| Biden Corporate 28% | -\\$1,347B | -\\$1,397B | 3.7% | Treasury |
-| Biden CTC 2021 | \\$1,600B | \\$1,743B | 8.9% | JCT |
-| Estate: Biden Reform | -\\$450B | -\\$496B | 10.1% | Treasury |
-| SS Donut Hole \\$250K | -\\$2,700B | -\\$2,371B | 12.2% | CBO |
-| Repeal Corporate AMT | \\$220B | \\$220B | 0.0% | CBO |
-| Cap Employer Health | -\\$450B | -\\$450B | 0.1% | JCT |
-| Biden \\$400K+ Surtax | -\\$252B | -\\$250B | ~1% | Treasury |
+| TCJA Full Extension | $4,600B | $4,582B | 0.4% | CBO |
+| Biden Corporate 28% | -$1,347B | -$1,397B | 3.7% | Treasury |
+| Biden CTC 2021 | $1,600B | $1,743B | 8.9% | JCT |
+| Estate: Biden Reform | -$450B | -$496B | 10.1% | Treasury |
+| SS Donut Hole $250K | -$2,700B | -$2,371B | 12.2% | CBO |
+| Repeal Corporate AMT | $220B | $220B | 0.0% | CBO |
+| Cap Employer Health | -$450B | -$450B | 0.1% | JCT |
+| Biden $400K+ Surtax | -$252B | -$250B | ~1% | Treasury |
 """)
 
     # ── Limitations ──────────────────────────────────────────────────────
