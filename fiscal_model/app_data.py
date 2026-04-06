@@ -518,7 +518,10 @@ PRESET_POLICIES = {
     "Biden 2025 Proposal": {
         "rate_change": 2.6,
         "threshold": 400000,
-        "description": "Restore top rate to 39.6% for AGI > \\$400K",
+        "description": (
+            "+2.6pp on income above \\$400K, restoring the pre-TCJA 39.6% top rate. "
+            "Treasury FY2025 Green Book estimate: raises ~\\$252B over 10 years."
+        ),
         "is_tcja": False,
         "is_corporate": False,
     },
