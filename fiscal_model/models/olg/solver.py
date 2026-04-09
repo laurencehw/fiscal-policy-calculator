@@ -534,6 +534,13 @@ class OLGSolver:
         L = baseline_ss.L
         debt = baseline_ss.debt
 
+        # Dampening factor for transition updates — same principle as the
+        # Gauss-Seidel steady-state solver.  Without dampening, myopic
+        # forward-shooting can produce wild K oscillations.
+        theta = p.dampening_gs
+        # Maximum relative step size per period (prevents explosive jumps)
+        _MAX_REL_STEP = 0.25
+
         for t in range(T):
             overrides = reform_policy_fn(t)
             tau_l_ov = overrides.get("tau_l")
@@ -573,8 +580,19 @@ class OLGSolver:
             tau_l_path[t] = tau_l
             debt_path[t] = debt
 
-            # Update for next period
-            K = max(K_new, 1e-6)
+            # Dampened update with step-size limiter to prevent oscillation.
+            # 1. Apply dampening: blend old and new K.
+            K_blended = (1.0 - theta) * K + theta * K_new
+            # 2. Clamp the relative step to ±_MAX_REL_STEP of current K.
+            K_floor = K * (1.0 - _MAX_REL_STEP)
+            K_ceil = K * (1.0 + _MAX_REL_STEP)
+            K_next = max(np.clip(K_blended, K_floor, K_ceil), 1e-6)
+            if abs(K_new - K) / max(abs(K), 1e-10) > 1.0:
+                logger.warning(
+                    "Transition t=%d: K_new=%.2f vs K=%.2f (>100%% step), "
+                    "clamped to %.2f", t, K_new, K, K_next,
+                )
+            K = K_next
             L = L_new
             debt = debt_new
 

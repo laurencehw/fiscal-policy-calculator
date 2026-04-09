@@ -208,49 +208,50 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
     with top_tabs[1]:
         try:
             _render_budget_builder(st_module=st_module, deps=deps)
-        except Exception as exc:
+        except Exception:
             st_module.error(
-                f"Budget Builder encountered an error: {type(exc).__name__}: {exc}\n\n"
-                "Try reloading the page."
+                "The Budget Builder encountered an issue. "
+                "Please try reloading the page or clearing your inputs."
             )
         render_footer(st_module=st_module)
 
     with top_tabs[2]:
         try:
             _render_generational(st_module=st_module, deps=deps)
-        except Exception as exc:
+        except Exception:
             st_module.error(
-                f"Generational analysis encountered an error: {type(exc).__name__}: {exc}\n\n"
-                "Try clearing the OLG result (adjust a slider) or reloading the page."
+                "The Generational analysis encountered an issue. "
+                "Please try adjusting your parameters or reloading the page."
             )
         render_footer(st_module=st_module)
 
     with top_tabs[3]:
         try:
             _render_state(st_module=st_module, deps=deps)
-        except Exception as exc:
+        except Exception:
             st_module.error(
-                f"State analysis encountered an error: {type(exc).__name__}: {exc}\n\n"
-                "Try reloading the page."
+                "The State analysis encountered an issue. "
+                "Please try reloading the page."
             )
         render_footer(st_module=st_module)
 
     with top_tabs[4]:
         try:
             deps.render_bill_tracker_tab(st_module=st_module)
-        except Exception as exc:
+        except Exception:
             st_module.error(
-                f"Bill Tracker encountered an error: {type(exc).__name__}: {exc}\n\n"
-                "Try reloading the page."
+                "The Bill Tracker encountered an issue. "
+                "Please try reloading the page."
             )
         render_footer(st_module=st_module)
 
     with top_tabs[5]:
         try:
             deps.render_methodology_tab(st_module=st_module)
-        except Exception as exc:
+        except Exception:
             st_module.error(
-                f"Methodology tab encountered an error: {type(exc).__name__}: {exc}"
+                "The Methodology tab encountered an issue. "
+                "Please try reloading the page."
             )
         render_footer(st_module=st_module)
 

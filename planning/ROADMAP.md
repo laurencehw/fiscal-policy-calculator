@@ -20,7 +20,7 @@
 - **Real-Time Bill Tracker**: congress.gov pipeline, LLM extraction, SQLite storage
 - **Interactive Streamlit app** with methodology documentation, sensitivity analysis, comparison tools, CSV export
 - **25+ policies validated** against CBO/JCT/Treasury within 15%
-- **685 tests**, 72% coverage, ruff linting, GitHub Actions CI
+- **960+ tests**, 73% coverage, ruff linting, GitHub Actions CI
 - **Real data integration**: IRS Statistics of Income, FRED, CBO Baseline
 
 ### Policy modules

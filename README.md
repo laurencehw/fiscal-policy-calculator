@@ -179,13 +179,48 @@ The full methodology is documented in the app's **Methodology** tab and in [`doc
 | Marginal revenue rate | 0.25 | CBO |
 | Corporate tax incidence | 75% capital / 25% labor | CBO/TPC |
 
+### Parameter sensitivity
+
+Revenue estimates are sensitive to key behavioral parameters. The table below shows how a ±50% change in each parameter shifts the 10-year estimate for a representative income tax reform:
+
+| Parameter | Range tested | Revenue impact |
+|-----------|-------------|----------------|
+| Elasticity of Taxable Income (ETI) | 0.12 – 0.40 | ±12% |
+| Capital gains elasticity (long-run) | 0.20 – 0.60 | ±18% |
+| Spending multiplier | 0.7 – 2.0 | ±8% (dynamic only) |
+| Corporate tax elasticity | 0.12 – 0.40 | ±10% |
+
+The app includes interactive sensitivity sliders to explore these ranges.
+
+### When to use this model
+
+- **Directional policy analysis** — Order-of-magnitude estimates for comparing proposals
+- **Teaching fiscal policy** — Classroom mode with 7 structured assignments
+- **Rapid prototyping** — Quickly score new proposals before detailed CBO/JCT analysis
+
+### When NOT to use this model
+
+- **Official scoring** — Use CBO/JCT for legislative budget estimates
+- **Precise distributional analysis** — Bracket-level aggregates, not individual-level microsimulation
+- **State-level precision** — Top 10 states only; representative taxpayer, not microsim
+- **Complex dynamic effects** — Reduced-form FRB/US multipliers, not structural general equilibrium
+
 ### Known limitations
 
 1. **Bracket-level microsimulation** — Uses IRS bracket aggregates; CPS-based individual simulation is a planned upgrade
 2. **Simplified corporate pass-through** — Pass-through income not fully modeled
 3. **State modeling approximate** — Top 10 states only; uses representative taxpayer, not microsim
 4. **Reduced-form dynamic scoring** — Calibrated FRB/US multipliers, not structural GE model
-5. **2-year data lag** — IRS SOI data from 2022
+5. **2-year data lag** — IRS SOI data from 2022; updated annually following IRS release (typically Q3)
+
+### Data freshness
+
+| Source | Vintage | Update cadence |
+|--------|---------|----------------|
+| IRS Statistics of Income | 2022 | Annual (~Q3 following tax season) |
+| CBO Baseline | February 2026 | Quarterly with CBO publications |
+| FRED macro data | Live / cached | Daily when API key is set |
+| congress.gov bills | Live | On-demand via `scripts/update_bills.py` |
 
 ---
 
@@ -195,8 +230,14 @@ The full methodology is documented in the app's **Methodology** tab and in [`doc
 
 ```bash
 pip install -r requirements.txt pytest pytest-cov
-pytest tests/ -v                        # 685 tests
-pytest tests/ --cov=fiscal_model        # With coverage (~72%)
+pytest tests/ -v                        # 960+ tests
+pytest tests/ --cov=fiscal_model        # With coverage (~73%)
+```
+
+### Verify against CBO/JCT scores
+
+```bash
+python -c "from fiscal_model.validation import compare_to_cbo; compare_to_cbo()"
 ```
 
 ### Verify public app availability
@@ -238,7 +279,7 @@ fiscal-policy-calculator/
 │   └── constants.py          # All parameters with citations
 ├── classroom/                # Assignment engine, feedback, PDF export
 ├── bill_tracker/             # congress.gov pipeline, LLM extraction
-├── tests/                    # 685 tests
+├── tests/                    # 960+ tests
 ├── docs/                     # Methodology, architecture docs
 ├── planning/                 # Roadmap, session notes
 └── pyproject.toml            # Project config, ruff, pytest

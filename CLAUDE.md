@@ -20,7 +20,7 @@ streamlit run app.py
 # Run app locally (classroom mode)
 streamlit run classroom_app.py
 
-# Run unit tests (685 tests)
+# Run unit tests (960+ tests)
 pytest tests/ -v
 
 # Run specific test file
@@ -193,7 +193,7 @@ where ε(t) transitions from short_run to long_run over transition_years
 
 ## Current Development Priorities
 
-All core features and all four horizon features are complete (April 2026). **685 tests passing, 72% coverage.**
+All core features and all four horizon features are complete (April 2026). **960+ tests passing, 73% coverage.**
 
 Completed:
 1. ✅ 25+ CBO/JCT-validated policies, distributional analysis, dynamic scoring

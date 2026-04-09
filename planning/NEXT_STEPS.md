@@ -6,7 +6,7 @@
 
 ## Current state (April 2026)
 
-**685 tests passing, 72% coverage, 25+ policies validated within 15% of CBO/JCT**
+**960+ tests passing, 73% coverage, 25+ policies validated within 15% of CBO/JCT**
 
 ### Completed work
 
