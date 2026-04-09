@@ -218,6 +218,12 @@ class BillDatabase:
         with self._connect() as conn:
             return conn.execute("SELECT COUNT(*) FROM bills").fetchone()[0]
 
+    def count_bills_with_cbo(self) -> int:
+        with self._connect() as conn:
+            return conn.execute(
+                "SELECT COUNT(*) FROM bills WHERE has_cbo_score = 1"
+            ).fetchone()[0]
+
     def update_bill_summary(self, bill_id: str, summary: str) -> None:
         with self._connect() as conn:
             conn.execute(

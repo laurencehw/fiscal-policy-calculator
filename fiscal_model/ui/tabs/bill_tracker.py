@@ -8,6 +8,7 @@ and freshness indicators. Connects to SQLite bill database.
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -30,7 +31,6 @@ def render_bill_tracker_tab(st_module: Any, db_path: str | None = None) -> None:
     """
     st_module.header("Active Legislation Tracker")
     st_module.caption("119th Congress (2025–2027) · Fiscal bills tracked daily from congress.gov")
-    st_module.caption("✅ Using populated database (328 bills, 279 CBO scores)")
 
     # Load database
     db, using_demo = _get_database(db_path)
@@ -45,7 +45,13 @@ def render_bill_tracker_tab(st_module: Any, db_path: str | None = None) -> None:
             "Run `python scripts/update_bills.py` to load live congress.gov data."
         )
     elif POPULATED_DB_PATH.exists():
-        st_module.success("✅ Loaded populated database with 328 bills")
+        try:
+            bill_count = db.count_bills()
+            cbo_count = db.count_bills_with_cbo()
+            st_module.success(f"✅ Loaded database with {bill_count:,} bills and {cbo_count:,} CBO scores")
+        except Exception:
+            logging.getLogger(__name__).exception("Failed to query bill/CBO counts")
+            st_module.warning("Loaded bill database (could not retrieve counts)")
 
     # Pipeline status bar
     _render_status_bar(st_module, db)
