@@ -179,7 +179,7 @@ def main() -> int:
             summary = ingestor.fetch_bill_summary(bill.bill_id)
             if summary:
                 bill.summary = summary
-            time.sleep(0.2)
+            time.sleep(ingestor._delay)
 
         if not args.dry_run:
             db.upsert_bill(bill)

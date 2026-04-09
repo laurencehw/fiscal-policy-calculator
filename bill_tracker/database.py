@@ -112,24 +112,20 @@ class BillDatabase:
     @contextmanager
     def _connect(self) -> Generator[sqlite3.Connection, None, None]:
         if self._is_memory:
-            # Reuse the persistent connection for in-memory databases
-            try:
-                yield self._persistent_conn
-                self._persistent_conn.commit()
-            except Exception:
-                self._persistent_conn.rollback()
-                raise
+            conn = self._persistent_conn
         else:
             conn = sqlite3.connect(self.db_path)
             conn.row_factory = sqlite3.Row
             conn.execute("PRAGMA foreign_keys = ON")
-            try:
-                yield conn
-                conn.commit()
-            except Exception:
-                conn.rollback()
-                raise
-            finally:
+
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            if not self._is_memory:
                 conn.close()
 
     def _init_schema(self) -> None:
