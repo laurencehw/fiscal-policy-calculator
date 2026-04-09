@@ -237,7 +237,7 @@ pytest tests/ --cov=fiscal_model        # With coverage (~73%)
 ### Verify against CBO/JCT scores
 
 ```bash
-python -c "from fiscal_model.validation import compare_to_cbo; compare_to_cbo()"
+python -c "from fiscal_model.validation import run_validation_suite; run_validation_suite()"
 ```
 
 ### Verify public app availability

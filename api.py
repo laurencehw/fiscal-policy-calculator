@@ -340,7 +340,7 @@ async def score_preset(request: ScorePresetRequest):
         preset = PRESET_POLICIES[request.preset_name]
 
         # Simple income tax presets are scored directly; TCJA and corporate
-        # presets require specialised scoring via the /score endpoint.
+        # presets require specialized scoring via the /score endpoint.
         if preset.get("is_tcja"):
             raise HTTPException(
                 status_code=400,

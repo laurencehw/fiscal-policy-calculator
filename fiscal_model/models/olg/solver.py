@@ -581,13 +581,26 @@ class OLGSolver:
             debt_path[t] = debt
 
             # Dampened update with step-size limiter to prevent oscillation.
+            # Guard against non-finite K values so NaN/Inf cannot propagate.
+            if not np.isfinite(K_new):
+                logger.warning(
+                    "Transition t=%d: non-finite K_new=%s; keeping prior K=%.6g",
+                    t, K_new, K,
+                )
+                K_new = K
             # 1. Apply dampening: blend old and new K.
             K_blended = (1.0 - theta) * K + theta * K_new
             # 2. Clamp the relative step to ±_MAX_REL_STEP of current K.
             K_floor = K * (1.0 - _MAX_REL_STEP)
             K_ceil = K * (1.0 + _MAX_REL_STEP)
             K_next = max(np.clip(K_blended, K_floor, K_ceil), 1e-6)
-            if abs(K_new - K) / max(abs(K), 1e-10) > 1.0:
+            if not np.isfinite(K_next):
+                logger.error(
+                    "Transition t=%d: non-finite K_next after clamp; "
+                    "falling back to prior K=%.6g", t, K,
+                )
+                K_next = max(K, 1e-6)
+            elif abs(K_new - K) / max(abs(K), 1e-10) > 1.0:
                 logger.warning(
                     "Transition t=%d: K_new=%.2f vs K=%.2f (>100%% step), "
                     "clamped to %.2f", t, K_new, K, K_next,

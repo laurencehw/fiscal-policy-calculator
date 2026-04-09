@@ -8,6 +8,7 @@ and freshness indicators. Connects to SQLite bill database.
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -49,7 +50,8 @@ def render_bill_tracker_tab(st_module: Any, db_path: str | None = None) -> None:
             cbo_count = db.count_bills_with_cbo()
             st_module.success(f"✅ Loaded database with {bill_count:,} bills and {cbo_count:,} CBO scores")
         except Exception:
-            st_module.success("✅ Loaded bill database")
+            logging.getLogger(__name__).exception("Failed to query bill/CBO counts")
+            st_module.warning("Loaded bill database (could not retrieve counts)")
 
     # Pipeline status bar
     _render_status_bar(st_module, db)
