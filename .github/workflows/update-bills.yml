@@ -5,6 +5,9 @@ on:
     - cron: '0 6 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   update-bills:
     runs-on: ubuntu-latest
@@ -36,7 +39,7 @@ jobs:
         env:
           CONGRESS_API_KEY: ${{ secrets.CONGRESS_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: python scripts/update_bills.py --verbose
+        run: python scripts/update_bills.py --verbose --cbo-fallback-file bill_tracker/cbo_manual_scores.json
 
       - name: Commit updated bills.db if changed
         run: |

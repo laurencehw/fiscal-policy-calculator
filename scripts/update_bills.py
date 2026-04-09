@@ -27,6 +27,7 @@ import argparse
 import logging
 import os
 import sys
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -173,11 +174,12 @@ def main() -> int:
     for bill in bills:
         logger.debug("Processing %s: %s", bill.bill_id, bill.title[:60])
 
-        # Fetch CRS summary if missing
+        # Fetch CRS summary if missing (rate-limited to avoid congress.gov throttling)
         if not bill.summary:
             summary = ingestor.fetch_bill_summary(bill.bill_id)
             if summary:
                 bill.summary = summary
+            time.sleep(0.2)
 
         if not args.dry_run:
             db.upsert_bill(bill)

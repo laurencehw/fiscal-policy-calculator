@@ -93,6 +93,16 @@ class BillDatabase:
 
     def __init__(self, db_path: str | Path = ":memory:"):
         self.db_path = str(db_path)
+        self._is_memory = self.db_path == ":memory:"
+        # For in-memory databases, keep a persistent connection so data
+        # survives across _connect() calls (each sqlite3.connect(":memory:")
+        # creates a separate, independent database).
+        if self._is_memory:
+            self._persistent_conn = sqlite3.connect(":memory:")
+            self._persistent_conn.row_factory = sqlite3.Row
+            self._persistent_conn.execute("PRAGMA foreign_keys = ON")
+        else:
+            self._persistent_conn = None
         self._init_schema()
 
     # ------------------------------------------------------------------
@@ -101,17 +111,26 @@ class BillDatabase:
 
     @contextmanager
     def _connect(self) -> Generator[sqlite3.Connection, None, None]:
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        conn.execute("PRAGMA foreign_keys = ON")
-        try:
-            yield conn
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
-        finally:
-            conn.close()
+        if self._is_memory:
+            # Reuse the persistent connection for in-memory databases
+            try:
+                yield self._persistent_conn
+                self._persistent_conn.commit()
+            except Exception:
+                self._persistent_conn.rollback()
+                raise
+        else:
+            conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row
+            conn.execute("PRAGMA foreign_keys = ON")
+            try:
+                yield conn
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
+            finally:
+                conn.close()
 
     def _init_schema(self) -> None:
         with self._connect() as conn:
