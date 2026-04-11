@@ -5,10 +5,13 @@ Provides baseline projections for federal revenues, spending, and deficits
 following CBO methodology and current law assumptions.
 """
 
+import logging
 from dataclasses import dataclass, field
 from enum import Enum
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 class BaselineVintage(Enum):
@@ -208,9 +211,6 @@ class CBOBaseline:
 
     def __init__(self, start_year: int = 2026, duration: int = 10,
                  use_real_data: bool = True, vintage: BaselineVintage | None = None):
-        import logging
-        logger = logging.getLogger(__name__)
-
         self.start_year = start_year
         self.duration = duration
         self.years = np.arange(start_year, start_year + duration)

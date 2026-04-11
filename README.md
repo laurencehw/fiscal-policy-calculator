@@ -1,6 +1,7 @@
 # Fiscal Policy Impact Calculator
 
 [![Tests](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml/badge.svg)](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml)
+[![Coverage](https://img.shields.io/badge/coverage-73%25-brightgreen)](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml)
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://fiscal-policy-calculator.streamlit.app)
 ![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -287,9 +288,24 @@ fiscal-policy-calculator/
 
 ---
 
+## REST API
+
+The project includes a FastAPI REST API for programmatic access:
+
+```bash
+uvicorn api:app --reload        # Start API server
+# Visit http://localhost:8000/docs for interactive Swagger documentation
+```
+
+Endpoints include `/score` (custom policies), `/presets` (list pre-built proposals), and `/score/tariff` (tariff scoring).
+
+---
+
 ## Contributing
 
-Contributions welcome. The most impactful areas:
+Contributions welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md) for setup instructions and guidelines.
+
+The most impactful areas:
 
 - **Multi-model comparison** — CBO-style, TPC microsim, dynamic side-by-side
 - **CPS microsimulation** — Individual-level tax calculation using CPS ASEC data
