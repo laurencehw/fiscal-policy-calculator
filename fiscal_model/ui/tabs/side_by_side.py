@@ -25,13 +25,12 @@ def _build_policy(
     """Build a policy object from a preset dict."""
     policy = create_policy_from_preset(preset)
     if policy is not None:
+        from contextlib import suppress
+
+        with suppress(Exception):
+            if hasattr(policy, "data_year"):
+                policy.data_year = data_year
         return policy
-
-    from contextlib import suppress
-
-    with suppress(Exception):
-        if hasattr(policy, "data_year"):
-            policy.data_year = data_year
 
     return tax_policy_cls(
         name=preset_name,
@@ -76,6 +75,10 @@ def _score(policy: Any, scorer: Any, dynamic: bool) -> dict[str, Any]:
 def _fmt(value: float) -> str:
     sign = "+" if value >= 0 else "-"
     return f"{sign}${abs(value):,.0f}B"
+
+
+def _fmt_abs(value: float) -> str:
+    return f"${abs(value):,.0f}B"
 
 
 def render_side_by_side_tab(
@@ -237,5 +240,5 @@ def render_side_by_side_tab(
     bigger = policy_a_name if abs(result_a["ten_year"]) > abs(result_b["ten_year"]) else policy_b_name
     st_module.markdown(
         f"**{bigger}** has the larger absolute 10-year effect. "
-        f"The difference between the two proposals is **{_fmt(abs(diff))}** over 10 years."
+        f"The difference between the two proposals is **{_fmt_abs(diff)}** over 10 years."
     )

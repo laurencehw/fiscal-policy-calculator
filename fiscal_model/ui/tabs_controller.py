@@ -1,11 +1,12 @@
 """
 Tab wiring and render orchestration helpers.
 
-Consolidated tab layout (4 tabs):
+Consolidated tab layout (5 tabs):
   1. Results & Details — summary metrics, year-by-year breakdown, export
   2. Distribution — impact by income group
   3. Economic Effects — dynamic scoring + long-run growth
   4. Scoring Models — compare static vs dynamic model estimates
+  5. Compare Policies — side-by-side preset comparison
 """
 
 from __future__ import annotations
@@ -20,12 +21,9 @@ def build_main_tabs(
     mode: str,
 ) -> dict[str, Any]:
     """
-    Create main Calculator result tabs (4 tabs).
+    Create main Calculator result tabs (5 tabs).
     Generational Analysis, State Analysis, Bill Tracker, and Methodology are
     top-level app tabs, not part of the Calculator tab set.
-
-    In Compare Policies or Policy Packages mode, a 5th tab is appended for
-    that workflow.
     """
     labels = [
         "📊 Results & Details",

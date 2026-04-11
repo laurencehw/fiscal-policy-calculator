@@ -279,10 +279,10 @@ class CBOBaseline:
             gdp_series = fred_data.get_gdp(nominal=True)
             # Get most recent quarterly value (in billions)
             self.base_gdp = float(gdp_series.iloc[-1])
-            print(f"Loaded GDP from FRED: ${self.base_gdp:,.0f}B")
+            logger.info("Loaded GDP from FRED: $%,.0fB", self.base_gdp)
         else:
             # Use ratio from IRS data
-            print("FRED not available, estimating GDP from IRS data")
+            logger.info("FRED not available, estimating GDP from IRS data")
             self.base_gdp = self.base_individual_income_tax / GDP_RATIOS["income_tax_to_gdp"]
 
         # Corporate tax: Historical ratio to individual income tax
