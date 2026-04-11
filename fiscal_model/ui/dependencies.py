@@ -103,6 +103,12 @@ def _render_state_analysis_tab(**kwargs: Any) -> Any:
     return render_state_analysis_tab(**kwargs)
 
 
+def _render_side_by_side_tab(**kwargs: Any) -> Any:
+    from .tabs.side_by_side import render_side_by_side_tab
+
+    return render_side_by_side_tab(**kwargs)
+
+
 @dataclass(frozen=True)
 class AppDependencies:
     PRESET_POLICIES: dict[str, dict[str, Any]]
@@ -141,6 +147,7 @@ class AppDependencies:
     render_generational_analysis_tab: Any
     render_bill_tracker_tab: Any
     render_state_analysis_tab: Any
+    render_side_by_side_tab: Any
     BaseScoringModel: type[BaseScoringModel]
     CBOStyleModel: type[CBOStyleModel]
     apply_app_styles: Any
@@ -195,6 +202,7 @@ def build_app_dependencies(pd_module: Any) -> AppDependencies:
         render_generational_analysis_tab=_render_generational_analysis_tab,
         render_bill_tracker_tab=_render_bill_tracker_tab,
         render_state_analysis_tab=_render_state_analysis_tab,
+        render_side_by_side_tab=_render_side_by_side_tab,
         BaseScoringModel=BaseScoringModel,
         CBOStyleModel=CBOStyleModel,
         apply_app_styles=apply_app_styles,

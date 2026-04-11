@@ -10,6 +10,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from .baseline import BaselineProjection
+from .constants import JOBS_PER_GDP_PERCENT
 from .policies import Policy, PolicyType, SpendingPolicy, TaxPolicy, TransferPolicy
 
 
@@ -255,19 +256,6 @@ class EconomicModel:
         Returns:
             DynamicEffects container with all calculated effects
         """
-        n_years = len(self.years)
-
-        # Initialize effect arrays
-        np.zeros(n_years)
-        np.zeros(n_years)
-        np.zeros(n_years)
-        np.zeros(n_years)
-        np.zeros(n_years)
-        np.zeros(n_years)
-        np.zeros(n_years)
-        np.zeros(n_years)
-        np.zeros(n_years)
-
         # Calculate effects based on policy type
         if isinstance(policy, TaxPolicy):
             effects = self._tax_policy_effects(policy, static_budget_effect)
@@ -331,7 +319,7 @@ class EconomicModel:
             gdp_pct[i] = gdp_level[i] / self.baseline.nominal_gdp[i] * 100
 
         # Employment effects
-        employment = gdp_pct / 100 * 150000  # Rough: 1% GDP = 1.5M jobs
+        employment = gdp_pct / 100 * JOBS_PER_GDP_PERCENT  # Rough: 1% GDP = 1.5M jobs
         hours = labor_effect * 100  # Convert to percent
 
         # Capital effects (long-run)
@@ -446,7 +434,7 @@ class EconomicModel:
                     labor_force_effect[i] = policy.labor_force_participation_effect * phase
 
         # Employment effect is sum of demand + labor supply effects
-        employment = gdp_pct / 100 * 150000 + labor_force_effect * 160000
+        employment = gdp_pct / 100 * JOBS_PER_GDP_PERCENT + labor_force_effect * 160000
 
         # Revenue feedback
         revenue_fb = gdp_level * self.params['marginal_revenue_rate']
@@ -472,7 +460,7 @@ class EconomicModel:
         gdp_level = budget_effect * 0.5  # Conservative multiplier
         gdp_pct = gdp_level / self.baseline.nominal_gdp * 100
 
-        employment = gdp_pct / 100 * 150000
+        employment = gdp_pct / 100 * JOBS_PER_GDP_PERCENT
         revenue_fb = gdp_level * self.params['marginal_revenue_rate']
 
         return {

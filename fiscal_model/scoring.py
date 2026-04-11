@@ -12,6 +12,15 @@ import numpy as np
 
 from .amt import AMTPolicy
 from .baseline import BaselineProjection, CBOBaseline
+from .constants import (
+    ASYMMETRY_HIGH,
+    ASYMMETRY_LOW,
+    BASE_UNCERTAINTY,
+    DYNAMIC_UNCERTAINTY_FACTOR,
+    SPENDING_UNCERTAINTY_FACTOR,
+    TAX_UNCERTAINTY_FACTOR,
+    UNCERTAINTY_GROWTH_PER_YEAR,
+)
 from .corporate import CorporateTaxPolicy
 from .credits import TaxCreditPolicy
 from .economics import DynamicEffects, EconomicModel
@@ -626,26 +635,26 @@ class FiscalPolicyScorer:
         n_years = len(central)
 
         # Base uncertainty (increases with time)
-        base_uncertainty = np.array([0.10 + 0.02 * i for i in range(n_years)])
+        base_uncertainty = np.array([
+            BASE_UNCERTAINTY + UNCERTAINTY_GROWTH_PER_YEAR * i for i in range(n_years)
+        ])
 
         # Adjust for policy type (some are more uncertain)
         if isinstance(policy, TaxPolicy):
-            # Tax revenue is harder to predict
-            policy_factor = 1.2
+            policy_factor = TAX_UNCERTAINTY_FACTOR
         elif isinstance(policy, SpendingPolicy):
-            # Direct spending is more predictable
-            policy_factor = 0.8
+            policy_factor = SPENDING_UNCERTAINTY_FACTOR
         else:
             policy_factor = 1.0
 
         # Increase uncertainty for dynamic estimates
-        dynamic_factor = 1.5 if dynamic is not None else 1.0
+        dynamic_factor = DYNAMIC_UNCERTAINTY_FACTOR if dynamic is not None else 1.0
 
         total_uncertainty = base_uncertainty * policy_factor * dynamic_factor
 
         # Calculate ranges (asymmetric - costs tend to be higher than estimated)
-        low = central * (1 - total_uncertainty * 0.9)
-        high = central * (1 + total_uncertainty * 1.1)
+        low = central * (1 - total_uncertainty * ASYMMETRY_LOW)
+        high = central * (1 + total_uncertainty * ASYMMETRY_HIGH)
 
         return low, high
 

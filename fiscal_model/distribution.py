@@ -489,8 +489,11 @@ class DistributionalEngine:
         # Create income groups
         groups = self.create_income_groups(group_type)
 
-        # Dispatch to appropriate handler based on policy type
-        policy_class_name = type(policy).__name__
+        # Resolve policy types via lazy imports (avoids circular imports)
+        TaxCreditPolicy, _ = _get_credit_policy()
+        TCJAExtensionPolicy = _get_tcja_policy()
+        CorporateTaxPolicy = _get_corporate_policy()
+        PayrollTaxPolicy = _get_payroll_policy()
 
         # Calculate tax change for each group using appropriate handler
         results = []
@@ -499,13 +502,13 @@ class DistributionalEngine:
 
         for group in groups:
             # Dispatch based on policy type
-            if policy_class_name == "TaxCreditPolicy":
+            if isinstance(policy, TaxCreditPolicy):
                 result = self._calculate_credit_effect(policy, group)
-            elif policy_class_name == "TCJAExtensionPolicy":
+            elif isinstance(policy, TCJAExtensionPolicy):
                 result = self._calculate_tcja_effect(policy, group)
-            elif policy_class_name == "CorporateTaxPolicy":
+            elif isinstance(policy, CorporateTaxPolicy):
                 result = self._calculate_corporate_effect(policy, group)
-            elif policy_class_name == "PayrollTaxPolicy":
+            elif isinstance(policy, PayrollTaxPolicy):
                 result = self._calculate_payroll_effect(policy, group)
             else:
                 # Default to basic TaxPolicy handling
