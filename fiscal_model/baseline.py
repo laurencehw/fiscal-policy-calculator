@@ -279,7 +279,7 @@ class CBOBaseline:
             gdp_series = fred_data.get_gdp(nominal=True)
             # Get most recent quarterly value (in billions)
             self.base_gdp = float(gdp_series.iloc[-1])
-            logger.info("Loaded GDP from FRED: $%,.0fB", self.base_gdp)
+            logger.info("Loaded GDP from FRED: $%.0fB", self.base_gdp)
         else:
             # Use ratio from IRS data
             logger.info("FRED not available, estimating GDP from IRS data")
