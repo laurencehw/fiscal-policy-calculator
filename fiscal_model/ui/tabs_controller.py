@@ -32,6 +32,7 @@ def build_main_tabs(
         "👥 Distribution",
         "🌍 Economic Effects",
         "⚖️ Scoring Models",
+        "🔀 Compare Policies",
     ]
 
     tabs = st_module.tabs(labels)
@@ -42,6 +43,7 @@ def build_main_tabs(
         "tab_distribution": tab_map["👥 Distribution"],
         "tab_economic": tab_map["🌍 Economic Effects"],
         "tab_scoring": tab_map["⚖️ Scoring Models"],
+        "tab_compare": tab_map["🔀 Compare Policies"],
     }
 
 
@@ -108,6 +110,17 @@ def render_result_tabs(
             st_module.info(
                 "Run a calculation to compare how different scoring models "
                 "estimate the same policy."
+            )
+        with tabs["tab_compare"]:
+            deps.render_side_by_side_tab(
+                st_module=st_module,
+                preset_policies=deps.PRESET_POLICIES,
+                tax_policy_cls=deps.TaxPolicy,
+                policy_type_income_tax=deps.PolicyType.INCOME_TAX,
+                fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
+                data_year=settings["data_year"],
+                use_real_data=settings["use_real_data"],
+                dynamic_scoring=settings["dynamic_scoring"],
             )
         return
 
@@ -184,6 +197,19 @@ def render_result_tabs(
         deps.render_policy_comparison_tab(
             st_module=st_module,
             is_spending=is_spending,
+            preset_policies=deps.PRESET_POLICIES,
+            tax_policy_cls=deps.TaxPolicy,
+            policy_type_income_tax=deps.PolicyType.INCOME_TAX,
+            fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
+            data_year=settings["data_year"],
+            use_real_data=settings["use_real_data"],
+            dynamic_scoring=settings["dynamic_scoring"],
+        )
+
+    # Tab 5: Side-by-Side Policy Comparison
+    with tabs["tab_compare"]:
+        deps.render_side_by_side_tab(
+            st_module=st_module,
             preset_policies=deps.PRESET_POLICIES,
             tax_policy_cls=deps.TaxPolicy,
             policy_type_income_tax=deps.PolicyType.INCOME_TAX,

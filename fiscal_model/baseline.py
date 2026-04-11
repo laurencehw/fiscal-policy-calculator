@@ -11,6 +11,8 @@ from enum import Enum
 
 import numpy as np
 
+from .constants import BASELINE_GROWTH, GDP_RATIOS
+
 logger = logging.getLogger(__name__)
 
 
@@ -281,27 +283,27 @@ class CBOBaseline:
         else:
             # Use ratio from IRS data
             print("FRED not available, estimating GDP from IRS data")
-            self.base_gdp = self.base_individual_income_tax / 0.088  # ~8.8% ratio
+            self.base_gdp = self.base_individual_income_tax / GDP_RATIOS["income_tax_to_gdp"]
 
-        # Corporate tax: Historical ratio to individual income tax (~18%)
-        self.base_corporate_tax = self.base_individual_income_tax * 0.18
+        # Corporate tax: Historical ratio to individual income tax
+        self.base_corporate_tax = self.base_individual_income_tax * GDP_RATIOS["corporate_tax_to_income_tax"]
 
-        # Payroll tax: ~6% of GDP (historical average)
-        self.base_payroll_tax = self.base_gdp * 0.06
+        # Payroll tax: Historical average share of GDP
+        self.base_payroll_tax = self.base_gdp * GDP_RATIOS["payroll_tax_to_gdp"]
 
-        # Other revenue: Estate, excise, customs (~1.4% of GDP)
-        self.base_other_revenue = self.base_gdp * 0.014
+        # Other revenue: Estate, excise, customs share of GDP
+        self.base_other_revenue = self.base_gdp * GDP_RATIOS["other_revenue_to_gdp"]
 
         # Spending categories: Use GDP ratios
-        self.base_social_security = self.base_gdp * 0.053  # ~5.3% of GDP
-        self.base_medicare = self.base_gdp * 0.032  # ~3.2% of GDP
-        self.base_medicaid = self.base_gdp * 0.021  # ~2.1% of GDP
-        self.base_other_mandatory = self.base_gdp * 0.032  # ~3.2% of GDP
-        self.base_defense = self.base_gdp * 0.032  # ~3.2% of GDP
-        self.base_nondefense = self.base_gdp * 0.026  # ~2.6% of GDP
+        self.base_social_security = self.base_gdp * GDP_RATIOS["social_security_to_gdp"]
+        self.base_medicare = self.base_gdp * GDP_RATIOS["medicare_to_gdp"]
+        self.base_medicaid = self.base_gdp * GDP_RATIOS["medicaid_to_gdp"]
+        self.base_other_mandatory = self.base_gdp * GDP_RATIOS["other_mandatory_to_gdp"]
+        self.base_defense = self.base_gdp * GDP_RATIOS["defense_to_gdp"]
+        self.base_nondefense = self.base_gdp * GDP_RATIOS["nondefense_to_gdp"]
 
-        # Debt: ~98% of GDP (current debt-to-GDP ratio)
-        self.base_debt = self.base_gdp * 0.98
+        # Debt: Current debt-to-GDP ratio
+        self.base_debt = self.base_gdp * GDP_RATIOS["debt_to_gdp"]
 
     def _use_hardcoded_fallback(self):
         """Use hardcoded baseline values (fallback when data unavailable)."""
@@ -387,7 +389,7 @@ class CBOBaseline:
         """Project individual income tax revenues."""
         # Income tax grows faster than GDP due to bracket creep
         revenue = np.zeros(10)
-        growth_premium = 0.003  # Extra growth from real bracket creep
+        growth_premium = BASELINE_GROWTH["bracket_creep_premium"]
 
         revenue[0] = self.base_individual_income_tax * (1 +
                      self.assumptions.real_gdp_growth[0] +
@@ -408,7 +410,7 @@ class CBOBaseline:
 
         for i in range(1, 10):
             # Corporate profits grow slightly faster than GDP
-            growth = self.assumptions.real_gdp_growth[i] + self.assumptions.inflation[i] + 0.01
+            growth = self.assumptions.real_gdp_growth[i] + self.assumptions.inflation[i] + BASELINE_GROWTH["corporate_profit_premium"]
             revenue[i] = revenue[i-1] * (1 + growth)
 
         return revenue
@@ -432,7 +434,7 @@ class CBOBaseline:
         revenue[0] = self.base_other_revenue * 1.03
 
         for i in range(1, 10):
-            revenue[i] = revenue[i-1] * 1.02  # Slower growth
+            revenue[i] = revenue[i-1] * (1 + BASELINE_GROWTH["other_revenue"])  # Slower growth
 
         return revenue
 
@@ -444,7 +446,7 @@ class CBOBaseline:
 
         for i in range(1, 10):
             # ~5% annual growth
-            spending[i] = spending[i-1] * 1.05
+            spending[i] = spending[i-1] * (1 + BASELINE_GROWTH["social_security"])
 
         return spending
 
@@ -455,7 +457,7 @@ class CBOBaseline:
         spending[0] = self.base_medicare * 1.07
 
         for i in range(1, 10):
-            spending[i] = spending[i-1] * 1.06
+            spending[i] = spending[i-1] * (1 + BASELINE_GROWTH["medicare"])
 
         return spending
 
@@ -465,7 +467,7 @@ class CBOBaseline:
         spending[0] = self.base_medicaid * 1.05
 
         for i in range(1, 10):
-            spending[i] = spending[i-1] * 1.05
+            spending[i] = spending[i-1] * (1 + BASELINE_GROWTH["medicaid"])
 
         return spending
 
@@ -475,7 +477,7 @@ class CBOBaseline:
         spending[0] = self.base_other_mandatory * 1.03
 
         for i in range(1, 10):
-            spending[i] = spending[i-1] * 1.03
+            spending[i] = spending[i-1] * (1 + BASELINE_GROWTH["other_mandatory"])
 
         return spending
 
@@ -486,7 +488,7 @@ class CBOBaseline:
         spending[0] = self.base_defense * 1.02
 
         for i in range(1, 10):
-            spending[i] = spending[i-1] * 1.02
+            spending[i] = spending[i-1] * (1 + BASELINE_GROWTH["defense"])
 
         return spending
 
@@ -496,7 +498,7 @@ class CBOBaseline:
         spending[0] = self.base_nondefense * 1.01
 
         for i in range(1, 10):
-            spending[i] = spending[i-1] * 1.01
+            spending[i] = spending[i-1] * (1 + BASELINE_GROWTH["nondefense"])
 
         return spending
 
