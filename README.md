@@ -79,6 +79,19 @@ streamlit run app.py          # Main policy calculator
 streamlit run classroom_app.py  # Classroom mode
 ```
 
+### Use the REST API
+
+```bash
+uvicorn api:app --reload
+```
+
+Key routes:
+
+- `GET /presets` lists the full preset library with official-score metadata where available.
+- `POST /score` supports generic `income_tax`, `corporate_tax`, and `payroll_tax` custom policies.
+- `POST /score/preset` routes preset scoring through the same preset factory used by the Streamlit UI, including specialized policy modules such as TCJA, credits, payroll, PTC, trade, and climate presets.
+- `POST /score/tariff` uses the tariff policy model instead of a standalone rough formula.
+
 ### Use as a Python library
 
 ```python
@@ -231,7 +244,7 @@ The app includes interactive sensitivity sliders to explore these ranges.
 
 ```bash
 pip install -r requirements.txt pytest pytest-cov
-pytest tests/ -v                        # 960+ tests
+pytest tests/ -v                        # 973 tests
 pytest tests/ --cov=fiscal_model        # With coverage (~73%)
 ```
 
@@ -280,7 +293,7 @@ fiscal-policy-calculator/
 │   └── constants.py          # All parameters with citations
 ├── classroom/                # Assignment engine, feedback, PDF export
 ├── bill_tracker/             # congress.gov pipeline, LLM extraction
-├── tests/                    # 960+ tests
+├── tests/                    # 973 tests
 ├── docs/                     # Methodology, architecture docs
 ├── planning/                 # Roadmap, session notes
 └── pyproject.toml            # Project config, ruff, pytest

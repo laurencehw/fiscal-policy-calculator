@@ -6,7 +6,7 @@
 
 ## Current state (April 2026)
 
-**960+ tests passing, 73% coverage, 25+ policies validated within 15% of CBO/JCT**
+**973 tests passing, 73% coverage, 25+ policies validated within 15% of CBO/JCT**
 
 ### Completed work
 
@@ -14,7 +14,7 @@
 - CBO February 2026 baseline with vintage selector (Feb 2024 / Jan 2025 / Feb 2026)
 - Sprint 1: Tariff scoring — 5 presets, consumer price impact display, 45 tests
 - Sprint 2: Microsimulation hardening — MFJ brackets, SALT, AMT, EITC, NIIT
-- Sprint 3: FastAPI endpoints (`/health`, `/presets`, `/score`, `/score/tariff`)
+- Sprint 3: FastAPI endpoints (`/health`, `/presets`, `/score`, `/score/preset`, `/score/tariff`)
 - Sprint 4: Test coverage 57% → 72% (131 new tests)
 - Sprint 5: `scripts/update_data.py`, `scripts/batch_score.py`
 

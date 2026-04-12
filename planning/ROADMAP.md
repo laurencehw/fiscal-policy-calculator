@@ -13,14 +13,14 @@
 - **Distributional analysis**: TPC/JCT-style tables by quintile, decile, and dollar brackets
 - **Tariff scoring**: 5 presets with consumer price impact by quintile
 - **Microsimulation engine**: MFJ brackets, SALT, AMT, EITC, NIIT
-- **FastAPI endpoints**: `/health`, `/presets`, `/score`, `/score/tariff`
+- **FastAPI endpoints**: `/health`, `/presets`, `/score`, `/score/preset`, `/score/tariff`
 - **OLG model**: 30-period Auerbach-Kotlikoff-style for SS/Medicare reform and generational accounting
 - **Classroom Mode**: 7 assignments (intro → advanced), PDF export, 80 tests
 - **State-Level Modeling**: top 10 states, SALT interaction, combined rate curves
 - **Real-Time Bill Tracker**: congress.gov pipeline, LLM extraction, SQLite storage
 - **Interactive Streamlit app** with methodology documentation, sensitivity analysis, comparison tools, CSV export
 - **25+ policies validated** against CBO/JCT/Treasury within 15%
-- **960+ tests**, 73% coverage, ruff linting, GitHub Actions CI
+- **973 tests**, 73% coverage, ruff linting, GitHub Actions CI
 - **Real data integration**: IRS Statistics of Income, FRED, CBO Baseline
 
 ### Policy modules

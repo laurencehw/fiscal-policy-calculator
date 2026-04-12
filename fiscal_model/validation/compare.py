@@ -51,6 +51,7 @@ from ..tax_expenditures import (
     create_repeal_salt_cap,
 )
 from ..tcja import create_tcja_extension, create_tcja_repeal_salt_cap
+from ..time_utils import utc_now
 from .cbo_scores import KNOWN_SCORES, CBOScore, get_validation_targets
 
 
@@ -385,7 +386,7 @@ def generate_validation_report(results: list[ValidationResult]) -> str:
     lines = [
         "# Model Validation Report",
         "",
-        f"**Date:** {__import__('datetime').datetime.now().strftime('%Y-%m-%d')}",
+        f"**Date:** {utc_now().strftime('%Y-%m-%d')}",
         f"**Policies Tested:** {len(results)}",
         "",
         "## Summary",

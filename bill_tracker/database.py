@@ -19,6 +19,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from fiscal_model.time_utils import format_utc_timestamp, parse_utc_timestamp, utc_now
+
 if TYPE_CHECKING:
     from bill_tracker.auto_scorer import BillScore
 
@@ -329,7 +331,7 @@ class BillDatabase:
                     json.dumps(policies_json),
                     override_reason,
                     mapped_by,
-                    _dt_str(datetime.utcnow()),
+                    _dt_str(utc_now()),
                 ),
             )
 
@@ -365,17 +367,8 @@ class BillDatabase:
 
 
 def _dt_str(dt: datetime | None) -> str:
-    if dt is None:
-        return ""
-    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    return format_utc_timestamp(dt)
 
 
 def _parse_dt(s: str) -> datetime | None:
-    if not s:
-        return None
-    for fmt in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d"):
-        try:
-            return datetime.strptime(s, fmt)
-        except ValueError:
-            continue
-    return None
+    return parse_utc_timestamp(s)

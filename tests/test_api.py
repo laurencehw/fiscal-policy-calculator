@@ -7,6 +7,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import numpy as np
+import pytest
 from fastapi.testclient import TestClient
 
 import api as api_module
@@ -19,10 +20,12 @@ class _DummyScoringResult:
         self.static_revenue_effect = np.full(10, 5.0)
         self.behavioral_offset = np.full(10, -1.0)
         self.final_deficit_effect = np.full(10, -4.0)
-        self.revenue_feedback = np.full(10, 0.5)
         self.baseline = SimpleNamespace(baseline_vintage_date="Feb 2026")
-        self.gdp_effect = 0.2
-        self.employment_effect = 120.0
+        self.dynamic_effects = SimpleNamespace(
+            revenue_feedback=np.full(10, 0.5),
+            gdp_percent_change=np.full(10, 0.02),
+            employment_change=np.full(10, 120.0),
+        )
 
 
 class _DummyScorer:
@@ -32,6 +35,14 @@ class _DummyScorer:
     def score_policy(self, policy, dynamic=False):
         del policy, dynamic
         return _DummyScoringResult()
+
+
+class _RecordingScorer(_DummyScorer):
+    last_policy = None
+
+    def score_policy(self, policy, dynamic=False):
+        type(self).last_policy = policy
+        return super().score_policy(policy, dynamic=dynamic)
 
 
 def _client() -> TestClient:
@@ -91,6 +102,11 @@ def test_score_endpoint_success(monkeypatch):
     assert payload["error_message"] is None
     assert payload["dynamic_scoring_enabled"] is True
     assert len(payload["year_by_year"]) == 10
+    assert payload["revenue_feedback"] == pytest.approx(5.0)
+    assert payload["gdp_effect"] == pytest.approx(0.2)
+    assert payload["employment_effect"] == pytest.approx(120.0)
+    assert payload["dynamic_adjusted_impact"] == pytest.approx(-40.0)
+    assert payload["year_by_year"][0]["dynamic_feedback"] == pytest.approx(0.5)
 
 
 def test_score_endpoint_validation_error():
@@ -99,6 +115,19 @@ def test_score_endpoint_validation_error():
         json={"rate_change": 2.0, "income_threshold": 400000},
     )
     assert response.status_code == 422
+
+
+def test_score_endpoint_invalid_policy_type_returns_400():
+    response = _client().post(
+        "/score",
+        json={
+            "rate_change": 0.01,
+            "income_threshold": 400000,
+            "policy_type": "tax_credit",
+        },
+    )
+    assert response.status_code == 400
+    assert "policy_type" in response.json()["detail"]
 
 
 def test_score_endpoint_internal_error_returns_error_payload(monkeypatch):
@@ -127,15 +156,37 @@ def test_score_preset_unknown_returns_400():
     assert "Unknown preset" in response.json()["detail"]
 
 
-def test_score_preset_supported_contract(monkeypatch):
-    monkeypatch.setattr(api_module, "FiscalPolicyScorer", _DummyScorer)
-    preset_name = next(
-        name for name, data in PRESET_POLICIES.items()
-        if name != "Custom Policy"
-        and not data.get("is_tcja")
-        and not data.get("is_corporate")
-    )
-
+@pytest.mark.parametrize(
+    ("preset_name", "expected_class_name"),
+    [
+        (
+            next(name for name, data in PRESET_POLICIES.items() if data.get("is_tcja")),
+            "TCJAExtensionPolicy",
+        ),
+        (
+            next(name for name, data in PRESET_POLICIES.items() if data.get("is_corporate")),
+            "CorporateTaxPolicy",
+        ),
+        (
+            next(name for name, data in PRESET_POLICIES.items() if data.get("is_credit")),
+            "TaxCreditPolicy",
+        ),
+        (
+            next(name for name, data in PRESET_POLICIES.items() if data.get("is_payroll")),
+            "PayrollTaxPolicy",
+        ),
+        (
+            next(name for name, data in PRESET_POLICIES.items() if data.get("is_ptc")),
+            "PremiumTaxCreditPolicy",
+        ),
+        (
+            next(name for name, data in PRESET_POLICIES.items() if data.get("is_trade")),
+            "TariffPolicy",
+        ),
+    ],
+)
+def test_score_preset_routes_specialized_policies(monkeypatch, preset_name, expected_class_name):
+    monkeypatch.setattr(api_module, "FiscalPolicyScorer", _RecordingScorer)
     response = _client().post(
         "/score/preset",
         json={"preset_name": preset_name, "dynamic": False},
@@ -144,16 +195,17 @@ def test_score_preset_supported_contract(monkeypatch):
     payload = response.json()
     assert payload["policy_name"] == preset_name
     assert len(payload["year_by_year"]) == 10
+    assert _RecordingScorer.last_policy.__class__.__name__ == expected_class_name
 
 
-def test_score_preset_tcja_returns_400():
-    tcja_name = next(name for name, data in PRESET_POLICIES.items() if data.get("is_tcja"))
+def test_score_preset_routes_simple_income_tax_policy(monkeypatch):
+    monkeypatch.setattr(api_module, "FiscalPolicyScorer", _RecordingScorer)
     response = _client().post(
         "/score/preset",
-        json={"preset_name": tcja_name, "dynamic": False},
+        json={"preset_name": "Biden 2025 Proposal", "dynamic": False},
     )
-    assert response.status_code == 400
-    assert "TCJA presets require specialized scoring" in response.json()["detail"]
+    assert response.status_code == 200
+    assert _RecordingScorer.last_policy.__class__.__name__ == "TaxPolicy"
 
 
 def test_score_tariff_contract():

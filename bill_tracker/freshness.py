@@ -14,6 +14,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 
+from fiscal_model.time_utils import UTC, ensure_utc, utc_now
+
 
 @dataclass
 class FreshnessStatus:
@@ -52,11 +54,11 @@ def check_freshness(
         now: Override current time (useful for testing). Defaults to UTC now.
     """
     if now is None:
-        now = datetime.utcnow()
+        now = utc_now()
+    else:
+        now = ensure_utc(now)
 
-    # Normalise timezone (strip tz info for comparison)
-    if last_fetched.tzinfo is not None:
-        last_fetched = last_fetched.replace(tzinfo=None)
+    last_fetched = ensure_utc(last_fetched)
 
     delta = now - last_fetched
     days = max(0, delta.days)
@@ -133,7 +135,7 @@ def freshness_from_db_row(row: dict) -> FreshnessStatus:
     from .database import _parse_dt
 
     last_fetched_str = row.get("last_fetched", "")
-    last_fetched = _parse_dt(last_fetched_str) or datetime(1970, 1, 1)
+    last_fetched = _parse_dt(last_fetched_str) or datetime(1970, 1, 1, tzinfo=UTC)
     status = row.get("status", "introduced")
     bill_id = row.get("bill_id", "")
 

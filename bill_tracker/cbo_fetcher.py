@@ -20,6 +20,8 @@ from typing import Any
 
 import requests
 
+from fiscal_model.time_utils import UTC, parse_utc_timestamp, utc_now
+
 logger = logging.getLogger(__name__)
 
 CBO_BASE = "https://www.cbo.gov"
@@ -262,7 +264,7 @@ class CBOScoreFetcher:
             return CBOCostEstimate(
                 bill_id="",
                 title=title,
-                estimate_date=datetime.utcnow(),
+                estimate_date=utc_now(),
                 ten_year_cost_billions=ten_year_cost,
                 cbo_url=url,
             )
@@ -272,14 +274,15 @@ class CBOScoreFetcher:
 
 
 def _parse_date(date_str: str) -> datetime:
-    if not date_str:
-        return datetime(1970, 1, 1)
-    for fmt in ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S", "%m/%d/%Y"):
+    parsed = parse_utc_timestamp(date_str)
+    if parsed is not None:
+        return parsed
+    for fmt in ("%m/%d/%Y",):
         try:
-            return datetime.strptime(date_str[:19], fmt)
+            return datetime.strptime(date_str[:10], fmt).replace(tzinfo=UTC)
         except (ValueError, TypeError):
             continue
-    return datetime(1970, 1, 1)
+    return datetime(1970, 1, 1, tzinfo=UTC)
 
 
 def _parse_cost_billions(cost_raw: Any) -> float:
@@ -354,7 +357,7 @@ def load_fallback_estimates(path: str | Path) -> list[CBOCostEstimate]:
 
         estimate_date = _parse_date(str(raw.get("estimate_date", "")))
         if estimate_date.year == 1970:
-            estimate_date = datetime.utcnow()
+            estimate_date = utc_now()
 
         annual_costs_raw = raw.get("annual_costs", [])
         annual_costs: list[float] = []

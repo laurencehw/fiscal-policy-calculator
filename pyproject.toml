@@ -36,6 +36,8 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --tb=short"
+cache_dir = "test_output/.pytest_cache"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
 target-version = "py310"
@@ -77,5 +79,5 @@ source = ["fiscal_model"]
 omit = ["fiscal_model/ui/*", "fiscal_model/microsim/demo.py"]
 
 [tool.coverage.report]
-fail_under = 60
+fail_under = 70
 show_missing = true

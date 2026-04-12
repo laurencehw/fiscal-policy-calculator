@@ -13,7 +13,7 @@ Coverage:
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -542,7 +542,7 @@ class TestFreshness:
     def test_freshness_from_db_row(self, tmp_db, sample_bill_metadata):
         from bill_tracker.freshness import freshness_from_db_row
         # Insert a fresh bill
-        sample_bill_metadata.last_fetched = datetime.utcnow()
+        sample_bill_metadata.last_fetched = datetime.now(timezone.utc)
         tmp_db.upsert_bill(sample_bill_metadata)
         row = tmp_db.get_bill("hr-1234-119")
         status = freshness_from_db_row(row)

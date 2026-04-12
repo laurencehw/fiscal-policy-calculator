@@ -17,6 +17,8 @@ from typing import Any
 
 import requests
 
+from fiscal_model.time_utils import utc_now
+
 logger = logging.getLogger(__name__)
 
 CONGRESS_API_BASE = "https://api.congress.gov/v3"
@@ -85,7 +87,7 @@ class BillMetadata:
     has_cbo_score: bool = False
     summary: str | None = None
     url: str = ""
-    last_fetched: datetime = field(default_factory=datetime.utcnow)
+    last_fetched: datetime = field(default_factory=utc_now)
 
 
 def _make_bill_id(congress: int, bill_type: str, number: str) -> str:
@@ -282,7 +284,7 @@ class BillIngestor:
                 has_cbo_score=False,
                 summary=None,
                 url=congress_url,
-                last_fetched=datetime.utcnow(),
+                last_fetched=utc_now(),
             )
         except Exception as e:
             logger.debug("Failed to parse bill metadata: %s", e)

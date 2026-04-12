@@ -16,13 +16,16 @@ import numpy as np
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+from fiscal_model.api_serialization import serialize_scoring_result
 from fiscal_model.app_data import CBO_SCORE_MAP, PRESET_POLICIES
 from fiscal_model.health import check_health
 from fiscal_model.policies import (
     PolicyType,
     TaxPolicy,
 )
+from fiscal_model.preset_handler import create_policy_from_preset
 from fiscal_model.scoring import FiscalPolicyScorer
+from fiscal_model.trade import TariffPolicy
 
 app = FastAPI(
     title="Fiscal Policy Calculator API",
@@ -158,6 +161,64 @@ class HealthCheckResponse(BaseModel):
     components: dict[str, Any]
 
 
+SUPPORTED_CUSTOM_POLICY_TYPES = {
+    PolicyType.INCOME_TAX,
+    PolicyType.CORPORATE_TAX,
+    PolicyType.PAYROLL_TAX,
+}
+
+
+def _resolve_custom_policy_type(raw_policy_type: str) -> PolicyType:
+    """Resolve and validate the generic custom-policy API policy type."""
+    try:
+        policy_type = PolicyType(raw_policy_type)
+    except ValueError as exc:
+        supported = ", ".join(sorted(policy.value for policy in SUPPORTED_CUSTOM_POLICY_TYPES))
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Unsupported policy_type '{raw_policy_type}'. "
+                f"Supported values: {supported}."
+            ),
+        ) from exc
+
+    if policy_type not in SUPPORTED_CUSTOM_POLICY_TYPES:
+        supported = ", ".join(sorted(policy.value for policy in SUPPORTED_CUSTOM_POLICY_TYPES))
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"policy_type '{raw_policy_type}' is not supported by /score. "
+                f"Supported values: {supported}."
+            ),
+        )
+    return policy_type
+
+
+def _build_preset_policy(preset_name: str) -> tuple[Any, bool]:
+    """
+    Build a preset policy using the same routing path as the Streamlit UI.
+
+    Returns:
+        Tuple of (policy, use_real_data_for_scorer).
+    """
+    preset = PRESET_POLICIES[preset_name]
+    policy = create_policy_from_preset(preset)
+    if policy is not None:
+        return policy, False
+
+    raw_rate_change = float(preset.get("rate_change", 0.0))
+    policy = TaxPolicy(
+        name=preset_name,
+        description=preset.get("description", ""),
+        policy_type=PolicyType.INCOME_TAX,
+        rate_change=raw_rate_change / 100.0 if abs(raw_rate_change) > 1 else raw_rate_change,
+        affected_income_threshold=float(preset.get("threshold", 0.0)),
+        taxable_income_elasticity=0.25,
+        duration_years=10,
+    )
+    return policy, True
+
+
 # =============================================================================
 # ENDPOINTS
 # =============================================================================
@@ -220,12 +281,13 @@ async def score_policy(request: ScorePolicyRequest):
         # Validate inputs
         if request.duration_years < 1:
             raise ValueError("duration_years must be at least 1")
+        policy_type = _resolve_custom_policy_type(request.policy_type)
 
         # Create policy
         policy = TaxPolicy(
             name=request.name,
             description=request.description,
-            policy_type=PolicyType.INCOME_TAX,
+            policy_type=policy_type,
             rate_change=request.rate_change,
             affected_income_threshold=request.income_threshold,
             taxable_income_elasticity=request.elasticity,
@@ -236,76 +298,17 @@ async def score_policy(request: ScorePolicyRequest):
         scorer = FiscalPolicyScorer(use_real_data=True)
         result = scorer.score_policy(policy, dynamic=request.dynamic)
 
-        # Build year-by-year breakdown
-        year_by_year = []
-        for i, year in enumerate(result.years):
-            year_by_year.append(
-                YearlyEffect(
-                    year=int(year),
-                    revenue_effect=float(result.static_revenue_effect[i]),
-                    behavioral_offset=float(
-                        result.behavioral_offset[i]
-                        if hasattr(result, "behavioral_offset")
-                        else 0.0
-                    ),
-                    dynamic_feedback=float(
-                        result.revenue_feedback[i]
-                        if hasattr(result, "revenue_feedback") and result.revenue_feedback is not None
-                        else 0.0
-                    ),
-                    final_effect=float(result.final_deficit_effect[i]),
-                )
-            )
-
-        # Get baseline info
-        baseline = result.baseline
-        baseline_vintage = (
-            baseline.baseline_vintage_date
-            if hasattr(baseline, "baseline_vintage_date")
-            else "2024"
-        )
-
-        # Compute totals
-        ten_year_impact = float(np.sum(result.final_deficit_effect))
-        static_total = float(np.sum(result.static_revenue_effect))
-        behavioral_total = float(
-            np.sum(result.behavioral_offset)
-            if hasattr(result, "behavioral_offset")
-            else 0.0
-        )
-        dynamic_feedback_total = float(
-            np.sum(result.revenue_feedback)
-            if hasattr(result, "revenue_feedback") and result.revenue_feedback is not None
-            else 0.0
-        )
-
-        # GDP and employment effects (if dynamic)
-        gdp_effect = None
-        employment_effect = None
-        if request.dynamic and hasattr(result, "gdp_effect"):
-            gdp_effect = float(result.gdp_effect)
-        if request.dynamic and hasattr(result, "employment_effect"):
-            employment_effect = float(result.employment_effect)
-
         return ScorePolicyResponse(
-            policy_name=request.name,
-            policy_description=request.description,
-            baseline_vintage=baseline_vintage,
-            budget_window=f"FY{int(result.years[0])}-{int(result.years[-1])}",
-            ten_year_deficit_impact=ten_year_impact,
-            static_revenue_effect=static_total,
-            behavioral_offset=behavioral_total,
-            final_static_effect=static_total + behavioral_total,
-            gdp_effect=gdp_effect,
-            employment_effect=employment_effect,
-            revenue_feedback=dynamic_feedback_total,
-            dynamic_adjusted_impact=(
-                ten_year_impact + dynamic_feedback_total if request.dynamic else None
-            ),
-            year_by_year=year_by_year,
-            dynamic_scoring_enabled=request.dynamic,
+            **serialize_scoring_result(
+                result,
+                policy_name=request.name,
+                policy_description=request.description,
+                dynamic_scoring_enabled=request.dynamic,
+            )
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         return ScorePolicyResponse(
             policy_name=request.name,
@@ -338,83 +341,21 @@ async def score_preset(request: ScorePresetRequest):
             )
 
         preset = PRESET_POLICIES[request.preset_name]
+        policy, use_real_data = _build_preset_policy(request.preset_name)
 
-        # Simple income tax presets are scored directly; TCJA and corporate
-        # presets require specialized scoring via the /score endpoint.
-        if preset.get("is_tcja"):
-            raise HTTPException(
-                status_code=400,
-                detail="TCJA presets require specialized scoring. Use /score with custom parameters.",
-            )
-
-        if preset.get("is_corporate"):
-            raise HTTPException(
-                status_code=400,
-                detail="Corporate presets require specialized scoring. Use /score with custom parameters.",
-            )
-
-        # Create a basic tax policy from preset
-        policy = TaxPolicy(
-            name=request.preset_name,
-            description=preset.get("description", ""),
-            policy_type=PolicyType.INCOME_TAX,
-            rate_change=preset.get("rate_change", 0.0),
-            affected_income_threshold=preset.get("threshold", 0.0),
-            taxable_income_elasticity=0.25,
-            duration_years=10,
+        scorer = FiscalPolicyScorer(
+            start_year=getattr(policy, "start_year", 2025),
+            use_real_data=use_real_data,
         )
-
-        # Score it
-        scorer = FiscalPolicyScorer(use_real_data=True)
         result = scorer.score_policy(policy, dynamic=request.dynamic)
 
-        # Build response
-        year_by_year = []
-        for i, year in enumerate(result.years):
-            year_by_year.append(
-                YearlyEffect(
-                    year=int(year),
-                    revenue_effect=float(result.static_revenue_effect[i]),
-                    behavioral_offset=float(
-                        result.behavioral_offset[i]
-                        if hasattr(result, "behavioral_offset")
-                        else 0.0
-                    ),
-                    dynamic_feedback=float(
-                        result.revenue_feedback[i]
-                        if hasattr(result, "revenue_feedback") and result.revenue_feedback is not None
-                        else 0.0
-                    ),
-                    final_effect=float(result.final_deficit_effect[i]),
-                )
-            )
-
-        baseline = result.baseline
-        baseline_vintage = (
-            baseline.baseline_vintage_date
-            if hasattr(baseline, "baseline_vintage_date")
-            else "2024"
-        )
-
-        ten_year_impact = float(np.sum(result.final_deficit_effect))
-        static_total = float(np.sum(result.static_revenue_effect))
-        behavioral_total = float(
-            np.sum(result.behavioral_offset)
-            if hasattr(result, "behavioral_offset")
-            else 0.0
-        )
-
         return ScorePolicyResponse(
-            policy_name=request.preset_name,
-            policy_description=preset.get("description", ""),
-            baseline_vintage=baseline_vintage,
-            budget_window=f"FY{int(result.years[0])}-{int(result.years[-1])}",
-            ten_year_deficit_impact=ten_year_impact,
-            static_revenue_effect=static_total,
-            behavioral_offset=behavioral_total,
-            final_static_effect=static_total + behavioral_total,
-            year_by_year=year_by_year,
-            dynamic_scoring_enabled=request.dynamic,
+            **serialize_scoring_result(
+                result,
+                policy_name=request.preset_name,
+                policy_description=preset.get("description", ""),
+                dynamic_scoring_enabled=request.dynamic,
+            )
         )
 
     except ValueError as e:
@@ -429,23 +370,34 @@ async def score_tariff(request: ScoreTariffRequest):
     Estimates revenue, consumer costs, and retaliation effects of tariffs.
     """
     try:
-        # Simple tariff scoring model
-        # Revenue = tariff_rate * import_base
-        gross_revenue = request.tariff_rate * request.import_base_billions * 10
-
-        # Consumer cost (rough estimate: tariff costs passed to consumers)
+        policy = TariffPolicy(
+            name=request.name,
+            description=f"{request.tariff_rate:.0%} tariff policy",
+            tariff_rate_change=request.tariff_rate,
+            target_country=request.target_country,
+            import_base_billions=request.import_base_billions,
+            include_consumer_cost=request.include_consumer_cost,
+            include_retaliation=request.include_retaliation,
+        )
+        scorer = FiscalPolicyScorer(
+            start_year=getattr(policy, "start_year", 2025),
+            use_real_data=False,
+        )
+        result = scorer.score_policy(policy, dynamic=False)
+        annual_summary = policy.get_trade_summary()
+        duration_years = getattr(policy, "duration_years", 10)
+        gross_revenue = annual_summary["tariff_revenue"] * duration_years
         consumer_cost = (
-            gross_revenue * 1.2 if request.include_consumer_cost else 0.0
+            annual_summary["consumer_cost"] * duration_years
+            if request.include_consumer_cost
+            else 0.0
         )
-
-        # Retaliation cost (rough estimate: 30-50% of revenue as trade loss)
         retaliation_cost = (
-            gross_revenue * 0.4 if request.include_retaliation else 0.0
+            annual_summary["retaliation_cost"] * duration_years
+            if request.include_retaliation
+            else 0.0
         )
-
-        # Net deficit impact
-        # Revenue is positive (reduces deficit), costs are negative
-        net_impact = gross_revenue - (consumer_cost + retaliation_cost) / 1e3
+        net_impact = float(np.sum(result.final_deficit_effect))
 
         trade_summary = TradeSummary(
             gross_revenue=gross_revenue,
@@ -456,12 +408,12 @@ async def score_tariff(request: ScoreTariffRequest):
 
         return ScoreTariffResponse(
             policy_name=request.name,
-            ten_year_deficit_impact=-gross_revenue,  # Negative = revenue raiser
+            ten_year_deficit_impact=net_impact,
             trade_summary=trade_summary,
             uncertainty_range={
-                "low": -gross_revenue * 0.7,
-                "central": -gross_revenue,
-                "high": -gross_revenue * 1.3,
+                "low": float(np.sum(result.low_estimate)),
+                "central": net_impact,
+                "high": float(np.sum(result.high_estimate)),
             },
         )
 

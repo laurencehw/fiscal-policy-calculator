@@ -4,8 +4,9 @@ Reports on data freshness, API availability, and model readiness.
 """
 
 import logging
-from datetime import datetime
 from typing import Any
+
+from fiscal_model.time_utils import utc_isoformat
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +78,7 @@ def check_health() -> dict[str, Any]:
     except Exception as e:
         results["model"] = {"status": "error", "error": str(e)}
 
-    results["timestamp"] = datetime.now().isoformat()
+    results["timestamp"] = utc_isoformat()
     results["overall"] = "ok" if all(
         r.get("status") == "ok" for k, r in results.items()
         if isinstance(r, dict) and "status" in r

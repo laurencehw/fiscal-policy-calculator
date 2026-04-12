@@ -2,11 +2,30 @@
 Pytest fixtures for fiscal policy calculator tests.
 """
 
+import shutil
+from pathlib import Path
+from uuid import uuid4
+
 import numpy as np
 import pytest
 
 from fiscal_model.distribution import DistributionalEngine
 from fiscal_model.policies import PolicyType, TaxPolicy
+
+TEST_OUTPUT_DIR = Path(__file__).parent.parent / "test_output"
+TEST_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+(TEST_OUTPUT_DIR / "tmp").mkdir(parents=True, exist_ok=True)
+
+
+@pytest.fixture
+def tmp_path():
+    """Repo-local replacement for pytest's temp fixture on locked-down Windows setups."""
+    temp_dir = TEST_OUTPUT_DIR / "tmp" / f"tmp_{uuid4().hex}"
+    temp_dir.mkdir(parents=True, exist_ok=False)
+    try:
+        yield temp_dir
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 # =============================================================================
 # POLICY FIXTURES

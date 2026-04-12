@@ -13,6 +13,8 @@ from typing import Optional
 
 import pandas as pd
 
+from fiscal_model.time_utils import ensure_utc, utc_now
+
 logger = logging.getLogger(__name__)
 
 
@@ -105,7 +107,7 @@ class FREDData:
             self._write_cache(series_id, live)
             self._data_source = "live"
             self._last_error = None
-            self._last_updated = datetime.utcnow()
+            self._last_updated = utc_now()
             self._cache_age_days = 0
             return live
 
@@ -122,7 +124,7 @@ class FREDData:
             else:
                 self._data_source = "cache"
                 self._cache_age_days = cache_age
-            self._last_updated = datetime.utcnow()
+            self._last_updated = utc_now()
             return cached
 
         # Last-resort fallback for offline environments (2026 nominal GDP estimate).
@@ -192,7 +194,7 @@ class FREDData:
         path = self._cache_path(series_id)
         payload = {
             "series_id": series_id,
-            "updated_at": datetime.utcnow().isoformat(),
+            "updated_at": utc_now().isoformat(),
             "values": {str(idx): float(val) for idx, val in series.items()},
         }
         path.write_text(json.dumps(payload), encoding="utf-8")
@@ -220,7 +222,7 @@ class FREDData:
             if updated_at_str:
                 try:
                     updated_at = datetime.fromisoformat(updated_at_str)
-                    cache_age = datetime.utcnow() - updated_at
+                    cache_age = utc_now() - ensure_utc(updated_at)
                     cache_age_days = int(cache_age.total_seconds() / 86400)
                     is_expired = cache_age > timedelta(days=self.cache_max_age_days)
                 except Exception as e:

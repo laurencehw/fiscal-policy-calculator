@@ -12,6 +12,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from fiscal_model.time_utils import utc_now
+
 if TYPE_CHECKING:
     from bill_tracker.provision_mapper import MappingResult
 
@@ -115,7 +117,7 @@ class AutoScorer:
 
         return BillScore(
             bill_id=mapping_result.bill_id,
-            scored_at=datetime.utcnow(),
+            scored_at=utc_now(),
             ten_year_cost_billions=-total_ten_year / 1e9 if abs(total_ten_year) > 1e6 else total_ten_year,
             annual_effects=annual_effects,
             static_cost=total_static,
