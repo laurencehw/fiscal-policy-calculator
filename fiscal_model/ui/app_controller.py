@@ -33,6 +33,24 @@ _HOW_SCORED_MARKDOWN = (
     f"[The Federal Budget (Ch 22)]({TEXTBOOK_LINKS['federal_budget']}) in the textbook."
 )
 
+_PENDING_SIDEBAR_UPDATES_KEY = "_pending_sidebar_updates"
+
+
+def _queue_sidebar_updates(st_module: Any, **updates: Any) -> None:
+    """Queue sidebar widget state updates for the next rerun."""
+    st_module.session_state[_PENDING_SIDEBAR_UPDATES_KEY] = updates
+    st_module.session_state["qs_calculate"] = True
+
+
+def _apply_pending_sidebar_updates(st_module: Any) -> None:
+    """Apply deferred sidebar widget state before sidebar widgets are created."""
+    updates = st_module.session_state.pop(_PENDING_SIDEBAR_UPDATES_KEY, None)
+    if not updates:
+        return
+
+    for key, value in updates.items():
+        st_module.session_state[key] = value
+
 
 def render_data_status(st_module: Any, deps: Any) -> None:
     """
@@ -134,10 +152,12 @@ def render_quick_start(st_module: Any) -> None:
                 unsafe_allow_html=True,
             )
             if st_module.button("Try this →", key="qs_btn_tcja", use_container_width=True):
-                st_module.session_state["sidebar_analysis_mode"] = "📋 Tax proposal (preset)"
-                st_module.session_state["sidebar_policy_area"] = "TCJA / Individual"
-                st_module.session_state["sidebar_preset_choice"] = "TCJA Full Extension"
-                st_module.session_state["qs_calculate"] = True
+                _queue_sidebar_updates(
+                    st_module=st_module,
+                    sidebar_analysis_mode="📋 Tax proposal (preset)",
+                    sidebar_policy_area="TCJA / Individual",
+                    sidebar_preset_choice="TCJA Full Extension",
+                )
                 st_module.rerun()
 
         with c2, st_module.container(border=True):
@@ -149,10 +169,12 @@ def render_quick_start(st_module: Any) -> None:
                 unsafe_allow_html=True,
             )
             if st_module.button("Try this →", key="qs_btn_biden", use_container_width=True):
-                st_module.session_state["sidebar_analysis_mode"] = "📋 Tax proposal (preset)"
-                st_module.session_state["sidebar_policy_area"] = "Income Tax"
-                st_module.session_state["sidebar_preset_choice"] = "Biden 2025 Proposal"
-                st_module.session_state["qs_calculate"] = True
+                _queue_sidebar_updates(
+                    st_module=st_module,
+                    sidebar_analysis_mode="📋 Tax proposal (preset)",
+                    sidebar_policy_area="Income Tax",
+                    sidebar_preset_choice="Biden 2025 Proposal",
+                )
                 st_module.rerun()
 
         with c3, st_module.container(border=True):
@@ -164,11 +186,11 @@ def render_quick_start(st_module: Any) -> None:
                 unsafe_allow_html=True,
             )
             if st_module.button("Try this →", key="qs_btn_infra", use_container_width=True):
-                st_module.session_state["sidebar_analysis_mode"] = "💰 Spending program"
-                st_module.session_state["sidebar_spending_preset"] = (
-                    "Infrastructure Investment ($100B/yr)"
+                _queue_sidebar_updates(
+                    st_module=st_module,
+                    sidebar_analysis_mode="💰 Spending program",
+                    sidebar_spending_preset="Infrastructure Investment ($100B/yr)",
                 )
-                st_module.session_state["qs_calculate"] = True
                 st_module.rerun()
 
         st_module.markdown("---")
@@ -272,6 +294,8 @@ def _render_calculator(
 ) -> None:
     """Render the Calculator tab: sidebar inputs + results tabs."""
     # ── Sidebar ──────────────────────────────────────────────────────────
+    _apply_pending_sidebar_updates(st_module=st_module)
+
     with st_module.sidebar:
         st_module.header("Policy Configuration")
 

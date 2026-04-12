@@ -7,6 +7,11 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
+from fiscal_model.ui.app_controller import (
+    _PENDING_SIDEBAR_UPDATES_KEY,
+    _apply_pending_sidebar_updates,
+    render_quick_start,
+)
 from fiscal_model.ui.calculation_controller import (
     POLICY_PACKAGES_MODE,
     SINGLE_POLICY_MODE,
@@ -25,10 +30,21 @@ class _DummyContext:
         return False
 
 
+class _DummySessionState(dict):
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError as exc:
+            raise AttributeError(name) from exc
+
+    def __setattr__(self, name, value):
+        self[name] = value
+
+
 class _DummyStreamlit:
     def __init__(self, radio_values: list[str]) -> None:
         self._radio_values = list(radio_values)
-        self.session_state = SimpleNamespace(results=None)
+        self.session_state = _DummySessionState(results=None)
         self.warnings: list[str] = []
         self.infos: list[str] = []
 
@@ -71,6 +87,51 @@ class _DummyStreamlit:
     def expander(self, *args, **kwargs):
         del args, kwargs
         return _DummyContext()
+
+
+class _LockedWidgetSessionState(_DummySessionState):
+    def __init__(self, locked_keys: set[str], **kwargs):
+        super().__init__(**kwargs)
+        object.__setattr__(self, "_locked_keys", locked_keys)
+
+    def __setitem__(self, key, value):
+        if key in self._locked_keys:
+            raise AssertionError(f"widget key {key} was mutated after creation")
+        super().__setitem__(key, value)
+
+
+class _QuickStartStreamlit(_DummyStreamlit):
+    def __init__(self, clicked_button: str | None = None) -> None:
+        super().__init__(radio_values=[])
+        self.session_state = _LockedWidgetSessionState(
+            {
+                "sidebar_analysis_mode",
+                "sidebar_policy_area",
+                "sidebar_preset_choice",
+                "sidebar_spending_preset",
+            },
+            results=None,
+            quick_start_dismissed=False,
+        )
+        self.clicked_button = clicked_button
+        self.rerun_called = False
+
+    def columns(self, spec):
+        if isinstance(spec, int):
+            return [_DummyContext() for _ in range(spec)]
+        return [_DummyContext() for _ in spec]
+
+    def container(self, *args, **kwargs):
+        del args, kwargs
+        return _DummyContext()
+
+    def button(self, label, key=None, **kwargs):
+        del label, kwargs
+        return key == self.clicked_button
+
+    def rerun(self):
+        self.rerun_called = True
+        return None
 
 
 def test_render_sidebar_inputs_single_mode_uses_tax_inputs():
@@ -262,3 +323,33 @@ def test_render_result_tabs_shows_stale_warnings():
     )
 
     assert any("Inputs changed since the last run" in msg for msg in st_module.warnings)
+
+
+def test_render_quick_start_defers_sidebar_updates_until_rerun():
+    st_module = _QuickStartStreamlit(clicked_button="qs_btn_infra")
+
+    render_quick_start(st_module=st_module)
+
+    assert st_module.rerun_called is True
+    assert _PENDING_SIDEBAR_UPDATES_KEY in st_module.session_state
+    assert st_module.session_state[_PENDING_SIDEBAR_UPDATES_KEY] == {
+        "sidebar_analysis_mode": "💰 Spending program",
+        "sidebar_spending_preset": "Infrastructure Investment ($100B/yr)",
+    }
+    assert st_module.session_state["qs_calculate"] is True
+
+
+def test_apply_pending_sidebar_updates_sets_widget_values_before_render():
+    st_module = _DummyStreamlit(radio_values=[])
+    st_module.session_state[_PENDING_SIDEBAR_UPDATES_KEY] = {
+        "sidebar_analysis_mode": "📋 Tax proposal (preset)",
+        "sidebar_policy_area": "TCJA / Individual",
+        "sidebar_preset_choice": "TCJA Full Extension",
+    }
+
+    _apply_pending_sidebar_updates(st_module=st_module)
+
+    assert _PENDING_SIDEBAR_UPDATES_KEY not in st_module.session_state
+    assert st_module.session_state["sidebar_analysis_mode"] == "📋 Tax proposal (preset)"
+    assert st_module.session_state["sidebar_policy_area"] == "TCJA / Individual"
+    assert st_module.session_state["sidebar_preset_choice"] == "TCJA Full Extension"
