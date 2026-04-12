@@ -1,7 +1,7 @@
 # Fiscal Policy Impact Calculator
 
 [![Tests](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml/badge.svg)](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml)
-[![Coverage](https://img.shields.io/badge/coverage-77%25-brightgreen)](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml)
+[![Coverage](https://img.shields.io/badge/coverage-77.4%25-brightgreen)](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml)
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://fiscal-policy-calculator.streamlit.app)
 ![Python 3.10-3.13](https://img.shields.io/badge/Python-3.10--3.13-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -20,11 +20,12 @@ The calculator scores fiscal policy proposals through a three-stage pipeline:
 2. **Behavioral adjustment** — Taxpayer response via the Elasticity of Taxable Income (ETI = 0.25, [Saez et al. 2012](https://eml.berkeley.edu/~saez/saez-slemrod-giertzJEL12.pdf))
 3. **Dynamic feedback** *(optional)* — GDP, employment, and interest rate effects using FRB/US-calibrated multipliers
 
-### 39 pre-built proposals across 11 policy areas
+### 49 pre-built proposals across 14 policy areas
 
 | Category | Examples | Count |
 |----------|----------|-------|
-| TCJA / Individual | Full extension (+\$4.6T), rates only, no SALT cap | 3 |
+| TCJA / Individual | Full extension (+\$4.6T), rates only, no SALT cap | 4 |
+| Income Tax | Progressive millionaire tax, middle-class tax cut, flat tax reform | 3 |
 | Corporate | Biden 28% (-\$1.35T), Trump 15% | 2 |
 | International Tax | GILTI reform, FDII repeal, Pillar Two, Biden package | 4 |
 | Tax Credits | Biden CTC (\$1.6T), EITC expansion | 3 |
@@ -35,6 +36,8 @@ The calculator scores fiscal policy proposals through a three-stage pipeline:
 | Tax Expenditures | SALT cap, employer health, step-up basis, charitable | 4 |
 | IRS Enforcement | IRA funding, double enforcement, high-income targeting | 3 |
 | Drug Pricing | Expanded negotiation, insulin cap, reference pricing | 4 |
+| Trade / Tariffs | Universal 10%, China 60%, autos 25%, reciprocal tariffs | 5 |
+| Climate / Energy | IRA repeal, carbon tax paths, methane fee repeal | 5 |
 
 Plus fully custom policy design with adjustable parameters.
 
@@ -45,7 +48,7 @@ Plus fully custom policy design with adjustable parameters.
 - **OLG model** — 30-period Auerbach-Kotlikoff-style generational accounting for Social Security and Medicare reform
 - **Classroom Mode** — 7 interactive assignments (intro → advanced), Laffer curve explorer, PDF export; accessible at `streamlit run classroom_app.py`
 - **Real-Time Bill Tracker** — Pulls active bills from congress.gov, extracts fiscal provisions via LLM, stores in SQLite
-- **Shareable preset links** — Generate deep links for supported preset tax proposals and preset spending programs directly from the results tab
+- **Shareable preset links** — Generate deep links for supported preset tax proposals and preset spending programs directly from the results tab; custom policies still fall back to export-only
 
 ### Validation
 
@@ -80,7 +83,7 @@ streamlit run app.py          # Main policy calculator
 streamlit run classroom_app.py  # Classroom mode
 ```
 
-The repository pins Python `3.12` for local development via `.python-version`. CI verifies `3.10` through `3.13`, and the recommended Streamlit Cloud runtime is also `3.12`.
+The repository pins Python `3.12` for local development via `.python-version`. CI verifies `3.10` through `3.13`, the `smoke` job exercises the Streamlit boot path before the full matrix, and the recommended Streamlit Cloud runtime is also `3.12`.
 
 ### Use the REST API
 
@@ -146,11 +149,11 @@ Policy Definition → Static Scoring → Behavioral Offset (ETI) → Dynamic Fee
 
 | Module | Purpose |
 |--------|---------|
-| `scoring.py` | Main scoring orchestrator |
-| `policies.py` | Policy base classes (Tax, Spending, Transfer) |
+| `scoring.py` | Public scoring facade re-exporting `scoring_engine.py` and `scoring_result.py` |
+| `policies.py` | Public policy facade re-exporting `policies_core.py` and `policies_factory.py` |
 | `baseline.py` | CBO 10-year budget projections |
 | `economics.py` | Dynamic effects, multipliers, GDP feedback |
-| `distribution.py` | TPC/JCT-style distributional tables |
+| `distribution.py` | Public distribution facade over core, grouping, effects, engine, and reporting modules |
 | `trade.py` | Tariff scoring, consumer price impact, retaliation |
 | `international.py` | GILTI, FDII, Pillar Two, UTPR |
 | `enforcement.py` | IRS enforcement revenue ROI |
@@ -162,12 +165,14 @@ Policy Definition → Static Scoring → Behavioral Offset (ETI) → Dynamic Fee
 | `payroll.py` | SS cap, donut hole, NIIT |
 | `amt.py` | Individual and corporate AMT |
 | `ptc.py` | ACA premium tax credits |
-| `tax_expenditures.py` | SALT, mortgage, employer health |
-| `models/macro_adapter.py` | FRB/US-calibrated dynamic scoring |
+| `tax_expenditures.py` | Public tax-expenditure facade over core tables and policy factories |
+| `models/macro_adapter.py` | Public macro adapter facade over FRB/US, simple multiplier, and scenario-conversion modules |
 | `models/olg.py` | Overlapping generations model (Auerbach-Kotlikoff) |
 | `microsim/` | Vectorized individual-level tax calculator |
 | `long_run/` | Solow growth model, generational accounting |
 | `models/state/` | Combined federal + state tax calculator (top 10 states) |
+| `validation/compare.py` | Compatibility facade over the refactored validation core, scenarios, reporting, and specialized suites |
+| `ui/` | Controller-based Streamlit UI with decomposed input, settings, runtime logging, and share-link helpers |
 | `constants.py` | All parameters with source citations |
 | `classroom/` | Assignment engine, feedback, PDF export |
 | `bill_tracker/` | congress.gov pipeline, LLM extraction, SQLite |
@@ -248,14 +253,15 @@ The app includes interactive sensitivity sliders to explore these ranges.
 - Supported package range: Python `3.10` to `3.13`
 - Local default: `.python-version` -> `3.12`
 - Recommended Streamlit Cloud runtime: `3.12`
+- Current CI contract: passing `smoke` job plus full `3.10`-`3.13` matrix on `main`
 - Deployment checklist and incident guide: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
 
 ### Run tests
 
 ```bash
 pip install -r requirements.txt pytest pytest-cov
-pytest tests/ -v                        # 1051 tests
-pytest tests/ --cov=fiscal_model        # With coverage (~77%)
+pytest tests/ -v                        # 1057 tests
+pytest tests/ --cov=fiscal_model        # With coverage (~77.4%)
 ```
 
 ### Verify against CBO/JCT scores
@@ -308,7 +314,7 @@ fiscal-policy-calculator/
 │   └── constants.py          # All parameters with citations
 ├── classroom/                # Assignment engine, feedback, PDF export
 ├── bill_tracker/             # congress.gov pipeline, LLM extraction
-├── tests/                    # 1051 tests
+├── tests/                    # 1057 tests
 ├── docs/                     # Methodology, architecture docs
 ├── planning/                 # Roadmap, session notes
 └── pyproject.toml            # Project config, ruff, pytest

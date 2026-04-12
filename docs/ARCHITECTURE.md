@@ -31,7 +31,7 @@ The Fiscal Policy Calculator is designed as a **pluggable multi-model platform**
 
 ---
 
-## Current Architecture (Phase 1-2)
+## Current Architecture (April 2026)
 
 ### Module Structure
 
@@ -39,11 +39,24 @@ The Fiscal Policy Calculator is designed as a **pluggable multi-model platform**
 fiscal_model/
 ├── __init__.py           # Public API exports
 ├── baseline.py           # Baseline budget projections
-├── policies.py           # Policy type definitions
-├── scoring.py            # Main scoring engine
+├── policies.py           # Public policy facade
+├── policies_core.py      # Core policy dataclasses and behaviors
+├── policies_factory.py   # Policy construction helpers
+├── scoring.py            # Public scoring facade
+├── scoring_engine.py     # Main scoring engine implementation
+├── scoring_result.py     # Result containers and helpers
 ├── economics.py          # Dynamic effects & multipliers
 ├── uncertainty.py        # Uncertainty analysis
 ├── reporting.py          # Output formatting
+├── distribution.py       # Public distribution facade
+├── distribution_core.py
+├── distribution_grouping.py
+├── distribution_effects.py
+├── distribution_engine.py
+├── distribution_reporting.py
+├── tax_expenditures.py   # Public tax-expenditure facade
+├── tax_expenditures_core.py
+├── tax_expenditures_factory.py
 │
 ├── data/                 # Data integration layer
 │   ├── __init__.py
@@ -51,17 +64,44 @@ fiscal_model/
 │   ├── fred_data.py      # FRED API wrapper
 │   └── validation.py     # Data quality checks
 │
+├── ui/                   # Streamlit UI controllers and tabs
+│   ├── app_controller.py
+│   ├── calculation_controller.py
+│   ├── policy_input.py   # Compatibility facade
+│   ├── policy_input_tax.py
+│   ├── policy_input_spending.py
+│   ├── policy_input_presets.py
+│   ├── settings_controller.py
+│   ├── runtime_logging.py
+│   ├── share_links.py
+│   └── tabs/
+│
 ├── data_files/           # Static data files
 │   └── irs_soi/
 │       ├── table_1_1_2021.csv
 │       ├── table_1_1_2022.csv
 │       └── ...
 │
+├── models/
+│   ├── macro_adapter.py              # Public macro adapter facade
+│   ├── macro_adapter_core.py
+│   ├── macro_adapter_simple.py
+│   ├── macro_adapter_frbus.py
+│   ├── macro_adapter_conversion.py
+│   └── state/
+│
 └── validation/           # Model validation
     ├── __init__.py
     ├── cbo_scores.py     # Known official scores
-    └── compare.py        # Comparison framework
+    ├── compare.py        # Compatibility facade
+    ├── core.py           # Comparison framework
+    ├── scenarios.py
+    ├── reporting.py
+    ├── specialized.py    # Compatibility facade
+    └── specialized_*.py  # Category-specific validation suites
 ```
+
+Public imports remain stable through compatibility facades such as `policies.py`, `scoring.py`, `distribution.py`, `tax_expenditures.py`, `models/macro_adapter.py`, and `validation/compare.py`. The implementation has been split underneath those entry points to reduce change risk while keeping external callers unchanged.
 
 ### Core Classes
 
@@ -653,18 +693,24 @@ Response:
 
 ## Deployment
 
-### Current (Streamlit Cloud)
+### Current (Single-Repo Deployment)
 
 ```
-┌─────────────────────────────────────────┐
-│           Streamlit Cloud               │
-│  ┌─────────────────────────────────┐   │
-│  │         app.py                   │   │
-│  │  ┌─────────────────────────┐    │   │
-│  │  │     fiscal_model/       │    │   │
-│  │  └─────────────────────────┘    │   │
-│  └─────────────────────────────────┘   │
-└─────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                    Single repository                     │
+│  ┌────────────────────────┐  ┌────────────────────────┐  │
+│  │ Streamlit app.py       │  │ Streamlit classroom    │  │
+│  │ Main calculator        │  │ classroom_app.py       │  │
+│  └────────────────────────┘  └────────────────────────┘  │
+│  ┌────────────────────────┐  ┌────────────────────────┐  │
+│  │ FastAPI api.py         │  │ GitHub Actions         │  │
+│  │ REST scoring surface   │  │ smoke + 3.10-3.13 CI   │  │
+│  └────────────────────────┘  └────────────────────────┘  │
+│                 ┌────────────────────────┐               │
+│                 │ fiscal_model/ core     │               │
+│                 │ scoring, UI, data      │               │
+│                 └────────────────────────┘               │
+└──────────────────────────────────────────────────────────┘
 ```
 
 ### Future (Multi-Service)
@@ -709,5 +755,5 @@ Response:
 
 ---
 
-*Last Updated: December 2025*
+*Last Updated: April 2026*
 

@@ -2,7 +2,7 @@
 
 > **Fiscal Policy Calculator — Comparison to Official CBO/JCT Estimates**
 >
-> Last Updated: January 4, 2026
+> Last Updated: April 12, 2026
 
 ---
 
@@ -295,7 +295,7 @@ Capital income distribution matches Federal Reserve SCF data within 5%.
 | Income distributions | IRS SOI | 2021-2022 |
 | Capital gains realizations | IRS SOI / CBO projections | 2022 |
 | Wage distributions | Census CPS | 2023 |
-| CBO baseline | CBO Budget Projections | May 2024 |
+| CBO baseline | CBO Budget Projections | February 2026 |
 
 ---
 
@@ -424,7 +424,7 @@ Key methodological points from CBO scoring practice:
 ## Future Validation Work
 
 1. **2023 IRS SOI data**: Update taxpayer counts when available
-2. **CBO 2025 baseline**: Incorporate updated projections
+2. **Next CBO baseline refresh**: Incorporate new projections as they are published
 3. **Additional policies**: Expand validation database
 4. **Distributional validation**: More TPC benchmarks
 5. **Dynamic scoring**: Compare to CBO/JCT dynamic estimates
@@ -441,4 +441,4 @@ Key methodological points from CBO scoring practice:
 
 ---
 
-*This validation report is automatically generated and updated as new official estimates become available.*
+*This validation report is maintained alongside the validation suite and refreshed as new official estimates are incorporated.*

@@ -39,6 +39,18 @@ These tests are meant to fail fast on:
 - session-state/widget ordering bugs
 - classroom routing regressions
 
+The full `test` job runs on Python `3.10`, `3.11`, `3.12`, and `3.13` and is expected to match the local dependency set.
+
+## Dependency Parity
+
+The deployment and CI paths both install from `requirements.txt`, while package metadata lives in `pyproject.toml`.
+Keep these files aligned when adding runtime dependencies.
+
+Important current examples:
+
+- `openpyxl` is required for Excel export paths exercised by the test suite
+- `requirements-lock-ci.txt` artifacts are emitted from CI to make dependency drift reproducible
+
 ## Runtime Logging
 
 Both `app.py` and `classroom_app.py` now emit structured startup logs through `fiscal_model.ui.runtime_logging`.
@@ -63,6 +75,7 @@ On Streamlit Cloud, inspect these in the app logs. Locally, they appear in the s
 3. Wait for GitHub Actions `smoke` and `test` jobs to pass.
 4. Confirm the public health workflow is green.
 5. Load the calculator root and classroom mode once after deploy.
+6. If dependencies changed, compare the new CI lock artifact to the prior successful run.
 
 ## Incident Checklist
 

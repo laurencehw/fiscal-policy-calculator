@@ -59,7 +59,7 @@ The Fiscal Policy Calculator uses a **three-stage approach** consistent with Con
 4. **Dynamic Scoring**: Optional macroeconomic feedback via FRB/US-calibrated adapter
 5. **25+ validated policies**: Calibrated to CBO, JCT, and Treasury official estimates
 
-The calculator covers 11 policy areas: individual income taxes (TCJA, brackets, credits), corporate and international taxes, estate and payroll taxes, AMT, ACA premium credits, tax expenditures, tariffs, IRS enforcement, and pharmaceutical pricing.
+The calculator currently exposes 14 preset policy areas: TCJA / individual tax, general income tax, corporate, international, tax credits, estate tax, payroll / Social Security, AMT, ACA / healthcare, tax expenditures, IRS enforcement, drug pricing, trade / tariffs, and climate / energy.
 
 ---
 
