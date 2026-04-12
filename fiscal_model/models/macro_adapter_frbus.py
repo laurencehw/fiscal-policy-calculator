@@ -290,7 +290,7 @@ class FRBUSAdapter(MacroModelAdapter):
             year_data = baseline.loc[year_start:year_end].mean()
             annual_data.append(year_data)
 
-        result = pd.DataFrame(annual_data)
+        result = pd.DataFrame(annual_data).copy()
         result["Year"] = list(years)
 
         # Rename and convert units
@@ -304,8 +304,8 @@ class FRBUSAdapter(MacroModelAdapter):
         })
 
         # Convert GDP to trillions
-        result["GDP ($T)"] = result["Nominal GDP"] / 1_000_000
-        result["Real GDP ($T)"] = result["Real GDP"] / 1_000
+        result.loc[:, "GDP ($T)"] = result["Nominal GDP"] / 1_000_000
+        result.loc[:, "Real GDP ($T)"] = result["Real GDP"] / 1_000
 
         return result[
             [
