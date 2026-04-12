@@ -10,7 +10,10 @@ from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlencode
 
+from fiscal_model.app_data import PRESET_POLICIES
+
 from .helpers import PUBLIC_APP_URL
+from .policy_input_presets import _preset_category, _short_display_name
 
 PRESET_ANALYSIS_MODE = "📋 Tax proposal (preset)"
 SPENDING_ANALYSIS_MODE = "💰 Spending program"
@@ -59,6 +62,22 @@ def _share_request_from_query_params(query_params: Mapping[str, Any]) -> dict[st
     return None
 
 
+def _preset_policy_area(preset_name: str | None) -> str | None:
+    if not preset_name:
+        return None
+
+    preset = PRESET_POLICIES.get(preset_name)
+    if preset is None:
+        for canonical_name, candidate in PRESET_POLICIES.items():
+            if _short_display_name(canonical_name) == preset_name:
+                preset = candidate
+                break
+        if preset is None:
+            return None
+
+    return _preset_category(preset)
+
+
 def apply_share_query_params(st_module: Any) -> None:
     """
     Prime widget-backed session state from supported share-link query params.
@@ -81,10 +100,16 @@ def apply_share_query_params(st_module: Any) -> None:
 
     preset = share_request.get("preset")
     if preset:
+        st_module.session_state.pop("sidebar_spending_preset", None)
+        preset_area = _preset_policy_area(preset)
+        if preset_area:
+            st_module.session_state["sidebar_policy_area"] = preset_area
         st_module.session_state["sidebar_preset_choice"] = preset
 
     spending_preset = share_request.get("spending_preset")
     if spending_preset:
+        st_module.session_state.pop("sidebar_preset_choice", None)
+        st_module.session_state.pop("sidebar_policy_area", None)
         st_module.session_state["sidebar_spending_preset"] = spending_preset
 
     if share_request["run"]:

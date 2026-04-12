@@ -63,8 +63,62 @@ def test_apply_share_query_params_for_tax_preset_sets_preset_choice():
     apply_share_query_params(st_module=st_module)
 
     assert st_module.session_state["sidebar_analysis_mode"] == "📋 Tax proposal (preset)"
+    assert st_module.session_state["sidebar_policy_area"] == "TCJA / Individual"
     assert st_module.session_state["sidebar_preset_choice"] == "TCJA Full Extension"
     assert st_module.session_state["sidebar_setting_dynamic_scoring"] is False
+
+
+def test_apply_share_query_params_accepts_legacy_policy_key_and_list_values():
+    st_module = _DummyStreamlit(
+        {
+            "policy": ["Biden 2025 Proposal"],
+            "dynamic": ["yes"],
+            "run": ["true"],
+        }
+    )
+
+    apply_share_query_params(st_module=st_module)
+
+    assert st_module.session_state["sidebar_analysis_mode"] == "📋 Tax proposal (preset)"
+    assert st_module.session_state["sidebar_policy_area"] == "TCJA / Individual"
+    assert st_module.session_state["sidebar_preset_choice"] == "Biden 2025 Proposal"
+    assert st_module.session_state["sidebar_setting_dynamic_scoring"] is True
+    assert st_module.session_state["qs_calculate"] is True
+
+
+def test_apply_share_query_params_overrides_stale_sidebar_state():
+    st_module = _DummyStreamlit(
+        {
+            "analysis": "preset",
+            "preset": "TCJA Full Extension",
+        }
+    )
+    st_module.session_state["sidebar_policy_area"] = "Climate / Energy"
+    st_module.session_state["sidebar_spending_preset"] = "Infrastructure Investment ($100B/yr)"
+
+    apply_share_query_params(st_module=st_module)
+
+    assert st_module.session_state["sidebar_policy_area"] == "TCJA / Individual"
+    assert st_module.session_state["sidebar_preset_choice"] == "TCJA Full Extension"
+    assert "sidebar_spending_preset" not in st_module.session_state
+
+
+def test_apply_share_query_params_for_spending_clears_tax_state():
+    st_module = _DummyStreamlit(
+        {
+            "analysis": "spending",
+            "spending_preset": "Infrastructure Investment ($100B/yr)",
+        }
+    )
+    st_module.session_state["sidebar_policy_area"] = "Income Tax"
+    st_module.session_state["sidebar_preset_choice"] = "Biden 2025 Proposal"
+
+    apply_share_query_params(st_module=st_module)
+
+    assert st_module.session_state["sidebar_analysis_mode"] == "💰 Spending program"
+    assert st_module.session_state["sidebar_spending_preset"] == "Infrastructure Investment ($100B/yr)"
+    assert "sidebar_policy_area" not in st_module.session_state
+    assert "sidebar_preset_choice" not in st_module.session_state
 
 
 def test_build_share_url_for_tax_preset_includes_dynamic_flag():

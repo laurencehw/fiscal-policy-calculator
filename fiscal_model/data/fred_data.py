@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from fiscal_model.time_utils import ensure_utc, utc_now
+from fiscal_model.time_utils import parse_utc_timestamp, utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -81,11 +81,26 @@ class FREDData:
             - api_available: bool
             - error: str or None (last error message)
         """
+        source = self._data_source
+        last_updated = self._last_updated
+        cache_age_days = self._cache_age_days
+        cache_is_expired = self._cache_is_expired
+
+        if source is None:
+            has_cache, cached_updated_at, inferred_expired, inferred_age_days = (
+                self._peek_cache_metadata(self.SERIES["nominal_gdp"])
+            )
+            if has_cache:
+                source = "cache"
+                last_updated = cached_updated_at
+                cache_age_days = inferred_age_days
+                cache_is_expired = inferred_expired
+
         return {
-            "source": self._data_source,
-            "last_updated": self._last_updated,
-            "cache_age_days": self._cache_age_days,
-            "cache_is_expired": self._cache_is_expired,
+            "source": source,
+            "last_updated": last_updated,
+            "cache_age_days": cache_age_days,
+            "cache_is_expired": cache_is_expired,
             "api_available": self.is_available(),
             "error": self._last_error,
         }
@@ -114,7 +129,7 @@ class FREDData:
             return live
 
         # Try cache (valid or expired)
-        cached, is_expired, cache_age = self._read_cache(series_id)
+        cached, is_expired, cache_age, cache_updated_at = self._read_cache(series_id)
         if cached is not None and not cached.empty:
             if is_expired:
                 logger.warning(
@@ -124,7 +139,7 @@ class FREDData:
             self._data_source = "cache"
             self._cache_age_days = cache_age
             self._cache_is_expired = is_expired
-            self._last_updated = utc_now()
+            self._last_updated = cache_updated_at
             return cached
 
         # Last-resort fallback for offline environments (2026 nominal GDP estimate).
@@ -180,6 +195,10 @@ class FREDData:
                 logger.error(f"Error refreshing {series_id} ({series_name}): {e}")
 
         if success_count > 0:
+            self._data_source = "live"
+            self._last_updated = utc_now()
+            self._cache_age_days = 0
+            self._cache_is_expired = False
             self._last_error = None
             logger.info(f"Successfully refreshed {success_count}/{len(self.SERIES)} series")
             return True
@@ -200,39 +219,58 @@ class FREDData:
         }
         path.write_text(json.dumps(payload), encoding="utf-8")
 
-    def _read_cache(self, series_id: str) -> tuple[pd.Series | None, bool, int | None]:
+    def _peek_cache_metadata(
+        self,
+        series_id: str,
+    ) -> tuple[bool, datetime | None, bool, int | None]:
+        """Inspect cache metadata without mutating object state."""
+        path = self._cache_path(series_id)
+        if not path.exists():
+            return False, None, False, None
+
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception as e:
+            logger.debug(f"Error reading cache metadata for {series_id}: {e}")
+            return False, None, False, None
+
+        values = payload.get("values", {})
+        if not values:
+            return False, None, False, None
+
+        updated_at = parse_utc_timestamp(payload.get("updated_at"))
+        if updated_at is None:
+            return True, None, False, None
+
+        cache_age = utc_now() - updated_at
+        cache_age_days = int(cache_age.total_seconds() / 86400)
+        is_expired = cache_age > timedelta(days=self.cache_max_age_days)
+        return True, updated_at, is_expired, cache_age_days
+
+    def _read_cache(
+        self,
+        series_id: str,
+    ) -> tuple[pd.Series | None, bool, int | None, datetime | None]:
         """Read cache, returning (series, is_expired, cache_age_days).
 
         Returns:
-            Tuple of (series or None, is_expired bool, cache_age_days or None)
+            Tuple of (series or None, is_expired bool, cache_age_days or None, cache timestamp)
         """
         path = self._cache_path(series_id)
         if not path.exists():
-            return None, False, None
+            return None, False, None, None
         try:
             payload = json.loads(path.read_text(encoding="utf-8"))
             values = payload.get("values", {})
             if not values:
-                return None, False, None
+                return None, False, None, None
 
-            # Check cache age
-            updated_at_str = payload.get("updated_at")
-            is_expired = False
-            cache_age_days = None
-
-            if updated_at_str:
-                try:
-                    updated_at = datetime.fromisoformat(updated_at_str)
-                    cache_age = utc_now() - ensure_utc(updated_at)
-                    cache_age_days = int(cache_age.total_seconds() / 86400)
-                    is_expired = cache_age > timedelta(days=self.cache_max_age_days)
-                except Exception as e:
-                    logger.debug(f"Error parsing cache timestamp for {series_id}: {e}")
+            _, updated_at, is_expired, cache_age_days = self._peek_cache_metadata(series_id)
 
             index = pd.to_datetime(list(values.keys()))
             data = [float(v) for v in values.values()]
             series = pd.Series(data, index=index, name=series_id).sort_index()
-            return series, is_expired, cache_age_days
+            return series, is_expired, cache_age_days, updated_at
         except Exception as e:
             logger.debug(f"Error reading cache for {series_id}: {e}")
-            return None, False, None
+            return None, False, None, None

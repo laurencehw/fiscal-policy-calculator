@@ -69,6 +69,7 @@ def render_data_status(st_module: Any, deps: Any) -> None:
             fred_source = data_status.get("source", "unknown")
             cache_age_days = data_status.get("cache_age_days")
             cache_is_expired = data_status.get("cache_is_expired", False)
+            api_available = data_status.get("api_available", False)
 
             if fred_source == "live":
                 fred_status = "🟢 Live (FRED API)"
@@ -78,8 +79,10 @@ def render_data_status(st_module: Any, deps: Any) -> None:
                 fred_status = f"🟡 Cached ({cache_age_days} days old)"
             elif fred_source == "fallback":
                 fred_status = "🔴 Fallback (hardcoded values)"
+            elif api_available:
+                fred_status = "🟢 API configured"
             else:
-                fred_status = None
+                fred_status = "⚪ API key not configured"
         except Exception:
             fred_status = None
 

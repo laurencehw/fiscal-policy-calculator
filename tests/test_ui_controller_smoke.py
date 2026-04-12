@@ -10,6 +10,7 @@ from types import SimpleNamespace
 from fiscal_model.ui.app_controller import (
     _PENDING_SIDEBAR_UPDATES_KEY,
     _apply_pending_sidebar_updates,
+    render_data_status,
     render_quick_start,
 )
 from fiscal_model.ui.calculation_controller import (
@@ -47,13 +48,15 @@ class _DummyStreamlit:
         self.session_state = _DummySessionState(results=None)
         self.warnings: list[str] = []
         self.infos: list[str] = []
+        self.markdowns: list[str] = []
 
     def radio(self, *args, **kwargs):
         del args, kwargs
         return self._radio_values.pop(0)
 
     def markdown(self, *args, **kwargs):
-        del args, kwargs
+        self.markdowns.append(args[0] if args else "")
+        del kwargs
         return None
 
     def info(self, message: str, *args, **kwargs):
@@ -353,3 +356,41 @@ def test_apply_pending_sidebar_updates_sets_widget_values_before_render():
     assert st_module.session_state["sidebar_analysis_mode"] == "📋 Tax proposal (preset)"
     assert st_module.session_state["sidebar_policy_area"] == "TCJA / Individual"
     assert st_module.session_state["sidebar_preset_choice"] == "TCJA Full Extension"
+
+
+def test_render_data_status_surfaces_fred_api_configuration(monkeypatch):
+    class _DummyFred:
+        @property
+        def data_status(self):
+            return {
+                "source": None,
+                "cache_age_days": None,
+                "cache_is_expired": False,
+                "api_available": True,
+            }
+
+    monkeypatch.setattr("fiscal_model.data.fred_data.FREDData", _DummyFred)
+    st_module = _DummyStreamlit(radio_values=[])
+
+    render_data_status(st_module=st_module, deps=SimpleNamespace())
+
+    assert any("📡 **FRED:** 🟢 API configured" in text for text in st_module.markdowns)
+
+
+def test_render_data_status_surfaces_stale_cache(monkeypatch):
+    class _DummyFred:
+        @property
+        def data_status(self):
+            return {
+                "source": "cache",
+                "cache_age_days": 45,
+                "cache_is_expired": True,
+                "api_available": False,
+            }
+
+    monkeypatch.setattr("fiscal_model.data.fred_data.FREDData", _DummyFred)
+    st_module = _DummyStreamlit(radio_values=[])
+
+    render_data_status(st_module=st_module, deps=SimpleNamespace())
+
+    assert any("📡 **FRED:** 🟠 Stale cache (45 days old)" in text for text in st_module.markdowns)

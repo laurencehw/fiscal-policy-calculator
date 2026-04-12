@@ -9,7 +9,7 @@ git clone https://github.com/laurencehw/fiscal-policy-calculator.git
 cd fiscal-policy-calculator
 pip install -r requirements.txt
 pip install pytest pytest-cov ruff
-pytest tests/ -v          # Run the test suite (1057 tests)
+pytest tests/ -v          # Run the test suite (1070 tests)
 streamlit run app.py      # Launch the app locally
 ```
 
@@ -28,7 +28,7 @@ These are the areas where contributions would be most valuable:
 
 1. **Open an issue first** to discuss significant changes before starting work
 2. **Fork the repo** and create a feature branch from `main`
-3. **Write tests** for new functionality — the project maintains 1057 tests at 77%+ coverage with a 75% enforced floor
+3. **Write tests** for new functionality — the project maintains 1070 tests at 78%+ coverage with a 78% enforced floor
 4. **Run the full suite** before submitting:
    ```bash
    pytest tests/ -v
