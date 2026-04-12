@@ -15,6 +15,41 @@ import plotly.graph_objects as go
 from fiscal_model.ui.share_links import build_share_url
 
 
+def _build_interpretation_html(
+    *,
+    final_deficit_total: float,
+    n_years: int,
+    annual_avg: float,
+    pct_of_gdp: float,
+) -> str:
+    """Build plain-English interpretation HTML without markdown currency parsing."""
+    if final_deficit_total > 100:
+        return (
+            "This policy would <strong>add approximately "
+            f"${final_deficit_total:,.0f} billion</strong> "
+            f"to the federal deficit over {n_years} years, roughly "
+            f"<strong>${abs(annual_avg):,.0f}B per year</strong>, or about "
+            f"<strong>{pct_of_gdp:.1f}% of GDP annually</strong>."
+        )
+    if final_deficit_total < -100:
+        return (
+            "This policy would <strong>reduce the federal deficit by approximately "
+            f"${abs(final_deficit_total):,.0f} billion</strong> over {n_years} years, "
+            f"roughly <strong>${abs(annual_avg):,.0f}B per year</strong> "
+            "in new revenue or savings, or about "
+            f"<strong>{pct_of_gdp:.1f}% of GDP annually</strong>."
+        )
+    if abs(final_deficit_total) > 1:
+        direction = "increase" if final_deficit_total > 0 else "decrease"
+        return (
+            f"This policy would <strong>{direction} the deficit by about "
+            f"${abs(final_deficit_total):,.0f} billion</strong> over {n_years} years "
+            f"(<strong>${abs(annual_avg):,.0f}B/year</strong>) "
+            "with a relatively modest fiscal impact."
+        )
+    return f"This policy has <strong>negligible fiscal impact</strong> over the {n_years}-year window."
+
+
 def render_results_summary_tab(
     st_module: Any,
     result_data: dict[str, Any],
@@ -158,35 +193,13 @@ def render_results_summary_tab(
     gdp_baseline = float(result.baseline.nominal_gdp[0]) if result.baseline.nominal_gdp[0] > 0 else 30_000
     pct_of_gdp = abs(annual_avg) / gdp_baseline * 100
 
-    if final_deficit_total > 100:
-        interpretation = (
-            f"This policy would **add approximately "
-            f"${final_deficit_total:,.0f} billion** "
-            f"to the federal deficit over {n_years} years — roughly "
-            f"**${abs(annual_avg):,.0f}B per year**, or about "
-            f"**{pct_of_gdp:.1f}% of GDP annually**."
-        )
-    elif final_deficit_total < -100:
-        interpretation = (
-            f"This policy would **reduce the federal deficit by approximately "
-            f"${abs(final_deficit_total):,.0f} billion** over {n_years} years — roughly "
-            f"**${abs(annual_avg):,.0f}B per year** in new revenue or savings, "
-            f"or about **{pct_of_gdp:.1f}% of GDP annually**."
-        )
-    elif abs(final_deficit_total) > 1:
-        direction = "increase" if final_deficit_total > 0 else "decrease"
-        interpretation = (
-            f"This policy would **{direction} the deficit by about "
-            f"${abs(final_deficit_total):,.0f} billion** over {n_years} years "
-            f"(${abs(annual_avg):,.0f}B/year) — a relatively modest fiscal impact."
-        )
-    else:
-        interpretation = (
-            f"This policy has **negligible fiscal impact** over the "
-            f"{n_years}-year window."
-        )
-
-    st_module.markdown(interpretation)
+    interpretation = _build_interpretation_html(
+        final_deficit_total=final_deficit_total,
+        n_years=n_years,
+        annual_avg=annual_avg,
+        pct_of_gdp=pct_of_gdp,
+    )
+    st_module.markdown(f"<p>{interpretation}</p>", unsafe_allow_html=True)
 
     col_metrics, col_context = st_module.columns([1, 1])
 
@@ -335,9 +348,11 @@ def render_results_summary_tab(
 
     with c_chart2:
         st_module.subheader("Cumulative Deficit Impact")
-        df_timeline["Cumulative"] = df_timeline["Deficit Impact"].cumsum()
-        df_timeline["Cum_Low"] = result.low_estimate.cumsum()
-        df_timeline["Cum_High"] = result.high_estimate.cumsum()
+        df_timeline = df_timeline.assign(
+            Cumulative=df_timeline["Deficit Impact"].cumsum(),
+            Cum_Low=result.low_estimate.cumsum(),
+            Cum_High=result.high_estimate.cumsum(),
+        )
 
         fig_cum = go.Figure()
 
