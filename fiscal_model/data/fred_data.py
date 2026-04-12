@@ -4,12 +4,11 @@ FRED data helper with simple file cache, expiry, timeout, and error tracking.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
 import json
 import logging
 import os
+from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional
 
 import pandas as pd
 
@@ -37,7 +36,7 @@ class FREDData:
 
     def __init__(
         self,
-        cache_dir: Optional[Path] = None,
+        cache_dir: Path | None = None,
         cache_max_age_days: int = 30,
         timeout_seconds: int = 10,
     ):
@@ -50,10 +49,11 @@ class FREDData:
         self.timeout_seconds = timeout_seconds
 
         # Error tracking
-        self._last_error: Optional[str] = None
-        self._data_source: Optional[str] = None  # "live", "cache", or "fallback"
-        self._last_updated: Optional[datetime] = None
-        self._cache_age_days: Optional[int] = None
+        self._last_error: str | None = None
+        self._data_source: str | None = None  # "live", "cache", or "fallback"
+        self._last_updated: datetime | None = None
+        self._cache_age_days: int | None = None
+        self._cache_is_expired: bool = False
 
         if self._api_key:
             try:
@@ -62,7 +62,7 @@ class FREDData:
                 self._fred = Fred(api_key=self._api_key)
             except Exception as e:
                 self._fred = None
-                self._last_error = f"Failed to initialize FRED API: {str(e)}"
+                self._last_error = f"Failed to initialize FRED API: {e!s}"
                 logger.warning(self._last_error)
 
     def is_available(self) -> bool:
@@ -85,6 +85,7 @@ class FREDData:
             "source": self._data_source,
             "last_updated": self._last_updated,
             "cache_age_days": self._cache_age_days,
+            "cache_is_expired": self._cache_is_expired,
             "api_available": self.is_available(),
             "error": self._last_error,
         }
@@ -109,6 +110,7 @@ class FREDData:
             self._last_error = None
             self._last_updated = utc_now()
             self._cache_age_days = 0
+            self._cache_is_expired = False
             return live
 
         # Try cache (valid or expired)
@@ -119,11 +121,9 @@ class FREDData:
                     f"Cache for {series_id} is {cache_age} days old (max: {self.cache_max_age_days}). "
                     "Using stale cache."
                 )
-                self._data_source = "cache (expired)"
-                self._cache_age_days = cache_age
-            else:
-                self._data_source = "cache"
-                self._cache_age_days = cache_age
+            self._data_source = "cache"
+            self._cache_age_days = cache_age
+            self._cache_is_expired = is_expired
             self._last_updated = utc_now()
             return cached
 
@@ -135,9 +135,10 @@ class FREDData:
         self._last_error = f"No data available for {series_id}"
         self._last_updated = None
         self._cache_age_days = None
+        self._cache_is_expired = False
         return pd.Series([30_300.0], index=[pd.Timestamp("2024-01-01")], name=series_id)
 
-    def _fetch_live_series(self, series_id: str) -> Optional[pd.Series]:
+    def _fetch_live_series(self, series_id: str) -> pd.Series | None:
         """Fetch a series from FRED API with timeout."""
         if self._fred is None:
             return None
@@ -149,7 +150,7 @@ class FREDData:
                 return series
             return None
         except Exception as e:
-            error_msg = f"Failed to fetch {series_id} from FRED: {str(e)}"
+            error_msg = f"Failed to fetch {series_id} from FRED: {e!s}"
             logger.debug(error_msg)
             self._last_error = error_msg
             return None
@@ -199,7 +200,7 @@ class FREDData:
         }
         path.write_text(json.dumps(payload), encoding="utf-8")
 
-    def _read_cache(self, series_id: str) -> tuple[Optional[pd.Series], bool, Optional[int]]:
+    def _read_cache(self, series_id: str) -> tuple[pd.Series | None, bool, int | None]:
         """Read cache, returning (series, is_expired, cache_age_days).
 
         Returns:

@@ -68,9 +68,12 @@ def render_data_status(st_module: Any, deps: Any) -> None:
             data_status = fred_instance.data_status
             fred_source = data_status.get("source", "unknown")
             cache_age_days = data_status.get("cache_age_days")
+            cache_is_expired = data_status.get("cache_is_expired", False)
 
             if fred_source == "live":
                 fred_status = "🟢 Live (FRED API)"
+            elif fred_source == "cache" and cache_is_expired:
+                fred_status = f"🟠 Stale cache ({cache_age_days} days old)"
             elif fred_source == "cache":
                 fred_status = f"🟡 Cached ({cache_age_days} days old)"
             elif fred_source == "fallback":

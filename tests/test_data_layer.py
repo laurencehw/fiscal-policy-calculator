@@ -184,3 +184,41 @@ class TestFREDData:
         cache_dir = tmp_path / "fred_cache"
         FREDData(cache_dir=cache_dir)
         assert cache_dir.exists()
+
+    def test_reads_fresh_cache_with_status_metadata(self, tmp_path, monkeypatch):
+        fred = FREDData(cache_dir=tmp_path)
+        fred._write_cache("GDP", pd.Series([1.0, 2.0], index=pd.to_datetime(["2024-01-01", "2024-04-01"])))
+        monkeypatch.setattr(fred, "_fetch_live_series", lambda series_id: None)
+
+        series = fred.get_gdp()
+
+        assert isinstance(series, pd.Series)
+        assert fred.data_status["source"] == "cache"
+        assert fred.data_status["cache_is_expired"] is False
+        assert fred.data_status["cache_age_days"] == 0
+
+    def test_reads_stale_cache_with_expired_flag(self, tmp_path, monkeypatch):
+        cache_dir = tmp_path / "cache"
+        fred = FREDData(cache_dir=cache_dir, cache_max_age_days=30)
+        cache_file = cache_dir / "fred_GDP.json"
+        cache_file.write_text(
+            """
+            {
+              "series_id": "GDP",
+              "updated_at": "2024-01-01T00:00:00+00:00",
+              "values": {
+                "2024-01-01 00:00:00": 30300.0
+              }
+            }
+            """.strip(),
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(fred, "_fetch_live_series", lambda series_id: None)
+        monkeypatch.setattr("fiscal_model.data.fred_data.utc_now", lambda: pd.Timestamp("2024-03-15T00:00:00Z").to_pydatetime())
+
+        series = fred.get_gdp()
+
+        assert isinstance(series, pd.Series)
+        assert fred.data_status["source"] == "cache"
+        assert fred.data_status["cache_is_expired"] is True
+        assert fred.data_status["cache_age_days"] == 74

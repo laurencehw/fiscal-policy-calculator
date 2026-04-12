@@ -1,9 +1,9 @@
 # Fiscal Policy Impact Calculator
 
 [![Tests](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml/badge.svg)](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml)
-[![Coverage](https://img.shields.io/badge/coverage-75%25-brightgreen)](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml)
+[![Coverage](https://img.shields.io/badge/coverage-77%25-brightgreen)](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml)
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://fiscal-policy-calculator.streamlit.app)
-![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)
+![Python 3.10-3.13](https://img.shields.io/badge/Python-3.10--3.13-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 Estimate the 10-year budgetary and economic effects of U.S. tax and spending proposals using CBO methodology, IRS data, and FRB/US-calibrated dynamic scoring.
@@ -78,6 +78,8 @@ pip install -r requirements.txt
 streamlit run app.py          # Main policy calculator
 streamlit run classroom_app.py  # Classroom mode
 ```
+
+The repository pins Python `3.12` for local development via `.python-version`. CI verifies `3.10` through `3.13`, and the recommended Streamlit Cloud runtime is also `3.12`.
 
 ### Use the REST API
 
@@ -240,12 +242,19 @@ The app includes interactive sensitivity sliders to explore these ranges.
 
 ## Development
 
+### Runtime contract
+
+- Supported package range: Python `3.10` to `3.13`
+- Local default: `.python-version` -> `3.12`
+- Recommended Streamlit Cloud runtime: `3.12`
+- Deployment checklist and incident guide: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
+
 ### Run tests
 
 ```bash
 pip install -r requirements.txt pytest pytest-cov
-pytest tests/ -v                        # 1001 tests
-pytest tests/ --cov=fiscal_model        # With coverage (~75%)
+pytest tests/ -v                        # 1051 tests
+pytest tests/ --cov=fiscal_model        # With coverage (~77%)
 ```
 
 ### Verify against CBO/JCT scores
@@ -275,6 +284,11 @@ ruff check fiscal_model/ tests/
 - CI now exports a `pip freeze` lock snapshot artifact for each Python version.
 - Use that artifact as the exact dependency lock for reproducing a CI run locally.
 
+### Deployment smoke tests
+
+- GitHub Actions now runs a dedicated `smoke` job for `app.py` and the core Streamlit controller path before the full matrix suite.
+- The smoke suite is `tests/test_app_entrypoints.py` plus `tests/test_ui_controller_smoke.py`.
+
 ### Project structure
 
 ```
@@ -293,7 +307,7 @@ fiscal-policy-calculator/
 │   └── constants.py          # All parameters with citations
 ├── classroom/                # Assignment engine, feedback, PDF export
 ├── bill_tracker/             # congress.gov pipeline, LLM extraction
-├── tests/                    # 1001 tests
+├── tests/                    # 1051 tests
 ├── docs/                     # Methodology, architecture docs
 ├── planning/                 # Roadmap, session notes
 └── pyproject.toml            # Project config, ruff, pytest

@@ -28,6 +28,11 @@ from classroom.engine import (
 from classroom.feedback import FeedbackEngine
 from classroom.pdf_export import generate_submission_html
 from fiscal_model.ui.helpers import PUBLIC_APP_URL
+from fiscal_model.ui.runtime_logging import (
+    build_runtime_metadata,
+    configure_runtime_logger,
+    log_runtime_event,
+)
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -445,5 +450,16 @@ def _render_export(assignment, exercises, tracker) -> None:
 # Standalone runner (for testing outside main app)
 # ---------------------------------------------------------------------------
 
+def main() -> None:
+    """Bootstrap the classroom app with structured startup logging."""
+    logger = configure_runtime_logger(__name__)
+    log_runtime_event(logger, "app_boot", **build_runtime_metadata(entrypoint="classroom_app.py", mode="classroom"))
+    try:
+        render_classroom_app()
+    except Exception:
+        logger.exception("Classroom app bootstrap failed")
+        raise
+
+
 if __name__ == "__main__":
-    render_classroom_app()
+    main()
