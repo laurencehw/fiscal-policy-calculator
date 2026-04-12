@@ -8,7 +8,10 @@ Verifies that health checks correctly assess:
 - Scoring engine readiness
 """
 
-
+import fiscal_model.baseline as baseline_module
+import fiscal_model.data.fred_data as fred_module
+import fiscal_model.data.irs_soi as irs_module
+import fiscal_model.scoring as scoring_module
 from fiscal_model.health import check_health
 
 
@@ -131,3 +134,39 @@ class TestCheckHealth:
         result = check_health()
         assert result is not None
         assert isinstance(result, dict)
+
+    def test_check_health_marks_components_as_error_on_failures(self, monkeypatch):
+        """Component exceptions should be captured in the health payload."""
+
+        class ExplodingBaseline:
+            def __init__(self, *args, **kwargs):
+                del args, kwargs
+                raise RuntimeError("baseline down")
+
+        class ExplodingFred:
+            def __init__(self, *args, **kwargs):
+                del args, kwargs
+                raise RuntimeError("fred down")
+
+        class ExplodingIRS:
+            def __init__(self, *args, **kwargs):
+                del args, kwargs
+                raise RuntimeError("irs down")
+
+        class ExplodingScorer:
+            def __init__(self, *args, **kwargs):
+                del args, kwargs
+                raise RuntimeError("model down")
+
+        monkeypatch.setattr(baseline_module, "CBOBaseline", ExplodingBaseline)
+        monkeypatch.setattr(fred_module, "FREDData", ExplodingFred)
+        monkeypatch.setattr(irs_module, "IRSSOIData", ExplodingIRS)
+        monkeypatch.setattr(scoring_module, "FiscalPolicyScorer", ExplodingScorer)
+
+        result = check_health()
+
+        assert result["baseline"]["status"] == "error"
+        assert result["fred"]["status"] == "error"
+        assert result["irs_soi"]["status"] == "error"
+        assert result["model"]["status"] == "error"
+        assert result["overall"] == "degraded"

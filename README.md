@@ -1,7 +1,7 @@
 # Fiscal Policy Impact Calculator
 
 [![Tests](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml/badge.svg)](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml)
-[![Coverage](https://img.shields.io/badge/coverage-73%25-brightgreen)](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml)
+[![Coverage](https://img.shields.io/badge/coverage-75%25-brightgreen)](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml)
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://fiscal-policy-calculator.streamlit.app)
 ![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -244,8 +244,8 @@ The app includes interactive sensitivity sliders to explore these ranges.
 
 ```bash
 pip install -r requirements.txt pytest pytest-cov
-pytest tests/ -v                        # 973 tests
-pytest tests/ --cov=fiscal_model        # With coverage (~73%)
+pytest tests/ -v                        # 1001 tests
+pytest tests/ --cov=fiscal_model        # With coverage (~75%)
 ```
 
 ### Verify against CBO/JCT scores
@@ -293,7 +293,7 @@ fiscal-policy-calculator/
 │   └── constants.py          # All parameters with citations
 ├── classroom/                # Assignment engine, feedback, PDF export
 ├── bill_tracker/             # congress.gov pipeline, LLM extraction
-├── tests/                    # 973 tests
+├── tests/                    # 1001 tests
 ├── docs/                     # Methodology, architecture docs
 ├── planning/                 # Roadmap, session notes
 └── pyproject.toml            # Project config, ruff, pytest

@@ -268,6 +268,93 @@ class TestScoreTransferPolicy:
         )
 
 
+class TestScoringEngineBranches:
+    """Test internal scoring branches that are easy to regress during refactors."""
+
+    def test_policy_branch_type_checks(self, scorer, income_tax_increase, spending_policy, transfer_policy):
+        n_years = len(scorer.baseline.years)
+
+        with pytest.raises(TypeError, match="Expected TaxPolicy"):
+            scorer._score_tax_policy_branch(spending_policy, n_years)
+
+        with pytest.raises(TypeError, match="Expected SpendingPolicy"):
+            scorer._score_spending_policy_branch(transfer_policy, n_years)
+
+        with pytest.raises(TypeError, match="Expected TransferPolicy"):
+            scorer._score_transfer_policy_branch(income_tax_increase, n_years)
+
+    def test_cost_estimate_branch_requires_estimator(self, scorer, income_tax_increase):
+        with pytest.raises(TypeError, match="Unsupported policy type"):
+            scorer._score_cost_estimate_policy_branch(
+                income_tax_increase,
+                len(scorer.baseline.years),
+            )
+
+    def test_cost_estimate_branch_respects_activity_and_phase(self, scorer):
+        class EstimatedCostPolicy:
+            def is_active(self, year):
+                return year >= 2027
+
+            def get_phase_in_factor(self, year):
+                return 0.5 if year == 2027 else 1.0
+
+            def estimate_cost_effect(self, base_cost):
+                del base_cost
+                return 10.0
+
+        revenue, spending, behavioral = scorer._score_cost_estimate_policy_branch(
+            EstimatedCostPolicy(),
+            len(scorer.baseline.years),
+        )
+
+        assert np.all(revenue == 0)
+        assert np.all(behavioral == 0)
+        assert spending[0] == 0.0
+        assert spending[1] == 0.0
+        assert spending[2] == pytest.approx(5.0)
+        assert spending[3] == pytest.approx(10.0)
+
+    def test_get_baseline_revenue_for_payroll_tax(self, scorer):
+        payroll_tax = TaxPolicy(
+            name="Payroll Test",
+            description="Payroll revenue lookup",
+            policy_type=PolicyType.PAYROLL_TAX,
+            rate_change=0.01,
+            affected_income_threshold=0,
+        )
+
+        revenue = scorer._get_baseline_revenue_for_tax_policy(payroll_tax, 0)
+        assert revenue == scorer.baseline.payroll_taxes[0]
+
+    @pytest.mark.parametrize(
+        ("policy_type", "baseline_field"),
+        [
+            (PolicyType.MEDICARE, "medicare"),
+            (PolicyType.MEDICAID, "medicaid"),
+            (PolicyType.MANDATORY_SPENDING, "other_mandatory"),
+        ],
+    )
+    def test_transfer_policy_uses_expected_baseline_series(
+        self,
+        scorer,
+        policy_type,
+        baseline_field,
+    ):
+        policy = TransferPolicy(
+            name=f"{policy_type.value} transfer",
+            description="Baseline selector",
+            policy_type=policy_type,
+            benefit_change_percent=0.05,
+            start_year=2026,
+        )
+
+        cost = scorer._score_transfer_policy(policy)
+
+        assert cost[0] == 0.0
+        expected_year_two = policy.estimate_cost_effect(getattr(scorer.baseline, baseline_field)[1])
+        assert cost[1] == pytest.approx(expected_year_two)
+
+
 # =============================================================================
 # DYNAMIC SCORING
 # =============================================================================
@@ -416,6 +503,29 @@ class TestScoringResultMethods:
         df = result.to_dataframe()
         assert 'GDP Effect ($B)' in df.columns
         assert 'Revenue Feedback ($B)' in df.columns
+
+    def test_display_summary_dynamic_prints_economic_section(
+        self,
+        scorer,
+        income_tax_increase,
+        monkeypatch,
+    ):
+        """display_summary should print the dynamic summary section."""
+        printed = []
+
+        def fake_print(self, *args, **kwargs):
+            del kwargs
+            printed.extend(args)
+
+        monkeypatch.setattr("rich.console.Console.print", fake_print)
+
+        result = scorer.score_policy(income_tax_increase, dynamic=True)
+        result.display_summary()
+
+        assert any(
+            isinstance(item, str) and "Economic Effects" in item
+            for item in printed
+        )
 
 
 # =============================================================================

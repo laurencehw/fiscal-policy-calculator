@@ -5,11 +5,25 @@ Generates formatted reports and visualizations for fiscal policy analysis.
 """
 
 
+import warnings
+
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import numpy as np
 
 from .scoring import ScoringResult
+
+_NON_INTERACTIVE_SHOW_WARNING = "FigureCanvasAgg is non-interactive, and thus cannot be shown"
+
+
+def _show_plot(show: bool) -> None:
+    """Display a plot when requested without surfacing Agg backend warnings in tests."""
+    if not show:
+        return
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message=_NON_INTERACTIVE_SHOW_WARNING)
+        plt.show()
 
 
 class BudgetReport:
@@ -217,15 +231,15 @@ class BudgetReport:
         if save_path:
             plt.savefig(save_path, dpi=150, bbox_inches='tight')
 
-        if show:
-            plt.show()
+        _show_plot(show)
 
         return fig
 
     def plot_comparison(self,
                        other_results: list[ScoringResult],
                        labels: list[str] | None = None,
-                       save_path: str | None = None) -> plt.Figure:
+                       save_path: str | None = None,
+                       show: bool = True) -> plt.Figure:
         """
         Compare multiple policy scoring results.
         """
@@ -288,7 +302,7 @@ class BudgetReport:
         if save_path:
             plt.savefig(save_path, dpi=150, bbox_inches='tight')
 
-        plt.show()
+        _show_plot(show)
         return fig
 
     def export_to_csv(self, filepath: str):

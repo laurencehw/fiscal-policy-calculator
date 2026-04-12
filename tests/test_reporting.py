@@ -12,6 +12,8 @@ import sys
 from pathlib import Path
 
 import matplotlib
+import numpy as np
+import pandas as pd
 
 matplotlib.use("Agg")  # Non-interactive backend for CI
 
@@ -21,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from fiscal_model.policies import PolicyType, TaxPolicy
 from fiscal_model.reporting import BudgetReport, create_comparison_table
-from fiscal_model.scoring import FiscalPolicyScorer
+from fiscal_model.scoring import FiscalPolicyScorer, ScoringResult
 
 # =============================================================================
 # FIXTURES
@@ -65,8 +67,37 @@ def second_result(scorer, second_policy):
 
 
 @pytest.fixture
+def dynamic_result(scorer, simple_policy):
+    return scorer.score_policy(simple_policy, dynamic=True)
+
+
+@pytest.fixture
 def report(scoring_result):
     return BudgetReport(scoring_result)
+
+
+@pytest.fixture
+def dynamic_report(dynamic_result):
+    return BudgetReport(dynamic_result)
+
+
+@pytest.fixture
+def zero_report(scoring_result):
+    zeros = np.zeros_like(scoring_result.years, dtype=float)
+    result = ScoringResult(
+        policy=scoring_result.policy,
+        baseline=scoring_result.baseline,
+        years=scoring_result.years,
+        static_revenue_effect=zeros.copy(),
+        static_spending_effect=zeros.copy(),
+        static_deficit_effect=zeros.copy(),
+        behavioral_offset=zeros.copy(),
+        dynamic_effects=None,
+        final_deficit_effect=zeros.copy(),
+        low_estimate=zeros.copy(),
+        high_estimate=zeros.copy(),
+    )
+    return BudgetReport(result)
 
 
 # =============================================================================
@@ -117,6 +148,11 @@ class TestGenerateTextReport:
         text = report.generate_text_report()
         assert "Uncertainty" in text or "CI" in text
 
+    def test_dynamic_report_contains_economic_effects(self, dynamic_report):
+        text = dynamic_report.generate_text_report()
+        assert "ECONOMIC EFFECTS" in text
+        assert "Economic Feedback" in text
+
 
 # =============================================================================
 # COMPARISON TABLE
@@ -158,13 +194,56 @@ class TestPlotBudgetEffects:
         assert fig is not None
         plt.close(fig)
 
+    def test_plot_budget_effects_dynamic_returns_figure(self, dynamic_report):
+        import matplotlib.pyplot as plt
+        fig = dynamic_report.plot_budget_effects(show=False)
+        assert fig is not None
+        plt.close(fig)
+
+    def test_plot_budget_effects_save_path(self, report, tmp_path):
+        import matplotlib.pyplot as plt
+        output = tmp_path / "budget-effects.png"
+        fig = report.plot_budget_effects(save_path=str(output), show=False)
+        assert output.exists()
+        plt.close(fig)
+
+    def test_plot_budget_effects_show_true_avoids_backend_warning(self, report):
+        import matplotlib.pyplot as plt
+        fig = report.plot_budget_effects(show=True)
+        assert fig is not None
+        plt.close(fig)
+
+    def test_plot_budget_effects_handles_zero_components(self, zero_report):
+        import matplotlib.pyplot as plt
+        fig = zero_report.plot_budget_effects(show=False)
+        assert any(text.get_text() == "No significant components" for text in fig.axes[3].texts)
+        plt.close(fig)
+
     def test_plot_comparison_callable(self, report, second_result):
         """plot_comparison is callable."""
         import matplotlib.pyplot as plt
-        plt.ion()
-        try:
-            fig = report.plot_comparison([second_result])
-            assert fig is not None
-            plt.close(fig)
-        finally:
-            plt.ioff()
+        fig = report.plot_comparison([second_result], show=True)
+        assert fig is not None
+        plt.close(fig)
+
+    def test_plot_comparison_save_path(self, report, second_result, tmp_path):
+        import matplotlib.pyplot as plt
+        output = tmp_path / "comparison.png"
+        fig = report.plot_comparison([second_result], save_path=str(output), show=False)
+        assert output.exists()
+        plt.close(fig)
+
+    def test_export_to_csv_writes_file(self, report, tmp_path):
+        output = tmp_path / "budget-effects.csv"
+        report.export_to_csv(str(output))
+        assert output.exists()
+        csv_text = output.read_text(encoding="utf-8")
+        assert "Year" in csv_text
+        assert "Final Deficit Effect ($B)" in csv_text
+
+    def test_export_to_excel_writes_expected_sheets(self, dynamic_report, tmp_path):
+        output = tmp_path / "budget-effects.xlsx"
+        dynamic_report.export_to_excel(str(output))
+        assert output.exists()
+        workbook = pd.ExcelFile(output)
+        assert set(workbook.sheet_names) == {"Budget Effects", "Summary", "Economic Effects"}

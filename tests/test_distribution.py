@@ -17,6 +17,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from fiscal_model.distribution import (
     DistributionalAnalysis,
+    DistributionalResult,
+    IncomeGroup,
     IncomeGroupType,
     format_distribution_table,
     generate_winners_losers_summary,
@@ -77,6 +79,38 @@ class TestIncomeGroups:
         # (bracket aggregation can cause some overlap/double-counting)
         total_share = sum(g.population_share for g in groups)
         assert 0.8 <= total_share <= 1.3
+
+    def test_income_group_zero_value_helpers(self):
+        """Zero denominators should not produce division errors."""
+        group = IncomeGroup(name="Zero Group", floor=0, ceiling=10_000)
+        assert group.avg_agi == 0.0
+        assert group.avg_tax == 0.0
+        assert group.effective_tax_rate == 0.0
+
+    def test_income_group_string_representation(self):
+        """Income group string output should include floor and open-ended ceiling."""
+        group = IncomeGroup(name="Top Group", floor=500_000, ceiling=None)
+        assert str(group) == "Top Group ($500,000-+)"
+
+
+class TestDistributionalAnalysisHelpers:
+    """Test helper methods on DistributionalAnalysis."""
+
+    def test_get_winners_and_losers(self, basic_tax_policy):
+        low_income = IncomeGroup(name="Low", floor=0, ceiling=50_000)
+        high_income = IncomeGroup(name="High", floor=200_000, ceiling=None)
+        analysis = DistributionalAnalysis(
+            policy=basic_tax_policy,
+            year=2025,
+            group_type=IncomeGroupType.QUINTILE,
+            results=[
+                DistributionalResult(income_group=low_income, tax_change_avg=-120.0),
+                DistributionalResult(income_group=high_income, tax_change_avg=240.0),
+            ],
+        )
+
+        assert [result.income_group.name for result in analysis.get_winners()] == ["Low"]
+        assert [result.income_group.name for result in analysis.get_losers()] == ["High"]
 
 
 class TestTaxPolicyDistribution:
