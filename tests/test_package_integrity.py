@@ -52,6 +52,15 @@ def test_package_level_app_data_imports():
     assert len(PRESET_POLICIES) > 0
 
 
+def test_excel_export_dependency_declared():
+    repo_root = Path(__file__).parent.parent
+    requirements_text = (repo_root / "requirements.txt").read_text(encoding="utf-8")
+    pyproject_text = (repo_root / "pyproject.toml").read_text(encoding="utf-8")
+
+    assert "openpyxl" in requirements_text
+    assert "openpyxl" in pyproject_text
+
+
 def test_biden_2025_proposal_in_tcja_dropdown():
     """Regression: Biden 2025 Proposal must appear in the TCJA / Individual category dropdown.
 
