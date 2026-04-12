@@ -122,7 +122,7 @@ def build_tax_microdata(data_dir: str, output_file: str = "tax_microdata_2024.cs
     # Count children (Age < 17 for CTC)
     kids_count = df[df['A_AGE'] < 17].groupby('PH_SEQ').size().reset_index(name='children_under_17')
     units = units.merge(kids_count, on='PH_SEQ', how='left')
-    units['children_under_17'] = units['children_under_17'].fillna(0)
+    units = units.assign(children_under_17=units['children_under_17'].fillna(0))
 
     # Determine Marital Status of Head (roughly)
     # Get marital status of reference person (A_LINENO = 1 usually, or just check if 'Married' present)
@@ -131,7 +131,7 @@ def build_tax_microdata(data_dir: str, output_file: str = "tax_microdata_2024.cs
     # Check if ANYONE in household is married (Simplification: assumes one married couple per HH)
     is_married = df[df['A_MARITL'].isin([1])].groupby('PH_SEQ').size().reset_index(name='married_count')
     units = units.merge(is_married, on='PH_SEQ', how='left')
-    units['married'] = np.where(units['married_count'] > 0, 1, 0)
+    units = units.assign(married=np.where(units['married_count'] > 0, 1, 0))
 
     # 4. Standardize Variable Names for Fiscal Model
     print("5. Standardizing Variables...")
@@ -153,12 +153,16 @@ def build_tax_microdata(data_dir: str, output_file: str = "tax_microdata_2024.cs
     clean_df['age_head'] = units['A_AGE']
 
     # AGI Approximation
-    clean_df['agi'] = (clean_df['wages'] +
-                       clean_df['interest_income'] +
-                       clean_df['dividend_income'] +
-                       clean_df['capital_gains'] +
-                       clean_df['unemployment'])
-                       # Note: SS is only partially taxable, handled in calculator
+    clean_df = clean_df.assign(
+        agi=(
+            clean_df['wages']
+            + clean_df['interest_income']
+            + clean_df['dividend_income']
+            + clean_df['capital_gains']
+            + clean_df['unemployment']
+        )
+    )
+    # Note: SS is only partially taxable, handled in calculator
 
     # 5. Save
     output_path = os.path.join(Path(data_dir).parent.parent, "fiscal_model", "microsim", output_file)
