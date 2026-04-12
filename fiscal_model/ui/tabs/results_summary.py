@@ -12,6 +12,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+from fiscal_model.ui.share_links import build_share_url
+
 
 def render_results_summary_tab(
     st_module: Any,
@@ -451,16 +453,23 @@ def render_results_summary_tab(
             )
 
         with col2:
+            share_url = build_share_url(result_data=result_data)
             share_btn = st_module.button(
-                "🔗 Sharing options",
+                "🔗 Generate share link",
                 key=f"share_btn_{policy.name.replace(' ', '_')}",
-                help="Direct share-link generation is not yet implemented for the current policy and settings.",
+                help="Generate a deep link for supported preset tax proposals and preset spending programs.",
             )
             if share_btn:
-                st_module.info(
-                    "Shareable links are not available yet in this view. "
-                    "Please use the exported files or copy the text summary below."
-                )
+                if share_url:
+                    st_module.code(share_url, language=None)
+                    st_module.caption(
+                        "Opening this link restores the supported preset configuration and runs the calculation automatically."
+                    )
+                else:
+                    st_module.info(
+                        "Share links currently support preset tax proposals and preset spending programs. "
+                        "Custom policies and microsimulation results still require local export."
+                    )
 
         # Generate formatted text summary for copy-paste
         baseline_year = result.baseline.start_year

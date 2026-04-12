@@ -102,7 +102,10 @@ _CATEGORY_TO_MODEL = {
 }
 
 
-def render_spending_policy_inputs(st_module: Any) -> dict[str, Any]:
+def render_spending_policy_inputs(
+    st_module: Any,
+    default_preset: str | None = None,
+) -> dict[str, Any]:
     """Render spending policy input controls and return selected values."""
     st_module.markdown("#### Spending program")
 
@@ -117,7 +120,7 @@ def render_spending_policy_inputs(st_module: Any) -> dict[str, Any]:
     selected_preset = st_module.selectbox(
         "Select a program",
         options=preset_names,
-        index=0,
+        index=preset_names.index(default_preset) if default_preset in preset_names else 0,
         key=spending_key,
         help="Choose a pre-configured spending scenario or define a custom program.",
     )
@@ -210,6 +213,7 @@ def render_spending_policy_inputs(st_module: Any) -> dict[str, Any]:
         )
 
     return {
+        "selected_preset": selected_preset,
         "program_name": program_name,
         "annual_spending": annual_spending,
         "spending_category": spending_category,
@@ -252,4 +256,6 @@ def calculate_spending_policy_result(
         "result": result,
         "scorer": scorer,
         "is_spending": True,
+        "policy_name": spending_inputs.get("selected_preset", spending_inputs["program_name"]),
+        "selected_spending_preset": spending_inputs.get("selected_preset"),
     }

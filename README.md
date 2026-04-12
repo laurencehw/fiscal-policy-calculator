@@ -45,6 +45,7 @@ Plus fully custom policy design with adjustable parameters.
 - **OLG model** — 30-period Auerbach-Kotlikoff-style generational accounting for Social Security and Medicare reform
 - **Classroom Mode** — 7 interactive assignments (intro → advanced), Laffer curve explorer, PDF export; accessible at `streamlit run classroom_app.py`
 - **Real-Time Bill Tracker** — Pulls active bills from congress.gov, extracts fiscal provisions via LLM, stores in SQLite
+- **Shareable preset links** — Generate deep links for supported preset tax proposals and preset spending programs directly from the results tab
 
 ### Validation
 

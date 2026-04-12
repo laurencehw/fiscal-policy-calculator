@@ -7,6 +7,8 @@ from __future__ import annotations
 import datetime
 from typing import Any
 
+_DYNAMIC_SCORING_KEY = "sidebar_setting_dynamic_scoring"
+
 
 def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
     """
@@ -31,7 +33,8 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
 
         dynamic_scoring = st_module.checkbox(
             "Enable dynamic scoring",
-            value=False,
+            value=bool(st_module.session_state.get(_DYNAMIC_SCORING_KEY, False)),
+            key=_DYNAMIC_SCORING_KEY,
             help=(
                 "Add macroeconomic feedback to the estimate. "
                 "A tax cut that boosts GDP generates some offsetting revenue; "

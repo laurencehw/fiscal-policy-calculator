@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from .controller_utils import render_input_guardrails, run_with_spinner_feedback
+from .share_links import apply_share_query_params
 
 SINGLE_POLICY_MODE = "📊 Single Policy"
 COMPARE_POLICIES_MODE = "🔀 Compare Policies"
@@ -23,6 +24,7 @@ def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
     """
     workflow_mode = SINGLE_POLICY_MODE
     preset_policies = deps.PRESET_POLICIES
+    apply_share_query_params(st_module=st_module)
 
     # ── Single-policy combined choice: preset / custom / spending ─────────
     analysis_mode = st_module.radio(
@@ -49,9 +51,13 @@ def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
         or query_params.get("preset")
         or getattr(st_module.session_state, "qs_preset", None)
     )
+    default_spending_preset = query_params.get("spending_preset")
 
     if is_spending:
-        spending_inputs = deps.render_spending_policy_inputs(st_module)
+        spending_inputs = deps.render_spending_policy_inputs(
+            st_module,
+            default_preset=default_spending_preset,
+        )
     else:
         tax_inputs = deps.render_tax_policy_inputs(
             st_module, preset_policies, use_preset=use_preset, default_preset=default_preset
