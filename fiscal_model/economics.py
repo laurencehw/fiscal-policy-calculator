@@ -5,6 +5,7 @@ Calculates macroeconomic effects of fiscal policies for dynamic scoring,
 including GDP, employment, and interest rate impacts.
 """
 
+import logging
 from dataclasses import dataclass
 
 import numpy as np
@@ -12,6 +13,8 @@ import numpy as np
 from .baseline import BaselineProjection
 from .constants import JOBS_PER_GDP_PERCENT
 from .policies import Policy, PolicyType, SpendingPolicy, TaxPolicy, TransferPolicy
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -256,6 +259,15 @@ class EconomicModel:
         Returns:
             DynamicEffects container with all calculated effects
         """
+        policy_kind = type(policy).__name__
+        logger.debug(
+            "Dynamic effects: policy='%s' kind=%s years=%d static_total=$%.1fB",
+            getattr(policy, "name", policy_kind),
+            policy_kind,
+            len(self.years),
+            float(np.sum(static_budget_effect)),
+        )
+
         # Calculate effects based on policy type
         if isinstance(policy, TaxPolicy):
             effects = self._tax_policy_effects(policy, static_budget_effect)
@@ -266,10 +278,17 @@ class EconomicModel:
         else:
             effects = self._generic_policy_effects(policy, static_budget_effect)
 
-        return DynamicEffects(
+        dyn = DynamicEffects(
             years=self.years.copy(),
             **effects
         )
+        logger.info(
+            "Dynamic effects complete: policy='%s' gdp_pct_cum=%.2f rev_feedback=$%.1fB",
+            getattr(policy, "name", policy_kind),
+            float(np.sum(dyn.gdp_percent_change)),
+            float(np.sum(dyn.revenue_feedback)),
+        )
+        return dyn
 
     def _tax_policy_effects(self, policy: TaxPolicy,
                            budget_effect: np.ndarray) -> dict:

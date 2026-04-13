@@ -2,6 +2,7 @@
 Distributional analysis engine orchestration.
 """
 
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -25,6 +26,8 @@ from .distribution_grouping import (
     get_group_thresholds,
 )
 from .policies import Policy
+
+logger = logging.getLogger(__name__)
 
 
 class DistributionalEngine:
@@ -81,6 +84,13 @@ class DistributionalEngine:
         if year is None:
             year = getattr(policy, "start_year", 2025)
 
+        logger.info(
+            "Distributional analysis: policy='%s' group=%s year=%s",
+            getattr(policy, "name", type(policy).__name__),
+            group_type.value if hasattr(group_type, "value") else group_type,
+            year,
+        )
+
         groups = self.create_income_groups(group_type)
         results = []
         total_tax_change = 0.0
@@ -96,6 +106,12 @@ class DistributionalEngine:
         if abs(total_tax_change) > 0.001:
             for result in results:
                 result.share_of_total_change = result.tax_change_total / total_tax_change
+
+        logger.info(
+            "Distributional analysis complete: total_change=$%.1fB affected=%d",
+            total_tax_change,
+            total_affected,
+        )
 
         return DistributionalAnalysis(
             policy=policy,

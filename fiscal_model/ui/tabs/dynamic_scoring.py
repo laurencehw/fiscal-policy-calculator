@@ -11,6 +11,12 @@ from typing import Any
 import numpy as np
 import plotly.graph_objects as go
 
+from fiscal_model.ui.a11y import (
+    ChartDescription,
+    format_currency_rows,
+    render_accessible_chart,
+)
+
 
 def render_dynamic_scoring_tab(
     st_module: Any,
@@ -214,9 +220,24 @@ def render_dynamic_scoring_tab(
             height=400,
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
             hovermode="x unified",
-            meta={"description": "Combined bar and line chart showing annual GDP level effect in percent and cumulative GDP effect in percent-years"},
         )
-        st_module.plotly_chart(fig_gdp, use_container_width=True)
+        gdp_rows = [
+            (str(int(year)), f"{level:+.2f}%")
+            for year, level in zip(macro_result.years, macro_result.gdp_level_pct)
+        ]
+        render_accessible_chart(
+            st_module,
+            fig_gdp,
+            ChartDescription(
+                title="GDP Effects by Year",
+                summary=(
+                    "Combined bar and line chart: annual GDP level effect "
+                    "in percent (bars) and cumulative GDP effect in "
+                    "percent-years (line)."
+                ),
+                data_rows=gdp_rows,
+            ),
+        )
 
         col1, col2 = st_module.columns(2)
         with col1:
@@ -237,9 +258,25 @@ def render_dynamic_scoring_tab(
                 yaxis_title="Jobs (Millions)",
                 height=350,
                 hovermode="x",
-                meta={"description": "Area chart showing employment effect in millions of jobs over the budget window"},
             )
-            st_module.plotly_chart(fig_emp, use_container_width=True)
+            emp_rows = [
+                (str(int(year)), f"{jobs:+,.2f}M")
+                for year, jobs in zip(
+                    macro_result.years, macro_result.employment_change_millions
+                )
+            ]
+            render_accessible_chart(
+                st_module,
+                fig_emp,
+                ChartDescription(
+                    title="Employment Effect",
+                    summary=(
+                        "Area chart showing the employment effect in millions "
+                        "of jobs across the budget window."
+                    ),
+                    data_rows=emp_rows,
+                ),
+            )
 
         with col2:
             fig_rev = go.Figure()
@@ -257,9 +294,25 @@ def render_dynamic_scoring_tab(
                 yaxis_title="Revenue Feedback ($B)",
                 height=350,
                 hovermode="x",
-                meta={"description": "Bar chart showing annual revenue feedback from macroeconomic effects in billions of dollars"},
             )
-            st_module.plotly_chart(fig_rev, use_container_width=True)
+            rev_rows = format_currency_rows(
+                (str(int(year)), float(val))
+                for year, val in zip(
+                    macro_result.years, macro_result.revenue_feedback_billions
+                )
+            )
+            render_accessible_chart(
+                st_module,
+                fig_rev,
+                ChartDescription(
+                    title="Revenue Feedback by Year",
+                    summary=(
+                        "Bar chart showing annual revenue feedback from "
+                        "macroeconomic effects, in billions of dollars."
+                    ),
+                    data_rows=rev_rows,
+                ),
+            )
 
         st_module.markdown("---")
         st_module.subheader("Interest Rate Effects")

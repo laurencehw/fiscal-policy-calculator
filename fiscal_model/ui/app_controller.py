@@ -8,6 +8,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
+from .a11y import inject_a11y_styles
 from .calculation_controller import (
     ensure_results_state,
     execute_calculation_if_requested,
@@ -15,6 +16,11 @@ from .calculation_controller import (
 )
 from .controller_utils import compute_run_id
 from .helpers import TEXTBOOK_HOME, TEXTBOOK_LINKS
+from .session_state import (
+    KEY_PENDING_SIDEBAR_UPDATES,
+    KEY_QS_CALCULATE,
+    initialize_session_state,
+)
 from .settings_controller import render_settings_tab
 from .tabs_controller import build_main_tabs, render_footer, render_result_tabs
 
@@ -33,18 +39,20 @@ _HOW_SCORED_MARKDOWN = (
     f"[The Federal Budget (Ch 22)]({TEXTBOOK_LINKS['federal_budget']}) in the textbook."
 )
 
-_PENDING_SIDEBAR_UPDATES_KEY = "_pending_sidebar_updates"
+# Re-exported for back-compat with existing tests. Prefer the canonical
+# constant from ``fiscal_model.ui.session_state`` for new code.
+_PENDING_SIDEBAR_UPDATES_KEY = KEY_PENDING_SIDEBAR_UPDATES
 
 
 def _queue_sidebar_updates(st_module: Any, **updates: Any) -> None:
     """Queue sidebar widget state updates for the next rerun."""
-    st_module.session_state[_PENDING_SIDEBAR_UPDATES_KEY] = updates
-    st_module.session_state["qs_calculate"] = True
+    st_module.session_state[KEY_PENDING_SIDEBAR_UPDATES] = updates
+    st_module.session_state[KEY_QS_CALCULATE] = True
 
 
 def _apply_pending_sidebar_updates(st_module: Any) -> None:
     """Apply deferred sidebar widget state before sidebar widgets are created."""
-    updates = st_module.session_state.pop(_PENDING_SIDEBAR_UPDATES_KEY, None)
+    updates = st_module.session_state.pop(KEY_PENDING_SIDEBAR_UPDATES, None)
     if not updates:
         return
 
@@ -63,8 +71,8 @@ def render_data_status(st_module: Any, deps: Any) -> None:
         cache_age_days = None
 
         try:
-            from fiscal_model.data.fred_data import FREDData
-            fred_instance = FREDData()
+            from .cache import get_fred_data
+            fred_instance = get_fred_data()
             data_status = fred_instance.data_status
             fred_source = data_status.get("source", "unknown")
             cache_age_days = data_status.get("cache_age_days")
@@ -86,22 +94,48 @@ def render_data_status(st_module: Any, deps: Any) -> None:
         except Exception:
             fred_status = None
 
+        # Compute baseline + IRS SOI freshness from centralized rules.
+        baseline_report = None
+        irs_report = None
         try:
-            baseline_display = "CBO Feb 2026"
-            vintage_color = "green"
+            from fiscal_model.data.freshness import (
+                CBO_VINTAGE_PUBLICATION_DATES,
+                evaluate_cbo_baseline,
+                evaluate_irs_soi,
+            )
+
+            vintage_key = "cbo_feb_2026"
+            vintage_date = CBO_VINTAGE_PUBLICATION_DATES.get(vintage_key)
+            baseline_report = evaluate_cbo_baseline(vintage_date)
+            irs_report = evaluate_irs_soi(2022)
         except Exception:
-            baseline_display = "Unknown"
-            vintage_color = "gray"
+            baseline_report = None
+            irs_report = None
 
         st_module.markdown("---")
         st_module.markdown("**📊 Data Status**")
 
-        if vintage_color == "green":
-            st_module.markdown(f"🟢 **Baseline:** {baseline_display}")
-        elif vintage_color == "yellow":
-            st_module.markdown(f"🟡 **Baseline:** {baseline_display}")
+        if baseline_report is not None:
+            st_module.markdown(
+                f"{baseline_report.emoji} **Baseline:** CBO Feb 2026 "
+                f"({baseline_report.message})"
+            )
+            if baseline_report.is_stale:
+                st_module.warning(
+                    "CBO baseline is past its expected refresh window — "
+                    "results reflect older economic assumptions."
+                )
         else:
-            st_module.markdown(f"⚪ **Baseline:** {baseline_display}")
+            st_module.markdown("⚪ **Baseline:** CBO Feb 2026")
+
+        if irs_report is not None:
+            st_module.markdown(f"{irs_report.emoji} **IRS SOI:** {irs_report.message}")
+            if irs_report.is_stale:
+                st_module.warning(
+                    "IRS Statistics of Income tables are more than "
+                    f"{irs_report.age_days // 365}y old — refresh "
+                    "`fiscal_model/data_files/irs_soi/`."
+                )
 
         if fred_status:
             st_module.markdown(f"📡 **FRED:** {fred_status}")
@@ -207,6 +241,15 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
     Render and orchestrate the full Streamlit app flow.
     Top-level tabs: Calculator | Budget Builder | Generational | State | Bill Tracker | Methodology
     """
+    # Ensure every known session key has its declared default before any
+    # widgets are constructed. Safe to call on every rerun — does not
+    # overwrite existing values.
+    initialize_session_state(st_module)
+
+    # Inject a11y CSS (sr-only, focus rings) and the skip-to-main-content
+    # link before rendering any content. Idempotent per-render.
+    inject_a11y_styles(st_module)
+
     st_module.title("Fiscal Policy Impact Calculator")
     st_module.markdown(
         "Estimate the 10-year budgetary and economic effects of U.S. tax and "
@@ -333,8 +376,8 @@ def _render_calculator(
             use_container_width=True,
         )
         # Auto-trigger from quick-start card click
-        if getattr(st_module.session_state, "qs_calculate", False):
-            del st_module.session_state["qs_calculate"]
+        if getattr(st_module.session_state, KEY_QS_CALCULATE, False):
+            del st_module.session_state[KEY_QS_CALCULATE]
             calculate = True
         calc_context["calculate"] = calculate
 

@@ -78,6 +78,14 @@ from .estate import (
     create_warren_estate_proposal,
     estimate_estate_revenue,
 )
+from .exceptions import (
+    BaselineStaleError,
+    DataSourceError,
+    FiscalModelError,
+    FREDUnavailableError,
+    PolicyValidationError,
+    ScoringBoundsError,
+)
 from .payroll import (
     CBO_PAYROLL_ESTIMATES,
     MEDICARE_PARAMS,
@@ -199,12 +207,14 @@ __all__ = [
     "AMTPolicy",
     "AMTType",
     "BaselineProjection",
+    "BaselineStaleError",
     "BudgetReport",
     "CBOBaseline",
     "CapitalGainsPolicy",
     # Corporate tax
     "CorporateTaxPolicy",
     "CreditType",
+    "DataSourceError",
     "DistributionalAnalysis",
     # Distributional Analysis
     "DistributionalEngine",
@@ -215,6 +225,8 @@ __all__ = [
     # Estate tax
     "EstateTaxPolicy",
     "EstateTaxScenario",
+    "FREDUnavailableError",
+    "FiscalModelError",
     "FiscalPolicyScorer",
     "IncomeGroup",
     "IncomeGroupType",
@@ -225,8 +237,10 @@ __all__ = [
     "Policy",
     "PolicyPackage",
     "PolicyType",
+    "PolicyValidationError",
     # Premium Tax Credits
     "PremiumTaxCreditPolicy",
+    "ScoringBoundsError",
     "ScoringResult",
     "SpendingPolicy",
     "TCJAComponent",
