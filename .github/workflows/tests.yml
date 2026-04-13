@@ -111,6 +111,15 @@ jobs:
           if ! git diff --exit-code -- requirements-lock.txt; then
             echo ""
             echo "::error::requirements-lock.txt is out of sync with requirements.txt."
-            echo "Run 'pip-compile --strip-extras --output-file=requirements-lock.txt requirements.txt' and commit the result."
+            echo "This usually means either (a) you edited requirements.txt"
+            echo "without running pip-compile, or (b) you regenerated the"
+            echo "lock file from a Python version other than 3.12."
+            echo ""
+            echo "Fix from a Python 3.12 interpreter:"
+            echo "  python3.12 -m venv .lockvenv"
+            echo "  .lockvenv/bin/pip install pip-tools"
+            echo "  .lockvenv/bin/pip-compile --strip-extras \\"
+            echo "    --output-file=requirements-lock.txt requirements.txt"
+            echo "  git add requirements-lock.txt && git commit"
             exit 1
           fi
