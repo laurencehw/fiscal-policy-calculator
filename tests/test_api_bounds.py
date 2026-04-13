@@ -73,3 +73,21 @@ def test_validate_ignores_none_optional_fields():
     payload["dynamic_adjusted_impact"] = None
     # Must not raise — these are optional dynamic fields.
     _validate_serialized_result(payload, policy_name="No dynamics")
+
+
+def test_validate_rejects_non_numeric_year_field():
+    """A stray string in year_by_year must not trigger a raw ValueError —
+    the validator should surface a structured ScoringBoundsError instead."""
+    payload = _ok_payload()
+    payload["year_by_year"][0]["revenue_effect"] = "oops"  # type: ignore[assignment]
+    with pytest.raises(ScoringBoundsError, match="non-numeric"):
+        _validate_serialized_result(payload, policy_name="Bad shape")
+
+
+def test_validate_rejects_non_numeric_ten_year():
+    payload = _ok_payload()
+    payload["ten_year_deficit_impact"] = "not a number"  # type: ignore[assignment]
+    # Scalar-key loop catches it first as non-finite (isinstance check); if
+    # it somehow sneaks past that, the dedicated ten_year guard catches it.
+    with pytest.raises(ScoringBoundsError):
+        _validate_serialized_result(payload, policy_name="Bad ten year")

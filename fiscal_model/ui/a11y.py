@@ -21,6 +21,7 @@ over calling ``st.plotly_chart`` directly.
 
 from __future__ import annotations
 
+import html
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
@@ -133,7 +134,13 @@ class ChartDescription:
 
 
 def _ensure_figure_title(figure: Any, description: ChartDescription) -> None:
-    """Attach title + meta to a Plotly figure if not already set."""
+    """Attach title + meta to a Plotly figure if not already set.
+
+    Tolerates figure-like objects that don't expose the full Plotly API
+    (``layout`` attribute missing or ``update_layout`` unavailable) so the
+    sr-only fallback path still renders a useful description for tests
+    that pass stub objects.
+    """
     try:
         layout = figure.layout
         # Respect an existing title if the caller already set one.
@@ -147,9 +154,9 @@ def _ensure_figure_title(figure: Any, description: ChartDescription) -> None:
         if not current_title:
             updates["title"] = {"text": description.title, "xanchor": "left", "x": 0.0}
         figure.update_layout(**updates)
-    except Exception:
-        # Figures from third-party code may not expose the full API. Fall
-        # back silently — the sr-only description still covers us.
+    except AttributeError:
+        # Non-Plotly figure-like object (e.g. a test stub). The sr-only
+        # description still covers screen reader users.
         pass
 
 
@@ -177,9 +184,13 @@ def render_accessible_chart(
     st_module.plotly_chart(figure, **kwargs)
 
     # Hidden, screen-reader-only description. Uses the sr-only utility
-    # injected by :func:`inject_a11y_styles`.
+    # injected by :func:`inject_a11y_styles`. The description is escaped
+    # because ChartDescription can carry user-provided text (policy names,
+    # preset captions) — without escaping, a crafted policy name could
+    # inject arbitrary HTML into the sidebar panel.
+    safe_description = html.escape(description.hidden_description(), quote=True)
     st_module.markdown(
-        f'<div class="sr-only" role="note">{description.hidden_description()}</div>',
+        f'<div class="sr-only" role="note">{safe_description}</div>',
         unsafe_allow_html=True,
     )
 

@@ -157,6 +157,31 @@ def test_format_currency_rows_produces_signed_billions():
     assert rows == [("2026", "$+12.5B"), ("2027", "$-3.2B")]
 
 
+def test_render_accessible_chart_escapes_html_in_description():
+    """ChartDescription can carry user-supplied text (policy names, etc.);
+    the sr-only block must escape HTML so it can't inject markup."""
+    st = _FakeStreamlit()
+    fig = _simple_figure()
+    desc = ChartDescription(
+        title='Scary <script>alert("xss")</script>',
+        summary='<img src=x onerror=alert(1)>',
+        data_rows=[("<b>row</b>", "<i>val</i>")],
+    )
+    render_accessible_chart(st, fig, desc)
+
+    sr_blocks = [
+        text for text, unsafe in st.markdowns
+        if unsafe and 'class="sr-only"' in text
+    ]
+    assert sr_blocks, "should emit sr-only block"
+    for block in sr_blocks:
+        # Raw HTML must be escaped inside the sr-only div.
+        assert "<script>" not in block
+        assert "&lt;script&gt;" in block
+        assert "onerror=" not in block or "&lt;img" in block
+        assert "&lt;b&gt;row&lt;/b&gt;" in block
+
+
 def test_render_accessible_chart_survives_figure_without_update_layout():
     """If a non-Plotly object sneaks in, the helper must still render the
     sr-only fallback instead of crashing."""
@@ -174,14 +199,55 @@ def test_render_accessible_chart_survives_figure_without_update_layout():
     assert any('class="sr-only"' in text for text, _ in st.markdowns)
 
 
-def test_inject_a11y_styles_on_controller_bootstrap_called_once():
-    """Smoke check: ensure run_main_app wires the a11y injector."""
+def test_run_main_app_invokes_inject_a11y_styles(monkeypatch):
+    """``run_main_app`` must call ``inject_a11y_styles`` before rendering.
+
+    Uses a spy to record the first call, then short-circuits the rest of
+    bootstrap by raising so we don't have to build a full fake deps/tab
+    tree. The assertion is on the call log, not on successful completion
+    of the whole pipeline.
+    """
     import fiscal_model.ui.app_controller as app_controller
 
-    source = app_controller.run_main_app.__code__.co_consts
-    # The fresh app_controller closes over inject_a11y_styles at module scope,
-    # so the import below should succeed and reference it.
-    from fiscal_model.ui import app_controller as ac
+    calls: list[tuple] = []
+    sentinel = RuntimeError("stop-after-a11y-injection")
 
-    assert "inject_a11y_styles" in ac.__dict__
-    _ = source  # touch to keep the linter happy if co_consts fails
+    def _spy(st_module):
+        calls.append((st_module,))
+        raise sentinel
+
+    monkeypatch.setattr(app_controller, "inject_a11y_styles", _spy)
+
+    class _Session(dict):
+        def __getattr__(self, name):
+            try:
+                return self[name]
+            except KeyError as exc:
+                raise AttributeError(name) from exc
+
+        def __setattr__(self, name, value):
+            self[name] = value
+
+    class _FakeSt:
+        def __init__(self):
+            self.session_state = _Session()
+
+        def title(self, _text):  # pragma: no cover — never reached
+            raise AssertionError("title should not render — spy raised first")
+
+        def markdown(self, *args, **kwargs):
+            pass
+
+    fake_st = _FakeSt()
+    try:
+        app_controller.run_main_app(
+            st_module=fake_st,
+            deps=None,
+            model_available=True,
+            app_root=None,
+        )
+    except RuntimeError as exc:
+        assert exc is sentinel
+
+    assert len(calls) == 1
+    assert calls[0][0] is fake_st

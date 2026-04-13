@@ -130,6 +130,24 @@ def test_score_endpoint_invalid_policy_type_returns_400():
     assert "policy_type" in response.json()["detail"]
 
 
+def test_score_endpoint_value_error_returns_400(monkeypatch):
+    """Upstream ``ValueError`` from policy constructors should be surfaced
+    as a 400 Bad Request, not swallowed into the generic 200 error path."""
+
+    class _ExplodingScorer(_DummyScorer):
+        def score_policy(self, policy, dynamic=False):
+            del policy, dynamic
+            raise ValueError("threshold must be non-negative")
+
+    monkeypatch.setattr(api_module, "FiscalPolicyScorer", _ExplodingScorer)
+    response = _client().post(
+        "/score",
+        json={"rate_change": 0.01, "income_threshold": 0},
+    )
+    assert response.status_code == 400
+    assert "threshold must be non-negative" in response.json()["detail"]
+
+
 def test_score_endpoint_internal_error_returns_error_payload(monkeypatch):
     class _ExplodingScorer(_DummyScorer):
         def score_policy(self, policy, dynamic=False):

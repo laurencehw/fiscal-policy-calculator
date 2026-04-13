@@ -16,7 +16,11 @@ from .calculation_controller import (
 )
 from .controller_utils import compute_run_id
 from .helpers import TEXTBOOK_HOME, TEXTBOOK_LINKS
-from .session_state import initialize_session_state
+from .session_state import (
+    KEY_PENDING_SIDEBAR_UPDATES,
+    KEY_QS_CALCULATE,
+    initialize_session_state,
+)
 from .settings_controller import render_settings_tab
 from .tabs_controller import build_main_tabs, render_footer, render_result_tabs
 
@@ -35,18 +39,20 @@ _HOW_SCORED_MARKDOWN = (
     f"[The Federal Budget (Ch 22)]({TEXTBOOK_LINKS['federal_budget']}) in the textbook."
 )
 
-_PENDING_SIDEBAR_UPDATES_KEY = "_pending_sidebar_updates"
+# Re-exported for back-compat with existing tests. Prefer the canonical
+# constant from ``fiscal_model.ui.session_state`` for new code.
+_PENDING_SIDEBAR_UPDATES_KEY = KEY_PENDING_SIDEBAR_UPDATES
 
 
 def _queue_sidebar_updates(st_module: Any, **updates: Any) -> None:
     """Queue sidebar widget state updates for the next rerun."""
-    st_module.session_state[_PENDING_SIDEBAR_UPDATES_KEY] = updates
-    st_module.session_state["qs_calculate"] = True
+    st_module.session_state[KEY_PENDING_SIDEBAR_UPDATES] = updates
+    st_module.session_state[KEY_QS_CALCULATE] = True
 
 
 def _apply_pending_sidebar_updates(st_module: Any) -> None:
     """Apply deferred sidebar widget state before sidebar widgets are created."""
-    updates = st_module.session_state.pop(_PENDING_SIDEBAR_UPDATES_KEY, None)
+    updates = st_module.session_state.pop(KEY_PENDING_SIDEBAR_UPDATES, None)
     if not updates:
         return
 
@@ -370,8 +376,8 @@ def _render_calculator(
             use_container_width=True,
         )
         # Auto-trigger from quick-start card click
-        if getattr(st_module.session_state, "qs_calculate", False):
-            del st_module.session_state["qs_calculate"]
+        if getattr(st_module.session_state, KEY_QS_CALCULATE, False):
+            del st_module.session_state[KEY_QS_CALCULATE]
             calculate = True
         calc_context["calculate"] = calculate
 

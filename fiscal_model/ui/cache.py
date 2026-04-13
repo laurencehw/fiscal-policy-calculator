@@ -34,7 +34,7 @@ def _streamlit_cache_resource() -> Callable[[Callable[..., T]], Callable[..., T]
     """
     try:
         import streamlit as st  # type: ignore
-    except Exception:  # pragma: no cover — tests / CLI path
+    except ImportError:  # pragma: no cover — tests / CLI path
         return lru_cache(maxsize=None)  # type: ignore[return-value]
 
     decorator = getattr(st, "cache_resource", None)

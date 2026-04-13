@@ -19,8 +19,11 @@ gets renamed in one tab and stale state leaks into another.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Canonical keys
@@ -124,8 +127,10 @@ class SafeSessionState:
     # --- generic helpers ---------------------------------------------------
 
     def get(self, key: str, default: Any = None) -> Any:
-        if key not in ALL_KEYS and self._strict:
-            raise KeyError(f"Unknown session_state key: {key!r}")
+        if key not in ALL_KEYS:
+            if self._strict:
+                raise KeyError(f"Unknown session_state key: {key!r}")
+            logger.warning("SafeSessionState.get: unknown key %r", key)
         return self._state.get(key, default)
 
     def set(self, key: str, value: Any) -> None:
@@ -133,6 +138,7 @@ class SafeSessionState:
         if spec is None:
             if self._strict:
                 raise KeyError(f"Unknown session_state key: {key!r}")
+            logger.warning("SafeSessionState.set: unknown key %r", key)
         elif spec.expected_type is not None and not isinstance(value, spec.expected_type):
             msg = (
                 f"session_state[{key!r}] expected {spec.expected_type}, "
@@ -140,6 +146,7 @@ class SafeSessionState:
             )
             if self._strict:
                 raise TypeError(msg)
+            logger.warning("SafeSessionState.set: %s", msg)
         self._state[key] = value
 
     # --- typed accessors (add more as call sites migrate) -----------------
