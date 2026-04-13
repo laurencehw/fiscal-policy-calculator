@@ -7,14 +7,20 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
 
+from fiscal_model.exceptions import FREDUnavailableError
 from fiscal_model.time_utils import parse_utc_timestamp, utc_now
 
 logger = logging.getLogger(__name__)
+
+# Retry schedule (seconds) for transient FRED failures. Short by design so
+# we fall back to cache quickly rather than blocking UI renders.
+_FRED_RETRY_BACKOFF_SECONDS: tuple[float, ...] = (0.5, 1.0)
 
 
 class FREDData:
@@ -154,21 +160,66 @@ class FREDData:
         return pd.Series([30_300.0], index=[pd.Timestamp("2024-01-01")], name=series_id)
 
     def _fetch_live_series(self, series_id: str) -> pd.Series | None:
-        """Fetch a series from FRED API with timeout."""
+        """Fetch a series from FRED API with timeout and short retry/backoff.
+
+        Returns ``None`` on failure so the caller can fall back to cache.
+        Transient errors are retried with an exponential-ish backoff before
+        giving up; the final error is stored on ``self._last_error``.
+        """
         if self._fred is None:
             return None
-        try:
-            series = self._fred.get_series(series_id, observation_start=None, timeout=self.timeout_seconds)
-            if isinstance(series, pd.Series):
-                series = series.dropna()
-                series.name = series_id
-                return series
-            return None
-        except Exception as e:
-            error_msg = f"Failed to fetch {series_id} from FRED: {e!s}"
-            logger.debug(error_msg)
-            self._last_error = error_msg
-            return None
+
+        attempts = 1 + len(_FRED_RETRY_BACKOFF_SECONDS)
+        last_exc: Exception | None = None
+        for attempt in range(attempts):
+            try:
+                series = self._fred.get_series(
+                    series_id,
+                    observation_start=None,
+                    timeout=self.timeout_seconds,
+                )
+                if isinstance(series, pd.Series):
+                    series = series.dropna()
+                    series.name = series_id
+                    return series
+                return None
+            except Exception as e:
+                # fredapi can raise many underlying types; treat all as transient.
+                last_exc = e
+                logger.debug(
+                    "FRED fetch attempt %d/%d for %s failed: %s",
+                    attempt + 1,
+                    attempts,
+                    series_id,
+                    e,
+                )
+                if attempt < len(_FRED_RETRY_BACKOFF_SECONDS):
+                    time.sleep(_FRED_RETRY_BACKOFF_SECONDS[attempt])
+
+        error_msg = f"Failed to fetch {series_id} from FRED: {last_exc!s}"
+        logger.info(error_msg)
+        self._last_error = error_msg
+        return None
+
+    def require_live(self, series_id: str) -> pd.Series:
+        """Fetch a series from the live FRED API, raising on failure.
+
+        Useful for callers that must have fresh data (e.g. CLI refresh jobs).
+        Raises :class:`FREDUnavailableError` if the API is unreachable or
+        returns no usable data.
+        """
+        if self._fred is None:
+            raise FREDUnavailableError(
+                "FRED API not configured (set FRED_API_KEY) or fredapi "
+                "unavailable"
+            )
+        series = self._fetch_live_series(series_id)
+        if series is None or series.empty:
+            raise FREDUnavailableError(
+                self._last_error
+                or f"No live FRED data available for {series_id}"
+            )
+        return series
 
     def refresh(self) -> bool:
         """Force re-fetch all series from FRED API and update cache.

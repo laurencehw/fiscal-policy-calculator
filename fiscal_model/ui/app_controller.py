@@ -15,6 +15,7 @@ from .calculation_controller import (
 )
 from .controller_utils import compute_run_id
 from .helpers import TEXTBOOK_HOME, TEXTBOOK_LINKS
+from .session_state import initialize_session_state
 from .settings_controller import render_settings_tab
 from .tabs_controller import build_main_tabs, render_footer, render_result_tabs
 
@@ -63,8 +64,8 @@ def render_data_status(st_module: Any, deps: Any) -> None:
         cache_age_days = None
 
         try:
-            from fiscal_model.data.fred_data import FREDData
-            fred_instance = FREDData()
+            from .cache import get_fred_data
+            fred_instance = get_fred_data()
             data_status = fred_instance.data_status
             fred_source = data_status.get("source", "unknown")
             cache_age_days = data_status.get("cache_age_days")
@@ -86,22 +87,48 @@ def render_data_status(st_module: Any, deps: Any) -> None:
         except Exception:
             fred_status = None
 
+        # Compute baseline + IRS SOI freshness from centralized rules.
+        baseline_report = None
+        irs_report = None
         try:
-            baseline_display = "CBO Feb 2026"
-            vintage_color = "green"
+            from fiscal_model.data.freshness import (
+                CBO_VINTAGE_PUBLICATION_DATES,
+                evaluate_cbo_baseline,
+                evaluate_irs_soi,
+            )
+
+            vintage_key = "cbo_feb_2026"
+            vintage_date = CBO_VINTAGE_PUBLICATION_DATES.get(vintage_key)
+            baseline_report = evaluate_cbo_baseline(vintage_date)
+            irs_report = evaluate_irs_soi(2022)
         except Exception:
-            baseline_display = "Unknown"
-            vintage_color = "gray"
+            baseline_report = None
+            irs_report = None
 
         st_module.markdown("---")
         st_module.markdown("**📊 Data Status**")
 
-        if vintage_color == "green":
-            st_module.markdown(f"🟢 **Baseline:** {baseline_display}")
-        elif vintage_color == "yellow":
-            st_module.markdown(f"🟡 **Baseline:** {baseline_display}")
+        if baseline_report is not None:
+            st_module.markdown(
+                f"{baseline_report.emoji} **Baseline:** CBO Feb 2026 "
+                f"({baseline_report.message})"
+            )
+            if baseline_report.is_stale:
+                st_module.warning(
+                    "CBO baseline is past its expected refresh window — "
+                    "results reflect older economic assumptions."
+                )
         else:
-            st_module.markdown(f"⚪ **Baseline:** {baseline_display}")
+            st_module.markdown("⚪ **Baseline:** CBO Feb 2026")
+
+        if irs_report is not None:
+            st_module.markdown(f"{irs_report.emoji} **IRS SOI:** {irs_report.message}")
+            if irs_report.is_stale:
+                st_module.warning(
+                    "IRS Statistics of Income tables are more than "
+                    f"{irs_report.age_days // 365}y old — refresh "
+                    "`fiscal_model/data_files/irs_soi/`."
+                )
 
         if fred_status:
             st_module.markdown(f"📡 **FRED:** {fred_status}")
@@ -207,6 +234,11 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
     Render and orchestrate the full Streamlit app flow.
     Top-level tabs: Calculator | Budget Builder | Generational | State | Bill Tracker | Methodology
     """
+    # Ensure every known session key has its declared default before any
+    # widgets are constructed. Safe to call on every rerun — does not
+    # overwrite existing values.
+    initialize_session_state(st_module)
+
     st_module.title("Fiscal Policy Impact Calculator")
     st_module.markdown(
         "Estimate the 10-year budgetary and economic effects of U.S. tax and "

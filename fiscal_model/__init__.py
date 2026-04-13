@@ -62,6 +62,14 @@ from .distribution import (
     generate_winners_losers_summary,
 )
 from .economics import DynamicEffects, EconomicConditions, EconomicModel
+from .exceptions import (
+    BaselineStaleError,
+    DataSourceError,
+    FiscalModelError,
+    FREDUnavailableError,
+    PolicyValidationError,
+    ScoringBoundsError,
+)
 from .estate import (
     BASELINE_ESTATE_DATA,
     CBO_ESTATE_ESTIMATES,
@@ -199,12 +207,14 @@ __all__ = [
     "AMTPolicy",
     "AMTType",
     "BaselineProjection",
+    "BaselineStaleError",
     "BudgetReport",
     "CBOBaseline",
     "CapitalGainsPolicy",
     # Corporate tax
     "CorporateTaxPolicy",
     "CreditType",
+    "DataSourceError",
     "DistributionalAnalysis",
     # Distributional Analysis
     "DistributionalEngine",
@@ -215,6 +225,8 @@ __all__ = [
     # Estate tax
     "EstateTaxPolicy",
     "EstateTaxScenario",
+    "FREDUnavailableError",
+    "FiscalModelError",
     "FiscalPolicyScorer",
     "IncomeGroup",
     "IncomeGroupType",
@@ -225,8 +237,10 @@ __all__ = [
     "Policy",
     "PolicyPackage",
     "PolicyType",
+    "PolicyValidationError",
     # Premium Tax Credits
     "PremiumTaxCreditPolicy",
+    "ScoringBoundsError",
     "ScoringResult",
     "SpendingPolicy",
     "TCJAComponent",

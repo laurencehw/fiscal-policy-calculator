@@ -10,6 +10,8 @@ Docs at:
     http://localhost:8000/docs
 """
 
+import logging
+import math
 from typing import Any
 
 import numpy as np
@@ -18,6 +20,11 @@ from pydantic import BaseModel, Field
 
 from fiscal_model.api_serialization import serialize_scoring_result
 from fiscal_model.app_data import CBO_SCORE_MAP, PRESET_POLICIES
+from fiscal_model.exceptions import (
+    FiscalModelError,
+    PolicyValidationError,
+    ScoringBoundsError,
+)
 from fiscal_model.health import check_health
 from fiscal_model.policies import (
     PolicyType,
@@ -26,6 +33,70 @@ from fiscal_model.policies import (
 from fiscal_model.preset_handler import create_policy_from_preset
 from fiscal_model.scoring import FiscalPolicyScorer
 from fiscal_model.trade import TariffPolicy
+
+logger = logging.getLogger(__name__)
+
+# Plausible annual revenue / deficit impact, in $B. The entire federal budget
+# is ~$7T, so any single-year policy effect outside ±$10T is almost certainly
+# numerical overflow or a malformed policy, not a real scoring result.
+_MAX_ANNUAL_EFFECT_BILLIONS = 10_000.0
+
+
+def _validate_serialized_result(
+    payload: dict[str, Any],
+    *,
+    policy_name: str,
+) -> None:
+    """Sanity-check a serialized scoring result before returning it to API
+    clients.
+
+    Raises :class:`ScoringBoundsError` if any numeric field is non-finite or
+    outside plausible bounds. This catches pathological inputs (extreme
+    elasticities, bad baselines) before they become confusing client errors.
+    """
+    scalar_keys = (
+        "ten_year_deficit_impact",
+        "static_revenue_effect",
+        "behavioral_offset",
+        "final_static_effect",
+        "gdp_effect",
+        "employment_effect",
+        "revenue_feedback",
+        "dynamic_adjusted_impact",
+    )
+    for key in scalar_keys:
+        value = payload.get(key)
+        if value is None:
+            continue
+        if not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+            raise ScoringBoundsError(
+                f"Policy '{policy_name}': non-finite {key}={value!r}"
+            )
+
+    ten_year = float(payload.get("ten_year_deficit_impact") or 0.0)
+    if abs(ten_year) > _MAX_ANNUAL_EFFECT_BILLIONS * 10:
+        raise ScoringBoundsError(
+            f"Policy '{policy_name}': ten_year_deficit_impact ${ten_year:.1f}B "
+            f"exceeds plausible bounds (±${_MAX_ANNUAL_EFFECT_BILLIONS * 10:.0f}B). "
+            "Check policy parameters."
+        )
+
+    for entry in payload.get("year_by_year") or []:
+        for field_name in ("revenue_effect", "behavioral_offset", "dynamic_feedback", "final_effect"):
+            value = entry.get(field_name)
+            if value is None:
+                continue
+            if not math.isfinite(float(value)):
+                raise ScoringBoundsError(
+                    f"Policy '{policy_name}': non-finite {field_name} in "
+                    f"year {entry.get('year')}"
+                )
+            if abs(float(value)) > _MAX_ANNUAL_EFFECT_BILLIONS:
+                raise ScoringBoundsError(
+                    f"Policy '{policy_name}': {field_name}=${value:.1f}B in "
+                    f"year {entry.get('year')} exceeds plausible annual bound "
+                    f"±${_MAX_ANNUAL_EFFECT_BILLIONS:.0f}B"
+                )
 
 app = FastAPI(
     title="Fiscal Policy Calculator API",
@@ -280,7 +351,7 @@ async def score_policy(request: ScorePolicyRequest):
     try:
         # Validate inputs
         if request.duration_years < 1:
-            raise ValueError("duration_years must be at least 1")
+            raise PolicyValidationError("duration_years must be at least 1")
         policy_type = _resolve_custom_policy_type(request.policy_type)
 
         # Create policy
@@ -298,18 +369,29 @@ async def score_policy(request: ScorePolicyRequest):
         scorer = FiscalPolicyScorer(use_real_data=True)
         result = scorer.score_policy(policy, dynamic=request.dynamic)
 
-        return ScorePolicyResponse(
-            **serialize_scoring_result(
-                result,
-                policy_name=request.name,
-                policy_description=request.description,
-                dynamic_scoring_enabled=request.dynamic,
-            )
+        payload = serialize_scoring_result(
+            result,
+            policy_name=request.name,
+            policy_description=request.description,
+            dynamic_scoring_enabled=request.dynamic,
         )
+        _validate_serialized_result(payload, policy_name=request.name)
+        return ScorePolicyResponse(**payload)
 
     except HTTPException:
         raise
+    except PolicyValidationError as e:
+        # Caller-induced validation problem — return 400 so clients can fix.
+        logger.info("Policy '%s' validation error: %s", request.name, e)
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except FiscalModelError as e:
+        # Internal model error with enough context to be a 422 (unprocessable).
+        logger.warning("Policy '%s' scoring error: %s", request.name, e)
+        raise HTTPException(status_code=422, detail=str(e)) from e
     except Exception as e:
+        # Unknown failure — log with traceback and surface a generic error
+        # payload so the client still gets a typed response for diagnostics.
+        logger.exception("Unexpected error scoring policy '%s'", request.name)
         return ScorePolicyResponse(
             policy_name=request.name,
             policy_description=request.description,
@@ -349,17 +431,22 @@ async def score_preset(request: ScorePresetRequest):
         )
         result = scorer.score_policy(policy, dynamic=request.dynamic)
 
-        return ScorePolicyResponse(
-            **serialize_scoring_result(
-                result,
-                policy_name=request.preset_name,
-                policy_description=preset.get("description", ""),
-                dynamic_scoring_enabled=request.dynamic,
-            )
+        payload = serialize_scoring_result(
+            result,
+            policy_name=request.preset_name,
+            policy_description=preset.get("description", ""),
+            dynamic_scoring_enabled=request.dynamic,
         )
+        _validate_serialized_result(payload, policy_name=request.preset_name)
+        return ScorePolicyResponse(**payload)
 
+    except PolicyValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+    except FiscalModelError as e:
+        logger.warning("Preset '%s' scoring error: %s", request.preset_name, e)
+        raise HTTPException(status_code=422, detail=str(e)) from e
 
 
 @app.post("/score/tariff", response_model=ScoreTariffResponse)
