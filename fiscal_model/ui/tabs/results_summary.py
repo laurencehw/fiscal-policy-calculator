@@ -12,6 +12,11 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+from fiscal_model.ui.a11y import (
+    ChartDescription,
+    format_currency_rows,
+    render_accessible_chart,
+)
 from fiscal_model.ui.share_links import build_share_url
 
 
@@ -90,10 +95,22 @@ def render_results_summary_tab(
             color="avg_tax_change",
             color_continuous_scale="RdBu_r",
         )
-        fig.update_layout(
-            meta={"description": "Bar chart showing average tax change per household by number of children"},
+        kids_rows = [
+            (f"{int(row['children'])} children", f"${row['avg_tax_change']:+,.0f}")
+            for _, row in dist_kids.iterrows()
+        ]
+        render_accessible_chart(
+            st_module,
+            fig,
+            ChartDescription(
+                title="Average Tax Change by Family Size",
+                summary=(
+                    "Average tax change per household by number of children "
+                    "(negative values indicate a tax cut)."
+                ),
+                data_rows=kids_rows,
+            ),
         )
-        st_module.plotly_chart(fig, use_container_width=True)
 
         st_module.info(
             """
@@ -269,9 +286,21 @@ def render_results_summary_tab(
             height=320,
             yaxis_title="Deficit Impact ($B, + = increases deficit)",
             showlegend=False,
-            meta={"description": "Waterfall chart showing deficit impact decomposition from static through behavioral and dynamic effects"},
         )
-        st_module.plotly_chart(fig_waterfall, use_container_width=True)
+        waterfall_rows = format_currency_rows(zip(steps_x, steps_y))
+        render_accessible_chart(
+            st_module,
+            fig_waterfall,
+            ChartDescription(
+                title="Deficit Impact Decomposition",
+                summary=(
+                    "Waterfall chart decomposing the deficit impact from static "
+                    "scoring through behavioral and dynamic effects. Positive "
+                    "bars increase the deficit; negative bars decrease it."
+                ),
+                data_rows=waterfall_rows,
+            ),
+        )
 
     with col_context:
         policy_name = result_data.get("policy_name", "")
@@ -342,9 +371,23 @@ def render_results_summary_tab(
             height=300,
             xaxis_title=None,
             yaxis_title="Deficit Impact ($B)",
-            meta={"description": "Bar chart showing year-by-year deficit impact in billions of dollars"},
         )
-        st_module.plotly_chart(fig_timeline, use_container_width=True)
+        timeline_rows = format_currency_rows(
+            (str(int(year)), float(val))
+            for year, val in zip(df_timeline["Year"], df_timeline["Deficit Impact"])
+        )
+        render_accessible_chart(
+            st_module,
+            fig_timeline,
+            ChartDescription(
+                title="Year-by-Year Deficit Impact",
+                summary=(
+                    "Bar chart showing the annual deficit impact in billions of "
+                    "dollars across the 10-year budget window."
+                ),
+                data_rows=timeline_rows,
+            ),
+        )
 
     with c_chart2:
         st_module.subheader("Cumulative Deficit Impact")
@@ -389,9 +432,23 @@ def render_results_summary_tab(
                 orientation="h", yanchor="bottom", y=1.02,
                 xanchor="right", x=1,
             ),
-            meta={"description": "Line chart with uncertainty band showing cumulative deficit impact over the budget window"},
         )
-        st_module.plotly_chart(fig_cum, use_container_width=True)
+        cum_rows = format_currency_rows(
+            (str(int(year)), float(val))
+            for year, val in zip(df_timeline["Year"], df_timeline["Cumulative"])
+        )
+        render_accessible_chart(
+            st_module,
+            fig_cum,
+            ChartDescription(
+                title="Cumulative Deficit Impact",
+                summary=(
+                    "Line chart with a shaded uncertainty band showing the "
+                    "running total deficit impact across the budget window."
+                ),
+                data_rows=cum_rows,
+            ),
+        )
         st_module.caption(
             "Shaded area shows uncertainty range. "
             "Uncertainty grows over time, consistent with CBO methodology."

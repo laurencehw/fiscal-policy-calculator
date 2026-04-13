@@ -76,3 +76,41 @@ jobs:
         with:
           name: requirements-lock-${{ matrix.python-version }}
           path: requirements-lock-ci.txt
+
+  lockfile:
+    # Verifies that the committed requirements-lock.txt stays in sync with
+    # requirements.txt. Pinned to Python 3.12 — the version Streamlit Cloud
+    # runs — so the lock file reflects the production deployment target.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install pip-tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-tools
+
+      - name: Regenerate lock file in place
+        run: |
+          # Overwrite the checked-in lock file so pip-compile's header
+          # references the same filename the committed copy was generated
+          # with. A trailing git diff then surfaces any drift.
+          pip-compile \
+            --quiet \
+            --strip-extras \
+            --output-file=requirements-lock.txt \
+            requirements.txt
+
+      - name: Verify committed lock file matches
+        run: |
+          if ! git diff --exit-code -- requirements-lock.txt; then
+            echo ""
+            echo "::error::requirements-lock.txt is out of sync with requirements.txt."
+            echo "Run 'pip-compile --strip-extras --output-file=requirements-lock.txt requirements.txt' and commit the result."
+            exit 1
+          fi

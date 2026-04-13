@@ -9,11 +9,27 @@ git clone https://github.com/laurencehw/fiscal-policy-calculator.git
 cd fiscal-policy-calculator
 pip install -r requirements.txt
 pip install pytest pytest-cov ruff
-pytest tests/ -v          # Run the test suite (1123 tests)
+pytest tests/ -v          # Run the test suite
 streamlit run app.py      # Launch the app locally
 ```
 
 Local development targets Python `3.12` via `.python-version`. The supported package range is `3.10`-`3.13`, and GitHub Actions verifies the full matrix.
+
+### Reproducible installs via `requirements-lock.txt`
+
+`requirements.txt` lists direct dependencies with loose bounds (e.g. `numpy>=1.24,<3.0`) for library-style flexibility. For reproducible production installs — including the Streamlit Cloud deployment — we also commit `requirements-lock.txt`, a fully-pinned transitive closure generated with [`pip-tools`](https://github.com/jazzband/pip-tools).
+
+```bash
+# Install the exact versions CI + prod use
+pip install -r requirements-lock.txt
+
+# Refresh the lock file after editing requirements.txt
+pip install pip-tools
+pip-compile --strip-extras --output-file=requirements-lock.txt requirements.txt
+git add requirements.txt requirements-lock.txt
+```
+
+The `lockfile` CI job regenerates the lock file on every PR and fails if the committed copy has drifted from `requirements.txt`. If that job is red, run the `pip-compile` command above locally and commit the result.
 
 ## High-impact areas
 

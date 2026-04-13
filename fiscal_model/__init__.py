@@ -62,14 +62,6 @@ from .distribution import (
     generate_winners_losers_summary,
 )
 from .economics import DynamicEffects, EconomicConditions, EconomicModel
-from .exceptions import (
-    BaselineStaleError,
-    DataSourceError,
-    FiscalModelError,
-    FREDUnavailableError,
-    PolicyValidationError,
-    ScoringBoundsError,
-)
 from .estate import (
     BASELINE_ESTATE_DATA,
     CBO_ESTATE_ESTIMATES,
@@ -85,6 +77,14 @@ from .estate import (
     create_tcja_estate_extension,
     create_warren_estate_proposal,
     estimate_estate_revenue,
+)
+from .exceptions import (
+    BaselineStaleError,
+    DataSourceError,
+    FiscalModelError,
+    FREDUnavailableError,
+    PolicyValidationError,
+    ScoringBoundsError,
 )
 from .payroll import (
     CBO_PAYROLL_ESTIMATES,

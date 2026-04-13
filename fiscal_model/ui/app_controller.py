@@ -8,6 +8,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
+from .a11y import inject_a11y_styles
 from .calculation_controller import (
     ensure_results_state,
     execute_calculation_if_requested,
@@ -238,6 +239,10 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
     # widgets are constructed. Safe to call on every rerun — does not
     # overwrite existing values.
     initialize_session_state(st_module)
+
+    # Inject a11y CSS (sr-only, focus rings) and the skip-to-main-content
+    # link before rendering any content. Idempotent per-render.
+    inject_a11y_styles(st_module)
 
     st_module.title("Fiscal Policy Impact Calculator")
     st_module.markdown(
