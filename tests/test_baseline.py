@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -287,6 +288,52 @@ class TestCBOBaselineInit:
         """CBOBaseline should create EconomicAssumptions."""
         assert cbo_baseline.assumptions is not None
         assert isinstance(cbo_baseline.assumptions, EconomicAssumptions)
+
+    def test_init_tracks_fallback_metadata(self):
+        """Hardcoded fallback mode should expose explicit source metadata."""
+        gen = CBOBaseline(start_year=2026, use_real_data=False)
+
+        assert gen.metadata["source"] == "hardcoded_fallback"
+        assert gen.metadata["gdp_source"] == "hardcoded"
+        assert gen.metadata["requested_real_data"] is False
+
+    def test_real_data_baseline_uses_cached_fred_without_live_api(self, monkeypatch):
+        """Cached FRED GDP should be usable even when no live API key is configured."""
+        import fiscal_model.data as data_module
+
+        class DummyIRSData:
+            def get_data_years_available(self):
+                return [2022]
+
+            def get_total_revenue(self, year):
+                assert year == 2022
+                return 2700.0
+
+        class DummyFREDData:
+            def get_gdp(self, nominal=True):
+                assert nominal is True
+                return pd.Series([31_000.0], index=pd.to_datetime(["2025-01-01"]), name="GDP")
+
+            @property
+            def data_status(self):
+                return {
+                    "source": "cache",
+                    "last_updated": pd.Timestamp("2025-01-01T00:00:00Z").to_pydatetime(),
+                    "cache_age_days": 5,
+                    "cache_is_expired": False,
+                    "api_available": False,
+                    "error": None,
+                }
+
+        monkeypatch.setattr(data_module, "IRSSOIData", DummyIRSData)
+        monkeypatch.setattr(data_module, "FREDData", DummyFREDData)
+
+        gen = CBOBaseline(start_year=2026, use_real_data=True)
+
+        assert gen.base_gdp == 31_000.0
+        assert gen.metadata["source"] == "real_data"
+        assert gen.metadata["gdp_source"] == "fred_cache"
+        assert gen.metadata["irs_data_year"] == 2022
 
 
 # =============================================================================

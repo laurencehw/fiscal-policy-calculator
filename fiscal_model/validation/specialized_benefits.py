@@ -43,6 +43,10 @@ def validate_amt_policy(
             "repeal_corporate_amt": getattr(policy, "repeal_corporate_amt", False),
         },
         notes=scenario.get("notes", ""),
+        benchmark_date=scenario.get("benchmark_date"),
+        benchmark_url=scenario.get("benchmark_url"),
+        benchmark_kind=scenario.get("benchmark_kind"),
+        known_limitations=scenario.get("limitations"),
     )
 
     if verbose:
@@ -144,6 +148,10 @@ def validate_ptc_policy(
             "repeal_ptc": getattr(policy, "repeal_ptc", False),
         },
         notes=scenario.get("notes", ""),
+        benchmark_date=scenario.get("benchmark_date"),
+        benchmark_url=scenario.get("benchmark_url"),
+        benchmark_kind=scenario.get("benchmark_kind"),
+        known_limitations=scenario.get("limitations"),
     )
 
     if verbose:

@@ -66,91 +66,108 @@ def render_data_status(st_module: Any, deps: Any) -> None:
     and FRED data status. Placed at the bottom of the sidebar.
     """
     try:
-        fred_status = "Unknown"
-        fred_source = None
-        cache_age_days = None
+        from fiscal_model.health import check_health
 
-        try:
-            from .cache import get_fred_data
-            fred_instance = get_fred_data()
-            data_status = fred_instance.data_status
-            fred_source = data_status.get("source", "unknown")
-            cache_age_days = data_status.get("cache_age_days")
-            cache_is_expired = data_status.get("cache_is_expired", False)
-            api_available = data_status.get("api_available", False)
+        def _status_icon(status: str | None) -> str:
+            if status == "ok":
+                return "🟢"
+            if status == "degraded":
+                return "🟡"
+            if status == "error":
+                return "🔴"
+            return "⚪"
 
-            if fred_source == "live":
-                fred_status = "🟢 Live (FRED API)"
-            elif fred_source == "cache" and cache_is_expired:
-                fred_status = f"🟠 Stale cache ({cache_age_days} days old)"
-            elif fred_source == "cache":
-                fred_status = f"🟡 Cached ({cache_age_days} days old)"
-            elif fred_source == "fallback":
-                fred_status = "🔴 Fallback (hardcoded values)"
-            elif api_available:
-                fred_status = "🟢 API configured"
-            else:
-                fred_status = "⚪ API key not configured"
-        except Exception:
-            fred_status = None
+        def _age_label(days: Any) -> str:
+            if isinstance(days, int | float):
+                return str(int(days))
+            return "n/a"
 
-        # Compute baseline + IRS SOI freshness from centralized rules.
-        baseline_report = None
-        irs_report = None
-        try:
-            from fiscal_model.data.freshness import (
-                CBO_VINTAGE_PUBLICATION_DATES,
-                evaluate_cbo_baseline,
-                evaluate_irs_soi,
+        def _format_fred_summary(component: dict[str, Any]) -> str:
+            source = component.get("source")
+            cache_age_days = component.get("cache_age_days")
+            cache_is_expired = bool(component.get("cache_is_expired", False))
+            api_available = bool(component.get("api_available", False))
+
+            if source == "live":
+                return "Live (FRED API)"
+            if source == "cache" and cache_is_expired:
+                return f"Stale cache ({_age_label(cache_age_days)} days)"
+            if source == "cache":
+                return f"Cache ({_age_label(cache_age_days)} days)"
+            if source == "fallback":
+                return "Fallback (hardcoded values)"
+            if api_available:
+                return "API configured"
+            return "Unavailable"
+
+        health = check_health()
+        baseline = health.get("baseline", {})
+        irs_soi = health.get("irs_soi", {})
+        fred = health.get("fred", {})
+
+        baseline_freshness = baseline.get("freshness") or {}
+        irs_freshness = irs_soi.get("freshness") or {}
+
+        baseline_summary = str(baseline.get("vintage", "Unknown"))
+        if baseline_freshness.get("message"):
+            baseline_summary = (
+                f"{baseline_summary} ({baseline_freshness['message']})"
             )
 
-            vintage_key = "cbo_feb_2026"
-            vintage_date = CBO_VINTAGE_PUBLICATION_DATES.get(vintage_key)
-            baseline_report = evaluate_cbo_baseline(vintage_date)
-            irs_report = evaluate_irs_soi(2022)
-        except Exception:
-            baseline_report = None
-            irs_report = None
+        latest_irs_year = irs_soi.get("latest_year")
+        irs_summary = str(latest_irs_year) if latest_irs_year else "Unavailable"
+        if irs_freshness.get("message"):
+            irs_summary = f"{irs_summary} ({irs_freshness['message']})"
+
+        fred_summary = _format_fred_summary(fred)
 
         st_module.markdown("---")
         st_module.markdown("**📊 Data Status**")
 
-        if baseline_report is not None:
-            st_module.markdown(
-                f"{baseline_report.emoji} **Baseline:** CBO Feb 2026 "
-                f"({baseline_report.message})"
+        st_module.markdown(
+            f"{_status_icon(baseline.get('status'))} **Baseline:** {baseline_summary}"
+        )
+        st_module.markdown(
+            f"{_status_icon(irs_soi.get('status'))} **IRS SOI:** {irs_summary}"
+        )
+        st_module.markdown(
+            f"{_status_icon(fred.get('status'))} **FRED:** {fred_summary}"
+        )
+
+        if baseline_freshness.get("is_stale"):
+            st_module.warning(
+                "CBO baseline is past its expected refresh window; results "
+                "reflect older economic assumptions."
             )
-            if baseline_report.is_stale:
-                st_module.warning(
-                    "CBO baseline is past its expected refresh window — "
-                    "results reflect older economic assumptions."
-                )
-        else:
-            st_module.markdown("⚪ **Baseline:** CBO Feb 2026")
+        elif baseline.get("source") == "hardcoded_fallback":
+            st_module.warning(
+                "Baseline fell back to hardcoded values; check the data layer "
+                "before treating results as publication-ready."
+            )
 
-        if irs_report is not None:
-            st_module.markdown(f"{irs_report.emoji} **IRS SOI:** {irs_report.message}")
-            if irs_report.is_stale:
-                st_module.warning(
-                    "IRS Statistics of Income tables are more than "
-                    f"{irs_report.age_days // 365}y old — refresh "
-                    "`fiscal_model/data_files/irs_soi/`."
-                )
-
-        if fred_status:
-            st_module.markdown(f"📡 **FRED:** {fred_status}")
-        else:
-            st_module.markdown("📋 **Data:** IRS SOI 2022, CBO Feb 2026")
+        if irs_freshness.get("is_stale"):
+            st_module.warning(
+                "IRS Statistics of Income tables are stale; refresh "
+                "`fiscal_model/data_files/irs_soi/`."
+            )
 
         with st_module.expander("ℹ️ Data details", expanded=False):
+            baseline_fred = baseline.get("fred", {})
+            baseline_load_error = baseline.get("load_error") or "None"
+            last_updated = (
+                fred.get("last_updated")
+                or baseline_fred.get("last_updated")
+                or "Not available"
+            )
             st_module.markdown(
-                "**Baseline:** Uses CBO February 2026 economic assumptions for "
-                "projections (inflation, GDP growth, unemployment).\n\n"
-                "**FRED Data:** Automatically fetches recent macro series "
-                "(GDP, unemployment, interest rates) when API key is available. "
-                "Falls back to cache or hardcoded values if needed.\n\n"
-                "**Last Updated:** Baseline assumptions are updated quarterly "
-                "with new CBO publications."
+                f"**CBO baseline vintage:** {baseline.get('vintage', 'Unknown')}\n\n"
+                f"**Baseline source:** {baseline.get('source', 'Unknown')}\n\n"
+                f"**Baseline load error:** {baseline_load_error}\n\n"
+                f"**IRS SOI latest year:** {irs_soi.get('latest_year', 'Unavailable')}\n\n"
+                f"**FRED source:** {fred.get('source', 'unknown')}\n\n"
+                f"**FRED last updated:** {last_updated}\n\n"
+                f"**FRED cache age:** {_age_label(fred.get('cache_age_days'))}\n\n"
+                f"**GDP source for baseline:** {baseline.get('gdp_source', 'unknown')}"
             )
     except Exception:
         pass

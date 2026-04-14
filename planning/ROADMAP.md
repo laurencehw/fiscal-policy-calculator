@@ -8,11 +8,11 @@
 
 ### What's built
 
-- **39 pre-built policy proposals** across 11 categories (TCJA, corporate, international, credits, estate, payroll, AMT, ACA, tax expenditures, IRS enforcement, drug pricing)
-- **CBO-style three-stage scoring**: static + behavioral (ETI) + dynamic (FRB/US)
-- **Distributional analysis**: TPC/JCT-style tables by quintile, decile, and dollar brackets
+- **49 pre-built policy proposals** across 14 policy areas, plus custom tax, spending, and tariff scoring paths
+- **CBO-style three-stage scoring**: static + behavioral (ETI) + optional dynamic feedback (FRB/US-calibrated)
+- **Distributional analysis**: bracket-aggregate distribution tables by quintile, decile, and dollar brackets
 - **Tariff scoring**: 5 presets with consumer price impact by quintile
-- **Microsimulation engine**: MFJ brackets, SALT, AMT, EITC, NIIT
+- **Synthetic microsimulation engine**: MFJ brackets, SALT, AMT, EITC, NIIT, but not yet CPS ASEC-backed
 - **FastAPI endpoints**: `/health`, `/presets`, `/score`, `/score/preset`, `/score/tariff`
 - **OLG model**: 30-period Auerbach-Kotlikoff-style for SS/Medicare reform and generational accounting
 - **Classroom Mode**: 7 assignments (intro → advanced), PDF export, 80 tests
@@ -20,7 +20,7 @@
 - **Real-Time Bill Tracker**: congress.gov pipeline, LLM extraction, SQLite storage
 - **Interactive Streamlit app** with methodology documentation, sensitivity analysis, comparison tools, CSV export
 - **25+ policies validated** against CBO/JCT/Treasury within 15%
-- **973 tests**, 73% coverage, ruff linting, GitHub Actions CI
+- **Large automated test suite** with an 85% enforced coverage gate, ruff linting, and GitHub Actions CI
 - **Real data integration**: IRS Statistics of Income, FRED, CBO Baseline
 
 ### Policy modules
@@ -43,11 +43,21 @@
 
 ## Next priorities
 
+### Feasibility gates before full buildout
+
+The repo should not jump directly from the current branch to full CPS microsimulation or a full CBO/TPC/PWBM comparison UI. The immediate next step is the staged assessment in [FEASIBILITY_CHECKLISTS.md](FEASIBILITY_CHECKLISTS.md):
+
+- CPS ASEC microsimulation feasibility sprint
+- Multi-model comparison feasibility sprint
+- short go/no-go memo tying both together
+
+These are the fastest way to tell whether the existing `microsim/` and `models/` foundations can be hardened into publication-grade features.
+
 ### Multi-model comparison platform
-Run the same policy through CBO-style, TPC-style (microsim), and FRB/US dynamic models side by side. Show divergences and explain why. This is the most impactful remaining architectural feature.
+Run the same policy through independent CBO-style, TPC-style (microsim), and FRB/US/PWBM-inspired engines side by side. Show divergences and explain why. This is still the highest-impact remaining architectural feature.
 
 ### CPS microsimulation
-Replace IRS bracket-level data with CPS ASEC microdata for distributional analysis. Would significantly improve accuracy for complex provision interactions (AMT + SALT + CTC phase-outs).
+Replace IRS bracket-level data and synthetic tax units with CPS ASEC microdata for distributional analysis. This is the highest-leverage methodological upgrade for complex provision interactions (AMT + SALT + CTC phase-outs).
 
 ### Additional policy modules
 - **Climate/energy** — IRA clean energy credits, carbon pricing, EV incentives
@@ -61,7 +71,7 @@ Replace IRS bracket-level data with CPS ASEC microdata for distributional analys
 
 ### Production hardening
 - Docker containerization
-- `requirements-lock.txt` with pinned versions (`pip-compile`)
+- `requirements-lock.txt` with `pip-compile`-managed pinned runtime versions
 - Security scanning (bandit)
 - Structured logging throughout
 - Data freshness monitoring
@@ -104,7 +114,8 @@ Replace IRS bracket-level data with CPS ASEC microdata for distributional analys
 
 See the [README](../README.md) for setup instructions. The most impactful contributions:
 
-1. **Multi-model comparison** — CBO-style, TPC microsim, dynamic side-by-side
-2. **New policy modules** — Climate, immigration, housing, wealth tax
-3. **CPS microsimulation** — Individual-level tax calculation
-4. **Data updates** — IRS SOI 2023, CBO auto-loader
+1. **Feasibility gates** — CPS and multi-model checklists in [FEASIBILITY_CHECKLISTS.md](FEASIBILITY_CHECKLISTS.md)
+2. **Multi-model comparison** — CBO-style, TPC microsim, dynamic side-by-side
+3. **CPS microsimulation** — Individual-level tax calculation using CPS ASEC
+4. **New policy modules** — Climate, immigration, housing, wealth tax
+5. **Data updates** — IRS SOI 2023, CBO auto-loader

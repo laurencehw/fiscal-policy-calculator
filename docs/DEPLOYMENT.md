@@ -43,13 +43,18 @@ The full `test` job runs on Python `3.10`, `3.11`, `3.12`, and `3.13` and is exp
 
 ## Dependency Parity
 
-The deployment and CI paths both install from `requirements.txt`, while package metadata lives in `pyproject.toml`.
-Keep these files aligned when adding runtime dependencies.
+The deployment path is intentionally split:
+
+- The Python `3.12` `smoke` job installs from `requirements-lock.txt` so the production-style runtime lock is exercised in CI.
+- The broader `3.10`-`3.13` matrix installs from `requirements.txt` to verify the supported version range.
+- Package metadata still lives in `pyproject.toml`.
+
+Keep all three aligned when adding runtime dependencies.
 
 Important current examples:
 
 - `openpyxl` is required for Excel export paths exercised by the test suite
-- `requirements-lock-ci.txt` artifacts are emitted from CI to make dependency drift reproducible
+- `requirements-lock.txt` must be regenerated with `pip-compile` from Python `3.12` when `requirements.txt` changes
 
 ## Runtime Logging
 
@@ -72,10 +77,10 @@ On Streamlit Cloud, inspect these in the app logs. Locally, they appear in the s
 
 1. Verify `.python-version` is still aligned with the intended deploy target.
 2. Confirm Streamlit Cloud advanced settings are set to Python `3.12`.
-3. Wait for GitHub Actions `smoke` and `test` jobs to pass.
-4. Confirm the public health workflow is green.
-5. Load the calculator root and classroom mode once after deploy.
-6. If dependencies changed, compare the new CI lock artifact to the prior successful run.
+3. If dependencies changed, regenerate `requirements-lock.txt` with `pip-compile` on Python `3.12`.
+4. Wait for GitHub Actions `smoke`, `test`, and `lockfile` jobs to pass.
+5. Confirm the public health workflow is green.
+6. Load the calculator root and classroom mode once after deploy.
 
 ## Incident Checklist
 

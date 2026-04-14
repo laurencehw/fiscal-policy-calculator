@@ -8,6 +8,7 @@ following CBO methodology and current law assumptions.
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
+from typing import Any
 
 import numpy as np
 
@@ -216,6 +217,12 @@ class CBOBaseline:
         self.start_year = start_year
         self.duration = duration
         self.years = np.arange(start_year, start_year + duration)
+        self.requested_real_data = use_real_data
+        self.baseline_data_source = "hardcoded_fallback"
+        self.load_error: str | None = None
+        self.irs_data_year: int | None = None
+        self.gdp_source = "hardcoded"
+        self.fred_data_status: dict[str, Any] = {}
 
         # Set vintage (default to Feb 2026)
         if vintage is None:
@@ -237,8 +244,10 @@ class CBOBaseline:
         if use_real_data:
             try:
                 self._load_from_data_sources()
+                self.baseline_data_source = "real_data"
                 logger.info(f"Successfully loaded {self.baseline_vintage_date} baseline data from IRS SOI and FRED")
             except Exception as e:
+                self.load_error = str(e)
                 logger.warning(f"Could not load real data: {e}")
                 logger.warning(f"Falling back to hardcoded {self.baseline_vintage_date} baseline values")
                 self._use_hardcoded_fallback()
@@ -255,6 +264,20 @@ class CBOBaseline:
         }
         return vintage_dates.get(self.baseline_vintage, "Unknown")
 
+    @property
+    def metadata(self) -> dict[str, Any]:
+        """Return machine-readable metadata about the baseline inputs used."""
+        return {
+            "vintage": self.baseline_vintage.value,
+            "vintage_date": self.baseline_vintage_date,
+            "source": self.baseline_data_source,
+            "requested_real_data": self.requested_real_data,
+            "load_error": self.load_error,
+            "irs_data_year": self.irs_data_year,
+            "gdp_source": self.gdp_source,
+            "fred": dict(self.fred_data_status),
+        }
+
     def _load_from_data_sources(self):
         """Load baseline values from IRS SOI and FRED data."""
         from fiscal_model.data import FREDData, IRSSOIData
@@ -269,21 +292,25 @@ class CBOBaseline:
             raise FileNotFoundError("No IRS SOI data files found. See fiscal_model/data_files/irs_soi/README.md")
 
         data_year = max(available_years)
-        print(f"Loading baseline from {data_year} IRS SOI data")
+        self.irs_data_year = data_year
+        logger.info("Loading baseline from %s IRS SOI data", data_year)
 
         # Load individual income tax revenue from IRS data
         self.base_individual_income_tax = irs_data.get_total_revenue(data_year)
 
-        # Load GDP from FRED
-        if fred_data.is_available():
-            gdp_series = fred_data.get_gdp(nominal=True)
-            # Get most recent quarterly value (in billions)
+        # Load GDP from FRED cache/live if available, otherwise fall back to IRS ratio proxy.
+        gdp_series = fred_data.get_gdp(nominal=True)
+        self.fred_data_status = dict(fred_data.data_status)
+        fred_source = self.fred_data_status.get("source")
+
+        if fred_source in {"live", "cache"}:
             self.base_gdp = float(gdp_series.iloc[-1])
-            logger.info("Loaded GDP from FRED: $%.0fB", self.base_gdp)
+            self.gdp_source = f"fred_{fred_source}"
+            logger.info("Loaded GDP from FRED (%s): $%.0fB", fred_source, self.base_gdp)
         else:
-            # Use ratio from IRS data
-            logger.info("FRED not available, estimating GDP from IRS data")
+            logger.info("FRED unavailable beyond fallback, estimating GDP from IRS income tax ratio")
             self.base_gdp = self.base_individual_income_tax / GDP_RATIOS["income_tax_to_gdp"]
+            self.gdp_source = "irs_ratio_proxy"
 
         # Corporate tax: Historical ratio to individual income tax
         self.base_corporate_tax = self.base_individual_income_tax * GDP_RATIOS["corporate_tax_to_income_tax"]
@@ -307,6 +334,8 @@ class CBOBaseline:
 
     def _use_hardcoded_fallback(self):
         """Use hardcoded baseline values (fallback when data unavailable)."""
+        self.baseline_data_source = "hardcoded_fallback"
+        self.gdp_source = "hardcoded"
         if self.baseline_vintage == BaselineVintage.CBO_FEB_2024:
             # Base year (2024) values in billions
             self.base_gdp = 28500

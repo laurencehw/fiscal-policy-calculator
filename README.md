@@ -1,7 +1,7 @@
 # Fiscal Policy Impact Calculator
 
 [![Tests](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml/badge.svg)](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml)
-[![Coverage](https://img.shields.io/badge/coverage-87.2%25-brightgreen)](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml)
+[![Coverage Gate](https://img.shields.io/badge/coverage_gate-85%25-brightgreen)](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml)
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://fiscal-policy-calculator.streamlit.app)
 ![Python 3.10-3.13](https://img.shields.io/badge/Python-3.10--3.13-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -97,6 +97,7 @@ Key routes:
 - `POST /score` supports generic `income_tax`, `corporate_tax`, and `payroll_tax` custom policies.
 - `POST /score/preset` routes preset scoring through the same preset factory used by the Streamlit UI, including specialized policy modules such as TCJA, credits, payroll, PTC, trade, and climate presets.
 - `POST /score/tariff` uses the tariff policy model instead of a standalone rough formula.
+- `GET /health` exposes baseline vintage plus IRS/FRED freshness and fallback status.
 
 ### Use as a Python library
 
@@ -229,11 +230,12 @@ The app includes interactive sensitivity sliders to explore these ranges.
 
 ### Known limitations
 
-1. **Bracket-level microsimulation** — Uses IRS bracket aggregates; CPS-based individual simulation is a planned upgrade
+1. **Current microsim is synthetic, not CPS-based** — The vectorized tax-unit engine captures bracket interactions (CTC, EITC, AMT, SALT, NIIT) but does not yet use CPS ASEC microdata
 2. **Simplified corporate pass-through** — Pass-through income not fully modeled
 3. **State modeling approximate** — Top 10 states only; uses representative taxpayer, not microsim
 4. **Reduced-form dynamic scoring** — Calibrated FRB/US multipliers, not structural GE model
-5. **2-year data lag** — IRS SOI data from 2022; updated annually following IRS release (typically Q3)
+5. **Aging source data** — IRS SOI data currently tops out at 2022; updated annually following IRS release (typically Q3)
+6. **Distributional benchmarks are still narrow** — Current distributional validation is benchmarked mainly to published TPC tables, not a broader CBO distributional set
 
 ### Data freshness
 
@@ -243,6 +245,10 @@ The app includes interactive sensitivity sliders to explore these ranges.
 | CBO Baseline | February 2026 | Quarterly with CBO publications |
 | FRED macro data | Live / cached | Daily when API key is set |
 | congress.gov bills | Live | On-demand via `scripts/update_bills.py` |
+
+### Manuscript readiness
+
+For a citation-grade roadmap focused on manuscript quality rather than just app polish, see [planning/MANUSCRIPT_95_PLUS.md](planning/MANUSCRIPT_95_PLUS.md).
 
 ---
 
@@ -260,8 +266,8 @@ The app includes interactive sensitivity sliders to explore these ranges.
 
 ```bash
 pip install -r requirements.txt pytest pytest-cov
-pytest tests/ -v                        # 1123 tests
-pytest tests/ --cov=fiscal_model        # With coverage (~87.2%)
+python -m pytest tests/ -v
+python -m pytest tests/ --cov=fiscal_model
 ```
 
 ### Verify against CBO/JCT scores
@@ -288,8 +294,16 @@ ruff check fiscal_model/ tests/
 
 ### Reproducibility (dependency lock strategy)
 
-- CI now exports a `pip freeze` lock snapshot artifact for each Python version.
-- Use that artifact as the exact dependency lock for reproducing a CI run locally.
+- `requirements-lock.txt` is the committed `pip-compile` lock for the Python `3.12` production/runtime path.
+- The `smoke` CI job installs from `requirements-lock.txt`, so lockfile breakage is exercised before the full matrix suite runs.
+- The broader `3.10`-`3.13` matrix still installs from `requirements.txt` to verify the supported version range.
+- Refresh the lock intentionally from Python `3.12`:
+
+```bash
+python3.12 -m venv .lockvenv
+.lockvenv/bin/pip install pip-tools
+.lockvenv/bin/pip-compile --strip-extras --output-file=requirements-lock.txt requirements.txt
+```
 
 ### Deployment smoke tests
 
@@ -314,7 +328,7 @@ fiscal-policy-calculator/
 │   └── constants.py          # All parameters with citations
 ├── classroom/                # Assignment engine, feedback, PDF export
 ├── bill_tracker/             # congress.gov pipeline, LLM extraction
-├── tests/                    # 1123 tests
+├── tests/                    # Automated test suite
 ├── docs/                     # Methodology, architecture docs
 ├── planning/                 # Roadmap, session notes
 └── pyproject.toml            # Project config, ruff, pytest
@@ -341,8 +355,8 @@ Contributions welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md) for setup ins
 
 The most impactful areas:
 
-- **Multi-model comparison** — CBO-style, TPC microsim, dynamic side-by-side
-- **CPS microsimulation** — Individual-level tax calculation using CPS ASEC data
+- **Multi-model comparison platform** — Planned CBO/TPC/PWBM-style side-by-side scoring
+- **CPS microsimulation upgrade** — Planned move from synthetic tax units to CPS ASEC-based microdata
 - **New policy modules** — Climate/energy, immigration, housing, wealth tax
 - **Data updates** — IRS SOI 2023, CBO auto-loader
 

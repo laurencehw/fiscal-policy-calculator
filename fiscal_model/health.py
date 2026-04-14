@@ -6,9 +6,74 @@ Reports on data freshness, API availability, and model readiness.
 import logging
 from typing import Any
 
-from fiscal_model.time_utils import utc_isoformat
+from fiscal_model.data.freshness import (
+    CBO_VINTAGE_PUBLICATION_DATES,
+    FreshnessLevel,
+    FreshnessReport,
+    evaluate_cbo_baseline,
+    evaluate_irs_soi,
+)
+from fiscal_model.time_utils import format_utc_timestamp, utc_isoformat
 
 logger = logging.getLogger(__name__)
+
+
+def _serialize_freshness(report: FreshnessReport | None) -> dict[str, Any] | None:
+    if report is None:
+        return None
+    return {
+        "level": report.level.value,
+        "age_days": report.age_days,
+        "message": report.message,
+        "emoji": report.emoji,
+        "is_stale": report.is_stale,
+    }
+
+
+def _component_status_from_baseline(
+    source: str | None,
+    gdp_source: str | None,
+    freshness: FreshnessReport | None,
+) -> str:
+    if source == "hardcoded_fallback" or gdp_source == "irs_ratio_proxy":
+        return "degraded"
+    if freshness is None or freshness.level in {
+        FreshnessLevel.STALE,
+        FreshnessLevel.UNKNOWN,
+    }:
+        return "degraded"
+    return "ok"
+
+
+def _component_status_from_fred(
+    source: str | None,
+    cache_is_expired: bool,
+) -> str:
+    if source == "live":
+        return "ok"
+    if source == "cache" and not cache_is_expired:
+        return "ok"
+    return "degraded"
+
+
+def _component_status_from_irs(freshness: FreshnessReport | None) -> str:
+    if freshness is None or freshness.level in {
+        FreshnessLevel.STALE,
+        FreshnessLevel.UNKNOWN,
+    }:
+        return "degraded"
+    return "ok"
+
+
+def _serialize_fred_status(data_status: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "source": data_status.get("source"),
+        "last_updated": format_utc_timestamp(data_status.get("last_updated")),
+        "cache_age_days": data_status.get("cache_age_days"),
+        "cache_is_expired": bool(data_status.get("cache_is_expired", False)),
+        "api_available": bool(data_status.get("api_available", False)),
+        "error": data_status.get("error"),
+    }
 
 
 def check_health() -> dict[str, Any]:
@@ -26,12 +91,34 @@ def check_health() -> dict[str, Any]:
     # Check baseline
     try:
         from fiscal_model.baseline import CBOBaseline
-        b = CBOBaseline(use_real_data=False)
+        b = CBOBaseline(use_real_data=True)
         _proj = b.generate()
+        baseline_metadata = b.metadata
+        vintage_key = baseline_metadata.get("vintage")
+        freshness_report = evaluate_cbo_baseline(
+            CBO_VINTAGE_PUBLICATION_DATES.get(vintage_key)
+        )
+        status = _component_status_from_baseline(
+            baseline_metadata.get("source"),
+            baseline_metadata.get("gdp_source"),
+            freshness_report,
+        )
         results["baseline"] = {
-            "status": "ok",
-            "vintage": b.baseline_vintage_date if hasattr(b, 'baseline_vintage_date') else "unknown",
+            "status": status,
+            "vintage": baseline_metadata.get("vintage_date")
+            or (b.baseline_vintage_date if hasattr(b, "baseline_vintage_date") else "unknown"),
+            "vintage_key": vintage_key,
+            "publication_date": format_utc_timestamp(
+                CBO_VINTAGE_PUBLICATION_DATES.get(vintage_key)
+            ),
             "start_year": b.start_year,
+            "source": baseline_metadata.get("source"),
+            "requested_real_data": bool(baseline_metadata.get("requested_real_data")),
+            "load_error": baseline_metadata.get("load_error"),
+            "irs_data_year": baseline_metadata.get("irs_data_year"),
+            "gdp_source": baseline_metadata.get("gdp_source"),
+            "fred": _serialize_fred_status(baseline_metadata.get("fred", {})),
+            "freshness": _serialize_freshness(freshness_report),
         }
     except Exception as e:
         results["baseline"] = {"status": "error", "error": str(e)}
@@ -40,9 +127,16 @@ def check_health() -> dict[str, Any]:
     try:
         from fiscal_model.data.fred_data import FREDData
         fred = FREDData()
+        _gdp = fred.get_gdp(nominal=True)
+        fred_status = _serialize_fred_status(
+            fred.data_status if hasattr(fred, "data_status") else {}
+        )
         results["fred"] = {
-            "status": "ok" if fred.is_available() else "unavailable",
-            "data_status": fred.data_status if hasattr(fred, 'data_status') else {},
+            "status": _component_status_from_fred(
+                fred_status.get("source"),
+                bool(fred_status.get("cache_is_expired", False)),
+            ),
+            **fred_status,
         }
     except Exception as e:
         results["fred"] = {"status": "error", "error": str(e)}
@@ -51,9 +145,15 @@ def check_health() -> dict[str, Any]:
     try:
         from fiscal_model.data.irs_soi import IRSSOIData
         irs = IRSSOIData()
+        available_years = irs.get_data_years_available()
+        latest_year = max(available_years) if available_years else None
+        freshness_report = evaluate_irs_soi(latest_year)
         results["irs_soi"] = {
-            "status": "ok",
-            "available_years": sorted(irs.available_years) if hasattr(irs, 'available_years') else [],
+            "status": _component_status_from_irs(freshness_report),
+            "available_years": available_years,
+            "latest_year": latest_year,
+            "update_cadence": "Annual release with multi-year lag",
+            "freshness": _serialize_freshness(freshness_report),
         }
     except Exception as e:
         results["irs_soi"] = {"status": "error", "error": str(e)}
@@ -62,7 +162,7 @@ def check_health() -> dict[str, Any]:
     try:
         from fiscal_model.policies import PolicyType, TaxPolicy
         from fiscal_model.scoring import FiscalPolicyScorer
-        scorer = FiscalPolicyScorer(use_real_data=False)
+        scorer = FiscalPolicyScorer(use_real_data=True)
         test_policy = TaxPolicy(
             name="health_check",
             description="Health check test policy",
@@ -74,6 +174,7 @@ def check_health() -> dict[str, Any]:
         results["model"] = {
             "status": "ok",
             "test_score": round(result.final_deficit_effect[0], 1),
+            "use_real_data": True,
         }
     except Exception as e:
         results["model"] = {"status": "error", "error": str(e)}

@@ -14,6 +14,7 @@ Usage:
 """
 
 import argparse
+import json
 import os
 import sys
 from datetime import datetime
@@ -213,6 +214,13 @@ def print_summary(irs_ok, fred_ok, cbo_ok):
     return all_ok
 
 
+def build_status_payload() -> dict:
+    """Return a machine-readable snapshot of the current data freshness state."""
+    from fiscal_model.health import check_health
+
+    return check_health()
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Check and update fiscal policy calculator data sources."
@@ -233,12 +241,22 @@ def main():
         action="store_true",
         help="Print additional diagnostic information"
     )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit a machine-readable JSON status payload"
+    )
 
     args = parser.parse_args()
 
     # If no action specified, default to --check
     if not (args.check or args.refresh_fred):
         args.check = True
+
+    if args.json:
+        payload = build_status_payload()
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        sys.exit(0 if payload.get("overall") == "ok" else 1)
 
     print("\nFiscal Policy Calculator - Data Update Pipeline")
     print(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")

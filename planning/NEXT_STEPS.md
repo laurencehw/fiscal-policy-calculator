@@ -1,12 +1,14 @@
 # Next Steps — Fiscal Policy Calculator
 
-> Updated April 2026. All sprints and horizon features completed.
+> Updated April 2026. This file tracks roadmap items beyond the current shipped branch.
+
+For a manuscript-focused path to citation-grade quality, see [MANUSCRIPT_95_PLUS.md](MANUSCRIPT_95_PLUS.md). For repo-grounded go/no-go gates on the two biggest upgrades, see [FEASIBILITY_CHECKLISTS.md](FEASIBILITY_CHECKLISTS.md).
 
 ---
 
 ## Current state (April 2026)
 
-**973 tests passing, 73% coverage, 25+ policies validated within 15% of CBO/JCT**
+**Large automated test suite, 85% enforced coverage gate, 25+ policies validated within 15% of CBO/JCT**
 
 ### Completed work
 
@@ -24,17 +26,33 @@
 - Feature 3: State-Level Modeling — top 10 states, SALT interaction, combined rate curves
 - Feature 4: Real-Time Bill Tracker — congress.gov pipeline, LLM provision extraction, SQLite storage, Streamlit UI
 
-### Estimated rating: ~9.5/10
+## Immediate next moves (next 2-3 weeks)
 
----
+Before committing to the full CPS microsimulation build or the full multi-model platform, run the feasibility gates first.
+
+### CPS microsimulation feasibility sprint
+- [ ] Audit current `fiscal_model/microsim/` inputs, tax-unit construction, and weighting assumptions
+- [ ] Confirm whether `tax_microdata_2024.csv` is reproducible from source CPS files
+- [ ] Wire one interaction-heavy benchmark through the microsim path
+- [ ] Decide whether the current stack is strong enough for a full CPS migration
+
+### Multi-model feasibility sprint
+- [ ] Audit the current `BaseScoringModel` / `ModelResult` abstractions
+- [ ] Wrap one microsim-style engine and one PWBM-style path behind a common comparison contract
+- [ ] Run one preset policy through 2-3 engines outside the current static-vs-dynamic UI
+- [ ] Decide whether the repo is ready for a true side-by-side comparison feature
+
+### Go/no-go memo
+- [ ] Write a short memo covering risks, effort, reproducibility, and recommended sequencing
+- [ ] Use that memo to choose whether CPS or multi-model work starts first
 
 ## Genuine next priorities
 
 ### Multi-model comparison platform
-Run the same policy through CBO-style, TPC-style (microsim), and FRB/US dynamic models side by side. Show divergences and explain why. This is the architecture vision in `docs/ARCHITECTURE.md` and is the most impactful remaining feature.
+Run the same policy through distinct CBO-style, TPC-style (microsim), and FRB/US/PWBM-inspired engines side by side. This remains a roadmap item; the current UI only compares the existing conventional and dynamic scoring paths.
 
 ### CPS microsimulation
-Replace IRS bracket-level data with CPS ASEC microdata for distributional analysis. Would fix the #1 accuracy limitation and enable precise incidence modeling for complex provision interactions (AMT + SALT + CTC phase-outs).
+Replace IRS bracket-level aggregates and synthetic tax units with CPS ASEC microdata for distributional analysis. This remains the highest-leverage methodological upgrade for AMT + SALT + CTC interaction accuracy.
 
 ### Additional policy modules
 - **Climate/energy** — IRA clean energy credits, carbon pricing, EV incentives
@@ -47,7 +65,7 @@ Replace IRS bracket-level data with CPS ASEC microdata for distributional analys
 
 ### Production hardening
 - Docker containerization
-- `requirements-lock.txt` with pinned versions
+- `requirements-lock.txt` with `pip-compile`-managed pinned transitive runtime versions
 - Structured logging, data freshness monitoring
 
 ---
@@ -56,8 +74,10 @@ Replace IRS bracket-level data with CPS ASEC microdata for distributional analys
 
 | Feature | Impact | Effort | Recommended |
 |---------|--------|--------|-------------|
-| Multi-model comparison | High | High | Next major feature |
-| CPS microsimulation | High | High | Parallel with above |
+| CPS microsimulation feasibility sprint | High | Medium | Do now |
+| Multi-model feasibility sprint | High | Medium | Do now |
+| Full multi-model comparison | High | High | Start after feasibility gate |
+| Full CPS microsimulation | High | High | Start after feasibility gate |
 | Climate module | Med-High | Medium | Good standalone sprint |
 | IRS SOI 2023 | Medium | Low | Easy warm-up task |
 | Docker/lock file | Medium | Low | Interleave with above |

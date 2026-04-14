@@ -14,6 +14,55 @@ from ..scoring import FiscalPolicyScorer
 from .cbo_scores import CBOScore, get_validation_targets
 
 
+_KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
+    "biden_ctc_2021": [
+        "Credit eligibility and refundability are modeled with synthetic tax units rather than CPS ASEC microdata.",
+        "Interactions with SALT, AMT, and filing-status heterogeneity remain approximated in the current household tax module.",
+    ],
+    "ctc_extension": [
+        "The current credit module extrapolates from bracket-level aggregates rather than return-level household data.",
+    ],
+    "ss_cap_90_pct": [
+        "High-earner wage tails are approximated from aggregate wage distributions rather than SSA earnings records.",
+    ],
+    "ss_donut_250k": [
+        "High-earner wage tails are approximated from aggregate wage distributions rather than SSA earnings records.",
+        "Benefit-offset and taxable-benefit interactions are simplified relative to Trustees methodology.",
+    ],
+    "ss_eliminate_cap": [
+        "High-earner wage tails are approximated from aggregate wage distributions rather than SSA earnings records.",
+        "Benefit-offset and taxable-benefit interactions are simplified relative to Trustees methodology.",
+    ],
+    "expand_niit": [
+        "Pass-through income exposure is modeled with simplified aggregate distributions rather than return-level business-owner data.",
+    ],
+    "biden_corporate_28": [
+        "Corporate base-shifting, pass-through spillovers, and international interactions are simplified relative to Treasury and JCT models.",
+    ],
+    "trump_corporate_15": [
+        "This scenario is calibrated from model assumptions rather than a public official score.",
+    ],
+    "tcja_full_extension": [
+        "Aggregate calibration is strong, but the extension decomposition is not backed by CPS ASEC return-level microsimulation.",
+    ],
+    "tcja_extension_full": [
+        "Aggregate calibration is strong, but the extension decomposition is not backed by CPS ASEC return-level microsimulation.",
+    ],
+    "tcja_no_salt_cap": [
+        "This scenario is illustrative rather than matched to a single official score.",
+    ],
+    "tcja_rates_only": [
+        "This scenario is illustrative rather than matched to a single official score.",
+    ],
+    "pwbm_39_with_stepup": [
+        "Capital-gains timing responses are highly sensitive to step-up basis and lock-in assumptions.",
+    ],
+    "pwbm_39_no_stepup": [
+        "Capital-gains timing responses remain sensitive to realization elasticities and gains-at-death assumptions.",
+    ],
+}
+
+
 @dataclass
 class ValidationResult:
     """
@@ -33,11 +82,25 @@ class ValidationResult:
     accuracy_rating: str
     model_parameters: dict = field(default_factory=dict)
     notes: str = ""
+    benchmark_kind: str = "Published benchmark"
+    benchmark_date: str | None = None
+    benchmark_url: str | None = None
+    known_limitations: list[str] = field(default_factory=list)
 
     @property
     def is_accurate(self) -> bool:
         """Check if estimate is within acceptable tolerance (20%)."""
         return abs(self.percent_difference) <= 20.0
+
+    @property
+    def abs_percent_difference(self) -> float:
+        """Return the absolute percent error."""
+        return abs(self.percent_difference)
+
+    @property
+    def needs_follow_up(self) -> bool:
+        """Flag scenarios that need explicit manuscript discussion."""
+        return self.abs_percent_difference >= 8.0 or bool(self.known_limitations)
 
     def get_summary(self) -> str:
         """Get a one-line summary."""
@@ -61,6 +124,38 @@ def _rate_accuracy(percent_diff: float) -> str:
     if abs_diff <= 20:
         return "Acceptable"
     return "Poor"
+
+
+def _infer_benchmark_kind(official_source: str) -> str:
+    """Infer the benchmark type from the source label."""
+    source = official_source.lower()
+
+    if "user-provided" in source:
+        return "User-supplied target"
+    if "congressional budget office" in source or source.startswith("cbo"):
+        return "Official budget score"
+    if "joint committee on taxation" in source or source.startswith("jct"):
+        return "Official budget score"
+    if "treasury" in source or "office of management and budget" in source:
+        return "Published administration estimate"
+    if "trustees" in source or "social security" in source:
+        return "Published actuarial estimate"
+    if "tax policy center" in source or "penn wharton" in source or "pwbm" in source:
+        return "Published external estimate"
+    if "model" in source or "estimated" in source:
+        return "Illustrative target"
+    return "Published benchmark"
+
+
+def _merge_unique_strings(*groups: list[str] | tuple[str, ...]) -> list[str]:
+    """Merge string lists while preserving order and removing duplicates."""
+    merged: list[str] = []
+    for group in groups:
+        for value in group:
+            cleaned = value.strip()
+            if cleaned and cleaned not in merged:
+                merged.append(cleaned)
+    return merged
 
 
 def calculate_percent_difference(model_10yr: float, official_10yr: float) -> float:
@@ -91,12 +186,21 @@ def build_validation_result(
     model_parameters: dict | None = None,
     notes: str = "",
     direction_match: bool | None = None,
+    benchmark_kind: str | None = None,
+    benchmark_date: str | None = None,
+    benchmark_url: str | None = None,
+    known_limitations: list[str] | None = None,
 ) -> ValidationResult:
     """Construct a ValidationResult from shared metrics."""
     difference = model_10yr - official_10yr
     percent_diff = calculate_percent_difference(model_10yr, official_10yr)
     if direction_match is None:
         direction_match = direction_matches(model_10yr, official_10yr)
+
+    merged_limitations = _merge_unique_strings(
+        _KNOWN_LIMITATIONS_BY_POLICY_ID.get(policy_id, []),
+        known_limitations or [],
+    )
 
     return ValidationResult(
         policy_id=policy_id,
@@ -111,6 +215,10 @@ def build_validation_result(
         accuracy_rating=_rate_accuracy(percent_diff),
         model_parameters=model_parameters or {},
         notes=notes,
+        benchmark_kind=benchmark_kind or _infer_benchmark_kind(official_source),
+        benchmark_date=benchmark_date,
+        benchmark_url=benchmark_url,
+        known_limitations=merged_limitations,
     )
 
 
@@ -211,6 +319,13 @@ def validate_policy(
             direction_match=False,
             accuracy_rating="Error",
             notes=f"Model error: {exc!s}",
+            benchmark_kind=_infer_benchmark_kind(score.source.value),
+            benchmark_date=score.source_date,
+            benchmark_url=score.source_url,
+            known_limitations=_merge_unique_strings(
+                _KNOWN_LIMITATIONS_BY_POLICY_ID.get(score.policy_id, []),
+                ["Model execution failed during this validation run."],
+            ),
         )
 
     return build_validation_result(
@@ -227,6 +342,8 @@ def validate_policy(
             "avg_income": policy.avg_taxable_income_in_bracket,
         },
         notes=score.notes or "",
+        benchmark_date=score.source_date,
+        benchmark_url=score.source_url,
     )
 
 
@@ -348,4 +465,5 @@ def quick_validate(
             "avg_income": policy.avg_taxable_income_in_bracket,
         },
         direction_match=direction_match,
+        benchmark_kind="User-supplied target",
     )

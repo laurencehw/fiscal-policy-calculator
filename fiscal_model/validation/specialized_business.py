@@ -28,6 +28,7 @@ def validate_corporate_policy(
     scorer = FiscalPolicyScorer(start_year=2025, use_real_data=False)
     result = scorer.score_policy(policy, dynamic=False)
     official_source = "CBO/Treasury"
+    score = None
     if scenario.get("score_id"):
         score = KNOWN_SCORES.get(scenario["score_id"])
         if score:
@@ -47,6 +48,10 @@ def validate_corporate_policy(
             "corporate_elasticity": policy.corporate_elasticity,
         },
         notes=scenario.get("notes", ""),
+        benchmark_date=score.source_date if score else scenario.get("benchmark_date"),
+        benchmark_url=score.source_url if score else scenario.get("benchmark_url"),
+        benchmark_kind=scenario.get("benchmark_kind"),
+        known_limitations=scenario.get("limitations"),
     )
 
     if verbose:
@@ -142,6 +147,10 @@ def validate_expenditure_policy(
             "action": getattr(policy, "action", "unknown"),
         },
         notes=scenario.get("notes", ""),
+        benchmark_date=scenario.get("benchmark_date"),
+        benchmark_url=scenario.get("benchmark_url"),
+        benchmark_kind=scenario.get("benchmark_kind"),
+        known_limitations=scenario.get("limitations"),
     )
 
     if verbose:
