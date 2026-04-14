@@ -133,7 +133,14 @@ def test_validate_corporate_policy_uses_known_score_and_breakdown(monkeypatch, c
     monkeypatch.setattr(
         business,
         "KNOWN_SCORES",
-        {"corp_score": SimpleNamespace(ten_year_cost=-1347.0, source=SimpleNamespace(value="Treasury"))},
+        {
+            "corp_score": SimpleNamespace(
+                ten_year_cost=-1347.0,
+                source=SimpleNamespace(value="Treasury"),
+                source_date="2024-03",
+                source_url=None,
+            )
+        },
     )
     monkeypatch.setattr(business, "FiscalPolicyScorer", _scorer_factory(-1300.0))
 
@@ -188,7 +195,14 @@ def test_validate_capital_gains_policy_applies_step_up_fields(monkeypatch, capsy
     monkeypatch.setattr(
         capital_gains,
         "KNOWN_SCORES",
-        {"cg_score": SimpleNamespace(ten_year_cost=113.0, source=SimpleNamespace(value="PWBM"))},
+        {
+            "cg_score": SimpleNamespace(
+                ten_year_cost=113.0,
+                source=SimpleNamespace(value="PWBM"),
+                source_date="2024-10",
+                source_url=None,
+            )
+        },
     )
     monkeypatch.setattr(capital_gains, "create_capital_gains_policy_from_score", lambda *args, **kwargs: policy)
     monkeypatch.setattr(capital_gains, "FiscalPolicyScorer", _scorer_factory(120.0))

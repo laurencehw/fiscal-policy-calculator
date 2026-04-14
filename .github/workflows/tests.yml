@@ -92,17 +92,23 @@ jobs:
 
       - name: Install pip-tools
         run: |
-          python -m pip install --upgrade pip
-          pip install pip-tools
+          # Do NOT upgrade pip here — pip-compile's resolver behaviour
+          # depends on pip, so using whatever setup-python@v6 bundled
+          # keeps the output deterministic across CI runs. pip-tools
+          # itself is explicitly pinned for the same reason.
+          pip install 'pip-tools==7.4.1'
 
       - name: Regenerate lock file in place
         run: |
-          # Overwrite the checked-in lock file so pip-compile's header
-          # references the same filename the committed copy was generated
-          # with. A trailing git diff then surfaces any drift.
+          # Overwrite the checked-in lock file so a trailing git diff
+          # surfaces any drift. ``--no-header`` strips pip-compile's
+          # autogeneration comment, which would otherwise embed the
+          # active Python version and cause spurious CI failures for
+          # contributors who regenerate the file on a different minor.
           pip-compile \
             --quiet \
             --strip-extras \
+            --no-header \
             --output-file=requirements-lock.txt \
             requirements.txt
 
@@ -111,14 +117,14 @@ jobs:
           if ! git diff --exit-code -- requirements-lock.txt; then
             echo ""
             echo "::error::requirements-lock.txt is out of sync with requirements.txt."
-            echo "This usually means either (a) you edited requirements.txt"
-            echo "without running pip-compile, or (b) you regenerated the"
-            echo "lock file from a Python version other than 3.12."
             echo ""
-            echo "Fix from a Python 3.12 interpreter:"
+            echo "Most likely cause: you edited requirements.txt without"
+            echo "regenerating the lock file."
+            echo ""
+            echo "Fix (Python 3.12 to match this CI job):"
             echo "  python3.12 -m venv .lockvenv"
-            echo "  .lockvenv/bin/pip install pip-tools"
-            echo "  .lockvenv/bin/pip-compile --strip-extras \\"
+            echo "  .lockvenv/bin/pip install 'pip-tools==7.4.1'"
+            echo "  .lockvenv/bin/pip-compile --strip-extras --no-header \\"
             echo "    --output-file=requirements-lock.txt requirements.txt"
             echo "  git add requirements-lock.txt && git commit"
             exit 1
