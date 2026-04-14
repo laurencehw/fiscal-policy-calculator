@@ -92,19 +92,19 @@ jobs:
 
       - name: Install pip-tools
         run: |
-          python -m pip install --upgrade pip
-          # Pin pip-tools so the regenerated lock file is byte-stable
-          # across CI runs even when upstream releases new pip-tools
-          # versions that tweak output formatting.
+          # Do NOT upgrade pip here — pip-compile's resolver behaviour
+          # depends on pip, so using whatever setup-python@v6 bundled
+          # keeps the output deterministic across CI runs. pip-tools
+          # itself is explicitly pinned for the same reason.
           pip install 'pip-tools==7.4.1'
 
       - name: Regenerate lock file in place
         run: |
           # Overwrite the checked-in lock file so a trailing git diff
           # surfaces any drift. ``--no-header`` strips pip-compile's
-          # autogeneration comment (which embeds the Python version),
-          # making the lock file independent of which Python minor
-          # version generated it.
+          # autogeneration comment, which would otherwise embed the
+          # active Python version and cause spurious CI failures for
+          # contributors who regenerate the file on a different minor.
           pip-compile \
             --quiet \
             --strip-extras \
@@ -121,8 +121,7 @@ jobs:
             echo "Most likely cause: you edited requirements.txt without"
             echo "regenerating the lock file."
             echo ""
-            echo "Fix (any Python in the supported 3.10–3.13 range works,"
-            echo "since --no-header strips the version stamp):"
+            echo "Fix (Python 3.12 to match this CI job):"
             echo "  python3.12 -m venv .lockvenv"
             echo "  .lockvenv/bin/pip install 'pip-tools==7.4.1'"
             echo "  .lockvenv/bin/pip-compile --strip-extras --no-header \\"
