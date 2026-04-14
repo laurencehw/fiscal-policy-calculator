@@ -1,12 +1,22 @@
 # System Architecture
 
-> Technical design for the multi-model fiscal policy platform
+> Current implementation plus target architecture for the planned multi-model platform
 
 ---
 
 ## Overview
 
-The Fiscal Policy Calculator is designed as a **pluggable multi-model platform** where different scoring methodologies can be applied to the same policy definition (CBO-style, JCT-inspired microsimulation, TPC-style distribution, Yale Budget Lab-style macro + microsim + behavioral modules, PWBM OLG).
+The shipped branch is still centered on a **single CBO-style scoring engine** with optional dynamic feedback, distributional analysis, and specialized modules layered around it. The pluggable multi-model system described below is the **target architecture**, not a completed feature.
+
+Near-term reality:
+
+- One primary scoring engine powers the app and API today
+- The current comparison UI contrasts conventional and dynamic scoring paths, not independent CBO/TPC/PWBM engines
+- CPS ASEC-backed microsimulation remains a roadmap item rather than the current default
+
+Target architecture:
+
+The Fiscal Policy Calculator is intended to evolve into a **pluggable multi-model platform** where different scoring methodologies can be applied to the same policy definition (CBO-style, JCT-inspired microsimulation, TPC-style distribution, Yale Budget Lab-style macro + microsim + behavioral modules, PWBM OLG).
 
 ```
                      ┌─────────────────────────────┐

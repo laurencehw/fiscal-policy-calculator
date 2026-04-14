@@ -420,22 +420,11 @@ def score_policy(request: ScorePolicyRequest):
         logger.info("Policy '%s' invalid input: %s", request.name, e)
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
-        # Unknown failure — log with traceback and surface a generic error
-        # payload so the client still gets a typed response for diagnostics.
+        # Unknown failure — log with traceback and surface a real 500 so
+        # clients don't mistake a failed score for a successful zero-impact
+        # result.
         logger.exception("Unexpected error scoring policy '%s'", request.name)
-        return ScorePolicyResponse(
-            policy_name=request.name,
-            policy_description=request.description,
-            baseline_vintage="error",
-            budget_window="",
-            ten_year_deficit_impact=0.0,
-            static_revenue_effect=0.0,
-            behavioral_offset=0.0,
-            final_static_effect=0.0,
-            year_by_year=[],
-            dynamic_scoring_enabled=False,
-            error_message=str(e),
-        )
+        raise HTTPException(status_code=500, detail="Internal scoring error") from e
 
 
 @app.post("/score/preset", response_model=ScorePolicyResponse)
@@ -478,6 +467,9 @@ def score_preset(request: ScorePresetRequest):
     except FiscalModelError as e:
         logger.warning("Preset '%s' scoring error: %s", request.preset_name, e)
         raise HTTPException(status_code=422, detail=str(e)) from e
+    except Exception as e:
+        logger.exception("Unexpected error scoring preset '%s'", request.preset_name)
+        raise HTTPException(status_code=500, detail="Internal scoring error") from e
 
 
 @app.post("/score/tariff", response_model=ScoreTariffResponse)

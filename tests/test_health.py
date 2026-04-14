@@ -36,8 +36,7 @@ class TestCheckHealth:
         baseline = result["baseline"]
         assert isinstance(baseline, dict)
         assert "status" in baseline
-        # Status should be either "ok" or "error"
-        assert baseline["status"] in ["ok", "error"]
+        assert baseline["status"] in ["ok", "degraded", "error"]
 
     def test_fred_component_present(self):
         """Verify FRED component has required structure."""
@@ -45,8 +44,7 @@ class TestCheckHealth:
         fred = result["fred"]
         assert isinstance(fred, dict)
         assert "status" in fred
-        # Status should be one of these
-        assert fred["status"] in ["ok", "unavailable", "error"]
+        assert fred["status"] in ["ok", "degraded", "error"]
 
     def test_irs_soi_component_present(self):
         """Verify IRS SOI component has required structure."""
@@ -54,7 +52,7 @@ class TestCheckHealth:
         irs_soi = result["irs_soi"]
         assert isinstance(irs_soi, dict)
         assert "status" in irs_soi
-        assert irs_soi["status"] in ["ok", "error"]
+        assert irs_soi["status"] in ["ok", "degraded", "error"]
 
     def test_model_component_present(self):
         """Verify model component has required structure."""
@@ -90,17 +88,38 @@ class TestCheckHealth:
         """Verify baseline includes start_year when status is ok."""
         result = check_health()
         baseline = result["baseline"]
-        if baseline["status"] == "ok":
+        if baseline["status"] in ["ok", "degraded"]:
             assert "start_year" in baseline
             assert isinstance(baseline["start_year"], int)
+            assert "source" in baseline
+            assert "gdp_source" in baseline
 
     def test_irs_soi_has_available_years_when_ok(self):
         """Verify IRS SOI includes available_years when status is ok."""
         result = check_health()
         irs_soi = result["irs_soi"]
-        if irs_soi["status"] == "ok":
+        if irs_soi["status"] in ["ok", "degraded"]:
             assert "available_years" in irs_soi
             assert isinstance(irs_soi["available_years"], list)
+            assert "latest_year" in irs_soi
+
+    def test_baseline_has_freshness_when_not_error(self):
+        """Baseline health should include freshness metadata for the current vintage."""
+        result = check_health()
+        baseline = result["baseline"]
+        if baseline["status"] != "error":
+            assert "freshness" in baseline
+            assert isinstance(baseline["freshness"], dict)
+            assert baseline["freshness"]["level"] in ["fresh", "aging", "stale", "unknown"]
+
+    def test_irs_has_freshness_when_not_error(self):
+        """IRS SOI health should include freshness metadata for the latest year."""
+        result = check_health()
+        irs_soi = result["irs_soi"]
+        if irs_soi["status"] != "error":
+            assert "freshness" in irs_soi
+            assert isinstance(irs_soi["freshness"], dict)
+            assert irs_soi["freshness"]["level"] in ["fresh", "aging", "stale", "unknown"]
 
     def test_model_has_test_score_when_ok(self):
         """Verify model includes test_score when status is ok."""
@@ -110,6 +129,16 @@ class TestCheckHealth:
             assert "test_score" in model
             # Test score should be numeric (float or int)
             assert isinstance(model["test_score"], (int, float))
+
+    def test_fred_has_freshness_metadata_when_not_error(self):
+        """FRED component should expose source and freshness metadata."""
+        result = check_health()
+        fred = result["fred"]
+        if fred["status"] != "error":
+            assert "source" in fred
+            assert "cache_age_days" in fred
+            assert "cache_is_expired" in fred
+            assert "api_available" in fred
 
     def test_error_states_have_error_message(self):
         """Verify error states include error details."""

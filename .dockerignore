@@ -1,0 +1,13 @@
+.git
+.github
+.pytest_cache
+.pytest_tmp
+.venv
+.venv*
+__pycache__
+*.pyc
+test_output
+fpc-pr33-resolve
+fpc-pr34-resolve
+planning
+notebooks

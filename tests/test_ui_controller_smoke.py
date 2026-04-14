@@ -359,38 +359,94 @@ def test_apply_pending_sidebar_updates_sets_widget_values_before_render():
 
 
 def test_render_data_status_surfaces_fred_api_configuration(monkeypatch):
-    class _DummyFred:
-        @property
-        def data_status(self):
-            return {
+    monkeypatch.setattr(
+        "fiscal_model.health.check_health",
+        lambda: {
+            "overall": "degraded",
+            "timestamp": "2026-04-01T00:00:00Z",
+            "baseline": {"status": "ok", "vintage": "February 2026", "source": "real_data"},
+            "irs_soi": {"status": "ok", "latest_year": 2022},
+            "fred": {
+                "status": "ok",
                 "source": None,
                 "cache_age_days": None,
                 "cache_is_expired": False,
                 "api_available": True,
-            }
-
-    monkeypatch.setattr("fiscal_model.data.fred_data.FREDData", _DummyFred)
+                "last_updated": "",
+            },
+        },
+    )
     st_module = _DummyStreamlit(radio_values=[])
 
     render_data_status(st_module=st_module, deps=SimpleNamespace())
 
-    assert any("📡 **FRED:** 🟢 API configured" in text for text in st_module.markdowns)
+    assert any("**FRED:** API configured" in text for text in st_module.markdowns)
 
 
 def test_render_data_status_surfaces_stale_cache(monkeypatch):
-    class _DummyFred:
-        @property
-        def data_status(self):
-            return {
+    monkeypatch.setattr(
+        "fiscal_model.health.check_health",
+        lambda: {
+            "overall": "degraded",
+            "timestamp": "2026-04-01T00:00:00Z",
+            "baseline": {"status": "ok", "vintage": "February 2026", "source": "real_data"},
+            "irs_soi": {"status": "ok", "latest_year": 2022},
+            "fred": {
+                "status": "degraded",
                 "source": "cache",
                 "cache_age_days": 45,
                 "cache_is_expired": True,
                 "api_available": False,
-            }
-
-    monkeypatch.setattr("fiscal_model.data.fred_data.FREDData", _DummyFred)
+                "last_updated": "2026-03-01T00:00:00Z",
+            },
+        },
+    )
     st_module = _DummyStreamlit(radio_values=[])
 
     render_data_status(st_module=st_module, deps=SimpleNamespace())
 
-    assert any("📡 **FRED:** 🟠 Stale cache (45 days old)" in text for text in st_module.markdowns)
+    assert any("**FRED:** Stale cache (45 days)" in text for text in st_module.markdowns)
+
+
+def test_render_data_status_uses_health_payload_for_baseline_and_irs(monkeypatch):
+    monkeypatch.setattr(
+        "fiscal_model.health.check_health",
+        lambda: {
+            "overall": "degraded",
+            "timestamp": "2026-04-01T00:00:00Z",
+            "baseline": {
+                "status": "ok",
+                "vintage": "January 2025",
+                "source": "real_data",
+                "freshness": {
+                    "level": "stale",
+                    "message": "Stale (300d since publication)",
+                    "is_stale": True,
+                },
+            },
+            "irs_soi": {
+                "status": "degraded",
+                "latest_year": 2024,
+                "freshness": {
+                    "level": "fresh",
+                    "message": "IRS SOI 2024 (lag 2y — within expected window)",
+                    "is_stale": False,
+                },
+            },
+            "fred": {
+                "status": "ok",
+                "source": "live",
+                "cache_age_days": 0,
+                "cache_is_expired": False,
+                "api_available": True,
+                "last_updated": "2026-04-01T00:00:00Z",
+            },
+        },
+    )
+    st_module = _DummyStreamlit(radio_values=[])
+
+    render_data_status(st_module=st_module, deps=SimpleNamespace())
+
+    assert any("**Baseline:** January 2025" in text for text in st_module.markdowns)
+    assert any("**IRS SOI:** 2024" in text for text in st_module.markdowns)
+    assert any("CBO baseline is past its expected refresh window" in msg for msg in st_module.warnings)

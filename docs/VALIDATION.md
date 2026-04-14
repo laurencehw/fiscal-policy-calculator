@@ -21,6 +21,8 @@ The Fiscal Policy Calculator has been validated against **25+ official estimates
 
 **Key Finding**: The model performs best on income tax and TCJA-related policies (0.1-4% error) and acceptably on payroll tax reforms (12% error due to wage distribution assumptions).
 
+**Scope note**: Distributional validation is currently benchmarked mainly against published TPC tables rather than a broader CBO distributional set, and the payroll / CTC scenarios above remain the clearest higher-error checkpoints to monitor.
+
 ---
 
 ## Validation Results by Policy Category
@@ -335,6 +337,16 @@ expenditure_results = validate_all_expenditures(verbose=True)
 capgains_results = validate_all_capital_gains(verbose=True)
 ```
 
+### Manuscript Appendix Export
+
+Use the appendix generator when you want a markdown artifact with benchmark provenance, follow-up checkpoints, and explicit evidence boundaries:
+
+```bash
+python scripts/generate_validation_appendix.py --output docs/validation_appendix_generated.md
+```
+
+Add `--include-core-database` if you want the broader legacy `validate_all()` score database as well as the curated cross-category suites.
+
 ### Custom Policy Validation
 
 ```python
@@ -373,7 +385,7 @@ print(result.get_summary())
 | Directional analysis | High | Model correctly identifies revenue/cost direction |
 | Order of magnitude | High | Within factor of 2 for most policies |
 | Precise scoring | Medium | 5-15% error typical; use for planning, not official scoring |
-| Distributional | Medium | Validated against TPC; quintile shares within 5% |
+| Distributional | Medium | Validated mainly against TPC; broader CBO-style distributional benchmarking is still pending |
 | Dynamic effects | Lower | FRB/US-calibrated, but macro uncertainty high |
 
 ---

@@ -51,6 +51,10 @@ def validate_credit_policy(
         },
         notes=scenario.get("notes", ""),
         direction_match=True,
+        benchmark_date=scenario.get("benchmark_date"),
+        benchmark_url=scenario.get("benchmark_url"),
+        benchmark_kind=scenario.get("benchmark_kind"),
+        known_limitations=scenario.get("limitations"),
     )
     validation_result.percent_difference = percent_diff
     validation_result.difference = model_10yr - expected_10yr
@@ -151,6 +155,10 @@ def validate_estate_policy(
             "rate_change": getattr(policy, "rate_change", 0),
         },
         notes=scenario.get("notes", ""),
+        benchmark_date=scenario.get("benchmark_date"),
+        benchmark_url=scenario.get("benchmark_url"),
+        benchmark_kind=scenario.get("benchmark_kind"),
+        known_limitations=scenario.get("limitations"),
     )
 
     if verbose:
@@ -251,6 +259,10 @@ def validate_payroll_policy(
             "expand_niit": getattr(policy, "expand_niit_to_passthrough", False),
         },
         notes=scenario.get("notes", ""),
+        benchmark_date=scenario.get("benchmark_date"),
+        benchmark_url=scenario.get("benchmark_url"),
+        benchmark_kind=scenario.get("benchmark_kind"),
+        known_limitations=scenario.get("limitations"),
     )
 
     if verbose:

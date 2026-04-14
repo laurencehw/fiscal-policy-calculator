@@ -148,7 +148,7 @@ def test_score_endpoint_value_error_returns_400(monkeypatch):
     assert "threshold must be non-negative" in response.json()["detail"]
 
 
-def test_score_endpoint_internal_error_returns_error_payload(monkeypatch):
+def test_score_endpoint_internal_error_returns_500(monkeypatch):
     class _ExplodingScorer(_DummyScorer):
         def score_policy(self, policy, dynamic=False):
             del policy, dynamic
@@ -159,10 +159,23 @@ def test_score_endpoint_internal_error_returns_error_payload(monkeypatch):
         "/score",
         json={"rate_change": 0.01, "income_threshold": 0},
     )
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["baseline_vintage"] == "error"
-    assert "boom" in payload["error_message"]
+    assert response.status_code == 500
+    assert response.json()["detail"] == "Internal scoring error"
+
+
+def test_score_preset_internal_error_returns_500(monkeypatch):
+    class _ExplodingScorer(_DummyScorer):
+        def score_policy(self, policy, dynamic=False):
+            del policy, dynamic
+            raise RuntimeError("boom")
+
+    monkeypatch.setattr(api_module, "FiscalPolicyScorer", _ExplodingScorer)
+    response = _client().post(
+        "/score/preset",
+        json={"preset_name": "Biden 2025 Proposal", "dynamic": False},
+    )
+    assert response.status_code == 500
+    assert response.json()["detail"] == "Internal scoring error"
 
 
 def test_score_preset_unknown_returns_400():

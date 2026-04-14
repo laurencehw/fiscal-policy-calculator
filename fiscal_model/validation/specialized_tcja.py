@@ -44,6 +44,7 @@ def validate_tcja_extension(
     scorer = FiscalPolicyScorer(start_year=2026, use_real_data=False)
     result = scorer.score_policy(policy, dynamic=False)
     official_source = "CBO"
+    score = None
     if scenario.get("score_id"):
         score = KNOWN_SCORES.get(scenario["score_id"])
         if score:
@@ -63,6 +64,10 @@ def validate_tcja_extension(
             "calibration_factor": policy.calibration_factor,
         },
         notes=scenario.get("notes", ""),
+        benchmark_date=score.source_date if score else scenario.get("benchmark_date"),
+        benchmark_url=score.source_url if score else scenario.get("benchmark_url"),
+        benchmark_kind=scenario.get("benchmark_kind"),
+        known_limitations=scenario.get("limitations"),
     )
 
     if verbose:

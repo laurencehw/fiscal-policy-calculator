@@ -9,7 +9,7 @@ git clone https://github.com/laurencehw/fiscal-policy-calculator.git
 cd fiscal-policy-calculator
 pip install -r requirements.txt
 pip install pytest pytest-cov ruff
-pytest tests/ -v          # Run the test suite
+python -m pytest tests/ -v
 streamlit run app.py      # Launch the app locally
 ```
 
@@ -36,12 +36,14 @@ git add requirements.txt requirements-lock.txt
 
 The `lockfile` CI job regenerates the lock file on every PR and fails if the committed copy has drifted from `requirements.txt`. If that job is red, run the regeneration steps above locally (from Python 3.12) and commit the result.
 
+The 3.12 `smoke` job installs from `requirements-lock.txt`, so production-style dependency breakage is caught in CI. The broader 3.10-3.13 matrix still installs from `requirements.txt` to verify the supported version range.
+
 ## High-impact areas
 
 These are the areas where contributions would be most valuable:
 
-- **Multi-model comparison** — CBO-style, TPC microsim, and dynamic scoring side-by-side
-- **CPS microsimulation** — Individual-level tax calculation using CPS ASEC data
+- **Multi-model comparison platform** — Planned CBO/TPC/PWBM-style side-by-side scoring
+- **CPS microsimulation upgrade** — Planned move from synthetic tax units to CPS ASEC data
 - **New policy modules** — Climate/energy, immigration, housing, wealth tax
 - **Data updates** — IRS SOI 2023 tables, CBO baseline auto-loader
 
@@ -49,19 +51,25 @@ These are the areas where contributions would be most valuable:
 
 1. **Open an issue first** to discuss significant changes before starting work
 2. **Fork the repo** and create a feature branch from `main`
-3. **Write tests** for new functionality — the project maintains 1123 tests at 87%+ coverage with an 85% enforced floor
+3. **Write tests** for new functionality — the project enforces an 85% coverage floor in `pyproject.toml`
 4. **Run the full suite** before submitting:
    ```bash
-   pytest tests/ -v
-   pytest tests/ --cov=fiscal_model
+   python -m pytest tests/ -v
+   python -m pytest tests/ --cov=fiscal_model
    ruff check fiscal_model/ tests/
    ```
-5. **Submit a pull request** with a clear description of what changed and why
+5. **Refresh the runtime lockfile** if you changed dependencies:
+   ```bash
+   python3.12 -m venv .lockvenv
+   .lockvenv/bin/pip install pip-tools
+   .lockvenv/bin/pip-compile --strip-extras --output-file=requirements-lock.txt requirements.txt
+   ```
+6. **Submit a pull request** with a clear description of what changed and why
 
 For Streamlit controller or session-state changes, also run:
 
 ```bash
-pytest tests/test_app_entrypoints.py tests/test_ui_controller_smoke.py -q
+python -m pytest tests/test_app_entrypoints.py tests/test_ui_controller_smoke.py -q
 ```
 
 ## Code style

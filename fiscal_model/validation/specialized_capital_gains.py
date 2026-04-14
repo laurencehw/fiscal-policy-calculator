@@ -64,6 +64,10 @@ def validate_capital_gains_policy(
             "long_run_elasticity": policy.long_run_elasticity,
         },
         notes=scenario.get("notes", ""),
+        benchmark_date=score.source_date,
+        benchmark_url=score.source_url,
+        benchmark_kind=scenario.get("benchmark_kind"),
+        known_limitations=scenario.get("limitations"),
     )
 
     if verbose:

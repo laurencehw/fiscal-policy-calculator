@@ -103,13 +103,15 @@ def render_policy_comparison_tab(
     """
     Render multi-model comparison tab content.
     """
-    st_module.header("⚖️ Scoring Models")
+    st_module.header("⚖️ Scoring Methods")
     st_module.markdown(
-        "How sensitive are revenue estimates to the choice of scoring methodology? "
+        "This tab compares the project's current **conventional** and **dynamic** scoring paths. "
+        "It is useful for understanding how GDP feedback changes the estimate, but it is **not** "
+        "yet the full CBO/TPC/PWBM-style multi-model platform described in the roadmap.\n\n"
         "Select policies below and compare how **CBO-style static scoring** "
         "(rate change × tax base, adjusted for behavioral response) differs from "
         "**FRB/US dynamic scoring** (which adds GDP feedback, employment effects, "
-        "and crowding out). The gap between models shows the range of plausible estimates."
+        "and crowding out)."
     )
 
     if is_spending or not preset_policies:
@@ -170,7 +172,7 @@ def render_policy_comparison_tab(
                         )
                     )
 
-            st_module.subheader("📊 Multi-Model Summary")
+            st_module.subheader("📊 Conventional vs Dynamic Summary")
             comparison_df = pd.DataFrame(
                 [
                     {
