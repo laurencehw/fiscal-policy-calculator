@@ -9,7 +9,6 @@ import numpy as np
 from ..time_utils import utc_now
 from .core import ValidationResult
 
-
 _MANUSCRIPT_EVIDENCE_BOUNDARIES = [
     "Aggregate fiscal validation is stronger than distributional validation in the current repo.",
     "Distributional validation still leans mainly on published TPC tables rather than a broader CBO distributional benchmark set.",

@@ -13,7 +13,6 @@ from ..policies import CapitalGainsPolicy, PolicyType, TaxPolicy
 from ..scoring import FiscalPolicyScorer
 from .cbo_scores import CBOScore, get_validation_targets
 
-
 _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
     "biden_ctc_2021": [
         "Credit eligibility and refundability are modeled with synthetic tax units rather than CPS ASEC microdata.",
