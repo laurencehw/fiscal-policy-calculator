@@ -7,7 +7,7 @@ See docs/ARCHITECTURE.md for the full vision.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
@@ -25,7 +25,7 @@ class ModelResult:
     uncertainty_range: tuple[float, float] | None = None
     distributional: pd.DataFrame | None = None
     dynamic_effects: Any = None
-    metadata: dict[str, Any] = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class BaseScoringModel(ABC):
@@ -109,5 +109,9 @@ class CBOStyleModel(BaseScoringModel):
             annual_effects=annual,
             uncertainty_range=uncertainty_range,
             dynamic_effects=getattr(result, "dynamic_effects", None),
-            metadata={"dynamic_enabled": dynamic},
+            metadata={
+                "dynamic_enabled": dynamic,
+                "methodology": self.methodology,
+                "use_real_data": self.use_real_data,
+            },
         )

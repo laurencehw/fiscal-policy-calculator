@@ -29,6 +29,14 @@ Example usage:
 """
 
 from .base import BaseScoringModel, CBOStyleModel, ModelResult
+from .comparison import (
+    ComparisonBundle,
+    PWBMScoringModel,
+    TPCMicrosimModel,
+    UnsupportedModelPolicyError,
+    build_default_comparison_models,
+    compare_policy_models,
+)
 from .macro_adapter import (
     FiscalClosureType,
     FRBUSAdapter,
@@ -48,6 +56,7 @@ from .olg import OLGModel, OLGParameters, OLGPolicyResult, SimpleOLGModel
 __all__ = [
     "BaseScoringModel",
     "CBOStyleModel",
+    "ComparisonBundle",
     "FRBUSAdapter",
     "FRBUSAdapterLite",
     "FiscalClosureType",
@@ -59,7 +68,12 @@ __all__ = [
     "OLGModel",
     "OLGParameters",
     "OLGPolicyResult",
+    "PWBMScoringModel",
     "SimpleMultiplierAdapter",
     "SimpleOLGModel",
+    "TPCMicrosimModel",
+    "UnsupportedModelPolicyError",
+    "build_default_comparison_models",
+    "compare_policy_models",
     "policy_to_scenario",
 ]

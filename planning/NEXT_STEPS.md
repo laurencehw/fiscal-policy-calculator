@@ -30,6 +30,10 @@ For a manuscript-focused path to citation-grade quality, see [MANUSCRIPT_95_PLUS
 
 Before committing to the full CPS microsimulation build or the full multi-model platform, run the feasibility gates first.
 
+Starter commands:
+- `python scripts/run_feasibility_audit.py --json`
+- `python scripts/run_feasibility_audit.py --include-model-pilot`
+
 ### CPS microsimulation feasibility sprint
 - [ ] Audit current `fiscal_model/microsim/` inputs, tax-unit construction, and weighting assumptions
 - [ ] Confirm whether `tax_microdata_2024.csv` is reproducible from source CPS files

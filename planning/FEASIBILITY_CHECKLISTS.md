@@ -32,6 +32,11 @@ That means the right next move is not "promise the full feature," but "run the f
 
 These can overlap, but CPS microsimulation is still the higher-leverage track.
 
+Quick command path:
+
+- `python scripts/run_feasibility_audit.py --json`
+- `python scripts/run_feasibility_audit.py --include-model-pilot`
+
 ---
 
 ## Track A — CPS ASEC Microsimulation Feasibility
