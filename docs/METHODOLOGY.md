@@ -954,7 +954,7 @@ JCT is the official congressional scorer for tax legislation, using IRS SOI micr
 2. **Simplified corporate pass-through**: Pass-through income distribution not fully modeled at the return level
 3. **State modeling approximate**: Top 10 states only; synthetic population rather than state-level microsimulation; local taxes (NYC, Philadelphia) not included
 4. **Reduced-form dynamic scoring**: FRBUSAdapterLite uses calibrated multipliers rather than structural general-equilibrium equations
-5. **2-year data lag**: IRS SOI data from 2022
+5. **Data lag**: IRS SOI data lags ~2 years (currently Tax Year 2023)
 
 ---
 
@@ -1059,37 +1059,4 @@ JCT is the official congressional scorer for tax legislation, using IRS SOI micr
 
 | Parameter | Default | Source |
 |-----------|---------|--------|
-| Spending multiplier (Year 1) | 1.4 | FRB/US |
-| Tax multiplier (Year 1) | 0.7 | FRB/US |
-| Multiplier decay rate | 0.75/year | FRB/US calibration |
-| Okun's Law coefficient | 0.5 | Ball, Leigh & Loungani (2017) |
-| Marginal tax rate (feedback) | 0.25 | CBO |
-| Crowding out rate | 0.15 | Estimated |
-| Labor force | 165M | BLS |
-| Baseline GDP (2025) | $32,500B | CBO |
-
-### OLG Parameters
-
-| Parameter | Default | Source |
-|-----------|---------|--------|
-| Capital share (α) | 0.35 | BLS |
-| TFP growth | 1.5%/year | CBO |
-| Depreciation (δ) | 5%/year | Literature |
-| Labor force growth | 0.7%/year | BLS |
-| Discount rate | 3%/year | Literature |
-| SS replacement rate | 40% | SSA |
-| Crowding-out coefficient | 0.33 | CBO |
-
-### Baseline Macroeconomic Assumptions
-
-| Parameter | 2025 | 2034 | Source |
-|-----------|------|------|--------|
-| Real GDP growth | 2.4% | 1.8% | CBO (2026) |
-| Inflation (PCE) | 2.3% | 2.0% | CBO |
-| 10-year Treasury rate | 4.4% | 4.0% | CBO |
-| Unemployment rate | 4.2% | 4.5% | CBO |
-| Federal deficit / GDP | 6.2% | 6.1% | CBO |
-
----
-
-*Last Updated: April 2026*
+| Spending multiplier (Year 1) | 1.4 | FR
