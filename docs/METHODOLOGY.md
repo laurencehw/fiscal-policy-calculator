@@ -726,7 +726,7 @@ The IRA 2022 also redesigned Part D cost-sharing, capping out-of-pocket costs at
 
 ### Insulin Cap
 
-The $35/month insulin cap applies to Medicare beneficiaries (~40% of insulin users). Revenue impact is modest (~$6.4B/10yr) but significant for affected patients.
+The $35/month insulin cap applies to Medicare beneficiaries (approximately 40% of insulin users). Revenue impact is modest (around $6.4B/10yr) but significant for affected patients.
 
 ### International Reference Pricing
 
