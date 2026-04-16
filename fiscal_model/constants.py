@@ -151,4 +151,4 @@ AFFECTED_SHARE_BY_THRESHOLD = [
     (50_000, 0.75),    # Above $50K is ~75%
     (0, 0.90),         # All income
 ]
-AVG_EFFECTIVE_INCOME_TAX_RATE = 0.18  # Average effective rate — IRS SOI 2022
+AVG_EFFECTIVE_INCOME_TAX_RATE = 0.18  # Average effective rate — IRS SOI

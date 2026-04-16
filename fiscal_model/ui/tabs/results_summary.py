@@ -571,7 +571,12 @@ Year-by-Year Breakdown:
         if hasattr(policy, "affected_income_threshold"):
             text_summary += f"  Income Threshold: ${policy.affected_income_threshold:,.0f}\n"
 
-        text_summary += f"\nData Sources:\n  - IRS Statistics of Income (2022)\n  - FRED Economic Data\n  - CBO Baseline (FY{baseline_year})\n"
+        from fiscal_model.data.irs_soi import IRSSOIData as _IRS
+        try:
+            _soi_year = max(_IRS().get_data_years_available())
+        except Exception:
+            _soi_year = 2022
+        text_summary += f"\nData Sources:\n  - IRS Statistics of Income ({_soi_year})\n  - FRED Economic Data\n  - CBO Baseline (FY{baseline_year})\n"
         text_summary += "\nMethodology: Static + behavioral scoring with FRB/US-calibrated dynamic effects\n"
 
         with col3:

@@ -327,7 +327,7 @@ def _render_tariff_consumer_impact(st_module: Any, policy: Any) -> None:
     )
 
     # Define quintile characteristics
-    # Median incomes by quintile (approximate from IRS SOI 2022)
+    # Median incomes by quintile (approximate from IRS SOI)
     median_incomes = {
         "Lowest Quintile": 15_000,
         "Second Quintile": 35_000,

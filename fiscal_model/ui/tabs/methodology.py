@@ -123,7 +123,7 @@ def render_methodology_tab(st_module: Any) -> None:
     st_module.markdown(
         "The following examples trace the exact arithmetic behind three common "
         "policy types — the same calculations the calculator performs under the "
-        "hood. Numbers come from IRS Statistics of Income (2022), the CBO Feb 2026 "
+        "hood. Numbers come from IRS Statistics of Income, the CBO Feb 2026 "
         "baseline, and the calibrated parameters above."
     )
 
@@ -151,16 +151,16 @@ def render_methodology_tab(st_module: Any) -> None:
             r"where $\Delta\tau$ is the rate change, $T$ is the income threshold, "
             r"$\bar{Y}$ is the average taxable income among affected filers, "
             r"and $N$ is the number of filers above the threshold."
-            "\n\n**From IRS SOI 2022 (Table 1.1):**"
+            "\n\n**From IRS SOI (Table 1.1):**"
         )
         st_module.markdown("""
 | Variable | Value | Source |
 |----------|-------|--------|
 | Rate change (Δτ) | 0.026 (2.6 pp) | Policy |
 | Threshold (*T*) | $400,000 | Policy |
-| Avg. taxable income above threshold (*Ȳ*) | ~$950,000 | IRS SOI 2022 |
+| Avg. taxable income above threshold (*Ȳ*) | ~$950,000 | IRS SOI |
 | Marginal income per filer (*Ȳ* − *T*) | $550,000 | Derived |
-| Filers above threshold (*N*) | ~1.8 million | IRS SOI 2022 |
+| Filers above threshold (*N*) | ~1.8 million | IRS SOI |
 """)
         st_module.markdown("**Year 1 static revenue:**")
         st_module.latex(
@@ -366,7 +366,7 @@ def render_methodology_tab(st_module: Any) -> None:
 
         st_module.markdown("#### Step 1 — Baseline and static estimate")
         st_module.markdown(
-            "From IRS SOI 2022, total long-term capital gains realizations "
+            "From IRS SOI, total long-term capital gains realizations "
             "by filers above the $1M AGI threshold:"
         )
         st_module.markdown("""
@@ -629,7 +629,7 @@ def render_methodology_tab(st_module: Any) -> None:
         "integration with all policy modules is still evolving.\n"
         "5. **Reduced-form dynamic scoring** — Uses calibrated multipliers "
         "rather than structural general-equilibrium equations.\n"
-        "6. **2-year data lag** — IRS SOI data is from 2022; taxpayer "
+        "6. **Data lag** — IRS SOI data lags ~2 years; taxpayer "
         "distributions may have shifted."
     )
 

@@ -13,7 +13,16 @@ from __future__ import annotations
 
 from typing import Any
 
+from fiscal_model.data.irs_soi import IRSSOIData
 from fiscal_model.ui.helpers import TEXTBOOK_HOME
+
+def _latest_soi_year() -> int:
+    """Return the most recent IRS SOI data year available."""
+    try:
+        years = IRSSOIData().get_data_years_available()
+        return max(years) if years else 2022
+    except Exception:
+        return 2022
 
 
 def build_main_tabs(
@@ -224,7 +233,7 @@ def render_footer(st_module: Any) -> None:
     st_module.caption(
         "**Fiscal Policy Impact Calculator** v1.0 · "
         "25 policies validated against CBO/JCT · "
-        "Data: IRS SOI 2022, FRED, CBO Feb 2026 · "
+        f"Data: IRS SOI {_latest_soi_year()}, FRED, CBO Feb 2026 · "
         "[Methodology](https://github.com/laurencehw/fiscal-policy-calculator"
         "/blob/main/docs/METHODOLOGY.md) · "
         f"[Textbook]({TEXTBOOK_HOME}) · "
