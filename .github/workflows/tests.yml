@@ -96,7 +96,13 @@ jobs:
           # depends on pip, so using whatever setup-python@v6 bundled
           # keeps the output deterministic across CI runs. pip-tools
           # itself is explicitly pinned for the same reason.
-          pip install 'pip-tools==7.4.1'
+          #
+          # Bumped from 7.4.1 to 7.5.1 to restore compatibility with
+          # the pip version shipped by setup-python@v6 in late 2025:
+          # pip 24.x renamed PackageFinder internals and pip-tools 7.4.1
+          # reached into them directly, producing an AttributeError.
+          # pip-tools 7.5.1 switched to the new API.
+          pip install 'pip-tools==7.5.1'
 
       - name: Regenerate lock file in place
         run: |
