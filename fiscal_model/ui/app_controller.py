@@ -199,8 +199,74 @@ def render_data_status(st_module: Any, deps: Any) -> None:
                 f"**GDP source for baseline:** {baseline.get('gdp_source', 'unknown')}"
                 + microdata_detail
             )
+
+            if microdata.get("status") in {"ok", "degraded"}:
+                _render_augmentation_preview(st_module, microdata)
     except Exception:
         pass
+
+
+def _render_augmentation_preview(st_module: Any, microdata: dict) -> None:
+    """
+    Show a diagnostic preview of what top-tail augmentation would do to
+    the microdata's SOI coverage. Enable via a checkbox in the Data
+    details expander; disabled by default because augmentation is an
+    opt-in operation that changes distributional results when plumbed
+    through the engine.
+    """
+    st_module.markdown("---")
+    show = st_module.checkbox(
+        "Preview top-tail augmentation",
+        value=False,
+        key="augmentation_preview_toggle",
+        help=(
+            "Shows how SOI-based top-tail augmentation would change "
+            "microdata coverage at \\$1M+. Diagnostic only — does not "
+            "affect the policy scoring above."
+        ),
+    )
+    if not show:
+        return
+
+    try:
+        from fiscal_model.data.cps_asec import load_tax_microdata
+        from fiscal_model.microsim.soi_calibration import calibrate_to_soi
+        from fiscal_model.microsim.top_tail import augment_top_tail
+    except Exception as exc:
+        st_module.caption(f"Augmentation modules unavailable: {exc}")
+        return
+
+    try:
+        calibration_year = int(microdata.get("calibration_year") or 2022)
+        base_df, _ = load_tax_microdata()
+        augmented_df, report = augment_top_tail(base_df, year=calibration_year)
+        before = calibrate_to_soi(base_df, year=calibration_year).summary()
+        after = calibrate_to_soi(augmented_df, year=calibration_year).summary()
+    except Exception as exc:
+        st_module.caption(f"Could not compute augmentation preview: {exc}")
+        return
+
+    st_module.markdown(
+        "**Augmentation preview** (SOI "
+        f"{calibration_year}, floor \\$2M, "
+        f"{report.synthetic_records:,} synthetic records):"
+    )
+    st_module.markdown(
+        f"- Returns coverage: "
+        f"{before['returns_coverage_pct']:.0f}% → "
+        f"**{after['returns_coverage_pct']:.0f}%**\n"
+        f"- AGI coverage: "
+        f"{before['agi_coverage_pct']:.0f}% → "
+        f"**{after['agi_coverage_pct']:.0f}%**\n"
+        f"- Synthetic top-tail AGI added: "
+        f"\\${report.synthetic_agi_billions:,.1f}B"
+    )
+    st_module.caption(
+        "Augmentation is a *coverage* fix, not a *representation* fix. "
+        "Synthetic records carry SOI-aggregate income composition but "
+        "don't model individual-level behaviour. See "
+        "`docs/VALIDATION_NOTES.md` for the full caveat."
+    )
 
 
 def render_quick_start(st_module: Any) -> None:
