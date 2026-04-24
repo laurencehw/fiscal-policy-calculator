@@ -32,6 +32,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from fiscal_model.data.cps_asec import describe_microdata, load_tax_microdata  # noqa: E402
 from fiscal_model.health import check_health  # noqa: E402
+from fiscal_model.microsim.filing_threshold import filter_to_filers  # noqa: E402
 from fiscal_model.microsim.soi_calibration import calibrate_to_soi  # noqa: E402
 from fiscal_model.microsim.top_tail import augment_top_tail  # noqa: E402
 from fiscal_model.validation.benchmark_runners import default_model_runner  # noqa: E402
@@ -64,19 +65,29 @@ def collect_microdata(
     calibration_year: int,
     *,
     augment_top_tail_flag: bool = False,
+    filter_to_filers_flag: bool = False,
 ) -> dict[str, Any]:
     descriptor = describe_microdata()
     if descriptor.get("status") not in {"synthetic", "real"}:
-        return {"descriptor": descriptor, "report": None, "augmentation": None}
+        return {
+            "descriptor": descriptor,
+            "report": None,
+            "augmentation": None,
+            "filter": None,
+        }
     df, _ = load_tax_microdata()
     augmentation_report = None
     if augment_top_tail_flag:
         df, augmentation_report = augment_top_tail(df, year=calibration_year)
+    filter_report = None
+    if filter_to_filers_flag:
+        df, filter_report = filter_to_filers(df, year=calibration_year)
     report = calibrate_to_soi(df, year=calibration_year)
     return {
         "descriptor": descriptor,
         "report": report,
         "augmentation": augmentation_report,
+        "filter": filter_report,
     }
 
 
@@ -242,6 +253,15 @@ def main() -> int:
             "$10M+ bracket. Changes distributional-analysis results."
         ),
     )
+    parser.add_argument(
+        "--filter-to-filers",
+        action="store_true",
+        help=(
+            "Drop CPS tax units that are clearly non-filers (no income, "
+            "no children, below statutory threshold). Aligns aggregate "
+            "microdata totals with SOI's filed-return counts."
+        ),
+    )
     args = parser.parse_args()
 
     health = collect_health()
@@ -251,7 +271,9 @@ def main() -> int:
         or 2022
     )
     calibration = collect_microdata(
-        calibration_year, augment_top_tail_flag=args.augment_top_tail
+        calibration_year,
+        augment_top_tail_flag=args.augment_top_tail,
+        filter_to_filers_flag=args.filter_to_filers,
     )
 
     if args.json:
