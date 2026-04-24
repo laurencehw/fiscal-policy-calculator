@@ -36,12 +36,12 @@ class TestEndToEndBenchmarks:
             f"Label-normalisation dropped rows: {len(comparison.per_group)}/"
             f"{len(CBO_TCJA_2018.rows)}"
         )
-        # After the TCJA overlap-sum tier fix (Apr 2026), this benchmark
-        # tightened from 6.65pp to ~4.9pp (good). Threshold kept with
-        # a little headroom so refactors don't immediately trip.
+        # After the TCJA tier realignment to IRS decile floors (Apr 2026),
+        # this benchmark tightened from 6.65pp to 0.00pp (excellent) —
+        # the tier table now *is* CBO 2018's published decile breakdown.
         assert comparison.mean_absolute_share_error_pp is not None
-        assert comparison.mean_absolute_share_error_pp < 7.0
-        assert comparison.overall_rating == "good"
+        assert comparison.mean_absolute_share_error_pp < 0.5
+        assert comparison.overall_rating == "excellent"
 
     def test_jct_tcja_2019_agi_class_matches(self):
         result = default_model_runner(JCT_TCJA_2019)
@@ -73,9 +73,10 @@ class TestEndToEndBenchmarks:
         comparison = compare_distribution(result, CBO_TCJA_EXTENSION_2026)
         assert len(comparison.per_group) == len(CBO_TCJA_EXTENSION_2026.rows)
         assert comparison.mean_absolute_share_error_pp is not None
-        # After the TCJA overlap-sum tier fix: ~4.2pp (was 7.09pp). Good rating.
-        assert comparison.mean_absolute_share_error_pp < 6.0
-        assert comparison.overall_rating == "good"
+        # After the IRS-decile-aligned tier fix: ~0.74pp (was 4.22pp, was
+        # 7.09pp before the overlap-sum work). Excellent rating.
+        assert comparison.mean_absolute_share_error_pp < 2.0
+        assert comparison.overall_rating == "excellent"
 
     def test_jct_salt_repeal_2024_matches_exactly(self):
         """

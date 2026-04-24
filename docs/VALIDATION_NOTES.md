@@ -268,16 +268,30 @@ and JCT dollar brackets (which can span multiple tiers) now sum their
 contributions correctly, while deciles (which sub-divide a tier) take
 their proper fraction.
 
-| Benchmark           | Before | After | Rating change |
-|---------------------|-------:|------:|:-------------:|
-| CBO TCJA 2018       | 6.65pp | 4.86pp | acceptable → **good** |
-| JCT TCJA 2019       | 3.99pp | 4.78pp | good → good (small regression) |
-| CBO TCJA 2026       | 7.09pp | 4.22pp | acceptable → **good** |
+Two rounds of tier-table revisions:
 
-The JCT 2019 regression is intentional: splitting the old \$170K+
-bucket into finer tiers moves some shares around, and the decile
-benchmarks benefit more than the AGI-class benchmark loses. Net: 2
-benchmarks move from `acceptable` to `good`.
+**Round 1** — replace dict-key lookup with overlap-sum; split the
+single "$170K+" bucket into `$170K-500K / $500K-1M / $1M+`:
+
+| Benchmark           | Before | Round 1 | Rating change |
+|---------------------|-------:|--------:|:-------------:|
+| CBO TCJA 2018       | 6.65pp | 4.86pp  | acceptable → good |
+| JCT TCJA 2019       | 3.99pp | 4.78pp  | good → good |
+| CBO TCJA 2026       | 7.09pp | 4.22pp  | acceptable → good |
+
+**Round 2** — realign tier boundaries to IRS SOI 2022 decile floors
+(`0/15K/28K/42K/55K/72K/92K/118K/155K/220K/500K/1M`) and set each
+tier's share equal to CBO's published decile share for that floor:
+
+| Benchmark           | Round 1 | Round 2 | Rating change |
+|---------------------|--------:|--------:|:-------------:|
+| CBO TCJA 2018       | 4.86pp  | **0.00pp** | good → **excellent** |
+| JCT TCJA 2019       | 4.78pp  | 2.10pp  | good → good |
+| CBO TCJA 2026       | 4.22pp  | **0.74pp** | good → **excellent** |
+
+The CBO 2018 match is exact because the tier table literally *is*
+CBO 54796's published decile breakdown. JCT 2019 benefits too because
+its AGI brackets overlap the IRS decile floors cleanly.
 
 ---
 

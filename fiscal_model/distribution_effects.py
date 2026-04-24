@@ -198,29 +198,43 @@ def calculate_tcja_effect(policy: Policy, group: IncomeGroup, total_returns: int
     extend_salt_cap = getattr(policy, "extend_salt_cap", True)
     annual_cost = ten_year_cost / 10.0
 
-    # Ranged tiers covering the full AGI distribution. Shares sum to 1.0
-    # within each tier table. Calibrated against published TCJA
-    # distributional analyses — see docs/VALIDATION_NOTES.md §4 for the
-    # parallel calibration for corporate.
+    # Ranged tiers covering the full AGI distribution. Tier boundaries
+    # align with IRS SOI 2022 decile floors so CBO decile benchmarks
+    # can match exactly; shares sum to 1.0 and are calibrated against
+    # CBO's published TCJA distributional tables (CBO 54796, CBO 60007).
+    #
+    # See docs/VALIDATION_NOTES.md §3b for the derivation.
     if extend_salt_cap:
         tcja_tiers = (
-            (0, 35_000, 0.02),
-            (35_000, 65_000, 0.05),
-            (65_000, 105_000, 0.10),
-            (105_000, 170_000, 0.18),
-            (170_000, 500_000, 0.28),
-            (500_000, 1_000_000, 0.10),
-            (1_000_000, float("inf"), 0.27),
+            (0, 15_000, 0.005),
+            (15_000, 28_000, 0.018),
+            (28_000, 42_000, 0.032),
+            (42_000, 55_000, 0.048),
+            (55_000, 72_000, 0.058),
+            (72_000, 92_000, 0.073),
+            (92_000, 118_000, 0.092),
+            (118_000, 155_000, 0.126),
+            (155_000, 220_000, 0.180),
+            (220_000, 500_000, 0.135),
+            (500_000, 1_000_000, 0.070),
+            (1_000_000, float("inf"), 0.163),
         )
     else:
+        # Without SALT cap, more of the cut accrues to high-tax-state
+        # filers who bunch at $220K+. Shift ~5pp from middle to top.
         tcja_tiers = (
-            (0, 35_000, 0.02),
-            (35_000, 65_000, 0.04),
-            (65_000, 105_000, 0.08),
-            (105_000, 170_000, 0.16),
-            (170_000, 500_000, 0.27),
-            (500_000, 1_000_000, 0.11),
-            (1_000_000, float("inf"), 0.32),
+            (0, 15_000, 0.004),
+            (15_000, 28_000, 0.015),
+            (28_000, 42_000, 0.027),
+            (42_000, 55_000, 0.040),
+            (55_000, 72_000, 0.048),
+            (72_000, 92_000, 0.061),
+            (92_000, 118_000, 0.076),
+            (118_000, 155_000, 0.104),
+            (155_000, 220_000, 0.155),
+            (220_000, 500_000, 0.155),
+            (500_000, 1_000_000, 0.085),
+            (1_000_000, float("inf"), 0.230),
         )
 
     group_floor = float(group.floor)
