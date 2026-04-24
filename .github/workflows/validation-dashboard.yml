@@ -5,11 +5,12 @@ name: Validation Dashboard
 # benchmark suite. Publishes the --json output as a workflow artifact
 # so regressions are diffable across runs.
 #
-# The job is informational by default (continue-on-error: true) because
-# the Corporate 28% benchmark is currently rated "needs_improvement" —
-# a known gap tracked in docs/VALIDATION_NOTES.md. Flip the flag to
-# false once the corporate gap is closed to turn this into a blocking
-# gate.
+# Gate behavior (exit codes from scripts/run_validation_dashboard.py):
+#   0 — everything nominal; CI job passes.
+#   1 — a health component is degraded OR a benchmark is rated
+#       needs_improvement; CI job FAILS so the PR cannot merge.
+#   2 — calibration warning (a single bracket <60% AGI coverage); CI job
+#       still passes. This is a data-quality signal, not a regression.
 
 on:
   push:
@@ -21,7 +22,6 @@ on:
 jobs:
   dashboard:
     runs-on: ubuntu-latest
-    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v6
@@ -38,13 +38,26 @@ jobs:
 
       - name: Run validation dashboard (human-readable)
         run: |
-          python scripts/run_validation_dashboard.py || echo "Dashboard reported issues — see artifact."
+          set +e
+          python scripts/run_validation_dashboard.py
+          exit_code=$?
+          echo ""
+          if [ $exit_code -eq 0 ]; then
+            echo "Dashboard: all green."
+          elif [ $exit_code -eq 2 ]; then
+            echo "Dashboard: calibration warning (data-quality signal, not a regression)."
+          else
+            echo "Dashboard: FAIL — see dashboard output above."
+            exit $exit_code
+          fi
 
       - name: Run validation dashboard (JSON)
+        if: always()
         run: |
           python scripts/run_validation_dashboard.py --json > validation-dashboard.json || true
 
       - name: Upload dashboard artifact
+        if: always()
         uses: actions/upload-artifact@v6
         with:
           name: validation-dashboard
