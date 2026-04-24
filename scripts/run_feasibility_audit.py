@@ -12,17 +12,20 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from fiscal_model.feasibility import audit_cps_microsim_readiness
-from fiscal_model.models.comparison import build_default_comparison_models, compare_policy_models
-from fiscal_model.policies import PolicyType, TaxPolicy
-from fiscal_model.scoring import FiscalPolicyScorer
+from fiscal_model.feasibility import audit_cps_microsim_readiness  # noqa: E402
+from fiscal_model.models.comparison import (  # noqa: E402
+    build_default_comparison_models,
+    compare_policy_models,
+)
+from fiscal_model.policies import PolicyType, TaxPolicy  # noqa: E402
+from fiscal_model.scoring import FiscalPolicyScorer  # noqa: E402
 
 
 def _default_policy() -> TaxPolicy:

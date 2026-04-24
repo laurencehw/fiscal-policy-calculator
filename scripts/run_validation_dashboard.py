@@ -33,11 +33,11 @@ if str(PROJECT_ROOT) not in sys.path:
 from fiscal_model.data.cps_asec import describe_microdata, load_tax_microdata  # noqa: E402
 from fiscal_model.health import check_health  # noqa: E402
 from fiscal_model.microsim.soi_calibration import calibrate_to_soi  # noqa: E402
+from fiscal_model.microsim.top_tail import augment_top_tail  # noqa: E402
 from fiscal_model.validation.benchmark_runners import default_model_runner  # noqa: E402
 from fiscal_model.validation.cbo_distributions import (  # noqa: E402
     run_full_cbo_jct_validation,
 )
-
 
 STATUS_DEGRADED = {"degraded", "error", "needs_improvement", "unknown"}
 
@@ -60,13 +60,24 @@ def collect_health() -> dict[str, Any]:
     return check_health()
 
 
-def collect_microdata(calibration_year: int) -> dict[str, Any]:
+def collect_microdata(
+    calibration_year: int,
+    *,
+    augment_top_tail_flag: bool = False,
+) -> dict[str, Any]:
     descriptor = describe_microdata()
     if descriptor.get("status") not in {"synthetic", "real"}:
-        return {"descriptor": descriptor, "report": None}
+        return {"descriptor": descriptor, "report": None, "augmentation": None}
     df, _ = load_tax_microdata()
+    augmentation_report = None
+    if augment_top_tail_flag:
+        df, augmentation_report = augment_top_tail(df, year=calibration_year)
     report = calibrate_to_soi(df, year=calibration_year)
-    return {"descriptor": descriptor, "report": report}
+    return {
+        "descriptor": descriptor,
+        "report": report,
+        "augmentation": augmentation_report,
+    }
 
 
 def print_banner(title: str) -> None:
@@ -76,15 +87,47 @@ def print_banner(title: str) -> None:
     print("=" * 72)
 
 
+def _is_environmental_degradation(component: str, info: dict[str, Any]) -> bool:
+    """
+    True when a health component is ``degraded`` for reasons that are
+    environmental (not a model regression) and therefore shouldn't fail
+    CI on their own.
+
+    The canonical case is FRED: without a FRED_API_KEY, the data layer
+    falls back to hardcoded values and reports ``status=degraded``.
+    That's the expected CI baseline; it's not a signal that anything
+    in the model broke.
+
+    Baseline inherits the same logic — when FRED is unavailable, the
+    baseline GDP series falls back to ``irs_ratio_proxy``, which also
+    trips ``degraded``. Again: expected CI shape, not a regression.
+    """
+    if component == "fred":
+        return info.get("source") in {"fallback", None} and not info.get("error")
+    if component == "baseline":
+        gdp_fell_back = info.get("gdp_source") == "irs_ratio_proxy"
+        src_fell_back = info.get("source") == "hardcoded_fallback"
+        return (gdp_fell_back or src_fell_back) and not info.get("load_error")
+    return False
+
+
 def print_health(health: dict[str, Any]) -> bool:
-    """Return True if every component is ok/warning is acceptable."""
+    """
+    Return True unless a *non-environmental* health component degraded.
+
+    Environmental degradations (FRED fallback without API key, baseline
+    GDP proxy) are reported as ``[env-ok]`` but don't trip the gate.
+    """
     print_banner("Health check")
     all_ok = True
     for component in ("baseline", "fred", "irs_soi", "model", "microdata"):
         info = health.get(component, {})
         status = info.get("status", "unknown")
         if status in STATUS_DEGRADED:
-            all_ok = False
+            if _is_environmental_degradation(component, info):
+                status = f"env-ok ({status})"
+            else:
+                all_ok = False
         details: list[str] = []
         if component == "baseline":
             details.append(str(info.get("vintage") or info.get("source", "")))
@@ -190,6 +233,15 @@ def main() -> int:
         default=None,
         help="SOI year to calibrate against (default: latest available).",
     )
+    parser.add_argument(
+        "--augment-top-tail",
+        action="store_true",
+        help=(
+            "Inject SOI-derived synthetic high-income records (>$2M) "
+            "before calibrating. Fixes the CPS top-coding gap at the "
+            "$10M+ bracket. Changes distributional-analysis results."
+        ),
+    )
     args = parser.parse_args()
 
     health = collect_health()
@@ -198,7 +250,9 @@ def main() -> int:
         or health.get("irs_soi", {}).get("latest_year")
         or 2022
     )
-    calibration = collect_microdata(calibration_year)
+    calibration = collect_microdata(
+        calibration_year, augment_top_tail_flag=args.augment_top_tail
+    )
 
     if args.json:
         report = calibration.get("report")

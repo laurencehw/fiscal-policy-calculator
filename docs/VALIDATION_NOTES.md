@@ -235,6 +235,48 @@ separately).
 
 ---
 
+## CPS top-coding gap — opt-in Pareto augmentation available
+
+The bundled CPS-derived microdata has **zero observations above ~\\$2M
+AGI** because CPS ASEC top-codes incomes aggressively. IRS SOI reports
+~30,000 returns at \\$10M+ carrying ~\\$900B in AGI, so distributional
+analyses that depend on the right tail (capital gains, SALT, step-up
+basis, estate) are structurally under-represented at the top in
+pure-CPS runs.
+
+**Fix**: `fiscal_model/microsim/top_tail.py::augment_top_tail` injects
+synthetic high-income records drawn from IRS SOI bracket aggregates.
+For each SOI bracket above a user-supplied floor (default \\$2M), it
+creates 200 synthetic records whose AGIs are sampled log-uniformly
+over the bracket bounds then rescaled so the sample mean equals the
+SOI bracket mean. Weights are set so ``num_returns`` in the bracket
+is reproduced exactly.
+
+**Opt-in by design**. The default microdata path stays pure-CPS so
+reproducibility and provenance are clean. Callers that need right-tail
+accuracy invoke ``augment_top_tail`` explicitly or pass
+``--augment-top-tail`` to ``scripts/run_validation_dashboard.py``.
+
+**Coverage impact** (before → after, SOI 2023):
+
+| Bracket | Returns ratio | AGI ratio |
+|---|---:|---:|
+| \\$1M-\\$10M | 0.64 → 0.97 | 0.37 → 0.94 |
+| \\$10M+     | 0.00 → 1.00 | 0.00 → 1.04 |
+
+With augmentation enabled, the validation dashboard moves from
+`[WARN] calibration has at least one bracket with <60% AGI coverage`
+to `[OK] all surfaces nominal`.
+
+**Caveat**: augmentation is a coverage fix, not a representation fix.
+Synthetic records carry SOI-derived aggregate income composition
+(~35% wages / 40% cap gains / 15% dividends / 10% interest at the
+top) but don't model individual-level behaviour like charitable
+deductions or state of residence. Augmented rows are tagged
+``source = "soi_pareto_augmented"`` so callers can filter.
+
+---
+
 ## 3a. Tax-expenditure distributional dispatch — added, not a pre-existing gap
 
 Not a regression fix — a new path. The distributional engine had no

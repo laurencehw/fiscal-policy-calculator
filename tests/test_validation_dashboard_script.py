@@ -78,3 +78,31 @@ def test_json_mode_produces_valid_json(dashboard_module, capsys, monkeypatch):
     assert "health" in payload
     assert "calibration" in payload
     assert "summary" in payload["calibration"]
+
+
+def test_environmental_fred_fallback_does_not_fail_gate(dashboard_module):
+    """FRED in fallback mode (no API key) is env-ok, not a failure."""
+    info = {"status": "degraded", "source": "fallback", "error": None}
+    assert dashboard_module._is_environmental_degradation("fred", info) is True
+
+
+def test_environmental_baseline_irs_proxy_does_not_fail_gate(dashboard_module):
+    """Baseline GDP proxy when FRED is down is env-ok, not a failure."""
+    info = {
+        "status": "degraded",
+        "gdp_source": "irs_ratio_proxy",
+        "load_error": None,
+    }
+    assert dashboard_module._is_environmental_degradation("baseline", info) is True
+
+
+def test_real_fred_error_does_fail_gate(dashboard_module):
+    """A FRED error (not just fallback) should still fail the gate."""
+    info = {"status": "error", "source": None, "error": "connection refused"}
+    assert dashboard_module._is_environmental_degradation("fred", info) is False
+
+
+def test_model_degradation_always_fails_gate(dashboard_module):
+    """A scoring-engine error is always a real regression."""
+    info = {"status": "error", "error": "something broke"}
+    assert dashboard_module._is_environmental_degradation("model", info) is False
