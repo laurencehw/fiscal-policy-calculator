@@ -17,9 +17,9 @@ Local development targets Python `3.12` via `.python-version`. The supported pac
 
 ### Reproducible installs via `requirements-lock.txt`
 
-`requirements.txt` lists direct dependencies with loose bounds (e.g. `numpy>=1.24,<3.0`) for library-style flexibility. For reproducible production installs — including the Streamlit Cloud deployment — we also commit `requirements-lock.txt`, a fully-pinned transitive closure generated with [`pip-tools`](https://github.com/jazzband/pip-tools).
+`requirements.txt` lists direct dependencies with loose bounds (e.g. `numpy>=1.24,<3.0`) for library-style flexibility. For reproducible production installs — including the Streamlit Cloud deployment — we also commit `requirements-lock.txt`, a fully-pinned transitive closure.
 
-The lock file is generated with `--no-header`, and CI pins `pip-tools==7.5.1`, to keep the output format consistent across runs. `pip-compile` still resolves against the interpreter you invoke it with, so **regenerate `requirements-lock.txt` with Python 3.12** to match `.python-version`, the `lockfile` CI job, and the Streamlit Cloud runtime.
+Regenerate the lockfile with [`uv`](https://github.com/astral-sh/uv) from Python 3.12 (matching `.python-version` and the Streamlit Cloud runtime). We moved off `pip-tools` because it reaches into pip's private API and broke across consecutive `setup-python@v6` bumps; `uv`'s Rust resolver is pip-tools-format-compatible and API-stable.
 
 ```bash
 # Install the exact versions CI + prod use
@@ -28,13 +28,13 @@ pip install -r requirements-lock.txt
 # Refresh the lock file after editing requirements.txt.
 # Must be Python 3.12 — verify with `python3.12 --version`.
 python3.12 -m venv .lockvenv
-.lockvenv/bin/pip install 'pip-tools==7.5.1'
-.lockvenv/bin/pip-compile --strip-extras --no-header \
+.lockvenv/bin/pip install uv
+.lockvenv/bin/uv pip compile --strip-extras --no-header \
     --output-file=requirements-lock.txt requirements.txt
 git add requirements.txt requirements-lock.txt
 ```
 
-The `lockfile` CI job regenerates the lock file on every PR and fails if the committed copy has drifted from `requirements.txt`. If that job is red, run the regeneration steps above locally (from Python 3.12) and commit the result.
+The `lockfile` CI job verifies the committed lockfile is resolvable and that every `requirements.txt` entry is pinned. It no longer regenerates the lockfile on every PR (that check kept breaking on pip/pip-tools API drift); a best-effort `uv` regeneration runs as an advisory informational step.
 
 The 3.12 `smoke` job installs from `requirements-lock.txt`, so production-style dependency breakage is caught in CI. The broader 3.10-3.13 matrix still installs from `requirements.txt` to verify the supported version range.
 
