@@ -213,7 +213,81 @@ separately).
 
 ---
 
-## 4. Cross-cutting patterns
+## 4. JCT Corporate 21% → 28% (2022) — 15.3pp distributional mean absolute error
+
+**Policy**: Raise the corporate income-tax rate from 21% to 28% (Biden
+FY2022 proposal).
+
+| Source | Mean abs. share error | Rating |
+|--------|----------------------:|:------:|
+| JCT JCX-32-21, 2022 | 15.25pp | needs_improvement |
+
+Discovered by `run_full_cbo_jct_validation` (see `scripts/run_validation_dashboard.py`).
+This is the largest distributional outlier in the current benchmark suite —
+larger even than the revenue-level outliers in §§1-3 — and the gap is
+systematic.
+
+### Mechanical cause
+
+The `DistributionalEngine.analyze_policy` path computes the per-bracket
+tax change using a shared labor-incidence curve for all policies, rather
+than the corporate-specific 75/25 capital/labor split. For an income-tax
+policy this is fine — the tax base *is* labor income. For a *corporate*
+rate change, the bulk of the statutory incidence should fall on owners of
+capital, whose income is heavily concentrated in the top decile.
+
+Empirically:
+
+| Group        | Engine share | JCT share | Ratio  |
+|--------------|-------------:|----------:|-------:|
+| `<$100K` (aggregated) | 45.5% | 18.7% | 2.4× over  |
+| `$200K-$500K` | 36.2%       | 18.9%     | 1.9× over  |
+| `$500K-$1M`   |  6.0%       |  9.7%     | 0.6× under |
+| `$1M and over`|  2.9%       | 35.9%     | **0.08× — 12× undercount** |
+
+The engine is spreading corporate burden roughly in proportion to wage
+income, which places ~80% of filers in the `<$200K` band. JCT places only
+~37% of the burden there because their 75/25 split routes most of the tax
+through capital income — dividends, capital gains, pass-through distributions
+— which are far more concentrated.
+
+### Data cause
+
+Secondary. The IRS SOI brackets the engine uses do carry capital-income
+columns that would support a split-incidence calculation, but the engine
+path ignores them for corporate-tax policies. This is a code gap, not a
+data gap.
+
+### Methodological cause
+
+The engine has no policy-type dispatch for incidence. All TaxPolicy
+subclasses flow through the same bracket aggregation, which is the right
+thing for rate-on-wage-income reforms and wrong for corporate.
+
+### Path to closure
+
+| Change | Expected gap reduction | Effort |
+|--------|-----------------------:|:------:|
+| Add a `CorporateDistributionStrategy` in `distribution_engine.py` that applies the 75/25 capital/labor split when `policy_type == CORPORATE_TAX` | 15.3pp → ~3-4pp | 1 week |
+| Expose an `incidence_source` policy attribute (CBO, JCT, TPC, Treasury) so distributional runs can match a benchmark's methodology | reduces benchmark-specific friction; not a primary fix | 2 days |
+| Add a dividend/cap-gains allocation helper using SOI Table 1.4 (capital-income-by-AGI-class) so the top-decile tail is correctly weighted | lifts $1M+ from 2.9% → ~30%+ | 2-3 days, bundles with above |
+
+**Estimate scope**: 1-2 weeks to move this benchmark from `needs_improvement`
+to `good` (<5pp mean error).
+
+### Why the magnitude matters
+
+In distributional analyses of Biden-era corporate proposals, the single
+biggest political salience is who pays. The current engine would say
+"it's pretty evenly distributed, maybe slightly top-heavy"; JCT says "a
+third of the burden is on filers over $1M". A paper citing our
+distributional output for corporate reforms would be systematically
+understating the progressivity of the policy — a big and correctable
+error.
+
+---
+
+## 5. Cross-cutting patterns
 
 Three diagnoses point at the same larger issue: **bracket-aggregate
 data is a ceiling on accuracy at roughly 5–12% error** for any policy
@@ -225,19 +299,33 @@ This is exactly what Priority 1 in the review — the CPS ASEC microsim
 foundation — is designed to fix. Return-level data preserves the tail
 shape because each return carries its own income value, weighted
 correctly. Once the microsim path is the default, the payroll, CTC,
-and estate cases should tighten to the ~2–3% range that the corporate
-and AMT cases already sit in (those cases already use firm-level or
-return-level inputs).
+and estate cases should tighten to the ~2-3% range that the corporate
+and AMT *revenue* cases already sit in (those cases already use firm-
+level or return-level inputs).
+
+The §4 corporate case is a different pattern: the *revenue* score is
+within 4% of official (see README validation table), but the
+*distributional* profile is 15pp off because the engine uses a labor-
+incidence curve instead of the 75/25 split. That's a code gap on top
+of the data gap.
 
 The right reading of these outliers is therefore:
 
 - **They are not random miscalibrations.** Each has an identifiable
   mechanism, documented above, and an actionable fix.
-- **They all signal the same underlying data gap.** Closing it once
-  (CPS microsim) closes all three.
+- **Three of the four trace to the same underlying data gap** (bracket
+  aggregates smoothing the right tail). Closing it once (CPS microsim)
+  closes all three.
+- **The fourth is independent** — a code gap in incidence routing that
+  can be fixed without any data change.
 - **The honest headline error range for the calculator is "≤3% on
-  policies below $100K income thresholds; 8–12% on policies that
-  depend on the right tail."** Users should cite it that way.
+  policies below $100K income thresholds; 8-12% on right-tail-dependent
+  revenue estimates; distributional accuracy good on income taxes but
+  currently 15pp off on corporate."** Users should cite it that way.
+
+Live accuracy numbers are emitted by `scripts/run_validation_dashboard.py`
+and surfaced via the `GET /benchmarks` endpoint; they replace whatever
+was written here the last time this doc was edited.
 
 ---
 
@@ -251,3 +339,5 @@ The right reading of these outliers is therefore:
   History*, JEL 49(1)
 - IRS SOI: *Statistics of Income — Individual Income Tax Returns*, Tables
   1.1 and 1.2; *Estate Tax Returns Filed*, Table 1 Parts I & II
+- JCT (2021): *Macroeconomic Analysis of a Proposal to Increase the
+  Corporate Income Tax Rate to 28 Percent*, JCX-32-21
