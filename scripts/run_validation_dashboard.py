@@ -100,25 +100,32 @@ def print_banner(title: str) -> None:
 
 def _is_environmental_degradation(component: str, info: dict[str, Any]) -> bool:
     """
-    True when a health component is ``degraded`` for reasons that are
-    environmental (not a model regression) and therefore shouldn't fail
-    CI on their own.
+    True when a health component's ``degraded`` / ``unknown`` status is
+    environmental — i.e. expected on a CI runner without API keys —
+    rather than a model regression.
 
-    The canonical case is FRED: without a FRED_API_KEY, the data layer
-    falls back to hardcoded values and reports ``status=degraded``.
-    That's the expected CI baseline; it's not a signal that anything
-    in the model broke.
+    Two sources of legitimate env-degradation:
 
-    Baseline inherits the same logic — when FRED is unavailable, the
-    baseline GDP series falls back to ``irs_ratio_proxy``, which also
-    trips ``degraded``. Again: expected CI shape, not a regression.
+    - FRED: without ``FRED_API_KEY``, every FRED call falls back to a
+      hardcoded series and the data layer reports ``status=degraded``.
+      This is the CI baseline; the only signal that warrants failing
+      the gate is ``status=error`` (an unrecoverable exception inside
+      the FRED wrapper itself).
+    - Baseline: depends on FRED, so it inherits the same pattern.
+      ``source=hardcoded_fallback`` or ``gdp_source=irs_ratio_proxy``
+      both indicate env-driven fallback. An explicit ``load_error``
+      means the baseline module crashed on its own — that does fail.
     """
+    status = info.get("status")
     if component == "fred":
-        return info.get("source") in {"fallback", None} and not info.get("error")
+        # Any FRED state short of an actual exception is env-ok.
+        return status != "error"
     if component == "baseline":
+        if status == "error" or info.get("load_error"):
+            return False
         gdp_fell_back = info.get("gdp_source") == "irs_ratio_proxy"
         src_fell_back = info.get("source") == "hardcoded_fallback"
-        return (gdp_fell_back or src_fell_back) and not info.get("load_error")
+        return gdp_fell_back or src_fell_back
     return False
 
 
@@ -128,9 +135,12 @@ def print_health(health: dict[str, Any]) -> bool:
 
     Environmental degradations (FRED fallback without API key, baseline
     GDP proxy) are reported as ``[env-ok]`` but don't trip the gate.
+    When a component *does* trip, we print its full payload at the end
+    of the section so the CI log shows exactly what regressed.
     """
     print_banner("Health check")
     all_ok = True
+    failing_components: list[tuple[str, dict[str, Any]]] = []
     for component in ("baseline", "fred", "irs_soi", "model", "microdata"):
         info = health.get(component, {})
         status = info.get("status", "unknown")
@@ -139,6 +149,7 @@ def print_health(health: dict[str, Any]) -> bool:
                 status = f"env-ok ({status})"
             else:
                 all_ok = False
+                failing_components.append((component, info))
         details: list[str] = []
         if component == "baseline":
             details.append(str(info.get("vintage") or info.get("source", "")))
@@ -160,6 +171,18 @@ def print_health(health: dict[str, Any]) -> bool:
         rendered = " | ".join(d for d in details if d) or "—"
         print(f"  {component:<10} [{status:>10}]   {rendered}")
     print(f"  overall    [{health.get('overall', 'unknown'):>10}]")
+
+    if failing_components:
+        print()
+        print("Failing-component diagnostics (what tripped the gate):")
+        for name, info in failing_components:
+            print(f"  --- {name} ---")
+            for k, v in sorted(info.items()):
+                rendered_v = str(v)
+                if len(rendered_v) > 200:
+                    rendered_v = rendered_v[:200] + "…"
+                print(f"    {k}: {rendered_v}")
+
     return all_ok
 
 
