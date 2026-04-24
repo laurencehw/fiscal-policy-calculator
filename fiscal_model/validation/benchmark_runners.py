@@ -143,6 +143,71 @@ def _normalize_labels(result: Any) -> Any:
     return result
 
 
+def _combine_distributional_results(results: list[Any]) -> Any:
+    """
+    Combine multiple DistributionalAnalysis results into a composite.
+
+    For each group, sum the per-policy *dollar effects* (share × total
+    magnitude), then renormalize to shares of the combined total. This
+    is the correct weighted merge — naive share-summing would
+    double-count because each component's shares already sum to 1.0.
+
+    Used to approximate composite policies (the ARP bundle = CTC +
+    EITC childless) for benchmarks that aggregate multiple provisions
+    the engine scores separately.
+    """
+    from types import SimpleNamespace
+
+    if not results:
+        return None
+
+    # Each engine result has .total_tax_change in billions; use |total|
+    # as the weight so components with larger magnitude contribute
+    # proportionally more to the combined distribution.
+    totals_by_group: dict[str, dict] = {}
+    for res in results:
+        component_total = float(getattr(res, "total_tax_change", 0.0))
+        if component_total == 0:
+            continue
+        for row in res.results:
+            name = row.income_group.name
+            # Dollar effect on this group from this component (sign-preserving).
+            dollar_effect = float(row.share_of_total_change) * abs(component_total)
+            entry = totals_by_group.setdefault(
+                name,
+                {
+                    "income_group": row.income_group,
+                    "tax_change_avg_sum": 0.0,
+                    "dollar_effect": 0.0,
+                    "avg_weight": 0.0,
+                },
+            )
+            entry["tax_change_avg_sum"] += float(row.tax_change_avg)
+            entry["dollar_effect"] += dollar_effect
+            entry["avg_weight"] += 1
+
+    total_dollar_effect = sum(e["dollar_effect"] for e in totals_by_group.values())
+    if total_dollar_effect == 0:
+        return None
+
+    combined_rows = []
+    for entry in totals_by_group.values():
+        normalized_share = entry["dollar_effect"] / total_dollar_effect
+        avg_dollars = (
+            entry["tax_change_avg_sum"] / entry["avg_weight"]
+            if entry["avg_weight"] > 0
+            else 0.0
+        )
+        combined_rows.append(
+            SimpleNamespace(
+                income_group=entry["income_group"],
+                tax_change_avg=avg_dollars,
+                share_of_total_change=normalized_share,
+            )
+        )
+    return SimpleNamespace(results=combined_rows)
+
+
 def default_model_runner(benchmark: CBODistributionalBenchmark) -> Any | None:
     """
     Run the DistributionalEngine against a benchmark's implied policy.
