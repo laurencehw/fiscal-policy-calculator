@@ -21,7 +21,7 @@ The Fiscal Policy Calculator has been validated against **25+ official estimates
 
 **Key Finding**: The model performs best on income tax and TCJA-related policies (0.1-4% error) and acceptably on payroll tax reforms (12% error due to wage distribution assumptions).
 
-**Scope note**: Distributional validation is currently benchmarked mainly against published TPC tables rather than a broader CBO distributional set, and the payroll / CTC scenarios above remain the clearest higher-error checkpoints to monitor.
+**Scope note**: Distributional validation is currently benchmarked mainly against published TPC tables rather than a broader CBO distributional set, and the payroll / CTC scenarios above remain the clearest higher-error checkpoints to monitor. See [VALIDATION_NOTES.md](VALIDATION_NOTES.md) for root-cause analysis of the three biggest outliers (SS donut hole, Biden CTC 2021, Biden estate reform).
 
 ---
 
