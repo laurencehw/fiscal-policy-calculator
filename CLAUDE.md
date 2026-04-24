@@ -33,6 +33,10 @@ python -c "from fiscal_model.validation import compare_to_cbo; compare_to_cbo()"
 # Run distributional validation
 python fiscal_model/validation/distributional_validation.py
 
+# Unified validation dashboard (health + calibration + CBO/JCT benchmarks)
+python scripts/run_validation_dashboard.py
+python scripts/run_validation_dashboard.py --augment-top-tail --filter-to-filers
+
 # Generate API documentation
 python scripts/generate_docs.py
 
@@ -193,7 +197,7 @@ where ε(t) transitions from short_run to long_run over transition_years
 
 ## Current Development Priorities
 
-All core features and all four horizon features are complete (April 2026). **960+ tests passing, 73% coverage.**
+All core features, all four horizon features, and the distributional-validation cycle are complete (April 2026). **1200+ tests passing.**
 
 Completed:
 1. ✅ 25+ CBO/JCT-validated policies, distributional analysis, dynamic scoring
@@ -202,8 +206,13 @@ Completed:
 4. ✅ Classroom Mode (7 assignments, PDF export, 80 tests)
 5. ✅ State-Level Modeling (top 10 states, SALT interaction)
 6. ✅ Real-Time Bill Tracker (congress.gov pipeline, LLM extraction, SQLite)
+7. ✅ 6 CBO/JCT distributional benchmarks wired end-to-end (see `docs/VALIDATION_NOTES.md`)
+8. ✅ CPS ASEC microsim scaffold with SOI calibration, top-tail Pareto augmentation, and filing-threshold filter
+9. ✅ Multi-model pilot platform (CBO-style, TPC-microsim, PWBM-OLG) wired into the Scoring Models tab
+10. ✅ API hardening (X-API-Key auth, rate limiting, structured logging)
+11. ✅ `GET /summary`, `GET /benchmarks` API endpoints + `scripts/run_validation_dashboard.py` CI gate
 
-Next: multi-model comparison platform and CPS microsimulation. See `planning/NEXT_STEPS.md`.
+Next: closing the ARP bundle scope residual (needs Recovery Rebate engine integration) and broadening the multi-model pilots to more policy types. See `planning/NEXT_STEPS.md`.
 
 ## Target Validation
 
