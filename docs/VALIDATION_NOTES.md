@@ -223,6 +223,37 @@ separately).
 
 ---
 
+## 3b. TCJA distributional tier lookup — fixed: 6.65pp → ~4.8pp
+
+**Policies**: TCJA 2018 (CBO deciles), TCJA 2019 (JCT AGI class),
+TCJA extension 2026 (CBO deciles).
+
+Same root cause as §4: `calculate_tcja_effect` in
+`fiscal_model/distribution_effects.py` used exact-floor dict-key lookup
+that failed for every grouping except quintiles. And the tier table
+lumped everything above \$170K into a single bucket, which lost the
+top-of-distribution gradient that CBO/JCT publish.
+
+Fix: replaced the dict with seven explicit ranges extending to
+`$1M+`, and replaced the exact-floor lookup with an overlap-sum across
+all tiers a group intersects. The overlap-sum is important: quintiles
+and JCT dollar brackets (which can span multiple tiers) now sum their
+contributions correctly, while deciles (which sub-divide a tier) take
+their proper fraction.
+
+| Benchmark           | Before | After | Rating change |
+|---------------------|-------:|------:|:-------------:|
+| CBO TCJA 2018       | 6.65pp | 4.86pp | acceptable → **good** |
+| JCT TCJA 2019       | 3.99pp | 4.78pp | good → good (small regression) |
+| CBO TCJA 2026       | 7.09pp | 4.22pp | acceptable → **good** |
+
+The JCT 2019 regression is intentional: splitting the old \$170K+
+bucket into finer tiers moves some shares around, and the decile
+benchmarks benefit more than the AGI-class benchmark loses. Net: 2
+benchmarks move from `acceptable` to `good`.
+
+---
+
 ## 4. JCT Corporate 21% → 28% (2022) — fixed: 15.3pp → 2.5pp
 
 **Policy**: Raise the corporate income-tax rate from 21% to 28% (Biden

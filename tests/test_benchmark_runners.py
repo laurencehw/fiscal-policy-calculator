@@ -35,16 +35,24 @@ class TestEndToEndBenchmarks:
             f"Label-normalisation dropped rows: {len(comparison.per_group)}/"
             f"{len(CBO_TCJA_2018.rows)}"
         )
-        # Lock in current accuracy with headroom. If the engine improves
-        # and this becomes too loose, tighten.
+        # After the TCJA overlap-sum tier fix (Apr 2026), this benchmark
+        # tightened from 6.65pp to ~4.9pp (good). Threshold kept with
+        # a little headroom so refactors don't immediately trip.
         assert comparison.mean_absolute_share_error_pp is not None
-        assert comparison.mean_absolute_share_error_pp < 10.0
+        assert comparison.mean_absolute_share_error_pp < 7.0
+        assert comparison.overall_rating == "good"
 
     def test_jct_tcja_2019_agi_class_matches(self):
         result = default_model_runner(JCT_TCJA_2019)
         assert result is not None
         comparison = compare_distribution(result, JCT_TCJA_2019)
         assert len(comparison.per_group) == len(JCT_TCJA_2019.rows)
+        # After the TCJA tier fix: ~4.8pp. Was ~4.0pp before; the small
+        # regression on JCT-AGI comes from the top-bucket split needed
+        # to get CBO-decile benchmarks right. Net improvement across
+        # the suite is positive.
+        assert comparison.mean_absolute_share_error_pp is not None
+        assert comparison.mean_absolute_share_error_pp < 7.0
         assert comparison.overall_rating in {"good", "acceptable"}
 
     def test_cbo_arp_2021_quintile_matches(self):
@@ -64,9 +72,9 @@ class TestEndToEndBenchmarks:
         comparison = compare_distribution(result, CBO_TCJA_EXTENSION_2026)
         assert len(comparison.per_group) == len(CBO_TCJA_EXTENSION_2026.rows)
         assert comparison.mean_absolute_share_error_pp is not None
-        # Current engine: 7.09pp mean abs share error. Allow headroom.
-        assert comparison.mean_absolute_share_error_pp < 10.0
-        assert comparison.overall_rating in {"good", "acceptable"}
+        # After the TCJA overlap-sum tier fix: ~4.2pp (was 7.09pp). Good rating.
+        assert comparison.mean_absolute_share_error_pp < 6.0
+        assert comparison.overall_rating == "good"
 
     def test_jct_corporate_28_2022_rated_good(self):
         """
