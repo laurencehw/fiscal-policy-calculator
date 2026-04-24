@@ -52,7 +52,9 @@ Plus fully custom policy design with adjustable parameters.
 
 ### Validation
 
-25+ policies validated against official CBO/JCT/Treasury scores:
+Two-dimensional validation — revenue-level and distributional — against published CBO, JCT, and Treasury analyses.
+
+**Revenue accuracy** (25+ policies; see [`docs/VALIDATION.md`](docs/VALIDATION.md) for the full table):
 
 | Policy | Official | Model | Error |
 |--------|----------|-------|-------|
@@ -64,6 +66,19 @@ Plus fully custom policy design with adjustable parameters.
 | Cap Employer Health | -\$450B | -\$450B | 0.1% |
 | Biden CTC 2021 | \$1,600B | \$1,743B | 8.9% |
 | SS Donut Hole \$250K | -\$2,700B | -\$2,371B | 12.2% |
+
+**Distributional accuracy** — 6 benchmarks wired end-to-end against the distributional engine. Accuracy is the mean absolute share error across each benchmark's income groups; live numbers are exposed via `GET /benchmarks` and `scripts/run_validation_dashboard.py`.
+
+| Benchmark | Source | Rating | Err (pp) |
+|-----------|--------|--------|---------:|
+| TCJA 2018, deciles | CBO 54796 | **excellent** | 0.00 |
+| TCJA 2019, AGI class | JCT JCX-68-17 | good | 2.10 |
+| ARP 2021, quintiles | CBO 56952 | acceptable | 7.54 |
+| SALT cap repeal 2024, AGI class | JCT JCX-4-24 | **excellent** | 0.00 |
+| Corporate 28% 2022, AGI class | JCT JCX-32-21 | good | 2.51 |
+| TCJA ext 2026, deciles | CBO 60007 | **excellent** | 0.74 |
+
+`≤ 2pp = excellent`, `≤ 5pp = good`, `≤ 10pp = acceptable`. See [`docs/VALIDATION_NOTES.md`](docs/VALIDATION_NOTES.md) for root-cause analysis of the ARP residual and the calibration work that brought every other benchmark below 3pp.
 
 ---
 
