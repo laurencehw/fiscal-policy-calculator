@@ -1,0 +1,52 @@
+name: Validation Dashboard
+
+# Runs the full validation dashboard on every push and PR. Reports
+# health status, SOI calibration coverage, and the CBO/JCT distributional
+# benchmark suite. Publishes the --json output as a workflow artifact
+# so regressions are diffable across runs.
+#
+# The job is informational by default (continue-on-error: true) because
+# the Corporate 28% benchmark is currently rated "needs_improvement" —
+# a known gap tracked in docs/VALIDATION_NOTES.md. Flip the flag to
+# false once the corporate gap is closed to turn this into a blocking
+# gate.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  dashboard:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-lock.txt
+
+      - name: Run validation dashboard (human-readable)
+        run: |
+          python scripts/run_validation_dashboard.py || echo "Dashboard reported issues — see artifact."
+
+      - name: Run validation dashboard (JSON)
+        run: |
+          python scripts/run_validation_dashboard.py --json > validation-dashboard.json || true
+
+      - name: Upload dashboard artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: validation-dashboard
+          path: validation-dashboard.json
+          retention-days: 30
