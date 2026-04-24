@@ -80,7 +80,33 @@ def test_presets_endpoint_returns_count():
     assert response.status_code == 200
     payload = response.json()
     assert payload["count"] == len(payload["presets"])
-    assert payload["count"] > 0
+
+
+def test_benchmarks_endpoint_lists_distributional_accuracy():
+    response = _client().get("/benchmarks")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["count"] == len(payload["benchmarks"])
+    # At least the four mapped benchmarks should run.
+    assert payload["count"] >= 4
+
+    for entry in payload["benchmarks"]:
+        assert entry["rating"] in {
+            "excellent",
+            "good",
+            "acceptable",
+            "needs_improvement",
+            "no_overlap",
+        }
+        assert entry["matched_rows"] <= entry["benchmark_rows"]
+        assert "source_document" in entry
+        assert entry["analysis_year"] > 2000
+
+
+def test_root_endpoint_advertises_benchmarks():
+    response = _client().get("/")
+    assert response.status_code == 200
+    assert "benchmarks" in response.json()["endpoints"]
 
 
 def test_score_endpoint_success(monkeypatch):
