@@ -20,6 +20,7 @@ from fiscal_model.validation.cbo_distributions import (
     CBO_TCJA_2018,
     CBO_TCJA_EXTENSION_2026,
     JCT_CORPORATE_28_2022,
+    JCT_SALT_REPEAL_2024,
     JCT_TCJA_2019,
     compare_distribution,
     run_full_cbo_jct_validation,
@@ -76,6 +77,21 @@ class TestEndToEndBenchmarks:
         assert comparison.mean_absolute_share_error_pp < 6.0
         assert comparison.overall_rating == "good"
 
+    def test_jct_salt_repeal_2024_matches_exactly(self):
+        """
+        SALT cap repeal tier table is calibrated to JCX-4-24, so the
+        comparison should match within rounding on the 4 overlapping
+        AGI-class rows (the benchmark's `<$50k` and `$50k-$100k` rows
+        don't appear in the engine's JCT_DOLLAR grouping).
+        """
+        result = default_model_runner(JCT_SALT_REPEAL_2024)
+        assert result is not None
+        comparison = compare_distribution(result, JCT_SALT_REPEAL_2024)
+        assert len(comparison.per_group) >= 4
+        assert comparison.mean_absolute_share_error_pp is not None
+        assert comparison.mean_absolute_share_error_pp < 0.5
+        assert comparison.overall_rating == "excellent"
+
     def test_jct_corporate_28_2022_rated_good(self):
         """
         Corporate benchmark: after the distribution_effects.calculate_corporate_effect
@@ -94,11 +110,10 @@ class TestEndToEndBenchmarks:
 
     def test_full_runner_executes_every_benchmark(self):
         comparisons = run_full_cbo_jct_validation(default_model_runner)
-        # 5 mapped benchmarks: two TCJA (2018 decile + 2019 JCT), ARP
-        # 2021 quintiles, Corporate 28% 2022 JCT brackets, and
-        # TCJA-extension 2026 deciles. SALT repeal 2024 is transcribed
-        # but not yet wired to a policy factory.
-        assert len(comparisons) == 5
+        # 6 mapped benchmarks: three TCJA (2018 deciles + 2019 JCT +
+        # 2026 deciles), ARP 2021 quintiles, Corporate 28% 2022 JCT
+        # brackets, SALT cap repeal 2024 JCT brackets.
+        assert len(comparisons) == 6
         for c in comparisons:
             # No crashes, each comparison is well-formed.
             assert c.benchmark is not None

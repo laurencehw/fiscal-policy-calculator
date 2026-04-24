@@ -50,6 +50,10 @@ _BENCHMARK_POLICIES: dict[str, tuple[str, IncomeGroupType]] = {
         "create_biden_corporate_rate_only",
         IncomeGroupType.JCT_DOLLAR,
     ),
+    "jct_salt_repeal_2024": (
+        "create_repeal_salt_cap",
+        IncomeGroupType.JCT_DOLLAR,
+    ),
 }
 
 
@@ -113,6 +117,10 @@ def _policy_factory(benchmark_id: str) -> Any | None:
             from fiscal_model.corporate import create_biden_corporate_rate_only
 
             return create_biden_corporate_rate_only()
+        if factory_name == "create_repeal_salt_cap":
+            from fiscal_model.tax_expenditures import create_repeal_salt_cap
+
+            return create_repeal_salt_cap()
     except Exception:
         logger.exception("Failed to construct policy for %s", benchmark_id)
         return None

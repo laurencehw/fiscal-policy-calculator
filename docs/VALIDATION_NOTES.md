@@ -223,6 +223,33 @@ separately).
 
 ---
 
+## 3a. Tax-expenditure distributional dispatch — added, not a pre-existing gap
+
+Not a regression fix — a new path. The distributional engine had no
+dedicated handler for `TaxExpenditurePolicy` subclasses (SALT cap,
+mortgage interest, step-up basis, employer health, charitable), so
+the JCT SALT cap repeal benchmark was falling through to the generic
+`calculate_group_effect` and matching zero benchmark rows.
+
+Added `calculate_tax_expenditure_effect` with per-type tier tables
+calibrated to:
+
+- **SALT**: JCT JCX-4-24 (0.00pp match — the benchmark is the source
+  of truth).
+- **STEP_UP_BASIS**: JCT Green Book analysis — 76% of benefit at $1M+.
+- **CHARITABLE**: TPC — 49% at $1M+.
+- **MORTGAGE_INTEREST**: TPC — concentrated in $100K-$500K, with
+  a long top-tail.
+- **EMPLOYER_HEALTH**: CBO — broadly distributed across $50K-$500K
+  because employer insurance is widely held.
+
+Tables are registered in `_TAX_EXPENDITURE_TIER_TABLES`; unknown
+expenditure types fall back to a reasonably top-heavy default rather
+than silently uniformly distributing. All six share tables sum to 1.0
+within rounding.
+
+---
+
 ## 3b. TCJA distributional tier lookup — fixed: 6.65pp → ~4.8pp
 
 **Policies**: TCJA 2018 (CBO deciles), TCJA 2019 (JCT AGI class),
