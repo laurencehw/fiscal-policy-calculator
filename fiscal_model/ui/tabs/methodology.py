@@ -613,6 +613,53 @@ def render_methodology_tab(st_module: Any) -> None:
 | Biden \$400K+ Surtax | -\$252B | -\$250B | ~1% | Treasury |
 """)
 
+    # ── Live distributional benchmark accuracy ────────────────────────────
+    st_module.markdown("#### Live distributional accuracy (CBO/JCT)")
+    st_module.caption(
+        "Computed at render time against the current distributional engine. "
+        "Also exposed via the `GET /benchmarks` API endpoint and "
+        "`scripts/run_validation_dashboard.py`."
+    )
+    try:
+        from fiscal_model.validation.benchmark_runners import default_model_runner
+        from fiscal_model.validation.cbo_distributions import (
+            CBO_JCT_BENCHMARKS,
+            compare_distribution,
+        )
+
+        rows = []
+        for benchmark in CBO_JCT_BENCHMARKS:
+            model_result = default_model_runner(benchmark)
+            if model_result is None:
+                continue
+            comparison = compare_distribution(model_result, benchmark)
+            err = comparison.mean_absolute_share_error_pp
+            rows.append(
+                f"| {benchmark.source.value.split()[0]} | "
+                f"{benchmark.source_document} | "
+                f"{comparison.overall_rating} | "
+                f"{err:.2f} |"
+                if err is not None
+                else f"| {benchmark.source.value.split()[0]} | "
+                f"{benchmark.source_document} | "
+                f"{comparison.overall_rating} | — |"
+            )
+        if rows:
+            st_module.markdown(
+                "| Source | Document | Rating | Mean abs. share error (pp) |\n"
+                "|--------|----------|--------|---------------------------:|\n"
+                + "\n".join(rows)
+            )
+        else:
+            st_module.info(
+                "Benchmark runner produced no results — check "
+                "fiscal_model/validation/benchmark_runners.py mappings."
+            )
+    except Exception as exc:
+        st_module.caption(
+            f"Live accuracy table unavailable in this environment: {exc}"
+        )
+
     # ── Limitations ──────────────────────────────────────────────────────
     st_module.markdown("---")
     st_module.subheader("Known limitations")
