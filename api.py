@@ -289,6 +289,18 @@ class BenchmarksResponse(BaseModel):
     overall_rating: str  # ok | degraded
 
 
+class SummaryResponse(BaseModel):
+    """One-call overview: health, benchmarks, and microdata coverage."""
+
+    overall: str  # ok | degraded
+    timestamp: str
+    health: dict[str, Any]
+    benchmarks: list[BenchmarkResult]
+    benchmarks_rating: str  # ok | degraded
+    microdata_coverage: dict[str, Any]
+    auth_required: bool
+
+
 SUPPORTED_CUSTOM_POLICY_TYPES = {
     PolicyType.INCOME_TAX,
     PolicyType.CORPORATE_TAX,
@@ -368,6 +380,67 @@ def health_check():
             for k, v in health_data.items()
             if k not in ("overall", "timestamp")
         },
+    )
+
+
+@app.get("/summary", response_model=SummaryResponse)
+def summary():
+    """
+    One-call overview combining /health, /benchmarks, and microdata
+    coverage. Suitable for status dashboards and CI gates that need a
+    single source of truth.
+    """
+    from fiscal_model.validation.benchmark_runners import default_model_runner
+    from fiscal_model.validation.cbo_distributions import (
+        CBO_JCT_BENCHMARKS,
+        compare_distribution,
+    )
+
+    health_data = check_health()
+    overall_health = health_data.get("overall", "unknown")
+    microdata = health_data.get("microdata", {})
+
+    benchmark_results: list[BenchmarkResult] = []
+    benchmarks_worst = "ok"
+    for benchmark in CBO_JCT_BENCHMARKS:
+        model_result = default_model_runner(benchmark)
+        if model_result is None:
+            continue
+        comparison = compare_distribution(model_result, benchmark)
+        if comparison.overall_rating == "needs_improvement":
+            benchmarks_worst = "degraded"
+        benchmark_results.append(
+            BenchmarkResult(
+                policy_id=benchmark.policy_id,
+                policy_name=benchmark.policy_name,
+                source=benchmark.source.value,
+                source_document=benchmark.source_document,
+                analysis_year=benchmark.analysis_year,
+                rating=comparison.overall_rating,
+                mean_absolute_share_error_pp=comparison.mean_absolute_share_error_pp,
+                matched_rows=len(comparison.per_group),
+                benchmark_rows=len(benchmark.rows),
+            )
+        )
+
+    # Overall degrades if either health or benchmarks degrade.
+    overall = "degraded" if (overall_health != "ok" or benchmarks_worst == "degraded") else "ok"
+
+    return SummaryResponse(
+        overall=overall,
+        timestamp=health_data.get("timestamp", ""),
+        health={
+            k: v for k, v in health_data.items()
+            if k not in ("overall", "timestamp")
+        },
+        benchmarks=benchmark_results,
+        benchmarks_rating=benchmarks_worst,
+        microdata_coverage={
+            "returns_coverage_pct": microdata.get("returns_coverage_pct"),
+            "agi_coverage_pct": microdata.get("agi_coverage_pct"),
+            "calibration_year": microdata.get("calibration_year"),
+        },
+        auth_required=is_auth_enabled(),
     )
 
 
@@ -642,6 +715,7 @@ def root():
         "endpoints": {
             "health": "GET /health",
             "benchmarks": "GET /benchmarks",
+            "summary": "GET /summary",
             "presets": "GET /presets",
             "score_custom": "POST /score",
             "score_preset": "POST /score/preset",

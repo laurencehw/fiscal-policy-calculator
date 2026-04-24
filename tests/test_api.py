@@ -107,6 +107,29 @@ def test_root_endpoint_advertises_benchmarks():
     response = _client().get("/")
     assert response.status_code == 200
     assert "benchmarks" in response.json()["endpoints"]
+    assert "summary" in response.json()["endpoints"]
+
+
+def test_summary_endpoint_combines_health_and_benchmarks():
+    response = _client().get("/summary")
+    assert response.status_code == 200
+    payload = response.json()
+    # Combined overview has every top-level section.
+    for key in (
+        "overall",
+        "timestamp",
+        "health",
+        "benchmarks",
+        "benchmarks_rating",
+        "microdata_coverage",
+        "auth_required",
+    ):
+        assert key in payload, f"Missing {key} in /summary response"
+    # Overall is {ok, degraded, unknown} — the aggregate gate.
+    assert payload["overall"] in {"ok", "degraded", "unknown"}
+    # Benchmarks should run (at least the 6 mapped).
+    assert payload["benchmarks_rating"] in {"ok", "degraded"}
+    assert len(payload["benchmarks"]) >= 4
 
 
 def test_score_endpoint_success(monkeypatch):
