@@ -21,6 +21,8 @@ from fiscal_model.validation.cbo_distributions import (
     BenchmarkComparison,
     CBODistributionalBenchmark,
     DistributionSource,
+    JCT_CORPORATE_28_2022,
+    JCT_SALT_REPEAL_2024,
     JCT_TCJA_2019,
     compare_distribution,
     format_comparison,
@@ -62,6 +64,35 @@ class TestBenchmarkDatabase:
         highest = rows[-1].share_of_total
         # Both negative (cuts); |lowest| > |highest| means bottom gets more.
         assert abs(lowest) > abs(highest)
+
+    def test_salt_repeal_concentrated_at_top(self):
+        """SALT cap repeal should give ~66% of the cut to filers >$500k."""
+        top_share = sum(
+            r.share_of_total
+            for r in JCT_SALT_REPEAL_2024.rows
+            if r.group_label in {"$500k–$1M", "$1M+"}
+        )
+        # Cut → negative shares; top_share should be < -0.60 (60%+ of cut at top).
+        assert top_share < -0.60
+        # And the bottom two classes essentially get nothing.
+        bottom_share = sum(
+            r.share_of_total
+            for r in JCT_SALT_REPEAL_2024.rows
+            if r.group_label in {"<$50k", "$50k–$100k"}
+        )
+        assert abs(bottom_share) < 0.01
+
+    def test_corporate_benchmark_records_incidence_split(self):
+        """JCT corporate benchmark must record its 75/25 capital-labor split."""
+        assert JCT_CORPORATE_28_2022.corporate_incidence_capital_share == 0.75
+
+    def test_corporate_28_is_revenue_raise(self):
+        """A corporate rate increase should yield positive shares (deficit cut)."""
+        non_total = [
+            r for r in JCT_CORPORATE_28_2022.rows if r.group_label != "Total"
+        ]
+        assert all(r.avg_tax_change_dollars >= 0 for r in non_total)
+        assert sum(r.share_of_total for r in non_total) == pytest.approx(1.0, abs=0.02)
 
     def test_sources_are_distinct(self):
         sources = {b.source for b in CBO_JCT_BENCHMARKS}

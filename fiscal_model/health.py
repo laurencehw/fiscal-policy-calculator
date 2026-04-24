@@ -179,6 +179,50 @@ def check_health() -> dict[str, Any]:
     except Exception as e:
         results["model"] = {"status": "error", "error": str(e)}
 
+    # Check microdata (CPS-derived tax units) + SOI calibration summary.
+    # Kept lightweight so /health stays fast: only the two top-level
+    # coverage ratios are reported here; the full bracket report lives
+    # in calibrate_to_soi for callers that want it.
+    try:
+        from fiscal_model.data.cps_asec import describe_microdata, load_tax_microdata
+        from fiscal_model.microsim.soi_calibration import calibrate_to_soi
+
+        descriptor = describe_microdata()
+        microdata_entry: dict[str, Any] = {"status": "unknown", **descriptor}
+
+        if descriptor.get("status") in {"synthetic", "real"}:
+            df, _ = load_tax_microdata()
+            calibration_year = (
+                results.get("irs_soi", {}).get("latest_year") or 2022
+            )
+            report = calibrate_to_soi(df, year=int(calibration_year))
+            summary = report.summary()
+            returns_coverage = summary.get("returns_coverage_pct", 0.0)
+            agi_coverage = summary.get("agi_coverage_pct", 0.0)
+
+            # Coverage bands chosen to surface the real-tail undercount
+            # documented in docs/VALIDATION_NOTES.md: a microdata file
+            # whose top-bracket AGI is <70% of SOI's will produce
+            # distributional output that should not be taken literally.
+            if agi_coverage < 70 or returns_coverage < 70:
+                calibration_status = "degraded"
+            elif descriptor.get("status") == "synthetic":
+                calibration_status = "degraded"
+            else:
+                calibration_status = "ok"
+
+            microdata_entry.update(
+                {
+                    "status": calibration_status,
+                    "calibration_year": int(calibration_year),
+                    "returns_coverage_pct": round(returns_coverage, 1),
+                    "agi_coverage_pct": round(agi_coverage, 1),
+                }
+            )
+        results["microdata"] = microdata_entry
+    except Exception as e:
+        results["microdata"] = {"status": "error", "error": str(e)}
+
     results["timestamp"] = utc_isoformat()
     results["overall"] = "ok" if all(
         r.get("status") == "ok" for k, r in results.items()

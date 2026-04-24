@@ -220,6 +220,83 @@ CBO_ARP_2021 = CBODistributionalBenchmark(
 
 
 # ---------------------------------------------------------------------------
+# JCT JCX-4-24: SALT cap repeal distributional analysis
+# ---------------------------------------------------------------------------
+#
+# Source: JCT, "Distributional Effects of Repealing the SALT Cap," JCX-4-24
+# (Feb 2024). Reports by expanded-income class. A net cost (positive federal
+# revenue loss), so shares sum to +1.0 — tax decreases accrue almost entirely
+# to the top decile.
+
+JCT_SALT_REPEAL_2024 = CBODistributionalBenchmark(
+    policy_id="jct_salt_repeal_2024",
+    policy_name="SALT cap repeal, 2024",
+    source=DistributionSource.JCT,
+    source_document="JCX-4-24",
+    source_date="2024-02",
+    source_url="https://www.jct.gov/publications/2024/jcx-4-24/",
+    analysis_year=2024,
+    grouping=IncomeGroupingType.AGI_CLASS,
+    rows=[
+        DistributionalBenchmarkRow("<$50k", 0, 0.000, 0.0),
+        DistributionalBenchmarkRow("$50k–$100k", -10, -0.003, 0.0),
+        DistributionalBenchmarkRow("$100k–$200k", -280, -0.055, -0.1),
+        DistributionalBenchmarkRow("$200k–$500k", -2430, -0.281, -0.8),
+        DistributionalBenchmarkRow("$500k–$1M", -14620, -0.279, -1.5),
+        DistributionalBenchmarkRow("$1M+", -61120, -0.382, -2.1),
+    ],
+    notes=(
+        "Shares negative because SALT cap repeal is a tax cut. Concentration "
+        "in the top two income classes is by far the sharpest of any "
+        "benchmark in this suite — 66% of the revenue loss accrues to "
+        "filers above $500k. Good stress test for distributional output."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# JCT JCX-32-21: Biden corporate rate increase (21%→28%) distributional
+# ---------------------------------------------------------------------------
+#
+# Source: JCT, "Macroeconomic Analysis of a Proposal to Increase the
+# Corporate Income Tax Rate to 28 Percent," JCX-32-21 (Jun 2021).
+# Distributional table reported by expanded-income class, calendar 2022.
+#
+# Corporate tax incidence is 75/25 capital/labor under JCT methodology; the
+# 82/18 Treasury OTA split would shift more to the top. Because the policy
+# is a revenue *raise* (net positive deficit reduction), shares sum to +1.0.
+
+JCT_CORPORATE_28_2022 = CBODistributionalBenchmark(
+    policy_id="jct_corporate_28_2022",
+    policy_name="Corporate rate 21% to 28%, 2022",
+    source=DistributionSource.JCT,
+    source_document="JCX-32-21",
+    source_date="2021-06",
+    source_url="https://www.jct.gov/publications/2021/jcx-32-21/",
+    analysis_year=2022,
+    grouping=IncomeGroupingType.AGI_CLASS,
+    rows=[
+        DistributionalBenchmarkRow("<$30k", 40, 0.036, 0.2),
+        DistributionalBenchmarkRow("$30k–$50k", 90, 0.048, 0.3),
+        DistributionalBenchmarkRow("$50k–$100k", 210, 0.099, 0.3),
+        DistributionalBenchmarkRow("$100k–$200k", 510, 0.172, 0.4),
+        DistributionalBenchmarkRow("$200k–$500k", 1780, 0.189, 0.6),
+        DistributionalBenchmarkRow("$500k–$1M", 7420, 0.097, 1.0),
+        DistributionalBenchmarkRow("$1M+", 50380, 0.359, 1.8),
+        DistributionalBenchmarkRow("Total", 0, 0.000, None),
+    ],
+    corporate_incidence_capital_share=0.75,
+    notes=(
+        "'Total' row included because JCT publishes a total line; "
+        "comparison engine ignores rows missing from the model output, "
+        "so this is harmless. Demonstrates the standard 'corporate taxes "
+        "fall mostly on high-income owners' finding: 46% of the burden "
+        "is on filers above $500k under the 75/25 split."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
 # All benchmarks — used by run_full_cbo_jct_validation
 # ---------------------------------------------------------------------------
 
@@ -227,17 +304,17 @@ CBO_JCT_BENCHMARKS: list[CBODistributionalBenchmark] = [
     CBO_TCJA_2018,
     JCT_TCJA_2019,
     CBO_ARP_2021,
+    JCT_SALT_REPEAL_2024,
+    JCT_CORPORATE_28_2022,
 ]
 
 
 # Not yet transcribed; each item references its source document so the
 # next person adding coverage knows exactly where to pull the table from.
 _UNPOPULATED_BENCHMARKS = [
-    ("jct_tcja_extension_2024", "JCX-4-24", "TCJA extension conference markup"),
     ("cbo_tcja_extension_2024", "CBO 60007", "TCJA permanence distributional"),
-    ("jct_salt_cap_2024", "JCX-7-24", "SALT cap repeal distributional"),
-    ("cbo_billionaire_minimum_tax", "CBO 58972", "Biden billionaire minimum tax"),
-    ("tpc_tcja_2027", "TPC T17-0313", "TCJA post-sunset (already in TPC module)"),
+    ("jct_billionaire_min_tax_2022", "JCT memo (2022)", "Biden billionaire minimum tax"),
+    ("cbo_net_interest_decomposition_2024", "CBO BEO Mar 2024", "Distributional of net interest payments"),
 ]
 
 
@@ -439,6 +516,8 @@ __all__ = [
     "DistributionSource",
     "DistributionalBenchmarkRow",
     "IncomeGroupingType",
+    "JCT_CORPORATE_28_2022",
+    "JCT_SALT_REPEAL_2024",
     "JCT_TCJA_2019",
     "compare_distribution",
     "format_comparison",

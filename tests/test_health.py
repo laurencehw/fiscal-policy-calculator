@@ -26,9 +26,25 @@ class TestCheckHealth:
     def test_check_health_has_all_components(self):
         """Verify all expected components are present in results."""
         result = check_health()
-        expected_keys = ["baseline", "fred", "irs_soi", "model", "timestamp", "overall"]
+        expected_keys = [
+            "baseline", "fred", "irs_soi", "model", "microdata",
+            "timestamp", "overall",
+        ]
         for key in expected_keys:
             assert key in result, f"Missing key: {key}"
+
+    def test_microdata_component_reports_calibration(self):
+        """Microdata health entry should surface the SOI coverage ratios."""
+        result = check_health()
+        microdata = result["microdata"]
+        assert isinstance(microdata, dict)
+        assert microdata["status"] in {"ok", "degraded", "error", "unknown"}
+        if microdata["status"] in {"ok", "degraded"}:
+            # Calibrated against real SOI — coverage metrics must be present.
+            assert "returns_coverage_pct" in microdata
+            assert "agi_coverage_pct" in microdata
+            assert 0 <= microdata["returns_coverage_pct"] <= 500
+            assert 0 <= microdata["agi_coverage_pct"] <= 500
 
     def test_baseline_component_present(self):
         """Verify baseline component has required structure."""

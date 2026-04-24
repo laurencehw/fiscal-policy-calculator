@@ -134,6 +134,22 @@ def render_data_status(st_module: Any, deps: Any) -> None:
             f"{_status_icon(fred.get('status'))} **FRED:** {fred_summary}"
         )
 
+        microdata = health.get("microdata", {})
+        if microdata.get("status") in {"ok", "degraded"}:
+            returns_pct = microdata.get("returns_coverage_pct")
+            agi_pct = microdata.get("agi_coverage_pct")
+            if returns_pct is not None and agi_pct is not None:
+                microdata_summary = (
+                    f"{returns_pct:.0f}% returns, {agi_pct:.0f}% AGI "
+                    f"vs SOI {microdata.get('calibration_year', '?')}"
+                )
+            else:
+                microdata_summary = microdata.get("notes", "present")
+            st_module.markdown(
+                f"{_status_icon(microdata.get('status'))} "
+                f"**Microdata:** {microdata_summary}"
+            )
+
         if baseline_freshness.get("is_stale"):
             st_module.warning(
                 "CBO baseline is past its expected refresh window; results "
@@ -159,6 +175,19 @@ def render_data_status(st_module: Any, deps: Any) -> None:
                 or baseline_fred.get("last_updated")
                 or "Not available"
             )
+            microdata_detail = ""
+            if microdata.get("status") in {"ok", "degraded"}:
+                microdata_detail = (
+                    f"\n\n**Microdata path:** "
+                    f"{microdata.get('path', 'Unknown')}\n\n"
+                    f"**Microdata provenance:** {microdata.get('notes', '')}\n\n"
+                    f"**Weighted tax units:** "
+                    f"{microdata.get('weighted_tax_units', 0) / 1e6:.1f}M\n\n"
+                    f"**Microsim vs SOI "
+                    f"{microdata.get('calibration_year', '?')}:** "
+                    f"returns {microdata.get('returns_coverage_pct', 0):.0f}%, "
+                    f"AGI {microdata.get('agi_coverage_pct', 0):.0f}%"
+                )
             st_module.markdown(
                 f"**CBO baseline vintage:** {baseline.get('vintage', 'Unknown')}\n\n"
                 f"**Baseline source:** {baseline.get('source', 'Unknown')}\n\n"
@@ -168,6 +197,7 @@ def render_data_status(st_module: Any, deps: Any) -> None:
                 f"**FRED last updated:** {last_updated}\n\n"
                 f"**FRED cache age:** {_age_label(fred.get('cache_age_days'))}\n\n"
                 f"**GDP source for baseline:** {baseline.get('gdp_source', 'unknown')}"
+                + microdata_detail
             )
     except Exception:
         pass
