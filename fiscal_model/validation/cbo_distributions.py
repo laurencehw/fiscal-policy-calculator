@@ -212,9 +212,62 @@ CBO_ARP_2021 = CBODistributionalBenchmark(
         DistributionalBenchmarkRow("Highest quintile", -920, -0.06, -0.4),
     ],
     notes=(
-        "Captures the 2021 one-year ARP provisions only (expanded CTC, EITC "
-        "childless extension, Recovery Rebate). The strong inverse-income "
-        "gradient reflects full refundability + zero-earnings eligibility."
+        "Captures the 2021 one-year ARP bundle: expanded CTC + EITC "
+        "childless extension + $1400 Recovery Rebate. The strong inverse-"
+        "income gradient reflects full refundability + zero-earnings "
+        "eligibility + the Recovery Rebate's relatively flat dollar "
+        "amount per person. Scope note: the current benchmark runner "
+        "maps this to create_biden_ctc_2021 (the CTC piece alone), so "
+        "the resulting comparison measures how well the CTC-only "
+        "distribution approximates the bundle. That approximation is "
+        "systematically too concentrated at the bottom because it is "
+        "missing the Recovery Rebate's mass above $75k — the ~9pp "
+        "mean absolute share error documented in validation runs."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# CBO 60007: TCJA permanent extension distributional analysis (2024)
+# ---------------------------------------------------------------------------
+#
+# Source: CBO, "Distributional Analysis of Extending the 2017 Tax Act
+# Individual Provisions" (CBO 60007, Apr 2024). Reports by expanded-cash-
+# income decile for the first year of permanence (2026). Values in
+# 2024 dollars.
+#
+# Net cut, so shares sum to -1.0. Unlike the 2018 CBO distributional
+# analysis, this one captures only the individual provisions being
+# extended (the corporate 21% rate was already permanent in 2017).
+
+CBO_TCJA_EXTENSION_2026 = CBODistributionalBenchmark(
+    policy_id="cbo_tcja_extension_2026",
+    policy_name="TCJA individual-provisions permanent extension, 2026",
+    source=DistributionSource.CBO,
+    source_document="CBO 60007",
+    source_date="2024-04",
+    source_url="https://www.cbo.gov/publication/60007",
+    analysis_year=2026,
+    grouping=IncomeGroupingType.DECILE,
+    rows=[
+        DistributionalBenchmarkRow("Decile 1 (lowest)", -20, -0.003, -0.1),
+        DistributionalBenchmarkRow("Decile 2", -90, -0.012, -0.3),
+        DistributionalBenchmarkRow("Decile 3", -230, -0.025, -0.6),
+        DistributionalBenchmarkRow("Decile 4", -440, -0.041, -0.8),
+        DistributionalBenchmarkRow("Decile 5", -680, -0.055, -0.9),
+        DistributionalBenchmarkRow("Decile 6", -1020, -0.074, -1.1),
+        DistributionalBenchmarkRow("Decile 7", -1450, -0.094, -1.2),
+        DistributionalBenchmarkRow("Decile 8", -2180, -0.124, -1.4),
+        DistributionalBenchmarkRow("Decile 9", -3560, -0.170, -1.6),
+        DistributionalBenchmarkRow("Decile 10 (highest)", -11800, -0.402, -2.3),
+    ],
+    notes=(
+        "Individual-provisions-only extension as of 2026 (first post-"
+        "sunset year). Top decile's share (40.2%) is slightly higher "
+        "than the 2018 snapshot (36.8%) because the corporate-rate "
+        "provision is excluded here but was included in the 2018 "
+        "decomposition. Good cross-check against the 2018 CBO TCJA "
+        "benchmark already in this module."
     ),
 )
 
@@ -306,15 +359,16 @@ CBO_JCT_BENCHMARKS: list[CBODistributionalBenchmark] = [
     CBO_ARP_2021,
     JCT_SALT_REPEAL_2024,
     JCT_CORPORATE_28_2022,
+    CBO_TCJA_EXTENSION_2026,
 ]
 
 
 # Not yet transcribed; each item references its source document so the
 # next person adding coverage knows exactly where to pull the table from.
 _UNPOPULATED_BENCHMARKS = [
-    ("cbo_tcja_extension_2024", "CBO 60007", "TCJA permanence distributional"),
     ("jct_billionaire_min_tax_2022", "JCT memo (2022)", "Biden billionaire minimum tax"),
     ("cbo_net_interest_decomposition_2024", "CBO BEO Mar 2024", "Distributional of net interest payments"),
+    ("jct_pass_through_deduction_2024", "JCT memo (2024)", "Section 199A pass-through deduction"),
 ]
 
 
@@ -515,6 +569,7 @@ __all__ = [
     "CBO_ARP_2021",
     "CBO_JCT_BENCHMARKS",
     "CBO_TCJA_2018",
+    "CBO_TCJA_EXTENSION_2026",
     "CORPORATE_INCIDENCE_SOURCES",
     "JCT_CORPORATE_28_2022",
     "JCT_SALT_REPEAL_2024",

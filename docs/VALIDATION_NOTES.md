@@ -100,6 +100,16 @@ earnings requirement.
 The same 8.9% overstatement appears in the "CTC extension" scenario — again
 a systematic fingerprint.
 
+**Related distributional gap** (9.30pp on the CBO_ARP_2021 quintile
+benchmark) is a *scope mismatch*, not a revenue bug: CBO's ARP 2021
+distributional table covers the full bundle (CTC + EITC childless +
+Recovery Rebate), but the `benchmark_runners` layer currently maps the
+benchmark to `create_biden_ctc_2021` (just the CTC piece). The Recovery
+Rebate's flatter $1,400-per-person grant would shift mass out of the
+bottom two quintiles into the middle/upper-middle, which is exactly
+where the 9.30pp residual lives. Closing this requires a composite
+"ARP bundle" policy factory rather than a change to the CTC engine.
+
 ### Mechanical cause
 
 `fiscal_model/credits_core.py` scores CTC by:

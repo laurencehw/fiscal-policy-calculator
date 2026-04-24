@@ -41,6 +41,10 @@ logger = logging.getLogger(__name__)
 _BENCHMARK_POLICIES: dict[str, tuple[str, IncomeGroupType]] = {
     "cbo_tcja_2018": ("create_tcja_extension", IncomeGroupType.DECILE),
     "jct_tcja_2019": ("create_tcja_extension", IncomeGroupType.JCT_DOLLAR),
+    "cbo_tcja_extension_2026": (
+        "create_tcja_extension",
+        IncomeGroupType.DECILE,
+    ),
     "cbo_arp_2021": ("create_biden_ctc_2021", IncomeGroupType.QUINTILE),
     "jct_corporate_28_2022": (
         "create_biden_corporate_rate_only",

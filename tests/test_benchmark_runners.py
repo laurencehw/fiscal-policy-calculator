@@ -18,6 +18,7 @@ from fiscal_model.validation.benchmark_runners import default_model_runner
 from fiscal_model.validation.cbo_distributions import (
     CBO_ARP_2021,
     CBO_TCJA_2018,
+    CBO_TCJA_EXTENSION_2026,
     JCT_CORPORATE_28_2022,
     JCT_TCJA_2019,
     compare_distribution,
@@ -56,6 +57,17 @@ class TestEndToEndBenchmarks:
         assert comparison.mean_absolute_share_error_pp is not None
         assert comparison.mean_absolute_share_error_pp < 15.0
 
+    def test_cbo_tcja_extension_2026_all_deciles_match(self):
+        """CBO 60007 TCJA extension benchmark (deciles); locks in current accuracy."""
+        result = default_model_runner(CBO_TCJA_EXTENSION_2026)
+        assert result is not None
+        comparison = compare_distribution(result, CBO_TCJA_EXTENSION_2026)
+        assert len(comparison.per_group) == len(CBO_TCJA_EXTENSION_2026.rows)
+        assert comparison.mean_absolute_share_error_pp is not None
+        # Current engine: 7.09pp mean abs share error. Allow headroom.
+        assert comparison.mean_absolute_share_error_pp < 10.0
+        assert comparison.overall_rating in {"good", "acceptable"}
+
     def test_jct_corporate_28_2022_rated_good(self):
         """
         Corporate benchmark: after the distribution_effects.calculate_corporate_effect
@@ -74,8 +86,11 @@ class TestEndToEndBenchmarks:
 
     def test_full_runner_executes_every_benchmark(self):
         comparisons = run_full_cbo_jct_validation(default_model_runner)
-        # All 4 mapped benchmarks should produce a result.
-        assert len(comparisons) == 4
+        # 5 mapped benchmarks: two TCJA (2018 decile + 2019 JCT), ARP
+        # 2021 quintiles, Corporate 28% 2022 JCT brackets, and
+        # TCJA-extension 2026 deciles. SALT repeal 2024 is transcribed
+        # but not yet wired to a policy factory.
+        assert len(comparisons) == 5
         for c in comparisons:
             # No crashes, each comparison is well-formed.
             assert c.benchmark is not None

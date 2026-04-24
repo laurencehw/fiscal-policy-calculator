@@ -17,6 +17,7 @@ from fiscal_model.validation.cbo_distributions import (
     CBO_ARP_2021,
     CBO_JCT_BENCHMARKS,
     CBO_TCJA_2018,
+    CBO_TCJA_EXTENSION_2026,
     CORPORATE_INCIDENCE_SOURCES,
     JCT_CORPORATE_28_2022,
     JCT_SALT_REPEAL_2024,
@@ -97,6 +98,24 @@ class TestBenchmarkDatabase:
         sources = {b.source for b in CBO_JCT_BENCHMARKS}
         # At least two independent agencies represented.
         assert len(sources) >= 2
+
+    def test_tcja_extension_2026_is_decile_and_net_cut(self):
+        """CBO 60007 benchmark must be 10 deciles, all cuts, summing ~-1.0."""
+        assert len(CBO_TCJA_EXTENSION_2026.rows) == 10
+        for row in CBO_TCJA_EXTENSION_2026.rows:
+            assert row.avg_tax_change_dollars <= 0
+        total = sum(row.share_of_total for row in CBO_TCJA_EXTENSION_2026.rows)
+        assert -1.05 <= total <= -0.95
+
+    def test_tcja_extension_concentrated_at_top_more_than_2018(self):
+        """The extension-only benchmark should have larger top-decile share."""
+        # Corporate provisions were permanent in 2017, so the extension-only
+        # table concentrates more share on top individuals than the 2018
+        # snapshot that included corporate.
+        top_2018 = CBO_TCJA_2018.rows[-1].share_of_total
+        top_2026 = CBO_TCJA_EXTENSION_2026.rows[-1].share_of_total
+        # Both negative; "more concentrated at top" means |top_2026| > |top_2018|.
+        assert abs(top_2026) > abs(top_2018)
 
 
 # ---------------------------------------------------------------------------
@@ -210,7 +229,8 @@ class TestFullValidationRunner:
             return _fake_model_result_matching(benchmark) if "tcja" in benchmark.policy_id else None
 
         comparisons = run_full_cbo_jct_validation(only_tcja)
-        assert len(comparisons) == 2  # CBO_TCJA_2018 + JCT_TCJA_2019
+        # Three TCJA-named benchmarks: 2018, 2019, and the 2026 extension.
+        assert len(comparisons) == 3
 
     def test_source_enum_roundtrip(self):
         """DistributionSource must be round-trippable through its value."""
