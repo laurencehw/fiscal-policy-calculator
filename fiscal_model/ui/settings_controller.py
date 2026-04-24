@@ -10,6 +10,26 @@ from typing import Any
 _DYNAMIC_SCORING_KEY = "sidebar_setting_dynamic_scoring"
 
 
+def _available_irs_data_years() -> list[int]:
+    """
+    Discover IRS SOI data years shipped under fiscal_model/data_files/irs_soi.
+
+    Returns the years sorted newest-first so the selectbox defaults to the
+    most recent vintage. Falls back to the historical default [2022, 2021]
+    if the data directory is unreadable — this keeps the UI functional on
+    a partial checkout without masking real problems loudly in the logs.
+    """
+    try:
+        from fiscal_model.data.irs_soi import IRSSOIData
+
+        years = IRSSOIData().get_data_years_available()
+        if years:
+            return sorted(years, reverse=True)
+    except Exception:
+        pass
+    return [2022, 2021]
+
+
 def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
     """
     Render settings panel and return selected configuration values.
@@ -67,10 +87,13 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
 
             data_year = st_module.selectbox(
                 "IRS data year",
-                [2022, 2021],
+                _available_irs_data_years(),
                 help=(
                     "Which year of IRS Statistics of Income data to use for "
-                    "taxpayer counts and income distributions."
+                    "taxpayer counts and income distributions. Options are "
+                    "discovered from fiscal_model/data_files/irs_soi/, so "
+                    "dropping in a new table_1_1_<year>.csv makes it available "
+                    "here without a code change."
                 ),
             )
 
