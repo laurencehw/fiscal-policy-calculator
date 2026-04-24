@@ -2,6 +2,8 @@
 Policy-specific effect calculators for distributional analysis.
 """
 
+from typing import Any
+
 from .distribution_core import DistributionalResult, IncomeGroup
 from .policies import Policy, TaxPolicy
 
@@ -640,18 +642,51 @@ def dispatch_distributional_effect(
 
 
 def policy_to_microsim_reforms(policy: Policy, year: int = 2025) -> dict:
-    """Convert a Policy object into microsim reform parameters."""
-    reforms = {}
+    """
+    Convert a Policy object into ``MicroTaxCalculator`` reform parameters.
+
+    The TPC-Microsim pilot in ``fiscal_model/models/comparison.py`` calls
+    this to derive the reform dict it passes to
+    ``MicroTaxCalculator.apply_reform``. Returning an empty dict means
+    "pilot cannot map this policy" — the caller is expected to raise
+    ``UnsupportedModelPolicyError`` in that case.
+
+    Coverage grows organically as policy classes gain microsim-relevant
+    attributes. Today:
+
+    - ``rate_change`` → top-rate reform (any TaxPolicy subclass)
+    - ``credit_change_per_unit`` + CHILD_TAX_CREDIT → ctc_amount
+    - ``eitc_expansion_factor`` → eitc_expansion
+    - ``std_deduction_bonus`` → std_deduction_bonus
+    - TaxExpenditurePolicy SALT → salt_cap
+    - ``make_fully_refundable`` + CTC → force_refundable flag
+    """
+    del year  # reserved for year-specific baselines
+    reforms: dict[str, Any] = {}
 
     if hasattr(policy, "rate_change"):
         rate_change = getattr(policy, "rate_change", 0.0)
-        if rate_change != 0:
+        if rate_change:
             reforms["new_top_rate"] = 0.37 + rate_change
 
-    if hasattr(policy, "ctc_change"):
-        ctc_change = getattr(policy, "ctc_change", 0)
-        if ctc_change != 0:
-            reforms["ctc_amount"] = 2000 + ctc_change
+    # Tax credits: translate credit_change_per_unit to new ctc_amount.
+    credit_change = getattr(policy, "credit_change_per_unit", 0) or getattr(
+        policy, "ctc_change", 0
+    )
+    credit_type = getattr(policy, "credit_type", None)
+    credit_type_name = getattr(credit_type, "name", None) or getattr(
+        credit_type, "value", None
+    )
+    if credit_change and credit_type_name in {"CHILD_TAX_CREDIT", "ctc"}:
+        # Current-law CTC is $2,000; credit_change is the delta per child.
+        reforms["ctc_amount"] = 2000 + credit_change
+
+    # Make-fully-refundable is an ARP-style flag on the CTC engine.
+    if getattr(policy, "make_fully_refundable", False) and credit_type_name in {
+        "CHILD_TAX_CREDIT",
+        "ctc",
+    }:
+        reforms["ctc_fully_refundable"] = True
 
     if hasattr(policy, "eitc_expansion_factor"):
         eitc_expansion = getattr(policy, "eitc_expansion_factor", 1.0)
@@ -660,8 +695,22 @@ def policy_to_microsim_reforms(policy: Policy, year: int = 2025) -> dict:
 
     if hasattr(policy, "std_deduction_bonus"):
         std_ded_bonus = getattr(policy, "std_deduction_bonus", 0)
-        if std_ded_bonus != 0:
+        if std_ded_bonus:
             reforms["std_deduction_bonus"] = std_ded_bonus
+
+    # Tax expenditure policies — SALT cap repeal/lower.
+    expenditure_type = getattr(policy, "expenditure_type", None)
+    expenditure_name = getattr(expenditure_type, "name", None) or getattr(
+        expenditure_type, "value", None
+    )
+    if expenditure_name in {"SALT", "salt"}:
+        action = getattr(policy, "action", None)
+        if action == "expand":
+            # Treat repeal of the SALT cap as removing the \$10k cap.
+            reforms["salt_cap"] = None
+        else:
+            # Fallback: leave existing cap if caller has attached one.
+            reforms["salt_cap"] = getattr(policy, "salt_cap", 10000)
 
     if hasattr(policy, "salt_cap"):
         salt_cap = getattr(policy, "salt_cap", 10000)

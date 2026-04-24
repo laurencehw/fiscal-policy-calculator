@@ -135,8 +135,17 @@ class TPCMicrosimModel(BaseScoringModel):
         del kwargs
         reforms = policy_to_microsim_reforms(policy, year=getattr(policy, "start_year", 2025))
         if not reforms:
+            supported = (
+                "rate-change (any TaxPolicy), Child Tax Credit (TaxCreditPolicy), "
+                "EITC expansion, standard-deduction bonus, and SALT cap "
+                "(TaxExpenditurePolicy)."
+            )
             raise UnsupportedModelPolicyError(
-                f"{getattr(policy, 'name', 'Policy')} does not map onto the current microsim pilot reforms."
+                f"{getattr(policy, 'name', 'Policy')} of type "
+                f"{type(policy).__name__} does not map onto the current "
+                f"microsim pilot reforms. Supported today: {supported} "
+                "See fiscal_model.distribution_effects.policy_to_microsim_reforms "
+                "for the mapping; extend it if you need a new policy type."
             )
 
         population, population_source = self._load_population()
