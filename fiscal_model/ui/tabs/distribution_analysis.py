@@ -14,6 +14,72 @@ import plotly.graph_objects as go
 from fiscal_model.ui.a11y import ChartDescription, render_accessible_chart
 
 
+_CALIBRATION_SESSION_KEY = "_dist_tab_calibration_cache"
+
+
+def _render_calibration_warning(st_module: Any, policy: Any) -> None:
+    """
+    Warn when the policy's affected income band is poorly calibrated vs SOI.
+
+    Keeps distributional output honest: if a policy targets filers above
+    \\$500K and microdata AGI coverage above \\$500K is only 70% of what
+    SOI reports, the distributional chart for that band reflects a
+    systematic underweight of the right tail. The user should know.
+    """
+    threshold = float(getattr(policy, "affected_income_threshold", 0) or 0)
+    if threshold <= 0:
+        return
+
+    # Lazy-load to avoid importing calibration infrastructure for callers
+    # that never hit this tab.
+    try:
+        from fiscal_model.data.cps_asec import load_tax_microdata
+        from fiscal_model.microsim.soi_calibration import calibrate_to_soi
+    except Exception:
+        return
+
+    cache = st_module.session_state.get(_CALIBRATION_SESSION_KEY)
+    if cache is None:
+        try:
+            df, _ = load_tax_microdata()
+            cache = calibrate_to_soi(df, year=2022)
+            st_module.session_state[_CALIBRATION_SESSION_KEY] = cache
+        except Exception:
+            return
+
+    # Find the calibration bracket whose [lower, upper) contains the
+    # policy's threshold. If threshold sits at a bracket edge, report on
+    # the bracket whose lower bound equals or is just below it.
+    matching = None
+    for bracket in cache.brackets:
+        upper = bracket.upper if bracket.upper is not None else float("inf")
+        if bracket.lower <= threshold < upper:
+            matching = bracket
+            break
+
+    if matching is None:
+        return
+
+    agi_ratio = matching.agi_ratio
+    if agi_ratio is None or agi_ratio >= 0.70:
+        return
+
+    upper_label = (
+        f"\\${matching.upper:,.0f}"
+        if matching.upper is not None
+        else "the top of the distribution"
+    )
+    st_module.warning(
+        f"📉 **Distributional coverage warning**\n\n"
+        f"For filers above \\${matching.lower:,.0f} (through {upper_label}), "
+        f"the bundled microdata covers "
+        f"{agi_ratio * 100:.0f}% of the AGI that IRS SOI reports "
+        f"in this band. Distributional output for this tail is "
+        f"systematically underweighted — see "
+        f"`docs/VALIDATION_NOTES.md` for the root-cause analysis."
+    )
+
+
 def render_distribution_tab(
     st_module: Any,
     model_available: bool,
@@ -43,6 +109,8 @@ def render_distribution_tab(
     if not (model_available and hasattr(policy, "rate_change")):
         st_module.info("👆 Calculate a tax policy first to see distributional analysis")
         return
+
+    _render_calibration_warning(st_module, policy)
 
     dist_engine = distribution_engine_cls(data_year=2022)
     col1, col2 = st_module.columns([1, 3])
