@@ -208,6 +208,37 @@ def _combine_distributional_results(results: list[Any]) -> Any:
     return SimpleNamespace(results=combined_rows)
 
 
+def _run_arp_bundle(benchmark: CBODistributionalBenchmark) -> Any | None:
+    """
+    Score CBO's ARP 2021 bundle by composing the three provisions the
+    official distributional analysis covers: expanded CTC, expanded
+    childless EITC, and the Recovery Rebate. Each component is scored
+    separately, then merged by dollar-weighted share
+    (``_combine_distributional_results``).
+    """
+    from fiscal_model.credits import (
+        create_arp_recovery_rebate,
+        create_biden_ctc_2021,
+        create_biden_eitc_childless,
+    )
+
+    engine = DistributionalEngine(data_year=benchmark.analysis_year)
+    components = [
+        create_biden_ctc_2021(),
+        create_biden_eitc_childless(),
+        create_arp_recovery_rebate(),
+    ]
+    results = []
+    for component in components:
+        try:
+            results.append(
+                engine.analyze_policy(component, group_type=IncomeGroupType.QUINTILE)
+            )
+        except Exception:
+            logger.exception("ARP component scoring failed: %s", component.name)
+    return _combine_distributional_results(results)
+
+
 def default_model_runner(benchmark: CBODistributionalBenchmark) -> Any | None:
     """
     Run the DistributionalEngine against a benchmark's implied policy.
@@ -216,6 +247,14 @@ def default_model_runner(benchmark: CBODistributionalBenchmark) -> Any | None:
     ``None`` when the benchmark is unmapped (the full validation runner
     skips ``None``s).
     """
+    # ARP is the one composite benchmark in the current suite: CBO's
+    # published distribution covers three provisions the engine scores
+    # separately. Route it through a bundle helper so the comparison
+    # uses the right combined distribution.
+    if benchmark.policy_id == "cbo_arp_2021":
+        bundle = _run_arp_bundle(benchmark)
+        return _normalize_labels(bundle) if bundle is not None else None
+
     policy = _policy_factory(benchmark.policy_id)
     if policy is None:
         return None

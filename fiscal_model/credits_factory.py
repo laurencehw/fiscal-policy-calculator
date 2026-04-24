@@ -74,6 +74,48 @@ def create_biden_ctc_2021() -> TaxCreditPolicy:
     )
 
 
+def create_arp_recovery_rebate() -> TaxCreditPolicy:
+    """
+    Create the ARP 2021 Recovery Rebate ("third stimulus check").
+
+    \\$1,400 per person (adults + dependents), steep phaseout: single
+    filers $75k-$80k, joint $150k-$160k. Fully refundable. One-time
+    2021 only.
+
+    Modeled as an ``OTHER``-type TaxCreditPolicy with a per-household
+    credit of \\$4,200 (2.1 person average after weighting) and a
+    \\$75k single-filer threshold with 0.28 phase-out rate — that's
+    $1,400 / \\$5,000 of phaseout width, which matches the actual
+    statutory design for the single-filer case.
+
+    Primarily needed for the CBO_ARP_2021 composite distributional
+    benchmark (see benchmark_runners._run_arp_bundle).
+    """
+    return TaxCreditPolicy(
+        name="ARP Recovery Rebate 2021",
+        description="\\$1,400 per person one-time payment (ARP)",
+        policy_type=PolicyType.TAX_CREDIT,
+        credit_type=CreditType.OTHER,
+        is_refundable=True,
+        max_credit_per_unit=4200,
+        credit_change_per_unit=4200,
+        # ~130M filers received some amount; ~165M eligible before phaseout.
+        units_affected_millions=130.0,
+        has_phase_out=True,
+        phase_out_threshold_single=75000.0,
+        phase_out_threshold_married=150000.0,
+        # Steep phaseout: \$1,400 / \$5,000 width = 0.28 per dollar of
+        # excess income. With the underlying model's formula
+        # (credit_reduction = excess_income * rate / credit), this
+        # saturates at full phase-out by +\$5K income.
+        phase_out_rate=0.28,
+        participation_rate=0.92,
+        annual_revenue_change_billions=-411.0,  # Treasury FY2021 outlay
+        start_year=2021,
+        duration_years=1,
+    )
+
+
 def create_ctc_permanent_extension() -> TaxCreditPolicy:
     """Extend current CTC provisions beyond the 2025 sunset."""
     return TaxCreditPolicy(

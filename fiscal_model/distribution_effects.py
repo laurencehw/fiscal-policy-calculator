@@ -118,26 +118,53 @@ def calculate_credit_effect(policy: Policy, group: IncomeGroup, total_returns: i
     credit_change = getattr(policy, "credit_change_per_unit", 0) or getattr(policy, "max_credit_change", 0)
     units_millions = getattr(policy, "units_affected_millions", 0)
     is_refundable = getattr(policy, "is_refundable", True)
-    phase_out_start = getattr(
+    phase_out_start_single = getattr(
         policy,
         "phase_out_threshold_single",
         getattr(policy, "phase_out_threshold", 200_000),
+    )
+    phase_out_start_married = getattr(
+        policy,
+        "phase_out_threshold_married",
+        # Default: assume the married threshold is 2x the single threshold,
+        # which matches most modern credits (CTC, EITC, Recovery Rebate).
+        phase_out_start_single * 2,
     )
     phase_out_rate = getattr(policy, "phase_out_rate", 0.05)
     phase_in_end = getattr(policy, "phase_in_end", 0)
     group_ceiling = group.ceiling if group.ceiling else float("inf")
 
-    if group.floor >= phase_out_start:
-        if phase_out_rate > 0:
-            excess_income = group.avg_agi - phase_out_start
+    # Compute affected_fraction for single and married sub-populations
+    # separately, then blend by filing-status mix. This matters when the
+    # group's AGI straddles the single threshold but is below the married
+    # threshold — e.g. the 4th quintile under an ARP-style phaseout,
+    # where single filers are fully phased out but joint filers still
+    # receive the full credit.
+    def _fraction(start: float) -> float:
+        if group.floor >= start:
+            if phase_out_rate <= 0:
+                return 0.0
+            excess_income = group.avg_agi - start
             credit_reduction = min(1.0, excess_income * phase_out_rate / max(credit_change, 1))
-            affected_fraction = max(0.0, 1.0 - credit_reduction)
-        else:
-            affected_fraction = 0.0
-    elif phase_in_end > 0 and group_ceiling <= phase_in_end:
-        affected_fraction = group.avg_agi / phase_in_end if phase_in_end > 0 else 1.0
+            return max(0.0, 1.0 - credit_reduction)
+        if phase_in_end > 0 and group_ceiling <= phase_in_end:
+            return group.avg_agi / phase_in_end if phase_in_end > 0 else 1.0
+        return 1.0
+
+    # Filing-status mix from IRS SOI: ~55% single/HoH, ~45% married joint
+    # on a returns-count basis, slightly more skewed toward joint for
+    # higher-income brackets.
+    if group.floor >= 200_000:
+        joint_share = 0.60
+    elif group.floor >= 100_000:
+        joint_share = 0.50
     else:
-        affected_fraction = 1.0
+        joint_share = 0.40
+
+    affected_fraction = (
+        (1 - joint_share) * _fraction(phase_out_start_single)
+        + joint_share * _fraction(phase_out_start_married)
+    )
 
     if not is_refundable and group.avg_tax < abs(credit_change):
         effective_credit = min(abs(credit_change), group.avg_tax)

@@ -101,14 +101,26 @@ The same 8.9% overstatement appears in the "CTC extension" scenario — again
 a systematic fingerprint.
 
 **Related distributional gap** (9.30pp on the CBO_ARP_2021 quintile
-benchmark) is a *scope mismatch*, not a revenue bug: CBO's ARP 2021
-distributional table covers the full bundle (CTC + EITC childless +
-Recovery Rebate), but the `benchmark_runners` layer currently maps the
-benchmark to `create_biden_ctc_2021` (just the CTC piece). The Recovery
-Rebate's flatter $1,400-per-person grant would shift mass out of the
-bottom two quintiles into the middle/upper-middle, which is exactly
-where the 9.30pp residual lives. Closing this requires a composite
-"ARP bundle" policy factory rather than a change to the CTC engine.
+benchmark, **tightened to 7.54pp** after the ARP bundle fix) was a
+*scope mismatch*, not a revenue bug: CBO's ARP 2021 distributional
+table covers the full bundle (CTC + EITC childless + Recovery Rebate),
+but the CTC factory alone was what the runner was using. Closure
+steps taken (Apr 2026):
+
+- New `create_arp_recovery_rebate` factory models the \$1,400/person
+  payment with statutory \$75K/\$150K single/joint phaseouts.
+- `_run_arp_bundle` in `benchmark_runners.py` composes CTC + EITC +
+  Recovery Rebate distributional outputs via
+  `_combine_distributional_results` (dollar-weighted share merge).
+- `calculate_credit_effect` now blends single-filer and joint-filer
+  phaseouts by filing-status mix (~40-60% joint by quintile),
+  so the 4th quintile captures joint filers whose married threshold
+  is above their AGI even when the single threshold isn't.
+
+Residual 7.54pp gap traces to how CBO models children-in-household
+distribution for the Recovery Rebate — a microsim-level detail that
+bracket-aggregate scoring can't replicate without returning to
+return-level data.
 
 ### Mechanical cause
 

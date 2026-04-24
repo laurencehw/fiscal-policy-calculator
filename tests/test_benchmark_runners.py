@@ -62,9 +62,13 @@ class TestEndToEndBenchmarks:
         comparison = compare_distribution(result, CBO_ARP_2021)
         # All five quintiles must match.
         assert len(comparison.per_group) == len(CBO_ARP_2021.rows)
-        # Current engine misses CTC non-filer correction; known outlier.
+        # After the ARP bundle + filing-status blend fix (Apr 2026),
+        # this benchmark tightened from 9.30pp to ~7.5pp (still
+        # acceptable, now closer to good). Remaining residual is
+        # CBO's Recovery Rebate children-in-household mix — a
+        # microsim-level gap, not a tier-table gap.
         assert comparison.mean_absolute_share_error_pp is not None
-        assert comparison.mean_absolute_share_error_pp < 15.0
+        assert comparison.mean_absolute_share_error_pp < 9.0
 
     def test_cbo_tcja_extension_2026_all_deciles_match(self):
         """CBO 60007 TCJA extension benchmark (deciles); locks in current accuracy."""

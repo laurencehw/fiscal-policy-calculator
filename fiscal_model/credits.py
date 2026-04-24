@@ -17,6 +17,7 @@ from .credits_core import (
     estimate_credit_cost,
 )
 from .credits_factory import (
+    create_arp_recovery_rebate,
     create_biden_ctc_2021,
     create_biden_eitc_childless,
     create_ctc_expansion,
@@ -32,6 +33,7 @@ __all__ = [
     "EITC_CURRENT_LAW",
     "CreditType",
     "TaxCreditPolicy",
+    "create_arp_recovery_rebate",
     "create_biden_ctc_2021",
     "create_biden_eitc_childless",
     "create_ctc_expansion",
