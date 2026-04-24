@@ -33,7 +33,7 @@ def render_methodology_tab(st_module: Any) -> None:
             "*Formula:*  \n"
             "`Revenue = Rate change x Marginal income x Taxpayers`\n\n"
             "Only income *above* the threshold is affected — a filer earning "
-            "\$500K with a \$400K threshold has \$100K of marginal income."
+            "\\$500K with a \\$400K threshold has \\$100K of marginal income."
         )
     with col2:
         st_module.markdown(
@@ -133,8 +133,8 @@ def render_methodology_tab(st_module: Any) -> None:
     ):
         st_module.markdown(
             "This replicates the scoring of a Biden-style top-rate surtax — "
-            "a 2.6 percentage-point increase on taxable income above \$400,000. "
-            "The official Treasury estimate for a comparable proposal is **\$252B** "
+            "a 2.6 percentage-point increase on taxable income above \\$400,000. "
+            "The official Treasury estimate for a comparable proposal is **\\$252B** "
             "in 10-year deficit reduction."
         )
 
@@ -153,7 +153,7 @@ def render_methodology_tab(st_module: Any) -> None:
             r"and $N$ is the number of filers above the threshold."
             "\n\n**From IRS SOI (Table 1.1):**"
         )
-        st_module.markdown("""
+        st_module.markdown(r"""
 | Variable | Value | Source |
 |----------|-------|--------|
 | Rate change (Δτ) | 0.026 (2.6 pp) | Policy |
@@ -225,8 +225,8 @@ def render_methodology_tab(st_module: Any) -> None:
             r"\approx \$258\text{B}"
         )
         st_module.markdown(
-            "**Official Treasury estimate: \$252B** — model is within ~2%.  \n\n"
-            "Uncertainty range (CBO-style, 10-year): roughly **\$200B to \$320B**, "
+            "**Official Treasury estimate: \\$252B** — model is within ~2%.  \n\n"
+            "Uncertainty range (CBO-style, 10-year): roughly **\\$200B to \\$320B**, "
             "reflecting ETI uncertainty (0.15–0.40) and baseline forecast risk."
         )
 
@@ -242,7 +242,7 @@ def render_methodology_tab(st_module: Any) -> None:
         )
         st_module.markdown(
             "Revenue feedback (25% of GDP change) partially offsets this: "
-            "\$0.25 \\times \\$18\\text{B} = \\$4.5\\text{B} per year flowing "
+            "\\$0.25 \\times \\$18\\text{B} = \\$4.5\\text{B} per year flowing "
             "back to the Treasury. The net dynamic effect on deficit reduction is "
             "smaller than the conventional score — a higher-rate policy raises "
             "less revenue than static scoring implies once growth effects are included."
@@ -256,7 +256,7 @@ def render_methodology_tab(st_module: Any) -> None:
             "The Tax Cuts and Jobs Act (2017) cut individual and corporate taxes "
             "substantially. Most individual provisions expire after 2025; extending "
             "them is the dominant fiscal policy question of the decade. "
-            "**CBO scores the full extension at \$4,600B** over 2026–2035."
+            "**CBO scores the full extension at \\$4,600B** over 2026–2035."
         )
         st_module.markdown(
             "Unlike a simple rate change, TCJA cannot be scored with a single "
@@ -269,7 +269,7 @@ def render_methodology_tab(st_module: Any) -> None:
             "Eight major provisions drive the cost. Each is scored using its "
             "own formula, then summed:"
         )
-        st_module.markdown("""
+        st_module.markdown(r"""
 | Provision | 10-yr raw cost | Formula type |
 |-----------|---------------|--------------|
 | Individual rate cuts (7 brackets lowered) | \$1,800 B | ΔRate × bracket income × filers |
@@ -283,7 +283,7 @@ def render_methodology_tab(st_module: Any) -> None:
 | **Raw total** | **\$2,600 B** | |
 """)
         st_module.markdown(
-            "> **Why does the raw total (\$2,600B) differ so much from CBO (\$4,600B)?**  \n"
+            "> **Why does the raw total (\\$2,600B) differ so much from CBO (\\$4,600B)?**  \n"
             "The simplified component model uses bracket-level IRS data without "
             "full microsimulation. It misses interaction effects, the detailed "
             "distributional nuance of actual filer data, and second-order behavioral "
@@ -327,7 +327,7 @@ def render_methodology_tab(st_module: Any) -> None:
             r"= 1.77 \times \$2{,}600\text{B} \approx \$4{,}582\text{B}"
         )
         st_module.markdown(
-            "**Official CBO estimate: \$4,600B** — model error is **0.4%**.  \n\n"
+            "**Official CBO estimate: \\$4,600B** — model error is **0.4%**.  \n\n"
             "This tight match is by design: the calibration factor is set once "
             "against the CBO full-extension score, then held fixed for all "
             "partial-extension calculations."
@@ -337,7 +337,7 @@ def render_methodology_tab(st_module: Any) -> None:
         st_module.markdown("#### Partial extensions")
         st_module.markdown(
             "The calibration approach lets users extend individual provisions. "
-            "Repealing the SALT cap (adding back \$1,100B raw × 1.77):"
+            "Repealing the SALT cap (adding back \\$1,100B raw × 1.77):"
         )
         st_module.latex(
             r"\text{No SALT cap} = \$4{,}582\text{B} + 1.77 \times \$1{,}100\text{B} "
@@ -345,7 +345,7 @@ def render_methodology_tab(st_module: Any) -> None:
         )
         st_module.markdown(
             "*(Consistent with independent estimates that full TCJA extension "
-            "without the SALT cap costs roughly \$6.5T.)*"
+            "without the SALT cap costs roughly \\$6.5T.)*"
         )
 
     # ── Example 3: Capital gains ──────────────────────────────────────────
@@ -361,7 +361,7 @@ def render_methodology_tab(st_module: Any) -> None:
         )
         st_module.markdown(
             "**Example:** Raise the top long-term capital gains rate from 23.8% "
-            "to 28.0% on gains above \$1M (a common Biden-era proposal)."
+            "to 28.0% on gains above \\$1M (a common Biden-era proposal)."
         )
 
         st_module.markdown("#### Step 1 — Baseline and static estimate")
@@ -369,7 +369,7 @@ def render_methodology_tab(st_module: Any) -> None:
             "From IRS SOI, total long-term capital gains realizations "
             "by filers above the $1M AGI threshold:"
         )
-        st_module.markdown("""
+        st_module.markdown(r"""
 | Variable | Value | Source |
 |----------|-------|--------|
 | Baseline realizations (*R*₀) | ~\$500 B/yr | IRS SOI, calibrated |
@@ -434,7 +434,7 @@ def render_methodology_tab(st_module: Any) -> None:
             r"= \$127.9\text{B} - \$119.0\text{B} = \$8.9\text{B}"
         )
         st_module.markdown(
-            "The *static* estimate was \$21B, but only \$8.9B materializes — "
+            "The *static* estimate was \\$21B, but only \\$8.9B materializes — "
             "the behavioral offset absorbs **57%** of the static score in year 1. "
             "Investors are accelerating realizations *before* the rate takes effect "
             "and deferring them *after*."
@@ -474,14 +474,14 @@ def render_methodology_tab(st_module: Any) -> None:
             r"= \$14.8\text{B}"
         )
         st_module.markdown(
-            "Eliminating step-up raises the year 1 revenue take from **\$8.9B to "
-            "\$14.8B** — a 66% increase — because investors can no longer avoid "
+            "Eliminating step-up raises the year 1 revenue take from **\\$8.9B to "
+            "\\$14.8B** — a 66% increase — because investors can no longer avoid "
             "the tax by holding until death, reducing the lock-in incentive."
         )
 
         st_module.markdown("---")
         st_module.markdown("#### Summary: 10-year scores")
-        st_module.markdown("""
+        st_module.markdown(r"""
 | Scenario | 10-yr score | Behavioral offset (avg) |
 |----------|------------|------------------------|
 | Rate ↑ to 28%, step-up retained | ~\$110 B | ~48% of static |
@@ -600,7 +600,7 @@ def render_methodology_tab(st_module: Any) -> None:
         "All major policies score within 15% of official estimates."
     )
 
-    st_module.markdown("""
+    st_module.markdown(r"""
 | Policy | Official score | Model score | Error | Source |
 |--------|---------------|-------------|-------|--------|
 | TCJA Full Extension | \$4,600B | \$4,582B | 0.4% | CBO |
