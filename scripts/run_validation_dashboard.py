@@ -33,6 +33,10 @@ if str(PROJECT_ROOT) not in sys.path:
 from fiscal_model.data.cps_asec import describe_microdata, load_tax_microdata  # noqa: E402
 from fiscal_model.health import check_health  # noqa: E402
 from fiscal_model.microsim.soi_calibration import calibrate_to_soi  # noqa: E402
+from fiscal_model.validation.benchmark_runners import default_model_runner  # noqa: E402
+from fiscal_model.validation.cbo_distributions import (  # noqa: E402
+    run_full_cbo_jct_validation,
+)
 
 
 STATUS_DEGRADED = {"degraded", "error", "needs_improvement", "unknown"}
@@ -105,6 +109,33 @@ def print_health(health: dict[str, Any]) -> bool:
     return all_ok
 
 
+def print_benchmarks() -> bool:
+    """Return True if no benchmark is rated needs_improvement."""
+    print_banner("CBO/JCT distributional benchmarks")
+    try:
+        comparisons = run_full_cbo_jct_validation(default_model_runner)
+    except Exception as exc:
+        print(f"  [ERROR] Benchmark runner crashed: {exc}")
+        return False
+    if not comparisons:
+        print("  (no benchmarks ran — no mapped policies)")
+        return True
+
+    all_ok = True
+    print(f"    {'Source':<9} {'Rating':<17} {'Err (pp)':>9}  Benchmark")
+    print(f"    {'-' * 9} {'-' * 17} {'-' * 9}  {'-' * 40}")
+    for c in comparisons:
+        source = c.benchmark.source.value.split()[0]
+        rating = c.overall_rating
+        err = c.mean_absolute_share_error_pp
+        err_str = f"{err:.2f}" if err is not None else "—"
+        name = c.benchmark.policy_name[:50]
+        print(f"    {source:<9} {rating:<17} {err_str:>9}  {name}")
+        if rating == "needs_improvement":
+            all_ok = False
+    return all_ok
+
+
 def print_calibration(calibration: dict[str, Any]) -> bool:
     """Return True if no bracket is flagged as badly miscalibrated."""
     print_banner("SOI calibration")
@@ -171,6 +202,22 @@ def main() -> int:
 
     if args.json:
         report = calibration.get("report")
+        try:
+            comparisons = run_full_cbo_jct_validation(default_model_runner)
+            benchmarks_json = [
+                {
+                    "policy_id": c.benchmark.policy_id,
+                    "source": c.benchmark.source.value,
+                    "rating": c.overall_rating,
+                    "mean_absolute_share_error_pp": c.mean_absolute_share_error_pp,
+                    "matched_rows": len(c.per_group),
+                    "benchmark_rows": len(c.benchmark.rows),
+                }
+                for c in comparisons
+            ]
+        except Exception as exc:  # pragma: no cover - best-effort diagnostic
+            benchmarks_json = [{"error": str(exc)}]
+
         payload = {
             "health": {
                 k: v
@@ -195,22 +242,27 @@ def main() -> int:
                     else None
                 ),
             },
+            "distributional_benchmarks": benchmarks_json,
         }
         print(json.dumps(payload, indent=2, default=str))
         return 0
 
     health_ok = print_health(health)
     calibration_ok = print_calibration(calibration)
+    benchmarks_ok = print_benchmarks()
 
     print_banner("Summary")
-    if health_ok and calibration_ok:
+    if health_ok and calibration_ok and benchmarks_ok:
         print("  [OK] All surfaces nominal.")
         return 0
-    if health_ok:
-        print("  [WARN] Calibration has at least one bracket with <60% AGI coverage.")
-        return 2
-    print("  [FAIL] One or more health components degraded.")
-    return 1
+    if not health_ok:
+        print("  [FAIL] One or more health components degraded.")
+        return 1
+    if not benchmarks_ok:
+        print("  [FAIL] At least one distributional benchmark flagged needs_improvement.")
+        return 1
+    print("  [WARN] Calibration has at least one bracket with <60% AGI coverage.")
+    return 2
 
 
 if __name__ == "__main__":

@@ -419,7 +419,13 @@ def compare_distribution(
             continue
         bench = benchmark_by_label[label]
         model_share = share_getter(row)
-        share_error_pp = abs(model_share - bench.share_of_total) * 100
+        # Compare absolute shares: different agencies use different sign
+        # conventions (CBO reports cuts with negative avg_change but
+        # positive share-of-total; TPC signs both; the DistributionalEngine
+        # reports positive share for positive gross magnitude). The
+        # meaningful distributional claim is "what fraction of the total
+        # effect accrued to this group?" — sign belongs on avg_tax_change.
+        share_error_pp = abs(abs(model_share) - abs(bench.share_of_total)) * 100
         matched.append(
             {
                 "group": label,
