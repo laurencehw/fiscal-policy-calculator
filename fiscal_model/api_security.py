@@ -42,8 +42,8 @@ import os
 import threading
 import time
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from fastapi import HTTPException, Request, Security, status
 from fastapi.security import APIKeyHeader

@@ -13,7 +13,6 @@ import plotly.graph_objects as go
 
 from fiscal_model.ui.a11y import ChartDescription, render_accessible_chart
 
-
 _CALIBRATION_SESSION_KEY = "_dist_tab_calibration_cache"
 
 

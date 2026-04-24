@@ -14,8 +14,6 @@ is a deliberate decision: if a benchmark moves from "acceptable" to
 
 from __future__ import annotations
 
-import pytest
-
 from fiscal_model.validation.benchmark_runners import default_model_runner
 from fiscal_model.validation.cbo_distributions import (
     CBO_ARP_2021,

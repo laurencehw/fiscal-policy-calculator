@@ -29,7 +29,6 @@ from fiscal_model.policies import (
 )
 from fiscal_model.scoring import FiscalPolicyScorer
 
-
 # ---------------------------------------------------------------------------
 # Base Policy — structural invariants
 # ---------------------------------------------------------------------------

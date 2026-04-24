@@ -13,7 +13,6 @@ from pathlib import Path
 
 import pandas as pd
 
-
 PERSON_COLUMNS = [
     "PH_SEQ",
     "P_SEQ",

@@ -100,7 +100,7 @@ class TestCalibrateToSOI:
 
     def test_missing_columns_raise_clearly(self):
         df = pd.DataFrame({"agi": [10, 20]})  # no weight column
-        with pytest.raises(ValueError, match="agi.*weight|weight"):
+        with pytest.raises(ValueError, match=r"agi.*weight|weight"):
             calibrate_to_soi(df, year=2022)
 
     def test_injects_loader_for_isolation(self, fake_microdata):

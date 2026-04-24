@@ -18,17 +18,16 @@ from fiscal_model.validation.cbo_distributions import (
     CBO_JCT_BENCHMARKS,
     CBO_TCJA_2018,
     CORPORATE_INCIDENCE_SOURCES,
-    BenchmarkComparison,
-    CBODistributionalBenchmark,
-    DistributionSource,
     JCT_CORPORATE_28_2022,
     JCT_SALT_REPEAL_2024,
     JCT_TCJA_2019,
+    BenchmarkComparison,
+    CBODistributionalBenchmark,
+    DistributionSource,
     compare_distribution,
     format_comparison,
     run_full_cbo_jct_validation,
 )
-
 
 # ---------------------------------------------------------------------------
 # Benchmark database sanity

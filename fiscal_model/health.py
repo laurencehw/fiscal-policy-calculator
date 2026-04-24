@@ -204,9 +204,7 @@ def check_health() -> dict[str, Any]:
             # documented in docs/VALIDATION_NOTES.md: a microdata file
             # whose top-bracket AGI is <70% of SOI's will produce
             # distributional output that should not be taken literally.
-            if agi_coverage < 70 or returns_coverage < 70:
-                calibration_status = "degraded"
-            elif descriptor.get("status") == "synthetic":
+            if agi_coverage < 70 or returns_coverage < 70 or descriptor.get("status") == "synthetic":
                 calibration_status = "degraded"
             else:
                 calibration_status = "ok"

@@ -16,6 +16,7 @@ from typing import Any
 from fiscal_model.data.irs_soi import IRSSOIData
 from fiscal_model.ui.helpers import TEXTBOOK_HOME
 
+
 def _latest_soi_year() -> int:
     """Return the most recent IRS SOI data year available."""
     try:

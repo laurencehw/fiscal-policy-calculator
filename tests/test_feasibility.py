@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import pandas as pd
 
 from fiscal_model.feasibility import audit_cps_microsim_readiness

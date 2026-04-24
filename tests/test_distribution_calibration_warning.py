@@ -11,10 +11,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-import pytest
-
-from fiscal_model.ui.tabs import distribution_analysis
 from fiscal_model.microsim.soi_calibration import BracketComparison, CalibrationReport
+from fiscal_model.ui.tabs import distribution_analysis
 
 
 class _StubStreamlit:
@@ -121,8 +119,8 @@ def test_calibration_report_is_cached_in_session(monkeypatch):
 
     monkeypatch.setattr(distribution_analysis, "_CALIBRATION_SESSION_KEY", "_test_key")
     # Reroute the lazy import inside _render_calibration_warning.
-    import fiscal_model.microsim.soi_calibration as cal_mod
     import fiscal_model.data.cps_asec as loader_mod
+    import fiscal_model.microsim.soi_calibration as cal_mod
 
     monkeypatch.setattr(cal_mod, "calibrate_to_soi", fake_calibrate)
     monkeypatch.setattr(loader_mod, "load_tax_microdata", fake_load)
