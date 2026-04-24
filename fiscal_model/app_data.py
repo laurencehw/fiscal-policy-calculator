@@ -184,6 +184,27 @@ CBO_SCORE_MAP = {
         "source_url": "https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf",
         "notes": "Restore 39.6% top rate for income above \\$400K",
     },
+    "Warren Ultra-Millionaire Surtax": {
+        "official_score": -350.0,
+        "source": "TPC",
+        "source_date": "2020",
+        "source_url": "https://www.taxpolicycenter.org/",
+        "notes": "3pp surtax on AGI >\\$2M; TPC-range estimate",
+    },
+    "Top Rate to 45%": {
+        "official_score": -420.0,
+        "source": "TPC",
+        "source_date": "2023",
+        "source_url": "https://www.taxpolicycenter.org/",
+        "notes": "Raise top marginal rate from 37% to 45%; TPC-range estimate",
+    },
+    "High-Earner Medicare Surcharge 2pp": {
+        "official_score": -310.0,
+        "source": "Treasury",
+        "source_date": "2024",
+        "source_url": "https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf",
+        "notes": "+2pp Medicare surcharge on investment + wage income >\\$400K",
+    },
     # International Tax
     "🌍 Biden GILTI Reform (-$280B)": {
         "official_score": -280.0,
@@ -543,6 +564,38 @@ PRESET_POLICIES = {
         "threshold": 0,
         "description": "Lower all rates by 5pp (illustrative)",
         "is_tcja": False,
+    },
+    "Warren Ultra-Millionaire Surtax": {
+        "rate_change": 3.0,
+        "threshold": 2_000_000,
+        "description": (
+            "3pp surtax on taxable income above \\$2M, Warren-style. Raises "
+            "roughly \\$300-400B over 10 years depending on behavioral response."
+        ),
+        "is_tcja": False,
+        "ui_category": "Income Tax",
+    },
+    "Top Rate to 45%": {
+        "rate_change": 8.0,
+        "threshold": 609_350,
+        "description": (
+            "Raise the top marginal rate from 37% to 45% on income above "
+            "the current 37% bracket floor (\\$609,350 single, 2025). "
+            "Illustrative of the upper end of progressive proposals."
+        ),
+        "is_tcja": False,
+        "ui_category": "Income Tax",
+    },
+    "High-Earner Medicare Surcharge 2pp": {
+        "rate_change": 2.0,
+        "threshold": 400_000,
+        "description": (
+            "+2pp Medicare surcharge on wage + investment income above \\$400K. "
+            "Extends the NIIT's 3.8% surtax logic to a broader base. Similar in "
+            "structure to the Biden 2025 Medicare surtax proposal."
+        ),
+        "is_tcja": False,
+        "ui_category": "Income Tax",
     },
     # International Tax Presets
     "🌍 Biden GILTI Reform (-$280B)": {

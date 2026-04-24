@@ -87,6 +87,57 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
             "targeted, and enters the economy during a period of slack."
         ),
     },
+    "Student Debt Forgiveness ($400B one-time)": {
+        "annual_spending": 400.0,
+        "category": "Non-Defense Discretionary",
+        "multiplier": 0.5,
+        "growth_rate": 0.0,
+        "duration": 1,
+        "is_one_time": True,
+        "description": (
+            "One-time \\$10k-per-borrower federal loan cancellation affecting ~40M borrowers. "
+            "Low multiplier (~0.5) because the spending flows to future-year consumption smoothing "
+            "rather than immediate output (CBO Aug 2022 methodology)."
+        ),
+    },
+    "Universal Childcare ($100B/yr)": {
+        "annual_spending": 100.0,
+        "category": "Non-Defense Discretionary",
+        "multiplier": 1.3,
+        "growth_rate": 0.03,
+        "duration": 10,
+        "is_one_time": False,
+        "description": (
+            "Federal subsidy capping childcare at 7% of family income for households <\\$300k. "
+            "Moderate-to-high multiplier (~1.3) via labor-force participation of primary caregivers. "
+            "Build Back Better-style (\\$381B/10yr in 2021 estimate, inflation-adjusted to ~\\$100B/yr)."
+        ),
+    },
+    "Medicare Buy-in Age 55+ ($50B/yr)": {
+        "annual_spending": 50.0,
+        "category": "Medicare",
+        "multiplier": 0.9,
+        "growth_rate": 0.03,
+        "duration": 10,
+        "is_one_time": False,
+        "description": (
+            "Optional Medicare enrollment from age 55. Modest net federal cost (~\\$50B/yr) after "
+            "premium offsets and reduced ACA marketplace subsidies. CBO 2019 scored at \\$487B/10yr."
+        ),
+    },
+    "High-Speed Rail Program ($30B/yr)": {
+        "annual_spending": 30.0,
+        "category": "Infrastructure",
+        "multiplier": 1.4,
+        "growth_rate": 0.02,
+        "duration": 10,
+        "is_one_time": False,
+        "description": (
+            "Federal matching grants for regional high-speed rail corridors (e.g. Northeast, "
+            "California, Texas Central). Infrastructure-grade multiplier (~1.4) and long-horizon "
+            "productivity effects."
+        ),
+    },
 }
 
 _CATEGORY_TO_MODEL = {
