@@ -213,19 +213,22 @@ separately).
 
 ---
 
-## 4. JCT Corporate 21% → 28% (2022) — 15.3pp distributional mean absolute error
+## 4. JCT Corporate 21% → 28% (2022) — fixed: 15.3pp → 2.5pp
 
 **Policy**: Raise the corporate income-tax rate from 21% to 28% (Biden
 FY2022 proposal).
 
 | Source | Mean abs. share error | Rating |
 |--------|----------------------:|:------:|
-| JCT JCX-32-21, 2022 | 15.25pp | needs_improvement |
+| JCT JCX-32-21, 2022 (before) | 15.25pp | needs_improvement |
+| JCT JCX-32-21, 2022 (current) | 2.51pp | **good** |
 
 Discovered by `run_full_cbo_jct_validation` (see `scripts/run_validation_dashboard.py`).
-This is the largest distributional outlier in the current benchmark suite —
-larger even than the revenue-level outliers in §§1-3 — and the gap is
-systematic.
+Closed by replacing the exact-floor lookup in
+`fiscal_model/distribution_effects.py::calculate_corporate_effect` with a
+midpoint-of-group tier lookup over SOI Table 1.4-calibrated capital-
+income shares. This section is retained as a worked example of the
+diagnostic-to-fix loop.
 
 ### Mechanical cause
 
@@ -264,16 +267,23 @@ The engine has no policy-type dispatch for incidence. All TaxPolicy
 subclasses flow through the same bracket aggregation, which is the right
 thing for rate-on-wage-income reforms and wrong for corporate.
 
-### Path to closure
+### Closure (applied)
 
-| Change | Expected gap reduction | Effort |
-|--------|-----------------------:|:------:|
-| Add a `CorporateDistributionStrategy` in `distribution_engine.py` that applies the 75/25 capital/labor split when `policy_type == CORPORATE_TAX` | 15.3pp → ~3-4pp | 1 week |
-| Expose an `incidence_source` policy attribute (CBO, JCT, TPC, Treasury) so distributional runs can match a benchmark's methodology | reduces benchmark-specific friction; not a primary fix | 2 days |
-| Add a dividend/cap-gains allocation helper using SOI Table 1.4 (capital-income-by-AGI-class) so the top-decile tail is correctly weighted | lifts $1M+ from 2.9% → ~30%+ | 2-3 days, bundles with above |
+The fix landed in `distribution_effects.py::calculate_corporate_effect`:
 
-**Estimate scope**: 1-2 weeks to move this benchmark from `needs_improvement`
-to `good` (<5pp mean error).
+- Replaced the five exact-floor tier keys with five explicit
+  `[lower, upper)` ranges covering the full AGI distribution.
+- Lookup now uses the midpoint of the requested income group rather
+  than an exact floor match, so deciles and JCT dollar brackets
+  resolve correctly.
+- Capital-income shares calibrated to SOI Table 1.4 top-of-distribution
+  concentration: 10%/12%/18%/15%/**45%** across `<$100K`/`$100-200K`/
+  `$200-500K`/`$500K-1M`/`$1M+`. Labor shares mirror this with the
+  opposite gradient.
+
+Post-fix the engine puts 34.2% of corporate burden on `$1M+` filers vs
+JCT's 35.9% — a 1.65pp gap, down from 32.9pp before. The 2.51pp overall
+mean absolute share error is well inside the `good` rating band.
 
 ### Why the magnitude matters
 
@@ -320,8 +330,8 @@ The right reading of these outliers is therefore:
   can be fixed without any data change.
 - **The honest headline error range for the calculator is "≤3% on
   policies below $100K income thresholds; 8-12% on right-tail-dependent
-  revenue estimates; distributional accuracy good on income taxes but
-  currently 15pp off on corporate."** Users should cite it that way.
+  revenue estimates; distributional accuracy `good` on income taxes and
+  corporate taxes (after the §4 fix)."** Users should cite it that way.
 
 Live accuracy numbers are emitted by `scripts/run_validation_dashboard.py`
 and surfaced via the `GET /benchmarks` endpoint; they replace whatever

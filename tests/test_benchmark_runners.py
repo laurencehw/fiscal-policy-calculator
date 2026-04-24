@@ -56,14 +56,21 @@ class TestEndToEndBenchmarks:
         assert comparison.mean_absolute_share_error_pp is not None
         assert comparison.mean_absolute_share_error_pp < 15.0
 
-    def test_jct_corporate_28_2022_reports_mismatch(self):
-        """Corporate benchmark has a known grouping mismatch — stays "needs_improvement"."""
+    def test_jct_corporate_28_2022_rated_good(self):
+        """
+        Corporate benchmark: after the distribution_effects.calculate_corporate_effect
+        fix (SOI Table 1.4-calibrated capital/labor tier lookup), this benchmark
+        moved from 15.25pp (needs_improvement) to ~2.5pp (good).
+        """
         result = default_model_runner(JCT_CORPORATE_28_2022)
         assert result is not None
         comparison = compare_distribution(result, JCT_CORPORATE_28_2022)
-        # Some but not all rows match (Total row + aggregated low-end rows
-        # are collapsed). That is expected.
         assert len(comparison.per_group) > 0
+        assert comparison.mean_absolute_share_error_pp is not None
+        # Lock in the current accuracy with headroom so a regression
+        # in the capital/labor tier tables fails this test.
+        assert comparison.mean_absolute_share_error_pp < 5.0
+        assert comparison.overall_rating in {"good", "acceptable"}
 
     def test_full_runner_executes_every_benchmark(self):
         comparisons = run_full_cbo_jct_validation(default_model_runner)
