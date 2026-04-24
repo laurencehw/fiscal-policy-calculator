@@ -23,9 +23,14 @@ import math
 from typing import Any
 
 import numpy as np
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+from fiscal_model.api_security import (
+    is_auth_enabled,
+    require_api_key,
+    security_middleware,
+)
 from fiscal_model.api_serialization import serialize_scoring_result
 from fiscal_model.app_data import CBO_SCORE_MAP, PRESET_POLICIES
 from fiscal_model.exceptions import (
@@ -127,6 +132,12 @@ app = FastAPI(
     description="Programmatic access to CBO-style fiscal policy scoring with dynamic effects",
     version="1.0.0",
 )
+
+# Cross-cutting concerns — rate limiting and structured request logging.
+# Authentication is enforced per-endpoint via ``Depends(require_api_key)``
+# so that OpenAPI docs render the security scheme and discovery endpoints
+# (/, /health, /docs) stay open.
+app.middleware("http")(security_middleware)
 
 
 # =============================================================================
@@ -365,7 +376,10 @@ def list_presets():
 
 
 @app.post("/score", response_model=ScorePolicyResponse)
-def score_policy(request: ScorePolicyRequest):
+def score_policy(
+    request: ScorePolicyRequest,
+    _api_key_label: str = Depends(require_api_key),
+):
     """
     Score a custom tax policy.
 
@@ -428,7 +442,10 @@ def score_policy(request: ScorePolicyRequest):
 
 
 @app.post("/score/preset", response_model=ScorePolicyResponse)
-def score_preset(request: ScorePresetRequest):
+def score_preset(
+    request: ScorePresetRequest,
+    _api_key_label: str = Depends(require_api_key),
+):
     """
     Score a named preset policy.
 
@@ -473,7 +490,10 @@ def score_preset(request: ScorePresetRequest):
 
 
 @app.post("/score/tariff", response_model=ScoreTariffResponse)
-def score_tariff(request: ScoreTariffRequest):
+def score_tariff(
+    request: ScoreTariffRequest,
+    _api_key_label: str = Depends(require_api_key),
+):
     """
     Score a tariff policy with consumer impact.
 
@@ -546,6 +566,8 @@ def root():
     return {
         "service": "Fiscal Policy Calculator API",
         "version": "1.0.0",
+        "auth_required": is_auth_enabled(),
+        "auth_header": "X-API-Key",
         "endpoints": {
             "health": "GET /health",
             "presets": "GET /presets",
