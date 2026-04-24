@@ -61,6 +61,12 @@ def _render_policy_comparison_tab(**kwargs: Any) -> Any:
     return render_policy_comparison_tab(**kwargs)
 
 
+def _render_multi_model_tab(**kwargs: Any) -> Any:
+    from .tabs.multi_model import render_multi_model_tab
+
+    return render_multi_model_tab(**kwargs)
+
+
 def _render_policy_package_tab(**kwargs: Any) -> Any:
     from .tabs.package_builder import render_policy_package_tab
 
@@ -140,6 +146,7 @@ class AppDependencies:
     render_dynamic_scoring_tab: Any
     render_distribution_tab: Any
     render_policy_comparison_tab: Any
+    render_multi_model_tab: Any
     render_policy_package_tab: Any
     render_detailed_results_tab: Any
     render_methodology_tab: Any
@@ -195,6 +202,7 @@ def build_app_dependencies(pd_module: Any) -> AppDependencies:
         render_dynamic_scoring_tab=_render_dynamic_scoring_tab,
         render_distribution_tab=_render_distribution_tab,
         render_policy_comparison_tab=_render_policy_comparison_tab,
+        render_multi_model_tab=_render_multi_model_tab,
         render_policy_package_tab=_render_policy_package_tab,
         render_detailed_results_tab=_render_detailed_results_tab,
         render_methodology_tab=_render_methodology_tab,

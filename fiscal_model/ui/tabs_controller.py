@@ -213,6 +213,22 @@ def render_result_tabs(
             dynamic_scoring=settings["dynamic_scoring"],
         )
 
+        st_module.markdown("---")
+        with st_module.expander(
+            "🔀 Multi-model pilot (CBO × TPC-Microsim × PWBM-OLG)",
+            expanded=False,
+        ):
+            deps.render_multi_model_tab(
+                st_module=st_module,
+                is_spending=is_spending,
+                preset_policies=deps.PRESET_POLICIES,
+                tax_policy_cls=deps.TaxPolicy,
+                policy_type_income_tax=deps.PolicyType.INCOME_TAX,
+                fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
+                data_year=settings["data_year"],
+                use_real_data=settings["use_real_data"],
+            )
+
     # Tab 5: Side-by-Side Policy Comparison
     with tabs["tab_compare"]:
         deps.render_side_by_side_tab(

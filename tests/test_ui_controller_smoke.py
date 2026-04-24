@@ -297,6 +297,7 @@ def test_render_result_tabs_shows_stale_warnings():
         render_detailed_results_tab=lambda **kwargs: None,
         render_long_run_growth_tab=lambda **kwargs: None,
         render_policy_comparison_tab=lambda **kwargs: None,
+        render_multi_model_tab=lambda **kwargs: None,
         render_policy_package_tab=lambda **kwargs: None,
         render_side_by_side_tab=lambda **kwargs: None,
     )
