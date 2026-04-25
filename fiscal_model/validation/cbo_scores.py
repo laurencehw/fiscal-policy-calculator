@@ -204,9 +204,11 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         source_date="2024-03",
         rate_change=0.196,  # 20% → 39.6% = +19.6pp (for top bracket)
         income_threshold=1000000,
-        policy_type="income_tax",
+        policy_type="capital_gains_tax",
         baseline_year=2024,
-        notes="Includes taxing unrealized gains at death. High behavioral uncertainty."
+        notes="Includes taxing unrealized gains at death. High behavioral uncertainty. "
+              "Validated via the CapitalGains specialized runner; the generic income-tax "
+              "auto-population path cannot model realizations elasticity or step-up basis."
     ),
 
     # -------------------------------------------------------------------------
@@ -224,10 +226,11 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         source_url="https://www.cbo.gov/budget-options/54788",
         rate_change=0.02,
         income_threshold=0,  # Affects all brackets
-        policy_type="income_tax",
+        policy_type="capital_gains_tax",
         baseline_year=2018,
         budget_window="FY2019-2028",
-        notes="JCT estimate. Reflects behavioral response (deferral). Does not change bracket thresholds."
+        notes="JCT estimate. Reflects behavioral response (deferral). Does not change bracket thresholds. "
+              "Validated via the CapitalGains specialized runner."
     ),
 
     "pwbm_capgains_39_with_stepup": CBOScore(
@@ -241,11 +244,12 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         source_url="https://budgetmodel.wharton.upenn.edu/issues/2021/4/23/revenue-effects-of-president-bidens-capital-gains-tax-increase",
         rate_change=0.196,  # 20% + 3.8% NIIT = 23.8% → 39.6%
         income_threshold=1000000,
-        policy_type="income_tax",
+        policy_type="capital_gains_tax",
         baseline_year=2021,
         budget_window="FY2022-2031",
         notes="CRITICAL: With step-up basis, high rates LOSE revenue due to lock-in. "
-              "Taxpayers hold until death to avoid tax entirely."
+              "Taxpayers hold until death to avoid tax entirely. "
+              "Validated via the CapitalGains specialized runner."
     ),
 
     "pwbm_capgains_39_no_stepup": CBOScore(
@@ -259,11 +263,12 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         source_url="https://budgetmodel.wharton.upenn.edu/issues/2021/4/23/revenue-effects-of-president-bidens-capital-gains-tax-increase",
         rate_change=0.196,
         income_threshold=1000000,
-        policy_type="income_tax",
+        policy_type="capital_gains_tax",
         baseline_year=2021,
         budget_window="FY2022-2031",
         notes="Without step-up, taxpayers cannot avoid tax by holding until death. "
-              "Lock-in effect is reduced, allowing higher rates to raise revenue."
+              "Lock-in effect is reduced, allowing higher rates to raise revenue. "
+              "Validated via the CapitalGains specialized runner."
     ),
 
     "treasury_capgains_39_plus_stepup_elim": CBOScore(
@@ -276,11 +281,12 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         source_date="2021-05",
         rate_change=0.196,
         income_threshold=1000000,
-        policy_type="income_tax",
+        policy_type="capital_gains_tax",
         baseline_year=2021,
         budget_window="FY2022-2031",
         notes="Combined effect of rate increase + step-up elimination. "
-              "Treasury Green Book estimate (higher than PWBM due to methodology differences)."
+              "Treasury Green Book estimate (higher than PWBM due to methodology differences). "
+              "Validated via the CapitalGains specialized runner."
     ),
 
     # -------------------------------------------------------------------------

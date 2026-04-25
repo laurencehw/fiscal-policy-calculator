@@ -526,22 +526,20 @@ def render_results_summary_tab(
 
         with col2:
             share_url = build_share_url(result_data=result_data)
-            share_btn = st_module.button(
-                "🔗 Generate share link",
-                key=f"share_btn_{policy.name.replace(' ', '_')}",
-                help="Generate a deep link for supported preset tax proposals and preset spending programs.",
-            )
-            if share_btn:
-                if share_url:
-                    st_module.code(share_url, language=None)
-                    st_module.caption(
-                        "Opening this link restores the supported preset configuration and runs the calculation automatically."
-                    )
-                else:
-                    st_module.info(
-                        "Share links currently support preset tax proposals and preset spending programs. "
-                        "Custom policies and microsimulation results still require local export."
-                    )
+            if share_url:
+                st_module.markdown("**🔗 Share this result**")
+                # `st.code` renders a built-in copy button, so the URL is one
+                # click away rather than buried behind a "generate" toggle.
+                st_module.code(share_url, language=None)
+                st_module.caption(
+                    "Opening this link restores the preset and runs the calculation automatically."
+                )
+            else:
+                st_module.markdown("**🔗 Share this result**")
+                st_module.caption(
+                    "Share links cover preset tax proposals and preset spending programs. "
+                    "Custom policies and microsimulation results require local export."
+                )
 
         # Generate formatted text summary for copy-paste
         baseline_year = result.baseline.start_year
