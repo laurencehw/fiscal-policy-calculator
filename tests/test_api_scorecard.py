@@ -4,8 +4,6 @@ End-to-end tests for the GET /validation/scorecard endpoint.
 
 from __future__ import annotations
 
-import os
-
 import pytest
 from fastapi.testclient import TestClient
 

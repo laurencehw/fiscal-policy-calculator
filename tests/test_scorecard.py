@@ -154,3 +154,42 @@ def test_percentile_handles_edges():
     assert _percentile([42.0], 50.0) == 42.0
     assert _percentile([0.0, 10.0], 50.0) == pytest.approx(5.0)
     assert _percentile([0.0, 10.0, 20.0, 30.0], 50.0) == pytest.approx(15.0)
+
+
+def test_cached_default_scorecard_memoizes_compute():
+    """Second call must hit the lru_cache rather than recomputing 33+
+    specialized validators. The API endpoint and Streamlit Validation
+    tab depend on this — without it, every user interaction or request
+    would burn ~50ms of CPU and amplify any DoS attempt."""
+    from fiscal_model.validation import (
+        cached_default_scorecard,
+        reset_scorecard_cache,
+    )
+    from fiscal_model.validation.scorecard import cached_default_scorecard as direct
+
+    reset_scorecard_cache()
+    info_before = direct.cache_info()
+    first = cached_default_scorecard()
+    second = cached_default_scorecard()
+    info_after = direct.cache_info()
+
+    # Same object identity — cache hit, not a fresh recompute.
+    assert first is second
+    assert info_after.misses == info_before.misses + 1
+    assert info_after.hits == info_before.hits + 1
+
+
+def test_reset_scorecard_cache_forces_recompute():
+    from fiscal_model.validation import (
+        cached_default_scorecard,
+        reset_scorecard_cache,
+    )
+    from fiscal_model.validation.scorecard import cached_default_scorecard as direct
+
+    cached_default_scorecard()  # warm the cache
+    info_warm = direct.cache_info()
+    assert info_warm.currsize >= 1
+
+    reset_scorecard_cache()
+    info_cleared = direct.cache_info()
+    assert info_cleared.currsize == 0

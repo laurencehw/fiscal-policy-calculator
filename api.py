@@ -555,9 +555,12 @@ def validation_scorecard():
     Use the per-category breakdown to see where the calibrated specialized
     paths stand vs. where the naive generic path lands.
     """
-    from fiscal_model.validation.scorecard import compute_scorecard
+    from fiscal_model.validation.scorecard import cached_default_scorecard
 
-    summary = compute_scorecard()
+    # Cached for the process lifetime — the underlying validation data
+    # is code-resident, so recomputing on every request would only burn
+    # CPU and amplify DoS attempts.
+    summary = cached_default_scorecard()
 
     return ScorecardResponse(
         total_entries=summary.total_entries,

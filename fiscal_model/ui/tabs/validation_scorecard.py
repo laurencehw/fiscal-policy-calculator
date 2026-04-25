@@ -15,7 +15,7 @@ from typing import Any
 from fiscal_model.validation.scorecard import (
     ScorecardEntry,
     ScorecardSummary,
-    compute_scorecard,
+    cached_default_scorecard,
 )
 
 _logger = logging.getLogger(__name__)
@@ -146,8 +146,9 @@ def render_validation_scorecard_tab(st_module: Any) -> None:
     st_module.header("Validation scorecard")
     st_module.markdown(
         "Live comparison of this model's revenue scores against published "
-        "CBO/JCT/Treasury/PWBM estimates. Computed on every page load — "
-        "no static cache.\n\n"
+        "CBO/JCT/Treasury/PWBM estimates. Computed once per process and "
+        "memoized — Streamlit reruns this tab body on every sidebar "
+        "interaction, so the cache keeps the calculator responsive.\n\n"
         "Ratings: 🟢 **Excellent** ≤5%, 🟢 **Good** ≤10%, 🟡 **Acceptable** ≤20%, "
         "🔴 **Poor** >20%. The **Generic** category uses raw "
         "rate/threshold parameters and is expected to drift — calibrated "
@@ -155,7 +156,7 @@ def render_validation_scorecard_tab(st_module: Any) -> None:
     )
 
     try:
-        summary = compute_scorecard()
+        summary = cached_default_scorecard()
     except Exception:
         _logger.exception("Failed to compute validation scorecard")
         st_module.error(

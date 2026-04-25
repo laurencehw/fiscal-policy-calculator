@@ -416,7 +416,8 @@ def render_quick_start(st_module: Any) -> None:
 def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Path) -> None:
     """
     Render and orchestrate the full Streamlit app flow.
-    Top-level tabs: Calculator | Budget Builder | Generational | State | Bill Tracker | Methodology
+    Top-level tabs: Calculator | Budget Builder | Generational | State |
+    Bill Tracker | Validation | Methodology
     """
     # Ensure every known session key has its declared default before any
     # widgets are constructed. Safe to call on every rerun — does not

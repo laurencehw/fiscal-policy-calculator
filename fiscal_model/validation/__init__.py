@@ -18,7 +18,9 @@ from .scorecard import (
     DEFAULT_RUNNERS,
     ScorecardEntry,
     ScorecardSummary,
+    cached_default_scorecard,
     compute_scorecard,
+    reset_scorecard_cache,
     scorecard_to_dict,
 )
 from .compare import (
@@ -70,7 +72,9 @@ __all__ = [
     'DEFAULT_RUNNERS',
     'ScorecardEntry',
     'ScorecardSummary',
+    'cached_default_scorecard',
     'compute_scorecard',
+    'reset_scorecard_cache',
     'scorecard_to_dict',
     'AMT_VALIDATION_SCENARIOS_COMPARE',
     'CAPITAL_GAINS_VALIDATION_SCENARIOS',

@@ -90,12 +90,13 @@ def _rating_label(mean_abs: float, is_calibrated: bool) -> str:
 def _category_index() -> dict[str, ConfidenceBand]:
     """Materialize the live scorecard once per process, keyed by category.
 
-    Cached so repeat sidebar / bill-tracker renders during the same
-    Streamlit run don't recompute the 33 specialized validators.
+    Backed by ``cached_default_scorecard`` so the API, Validation tab,
+    preset badge, and this helper all share one underlying compute per
+    process.
     """
-    from fiscal_model.validation import compute_scorecard
+    from fiscal_model.validation import cached_default_scorecard
 
-    summary = compute_scorecard()
+    summary = cached_default_scorecard()
     out: dict[str, ConfidenceBand] = {}
     for cat, sub in summary.by_category.items():
         n = int(sub["n"])

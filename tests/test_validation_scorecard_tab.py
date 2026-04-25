@@ -55,8 +55,12 @@ def test_render_validation_scorecard_tab_runs_without_streamlit():
     st_mock = MagicMock()
     st_mock.columns.return_value = [MagicMock() for _ in range(4)]
     st_mock.radio.return_value = "By |Δ%| (worst first)"
-    st_mock.expander.return_value.__enter__ = lambda self: self
-    st_mock.expander.return_value.__exit__ = lambda *a: None
+    # Streamlit context managers: __enter__ takes no args (the protocol
+    # passes no arguments since the descriptor is bound). Use MagicMocks
+    # so the lambda-with-`self` mistake can't sneak back in.
+    expander_mock = st_mock.expander.return_value
+    expander_mock.__enter__ = MagicMock(return_value=expander_mock)
+    expander_mock.__exit__ = MagicMock(return_value=None)
 
     render_validation_scorecard_tab(st_mock)
 
@@ -68,13 +72,13 @@ def test_render_validation_scorecard_tab_runs_without_streamlit():
 
 
 def test_render_validation_scorecard_tab_handles_compute_failure(monkeypatch):
-    """If compute_scorecard raises, the tab shows an error rather than 500ing."""
+    """If the cached scorecard raises, the tab shows an error rather than 500ing."""
     from fiscal_model.ui.tabs import validation_scorecard as module
 
     def _boom(*_a, **_kw):
         raise RuntimeError("boom")
 
-    monkeypatch.setattr(module, "compute_scorecard", _boom)
+    monkeypatch.setattr(module, "cached_default_scorecard", _boom)
     st_mock = MagicMock()
     render_validation_scorecard_tab(st_mock)
     assert st_mock.error.called

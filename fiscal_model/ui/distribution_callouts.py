@@ -68,14 +68,28 @@ def _result_to_group(result: Any) -> GroupSummary:
     )
 
 
+def _income_floor(result: Any) -> float:
+    """Return the income-group floor for sorting; tolerates missing fields."""
+    floor = getattr(getattr(result, "income_group", None), "floor", None)
+    try:
+        return float(floor) if floor is not None else 0.0
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def build_winners_losers(analysis: Any) -> WinnersLosersSummary:
     """Translate a ``DistributionalAnalysis`` into a narrative summary.
 
     Winners and losers are sorted by magnitude of average tax change so
     the most impacted groups appear first — matching how TPC tables are
-    typically read.
+    typically read. Top/bottom groups are picked after explicitly
+    sorting by income-group floor so the headline doesn't flip if the
+    engine returns groups in a different order (e.g., JCT dollar
+    brackets vs. quintiles vs. deciles).
     """
-    groups = [_result_to_group(r) for r in getattr(analysis, "results", [])]
+    raw_results = list(getattr(analysis, "results", []))
+    by_income = sorted(raw_results, key=_income_floor)
+    groups = [_result_to_group(r) for r in by_income]
 
     winners = [g for g in groups if g.avg_tax_change < 0]
     losers = [g for g in groups if g.avg_tax_change > 0]

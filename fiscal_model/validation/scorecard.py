@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import asdict, dataclass, field
+from functools import lru_cache
 from typing import Callable
 
 from .core import ValidationResult, validate_all
@@ -189,10 +190,42 @@ def scorecard_to_dict(summary: ScorecardSummary) -> dict:
     return payload
 
 
+@lru_cache(maxsize=1)
+def cached_default_scorecard() -> ScorecardSummary:
+    """Memoized default scorecard.
+
+    The full scorecard takes ~50ms because it runs every specialized
+    validator (TCJA, Corporate, Credits, Estate, Payroll, AMT, PTC,
+    CapitalGains, Expenditures) plus the generic fallback. The result
+    is static for the lifetime of the process — the underlying CBO
+    score database, validation runners, and engine all live in code.
+
+    Streamlit reruns every tab body on every interaction (clicks,
+    sidebar widget changes), and the API endpoint is publicly reachable,
+    so calling ``compute_scorecard()`` directly on each request would
+    add seconds of latency or amplify any DoS attempt against
+    ``/validation/scorecard``. This cached entry point fixes both.
+
+    Use ``compute_scorecard(runners=...)`` directly when you want a
+    one-off run with stub runners (e.g., in tests).
+    """
+    return compute_scorecard()
+
+
+def reset_scorecard_cache() -> None:
+    """Clear the memoized default scorecard. Mainly for tests that
+    monkeypatch the underlying validators."""
+    cache_clear = getattr(cached_default_scorecard, "cache_clear", None)
+    if cache_clear is not None:
+        cache_clear()
+
+
 __all__ = [
     "DEFAULT_RUNNERS",
     "ScorecardEntry",
     "ScorecardSummary",
+    "cached_default_scorecard",
     "compute_scorecard",
+    "reset_scorecard_cache",
     "scorecard_to_dict",
 ]
