@@ -45,7 +45,7 @@ def test_get_validation_badge_for_known_preset():
     badge = get_validation_badge("🏛️ TCJA Full Extension (CBO: $4.6T)")
     assert badge is not None
     assert badge["rating"] in {"Excellent", "Good", "Acceptable", "Poor", "Error"}
-    assert "icon" in badge and badge["icon"]
+    assert badge.get("icon")
     assert "signed_pct" in badge
     assert badge["policy_name"]
 
