@@ -253,8 +253,16 @@ class TaxPolicy(Policy):
         return revenue_change
 
     def estimate_behavioral_offset(self, static_effect: float) -> float:
-        """Estimate behavioral response offset to static revenue estimate."""
-        return abs(static_effect) * self.taxable_income_elasticity * 0.5
+        """Behavioral revenue offset under standard ETI methodology.
+
+        Returns a SIGNED value with the same sign as ``static_effect`` so the
+        engine's ``deficit_after = static_deficit + behavioral`` (where
+        ``static_deficit = -static_revenue``) shrinks the magnitude of the
+        revenue change in both directions: erodes the gain on a tax increase
+        and recovers some revenue on a tax cut. Magnitude follows the
+        Saez-style 0.5·ETI·|static| convention.
+        """
+        return static_effect * self.taxable_income_elasticity * 0.5
 
     def validate_inputs(self) -> list[str]:
         """Validate inputs and return warning strings for unusual parameters."""

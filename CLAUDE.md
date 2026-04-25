@@ -41,7 +41,7 @@ python scripts/run_validation_dashboard.py --augment-top-tail --filter-to-filers
 python scripts/generate_docs.py
 
 # Quick test a policy
-python -c "from fiscal_model import FiscalPolicyScorer, TaxPolicy; s = FiscalPolicyScorer(); print(s.score_policy(TaxPolicy(name='test', rate_change=0.01, affected_income_threshold=400000)))"
+python -c "from fiscal_model import FiscalPolicyScorer, TaxPolicy, PolicyType; s = FiscalPolicyScorer(); print(s.score_policy(TaxPolicy(name='test', description='+1pp at 400K', policy_type=PolicyType.INCOME_TAX, rate_change=0.01, affected_income_threshold=400000)))"
 ```
 
 ## Architecture
@@ -88,14 +88,16 @@ Policy Definition → Static Scoring → Behavioral Offset (ETI) → Dynamic Fee
 ### Key Classes
 
 ```python
-# Policy definition (model-agnostic)
+# Policy definition (model-agnostic) — `description` and `policy_type` are required
 TaxPolicy(
-    name, rate_change, affected_income_threshold,
+    name, description, policy_type,  # PolicyType.INCOME_TAX, etc.
+    rate_change, affected_income_threshold,
     taxable_income_elasticity=0.25, duration_years=10
 )
 
 CapitalGainsPolicy(
-    name, rate_change, affected_income_threshold,
+    name, description, policy_type,  # PolicyType.CAPITAL_GAINS_TAX
+    rate_change, affected_income_threshold,
     baseline_realizations_billions, baseline_capital_gains_rate,
     # Time-varying elasticity (CBO/JCT methodology)
     short_run_elasticity=0.8,  # Years 1-3: timing effects
@@ -186,7 +188,9 @@ Static revenue formula:
 
 Behavioral offset (income tax):
 ```
-Offset = -ETI × 0.5 × Static_Effect
+Offset = ETI × 0.5 × Static_Effect    # signed; same sign as static
+Final  = Static + Offset_signed_against_deficit
+       = Static × (1 − ETI × 0.5)     # erodes magnitude in both directions
 ```
 
 Capital gains behavioral offset (time-varying):

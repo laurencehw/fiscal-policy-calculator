@@ -263,10 +263,17 @@ class TestTaxPolicyStaticRevenue:
 # =============================================================================
 
 class TestTaxPolicyBehavioralOffset:
-    def test_returns_positive_value(self, bracket_tax_policy):
-        """Offset is always positive (revenue lost to behavioral response)."""
+    def test_sign_matches_static_for_tax_increase(self, bracket_tax_policy):
+        """Offset has the same sign as static effect (positive on a tax increase)."""
         offset = bracket_tax_policy.estimate_behavioral_offset(static_effect=37.0)
         assert offset > 0
+
+    def test_sign_matches_static_for_tax_cut(self, bracket_tax_policy):
+        """Offset is negative when static revenue is negative (tax cut), so the
+        engine's ``static_deficit + behavioral`` recovers some revenue rather
+        than amplifying the cost."""
+        offset = bracket_tax_policy.estimate_behavioral_offset(static_effect=-37.0)
+        assert offset < 0
 
     def test_proportional_to_eti(self):
         """Offset scales with ETI."""
@@ -283,13 +290,13 @@ class TestTaxPolicyBehavioralOffset:
         assert offset_high / offset_low == pytest.approx(5.0)
 
     def test_formula_value(self):
-        """offset = abs(static) * ETI * 0.5"""
+        """offset = static * ETI * 0.5 (signed)."""
         policy = TaxPolicy(
             name="T", description="", policy_type=PolicyType.INCOME_TAX,
             taxable_income_elasticity=0.25,
         )
-        offset = policy.estimate_behavioral_offset(-50.0)
-        assert offset == pytest.approx(50.0 * 0.25 * 0.5)
+        assert policy.estimate_behavioral_offset(-50.0) == pytest.approx(-50.0 * 0.25 * 0.5)
+        assert policy.estimate_behavioral_offset(50.0) == pytest.approx(50.0 * 0.25 * 0.5)
 
 
 # =============================================================================
