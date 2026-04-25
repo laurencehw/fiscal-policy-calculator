@@ -378,6 +378,7 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         "🌐 Generational",
         "🗺️ State",
         "📋 Bill Tracker",
+        "✅ Validation",
         "📖 Methodology",
     ])
 
@@ -437,6 +438,18 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         render_footer(st_module=st_module)
 
     with top_tabs[5]:
+        try:
+            from .tabs.validation_scorecard import render_validation_scorecard_tab
+            render_validation_scorecard_tab(st_module=st_module)
+        except Exception:
+            _logger.exception("Validation scorecard error")
+            st_module.error(
+                "The Validation scorecard encountered an issue. "
+                "Please try reloading the page."
+            )
+        render_footer(st_module=st_module)
+
+    with top_tabs[6]:
         try:
             deps.render_methodology_tab(st_module=st_module)
         except Exception:

@@ -301,6 +301,53 @@ class SummaryResponse(BaseModel):
     auth_required: bool
 
 
+class ScorecardEntryModel(BaseModel):
+    """Single policy's revenue-level model-vs-official comparison."""
+
+    category: str
+    policy_id: str
+    policy_name: str
+    official_10yr_billions: float
+    official_source: str
+    benchmark_kind: str
+    benchmark_date: str | None = None
+    benchmark_url: str | None = None
+    model_10yr_billions: float
+    difference_billions: float
+    percent_difference: float
+    abs_percent_difference: float
+    rating: str  # Excellent | Good | Acceptable | Poor | Error
+    direction_match: bool
+    known_limitations: list[str] = Field(default_factory=list)
+    notes: str = ""
+
+
+class ScorecardCategorySummary(BaseModel):
+    """Per-category roll-up of scorecard accuracy."""
+
+    n: int
+    mean_abs_percent_difference: float
+    within_15pct: int
+    ratings: dict[str, int] = Field(default_factory=dict)
+
+
+class ScorecardResponse(BaseModel):
+    """Consolidated revenue-level validation scorecard."""
+
+    total_entries: int
+    within_5pct: int
+    within_10pct: int
+    within_15pct: int
+    within_20pct: int
+    direction_match: int
+    poor: int
+    mean_abs_percent_difference: float
+    median_abs_percent_difference: float
+    ratings_breakdown: dict[str, int]
+    by_category: dict[str, ScorecardCategorySummary]
+    entries: list[ScorecardEntryModel]
+
+
 SUPPORTED_CUSTOM_POLICY_TYPES = {
     PolicyType.INCOME_TAX,
     PolicyType.CORPORATE_TAX,
@@ -490,6 +537,43 @@ def list_benchmarks():
         benchmarks=results,
         count=len(results),
         overall_rating=worst,
+    )
+
+
+@app.get("/validation/scorecard", response_model=ScorecardResponse)
+def validation_scorecard():
+    """
+    Consolidated revenue-level scorecard: every published CBO/JCT/Treasury
+    score the model is calibrated against, plus what the model produces today.
+
+    Each entry reports the official 10-year score, the model's score, the
+    signed % difference, and a rating (Excellent ≤5%, Good ≤10%, Acceptable
+    ≤20%, Poor >20%). Generic-category entries use raw rate/threshold
+    auto-population — drift there is expected and reflects the limits of
+    parameter-only scoring rather than a calibration regression.
+
+    Use the per-category breakdown to see where the calibrated specialized
+    paths stand vs. where the naive generic path lands.
+    """
+    from fiscal_model.validation.scorecard import compute_scorecard
+
+    summary = compute_scorecard()
+
+    return ScorecardResponse(
+        total_entries=summary.total_entries,
+        within_5pct=summary.within_5pct,
+        within_10pct=summary.within_10pct,
+        within_15pct=summary.within_15pct,
+        within_20pct=summary.within_20pct,
+        direction_match=summary.direction_match,
+        poor=summary.poor,
+        mean_abs_percent_difference=summary.mean_abs_percent_difference,
+        median_abs_percent_difference=summary.median_abs_percent_difference,
+        ratings_breakdown=summary.ratings_breakdown,
+        by_category={
+            cat: ScorecardCategorySummary(**sub) for cat, sub in summary.by_category.items()
+        },
+        entries=[ScorecardEntryModel(**entry.__dict__) for entry in summary.entries],
     )
 
 
