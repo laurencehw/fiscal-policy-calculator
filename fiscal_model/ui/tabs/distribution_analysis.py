@@ -167,6 +167,9 @@ def render_distribution_tab(
                 f"{unchanged:.1f}%",
             )
 
+        from fiscal_model.ui.distribution_callouts import render_winners_losers_callout
+        render_winners_losers_callout(st_module, dist_analysis)
+
         st_module.subheader("Tax Change by Income Group")
         df_dist = format_distribution_table_fn(dist_analysis, style="tpc")
         st_module.dataframe(
