@@ -101,6 +101,12 @@ def serialize_scoring_result(
     revenue_feedback_total = (
         _sum_float(dynamic["revenue_feedback"]) if dynamic_scoring_enabled else 0.0
     )
+    # Derive from the engine's final_deficit so the math holds for every
+    # policy class regardless of whether its behavioral offset is signed
+    # (TaxExpenditurePolicy) or magnitude (TaxPolicy). Equivalent to
+    # -(static_deficit + behavioral) since revenue_feedback only enters
+    # final_deficit when dynamic scoring is on.
+    final_static_effect = -ten_year_impact - revenue_feedback_total
 
     return {
         "policy_name": policy_name,
@@ -112,7 +118,7 @@ def serialize_scoring_result(
         "ten_year_deficit_impact": ten_year_impact,
         "static_revenue_effect": static_total,
         "behavioral_offset": behavioral_total,
-        "final_static_effect": static_total + behavioral_total,
+        "final_static_effect": final_static_effect,
         "gdp_effect": gdp_effect,
         "employment_effect": employment_effect,
         "revenue_feedback": revenue_feedback_total,
