@@ -330,15 +330,16 @@ def test_render_result_tabs_shows_stale_warnings():
 
 
 def test_render_quick_start_defers_sidebar_updates_until_rerun():
-    st_module = _QuickStartStreamlit(clicked_button="qs_btn_infra")
+    st_module = _QuickStartStreamlit(clicked_button="qs_btn_tcja")
 
     render_quick_start(st_module=st_module)
 
     assert st_module.rerun_called is True
     assert _PENDING_SIDEBAR_UPDATES_KEY in st_module.session_state
     assert st_module.session_state[_PENDING_SIDEBAR_UPDATES_KEY] == {
-        "sidebar_analysis_mode": "💰 Spending program",
-        "sidebar_spending_preset": "Infrastructure Investment ($100B/yr)",
+        "sidebar_analysis_mode": "📋 Tax proposal (preset)",
+        "sidebar_policy_area": "TCJA / Individual",
+        "sidebar_preset_choice": "TCJA Full Extension",
     }
     assert st_module.session_state["qs_calculate"] is True
 

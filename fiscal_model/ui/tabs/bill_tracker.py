@@ -434,6 +434,12 @@ def _render_bill_detail(
             "Auto-scored — verify against official CBO/JCT estimates"
         )
 
+        # Category-level model accuracy band, pulled from the live
+        # validation scorecard via the dominant provision's policy_type.
+        # Tells readers "TCJA-style provisions average ±5.5% across 3
+        # calibrated runs" so the calculator estimate isn't disembodied.
+        _render_bill_calibration_band(st_module, auto_score, total)
+
         # CBO vs calculator comparison
         if cbo_score:
             cbo_cost = cbo_score.get("ten_year_cost_billions", 0)
@@ -450,6 +456,65 @@ def _render_bill_detail(
     if st_module.button("Hide details", key=f"bt_hide_{bill_id}"):
         st_module.session_state[f"bt_show_detail_{bill_id}"] = False
         st_module.rerun()
+
+
+def _dominant_provision_policy_type(auto_score: dict) -> str | None:
+    """Pick the most-confident provision's policy_type from a bill's
+    auto-score. Used to look up a category-level calibration band when
+    a bill spans multiple provisions."""
+    raw_policies = auto_score.get("policies_json")
+    if not raw_policies:
+        return None
+    try:
+        policies = json.loads(raw_policies)
+    except Exception:
+        return None
+    if not isinstance(policies, list) or not policies:
+        return None
+
+    confidence_rank = {"high": 3, "medium": 2, "low": 1}
+    best = max(
+        policies,
+        key=lambda p: confidence_rank.get(p.get("confidence", ""), 0),
+        default=None,
+    )
+    if not isinstance(best, dict):
+        return None
+    return best.get("policy_type")
+
+
+def _render_bill_calibration_band(
+    st_module: Any,
+    auto_score: dict,
+    total_billions: float,
+) -> None:
+    """Surface the validation-scorecard accuracy for a bill's dominant
+    provision type. Falls back silently when the scorecard fails or no
+    provisions are available — never breaks the bill card."""
+    try:
+        from fiscal_model.ui.confidence_band import (
+            estimate_uncertainty_dollars,
+            get_band_for_policy_type,
+        )
+    except Exception:
+        return
+
+    policy_type = _dominant_provision_policy_type(auto_score)
+    if policy_type is None:
+        # Without a parsed provision, defaulting to "Generic" would
+        # surface a misleading ±29% band. Skip silently.
+        return
+    band = get_band_for_policy_type(policy_type)
+    if band is None:
+        return
+
+    half = estimate_uncertainty_dollars(total_billions, band)
+    st_module.caption(
+        f"Calibration band: ±{band.mean_abs_pct_error:.1f}% mean error in "
+        f"{band.category} category ({band.n_calibrated} calibrated run"
+        f"{'s' if band.n_calibrated != 1 else ''}, {band.rating_label}) "
+        f"— implies ±{_format_cost(half)} on this $-amount."
+    )
 
 
 def _render_freshness_badge(st_module: Any, freshness: FreshnessStatus) -> None:  # type: ignore[name-defined]

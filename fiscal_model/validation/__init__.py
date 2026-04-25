@@ -14,6 +14,15 @@ from .cbo_scores import (
     get_scores_by_type,
     list_available_policies,
 )
+from .scorecard import (
+    DEFAULT_RUNNERS,
+    ScorecardEntry,
+    ScorecardSummary,
+    cached_default_scorecard,
+    compute_scorecard,
+    reset_scorecard_cache,
+    scorecard_to_dict,
+)
 from .compare import (
     AMT_VALIDATION_SCENARIOS_COMPARE,
     CAPITAL_GAINS_VALIDATION_SCENARIOS,
@@ -60,6 +69,13 @@ from .compare import (
 )
 
 __all__ = [
+    'DEFAULT_RUNNERS',
+    'ScorecardEntry',
+    'ScorecardSummary',
+    'cached_default_scorecard',
+    'compute_scorecard',
+    'reset_scorecard_cache',
+    'scorecard_to_dict',
     'AMT_VALIDATION_SCENARIOS_COMPARE',
     'CAPITAL_GAINS_VALIDATION_SCENARIOS',
     'CORPORATE_VALIDATION_SCENARIOS',

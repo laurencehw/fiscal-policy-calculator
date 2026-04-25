@@ -269,9 +269,114 @@ def _render_augmentation_preview(st_module: Any, microdata: dict) -> None:
     )
 
 
+_QUICK_START_CARDS: tuple[dict[str, Any], ...] = (
+    {
+        "key": "tcja",
+        "question": "Will TCJA extension blow up the deficit?",
+        "context": "Extend all individual TCJA provisions beyond the 2025 sunset",
+        "headline": "▲ +$4.6T to deficit",
+        "headline_color": "#d9534f",
+        "source": "10-yr, CBO",
+        "preset": {
+            "sidebar_analysis_mode": "📋 Tax proposal (preset)",
+            "sidebar_policy_area": "TCJA / Individual",
+            "sidebar_preset_choice": "TCJA Full Extension",
+        },
+    },
+    {
+        "key": "biden400k",
+        "question": "What if we restored the 39.6% top rate?",
+        "context": "Biden proposal to raise the top rate on income above $400K",
+        "headline": "▼ −$252B from deficit",
+        "headline_color": "#5cb85c",
+        "source": "10-yr, Treasury",
+        "preset": {
+            "sidebar_analysis_mode": "📋 Tax proposal (preset)",
+            "sidebar_policy_area": "TCJA / Individual",
+            "sidebar_preset_choice": "Biden 2025 Proposal",
+        },
+    },
+    {
+        "key": "corp28",
+        "question": "How much would a 28% corporate rate raise?",
+        "context": "Reverse the TCJA corporate cut from 21% back toward Obama-era 35%",
+        "headline": "▼ −$1.35T from deficit",
+        "headline_color": "#5cb85c",
+        "source": "10-yr, Treasury",
+        "preset": {
+            "sidebar_analysis_mode": "📋 Tax proposal (preset)",
+            "sidebar_policy_area": "Corporate",
+            "sidebar_preset_choice": "Biden Corporate 28%",
+        },
+    },
+    {
+        "key": "tariff10",
+        "question": "Could a universal 10% tariff replace income taxes?",
+        "context": "Trump's universal tariff plus retaliation and consumer costs",
+        "headline": "▼ −$2.0T from deficit",
+        "headline_color": "#5cb85c",
+        "source": "10-yr, TPC",
+        "preset": {
+            "sidebar_analysis_mode": "📋 Tax proposal (preset)",
+            "sidebar_policy_area": "Trade / Tariffs",
+            "sidebar_preset_choice": "Trump Universal 10% Tariff (-$2T)",
+        },
+    },
+    {
+        "key": "ssc",
+        "question": "Would lifting the SS payroll cap fix Social Security?",
+        "context": "Eliminate the wage cap so all earnings are subject to OASDI tax",
+        "headline": "▼ −$3.2T from deficit",
+        "headline_color": "#5cb85c",
+        "source": "10-yr, CBO",
+        "preset": {
+            "sidebar_analysis_mode": "📋 Tax proposal (preset)",
+            "sidebar_policy_area": "Payroll / SS",
+            "sidebar_preset_choice": "Eliminate SS Cap (-$3.2T)",
+        },
+    },
+    {
+        "key": "ctc",
+        "question": "How expensive is a permanent expanded CTC?",
+        "context": "Make the 2021 ARP-style $3,600/$3,000 child tax credit permanent",
+        "headline": "▲ +$1.6T to deficit",
+        "headline_color": "#d9534f",
+        "source": "10-yr, CBO",
+        "preset": {
+            "sidebar_analysis_mode": "📋 Tax proposal (preset)",
+            "sidebar_policy_area": "Tax Credits",
+            "sidebar_preset_choice": "Biden CTC Expansion",
+        },
+    },
+)
+
+
+def _render_quick_start_card(
+    st_module: Any,
+    container: Any,
+    card: dict[str, Any],
+) -> None:
+    with container, st_module.container(border=True):
+        st_module.markdown(f"**{card['question']}**")
+        st_module.caption(card["context"])
+        st_module.markdown(
+            f'<span style="color:{card["headline_color"]};font-weight:600">'
+            f'{card["headline"]}</span>'
+            f' &nbsp;*({card["source"]})*',
+            unsafe_allow_html=True,
+        )
+        if st_module.button(
+            "Try this →",
+            key=f"qs_btn_{card['key']}",
+            use_container_width=True,
+        ):
+            _queue_sidebar_updates(st_module=st_module, **card["preset"])
+            st_module.rerun()
+
+
 def render_quick_start(st_module: Any) -> None:
     """
-    Render a dismissible quick-start guide with clickable policy cards.
+    Render a dismissible quick-start guide with question-led policy cards.
     Auto-dismissed once results exist.
     """
     if "quick_start_dismissed" not in st_module.session_state:
@@ -281,78 +386,38 @@ def render_quick_start(st_module: Any) -> None:
     if st_module.session_state.get("results"):
         st_module.session_state.quick_start_dismissed = True
 
-    if not st_module.session_state.quick_start_dismissed:
-        col1, col2 = st_module.columns([20, 1])
-        with col1:
-            st_module.markdown(
-                "👋 Estimate the 10-year budget impact of any U.S. tax or spending proposal, "
-                "backed by IRS data and CBO methodology. "
-                "Click a card below to load a preset and run a calculation instantly."
-            )
-        with col2:
-            if st_module.button("✕", key="dismiss_quick_start"):
-                st_module.session_state.quick_start_dismissed = True
-                st_module.rerun()
+    if st_module.session_state.quick_start_dismissed:
+        return
 
-        c1, c2, c3 = st_module.columns(3)
+    col1, col2 = st_module.columns([20, 1])
+    with col1:
+        st_module.markdown(
+            "👋 **What do you want to know?** Click a question to load the "
+            "matching preset and run the calculation instantly. Or build "
+            "your own from the sidebar."
+        )
+    with col2:
+        if st_module.button("✕", key="dismiss_quick_start"):
+            st_module.session_state.quick_start_dismissed = True
+            st_module.rerun()
 
-        with c1, st_module.container(border=True):
-            st_module.markdown("**TCJA Extension**")
-            st_module.caption("Extend all individual TCJA provisions beyond the 2025 sunset")
-            st_module.markdown(
-                '<span style="color:#d9534f;font-weight:600">▲ +$4.6T to deficit</span>'
-                " &nbsp;*(10-yr, CBO)*",
-                unsafe_allow_html=True,
-            )
-            if st_module.button("Try this →", key="qs_btn_tcja", use_container_width=True):
-                _queue_sidebar_updates(
-                    st_module=st_module,
-                    sidebar_analysis_mode="📋 Tax proposal (preset)",
-                    sidebar_policy_area="TCJA / Individual",
-                    sidebar_preset_choice="TCJA Full Extension",
-                )
-                st_module.rerun()
+    # Two rows of three cards. Streamlit columns can't easily wrap, so we
+    # render explicit row containers.
+    cards = list(_QUICK_START_CARDS)
+    for row_start in range(0, len(cards), 3):
+        row = cards[row_start : row_start + 3]
+        cols = st_module.columns(len(row))
+        for col, card in zip(cols, row, strict=True):
+            _render_quick_start_card(st_module, col, card)
 
-        with c2, st_module.container(border=True):
-            st_module.markdown("**Biden 400K+ Tax**")
-            st_module.caption("Restore 39.6% top rate on income above $400K")
-            st_module.markdown(
-                '<span style="color:#5cb85c;font-weight:600">▼ −$252B from deficit</span>'
-                " &nbsp;*(10-yr, Treasury)*",
-                unsafe_allow_html=True,
-            )
-            if st_module.button("Try this →", key="qs_btn_biden", use_container_width=True):
-                _queue_sidebar_updates(
-                    st_module=st_module,
-                    sidebar_analysis_mode="📋 Tax proposal (preset)",
-                    sidebar_policy_area="Income Tax",
-                    sidebar_preset_choice="Biden 2025 Proposal",
-                )
-                st_module.rerun()
-
-        with c3, st_module.container(border=True):
-            st_module.markdown("**Infrastructure $100B/yr**")
-            st_module.caption("Federal investment in roads, broadband, and water systems")
-            st_module.markdown(
-                '<span style="color:#d9534f;font-weight:600">▲ +$1.0T to deficit</span>'
-                " &nbsp;*(10-yr, est.)*",
-                unsafe_allow_html=True,
-            )
-            if st_module.button("Try this →", key="qs_btn_infra", use_container_width=True):
-                _queue_sidebar_updates(
-                    st_module=st_module,
-                    sidebar_analysis_mode="💰 Spending program",
-                    sidebar_spending_preset="Infrastructure Investment ($100B/yr)",
-                )
-                st_module.rerun()
-
-        st_module.markdown("---")
+    st_module.markdown("---")
 
 
 def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Path) -> None:
     """
     Render and orchestrate the full Streamlit app flow.
-    Top-level tabs: Calculator | Budget Builder | Generational | State | Bill Tracker | Methodology
+    Top-level tabs: Calculator | Budget Builder | Generational | State |
+    Bill Tracker | Validation | Methodology
     """
     # Ensure every known session key has its declared default before any
     # widgets are constructed. Safe to call on every rerun — does not
@@ -378,6 +443,7 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         "🌐 Generational",
         "🗺️ State",
         "📋 Bill Tracker",
+        "✅ Validation",
         "📖 Methodology",
     ])
 
@@ -437,6 +503,18 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         render_footer(st_module=st_module)
 
     with top_tabs[5]:
+        try:
+            from .tabs.validation_scorecard import render_validation_scorecard_tab
+            render_validation_scorecard_tab(st_module=st_module)
+        except Exception:
+            _logger.exception("Validation scorecard error")
+            st_module.error(
+                "The Validation scorecard encountered an issue. "
+                "Please try reloading the page."
+            )
+        render_footer(st_module=st_module)
+
+    with top_tabs[6]:
         try:
             deps.render_methodology_tab(st_module=st_module)
         except Exception:

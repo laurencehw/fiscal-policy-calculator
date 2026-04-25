@@ -639,6 +639,55 @@ class TestBehavioralOffset:
             "Higher ETI should produce larger behavioral offset"
         )
 
+    def test_behavioral_response_erodes_in_both_directions(self):
+        """Under standard ETI methodology, behavioral response shrinks the
+        magnitude of the revenue effect for both tax increases and tax cuts.
+
+        Regression for a sign bug where the default TaxPolicy returned
+        ``abs(static) * eti * 0.5`` — symmetric magnitude that the engine
+        added to the deficit. That correctly eroded the revenue gain on
+        increases but amplified the cost on cuts. The fixed convention
+        returns ``static * eti * 0.5`` so a tax cut's behavioral offset
+        partially recovers revenue, mirroring the tax-increase case.
+        """
+        scorer = FiscalPolicyScorer(use_real_data=False)
+        common = dict(
+            description="symmetry probe",
+            policy_type=PolicyType.INCOME_TAX,
+            affected_income_threshold=200_000,
+            taxable_income_elasticity=0.25,
+        )
+        increase = TaxPolicy(name="Up", rate_change=+0.02, **common)
+        cut = TaxPolicy(name="Down", rate_change=-0.02, **common)
+
+        r_inc = scorer.score_policy(increase)
+        r_cut = scorer.score_policy(cut)
+
+        static_inc = float(np.sum(r_inc.static_revenue_effect))
+        final_inc = float(np.sum(r_inc.final_deficit_effect))
+        static_cut = float(np.sum(r_cut.static_revenue_effect))
+        final_cut = float(np.sum(r_cut.final_deficit_effect))
+
+        # Tax increase: static raises revenue (>0), final reduces deficit (<0),
+        # but |final| < |static| because behavior erodes the gain.
+        assert static_inc > 0 and final_inc < 0
+        assert abs(final_inc) < abs(static_inc), (
+            "Behavioral response should erode the revenue gain on a tax increase"
+        )
+        # Tax cut: static loses revenue (<0), final widens deficit (>0),
+        # and |final| < |static| because behavior recovers some revenue.
+        assert static_cut < 0 and final_cut > 0
+        assert abs(final_cut) < abs(static_cut), (
+            "Behavioral response should partially recover revenue on a tax cut"
+        )
+        # And the erosion fraction should be symmetric.
+        np.testing.assert_allclose(
+            abs(final_inc) / abs(static_inc),
+            abs(final_cut) / abs(static_cut),
+            rtol=1e-10,
+            err_msg="Erosion fraction should be symmetric for equal-magnitude rate changes",
+        )
+
 
 # =============================================================================
 # PHASE-IN FACTOR

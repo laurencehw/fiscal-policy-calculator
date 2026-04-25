@@ -82,6 +82,15 @@ def render_tax_policy_inputs(
         if cbo_score:
             st_module.caption(f"Official estimate: {cbo_score}")
 
+        from fiscal_model.ui.preset_validation import get_validation_badge
+
+        badge = get_validation_badge(preset_choice)
+        if badge:
+            st_module.caption(
+                f"{badge['icon']} Model accuracy vs {badge['source']}: "
+                f"{badge['signed_pct']:+.1f}% ({badge['rating']})"
+            )
+
         description = preset_data["description"]
 
         import re as _re
