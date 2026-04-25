@@ -16,7 +16,7 @@ from fiscal_model.api_serialization import (
     _value_at,
     serialize_scoring_result,
 )
-from fiscal_model.policies_core import PolicyType
+from fiscal_model.policies import PolicyType
 
 
 def test_as_float_array_handles_none_scalar_and_invalid():
@@ -115,6 +115,34 @@ def test_final_static_effect_excludes_dynamic_feedback():
     )
     assert np.isclose(payload["final_static_effect"], expected_from_components)
     assert np.isclose(payload["final_static_effect"], expected_from_deficit)
+
+
+def test_final_static_effect_ignores_display_flag_for_derivation():
+    """Derived math must use the actual feedback in the result, not the
+    display flag. If a caller serializes a dynamically-scored result with
+    dynamic_scoring_enabled=False (rare but allowed by the contract), the
+    static-impact scalar must still be the pre-dynamic revenue effect, not
+    a stale ten_year minus zero."""
+    policy, result = _score_simple_tax_increase(dynamic=True)
+
+    shown = serialize_scoring_result(
+        result,
+        policy_name=policy.name,
+        policy_description=policy.description,
+        dynamic_scoring_enabled=True,
+    )
+    hidden = serialize_scoring_result(
+        result,
+        policy_name=policy.name,
+        policy_description=policy.description,
+        dynamic_scoring_enabled=False,
+    )
+
+    # The displayed revenue_feedback honors the flag.
+    assert shown["revenue_feedback"] != 0.0
+    assert hidden["revenue_feedback"] == 0.0
+    # But the underlying static-impact derivation must not.
+    assert np.isclose(hidden["final_static_effect"], shown["final_static_effect"])
 
 
 def test_final_static_effect_matches_year_by_year_sum():
