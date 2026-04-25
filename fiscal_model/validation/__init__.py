@@ -14,15 +14,6 @@ from .cbo_scores import (
     get_scores_by_type,
     list_available_policies,
 )
-from .scorecard import (
-    DEFAULT_RUNNERS,
-    ScorecardEntry,
-    ScorecardSummary,
-    cached_default_scorecard,
-    compute_scorecard,
-    reset_scorecard_cache,
-    scorecard_to_dict,
-)
 from .compare import (
     AMT_VALIDATION_SCENARIOS_COMPARE,
     CAPITAL_GAINS_VALIDATION_SCENARIOS,
@@ -67,18 +58,21 @@ from .compare import (
     # TCJA validation
     validate_tcja_extension,
 )
+from .scorecard import (
+    DEFAULT_RUNNERS,
+    ScorecardEntry,
+    ScorecardSummary,
+    cached_default_scorecard,
+    compute_scorecard,
+    reset_scorecard_cache,
+    scorecard_to_dict,
+)
 
 __all__ = [
-    'DEFAULT_RUNNERS',
-    'ScorecardEntry',
-    'ScorecardSummary',
-    'cached_default_scorecard',
-    'compute_scorecard',
-    'reset_scorecard_cache',
-    'scorecard_to_dict',
     'AMT_VALIDATION_SCENARIOS_COMPARE',
     'CAPITAL_GAINS_VALIDATION_SCENARIOS',
     'CORPORATE_VALIDATION_SCENARIOS',
+    'DEFAULT_RUNNERS',
     'ESTATE_TAX_VALIDATION_SCENARIOS',
     'KNOWN_SCORES',
     'PAYROLL_TAX_VALIDATION_SCENARIOS',
@@ -86,16 +80,20 @@ __all__ = [
     'TAX_CREDIT_VALIDATION_SCENARIOS',
     'TAX_EXPENDITURE_VALIDATION_SCENARIOS_COMPARE',
     'TCJA_VALIDATION_SCENARIOS',
-    # Score database
     'CBOScore',
-    # Comparison
+    'ScorecardEntry',
+    'ScorecardSummary',
     'ValidationResult',
+    'cached_default_scorecard',
+    'compute_scorecard',
     'generate_validation_report',
     'get_score',
     'get_scores_by_type',
     'list_available_policies',
     'quick_validate',
+    'reset_scorecard_cache',
     'run_validation_suite',
+    'scorecard_to_dict',
     'validate_all',
     'validate_all_amt',
     'validate_all_capital_gains',
@@ -106,24 +104,15 @@ __all__ = [
     'validate_all_payroll',
     'validate_all_ptc',
     'validate_all_tcja',
-    # AMT validation
     'validate_amt_policy',
-    # Capital gains validation
     'validate_capital_gains_policy',
-    # Corporate tax validation
     'validate_corporate_policy',
-    # Tax credit validation
     'validate_credit_policy',
-    # Estate tax validation
     'validate_estate_policy',
-    # Tax expenditure validation
     'validate_expenditure_policy',
-    # Payroll tax validation
     'validate_payroll_policy',
     'validate_policy',
-    # PTC validation
     'validate_ptc_policy',
-    # TCJA validation
     'validate_tcja_extension',
 ]
 

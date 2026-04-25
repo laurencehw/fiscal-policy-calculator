@@ -10,9 +10,9 @@ the ``/validation/scorecard`` API endpoint and the Streamlit Validation tab.
 from __future__ import annotations
 
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from functools import lru_cache
-from typing import Callable
 
 from .core import ValidationResult, validate_all
 from .specialized import (
@@ -66,7 +66,7 @@ class ScorecardEntry:
     notes: str
 
     @classmethod
-    def from_result(cls, category: str, r: ValidationResult) -> "ScorecardEntry":
+    def from_result(cls, category: str, r: ValidationResult) -> ScorecardEntry:
         return cls(
             category=category,
             policy_id=r.policy_id,
@@ -163,7 +163,7 @@ def compute_scorecard(
     ratings = Counter(e.rating for e in entries)
 
     by_cat: dict[str, dict] = {}
-    for cat in runners.keys():
+    for cat in runners:
         cat_entries = [e for e in entries if e.category == cat]
         by_cat[cat] = _category_summary(cat_entries)
 

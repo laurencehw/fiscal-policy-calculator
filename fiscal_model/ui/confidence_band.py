@@ -15,7 +15,6 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any
 
-
 # Map preset categories from PRESET_POLICIES (`_preset_category`) to
 # scorecard categories from compute_scorecard. Where no calibrated
 # specialized validator exists, we fall back to ``Generic``.

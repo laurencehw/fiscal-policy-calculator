@@ -4,6 +4,7 @@ Tests for the TPC-style winners/losers narrative on the Distribution tab.
 
 from __future__ import annotations
 
+from dataclasses import FrozenInstanceError
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -166,5 +167,5 @@ def test_render_handles_no_winners_no_losers():
 def test_group_summary_is_immutable():
     """Frozen dataclass is intentional so the summary can't be mutated mid-render."""
     g = GroupSummary(name="Top", avg_tax_change=-100.0, pct_of_income=-0.5, share_of_total=-0.9)
-    with pytest.raises(Exception):
+    with pytest.raises(FrozenInstanceError):
         g.avg_tax_change = 0  # type: ignore[misc]
