@@ -191,6 +191,28 @@ def render_results_summary_tab(
                 unsafe_allow_html=True,
             )
 
+    # Confidence band — pulled from the live validation scorecard.
+    # Sits between the ETI sensitivity range and the CBO comparison so
+    # readers see "model accuracy ±X%" before any specific number.
+    from fiscal_model.ui.confidence_band import (
+        estimate_uncertainty_dollars,
+        format_band_caption,
+        get_band_for_result,
+    )
+
+    band = get_band_for_result(
+        policy_name=result_data.get("policy_name"),
+        policy=policy,
+    )
+    if band is not None:
+        half = estimate_uncertainty_dollars(final_deficit_total, band)
+        st_module.markdown(
+            f"<small><b>Calibration:</b> ${final_deficit_total:+.1f}B "
+            f"&plusmn; ${half:.0f}B &nbsp;·&nbsp; "
+            f"{format_band_caption(band)}</small>",
+            unsafe_allow_html=True,
+        )
+
     # CBO comparison note (if available)
     policy_name = result_data.get("policy_name", "")
     cbo_data = cbo_score_map.get(policy_name)

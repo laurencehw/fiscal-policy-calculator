@@ -46,6 +46,58 @@ APP_STYLES = """
     .stButton button[data-testid="baseButton-secondary"] {
         border-radius: 6px;
     }
+    /* ── Mobile (≤640px): stack columns, larger taps, smaller headers ─── */
+    @media screen and (max-width: 640px) {
+        /* Bigger tap targets — 44px is the iOS/Material accessibility floor. */
+        .stButton button {
+            min-height: 44px;
+            padding: 0.5rem 1rem;
+            font-size: 1rem;
+        }
+        /* Stack horizontal column groups vertically on phones. Streamlit
+           renders st.columns() as flex rows; turning them into flex
+           columns makes the quick-start cards, distribution callouts,
+           and bill cards readable on a 360px viewport. */
+        div[data-testid="stHorizontalBlock"] {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+            width: 100% !important;
+            min-width: 100% !important;
+        }
+        /* Shrink the main hero header and tighten metric cards. */
+        .main-header {
+            font-size: 1.6rem;
+        }
+        h1 { font-size: 1.6rem; }
+        h2 { font-size: 1.3rem; }
+        h3 { font-size: 1.1rem; }
+        .info-box {
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+        }
+        /* Dataframes: allow horizontal scroll instead of squashing. */
+        div[data-testid="stDataFrame"],
+        div[data-testid="stTable"] {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        /* Tighten metric values so the deficit number doesn't truncate. */
+        div[data-testid="stMetric"] {
+            padding: 0.5rem 0;
+        }
+        div[data-testid="stMetricValue"] {
+            font-size: 1.25rem;
+        }
+        /* Sidebar: reduce padding so more content fits behind the
+           hamburger toggle. */
+        section[data-testid="stSidebar"] > div {
+            padding-top: 0.5rem;
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+    }
     /* ── Mobile: scrollable tab bar ───────────────────────────────────── */
     @media screen and (max-width: 640px) {
         .stTabs [data-baseweb="tab-list"] {
@@ -64,6 +116,12 @@ APP_STYLES = """
             font-size: 0.8rem;
             min-width: fit-content;
         }
+    }
+    /* ── Tablet (641-1024px): keep columns but tighten gutters ────────── */
+    @media screen and (min-width: 641px) and (max-width: 1024px) {
+        .main-header { font-size: 2rem; }
+        div[data-testid="stHorizontalBlock"] { gap: 0.5rem; }
+        .stButton button { min-height: 40px; }
     }
 </style>
 """
