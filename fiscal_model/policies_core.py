@@ -323,6 +323,7 @@ class CapitalGainsPolicy(TaxPolicy):
     step_up_exemption: float = 1_000_000
     gains_at_death_billions: float = 54.0
     step_up_lock_in_multiplier: float = 2.0
+    no_step_up_avoidance_multiplier: float = 1.0
 
     def __post_init__(self):
         super().__post_init__()
@@ -346,6 +347,11 @@ class CapitalGainsPolicy(TaxPolicy):
                 "step_up_lock_in_multiplier must be >= 0, "
                 f"got {self.step_up_lock_in_multiplier}"
             )
+        if self.no_step_up_avoidance_multiplier < 0:
+            raise ValueError(
+                "no_step_up_avoidance_multiplier must be >= 0, "
+                f"got {self.no_step_up_avoidance_multiplier}"
+            )
 
     def get_elasticity_for_year(self, years_since_start: int) -> float:
         """Get the appropriate realization elasticity for a given year."""
@@ -362,7 +368,9 @@ class CapitalGainsPolicy(TaxPolicy):
                 + self.long_run_elasticity * weight
             )
 
-        if self.step_up_at_death and not self.eliminate_step_up:
+        if self.eliminate_step_up:
+            return base_elasticity * self.no_step_up_avoidance_multiplier
+        if self.step_up_at_death:
             return base_elasticity * self.step_up_lock_in_multiplier
         return base_elasticity
 

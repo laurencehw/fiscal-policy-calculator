@@ -28,6 +28,42 @@ jobs:
         run: |
           pytest tests/test_app_entrypoints.py tests/test_ui_controller_smoke.py -q
 
+  readiness:
+    # Release-readiness gate on the production-style runtime. Strict mode
+    # requires a clean "ready" verdict so future warnings do not silently ship.
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install locked production dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-lock.txt
+
+      - name: Run release readiness gate
+        run: |
+          python scripts/check_readiness.py --strict
+
+      - name: Write readiness report
+        if: always()
+        run: |
+          python scripts/check_readiness.py --json > readiness-report.json
+        continue-on-error: true
+
+      - name: Upload readiness report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: readiness-report
+          path: readiness-report.json
+          if-no-files-found: ignore
+
   test:
     runs-on: ubuntu-latest
 

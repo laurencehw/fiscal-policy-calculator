@@ -4,6 +4,8 @@ Reports on data freshness, API availability, and model readiness.
 """
 
 import logging
+import platform
+import sys
 from typing import Any
 
 from fiscal_model.data.freshness import (
@@ -16,6 +18,11 @@ from fiscal_model.data.freshness import (
 from fiscal_model.time_utils import format_utc_timestamp, utc_isoformat
 
 logger = logging.getLogger(__name__)
+
+_SUPPORTED_PYTHON_MIN = (3, 10)
+_SUPPORTED_PYTHON_MAX_EXCLUSIVE = (3, 14)
+_SUPPORTED_PYTHON_RANGE = ">=3.10,<3.14"
+_RECOMMENDED_PYTHON = "3.12"
 
 
 def _serialize_freshness(report: FreshnessReport | None) -> dict[str, Any] | None:
@@ -76,6 +83,44 @@ def _serialize_fred_status(data_status: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _runtime_status(version_info: tuple[int, int, int] | None = None) -> dict[str, Any]:
+    """Report whether the current Python runtime matches the supported contract."""
+    if version_info is None:
+        raw = sys.version_info
+        version_tuple = (int(raw.major), int(raw.minor), int(raw.micro))
+        python_version = platform.python_version()
+    else:
+        version_tuple = version_info
+        python_version = ".".join(str(part) for part in version_tuple)
+
+    major_minor = version_tuple[:2]
+    supported = (
+        _SUPPORTED_PYTHON_MIN
+        <= major_minor
+        < _SUPPORTED_PYTHON_MAX_EXCLUSIVE
+    )
+    if supported:
+        message = (
+            f"Python {python_version} is within supported range "
+            f"{_SUPPORTED_PYTHON_RANGE}."
+        )
+    else:
+        message = (
+            f"Python {python_version} is outside supported range "
+            f"{_SUPPORTED_PYTHON_RANGE}; use {_RECOMMENDED_PYTHON} for production."
+        )
+
+    return {
+        "status": "ok" if supported else "degraded",
+        "python_version": python_version,
+        "implementation": platform.python_implementation(),
+        "executable": sys.executable,
+        "supported_range": _SUPPORTED_PYTHON_RANGE,
+        "recommended_version": _RECOMMENDED_PYTHON,
+        "message": message,
+    }
+
+
 def check_health() -> dict[str, Any]:
     """
     Run a comprehensive health check on all data sources and models.
@@ -87,6 +132,11 @@ def check_health() -> dict[str, Any]:
     - model: status of scoring engine
     """
     results = {}
+
+    # Runtime contract. This is intentionally first and cheap: it catches
+    # deployments that boot on an unsupported Python even if every model
+    # component happens to import successfully.
+    results["runtime"] = _runtime_status()
 
     # Check baseline
     try:

@@ -3,8 +3,8 @@
 Print a validation dashboard for the Fiscal Policy Calculator.
 
 Runs every diagnostic surface the app exposes and prints a single human-
-readable report: health check (baseline / FRED / IRS / model / microdata),
-CBO score benchmarks, and the SOI calibration of the current microdata
+readable report: health check (runtime / baseline / FRED / IRS / model /
+microdata), CBO score benchmarks, and the SOI calibration of the current microdata
 file. Useful for CI, release-readiness checks, and debugging before a
 paper submission.
 
@@ -23,6 +23,8 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from dataclasses import asdict, is_dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -41,6 +43,8 @@ from fiscal_model.validation.cbo_distributions import (  # noqa: E402
 )
 
 STATUS_DEGRADED = {"degraded", "error", "needs_improvement", "unknown"}
+HEALTH_COMPONENTS = ("runtime", "baseline", "fred", "irs_soi", "model", "microdata")
+CALIBRATION_AGI_RATIO_MIN = 0.60
 
 
 def _fmt_billion(value: float | None) -> str:
@@ -89,6 +93,18 @@ def collect_microdata(
         "augmentation": augmentation_report,
         "filter": filter_report,
     }
+
+
+def _serialize_operation_report(report: Any) -> dict[str, Any] | None:
+    """Serialize optional microdata operation reports for JSON artifacts."""
+    if report is None:
+        return None
+    data = asdict(report) if is_dataclass(report) else dict(vars(report))
+    if hasattr(report, "rows_removed"):
+        data["rows_removed"] = report.rows_removed
+    if hasattr(report, "weighted_removed"):
+        data["weighted_removed"] = report.weighted_removed
+    return data
 
 
 def print_banner(title: str) -> None:
@@ -141,7 +157,7 @@ def print_health(health: dict[str, Any]) -> bool:
     print_banner("Health check")
     all_ok = True
     failing_components: list[tuple[str, dict[str, Any]]] = []
-    for component in ("baseline", "fred", "irs_soi", "model", "microdata"):
+    for component in HEALTH_COMPONENTS:
         info = health.get(component, {})
         status = info.get("status", "unknown")
         if status in STATUS_DEGRADED:
@@ -151,7 +167,12 @@ def print_health(health: dict[str, Any]) -> bool:
                 all_ok = False
                 failing_components.append((component, info))
         details: list[str] = []
-        if component == "baseline":
+        if component == "runtime":
+            details.append(
+                f"Python {info.get('python_version', '?')} "
+                f"(supported {info.get('supported_range', '?')})"
+            )
+        elif component == "baseline":
             details.append(str(info.get("vintage") or info.get("source", "")))
         elif component == "fred":
             details.append(str(info.get("source", "")))
@@ -186,6 +207,50 @@ def print_health(health: dict[str, Any]) -> bool:
     return all_ok
 
 
+def health_gate_ok(health: dict[str, Any]) -> bool:
+    """Silent equivalent of print_health for JSON/reporting paths."""
+    return not health_gate_issues(health)
+
+
+def _health_issue_message(component: str, info: dict[str, Any]) -> str:
+    if info.get("message"):
+        return str(info["message"])
+    if info.get("error"):
+        return str(info["error"])
+    if info.get("load_error"):
+        return str(info["load_error"])
+    if component == "runtime":
+        return (
+            f"Python {info.get('python_version', '?')} is outside supported range "
+            f"{info.get('supported_range', '?')}."
+        )
+    if component == "microdata":
+        returns_pct = info.get("returns_coverage_pct")
+        agi_pct = info.get("agi_coverage_pct")
+        if returns_pct is not None and agi_pct is not None:
+            return f"SOI coverage degraded: returns {returns_pct}% / AGI {agi_pct}%."
+    return f"{component} health status is {info.get('status', 'unknown')}."
+
+
+def health_gate_issues(health: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return non-environmental health degradations in artifact-friendly form."""
+    issues: list[dict[str, Any]] = []
+    for component in HEALTH_COMPONENTS:
+        info = health.get(component, {})
+        status = info.get("status", "unknown")
+        if status in STATUS_DEGRADED and not _is_environmental_degradation(component, info):
+            issues.append(
+                {
+                    "surface": "health",
+                    "severity": "fail",
+                    "component": component,
+                    "status": status,
+                    "message": _health_issue_message(component, info),
+                }
+            )
+    return issues
+
+
 def print_benchmarks() -> bool:
     """Return True if no benchmark is rated needs_improvement."""
     print_banner("CBO/JCT distributional benchmarks")
@@ -211,6 +276,91 @@ def print_benchmarks() -> bool:
         if rating == "needs_improvement":
             all_ok = False
     return all_ok
+
+
+def calibration_gate_ok(calibration: dict[str, Any]) -> bool:
+    """Silent equivalent of print_calibration for JSON/reporting paths."""
+    return not calibration_gate_issues(calibration)
+
+
+def _format_agi_bracket(lower: float, upper: float | None) -> str:
+    if upper is None:
+        return f"${lower:,.0f}+"
+    return f"${lower:,.0f}-${upper:,.0f}"
+
+
+def calibration_gate_issues(calibration: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return calibration brackets whose SOI AGI coverage is below threshold."""
+    report = calibration["report"]
+    if report is None:
+        descriptor = calibration.get("descriptor", {})
+        return [
+            {
+                "surface": "calibration",
+                "severity": "warn",
+                "message": descriptor.get("message", "SOI calibration report unavailable."),
+                "status": descriptor.get("status"),
+            }
+        ]
+    issues: list[dict[str, Any]] = []
+    for bracket in report.brackets:
+        agi_ratio = bracket.agi_ratio
+        if agi_ratio is None or agi_ratio >= CALIBRATION_AGI_RATIO_MIN:
+            continue
+        label = _format_agi_bracket(bracket.lower, bracket.upper)
+        issues.append(
+            {
+                "surface": "calibration",
+                "severity": "warn",
+                "lower": bracket.lower,
+                "upper": bracket.upper,
+                "returns_ratio": bracket.returns_ratio,
+                "agi_ratio": agi_ratio,
+                "threshold": CALIBRATION_AGI_RATIO_MIN,
+                "message": (
+                    f"AGI coverage ratio {agi_ratio:.2f} is below "
+                    f"{CALIBRATION_AGI_RATIO_MIN:.2f} for bracket {label}."
+                ),
+            }
+        )
+    return issues
+
+
+def benchmarks_gate_ok(benchmarks: list[dict[str, Any]]) -> bool:
+    """Return False when a benchmark failed to run or needs improvement."""
+    return not benchmark_gate_issues(benchmarks)
+
+
+def benchmark_gate_issues(benchmarks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return distributional benchmark failures in artifact-friendly form."""
+    issues: list[dict[str, Any]] = []
+    for benchmark in benchmarks:
+        if "error" in benchmark:
+            issues.append(
+                {
+                    "surface": "distributional_benchmarks",
+                    "severity": "fail",
+                    "message": f"Benchmark runner failed: {benchmark['error']}",
+                }
+            )
+            continue
+        if benchmark.get("rating") == "needs_improvement":
+            issues.append(
+                {
+                    "surface": "distributional_benchmarks",
+                    "severity": "fail",
+                    "policy_id": benchmark.get("policy_id"),
+                    "rating": benchmark.get("rating"),
+                    "mean_absolute_share_error_pp": benchmark.get(
+                        "mean_absolute_share_error_pp"
+                    ),
+                    "message": (
+                        "Distributional benchmark needs improvement: "
+                        f"{benchmark.get('policy_id', 'unknown policy')}."
+                    ),
+                }
+            )
+    return issues
 
 
 def print_calibration(calibration: dict[str, Any]) -> bool:
@@ -243,7 +393,7 @@ def print_calibration(calibration: dict[str, Any]) -> bool:
         )
         r_r = bracket.returns_ratio
         r_a = bracket.agi_ratio
-        if r_a is not None and 0 < r_a < 1:
+        if r_a is not None and r_a < worst_ratio:
             worst_ratio = min(worst_ratio, r_a)
         print(
             f"    {label:<24} "
@@ -251,7 +401,7 @@ def print_calibration(calibration: dict[str, Any]) -> bool:
             f"{r_a if r_a is not None else 0:>10.2f}"
         )
     # Flag as degraded if any bracket's AGI coverage is <60%.
-    return worst_ratio >= 0.60
+    return worst_ratio >= CALIBRATION_AGI_RATIO_MIN
 
 
 def main() -> int:
@@ -326,6 +476,10 @@ def main() -> int:
             "calibration": {
                 "year": calibration_year,
                 "descriptor": calibration["descriptor"],
+                "augmentation": _serialize_operation_report(
+                    calibration.get("augmentation")
+                ),
+                "filter": _serialize_operation_report(calibration.get("filter")),
                 "summary": report.summary() if report else None,
                 "brackets": (
                     [
@@ -343,6 +497,28 @@ def main() -> int:
             },
             "distributional_benchmarks": benchmarks_json,
         }
+        gates = {
+            "health": health_gate_ok(health),
+            "calibration": calibration_gate_ok(calibration),
+            "distributional_benchmarks": benchmarks_gate_ok(benchmarks_json),
+        }
+        issues = [
+            *health_gate_issues(health),
+            *calibration_gate_issues(calibration),
+            *benchmark_gate_issues(benchmarks_json),
+        ]
+        if not gates["health"] or not gates["distributional_benchmarks"]:
+            overall = "fail"
+        elif not gates["calibration"]:
+            overall = "warn"
+        else:
+            overall = "ok"
+        payload.update({
+            "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
+            "overall": overall,
+            "gates": gates,
+            "issues": issues,
+        })
         print(json.dumps(payload, indent=2, default=str))
         return 0
 

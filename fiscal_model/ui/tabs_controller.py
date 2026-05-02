@@ -11,10 +11,36 @@ Consolidated tab layout (5 tabs):
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fiscal_model.data.irs_soi import IRSSOIData
 from fiscal_model.ui.helpers import TEXTBOOK_HOME
+
+_logger = logging.getLogger(__name__)
+
+
+def _render_tab_error(st_module: Any, tab_label: str, exc: Exception) -> None:
+    """Render a user-safe tab failure without breaking sibling tabs."""
+    _logger.exception("Failed to render %s tab", tab_label)
+    st_module.error(
+        f"{tab_label} could not be rendered. "
+        "The rest of the calculator is still available."
+    )
+    st_module.caption(
+        "If this persists, include the tab name and current policy in a bug report."
+    )
+    if hasattr(st_module, "expander") and hasattr(st_module, "code"):
+        with st_module.expander("Technical details", expanded=False):
+            st_module.code(f"{type(exc).__name__}: {exc}", language="text")
+
+
+def _render_guarded_tab(st_module: Any, tab_label: str, render_fn: Any) -> None:
+    """Execute a tab body behind a small error boundary."""
+    try:
+        render_fn()
+    except Exception as exc:
+        _render_tab_error(st_module, tab_label, exc)
 
 
 def _latest_soi_year() -> int:
@@ -138,88 +164,81 @@ def render_result_tabs(
 
     # Tab 1: Results & Details (merged)
     with tabs["tab_summary"]:
-        if is_stale:
-            st_module.warning(
-                "Inputs changed since the last run. "
-                "Click **Calculate Impact** to refresh results."
+        def _render_summary_body() -> None:
+            if is_stale:
+                st_module.warning(
+                    "Inputs changed since the last run. "
+                    "Click **Calculate Impact** to refresh results."
+                )
+            deps.render_results_summary_tab(
+                st_module=st_module,
+                result_data=result_data,
+                cbo_score_map=deps.CBO_SCORE_MAP,
             )
-        deps.render_results_summary_tab(
-            st_module=st_module,
-            result_data=result_data,
-            cbo_score_map=deps.CBO_SCORE_MAP,
-        )
-        # Detailed breakdown in an expander within the same tab
-        with st_module.expander("📋 Detailed Year-by-Year Breakdown", expanded=False):
-            deps.render_detailed_results_tab(
-                st_module=st_module, result_data=result_data
-            )
+            # Detailed breakdown in an expander within the same tab
+            with st_module.expander("📋 Detailed Year-by-Year Breakdown", expanded=False):
+                deps.render_detailed_results_tab(
+                    st_module=st_module, result_data=result_data
+                )
+
+        _render_guarded_tab(st_module, "Results & Details", _render_summary_body)
 
     # Tab 2: Distribution
     with tabs["tab_distribution"]:
-        if is_stale:
-            st_module.warning(
-                "Inputs changed since the last run. "
-                "Click **Calculate Impact** to refresh results."
+        def _render_distribution_body() -> None:
+            if is_stale:
+                st_module.warning(
+                    "Inputs changed since the last run. "
+                    "Click **Calculate Impact** to refresh results."
+                )
+            deps.render_distribution_tab(
+                st_module=st_module,
+                model_available=model_available,
+                policy=policy,
+                distribution_engine_cls=deps.DistributionalEngine,
+                income_group_type_cls=deps.IncomeGroupType,
+                format_distribution_table_fn=deps.format_distribution_table,
+                winners_losers_summary_fn=deps.generate_winners_losers_summary,
+                run_id=results_run_id,
+                use_microsim=settings.get("use_microsim_distribution", False),
             )
-        deps.render_distribution_tab(
-            st_module=st_module,
-            model_available=model_available,
-            policy=policy,
-            distribution_engine_cls=deps.DistributionalEngine,
-            income_group_type_cls=deps.IncomeGroupType,
-            format_distribution_table_fn=deps.format_distribution_table,
-            winners_losers_summary_fn=deps.generate_winners_losers_summary,
-            run_id=results_run_id,
-            use_microsim=settings.get("use_microsim_distribution", False),
-        )
+
+        _render_guarded_tab(st_module, "Distribution", _render_distribution_body)
 
     # Tab 3: Economic Effects (dynamic scoring + long-run growth)
     with tabs["tab_economic"]:
-        if is_stale:
-            st_module.warning(
-                "Inputs changed since the last run. "
-                "Click **Calculate Impact** to refresh results."
+        def _render_economic_body() -> None:
+            if is_stale:
+                st_module.warning(
+                    "Inputs changed since the last run. "
+                    "Click **Calculate Impact** to refresh results."
+                )
+            deps.render_dynamic_scoring_tab(
+                st_module=st_module,
+                dynamic_scoring=settings["dynamic_scoring"],
+                result_data=result_data,
+                macro_model_name=settings["macro_model"],
+                macro_scenario_cls=deps.MacroScenario,
+                frbus_adapter_lite_cls=deps.FRBUSAdapterLite,
+                simple_multiplier_adapter_cls=deps.SimpleMultiplierAdapter,
+                build_macro_scenario_fn=deps.build_macro_scenario,
+                run_id=results_run_id,
             )
-        deps.render_dynamic_scoring_tab(
-            st_module=st_module,
-            dynamic_scoring=settings["dynamic_scoring"],
-            result_data=result_data,
-            macro_model_name=settings["macro_model"],
-            macro_scenario_cls=deps.MacroScenario,
-            frbus_adapter_lite_cls=deps.FRBUSAdapterLite,
-            simple_multiplier_adapter_cls=deps.SimpleMultiplierAdapter,
-            build_macro_scenario_fn=deps.build_macro_scenario,
-            run_id=results_run_id,
-        )
-        # Long-run growth section within the same tab
-        st_module.markdown("---")
-        deps.render_long_run_growth_tab(
-            st_module=st_module,
-            session_results=result_data,
-            solow_growth_model_cls=deps.SolowGrowthModel,
-            run_id=results_run_id,
-        )
+            # Long-run growth section within the same tab
+            st_module.markdown("---")
+            deps.render_long_run_growth_tab(
+                st_module=st_module,
+                session_results=result_data,
+                solow_growth_model_cls=deps.SolowGrowthModel,
+                run_id=results_run_id,
+            )
+
+        _render_guarded_tab(st_module, "Economic Effects", _render_economic_body)
 
     # Tab 4: Scoring Models
     with tabs["tab_scoring"]:
-        deps.render_policy_comparison_tab(
-            st_module=st_module,
-            is_spending=is_spending,
-            preset_policies=deps.PRESET_POLICIES,
-            tax_policy_cls=deps.TaxPolicy,
-            policy_type_income_tax=deps.PolicyType.INCOME_TAX,
-            fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
-            data_year=settings["data_year"],
-            use_real_data=settings["use_real_data"],
-            dynamic_scoring=settings["dynamic_scoring"],
-        )
-
-        st_module.markdown("---")
-        with st_module.expander(
-            "🔀 Multi-model pilot (CBO × TPC-Microsim × PWBM-OLG)",
-            expanded=False,
-        ):
-            deps.render_multi_model_tab(
+        def _render_scoring_body() -> None:
+            deps.render_policy_comparison_tab(
                 st_module=st_module,
                 is_spending=is_spending,
                 preset_policies=deps.PRESET_POLICIES,
@@ -228,20 +247,42 @@ def render_result_tabs(
                 fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
                 data_year=settings["data_year"],
                 use_real_data=settings["use_real_data"],
+                dynamic_scoring=settings["dynamic_scoring"],
             )
+
+            st_module.markdown("---")
+            with st_module.expander(
+                "🔀 Multi-model pilot (CBO × TPC-Microsim × PWBM-OLG)",
+                expanded=False,
+            ):
+                deps.render_multi_model_tab(
+                    st_module=st_module,
+                    is_spending=is_spending,
+                    preset_policies=deps.PRESET_POLICIES,
+                    tax_policy_cls=deps.TaxPolicy,
+                    policy_type_income_tax=deps.PolicyType.INCOME_TAX,
+                    fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
+                    data_year=settings["data_year"],
+                    use_real_data=settings["use_real_data"],
+                )
+
+        _render_guarded_tab(st_module, "Scoring Models", _render_scoring_body)
 
     # Tab 5: Side-by-Side Policy Comparison
     with tabs["tab_compare"]:
-        deps.render_side_by_side_tab(
-            st_module=st_module,
-            preset_policies=deps.PRESET_POLICIES,
-            tax_policy_cls=deps.TaxPolicy,
-            policy_type_income_tax=deps.PolicyType.INCOME_TAX,
-            fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
-            data_year=settings["data_year"],
-            use_real_data=settings["use_real_data"],
-            dynamic_scoring=settings["dynamic_scoring"],
-        )
+        def _render_compare_body() -> None:
+            deps.render_side_by_side_tab(
+                st_module=st_module,
+                preset_policies=deps.PRESET_POLICIES,
+                tax_policy_cls=deps.TaxPolicy,
+                policy_type_income_tax=deps.PolicyType.INCOME_TAX,
+                fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
+                data_year=settings["data_year"],
+                use_real_data=settings["use_real_data"],
+                dynamic_scoring=settings["dynamic_scoring"],
+            )
+
+        _render_guarded_tab(st_module, "Compare Policies", _render_compare_body)
 
 
 def render_footer(st_module: Any) -> None:

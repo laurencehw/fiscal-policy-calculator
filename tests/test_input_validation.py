@@ -283,6 +283,15 @@ class TestCapitalGainsPolicyBounds:
                 step_up_lock_in_multiplier=-0.5,
             )
 
+    def test_rejects_negative_no_step_up_avoidance_multiplier(self):
+        with pytest.raises(ValueError, match="no_step_up_avoidance_multiplier"):
+            CapitalGainsPolicy(
+                name="bad",
+                description="",
+                policy_type=PolicyType.CAPITAL_GAINS_TAX,
+                no_step_up_avoidance_multiplier=-0.5,
+            )
+
     def test_scoring_rejects_nonpositive_realizations(self):
         """
         Zero baseline realizations when auto-populate is off should surface

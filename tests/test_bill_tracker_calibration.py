@@ -70,7 +70,7 @@ def test_render_bill_calibration_band_silent_when_no_provisions():
 
 def test_render_bill_calibration_band_silent_on_compute_failure(monkeypatch):
     """A scorecard failure must produce no band rather than a 500."""
-    from fiscal_model.ui import confidence_band as cb_module
+    from fiscal_model.validation import credibility as cb_module
 
     def _boom():
         raise RuntimeError("boom")

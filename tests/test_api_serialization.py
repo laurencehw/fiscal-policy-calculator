@@ -162,3 +162,22 @@ def test_final_static_effect_matches_year_by_year_sum():
     assert np.isclose(payload["final_static_effect"], yearly_revenue_net)
     yearly_final = sum(entry["final_effect"] for entry in payload["year_by_year"])
     assert np.isclose(payload["final_static_effect"], -yearly_final)
+
+
+def test_serialized_result_includes_credibility_metadata():
+    policy, result = _score_simple_tax_increase(dynamic=False)
+    payload = serialize_scoring_result(
+        result,
+        policy_name=policy.name,
+        policy_description=policy.description,
+        dynamic_scoring_enabled=False,
+    )
+
+    credibility = payload["credibility"]
+    assert credibility is not None
+    assert credibility["category"] == "Generic"
+    assert credibility["evidence_type"] == "generic_parameterized_estimate"
+    assert credibility["holdout_status"] == "not_applicable_generic"
+    assert credibility["uncertainty_low"] <= payload["ten_year_deficit_impact"]
+    assert credibility["uncertainty_high"] >= payload["ten_year_deficit_impact"]
+    assert any("holdout" in item for item in credibility["limitations"])

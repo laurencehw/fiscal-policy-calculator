@@ -12,6 +12,11 @@ from fastapi.testclient import TestClient
 
 import api as api_module
 from fiscal_model.app_data import PRESET_POLICIES
+from fiscal_model.readiness import (
+    ReadinessCheck,
+    ReadinessReport,
+    readiness_issues_from_checks,
+)
 
 
 class _DummyScoringResult:
@@ -107,7 +112,49 @@ def test_root_endpoint_advertises_benchmarks():
     response = _client().get("/")
     assert response.status_code == 200
     assert "benchmarks" in response.json()["endpoints"]
+    assert "readiness" in response.json()["endpoints"]
     assert "summary" in response.json()["endpoints"]
+
+
+def test_readiness_endpoint_returns_verdict(monkeypatch):
+    checks = [
+        ReadinessCheck(
+            name="runtime",
+            status="pass",
+            required=True,
+            summary="Runtime ok.",
+            details={"python_version": "3.12.0"},
+        ),
+        ReadinessCheck(
+            name="holdout_protocol",
+            status="warn",
+            required=False,
+            summary="No holdout split yet.",
+        ),
+    ]
+    monkeypatch.setattr(
+        api_module,
+        "build_readiness_report",
+        lambda: ReadinessReport(
+            verdict="ready_with_warnings",
+            generated_at="2026-04-01T00:00:00Z",
+            pass_count=1,
+            warn_count=1,
+            fail_count=0,
+            checks=checks,
+            issues=readiness_issues_from_checks(checks),
+        ),
+    )
+
+    response = _client().get("/readiness")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["verdict"] == "ready_with_warnings"
+    assert payload["pass_count"] == 1
+    assert payload["warn_count"] == 1
+    assert payload["checks"][0]["name"] == "runtime"
+    assert payload["issues"][0]["name"] == "holdout_protocol"
+    assert payload["issues"][0]["severity"] == "warn"
 
 
 def test_summary_endpoint_combines_health_and_benchmarks():
@@ -123,6 +170,7 @@ def test_summary_endpoint_combines_health_and_benchmarks():
         "benchmarks_rating",
         "microdata_coverage",
         "auth_required",
+        "issues",
     ):
         assert key in payload, f"Missing {key} in /summary response"
     # Overall is {ok, degraded, unknown} — the aggregate gate.
@@ -130,6 +178,61 @@ def test_summary_endpoint_combines_health_and_benchmarks():
     # Benchmarks should run (at least the 6 mapped).
     assert payload["benchmarks_rating"] in {"ok", "degraded"}
     assert len(payload["benchmarks"]) >= 4
+    assert isinstance(payload["issues"], list)
+
+
+def test_summary_health_issues_flatten_non_ok_components():
+    issues = api_module._summary_health_issues({
+        "overall": "degraded",
+        "timestamp": "2026-04-01T00:00:00Z",
+        "runtime": {
+            "status": "degraded",
+            "message": "Python 3.14 is unsupported.",
+        },
+        "fred": {
+            "status": "degraded",
+            "source": "fallback",
+        },
+        "model": {"status": "ok"},
+    })
+
+    assert [issue.name for issue in issues] == ["runtime", "fred"]
+    assert issues[0].severity == "fail"
+    assert issues[0].message == "Python 3.14 is unsupported."
+    assert issues[1].severity == "warn"
+
+
+def test_summary_benchmark_issues_flatten_needs_improvement():
+    issues = api_module._summary_benchmark_issues([
+        api_module.BenchmarkResult(
+            policy_id="ok_policy",
+            policy_name="OK policy",
+            source="CBO",
+            source_document="doc",
+            analysis_year=2026,
+            rating="excellent",
+            mean_absolute_share_error_pp=1.0,
+            matched_rows=2,
+            benchmark_rows=2,
+        ),
+        api_module.BenchmarkResult(
+            policy_id="bad_policy",
+            policy_name="Bad policy",
+            source="CBO",
+            source_document="doc",
+            analysis_year=2026,
+            rating="needs_improvement",
+            mean_absolute_share_error_pp=12.0,
+            matched_rows=2,
+            benchmark_rows=4,
+        ),
+    ])
+
+    assert len(issues) == 1
+    assert issues[0].surface == "distributional_benchmarks"
+    assert issues[0].severity == "fail"
+    assert issues[0].name == "bad_policy"
+    assert issues[0].details["mean_absolute_share_error_pp"] == 12.0
 
 
 def test_score_endpoint_success(monkeypatch):

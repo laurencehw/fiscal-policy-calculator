@@ -8,6 +8,11 @@ from typing import Any
 
 import numpy as np
 
+from fiscal_model.validation.credibility import (
+    credibility_to_dict,
+    get_credibility_for_result,
+)
+
 
 def _as_float_array(value: Any) -> np.ndarray | None:
     if value is None:
@@ -109,6 +114,11 @@ def serialize_scoring_result(
     # -(static_deficit + behavioral) since revenue_feedback only enters
     # final_deficit when dynamic scoring is on.
     final_static_effect = -ten_year_impact - actual_feedback_total
+    credibility = get_credibility_for_result(
+        point_estimate=ten_year_impact,
+        policy_name=policy_name,
+        policy=getattr(result, "policy", None),
+    )
 
     return {
         "policy_name": policy_name,
@@ -127,4 +137,5 @@ def serialize_scoring_result(
         "dynamic_adjusted_impact": ten_year_impact if dynamic_scoring_enabled else None,
         "year_by_year": year_by_year,
         "dynamic_scoring_enabled": dynamic_scoring_enabled,
+        "credibility": credibility_to_dict(credibility),
     }

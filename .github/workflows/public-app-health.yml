@@ -8,6 +8,8 @@ on:
 jobs:
   uptime-check:
     runs-on: ubuntu-latest
+    env:
+      FISCAL_POLICY_APP_URL: ${{ vars.FISCAL_POLICY_APP_URL || 'https://fiscal-policy-calculator.streamlit.app' }}
 
     steps:
       - uses: actions/checkout@v6
@@ -24,4 +26,18 @@ jobs:
 
       - name: Verify public app is reachable
         run: |
-          python scripts/check_public_app.py
+          python scripts/check_public_app.py --timeout 20
+
+      - name: Write public app health report
+        if: always()
+        run: |
+          python scripts/check_public_app.py --timeout 20 --json > public-app-health.json
+        continue-on-error: true
+
+      - name: Upload public app health report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: public-app-health-report
+          path: public-app-health.json
+          if-no-files-found: ignore

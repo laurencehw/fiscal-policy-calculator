@@ -336,6 +336,21 @@ class TestCapitalGainsElasticity:
         e = policy.get_elasticity_for_year(0)
         assert e == pytest.approx(0.8 * 2.0)
 
+    def test_no_step_up_avoidance_multiplier_applied(self):
+        """No-step-up policies can model residual avoidance without full lock-in."""
+        policy = CapitalGainsPolicy(
+            name="NoStepUp", description="", policy_type=PolicyType.CAPITAL_GAINS_TAX,
+            rate_change=0.05,
+            baseline_capital_gains_rate=0.20,
+            baseline_realizations_billions=1000.0,
+            step_up_at_death=True,
+            eliminate_step_up=True,
+            step_up_lock_in_multiplier=5.3,
+            no_step_up_avoidance_multiplier=1.5,
+        )
+        e = policy.get_elasticity_for_year(0)
+        assert e == pytest.approx(0.8 * 1.5)
+
 
 # =============================================================================
 # CapitalGainsPolicy.estimate_static_revenue_effect

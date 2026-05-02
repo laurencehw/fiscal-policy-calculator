@@ -79,11 +79,15 @@ CAPITAL_GAINS_VALIDATION_SCENARIOS = {
         "step_up_at_death": True,
         "eliminate_step_up": True,
         "step_up_lock_in_multiplier": 1.0,
+        "no_step_up_avoidance_multiplier": 1.5,
         "step_up_exemption": 0.0,
         "gains_at_death_billions": 0.0,
         "notes": (
             "Without step-up, behavioral response is more moderate. "
-            "PWBM $113B is for rate change only; step-up elimination revenue separate."
+            "A 1.5x residual avoidance multiplier captures PWBM's caveat that "
+            "threshold timing and business-form shifting remain even after step-up "
+            "basis is eliminated. PWBM $113B is for rate change only; step-up "
+            "elimination revenue separate."
         ),
     },
 }

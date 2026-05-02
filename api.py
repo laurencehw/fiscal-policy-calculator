@@ -44,6 +44,7 @@ from fiscal_model.policies import (
     TaxPolicy,
 )
 from fiscal_model.preset_handler import create_policy_from_preset
+from fiscal_model.readiness import build_readiness_report
 from fiscal_model.scoring import FiscalPolicyScorer
 from fiscal_model.trade import TariffPolicy
 
@@ -174,6 +175,24 @@ class YearlyEffect(BaseModel):
     final_effect: float  # Billions
 
 
+class ResultCredibilityModel(BaseModel):
+    """Validation and uncertainty context attached to one score."""
+
+    category: str
+    evidence_type: str
+    n_benchmarks: int
+    mean_abs_pct_error: float
+    median_abs_pct_error: float
+    within_15pct: int
+    rating_label: str
+    is_calibrated: bool
+    holdout_status: str
+    uncertainty_low: float | None = None
+    uncertainty_high: float | None = None
+    limitations: list[str] = Field(default_factory=list)
+    caption: str
+
+
 class ScorePolicyResponse(BaseModel):
     """Response from scoring a policy."""
 
@@ -199,6 +218,7 @@ class ScorePolicyResponse(BaseModel):
 
     # Metadata
     dynamic_scoring_enabled: bool
+    credibility: ResultCredibilityModel | None = None
     error_message: str | None = None
 
 
@@ -289,6 +309,16 @@ class BenchmarksResponse(BaseModel):
     overall_rating: str  # ok | degraded
 
 
+class SummaryIssueModel(BaseModel):
+    """Flattened status issue for the summary endpoint."""
+
+    surface: str
+    severity: str  # warn | fail
+    name: str
+    message: str
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
 class SummaryResponse(BaseModel):
     """One-call overview: health, benchmarks, and microdata coverage."""
 
@@ -299,6 +329,39 @@ class SummaryResponse(BaseModel):
     benchmarks_rating: str  # ok | degraded
     microdata_coverage: dict[str, Any]
     auth_required: bool
+    issues: list[SummaryIssueModel] = Field(default_factory=list)
+
+
+class ReadinessCheckModel(BaseModel):
+    """One release-readiness criterion."""
+
+    name: str
+    status: str  # pass | warn | fail
+    required: bool
+    summary: str
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
+class ReadinessIssueModel(BaseModel):
+    """Flattened release-readiness blocker or warning."""
+
+    name: str
+    severity: str  # warn | fail
+    required: bool
+    summary: str
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
+class ReadinessResponse(BaseModel):
+    """Aggregate release-readiness verdict."""
+
+    verdict: str  # ready | ready_with_warnings | not_ready
+    generated_at: str
+    pass_count: int
+    warn_count: int
+    fail_count: int
+    checks: list[ReadinessCheckModel]
+    issues: list[ReadinessIssueModel] = Field(default_factory=list)
 
 
 class ScorecardEntryModel(BaseModel):
@@ -320,6 +383,8 @@ class ScorecardEntryModel(BaseModel):
     direction_match: bool
     known_limitations: list[str] = Field(default_factory=list)
     notes: str = ""
+    evidence_type: str = "specialized_benchmark_comparison"
+    holdout_status: str = "calibration_reference"
 
 
 class ScorecardCategorySummary(BaseModel):
@@ -343,6 +408,10 @@ class ScorecardResponse(BaseModel):
     poor: int
     mean_abs_percent_difference: float
     median_abs_percent_difference: float
+    calibrated_entries: int
+    generic_entries: int
+    holdout_entries: int
+    validation_note: str
     ratings_breakdown: dict[str, int]
     by_category: dict[str, ScorecardCategorySummary]
     entries: list[ScorecardEntryModel]
@@ -404,6 +473,68 @@ def _build_preset_policy(preset_name: str) -> tuple[Any, bool]:
         duration_years=10,
     )
     return policy, True
+
+
+def _summary_health_issue_message(component: str, info: dict[str, Any]) -> str:
+    if info.get("message"):
+        return str(info["message"])
+    if info.get("error"):
+        return str(info["error"])
+    if info.get("load_error"):
+        return str(info["load_error"])
+    return f"{component} health status is {info.get('status', 'unknown')}."
+
+
+def _summary_health_issues(health_data: dict[str, Any]) -> list[SummaryIssueModel]:
+    """Flatten non-ok health components for /summary consumers."""
+    issues: list[SummaryIssueModel] = []
+    for component, info in health_data.items():
+        if component in {"overall", "timestamp"} or not isinstance(info, dict):
+            continue
+        status = info.get("status")
+        if status in {None, "ok"}:
+            continue
+        severity = (
+            "fail"
+            if status == "error" or component in {"runtime", "model"}
+            else "warn"
+        )
+        issues.append(
+            SummaryIssueModel(
+                surface="health",
+                severity=severity,
+                name=component,
+                message=_summary_health_issue_message(component, info),
+                details=info,
+            )
+        )
+    return issues
+
+
+def _summary_benchmark_issues(
+    benchmark_results: list[BenchmarkResult],
+) -> list[SummaryIssueModel]:
+    """Flatten failing distributional benchmarks for /summary consumers."""
+    return [
+        SummaryIssueModel(
+            surface="distributional_benchmarks",
+            severity="fail",
+            name=benchmark.policy_id,
+            message=(
+                "Distributional benchmark needs improvement: "
+                f"{benchmark.policy_name}."
+            ),
+            details={
+                "policy_id": benchmark.policy_id,
+                "rating": benchmark.rating,
+                "mean_absolute_share_error_pp": benchmark.mean_absolute_share_error_pp,
+                "matched_rows": benchmark.matched_rows,
+                "benchmark_rows": benchmark.benchmark_rows,
+            },
+        )
+        for benchmark in benchmark_results
+        if benchmark.rating == "needs_improvement"
+    ]
 
 
 # =============================================================================
@@ -472,6 +603,10 @@ def summary():
 
     # Overall degrades if either health or benchmarks degrade.
     overall = "degraded" if (overall_health != "ok" or benchmarks_worst == "degraded") else "ok"
+    issues = [
+        *_summary_health_issues(health_data),
+        *_summary_benchmark_issues(benchmark_results),
+    ]
 
     return SummaryResponse(
         overall=overall,
@@ -488,6 +623,46 @@ def summary():
             "calibration_year": microdata.get("calibration_year"),
         },
         auth_required=is_auth_enabled(),
+        issues=issues,
+    )
+
+
+@app.get("/readiness", response_model=ReadinessResponse)
+def readiness():
+    """
+    Machine-readable release-readiness gate.
+
+    Combines runtime support, health checks, distributional benchmarks,
+    and revenue scorecard status into one verdict:
+    ``ready``, ``ready_with_warnings``, or ``not_ready``.
+    """
+    report = build_readiness_report()
+    return ReadinessResponse(
+        verdict=report.verdict,
+        generated_at=report.generated_at,
+        pass_count=report.pass_count,
+        warn_count=report.warn_count,
+        fail_count=report.fail_count,
+        checks=[
+            ReadinessCheckModel(
+                name=check.name,
+                status=check.status,
+                required=check.required,
+                summary=check.summary,
+                details=check.details,
+            )
+            for check in report.checks
+        ],
+        issues=[
+            ReadinessIssueModel(
+                name=issue.name,
+                severity=issue.severity,
+                required=issue.required,
+                summary=issue.summary,
+                details=issue.details,
+            )
+            for issue in report.issues
+        ],
     )
 
 
@@ -555,12 +730,19 @@ def validation_scorecard():
     Use the per-category breakdown to see where the calibrated specialized
     paths stand vs. where the naive generic path lands.
     """
+    from fiscal_model.validation.holdout import (
+        DEFAULT_HOLDOUT_PROTOCOL,
+        evidence_type_for_entry,
+        holdout_entries,
+        holdout_status_for_entry,
+    )
     from fiscal_model.validation.scorecard import cached_default_scorecard
 
     # Cached for the process lifetime — the underlying validation data
     # is code-resident, so recomputing on every request would only burn
     # CPU and amplify DoS attempts.
     summary = cached_default_scorecard()
+    holdouts = holdout_entries(summary.entries)
 
     return ScorecardResponse(
         total_entries=summary.total_entries,
@@ -572,11 +754,29 @@ def validation_scorecard():
         poor=summary.poor,
         mean_abs_percent_difference=summary.mean_abs_percent_difference,
         median_abs_percent_difference=summary.median_abs_percent_difference,
+        calibrated_entries=sum(1 for entry in summary.entries if entry.category != "Generic"),
+        generic_entries=sum(1 for entry in summary.entries if entry.category == "Generic"),
+        holdout_entries=len(holdouts),
+        validation_note=(
+            "Scorecard entries are published-score benchmark comparisons. "
+            f"The post-lock holdout protocol {DEFAULT_HOLDOUT_PROTOCOL.protocol_id} "
+            f"was locked on {DEFAULT_HOLDOUT_PROTOCOL.locked_at}; holdout labels are "
+            "future regression checkpoints, not retroactive historical out-of-sample claims."
+        ),
         ratings_breakdown=summary.ratings_breakdown,
         by_category={
             cat: ScorecardCategorySummary(**sub) for cat, sub in summary.by_category.items()
         },
-        entries=[ScorecardEntryModel(**entry.__dict__) for entry in summary.entries],
+        entries=[
+            ScorecardEntryModel(
+                **{
+                    **entry.__dict__,
+                    "evidence_type": evidence_type_for_entry(entry),
+                    "holdout_status": holdout_status_for_entry(entry),
+                }
+            )
+            for entry in summary.entries
+        ],
     )
 
 
@@ -802,6 +1002,8 @@ def root():
         "endpoints": {
             "health": "GET /health",
             "benchmarks": "GET /benchmarks",
+            "readiness": "GET /readiness",
+            "validation_scorecard": "GET /validation/scorecard",
             "summary": "GET /summary",
             "presets": "GET /presets",
             "score_custom": "POST /score",

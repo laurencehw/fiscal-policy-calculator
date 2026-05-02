@@ -112,7 +112,11 @@ Key routes:
 - `POST /score` supports generic `income_tax`, `corporate_tax`, and `payroll_tax` custom policies.
 - `POST /score/preset` routes preset scoring through the same preset factory used by the Streamlit UI, including specialized policy modules such as TCJA, credits, payroll, PTC, trade, and climate presets.
 - `POST /score/tariff` uses the tariff policy model instead of a standalone rough formula.
-- `GET /health` exposes baseline vintage plus IRS/FRED freshness and fallback status.
+- Score responses include a `credibility` block with benchmark category, calibrated-vs-generic evidence type, implied uncertainty range, known limitations, and a `holdout_status` field backed by the locked post-change holdout protocol.
+- `GET /validation/scorecard` exposes the consolidated revenue benchmark table plus calibrated/generic/holdout counts and the same calibration-vs-holdout caveat used by the UI.
+- `GET /summary` combines health, distributional benchmarks, microdata coverage, auth status, and a flattened `issues` list for dashboards.
+- `GET /readiness` combines runtime, health, distribution benchmark, and revenue scorecard checks into one machine-readable verdict: `ready`, `ready_with_warnings`, or `not_ready`.
+- `GET /health` exposes Python runtime compatibility, baseline vintage, IRS/FRED freshness, microdata coverage, and fallback status.
 
 ### Use as a Python library
 
@@ -275,6 +279,7 @@ For a citation-grade roadmap focused on manuscript quality rather than just app 
 - Local default: `.python-version` -> `3.12`
 - Recommended Streamlit Cloud runtime: `3.12`
 - Current CI contract: passing `smoke` job plus full `3.10`-`3.13` matrix on `main`
+- The `/health` response includes a `runtime` component and marks unsupported Python versions, such as `3.14`, as `degraded`.
 - Deployment checklist and incident guide: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
 
 ### Run tests
@@ -299,6 +304,9 @@ export FISCAL_POLICY_APP_URL="https://your-app.streamlit.app"
 
 python scripts/check_public_app.py
 ```
+
+The scheduled GitHub Actions public-health workflow runs the same check every six hours. Override the target deployment with the repository variable `FISCAL_POLICY_APP_URL`.
+For an artifact-friendly report, run `python scripts/check_public_app.py --json`.
 
 ### Lint
 

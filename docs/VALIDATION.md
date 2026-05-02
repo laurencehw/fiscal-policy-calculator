@@ -23,6 +23,8 @@ The Fiscal Policy Calculator has been validated against **25+ official estimates
 
 **Scope note**: Distributional validation is currently benchmarked mainly against published TPC tables rather than a broader CBO distributional set, and the payroll / CTC scenarios above remain the clearest higher-error checkpoints to monitor. See [VALIDATION_NOTES.md](VALIDATION_NOTES.md) for root-cause analysis of the three biggest outliers (SS donut hole, Biden CTC 2021, Biden estate reform).
 
+**Calibration / holdout note**: The live scorecard and API credibility blocks distinguish specialized calibrated benchmark paths, generic parameterized paths, and the locked post-change holdout protocol (`revenue-scorecard-post-lock-2026-05-02`). Holdout labels are future regression checkpoints, not retroactive historical out-of-sample claims.
+
 ---
 
 ## Validation Results by Policy Category
@@ -202,8 +204,8 @@ Corporate AMT (CAMT): 15% book minimum tax on $1B+ corporations, ~$22B/year
 | Policy | Official Score | Model Score | Error | Rating | Source |
 |--------|----------------|-------------|-------|--------|--------|
 | CBO +2pp all brackets | -$70B | -$83B | 19% | Acceptable | JCT |
-| PWBM 39.6% (with step-up) | +$33B | +$35B | 6% | Good | PWBM |
-| **PWBM 39.6% (no step-up)** | **-$113B** | **-$121B** | **7%** | **Good** | PWBM |
+| PWBM 39.6% (with step-up) | +$33B | +$30B | 9% | Good | PWBM |
+| **PWBM 39.6% (no step-up)** | **-$113B** | **-$113B** | **0%** | **Excellent** | PWBM |
 
 **Critical Insight: Step-Up Basis**
 
@@ -214,6 +216,7 @@ The Penn Wharton analysis demonstrates a fundamental asymmetry:
 **Time-Varying Elasticity** (CBO/JCT methodology):
 - Years 1-3: elasticity = 0.8 (short-run timing effects)
 - Years 4+: elasticity = 0.4 (long-run permanent response)
+- PWBM no-step-up validation applies a 1.5x residual avoidance multiplier to capture remaining threshold timing and business-form shifting after constructive realization at death.
 
 ---
 

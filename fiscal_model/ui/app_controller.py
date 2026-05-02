@@ -43,6 +43,67 @@ _HOW_SCORED_MARKDOWN = (
 # constant from ``fiscal_model.ui.session_state`` for new code.
 _PENDING_SIDEBAR_UPDATES_KEY = KEY_PENDING_SIDEBAR_UPDATES
 
+_SECTION_ERROR_MESSAGES: dict[str, str] = {
+    "Calculator": (
+        "The Calculator encountered an issue. "
+        "Please try reloading the page or clearing your inputs."
+    ),
+    "Budget Builder": (
+        "The Budget Builder encountered an issue. "
+        "Please try reloading the page or clearing your inputs."
+    ),
+    "Generational analysis": (
+        "The Generational analysis encountered an issue. "
+        "Please try adjusting your parameters or reloading the page."
+    ),
+    "State analysis": (
+        "The State analysis encountered an issue. "
+        "Please try reloading the page."
+    ),
+    "Bill Tracker": (
+        "The Bill Tracker encountered an issue. "
+        "Please try reloading the page."
+    ),
+    "Validation scorecard": (
+        "The Validation scorecard encountered an issue. "
+        "Please try reloading the page."
+    ),
+    "Methodology": (
+        "The Methodology tab encountered an issue. "
+        "Please try reloading the page."
+    ),
+}
+
+
+def _render_section_error(st_module: Any, section_label: str, exc: Exception) -> None:
+    """Render a contained top-level section failure."""
+    logging.getLogger(__name__).exception("%s section error", section_label)
+    st_module.error(
+        _SECTION_ERROR_MESSAGES.get(
+            section_label,
+            f"The {section_label} section encountered an issue.",
+        )
+    )
+    if hasattr(st_module, "caption"):
+        st_module.caption(
+            "Other sections remain available. Include this section name in a bug report."
+        )
+    if hasattr(st_module, "expander") and hasattr(st_module, "code"):
+        with st_module.expander("Technical details", expanded=False):
+            st_module.code(f"{type(exc).__name__}: {exc}", language="text")
+
+
+def _render_guarded_section(
+    st_module: Any,
+    section_label: str,
+    render_fn: Any,
+) -> None:
+    """Run a top-level app section behind an error boundary."""
+    try:
+        render_fn()
+    except Exception as exc:
+        _render_section_error(st_module, section_label, exc)
+
 
 def _queue_sidebar_updates(st_module: Any, **updates: Any) -> None:
     """Queue sidebar widget state updates for the next rerun."""
@@ -104,6 +165,7 @@ def render_data_status(st_module: Any, deps: Any) -> None:
         baseline = health.get("baseline", {})
         irs_soi = health.get("irs_soi", {})
         fred = health.get("fred", {})
+        runtime = health.get("runtime", {})
 
         baseline_freshness = baseline.get("freshness") or {}
         irs_freshness = irs_soi.get("freshness") or {}
@@ -133,6 +195,11 @@ def render_data_status(st_module: Any, deps: Any) -> None:
         st_module.markdown(
             f"{_status_icon(fred.get('status'))} **FRED:** {fred_summary}"
         )
+        if runtime:
+            st_module.markdown(
+                f"{_status_icon(runtime.get('status'))} "
+                f"**Runtime:** Python {runtime.get('python_version', 'unknown')}"
+            )
 
         microdata = health.get("microdata", {})
         if microdata.get("status") in {"ok", "degraded"}:
@@ -167,6 +234,9 @@ def render_data_status(st_module: Any, deps: Any) -> None:
                 "`fiscal_model/data_files/irs_soi/`."
             )
 
+        if runtime.get("status") == "degraded":
+            st_module.warning(runtime.get("message", "Python runtime is unsupported."))
+
         with st_module.expander("ℹ️ Data details", expanded=False):
             baseline_fred = baseline.get("fred", {})
             baseline_load_error = baseline.get("load_error") or "None"
@@ -196,7 +266,9 @@ def render_data_status(st_module: Any, deps: Any) -> None:
                 f"**FRED source:** {fred.get('source', 'unknown')}\n\n"
                 f"**FRED last updated:** {last_updated}\n\n"
                 f"**FRED cache age:** {_age_label(fred.get('cache_age_days'))}\n\n"
-                f"**GDP source for baseline:** {baseline.get('gdp_source', 'unknown')}"
+                f"**GDP source for baseline:** {baseline.get('gdp_source', 'unknown')}\n\n"
+                f"**Python runtime:** {runtime.get('python_version', 'unknown')}\n\n"
+                f"**Runtime support:** {runtime.get('supported_range', 'unknown')}"
                 + microdata_detail
             )
 
@@ -448,81 +520,69 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
     ])
 
     with top_tabs[0]:
-        _render_calculator(
-            st_module=st_module,
-            deps=deps,
-            model_available=model_available,
-            app_root=app_root,
+        _render_guarded_section(
+            st_module,
+            "Calculator",
+            lambda: _render_calculator(
+                st_module=st_module,
+                deps=deps,
+                model_available=model_available,
+                app_root=app_root,
+            ),
         )
         render_footer(st_module=st_module)
 
-    _logger = logging.getLogger(__name__)
-
     with top_tabs[1]:
-        try:
-            _render_budget_builder(st_module=st_module, deps=deps)
-        except Exception:
-            _logger.exception("Budget Builder error")
-            st_module.error(
-                "The Budget Builder encountered an issue. "
-                "Please try reloading the page or clearing your inputs."
-            )
+        _render_guarded_section(
+            st_module,
+            "Budget Builder",
+            lambda: _render_budget_builder(st_module=st_module, deps=deps),
+        )
         render_footer(st_module=st_module)
 
     with top_tabs[2]:
-        try:
-            _render_generational(st_module=st_module, deps=deps)
-        except Exception:
-            _logger.exception("Generational analysis error")
-            st_module.error(
-                "The Generational analysis encountered an issue. "
-                "Please try adjusting your parameters or reloading the page."
-            )
+        _render_guarded_section(
+            st_module,
+            "Generational analysis",
+            lambda: _render_generational(st_module=st_module, deps=deps),
+        )
         render_footer(st_module=st_module)
 
     with top_tabs[3]:
-        try:
-            _render_state(st_module=st_module, deps=deps)
-        except Exception:
-            _logger.exception("State analysis error")
-            st_module.error(
-                "The State analysis encountered an issue. "
-                "Please try reloading the page."
-            )
+        _render_guarded_section(
+            st_module,
+            "State analysis",
+            lambda: _render_state(st_module=st_module, deps=deps),
+        )
         render_footer(st_module=st_module)
 
     with top_tabs[4]:
-        try:
-            deps.render_bill_tracker_tab(st_module=st_module)
-        except Exception:
-            _logger.exception("Bill Tracker error")
-            st_module.error(
-                "The Bill Tracker encountered an issue. "
-                "Please try reloading the page."
-            )
+        _render_guarded_section(
+            st_module,
+            "Bill Tracker",
+            lambda: deps.render_bill_tracker_tab(st_module=st_module),
+        )
         render_footer(st_module=st_module)
 
     with top_tabs[5]:
-        try:
+        def _render_validation() -> None:
             from .tabs.validation_scorecard import render_validation_scorecard_tab
+
             render_validation_scorecard_tab(st_module=st_module)
-        except Exception:
-            _logger.exception("Validation scorecard error")
-            st_module.error(
-                "The Validation scorecard encountered an issue. "
-                "Please try reloading the page."
-            )
+
+        _render_guarded_section(
+            st_module,
+            "Validation scorecard",
+            _render_validation,
+        )
         render_footer(st_module=st_module)
 
     with top_tabs[6]:
-        try:
-            deps.render_methodology_tab(st_module=st_module)
-        except Exception:
-            _logger.exception("Methodology tab error")
-            st_module.error(
-                "The Methodology tab encountered an issue. "
-                "Please try reloading the page."
-            )
+        _render_guarded_section(
+            st_module,
+            "Methodology",
+            lambda: deps.render_methodology_tab(st_module=st_module),
+        )
         render_footer(st_module=st_module)
 
 

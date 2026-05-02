@@ -12,7 +12,7 @@ import fiscal_model.baseline as baseline_module
 import fiscal_model.data.fred_data as fred_module
 import fiscal_model.data.irs_soi as irs_module
 import fiscal_model.scoring as scoring_module
-from fiscal_model.health import check_health
+from fiscal_model.health import _runtime_status, check_health
 
 
 class TestCheckHealth:
@@ -27,11 +27,26 @@ class TestCheckHealth:
         """Verify all expected components are present in results."""
         result = check_health()
         expected_keys = [
-            "baseline", "fred", "irs_soi", "model", "microdata",
+            "runtime", "baseline", "fred", "irs_soi", "model", "microdata",
             "timestamp", "overall",
         ]
         for key in expected_keys:
             assert key in result, f"Missing key: {key}"
+
+    def test_runtime_component_reports_supported_contract(self):
+        """Runtime health should expose the Python support contract."""
+        result = check_health()
+        runtime = result["runtime"]
+        assert runtime["status"] in {"ok", "degraded"}
+        assert runtime["supported_range"] == ">=3.10,<3.14"
+        assert runtime["recommended_version"] == "3.12"
+        assert "python_version" in runtime
+        assert "message" in runtime
+
+    def test_runtime_status_marks_supported_and_unsupported_versions(self):
+        assert _runtime_status((3, 12, 0))["status"] == "ok"
+        assert _runtime_status((3, 9, 18))["status"] == "degraded"
+        assert _runtime_status((3, 14, 0))["status"] == "degraded"
 
     def test_microdata_component_reports_calibration(self):
         """Microdata health entry should surface the SOI coverage ratios."""

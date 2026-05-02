@@ -40,6 +40,7 @@ def validate_capital_gains_policy(
         "step_up_at_death",
         "eliminate_step_up",
         "step_up_lock_in_multiplier",
+        "no_step_up_avoidance_multiplier",
         "step_up_exemption",
         "gains_at_death_billions",
     ):
@@ -62,6 +63,14 @@ def validate_capital_gains_policy(
             "baseline_realizations": policy.baseline_realizations_billions,
             "short_run_elasticity": policy.short_run_elasticity,
             "long_run_elasticity": policy.long_run_elasticity,
+            "step_up_lock_in_multiplier": getattr(
+                policy,
+                "step_up_lock_in_multiplier",
+                1.0,
+            ),
+            "no_step_up_avoidance_multiplier": (
+                getattr(policy, "no_step_up_avoidance_multiplier", 1.0)
+            ),
         },
         notes=scenario.get("notes", ""),
         benchmark_date=score.source_date,

@@ -25,11 +25,15 @@ def test_scorecard_endpoint_returns_consolidated_payload(client):
         "total_entries", "within_5pct", "within_10pct", "within_15pct",
         "within_20pct", "direction_match", "poor",
         "mean_abs_percent_difference", "median_abs_percent_difference",
+        "calibrated_entries", "generic_entries", "holdout_entries", "validation_note",
         "ratings_breakdown", "by_category", "entries",
     ):
         assert key in payload, f"missing key {key!r}"
 
     assert payload["total_entries"] == len(payload["entries"])
+    assert payload["calibrated_entries"] + payload["generic_entries"] == payload["total_entries"]
+    assert payload["holdout_entries"] >= 8
+    assert "post-lock holdout protocol" in payload["validation_note"]
     # Each tolerance bucket nests inside the next.
     assert payload["within_5pct"] <= payload["within_10pct"] <= payload["within_15pct"] <= payload["within_20pct"]
 
@@ -44,11 +48,21 @@ def test_scorecard_entries_have_required_fields(client):
         "official_10yr_billions", "official_source",
         "model_10yr_billions", "percent_difference", "abs_percent_difference",
         "rating", "direction_match", "known_limitations", "notes",
+        "evidence_type", "holdout_status",
     ):
         assert key in sample, f"entry missing field {key!r}"
 
     assert isinstance(sample["known_limitations"], list)
     assert sample["rating"] in {"Excellent", "Good", "Acceptable", "Poor", "Error"}
+    assert sample["holdout_status"] in {
+        "calibration_reference",
+        "post_lock_holdout",
+        "generic_reference",
+    }
+
+    holdouts = [entry for entry in payload["entries"] if entry["holdout_status"] == "post_lock_holdout"]
+    assert holdouts
+    assert all(entry["evidence_type"] == "locked_holdout_benchmark" for entry in holdouts)
 
 
 def test_scorecard_categories_cover_specialized_validators(client):

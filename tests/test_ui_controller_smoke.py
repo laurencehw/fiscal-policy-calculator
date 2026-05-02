@@ -12,6 +12,7 @@ from fiscal_model.ui.app_controller import (
     _apply_pending_sidebar_updates,
     render_data_status,
     render_quick_start,
+    run_main_app,
 )
 from fiscal_model.ui.calculation_controller import (
     POLICY_PACKAGES_MODE,
@@ -48,6 +49,7 @@ class _DummyStreamlit:
         self.session_state = _DummySessionState(results=None)
         self.warnings: list[str] = []
         self.infos: list[str] = []
+        self.errors: list[str] = []
         self.markdowns: list[str] = []
 
     def radio(self, *args, **kwargs):
@@ -72,7 +74,9 @@ class _DummyStreamlit:
         return None
 
     def error(self, *args, **kwargs):
-        del args, kwargs
+        if args:
+            self.errors.append(str(args[0]))
+        del kwargs
         return None
 
     def spinner(self, *args, **kwargs):
@@ -84,6 +88,10 @@ class _DummyStreamlit:
         return None
 
     def caption(self, *args, **kwargs):
+        del args, kwargs
+        return None
+
+    def code(self, *args, **kwargs):
         del args, kwargs
         return None
 
@@ -135,6 +143,19 @@ class _QuickStartStreamlit(_DummyStreamlit):
     def rerun(self):
         self.rerun_called = True
         return None
+
+
+class _TopLevelStreamlit(_DummyStreamlit):
+    def __init__(self) -> None:
+        super().__init__(radio_values=[])
+        self.titles: list[str] = []
+
+    def title(self, text):
+        self.titles.append(text)
+
+    def tabs(self, labels):
+        self.tab_labels = labels
+        return [_DummyContext() for _ in labels]
 
 
 def test_render_sidebar_inputs_single_mode_uses_tax_inputs():
@@ -329,6 +350,130 @@ def test_render_result_tabs_shows_stale_warnings():
     assert any("Inputs changed since the last run" in msg for msg in st_module.warnings)
 
 
+def test_render_result_tabs_contains_tab_failures():
+    st_module = _DummyStreamlit(radio_values=[])
+    st_module.session_state = SimpleNamespace(
+        results={"policy": object()},
+        current_run_id="current",
+        results_run_id="current",
+        last_run_id="current",
+    )
+
+    calls: list[str] = []
+
+    def _explode_distribution(**kwargs):
+        del kwargs
+        raise RuntimeError("distribution broke")
+
+    deps = SimpleNamespace(
+        CBO_SCORE_MAP={},
+        PRESET_POLICIES={},
+        PRESET_POLICY_PACKAGES={},
+        PolicyType=SimpleNamespace(INCOME_TAX="income_tax"),
+        FiscalPolicyScorer=object,
+        TaxPolicy=object,
+        DistributionalEngine=object,
+        IncomeGroupType=object,
+        format_distribution_table=lambda *args, **kwargs: None,
+        generate_winners_losers_summary=lambda *args, **kwargs: None,
+        MacroScenario=object,
+        FRBUSAdapterLite=object,
+        SimpleMultiplierAdapter=object,
+        SolowGrowthModel=object,
+        build_macro_scenario=lambda *args, **kwargs: None,
+        render_results_summary_tab=lambda **kwargs: calls.append("summary"),
+        render_distribution_tab=_explode_distribution,
+        render_dynamic_scoring_tab=lambda **kwargs: calls.append("dynamic"),
+        render_detailed_results_tab=lambda **kwargs: calls.append("details"),
+        render_long_run_growth_tab=lambda **kwargs: calls.append("growth"),
+        render_policy_comparison_tab=lambda **kwargs: calls.append("comparison"),
+        render_multi_model_tab=lambda **kwargs: calls.append("multi"),
+        render_side_by_side_tab=lambda **kwargs: calls.append("side_by_side"),
+    )
+    tabs = {
+        "tab_summary": _DummyContext(),
+        "tab_distribution": _DummyContext(),
+        "tab_economic": _DummyContext(),
+        "tab_scoring": _DummyContext(),
+        "tab_compare": _DummyContext(),
+    }
+    settings = {
+        "dynamic_scoring": False,
+        "macro_model": "FRBUSAdapterLite",
+        "data_year": 2022,
+        "use_real_data": True,
+        "use_microsim_distribution": False,
+    }
+
+    render_result_tabs(
+        st_module=st_module,
+        deps=deps,
+        tabs=tabs,
+        settings=settings,
+        model_available=True,
+        is_spending=False,
+        mode=SINGLE_POLICY_MODE,
+    )
+
+    assert any("Distribution could not be rendered" in msg for msg in st_module.errors)
+    assert "summary" in calls
+    assert "dynamic" in calls
+    assert "side_by_side" in calls
+
+
+def test_run_main_app_contains_calculator_failure(monkeypatch):
+    """A Calculator crash should not prevent other top-level sections from rendering."""
+    from fiscal_model.ui import app_controller as module
+
+    st_module = _TopLevelStreamlit()
+    calls: list[str] = []
+
+    def _boom_calculator(**kwargs):
+        del kwargs
+        raise RuntimeError("calculator broke")
+
+    monkeypatch.setattr(module, "_render_calculator", _boom_calculator)
+    monkeypatch.setattr(
+        module,
+        "_render_budget_builder",
+        lambda **kwargs: calls.append("budget"),
+    )
+    monkeypatch.setattr(
+        module,
+        "_render_generational",
+        lambda **kwargs: calls.append("generational"),
+    )
+    monkeypatch.setattr(
+        module,
+        "_render_state",
+        lambda **kwargs: calls.append("state"),
+    )
+    monkeypatch.setattr(
+        module,
+        "render_footer",
+        lambda st_module: calls.append("footer"),
+    )
+
+    deps = SimpleNamespace(
+        render_bill_tracker_tab=lambda **kwargs: calls.append("bill_tracker"),
+        render_methodology_tab=lambda **kwargs: calls.append("methodology"),
+    )
+
+    run_main_app(
+        st_module=st_module,
+        deps=deps,
+        model_available=True,
+        app_root=Path("."),
+    )
+
+    assert any("Calculator encountered an issue" in msg for msg in st_module.errors)
+    assert "budget" in calls
+    assert "generational" in calls
+    assert "state" in calls
+    assert "bill_tracker" in calls
+    assert "methodology" in calls
+
+
 def test_render_quick_start_defers_sidebar_updates_until_rerun():
     st_module = _QuickStartStreamlit(clicked_button="qs_btn_tcja")
 
@@ -452,3 +597,35 @@ def test_render_data_status_uses_health_payload_for_baseline_and_irs(monkeypatch
     assert any("**Baseline:** January 2025" in text for text in st_module.markdowns)
     assert any("**IRS SOI:** 2024" in text for text in st_module.markdowns)
     assert any("CBO baseline is past its expected refresh window" in msg for msg in st_module.warnings)
+
+
+def test_render_data_status_surfaces_runtime_warning(monkeypatch):
+    monkeypatch.setattr(
+        "fiscal_model.health.check_health",
+        lambda: {
+            "overall": "degraded",
+            "timestamp": "2026-04-01T00:00:00Z",
+            "runtime": {
+                "status": "degraded",
+                "python_version": "3.14.0",
+                "supported_range": ">=3.10,<3.14",
+                "message": "Python 3.14.0 is outside supported range >=3.10,<3.14.",
+            },
+            "baseline": {"status": "ok", "vintage": "February 2026", "source": "real_data"},
+            "irs_soi": {"status": "ok", "latest_year": 2022},
+            "fred": {
+                "status": "ok",
+                "source": "live",
+                "cache_age_days": 0,
+                "cache_is_expired": False,
+                "api_available": True,
+                "last_updated": "2026-04-01T00:00:00Z",
+            },
+        },
+    )
+    st_module = _DummyStreamlit(radio_values=[])
+
+    render_data_status(st_module=st_module, deps=SimpleNamespace())
+
+    assert any("**Runtime:** Python 3.14.0" in text for text in st_module.markdowns)
+    assert any("outside supported range" in msg for msg in st_module.warnings)

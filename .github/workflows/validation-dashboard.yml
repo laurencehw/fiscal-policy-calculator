@@ -2,8 +2,8 @@ name: Validation Dashboard
 
 # Runs the full validation dashboard on every push and PR. Reports
 # health status, SOI calibration coverage, and the CBO/JCT distributional
-# benchmark suite. Publishes the --json output as a workflow artifact
-# so regressions are diffable across runs.
+# benchmark suite. Publishes both raw-CPS and augmented top-tail --json
+# outputs as workflow artifacts so regressions are diffable across runs.
 #
 # Gate behavior (exit codes from scripts/run_validation_dashboard.py):
 #   0 — everything nominal; CI job passes.
@@ -56,10 +56,17 @@ jobs:
         run: |
           python scripts/run_validation_dashboard.py --json > validation-dashboard.json || true
 
-      - name: Upload dashboard artifact
+      - name: Run validation dashboard (augmented JSON)
+        if: always()
+        run: |
+          python scripts/run_validation_dashboard.py --augment-top-tail --json > validation-dashboard-augmented.json || true
+
+      - name: Upload dashboard artifacts
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: validation-dashboard
-          path: validation-dashboard.json
+          path: |
+            validation-dashboard.json
+            validation-dashboard-augmented.json
           retention-days: 30

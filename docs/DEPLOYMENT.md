@@ -8,6 +8,8 @@ This project now treats runtime selection as an explicit deployment concern rath
 - Local default: `.python-version` pins `3.12`
 - CI matrix: `3.10`, `3.11`, `3.12`, `3.13`
 - Recommended production target: `3.12`
+- Runtime health: `/health` includes a `runtime` component and reports `degraded` if the deployed interpreter is outside `>=3.10,<3.14`.
+- Release readiness: `/readiness` combines runtime, health, distribution benchmark, and revenue scorecard gates into one `ready` / `ready_with_warnings` / `not_ready` verdict.
 
 ## Streamlit Community Cloud
 
@@ -25,7 +27,7 @@ Use the same target when reproducing production issues locally.
 
 ## CI and Smoke Checks
 
-The GitHub Actions workflow now enforces the same coverage floor as local development and includes a dedicated smoke job for the Streamlit boot path.
+The GitHub Actions workflow now enforces the same coverage floor as local development, includes a dedicated smoke job for the Streamlit boot path, and runs a production-runtime readiness gate.
 
 Smoke coverage currently includes:
 
@@ -40,6 +42,19 @@ These tests are meant to fail fast on:
 - classroom routing regressions
 
 The full `test` job runs on Python `3.10`, `3.11`, `3.12`, and `3.13` and is expected to match the local dependency set.
+
+The `readiness` job runs on Python `3.12`, installs `requirements-lock.txt`, and executes:
+
+```bash
+python scripts/check_readiness.py --strict
+```
+
+It fails unless the verdict is exactly `ready`; `ready_with_warnings` is treated as a release-blocking regression in CI.
+Each run also uploads `readiness-report.json` as a workflow artifact for audit/debugging. The readiness payload includes full `checks` plus a flattened `issues` array for non-passing checks, so release blockers can be surfaced without parsing every check detail.
+
+The `public-app-health` workflow runs every six hours and on manual dispatch. It checks the public Streamlit root and classroom-mode URL using `scripts/check_public_app.py --timeout 20`. By default it targets `https://fiscal-policy-calculator.streamlit.app`; set the repository variable `FISCAL_POLICY_APP_URL` to point the check at another deployment. Each run uploads `public-app-health.json` with per-URL status, latency, and a flattened `issues` array for failed URL checks.
+
+The `validation-dashboard` workflow uploads `validation-dashboard.json` and `validation-dashboard-augmented.json` on push, pull request, and manual dispatch. The default artifact shows the raw CPS calibration state; the augmented artifact runs with `--augment-top-tail` so high-income SOI correction is visible separately. Each artifact includes `generated_at`, aggregate `overall`, per-surface gate booleans for health, calibration, and distributional benchmarks, plus an `issues` array that names the failing component, bracket, or benchmark. The calibration payload also records `augmentation` and `filter` metadata when those optional microdata operations are used.
 
 ## Dependency Parity
 
@@ -78,9 +93,12 @@ On Streamlit Cloud, inspect these in the app logs. Locally, they appear in the s
 1. Verify `.python-version` is still aligned with the intended deploy target.
 2. Confirm Streamlit Cloud advanced settings are set to Python `3.12`.
 3. If dependencies changed, regenerate `requirements-lock.txt` with `pip-compile` on Python `3.12`.
-4. Wait for GitHub Actions `smoke`, `test`, and `lockfile` jobs to pass.
-5. Confirm the public health workflow is green.
-6. Load the calculator root and classroom mode once after deploy.
+4. Run `python scripts/run_validation_dashboard.py` in the deployment runtime; confirm the runtime line is `[ok]`.
+5. Run `python scripts/check_readiness.py --strict` or check `/readiness`. Production should ship only with `verdict == "ready"`.
+6. Check `/health` after deploy and confirm `components.runtime.status == "ok"`.
+7. Wait for GitHub Actions `smoke`, `readiness`, `test`, and `lockfile` jobs to pass.
+8. Confirm the public health workflow is green.
+9. Load the calculator root and classroom mode once after deploy.
 
 ## Incident Checklist
 

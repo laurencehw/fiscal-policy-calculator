@@ -190,6 +190,9 @@ We model this with a **lock-in multiplier** applied to the base elasticity:
 |----------|-------------------|-------------|
 | With step-up (current law) | 5.3× | ~4.2 short-run |
 | Step-up eliminated | 1.0× | 0.8 short-run |
+| Step-up eliminated, PWBM residual avoidance calibration | 1.5× | 1.2 short-run |
+
+The no-step-up PWBM validation case uses the residual avoidance calibration because PWBM notes that threshold timing and business-form shifting remain even when constructive realization at death removes the full step-up lock-in channel.
 
 When step-up is eliminated, gains become taxable at death:
 ```
@@ -977,6 +980,7 @@ JCT is the official congressional scorer for tax legislation, using IRS SOI micr
 | IRA Enforcement ($80B) | −$200B | −$200B | ~0% | ✅ |
 | IRA Drug Negotiation | −$237B | −$237B | ~0% | ✅ |
 | PWBM 39.6% cap gains (with step-up) | +$33B | +$30B | −9% | ✅ |
+| PWBM 39.6% cap gains (no step-up) | −$113B | −$113B | 0% | ✅ |
 
 *Positive values indicate deficit increase (cost); negative values indicate deficit reduction (savings). All estimates are 10-year totals.*
 

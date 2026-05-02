@@ -189,7 +189,7 @@ def test_band_lookup_is_cached():
 
 def test_band_lookup_returns_none_when_compute_fails(monkeypatch):
     """A scorecard failure must not break callers — return None gracefully."""
-    from fiscal_model.ui import confidence_band as module
+    from fiscal_model.validation import credibility as module
 
     def _boom():
         raise RuntimeError("boom")
