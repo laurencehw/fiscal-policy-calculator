@@ -116,7 +116,7 @@ Key routes:
 - `GET /validation/scorecard` exposes the consolidated revenue benchmark table plus calibrated/generic/holdout counts and the same calibration-vs-holdout caveat used by the UI.
 - `GET /summary` combines health, distributional benchmarks, microdata coverage, auth status, and a flattened `issues` list for dashboards.
 - `GET /readiness` combines runtime, health, distribution benchmark, and revenue scorecard checks into one machine-readable verdict: `ready`, `ready_with_warnings`, or `not_ready`.
-- `GET /health` exposes Python runtime compatibility, baseline vintage, IRS/FRED freshness, microdata coverage, and fallback status.
+- `GET /health` exposes Python runtime compatibility, baseline vintage, IRS/FRED freshness, microdata coverage, fallback status, and a flattened health `issues` list.
 
 ### Use as a Python library
 

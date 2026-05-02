@@ -279,12 +279,23 @@ class ScoreTariffResponse(BaseModel):
     uncertainty_range: dict[str, float] | None = None
 
 
+class HealthIssueModel(BaseModel):
+    """Flattened health issue for monitoring clients."""
+
+    surface: str
+    severity: str  # warn | fail
+    name: str
+    message: str
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
 class HealthCheckResponse(BaseModel):
     """Health check response."""
 
     overall: str
     timestamp: str
     components: dict[str, Any]
+    issues: list[HealthIssueModel] = Field(default_factory=list)
 
 
 class BenchmarkResult(BaseModel):
@@ -485,9 +496,9 @@ def _summary_health_issue_message(component: str, info: dict[str, Any]) -> str:
     return f"{component} health status is {info.get('status', 'unknown')}."
 
 
-def _summary_health_issues(health_data: dict[str, Any]) -> list[SummaryIssueModel]:
-    """Flatten non-ok health components for /summary consumers."""
-    issues: list[SummaryIssueModel] = []
+def _health_issue_payloads(health_data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Flatten non-ok health components into serializable issue payloads."""
+    issues: list[dict[str, Any]] = []
     for component, info in health_data.items():
         if component in {"overall", "timestamp"} or not isinstance(info, dict):
             continue
@@ -500,15 +511,25 @@ def _summary_health_issues(health_data: dict[str, Any]) -> list[SummaryIssueMode
             else "warn"
         )
         issues.append(
-            SummaryIssueModel(
-                surface="health",
-                severity=severity,
-                name=component,
-                message=_summary_health_issue_message(component, info),
-                details=info,
-            )
+            {
+                "surface": "health",
+                "severity": severity,
+                "name": component,
+                "message": _summary_health_issue_message(component, info),
+                "details": info,
+            }
         )
     return issues
+
+
+def _health_issues(health_data: dict[str, Any]) -> list[HealthIssueModel]:
+    """Return /health issue models for degraded components."""
+    return [HealthIssueModel(**issue) for issue in _health_issue_payloads(health_data)]
+
+
+def _summary_health_issues(health_data: dict[str, Any]) -> list[SummaryIssueModel]:
+    """Flatten non-ok health components for /summary consumers."""
+    return [SummaryIssueModel(**issue) for issue in _health_issue_payloads(health_data)]
 
 
 def _summary_benchmark_issues(
@@ -550,14 +571,16 @@ def health_check():
     Returns status of all data sources and models.
     """
     health_data = check_health()
+    components = {
+        k: v
+        for k, v in health_data.items()
+        if k not in ("overall", "timestamp")
+    }
     return HealthCheckResponse(
         overall=health_data.get("overall", "unknown"),
         timestamp=health_data.get("timestamp", ""),
-        components={
-            k: v
-            for k, v in health_data.items()
-            if k not in ("overall", "timestamp")
-        },
+        components=components,
+        issues=_health_issues(health_data),
     )
 
 

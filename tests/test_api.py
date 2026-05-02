@@ -78,6 +78,36 @@ def test_health_endpoint_uses_health_payload(monkeypatch):
     payload = response.json()
     assert payload["overall"] == "ok"
     assert payload["components"]["fred"]["status"] == "ok"
+    assert payload["issues"] == []
+
+
+def test_health_endpoint_flattens_degraded_components(monkeypatch):
+    monkeypatch.setattr(
+        api_module,
+        "check_health",
+        lambda: {
+            "overall": "degraded",
+            "timestamp": "2026-04-01T00:00:00Z",
+            "runtime": {
+                "status": "degraded",
+                "message": "Python 3.14 is unsupported.",
+            },
+            "fred": {
+                "status": "degraded",
+                "source": "fallback",
+            },
+            "model": {"status": "ok"},
+        },
+    )
+
+    response = _client().get("/health")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["overall"] == "degraded"
+    assert [issue["name"] for issue in payload["issues"]] == ["runtime", "fred"]
+    assert payload["issues"][0]["severity"] == "fail"
+    assert payload["issues"][1]["severity"] == "warn"
 
 
 def test_presets_endpoint_returns_count():
