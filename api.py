@@ -312,12 +312,23 @@ class BenchmarkResult(BaseModel):
     benchmark_rows: int
 
 
+class BenchmarkIssueModel(BaseModel):
+    """Flattened benchmark issue for validation/status clients."""
+
+    surface: str
+    severity: str  # fail
+    name: str
+    message: str
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
 class BenchmarksResponse(BaseModel):
     """Response listing current model accuracy against every benchmark."""
 
     benchmarks: list[BenchmarkResult]
     count: int
     overall_rating: str  # ok | degraded
+    issues: list[BenchmarkIssueModel] = Field(default_factory=list)
 
 
 class SummaryIssueModel(BaseModel):
@@ -532,29 +543,49 @@ def _summary_health_issues(health_data: dict[str, Any]) -> list[SummaryIssueMode
     return [SummaryIssueModel(**issue) for issue in _health_issue_payloads(health_data)]
 
 
-def _summary_benchmark_issues(
+def _benchmark_issue_payloads(
     benchmark_results: list[BenchmarkResult],
-) -> list[SummaryIssueModel]:
-    """Flatten failing distributional benchmarks for /summary consumers."""
+) -> list[dict[str, Any]]:
+    """Flatten failing distributional benchmarks into serializable payloads."""
     return [
-        SummaryIssueModel(
-            surface="distributional_benchmarks",
-            severity="fail",
-            name=benchmark.policy_id,
-            message=(
+        {
+            "surface": "distributional_benchmarks",
+            "severity": "fail",
+            "name": benchmark.policy_id,
+            "message": (
                 "Distributional benchmark needs improvement: "
                 f"{benchmark.policy_name}."
             ),
-            details={
+            "details": {
                 "policy_id": benchmark.policy_id,
                 "rating": benchmark.rating,
                 "mean_absolute_share_error_pp": benchmark.mean_absolute_share_error_pp,
                 "matched_rows": benchmark.matched_rows,
                 "benchmark_rows": benchmark.benchmark_rows,
             },
-        )
+        }
         for benchmark in benchmark_results
         if benchmark.rating == "needs_improvement"
+    ]
+
+
+def _benchmark_issues(
+    benchmark_results: list[BenchmarkResult],
+) -> list[BenchmarkIssueModel]:
+    """Return /benchmarks issue models for failing benchmark rows."""
+    return [
+        BenchmarkIssueModel(**issue)
+        for issue in _benchmark_issue_payloads(benchmark_results)
+    ]
+
+
+def _summary_benchmark_issues(
+    benchmark_results: list[BenchmarkResult],
+) -> list[SummaryIssueModel]:
+    """Flatten failing distributional benchmarks for /summary consumers."""
+    return [
+        SummaryIssueModel(**issue)
+        for issue in _benchmark_issue_payloads(benchmark_results)
     ]
 
 
@@ -735,6 +766,7 @@ def list_benchmarks():
         benchmarks=results,
         count=len(results),
         overall_rating=worst,
+        issues=_benchmark_issues(results),
     )
 
 

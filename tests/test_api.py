@@ -122,6 +122,7 @@ def test_benchmarks_endpoint_lists_distributional_accuracy():
     assert response.status_code == 200
     payload = response.json()
     assert payload["count"] == len(payload["benchmarks"])
+    assert isinstance(payload["issues"], list)
     # At least the four mapped benchmarks should run.
     assert payload["count"] >= 4
 
@@ -136,6 +137,39 @@ def test_benchmarks_endpoint_lists_distributional_accuracy():
         assert entry["matched_rows"] <= entry["benchmark_rows"]
         assert "source_document" in entry
         assert entry["analysis_year"] > 2000
+
+
+def test_benchmark_issues_flatten_needs_improvement():
+    issues = api_module._benchmark_issues([
+        api_module.BenchmarkResult(
+            policy_id="ok_policy",
+            policy_name="OK policy",
+            source="CBO",
+            source_document="doc",
+            analysis_year=2026,
+            rating="excellent",
+            mean_absolute_share_error_pp=1.0,
+            matched_rows=2,
+            benchmark_rows=2,
+        ),
+        api_module.BenchmarkResult(
+            policy_id="bad_policy",
+            policy_name="Bad policy",
+            source="CBO",
+            source_document="doc",
+            analysis_year=2026,
+            rating="needs_improvement",
+            mean_absolute_share_error_pp=12.0,
+            matched_rows=2,
+            benchmark_rows=4,
+        ),
+    ])
+
+    assert len(issues) == 1
+    assert issues[0].surface == "distributional_benchmarks"
+    assert issues[0].severity == "fail"
+    assert issues[0].name == "bad_policy"
+    assert issues[0].details["mean_absolute_share_error_pp"] == 12.0
 
 
 def test_root_endpoint_advertises_benchmarks():

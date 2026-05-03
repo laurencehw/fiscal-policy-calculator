@@ -114,6 +114,7 @@ Key routes:
 - `POST /score/tariff` uses the tariff policy model instead of a standalone rough formula.
 - Score responses include a `credibility` block with benchmark category, calibrated-vs-generic evidence type, implied uncertainty range, known limitations, and a `holdout_status` field backed by the locked post-change holdout protocol.
 - `GET /validation/scorecard` exposes the consolidated revenue benchmark table plus calibrated/generic/holdout counts and the same calibration-vs-holdout caveat used by the UI.
+- `GET /benchmarks` lists distributional benchmark accuracy and includes a flattened `issues` list if any benchmark needs improvement.
 - `GET /summary` combines health, distributional benchmarks, microdata coverage, auth status, and a flattened `issues` list for dashboards.
 - `GET /readiness` combines runtime, health, distribution benchmark, and revenue scorecard checks into one machine-readable verdict: `ready`, `ready_with_warnings`, or `not_ready`.
 - `GET /health` exposes Python runtime compatibility, baseline vintage, IRS/FRED freshness, microdata coverage, fallback status, and a flattened health `issues` list.
