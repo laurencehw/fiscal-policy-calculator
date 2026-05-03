@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from fiscal_model.policies import PolicyType, TaxPolicy
 from fiscal_model.scoring import FiscalPolicyScorer
 from fiscal_model.ui.tabs.results_summary import (
+    _build_credibility_html,
     _build_interpretation_html,
     render_results_summary_tab,
 )
@@ -108,6 +111,36 @@ def test_build_interpretation_html_avoids_markdown_currency_markup():
     assert "<strong>add approximately $4,582 billion</strong>" in html
     assert "<strong>$458B per year</strong>" in html
     assert "<strong>1.4% of GDP annually</strong>" in html
+
+
+def test_build_credibility_html_summarizes_validation_evidence():
+    html = _build_credibility_html(
+        SimpleNamespace(
+            uncertainty_low=-1040.0,
+            uncertainty_high=-960.0,
+            evidence_type="specialized_benchmark_comparison",
+            category="Payroll",
+            rating_label="Good",
+            holdout_status="post_lock_holdout",
+            caption="Validation evidence in Payroll category.",
+            n_benchmarks=3,
+            mean_abs_pct_error=4.0,
+            limitations=["Known limitation <must escape>"],
+        )
+    )
+
+    assert "Validation evidence" in html
+    assert "<strong>Good</strong> confidence" in html
+    assert "Category: <strong>Payroll</strong>" in html
+    assert "Range: <strong>$-1,040B to $-960B</strong>" in html
+    assert "specialized benchmark comparison" in html
+    assert "not an official CBO/JCT score" in html
+    assert "Known limitation &lt;must escape&gt;" in html
+    assert "Known limitation <must escape>" not in html
+
+
+def test_build_credibility_html_returns_empty_for_missing_metadata():
+    assert _build_credibility_html(None) == ""
 
 
 def test_render_results_summary_uses_html_for_interpretation():

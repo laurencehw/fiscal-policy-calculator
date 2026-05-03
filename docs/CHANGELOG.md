@@ -5,6 +5,22 @@ in git history, not here.
 
 ## 2026 — ongoing
 
+### Operational readiness and CI telemetry
+
+- `/health`, `/benchmarks`, `/summary`, and validation artifacts now expose
+  flattened `issues` arrays with a shared status-issue shape for monitoring
+  clients: `surface`, `severity`, `name`, `message`, and `details`.
+- The Results Summary tab now renders a validation-evidence card beside each
+  headline score, including calibrated category, benchmark count, observed
+  error range, holdout status, and known caveats.
+- The release-readiness CLI now distinguishes real release blockers from
+  expected offline data-environment warnings. `scripts/check_readiness.py
+  --strict` still fails `not_ready` and non-environmental warnings, but it no
+  longer blocks isolated CI runners solely because live FRED data or a warm
+  FRED cache is unavailable.
+- Validation and public-health scripts avoid `datetime.UTC` so the supported
+  Python `3.10`-`3.13` matrix imports them consistently.
+
 ### API hardening
 
 - Added opt-in API key auth via `X-API-Key` header, configured through the

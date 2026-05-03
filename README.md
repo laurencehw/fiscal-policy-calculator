@@ -49,6 +49,7 @@ Plus fully custom policy design with adjustable parameters.
 - **Classroom Mode** — 7 interactive assignments (intro → advanced), Laffer curve explorer, PDF export; accessible at `streamlit run classroom_app.py`
 - **Real-Time Bill Tracker** — Pulls active bills from congress.gov, extracts fiscal provisions via LLM, stores in SQLite
 - **Shareable preset links** — Generate deep links for supported preset tax proposals and preset spending programs directly from the results tab; custom policies still fall back to export-only
+- **Result-level validation evidence** — Each standard result summary surfaces the calibrated category, benchmark count, observed error band, holdout status, and known caveats before users interpret the headline score
 
 ### Validation
 
@@ -118,6 +119,8 @@ Key routes:
 - `GET /summary` combines health, distributional benchmarks, microdata coverage, auth status, and a flattened `issues` list for dashboards.
 - `GET /readiness` combines runtime, health, distribution benchmark, and revenue scorecard checks into one machine-readable verdict: `ready`, `ready_with_warnings`, or `not_ready`.
 - `GET /health` exposes Python runtime compatibility, baseline vintage, IRS/FRED freshness, microdata coverage, fallback status, and a flattened health `issues` list.
+
+Status-oriented endpoints use the same issue shape so dashboards can consume them without endpoint-specific parsing: `surface`, `severity`, `name`, `message`, and `details`.
 
 ### Use as a Python library
 
@@ -297,6 +300,16 @@ python -m pytest tests/ --cov=fiscal_model
 python -c "from fiscal_model.validation import run_validation_suite; run_validation_suite()"
 ```
 
+### Verify release readiness
+
+```bash
+python scripts/check_readiness.py
+python scripts/check_readiness.py --strict
+python scripts/check_readiness.py --json > readiness-report.json
+```
+
+Default mode exits non-zero only when the verdict is `not_ready`. Strict mode is the CI release gate: it still reports every warning, but only blocks on actual failures or non-environmental warnings. Offline FRED/cache fallback warnings remain visible in the report without failing isolated CI runners.
+
 ### Verify public app availability
 
 ```bash
@@ -333,6 +346,8 @@ python3.12 -m venv .lockvenv
 
 - GitHub Actions now runs a dedicated `smoke` job for `app.py` and the core Streamlit controller path before the full matrix suite.
 - The smoke suite is `tests/test_app_entrypoints.py` plus `tests/test_ui_controller_smoke.py`.
+- The `readiness` job runs `python scripts/check_readiness.py --strict` on Python `3.12` and uploads `readiness-report.json`.
+- The `validation-dashboard` and `public-app-health` workflows upload JSON artifacts with flattened `issues` arrays for monitoring and release triage.
 
 ### Project structure
 

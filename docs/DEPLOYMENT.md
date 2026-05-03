@@ -52,6 +52,12 @@ python scripts/check_readiness.py --strict
 It fails on `not_ready` and on non-environmental warnings. CI runners may lack live FRED access or a warm FRED cache, so documented baseline GDP-proxy and FRED fallback warnings remain visible in the report but do not block the job.
 Each run also uploads `readiness-report.json` as a workflow artifact for audit/debugging. The readiness payload includes full `checks` plus a flattened `issues` array for non-passing checks, so release blockers can be surfaced without parsing every check detail.
 
+Strict exit behavior:
+
+- `0`: ready, or ready with only documented external-data fallback warnings.
+- `1`: `not_ready`; at least one required readiness check failed.
+- `2`: ready with release-blocking warnings, such as model validation warnings that are not explained by the CI data environment.
+
 The `public-app-health` workflow runs every six hours and on manual dispatch. It checks the public Streamlit root and classroom-mode URL using `scripts/check_public_app.py --timeout 20`. By default it targets `https://fiscal-policy-calculator.streamlit.app`; set the repository variable `FISCAL_POLICY_APP_URL` to point the check at another deployment. Each run uploads `public-app-health.json` with per-URL status, latency, and a flattened `issues` array for failed URL checks.
 
 The `validation-dashboard` workflow uploads `validation-dashboard.json` and `validation-dashboard-augmented.json` on push, pull request, and manual dispatch. The default artifact shows the raw CPS calibration state; the augmented artifact runs with `--augment-top-tail` so high-income SOI correction is visible separately. Each artifact includes `generated_at`, aggregate `overall`, per-surface gate booleans for health, calibration, and distributional benchmarks, plus an `issues` array that names the failing component, bracket, or benchmark. The calibration payload also records `augmentation` and `filter` metadata when those optional microdata operations are used.

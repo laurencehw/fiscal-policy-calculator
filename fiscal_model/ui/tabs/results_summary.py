@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import re
 from datetime import date
+from html import escape
 from typing import Any
 
 import pandas as pd
@@ -53,6 +54,60 @@ def _build_interpretation_html(
             "with a relatively modest fiscal impact."
         )
     return f"This policy has <strong>negligible fiscal impact</strong> over the {n_years}-year window."
+
+
+def _build_credibility_html(credibility: Any) -> str:
+    """Build a compact validation-evidence card for a result."""
+    if credibility is None:
+        return ""
+
+    low = getattr(credibility, "uncertainty_low", None)
+    high = getattr(credibility, "uncertainty_high", None)
+    if low is not None and high is not None:
+        range_text = f"${low:+,.0f}B to ${high:+,.0f}B"
+    else:
+        range_text = "Not available"
+
+    evidence = escape(str(getattr(credibility, "evidence_type", "unknown")).replace("_", " "))
+    category = escape(str(getattr(credibility, "category", "Unknown")))
+    rating = escape(str(getattr(credibility, "rating_label", "Unknown")))
+    holdout = escape(str(getattr(credibility, "holdout_status", "unknown")).replace("_", " "))
+    caption = escape(str(getattr(credibility, "caption", "")))
+    n_benchmarks = int(getattr(credibility, "n_benchmarks", 0) or 0)
+    mean_error = float(getattr(credibility, "mean_abs_pct_error", 0.0) or 0.0)
+    limitations = [
+        escape(str(item))
+        for item in list(getattr(credibility, "limitations", []) or [])[:3]
+    ]
+    limitation_items = "".join(f"<li>{item}</li>" for item in limitations)
+    if not limitation_items:
+        limitation_items = "<li>No category-specific limitations are recorded.</li>"
+
+    return f"""
+    <div style="border:1px solid #d6dbe6; background:#fbfcff; border-radius:0.6rem; padding:0.85rem 1rem; margin:0.75rem 0 1rem 0;">
+        <div style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.06em; color:#526071; font-weight:700;">
+            Validation evidence
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:0.75rem; margin-top:0.45rem;">
+            <span><strong>{rating}</strong> confidence</span>
+            <span>Category: <strong>{category}</strong></span>
+            <span>Benchmarks: <strong>{n_benchmarks}</strong></span>
+            <span>Mean error: <strong>±{mean_error:.1f}%</strong></span>
+            <span>Range: <strong>{range_text}</strong></span>
+        </div>
+        <p style="margin:0.55rem 0 0.35rem 0; color:#3d4654;">
+            {caption}
+        </p>
+        <p style="margin:0.25rem 0; color:#526071;">
+            Evidence type: <strong>{evidence}</strong> · Holdout status: <strong>{holdout}</strong>.
+            This is a model-validation range, not an official CBO/JCT score.
+        </p>
+        <details style="margin-top:0.45rem;">
+            <summary style="cursor:pointer; color:#334155; font-weight:600;">Known caveats</summary>
+            <ul style="margin:0.45rem 0 0 1.15rem; padding:0;">{limitation_items}</ul>
+        </details>
+    </div>
+    """
 
 
 def render_results_summary_tab(
@@ -191,27 +246,18 @@ def render_results_summary_tab(
                 unsafe_allow_html=True,
             )
 
-    # Confidence band — pulled from the live validation scorecard.
-    # Sits between the ETI sensitivity range and the CBO comparison so
-    # readers see "model accuracy ±X%" before any specific number.
-    from fiscal_model.ui.confidence_band import (
-        estimate_uncertainty_dollars,
-        format_band_caption,
-        get_band_for_result,
-    )
+    # Validation evidence — pulled from the live scorecard so readers see
+    # the model's category-level accuracy before any official-score comparison.
+    from fiscal_model.validation.credibility import get_credibility_for_result
 
-    band = get_band_for_result(
+    credibility = get_credibility_for_result(
+        point_estimate=final_deficit_total,
         policy_name=result_data.get("policy_name"),
         policy=policy,
     )
-    if band is not None:
-        half = estimate_uncertainty_dollars(final_deficit_total, band)
-        st_module.markdown(
-            f"<small><b>Calibration:</b> ${final_deficit_total:+.1f}B "
-            f"&plusmn; ${half:.0f}B &nbsp;·&nbsp; "
-            f"{format_band_caption(band)}</small>",
-            unsafe_allow_html=True,
-        )
+    credibility_html = _build_credibility_html(credibility)
+    if credibility_html:
+        st_module.markdown(credibility_html, unsafe_allow_html=True)
 
     # CBO comparison note (if available)
     policy_name = result_data.get("policy_name", "")
