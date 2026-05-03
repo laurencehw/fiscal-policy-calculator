@@ -409,6 +409,18 @@ class ScorecardEntryModel(BaseModel):
     holdout_status: str = "calibration_reference"
 
 
+class ScorecardIssueModel(BaseModel):
+    """Flattened scorecard issue for validation clients."""
+
+    surface: str = "revenue_scorecard"
+    severity: str  # warn | fail
+    policy_id: str
+    category: str
+    rating: str
+    message: str
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
 class ScorecardCategorySummary(BaseModel):
     """Per-category roll-up of scorecard accuracy."""
 
@@ -437,6 +449,7 @@ class ScorecardResponse(BaseModel):
     ratings_breakdown: dict[str, int]
     by_category: dict[str, ScorecardCategorySummary]
     entries: list[ScorecardEntryModel]
+    issues: list[ScorecardIssueModel] = Field(default_factory=list)
 
 
 SUPPORTED_CUSTOM_POLICY_TYPES = {
@@ -587,6 +600,59 @@ def _summary_benchmark_issues(
         SummaryIssueModel(**issue)
         for issue in _benchmark_issue_payloads(benchmark_results)
     ]
+
+
+def _scorecard_entry_issues(entries: list[Any]) -> list[ScorecardIssueModel]:
+    """Flatten material revenue scorecard issues for API clients."""
+    issues: list[ScorecardIssueModel] = []
+    for entry in entries:
+        rating = getattr(entry, "rating", "unknown")
+        direction_match = bool(getattr(entry, "direction_match", False))
+        category = str(getattr(entry, "category", "unknown"))
+        policy_id = str(getattr(entry, "policy_id", "unknown"))
+        known_limitations = list(getattr(entry, "known_limitations", []) or [])
+
+        if rating == "Error":
+            severity = "fail"
+            reason = "error_rating"
+            message = f"{policy_id} has an Error revenue scorecard rating."
+        elif not direction_match:
+            severity = "fail"
+            reason = "direction_mismatch"
+            message = f"{policy_id} has the wrong revenue-impact direction."
+        elif rating == "Poor":
+            documented_or_generic = bool(known_limitations) or category == "Generic"
+            severity = "warn" if documented_or_generic else "fail"
+            reason = (
+                "documented_or_generic_poor"
+                if documented_or_generic
+                else "undocumented_poor"
+            )
+            message = f"{policy_id} has a Poor revenue scorecard rating."
+        else:
+            continue
+
+        issues.append(
+            ScorecardIssueModel(
+                severity=severity,
+                policy_id=policy_id,
+                category=category,
+                rating=rating,
+                message=message,
+                details={
+                    "reason": reason,
+                    "direction_match": direction_match,
+                    "abs_percent_difference": getattr(
+                        entry,
+                        "abs_percent_difference",
+                        None,
+                    ),
+                    "known_limitations": known_limitations,
+                    "holdout_status": getattr(entry, "holdout_status", None),
+                },
+            )
+        )
+    return issues
 
 
 # =============================================================================
@@ -798,6 +864,16 @@ def validation_scorecard():
     # CPU and amplify DoS attempts.
     summary = cached_default_scorecard()
     holdouts = holdout_entries(summary.entries)
+    serialized_entries = [
+        ScorecardEntryModel(
+            **{
+                **entry.__dict__,
+                "evidence_type": evidence_type_for_entry(entry),
+                "holdout_status": holdout_status_for_entry(entry),
+            }
+        )
+        for entry in summary.entries
+    ]
 
     return ScorecardResponse(
         total_entries=summary.total_entries,
@@ -822,16 +898,8 @@ def validation_scorecard():
         by_category={
             cat: ScorecardCategorySummary(**sub) for cat, sub in summary.by_category.items()
         },
-        entries=[
-            ScorecardEntryModel(
-                **{
-                    **entry.__dict__,
-                    "evidence_type": evidence_type_for_entry(entry),
-                    "holdout_status": holdout_status_for_entry(entry),
-                }
-            )
-            for entry in summary.entries
-        ],
+        entries=serialized_entries,
+        issues=_scorecard_entry_issues(serialized_entries),
     )
 
 

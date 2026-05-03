@@ -4,8 +4,12 @@ End-to-end tests for the GET /validation/scorecard endpoint.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 from fastapi.testclient import TestClient
+
+import api as api_module
 
 
 @pytest.fixture
@@ -26,7 +30,7 @@ def test_scorecard_endpoint_returns_consolidated_payload(client):
         "within_20pct", "direction_match", "poor",
         "mean_abs_percent_difference", "median_abs_percent_difference",
         "calibrated_entries", "generic_entries", "holdout_entries", "validation_note",
-        "ratings_breakdown", "by_category", "entries",
+        "ratings_breakdown", "by_category", "entries", "issues",
     ):
         assert key in payload, f"missing key {key!r}"
 
@@ -34,6 +38,7 @@ def test_scorecard_endpoint_returns_consolidated_payload(client):
     assert payload["calibrated_entries"] + payload["generic_entries"] == payload["total_entries"]
     assert payload["holdout_entries"] >= 8
     assert "post-lock holdout protocol" in payload["validation_note"]
+    assert isinstance(payload["issues"], list)
     # Each tolerance bucket nests inside the next.
     assert payload["within_5pct"] <= payload["within_10pct"] <= payload["within_15pct"] <= payload["within_20pct"]
 
@@ -87,3 +92,81 @@ def test_scorecard_aggregate_arithmetic_matches_entries(client):
     if abs_diffs:
         expected_mean = sum(abs_diffs) / len(abs_diffs)
         assert payload["mean_abs_percent_difference"] == pytest.approx(expected_mean)
+
+
+def test_scorecard_endpoint_issues_match_material_entry_problems(client):
+    payload = client.get("/validation/scorecard").json()
+    issue_policy_ids = {issue["policy_id"] for issue in payload["issues"]}
+    material_policy_ids = {
+        entry["policy_id"]
+        for entry in payload["entries"]
+        if (
+            entry["rating"] in {"Poor", "Error"}
+            or not entry["direction_match"]
+        )
+    }
+
+    assert issue_policy_ids == material_policy_ids
+    assert all(issue["surface"] == "revenue_scorecard" for issue in payload["issues"])
+    assert all(issue["severity"] in {"warn", "fail"} for issue in payload["issues"])
+
+
+def test_scorecard_entry_issues_classify_failures_and_warnings():
+    issues = api_module._scorecard_entry_issues([
+        SimpleNamespace(
+            category="TCJA",
+            policy_id="ok",
+            rating="Good",
+            direction_match=True,
+            known_limitations=[],
+            abs_percent_difference=4.0,
+            holdout_status="calibration_reference",
+        ),
+        SimpleNamespace(
+            category="TCJA",
+            policy_id="undocumented_poor",
+            rating="Poor",
+            direction_match=True,
+            known_limitations=[],
+            abs_percent_difference=40.0,
+            holdout_status="calibration_reference",
+        ),
+        SimpleNamespace(
+            category="Generic",
+            policy_id="generic_poor",
+            rating="Poor",
+            direction_match=True,
+            known_limitations=[],
+            abs_percent_difference=40.0,
+            holdout_status="generic_reference",
+        ),
+        SimpleNamespace(
+            category="Credits",
+            policy_id="wrong_direction",
+            rating="Excellent",
+            direction_match=False,
+            known_limitations=[],
+            abs_percent_difference=1.0,
+            holdout_status="post_lock_holdout",
+        ),
+        SimpleNamespace(
+            category="Payroll",
+            policy_id="error_case",
+            rating="Error",
+            direction_match=True,
+            known_limitations=[],
+            abs_percent_difference=0.0,
+            holdout_status="calibration_reference",
+        ),
+    ])
+
+    by_policy = {issue.policy_id: issue for issue in issues}
+
+    assert "ok" not in by_policy
+    assert by_policy["undocumented_poor"].severity == "fail"
+    assert by_policy["undocumented_poor"].details["reason"] == "undocumented_poor"
+    assert by_policy["generic_poor"].severity == "warn"
+    assert by_policy["wrong_direction"].severity == "fail"
+    assert by_policy["wrong_direction"].details["reason"] == "direction_mismatch"
+    assert by_policy["error_case"].severity == "fail"
+    assert by_policy["error_case"].details["reason"] == "error_rating"
