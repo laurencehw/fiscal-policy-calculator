@@ -378,6 +378,45 @@ def readiness_issues_from_checks(checks: list[ReadinessCheck]) -> list[Readiness
     ]
 
 
+def _is_environmental_data_warning(issue: ReadinessIssue) -> bool:
+    """Return whether a warning is expected in offline CI data environments."""
+    if issue.severity != "warn":
+        return False
+
+    if issue.name == "fred":
+        return (
+            issue.details.get("status") == "degraded"
+            and issue.details.get("source") in {"cache", "fallback"}
+        )
+
+    if issue.name != "baseline":
+        return False
+
+    details = issue.details
+    if details.get("status") != "degraded" or details.get("load_error"):
+        return False
+
+    fred = details.get("fred", {})
+    fred_source = fred.get("source") if isinstance(fred, dict) else None
+    return (
+        details.get("source") == "real_data"
+        and details.get("gdp_source") == "irs_ratio_proxy"
+        and fred_source == "fallback"
+    )
+
+
+def strict_readiness_issues(report: ReadinessReport) -> list[ReadinessIssue]:
+    """Return issues that should fail the strict CI readiness gate.
+
+    The readiness payload still reports every warning. Strict CI only exempts
+    warnings caused by missing live external data in isolated build runners.
+    """
+    return [
+        issue for issue in report.issues
+        if issue.severity == "fail" or not _is_environmental_data_warning(issue)
+    ]
+
+
 def build_readiness_report(
     *,
     health: dict[str, Any] | None = None,
@@ -431,4 +470,5 @@ __all__ = [
     "build_readiness_report",
     "readiness_issues_from_checks",
     "readiness_to_dict",
+    "strict_readiness_issues",
 ]

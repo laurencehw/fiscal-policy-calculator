@@ -279,8 +279,8 @@ class ScoreTariffResponse(BaseModel):
     uncertainty_range: dict[str, float] | None = None
 
 
-class HealthIssueModel(BaseModel):
-    """Flattened health issue for monitoring clients."""
+class StatusIssueModel(BaseModel):
+    """Flattened status issue for monitoring and validation clients."""
 
     surface: str
     severity: str  # warn | fail
@@ -295,7 +295,7 @@ class HealthCheckResponse(BaseModel):
     overall: str
     timestamp: str
     components: dict[str, Any]
-    issues: list[HealthIssueModel] = Field(default_factory=list)
+    issues: list[StatusIssueModel] = Field(default_factory=list)
 
 
 class BenchmarkResult(BaseModel):
@@ -312,33 +312,13 @@ class BenchmarkResult(BaseModel):
     benchmark_rows: int
 
 
-class BenchmarkIssueModel(BaseModel):
-    """Flattened benchmark issue for validation/status clients."""
-
-    surface: str
-    severity: str  # fail
-    name: str
-    message: str
-    details: dict[str, Any] = Field(default_factory=dict)
-
-
 class BenchmarksResponse(BaseModel):
     """Response listing current model accuracy against every benchmark."""
 
     benchmarks: list[BenchmarkResult]
     count: int
     overall_rating: str  # ok | degraded
-    issues: list[BenchmarkIssueModel] = Field(default_factory=list)
-
-
-class SummaryIssueModel(BaseModel):
-    """Flattened status issue for the summary endpoint."""
-
-    surface: str
-    severity: str  # warn | fail
-    name: str
-    message: str
-    details: dict[str, Any] = Field(default_factory=dict)
+    issues: list[StatusIssueModel] = Field(default_factory=list)
 
 
 class SummaryResponse(BaseModel):
@@ -351,7 +331,7 @@ class SummaryResponse(BaseModel):
     benchmarks_rating: str  # ok | degraded
     microdata_coverage: dict[str, Any]
     auth_required: bool
-    issues: list[SummaryIssueModel] = Field(default_factory=list)
+    issues: list[StatusIssueModel] = Field(default_factory=list)
 
 
 class ReadinessCheckModel(BaseModel):
@@ -546,14 +526,14 @@ def _health_issue_payloads(health_data: dict[str, Any]) -> list[dict[str, Any]]:
     return issues
 
 
-def _health_issues(health_data: dict[str, Any]) -> list[HealthIssueModel]:
+def _health_issues(health_data: dict[str, Any]) -> list[StatusIssueModel]:
     """Return /health issue models for degraded components."""
-    return [HealthIssueModel(**issue) for issue in _health_issue_payloads(health_data)]
+    return [StatusIssueModel(**issue) for issue in _health_issue_payloads(health_data)]
 
 
-def _summary_health_issues(health_data: dict[str, Any]) -> list[SummaryIssueModel]:
+def _summary_health_issues(health_data: dict[str, Any]) -> list[StatusIssueModel]:
     """Flatten non-ok health components for /summary consumers."""
-    return [SummaryIssueModel(**issue) for issue in _health_issue_payloads(health_data)]
+    return [StatusIssueModel(**issue) for issue in _health_issue_payloads(health_data)]
 
 
 def _benchmark_issue_payloads(
@@ -584,20 +564,20 @@ def _benchmark_issue_payloads(
 
 def _benchmark_issues(
     benchmark_results: list[BenchmarkResult],
-) -> list[BenchmarkIssueModel]:
+) -> list[StatusIssueModel]:
     """Return /benchmarks issue models for failing benchmark rows."""
     return [
-        BenchmarkIssueModel(**issue)
+        StatusIssueModel(**issue)
         for issue in _benchmark_issue_payloads(benchmark_results)
     ]
 
 
 def _summary_benchmark_issues(
     benchmark_results: list[BenchmarkResult],
-) -> list[SummaryIssueModel]:
+) -> list[StatusIssueModel]:
     """Flatten failing distributional benchmarks for /summary consumers."""
     return [
-        SummaryIssueModel(**issue)
+        StatusIssueModel(**issue)
         for issue in _benchmark_issue_payloads(benchmark_results)
     ]
 

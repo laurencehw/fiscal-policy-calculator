@@ -10,6 +10,7 @@ from fiscal_model.readiness import (
     build_readiness_report,
     readiness_issues_from_checks,
     readiness_to_dict,
+    strict_readiness_issues,
 )
 
 
@@ -204,3 +205,37 @@ def test_readiness_issues_from_checks_filters_passes():
 
     assert [issue.name for issue in issues] == ["revenue_scorecard"]
     assert issues[0].severity == "warn"
+
+
+def test_strict_readiness_issues_exempts_offline_external_data_warnings():
+    health = _healthy_payload()
+    health["baseline"] = {
+        "status": "degraded",
+        "source": "real_data",
+        "gdp_source": "irs_ratio_proxy",
+        "load_error": None,
+        "fred": {"source": "fallback"},
+    }
+    health["fred"] = {"status": "degraded", "source": "fallback"}
+
+    report = build_readiness_report(
+        health=health,
+        distribution_comparisons=[_comparison()],
+        scorecard=_scorecard(),
+    )
+
+    assert report.verdict == "ready_with_warnings"
+    assert [issue.name for issue in report.issues] == ["baseline", "fred"]
+    assert strict_readiness_issues(report) == []
+
+
+def test_strict_readiness_issues_blocks_model_validation_warnings():
+    report = build_readiness_report(
+        health=_healthy_payload(),
+        distribution_comparisons=[_comparison()],
+        scorecard=_scorecard(rating="Poor", known_limitations=["Known outlier."]),
+    )
+
+    assert [issue.name for issue in strict_readiness_issues(report)] == [
+        "revenue_scorecard"
+    ]

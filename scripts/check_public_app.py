@@ -13,7 +13,7 @@ import json
 import os
 import sys
 import time
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 import requests
 
@@ -27,6 +27,7 @@ ERROR_MARKERS = (
     "share.streamlit.io/errors/not_found",
 )
 USER_AGENT = "fiscal-policy-calculator-healthcheck/1.0"
+UTC = timezone.utc
 
 
 def _fetch(url: str, timeout_seconds: float) -> str:

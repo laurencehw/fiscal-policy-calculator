@@ -24,7 +24,7 @@ import argparse
 import json
 import sys
 from dataclasses import asdict, is_dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -45,6 +45,7 @@ from fiscal_model.validation.cbo_distributions import (  # noqa: E402
 STATUS_DEGRADED = {"degraded", "error", "needs_improvement", "unknown"}
 HEALTH_COMPONENTS = ("runtime", "baseline", "fred", "irs_soi", "model", "microdata")
 CALIBRATION_AGI_RATIO_MIN = 0.60
+UTC = timezone.utc
 
 
 def _fmt_billion(value: float | None) -> str:

@@ -5,7 +5,7 @@ Run the release-readiness gate.
 This is the CI-friendly companion to ``scripts/run_validation_dashboard.py``.
 It evaluates the same readiness contract exposed by ``GET /readiness`` and
 exits non-zero only when the verdict is ``not_ready`` by default. Use
-``--strict`` for release gates that require an exact ``ready`` verdict.
+``--strict`` for release gates that fail on non-environmental warnings.
 
 Usage:
     python scripts/check_readiness.py
@@ -24,7 +24,11 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from fiscal_model.readiness import build_readiness_report, readiness_to_dict  # noqa: E402
+from fiscal_model.readiness import (  # noqa: E402
+    build_readiness_report,
+    readiness_to_dict,
+    strict_readiness_issues,
+)
 
 
 def _print_human(payload: dict) -> None:
@@ -62,7 +66,10 @@ def main() -> int:
     parser.add_argument(
         "--strict",
         action="store_true",
-        help="Treat ready_with_warnings as a failing verdict.",
+        help=(
+            "Fail on non-environmental readiness warnings. Documented external "
+            "data fallbacks remain visible in the report but do not block CI."
+        ),
     )
     args = parser.parse_args()
 
@@ -76,7 +83,7 @@ def main() -> int:
 
     if report.verdict == "not_ready":
         return 1
-    if args.strict and report.verdict != "ready":
+    if args.strict and strict_readiness_issues(report):
         return 2
     return 0
 

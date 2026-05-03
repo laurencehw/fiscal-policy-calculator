@@ -49,7 +49,7 @@ The `readiness` job runs on Python `3.12`, installs `requirements-lock.txt`, and
 python scripts/check_readiness.py --strict
 ```
 
-It fails unless the verdict is exactly `ready`; `ready_with_warnings` is treated as a release-blocking regression in CI.
+It fails on `not_ready` and on non-environmental warnings. CI runners may lack live FRED access or a warm FRED cache, so documented baseline GDP-proxy and FRED fallback warnings remain visible in the report but do not block the job.
 Each run also uploads `readiness-report.json` as a workflow artifact for audit/debugging. The readiness payload includes full `checks` plus a flattened `issues` array for non-passing checks, so release blockers can be surfaced without parsing every check detail.
 
 The `public-app-health` workflow runs every six hours and on manual dispatch. It checks the public Streamlit root and classroom-mode URL using `scripts/check_public_app.py --timeout 20`. By default it targets `https://fiscal-policy-calculator.streamlit.app`; set the repository variable `FISCAL_POLICY_APP_URL` to point the check at another deployment. Each run uploads `public-app-health.json` with per-URL status, latency, and a flattened `issues` array for failed URL checks.
@@ -94,7 +94,7 @@ On Streamlit Cloud, inspect these in the app logs. Locally, they appear in the s
 2. Confirm Streamlit Cloud advanced settings are set to Python `3.12`.
 3. If dependencies changed, regenerate `requirements-lock.txt` with `pip-compile` on Python `3.12`.
 4. Run `python scripts/run_validation_dashboard.py` in the deployment runtime; confirm the runtime line is `[ok]`.
-5. Run `python scripts/check_readiness.py --strict` or check `/readiness`. Production should ship only with `verdict == "ready"`.
+5. Run `python scripts/check_readiness.py --strict` or check `/readiness`. Production should ship with `verdict == "ready"` unless the only warnings are documented external-data fallback warnings.
 6. Check `/health` after deploy and confirm `components.runtime.status == "ok"`.
 7. Wait for GitHub Actions `smoke`, `readiness`, `test`, and `lockfile` jobs to pass.
 8. Confirm the public health workflow is green.

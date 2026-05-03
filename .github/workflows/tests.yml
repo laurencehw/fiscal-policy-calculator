@@ -29,8 +29,8 @@ jobs:
           pytest tests/test_app_entrypoints.py tests/test_ui_controller_smoke.py -q
 
   readiness:
-    # Release-readiness gate on the production-style runtime. Strict mode
-    # requires a clean "ready" verdict so future warnings do not silently ship.
+    # Release-readiness gate on the production-style runtime. Strict mode blocks
+    # model/runtime warnings while tolerating documented offline data fallbacks.
     runs-on: ubuntu-latest
 
     steps:

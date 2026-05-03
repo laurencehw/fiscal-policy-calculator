@@ -61,6 +61,46 @@ def _report(verdict: str) -> ReadinessReport:
     )
 
 
+def _environmental_warning_report() -> ReadinessReport:
+    checks = [
+        ReadinessCheck(
+            name="runtime",
+            status="pass",
+            required=True,
+            summary="Runtime ok.",
+        ),
+        ReadinessCheck(
+            name="baseline",
+            status="warn",
+            required=True,
+            summary="CBO baseline is using a degraded data path.",
+            details={
+                "status": "degraded",
+                "source": "real_data",
+                "gdp_source": "irs_ratio_proxy",
+                "load_error": None,
+                "fred": {"source": "fallback"},
+            },
+        ),
+        ReadinessCheck(
+            name="fred",
+            status="warn",
+            required=False,
+            summary="FRED is using cache or fallback data.",
+            details={"status": "degraded", "source": "fallback"},
+        ),
+    ]
+    return ReadinessReport(
+        verdict="ready_with_warnings",
+        generated_at="2026-04-01T00:00:00Z",
+        pass_count=1,
+        warn_count=2,
+        fail_count=0,
+        checks=checks,
+        issues=readiness_issues_from_checks(checks),
+    )
+
+
 def test_script_file_exists():
     assert SCRIPT_PATH.exists()
 
@@ -76,11 +116,18 @@ def test_ready_with_warnings_exits_zero_by_default(readiness_script, monkeypatch
     assert "Gate status." in out
 
 
-def test_strict_mode_fails_ready_with_warnings(readiness_script, monkeypatch):
+def test_strict_mode_fails_non_environmental_warnings(readiness_script, monkeypatch):
     monkeypatch.setattr(readiness_script, "build_readiness_report", lambda: _report("ready_with_warnings"))
     monkeypatch.setattr(sys, "argv", ["check_readiness", "--strict"])
 
     assert readiness_script.main() == 2
+
+
+def test_strict_mode_allows_environmental_data_warnings(readiness_script, monkeypatch):
+    monkeypatch.setattr(readiness_script, "build_readiness_report", _environmental_warning_report)
+    monkeypatch.setattr(sys, "argv", ["check_readiness", "--strict"])
+
+    assert readiness_script.main() == 0
 
 
 def test_not_ready_exits_one(readiness_script, monkeypatch):
