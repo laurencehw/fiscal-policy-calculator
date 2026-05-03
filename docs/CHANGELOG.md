@@ -13,6 +13,9 @@ in git history, not here.
 - The Results Summary tab now renders a validation-evidence card beside each
   headline score, including calibrated category, benchmark count, observed
   error range, holdout status, and known caveats.
+- CI smoke coverage now includes `scripts/check_streamlit_boot.py`, which
+  starts the Streamlit app locally and verifies the calculator and
+  classroom-mode routes serve the app shell.
 - The release-readiness CLI now distinguishes real release blockers from
   expected offline data-environment warnings. `scripts/check_readiness.py
   --strict` still fails `not_ready` and non-environmental warnings, but it no

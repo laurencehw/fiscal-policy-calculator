@@ -33,6 +33,7 @@ Smoke coverage currently includes:
 
 - `tests/test_app_entrypoints.py`
 - `tests/test_ui_controller_smoke.py`
+- `scripts/check_streamlit_boot.py --timeout 45`, which starts `app.py` through Streamlit and checks both `/` and `/?mode=classroom` return the app shell
 
 These tests are meant to fail fast on:
 
@@ -40,6 +41,7 @@ These tests are meant to fail fast on:
 - broken Streamlit bootstrap wiring
 - session-state/widget ordering bugs
 - classroom routing regressions
+- Streamlit server boot or route-shell regressions that import-only tests cannot catch
 
 The full `test` job runs on Python `3.10`, `3.11`, `3.12`, and `3.13` and is expected to match the local dependency set.
 

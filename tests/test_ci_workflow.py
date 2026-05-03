@@ -18,6 +18,13 @@ def test_readiness_ci_job_uses_strict_release_gate():
     assert "python scripts/check_readiness.py --json > readiness-report.json" in workflow
 
 
+def test_smoke_job_runs_local_streamlit_boot_flow():
+    workflow = TESTS_WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    assert "pytest tests/test_app_entrypoints.py tests/test_ui_controller_smoke.py -q" in workflow
+    assert "python scripts/check_streamlit_boot.py --timeout 45" in workflow
+
+
 def test_public_app_health_workflow_uses_configurable_url_and_timeout():
     workflow = PUBLIC_HEALTH_WORKFLOW_PATH.read_text(encoding="utf-8")
 
