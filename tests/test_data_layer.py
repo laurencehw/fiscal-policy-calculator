@@ -171,6 +171,113 @@ class TestFREDData:
         assert fred.data_status["last_updated"] is None
         assert "GDP" in fred.data_status["error"]
 
+    def test_uses_bundled_seed_when_default_cache_missing(self, tmp_path, monkeypatch):
+        seed_path = tmp_path / "fred_seed.json"
+        seed_path.write_text(
+            """
+            {
+              "updated_at": "2026-04-24T20:05:25Z",
+              "series": {
+                "GDP": {
+                  "updated_at": "2026-04-24T20:05:25Z",
+                  "values": {
+                    "2025-07-01 00:00:00": 31098.027,
+                    "2025-10-01 00:00:00": 31422.526
+                  }
+                }
+              }
+            }
+            """.strip(),
+            encoding="utf-8",
+        )
+        fred = FREDData(cache_dir=tmp_path, bundled_seed_path=seed_path)
+        monkeypatch.setattr(
+            "fiscal_model.data.fred_data.utc_now",
+            lambda: pd.Timestamp("2026-05-03T00:00:00Z").to_pydatetime(),
+        )
+
+        gdp = fred.get_gdp(nominal=True)
+
+        assert float(gdp.iloc[-1]) == 31422.526
+        assert fred.data_status["source"] == "bundled"
+        assert fred.data_status["cache_age_days"] == 8
+        assert fred.data_status["cache_is_expired"] is False
+        assert fred.data_status["last_updated"] == pd.Timestamp("2026-04-24T20:05:25Z").to_pydatetime()
+        assert fred.data_status["error"] is None
+
+    def test_data_status_infers_bundled_seed_before_first_fetch(self, tmp_path, monkeypatch):
+        seed_path = tmp_path / "fred_seed.json"
+        seed_path.write_text(
+            """
+            {
+              "updated_at": "2026-04-24T20:05:25Z",
+              "series": {
+                "GDP": {
+                  "values": {
+                    "2025-10-01 00:00:00": 31422.526
+                  }
+                }
+              }
+            }
+            """.strip(),
+            encoding="utf-8",
+        )
+        fred = FREDData(cache_dir=tmp_path, bundled_seed_path=seed_path)
+        monkeypatch.setattr(
+            "fiscal_model.data.fred_data.utc_now",
+            lambda: pd.Timestamp("2026-05-03T00:00:00Z").to_pydatetime(),
+        )
+
+        status = fred.data_status
+
+        assert status["source"] == "bundled"
+        assert status["cache_age_days"] == 8
+        assert status["cache_is_expired"] is False
+
+    def test_bundled_seed_beats_stale_cache(self, tmp_path, monkeypatch):
+        cache_dir = tmp_path / "cache"
+        seed_path = tmp_path / "fred_seed.json"
+        fred = FREDData(cache_dir=cache_dir, bundled_seed_path=seed_path, cache_max_age_days=30)
+        (cache_dir / "fred_GDP.json").write_text(
+            """
+            {
+              "series_id": "GDP",
+              "updated_at": "2024-01-01T00:00:00Z",
+              "values": {
+                "2024-01-01 00:00:00": 30300.0
+              }
+            }
+            """.strip(),
+            encoding="utf-8",
+        )
+        seed_path.write_text(
+            """
+            {
+              "updated_at": "2026-04-24T20:05:25Z",
+              "series": {
+                "GDP": {
+                  "values": {
+                    "2025-10-01 00:00:00": 31422.526
+                  }
+                }
+              }
+            }
+            """.strip(),
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(fred, "_fetch_live_series", lambda series_id: None)
+        monkeypatch.setattr(
+            "fiscal_model.data.fred_data.utc_now",
+            lambda: pd.Timestamp("2026-05-03T00:00:00Z").to_pydatetime(),
+        )
+
+        assert fred.data_status["source"] == "bundled"
+
+        series = fred.get_gdp()
+
+        assert float(series.iloc[-1]) == 31422.526
+        assert fred.data_status["source"] == "bundled"
+
     def test_get_unemployment_fallback(self, tmp_path):
         fred = FREDData(cache_dir=tmp_path)
         series = fred.get_unemployment()

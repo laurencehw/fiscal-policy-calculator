@@ -100,6 +100,10 @@ def check_fred_data():
         cache_files = list(fred.cache_dir.glob("fred_*.json"))
         print(f"\nCache location: {fred.cache_dir}")
         print(f"Cached series: {len(cache_files)}")
+        if getattr(fred, "bundled_seed_path", None):
+            seed_path = fred.bundled_seed_path
+            seed_status = "present" if seed_path.exists() else "missing"
+            print(f"Bundled seed: {seed_path} ({seed_status})")
 
         if cache_files:
             print("\nCache status:")

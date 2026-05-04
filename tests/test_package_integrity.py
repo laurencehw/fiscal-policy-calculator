@@ -2,6 +2,7 @@
 Regression tests for package wiring and baseline/data fallbacks.
 """
 
+import json
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -200,6 +201,15 @@ def test_capital_gains_baseline_smoke():
 def test_fred_data_is_available_returns_bool():
     fred = FREDData()
     assert isinstance(fred.is_available(), bool)
+
+
+def test_bundled_fred_seed_has_required_gdp_series():
+    seed_path = Path(__file__).resolve().parents[1] / "fiscal_model" / "data_files" / "fred_seed.json"
+    payload = json.loads(seed_path.read_text(encoding="utf-8"))
+
+    assert "GDP" in payload["series"]
+    assert payload["series"]["GDP"]["values"]
+    assert payload["series"]["GDP"]["updated_at"]
 
 
 def test_cbo_baseline_fallback_when_data_load_fails(monkeypatch):

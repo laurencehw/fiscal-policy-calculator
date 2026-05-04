@@ -51,7 +51,7 @@ The `readiness` job runs on Python `3.12`, installs `requirements-lock.txt`, and
 python scripts/check_readiness.py --strict
 ```
 
-It fails on `not_ready` and on non-environmental warnings. CI runners may lack live FRED access or a warm FRED cache, so documented baseline GDP-proxy and FRED fallback warnings remain visible in the report but do not block the job.
+It fails on `not_ready` and on non-environmental warnings. CI runners may lack live FRED access or a warm FRED cache, so the data layer ships a tracked `fiscal_model/data_files/fred_seed.json` seed before falling back to hardcoded GDP. If both cache and seed are unavailable, documented baseline GDP-proxy and FRED fallback warnings remain visible in the report but do not block the job.
 Each run also uploads `readiness-report.json` as a workflow artifact for audit/debugging. The readiness payload includes full `checks` plus a flattened `issues` array for non-passing checks, so release blockers can be surfaced without parsing every check detail.
 
 Strict exit behavior:
@@ -102,7 +102,7 @@ On Streamlit Cloud, inspect these in the app logs. Locally, they appear in the s
 2. Confirm Streamlit Cloud advanced settings are set to Python `3.12`.
 3. If dependencies changed, regenerate `requirements-lock.txt` with `pip-compile` on Python `3.12`.
 4. Run `python scripts/run_validation_dashboard.py` in the deployment runtime; confirm the runtime line is `[ok]`.
-5. Run `python scripts/check_readiness.py --strict` or check `/readiness`. Production should ship with `verdict == "ready"` unless the only warnings are documented external-data fallback warnings.
+5. Run `python scripts/check_readiness.py --strict` or check `/readiness`. Production should ship with `verdict == "ready"`; live FRED or a warm cache is preferred, with the bundled FRED seed as the deterministic offline path.
 6. Check `/health` after deploy and confirm `components.runtime.status == "ok"`.
 7. Wait for GitHub Actions `smoke`, `readiness`, `test`, and `lockfile` jobs to pass.
 8. Confirm the public health workflow is green.

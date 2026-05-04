@@ -16,6 +16,9 @@ in git history, not here.
 - CI smoke coverage now includes `scripts/check_streamlit_boot.py`, which
   starts the Streamlit app locally and verifies the calculator and
   classroom-mode routes serve the app shell.
+- The FRED data layer now has a tracked bundled seed path between runtime cache
+  and hardcoded fallback, so offline CI/deployments can build the baseline from
+  a deterministic GDP seed instead of the IRS-ratio proxy.
 - The release-readiness CLI now distinguishes real release blockers from
   expected offline data-environment warnings. `scripts/check_readiness.py
   --strict` still fails `not_ready` and non-environmental warnings, but it no

@@ -12,7 +12,7 @@ import fiscal_model.baseline as baseline_module
 import fiscal_model.data.fred_data as fred_module
 import fiscal_model.data.irs_soi as irs_module
 import fiscal_model.scoring as scoring_module
-from fiscal_model.health import _runtime_status, check_health
+from fiscal_model.health import _component_status_from_fred, _runtime_status, check_health
 
 
 class TestCheckHealth:
@@ -47,6 +47,9 @@ class TestCheckHealth:
         assert _runtime_status((3, 12, 0))["status"] == "ok"
         assert _runtime_status((3, 9, 18))["status"] == "degraded"
         assert _runtime_status((3, 14, 0))["status"] == "degraded"
+
+    def test_fred_component_status_accepts_bundled_seed(self):
+        assert _component_status_from_fred("bundled", cache_is_expired=False) == "ok"
 
     def test_microdata_component_reports_calibration(self):
         """Microdata health entry should surface the SOI coverage ratios."""

@@ -555,6 +555,31 @@ def test_render_data_status_surfaces_stale_cache(monkeypatch):
     assert any("**FRED:** Stale cache (45 days)" in text for text in st_module.markdowns)
 
 
+def test_render_data_status_surfaces_bundled_seed(monkeypatch):
+    monkeypatch.setattr(
+        "fiscal_model.health.check_health",
+        lambda: {
+            "overall": "ok",
+            "timestamp": "2026-05-03T00:00:00Z",
+            "baseline": {"status": "ok", "vintage": "February 2026", "source": "real_data"},
+            "irs_soi": {"status": "ok", "latest_year": 2022},
+            "fred": {
+                "status": "ok",
+                "source": "bundled",
+                "cache_age_days": 8,
+                "cache_is_expired": False,
+                "api_available": False,
+                "last_updated": "2026-04-24T20:05:25Z",
+            },
+        },
+    )
+    st_module = _DummyStreamlit(radio_values=[])
+
+    render_data_status(st_module=st_module, deps=SimpleNamespace())
+
+    assert any("**FRED:** Bundled seed (8 days)" in text for text in st_module.markdowns)
+
+
 def test_render_data_status_uses_health_payload_for_baseline_and_irs(monkeypatch):
     monkeypatch.setattr(
         "fiscal_model.health.check_health",

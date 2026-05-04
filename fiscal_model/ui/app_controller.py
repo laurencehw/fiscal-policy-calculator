@@ -155,6 +155,8 @@ def render_data_status(st_module: Any, deps: Any) -> None:
                 return f"Stale cache ({_age_label(cache_age_days)} days)"
             if source == "cache":
                 return f"Cache ({_age_label(cache_age_days)} days)"
+            if source == "bundled":
+                return f"Bundled seed ({_age_label(cache_age_days)} days)"
             if source == "fallback":
                 return "Fallback (hardcoded values)"
             if api_available:

@@ -298,12 +298,13 @@ class CBOBaseline:
         # Load individual income tax revenue from IRS data
         self.base_individual_income_tax = irs_data.get_total_revenue(data_year)
 
-        # Load GDP from FRED cache/live if available, otherwise fall back to IRS ratio proxy.
+        # Load GDP from FRED live/cache/bundled seed if available, otherwise
+        # fall back to IRS ratio proxy.
         gdp_series = fred_data.get_gdp(nominal=True)
         self.fred_data_status = dict(fred_data.data_status)
         fred_source = self.fred_data_status.get("source")
 
-        if fred_source in {"live", "cache"}:
+        if fred_source in {"live", "cache", "bundled"}:
             self.base_gdp = float(gdp_series.iloc[-1])
             self.gdp_source = f"fred_{fred_source}"
             logger.info("Loaded GDP from FRED (%s): $%.0fB", fred_source, self.base_gdp)

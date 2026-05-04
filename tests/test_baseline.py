@@ -335,6 +335,43 @@ class TestCBOBaselineInit:
         assert gen.metadata["gdp_source"] == "fred_cache"
         assert gen.metadata["irs_data_year"] == 2022
 
+    def test_real_data_baseline_uses_bundled_fred_seed(self, monkeypatch):
+        """Bundled GDP seed should avoid the IRS-ratio proxy in offline deploys."""
+        import fiscal_model.data as data_module
+
+        class DummyIRSData:
+            def get_data_years_available(self):
+                return [2022]
+
+            def get_total_revenue(self, year):
+                assert year == 2022
+                return 2700.0
+
+        class DummyFREDData:
+            def get_gdp(self, nominal=True):
+                assert nominal is True
+                return pd.Series([31_422.526], index=pd.to_datetime(["2025-10-01"]), name="GDP")
+
+            @property
+            def data_status(self):
+                return {
+                    "source": "bundled",
+                    "last_updated": pd.Timestamp("2026-04-24T20:05:25Z").to_pydatetime(),
+                    "cache_age_days": 8,
+                    "cache_is_expired": False,
+                    "api_available": False,
+                    "error": None,
+                }
+
+        monkeypatch.setattr(data_module, "IRSSOIData", DummyIRSData)
+        monkeypatch.setattr(data_module, "FREDData", DummyFREDData)
+
+        gen = CBOBaseline(start_year=2026, use_real_data=True)
+
+        assert gen.base_gdp == 31_422.526
+        assert gen.metadata["source"] == "real_data"
+        assert gen.metadata["gdp_source"] == "fred_bundled"
+        assert gen.metadata["irs_data_year"] == 2022
 
 # =============================================================================
 # CBO BASELINE GENERATION

@@ -60,6 +60,8 @@ def _component_status_from_fred(
         return "ok"
     if source == "cache" and not cache_is_expired:
         return "ok"
+    if source == "bundled":
+        return "ok"
     return "degraded"
 
 

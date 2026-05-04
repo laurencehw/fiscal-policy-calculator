@@ -266,7 +266,7 @@ The app includes interactive sensitivity sliders to explore these ranges.
 |--------|---------|----------------|
 | IRS Statistics of Income | 2022 | Annual (~Q3 following tax season) |
 | CBO Baseline | February 2026 | Quarterly with CBO publications |
-| FRED macro data | Live / cached | Daily when API key is set |
+| FRED macro data | Live / cached / bundled seed | Daily when API key is set; bundled seed covers offline smoke/readiness paths |
 | congress.gov bills | Live | On-demand via `scripts/update_bills.py` |
 
 ### Manuscript readiness
@@ -308,7 +308,7 @@ python scripts/check_readiness.py --strict
 python scripts/check_readiness.py --json > readiness-report.json
 ```
 
-Default mode exits non-zero only when the verdict is `not_ready`. Strict mode is the CI release gate: it still reports every warning, but only blocks on actual failures or non-environmental warnings. Offline FRED/cache fallback warnings remain visible in the report without failing isolated CI runners.
+Default mode exits non-zero only when the verdict is `not_ready`. Strict mode is the CI release gate: it still reports every warning, but only blocks on actual failures or non-environmental warnings. A tracked FRED seed keeps isolated CI runners off the hardcoded GDP fallback; if the seed and cache are both unavailable, offline FRED/cache fallback warnings remain visible without failing strict CI.
 
 ### Verify public app availability
 
