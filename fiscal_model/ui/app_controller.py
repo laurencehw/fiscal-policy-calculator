@@ -155,6 +155,8 @@ def render_data_status(st_module: Any, deps: Any) -> None:
                 return f"Stale cache ({_age_label(cache_age_days)} days)"
             if source == "cache":
                 return f"Cache ({_age_label(cache_age_days)} days)"
+            if source == "bundled" and cache_is_expired:
+                return f"Stale bundled seed ({_age_label(cache_age_days)} days)"
             if source == "bundled":
                 return f"Bundled seed ({_age_label(cache_age_days)} days)"
             if source == "fallback":
@@ -267,7 +269,7 @@ def render_data_status(st_module: Any, deps: Any) -> None:
                 f"**IRS SOI latest year:** {irs_soi.get('latest_year', 'Unavailable')}\n\n"
                 f"**FRED source:** {fred.get('source', 'unknown')}\n\n"
                 f"**FRED last updated:** {last_updated}\n\n"
-                f"**FRED cache age:** {_age_label(fred.get('cache_age_days'))}\n\n"
+                f"**FRED data age:** {_age_label(fred.get('cache_age_days'))}\n\n"
                 f"**GDP source for baseline:** {baseline.get('gdp_source', 'unknown')}\n\n"
                 f"**Python runtime:** {runtime.get('python_version', 'unknown')}\n\n"
                 f"**Runtime support:** {runtime.get('supported_range', 'unknown')}"

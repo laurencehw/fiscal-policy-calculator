@@ -60,7 +60,7 @@ def _component_status_from_fred(
         return "ok"
     if source == "cache" and not cache_is_expired:
         return "ok"
-    if source == "bundled":
+    if source == "bundled" and not cache_is_expired:
         return "ok"
     return "degraded"
 
@@ -80,6 +80,7 @@ def _serialize_fred_status(data_status: dict[str, Any]) -> dict[str, Any]:
         "last_updated": format_utc_timestamp(data_status.get("last_updated")),
         "cache_age_days": data_status.get("cache_age_days"),
         "cache_is_expired": bool(data_status.get("cache_is_expired", False)),
+        "source_max_age_days": data_status.get("source_max_age_days"),
         "api_available": bool(data_status.get("api_available", False)),
         "error": data_status.get("error"),
     }

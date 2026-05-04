@@ -129,6 +129,16 @@ def test_real_fred_error_does_fail_gate(dashboard_module):
     assert dashboard_module._is_environmental_degradation("fred", info) is False
 
 
+def test_stale_bundled_fred_seed_fails_gate(dashboard_module):
+    """Stale tracked seed data is repo maintenance, not an env fallback."""
+    info = {
+        "status": "degraded",
+        "source": "bundled",
+        "cache_is_expired": True,
+    }
+    assert dashboard_module._is_environmental_degradation("fred", info) is False
+
+
 def test_model_degradation_always_fails_gate(dashboard_module):
     """A scoring-engine error is always a real regression."""
     info = {"status": "error", "error": "something broke"}

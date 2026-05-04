@@ -229,6 +229,26 @@ def test_strict_readiness_issues_exempts_offline_external_data_warnings():
     assert strict_readiness_issues(report) == []
 
 
+def test_strict_readiness_issues_blocks_stale_bundled_seed():
+    health = _healthy_payload()
+    health["fred"] = {
+        "status": "degraded",
+        "source": "bundled",
+        "cache_age_days": 150,
+        "cache_is_expired": True,
+        "source_max_age_days": 120,
+    }
+
+    report = build_readiness_report(
+        health=health,
+        distribution_comparisons=[_comparison()],
+        scorecard=_scorecard(),
+    )
+
+    assert report.verdict == "ready_with_warnings"
+    assert [issue.name for issue in strict_readiness_issues(report)] == ["fred"]
+
+
 def test_strict_readiness_issues_blocks_model_validation_warnings():
     report = build_readiness_report(
         health=_healthy_payload(),

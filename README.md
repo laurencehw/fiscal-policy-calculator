@@ -266,7 +266,7 @@ The app includes interactive sensitivity sliders to explore these ranges.
 |--------|---------|----------------|
 | IRS Statistics of Income | 2022 | Annual (~Q3 following tax season) |
 | CBO Baseline | February 2026 | Quarterly with CBO publications |
-| FRED macro data | Live / cached / bundled seed | Daily when API key is set; bundled seed covers offline smoke/readiness paths |
+| FRED macro data | Live / cached / bundled seed | Daily when API key is set; bundled seed covers offline smoke/readiness paths and warns after 120 days |
 | congress.gov bills | Live | On-demand via `scripts/update_bills.py` |
 
 ### Manuscript readiness

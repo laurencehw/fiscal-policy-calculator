@@ -149,7 +149,7 @@ def _health_checks(health: dict[str, Any]) -> list[ReadinessCheck]:
         checks.append(_check(
             "fred",
             "warn",
-            "FRED is using cache or fallback data.",
+            "FRED is using a degraded external-data path.",
             details=fred,
             required=False,
         ))

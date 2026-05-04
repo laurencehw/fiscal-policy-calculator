@@ -86,7 +86,7 @@ def _environmental_warning_report() -> ReadinessReport:
             name="fred",
             status="warn",
             required=False,
-            summary="FRED is using cache or fallback data.",
+            summary="FRED is using a degraded external-data path.",
             details={"status": "degraded", "source": "fallback"},
         ),
     ]

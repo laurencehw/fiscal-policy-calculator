@@ -104,6 +104,7 @@ def check_fred_data():
             seed_path = fred.bundled_seed_path
             seed_status = "present" if seed_path.exists() else "missing"
             print(f"Bundled seed: {seed_path} ({seed_status})")
+            print(f"Bundled seed max age: {fred.bundled_seed_max_age_days}d")
 
         if cache_files:
             print("\nCache status:")

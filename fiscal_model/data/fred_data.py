@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 # Retry schedule (seconds) for transient FRED failures. Short by design so
 # we fall back to cache quickly rather than blocking UI renders.
 _FRED_RETRY_BACKOFF_SECONDS: tuple[float, ...] = (0.5, 1.0)
+_DEFAULT_BUNDLED_SEED_MAX_AGE_DAYS = 120
 
 
 class FREDData:
@@ -45,6 +46,7 @@ class FREDData:
         self,
         cache_dir: Path | None = None,
         bundled_seed_path: Path | str | None = None,
+        bundled_seed_max_age_days: int = _DEFAULT_BUNDLED_SEED_MAX_AGE_DAYS,
         cache_max_age_days: int = 30,
         timeout_seconds: int = 10,
     ):
@@ -61,6 +63,7 @@ class FREDData:
         self._api_key = os.getenv("FRED_API_KEY", "").strip()
         self._fred = None
         self.cache_max_age_days = cache_max_age_days
+        self.bundled_seed_max_age_days = bundled_seed_max_age_days
         self.timeout_seconds = timeout_seconds
 
         # Error tracking
@@ -69,6 +72,7 @@ class FREDData:
         self._last_updated: datetime | None = None
         self._cache_age_days: int | None = None
         self._cache_is_expired: bool = False
+        self._source_max_age_days: int | None = None
 
         if self._api_key:
             try:
@@ -93,6 +97,8 @@ class FREDData:
             - source: "live", "cache", "bundled", or "fallback"
             - last_updated: datetime object or None
             - cache_age_days: int or None
+            - cache_is_expired: bool
+            - source_max_age_days: int or None
             - api_available: bool
             - error: str or None (last error message)
         """
@@ -100,6 +106,7 @@ class FREDData:
         last_updated = self._last_updated
         cache_age_days = self._cache_age_days
         cache_is_expired = self._cache_is_expired
+        source_max_age_days = self._source_max_age_days
 
         if source is None:
             has_cache, cached_updated_at, inferred_expired, inferred_age_days = (
@@ -110,26 +117,36 @@ class FREDData:
                 last_updated = cached_updated_at
                 cache_age_days = inferred_age_days
                 cache_is_expired = inferred_expired
+                source_max_age_days = self.cache_max_age_days
             else:
-                has_seed, seed_updated_at, seed_age_days = (
+                has_seed, seed_updated_at, seed_age_days, seed_is_expired = (
                     self._peek_bundled_seed_metadata(self.SERIES["nominal_gdp"])
                 )
-                if has_seed:
+                if has_seed and not seed_is_expired:
                     source = "bundled"
                     last_updated = seed_updated_at
                     cache_age_days = seed_age_days
-                    cache_is_expired = False
+                    cache_is_expired = seed_is_expired
+                    source_max_age_days = self.bundled_seed_max_age_days
                 elif has_cache:
                     source = "cache"
                     last_updated = cached_updated_at
                     cache_age_days = inferred_age_days
                     cache_is_expired = inferred_expired
+                    source_max_age_days = self.cache_max_age_days
+                elif has_seed:
+                    source = "bundled"
+                    last_updated = seed_updated_at
+                    cache_age_days = seed_age_days
+                    cache_is_expired = seed_is_expired
+                    source_max_age_days = self.bundled_seed_max_age_days
 
         return {
             "source": source,
             "last_updated": last_updated,
             "cache_age_days": cache_age_days,
             "cache_is_expired": cache_is_expired,
+            "source_max_age_days": source_max_age_days,
             "api_available": self.is_available(),
             "error": self._last_error,
         }
@@ -155,6 +172,7 @@ class FREDData:
             self._last_updated = utc_now()
             self._cache_age_days = 0
             self._cache_is_expired = False
+            self._source_max_age_days = None
             return live
 
         # Try fresh cache first. Stale cache remains useful, but a tracked seed
@@ -165,18 +183,22 @@ class FREDData:
             self._cache_age_days = cache_age
             self._cache_is_expired = is_expired
             self._last_updated = cache_updated_at
+            self._source_max_age_days = self.cache_max_age_days
             return cached
 
         # Try a tracked seed snapshot. This keeps CI and offline deployments
         # deterministic without pretending that live FRED is configured.
-        bundled, seed_age, seed_updated_at = self._read_bundled_seed(series_id)
-        if bundled is not None and not bundled.empty:
+        bundled, seed_age, seed_updated_at, seed_is_expired = (
+            self._read_bundled_seed(series_id)
+        )
+        if bundled is not None and not bundled.empty and not seed_is_expired:
             logger.info("Using bundled FRED seed for %s.", series_id)
             self._data_source = "bundled"
             self._last_error = None
             self._cache_age_days = seed_age
-            self._cache_is_expired = False
+            self._cache_is_expired = seed_is_expired
             self._last_updated = seed_updated_at
+            self._source_max_age_days = self.bundled_seed_max_age_days
             return bundled
 
         if cached is not None and not cached.empty:
@@ -188,7 +210,21 @@ class FREDData:
             self._cache_age_days = cache_age
             self._cache_is_expired = is_expired
             self._last_updated = cache_updated_at
+            self._source_max_age_days = self.cache_max_age_days
             return cached
+
+        if bundled is not None and not bundled.empty:
+            logger.warning(
+                f"Bundled FRED seed for {series_id} is {seed_age} days old "
+                f"(max: {self.bundled_seed_max_age_days}). Using stale seed."
+            )
+            self._data_source = "bundled"
+            self._last_error = None
+            self._cache_age_days = seed_age
+            self._cache_is_expired = seed_is_expired
+            self._last_updated = seed_updated_at
+            self._source_max_age_days = self.bundled_seed_max_age_days
+            return bundled
 
         # Last-resort fallback for offline environments (2026 nominal GDP estimate).
         logger.error(
@@ -200,6 +236,7 @@ class FREDData:
         self._last_updated = None
         self._cache_age_days = None
         self._cache_is_expired = False
+        self._source_max_age_days = None
         return pd.Series([30_300.0], index=[pd.Timestamp("2024-01-01")], name=series_id)
 
     def _fetch_live_series(self, series_id: str) -> pd.Series | None:
@@ -293,6 +330,7 @@ class FREDData:
             self._last_updated = utc_now()
             self._cache_age_days = 0
             self._cache_is_expired = False
+            self._source_max_age_days = None
             self._last_error = None
             logger.info(f"Successfully refreshed {success_count}/{len(self.SERIES)} series")
             return True
@@ -350,34 +388,44 @@ class FREDData:
     def _peek_bundled_seed_metadata(
         self,
         series_id: str,
-    ) -> tuple[bool, datetime | None, int | None]:
+    ) -> tuple[bool, datetime | None, int | None, bool]:
         """Inspect bundled seed metadata without mutating object state."""
         payload = self._read_bundled_seed_payload(series_id)
         if payload is None or not payload.get("values"):
-            return False, None, None
+            return False, None, None, False
 
         updated_at = parse_utc_timestamp(
             payload.get("updated_at") or payload.get("_root_updated_at")
         )
-        return True, updated_at, self._age_days(updated_at)
+        seed_age_days = self._age_days(updated_at)
+        is_expired = (
+            seed_age_days is not None
+            and seed_age_days > self.bundled_seed_max_age_days
+        )
+        return True, updated_at, seed_age_days, is_expired
 
     def _read_bundled_seed(
         self,
         series_id: str,
-    ) -> tuple[pd.Series | None, int | None, datetime | None]:
+    ) -> tuple[pd.Series | None, int | None, datetime | None, bool]:
         """Read bundled seed data for a series, if the tracked seed provides it."""
         payload = self._read_bundled_seed_payload(series_id)
         if payload is None:
-            return None, None, None
+            return None, None, None, False
 
         series = self._series_from_values(series_id, payload.get("values", {}))
         if series is None:
-            return None, None, None
+            return None, None, None, False
 
         updated_at = parse_utc_timestamp(
             payload.get("updated_at") or payload.get("_root_updated_at")
         )
-        return series, self._age_days(updated_at), updated_at
+        seed_age_days = self._age_days(updated_at)
+        is_expired = (
+            seed_age_days is not None
+            and seed_age_days > self.bundled_seed_max_age_days
+        )
+        return series, seed_age_days, updated_at, is_expired
 
     def _peek_cache_metadata(
         self,

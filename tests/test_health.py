@@ -50,6 +50,7 @@ class TestCheckHealth:
 
     def test_fred_component_status_accepts_bundled_seed(self):
         assert _component_status_from_fred("bundled", cache_is_expired=False) == "ok"
+        assert _component_status_from_fred("bundled", cache_is_expired=True) == "degraded"
 
     def test_microdata_component_reports_calibration(self):
         """Microdata health entry should surface the SOI coverage ratios."""
@@ -172,6 +173,7 @@ class TestCheckHealth:
             assert "source" in fred
             assert "cache_age_days" in fred
             assert "cache_is_expired" in fred
+            assert "source_max_age_days" in fred
             assert "api_available" in fred
 
     def test_error_states_have_error_message(self):

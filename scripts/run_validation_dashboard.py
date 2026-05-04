@@ -123,11 +123,10 @@ def _is_environmental_degradation(component: str, info: dict[str, Any]) -> bool:
 
     Two sources of legitimate env-degradation:
 
-    - FRED: without ``FRED_API_KEY``, every FRED call falls back to a
-      hardcoded series and the data layer reports ``status=degraded``.
-      This is the CI baseline; the only signal that warrants failing
-      the gate is ``status=error`` (an unrecoverable exception inside
-      the FRED wrapper itself).
+    - FRED: without ``FRED_API_KEY``, FRED calls can use cache or documented
+      fallback data and report ``status=degraded``. This is env-ok for CI,
+      but a stale bundled seed is a repository-maintenance issue and should
+      fail the gate until the tracked seed is refreshed.
     - Baseline: depends on FRED, so it inherits the same pattern.
       ``source=hardcoded_fallback`` or ``gdp_source=irs_ratio_proxy``
       both indicate env-driven fallback. An explicit ``load_error``
@@ -135,8 +134,9 @@ def _is_environmental_degradation(component: str, info: dict[str, Any]) -> bool:
     """
     status = info.get("status")
     if component == "fred":
-        # Any FRED state short of an actual exception is env-ok.
-        return status != "error"
+        if status == "error":
+            return False
+        return info.get("source") in {"cache", "fallback"}
     if component == "baseline":
         if status == "error" or info.get("load_error"):
             return False

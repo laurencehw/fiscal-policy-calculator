@@ -19,6 +19,8 @@ in git history, not here.
 - The FRED data layer now has a tracked bundled seed path between runtime cache
   and hardcoded fallback, so offline CI/deployments can build the baseline from
   a deterministic GDP seed instead of the IRS-ratio proxy.
+- Bundled FRED seed data now carries a 120-day freshness contract, surfaces its
+  age/max-age in health payloads, and degrades readiness when the seed ages out.
 - The release-readiness CLI now distinguishes real release blockers from
   expected offline data-environment warnings. `scripts/check_readiness.py
   --strict` still fails `not_ready` and non-environmental warnings, but it no
