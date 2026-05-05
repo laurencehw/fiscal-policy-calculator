@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pandas as pd
 
-from fiscal_model.feasibility import audit_cps_microsim_readiness
+from fiscal_model.feasibility import (
+    assess_model_pilot_comparison,
+    audit_cps_microsim_readiness,
+)
 
 
 def test_audit_cps_microsim_readiness_reports_ready_dataset(tmp_path):
@@ -73,4 +78,41 @@ def test_audit_cps_microsim_readiness_flags_missing_required_columns(tmp_path):
     assert audit.ready_for_spike is False
     assert "age_head" in audit.missing_required_columns
     assert any("required columns" in warning for warning in audit.warnings)
+
+
+def test_assess_model_pilot_comparison_blocks_implausible_gaps():
+    bundle = SimpleNamespace(
+        results=[
+            SimpleNamespace(model_name="CBO-Style", ten_year_cost=-664.2, distributional=None),
+            SimpleNamespace(model_name="TPC-Microsim Pilot", ten_year_cost=-55.2, distributional=object()),
+            SimpleNamespace(model_name="PWBM-OLG Pilot", ten_year_cost=357_435.3, distributional=None),
+        ],
+        errors={},
+        max_gap=358_099.5,
+    )
+
+    assessment = assess_model_pilot_comparison(bundle)
+
+    assert assessment.ready_for_spike is False
+    assert assessment.status == "blocked"
+    assert assessment.max_abs_ten_year_cost == 357_435.3
+    assert any("PWBM-OLG Pilot" in blocker for blocker in assessment.blockers)
+    assert any("Max model gap" in blocker for blocker in assessment.blockers)
+
+
+def test_assess_model_pilot_comparison_allows_sane_two_model_spike():
+    bundle = SimpleNamespace(
+        results=[
+            SimpleNamespace(model_name="CBO-Style", ten_year_cost=-120.0, distributional=None),
+            SimpleNamespace(model_name="TPC-Microsim Pilot", ten_year_cost=-90.0, distributional=object()),
+        ],
+        errors={},
+        max_gap=30.0,
+    )
+
+    assessment = assess_model_pilot_comparison(bundle)
+
+    assert assessment.ready_for_spike is True
+    assert assessment.status == "ready"
+    assert assessment.blockers == []
 

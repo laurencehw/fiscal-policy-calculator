@@ -36,6 +36,7 @@ Quick command path:
 
 - `python scripts/run_feasibility_audit.py --json`
 - `python scripts/run_feasibility_audit.py --include-model-pilot`
+- `python scripts/run_feasibility_audit.py --include-model-pilot --strict`
 
 ---
 
@@ -119,6 +120,7 @@ Decide whether the repo can support a real side-by-side CBO-style, microsim-styl
 - [ ] Build a `PWBMScoringModel` wrapper or adapter so the OLG path emits `ModelResult`-style outputs.
 - [ ] Add a simple model registry or comparison service that can execute 2-3 models for one policy.
 - [ ] Run at least one preset policy through all candidate models and capture divergences.
+- [ ] Treat `model_pilot_assessment.blockers` as stop/pivot signals before UI expansion.
 - [ ] Write down which outputs are truly comparable and which are model-specific extras.
 
 ### Greenlight criteria

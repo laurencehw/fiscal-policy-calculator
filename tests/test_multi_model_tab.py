@@ -122,6 +122,13 @@ def _make_bundle(*, include_error: bool = False) -> ComparisonBundle:
     return bundle
 
 
+def _make_blocked_bundle() -> ComparisonBundle:
+    bundle = _make_bundle()
+    bundle.results[-1].ten_year_cost = 357_435.3
+    bundle.results[-1].annual_effects = [35_743.53] * 10
+    return bundle
+
+
 @pytest.fixture
 def stub_deps(monkeypatch):
     """Wire stubs for compare_policy_models and the policy builder."""
@@ -192,6 +199,32 @@ def test_tab_surfaces_backend_errors(stub_deps, monkeypatch):
         if call[0] == "markdown" and "Experimental Model" in call[1]
     ]
     assert backend_error_markers, "Expected backend error to be rendered"
+
+
+def test_tab_surfaces_model_pilot_quality_blockers(stub_deps, monkeypatch):
+    bundle = _make_blocked_bundle()
+    monkeypatch.setattr(stub_deps, "compare_policy_models", lambda *a, **k: bundle)
+
+    st = _StubStreamlit()
+    stub_deps.render_multi_model_tab(
+        st,
+        is_spending=False,
+        preset_policies={"Demo Top Rate": {"rate_change": 2.6}},
+        tax_policy_cls=lambda **kwargs: SimpleNamespace(name=kwargs["name"]),
+        policy_type_income_tax="income_tax",
+        fiscal_policy_scorer_cls=lambda **kwargs: None,
+        data_year=2022,
+        use_real_data=False,
+    )
+
+    assert any(
+        call[0] == "warning" and "Pilot quality blocker" in call[1]
+        for call in st.calls
+    )
+    assert any(
+        call[0] == "markdown" and "PWBM-OLG Pilot" in call[1]
+        for call in st.calls
+    )
 
 
 def test_tab_handles_empty_bundle(stub_deps, monkeypatch):

@@ -64,6 +64,12 @@ The `public-app-health` workflow runs every six hours and on manual dispatch. It
 
 The `validation-dashboard` workflow uploads `validation-dashboard.json` and `validation-dashboard-augmented.json` on push, pull request, and manual dispatch. The default artifact shows the raw CPS calibration state; the augmented artifact runs with `--augment-top-tail` so high-income SOI correction is visible separately. Each artifact includes `generated_at`, aggregate `overall`, per-surface gate booleans for health, calibration, and distributional benchmarks, plus an `issues` array that names the failing component, bracket, or benchmark. The calibration payload also records `augmentation` and `filter` metadata when those optional microdata operations are used.
 
+The `fred-seed-refresh` workflow runs monthly and on manual dispatch. It
+requires the repository secret `FRED_API_KEY`, refreshes
+`fiscal_model/data_files/fred_seed.json` with `scripts/refresh_fred_seed.py`,
+runs the strict readiness gate plus targeted FRED seed regressions, and opens a
+pull request only when the committed seed changes.
+
 ## Dependency Parity
 
 The deployment path is intentionally split:
@@ -106,7 +112,8 @@ On Streamlit Cloud, inspect these in the app logs. Locally, they appear in the s
 6. Check `/health` after deploy and confirm `components.runtime.status == "ok"`.
 7. Wait for GitHub Actions `smoke`, `readiness`, `test`, and `lockfile` jobs to pass.
 8. Confirm the public health workflow is green.
-9. Load the calculator root and classroom mode once after deploy.
+9. Confirm the monthly FRED seed refresh workflow has `FRED_API_KEY` configured.
+10. Load the calculator root and classroom mode once after deploy.
 
 ## Incident Checklist
 

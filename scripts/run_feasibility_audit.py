@@ -19,7 +19,10 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from fiscal_model.feasibility import audit_cps_microsim_readiness  # noqa: E402
+from fiscal_model.feasibility import (  # noqa: E402
+    assess_model_pilot_comparison,
+    audit_cps_microsim_readiness,
+)
 from fiscal_model.models.comparison import (  # noqa: E402
     build_default_comparison_models,
     compare_policy_models,
@@ -42,7 +45,7 @@ def _default_policy() -> TaxPolicy:
     )
 
 
-def _print_text_report(audit, comparison_bundle) -> None:
+def _print_text_report(audit, comparison_bundle, model_assessment) -> None:
     print("CPS Microsim Feasibility Audit")
     print(f"Microdata: {'found' if audit.microdata_exists else 'missing'}")
     print(f"Raw CPS files: {'ready' if audit.raw_person_exists and audit.raw_household_exists else 'incomplete'}")
@@ -73,6 +76,17 @@ def _print_text_report(audit, comparison_bundle) -> None:
             print("Model errors")
             for model_name, error in comparison_bundle.errors.items():
                 print(f"- {model_name}: {error}")
+        if model_assessment is not None:
+            print("")
+            print(f"Pilot model assessment: {model_assessment.status}")
+            if model_assessment.blockers:
+                print("Blockers")
+                for blocker in model_assessment.blockers:
+                    print(f"- {blocker}")
+            if model_assessment.warnings:
+                print("Warnings")
+                for warning in model_assessment.warnings:
+                    print(f"- {warning}")
 
 
 def main() -> int:
@@ -83,10 +97,16 @@ def main() -> int:
         action="store_true",
         help="Run the current CBO/TPC/PWBM pilot comparison for a default test policy.",
     )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Exit 2 when CPS or included model-pilot feasibility is blocked.",
+    )
     args = parser.parse_args()
 
     audit = audit_cps_microsim_readiness(project_root=PROJECT_ROOT)
     comparison_bundle = None
+    model_assessment = None
 
     if args.include_model_pilot:
         models = build_default_comparison_models(FiscalPolicyScorer, use_real_data=False)
@@ -95,15 +115,25 @@ def main() -> int:
             models,
             continue_on_error=True,
         )
+        model_assessment = assess_model_pilot_comparison(comparison_bundle)
 
     if args.json:
         payload = {
             "cps_microsim": audit.to_dict(),
             "model_pilot": comparison_bundle.to_dict() if comparison_bundle is not None else None,
+            "model_pilot_assessment": (
+                model_assessment.to_dict() if model_assessment is not None else None
+            ),
         }
         print(json.dumps(payload, indent=2))
     else:
-        _print_text_report(audit, comparison_bundle)
+        _print_text_report(audit, comparison_bundle, model_assessment)
+
+    if args.strict:
+        if not audit.ready_for_spike:
+            return 2
+        if model_assessment is not None and not model_assessment.ready_for_spike:
+            return 2
 
     return 0
 

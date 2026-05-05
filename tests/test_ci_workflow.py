@@ -8,6 +8,7 @@ WORKFLOWS_DIR = Path(__file__).resolve().parents[1] / ".github" / "workflows"
 TESTS_WORKFLOW_PATH = WORKFLOWS_DIR / "tests.yml"
 PUBLIC_HEALTH_WORKFLOW_PATH = WORKFLOWS_DIR / "public-app-health.yml"
 VALIDATION_DASHBOARD_WORKFLOW_PATH = WORKFLOWS_DIR / "validation-dashboard.yml"
+FRED_SEED_REFRESH_WORKFLOW_PATH = WORKFLOWS_DIR / "fred-seed-refresh.yml"
 
 
 def test_readiness_ci_job_uses_strict_release_gate():
@@ -47,3 +48,15 @@ def test_validation_dashboard_workflow_uploads_json_artifact():
     assert "name: validation-dashboard" in workflow
     assert "path: |" in workflow
     assert "validation-dashboard-augmented.json" in workflow
+
+
+def test_fred_seed_refresh_workflow_opens_seed_refresh_pr():
+    workflow = FRED_SEED_REFRESH_WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    assert 'cron: "0 10 1 * *"' in workflow
+    assert "FRED_API_KEY: ${{ secrets.FRED_API_KEY }}" in workflow
+    assert "python scripts/refresh_fred_seed.py --observations 8" in workflow
+    assert "python scripts/check_readiness.py --strict" in workflow
+    assert "tests/test_refresh_fred_seed_script.py" in workflow
+    assert "peter-evans/create-pull-request" in workflow
+    assert "fiscal_model/data_files/fred_seed.json" in workflow

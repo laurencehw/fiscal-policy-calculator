@@ -33,6 +33,7 @@ Before committing to the full CPS microsimulation build or the full multi-model 
 Starter commands:
 - `python scripts/run_feasibility_audit.py --json`
 - `python scripts/run_feasibility_audit.py --include-model-pilot`
+- `python scripts/run_feasibility_audit.py --include-model-pilot --strict`
 
 ### CPS microsimulation feasibility sprint
 - [ ] Audit current `fiscal_model/microsim/` inputs, tax-unit construction, and weighting assumptions
@@ -44,6 +45,7 @@ Starter commands:
 - [ ] Audit the current `BaseScoringModel` / `ModelResult` abstractions
 - [ ] Wrap one microsim-style engine and one PWBM-style path behind a common comparison contract
 - [ ] Run one preset policy through 2-3 engines outside the current static-vs-dynamic UI
+- [ ] Resolve any `model_pilot_assessment.blockers` from `scripts/run_feasibility_audit.py --include-model-pilot --json`
 - [ ] Decide whether the repo is ready for a true side-by-side comparison feature
 
 ### Go/no-go memo

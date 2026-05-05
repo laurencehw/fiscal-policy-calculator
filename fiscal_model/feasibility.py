@@ -34,6 +34,10 @@ MICROSIM_OPTIONAL_COLUMNS = (
     "investment_income",
 )
 
+DEFAULT_MODEL_PILOT_MIN_MODELS = 2
+DEFAULT_MODEL_PILOT_MAX_GAP_BILLIONS = 10_000.0
+DEFAULT_MODEL_PILOT_MAX_ABS_COST_BILLIONS = 10_000.0
+
 
 @dataclass
 class AggregateCheck:
@@ -87,6 +91,35 @@ class CPSMicrosimAudit:
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
         payload["ready_for_spike"] = self.ready_for_spike
+        return payload
+
+
+@dataclass
+class ModelPilotAssessment:
+    """Structured go/no-go assessment for the pilot multi-model comparison."""
+
+    result_count: int
+    error_count: int
+    max_gap: float | None = None
+    max_abs_ten_year_cost: float | None = None
+    min_required_models: int = DEFAULT_MODEL_PILOT_MIN_MODELS
+    max_gap_limit_billions: float = DEFAULT_MODEL_PILOT_MAX_GAP_BILLIONS
+    max_abs_cost_limit_billions: float = DEFAULT_MODEL_PILOT_MAX_ABS_COST_BILLIONS
+    blockers: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+
+    @property
+    def ready_for_spike(self) -> bool:
+        return not self.blockers
+
+    @property
+    def status(self) -> str:
+        return "ready" if self.ready_for_spike else "blocked"
+
+    def to_dict(self) -> dict[str, Any]:
+        payload = asdict(self)
+        payload["ready_for_spike"] = self.ready_for_spike
+        payload["status"] = self.status
         return payload
 
 
@@ -195,3 +228,73 @@ def audit_cps_microsim_readiness(
         )
 
     return audit
+
+
+def assess_model_pilot_comparison(
+    comparison_bundle: Any,
+    *,
+    min_required_models: int = DEFAULT_MODEL_PILOT_MIN_MODELS,
+    max_gap_limit_billions: float = DEFAULT_MODEL_PILOT_MAX_GAP_BILLIONS,
+    max_abs_cost_limit_billions: float = DEFAULT_MODEL_PILOT_MAX_ABS_COST_BILLIONS,
+) -> ModelPilotAssessment:
+    """Assess whether the pilot model comparison is credible enough to expand.
+
+    The pilot comparison intentionally runs heterogeneous engines. Large
+    disagreement can be expected, but order-of-magnitude or sign/pathology gaps
+    should block further UI/productization until the adapter assumptions are
+    narrowed or the unstable engine is removed from the default pilot.
+    """
+
+    results = list(getattr(comparison_bundle, "results", []) or [])
+    errors = dict(getattr(comparison_bundle, "errors", {}) or {})
+    max_gap = getattr(comparison_bundle, "max_gap", None)
+    costs: list[tuple[str, float]] = []
+
+    for result in results:
+        model_name = str(getattr(result, "model_name", type(result).__name__))
+        ten_year_cost = float(getattr(result, "ten_year_cost", 0.0))
+        costs.append((model_name, ten_year_cost))
+
+    max_abs_cost = max((abs(cost) for _, cost in costs), default=None)
+    assessment = ModelPilotAssessment(
+        result_count=len(results),
+        error_count=len(errors),
+        max_gap=float(max_gap) if max_gap is not None else None,
+        max_abs_ten_year_cost=max_abs_cost,
+        min_required_models=min_required_models,
+        max_gap_limit_billions=float(max_gap_limit_billions),
+        max_abs_cost_limit_billions=float(max_abs_cost_limit_billions),
+    )
+
+    if len(results) < min_required_models:
+        assessment.blockers.append(
+            f"Only {len(results)} model result(s) returned; need at least "
+            f"{min_required_models} comparable engines."
+        )
+
+    for model_name, error in errors.items():
+        message = f"{model_name} did not run: {error}"
+        if len(results) < min_required_models:
+            assessment.blockers.append(message)
+        else:
+            assessment.warnings.append(message)
+
+    for model_name, cost in costs:
+        if abs(cost) > max_abs_cost_limit_billions:
+            assessment.blockers.append(
+                f"{model_name} 10-year estimate is {cost:,.1f}B, outside the "
+                f"+/-{max_abs_cost_limit_billions:,.0f}B pilot sanity bound."
+            )
+
+    if max_gap is not None and abs(float(max_gap)) > max_gap_limit_billions:
+        assessment.blockers.append(
+            f"Max model gap is {float(max_gap):,.1f}B, above the "
+            f"{max_gap_limit_billions:,.0f}B pilot sanity bound."
+        )
+
+    if not any(getattr(result, "distributional", None) is not None for result in results):
+        assessment.warnings.append(
+            "No pilot model returned distributional output; the comparison is aggregate-only."
+        )
+
+    return assessment

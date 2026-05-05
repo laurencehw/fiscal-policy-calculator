@@ -310,6 +310,22 @@ python scripts/check_readiness.py --json > readiness-report.json
 
 Default mode exits non-zero only when the verdict is `not_ready`. Strict mode is the CI release gate: it still reports every warning, but only blocks on actual failures or non-environmental warnings. A tracked FRED seed keeps isolated CI runners off the hardcoded GDP fallback; if the seed and cache are both unavailable, offline FRED/cache fallback warnings remain visible without failing strict CI.
 
+### Refresh bundled FRED seed
+
+The tracked FRED seed is refreshed from live FRED only; it never writes cache or
+fallback values into the committed snapshot.
+
+```bash
+export FRED_API_KEY="..."
+python scripts/refresh_fred_seed.py --observations 8
+python scripts/check_readiness.py --strict
+```
+
+A scheduled GitHub Actions workflow runs monthly and opens a pull request when
+`fiscal_model/data_files/fred_seed.json` changes. Configure the repository
+secret `FRED_API_KEY` so the workflow can refresh the seed before the 120-day
+freshness window expires.
+
 ### Verify public app availability
 
 ```bash

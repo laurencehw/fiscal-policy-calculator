@@ -21,6 +21,13 @@ in git history, not here.
   a deterministic GDP seed instead of the IRS-ratio proxy.
 - Bundled FRED seed data now carries a 120-day freshness contract, surfaces its
   age/max-age in health payloads, and degrades readiness when the seed ages out.
+- Added `scripts/refresh_fred_seed.py` and a monthly `fred-seed-refresh`
+  workflow so the tracked FRED seed is refreshed from live FRED with provenance
+  and reviewed through a pull request before the 120-day window expires.
+- The feasibility audit now emits a structured `model_pilot_assessment` with
+  blockers/warnings and supports `--strict`, so implausible multi-model gaps
+  stop the feasibility phase before UI expansion. The multi-model tab reuses
+  the same assessment to flag pilot-quality blockers in the UI.
 - The release-readiness CLI now distinguishes real release blockers from
   expected offline data-environment warnings. `scripts/check_readiness.py
   --strict` still fails `not_ready` and non-environmental warnings, but it no

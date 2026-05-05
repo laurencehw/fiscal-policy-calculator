@@ -22,6 +22,7 @@ from typing import Any
 
 import pandas as pd
 
+from fiscal_model.feasibility import assess_model_pilot_comparison
 from fiscal_model.models.comparison import (
     ComparisonBundle,
     UnsupportedModelPolicyError,
@@ -196,6 +197,18 @@ def render_multi_model_tab(
             "No backend produced a result. Check the error notes below."
         )
     else:
+        assessment = assess_model_pilot_comparison(bundle)
+        if not assessment.ready_for_spike:
+            st_module.warning(
+                "Pilot quality blocker: this multi-model comparison has "
+                "implausible gaps and should not be treated as decision-grade."
+            )
+            for blocker in assessment.blockers:
+                st_module.markdown(f"- {blocker}")
+        elif assessment.warnings:
+            for warning in assessment.warnings:
+                st_module.caption(f"Pilot model warning: {warning}")
+
         summary = _bundle_to_summary_frame(bundle)
         st_module.dataframe(summary, hide_index=True, use_container_width=True)
 
