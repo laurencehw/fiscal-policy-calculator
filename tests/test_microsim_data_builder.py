@@ -149,6 +149,7 @@ def test_build_tax_microdata_builds_expected_tax_unit_output(tmp_path, capsys):
             "interest_income",
             "dividend_income",
             "capital_gains",
+            "investment_income",
             "social_security",
             "unemployment",
             "children",
@@ -171,6 +172,7 @@ def test_build_tax_microdata_builds_expected_tax_unit_output(tmp_path, capsys):
     assert row["interest_income"] == 1_200
     assert row["dividend_income"] == 2_300
     assert row["capital_gains"] == 5_000
+    assert row["investment_income"] == 8_500
     assert row["children"] == 1
     assert row["married"] == 1
     assert row["age_head"] == 45
@@ -225,6 +227,7 @@ def test_build_tax_microdata_defaults_optional_income_fields_to_zero(tmp_path):
 
     row = built.iloc[0]
     assert row["capital_gains"] == 0
+    assert row["investment_income"] == 750
     assert row["married"] == 0
     assert row["children"] == 0
     assert row["agi"] == 50_950

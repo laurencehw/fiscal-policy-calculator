@@ -43,6 +43,9 @@ in git history, not here.
   no-reform OLG reference path and returns zero macro feedback when a policy
   does not map to an OLG parameter override, avoiding baseline transition drift
   being counted as a policy effect.
+- The CPS microsim builder now emits explicit `investment_income` as interest,
+  dividends, and capital gains, and the tracked `tax_microdata_2024.csv`
+  artifact has been regenerated with that column.
 - The release-readiness CLI now distinguishes real release blockers from
   expected offline data-environment warnings. `scripts/check_readiness.py
   --strict` still fails `not_ready` and non-environmental warnings, but it no

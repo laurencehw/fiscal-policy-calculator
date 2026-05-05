@@ -82,6 +82,7 @@ OUTPUT_COLUMNS = [
     "interest_income",
     "dividend_income",
     "capital_gains",
+    "investment_income",
     "social_security",
     "unemployment",
     "children",
@@ -295,6 +296,11 @@ def construct_tax_units(records: pd.DataFrame) -> pd.DataFrame:
                     "interest_income": float(members["INT_VAL"].sum()),
                     "dividend_income": float(members["DIV_VAL"].sum()),
                     "capital_gains": float(members["CAP_VAL"].sum()),
+                    "investment_income": float(
+                        members["INT_VAL"].sum()
+                        + members["DIV_VAL"].sum()
+                        + members["CAP_VAL"].sum()
+                    ),
                     "social_security": float(members["SS_VAL"].sum()),
                     "unemployment": float(members["UC_VAL"].sum()),
                     "children": children_under_17,
