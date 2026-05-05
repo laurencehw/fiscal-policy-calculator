@@ -571,6 +571,40 @@ class TestApplyReform:
         # Reform should have more tax (only applies to high income)
         assert reform_result.loc[0, 'final_tax'] > baseline.loc[0, 'final_tax']
 
+    def test_reform_income_rate_change_above_threshold(self):
+        """apply_reform should apply income rate changes only above threshold."""
+        calc = MicroTaxCalculator(year=2025)
+        pop = pd.DataFrame({
+            'agi': [700000, 300000],
+            'wages': [700000, 300000],
+            'married': [0, 0],
+            'children': [0, 0],
+            'weight': [1.0, 1.0],
+            'age_head': [40, 40],
+        })
+
+        baseline = calc.calculate(pop)
+        reform_result = calc.apply_reform(
+            pop,
+            {
+                'income_rate_change': 0.02,
+                'income_rate_change_threshold': 500000,
+            },
+        )
+
+        expected_high_income_adjustment = (
+            baseline.loc[0, 'taxable_income'] - 500000
+        ) * 0.02
+        assert reform_result.loc[0, 'final_tax'] == pytest.approx(
+            baseline.loc[0, 'final_tax'] + expected_high_income_adjustment
+        )
+        assert reform_result.loc[1, 'final_tax'] == pytest.approx(
+            baseline.loc[1, 'final_tax']
+        )
+        assert reform_result.loc[0, 'income_rate_change_adjustment'] == pytest.approx(
+            expected_high_income_adjustment
+        )
+
     def test_reform_ctc_expansion(self):
         """apply_reform with CTC increase."""
         calc = MicroTaxCalculator(year=2025)

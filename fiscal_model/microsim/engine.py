@@ -335,6 +335,8 @@ class MicroTaxCalculator:
                 - 'salt_cap': new SALT cap (None = uncapped)
                 - 'std_deduction_bonus': additional std deduction
                 - 'new_top_rate': override top marginal rate
+                - 'income_rate_change': rate change above income_rate_change_threshold
+                - 'income_rate_change_threshold': taxable-income threshold for rate change
                 - 'eitc_expansion': multiplier for EITC amounts (e.g., 1.5)
                 - 'amt_exemption_adjustment': adjustment to AMT exemption
 
@@ -405,6 +407,28 @@ class MicroTaxCalculator:
 
             # Calculate with reforms
             result = self.calculate(pop, salt_cap=self.salt_cap)
+            if 'income_rate_change' in reforms:
+                threshold = float(reforms.get('income_rate_change_threshold', 0.0) or 0.0)
+                rate_change = float(reforms['income_rate_change'])
+                taxable_income = result['taxable_income'].values
+                adjustment = np.maximum(0, taxable_income - threshold) * rate_change
+                result.loc[:, 'income_rate_change_adjustment'] = adjustment
+                result.loc[:, 'income_tax_final'] = np.maximum(
+                    0,
+                    result['income_tax_final'].values + adjustment,
+                )
+                result.loc[:, 'final_tax'] = np.maximum(
+                    0,
+                    result['income_tax_final'].values + result['niit_tax'].values,
+                )
+                effective_tax_rate = np.zeros(len(result))
+                np.divide(
+                    result['final_tax'].values,
+                    result['agi'].values,
+                    out=effective_tax_rate,
+                    where=result['agi'].values > 0,
+                )
+                result.loc[:, 'effective_tax_rate'] = effective_tax_rate
 
             return result
 

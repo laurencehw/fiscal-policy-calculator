@@ -654,7 +654,8 @@ def policy_to_microsim_reforms(policy: Policy, year: int = 2025) -> dict:
     Coverage grows organically as policy classes gain microsim-relevant
     attributes. Today:
 
-    - ``rate_change`` → top-rate reform (any TaxPolicy subclass)
+    - ``rate_change`` on income-tax policies → threshold rate adjustment, or
+      top-rate reform when no threshold is supplied
     - ``credit_change_per_unit`` + CHILD_TAX_CREDIT → ctc_amount
     - ``eitc_expansion_factor`` → eitc_expansion
     - ``std_deduction_bonus`` → std_deduction_bonus
@@ -664,10 +665,17 @@ def policy_to_microsim_reforms(policy: Policy, year: int = 2025) -> dict:
     del year  # reserved for year-specific baselines
     reforms: dict[str, Any] = {}
 
-    if hasattr(policy, "rate_change"):
+    policy_type = getattr(policy, "policy_type", None)
+    policy_type_name = getattr(policy_type, "name", None) or getattr(policy_type, "value", None)
+    if isinstance(policy, TaxPolicy) and policy_type_name in {"INCOME_TAX", "income_tax"}:
         rate_change = getattr(policy, "rate_change", 0.0)
         if rate_change:
-            reforms["new_top_rate"] = 0.37 + rate_change
+            threshold = float(getattr(policy, "affected_income_threshold", 0.0) or 0.0)
+            if threshold > 0:
+                reforms["income_rate_change"] = float(rate_change)
+                reforms["income_rate_change_threshold"] = threshold
+            else:
+                reforms["new_top_rate"] = 0.37 + rate_change
 
     # Tax credits: translate credit_change_per_unit to new ctc_amount.
     credit_change = getattr(policy, "credit_change_per_unit", 0) or getattr(

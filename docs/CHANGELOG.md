@@ -31,6 +31,9 @@ in git history, not here.
 - PWBM-OLG is now excluded from the default multi-model pilot and kept behind
   `--include-experimental-pwbm` until its adapter clears the feasibility sanity
   bounds; the user-facing pilot defaults to the comparable CBO/TPC paths.
+- The TPC microsim pilot now maps income-tax rate changes with thresholds to a
+  taxable-income-above-threshold adjustment instead of collapsing every rate
+  policy into a generic top-rate change.
 - The release-readiness CLI now distinguishes real release blockers from
   expected offline data-environment warnings. `scripts/check_readiness.py
   --strict` still fails `not_ready` and non-environmental warnings, but it no

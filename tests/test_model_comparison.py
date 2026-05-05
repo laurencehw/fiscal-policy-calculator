@@ -72,7 +72,9 @@ def test_tpc_microsim_model_scores_supported_policy():
     assert result.ten_year_cost < 0
     assert result.distributional is not None
     assert result.metadata["annualization_assumption"] == "flat_by_year"
-    assert result.metadata["reforms"]["new_top_rate"] == pytest.approx(0.39)
+    assert result.metadata["reforms"]["income_rate_change"] == pytest.approx(0.02)
+    assert result.metadata["reforms"]["income_rate_change_threshold"] == pytest.approx(500_000)
+    assert any("policy threshold" in note for note in result.metadata["notes"])
 
 
 def test_tpc_microsim_model_rejects_unsupported_policy():

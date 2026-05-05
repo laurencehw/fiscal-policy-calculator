@@ -161,10 +161,13 @@ class TPCMicrosimModel(BaseScoringModel):
         annual_effects = [annual_deficit_effect] * horizon
 
         notes: list[str] = []
-        if getattr(policy, "rate_change", 0.0) != 0:
+        if "income_rate_change" in reforms:
+            notes.append(
+                "Income-tax rate changes are applied to taxable income above "
+                "the policy threshold in the pilot microsim."
+            )
+        elif getattr(policy, "rate_change", 0.0) != 0:
             notes.append("Generic rate-change policies are approximated as top-rate reforms in the pilot microsim.")
-        if getattr(policy, "affected_income_threshold", 0.0) not in (0, None):
-            notes.append("Income thresholds are not yet explicitly represented in the pilot microsim mapping.")
 
         distributional = None
         try:
