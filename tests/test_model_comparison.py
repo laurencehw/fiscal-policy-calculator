@@ -10,6 +10,7 @@ from fiscal_model.models.comparison import (
     PWBMScoringModel,
     TPCMicrosimModel,
     UnsupportedModelPolicyError,
+    build_default_comparison_models,
     compare_policy_models,
 )
 from fiscal_model.policies import PolicyType, TaxPolicy
@@ -128,6 +129,21 @@ def test_pwbm_scoring_model_combines_static_and_macro_paths():
     assert result.ten_year_cost == pytest.approx(27.75)
     assert result.metadata["macro_model"] == "Dummy PWBM"
     assert "confidence_label" in result.metadata
+
+
+def test_default_comparison_models_exclude_experimental_pwbm():
+    default_models = build_default_comparison_models(lambda **kwargs: None)
+    opt_in_models = build_default_comparison_models(
+        lambda **kwargs: None,
+        include_experimental_pwbm=True,
+    )
+
+    assert [model.name for model in default_models] == ["CBO-Style", "TPC-Microsim Pilot"]
+    assert [model.name for model in opt_in_models] == [
+        "CBO-Style",
+        "TPC-Microsim Pilot",
+        "PWBM-OLG Pilot",
+    ]
 
 
 def test_compare_policy_models_collects_errors_when_requested():

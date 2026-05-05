@@ -5,8 +5,9 @@ The existing "Policy Comparison" tab toggles between the built-in static
 and dynamic paths of the default scorer. This tab instead uses the
 ``compare_policy_models`` pipeline in ``fiscal_model.models.comparison``
 so a single policy can be scored under structurally different backends
-(CBO-style, TPC-microsim pilot, PWBM-OLG pilot) with the results rendered
-side by side.
+(CBO-style and TPC-microsim pilot by default) with the results rendered side
+by side. PWBM-OLG remains an experimental CLI-audit backend until its adapter
+clears feasibility sanity bounds.
 
 Rendering is defensive: each model runs independently with
 ``continue_on_error=True`` so one backend failing (e.g. missing
@@ -129,14 +130,15 @@ def render_multi_model_tab(
     st_module.header("🔀 Multi-Model Comparison")
     st_module.markdown(
         "Run the same policy through **structurally different scoring models** "
-        "and see where they agree and disagree. This is the CBO × TPC × PWBM "
-        "side-by-side view — a pilot today, with two of the three backends "
-        "running as early-stage adapters.\n\n"
+        "and see where they agree and disagree. This is the CBO × TPC "
+        "side-by-side view — a pilot today, with the PWBM-OLG adapter held "
+        "out of the default UI until it clears feasibility sanity bounds.\n\n"
         "- **CBO-Style** — the calculator's default static + ETI path.\n"
         "- **TPC-Microsim Pilot** — single-year microsimulation over the bundled "
         "tax-unit file. Works for policies that map to a supported reform.\n"
-        "- **PWBM-OLG Pilot** — static fiscal path + OLG revenue feedback and "
-        "interest-cost adjustment."
+        "- **PWBM-OLG Pilot** — available only through "
+        "`scripts/run_feasibility_audit.py --include-model-pilot "
+        "--include-experimental-pwbm` while the adapter is calibrated."
     )
 
     if is_spending or not preset_policies:
@@ -242,15 +244,14 @@ def render_multi_model_tab(
         st_module.markdown(
             "Each backend uses a different methodology, so disagreement "
             "is informative:\n\n"
-            "- **CBO vs PWBM** gap ≈ the macroeconomic / general-equilibrium "
-            "effects. Large gaps on tax cuts usually mean crowding-out or "
-            "labor-supply response is material.\n"
             "- **CBO vs TPC-Microsim** gap ≈ the distributional / "
             "return-level effect. Large gaps on policies with thresholds "
             "and phase-outs suggest bracket-aggregate data is missing "
             "real interactions (see `docs/VALIDATION_NOTES.md`).\n"
             "- **Max spread** is the honest uncertainty band for the "
-            "estimate under reasonable methodological choices.\n\n"
+            "estimate under the currently comparable pilot methodologies.\n"
+            "- **PWBM-OLG** is intentionally omitted from the default UI until "
+            "its adapter clears the feasibility audit.\n\n"
             "This pilot is scaffolded — coverage expands as additional "
             "backends land. Tracked in `planning/ROADMAP.md`."
         )

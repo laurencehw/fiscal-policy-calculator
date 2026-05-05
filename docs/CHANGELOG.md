@@ -28,6 +28,9 @@ in git history, not here.
   blockers/warnings and supports `--strict`, so implausible multi-model gaps
   stop the feasibility phase before UI expansion. The multi-model tab reuses
   the same assessment to flag pilot-quality blockers in the UI.
+- PWBM-OLG is now excluded from the default multi-model pilot and kept behind
+  `--include-experimental-pwbm` until its adapter clears the feasibility sanity
+  bounds; the user-facing pilot defaults to the comparable CBO/TPC paths.
 - The release-readiness CLI now distinguishes real release blockers from
   expected offline data-environment warnings. `scripts/check_readiness.py
   --strict` still fails `not_ready` and non-environmental warnings, but it no

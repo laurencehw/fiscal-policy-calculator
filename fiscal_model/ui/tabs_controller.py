@@ -252,7 +252,7 @@ def render_result_tabs(
 
             st_module.markdown("---")
             with st_module.expander(
-                "🔀 Multi-model pilot (CBO × TPC-Microsim × PWBM-OLG)",
+                "🔀 Multi-model pilot (CBO × TPC-Microsim)",
                 expanded=False,
             ):
                 deps.render_multi_model_tab(

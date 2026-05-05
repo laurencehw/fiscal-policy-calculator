@@ -250,14 +250,22 @@ def build_default_comparison_models(
     *,
     use_real_data: bool = False,
     microdata_path: str | Path | None = None,
+    include_experimental_pwbm: bool = False,
 ) -> list[BaseScoringModel]:
-    """Build the current pilot model set for feasibility comparisons."""
+    """Build the current default pilot model set for feasibility comparisons.
 
-    return [
+    PWBM-OLG remains available as an explicit experimental backend, but it is
+    not part of the default set until the fiscal-to-OLG adapter clears the
+    feasibility sanity bounds.
+    """
+
+    models: list[BaseScoringModel] = [
         CBOStyleModel(fiscal_policy_scorer_cls, use_real_data=use_real_data),
         TPCMicrosimModel(microdata_path=microdata_path),
-        PWBMScoringModel(fiscal_policy_scorer_cls, use_real_data=use_real_data),
     ]
+    if include_experimental_pwbm:
+        models.append(PWBMScoringModel(fiscal_policy_scorer_cls, use_real_data=use_real_data))
+    return models
 
 
 def compare_policy_models(

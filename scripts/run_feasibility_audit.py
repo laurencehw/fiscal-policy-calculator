@@ -6,6 +6,7 @@ Examples:
     python scripts/run_feasibility_audit.py
     python scripts/run_feasibility_audit.py --json
     python scripts/run_feasibility_audit.py --include-model-pilot
+    python scripts/run_feasibility_audit.py --include-model-pilot --include-experimental-pwbm
 """
 
 from __future__ import annotations
@@ -95,7 +96,15 @@ def main() -> int:
     parser.add_argument(
         "--include-model-pilot",
         action="store_true",
-        help="Run the current CBO/TPC/PWBM pilot comparison for a default test policy.",
+        help="Run the current default CBO/TPC pilot comparison for a default test policy.",
+    )
+    parser.add_argument(
+        "--include-experimental-pwbm",
+        action="store_true",
+        help=(
+            "Include the experimental PWBM-OLG adapter in the pilot comparison. "
+            "This is expected to fail strict feasibility until the adapter is calibrated."
+        ),
     )
     parser.add_argument(
         "--strict",
@@ -109,7 +118,11 @@ def main() -> int:
     model_assessment = None
 
     if args.include_model_pilot:
-        models = build_default_comparison_models(FiscalPolicyScorer, use_real_data=False)
+        models = build_default_comparison_models(
+            FiscalPolicyScorer,
+            use_real_data=False,
+            include_experimental_pwbm=args.include_experimental_pwbm,
+        )
         comparison_bundle = compare_policy_models(
             _default_policy(),
             models,
@@ -121,6 +134,11 @@ def main() -> int:
         payload = {
             "cps_microsim": audit.to_dict(),
             "model_pilot": comparison_bundle.to_dict() if comparison_bundle is not None else None,
+            "model_pilot_config": (
+                {"include_experimental_pwbm": args.include_experimental_pwbm}
+                if comparison_bundle is not None
+                else None
+            ),
             "model_pilot_assessment": (
                 model_assessment.to_dict() if model_assessment is not None else None
             ),
