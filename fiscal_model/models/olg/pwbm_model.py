@@ -55,6 +55,18 @@ logger = logging.getLogger(__name__)
 CONFIDENCE_LABEL = "Model estimate — wide uncertainty band"
 
 
+def _pad_to_horizon(values: np.ndarray, horizon: int) -> np.ndarray:
+    """Return a fixed-horizon array by trimming or extending the final value."""
+    array = np.asarray(values, dtype=float)
+    if len(array) == horizon:
+        return array
+    if len(array) == 0:
+        return np.zeros(horizon, dtype=float)
+    if len(array) > horizon:
+        return array[:horizon]
+    return np.concatenate([array, np.full(horizon - len(array), array[-1])])
+
+
 # ---------------------------------------------------------------------------
 # Extended result that carries both MacroResult and OLG-specific data
 # ---------------------------------------------------------------------------
@@ -71,6 +83,7 @@ class OLGMacroResult(MacroResult):
     """
     olg_result: OLGPolicyResult | None = None
     confidence_label: str = CONFIDENCE_LABEL
+    olg_overrides: dict | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -146,6 +159,32 @@ class PWBMModel(MacroModelAdapter):
         overrides = self._scenario_to_olg_overrides(scenario)
         policy_name = scenario.name
 
+        if not overrides:
+            olg_result = self.analyze_policy_olg(
+                reform_overrides={},
+                policy_name=policy_name,
+                compute_gen_accounts=False,
+                compute_transition=False,
+                start_year=scenario.start_year,
+            )
+            zeros = np.zeros(n, dtype=float)
+            return OLGMacroResult(
+                scenario_name=scenario.name,
+                model_name=self.name,
+                years=years,
+                gdp_level_pct=zeros.copy(),
+                gdp_growth_ppts=zeros.copy(),
+                employment_change_millions=zeros.copy(),
+                unemployment_rate_ppts=zeros.copy(),
+                short_rate_ppts=zeros.copy(),
+                long_rate_ppts=zeros.copy(),
+                revenue_feedback_billions=zeros.copy(),
+                interest_cost_billions=zeros.copy(),
+                olg_result=olg_result,
+                confidence_label=self.CONFIDENCE_LABEL,
+                olg_overrides={},
+            )
+
         # Run OLG analysis
         olg_result = self.analyze_policy_olg(
             reform_overrides=overrides,
@@ -153,20 +192,20 @@ class PWBMModel(MacroModelAdapter):
             compute_transition=True,
             start_year=scenario.start_year,
         )
+        baseline_transition = self.analyze_policy_olg(
+            reform_overrides={},
+            policy_name=f"{policy_name} — no-reform reference",
+            compute_gen_accounts=False,
+            compute_transition=True,
+            start_year=scenario.start_year,
+        ).transition
 
-        # Map OLG transition path to MacroResult arrays (10-year window)
+        # Map OLG transition path to MacroResult arrays (10-year window),
+        # netting out the model's no-reform transition drift.
         path = olg_result.transition
-        T_path = len(path.years)
-        n_out = min(n, T_path)
-
-        # GDP level percent change from baseline
-        gdp_pct = olg_result.gdp_transition_pct_change()[:n_out]
-        if n_out < n:
-            # Extend with long-run value
-            gdp_pct = np.concatenate([
-                gdp_pct,
-                np.full(n - n_out, olg_result.long_run_gdp_pct_change)
-            ])
+        y_reform = _pad_to_horizon(path.Y_path, n)
+        y_reference = _pad_to_horizon(baseline_transition.Y_path, n)
+        gdp_pct = (y_reform - y_reference) / np.maximum(np.abs(y_reference), 1e-10) * 100.0
 
         # GDP growth rate (first difference of level)
         gdp_growth = np.zeros(n)
@@ -180,26 +219,21 @@ class PWBMModel(MacroModelAdapter):
         unemp_ppts = -gdp_pct * 0.5
 
         # Interest rates: capital deepening changes r
-        r_baseline = olg_result.baseline.r
-        r_path = path.r_path[:n_out]
-        if n_out < n:
-            r_path = np.concatenate([r_path, np.full(n - n_out, olg_result.reform.r)])
-        short_rate_ppts = (r_path - r_baseline) * 100.0
+        r_path = _pad_to_horizon(path.r_path, n)
+        reference_r_path = _pad_to_horizon(baseline_transition.r_path, n)
+        short_rate_ppts = (r_path - reference_r_path) * 100.0
         long_rate_ppts = short_rate_ppts * 0.8  # Long rate moves ~80% as much
 
         # Revenue feedback: OLG GDP change × marginal tax rate
         marginal_rate = self._params.labor_tax_rate
-        baseline_y_bn = olg_result.baseline.Y * self._baseline_gdp
-        gdp_change_bn = gdp_pct / 100.0 * baseline_y_bn
+        gdp_change_bn = (y_reform - y_reference) * self._baseline_gdp
         revenue_feedback = gdp_change_bn * marginal_rate
 
         # Interest cost: change in debt × avg rate
-        debt_path = path.debt_path[:n_out]
-        if n_out < n:
-            debt_path = np.concatenate([debt_path, np.full(n - n_out, debt_path[-1])])
-        olg_result.baseline.debt * self._baseline_gdp
-        debt_change = (debt_path - olg_result.baseline.debt) * self._baseline_gdp
-        interest_cost = np.cumsum(debt_change) * 0.04
+        debt_path = _pad_to_horizon(path.debt_path, n)
+        reference_debt_path = _pad_to_horizon(baseline_transition.debt_path, n)
+        debt_change = (debt_path - reference_debt_path) * self._baseline_gdp
+        interest_cost = debt_change * 0.04
 
         return OLGMacroResult(
             scenario_name=scenario.name,
@@ -215,6 +249,7 @@ class PWBMModel(MacroModelAdapter):
             interest_cost_billions=interest_cost,
             olg_result=olg_result,
             confidence_label=self.CONFIDENCE_LABEL,
+            olg_overrides=dict(overrides),
         )
 
     def get_baseline(self) -> pd.DataFrame:

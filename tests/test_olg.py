@@ -698,6 +698,26 @@ class TestPWBMModel:
         result = pwbm.run(scenario)
         assert "uncertainty" in result.confidence_label.lower()
 
+    def test_pwbm_no_override_scenario_has_zero_policy_effects(self, small_params):
+        """Small scenarios below the OLG mapping threshold should not count baseline drift."""
+        from fiscal_model.models import MacroScenario
+        from fiscal_model.models.olg import PWBMModel
+
+        pwbm = PWBMModel(params=small_params)
+        scenario = MacroScenario(
+            name="Small revenue change",
+            description="Below OLG override threshold",
+            receipts_change=np.array([10.0] * 10),
+            outlays_change=np.zeros(10),
+        )
+
+        result = pwbm.run(scenario)
+
+        assert result.olg_overrides == {}
+        assert np.allclose(result.gdp_level_pct, 0.0)
+        assert np.allclose(result.revenue_feedback_billions, 0.0)
+        assert np.allclose(result.interest_cost_billions, 0.0)
+
     def test_pwbm_get_baseline(self, small_params):
         """get_baseline() should return a DataFrame with expected columns."""
         from fiscal_model.models.olg import PWBMModel

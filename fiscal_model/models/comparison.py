@@ -281,6 +281,9 @@ class PWBMScoringModel(BaseScoringModel):
             "use_real_data": self.use_real_data,
             "macro_model": getattr(self.macro_model, "name", type(self.macro_model).__name__),
         }
+        olg_overrides = getattr(macro_result, "olg_overrides", None)
+        if olg_overrides is not None:
+            metadata["olg_overrides"] = olg_overrides
         confidence_label = getattr(macro_result, "confidence_label", None)
         if confidence_label:
             metadata["confidence_label"] = confidence_label

@@ -183,6 +183,7 @@ def test_pwbm_scoring_model_combines_static_and_macro_paths():
                 revenue_feedback_billions=np.array([1.0, 2.0]),
                 interest_cost_billions=np.array([0.5, 0.25]),
                 confidence_label="wide uncertainty band",
+                olg_overrides={"tau_k": 0.31},
             )
 
     model = PWBMScoringModel(
@@ -196,6 +197,7 @@ def test_pwbm_scoring_model_combines_static_and_macro_paths():
     assert result.annual_effects == pytest.approx([9.5, 18.25])
     assert result.ten_year_cost == pytest.approx(27.75)
     assert result.metadata["macro_model"] == "Dummy PWBM"
+    assert result.metadata["olg_overrides"] == {"tau_k": 0.31}
     assert "confidence_label" in result.metadata
 
 
