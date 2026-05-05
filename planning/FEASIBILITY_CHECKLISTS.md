@@ -37,6 +37,7 @@ Quick command path:
 - `python scripts/run_feasibility_audit.py --json`
 - `python scripts/run_feasibility_audit.py --include-model-pilot`
 - `python scripts/run_feasibility_audit.py --include-model-pilot --strict`
+- `python scripts/run_feasibility_audit.py --include-model-pilot --use-synthetic-cbo`
 - `python scripts/run_feasibility_audit.py --include-model-pilot --include-experimental-pwbm --strict`
 
 ---

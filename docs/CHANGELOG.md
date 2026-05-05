@@ -34,6 +34,8 @@ in git history, not here.
 - The TPC microsim pilot now maps income-tax rate changes with thresholds to a
   taxable-income-above-threshold adjustment instead of collapsing every rate
   policy into a generic top-rate change.
+- The model-pilot feasibility audit now uses the IRS-backed CBO-style scorer by
+  default, with `--use-synthetic-cbo` retained for isolated diagnostics.
 - The release-readiness CLI now distinguishes real release blockers from
   expected offline data-environment warnings. `scripts/check_readiness.py
   --strict` still fails `not_ready` and non-environmental warnings, but it no

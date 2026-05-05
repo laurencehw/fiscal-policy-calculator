@@ -7,6 +7,7 @@ Examples:
     python scripts/run_feasibility_audit.py --json
     python scripts/run_feasibility_audit.py --include-model-pilot
     python scripts/run_feasibility_audit.py --include-model-pilot --include-experimental-pwbm
+    python scripts/run_feasibility_audit.py --include-model-pilot --use-synthetic-cbo
 """
 
 from __future__ import annotations
@@ -46,7 +47,7 @@ def _default_policy() -> TaxPolicy:
     )
 
 
-def _print_text_report(audit, comparison_bundle, model_assessment) -> None:
+def _print_text_report(audit, comparison_bundle, model_assessment, model_config) -> None:
     print("CPS Microsim Feasibility Audit")
     print(f"Microdata: {'found' if audit.microdata_exists else 'missing'}")
     print(f"Raw CPS files: {'ready' if audit.raw_person_exists and audit.raw_household_exists else 'incomplete'}")
@@ -68,6 +69,12 @@ def _print_text_report(audit, comparison_bundle, model_assessment) -> None:
     if comparison_bundle is not None:
         print("")
         print("Pilot model comparison")
+        if model_config:
+            print(f"IRS-backed CBO path: {'yes' if model_config['use_real_data'] else 'no'}")
+            print(
+                "Experimental PWBM included: "
+                f"{'yes' if model_config['include_experimental_pwbm'] else 'no'}"
+            )
         if comparison_bundle.results:
             print(comparison_bundle.to_dataframe().to_string(index=False))
             if comparison_bundle.max_gap is not None:
@@ -107,6 +114,15 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--use-synthetic-cbo",
+        action="store_true",
+        help=(
+            "Use the synthetic fallback CBO-style scorer for the model pilot. "
+            "By default the audit uses repo IRS data because that is the "
+            "decision-relevant comparison path."
+        ),
+    )
+    parser.add_argument(
         "--strict",
         action="store_true",
         help="Exit 2 when CPS or included model-pilot feasibility is blocked.",
@@ -116,11 +132,16 @@ def main() -> int:
     audit = audit_cps_microsim_readiness(project_root=PROJECT_ROOT)
     comparison_bundle = None
     model_assessment = None
+    model_config = None
 
     if args.include_model_pilot:
+        model_config = {
+            "include_experimental_pwbm": args.include_experimental_pwbm,
+            "use_real_data": not args.use_synthetic_cbo,
+        }
         models = build_default_comparison_models(
             FiscalPolicyScorer,
-            use_real_data=False,
+            use_real_data=model_config["use_real_data"],
             include_experimental_pwbm=args.include_experimental_pwbm,
         )
         comparison_bundle = compare_policy_models(
@@ -134,18 +155,14 @@ def main() -> int:
         payload = {
             "cps_microsim": audit.to_dict(),
             "model_pilot": comparison_bundle.to_dict() if comparison_bundle is not None else None,
-            "model_pilot_config": (
-                {"include_experimental_pwbm": args.include_experimental_pwbm}
-                if comparison_bundle is not None
-                else None
-            ),
+            "model_pilot_config": model_config,
             "model_pilot_assessment": (
                 model_assessment.to_dict() if model_assessment is not None else None
             ),
         }
         print(json.dumps(payload, indent=2))
     else:
-        _print_text_report(audit, comparison_bundle, model_assessment)
+        _print_text_report(audit, comparison_bundle, model_assessment, model_config)
 
     if args.strict:
         if not audit.ready_for_spike:
