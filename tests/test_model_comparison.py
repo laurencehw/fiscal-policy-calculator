@@ -77,6 +77,72 @@ def test_tpc_microsim_model_scores_supported_policy():
     assert any("policy threshold" in note for note in result.metadata["notes"])
 
 
+def test_tpc_microsim_model_can_apply_top_tail_augmentation():
+    population = pd.DataFrame(
+        [
+            {
+                "id": 1,
+                "weight": 1.0,
+                "wages": 1_000_000,
+                "interest_income": 0.0,
+                "dividend_income": 0.0,
+                "capital_gains": 0.0,
+                "social_security": 0.0,
+                "unemployment": 0.0,
+                "children": 0,
+                "married": 0,
+                "age_head": 45,
+                "agi": 1_000_000,
+            }
+        ]
+    )
+
+    def fake_augmenter(frame, *, year):
+        augmented = pd.concat(
+            [
+                frame,
+                pd.DataFrame(
+                    [
+                        {
+                            "id": 2,
+                            "weight": 10.0,
+                            "wages": 5_000_000,
+                            "interest_income": 0.0,
+                            "dividend_income": 0.0,
+                            "capital_gains": 0.0,
+                            "social_security": 0.0,
+                            "unemployment": 0.0,
+                            "children": 0,
+                            "married": 1,
+                            "age_head": 55,
+                            "agi": 5_000_000,
+                        }
+                    ]
+                ),
+            ],
+            ignore_index=True,
+        )
+        return augmented, SimpleNamespace(year=year, synthetic_records=1)
+
+    baseline_model = TPCMicrosimModel(population=population)
+    augmented_model = TPCMicrosimModel(
+        population=population,
+        augment_top_tail_enabled=True,
+        augmentation_year=2023,
+        top_tail_augmenter=fake_augmenter,
+    )
+
+    baseline_result = baseline_model.score(_pilot_policy())
+    augmented_result = augmented_model.score(_pilot_policy())
+
+    assert augmented_result.ten_year_cost < baseline_result.ten_year_cost
+    assert augmented_result.metadata["augmentation"] == {
+        "year": 2023,
+        "synthetic_records": 1,
+    }
+    assert any("top-tail augmentation" in note for note in augmented_result.metadata["notes"])
+
+
 def test_tpc_microsim_model_rejects_unsupported_policy():
     population = pd.DataFrame(
         [
@@ -141,6 +207,7 @@ def test_default_comparison_models_exclude_experimental_pwbm():
     )
 
     assert [model.name for model in default_models] == ["CBO-Style", "TPC-Microsim Pilot"]
+    assert default_models[1]._augment_top_tail_enabled is True
     assert [model.name for model in opt_in_models] == [
         "CBO-Style",
         "TPC-Microsim Pilot",

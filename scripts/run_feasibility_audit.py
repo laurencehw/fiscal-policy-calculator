@@ -8,6 +8,7 @@ Examples:
     python scripts/run_feasibility_audit.py --include-model-pilot
     python scripts/run_feasibility_audit.py --include-model-pilot --include-experimental-pwbm
     python scripts/run_feasibility_audit.py --include-model-pilot --use-synthetic-cbo
+    python scripts/run_feasibility_audit.py --include-model-pilot --no-top-tail-augmentation
 """
 
 from __future__ import annotations
@@ -75,6 +76,10 @@ def _print_text_report(audit, comparison_bundle, model_assessment, model_config)
                 "Experimental PWBM included: "
                 f"{'yes' if model_config['include_experimental_pwbm'] else 'no'}"
             )
+            print(
+                "TPC top-tail augmentation: "
+                f"{'yes' if model_config['top_tail_augmentation'] else 'no'}"
+            )
         if comparison_bundle.results:
             print(comparison_bundle.to_dataframe().to_string(index=False))
             if comparison_bundle.max_gap is not None:
@@ -123,6 +128,11 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--no-top-tail-augmentation",
+        action="store_true",
+        help="Disable SOI top-tail augmentation for the TPC microsim pilot.",
+    )
+    parser.add_argument(
         "--strict",
         action="store_true",
         help="Exit 2 when CPS or included model-pilot feasibility is blocked.",
@@ -137,12 +147,14 @@ def main() -> int:
     if args.include_model_pilot:
         model_config = {
             "include_experimental_pwbm": args.include_experimental_pwbm,
+            "top_tail_augmentation": not args.no_top_tail_augmentation,
             "use_real_data": not args.use_synthetic_cbo,
         }
         models = build_default_comparison_models(
             FiscalPolicyScorer,
             use_real_data=model_config["use_real_data"],
             include_experimental_pwbm=args.include_experimental_pwbm,
+            augment_top_tail_enabled=model_config["top_tail_augmentation"],
         )
         comparison_bundle = compare_policy_models(
             _default_policy(),

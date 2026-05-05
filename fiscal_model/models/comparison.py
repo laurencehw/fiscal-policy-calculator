@@ -5,7 +5,7 @@ Pilot multi-model comparison services for feasibility work.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field, is_dataclass
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +16,7 @@ from fiscal_model.distribution import DistributionalEngine, IncomeGroupType
 from fiscal_model.distribution_effects import policy_to_microsim_reforms
 from fiscal_model.feasibility import DEFAULT_MICRODATA_RELATIVE_PATH
 from fiscal_model.microsim.engine import MicroTaxCalculator
+from fiscal_model.microsim.top_tail import augment_top_tail
 from fiscal_model.models.olg import PWBMModel
 
 from .base import BaseScoringModel, CBOStyleModel, ModelResult
@@ -117,19 +118,62 @@ class TPCMicrosimModel(BaseScoringModel):
         population: pd.DataFrame | None = None,
         microdata_path: str | Path | None = None,
         distribution_engine_cls: Any = DistributionalEngine,
+        augment_top_tail_enabled: bool = False,
+        augmentation_year: int | None = None,
+        top_tail_augmenter: Any = augment_top_tail,
     ):
         self._population = population.copy(deep=True) if population is not None else None
         self._microdata_path = Path(microdata_path).resolve() if microdata_path else _default_microdata_path()
         self._distribution_engine_cls = distribution_engine_cls
+        self._augment_top_tail_enabled = augment_top_tail_enabled
+        self._augmentation_year = augmentation_year
+        self._top_tail_augmenter = top_tail_augmenter
 
-    def _load_population(self) -> tuple[pd.DataFrame, str]:
+    @staticmethod
+    def _report_to_dict(report: Any) -> dict[str, Any]:
+        if is_dataclass(report):
+            return asdict(report)
+        if hasattr(report, "__dict__"):
+            return dict(report.__dict__)
+        return {"value": str(report)}
+
+    def _load_population(
+        self,
+        *,
+        year: int,
+    ) -> tuple[pd.DataFrame, str, dict[str, Any] | None, list[str]]:
         if self._population is not None:
-            return self._population.copy(deep=True), "in_memory"
-        if not self._microdata_path.exists():
+            population = self._population.copy(deep=True)
+            population_source = "in_memory"
+        elif not self._microdata_path.exists():
             raise FileNotFoundError(
                 f"Microsim pilot requires built microdata at {self._microdata_path}."
             )
-        return pd.read_csv(self._microdata_path), str(self._microdata_path)
+        else:
+            population = pd.read_csv(self._microdata_path)
+            population_source = str(self._microdata_path)
+
+        augmentation_report = None
+        notes: list[str] = []
+        if self._augment_top_tail_enabled:
+            augmentation_year = self._augmentation_year or year
+            try:
+                population, report = self._top_tail_augmenter(
+                    population,
+                    year=augmentation_year,
+                )
+                augmentation_report = self._report_to_dict(report)
+                synthetic_records = int(augmentation_report.get("synthetic_records", 0) or 0)
+                synthetic_agi = float(augmentation_report.get("synthetic_agi_billions", 0.0) or 0.0)
+                notes.append(
+                    "SOI top-tail augmentation applied before microsim scoring "
+                    f"using IRS SOI {augmentation_year}: {synthetic_records:,} "
+                    f"synthetic records / ${synthetic_agi:,.0f}B AGI."
+                )
+            except Exception as exc:
+                notes.append(f"Top-tail augmentation unavailable: {exc}")
+
+        return population, population_source, augmentation_report, notes
 
     def score(self, policy: Any, **kwargs: Any) -> ModelResult:
         del kwargs
@@ -148,8 +192,11 @@ class TPCMicrosimModel(BaseScoringModel):
                 "for the mapping; extend it if you need a new policy type."
             )
 
-        population, population_source = self._load_population()
         year = int(getattr(policy, "start_year", 2025) or 2025)
+        data_year = int(getattr(policy, "data_year", year) or year)
+        population, population_source, augmentation_report, notes = self._load_population(
+            year=data_year
+        )
         calc = MicroTaxCalculator(year=year)
         baseline = calc.calculate(population)
         reform = calc.apply_reform(population, reforms)
@@ -160,7 +207,6 @@ class TPCMicrosimModel(BaseScoringModel):
         horizon = max(1, int(getattr(policy, "duration_years", 10) or 10))
         annual_effects = [annual_deficit_effect] * horizon
 
-        notes: list[str] = []
         if "income_rate_change" in reforms:
             notes.append(
                 "Income-tax rate changes are applied to taxable income above "
@@ -194,6 +240,7 @@ class TPCMicrosimModel(BaseScoringModel):
                 "population_source": population_source,
                 "reforms": reforms,
                 "annualization_assumption": "flat_by_year",
+                "augmentation": augmentation_report,
                 "notes": notes,
             },
         )
@@ -254,6 +301,7 @@ def build_default_comparison_models(
     use_real_data: bool = False,
     microdata_path: str | Path | None = None,
     include_experimental_pwbm: bool = False,
+    augment_top_tail_enabled: bool = True,
 ) -> list[BaseScoringModel]:
     """Build the current default pilot model set for feasibility comparisons.
 
@@ -264,7 +312,10 @@ def build_default_comparison_models(
 
     models: list[BaseScoringModel] = [
         CBOStyleModel(fiscal_policy_scorer_cls, use_real_data=use_real_data),
-        TPCMicrosimModel(microdata_path=microdata_path),
+        TPCMicrosimModel(
+            microdata_path=microdata_path,
+            augment_top_tail_enabled=augment_top_tail_enabled,
+        ),
     ]
     if include_experimental_pwbm:
         models.append(PWBMScoringModel(fiscal_policy_scorer_cls, use_real_data=use_real_data))

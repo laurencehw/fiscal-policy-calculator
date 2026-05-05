@@ -36,6 +36,9 @@ in git history, not here.
   policy into a generic top-rate change.
 - The model-pilot feasibility audit now uses the IRS-backed CBO-style scorer by
   default, with `--use-synthetic-cbo` retained for isolated diagnostics.
+- The default TPC microsim pilot now applies SOI top-tail augmentation with
+  metadata, reducing high-income threshold undercoverage while keeping
+  `--no-top-tail-augmentation` available for CPS-only diagnostics.
 - The release-readiness CLI now distinguishes real release blockers from
   expected offline data-environment warnings. `scripts/check_readiness.py
   --strict` still fails `not_ready` and non-environmental warnings, but it no
