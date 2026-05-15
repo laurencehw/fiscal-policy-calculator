@@ -14,6 +14,37 @@ falling back to live web search.
 
 ## Adding a new snapshot
 
+### Option A — `scripts/refresh_knowledge.py` (recommended)
+
+For fetch-friendly sources (TPC, PWBM, Yale Budget Lab, JCT, BEA, BLS,
+FRED), let the helper script seed a stub:
+
+```bash
+python scripts/refresh_knowledge.py \
+    --url https://www.taxpolicycenter.org/publications/<slug> \
+    --slug tpc_<topic>_<year> \
+    --title "Full title from the page" \
+    --org TPC \
+    --year 2026 \
+    --keywords "tpc, distribution, tcja, decile, after-tax-income"
+```
+
+The script fetches the page (using the same allowlist-enforced pipeline
+the assistant uses at runtime), dumps the extracted text into a stub
+file, and tells you what to edit. **You must replace the raw extraction
+with a faithful summary** — the script's output is a starting point,
+not a final snapshot.
+
+For CBO and SSA, the script will fail with a `403 Forbidden` because
+those sites hard-block bots. Two workarounds:
+
+- Open the page in a browser, copy text, write the snapshot by hand.
+- Trust the assistant's `web_search` tool at runtime — Anthropic's
+  server-side fetch is not bot-blocked, so a local snapshot is not
+  strictly required.
+
+### Option B — by hand
+
 Create a file `<short_slug>.md` with the following frontmatter:
 
 ```yaml

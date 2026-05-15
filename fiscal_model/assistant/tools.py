@@ -577,15 +577,29 @@ class AssistantTools:
         except ImportError:
             return {"error": "requests not installed"}
 
+        # Honest User-Agent identifying the tool and contact URL. Some
+        # government sites (CBO, SSA) hard-block any non-browser UA; for
+        # those, the model should prefer `web_search` (Anthropic server-
+        # side) or the curated `knowledge/*.md` snapshots.
+        headers = {
+            "User-Agent": (
+                "FiscalPolicyCalculatorBot/1.0 "
+                "(+https://fiscal-policy-calculator.streamlit.app; "
+                "research/citation use)"
+            ),
+            "Accept": "text/html,application/xhtml+xml,application/pdf",
+        }
         try:
-            resp = requests.get(
-                url,
-                timeout=15,
-                headers={"User-Agent": "FiscalPolicyCalculator/AskAssistant (research)"},
-            )
+            resp = requests.get(url, timeout=15, headers=headers)
             resp.raise_for_status()
         except Exception as exc:  # noqa: BLE001
-            return {"error": f"fetch failed: {exc}"}
+            return {
+                "error": (
+                    f"fetch failed: {exc}. "
+                    "If this domain blocks bot fetches (CBO/SSA commonly do), "
+                    "try web_search instead or rely on search_knowledge."
+                )
+            }
 
         content_type = resp.headers.get("Content-Type", "").lower()
         is_pdf = url.lower().endswith(".pdf") or "application/pdf" in content_type
