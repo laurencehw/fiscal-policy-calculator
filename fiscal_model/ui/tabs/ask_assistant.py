@@ -21,11 +21,41 @@ Streamlit pitfalls handled here:
 from __future__ import annotations
 
 import os
+import re
 import time
 from typing import Any
 
 from fiscal_model.assistant.citations import render_provenance_footer
 from fiscal_model.assistant.rate_limit import RateLimiter, new_session_id
+
+
+# Match an unescaped `$` immediately followed by a digit (currency usage).
+# Negative lookbehind avoids re-escaping `\$`. Doesn't touch `$` inside
+# fenced code blocks because those aren't rendered as math by Streamlit.
+_DOLLAR_BEFORE_DIGIT_RE = re.compile(r"(?<!\\)\$(?=\d)")
+
+
+def _safe_dollar_markdown(text: str) -> str:
+    """Escape unescaped ``$`` before digits to prevent KaTeX math rendering.
+
+    Streamlit's markdown renders ``$...$`` and ``$$...$$`` as LaTeX math.
+    The Ask assistant's answers contain dollar amounts ("\\$1.4 trillion")
+    which the model is instructed to escape — but if a turn slips through
+    unescaped, the answer renders as vertical-letter math salad. This
+    helper is the safety net.
+    """
+    if not text:
+        return text
+    # Skip the contents of fenced code blocks — backtick fences are usable
+    # for raw LaTeX or shell output and shouldn't be munged.
+    parts = re.split(r"(```.*?```)", text, flags=re.DOTALL)
+    out: list[str] = []
+    for i, part in enumerate(parts):
+        if i % 2 == 1:  # inside ``` ... ``` (the captured group)
+            out.append(part)
+        else:
+            out.append(_DOLLAR_BEFORE_DIGIT_RE.sub(r"\\$", part))
+    return "".join(out)
 
 
 _HISTORY_KEY = "ask_history"
@@ -216,11 +246,17 @@ def _render_body(
         st_module.markdown("---")
 
     # --- render history --------------------------------------------------
-    for turn in state[_HISTORY_KEY]:
+    history = state[_HISTORY_KEY]
+    last_idx = len(history) - 1
+    for idx, turn in enumerate(history):
         with st_module.chat_message(turn["role"]):
-            st_module.markdown(turn["content"])
+            st_module.markdown(_safe_dollar_markdown(turn["content"]))
             if turn["role"] == "assistant":
                 _render_assistant_extras(st_module, turn)
+                # Follow-up chips appear only on the most-recent assistant
+                # turn — older suggestions are stale.
+                if idx == last_idx and turn.get("followups"):
+                    _render_followups(st_module, state, turn["followups"])
 
     # --- handle pending starter-prompt click -----------------------------
     pending = state.pop(_PENDING_PROMPT_KEY, None)
@@ -266,7 +302,7 @@ def _render_body(
                 scoring_context=scoring_context,
             ):
                 accumulated.append(chunk)
-                placeholder.markdown("".join(accumulated))
+                placeholder.markdown(_safe_dollar_markdown("".join(accumulated)))
         except Exception as exc:  # noqa: BLE001
             placeholder.error(f"Assistant error: {exc}")
             error_msg = f"{type(exc).__name__}: {exc}"
@@ -283,7 +319,7 @@ def _render_body(
             return
 
         final_text = fiscal_assistant.last_full_text or "".join(accumulated)
-        placeholder.markdown(final_text)
+        placeholder.markdown(_safe_dollar_markdown(final_text))
 
         turn_entry = {
             "role": "assistant",
@@ -297,6 +333,18 @@ def _render_body(
             "stripped_markers": list(fiscal_assistant.last_stripped_markers),
         }
         _render_assistant_extras(st_module, turn_entry)
+
+    # Generate follow-up suggestions BEFORE appending to history so the
+    # `last turn` rendering pass picks them up on next rerun. Failures
+    # are silent — follow-ups are a nicety.
+    try:
+        turn_entry["followups"] = fiscal_assistant.suggest_followups(
+            last_question=user_message,
+            last_answer=final_text,
+            max_suggestions=3,
+        )
+    except Exception:  # noqa: BLE001
+        turn_entry["followups"] = []
 
     # Append both turns to history (atomic; only after streaming completes).
     state[_HISTORY_KEY].append({"role": "user", "content": user_message})
@@ -486,6 +534,33 @@ def _history_for_api(history: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for turn in history:
         out.append({"role": turn["role"], "content": turn["content"]})
     return out
+
+
+def _render_followups(
+    st_module: Any,
+    state: Any,
+    followups: list[str],
+) -> None:
+    """Render follow-up question chips below the latest assistant turn.
+
+    Clicking a chip queues the question as the next user input via
+    ``_PENDING_PROMPT_KEY`` and triggers a rerun.
+    """
+    if not followups:
+        return
+    st_module.markdown("**Follow up:**")
+    # Streamlit doesn't have native chip buttons; use a wrapped row of
+    # small secondary buttons that gracefully wrap on narrow screens.
+    cols = st_module.columns(min(3, len(followups)))
+    for i, question in enumerate(followups[: len(cols)]):
+        col = cols[i]
+        if col.button(
+            question,
+            key=f"_ask_followup_{i}_{hash(question) & 0xFFFFFF:06x}",
+            use_container_width=True,
+        ):
+            state[_PENDING_PROMPT_KEY] = question
+            st_module.rerun()
 
 
 def _render_assistant_extras(st_module: Any, turn: dict[str, Any]) -> None:

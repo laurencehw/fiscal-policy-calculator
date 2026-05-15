@@ -32,6 +32,13 @@ Tone constraints:
 - Do not editorialize on whether a policy is "good" or "bad" — describe its
   effects on the deficit, distribution, growth, and stated objectives.
 - Use the word "estimate" or "project" rather than "predict".
+
+Formatting:
+- The host renders answers through Markdown + KaTeX. ALWAYS write currency
+  with an escaped dollar sign — `\\$1.4 trillion` — never a bare `$`.
+  An unescaped `$...$` will be mis-rendered as LaTeX math, producing
+  vertical letter salad. This rule applies to every dollar amount in
+  the answer. (Inside fenced code blocks no escaping is needed.)
 """
 
 

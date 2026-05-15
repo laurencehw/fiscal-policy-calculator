@@ -122,6 +122,69 @@ class FiscalAssistant:
             return True
         return bool(os.environ.get("ANTHROPIC_API_KEY"))
 
+    # ---- follow-up generation -------------------------------------------
+
+    def suggest_followups(
+        self,
+        last_question: str,
+        last_answer: str,
+        max_suggestions: int = 3,
+    ) -> list[str]:
+        """Ask the model for 2–3 short follow-up questions a reader might want.
+
+        Issues a cheap separate API call with no tools and small max_tokens
+        so it doesn't double the cost of the main turn. Returns an empty
+        list on any failure — follow-ups are a nicety, not load-bearing.
+        """
+        if not self.is_available():
+            return []
+        prompt = (
+            "You just answered this user question:\n\n"
+            f"USER: {last_question.strip()[:400]}\n\n"
+            f"ASSISTANT: {last_answer.strip()[:1500]}\n\n"
+            f"Suggest exactly {max_suggestions} short follow-up questions a "
+            "thoughtful reader might ask next about THIS topic. Each should "
+            "be a single sentence ending in a question mark, on its own line, "
+            "with no numbering, bullets, or quotes. Aim for breadth — one "
+            "comparison, one mechanism, one policy angle. Do not preface "
+            "with anything; output ONLY the questions, one per line."
+        )
+        try:
+            msg = self.client.messages.create(
+                model="claude-haiku-4-5-20251001",  # cheap; Haiku is fine
+                max_tokens=300,
+                messages=[{"role": "user", "content": prompt}],
+            )
+        except Exception:  # noqa: BLE001
+            logger.warning("Followup suggestion call failed", exc_info=True)
+            return []
+
+        # Extract plain text.
+        text_parts: list[str] = []
+        for block in getattr(msg, "content", None) or []:
+            t = getattr(block, "text", None)
+            if isinstance(t, str):
+                text_parts.append(t)
+        text = "\n".join(text_parts).strip()
+        if not text:
+            return []
+
+        suggestions: list[str] = []
+        for raw in text.splitlines():
+            cleaned = raw.strip().lstrip("-*•").strip().strip('"').strip("'")
+            # Drop numbered prefixes like "1.", "1)" if Claude ignores the
+            # instruction.
+            if cleaned and cleaned[0].isdigit() and len(cleaned) > 2:
+                if cleaned[1] in ".):" and cleaned[2] == " ":
+                    cleaned = cleaned[3:].strip()
+                elif cleaned[1] == " ":
+                    cleaned = cleaned[2:].strip()
+            if cleaned and cleaned.endswith("?") and len(cleaned) < 200:
+                suggestions.append(cleaned)
+            if len(suggestions) >= max_suggestions:
+                break
+        return suggestions
+
     # ---- main entry point ------------------------------------------------
 
     def stream_response(
