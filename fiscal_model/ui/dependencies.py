@@ -125,6 +125,20 @@ def _render_ask_tab(**kwargs: Any) -> Any:
     return render_ask_tab(**kwargs)
 
 
+def _prewarm_assistant_async(assistant: Any) -> None:
+    """Fire prompt-cache pre-warming on a daemon thread; never block boot."""
+    import threading
+
+    def _worker() -> None:
+        try:
+            assistant.prewarm_cache()
+        except Exception:  # noqa: BLE001
+            pass
+
+    t = threading.Thread(target=_worker, name="ask-prewarm", daemon=True)
+    t.start()
+
+
 @dataclass(frozen=True)
 class AppDependencies:
     PRESET_POLICIES: dict[str, dict[str, Any]]
@@ -201,6 +215,9 @@ def build_app_dependencies(pd_module: Any) -> AppDependencies:
         tax_policy_cls=TaxPolicy,
         spending_policy_cls=SpendingPolicy,
     )
+    # Kick off prompt-cache pre-warming in a daemon thread so the user's
+    # first turn skips the ~1-2s cache-creation tax. No-op if no API key.
+    _prewarm_assistant_async(fiscal_assistant)
 
     return AppDependencies(
         PRESET_POLICIES=PRESET_POLICIES,

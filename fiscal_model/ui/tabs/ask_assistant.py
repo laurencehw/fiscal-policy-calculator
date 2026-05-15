@@ -255,8 +255,10 @@ def _render_body(
                 _render_assistant_extras(st_module, turn)
                 # Follow-up chips appear only on the most-recent assistant
                 # turn — older suggestions are stale.
-                if idx == last_idx and turn.get("followups"):
-                    _render_followups(st_module, state, turn["followups"])
+                if idx == last_idx:
+                    _maybe_generate_and_render_followups(
+                        st_module, state, fiscal_assistant, turn
+                    )
 
     # --- handle pending starter-prompt click -----------------------------
     pending = state.pop(_PENDING_PROMPT_KEY, None)
@@ -334,17 +336,14 @@ def _render_body(
         }
         _render_assistant_extras(st_module, turn_entry)
 
-    # Generate follow-up suggestions BEFORE appending to history so the
-    # `last turn` rendering pass picks them up on next rerun. Failures
-    # are silent — follow-ups are a nicety.
-    try:
-        turn_entry["followups"] = fiscal_assistant.suggest_followups(
-            last_question=user_message,
-            last_answer=final_text,
-            max_suggestions=3,
-        )
-    except Exception:  # noqa: BLE001
-        turn_entry["followups"] = []
+    # Follow-up generation is deferred to a subsequent rerun (see the
+    # render-history pass at the top of _render_body). Storing the seed
+    # tells that pass it should fire a Haiku call.
+    turn_entry["followups"] = None  # marker: "not yet generated"
+    turn_entry["followups_seed"] = {
+        "question": user_message,
+        "answer": final_text,
+    }
 
     # Append both turns to history (atomic; only after streaming completes).
     state[_HISTORY_KEY].append({"role": "user", "content": user_message})
@@ -534,6 +533,41 @@ def _history_for_api(history: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for turn in history:
         out.append({"role": turn["role"], "content": turn["content"]})
     return out
+
+
+def _maybe_generate_and_render_followups(
+    st_module: Any,
+    state: Any,
+    fiscal_assistant: Any,
+    turn: dict[str, Any],
+) -> None:
+    """If this turn doesn't have follow-ups yet, generate then render them.
+
+    The Haiku call takes ~1-2s; doing it inside the chat-message context
+    after the answer is already rendered means the user sees the answer
+    instantly and the chips fade in a moment later. Generating on the
+    rerun (rather than synchronously after streaming) keeps the answer
+    finalization snappy.
+    """
+    followups = turn.get("followups")
+    if followups:
+        _render_followups(st_module, state, followups)
+        return
+    seed = turn.get("followups_seed")
+    if not seed:
+        return
+    try:
+        suggestions = fiscal_assistant.suggest_followups(
+            last_question=seed["question"],
+            last_answer=seed["answer"],
+            max_suggestions=3,
+        )
+    except Exception:  # noqa: BLE001
+        suggestions = []
+    turn["followups"] = suggestions
+    turn["followups_seed"] = None  # consumed
+    if suggestions:
+        _render_followups(st_module, state, suggestions)
 
 
 def _render_followups(
