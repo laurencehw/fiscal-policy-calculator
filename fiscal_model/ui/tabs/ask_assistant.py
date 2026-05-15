@@ -170,7 +170,11 @@ def _render_body(
         return
 
     # --- ensure session state -------------------------------------------
-    state.setdefault(_HISTORY_KEY, [])
+    # initialize_session_state pre-seeds ask_history to None per the
+    # session_state.py schema; ``setdefault`` won't replace a stored None,
+    # so we have to explicitly coerce it to a list here.
+    if state.get(_HISTORY_KEY) is None:
+        state[_HISTORY_KEY] = []
     state.setdefault(_USE_OPUS_KEY, False)
     state.setdefault(_SESSION_ID_KEY, new_session_id())
     state.setdefault(_LAST_TS_KEY, None)
