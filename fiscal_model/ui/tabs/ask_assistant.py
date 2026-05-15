@@ -13,10 +13,14 @@ Streamlit pitfalls handled here:
   response.
 * The Anthropic client is cached with ``@st.cache_resource`` so it is
   built once per session rather than per rerun.
+* ``st.secrets["ANTHROPIC_API_KEY"]`` is promoted to ``os.environ`` so
+  Streamlit Cloud deployments (which surface secrets via ``st.secrets``,
+  not env vars) just work out of the box.
 """
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from fiscal_model.assistant.citations import render_provenance_footer
@@ -26,6 +30,26 @@ _HISTORY_KEY = "ask_history"
 _PENDING_PROMPT_KEY = "_ask_pending_prompt"
 _USE_OPUS_KEY = "_ask_use_opus"
 _MAX_TURNS = 30
+
+
+def _promote_secret_to_env(st_module: Any) -> None:
+    """Promote ``st.secrets["ANTHROPIC_API_KEY"]`` to ``os.environ`` if set.
+
+    Streamlit Cloud surfaces deployment secrets via ``st.secrets``, not
+    env vars. The Anthropic SDK and the rest of this codebase read from
+    ``os.environ``, so we bridge the gap on first render. Idempotent.
+    """
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        return
+    secrets = getattr(st_module, "secrets", None)
+    if secrets is None:
+        return
+    try:
+        value = secrets.get("ANTHROPIC_API_KEY") if hasattr(secrets, "get") else None
+    except Exception:  # noqa: BLE001 — StreamlitSecretNotFoundError when no secrets file
+        return
+    if value:
+        os.environ["ANTHROPIC_API_KEY"] = str(value)
 
 
 _STARTER_PROMPTS: list[str] = [
@@ -67,6 +91,10 @@ def _render_body(
 ) -> None:
     state = st_module.session_state
 
+    # Promote st.secrets → os.environ before checking availability so
+    # Streamlit Cloud deployments work without an env var.
+    _promote_secret_to_env(st_module)
+
     st_module.subheader("💬 Ask")
     st_module.markdown(
         "Pose public-finance questions about this app's scoring or the broader "
@@ -79,7 +107,7 @@ def _render_body(
 
     # --- API key check --------------------------------------------------
     if not fiscal_assistant.is_available():
-        _render_no_api_key(st_module)
+        _render_unavailable(st_module)
         return
 
     # --- ensure session state -------------------------------------------
@@ -202,27 +230,22 @@ def _render_body(
 # ---------------------------------------------------------------------------
 
 
-def _render_no_api_key(st_module: Any) -> None:
-    st_module.info(
-        "The Ask assistant requires an Anthropic API key. Set the "
-        "`ANTHROPIC_API_KEY` environment variable before launching "
-        "Streamlit (or paste a key below). The key is **not** stored "
-        "anywhere — it lives only in this session."
-    )
-    state = st_module.session_state
-    key = st_module.text_input(
-        "Anthropic API key",
-        type="password",
-        value=state.get("_ask_byo_key", ""),
-        key="_ask_byo_key_input",
-        help="Get one at https://console.anthropic.com/",
-    )
-    if st_module.button("Use this key for this session", disabled=not key):
-        import os
+def _render_unavailable(st_module: Any) -> None:
+    """Show a friendly admin-facing message when no API key is configured.
 
-        os.environ["ANTHROPIC_API_KEY"] = key
-        state["_ask_byo_key"] = key
-        st_module.rerun()
+    Deliberately does **not** prompt readers for an API key — that's a
+    deployment misconfiguration, not a user task. The deployer should
+    set `ANTHROPIC_API_KEY` in Streamlit Cloud secrets (or as an env
+    var locally) and redeploy.
+    """
+    st_module.info(
+        "💬 The Ask assistant is not configured for this deployment.\n\n"
+        "*If you're the deployer:* add `ANTHROPIC_API_KEY` to your "
+        "Streamlit Cloud secrets (Settings → Secrets) or export it as "
+        "an environment variable before launching `streamlit run`.\n\n"
+        "Until then, the rest of the app — Calculator, Budget Builder, "
+        "Validation, Methodology, Bill Tracker, etc. — works normally."
+    )
 
 
 def _scoring_context(scoring_result: Any) -> dict[str, Any] | None:
