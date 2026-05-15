@@ -205,6 +205,9 @@ def _render_body(
         "claude-opus-4-7" if state.get(_USE_OPUS_KEY) else "claude-sonnet-4-6"
     )
 
+    # --- daily budget readout ------------------------------------------
+    _render_budget_status(st_module, limiter)
+
     # --- starter prompts (only visible when history is empty) -----------
     if not state[_HISTORY_KEY]:
         st_module.markdown("**Try one of these to start:**")
@@ -237,12 +240,15 @@ def _render_body(
         _render_cost_meter(st_module, fiscal_assistant)
         return
 
-    # Cap conversation length.
-    if len([t for t in state[_HISTORY_KEY] if t["role"] == "user"]) >= _MAX_TURNS:
-        st_module.warning(
-            f"This conversation has reached {_MAX_TURNS} turns. Please clear it "
-            "to continue."
-        )
+    # Rate-limit / budget check before spending any tokens.
+    user_turns = sum(1 for t in state[_HISTORY_KEY] if t["role"] == "user")
+    decision = limiter.check(
+        session_id=state[_SESSION_ID_KEY],
+        session_message_count=user_turns,
+        last_message_ts=state.get(_LAST_TS_KEY),
+    )
+    if not decision.allowed:
+        st_module.warning(decision.reason)
         return
 
     # --- render the user turn --------------------------------------------
@@ -252,6 +258,8 @@ def _render_body(
     # --- stream the assistant turn ---------------------------------------
     history_for_api = _history_for_api(state[_HISTORY_KEY])
     scoring_context = _scoring_context(scoring_result)
+    turn_start = time.time()
+    error_msg: str | None = None
     with st_module.chat_message("assistant"):
         placeholder = st_module.empty()
         accumulated: list[str] = []
@@ -265,6 +273,17 @@ def _render_body(
                 placeholder.markdown("".join(accumulated))
         except Exception as exc:  # noqa: BLE001
             placeholder.error(f"Assistant error: {exc}")
+            error_msg = f"{type(exc).__name__}: {exc}"
+            # Still record so a runaway error doesn't go unbilled in budget terms.
+            _record_turn(
+                limiter,
+                state,
+                fiscal_assistant,
+                question=user_message,
+                answer="",
+                elapsed_s=time.time() - turn_start,
+                error=error_msg,
+            )
             return
 
         final_text = fiscal_assistant.last_full_text or "".join(accumulated)
@@ -286,11 +305,61 @@ def _render_body(
     # Append both turns to history (atomic; only after streaming completes).
     state[_HISTORY_KEY].append({"role": "user", "content": user_message})
     state[_HISTORY_KEY].append(turn_entry)
+    state[_LAST_TS_KEY] = time.time()
+
+    # Persist the turn to sqlite (telemetry + daily-cap accounting).
+    _record_turn(
+        limiter,
+        state,
+        fiscal_assistant,
+        question=user_message,
+        answer=final_text,
+        elapsed_s=time.time() - turn_start,
+        error=None,
+    )
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _detect_typo(keys: list[str], expected: str, max_distance: int = 2) -> str | None:
+    """Find a key in ``keys`` that is within edit distance of ``expected``.
+
+    Catches common deployer mistakes like ``ANTHROPHIC_API_KEY`` (extra H)
+    or ``ANTROPIC_API_KEY`` (missing H).
+    """
+    expected_lower = expected.lower()
+    best: tuple[int, str] | None = None
+    for key in keys:
+        if key == expected:
+            continue
+        d = _edit_distance(key.lower(), expected_lower)
+        if d <= max_distance and (best is None or d < best[0]):
+            best = (d, key)
+    return best[1] if best else None
+
+
+def _edit_distance(a: str, b: str) -> int:
+    """Levenshtein distance (small implementation; inputs are short keys)."""
+    if a == b:
+        return 0
+    if not a:
+        return len(b)
+    if not b:
+        return len(a)
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, start=1):
+        curr = [i] + [0] * len(b)
+        for j, cb in enumerate(b, start=1):
+            curr[j] = min(
+                curr[j - 1] + 1,           # insertion
+                prev[j] + 1,               # deletion
+                prev[j - 1] + (ca != cb),  # substitution
+            )
+        prev = curr
+    return prev[-1]
 
 
 def _render_unavailable(st_module: Any, diag: dict[str, Any] | None = None) -> None:
@@ -343,6 +412,14 @@ def _render_unavailable(st_module: Any, diag: dict[str, Any] | None = None) -> N
                     "- Top-level keys visible in `st.secrets`: "
                     + ", ".join(f"`{k}`" for k in keys)
                 )
+                near = _detect_typo(keys, "ANTHROPIC_API_KEY")
+                if near:
+                    st_module.error(
+                        f"🪲 **Likely typo**: your secret is named `{near}`, "
+                        "but the assistant looks for `ANTHROPIC_API_KEY` "
+                        "(no extra 'H'). Rename the secret in Streamlit "
+                        "Cloud → Settings → Secrets to fix this."
+                    )
             else:
                 st_module.markdown(
                     "- Top-level keys visible in `st.secrets`: _none_ "
@@ -448,6 +525,68 @@ def _render_cost_meter(st_module: Any, fiscal_assistant: Any) -> None:
         return
     st_module.markdown("---")
     st_module.caption(f"Session usage — {summary}")
+
+
+def _get_rate_limiter(state: Any) -> RateLimiter:
+    """Cache the limiter on session_state so we don't rebuild every rerun.
+
+    The limiter itself is stateless except for the sqlite handle; the daily
+    cap is read from sqlite live each turn so concurrent sessions correctly
+    share the same budget.
+    """
+    limiter = state.get(_LIMITER_CACHE_KEY)
+    if limiter is None:
+        limiter = RateLimiter()
+        state[_LIMITER_CACHE_KEY] = limiter
+    return limiter
+
+
+def _render_budget_status(st_module: Any, limiter: RateLimiter) -> None:
+    """Show today's spend and the remaining daily budget as a progress bar."""
+    spent = limiter.today_spend_usd()
+    cap = limiter.config.daily_cost_cap_usd
+    pct = min(1.0, spent / cap) if cap > 0 else 0.0
+    if pct >= 0.95:
+        st_module.warning(
+            f"Today's free-tier budget is nearly exhausted: "
+            f"${spent:.2f} of ${cap:.2f} used. Resets at UTC midnight."
+        )
+    elif pct >= 0.7:
+        st_module.caption(
+            f"📊 Today's usage: ${spent:.2f} of ${cap:.2f} daily budget."
+        )
+    # Below 70%, keep the chat clean.
+
+
+def _record_turn(
+    limiter: RateLimiter,
+    state: Any,
+    fiscal_assistant: Any,
+    *,
+    question: str,
+    answer: str,
+    elapsed_s: float,
+    error: str | None,
+) -> None:
+    """Persist a turn to the usage db (rate-limit + telemetry)."""
+    usage_dict = (
+        fiscal_assistant.last_usage.to_dict()
+        if fiscal_assistant.last_usage
+        else None
+    )
+    tools_used = [p["tool"] for p in (fiscal_assistant.last_provenance or [])]
+    limiter.record_turn(
+        session_id=state.get(_SESSION_ID_KEY, "unknown"),
+        role="assistant",
+        model=getattr(fiscal_assistant, "_model", None),
+        usage_dict=usage_dict,
+        elapsed_s=elapsed_s,
+        tools_used=tools_used,
+        stripped_markers=len(fiscal_assistant.last_stripped_markers or []),
+        error=error,
+        question_chars=len(question or ""),
+        answer_chars=len(answer or ""),
+    )
 
 
 __all__ = ["render_ask_tab"]

@@ -157,7 +157,12 @@ class RateLimiter:
 
     def __init__(self, config: RateLimitConfig | None = None, db_path: Path | None = None):
         self.config = config or RateLimitConfig.from_env()
-        path = db_path or Path(self.config.db_path) if self.config.db_path else _default_db_path()
+        if db_path is not None:
+            path: Path = Path(db_path)
+        elif self.config.db_path:
+            path = Path(self.config.db_path)
+        else:
+            path = _default_db_path()
         self.db_path = str(path)
         self._in_memory_conn: sqlite3.Connection | None = None
         self._init_schema()
