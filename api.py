@@ -23,7 +23,8 @@ import math
 from typing import Any
 
 import numpy as np
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from fiscal_model.api_security import (
@@ -1339,6 +1340,158 @@ def ask(
     )
 
 
+@app.post("/ask/stream")
+def ask_stream(
+    request: AskRequest,
+    _api_key_label: str = Depends(require_api_key),
+) -> StreamingResponse:
+    """
+    Streaming variant of POST /ask using Server-Sent Events.
+
+    Emits a sequence of ``event: token`` frames carrying chunks of the
+    answer, followed by a final ``event: done`` frame with structured
+    metadata (tool_calls, usage, stripped_markers, session_id) as JSON.
+    On error, emits an ``event: error`` frame with a JSON ``{detail}``.
+
+    SSE format (each frame ends with a blank line):
+
+        event: token
+        data: Federal debt held by the public
+
+        event: token
+        data:  rose to $28 trillion in FY2024.
+
+        event: done
+        data: {"model": "...", "tool_calls": [...], "usage": {...},
+               "stripped_citation_markers": [], "session_id": "...",
+               "elapsed_s": 5.41}
+
+    Subject to the same daily-cost cap and per-session limits as the
+    non-streaming /ask and the Streamlit Ask tab — they share one sqlite
+    ledger.
+    """
+    import json as _json
+    import time as _time
+
+    assistant = _get_ask_assistant()
+    limiter = _get_ask_limiter()
+
+    if not assistant.is_available():
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Ask assistant is not configured: set ANTHROPIC_API_KEY in "
+                "the server environment."
+            ),
+        )
+
+    session_id = request.session_id or new_session_id()
+    user_turn_count = sum(1 for m in request.history if m.role == "user")
+
+    decision = limiter.check(
+        session_id=session_id,
+        session_message_count=user_turn_count,
+        last_message_ts=None,
+    )
+    if not decision.allowed:
+        raise HTTPException(status_code=429, detail=decision.reason)
+
+    assistant._enable_web_search = bool(request.enable_web_search)  # noqa: SLF001
+
+    history_for_api = [
+        {"role": m.role, "content": m.content} for m in request.history
+    ]
+
+    def _sse(event: str, data: str) -> str:
+        """Serialize one SSE frame. Multi-line data is split per spec."""
+        lines = data.split("\n") if data else [""]
+        framed = "\n".join(f"data: {ln}" for ln in lines)
+        return f"event: {event}\n{framed}\n\n"
+
+    def _generate() -> Any:
+        start = _time.time()
+        accumulated: list[str] = []
+        try:
+            for chunk in assistant.stream_response(
+                user_message=request.question,
+                history=history_for_api,
+                scoring_context=request.scoring_context,
+            ):
+                accumulated.append(chunk)
+                # SSE clients render tokens as they arrive. Empty chunks
+                # would still be valid frames; skip them to reduce noise.
+                if chunk:
+                    yield _sse("token", chunk)
+
+            elapsed = _time.time() - start
+            final_text = assistant.last_full_text or "".join(accumulated)
+            usage_dict = (
+                assistant.last_usage.to_dict() if assistant.last_usage else {}
+            )
+            tools_used = [p.get("tool", "") for p in assistant.last_provenance]
+
+            # Persist to the same ledger as the non-streaming path.
+            limiter.record_turn(
+                session_id=session_id,
+                role="assistant",
+                model=assistant._model,  # noqa: SLF001
+                usage_dict=usage_dict,
+                elapsed_s=elapsed,
+                tools_used=tools_used,
+                stripped_markers=len(assistant.last_stripped_markers or []),
+                error=None,
+                question_chars=len(request.question),
+                answer_chars=len(final_text),
+            )
+
+            done_payload = {
+                "model": assistant._model,  # noqa: SLF001
+                "tool_calls": [
+                    {
+                        "tool": p.get("tool", ""),
+                        "args": p.get("args") or {},
+                        "result_summary": p.get("result_summary"),
+                    }
+                    for p in assistant.last_provenance
+                ],
+                "stripped_citation_markers": list(
+                    assistant.last_stripped_markers or []
+                ),
+                "usage": {
+                    k: usage_dict.get(k, 0)
+                    for k in (
+                        "input_tokens",
+                        "output_tokens",
+                        "cache_creation_tokens",
+                        "cache_read_tokens",
+                        "cost_usd",
+                    )
+                },
+                "session_id": session_id,
+                "elapsed_s": round(elapsed, 3),
+            }
+            yield _sse("done", _json.dumps(done_payload))
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Ask stream failed")
+            # Best-effort error frame; clients should treat any 'error' event
+            # as terminal regardless of position in the stream.
+            yield _sse(
+                "error",
+                _json.dumps({"detail": f"{type(exc).__name__}: {exc}"}),
+            )
+
+    return StreamingResponse(
+        _generate(),
+        media_type="text/event-stream",
+        headers={
+            # Disable proxy buffering so chunks flush immediately.
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
+
+
 # =============================================================================
 # ROOT ENDPOINT
 # =============================================================================
@@ -1366,6 +1519,8 @@ def root():
             "score_custom": "POST /score",
             "score_preset": "POST /score/preset",
             "score_tariff": "POST /score/tariff",
+            "ask": "POST /ask",
+            "ask_stream": "POST /ask/stream (Server-Sent Events)",
             "docs": "GET /docs",
             "openapi": "GET /openapi.json",
         },
