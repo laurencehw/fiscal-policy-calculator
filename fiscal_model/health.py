@@ -274,10 +274,89 @@ def check_health() -> dict[str, Any]:
     except Exception as e:
         results["microdata"] = {"status": "error", "error": str(e)}
 
+    # Ask assistant — three sub-checks, all soft (assistant is optional)
+    results["assistant"] = _check_assistant()
+
     results["timestamp"] = utc_isoformat()
-    results["overall"] = "ok" if all(
-        r.get("status") == "ok" for k, r in results.items()
-        if isinstance(r, dict) and "status" in r
-    ) else "degraded"
+    # The Ask assistant is an *optional* component — a missing API key on a
+    # CI runner or local dev box must not drag the overall status. The
+    # readiness layer carries it as required=False; reflect the same here.
+    _required_components = {
+        "runtime",
+        "model",
+        "baseline",
+        "fred",
+        "irs_soi",
+        "microdata",
+    }
+    results["overall"] = (
+        "ok"
+        if all(
+            r.get("status") == "ok"
+            for k, r in results.items()
+            if k in _required_components and isinstance(r, dict) and "status" in r
+        )
+        else "degraded"
+    )
 
     return results
+
+
+def _check_assistant() -> dict[str, Any]:
+    """Health of the Ask assistant stack.
+
+    Soft checks — none of these fail the overall app:
+    - API key present (env var or st.secrets-promoted)
+    - Knowledge corpus directory exists and is non-empty
+    - Usage sqlite db is writable
+
+    Returns ``status: "ok"`` when all three pass, ``"degraded"`` when any
+    one fails, and ``"error"`` only on unexpected exceptions.
+    """
+    import os
+    from pathlib import Path
+
+    try:
+        api_key_set = bool(os.environ.get("ANTHROPIC_API_KEY"))
+
+        knowledge_dir = (
+            Path(__file__).resolve().parent / "assistant" / "knowledge"
+        )
+        knowledge_count = (
+            sum(1 for _ in knowledge_dir.glob("*.md")) if knowledge_dir.exists() else 0
+        )
+
+        # Verify the usage db can be initialized (creates schema, writes nothing).
+        usage_db_ok = False
+        usage_db_path: str | None = None
+        try:
+            from fiscal_model.assistant.rate_limit import RateLimiter
+
+            rl = RateLimiter()
+            usage_db_path = rl.db_path
+            # Touch a read to confirm schema is queryable.
+            rl.today_spend_usd()
+            usage_db_ok = True
+        except Exception as exc:  # noqa: BLE001
+            logger.info("Assistant usage db check failed: %s", exc)
+            usage_db_ok = False
+
+        status = (
+            "ok"
+            if api_key_set and knowledge_count > 0 and usage_db_ok
+            else "degraded"
+        )
+        return {
+            "status": status,
+            "api_key_configured": api_key_set,
+            "knowledge_corpus_files": knowledge_count,
+            "usage_db_writable": usage_db_ok,
+            "usage_db_path": usage_db_path,
+            "note": (
+                "Soft component — degradation here doesn't prevent the rest "
+                "of the app from working. To configure, set "
+                "ANTHROPIC_API_KEY (env var or Streamlit secret)."
+            ),
+        }
+    except Exception as e:  # noqa: BLE001
+        return {"status": "error", "error": str(e)}

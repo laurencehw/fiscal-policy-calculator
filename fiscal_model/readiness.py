@@ -201,6 +201,54 @@ def _health_checks(health: dict[str, Any]) -> list[ReadinessCheck]:
             required=False,
         ))
 
+    # Ask assistant — not required, so its absence never blocks deploy.
+    # Skip entirely when the health payload doesn't carry the key (so
+    # synthetic payloads and older callers stay backward-compatible).
+    assistant = health.get("assistant")
+    if assistant is None:
+        return checks
+    if assistant.get("status") == "ok":
+        checks.append(_check(
+            "assistant",
+            "pass",
+            (
+                f"Ask assistant ready "
+                f"({assistant.get('knowledge_corpus_files', 0)} knowledge snapshots, "
+                f"usage db writable)."
+            ),
+            details=assistant,
+            required=False,
+        ))
+    elif assistant.get("status") == "error":
+        checks.append(_check(
+            "assistant",
+            "warn",
+            "Ask assistant component raised an error.",
+            details=assistant,
+            required=False,
+        ))
+    else:
+        # Degraded — break apart the reasons.
+        reasons = []
+        if not assistant.get("api_key_configured"):
+            reasons.append("ANTHROPIC_API_KEY not set")
+        if not assistant.get("knowledge_corpus_files"):
+            reasons.append("knowledge corpus empty")
+        if not assistant.get("usage_db_writable"):
+            reasons.append("usage db not writable")
+        msg = (
+            "Ask assistant degraded: " + ", ".join(reasons)
+            if reasons
+            else "Ask assistant degraded."
+        )
+        checks.append(_check(
+            "assistant",
+            "warn",
+            msg,
+            details=assistant,
+            required=False,
+        ))
+
     return checks
 
 
