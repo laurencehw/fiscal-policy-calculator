@@ -21,35 +21,94 @@ Streamlit pitfalls handled here:
 from __future__ import annotations
 
 import os
+import time
 from typing import Any
 
 from fiscal_model.assistant.citations import render_provenance_footer
+from fiscal_model.assistant.rate_limit import RateLimiter, new_session_id
 
 
 _HISTORY_KEY = "ask_history"
 _PENDING_PROMPT_KEY = "_ask_pending_prompt"
 _USE_OPUS_KEY = "_ask_use_opus"
-_MAX_TURNS = 30
+_SESSION_ID_KEY = "_ask_session_id"
+_LAST_TS_KEY = "_ask_last_message_ts"
+_LIMITER_CACHE_KEY = "_ask_limiter"
 
 
-def _promote_secret_to_env(st_module: Any) -> None:
+def _promote_secret_to_env(st_module: Any) -> dict[str, Any]:
     """Promote ``st.secrets["ANTHROPIC_API_KEY"]`` to ``os.environ`` if set.
 
     Streamlit Cloud surfaces deployment secrets via ``st.secrets``, not
     env vars. The Anthropic SDK and the rest of this codebase read from
     ``os.environ``, so we bridge the gap on first render. Idempotent.
+
+    Returns a small diagnostic dict (env_var_set, secrets_object_present,
+    secrets_keys_seen, attempted_keys) so the unavailable-message UI can
+    explain exactly what was checked.
     """
-    if os.environ.get("ANTHROPIC_API_KEY"):
-        return
+    diag: dict[str, Any] = {
+        "env_var_set": bool(os.environ.get("ANTHROPIC_API_KEY")),
+        "secrets_object_present": False,
+        "secrets_keys_seen": [],
+        "promoted_from": None,
+    }
+    if diag["env_var_set"]:
+        return diag
+
     secrets = getattr(st_module, "secrets", None)
     if secrets is None:
-        return
+        return diag
+    diag["secrets_object_present"] = True
+
+    # Try several access patterns — `st.secrets` behavior varies across
+    # Streamlit versions and across (no-secrets-file / has-file) states.
+    candidates = ("ANTHROPIC_API_KEY", "anthropic_api_key", "anthropic", "ANTHROPIC")
+    value = None
+    matched_key = None
     try:
-        value = secrets.get("ANTHROPIC_API_KEY") if hasattr(secrets, "get") else None
-    except Exception:  # noqa: BLE001 — StreamlitSecretNotFoundError when no secrets file
-        return
+        # Enumerate visible top-level keys (helps the diagnostic message).
+        if hasattr(secrets, "keys"):
+            try:
+                diag["secrets_keys_seen"] = [str(k) for k in secrets.keys()]
+            except Exception:  # noqa: BLE001
+                diag["secrets_keys_seen"] = ["(error enumerating keys)"]
+    except Exception:  # noqa: BLE001
+        pass
+
+    for key in candidates:
+        try:
+            # __getitem__ raises on missing keys for Streamlit Secrets.
+            v = secrets[key]
+        except Exception:  # noqa: BLE001
+            try:
+                v = getattr(secrets, key, None)
+            except Exception:  # noqa: BLE001
+                v = None
+        if v:
+            value = v
+            matched_key = key
+            break
+
     if value:
-        os.environ["ANTHROPIC_API_KEY"] = str(value)
+        # If the matched object is itself a nested dict (e.g. a [anthropic]
+        # TOML section), look one level deeper.
+        if hasattr(value, "get") and not isinstance(value, str):
+            for nested in ("api_key", "API_KEY", "key"):
+                try:
+                    nv = value.get(nested)
+                except Exception:  # noqa: BLE001
+                    nv = None
+                if nv:
+                    value = nv
+                    matched_key = f"{matched_key}.{nested}"
+                    break
+
+    if value and isinstance(value, str):
+        os.environ["ANTHROPIC_API_KEY"] = value
+        diag["env_var_set"] = True
+        diag["promoted_from"] = f"st.secrets[{matched_key!r}]"
+    return diag
 
 
 _STARTER_PROMPTS: list[str] = [
@@ -93,7 +152,7 @@ def _render_body(
 
     # Promote st.secrets → os.environ before checking availability so
     # Streamlit Cloud deployments work without an env var.
-    _promote_secret_to_env(st_module)
+    diag = _promote_secret_to_env(st_module)
 
     st_module.subheader("💬 Ask")
     st_module.markdown(
@@ -107,12 +166,16 @@ def _render_body(
 
     # --- API key check --------------------------------------------------
     if not fiscal_assistant.is_available():
-        _render_unavailable(st_module)
+        _render_unavailable(st_module, diag)
         return
 
     # --- ensure session state -------------------------------------------
     state.setdefault(_HISTORY_KEY, [])
     state.setdefault(_USE_OPUS_KEY, False)
+    state.setdefault(_SESSION_ID_KEY, new_session_id())
+    state.setdefault(_LAST_TS_KEY, None)
+
+    limiter = _get_rate_limiter(state)
 
     # --- options bar ----------------------------------------------------
     cols = st_module.columns([3, 2, 2])
@@ -230,22 +293,72 @@ def _render_body(
 # ---------------------------------------------------------------------------
 
 
-def _render_unavailable(st_module: Any) -> None:
+def _render_unavailable(st_module: Any, diag: dict[str, Any] | None = None) -> None:
     """Show a friendly admin-facing message when no API key is configured.
 
-    Deliberately does **not** prompt readers for an API key — that's a
-    deployment misconfiguration, not a user task. The deployer should
-    set `ANTHROPIC_API_KEY` in Streamlit Cloud secrets (or as an env
-    var locally) and redeploy.
+    Includes a "What we looked for" diagnostic so the deployer can tell
+    exactly what failed: env var? secrets file? wrong key name?
     """
     st_module.info(
         "💬 The Ask assistant is not configured for this deployment.\n\n"
-        "*If you're the deployer:* add `ANTHROPIC_API_KEY` to your "
-        "Streamlit Cloud secrets (Settings → Secrets) or export it as "
-        "an environment variable before launching `streamlit run`.\n\n"
-        "Until then, the rest of the app — Calculator, Budget Builder, "
-        "Validation, Methodology, Bill Tracker, etc. — works normally."
+        "*If you're the deployer:* set `ANTHROPIC_API_KEY` either as a "
+        "Streamlit secret or an environment variable. See the expander "
+        "below for what was checked."
     )
+
+    with st_module.expander("How to set the key", expanded=False):
+        st_module.markdown(
+            "**Streamlit Cloud** — Settings → Secrets, add:\n\n"
+            "```toml\n"
+            'ANTHROPIC_API_KEY = "sk-ant-..."\n'
+            "```\n\n"
+            "Save and the app reboots automatically.\n\n"
+            "**Local** — set an env var before launching:\n\n"
+            "```bash\n"
+            "export ANTHROPIC_API_KEY=sk-ant-...\n"
+            "streamlit run app.py\n"
+            "```\n\n"
+            "Or create `.streamlit/secrets.toml` in the repo with the "
+            "same TOML block above.\n\n"
+            "**Local on Windows (PowerShell)**:\n\n"
+            "```powershell\n"
+            '$env:ANTHROPIC_API_KEY = "sk-ant-..."\n'
+            "streamlit run app.py\n"
+            "```"
+        )
+
+    if diag:
+        with st_module.expander("Diagnostic — what was checked", expanded=True):
+            st_module.markdown(
+                f"- `os.environ['ANTHROPIC_API_KEY']` present: "
+                f"**{diag.get('env_var_set', False)}**"
+            )
+            st_module.markdown(
+                f"- `st.secrets` accessible: "
+                f"**{diag.get('secrets_object_present', False)}**"
+            )
+            keys = diag.get("secrets_keys_seen") or []
+            if keys:
+                st_module.markdown(
+                    "- Top-level keys visible in `st.secrets`: "
+                    + ", ".join(f"`{k}`" for k in keys)
+                )
+            else:
+                st_module.markdown(
+                    "- Top-level keys visible in `st.secrets`: _none_ "
+                    "(either no secrets file is loaded, or it is empty)"
+                )
+            if diag.get("promoted_from"):
+                st_module.markdown(
+                    f"- ✅ Promoted from `{diag['promoted_from']}` "
+                    "(but `is_available()` still returned False — that's a bug; please report)"
+                )
+            st_module.caption(
+                "The key name must be exactly `ANTHROPIC_API_KEY` "
+                "(case-sensitive). Common mistakes: extra whitespace, "
+                "quotes left in the value field, or pasting into the "
+                "wrong app's secrets."
+            )
 
 
 def _scoring_context(scoring_result: Any) -> dict[str, Any] | None:
