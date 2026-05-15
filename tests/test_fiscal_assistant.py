@@ -448,12 +448,53 @@ class TestAssistantStreamLoop:
             enable_web_search=False,
         )
         out = "".join(assistant.stream_response("What's the deficit?", history=[]))
-        # Tool-call status line should appear inline.
-        assert "get_cbo_baseline" in out
-        # The citation marker should survive because the tool was called.
+        # Tool internals are no longer echoed to the user inline — sources
+        # are cited via [^N] footnotes instead. So we don't check for tool
+        # names in the output, only in the provenance trail.
         assert "[citation needed]" not in out
-        # Provenance should record the tool call.
         assert any(p["tool"] == "get_cbo_baseline" for p in assistant.last_provenance)
+
+    def test_iteration_cap_forces_final_answer(
+        self,
+        scorer: FiscalPolicyScorer,
+    ) -> None:
+        """If the model keeps asking for tools, we cap and force an answer."""
+        from fiscal_model.assistant.assistant import MAX_TOOL_ITERATIONS
+
+        # Script: every iteration up to the cap returns tool_use; the
+        # forced-final call (tools disabled) returns the actual answer.
+        tool_use_msg = _make_final_message(
+            text="Let me check more.",
+            tool_uses=[
+                {"id": "toolu_x", "name": "search_knowledge", "input": {"query": "x"}},
+            ],
+            stop_reason="tool_use",
+        )
+        forced_answer = _make_final_message(
+            text="Based on what I have: the deficit is large.",
+            stop_reason="end_turn",
+        )
+        scripted: list[tuple[list[str], Any]] = []
+        for _ in range(MAX_TOOL_ITERATIONS):
+            scripted.append((["Let me check more."], tool_use_msg))
+        # One additional call when we force the final answer.
+        scripted.append((["Based on what I have: the deficit is large."], forced_answer))
+
+        fake = _FakeClient(scripted=scripted)
+        assistant = FiscalAssistant(
+            scorer=scorer,
+            baseline=scorer.baseline,
+            cbo_score_map=CBO_SCORE_MAP,
+            presets=PRESET_POLICIES,
+            policy_types=PolicyType,
+            tax_policy_cls=TaxPolicy,
+            spending_policy_cls=SpendingPolicy,
+            anthropic_client=fake,
+            enable_web_search=False,
+        )
+        out = "".join(assistant.stream_response("?", history=[]))
+        # The forced-final answer must be in the output.
+        assert "the deficit is large" in out
 
     def test_tool_use_strips_marker_with_no_provenance(
         self,

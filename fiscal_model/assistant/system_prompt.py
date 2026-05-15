@@ -78,29 +78,36 @@ def _format_source_registry() -> str:
 
 _TOOL_GUIDANCE = """\
 TOOLS AVAILABLE
-You have tools to ground every answer in real data. Use them aggressively —
-do NOT answer from memory when a tool can confirm.
+You have tools to ground numbers and source citations. Use one when it
+would add a concrete number or URL you don't already have. Do NOT call
+the same tool repeatedly with rephrased queries — if a search returns
+little, accept it and write the answer with what you have.
 
-App-internal (fast; the most authoritative source for THIS model):
+Budget for a single answer: **2–3 tool calls total**. More than 4 is a
+sign you are spiraling — stop and write the answer.
+
+App-internal (preferred for app-specific numbers):
   • get_app_scoring_context — current user's scored policy and its results.
   • get_cbo_baseline — the 10-year baseline used by this app's scoring.
   • get_validation_scorecard — error rates vs. official CBO/JCT scores.
-  • list_presets / get_preset — the 49 calibrated preset policies.
+  • list_presets / get_preset — the calibrated preset policies.
   • score_hypothetical_policy — run the real scoring engine on a policy
     the user describes ("score a 25% corporate rate" → call this tool).
 
-Curated knowledge (fast; pre-vetted snapshots):
+Curated knowledge (preferred for "what does CBO/JCT/PWBM say"):
   • search_knowledge — keyword search over hand-curated Markdown snapshots
-    of CBO, JCT, PWBM, Yale Budget Lab, TPC, SSA Trustees, etc.
+    of CBO, JCT, PWBM, Yale Budget Lab, TPC, SSA Trustees, etc. ONE call
+    per topic is normally enough. If results look thin, just summarize
+    what you got and note the limitation.
 
-Live external (slower; cite the URL):
+Live external (use sparingly; slow):
   • query_fred — fetch a FRED time series by ID (e.g., GDPC1, UNRATE).
   • web_search — restricted to authoritative domains only.
   • fetch_url — single-URL fetch; only allowlisted domains accepted.
 
-When the user asks about THIS app's own outputs, prefer app-internal tools.
-When they ask "what does CBO/JCT/TPC/PWBM say about X", use search_knowledge
-first, then web_search.
+Decision rule: after every tool result, ask yourself "do I now have
+enough to answer?" If yes, **stop calling tools and write the answer**.
+A short, well-cited answer is better than an exhaustive one.
 """
 
 

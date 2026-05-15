@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_MODEL = "claude-sonnet-4-6"
 OPUS_MODEL = "claude-opus-4-7"
-MAX_TOOL_ITERATIONS = 6
+MAX_TOOL_ITERATIONS = 4
 DEFAULT_MAX_TOKENS = 1600
 
 
@@ -192,6 +192,7 @@ class FiscalAssistant:
         # ------------------------------------------------------------------
         accumulated_text = ""
         final_message = None
+        hit_iteration_cap = False
         for iteration in range(MAX_TOOL_ITERATIONS):
             stream_result = self._run_one_stream(
                 system_blocks=system_blocks,
@@ -221,6 +222,14 @@ class FiscalAssistant:
             if not tool_uses:
                 break
 
+            # If this was the last allowed iteration, fall through to the
+            # "force final answer" code below WITHOUT running these tools.
+            # That way we don't spend $$ on tool calls whose results we'll
+            # never let the model consume.
+            if iteration == MAX_TOOL_ITERATIONS - 1:
+                hit_iteration_cap = True
+                break
+
             # Append the assistant turn (with full content blocks) before the
             # tool results so the next request is valid.
             messages.append(
@@ -230,19 +239,15 @@ class FiscalAssistant:
                 }
             )
 
-            # Run each tool call. Show the user what's happening.
+            # Run each tool call. We do NOT echo tool names to the user — the
+            # final answer should speak for itself, with [^N] citations.
             tool_results: list[dict[str, Any]] = []
-            status_lines: list[str] = []
             for tu in tool_uses:
                 if tu["type"] == "server_tool_use":
-                    # Web search is server-side; Anthropic handled it. The
-                    # result is already in final_message.content as a
-                    # ``web_search_tool_result`` block — no action needed.
-                    status_lines.append(f"🔎 web_search: {tu['input'].get('query', '')!r}")
+                    # Web search is server-side; Anthropic handled it.
                     continue
                 tool_name = tu["name"]
                 tool_args = tu["input"] or {}
-                status_lines.append(f"🔧 {tool_name}({_brief_args(tool_args)})")
                 result = self._tools.dispatch(tool_name, tool_args)
                 tool_results.append(
                     {
@@ -252,15 +257,57 @@ class FiscalAssistant:
                     }
                 )
 
-            if status_lines:
-                yield "\n\n" + "\n".join(f"_{s}_" for s in status_lines) + "\n\n"
-
             if not tool_results:
                 # Only server-side tools were used; loop again to let the
                 # model continue with their results.
                 continue
 
             messages.append({"role": "user", "content": tool_results})
+
+        # If we hit the iteration cap without a clean stop, ask the model
+        # one more time WITHOUT tools to write the final answer using
+        # whatever it has gathered. Otherwise the user sees only the
+        # model's thinking-out-loud preamble and no actual answer.
+        if hit_iteration_cap and final_message is not None:
+            # Persist the last assistant turn (its tool_use blocks) so the
+            # model can summarize from them.
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": _serialize_content_blocks(final_message.content),
+                }
+            )
+            # Synthesize empty tool_results so the conversation is valid.
+            tool_uses_for_stub = _collect_tool_uses(final_message)
+            stub_results: list[dict[str, Any]] = [
+                {
+                    "type": "tool_result",
+                    "tool_use_id": tu["id"],
+                    "content": json.dumps(
+                        {
+                            "note": (
+                                "Skipped: tool-call budget exhausted. "
+                                "Write the final answer with what you already have."
+                            )
+                        }
+                    ),
+                }
+                for tu in tool_uses_for_stub
+                if tu["type"] == "tool_use"
+            ]
+            if stub_results:
+                messages.append({"role": "user", "content": stub_results})
+            # One last call, tools disabled, to force a real answer.
+            forced = self._run_one_stream(
+                system_blocks=system_blocks,
+                messages=messages,
+                tools=[],  # no tools → model must answer or end_turn
+            )
+            for chunk in forced["text_chunks"]:
+                accumulated_text += chunk
+                yield chunk
+            final_message = forced["final_message"]
+            self._record_usage(forced.get("usage"))
 
         # ------------------------------------------------------------------
         # Post-process: citation hygiene.

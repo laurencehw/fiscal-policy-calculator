@@ -33,6 +33,8 @@ from fiscal_model.api_security import (
 )
 from fiscal_model.api_serialization import serialize_scoring_result
 from fiscal_model.app_data import CBO_SCORE_MAP, PRESET_POLICIES
+from fiscal_model.assistant import FiscalAssistant
+from fiscal_model.assistant.rate_limit import RateLimiter, new_session_id
 from fiscal_model.exceptions import (
     FiscalModelError,
     PolicyValidationError,
@@ -41,6 +43,7 @@ from fiscal_model.exceptions import (
 from fiscal_model.health import check_health
 from fiscal_model.policies import (
     PolicyType,
+    SpendingPolicy,
     TaxPolicy,
 )
 from fiscal_model.preset_handler import create_policy_from_preset
@@ -1083,6 +1086,257 @@ def score_tariff(
 
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+# =============================================================================
+# ASK ASSISTANT ENDPOINT
+# =============================================================================
+
+
+class AskMessage(BaseModel):
+    """One turn in an Ask conversation."""
+
+    role: str = Field(
+        ..., description="'user' or 'assistant'", pattern=r"^(user|assistant)$"
+    )
+    content: str = Field(..., description="Plain-text message content")
+
+
+class AskRequest(BaseModel):
+    """Request to the Ask assistant."""
+
+    question: str = Field(
+        ..., min_length=1, max_length=4000, description="The user's question"
+    )
+    history: list[AskMessage] = Field(
+        default_factory=list,
+        description="Prior turns, in order. The new question is NOT included here.",
+    )
+    scoring_context: dict[str, Any] | None = Field(
+        None,
+        description=(
+            "Optional context describing a policy the caller has already "
+            "scored — e.g. {policy_name, ten_year_deficit_impact_billions, "
+            "credibility}. Injected into the assistant's system prompt for "
+            "grounding."
+        ),
+    )
+    session_id: str | None = Field(
+        None,
+        description=(
+            "Stable identifier for rate-limiting and telemetry. If omitted, a "
+            "new id is generated per request (defeats per-session caps for "
+            "the caller's own benefit — pass a stable id to keep "
+            "conversations rate-limited as one)."
+        ),
+        max_length=64,
+    )
+    enable_web_search: bool = Field(
+        True,
+        description=(
+            "If true, allow the model to use Anthropic's domain-restricted "
+            "web_search tool to fetch live authoritative pages. Disable for "
+            "deterministic / offline runs."
+        ),
+    )
+
+
+class AskToolCall(BaseModel):
+    """Provenance entry for a single tool invocation during the turn."""
+
+    tool: str
+    args: dict[str, Any] = Field(default_factory=dict)
+    result_summary: str | None = None
+
+
+class AskUsage(BaseModel):
+    """Per-turn token + dollar accounting."""
+
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cache_creation_tokens: int = 0
+    cache_read_tokens: int = 0
+    cost_usd: float = 0.0
+
+
+class AskResponse(BaseModel):
+    """Response from /ask."""
+
+    answer: str = Field(
+        ..., description="The assistant's full answer (post-citation-cleanup)."
+    )
+    model: str = Field(..., description="Anthropic model used for this turn.")
+    tool_calls: list[AskToolCall] = Field(default_factory=list)
+    stripped_citation_markers: list[int] = Field(
+        default_factory=list,
+        description=(
+            "Citation markers the model emitted without supporting tool calls; "
+            "they were replaced with `[citation needed]` in the answer."
+        ),
+    )
+    usage: AskUsage
+    session_id: str = Field(
+        ..., description="Echoed session id (generated if the caller omitted one)."
+    )
+    elapsed_s: float
+
+
+# Built once per process. The FiscalAssistant's Anthropic client is lazy,
+# so this is cheap; FREDData hits cache; KnowledgeSearcher lazily indexes.
+def _build_api_assistant() -> FiscalAssistant:
+    from pathlib import Path
+
+    from fiscal_model.data.fred_data import FREDData
+
+    knowledge_dir = (
+        Path(__file__).resolve().parent
+        / "fiscal_model"
+        / "assistant"
+        / "knowledge"
+    )
+    scorer = FiscalPolicyScorer()
+    return FiscalAssistant(
+        scorer=scorer,
+        baseline=scorer.baseline,
+        cbo_score_map=CBO_SCORE_MAP,
+        presets=PRESET_POLICIES,
+        fred_data=FREDData(),
+        knowledge_dir=knowledge_dir,
+        policy_types=PolicyType,
+        tax_policy_cls=TaxPolicy,
+        spending_policy_cls=SpendingPolicy,
+    )
+
+
+_ASK_ASSISTANT: FiscalAssistant | None = None
+_ASK_LIMITER: RateLimiter | None = None
+
+
+def _get_ask_assistant() -> FiscalAssistant:
+    global _ASK_ASSISTANT
+    if _ASK_ASSISTANT is None:
+        _ASK_ASSISTANT = _build_api_assistant()
+    return _ASK_ASSISTANT
+
+
+def _get_ask_limiter() -> RateLimiter:
+    global _ASK_LIMITER
+    if _ASK_LIMITER is None:
+        _ASK_LIMITER = RateLimiter()
+    return _ASK_LIMITER
+
+
+@app.post("/ask", response_model=AskResponse)
+def ask(
+    request: AskRequest,
+    _api_key_label: str = Depends(require_api_key),
+) -> AskResponse:
+    """
+    Pose a public-finance question to the citation-grounded assistant.
+
+    The assistant answers using the app's own scoring engine and a curated
+    set of authoritative external sources (CBO, JCT, PWBM, Yale Budget Lab,
+    Tax Policy Center, Peterson, BEA, BLS, SSA Trustees, FRED). Every
+    substantive claim is cited; unsupported citation markers are stripped
+    automatically.
+
+    Subject to the same daily-cost cap and per-session limits as the
+    Streamlit Ask tab — both share a single sqlite ledger so a busy API
+    caller doesn't drain the UI budget.
+
+    Returns the full answer in one response (non-streaming). Streaming
+    via SSE may be added in a future revision.
+    """
+    import time
+
+    assistant = _get_ask_assistant()
+    limiter = _get_ask_limiter()
+
+    if not assistant.is_available():
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Ask assistant is not configured: set ANTHROPIC_API_KEY in "
+                "the server environment."
+            ),
+        )
+
+    session_id = request.session_id or new_session_id()
+    user_turn_count = sum(1 for m in request.history if m.role == "user")
+
+    decision = limiter.check(
+        session_id=session_id,
+        session_message_count=user_turn_count,
+        last_message_ts=None,  # API callers self-pace; no cooldown enforced
+    )
+    if not decision.allowed:
+        raise HTTPException(status_code=429, detail=decision.reason)
+
+    # Toggle web_search per request.
+    assistant._enable_web_search = bool(request.enable_web_search)  # noqa: SLF001
+
+    history_for_api = [
+        {"role": m.role, "content": m.content} for m in request.history
+    ]
+
+    start = time.time()
+    error_msg: str | None = None
+    try:
+        chunks = list(
+            assistant.stream_response(
+                user_message=request.question,
+                history=history_for_api,
+                scoring_context=request.scoring_context,
+            )
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Ask endpoint failed")
+        error_msg = f"{type(exc).__name__}: {exc}"
+        raise HTTPException(status_code=502, detail=error_msg) from exc
+    elapsed = time.time() - start
+    final_text = assistant.last_full_text or "".join(chunks)
+
+    usage_dict = (
+        assistant.last_usage.to_dict() if assistant.last_usage else {}
+    )
+    tools_used = [p.get("tool", "") for p in assistant.last_provenance]
+
+    # Persist for telemetry + daily cap accounting.
+    limiter.record_turn(
+        session_id=session_id,
+        role="assistant",
+        model=assistant._model,  # noqa: SLF001
+        usage_dict=usage_dict,
+        elapsed_s=elapsed,
+        tools_used=tools_used,
+        stripped_markers=len(assistant.last_stripped_markers or []),
+        error=error_msg,
+        question_chars=len(request.question),
+        answer_chars=len(final_text),
+    )
+
+    return AskResponse(
+        answer=final_text,
+        model=assistant._model,  # noqa: SLF001
+        tool_calls=[
+            AskToolCall(
+                tool=p.get("tool", ""),
+                args=p.get("args") or {},
+                result_summary=p.get("result_summary"),
+            )
+            for p in assistant.last_provenance
+        ],
+        stripped_citation_markers=list(assistant.last_stripped_markers or []),
+        usage=AskUsage(**{k: usage_dict.get(k, 0) for k in (
+            "input_tokens",
+            "output_tokens",
+            "cache_creation_tokens",
+            "cache_read_tokens",
+            "cost_usd",
+        )}),
+        session_id=session_id,
+        elapsed_s=round(elapsed, 3),
+    )
 
 
 # =============================================================================

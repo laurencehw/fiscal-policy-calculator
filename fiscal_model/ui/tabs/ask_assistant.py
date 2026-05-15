@@ -489,27 +489,38 @@ def _history_for_api(history: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def _render_assistant_extras(st_module: Any, turn: dict[str, Any]) -> None:
-    """Render the tool-call expander and per-turn usage caption."""
+    """Render a small per-turn caption.
+
+    Tool internals are intentionally hidden from the reader by default —
+    sources are already cited in the answer via [^N] footnotes. Deployers
+    who want to inspect tool calls can set ASSISTANT_SHOW_TOOLS=1 in the
+    environment to surface a collapsed expander.
+    """
     provenance = turn.get("provenance") or []
     usage = turn.get("usage")
     stripped = turn.get("stripped_markers") or []
 
-    if provenance:
+    if provenance and os.environ.get("ASSISTANT_SHOW_TOOLS", "").strip() in {
+        "1",
+        "true",
+        "TRUE",
+    }:
         with st_module.expander(
-            f"🔧 Tool calls used ({len(provenance)})", expanded=False
+            f"🔧 Tool calls (dev mode) — {len(provenance)}", expanded=False
         ):
             st_module.markdown(render_provenance_footer(provenance))
 
     caption_bits: list[str] = []
-    if usage:
+    if provenance:
+        # Count distinct tools used (more reader-friendly than the raw list).
+        distinct = len({p.get("tool") for p in provenance})
         caption_bits.append(
-            f"{usage['input_tokens'] + usage['output_tokens']:,} tok · "
-            f"${usage['cost_usd']:.4f}"
+            f"Drew on {distinct} source{'s' if distinct != 1 else ''}"
         )
-        if usage["cache_read_tokens"]:
-            caption_bits.append(f"cache-hit {usage['cache_read_tokens']:,}")
     if stripped:
-        caption_bits.append(f"⚠️ {len(stripped)} unsupported marker(s) stripped")
+        caption_bits.append(
+            f"⚠️ {len(stripped)} unsupported claim{'s' if len(stripped) != 1 else ''} stripped"
+        )
     if caption_bits:
         st_module.caption(" · ".join(caption_bits))
 
