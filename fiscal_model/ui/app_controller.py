@@ -72,6 +72,10 @@ _SECTION_ERROR_MESSAGES: dict[str, str] = {
         "The Methodology tab encountered an issue. "
         "Please try reloading the page."
     ),
+    "Ask": (
+        "The Ask assistant encountered an issue. "
+        "Check that ANTHROPIC_API_KEY is set or supply a key in the tab."
+    ),
 }
 
 
@@ -521,6 +525,7 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         "📋 Bill Tracker",
         "✅ Validation",
         "📖 Methodology",
+        "💬 Ask",
     ])
 
     with top_tabs[0]:
@@ -586,6 +591,18 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
             st_module,
             "Methodology",
             lambda: deps.render_methodology_tab(st_module=st_module),
+        )
+        render_footer(st_module=st_module)
+
+    with top_tabs[7]:
+        _render_guarded_section(
+            st_module,
+            "Ask",
+            lambda: deps.render_ask_tab(
+                st_module=st_module,
+                fiscal_assistant=deps.fiscal_assistant,
+                scoring_result=st_module.session_state.get("results"),
+            ),
         )
         render_footer(st_module=st_module)
 

@@ -7,7 +7,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from pathlib import Path
+
 from fiscal_model.app_data import CBO_SCORE_MAP, PRESET_POLICIES
+from fiscal_model.assistant import FiscalAssistant
+from fiscal_model.data.fred_data import FREDData
 from fiscal_model.distribution import (
     DistributionalEngine,
     IncomeGroupType,
@@ -115,6 +119,12 @@ def _render_side_by_side_tab(**kwargs: Any) -> Any:
     return render_side_by_side_tab(**kwargs)
 
 
+def _render_ask_tab(**kwargs: Any) -> Any:
+    from .tabs.ask_assistant import render_ask_tab
+
+    return render_ask_tab(**kwargs)
+
+
 @dataclass(frozen=True)
 class AppDependencies:
     PRESET_POLICIES: dict[str, dict[str, Any]]
@@ -160,6 +170,8 @@ class AppDependencies:
     apply_app_styles: Any
     run_main_app: Any
     pd: Any
+    fiscal_assistant: Any
+    render_ask_tab: Any
 
 
 def build_app_dependencies(pd_module: Any) -> AppDependencies:
@@ -171,6 +183,24 @@ def build_app_dependencies(pd_module: Any) -> AppDependencies:
     """
     from fiscal_model.microsim.data_generator import SyntheticPopulation
     from fiscal_model.microsim.engine import MicroTaxCalculator
+
+    # Build the Ask assistant. Construction is cheap (no API call until the
+    # user actually sends a message); the Anthropic client is lazy.
+    knowledge_dir = (
+        Path(__file__).resolve().parent.parent / "assistant" / "knowledge"
+    )
+    _assistant_scorer = FiscalPolicyScorer()
+    fiscal_assistant = FiscalAssistant(
+        scorer=_assistant_scorer,
+        baseline=_assistant_scorer.baseline,
+        cbo_score_map=CBO_SCORE_MAP,
+        presets=PRESET_POLICIES,
+        fred_data=FREDData(),
+        knowledge_dir=knowledge_dir,
+        policy_types=PolicyType,
+        tax_policy_cls=TaxPolicy,
+        spending_policy_cls=SpendingPolicy,
+    )
 
     return AppDependencies(
         PRESET_POLICIES=PRESET_POLICIES,
@@ -216,4 +246,6 @@ def build_app_dependencies(pd_module: Any) -> AppDependencies:
         apply_app_styles=apply_app_styles,
         run_main_app=run_main_app,
         pd=pd_module,
+        fiscal_assistant=fiscal_assistant,
+        render_ask_tab=_render_ask_tab,
     )

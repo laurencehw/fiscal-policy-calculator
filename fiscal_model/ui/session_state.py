@@ -60,6 +60,9 @@ KEY_DYNAMIC_SCORING = "dynamic_scoring_enabled"
 # Share-link handling
 KEY_SHARE_TOKEN = "_share_link_token"
 
+# Ask assistant
+KEY_ASK_HISTORY = "ask_history"
+
 
 @dataclass(frozen=True)
 class _KeySpec:
@@ -92,6 +95,9 @@ _SESSION_KEYS: tuple[_KeySpec, ...] = (
     _KeySpec(KEY_DYNAMIC_SCORING, False, bool),
     # Share
     _KeySpec(KEY_SHARE_TOKEN, None, (str, type(None))),
+    # Ask assistant — the tab initializes its own list to avoid a shared
+    # mutable default; we still register the key here so it's documented.
+    _KeySpec(KEY_ASK_HISTORY, None, (list, type(None))),
 )
 
 
@@ -179,6 +185,7 @@ class SafeSessionState:
 
 __all__ = [
     "ALL_KEYS",
+    "KEY_ASK_HISTORY",
     "KEY_CURRENT_RUN_ID",
     "KEY_DARK_MODE",
     "KEY_DYNAMIC_SCORING",
