@@ -514,18 +514,21 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         "spending proposals. Powered by IRS data, FRED, and CBO methodology. "
         f"Companion to the [Public Economics textbook]({TEXTBOOK_HOME}). "
         "🎓 [**Classroom Mode**](?mode=classroom) — interactive assignments for Public Economics courses.\n\n"
-        "🆕 **Can you balance the budget?** Try the **⚖️ Budget Builder** tab →"
+        "💬 **Have a public-finance question?** Try the **Ask** tab — answers grounded "
+        "in this app's scoring engine plus CBO, JCT, PWBM, Yale Budget Lab, TPC, SSA "
+        "Trustees, BEA, BLS, and FRED, with every claim cited. "
+        "⚖️ Or balance the budget yourself in **Budget Builder**."
     )
 
     top_tabs = st_module.tabs([
         "📊 Calculator",
+        "💬 Ask",
         "⚖️ Budget Builder",
         "🌐 Generational",
         "🗺️ State",
         "📋 Bill Tracker",
         "✅ Validation",
         "📖 Methodology",
-        "💬 Ask",
     ])
 
     with top_tabs[0]:
@@ -544,12 +547,24 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
     with top_tabs[1]:
         _render_guarded_section(
             st_module,
+            "Ask",
+            lambda: deps.render_ask_tab(
+                st_module=st_module,
+                fiscal_assistant=deps.fiscal_assistant,
+                scoring_result=st_module.session_state.get("results"),
+            ),
+        )
+        render_footer(st_module=st_module)
+
+    with top_tabs[2]:
+        _render_guarded_section(
+            st_module,
             "Budget Builder",
             lambda: _render_budget_builder(st_module=st_module, deps=deps),
         )
         render_footer(st_module=st_module)
 
-    with top_tabs[2]:
+    with top_tabs[3]:
         _render_guarded_section(
             st_module,
             "Generational analysis",
@@ -557,7 +572,7 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         )
         render_footer(st_module=st_module)
 
-    with top_tabs[3]:
+    with top_tabs[4]:
         _render_guarded_section(
             st_module,
             "State analysis",
@@ -565,7 +580,7 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         )
         render_footer(st_module=st_module)
 
-    with top_tabs[4]:
+    with top_tabs[5]:
         _render_guarded_section(
             st_module,
             "Bill Tracker",
@@ -573,7 +588,7 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         )
         render_footer(st_module=st_module)
 
-    with top_tabs[5]:
+    with top_tabs[6]:
         def _render_validation() -> None:
             from .tabs.validation_scorecard import render_validation_scorecard_tab
 
@@ -586,23 +601,11 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         )
         render_footer(st_module=st_module)
 
-    with top_tabs[6]:
+    with top_tabs[7]:
         _render_guarded_section(
             st_module,
             "Methodology",
             lambda: deps.render_methodology_tab(st_module=st_module),
-        )
-        render_footer(st_module=st_module)
-
-    with top_tabs[7]:
-        _render_guarded_section(
-            st_module,
-            "Ask",
-            lambda: deps.render_ask_tab(
-                st_module=st_module,
-                fiscal_assistant=deps.fiscal_assistant,
-                scoring_result=st_module.session_state.get("results"),
-            ),
         )
         render_footer(st_module=st_module)
 
