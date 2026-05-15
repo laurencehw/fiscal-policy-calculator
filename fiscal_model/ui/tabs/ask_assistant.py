@@ -30,7 +30,6 @@ from fiscal_model.assistant.rate_limit import RateLimiter, new_session_id
 
 _HISTORY_KEY = "ask_history"
 _PENDING_PROMPT_KEY = "_ask_pending_prompt"
-_USE_OPUS_KEY = "_ask_use_opus"
 _SESSION_ID_KEY = "_ask_session_id"
 _LAST_TS_KEY = "_ask_last_message_ts"
 _LIMITER_CACHE_KEY = "_ask_limiter"
@@ -175,14 +174,13 @@ def _render_body(
     # so we have to explicitly coerce it to a list here.
     if state.get(_HISTORY_KEY) is None:
         state[_HISTORY_KEY] = []
-    state.setdefault(_USE_OPUS_KEY, False)
     state.setdefault(_SESSION_ID_KEY, new_session_id())
     state.setdefault(_LAST_TS_KEY, None)
 
     limiter = _get_rate_limiter(state)
 
     # --- options bar ----------------------------------------------------
-    cols = st_module.columns([3, 2, 2])
+    cols = st_module.columns([4, 1])
     with cols[0]:
         scoring_label = (
             f"📊 Using current scored policy as context: **{_scoring_summary(scoring_result)}**"
@@ -192,21 +190,15 @@ def _render_body(
         )
         st_module.caption(scoring_label)
     with cols[1]:
-        state[_USE_OPUS_KEY] = st_module.toggle(
-            "Use Opus 4.7 for harder questions",
-            value=state.get(_USE_OPUS_KEY, False),
-            help="More careful reasoning, ~5× more expensive than Sonnet.",
-            key="_ask_opus_toggle",
-        )
-    with cols[2]:
-        if st_module.button("🗑 Clear conversation", use_container_width=True):
+        if st_module.button("🗑 Clear", use_container_width=True):
             state[_HISTORY_KEY] = []
             fiscal_assistant.cost.turns = []
             st_module.rerun()
 
-    # Apply the model toggle.
-    fiscal_assistant._model = (  # noqa: SLF001 — small intentional internal access
-        "claude-opus-4-7" if state.get(_USE_OPUS_KEY) else "claude-sonnet-4-6"
+    # Model is fixed to Sonnet 4.6 for cost predictability. To experiment
+    # with Opus locally, set ASSISTANT_MODEL=claude-opus-4-7 in your env.
+    fiscal_assistant._model = (  # noqa: SLF001
+        os.environ.get("ASSISTANT_MODEL", "").strip() or "claude-sonnet-4-6"
     )
 
     # --- daily budget readout ------------------------------------------
