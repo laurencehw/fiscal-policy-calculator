@@ -5,6 +5,84 @@ in git history, not here.
 
 ## 2026 — ongoing
 
+### Ask assistant (May 2026)
+
+- New **💬 Ask** tab (now the second top-level tab) and matching
+  `POST /ask` + `POST /ask/stream` (Server-Sent Events) endpoints expose
+  a citation-grounded Q&A assistant. Streams answers from Claude
+  Sonnet 4.6 with tool access to the app's scoring engine, CBO baseline,
+  validation scorecard, 49 preset policies, and 19 hand-curated
+  authoritative snapshots covering CBO baseline, SSA Trustees, TCJA,
+  capital gains, international tax, retirement-account taxation, IRA
+  clean-energy credits, tariff scoring, JCT distributional methodology,
+  fiscal multipliers, ETI literature, state/local fiscal interaction,
+  debt sustainability, dynamic-scoring concepts, JCT tax expenditures,
+  TPC TCJA distribution, PWBM TCJA dynamic, Yale Budget Lab tariffs,
+  CBO long-term outlook, and a common-confusion FAQ.
+- **Citation discipline is structural, not aspirational.** The model is
+  required to emit `[^N]` footnote markers on every substantive claim.
+  A post-processor cross-references each marker against the per-turn
+  tool-call provenance log; unsupported markers are stripped and
+  replaced with `[citation needed]`, surfacing as a defect to the
+  reader.
+- **Hard usage caps protect the deployer's API spend.** A sqlite-backed
+  `assistant_events` ledger (also serves as the telemetry log)
+  enforces a daily cost cap (`$5/day` default), per-session message
+  cap (20), cool-down between messages (3s), and an
+  `ASSISTANT_DISABLED` env-var kill switch. The same ledger is shared
+  by the Streamlit tab and the FastAPI endpoints so a busy API caller
+  cannot drain the UI budget.
+- **Token-gated admin dashboard** (`💼 Admin` tab) shows today's spend
+  vs. cap, KPIs (cache-hit ratio, error rate, avg cost/turn), the
+  30-day daily-cost series, tool-usage frequency, and the recent-turn
+  table — visible only when the URL has `?admin=<token>` matching
+  `ASSISTANT_ADMIN_TOKEN`. Non-admins do not see the tab label.
+- **Share-this-answer button.** Each assistant turn includes a 🔗 Share
+  affordance that builds a URL containing the full Q+A+provenance as
+  a gzip+base64 payload (no backend state). Recipients land on the Ask
+  tab with the exact pair pre-rendered. SHARE_SCHEMA_VERSION makes
+  future evolution graceful; MAX_DECODED_BYTES guards against
+  decompression bombs.
+- **Health/readiness wiring.** `/health` now carries an `assistant`
+  component with three sub-signals (API key, knowledge corpus size,
+  usage db reachability). The assistant is marked `required=False` in
+  `/readiness` so a missing key on a CI runner or dev box reports as
+  "degraded / warn" without blocking deploy. Older synthetic health
+  payloads stay backward-compatible — the new check is skipped when
+  the `assistant` key is absent.
+- **Streamlit-Cloud secrets are auto-promoted to env vars** on first
+  render. A Levenshtein-based typo detector surfaces near-miss key
+  names (e.g., `ANTHROPHIC_API_KEY`) inline in the unavailable-key
+  diagnostic. End users are never asked to enter an API key.
+- **Latency tuning.** `DEFAULT_MAX_TOKENS` reduced from 1600 to 800.
+  Follow-up question generation moved to a separate Streamlit rerun so
+  it doesn't block answer finalization. Prompt cache pre-warms on a
+  daemon thread at app boot so the first real turn skips the
+  cache-creation tax. Typical turn: 5-7s, $0.01-$0.02.
+- **Anti-spiral safeguards.** The agentic loop is capped at 4 tool
+  iterations; on cap, a final tools-disabled call forces the model to
+  write a real answer using whatever it has gathered. The system
+  prompt explicitly budgets 2-3 tool calls per answer.
+- **Dollar-sign KaTeX safety.** A post-processor escapes any unescaped
+  `$` before a digit in rendered markdown so currency amounts never
+  render as LaTeX math. The system prompt also instructs the model to
+  emit `\$` directly.
+- **Knowledge refresh script.** `scripts/refresh_knowledge.py` fetches
+  any allowlisted authoritative URL through the same pipeline the
+  runtime `fetch_url` tool uses (with `pdfplumber` for PDFs) and dumps
+  a frontmatter'd stub for hand-summarization. Fails gracefully on
+  bot-blocked domains (CBO, SSA) with a clear pointer to manual paste
+  or live `web_search`.
+- **Live smoke test.** `scripts/smoke_ask_assistant.py` runs three
+  short questions through the real Anthropic API to verify the
+  streaming tool-use loop, knowledge search, and citation discipline.
+  ≈$0.04 per full run; supports `--only N` for single-scenario runs.
+- 105 new tests across `tests/test_fiscal_assistant.py`,
+  `tests/test_ask_api.py`, `tests/test_assistant_rate_limit.py`,
+  `tests/test_assistant_admin.py`, `tests/test_assistant_share.py`,
+  `tests/test_assistant_health.py`. All use mocked Anthropic clients;
+  no API credit spent in CI.
+
 ### Operational readiness and CI telemetry
 
 - `/health`, `/benchmarks`, `/summary`, and validation artifacts now expose

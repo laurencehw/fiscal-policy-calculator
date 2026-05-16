@@ -43,12 +43,15 @@ Plus fully custom policy design with adjustable parameters.
 
 ### Additional features
 
+- **💬 Ask assistant** — Citation-grounded Q&A about public finance and this model's outputs. Streams answers from Claude Sonnet 4.6 with tool access to the app's scoring engine, CBO baseline, validation scorecard, and 19 curated authoritative snapshots (CBO, JCT, PWBM, Yale Budget Lab, TPC, PGPF, BEA, BLS, SSA Trustees, FRED). Every substantive claim carries a `[^N]` footnote cross-referenced against the tool-call provenance; unsupported markers are auto-stripped. Hard daily cost cap ($5/day default across all visitors), per-session message cap, cool-down, and kill-switch protect the deployer's API budget. Available as a Streamlit tab, a non-streaming `POST /ask` endpoint, and an SSE `POST /ask/stream` endpoint.
 - **Tariff scoring** — 5 presets (universal 10%, China 60%, autos 25%, reciprocal), consumer price impact by income quintile
 - **State-level modeling** — Combined federal + state effective rates for top 10 states, with SALT cap interaction
 - **OLG model** — 30-period Auerbach-Kotlikoff-style generational accounting for Social Security and Medicare reform
 - **Classroom Mode** — 7 interactive assignments (intro → advanced), Laffer curve explorer, PDF export; accessible at `streamlit run classroom_app.py`
 - **Real-Time Bill Tracker** — Pulls active bills from congress.gov, extracts fiscal provisions via LLM, stores in SQLite
 - **Shareable preset links** — Generate deep links for supported preset tax proposals and preset spending programs directly from the results tab; custom policies still fall back to export-only
+- **Shareable Ask answers** — Each assistant turn has a 🔗 Share button that generates a self-contained URL (gzip+base64 encoded payload, no backend state required) so recipients see the exact Q+A on open
+- **Admin dashboard for Ask usage** — Token-gated `💼 Admin` tab (URL `?admin=<token>` matching `ASSISTANT_ADMIN_TOKEN`) surfaces today's spend, 30-day cost/turn series, tool-usage frequency, cache-hit ratio, and recent-turns table read live from the `assistant_events` sqlite ledger
 - **Result-level validation evidence** — Each standard result summary surfaces the calibrated category, benchmark count, observed error band, holdout status, and known caveats before users interpret the headline score
 
 ### Validation
@@ -113,6 +116,8 @@ Key routes:
 - `POST /score` supports generic `income_tax`, `corporate_tax`, and `payroll_tax` custom policies.
 - `POST /score/preset` routes preset scoring through the same preset factory used by the Streamlit UI, including specialized policy modules such as TCJA, credits, payroll, PTC, trade, and climate presets.
 - `POST /score/tariff` uses the tariff policy model instead of a standalone rough formula.
+- `POST /ask` poses a public-finance question to the Ask assistant and returns the full citation-grounded answer plus tool-call provenance, usage, and session id. Honors the same `X-API-Key` auth, daily-cost cap, and per-session limits as the Streamlit tab — they share one sqlite ledger.
+- `POST /ask/stream` streams the same response as Server-Sent Events: `event: token` frames carry the answer chunks and a terminal `event: done` frame carries the metadata payload.
 - Score responses include a `credibility` block with benchmark category, calibrated-vs-generic evidence type, implied uncertainty range, known limitations, and a `holdout_status` field backed by the locked post-change holdout protocol.
 - `GET /validation/scorecard` exposes the consolidated revenue benchmark table, calibrated/generic/holdout counts, and a flattened `issues` list for material revenue benchmark problems.
 - `GET /benchmarks` lists distributional benchmark accuracy and includes a flattened `issues` list if any benchmark needs improvement.
@@ -200,6 +205,7 @@ Policy Definition → Static Scoring → Behavioral Offset (ETI) → Dynamic Fee
 | `constants.py` | All parameters with source citations |
 | `classroom/` | Assignment engine, feedback, PDF export |
 | `bill_tracker/` | congress.gov pipeline, LLM extraction, SQLite |
+| `assistant/` | Ask assistant — system prompt, tool schemas, BM25 knowledge search over `assistant/knowledge/*.md`, citation post-processor, cost meter, sqlite rate limiter, admin dashboard queries, share-link encoding |
 
 ### Data sources
 
@@ -207,6 +213,55 @@ Policy Definition → Static Scoring → Behavioral Offset (ETI) → Dynamic Fee
 - **FRED** — GDP and macroeconomic indicators (St. Louis Fed)
 - **CBO Baseline** — 10-year revenue, spending, and deficit projections (Feb 2026)
 - **congress.gov API** — Active bill text and status (Bill Tracker)
+- **Anthropic Claude API** — Powers the Ask assistant (Sonnet 4.6 for answers, Haiku for follow-up suggestions). Optional — the rest of the app works without it.
+
+---
+
+## Ask assistant
+
+The 💬 Ask tab is a citation-disciplined Q&A interface over this model and 19 curated authoritative snapshots. Tool-grounded; every numerical claim must trace to either an app tool call (scoring engine, baseline, validation scorecard, knowledge search, FRED query) or an authoritative URL from `web_search` / `fetch_url`. Unsupported `[^N]` markers are stripped automatically and surfaced as a defect.
+
+### Configuration (env vars or Streamlit secrets)
+
+| Variable | Default | What it does |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | — | Required to enable the Ask tab. Set via env var or Streamlit Cloud Secrets (the tab promotes `st.secrets["ANTHROPIC_API_KEY"]` to `os.environ` on first render). Without it, the tab shows a friendly "not configured" message with a typo-detecting diagnostic — no API-key input is ever shown to end users. |
+| `ASSISTANT_DAILY_COST_CAP_USD` | `5.00` | Hard cap across all visitors per UTC day; new requests return a friendly "budget exhausted" message once exceeded. |
+| `ASSISTANT_SESSION_MESSAGE_CAP` | `20` | Per-session turn cap. |
+| `ASSISTANT_COOLDOWN_SECONDS` | `3` | Minimum spacing between turns from the same session. |
+| `ASSISTANT_DISABLED` | unset | Set to `1` to disable the assistant entirely (kill switch). |
+| `ASSISTANT_USAGE_DB` | (auto) | Path to the sqlite `assistant_events` ledger. Defaults to a writable location under the repo or the user home; falls back to `:memory:`. |
+| `ASSISTANT_ADMIN_TOKEN` | — | Optional. When set, visiting `?admin=<token>` reveals a 💼 Admin tab with usage analytics. |
+| `ASSISTANT_MODEL` | `claude-sonnet-4-6` | Override the Anthropic model id (e.g., for local Opus testing — not surfaced as a toggle in the UI to avoid runaway cost). |
+| `ASSISTANT_SHOW_TOOLS` | unset | Set to `1` to surface a developer expander listing every tool call per turn. Off by default — readers see only the answer and citation footnotes. |
+
+### Curated knowledge corpus
+
+19 hand-maintained Markdown snapshots live in `fiscal_model/assistant/knowledge/`. Each carries a frontmatter `source:` URL the assistant uses for citation. To add or refresh a snapshot, use the helper:
+
+```bash
+python scripts/refresh_knowledge.py \
+    --url https://www.taxpolicycenter.org/publications/<slug> \
+    --slug tpc_<topic>_<year> \
+    --title "Full title from the page" \
+    --org TPC --year 2026 \
+    --keywords "tpc, distribution, tcja, decile"
+```
+
+It fetches the page (or PDF, via `pdfplumber`) through the same allowlist-enforced pipeline the runtime `fetch_url` tool uses, then dumps a frontmatter'd stub for you to summarize by hand. CBO and SSA hard-block bots regardless of UA — the script tells you when to fall back to manual paste or trust the assistant's server-side `web_search`.
+
+### Smoke testing
+
+A 3-scenario live smoke test costs ≈$0.04 and verifies the streaming tool-use loop, citation discipline, and cost meter against real Anthropic:
+
+```bash
+python scripts/smoke_ask_assistant.py        # all 3 scenarios
+python scripts/smoke_ask_assistant.py --only 1   # one scenario
+```
+
+### Health / readiness integration
+
+The `/health` response carries an `assistant` component reporting three sub-signals (API key, knowledge corpus size, usage db reachability). It is *not required* — a missing API key on a CI runner or dev box reports as "degraded" without dragging overall health or readiness to `not_ready`. The `/readiness` payload includes the same component with `required=False`.
 
 ---
 

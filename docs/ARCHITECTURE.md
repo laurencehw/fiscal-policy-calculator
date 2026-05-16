@@ -701,6 +701,160 @@ Response:
 
 ---
 
+## Ask Assistant Architecture
+
+The Ask assistant is a standalone subsystem layered on top of the scoring engine. It contributes a new top-level Streamlit tab, two FastAPI endpoints (`POST /ask` and `POST /ask/stream`), and a token-gated admin tab — none of which the scoring engine knows about. The reverse is also true: the scoring engine has no dependency on Anthropic or on the assistant module.
+
+### Component map
+
+```
+fiscal_model/assistant/
+├── __init__.py             # public surface: FiscalAssistant, SOURCES
+├── sources.py              # registry of 10 authoritative orgs + allowlist
+├── system_prompt.py        # role, citation discipline, output format
+├── tools.py                # 9 tools + AssistantTools dispatcher
+│                           #   app-internal: get_app_scoring_context,
+│                           #   get_cbo_baseline, get_validation_scorecard,
+│                           #   list_presets, get_preset,
+│                           #   score_hypothetical_policy
+│                           #   knowledge:    search_knowledge
+│                           #   live:         query_fred, web_search,
+│                           #                 fetch_url (with pdfplumber)
+├── knowledge_search.py     # tiny BM25 over assistant/knowledge/*.md
+├── knowledge/              # 19 hand-curated Markdown snapshots with
+│                           # frontmatter source URLs
+├── assistant.py            # FiscalAssistant — Anthropic streaming +
+│                           # tool-use loop (max 4 iterations + forced
+│                           # final answer fallback), prompt caching,
+│                           # follow-up generation, prewarm
+├── citations.py            # [^N] marker post-processor; strips
+│                           # markers without tool-call provenance
+├── cost.py                 # token + dollar accounting with cache-hit
+│                           # awareness (5-min Anthropic TTL)
+├── rate_limit.py           # sqlite-backed daily cost cap, per-session
+│                           # cap, cool-down, kill switch + events log
+├── admin.py                # read-only queries powering 💼 Admin tab
+└── share.py                # gzip+base64 URL-encoded Q+A payloads
+
+fiscal_model/ui/tabs/
+├── ask_assistant.py        # 💬 Ask tab — streaming chat UI, share
+│                           # button, follow-up chips, dollar-sign
+│                           # KaTeX safety, secret-promotion diagnostic
+└── assistant_admin.py      # 💼 Admin tab (token-gated)
+```
+
+### Tool-use loop
+
+Mirrors the standard Anthropic agentic pattern but with three notable
+guards:
+
+1. **Iteration cap (`MAX_TOOL_ITERATIONS = 4`).** Prevents
+   tool-call spirals that previously wasted budget and never produced
+   a final answer.
+2. **Forced final answer.** When the cap is hit, the loop fires one
+   more call with `tools=[]` so the model must commit to text rather
+   than another tool call. The user always sees a real answer.
+3. **No inline tool announcements.** Tool calls are recorded in the
+   `last_provenance` list for audit but never streamed back to the
+   user — readers see only the answer and `[^N]` footnotes. Deployers
+   debugging tool use can set `ASSISTANT_SHOW_TOOLS=1` for a developer
+   expander.
+
+### Citation enforcement
+
+Citations are checked structurally, not heuristically. The system
+prompt requires `[^N]` markers on every numerical claim, and
+`citations.annotate_unsupported()` cross-references each marker
+against the per-turn provenance log. A marker is supported when
+either:
+
+- Any app-internal tool was called this turn (whose result the model
+  used to write the claim), OR
+- The marker corresponds to a URL emitted by `web_search` or
+  `fetch_url` provenance.
+
+Unsupported markers are replaced with `[citation needed]` and the
+count is reported back to the user as a defect signal.
+
+### Knowledge corpus
+
+The 19 snapshots in `assistant/knowledge/*.md` are hand-curated, with
+frontmatter providing `source:` URL, `org:`, `year:`, and a
+`keywords:` line that BM25 indexes alongside the body for synonym
+recall (e.g., "tax expenditures" surfaces for a query about "revenue
+forgone"). Refreshes happen via:
+
+```bash
+python scripts/refresh_knowledge.py --url <authoritative-url> --slug <stem> ...
+```
+
+which fetches through the runtime `fetch_url` pipeline (allowlisted
+domains, `pdfplumber` for PDFs) and dumps a frontmatter'd stub for
+hand-summarization. CBO and SSA hard-block bots regardless of UA;
+the script tells the user when to fall back to manual paste or trust
+the runtime `web_search` (which uses Anthropic's server-side
+infrastructure).
+
+### Cost control + telemetry
+
+`fiscal_model/assistant/rate_limit.py` owns both jobs from a single
+sqlite table (`assistant_events`). Every turn writes one row capturing
+session id, model, tokens, cost, elapsed, tool list, stripped-marker
+count, and any error. Before each new turn:
+
+- **Disabled?** → kill switch (`ASSISTANT_DISABLED=1`).
+- **Daily cap exceeded?** → friendly "budget resets at UTC midnight".
+- **Session cap exceeded?** → "clear conversation to start a new one".
+- **Cool-down?** → "please wait Ns".
+
+Both the Streamlit tab and the FastAPI endpoints share the same
+limiter and the same sqlite file, so a busy API caller cannot drain
+the UI budget. The admin tab (`💼 Admin`, gated by
+`ASSISTANT_ADMIN_TOKEN` matching `?admin=<token>`) reads the same
+table for KPIs, charts, and the recent-turn list.
+
+### Sharing
+
+`fiscal_model/assistant/share.py` encodes a Q+A pair (with truncated
+provenance) as `gzip → base64url → query-param token`. Recipients land
+on the Ask tab with the exact Q+A rendered. Storage is *in the URL*,
+so share links survive Streamlit Cloud container restarts without a
+backend database. SHARE_SCHEMA_VERSION carries forward-compat; a 200KB
+decoded-size guard prevents decompression-bomb attacks.
+
+### Streaming protocol
+
+The non-streaming `POST /ask` returns the full answer plus metadata in
+one JSON response. The streaming `POST /ask/stream` emits Server-Sent
+Events:
+
+```
+event: token
+data: <chunk-of-answer>
+
+event: token
+data: <next-chunk>
+
+event: done
+data: {"model": "...", "tool_calls": [...], "usage": {...},
+       "stripped_citation_markers": [], "session_id": "...",
+       "elapsed_s": 5.41}
+```
+
+Pre-stream errors return a normal HTTP 4xx/5xx. In-stream errors emit
+a terminal `event: error` frame.
+
+### Health/readiness integration
+
+`check_health()` exposes an `assistant` component with three
+sub-signals (API key present, knowledge corpus non-empty, usage db
+reachable). The component is explicitly **excluded** from the overall
+health/readiness verdict (`required=False`) because the assistant is
+an optional layer — a deployment with no Anthropic key should still
+show overall `ok` provided the scoring engine is healthy.
+
+---
+
 ## Deployment
 
 ### Current (Single-Repo Deployment)

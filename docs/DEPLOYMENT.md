@@ -102,6 +102,44 @@ Fields include:
 
 On Streamlit Cloud, inspect these in the app logs. Locally, they appear in the standard process output.
 
+## Ask Assistant Configuration
+
+The 💬 Ask tab and `/ask` + `/ask/stream` endpoints require an Anthropic API key. The rest of the app works without one — the Ask tab degrades to a friendly "not configured" message that no end user can mistake for a working chat.
+
+### Secrets
+
+On **Streamlit Cloud**, set in **Settings → Secrets** (TOML):
+
+```toml
+ANTHROPIC_API_KEY = "sk-ant-..."
+```
+
+The tab promotes `st.secrets["ANTHROPIC_API_KEY"]` to `os.environ` on first render, so the same code path works with both Streamlit secrets and a regular env var. A typo-detecting diagnostic (Levenshtein distance) catches common mistakes like `ANTHROPHIC_API_KEY` inline.
+
+### Cost controls (recommended secrets)
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `ASSISTANT_DAILY_COST_CAP_USD` | `5.00` | Hard daily cap across all visitors. Past this, new requests get a friendly "budget exhausted" message until UTC midnight. |
+| `ASSISTANT_SESSION_MESSAGE_CAP` | `20` | Per-session turn cap. |
+| `ASSISTANT_COOLDOWN_SECONDS` | `3` | Minimum spacing between turns from the same session. |
+| `ASSISTANT_DISABLED` | unset | Set to `1` to disable the assistant entirely (kill switch). |
+| `ASSISTANT_USAGE_DB` | (auto) | Sqlite path for the `assistant_events` ledger; falls back to `:memory:` on read-only filesystems. |
+
+### Admin dashboard
+
+Set `ASSISTANT_ADMIN_TOKEN = "your-rotated-secret"` (TOML). The 💼 Admin tab will then appear only when the URL has `?admin=your-rotated-secret`. Non-admins never see the tab title in the top tab bar.
+
+### Smoke testing the Ask stack
+
+Before deploy, run the live smoke test against the same API key the deployment will use:
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-... python scripts/smoke_ask_assistant.py
+```
+
+Costs roughly $0.04 and verifies the streaming tool loop, citation discipline, three of the nine tools, and the cost meter end-to-end.
+
 ## Deployment Checklist
 
 1. Verify `.python-version` is still aligned with the intended deploy target.
@@ -109,11 +147,12 @@ On Streamlit Cloud, inspect these in the app logs. Locally, they appear in the s
 3. If dependencies changed, regenerate `requirements-lock.txt` with `pip-compile` on Python `3.12`.
 4. Run `python scripts/run_validation_dashboard.py` in the deployment runtime; confirm the runtime line is `[ok]`.
 5. Run `python scripts/check_readiness.py --strict` or check `/readiness`. Production should ship with `verdict == "ready"`; live FRED or a warm cache is preferred, with a fresh bundled FRED seed as the deterministic offline path.
-6. Check `/health` after deploy and confirm `components.runtime.status == "ok"`.
+6. Check `/health` after deploy and confirm `components.runtime.status == "ok"`. The `components.assistant` block reports `status: "ok"` when `ANTHROPIC_API_KEY` is configured and the knowledge corpus is present; "degraded" is non-blocking.
 7. Wait for GitHub Actions `smoke`, `readiness`, `test`, and `lockfile` jobs to pass.
 8. Confirm the public health workflow is green.
 9. Confirm the monthly FRED seed refresh workflow has `FRED_API_KEY` configured.
 10. Load the calculator root and classroom mode once after deploy.
+11. If the Ask assistant is enabled on this deployment: confirm `ANTHROPIC_API_KEY` is set (Streamlit secret or env var), then open the 💬 Ask tab and submit a starter prompt to verify the streaming loop, citation rendering, and dollar-sign escaping all work end-to-end.
 
 ## Incident Checklist
 

@@ -79,6 +79,10 @@ Policy Definition → Static Scoring → Behavioral Offset (ETI) → Dynamic Fee
 | `fiscal_model/validation/cbo_scores.py` | Database of known CBO/JCT scores for validation |
 | `fiscal_model/validation/compare.py` | Comparison framework (model vs official) |
 | `fiscal_model/validation/distributional_validation.py` | TPC distributional benchmark validation |
+| `fiscal_model/assistant/` | Ask assistant — `FiscalAssistant` orchestrator, `AssistantTools` dispatcher, BM25 knowledge search, citation post-processor, cost meter, sqlite rate limiter, admin queries, share-link encoding |
+| `fiscal_model/assistant/knowledge/` | 19 curated Markdown snapshots (CBO baseline, SSA Trustees, TCJA, capital gains, international tax, retirement, fiscal multipliers, ETI literature, state/local, IRA, etc.); frontmatter carries the canonical source URL for citations |
+| `fiscal_model/ui/tabs/ask_assistant.py` | Streamlit chat UI — streaming, dollar-sign safety, follow-up chips, share button, rate-limit and unavailable-key UX |
+| `fiscal_model/ui/tabs/assistant_admin.py` | Token-gated admin dashboard (visible only when URL `?admin=<token>` matches `ASSISTANT_ADMIN_TOKEN`) |
 
 ### Data Files
 
@@ -199,9 +203,79 @@ R₁ = R₀ × ((1-τ₁)/(1-τ₀))^ε(t)
 where ε(t) transitions from short_run to long_run over transition_years
 ```
 
+## Ask Assistant
+
+The Ask tab and `/ask` + `/ask/stream` endpoints expose a citation-grounded
+public-finance assistant. Architecture:
+
+```
+User question
+    ↓
+FiscalAssistant.stream_response()    # claude-sonnet-4-6, streaming, tool loop
+    ↓
+AssistantTools.dispatch()            # 9 tools, allowlist-enforced
+    ├── App-internal: get_app_scoring_context, get_cbo_baseline,
+    │   get_validation_scorecard, list_presets, get_preset,
+    │   score_hypothetical_policy
+    ├── Knowledge: search_knowledge   # BM25 over assistant/knowledge/*.md
+    └── Live: query_fred, web_search (domain-restricted),
+        fetch_url (allowlisted + pdfplumber fallback)
+    ↓
+citations.annotate_unsupported()     # strips [^N] markers without provenance
+    ↓
+RateLimiter.record_turn()            # writes assistant_events sqlite row
+```
+
+Hard rules:
+
+- Daily cost cap ($5/day default) is checked **before** each request via
+  `RateLimiter.check()`; over-cap requests get a friendly 429-equivalent.
+- `MAX_TOOL_ITERATIONS = 4`. On cap, the loop fires one final
+  tools-disabled call to force a real answer (no more "model called
+  13 tools and never wrote anything" failure mode).
+- `DEFAULT_MAX_TOKENS = 800`. Most public-finance answers run 200-400 tokens;
+  the cap prevents accidental long-form rambling.
+- Citations are enforced *structurally*. The model emits `[^N]` markers;
+  the post-processor strips any marker not backed by either a tool call
+  (any internal tool counts) or a fetched web URL.
+- `st.secrets["ANTHROPIC_API_KEY"]` is promoted to `os.environ` on first
+  render — Streamlit Cloud deployments need no extra wiring.
+- All env-var configuration lives in `fiscal_model/assistant/rate_limit.py`:
+  `ASSISTANT_DAILY_COST_CAP_USD`, `ASSISTANT_SESSION_MESSAGE_CAP`,
+  `ASSISTANT_COOLDOWN_SECONDS`, `ASSISTANT_DISABLED`, `ASSISTANT_USAGE_DB`,
+  plus `ASSISTANT_ADMIN_TOKEN`, `ASSISTANT_MODEL`, `ASSISTANT_SHOW_TOOLS`.
+- Live smoke test: `python scripts/smoke_ask_assistant.py` (~$0.04 per run).
+
+```python
+# Programmatic usage (e.g., from a script or notebook)
+from fiscal_model.assistant import FiscalAssistant
+from fiscal_model.scoring import FiscalPolicyScorer
+from fiscal_model.app_data import CBO_SCORE_MAP, PRESET_POLICIES
+from fiscal_model.policies import PolicyType, TaxPolicy, SpendingPolicy
+
+scorer = FiscalPolicyScorer()
+assistant = FiscalAssistant(
+    scorer=scorer,
+    baseline=scorer.baseline,
+    cbo_score_map=CBO_SCORE_MAP,
+    presets=PRESET_POLICIES,
+    knowledge_dir="fiscal_model/assistant/knowledge",
+    policy_types=PolicyType,
+    tax_policy_cls=TaxPolicy,
+    spending_policy_cls=SpendingPolicy,
+)
+chunks = list(assistant.stream_response(
+    "What's the current CBO 10-year deficit projection?",
+    history=[],
+))
+print("".join(chunks))
+print("Tools used:", [p["tool"] for p in assistant.last_provenance])
+print("Cost:", assistant.last_usage.cost_usd)
+```
+
 ## Current Development Priorities
 
-All core features, all four horizon features, and the distributional-validation cycle are complete (April 2026). **1200+ tests passing.**
+All core features, all four horizon features, the distributional-validation cycle, and the Ask assistant feature are complete (May 2026). **1200+ tests passing across the model + Ask stack.**
 
 Completed:
 1. ✅ 25+ CBO/JCT-validated policies, distributional analysis, dynamic scoring
@@ -215,6 +289,7 @@ Completed:
 9. ✅ Multi-model pilot platform (CBO-style, TPC-microsim, PWBM-OLG) wired into the Scoring Models tab
 10. ✅ API hardening (X-API-Key auth, rate limiting, structured logging)
 11. ✅ `GET /summary`, `GET /benchmarks` API endpoints + `scripts/run_validation_dashboard.py` CI gate
+12. ✅ **Ask assistant** — citation-grounded Q&A, 19 curated authoritative snapshots, streaming tool-use loop, `/ask` + `/ask/stream` (SSE) endpoints, token-gated admin dashboard, share-link encoding, hard daily cost cap, /health + /readiness integration. 105 tests across the assistant stack.
 
 Next: closing the ARP bundle scope residual (needs Recovery Rebate engine integration) and broadening the multi-model pilots to more policy types. See `planning/NEXT_STEPS.md`.
 
