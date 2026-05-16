@@ -76,6 +76,9 @@ _SECTION_ERROR_MESSAGES: dict[str, str] = {
         "The Ask assistant encountered an issue. "
         "Check that ANTHROPIC_API_KEY is set or supply a key in the tab."
     ),
+    "Admin": (
+        "The admin dashboard encountered an issue reading the usage db."
+    ),
 }
 
 
@@ -520,7 +523,20 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         "⚖️ Or balance the budget yourself in **Budget Builder**."
     )
 
-    top_tabs = st_module.tabs([
+    # Admin tab is only inserted when the URL has a matching admin token —
+    # non-admins never see it.
+    from fiscal_model.assistant.admin import is_admin_request
+
+    try:
+        _query_params = st_module.query_params
+    except AttributeError:  # older Streamlit
+        try:
+            _query_params = st_module.experimental_get_query_params()
+        except Exception:  # noqa: BLE001
+            _query_params = {}
+    show_admin = is_admin_request(_query_params)
+
+    _tab_labels = [
         "📊 Calculator",
         "💬 Ask",
         "⚖️ Budget Builder",
@@ -529,7 +545,11 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         "📋 Bill Tracker",
         "✅ Validation",
         "📖 Methodology",
-    ])
+    ]
+    if show_admin:
+        _tab_labels.append("💼 Admin")
+
+    top_tabs = st_module.tabs(_tab_labels)
 
     with top_tabs[0]:
         _render_guarded_section(
@@ -608,6 +628,16 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
             lambda: deps.render_methodology_tab(st_module=st_module),
         )
         render_footer(st_module=st_module)
+
+    if show_admin:
+        with top_tabs[8]:
+            def _render_admin() -> None:
+                from .tabs.assistant_admin import render_assistant_admin_tab
+
+                render_assistant_admin_tab(st_module=st_module)
+
+            _render_guarded_section(st_module, "Admin", _render_admin)
+            render_footer(st_module=st_module)
 
 
 def _render_calculator(

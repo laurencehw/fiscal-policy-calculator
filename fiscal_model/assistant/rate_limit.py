@@ -256,7 +256,7 @@ class RateLimiter:
 
     def today_spend_usd(self) -> float:
         """Total cost recorded today (UTC) across all sessions."""
-        today = date.today().isoformat()
+        today = datetime.now(timezone.utc).date().isoformat()
         try:
             conn = self._connect()
             try:
