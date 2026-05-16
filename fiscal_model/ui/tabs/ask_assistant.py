@@ -27,6 +27,8 @@ from typing import Any
 
 from fiscal_model.assistant.citations import render_provenance_footer
 from fiscal_model.assistant.rate_limit import RateLimiter, new_session_id
+from fiscal_model.assistant.share import build_share_url, decode_share_payload
+from fiscal_model.ui.helpers import PUBLIC_APP_URL
 
 
 # Match an unescaped `$` immediately followed by a digit (currency usage).
@@ -63,6 +65,7 @@ _PENDING_PROMPT_KEY = "_ask_pending_prompt"
 _SESSION_ID_KEY = "_ask_session_id"
 _LAST_TS_KEY = "_ask_last_message_ts"
 _LIMITER_CACHE_KEY = "_ask_limiter"
+_SHARED_TOKEN_APPLIED_KEY = "_ask_share_applied"
 
 
 def _promote_secret_to_env(st_module: Any) -> dict[str, Any]:
@@ -207,6 +210,9 @@ def _render_body(
     state.setdefault(_SESSION_ID_KEY, new_session_id())
     state.setdefault(_LAST_TS_KEY, None)
 
+    # --- shared-link import (idempotent per session) --------------------
+    _maybe_apply_shared_link(st_module, state)
+
     limiter = _get_rate_limiter(state)
 
     # --- options bar ----------------------------------------------------
@@ -252,7 +258,15 @@ def _render_body(
         with st_module.chat_message(turn["role"]):
             st_module.markdown(_safe_dollar_markdown(turn["content"]))
             if turn["role"] == "assistant":
-                _render_assistant_extras(st_module, turn)
+                # Pair this assistant turn with the immediately preceding
+                # user message (if any) for the Share button.
+                prev = history[idx - 1] if idx > 0 else None
+                paired_question = (
+                    prev["content"] if prev and prev.get("role") == "user" else None
+                )
+                _render_assistant_extras(
+                    st_module, turn, user_question=paired_question
+                )
                 # Follow-up chips appear only on the most-recent assistant
                 # turn — older suggestions are stale.
                 if idx == last_idx:
@@ -535,6 +549,120 @@ def _history_for_api(history: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 
+def _render_share_widget(
+    st_module: Any,
+    *,
+    question: str,
+    answer: str,
+    provenance: list[dict[str, Any]],
+    model: str | None,
+    turn_key: str,
+) -> None:
+    """Render a small "Share this answer" affordance.
+
+    Click reveals a copyable URL. The URL contains the full question+
+    answer payload (gzip+base64 encoded) so it works on any deployment
+    without needing a shared backend.
+    """
+    state = st_module.session_state
+    show_key = f"_ask_share_show_{turn_key}"
+    button_key = f"_ask_share_btn_{turn_key}"
+
+    cols = st_module.columns([1, 8])
+    with cols[0]:
+        if st_module.button("🔗 Share", key=button_key, help="Get a URL that re-renders this exact answer"):
+            state[show_key] = True
+
+    if state.get(show_key):
+        try:
+            url = build_share_url(
+                question=question,
+                answer=answer,
+                provenance=provenance,
+                model=model,
+                public_app_url=PUBLIC_APP_URL,
+            )
+        except Exception as exc:  # noqa: BLE001
+            st_module.caption(f"Couldn't build share link: {exc}")
+            return
+        url_len = len(url)
+        st_module.text_input(
+            "Shareable URL — copy and paste",
+            value=url,
+            key=f"_ask_share_url_{turn_key}",
+            help=f"{url_len:,} chars; works on any deployment without needing a backend.",
+            label_visibility="collapsed",
+        )
+        if url_len > 2000:
+            st_module.caption(
+                f"⚠️ URL is {url_len:,} chars — some platforms (Twitter, "
+                "older browsers) may truncate. Consider shortening the answer."
+            )
+
+
+def _maybe_apply_shared_link(st_module: Any, state: Any) -> None:
+    """If ``?ask_share=<token>`` is set and we haven't applied it yet,
+    decode and seed the conversation with the shared Q+A turn.
+
+    Idempotent per session via ``_SHARED_TOKEN_APPLIED_KEY``.
+    """
+    try:
+        query_params = st_module.query_params
+    except AttributeError:  # older Streamlit
+        try:
+            query_params = st_module.experimental_get_query_params()
+        except Exception:  # noqa: BLE001
+            return
+
+    token: str | None = None
+    raw = query_params.get("ask_share") if hasattr(query_params, "get") else None
+    if isinstance(raw, list):
+        token = raw[0] if raw else None
+    elif isinstance(raw, str):
+        token = raw
+
+    if not token:
+        return
+    if state.get(_SHARED_TOKEN_APPLIED_KEY) == token:
+        return
+
+    payload = decode_share_payload(token)
+    if not payload:
+        st_module.warning(
+            "The shared Ask link couldn't be decoded — it may be from an "
+            "older version of the app, or the URL may have been truncated."
+        )
+        state[_SHARED_TOKEN_APPLIED_KEY] = token
+        return
+
+    # Replace any existing (empty) history with the shared Q+A pair so the
+    # share recipient sees the exact thing on first render.
+    history = state.get(_HISTORY_KEY) or []
+    history.append({"role": "user", "content": payload["question"]})
+    history.append(
+        {
+            "role": "assistant",
+            "content": payload["answer"],
+            "provenance": [
+                {"tool": p.get("t", ""), "args": p.get("a", {})}
+                for p in payload.get("provenance") or []
+            ],
+            "usage": None,
+            "stripped_markers": [],
+            "followups": None,
+            "_from_shared_link": True,
+        }
+    )
+    state[_HISTORY_KEY] = history
+    state[_SHARED_TOKEN_APPLIED_KEY] = token
+
+    st_module.info(
+        "💬 You're viewing a shared answer. Ask another question below to "
+        "continue the conversation in your own session — or clear it to "
+        "start fresh."
+    )
+
+
 def _maybe_generate_and_render_followups(
     st_module: Any,
     state: Any,
@@ -597,8 +725,13 @@ def _render_followups(
             st_module.rerun()
 
 
-def _render_assistant_extras(st_module: Any, turn: dict[str, Any]) -> None:
-    """Render a small per-turn caption.
+def _render_assistant_extras(
+    st_module: Any,
+    turn: dict[str, Any],
+    *,
+    user_question: str | None = None,
+) -> None:
+    """Render a small per-turn caption and the Share affordance.
 
     Tool internals are intentionally hidden from the reader by default —
     sources are already cited in the answer via [^N] footnotes. Deployers
@@ -632,6 +765,17 @@ def _render_assistant_extras(st_module: Any, turn: dict[str, Any]) -> None:
         )
     if caption_bits:
         st_module.caption(" · ".join(caption_bits))
+
+    # Share affordance — only when we have a question to pair with the answer.
+    if user_question and turn.get("content"):
+        _render_share_widget(
+            st_module,
+            question=user_question,
+            answer=str(turn["content"]),
+            provenance=provenance,
+            model=(usage or {}).get("model") if isinstance(usage, dict) else None,
+            turn_key=str(id(turn)),
+        )
 
 
 def _render_cost_meter(st_module: Any, fiscal_assistant: Any) -> None:
