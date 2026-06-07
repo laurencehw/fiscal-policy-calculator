@@ -9,6 +9,46 @@ from typing import Literal
 
 logger = logging.getLogger(__name__)
 
+# Cap on the preferential-income correction. Even at the very top, some income
+# is ordinary (wages, interest, non-qualified distributions); this prevents a
+# pathological data point from zeroing out the base.
+_MAX_PREFERENTIAL_SHARE = 0.55
+
+
+def preferential_income_share(
+    threshold: float,
+    total_marginal_income_billions: float,
+    *,
+    year: int | None = None,
+) -> float:
+    """Share of marginal income above ``threshold`` taxed at *preferential*
+    rates (long-term capital gains), and therefore unaffected by an ordinary
+    income-tax rate change.
+
+    Sourced from :class:`CapitalGainsBaseline` (Tax Foundation realizations +
+    IRS-SOI-derived share-above-threshold schedule). Qualified dividends are not
+    separately modeled, so this is a conservative (slightly low) estimate.
+    Returns 0.0 on any data error so scoring degrades to the legacy whole-base
+    behavior rather than failing.
+    """
+    if total_marginal_income_billions <= 0 or threshold < 0:
+        return 0.0
+    try:
+        from fiscal_model.data.capital_gains import CapitalGainsBaseline
+
+        cg = CapitalGainsBaseline()
+        base = cg.get_baseline_above_threshold_with_rate_method(
+            year=year or 2023,
+            threshold=max(threshold, 1.0),
+        )
+        cg_above_billions = float(base["net_capital_gain_billions"])
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("preferential_income_share: cap-gains data unavailable (%s)", exc)
+        return 0.0
+
+    share = cg_above_billions / total_marginal_income_billions
+    return float(max(0.0, min(_MAX_PREFERENTIAL_SHARE, share)))
+
 
 class PolicyType(Enum):
     """Categories of fiscal policies."""
@@ -93,6 +133,14 @@ class TaxPolicy(Policy):
     avg_taxable_income_in_bracket: float = 0.0
     marginal_rate_before: float = 0.0
     data_year: int | None = None
+    # When True, an *ordinary*-rate change is applied only to the non-preferential
+    # share of marginal income — long-term capital gains and qualified dividends
+    # (taxed at preferential rates) are excluded, since an ordinary-bracket rate
+    # change does not touch them. Default False preserves the legacy whole-base
+    # behavior. Set False for AGI-inclusive surtaxes (e.g. a millionaire surtax
+    # on all income, where cap gains ARE in the base). See
+    # ``preferential_income_share`` and docs/METHODOLOGY.md (Static Scoring).
+    ordinary_income_base: bool = False
 
     def __post_init__(self):
         super().__post_init__()
@@ -156,9 +204,14 @@ class TaxPolicy(Policy):
             if self.affected_income_threshold == 0:
                 marginal_income = self.avg_taxable_income_in_bracket
 
+            ordinary_share = self._ordinary_income_share(
+                marginal_income * self.affected_taxpayers_millions * 1e6
+            )
+
             revenue_change = (
                 self.rate_change
                 * marginal_income
+                * ordinary_share
                 * self.affected_taxpayers_millions
                 * 1e6
             ) / 1e9
@@ -241,8 +294,16 @@ class TaxPolicy(Policy):
             f"  Marginal income above ${self.affected_income_threshold:,.0f}: ${marginal_income:,.0f}"
         )
 
+        ordinary_share = self._ordinary_income_share(
+            marginal_income * bracket_info["num_filers"], year=year
+        )
+        if ordinary_share < 1.0:
+            logger.info(
+                f"  Ordinary-income share (excl. preferential cap gains): {ordinary_share:.2f}"
+            )
+
         revenue_change = (
-            self.rate_change * marginal_income * bracket_info["num_filers"]
+            self.rate_change * marginal_income * ordinary_share * bracket_info["num_filers"]
         ) / 1e9
 
         logger.info(
@@ -251,6 +312,26 @@ class TaxPolicy(Policy):
         )
 
         return revenue_change
+
+    def _ordinary_income_share(
+        self, total_marginal_income_dollars: float, *, year: int | None = None
+    ) -> float:
+        """Fraction of marginal income subject to an *ordinary* rate change.
+
+        Returns 1.0 (legacy whole-base behavior) unless ``ordinary_income_base``
+        is set and this is an income-tax policy, in which case the preferentially
+        taxed (long-term capital gains) share is removed.
+        """
+        if not self.ordinary_income_base:
+            return 1.0
+        if self.policy_type != PolicyType.INCOME_TAX:
+            return 1.0
+        pref = preferential_income_share(
+            self.affected_income_threshold,
+            total_marginal_income_dollars / 1e9,
+            year=year if year is not None else self.data_year,
+        )
+        return 1.0 - pref
 
     def estimate_behavioral_offset(self, static_effect: float) -> float:
         """Behavioral revenue offset under standard ETI methodology.

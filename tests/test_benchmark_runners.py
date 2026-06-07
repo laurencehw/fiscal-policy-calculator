@@ -82,18 +82,24 @@ class TestEndToEndBenchmarks:
         assert comparison.mean_absolute_share_error_pp < 2.0
         assert comparison.overall_rating == "excellent"
 
-    def test_jct_salt_repeal_2024_matches_exactly(self):
-        """
-        SALT cap repeal tier table is calibrated to JCX-4-24, so the
-        comparison should match within rounding on the 4 overlapping
-        AGI-class rows (the benchmark's `<$50k` and `$50k-$100k` rows
-        don't appear in the engine's JCT_DOLLAR grouping).
-        """
+    def test_jct_salt_repeal_2024_default_is_microsim_and_acceptable(self):
+        """The default engine now models SALT at the return level (real itemized
+        deductions + the cap). That is a *genuine* computation, not the tuned
+        synthetic table, so it lands at "acceptable" (~6pp) rather than the
+        calibrated 0.0 — the honest number for what actually ships."""
         result = default_model_runner(JCT_SALT_REPEAL_2024)
         assert result is not None
         comparison = compare_distribution(result, JCT_SALT_REPEAL_2024)
         assert len(comparison.per_group) >= 4
         assert comparison.mean_absolute_share_error_pp is not None
+        assert comparison.mean_absolute_share_error_pp < 8.0
+
+    def test_jct_salt_repeal_2024_synthetic_reference_still_calibrated(self):
+        """The synthetic bracket table remains calibrated to JCX-4-24 (the
+        calibrated-reference path), so forcing it still matches near-exactly."""
+        result = default_model_runner(JCT_SALT_REPEAL_2024, prefer_microsim=False)
+        assert result is not None
+        comparison = compare_distribution(result, JCT_SALT_REPEAL_2024)
         assert comparison.mean_absolute_share_error_pp < 0.5
         assert comparison.overall_rating == "excellent"
 

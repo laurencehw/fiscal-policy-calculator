@@ -79,8 +79,46 @@ class DistributionalEngine:
         policy: Policy,
         group_type: IncomeGroupType = IncomeGroupType.QUINTILE,
         year: int | None = None,
+        prefer_microsim: bool = True,
     ) -> DistributionalAnalysis:
-        """Analyze distributional effects of a tax policy."""
+        """Analyze distributional effects of a tax policy.
+
+        When ``prefer_microsim`` is True (default) and the policy can be
+        represented as a microsimulation reform, the analysis runs through the
+        return-level microsim engine (correct ordinary/preferential rate
+        treatment, real SALT modeling, refundable credits). Policies the
+        microsim cannot yet represent — or any microsim failure — fall back to
+        the synthetic bracket path, which is also used for the offline
+        readiness checks.
+        """
+        if year is None:
+            year = getattr(policy, "start_year", 2025)
+
+        if prefer_microsim:
+            try:
+                from fiscal_model.distribution_effects import policy_to_microsim_reforms
+
+                if policy_to_microsim_reforms(policy, year):
+                    return self.analyze_policy_microsim(
+                        policy, group_type=group_type, year=year
+                    )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "Microsim distributional path failed for '%s' (%s); "
+                    "falling back to synthetic brackets.",
+                    getattr(policy, "name", type(policy).__name__),
+                    exc,
+                )
+
+        return self._analyze_policy_synthetic(policy, group_type, year)
+
+    def _analyze_policy_synthetic(
+        self,
+        policy: Policy,
+        group_type: IncomeGroupType = IncomeGroupType.QUINTILE,
+        year: int | None = None,
+    ) -> DistributionalAnalysis:
+        """Bracket-aggregate distributional analysis (synthetic population)."""
         if year is None:
             year = getattr(policy, "start_year", 2025)
 
@@ -144,7 +182,11 @@ class DistributionalEngine:
                 )
             microdata = pd.read_csv(microdata_path)
 
-        pop = microdata.copy()
+        # The CPS file lacks deduction detail; impute SALT + itemized so the
+        # engine can model SALT-cap policies (no-op if already present).
+        from fiscal_model.microsim.salt_imputation import impute_salt_and_itemized
+
+        pop = impute_salt_and_itemized(microdata).copy()
         calc_baseline = MicroTaxCalculator(year=year)
         baseline = calc_baseline.calculate(pop)
         reforms = policy_to_microsim_reforms(policy, year)

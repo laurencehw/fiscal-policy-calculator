@@ -29,6 +29,13 @@ class MicroTaxCalculator:
         self.ctc_phaseout_start_single = 200000
         self.ctc_phaseout_start_married = 400000
         self.ctc_phaseout_rate = 0.05  # $50 per $1000 over threshold
+        # Refundability: under current law the CTC is partially refundable
+        # (Additional CTC, capped per child and phased in on earnings). Under the
+        # 2021 ARP it was made fully refundable (reform sets ctc_fully_refundable).
+        self.ctc_fully_refundable = False
+        self.actc_max_per_child = 1700        # 2025 refundable cap per child
+        self.actc_earned_threshold = 2500     # earnings floor for ACTC phase-in
+        self.actc_phasein_rate = 0.15         # 15% of earnings above the floor
 
         # SALT Cap (TCJA, 2017+)
         self.salt_cap = 10000  # None = no cap
@@ -69,6 +76,13 @@ class MicroTaxCalculator:
         self.niit_threshold_single = 200000
         self.niit_threshold_married = 250000
 
+        # Long-term capital gains & qualified dividend brackets (2025).
+        # These income types are taxed at preferential rates, NOT the ordinary
+        # brackets above, and "stack" on top of ordinary taxable income.
+        self.ltcg_thresholds_single = [0, 48350, 533400]   # 0% / 15% / 20%
+        self.ltcg_thresholds_married = [0, 96700, 600050]
+        self.ltcg_rates = [0.0, 0.15, 0.20]
+
     def calculate(self, pop: pd.DataFrame, salt_cap: int | None = None) -> pd.DataFrame:
         """
         Calculate tax liability for the population.
@@ -91,18 +105,22 @@ class MicroTaxCalculator:
                                               self.std_deduction_single)
 
         # 2. Handle Itemized vs Standard Deduction
-        # If itemized_deductions column exists, compare; otherwise use standard
+        # ``itemized_deductions`` is the FULL itemized total (including uncapped
+        # SALT). The SALT cap disallows the portion of SALT above the cap, which
+        # must be removed from the itemized total — not just clipped on its own
+        # column (the previous code clipped the column but never fed the cap into
+        # the deduction, so the SALT cap had no effect on tax).
         if 'itemized_deductions' in df.columns:
-            # Apply SALT cap if itemizing
             if 'state_and_local_taxes' not in df.columns:
                 df.loc[:, 'state_and_local_taxes'] = 0
+            salt_original = df['state_and_local_taxes'].copy()
             if active_salt_cap is not None:
                 df.loc[:, 'state_and_local_taxes'] = df['state_and_local_taxes'].clip(upper=active_salt_cap)
 
-            # Adjusted itemized deduction
-            df.loc[:, 'itemized_after_salt_cap'] = df['itemized_deductions'].copy()
+            disallowed_salt = salt_original - df['state_and_local_taxes']
+            df.loc[:, 'itemized_after_salt_cap'] = df['itemized_deductions'] - disallowed_salt
 
-            # Take max of standard vs itemized
+            # Take max of standard vs (SALT-adjusted) itemized
             df.loc[:, 'deduction'] = np.maximum(df['std_deduction'], df['itemized_after_salt_cap'])
         else:
             df.loc[:, 'deduction'] = df['std_deduction']
@@ -114,67 +132,109 @@ class MicroTaxCalculator:
         tax = self._calculate_income_tax_vectorized(df)
         df.loc[:, 'income_tax_before_credits'] = tax
 
-        # 5. Child Tax Credit (with Phase-out)
-        df.loc[:, 'ctc_value'] = self._calculate_ctc(df)
+        # 5. Credits. The CTC has a non-refundable part (offsets positive tax)
+        #    and a refundable part (Additional CTC, or the whole credit under
+        #    ARP). EITC is fully refundable. Refundable portions can drive tax
+        #    below zero — i.e. produce a refund — so they are applied AFTER the
+        #    AMT floor and the final result is NOT clipped at zero.
+        ctc_total = self._calculate_ctc(df)
+        eitc = self._calculate_eitc(df)
+        df.loc[:, 'ctc_value'] = ctc_total
+        df.loc[:, 'eitc_value'] = eitc
 
-        # 6. EITC (Earned Income Tax Credit) - Refundable
-        df.loc[:, 'eitc_value'] = self._calculate_eitc(df)
+        # 6. AMT, then gross tax = higher of regular vs AMT (both >= 0).
+        amt = self._calculate_amt(df)
+        df.loc[:, 'amt_tax'] = amt
+        gross_tax = np.maximum(df['income_tax_before_credits'].values, amt)
 
-        # 7. Income tax after credits (can be negative due to refundable EITC)
-        df.loc[:, 'income_tax_after_credits'] = df['income_tax_before_credits'] - df['ctc_value'] - df['eitc_value']
+        # 7. Split the CTC into non-refundable (offsets tax) and refundable.
+        ctc_nonref = np.minimum(ctc_total, gross_tax)
+        leftover_ctc = ctc_total - ctc_nonref
+        if self.ctc_fully_refundable:
+            ctc_refundable = leftover_ctc
+        else:
+            wages = df.get('wages', pd.Series(0, index=df.index)).values
+            actc_cap = self.actc_max_per_child * df['children'].values
+            earned_based = self.actc_phasein_rate * np.maximum(
+                0, wages - self.actc_earned_threshold
+            )
+            ctc_refundable = np.minimum(leftover_ctc, np.minimum(actc_cap, earned_based))
 
-        # 8. AMT (Alternative Minimum Tax)
-        df.loc[:, 'amt_tax'] = self._calculate_amt(df)
+        # 8. Non-refundable credits floor tax at 0; refundable credits then apply
+        #    and may produce a net refund (negative).
+        tax_after_nonref = np.maximum(0, gross_tax - ctc_nonref)
+        refundable_credits = eitc + ctc_refundable
+        income_tax_final = tax_after_nonref - refundable_credits
+        df.loc[:, 'income_tax_after_credits'] = income_tax_final
+        df.loc[:, 'income_tax_final'] = income_tax_final
 
-        # 9. Regular tax vs AMT (take the higher)
-        df.loc[:, 'income_tax_final'] = np.maximum(
-            df['income_tax_after_credits'],
-            df['amt_tax']
-        )
-
-        # 10. Medicare Surtax (NIIT) - on investment income
+        # 9. Medicare Surtax (NIIT) - on investment income
         df.loc[:, 'niit_tax'] = self._calculate_niit(df)
 
-        # 11. Total Tax (Income + NIIT)
-        df.loc[:, 'final_tax'] = np.maximum(0, df['income_tax_final'] + df['niit_tax'])
+        # 10. Total Tax (Income + NIIT). Not clipped at 0 — refundable credits
+        #     legitimately yield negative tax (a refund).
+        df.loc[:, 'final_tax'] = income_tax_final + df['niit_tax'].values
 
         # 12. Metrics
         df.loc[:, 'effective_tax_rate'] = np.where(df['agi'] > 0, df['final_tax'] / df['agi'], 0)
 
         return df
 
-    def _calculate_income_tax_vectorized(self, df: pd.DataFrame) -> np.ndarray:
-        """Calculate income tax using vectorized bracket logic."""
-        tax = np.zeros(len(df))
+    def preferential_income(self, df: pd.DataFrame) -> np.ndarray:
+        """Income taxed at preferential capital-gains rates rather than ordinary
+        brackets: long-term capital gains plus qualified dividends.
 
-        # Get arrays
+        Qualified vs. non-qualified dividends are not split in the source data,
+        so all dividend income is treated as qualified — a small overstatement
+        of the preferential share. Returns zeros when the columns are absent, so
+        populations without investment-income detail fall back to pure ordinary
+        taxation (preserving legacy behavior for synthetic test fixtures).
+        """
+        pref = np.zeros(len(df))
+        if 'capital_gains' in df.columns:
+            pref = pref + np.maximum(0, df['capital_gains'].values)
+        if 'dividend_income' in df.columns:
+            pref = pref + np.maximum(0, df['dividend_income'].values)
+        return pref
+
+    def _ordinary_bracket_tax(self, income: np.ndarray, is_married: np.ndarray) -> np.ndarray:
+        """Ordinary progressive tax on an income array."""
+        tax = np.zeros(len(income))
+        for i in range(len(self.brackets_single) - 1):
+            lower = np.where(is_married, self.brackets_mfj[i], self.brackets_single[i])
+            upper = np.where(is_married, self.brackets_mfj[i + 1], self.brackets_single[i + 1])
+            tax += np.clip(income - lower, 0, upper - lower) * self.rates_single[i]
+        last_lower = np.where(is_married, self.brackets_mfj[-1], self.brackets_single[-1])
+        tax += np.maximum(0, income - last_lower) * self.rates_single[-1]
+        return tax
+
+    def _ltcg_tax(
+        self, ordinary_ti: np.ndarray, pref: np.ndarray, is_married: np.ndarray
+    ) -> np.ndarray:
+        """Preferential tax on capital gains/qualified dividends, stacked on top
+        of ordinary taxable income (the LTCG bracket depends on total income)."""
+        thr0 = np.where(is_married, self.ltcg_thresholds_married[1], self.ltcg_thresholds_single[1])
+        thr1 = np.where(is_married, self.ltcg_thresholds_married[2], self.ltcg_thresholds_single[2])
+        top = ordinary_ti + pref
+        # Portion of the stacked gains band falling in the 15% and 20% zones
+        amt_15 = np.clip(np.minimum(top, thr1) - np.maximum(ordinary_ti, thr0), 0, None)
+        amt_20 = np.clip(top - np.maximum(ordinary_ti, thr1), 0, None)
+        return amt_15 * self.ltcg_rates[1] + amt_20 * self.ltcg_rates[2]
+
+    def _calculate_income_tax_vectorized(self, df: pd.DataFrame) -> np.ndarray:
+        """Income tax = ordinary brackets on ordinary income + preferential
+        brackets on long-term capital gains and qualified dividends."""
         is_married = df['married'].values == 1
         taxable_income = df['taxable_income'].values
 
-        # Apply each bracket
-        for i in range(len(self.brackets_single) - 1):
-            lower_single = self.brackets_single[i]
-            upper_single = self.brackets_single[i + 1]
-            lower_mfj = self.brackets_mfj[i]
-            upper_mfj = self.brackets_mfj[i + 1]
-            rate = self.rates_single[i]
+        # Capital gains / qualified dividends are part of taxable income (via AGI);
+        # tax them at preferential rates and the remainder at ordinary brackets.
+        pref = np.minimum(self.preferential_income(df), np.maximum(0, taxable_income))
+        ordinary_ti = np.maximum(0, taxable_income - pref)
 
-            # Choose bracket bounds based on filing status
-            lower = np.where(is_married, lower_mfj, lower_single)
-            upper = np.where(is_married, upper_mfj, upper_single)
-
-            # Income in this bracket
-            income_in_bracket = np.clip(taxable_income - lower, 0, upper - lower)
-            tax += income_in_bracket * rate
-
-        # Top bracket
-        last_lower_single = self.brackets_single[-1]
-        last_lower_mfj = self.brackets_mfj[-1]
-        last_rate = self.rates_single[-1]
-        last_lower = np.where(is_married, last_lower_mfj, last_lower_single)
-        tax += np.maximum(0, taxable_income - last_lower) * last_rate
-
-        return tax
+        return self._ordinary_bracket_tax(ordinary_ti, is_married) + self._ltcg_tax(
+            ordinary_ti, pref, is_married
+        )
 
     def _calculate_ctc(self, df: pd.DataFrame) -> np.ndarray:
         """Calculate Child Tax Credit with phase-out."""
@@ -349,6 +409,7 @@ class MicroTaxCalculator:
         original_brackets_mfj = self.brackets_mfj.copy()
         original_rates_mfj = self.rates_mfj.copy()
         original_ctc = self.ctc_amount
+        original_ctc_fully_refundable = self.ctc_fully_refundable
         original_salt_cap = self.salt_cap
         original_std_ded_single = self.std_deduction_single
         original_std_ded_married = self.std_deduction_married
@@ -381,6 +442,10 @@ class MicroTaxCalculator:
             if 'ctc_amount' in reforms:
                 self.ctc_amount = reforms['ctc_amount']
 
+            # Apply CTC full refundability (e.g. 2021 ARP)
+            if 'ctc_fully_refundable' in reforms:
+                self.ctc_fully_refundable = bool(reforms['ctc_fully_refundable'])
+
             # Apply SALT cap
             if 'salt_cap' in reforms:
                 self.salt_cap = reforms['salt_cap']
@@ -411,15 +476,22 @@ class MicroTaxCalculator:
                 threshold = float(reforms.get('income_rate_change_threshold', 0.0) or 0.0)
                 rate_change = float(reforms['income_rate_change'])
                 taxable_income = result['taxable_income'].values
-                adjustment = np.maximum(0, taxable_income - threshold) * rate_change
+                # An ordinary-rate change does not touch preferentially-taxed
+                # capital gains / qualified dividends — apply it to ordinary
+                # taxable income above the threshold only.
+                pref = np.minimum(self.preferential_income(result), np.maximum(0, taxable_income))
+                ordinary_ti = np.maximum(0, taxable_income - pref)
+                adjustment = np.maximum(0, ordinary_ti - threshold) * rate_change
                 result.loc[:, 'income_rate_change_adjustment'] = adjustment
-                result.loc[:, 'income_tax_final'] = np.maximum(
-                    0,
-                    result['income_tax_final'].values + adjustment,
+                # Do NOT floor at zero: the adjustment is zero below the
+                # threshold, so this must not wipe out refundable-credit refunds
+                # for low earners (the bug that made a $400K+ increase appear to
+                # raise taxes on the bottom quintile).
+                result.loc[:, 'income_tax_final'] = (
+                    result['income_tax_final'].values + adjustment
                 )
-                result.loc[:, 'final_tax'] = np.maximum(
-                    0,
-                    result['income_tax_final'].values + result['niit_tax'].values,
+                result.loc[:, 'final_tax'] = (
+                    result['income_tax_final'].values + result['niit_tax'].values
                 )
                 effective_tax_rate = np.zeros(len(result))
                 np.divide(
@@ -439,6 +511,7 @@ class MicroTaxCalculator:
             self.brackets_mfj = original_brackets_mfj
             self.rates_mfj = original_rates_mfj
             self.ctc_amount = original_ctc
+            self.ctc_fully_refundable = original_ctc_fully_refundable
             self.salt_cap = original_salt_cap
             self.std_deduction_single = original_std_ded_single
             self.std_deduction_married = original_std_ded_married

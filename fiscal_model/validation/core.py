@@ -221,11 +221,17 @@ def build_validation_result(
     )
 
 
-def create_policy_from_score(score: CBOScore) -> TaxPolicy | None:
+def create_policy_from_score(
+    score: CBOScore, *, ordinary_income_base: bool = False
+) -> TaxPolicy | None:
     """
     Create a TaxPolicy object matching a known CBO score's parameters.
 
     Returns None if the score doesn't have enough parameters.
+
+    ``ordinary_income_base`` (default False, legacy behavior) applies the rate
+    change only to the non-preferential share of marginal income — see
+    ``TaxPolicy.ordinary_income_base``.
     """
     if score.policy_type != "income_tax":
         return None
@@ -241,6 +247,7 @@ def create_policy_from_score(score: CBOScore) -> TaxPolicy | None:
         affected_income_threshold=score.income_threshold or 0,
         start_year=2025,
         duration_years=10,
+        ordinary_income_base=ordinary_income_base,
     )
 
 

@@ -239,13 +239,19 @@ def _run_arp_bundle(benchmark: CBODistributionalBenchmark) -> Any | None:
     return _combine_distributional_results(results)
 
 
-def default_model_runner(benchmark: CBODistributionalBenchmark) -> Any | None:
+def default_model_runner(
+    benchmark: CBODistributionalBenchmark, *, prefer_microsim: bool = True
+) -> Any | None:
     """
     Run the DistributionalEngine against a benchmark's implied policy.
 
     Returns a result that ``compare_distribution`` can consume, or
     ``None`` when the benchmark is unmapped (the full validation runner
     skips ``None``s).
+
+    ``prefer_microsim`` (default True) selects the return-level microsim path
+    where the policy supports it; pass False to force the synthetic
+    bracket-aggregate reference path (used to check the calibrated tables).
     """
     # ARP is the one composite benchmark in the current suite: CBO's
     # published distribution covers three provisions the engine scores
@@ -270,7 +276,9 @@ def default_model_runner(benchmark: CBODistributionalBenchmark) -> Any | None:
 
     engine = DistributionalEngine(data_year=benchmark.analysis_year)
     try:
-        result = engine.analyze_policy(policy, group_type=group_type)
+        result = engine.analyze_policy(
+            policy, group_type=group_type, prefer_microsim=prefer_microsim
+        )
     except Exception:
         logger.exception("DistributionalEngine failed on %s", benchmark.policy_id)
         return None

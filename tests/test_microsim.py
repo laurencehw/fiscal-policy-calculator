@@ -301,6 +301,53 @@ class TestSaltCap:
         # SALT should NOT be capped
         assert result.loc[0, 'state_and_local_taxes'] == 15000
 
+    def test_salt_cap_actually_reduces_deduction(self):
+        """The SALT cap must reduce the itemized deduction (and raise tax) —
+        previously it clipped the SALT column but never fed into the deduction."""
+        pop = pd.DataFrame({
+            'agi': [300000], 'wages': [300000], 'married': [0], 'children': [0],
+            'weight': [1.0], 'age_head': [50],
+            'itemized_deductions': [60000],   # incl. $40K SALT
+            'state_and_local_taxes': [40000],
+        })
+        capped = MicroTaxCalculator(year=2025).calculate(pop, salt_cap=10000)
+        uncapped_calc = MicroTaxCalculator(year=2025)
+        uncapped_calc.salt_cap = None  # None arg means "use instance default"; set it explicitly
+        uncapped = uncapped_calc.calculate(pop, salt_cap=None)
+        # $30K of SALT disallowed -> $30K smaller deduction -> higher taxable income.
+        assert capped.loc[0, 'taxable_income'] == uncapped.loc[0, 'taxable_income'] + 30000
+        assert capped.loc[0, 'final_tax'] > uncapped.loc[0, 'final_tax']
+
+
+class TestPreferentialAndSaltImputation:
+    def test_capital_gains_taxed_preferentially(self):
+        """Cap gains should be taxed below the ordinary rate they would face."""
+        calc = MicroTaxCalculator(year=2025)
+        base = dict(married=[0], children=[0], weight=[1.0], age_head=[50])
+        wage_only = pd.DataFrame({'agi': [500000], 'wages': [500000], **base})
+        with_gains = pd.DataFrame(
+            {'agi': [500000], 'wages': [300000], 'capital_gains': [200000], **base}
+        )
+        t_wage = calc.calculate(wage_only).loc[0, 'final_tax']
+        t_gains = calc.calculate(with_gains).loc[0, 'final_tax']
+        # Same AGI, but shifting $200K from wages to LTCG must lower the tax.
+        assert t_gains < t_wage
+
+    def test_salt_imputation_adds_columns_and_scales_with_income(self):
+        import pandas as pd
+
+        from fiscal_model.microsim.salt_imputation import impute_salt_and_itemized
+
+        df = pd.DataFrame({
+            'agi': [50000, 1000000],
+            'state_fips': [6, 6],  # California
+        })
+        out = impute_salt_and_itemized(df)
+        assert 'state_and_local_taxes' in out.columns
+        assert 'itemized_deductions' in out.columns
+        # SALT scales with AGI; the high earner's SALT is far larger.
+        assert out.loc[1, 'state_and_local_taxes'] > out.loc[0, 'state_and_local_taxes'] * 15
+
 
 class TestAMT:
     """Test Alternative Minimum Tax."""
@@ -786,11 +833,15 @@ class TestBulkCalculation:
 
         # All rows should be calculated
         assert len(result) == 1000
-        # All should have final_tax >= 0
-        assert (result['final_tax'] >= 0).all()
-        # Effective tax rates should be reasonable
-        assert (result['effective_tax_rate'] >= 0).all()
+        # final_tax may be negative for low earners with refundable credits
+        # (EITC / Additional CTC produce a net refund); values must be finite
+        # and bounded below by a plausible max refund.
+        assert result['final_tax'].notna().all()
+        assert (result['final_tax'] >= -20000).all()
+        # Effective tax rates bounded above; may be sharply negative for very
+        # low-AGI families whose refundable credits exceed their AGI.
         assert (result['effective_tax_rate'] <= 1.0).all()
+        assert (result['effective_tax_rate'] >= -2.0).all()
 
 
 class TestMarriedVsSingle:
