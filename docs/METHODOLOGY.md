@@ -91,6 +91,12 @@ static_revenue = 0.026 × 800,000 × 1,800,000 = $37.4B/year
 
 Only income *above* the threshold is subject to the rate change. A filer earning $500K with a $400K threshold has only $100K of marginal income affected.
 
+#### Ordinary vs. preferential income base (`ordinary_income_base`)
+
+An *ordinary*-bracket rate change (e.g. restoring the 39.6% top rate) does **not** apply to long-term capital gains or qualified dividends, which are taxed at preferential rates. By default the model applies the rate change to the whole marginal base; setting `ordinary_income_base=True` excludes the preferentially-taxed share (sourced from `CapitalGainsBaseline`). This is the correct treatment for ordinary-rate proposals and materially improves them — e.g. the Biden 39.6%-above-$400K out-of-sample case drops from 62% error to ~13%.
+
+It is **policy-dependent and therefore opt-in, not the default**: AGI-inclusive surtaxes (a millionaire surtax on *all* income, where many "$1M+ top rate" proposals tax capital gains as ordinary income) keep capital gains in the base and should leave the flag off. Because the correct base differs by proposal, a uniform application does not improve the aggregate out-of-sample error — the durable fix is the [microsimulation engine](#microsimulation-engine), which taxes each income type at its actual rate. Reproduce the comparison with `python scripts/cold_holdout.py --ordinary-base`.
+
 ### Data Source: IRS SOI
 
 We use IRS Statistics of Income (SOI) Table 1.1 and Table 3.3 to obtain:
@@ -212,9 +218,14 @@ Key estimates:
 
 CBO provides dynamic scores for major legislation (>0.25% of GDP) and at Congressional request. The calculator offers dynamic scoring as an option for all policies.
 
-### FRB/US-Calibrated Approach
+### Default engine vs. FRB/US comparison engine
 
-The model uses an **FRB/US-calibrated adapter** (`FRBUSAdapterLite`) implementing multiplier effects consistent with the Federal Reserve's FRB/US macroeconomic model, which is also used by the Yale Budget Lab.
+The app ships **two** dynamic engines, and it matters which one the default "Dynamic scoring" toggle uses:
+
+- **Default — `EconomicModel` (state-dependent, CBO-conventional).** The `dynamic=True` path on `FiscalPolicyScorer.score_policy` runs this engine. It uses normal-times multipliers of **1.0 (spending)** and **0.5 (tax)**, decomposes demand vs. supply effects, adds capital/labor channels, and raises the multipliers in recessions / at the zero lower bound (see [Spending Multipliers](#spending-multipliers)). All of its parameters are sourced from `constants.py`.
+- **Comparison only — `FRBUSAdapterLite` (reduced-form FRB/US).** A separate reduced-form adapter implementing multiplier effects consistent with the Federal Reserve's FRB/US model (also used by the Yale Budget Lab), with **1.4 (spending)** and **0.7 (tax)** first-year multipliers and 0.75 annual decay. It is surfaced in the multi-model **Scoring Models** tab as a cross-check; it is *not* the default toggle.
+
+The remainder of this section describes the FRB/US comparison engine; the default engine's parameters are detailed under [Spending Multipliers](#spending-multipliers) and [Uncertainty Analysis](#uncertainty-analysis).
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
@@ -225,7 +236,9 @@ The model uses an **FRB/US-calibrated adapter** (`FRBUSAdapterLite`) implementin
 └─────────────────┘     └─────────────────┘     └─────────────────┘
 ```
 
-### Fiscal Multipliers
+### Fiscal Multipliers (FRB/US comparison engine)
+
+*These are the `FRBUSAdapterLite` parameters. The default dynamic engine uses the lower CBO-conventional normal-times values in [Spending Multipliers](#spending-multipliers).*
 
 | Shock Type | Year 1 Multiplier | Decay Rate | Source |
 |------------|------------------:|----------:|--------|
@@ -963,24 +976,40 @@ JCT is the official congressional scorer for tax legislation, using IRS SOI micr
 
 ## Validation Results
 
-25+ policies validated against official CBO/JCT/Treasury estimates. All are within the acceptable range of ≤15% error for a reduced-form model.
+Benchmarks fall into two epistemically different tiers. We report them separately because conflating calibration with prediction overstates the model's predictive power. Both reproduce live via `python scripts/cold_holdout.py`; see [`docs/VALIDATION.md`](VALIDATION.md) for the full matrix.
+
+### Tier 1 — Out-of-sample predictions (uncalibrated, bottom-up from IRS SOI)
+
+No fitting to the official target — the genuine test of predictive accuracy.
+
+| Policy | Official | Model | Error | Source |
+|--------|---------:|------:|------:|--------|
+| 5pp top rate ($1M+) | −$700B | −$648B | 7% | TPC |
+| 2pp rate cut ($500K+) | +$400B | +$364B | 9% | TPC |
+| 1pp all brackets | −$960B | −$1,321B | 38% | JCT |
+| Biden top rate 39.6% ($400K+) | −$252B | −$409B | 62% | Treasury |
+
+**Mean absolute error ~29% (median ~23%); 2 of 4 within 15%.** The model over-predicts revenue from broad/large rate increases (it does not fully capture behavioral erosion at scale; the Biden Treasury figure is a bundled "combined with other provisions" estimate). Targeted top-bracket changes score well (<10%). Treat uncalibrated custom policies as directional, ±30%.
+
+### Tier 2 — Calibrated reference models (reconstructions, low error by construction)
+
+Specialized modules parameterized to reproduce the published decomposition. Useful as auditable reconstructions of official scores, *not* as independent confirmation. Mean absolute error across 29 benchmarks ≈ 6%.
 
 | Policy | Official Score | Model Score | Error | Status |
 |--------|----------------|-------------|-------|--------|
-| Biden $400K+ (2.6pp) | −$252B | ~−$250B | ~1% | ✅ |
-| **TCJA Full Extension** | **$4,600B** | **$4,582B** | **0.4%** | ✅ |
-| **Biden Corporate 28%** | **−$1,347B** | **−$1,397B** | **3.7%** | ✅ |
-| Biden GILTI Reform | −$280B | −$271B | 3.2% | ✅ |
-| FDII Repeal | −$200B | −$200B | 0.0% | ✅ |
-| **Biden CTC 2021** | **$1,600B** | **$1,743B** | **8.9%** | ✅ |
-| **Estate: Biden Reform** | **−$450B** | **−$496B** | **10.1%** | ✅ |
-| **SS Donut Hole $250K** | **−$2,700B** | **−$2,371B** | **12.2%** | ✅ |
-| **Repeal Corporate AMT** | **$220B** | **$220B** | **0.0%** | ✅ |
-| **Cap Employer Health** | **−$450B** | **−$450B** | **0.1%** | ✅ |
-| IRA Enforcement ($80B) | −$200B | −$200B | ~0% | ✅ |
-| IRA Drug Negotiation | −$237B | −$237B | ~0% | ✅ |
-| PWBM 39.6% cap gains (with step-up) | +$33B | +$30B | −9% | ✅ |
-| PWBM 39.6% cap gains (no step-up) | −$113B | −$113B | 0% | ✅ |
+| **TCJA Full Extension** | **$4,600B** | **$4,582B** | **0.4%** | calibrated |
+| **Biden Corporate 28%** | **−$1,347B** | **−$1,397B** | **3.7%** | calibrated |
+| Biden GILTI Reform | −$280B | −$271B | 3.2% | calibrated |
+| FDII Repeal | −$200B | −$200B | 0.0% | calibrated |
+| **Biden CTC 2021** | **$1,600B** | **$1,743B** | **8.9%** | calibrated |
+| **Estate: Biden Reform** | **−$450B** | **−$496B** | **10.1%** | calibrated |
+| **SS Donut Hole $250K** | **−$2,700B** | **−$2,371B** | **12.2%** | calibrated |
+| **Repeal Corporate AMT** | **$220B** | **$220B** | **0.0%** | calibrated |
+| **Cap Employer Health** | **−$450B** | **−$450B** | **0.1%** | calibrated |
+| IRA Enforcement ($80B) | −$200B | −$200B | ~0% | calibrated |
+| IRA Drug Negotiation | −$237B | −$237B | ~0% | calibrated |
+| PWBM 39.6% cap gains (with step-up) | +$33B | +$30B | −9% | calibrated |
+| PWBM 39.6% cap gains (no step-up) | −$113B | −$113B | 0% | calibrated |
 
 *Positive values indicate deficit increase (cost); negative values indicate deficit reduction (savings). All estimates are 10-year totals.*
 

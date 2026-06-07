@@ -214,6 +214,21 @@ def render_results_summary_tab(
         """,
         unsafe_allow_html=True,
     )
+
+    # Validation evidence — rendered directly under the headline so readers see
+    # whether this is a calibrated reference or an uncalibrated (directional)
+    # estimate *before* anchoring on the dollar figure.
+    from fiscal_model.validation.credibility import get_credibility_for_result
+
+    credibility = get_credibility_for_result(
+        point_estimate=final_deficit_total,
+        policy_name=result_data.get("policy_name"),
+        policy=policy,
+    )
+    credibility_html = _build_credibility_html(credibility)
+    if credibility_html:
+        st_module.markdown(credibility_html, unsafe_allow_html=True)
+
     # Quick-copy headline (code block provides built-in copy button)
     headline_copy = (
         f"{policy.name}: ${final_deficit_total:+,.1f}B over 10 years "
@@ -245,19 +260,6 @@ def render_results_summary_tab(
                 "<small><i>Enable dynamic scoring for sensitivity analysis.</i></small>",
                 unsafe_allow_html=True,
             )
-
-    # Validation evidence — pulled from the live scorecard so readers see
-    # the model's category-level accuracy before any official-score comparison.
-    from fiscal_model.validation.credibility import get_credibility_for_result
-
-    credibility = get_credibility_for_result(
-        point_estimate=final_deficit_total,
-        policy_name=result_data.get("policy_name"),
-        policy=policy,
-    )
-    credibility_html = _build_credibility_html(credibility)
-    if credibility_html:
-        st_module.markdown(credibility_html, unsafe_allow_html=True)
 
     # CBO comparison note (if available)
     policy_name = result_data.get("policy_name", "")

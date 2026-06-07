@@ -598,13 +598,30 @@ def render_methodology_tab(st_module: Any) -> None:
     st_module.subheader("Validation against official scores")
 
     st_module.markdown(
-        "The model has been validated against 25+ CBO/JCT/Treasury estimates. "
-        "All major policies score within 15% of official estimates."
+        "Revenue validation comes in **two epistemically different kinds**, reported "
+        "separately so calibration isn't mistaken for prediction. Reproduce both live "
+        "with `python scripts/cold_holdout.py`."
     )
 
+    st_module.markdown("**1. Out-of-sample predictions** — scored bottom-up from IRS SOI "
+                       "with *no fitting to the official target*. This is the genuine test.")
     st_module.markdown(r"""
-| Policy | Official score | Model score | Error | Source |
-|--------|---------------|-------------|-------|--------|
+| Policy (uncalibrated) | Official | Model | Error | Source |
+|--------|---------:|------:|------:|--------|
+| 5pp top rate (\$1M+) | -\$700B | -\$648B | 7% | TPC |
+| 2pp rate cut (\$500K+) | +\$400B | +\$364B | 9% | TPC |
+| 1pp all brackets | -\$960B | -\$1,321B | 38% | JCT |
+| Biden top rate 39.6% (\$400K+) | -\$252B | -\$409B | 62% | Treasury |
+
+*Mean abs error ~29%; the model over-predicts revenue from broad/large rate increases. Treat uncalibrated custom policies as directional (~±30%).*
+""")
+
+    st_module.markdown("**2. Calibrated reference models** — parameters tuned to reproduce "
+                       "the published decomposition. Low error is *expected by construction*; "
+                       "these are transparent reconstructions, not independent confirmations.")
+    st_module.markdown(r"""
+| Policy (calibrated) | Official | Model | Error | Source |
+|--------|---------:|------:|------:|--------|
 | TCJA Full Extension | \$4,600B | \$4,582B | 0.4% | CBO |
 | Biden Corporate 28% | -\$1,347B | -\$1,397B | 3.7% | Treasury |
 | Biden CTC 2021 | \$1,600B | \$1,743B | 8.9% | JCT |
@@ -612,7 +629,6 @@ def render_methodology_tab(st_module: Any) -> None:
 | SS Donut Hole \$250K | -\$2,700B | -\$2,371B | 12.2% | CBO |
 | Repeal Corporate AMT | \$220B | \$220B | 0.0% | CBO |
 | Cap Employer Health | -\$450B | -\$450B | 0.1% | JCT |
-| Biden \$400K+ Surtax | -\$252B | -\$250B | ~1% | Treasury |
 """)
 
     # ── Live distributional benchmark accuracy ────────────────────────────

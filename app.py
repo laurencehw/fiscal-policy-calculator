@@ -29,13 +29,13 @@ def _render_head_metadata(st_module) -> None:
     )
     st_module.markdown(
         """
-        <meta name="description" content="Estimate the budgetary impact of tax and spending proposals. 25+ policies validated within 15% of CBO/JCT scores.">
+        <meta name="description" content="Estimate the budgetary impact of tax and spending proposals. 25+ policies benchmarked against CBO/JCT/Treasury scores.">
         <meta property="og:title" content="Fiscal Policy Impact Calculator — CBO-Validated Budget Scoring">
-        <meta property="og:description" content="Estimate the budgetary impact of tax and spending proposals. 25+ policies validated within 15% of CBO/JCT scores.">
+        <meta property="og:description" content="Estimate the budgetary impact of tax and spending proposals. 25+ policies benchmarked against CBO/JCT/Treasury scores.">
         <meta property="og:type" content="website">
         <meta name="twitter:card" content="summary">
         <meta name="twitter:title" content="Fiscal Policy Impact Calculator — CBO-Validated Budget Scoring">
-        <meta name="twitter:description" content="Estimate the budgetary impact of tax and spending proposals. 25+ policies validated within 15% of CBO/JCT scores.">
+        <meta name="twitter:description" content="Estimate the budgetary impact of tax and spending proposals. 25+ policies benchmarked against CBO/JCT/Treasury scores.">
         """,
         unsafe_allow_html=True,
     )

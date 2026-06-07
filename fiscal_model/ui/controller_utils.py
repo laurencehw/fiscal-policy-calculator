@@ -145,9 +145,16 @@ def get_confidence_context(st_module: Any, policy: Any, result: Any) -> str:
 """
 
         if is_validated:
-            context += "\n- **Validation:** Policy matches CBO/JCT official estimate within 15%"
+            context += (
+                "\n- **Validation:** Corresponds to a *calibrated* CBO/JCT reference model "
+                "(parameters tuned to reproduce the official decomposition — not an "
+                "independent out-of-sample prediction)"
+            )
         else:
-            context += "\n- **Validation:** Custom policy, not yet validated against official sources"
+            context += (
+                "\n- **Validation:** Custom policy scored bottom-up (uncalibrated); treat as "
+                "directional — mean out-of-sample error on such policies is ~29%"
+            )
 
         return context
     except Exception:

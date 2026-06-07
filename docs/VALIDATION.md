@@ -8,18 +8,34 @@
 
 ## Executive Summary
 
-The Fiscal Policy Calculator has been validated against **25+ official estimates** from CBO, JCT, Treasury, and other authoritative sources. The model achieves:
+The model is benchmarked against **30+ official estimates** from CBO, JCT, Treasury, PWBM, and TPC. Crucially, those benchmarks fall into **two epistemically different tiers**, and reporting them together overstates predictive power. Both are reproducible live: `python scripts/cold_holdout.py`.
+
+### Tier 1 — Out-of-sample predictions (the genuine test)
+
+Policies scored **bottom-up from IRS SOI** via raw rate/threshold auto-population, with **no fitting to the official target**. This is the only tier that measures predictive accuracy.
 
 | Metric | Value |
 |--------|-------|
-| Policies within 15% of official | 25/25 (100%) |
-| Policies within 10% of official | 21/25 (84%) |
-| Policies within 5% of official | 12/25 (48%) |
-| Direction match rate | 25/25 (100%) |
-| Mean absolute error | 5.4% |
-| Median absolute error | 4.7% |
+| Out-of-sample policies | 4 |
+| Mean absolute error | **~29%** |
+| Median absolute error | ~23% |
+| Within 15% of official | 2/4 |
+| Direction match rate | 4/4 |
 
-**Key Finding**: The model performs best on income tax and TCJA-related policies (0.1-4% error) and acceptably on payroll tax reforms (12% error due to wage distribution assumptions).
+**Key finding**: the model **over-predicts revenue from broad/large rate increases** (1pp-all-brackets +38%; Biden top-rate-39.6% +62%, though that Treasury figure is itself a bundled estimate). It is accurate (<10%) on targeted top-bracket changes. **Treat uncalibrated custom policies as directional, ±30%.**
+
+### Tier 2 — Calibrated reference models (reconstructions, not confirmations)
+
+The specialized modules (TCJA, Corporate, Estate, Credits, AMT, Payroll, PTC, Capital Gains, Tax Expenditures) are parameterized so their components **reproduce the published decomposition**.
+
+| Metric | Value |
+|--------|-------|
+| Calibrated benchmarks | 29 |
+| Mean absolute error | 6.1% |
+| Within 15% of official | 28/29 |
+| Direction match rate | 29/29 |
+
+The ~6% error here is **expected by construction** — these demonstrate the model's structure and provide auditable, source-linked reconstructions of official scores; they are **not** evidence the model would have predicted them cold. Best on income-tax/TCJA components (0.1–4%); weakest on payroll reforms (~12%, wage-distribution assumptions).
 
 **Scope note**: Distributional validation is currently benchmarked mainly against published TPC tables rather than a broader CBO distributional set, and the payroll / CTC scenarios above remain the clearest higher-error checkpoints to monitor. See [VALIDATION_NOTES.md](VALIDATION_NOTES.md) for root-cause analysis of the three biggest outliers (SS donut hole, Biden CTC 2021, Biden estate reform).
 

@@ -130,7 +130,8 @@ def render_result_tabs(
             st_module.markdown("---")
             st_module.caption(
                 "This calculator uses CBO methodology with IRS Statistics of Income data. "
-                "25+ policies validated within 15% of official CBO/JCT scores."
+                "25+ policies benchmarked against official CBO/JCT/Treasury scores — calibrated "
+                "models reproduce official scores; uncalibrated predictions are directional (~±30%)."
             )
         with tabs["tab_distribution"]:
             st_module.info(
