@@ -279,6 +279,61 @@ class TestCitations:
         assert "[citation needed]" not in cleaned
         assert stripped == []
 
+    def test_annotate_strips_fabricated_url_even_with_internal_tool(self) -> None:
+        # Model fabricates an external citation it never fetched; an unrelated
+        # internal tool ran. The fabricated marker must still be stripped.
+        text = (
+            "Grounded claim[^1]. Fabricated claim[^2].\n\n"
+            "## Sources\n"
+            "[^1]: CBO baseline (app internal).\n"
+            "[^2]: Made Up Institute (2026), https://totally-fake-source.example/x\n"
+        )
+        cleaned, stripped = annotate_unsupported(
+            text,
+            provenance=[{"tool": "get_cbo_baseline", "args": {}, "urls": []}],
+            web_search_citations=None,
+        )
+        assert stripped == [2]
+        assert "Grounded claim[^1]" in cleaned
+        assert "Fabricated claim[citation needed]" in cleaned
+
+    def test_annotate_keeps_external_url_that_was_fetched(self) -> None:
+        text = (
+            "Per the page[^1].\n\n## Sources\n"
+            "[^1]: CBO (2026), https://www.cbo.gov/publication/12345\n"
+        )
+        cleaned, stripped = annotate_unsupported(
+            text,
+            provenance=[
+                {"tool": "fetch_url", "args": {"url": "https://cbo.gov/publication/12345"}}
+            ],
+            web_search_citations=None,
+        )
+        assert stripped == []
+        assert "[citation needed]" not in cleaned
+
+    def test_annotate_keeps_url_surfaced_by_search_knowledge(self) -> None:
+        # search_knowledge surfaces a snapshot source_url in its result; the
+        # dispatcher records it under provenance ``urls``. A matching footnote
+        # domain should be accepted.
+        text = (
+            "ETI is ~0.25[^1].\n\n## Sources\n"
+            "[^1]: Saez et al. (2012), https://eml.berkeley.edu/~saez/x.pdf\n"
+        )
+        cleaned, stripped = annotate_unsupported(
+            text,
+            provenance=[
+                {
+                    "tool": "search_knowledge",
+                    "args": {"query": "eti"},
+                    "urls": ["https://eml.berkeley.edu/~saez/x.pdf"],
+                }
+            ],
+            web_search_citations=None,
+        )
+        assert stripped == []
+        assert "[citation needed]" not in cleaned
+
 
 # ---------------------------------------------------------------------------
 # Cost meter

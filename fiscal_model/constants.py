@@ -70,8 +70,20 @@ SPENDING_MULTIPLIER_DECAY = 0.7      # Annual decay rate for multiplier effects
 # Dynamic scoring revenue feedback rate
 MARGINAL_REVENUE_RATE = 0.25         # Combined federal revenue/GDP ratio — CBO
 
+# Supply-side elasticities (default EconomicModel dynamic path)
+LABOR_SUPPLY_ELASTICITY = 0.15       # Compensated labor supply elasticity — CBO
+CAPITAL_ELASTICITY = 0.25            # Capital response to after-tax return — literature
+INVESTMENT_ELASTICITY = -0.5         # Investment response to interest rates
+
 # Crowding out
 CROWDING_OUT_BASE = 0.03             # Interest rate increase per $100B deficit
+
+# NOTE: The default dynamic-scoring engine is the state-dependent
+# `EconomicModel` (economics.py), calibrated to the CBO-conventional normal-times
+# multipliers above (spending 1.0, tax 0.5) with recession/ZLB/debt adjustments.
+# `FRBUSAdapterLite` (models/macro_adapter_frbus.py) is a *separate, reduced-form
+# comparison model* using FRB/US figures (spending 1.4, tax 0.7); it is surfaced
+# only in the multi-model Scoring Models tab, not the default dynamic toggle.
 
 # =============================================================================
 # Production Function — Standard Cobb-Douglas

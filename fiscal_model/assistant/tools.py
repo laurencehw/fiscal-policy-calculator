@@ -356,9 +356,17 @@ class AssistantTools:
         except Exception as exc:  # noqa: BLE001
             logger.exception("Tool %s failed", tool_name)
             return {"error": f"{type(exc).__name__}: {exc}"}
-        # Record provenance for citation post-processing.
+        # Record provenance for citation post-processing. ``urls`` captures the
+        # source URLs this tool actually surfaced (knowledge snapshots, FRED
+        # series, fetched pages) so the citation checker can verify each
+        # footnote against the grounded set rather than trusting all-or-nothing.
         self.provenance.append(
-            {"tool": tool_name, "args": args, "result_summary": _summarize(result)}
+            {
+                "tool": tool_name,
+                "args": args,
+                "result_summary": _summarize(result),
+                "urls": _collect_urls(result),
+            }
         )
         return _safe_jsonable(result)
 
@@ -682,6 +690,32 @@ def _summarize(result: Any) -> str:
     except Exception:  # noqa: BLE001
         s = repr(result)
     return s[:240] + ("…" if len(s) > 240 else "")
+
+
+def _collect_urls(result: Any) -> list[str]:
+    """Recursively pull every ``url``/``source_url`` value out of a tool result.
+
+    These are the URLs the model was actually *given* this turn (knowledge
+    snapshot sources, FRED series pages, fetched pages). The citation
+    post-processor matches each ``[^N]`` footnote against this grounded set,
+    so a fabricated external URL the model never received can be stripped even
+    when other (legitimate) tools ran in the same turn.
+    """
+    found: list[str] = []
+
+    def _walk(node: Any) -> None:
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key in ("url", "source_url") and isinstance(value, str) and value.strip():
+                    found.append(value.strip())
+                else:
+                    _walk(value)
+        elif isinstance(node, (list, tuple)):
+            for item in node:
+                _walk(item)
+
+    _walk(result)
+    return found
 
 
 __all__ = [

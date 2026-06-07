@@ -11,7 +11,22 @@ from dataclasses import dataclass
 import numpy as np
 
 from .baseline import BaselineProjection
-from .constants import JOBS_PER_GDP_PERCENT
+from .constants import (
+    CAPITAL_ELASTICITY,
+    CAPITAL_SHARE,
+    CROWDING_OUT_BASE,
+    DEFAULT_ETI,
+    INVESTMENT_ELASTICITY,
+    JOBS_PER_GDP_PERCENT,
+    LABOR_SHARE,
+    LABOR_SUPPLY_ELASTICITY,
+    MARGINAL_REVENUE_RATE,
+    SPENDING_MULTIPLIER_BASE,
+    SPENDING_MULTIPLIER_DECAY,
+    TAX_MULTIPLIER_BASE,
+    TFP_GROWTH,
+    TRANSFER_MULTIPLIER_BASE,
+)
 from .policies import Policy, PolicyType, SpendingPolicy, TaxPolicy, TransferPolicy
 
 logger = logging.getLogger(__name__)
@@ -137,30 +152,32 @@ class EconomicModel:
         self.years = baseline.years
         self.conditions = conditions or EconomicConditions.normal_times()
 
-        # Base parameters (adjusted by conditions below)
+        # Base parameters (adjusted by conditions below). All values are
+        # sourced from constants.py so the default dynamic path has a single,
+        # citable source of truth (see constants.py "Fiscal Multipliers").
         self._base_params = {
-            # Base multipliers (adjusted for conditions)
-            'spending_multiplier_base': 1.0,
-            'tax_multiplier_base': 0.5,
-            'transfer_multiplier_base': 0.8,
-            'spending_multiplier_decay': 0.7,  # Annual decay rate
+            # Base multipliers (adjusted for conditions) — CBO-conventional
+            'spending_multiplier_base': SPENDING_MULTIPLIER_BASE,
+            'tax_multiplier_base': TAX_MULTIPLIER_BASE,
+            'transfer_multiplier_base': TRANSFER_MULTIPLIER_BASE,
+            'spending_multiplier_decay': SPENDING_MULTIPLIER_DECAY,
 
             # Supply-side elasticities
-            'labor_supply_elasticity': 0.15,  # Compensated elasticity
-            'capital_elasticity': 0.25,  # Response of capital to after-tax return
-            'eti': 0.25,  # Elasticity of taxable income
+            'labor_supply_elasticity': LABOR_SUPPLY_ELASTICITY,
+            'capital_elasticity': CAPITAL_ELASTICITY,
+            'eti': DEFAULT_ETI,
 
             # Production function
-            'labor_share': 0.65,  # Labor's share of output
-            'capital_share': 0.35,  # Capital's share
-            'tfp_growth': 0.01,  # Annual TFP growth
+            'labor_share': LABOR_SHARE,
+            'capital_share': CAPITAL_SHARE,
+            'tfp_growth': TFP_GROWTH,
 
             # Interest rate effects
-            'crowding_out_base': 0.03,  # Interest rate increase per $100B deficit
-            'investment_elasticity': -0.5,  # Response of investment to interest rates
+            'crowding_out_base': CROWDING_OUT_BASE,
+            'investment_elasticity': INVESTMENT_ELASTICITY,
 
             # Revenue feedback
-            'marginal_revenue_rate': 0.25,  # Avg marginal rate on additional income
+            'marginal_revenue_rate': MARGINAL_REVENUE_RATE,
         }
 
         # Apply condition adjustments

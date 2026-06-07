@@ -152,6 +152,14 @@ class TestCapitalGainsBaseline:
 
 class TestFREDData:
 
+    @pytest.fixture(autouse=True)
+    def _isolate_fred_env(self, monkeypatch):
+        """Ensure FRED tests exercise the no-API path regardless of the host
+        environment. Without this, a developer (or future CI runner) with a
+        real ``FRED_API_KEY`` set would hit live FRED and the offline
+        fallback/seed assertions below would never be tested."""
+        monkeypatch.delenv("FRED_API_KEY", raising=False)
+
     def test_initializes_without_error(self):
         fred = FREDData()
         assert fred is not None
