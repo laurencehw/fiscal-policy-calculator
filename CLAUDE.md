@@ -8,6 +8,16 @@ Fiscal Policy Impact Calculator — a web app that estimates budgetary and econo
 
 See `planning/ROADMAP.md` for the full roadmap and next priorities.
 
+## Model maturity (read before changing or describing features)
+
+The app is a **validated scoring core with experimental interfaces**, not a flat feature set. Hold each tier to the right bar, and describe it to users accordingly (see README "Model maturity"):
+
+- **🟢 Core — validated:** revenue scoring (static + behavioral), distributional analysis (return-level CPS microsim, the default since 2026-06), dynamic scoring (FRB/US-calibrated `EconomicModel`). Benchmarked vs CBO/JCT/Treasury. Report honest accuracy: calibrated reference models (~6% revenue, ≤3pp dist.) **vs** genuine out-of-sample predictions (~29%). Never collapse those two into one "validated within X%" claim.
+- **🟡 Specialized — calibrated, narrower:** the 14 policy-area modules, state modeling (top-10), OLG. Tuned to reproduce published scores → transparent reconstructions, not independent confirmation.
+- **🔵 Exploratory — interfaces/pipelines:** Ask assistant, bill tracker, classroom, multi-model pilots, admin/share. Held to a UX/safety bar, **not an accuracy bar**; bill-tracker LLM extraction is demo-grade.
+
+Guidance: invest in the green core's correctness first; keep the blue tier guard-railed (cost caps, citation discipline) but don't present it as validated estimation.
+
 ## Commands
 
 ```bash
@@ -295,18 +305,21 @@ Next: closing the ARP bundle scope residual (needs Recovery Rebate engine integr
 
 ## Target Validation
 
-25+ policies validated within 15% of CBO/JCT estimates. Key examples:
+**Report two tiers separately — do NOT collapse them into a single "validated within 15%" claim.** Run `python scripts/cold_holdout.py` for live numbers.
 
-| Policy | Official Score | Model Score | Error | Status |
-|--------|----------------|-------------|-------|--------|
-| Biden $400K+ (2.6pp) | -$252B | ~-$250B | ~1% | ✅ |
-| **TCJA Extension** | **$4,600B** | **$4,582B** | **0.4%** | ✅ |
-| **Corporate 21%→28%** | **-$1,347B** | **-$1,397B** | **3.7%** | ✅ |
-| **Biden CTC 2021** | **$1,600B** | **$1,743B** | **8.9%** | ✅ |
-| **Estate: Biden Reform** | **-$450B** | **-$496B** | **10.1%** | ✅ |
-| **SS Donut $250K** | **-$2,700B** | **-$2,371B** | **12.2%** | ✅ |
-| **Repeal Corporate AMT** | **$220B** | **$220B** | **0.0%** | ✅ |
-| **Cap Employer Health** | **-$450B** | **-$450B** | **0.1%** | ✅ |
+**Tier 1 — out-of-sample predictions** (uncalibrated, bottom-up from SOI; the genuine test). Mean abs error **~29%**, 2/4 within 15%. The model over-predicts revenue from broad/large rate increases. NB: the Biden $400K+ case scores **−$409B vs −$252B official (62% error)** on the uncalibrated generic path — earlier docs that cited "~−$250B / ~1%" were showing a hand-tuned figure, not the prediction. See [[fpc-review-roadmap]].
+
+**Tier 2 — calibrated reference models** (parameters tuned to reproduce the official decomposition; low error expected by construction, ~6% mean across 29 benchmarks). Examples:
+
+| Policy (calibrated) | Official Score | Model Score | Error |
+|--------|----------------|-------------|-------|
+| **TCJA Extension** | **$4,600B** | **$4,582B** | **0.4%** |
+| **Corporate 21%→28%** | **-$1,347B** | **-$1,397B** | **3.7%** |
+| **Biden CTC 2021** | **$1,600B** | **$1,743B** | **8.9%** |
+| **Estate: Biden Reform** | **-$450B** | **-$496B** | **10.1%** |
+| **SS Donut $250K** | **-$2,700B** | **-$2,371B** | **12.2%** |
+| **Repeal Corporate AMT** | **$220B** | **$220B** | **0.0%** |
+| **Cap Employer Health** | **-$450B** | **-$450B** | **0.1%** |
 
 ## Future Architecture
 

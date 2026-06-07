@@ -31,6 +31,10 @@ def render_bill_tracker_tab(st_module: Any, db_path: str | None = None) -> None:
     """
     st_module.header("Active Legislation Tracker")
     st_module.caption("119th Congress (2025–2027) · Fiscal bills tracked daily from congress.gov")
+    st_module.caption(
+        "🔵 *Experimental feature.* Fiscal provisions are extracted from bill text by an LLM "
+        "and are not validated scores — treat them as a research starting point, not estimates."
+    )
 
     # Load database
     db, using_demo = _get_database(db_path)
