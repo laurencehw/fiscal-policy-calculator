@@ -46,7 +46,6 @@ from fiscal_model.assistant.tools import (
 from fiscal_model.policies import PolicyType, SpendingPolicy, TaxPolicy
 from fiscal_model.scoring import FiscalPolicyScorer
 
-
 KNOWLEDGE_DIR = (
     Path(__file__).resolve().parent.parent
     / "fiscal_model"
@@ -380,7 +379,7 @@ class _FakeStream:
         self._chunks = text_chunks
         self._final = final_message
 
-    def __enter__(self) -> "_FakeStream":
+    def __enter__(self) -> _FakeStream:
         return self
 
     def __exit__(self, *exc: Any) -> None:

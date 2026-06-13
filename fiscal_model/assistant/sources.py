@@ -16,7 +16,6 @@ from __future__ import annotations
 
 from urllib.parse import urlparse
 
-
 SOURCES: dict[str, dict[str, object]] = {
     "cbo": {
         "name": "Congressional Budget Office",

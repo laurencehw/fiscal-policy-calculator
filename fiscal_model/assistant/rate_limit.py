@@ -28,7 +28,7 @@ import sqlite3
 import time
 import uuid
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -83,7 +83,7 @@ class RateLimitConfig:
     db_path: str = ""
 
     @classmethod
-    def from_env(cls) -> "RateLimitConfig":
+    def from_env(cls) -> RateLimitConfig:
         def _float(name: str, default: float) -> float:
             try:
                 return float(os.environ.get(_ENV_NAMES[name], default))

@@ -5,9 +5,8 @@ Dependency assembly for Streamlit app bootstrap.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
-
 from pathlib import Path
+from typing import Any
 
 from fiscal_model.app_data import CBO_SCORE_MAP, PRESET_POLICIES
 from fiscal_model.assistant import FiscalAssistant
@@ -127,13 +126,12 @@ def _render_ask_tab(**kwargs: Any) -> Any:
 
 def _prewarm_assistant_async(assistant: Any) -> None:
     """Fire prompt-cache pre-warming on a daemon thread; never block boot."""
+    import contextlib
     import threading
 
     def _worker() -> None:
-        try:
+        with contextlib.suppress(Exception):
             assistant.prewarm_cache()
-        except Exception:  # noqa: BLE001
-            pass
 
     t = threading.Thread(target=_worker, name="ask-prewarm", daemon=True)
     t.start()

@@ -302,6 +302,90 @@ def check_health() -> dict[str, Any]:
     return results
 
 
+def summarize_data_degradation(health: dict[str, Any]) -> dict[str, Any]:
+    """
+    Reduce a :func:`check_health` result to a user-facing degradation summary.
+
+    The sidebar already shows per-component status icons, but a single plain-
+    language summary lets the UI raise a prominent banner instead of relying on
+    the user to notice a yellow dot. Each reason names the component and what
+    fell back, so a user can tell *why* results are running in degraded mode.
+
+    Returns a dict with:
+        - ``severity``: ``"ok"`` | ``"degraded"`` | ``"error"``
+        - ``is_degraded``: True when severity is not ``"ok"``
+        - ``reasons``: list of human-readable strings (empty when ``ok``)
+    """
+    reasons: list[str] = []
+    has_error = False
+
+    def _freshness_stale(component: dict[str, Any]) -> bool:
+        freshness = component.get("freshness") or {}
+        return bool(freshness.get("is_stale"))
+
+    baseline = health.get("baseline") or {}
+    if baseline.get("status") == "error":
+        has_error = True
+        reasons.append("CBO baseline failed to load; results are not reliable.")
+    elif baseline.get("source") == "hardcoded_fallback":
+        reasons.append(
+            "CBO baseline fell back to hardcoded values — not publication-ready."
+        )
+    elif _freshness_stale(baseline):
+        reasons.append(
+            "CBO baseline is past its refresh window; assumptions may be outdated."
+        )
+
+    fred = health.get("fred") or {}
+    fred_source = fred.get("source")
+    if fred.get("status") == "error":
+        has_error = True
+        reasons.append("FRED data failed to load.")
+    elif fred_source == "fallback":
+        reasons.append("FRED is using hardcoded fallback values (no live or cached data).")
+    elif fred_source == "bundled" and fred.get("cache_is_expired"):
+        age = fred.get("cache_age_days")
+        age_label = f" ({int(age)} days old)" if isinstance(age, int | float) else ""
+        reasons.append(f"FRED is on a stale bundled seed{age_label}; set FRED_API_KEY to refresh.")
+
+    irs = health.get("irs_soi") or {}
+    if irs.get("status") == "error":
+        has_error = True
+        reasons.append("IRS SOI tables are unavailable.")
+    elif _freshness_stale(irs):
+        reasons.append("IRS SOI tables are stale; refresh fiscal_model/data_files/irs_soi/.")
+
+    microdata = health.get("microdata") or {}
+    if microdata.get("status") == "error":
+        has_error = True
+        reasons.append("Microdata failed to load.")
+    elif microdata.get("status") == "degraded":
+        reasons.append(
+            "Microdata coverage is degraded (synthetic or partial population); "
+            "distributional results above the top tail are approximate."
+        )
+
+    runtime = health.get("runtime") or {}
+    if runtime.get("status") == "degraded":
+        reasons.append(runtime.get("message", "Python runtime is unsupported."))
+    elif runtime.get("status") == "error":
+        has_error = True
+        reasons.append(runtime.get("message", "Python runtime check failed."))
+
+    if has_error:
+        severity = "error"
+    elif reasons:
+        severity = "degraded"
+    else:
+        severity = "ok"
+
+    return {
+        "severity": severity,
+        "is_degraded": severity != "ok",
+        "reasons": reasons,
+    }
+
+
 def _check_assistant() -> dict[str, Any]:
     """Health of the Ask assistant stack.
 
@@ -337,7 +421,7 @@ def _check_assistant() -> dict[str, Any]:
             # Touch a read to confirm schema is queryable.
             rl.today_spend_usd()
             usage_db_ok = True
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.info("Assistant usage db check failed: %s", exc)
             usage_db_ok = False
 
@@ -358,5 +442,5 @@ def _check_assistant() -> dict[str, Any]:
                 "ANTHROPIC_API_KEY (env var or Streamlit secret)."
             ),
         }
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         return {"status": "error", "error": str(e)}

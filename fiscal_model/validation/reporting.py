@@ -11,7 +11,7 @@ from .core import ValidationResult
 
 _MANUSCRIPT_EVIDENCE_BOUNDARIES = [
     "Aggregate fiscal validation is stronger than distributional validation in the current repo.",
-    "Distributional validation still leans mainly on published TPC tables rather than a broader CBO distributional benchmark set.",
+    "Distributional validation now spans TCJA, corporate-rate, and capital-gains benchmarks, but these remain TPC-framework derived rather than a broader CBO distributional benchmark set.",
     "Household and payroll modules still rely on synthetic tax units or aggregate wage distributions rather than CPS ASEC or SSA microdata.",
     "Current manuscript claims should present point errors alongside known limitations rather than treating the benchmark table as a full uncertainty interval.",
 ]

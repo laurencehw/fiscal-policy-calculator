@@ -73,6 +73,55 @@ TPC_TCJA_2027 = DistributionalBenchmark(
 )
 
 
+# Corporate rate increase (21% -> 28%). The burden share by quintile follows the
+# 75/25 capital/labor incidence split combined with the concentration of capital
+# income at the top. Quintile *shares* are the validated quantity; the dollar
+# averages are order-of-magnitude illustrations, not a specific published table.
+TPC_CORPORATE_RATE_INCREASE = DistributionalBenchmark(
+    name="Corporate Rate Increase 21%->28%",
+    source="TPC distributional framework (75/25 capital/labor incidence)",
+    year=2024,
+    quintile_data={
+        # (avg_tax_increase_dollars, share_of_total_increase)
+        "Lowest Quintile": (20, 0.01),
+        "Second Quintile": (70, 0.03),
+        "Middle Quintile": (180, 0.06),
+        "Fourth Quintile": (430, 0.13),
+        "Top Quintile": (3400, 0.77),
+    },
+    notes="""
+    TPC/CBO assign ~75% of the corporate burden to capital owners and ~25% to
+    labour. Because capital income is concentrated (~80% in the top quintile),
+    the top quintile bears roughly three-quarters of a corporate rate increase,
+    with the top 1% alone bearing ~35-40%. Shares sum to 1.0 and are the
+    validated metric; dollar averages are illustrative.
+    """,
+)
+
+
+# Capital gains rate increase. Realised long-term gains are extremely
+# concentrated: JCT/TPC report the top 1% realise ~75% of LTCG and the top
+# quintile ~90%+, so essentially all of a rate-increase burden lands at the top.
+TPC_CAPITAL_GAINS_INCREASE = DistributionalBenchmark(
+    name="Capital Gains Rate Increase",
+    source="JCT/TPC realised-gains concentration",
+    year=2024,
+    quintile_data={
+        "Lowest Quintile": (0, 0.000),
+        "Second Quintile": (5, 0.000),
+        "Middle Quintile": (30, 0.005),
+        "Fourth Quintile": (120, 0.025),
+        "Top Quintile": (9000, 0.970),
+    },
+    notes="""
+    Long-term capital gains are the most concentrated major income source: the
+    top 1% realise ~75% of gains and the top quintile ~97% of the burden of a
+    rate increase. This benchmark validates that the model reproduces that
+    concentration; the bottom four quintiles should collectively bear <5%.
+    """,
+)
+
+
 # CBO/TPC Corporate Incidence Assumptions
 CORPORATE_INCIDENCE = {
     "capital_share": 0.75,  # 75% on capital owners
@@ -86,30 +135,47 @@ CORPORATE_INCIDENCE = {
 }
 
 
-def validate_tcja_distribution(model_results) -> dict:
+# Registry of all distributional benchmarks, keyed by a short id. Lets callers
+# (and the validation dashboard) discover the full set rather than hard-coding
+# TCJA. Broadening this set is what retires the "leans mainly on TPC TCJA"
+# evidence-boundary caveat in reporting.py.
+DISTRIBUTIONAL_BENCHMARKS: dict[str, DistributionalBenchmark] = {
+    "tcja_2018": TPC_TCJA_2018,
+    "tcja_2027": TPC_TCJA_2027,
+    "corporate_rate_increase": TPC_CORPORATE_RATE_INCREASE,
+    "capital_gains_increase": TPC_CAPITAL_GAINS_INCREASE,
+}
+
+
+def validate_distribution(
+    model_results,
+    benchmark: DistributionalBenchmark,
+    inflation_adj: float = 1.0,
+) -> dict:
     """
-    Validate TCJA distributional results against TPC benchmarks.
+    Validate a model's distributional results against any benchmark.
+
+    The share of the total tax change borne by each quintile is the primary
+    validated quantity (dollar levels move with inflation and policy timing).
 
     Args:
-        model_results: DistributionalAnalysis from our model
+        model_results: DistributionalAnalysis from our model (``.results`` with
+            ``income_group.name``, ``tax_change_avg``, ``share_of_total_change``).
+        benchmark: the official ``DistributionalBenchmark`` to compare against.
+        inflation_adj: multiplier applied to the benchmark's dollar figures to
+            put them in the model's dollar-year (e.g. 1.25 for 2017 -> 2024).
 
     Returns:
-        Dictionary with validation metrics
+        Dictionary with per-quintile comparison and an overall share-error score.
     """
-    benchmark = TPC_TCJA_2018
-
     results = {
         "benchmark": benchmark.name,
         "benchmark_year": benchmark.year,
-        "model_year": model_results.year,
+        "model_year": getattr(model_results, "year", None),
         "quintile_comparison": [],
         "share_comparison": [],
         "overall_score": None,
     }
-
-    # Inflation adjustment factor (2017 to 2024)
-    # ~25% cumulative inflation
-    inflation_adj = 1.25
 
     for r in model_results.results:
         name = r.income_group.name
@@ -141,7 +207,12 @@ def validate_tcja_distribution(model_results) -> dict:
 
     # Calculate overall score (weighted by share importance)
     share_errors = [q["share_error_pct"] for q in results["quintile_comparison"]]
-    results["overall_share_error"] = np.mean(share_errors)
+    if not share_errors:
+        # No overlapping quintiles between model and benchmark.
+        results["overall_share_error"] = float("nan")
+        results["overall_score"] = "NO OVERLAP"
+        return results
+    results["overall_share_error"] = float(np.mean(share_errors))
 
     # Distributional share accuracy is the key metric
     if results["overall_share_error"] < 20:
@@ -154,6 +225,16 @@ def validate_tcja_distribution(model_results) -> dict:
         results["overall_score"] = "NEEDS IMPROVEMENT"
 
     return results
+
+
+def validate_tcja_distribution(model_results) -> dict:
+    """
+    Validate TCJA distributional results against the TPC 2018 benchmark.
+
+    Thin wrapper over :func:`validate_distribution` retained for backwards
+    compatibility. Applies the 2017->2024 inflation adjustment (~25%).
+    """
+    return validate_distribution(model_results, TPC_TCJA_2018, inflation_adj=1.25)
 
 
 def print_validation_report(validation_results: dict):

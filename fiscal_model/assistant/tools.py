@@ -16,7 +16,6 @@ from __future__ import annotations
 import json
 import logging
 from typing import Any
-from urllib.parse import urlparse
 
 from .sources import SOURCES, allowlisted_domain, web_search_allowed_domains
 
@@ -353,7 +352,7 @@ class AssistantTools:
             result = impl(**(args or {}))
         except TypeError as exc:
             return {"error": f"bad arguments to {tool_name}: {exc}"}
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.exception("Tool %s failed", tool_name)
             return {"error": f"{type(exc).__name__}: {exc}"}
         # Record provenance for citation post-processing. ``urls`` captures the
@@ -391,13 +390,13 @@ class AssistantTools:
         # totals as properties. Pull what we need; fall back gracefully if
         # the object is some other baseline-like shape.
         try:
-            years = list(getattr(proj, "years"))
-            revenues = list(getattr(proj, "total_revenues"))
-            outlays = list(getattr(proj, "total_outlays"))
-            deficits = list(getattr(proj, "deficit"))
+            years = list(proj.years)
+            revenues = list(proj.total_revenues)
+            outlays = list(proj.total_outlays)
+            deficits = list(proj.deficit)
             debt = list(getattr(proj, "debt_held_by_public", []))
             nominal_gdp = list(getattr(proj, "nominal_gdp", []))
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return {"error": f"could not read baseline: {exc}"}
 
         ten_year_deficit = float(sum(deficits)) if deficits else None
@@ -500,12 +499,12 @@ class AssistantTools:
                     affected_income_threshold=affected_income_threshold,
                     duration_years=duration_years,
                 )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return {"error": f"could not construct policy: {exc}"}
 
         try:
             result = self._scorer.score_policy(policy, dynamic=dynamic)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return {"error": f"scoring failed: {exc}"}
 
         return {
@@ -532,7 +531,7 @@ class AssistantTools:
         k = max(1, min(int(k), 10))
         try:
             hits = self._knowledge_searcher.search(query, k=k)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return {"error": f"knowledge search failed: {exc}"}
         return {"query": query, "n_hits": len(hits), "hits": hits}
 
@@ -566,7 +565,7 @@ class AssistantTools:
                 "latest": obs[-1] if obs else None,
                 "source_url": f"https://fred.stlouisfed.org/series/{series_id}",
             }
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return {"error": f"FRED query failed: {exc}"}
 
     def tool_fetch_url(self, *, url: str, max_chars: int = 6000) -> dict[str, Any]:
@@ -600,7 +599,7 @@ class AssistantTools:
         try:
             resp = requests.get(url, timeout=15, headers=headers)
             resp.raise_for_status()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             return {
                 "error": (
                     f"fetch failed: {exc}. "
@@ -671,14 +670,14 @@ def _extract_pdf_text(pdf_bytes: bytes) -> str | None:
             for page in pdf.pages[:20]:
                 try:
                     page_text = page.extract_text() or ""
-                except Exception:  # noqa: BLE001
+                except Exception:
                     page_text = ""
                 out.append(page_text)
         return "\n\n".join(s for s in out if s.strip())
     except ImportError:
         logger.warning("pdfplumber not installed; cannot parse PDF")
         return None
-    except Exception:  # noqa: BLE001
+    except Exception:
         logger.exception("PDF extraction failed")
         return None
 
@@ -687,7 +686,7 @@ def _summarize(result: Any) -> str:
     """Compact one-line summary of a tool result for the provenance trail."""
     try:
         s = json.dumps(_safe_jsonable(result), default=str)
-    except Exception:  # noqa: BLE001
+    except Exception:
         s = repr(result)
     return s[:240] + ("…" if len(s) > 240 else "")
 

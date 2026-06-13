@@ -1,0 +1,24 @@
+# Curated allowlist of green-tier scoring-core modules that are clean under
+# mypy and are ENFORCED (blocking) in CI to prevent type regressions.
+#
+# A full `mypy fiscal_model` pass also runs in CI but is non-blocking — it
+# surfaces the remaining ~200 findings without failing the build. As modules
+# are cleaned, move them up into this gate.
+#
+# Usage: mypy $(grep -v '^#' mypy.gate.txt | grep -v '^$')
+fiscal_model/policies.py
+fiscal_model/policies_core.py
+fiscal_model/policies_factory.py
+fiscal_model/preset_handler.py
+fiscal_model/scoring.py
+fiscal_model/scoring_engine.py
+fiscal_model/scoring_result.py
+fiscal_model/tcja.py
+fiscal_model/time_utils.py
+fiscal_model/uncertainty.py
+fiscal_model/international.py
+fiscal_model/enforcement.py
+fiscal_model/ptc.py
+fiscal_model/tax_expenditures.py
+fiscal_model/tax_expenditures_core.py
+fiscal_model/tax_expenditures_factory.py

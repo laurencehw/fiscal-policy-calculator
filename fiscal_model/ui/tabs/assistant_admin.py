@@ -45,7 +45,7 @@ def render_assistant_admin_tab(st_module: Any) -> None:
     try:
         limiter = RateLimiter()
         snap = snapshot(limiter)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         st_module.error(f"Failed to read usage db: {exc}")
         return
 
@@ -103,7 +103,7 @@ def render_assistant_admin_tab(st_module: Any) -> None:
     st_module.markdown("### Daily activity — last 30 days")
     try:
         daily = daily_spend_series(limiter, days=30)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         st_module.error(f"Failed to load daily series: {exc}")
         daily = None
     if daily is not None and not daily.empty:
@@ -133,7 +133,7 @@ def render_assistant_admin_tab(st_module: Any) -> None:
     st_module.markdown("### Tool usage — last 30 days")
     try:
         tools_df = tool_usage_counts(limiter, days=30)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         st_module.error(f"Failed to load tool stats: {exc}")
         tools_df = None
     if tools_df is not None and not tools_df.empty:
@@ -151,7 +151,7 @@ def render_assistant_admin_tab(st_module: Any) -> None:
     st_module.markdown("### Recent turns")
     try:
         recent = recent_turns(limiter, limit=20)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         st_module.error(f"Failed to load recent turns: {exc}")
         recent = None
     if recent is not None and not recent.empty:

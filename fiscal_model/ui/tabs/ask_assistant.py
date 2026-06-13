@@ -30,7 +30,6 @@ from fiscal_model.assistant.rate_limit import RateLimiter, new_session_id
 from fiscal_model.assistant.share import build_share_url, decode_share_payload
 from fiscal_model.ui.helpers import PUBLIC_APP_URL
 
-
 # Match an unescaped `$` immediately followed by a digit (currency usage).
 # Negative lookbehind avoids re-escaping `\$`. Doesn't touch `$` inside
 # fenced code blocks because those aren't rendered as math by Streamlit.
@@ -102,20 +101,20 @@ def _promote_secret_to_env(st_module: Any) -> dict[str, Any]:
         # Enumerate visible top-level keys (helps the diagnostic message).
         if hasattr(secrets, "keys"):
             try:
-                diag["secrets_keys_seen"] = [str(k) for k in secrets.keys()]
-            except Exception:  # noqa: BLE001
+                diag["secrets_keys_seen"] = [str(k) for k in secrets]
+            except Exception:
                 diag["secrets_keys_seen"] = ["(error enumerating keys)"]
-    except Exception:  # noqa: BLE001
+    except Exception:
         pass
 
     for key in candidates:
         try:
             # __getitem__ raises on missing keys for Streamlit Secrets.
             v = secrets[key]
-        except Exception:  # noqa: BLE001
+        except Exception:
             try:
                 v = getattr(secrets, key, None)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 v = None
         if v:
             value = v
@@ -129,7 +128,7 @@ def _promote_secret_to_env(st_module: Any) -> dict[str, Any]:
             for nested in ("api_key", "API_KEY", "key"):
                 try:
                     nv = value.get(nested)
-                except Exception:  # noqa: BLE001
+                except Exception:
                     nv = None
                 if nv:
                     value = nv
@@ -233,7 +232,7 @@ def _render_body(
 
     # Model is fixed to Sonnet 4.6 for cost predictability. To experiment
     # with Opus locally, set ASSISTANT_MODEL=claude-opus-4-7 in your env.
-    fiscal_assistant._model = (  # noqa: SLF001
+    fiscal_assistant._model = (
         os.environ.get("ASSISTANT_MODEL", "").strip() or "claude-sonnet-4-6"
     )
 
@@ -319,7 +318,7 @@ def _render_body(
             ):
                 accumulated.append(chunk)
                 placeholder.markdown(_safe_dollar_markdown("".join(accumulated)))
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             placeholder.error(f"Assistant error: {exc}")
             error_msg = f"{type(exc).__name__}: {exc}"
             # Still record so a runaway error doesn't go unbilled in budget terms.
@@ -527,7 +526,7 @@ def _scoring_context(scoring_result: Any) -> dict[str, Any] | None:
             if cred
             else None,
         }
-    except Exception:  # noqa: BLE001
+    except Exception:
         return None
 
 
@@ -582,7 +581,7 @@ def _render_share_widget(
                 model=model,
                 public_app_url=PUBLIC_APP_URL,
             )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             st_module.caption(f"Couldn't build share link: {exc}")
             return
         url_len = len(url)
@@ -611,7 +610,7 @@ def _maybe_apply_shared_link(st_module: Any, state: Any) -> None:
     except AttributeError:  # older Streamlit
         try:
             query_params = st_module.experimental_get_query_params()
-        except Exception:  # noqa: BLE001
+        except Exception:
             return
 
     token: str | None = None
@@ -690,7 +689,7 @@ def _maybe_generate_and_render_followups(
             last_answer=seed["answer"],
             max_suggestions=3,
         )
-    except Exception:  # noqa: BLE001
+    except Exception:
         suggestions = []
     turn["followups"] = suggestions
     turn["followups_seed"] = None  # consumed

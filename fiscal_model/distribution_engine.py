@@ -102,7 +102,7 @@ class DistributionalEngine:
                     return self.analyze_policy_microsim(
                         policy, group_type=group_type, year=year
                     )
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.warning(
                     "Microsim distributional path failed for '%s' (%s); "
                     "falling back to synthetic brackets.",

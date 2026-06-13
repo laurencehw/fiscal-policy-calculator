@@ -4,6 +4,14 @@ CBO/JCT estimates within tolerance.
 
 Uses FiscalPolicyScorer(use_real_data=False) for consistency across
 environments (avoids dependency on external data files).
+
+These are *calibrated reference policies* (the green-tier core), so the bands
+are tight — roughly ±5% around the known-good fallback-data output — to catch
+silent drift. NOTE: the fallback-data scores differ from the real-data
+calibration figures quoted in CLAUDE.md (e.g. TCJA scores ~$4,060B here vs the
+~$4,580B real-data figure); these tests lock the reproducible offline value, not
+the headline calibration number. Genuinely out-of-sample scenarios keep wider
+bands elsewhere (see test_cold_holdout.py).
 """
 
 import pytest
@@ -22,14 +30,14 @@ def scorer():
 
 
 class TestTCJAExtensionCBORange:
-    """TCJA full extension should cost $4,000-5,200B over 10 years."""
+    """TCJA full extension (fallback-data regression value ~$4,060B)."""
 
     def test_tcja_extension_cbo_range(self, scorer):
         policy = create_tcja_extension(extend_all=True)
         result = scorer.score_policy(policy)
         total = result.total_10_year_cost
-        assert 4000 <= total <= 5200, (
-            f"TCJA extension {total:.0f}B outside CBO range [4000, 5200]"
+        assert 3900 <= total <= 4250, (
+            f"TCJA extension {total:.0f}B outside regression band [3900, 4250]"
         )
 
     def test_tcja_extension_is_positive_cost(self, scorer):
@@ -51,15 +59,15 @@ class TestTCJAExtensionCBORange:
 
 
 class TestBidenCorporateRateCBORange:
-    """Biden corporate rate increase (21->28%) should raise $1,000-1,800B."""
+    """Biden corporate rate increase 21->28% (fallback-data regression value ~-$1,397B)."""
 
     def test_biden_corporate_cbo_range(self, scorer):
         policy = create_biden_corporate_rate_only()
         result = scorer.score_policy(policy)
         total = result.total_10_year_cost
         # Revenue raiser: total_10_year_cost should be negative (reduces deficit)
-        assert -1800 <= total <= -1000, (
-            f"Biden corporate {total:.0f}B outside expected range [-1800, -1000]"
+        assert -1460 <= total <= -1330, (
+            f"Biden corporate {total:.0f}B outside regression band [-1460, -1330]"
         )
 
     def test_biden_corporate_reduces_deficit(self, scorer):
@@ -72,14 +80,14 @@ class TestBidenCorporateRateCBORange:
 
 
 class TestBidenCTC2021CBORange:
-    """Biden CTC 2021 (ARP-style permanent) should cost $1,200-2,200B."""
+    """Biden CTC 2021 (ARP-style permanent; fallback-data regression value ~$1,743B)."""
 
     def test_biden_ctc_cbo_range(self, scorer):
         policy = create_biden_ctc_2021()
         result = scorer.score_policy(policy)
         total = result.total_10_year_cost
-        assert 1200 <= total <= 2200, (
-            f"Biden CTC {total:.0f}B outside expected range [1200, 2200]"
+        assert 1660 <= total <= 1830, (
+            f"Biden CTC {total:.0f}B outside regression band [1660, 1830]"
         )
 
     def test_biden_ctc_increases_deficit(self, scorer):
@@ -92,14 +100,14 @@ class TestBidenCTC2021CBORange:
 
 
 class TestRepealCorporateAMTCBORange:
-    """Repealing corporate AMT should cost $150-300B over 10 years."""
+    """Repealing corporate AMT (fallback-data regression value ~$220B)."""
 
     def test_repeal_corporate_amt_cbo_range(self, scorer):
         policy = create_repeal_corporate_amt()
         result = scorer.score_policy(policy)
         total = result.total_10_year_cost
-        assert 150 <= total <= 300, (
-            f"Repeal corporate AMT {total:.0f}B outside expected range [150, 300]"
+        assert 210 <= total <= 232, (
+            f"Repeal corporate AMT {total:.0f}B outside regression band [210, 232]"
         )
 
     def test_repeal_corporate_amt_increases_deficit(self, scorer):
