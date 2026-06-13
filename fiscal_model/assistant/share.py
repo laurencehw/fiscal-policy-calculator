@@ -77,7 +77,7 @@ def decode_share_payload(token: str) -> dict[str, Any] | None:
         if len(raw) > MAX_DECODED_BYTES:
             return None
         payload = json.loads(raw.decode("utf-8"))
-    except Exception:  # noqa: BLE001 — malformed input shouldn't crash the app
+    except Exception:
         logger.info("decode_share_payload: rejected malformed token", exc_info=True)
         return None
     if not isinstance(payload, dict):

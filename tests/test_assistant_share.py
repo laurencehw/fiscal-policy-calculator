@@ -15,8 +15,6 @@ import base64
 import gzip
 import json
 
-import pytest
-
 from fiscal_model.assistant.share import (
     SHARE_SCHEMA_VERSION,
     build_share_url,

@@ -16,7 +16,7 @@ import logging
 import os
 import sqlite3
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import pandas as pd
@@ -45,7 +45,7 @@ def is_admin_request(query_params: Any) -> bool:
     expected = os.environ[ADMIN_TOKEN_ENV].strip()
     try:
         raw = query_params.get("admin") if hasattr(query_params, "get") else None
-    except Exception:  # noqa: BLE001
+    except Exception:
         return False
     if raw is None:
         return False
@@ -77,7 +77,7 @@ class AdminSnapshot:
 def _connect_readonly(limiter: RateLimiter) -> sqlite3.Connection:
     if limiter.db_path == ":memory:":
         # In-memory limiter shares its connection.
-        return limiter._connect()  # noqa: SLF001
+        return limiter._connect()
     conn = sqlite3.connect(limiter.db_path, timeout=5.0)
     conn.row_factory = sqlite3.Row
     return conn

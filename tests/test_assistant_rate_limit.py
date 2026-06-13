@@ -13,7 +13,7 @@ Covers:
 from __future__ import annotations
 
 import time
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -102,7 +102,7 @@ class TestPersistence:
         # Record one normal row (today), one explicitly dated yesterday.
         rl.record_turn(session_id="s1", role="assistant", usage_dict={"cost_usd": 0.30})
         yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).date().isoformat()
-        conn = rl._connect()  # noqa: SLF001
+        conn = rl._connect()
         try:
             conn.execute(
                 """INSERT INTO assistant_events

@@ -111,11 +111,17 @@ class TestCheckHealth:
         assert result["overall"] in ["ok", "degraded"]
 
     def test_overall_ok_when_all_ok(self):
-        """Verify overall is 'ok' only when all components are 'ok'."""
+        """Verify overall is 'ok' only when all *required* components are 'ok'."""
         result = check_health()
-        # If overall is 'ok', all components with 'status' key should be 'ok'
+        # The assistant is an optional component: check_health() excludes it from
+        # the overall roll-up so a missing ANTHROPIC_API_KEY (CI, local dev)
+        # doesn't drag the status. Mirror that contract here — only required
+        # components must be 'ok' when overall is 'ok'.
+        optional_components = {"assistant"}
         if result["overall"] == "ok":
             for key, value in result.items():
+                if key in optional_components:
+                    continue
                 if isinstance(value, dict) and "status" in value:
                     assert value["status"] == "ok", f"{key} should be 'ok' when overall is 'ok'"
 

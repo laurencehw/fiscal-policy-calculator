@@ -78,7 +78,7 @@ class FiscalAssistant:
                 from .knowledge_search import KnowledgeSearcher
 
                 searcher = KnowledgeSearcher(knowledge_dir)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 logger.exception("Failed to initialize knowledge searcher")
 
         self._tools = AssistantTools(
@@ -105,7 +105,7 @@ class FiscalAssistant:
     # ---- lazy client -----------------------------------------------------
 
     @property
-    def client(self):  # noqa: D401
+    def client(self):
         """Return the Anthropic client, initializing it on first use."""
         if self._client is None:
             try:
@@ -158,7 +158,7 @@ class FiscalAssistant:
             )
             self._cache_prewarmed = True
             return True
-        except Exception:  # noqa: BLE001
+        except Exception:
             logger.info("Cache pre-warm failed (non-fatal)", exc_info=True)
             return False
 
@@ -195,7 +195,7 @@ class FiscalAssistant:
                 max_tokens=300,
                 messages=[{"role": "user", "content": prompt}],
             )
-        except Exception:  # noqa: BLE001
+        except Exception:
             logger.warning("Followup suggestion call failed", exc_info=True)
             return []
 
@@ -282,8 +282,9 @@ class FiscalAssistant:
         # ------------------------------------------------------------------
         # Assemble messages.
         # ------------------------------------------------------------------
-        messages: list[dict[str, Any]] = list(history) + [
-            {"role": "user", "content": user_message}
+        messages: list[dict[str, Any]] = [
+            *history,
+            {"role": "user", "content": user_message},
         ]
 
         tools_param = list(TOOL_SCHEMAS)
@@ -474,7 +475,7 @@ class FiscalAssistant:
                     text_chunks.append(text)
                 final_message = stream.get_final_message()
                 usage = getattr(final_message, "usage", None)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.exception("Anthropic stream failed")
             text_chunks.append(f"\n\n*Error from Anthropic API: {exc}*")
 
@@ -563,7 +564,7 @@ def _serialize_content_blocks(content: Any) -> list[dict[str, Any]]:
             # Fall back to a dict-style copy.
             try:
                 out.append(block.model_dump())  # pydantic v2
-            except Exception:  # noqa: BLE001
+            except Exception:
                 out.append({"type": btype or "unknown"})
     return out
 
@@ -607,7 +608,7 @@ def _brief_args(args: dict[str, Any]) -> str:
 
 __all__ = [
     "DEFAULT_MODEL",
-    "FiscalAssistant",
     "MAX_TOOL_ITERATIONS",
     "OPUS_MODEL",
+    "FiscalAssistant",
 ]

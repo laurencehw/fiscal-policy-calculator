@@ -14,7 +14,6 @@ from typing import Any
 
 from .sources import SOURCES
 
-
 _ROLE_AND_VOICE = """\
 You are a public-finance research assistant embedded in the Fiscal Policy
 Calculator — an app that scores tax and spending proposals against CBO and

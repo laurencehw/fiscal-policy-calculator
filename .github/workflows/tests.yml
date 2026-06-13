@@ -100,7 +100,9 @@ jobs:
 
       - name: Lint with ruff
         run: |
-          pip install ruff
+          # Pin ruff: an unpinned linter silently drifts as new rules ship and
+          # turns CI red on untouched code. Bump deliberately, not by surprise.
+          pip install 'ruff==0.15.8'
           ruff check fiscal_model/ tests/ --output-format=github
 
       - name: Type-check gate (blocking) — green-core allowlist

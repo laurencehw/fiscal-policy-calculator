@@ -17,7 +17,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-
 # Approximate list-price per million tokens (USD), as of 2026.
 # Update when Anthropic publishes new pricing or new models. Cache writes
 # are billed at 1.25x base input; cache reads at 0.1x base input.

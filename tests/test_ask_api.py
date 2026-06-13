@@ -9,13 +9,11 @@ frame structure.
 from __future__ import annotations
 
 import json
-import os
 from types import SimpleNamespace
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-
 
 # ---------------------------------------------------------------------------
 # Fake Anthropic plumbing — mirrors test_fiscal_assistant.py.
@@ -27,7 +25,7 @@ class _FakeStream:
         self._chunks = text_chunks
         self._final = final_message
 
-    def __enter__(self) -> "_FakeStream":
+    def __enter__(self) -> _FakeStream:
         return self
 
     def __exit__(self, *exc: Any) -> None:

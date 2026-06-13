@@ -31,7 +31,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-
 _FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 _TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9_\-']+")
 _STOPWORDS = frozenset(

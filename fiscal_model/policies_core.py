@@ -42,7 +42,7 @@ def preferential_income_share(
             threshold=max(threshold, 1.0),
         )
         cg_above_billions = float(base["net_capital_gain_billions"])
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.warning("preferential_income_share: cap-gains data unavailable (%s)", exc)
         return 0.0
 
