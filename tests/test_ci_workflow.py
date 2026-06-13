@@ -26,6 +26,30 @@ def test_smoke_job_runs_local_streamlit_boot_flow():
     assert "python scripts/check_streamlit_boot.py --timeout 45" in workflow
 
 
+def test_type_check_gate_is_blocking_and_full_pass_is_advisory():
+    workflow = TESTS_WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    # The curated gate runs the allowlist and is NOT marked continue-on-error,
+    # so it blocks the build on type regressions in the green core.
+    assert "mypy $(grep -v '^#' mypy.gate.txt" in workflow
+    # The full pass is advisory only.
+    assert "mypy fiscal_model" in workflow
+    assert "Type-check full pass (non-blocking)" in workflow
+
+
+def test_mypy_gate_file_lists_only_existing_modules():
+    gate_path = Path(__file__).resolve().parents[1] / "mypy.gate.txt"
+    repo_root = gate_path.parent
+    entries = [
+        line.strip()
+        for line in gate_path.read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    ]
+    assert entries, "mypy gate allowlist should not be empty"
+    for rel in entries:
+        assert (repo_root / rel).is_file(), f"gate lists missing module: {rel}"
+
+
 def test_public_app_health_workflow_uses_configurable_url_and_timeout():
     workflow = PUBLIC_HEALTH_WORKFLOW_PATH.read_text(encoding="utf-8")
 

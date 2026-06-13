@@ -103,6 +103,16 @@ jobs:
           pip install ruff
           ruff check fiscal_model/ tests/ --output-format=github
 
+      - name: Type-check gate (blocking) — green-core allowlist
+        run: |
+          pip install mypy
+          mypy $(grep -v '^#' mypy.gate.txt | grep -v '^[[:space:]]*$')
+
+      - name: Type-check full pass (non-blocking) — visibility only
+        continue-on-error: true
+        run: |
+          mypy fiscal_model
+
       - name: Run tests with coverage
         run: |
           pytest tests/ -v --tb=short --cov=fiscal_model --cov-report=term-missing
