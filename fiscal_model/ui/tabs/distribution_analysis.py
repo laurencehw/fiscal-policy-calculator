@@ -12,6 +12,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from fiscal_model.ui.a11y import ChartDescription, render_accessible_chart
+from fiscal_model.ui.charts import apply_base_layout
 
 _CALIBRATION_SESSION_KEY = "_dist_tab_calibration_cache"
 
@@ -218,7 +219,8 @@ def render_distribution_tab(
                 textposition="outside",
             )
         )
-        fig_dist.update_layout(
+        apply_base_layout(
+            fig_dist,
             xaxis_title="Income Group",
             yaxis_title="Average Tax Change ($)",
             height=400,
@@ -261,7 +263,8 @@ def render_distribution_tab(
                         )
                     ]
                 )
-                fig_pie.update_layout(
+                apply_base_layout(
+                    fig_pie,
                     height=350,
                     showlegend=False,
                 )
@@ -439,7 +442,8 @@ def _render_tariff_consumer_impact(st_module: Any, policy: Any) -> None:
         )
     )
 
-    fig_quintile.update_layout(
+    apply_base_layout(
+        fig_quintile,
         xaxis_title="Income Group",
         yaxis_title="Annual Consumer Cost ($)",
         height=350,

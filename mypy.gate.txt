@@ -22,3 +22,4 @@ fiscal_model/ptc.py
 fiscal_model/tax_expenditures.py
 fiscal_model/tax_expenditures_core.py
 fiscal_model/tax_expenditures_factory.py
+fiscal_model/ui/charts.py
