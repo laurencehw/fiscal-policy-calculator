@@ -18,6 +18,7 @@ from fiscal_model.ui.a11y import (
     format_currency_rows,
     render_accessible_chart,
 )
+from fiscal_model.ui.charts import apply_base_layout, horizontal_legend
 from fiscal_model.ui.share_links import build_share_url
 
 
@@ -351,7 +352,8 @@ def render_results_summary_tab(
                 totals={"marker": {"color": "#1f77b4"}},
             )
         )
-        fig_waterfall.update_layout(
+        apply_base_layout(
+            fig_waterfall,
             margin=dict(l=20, r=20, t=10, b=10),
             height=320,
             yaxis_title="Deficit Impact ($B, + = increases deficit)",
@@ -436,7 +438,8 @@ def render_results_summary_tab(
                 ],
             )
         )
-        fig_timeline.update_layout(
+        apply_base_layout(
+            fig_timeline,
             margin=dict(l=20, r=20, t=20, b=20),
             height=300,
             xaxis_title=None,
@@ -493,15 +496,13 @@ def render_results_summary_tab(
             )
         )
 
-        fig_cum.update_layout(
+        apply_base_layout(
+            fig_cum,
             margin=dict(l=20, r=20, t=20, b=20),
             height=300,
             xaxis_title=None,
             yaxis_title="Cumulative Deficit Impact ($B)",
-            legend=dict(
-                orientation="h", yanchor="bottom", y=1.02,
-                xanchor="right", x=1,
-            ),
+            legend=horizontal_legend(align="right"),
         )
         cum_rows = format_currency_rows(
             (str(int(year)), float(val))

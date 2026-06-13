@@ -16,6 +16,7 @@ from fiscal_model.ui.a11y import (
     format_currency_rows,
     render_accessible_chart,
 )
+from fiscal_model.ui.charts import apply_base_layout, horizontal_legend
 
 
 def render_dynamic_scoring_tab(
@@ -208,7 +209,8 @@ def render_dynamic_scoring_tab(
                 line=dict(color="#ff7f0e", width=2),
             )
         )
-        fig_gdp.update_layout(
+        apply_base_layout(
+            fig_gdp,
             title="GDP Effects by Year",
             xaxis_title="Year",
             yaxis_title="GDP Level Effect (%)",
@@ -218,7 +220,7 @@ def render_dynamic_scoring_tab(
                 side="right",
             ),
             height=400,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+            legend=horizontal_legend(align="center"),
             hovermode="x unified",
         )
         gdp_rows = [
@@ -252,7 +254,8 @@ def render_dynamic_scoring_tab(
                     line=dict(color="#2ca02c", width=2),
                 )
             )
-            fig_emp.update_layout(
+            apply_base_layout(
+                fig_emp,
                 title="Employment Effect (Millions of Jobs)",
                 xaxis_title="Year",
                 yaxis_title="Jobs (Millions)",
@@ -288,7 +291,8 @@ def render_dynamic_scoring_tab(
                     marker_color="#9467bd",
                 )
             )
-            fig_rev.update_layout(
+            apply_base_layout(
+                fig_rev,
                 title="Revenue Feedback by Year ($B)",
                 xaxis_title="Year",
                 yaxis_title="Revenue Feedback ($B)",
