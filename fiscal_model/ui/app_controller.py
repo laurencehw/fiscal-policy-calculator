@@ -136,7 +136,7 @@ def render_data_status(st_module: Any, deps: Any) -> None:
     and FRED data status. Placed at the bottom of the sidebar.
     """
     try:
-        from fiscal_model.health import check_health
+        from fiscal_model.health import check_health, summarize_data_degradation
 
         def _status_icon(status: str | None) -> str:
             if status == "ok":
@@ -198,6 +198,20 @@ def render_data_status(st_module: Any, deps: Any) -> None:
 
         st_module.markdown("---")
         st_module.markdown("**📊 Data Status**")
+
+        # Prominent degraded-mode banner: don't make the user infer it from a
+        # yellow dot. Summarises *why* the app is running on fallback data.
+        degradation = summarize_data_degradation(health)
+        if degradation["is_degraded"]:
+            reason_lines = "\n".join(f"- {r}" for r in degradation["reasons"])
+            if degradation["severity"] == "error":
+                st_module.error(
+                    "🔴 **Data error — results may be unreliable**\n\n" + reason_lines
+                )
+            else:
+                st_module.warning(
+                    "🟡 **Running in degraded data mode**\n\n" + reason_lines
+                )
 
         st_module.markdown(
             f"{_status_icon(baseline.get('status'))} **Baseline:** {baseline_summary}"
@@ -287,8 +301,10 @@ def render_data_status(st_module: Any, deps: Any) -> None:
 
             if microdata.get("status") in {"ok", "degraded"}:
                 _render_augmentation_preview(st_module, microdata)
-    except Exception:
-        pass
+    except Exception as exc:
+        # Don't let a data-status rendering failure vanish silently — the
+        # sidebar indicator is itself a signal, so surface that it broke.
+        st_module.caption(f"⚪ Data status unavailable ({type(exc).__name__}).")
 
 
 def _render_augmentation_preview(st_module: Any, microdata: dict) -> None:
@@ -534,7 +550,7 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
     except AttributeError:  # older Streamlit
         try:
             _query_params = st_module.experimental_get_query_params()
-        except Exception:  # noqa: BLE001
+        except Exception:
             _query_params = {}
     show_admin = is_admin_request(_query_params)
 

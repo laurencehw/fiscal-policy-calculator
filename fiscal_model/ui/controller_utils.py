@@ -81,15 +81,25 @@ def render_input_guardrails(st_module: Any, tax_inputs: dict[str, Any]) -> None:
             "CBO uses 0.25. Results may overstate behavioral responses."
         )
 
-    # Check income threshold
-    if threshold > 10_000_000:
-        st_module.info(
-            f"ℹ️ Very few taxpayers earn above ${threshold:,}. "
-            "The scored effect may be near zero."
+    # Check income threshold. Very high thresholds don't drive the effect to
+    # zero (the few filers above them have very large incomes) — the real issue
+    # is that SOI coverage of the top tail is thin, so the estimate is less
+    # reliable. Flag that honestly *before* the user reads the number.
+    if threshold > 5_000_000:
+        st_module.warning(
+            f"⚠️ Above \\${threshold:,.0f} only a sliver of filers remain, where "
+            "SOI sampling is sparse. Treat the scored effect as a rough top-tail "
+            "estimate rather than a precise figure."
         )
 
     # Check rate change magnitude
-    if abs(rate_change_pct) > 10.0:
+    if abs(rate_change_pct) > 20.0:
+        st_module.warning(
+            f"⚠️ A {rate_change_pct:+.1f}pp rate change is very large — well outside "
+            "the range where the linear behavioral model is calibrated. The top "
+            "marginal rate is currently 37%; results are directional only."
+        )
+    elif abs(rate_change_pct) > 10.0:
         st_module.info(
             f"ℹ️ A {rate_change_pct:+.1f}pp rate change is large. "
             "For context, the top marginal rate is currently 37%."
