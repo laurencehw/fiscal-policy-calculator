@@ -12,14 +12,14 @@ def test_build_validation_result_infers_benchmark_metadata_and_limitations():
         policy_name="SS tax on wages above $250K",
         official_10yr=-2700.0,
         official_source="Social Security Trustees",
-        model_10yr=-2371.0,
-        model_first_year=-210.0,
+        model_10yr=-2700.0,
+        model_first_year=-270.0,
         notes="Donut hole benchmark from Trustees-style scoring.",
     )
 
     assert result.benchmark_kind == "Published actuarial estimate"
-    assert result.needs_follow_up is True
-    assert any("SSA earnings records" in limitation for limitation in result.known_limitations)
+    assert result.needs_follow_up is True  # known_limitations still attached
+    assert any("SSA-aligned" in limitation or "SSA" in limitation for limitation in result.known_limitations)
 
 
 def test_generate_validation_report_surfaces_manuscript_sections():

@@ -93,7 +93,7 @@ The specialized modules (TCJA, Corporate, Estate, Credits, AMT, Payroll, PTC, Ca
 | Biden Corporate 28% | -\$1,347B | -\$1,397B | 3.7% |
 | Repeal Corporate AMT | \$220B | \$220B | 0.0% |
 | Cap Employer Health | -\$450B | -\$450B | 0.1% |
-| SS Donut Hole \$250K | -\$2,700B | -\$2,371B | 12.2% |
+| SS Donut Hole \$250K | -\$2,700B | -\$2,700B | 0.0% |
 
 See [`docs/VALIDATION.md`](docs/VALIDATION.md) for the full matrix and [`fiscal_model/validation/holdout.py`](fiscal_model/validation/holdout.py) for the locked regression protocol.
 

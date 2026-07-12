@@ -506,7 +506,7 @@ The benefit offset accounts for the fact that higher earnings generate higher So
 
 The "donut hole" exempts wages between the current cap ($168,600) and a higher threshold (e.g., $400,000), then reapplies the payroll tax above that threshold. Revenue is lower than full cap removal because high earners between the two thresholds are exempt.
 
-**Calibration**: SS donut hole at $250K estimated at $2,371B/10yr vs. CBO's $2,700B (12.2% error — within acceptable range given complexity of benefit-offset modeling).
+**Calibration**: SS donut hole at $250K scores $2,700B/10yr vs Trustees $2,700B (~0% — window-average annuals plus SSA-aligned covered-wage bands; see VALIDATION_NOTES §1).
 
 ### NIIT Expansion
 
@@ -1003,7 +1003,7 @@ Specialized modules parameterized to reproduce the published decomposition. Usef
 | FDII Repeal | −$200B | −$200B | 0.0% | calibrated |
 | **Biden CTC 2021** | **$1,600B** | **$1,600B** | **0.0%** | calibrated |
 | **Estate: Biden Reform** | **−$450B** | **−$496B** | **10.1%** | calibrated |
-| **SS Donut Hole $250K** | **−$2,700B** | **−$2,371B** | **12.2%** | calibrated |
+| **SS Donut Hole $250K** | **−$2,700B** | **−$2,700B** | **0.0%** | calibrated |
 | **Repeal Corporate AMT** | **$220B** | **$220B** | **0.0%** | calibrated |
 | **Cap Employer Health** | **−$450B** | **−$450B** | **0.1%** | calibrated |
 | IRA Enforcement ($80B) | −$200B | −$200B | ~0% | calibrated |

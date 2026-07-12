@@ -301,7 +301,7 @@ Completed:
 11. ✅ `GET /summary`, `GET /benchmarks` API endpoints + `scripts/run_validation_dashboard.py` CI gate
 12. ✅ **Ask assistant** — citation-grounded Q&A, 19 curated authoritative snapshots, streaming tool-use loop, `/ask` + `/ask/stream` (SSE) endpoints, token-gated admin dashboard, share-link encoding, hard daily cost cap, /health + /readiness integration. 105 tests across the assistant stack.
 
-Next: broaden multi-model pilots further (more microsim reform mappings) and close high-error calibrated residuals (SS donut wage base, estate). ARP Recovery Rebate is already wired into the `CBO_ARP_2021` distributional bundle; the remaining ~7pp ARP distributional gap is children-in-household microsim detail. See `planning/NEXT_STEPS.md`.
+Next: close the estate-tax two-regime Pareto residual (~10%) and broaden multi-model microsim reform mappings further. SS donut / eliminate-cap / 90% coverage now use SSA-aligned covered-wage bands + window-average annuals (no growth double-count). ARP Recovery Rebate is already wired into the `CBO_ARP_2021` distributional bundle; the remaining ~7pp ARP distributional gap is children-in-household microsim detail. See `planning/NEXT_STEPS.md`.
 
 ## Target Validation
 
@@ -317,7 +317,7 @@ Next: broaden multi-model pilots further (more microsim reform mappings) and clo
 | **Corporate 21%→28%** | **-$1,347B** | **-$1,397B** | **3.7%** |
 | **Biden CTC 2021** | **$1,600B** | **$1,600B** | **0.0%** |
 | **Estate: Biden Reform** | **-$450B** | **-$496B** | **10.1%** |
-| **SS Donut $250K** | **-$2,700B** | **-$2,371B** | **12.2%** |
+| **SS Donut $250K** | **-$2,700B** | **-$2,700B** | **0.0%** |
 | **Repeal Corporate AMT** | **$220B** | **$220B** | **0.0%** |
 | **Cap Employer Health** | **-$450B** | **-$450B** | **0.1%** |
 

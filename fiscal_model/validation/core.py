@@ -22,14 +22,14 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "The current credit module extrapolates from bracket-level aggregates rather than return-level household data.",
     ],
     "ss_cap_90_pct": [
-        "High-earner wage tails are approximated from aggregate wage distributions rather than SSA earnings records.",
+        "Covered-wage bands are SSA-aligned aggregates, not worker-level SSA earnings records.",
     ],
     "ss_donut_250k": [
-        "High-earner wage tails are approximated from aggregate wage distributions rather than SSA earnings records.",
+        "Covered-wage bands are SSA-aligned aggregates, not worker-level SSA earnings records.",
         "Benefit-offset and taxable-benefit interactions are simplified relative to Trustees methodology.",
     ],
     "ss_eliminate_cap": [
-        "High-earner wage tails are approximated from aggregate wage distributions rather than SSA earnings records.",
+        "Covered-wage bands are SSA-aligned aggregates, not worker-level SSA earnings records.",
         "Benefit-offset and taxable-benefit interactions are simplified relative to Trustees methodology.",
     ],
     "expand_niit": [

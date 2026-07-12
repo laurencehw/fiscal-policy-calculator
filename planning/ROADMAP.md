@@ -32,7 +32,7 @@
 | `international.py` | GILTI, FDII, Pillar Two, UTPR | 3.2% error |
 | `credits.py` | CTC, EITC expansions | ~0% (window-average annuals) |
 | `estate.py` | TCJA extension, Biden reform, repeal | 10.1% error |
-| `payroll.py` | SS cap, donut hole, NIIT | 12.2% error |
+| `payroll.py` | SS cap, donut hole, NIIT | ~0% (window-average + SSA wage bands) |
 | `amt.py` | Individual/corporate AMT | 0.0% error |
 | `ptc.py` | ACA premium tax credits | Validated |
 | `tax_expenditures.py` | SALT, employer health, step-up, charitable | 0.1% error |

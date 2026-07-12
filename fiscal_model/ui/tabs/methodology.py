@@ -634,7 +634,7 @@ def render_methodology_tab(st_module: Any) -> None:
 | Biden Corporate 28% | -\$1,347B | -\$1,397B | 3.7% | Treasury |
 | Biden CTC 2021 | \$1,600B | \$1,600B | 0.0% | JCT |
 | Estate: Biden Reform | -\$450B | -\$496B | 10.1% | Treasury |
-| SS Donut Hole \$250K | -\$2,700B | -\$2,371B | 12.2% | CBO |
+| SS Donut Hole \$250K | -\$2,700B | -\$2,700B | 0.0% | Trustees |
 | Repeal Corporate AMT | \$220B | \$220B | 0.0% | CBO |
 | Cap Employer Health | -\$450B | -\$450B | 0.1% | JCT |
 """)
