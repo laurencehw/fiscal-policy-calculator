@@ -132,12 +132,27 @@ def render_distribution_tab(
         dist_analysis = st_module.session_state.get(cache_key) if cache_key else None
         if dist_analysis is None:
             with st_module.spinner("Analyzing distributional impact..."):
-                if use_microsim:
-                    dist_analysis = dist_engine.analyze_policy_microsim(policy, group_type=group_type)
-                else:
-                    dist_analysis = dist_engine.analyze_policy(policy, group_type=group_type)
-            if use_microsim:
-                st_module.info("📊 Using microsimulation (individual-level tax calculation)")
+                # Checkbox maps to prefer_microsim. When True (default), analyze_policy
+                # routes representable policies through return-level microsim and falls
+                # back to synthetic brackets otherwise. When False, force synthetic.
+                dist_analysis = dist_engine.analyze_policy(
+                    policy,
+                    group_type=group_type,
+                    prefer_microsim=use_microsim,
+                )
+            engine_label = getattr(dist_analysis, "engine", None) or (
+                "microsim" if use_microsim else "synthetic"
+            )
+            if str(engine_label).lower().startswith("micro"):
+                st_module.info(
+                    "Using return-level microsimulation "
+                    "(ordinary/preferential rates, SALT, refundable credits)."
+                )
+            else:
+                st_module.caption(
+                    "Using synthetic bracket path "
+                    "(policy not microsim-representable, or microsim disabled)."
+                )
             if cache_key:
                 st_module.session_state[cache_key] = dist_analysis
         st_module.subheader("Summary")

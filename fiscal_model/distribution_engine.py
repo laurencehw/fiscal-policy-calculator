@@ -158,6 +158,7 @@ class DistributionalEngine:
             results=results,
             total_tax_change=total_tax_change,
             total_affected_returns=total_affected,
+            engine="synthetic",
         )
 
     def analyze_policy_microsim(
@@ -284,6 +285,7 @@ class DistributionalEngine:
             results=results,
             total_tax_change=total_tax_change,
             total_affected_returns=total_affected,
+            engine="microsim",
         )
 
     def create_top_income_breakout(

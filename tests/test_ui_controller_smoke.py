@@ -344,7 +344,7 @@ def test_render_result_tabs_shows_stale_warnings():
         "macro_model": "FRBUSAdapterLite",
         "data_year": 2022,
         "use_real_data": True,
-        "use_microsim_distribution": False,
+        "use_microsim_distribution": True,
     }
 
     render_result_tabs(
@@ -415,7 +415,7 @@ def test_render_result_tabs_contains_tab_failures():
         "macro_model": "FRBUSAdapterLite",
         "data_year": 2022,
         "use_real_data": True,
-        "use_microsim_distribution": False,
+        "use_microsim_distribution": True,
     }
 
     render_result_tabs(

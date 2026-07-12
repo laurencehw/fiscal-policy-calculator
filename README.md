@@ -99,7 +99,7 @@ See [`docs/VALIDATION.md`](docs/VALIDATION.md) for the full matrix and [`fiscal_
 
 **Distributional accuracy** — 6 benchmarks wired end-to-end against the distributional engine. Accuracy is the mean absolute share error across each benchmark's income groups; live numbers are exposed via `GET /benchmarks` and `scripts/run_validation_dashboard.py`.
 
-The default distributional engine is now the **return-level microsimulation** (correct ordinary/preferential rate treatment, real SALT modeling, refundable credits). Where a policy isn't yet microsim-representable it falls back to the synthetic bracket path. The `Engine` column says which produced each number.
+The default distributional engine is now the **return-level microsimulation** (correct ordinary/preferential rate treatment, real SALT modeling, refundable credits). The Streamlit **Distribution** setting defaults on and maps to `prefer_microsim`; uncheck it to force the synthetic bracket path. Where a policy isn't yet microsim-representable the engine falls back automatically. The `Engine` column / result `engine` field says which path produced each number.
 
 | Benchmark | Source | Engine | Rating | Err (pp) |
 |-----------|--------|--------|--------|---------:|
