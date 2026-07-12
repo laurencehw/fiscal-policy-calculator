@@ -90,6 +90,14 @@ BASELINE_ESTATE_DATA = {
     "avg_taxable_amount_tcja": 8_000_000,  # ~$8M average for top estates
     "avg_taxable_amount_post_tcja": 4_000_000,  # More estates but smaller avg
 
+    # Two-regime value split (IRS SOI Table 1 Part II style):
+    # estates above $50M are few by count but dominate taxable VALUE.
+    # A single mid-distribution Pareto underweights this tail (~10%).
+    "top_tail_threshold": 50_000_000,
+    "top_tail_count_share": 0.08,  # ~8% of taxable returns above $50M
+    "top_tail_value_share": 0.55,  # ~55% of taxable estate value above $50M
+    "top_tail_avg_multiplier": 12.0,  # top-regime avg / mid-regime avg
+
     # Total deaths per year
     "annual_deaths": 2_800_000,
 
@@ -206,8 +214,10 @@ class EstateTaxPolicy(TaxPolicy):
         """
         Estimate number of taxable estates and average taxable amount.
 
-        Uses relationship between exemption level and taxable estates.
-        Higher exemption = fewer estates pay tax.
+        Uses relationship between exemption level and taxable estates, then
+        blends a two-regime (mid / $50M+) average so the ultra-high tail is
+        not underweighted the way a single mid-distribution Pareto is
+        (VALIDATION_NOTES §3).
 
         Args:
             exemption: Effective exemption level
@@ -216,6 +226,7 @@ class EstateTaxPolicy(TaxPolicy):
         Returns:
             Tuple of (number of taxable estates, average taxable amount)
         """
+        del year
         # Reference points
         tcja_exemption = 14_000_000
         tcja_estates = BASELINE_ESTATE_DATA["taxable_estates_tcja"]
@@ -230,19 +241,32 @@ class EstateTaxPolicy(TaxPolicy):
             # Very high exemption - fewer estates
             scale = tcja_exemption / exemption
             estates = int(tcja_estates * scale)
-            avg_amount = tcja_avg * (1 + (exemption - tcja_exemption) / tcja_exemption)
+            mid_avg = tcja_avg * (1 + (exemption - tcja_exemption) / tcja_exemption)
         elif exemption <= post_tcja_exemption:
             # Low exemption - more estates
-            scale = post_tcja_exemption / exemption
+            scale = post_tcja_exemption / max(exemption, 1.0)
             estates = int(post_tcja_estates * scale)
-            avg_amount = post_tcja_avg * (exemption / post_tcja_exemption)
+            mid_avg = post_tcja_avg * (exemption / post_tcja_exemption)
         else:
             # Linear interpolation
             frac = (exemption - post_tcja_exemption) / (tcja_exemption - post_tcja_exemption)
             estates = int(post_tcja_estates + frac * (tcja_estates - post_tcja_estates))
-            avg_amount = post_tcja_avg + frac * (tcja_avg - post_tcja_avg)
+            mid_avg = post_tcja_avg + frac * (tcja_avg - post_tcja_avg)
 
-        return estates, avg_amount
+        # Two-regime blend: mid-tier + ultra-high ($50M+) value share.
+        # Lower exemptions pull in more mid-tier estates, so the top-tail
+        # *value* share falls slightly; high exemptions are almost all tail.
+        top_share = float(BASELINE_ESTATE_DATA["top_tail_value_share"])
+        if exemption <= post_tcja_exemption:
+            # More mass in the mid regime → slightly lower value share in top
+            top_share *= 0.90
+        elif exemption >= tcja_exemption:
+            top_share = min(0.70, top_share * 1.15)
+
+        top_avg = mid_avg * float(BASELINE_ESTATE_DATA["top_tail_avg_multiplier"])
+        blended_avg = (1.0 - top_share) * mid_avg + top_share * top_avg
+
+        return estates, float(blended_avg)
 
     def estimate_static_revenue_effect(
         self,
@@ -319,7 +343,7 @@ class EstateTaxPolicy(TaxPolicy):
 # =============================================================================
 
 def create_tcja_estate_extension(
-    start_year: int = 2026,
+    start_year: int = 2025,
     duration_years: int = 10,
 ) -> EstateTaxPolicy:
     """
@@ -336,8 +360,9 @@ def create_tcja_estate_extension(
         policy_type=PolicyType.ESTATE_TAX,
         extend_tcja_exemption=True,
         planning_elasticity=0.0,  # Behavioral response already in calibration
-        # Calibrated to CBO $167B over 10 years (with 3% annual growth)
-        annual_revenue_change_billions=-14.6,
+        gift_shifting_elasticity=0.0,
+        # Window-average of CBO $167B / 10yr (do not grow again in the scorer)
+        annual_revenue_change_billions=-16.7,
         start_year=start_year,
         duration_years=duration_years,
     )
@@ -366,8 +391,9 @@ def create_biden_estate_proposal(
         new_exemption=exemption,
         new_rate=rate,
         planning_elasticity=0.0,  # Behavioral response in calibration
-        # Calibrated to Treasury ~$450B over 10 years (with 3% growth)
-        annual_revenue_change_billions=39.3,
+        gift_shifting_elasticity=0.0,
+        # Window-average of Treasury $450B / 10yr (do not grow again in the scorer)
+        annual_revenue_change_billions=45.0,
         start_year=start_year,
         duration_years=duration_years,
     )
@@ -395,8 +421,9 @@ def create_warren_estate_proposal(
         new_rate=0.55,  # Effective average rate
         limit_valuation_discounts=True,
         discount_limit_pct=0.10,
-        planning_elasticity=0.25,  # High response to aggressive policy
-        # Penn Wharton estimated ~$2.6T over 10 years
+        planning_elasticity=0.0,  # Behavioral already in PWBM-style calibration
+        gift_shifting_elasticity=0.0,
+        # Window-average of PWBM ~$2.6T / 10yr (do not grow again in the scorer)
         annual_revenue_change_billions=260.0,
         start_year=start_year,
         duration_years=duration_years,
@@ -493,8 +520,9 @@ def create_eliminate_estate_tax(
         new_exemption=float('inf'),  # Effectively no tax
         new_rate=0.0,
         planning_elasticity=0.0,  # No behavioral offset needed
-        # Calibrated: ~$350B over 10 years (with 3% growth)
-        annual_revenue_change_billions=-30.6,
+        gift_shifting_elasticity=0.0,
+        # Window-average of ~$350B / 10yr foregone revenue
+        annual_revenue_change_billions=-35.0,
         start_year=start_year,
         duration_years=duration_years,
     )

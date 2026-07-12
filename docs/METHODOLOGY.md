@@ -482,7 +482,7 @@ When the exemption changes (e.g., TCJA doubled it to ~$13M per person), the mode
 
 Estate planning elasticity varies with exemption level. At higher exemptions, fewer estates are affected and avoidance is less prevalent. The model uses a conservative offset (20% behavioral reduction) consistent with CBO estimates.
 
-**Calibration**: Biden estate reform (Biden 2021 proposal, ~−$450B/10yr) estimated at −$496B (10.1% error).
+**Calibration**: Biden estate reform (Treasury ~−$450B/10yr) scores −$450B (~0% — window-average annuals, no growth/behavioral double-count; two-regime taxable-amount blend for bottom-up path).
 
 ---
 
@@ -1002,8 +1002,13 @@ Specialized modules parameterized to reproduce the published decomposition. Usef
 | Biden GILTI Reform | −$280B | −$271B | 3.2% | calibrated |
 | FDII Repeal | −$200B | −$200B | 0.0% | calibrated |
 | **Biden CTC 2021** | **$1,600B** | **$1,600B** | **0.0%** | calibrated |
+<<<<<<< HEAD
+| **Estate: Biden Reform** | **−$450B** | **−$450B** | **0.0%** | calibrated |
+| **SS Donut Hole $250K** | **−$2,700B** | **−$2,371B** | **12.2%** | calibrated |
+=======
 | **Estate: Biden Reform** | **−$450B** | **−$496B** | **10.1%** | calibrated |
 | **SS Donut Hole $250K** | **−$2,700B** | **−$2,700B** | **0.0%** | calibrated |
+>>>>>>> origin/main
 | **Repeal Corporate AMT** | **$220B** | **$220B** | **0.0%** | calibrated |
 | **Cap Employer Health** | **−$450B** | **−$450B** | **0.1%** | calibrated |
 | IRA Enforcement ($80B) | −$200B | −$200B | ~0% | calibrated |
