@@ -41,6 +41,7 @@ def _build_policy_for_comparison(
         duration_years=max(1, int(preset.get("duration_years", 10))),
         phase_in_years=max(1, int(preset.get("phase_in_years", 1))),
         taxable_income_elasticity=float(preset.get("eti", 0.25)),
+        ordinary_income_base=not bool(preset.get("agi_inclusive_base", False)),
     )
 
 

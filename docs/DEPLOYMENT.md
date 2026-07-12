@@ -25,6 +25,30 @@ Recommended setting:
 
 Use the same target when reproducing production issues locally.
 
+## Docker
+
+A `Dockerfile` installs from `requirements-lock.txt` and serves Streamlit on port 8501.
+
+```bash
+docker build -t fiscal-policy-calculator .
+docker run --rm -p 8501:8501 fiscal-policy-calculator
+```
+
+Optional dual-service stack (Streamlit + FastAPI):
+
+```bash
+docker compose up --build
+# UI  http://localhost:8501
+# API http://localhost:8000/docs
+```
+
+Regenerate the lockfile after changing `requirements.txt` (Python 3.12 recommended):
+
+```bash
+pip install pip-tools
+python scripts/compile_requirements_lock.py
+```
+
 ## CI and Smoke Checks
 
 The GitHub Actions workflow now enforces the same coverage floor as local development, includes a dedicated smoke job for the Streamlit boot path, and runs a production-runtime readiness gate.

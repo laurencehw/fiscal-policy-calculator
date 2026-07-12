@@ -221,7 +221,14 @@ class TaxCreditPolicy(TaxPolicy):
     def estimate_behavioral_offset(self, static_effect: float) -> float:
         """
         Estimate behavioral response to credit changes.
+
+        When ``annual_revenue_change_billions`` is an explicit window-average
+        calibration to an official score, skip additional behavioral haircuts
+        so we do not erode a figure that already embeds official assumptions.
         """
+        if self.annual_revenue_change_billions is not None:
+            return 0.0
+
         if self.credit_type == CreditType.EARNED_INCOME_CREDIT:
             return static_effect * 0.12
 
@@ -262,8 +269,14 @@ def estimate_credit_cost(policy: TaxCreditPolicy) -> dict:
     behavioral = -policy.estimate_behavioral_offset(-annual_static)
 
     years = np.arange(10)
-    annual_costs = annual_static * (1.03**years)
-    behavioral_offsets = behavioral * (1.03**years)
+    # Window-average annuals (explicit annual_revenue_change_billions) stay flat;
+    # bottom-up unit×credit estimates still grow with nominal income.
+    if policy.annual_revenue_change_billions is not None:
+        annual_costs = np.full(10, annual_static)
+        behavioral_offsets = np.full(10, behavioral)
+    else:
+        annual_costs = annual_static * (1.03**years)
+        behavioral_offsets = behavioral * (1.03**years)
 
     ten_year_static = np.sum(annual_costs)
     ten_year_behavioral = np.sum(behavioral_offsets)

@@ -68,6 +68,9 @@ def create_biden_ctc_2021() -> TaxCreditPolicy:
         phase_out_rate=0.05,
         make_fully_refundable=True,
         participation_rate=0.92,
+        # Window-average annual already embeds official behavioral assumptions.
+        taxable_income_elasticity=0.0,
+        labor_supply_elasticity=0.0,
         annual_revenue_change_billions=-160.0,
         start_year=2025,
         duration_years=10,
@@ -137,6 +140,8 @@ def create_ctc_permanent_extension() -> TaxCreditPolicy:
         refund_rate=CTC_CURRENT_LAW["refund_rate"],
         refund_threshold=CTC_CURRENT_LAW["refund_threshold"],
         participation_rate=0.90,
+        taxable_income_elasticity=0.0,
+        labor_supply_elasticity=0.0,
         annual_revenue_change_billions=-60.0,
         start_year=2026,
         duration_years=10,

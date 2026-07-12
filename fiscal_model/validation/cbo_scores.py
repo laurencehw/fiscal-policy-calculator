@@ -69,6 +69,10 @@ class CBOScore:
     baseline_year: int = 2024
     budget_window: str = "FY2025-2034"
     notes: str | None = None
+    # When True, the rate change applies to AGI-inclusive income (incl. preferential
+    # capital gains / QDIV). Ordinary-bracket rate changes leave this False so the
+    # Generic scorer excludes preferential income via ordinary_income_base=True.
+    agi_inclusive_base: bool = False
 
 
 # =============================================================================

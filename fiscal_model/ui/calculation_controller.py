@@ -178,6 +178,7 @@ def execute_calculation_if_requested(
             duration=tax_inputs["duration"],
             phase_in=tax_inputs["phase_in"],
             eti=tax_inputs["eti"],
+            ordinary_income_base=bool(tax_inputs.get("ordinary_income_base", True)),
             manual_taxpayers=tax_inputs["manual_taxpayers"],
             manual_avg_income=tax_inputs["manual_avg_income"],
             cg_base_year=tax_inputs["cg_base_year"],

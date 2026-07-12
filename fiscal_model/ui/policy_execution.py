@@ -86,6 +86,7 @@ def calculate_tax_policy_result(
     duration: int,
     phase_in: int,
     eti: float,
+    ordinary_income_base: bool,
     manual_taxpayers: float,
     manual_avg_income: float,
     cg_base_year: int,
@@ -171,6 +172,7 @@ def calculate_tax_policy_result(
             duration_years=duration,
             phase_in_years=phase_in,
             taxable_income_elasticity=eti,
+            ordinary_income_base=ordinary_income_base,
         )
 
     if policy_type != "Capital Gains" and manual_taxpayers > 0:

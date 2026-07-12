@@ -111,22 +111,23 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
                 )
 
             use_microsim_general = st_module.checkbox(
-                "Microsimulation mode (experimental)",
+                "Microsimulation mode for revenue scoring (experimental)",
                 value=False,
                 help=(
-                    "Calculate taxes for individual households (JCT-style) instead of "
-                    "bracket averages. More accurate for policies with phase-outs, "
-                    "but requires CPS microdata and is slower."
+                    "Score revenue via individual tax units (JCT-style) instead of "
+                    "bracket averages. More accurate for phase-outs, but requires "
+                    "CPS microdata and is slower. Leave off for the validated "
+                    "aggregate revenue path."
                 ),
             )
 
             use_microsim_distribution = st_module.checkbox(
-                "Use microsimulation for distributional analysis",
-                value=False,
+                "Return-level microsim for distributional analysis",
+                value=True,
                 help=(
-                    "Microsim captures provision interactions (AMT + SALT + CTC phase-outs) "
-                    "that aggregate models miss. Individual-level tax calculation for "
-                    "more accurate 'who pays' analysis."
+                    "Default on. Uses return-level microsimulation for who-pays "
+                    "tables (ordinary vs preferential rates, SALT, refundable "
+                    "credits). Uncheck to force the synthetic bracket path."
                 ),
             )
 

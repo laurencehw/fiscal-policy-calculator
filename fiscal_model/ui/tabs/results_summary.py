@@ -102,6 +102,8 @@ def _build_credibility_html(credibility: Any) -> str:
         <p style="margin:0.25rem 0; color:#526071;">
             Evidence type: <strong>{evidence}</strong> · Holdout status: <strong>{holdout}</strong>.
             This is a model-validation range, not an official CBO/JCT score.
+            Calibrated reconstructions (~6% mean) and out-of-sample predictions (~19% mean)
+            are different tiers — do not collapse them into one accuracy claim.
         </p>
         <details style="margin-top:0.45rem;">
             <summary style="cursor:pointer; color:#334155; font-weight:600;">Known caveats</summary>

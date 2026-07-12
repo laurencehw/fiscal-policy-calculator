@@ -221,7 +221,17 @@ def test_estimate_credit_cost_returns_consistent_totals():
     policy = create_biden_ctc_2021()
     estimate = estimate_credit_cost(policy)
     assert estimate["annual_cost"] > 0
-    assert estimate["ten_year_cost"] > estimate["annual_cost"]
+    # Explicit window-average annuals stay flat (no 3% growth double-count).
+    assert estimate["ten_year_cost"] == pytest.approx(estimate["annual_cost"] * 10)
     assert estimate["net_cost"] == pytest.approx(
         estimate["ten_year_cost"] - estimate["behavioral_offset"]
     )
+
+
+def test_biden_ctc_matches_cbo_window_average():
+    """Calibrated −$160B/yr × 10yr should hit CBO $1,600B without growth inflation."""
+    from fiscal_model.scoring import FiscalPolicyScorer
+
+    policy = create_biden_ctc_2021()
+    total = FiscalPolicyScorer(use_real_data=True).score_policy(policy).total_10_year_cost
+    assert total == pytest.approx(1600.0, rel=0.02)

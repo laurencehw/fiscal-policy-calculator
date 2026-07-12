@@ -131,6 +131,8 @@ class DistributionalAnalysis:
     results: list[DistributionalResult] = field(default_factory=list)
     total_tax_change: float = 0.0
     total_affected_returns: int = 0
+    # Which path produced this analysis: "microsim" or "synthetic".
+    engine: str = "synthetic"
 
     def get_winners(self) -> list[DistributionalResult]:
         """Get income groups that receive a net tax cut."""

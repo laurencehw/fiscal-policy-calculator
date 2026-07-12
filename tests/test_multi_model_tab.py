@@ -43,6 +43,9 @@ class _StubStreamlit:
     def error(self, text):
         self.calls.append(("error", text))
 
+    def success(self, text):
+        self.calls.append(("success", text))
+
     def caption(self, text):
         self.calls.append(("caption", text))
 

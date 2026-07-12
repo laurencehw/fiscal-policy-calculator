@@ -87,7 +87,7 @@ eliminate-cap scenarios all inside 5% of official — a one-week project.
 
 ---
 
-## 2. Biden CTC 2021 (permanent) — 8.9% error
+## 2. Biden CTC 2021 (permanent) — revenue residual (mostly closed)
 
 **Policy**: Make the American Rescue Plan CTC permanent — $3,000 per
 child ages 6–17, $3,600 per child under 6, fully refundable, no
@@ -95,10 +95,14 @@ earnings requirement.
 
 | Source | 10-year cost | Model | Error |
 |--------|-------------:|------:|------:|
-| CBO (2021) | $1,600B | $1,743B | **8.9%** |
+| CBO (2021) | $1,600B | ~$1,600B | **~0%** after window-average fix |
 
-The same 8.9% overstatement appears in the "CTC extension" scenario — again
-a systematic fingerprint.
+**Closed (2026-07):** The prior **8.9%** overstatement ($1,743B) came from
+applying 3% nominal growth on top of an explicit window-average annual
+(`annual_revenue_change_billions=-160`, i.e. CBO $1,600B / 10). That
+double-counted. `FiscalPolicyScorer` and `estimate_credit_cost` now leave
+explicit annuals flat over the window; bottom-up unit×credit estimates
+still grow at 3%. Factory already sets `participation_rate=0.92`.
 
 **Related distributional gap** (9.30pp on the CBO_ARP_2021 quintile
 benchmark, **tightened to 7.54pp** after the ARP bundle fix) was a
@@ -117,64 +121,21 @@ steps taken (Apr 2026):
   so the 4th quintile captures joint filers whose married threshold
   is above their AGI even when the single threshold isn't.
 
-Residual 7.54pp gap traces to how CBO models children-in-household
+Residual 7.54pp distributional gap traces to how CBO models children-in-household
 distribution for the Recovery Rebate — a microsim-level detail that
-bracket-aggregate scoring can't replicate without returning to
-return-level data.
+bracket-aggregate scoring can't replicate without return-level data.
 
-### Mechanical cause
+### Remaining (bottom-up path only)
 
-`fiscal_model/credits_core.py` scores CTC by:
-1. Computing eligible children from IRS SOI bracket aggregates.
-2. Multiplying by the per-child credit amount.
-3. Applying a phase-in schedule for earnings >$2,500 (current-law rule).
+When the calibrated annual is not used, zero-earner children and joint
+EITC/CTC phase-outs still matter:
 
-For the ARP 2021 design, steps 1–3 are applied as if the universe of
-*recipients* is the same set of tax filers as the current-law CTC.
+| Change | Expected residual | Effort |
+|--------|------------------:|:------:|
+| Pub 5307 zero-earner counts | ~3% | 3–5 days |
+| Joint EITC/CTC phase-outs in microsim | +1–2% | 1 week |
 
-### Data cause
-
-The ARP 2021 design explicitly extended full refundability to filers with
-**zero earned income** — roughly 4.4 million children in families that
-file protective returns but have no W-2 wages. IRS SOI bracket aggregates
-are earnings-indexed and undercount this group (they appear as "AGI < $1"
-or are missing entirely from the SOI Table 1.1 derivation the model uses).
-
-Because the model's baseline *includes* these children at the full credit,
-it over-predicts cost by the right amount to match the 8.9% gap:
-
-```
-4.4M children × $3,600 × 10 years × inflation ≈ $170B overstatement
-$1,743B − $170B ≈ $1,573B ≈ CBO's $1,600B
-```
-
-### Methodological cause
-
-CBO's score accounts for three things the bracket-aggregate model does not:
-1. **Take-up friction**: CBO assumes ~92% take-up for expanded refundability
-   among zero-earner families (the IRS "non-filer" portal reached a limited
-   share). We implicitly assume 100%.
-2. **Phase-out interaction with EITC**: The ARP preserved EITC phase-outs.
-   CBO's microsim applies these jointly; ours applies them in sequence,
-   slightly overstating the combined cost.
-3. **Post-2025 baseline**: CBO scored against the "pre-ARP" baseline that
-   TCJA reverts to in 2026. Our baseline straddles both regimes, inflating
-   the delta in years 2026+.
-
-### Path to closure
-
-| Change | Expected gap reduction | Effort |
-|--------|-----------------------:|:------:|
-| Correct zero-earner population from IRS Pub 5307 microdata | 5–6% → ~3% | 3–5 days |
-| Joint EITC/CTC phase-out modeling in microsim path | +1–2% | 1 week (needs CPS microsim) |
-| Add take-up friction parameter (default 0.92 for expanded-refundable) | +1% | 1 day |
-
-The first change is the big win, and it only requires swapping one data
-source. The take-up correction is trivial to add once the population count
-is right.
-
-**Estimate scope**: 1 week to close to <5%; remaining gap depends on the
-CPS microsim (Priority 1) being in place.
+---
 
 ---
 

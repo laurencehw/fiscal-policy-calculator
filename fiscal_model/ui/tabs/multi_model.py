@@ -225,6 +225,27 @@ def render_multi_model_tab(
                     "spreads suggest the result is robust."
                 ),
             )
+            gap = float(bundle.max_gap)
+            costs = [float(r.ten_year_cost) for r in bundle.results]
+            if len(costs) >= 2 and max(abs(c) for c in costs) > 1:
+                rel = abs(gap) / max(abs(c) for c in costs) * 100
+                if rel >= 25:
+                    st_module.warning(
+                        f"Models disagree by ~{rel:.0f}% of the largest "
+                        "estimate — treat the headline as directional and "
+                        "read the methodology notes below."
+                    )
+                elif rel >= 10:
+                    st_module.info(
+                        f"Models disagree by ~{rel:.0f}% of the largest "
+                        "estimate. Divergence usually reflects bracket "
+                        "aggregates vs return-level interactions."
+                    )
+                else:
+                    st_module.success(
+                        f"Models agree within ~{rel:.0f}% — result looks "
+                        "robust across the pilot backends."
+                    )
 
         annual_frame = _annual_effects_frame(bundle)
         if not annual_frame.empty:

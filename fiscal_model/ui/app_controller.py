@@ -32,10 +32,17 @@ _HOW_SCORED_MARKDOWN = (
     "[Saez et al. 2012](https://eml.berkeley.edu/~saez/saez-slemrod-giertzJEL12.pdf))\n"
     "3. **Dynamic feedback** *(optional)* — GDP and employment effects using "
     "FRB/US-calibrated multipliers\n\n"
+    "**How to read the numbers (model maturity):**\n\n"
+    "- **Core (green)** — revenue, distribution, and dynamic scoring. Calibrated "
+    "reference models reproduce official decompositions (~6% mean error); "
+    "genuine out-of-sample predictions are ~19% mean error.\n"
+    "- **Specialized (yellow)** — TCJA, corporate, credits, payroll, etc. Tuned "
+    "reconstructions of published scores — transparent, not independent confirmation.\n"
+    "- **Exploratory (blue)** — Ask, Bill Tracker, multi-model pilot. Useful UX; "
+    "not validated estimates.\n\n"
     "Data: IRS Statistics of Income, FRED, CBO Baseline Projections. "
-    "25+ policies benchmarked against official CBO/JCT/Treasury scores — calibrated "
-    "reference models reproduce official decompositions; uncalibrated custom policies "
-    "are directional (mean out-of-sample error ~29%).\n\n"
+    "Every result shows a validation-evidence card — never collapse calibrated "
+    "and out-of-sample accuracy into one \"validated within X%\" claim.\n\n"
     "For background, see "
     f"[Optimal Taxation (Ch 16)]({TEXTBOOK_LINKS['optimal_taxation']}) and "
     f"[The Federal Budget (Ch 22)]({TEXTBOOK_LINKS['federal_budget']}) in the textbook."
@@ -54,20 +61,8 @@ _SECTION_ERROR_MESSAGES: dict[str, str] = {
         "The Budget Builder encountered an issue. "
         "Please try reloading the page or clearing your inputs."
     ),
-    "Generational analysis": (
-        "The Generational analysis encountered an issue. "
-        "Please try adjusting your parameters or reloading the page."
-    ),
-    "State analysis": (
-        "The State analysis encountered an issue. "
-        "Please try reloading the page."
-    ),
     "Bill Tracker": (
         "The Bill Tracker encountered an issue. "
-        "Please try reloading the page."
-    ),
-    "Validation scorecard": (
-        "The Validation scorecard encountered an issue. "
         "Please try reloading the page."
     ),
     "Methodology": (
@@ -477,8 +472,8 @@ def _render_quick_start_card(
 
 def render_quick_start(st_module: Any) -> None:
     """
-    Render a dismissible quick-start guide with question-led policy cards.
-    Auto-dismissed once results exist.
+    Render a dismissible quick-start guide with a guided first-score path
+    plus a short list of question-led policy cards.
     """
     if "quick_start_dismissed" not in st_module.session_state:
         st_module.session_state.quick_start_dismissed = False
@@ -493,22 +488,32 @@ def render_quick_start(st_module: Any) -> None:
     col1, col2 = st_module.columns([20, 1])
     with col1:
         st_module.markdown(
-            "👋 **What do you want to know?** Click a question to load the "
-            "matching preset and run the calculation instantly. Or build "
-            "your own from the sidebar."
+            "### Start here\n"
+            "1. Pick a question below (or a preset in the sidebar)\n"
+            "2. Click **Calculate Impact**\n"
+            "3. Read the headline deficit number and the **Validation evidence** card\n\n"
+            "Optional depth: Distribution, Economic Effects, and Scoring Models tabs."
         )
     with col2:
         if st_module.button("✕", key="dismiss_quick_start"):
             st_module.session_state.quick_start_dismissed = True
             st_module.rerun()
 
-    # Two rows of three cards. Streamlit columns can't easily wrap, so we
-    # render explicit row containers.
-    cards = list(_QUICK_START_CARDS)
-    for row_start in range(0, len(cards), 3):
-        row = cards[row_start : row_start + 3]
-        cols = st_module.columns(len(row))
-        for col, card in zip(cols, row, strict=True):
+    # Lead with one featured card, then a compact second row.
+    featured = _QUICK_START_CARDS[0]
+    featured_cols = st_module.columns(1)
+    _render_quick_start_card(st_module, featured_cols[0], featured)
+
+    st_module.caption("More examples")
+    cards = list(_QUICK_START_CARDS[1:4])
+    cols = st_module.columns(len(cards))
+    for col, card in zip(cols, cards, strict=True):
+        _render_quick_start_card(st_module, col, card)
+
+    with st_module.expander("More policy questions", expanded=False):
+        more = list(_QUICK_START_CARDS[4:])
+        more_cols = st_module.columns(len(more))
+        for col, card in zip(more_cols, more, strict=True):
             _render_quick_start_card(st_module, col, card)
 
     st_module.markdown("---")
@@ -517,8 +522,10 @@ def render_quick_start(st_module: Any) -> None:
 def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Path) -> None:
     """
     Render and orchestrate the full Streamlit app flow.
-    Top-level tabs: Calculator | Budget Builder | Generational | State |
-    Bill Tracker | Validation | Methodology
+
+    Top-level tabs: Calculator | Ask | Budget Builder | Bill Tracker |
+    Methodology (includes Validation). Generational and State analysis live
+    under Calculator nested tabs. Admin is inserted only when gated.
     """
     # Ensure every known session key has its declared default before any
     # widgets are constructed. Safe to call on every rerun — does not
@@ -558,10 +565,7 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         "📊 Calculator",
         "💬 Ask",
         "⚖️ Budget Builder",
-        "🌐 Generational",
-        "🗺️ State",
         "📋 Bill Tracker",
-        "✅ Validation",
         "📖 Methodology",
     ]
     if show_admin:
@@ -605,41 +609,12 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
     with top_tabs[3]:
         _render_guarded_section(
             st_module,
-            "Generational analysis",
-            lambda: _render_generational(st_module=st_module, deps=deps),
-        )
-        render_footer(st_module=st_module)
-
-    with top_tabs[4]:
-        _render_guarded_section(
-            st_module,
-            "State analysis",
-            lambda: _render_state(st_module=st_module, deps=deps),
-        )
-        render_footer(st_module=st_module)
-
-    with top_tabs[5]:
-        _render_guarded_section(
-            st_module,
             "Bill Tracker",
             lambda: deps.render_bill_tracker_tab(st_module=st_module),
         )
         render_footer(st_module=st_module)
 
-    with top_tabs[6]:
-        def _render_validation() -> None:
-            from .tabs.validation_scorecard import render_validation_scorecard_tab
-
-            render_validation_scorecard_tab(st_module=st_module)
-
-        _render_guarded_section(
-            st_module,
-            "Validation scorecard",
-            _render_validation,
-        )
-        render_footer(st_module=st_module)
-
-    with top_tabs[7]:
+    with top_tabs[4]:
         _render_guarded_section(
             st_module,
             "Methodology",
@@ -648,7 +623,7 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         render_footer(st_module=st_module)
 
     if show_admin:
-        with top_tabs[8]:
+        with top_tabs[5]:
             def _render_admin() -> None:
                 from .tabs.assistant_admin import render_assistant_admin_tab
 
@@ -761,38 +736,4 @@ def _render_budget_builder(st_module: Any, deps: Any) -> None:
         cbo_score_map=deps.CBO_SCORE_MAP,
         fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
         use_real_data=True,
-    )
-
-
-def _render_generational(st_module: Any, deps: Any) -> None:
-    """Render the top-level Generational Analysis tab."""
-    result_data = st_module.session_state.get("results")
-    run_id = st_module.session_state.get("results_run_id") or st_module.session_state.get("last_run_id")
-    deps.render_generational_analysis_tab(
-        st_module=st_module,
-        result_data=result_data,
-        run_id=run_id,
-    )
-
-
-def _render_state(st_module: Any, deps: Any) -> None:
-    """Render the top-level State Analysis tab with its own state selector."""
-    from fiscal_model.models.state.database import STATE_NAMES, SUPPORTED_STATES
-
-    state_selection = st_module.selectbox(
-        "State",
-        options=SUPPORTED_STATES,
-        format_func=lambda code: f"{code} — {STATE_NAMES[code]}",
-        key="top_level_state_select",
-        help="Select a state for combined federal + state analysis.",
-    )
-    selected_state = state_selection if state_selection else "CA"
-
-    result_data = st_module.session_state.get("results")
-    run_id = st_module.session_state.get("results_run_id") or st_module.session_state.get("last_run_id")
-    deps.render_state_analysis_tab(
-        st_module=st_module,
-        state=selected_state,
-        result_data=result_data,
-        run_id=run_id,
     )

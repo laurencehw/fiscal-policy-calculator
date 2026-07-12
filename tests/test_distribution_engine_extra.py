@@ -81,8 +81,26 @@ def test_analyze_policy_microsim_handles_empty_groups_and_weighted_changes(monke
     )
 
     assert result.year == 2026
+    assert result.engine == "microsim"
     assert result.total_tax_change == pytest.approx(0.0019)
     assert result.total_affected_returns == 2
     assert result.results[0].pct_unchanged == 100.0
     assert result.results[1].pct_with_increase == 100.0
     assert result.results[1].share_of_total_change == pytest.approx(1.0)
+
+
+def test_analyze_policy_prefer_microsim_false_forces_synthetic():
+    engine = DistributionalEngine(data_year=2022)
+    policy = TaxPolicy(
+        name="Synthetic Force",
+        description="Force bracket path",
+        policy_type=PolicyType.INCOME_TAX,
+        rate_change=0.01,
+        affected_income_threshold=400_000,
+        ordinary_income_base=True,
+    )
+    result = engine.analyze_policy(
+        policy, group_type=IncomeGroupType.QUINTILE, prefer_microsim=False
+    )
+    assert result.engine == "synthetic"
+    assert len(result.results) == 5

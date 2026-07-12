@@ -99,6 +99,13 @@ class _DummyStreamlit:
         del args, kwargs
         return _DummyContext()
 
+    def selectbox(self, *args, **kwargs):
+        del args, kwargs
+        return "CA"
+
+    def columns(self, n):
+        return [_DummyContext() for _ in range(n)]
+
 
 class _LockedWidgetSessionState(_DummySessionState):
     def __init__(self, locked_keys: set[str], **kwargs):
@@ -321,20 +328,23 @@ def test_render_result_tabs_shows_stale_warnings():
         render_multi_model_tab=lambda **kwargs: None,
         render_policy_package_tab=lambda **kwargs: None,
         render_side_by_side_tab=lambda **kwargs: None,
+        render_generational_analysis_tab=lambda **kwargs: None,
+        render_state_analysis_tab=lambda **kwargs: None,
     )
     tabs = {
         "tab_summary": _DummyContext(),
         "tab_distribution": _DummyContext(),
         "tab_economic": _DummyContext(),
         "tab_scoring": _DummyContext(),
-        "tab_compare": _DummyContext(),
+        "tab_generational": _DummyContext(),
+        "tab_state": _DummyContext(),
     }
     settings = {
         "dynamic_scoring": False,
         "macro_model": "FRBUSAdapterLite",
         "data_year": 2022,
         "use_real_data": True,
-        "use_microsim_distribution": False,
+        "use_microsim_distribution": True,
     }
 
     render_result_tabs(
@@ -389,20 +399,23 @@ def test_render_result_tabs_contains_tab_failures():
         render_policy_comparison_tab=lambda **kwargs: calls.append("comparison"),
         render_multi_model_tab=lambda **kwargs: calls.append("multi"),
         render_side_by_side_tab=lambda **kwargs: calls.append("side_by_side"),
+        render_generational_analysis_tab=lambda **kwargs: calls.append("generational"),
+        render_state_analysis_tab=lambda **kwargs: calls.append("state"),
     )
     tabs = {
         "tab_summary": _DummyContext(),
         "tab_distribution": _DummyContext(),
         "tab_economic": _DummyContext(),
         "tab_scoring": _DummyContext(),
-        "tab_compare": _DummyContext(),
+        "tab_generational": _DummyContext(),
+        "tab_state": _DummyContext(),
     }
     settings = {
         "dynamic_scoring": False,
         "macro_model": "FRBUSAdapterLite",
         "data_year": 2022,
         "use_real_data": True,
-        "use_microsim_distribution": False,
+        "use_microsim_distribution": True,
     }
 
     render_result_tabs(
@@ -419,6 +432,8 @@ def test_render_result_tabs_contains_tab_failures():
     assert "summary" in calls
     assert "dynamic" in calls
     assert "side_by_side" in calls
+    assert "generational" in calls
+    assert "state" in calls
 
 
 def test_run_main_app_contains_calculator_failure(monkeypatch):
@@ -440,21 +455,13 @@ def test_run_main_app_contains_calculator_failure(monkeypatch):
     )
     monkeypatch.setattr(
         module,
-        "_render_generational",
-        lambda **kwargs: calls.append("generational"),
-    )
-    monkeypatch.setattr(
-        module,
-        "_render_state",
-        lambda **kwargs: calls.append("state"),
-    )
-    monkeypatch.setattr(
-        module,
         "render_footer",
         lambda st_module: calls.append("footer"),
     )
 
     deps = SimpleNamespace(
+        fiscal_assistant=None,
+        render_ask_tab=lambda **kwargs: calls.append("ask"),
         render_bill_tracker_tab=lambda **kwargs: calls.append("bill_tracker"),
         render_methodology_tab=lambda **kwargs: calls.append("methodology"),
     )
@@ -467,11 +474,19 @@ def test_run_main_app_contains_calculator_failure(monkeypatch):
     )
 
     assert any("Calculator encountered an issue" in msg for msg in st_module.errors)
+    assert st_module.tab_labels == [
+        "📊 Calculator",
+        "💬 Ask",
+        "⚖️ Budget Builder",
+        "📋 Bill Tracker",
+        "📖 Methodology",
+    ]
+    assert "ask" in calls
     assert "budget" in calls
-    assert "generational" in calls
-    assert "state" in calls
     assert "bill_tracker" in calls
     assert "methodology" in calls
+    assert "generational" not in calls
+    assert "state" not in calls
 
 
 def test_render_quick_start_defers_sidebar_updates_until_rerun():
