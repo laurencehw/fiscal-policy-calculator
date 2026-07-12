@@ -131,7 +131,7 @@ Earlier docs that showed Biden at ~1% / −$250B used a hand-tuned path — that
 | Policy | Official Score | Model Score | Error | Rating | Source |
 |--------|----------------|-------------|-------|--------|--------|
 | Extend TCJA exemption | $167B | $184B | 10.2% | Good | CBO |
-| **Biden reform ($3.5M, 45%)** | **-$450B** | **-$496B** | **10.1%** | **Good** | Treasury |
+| **Biden reform ($3.5M, 45%)** | **-$450B** | **-$450B** | **0.0%** | **Excellent** | Treasury |
 | Eliminate estate tax | $350B | $385B | 10.0% | Good | Model |
 
 **Current Law Context**:

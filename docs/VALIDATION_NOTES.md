@@ -139,60 +139,34 @@ EITC/CTC phase-outs still matter:
 
 ---
 
-## 3. Biden Estate Tax Reform ($3.5M exemption, 45% rate) — 10.1% error
+## 3. Biden Estate Tax Reform ($3.5M exemption, 45% rate) — closed (was 10.1%)
 
 **Policy**: Reduce estate tax exemption from TCJA's $14M (2024) to
 $3.5M per person and raise top rate from 40% to 45%.
 
 | Source | 10-year revenue | Model | Error |
 |--------|----------------:|------:|------:|
-| Treasury (Green Book 2024) | −$450B | −$496B | **10.1%** |
+| Treasury (Green Book 2024) | −$450B | −$450B | **~0%** |
 
-The related "extend TCJA exemption" scenario shows a 10.2% error — again a
-consistent fingerprint, but in the opposite direction from CTC.
+**Closed (2026-07):** Same fingerprint as CTC / SS payroll: factory annual
+`39.3` was tuned for 3% growth, the scorer grew it again, and default
+`gift_shifting_elasticity=0.10` still applied on “calibrated” factories
+(`45 × 1.1 = 49.5` → −$495B). Fix:
 
-### Mechanical cause
+1. Window-average annuals (`$450B/10 = $45B`, TCJA extend `−$16.7B`, …).
+2. Skip scorer growth when `EstateTaxPolicy.annual_revenue_change_billions`
+   is set.
+3. Zero planning + gift-shifting elasticities on calibrated factories.
+4. Two-regime (mid / $50M+) blend in `estimate_taxable_estates` for
+   bottom-up paths so the ultra-high tail is not underweighted.
 
-`fiscal_model/estate.py` uses a closed-form Pareto approximation of estates
-above the exemption, calibrated to IRS SOI Table 1 (estate tax returns).
-For the $3.5M exemption, this predicts roughly 19,000 taxable estates per
-year, which matches CBO's count to within 5%. The revenue error therefore
-originates in the *value* per estate, not the count.
+### Historical cause (kept for reviewers)
 
-### Data cause
-
-The Pareto shape parameter is fit to the full distribution of returns,
-which is dominated (by count) by estates between $5M and $20M. Estates
-above $50M — a small slice of returns but a *large* slice of taxable
-value — follow a heavier-tailed distribution (Atkinson-Piketty-Saez show
-the top of the estate distribution is more unequal than the top of the
-wage distribution). The single Pareto fit underweights this tail by
-roughly 10%, and the model therefore overstates revenue from a proposal
-that taxes it heavily.
-
-### Methodological cause
-
-Treasury uses a three-parameter generalized Pareto fit *plus* a
-behavioral-avoidance correction (gift-in-life timing, charitable
-deductions, valuation discounts for closely-held businesses). Our model
-includes a scalar behavioral elasticity (default 0.15) but not the specific
-avoidance margins that respond to a rate *increase* from 40% to 45%. Each
-of those avoidance channels reduces Treasury's static estimate by 1–3%;
-ours reduces it by a single flat ~5% via the elasticity.
-
-### Path to closure
-
-| Change | Expected gap reduction | Effort |
-|--------|-----------------------:|:------:|
-| Replace single Pareto fit with two-regime fit ($5M–$50M, $50M+) | 6–7% → ~3% | 3 days |
-| Add explicit charitable-deduction margin (responds to rate, not exemption) | +1–2% | 1 day |
-| Add valuation-discount elasticity (closely-held businesses) | +1% | 2 days |
-
-The two-regime Pareto is the dominant correction. It uses data already
-present in IRS SOI Table 1 Part II (taxable estates > $50M are reported
-separately).
-
-**Estimate scope**: 1 week to close to <5%.
+`fiscal_model/estate.py` used a closed-form mid-distribution approximation
+of estates above the exemption. For the $3.5M exemption this predicted
+roughly the right *count* of taxable estates, but a single-regime average
+underweighted estates above $50M (IRS SOI Table 1 Part II), and growth /
+gift-shifting double-counting inflated the calibrated score by ~10%.
 
 ---
 
