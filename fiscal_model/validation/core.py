@@ -222,22 +222,25 @@ def build_validation_result(
 
 
 def create_policy_from_score(
-    score: CBOScore, *, ordinary_income_base: bool = False
+    score: CBOScore, *, ordinary_income_base: bool | None = None
 ) -> TaxPolicy | None:
     """
     Create a TaxPolicy object matching a known CBO score's parameters.
 
     Returns None if the score doesn't have enough parameters.
 
-    ``ordinary_income_base`` (default False, legacy behavior) applies the rate
-    change only to the non-preferential share of marginal income — see
-    ``TaxPolicy.ordinary_income_base``.
+    For ordinary-bracket income-tax rate changes, ``ordinary_income_base``
+    defaults to True (exclude preferential LTCG/QDIV). Pass False, or set
+    ``score.agi_inclusive_base=True``, for AGI-inclusive surtaxes.
     """
     if score.policy_type != "income_tax":
         return None
 
     if score.rate_change is None:
         return None
+
+    if ordinary_income_base is None:
+        ordinary_income_base = not score.agi_inclusive_base
 
     return TaxPolicy(
         name=f"Validation: {score.name}",

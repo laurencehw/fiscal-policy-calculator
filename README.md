@@ -60,7 +60,7 @@ This project is a **validated scoring core with experimental interfaces around i
 
 | Tier | What it covers | Trust level |
 |------|----------------|-------------|
-| **🟢 Core — validated** | Revenue scoring (static + behavioral), distributional analysis (return-level CPS microsim), dynamic scoring (FRB/US-calibrated) | Benchmarked against published CBO/JCT/Treasury scores. **Honest accuracy is published, not just the flattering cases:** calibrated reference models reproduce official decompositions (~6% revenue, ≤3pp distributional mean); genuine *out-of-sample* predictions run ~29% mean error (`python scripts/cold_holdout.py`). |
+| **🟢 Core — validated** | Revenue scoring (static + behavioral), distributional analysis (return-level CPS microsim), dynamic scoring (FRB/US-calibrated) | Benchmarked against published CBO/JCT/Treasury scores. **Honest accuracy is published, not just the flattering cases:** calibrated reference models reproduce official decompositions (~6% revenue, ≤3pp distributional mean); genuine *out-of-sample* predictions run ~19% mean error (`python scripts/cold_holdout.py`). |
 | **🟡 Specialized — calibrated, narrower** | The 14 policy-area modules (TCJA, corporate, international, estate, payroll, AMT, PTC, tax expenditures, enforcement, pharma, trade/tariff, climate), state-level modeling (top-10 states), OLG generational model | Each is parameterized to reproduce a published score. Trustworthy as transparent reconstructions and for directional comparison; not independent confirmation. State and OLG use a representative taxpayer / reduced form. |
 | **🔵 Exploratory — interfaces & pipelines** | Ask assistant, Real-Time Bill Tracker, Classroom Mode, multi-model pilot platform, admin dashboard, share links | Reading, teaching, and data-plumbing layers *over* the model — useful and guard-railed (e.g. the assistant is citation-disciplined and cost-capped), but **not themselves validated estimates**. The bill tracker's LLM provision extraction in particular is demo-grade. |
 
@@ -76,12 +76,12 @@ These policies are scored **bottom-up from IRS SOI** filer counts and incomes vi
 
 | Policy | Official | Model | Error | Source |
 |--------|---------:|------:|------:|--------|
-| 5pp top rate (\$1M+) | -\$700B | -\$648B | 7% | TPC |
-| 2pp rate cut (\$500K+) | +\$400B | +\$364B | 9% | TPC |
-| 1pp all brackets | -\$960B | -\$1,321B | 38% | JCT |
-| Biden top rate 39.6% (\$400K+) | -\$252B | -\$409B | 62% | Treasury |
+| 1pp all brackets | -\$960B | -\$935B | 3% | JCT |
+| Biden top rate 39.6% (\$400K+) | -\$252B | -\$284B | 13% | Treasury |
+| 5pp top rate (\$1M+) | -\$700B | -\$491B | 30% | TPC |
+| 2pp rate cut (\$500K+) | +\$400B | +\$278B | 30% | TPC |
 
-**Mean absolute error: ~29% (median 23%); 2 of 4 within 15%.** The model **over-predicts revenue from broad/large rate increases** — it does not fully capture behavioral erosion at scale, and the Treasury figure for the Biden case is itself a bundled "combined with other provisions" estimate. Treat uncalibrated custom policies as **directional, ±30%**.
+**Mean absolute error: ~19% (median 21%); 2 of 4 within 15%.** Ordinary-bracket scoring now excludes preferential LTCG/QDIV and scores all-brackets changes from SOI taxable income (not an effective-rate heuristic). Remaining error is concentrated on high-threshold cases. The Treasury Biden figure is a bundled "combined with other provisions" estimate. Treat uncalibrated custom policies as **directional, ±20%**.
 
 #### 2. Calibrated reference models — transparent reconstructions, not independent confirmation
 

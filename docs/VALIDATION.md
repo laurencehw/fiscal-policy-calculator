@@ -2,7 +2,7 @@
 
 > **Fiscal Policy Calculator — Comparison to Official CBO/JCT Estimates**
 >
-> Last Updated: April 12, 2026
+> Last Updated: July 12, 2026
 
 ---
 
@@ -17,12 +17,12 @@ Policies scored **bottom-up from IRS SOI** via raw rate/threshold auto-populatio
 | Metric | Value |
 |--------|-------|
 | Out-of-sample policies | 4 |
-| Mean absolute error | **~29%** |
-| Median absolute error | ~23% |
+| Mean absolute error | **~19%** |
+| Median absolute error | ~21% |
 | Within 15% of official | 2/4 |
 | Direction match rate | 4/4 |
 
-**Key finding**: the model **over-predicts revenue from broad/large rate increases** (1pp-all-brackets +38%; Biden top-rate-39.6% +62%, though that Treasury figure is itself a bundled estimate). It is accurate (<10%) on targeted top-bracket changes. **Treat uncalibrated custom policies as directional, ±30%.**
+**Key finding**: after applying ordinary-income base (exclude LTCG/QDIV from ordinary-bracket rate changes) and scoring all-brackets changes from SOI taxable income, broad-rate cases are much closer (1pp-all ~3%; Biden top-rate ~13%). Remaining error is concentrated on high-threshold TPC cases (~30%). **Treat uncalibrated custom policies as directional, ±20%.**
 
 ### Tier 2 — Calibrated reference models (reconstructions, not confirmations)
 
@@ -45,18 +45,25 @@ The ~6% error here is **expected by construction** — these demonstrate the mod
 
 ## Validation Results by Policy Category
 
-### 1. Income Tax Policies
+### 1. Income Tax Policies (Generic / out-of-sample path)
+
+These rows are the **uncalibrated** bottom-up Generic scorer (`create_policy_from_score` → IRS SOI auto-pop). They are *not* hand-tuned reconstructions.
 
 | Policy | Official Score | Model Score | Error | Rating | Source |
 |--------|----------------|-------------|-------|--------|--------|
-| Biden $400K+ (2.6pp) | -$252B | -$250B | 1% | Excellent | Treasury |
-| 1pp all brackets | -$960B | -$900B | 6% | Good | JCT |
-| 5pp top rate ($1M+) | -$700B | -$665B | 5% | Excellent | TPC |
+| 1pp all brackets | -$960B | -$935B | 3% | Excellent | JCT |
+| Biden $400K+ (2.6pp) | -$252B | -$284B | 13% | Acceptable | Treasury |
+| 5pp top rate ($1M+) | -$700B | -$491B | 30% | Poor | TPC |
+| 2pp rate cut ($500K+) | +$400B | +$278B | 30% | Poor | TPC |
 
 **Methodology Notes**:
 - Uses IRS SOI data for taxpayer counts and income distributions
+- Ordinary-bracket changes default to `ordinary_income_base=True` (exclude LTCG/QDIV)
+- All-brackets (`threshold=0`) scored from total SOI taxable income, not `baseline × Δrate/0.18`
 - Elasticity of Taxable Income (ETI) = 0.25 (Saez et al. 2012)
-- Behavioral offset = -ETI × 0.5 × static effect
+- Behavioral offset = ETI × 0.5 × static effect (signed; erodes magnitude)
+
+Earlier docs that showed Biden at ~1% / −$250B used a hand-tuned path — that is **not** the Generic prediction.
 
 ---
 
@@ -380,7 +387,7 @@ result = quick_validate(
 )
 
 print(result.get_summary())
-# Biden High-Income Tax: Official $-252B vs Model $-250B (+0.8%) [Excellent]
+# Biden High-Income Tax (Generic OOS): Official $-252B vs Model $-284B (~13%)
 ```
 
 ---

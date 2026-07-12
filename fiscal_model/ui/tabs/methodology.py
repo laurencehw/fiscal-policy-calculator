@@ -21,6 +21,14 @@ def render_methodology_tab(st_module: Any) -> None:
         "Congressional Budget Office (CBO)."
     )
 
+    # ── Live validation scorecard (formerly a top-level tab) ──────────────
+    with st_module.expander("✅ Validation scorecard", expanded=False):
+        from fiscal_model.ui.tabs.validation_scorecard import (
+            render_validation_scorecard_tab,
+        )
+
+        render_validation_scorecard_tab(st_module=st_module)
+
     # ── Scoring overview ─────────────────────────────────────────────────
     st_module.subheader("Three-stage scoring")
 
@@ -608,12 +616,12 @@ def render_methodology_tab(st_module: Any) -> None:
     st_module.markdown(r"""
 | Policy (uncalibrated) | Official | Model | Error | Source |
 |--------|---------:|------:|------:|--------|
-| 5pp top rate (\$1M+) | -\$700B | -\$648B | 7% | TPC |
-| 2pp rate cut (\$500K+) | +\$400B | +\$364B | 9% | TPC |
-| 1pp all brackets | -\$960B | -\$1,321B | 38% | JCT |
-| Biden top rate 39.6% (\$400K+) | -\$252B | -\$409B | 62% | Treasury |
+| 1pp all brackets | -\$960B | -\$935B | 3% | JCT |
+| Biden top rate 39.6% (\$400K+) | -\$252B | -\$284B | 13% | Treasury |
+| 5pp top rate (\$1M+) | -\$700B | -\$491B | 30% | TPC |
+| 2pp rate cut (\$500K+) | +\$400B | +\$278B | 30% | TPC |
 
-*Mean abs error ~29%; the model over-predicts revenue from broad/large rate increases. Treat uncalibrated custom policies as directional (~±30%).*
+*Mean abs error ~19%; ordinary-income base + SOI all-brackets path. Treat uncalibrated custom policies as directional (~±20%).*
 """)
 
     st_module.markdown("**2. Calibrated reference models** — parameters tuned to reproduce "

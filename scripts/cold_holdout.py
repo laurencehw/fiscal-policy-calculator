@@ -87,13 +87,11 @@ def build_report() -> dict:
 
 
 def corrected_out_of_sample() -> dict:
-    """Re-score the out-of-sample income-tax cases with the ``ordinary_income_base``
-    correction (exclude preferentially-taxed capital gains from an ordinary-rate
-    change) and report the new error alongside the legacy number.
+    """Compare legacy whole-base scoring vs ordinary-income-base for OOS cases.
 
-    This is a *uniform* correction applied to every case — not per-case tuning.
-    It is the more economically correct treatment for pure ordinary-rate changes;
-    AGI-inclusive surtaxes would set the flag False.
+    Production Generic scoring now defaults to ``ordinary_income_base=True``.
+    This report still contrasts the old whole-base path (explicit False) against
+    the current default so the structural correction remains auditable.
     """
     from fiscal_model.scoring import FiscalPolicyScorer
     from fiscal_model.validation.cbo_scores import KNOWN_SCORES
@@ -107,20 +105,29 @@ def corrected_out_of_sample() -> dict:
         score = KNOWN_SCORES.get(e["policy_id"])
         if score is None:
             continue
-        policy = create_policy_from_score(score, ordinary_income_base=True)
-        if policy is None:
+        legacy_policy = create_policy_from_score(score, ordinary_income_base=False)
+        corrected_policy = create_policy_from_score(score, ordinary_income_base=True)
+        if legacy_policy is None or corrected_policy is None:
             continue
-        model = scorer.score_policy(policy, dynamic=False).total_10_year_cost
+        model_legacy = scorer.score_policy(legacy_policy, dynamic=False).total_10_year_cost
+        model_corrected = scorer.score_policy(
+            corrected_policy, dynamic=False
+        ).total_10_year_cost
         official = e["official_10yr_billions"]
-        err = abs((model - official) / official * 100) if official else 0.0
+        err_legacy = (
+            abs((model_legacy - official) / official * 100) if official else 0.0
+        )
+        err_corrected = (
+            abs((model_corrected - official) / official * 100) if official else 0.0
+        )
         rows.append(
             {
                 "policy_name": e["policy_name"],
                 "official_10yr_billions": official,
-                "model_legacy": e["model_10yr_billions"],
-                "err_legacy": e["abs_percent_error"],
-                "model_corrected": round(model, 1),
-                "err_corrected": round(err, 1),
+                "model_legacy": round(model_legacy, 1),
+                "err_legacy": round(err_legacy, 1),
+                "model_corrected": round(model_corrected, 1),
+                "err_corrected": round(err_corrected, 1),
             }
         )
 

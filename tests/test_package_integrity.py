@@ -459,6 +459,7 @@ def test_calculate_tax_policy_result_simple_mapping():
         duration=10,
         phase_in=0,
         eti=0.25,
+        ordinary_income_base=True,
         manual_taxpayers=1.5,
         manual_avg_income=500_000,
         cg_base_year=2024,

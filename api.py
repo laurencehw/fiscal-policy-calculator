@@ -164,6 +164,13 @@ class ScorePolicyRequest(BaseModel):
     elasticity: float = Field(
         0.25, ge=0, le=2.0, description="Taxable income elasticity"
     )
+    ordinary_income_base: bool = Field(
+        True,
+        description=(
+            "If true (default), apply ordinary-bracket rate changes only to "
+            "non-preferential income. Set false for AGI-inclusive surtaxes."
+        ),
+    )
     duration_years: int = Field(10, ge=1, le=30, description="Policy duration")
     dynamic: bool = Field(False, description="Enable dynamic scoring")
     policy_type: str = Field("income_tax", description="Type of tax policy")
@@ -490,6 +497,7 @@ def _build_preset_policy(preset_name: str) -> tuple[Any, bool]:
         affected_income_threshold=float(preset.get("threshold", 0.0)),
         taxable_income_elasticity=0.25,
         duration_years=10,
+        ordinary_income_base=not bool(preset.get("agi_inclusive_base", False)),
     )
     return policy, True
 
@@ -939,6 +947,7 @@ def score_policy(
             affected_income_threshold=request.income_threshold,
             taxable_income_elasticity=request.elasticity,
             duration_years=request.duration_years,
+            ordinary_income_base=request.ordinary_income_base,
         )
 
         # Score policy

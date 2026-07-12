@@ -136,10 +136,10 @@ class TaxPolicy(Policy):
     # When True, an *ordinary*-rate change is applied only to the non-preferential
     # share of marginal income — long-term capital gains and qualified dividends
     # (taxed at preferential rates) are excluded, since an ordinary-bracket rate
-    # change does not touch them. Default False preserves the legacy whole-base
-    # behavior. Set False for AGI-inclusive surtaxes (e.g. a millionaire surtax
-    # on all income, where cap gains ARE in the base). See
-    # ``preferential_income_share`` and docs/METHODOLOGY.md (Static Scoring).
+    # change does not touch them. Dataclass default False preserves legacy callers;
+    # Generic validation, custom UI/API, and preset fallbacks set True. Set False
+    # for AGI-inclusive surtaxes. See ``preferential_income_share`` and
+    # docs/METHODOLOGY.md (Static Scoring).
     ordinary_income_base: bool = False
 
     def __post_init__(self):
@@ -245,10 +245,15 @@ class TaxPolicy(Policy):
         return 0.0
 
     def _should_use_irs_data(self) -> bool:
-        """Check if we should attempt to auto-populate from IRS SOI data."""
+        """Check if we should attempt to auto-populate from IRS SOI data.
+
+        Threshold of 0 (all brackets) is allowed — that path scores a uniform
+        rate change against total SOI taxable income rather than the legacy
+        ``baseline × Δrate / 0.18`` heuristic.
+        """
         return (
             self.rate_change != 0
-            and self.affected_income_threshold > 0
+            and self.affected_income_threshold >= 0
             and self.affected_taxpayers_millions == 0
         )
 

@@ -1,12 +1,13 @@
 """
 Tab wiring and render orchestration helpers.
 
-Consolidated tab layout (5 tabs):
+Calculator nested tab layout (6 tabs):
   1. Results & Details — summary metrics, year-by-year breakdown, export
   2. Distribution — impact by income group
   3. Economic Effects — dynamic scoring + long-run growth
-  4. Scoring Models — compare static vs dynamic model estimates
-  5. Compare Policies — side-by-side preset comparison
+  4. Scoring Models — model comparison + side-by-side presets
+  5. Generational — OLG / generational accounting
+  6. State — combined federal + state analysis
 """
 
 from __future__ import annotations
@@ -18,6 +19,16 @@ from fiscal_model.data.irs_soi import IRSSOIData
 from fiscal_model.ui.helpers import TEXTBOOK_HOME
 
 _logger = logging.getLogger(__name__)
+
+# Nested Calculator tab labels (order matters for build_main_tabs).
+CALCULATOR_TAB_LABELS: tuple[str, ...] = (
+    "📊 Results & Details",
+    "👥 Distribution",
+    "🌍 Economic Effects",
+    "⚖️ Scoring Models",
+    "🌐 Generational",
+    "🗺️ State",
+)
 
 
 def _render_tab_error(st_module: Any, tab_label: str, exc: Exception) -> None:
@@ -57,17 +68,13 @@ def build_main_tabs(
     mode: str,
 ) -> dict[str, Any]:
     """
-    Create main Calculator result tabs (5 tabs).
-    Generational Analysis, State Analysis, Bill Tracker, and Methodology are
-    top-level app tabs, not part of the Calculator tab set.
+    Create Calculator nested result tabs (6 tabs).
+
+    Bill Tracker and Methodology remain top-level app tabs. Generational and
+    State analysis are nested here so the primary score loop stays together.
     """
-    labels = [
-        "📊 Results & Details",
-        "👥 Distribution",
-        "🌍 Economic Effects",
-        "⚖️ Scoring Models",
-        "🔀 Compare Policies",
-    ]
+    del mode  # reserved for future mode-specific tab sets
+    labels = list(CALCULATOR_TAB_LABELS)
 
     tabs = st_module.tabs(labels)
     tab_map = dict(zip(labels, tabs, strict=False))
@@ -77,8 +84,79 @@ def build_main_tabs(
         "tab_distribution": tab_map["👥 Distribution"],
         "tab_economic": tab_map["🌍 Economic Effects"],
         "tab_scoring": tab_map["⚖️ Scoring Models"],
-        "tab_compare": tab_map["🔀 Compare Policies"],
+        "tab_generational": tab_map["🌐 Generational"],
+        "tab_state": tab_map["🗺️ State"],
     }
+
+
+def _render_side_by_side_section(
+    st_module: Any,
+    deps: Any,
+    settings: dict[str, Any],
+) -> None:
+    """Side-by-side preset comparison (formerly its own nested tab)."""
+    st_module.subheader("Compare presets side-by-side")
+    st_module.caption(
+        "Score two preset proposals with the same settings and compare "
+        "10-year deficit impact."
+    )
+    deps.render_side_by_side_tab(
+        st_module=st_module,
+        preset_policies=deps.PRESET_POLICIES,
+        tax_policy_cls=deps.TaxPolicy,
+        policy_type_income_tax=deps.PolicyType.INCOME_TAX,
+        fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
+        data_year=settings["data_year"],
+        use_real_data=settings["use_real_data"],
+        dynamic_scoring=settings["dynamic_scoring"],
+    )
+
+
+def _session_get(session: Any, key: str, default: Any = None) -> Any:
+    """Read a session key from dict-like or attribute-style session state."""
+    if hasattr(session, "get"):
+        return session.get(key, default)
+    return getattr(session, key, default)
+
+
+def _render_generational(st_module: Any, deps: Any) -> None:
+    """Render Generational Analysis (Calculator nested tab)."""
+    session = st_module.session_state
+    result_data = _session_get(session, "results")
+    run_id = _session_get(session, "results_run_id") or _session_get(
+        session, "last_run_id"
+    )
+    deps.render_generational_analysis_tab(
+        st_module=st_module,
+        result_data=result_data,
+        run_id=run_id,
+    )
+
+
+def _render_state(st_module: Any, deps: Any) -> None:
+    """Render State Analysis with its own state selector (Calculator nested tab)."""
+    from fiscal_model.models.state.database import STATE_NAMES, SUPPORTED_STATES
+
+    state_selection = st_module.selectbox(
+        "State",
+        options=SUPPORTED_STATES,
+        format_func=lambda code: f"{code} — {STATE_NAMES[code]}",
+        key="calculator_state_select",
+        help="Select a state for combined federal + state analysis.",
+    )
+    selected_state = state_selection if state_selection else "CA"
+
+    session = st_module.session_state
+    result_data = _session_get(session, "results")
+    run_id = _session_get(session, "results_run_id") or _session_get(
+        session, "last_run_id"
+    )
+    deps.render_state_analysis_tab(
+        st_module=st_module,
+        state=selected_state,
+        result_data=result_data,
+        run_id=run_id,
+    )
 
 
 def render_result_tabs(
@@ -93,6 +171,7 @@ def render_result_tabs(
     """
     Render post-calculation tabs for the Calculator section.
     """
+    del mode
     current_run_id = getattr(st_module.session_state, "current_run_id", None)
     results_run_id = getattr(st_module.session_state, "results_run_id", None) or getattr(
         st_module.session_state, "last_run_id", None
@@ -131,7 +210,7 @@ def render_result_tabs(
             st_module.caption(
                 "This calculator uses CBO methodology with IRS Statistics of Income data. "
                 "25+ policies benchmarked against official CBO/JCT/Treasury scores — calibrated "
-                "models reproduce official scores; uncalibrated predictions are directional (~±30%)."
+                "models reproduce official scores; uncalibrated predictions are directional (~±20%)."
             )
         with tabs["tab_distribution"]:
             st_module.info(
@@ -144,18 +223,23 @@ def render_result_tabs(
         with tabs["tab_scoring"]:
             st_module.info(
                 "Run a calculation to compare how different scoring models "
-                "estimate the same policy."
+                "estimate the same policy — or compare presets below without a prior run."
             )
-        with tabs["tab_compare"]:
-            deps.render_side_by_side_tab(
-                st_module=st_module,
-                preset_policies=deps.PRESET_POLICIES,
-                tax_policy_cls=deps.TaxPolicy,
-                policy_type_income_tax=deps.PolicyType.INCOME_TAX,
-                fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
-                data_year=settings["data_year"],
-                use_real_data=settings["use_real_data"],
-                dynamic_scoring=settings["dynamic_scoring"],
+            st_module.markdown("---")
+            _render_side_by_side_section(
+                st_module=st_module, deps=deps, settings=settings
+            )
+        with tabs["tab_generational"]:
+            _render_guarded_tab(
+                st_module,
+                "Generational",
+                lambda: _render_generational(st_module=st_module, deps=deps),
+            )
+        with tabs["tab_state"]:
+            _render_guarded_tab(
+                st_module,
+                "State",
+                lambda: _render_state(st_module=st_module, deps=deps),
             )
         return
 
@@ -236,7 +320,7 @@ def render_result_tabs(
 
         _render_guarded_tab(st_module, "Economic Effects", _render_economic_body)
 
-    # Tab 4: Scoring Models
+    # Tab 4: Scoring Models (+ side-by-side compare)
     with tabs["tab_scoring"]:
         def _render_scoring_body() -> None:
             deps.render_policy_comparison_tab(
@@ -267,23 +351,28 @@ def render_result_tabs(
                     use_real_data=settings["use_real_data"],
                 )
 
-        _render_guarded_tab(st_module, "Scoring Models", _render_scoring_body)
-
-    # Tab 5: Side-by-Side Policy Comparison
-    with tabs["tab_compare"]:
-        def _render_compare_body() -> None:
-            deps.render_side_by_side_tab(
-                st_module=st_module,
-                preset_policies=deps.PRESET_POLICIES,
-                tax_policy_cls=deps.TaxPolicy,
-                policy_type_income_tax=deps.PolicyType.INCOME_TAX,
-                fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
-                data_year=settings["data_year"],
-                use_real_data=settings["use_real_data"],
-                dynamic_scoring=settings["dynamic_scoring"],
+            st_module.markdown("---")
+            _render_side_by_side_section(
+                st_module=st_module, deps=deps, settings=settings
             )
 
-        _render_guarded_tab(st_module, "Compare Policies", _render_compare_body)
+        _render_guarded_tab(st_module, "Scoring Models", _render_scoring_body)
+
+    # Tab 5: Generational
+    with tabs["tab_generational"]:
+        _render_guarded_tab(
+            st_module,
+            "Generational",
+            lambda: _render_generational(st_module=st_module, deps=deps),
+        )
+
+    # Tab 6: State
+    with tabs["tab_state"]:
+        _render_guarded_tab(
+            st_module,
+            "State",
+            lambda: _render_state(st_module=st_module, deps=deps),
+        )
 
 
 def render_footer(st_module: Any) -> None:

@@ -35,7 +35,7 @@ _HOW_SCORED_MARKDOWN = (
     "Data: IRS Statistics of Income, FRED, CBO Baseline Projections. "
     "25+ policies benchmarked against official CBO/JCT/Treasury scores — calibrated "
     "reference models reproduce official decompositions; uncalibrated custom policies "
-    "are directional (mean out-of-sample error ~29%).\n\n"
+    "are directional (mean out-of-sample error ~19%).\n\n"
     "For background, see "
     f"[Optimal Taxation (Ch 16)]({TEXTBOOK_LINKS['optimal_taxation']}) and "
     f"[The Federal Budget (Ch 22)]({TEXTBOOK_LINKS['federal_budget']}) in the textbook."
@@ -54,20 +54,8 @@ _SECTION_ERROR_MESSAGES: dict[str, str] = {
         "The Budget Builder encountered an issue. "
         "Please try reloading the page or clearing your inputs."
     ),
-    "Generational analysis": (
-        "The Generational analysis encountered an issue. "
-        "Please try adjusting your parameters or reloading the page."
-    ),
-    "State analysis": (
-        "The State analysis encountered an issue. "
-        "Please try reloading the page."
-    ),
     "Bill Tracker": (
         "The Bill Tracker encountered an issue. "
-        "Please try reloading the page."
-    ),
-    "Validation scorecard": (
-        "The Validation scorecard encountered an issue. "
         "Please try reloading the page."
     ),
     "Methodology": (
@@ -501,8 +489,10 @@ def render_quick_start(st_module: Any) -> None:
 def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Path) -> None:
     """
     Render and orchestrate the full Streamlit app flow.
-    Top-level tabs: Calculator | Budget Builder | Generational | State |
-    Bill Tracker | Validation | Methodology
+
+    Top-level tabs: Calculator | Ask | Budget Builder | Bill Tracker |
+    Methodology (includes Validation). Generational and State analysis live
+    under Calculator nested tabs. Admin is inserted only when gated.
     """
     # Ensure every known session key has its declared default before any
     # widgets are constructed. Safe to call on every rerun — does not
@@ -542,10 +532,7 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         "📊 Calculator",
         "💬 Ask",
         "⚖️ Budget Builder",
-        "🌐 Generational",
-        "🗺️ State",
         "📋 Bill Tracker",
-        "✅ Validation",
         "📖 Methodology",
     ]
     if show_admin:
@@ -589,41 +576,12 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
     with top_tabs[3]:
         _render_guarded_section(
             st_module,
-            "Generational analysis",
-            lambda: _render_generational(st_module=st_module, deps=deps),
-        )
-        render_footer(st_module=st_module)
-
-    with top_tabs[4]:
-        _render_guarded_section(
-            st_module,
-            "State analysis",
-            lambda: _render_state(st_module=st_module, deps=deps),
-        )
-        render_footer(st_module=st_module)
-
-    with top_tabs[5]:
-        _render_guarded_section(
-            st_module,
             "Bill Tracker",
             lambda: deps.render_bill_tracker_tab(st_module=st_module),
         )
         render_footer(st_module=st_module)
 
-    with top_tabs[6]:
-        def _render_validation() -> None:
-            from .tabs.validation_scorecard import render_validation_scorecard_tab
-
-            render_validation_scorecard_tab(st_module=st_module)
-
-        _render_guarded_section(
-            st_module,
-            "Validation scorecard",
-            _render_validation,
-        )
-        render_footer(st_module=st_module)
-
-    with top_tabs[7]:
+    with top_tabs[4]:
         _render_guarded_section(
             st_module,
             "Methodology",
@@ -632,7 +590,7 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         render_footer(st_module=st_module)
 
     if show_admin:
-        with top_tabs[8]:
+        with top_tabs[5]:
             def _render_admin() -> None:
                 from .tabs.assistant_admin import render_assistant_admin_tab
 
@@ -745,38 +703,4 @@ def _render_budget_builder(st_module: Any, deps: Any) -> None:
         cbo_score_map=deps.CBO_SCORE_MAP,
         fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
         use_real_data=True,
-    )
-
-
-def _render_generational(st_module: Any, deps: Any) -> None:
-    """Render the top-level Generational Analysis tab."""
-    result_data = st_module.session_state.get("results")
-    run_id = st_module.session_state.get("results_run_id") or st_module.session_state.get("last_run_id")
-    deps.render_generational_analysis_tab(
-        st_module=st_module,
-        result_data=result_data,
-        run_id=run_id,
-    )
-
-
-def _render_state(st_module: Any, deps: Any) -> None:
-    """Render the top-level State Analysis tab with its own state selector."""
-    from fiscal_model.models.state.database import STATE_NAMES, SUPPORTED_STATES
-
-    state_selection = st_module.selectbox(
-        "State",
-        options=SUPPORTED_STATES,
-        format_func=lambda code: f"{code} — {STATE_NAMES[code]}",
-        key="top_level_state_select",
-        help="Select a state for combined federal + state analysis.",
-    )
-    selected_state = state_selection if state_selection else "CA"
-
-    result_data = st_module.session_state.get("results")
-    run_id = st_module.session_state.get("results_run_id") or st_module.session_state.get("last_run_id")
-    deps.render_state_analysis_tab(
-        st_module=st_module,
-        state=selected_state,
-        result_data=result_data,
-        run_id=run_id,
     )

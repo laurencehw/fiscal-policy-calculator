@@ -116,6 +116,7 @@ def render_tax_policy_inputs(
     manual_taxpayers = 0.0
     manual_avg_income = 0
     eti = 0.25
+    ordinary_income_base = True
 
     cg_base_year = 2024
     baseline_cg_rate = 0.20
@@ -362,6 +363,15 @@ def render_tax_policy_inputs(
                         "Higher = more behavioral response = less revenue."
                     ),
                 )
+                ordinary_income_base = st_module.checkbox(
+                    "Ordinary-income base (exclude LTCG/QDIV)",
+                    value=True,
+                    help=(
+                        "Ordinary-bracket rate changes do not apply to long-term capital "
+                        "gains or qualified dividends. Uncheck for AGI-inclusive surtaxes "
+                        "that tax all income above the threshold."
+                    ),
+                )
 
     return {
         "preset_choice": preset_choice,
@@ -375,6 +385,7 @@ def render_tax_policy_inputs(
         "manual_taxpayers": manual_taxpayers,
         "manual_avg_income": manual_avg_income,
         "eti": eti,
+        "ordinary_income_base": ordinary_income_base,
         "cg_base_year": cg_base_year,
         "cg_rate_source": "Statutory/NIIT proxy (by AGI bracket)",
         "baseline_cg_rate": baseline_cg_rate,

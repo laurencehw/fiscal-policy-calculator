@@ -12,7 +12,7 @@ See `planning/ROADMAP.md` for the full roadmap and next priorities.
 
 The app is a **validated scoring core with experimental interfaces**, not a flat feature set. Hold each tier to the right bar, and describe it to users accordingly (see README "Model maturity"):
 
-- **🟢 Core — validated:** revenue scoring (static + behavioral), distributional analysis (return-level CPS microsim, the default since 2026-06), dynamic scoring (FRB/US-calibrated `EconomicModel`). Benchmarked vs CBO/JCT/Treasury. Report honest accuracy: calibrated reference models (~6% revenue, ≤3pp dist.) **vs** genuine out-of-sample predictions (~29%). Never collapse those two into one "validated within X%" claim.
+- **🟢 Core — validated:** revenue scoring (static + behavioral), distributional analysis (return-level CPS microsim, the default since 2026-06), dynamic scoring (FRB/US-calibrated `EconomicModel`). Benchmarked vs CBO/JCT/Treasury. Report honest accuracy: calibrated reference models (~6% revenue, ≤3pp dist.) **vs** genuine out-of-sample predictions (~19%). Never collapse those two into one "validated within X%" claim.
 - **🟡 Specialized — calibrated, narrower:** the 14 policy-area modules, state modeling (top-10), OLG. Tuned to reproduce published scores → transparent reconstructions, not independent confirmation.
 - **🔵 Exploratory — interfaces/pipelines:** Ask assistant, bill tracker, classroom, multi-model pilots, admin/share. Held to a UX/safety bar, **not an accuracy bar**; bill-tracker LLM extraction is demo-grade.
 
@@ -307,7 +307,7 @@ Next: closing the ARP bundle scope residual (needs Recovery Rebate engine integr
 
 **Report two tiers separately — do NOT collapse them into a single "validated within 15%" claim.** Run `python scripts/cold_holdout.py` for live numbers.
 
-**Tier 1 — out-of-sample predictions** (uncalibrated, bottom-up from SOI; the genuine test). Mean abs error **~29%**, 2/4 within 15%. The model over-predicts revenue from broad/large rate increases. NB: the Biden $400K+ case scores **−$409B vs −$252B official (62% error)** on the uncalibrated generic path — earlier docs that cited "~−$250B / ~1%" were showing a hand-tuned figure, not the prediction. See [[fpc-review-roadmap]].
+**Tier 1 — out-of-sample predictions** (uncalibrated, bottom-up from SOI; the genuine test). Mean abs error **~19%**, 2/4 within 15%. Ordinary-income base + SOI all-brackets path cut the prior ~29% mean; remaining error is concentrated on high-threshold TPC cases (~30%). The Biden $400K+ Generic path scores **−$284B vs −$252B official (~13%)** — earlier docs that cited "~−$250B / ~1%" were showing a hand-tuned figure, not the prediction. See [[fpc-review-roadmap]].
 
 **Tier 2 — calibrated reference models** (parameters tuned to reproduce the official decomposition; low error expected by construction, ~6% mean across 29 benchmarks). Examples:
 

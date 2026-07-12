@@ -93,9 +93,9 @@ Only income *above* the threshold is subject to the rate change. A filer earning
 
 #### Ordinary vs. preferential income base (`ordinary_income_base`)
 
-An *ordinary*-bracket rate change (e.g. restoring the 39.6% top rate) does **not** apply to long-term capital gains or qualified dividends, which are taxed at preferential rates. By default the model applies the rate change to the whole marginal base; setting `ordinary_income_base=True` excludes the preferentially-taxed share (sourced from `CapitalGainsBaseline`). This is the correct treatment for ordinary-rate proposals and materially improves them — e.g. the Biden 39.6%-above-$400K out-of-sample case drops from 62% error to ~13%.
+An *ordinary*-bracket rate change (e.g. restoring the 39.6% top rate) does **not** apply to long-term capital gains or qualified dividends, which are taxed at preferential rates. On the `TaxPolicy` dataclass the flag defaults to `False` for back-compat, but **production Generic scoring, validation (`create_policy_from_score`), custom UI/API income-tax paths, and preset fallbacks default to `True`** — excluding the preferentially-taxed share (sourced from `CapitalGainsBaseline`). That is the correct treatment for ordinary-rate proposals and cuts the Biden 39.6%-above-$400K out-of-sample error from ~62% to ~13%.
 
-It is **policy-dependent and therefore opt-in, not the default**: AGI-inclusive surtaxes (a millionaire surtax on *all* income, where many "$1M+ top rate" proposals tax capital gains as ordinary income) keep capital gains in the base and should leave the flag off. Because the correct base differs by proposal, a uniform application does not improve the aggregate out-of-sample error — the durable fix is the [microsimulation engine](#microsimulation-engine), which taxes each income type at its actual rate. Reproduce the comparison with `python scripts/cold_holdout.py --ordinary-base`.
+Set the flag `False` (UI: uncheck “Ordinary-income base”; or `CBOScore.agi_inclusive_base=True`) for AGI-inclusive surtaxes that tax capital gains as ordinary income. Reproduce the legacy-vs-corrected comparison with `python scripts/cold_holdout.py --ordinary-base`.
 
 ### Data Source: IRS SOI
 
@@ -984,12 +984,12 @@ No fitting to the official target — the genuine test of predictive accuracy.
 
 | Policy | Official | Model | Error | Source |
 |--------|---------:|------:|------:|--------|
-| 5pp top rate ($1M+) | −$700B | −$648B | 7% | TPC |
-| 2pp rate cut ($500K+) | +$400B | +$364B | 9% | TPC |
-| 1pp all brackets | −$960B | −$1,321B | 38% | JCT |
-| Biden top rate 39.6% ($400K+) | −$252B | −$409B | 62% | Treasury |
+| 1pp all brackets | −$960B | −$935B | 3% | JCT |
+| Biden top rate 39.6% ($400K+) | −$252B | −$284B | 13% | Treasury |
+| 5pp top rate ($1M+) | −$700B | −$491B | 30% | TPC |
+| 2pp rate cut ($500K+) | +$400B | +$278B | 30% | TPC |
 
-**Mean absolute error ~29% (median ~23%); 2 of 4 within 15%.** The model over-predicts revenue from broad/large rate increases (it does not fully capture behavioral erosion at scale; the Biden Treasury figure is a bundled "combined with other provisions" estimate). Targeted top-bracket changes score well (<10%). Treat uncalibrated custom policies as directional, ±30%.
+**Mean absolute error ~19% (median ~21%); 2 of 4 within 15%.** Ordinary-income base + SOI all-brackets scoring fixed the prior broad-rate over-prediction; remaining error is concentrated on high-threshold TPC cases. Treat uncalibrated custom policies as directional, ±20%.
 
 ### Tier 2 — Calibrated reference models (reconstructions, low error by construction)
 

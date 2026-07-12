@@ -56,10 +56,13 @@ def test_json_mode_runs(capsys):
 
 
 def test_ordinary_income_base_flag():
-    """The ordinary-income-base correction must (a) be a no-op by default,
-    (b) reduce the static base for a high-threshold income-tax rate increase
-    when enabled, and (c) be a no-op for non-income-tax policies."""
+    """The ordinary-income-base correction must (a) be a no-op by default on
+    TaxPolicy, (b) reduce the static base for a high-threshold income-tax rate
+    increase when enabled, and (c) be the default for Generic validation via
+    create_policy_from_score."""
     from fiscal_model.policies import PolicyType, TaxPolicy
+    from fiscal_model.validation.cbo_scores import KNOWN_SCORES
+    from fiscal_model.validation.core import create_policy_from_score
 
     def static(**kw):
         p = TaxPolicy(
@@ -73,8 +76,36 @@ def test_ordinary_income_base_flag():
     assert corrected < legacy  # cap gains excluded -> smaller ordinary base
     assert corrected > 0
 
-    # Default must be off (no behavior change for existing callers).
+    # Dataclass default must stay off (explicit opt-in on TaxPolicy itself).
     assert static(ordinary_income_base=False) == legacy
+
+    # Generic validation path defaults to ordinary-income base.
+    score = KNOWN_SCORES["biden_high_income_tax"]
+    policy = create_policy_from_score(score)
+    assert policy is not None
+    assert policy.ordinary_income_base is True
+    legacy_policy = create_policy_from_score(score, ordinary_income_base=False)
+    assert legacy_policy is not None
+    assert legacy_policy.ordinary_income_base is False
+
+
+def test_all_brackets_uses_soi_not_effective_rate_heuristic():
+    """threshold=0 must score via SOI taxable income, not baseline×Δrate/0.18."""
+    from fiscal_model.policies import PolicyType, TaxPolicy
+
+    policy = TaxPolicy(
+        name="1pp all",
+        description="uniform 1pp",
+        policy_type=PolicyType.INCOME_TAX,
+        rate_change=0.01,
+        affected_income_threshold=0,
+        ordinary_income_base=True,
+    )
+    # Ridiculous baseline would dominate the old heuristic; SOI path ignores it.
+    soi = policy.estimate_static_revenue_effect(50_000.0, use_real_data=True)
+    heuristic = 50_000.0 * 1.0 * (0.01 / 0.18)
+    assert soi > 0
+    assert abs(soi - heuristic) / heuristic > 0.2
 
 
 def test_correction_report_runs():
