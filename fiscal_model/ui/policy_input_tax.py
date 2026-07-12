@@ -131,6 +131,18 @@ def render_tax_policy_inputs(
     gains_at_death = 54.0
     step_up_lock_in_multiplier = 2.0
 
+    if use_preset:
+        # Specialized modules create their own policy via create_policy_from_preset.
+        # Simple income-tax presets fall through to TaxPolicy construction, so mirror
+        # rate / threshold / ETI / base selection from the preset dict here.
+        rate_change_pct = float(preset_data.get("rate_change", 0.0) or 0.0)
+        rate_change = rate_change_pct / 100.0
+        threshold = int(preset_data.get("threshold", 0) or 0)
+        duration = int(preset_data.get("duration_years", 10) or 10)
+        phase_in = int(preset_data.get("phase_in_years", 1) or 1)
+        eti = float(preset_data.get("eti", 0.25) or 0.25)
+        ordinary_income_base = not bool(preset_data.get("agi_inclusive_base", False))
+
     if not use_preset:
         st_module.markdown("---")
         st_module.markdown("#### Define your policy")

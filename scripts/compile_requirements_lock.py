@@ -24,6 +24,17 @@ def main() -> int:
         print(f"Missing {req}", file=sys.stderr)
         return 1
 
+    try:
+        import piptools  # noqa: F401
+    except ImportError:
+        print(
+            "pip-tools not installed. Run: pip install pip-tools",
+            file=sys.stderr,
+        )
+        return 1
+
+    # Hash generation is off by default; do not pass --generate-hashes=false
+    # (pip-compile treats --generate-hashes as a boolean flag, not key=value).
     cmd = [
         sys.executable,
         "-m",
@@ -34,17 +45,10 @@ def main() -> int:
         str(lock),
         "--resolver=backtracking",
         "--allow-unsafe",
-        "--generate-hashes=false",
     ]
     print("Running:", " ".join(cmd))
     try:
         subprocess.run(cmd, cwd=ROOT, check=True)
-    except FileNotFoundError:
-        print(
-            "pip-tools not installed. Run: pip install pip-tools",
-            file=sys.stderr,
-        )
-        return 1
     except subprocess.CalledProcessError as exc:
         return int(exc.returncode or 1)
 

@@ -103,8 +103,10 @@ class _DummyStreamlit:
         del args, kwargs
         return "CA"
 
-    def columns(self, n):
-        return [_DummyContext() for _ in range(n)]
+    def columns(self, spec):
+        if isinstance(spec, int):
+            return [_DummyContext() for _ in range(spec)]
+        return [_DummyContext() for _ in spec]
 
 
 class _LockedWidgetSessionState(_DummySessionState):
