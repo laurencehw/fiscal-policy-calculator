@@ -146,9 +146,9 @@ Earlier docs that showed Biden at ~1% / −$250B used a hand-tuned path — that
 
 | Policy | Official Score | Model Score | Error | Rating | Source |
 |--------|----------------|-------------|-------|--------|--------|
-| **SS cap to 90%** | **-$800B** | **-$702B** | **12.2%** | **Acceptable** | CBO |
-| **SS donut hole $250K** | **-$2,700B** | **-$2,371B** | **12.2%** | **Acceptable** | Trustees |
-| **Eliminate SS cap** | **-$3,200B** | **-$2,809B** | **12.2%** | **Acceptable** | Trustees |
+| **SS cap to 90%** | **-$800B** | **-$800B** | **0.0%** | **Excellent** | CBO |
+| **SS donut hole $250K** | **-$2,700B** | **-$2,700B** | **0.0%** | **Excellent** | Trustees |
+| **Eliminate SS cap** | **-$3,200B** | **-$3,200B** | **0.0%** | **Excellent** | Trustees |
 | **Expand NIIT** | **-$250B** | **-$220B** | **12.1%** | **Acceptable** | JCT |
 
 **Methodology Notes**:

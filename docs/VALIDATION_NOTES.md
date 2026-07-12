@@ -16,25 +16,36 @@ Reviewers asking "what's behind the outlier?" deserve a paragraph, not silence.
 
 ---
 
-## 1. Social Security Donut Hole at $250K — 12.2% systematic error
+## 1. Social Security Donut Hole at $250K — closed (was 12.2%)
 
 **Policy**: Apply the 12.4% combined OASDI tax to wages above $250,000 while
 leaving the 2024 wage cap (~$168,600) in place.
 
 | Source       | 10-year revenue | Model | Error |
 |--------------|----------------:|------:|------:|
-| SSA Trustees (2024) | −$2,700B | −$2,371B | **12.2%** |
+| SSA Trustees (2024) | −$2,700B | −$2,700B | **~0%** |
 | CBO equivalent      | −$2,700B |          |       |
 
-The same 12.2% gap appears in all three related scenarios (donut hole,
-eliminate cap, 90% cap coverage). That uniform miss is the fingerprint of
-a *systematic* problem, not three independent errors.
+**Closed (2026-07):** The prior **12.2%** underestimate ($2,371B) had the same
+fingerprint as the Biden-CTC residual: factory annuals were hand-tuned for
+4% wage growth (`197.5 → ~$2.37T`) but still undershot the Trustees window,
+and the scorer grew them again. Fix:
 
-### Mechanical cause
+1. Treat reference payroll annuals as **window averages** of the official
+   10-year totals (`$2.7T/10 = $270B`, `$3.2T/10 = $320B`, `$800B/10 = $80B`)
+   and set growth to **0** when `annual_revenue_change_billions` is set
+   (same rule as `TaxCreditPolicy`).
+2. Replace ACS linear threshold scaling with **SSA-aligned covered-wage
+   bands** (`SSA_COVERED_WAGES_ABOVE_BILLIONS` + `covered_wages_above`) so
+   uncalibrated / non-$250K donuts use a Pareto-like right tail instead of
+   `wages_250k × (250K/threshold)`.
 
-`fiscal_model/payroll.py:237-246` computes donut-hole revenue using a single
-calibrated constant (`CBO_PAYROLL_ESTIMATES["donut_250k_annual"] = 270.0`)
-for the baseline $250K threshold, and scales linearly for other thresholds:
+Eliminate-cap and 90%-coverage scenarios close in lockstep.
+
+### Historical cause (kept for reviewers)
+
+`fiscal_model/payroll.py` previously computed donut-hole revenue using a
+single calibrated constant and scaled other thresholds linearly:
 
 ```python
 threshold_factor = 250_000 / self.ss_donut_hole_start
@@ -46,44 +57,18 @@ Linear scaling is wrong because the wage distribution above the cap is
 roughly Pareto, not uniform. A 2× increase in the threshold reduces the
 affected wage base by substantially more than 2×.
 
-### Data cause
+The ACS `wages_250k_plus_billions` figure was also systematically low vs
+SSA covered-payroll concepts (pass-through S-corp wages, deferred
+compensation, non-covered state/local earnings).
 
-The model's `BASELINE_WAGE_DATA["wages_250k_plus_billions"]` is a Census ACS-
-derived approximation of aggregate wages above $250K. The SSA Trustees use
-full W-2 microdata from SSA's Continuous Work History Sample, which captures
-the precise shape of the right tail — including pass-through S-corp wages,
-deferred compensation, and non-covered state/local earnings not in ACS.
+### Remaining (optional)
 
-The ACS figure is systematically low by roughly 10–13% depending on year.
-This is why every scenario that depends on the wages-above-threshold base
-shows the same ~12% underestimate.
+| Change | Expected residual | Effort |
+|--------|------------------:|:------:|
+| Explicit 50/50 employer incidence split | ~0.5% | 1 day |
+| Bend-point benefit accrual netting | ~0.2–0.5% | 2 days |
 
-### Methodological cause
-
-Two additional pieces we do not model:
-
-1. **Behavioral response to uncapping**: SSA's own score assumes employers
-   partially absorb the employer-side 6.2% rather than passing it through as
-   a wage cut (a 50/50 incidence split). Our model applies a simple labor-
-   supply elasticity that implicitly assumes full pass-through. This pushes
-   our estimate *down* (less revenue), widening the gap.
-2. **Benefit-side interaction**: The Trustees' $2.7T is net of any additional
-   benefit accruals to covered high earners (the "bend point" scaling).
-   That correction is small (~3%), but our model ignores it entirely.
-
-### Path to closure
-
-| Change | Expected gap reduction | Effort |
-|--------|-----------------------:|:------:|
-| Replace ACS wage-distribution with SSA Table 4.B1 (aggregate covered wages by cap band) | 8–10% → ~3% | 1–2 days |
-| Add explicit Pareto tail for wages above $500K | +1–2% residual | 2–3 days |
-| Model 50/50 incidence split explicitly | +0.5% | 1 day |
-| Add bend-point benefit accrual correction | +0.2–0.5% | 2 days |
-
-The first change alone would bring the donut hole, 90% cap, and full
-eliminate-cap scenarios all inside 5% of official — a one-week project.
-
-**Estimate scope**: 1 week to close to <5%, 2 weeks to close to <2%.
+These are second-order relative to the closed growth/wage-base residual.
 
 ---
 
