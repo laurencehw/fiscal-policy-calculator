@@ -32,10 +32,17 @@ _HOW_SCORED_MARKDOWN = (
     "[Saez et al. 2012](https://eml.berkeley.edu/~saez/saez-slemrod-giertzJEL12.pdf))\n"
     "3. **Dynamic feedback** *(optional)* — GDP and employment effects using "
     "FRB/US-calibrated multipliers\n\n"
+    "**How to read the numbers (model maturity):**\n\n"
+    "- **Core (green)** — revenue, distribution, and dynamic scoring. Calibrated "
+    "reference models reproduce official decompositions (~6% mean error); "
+    "genuine out-of-sample predictions are ~19% mean error.\n"
+    "- **Specialized (yellow)** — TCJA, corporate, credits, payroll, etc. Tuned "
+    "reconstructions of published scores — transparent, not independent confirmation.\n"
+    "- **Exploratory (blue)** — Ask, Bill Tracker, multi-model pilot. Useful UX; "
+    "not validated estimates.\n\n"
     "Data: IRS Statistics of Income, FRED, CBO Baseline Projections. "
-    "25+ policies benchmarked against official CBO/JCT/Treasury scores — calibrated "
-    "reference models reproduce official decompositions; uncalibrated custom policies "
-    "are directional (mean out-of-sample error ~19%).\n\n"
+    "Every result shows a validation-evidence card — never collapse calibrated "
+    "and out-of-sample accuracy into one \"validated within X%\" claim.\n\n"
     "For background, see "
     f"[Optimal Taxation (Ch 16)]({TEXTBOOK_LINKS['optimal_taxation']}) and "
     f"[The Federal Budget (Ch 22)]({TEXTBOOK_LINKS['federal_budget']}) in the textbook."
@@ -449,8 +456,8 @@ def _render_quick_start_card(
 
 def render_quick_start(st_module: Any) -> None:
     """
-    Render a dismissible quick-start guide with question-led policy cards.
-    Auto-dismissed once results exist.
+    Render a dismissible quick-start guide with a guided first-score path
+    plus a short list of question-led policy cards.
     """
     if "quick_start_dismissed" not in st_module.session_state:
         st_module.session_state.quick_start_dismissed = False
@@ -465,22 +472,32 @@ def render_quick_start(st_module: Any) -> None:
     col1, col2 = st_module.columns([20, 1])
     with col1:
         st_module.markdown(
-            "👋 **What do you want to know?** Click a question to load the "
-            "matching preset and run the calculation instantly. Or build "
-            "your own from the sidebar."
+            "### Start here\n"
+            "1. Pick a question below (or a preset in the sidebar)\n"
+            "2. Click **Calculate Impact**\n"
+            "3. Read the headline deficit number and the **Validation evidence** card\n\n"
+            "Optional depth: Distribution, Economic Effects, and Scoring Models tabs."
         )
     with col2:
         if st_module.button("✕", key="dismiss_quick_start"):
             st_module.session_state.quick_start_dismissed = True
             st_module.rerun()
 
-    # Two rows of three cards. Streamlit columns can't easily wrap, so we
-    # render explicit row containers.
-    cards = list(_QUICK_START_CARDS)
-    for row_start in range(0, len(cards), 3):
-        row = cards[row_start : row_start + 3]
-        cols = st_module.columns(len(row))
-        for col, card in zip(cols, row, strict=True):
+    # Lead with one featured card, then a compact second row.
+    featured = _QUICK_START_CARDS[0]
+    featured_cols = st_module.columns(1)
+    _render_quick_start_card(st_module, featured_cols[0], featured)
+
+    st_module.caption("More examples")
+    cards = list(_QUICK_START_CARDS[1:4])
+    cols = st_module.columns(len(cards))
+    for col, card in zip(cols, cards, strict=True):
+        _render_quick_start_card(st_module, col, card)
+
+    with st_module.expander("More policy questions", expanded=False):
+        more = list(_QUICK_START_CARDS[4:])
+        more_cols = st_module.columns(len(more))
+        for col, card in zip(more_cols, more, strict=True):
             _render_quick_start_card(st_module, col, card)
 
     st_module.markdown("---")

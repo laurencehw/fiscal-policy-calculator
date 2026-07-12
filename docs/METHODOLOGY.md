@@ -553,7 +553,7 @@ CTC_phaseout = max(0, CTC - phaseout_rate × max(0, AGI - phaseout_threshold))
 - Phaseout: 5 cents per dollar above $200K (single) / $400K (MFJ)
 - Refundable up to 15% of earnings above $2,500 (Additional CTC)
 
-**Biden 2021 expansion** raised the credit to $3,000–$3,600 and made it fully refundable, calibrated to CBO's $1,600B/10yr estimate (model: $1,743B, 8.9% error).
+**Biden 2021 expansion** raised the credit to $3,000–$3,600 and made it fully refundable, calibrated to CBO's $1,600B/10yr estimate (model matches when the explicit annual is treated as a window average).
 
 ### Earned Income Tax Credit
 
@@ -1001,7 +1001,7 @@ Specialized modules parameterized to reproduce the published decomposition. Usef
 | **Biden Corporate 28%** | **−$1,347B** | **−$1,397B** | **3.7%** | calibrated |
 | Biden GILTI Reform | −$280B | −$271B | 3.2% | calibrated |
 | FDII Repeal | −$200B | −$200B | 0.0% | calibrated |
-| **Biden CTC 2021** | **$1,600B** | **$1,743B** | **8.9%** | calibrated |
+| **Biden CTC 2021** | **$1,600B** | **$1,600B** | **0.0%** | calibrated |
 | **Estate: Biden Reform** | **−$450B** | **−$496B** | **10.1%** | calibrated |
 | **SS Donut Hole $250K** | **−$2,700B** | **−$2,371B** | **12.2%** | calibrated |
 | **Repeal Corporate AMT** | **$220B** | **$220B** | **0.0%** | calibrated |

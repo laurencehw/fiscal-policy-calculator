@@ -37,7 +37,7 @@ The specialized modules (TCJA, Corporate, Estate, Credits, AMT, Payroll, PTC, Ca
 
 The ~6% error here is **expected by construction** — these demonstrate the model's structure and provide auditable, source-linked reconstructions of official scores; they are **not** evidence the model would have predicted them cold. Best on income-tax/TCJA components (0.1–4%); weakest on payroll reforms (~12%, wage-distribution assumptions).
 
-**Scope note**: Distributional validation is currently benchmarked mainly against published TPC tables rather than a broader CBO distributional set, and the payroll / CTC scenarios above remain the clearest higher-error checkpoints to monitor. See [VALIDATION_NOTES.md](VALIDATION_NOTES.md) for root-cause analysis of the three biggest outliers (SS donut hole, Biden CTC 2021, Biden estate reform).
+**Scope note**: Distributional validation is currently benchmarked mainly against published TPC tables rather than a broader CBO distributional set. Payroll / estate scenarios remain higher-error checkpoints; the Biden CTC revenue residual from double-counting growth on window-average annuals is closed (see [VALIDATION_NOTES.md](VALIDATION_NOTES.md)).
 
 **Calibration / holdout note**: The live scorecard and API credibility blocks distinguish specialized calibrated benchmark paths, generic parameterized paths, and the locked post-change holdout protocol (`revenue-scorecard-post-lock-2026-05-02`). Holdout labels are future regression checkpoints, not retroactive historical out-of-sample claims.
 
@@ -115,8 +115,8 @@ Earlier docs that showed Biden at ~1% / −$250B used a hand-tuned path — that
 
 | Policy | Official Score | Model Score | Error | Rating | Source |
 |--------|----------------|-------------|-------|--------|--------|
-| **Biden CTC 2021 (permanent)** | **$1,600B** | **$1,743B** | **8.9%** | **Good** | CBO |
-| CTC extension | $600B | $653B | 8.9% | Good | CBO |
+| **Biden CTC 2021 (permanent)** | **$1,600B** | **$1,600B** | **0.0%** | **Excellent** | CBO |
+| CTC extension | $600B | $600B | 0.0% | Excellent | CBO |
 | **Biden EITC childless** | **$178B** | **$180B** | **0.9%** | **Excellent** | Treasury |
 
 **Methodology Notes**:

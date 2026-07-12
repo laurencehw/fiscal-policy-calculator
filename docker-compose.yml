@@ -1,0 +1,33 @@
+# Optional local stack: Streamlit UI + FastAPI
+#
+#   docker compose up --build
+#
+# App:  http://localhost:8501
+# API:  http://localhost:8000/docs
+
+services:
+  app:
+    build: .
+    ports:
+      - "8501:8501"
+    environment:
+      - STREAMLIT_SERVER_HEADLESS=true
+    volumes:
+      # Persist Ask usage / bill-tracker sqlite if present
+      - ./data:/app/data
+    command:
+      [
+        "streamlit",
+        "run",
+        "app.py",
+        "--server.address=0.0.0.0",
+        "--server.port=8501",
+      ]
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]

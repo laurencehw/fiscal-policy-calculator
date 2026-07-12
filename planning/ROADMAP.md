@@ -30,7 +30,7 @@
 | `tcja.py` | Full extension, rates only, no SALT cap | 0.4% error |
 | `corporate.py` | Biden 28%, Trump 15%, book minimum, R&D | 3.7% error |
 | `international.py` | GILTI, FDII, Pillar Two, UTPR | 3.2% error |
-| `credits.py` | CTC, EITC expansions | 8.9% error |
+| `credits.py` | CTC, EITC expansions | ~0% (window-average annuals) |
 | `estate.py` | TCJA extension, Biden reform, repeal | 10.1% error |
 | `payroll.py` | SS cap, donut hole, NIIT | 12.2% error |
 | `amt.py` | Individual/corporate AMT | 0.0% error |

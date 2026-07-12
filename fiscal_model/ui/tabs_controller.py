@@ -320,7 +320,7 @@ def render_result_tabs(
 
         _render_guarded_tab(st_module, "Economic Effects", _render_economic_body)
 
-    # Tab 4: Scoring Models (+ side-by-side compare)
+    # Tab 4: Scoring Models (+ multi-model pilot + side-by-side compare)
     with tabs["tab_scoring"]:
         def _render_scoring_body() -> None:
             deps.render_policy_comparison_tab(
@@ -336,20 +336,22 @@ def render_result_tabs(
             )
 
             st_module.markdown("---")
-            with st_module.expander(
-                "🔀 Multi-model pilot (CBO × TPC-Microsim)",
-                expanded=False,
-            ):
-                deps.render_multi_model_tab(
-                    st_module=st_module,
-                    is_spending=is_spending,
-                    preset_policies=deps.PRESET_POLICIES,
-                    tax_policy_cls=deps.TaxPolicy,
-                    policy_type_income_tax=deps.PolicyType.INCOME_TAX,
-                    fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
-                    data_year=settings["data_year"],
-                    use_real_data=settings["use_real_data"],
-                )
+            st_module.subheader("Multi-model comparison (pilot)")
+            st_module.caption(
+                "Same policy through CBO-style and TPC-microsim backends. "
+                "Disagreement is informative — not an official range. "
+                "Exploratory tier: useful for robustness, not a validated estimate."
+            )
+            deps.render_multi_model_tab(
+                st_module=st_module,
+                is_spending=is_spending,
+                preset_policies=deps.PRESET_POLICIES,
+                tax_policy_cls=deps.TaxPolicy,
+                policy_type_income_tax=deps.PolicyType.INCOME_TAX,
+                fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
+                data_year=settings["data_year"],
+                use_real_data=settings["use_real_data"],
+            )
 
             st_module.markdown("---")
             _render_side_by_side_section(

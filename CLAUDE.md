@@ -315,7 +315,7 @@ Next: closing the ARP bundle scope residual (needs Recovery Rebate engine integr
 |--------|----------------|-------------|-------|
 | **TCJA Extension** | **$4,600B** | **$4,582B** | **0.4%** |
 | **Corporate 21%→28%** | **-$1,347B** | **-$1,397B** | **3.7%** |
-| **Biden CTC 2021** | **$1,600B** | **$1,743B** | **8.9%** |
+| **Biden CTC 2021** | **$1,600B** | **$1,600B** | **0.0%** |
 | **Estate: Biden Reform** | **-$450B** | **-$496B** | **10.1%** |
 | **SS Donut $250K** | **-$2,700B** | **-$2,371B** | **12.2%** |
 | **Repeal Corporate AMT** | **$220B** | **$220B** | **0.0%** |
