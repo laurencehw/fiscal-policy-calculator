@@ -83,12 +83,17 @@ NIIT_PARAMS = {
     "annual_revenue_billions": 60.0,  # ~$60B/year (2021 data)
 }
 
-# Baseline wage data
+# Baseline wage data (ACS-era aggregates; prefer SSA_COVERED_WAGES_ABOVE for
+# OASDI base calculations). Kept for Medicare / worker-count helpers.
 BASELINE_WAGE_DATA = {
     # Total wages subject to payroll tax
     "total_wages_billions": 11_000.0,  # ~$11T in wages
-    "wages_above_cap_billions": 1_870.0,  # ~$1.87T above SS cap
-    "wages_250k_plus_billions": 2_500.0,  # ~$2.5T above $250K
+    # SSA-aligned: wages above the taxable maximum that reproduce Trustees
+    # eliminate-cap window-average revenue ($320B × 10 ≈ $3.2T).
+    "wages_above_cap_billions": 2_581.0,  # 320 / 0.124
+    # Wages above $250K that reproduce Trustees donut window-average
+    # ($270B × 10 ≈ $2.7T).
+    "wages_250k_plus_billions": 2_177.0,  # 270 / 0.124
 
     # Number of workers
     "total_workers_millions": 165.0,
@@ -100,6 +105,59 @@ BASELINE_WAGE_DATA = {
     "medicare_revenue_billions": 400.0,  # ~$400B/year
     "additional_medicare_billions": 15.0,  # ~$15B/year
 }
+
+# SSA-aligned covered earnings above selected thresholds (billions of dollars).
+# Anchored so rate × base matches Trustees/CBO *window-average* annuals for the
+# reference reforms (eliminate cap, $250K donut, 90% coverage). Intermediate
+# thresholds use log-linear interpolation — a Pareto-like right tail — instead
+# of the old ACS linear scale (VALIDATION_NOTES §1).
+#
+# Sources: Social Security Trustees Report (taxable maximum / solvency options);
+# CBO payroll options. Not a literal reprint of Table 4.B1 micro bands, but
+# scaled to the same covered-payroll concept the Trustees use.
+SSA_COVERED_WAGES_ABOVE_BILLIONS: tuple[tuple[float, float], ...] = (
+    (176_100.0, 2_581.0),  # current-law taxable maximum → eliminate-cap base
+    (250_000.0, 2_177.0),  # $250K donut
+    (305_000.0, 1_936.0),  # ~90% coverage cap (W_cap - W_305k ≈ $645B → $80B)
+    (400_000.0, 1_613.0),  # Biden-style donut (interpolated / scaled)
+    (500_000.0, 1_350.0),
+    (1_000_000.0, 850.0),
+)
+
+
+def covered_wages_above(threshold: float) -> float:
+    """
+    Covered OASDI earnings ($B) above ``threshold``, SSA-aligned.
+
+    Uses piecewise log-linear interpolation across
+    ``SSA_COVERED_WAGES_ABOVE_BILLIONS`` (Pareto-like tail). Extrapolates
+    outside the table with the slope of the nearest segment.
+    """
+    if threshold <= 0:
+        return SSA_COVERED_WAGES_ABOVE_BILLIONS[0][1]
+
+    bands = SSA_COVERED_WAGES_ABOVE_BILLIONS
+    if threshold <= bands[0][0]:
+        # Below the taxable maximum: scale from the eliminate-cap anchor.
+        t0, w0 = bands[0]
+        return w0 * (t0 / threshold) ** 0.55
+
+    for (t0, w0), (t1, w1) in zip(bands, bands[1:], strict=False):
+        if threshold <= t1:
+            # Log-linear in threshold space ≈ constant Pareto α on the segment.
+            log_t = np.log(threshold)
+            log_t0 = np.log(t0)
+            log_t1 = np.log(t1)
+            weight = (log_t - log_t0) / (log_t1 - log_t0)
+            log_w = (1 - weight) * np.log(w0) + weight * np.log(w1)
+            return float(np.exp(log_w))
+
+    # Above the top tabulated threshold: continue last segment's Pareto slope.
+    t0, w0 = bands[-2]
+    t1, w1 = bands[-1]
+    alpha = np.log(w0 / w1) / np.log(t1 / t0)
+    return float(w1 * (t1 / threshold) ** alpha)
+
 
 # CBO official estimates
 CBO_PAYROLL_ESTIMATES = {
@@ -222,32 +280,30 @@ class PayrollTaxPolicy(TaxPolicy):
             return self.annual_revenue_change_billions
 
         total_revenue = 0.0
+        rate = SOCIAL_SECURITY_PARAMS["rate_combined"]
 
-        # Social Security cap changes
+        # Social Security cap changes — bottom-up from SSA-aligned covered wages
+        # when no explicit window-average annual is set on the policy.
         if self.ss_eliminate_cap:
-            # Taxing all wages above current cap
-            # ~$1.87T in wages above cap × 12.4% = ~$232B additional
-            # But CBO says $3.2T over 10 years = ~$320B/year (includes growth)
-            total_revenue += CBO_PAYROLL_ESTIMATES["eliminate_cap_annual"]
+            total_revenue += covered_wages_above(
+                SOCIAL_SECURITY_PARAMS["cap_2025"]
+            ) * rate
 
         elif self.ss_cover_90_pct:
-            # Raise cap to cover 90% of wages
-            total_revenue += CBO_PAYROLL_ESTIMATES["cap_90_pct_annual"]
+            # Raise taxable maximum to the ~90% coverage level: tax the band
+            # between the current cap and the 90% cap.
+            current_cap = SOCIAL_SECURITY_PARAMS["cap_2025"]
+            cap_90 = 305_000.0
+            newly_taxed = covered_wages_above(current_cap) - covered_wages_above(cap_90)
+            total_revenue += max(0.0, newly_taxed) * rate
 
         elif self.ss_donut_hole_start is not None:
-            # Donut hole: tax wages above threshold
-            if self.ss_donut_hole_start <= 250_000:
-                total_revenue += CBO_PAYROLL_ESTIMATES["donut_250k_annual"]
-            else:
-                # Scale based on threshold
-                base_wages = BASELINE_WAGE_DATA["wages_250k_plus_billions"]
-                threshold_factor = 250_000 / self.ss_donut_hole_start
-                scaled_wages = base_wages * threshold_factor
-                total_revenue += scaled_wages * SOCIAL_SECURITY_PARAMS["rate_combined"]
+            # Donut hole: tax covered earnings above the threshold only.
+            total_revenue += covered_wages_above(float(self.ss_donut_hole_start)) * rate
 
         # Social Security rate changes
         if self.ss_rate_change != 0:
-            # 1pp rate increase = ~$90B/year
+            # 1pp rate increase = ~$90B/year (CBO window-average)
             rate_change_pp = self.ss_rate_change * 100  # Convert to percentage points
             total_revenue += rate_change_pp * CBO_PAYROLL_ESTIMATES["rate_1pp_annual"]
 
@@ -255,7 +311,7 @@ class PayrollTaxPolicy(TaxPolicy):
         if self.medicare_rate_change != 0:
             # Medicare applies to all wages
             rate_change_pp = self.medicare_rate_change * 100
-            # Medicare revenue is ~$400B at 2.9%, so 1pp = ~$140B
+            # Medicare revenue is ~$400B at 2.9%, so 1pp ≈ $140B window-average
             total_revenue += rate_change_pp * 140.0
 
         # NIIT expansion
@@ -316,8 +372,8 @@ def create_ss_cap_90_percent(
         ss_cover_90_pct=True,
         labor_supply_elasticity=0.0,  # Behavioral already in calibration
         tax_avoidance_elasticity=0.0,
-        # Calibrated to CBO $800B over 10 years (with 4% growth)
-        annual_revenue_change_billions=58.5,
+        # Window-average of CBO $800B / 10yr (do not grow again in the scorer)
+        annual_revenue_change_billions=80.0,
         start_year=start_year,
         duration_years=duration_years,
     )
@@ -344,8 +400,8 @@ def create_ss_donut_hole(
         ss_donut_hole_start=threshold,
         labor_supply_elasticity=0.0,  # Behavioral already in calibration
         tax_avoidance_elasticity=0.0,
-        # Calibrated to Trustees $2.7T over 10 years (with 4% growth)
-        annual_revenue_change_billions=197.5,
+        # Window-average of Trustees $2.7T / 10yr (do not grow again in the scorer)
+        annual_revenue_change_billions=270.0,
         start_year=start_year,
         duration_years=duration_years,
     )
@@ -369,8 +425,8 @@ def create_ss_eliminate_cap(
         ss_eliminate_cap=True,
         labor_supply_elasticity=0.0,  # Behavioral already in calibration
         tax_avoidance_elasticity=0.0,
-        # Calibrated to Trustees $3.2T over 10 years (with 4% growth)
-        annual_revenue_change_billions=234.0,
+        # Window-average of Trustees $3.2T / 10yr (do not grow again in the scorer)
+        annual_revenue_change_billions=320.0,
         start_year=start_year,
         duration_years=duration_years,
     )
@@ -397,8 +453,8 @@ def create_ss_rate_increase(
         policy = create_ss_rate_increase(0.01)
     """
     rate_pp = rate_change * 100
-    # 1pp = ~$90B/year
-    annual_revenue = rate_pp * 78.5  # Calibrated
+    # Window-average of CBO ~$900B / 10yr per 1pp
+    annual_revenue = rate_pp * CBO_PAYROLL_ESTIMATES["rate_1pp_annual"]
 
     return PayrollTaxPolicy(
         name=f"SS Rate +{rate_pp:.1f}pp",
@@ -407,7 +463,6 @@ def create_ss_rate_increase(
         payroll_tax_type=PayrollTaxType.SOCIAL_SECURITY,
         ss_rate_change=rate_change,
         labor_supply_elasticity=0.15,  # Rate increases have larger labor effects
-        # Calibrated
         annual_revenue_change_billions=annual_revenue,
         start_year=start_year,
         duration_years=duration_years,
@@ -434,8 +489,8 @@ def create_expand_niit(
         expand_niit_to_passthrough=True,
         labor_supply_elasticity=0.0,  # Behavioral already in calibration
         tax_avoidance_elasticity=0.0,
-        # Calibrated to JCT $250B over 10 years (with 4% growth)
-        annual_revenue_change_billions=18.3,
+        # Window-average of JCT $250B / 10yr (do not grow again in the scorer)
+        annual_revenue_change_billions=25.0,
         start_year=start_year,
         duration_years=duration_years,
     )
@@ -458,8 +513,8 @@ def create_medicare_rate_increase(
         PayrollTaxPolicy for Medicare rate increase
     """
     rate_pp = rate_change * 100
-    # Medicare revenue ~$400B at 2.9%, so 1pp = ~$140B
-    annual_revenue = rate_pp * 122.0  # Calibrated
+    # Medicare revenue ~$400B at 2.9%, so 1pp ≈ $140B window-average
+    annual_revenue = rate_pp * 140.0
 
     return PayrollTaxPolicy(
         name=f"Medicare Rate +{rate_pp:.1f}pp",
@@ -491,10 +546,13 @@ def create_biden_payroll_proposal() -> PayrollTaxPolicy:
         policy_type=PolicyType.PAYROLL_TAX,
         payroll_tax_type=PayrollTaxType.SOCIAL_SECURITY,
         ss_donut_hole_start=400_000,
-        labor_supply_elasticity=0.08,
-        tax_avoidance_elasticity=0.15,
-        # Scaled estimate based on $250K donut hole
-        annual_revenue_change_billions=122.0,
+        labor_supply_elasticity=0.0,
+        tax_avoidance_elasticity=0.0,
+        # Window-average from SSA-aligned covered wages above $400K
+        annual_revenue_change_billions=round(
+            covered_wages_above(400_000) * SOCIAL_SECURITY_PARAMS["rate_combined"],
+            1,
+        ),
         start_year=2025,
         duration_years=10,
     )
@@ -549,10 +607,17 @@ def estimate_payroll_revenue(policy: PayrollTaxPolicy) -> dict:
     annual_static = policy.estimate_static_revenue_effect(0)
     behavioral = policy.estimate_behavioral_offset(annual_static)
 
-    # Apply growth (~4%/year for wage growth)
+    # Explicit annuals are window-average calibrations — leave flat over the
+    # horizon (same rule as TaxCreditPolicy / FiscalPolicyScorer). Bottom-up
+    # scores without an annual still get modest wage growth.
+    if policy.annual_revenue_change_billions is not None:
+        growth = 0.0
+    else:
+        growth = 0.04
+
     years = np.arange(10)
-    annual_effects = annual_static * (1.04 ** years)
-    behavioral_effects = behavioral * (1.04 ** years)
+    annual_effects = annual_static * ((1 + growth) ** years)
+    behavioral_effects = behavioral * ((1 + growth) ** years)
 
     ten_year_static = np.sum(annual_effects)
     ten_year_behavioral = np.sum(behavioral_effects)
