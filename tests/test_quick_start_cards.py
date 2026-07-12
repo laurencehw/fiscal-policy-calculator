@@ -67,13 +67,9 @@ def test_render_quick_start_dismissed_when_results_exist():
     assert not st.columns.called
 
 
-def test_render_quick_start_draws_two_rows_for_six_cards():
-    """Six cards in two rows of three; we don't pin the exact column args
-    but we do require multiple `columns` calls — one per row."""
+def test_render_quick_start_draws_featured_and_example_rows():
+    """Guided layout: dismiss row + featured(1) + examples(3) + expander more."""
     from unittest.mock import MagicMock
-
-    n_cards = len(_QUICK_START_CARDS)
-    expected_rows = (n_cards + 2) // 3  # 6 cards -> 2 rows
 
     st = MagicMock()
     st.session_state = _SessionState()
@@ -86,5 +82,5 @@ def test_render_quick_start_draws_two_rows_for_six_cards():
 
     render_quick_start(st)
 
-    # Dismiss header row + one row per group of three cards.
-    assert st.columns.call_count == 1 + expected_rows
+    # dismiss [20,1] + featured(1) + examples(3) + expander more(2)
+    assert st.columns.call_count == 4

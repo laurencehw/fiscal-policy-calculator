@@ -80,14 +80,15 @@ class TestBidenCorporateRateCBORange:
 
 
 class TestBidenCTC2021CBORange:
-    """Biden CTC 2021 (ARP-style permanent; fallback-data regression value ~$1,743B)."""
+    """Biden CTC 2021 (ARP-style permanent; fallback-data regression value ~$1,600B)."""
 
     def test_biden_ctc_cbo_range(self, scorer):
         policy = create_biden_ctc_2021()
         result = scorer.score_policy(policy)
         total = result.total_10_year_cost
-        assert 1660 <= total <= 1830, (
-            f"Biden CTC {total:.0f}B outside regression band [1660, 1830]"
+        # Window-average annual calibration (no growth/behavioral double-count).
+        assert 1520 <= total <= 1680, (
+            f"Biden CTC {total:.0f}B outside regression band [1520, 1680]"
         )
 
     def test_biden_ctc_increases_deficit(self, scorer):
