@@ -301,7 +301,7 @@ Completed:
 11. ✅ `GET /summary`, `GET /benchmarks` API endpoints + `scripts/run_validation_dashboard.py` CI gate
 12. ✅ **Ask assistant** — citation-grounded Q&A, 19 curated authoritative snapshots, streaming tool-use loop, `/ask` + `/ask/stream` (SSE) endpoints, token-gated admin dashboard, share-link encoding, hard daily cost cap, /health + /readiness integration. 105 tests across the assistant stack.
 
-Next: closing the ARP bundle scope residual (needs Recovery Rebate engine integration) and broadening the multi-model pilots to more policy types. See `planning/NEXT_STEPS.md`.
+Next: broaden multi-model pilots further (more microsim reform mappings) and close high-error calibrated residuals (SS donut wage base, estate). ARP Recovery Rebate is already wired into the `CBO_ARP_2021` distributional bundle; the remaining ~7pp ARP distributional gap is children-in-household microsim detail. See `planning/NEXT_STEPS.md`.
 
 ## Target Validation
 

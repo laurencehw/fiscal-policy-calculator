@@ -11,9 +11,9 @@ clears feasibility sanity bounds.
 
 Rendering is defensive: each model runs independently with
 ``continue_on_error=True`` so one backend failing (e.g. missing
-microdata on a fresh clone) does not hide the others. Missing
-backends are reported in an explicit "Notes" section rather than
-swallowed.
+microdata or an unsupported policy family) does not hide the others.
+Unsupported engines are labeled "not representable" via the capability
+matrix rather than swallowed as silent zeros.
 """
 
 from __future__ import annotations
@@ -24,6 +24,12 @@ from typing import Any
 import pandas as pd
 
 from fiscal_model.feasibility import assess_model_pilot_comparison
+from fiscal_model.models.capabilities import (
+    TPC_ENGINE,
+    engine_support_matrix,
+    policy_family,
+    support_label,
+)
 from fiscal_model.models.comparison import (
     ComparisonBundle,
     UnsupportedModelPolicyError,
@@ -111,6 +117,25 @@ def _annual_effects_frame(bundle: ComparisonBundle) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True)
 
 
+def _classify_skip_reason(reason: str) -> str:
+    """Label hard failures vs explicit not-representable capability skips."""
+    soft_markers = (
+        "does not map",
+        "not in the microsim",
+        "outside the",
+        "firm-level",
+        "not yet mapped",
+        "not mapped",
+        "multi-provision",
+        "no corporate tax module",
+        "marketplace enrollment",
+    )
+    lowered = reason.lower()
+    if any(marker in lowered for marker in soft_markers):
+        return "Not representable in this pilot"
+    return "Backend error"
+
+
 def render_multi_model_tab(
     st_module: Any,
     *,
@@ -134,10 +159,12 @@ def render_multi_model_tab(
         "and see where they agree and disagree. This is the CBO × TPC "
         "side-by-side view — a pilot today, with the PWBM-OLG adapter held "
         "out of the default UI until it clears feasibility sanity bounds.\n\n"
-        "- **CBO-Style** — the calculator's default static + ETI path.\n"
-        "- **TPC-Microsim Pilot** — single-year microsimulation over the bundled "
-        "tax-unit file with SOI top-tail augmentation. Works for policies "
-        "that map to a supported reform.\n"
+        "- **CBO-Style** — the calculator's default static + ETI path "
+        "(specialized modules: corporate, credits, payroll, estate, …).\n"
+        "- **TPC-Microsim Pilot** — return-level microsim for policies that "
+        "map to reforms (income-tax rates, CTC, EITC, SALT, AMT exemption). "
+        "Corporate / OASDI payroll / estate / TCJA composites are reported as "
+        "**not representable**, not as fake agreement.\n"
         "- **PWBM-OLG Pilot** — available only through "
         "`scripts/run_feasibility_audit.py --include-model-pilot "
         "--include-experimental-pwbm` while the adapter is calibrated."
@@ -155,25 +182,55 @@ def render_multi_model_tab(
         st_module.info("No eligible presets available for comparison.")
         return
 
-    preset_name = st_module.selectbox(
-        "Policy",
-        options=preset_names,
-        index=0,
-        help="Choose a preset tax policy to score under every backend.",
-    )
-    preset = preset_policies[preset_name]
+    # Build policies once so selectbox labels can show CBO+TPC vs CBO only.
+    built: dict[str, Any] = {}
+    labeled_options: list[str] = []
+    label_to_name: dict[str, str] = {}
+    for name in preset_names:
+        try:
+            policy = _build_policy(
+                preset_name=name,
+                preset=preset_policies[name],
+                tax_policy_cls=tax_policy_cls,
+                policy_type_income_tax=policy_type_income_tax,
+                data_year=data_year,
+            )
+        except Exception:
+            continue
+        built[name] = policy
+        label = f"{name}  ·  {support_label(policy)}"
+        labeled_options.append(label)
+        label_to_name[label] = name
 
-    try:
-        policy = _build_policy(
-            preset_name=preset_name,
-            preset=preset,
-            tax_policy_cls=tax_policy_cls,
-            policy_type_income_tax=policy_type_income_tax,
-            data_year=data_year,
-        )
-    except Exception as exc:
-        st_module.error(f"Could not construct policy for '{preset_name}': {exc}")
+    if not labeled_options:
+        st_module.warning("Could not construct any preset policies for comparison.")
         return
+
+    dual = sum(1 for p in built.values() if support_label(p) == "CBO+TPC")
+    st_module.caption(
+        f"{dual} of {len(built)} presets are comparable on both default pilots "
+        "(CBO+TPC). Others still run on CBO-Style; TPC reports "
+        '"not representable" instead of inventing a score.'
+    )
+
+    selected_label = st_module.selectbox(
+        "Policy",
+        options=labeled_options,
+        index=0,
+        help=(
+            "CBO+TPC = both default pilots can score this family. "
+            "CBO only = specialized module runs on CBO-Style; TPC skips honestly."
+        ),
+    )
+    preset_name = label_to_name[selected_label]
+    policy = built[preset_name]
+
+    matrix = engine_support_matrix(policy)
+    family = policy_family(policy)
+    st_module.markdown(f"**Policy family:** `{family}`")
+    for row in matrix:
+        icon = "✅" if row.supported else "⏭"
+        st_module.caption(f"{icon} **{row.engine}** — {row.reason}")
 
     with st_module.spinner("Running every backend..."):
         models = build_default_comparison_models(
@@ -198,7 +255,7 @@ def render_multi_model_tab(
 
     if not bundle.results:
         st_module.warning(
-            "No backend produced a result. Check the error notes below."
+            "No backend produced a result. Check the skip / error notes below."
         )
     else:
         assessment = assess_model_pilot_comparison(bundle)
@@ -216,7 +273,14 @@ def render_multi_model_tab(
         summary = _bundle_to_summary_frame(bundle)
         st_module.dataframe(summary, hide_index=True, use_container_width=True)
 
-        if bundle.max_gap is not None:
+        ran = {result.model_name for result in bundle.results}
+        skipped = set(bundle.errors)
+        st_module.caption(
+            f"Engines that ran: {', '.join(sorted(ran)) or 'none'}. "
+            f"Skipped: {', '.join(sorted(skipped)) or 'none'}."
+        )
+
+        if bundle.max_gap is not None and TPC_ENGINE in ran and len(bundle.results) >= 2:
             st_module.metric(
                 "Max spread across models (10-year cost)",
                 _format_cost_billions(float(bundle.max_gap)),
@@ -247,6 +311,12 @@ def render_multi_model_tab(
                         f"Models agree within ~{rel:.0f}% — result looks "
                         "robust across the pilot backends."
                     )
+        elif len(bundle.results) == 1:
+            st_module.info(
+                "Only one default pilot could score this policy, so there is "
+                "no cross-model spread. Pick a **CBO+TPC** preset (income-tax "
+                "rate, CTC, EITC, or SALT) to compare engines."
+            )
 
         annual_frame = _annual_effects_frame(bundle)
         if not annual_frame.empty:
@@ -261,7 +331,8 @@ def render_multi_model_tab(
     if bundle.errors:
         st_module.subheader("Backends that did not run")
         for model_name, reason in bundle.errors.items():
-            st_module.markdown(f"- **{model_name}**: {reason}")
+            kind = _classify_skip_reason(reason)
+            st_module.markdown(f"- **{model_name}** ({kind}): {reason}")
 
     with st_module.expander("What am I looking at?"):
         st_module.markdown(
@@ -271,12 +342,12 @@ def render_multi_model_tab(
             "return-level effect. Large gaps on policies with thresholds "
             "and phase-outs suggest bracket-aggregate data is missing "
             "real interactions (see `docs/VALIDATION_NOTES.md`).\n"
-            "- **Max spread** is the honest uncertainty band for the "
-            "estimate under the currently comparable pilot methodologies.\n"
+            "- **Max spread** is only shown when ≥2 engines produce costs. "
+            "A corporate or payroll preset that TPC cannot represent will "
+            "not invent agreement.\n"
             "- **PWBM-OLG** is intentionally omitted from the default UI until "
             "its adapter clears the feasibility audit.\n\n"
-            "This pilot is scaffolded — coverage expands as additional "
-            "backends land. Tracked in `planning/ROADMAP.md`."
+            "Capability matrix: `fiscal_model.models.capabilities`."
         )
 
 
