@@ -29,6 +29,14 @@ Example usage:
 """
 
 from .base import BaseScoringModel, CBOStyleModel, ModelResult
+from .capabilities import (
+    EngineSupport,
+    comparable_across_default_pilots,
+    engine_support_matrix,
+    policy_family,
+    support_label,
+    tpc_support,
+)
 from .comparison import (
     ComparisonBundle,
     PWBMScoringModel,
@@ -57,6 +65,7 @@ __all__ = [
     "BaseScoringModel",
     "CBOStyleModel",
     "ComparisonBundle",
+    "EngineSupport",
     "FRBUSAdapter",
     "FRBUSAdapterLite",
     "FiscalClosureType",
@@ -74,6 +83,11 @@ __all__ = [
     "TPCMicrosimModel",
     "UnsupportedModelPolicyError",
     "build_default_comparison_models",
+    "comparable_across_default_pilots",
     "compare_policy_models",
+    "engine_support_matrix",
+    "policy_family",
     "policy_to_scenario",
+    "support_label",
+    "tpc_support",
 ]

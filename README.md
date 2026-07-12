@@ -310,6 +310,8 @@ The full methodology is documented in the app's **Methodology** tab and in [`doc
 
 The default dynamic-scoring engine is the state-dependent `EconomicModel`, which uses CBO-conventional normal-times multipliers (spending 1.0, tax 0.5) and raises them in recessions / at the zero lower bound (see [Spending Multipliers](docs/METHODOLOGY.md#spending-multipliers)). A separate FRB/US-calibrated reduced-form model (`FRBUSAdapterLite`, spending 1.4 / tax 0.7, decay 0.75) is offered as a *comparison engine* in the multi-model **Scoring Models** tab — it is not what the default "Dynamic scoring" toggle uses.
 
+The **Multi-Model Comparison** pilot (Scoring Models tab) runs the same preset through **CBO-Style** and **TPC-Microsim** when the policy maps to microsim reforms (income-tax rates, CTC, EITC, SALT, AMT exemption). Specialized families such as corporate, OASDI payroll, and estate still score on CBO-Style; TPC reports **not representable** instead of inventing agreement. See `fiscal_model.models.capabilities`.
+
 ### Parameter sensitivity
 
 Revenue estimates are sensitive to key behavioral parameters. The table below shows how a ±50% change in each parameter shifts the 10-year estimate for a representative income tax reform:

@@ -657,17 +657,28 @@ def policy_to_microsim_reforms(policy: Policy, year: int = 2025) -> dict:
     - ``rate_change`` on income-tax policies → threshold rate adjustment, or
       top-rate reform when no threshold is supplied
     - ``credit_change_per_unit`` + CHILD_TAX_CREDIT → ctc_amount
-    - ``eitc_expansion_factor`` → eitc_expansion
+    - EITC (``eitc_expansion_factor`` or EARNED_INCOME_CREDIT max credit) →
+      eitc_expansion
     - ``std_deduction_bonus`` → std_deduction_bonus
     - TaxExpenditurePolicy SALT → salt_cap
+    - AMT exemption dollar change → amt_exemption_adjustment
     - ``make_fully_refundable`` + CTC → force_refundable flag
+
+    Corporate, estate, OASDI payroll, trade, climate, and composite TCJA
+    packages intentionally return ``{}`` so the TPC pilot reports
+    "not representable" rather than inventing a score.
     """
     del year  # reserved for year-specific baselines
     reforms: dict[str, Any] = {}
 
     policy_type = getattr(policy, "policy_type", None)
     policy_type_name = getattr(policy_type, "name", None) or getattr(policy_type, "value", None)
-    if isinstance(policy, TaxPolicy) and policy_type_name in {"INCOME_TAX", "income_tax"}:
+    # Only plain income-tax TaxPolicy rate changes — not CorporateTaxPolicy /
+    # PayrollTaxPolicy subclasses that also inherit rate_change fields.
+    if (
+        type(policy) is TaxPolicy
+        and policy_type_name in {"INCOME_TAX", "income_tax"}
+    ):
         rate_change = getattr(policy, "rate_change", 0.0)
         if rate_change:
             threshold = float(getattr(policy, "affected_income_threshold", 0.0) or 0.0)
@@ -696,15 +707,37 @@ def policy_to_microsim_reforms(policy: Policy, year: int = 2025) -> dict:
     }:
         reforms["ctc_fully_refundable"] = True
 
-    if hasattr(policy, "eitc_expansion_factor"):
-        eitc_expansion = getattr(policy, "eitc_expansion_factor", 1.0)
-        if eitc_expansion != 1.0:
-            reforms["eitc_expansion"] = eitc_expansion
+    eitc_expansion = getattr(policy, "eitc_expansion_factor", None)
+    if eitc_expansion is not None and float(eitc_expansion) != 1.0:
+        reforms["eitc_expansion"] = float(eitc_expansion)
+    elif credit_type_name in {
+        "EARNED_INCOME_CREDIT",
+        "eitc",
+        "EITC",
+        "earned_income_credit",
+    }:
+        # Approximate childless (or overall) expansion from max credit vs
+        # current-law childless maximum ($632 in the microsim baseline).
+        max_credit = float(getattr(policy, "max_credit_per_unit", 0) or 0)
+        if max_credit > 0:
+            reforms["eitc_expansion"] = max_credit / 632.0
 
     if hasattr(policy, "std_deduction_bonus"):
         std_ded_bonus = getattr(policy, "std_deduction_bonus", 0)
         if std_ded_bonus:
             reforms["std_deduction_bonus"] = std_ded_bonus
+
+    # Individual AMT exemption dollar shifts (not corporate CAMT).
+    exemption_change = getattr(policy, "exemption_change", 0.0) or 0.0
+    amt_type = getattr(policy, "amt_type", None)
+    amt_type_name = getattr(amt_type, "name", None) or getattr(amt_type, "value", None)
+    if exemption_change and (
+        amt_type_name in {None, "INDIVIDUAL", "individual"}
+        or hasattr(policy, "extend_tcja_relief")
+    ):
+        # Skip pure corporate AMT / CAMT objects.
+        if amt_type_name not in {"CORPORATE", "corporate", "CAMT", "camt"}:
+            reforms["amt_exemption_adjustment"] = float(exemption_change)
 
     # Tax expenditure policies — SALT cap repeal/lower.
     expenditure_type = getattr(policy, "expenditure_type", None)

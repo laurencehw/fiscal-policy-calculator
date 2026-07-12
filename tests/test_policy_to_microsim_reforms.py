@@ -71,3 +71,10 @@ def test_corporate_policy_returns_empty():
     """Corporate tax is firm-level; microsim pilot cannot represent it."""
     reforms = policy_to_microsim_reforms(create_biden_corporate_rate_only())
     assert reforms == {}
+
+
+def test_biden_eitc_childless_maps_to_eitc_expansion():
+    from fiscal_model.credits import create_biden_eitc_childless
+
+    reforms = policy_to_microsim_reforms(create_biden_eitc_childless())
+    assert reforms["eitc_expansion"] == pytest.approx(1500 / 632)

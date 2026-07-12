@@ -20,6 +20,7 @@ from fiscal_model.microsim.top_tail import augment_top_tail
 from fiscal_model.models.olg import PWBMModel
 
 from .base import BaseScoringModel, CBOStyleModel, ModelResult
+from .capabilities import tpc_support
 from .macro_adapter import policy_to_scenario
 
 
@@ -177,22 +178,12 @@ class TPCMicrosimModel(BaseScoringModel):
 
     def score(self, policy: Any, **kwargs: Any) -> ModelResult:
         del kwargs
-        reforms = policy_to_microsim_reforms(policy, year=getattr(policy, "start_year", 2025))
-        if not reforms:
-            supported = (
-                "rate-change (any TaxPolicy), Child Tax Credit (TaxCreditPolicy), "
-                "EITC expansion, standard-deduction bonus, and SALT cap "
-                "(TaxExpenditurePolicy)."
-            )
-            raise UnsupportedModelPolicyError(
-                f"{getattr(policy, 'name', 'Policy')} of type "
-                f"{type(policy).__name__} does not map onto the current "
-                f"microsim pilot reforms. Supported today: {supported} "
-                "See fiscal_model.distribution_effects.policy_to_microsim_reforms "
-                "for the mapping; extend it if you need a new policy type."
-            )
-
         year = int(getattr(policy, "start_year", 2025) or 2025)
+        support = tpc_support(policy, year=year)
+        if not support.supported:
+            raise UnsupportedModelPolicyError(support.reason)
+
+        reforms = policy_to_microsim_reforms(policy, year=year)
         data_year = int(getattr(policy, "data_year", year) or year)
         population, population_source, augmentation_report, notes = self._load_population(
             year=data_year
@@ -207,6 +198,7 @@ class TPCMicrosimModel(BaseScoringModel):
         horizon = max(1, int(getattr(policy, "duration_years", 10) or 10))
         annual_effects = [annual_deficit_effect] * horizon
 
+        notes.append(support.reason)
         if "income_rate_change" in reforms:
             notes.append(
                 "Income-tax rate changes are applied to taxable income above "
@@ -242,6 +234,7 @@ class TPCMicrosimModel(BaseScoringModel):
                 "annualization_assumption": "flat_by_year",
                 "augmentation": augmentation_report,
                 "notes": notes,
+                "confidence_label": "pilot",
             },
         )
 
