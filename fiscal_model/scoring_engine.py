@@ -329,21 +329,14 @@ class FiscalPolicyScorer:
             if isinstance(policy, TaxExpenditurePolicy):
                 growth_rate = policy.get_expenditure_data().get("growth_rate", 0.03)
             elif (
-<<<<<<< HEAD
-                isinstance(policy, (TaxCreditPolicy, EstateTaxPolicy))
+                isinstance(policy, (TaxCreditPolicy, EstateTaxPolicy, PayrollTaxPolicy))
                 and getattr(policy, "annual_revenue_change_billions", None) is not None
             ):
                 # Explicit annual figures are window-average calibrations
-                # (e.g. Treasury $450B / 10yr → $45B/yr for Biden estate reform).
-                # Growing them again was the main ~10% estate residual.
-=======
-                isinstance(policy, (TaxCreditPolicy, PayrollTaxPolicy))
-                and getattr(policy, "annual_revenue_change_billions", None) is not None
-            ):
-                # Explicit annual figures are window-average calibrations
-                # (e.g. Trustees $2.7T / 10yr → $270B/yr for the SS donut).
-                # Growing them again was the main 12.2% payroll residual.
->>>>>>> origin/main
+                # (e.g. Treasury $450B / 10yr → $45B/yr for Biden estate reform;
+                # Trustees $2.7T / 10yr → $270B/yr for the SS donut).
+                # Growing them again was the main estate (~10%) and payroll
+                # (12.2%) residual.
                 growth_rate = 0.0
 
             growth_factor = (1 + growth_rate) ** years_since_start

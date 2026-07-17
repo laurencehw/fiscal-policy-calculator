@@ -1002,13 +1002,8 @@ Specialized modules parameterized to reproduce the published decomposition. Usef
 | Biden GILTI Reform | −$280B | −$271B | 3.2% | calibrated |
 | FDII Repeal | −$200B | −$200B | 0.0% | calibrated |
 | **Biden CTC 2021** | **$1,600B** | **$1,600B** | **0.0%** | calibrated |
-<<<<<<< HEAD
 | **Estate: Biden Reform** | **−$450B** | **−$450B** | **0.0%** | calibrated |
-| **SS Donut Hole $250K** | **−$2,700B** | **−$2,371B** | **12.2%** | calibrated |
-=======
-| **Estate: Biden Reform** | **−$450B** | **−$496B** | **10.1%** | calibrated |
 | **SS Donut Hole $250K** | **−$2,700B** | **−$2,700B** | **0.0%** | calibrated |
->>>>>>> origin/main
 | **Repeal Corporate AMT** | **$220B** | **$220B** | **0.0%** | calibrated |
 | **Cap Employer Health** | **−$450B** | **−$450B** | **0.1%** | calibrated |
 | IRA Enforcement ($80B) | −$200B | −$200B | ~0% | calibrated |
