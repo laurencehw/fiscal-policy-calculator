@@ -31,13 +31,8 @@
 | `corporate.py` | Biden 28%, Trump 15%, book minimum, R&D | 3.7% error |
 | `international.py` | GILTI, FDII, Pillar Two, UTPR | 3.2% error |
 | `credits.py` | CTC, EITC expansions | ~0% (window-average annuals) |
-<<<<<<< HEAD
 | `estate.py` | TCJA extension, Biden reform, repeal | ~0% (window-average + two-regime tail) |
-| `payroll.py` | SS cap, donut hole, NIIT | 12.2% error |
-=======
-| `estate.py` | TCJA extension, Biden reform, repeal | 10.1% error |
 | `payroll.py` | SS cap, donut hole, NIIT | ~0% (window-average + SSA wage bands) |
->>>>>>> origin/main
 | `amt.py` | Individual/corporate AMT | 0.0% error |
 | `ptc.py` | ACA premium tax credits | Validated |
 | `tax_expenditures.py` | SALT, employer health, step-up, charitable | 0.1% error |
