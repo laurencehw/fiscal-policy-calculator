@@ -521,9 +521,12 @@ def _health_issue_payloads(health_data: dict[str, Any]) -> list[dict[str, Any]]:
         status = info.get("status")
         if status in {None, "ok"}:
             continue
+        # An out-of-range-but-functional runtime (e.g. Python 3.14 in dev)
+        # is a warning, not a failure — it boots and scores correctly. A
+        # genuine error, or a degraded scoring engine, still fails.
         severity = (
             "fail"
-            if status == "error" or component in {"runtime", "model"}
+            if status == "error" or component == "model"
             else "warn"
         )
         issues.append(

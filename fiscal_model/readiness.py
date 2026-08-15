@@ -75,6 +75,11 @@ def _check(
 def _health_checks(health: dict[str, Any]) -> list[ReadinessCheck]:
     checks: list[ReadinessCheck] = []
 
+    # Runtime: an out-of-range-but-functional interpreter (e.g. a contributor
+    # on 3.14) is a *warning*, not a blocker — it boots and scores correctly.
+    # A genuine runtime break ("error") still fails. The strict CI gate
+    # (``strict_readiness_issues``) re-elevates the version-range warning to a
+    # blocker, so release deploys still require a supported Python.
     runtime = health.get("runtime", {})
     if runtime.get("status") == "ok":
         checks.append(_check(
@@ -83,10 +88,17 @@ def _health_checks(health: dict[str, Any]) -> list[ReadinessCheck]:
             runtime.get("message", "Python runtime is supported."),
             details=runtime,
         ))
-    else:
+    elif runtime.get("status") == "error":
         checks.append(_check(
             "runtime",
             "fail",
+            runtime.get("message", "Python runtime check failed."),
+            details=runtime,
+        ))
+    else:
+        checks.append(_check(
+            "runtime",
+            "warn",
             runtime.get("message", "Python runtime is outside the supported range."),
             details=runtime,
         ))

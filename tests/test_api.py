@@ -106,7 +106,7 @@ def test_health_endpoint_flattens_degraded_components(monkeypatch):
     payload = response.json()
     assert payload["overall"] == "degraded"
     assert [issue["name"] for issue in payload["issues"]] == ["runtime", "fred"]
-    assert payload["issues"][0]["severity"] == "fail"
+    assert payload["issues"][0]["severity"] == "warn"
     assert payload["issues"][1]["severity"] == "warn"
 
 
@@ -261,7 +261,7 @@ def test_summary_health_issues_flatten_non_ok_components():
     })
 
     assert [issue.name for issue in issues] == ["runtime", "fred"]
-    assert issues[0].severity == "fail"
+    assert issues[0].severity == "warn"
     assert issues[0].message == "Python 3.14 is unsupported."
     assert issues[1].severity == "warn"
 

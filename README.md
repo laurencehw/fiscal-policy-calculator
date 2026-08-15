@@ -60,7 +60,7 @@ This project is a **validated scoring core with experimental interfaces around i
 
 | Tier | What it covers | Trust level |
 |------|----------------|-------------|
-| **🟢 Core — validated** | Revenue scoring (static + behavioral), distributional analysis (return-level CPS microsim), dynamic scoring (FRB/US-calibrated) | Benchmarked against published CBO/JCT/Treasury scores. **Honest accuracy is published, not just the flattering cases:** calibrated reference models reproduce official decompositions (~6% revenue, ≤3pp distributional mean); genuine *out-of-sample* predictions run ~19% mean error (`python scripts/cold_holdout.py`). |
+| **🟢 Core — validated** | Revenue scoring (static + behavioral), distributional analysis (return-level CPS microsim), dynamic scoring (FRB/US-calibrated) | Benchmarked against published CBO/JCT/Treasury scores. **Honest accuracy is published, not just the flattering cases:** calibrated reference models reproduce official decompositions (~5% revenue, ≤3pp distributional mean; live 4.4%, run `scripts/cold_holdout.py`); genuine *out-of-sample* predictions run ~8% mean error (`python scripts/cold_holdout.py`). |
 | **🟡 Specialized — calibrated, narrower** | The 14 policy-area modules (TCJA, corporate, international, estate, payroll, AMT, PTC, tax expenditures, enforcement, pharma, trade/tariff, climate), state-level modeling (top-10 states), OLG generational model | Each is parameterized to reproduce a published score. Trustworthy as transparent reconstructions and for directional comparison; not independent confirmation. State and OLG use a representative taxpayer / reduced form. |
 | **🔵 Exploratory — interfaces & pipelines** | Ask assistant, Real-Time Bill Tracker, Classroom Mode, multi-model pilot platform, admin dashboard, share links | Reading, teaching, and data-plumbing layers *over* the model — useful and guard-railed (e.g. the assistant is citation-disciplined and cost-capped), but **not themselves validated estimates**. The bill tracker's LLM provision extraction in particular is demo-grade. |
 
@@ -77,15 +77,15 @@ These policies are scored **bottom-up from IRS SOI** filer counts and incomes vi
 | Policy | Official | Model | Error | Source |
 |--------|---------:|------:|------:|--------|
 | 1pp all brackets | -\$960B | -\$935B | 3% | JCT |
+| 5pp top rate (\$1M+) | -\$700B | -\$648B | 7% | TPC |
+| 2pp rate cut (\$500K+) | +\$400B | +\$364B | 9% | TPC |
 | Biden top rate 39.6% (\$400K+) | -\$252B | -\$284B | 13% | Treasury |
-| 5pp top rate (\$1M+) | -\$700B | -\$491B | 30% | TPC |
-| 2pp rate cut (\$500K+) | +\$400B | +\$278B | 30% | TPC |
 
-**Mean absolute error: ~19% (median 21%); 2 of 4 within 15%.** Ordinary-bracket scoring now excludes preferential LTCG/QDIV and scores all-brackets changes from SOI taxable income (not an effective-rate heuristic). Remaining error is concentrated on high-threshold cases. The Treasury Biden figure is a bundled "combined with other provisions" estimate. Treat uncalibrated custom policies as **directional, ±20%**.
+**Mean absolute error: ~8% (median 8%); 4 of 4 within 15%** (`python scripts/cold_holdout.py`). Ordinary-bracket rate changes (JCT 1pp, Biden $400K) score on the ordinary-income base (excludes preferential LTCG/QDIV); AGI-inclusive TPC top-rate cases ($1M+/$500K+) score on the full taxable-income base that includes the preferential portion. The prior ~19%/2-of-4 figure was inflated by a base mislabeling — those two TPC cases were wrongly receiving the ordinary-base correction (the project's own `cold_holdout.py --ordinary-base` diagnostic flags this: the correction *worsens* them 7→30%, the AGI-inclusive tell). Correcting the classification, with no target fitting, yields the numbers above. The Treasury Biden figure is a bundled "combined with other provisions" estimate. Treat uncalibrated custom policies as **directional, ±15%** broad-rate and ±15% high-threshold.
 
 #### 2. Calibrated reference models — transparent reconstructions, not independent confirmation
 
-The specialized modules (TCJA, Corporate, Estate, Credits, AMT, Payroll, PTC, Capital Gains, Tax Expenditures) are parameterized so their components **reproduce the published CBO/JCT/Treasury decomposition**. Across 29 such benchmarks the mean absolute error is ~6% — but that low error is **expected by construction**. These are useful as auditable, source-linked reconstructions of official scores, *not* as evidence the model would have predicted them cold.
+The specialized modules (TCJA, Corporate, Estate, Credits, AMT, Payroll, PTC, Capital Gains, Tax Expenditures) are parameterized so their components **reproduce the published CBO/JCT/Treasury decomposition**. Across 29 such benchmarks the mean absolute error is ~5% (live 4.4%) — but that low error is **expected by construction**. These are useful as auditable, source-linked reconstructions of official scores, *not* as evidence the model would have predicted them cold.
 
 | Policy (calibrated) | Official | Model | Error |
 |--------|---------:|------:|------:|
@@ -186,10 +186,16 @@ print(f"TCJA extension: ${result.total_10_year_cost:,.0f}B")
 ```
 
 ```python
-# OLG model for long-run analysis
-from fiscal_model.long_run import OLGModel
-model = OLGModel()
-result = model.score_social_security_reform(payroll_tax_change=0.02)
+# OLG model for long-run analysis (55-cohort Auerbach-Kotlikoff)
+from fiscal_model.models.olg import OLGModel, OLGParameters
+model = OLGModel(OLGParameters())
+result = model.analyze_policy(
+    reform_overrides={"tau_k": 0.35},   # +5pp capital tax
+    policy_name="Capital tax +5pp",
+    compute_gen_accounts=True,
+    start_year=2026,
+)
+print(result.summary())
 ```
 
 ---

@@ -115,7 +115,8 @@ def test_readiness_fails_missing_locked_holdout_entries():
     assert any(issue.name == "holdout_protocol" for issue in report.issues)
 
 
-def test_readiness_fails_unsupported_runtime():
+def test_readiness_warns_on_unsupported_runtime():
+    """Out-of-range-but-functional runtime → warn, not a deploy blocker."""
     health = _healthy_payload()
     health["runtime"] = {
         "status": "degraded",
@@ -130,13 +131,55 @@ def test_readiness_fails_unsupported_runtime():
         scorecard=_scorecard(),
     )
 
+    assert report.verdict == "ready_with_warnings"
+    runtime = next(check for check in report.checks if check.name == "runtime")
+    assert runtime.status == "warn"
+    runtime_issue = next(issue for issue in report.issues if issue.name == "runtime")
+    assert runtime_issue.severity == "warn"
+    assert runtime_issue.required is True
+    assert runtime_issue.summary == "unsupported"
+
+
+def test_readiness_fails_broken_runtime_error():
+    """A genuinely broken runtime ('error') still hard-fails the gate."""
+    health = _healthy_payload()
+    health["runtime"] = {
+        "status": "error",
+        "python_version": "3.14.0",
+        "message": "runtime check raised",
+    }
+
+    report = build_readiness_report(
+        health=health,
+        distribution_comparisons=[_comparison()],
+        scorecard=_scorecard(),
+    )
+
     assert report.verdict == "not_ready"
     runtime = next(check for check in report.checks if check.name == "runtime")
     assert runtime.status == "fail"
-    runtime_issue = next(issue for issue in report.issues if issue.name == "runtime")
-    assert runtime_issue.severity == "fail"
-    assert runtime_issue.required is True
-    assert runtime_issue.summary == "unsupported"
+    assert next(issue for issue in report.issues if issue.name == "runtime").severity == "fail"
+
+
+def test_strict_readiness_fails_on_unsupported_runtime():
+    """Strict CI gate re-elevates the version-range warning to a blocker."""
+    health = _healthy_payload()
+    health["runtime"] = {
+        "status": "degraded",
+        "python_version": "3.14.0",
+        "supported_range": ">=3.10,<3.14",
+        "message": "Python 3.14.0 is outside supported range.",
+    }
+
+    report = build_readiness_report(
+        health=health,
+        distribution_comparisons=[_comparison()],
+        scorecard=_scorecard(),
+    )
+
+    assert report.verdict == "ready_with_warnings"
+    blocking = strict_readiness_issues(report)
+    assert any(issue.name == "runtime" for issue in blocking)
 
 
 def test_readiness_fails_distribution_benchmark_regression():
