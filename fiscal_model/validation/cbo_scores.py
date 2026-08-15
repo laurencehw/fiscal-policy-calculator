@@ -313,7 +313,7 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         notes="Rule of thumb: 1pp ≈ $85-100B/year. JCT tax expenditure estimates."
     ),
 
-"illustrative_top_rate_5pp": CBOScore(
+    "illustrative_top_rate_5pp": CBOScore(
         policy_id="illustrative_top_rate_5pp",
         name="5pp Top Rate Increase ($1M+)",
         description="Illustrative: 5 percentage point increase in top marginal "
