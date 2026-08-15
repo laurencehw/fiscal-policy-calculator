@@ -17,12 +17,12 @@ Policies scored **bottom-up from IRS SOI** via raw rate/threshold auto-populatio
 | Metric | Value |
 |--------|-------|
 | Out-of-sample policies | 4 |
-| Mean absolute error | **~19%** |
-| Median absolute error | ~21% |
-| Within 15% of official | 2/4 |
+| Mean absolute error | **~8%** |
+| Median absolute error | ~8% |
+| Within 15% of official | 4/4 |
 | Direction match rate | 4/4 |
 
-**Key finding**: after applying ordinary-income base (exclude LTCG/QDIV from ordinary-bracket rate changes) and scoring all-brackets changes from SOI taxable income, broad-rate cases are much closer (1pp-all ~3%; Biden top-rate ~13%). Remaining error is concentrated on high-threshold TPC cases (~30%). **Treat uncalibrated custom policies as directional, ±20%.**
+**Key finding**: ordinary-bracket rate changes (JCT 1pp, Biden $400K) are scored on the ordinary-income base (excludes preferential LTCG/QDIV); AGI-inclusive TPC top-rate cases ($1M+/$500K+) are scored on the full taxable-income base that includes the preferential portion. The prior ~19%/2-of-4 figure was inflated by a base mislabeling — the two AGI-inclusive TPC cases were wrongly receiving the ordinary-base correction (the `cold_holdout.py --ordinary-base` diagnostic flags this: the correction *worsens* them 7→30%, the AGI-inclusive tell); correcting the classification (no target fitting) brings all four within 15%. **Treat uncalibrated custom policies as directional, ±15%.**
 
 ### Tier 2 — Calibrated reference models (reconstructions, not confirmations)
 
@@ -31,11 +31,11 @@ The specialized modules (TCJA, Corporate, Estate, Credits, AMT, Payroll, PTC, Ca
 | Metric | Value |
 |--------|-------|
 | Calibrated benchmarks | 29 |
-| Mean absolute error | 6.1% |
+| Mean absolute error | 4.4% |
 | Within 15% of official | 28/29 |
 | Direction match rate | 29/29 |
 
-The ~6% error here is **expected by construction** — these demonstrate the model's structure and provide auditable, source-linked reconstructions of official scores; they are **not** evidence the model would have predicted them cold. Best on income-tax/TCJA components (0.1–4%); weakest on payroll reforms (~12%, wage-distribution assumptions).
+The ~5% error here is **expected by construction** — these demonstrate the model's structure and provide auditable, source-linked reconstructions of official scores; they are **not** evidence the model would have predicted them cold. Best on income-tax/TCJA components (0.1–4%); weakest on payroll reforms (~12%, wage-distribution assumptions). Live figures: `python scripts/cold_holdout.py`.
 
 **Scope note**: Distributional validation is currently benchmarked mainly against published TPC tables rather than a broader CBO distributional set. Payroll / estate scenarios remain higher-error checkpoints; the Biden CTC revenue residual from double-counting growth on window-average annuals is closed (see [VALIDATION_NOTES.md](VALIDATION_NOTES.md)).
 
@@ -52,9 +52,9 @@ These rows are the **uncalibrated** bottom-up Generic scorer (`create_policy_fro
 | Policy | Official Score | Model Score | Error | Rating | Source |
 |--------|----------------|-------------|-------|--------|--------|
 | 1pp all brackets | -$960B | -$935B | 3% | Excellent | JCT |
+| 5pp top rate ($1M+) | -$700B | -$648B | 7% | Excellent | TPC |
+| 2pp rate cut ($500K+) | +$400B | +$364B | 9% | Good | TPC |
 | Biden $400K+ (2.6pp) | -$252B | -$284B | 13% | Acceptable | Treasury |
-| 5pp top rate ($1M+) | -$700B | -$491B | 30% | Poor | TPC |
-| 2pp rate cut ($500K+) | +$400B | +$278B | 30% | Poor | TPC |
 
 **Methodology Notes**:
 - Uses IRS SOI data for taxpayer counts and income distributions

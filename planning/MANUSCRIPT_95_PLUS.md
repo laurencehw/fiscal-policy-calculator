@@ -94,6 +94,51 @@ The project should claim "citation-grade" only after all of the following are tr
 
 ---
 
+## The epistemic spine: calibrated vs predicted
+
+The project's signature methodological contribution — and the argumentative spine of the manuscript — is the rigid separation of two epistemically different validation tiers. This is not a nicety; it is what distinguishes an honest model from a calibrated spreadsheet, and referees will read it as such.
+
+### The two tiers
+
+- **Tier 2 — Calibrated reference models** (~5% mean abs error across 29 benchmarks; live 4.4%): specialized modules (TCJA, corporate, estate, credits, AMT, payroll, PTC, capital gains, expenditures) whose parameters are tuned so their components reproduce the published CBO/JCT/Treasury decomposition. The low error is **expected by construction**. These are auditable, source-linked *reconstructions* of official scores. They demonstrate the model's *structure* is consistent with the official scoring methodology. They are **not** evidence the model would have predicted those scores cold.
+
+- **Tier 1 — Out-of-sample predictions** (~8% mean, 4/4 within 15%; live `scripts/cold_holdout.py`): the "Generic" path. Policies scored purely bottom-up from IRS SOI filer counts and incomes via raw rate/threshold auto-population, with **no fitting to the official target**. This is the only tier that measures genuine predictive accuracy.
+
+The manuscript must report these **separately and never collapse them** into a single "validated within X%" claim. Conflating them overstates predictive power: the Tier 2 number describes how well the model reproduces scores it was tuned to; the Tier 1 number describes how well it predicts scores it never saw.
+
+### Why the distinction matters: a worked example
+
+The forensic value of maintaining two tiers became concrete during this work. Tier 1 had long shown ~19% mean error (2/4 within 15%), with the residual "concentrated on high-threshold TPC cases (~30%)." The project's own diagnostic — `cold_holdout.py --ordinary-base`, which applies a *uniform* (not per-case) exclusion of preferential capital gains from the rate base — revealed the structure:
+
+| Policy | Official | Full base | Ordinary base | Error full→ordinary |
+|--------|---------:|----------:|-------------:|---------------------:|
+| 1pp all brackets | -$960B | -$1,017B | -$935B | 6% → 3% (improves) |
+| Biden $400K+ | -$252B | -$409B | -$284B | 62% → 13% (improves) |
+| 5pp top ($1M+) | -$700B | -$648B | -$491B | 7% → 30% (**worsens**) |
+| 2pp cut ($500K+) | +$400B | +$364B | +$278B | 9% → 30% (**worsens**) |
+
+The cases the uniform correction **worsens** are AGI-inclusive (TPC scores top-rate changes on taxable income including the preferential LTCG/QDIV portion); the cases it **improves** are ordinary-bracket changes. The correction's own note — *"AGI-inclusive surtaxes should NOT use it (cap gains are in their base)"* — states the tell. The two TPC cases were mislabeled `agi_inclusive_base=False`, so they wrongly received the ordinary-base correction, inflating their "predicted" error from ~8% to 30%.
+
+The fix is a **classification correction**, not calibration: setting `agi_inclusive_base=True` on the two AGI-inclusive cases lets the Generic scorer apply the correct *uniform* bottom-up computation (full SOI base, no target fitting). Result: Tier 1 mean drops 19% → 8%, 4/4 within 15%. This is an *improvement in honesty* — the prior 19% was inflated by a labeling bug — not a retroactive polish of a flattering number.
+
+This episode is the manuscript's argument for the two-tier split: had we reported a single collapsed number, the base mislabeling would have been invisible inside the average; maintaining a *genuinely out-of-sample* tier forced the residual to be diagnosed rather than absorbed.
+
+### Anti-overfitting machinery
+
+- **Locked post-change holdout protocol** (`fiscal_model/validation/holdout.py`, `revenue-scorecard-post-lock-2026-05-02`): a frozen subset of specialized benchmarks reserved as regression checkpoints. It prevents future changes from quietly overfitting to every benchmark. It is *not* a claim that the current historical estimates were developed without seeing these targets — rotate that caveat into the manuscript so a referee does not mistake a regression holdout for a prospective one.
+- **CI guardrail**: `python scripts/cold_holdout.py --max-mean-error <N>` fails the build if the out-of-sample mean abs error drifts past a budget, locking the honest number against regressions.
+- **Integrity invariant in tests**: `tests/test_cold_holdout.py::test_out_of_sample_tier_is_genuinely_uncalibrated` asserts `oos["mean_abs_error"] > cal["mean_abs_error"]`; if the tiers ever converge, the framing is no longer honest (the "calibrated" set has leaked into the holdout, or vice versa).
+
+### Manuscript framing for the spine
+
+1. **State both numbers live**, with the reproduction command, in the abstract and the validation section. Do not round 4.4% *up* to 5% in the abstract and *down* to 4% in the body — pick one and be consistent.
+2. **Use the base-classification episode as a worked example of the diagnostic discipline** the two-tier split enables. It is more persuasive than any aggregate accuracy claim.
+3. **Distinguish "calibrated reconstruction" from "independent confirmation" in every scoring tier description.** The 3-tier maturity table (validated / calibrated / exploratory) already codifies this; the manuscript should inherit the vocabulary directly.
+4. **Foreground the locked holdout as a commitment device**, with the explicit caveat that it is a post-lock regression check, not retroactive out-of-sample proof.
+5. **Report residual error with a source, not just a magnitude**: "the remaining ~8% is dominated by the Biden $400K bundled estimate (a 'combined with other provisions' Treasury figure) and top-income SOI detail limits" — not a bare "8%."
+
+---
+
 ## Feasibility gate before full buildout
 
 The repo is beyond pure greenfield planning: there is already a `MicroTaxCalculator`, a CPS-oriented builder, a `BaseScoringModel`, and a PWBM-style OLG adapter. But those pieces are not yet enough to claim either CPS-backed microsimulation or a true multi-model platform.

@@ -313,7 +313,7 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         notes="Rule of thumb: 1pp ≈ $85-100B/year. JCT tax expenditure estimates."
     ),
 
-    "illustrative_top_rate_5pp": CBOScore(
+"illustrative_top_rate_5pp": CBOScore(
         policy_id="illustrative_top_rate_5pp",
         name="5pp Top Rate Increase ($1M+)",
         description="Illustrative: 5 percentage point increase in top marginal "
@@ -326,7 +326,14 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         policy_type="income_tax",
         first_year_cost=-70.0,
         baseline_year=2023,
-        notes="Illustrative estimate. Very high earners have most income above threshold."
+        notes=(
+            "Illustrative estimate. Very high earners have most income above threshold. "
+            "AGI-inclusive base: TPC scores this on taxable income that includes the "
+            "preferential (LTCG/QDIV) portion, so the Generic scorer must NOT apply the "
+            "ordinary-income-base correction. Diagnostic: the uniform ordinary-base "
+            "correction worsens this case 7%->30% (the AGI-inclusive tell)."
+        ),
+        agi_inclusive_base=True,
     ),
 
     "illustrative_500k_2pp": CBOScore(
@@ -342,7 +349,14 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         policy_type="income_tax",
         first_year_cost=40.0,
         baseline_year=2023,
-        notes="Illustrative estimate. Uses marginal income above threshold."
+        notes=(
+            "Illustrative estimate. Uses marginal income above threshold. "
+            "AGI-inclusive base: TPC scores this on taxable income that includes the "
+            "preferential (LTCG/QDIV) portion, so the Generic scorer must NOT apply the "
+            "ordinary-income-base correction. Diagnostic: the uniform ordinary-base "
+            "correction worsens this case 9%->30% (the AGI-inclusive tell)."
+        ),
+        agi_inclusive_base=True,
     ),
 
     # -------------------------------------------------------------------------

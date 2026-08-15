@@ -12,7 +12,7 @@ See `planning/ROADMAP.md` for the full roadmap and next priorities.
 
 The app is a **validated scoring core with experimental interfaces**, not a flat feature set. Hold each tier to the right bar, and describe it to users accordingly (see README "Model maturity"):
 
-- **🟢 Core — validated:** revenue scoring (static + behavioral), distributional analysis (return-level CPS microsim, the default since 2026-06), dynamic scoring (FRB/US-calibrated `EconomicModel`). Benchmarked vs CBO/JCT/Treasury. Report honest accuracy: calibrated reference models (~6% revenue, ≤3pp dist.) **vs** genuine out-of-sample predictions (~19%). Never collapse those two into one "validated within X%" claim.
+- **🟢 Core — validated:** revenue scoring (static + behavioral), distributional analysis (return-level CPS microsim, the default since 2026-06), dynamic scoring (FRB/US-calibrated `EconomicModel`). Benchmarked vs CBO/JCT/Treasury. Report honest accuracy: calibrated reference models (~5% revenue, ≤3pp dist.) **vs** genuine out-of-sample predictions (~8%). Never collapse those two into one "validated within X%" claim.
 - **🟡 Specialized — calibrated, narrower:** the 14 policy-area modules, state modeling (top-10), OLG. Tuned to reproduce published scores → transparent reconstructions, not independent confirmation.
 - **🔵 Exploratory — interfaces/pipelines:** Ask assistant, bill tracker, classroom, multi-model pilots, admin/share. Held to a UX/safety bar, **not an accuracy bar**; bill-tracker LLM extraction is demo-grade.
 
@@ -30,7 +30,7 @@ streamlit run app.py
 # Run app locally (classroom mode)
 streamlit run classroom_app.py
 
-# Run unit tests (960+ tests)
+# Run unit tests (1700+ tests)
 pytest tests/ -v
 
 # Run specific test file
@@ -285,7 +285,7 @@ print("Cost:", assistant.last_usage.cost_usd)
 
 ## Current Development Priorities
 
-All core features, all four horizon features, the distributional-validation cycle, and the Ask assistant feature are complete (May 2026). **1200+ tests passing across the model + Ask stack.**
+All core features, all four horizon features, the distributional-validation cycle, and the Ask assistant feature are complete (May 2026). **1700+ tests passing across the model + Ask stack.**
 
 Completed:
 1. ✅ 25+ CBO/JCT-validated policies, distributional analysis, dynamic scoring
@@ -307,9 +307,9 @@ Next: broaden multi-model microsim reform mappings further (corporate/payroll NI
 
 **Report two tiers separately — do NOT collapse them into a single "validated within 15%" claim.** Run `python scripts/cold_holdout.py` for live numbers.
 
-**Tier 1 — out-of-sample predictions** (uncalibrated, bottom-up from SOI; the genuine test). Mean abs error **~19%**, 2/4 within 15%. Ordinary-income base + SOI all-brackets path cut the prior ~29% mean; remaining error is concentrated on high-threshold TPC cases (~30%). The Biden $400K+ Generic path scores **−$284B vs −$252B official (~13%)** — earlier docs that cited "~−$250B / ~1%" were showing a hand-tuned figure, not the prediction. See [[fpc-review-roadmap]].
+**Tier 1 — out-of-sample predictions** (uncalibrated, bottom-up from SOI; the genuine test). Mean abs error **~8%**, 4/4 within 15%. Ordinary-bracket rate changes (JCT 1pp, Biden $400K) score on the ordinary-income base; AGI-inclusive TPC top-rate cases ($1M+/$500K+) score on the full taxable-income base. The prior ~19%/2-of-4 figure was inflated by a base mislabeling — the two AGI-inclusive cases wrongly received the ordinary-base correction (`cold_holdout.py --ordinary-base` flags this: the correction *worsens* them 7→30%, the AGI-inclusive tell); correcting the classification (no target fitting) yields ~8% mean. The Biden $400K+ Generic path scores **−$284B vs −$252B official (~13%)** — earlier docs that cited "~−$250B / ~1%" were showing a hand-tuned figure, not the prediction. See [[fpc-review-roadmap]].
 
-**Tier 2 — calibrated reference models** (parameters tuned to reproduce the official decomposition; low error expected by construction, ~6% mean across 29 benchmarks). Examples:
+**Tier 2 — calibrated reference models** (parameters tuned to reproduce the official decomposition; low error expected by construction, ~5% mean across 29 benchmarks; live 4.4%). Examples:
 
 | Policy (calibrated) | Official Score | Model Score | Error |
 |--------|----------------|-------------|-------|

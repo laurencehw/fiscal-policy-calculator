@@ -986,14 +986,14 @@ No fitting to the official target — the genuine test of predictive accuracy.
 |--------|---------:|------:|------:|--------|
 | 1pp all brackets | −$960B | −$935B | 3% | JCT |
 | Biden top rate 39.6% ($400K+) | −$252B | −$284B | 13% | Treasury |
-| 5pp top rate ($1M+) | −$700B | −$491B | 30% | TPC |
-| 2pp rate cut ($500K+) | +$400B | +$278B | 30% | TPC |
+| 5pp top rate ($1M+) | −$700B | −$648B | 7% | TPC |
+| 2pp rate cut ($500K+) | +$400B | +$364B | 9% | TPC |
 
-**Mean absolute error ~19% (median ~21%); 2 of 4 within 15%.** Ordinary-income base + SOI all-brackets scoring fixed the prior broad-rate over-prediction; remaining error is concentrated on high-threshold TPC cases. Treat uncalibrated custom policies as directional, ±20%.
+**Mean absolute error ~8% (median ~8%); 4 of 4 within 15%** (`scripts/cold_holdout.py`). Ordinary-bracket rate changes score on the ordinary-income base (excludes preferential LTCG/QDIV); AGI-inclusive TPC top-rate cases score on the full taxable-income base. The prior ~19%/2-of-4 figure was inflated by a base mislabeling (the two AGI-inclusive cases wrongly received the ordinary-base correction); correcting the classification — with no target fitting — yields the numbers above. Treat uncalibrated custom policies as directional, ±15%.
 
 ### Tier 2 — Calibrated reference models (reconstructions, low error by construction)
 
-Specialized modules parameterized to reproduce the published decomposition. Useful as auditable reconstructions of official scores, *not* as independent confirmation. Mean absolute error across 29 benchmarks ≈ 6%.
+Specialized modules parameterized to reproduce the published decomposition. Useful as auditable reconstructions of official scores, *not* as independent confirmation. Mean absolute error across 29 benchmarks ≈ 5% (live 4.4%).
 
 | Policy | Official Score | Model Score | Error | Status |
 |--------|----------------|-------------|-------|--------|
