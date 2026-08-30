@@ -193,11 +193,15 @@ def render_dynamic_scoring_tab(
 
         sign_conv = "+" if conventional_total >= 0 else "-"
         sign_fb = "+" if feedback_total >= 0 else "-"
+        # The equation subtracts interest_total, which is negative (interest
+        # savings) for deficit-reducing policies — sign the printed term so
+        # the arithmetic always matches the Dynamic Score.
+        sign_int = "-" if interest_total >= 0 else "+"
         sign_dyn = "+" if dynamic_total >= 0 else "-"
         st_module.markdown(
             f"**Calculation:** {sign_conv}\\${abs(conventional_total):.0f}B (conventional) "
             f"{sign_fb} \\${abs(feedback_total):.0f}B (feedback) "
-            f"- \\${abs(interest_total):.0f}B (debt service) "
+            f"{sign_int} \\${abs(interest_total):.0f}B (debt service) "
             f"= **{sign_dyn}\\${abs(dynamic_total):.0f}B (dynamic)**"
         )
         st_module.caption(
