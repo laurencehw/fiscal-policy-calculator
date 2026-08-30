@@ -90,3 +90,21 @@ Replace IRS bracket-level aggregates and synthetic tax units with CPS ASEC micro
 | Climate module | Med-High | Medium | Good standalone sprint |
 | IRS SOI 2023 | Medium | Low | Easy warm-up task |
 | Docker/lock file | Medium | Low | Interleave with above |
+
+---
+
+## Bill Tracker: committee filter + JCX crosswalk (pipeline work, from the 2026-08 UI review)
+
+Both need new data before any UI ships — a filter or crosswalk built on
+what the database holds today would be silently wrong:
+
+- **Committee filter**: the ingestor does not fetch committee referrals;
+  committee names appear only incidentally inside `latest_action` text for
+  ~20% of bills (and vanish once a bill moves past referral). Requires the
+  congress.gov `/bill/{congress}/{type}/{number}/committees` endpoint in
+  `bill_tracker/ingestor.py`, a `committees` column, and a pipeline run
+  (CONGRESS_API_KEY).
+- **JCX crosswalk**: no JCT publication data exists in the pipeline.
+  Requires scraping/curating jct.gov publication listings (JCX number,
+  title, bill reference) into a small table keyed by bill_id, refreshed by
+  the update pipeline; render beside the CBO score for revenue titles.
