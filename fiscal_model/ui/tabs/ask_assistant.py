@@ -31,12 +31,7 @@ from fiscal_model.assistant.citations import (
 )
 from fiscal_model.assistant.rate_limit import RateLimiter, new_session_id
 from fiscal_model.assistant.share import build_share_url, decode_share_payload
-from fiscal_model.ui.helpers import PUBLIC_APP_URL
-
-# Match an unescaped `$` immediately followed by a digit (currency usage).
-# Negative lookbehind avoids re-escaping `\$`. Doesn't touch `$` inside
-# fenced code blocks because those aren't rendered as math by Streamlit.
-_DOLLAR_BEFORE_DIGIT_RE = re.compile(r"(?<!\\)\$(?=\d)")
+from fiscal_model.ui.helpers import PUBLIC_APP_URL, escape_markdown_dollars
 
 
 def _safe_dollar_markdown(text: str) -> str:
@@ -46,19 +41,18 @@ def _safe_dollar_markdown(text: str) -> str:
     The Ask assistant's answers contain dollar amounts ("\\$1.4 trillion")
     which the model is instructed to escape — but if a turn slips through
     unescaped, the answer renders as vertical-letter math salad. This
-    helper is the safety net.
+    helper is the safety net, layered over the shared escape so fenced
+    code blocks (usable for raw LaTeX or shell output) stay untouched.
     """
     if not text:
         return text
-    # Skip the contents of fenced code blocks — backtick fences are usable
-    # for raw LaTeX or shell output and shouldn't be munged.
     parts = re.split(r"(```.*?```)", text, flags=re.DOTALL)
     out: list[str] = []
     for i, part in enumerate(parts):
         if i % 2 == 1:  # inside ``` ... ``` (the captured group)
             out.append(part)
         else:
-            out.append(_DOLLAR_BEFORE_DIGIT_RE.sub(r"\\$", part))
+            out.append(escape_markdown_dollars(part))
     return "".join(out)
 
 
