@@ -693,6 +693,20 @@ class _DemoBillDatabase:
     def get_auto_score(self, bill_id: str) -> dict[str, Any] | None:
         return self._auto_by_bill.get(bill_id)
 
+    def get_fiscal_impact_map(self) -> dict[str, float]:
+        """Mirror BillDatabase: latest 10-year cost per bill, CBO first.
+
+        Without this, demo mode silently lost fiscal-impact sorting and the
+        major-fiscal filter hid every bill.
+        """
+        impacts: dict[str, float] = {}
+        for source in (self._auto_by_bill, self._cbo_by_bill):
+            for bill_id, score in source.items():
+                cost = score.get("ten_year_cost_billions")
+                if cost is not None:
+                    impacts[bill_id] = float(cost)
+        return impacts
+
 
 def _get_database(db_path: str | None) -> tuple[Any | None, bool]:
     """Load live database; fall back to demo data when unavailable or corrupt."""
