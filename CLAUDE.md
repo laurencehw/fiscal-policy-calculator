@@ -194,6 +194,10 @@ FRB/US-calibrated multipliers (FRBUSAdapterLite):
 - **Spending multiplier**: 1.4 (year 1, with 0.75 decay)
 - **Tax multiplier**: -0.7 (year 1)
 - **Crowding out**: 15% of cumulative deficit
+- **Monetary offset / return to potential**: 0.65 annual retention of the
+  demand effect — demand-side GDP effects fade over ~5-7 years rather than
+  persisting for the full decade; there is **no supply-side channel**, and
+  the dynamic tab nets debt-service costs against revenue feedback
 
 Static revenue formula:
 ```

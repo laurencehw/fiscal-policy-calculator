@@ -30,6 +30,7 @@ class SimpleMultiplierAdapter(MacroModelAdapter):
         tax_multiplier: float = -0.5,
         marginal_tax_rate: float = 0.25,
         multiplier_decay: float = 0.7,
+        monetary_offset: float = 0.65,
     ):
         """
         Initialize simple multiplier model.
@@ -39,11 +40,15 @@ class SimpleMultiplierAdapter(MacroModelAdapter):
             tax_multiplier: First-year tax multiplier (negative = cuts stimulate)
             marginal_tax_rate: For revenue feedback calculation
             multiplier_decay: Annual decay rate of multiplier effects
+            monetary_offset: Annual retention of the demand effect as policy
+                offsets kick in and output returns to potential; demand-side
+                effects are temporary, and this model has no supply side.
         """
         self.spending_multiplier = spending_multiplier
         self.tax_multiplier = tax_multiplier
         self.marginal_tax_rate = marginal_tax_rate
         self.multiplier_decay = multiplier_decay
+        self.monetary_offset = monetary_offset
 
         # Baseline GDP (2025)
         self.baseline_gdp = 28_000.0  # $28T
@@ -69,6 +74,9 @@ class SimpleMultiplierAdapter(MacroModelAdapter):
             for s in range(t + 1):
                 decay = self.multiplier_decay ** (t - s)
                 gdp_change[t] += fiscal_impulse[s] * decay
+            # Monetary offset / return to potential: demand effects fade
+            # rather than persisting for a full decade.
+            gdp_change[t] *= self.monetary_offset ** t
 
         # Convert to percent of GDP
         gdp_level_pct = gdp_change / self.baseline_gdp * 100
