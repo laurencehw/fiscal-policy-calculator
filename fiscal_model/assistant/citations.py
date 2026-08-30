@@ -167,6 +167,17 @@ def format_answer_for_display(text: str) -> tuple[str, list[str]]:
     body, sources = split_body_and_sources(text)
     sources_map = _parse_sources(sources)
 
+    # System notes appended after the model's own ``## Sources`` block (the
+    # ``> ✂️`` truncation note, the ``> ⚠️`` stripped-markers note) would
+    # otherwise vanish here: they are not ``[^N]:`` entries, so the split
+    # dropped them and a cut-off answer looked complete. Carry blockquote
+    # lines from the sources half back into the display body.
+    trailing_notes = [
+        line.strip()
+        for line in (sources or "").splitlines()
+        if line.lstrip().startswith(">")
+    ]
+
     def _repl(match: re.Match[str]) -> str:
         n = int(match.group(1))
         entry = sources_map.get(n)
@@ -179,6 +190,8 @@ def format_answer_for_display(text: str) -> tuple[str, list[str]]:
         return ""
 
     display_body = _CITATION_MARKER_RE.sub(_repl, body).rstrip()
+    if trailing_notes:
+        display_body += "\n\n" + "\n".join(trailing_notes)
     source_lines = [f"[{n}] {sources_map[n]}" for n in sorted(sources_map)]
     return display_body, source_lines
 

@@ -693,3 +693,49 @@ class TestDescribeSources:
         from fiscal_model.assistant.citations import describe_sources
 
         assert describe_sources([]) == []
+
+
+class TestTruncationNoteSurvivesDisplay:
+    """The length-budget note must survive the Sources split (Bugbot #62)."""
+
+    def test_note_after_sources_block_is_kept(self):
+        from fiscal_model.assistant.citations import format_answer_for_display
+
+        text = (
+            "The extension costs $4.6T.[^1]\n\n"
+            "## Sources\n"
+            "[^1]: CBO (2025), https://www.cbo.gov/publication/60271\n\n"
+            "> ✂️ *This answer hit its length budget and may end "
+            "abruptly. Ask a follow-up for the rest.*"
+        )
+        body, source_lines = format_answer_for_display(text)
+        assert "length budget" in body
+        assert body.rstrip().endswith("*")
+        assert any("cbo.gov" in line for line in source_lines)
+
+    def test_note_before_sources_still_kept(self):
+        from fiscal_model.assistant.citations import format_answer_for_display
+
+        text = (
+            "A cut-off answer with no sources heading\n\n"
+            "> ✂️ *This answer hit its length budget and may end abruptly.*"
+        )
+        body, source_lines = format_answer_for_display(text)
+        assert "length budget" in body
+        assert source_lines == []
+
+    def test_wrapped_source_entries_not_pulled_into_body(self):
+        from fiscal_model.assistant.citations import format_answer_for_display
+
+        text = (
+            "Claim.[^1]\n\n"
+            "## Sources\n"
+            "[^1]: JCT (2024), https://www.jct.gov/x.pdf\n"
+        )
+        body, source_lines = format_answer_for_display(text)
+        # The marker becomes a link (URL allowed); the entry line itself
+        # must stay in source_lines, not be dragged into the body.
+        assert "JCT (2024)" not in body
+        assert ">" not in body
+        assert len(source_lines) == 1
+        assert "JCT (2024)" in source_lines[0]
