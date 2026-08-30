@@ -271,6 +271,29 @@ class BillDatabase:
             ).fetchone()
             return dict(row) if row else None
 
+    def get_fiscal_impact_map(self) -> dict[str, float]:
+        """Latest known 10-year cost per bill, in billions.
+
+        CBO estimates take precedence over calculator auto-scores. Used to
+        sort and filter the tracker by fiscal magnitude in one query pass
+        instead of a per-card lookup.
+        """
+        impacts: dict[str, float] = {}
+        with self._connect() as conn:
+            # Ascending order so the newest row per bill wins the overwrite.
+            for table, date_col in (
+                ("auto_scores", "scored_at"),
+                ("cbo_estimates", "estimate_date"),
+            ):
+                rows = conn.execute(
+                    f"SELECT bill_id, ten_year_cost_billions FROM {table} "
+                    f"WHERE ten_year_cost_billions IS NOT NULL "
+                    f"ORDER BY {date_col} ASC"
+                ).fetchall()
+                for row in rows:
+                    impacts[row["bill_id"]] = float(row["ten_year_cost_billions"])
+        return impacts
+
     # ------------------------------------------------------------------
     # Auto Scores
     # ------------------------------------------------------------------

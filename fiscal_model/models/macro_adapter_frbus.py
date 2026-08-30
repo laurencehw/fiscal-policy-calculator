@@ -413,9 +413,13 @@ class FRBUSAdapterLite(MacroModelAdapter):
         # Interest rates (FRB/US shows ~3bp per 1% GDP deficit)
         deficit_change = outlays_chg - receipts_chg
         cumulative_deficit = np.cumsum(deficit_change)
-        debt_gdp = cumulative_deficit / self.baseline_gdp
+        # In percent of GDP: the 3bp coefficient is per 1% of GDP of added
+        # debt, so multiplying by the debt/GDP *fraction* understated rates
+        # 100x (a $4.6T package showed "+0.00 ppts" beside a claimed
+        # crowding-out channel).
+        debt_gdp_pct = cumulative_deficit / self.baseline_gdp * 100
 
-        long_rate_ppts = debt_gdp * 0.03  # 3bp per 1% GDP debt
+        long_rate_ppts = debt_gdp_pct * 0.03  # 3bp per 1% GDP debt
         short_rate_ppts = long_rate_ppts * 0.7  # Fed responds less than long rates
 
         # Revenue feedback

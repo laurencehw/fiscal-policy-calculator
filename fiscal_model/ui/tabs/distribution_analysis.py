@@ -75,8 +75,8 @@ def _render_calibration_warning(st_module: Any, policy: Any) -> None:
         f"the bundled microdata covers "
         f"{agi_ratio * 100:.0f}% of the AGI that IRS SOI reports "
         f"in this band. Distributional output for this tail is "
-        f"systematically underweighted — see "
-        f"`docs/VALIDATION_NOTES.md` for the root-cause analysis."
+        f"systematically underweighted — the project's validation notes "
+        f"on GitHub carry the root-cause analysis."
     )
 
 
