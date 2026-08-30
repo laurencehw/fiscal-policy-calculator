@@ -192,6 +192,42 @@ class TestTools:
         # A 4pp corporate increase should be revenue-positive => negative deficit.
         assert result["ten_year_deficit_impact_billions"] < 0
 
+    def test_score_hypothetical_corporate_uses_calibrated_module(
+        self, tools: AssistantTools
+    ) -> None:
+        """Regression: corporate hypotheticals must route through the
+        corporate module. A plain TaxPolicy with CORPORATE_TAX type scored a
+        21%->25% change against the individual income base for all filers
+        (~-$4.1T — about 5x the calibrated corporate path and non-monotonic
+        vs the CBO-benchmarked -$1.35T at +7pp)."""
+        result = tools.dispatch(
+            "score_hypothetical_policy",
+            {
+                "name": "Corporate 21->25",
+                "policy_type": "corporate_tax",
+                "rate_change": 0.04,
+            },
+        )
+        assert "error" not in result, result
+        impact = result["ten_year_deficit_impact_billions"]
+        assert -1100 < impact < -500, impact
+        assert "corporate" in result["scoring_path"]
+
+    def test_score_hypothetical_generic_path_labeled_uncalibrated(
+        self, tools: AssistantTools
+    ) -> None:
+        result = tools.dispatch(
+            "score_hypothetical_policy",
+            {
+                "name": "Top rate +2pp",
+                "policy_type": "income_tax",
+                "rate_change": 0.02,
+                "affected_income_threshold": 400_000,
+            },
+        )
+        assert "error" not in result, result
+        assert "uncalibrated" in result["scoring_path"]
+
     def test_score_hypothetical_unknown_type(self, tools: AssistantTools) -> None:
         result = tools.dispatch(
             "score_hypothetical_policy",
@@ -590,3 +626,29 @@ def test_web_search_tool_def_has_allowed_domains() -> None:
     defn = web_search_tool_definition()
     assert defn["type"].startswith("web_search_")
     assert "cbo.gov" in defn["allowed_domains"]
+
+
+class TestFormatAnswerForDisplay:
+    def test_markers_with_url_sources_become_links(self) -> None:
+        from fiscal_model.assistant.citations import format_answer_for_display
+
+        text = (
+            "The deficit is large.[^1] Debt is rising.[^2]\n\n"
+            "## Sources\n"
+            '[^1]: CBO (2026), "Budget Outlook", https://www.cbo.gov/outlook\n'
+            "[^2]: App scoring engine run\n"
+        )
+        body, sources = format_answer_for_display(text)
+        assert "[^1]" not in body and "[^2]" not in body
+        assert "[[1]](https://www.cbo.gov/outlook)" in body
+        assert "[2]" in body
+        assert len(sources) == 2
+        assert sources[0].startswith("[1] CBO")
+
+    def test_markers_without_sources_are_dropped_for_display(self) -> None:
+        from fiscal_model.assistant.citations import format_answer_for_display
+
+        body, sources = format_answer_for_display("A claim.[^1] Another.[^2]")
+        assert "[^" not in body
+        assert body == "A claim. Another."
+        assert sources == []

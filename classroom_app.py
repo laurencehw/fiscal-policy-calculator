@@ -78,7 +78,7 @@ def render_classroom_app() -> None:
         page_title="Classroom Mode — Fiscal Policy Calculator",
         page_icon="📚",
         layout="wide",
-        initial_sidebar_state="expanded",
+        initial_sidebar_state="auto",
     )
 
     loader = AssignmentLoader()
@@ -295,7 +295,9 @@ def _render_exercise(exercise, idx, runner, feedback_engine, tracker) -> None:
         student_params: dict[str, float] = {}
         for param in exercise.parameters:
             val = st.slider(
-                label=f"{param.label} {f'({param.unit})' if param.unit else ''}",
+                label=_escape_dollars(
+                    f"{param.label} {f'({param.unit})' if param.unit else ''}"
+                ),
                 min_value=float(param.min),
                 max_value=float(param.max),
                 value=float(param.default),
@@ -339,11 +341,11 @@ def _render_exercise(exercise, idx, runner, feedback_engine, tracker) -> None:
                     complexity=tracker.complexity,
                 )
                 if result.correct:
-                    st.success(fb)
+                    st.success(_escape_dollars(fb))
                     tracker.mark_complete(exercise.id, result)
                     st.rerun()
                 else:
-                    st.warning(fb)
+                    st.warning(_escape_dollars(fb))
         else:
             # No numeric validation (range_check on a percentage, etc.)
             _render_range_or_open_exercise(exercise, student_params, runner, feedback_engine, tracker, hints_used)

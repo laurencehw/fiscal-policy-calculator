@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -30,7 +30,7 @@ def render_bill_tracker_tab(st_module: Any, db_path: str | None = None) -> None:
         db_path: Path to bills.db. Defaults to fiscal_model/data_files/bills.db.
     """
     st_module.header("Active Legislation Tracker")
-    st_module.caption("119th Congress (2025–2027) · Fiscal bills tracked daily from congress.gov")
+    st_module.caption("119th Congress (2025–2027) · Fiscal bills from congress.gov")
     st_module.caption(
         "🔵 *Experimental feature.* Fiscal provisions are extracted from bill text by an LLM "
         "and are not validated scores — treat them as a research starting point, not estimates."
@@ -60,6 +60,9 @@ def render_bill_tracker_tab(st_module: Any, db_path: str | None = None) -> None:
     # Pipeline status bar
     _render_status_bar(st_module, db)
 
+    # One honest freshness banner instead of a repeated per-card warning.
+    data_is_stale = _render_global_freshness_banner(st_module, db)
+
     # Filters (pass db so policy area options can be populated)
     filters = _render_filters(st_module, db)
 
@@ -76,7 +79,9 @@ def render_bill_tracker_tab(st_module: Any, db_path: str | None = None) -> None:
 
     # Render each bill card
     for bill in bills[:100]:  # cap at 100 for performance
-        _render_bill_card(st_module, bill, db)
+        _render_bill_card(
+            st_module, bill, db, suppress_freshness_warning=data_is_stale
+        )
 
     if len(bills) > 100:
         st_module.caption(f"Showing 100 of {len(bills)} matching bills.")
@@ -131,6 +136,35 @@ using the calculator's existing pipeline.
 ```
             """
         )
+
+
+def _render_global_freshness_banner(st_module: Any, db: Any) -> bool:
+    """Render one dataset-level staleness banner; True when data is stale.
+
+    When the whole database is old, every card used to repeat the same
+    (doubled-glyph) warning 100 times. One dated banner carries the message;
+    per-card warnings are suppressed while it is shown.
+    """
+    try:
+        last_update = db.get_last_update()
+    except Exception:
+        return False
+    if not last_update:
+        return False
+
+    # timezone.utc, not datetime.UTC: the latter is 3.11+ and this repo
+    # supports 3.10.
+    now = datetime.now(timezone.utc) if last_update.tzinfo else datetime.now()
+    age_days = max(0, (now - last_update).days)
+    if age_days <= 7:
+        return False
+
+    st_module.warning(
+        f"⚠ Data as of {last_update.strftime('%b %d, %Y')} ({age_days} days "
+        "old). Bill statuses and scores may have changed since — run "
+        "`python scripts/update_bills.py` to refresh."
+    )
+    return True
 
 
 def _render_status_bar(st_module: Any, db: Any) -> None:
@@ -307,7 +341,12 @@ def _get_unique_subjects(db: Any) -> list[str]:
     return sorted(subjects)
 
 
-def _render_bill_card(st_module: Any, bill: dict, db: Any) -> None:
+def _render_bill_card(
+    st_module: Any,
+    bill: dict,
+    db: Any,
+    suppress_freshness_warning: bool = False,
+) -> None:
     """Render a single bill card with key metadata and scores."""
     from bill_tracker.freshness import freshness_from_db_row
 
@@ -370,7 +409,7 @@ def _render_bill_card(st_module: Any, bill: dict, db: Any) -> None:
         if st_module.session_state.get(f"bt_show_detail_{bill_id}", False):
             _render_bill_detail(st_module, bill, cbo_score, auto_score, db)
 
-        if freshness.warning:
+        if freshness.warning and not suppress_freshness_warning:
             st_module.caption(f"⚠ {freshness.warning}")
 
 

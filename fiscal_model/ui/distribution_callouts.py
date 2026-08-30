@@ -19,6 +19,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from fiscal_model.ui.helpers import escape_markdown_dollars
+
 
 @dataclass(frozen=True)
 class GroupSummary:
@@ -140,6 +142,35 @@ def headline_sentence(summary: WinnersLosersSummary) -> str:
     return f"{_phrase(top).capitalize()}; {_phrase(bot)}."
 
 
+def direction_caption(summary: WinnersLosersSummary) -> str:
+    """One-line verdict whose explanation matches the sign of the change.
+
+    "Regressive" covers both a tax increase that hits the bottom relatively
+    harder and a tax cut that benefits the top relatively more; the old
+    burden-only wording claimed lower-income groups "bear a larger share of
+    the burden" even for top-heavy tax cuts, contradicting the table above it.
+    """
+    direction = summary.headline_direction
+    top = summary.top_group
+
+    if direction == "progressive":
+        if top is not None and top.pct_of_income > 0:
+            detail = "higher-income groups bear a larger share of the tax increase"
+        else:
+            detail = "lower-income groups receive the larger benefit"
+        return f"📈 **Net effect: progressive** — {detail} (in % of income terms)."
+    if direction == "regressive":
+        if top is not None and top.pct_of_income < 0:
+            detail = "higher-income groups receive the larger benefit"
+        else:
+            detail = "lower-income groups bear a larger share of the tax increase"
+        return f"📉 **Net effect: regressive** — {detail} (in % of income terms)."
+    return (
+        "➡️ **Net effect: roughly flat** — burden change is similar "
+        "across income groups (in % of income terms)."
+    )
+
+
 def render_winners_losers_callout(st_module: Any, analysis: Any) -> None:
     """Render a TPC-style winners/losers narrative panel.
 
@@ -149,38 +180,27 @@ def render_winners_losers_callout(st_module: Any, analysis: Any) -> None:
     """
     summary = build_winners_losers(analysis)
 
-    st_module.markdown(f"> {headline_sentence(summary)}")
+    st_module.markdown(escape_markdown_dollars(f"> {headline_sentence(summary)}"))
 
-    direction = summary.headline_direction
-    if direction == "progressive":
-        st_module.caption(
-            "📈 **Net effect: progressive** — higher-income groups bear a "
-            "larger share of the burden change (in % of income terms)."
-        )
-    elif direction == "regressive":
-        st_module.caption(
-            "📉 **Net effect: regressive** — lower-income groups bear a "
-            "larger share of the burden change (in % of income terms)."
-        )
-    elif direction == "flat":
-        st_module.caption(
-            "➡️ **Net effect: roughly flat** — burden change is similar "
-            "across income groups (in % of income terms)."
-        )
+    st_module.caption(direction_caption(summary))
 
     win_col, lose_col = st_module.columns(2)
 
     with win_col, st_module.container(border=True):
         if summary.winners:
             st_module.markdown("### 🟢 Winners")
+            n_winners = len(summary.winners)
             st_module.caption(
-                f"{len(summary.winners)} groups receive a net tax cut"
+                f"{n_winners} group{'s' if n_winners != 1 else ''} "
+                f"receive{'' if n_winners != 1 else 's'} a net tax cut"
             )
             for group in summary.winners[:5]:
                 st_module.markdown(
-                    f"**{group.name}** — avg "
-                    f"{_format_signed_dollars(group.avg_tax_change)} "
-                    f"({_format_signed_pct(group.pct_of_income)})"
+                    escape_markdown_dollars(
+                        f"**{group.name}** — avg "
+                        f"{_format_signed_dollars(group.avg_tax_change)} "
+                        f"({_format_signed_pct(group.pct_of_income)})"
+                    )
                 )
         else:
             st_module.markdown("### 🟢 Winners")
@@ -189,14 +209,18 @@ def render_winners_losers_callout(st_module: Any, analysis: Any) -> None:
     with lose_col, st_module.container(border=True):
         if summary.losers:
             st_module.markdown("### 🔴 Losers")
+            n_losers = len(summary.losers)
             st_module.caption(
-                f"{len(summary.losers)} groups face a net tax increase"
+                f"{n_losers} group{'s' if n_losers != 1 else ''} "
+                f"face{'' if n_losers != 1 else 's'} a net tax increase"
             )
             for group in summary.losers[:5]:
                 st_module.markdown(
-                    f"**{group.name}** — avg "
-                    f"{_format_signed_dollars(group.avg_tax_change)} "
-                    f"({_format_signed_pct(group.pct_of_income)})"
+                    escape_markdown_dollars(
+                        f"**{group.name}** — avg "
+                        f"{_format_signed_dollars(group.avg_tax_change)} "
+                        f"({_format_signed_pct(group.pct_of_income)})"
+                    )
                 )
         else:
             st_module.markdown("### 🔴 Losers")
@@ -207,6 +231,7 @@ __all__ = [
     "GroupSummary",
     "WinnersLosersSummary",
     "build_winners_losers",
+    "direction_caption",
     "headline_sentence",
     "render_winners_losers_callout",
 ]

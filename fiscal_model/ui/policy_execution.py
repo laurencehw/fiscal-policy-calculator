@@ -143,7 +143,7 @@ def calculate_tax_policy_result(
             affected_income_threshold=threshold,
             data_year=int(cg_base_year),
             duration_years=duration,
-            phase_in_years=phase_in,
+            phase_in_years=max(1, int(phase_in)),
             baseline_capital_gains_rate=float(baseline_cg_rate),
             baseline_realizations_billions=float(baseline_realizations),
             realization_elasticity=float(realization_elasticity),
@@ -170,7 +170,7 @@ def calculate_tax_policy_result(
             affected_income_threshold=threshold,
             data_year=data_year,
             duration_years=duration,
-            phase_in_years=phase_in,
+            phase_in_years=max(1, int(phase_in)),
             taxable_income_elasticity=eti,
             ordinary_income_base=ordinary_income_base,
         )

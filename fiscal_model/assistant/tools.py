@@ -490,6 +490,25 @@ class AssistantTools:
                     spending_change_billions=spending_change_billions,
                     duration_years=duration_years,
                 )
+                scoring_path = "spending path (standard multipliers)"
+            elif policy_type == "corporate_tax":
+                # A plain TaxPolicy with CORPORATE_TAX type is scored against
+                # the *individual* income-tax base for all filers — a 21%→25%
+                # corporate question came back ~5x the calibrated module's
+                # answer. Corporate must go through the corporate module.
+                from fiscal_model.corporate import CorporateTaxPolicy
+
+                policy = CorporateTaxPolicy(
+                    name=name,
+                    description=f"Assistant hypothetical: {name}",
+                    policy_type=pt,
+                    rate_change=rate_change,
+                    duration_years=duration_years,
+                )
+                scoring_path = (
+                    "calibrated corporate-tax module (benchmarked vs CBO "
+                    "21%→28% score within ~4%)"
+                )
             else:
                 policy = self._tax_policy_cls(
                     name=name,
@@ -498,6 +517,11 @@ class AssistantTools:
                     rate_change=rate_change,
                     affected_income_threshold=affected_income_threshold,
                     duration_years=duration_years,
+                )
+                scoring_path = (
+                    "uncalibrated generic tax path — directional only "
+                    "(~19% mean out-of-sample error); quote the nearest "
+                    "validated preset when one exists"
                 )
         except Exception as exc:
             return {"error": f"could not construct policy: {exc}"}
@@ -516,10 +540,12 @@ class AssistantTools:
             "is_dynamic": bool(getattr(result, "is_dynamic", False)),
             "years": getattr(result, "years", None),
             "final_deficit_by_year": getattr(result, "final_deficit_effect", None),
+            "scoring_path": scoring_path,
             "source": (
-                "Run of FiscalPolicyScorer (this app). Engine calibrated to "
-                "CBO/JCT benchmarks within ~5% mean absolute error across 25 "
-                "validated policies."
+                f"Run of FiscalPolicyScorer (this app) via the {scoring_path}. "
+                "Calibrated reference models (~5% mean error) and uncalibrated "
+                "out-of-sample paths (~19%) are different accuracy tiers — "
+                "state which one this run used."
             ),
         }
 

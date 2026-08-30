@@ -314,11 +314,26 @@ def render_results_summary_tab(
 
         m3, m4 = st_module.columns(2)
         with m3:
-            st_module.metric(
-                "Revenue Feedback (10Y)",
-                f"${dynamic_revenue_feedback_total:+.1f}B",
-                help="Additional revenue from macro feedback (reduces deficit impact in dynamic scoring).",
-            )
+            # A headline number here must reflect what this score includes: a
+            # static run shows "$+0.0B" feedback while the Economic Effects
+            # tab reports its own adapter's feedback — a cross-tab
+            # contradiction. Say "not included" instead of asserting zero.
+            if result.dynamic_effects:
+                st_module.metric(
+                    "Revenue Feedback (10Y)",
+                    f"${dynamic_revenue_feedback_total:+.1f}B",
+                    help="Additional revenue from macro feedback (reduces deficit impact in dynamic scoring).",
+                )
+            else:
+                st_module.metric(
+                    "Revenue Feedback (10Y)",
+                    "Not included",
+                    help=(
+                        "This score is static + behavioral only. Macro feedback "
+                        "estimates for this run are on the Economic Effects tab "
+                        "and are not part of this headline number."
+                    ),
+                )
         with m4:
             st_module.metric(
                 "Year 1 Deficit Impact",
@@ -544,8 +559,15 @@ def render_results_summary_tab(
             st_module.markdown("**Data**")
             st_module.markdown("- IRS Statistics of Income")
             st_module.markdown("- FRED Economic Data")
-            baseline_year = result.baseline.start_year
-            st_module.markdown(f"- CBO Baseline (FY{baseline_year})")
+            window_start = int(result.baseline.start_year)
+            window_end = window_start + len(result.baseline.years) - 1
+            # One baseline description: the vintage (CBO Feb 2026 economic
+            # assumptions) plus the budget window it is scored over — the
+            # bare "FY2025" label here used to read as a third, conflicting
+            # baseline next to the footer's "CBO Feb 2026".
+            st_module.markdown(
+                f"- CBO Feb 2026 baseline, scored over FY{window_start}–FY{window_end}"
+            )
         with a3:
             st_module.markdown("**Methodology**")
             st_module.markdown("- Static + behavioral scoring")
@@ -615,10 +637,14 @@ def render_results_summary_tab(
                 )
 
         # Generate formatted text summary for copy-paste
-        baseline_year = result.baseline.start_year
         cbo_vintage = "CBO Feb 2026"
         today = date.today().strftime("%B %d, %Y")
 
+        feedback_line = (
+            f"  Revenue Feedback: ${dynamic_revenue_feedback_total:+,.1f}B"
+            if result.dynamic_effects
+            else "  Revenue Feedback: not included (static score)"
+        )
         text_summary = f"""FISCAL POLICY IMPACT ANALYSIS
 Policy: {policy.name}
 Baseline: {cbo_vintage}
@@ -627,7 +653,7 @@ Date: {today}
 10-Year Deficit Impact: ${final_deficit_total:+,.1f}B
   Static Revenue Effect: ${static_deficit_total:+,.1f}B
   Behavioral Offset: ${behavioral_total:+,.1f}B
-  Revenue Feedback: ${dynamic_revenue_feedback_total:+,.1f}B
+{feedback_line}
 
 Year-by-Year Breakdown:
 """
@@ -647,7 +673,11 @@ Year-by-Year Breakdown:
             _soi_year = max(_IRS().get_data_years_available())
         except Exception:
             _soi_year = 2022
-        text_summary += f"\nData Sources:\n  - IRS Statistics of Income ({_soi_year})\n  - FRED Economic Data\n  - CBO Baseline (FY{baseline_year})\n"
+        text_summary += (
+            f"\nData Sources:\n  - IRS Statistics of Income ({_soi_year})\n"
+            "  - FRED Economic Data\n"
+            f"  - CBO Feb 2026 baseline, scored over FY{window_start}-FY{window_end}\n"
+        )
         text_summary += "\nMethodology: Static + behavioral scoring with FRB/US-calibrated dynamic effects\n"
 
         with col3:

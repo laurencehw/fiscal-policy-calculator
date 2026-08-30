@@ -73,12 +73,19 @@ def render_methodology_tab(st_module: Any) -> None:
 
     d1, d2, d3 = st_module.columns(3)
     with d1:
+        try:
+            from fiscal_model.data.irs_soi import IRSSOIData
+
+            _soi_years = sorted(IRSSOIData().get_data_years_available())
+            soi_years_label = ", ".join(str(y) for y in _soi_years) or "2021, 2022"
+        except Exception:
+            soi_years_label = "2021, 2022"
         st_module.markdown(
             "**IRS Statistics of Income**\n\n"
             "Tables 1.1 and 3.3 provide taxpayer counts, income, and tax "
             "liability by AGI bracket. Used to auto-populate affected "
             "filers and average income.\n\n"
-            "*Years available:* 2021, 2022  \n"
+            f"*Years available:* {soi_years_label}  \n"
             "*Source:* [irs.gov/statistics](https://www.irs.gov/statistics/"
             "soi-tax-stats-individual-income-tax-statistics)"
         )
@@ -569,10 +576,10 @@ def render_methodology_tab(st_module: Any) -> None:
             "**Income groups:**\n"
             "- Quintiles (5 equal-population groups)\n"
             "- Deciles (10 groups)\n"
-            "- JCT dollar brackets ($10K increments)\n"
+            "- JCT dollar brackets (\\$10K increments)\n"
             "- Top income breakout (top 1%, 0.1%)\n\n"
             "**Metrics per group:**\n"
-            "- Average tax change ($)\n"
+            "- Average tax change (\\$)\n"
             "- Tax change as % of income\n"
             "- Share of total revenue change\n"
             "- Winners/losers (%)\n"

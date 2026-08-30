@@ -9,6 +9,30 @@ import json
 from collections.abc import Callable
 from typing import Any
 
+# Engine validation messages name internal variables; translate the common
+# ones into user language (with the fix) before showing them.
+_FRIENDLY_ERROR_PATTERNS: tuple[tuple[str, str], ...] = (
+    (
+        "phase_in_years must be >= 1",
+        "The phase-in period must be at least 1 year (1 = full effect from the "
+        "first year). Set 'Phase-in period' to 1 or more and recalculate.",
+    ),
+    (
+        "duration_years must be positive",
+        "The policy duration must be at least 1 year. Set 'Duration' to 1 or "
+        "more and recalculate.",
+    ),
+)
+
+
+def friendly_error_message(error: Exception) -> str:
+    """Return a plain-language version of known engine validation errors."""
+    message = str(error)
+    for pattern, friendly in _FRIENDLY_ERROR_PATTERNS:
+        if pattern in message:
+            return friendly
+    return message
+
 
 def run_with_spinner_feedback(
     st_module: Any,
@@ -28,7 +52,7 @@ def run_with_spinner_feedback(
         except Exception as e:
             import traceback
 
-            st_module.error(f"{error_prefix}: {e}")
+            st_module.error(f"{error_prefix}: {friendly_error_message(e)}")
             with st_module.expander("Show technical details"):
                 st_module.code(traceback.format_exc())
             return False

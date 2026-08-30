@@ -260,3 +260,38 @@ def test_print_health_fails_on_unsupported_runtime(dashboard_module, capsys):
     out = capsys.readouterr().out
     assert "runtime" in out
     assert "3.14.0" in out
+
+
+def test_microdata_coverage_overcount_warns_instead_of_failing(dashboard_module):
+    """Overcount-only coverage (e.g. 119% of SOI returns) is a bundled-data
+    quality signal: never a green check, but not a per-PR gate failure."""
+    health = {
+        "runtime": {"status": "ok"},
+        "baseline": {"status": "ok"},
+        "fred": {"status": "ok", "source": "live"},
+        "irs_soi": {"status": "ok"},
+        "model": {"status": "ok"},
+        "microdata": {
+            "status": "degraded",
+            "returns_coverage_pct": 119.0,
+            "agi_coverage_pct": 81.0,
+            "coverage_overcount": True,
+            "coverage_undercount": False,
+        },
+    }
+    issues = dashboard_module.health_gate_issues(health)
+    assert [i["severity"] for i in issues] == ["warn"]
+    assert dashboard_module.health_gate_ok(health) is True
+
+    # Undercount stays a hard failure.
+    health["microdata"].update(
+        {
+            "returns_coverage_pct": 60.0,
+            "agi_coverage_pct": 55.0,
+            "coverage_overcount": False,
+            "coverage_undercount": True,
+        }
+    )
+    issues = dashboard_module.health_gate_issues(health)
+    assert [i["severity"] for i in issues] == ["fail"]
+    assert dashboard_module.health_gate_ok(health) is False

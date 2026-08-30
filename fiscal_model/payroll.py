@@ -20,6 +20,7 @@ Current Law (2025):
 - NIIT: 3.8% on investment income over $200K/$250K
 """
 
+import itertools
 from dataclasses import dataclass
 from enum import Enum
 
@@ -142,7 +143,7 @@ def covered_wages_above(threshold: float) -> float:
         t0, w0 = bands[0]
         return w0 * (t0 / threshold) ** 0.55
 
-    for (t0, w0), (t1, w1) in zip(bands, bands[1:], strict=False):
+    for (t0, w0), (t1, w1) in itertools.pairwise(bands):
         if threshold <= t1:
             # Log-linear in threshold space ≈ constant Pareto α on the segment.
             log_t = np.log(threshold)

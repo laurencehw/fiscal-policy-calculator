@@ -19,7 +19,13 @@ from fiscal_model.microsim.engine import MicroTaxCalculator
 from fiscal_model.microsim.top_tail import augment_top_tail
 from fiscal_model.models.olg import PWBMModel
 
-from .base import BaseScoringModel, CBOStyleModel, ModelResult
+from .base import (
+    BaseScoringModel,
+    CBOStyleModel,
+    ModelResult,
+    build_scorer_for_start_year,
+    policy_start_year,
+)
 from .capabilities import tpc_support
 from .macro_adapter import policy_to_scenario
 
@@ -255,13 +261,20 @@ class PWBMScoringModel(BaseScoringModel):
         macro_model: Any | None = None,
         use_real_data: bool = False,
     ):
-        self.scorer = fiscal_policy_scorer_cls(use_real_data=use_real_data)
+        self._scorer_cls = fiscal_policy_scorer_cls
+        self._scorers: dict[int, Any] = {}
         self.use_real_data = use_real_data
         self.macro_model = macro_model or PWBMModel()
 
     def score(self, policy: Any, **kwargs: Any) -> ModelResult:
         del kwargs
-        scored_policy = self.scorer.score_policy(policy, dynamic=False)
+        scorer = build_scorer_for_start_year(
+            self._scorer_cls,
+            start_year=policy_start_year(policy),
+            use_real_data=self.use_real_data,
+            cache=self._scorers,
+        )
+        scored_policy = scorer.score_policy(policy, dynamic=False)
         base_deficit = np.asarray(getattr(scored_policy, "final_deficit_effect", []), dtype=float)
         scenario = policy_to_scenario(policy, scored_policy, scenario_name=f"{policy.name} — PWBM Pilot")
         macro_result = self.macro_model.run(scenario)

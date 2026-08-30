@@ -5,9 +5,37 @@ Reusable UI-facing helpers that keep app.py focused on rendering.
 from __future__ import annotations
 
 import os
+import re
 from typing import Any
 
 import numpy as np
+
+# Streamlit markdown renders `$...$` as LaTeX math, so any string carrying two
+# currency amounts turns into math salad ("−18,642(−4.42…"). Escape unescaped
+# `$` before a digit in every markdown-rendered currency string.
+_DOLLAR_BEFORE_DIGIT_RE = re.compile(r"(?<!\\)\$(?=\d)")
+
+
+def escape_markdown_dollars(text: str) -> str:
+    """Escape ``$`` before digits so Streamlit markdown shows currency, not math."""
+    if not text:
+        return text
+    return _DOLLAR_BEFORE_DIGIT_RE.sub(r"\\$", text)
+
+
+def validated_policy_count() -> int:
+    """Count of CBO/JCT-validated benchmark entries, from the scorecard.
+
+    The footer, welcome text, and scorecard used to quote three different
+    hardcoded numbers (25 / 25+ / 33). Everything now reads the same
+    computed source the Validation Scorecard tab reports.
+    """
+    try:
+        from fiscal_model.validation.scorecard import cached_default_scorecard
+
+        return int(cached_default_scorecard().total_entries)
+    except Exception:
+        return 25
 
 # ── Textbook links ──────────────────────────────────────────────────────
 # NOTE: "public-economcis" is the actual GitBook slug (intentional spelling).

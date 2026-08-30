@@ -153,6 +153,36 @@ def annotate_unsupported(
     return annotated, sorted(stripped)
 
 
+def format_answer_for_display(text: str) -> tuple[str, list[str]]:
+    """Convert footnote syntax into plain markdown for display.
+
+    Streamlit's markdown has no footnote support, so ``[^N]`` markers and
+    ``[^N]: ...`` Sources lines render literally — reviewers saw six raw
+    markers "resolving to nothing". For display we turn each marker into
+    ``[N]`` (linked when its Sources entry carries a URL), drop markers with
+    no Sources entry, and return the Sources entries as reader-visible lines.
+
+    Returns ``(display_body, source_lines)``.
+    """
+    body, sources = split_body_and_sources(text)
+    sources_map = _parse_sources(sources)
+
+    def _repl(match: re.Match[str]) -> str:
+        n = int(match.group(1))
+        entry = sources_map.get(n)
+        if entry:
+            urls = _URL_RE.findall(entry)
+            if urls:
+                return f"[[{n}]]({urls[0]})"
+            return f"[{n}]"
+        # A marker with no Sources entry carries nothing a reader can follow.
+        return ""
+
+    display_body = _CITATION_MARKER_RE.sub(_repl, body).rstrip()
+    source_lines = [f"[{n}] {sources_map[n]}" for n in sorted(sources_map)]
+    return display_body, source_lines
+
+
 def render_provenance_footer(provenance: list[dict[str, Any]]) -> str:
     """Render a compact bullet list of tool calls used this turn.
 
@@ -173,6 +203,7 @@ def render_provenance_footer(provenance: list[dict[str, Any]]) -> str:
 __all__ = [
     "annotate_unsupported",
     "extract_citation_markers",
+    "format_answer_for_display",
     "render_provenance_footer",
     "split_body_and_sources",
 ]

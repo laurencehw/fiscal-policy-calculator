@@ -16,7 +16,7 @@ import logging
 from typing import Any
 
 from fiscal_model.data.irs_soi import IRSSOIData
-from fiscal_model.ui.helpers import TEXTBOOK_HOME
+from fiscal_model.ui.helpers import TEXTBOOK_HOME, validated_policy_count
 
 _logger = logging.getLogger(__name__)
 
@@ -209,7 +209,7 @@ def render_result_tabs(
             st_module.markdown("---")
             st_module.caption(
                 "This calculator uses CBO methodology with IRS Statistics of Income data. "
-                "25+ policies benchmarked against official CBO/JCT/Treasury scores — calibrated "
+                f"{validated_policy_count()} policies benchmarked against official CBO/JCT/Treasury scores — calibrated "
                 "models reproduce official scores; uncalibrated predictions are directional (~±20%)."
             )
         with tabs["tab_distribution"]:
@@ -382,7 +382,7 @@ def render_footer(st_module: Any) -> None:
     st_module.markdown("---")
     st_module.caption(
         "**Fiscal Policy Impact Calculator** v1.0 · "
-        "25 policies validated against CBO/JCT · "
+        f"{validated_policy_count()} policies validated against CBO/JCT · "
         f"Data: IRS SOI {_latest_soi_year()}, FRED, CBO Feb 2026 · "
         "[Methodology](https://github.com/laurencehw/fiscal-policy-calculator"
         "/blob/main/docs/METHODOLOGY.md) · "

@@ -244,3 +244,62 @@ def test_compare_policy_models_collects_errors_when_requested():
     assert len(bundle.results) == 1
     assert bundle.errors == {"Bad": "not supported"}
     assert bundle.to_dataframe().iloc[0]["Model"] == "Good"
+
+
+def test_cbo_style_model_aligns_scorer_window_to_policy_start_year():
+    created_start_years = []
+
+    class WindowScorer:
+        def __init__(self, start_year=2025, use_real_data=False):
+            del use_real_data
+            created_start_years.append(start_year)
+            self.start_year = start_year
+
+        def score_policy(self, policy, dynamic=False):
+            del dynamic
+            horizon = int(policy.duration_years)
+            return SimpleNamespace(
+                final_deficit_effect=np.array([100.0] * horizon),
+                baseline=SimpleNamespace(
+                    years=np.arange(self.start_year, self.start_year + horizon)
+                ),
+            )
+
+    from fiscal_model.models.base import CBOStyleModel
+
+    model = CBOStyleModel(WindowScorer, use_real_data=False)
+    policy = _pilot_policy()
+    policy.start_year = 2026
+    policy.duration_years = 10
+
+    result = model.score(policy)
+
+    assert created_start_years == [2026]
+    assert result.ten_year_cost == pytest.approx(1000.0)
+
+    # Same start year reuses the cached scorer.
+    model.score(policy)
+    assert created_start_years == [2026]
+
+
+def test_cbo_style_model_tcja_ten_year_cost_matches_aligned_scorer():
+    """Regression: TCJA extension starts in 2026; a scorer left on the default
+    2025-2034 window silently drops 2035 and reports a nine-year sum as the
+    "10-Year Cost" (the cross-tab discrepancy flagged in review)."""
+    from fiscal_model import FiscalPolicyScorer, create_tcja_extension
+    from fiscal_model.models.base import CBOStyleModel
+
+    policy = create_tcja_extension(extend_all=True, keep_salt_cap=True)
+    aligned_scorer = FiscalPolicyScorer(
+        start_year=policy.start_year, use_real_data=False
+    )
+    expected = float(aligned_scorer.score_policy(policy, dynamic=False).final_deficit_effect.sum())
+
+    model = CBOStyleModel(FiscalPolicyScorer, use_real_data=False)
+    result = model.score(policy)
+
+    assert result.ten_year_cost == pytest.approx(expected)
+    # All ten window years carry effect once aligned — no truncated final year.
+    annual = np.asarray(result.annual_effects, dtype=float)
+    assert len(annual) == 10
+    assert (annual != 0).all()

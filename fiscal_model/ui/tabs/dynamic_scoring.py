@@ -182,9 +182,9 @@ def render_dynamic_scoring_tab(
         sign_fb = "+" if macro_result.cumulative_revenue_feedback >= 0 else "-"
         sign_dyn = "+" if dynamic_total >= 0 else "-"
         st_module.markdown(
-            f"""
-                    **Calculation:** ${sign_conv}${abs(conventional_total):.0f}B (conventional) {sign_fb} ${abs(macro_result.cumulative_revenue_feedback):.0f}B (feedback) = **{sign_dyn}${abs(dynamic_total):.0f}B (dynamic)**
-                    """
+            f"**Calculation:** {sign_conv}\\${abs(conventional_total):.0f}B (conventional) "
+            f"{sign_fb} \\${abs(macro_result.cumulative_revenue_feedback):.0f}B (feedback) "
+            f"= **{sign_dyn}\\${abs(dynamic_total):.0f}B (dynamic)**"
         )
 
         st_module.markdown("---")

@@ -57,19 +57,19 @@ def render_assistant_admin_tab(st_module: Any) -> None:
     )
     if today_pct >= 95:
         st_module.error(
-            f"🚨 Daily budget **near exhausted**: ${snap.today_cost_usd:.2f} "
-            f"of ${snap.daily_cap_usd:.2f} used ({today_pct:.0f}%). "
+            f"🚨 Daily budget **near exhausted**: \\${snap.today_cost_usd:.2f} "
+            f"of \\${snap.daily_cap_usd:.2f} used ({today_pct:.0f}%). "
             "Further requests will be rate-limited until UTC midnight."
         )
     elif today_pct >= 70:
         st_module.warning(
-            f"⚠️ Daily budget: ${snap.today_cost_usd:.2f} of "
-            f"${snap.daily_cap_usd:.2f} ({today_pct:.0f}%)."
+            f"⚠️ Daily budget: \\${snap.today_cost_usd:.2f} of "
+            f"\\${snap.daily_cap_usd:.2f} ({today_pct:.0f}%)."
         )
     else:
         st_module.info(
-            f"💰 Daily budget: ${snap.today_cost_usd:.2f} of "
-            f"${snap.daily_cap_usd:.2f} ({today_pct:.0f}%)."
+            f"💰 Daily budget: \\${snap.today_cost_usd:.2f} of "
+            f"\\${snap.daily_cap_usd:.2f} ({today_pct:.0f}%)."
         )
     st_module.progress(min(1.0, today_pct / 100.0))
 
