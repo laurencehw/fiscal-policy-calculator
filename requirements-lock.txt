@@ -26,14 +26,20 @@ certifi==2026.2.25
     #   httpcore
     #   httpx
     #   requests
+cffi==2.1.1
+    # via cryptography
 charset-normalizer==3.4.7
-    # via requests
+    # via
+    #   pdfminer-six
+    #   requests
 click==8.3.2
     # via
     #   streamlit
     #   uvicorn
 contourpy==1.3.3
     # via matplotlib
+cryptography==50.0.1
+    # via pdfminer-six
 cycler==0.12.1
     # via matplotlib
 distro==1.9.0
@@ -112,11 +118,16 @@ pandas==2.3.3
     #   -r requirements.txt
     #   fredapi
     #   streamlit
+pdfminer-six==20260107
+    # via pdfplumber
+pdfplumber==0.11.10
+    # via -r requirements.txt
 pdoc==14.7.0
     # via -r requirements.txt
 pillow==12.2.0
     # via
     #   matplotlib
+    #   pdfplumber
     #   streamlit
 plotly==5.24.1
     # via -r requirements.txt
@@ -124,6 +135,8 @@ protobuf==7.34.1
     # via streamlit
 pyarrow==23.0.1
     # via streamlit
+pycparser==3.0
+    # via cffi
 pydantic==2.13.0
     # via
     #   -r requirements.txt
@@ -139,6 +152,8 @@ pygments==2.20.0
     #   rich
 pyparsing==3.3.2
     # via matplotlib
+pypdfium2==5.13.0
+    # via pdfplumber
 python-dateutil==2.9.0.post0
     # via
     #   matplotlib

@@ -637,7 +637,6 @@ def render_results_summary_tab(
                 )
 
         # Generate formatted text summary for copy-paste
-        baseline_year = result.baseline.start_year
         cbo_vintage = "CBO Feb 2026"
         today = date.today().strftime("%B %d, %Y")
 

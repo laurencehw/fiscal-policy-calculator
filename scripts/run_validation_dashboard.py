@@ -146,6 +146,22 @@ def _is_environmental_degradation(component: str, info: dict[str, Any]) -> bool:
     return False
 
 
+def _is_coverage_overcount_warning(component: str, info: dict[str, Any]) -> bool:
+    """Microdata degraded *only* because coverage exceeds SOI (>110%).
+
+    Overcounting (e.g. 119% of SOI returns) is a bundled-data quality
+    signal, the same class as the calibration warning (exit 2): it must
+    not render a green health check, but it isn't a per-PR regression, so
+    it warns instead of hard-failing the gate. Undercount (<70%) and
+    synthetic data still fail.
+    """
+    if component != "microdata" or info.get("status") != "degraded":
+        return False
+    if info.get("coverage_undercount"):
+        return False
+    return bool(info.get("coverage_overcount"))
+
+
 def print_health(health: dict[str, Any]) -> bool:
     """
     Return True unless a *non-environmental* health component degraded.
@@ -164,6 +180,8 @@ def print_health(health: dict[str, Any]) -> bool:
         if status in STATUS_DEGRADED:
             if _is_environmental_degradation(component, info):
                 status = f"env-ok ({status})"
+            elif _is_coverage_overcount_warning(component, info):
+                status = f"warn ({status})"
             else:
                 all_ok = False
                 failing_components.append((component, info))
@@ -210,7 +228,9 @@ def print_health(health: dict[str, Any]) -> bool:
 
 def health_gate_ok(health: dict[str, Any]) -> bool:
     """Silent equivalent of print_health for JSON/reporting paths."""
-    return not health_gate_issues(health)
+    return not any(
+        issue["severity"] == "fail" for issue in health_gate_issues(health)
+    )
 
 
 def _health_issue_message(component: str, info: dict[str, Any]) -> str:
@@ -240,10 +260,15 @@ def health_gate_issues(health: dict[str, Any]) -> list[dict[str, Any]]:
         info = health.get(component, {})
         status = info.get("status", "unknown")
         if status in STATUS_DEGRADED and not _is_environmental_degradation(component, info):
+            severity = (
+                "warn"
+                if _is_coverage_overcount_warning(component, info)
+                else "fail"
+            )
             issues.append(
                 {
                     "surface": "health",
-                    "severity": "fail",
+                    "severity": severity,
                     "component": component,
                     "status": status,
                     "message": _health_issue_message(component, info),
@@ -508,9 +533,10 @@ def main() -> int:
             *calibration_gate_issues(calibration),
             *benchmark_gate_issues(benchmarks_json),
         ]
+        has_warn_issues = any(issue["severity"] == "warn" for issue in issues)
         if not gates["health"] or not gates["distributional_benchmarks"]:
             overall = "fail"
-        elif not gates["calibration"]:
+        elif not gates["calibration"] or has_warn_issues:
             overall = "warn"
         else:
             overall = "ok"
@@ -527,8 +553,12 @@ def main() -> int:
     calibration_ok = print_calibration(calibration)
     benchmarks_ok = print_benchmarks()
 
+    health_warnings = [
+        issue for issue in health_gate_issues(health) if issue["severity"] == "warn"
+    ]
+
     print_banner("Summary")
-    if health_ok and calibration_ok and benchmarks_ok:
+    if health_ok and calibration_ok and benchmarks_ok and not health_warnings:
         print("  [OK] All surfaces nominal.")
         return 0
     if not health_ok:
@@ -537,7 +567,10 @@ def main() -> int:
     if not benchmarks_ok:
         print("  [FAIL] At least one distributional benchmark flagged needs_improvement.")
         return 1
-    print("  [WARN] Calibration has at least one bracket with <60% AGI coverage.")
+    if not calibration_ok:
+        print("  [WARN] Calibration has at least one bracket with <60% AGI coverage.")
+    for issue in health_warnings:
+        print(f"  [WARN] {issue['message']}")
     return 2
 
 

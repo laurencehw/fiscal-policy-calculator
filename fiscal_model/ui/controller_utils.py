@@ -9,7 +9,6 @@ import json
 from collections.abc import Callable
 from typing import Any
 
-
 # Engine validation messages name internal variables; translate the common
 # ones into user language (with the fix) before showing them.
 _FRIENDLY_ERROR_PATTERNS: tuple[tuple[str, str], ...] = (
