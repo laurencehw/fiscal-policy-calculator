@@ -1,6 +1,6 @@
 # CBO-Style Fiscal Policy Scoring Model
 # Core dependencies
-numpy>=1.24.0,<3.0
+numpy>=1.24.0,<2.5  # 2.5 stubs use PEP 695 `type`; mypy python_version=3.10 can't parse them
 pyyaml>=6.0,<7.0
 pandas>=2.0.0,<3.0
 matplotlib>=3.7.0,<4.0
