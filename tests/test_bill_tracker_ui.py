@@ -327,3 +327,49 @@ class TestGetUniqueSubjects:
 
         subjects = _get_unique_subjects(BadDB())
         assert subjects == []
+
+
+class TestDemoDatabaseFiscalImpactMap:
+    """Regression (Bugbot, PR #60): demo mode must support the fiscal-impact
+    map, or the default sort silently degrades and the major-fiscal filter
+    hides every demo bill."""
+
+    def _demo_db(self):
+        from fiscal_model.ui.tabs.bill_tracker import _DemoBillDatabase
+
+        payload = {
+            "generated_at": "2026-04-01T00:00:00Z",
+            "bills": [
+                {
+                    "bill_id": "hr-1-119",
+                    "title": "Big bill",
+                    "cbo_score": {"ten_year_cost_billions": 3500.0},
+                    "auto_score": {"ten_year_cost_billions": 3000.0, "policies": []},
+                },
+                {
+                    "bill_id": "hr-2-119",
+                    "title": "Auto-scored only",
+                    "auto_score": {"ten_year_cost_billions": -12.5, "policies": []},
+                },
+                {"bill_id": "hr-3-119", "title": "Unscored"},
+            ],
+        }
+        return _DemoBillDatabase(payload)
+
+    def test_map_prefers_cbo_and_includes_auto_scores(self):
+        impacts = self._demo_db().get_fiscal_impact_map()
+        assert impacts["hr-1-119"] == 3500.0  # CBO beats auto-score
+        assert impacts["hr-2-119"] == -12.5
+        assert "hr-3-119" not in impacts
+
+    def test_major_fiscal_filter_keeps_scored_demo_bills(self):
+        from fiscal_model.ui.tabs.bill_tracker import _get_filtered_bills
+
+        db = self._demo_db()
+        bills = _get_filtered_bills(
+            db,
+            {"sort": "Fiscal impact: Largest First", "major_fiscal": True},
+        )
+        # Both scored bills clear the $1B-in-either-direction bar and sort by
+        # |impact|; the unscored bill is excluded (not hidden wholesale).
+        assert [b["bill_id"] for b in bills] == ["hr-1-119", "hr-2-119"]

@@ -88,10 +88,12 @@ class SimpleMultiplierAdapter(MacroModelAdapter):
         # Interest rates (crowding out from higher deficits)
         deficit_change = outlays_chg - receipts_chg  # Positive = larger deficit
         cumulative_deficit = np.cumsum(deficit_change)
-        debt_gdp_increase = cumulative_deficit / self.baseline_gdp
+        # Percent of GDP — the 2bp coefficient is per 1% of GDP of added
+        # debt; using the raw fraction understated rate effects 100x.
+        debt_gdp_increase_pct = cumulative_deficit / self.baseline_gdp * 100
 
         # Long rate rises with debt
-        long_rate_ppts = debt_gdp_increase * 0.02  # 2bp per 1% GDP debt increase
+        long_rate_ppts = debt_gdp_increase_pct * 0.02  # 2bp per 1% GDP debt increase
         short_rate_ppts = long_rate_ppts * 0.5     # Short rate moves less
 
         # Revenue feedback (more GDP = more tax revenue)

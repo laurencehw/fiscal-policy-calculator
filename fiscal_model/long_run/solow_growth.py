@@ -14,10 +14,21 @@ class LongRunResult:
     wages: np.ndarray
     interest_rate: np.ndarray
     baseline_gdp: np.ndarray
+    baseline_capital: np.ndarray
 
     @property
     def gdp_pct_change(self) -> np.ndarray:
         return (self.gdp / self.baseline_gdp - 1) * 100
+
+    @property
+    def capital_pct_change(self) -> np.ndarray:
+        """Policy effect on the capital stock vs the no-policy baseline.
+
+        Comparing against the first simulation year instead (as the UI once
+        did) plots three decades of ordinary capital accumulation — an axis
+        running 0..100% that swamps the policy effect.
+        """
+        return (self.capital_stock / self.baseline_capital - 1) * 100
 
 class SolowGrowthModel:
     """
@@ -88,6 +99,7 @@ class SolowGrowthModel:
         y = np.zeros(horizon)
         inv = np.zeros(horizon)
         base_y = np.zeros(horizon)
+        base_k = np.zeros(horizon)
 
         # Baseline path (No deficit change)
         k_base = self.initial_k
@@ -111,6 +123,7 @@ class SolowGrowthModel:
             y[t] = y_curr
             base_y[t] = y_base
             k[t] = k_curr
+            base_k[t] = k_base
 
             # 2. Calculate Investment (Crowding Out)
             # Standard: I = S = s * Y
@@ -157,7 +170,8 @@ class SolowGrowthModel:
             investment=inv,
             wages=wages,
             interest_rate=interest,
-            baseline_gdp=base_y
+            baseline_gdp=base_y,
+            baseline_capital=base_k,
         )
 
 if __name__ == "__main__":

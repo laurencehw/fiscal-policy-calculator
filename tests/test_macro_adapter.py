@@ -511,3 +511,25 @@ class TestIntegration:
         # With these multipliers, spending should have larger GDP effect
         # (spending multiplier 1.0 > tax multiplier magnitude 0.5)
         assert spend_result.cumulative_gdp_effect > tax_result.cumulative_gdp_effect
+
+
+def test_interest_rate_effects_scale_with_percent_of_gdp_debt():
+    """Regression: rate coefficients are per 1% of GDP of added debt.
+    Multiplying by the raw debt/GDP *fraction* understated rate effects
+    100x — a $4.6T package rendered "+0.00 ppts" beside a claimed
+    crowding-out channel."""
+    import numpy as np
+
+    from fiscal_model.models import FRBUSAdapterLite, MacroScenario
+
+    adapter = FRBUSAdapterLite()
+    scenario = MacroScenario(
+        name="Large tax cut",
+        description="~$460B/yr revenue loss",
+        receipts_change=np.array([-460.0] * 10),
+    )
+    result = adapter.run(scenario)
+
+    # ~15% of GDP of cumulative debt x 3bp => several tenths of a point.
+    assert 0.2 < float(result.long_rate_ppts[-1]) < 1.5
+    assert 0.05 < float(result.short_rate_ppts[-1]) < float(result.long_rate_ppts[-1])

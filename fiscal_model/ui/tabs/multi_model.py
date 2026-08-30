@@ -165,9 +165,9 @@ def render_multi_model_tab(
         "map to reforms (income-tax rates, CTC, EITC, SALT, AMT exemption). "
         "Corporate / OASDI payroll / estate / TCJA composites are reported as "
         "**not representable**, not as fake agreement.\n"
-        "- **PWBM-OLG Pilot** — available only through "
-        "`scripts/run_feasibility_audit.py --include-model-pilot "
-        "--include-experimental-pwbm` while the adapter is calibrated."
+        "- **PWBM-OLG Pilot** — held out of the app until its adapter "
+        "clears calibration checks (developers can run it via the offline "
+        "feasibility audit)."
     )
 
     if is_spending or not preset_policies:
@@ -341,13 +341,13 @@ def render_multi_model_tab(
             "- **CBO vs TPC-Microsim** gap ≈ the distributional / "
             "return-level effect. Large gaps on policies with thresholds "
             "and phase-outs suggest bracket-aggregate data is missing "
-            "real interactions (see `docs/VALIDATION_NOTES.md`).\n"
+            "real interactions (details in the project's validation notes "
+            "on GitHub).\n"
             "- **Max spread** is only shown when ≥2 engines produce costs. "
             "A corporate or payroll preset that TPC cannot represent will "
             "not invent agreement.\n"
-            "- **PWBM-OLG** is intentionally omitted from the default UI until "
-            "its adapter clears the feasibility audit.\n\n"
-            "Capability matrix: `fiscal_model.models.capabilities`."
+            "- **PWBM-OLG** is intentionally omitted from the default view "
+            "until its adapter clears calibration checks."
         )
 
 

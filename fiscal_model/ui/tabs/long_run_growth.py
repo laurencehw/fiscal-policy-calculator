@@ -92,13 +92,13 @@ def render_long_run_growth_tab(
             st_module.plotly_chart(fig_gdp, use_container_width=True)
 
         with c2:
-            st_module.subheader("Capital Stock (% Change)")
-            cap_pct_change = (lr_res.capital_stock / lr_res.capital_stock[0] - 1) * 100
+            st_module.subheader("Capital Stock (% Change vs Baseline)")
             fig_cap = px.line(
                 x=lr_res.years,
-                y=cap_pct_change,
-                labels={"x": "Year", "y": "% Change in Capital"},
+                y=lr_res.capital_pct_change,
+                labels={"x": "Year", "y": "% Change from Baseline"},
             )
+            fig_cap.add_hline(y=0, line_dash="dash", line_color="gray")
             st_module.plotly_chart(fig_cap, use_container_width=True)
 
         st_module.info(

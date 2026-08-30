@@ -277,6 +277,22 @@ def render_results_summary_tab(
             unsafe_allow_html=True,
         )
 
+    # Date the law, not just the data: what has happened to this policy
+    # since its official score, and what the headline is measured against.
+    from fiscal_model.policy_status import get_policy_status
+
+    policy_status = get_policy_status(policy_name)
+    if policy_status:
+        st_module.caption(
+            f"{policy_status.icon} **Policy status: {policy_status.label}.** "
+            f"{policy_status.note}"
+        )
+    st_module.caption(
+        "Scored against this app's CBO Feb 2026 baseline. Official benchmark "
+        "scores are as published on their source date and may predate later "
+        "law changes."
+    )
+
     # Plain-English interpretation
     n_years = len(result.years)
     annual_avg = final_deficit_total / n_years
@@ -645,10 +661,18 @@ def render_results_summary_tab(
             if result.dynamic_effects
             else "  Revenue Feedback: not included (static score)"
         )
+        from fiscal_model.policy_status import get_policy_status as _get_status
+
+        _status = _get_status(result_data.get("policy_name"))
+        status_line = (
+            f"Policy status: {_status.label} — {_status.note}\n".replace("\\$", "$")
+            if _status
+            else ""
+        )
         text_summary = f"""FISCAL POLICY IMPACT ANALYSIS
 Policy: {policy.name}
 Baseline: {cbo_vintage}
-Date: {today}
+{status_line}Date: {today}
 
 10-Year Deficit Impact: ${final_deficit_total:+,.1f}B
   Static Revenue Effect: ${static_deficit_total:+,.1f}B

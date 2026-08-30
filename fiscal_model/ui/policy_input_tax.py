@@ -94,6 +94,15 @@ def render_tax_policy_inputs(
                 f"{badge['signed_pct']:+.1f}% ({badge['rating']})"
             )
 
+        from fiscal_model.policy_status import get_policy_status
+
+        policy_status = get_policy_status(preset_choice)
+        if policy_status:
+            st_module.caption(
+                f"{policy_status.icon} **{policy_status.label}** — "
+                f"{policy_status.note}"
+            )
+
         description = preset_data["description"]
 
         import re as _re

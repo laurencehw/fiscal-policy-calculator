@@ -54,7 +54,7 @@ def test_warning_fires_when_agi_ratio_below_70pct():
     msg = st.warnings[0]
     assert "coverage warning" in msg.lower()
     assert "30%" in msg  # reports the ratio
-    assert "VALIDATION_NOTES" in msg  # points at diagnostic doc
+    assert "validation notes" in msg  # points at the diagnostic doc, in user language
 
 
 def test_no_warning_when_agi_ratio_above_threshold():

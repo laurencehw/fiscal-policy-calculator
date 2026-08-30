@@ -360,19 +360,23 @@ def _render_augmentation_preview(st_module: Any, microdata: dict) -> None:
     st_module.caption(
         "Augmentation is a *coverage* fix, not a *representation* fix. "
         "Synthetic records carry SOI-aggregate income composition but "
-        "don't model individual-level behaviour. See "
-        "`docs/VALIDATION_NOTES.md` for the full caveat."
+        "don't model individual-level behaviour. The project's validation "
+        "notes on GitHub carry the full caveat."
     )
 
 
 _QUICK_START_CARDS: tuple[dict[str, Any], ...] = (
     {
         "key": "tcja",
-        "question": "Will TCJA extension blow up the deficit?",
-        "context": "Extend all individual TCJA provisions beyond the 2025 sunset",
+        "question": "What did extending the TCJA cost?",
+        "context": (
+            "The individual TCJA provisions were extended by the July 2025 "
+            "reconciliation law — this scores extension as CBO evaluated it "
+            "beforehand"
+        ),
         "headline": "▲ +$4.6T to deficit",
         "headline_color": "#d9534f",
-        "source": "10-yr, CBO",
+        "source": "10-yr, CBO May 2024",
         "preset": {
             "sidebar_analysis_mode": "📋 Tax proposal (preset)",
             "sidebar_policy_area": "TCJA / Individual",

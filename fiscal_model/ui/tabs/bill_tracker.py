@@ -219,7 +219,15 @@ def _render_filters(st_module: Any, db: Any) -> dict:
                 key="bt_chamber_filter",
             )
         with col3:
-            sort_options = ["Date: Newest First", "Date: Oldest First", "Relevance"]
+            # Fiscal impact leads: sorting by recency surfaced $2M veterans
+            # and lands bills while the major fiscal legislation of the
+            # Congress sat below the fold.
+            sort_options = [
+                "Fiscal impact: Largest First",
+                "Date: Newest First",
+                "Date: Oldest First",
+                "Relevance",
+            ]
             sort_order = st_module.selectbox(
                 "Sort by",
                 sort_options,
@@ -238,6 +246,11 @@ def _render_filters(st_module: Any, db: Any) -> dict:
                 )
         with col5:
             cbo_filter = st_module.checkbox("Has CBO score", key="bt_cbo_filter")
+            major_fiscal = st_module.checkbox(
+                "Major fiscal (≥ \\$1B)",
+                key="bt_major_fiscal",
+                help="Only bills whose CBO or calculator 10-year score is at least $1B in either direction.",
+            )
 
     return {
         "status": status_filter if status_filter != "All" else None,
@@ -246,6 +259,7 @@ def _render_filters(st_module: Any, db: Any) -> dict:
         "search": search_query.strip().lower() if search_query else None,
         "policy_areas": list(policy_areas) if policy_areas else None,
         "sort": sort_order,
+        "major_fiscal": bool(major_fiscal),
     }
 
 
@@ -259,12 +273,23 @@ def _get_filtered_bills(db: Any, filters: dict) -> list[dict]:
 
     query = filters.get("search")
     policy_areas = filters.get("policy_areas")
-    sort_order = filters.get("sort", "Date: Newest First")
+    sort_order = filters.get("sort", "Fiscal impact: Largest First")
+
+    impact_map: dict[str, float] = {}
+    if filters.get("major_fiscal") or sort_order == "Fiscal impact: Largest First":
+        try:
+            impact_map = db.get_fiscal_impact_map()
+        except Exception:
+            impact_map = {}
 
     result = []
     relevance_scores: dict[str, int] = {}
 
     for bill in bills:
+        if filters.get("major_fiscal"):
+            impact = impact_map.get(bill.get("bill_id", ""))
+            if impact is None or abs(impact) < 1.0:
+                continue
         # Chamber filter
         if filters.get("chamber") and bill.get("chamber") != filters["chamber"]:
             continue
@@ -309,14 +334,20 @@ def _get_filtered_bills(db: Any, filters: dict) -> list[dict]:
         result.append(bill)
 
     # Sort
-    if sort_order == "Date: Oldest First":
+    if sort_order == "Fiscal impact: Largest First":
+        # Unscored bills keep their recency order below every scored bill.
+        result.sort(
+            key=lambda b: abs(impact_map.get(b.get("bill_id", ""), 0.0)),
+            reverse=True,
+        )
+    elif sort_order == "Date: Oldest First":
         result.sort(key=lambda b: (b.get("introduced_date") or ""), reverse=False)
     elif sort_order == "Relevance" and query:
         result.sort(
             key=lambda b: relevance_scores.get(b.get("bill_id", ""), 0),
             reverse=True,
         )
-    # Default ("Date: Newest First") uses DB ordering (introduced_date DESC)
+    # "Date: Newest First" uses DB ordering (introduced_date DESC)
 
     return result
 
@@ -661,6 +692,20 @@ class _DemoBillDatabase:
 
     def get_auto_score(self, bill_id: str) -> dict[str, Any] | None:
         return self._auto_by_bill.get(bill_id)
+
+    def get_fiscal_impact_map(self) -> dict[str, float]:
+        """Mirror BillDatabase: latest 10-year cost per bill, CBO first.
+
+        Without this, demo mode silently lost fiscal-impact sorting and the
+        major-fiscal filter hid every bill.
+        """
+        impacts: dict[str, float] = {}
+        for source in (self._auto_by_bill, self._cbo_by_bill):
+            for bill_id, score in source.items():
+                cost = score.get("ten_year_cost_billions")
+                if cost is not None:
+                    impacts[bill_id] = float(cost)
+        return impacts
 
 
 def _get_database(db_path: str | None) -> tuple[Any | None, bool]:
