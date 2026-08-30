@@ -434,7 +434,7 @@ _QUICK_START_CARDS: tuple[dict[str, Any], ...] = (
     {
         "key": "ctc",
         "question": "How expensive is a permanent expanded CTC?",
-        "context": "Make the 2021 ARP-style $3,600/$3,000 child tax credit permanent",
+        "context": "Make the 2021 ARP-style \\$3,600/\\$3,000 child tax credit permanent",
         "headline": "▲ +$1.6T to deficit",
         "headline_color": "#d9534f",
         "source": "10-yr, CBO",
@@ -470,7 +470,7 @@ def _render_quick_start_card(
             st_module.rerun()
 
 
-def render_quick_start(st_module: Any) -> None:
+def render_quick_start(st_module: Any, calculating: bool = False) -> None:
     """
     Render a dismissible quick-start guide with a guided first-score path
     plus a short list of question-led policy cards.
@@ -478,8 +478,11 @@ def render_quick_start(st_module: Any) -> None:
     if "quick_start_dismissed" not in st_module.session_state:
         st_module.session_state.quick_start_dismissed = False
 
-    # Auto-dismiss once results have been calculated
-    if st_module.session_state.get("results"):
+    # Auto-dismiss once results have been calculated — including the run the
+    # calculation happens on (this renders before the calculation executes,
+    # so waiting for `results` alone leaves the full-height card pushing the
+    # fresh results ~1,000px below the fold on the first Calculate click).
+    if calculating or st_module.session_state.get("results"):
         st_module.session_state.quick_start_dismissed = True
 
     if st_module.session_state.quick_start_dismissed:
@@ -633,6 +636,29 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
             render_footer(st_module=st_module)
 
 
+def _scroll_to_results_anchor() -> None:
+    """Scroll the page to the results tab bar after a calculation completes.
+
+    Streamlit sanitizes <script> in markdown, so this uses a zero-height
+    component iframe (same-origin) to scroll the parent document. Clicking
+    Calculate otherwise produces no visible change — results render well
+    below the fold.
+    """
+    try:
+        import streamlit.components.v1 as components
+
+        components.html(
+            "<script>"
+            "const anchor = window.parent.document.getElementById('results-anchor');"
+            "if (anchor) { anchor.scrollIntoView({behavior: 'smooth', block: 'start'}); }"
+            "</script>",
+            height=0,
+        )
+    except Exception:
+        # Non-Streamlit contexts (unit tests with stub st modules) skip the scroll.
+        pass
+
+
 def _render_calculator(
     st_module: Any,
     deps: Any,
@@ -655,11 +681,16 @@ def _render_calculator(
             settings_tab=st_module.expander("⚙️ Model settings", expanded=False),
         )
 
-        # Apply dark mode via CSS class (better compatibility)
+        # Apply dark mode via CSS class (better compatibility). The sidebar
+        # keeps its theme secondaryBackgroundColor unless overridden here —
+        # without the stSidebar rule its background stays light while the
+        # text rules below flip it near-white (unreadable, ~1:1 contrast).
         if settings.get("dark_mode", False):
             st_module.markdown(
                 '<style>'
                 'body, .stApp {background-color: #0e1117 !important; color: #fafafa !important;} '
+                'section[data-testid="stSidebar"], section[data-testid="stSidebar"] > div '
+                '{background-color: #262730 !important;} '
                 '.stMarkdown, p, h1, h2, h3, label {color: #fafafa !important;} '
                 '.metric-card {background-color: #262730 !important;}'
                 '</style>',
@@ -695,11 +726,17 @@ def _render_calculator(
     st_module.session_state.current_run_id = calc_context["run_id"]
 
     # Dismissible welcome guide (auto-hides after first calculation)
-    render_quick_start(st_module=st_module)
+    render_quick_start(
+        st_module=st_module, calculating=bool(calc_context.get("calculate"))
+    )
 
     # "How is this scored?" — prominent in main content below title
     with st_module.expander("🔍 How is this scored?", expanded=False):
         st_module.markdown(_HOW_SCORED_MARKDOWN)
+
+    # Anchor for post-calculation scroll: landing the reader on the tab bar
+    # puts the headline number in view.
+    st_module.markdown('<div id="results-anchor"></div>', unsafe_allow_html=True)
 
     tabs = build_main_tabs(
         st_module=st_module,
@@ -715,6 +752,9 @@ def _render_calculator(
         calc_context=calc_context,
         settings=settings,
     )
+
+    if calc_context.get("calculate") and st_module.session_state.get("results"):
+        _scroll_to_results_anchor()
 
     render_result_tabs(
         st_module=st_module,

@@ -9,7 +9,7 @@ from typing import Any
 import pandas as pd
 import plotly.graph_objects as go
 
-from fiscal_model.ui.helpers import TEXTBOOK_LINKS
+from fiscal_model.ui.helpers import TEXTBOOK_LINKS, escape_markdown_dollars
 
 
 def render_deficit_target_tab(
@@ -24,9 +24,10 @@ def render_deficit_target_tab(
     st_module.markdown(
         "The federal government currently spends more than it collects in "
         "taxes each year. This gap — the **deficit** — adds to the national "
-        "debt. The Congressional Budget Office (CBO) projects deficits of "
-        "roughly $1.4–1.7 trillion per year (4–5% of GDP) over the next "
-        "decade.\n\n"
+        "debt. The Congressional Budget Office (CBO) projects large, "
+        "persistent deficits over the next decade — the *Avg baseline "
+        "deficit* metric below shows the projection this tool actually "
+        "scores against.\n\n"
         "**Why does this matter?** Persistent deficits can raise interest "
         "rates, crowd out private investment, and limit the government's "
         "ability to respond to future crises. Many economists consider a "
@@ -138,10 +139,15 @@ def render_deficit_target_tab(
         st_module.markdown(f"### {header}")
         for cat_name, policies in sorted(data.items()):
             with st_module.expander(
-                f"**{cat_name}** ({len(policies)} options)", expanded=False
+                f"**{cat_name}** ({len(policies)} option{'s' if len(policies) != 1 else ''})",
+                expanded=False,
             ):
                 for policy_name, score in policies:
-                    label = f"{policy_name} — {verb} ${abs(score):,.0f}B"
+                    # Checkbox labels render as markdown; a second unescaped $
+                    # (most preset names carry one) turns the label into LaTeX.
+                    label = escape_markdown_dollars(
+                        f"{policy_name} — {verb} ${abs(score):,.0f}B"
+                    )
                     if st_module.checkbox(label, key=f"dt_{policy_name}"):
                         selected_policies.append(policy_name)
                         total_impact += score
@@ -208,7 +214,7 @@ def render_deficit_target_tab(
         st_module.metric(
             "Your package (10yr)",
             f"${total_impact:+,.0f}B",
-            delta=f"{len(selected_policies)} policies",
+            delta=f"{len(selected_policies)} polic{'ies' if len(selected_policies) != 1 else 'y'}",
             delta_color="off",
         )
     with c3:
@@ -295,6 +301,11 @@ def render_deficit_target_tab(
             showlegend=False,
         )
         st_module.plotly_chart(fig, use_container_width=True)
+        st_module.caption(
+            "Waterfall bars are **average annual** effects (each policy's "
+            "10-year total divided by the years in the window); the checkbox "
+            "labels above quote 10-year totals."
+        )
 
     # Selected policies table (use plain $ — st.dataframe renders raw text, not markdown)
     if selected_policies:

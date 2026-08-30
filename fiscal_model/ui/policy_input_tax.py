@@ -21,7 +21,10 @@ def render_tax_policy_inputs(
     default_preset: str | None = None,
 ) -> dict[str, Any]:
     """Render tax policy input controls and return selected values."""
-    preset_choice = default_preset or "Custom Policy"
+    # A lingering preset pre-selection (query param or quick-start card) must
+    # never leak into Custom mode: scoring would silently use the preset and
+    # ignore the user's custom inputs.
+    preset_choice = (default_preset if use_preset else None) or "Custom Policy"
 
     if use_preset:
         categorized: dict[str, list[str]] = {}
@@ -112,7 +115,7 @@ def render_tax_policy_inputs(
     rate_change = 0.0
     threshold = 0
     duration = 10
-    phase_in = 0
+    phase_in = 1
     manual_taxpayers = 0.0
     manual_avg_income = 0
     eti = 0.25
@@ -225,10 +228,13 @@ def render_tax_policy_inputs(
             )
             phase_in = st_module.slider(
                 "Phase-in period (years)",
-                min_value=0,
+                min_value=1,
                 max_value=5,
-                value=0,
-                help="Years to gradually ramp up to the full rate change. 0 = immediate.",
+                value=1,
+                help=(
+                    "Years to gradually ramp up to the full rate change. "
+                    "1 = full effect from the first year."
+                ),
             )
 
         if policy_type == "Capital Gains":

@@ -169,3 +169,75 @@ def test_group_summary_is_immutable():
     g = GroupSummary(name="Top", avg_tax_change=-100.0, pct_of_income=-0.5, share_of_total=-0.9)
     with pytest.raises(FrozenInstanceError):
         g.avg_tax_change = 0  # type: ignore[misc]
+
+
+def test_direction_caption_regressive_tax_cut_names_beneficiaries():
+    """Regression: a top-heavy tax cut is 'regressive', but the old caption
+    claimed lower-income groups 'bear a larger share of the burden' — the
+    opposite of the table above it."""
+    from fiscal_model.ui.distribution_callouts import direction_caption
+
+    analysis = _analysis(
+        _result("Bottom", avg=-50, pct=-0.10, share=-0.01, floor=0),
+        _result("Top", avg=-18642, pct=-4.42, share=-0.95, floor=500_000),
+        total=-4600.0,
+    )
+    caption = direction_caption(build_winners_losers(analysis))
+    assert "regressive" in caption
+    assert "higher-income groups receive the larger benefit" in caption
+    assert "bear a larger share" not in caption
+
+
+def test_direction_caption_regressive_tax_increase_names_burden():
+    from fiscal_model.ui.distribution_callouts import direction_caption
+
+    analysis = _analysis(
+        _result("Bottom", avg=200, pct=2.0, share=0.4, floor=0),
+        _result("Top", avg=2500, pct=0.3, share=0.6, floor=500_000),
+        total=300.0,
+    )
+    caption = direction_caption(build_winners_losers(analysis))
+    assert "regressive" in caption
+    assert "lower-income groups bear a larger share of the tax increase" in caption
+
+
+def test_direction_caption_progressive_tax_increase():
+    from fiscal_model.ui.distribution_callouts import direction_caption
+
+    analysis = _analysis(
+        _result("Bottom", avg=10, pct=0.05, share=0.001, floor=0),
+        _result("Top", avg=20000, pct=4.5, share=0.99, floor=500_000),
+        total=800.0,
+    )
+    caption = direction_caption(build_winners_losers(analysis))
+    assert "progressive" in caption
+    assert "higher-income groups bear a larger share of the tax increase" in caption
+
+
+def test_direction_caption_progressive_tax_cut_names_beneficiaries():
+    from fiscal_model.ui.distribution_callouts import direction_caption
+
+    analysis = _analysis(
+        _result("Bottom", avg=-800, pct=-2.5, share=-0.6, floor=0),
+        _result("Top", avg=-1000, pct=-0.2, share=-0.4, floor=500_000),
+        total=-500.0,
+    )
+    caption = direction_caption(build_winners_losers(analysis))
+    assert "progressive" in caption
+    assert "lower-income groups receive the larger benefit" in caption
+
+
+def test_rendered_headline_escapes_dollar_signs():
+    """Two currency amounts in one markdown string render as LaTeX math
+    unless the dollar signs are escaped."""
+    analysis = _analysis(
+        _result("Bottom Quintile", avg=+30, pct=+0.10, share=+0.01, floor=0),
+        _result("Top Quintile", avg=-4250, pct=-1.20, share=-0.95, floor=500_000),
+    )
+    st = MagicMock()
+    st.columns.return_value = [MagicMock(), MagicMock()]
+    render_winners_losers_callout(st, analysis)
+
+    headline_call = st.markdown.call_args_list[0][0][0]
+    assert "\\$4,250" in headline_call
+    assert "\\$30" in headline_call

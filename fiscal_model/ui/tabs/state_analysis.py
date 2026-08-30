@@ -196,13 +196,26 @@ def _render_policy_impact(
 ) -> None:
     """Show how the scored policy affects this state's taxpayers."""
     policy = result_data.get("policy")
-    static_effect = result_data.get("static_revenue_effect", 0)
-    final_effect = result_data.get("final_deficit_effect", static_effect)
+    # The annual effect arrays live on the scored result object, not as
+    # top-level keys of the session dict (reading them there always yielded
+    # 0 and rendered "$0.0B/yr" for every state and policy).
+    result = result_data.get("result")
+    annual_effects = None
+    for attr in ("final_deficit_effect", "static_deficit_effect", "static_revenue_effect"):
+        annual_effects = getattr(result, attr, None)
+        if annual_effects is not None:
+            break
+
+    try:
+        values = [float(v) for v in annual_effects] if annual_effects is not None else []
+    except TypeError:
+        values = [float(annual_effects)] if annual_effects else []
+    annual_avg_effect = sum(values) / len(values) if values else 0.0
 
     # Rough state share of national income tax revenue
     state_share = _state_revenue_share(state)
 
-    state_federal_impact = final_effect * state_share
+    state_federal_impact = annual_avg_effect * state_share
     policy_name = getattr(policy, "name", "Selected policy")
 
     st_module.markdown(f"#### {policy_name} — Impact on {state_name}")
@@ -253,9 +266,9 @@ def _render_salt_section(
     col1, col2 = st_module.columns(2)
     with col1:
         st_module.markdown(
-            f"**Current law (TCJA):** $10,000 SALT cap\n\n"
+            f"**Current law (TCJA):** \\$10,000 SALT cap\n\n"
             f"- {profile.pct_itemizers * 100:.1f}% of {state_name} filers itemize\n"
-            f"- Average SALT deduction (itemizers): ${profile.avg_salt_deduction_itemizers:,.0f}\n"
+            f"- Average SALT deduction (itemizers): \\${profile.avg_salt_deduction_itemizers:,.0f}\n"
             f"- Effective combined state+local rate: {profile.effective_salt_rate * 100:.1f}%"
         )
 
@@ -271,8 +284,8 @@ def _render_salt_section(
             st_module.markdown("**If SALT cap were lifted (pre-TCJA law):**")
             st_module.markdown(
                 f"- Affected filers: ~{result_lift.affected_filers:.1f}M\n"
-                f"- Avg deduction increase: ${result_lift.avg_deduction_change:,.0f}\n"
-                f"- Federal revenue cost: ${result_lift.federal_revenue_change_billions:.1f}B / yr\n"
+                f"- Avg deduction increase: \\${result_lift.avg_deduction_change:,.0f}\n"
+                f"- Federal revenue cost: \\${result_lift.federal_revenue_change_billions:.1f}B / yr\n"
                 f"- Effective state rate change: {result_lift.effective_rate_change * 100:+.2f}pp"
             )
     except Exception:

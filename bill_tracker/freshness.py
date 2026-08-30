@@ -120,8 +120,8 @@ def check_freshness(
         last_updated=last_fetched,
         days_since_update=days,
         warning=(
-            f"⚠ Data is {days} days old. "
-            "Scores may be unreliable. Run update pipeline to refresh."
+            f"Data is {days} days old. "
+            "Bill status and scores may have changed since."
         ),
         badge_color="red",
         badge_label=f"Expired ({days}d)",

@@ -27,13 +27,15 @@ def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
     apply_share_query_params(st_module=st_module)
 
     # ── Single-policy combined choice: preset / custom / spending ─────────
+    n_presets = sum(1 for name in preset_policies if name != "Custom Policy")
     analysis_mode = st_module.radio(
         "Analyze:",
         ["📋 Tax proposal (preset)", "✏️ Custom tax policy", "💰 Spending program"],
         horizontal=False,
         key="sidebar_analysis_mode",
         help=(
-            "**Tax proposal** — pick from 25+ real-world policies calibrated to CBO/JCT estimates.  \n"
+            f"**Tax proposal** — pick from {n_presets} real-world policies, "
+            "benchmarked against CBO/JCT estimates where official scores exist.  \n"
             "**Custom tax policy** — set your own rate change, threshold, and parameters.  \n"
             "**Spending program** — infrastructure, defense, transfers, etc."
         ),
@@ -85,6 +87,23 @@ def ensure_results_state(st_module: Any) -> None:
         st_module.session_state.results = None
 
 
+def _record_run_outcome(st_module: Any, ok: bool, run_id: str | None) -> None:
+    """Persist run bookkeeping, discarding stale results after a failed run.
+
+    Without the failure branch, an errored calculation leaves the previous
+    policy's results rendered under the error message — easy to misread as
+    the new policy's answer.
+    """
+    if ok:
+        if run_id:
+            st_module.session_state.last_run_id = run_id
+            st_module.session_state.results_run_id = run_id
+            st_module.session_state.last_run_at = time.time()
+        return
+    st_module.session_state.results = None
+    st_module.session_state.results_run_id = None
+
+
 def execute_calculation_if_requested(
     st_module: Any,
     deps: Any,
@@ -128,10 +147,7 @@ def execute_calculation_if_requested(
             error_prefix="Microsimulation failed",
             action_fn=_run_microsim,
         )
-        if ok and run_id:
-            st_module.session_state.last_run_id = run_id
-            st_module.session_state.results_run_id = run_id
-            st_module.session_state.last_run_at = time.time()
+        _record_run_outcome(st_module, ok, run_id)
         return
 
     if is_spending:
@@ -152,10 +168,7 @@ def execute_calculation_if_requested(
             error_prefix="Error calculating spending impact",
             action_fn=_run_spending,
         )
-        if ok and run_id:
-            st_module.session_state.last_run_id = run_id
-            st_module.session_state.results_run_id = run_id
-            st_module.session_state.last_run_at = time.time()
+        _record_run_outcome(st_module, ok, run_id)
         return
 
     def _run_tax() -> None:
@@ -202,7 +215,4 @@ def execute_calculation_if_requested(
         error_prefix="Error calculating policy impact",
         action_fn=_run_tax,
     )
-    if ok and run_id:
-        st_module.session_state.last_run_id = run_id
-        st_module.session_state.results_run_id = run_id
-        st_module.session_state.last_run_at = time.time()
+    _record_run_outcome(st_module, ok, run_id)

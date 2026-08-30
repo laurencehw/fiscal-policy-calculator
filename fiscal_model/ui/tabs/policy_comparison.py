@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
+from fiscal_model.models.base import build_scorer_for_start_year, policy_start_year
 from fiscal_model.preset_handler import create_policy_from_preset
 
 STATIC_MODEL = "CBO-Style (Static + ETI)"
@@ -150,7 +151,10 @@ def render_policy_comparison_tab(
     with st_module.spinner("Running multi-model comparison..."):
         try:
             model_results: list[dict[str, Any]] = []
-            comparison_scorer = fiscal_policy_scorer_cls(baseline=None, use_real_data=use_real_data)
+            # A policy starting after the scorer window (e.g. TCJA extension at
+            # 2026 vs a 2025-2034 window) would drop its final year and report a
+            # nine-year sum as a "10-Year Effect", so align the window per policy.
+            scorer_cache: dict[int, Any] = {}
 
             for preset_name in policies_to_compare:
                 preset = preset_policies[preset_name]
@@ -160,6 +164,12 @@ def render_policy_comparison_tab(
                     tax_policy_cls=tax_policy_cls,
                     policy_type_income_tax=policy_type_income_tax,
                     data_year=data_year,
+                )
+                comparison_scorer = build_scorer_for_start_year(
+                    fiscal_policy_scorer_cls,
+                    start_year=policy_start_year(policy),
+                    use_real_data=use_real_data,
+                    cache=scorer_cache,
                 )
 
                 for model_name in selected_models:

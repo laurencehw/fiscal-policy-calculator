@@ -80,6 +80,33 @@ def _render_calibration_warning(st_module: Any, policy: Any) -> None:
     )
 
 
+def _distribution_not_representable(policy: Any, dist_analysis: Any) -> bool:
+    """True when the engine produced no distributional signal for a policy it
+    cannot represent (e.g. OASDI payroll caps, estate provisions).
+
+    Those runs used to render an all-zero table narrated as "roughly flat" /
+    "does not significantly affect top income groups" — confidently wrong
+    statements. An all-zero output is trusted only for policy families the
+    engine explicitly maps; otherwise we say "not available" instead.
+    """
+    results = list(getattr(dist_analysis, "results", []))
+    if not results:
+        return True
+    if any(abs(float(getattr(r, "tax_change_avg", 0.0) or 0.0)) >= 0.5 for r in results):
+        return False
+    if abs(float(getattr(dist_analysis, "total_tax_change", 0.0) or 0.0)) >= 0.05:
+        return False
+
+    # Zero output everywhere: only representable families may claim "flat".
+    try:
+        from fiscal_model.distribution_effects import policy_to_microsim_reforms
+
+        year = int(getattr(policy, "start_year", 2025) or 2025)
+        return not policy_to_microsim_reforms(policy, year=year)
+    except Exception:
+        return True
+
+
 def render_distribution_tab(
     st_module: Any,
     model_available: bool,
@@ -156,6 +183,24 @@ def render_distribution_tab(
                 )
             if cache_key:
                 st_module.session_state[cache_key] = dist_analysis
+
+        if _distribution_not_representable(policy, dist_analysis):
+            st_module.info(
+                "**Distributional analysis is not available for this policy.** "
+                "The distribution engine cannot yet represent this policy "
+                "family at the household level (e.g. payroll tax caps, estate "
+                "tax, corporate incidence detail), so no group-level table is "
+                "shown — an all-zero table would be misleading, not \"flat\"."
+            )
+            try:
+                from fiscal_model.trade import TariffPolicy
+
+                if isinstance(policy, TariffPolicy):
+                    _render_tariff_consumer_impact(st_module, policy)
+            except ImportError:
+                pass
+            return
+
         st_module.subheader("Summary")
         summary = winners_losers_summary_fn(dist_analysis)
 

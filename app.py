@@ -25,17 +25,32 @@ def _render_head_metadata(st_module) -> None:
         page_title="Fiscal Policy Impact Calculator — CBO-Validated Budget Scoring",
         page_icon="📊",
         layout="wide",
-        initial_sidebar_state="expanded",
+        # "auto": expanded on desktop, collapsed on small screens — an
+        # expanded sidebar covers ~80% of a phone viewport on first load.
+        initial_sidebar_state="auto",
     )
+    try:
+        from fiscal_model.ui.helpers import validated_policy_count
+
+        _blurb = (
+            "Estimate the budgetary impact of tax and spending proposals. "
+            f"{validated_policy_count()} policies benchmarked against "
+            "CBO/JCT/Treasury scores."
+        )
+    except Exception:
+        _blurb = (
+            "Estimate the budgetary impact of tax and spending proposals. "
+            "Policies benchmarked against CBO/JCT/Treasury scores."
+        )
     st_module.markdown(
-        """
-        <meta name="description" content="Estimate the budgetary impact of tax and spending proposals. 25+ policies benchmarked against CBO/JCT/Treasury scores.">
+        f"""
+        <meta name="description" content="{_blurb}">
         <meta property="og:title" content="Fiscal Policy Impact Calculator — CBO-Validated Budget Scoring">
-        <meta property="og:description" content="Estimate the budgetary impact of tax and spending proposals. 25+ policies benchmarked against CBO/JCT/Treasury scores.">
+        <meta property="og:description" content="{_blurb}">
         <meta property="og:type" content="website">
         <meta name="twitter:card" content="summary">
         <meta name="twitter:title" content="Fiscal Policy Impact Calculator — CBO-Validated Budget Scoring">
-        <meta name="twitter:description" content="Estimate the budgetary impact of tax and spending proposals. 25+ policies benchmarked against CBO/JCT/Treasury scores.">
+        <meta name="twitter:description" content="{_blurb}">
         """,
         unsafe_allow_html=True,
     )

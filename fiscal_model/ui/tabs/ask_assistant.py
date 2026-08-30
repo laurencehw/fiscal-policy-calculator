@@ -25,7 +25,10 @@ import re
 import time
 from typing import Any
 
-from fiscal_model.assistant.citations import render_provenance_footer
+from fiscal_model.assistant.citations import (
+    format_answer_for_display,
+    render_provenance_footer,
+)
 from fiscal_model.assistant.rate_limit import RateLimiter, new_session_id
 from fiscal_model.assistant.share import build_share_url, decode_share_payload
 from fiscal_model.ui.helpers import PUBLIC_APP_URL
@@ -57,6 +60,19 @@ def _safe_dollar_markdown(text: str) -> str:
         else:
             out.append(_DOLLAR_BEFORE_DIGIT_RE.sub(r"\\$", part))
     return "".join(out)
+
+
+def _display_answer_markdown(text: str) -> str:
+    """Prepare a finished assistant answer for display.
+
+    Streamlit markdown has no footnote support, so raw ``[^N]`` markers and
+    ``[^N]: ...`` lines render literally. Convert markers to plain/linked
+    ``[N]`` and append the Sources entries as a visible list.
+    """
+    body, source_lines = format_answer_for_display(text)
+    if source_lines:
+        body += "\n\n**Sources**\n" + "\n".join(f"- {line}" for line in source_lines)
+    return _safe_dollar_markdown(body)
 
 
 _HISTORY_KEY = "ask_history"
@@ -255,7 +271,10 @@ def _render_body(
     last_idx = len(history) - 1
     for idx, turn in enumerate(history):
         with st_module.chat_message(turn["role"]):
-            st_module.markdown(_safe_dollar_markdown(turn["content"]))
+            if turn["role"] == "assistant":
+                st_module.markdown(_display_answer_markdown(turn["content"]))
+            else:
+                st_module.markdown(_safe_dollar_markdown(turn["content"]))
             if turn["role"] == "assistant":
                 # Pair this assistant turn with the immediately preceding
                 # user message (if any) for the Share button.
@@ -334,7 +353,7 @@ def _render_body(
             return
 
         final_text = fiscal_assistant.last_full_text or "".join(accumulated)
-        placeholder.markdown(_safe_dollar_markdown(final_text))
+        placeholder.markdown(_display_answer_markdown(final_text))
 
         turn_entry = {
             "role": "assistant",
@@ -808,11 +827,11 @@ def _render_budget_status(st_module: Any, limiter: RateLimiter) -> None:
     if pct >= 0.95:
         st_module.warning(
             f"Today's free-tier budget is nearly exhausted: "
-            f"${spent:.2f} of ${cap:.2f} used. Resets at UTC midnight."
+            f"\\${spent:.2f} of \\${cap:.2f} used. Resets at UTC midnight."
         )
     elif pct >= 0.7:
         st_module.caption(
-            f"📊 Today's usage: ${spent:.2f} of ${cap:.2f} daily budget."
+            f"📊 Today's usage: \\${spent:.2f} of \\${cap:.2f} daily budget."
         )
     # Below 70%, keep the chat clean.
 
