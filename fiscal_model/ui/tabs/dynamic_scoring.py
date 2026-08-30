@@ -148,9 +148,14 @@ def render_dynamic_scoring_tab(
         static_total = result.static_revenue_effect.sum()
         behavioral_total = result.behavioral_offset.sum()
         conventional_total = static_total + behavioral_total
-        dynamic_total = conventional_total + macro_result.cumulative_revenue_feedback
+        feedback_total = float(macro_result.cumulative_revenue_feedback)
+        # CBO's dynamic analyses net the debt-service cost of the added
+        # deficit against growth feedback; a "dynamic score" that ignores
+        # interest costs overstates the offset.
+        interest_total = float(np.sum(macro_result.interest_cost_billions))
+        dynamic_total = conventional_total + feedback_total - interest_total
 
-        col1, col2, col3 = st_module.columns(3)
+        col1, col2, col3, col4 = st_module.columns(4)
 
         with col1:
             st_module.metric(
@@ -162,29 +167,47 @@ def render_dynamic_scoring_tab(
         with col2:
             st_module.metric(
                 "Revenue Feedback",
-                f"${macro_result.cumulative_revenue_feedback:+.0f}B",
-                help="Additional revenue from GDP growth",
+                f"${feedback_total:+.0f}B",
+                help="Additional revenue from (temporary) demand-side GDP effects",
             )
 
         with col3:
             st_module.metric(
+                "Debt Service",
+                f"${-interest_total:+.0f}B",
+                help="Interest cost of the added deficit — nets against feedback.",
+            )
+
+        with col4:
+            net_dynamic_delta = feedback_total - interest_total
+            st_module.metric(
                 "Dynamic Score",
                 f"${dynamic_total:.0f}B",
                 delta=(
-                    f"{(macro_result.cumulative_revenue_feedback / abs(conventional_total) * 100):+.1f}% vs conventional"
+                    f"{(net_dynamic_delta / abs(conventional_total) * 100):+.1f}% vs conventional"
                     if conventional_total != 0
                     else "N/A"
                 ),
-                delta_color="normal" if macro_result.cumulative_revenue_feedback > 0 else "inverse",
+                delta_color="normal" if net_dynamic_delta > 0 else "inverse",
             )
 
         sign_conv = "+" if conventional_total >= 0 else "-"
-        sign_fb = "+" if macro_result.cumulative_revenue_feedback >= 0 else "-"
+        sign_fb = "+" if feedback_total >= 0 else "-"
         sign_dyn = "+" if dynamic_total >= 0 else "-"
         st_module.markdown(
             f"**Calculation:** {sign_conv}\\${abs(conventional_total):.0f}B (conventional) "
-            f"{sign_fb} \\${abs(macro_result.cumulative_revenue_feedback):.0f}B (feedback) "
+            f"{sign_fb} \\${abs(feedback_total):.0f}B (feedback) "
+            f"- \\${abs(interest_total):.0f}B (debt service) "
             f"= **{sign_dyn}\\${abs(dynamic_total):.0f}B (dynamic)**"
+        )
+        st_module.caption(
+            "⚠️ Demand-side model only: GDP effects come from temporary "
+            "fiscal-impulse multipliers that fade as the Fed responds and "
+            "output returns to potential. There is no supply-side channel "
+            "(labor supply, capital deepening, potential GDP), which is where "
+            "CBO's dynamic analyses locate most long-run effects of permanent "
+            "tax changes — treat the dynamic score as illustrative, not a "
+            "CBO-comparable dynamic estimate."
         )
 
         st_module.markdown("---")

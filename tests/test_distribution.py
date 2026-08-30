@@ -498,3 +498,80 @@ class TestEdgeCases:
                 rate_change=0.01,
                 affected_income_threshold=-1000,
             )
+
+
+class TestMarginalExcessBase:
+    """Regression: a threshold rate change taxes only income *above* the
+    threshold. Taxing affected filers' entire income overstated a
+    +2pp-above-$400K policy ~4x against the SOI-based revenue score."""
+
+    def _group_fully_above_threshold(self):
+        from fiscal_model.distribution_core import IncomeGroup
+
+        # 1M filers, all above $400K, averaging $1.0M taxable each.
+        return IncomeGroup(
+            name="Top slice",
+            floor=500_000,
+            ceiling=None,
+            num_returns=1_000_000,
+            total_agi=1_100.0,        # $B
+            total_taxable_income=1_000.0,  # $B
+            baseline_tax=300.0,       # $B
+        )
+
+    def test_threshold_policy_taxes_only_the_excess(self):
+        from fiscal_model.distribution_effects import calculate_group_effect
+        from fiscal_model.policies import PolicyType, TaxPolicy
+
+        policy = TaxPolicy(
+            name="+2pp above 400K",
+            description="d",
+            policy_type=PolicyType.INCOME_TAX,
+            rate_change=0.02,
+            affected_income_threshold=400_000,
+        )
+        result = calculate_group_effect(policy, self._group_fully_above_threshold())
+
+        # Excess base = $1,000B - 400K x 1M filers ($400B) = $600B.
+        assert result.tax_change_total == pytest.approx(0.02 * 600.0, rel=1e-6)
+        # Not the full-income figure the old formula produced.
+        assert result.tax_change_total < 0.02 * 1_000.0 * 0.99
+
+    def test_no_threshold_policy_taxes_full_base(self):
+        from fiscal_model.distribution_effects import calculate_group_effect
+        from fiscal_model.policies import PolicyType, TaxPolicy
+
+        policy = TaxPolicy(
+            name="-1pp all",
+            description="d",
+            policy_type=PolicyType.INCOME_TAX,
+            rate_change=-0.01,
+            affected_income_threshold=0,
+        )
+        result = calculate_group_effect(policy, self._group_fully_above_threshold())
+        assert result.tax_change_total == pytest.approx(-0.01 * 1_000.0, rel=1e-6)
+
+    def test_synthetic_and_microsim_paths_agree_on_magnitude(self):
+        """Cross-engine sanity: the two paths must land in the same ballpark
+        for a top-rate policy (they disagreed 8x before the fix)."""
+        from fiscal_model.distribution import DistributionalEngine, IncomeGroupType
+        from fiscal_model.policies import PolicyType, TaxPolicy
+
+        policy = TaxPolicy(
+            name="Top rate +2pp",
+            description="d",
+            policy_type=PolicyType.INCOME_TAX,
+            rate_change=0.02,
+            affected_income_threshold=400_000,
+            data_year=2022,
+        )
+        engine = DistributionalEngine(data_year=2022)
+        micro = engine.analyze_policy(
+            policy, group_type=IncomeGroupType.QUINTILE, prefer_microsim=True
+        )
+        synth = engine.analyze_policy(
+            policy, group_type=IncomeGroupType.QUINTILE, prefer_microsim=False
+        )
+        assert micro.total_tax_change > 0 and synth.total_tax_change > 0
+        ratio = synth.total_tax_change / micro.total_tax_change
+        assert 0.33 < ratio < 3.0, f"engines disagree {ratio:.1f}x"

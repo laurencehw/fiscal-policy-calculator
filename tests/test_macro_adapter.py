@@ -136,16 +136,18 @@ class TestSimpleMultiplierAdapter:
         # Spending increase should increase GDP
         assert np.all(result.gdp_level_pct > 0)
 
-    def test_gdp_effect_accumulates(self, adapter, sample_macro_scenario):
-        """Test that GDP effect accumulates over time."""
+    def test_gdp_effect_builds_then_fades(self, adapter, sample_macro_scenario):
+        """Demand effects build over the first years, then fade as the
+        monetary offset closes the output gap. (They used to persist at
+        full strength for a decade — the review's full-employment
+        demand-arithmetic finding.)"""
         result = adapter.run(sample_macro_scenario)
 
-        # GDP level should generally increase (with decay)
-        # First year effect
         assert result.gdp_level_pct[0] > 0
-
-        # Later years should show accumulated effect
-        assert result.gdp_level_pct[-1] > result.gdp_level_pct[0]
+        peak_year = int(np.argmax(result.gdp_level_pct))
+        assert peak_year <= 4  # peak lands in the first half of the window
+        assert result.gdp_level_pct[-1] < result.gdp_level_pct[peak_year]
+        assert result.gdp_level_pct[-1] >= 0
 
     def test_multiplier_decay(self, adapter, sample_macro_scenario):
         """Test that multiplier effect decays over time."""
@@ -313,18 +315,15 @@ class TestFRBUSAdapterLite:
         # With FRB/US-calibrated multipliers, effect should be meaningful
         assert result.cumulative_gdp_effect > 0.1
 
-    def test_crowding_out_effect(self, adapter, sample_macro_scenario):
-        """Test that crowding out reduces GDP effect over time."""
+    def test_demand_effects_fade_under_monetary_offset(self, adapter, sample_macro_scenario):
+        """Crowding out plus the monetary offset keep demand effects from
+        persisting: by year 10 the effect sits well below its peak."""
         result = adapter.run(sample_macro_scenario)
 
-        # With crowding out, later-year effects should be smaller
-        # relative to cumulative fiscal impulse than early years
-        early_effect = result.gdp_level_pct[0]
-        late_effect = result.gdp_level_pct[-1]
-
-        # Later effects exist but don't grow indefinitely
-        assert late_effect > early_effect  # Cumulative effect
-        assert late_effect < early_effect * 20  # But crowding limits growth
+        peak = float(np.max(result.gdp_level_pct))
+        assert peak > 0
+        assert result.gdp_level_pct[-1] < peak * 0.25
+        assert result.gdp_level_pct[-1] >= 0
 
     def test_custom_multipliers(self, custom_adapter, sample_macro_scenario):
         """Test that custom multipliers affect results."""
@@ -533,3 +532,29 @@ def test_interest_rate_effects_scale_with_percent_of_gdp_debt():
     # ~15% of GDP of cumulative debt x 3bp => several tenths of a point.
     assert 0.2 < float(result.long_rate_ppts[-1]) < 1.5
     assert 0.05 < float(result.short_rate_ppts[-1]) < float(result.long_rate_ppts[-1])
+
+
+def test_permanent_tax_cut_feedback_moderate_and_debt_service_nets():
+    """Regression (review): a ~$460B/yr permanent tax cut used to show a
+    27.9% revenue-feedback offset from demand effects sustained at full
+    employment. With the monetary offset the feedback is a single-digit
+    share of the conventional cost, and debt service on the added deficit
+    exceeds it — CBO's directional finding for TCJA extension."""
+    import numpy as np
+
+    from fiscal_model.models import FRBUSAdapterLite, MacroScenario
+
+    adapter = FRBUSAdapterLite()
+    scenario = MacroScenario(
+        name="Permanent tax cut",
+        description="~$460B/yr revenue loss",
+        receipts_change=np.array([-460.0] * 10),
+    )
+    result = adapter.run(scenario)
+
+    conventional_cost = 4600.0
+    feedback = float(result.cumulative_revenue_feedback)
+    debt_service = float(np.sum(result.interest_cost_billions))
+
+    assert 0 < feedback < 0.15 * conventional_cost
+    assert debt_service > feedback

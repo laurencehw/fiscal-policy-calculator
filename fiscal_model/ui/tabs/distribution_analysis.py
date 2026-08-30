@@ -173,14 +173,22 @@ def render_distribution_tab(
             )
             if str(engine_label).lower().startswith("micro"):
                 st_module.info(
-                    "Using return-level microsimulation "
-                    "(ordinary/preferential rates, SALT, refundable credits)."
+                    "🟢 Return-level microsimulation "
+                    "(ordinary/preferential rates, SALT, refundable credits) — "
+                    "the validated distributional tier, benchmarked against "
+                    "CBO/JCT tables within ≤3pp."
                 )
             else:
                 st_module.caption(
-                    "Using synthetic bracket path "
-                    "(policy not microsim-representable, or microsim disabled)."
+                    "🟡 Approximate bracket-heuristic path (policy not "
+                    "microsim-representable, or microsim disabled) — read the "
+                    "shape as directional, not a validated distributional "
+                    "estimate."
                 )
+            st_module.caption(
+                "Income concept: adjusted gross income (AGI) per return; "
+                "groups are ranked by AGI."
+            )
             if cache_key:
                 st_module.session_state[cache_key] = dist_analysis
 

@@ -68,7 +68,13 @@ def build_distribution_result(
 
 
 def calculate_group_effect(policy: TaxPolicy, group: IncomeGroup) -> DistributionalResult:
-    """Calculate the effect of a basic rate-change tax policy on one group."""
+    """Calculate the effect of a basic rate-change tax policy on one group.
+
+    A threshold rate change is *marginal*: it applies only to taxable income
+    in excess of the threshold, not to the affected filers' entire income.
+    Taxing the full income of everyone counted as "affected" overstated a
+    +2pp-above-\\$400K policy roughly 4x against the SOI-based revenue score.
+    """
     rate_change = getattr(policy, "rate_change", 0.0)
     threshold = getattr(policy, "affected_income_threshold", 0)
     group_ceiling = group.ceiling if group.ceiling else float("inf")
@@ -89,8 +95,14 @@ def calculate_group_effect(policy: TaxPolicy, group: IncomeGroup) -> Distributio
         affected_fraction = affected_width / group_width if group_width > 0 else 0.0
 
     affected_taxable = group.total_taxable_income * affected_fraction
-    tax_change_total = rate_change * affected_taxable
     affected_returns = int(group.num_returns * affected_fraction)
+    if threshold > 0 and affected_returns > 0:
+        # Only the excess above the threshold is taxed at the new rate
+        # (threshold and taxable totals share $-vs-$B units via 1e9).
+        excess_base = max(0.0, affected_taxable - (threshold * affected_returns) / 1e9)
+    else:
+        excess_base = affected_taxable
+    tax_change_total = rate_change * excess_base
     tax_change_avg = (tax_change_total * 1e9) / affected_returns if affected_returns > 0 else 0.0
     after_tax_income = group.total_agi - group.baseline_tax
     tax_change_pct_income = (tax_change_total / after_tax_income) * 100 if after_tax_income > 0 else 0.0

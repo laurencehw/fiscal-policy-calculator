@@ -349,6 +349,7 @@ class FRBUSAdapterLite(MacroModelAdapter):
         multiplier_decay: float = 0.75,
         crowding_out: float = 0.15,
         marginal_tax_rate: float = 0.25,
+        monetary_offset: float = 0.65,
     ):
         """
         Initialize with FRB/US-calibrated parameters.
@@ -359,12 +360,21 @@ class FRBUSAdapterLite(MacroModelAdapter):
             multiplier_decay: Annual decay of multiplier effects
             crowding_out: Interest rate crowding out coefficient
             marginal_tax_rate: For revenue feedback calculation
+            monetary_offset: Annual retention of the demand effect as the Fed
+                leans against the impulse and output returns to potential.
+                Without it, a permanent impulse sustained a large GDP effect
+                through year 10 — demand-multiplier arithmetic applied at
+                full employment (~28% feedback offsets vs CBO's far smaller
+                dynamic feedback for permanent tax changes). Demand effects
+                are temporary in FRB/US under a Taylor rule; this model has
+                no supply-side channel to sustain long-run effects.
         """
         self.spending_multiplier = spending_multiplier
         self.tax_multiplier = tax_multiplier
         self.multiplier_decay = multiplier_decay
         self.crowding_out = crowding_out
         self.marginal_tax_rate = marginal_tax_rate
+        self.monetary_offset = monetary_offset
         self.baseline_gdp = 28_000.0  # $28T baseline GDP
 
     def run(self, scenario: MacroScenario) -> MacroResult:
@@ -394,6 +404,10 @@ class FRBUSAdapterLite(MacroModelAdapter):
             cumulative_deficit = np.sum(outlays_chg[:t + 1] - receipts_chg[:t + 1])
             crowding_effect = cumulative_deficit * self.crowding_out / 1000
             gdp_change[t] *= (1 - crowding_effect)
+
+            # Monetary offset / return to potential: demand effects fade as
+            # the Fed responds and the output gap closes.
+            gdp_change[t] *= self.monetary_offset ** t
 
         # Convert to percent
         gdp_level_pct = gdp_change / self.baseline_gdp * 100
