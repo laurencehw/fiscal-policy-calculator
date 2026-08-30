@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -152,7 +152,9 @@ def _render_global_freshness_banner(st_module: Any, db: Any) -> bool:
     if not last_update:
         return False
 
-    now = datetime.now(UTC) if last_update.tzinfo else datetime.now()
+    # timezone.utc, not datetime.UTC: the latter is 3.11+ and this repo
+    # supports 3.10.
+    now = datetime.now(timezone.utc) if last_update.tzinfo else datetime.now()
     age_days = max(0, (now - last_update).days)
     if age_days <= 7:
         return False
