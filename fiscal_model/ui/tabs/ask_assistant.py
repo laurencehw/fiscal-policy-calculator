@@ -26,6 +26,7 @@ import time
 from typing import Any
 
 from fiscal_model.assistant.citations import (
+    describe_sources,
     format_answer_for_display,
     render_provenance_footer,
 )
@@ -322,6 +323,9 @@ def _render_body(
     error_msg: str | None = None
     with st_module.chat_message("assistant"):
         placeholder = st_module.empty()
+        # The tool-consultation phase produces no text, which used to look
+        # like a hung request for up to a minute — show life immediately.
+        placeholder.markdown("*Consulting sources…*")
         accumulated: list[str] = []
         try:
             for chunk in fiscal_assistant.stream_response(
@@ -764,19 +768,21 @@ def _render_assistant_extras(
         ):
             st_module.markdown(render_provenance_footer(provenance))
 
-    caption_bits: list[str] = []
     if provenance:
-        # Count distinct tools used (more reader-friendly than the raw list).
+        # Count distinct tools used (more reader-friendly than the raw list),
+        # and make the claim inspectable: the expander lists each source
+        # consulted in plain language, with links where available.
         distinct = len({p.get("tool") for p in provenance})
-        caption_bits.append(
-            f"Drew on {distinct} source{'s' if distinct != 1 else ''}"
-        )
+        with st_module.expander(
+            f"Drew on {distinct} source{'s' if distinct != 1 else ''}",
+            expanded=False,
+        ):
+            for line in describe_sources(provenance):
+                st_module.markdown(f"- {line}", unsafe_allow_html=True)
     if stripped:
-        caption_bits.append(
+        st_module.caption(
             f"⚠️ {len(stripped)} unsupported claim{'s' if len(stripped) != 1 else ''} stripped"
         )
-    if caption_bits:
-        st_module.caption(" · ".join(caption_bits))
 
     # Share affordance — only when we have a question to pair with the answer.
     if user_question and turn.get("content"):

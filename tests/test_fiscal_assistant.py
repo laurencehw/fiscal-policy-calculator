@@ -652,3 +652,44 @@ class TestFormatAnswerForDisplay:
         assert "[^" not in body
         assert body == "A claim. Another."
         assert sources == []
+
+
+class TestDescribeSources:
+    """Reader-facing source lines behind the "Drew on N sources" expander."""
+
+    def test_friendly_labels_and_urls(self):
+        from fiscal_model.assistant.citations import describe_sources
+
+        provenance = [
+            {
+                "tool": "search_knowledge",
+                "args": {"query": "TCJA extension cost"},
+                "urls": ["https://www.cbo.gov/publication/60271"],
+            },
+            {"tool": "query_fred", "args": {"series_id": "GDP"}, "urls": []},
+            {
+                "tool": "fetch_url",
+                "args": {"url": "https://www.jct.gov/x.pdf"},
+                "urls": ["https://www.jct.gov/x.pdf"],
+            },
+        ]
+        lines = describe_sources(provenance)
+        assert len(lines) == 3
+        assert "Curated knowledge base" in lines[0]
+        assert "TCJA extension cost" in lines[0]
+        assert "cbo.gov" in lines[0]
+        assert "FRED" in lines[1] and "GDP" in lines[1]
+        assert "jct.gov" in lines[2]
+        # No raw tool-call reprs in reader-facing lines.
+        assert all("(" + "query=" not in line for line in lines)
+
+    def test_unknown_tool_falls_back_to_readable_name(self):
+        from fiscal_model.assistant.citations import describe_sources
+
+        lines = describe_sources([{"tool": "some_new_tool", "args": {}}])
+        assert lines == ["**Some new tool**"]
+
+    def test_empty_provenance(self):
+        from fiscal_model.assistant.citations import describe_sources
+
+        assert describe_sources([]) == []

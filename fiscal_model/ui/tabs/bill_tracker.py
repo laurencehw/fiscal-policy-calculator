@@ -45,8 +45,8 @@ def render_bill_tracker_tab(st_module: Any, db_path: str | None = None) -> None:
 
     if using_demo:
         st_module.info(
-            "Showing demo Bill Tracker data. "
-            "Run `python scripts/update_bills.py` to load live congress.gov data."
+            "Showing sample bills for demonstration. Live congress.gov data "
+            "has not been loaded on this deployment."
         )
     elif POPULATED_DB_PATH.exists():
         try:
@@ -71,10 +71,8 @@ def render_bill_tracker_tab(st_module: Any, db_path: str | None = None) -> None:
 
     if not bills:
         st_module.info(
-            "No bills match the current filters. "
-            "Try widening the filter criteria or running the update pipeline."
+            "No bills match the current filters — try widening the criteria."
         )
-        _render_update_instructions(st_module)
         return
 
     # Render each bill card
@@ -161,8 +159,8 @@ def _render_global_freshness_banner(st_module: Any, db: Any) -> bool:
 
     st_module.warning(
         f"⚠ Data as of {last_update.strftime('%b %d, %Y')} ({age_days} days "
-        "old). Bill statuses and scores may have changed since — run "
-        "`python scripts/update_bills.py` to refresh."
+        "old). Bill statuses and scores may have changed on congress.gov "
+        "since this snapshot was taken."
     )
     return True
 
@@ -409,7 +407,14 @@ def _render_bill_card(
             )
 
         with col_badge:
-            _render_freshness_badge(st_module, freshness)
+            # When the dataset-level staleness banner is up, a per-card
+            # "Expired (Nd)" chip on all 100 cards just repeats it — keep
+            # only bill-specific badges (e.g. Enacted) in that case.
+            if not suppress_freshness_warning or freshness.status in (
+                "enacted",
+                "fresh",
+            ):
+                _render_freshness_badge(st_module, freshness)
 
         # Scores row
         col_cbo, col_calc, col_btn = st_module.columns([2, 2, 1])

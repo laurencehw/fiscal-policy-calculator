@@ -227,13 +227,17 @@ class TestGetMultiplierSummary:
 # =============================================================================
 
 class TestCalculateEffectsTaxPolicy:
+    # calculate_effects takes deficit convention: a $100B/yr tax cut is
+    # +100 (adds to the deficit), matching ScoringResult.static_deficit_effect
+    # — the same series scoring_engine passes.
+
     def test_returns_dynamic_effects(self, model_normal, tax_cut_policy):
-        budget_effect = np.full(10, -100.0)  # $100B/yr tax cut (revenue loss)
+        budget_effect = np.full(10, 100.0)  # $100B/yr tax cut (deficit add)
         effects = model_normal.calculate_effects(tax_cut_policy, budget_effect)
         assert isinstance(effects, DynamicEffects)
 
     def test_correct_array_shapes(self, model_normal, tax_cut_policy):
-        budget_effect = np.full(10, -100.0)
+        budget_effect = np.full(10, 100.0)
         effects = model_normal.calculate_effects(tax_cut_policy, budget_effect)
         assert effects.gdp_level_change.shape == (10,)
         assert effects.gdp_percent_change.shape == (10,)
@@ -242,14 +246,27 @@ class TestCalculateEffectsTaxPolicy:
         assert effects.interest_rate_change.shape == (10,)
 
     def test_tax_cut_produces_positive_gdp(self, model_normal, tax_cut_policy):
-        """A tax cut (negative budget effect) should produce positive GDP effect."""
-        budget_effect = np.full(10, -100.0)
+        """A tax cut (positive deficit effect) should produce positive GDP effect."""
+        budget_effect = np.full(10, 100.0)
         effects = model_normal.calculate_effects(tax_cut_policy, budget_effect)
         # At least some years should have positive GDP effect
         assert np.any(effects.gdp_level_change > 0)
 
+    def test_tax_cut_produces_positive_revenue_feedback(self, model_normal, tax_cut_policy):
+        """Feedback follows GDP: a stimulative cut earns back some revenue."""
+        budget_effect = np.full(10, 100.0)
+        effects = model_normal.calculate_effects(tax_cut_policy, budget_effect)
+        assert float(np.sum(effects.revenue_feedback)) > 0
+
+    def test_tax_increase_produces_negative_gdp(self, model_normal, tax_increase_policy):
+        """Demand effects are symmetric: a tax increase drags on GDP."""
+        budget_effect = np.full(10, -100.0)  # raises revenue, cuts the deficit
+        effects = model_normal.calculate_effects(tax_increase_policy, budget_effect)
+        assert np.any(effects.gdp_level_change < 0)
+        assert float(np.sum(effects.revenue_feedback)) < 0
+
     def test_years_array_matches(self, model_normal, tax_cut_policy):
-        budget_effect = np.full(10, -100.0)
+        budget_effect = np.full(10, 100.0)
         effects = model_normal.calculate_effects(tax_cut_policy, budget_effect)
         np.testing.assert_array_equal(effects.years, model_normal.years)
 
@@ -309,7 +326,7 @@ class TestRevenueFeedback:
 class TestEmploymentFollowsGDP:
     def test_tax_cut_employment(self, model_normal, tax_cut_policy):
         """Employment change should follow GDP direction for tax cuts."""
-        budget_effect = np.full(10, -100.0)
+        budget_effect = np.full(10, 100.0)  # deficit convention: cut adds
         effects = model_normal.calculate_effects(tax_cut_policy, budget_effect)
         # Where GDP is positive, employment should be positive
         positive_gdp = effects.gdp_percent_change > 0
@@ -361,13 +378,16 @@ class TestInterestRateEffects:
         assert effects.interest_rate_change[-1] > effects.interest_rate_change[0]
 
     def test_tax_cut_interest_rate_direction(self, model_normal, tax_cut_policy):
-        """Tax cuts (negative budget effect) should affect interest rates via deficit."""
-        budget_effect = np.full(10, -100.0)  # Revenue loss
+        """A tax cut adds to cumulative deficits, so interest rates rise."""
+        budget_effect = np.full(10, 100.0)  # deficit convention: cut adds
         effects = model_normal.calculate_effects(tax_cut_policy, budget_effect)
-        # Cumulative deficit from tax cut is negative (revenue loss),
-        # so interest_rate_change = -cumulative / 100 * crowding_out
-        # cumulative is negative => -(-) = positive
         assert effects.interest_rate_change[-1] > 0
+
+    def test_tax_increase_lowers_interest_rates(self, model_normal, tax_increase_policy):
+        """A revenue raiser shrinks cumulative deficits, so rates ease."""
+        budget_effect = np.full(10, -100.0)
+        effects = model_normal.calculate_effects(tax_increase_policy, budget_effect)
+        assert effects.interest_rate_change[-1] < 0
 
     def test_crowding_out_lower_at_zlb(self, model_normal, model_recession, spending_policy):
         """Interest rate effects should be smaller during recession (ZLB)."""

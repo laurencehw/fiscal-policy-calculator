@@ -226,9 +226,12 @@ def test_cbo_baseline_fallback_when_data_load_fails(monkeypatch):
 
 
 def test_build_macro_scenario_tax_policy_mapping():
+    # The scenario carries the conventional deficit path: receipts are the
+    # negated (static_deficit + behavioral) series, so the behavioral offset
+    # nets against the static gain instead of double-counting it.
     policy = SimpleNamespace(name="Test Tax Policy")
     result = SimpleNamespace(
-        static_revenue_effect=np.array([100.0, 200.0]),
+        static_deficit_effect=np.array([-100.0, -200.0]),
         behavioral_offset=np.array([10.0, -20.0]),
         baseline=SimpleNamespace(years=np.array([2025, 2026])),
     )
@@ -246,14 +249,17 @@ def test_build_macro_scenario_tax_policy_mapping():
 
     assert scenario.name == "Test Tax Policy"
     assert scenario.start_year == 2025
-    assert scenario.receipts_change.tolist() == [110.0, 180.0]
+    assert scenario.receipts_change.tolist() == [90.0, 220.0]
     assert scenario.outlays_change.tolist() == [0.0, 0.0]
 
 
 def test_build_macro_scenario_spending_policy_mapping():
+    # Spending impulses live in static_deficit_effect (static_revenue_effect
+    # is all zeros for spending policies), deficit convention: positive =
+    # outlay increase.
     policy = SimpleNamespace(name="Test Spending Policy")
     result = SimpleNamespace(
-        static_revenue_effect=np.array([-50.0, -60.0]),
+        static_deficit_effect=np.array([50.0, 60.0]),
         behavioral_offset=np.array([0.0, 5.0]),
         baseline=SimpleNamespace(years=np.array([2027, 2028])),
     )
@@ -272,7 +278,7 @@ def test_build_macro_scenario_spending_policy_mapping():
     assert scenario.name == "Test Spending Policy"
     assert scenario.start_year == 2027
     assert scenario.receipts_change.tolist() == [0.0, 0.0]
-    assert scenario.outlays_change.tolist() == [50.0, 55.0]
+    assert scenario.outlays_change.tolist() == [50.0, 65.0]
 
 
 def test_build_scorable_policy_map_categories():

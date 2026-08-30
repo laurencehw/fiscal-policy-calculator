@@ -69,6 +69,10 @@ OUTPUT FORMAT
    `[^N]: <author/org> (<year>), "<title>", <URL>`
 3. Use Markdown. Keep paragraphs short; the answer renders inside a chat
    bubble, not a paper.
+4. Your output budget is limited. Prefer compact prose over tables; if a
+   table genuinely helps, keep it to a few rows and columns and place it
+   early so it is never cut off mid-row. Always leave room to finish the
+   `## Sources` section.
 """
 
 
