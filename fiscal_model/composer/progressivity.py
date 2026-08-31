@@ -130,7 +130,10 @@ class PresetIncidence:
     family: str                  # incidence family, always classified
     is_corporate: bool = False
     is_household_tax: bool = True
-    # Engine rows, absolute $B by group name. Empty when not representable.
+    # Engine rows, signed $B by group name (positive = tax increase for
+    # that group). Empty when not representable. Displayed tables must
+    # keep the sign — a group that nets a cut under a raising preset is
+    # not "bearing burden"; only the *ranking* uses absolute magnitudes.
     quintile_billions: tuple[tuple[str, float], ...] = ()
 
     @property
@@ -194,7 +197,7 @@ def measure_incidence(
         analysis = engine.analyze_policy(policy, group_type=group_type)
         engine_name = getattr(analysis, "engine", "synthetic")
         rows = tuple(
-            (result.income_group.name, abs(float(result.tax_change_total)))
+            (result.income_group.name, float(result.tax_change_total))
             for result in analysis.results
         )
     except Exception as exc:  # engine failure is a fallback, never a crash
@@ -207,9 +210,14 @@ def measure_incidence(
         )
         rows = ()
 
-    total = sum(value for _, value in rows)
+    # The concentration *ranking* uses absolute magnitudes so a group's
+    # net cut still counts as engagement with that group; the signed rows
+    # themselves are preserved for display.
+    total = sum(abs(value) for _, value in rows)
     if total > 0:
-        top = sum(value for name, value in rows if name == TOP_QUINTILE_GROUP)
+        top = sum(
+            abs(value) for name, value in rows if name == TOP_QUINTILE_GROUP
+        )
         return PresetIncidence(
             preset_name=preset_name,
             top_quintile_share=top / total,

@@ -364,9 +364,13 @@ def _maybe_compose(
     if not compose_clicked:
         return
 
-    spec, cache_key, source_label = _resolve_spec(
-        st_module, text=text, canned_choice=canned_choice, have_key=have_key
-    )
+    # The free-text path makes a network call inside _resolve_spec — keep a
+    # spinner over it or the page looks frozen for the whole round-trip
+    # (the canned path resolves instantly, so the spinner never shows).
+    with st_module.spinner("Reading your description…"):
+        spec, cache_key, source_label = _resolve_spec(
+            st_module, text=text, canned_choice=canned_choice, have_key=have_key
+        )
     if spec is None:
         st_module.warning(
             "No usable goal spec — pick a canned philosophy to compose a package."

@@ -515,13 +515,19 @@ def _distribution_rows(
                 order.append(group)
             totals[group] += value
 
+    # Values are signed (a group can net a cut under a raising package);
+    # shares are of the signed net total, so they can exceed 100 when
+    # signs mix — that is the truthful reading, not an error.
     grand_total = sum(totals.values())
     rows = tuple(
         {
             "Income Group": group,
             "Tax Change ($B)": round(totals[group], 1),
             "Share of Total": round(
-                (totals[group] / grand_total * 100) if grand_total > 0 else 0.0, 1
+                (totals[group] / grand_total * 100)
+                if abs(grand_total) > 1e-9
+                else 0.0,
+                1,
             ),
         }
         for group in order
@@ -612,13 +618,13 @@ def _build_caveats(
         if raised < target_billions * (1 - COVERAGE_TOLERANCE):
             caveats.append(
                 f"This mix raises ${raised:,.0f}B against a target of "
-                f"{target_billions:,.0f}B — no combination in the preset "
+                f"${target_billions:,.0f}B — no combination in the preset "
                 "library closes the gap more precisely."
             )
         elif raised > target_billions * (1 + OVERSHOOT_ALLOWANCE):
             caveats.append(
                 f"This mix raises ${raised:,.0f}B against a target of "
-                f"{target_billions:,.0f}B — the smallest available raiser "
+                f"${target_billions:,.0f}B — the smallest available raiser "
                 "that covers the target overshoots it."
             )
 
