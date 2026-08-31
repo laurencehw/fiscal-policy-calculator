@@ -161,7 +161,7 @@ def _scorer_for(policy: Any, use_real_data: bool) -> Any:
 
 
 def _tier_for(preset_name: str) -> str:
-    """"calibrated" when a validation scorecard entry backs the preset."""
+    """Tier label: "calibrated" when a scorecard entry backs the preset."""
     return "calibrated" if preset_name in PRESET_TO_SCORECARD_ID else "generic"
 
 
