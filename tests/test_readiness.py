@@ -302,3 +302,118 @@ def test_strict_readiness_issues_blocks_model_validation_warnings():
     assert [issue.name for issue in strict_readiness_issues(report)] == [
         "revenue_scorecard"
     ]
+
+
+def test_strict_readiness_issues_exempts_fresh_bundled_seed_baseline():
+    """A fresh bundled seed is the designed offline mode — the refresh
+    workflow's own strict gate must not deadlock on it."""
+    health = _healthy_payload()
+    health["baseline"] = {
+        "status": "degraded",
+        "source": "real_data",
+        "gdp_source": "fred_bundled",
+        "load_error": None,
+        "fred": {"source": "bundled", "cache_is_expired": False, "cache_age_days": 0},
+    }
+
+    report = build_readiness_report(
+        health=health,
+        distribution_comparisons=[_comparison()],
+        scorecard=_scorecard(),
+    )
+
+    assert [issue.name for issue in report.issues] == ["baseline"]
+    assert strict_readiness_issues(report) == []
+
+
+def test_strict_readiness_issues_blocks_expired_bundled_seed_baseline():
+    health = _healthy_payload()
+    health["baseline"] = {
+        "status": "degraded",
+        "source": "real_data",
+        "gdp_source": "fred_bundled",
+        "load_error": None,
+        "fred": {"source": "bundled", "cache_is_expired": True, "cache_age_days": 150},
+    }
+
+    report = build_readiness_report(
+        health=health,
+        distribution_comparisons=[_comparison()],
+        scorecard=_scorecard(),
+    )
+
+    assert [issue.name for issue in strict_readiness_issues(report)] == ["baseline"]
+
+
+def test_strict_readiness_issues_exempts_assistant_missing_key_only():
+    health = _healthy_payload()
+    health["assistant"] = {
+        "status": "degraded",
+        "api_key_configured": False,
+        "knowledge_corpus_files": 19,
+        "usage_db_writable": True,
+    }
+
+    report = build_readiness_report(
+        health=health,
+        distribution_comparisons=[_comparison()],
+        scorecard=_scorecard(),
+    )
+
+    assert [issue.name for issue in report.issues] == ["assistant"]
+    assert strict_readiness_issues(report) == []
+
+
+def test_strict_readiness_issues_blocks_assistant_missing_corpus():
+    health = _healthy_payload()
+    health["assistant"] = {
+        "status": "degraded",
+        "api_key_configured": False,
+        "knowledge_corpus_files": 0,
+        "usage_db_writable": True,
+    }
+
+    report = build_readiness_report(
+        health=health,
+        distribution_comparisons=[_comparison()],
+        scorecard=_scorecard(),
+    )
+
+    assert [issue.name for issue in strict_readiness_issues(report)] == ["assistant"]
+
+
+def test_strict_readiness_issues_exempts_microdata_overcount_only():
+    health = _healthy_payload()
+    health["microdata"] = {
+        "status": "degraded",
+        "coverage_overcount": True,
+        "coverage_undercount": False,
+        "returns_coverage_pct": 119.0,
+    }
+
+    report = build_readiness_report(
+        health=health,
+        distribution_comparisons=[_comparison()],
+        scorecard=_scorecard(),
+    )
+
+    assert [issue.name for issue in report.issues] == ["microdata"]
+    assert strict_readiness_issues(report) == []
+
+
+def test_strict_readiness_issues_blocks_microdata_undercount():
+    health = _healthy_payload()
+    health["microdata"] = {
+        "status": "degraded",
+        "coverage_overcount": False,
+        "coverage_undercount": True,
+        "returns_coverage_pct": 55.0,
+    }
+
+    report = build_readiness_report(
+        health=health,
+        distribution_comparisons=[_comparison()],
+        scorecard=_scorecard(),
+    )
+
+    assert [issue.name for issue in strict_readiness_issues(report)] == ["microdata"]
