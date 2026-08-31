@@ -397,6 +397,50 @@ class TestDynamicScoring:
         result = scorer.score_policy(spending_policy, dynamic=True)
         assert result.dynamic_effects is not None
 
+    def test_tax_cut_dynamic_signs(self):
+        """A large tax cut must show positive feedback and rising rates.
+
+        Pins the reviewer-reported bug where TCJA's dynamic run returned
+        all-zero GDP/feedback with *falling* interest rates because the
+        economic model read the scorer's deficit-convention series as
+        revenue-convention.
+        """
+        from fiscal_model import create_tcja_extension
+        from fiscal_model.scoring import FiscalPolicyScorer
+
+        scorer = FiscalPolicyScorer(start_year=2026, use_real_data=False)
+        policy = create_tcja_extension(extend_all=True, keep_salt_cap=True)
+        result = scorer.score_policy(policy, dynamic=True)
+
+        feedback = float(np.sum(result.dynamic_effects.revenue_feedback))
+        assert feedback > 0, "A stimulative tax cut should earn back revenue"
+        assert result.dynamic_effects.interest_rate_change[-1] > 0, (
+            "Cumulative deficits from a tax cut should push rates up"
+        )
+        conventional = float(
+            np.sum(result.static_deficit_effect + result.behavioral_offset)
+        )
+        final = float(np.sum(result.final_deficit_effect))
+        assert final < conventional, (
+            "Positive feedback should trim the dynamic cost below conventional"
+        )
+        # Feedback should be a modest share of the conventional cost, not a
+        # free lunch: demand-side feedback on a $4.6T cut is well under half.
+        assert feedback < 0.5 * abs(conventional)
+
+    def test_tax_increase_dynamic_signs(self, scorer, income_tax_increase):
+        """A revenue raiser drags on demand: negative feedback, rates ease."""
+        result = scorer.score_policy(income_tax_increase, dynamic=True)
+        feedback = float(np.sum(result.dynamic_effects.revenue_feedback))
+        assert feedback < 0, "A tax increase should lose some revenue to demand drag"
+        conventional = float(
+            np.sum(result.static_deficit_effect + result.behavioral_offset)
+        )
+        final = float(np.sum(result.final_deficit_effect))
+        assert final > conventional, (
+            "Negative feedback should erode the raiser's deficit reduction"
+        )
+
 
 # =============================================================================
 # SCORING RESULT PROPERTIES

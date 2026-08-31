@@ -625,10 +625,13 @@ def render_methodology_tab(st_module: Any) -> None:
 |--------|---------:|------:|------:|--------|
 | 1pp all brackets | -\$960B | -\$935B | 3% | JCT |
 | Biden top rate 39.6% (\$400K+) | -\$252B | -\$284B | 13% | Treasury |
-| 5pp top rate (\$1M+) | -\$700B | -\$491B | 30% | TPC |
-| 2pp rate cut (\$500K+) | +\$400B | +\$278B | 30% | TPC |
+| 5pp top rate (\$1M+) | -\$700B | -\$648B | 7% | TPC |
+| 2pp rate cut (\$500K+) | +\$400B | +\$364B | 9% | TPC |
 
-*Mean abs error ~19%; ordinary-income base + SOI all-brackets path. Treat uncalibrated custom policies as directional (~±20%).*
+*Mean abs error ~8%; 4/4 within 15%. Ordinary-bracket cases score on the
+ordinary-income base; AGI-inclusive top-rate cases (\$1M+/\$500K+) score on the
+full taxable-income base. Treat uncalibrated custom policies as directional
+(~±15%).*
 """)
 
     st_module.markdown("**2. Calibrated reference models** — parameters tuned to reproduce "

@@ -89,9 +89,14 @@ def render_tax_policy_inputs(
 
         badge = get_validation_badge(preset_choice)
         if badge:
+            # Every preset in this map runs a calibrated specialized
+            # validator, so a near-zero difference is agreement by
+            # construction — label it that way instead of presenting a
+            # "±0.0% (Excellent)" range that reads like an independent test.
             st_module.caption(
-                f"{badge['icon']} Model accuracy vs {badge['source']}: "
-                f"{badge['signed_pct']:+.1f}% ({badge['rating']})"
+                f"{badge['icon']} Matches {badge['source']} within "
+                f"{badge['signed_pct']:+.1f}% — calibrated to reproduce "
+                f"this benchmark, not an independent test."
             )
 
         from fiscal_model.policy_status import get_policy_status

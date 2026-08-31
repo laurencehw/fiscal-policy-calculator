@@ -652,3 +652,90 @@ class TestFormatAnswerForDisplay:
         assert "[^" not in body
         assert body == "A claim. Another."
         assert sources == []
+
+
+class TestDescribeSources:
+    """Reader-facing source lines behind the "Drew on N sources" expander."""
+
+    def test_friendly_labels_and_urls(self):
+        from fiscal_model.assistant.citations import describe_sources
+
+        provenance = [
+            {
+                "tool": "search_knowledge",
+                "args": {"query": "TCJA extension cost"},
+                "urls": ["https://www.cbo.gov/publication/60271"],
+            },
+            {"tool": "query_fred", "args": {"series_id": "GDP"}, "urls": []},
+            {
+                "tool": "fetch_url",
+                "args": {"url": "https://www.jct.gov/x.pdf"},
+                "urls": ["https://www.jct.gov/x.pdf"],
+            },
+        ]
+        lines = describe_sources(provenance)
+        assert len(lines) == 3
+        assert "Curated knowledge base" in lines[0]
+        assert "TCJA extension cost" in lines[0]
+        assert "cbo.gov" in lines[0]
+        assert "FRED" in lines[1] and "GDP" in lines[1]
+        assert "jct.gov" in lines[2]
+        # No raw tool-call reprs in reader-facing lines.
+        assert all("(" + "query=" not in line for line in lines)
+
+    def test_unknown_tool_falls_back_to_readable_name(self):
+        from fiscal_model.assistant.citations import describe_sources
+
+        lines = describe_sources([{"tool": "some_new_tool", "args": {}}])
+        assert lines == ["**Some new tool**"]
+
+    def test_empty_provenance(self):
+        from fiscal_model.assistant.citations import describe_sources
+
+        assert describe_sources([]) == []
+
+
+class TestTruncationNoteSurvivesDisplay:
+    """The length-budget note must survive the Sources split (Bugbot #62)."""
+
+    def test_note_after_sources_block_is_kept(self):
+        from fiscal_model.assistant.citations import format_answer_for_display
+
+        text = (
+            "The extension costs $4.6T.[^1]\n\n"
+            "## Sources\n"
+            "[^1]: CBO (2025), https://www.cbo.gov/publication/60271\n\n"
+            "> ✂️ *This answer hit its length budget and may end "
+            "abruptly. Ask a follow-up for the rest.*"
+        )
+        body, source_lines = format_answer_for_display(text)
+        assert "length budget" in body
+        assert body.rstrip().endswith("*")
+        assert any("cbo.gov" in line for line in source_lines)
+
+    def test_note_before_sources_still_kept(self):
+        from fiscal_model.assistant.citations import format_answer_for_display
+
+        text = (
+            "A cut-off answer with no sources heading\n\n"
+            "> ✂️ *This answer hit its length budget and may end abruptly.*"
+        )
+        body, source_lines = format_answer_for_display(text)
+        assert "length budget" in body
+        assert source_lines == []
+
+    def test_wrapped_source_entries_not_pulled_into_body(self):
+        from fiscal_model.assistant.citations import format_answer_for_display
+
+        text = (
+            "Claim.[^1]\n\n"
+            "## Sources\n"
+            "[^1]: JCT (2024), https://www.jct.gov/x.pdf\n"
+        )
+        body, source_lines = format_answer_for_display(text)
+        # The marker becomes a link (URL allowed); the entry line itself
+        # must stay in source_lines, not be dragged into the body.
+        assert "JCT (2024)" not in body
+        assert ">" not in body
+        assert len(source_lines) == 1
+        assert "JCT (2024)" in source_lines[0]

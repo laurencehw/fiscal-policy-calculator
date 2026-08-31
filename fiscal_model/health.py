@@ -358,15 +358,21 @@ def summarize_data_degradation(health: dict[str, Any]) -> dict[str, Any]:
         reasons.append("FRED is using hardcoded fallback values (no live or cached data).")
     elif fred_source == "bundled" and fred.get("cache_is_expired"):
         age = fred.get("cache_age_days")
-        age_label = f" ({int(age)} days old)" if isinstance(age, int | float) else ""
-        reasons.append(f"FRED is on a stale bundled seed{age_label}; set FRED_API_KEY to refresh.")
+        age_label = f" {int(age)} days old" if isinstance(age, int | float) else " older than expected"
+        reasons.append(
+            f"Economic data (FRED) is from a snapshot{age_label}; "
+            "interest-rate and GDP inputs may lag current conditions."
+        )
 
     irs = health.get("irs_soi") or {}
     if irs.get("status") == "error":
         has_error = True
         reasons.append("IRS SOI tables are unavailable.")
     elif _freshness_stale(irs):
-        reasons.append("IRS SOI tables are stale; refresh fiscal_model/data_files/irs_soi/.")
+        reasons.append(
+            "IRS Statistics of Income tables are older than expected; "
+            "revenue baselines may lag the latest filings."
+        )
 
     microdata = health.get("microdata") or {}
     if microdata.get("status") == "error":

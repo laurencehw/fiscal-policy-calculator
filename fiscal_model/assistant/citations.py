@@ -167,6 +167,17 @@ def format_answer_for_display(text: str) -> tuple[str, list[str]]:
     body, sources = split_body_and_sources(text)
     sources_map = _parse_sources(sources)
 
+    # System notes appended after the model's own ``## Sources`` block (the
+    # ``> ✂️`` truncation note, the ``> ⚠️`` stripped-markers note) would
+    # otherwise vanish here: they are not ``[^N]:`` entries, so the split
+    # dropped them and a cut-off answer looked complete. Carry blockquote
+    # lines from the sources half back into the display body.
+    trailing_notes = [
+        line.strip()
+        for line in (sources or "").splitlines()
+        if line.lstrip().startswith(">")
+    ]
+
     def _repl(match: re.Match[str]) -> str:
         n = int(match.group(1))
         entry = sources_map.get(n)
@@ -179,6 +190,8 @@ def format_answer_for_display(text: str) -> tuple[str, list[str]]:
         return ""
 
     display_body = _CITATION_MARKER_RE.sub(_repl, body).rstrip()
+    if trailing_notes:
+        display_body += "\n\n" + "\n".join(trailing_notes)
     source_lines = [f"[{n}] {sources_map[n]}" for n in sorted(sources_map)]
     return display_body, source_lines
 
@@ -200,8 +213,51 @@ def render_provenance_footer(provenance: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+_TOOL_FRIENDLY_NAMES = {
+    "get_app_scoring_context": "This app's scoring engine",
+    "get_cbo_baseline": "This app's CBO baseline",
+    "get_validation_scorecard": "This app's validation scorecard",
+    "list_presets": "This app's preset library",
+    "get_preset": "This app's preset library",
+    "score_hypothetical_policy": "This app's scoring engine",
+    "search_knowledge": "Curated knowledge base",
+    "query_fred": "FRED (Federal Reserve economic data)",
+    "web_search": "Web search",
+    "fetch_url": "Fetched web page",
+}
+
+
+def describe_sources(provenance: list[dict[str, Any]]) -> list[str]:
+    """Reader-facing source lines for the "Drew on N sources" expander.
+
+    One line per tool call, in plain language, with the query or URL that
+    was consulted — so "Drew on 3 sources" is inspectable instead of an
+    unverifiable claim. Not the dev-mode tool dump: no arg reprs.
+    """
+    lines: list[str] = []
+    for p in provenance:
+        tool = p.get("tool", "?")
+        args = p.get("args") or {}
+        label = _TOOL_FRIENDLY_NAMES.get(tool, tool.replace("_", " ").capitalize())
+        detail = ""
+        query = args.get("query") or args.get("q")
+        if tool == "query_fred" and args.get("series_id"):
+            detail = f"series {args['series_id']}"
+        elif tool == "fetch_url" and args.get("url"):
+            detail = str(args["url"])
+        elif query:
+            detail = f"“{query}”"
+        urls = [u for u in (p.get("urls") or []) if u]
+        line = f"**{label}**" + (f" — {detail}" if detail else "")
+        if urls:
+            line += "<br>" + " · ".join(f"[{u}]({u})" for u in urls[:3])
+        lines.append(line)
+    return lines
+
+
 __all__ = [
     "annotate_unsupported",
+    "describe_sources",
     "extract_citation_markers",
     "format_answer_for_display",
     "render_provenance_footer",

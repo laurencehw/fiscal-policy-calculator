@@ -145,65 +145,95 @@ def render_dynamic_scoring_tab(
         st_module.markdown("---")
         st_module.subheader("Budget Impact with Dynamic Feedback")
 
-        static_total = result.static_revenue_effect.sum()
-        behavioral_total = result.behavioral_offset.sum()
-        conventional_total = static_total + behavioral_total
+        # Deficit convention throughout (positive = increases the deficit),
+        # matching the Results tab headline — the previous revenue-convention
+        # block made the same policy flip sign between tabs, and showed $0B
+        # conventional for spending policies (their impulse is not in
+        # static_revenue_effect).
+        conventional_total = float(
+            (result.static_deficit_effect + result.behavioral_offset).sum()
+        )
         feedback_total = float(macro_result.cumulative_revenue_feedback)
         # CBO's dynamic analyses net the debt-service cost of the added
         # deficit against growth feedback; a "dynamic score" that ignores
         # interest costs overstates the offset.
         interest_total = float(np.sum(macro_result.interest_cost_billions))
-        dynamic_total = conventional_total + feedback_total - interest_total
+        dynamic_total = conventional_total - feedback_total + interest_total
 
         col1, col2, col3, col4 = st_module.columns(4)
 
         with col1:
             st_module.metric(
                 "Conventional Score",
-                f"${conventional_total:.0f}B",
-                help="Static + behavioral (no macro feedback)",
+                f"${conventional_total:+.0f}B",
+                help=(
+                    "Static + behavioral, before macro feedback "
+                    "(positive = increases the deficit — same convention as "
+                    "the Results tab headline)."
+                ),
             )
 
         with col2:
             st_module.metric(
                 "Revenue Feedback",
                 f"${feedback_total:+.0f}B",
-                help="Additional revenue from (temporary) demand-side GDP effects",
+                help=(
+                    "Additional revenue from (temporary) demand-side GDP "
+                    "effects. Positive feedback reduces the deficit impact."
+                ),
             )
 
         with col3:
             st_module.metric(
                 "Debt Service",
-                f"${-interest_total:+.0f}B",
-                help="Interest cost of the added deficit — nets against feedback.",
+                f"${interest_total:+.0f}B",
+                help=(
+                    "Interest cost of the added deficit (positive = adds to "
+                    "the deficit) — nets against feedback."
+                ),
             )
 
         with col4:
-            net_dynamic_delta = feedback_total - interest_total
+            net_dynamic_delta = interest_total - feedback_total
             st_module.metric(
                 "Dynamic Score",
-                f"${dynamic_total:.0f}B",
+                f"${dynamic_total:+.0f}B",
                 delta=(
                     f"{(net_dynamic_delta / abs(conventional_total) * 100):+.1f}% vs conventional"
                     if conventional_total != 0
                     else "N/A"
                 ),
-                delta_color="normal" if net_dynamic_delta > 0 else "inverse",
+                # A positive delta means the dynamic score adds deficit
+                # relative to conventional — color it as bad news.
+                delta_color="inverse" if net_dynamic_delta != 0 else "off",
             )
 
         sign_conv = "+" if conventional_total >= 0 else "-"
-        sign_fb = "+" if feedback_total >= 0 else "-"
-        # The equation subtracts interest_total, which is negative (interest
-        # savings) for deficit-reducing policies — sign the printed term so
-        # the arithmetic always matches the Dynamic Score.
-        sign_int = "-" if interest_total >= 0 else "+"
+        # Feedback is subtracted (it offsets the deficit) and debt service is
+        # added; sign each printed term so the arithmetic always matches the
+        # Dynamic Score, including when a deficit-reducing policy earns
+        # negative feedback or interest savings.
+        sign_fb = "-" if feedback_total >= 0 else "+"
+        sign_int = "+" if interest_total >= 0 else "-"
         sign_dyn = "+" if dynamic_total >= 0 else "-"
         st_module.markdown(
             f"**Calculation:** {sign_conv}\\${abs(conventional_total):.0f}B (conventional) "
             f"{sign_fb} \\${abs(feedback_total):.0f}B (feedback) "
             f"{sign_int} \\${abs(interest_total):.0f}B (debt service) "
-            f"= **{sign_dyn}\\${abs(dynamic_total):.0f}B (dynamic)**"
+            f"= **{sign_dyn}\\${abs(dynamic_total):.0f}B (dynamic)** "
+            f"— positive = increases the deficit"
         )
+        if result.dynamic_effects is not None:
+            headline_feedback = float(result.dynamic_effects.revenue_feedback.sum())
+            st_module.caption(
+                f"ℹ️ Dynamic scoring is enabled in the sidebar, so the "
+                f"Results tab headline already includes "
+                f"${headline_feedback:+,.0f}B of revenue feedback from the "
+                f"app's internal model. This tab runs an independent "
+                f"macro adapter ({model_name}) for comparison — the two "
+                f"feedback estimates come from different models and will "
+                f"not match exactly."
+            )
         st_module.caption(
             "⚠️ Demand-side model only: GDP effects come from temporary "
             "fiscal-impulse multipliers that fade as the Fed responds and "

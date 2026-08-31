@@ -102,7 +102,7 @@ def _build_credibility_html(credibility: Any) -> str:
         <p style="margin:0.25rem 0; color:#526071;">
             Evidence type: <strong>{evidence}</strong> · Holdout status: <strong>{holdout}</strong>.
             This is a model-validation range, not an official CBO/JCT score.
-            Calibrated reconstructions (~6% mean) and out-of-sample predictions (~19% mean)
+            Calibrated reconstructions (~5% mean) and out-of-sample predictions (~8% mean)
             are different tiers — do not collapse them into one accuracy claim.
         </p>
         <details style="margin-top:0.45rem;">
@@ -438,6 +438,20 @@ def render_results_summary_tab(
             with c2:
                 st_module.markdown(f"**Accuracy:** {icon} {rating}")
                 st_module.caption(cbo_data["notes"])
+                # Presets with a calibrated specialized validator agree with
+                # the benchmark by construction — near-zero error here is a
+                # calibration echo, not an independent test.
+                from fiscal_model.ui.preset_validation import (
+                    PRESET_TO_SCORECARD_ID,
+                )
+
+                if policy_name in PRESET_TO_SCORECARD_ID:
+                    st_module.caption(
+                        "ℹ️ Calibrated to reproduce this benchmark — "
+                        "agreement is by construction, not an independent "
+                        "test. See the Validation tab for the out-of-sample "
+                        "tier."
+                    )
         else:
             st_module.subheader("👥 Distribution Context")
             if policy.affected_taxpayers_millions > 0:

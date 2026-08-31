@@ -5,6 +5,7 @@ Top-level Streamlit app orchestration.
 from __future__ import annotations
 
 import logging
+import time
 from pathlib import Path
 from typing import Any
 
@@ -34,8 +35,8 @@ _HOW_SCORED_MARKDOWN = (
     "FRB/US-calibrated multipliers\n\n"
     "**How to read the numbers (model maturity):**\n\n"
     "- **Core (green)** — revenue, distribution, and dynamic scoring. Calibrated "
-    "reference models reproduce official decompositions (~6% mean error); "
-    "genuine out-of-sample predictions are ~19% mean error.\n"
+    "reference models reproduce official decompositions (~5% mean error); "
+    "genuine out-of-sample predictions are ~8% mean error.\n"
     "- **Specialized (yellow)** — TCJA, corporate, credits, payroll, etc. Tuned "
     "reconstructions of published scores — transparent, not independent confirmation.\n"
     "- **Exploratory (blue)** — Ask, Bill Tracker, multi-model pilot. Useful UX; "
@@ -197,7 +198,8 @@ def render_data_status(st_module: Any, deps: Any) -> None:
         # Prominent degraded-mode banner: don't make the user infer it from a
         # yellow dot. Summarises *why* the app is running on fallback data.
         degradation = summarize_data_degradation(health)
-        if degradation["is_degraded"]:
+        degradation_banner_shown = degradation["is_degraded"]
+        if degradation_banner_shown:
             reason_lines = "\n".join(f"- {r}" for r in degradation["reasons"])
             if degradation["severity"] == "error":
                 st_module.error(
@@ -205,7 +207,8 @@ def render_data_status(st_module: Any, deps: Any) -> None:
                 )
             else:
                 st_module.warning(
-                    "🟡 **Running in degraded data mode**\n\n" + reason_lines
+                    "🟡 **Some data sources are running on older snapshots**\n\n"
+                    + reason_lines
                 )
 
         st_module.markdown(
@@ -239,25 +242,31 @@ def render_data_status(st_module: Any, deps: Any) -> None:
                 f"**Microdata:** {microdata_summary}"
             )
 
-        if baseline_freshness.get("is_stale"):
-            st_module.warning(
-                "CBO baseline is past its expected refresh window; results "
-                "reflect older economic assumptions."
-            )
-        elif baseline.get("source") == "hardcoded_fallback":
-            st_module.warning(
-                "Baseline fell back to hardcoded values; check the data layer "
-                "before treating results as publication-ready."
-            )
+        # The degradation banner above already lists these same conditions as
+        # reason lines — repeating each as its own warning doubled the banner.
+        # Only fall back to per-component warnings when no banner rendered.
+        if not degradation_banner_shown:
+            if baseline_freshness.get("is_stale"):
+                st_module.warning(
+                    "CBO baseline is past its expected refresh window; results "
+                    "reflect older economic assumptions."
+                )
+            elif baseline.get("source") == "hardcoded_fallback":
+                st_module.warning(
+                    "Baseline fell back to hardcoded values; treat results as "
+                    "approximate rather than publication-ready."
+                )
 
-        if irs_freshness.get("is_stale"):
-            st_module.warning(
-                "IRS Statistics of Income tables are stale; refresh "
-                "`fiscal_model/data_files/irs_soi/`."
-            )
+            if irs_freshness.get("is_stale"):
+                st_module.warning(
+                    "IRS Statistics of Income tables are older than expected; "
+                    "revenue baselines may lag the latest filings."
+                )
 
-        if runtime.get("status") == "degraded":
-            st_module.warning(runtime.get("message", "Python runtime is unsupported."))
+            if runtime.get("status") == "degraded":
+                st_module.warning(
+                    runtime.get("message", "Python runtime is unsupported.")
+                )
 
         with st_module.expander("ℹ️ Data details", expanded=False):
             baseline_fred = baseline.get("fred", {})
@@ -640,21 +649,39 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
             render_footer(st_module=st_module)
 
 
-def _scroll_to_results_anchor() -> None:
+def _scroll_to_results_anchor(run_id: str | None = None) -> None:
     """Scroll the page to the results tab bar after a calculation completes.
 
     Streamlit sanitizes <script> in markdown, so this uses a zero-height
     component iframe (same-origin) to scroll the parent document. Clicking
     Calculate otherwise produces no visible change — results render well
     below the fold.
+
+    Two failure modes this must handle:
+    - Streamlit reuses a component iframe when its HTML is byte-identical,
+      so the script would run only on the *first* calculation. Embedding
+      the run id makes each calculation's HTML unique and forces a reload.
+    - The anchor may not be laid out yet when the iframe script first runs
+      (the page is still rendering), so retry briefly instead of giving up.
     """
     try:
         import streamlit.components.v1 as components
 
+        # run_id repeats for identical settings, so add a per-render nonce —
+        # this only renders on Calculate clicks, so uniqueness is cheap.
+        cache_buster = f"{run_id or 'unkeyed'}:{time.time_ns()}"
         components.html(
             "<script>"
-            "const anchor = window.parent.document.getElementById('results-anchor');"
-            "if (anchor) { anchor.scrollIntoView({behavior: 'smooth', block: 'start'}); }"
+            f"/* run:{cache_buster} */"
+            "const tryScroll = (n) => {"
+            "  const anchor = window.parent.document.getElementById('results-anchor');"
+            "  if (anchor && anchor.isConnected) {"
+            "    anchor.scrollIntoView({behavior: 'smooth', block: 'start'});"
+            "  } else if (n > 0) {"
+            "    setTimeout(() => tryScroll(n - 1), 150);"
+            "  }"
+            "};"
+            "setTimeout(() => tryScroll(10), 100);"
             "</script>",
             height=0,
         )
@@ -758,7 +785,7 @@ def _render_calculator(
     )
 
     if calc_context.get("calculate") and st_module.session_state.get("results"):
-        _scroll_to_results_anchor()
+        _scroll_to_results_anchor(run_id=str(calc_context.get("run_id", "")))
 
     render_result_tabs(
         st_module=st_module,

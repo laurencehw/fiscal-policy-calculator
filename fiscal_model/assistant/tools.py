@@ -520,7 +520,7 @@ class AssistantTools:
                 )
                 scoring_path = (
                     "uncalibrated generic tax path — directional only "
-                    "(~19% mean out-of-sample error); quote the nearest "
+                    "(~8% mean out-of-sample error); quote the nearest "
                     "validated preset when one exists"
                 )
         except Exception as exc:
@@ -544,7 +544,7 @@ class AssistantTools:
             "source": (
                 f"Run of FiscalPolicyScorer (this app) via the {scoring_path}. "
                 "Calibrated reference models (~5% mean error) and uncalibrated "
-                "out-of-sample paths (~19%) are different accuracy tiers — "
+                "out-of-sample paths (~8%) are different accuracy tiers — "
                 "state which one this run used."
             ),
         }

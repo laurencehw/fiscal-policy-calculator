@@ -67,13 +67,80 @@ def build_distribution_result(
     )
 
 
-def calculate_group_effect(policy: TaxPolicy, group: IncomeGroup) -> DistributionalResult:
+def _marginal_excess_from_brackets(
+    brackets: list | None,
+    group_floor: float,
+    group_ceiling: float,
+    threshold: float,
+) -> tuple[float, float, float] | None:
+    """Per-bracket marginal-excess base for a threshold rate change.
+
+    Slices each SOI bracket by the intersection of the group range and the
+    affected range ``[threshold, ∞)`` (uniform-within-bracket), then sums
+    ``max(0, taxable − threshold × returns)`` per slice. Returns
+    ``(excess_base_$B, affected_taxable_$B, affected_returns)``, or ``None``
+    when brackets are unavailable or the policy has no threshold (callers
+    fall back to the group-aggregate path).
+    """
+    if not brackets or threshold <= 0:
+        return None
+
+    excess = 0.0
+    affected_taxable = 0.0
+    affected_returns = 0.0
+    for bracket in brackets:
+        bracket_floor = float(bracket.agi_floor)
+        bracket_ceiling = (
+            float(bracket.agi_ceiling) if bracket.agi_ceiling else float("inf")
+        )
+        lo = max(bracket_floor, group_floor, threshold)
+        hi = min(bracket_ceiling, group_ceiling)
+        if lo >= hi:
+            continue
+
+        if bracket_ceiling == float("inf"):
+            # An open-ended bracket has no width to slice; it belongs to
+            # the group containing its floor, and counts only when the
+            # whole bracket is above the threshold (SOI's top bracket
+            # floor is far above realistic thresholds).
+            if not (group_floor <= bracket_floor < group_ceiling):
+                continue
+            if threshold > bracket_floor:
+                continue
+            fraction = 1.0
+        else:
+            fraction = (hi - lo) / (bracket_ceiling - bracket_floor)
+
+        n = bracket.num_returns * fraction
+        t = bracket.taxable_income * fraction
+        affected_returns += n
+        affected_taxable += t
+        # Threshold is in dollars, taxable totals in $B — 1e9 bridges units.
+        excess += max(0.0, t - (threshold * n) / 1e9)
+
+    return excess, affected_taxable, affected_returns
+
+
+def calculate_group_effect(
+    policy: TaxPolicy,
+    group: IncomeGroup,
+    brackets: list | None = None,
+) -> DistributionalResult:
     """Calculate the effect of a basic rate-change tax policy on one group.
 
     A threshold rate change is *marginal*: it applies only to taxable income
     in excess of the threshold, not to the affected filers' entire income.
     Taxing the full income of everyone counted as "affected" overstated a
     +2pp-above-\\$400K policy roughly 4x against the SOI-based revenue score.
+
+    When the engine's SOI ``brackets`` are supplied, the marginal-excess
+    base is computed per bracket (where most affected brackets sit wholly
+    above the threshold, so the excess is exact) and pro-rated into the
+    group. Deriving it from group aggregates alone underestimates badly
+    for wide open-ended groups: the affected filers hold far more than a
+    proportional share of the group's taxable income, and subtracting
+    ``threshold × affected_returns`` from a proportional base can zero
+    out a policy that raises real revenue.
     """
     rate_change = getattr(policy, "rate_change", 0.0)
     threshold = getattr(policy, "affected_income_threshold", 0)
@@ -94,14 +161,28 @@ def calculate_group_effect(policy: TaxPolicy, group: IncomeGroup) -> Distributio
         affected_width = group_ceiling - threshold
         affected_fraction = affected_width / group_width if group_width > 0 else 0.0
 
-    affected_taxable = group.total_taxable_income * affected_fraction
-    affected_returns = int(group.num_returns * affected_fraction)
-    if threshold > 0 and affected_returns > 0:
-        # Only the excess above the threshold is taxed at the new rate
-        # (threshold and taxable totals share $-vs-$B units via 1e9).
-        excess_base = max(0.0, affected_taxable - (threshold * affected_returns) / 1e9)
+    bracket_result = _marginal_excess_from_brackets(
+        brackets=brackets,
+        group_floor=float(group.floor),
+        group_ceiling=group_ceiling,
+        threshold=float(threshold),
+    )
+    if bracket_result is not None:
+        excess_base, affected_taxable, affected_returns = bracket_result
+        affected_fraction = (
+            min(1.0, affected_returns / group.num_returns)
+            if group.num_returns > 0
+            else 0.0
+        )
     else:
-        excess_base = affected_taxable
+        affected_taxable = group.total_taxable_income * affected_fraction
+        affected_returns = int(group.num_returns * affected_fraction)
+        if threshold > 0 and affected_returns > 0:
+            # Only the excess above the threshold is taxed at the new rate
+            # (threshold and taxable totals share $-vs-$B units via 1e9).
+            excess_base = max(0.0, affected_taxable - (threshold * affected_returns) / 1e9)
+        else:
+            excess_base = affected_taxable
     tax_change_total = rate_change * excess_base
     tax_change_avg = (tax_change_total * 1e9) / affected_returns if affected_returns > 0 else 0.0
     after_tax_income = group.total_agi - group.baseline_tax
@@ -632,6 +713,7 @@ def dispatch_distributional_effect(
     policy: Policy,
     group: IncomeGroup,
     total_returns: int,
+    brackets: list | None = None,
 ) -> DistributionalResult:
     """Dispatch to the correct distributional effect calculator."""
     TaxCreditPolicy, _ = _get_credit_policy()
@@ -650,7 +732,7 @@ def dispatch_distributional_effect(
         return calculate_payroll_effect(policy, group)
     if isinstance(policy, TaxExpenditurePolicy):
         return calculate_tax_expenditure_effect(policy, group, total_returns)
-    return calculate_group_effect(policy, group)
+    return calculate_group_effect(policy, group, brackets=brackets)
 
 
 def policy_to_microsim_reforms(policy: Policy, year: int = 2025) -> dict:

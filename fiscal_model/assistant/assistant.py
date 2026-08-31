@@ -40,9 +40,11 @@ DEFAULT_MODEL = "claude-sonnet-4-6"
 OPUS_MODEL = "claude-opus-4-7"
 MAX_TOOL_ITERATIONS = 4
 # Tighter than the SDK default — most public-finance answers are 200-400
-# output tokens. Cutting the ceiling reduces generation latency by ~30%
-# on typical turns and prevents accidental long-form rambling.
-DEFAULT_MAX_TOKENS = 800
+# output tokens, and the cap prevents accidental long-form rambling. 800
+# proved too tight in practice: answers with a small comparison table were
+# cut off mid-row. 1200 leaves room to finish a table while still bounding
+# latency and cost (the daily cost cap is the real budget control).
+DEFAULT_MAX_TOKENS = 1200
 
 
 class FiscalAssistant:
@@ -412,6 +414,18 @@ class FiscalAssistant:
                 yield chunk
             final_message = forced["final_message"]
             self._record_usage(forced.get("usage"))
+
+        # ------------------------------------------------------------------
+        # If the final call ran out of output budget, say so rather than
+        # ending mid-sentence (or mid-table) as if the answer were complete.
+        # ------------------------------------------------------------------
+        if getattr(final_message, "stop_reason", None) == "max_tokens":
+            truncation_note = (
+                "\n\n> ✂️ *This answer hit its length budget and may end "
+                "abruptly. Ask a follow-up for the rest.*"
+            )
+            accumulated_text += truncation_note
+            yield truncation_note
 
         # ------------------------------------------------------------------
         # Post-process: citation hygiene.

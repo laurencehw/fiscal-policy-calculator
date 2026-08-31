@@ -116,43 +116,65 @@ def aggregate_brackets_into_groups(
     thresholds: list[tuple[str, float, float | None]],
     total_returns: int,
 ) -> list[IncomeGroup]:
-    """Aggregate IRS brackets into income groups."""
+    """Aggregate IRS brackets into income groups.
+
+    Brackets that straddle a group boundary are pro-rated by dollar
+    overlap (uniform-within-bracket approximation). The previous
+    all-or-nothing rule (``overlap_fraction > 0.5 or bracket_floor >=
+    floor``) dumped a straddling bracket wholesale into *every* group it
+    touched — the SOI $100K-$200K bracket landed in both the middle and
+    fourth quintiles, double-counting returns/AGI and producing per-group
+    averages outside the group's own range (middle-quintile "avg AGI"
+    above its $105K ceiling), which made %-of-income columns
+    non-monotonic for broad tax changes.
+    """
     groups = []
 
     for name, floor, ceiling in thresholds:
-        group_returns = 0
+        group_returns = 0.0
         group_agi = 0.0
         group_taxable = 0.0
         group_tax = 0.0
+        group_ceiling = ceiling if ceiling else float("inf")
 
         for bracket in brackets:
             bracket_floor = bracket.agi_floor
             bracket_ceiling = bracket.agi_ceiling if bracket.agi_ceiling else float("inf")
-            group_ceiling = ceiling if ceiling else float("inf")
             overlap_start = max(bracket_floor, floor)
             overlap_end = min(bracket_ceiling, group_ceiling)
+            if overlap_start >= overlap_end:
+                continue
 
-            if overlap_start < overlap_end:
+            if bracket_ceiling == float("inf"):
+                # An open-ended bracket has no width to pro-rate; assign it
+                # to the group containing its floor.
+                fraction = 1.0 if floor <= bracket_floor < group_ceiling else 0.0
+            else:
                 bracket_width = bracket_ceiling - bracket_floor
-                overlap_width = overlap_end - overlap_start
-                overlap_fraction = overlap_width / bracket_width if bracket_width > 0 else 1.0
+                fraction = (
+                    (overlap_end - overlap_start) / bracket_width
+                    if bracket_width > 0
+                    else 1.0
+                )
+            if fraction <= 0:
+                continue
 
-                if overlap_fraction > 0.5 or bracket_floor >= floor:
-                    group_returns += bracket.num_returns
-                    group_agi += bracket.total_agi
-                    group_taxable += bracket.taxable_income
-                    group_tax += bracket.total_tax
+            group_returns += bracket.num_returns * fraction
+            group_agi += bracket.total_agi * fraction
+            group_taxable += bracket.taxable_income * fraction
+            group_tax += bracket.total_tax * fraction
 
+        num_returns = int(round(group_returns))
         groups.append(
             IncomeGroup(
                 name=name,
                 floor=floor,
                 ceiling=ceiling,
-                num_returns=group_returns,
+                num_returns=num_returns,
                 total_agi=group_agi,
                 total_taxable_income=group_taxable,
                 baseline_tax=group_tax,
-                population_share=group_returns / total_returns if total_returns > 0 else 0,
+                population_share=num_returns / total_returns if total_returns > 0 else 0,
             )
         )
 

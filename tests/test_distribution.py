@@ -551,9 +551,45 @@ class TestMarginalExcessBase:
         result = calculate_group_effect(policy, self._group_fully_above_threshold())
         assert result.tax_change_total == pytest.approx(-0.01 * 1_000.0, rel=1e-6)
 
-    def test_synthetic_and_microsim_paths_agree_on_magnitude(self):
-        """Cross-engine sanity: the two paths must land in the same ballpark
-        for a top-rate policy (they disagreed 8x before the fix)."""
+    def test_synthetic_path_tracks_soi_static_for_top_rate(self):
+        """The synthetic path's annual total must track the scorer's own
+        SOI-based static revenue for the same policy (it overstated ~8x
+        before the marginal-excess fix, and briefly zeroed out when the
+        group-aggregate heuristic met correctly pro-rated groups)."""
+        from fiscal_model.distribution import DistributionalEngine, IncomeGroupType
+        from fiscal_model.policies import PolicyType, TaxPolicy
+        from fiscal_model.scoring import FiscalPolicyScorer
+
+        policy = TaxPolicy(
+            name="Top rate +2pp",
+            description="d",
+            policy_type=PolicyType.INCOME_TAX,
+            rate_change=0.02,
+            affected_income_threshold=400_000,
+            data_year=2022,
+        )
+        engine = DistributionalEngine(data_year=2022)
+        synth = engine.analyze_policy(
+            policy, group_type=IncomeGroupType.QUINTILE, prefer_microsim=False
+        )
+        static_y1 = float(
+            FiscalPolicyScorer().score_policy(policy).static_revenue_effect[0]
+        )
+        assert static_y1 > 0
+        assert synth.total_tax_change > 0
+        ratio = synth.total_tax_change / static_y1
+        assert 0.5 < ratio < 2.0, (
+            f"synthetic distribution total ${synth.total_tax_change:.1f}B/yr "
+            f"vs scorer static ${static_y1:.1f}B/yr ({ratio:.1f}x)"
+        )
+
+    def test_synthetic_and_microsim_paths_agree_on_direction(self):
+        """Cross-engine sanity for a top-rate policy: both paths must agree
+        on sign and stay within an order of magnitude. The bound is loose
+        on purpose — the unaugmented CPS microdata's thin top tail
+        understates threshold policies (that is what the top-tail Pareto
+        augmentation exists for), so exact magnitude agreement is not the
+        contract here; the scorer-anchored test above carries that."""
         from fiscal_model.distribution import DistributionalEngine, IncomeGroupType
         from fiscal_model.policies import PolicyType, TaxPolicy
 
@@ -574,4 +610,4 @@ class TestMarginalExcessBase:
         )
         assert micro.total_tax_change > 0 and synth.total_tax_change > 0
         ratio = synth.total_tax_change / micro.total_tax_change
-        assert 0.33 < ratio < 3.0, f"engines disagree {ratio:.1f}x"
+        assert 0.1 < ratio < 10.0, f"engines disagree {ratio:.1f}x"

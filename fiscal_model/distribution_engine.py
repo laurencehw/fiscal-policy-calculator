@@ -135,7 +135,9 @@ class DistributionalEngine:
         total_affected = 0
 
         for group in groups:
-            result = dispatch_distributional_effect(policy, group, self.total_returns)
+            result = dispatch_distributional_effect(
+                policy, group, self.total_returns, brackets=self.brackets
+            )
             results.append(result)
             total_tax_change += result.tax_change_total
             if result.pct_with_increase > 0 or result.pct_with_decrease > 0:
@@ -303,7 +305,9 @@ class DistributionalEngine:
         total_tax_change = 0.0
 
         for group in groups:
-            result = dispatch_distributional_effect(policy, group, self.total_returns)
+            result = dispatch_distributional_effect(
+                policy, group, self.total_returns, brackets=self.brackets
+            )
             results.append(result)
             total_tax_change += result.tax_change_total
 

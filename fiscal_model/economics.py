@@ -271,7 +271,10 @@ class EconomicModel:
 
         Args:
             policy: The policy being analyzed
-            static_budget_effect: Static budget effect by year (billions, positive = costs)
+            static_budget_effect: Static budget effect by year in billions,
+                deficit convention: positive = adds to the deficit (a tax cut
+                or spending increase), negative = reduces it. This is the
+                same convention as ScoringResult.static_deficit_effect.
 
         Returns:
             DynamicEffects container with all calculated effects
@@ -309,11 +312,14 @@ class EconomicModel:
 
     def _tax_policy_effects(self, policy: TaxPolicy,
                            budget_effect: np.ndarray) -> dict:
-        """Calculate effects of tax policy changes."""
-        n_years = len(self.years)
+        """Calculate effects of tax policy changes.
 
-        # Determine if tax cut or tax increase
-        is_tax_cut = np.mean(budget_effect) < 0
+        `budget_effect` is deficit convention (positive = tax cut / cost),
+        matching what the scorer passes; the demand and interest terms below
+        must read it that way or a cut scores as zero stimulus with falling
+        rates.
+        """
+        n_years = len(self.years)
 
         # Labor supply effects (supply-side)
         labor_effect = np.zeros(n_years)
@@ -325,18 +331,18 @@ class EconomicModel:
                            self.params['labor_supply_elasticity'] *
                            np.ones(n_years))
 
-        # Demand effects (short-run)
+        # Demand effects (short-run) — symmetric: cuts stimulate, increases
+        # drag. budget_effect positive (cut) => positive demand impulse.
         demand_effect = np.zeros(n_years)
-        if is_tax_cut:
-            for i in range(n_years):
-                if policy.is_active(self.years[i]):
-                    phase = policy.get_phase_in_factor(self.years[i])
-                    # Decaying multiplier effect
-                    for j in range(i + 1):
-                        decay = self.params['spending_multiplier_decay'] ** (i - j)
-                        demand_effect[i] += (-budget_effect[j] *
-                                            self.params['tax_multiplier'] *
-                                            decay * phase)
+        for i in range(n_years):
+            if policy.is_active(self.years[i]):
+                phase = policy.get_phase_in_factor(self.years[i])
+                # Decaying multiplier effect
+                for j in range(i + 1):
+                    decay = self.params['spending_multiplier_decay'] ** (i - j)
+                    demand_effect[i] += (budget_effect[j] *
+                                        self.params['tax_multiplier'] *
+                                        decay * phase)
 
         # Total GDP effect
         gdp_level = np.zeros(n_years)
@@ -368,9 +374,10 @@ class EconomicModel:
 
         investment = capital * self.baseline.nominal_gdp * 0.18  # Investment ~18% of GDP
 
-        # Interest rate effects (crowding out)
+        # Interest rate effects (crowding out): rates rise as cumulative
+        # deficits accumulate, same as the spending/transfer/generic paths.
         cumulative_deficit = np.cumsum(budget_effect)
-        interest_change = -cumulative_deficit / 100 * self.params['crowding_out']
+        interest_change = cumulative_deficit / 100 * self.params['crowding_out']
 
         # Revenue feedback
         revenue_fb = gdp_level * self.params['marginal_revenue_rate']

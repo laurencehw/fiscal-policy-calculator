@@ -664,7 +664,14 @@ def test_render_data_status_uses_health_payload_for_baseline_and_irs(monkeypatch
 
     assert any("**Baseline:** January 2025" in text for text in st_module.markdowns)
     assert any("**IRS SOI:** 2024" in text for text in st_module.markdowns)
-    assert any("CBO baseline is past its expected refresh window" in msg for msg in st_module.warnings)
+    # The stale baseline surfaces once, as a reason line in the degradation
+    # banner — not repeated as a second standalone warning below it.
+    baseline_warnings = [
+        msg for msg in st_module.warnings
+        if "CBO baseline is past its refresh window" in msg
+    ]
+    assert len(baseline_warnings) == 1
+    assert "older snapshots" in baseline_warnings[0]
 
 
 def test_render_data_status_surfaces_runtime_warning(monkeypatch):
