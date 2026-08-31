@@ -24,11 +24,11 @@ from .goal_spec import (
 __all__ = [
     "CANNED_GOAL_SPECS",
     "DEFICIT_STANCES",
+    "REVENUE_PHILOSOPHIES",
+    "SPENDING_CATEGORIES",
     "GoalSpec",
     "MixComponent",
     "PolicyMix",
-    "REVENUE_PHILOSOPHIES",
-    "SPENDING_CATEGORIES",
     "ScoredMix",
     "SpendingGoal",
 ]

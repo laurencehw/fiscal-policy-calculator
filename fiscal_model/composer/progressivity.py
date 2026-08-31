@@ -88,6 +88,12 @@ INCIDENCE_FALLBACKS: dict[str, IncidenceFallback] = {
         "tracks consumption rather than income and is far less concentrated "
         "than an income-tax raiser.",
     ),
+    "credit_repeal": IncidenceFallback(
+        0.60,
+        "Repealing energy tax credits withdraws benefits claimed both by "
+        "firms and by the households that can afford the qualifying "
+        "purchases, so the burden skews upward without being top-only.",
+    ),
     "compliance": IncidenceFallback(
         0.85,
         "Enforcement revenue comes from unreported income, which is "
@@ -152,8 +158,12 @@ def incidence_family(preset_data: dict[str, Any]) -> str:
         return "corporate"
     if preset_data.get("is_amt") and preset_data.get("amt_type") == "repeal_corporate":
         return "corporate"
-    if preset_data.get("is_trade") or preset_data.get("is_climate"):
+    if preset_data.get("is_trade"):
         return "consumption"
+    if preset_data.get("is_climate"):
+        # A carbon tax is paid at the pump; repealing a credit is not.
+        carbon = str(preset_data.get("climate_type", "")).startswith("carbon")
+        return "consumption" if carbon else "credit_repeal"
     if preset_data.get("is_enforcement"):
         return "compliance"
     if preset_data.get("is_pharma"):

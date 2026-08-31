@@ -9,7 +9,7 @@ free text, which keeps the composed mixes reproducible and shareable.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 # Spending categories map onto PolicyType multipliers in the scoring engine.
 SPENDING_CATEGORIES = (
@@ -117,8 +117,8 @@ CANNED_GOAL_SPECS: dict[str, GoalSpec] = {
 __all__ = [
     "CANNED_GOAL_SPECS",
     "DEFICIT_STANCES",
-    "GoalSpec",
     "REVENUE_PHILOSOPHIES",
     "SPENDING_CATEGORIES",
+    "GoalSpec",
     "SpendingGoal",
 ]

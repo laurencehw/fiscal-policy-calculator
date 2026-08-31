@@ -29,6 +29,7 @@ a clean slate.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -44,6 +45,7 @@ from fiscal_model.policies_factory import create_spending_increase
 from fiscal_model.policy_status import get_policy_status
 from fiscal_model.preset_handler import create_policy_from_preset
 from fiscal_model.scoring import FiscalPolicyScorer
+from fiscal_model.ui.helpers import escape_markdown_dollars
 from fiscal_model.ui.preset_validation import PRESET_TO_SCORECARD_ID, get_validation_badge
 
 from .contracts import MixComponent, PolicyMix, ScoredMix
@@ -272,36 +274,33 @@ def _order_balanced(candidates: list[RevenueCandidate]) -> list[RevenueCandidate
 
 @dataclass(frozen=True)
 class _Strategy:
-    key: str
+    """One reading of the preset library: a name, a reason, an ordering."""
+
     name: str
     rationale: str
-    order: Any  # Callable[[list[RevenueCandidate]], list[RevenueCandidate]]
+    order: Callable[[list[RevenueCandidate]], list[RevenueCandidate]]
 
 
 _STRATEGIES: dict[str, _Strategy] = {
     "top_heavy": _Strategy(
-        "top_heavy",
         "Top-heavy",
         "Leads with the raisers whose burden lands most heavily on the top "
         "quintile, so the package is funded from the highest incomes",
         _order_top_heavy,
     ),
     "broad": _Strategy(
-        "broad",
         "Broader base",
         "Favours raisers whose incidence sits near the top quintile's own "
         "share of the tax base, spreading the burden closer to proportional",
         _order_broad,
     ),
     "corporate": _Strategy(
-        "corporate",
         "With corporate",
         "Reaches for corporate-side raisers — the rate, the book minimum "
         "tax and the international regime — before individual taxes",
         _order_corporate_first,
     ),
     "balanced": _Strategy(
-        "balanced",
         "Balanced mix",
         "Alternates top-heavy and broad-base raisers so neither side of the "
         "package carries the whole target",
@@ -323,6 +322,8 @@ _PHILOSOPHY_STRATEGIES: dict[str, tuple[str, ...]] = {
 def _select_revenue(
     ordered: list[RevenueCandidate],
     target_billions: float,
+    *,
+    hard_floor: bool = False,
 ) -> list[RevenueCandidate]:
     """Pick components in preference order until the target is covered.
 
@@ -333,17 +334,24 @@ def _select_revenue(
     the walk then refuses anything that would overshoot what is *still*
     needed by more than :data:`OVERSHOOT_ALLOWANCE`. A final closing pick
     fills a gap the greedy pass could not.
+
+    ``hard_floor`` stops the walk landing inside the undershoot band: a
+    "reduce" stance and a user's ``min_revenue_10yr_billions`` are floors
+    to clear, not targets to approach.
     """
     if target_billions <= 0 or not ordered:
         return []
 
-    lower = target_billions * (1 - COVERAGE_TOLERANCE)
+    lower = target_billions if hard_floor else target_billions * (1 - COVERAGE_TOLERANCE)
+    # With a floor to clear, hold one slot back so the closing pick below
+    # can always run instead of being crowded out by the greedy walk.
+    greedy_slots = MAX_REVENUE_COMPONENTS - 1 if hard_floor else MAX_REVENUE_COMPONENTS
 
     chosen: list[RevenueCandidate] = []
     chosen_names: set[str] = set()
     total = 0.0
     for candidate in ordered:
-        if len(chosen) >= MAX_REVENUE_COMPONENTS or total >= lower:
+        if len(chosen) >= greedy_slots or total >= lower:
             break
         remaining = target_billions - total
         if candidate.magnitude <= remaining * (1 + OVERSHOOT_ALLOWANCE):
@@ -352,18 +360,37 @@ def _select_revenue(
             total += candidate.magnitude
 
     if total < lower and len(chosen) < MAX_REVENUE_COMPONENTS:
-        gap = target_billions - total
-        unused = [c for c in ordered if c.preset_name not in chosen_names]
-        covering = [c for c in unused if c.magnitude >= gap]
-        closer = (
-            min(covering, key=lambda c: (c.magnitude, c.preset_name))
-            if covering
-            else max(unused, key=lambda c: (c.magnitude, c.preset_name), default=None)
+        closer = _closing_pick(
+            [c for c in ordered if c.preset_name not in chosen_names],
+            gap=lower - total,
+            ceiling=target_billions * (1 + OVERSHOOT_ALLOWANCE) - total,
         )
         if closer is not None:
             chosen.append(closer)
 
     return chosen
+
+
+def _closing_pick(
+    unused: list[RevenueCandidate],
+    *,
+    gap: float,
+    ceiling: float,
+) -> RevenueCandidate | None:
+    """The one raiser that finishes a mix the greedy walk left short.
+
+    ``unused`` is still in the strategy's preference order, so the first
+    candidate that closes the gap without pushing the mix past ``ceiling``
+    wins — the package stays in character. Failing that, the smallest
+    raiser that closes the gap at all; failing that, the largest available.
+    """
+    covering = [c for c in unused if c.magnitude >= gap]
+    in_character = [c for c in covering if c.magnitude <= ceiling]
+    if in_character:
+        return in_character[0]
+    if covering:
+        return min(covering, key=lambda c: (c.magnitude, c.preset_name))
+    return max(unused, key=lambda c: (c.magnitude, c.preset_name), default=None)
 
 
 # ── Spending ────────────────────────────────────────────────────────────
@@ -466,6 +493,11 @@ def _distribution_rows(
 ) -> tuple[tuple[dict[str, Any], ...], list[str]]:
     """Quintile rows summed over the representable revenue components.
 
+    Rows are display-ready: reader-facing keys in column order, rounded,
+    with ``Share of Total`` in percentage points — the same convention
+    ``DistributionalAnalysis.to_dataframe`` uses on the Distribution tab,
+    so the Package Studio can hand them straight to ``pd.DataFrame``.
+
     Returns the rows plus the names of components the distributional
     engine could not represent, which the caller turns into a caveat.
     """
@@ -486,17 +518,21 @@ def _distribution_rows(
     grand_total = sum(totals.values())
     rows = tuple(
         {
-            "group": group,
-            "tax_change_billions": totals[group],
-            "share_of_total": (totals[group] / grand_total) if grand_total > 0 else 0.0,
+            "Income Group": group,
+            "Tax Change ($B)": round(totals[group], 1),
+            "Share of Total": round(
+                (totals[group] / grand_total * 100) if grand_total > 0 else 0.0, 1
+            ),
         }
         for group in order
     )
     return rows, unrepresented
 
 
-def top_quintile_burden_share(components: list[MixComponent]) -> float:
+def top_quintile_burden_share(components: Sequence[MixComponent]) -> float:
     """Revenue-weighted share of a mix's burden landing in the top quintile.
+
+    Accepts ``scored_mix.mix.components`` directly.
 
     Uses the engine's quintile split where a component is representable
     and the documented fallback in ``progressivity.py`` where it is not,
@@ -519,7 +555,13 @@ def _build_caveats(
     revenue_10yr: float,
     target_billions: float,
 ) -> tuple[str, ...]:
-    """Honesty strings rendered under every mix."""
+    """Honesty strings rendered under every mix.
+
+    Returned markdown-safe: preset names carry unescaped dollar amounts
+    ("… (-$450B)"), and two of them in one sentence would render as a
+    LaTeX span in Streamlit, so every string goes through
+    ``ui.helpers.escape_markdown_dollars`` on the way out.
+    """
     caveats: list[str] = [
         "Components are scored independently and then summed: interactions "
         "between them — overlapping bases, stacked marginal rates, "
@@ -556,7 +598,7 @@ def _build_caveats(
             "estimate of what the program would cost."
         )
 
-    start_years = sorted({c.start_year for c in chosen})
+    start_years = sorted(_component_start_years(chosen, spending_components))
     if len(start_years) > 1:
         caveats.append(
             "Components take effect in different years ("
@@ -569,18 +611,29 @@ def _build_caveats(
         raised = abs(revenue_10yr)
         if raised < target_billions * (1 - COVERAGE_TOLERANCE):
             caveats.append(
-                f"This mix raises ${raised:,.0f}B against a "
-                f"${target_billions:,.0f}B target — the preset library has "
-                "no combination that closes the gap."
+                f"This mix raises ${raised:,.0f}B against a target of "
+                f"{target_billions:,.0f}B — no combination in the preset "
+                "library closes the gap more precisely."
             )
         elif raised > target_billions * (1 + OVERSHOOT_ALLOWANCE):
             caveats.append(
-                f"This mix raises ${raised:,.0f}B against a "
-                f"${target_billions:,.0f}B target; the smallest available "
-                "raiser that covers the target overshoots it."
+                f"This mix raises ${raised:,.0f}B against a target of "
+                f"{target_billions:,.0f}B — the smallest available raiser "
+                "that covers the target overshoots it."
             )
 
-    return tuple(caveats)
+    return tuple(escape_markdown_dollars(caveat) for caveat in caveats)
+
+
+def _component_start_years(
+    chosen: list[RevenueCandidate],
+    spending_components: list[MixComponent],
+) -> set[int]:
+    """First year of effect across a mix's components."""
+    years = {c.start_year for c in chosen}
+    if spending_components:
+        years.add(DEFAULT_SCORER_START_YEAR)
+    return years
 
 
 def _score_mix(
@@ -591,7 +644,14 @@ def _score_mix(
     spending_paths: list[tuple[float, ...]],
     target_billions: float,
 ) -> ScoredMix:
-    """Assemble and total one variant."""
+    """Assemble and total one variant.
+
+    Component paths are summed by year of effect, not by calendar year:
+    a preset that starts in 2026 is scored over its own 2026-2035 window
+    (``build_scorer_for_start_year``) and its first year lines up with the
+    first year of the mix. The window is labeled from the earliest
+    component so the total never silently drops a year.
+    """
     components = [_revenue_component(c) for c in chosen] + list(spending_components)
     mix = PolicyMix(name=name, rationale=rationale, components=tuple(components))
 
@@ -601,9 +661,8 @@ def _score_mix(
         for index, value in enumerate(path[:WINDOW_YEARS]):
             combined[index] += value
 
-    window_start = min(
-        [c.start_year for c in chosen] + [DEFAULT_SCORER_START_YEAR],
-    )
+    start_years = _component_start_years(chosen, spending_components)
+    window_start = min(start_years) if start_years else DEFAULT_SCORER_START_YEAR
     years = tuple(range(window_start, window_start + WINDOW_YEARS))
 
     revenue_10yr = sum(c.ten_year_billions for c in chosen)
@@ -644,10 +703,13 @@ def compose_and_score(spec: GoalSpec, *, n_mixes: int = 3) -> list[ScoredMix]:
     if n_mixes < 1:
         return []
 
-    spending_components = _score_spending_goals(spec)
-    spending_paths = _spending_paths(spec)
+    spending_components, spending_paths = _score_spending_goals(spec)
     spending_10yr = sum(c.ten_year_billions for c in spending_components)
     target = revenue_target_billions(spec, spending_10yr)
+
+    # A "reduce" stance and an explicit user floor are floors, not targets:
+    # a mix that lands inside the undershoot band would miss them.
+    hard_floor = spec.deficit_stance == "reduce" or spec.min_revenue_10yr_billions is not None
 
     candidates = revenue_candidates()
     strategy_keys = _PHILOSOPHY_STRATEGIES.get(
@@ -661,14 +723,14 @@ def compose_and_score(spec: GoalSpec, *, n_mixes: int = 3) -> list[ScoredMix]:
         if len(mixes) >= n_mixes:
             break
         strategy = _STRATEGIES[key]
-        chosen = _select_revenue(strategy.order(candidates), target)
+        chosen = _select_revenue(strategy.order(candidates), target, hard_floor=hard_floor)
         selection = frozenset(c.preset_name for c in chosen)
         # Variants must read differently; a strategy that lands on an
         # already-used selection is skipped in favour of the next one.
         if mixes and selection in seen_selections:
             continue
         seen_selections.append(selection)
-        rationale = (
+        rationale = escape_markdown_dollars(
             f"{strategy.rationale}; sized to raise about ${target:,.0f}B over "
             f"10 years for a '{spec.deficit_stance}' stance."
         )
