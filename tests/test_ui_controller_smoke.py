@@ -457,6 +457,11 @@ def test_run_main_app_contains_calculator_failure(monkeypatch):
     )
     monkeypatch.setattr(
         module,
+        "_render_package_studio",
+        lambda **kwargs: calls.append("package_studio"),
+    )
+    monkeypatch.setattr(
+        module,
         "render_footer",
         lambda st_module: calls.append("footer"),
     )
@@ -480,11 +485,13 @@ def test_run_main_app_contains_calculator_failure(monkeypatch):
         "📊 Calculator",
         "💬 Ask",
         "⚖️ Budget Builder",
+        "🧭 Package Studio",
         "📋 Bill Tracker",
         "📖 Methodology",
     ]
     assert "ask" in calls
     assert "budget" in calls
+    assert "package_studio" in calls
     assert "bill_tracker" in calls
     assert "methodology" in calls
     assert "generational" not in calls

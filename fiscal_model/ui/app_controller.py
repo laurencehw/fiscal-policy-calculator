@@ -62,6 +62,10 @@ _SECTION_ERROR_MESSAGES: dict[str, str] = {
         "The Budget Builder encountered an issue. "
         "Please try reloading the page or clearing your inputs."
     ),
+    "Package Studio": (
+        "The Package Studio encountered an issue. "
+        "Please try reloading the page or picking a canned philosophy."
+    ),
     "Bill Tracker": (
         "The Bill Tracker encountered an issue. "
         "Please try reloading the page."
@@ -539,9 +543,10 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
     """
     Render and orchestrate the full Streamlit app flow.
 
-    Top-level tabs: Calculator | Ask | Budget Builder | Bill Tracker |
-    Methodology (includes Validation). Generational and State analysis live
-    under Calculator nested tabs. Admin is inserted only when gated.
+    Top-level tabs: Calculator | Ask | Budget Builder | Package Studio |
+    Bill Tracker | Methodology (includes Validation). Generational and State
+    analysis live under Calculator nested tabs. Admin is inserted only when
+    gated.
     """
     # Ensure every known session key has its declared default before any
     # widgets are constructed. Safe to call on every rerun — does not
@@ -581,6 +586,7 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         "📊 Calculator",
         "💬 Ask",
         "⚖️ Budget Builder",
+        "🧭 Package Studio",
         "📋 Bill Tracker",
         "📖 Methodology",
     ]
@@ -625,12 +631,20 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
     with top_tabs[3]:
         _render_guarded_section(
             st_module,
+            "Package Studio",
+            lambda: _render_package_studio(st_module=st_module),
+        )
+        render_footer(st_module=st_module)
+
+    with top_tabs[4]:
+        _render_guarded_section(
+            st_module,
             "Bill Tracker",
             lambda: deps.render_bill_tracker_tab(st_module=st_module),
         )
         render_footer(st_module=st_module)
 
-    with top_tabs[4]:
+    with top_tabs[5]:
         _render_guarded_section(
             st_module,
             "Methodology",
@@ -639,7 +653,7 @@ def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Pat
         render_footer(st_module=st_module)
 
     if show_admin:
-        with top_tabs[5]:
+        with top_tabs[6]:
             def _render_admin() -> None:
                 from .tabs.assistant_admin import render_assistant_admin_tab
 
@@ -796,6 +810,13 @@ def _render_calculator(
         is_spending=calc_context["is_spending"],
         mode=calc_context["mode"],
     )
+
+
+def _render_package_studio(st_module: Any) -> None:
+    """Render the Package Studio tab — goal-driven policy mix composer."""
+    from fiscal_model.ui.tabs.package_studio import render_package_studio_tab
+
+    render_package_studio_tab(st_module=st_module)
 
 
 def _render_budget_builder(st_module: Any, deps: Any) -> None:
