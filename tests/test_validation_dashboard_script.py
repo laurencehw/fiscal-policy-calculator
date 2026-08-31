@@ -295,3 +295,28 @@ def test_microdata_coverage_overcount_warns_instead_of_failing(dashboard_module)
     issues = dashboard_module.health_gate_issues(health)
     assert [i["severity"] for i in issues] == ["fail"]
     assert dashboard_module.health_gate_ok(health) is False
+
+
+def test_environmental_baseline_fresh_bundled_seed_does_not_fail_gate(dashboard_module):
+    """Baseline riding a *fresh* bundled seed is the designed offline mode
+    (mirrors the strict readiness gate)."""
+    info = {
+        "status": "degraded",
+        "source": "real_data",
+        "gdp_source": "fred_bundled",
+        "load_error": None,
+        "fred": {"source": "bundled", "cache_is_expired": False, "cache_age_days": 0},
+    }
+    assert dashboard_module._is_environmental_degradation("baseline", info) is True
+
+
+def test_baseline_expired_bundled_seed_fails_gate(dashboard_module):
+    """An expired seed stays a gate failure — the maintenance signal."""
+    info = {
+        "status": "degraded",
+        "source": "real_data",
+        "gdp_source": "fred_bundled",
+        "load_error": None,
+        "fred": {"source": "bundled", "cache_is_expired": True, "cache_age_days": 150},
+    }
+    assert dashboard_module._is_environmental_degradation("baseline", info) is False

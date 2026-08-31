@@ -142,7 +142,18 @@ def _is_environmental_degradation(component: str, info: dict[str, Any]) -> bool:
             return False
         gdp_fell_back = info.get("gdp_source") == "irs_ratio_proxy"
         src_fell_back = info.get("source") == "hardcoded_fallback"
-        return gdp_fell_back or src_fell_back
+        if gdp_fell_back or src_fell_back:
+            return True
+        # A fresh bundled FRED seed is the designed offline mode (mirrors
+        # the strict readiness gate); an *expired* seed stays a gate
+        # failure — that is the repository-maintenance signal.
+        fred = info.get("fred", {})
+        fred_bundled_fresh = (
+            isinstance(fred, dict)
+            and fred.get("source") == "bundled"
+            and not fred.get("cache_is_expired")
+        )
+        return info.get("gdp_source") == "fred_bundled" and fred_bundled_fresh
     return False
 
 
