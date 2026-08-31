@@ -439,29 +439,71 @@ def readiness_issues_from_checks(checks: list[ReadinessCheck]) -> list[Readiness
 
 
 def _is_environmental_data_warning(issue: ReadinessIssue) -> bool:
-    """Return whether a warning is expected in offline CI data environments."""
+    """Return whether a warning is expected in offline CI data environments.
+
+    Exempted (environmental — a property of the isolated runner, not the
+    model): FRED on cache/fallback; the baseline riding a FRED fallback or
+    a *fresh* bundled seed; the Ask assistant missing only its API key;
+    and the microdata coverage-*overcount* warning (mirroring the
+    validation dashboard's warn tier). A stale/expired bundled seed stays
+    blocking — that is a repository-maintenance signal, not an
+    environment one — as do microdata undercount/synthetic warnings.
+    """
     if issue.severity != "warn":
         return False
 
+    details = issue.details
+
     if issue.name == "fred":
         return (
-            issue.details.get("status") == "degraded"
-            and issue.details.get("source") in {"cache", "fallback"}
+            details.get("status") == "degraded"
+            and details.get("source") in {"cache", "fallback"}
+        )
+
+    if issue.name == "assistant":
+        # CI runners have no ANTHROPIC_API_KEY; only exempt when the key is
+        # the sole problem — a missing knowledge corpus or unwritable usage
+        # db is a real defect.
+        return (
+            details.get("status") == "degraded"
+            and not details.get("api_key_configured")
+            and details.get("knowledge_corpus_files", 0) > 0
+            and bool(details.get("usage_db_writable"))
+        )
+
+    if issue.name == "microdata":
+        # Overcount-only coverage (>110% of SOI returns) is a bundled-data
+        # quality signal the dashboard gate already treats as warn-not-fail;
+        # undercount and synthetic data still block.
+        return (
+            details.get("status") == "degraded"
+            and bool(details.get("coverage_overcount"))
+            and not details.get("coverage_undercount")
         )
 
     if issue.name != "baseline":
         return False
 
-    details = issue.details
     if details.get("status") != "degraded" or details.get("load_error"):
         return False
 
     fred = details.get("fred", {})
     fred_source = fred.get("source") if isinstance(fred, dict) else None
-    return (
+    fred_expired = bool(fred.get("cache_is_expired")) if isinstance(fred, dict) else False
+    if (
         details.get("source") == "real_data"
         and details.get("gdp_source") == "irs_ratio_proxy"
         and fred_source == "fallback"
+    ):
+        return True
+    # A fresh bundled seed is the designed offline mode (the seed file
+    # exists for exactly this); only an *expired* seed should block, so the
+    # refresh workflow can turn the gate green rather than deadlock on it.
+    return (
+        details.get("source") == "real_data"
+        and details.get("gdp_source") == "fred_bundled"
+        and fred_source == "bundled"
+        and not fred_expired
     )
 
 
