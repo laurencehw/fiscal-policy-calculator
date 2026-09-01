@@ -16,11 +16,13 @@ The headline validation table mixes two epistemically different things:
   tier that measures genuine out-of-sample accuracy.
 
 * **Uncalibrated module reconstructions** (Phase E: the international, trade,
-  pharma, enforcement and climate runners): presets carrying an official
-  figure whose module holds no constant fitted to it. Reported as their own
-  tier — neither a calibration reference nor a bottom-up SOI prediction.
-  Provenance is reported alongside, because a handful of those targets are
-  themselves model estimates rather than published scores.
+  pharma, enforcement and climate runners; Phase D: the P.L. 119-21 JCT line
+  items): targets carrying an official figure whose module holds no constant
+  fitted to it. Reported as their own tier — neither a calibration reference
+  nor a bottom-up SOI prediction. Provenance is reported alongside, because a
+  handful of those targets are themselves model estimates rather than
+  published scores, while the P.L. 119-21 block is the only one whose targets
+  are individual rows of a published table.
 
 This script runs the live scorecard and reports the tiers separately, so
 the genuine prediction error is stated plainly (and never goes stale in the
@@ -91,9 +93,10 @@ def build_report() -> dict:
     # Phase E split the specialized tier in two. Entries whose module carries a
     # constant *fitted* to the benchmark are the calibrated reference set, whose
     # low error is expected by construction. Entries added by the sectoral
-    # runners (international, trade, pharma, enforcement, climate) are scored
-    # against figures their modules were never fitted to, so folding them into
-    # the calibrated mean would misdescribe both tiers.
+    # runners (international, trade, pharma, enforcement, climate) and by the
+    # Phase D P.L. 119-21 line-item runner are scored against figures their
+    # modules were never fitted to, so folding them into the calibrated mean
+    # would misdescribe both tiers.
     cal = [e for e in specialized if getattr(e, "calibrated_to_target", True)]
     recon = [e for e in specialized if not getattr(e, "calibrated_to_target", True)]
 

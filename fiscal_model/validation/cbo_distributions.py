@@ -24,6 +24,9 @@ What is included today
 - JCT JCX-68-17 income-class breakdown of the TCJA conference agreement
   (Dec 2017).
 - CBO American Rescue Plan distributional analysis (CBO 53-16008, Mar 2021).
+- CBO distributional analysis of P.L. 119-21, the 2025 reconciliation act
+  (CBO 61367, Aug 2025) — restricted to its federal-taxes-and-cash-transfers
+  column, which is the only one the engine can produce.
 - JCT JCX-4-21 analysis of the ARP refundable credits (Mar 2021).
 - Corporate-tax incidence assumption sources: CBO (75/25 capital/labor),
   Treasury OTA (82/18), TPC (80/20), JCT (75/25). Disagreement across
@@ -350,6 +353,93 @@ JCT_CORPORATE_28_2022 = CBODistributionalBenchmark(
 
 
 # ---------------------------------------------------------------------------
+# CBO 61367: distributional effects of P.L. 119-21 (2025 reconciliation act)
+# ---------------------------------------------------------------------------
+#
+# Source: CBO, "Distributional Effects of Public Law 119-21", letter to the
+# ranking members of the House and Senate Budget Committees, 11 August 2025
+# (publication 61367). Figures 1 and 2, from the letter's own supplemental data
+# file (``61367-data.xlsx``). Average *annual* change in household resources
+# over 2026-2034, by household income decile, relative to CBO's January 2025
+# baseline, in 2025 dollars.
+#
+# CBO decomposes the effect into four columns. Only the first is inside the
+# repository's distributional engine:
+#
+#   decile      taxes+cash   in-kind    state      other      NET
+#   Lowest         +119       -1485       +8        +144     -1214
+#   2nd            +271        -843       +7        +173      -392
+#   3rd            +447        -610       +7        +179       +23
+#   4th            +674        -491       +7        +189      +379
+#   5th            +992        -406       +7        +205      +797
+#   6th          +1,333        -347       +7        +219    +1,211
+#   7th          +1,759        -332       +8        +238    +1,673
+#   8th          +2,312        -371       +9        +263    +2,213
+#   9th          +3,375        -478      +10        +301    +3,208
+#   Highest     +14,708       -1637      +13        +538   +13,622
+#
+# The rows below carry the **"federal taxes and cash transfers"** column,
+# because that is the only one the CPS microsimulation can produce. The other
+# three - federal and state in-kind transfers (Medicaid and SNAP), states'
+# fiscal responses, and other spending and revenue - have no representation in
+# the engine at all, and they are what drives the law's regressive *net*
+# result: the bottom decile loses $1,485/yr of in-kind transfers against a
+# $119/yr tax gain. Comparing a tax-only model against CBO's net column would
+# not be a validation, it would be a category error, so the net column is
+# recorded here in prose and is deliberately not the benchmark.
+#
+# Sign convention: CBO reports a change in *resources* (positive = better off);
+# this module reports a change in *tax liability* (negative = a tax cut), so the
+# signs below are CBO's negated. Shares are computed from the decile averages -
+# CBO's deciles are equal-sized by household count, so the average is
+# proportional to the decile total - and sum to -1.0 because the tax provisions
+# are a net cut.
+
+CBO_PL119_21_2026 = CBODistributionalBenchmark(
+    policy_id="cbo_pl119_21_2026",
+    policy_name="P.L. 119-21 tax and cash-transfer provisions, 2026-2034 average",
+    source=DistributionSource.CBO,
+    source_document="CBO 61367",
+    source_date="2025-08",
+    source_url="https://www.cbo.gov/publication/61367",
+    analysis_year=2026,
+    grouping=IncomeGroupingType.DECILE,
+    rows=[
+        DistributionalBenchmarkRow("Decile 1 (lowest)", -119, -0.005, -0.3),
+        DistributionalBenchmarkRow("Decile 2", -271, -0.010, -0.4),
+        DistributionalBenchmarkRow("Decile 3", -447, -0.017, -0.6),
+        DistributionalBenchmarkRow("Decile 4", -674, -0.026, -0.8),
+        DistributionalBenchmarkRow("Decile 5", -992, -0.038, -0.9),
+        DistributionalBenchmarkRow("Decile 6", -1333, -0.051, -1.1),
+        DistributionalBenchmarkRow("Decile 7", -1759, -0.068, -1.2),
+        DistributionalBenchmarkRow("Decile 8", -2312, -0.089, -1.4),
+        DistributionalBenchmarkRow("Decile 9", -3375, -0.130, -1.6),
+        DistributionalBenchmarkRow("Decile 10 (highest)", -14708, -0.566, -2.9),
+    ],
+    notes=(
+        "Seventh real distributional table, added in Phase D. Scope note, and "
+        "it matters: these rows are CBO's 'federal taxes and cash transfers' "
+        "column only. CBO's NET effect per household is -$1,214 for the lowest "
+        "decile and +$13,622 for the highest, because the law's Medicaid and "
+        "SNAP changes take $1,485/yr of in-kind transfers from the bottom "
+        "decile. The distributional engine models neither in-kind transfers nor "
+        "states' fiscal responses, so the benchmark is deliberately restricted "
+        "to the column it can speak to, and the headline regressivity of P.L. "
+        "119-21 is NOT what this benchmark tests. Rate changes are percentage "
+        "points of income from CBO's Figure 2, same column, sign-flipped. "
+        "This is also the first distributional table the engine's TCJA shares "
+        "were NOT taken from: distribution_effects.calculate_tcja_effect builds "
+        "its decile tiers directly out of CBO 54796 and CBO 60007, so the "
+        "0.0pp error against cbo_tcja_2018 and cbo_tcja_extension_2026 is "
+        "bookkeeping. Against this table the same shares miss the top decile by "
+        "19.8pp (36.8% modelled against CBO's 56.6%), which is the first "
+        "genuinely held-out distributional number the suite has produced for "
+        "the TCJA shape."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
 # All benchmarks — used by run_full_cbo_jct_validation
 # ---------------------------------------------------------------------------
 
@@ -360,6 +450,7 @@ CBO_JCT_BENCHMARKS: list[CBODistributionalBenchmark] = [
     JCT_SALT_REPEAL_2024,
     JCT_CORPORATE_28_2022,
     CBO_TCJA_EXTENSION_2026,
+    CBO_PL119_21_2026,
 ]
 
 
@@ -568,6 +659,7 @@ def run_full_cbo_jct_validation(model_runner: Any) -> list[BenchmarkComparison]:
 __all__ = [
     "CBO_ARP_2021",
     "CBO_JCT_BENCHMARKS",
+    "CBO_PL119_21_2026",
     "CBO_TCJA_2018",
     "CBO_TCJA_EXTENSION_2026",
     "CORPORATE_INCIDENCE_SOURCES",

@@ -39,6 +39,7 @@ from .specialized import (
     validate_all_tcja,
     validate_all_trade,
 )
+from .specialized_pl119_21 import validate_all_pl119_21
 
 #: The out-of-sample tier's category name. Everything else is the calibrated
 #: tier — the split the readiness gate and the API summary both key on.
@@ -66,6 +67,12 @@ DEFAULT_RUNNERS: dict[str, Callable[..., list[ValidationResult]]] = {
     "Pharma": validate_all_pharma,
     "Enforcement": validate_all_enforcement,
     "Climate": validate_all_climate,
+    # Phase D, plan section 4.3: the first sourced line-item block in the
+    # calibrated tier - individual rows of JCT's JCX-35-25 estimate of
+    # P.L. 119-21, scored on the January 2025 baseline CBO measured the law
+    # against. Every entry is calibrated_to_target=False: the TCJA module's
+    # calibration factor is fitted to CBO's $4.6T aggregate, not to any row.
+    "PL119_21": validate_all_pl119_21,
     "Generic": validate_all,
 }
 
