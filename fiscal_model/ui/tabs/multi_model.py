@@ -271,7 +271,7 @@ def render_multi_model_tab(
                 st_module.caption(f"Pilot model warning: {warning}")
 
         summary = _bundle_to_summary_frame(bundle)
-        st_module.dataframe(summary, hide_index=True, use_container_width=True)
+        st_module.dataframe(summary, hide_index=True, width="stretch")
 
         ran = {result.model_name for result in bundle.results}
         skipped = set(bundle.errors)

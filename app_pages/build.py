@@ -309,7 +309,7 @@ def _render_archetype_cards(st_module: Any) -> None:
             if st_module.button(
                 "Use this philosophy",
                 key=f"values_card_{archetype.id}",
-                use_container_width=True,
+                width="stretch",
             ):
                 _write_vector(st_module, archetype.vector, archetype_id=archetype.id)
                 _set_reading(st_module, archetype.one_line)
@@ -580,7 +580,7 @@ def render_values_panel(deps: Any, on_load_selection: Any, *, st_module: Any = N
                 "Load into the checklist",
                 type="primary",
                 key="values_load",
-                use_container_width=True,
+                width="stretch",
                 disabled=not package.picks,
             ):
                 session[KEY_VALUES_PENDING_LOAD] = list(package.policy_ids)
@@ -606,7 +606,7 @@ def _render_share(st_module: Any, vector: Any, archetype_id: Any) -> None:
     if popover is None:  # pragma: no cover — older Streamlit / fakes
         st_module.caption(url)
         return
-    with popover("Share", use_container_width=True):
+    with popover("Share", width="stretch"):
         st_module.caption(
             "Anyone opening this link gets the same package — selection is "
             "deterministic from these values."

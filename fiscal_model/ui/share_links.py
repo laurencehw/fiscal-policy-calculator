@@ -261,14 +261,25 @@ def build_share_url(
         return f"{public_app_url}/{TAILOR_URL_PATH}?{urlencode(params)}"
 
     preset_name = result_data.get("policy_name")
-    if not preset_name or preset_name == "Custom Policy":
-        return None
 
-    # A generic Tailor run has a user-typed name that is not in the catalog:
-    # there is no id for it, so there is nothing shareable to link to.
-    preset_id = preset_id_for_token(preset_name)
+    # A generic Tailor run has a user-typed name that is not in the catalog, so
+    # there is no preset id to link to — but the policy is fully described by
+    # its own parameters, which ``/tailor`` reads. Emit that link instead of
+    # dropping the share button (Phase 5 leftover, REDESIGN_PLAN §7).
+    # "Custom Policy" is the *placeholder* label, not a proposal — it resolves
+    # to an id but names nothing, so it takes the generic path too.
+    preset_id = (
+        preset_id_for_token(preset_name)
+        if preset_name and preset_name != "Custom Policy"
+        else None
+    )
     if preset_id is None:
-        return None
+        return generic_tailor_share_url(
+            result_data,
+            public_app_url=public_app_url,
+            provenance=_provenance(),
+            dynamic=dynamic_enabled,
+        )
 
     params = {
         "analysis": "preset",
@@ -411,6 +422,16 @@ def decode_tailor_query(query_params: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+#: ``PolicyType`` value -> the Tailor chip that can re-create it. Types absent
+#: here (payroll, estate, the transfer programs) have no Tailor form, so a
+#: generic run of one is not shareable as a ``/tailor`` link.
+POLICY_TYPE_TO_TAILOR_KIND: dict[str, str] = {
+    "income_tax": "Income",
+    "corporate_tax": "Corporate",
+    "capital_gains_tax": "Capital gains",
+}
+
+
 def encode_tailor_share(
     *,
     kind: str = "Income",
@@ -421,8 +442,14 @@ def encode_tailor_share(
     dynamic: bool = False,
     run: bool = True,
     public_app_url: str = PUBLIC_APP_URL,
+    provenance: Mapping[str, str] | None = None,
 ) -> str:
-    """Build a ``/tailor`` URL. The inverse of :func:`decode_tailor_query`."""
+    """Build a ``/tailor`` URL. The inverse of :func:`decode_tailor_query`.
+
+    ``provenance`` carries the same ``baseline`` / ``spec`` / ``mode`` stamps
+    :func:`build_share_url` puts on a preset link, so a custom run's link
+    identifies its baseline vintage and the exact run that produced it.
+    """
     params: dict[str, str] = {"type": TAILOR_TYPE_TOKENS.get(kind, "income")}
     if rate is not None:
         params["rate"] = f"{float(rate):g}"
@@ -435,7 +462,46 @@ def encode_tailor_share(
     params["dynamic"] = "1" if dynamic else "0"
     if run:
         params["run"] = "1"
+    if provenance:
+        params.update({str(k): str(v) for k, v in provenance.items()})
     return f"{public_app_url}/{TAILOR_URL_PATH}?{urlencode(params)}"
+
+
+def generic_tailor_share_url(
+    result_data: Mapping[str, Any],
+    *,
+    public_app_url: str = PUBLIC_APP_URL,
+    provenance: Mapping[str, str] | None = None,
+    dynamic: bool = False,
+) -> str | None:
+    """Share URL for a custom (non-catalog) tax run, or ``None``.
+
+    Reads the scored ``Policy`` object rather than the widget state, so the
+    link describes what was actually scored — including when the run came from
+    a link in the first place.
+    """
+    policy = result_data.get("policy")
+    if policy is None:
+        return None
+    policy_type = getattr(getattr(policy, "policy_type", None), "value", None)
+    kind = POLICY_TYPE_TO_TAILOR_KIND.get(str(policy_type))
+    if kind is None:
+        return None
+
+    rate_change = getattr(policy, "rate_change", None)
+    threshold = getattr(policy, "affected_income_threshold", None)
+    return encode_tailor_share(
+        kind=kind,
+        # The engine stores a fraction; ``?rate=`` is in percentage points.
+        rate=None if rate_change is None else round(float(rate_change) * 100, 4),
+        threshold=None if threshold is None else int(threshold),
+        phase=int(getattr(policy, "phase_in_years", 1) or 1),
+        duration=int(getattr(policy, "duration_years", 10) or 10),
+        dynamic=dynamic,
+        run=True,
+        public_app_url=public_app_url,
+        provenance=provenance,
+    )
 
 
 # ── Legacy URL shim (Phase 5) ────────────────────────────────────────────

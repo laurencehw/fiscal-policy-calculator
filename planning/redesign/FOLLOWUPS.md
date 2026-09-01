@@ -12,16 +12,30 @@ Items surfaced by completed phases that belong to a later lane. Tick when done.
 - [x] Boot script: added `/ask`, `/ask?q=x`, `/explore?preset=tcja-full-extension&run=1`, `/tailor?type=income&rate=2&who=top400k&phase=1&run=1` and the legacy-label URL; `tests/test_streamlit_boot_script.py` kept in sync.
 
 Left for a later lane:
-- [ ] A generic Tailor run emits no share link (`build_share_url` returns `None` when the policy name has no catalog id). The `/tailor` **reader** and `encode_tailor_share` both exist, so wiring the result panel to emit a `/tailor?type=…&rate=…&who=…` link for custom runs is now a small change.
+- [x] A generic Tailor run now emits a share link. `build_share_url` falls through to
+  `share_links.generic_tailor_share_url`, which reads the scored `Policy` object (not the widget
+  state) and calls `encode_tailor_share` with the same `baseline` / `spec` / `mode` provenance a
+  preset link carries. Verified live: a −2pp/$400K+ run emits
+  `/tailor?type=income&rate=-2&who=top400k&phase=…&duration=…&dynamic=…&run=1&baseline=…&spec=…&mode=…`,
+  and the text export carries it too. `POLICY_TYPE_TO_TAILOR_KIND` limits it to the three types
+  Tailor has a form for; payroll/estate/etc. still return `None`. Round-trip test added.
 
 ## For Phase 6 (mobile / polish)
-- [ ] Anchor-scroll helper after Calculate/Score (one `components.html` utility).
-- [ ] Freshness alarm recalibration: `fiscal_model/data/freshness.py:57-58` `_CBO_FRESH_DAYS=120/_CBO_STALE_DAYS=180` flags a Feb baseline amber ~200 days in; amber only when a newer CBO release exists.
-- [ ] Tracker banner: drop "run python scripts/update_bills.py" from user copy → "data refresh pending".
-- [ ] Verify 375px: top nav, doorway-card stacking, sticky scoreboard is desktop-only (≥1025px) — confirm the fallback layout reads well.
-- [ ] Dark mode re-verify on all new surfaces (chrome popovers, Build badges/captions, Sources row).
-- [ ] CI ruff scope: add `app.py app_pages/ components/` to the ruff step.
-- [ ] Docs drift: `CLAUDE.md`, `docs/ARCHITECTURE.md`, README still describe the tabbed `app.py`; update once phases land.
+- [x] Anchor-scroll helper after Calculate/Score — now one utility, `components.results.scroll_to_results_anchor`, next to the `RESULTS_ANCHOR_HTML` it targets and its single call site in `render_score_surface`. Removed from `app_controller` (which no longer renders results, and no longer imports `time`). Verified in a browser on Tailor (anchor lands at viewport top) and Explore.
+- [x] Freshness alarm recalibration — done in `655131d`; release-calendar based, `_CBO_CYCLE_DAYS=395` / `_CBO_OVERDUE_DAYS=425` fallback. NOTES §11.13 updated.
+- [x] Tracker banner copy — done in `655131d`.
+- [x] Verify 375px (browser, via a 375-wide same-origin iframe — Chrome would not honour a window resize below the OS minimum). No horizontal scroll on `/`, `/build`, `/tailor`, `/explore` (`scrollWidth == innerWidth == 375`, zero overflowing elements); every `st.columns` group stacks full-width; the Build scoreboard renders **below** the checklist and no element is `position: sticky` (the ≥1025px guard holds); Streamlit moves the top nav into a **collapsed sidebar** natively at this width, so plan §8.1's fallback needed no code.
+- [x] Hit targets ≥44px — **were failing**: sidebar nav links 28px, `st.pills` 32px, chrome popover triggers 40px. The existing mobile rule only covered `.stButton`. Added a ≤640px block in `ui/styles.py` covering `stBaseButton-pills(-Active)`, `-segmented_control(Active)`, `-secondary`, `-primary`, `stPopoverButton`, `stPageLink-NavLink`, `stSidebarNavLink`. Re-measured: all 44px.
+- [x] Dark mode re-verified on every new surface — **was badly broken**. The overlay painted the page dark and forced light text, but left every Streamlit surface it did not repaint on its light theme, i.e. white-on-white: the top-nav header, the data-status pill and ⚙ triggers, the Build segmented control, the search input, expander headers. Also the app's own result cards (headline card, validation-evidence card, `.info-box`) kept inline pale backgrounds, so the headline number rendered white-on-grey and lost its red/green direction. Fixed by extending `_DARK_MODE_CSS` (`data-testid`-addressed, degrades to the light surface if a selector ever detaches) and by moving the result cards' palette out of inline hex into `.fpc-result-card` / `.fpc-impact-*` / `.fpc-evidence-card` classes defined in `ui/styles.py` (light) and `chrome.py` (dark). Alerts get a hue-preserving `brightness(1.75)` lift. Re-audited in the browser: no unreadable surface left. **Known limitation:** Plotly charts still paint a white canvas in dark mode (dark-on-light, so readable, not unreadable) — a real fix needs `st.plotly_chart` template switching, out of scope here.
+- [x] CI ruff scope — done in `655131d`.
+- [x] Docs drift — `CLAUDE.md` (router + `app_pages/`, `components/`, `composer/`, `preset_ids.py`, Package Studio folded into Build, URL contract table), `README.md` ("Navigation and URLs" section + project tree; model-maturity wording untouched), `docs/ARCHITECTURE.md` (presentation layer, URL contract, result object, values pipeline), NOTES §4.3 and §11.13.
+
+## Phase 6b — new / carried forward
+- [x] `$`-rendering guard is now a test: `tests/test_dollar_rendering.py` renders `/`, `/build`, `/tailor` and `/explore` (after a real run) through `AppTest` and asserts no rendered string carries two unescaped currency amounts. It found a **live** bug — the Results "Sensitivity range: `$+4,581.9B to $+4,581.9B`" line rendered as a KaTeX span with the dollar signs eaten — plus the over-cap rate-limit message (NOTES §11.22). Both fixed. Two things learned and encoded in the test: Streamlit's math parser opens a span on `$+`/`$-`, not just `$<digit>`; and a **block-level** HTML string (`<p>…`) is opaque to `remark-math` while an **inline** one (`<small>…`) is not — so the interpretation card is correctly left unescaped and escaping it actually renders a visible backslash.
+- [x] Streamlit 1.56 deprecations cleared: `use_container_width=` → `width="stretch"`/`"content"` across `app_pages/`, `components/`, `fiscal_model/ui/` and `ui/tabs/` (the `a11y.render_accessible_chart` kwarg is kept for callers and translated at the boundary). pyarrow mixed-type warning fixed at `ui/tabs/detailed_results.py` by casting the display-only Policy Details column to `str`.
+- [ ] **Plotly charts are not dark-mode aware** (white canvas on a dark page). Needs a theme-driven Plotly template in `ui/charts.py` passed through `apply_base_layout`, plus the same for the Vega tooltip. Readable today, but it breaks the illusion.
+- [ ] **Dark mode is a CSS overlay, not a theme.** Streamlit exposes no runtime theme API and no CSS custom properties to override, so `_DARK_MODE_CSS` enumerates surfaces by `data-testid`. It is now correct on every surface the app renders, but a future Streamlit that adds a widget type will re-open the same class of bug. Worth revisiting if upstream ships a runtime theme switch.
+- [ ] Scoring-window drift is visible to users: Explore shows **FY2026–FY2035** for a calibrated preset while Tailor shows **FY2025–FY2034** for a generic run (`FiscalPolicyScorer` defaults `start_year=2025`). Same owner call as the entry below, but note it is now a *within-session* inconsistency, not just a plan mismatch.
 
 ## Owner decisions still open (non-blocking)
 - [ ] **Scoring window**: Build renders FY2025–2034 because `FiscalPolicyScorer` defaults `start_year=2025`; plan and wireframes say FY2026–2035 (matches the CBO Feb 2026 baseline). Changing the scorer default is outside the redesign's non-goals — owner call.

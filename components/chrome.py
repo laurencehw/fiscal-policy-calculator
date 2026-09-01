@@ -40,17 +40,77 @@ APP_SUBTITLE = (
     f"Companion to the [Public Economics textbook]({TEXTBOOK_HOME})."
 )
 
-# Dark-mode CSS, lifted verbatim from the old sidebar block. The sidebar rule is
-# kept because Classroom Mode still renders one deliberately.
-_DARK_MODE_CSS = (
-    "<style>"
-    "body, .stApp {background-color: #0e1117 !important; color: #fafafa !important;} "
-    'section[data-testid="stSidebar"], section[data-testid="stSidebar"] > div '
-    "{background-color: #262730 !important;} "
-    ".stMarkdown, p, h1, h2, h3, label {color: #fafafa !important;} "
-    ".metric-card {background-color: #262730 !important;}"
-    "</style>"
-)
+# ── Dark mode ────────────────────────────────────────────────────────────
+#
+# Streamlit has no runtime theme-switch API, so dark mode is a CSS overlay.
+# The overlay paints the page dark and forces light text; every Streamlit
+# surface it does *not* repaint keeps its light-theme background and inherits
+# that light text — i.e. renders white-on-white.
+#
+# Phase 6 browser verification found exactly that on the surfaces the redesign
+# promoted out of the sidebar: the top-nav header, the data-status pill and ⚙
+# popover triggers, the Build segmented control, the search input and the
+# expander headers were all unreadable. Each block below repaints one of those,
+# addressed by ``data-testid`` (stable across minor upgrades; a missed selector
+# degrades to the old light surface rather than breaking layout).
+#
+# ``_DARK_SURFACE``/``_DARK_INK`` match Streamlit's own dark theme tokens, so
+# the overlay and any natively dark surface agree.
+_DARK_BG = "#0e1117"
+_DARK_SURFACE = "#262730"
+_DARK_INK = "#fafafa"
+
+_DARK_MODE_CSS = f"""<style>
+body, .stApp {{background-color: {_DARK_BG} !important; color: {_DARK_INK} !important;}}
+section[data-testid="stSidebar"], section[data-testid="stSidebar"] > div
+    {{background-color: {_DARK_SURFACE} !important;}}
+.stMarkdown, p, h1, h2, h3, label {{color: {_DARK_INK} !important;}}
+.metric-card {{background-color: {_DARK_SURFACE} !important;}}
+
+/* Top navigation. The header is the one chrome element outside .stApp's
+   paint, and on mobile it also hosts the collapsed-sidebar toggle. */
+header[data-testid="stHeader"] {{background-color: {_DARK_BG} !important;}}
+[data-testid="stTopNavLink"],
+[data-testid="stTopNavDropdownLink"],
+[data-testid="stTopNavSection"] {{color: {_DARK_INK} !important;}}
+
+/* Chrome popovers (data-status pill, ⚙ settings), the Build segmented
+   control, text/number inputs, select menus and expander headers. */
+[data-testid="stPopoverBody"],
+[data-testid="stPopoverButton"],
+[data-testid="stBaseButton-secondary"],
+[data-testid="stBaseButton-segmented_control"],
+[data-testid="stBaseButton-segmented_controlActive"],
+[data-testid="stTextInputRootElement"],
+[data-testid="stTextInputRootElement"] > div,
+[data-testid="stTextAreaRootElement"],
+[data-testid="stNumberInputContainer"],
+[data-testid="stElementToolbarButtonContainer"],
+[data-testid="stExpander"] summary,
+[data-baseweb="select"] > div,
+[data-baseweb="popover"] [role="listbox"]
+    {{background-color: {_DARK_SURFACE} !important; color: {_DARK_INK} !important;}}
+
+/* Alerts tint a translucent panel and pair it with deliberately dark ink;
+   over a dark page both vanish. Brightening the composite lifts them off the
+   background while preserving the severity hue (amber warn vs red error). */
+[data-testid="stAlertContainer"] {{filter: brightness(1.75) saturate(0.85);}}
+
+/* App-owned cards. Their light palette is in ui/styles.py; without these the
+   text rule above paints white ink onto a pale card. The impact colours are
+   lifted rather than reused so red/green keep their contrast on a dark
+   ground — the headline number must stay legible *and* keep its direction. */
+.fpc-result-card {{background-color: {_DARK_SURFACE} !important;}}
+.fpc-result-card-title, .fpc-result-card-note {{color: #c9ccd6 !important;}}
+.fpc-impact-up {{color: #ff6b7a !important;}}
+.fpc-impact-down {{color: #4ade80 !important;}}
+.fpc-impact-flat {{color: #c9ccd6 !important;}}
+.fpc-evidence-card
+    {{background-color: #1b1e26 !important; border-color: #3d4048 !important;}}
+.fpc-evidence-card-title {{color: #9aa4b2 !important;}}
+.info-box
+    {{background-color: #1e3a5f !important; border-left-color: #4da6ff !important;}}
+</style>"""
 
 
 def _disclosure(st_module: Any, label: str, *, help_text: str | None = None) -> Any:

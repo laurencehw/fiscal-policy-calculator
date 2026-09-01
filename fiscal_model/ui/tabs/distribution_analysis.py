@@ -253,7 +253,7 @@ def render_distribution_tab(
                     "ETR Change (ppts)": "{:.2f}",
                 }
             ),
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
         dist_meta = (
@@ -395,7 +395,7 @@ def render_distribution_tab(
                 )
 
         if top_data:
-            st_module.dataframe(pd.DataFrame(top_data), use_container_width=True, hide_index=True)
+            st_module.dataframe(pd.DataFrame(top_data), width="stretch", hide_index=True)
         else:
             st_module.info("This policy does not significantly affect top income groups")
 
@@ -518,7 +518,7 @@ def _render_tariff_consumer_impact(st_module: Any, policy: Any) -> None:
         meta={"description": "Bar chart showing tariff consumer costs by income quintile, demonstrating regressive impact on lower-income households"},
     )
 
-    st_module.plotly_chart(fig_quintile, use_container_width=True)
+    st_module.plotly_chart(fig_quintile, width="stretch")
 
     # Pass-through rate caption
     st_module.caption(

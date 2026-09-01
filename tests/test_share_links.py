@@ -242,7 +242,8 @@ def test_build_share_url_returns_none_for_custom_or_microsim_results():
         result_data={"is_microsim": True},
         public_app_url="https://example.com",
     ) is None
-    # A user-named generic run has no catalog id, so there is nothing to link.
+    # A user-named generic run with no scored policy object attached carries
+    # nothing to describe, so it still has no link.
     assert build_share_url(
         result_data={
             "policy_name": "My own 3pp surtax",
@@ -250,6 +251,90 @@ def test_build_share_url_returns_none_for_custom_or_microsim_results():
         },
         public_app_url="https://example.com",
     ) is None
+    # Nor does a policy type Tailor has no form for (payroll, estate, …).
+    assert build_share_url(
+        result_data={
+            "policy_name": "My own payroll change",
+            "result": SimpleNamespace(dynamic_effects=None),
+            "policy": _generic_policy(policy_type="payroll_tax"),
+        },
+        public_app_url="https://example.com",
+    ) is None
+
+
+def _generic_policy(
+    *,
+    policy_type: str = "income_tax",
+    rate_change: float = 0.03,
+    threshold: float = 400_000,
+    phase_in_years: int = 2,
+    duration_years: int = 10,
+):
+    """Stand-in for the scored ``TaxPolicy`` a generic Tailor run produces."""
+    return SimpleNamespace(
+        policy_type=SimpleNamespace(value=policy_type),
+        rate_change=rate_change,
+        affected_income_threshold=threshold,
+        phase_in_years=phase_in_years,
+        duration_years=duration_years,
+    )
+
+
+def test_generic_tailor_run_emits_a_tailor_share_link():
+    """Phase 5 leftover: a custom run had no share link at all."""
+    url = build_share_url(
+        result_data={
+            "policy_name": "My own 3pp surtax",
+            "result": SimpleNamespace(dynamic_effects=None),
+            "policy": _generic_policy(),
+        },
+        public_app_url="https://example.com",
+        scored=SimpleNamespace(
+            baseline_vintage="CBO February 2026",
+            policy_spec_hash="abc123",
+            mode="conventional",
+        ),
+    )
+    parsed = urlparse(url)
+    params = parse_qs(parsed.query)
+    assert parsed.path == "/tailor"
+    assert params["type"] == ["income"]
+    assert params["rate"] == ["3"]
+    assert params["who"] == ["top400k"]
+    assert params["phase"] == ["2"]
+    assert params["duration"] == ["10"]
+    assert params["run"] == ["1"]
+    # Same provenance stamps a preset link carries.
+    assert params["baseline"] == [baseline_vintage_token("CBO February 2026")]
+    assert params["spec"] == ["abc123"]
+    assert params["mode"] == ["conventional"]
+
+
+def test_generic_tailor_share_link_round_trips():
+    """The link the result panel emits re-creates the run it came from."""
+    url = build_share_url(
+        result_data={
+            "policy_name": "Corporate rate to 28%",
+            "result": SimpleNamespace(dynamic_effects=object()),
+            "policy": _generic_policy(
+                policy_type="corporate_tax",
+                rate_change=0.07,
+                threshold=0,
+                phase_in_years=1,
+                duration_years=8,
+            ),
+        },
+        public_app_url="https://example.com",
+    )
+    decoded = decode_tailor_query(parse_qs(urlparse(url).query))
+    assert decoded["kind"] == "Corporate"
+    assert decoded["rate"] == 7
+    assert decoded["threshold"] == 0
+    assert decoded["phase"] == 1
+    assert decoded["duration"] == 8
+    assert decoded["dynamic"] is True
+    assert decoded["run"] is True
+    assert decoded["has_params"] is True
 
 
 # ---------------------------------------------------------------------------

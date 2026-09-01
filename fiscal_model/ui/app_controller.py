@@ -10,7 +10,6 @@ score-a-policy workbench used by ``/explore`` and ``/tailor``.
 from __future__ import annotations
 
 import logging
-import time
 from typing import Any
 
 from .a11y import inject_a11y_styles
@@ -572,7 +571,7 @@ def _render_quick_start_card(
         if st_module.button(
             "Try this →",
             key=f"qs_btn_{card['key']}",
-            use_container_width=True,
+            width="stretch",
         ):
             _queue_sidebar_updates(st_module=st_module, **card["preset"])
             st_module.rerun()
@@ -628,49 +627,6 @@ def render_quick_start(st_module: Any, calculating: bool = False) -> None:
             _render_quick_start_card(st_module, col, card)
 
     st_module.markdown("---")
-
-
-def _scroll_to_results_anchor(run_id: str | None = None) -> None:
-    """Scroll the page to the results tab bar after a calculation completes.
-
-    Streamlit sanitizes <script> in markdown, so this uses a zero-height
-    component iframe (same-origin) to scroll the parent document. Clicking
-    Calculate otherwise produces no visible change — results render well
-    below the fold.
-
-    Two failure modes this must handle:
-    - Streamlit reuses a component iframe when its HTML is byte-identical,
-      so the script would run only on the *first* calculation. Embedding
-      the run id makes each calculation's HTML unique and forces a reload.
-    - The anchor may not be laid out yet when the iframe script first runs
-      (the page is still rendering), so retry briefly instead of giving up.
-    """
-    try:
-        import streamlit.components.v1 as components
-
-        # run_id repeats for identical settings, so add a per-render nonce —
-        # this only renders on Calculate clicks, so uniqueness is cheap.
-        cache_buster = f"{run_id or 'unkeyed'}:{time.time_ns()}"
-        components.html(
-            "<script>"
-            f"/* run:{cache_buster} */"
-            "const tryScroll = (n) => {"
-            "  const anchor = window.parent.document.getElementById('results-anchor');"
-            "  if (anchor && anchor.isConnected) {"
-            "    anchor.scrollIntoView({behavior: 'smooth', block: 'start'});"
-            "  } else if (n > 0) {"
-            "    setTimeout(() => tryScroll(n - 1), 150);"
-            "  }"
-            "};"
-            "setTimeout(() => tryScroll(10), 100);"
-            "</script>",
-            height=0,
-        )
-    except Exception:
-        # Non-Streamlit contexts (unit tests with stub st modules) skip the scroll.
-        pass
-
-
 
 
 # ---------------------------------------------------------------------------

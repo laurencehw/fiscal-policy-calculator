@@ -143,7 +143,7 @@ def _render_rate_curves(
         "Combined Rate": [f"{r['combined_rate'] * 100:.1f}%" for _, r in curve.iterrows()],
     })
 
-    st_module.dataframe(display_df, use_container_width=True, hide_index=True)
+    st_module.dataframe(display_df, width="stretch", hide_index=True)
 
     # Try to render a chart
     try:
@@ -182,7 +182,7 @@ def _render_rate_curves(
             margin=dict(l=0, r=0, t=30, b=0),
             height=340,
         )
-        st_module.plotly_chart(fig, use_container_width=True)
+        st_module.plotly_chart(fig, width="stretch")
     except ImportError:
         pass  # Plotly not available; table already shown
 
@@ -306,7 +306,7 @@ def _render_salt_section(
             ]
             st_module.dataframe(
                 salt_df[display_cols],
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
             )
             st_module.caption(
@@ -346,7 +346,7 @@ def _render_state_comparison_table(st_module: Any, db: Any) -> None:
     if records:
         st_module.dataframe(
             pd.DataFrame(records),
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
         )
         st_module.caption(

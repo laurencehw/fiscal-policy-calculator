@@ -41,6 +41,27 @@ The calculator scores fiscal policy proposals through a three-stage pipeline:
 
 Plus fully custom policy design with adjustable parameters.
 
+### Navigation and URLs
+
+The app is verb-first and multipage — **Ask · Build · Tailor · Explore · More ▾**
+in a top nav, with no global sidebar. Every page is addressable, so any view can
+be linked, bookmarked, or pasted into a document:
+
+| Page | URL | What it does |
+|------|-----|--------------|
+| **Ask** | `/` · `/?q=<question>` | landing page: ask a public-finance question, or step through to a doorway |
+| **Build** | `/build?values=<archetype>` · `?vector=<b64>` · `?policies=<ids>` | start from your values (5 archetypes or free text) or straight from the policy checklist |
+| **Tailor** | `/tailor?type=income&rate=2&who=top400k&phase=1&run=1` | set the parameters yourself; `who` takes an enum or a bare amount |
+| **Explore** | `/explore?preset=<id>&dynamic=1&run=1` | score a catalog proposal |
+| **More ▾** | `/tracker` · `/methodology` · `/classroom` | bill tracker, methodology, classroom mode |
+
+Share links additionally stamp `baseline=<vintage>`, `spec=<policy hash>` and
+`mode=conventional|dynamic`, so a link says which baseline and which run
+produced its numbers. Older links — including the pre-redesign
+`?analysis=preset&preset=<label>&run=1` form — are rewritten transparently.
+Data Status and Model settings live in popovers in the shared page chrome; on
+phones the top nav collapses into a sidebar toggle.
+
 ### Additional features
 
 - **💬 Ask assistant** — Citation-grounded Q&A about public finance and this model's outputs. Streams answers from Claude Sonnet 4.6 with tool access to the app's scoring engine, CBO baseline, validation scorecard, and 19 curated authoritative snapshots (CBO, JCT, PWBM, Yale Budget Lab, TPC, PGPF, BEA, BLS, SSA Trustees, FRED). Every substantive claim carries a `[^N]` footnote cross-referenced against the tool-call provenance; unsupported markers are auto-stripped. Hard daily cost cap ($5/day default across all visitors), per-session message cap, cool-down, and kill-switch protect the deployer's API budget. Available as a Streamlit tab, a non-streaming `POST /ask` endpoint, and an SSE `POST /ask/stream` endpoint.
@@ -463,12 +484,16 @@ python3.12 -m venv .lockvenv
 
 ```
 fiscal-policy-calculator/
-├── app.py                    # Main Streamlit entry point
+├── app.py                    # Router: st.navigation(position="top") + legacy-URL shim
+├── app_pages/                # One module per page (ask, build, tailor, explore, …)
+├── components/               # Shared frame: chrome.py, cards.py, results.py
 ├── classroom_app.py          # Classroom mode Streamlit app
 ├── api.py                    # FastAPI endpoints
 ├── fiscal_model/             # Core scoring engine
 │   ├── ui/                   # Streamlit UI components
-│   │   └── tabs/             # Tab renderers (results, analysis, methodology)
+│   │   └── tabs/             # Page bodies + result sub-views
+│   ├── composer/             # Values vector, archetypes, deterministic selector
+│   ├── preset_ids.py         # Stable preset ids, exclusive groups, values tags
 │   ├── models/               # Macro adapters (FRB/US)
 │   ├── long_run/             # OLG model, Solow growth
 │   ├── state/                # State-level rate modeling

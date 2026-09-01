@@ -435,7 +435,6 @@ def render_score_surface(
     from fiscal_model.ui.app_controller import (
         _HOW_SCORED_MARKDOWN,
         _apply_pending_sidebar_updates,
-        _scroll_to_results_anchor,
         render_quick_start,
     )
     from fiscal_model.ui.calculation_controller import (
@@ -490,7 +489,7 @@ def render_score_surface(
             st_module.markdown(_HOW_SCORED_MARKDOWN)
 
     with result_col:
-        st_module.markdown('<div id="results-anchor"></div>', unsafe_allow_html=True)
+        st_module.markdown(RESULTS_ANCHOR_HTML, unsafe_allow_html=True)
 
         ensure_results_state(st_module=st_module)
         execute_calculation_if_requested(
@@ -504,7 +503,7 @@ def render_score_surface(
 
         result_data = st_module.session_state.get("results")
         if calc_context.get("calculate") and result_data:
-            _scroll_to_results_anchor(run_id=spec_hash)
+            scroll_to_results_anchor(run_id=spec_hash)
 
         render_result_panel(
             st_module=st_module,
@@ -575,3 +574,58 @@ def _render_empty_state(st_module: Any, score_label: str) -> None:
 def now_ts() -> float:
     """Wall-clock helper (kept here so pages don't import ``time`` directly)."""
     return time.time()
+
+
+# ── Anchor scroll ────────────────────────────────────────────────────────
+#
+# One utility, one call site. It lives beside ``render_score_surface`` — the
+# only place that both emits ``#results-anchor`` and scrolls to it — rather
+# than in ``app_controller``, which no longer renders results at all
+# (REDESIGN_PLAN.md §8.2).
+
+RESULTS_ANCHOR_ID = "results-anchor"
+
+RESULTS_ANCHOR_HTML = f'<div id="{RESULTS_ANCHOR_ID}"></div>'
+
+
+def scroll_to_results_anchor(run_id: str | None = None) -> None:
+    """Scroll the result heading into view after a Score/Calculate click.
+
+    Streamlit sanitizes ``<script>`` in markdown, so this uses a zero-height
+    component iframe (same-origin) to scroll the parent document. Clicking
+    Score otherwise produces no visible change on a phone — the result panel
+    renders well below the fold.
+
+    Two failure modes this must handle:
+
+    - Streamlit reuses a component iframe when its HTML is byte-identical, so
+      the script would run only on the *first* calculation. Embedding the run
+      id plus a nonce makes each calculation's HTML unique and forces a reload.
+    - The anchor may not be laid out yet when the iframe script first runs (the
+      page is still rendering), so retry briefly instead of giving up.
+    """
+    try:
+        import streamlit.components.v1 as components
+
+        # run_id repeats for identical settings, so add a per-render nonce —
+        # this only renders on Score clicks, so uniqueness is cheap.
+        cache_buster = f"{run_id or 'unkeyed'}:{time.time_ns()}"
+        components.html(
+            "<script>"
+            f"/* run:{cache_buster} */"
+            "const tryScroll = (n) => {"
+            "  const anchor = window.parent.document.getElementById("
+            f"'{RESULTS_ANCHOR_ID}');"
+            "  if (anchor && anchor.isConnected) {"
+            "    anchor.scrollIntoView({behavior: 'smooth', block: 'start'});"
+            "  } else if (n > 0) {"
+            "    setTimeout(() => tryScroll(n - 1), 150);"
+            "  }"
+            "};"
+            "setTimeout(() => tryScroll(10), 100);"
+            "</script>",
+            height=0,
+        )
+    except Exception:
+        # Non-Streamlit contexts (unit tests with stub st modules) skip the scroll.
+        pass

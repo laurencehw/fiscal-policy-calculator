@@ -112,19 +112,19 @@ def render_assistant_admin_tab(st_module: Any) -> None:
             st_module.line_chart(
                 daily.set_index("day")[["cost_usd"]],
                 height=240,
-                use_container_width=True,
+                width="stretch",
             )
             st_module.bar_chart(
                 daily.set_index("day")[["turns"]],
                 height=180,
-                use_container_width=True,
+                width="stretch",
             )
         with table_col:
             non_zero = daily[daily["turns"] > 0].tail(7)
             st_module.dataframe(
                 non_zero,
                 hide_index=True,
-                use_container_width=True,
+                width="stretch",
             )
 
     st_module.divider()
@@ -140,7 +140,7 @@ def render_assistant_admin_tab(st_module: Any) -> None:
         st_module.bar_chart(
             tools_df.set_index("tool"),
             height=260,
-            use_container_width=True,
+            width="stretch",
         )
     else:
         st_module.caption("_No tool-call activity yet._")
@@ -155,7 +155,7 @@ def render_assistant_admin_tab(st_module: Any) -> None:
         st_module.error(f"Failed to load recent turns: {exc}")
         recent = None
     if recent is not None and not recent.empty:
-        st_module.dataframe(recent, hide_index=True, use_container_width=True)
+        st_module.dataframe(recent, hide_index=True, width="stretch")
     else:
         st_module.caption("_No turns recorded yet._")
 

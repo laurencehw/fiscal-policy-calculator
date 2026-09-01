@@ -41,7 +41,68 @@ The Fiscal Policy Calculator is intended to evolve into a **pluggable multi-mode
 
 ---
 
-## Current Architecture (April 2026)
+## Current Architecture (August 2026)
+
+### Presentation layer — pages, chrome, result object
+
+The Streamlit app is a **multipage router**, not a tabbed monolith. `app.py`
+holds the single `st.set_page_config`, runs the legacy-URL shim, and builds
+`st.navigation(position="top")`. Page *bodies* stay in `fiscal_model/ui/`; the
+top level holds only the frame:
+
+```
+app.py                     # Router + legacy-URL shim (Streamlit Cloud entry point)
+app_pages/                 # One thin module per page
+├── ask.py                 # Default page — hero, chat, doorway + example cards
+├── build.py               # Values panel → policy checklist → scoreboard
+├── tailor.py              # Parameterised custom policy → shared result panel
+├── explore.py             # Catalog presets → shared result panel
+├── tracker.py  methodology.py  classroom.py  admin.py
+components/                # Page-agnostic frame
+├── chrome.py              # Brand line, data-status pill popover, ⚙ settings
+│                          #   popover, degraded-data banner, dark-mode CSS,
+│                          #   one footer per page (was 6-7 under tabs)
+├── cards.py               # Ask doorway cards + worked-example prefill cards
+└── results.py             # ScoredResult, render_score_surface/render_results,
+                           #   spec-hash invalidation, anchor scroll
+```
+
+**URL contract.** `/` (Ask, `?q=`), `/build` (`?values=` | `?vector=` |
+`?policies=`), `/tailor` (`?type=&rate=&who=&phase=&duration=&dynamic=&run=`),
+`/explore` (`?preset=<stable id>&dynamic=&run=`), plus `/tracker`,
+`/methodology`, `/classroom`. Emitted links stamp `baseline=`, `spec=` (policy
+hash) and `mode=`. `fiscal_model/ui/share_links.py` owns both directions,
+including `rewrite_legacy_query`, which the router applies **before**
+`st.navigation` so retired paths never flash "page not found".
+
+**One result object.** A run produces one frozen
+`components.results.ScoredResult` (spec hash, name, mode, window, headline,
+static/behavioral/feedback/debt-service/dynamic totals, per-year path, tier,
+benchmark, baseline vintage, policy status, sensitivity). Headline, Key
+Metrics, charts, deep views, Copy Summary, CSV, text export and the share link
+all render from it, so they cannot disagree. The panel recomputes the spec hash
+each render and replaces stale numbers with "Configuration changed — score
+again". Sign convention is app-wide: **positive increases the deficit**.
+
+**Values pipeline** (the second door into Build):
+
+```
+free text ──translate.py (temperature=0)──┐
+                                          ├──> ValuesVector ──> composer.select_package(vector, catalog)
+archetypes.yaml (5, no LLM) ──────────────┘        │                    │
+                                                   │                    ├─ tags × vector scoring
+                                          values_schema.PROTECTED_RULES ─┤─ protected vetoes
+                                                                        ├─ exclusive_groups / subsumes
+                                                                        └─ greedy fill to target
+                                                                             ↓
+                                                       [(preset id, why-sentence)] → Build checklist
+```
+
+The LLM only ever produces the vector; selection is deterministic, so the same
+vector yields a byte-identical package. Schema-invalid model output degrades to
+the archetype cards. Policy identity for all of this — stable ids,
+`exclusive_groups`, `subsumes`, values tags — lives in
+`fiscal_model/preset_ids.py`.
 
 ### Module Structure
 
@@ -74,8 +135,16 @@ fiscal_model/
 │   ├── fred_data.py      # FRED API wrapper
 │   └── validation.py     # Data quality checks
 │
-├── ui/                   # Streamlit UI controllers and tabs
-│   ├── app_controller.py
+├── preset_ids.py         # Stable preset ids, exclusive groups, values tags
+│
+├── composer/             # "Start from your values" (Build's opening panel)
+│   ├── values_schema.py  # ValuesVector + PROTECTED_RULES
+│   ├── archetypes.yaml   # 5 offline archetypes
+│   ├── composer.py       # Deterministic package selector
+│   └── translate.py      # Free text -> vector (temperature=0)
+│
+├── ui/                   # Streamlit page bodies and shared controllers
+│   ├── app_controller.py       # Per-page bootstrap, data-status panel, quick start
 │   ├── calculation_controller.py
 │   ├── policy_input.py   # Compatibility facade
 │   ├── policy_input_tax.py
@@ -83,8 +152,9 @@ fiscal_model/
 │   ├── policy_input_presets.py
 │   ├── settings_controller.py
 │   ├── runtime_logging.py
-│   ├── share_links.py
-│   └── tabs/
+│   ├── styles.py         # Shared CSS: responsive blocks, result-card palette
+│   ├── share_links.py    # URL contract both ways + legacy rewrite
+│   └── tabs/             # Page bodies (deficit_target.py = Build) and result sub-views
 │
 ├── data_files/           # Static data files
 │   └── irs_soi/

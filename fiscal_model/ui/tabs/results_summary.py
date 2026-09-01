@@ -296,7 +296,17 @@ def _build_interpretation_html(
     annual_avg: float,
     pct_of_gdp: float,
 ) -> str:
-    """Build plain-English interpretation HTML without markdown currency parsing."""
+    """Build plain-English interpretation HTML without markdown currency parsing.
+
+    Every branch quotes *two* amounts, which in plain markdown would be a KaTeX
+    inline-math span. It is safe here — and only here — because the caller wraps
+    the result in ``<p>…</p>`` and renders it with ``unsafe_allow_html=True``:
+    an HTML block is opaque to ``remark-math``, so no math tokenizing happens
+    inside it. Verified in a browser (Phase 6): the paragraph shows currency and
+    the page contains no ``.katex`` node. **Do not** run
+    ``escape_markdown_dollars`` over this string — markdown escapes are not
+    processed inside an HTML block either, so ``\\$`` would render its backslash.
+    """
     if final_deficit_total > 100:
         return (
             "This policy would <strong>add approximately "
@@ -352,8 +362,8 @@ def _build_credibility_html(credibility: Any) -> str:
         limitation_items = "<li>No category-specific limitations are recorded.</li>"
 
     return f"""
-    <div style="border:1px solid #d6dbe6; background:#fbfcff; border-radius:0.6rem; padding:0.85rem 1rem; margin:0.75rem 0 1rem 0;">
-        <div style="font-size:0.8rem; text-transform:uppercase; letter-spacing:0.06em; color:#526071; font-weight:700;">
+    <div class="fpc-evidence-card">
+        <div class="fpc-evidence-card-title">
             Validation evidence
         </div>
         <div style="display:flex; flex-wrap:wrap; gap:0.75rem; margin-top:0.45rem;">
@@ -424,22 +434,26 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     result = result_data["result"]
     headline = float(scored.headline)
 
+    # Colours live in ``ui/styles.py`` (light) and ``components/chrome.py``
+    # (dark), keyed off these classes. Inline hex here would survive the
+    # dark-mode overlay's text rule and leave the headline number — the single
+    # most-read figure in the app — white on a pale grey card.
     if headline < 0:
-        impact_color, impact_label = "#28a745", "Deficit Reduction"
+        impact_class, impact_label = "fpc-impact-down", "Deficit Reduction"
     elif headline > 0:
-        impact_color, impact_label = "#dc3545", "Deficit Increase"
+        impact_class, impact_label = "fpc-impact-up", "Deficit Increase"
     else:
-        impact_color, impact_label = "#555", "No Change"
+        impact_class, impact_label = "fpc-impact-flat", "No Change"
 
     st_module.markdown(_tier_badge_html(scored), unsafe_allow_html=True)
     st_module.markdown(
         f"""
-        <div style="background-color: #f0f2f6; padding: 1rem; border-radius: 0.5rem; text-align: center; margin-bottom: 1rem;">
-            <h3 style="margin:0; color: #555;">{escape(scored.window)} Deficit Impact (conventional)</h3>
-            <h1 style="margin:0; font-size: 3rem; color: {impact_color};">
+        <div class="fpc-result-card">
+            <h3 class="fpc-result-card-title">{escape(scored.window)} Deficit Impact (conventional)</h3>
+            <h1 class="fpc-impact {impact_class}">
                 ${headline:+,.1f}B
             </h1>
-            <p style="margin:0; color: #666;">
+            <p class="fpc-result-card-note">
                 {impact_label}{' (Spending Policy)' if scored.is_spending else ''}
             </p>
         </div>
@@ -457,8 +471,14 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     band = getattr(scored, "sensitivity", None)
     if band:
         note = getattr(scored, "sensitivity_note", "")
+        # ``<small>`` is an *inline* tag, so this is a markdown paragraph with
+        # raw HTML in it — not an opaque HTML block like the interpretation
+        # card. KaTeX therefore does parse it, and unescaped
+        # ``$+4,581.9B to $`` rendered as an italic math span with the dollar
+        # signs eaten (caught in a browser, Phase 6). Escape the currency.
         st_module.markdown(
-            f"<small><b>Sensitivity range:</b> ${band[0]:+,.1f}B to ${band[1]:+,.1f}B"
+            f"<small><b>Sensitivity range:</b> \\${band[0]:+,.1f}B "
+            f"to \\${band[1]:+,.1f}B"
             + (f" ({escape(note)})" if note else "")
             + "</small>",
             unsafe_allow_html=True,

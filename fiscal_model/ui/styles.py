@@ -31,16 +31,40 @@ APP_STYLES = """
         margin: 1rem 0;
         border-radius: 0.25rem;
     }
-    /* Dark mode support — only target our custom components, not broad selectors
-       that conflict with Streamlit's own theming (e.g. white text on white bg). */
-    .dark-mode .metric-card {
-        background-color: #262730;
-        color: #fafafa;
+    /* ── Result panel cards ───────────────────────────────────────────────
+       The headline card, its impact number and the validation-evidence card
+       used to carry inline hex. That made them un-themeable: the dark-mode
+       overlay in ``components/chrome.py`` forces light text app-wide, so a
+       card that kept its own pale background rendered white-on-white — and
+       the headline number lost its red/green direction cue. Colours live
+       here (light) and in ``_DARK_MODE_CSS`` (dark); the render path emits
+       class names only. */
+    .fpc-result-card {
+        background-color: #f0f2f6;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        text-align: center;
+        margin-bottom: 1rem;
     }
-    .dark-mode .info-box {
-        background-color: #1e3a5f;
-        border-left-color: #4da6ff;
-        color: #fafafa;
+    .fpc-result-card-title { margin: 0; color: #555; }
+    .fpc-result-card-note { margin: 0; color: #666; }
+    .fpc-impact { margin: 0; font-size: 3rem; }
+    .fpc-impact-up { color: #dc3545; }
+    .fpc-impact-down { color: #28a745; }
+    .fpc-impact-flat { color: #555; }
+    .fpc-evidence-card {
+        border: 1px solid #d6dbe6;
+        background: #fbfcff;
+        border-radius: 0.6rem;
+        padding: 0.85rem 1rem;
+        margin: 0.75rem 0 1rem 0;
+    }
+    .fpc-evidence-card-title {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #526071;
+        font-weight: 700;
     }
     /* Share button styling */
     .stButton button[data-testid="baseButton-secondary"] {
@@ -96,6 +120,33 @@ APP_STYLES = """
             padding-top: 0.5rem;
             padding-left: 0.75rem;
             padding-right: 0.75rem;
+        }
+        /* Hit targets for the surfaces the ask-first redesign added. The
+           .stButton rule above misses all of them: st.pills and the
+           segmented control render their own base buttons, the chrome pill
+           and ⚙ are popover triggers, the doorway cards are page links, and
+           below 640px Streamlit moves the top nav into a collapsed sidebar
+           (verified at 375px — it does this natively, so no fallback nav of
+           our own is needed; its links are the smallest targets at 28px). */
+        [data-testid="stBaseButton-pills"],
+        [data-testid="stBaseButton-pillsActive"],
+        [data-testid="stBaseButton-segmented_control"],
+        [data-testid="stBaseButton-segmented_controlActive"],
+        [data-testid="stBaseButton-secondary"],
+        [data-testid="stBaseButton-primary"],
+        [data-testid="stPopoverButton"],
+        [data-testid="stPageLink-NavLink"],
+        [data-testid="stSidebarNavLink"] {
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+        }
+        /* Page links and nav links centre their label; buttons keep theirs
+           centred as Streamlit ships them. */
+        [data-testid="stPageLink-NavLink"],
+        [data-testid="stSidebarNavLink"] {
+            padding-top: 0.25rem;
+            padding-bottom: 0.25rem;
         }
     }
     /* ── Mobile: scrollable tab bar ───────────────────────────────────── */

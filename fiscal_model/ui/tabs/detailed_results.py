@@ -74,9 +74,13 @@ def render_detailed_results_tab(
     policy_details["Duration"] = f"{policy_duration} years"
     if policy_phase_in > 0:
         policy_details["Phase-in Period"] = f"{policy_phase_in} years"
-    policy_details["Data Year"] = policy_data_year
+    # Every other entry is a string; ``data_year`` is an int, and a mixed-type
+    # object column makes pyarrow fail its serialization and log a warning on
+    # every render. The column is display-only, so cast it.
+    policy_details["Data Year"] = "" if policy_data_year is None else str(policy_data_year)
 
-    st_module.table(pd.DataFrame.from_dict(policy_details, orient="index", columns=["Value"]))
+    details_df = pd.DataFrame.from_dict(policy_details, orient="index", columns=["Value"])
+    st_module.table(details_df.astype(str))
 
     st_module.markdown("---")
     st_module.subheader("Year-by-Year Breakdown")

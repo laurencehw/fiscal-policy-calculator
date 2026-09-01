@@ -64,11 +64,41 @@ Policy Definition → Static Scoring → Behavioral Offset (ETI) → Dynamic Fee
                    ΔRate × Base         -ETI × 0.5 × static      GDP feedback × 0.25
 ```
 
+### Pages and the URL contract
+
+The app is a **verb-first multipage app** (`st.navigation(position="top")`), not
+the old five-tab layout. `app.py` is the router and the Streamlit Cloud entry
+point; each surface renders itself from `app_pages/`. There is no global
+sidebar — Model settings and Data Status live in the shared chrome's ⚙ and pill
+popovers. Below 640px Streamlit moves the top nav into a collapsed sidebar on
+its own; that is the intended mobile fallback.
+
+| Page | URL | Notes |
+|------|-----|-------|
+| **Ask** (default) | `/` , `/?q=<question>` | landing page; `/ask` is shimmed to `/` |
+| **Build** | `/build?values=<archetype>` · `?vector=<b64>` · `?policies=<ids>` | opens on "Start from your values"; `?policies=` opens the checklist |
+| **Tailor** | `/tailor?type=&rate=&who=&phase=&duration=&dynamic=&run=1` | `who` is an enum (`top400k`) or a bare amount |
+| **Explore** | `/explore?preset=<stable id>&dynamic=&run=1` | |
+| **More ▾** | `/tracker`, `/methodology`, `/classroom` | |
+
+Emitted share links also carry `baseline=<vintage>&spec=<policy hash>&mode=`.
+Every legacy URL (`?analysis=preset&preset=<emoji label>&run=1`, `/ask`,
+`/studio`) is rewritten by `app._apply_legacy_url_shim` **before**
+`st.navigation`, so no "page not found" flashes. `?mode=classroom` is unchanged.
+
 ### Module Structure
 
 | Module | Purpose |
 |--------|---------|
-| `app.py` | Streamlit UI — policy inputs, results charts, dynamic scoring, distribution, comparison |
+| `app.py` | Router — `st.set_page_config`, legacy-URL shim, `st.Page`/`st.navigation(position="top")`. Streamlit Cloud entry point |
+| `app_pages/` | One module per page: `ask.py`, `build.py`, `tailor.py`, `explore.py`, `tracker.py`, `methodology.py`, `classroom.py`, `admin.py` |
+| `components/chrome.py` | Shared page chrome — brand line, data-status pill popover, ⚙ settings popover, degraded-data banner, dark-mode CSS overlay, one footer per page |
+| `components/cards.py` | Ask home's doorway cards and worked-example prefill cards |
+| `components/results.py` | `ScoredResult` (the single result object) + `render_score_surface` / `render_results`, spec-hash invalidation, anchor scroll |
+| `fiscal_model/preset_ids.py` | Stable preset ids, `exclusive_groups`, `subsumes`, values tags — the identity layer share links and Build rely on |
+| `fiscal_model/composer/` | `values_schema.py` (`ValuesVector`, protected rules), `archetypes.yaml` (5 archetypes), `composer.py` (deterministic selector), `translate.py` (free text → vector, temperature=0) |
+| `fiscal_model/ui/tabs/deficit_target.py` | The live Build page body (checklist, scoreboard, waterfall, exports). Package Studio was folded into Build's values panel; `ui/tabs/package_builder.py` is dead code |
+| `fiscal_model/ui/share_links.py` | URL contract both ways — encode/decode for Explore presets, Tailor params, Build values, plus the legacy rewrite |
 | `fiscal_model/scoring.py` | `FiscalPolicyScorer` — main scoring orchestrator |
 | `fiscal_model/policies.py` | Policy classes: `TaxPolicy`, `CapitalGainsPolicy`, `SpendingPolicy`, `TransferPolicy` |
 | `fiscal_model/baseline.py` | `CBOBaseline` — 10-year budget projections |

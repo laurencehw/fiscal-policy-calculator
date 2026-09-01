@@ -293,6 +293,16 @@ inverts it (`cbo_net = -net`, `:114`) and `deficit_target.py` works in CBO
 "savings-positive" official-score units off `CBO_SCORE_MAP`. So **three surfaces, two conventions** —
 Phase 4's "one sign convention, stated once" must reconcile Build too.
 
+**Resolved.** Build was reconciled to the app-wide convention during the build-page/values lane and
+re-checked in Phase 6b: `deficit_target.py`'s module docstring, the on-page caption (`:84`, "Sign
+convention: **+ increases the deficit**, − reduces it — the same convention the scoring engine and
+the official scores use"), `BuildOption.score` (`:183`), the CSV/copy-summary provenance header
+(`export_header_lines`, `:601`) and the scoreboard/waterfall all read positive-adds-to-deficit;
+`CBO_SCORE_MAP`'s `official_score` is already in those units, so nothing flips a sign. Pinned by
+`tests/test_build_page.py:227` and `:419-422`. Verified live: TCJA full extension shows
+`$+460B/yr` / `$+4,600B over 10 years` against a `$3,002B` baseline. `package_builder.py` is dead
+code and was left alone.
+
 ### 4.4 Where headline / Key Metrics / Economic Effects / Copy Summary can disagree
 
 Confirmed, with lines:
@@ -762,11 +772,13 @@ Recommended lanes: `1` → (`schema` commit) → [`2` ∥ `4`] → [`3` → `3b`
     `st.segmented_control`, and `st.fragment`. CI's `test` matrix installs unpinned from
     `requirements.txt`. Raise the floor in the Phase 1 commit or the matrix can resolve a version
     where the app cannot boot.
-13. 🟡 **Phase 6.4's double-banner is already fixed** (`app_controller.py:249-252`). What remains is
-    the alarm recalibration — and the numbers make it urgent: `_CBO_FRESH_DAYS = 120`,
-    `_CBO_STALE_DAYS = 180` (`fiscal_model/data/freshness.py:57-58`). A Feb-2026 baseline read on
-    2026-08-31 is ~200 days old → **STALE**, so the app currently shows an amber/orange
-    "past its expected refresh window" warning during CBO's ordinary annual cycle.
+13. ✅ **Closed in `655131d` (polish-a).** The double banner was already fixed; the alarm was
+    recalibrated to CBO's release *calendar*: a baseline is STALE only once a known later CBO
+    release has actually happened, with an age-only fallback of `_CBO_CYCLE_DAYS = 395` /
+    `_CBO_OVERDUE_DAYS = 425` (`fiscal_model/data/freshness.py:78-79`, replacing the 120/180-day
+    pair that flagged a Feb-2026 baseline amber at ~200 days). The Feb-2026 vintage now reads
+    green inside its annual cycle. Phase 6b re-verified in a browser: the only banner shown is
+    the microdata/runtime one, and it renders once per page.
 14. 🟡 **Phase 5.6's "1 policies" bug does not exist** — `deficit_target.py:217,142` already
     pluralize correctly (fixed in `a9026e4`). Drop the item.
 15. 🟡 **`update_bills.py` copy** (Phase 6.4) lives in an expander titled "How to populate the bill

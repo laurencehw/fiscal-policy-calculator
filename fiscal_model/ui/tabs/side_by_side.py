@@ -185,7 +185,7 @@ def render_side_by_side_tab(
         height=400,
         bargap=0.4,
     )
-    st_module.plotly_chart(fig_bar, use_container_width=True)
+    st_module.plotly_chart(fig_bar, width="stretch")
 
     # ── Year-by-year overlay ─────────────────────────────────────────
     st_module.markdown("---")
@@ -210,7 +210,7 @@ def render_side_by_side_tab(
         height=450,
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     )
-    st_module.plotly_chart(fig_line, use_container_width=True)
+    st_module.plotly_chart(fig_line, width="stretch")
 
     # ── Annual comparison table ──────────────────────────────────────
     st_module.markdown("---")
@@ -232,7 +232,7 @@ def render_side_by_side_tab(
 
     st_module.dataframe(
         pd.DataFrame(table_data),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 

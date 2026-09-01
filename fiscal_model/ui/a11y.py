@@ -178,7 +178,10 @@ def render_accessible_chart(
     # Visible caption (also read by screen readers via normal flow).
     st_module.caption(description.summary)
 
-    kwargs: dict[str, Any] = {"use_container_width": use_container_width}
+    # The keyword argument stays for callers; Streamlit 1.56 deprecated
+    # ``use_container_width`` in favour of ``width=`` and prints a notice into
+    # the app when it is passed, so translate at the boundary.
+    kwargs: dict[str, Any] = {"width": "stretch" if use_container_width else "content"}
     if key is not None:
         kwargs["key"] = key
     st_module.plotly_chart(figure, **kwargs)
@@ -202,7 +205,7 @@ def render_accessible_chart(
                 import pandas as pd
 
                 df = pd.DataFrame(description.data_rows, columns=["Label", "Value"])
-                st_module.dataframe(df, use_container_width=True, hide_index=True)
+                st_module.dataframe(df, width="stretch", hide_index=True)
             except Exception:
                 for label, value in description.data_rows:
                     st_module.markdown(f"- **{label}:** {value}")

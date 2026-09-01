@@ -174,7 +174,7 @@ def render_policy_package_tab(
 
     st_module.dataframe(
         df_components[["Policy", "Category", "10-Year Impact", "Official Score"]],
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 
@@ -202,7 +202,7 @@ def render_policy_package_tab(
         showlegend=False,
     )
 
-    st_module.plotly_chart(fig_waterfall, use_container_width=True)
+    st_module.plotly_chart(fig_waterfall, width="stretch")
 
     col1, col2 = st_module.columns(2)
 
@@ -218,7 +218,7 @@ def render_policy_package_tab(
                 title="Cost Components (Deficit Increases)",
                 color_discrete_sequence=px.colors.sequential.Reds,
             )
-            st_module.plotly_chart(fig_costs, use_container_width=True)
+            st_module.plotly_chart(fig_costs, width="stretch")
         else:
             st_module.info("No cost components in this package")
 
@@ -231,7 +231,7 @@ def render_policy_package_tab(
                 title="Revenue Components (Deficit Decreases)",
                 color_discrete_sequence=px.colors.sequential.Greens,
             )
-            st_module.plotly_chart(fig_revenues, use_container_width=True)
+            st_module.plotly_chart(fig_revenues, width="stretch")
         else:
             st_module.info("No revenue components in this package")
 
