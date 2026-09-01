@@ -44,7 +44,7 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
         "duration": 10,
         "is_one_time": False,
         "description": (
-            "Roads, bridges, broadband, water systems. High multiplier (~1.5) due to direct "
+            "Roads, bridges, broadband, water systems. High multiplier (\\~1.5) due to direct "
             "job creation and long-run productivity gains (CBO 2015)."
         ),
     },
@@ -56,7 +56,7 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
         "duration": 10,
         "is_one_time": False,
         "description": (
-            "~10% increase in base defense budget (~$900B FY2026). Moderate multiplier (~1.0) — "
+            "\\~10% increase in base defense budget (\\~$900B FY2026). Moderate multiplier (\\~1.0) — "
             "less labor-intensive than civilian infrastructure."
         ),
     },
@@ -92,7 +92,7 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
         "duration": 10,
         "is_one_time": False,
         "description": (
-            "Across-the-board discretionary spending reduction. Multiplier of ~0.9 implies modest GDP drag per dollar saved."
+            "Across-the-board discretionary spending reduction. Multiplier of \\~0.9 implies modest GDP drag per dollar saved."
         ),
     },
     "Disaster Relief ($30B one-time)": {
@@ -103,7 +103,7 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
         "duration": 1,
         "is_one_time": True,
         "description": (
-            "One-time emergency appropriation. Very high multiplier (~1.7) because spending is rapid, "
+            "One-time emergency appropriation. Very high multiplier (\\~1.7) because spending is rapid, "
             "targeted, and enters the economy during a period of slack."
         ),
     },
@@ -115,8 +115,8 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
         "duration": 1,
         "is_one_time": True,
         "description": (
-            "One-time \\$10k-per-borrower federal loan cancellation affecting ~40M borrowers. "
-            "Low multiplier (~0.5) because the spending flows to future-year consumption smoothing "
+            "One-time \\$10k-per-borrower federal loan cancellation affecting \\~40M borrowers. "
+            "Low multiplier (\\~0.5) because the spending flows to future-year consumption smoothing "
             "rather than immediate output (CBO Aug 2022 methodology)."
         ),
     },
@@ -129,7 +129,7 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
         "is_one_time": False,
         "description": (
             "Federal subsidy capping childcare at 7% of family income for households <\\$300k. "
-            "Moderate-to-high multiplier (~1.3) via labor-force participation of primary caregivers. "
+            "Moderate-to-high multiplier (\\~1.3) via labor-force participation of primary caregivers. "
             "Build Back Better-style (\\$381B/10yr in 2021 estimate, inflation-adjusted to ~\\$100B/yr)."
         ),
     },
@@ -154,7 +154,7 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
         "is_one_time": False,
         "description": (
             "Federal matching grants for regional high-speed rail corridors (e.g. Northeast, "
-            "California, Texas Central). Infrastructure-grade multiplier (~1.4) and long-horizon "
+            "California, Texas Central). Infrastructure-grade multiplier (\\~1.4) and long-horizon "
             "productivity effects."
         ),
     },
@@ -331,7 +331,7 @@ def render_spending_policy_inputs(
             step=0.1,
             key=KEY_TAILOR_SPEND_MULTIPLIER,
             help=(
-                "GDP impact per dollar spent. Typical values: infrastructure ~1.5, defense ~1.0, "
+                "GDP impact per dollar spent. Typical values: infrastructure \\~1.5, defense \\~1.0, "
                 "transfers ~0.8. ([CBO 2015 estimates](https://www.cbo.gov/publication/49958))"
             ),
         )

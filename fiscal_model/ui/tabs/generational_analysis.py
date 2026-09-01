@@ -102,7 +102,7 @@ def render_generational_analysis_tab(
     olg_result = st_module.session_state.get(cache_key)
 
     if compute or (olg_result is None and st_module.session_state.get("olg_auto", False)):
-        with st_module.spinner("Running OLG model (this takes ~5–15 seconds)..."):
+        with st_module.spinner("Running OLG model (this takes \\~5–15 seconds)..."):
             olg_result = _run_olg(tau_k, tau_ss, ss_rep)
         st_module.session_state[cache_key] = olg_result
 

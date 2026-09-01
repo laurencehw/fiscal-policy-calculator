@@ -192,13 +192,17 @@ def test_chrome_returns_the_model_settings_dict(monkeypatch):
 
 def test_chrome_renders_the_degraded_banner_exactly_once(monkeypatch):
     st_module, _ = _render(monkeypatch, _HEALTH_DEGRADED)
-    banners = [w for w in st_module.warnings if "older snapshots" in w]
+    # Since 2026-09-01 the non-error notice is a collapsed expander (quieter,
+    # per the owner) rather than an st.warning box.
+    banners = [e for e in st_module.expanders if "older snapshots" in e]
     assert len(banners) == 1
+    assert not [w for w in st_module.warnings if "older snapshots" in w]
 
 
 def test_chrome_shows_no_banner_when_data_is_healthy(monkeypatch):
     st_module, _ = _render(monkeypatch, _HEALTH_OK)
     assert not [w for w in st_module.warnings if "older snapshots" in w]
+    assert not [e for e in st_module.expanders if "older snapshots" in e]
     assert st_module.errors == []
 
 

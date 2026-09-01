@@ -177,7 +177,7 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
             elif data_age >= 2:
                 st_module.caption(
                     f"Note: Using {data_year} IRS data ({data_age} years old). "
-                    f"This is normal — IRS SOI data has a ~2 year publication lag."
+                    f"This is normal — IRS SOI data has a \\~2 year publication lag."
                 )
 
             _seed_widget_default(st_module, KEY_SETTING_USE_MICROSIM, False)

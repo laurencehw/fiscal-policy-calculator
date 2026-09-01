@@ -27,7 +27,9 @@ from fiscal_model.ui.tabs import bill_tracker
 
 # The two banner headlines rendered by ``components.chrome`` and (previously,
 # also) by ``app_controller.render_data_status``.
-DEGRADED_BANNER = "**Some data sources are running on older snapshots**"
+# Since 2026-09-01 the degraded (non-error) notice is a collapsed expander
+# rather than an ``st.warning`` box — deliberately quieter, per the owner.
+DEGRADED_BANNER = "Some data sources are running on older snapshots"
 ERROR_BANNER = "**Data error — results may be unreliable**"
 
 # A health payload that is unambiguously degraded for exactly one reason, so
@@ -89,6 +91,8 @@ def _run_page(page: str | None):
 def _banner_count(at) -> int:
     alerts = [element.value for element in at.warning]
     alerts += [element.value for element in at.error]
+    # The quiet variant: an expander whose label carries the headline.
+    alerts += [getattr(element, "label", "") for element in at.expander]
     return sum(
         1
         for text in alerts

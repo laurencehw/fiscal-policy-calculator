@@ -106,7 +106,7 @@ _SCORE_ONLY_ENTRIES: dict[str, dict[str, str]] = {
         "build_id": "tariff-steel-aluminum-25pct",
         "area": "Trade / Tariffs",
     },
-    "🏭 Reciprocal Tariffs (~20pp) (-$1.2T)": {
+    "🏭 Reciprocal Tariffs (~20pp) (-$1.2T)": {  # tilde-ok: catalog label key
         "build_id": "tariff-reciprocal",
         "area": "Trade / Tariffs",
     },
@@ -814,7 +814,7 @@ def render_deficit_target_tab(
                     key=KEY_BUILD_TARGET_USD,
                     **({} if _has_session_value(st_module, KEY_BUILD_TARGET_USD)
                        else {"value": 1000}),
-                    help=f"Baseline: ~${baseline_annual:,.0f}B/year.",
+                    help=f"Baseline: \\~${baseline_annual:,.0f}B/year.",
                 )
             )
             target_deficit = float(target_value)

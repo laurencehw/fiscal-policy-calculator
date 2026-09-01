@@ -175,7 +175,7 @@ def render_methodology_tab(st_module: Any) -> None:
 | Threshold (*T*) | \$400,000 | Policy |
 | Avg. taxable income above threshold (*Ȳ*) | ~\$950,000 | IRS SOI |
 | Marginal income per filer (*Ȳ* − *T*) | \$550,000 | Derived |
-| Filers above threshold (*N*) | ~1.8 million | IRS SOI |
+| Filers above threshold (*N*) | \~1.8 million | IRS SOI |
 """)
         st_module.markdown("**Year 1 static revenue:**")
         st_module.latex(
@@ -240,7 +240,7 @@ def render_methodology_tab(st_module: Any) -> None:
             r"\approx \$258\text{B}"
         )
         st_module.markdown(
-            "**Official Treasury estimate: \\$252B** — model is within ~2%.  \n\n"
+            "**Official Treasury estimate: \\$252B** — model is within \\~2%.  \n\n"
             "Uncertainty range (CBO-style, 10-year): roughly **\\$200B to \\$320B**, "
             "reflecting ETI uncertainty (0.15–0.40) and baseline forecast risk."
         )
@@ -499,8 +499,8 @@ def render_methodology_tab(st_module: Any) -> None:
         st_module.markdown(r"""
 | Scenario | 10-yr score | Behavioral offset (avg) |
 |----------|------------|------------------------|
-| Rate ↑ to 28%, step-up retained | ~\$110 B | ~48% of static |
-| Rate ↑ to 28%, step-up eliminated | ~\$180 B | ~14% of static |
+| Rate ↑ to 28%, step-up retained | ~\$110 B | \~48% of static |
+| Rate ↑ to 28%, step-up eliminated | ~\$180 B | \~14% of static |
 | Static (no behavioral response) | ~\$210 B | 0% |
 """)
         st_module.markdown(
@@ -549,7 +549,7 @@ def render_methodology_tab(st_module: Any) -> None:
             "1. Fiscal shock (tax cut or spending increase) enters the economy\n"
             "2. GDP changes by `shock x multiplier`, with multiplier decaying "
             "annually (0.75 decay rate)\n"
-            "3. Employment changes via Okun's Law (1% GDP = ~0.5% employment)\n"
+            "3. Employment changes via Okun's Law (1% GDP = \\~0.5% employment)\n"
             "4. Revenue feedback: 25% of GDP change flows back as tax revenue\n"
             "5. Crowding out: cumulative deficits raise interest rates, "
             "partially offsetting GDP gains\n\n"
@@ -628,10 +628,10 @@ def render_methodology_tab(st_module: Any) -> None:
 | 5pp top rate (\$1M+) | -\$700B | -\$648B | 7% | TPC |
 | 2pp rate cut (\$500K+) | +\$400B | +\$364B | 9% | TPC |
 
-*Mean abs error ~8%; 4/4 within 15%. Ordinary-bracket cases score on the
+*Mean abs error \~8%; 4/4 within 15%. Ordinary-bracket cases score on the
 ordinary-income base; AGI-inclusive top-rate cases (\$1M+/\$500K+) score on the
 full taxable-income base. Treat uncalibrated custom policies as directional
-(~±15%).*
+(\~±15%).*
 """)
 
     st_module.markdown("**2. Calibrated reference models** — parameters tuned to reproduce "
@@ -712,7 +712,7 @@ full taxable-income base. Treat uncalibrated custom policies as directional
         "integration with all policy modules is still evolving.\n"
         "5. **Reduced-form dynamic scoring** — Uses calibrated multipliers "
         "rather than structural general-equilibrium equations.\n"
-        "6. **Data lag** — IRS SOI data lags ~2 years; taxpayer "
+        "6. **Data lag** — IRS SOI data lags \\~2 years; taxpayer "
         "distributions may have shifted."
     )
 

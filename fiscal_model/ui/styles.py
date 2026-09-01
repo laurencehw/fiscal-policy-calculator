@@ -94,9 +94,28 @@ APP_STYLES = """
         .main-header {
             font-size: 1.6rem;
         }
-        h1 { font-size: 1.6rem; }
-        h2 { font-size: 1.3rem; }
-        h3 { font-size: 1.1rem; }
+        /* Headings need ``!important``. Streamlit sizes them from an emotion
+           class scoped to the markdown container
+           (``.st-emotion-cache-xxxxx h3``, specificity 0-1-1), so the bare
+           element selectors these rules used never won and the whole mobile
+           type scale was dead CSS.
+
+           Measured 2026-09-01 at a 412px viewport: h1 computed to 44px and
+           h3 to 28px. At 28px the chrome brand line
+           ("Fiscal Policy Impact Calculator") is 362px wide against 346px of
+           available text width, so it wrapped to two lines — and because
+           ``header[data-testid="stHeader"]`` is an opaque 60px band painted
+           over the scrolling ``stMain``, scrolling ~134px hid line one and
+           left the heading reading just "Calculator". Desktop never wrapped,
+           hence never showed the symptom.
+
+           ``!important`` beats the generated class without pinning a hashed
+           emotion name (which changes on every Streamlit upgrade). At 1.1rem
+           the brand line is ~227px and stays on one line down to a ~294px
+           viewport. */
+        h1 { font-size: 1.6rem !important; }
+        h2 { font-size: 1.3rem !important; }
+        h3 { font-size: 1.1rem !important; }
         .info-box {
             padding: 0.75rem;
             margin: 0.5rem 0;
