@@ -18,7 +18,7 @@ Three structural weaknesses a referee would find first:
 
 1. **The honest tier is the ungated one.** Tier 1 has no numeric error ceiling in CI and no pre-registration — nothing records that a target was entered *before* the first scoring run.
 2. **Round-number tell.** 17 of the 29 calibrated targets are exact round hundreds (450, 350, −1100, −2700, −3200, …): secondhand summaries, not sourced line items.
-3. **Calibrated ≠ validated.** With one constant per benchmark, Tier 2's 5% says nothing about predictive skill. Several modules have ≥3 benchmarks, so *leave-one-out* is mechanically possible and has never been run.
+3. **Calibrated ≠ validated.** With one constant per benchmark, Tier 2's 5% says nothing about predictive skill. Several modules have ≥3 benchmarks, so *leave-one-out* is mechanically possible and has never been run. — *Run in Phase C (§3): **59.3% mean over 18 derivable cases**, plus 4 declared not cross-validatable. The 5% was measuring bookkeeping.*
 
 Expect Tier 1's mean error to **rise** as n grows — the four current cases are friendly shapes. That is the point: a wider, pre-registered, gated error distribution is worth more than a flattering 8% on four cases.
 
@@ -41,15 +41,33 @@ Deliverable: Tier 1 n≈10, pre-registered, CI-gated. Docs/README report "n, mea
 
 Deliverable: Tier 1 n≈25–35 with a genuine spread across tax and spending shapes. This is the highest credibility-per-hour item in the repo.
 
-## 3. Phase C — leave-one-out for the calibrated modules (turn Tier 2 into a held-out number)
+## 3. Phase C — leave-one-out for the calibrated modules (turn Tier 2 into a held-out number) — ✅ **done**
 
 Modules with ≥3 benchmarks: payroll (4), tax expenditures (6), credits (3), estate (3), AMT (3), capital gains (3).
 
-1. For each module, hold out one benchmark, keep the others' calibration, and **re-derive the held-out case bottom-up from the module's structural machinery** (covered-wage bands for payroll; exemption/rate machinery for estate; base tables for expenditures). Where a module's annuals are independent constants (tax expenditures), LOO is only meaningful if the held-out case is rebuilt from the JCX base — do that or exclude the module from the LOO claim.
-2. **Capital gains is the sharpest test**: three cases currently carry three *different* hand-set elasticity/lock-in tuples (`scenarios.py:46-91`). Freeze one elasticity set and score the two orphaned cap-gains targets (Phase A.2) with it — this converts the module's most-tuned parameter into a prediction.
-3. Report a **"Tier 2 (LOO)"** error next to the by-construction number; keep both. Add the LOO run to `run_validation_dashboard.py` with its own ceiling.
+1. ✅ For each module, hold out one benchmark, keep the others' calibration, and **re-derive the held-out case bottom-up from the module's structural machinery** (covered-wage bands for payroll; exemption/rate machinery for estate; base tables for expenditures). Where a module's annuals are independent constants (tax expenditures), LOO is only meaningful if the held-out case is rebuilt from the JCX base — do that or exclude the module from the LOO claim.
+2. ✅ **Capital gains is the sharpest test**: three cases currently carry three *different* hand-set elasticity/lock-in tuples (`scenarios.py:46-91`). Freeze one elasticity set and score the two orphaned cap-gains targets (Phase A.2) with it — this converts the module's most-tuned parameter into a prediction.
+3. ✅ Report a **"Tier 2 (LOO)"** error next to the by-construction number; keep both. Add the LOO run to `run_validation_dashboard.py` with its own ceiling.
 
-Deliverable: a defensible held-out error for ~19 currently circular entries, or an honest statement of which modules cannot be cross-validated and why.
+**Observed** (`fiscal_model/validation/loo.py`, `python scripts/run_loo.py`):
+
+| Module | Kind | n derivable | not x-val | Mean abs LOO error |
+|---|---|---|---|---|
+| Payroll | structural (SSA covered-wage bands) | 3 | 1 | **3.8%** |
+| Estate | structural (exemption/rate machinery) | 2 | 1 | **25.8%** |
+| AMT | structural (taxpayers × avg liability) | 2 | 1 | **79.6%** |
+| Credits | structural (per-unit credit identity) | 3 | 0 | **45.1%** |
+| Expenditures | bottom-up (JCX-48-24 base table) | 5 | 1 | **39.4%** |
+| Capital gains | structural (frozen elasticities) | 3 | 0 | **171.2%** |
+| **Aggregate** | | **18** | **4** | **59.3% mean / 35.6% median / 6-of-18 within 15%** |
+
+Against the by-construction 4.4%. CI ceiling `--max-loo-mean-error 75` (observed × 1.25, rounded to 5), wired as its own step in `validation-dashboard.yml` and as a section in `run_validation_dashboard.py`.
+
+Capital-gains answer key (`run_loo.py --donor-matrix`): the `pwbm_39_with_stepup` tuple — 0.8/0.4 with the **5.3× lock-in multiplier** — is the only donor that scores the other two cases tolerably (mean |error| 29.7%, vs 104.8% and 333.2%). Under the frozen literature defaults its own case flips sign (−370.5%): the lock-in multiplier alone produces PWBM's revenue-loss result.
+
+Four cases are declared **not cross-validatable** with a reason rather than given a manufactured number: `expand_niit` (only NIIT benchmark), `eliminate_estate_tax` (target is a model estimate, and the machinery has no revenue *level*), `repeal_corporate_amt` and `eliminate_step_up` (base constant = target/10; caught by a mechanical leakage guard). Two findings for Phase E: `eliminate_salt`'s bottom-up path uses the *post-cap* SALT base instead of `annual_cost_no_cap`, and `cap_employer_health`'s uncalibrated cap rule compares a premium cap against an average *tax benefit* (unit mismatch) — neither affects a scored preset, both block derivation. Details in `docs/VALIDATION_NOTES.md` §6.
+
+Deliverable: a defensible held-out error for ~19 currently circular entries, or an honest statement of which modules cannot be cross-validated and why. — delivered as 18 held-out cases + 4 documented exclusions.
 
 ## 4. Phase D — vintage matching and enacted-law replications
 

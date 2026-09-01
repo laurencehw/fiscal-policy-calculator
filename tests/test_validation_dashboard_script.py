@@ -320,3 +320,66 @@ def test_baseline_expired_bundled_seed_fails_gate(dashboard_module):
         "fred": {"source": "bundled", "cache_is_expired": True, "cache_age_days": 150},
     }
     assert dashboard_module._is_environmental_degradation("baseline", info) is False
+
+
+# ---------------------------------------------------------------------------
+# Tier 2 (leave-one-out) section — see fiscal_model/validation/loo.py
+# ---------------------------------------------------------------------------
+
+
+def test_loo_gate_passes_under_the_ceiling(dashboard_module):
+    from fiscal_model.validation.loo import run_leave_one_out
+
+    suite = run_leave_one_out()
+    ceiling = dashboard_module.DEFAULT_MAX_LOO_MEAN_ERROR
+    assert suite.mean_abs_percent_error is not None
+    assert suite.mean_abs_percent_error <= ceiling, (
+        "Tier 2 (LOO) regressed past its ceiling. This is a structural-machinery "
+        "regression signal, not an accuracy claim — see docs/VALIDATION_NOTES.md §6."
+    )
+    assert dashboard_module.loo_gate_ok(suite, ceiling) is True
+    assert dashboard_module.loo_gate_issues(suite, ceiling) == []
+
+
+def test_loo_gate_fails_above_the_ceiling(dashboard_module):
+    from fiscal_model.validation.loo import run_leave_one_out
+
+    suite = run_leave_one_out()
+    issues = dashboard_module.loo_gate_issues(suite, 0.5)
+    assert len(issues) == 1
+    assert issues[0]["surface"] == "loo"
+    assert issues[0]["severity"] == "fail"
+    assert "ceiling" in issues[0]["message"]
+    assert dashboard_module.loo_gate_ok(suite, 0.5) is False
+
+
+def test_loo_gate_fails_when_the_suite_is_unavailable(dashboard_module):
+    assert dashboard_module.loo_gate_ok(None, 75.0) is False
+    issues = dashboard_module.loo_gate_issues(None, 75.0)
+    assert issues and issues[0]["severity"] == "fail"
+
+
+def test_print_loo_reports_both_counts(dashboard_module, capsys):
+    from fiscal_model.validation.loo import run_leave_one_out
+
+    suite = run_leave_one_out()
+    ok = dashboard_module.print_loo(suite, dashboard_module.DEFAULT_MAX_LOO_MEAN_ERROR)
+    out = capsys.readouterr().out
+    assert ok is True
+    assert "Tier 2 (leave-one-out)" in out
+    assert "not cross-validatable" in out
+    assert f"{len(suite.excluded_cases)}" in out
+    # Non-derivable cases are reported but never folded into the aggregate.
+    assert f"n={len(suite.included_cases)}" in out
+
+
+def test_dashboard_json_includes_the_loo_surface(dashboard_module, capsys, monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["run_validation_dashboard.py", "--json"])
+    assert dashboard_module.main() == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert "leave_one_out" in payload
+    assert payload["leave_one_out"]["tier"] == "Tier 2 (leave-one-out)"
+    assert payload["leave_one_out"]["ceiling"] == (
+        dashboard_module.DEFAULT_MAX_LOO_MEAN_ERROR
+    )
+    assert "leave_one_out" in payload["gates"]

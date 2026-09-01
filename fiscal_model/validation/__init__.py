@@ -80,6 +80,13 @@ from .holdout import (
     summarize_holdout_protocol,
     validation_role_for_entry,
 )
+from .loo import (
+    LOOCase,
+    LOOReport,
+    LOOSuite,
+    capital_gains_donor_matrix,
+    run_leave_one_out,
+)
 from .scorecard import (
     DEFAULT_RUNNERS,
     ScorecardEntry,
@@ -106,11 +113,15 @@ __all__ = [
     'CBOScore',
     'ConfidenceBand',
     'HoldoutProtocol',
+    'LOOCase',
+    'LOOReport',
+    'LOOSuite',
     'ResultCredibility',
     'ScorecardEntry',
     'ScorecardSummary',
     'ValidationResult',
     'cached_default_scorecard',
+    'capital_gains_donor_matrix',
     'category_holdout_status',
     'compute_scorecard',
     'credibility_to_dict',
@@ -130,6 +141,7 @@ __all__ = [
     'quick_validate',
     'reset_confidence_cache',
     'reset_scorecard_cache',
+    'run_leave_one_out',
     'run_validation_suite',
     'scorecard_to_dict',
     'summarize_holdout_protocol',
