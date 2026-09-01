@@ -1172,11 +1172,6 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         annual_amount_billions=19.67,
         annual_growth_rate=0.02,
         spending_category="mandatory",
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered in Phase D; scored from the Phase D scoring commit "
-            "onward (see preregistered.py)."
-        ),
         notes="CBO cost estimate for H.R. 82, Social Security Fairness Act of 2023 "
               "(9 September 2024), Table 1. Total direct-spending outlays "
               "FY2024-2034 = $195,650M; FY2024 is zero. Annual level = the FY2026 "
@@ -1206,11 +1201,6 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         annual_amount_billions=-112.3,
         annual_growth_rate=0.02,
         spending_category="nondefense",
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered in Phase D; scored from the Phase D scoring commit "
-            "onward (see preregistered.py)."
-        ),
         notes="CBO, 'CBO's Estimate of the Budgetary Effects of H.R. 3746, the "
               "Fiscal Responsibility Act of 2023' (30 May 2023), discretionary "
               "table (PDF p. 14): total discretionary outlay change under the caps "
@@ -1240,11 +1230,6 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         annual_amount_billions=162.996,
         annual_growth_rate=0.02,
         spending_category="nondefense",
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered in Phase D; scored from the Phase D scoring commit "
-            "onward (see preregistered.py)."
-        ),
         notes="CBO cost estimate for Senate Amendment 2137 to H.R. 3684 (revised "
               "9 August 2021), Table 1: 'Changes in Discretionary Spending' - "
               "budget authority $446,306M, estimated outlays $415,448M over "

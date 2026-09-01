@@ -82,7 +82,7 @@ PHASE_B_FIRST_SCORED_COMMIT = "36d683f9a24f7609d0a179de5f8f36b0ec44a9fc"
 #: Phase B, the rows were added in this commit and first scored in a *later*
 #: one, so "the target was fixed before the model was allowed to move" is
 #: checkable from the git history rather than asserted in prose.
-PHASE_D_ENTERED_COMMIT = "PENDING"
+PHASE_D_ENTERED_COMMIT = "f2f308a8de8b3a99f5beb21d74efd167286fbaac"
 PHASE_D_ENTERED_DATE = "2026-09-01"
 
 #: Commit in which the Phase D enacted-law battery was first scored (the commit

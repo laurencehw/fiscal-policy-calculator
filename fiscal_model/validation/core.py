@@ -103,6 +103,50 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "Scored with the frozen module-default realization elasticities (0.8 / 0.4); the "
         "published estimates embed much stronger lock-in and avoidance responses.",
     ],
+    # -- Phase D: enacted-law component replications -------------------------
+    # Each row states whether its miss is attributable to the missing
+    # budget-authority-to-outlay spend-out model (Phase B's finding), because
+    # that is the single question these three cases were added to answer.
+    "ssfa_wep_gpo_repeal_outlays": [
+        "SpendingPolicy carries one annual level grown at 2%/yr; CBO's own path for "
+        "the WEP/GPO repeal grows at about 1.1%/yr after the first full year, so the "
+        "model drifts above the published path across the window.",
+        "NOT a spend-out miss. Benefit payments are outlaid in the year they are "
+        "owed, so there is no budget-authority-to-outlay lag to model here - which "
+        "is why this is the most accurate of the three enacted-law cases.",
+        "The FY2025 retroactive catch-up CBO describes ($25.0B, against a $19.7B "
+        "steady state) is outside the level shape entirely; the model neither "
+        "reproduces the spike nor is credited with it.",
+    ],
+    "fra_2023_discretionary_caps": [
+        "PARTLY a spend-out miss, in both directions. CBO's outlay path for the "
+        "section 101(a) caps runs -$64.1B in 2024 and -$106.7B in 2025 against "
+        "budget-authority reductions of -$112.3B and -$135.9B, so the model - which "
+        "outlays budget authority in the year it is provided - over-predicts the "
+        "first two years and under-predicts the later ones as the lower funding "
+        "base compounds (CBO reaches -$159.7B by 2033 against the model's ~-$134B).",
+        "The two errors largely cancel over ten years, so the small total error "
+        "overstates how well the shape reproduces the path.",
+        "Only the caps component is scored. The bill's -$1.5T headline also bundles "
+        "the $45B Toxic Exposures Fund appropriation, student-loan payment "
+        "resumption, an IRS rescission and debt service.",
+    ],
+    "iija_2021_discretionary": [
+        "ENTIRELY a spend-out miss, and the largest in the battery. CBO's table "
+        "shows $163.0B of discretionary budget authority in FY2022 falling to "
+        "$70.1B, $68.5B, $68.1B, $66.2B and then about $2B/yr, producing a humped "
+        "outlay path that peaks at $70.0B in FY2026 and totals $415.4B. "
+        "SpendingPolicy outlays budget authority 1:1 in the year it is provided and "
+        "then carries the level forward, so it predicts $1,894B.",
+        "The miss is not an artifact of choosing the first-year level: the "
+        "alternative of spreading the source's stated FY2022-2026 authorization "
+        "($435.9B) evenly over those five years still yields about $950B, more "
+        "than double the published outlay total, because the level shape has no "
+        "way to end an authorization or to lag an outlay.",
+        "This case is deliberately kept rather than excluded: it is the sharpest "
+        "available evidence for the budget-authority-to-outlay spend-out model that "
+        "Phase B identified as the highest-value missing feature.",
+    ],
     # -- Phase B: CBO Options for Reducing the Deficit, 2025-2034 -----------
     # Out-of-sample battery. Every miss below is kept and explained; none of
     # these cases had a parameter moved to close its gap.
