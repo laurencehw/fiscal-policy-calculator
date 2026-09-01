@@ -37,6 +37,10 @@ logger = logging.getLogger(__name__)
 
 # Results lifecycle — populated by calculation_controller after a run
 KEY_RESULTS = "results"
+# The single result object (``components.results.ScoredResult``). ``results``
+# stays populated with the raw pipeline dict for back-compat; every *surface*
+# reads this one instead.
+KEY_SCORED_RESULT = "scored_result"
 KEY_LAST_RUN_ID = "last_run_id"
 KEY_LAST_RUN_AT = "last_run_at"
 KEY_RESULTS_RUN_ID = "results_run_id"
@@ -81,6 +85,16 @@ KEY_ASK_HISTORY = "ask_history"
 # Naming: ``tailor_tax_*`` / ``tailor_spend_*`` for the two policy forms and
 # ``setting_*`` for model settings. Pre-existing keys keep their (now stale)
 # ``sidebar_*`` prefix - renaming them would break share links.
+
+# Tailor page shell (``app_pages/tailor.py``) - Phase 4
+# "Start from: Blank / A preset" and the Income / Corporate / Capital gains /
+# Spending chips. The chips drive both the analysis mode and ``tailor_tax_type``,
+# so the form module must not render its own type selectbox on that key.
+KEY_TAILOR_START_FROM = "tailor_start_from"
+KEY_TAILOR_SEED_PRESET = "tailor_seed_preset"
+KEY_TAILOR_POLICY_KIND = "tailor_policy_kind"
+#: Code key: which preset last seeded the form fields (so a manual edit sticks).
+KEY_TAILOR_SEED_APPLIED = "_tailor_seed_applied"
 
 # Tailor - custom tax policy form (``ui/policy_input_tax.py``)
 KEY_TAILOR_TAX_POLICY_NAME = "tailor_tax_policy_name"
@@ -132,6 +146,110 @@ KEY_SETTING_DATA_YEAR = "setting_data_year"
 KEY_SETTING_USE_MICROSIM = "setting_use_microsim"
 KEY_SETTING_USE_MICROSIM_DISTRIBUTION = "setting_use_microsim_distribution"
 
+# ---------------------------------------------------------------------------
+# Build page (``ui/tabs/deficit_target.py``) - Phase 3
+# ---------------------------------------------------------------------------
+#
+# ``build_selection`` is the durable, non-widget record of the checked policy
+# ids. The per-policy ``dt_<preset_id>`` checkboxes cannot be the source of
+# truth on their own: Streamlit garbage-collects the session state of a widget
+# that is not instantiated in a run, so filtering the list with the search box
+# would silently un-check everything the filter hides. The checkboxes are
+# reconciled from this list at the top of every render instead.
+
+KEY_BUILD_MODE = "build_mode"
+KEY_BUILD_SEARCH = "build_search"
+KEY_BUILD_METRIC = "build_metric"
+KEY_BUILD_TARGET_PCT = "build_target_pct"
+KEY_BUILD_TARGET_USD = "build_target_usd"
+#: Code key: list[str] of selected build ids, in selection order.
+KEY_BUILD_SELECTION = "build_selection"
+#: Code key: overlap conflicts dropped on this run, rendered once as st.info.
+KEY_BUILD_DROPPED_NOTICE = "_build_dropped_notice"
+#: Code key: hash of the last applied ``/build?policies=...`` link, so a share
+#: link restores once instead of clobbering edits on every rerun.
+KEY_BUILD_SHARE_TOKEN = "_build_share_token"
+
+
+# ---------------------------------------------------------------------------
+# Cross-page widget persistence (the "shadow key" mirror)
+# ---------------------------------------------------------------------------
+#
+# Streamlit scopes widget state by ``active_script_hash``. Under
+# ``st.navigation`` every page is a different script, so a keyed widget that
+# does not render on the current page is garbage-collected: leaving ``/tailor``
+# for ``/explore`` and coming back re-seeded every ``tailor_*`` field to its
+# default (verified with ``tailor_tax_policy_name``).
+#
+# Fix: mirror each keyed value to a plain, non-widget session key. Plain keys
+# are never GC'd, so the mirror survives the page switch and the value is
+# restored before the widget is instantiated.
+
+SHADOW_PREFIX = "_shadow:"
+
+
+def shadow_key(key: str) -> str:
+    """Name of the non-widget mirror for ``key``."""
+    return f"{SHADOW_PREFIX}{key}"
+
+
+def seed_widget_default(st_module: Any, key: str, default: Any, *, force: bool = False) -> None:
+    """Seed a widget key before instantiation, mirroring it across pages.
+
+    Passing both ``key=`` and ``value=``/``index=`` makes Streamlit warn once
+    the key is pre-seeded, so the pattern throughout the app is: seed here,
+    omit the default on the widget.
+
+    ``force=True`` re-seeds an existing key — needed where an unkeyed widget's
+    identity used to include its default (the spending form's preset-driven
+    fields), so switching presets must overwrite explicitly.
+    """
+    state = st_module.session_state
+    mirror = shadow_key(key)
+    if force:
+        state[key] = default
+        state[mirror] = default
+        return
+    if key in state:
+        state[mirror] = state[key]
+    elif mirror in state:
+        state[key] = state[mirror]
+    else:
+        state[key] = default
+        state[mirror] = default
+
+
+def restore_widget_value(st_module: Any, key: str) -> None:
+    """Bring a widget value back from its mirror after a page switch.
+
+    Used where there is no single default to seed — the preset pickers resolve
+    theirs from the options actually available this run.
+    """
+    state = st_module.session_state
+    mirror = shadow_key(key)
+    if key in state:
+        state[mirror] = state[key]
+    elif mirror in state:
+        state[key] = state[mirror]
+
+
+def mirror_widget_value(st_module: Any, key: str) -> None:
+    """Copy a widget's current value into its mirror (call after the widget)."""
+    state = st_module.session_state
+    if key in state:
+        state[shadow_key(key)] = state[key]
+
+
+def forget_widget_value(st_module: Any, key: str) -> None:
+    """Drop a widget value *and* its mirror.
+
+    The stale-option guards (a stored preset that is no longer in the option
+    list) must clear the mirror too, or the next render restores the value the
+    guard just evicted.
+    """
+    st_module.session_state.pop(key, None)
+    st_module.session_state.pop(shadow_key(key), None)
+
 
 @dataclass(frozen=True)
 class _KeySpec:
@@ -146,6 +264,7 @@ class _KeySpec:
 _SESSION_KEYS: tuple[_KeySpec, ...] = (
     # Results
     _KeySpec(KEY_RESULTS, None),
+    _KeySpec(KEY_SCORED_RESULT, None),
     _KeySpec(KEY_LAST_RUN_ID, None, (str, type(None))),
     _KeySpec(KEY_LAST_RUN_AT, None, (float, int, type(None))),
     _KeySpec(KEY_RESULTS_RUN_ID, None, (str, type(None))),
@@ -167,6 +286,11 @@ _SESSION_KEYS: tuple[_KeySpec, ...] = (
     # Ask assistant — the tab initializes its own list to avoid a shared
     # mutable default; we still register the key here so it's documented.
     _KeySpec(KEY_ASK_HISTORY, None, (list, type(None))),
+    # Tailor page shell
+    _KeySpec(KEY_TAILOR_START_FROM, "Blank", str),
+    _KeySpec(KEY_TAILOR_SEED_PRESET, None, (str, type(None))),
+    _KeySpec(KEY_TAILOR_POLICY_KIND, "Income", str),
+    _KeySpec(KEY_TAILOR_SEED_APPLIED, None, (str, type(None))),
     # Tailor - custom tax policy form
     _KeySpec(KEY_TAILOR_TAX_POLICY_NAME, "Tax Rate Change", str),
     _KeySpec(KEY_TAILOR_TAX_TYPE, "Income Tax Rate", str),
@@ -209,6 +333,16 @@ _SESSION_KEYS: tuple[_KeySpec, ...] = (
     _KeySpec(KEY_SETTING_DATA_YEAR, None, (int, type(None))),
     _KeySpec(KEY_SETTING_USE_MICROSIM, False, bool),
     _KeySpec(KEY_SETTING_USE_MICROSIM_DISTRIBUTION, True, bool),
+    # Build page. ``build_selection`` defaults to None rather than [] so the
+    # seeded default is not a single list object shared across sessions.
+    _KeySpec(KEY_BUILD_MODE, "Start from scratch", str),
+    _KeySpec(KEY_BUILD_SEARCH, "", str),
+    _KeySpec(KEY_BUILD_METRIC, "% of GDP", str),
+    _KeySpec(KEY_BUILD_TARGET_PCT, 3.0, float),
+    _KeySpec(KEY_BUILD_TARGET_USD, 1000, int),
+    _KeySpec(KEY_BUILD_SELECTION, None, (list, type(None))),
+    _KeySpec(KEY_BUILD_DROPPED_NOTICE, None, (list, type(None))),
+    _KeySpec(KEY_BUILD_SHARE_TOKEN, None, (str, type(None))),
 )
 
 
@@ -307,6 +441,7 @@ __all__ = [
     "KEY_QUICK_START_DISMISSED",
     "KEY_RESULTS",
     "KEY_RESULTS_RUN_ID",
+    "KEY_SCORED_RESULT",
     "KEY_SETTING_DARK_MODE",
     "KEY_SETTING_DATA_YEAR",
     "KEY_SETTING_MACRO_MODEL",
@@ -318,6 +453,9 @@ __all__ = [
     "KEY_SIDEBAR_POLICY_AREA",
     "KEY_SIDEBAR_PRESET_CHOICE",
     "KEY_SIDEBAR_SPENDING_PRESET",
+    "KEY_TAILOR_POLICY_KIND",
+    "KEY_TAILOR_SEED_APPLIED",
+    "KEY_TAILOR_SEED_PRESET",
     "KEY_TAILOR_SPEND_ANNUAL",
     "KEY_TAILOR_SPEND_CATEGORY",
     "KEY_TAILOR_SPEND_DURATION",
@@ -326,6 +464,7 @@ __all__ = [
     "KEY_TAILOR_SPEND_ONE_TIME",
     "KEY_TAILOR_SPEND_PRESET_APPLIED",
     "KEY_TAILOR_SPEND_PROGRAM_NAME",
+    "KEY_TAILOR_START_FROM",
     "KEY_TAILOR_TAX_CG_BASELINE_RATE",
     "KEY_TAILOR_TAX_CG_BASELINE_REALIZATIONS",
     "KEY_TAILOR_TAX_CG_BASE_YEAR",
@@ -349,6 +488,12 @@ __all__ = [
     "KEY_TAILOR_TAX_RATE_CHANGE_PCT",
     "KEY_TAILOR_TAX_THRESHOLD_CHOICE",
     "KEY_TAILOR_TAX_TYPE",
+    "SHADOW_PREFIX",
     "SafeSessionState",
+    "forget_widget_value",
     "initialize_session_state",
+    "mirror_widget_value",
+    "restore_widget_value",
+    "seed_widget_default",
+    "shadow_key",
 ]

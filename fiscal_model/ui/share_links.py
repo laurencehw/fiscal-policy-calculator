@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 from urllib.parse import urlencode
 
@@ -146,3 +146,117 @@ def build_share_url(result_data: dict[str, Any], public_app_url: str = PUBLIC_AP
         "run": "1",
     }
     return f"{public_app_url}/?{urlencode(params)}"
+
+
+# ── Build-page share links (Phase 3) ─────────────────────────────────────
+# The Build page is a *package* of catalog policies plus a deficit target, so
+# it needs its own codec rather than the single-preset one above. Deliberately
+# separate functions: the preset share round-trip is Phase 5's to rework, and
+# nothing here touches it.
+#
+#   /build?policies=ss-donut-250k,corporate-28pct&target=3.0&metric=pct_gdp
+#
+# ``policies`` carries stable ``preset_id`` slugs (fiscal_model/preset_ids.py),
+# comma separated and unescaped, so the URL stays readable and pasteable.
+
+BUILD_URL_PATH = "build"
+BUILD_METRIC_PCT_GDP = "pct_gdp"
+BUILD_METRIC_USD_B = "usd_b"
+BUILD_METRICS: tuple[str, ...] = (BUILD_METRIC_PCT_GDP, BUILD_METRIC_USD_B)
+
+#: Spellings of the metric that a hand-edited or older link might carry.
+_BUILD_METRIC_ALIASES: dict[str, str] = {
+    "pct_gdp": BUILD_METRIC_PCT_GDP,
+    "pct": BUILD_METRIC_PCT_GDP,
+    "gdp": BUILD_METRIC_PCT_GDP,
+    "percent": BUILD_METRIC_PCT_GDP,
+    "%": BUILD_METRIC_PCT_GDP,
+    "usd_b": BUILD_METRIC_USD_B,
+    "usd": BUILD_METRIC_USD_B,
+    "dollars": BUILD_METRIC_USD_B,
+    "$b": BUILD_METRIC_USD_B,
+    "billions": BUILD_METRIC_USD_B,
+}
+
+
+def normalize_build_metric(value: Any) -> str:
+    """Fold any accepted metric spelling to ``pct_gdp`` / ``usd_b``."""
+    normalized = _normalize_query_value(value)
+    if normalized is None:
+        return BUILD_METRIC_PCT_GDP
+    return _BUILD_METRIC_ALIASES.get(normalized.lower(), BUILD_METRIC_PCT_GDP)
+
+
+def encode_build_share(
+    preset_ids: Sequence[str],
+    target: float | None = None,
+    metric: str = BUILD_METRIC_PCT_GDP,
+    *,
+    public_app_url: str = PUBLIC_APP_URL,
+) -> str:
+    """Build the shareable ``/build`` URL for a package + deficit target.
+
+    ``preset_ids`` are stable slugs in selection order; duplicates and blanks
+    are dropped, order is preserved (the Build page resolves overlap conflicts
+    by keeping the *first* member of a group, so order is meaningful).
+    """
+    metric_value = normalize_build_metric(metric)
+
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for raw in preset_ids or ():
+        token = str(raw).strip()
+        if token and token not in seen:
+            seen.add(token)
+            ordered.append(token)
+
+    params: dict[str, str] = {"policies": ",".join(ordered)}
+    if target is not None:
+        params["target"] = (
+            f"{float(target):.1f}"
+            if metric_value == BUILD_METRIC_PCT_GDP
+            else f"{float(target):.0f}"
+        )
+    params["metric"] = metric_value
+
+    # ``safe=","`` keeps the id list human-readable instead of %2C-escaped.
+    return f"{public_app_url}/{BUILD_URL_PATH}?{urlencode(params, safe=',')}"
+
+
+def decode_build_share(query_params: Mapping[str, Any]) -> dict[str, Any]:
+    """Parse ``/build`` query params into ``{preset_ids, target, metric}``.
+
+    Every ``policies`` token is run through ``preset_ids.resolve_preset`` (via
+    :func:`~fiscal_model.preset_ids.preset_id_for_token`), so legacy emoji
+    labels and short display names in an old link resolve to their stable id.
+    A token that resolves to nothing is passed through unchanged rather than
+    dropped: the Build catalog carries a handful of score-map-only options that
+    have no entry in ``PRESET_POLICIES``, and it validates the list itself.
+
+    ``target`` is ``None`` when absent or unparseable, so the caller keeps its
+    own default instead of snapping to zero.
+    """
+    from fiscal_model.preset_ids import preset_id_for_token
+
+    raw_policies = _normalize_query_value(query_params.get("policies"))
+    preset_ids: list[str] = []
+    if raw_policies:
+        for token in raw_policies.replace("|", ",").split(","):
+            candidate = token.strip()
+            if not candidate:
+                continue
+            resolved = preset_id_for_token(candidate) or candidate
+            if resolved not in preset_ids:
+                preset_ids.append(resolved)
+
+    metric = normalize_build_metric(query_params.get("metric"))
+
+    target: float | None = None
+    raw_target = _normalize_query_value(query_params.get("target"))
+    if raw_target is not None:
+        try:
+            target = float(raw_target.replace("%", "").replace(",", "").strip())
+        except ValueError:
+            target = None
+
+    return {"preset_ids": preset_ids, "target": target, "metric": metric}

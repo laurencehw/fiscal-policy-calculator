@@ -130,3 +130,45 @@ APP_STYLES = """
 def apply_app_styles(st_module) -> None:
     """Apply shared CSS style block to the Streamlit app."""
     st_module.markdown(APP_STYLES, unsafe_allow_html=True)
+
+
+# ── Build page: sticky scoreboard ────────────────────────────────────────
+# One isolated block, applied only by the Build page (REDESIGN_PLAN.md §5.1
+# sanctions custom CSS here, kept in one place).
+#
+# The selector is the class Streamlit emits for ``st.container(key=...)``
+# from 1.51: ``st.container(key="build_scoreboard")`` renders a wrapper with
+# class ``st-key-build_scoreboard``. That is a documented, stable hook — no
+# ``data-testid`` spelunking and no nth-child positional guessing, so it will
+# not silently detach on a minor upgrade (it degrades to a non-sticky column,
+# which is merely the old behaviour).
+#
+# Sticky only on desktop: below 1024px ``st.columns`` stacks vertically, and a
+# sticky panel in a stacked layout pins over the content underneath it.
+BUILD_SCOREBOARD_STYLES = """
+<style>
+    @media screen and (min-width: 1025px) {
+        .st-key-build_scoreboard {
+            position: sticky;
+            /* Clear the fixed top navigation bar. */
+            top: 3.5rem;
+            max-height: calc(100vh - 4.5rem);
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding-right: 0.25rem;
+        }
+        /* Sticky positioning is inherited-through: an ancestor with
+           overflow other than visible silently disables it. The column
+           wrapper is the only ancestor between us and the block container. */
+        .st-key-build_scoreboard,
+        div[data-testid="stVerticalBlock"]:has(> div > .st-key-build_scoreboard) {
+            align-self: flex-start;
+        }
+    }
+</style>
+"""
+
+
+def apply_build_scoreboard_styles(st_module) -> None:
+    """Apply the Build page's sticky-scoreboard CSS (Build page only)."""
+    st_module.markdown(BUILD_SCOREBOARD_STYLES, unsafe_allow_html=True)
