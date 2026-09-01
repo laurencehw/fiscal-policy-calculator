@@ -23,7 +23,6 @@ __all__ = [
     "classroom",
     "explore",
     "methodology",
-    "studio",
     "tailor",
     "tracker",
 ]
