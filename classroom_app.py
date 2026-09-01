@@ -72,14 +72,28 @@ TYPE_ICONS = {
 # Entry point
 # ---------------------------------------------------------------------------
 
+def _configure_page_once() -> None:
+    """Set the page config only when nobody has already done it.
+
+    ``streamlit run classroom_app.py`` still gets its own title and icon. When
+    Classroom renders inside the main app — as the ``/classroom`` page or via
+    the ``?mode=classroom`` alias — ``app.py`` has already called
+    ``st.set_page_config``, and a second call raises
+    ``StreamlitSetPageConfigMustBeFirstCommandError``. Streamlit exposes no
+    "has it been set?" predicate, so the guard is the exception itself.
+    """
+    with contextlib.suppress(Exception):
+        st.set_page_config(
+            page_title="Classroom Mode — Fiscal Policy Calculator",
+            page_icon="📚",
+            layout="wide",
+            initial_sidebar_state="auto",
+        )
+
+
 def render_classroom_app() -> None:
     """Render the full classroom UI."""
-    st.set_page_config(
-        page_title="Classroom Mode — Fiscal Policy Calculator",
-        page_icon="📚",
-        layout="wide",
-        initial_sidebar_state="auto",
-    )
+    _configure_page_once()
 
     loader = AssignmentLoader()
     runner = ExerciseRunner()

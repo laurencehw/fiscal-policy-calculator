@@ -16,6 +16,7 @@ environments.
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Callable
 from functools import lru_cache
 from typing import Any, TypeVar
@@ -101,8 +102,49 @@ def get_default_scorer(start_year: int = 2025, use_real_data: bool = True) -> An
     )
 
 
+# ---------------------------------------------------------------------------
+# Health snapshot
+# ---------------------------------------------------------------------------
+#
+# ``fiscal_model.health.check_health`` regenerates the CBO baseline, stats the
+# IRS SOI tables and probes FRED. That used to be paid once per rerun, in the
+# Calculator sidebar. The redesign promotes the data-status indicator into the
+# shared chrome, so it is now on *every* page — and a Streamlit popover body
+# executes on every rerun even while closed. A short TTL keeps the pill honest
+# without paying the full probe on each navigation.
+#
+# Deliberately a hand-rolled TTL rather than ``st.cache_data``: the existing
+# ``render_data_status`` tests monkeypatch ``fiscal_model.health.check_health``,
+# and ``clear_health_snapshot()`` gives them a cheap escape hatch.
+
+_HEALTH_TTL_SECONDS = 300.0
+_health_snapshot: dict[str, Any] = {}
+
+
+def get_health_snapshot(ttl_seconds: float = _HEALTH_TTL_SECONDS) -> dict[str, Any]:
+    """Return a TTL-cached ``check_health()`` payload."""
+    from fiscal_model.health import check_health
+
+    now = time.monotonic()
+    cached = _health_snapshot.get("value")
+    if cached is not None and (now - float(_health_snapshot.get("at", 0.0))) < ttl_seconds:
+        return cached
+
+    value = check_health()
+    _health_snapshot["value"] = value
+    _health_snapshot["at"] = now
+    return value
+
+
+def clear_health_snapshot() -> None:
+    """Drop the cached health payload (tests, or after a data refresh)."""
+    _health_snapshot.clear()
+
+
 __all__ = [
+    "clear_health_snapshot",
     "get_cbo_baseline",
     "get_default_scorer",
     "get_fred_data",
+    "get_health_snapshot",
 ]

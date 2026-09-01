@@ -2,7 +2,7 @@
 UI helper utilities for Streamlit app composition.
 """
 
-from .app_controller import run_main_app
+from .app_controller import bootstrap_page, render_policy_workbench
 from .dependencies import build_app_dependencies
 from .helpers import build_macro_scenario, build_scorable_policy_map
 from .policy_execution import calculate_tax_policy_result, run_microsim_calculation
@@ -18,13 +18,14 @@ __all__ = [
     "APP_STYLES",
     "PRESET_POLICY_PACKAGES",
     "apply_app_styles",
+    "bootstrap_page",
     "build_app_dependencies",
     "build_macro_scenario",
     "build_scorable_policy_map",
     "calculate_spending_policy_result",
     "calculate_tax_policy_result",
+    "render_policy_workbench",
     "render_spending_policy_inputs",
     "render_tax_policy_inputs",
-    "run_main_app",
     "run_microsim_calculation",
 ]

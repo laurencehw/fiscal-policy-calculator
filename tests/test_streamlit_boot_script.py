@@ -34,12 +34,19 @@ def test_streamlit_shell_detection(streamlit_boot_script):
     assert not streamlit_boot_script._looks_like_streamlit_shell("<html><body>plain</body></html>")
 
 
-def test_route_checks_cover_calculator_and_classroom(streamlit_boot_script):
+def test_route_checks_cover_every_navigable_page(streamlit_boot_script):
+    """Every ``st.Page`` URL plus the ``?mode=classroom`` back-compat alias."""
     checks = streamlit_boot_script._route_checks("http://127.0.0.1:8501")
 
     assert checks == [
-        {"name": "calculator", "url": "http://127.0.0.1:8501/"},
-        {"name": "classroom", "url": "http://127.0.0.1:8501/?mode=classroom"},
+        {"name": "home_ask", "url": "http://127.0.0.1:8501/"},
+        {"name": "build", "url": "http://127.0.0.1:8501/build"},
+        {"name": "tailor", "url": "http://127.0.0.1:8501/tailor"},
+        {"name": "explore", "url": "http://127.0.0.1:8501/explore"},
+        {"name": "tracker", "url": "http://127.0.0.1:8501/tracker"},
+        {"name": "methodology", "url": "http://127.0.0.1:8501/methodology"},
+        {"name": "classroom", "url": "http://127.0.0.1:8501/classroom"},
+        {"name": "classroom_legacy", "url": "http://127.0.0.1:8501/?mode=classroom"},
     ]
 
 

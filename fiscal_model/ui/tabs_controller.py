@@ -183,7 +183,7 @@ def render_result_tabs(
         with tabs["tab_summary"]:
             st_module.markdown("### Welcome to the Fiscal Policy Calculator")
             st_module.markdown(
-                "Select a tax or spending proposal in the sidebar and click "
+                "Choose a proposal above (or define your own on **Tailor**) and click "
                 "**Calculate Impact** to see its 10-year budgetary effect.\n\n"
                 "**Quick examples to try:**"
             )
@@ -203,7 +203,7 @@ def render_result_tabs(
             with col_c:
                 st_module.markdown(
                     "**Infrastructure $100B/yr**  \n"
-                    "Select *Spending program* in sidebar  \n"
+                    "Choose *Spending program* on **Tailor**  \n"
                     "*Model GDP effects with multipliers*"
                 )
             st_module.markdown("---")

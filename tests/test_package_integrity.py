@@ -22,9 +22,9 @@ from fiscal_model.ui import (
     build_scorable_policy_map,
     calculate_spending_policy_result,
     calculate_tax_policy_result,
+    render_policy_workbench,
     render_spending_policy_inputs,
     render_tax_policy_inputs,
-    run_main_app,
     run_microsim_calculation,
 )
 from fiscal_model.ui.calculation_controller import (
@@ -334,7 +334,7 @@ def test_results_summary_tab_renderer_importable():
 
 
 def test_spending_policy_input_helpers_importable():
-    assert callable(run_main_app)
+    assert callable(render_policy_workbench)
     assert callable(build_app_dependencies)
     assert callable(render_settings_tab)
     assert callable(render_sidebar_inputs)

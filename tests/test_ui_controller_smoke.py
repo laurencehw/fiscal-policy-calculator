@@ -10,9 +10,9 @@ from types import SimpleNamespace
 from fiscal_model.ui.app_controller import (
     _PENDING_SIDEBAR_UPDATES_KEY,
     _apply_pending_sidebar_updates,
+    _render_guarded_section,
     render_data_status,
     render_quick_start,
-    run_main_app,
 )
 from fiscal_model.ui.calculation_controller import (
     POLICY_PACKAGES_MODE,
@@ -154,17 +154,31 @@ class _QuickStartStreamlit(_DummyStreamlit):
         return None
 
 
-class _TopLevelStreamlit(_DummyStreamlit):
+class _NavStreamlit(_DummyStreamlit):
+    """Fake ``st`` that records ``st.Page`` / ``st.navigation`` registration."""
+
     def __init__(self) -> None:
         super().__init__(radio_values=[])
         self.titles: list[str] = []
+        self.pages: list[SimpleNamespace] = []
+        self.nav: SimpleNamespace | None = None
 
     def title(self, text):
         self.titles.append(text)
 
-    def tabs(self, labels):
-        self.tab_labels = labels
-        return [_DummyContext() for _ in labels]
+    def set_page_config(self, **kwargs):
+        return None
+
+    def Page(self, page, *, title=None, url_path=None, default=False, **kwargs):  # Streamlit API name
+        del kwargs
+        entry = SimpleNamespace(run_fn=page, title=title, url_path=url_path, default=default)
+        self.pages.append(entry)
+        return entry
+
+    def navigation(self, pages, *, position="sidebar", **kwargs):
+        del kwargs
+        self.nav = SimpleNamespace(sections=pages, position=position, run=lambda: None)
+        return self.nav
 
 
 def test_render_sidebar_inputs_single_mode_uses_tax_inputs():
@@ -438,64 +452,43 @@ def test_render_result_tabs_contains_tab_failures():
     assert "state" in calls
 
 
-def test_run_main_app_contains_calculator_failure(monkeypatch):
-    """A Calculator crash should not prevent other top-level sections from rendering."""
-    from fiscal_model.ui import app_controller as module
+def test_router_registers_the_redesigned_page_set():
+    """The top-level surface list — the successor to the old tab-label list."""
+    import app
 
-    st_module = _TopLevelStreamlit()
-    calls: list[str] = []
+    st_module = _NavStreamlit()
+    st_module.query_params = {}
+    deps = SimpleNamespace(apply_app_styles=lambda st: None)
 
-    def _boom_calculator(**kwargs):
-        del kwargs
-        raise RuntimeError("calculator broke")
+    app.main(st_module=st_module, pd_module=object(), deps_builder=lambda **kw: deps)
 
-    monkeypatch.setattr(module, "_render_calculator", _boom_calculator)
-    monkeypatch.setattr(
-        module,
-        "_render_budget_builder",
-        lambda **kwargs: calls.append("budget"),
-    )
-    monkeypatch.setattr(
-        module,
-        "_render_package_studio",
-        lambda **kwargs: calls.append("package_studio"),
-    )
-    monkeypatch.setattr(
-        module,
-        "render_footer",
-        lambda st_module: calls.append("footer"),
-    )
-
-    deps = SimpleNamespace(
-        fiscal_assistant=None,
-        render_ask_tab=lambda **kwargs: calls.append("ask"),
-        render_bill_tracker_tab=lambda **kwargs: calls.append("bill_tracker"),
-        render_methodology_tab=lambda **kwargs: calls.append("methodology"),
-    )
-
-    run_main_app(
-        st_module=st_module,
-        deps=deps,
-        model_available=True,
-        app_root=Path("."),
-    )
-
-    assert any("Calculator encountered an issue" in msg for msg in st_module.errors)
-    assert st_module.tab_labels == [
-        "📊 Calculator",
-        "💬 Ask",
-        "⚖️ Budget Builder",
-        "🧭 Package Studio",
-        "📋 Bill Tracker",
-        "📖 Methodology",
+    assert st_module.nav is not None
+    assert st_module.nav.position == "top"
+    assert [page.title for page in st_module.nav.sections[""]] == [
+        "Ask",
+        "Build",
+        "Tailor",
+        "Explore",
     ]
-    assert "ask" in calls
-    assert "budget" in calls
-    assert "package_studio" in calls
-    assert "bill_tracker" in calls
-    assert "methodology" in calls
-    assert "generational" not in calls
-    assert "state" not in calls
+    assert [page.title for page in st_module.nav.sections["More"]] == [
+        "Bill Tracker",
+        "Methodology",
+        "Classroom",
+        "Package Studio",
+    ]
+    assert [page.url_path for page in st_module.pages if page.default] == ["ask"]
+
+
+def test_page_body_failure_is_contained_by_the_error_boundary():
+    """A crashing page body renders a contained error, not a blank app."""
+    st_module = _DummyStreamlit(radio_values=[])
+
+    def _boom():
+        raise RuntimeError("explore broke")
+
+    _render_guarded_section(st_module, "Explore", _boom)
+
+    assert any("Explore encountered an issue" in msg for msg in st_module.errors)
 
 
 def test_render_quick_start_defers_sidebar_updates_until_rerun():

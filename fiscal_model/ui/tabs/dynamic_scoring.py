@@ -39,7 +39,7 @@ def render_dynamic_scoring_tab(
         st_module.markdown(
             """
             <div class="info-box">
-            💡 <strong>Dynamic scoring is disabled.</strong> Enable it in the sidebar to see macroeconomic effects
+            💡 <strong>Dynamic scoring is disabled.</strong> Enable it in the ⚙ settings menu to see macroeconomic effects
             (GDP impact, employment changes, interest rates, and revenue feedback).
             </div>
             """,
@@ -57,7 +57,7 @@ def render_dynamic_scoring_tab(
             - **Interest Rates**: Deficits can raise rates through crowding out
             - **Revenue Feedback**: GDP growth generates additional tax revenue
 
-            **Enable dynamic scoring** in the sidebar to see these effects for your policy.
+            **Enable dynamic scoring** in the settings menu to see these effects for your policy.
             """
         )
         return
@@ -226,7 +226,7 @@ def render_dynamic_scoring_tab(
         if result.dynamic_effects is not None:
             headline_feedback = float(result.dynamic_effects.revenue_feedback.sum())
             st_module.caption(
-                f"ℹ️ Dynamic scoring is enabled in the sidebar, so the "
+                f"ℹ️ Dynamic scoring is enabled in the ⚙ settings menu, so the "
                 f"Results tab headline already includes "
                 f"${headline_feedback:+,.0f}B of revenue feedback from the "
                 f"app's internal model. This tab runs an independent "

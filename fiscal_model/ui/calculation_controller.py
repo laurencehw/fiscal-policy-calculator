@@ -15,33 +15,74 @@ SINGLE_POLICY_MODE = "📊 Single Policy"
 COMPARE_POLICIES_MODE = "🔀 Compare Policies"
 POLICY_PACKAGES_MODE = "📦 Policy Packages"
 
+# Analysis modes. These literals are the stored value of the
+# ``sidebar_analysis_mode`` widget key and are written by share links
+# (``ui/share_links.py``) and quick-start cards, so they must not change.
+PRESET_ANALYSIS_MODE = "📋 Tax proposal (preset)"
+CUSTOM_ANALYSIS_MODE = "✏️ Custom tax policy"
+SPENDING_ANALYSIS_MODE = "💰 Spending program"
+ALL_ANALYSIS_MODES: tuple[str, ...] = (
+    PRESET_ANALYSIS_MODE,
+    CUSTOM_ANALYSIS_MODE,
+    SPENDING_ANALYSIS_MODE,
+)
 
-def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
+_ANALYSIS_MODE_KEY = "sidebar_analysis_mode"
+
+
+def render_policy_inputs(
+    st_module: Any,
+    deps: Any,
+    modes: tuple[str, ...] = ALL_ANALYSIS_MODES,
+) -> dict[str, Any]:
     """
-    Render policy input controls in the sidebar and return interaction context.
-    Note: the Calculate button is rendered separately in _render_calculator so
-    that Model settings can appear above it.
+    Render policy input controls and return interaction context.
+
+    ``modes`` is the subset of analysis modes this surface offers. The redesign
+    splits them across two pages — ``/explore`` offers the preset flow only and
+    ``/tailor`` offers custom + spending — so a single-entry ``modes`` renders no
+    radio at all. The Calculate button is rendered by the caller so page-level
+    layout stays with the page.
     """
+    if not modes:
+        raise ValueError("render_policy_inputs requires at least one analysis mode")
+
     workflow_mode = SINGLE_POLICY_MODE
     preset_policies = deps.PRESET_POLICIES
     apply_share_query_params(st_module=st_module)
 
     # ── Single-policy combined choice: preset / custom / spending ─────────
-    n_presets = sum(1 for name in preset_policies if name != "Custom Policy")
-    analysis_mode = st_module.radio(
-        "Analyze:",
-        ["📋 Tax proposal (preset)", "✏️ Custom tax policy", "💰 Spending program"],
-        horizontal=False,
-        key="sidebar_analysis_mode",
-        help=(
-            f"**Tax proposal** — pick from {n_presets} real-world policies, "
-            "benchmarked against CBO/JCT estimates where official scores exist.  \n"
-            "**Custom tax policy** — set your own rate change, threshold, and parameters.  \n"
-            "**Spending program** — infrastructure, defense, transfers, etc."
-        ),
-    )
-    is_spending = analysis_mode == "💰 Spending program"
-    use_preset = analysis_mode == "📋 Tax proposal (preset)"
+    if len(modes) == 1:
+        analysis_mode = modes[0]
+    else:
+        # A share link or quick-start card may have primed the key with a mode
+        # this page does not offer (e.g. "preset" while on /tailor). Evict it
+        # rather than let Streamlit reject an out-of-range widget value — same
+        # pattern the preset pickers use for stale selections.
+        #
+        # ``None`` is evicted too: ``initialize_session_state`` seeds this key
+        # with ``None``, and a radio whose session value is ``None`` renders
+        # with *nothing selected*. Dropping it lets the widget fall back to
+        # index 0, which is the mode the page then scores anyway.
+        stored_mode = st_module.session_state.get(_ANALYSIS_MODE_KEY)
+        if stored_mode not in modes:
+            st_module.session_state.pop(_ANALYSIS_MODE_KEY, None)
+
+        n_presets = sum(1 for name in preset_policies if name != "Custom Policy")
+        analysis_mode = st_module.radio(
+            "Analyze:",
+            list(modes),
+            horizontal=False,
+            key=_ANALYSIS_MODE_KEY,
+            help=(
+                f"**Tax proposal** — pick from {n_presets} real-world policies, "
+                "benchmarked against CBO/JCT estimates where official scores exist.  \n"
+                "**Custom tax policy** — set your own rate change, threshold, and parameters.  \n"
+                "**Spending program** — infrastructure, defense, transfers, etc."
+            ),
+        )
+    is_spending = analysis_mode == SPENDING_ANALYSIS_MODE
+    use_preset = analysis_mode == PRESET_ANALYSIS_MODE
 
     tax_inputs: dict[str, Any] = {}
     spending_inputs: dict[str, Any] = {}
@@ -79,6 +120,15 @@ def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
         "spending_inputs": spending_inputs,
         "calculate": False,  # Set by caller after Model settings rendered
     }
+
+
+def render_sidebar_inputs(st_module: Any, deps: Any) -> dict[str, Any]:
+    """Back-compat alias for :func:`render_policy_inputs` with all modes.
+
+    The global sidebar is gone; the name survives because it is part of the
+    public ``fiscal_model.ui`` surface and is exercised by the UI test suite.
+    """
+    return render_policy_inputs(st_module=st_module, deps=deps)
 
 
 def ensure_results_state(st_module: Any) -> None:
