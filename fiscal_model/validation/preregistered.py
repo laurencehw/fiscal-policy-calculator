@@ -50,7 +50,7 @@ from typing import Any
 from .cbo_scores import KNOWN_SCORES
 
 #: Commit that introduced this manifest and the widened out-of-sample battery.
-PHASE_A_COMMIT = "PENDING-STAMPED-IN-FOLLOWING-COMMIT"
+PHASE_A_COMMIT = "0d8be75c28a730c4ca4fce85ca501262e55a3f95"
 PHASE_A_DATE = "2026-09-01"
 
 #: Commit that first added the validation module and its four original
