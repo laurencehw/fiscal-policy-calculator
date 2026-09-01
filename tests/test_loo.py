@@ -22,6 +22,11 @@ import pytest
 
 from fiscal_model.policies import PolicyType
 from fiscal_model.policies_core import CapitalGainsPolicy
+from fiscal_model.tax_expenditures_core import (
+    JCT_TAX_EXPENDITURES,
+    TAX_EXPENDITURE_DATA_KEYS,
+    TaxExpenditureType,
+)
 from fiscal_model.validation import loo
 from fiscal_model.validation.loo import (
     DERIVATION_BOTTOM_UP,
@@ -309,3 +314,43 @@ def test_harness_reproduces_the_by_construction_score():
         direct = validate_payroll_policy(case_id, verbose=False)
         assert replayed.model_10yr == pytest.approx(direct.model_10yr)
         assert replayed.percent_difference == pytest.approx(direct.percent_difference)
+
+
+def test_zero_derivation_is_reported_not_silently_dropped(monkeypatch):
+    """
+    A rule that runs and returns 0.0 is a *derivation*, not an absent one.
+
+    Dropping it would hide the misconfiguration this suite exists to surface,
+    so it must reach the aggregate as a ~100% error. Only an expenditure type
+    with no JCT base-table entry at all is non-derivable.
+    """
+    monkeypatch.setitem(
+        JCT_TAX_EXPENDITURES,
+        "mortgage_interest",
+        {**JCT_TAX_EXPENDITURES["mortgage_interest"], "annual_cost": 0.0},
+    )
+    derived = derive_expenditure_annual("eliminate_mortgage")
+    assert derived == 0.0, "a rule that ran and produced 0.0 must not return None"
+
+    report = loo.run_tax_expenditure_loo()
+    case = next(c for c in report.cases if c.case_id == "eliminate_mortgage")
+    assert case.included is True
+    assert case.abs_percent_error == pytest.approx(100.0)
+
+
+def test_missing_base_table_entry_is_not_cross_validatable(monkeypatch):
+    """No base-table entry at all is the only non-derivable expenditure case."""
+    # Drop the type -> key mapping so get_expenditure_data() falls through to
+    # its "charitable" default, then drop that too, leaving an empty base.
+    monkeypatch.delitem(
+        TAX_EXPENDITURE_DATA_KEYS, TaxExpenditureType.MORTGAGE_INTEREST
+    )
+    monkeypatch.delitem(JCT_TAX_EXPENDITURES, "charitable")
+
+    assert derive_expenditure_annual("eliminate_mortgage") is None
+
+    report = loo.run_tax_expenditure_loo()
+    case = next(c for c in report.cases if c.case_id == "eliminate_mortgage")
+    assert case.included is False
+    assert case.derivation == DERIVATION_NONE
+    assert "base-table" in case.exclusion_reason

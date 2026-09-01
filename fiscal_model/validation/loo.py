@@ -841,14 +841,21 @@ def derive_expenditure_annual(case_id: str) -> float | None:
     reform-action rules run against ``JCT_TAX_EXPENDITURES``, the base table
     sourced to JCT's *Estimates of Federal Tax Expenditures* (JCX-48-24; the
     curated snapshot lives in ``assistant/knowledge/jct_tax_expenditures.md``).
+
+    Returns ``None`` only when the expenditure type has **no base-table entry**
+    at all — there is then nothing to rebuild from. A rule that runs and
+    returns ``0.0`` is a real (and very wrong) derivation, and is reported as
+    a ~100% error rather than quietly dropped: silently excluding it would hide
+    exactly the misconfiguration this suite exists to surface.
     """
     scenario = TAX_EXPENDITURE_VALIDATION_SCENARIOS_COMPARE.get(case_id)
     if scenario is None:
         return None
     policy = scenario["policy_factory"](**scenario.get("kwargs", {}))
+    if not policy.get_expenditure_data():
+        return None
     policy.annual_revenue_change_billions = None
-    derived = policy.estimate_static_revenue_effect(0.0)
-    return None if derived == 0.0 else float(derived)
+    return float(policy.estimate_static_revenue_effect(0.0))
 
 
 def run_tax_expenditure_loo() -> LOOReport:
@@ -882,7 +889,7 @@ def run_tax_expenditure_loo() -> LOOReport:
                     "calibration is retained because none exists to retain."
                 ),
                 exclusion_reason=(
-                    None if derived is not None else "no base-table entry for this action"
+                    None if derived is not None else "no JCT base-table entry for this expenditure type"
                 ),
             )
         )
@@ -927,6 +934,11 @@ def run_capital_gains_loo() -> LOOReport:
             "of each scenario's hand-set tuple."
         ),
     )
+    # Built directly rather than through _build_case: this module's held-out
+    # quantity is a *parameter set*, not a single annual constant, so there is
+    # no derived annual to run the leakage guard against. The guard is not
+    # needed here either — the frozen values are dataclass defaults from the
+    # realizations literature and cannot be any target restated.
     for case_id in CAPITAL_GAINS_VALIDATION_SCENARIOS:
         calibrated = _calibrated_result(validate_capital_gains_policy, case_id)
         retained = tuple(

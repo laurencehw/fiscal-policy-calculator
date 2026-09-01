@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import traceback
 from dataclasses import asdict, is_dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -455,11 +456,17 @@ def print_calibration(calibration: dict[str, Any]) -> bool:
 
 
 def collect_loo() -> LOOSuite | None:
-    """Run the leave-one-out suite, returning ``None`` if it crashed."""
+    """
+    Run the leave-one-out suite, returning ``None`` if it crashed.
+
+    Prints the full traceback: a crash here fails the gate, and a bare
+    ``str(exc)`` in a CI log is rarely enough to act on.
+    """
     try:
         return run_leave_one_out()
     except Exception as exc:  # pragma: no cover - best-effort diagnostic
         print(f"  [ERROR] Leave-one-out suite crashed: {exc}")
+        traceback.print_exc()
         return None
 
 

@@ -117,7 +117,7 @@ def print_donor_matrix() -> None:
     print("  parameters (unset fields fall back to the dataclass defaults).")
     print()
     print(f"  {'donor tuple':<24}" + "".join(f"{c:>24}" for c in cases) + f"{'mean|others|':>14}")
-    print(f"  {'-' * 24}" + "".join(f"{'-' * 23:>24}" for c in cases) + f"{'-' * 13:>14}")
+    print(f"  {'-' * 24}" + f"{'-' * 23:>24}" * len(cases) + f"{'-' * 13:>14}")
     for donor, row in matrix.items():
         others = [abs(v) for cid, v in row.items() if cid != donor]
         mean_others = sum(others) / len(others) if others else float("nan")
