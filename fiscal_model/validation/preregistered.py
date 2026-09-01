@@ -76,6 +76,32 @@ PHASE_B_ENTERED_DATE = "2026-09-01"
 #: payroll plumbing they need).
 PHASE_B_FIRST_SCORED_COMMIT = "36d683f9a24f7609d0a179de5f8f36b0ec44a9fc"
 
+#: Commit that entered the Phase D enacted-law component targets (IIJA
+#: discretionary, the Fiscal Responsibility Act's discretionary caps, and the
+#: Social Security Fairness Act's WEP/GPO repeal) into this manifest. As in
+#: Phase B, the rows were added in this commit and first scored in a *later*
+#: one, so "the target was fixed before the model was allowed to move" is
+#: checkable from the git history rather than asserted in prose.
+PHASE_D_ENTERED_COMMIT = "PENDING"
+PHASE_D_ENTERED_DATE = "2026-09-01"
+
+#: Commit in which the Phase D enacted-law battery was first scored (the commit
+#: that flips those three records to ``runnable=True``).
+PHASE_D_FIRST_SCORED_COMMIT = "PENDING"
+
+#: The rule that set ``annual_amount_billions`` for every Phase D spending
+#: case, fixed before any of them was scored. Written here rather than only in
+#: each record's notes because a per-case choice of level would be a knob.
+PHASE_D_SPENDING_LEVEL_RULE = (
+    "annual_amount_billions = the source's own stated funding or benefit change "
+    "for the first fiscal year in which the provision is fully in effect, "
+    "excluding any year the source itself describes as carrying retroactive or "
+    "transition amounts; grown at the module default 2%/yr. "
+    "effective_start_year = the first fiscal year the source's table shows a "
+    "non-zero effect, so the model window matches the source's own non-zero "
+    "window."
+)
+
 #: Baselines the CBO options were built on, from PDF page 2 of publication
 #: 60557 ("Notes About This Report").
 CBO_OPTIONS_REVENUE_BASELINE = (
@@ -508,6 +534,82 @@ PREREGISTERED_CASES: tuple[PreregisteredCase, ...] = (
             "shape anchored on it over-states every later year."
         ),
     ),
+    # ---- Phase D: enacted-law component replications (entered, then scored) --
+    PreregisteredCase(
+        case_id="ssfa_wep_gpo_repeal_outlays.v1",
+        policy_id="ssfa_wep_gpo_repeal_outlays",
+        official_10yr_billions=195.65,
+        source_name="Congressional Budget Office",
+        source_url="https://www.cbo.gov/system/files/2024-09/hr82.pdf",
+        source_date="2024-09",
+        source_baseline_vintage=(
+            "CBO June 2024 baseline (the estimate is dated 9 September 2024) - "
+            "VINTAGE MISMATCH: the repository has no 2024 mid-year vintage, so "
+            "this row is scored on the model's current default baseline. The "
+            "shape is bottom-up from a stated benefit level and reads nothing "
+            "off the baseline, so the mismatch does not move the score."
+        ),
+        entered_commit=PHASE_D_ENTERED_COMMIT,
+        entered_date=PHASE_D_ENTERED_DATE,
+        first_scoring_run_commit=PHASE_D_FIRST_SCORED_COMMIT,
+        note=(
+            "Component record, not the bill total. The repository's existing "
+            "'social_security_fairness_2023' record carries a rounded $196B and "
+            "a source_url (publication 59434) that resolves to CBO's estimate of "
+            "H.R. 3938, a different bill; that record is left untouched here and "
+            "the mis-citation is reported for the provenance pass. "
+            + PHASE_D_SPENDING_LEVEL_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="fra_2023_discretionary_caps.v1",
+        policy_id="fra_2023_discretionary_caps",
+        official_10yr_billions=-1331.8,
+        source_name="Congressional Budget Office",
+        source_url=(
+            "https://www.cbo.gov/system/files/2023-05/hr3746_Letter_McCarthy.pdf"
+        ),
+        source_date="2023-05",
+        source_baseline_vintage=(
+            "CBO May 2023 baseline (stated in the letter) - VINTAGE MISMATCH: "
+            "the repository's oldest vintage is CBO_FEB_2024, so this row is "
+            "scored on the model's current default baseline."
+        ),
+        entered_commit=PHASE_D_ENTERED_COMMIT,
+        entered_date=PHASE_D_ENTERED_DATE,
+        first_scoring_run_commit=PHASE_D_FIRST_SCORED_COMMIT,
+        note=(
+            "Discretionary-caps component only; the bill's -$1.5T total also "
+            "bundles the Toxic Exposures Fund, student loans, an IRS rescission "
+            "and debt service. " + PHASE_D_SPENDING_LEVEL_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="iija_2021_discretionary.v1",
+        policy_id="iija_2021_discretionary",
+        official_10yr_billions=415.448,
+        source_name="Congressional Budget Office",
+        source_url=(
+            "https://www.cbo.gov/system/files/2021-08/hr3684_infrastructure.pdf"
+        ),
+        source_date="2021-08",
+        source_baseline_vintage=(
+            "CBO July 2021 baseline - VINTAGE MISMATCH: the repository's oldest "
+            "vintage is CBO_FEB_2024, so this row is scored on the model's "
+            "current default baseline."
+        ),
+        entered_commit=PHASE_D_ENTERED_COMMIT,
+        entered_date=PHASE_D_ENTERED_DATE,
+        first_scoring_run_commit=PHASE_D_FIRST_SCORED_COMMIT,
+        note=(
+            "Discretionary component only; the bill's +$256B net also nets "
+            "-$110B of direct spending and +$50B of revenues. Expected to miss "
+            "badly and kept anyway: CBO's own table shows front-loaded budget "
+            "authority ($163.0B in 2022) producing a humped outlay path (peak "
+            "$70.0B in 2026), which a level SpendingPolicy with no spend-out "
+            "model cannot reproduce. " + PHASE_D_SPENDING_LEVEL_RULE
+        ),
+    ),
 )
 
 
@@ -620,6 +722,8 @@ def summarize_preregistration() -> dict[str, Any]:
         "phase_a_commit": PHASE_A_COMMIT,
         "phase_b_entered_commit": PHASE_B_ENTERED_COMMIT,
         "phase_b_first_scored_commit": PHASE_B_FIRST_SCORED_COMMIT,
+        "phase_d_entered_commit": PHASE_D_ENTERED_COMMIT,
+        "phase_d_first_scored_commit": PHASE_D_FIRST_SCORED_COMMIT,
         "rows": [
             {
                 "case_id": case.case_id,
@@ -645,6 +749,9 @@ __all__ = [
     "PHASE_A_COMMIT",
     "PHASE_B_ENTERED_COMMIT",
     "PHASE_B_FIRST_SCORED_COMMIT",
+    "PHASE_D_ENTERED_COMMIT",
+    "PHASE_D_FIRST_SCORED_COMMIT",
+    "PHASE_D_SPENDING_LEVEL_RULE",
     "PREREGISTERED_CASES",
     "PreregisteredCase",
     "assert_preregistered",
