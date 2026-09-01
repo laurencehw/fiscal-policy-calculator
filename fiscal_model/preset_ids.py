@@ -115,12 +115,51 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
     "🌱 Extend IRA Credits Beyond 2032 ($400B)": "ira-clean-energy-extend",
 }
 
+#: Build-local ids for ``CBO_SCORE_MAP`` entries that carry an official score
+#: but have **no ``PRESET_POLICIES`` row** — the scoring engine cannot run them,
+#: so they are checkable in Build (which quotes official "list prices") and
+#: nowhere else. Minted in ``ui/tabs/deficit_target._SCORE_ONLY_ENTRIES``;
+#: promoted here in Phase 5 so they resolve in share links and can join an
+#: exclusive group. Same rule as the catalog ids: **frozen once shipped**.
+SCORE_ONLY_ID_BY_LABEL: dict[str, str] = {
+    "📋 Eliminate Mortgage Deduction (-$300B)": "mortgage-deduction-eliminate",
+    "📋 Eliminate SALT Deduction (-$1.2T)": "salt-deduction-eliminate",
+}
+
+#: Score-map labels that are an *alternative estimate* of an instrument that
+#: already has a slug: they reuse it rather than mint a second id, so a link
+#: carrying either spelling lands on the same option.
+SCORE_ONLY_ALIAS_ID_BY_LABEL: dict[str, str] = {
+    "🏭 25% Steel & Aluminum Tariff (-$60B)": "tariff-steel-aluminum-25pct",
+    "🏭 Reciprocal Tariffs (~20pp) (-$1.2T)": "tariff-reciprocal",
+}
+
+#: Scorable presets first, then the Build-local score-only ids.
+ALL_ID_BY_LABEL: dict[str, str] = {**PRESET_ID_BY_LABEL, **SCORE_ONLY_ID_BY_LABEL}
+
 LABEL_BY_PRESET_ID: dict[str, str] = {
+    preset_id: label for label, preset_id in ALL_ID_BY_LABEL.items()
+}
+
+#: Reverse map restricted to *scorable* presets. ``resolve_preset`` answers from
+#: this one: its contract is "a key of ``PRESET_POLICIES``", and callers index
+#: the catalog with what it returns.
+_CATALOG_LABEL_BY_ID: dict[str, str] = {
     preset_id: label for label, preset_id in PRESET_ID_BY_LABEL.items()
 }
 
-#: Every id except the ``Custom Policy`` sentinel — the Build catalog proper.
+#: Every *scorable* preset except the ``Custom Policy`` sentinel. This is the
+#: set the values tagger and the distribution engine have to cover, so the
+#: score-only ids are deliberately **not** in it.
 CATALOG_PRESET_IDS: tuple[str, ...] = tuple(
+    preset_id
+    for preset_id in PRESET_ID_BY_LABEL.values()
+    if preset_id != CUSTOM_POLICY_ID
+)
+
+#: Ordering for anything that has to sort a mixed selection (Build packages):
+#: catalog order, then the score-only ids.
+SELECTABLE_PRESET_IDS: tuple[str, ...] = tuple(
     preset_id for preset_id in LABEL_BY_PRESET_ID if preset_id != CUSTOM_POLICY_ID
 )
 
@@ -138,10 +177,13 @@ EXCLUSIVE_GROUPS: dict[str, tuple[str, ...]] = {
         "tcja-extension-no-salt-cap",
         "tcja-rates-only",
     ),
-    # The no-SALT-cap bundle already repeals the cap.
+    # The no-SALT-cap bundle already repeals the cap, and eliminating the
+    # deduction outright is the same instrument set the other way: summing any
+    # two of these double-counts the SALT base.
     "salt-cap": (
         "tcja-extension-no-salt-cap",
         "salt-cap-repeal",
+        "salt-deduction-eliminate",
     ),
     "corporate-rate": ("corporate-28pct", "corporate-15pct"),
     # The 2021 expansion supersedes a straight extension of the $2,000 credit.
@@ -349,42 +391,54 @@ def _leading_noise_stripped(label: str) -> str:
     return label
 
 
-def _build_alias_index() -> dict[str, str]:
-    """Map every normalised legacy spelling of a preset to its canonical label.
+def _spellings(label: str, preset_id: str) -> tuple[str, ...]:
+    """Every form of one preset that a link in the wild might carry."""
+    return (
+        label,
+        preset_id,
+        preset_id.replace("-", " "),
+        preset_id.replace("-", "_"),
+        _score_suffix_stripped(label),
+        # The two forms the sidebar actually renders, and that old share
+        # links therefore carry.
+        _leading_noise_stripped(label),
+        _leading_noise_stripped(_score_suffix_stripped(label)),
+    )
 
-    Ambiguous aliases (two presets folding to the same token) are dropped
+
+def _build_index(pairs: Mapping[str, str]) -> dict[str, str]:
+    """Map every normalised spelling in ``pairs`` to its (single) target.
+
+    Ambiguous aliases (two entries folding to the same token) are dropped
     rather than resolved arbitrarily.
     """
     candidates: dict[str, set[str]] = {}
-
-    def offer(alias: str, label: str) -> None:
-        key = _normalize(alias)
-        if key:
-            candidates.setdefault(key, set()).add(label)
-
-    for label, preset_id in PRESET_ID_BY_LABEL.items():
-        offer(label, label)
-        offer(preset_id, label)
-        offer(preset_id.replace("-", " "), label)
-        offer(preset_id.replace("-", "_"), label)
-        offer(_score_suffix_stripped(label), label)
-        # The two forms the sidebar actually renders, and that old share
-        # links therefore carry.
-        offer(_leading_noise_stripped(label), label)
-        offer(_leading_noise_stripped(_score_suffix_stripped(label)), label)
-
+    for label, target in pairs.items():
+        for alias in _spellings(label, ALL_ID_BY_LABEL.get(label, target)):
+            key = _normalize(alias)
+            if key:
+                candidates.setdefault(key, set()).add(target)
     return {
-        alias: next(iter(labels))
-        for alias, labels in candidates.items()
-        if len(labels) == 1
+        alias: next(iter(targets))
+        for alias, targets in candidates.items()
+        if len(targets) == 1
     }
 
 
-_ALIAS_INDEX: dict[str, str] = _build_alias_index()
+#: normalised spelling -> canonical *catalog* label.
+_ALIAS_INDEX: dict[str, str] = _build_index(
+    {label: label for label in PRESET_ID_BY_LABEL}
+)
+
+#: normalised spelling -> stable id, for the score-only Build options. Consulted
+#: only after ``_ALIAS_INDEX`` misses, so a catalog preset always wins a clash.
+_SCORE_ONLY_INDEX: dict[str, str] = _build_index(
+    {**SCORE_ONLY_ID_BY_LABEL, **SCORE_ONLY_ALIAS_ID_BY_LABEL}
+)
 
 
 def all_preset_ids() -> tuple[str, ...]:
-    """Every preset id, in catalog order (includes ``custom-policy``)."""
+    """Every known id: catalog order, ``custom-policy``, then score-only ids."""
     return tuple(LABEL_BY_PRESET_ID)
 
 
@@ -424,8 +478,8 @@ def resolve_preset(token: Any) -> str | None:
     for candidate in (text, unquote_plus(text)):
         if candidate in PRESET_ID_BY_LABEL:
             return candidate
-        if candidate in LABEL_BY_PRESET_ID:
-            return LABEL_BY_PRESET_ID[candidate]
+        if candidate in _CATALOG_LABEL_BY_ID:
+            return _CATALOG_LABEL_BY_ID[candidate]
 
     for candidate in (text, unquote_plus(text)):
         hit = _ALIAS_INDEX.get(_normalize(candidate))
@@ -435,9 +489,25 @@ def resolve_preset(token: Any) -> str | None:
 
 
 def preset_id_for_token(token: Any) -> str | None:
-    """Stable id for an id *or* any legacy label spelling; ``None`` if unknown."""
+    """Stable id for an id *or* any legacy label spelling; ``None`` if unknown.
+
+    Resolves the score-only Build options too (:data:`SCORE_ONLY_ID_BY_LABEL`),
+    which :func:`resolve_preset` cannot: they have no ``PRESET_POLICIES`` row,
+    so there is no catalog label to return.
+    """
     label = resolve_preset(token)
-    return None if label is None else PRESET_ID_BY_LABEL[label]
+    if label is not None:
+        return PRESET_ID_BY_LABEL[label]
+    if token is None:
+        return None
+    text = str(token).strip()
+    if not text:
+        return None
+    for candidate in (text, unquote_plus(text)):
+        hit = _SCORE_ONLY_INDEX.get(_normalize(candidate))
+        if hit is not None:
+            return hit
+    return None
 
 
 # ── Exclusivity helpers for the Build UI ────────────────────────────────
@@ -457,7 +527,7 @@ def exclusive_groups_for(
         if preset_id is not None and preset_id not in selected:
             selected.append(preset_id)
 
-    ordered = [pid for pid in CATALOG_PRESET_IDS if pid in selected]
+    ordered = [pid for pid in SELECTABLE_PRESET_IDS if pid in selected]
     groups: dict[str, list[str]] = {}
     for preset_id in ordered:
         for group in _GROUPS_BY_MEMBER.get(preset_id, ()):
@@ -537,6 +607,7 @@ def attach_catalog_metadata(
 
 __all__ = [
     "ALLOWED_TAG_VALUES",
+    "ALL_ID_BY_LABEL",
     "CATALOG_PRESET_IDS",
     "CUSTOM_POLICY_ID",
     "CUSTOM_POLICY_LABEL",
@@ -544,6 +615,9 @@ __all__ = [
     "LABEL_BY_PRESET_ID",
     "POLICY_TAGS",
     "PRESET_ID_BY_LABEL",
+    "SCORE_ONLY_ALIAS_ID_BY_LABEL",
+    "SCORE_ONLY_ID_BY_LABEL",
+    "SELECTABLE_PRESET_IDS",
     "SUBSUMES",
     "TAG_KEYS",
     "TAG_SOURCES",

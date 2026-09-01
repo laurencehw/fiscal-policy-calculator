@@ -8,10 +8,12 @@ must not change what the forms *return*. These tests pin the pre-key defaults,
 the persistence the keys buy, and the one place where a stable key would have
 changed behaviour if left alone: the spending form's preset-driven fields.
 
-Also pins the fragile preset share-link round trip described in
-``planning/redesign/NOTES.md`` §3.3, so a future reordering cannot break the
-fallback path silently. This commit deliberately does **not** fix that
-round trip (Phase 5 does, with stable preset ids) — it just stops it regressing.
+Also pins the preset share-link round trip described in
+``planning/redesign/NOTES.md`` §3.3. Phase 5 fixed it: restoration writes the
+short name the selectbox actually offers (plus its cross-page mirror), instead
+of a full emoji label the widget evicted on sight. These tests now assert the
+corrected behaviour — if one starts failing because the value is evicted again,
+the id-based restoration has regressed.
 """
 
 from __future__ import annotations
@@ -275,9 +277,9 @@ def test_manual_spending_override_survives_a_rerender_of_the_same_preset():
 def test_tcja_share_link_still_restores_and_selects_the_preset():
     """End-to-end: build a share URL for TCJA, replay it, land on the preset.
 
-    Restoration works through the ``default_preset`` query-param fallback
-    (``calculation_controller.py:50-56``), *not* through the session-state
-    write at ``share_links.py:107`` — see the next test.
+    The emitted link now carries the stable id, and restoration runs through
+    the session-state write rather than limping along on ``default_preset``
+    (see the next test).
     """
     full_label = _tcja_full_extension_label()
     share_url = build_share_url(
@@ -289,13 +291,14 @@ def test_tcja_share_link_still_restores_and_selects_the_preset():
         public_app_url="https://example.com",
     )
     params = {k: v[0] for k, v in parse_qs(urlparse(share_url).query).items()}
-    assert params["preset"] == full_label
+    assert params["preset"] == "tcja-full-extension"
 
     st = _FakeStreamlit(query_params=params)
     apply_share_query_params(st_module=st)
     assert st.session_state["sidebar_policy_area"] == "TCJA / Individual"
 
-    # Mirrors calculation_controller.render_sidebar_inputs' default_preset read.
+    # Mirrors calculation_controller.render_policy_inputs' default_preset read:
+    # a stable id, which the picker resolves to the catalog label.
     default_preset = st.query_params.get("policy") or st.query_params.get("preset")
     out = render_tax_policy_inputs(
         st, PRESET_POLICIES, use_preset=True, default_preset=default_preset
@@ -304,24 +307,39 @@ def test_tcja_share_link_still_restores_and_selects_the_preset():
     assert out["preset_choice"] == full_label
 
 
-def test_share_links_session_state_write_is_evicted_by_the_selectbox():
-    """Documents the known fragility; do not 'fix' it here (Phase 5 owns it).
+def test_share_links_session_state_write_survives_the_selectbox():
+    """NOTES §3.3, fixed in Phase 5 — the write now lands in the right key.
 
-    ``share_links`` writes the *full* label into ``sidebar_preset_choice`` but
-    the selectbox only offers *short* names and deletes anything else. If this
-    test starts failing because the key survives, the round trip has changed
-    and the Phase 5 preset-id work needs revisiting.
+    ``share_links`` used to put the *full* emoji label into
+    ``sidebar_preset_choice``; the selectbox offers ``_short_display_name``
+    values and deletes anything else, so the write was dead and restoration
+    depended entirely on the ``default_preset`` fallback. It now resolves the
+    token to its canonical label and stores the **short** name the widget
+    actually reads, so the value survives the picker untouched — including
+    when no ``default_preset`` is passed at all.
     """
     full_label = _tcja_full_extension_label()
     st = _FakeStreamlit(query_params={"analysis": "preset", "preset": full_label})
     apply_share_query_params(st_module=st)
 
-    # The write happens...
-    assert st.session_state["sidebar_preset_choice"] == full_label
-
-    render_tax_policy_inputs(
-        st, PRESET_POLICIES, use_preset=True, default_preset=full_label
-    )
-
-    # ...and is immediately replaced by the short name the widget offers.
+    # The write happens, in the form the widget speaks...
     assert st.session_state["sidebar_preset_choice"] == "TCJA Full Extension"
+    assert st.session_state["sidebar_policy_area"] == "TCJA / Individual"
+
+    out = render_tax_policy_inputs(st, PRESET_POLICIES, use_preset=True)
+
+    # ...survives the selectbox, and selects the preset on its own.
+    assert st.session_state["sidebar_preset_choice"] == "TCJA Full Extension"
+    assert out["preset_choice"] == full_label
+
+
+def test_share_link_restoration_survives_a_page_switch():
+    """The cross-page mirror is written too, so /explore -> /tailor -> /explore
+    comes back to the shared preset rather than the category's first entry."""
+    from fiscal_model.ui.session_state import shadow_key
+
+    st = _FakeStreamlit(query_params={"preset": "corporate-28pct"})
+    apply_share_query_params(st_module=st)
+
+    assert st.session_state[shadow_key("sidebar_preset_choice")] == "Biden Corporate 28%"
+    assert st.session_state[shadow_key("sidebar_policy_area")] == "Corporate"

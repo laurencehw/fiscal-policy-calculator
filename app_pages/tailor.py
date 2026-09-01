@@ -4,10 +4,23 @@ Wireframe: ``planning/redesign/wireframes/03-tailor.png``. A left-column form
 card (start from blank or a preset, policy type, rate, who is affected, timing,
 advanced) with the primary Score button and the dynamic-scoring toggle inline
 beside it; the shared result panel on the right.
+
+URL contract (redesign plan §7)::
+
+    /tailor?type=income|corporate|capital_gains|spending
+           &rate=2&who=top400k&phase=1&duration=10&dynamic=0|1&run=1
+
+Every field is optional. ``who`` is the enum in
+``ui/share_links.TAILOR_WHO_THRESHOLDS`` (``all``, ``top50k``, ``top100k``,
+``top200k``, ``top400k``, ``top500k``, ``top1m``); a bare amount
+(``who=275000``, ``who=400k``) becomes a custom threshold. ``rate`` is in
+percentage points, ``+`` for a tax increase. See :func:`_apply_query_params`.
 """
 
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any
 
 from components.chrome import render_chrome, render_page_footer
@@ -17,6 +30,8 @@ from fiscal_model.ui.calculation_controller import (
     SPENDING_ANALYSIS_MODE,
 )
 from fiscal_model.ui.session_state import (
+    KEY_DYNAMIC_SCORING,
+    KEY_QS_CALCULATE,
     KEY_TAILOR_POLICY_KIND,
     KEY_TAILOR_SEED_APPLIED,
     KEY_TAILOR_SEED_PRESET,
@@ -34,9 +49,13 @@ from fiscal_model.ui.session_state import (
     seed_widget_default,
 )
 from fiscal_model.ui.settings_controller import claim_inline_dynamic_toggle
+from fiscal_model.ui.share_links import decode_tailor_query
 
 PAGE_TITLE = "Tailor"
 URL_PATH = "tailor"
+
+#: Guards the query-param seed so it applies once per distinct ``/tailor`` link.
+_QUERY_TOKEN_KEY = "_applied_tailor_share_token"
 
 #: The wireframe's policy-type chips, mapped onto the engine's own type names.
 #: "Spending" selects the spending analysis mode instead of a tax type.
@@ -189,8 +208,81 @@ def _resolve_kind(st_module: Any) -> str:
     return kind if kind in POLICY_KINDS else POLICY_KINDS[0]
 
 
+def _apply_query_params(st_module: Any) -> None:
+    """Seed the form from ``/tailor?type=…&rate=…&who=…&phase=…&run=1``.
+
+    Applied once per distinct query string: the decoded request is hashed into
+    ``_applied_tailor_share_token``, so a rerun (or the user editing a field
+    after arriving on the link) is not overwritten, and ``run=1`` spends
+    exactly one automatic score.
+
+    Runs before any widget on the page, so these are plain pre-seeds rather
+    than the "cannot be modified after instantiation" error.
+    """
+    query_params = getattr(st_module, "query_params", None) or {}
+    try:
+        request = decode_tailor_query(query_params)
+    except Exception:  # pragma: no cover — a bad link must not break the page
+        return
+    if not request["has_params"]:
+        return
+
+    token = hashlib.sha256(
+        json.dumps(request, sort_keys=True, default=str).encode("utf-8")
+    ).hexdigest()[:12]
+    if st_module.session_state.get(_QUERY_TOKEN_KEY) == token:
+        return
+    st_module.session_state[_QUERY_TOKEN_KEY] = token
+
+    if request["kind"]:
+        seed_widget_default(st_module, KEY_TAILOR_POLICY_KIND, request["kind"], force=True)
+        if request["kind"] != "Spending":
+            seed_widget_default(
+                st_module,
+                KEY_TAILOR_TAX_TYPE,
+                _KIND_TO_TAX_TYPE[request["kind"]],
+                force=True,
+            )
+        # A link that names a policy type is describing a policy, not a preset.
+        seed_widget_default(st_module, KEY_TAILOR_START_FROM, "Blank", force=True)
+
+    if request["rate"] is not None:
+        seed_widget_default(
+            st_module, KEY_TAILOR_TAX_RATE_CHANGE_PCT, float(request["rate"]), force=True
+        )
+    if request["threshold"] is not None:
+        label = _THRESHOLD_LABELS.get(request["threshold"])
+        if label is None:
+            seed_widget_default(
+                st_module, KEY_TAILOR_TAX_THRESHOLD_CHOICE, "Custom amount", force=True
+            )
+            seed_widget_default(
+                st_module,
+                KEY_TAILOR_TAX_CUSTOM_THRESHOLD,
+                int(request["threshold"]),
+                force=True,
+            )
+        else:
+            seed_widget_default(
+                st_module, KEY_TAILOR_TAX_THRESHOLD_CHOICE, label, force=True
+            )
+    if request["phase"] is not None:
+        seed_widget_default(st_module, KEY_TAILOR_TAX_PHASE_IN, request["phase"], force=True)
+    if request["duration"] is not None:
+        seed_widget_default(
+            st_module, KEY_TAILOR_TAX_DURATION, request["duration"], force=True
+        )
+
+    if request["has_dynamic"]:
+        st_module.session_state[KEY_DYNAMIC_SCORING] = bool(request["dynamic"])
+    if request["run"]:
+        st_module.session_state[KEY_QS_CALCULATE] = True
+
+
 def render(st_module: Any, deps: Any, app_root: Any = None) -> None:
     """Render the Tailor surface."""
+    # Before every widget on the page: a ``/tailor?…`` link seeds the form.
+    _apply_query_params(st_module)
     # Claim the dynamic toggle before the chrome builds its settings popover:
     # two widgets sharing ``sidebar_setting_dynamic_scoring`` in one run is a
     # Streamlit DuplicateWidgetID error, and the shared key is what keeps the

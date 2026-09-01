@@ -35,19 +35,46 @@ def test_streamlit_shell_detection(streamlit_boot_script):
 
 
 def test_route_checks_cover_every_navigable_page(streamlit_boot_script):
-    """Every ``st.Page`` URL plus the ``?mode=classroom`` back-compat alias."""
-    checks = streamlit_boot_script._route_checks("http://127.0.0.1:8501")
+    """Every ``st.Page`` URL, the URL contract, and the back-compat aliases."""
+    base = "http://127.0.0.1:8501"
+    checks = streamlit_boot_script._route_checks(base)
 
     assert checks == [
-        {"name": "home_ask", "url": "http://127.0.0.1:8501/"},
-        {"name": "build", "url": "http://127.0.0.1:8501/build"},
-        {"name": "tailor", "url": "http://127.0.0.1:8501/tailor"},
-        {"name": "explore", "url": "http://127.0.0.1:8501/explore"},
-        {"name": "tracker", "url": "http://127.0.0.1:8501/tracker"},
-        {"name": "methodology", "url": "http://127.0.0.1:8501/methodology"},
-        {"name": "classroom", "url": "http://127.0.0.1:8501/classroom"},
-        {"name": "classroom_legacy", "url": "http://127.0.0.1:8501/?mode=classroom"},
+        {"name": "home_ask", "url": f"{base}/"},
+        {"name": "build", "url": f"{base}/build"},
+        {"name": "tailor", "url": f"{base}/tailor"},
+        {"name": "explore", "url": f"{base}/explore"},
+        {"name": "tracker", "url": f"{base}/tracker"},
+        {"name": "methodology", "url": f"{base}/methodology"},
+        {"name": "classroom", "url": f"{base}/classroom"},
+        {"name": "ask_pathname", "url": f"{base}/ask"},
+        {"name": "ask_prefill", "url": f"{base}/ask?q=x"},
+        {"name": "explore_preset", "url": f"{base}/explore?preset=tcja-full-extension&run=1"},
+        {
+            "name": "tailor_contract",
+            "url": f"{base}/tailor?type=income&rate=2&who=top400k&phase=1&run=1",
+        },
+        {
+            "name": "explore_legacy_label",
+            "url": f"{base}/{streamlit_boot_script.LEGACY_PRESET_URL_QUERY}",
+        },
+        {"name": "classroom_legacy", "url": f"{base}/?mode=classroom"},
     ]
+
+
+def test_legacy_preset_url_is_the_acceptance_criterion_link(streamlit_boot_script):
+    """§9.7 names this exact URL, with the *live* display label."""
+    from urllib.parse import parse_qs
+
+    from fiscal_model.app_data import PRESET_POLICIES
+
+    params = parse_qs(streamlit_boot_script.LEGACY_PRESET_URL_QUERY.lstrip("?"))
+    assert params["analysis"] == ["preset"]
+    assert params["run"] == ["1"]
+    assert params["preset"][0] in PRESET_POLICIES, (
+        "The legacy smoke URL must carry a label that really exists, or the "
+        "check stops exercising the shim's label -> id translation."
+    )
 
 
 def test_issues_from_checks_flatten_failures(streamlit_boot_script):

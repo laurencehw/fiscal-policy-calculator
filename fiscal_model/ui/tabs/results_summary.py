@@ -1018,7 +1018,10 @@ def _file_stem(scored: Any) -> str:
 def render_export_block(st_module: Any, scored: Any, result_data: dict[str, Any]) -> None:
     """CSV / share link / text download, plus the Copy Summary box."""
     with st_module.expander("📥 Export Results", expanded=True):
-        share_url = build_share_url(result_data=result_data)
+        # ``scored`` carries the provenance the link stamps: the baseline
+        # vintage printed two lines below in the same export, the policy-spec
+        # hash, and the scoring mode.
+        share_url = build_share_url(result_data=result_data, scored=scored)
         csv_data = build_csv_export(scored, result_data, share_url)
         text_summary = build_text_summary(scored, result_data, share_url)
         stem = _file_stem(scored)

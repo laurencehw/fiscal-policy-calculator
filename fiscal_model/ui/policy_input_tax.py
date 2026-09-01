@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from fiscal_model.preset_ids import resolve_preset
+
 from .policy_input_presets import (
     _CATEGORY_ORDER,
     _extract_cbo_score,
@@ -93,6 +95,13 @@ def render_tax_policy_inputs(
     writes ``tailor_tax_type`` itself, so this module must not instantiate a
     second widget on the same key (Streamlit raises ``DuplicateWidgetID``).
     """
+    # ``default_preset`` reaches us from a URL (``?preset=tcja-full-extension``
+    # or a legacy emoji label), a quick-start card, or a caller passing the
+    # canonical label. Fold every spelling to the catalog key before it is used
+    # as one — a stable id is not a ``PRESET_POLICIES`` key.
+    if default_preset:
+        default_preset = resolve_preset(default_preset) or default_preset
+
     # A lingering preset pre-selection (query param or quick-start card) must
     # never leak into Custom mode: scoring would silently use the preset and
     # ignore the user's custom inputs.

@@ -87,6 +87,13 @@ EXPECTED_PRESET_IDS = (
     "carbon-tax-25",
     "ev-credit-repeal",
     "ira-clean-energy-extend",
+    # Score-only Build options: an official score with no PRESET_POLICIES row.
+    # Minted in ui/tabs/deficit_target._SCORE_ONLY_ENTRIES and promoted into
+    # the registry in Phase 5 so share links resolve them and they can join an
+    # exclusive group. They are *not* in CATALOG_PRESET_IDS (the engine cannot
+    # score them), which is why the count below stays 52.
+    "mortgage-deduction-eliminate",
+    "salt-deduction-eliminate",
 )
 
 # Progressivity the app declines to assert. Listed explicitly so shrinking
@@ -226,9 +233,12 @@ class TestExclusiveGroups:
             "tcja-extension-no-salt-cap",
             "tcja-rates-only",
         }
+        # Phase 5 adds the third setting of the same instrument: repealing the
+        # cap and eliminating the deduction outright cannot both be scored.
         assert set(pid.EXCLUSIVE_GROUPS["salt-cap"]) == {
             "tcja-extension-no-salt-cap",
             "salt-cap-repeal",
+            "salt-deduction-eliminate",
         }
 
     def test_subsumption_targets_exist(self) -> None:
