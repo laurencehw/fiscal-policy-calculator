@@ -129,7 +129,9 @@ def test_head_metadata_emits_open_graph_tags():
 # ---------------------------------------------------------------------------
 
 EXPECTED_PRIMARY_PATHS = ["ask", "build", "tailor", "explore"]
-EXPECTED_MORE_PATHS = ["tracker", "methodology", "classroom", "studio"]
+# Package Studio was registered here in Phase 1 and retired in Phase 3b: it
+# is now Build's "Start from your values" panel (DECISIONS.md #3).
+EXPECTED_MORE_PATHS = ["tracker", "methodology", "classroom"]
 
 
 def test_router_registers_expected_pages_with_ask_default():

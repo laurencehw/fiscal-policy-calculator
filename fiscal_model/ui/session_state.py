@@ -170,6 +170,57 @@ KEY_BUILD_DROPPED_NOTICE = "_build_dropped_notice"
 #: link restores once instead of clobbering edits on every rerun.
 KEY_BUILD_SHARE_TOKEN = "_build_share_token"
 
+# ---------------------------------------------------------------------------
+# Build - "Start from your values" panel (Phase 3b, app_pages/build.py)
+# ---------------------------------------------------------------------------
+#
+# The panel's own state, kept separate from the checklist's: picking an
+# archetype or dragging a dial previews a package, it does not load one. Only
+# the "Load into the checklist" button writes ``build_selection``, which is why
+# a reader can contest the reading without ever disturbing what they already
+# ticked.
+#
+# The five dials and the protected multiselect are *widget* keys - the panel
+# reads them straight back off the widgets - so they are written only from a
+# button callback, which Streamlit runs before the widgets are instantiated.
+
+#: Code key: the archetype card currently selected (a stable slug), or None.
+KEY_VALUES_ARCHETYPE = "values_archetype"
+#: Code key: the reader's one-sentence reading, from the translator or the card.
+KEY_VALUES_READING = "values_reading"
+#: Widget key: the free-text philosophy box.
+KEY_VALUES_TEXT = "values_text"
+#: Code key: a notice from the last translation attempt (rendered once).
+KEY_VALUES_NOTICE = "_values_notice"
+#: Code key: hash of the last applied ``?values=``/``?vector=`` link.
+KEY_VALUES_SHARE_TOKEN = "_values_share_token"
+
+# Widget keys for the reflected-interpretation controls (chip 14).
+KEY_VALUES_REDISTRIBUTION = "values_redistribution"
+KEY_VALUES_DEFICIT_CONCERN = "values_deficit_concern"
+KEY_VALUES_GOVT_SIZE = "values_govt_size"
+KEY_VALUES_GROWTH_PRIORITY = "values_growth_priority"
+KEY_VALUES_GENERATIONAL_WEIGHT = "values_generational_weight"
+KEY_VALUES_PROTECTED = "values_protected"
+#: Widget key: the panel's copy of the deficit target. Pushed onto
+#: ``build_target_pct`` whenever the panel writes it, which is always before
+#: the target strip instantiates its own slider in the same run.
+KEY_VALUES_TARGET_PCT = "values_target_pct"
+#: Code key: ids queued by "Load into the checklist", applied at the top of
+#: the *next* run - Streamlit refuses a write to a widget key once the widget
+#: exists, and the Load button necessarily renders after the checkboxes' own
+#: reconciliation point.
+KEY_VALUES_PENDING_LOAD = "_values_pending_load"
+
+#: dimension name -> widget key, so the panel and the vector cannot drift apart.
+VALUES_DIMENSION_KEYS: dict[str, str] = {
+    "redistribution": KEY_VALUES_REDISTRIBUTION,
+    "deficit_concern": KEY_VALUES_DEFICIT_CONCERN,
+    "govt_size": KEY_VALUES_GOVT_SIZE,
+    "growth_priority": KEY_VALUES_GROWTH_PRIORITY,
+    "generational_weight": KEY_VALUES_GENERATIONAL_WEIGHT,
+}
+
 
 # ---------------------------------------------------------------------------
 # Cross-page widget persistence (the "shadow key" mirror)
@@ -382,7 +433,9 @@ _SESSION_KEYS: tuple[_KeySpec, ...] = (
     _KeySpec(KEY_SETTING_USE_MICROSIM_DISTRIBUTION, True, bool),
     # Build page. ``build_selection`` defaults to None rather than [] so the
     # seeded default is not a single list object shared across sessions.
-    _KeySpec(KEY_BUILD_MODE, "Start from scratch", str),
+    # Build opens on the values panel (DECISIONS.md #3); ``app_pages/build.py``
+    # flips this to "Start from scratch" when the URL carries ``?policies=``.
+    _KeySpec(KEY_BUILD_MODE, "Start from your values", str),
     _KeySpec(KEY_BUILD_SEARCH, "", str),
     _KeySpec(KEY_BUILD_METRIC, "% of GDP", str),
     _KeySpec(KEY_BUILD_TARGET_PCT, 3.0, float),
@@ -390,6 +443,20 @@ _SESSION_KEYS: tuple[_KeySpec, ...] = (
     _KeySpec(KEY_BUILD_SELECTION, None, (list, type(None))),
     _KeySpec(KEY_BUILD_DROPPED_NOTICE, None, (list, type(None))),
     _KeySpec(KEY_BUILD_SHARE_TOKEN, None, (str, type(None))),
+    # Build - "Start from your values" panel
+    _KeySpec(KEY_VALUES_ARCHETYPE, None, (str, type(None))),
+    _KeySpec(KEY_VALUES_READING, "", str),
+    _KeySpec(KEY_VALUES_TEXT, "", str),
+    _KeySpec(KEY_VALUES_NOTICE, None, (str, type(None))),
+    _KeySpec(KEY_VALUES_SHARE_TOKEN, None, (str, type(None))),
+    _KeySpec(KEY_VALUES_REDISTRIBUTION, 0.0, float),
+    _KeySpec(KEY_VALUES_DEFICIT_CONCERN, 0.5, float),
+    _KeySpec(KEY_VALUES_GOVT_SIZE, 0.0, float),
+    _KeySpec(KEY_VALUES_GROWTH_PRIORITY, 0.5, float),
+    _KeySpec(KEY_VALUES_GENERATIONAL_WEIGHT, 0.5, float),
+    _KeySpec(KEY_VALUES_PROTECTED, None, (list, type(None))),
+    _KeySpec(KEY_VALUES_TARGET_PCT, 3.0, float),
+    _KeySpec(KEY_VALUES_PENDING_LOAD, None, (list, type(None))),
 )
 
 

@@ -13,15 +13,20 @@ URL routing:
   /tracker         — Bill Tracker            (More)
   /methodology     — Methodology             (More)
   /classroom       — Classroom Mode          (More)
-  /studio          — Package Studio          (More; folded into Build in Phase 3b)
   /admin           — Assistant admin         (only with a matching ?admin= token)
   /?mode=classroom — back-compat alias for /classroom
 
-Known Streamlit limitation: ``StreamlitPage.url_path`` is forced to ``""`` for
-the default page, so the Ask page answers ``/`` but ``/ask`` is not a
-registered pathname — Streamlit emits a transient "page not found" notice and
-then renders the default page (Ask) anyway. Canonicalising ``/ask`` -> ``/``
-belongs in :func:`_apply_legacy_url_shim` in Phase 5.
+Query-param contract per page — ``/?q=``, ``/explore?preset=``,
+``/tailor?type=``, ``/build?policies=`` — is documented in each page module and
+implemented in ``fiscal_model/ui/share_links.py``.
+
+Streamlit forces the default page's ``url_path`` to ``""``
+(``StreamlitPage.url_path`` returns ``""`` when ``_default``), so ``/ask`` is
+not a registered pathname and would draw a transient "page not found" notice
+before falling back to the default page. :func:`_apply_legacy_url_shim`
+canonicalises it — along with the pre-redesign ``?analysis=`` URLs and the
+retired ``/studio`` — *before* ``st.navigation`` runs, which is where that
+decision is made.
 """
 
 from __future__ import annotations
@@ -91,26 +96,145 @@ def _default_classroom_renderer() -> None:
     classroom.render()
 
 
-def _apply_legacy_url_shim(st_module: Any) -> None:
-    """Hook for Phase 5 — rewrite legacy query-param URLs onto the new routes.
+#: Session key recording the page a legacy URL was rewritten onto. Read by
+#: ``tests/test_routing_shim.py``; nothing in the app depends on it.
+_LEGACY_ROUTE_KEY = "_legacy_route_target"
 
-    Runs on every request **before** ``nav.run()`` so a redirect happens before
-    any page body renders. Intentionally a no-op today; Phase 5 fills it in
-    together with the ``preset_id`` registry.
+#: Pathnames that no longer exist and where they now live. ``ask`` maps to the
+#: default page: Streamlit forces the default page's public ``url_path`` to
+#: ``""`` (``StreamlitPage.url_path`` returns ``""`` when ``_default``), so
+#: ``ask`` is not a registered pathname and ``st.navigation`` would enqueue a
+#: "page not found" notice before falling back to Ask anyway.
+_RETIRED_PATHNAMES: dict[str, str] = {"ask": "", "studio": "build"}
 
-    What it will need to handle:
 
-    - ``/?analysis=preset&preset=<label>&dynamic=1&run=1`` -> ``/explore?...``
-      (the shape ``ui/share_links.apply_share_query_params`` still reads);
-    - ``/?analysis=custom|spending`` -> ``/tailor``;
-    - ``/?tab=ask`` (written by ``assistant/share.py``) -> ``/``;
-    - ``/ask`` -> ``/`` (Streamlit forces the default page's ``url_path`` to
-      ``""``, so the pathname the wireframe's URL contract names is not
-      registered and currently falls through to a "page not found" notice);
-    - ``?mode=classroom`` is handled separately in :func:`main`, because it must
-      keep working without the navigation frame (CI smoke-tests that URL).
+def _requested_page_name(st_module: Any) -> str | None:
+    """The URL pathname this request asked for, e.g. ``"explore"``.
+
+    ``None`` when there is no script-run context (unit tests with a fake ``st``
+    module) or when the request addressed a page by *hash* rather than by name
+    — in-app navigation clicks and ``AppTest.switch_page`` both do that, and
+    neither is a URL the shim should second-guess.
     """
     del st_module
+    ctx = _script_run_ctx()
+    if ctx is None:
+        return None
+    if ctx.pages_manager.intended_page_script_hash:
+        return None
+    return ctx.pages_manager.intended_page_name or ""
+
+
+def _script_run_ctx() -> Any:
+    try:
+        from streamlit.runtime.scriptrunner import get_script_run_ctx
+
+        ctx = get_script_run_ctx()
+    except Exception:  # pragma: no cover — defensive
+        return None
+    return ctx if ctx is not None and getattr(ctx, "pages_manager", None) else None
+
+
+def _request_page(st_module: Any, url_path: str) -> bool:
+    """Point this run at ``url_path`` *before* ``st.navigation`` resolves it.
+
+    ``st.navigation`` picks the page by matching the requested pathname against
+    the registered ones, so rewriting the intent here redirects inside the same
+    script run — no ``st.switch_page`` round trip, no flash of a "page not
+    found" notice, and no second scoring pass. An empty ``url_path`` means "the
+    default page" (Ask).
+    """
+    del st_module
+    ctx = _script_run_ctx()
+    if ctx is None:
+        return False
+    ctx.pages_manager.set_script_intent("", url_path)
+    return True
+
+
+def _studio_redirect_params() -> dict[str, str]:
+    """``/studio`` -> the Build panel that replaced it, on its first archetype.
+
+    Package Studio was a page between Phase 1 and Phase 3b and is now Build's
+    "Start from your values" panel (DECISIONS.md #3), so a ``/studio`` link that
+    got out should open that panel rather than 404.
+    """
+    try:
+        from fiscal_model.composer.archetypes import archetype_ids
+
+        first = next(iter(archetype_ids()), "")
+    except Exception:  # pragma: no cover — archetypes YAML missing/broken
+        return {}
+    return {"values": first, "load": "1"} if first else {}
+
+
+def _apply_legacy_url_shim(st_module: Any) -> None:
+    """Rewrite pre-redesign URLs onto the new routes, before ``st.navigation``.
+
+    Runs on every request **before** the router registers its pages, so the
+    redirect resolves in the same script run and no page body renders twice.
+
+    ============================================ ==============================
+    Old URL                                      New route
+    ============================================ ==============================
+    ``/?analysis=preset&preset=<label>&run=1``   ``/explore?preset=<id>&run=1``
+    ``/?policy=<label>&run=1``                   ``/explore?preset=<id>&run=1``
+    ``/?analysis=spending&spending_preset=X``    ``/tailor?type=spending&…``
+    ``/?analysis=custom``                        ``/tailor?type=income``
+    ``/ask``, ``/ask?q=…``                       the default page (Ask)
+    ``/studio``                                  ``/build?values=<archetype>``
+    ============================================ ==============================
+
+    The label→id translation and the ``?analysis=`` mapping live in
+    ``ui/share_links.rewrite_legacy_query`` — a pure function, so the rewrite is
+    unit-testable without a Streamlit runtime.
+
+    Two URLs are deliberately *not* touched: ``?mode=classroom`` (handled in
+    :func:`main` before the navigation frame exists — CI smoke-tests it) and
+    ``/?ask_share=…&tab=ask``, which already lands on Ask because Ask is the
+    default page.
+    """
+    from fiscal_model.ui.share_links import rewrite_legacy_query
+
+    try:
+        query_params = st_module.query_params
+    except AttributeError:  # pragma: no cover — exotic test doubles
+        return
+
+    requested = _requested_page_name(st_module)
+    rewritten = rewrite_legacy_query(query_params)
+
+    if rewritten is None:
+        if requested in _RETIRED_PATHNAMES:
+            target = _RETIRED_PATHNAMES[requested]
+            if requested == "studio":
+                _merge_query_params(query_params, _studio_redirect_params())
+            _request_page(st_module, target)
+            _record_route(st_module, target)
+        return
+
+    url_path, new_params = rewritten
+    _replace_query_params(query_params, new_params)
+    _request_page(st_module, url_path)
+    _record_route(st_module, url_path)
+
+
+def _replace_query_params(query_params: Any, new_params: dict[str, str]) -> None:
+    # pragma: no cover — the suppressed path is a read-only query-param stand-in
+    with contextlib.suppress(Exception):
+        query_params.clear()
+        query_params.update(new_params)
+
+
+def _merge_query_params(query_params: Any, extra: dict[str, str]) -> None:
+    with contextlib.suppress(Exception):  # pragma: no cover — read-only stand-ins
+        query_params.update(extra)
+
+
+def _record_route(st_module: Any, url_path: str) -> None:
+    """Note the rewrite for the tests and the runtime log; harmless otherwise."""
+    with contextlib.suppress(Exception):
+        st_module.session_state[_LEGACY_ROUTE_KEY] = url_path
 
 
 def _get_dependencies(st_module: Any, pd_module: Any, builder: Any) -> Any:
@@ -187,9 +311,9 @@ def _is_admin_request(st_module: Any) -> bool:
 def build_navigation(st_module: Any, deps: Any, app_root: Path | None) -> Any:
     """Register every page and return the selected ``StreamlitPage``.
 
-    Ask is the default page, so it answers ``/``. Tracker, Methodology,
-    Classroom and Package Studio sit under a "More" section; Admin is only
-    registered when the request carries a matching ``?admin=`` token.
+    Ask is the default page, so it answers ``/``. Tracker, Methodology and
+    Classroom sit under a "More" section; Admin is only registered when the
+    request carries a matching ``?admin=`` token.
     """
     from app_pages import (
         admin,
@@ -198,7 +322,6 @@ def build_navigation(st_module: Any, deps: Any, app_root: Path | None) -> Any:
         classroom,
         explore,
         methodology,
-        studio,
         tailor,
         tracker,
     )
@@ -221,8 +344,6 @@ def build_navigation(st_module: Any, deps: Any, app_root: Path | None) -> Any:
         _page(tracker),
         _page(methodology),
         _page(classroom),
-        # Temporary home for #65; Phase 3b folds it into Build.
-        _page(studio),
     ]
     if _is_admin_request(st_module):
         more.append(_page(admin))
@@ -275,8 +396,11 @@ def main(
 
     try:
         deps.apply_app_styles(st_module)
-        nav = build_navigation(st_module=st_module, deps=deps, app_root=app_root)
+        # Before the router registers its pages: ``st.navigation`` decides which
+        # page runs (and whether to send a "page not found" notice) at call
+        # time, so a legacy URL has to be rewritten ahead of it, not after.
         _apply_legacy_url_shim(st_module)
+        nav = build_navigation(st_module=st_module, deps=deps, app_root=app_root)
         nav.run()
     except Exception:
         logger.exception("App bootstrap failed")

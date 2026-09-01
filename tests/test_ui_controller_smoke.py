@@ -474,7 +474,6 @@ def test_router_registers_the_redesigned_page_set():
         "Bill Tracker",
         "Methodology",
         "Classroom",
-        "Package Studio",
     ]
     assert [page.url_path for page in st_module.pages if page.default] == ["ask"]
 

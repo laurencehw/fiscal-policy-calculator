@@ -18,6 +18,8 @@ module-scoped and every assertion group reuses one.
 
 from __future__ import annotations
 
+import os
+
 import pytest
 
 from fiscal_model.ui.share_links import (
@@ -451,10 +453,112 @@ def test_search_box_filters_the_checklist():
     assert all("tariff" in key for key in keys)
 
 
-def test_values_mode_renders_the_phase_3b_placeholder():
-    at = _run_build(session_state={"build_mode": "Start from your values"})
-    assert any(
-        "describe your priorities" in info.value for info in at.info
-    ), [i.value for i in at.info]
-    # The checklist stays on screen: one surface, one scoreboard.
-    assert _checkbox_state(at)
+# ---------------------------------------------------------------------------
+# "Start from your values" — the Phase-3b panel, through the real router
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def values_build(monkeypatch_module_env):
+    """Build with no API key: the archetype path, end to end and offline."""
+    return _run_build()
+
+
+@pytest.fixture(scope="module")
+def monkeypatch_module_env():
+    """Guarantee the offline path for the module-scoped values fixtures."""
+    previous = os.environ.pop("ANTHROPIC_API_KEY", None)
+    yield
+    if previous is not None:
+        os.environ["ANTHROPIC_API_KEY"] = previous
+
+
+def test_build_opens_on_the_values_panel(values_build):
+    """§5b.5: Build's default door is values, not the checklist."""
+    assert not values_build.exception
+    assert values_build.session_state["build_mode"] == "Start from your values"
+    from fiscal_model.composer.archetypes import load_archetypes
+
+    text = [element.value for element in values_build.markdown] + [
+        element.value for element in values_build.caption
+    ]
+    for archetype in load_archetypes().values():
+        assert any(archetype.name in item for item in text), archetype.name
+    # One surface: the checklist is still on screen underneath the panel.
+    assert _checkbox_state(values_build)
+
+
+def test_values_panel_works_with_no_api_key(values_build):
+    """Cards → package → coverage, with the free-text box absent."""
+    captions = [element.value for element in values_build.caption]
+    assert any("ANTHROPIC_API_KEY" in caption for caption in captions)
+    assert not [
+        area
+        for area in values_build.text_area
+        if area.key == "values_text"
+    ], "the free-text box must be hidden without a key"
+
+    markdowns = [element.value for element in values_build.markdown]
+    assert any("of target" in item for item in markdowns)
+    assert any("starting point, not a verdict" in item for item in captions)
+
+
+def test_values_panel_renders_every_dial_and_the_protected_control(values_build):
+    from fiscal_model.ui.session_state import VALUES_DIMENSION_KEYS
+
+    slider_keys = {slider.key for slider in values_build.slider}
+    assert set(VALUES_DIMENSION_KEYS.values()) <= slider_keys
+    assert "values_target_pct" in slider_keys
+    assert any(box.key == "values_protected" for box in values_build.multiselect)
+
+
+def test_archetype_card_loads_its_package_into_the_checklist(monkeypatch_module_env):
+    """The full offline journey the plan asks for: card → package → checklist."""
+    at = _run_build()
+    at.button(key="values_card_egalitarian").click().run()
+
+    from fiscal_model.composer.archetypes import get_archetype
+
+    expected = get_archetype("egalitarian").vector
+    assert at.session_state["values_archetype"] == "egalitarian"
+    assert at.session_state["values_redistribution"] == pytest.approx(
+        expected.redistribution
+    )
+
+    at.button(key="values_load").click().run()
+
+    assert at.session_state["build_mode"] == "Start from scratch"
+    selection = at.session_state["build_selection"]
+    assert len(selection) >= 4
+    state = _checkbox_state(at)
+    for build_id in selection:
+        assert state[f"dt_{build_id}"][0] is True
+
+
+def test_values_link_round_trips_through_the_router(monkeypatch_module_env):
+    """``?values=egalitarian`` restores the panel (§5b.8)."""
+    at = _run_build(query_params={"values": "egalitarian"})
+
+    assert not at.exception
+    assert at.session_state["values_archetype"] == "egalitarian"
+    assert at.session_state["build_mode"] == "Start from your values"
+    from fiscal_model.composer.archetypes import get_archetype
+
+    expected = get_archetype("egalitarian").vector
+    assert at.session_state["values_target_pct"] == pytest.approx(
+        expected.target_pct_gdp
+    )
+    assert set(at.session_state["values_protected"]) == set(expected.protected)
+
+
+def test_values_link_with_load_lands_in_the_checklist(monkeypatch_module_env):
+    at = _run_build(query_params={"values": "egalitarian", "load": "1"})
+
+    assert not at.exception
+    assert at.session_state["build_mode"] == "Start from scratch"
+    assert len(at.session_state["build_selection"]) >= 4
+
+
+def test_a_policies_link_still_opens_the_checklist(shared_build):
+    """A link that names policies wants the checklist, not the panel."""
+    assert shared_build.session_state["build_mode"] == "Start from scratch"

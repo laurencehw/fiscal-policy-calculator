@@ -30,7 +30,6 @@ EXPECTED_PAGES: dict[str, str] = {
     "tracker": "tracker",
     "methodology": "methodology",
     "classroom": "classroom",
-    "studio": "studio",
 }
 
 ALL_PAGE_MODULES = [*EXPECTED_PAGES.values(), "admin"]
@@ -156,7 +155,6 @@ def test_router_groups_secondary_surfaces_under_more():
         "tracker",
         "methodology",
         "classroom",
-        "studio",
     }
 
 
@@ -173,9 +171,16 @@ def test_every_registered_page_is_runnable():
         assert callable(page.run_fn)
 
 
-def test_legacy_url_shim_is_a_no_op_hook():
-    """Phase 5 fills this in; today it must exist and do nothing."""
-    assert app._apply_legacy_url_shim(_RouterStreamlit()) is None
+def test_legacy_url_shim_leaves_a_plain_request_alone():
+    """A URL with nothing legacy in it must pass through untouched.
+
+    The shim's rewriting behaviour lives in ``tests/test_routing_shim.py``;
+    this only guards the router's contract with it — it is called on *every*
+    request, so it has to be inert and non-throwing on the common path.
+    """
+    st_module = _RouterStreamlit()
+    assert app._apply_legacy_url_shim(st_module) is None
+    assert st_module.query_params == {}
 
 
 # ---------------------------------------------------------------------------
