@@ -53,7 +53,7 @@ be linked, bookmarked, or pasted into a document:
 | **Build** | `/build?values=<archetype>` · `?vector=<b64>` · `?policies=<ids>` | start from your values (5 archetypes or free text) or straight from the policy checklist |
 | **Tailor** | `/tailor?type=income&rate=2&who=top400k&phase=1&run=1` | set the parameters yourself; `who` takes an enum or a bare amount |
 | **Explore** | `/explore?preset=<id>&dynamic=1&run=1` | score a catalog proposal |
-| **More ▾** | `/tracker` · `/methodology` · `/classroom` | bill tracker, methodology, classroom mode |
+| **More ▾** | `/tracker` · `/methodology` · `/classroom` · `/about` | bill tracker, methodology, classroom mode, and who made this and how to read it |
 
 Share links additionally stamp `baseline=<vintage>`, `spec=<policy hash>` and
 `mode=conventional|dynamic`, so a link says which baseline and which run

@@ -229,3 +229,42 @@ def render_page_footer(st_module: Any) -> None:
     tab body). One page, one footer.
     """
     render_footer(st_module=st_module)
+
+
+# ── Cross-page links ─────────────────────────────────────────────────────
+#
+# ``st.page_link`` resolves a *string* argument by matching it against the
+# ``script_path`` of every registered page — but ``app.build_navigation``
+# registers pages from callables (``st.Page(fn, …)``), and Streamlit records an
+# empty ``script_path`` for those (``commands/navigation.py``), so
+# ``st.page_link("app_pages/methodology.py")`` raises ``StreamlitPageNotFound``.
+# Passing the ``StreamlitPage`` object works, so the router hands its pages to
+# this registry on every run and page bodies look siblings up by ``url_path``.
+#
+# Sharing the registry across sessions is safe: ``page_link`` reads only
+# ``_script_hash`` (``md5(url_path)``) and ``url_path``, both derived from the
+# path alone, so one session's page object links the same place as another's.
+_PAGE_REGISTRY: dict[str, Any] = {}
+
+
+def register_pages(pages: dict[str, Any]) -> None:
+    """Record ``url_path -> StreamlitPage`` for :func:`page_link`."""
+    _PAGE_REGISTRY.update(pages)
+
+
+def page_link(st_module: Any, url_path: str, *, label: str, **kwargs: Any) -> None:
+    """Link to a sibling page, falling back to a plain Markdown link.
+
+    The fallback covers the surfaces that have no registry to read — the
+    hand-rolled ``st_module`` fakes in the UI tests, and any run where the page
+    body renders before the router has registered its pages.
+    """
+    target = _PAGE_REGISTRY.get(url_path)
+    render_link = getattr(st_module, "page_link", None)
+    if target is not None and render_link is not None:
+        try:
+            render_link(target, label=label, **kwargs)
+            return
+        except Exception:  # pragma: no cover — a link must never break a page
+            pass
+    st_module.markdown(f"[{label}](/{url_path})")

@@ -13,6 +13,7 @@ URL routing:
   /tracker         — Bill Tracker            (More)
   /methodology     — Methodology             (More)
   /classroom       — Classroom Mode          (More)
+  /about           — About the project       (More)
   /admin           — Assistant admin         (only with a matching ?admin= token)
   /?mode=classroom — back-compat alias for /classroom
 
@@ -311,11 +312,12 @@ def _is_admin_request(st_module: Any) -> bool:
 def build_navigation(st_module: Any, deps: Any, app_root: Path | None) -> Any:
     """Register every page and return the selected ``StreamlitPage``.
 
-    Ask is the default page, so it answers ``/``. Tracker, Methodology and
-    Classroom sit under a "More" section; Admin is only registered when the
-    request carries a matching ``?admin=`` token.
+    Ask is the default page, so it answers ``/``. Tracker, Methodology,
+    Classroom and About sit under a "More" section; Admin is only registered
+    when the request carries a matching ``?admin=`` token.
     """
     from app_pages import (
+        about,
         admin,
         ask,
         build,
@@ -326,13 +328,17 @@ def build_navigation(st_module: Any, deps: Any, app_root: Path | None) -> Any:
         tracker,
     )
 
+    registry: dict[str, Any] = {}
+
     def _page(module: Any, *, default: bool = False) -> Any:
-        return st_module.Page(
+        page = st_module.Page(
             _page_runner(st_module, deps, app_root, module.PAGE_TITLE, module.render),
             title=module.PAGE_TITLE,
             url_path=module.URL_PATH,
             default=default,
         )
+        registry[module.URL_PATH] = page
+        return page
 
     primary = [
         _page(ask, default=True),
@@ -344,11 +350,27 @@ def build_navigation(st_module: Any, deps: Any, app_root: Path | None) -> Any:
         _page(tracker),
         _page(methodology),
         _page(classroom),
+        _page(about),
     ]
     if _is_admin_request(st_module):
         more.append(_page(admin))
 
+    # Page bodies link to each other through this registry — ``st.page_link``
+    # cannot resolve a *path* for callable-registered pages. See
+    # ``components.chrome.page_link``.
+    _register_page_links(registry)
+
     return st_module.navigation({"": primary, "More": more}, position="top")
+
+
+def _register_page_links(registry: dict[str, Any]) -> None:
+    """Hand the registered pages to ``components.chrome`` for cross-links."""
+    try:
+        from components.chrome import register_pages
+
+        register_pages(registry)
+    except Exception:  # pragma: no cover — links degrade to Markdown fallbacks
+        pass
 
 
 def main(

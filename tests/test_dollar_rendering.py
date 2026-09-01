@@ -14,7 +14,8 @@ something a caller should have to reason about. Escaping is free; auditing
 KaTeX's delimiter rules per string is not.
 
 The check runs the **real router** through ``AppTest`` on the four scoring
-surfaces, including ``/explore`` after an actual calculation (the numbers that
+surfaces plus the prose ``/about`` page, including ``/explore`` after an actual
+calculation (the numbers that
 matter only exist after a run). A grep over sources would not do: the dangerous
 strings are assembled at render time from f-strings, so a source literal can
 hold a single ``$`` and still emit a pair.
@@ -169,6 +170,7 @@ EXPLORE_RUN = {"preset": "tcja-full-extension", "run": "1"}
         ("app_pages/build.py", None, "build"),
         ("app_pages/tailor.py", None, "tailor"),
         ("app_pages/explore.py", EXPLORE_RUN, "explore-after-a-run"),
+        ("app_pages/about.py", None, "about"),
     ],
 )
 def test_no_unescaped_latex_spans_in_rendered_markdown(page, query, label):

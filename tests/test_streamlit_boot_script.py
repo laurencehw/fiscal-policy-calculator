@@ -47,6 +47,7 @@ def test_route_checks_cover_every_navigable_page(streamlit_boot_script):
         {"name": "tracker", "url": f"{base}/tracker"},
         {"name": "methodology", "url": f"{base}/methodology"},
         {"name": "classroom", "url": f"{base}/classroom"},
+        {"name": "about", "url": f"{base}/about"},
         {"name": "ask_pathname", "url": f"{base}/ask"},
         {"name": "ask_prefill", "url": f"{base}/ask?q=x"},
         {"name": "explore_preset", "url": f"{base}/explore?preset=tcja-full-extension&run=1"},

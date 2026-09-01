@@ -91,7 +91,7 @@ Every legacy URL (`?analysis=preset&preset=<emoji label>&run=1`, `/ask`,
 | Module | Purpose |
 |--------|---------|
 | `app.py` | Router — `st.set_page_config`, legacy-URL shim, `st.Page`/`st.navigation(position="top")`. Streamlit Cloud entry point |
-| `app_pages/` | One module per page: `ask.py`, `build.py`, `tailor.py`, `explore.py`, `tracker.py`, `methodology.py`, `classroom.py`, `admin.py` |
+| `app_pages/` | One module per page: `ask.py`, `build.py`, `tailor.py`, `explore.py`, `tracker.py`, `methodology.py`, `classroom.py`, `about.py`, `admin.py` |
 | `components/chrome.py` | Shared page chrome — brand line, data-status pill popover, ⚙ settings popover, degraded-data banner, dark-mode CSS overlay, one footer per page |
 | `components/cards.py` | Ask home's doorway cards and worked-example prefill cards |
 | `components/results.py` | `ScoredResult` (the single result object) + `render_score_surface` / `render_results`, spec-hash invalidation, anchor scroll |
