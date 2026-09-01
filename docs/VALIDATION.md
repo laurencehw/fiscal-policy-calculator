@@ -104,16 +104,48 @@ Honest boundary, as with [`holdout.py`](../fiscal_model/validation/holdout.py): 
 
 ### Tier 2 — Calibrated reference models (reconstructions, not confirmations)
 
-The specialized modules (TCJA, Corporate, Estate, Credits, AMT, Payroll, PTC, Capital Gains, Tax Expenditures) are parameterized so their components **reproduce the published decomposition**.
+The specialized modules (TCJA, Corporate, Estate, Credits, AMT, Payroll, PTC, Capital Gains, Tax Expenditures) are parameterized so their components **reproduce the published decomposition**. Phase E added five more module families — international, trade, pharma, IRS enforcement, climate — and those turned out to be a different animal, so the tier now splits in two.
 
-| Metric | Value |
-|--------|-------|
-| Calibrated benchmarks | 29 |
-| Mean absolute error | 4.4% |
-| Within 15% of official | 28/29 |
-| Direction match rate | 29/29 |
+| Metric | Calibrated reference (fitted) | Module reconstruction (not fitted) |
+|--------|---:|---:|
+| Benchmarks | **34** | **12** |
+| Mean absolute error | **2.7%** | **394.1%** |
+| Median absolute error | 0.2% | 57.1% |
+| Within 15% of official | 33/34 | 2/12 |
+| Within 25% of official | 34/34 | 4/12 |
+| Direction match rate | 34/34 | 12/12 |
 
-The ~5% error here is **expected by construction** — these demonstrate the model's structure and provide auditable, source-linked reconstructions of official scores; they are **not** evidence the model would have predicted them cold. Best on income-tax/TCJA components (0.1–4%); weakest on payroll reforms (~12%, wage-distribution assumptions). Live figures: `python scripts/cold_holdout.py`.
+The 2.7% on the left is **expected by construction** — those modules carry a constant fitted to each benchmark, so they demonstrate the model's structure and provide auditable, source-linked reconstructions of official scores; they are **not** evidence the model would have predicted them cold. (Earlier revisions of this file quoted 4.4%; the live figure from `python scripts/cold_holdout.py` is 2.7%, and that command is now the only place this number should be read from.)
+
+The 394% on the right is the Phase E finding. Twelve presets ship in the app with an official figure attached, and no module constant was ever fitted to any of them (ten of those targets are published scores; two are model estimates — the provenance column says which). Nothing was retuned to close the gap — the plan is explicit that a miss gets reported, not calibrated away — so each of those rows carries a `known_limitations` note naming the structural cause. Two of them (universal insulin cap, international reference pricing) are off by three and one orders of magnitude respectively and diagnose real incidence bugs in `pharma.py`; see [VALIDATION_NOTES.md](VALIDATION_NOTES.md) §7.
+
+**Provenance of the targets** (`python -c "from fiscal_model.validation import compute_scorecard; print(compute_scorecard().calibrated_provenance_breakdown)"`): of the 46 calibrated-tier benchmarks, **4 are `line_item`** (a specific row in a cited document), **31 are `secondhand`** (a rounded headline figure attributed to an agency but not to a table), **7 are `model_estimate`** (no published score exists at all), and **4 are `unclassified`** (not unambiguously placeable from the record's own source and URL — promoting one needs someone to find the table). The honest headline is therefore **39 calibrated benchmarks against a published figure**, with the 7 model estimates reported separately as labelled illustrations rather than folded into the count.
+
+The six non-published "benchmarks" the expansion plan names (§5.2) are those illustrations: `tcja_no_salt_cap`, `tcja_rates_only`, `trump_corporate_15`, `eliminate_estate_tax` in the revenue scorecard, plus `TPC_CORPORATE_RATE_INCREASE` and `TPC_CAPITAL_GAINS_INCREASE` in the distributional set. They are kept and labelled, never counted.
+
+#### New in Phase E — sectoral module reconstructions
+
+Every target below is read live from `CBO_SCORE_MAP`; none is restated in the validation layer. Rows marked **(fitted)** carry a module constant calibrated to the figure, so their low error is bookkeeping.
+
+| Family | Policy | Official | Model | Error | Rating | Provenance |
+|---|---|---:|---:|---:|---|---|
+| International | Biden GILTI reform | -$280B | -$230B | 17.8% | Acceptable | secondhand |
+| International | Repeal FDII | -$200B | -$170B | 15.0% | Acceptable | secondhand |
+| International | Pillar Two adoption | -$80B | -$61B | 23.5% | Poor | secondhand |
+| International | Biden international package | -$700B | -$413B | 41.0% | Poor | secondhand |
+| Trade | Universal 10% tariff **(fitted)** | -$2,000B | -$2,022B | 1.1% | Excellent | secondhand |
+| Trade | 60% China tariff **(fitted)** | -$500B | -$531B | 6.2% | Good | secondhand |
+| Trade | 25% auto tariff | -$100B | -$252B | 152.3% | Poor | secondhand |
+| Trade | 25% steel & aluminium tariff | -$60B | -$104B | 73.2% | Poor | secondhand |
+| Trade | Reciprocal tariffs (~20pp) | -$1,200B | -$2,736B | 128.0% | Poor | secondhand |
+| Pharma | Expand drug negotiation | -$500B | -$372B | 25.7% | Poor | model_estimate |
+| Pharma | Universal insulin cap | -$15B | -$445B | 2,868.6% | Poor | secondhand |
+| Pharma | International reference pricing | -$100B | -$1,388B | 1,287.9% | Poor | model_estimate |
+| Enforcement | IRA enforcement funding **(fitted)** | -$200B | -$189B | 5.5% | Good | secondhand |
+| Enforcement | Double IRS enforcement | -$340B | -$60B | 82.3% | Poor | secondhand |
+| Climate | Repeal IRA clean-energy credits **(fitted)** | -$783B | -$783B | 0.0% | Excellent | secondhand |
+| Climate | Carbon tax $50/ton **(fitted)** | -$1,700B | -$1,715B | 0.9% | Excellent | model_estimate |
+| Climate | Repeal EV credits | -$200B | -$228B | 14.2% | Acceptable | secondhand |
 
 **Scope note**: Distributional validation is currently benchmarked mainly against published TPC tables rather than a broader CBO distributional set. Payroll / estate scenarios remain higher-error checkpoints; the Biden CTC revenue residual from double-counting growth on window-average annuals is closed (see [VALIDATION_NOTES.md](VALIDATION_NOTES.md)).
 
@@ -141,7 +173,7 @@ The 4.4% above is a bookkeeping number: each calibrated module carries **one har
 | Within 15% of official | 6/18 (33%) |
 | CI ceiling (`--max-loo-mean-error`) | 75% |
 
-**Read the three numbers separately and never collapse them**: Tier 1 out-of-sample (44.8% mean, n=9 pre-registered; 5/9 within 15%, 6/9 within 25%), Tier 2 by construction (4.4%, n=29), Tier 2 leave-one-out (59.3%, n=18 derivable). The last is the honest statement of how much of the calibrated tier is structure and how much is a stored constant.
+**Read the four numbers separately and never collapse them**: Tier 1 out-of-sample (43.4% mean, n=23 pre-registered; 6/23 within 15%, 12/23 within 25%), Tier 2 by construction (2.7%, n=34 fitted), Tier 2 module reconstructions (394.1% mean / 57.1% median, n=12, targets no module was fitted to), Tier 2 leave-one-out (59.3%, n=18 derivable). The last two are the honest statement of how much of the calibrated tier is structure and how much is a stored constant.
 
 Four cases are **not cross-validatable** and carry a reason rather than a manufactured number: `expand_niit` (the module's only NIIT benchmark — nothing to calibrate the mechanism on), `eliminate_estate_tax` (the target is a model estimate, not a published score, and the machinery reproduces differences but not revenue *levels*), `repeal_corporate_amt` and `eliminate_step_up` (the base constant *is* the published target restated; a leakage guard in `loo.py` catches this mechanically). See [VALIDATION_NOTES.md](VALIDATION_NOTES.md) §6 for the per-module classification and what each error diagnoses.
 
@@ -353,6 +385,26 @@ The Penn Wharton analysis demonstrates a fundamental asymmetry:
 - Years 1-3: elasticity = 0.8 (short-run timing effects)
 - Years 4+: elasticity = 0.4 (long-run permanent response)
 - PWBM no-step-up validation applies a 1.5x residual avoidance multiplier to capture remaining threshold timing and business-form shifting after constructive realization at death.
+
+---
+
+### 11. Sectoral modules — international, trade, pharma, enforcement, climate (Phase E)
+
+Seventeen presets across five modules, wired into the scorecard by
+`fiscal_model/validation/specialized_sectoral.py`. The full row-by-row table
+lives in the [Tier 2 section](#tier-2--calibrated-reference-models-reconstructions-not-confirmations)
+above, because these entries are not comparable to the nine older suites: only
+five of the seventeen carry a module constant fitted to their benchmark, and
+the other twelve are being compared to their published figure for the first
+time. Per-family diagnosis is in [VALIDATION_NOTES.md](VALIDATION_NOTES.md) §7.
+
+| Family | n | Fitted | Mean abs error | Worst case |
+|--------|---:|---:|---:|--------|
+| International | 4 | 0 | 24.3% | Biden package 41.0% (module implements 3 of the package's provisions) |
+| Trade | 5 | 2 | 72.2% | Reciprocal tariffs 128.0% (flat 20pp on half of imports, no retaliation netted) |
+| Pharma | 3 | 0 | 1,394.1% | Universal insulin cap 2,868.6% (federal-incidence bug in `pharma.py`) |
+| Enforcement | 2 | 1 | 43.9% | Double IRS enforcement 82.3% (unfitted ROI and decay constants) |
+| Climate | 3 | 2 | 5.0% | Repeal EV credits 14.2% |
 
 ---
 

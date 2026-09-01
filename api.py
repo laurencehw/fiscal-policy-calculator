@@ -396,6 +396,11 @@ class ScorecardEntryModel(BaseModel):
     direction_match: bool
     known_limitations: list[str] = Field(default_factory=list)
     notes: str = ""
+    # Where the *target* came from: line_item | secondhand | model_estimate |
+    # unclassified. Orthogonal to accuracy — see fiscal_model/validation/provenance.py.
+    provenance: str = "unclassified"
+    # Whether the module carries a constant fitted to reproduce this target.
+    calibrated_to_target: bool = True
     evidence_type: str = "specialized_benchmark_comparison"
     holdout_status: str = "calibration_reference"
 
@@ -438,6 +443,13 @@ class ScorecardResponse(BaseModel):
     holdout_entries: int
     validation_note: str
     ratings_breakdown: dict[str, int]
+    # Provenance of the *targets*, so a client can separate "reproduces a
+    # published table row" from "reproduces a rounded headline" from
+    # "reproduces a model estimate with no published score at all".
+    provenance_breakdown: dict[str, int] = Field(default_factory=dict)
+    calibrated_provenance_breakdown: dict[str, int] = Field(default_factory=dict)
+    calibrated_published_entries: int = 0
+    calibrated_model_estimate_entries: int = 0
     by_category: dict[str, ScorecardCategorySummary]
     entries: list[ScorecardEntryModel]
     issues: list[ScorecardIssueModel] = Field(default_factory=list)
@@ -890,6 +902,10 @@ def validation_scorecard():
             "future regression checkpoints, not retroactive historical out-of-sample claims."
         ),
         ratings_breakdown=summary.ratings_breakdown,
+        provenance_breakdown=summary.provenance_breakdown,
+        calibrated_provenance_breakdown=summary.calibrated_provenance_breakdown,
+        calibrated_published_entries=summary.calibrated_published_entries,
+        calibrated_model_estimate_entries=summary.calibrated_model_estimate_entries,
         by_category={
             cat: ScorecardCategorySummary(**sub) for cat, sub in summary.by_category.items()
         },

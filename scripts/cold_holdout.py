@@ -15,7 +15,14 @@ The headline validation table mixes two epistemically different things:
   auto-population, with **no fitting to the official target**. This is the only
   tier that measures genuine out-of-sample accuracy.
 
-This script runs the live scorecard and reports the two tiers separately, so
+* **Uncalibrated module reconstructions** (Phase E: the international, trade,
+  pharma, enforcement and climate runners): presets carrying an official
+  figure whose module holds no constant fitted to it. Reported as their own
+  tier — neither a calibration reference nor a bottom-up SOI prediction.
+  Provenance is reported alongside, because a handful of those targets are
+  themselves model estimates rather than published scores.
+
+This script runs the live scorecard and reports the tiers separately, so
 the genuine prediction error is stated plainly (and never goes stale in the
 docs). It is the reproducible source for the "Out-of-sample" table in
 ``README.md`` and ``docs/VALIDATION.md``.
@@ -38,9 +45,14 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from fiscal_model.validation.preregistered import live_cases  # noqa: E402
-from fiscal_model.validation.scorecard import compute_scorecard  # noqa: E402
+from fiscal_model.validation.scorecard import (  # noqa: E402
+    GENERIC_CATEGORY,
+    compute_scorecard,
+)
 
-UNCALIBRATED_CATEGORY = "Generic"
+#: The scorecard's own name for the out-of-sample tier. Aliased rather than
+#: re-spelled so a rename of the tier cannot silently split this report in two.
+UNCALIBRATED_CATEGORY = GENERIC_CATEGORY
 
 
 def build_report() -> dict:
@@ -59,6 +71,8 @@ def build_report() -> dict:
             "direction_match": e.direction_match,
             "official_source": e.official_source,
             "benchmark_date": e.benchmark_date,
+            "provenance": getattr(e, "provenance", "unclassified"),
+            "calibrated_to_target": getattr(e, "calibrated_to_target", True),
             "known_limitations": list(e.known_limitations),
         }
         case = registered.get(e.policy_id)
@@ -73,7 +87,15 @@ def build_report() -> dict:
         return row
 
     uncal = [e for e in summary.entries if e.category == UNCALIBRATED_CATEGORY]
-    cal = [e for e in summary.entries if e.category != UNCALIBRATED_CATEGORY]
+    specialized = [e for e in summary.entries if e.category != UNCALIBRATED_CATEGORY]
+    # Phase E split the specialized tier in two. Entries whose module carries a
+    # constant *fitted* to the benchmark are the calibrated reference set, whose
+    # low error is expected by construction. Entries added by the sectoral
+    # runners (international, trade, pharma, enforcement, climate) are scored
+    # against figures their modules were never fitted to, so folding them into
+    # the calibrated mean would misdescribe both tiers.
+    cal = [e for e in specialized if getattr(e, "calibrated_to_target", True)]
+    recon = [e for e in specialized if not getattr(e, "calibrated_to_target", True)]
 
     def _agg(entries) -> dict:
         if not entries:
@@ -83,6 +105,7 @@ def build_report() -> dict:
                 "median_abs_error": 0.0,
                 "within_15pct": 0,
                 "within_25pct": 0,
+                "model_estimate_targets": 0,
             }
         errs = sorted(e.abs_percent_difference for e in entries)
         mid = len(errs) // 2
@@ -93,6 +116,14 @@ def build_report() -> dict:
             "median_abs_error": round(median, 1),
             "within_15pct": sum(1 for e in errs if e <= 15.0),
             "within_25pct": sum(1 for e in errs if e <= 25.0),
+            # Not every target in a tier is a published score. Carrying the
+            # count here stops the human summary from claiming more provenance
+            # than the tier actually has.
+            "model_estimate_targets": sum(
+                1
+                for e in entries
+                if getattr(e, "provenance", "unclassified") == "model_estimate"
+            ),
         }
 
     return {
@@ -103,6 +134,13 @@ def build_report() -> dict:
         "calibrated_reference": {
             "summary": _agg(cal),
             "entries": [_entry_dict(e) for e in sorted(cal, key=lambda x: x.abs_percent_difference)],
+        },
+        "uncalibrated_reconstruction": {
+            "summary": _agg(recon),
+            "entries": [
+                _entry_dict(e)
+                for e in sorted(recon, key=lambda x: x.abs_percent_difference)
+            ],
         },
     }
 
@@ -204,9 +242,43 @@ def _print_human(report: dict) -> None:
         f"within 25%: {c['within_25pct']}/{c['n']}"
     )
     print(
-        "  These are tuned to reproduce published CBO/JCT decompositions; they\n"
-        "  demonstrate the model's structure, not independent predictive accuracy."
+        "  These are tuned to reproduce their targets; they demonstrate the\n"
+        "  model's structure, not independent predictive accuracy."
     )
+    model_est = c.get("model_estimate_targets", 0)
+    if model_est:
+        print(
+            f"  {c['n'] - model_est} of them reproduce a published CBO/JCT/Treasury"
+            " decomposition. The\n"
+            f"  other {model_est} are fitted to a target that is itself a model"
+            " estimate\n  (provenance = model_estimate), so those measure internal"
+            " consistency only."
+        )
+
+    reconstruction = report.get("uncalibrated_reconstruction")
+    if reconstruction and reconstruction["summary"]["n"]:
+        r = reconstruction["summary"]
+        print()
+        print("-" * 72)
+        print("UNCALIBRATED MODULE RECONSTRUCTIONS (target not fitted to)")
+        print("-" * 72)
+        print(
+            f"  {r['n']} policies | mean abs error {r['mean_abs_error']}% | "
+            f"within 15%: {r['within_15pct']}/{r['n']} | "
+            f"within 25%: {r['within_25pct']}/{r['n']}"
+        )
+        print(
+            "  Sectoral modules (international, trade, pharma, enforcement,"
+            " climate)\n  scored against targets they were never fitted to."
+            " Large misses here are\n  findings about those modules; each"
+            " carries a known-limitations note and\n  none was retuned."
+        )
+        r_model_est = r.get("model_estimate_targets", 0)
+        if r_model_est:
+            print(
+                f"  {r_model_est} of the {r['n']} targets are model estimates rather"
+                " than published\n  scores (provenance = model_estimate)."
+            )
 
 
 def _print_correction(corr: dict) -> None:

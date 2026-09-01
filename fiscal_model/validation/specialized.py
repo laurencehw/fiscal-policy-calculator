@@ -7,6 +7,7 @@ The category-specific implementations now live in focused modules:
 - `specialized_business.py`
 - `specialized_household.py`
 - `specialized_benefits.py`
+- `specialized_sectoral.py` (international, trade, pharma, enforcement, climate)
 """
 
 from .specialized_benefits import (
@@ -33,18 +34,31 @@ from .specialized_household import (
     validate_estate_policy,
     validate_payroll_policy,
 )
+from .specialized_sectoral import (
+    validate_all_climate,
+    validate_all_enforcement,
+    validate_all_international,
+    validate_all_pharma,
+    validate_all_trade,
+    validate_sectoral_policy,
+)
 from .specialized_tcja import validate_all_tcja, validate_tcja_extension
 
 __all__ = [
     "validate_all_amt",
     "validate_all_capital_gains",
+    "validate_all_climate",
     "validate_all_corporate",
     "validate_all_credits",
+    "validate_all_enforcement",
     "validate_all_estate",
     "validate_all_expenditures",
+    "validate_all_international",
     "validate_all_payroll",
+    "validate_all_pharma",
     "validate_all_ptc",
     "validate_all_tcja",
+    "validate_all_trade",
     "validate_amt_policy",
     "validate_capital_gains_policy",
     "validate_corporate_policy",
@@ -53,5 +67,6 @@ __all__ = [
     "validate_expenditure_policy",
     "validate_payroll_policy",
     "validate_ptc_policy",
+    "validate_sectoral_policy",
     "validate_tcja_extension",
 ]

@@ -522,6 +522,197 @@ re-deriving — not to certify accuracy. Do not quote it as an accuracy claim.
 
 ---
 
+## 7. Sectoral module reconstructions — what the five new runners found
+
+Phase E (plan §5.3) wired the five sectoral modules into the scorecard:
+`validate_all_international`, `_trade`, `_pharma`, `_enforcement`,
+`_climate` in `fiscal_model/validation/specialized_sectoral.py`. Seventeen
+presets that ship in the app with an official number attached had never been
+compared to it. (Three of those seventeen targets are model estimates rather
+than published scores; the provenance label on each row says which.) Twelve of them carry no module constant fitted to the target,
+and their mean absolute error is **394.1%** (median 57.1%) against **2.7%** for
+the 34 genuinely fitted benchmarks.
+
+Nothing below was retuned. The instruction the phase was run under, and the
+right one, is that a module far from its published figure gets reported as
+`Poor` with a note — adjusting a constant to close the gap would convert a
+finding into a fabrication, and the gap is often in the *target* rather than
+the model.
+
+**Targets are read, never restated.** Each scenario names a preset key and the
+runner reads `CBO_SCORE_MAP[preset]["official_score"]`, so the validation layer
+and the app cannot drift apart; a test enforces that no sectoral scenario
+carries its own `expected_10yr`.
+
+### 7.1 International tax (4 cases, mean 24.3%, 0 fitted)
+
+| Case | Official | Model | Error |
+|---|---:|---:|---:|
+| Biden GILTI reform | -$280B | -$230B | 17.8% |
+| Repeal FDII | -$200B | -$170B | 15.0% |
+| Pillar Two adoption | -$80B | -$61B | 23.5% |
+| Biden international package | -$700B | -$413B | 41.0% |
+
+The two single-provision cases land inside 18% with no fitting at all, which is
+the most encouraging result in this section. The package case is a **scope
+mismatch, not a modelling error**: Treasury's -$700B covers GILTI + FDII + UTPR
+*plus* the BEAT/SHIELD replacement and several base-protection provisions
+`international.py` does not implement, and the module sums its three components
+with no interaction term while a package estimate nets overlapping bases.
+
+Pillar Two rates Poor against a midpoint. `international.py`'s own source note
+gives JCT's figure as a **$50–120B range**; the model's -$61B is inside it. That
+is a good illustration of why the provenance label matters more than the rating:
+scoring against the midpoint of a range manufactures a 23.5% "error" out of
+target imprecision.
+
+### 7.2 Trade / tariffs (5 cases, mean 72.2%, 2 fitted)
+
+| Case | Official | Model | Error |
+|---|---:|---:|---:|
+| Universal 10% tariff *(fitted)* | -$2,000B | -$2,022B | 1.1% |
+| 60% China tariff *(fitted)* | -$500B | -$531B | 6.2% |
+| 25% auto tariff | -$100B | -$252B | 152.3% |
+| 25% steel & aluminium tariff | -$60B | -$104B | 73.2% |
+| Reciprocal tariffs (~20pp) | -$1,200B | -$2,736B | 128.0% |
+
+The two headline scenarios match because `TRADE_BASELINE`'s coverage constants
+(`universal_coverage_rate = 0.70`, `china_effective_coverage = 0.50`) were
+picked to reproduce them. The three that were *not* fitted all miss in the same
+direction — the module scores **gross customs revenue net only of an import
+demand response**, while the published figures are net of retaliation and of the
+GDP-feedback drag on income and payroll receipts. The repo's own knowledge
+snapshot puts the net figure at 40–50% of gross, which is roughly the size of
+the reciprocal-tariff gap (-$2,736B vs -$1,200B).
+
+Two further problems are target-side and worth fixing before anyone treats
+these rows as accuracy statements:
+
+- **Base overstatement.** The steel case applies the full 25pp to the whole $50B
+  base with no allowance for the Section 232 duties already in force; the auto
+  case applies 22.5pp to $133B, which yields ~$25B/yr against a target implying
+  ~$10B/yr.
+- **A bookkeeping defect in `app_data.py`.** `CBO_SCORE_MAP` keys the steel
+  preset as "25% Steel & Aluminum Tariff (-$60B)" while `PRESET_POLICIES` keys it
+  "25% Steel/Aluminum Tariff (-$15B)"; the reciprocal preset has the same
+  mismatch ("Reciprocal Tariffs (~20pp)" vs "Reciprocal Tariffs"). The two
+  dictionaries never join, so **the app shows no official score for either
+  preset**, and in the steel case the two figures in the repo differ by 4x.
+  The runners read the `CBO_SCORE_MAP` key deliberately; reconciling the keys
+  is an `app_data.py` change and was left out of this phase.
+
+### 7.3 Drug pricing (3 cases, mean 1,394.1%, 0 fitted)
+
+| Case | Official | Model | Error |
+|---|---:|---:|---:|
+| Expand drug negotiation | -$500B | -$372B | 25.7% |
+| Universal insulin cap | -$15B | -$445B | 2,868.6% |
+| International reference pricing | -$100B | -$1,388B | 1,287.9% |
+
+**This is the phase's most substantive finding.** Two of the three are not
+calibration drift — they are incidence bugs in `pharma.py`:
+
+- `DrugPricingPolicy._estimate_insulin_savings` credits the *entire* difference
+  between a $6,000 average annual insulin cost and the $420 capped cost to the
+  federal budget, for all 8.4M insulin users. A price cap that mostly
+  reallocates cost among patients, insurers and manufacturers is therefore
+  scored as ~$47B/yr of federal saving. Worse, `extend_to_private=True`
+  *increases* the modelled federal saving, when in the published scores the
+  private-market portion has essentially no federal budget effect. The module's
+  own `CBO_PHARMA_ESTIMATES` carries CBO's -$6.4B for the Medicare-only cap,
+  which the code never uses as a check.
+- `_estimate_reference_pricing_savings` applies the full US/OECD price-ratio
+  reduction (2.56x → 1.20x, a 53% cut) to *all* $275B of Medicare Part B + Part D
+  drug spending, ignoring the manufacturer rebates already netted out of Part D
+  and any utilisation or availability response.
+
+The negotiation case is milder: savings scale linearly in drug count from the
+IRA per-drug average with a flat 60% productivity haircut, while CBO's scoring
+is strongly non-linear in *which* molecules enter the window. Its -$500B target
+is itself labelled "CBO/Estimate" in the record and is not a CBO score of this
+policy.
+
+Fixing the two incidence bugs changes a shipped module's output for users, not
+just a validation number, so it belongs in a `pharma.py` change with its own
+review — not in a validation runner.
+
+### 7.4 IRS enforcement (2 cases, mean 43.9%, 1 fitted)
+
+| Case | Official | Model | Error |
+|---|---:|---:|---:|
+| IRA enforcement funding *(fitted)* | -$200B | -$189B | 5.5% |
+| Double IRS enforcement | -$340B | -$60B | 82.3% |
+
+The IRA case matches because `base_roi_multiplier = 5.0` was chosen to land on
+it. The doubling case applies both a lower base ROI (4.0) *and* a faster
+diminishing-returns factor (0.80) to a $16B/yr increment, and neither constant
+was ever fit to the -$340B figure; the compounding of the two produces less than
+a fifth of it. The target is also not an official score — it comes from
+Treasury's 2021 tax-gap paper and the Sarin–Summers estimates — and assumes
+sustained funding whose revenue partly lands outside the module's 4-year ramp.
+
+Unrelated, spotted while reading: `ENFORCEMENT_BASELINE` in
+`fiscal_model/enforcement.py` contains a stray `"medicare_insulin_share": 0.4`
+key copy-pasted from `PHARMA_BASELINE`. It is dead, but it should go.
+
+### 7.5 Climate / energy (3 cases, mean 5.0%, 2 fitted)
+
+| Case | Official | Model | Error |
+|---|---:|---:|---:|
+| Repeal IRA clean-energy credits *(fitted)* | -$783B | -$783B | 0.0% |
+| Carbon tax $50/ton *(fitted)* | -$1,700B | -$1,715B | 0.9% |
+| Repeal EV credits | -$200B | -$228B | 14.2% |
+
+The two near-zero rows are pure bookkeeping and should be read as such. The IRA
+repeal annual **is** the target restated over ten years — the same leakage
+pattern `loo.py` flags for `repeal_corporate_amt` — and `climate.py` documents
+`carbon_tax_behavioral_factor` as calibrated so that $50/ton yields ~$1.7T. The
+carbon-tax target is additionally labelled `model_estimate`: no agency published
+it, so that row measures internal consistency and nothing else.
+
+The EV-credit row is the only one here doing real work, and 14.2% flatters it —
+the repo's own knowledge base gives a **$30–60B range** for EV-credit
+elimination on the 2022 baseline against the $200B target used here, so the
+published figures for this policy span an order of magnitude.
+
+### 7.6 What this changes about the headline
+
+The calibrated tier is now 46 entries, but it is two populations:
+
+| | n | Mean abs error | Within 15% |
+|---|---:|---:|---:|
+| Fitted calibrated references | 34 | 2.7% | 33/34 |
+| Unfitted module reconstructions | 12 | 394.1% | 2/12 |
+
+`scripts/cold_holdout.py` reports them as separate tiers, and the anti-leakage
+invariant in `tests/test_cold_holdout.py` compares the out-of-sample tier
+against the *fitted* set — mixing the two would have flipped the invariant for
+the wrong reason (44.8% out-of-sample vs a 104.8% "calibrated" mean) and hidden
+the fact that the fitted tier is still 2.7%.
+
+`readiness.py --strict` treats a documented `Poor` on an unfitted reconstruction
+the same way it treats a documented out-of-sample miss: a warning, not a
+blocker. A documented `Poor` on a *fitted* benchmark stays strict-blocking,
+because those parameters exist to reproduce the target and a miss there really
+is a regression. Blocking on the reconstructions would have made deleting the
+runner the cheapest route back to green — precisely the incentive the
+pre-registration manifest exists to forbid.
+
+### 7.7 Provenance of the targets
+
+Of the 46 calibrated-tier benchmarks: **4 `line_item`**, **31 `secondhand`**,
+**7 `model_estimate`**, **4 `unclassified`**. Only four benchmarks in the whole
+calibrated tier — CBO's May 2024 *Budgetary Outcomes Under Alternative
+Assumptions* ([pub. 60271](https://www.cbo.gov/publication/60271)) and the three
+capital-gains cases — cite a specific document; every sectoral target added in
+this phase is a rounded headline figure or an explicit model estimate. Labels
+are assigned in `fiscal_model/validation/provenance.py`, either declared by the
+runner or inferred from the record's own source string, URL and the roundness
+of the target, and are never guessed: a record that does not unambiguously fall
+into a bucket stays `unclassified` until someone finds the table.
+
+---
+
 ## References
 
 - SSA Trustees 2024: *Long-Range OASDI Cost and Income Estimates* (2024)

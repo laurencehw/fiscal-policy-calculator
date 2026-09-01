@@ -302,6 +302,7 @@ def _distribution_benchmark_check(comparisons: list[Any]) -> ReadinessCheck:
 
 def _scorecard_checks(scorecard: Any) -> list[ReadinessCheck]:
     from fiscal_model.validation.holdout import summarize_holdout_protocol
+    from fiscal_model.validation.scorecard import GENERIC_CATEGORY
 
     entries = list(getattr(scorecard, "entries", []))
     # The Generic (out-of-sample) tier used to be exempt from this gate, which
@@ -310,7 +311,10 @@ def _scorecard_checks(scorecard: Any) -> list[ReadinessCheck]:
     # undocumented Poor outlier fails strict readiness regardless of tier; a
     # Poor entry that carries a known_limitations note is a warning, which is
     # how a documented out-of-sample miss (kept, not tuned away) is recorded.
-    calibrated = [entry for entry in entries if getattr(entry, "category", None) != "Generic"]
+    calibrated = [
+        entry for entry in entries
+        if getattr(entry, "category", None) != GENERIC_CATEGORY
+    ]
     error_entries = [
         entry for entry in entries
         if getattr(entry, "rating", None) == "Error"
@@ -362,18 +366,32 @@ def _scorecard_checks(scorecard: Any) -> list[ReadinessCheck]:
             },
         )
     elif documented_poor:
-        # Split by tier: a *calibrated* benchmark drifting to Poor is a real
-        # regression (its parameters are tuned to reproduce that target), while
-        # a documented *out-of-sample* miss is the honest tier doing its job.
-        # Only the latter is exempted from the strict gate — see
-        # ``_is_documented_out_of_sample_warning``.
+        # Split three ways, because "calibrated" covers two different things:
+        #
+        # 1. A *fitted* calibrated benchmark drifting to Poor is a real
+        #    regression — its parameters exist to reproduce that target, so a
+        #    miss means something broke. Strict-blocking.
+        # 2. A calibrated-tier *reconstruction* the module was never fitted to
+        #    (``calibrated_to_target=False``) is a finding about the module, not
+        #    a regression: the Phase E sectoral runners score modules against
+        #    published figures nobody had compared them to before. Exempt, for
+        #    the same reason as (3) — blocking on it would make deleting the
+        #    runner the cheapest way back to green.
+        # 3. A documented *out-of-sample* miss is the honest tier doing its job.
+        #    Exempt — see ``_is_documented_benchmark_warning``.
         documented_calibrated = [
             entry for entry in documented_poor
-            if getattr(entry, "category", None) != "Generic"
+            if getattr(entry, "category", None) != GENERIC_CATEGORY
+            and getattr(entry, "calibrated_to_target", True)
+        ]
+        documented_reconstruction = [
+            entry for entry in documented_poor
+            if getattr(entry, "category", None) != GENERIC_CATEGORY
+            and not getattr(entry, "calibrated_to_target", True)
         ]
         documented_generic = [
             entry for entry in documented_poor
-            if getattr(entry, "category", None) == "Generic"
+            if getattr(entry, "category", None) == GENERIC_CATEGORY
         ]
         scorecard_check = _check(
             "revenue_scorecard",
@@ -390,6 +408,10 @@ def _scorecard_checks(scorecard: Any) -> list[ReadinessCheck]:
                 "documented_calibrated_policy_ids": [
                     getattr(entry, "policy_id", "unknown")
                     for entry in documented_calibrated
+                ],
+                "documented_reconstruction_policy_ids": [
+                    getattr(entry, "policy_id", "unknown")
+                    for entry in documented_reconstruction
                 ],
                 "documented_generic_policy_ids": [
                     getattr(entry, "policy_id", "unknown")
@@ -534,32 +556,42 @@ def _is_environmental_data_warning(issue: ReadinessIssue) -> bool:
     )
 
 
-def _is_documented_out_of_sample_warning(issue: ReadinessIssue) -> bool:
-    """Return whether a warning is a documented *out-of-sample* benchmark miss.
+def _is_documented_benchmark_warning(issue: ReadinessIssue) -> bool:
+    """Return whether a warning is only documented, non-regression benchmark misses.
 
-    The revenue scorecard now holds every tier to the same bar, including the
-    out-of-sample (Generic) one. That tier is expected to contain large,
-    honestly-reported misses — a top-rate target that is itself internally
-    inconsistent, capital-gains cases whose published targets disagree by 42%.
+    The revenue scorecard holds every tier to the same bar, including the
+    out-of-sample (Generic) one. Two kinds of entry are *expected* to contain
+    large, honestly-reported misses:
+
+    * **Out-of-sample (Generic)** — a top-rate target that is itself internally
+      inconsistent, capital-gains cases whose published targets disagree by 42%.
+    * **Calibrated-tier reconstructions** (``calibrated_to_target=False``) —
+      the Phase E sectoral runners score the international, trade, pharma,
+      enforcement and climate modules against figures those modules were
+      never fitted to. A miss there is a finding about the module, which is
+      the entire reason for adding the runner.
+
     Each carries a ``known_limitations`` note, which is what turns it from a
-    hard failure into this warning.
+    hard failure into this warning. Blocking the release gate on either would
+    create exactly the wrong incentive: the cheapest way to go green would be
+    to delete the miss or tune it away, which the pre-registration manifest
+    exists to forbid.
 
-    Blocking the release gate on those would create exactly the wrong
-    incentive: the cheapest way to go green would be to delete the miss or
-    tune it away, which the pre-registration manifest exists to forbid.
-
-    A documented *calibrated* Poor entry is **not** exempted: those modules are
-    parameterized to reproduce their target, so drifting to Poor is a genuine
-    regression. ``Error`` and undocumented ``Poor`` in either tier are already
-    hard ``fail``s (see ``_scorecard_checks``) and reach this function with
-    severity ``fail``.
+    A documented Poor entry on a benchmark the module *is* fitted to is **not**
+    exempted: those parameters exist to reproduce that target, so drifting to
+    Poor is a genuine regression. ``Error`` and undocumented ``Poor`` in either
+    tier are already hard ``fail``s (see ``_scorecard_checks``) and reach this
+    function with severity ``fail``.
     """
     if issue.severity != "warn" or issue.name != "revenue_scorecard":
         return False
     details = issue.details
     if details.get("documented_calibrated_policy_ids"):
         return False
-    return bool(details.get("documented_generic_policy_ids"))
+    return bool(
+        details.get("documented_generic_policy_ids")
+        or details.get("documented_reconstruction_policy_ids")
+    )
 
 
 def strict_readiness_issues(report: ReadinessReport) -> list[ReadinessIssue]:
@@ -567,15 +599,15 @@ def strict_readiness_issues(report: ReadinessReport) -> list[ReadinessIssue]:
 
     The readiness payload still reports every warning. Strict CI exempts
     warnings caused by missing live external data in isolated build runners,
-    plus documented out-of-sample benchmark misses (see
-    :func:`_is_documented_out_of_sample_warning`).
+    plus documented benchmark misses that are not calibration regressions
+    (see :func:`_is_documented_benchmark_warning`).
     """
     return [
         issue for issue in report.issues
         if issue.severity == "fail"
         or not (
             _is_environmental_data_warning(issue)
-            or _is_documented_out_of_sample_warning(issue)
+            or _is_documented_benchmark_warning(issue)
         )
     ]
 

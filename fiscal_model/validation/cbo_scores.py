@@ -209,7 +209,11 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         ten_year_cost=4600.0,  # ~$4.6 trillion (CBO May 2024)
         source=ScoreSource.CBO,
         source_date="2024-05",
-        source_url="https://www.cbo.gov/publication/59710",
+        # CBO, "Budgetary Outcomes Under Alternative Assumptions About Spending
+        # and Revenues" (8 May 2024). Was 59710, which is the February 2024
+        # Budget and Economic Outlook -- the baseline the CBO options battery
+        # is scored against, not the source of this $4.6T figure.
+        source_url="https://www.cbo.gov/publication/60271",
         policy_type="income_tax",
         baseline_year=2024,
         budget_window="FY2025-2034",

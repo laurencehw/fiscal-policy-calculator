@@ -1,6 +1,6 @@
 ---
-source: https://www.cbo.gov/publication/59710
-title: Budgetary Effects of Extending Provisions of the 2017 Tax Act (CBO May 2024)
+source: https://www.cbo.gov/publication/60271
+title: Budgetary Outcomes Under Alternative Assumptions About Spending and Revenues (CBO, May 2024)
 org: CBO
 year: 2024
 keywords: [tcja, tax cuts and jobs act, 2017, extension, sunset, brackets, salt, qbi, child tax credit, ctc, individual amt, estate, pass through, 199a, jct, distributional]
