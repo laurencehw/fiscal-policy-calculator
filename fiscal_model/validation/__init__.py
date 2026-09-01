@@ -7,6 +7,12 @@ This module provides:
 - Validation reports
 """
 
+from .benchmark_sources import (
+    BENCHMARK_SOURCES,
+    BenchmarkSource,
+    provenance_tally,
+    source_for,
+)
 from .cbo_scores import (
     KNOWN_SCORES,
     MIN_GENERIC_BASELINE_YEAR,
@@ -88,6 +94,11 @@ from .credibility import (
     get_credibility_for_result,
     reset_confidence_cache,
 )
+from .distributional_validation import (
+    DISTRIBUTIONAL_BENCHMARKS,
+    ILLUSTRATIVE_DISTRIBUTIONAL_BENCHMARKS,
+    PUBLISHED_DISTRIBUTIONAL_BENCHMARKS,
+)
 from .holdout import (
     DEFAULT_HOLDOUT_PROTOCOL,
     HoldoutProtocol,
@@ -116,11 +127,13 @@ from .preregistered import (
 )
 from .provenance import (
     LINE_ITEM,
+    LINE_ITEM_DIFFERS,
     MODEL_ESTIMATE,
     NON_PUBLISHED_BENCHMARK_IDS,
     NON_PUBLISHED_DISTRIBUTIONAL_BENCHMARKS,
     PROVENANCE_LEVELS,
     SECONDHAND,
+    TRANSCRIBED_LEVELS,
     UNCLASSIFIED,
     classify_provenance,
     is_round_hundred_scale,
@@ -138,17 +151,21 @@ from .scorecard import (
 
 __all__ = [
     'AMT_VALIDATION_SCENARIOS_COMPARE',
+    'BENCHMARK_SOURCES',
     'CAPITAL_GAINS_VALIDATION_SCENARIOS',
     'CLIMATE_VALIDATION_SCENARIOS_COMPARE',
     'CORPORATE_VALIDATION_SCENARIOS',
     'DEFAULT_HOLDOUT_PROTOCOL',
     'DEFAULT_RUNNERS',
+    'DISTRIBUTIONAL_BENCHMARKS',
     'ENFORCEMENT_VALIDATION_SCENARIOS_COMPARE',
     'ESTATE_TAX_VALIDATION_SCENARIOS',
     'GENERIC_CATEGORY',
+    'ILLUSTRATIVE_DISTRIBUTIONAL_BENCHMARKS',
     'INTERNATIONAL_VALIDATION_SCENARIOS_COMPARE',
     'KNOWN_SCORES',
     'LINE_ITEM',
+    'LINE_ITEM_DIFFERS',
     'MIN_GENERIC_BASELINE_YEAR',
     'MODEL_ESTIMATE',
     'NON_PUBLISHED_BENCHMARK_IDS',
@@ -158,12 +175,15 @@ __all__ = [
     'PREREGISTERED_CASES',
     'PROVENANCE_LEVELS',
     'PTC_VALIDATION_SCENARIOS_COMPARE',
+    'PUBLISHED_DISTRIBUTIONAL_BENCHMARKS',
     'SECONDHAND',
     'TAX_CREDIT_VALIDATION_SCENARIOS',
     'TAX_EXPENDITURE_VALIDATION_SCENARIOS_COMPARE',
     'TCJA_VALIDATION_SCENARIOS',
     'TRADE_VALIDATION_SCENARIOS_COMPARE',
+    'TRANSCRIBED_LEVELS',
     'UNCLASSIFIED',
+    'BenchmarkSource',
     'CBOScore',
     'ConfidenceBand',
     'HoldoutProtocol',
@@ -203,12 +223,14 @@ __all__ = [
     'list_available_policies',
     'live_cases',
     'manifest_problems',
+    'provenance_tally',
     'quick_validate',
     'reset_confidence_cache',
     'reset_scorecard_cache',
     'run_leave_one_out',
     'run_validation_suite',
     'scorecard_to_dict',
+    'source_for',
     'summarize_holdout_protocol',
     'summarize_preregistration',
     'validate_all',

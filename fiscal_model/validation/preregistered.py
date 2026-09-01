@@ -76,6 +76,15 @@ PHASE_B_ENTERED_DATE = "2026-09-01"
 #: payroll plumbing they need).
 PHASE_B_FIRST_SCORED_COMMIT = "36d683f9a24f7609d0a179de5f8f36b0ec44a9fc"
 
+#: Commit of the Phase E provenance pass (plan §5.1-§5.2): the pass that opened
+#: the primary documents and transcribed the rows behind the benchmark targets.
+#: It supersedes one out-of-sample row — ``biden_capital_gains_39`` — because
+#: its -$456B target turned out to appear in no Treasury volume. A *re-sourced*
+#: target is exactly the case the "new row, never an edit" rule exists for: the
+#: old row and the reason it went are both still in this file.
+PHASE_E_PROVENANCE_COMMIT = "eee1e75e64bd0f9c6a83b40b9ba2e97fe4b3ad3d"
+PHASE_E_PROVENANCE_DATE = "2026-09-01"
+
 #: Baselines the CBO options were built on, from PDF page 2 of publication
 #: 60557 ("Notes About This Report").
 CBO_OPTIONS_REVENUE_BASELINE = (
@@ -113,6 +122,12 @@ class PreregisteredCase:
         superseded_by: ``case_id`` of the row that replaced this one, if any.
             A row with a value here is history and is not checked against
             ``KNOWN_SCORES``.
+        retired: ``True`` when the target could not be traced to any published
+            source and the case has been withdrawn from the battery rather
+            than replaced. Retired rows stay in the file — the point is that
+            the withdrawal is visible — but they are not live, are not scored,
+            and are excluded from every Tier 1 count.
+        retired_reason: Why the row was withdrawn, including what was searched.
         note: Free text — provenance caveats, why a row was superseded.
     """
 
@@ -127,12 +142,14 @@ class PreregisteredCase:
     entered_date: str
     first_scoring_run_commit: str
     superseded_by: str | None = None
+    retired: bool = False
+    retired_reason: str = ""
     note: str = ""
 
     @property
     def is_live(self) -> bool:
-        """A row still in force (not replaced by a later row)."""
-        return self.superseded_by is None
+        """A row still in force: not replaced by a later row, not withdrawn."""
+        return self.superseded_by is None and not self.retired
 
 
 PREREGISTERED_CASES: tuple[PreregisteredCase, ...] = (
@@ -209,10 +226,42 @@ PREREGISTERED_CASES: tuple[PreregisteredCase, ...] = (
         entered_commit=VALIDATION_MODULE_COMMIT,
         entered_date=VALIDATION_MODULE_DATE,
         first_scoring_run_commit=PHASE_A_COMMIT,
+        superseded_by="biden_capital_gains_39.v2",
         note=(
             "Record existed from 2025-12-08 but was unreachable: get_validation_targets() "
             "kept only policy_type == 'income_tax'. First scored in Phase A on the "
-            "uncalibrated capital-gains path with frozen module-default elasticities."
+            "uncalibrated capital-gains path with frozen module-default elasticities. "
+            "SUPERSEDED in Phase E: -$456B appears in no Treasury volume. The FY2025 "
+            "Green Book's combined 'Reform the taxation of capital income' row is "
+            "$288,583M (report p. 242; PDF p. 250), and Treasury never splits the rate "
+            "change from the realization-at-death change, so there is no decomposition "
+            "-456 could have been assembled from. Phase A flagged this row and its "
+            "FY2022 twin as 42% apart for one policy shape; opening the document is "
+            "what resolved it."
+        ),
+    ),
+    PreregisteredCase(
+        case_id="biden_capital_gains_39.v2",
+        policy_id="biden_capital_gains_39",
+        official_10yr_billions=-288.6,
+        source_name="U.S. Treasury",
+        source_url=(
+            "https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf"
+        ),
+        source_date="2024-03",
+        source_baseline_vintage="Administration FY2025 Budget baseline (Green Book FY2025)",
+        entered_commit=PHASE_E_PROVENANCE_COMMIT,
+        entered_date=PHASE_E_PROVENANCE_DATE,
+        first_scoring_run_commit=PHASE_E_PROVENANCE_COMMIT,
+        note=(
+            "Re-sourced target: FY2025 Green Book, Table of Revenue Estimates, "
+            "'Reform the taxation of capital income', $288,583M over FY2025-2034. "
+            "The *shape* was corrected to the source's own definition rather than the "
+            "number being fitted to the model: the threshold is taxable income over "
+            "$1M (the FY2022 volume says AGI), and the exclusion for gains at death is "
+            "$5M per donor, portable to $10M per couple (report p. 89), where the "
+            "module default and the FY2022 proposal are $1M per person. Nothing else "
+            "moved; the frozen 0.8/0.4 elasticities still apply."
         ),
     ),
     PreregisteredCase(
@@ -261,11 +310,33 @@ PREREGISTERED_CASES: tuple[PreregisteredCase, ...] = (
         entered_commit=PHASE_A_COMMIT,
         entered_date=PHASE_A_DATE,
         first_scoring_run_commit=PHASE_A_COMMIT,
+        retired=True,
+        retired_reason=(
+            "Phase E: -$420B is not a published figure. TPC's sitemap was "
+            "enumerated in full (11 sub-sitemaps, ~20,600 URLs, ~6,500 "
+            "model-estimate pages) and the only '45 percent' tables are for the "
+            "estate-tax top rate and an EITC phase-in rate; TPC's 82 t23-* "
+            "tables contain no top-rate table at all, and its top-rate "
+            "collections are all pre-2010 vintage (36% / 39.6% / 37.5%). "
+            "CBO and JCT publish no +8pp top-bracket option and CBO warns that "
+            "'the deficit effects of large rate increases or surtaxes might not "
+            "be proportional to the estimates shown here'. The nearest real "
+            "published analogues, PWBM (May 2025, FY2026-2035), bracket the "
+            "range at $401.6B for reverting the top bracket to 39.6% and "
+            "$222.4B for a new 39.6% bracket above $1M — which makes -$420B for "
+            "+8pp above $609,350 implausibly low, the opposite direction from "
+            "the model's -$916B. Withdrawn rather than corrected: there is no "
+            "figure to correct it to. Phase A registered this row precisely so "
+            "that its removal would have to be explicit."
+        ),
         note=(
-            "Kept despite a >100% miss. The target fails an internal coherence check "
-            "against illustrative_top_rate_5pp (same source: +5pp above $1M = -$700B), "
-            "so part of the error is target error. Registered so that a future "
-            "correction has to appear as a new row, not an edit."
+            "Phase A kept this despite a 118% miss and flagged that the target "
+            "fails an internal coherence check against illustrative_top_rate_5pp "
+            "(same claimed source: +5pp above $1M = -$700B). Phase E resolved the "
+            "incoherence in the direction Phase A did not expect: *neither* "
+            "figure exists. -$700B is equally untraceable and is listed in "
+            "docs/VALIDATION.md as an open owner decision; only this row, which "
+            "the plan named, is withdrawn here."
         ),
     ),
     PreregisteredCase(
@@ -517,8 +588,17 @@ def live_cases() -> dict[str, PreregisteredCase]:
 
 
 def superseded_cases() -> tuple[PreregisteredCase, ...]:
-    """Manifest rows replaced by a later row (kept as history)."""
+    """Manifest rows no longer in force (kept as history).
+
+    Covers both replacements (``superseded_by``) and withdrawals
+    (``retired``); :func:`retired_cases` narrows to the latter.
+    """
     return tuple(case for case in PREREGISTERED_CASES if not case.is_live)
+
+
+def retired_cases() -> tuple[PreregisteredCase, ...]:
+    """Manifest rows withdrawn because the target could not be sourced."""
+    return tuple(case for case in PREREGISTERED_CASES if case.retired)
 
 
 def get_case(policy_id: str) -> PreregisteredCase | None:
@@ -555,6 +635,18 @@ def manifest_problems(scorecard: Any) -> list[str]:
         if case.superseded_by is not None and case.superseded_by not in all_ids:
             problems.append(
                 f"{case.case_id}: superseded_by '{case.superseded_by}' is not a manifest row"
+            )
+
+        # Withdrawing a case removes evidence from the honest tier, so it has
+        # to state why. A retired row with no reason is indistinguishable from
+        # a case quietly dropped because it scored badly.
+        if case.retired and not case.retired_reason.strip():
+            problems.append(f"{case.case_id}: retired with no retired_reason")
+        if case.retired and case.superseded_by is not None:
+            problems.append(
+                f"{case.case_id}: is both retired and superseded_by "
+                f"'{case.superseded_by}'; a target is either replaced or "
+                f"withdrawn, not both"
             )
 
         if not case.is_live:
@@ -616,6 +708,7 @@ def summarize_preregistration() -> dict[str, Any]:
     return {
         "live_cases": len(live),
         "superseded_cases": len(superseded_cases()),
+        "retired_cases": len(retired_cases()),
         "policy_ids": sorted(live),
         "phase_a_commit": PHASE_A_COMMIT,
         "phase_b_entered_commit": PHASE_B_ENTERED_COMMIT,
@@ -645,12 +738,14 @@ __all__ = [
     "PHASE_A_COMMIT",
     "PHASE_B_ENTERED_COMMIT",
     "PHASE_B_FIRST_SCORED_COMMIT",
+    "PHASE_E_PROVENANCE_COMMIT",
     "PREREGISTERED_CASES",
     "PreregisteredCase",
     "assert_preregistered",
     "get_case",
     "live_cases",
     "manifest_problems",
+    "retired_cases",
     "summarize_preregistration",
     "superseded_cases",
 ]

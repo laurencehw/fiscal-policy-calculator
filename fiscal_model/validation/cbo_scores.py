@@ -275,23 +275,39 @@ KNOWN_SCORES: dict[str, CBOScore] = {
 
     "biden_capital_gains_39": CBOScore(
         policy_id="biden_capital_gains_39",
-        name="Biden Capital Gains at 39.6%",
-        description="Tax capital gains and dividends at 39.6% for income > $1M. "
-                   "Tax unrealized gains at death.",
-        ten_year_cost=-456.0,  # Combined with death tax provision
+        name="Biden Capital Gains at Ordinary Rates (FY2025 Green Book)",
+        description="Reform the taxation of capital income: tax long-term capital "
+                   "gains and qualified dividends at ordinary rates for taxpayers "
+                   "with taxable income over $1M, and treat transfers by gift or "
+                   "at death as realization events with a $5M per-donor exclusion.",
+        # Re-sourced in Phase E. The previous -456.0 appears in no Treasury
+        # volume; the FY2025 Green Book's combined "Reform the taxation of
+        # capital income" row is $288,583M (report p. 242; PDF p. 250).
+        # Treasury never splits the rate change from the realization-at-death
+        # change, so this single row is the whole proposal.
+        ten_year_cost=-288.6,
         source=ScoreSource.TREASURY,
         source_date="2024-03",
-        rate_change=0.196,  # 20% → 39.6% = +19.6pp (for top bracket)
+        source_url="https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf",
+        rate_change=0.196,  # 23.8% → 43.4% (footnote 18: the 39.6% top rate is assumed in place)
         income_threshold=1000000,
         policy_type="capital_gains_tax",
         baseline_year=2024,
-        notes="Includes taxing unrealized gains at death. High behavioral uncertainty. "
+        budget_window="FY2025-2034",
+        notes="Re-sourced in Phase E to the FY2025 Green Book line item; the prior "
+              "-$456B target was unsourced and internally inconsistent with the "
+              "FY2022 row carried as treasury_capgains_39_plus_stepup_elim (the two "
+              "differed by 42%). The shape now matches the source's own definition: "
+              "**taxable** income over $1M (FY2022 said AGI) and a **$5M per-donor** "
+              "exclusion for gains at death (FY2022 said $1M per person). Nothing was "
+              "tuned; only the published definition was copied in. "
               "Scored on the uncalibrated Generic capital-gains path: SOI auto-populated "
               "realizations and baseline rate above the $1M threshold, the frozen module-"
               "default elasticities (0.8 short-run / 0.4 long-run) and step-up elimination. "
               "It is NOT one of the three calibrated CapitalGains scenarios, which carry "
               "hand-set per-case elasticity and lock-in tuples.",
-        eliminate_step_up=True,  # "Tax unrealized gains at death" is part of the proposal as described
+        eliminate_step_up=True,  # "realization events" at gift/death is half the proposal
+        step_up_exemption=5_000_000.0,  # FY2025 Green Book, report p. 89
     ),
 
     # -------------------------------------------------------------------------
@@ -501,13 +517,24 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         baseline_year=2023,
         budget_window="FY2024-2033",
         notes=(
-            "Promoted from CBO_SCORE_MAP ('Raise top marginal rate from 37% to 45%; "
-            "TPC-range estimate'). Ordinary-bracket rate change, so it scores on the "
-            "ordinary-income base. The target itself is internally inconsistent with "
-            "illustrative_top_rate_5pp in this same database and from the same source "
-            "(+5pp above $1M = -$700B), which implies a larger rate increase on a "
-            "wider base raising less; treat -$420B as secondhand until a line-item "
-            "source replaces it (Phase E)."
+            "RETIRED in Phase E. Phase A promoted this from CBO_SCORE_MAP ('Raise top "
+            "marginal rate from 37% to 45%; TPC-range estimate') and flagged that the "
+            "target is internally inconsistent with illustrative_top_rate_5pp from the "
+            "same claimed source (+5pp above $1M = -$700B). The sourcing pass "
+            "enumerated TPC's entire sitemap and found no table for a 45% ordinary "
+            "rate at any date, and no CBO or JCT option for an +8pp top-bracket "
+            "increase either. -$420B is not a published figure, so the case is "
+            "withdrawn from the out-of-sample battery rather than scored against a "
+            "number nobody published. The record is kept so the withdrawal is visible "
+            "and so a future line item can revive it; see "
+            "fiscal_model/validation/preregistered.py for the retirement reason and "
+            "docs/VALIDATION.md for the PWBM figures that bracket the plausible range."
+        ),
+        runnable=False,
+        not_runnable_reason=(
+            "RETIRED (Phase E): the -$420B target is traceable to no published "
+            "document; withdrawn from Tier 1 rather than scored against an "
+            "unsourced number."
         ),
     ),
 
@@ -785,7 +812,12 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         policy_type="tariff",
         baseline_year=2025,
         budget_window="2026-2035",
-        notes="CRFB/TPC estimate. USMCA exempts significant portion of imports. "
+        notes="UNSOURCED (Phase E). Attributed to CRFB here and in CBO_SCORE_MAP, but "
+              "CRFB publishes no standalone 25% auto-tariff figure - four of its "
+              "tariff-revenue posts were checked and none itemises autos. The two "
+              "primary estimates that do exist are 4-6.5x larger: Yale Budget Lab "
+              "$600-650B over 2026-35 and Tax Foundation $386.2B conventional over "
+              "2026-2035, neither of which applies this record's USMCA carve-out. "
               "Retaliation risk from trading partners is high.",
         runnable=False,
         not_runnable_reason="Requires the tariff module (import base x pass-through elasticity); not wired into the validation dispatch.",
@@ -802,8 +834,16 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         policy_type="tariff",
         baseline_year=2025,
         budget_window="2026-2035",
-        notes="TPC estimate. Narrow sectoral tariff with lower revenue impact than broad tariffs. "
-              "Domestic steel/aluminum producers benefit but consuming industries face higher costs.",
+        notes="UNSOURCED (Phase E). This record says TPC and CBO_SCORE_MAP said Tax "
+              "Foundation; neither publishes a 25%-rate steel-and-aluminium ten-year "
+              "estimate. Tax Foundation's only Section 232 metals figure is $341.4B "
+              "conventional over 2026-2035 at the post-2025 50% rates and includes "
+              "copper. The app also carried a second, four-times-smaller figure "
+              "(-$15B) on the preset label; the labels were reconciled on -$60B in "
+              "Phase E so the preset at least shows one number, but the number itself "
+              "has no document behind it. Narrow sectoral tariff with lower revenue "
+              "impact than broad tariffs; domestic producers benefit but consuming "
+              "industries face higher costs.",
         runnable=False,
         not_runnable_reason="Requires the tariff module (import base x pass-through elasticity); not wired into the validation dispatch.",
     ),

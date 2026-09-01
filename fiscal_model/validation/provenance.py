@@ -9,16 +9,27 @@ actually come from?* "Validated against CBO" is doing a lot of work when
 summaries, not line items, and an error against them is partly target
 error.
 
-Three labels, plus an explicit "we do not know" bucket:
+Four labels, plus an explicit "we do not know" bucket:
 
 ``line_item``
     The target is a specific row in a cited document (a JCX table, a CBO
     cost-estimate table, a Green Book revenue line). The strongest kind of
     benchmark: the number and the document that states it are both known.
+``line_item_differs``
+    The primary document *was* found and its row transcribed, and it states a
+    **different** figure from the target the repository carries. The record
+    keeps its own target — retuning a calibrated module to a newly transcribed
+    number is a modelling decision, not a bookkeeping one — and additionally
+    carries the published figure in
+    ``ScorecardEntry.official_10yr_billions_line_item`` so the gap is visible
+    rather than silently resolved. Each of these is an open owner decision and
+    is tabulated in ``docs/VALIDATION.md``.
 ``secondhand``
     The target came from a summary, a press description, or a rounded
     headline figure. Usually a round hundred-scale number attributed to an
-    agency but not to a table.
+    agency but not to a table. After the Phase E sourcing pass a target is
+    only left here with a *recorded* search: :mod:`.benchmark_sources` says
+    what was looked for and where.
 ``model_estimate``
     No official score exists for this policy shape. The "benchmark" is a
     model or illustrative figure, so scoring against it measures internal
@@ -40,6 +51,7 @@ import re
 from urllib.parse import urlparse
 
 LINE_ITEM = "line_item"
+LINE_ITEM_DIFFERS = "line_item_differs"
 SECONDHAND = "secondhand"
 MODEL_ESTIMATE = "model_estimate"
 UNCLASSIFIED = "unclassified"
@@ -47,10 +59,16 @@ UNCLASSIFIED = "unclassified"
 #: Every label the scorecard can emit, in reporting order.
 PROVENANCE_LEVELS: tuple[str, ...] = (
     LINE_ITEM,
+    LINE_ITEM_DIFFERS,
     SECONDHAND,
     MODEL_ESTIMATE,
     UNCLASSIFIED,
 )
+
+#: Labels that mean "somebody opened the primary document and transcribed the
+#: row". Both count as sourced; only ``line_item`` means the transcription
+#: agreed with the target the repository carries.
+TRANSCRIBED_LEVELS: frozenset[str] = frozenset({LINE_ITEM, LINE_ITEM_DIFFERS})
 
 #: Revenue-scorecard entries the plan (§5.2) names as *not* published
 #: benchmarks. They stay in the scorecard as labelled illustrations but are
@@ -146,11 +164,13 @@ def classify_provenance(
 
 __all__ = [
     "LINE_ITEM",
+    "LINE_ITEM_DIFFERS",
     "MODEL_ESTIMATE",
     "NON_PUBLISHED_BENCHMARK_IDS",
     "NON_PUBLISHED_DISTRIBUTIONAL_BENCHMARKS",
     "PROVENANCE_LEVELS",
     "SECONDHAND",
+    "TRANSCRIBED_LEVELS",
     "UNCLASSIFIED",
     "classify_provenance",
     "is_round_hundred_scale",

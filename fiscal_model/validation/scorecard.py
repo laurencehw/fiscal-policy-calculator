@@ -21,8 +21,14 @@ from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from functools import lru_cache
 
+from .benchmark_sources import BenchmarkSource, source_for
 from .core import ValidationResult, validate_all
-from .provenance import MODEL_ESTIMATE, PROVENANCE_LEVELS, classify_provenance
+from .provenance import (
+    LINE_ITEM_DIFFERS,
+    MODEL_ESTIMATE,
+    PROVENANCE_LEVELS,
+    classify_provenance,
+)
 from .specialized import (
     validate_all_amt,
     validate_all_capital_gains,
@@ -70,6 +76,17 @@ DEFAULT_RUNNERS: dict[str, Callable[..., list[ValidationResult]]] = {
 }
 
 
+def _table_reference(source: BenchmarkSource | None) -> str | None:
+    """Human-readable ``table — row (page)`` reference for a transcribed row."""
+    if source is None:
+        return None
+    parts = [p for p in (source.table, source.row) if p]
+    if not parts:
+        return None
+    reference = " — ".join(parts)
+    return f"{reference} ({source.page})" if source.page else reference
+
+
 @dataclass
 class ScorecardEntry:
     """Single policy's model-vs-official comparison."""
@@ -90,18 +107,41 @@ class ScorecardEntry:
     direction_match: bool
     known_limitations: list[str]
     notes: str
-    #: Where the *target* came from: ``line_item`` / ``secondhand`` /
-    #: ``model_estimate`` / ``unclassified``. See :mod:`.provenance`.
+    #: Where the *target* came from: ``line_item`` / ``line_item_differs`` /
+    #: ``secondhand`` / ``model_estimate`` / ``unclassified``. See
+    #: :mod:`.provenance`.
     provenance: str = "unclassified"
     #: Whether the module carries a constant fitted to reproduce this target.
     #: True for the nine original specialized suites (a Poor there is a genuine
     #: calibration regression); False for module reconstructions that have
     #: simply never been compared to the published figure.
     calibrated_to_target: bool = True
+    #: Table/row reference for a transcribed benchmark, e.g.
+    #: ``"Option 62, alternative 1 (report p. 73; PDF p. 79)"``.
+    benchmark_table: str | None = None
+    #: The figure actually printed in the primary document, when it differs
+    #: from :attr:`official_10yr_billions`. Set only for
+    #: ``provenance == "line_item_differs"``; the target itself is never moved
+    #: by a sourcing pass.
+    official_10yr_billions_line_item: float | None = None
+    #: One line on what the transcription established (or what was searched
+    #: and not found).
+    sourcing_note: str = ""
+    #: True when somebody opened the primary document and read the row, i.e.
+    #: the entry has a :mod:`.benchmark_sources` record carrying the figure it
+    #: found. A handful of entries are labelled ``line_item`` by *inference*
+    #: instead — they cite a deep link to a real document, but nobody has
+    #: transcribed the row from it — and those are deliberately not counted as
+    #: transcribed. The distinction is the whole subject of plan §5.1.
+    transcribed: bool = False
 
     @classmethod
     def from_result(cls, category: str, r: ValidationResult) -> ScorecardEntry:
         params = r.model_parameters or {}
+        # The transcription registry is the authority on provenance: it is the
+        # only place a human actually opened the document. A runner's declared
+        # label is the fallback for records nobody has sourced yet.
+        source = source_for(r.policy_id)
         return cls(
             category=category,
             policy_id=r.policy_id,
@@ -109,8 +149,8 @@ class ScorecardEntry:
             official_10yr_billions=float(r.official_10yr),
             official_source=r.official_source,
             benchmark_kind=r.benchmark_kind,
-            benchmark_date=r.benchmark_date,
-            benchmark_url=r.benchmark_url,
+            benchmark_date=(source.date if source and source.date else r.benchmark_date),
+            benchmark_url=(source.url if source and source.url else r.benchmark_url),
             model_10yr_billions=float(r.model_10yr),
             difference_billions=float(r.difference),
             percent_difference=float(r.percent_difference),
@@ -125,9 +165,22 @@ class ScorecardEntry:
                 benchmark_url=r.benchmark_url,
                 official_10yr=float(r.official_10yr),
                 benchmark_kind=r.benchmark_kind,
-                declared=params.get("provenance"),
+                declared=(
+                    source.provenance if source is not None
+                    else params.get("provenance")
+                ),
             ),
             calibrated_to_target=bool(params.get("calibrated_to_target", True)),
+            benchmark_table=_table_reference(source),
+            official_10yr_billions_line_item=(
+                source.published_10yr_billions
+                if source is not None and source.provenance == LINE_ITEM_DIFFERS
+                else None
+            ),
+            sourcing_note=(source.note or source.searched) if source else "",
+            transcribed=(
+                source is not None and source.published_10yr_billions is not None
+            ),
         )
 
 
@@ -159,6 +212,22 @@ class ScorecardSummary:
     #: Calibrated entries scored against a model estimate rather than a
     #: published score. Kept as labelled illustrations, reported separately.
     calibrated_model_estimate_entries: int = 0
+    #: **The headline count.** Entries across both tiers whose target is a
+    #: published figure. This is what the footer and the README quote:
+    #: ``total_entries`` includes the illustrations, which are not benchmarks
+    #: and must never be counted as "policies validated against CBO/JCT".
+    published_entries: int = 0
+    #: Entries across both tiers scored against a model estimate. Reported as
+    #: "illustrations (no official score)", never folded into the headline.
+    model_estimate_entries: int = 0
+    #: Entries whose target was actually read out of the primary document.
+    #: Strictly smaller than ``line_item + line_item_differs``: a few entries
+    #: are labelled ``line_item`` because they cite a deep link, with no row
+    #: transcribed from it yet.
+    transcribed_entries: int = 0
+    #: Entries where the transcribed row disagrees with the carried target.
+    #: Each is an open owner decision; see ``docs/VALIDATION.md``.
+    line_item_differs_entries: int = 0
     entries: list[ScorecardEntry] = field(default_factory=list)
 
 
@@ -257,6 +326,10 @@ def compute_scorecard(
         calibrated_published_entries=len(calibrated)
         - calibrated_provenance[MODEL_ESTIMATE],
         calibrated_model_estimate_entries=calibrated_provenance[MODEL_ESTIMATE],
+        published_entries=len(entries) - provenance_breakdown[MODEL_ESTIMATE],
+        model_estimate_entries=provenance_breakdown[MODEL_ESTIMATE],
+        transcribed_entries=sum(1 for e in entries if e.transcribed),
+        line_item_differs_entries=provenance_breakdown[LINE_ITEM_DIFFERS],
         entries=entries,
     )
 

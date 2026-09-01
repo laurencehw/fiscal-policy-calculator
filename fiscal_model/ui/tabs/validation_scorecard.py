@@ -12,6 +12,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from fiscal_model.validation.provenance import MODEL_ESTIMATE
 from fiscal_model.validation.scorecard import (
     ScorecardEntry,
     ScorecardSummary,
@@ -39,6 +40,15 @@ def _format_pct(value: float) -> str:
     return f"{sign}{value:.1f}%"
 
 
+_PROVENANCE_LABEL = {
+    "line_item": "Line item",
+    "line_item_differs": "Line item (differs)",
+    "secondhand": "Secondhand",
+    "model_estimate": "Model estimate",
+    "unclassified": "Unclassified",
+}
+
+
 def _entry_to_row(entry: ScorecardEntry) -> dict[str, Any]:
     return {
         "Status": _RATING_COLOR.get(entry.rating, "⚪"),
@@ -49,26 +59,68 @@ def _entry_to_row(entry: ScorecardEntry) -> dict[str, Any]:
         "Δ%": _format_pct(entry.percent_difference),
         "Rating": entry.rating,
         "Source": entry.official_source,
+        "Target provenance": _PROVENANCE_LABEL.get(entry.provenance, entry.provenance),
     }
 
 
+def published_entries(summary: ScorecardSummary) -> list[ScorecardEntry]:
+    """Entries whose target is a published figure — the benchmarks.
+
+    The complement (:func:`illustration_entries`) has no official score at
+    all, so an accuracy statistic computed over it measures the model against
+    itself. The two are reported in separate tables for that reason.
+    """
+    return [e for e in summary.entries if e.provenance != MODEL_ESTIMATE]
+
+
+def illustration_entries(summary: ScorecardSummary) -> list[ScorecardEntry]:
+    """Entries scored against a model estimate rather than a published score."""
+    return [e for e in summary.entries if e.provenance == MODEL_ESTIMATE]
+
+
+def _median(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    if len(ordered) % 2:
+        return ordered[mid]
+    return (ordered[mid - 1] + ordered[mid]) / 2.0
+
+
 def _render_summary(st_module: Any, summary: ScorecardSummary) -> None:
-    n = summary.total_entries
+    # Every headline statistic is computed over the *published* benchmarks
+    # only. Folding the illustrations in would let rows with no official
+    # score move a number captioned "against published estimates".
+    entries = published_entries(summary)
+    n = len(entries)
+    within_15 = sum(1 for e in entries if e.abs_percent_difference <= 15.0)
+    direction = sum(1 for e in entries if e.direction_match)
     cols = st_module.columns(4)
-    cols[0].metric("Validated policies", n)
+    cols[0].metric("Benchmarked policies", n)
     cols[1].metric(
         "Within 15%",
-        f"{summary.within_15pct}/{n}",
-        f"{(summary.within_15pct / n * 100):.0f}%" if n else None,
+        f"{within_15}/{n}",
+        f"{(within_15 / n * 100):.0f}%" if n else None,
     )
     cols[2].metric(
         "Direction match",
-        f"{summary.direction_match}/{n}",
-        f"{(summary.direction_match / n * 100):.0f}%" if n else None,
+        f"{direction}/{n}",
+        f"{(direction / n * 100):.0f}%" if n else None,
     )
     cols[3].metric(
         "Median |Δ%|",
-        f"{summary.median_abs_percent_difference:.1f}%",
+        f"{_median([e.abs_percent_difference for e in entries]):.1f}%",
+    )
+    illustrations = summary.model_estimate_entries
+    transcribed = summary.transcribed_entries
+    st_module.caption(
+        f"{n} benchmarks against a published figure "
+        f"({transcribed} transcribed from a primary document, "
+        f"{summary.line_item_differs_entries} of those disagreeing with the "
+        f"target this app carries) · {illustrations} illustrations with no "
+        "official score are listed separately below and are excluded from "
+        "every number above."
     )
 
 
@@ -108,9 +160,47 @@ def _render_entry_table(st_module: Any, summary: ScorecardSummary) -> None:
         horizontal=True,
         key="validation_scorecard_sort",
     )
-    rows = sorted(summary.entries, key=sort_options[choice])
+    rows = sorted(published_entries(summary), key=sort_options[choice])
     st_module.dataframe(
         [_entry_to_row(e) for e in rows],
+        hide_index=True,
+        width="stretch",
+    )
+
+
+def _render_illustrations_table(st_module: Any, summary: ScorecardSummary) -> None:
+    """Rows with no official score, kept visible but never counted.
+
+    Plan §5.2. Deleting them would hide model behaviour a user can still
+    trigger from the app; counting them as "validated" would claim agreement
+    with an agency that never scored the policy. So they are shown here,
+    under their own heading, with the Δ% column deliberately labelled as
+    self-comparison.
+    """
+    rows = illustration_entries(summary)
+    if not rows:
+        return
+    st_module.subheader("Illustrations (no official score)")
+    st_module.caption(
+        "No agency has published a score for these policy shapes, so the "
+        "\"official\" column is a model or illustrative estimate and the Δ% "
+        "measures internal consistency, not accuracy. They are excluded from "
+        "every count and every accuracy statistic on this page."
+    )
+    st_module.dataframe(
+        [
+            {
+                "Category": e.category,
+                "Policy": e.policy_name,
+                "Illustrative ($B)": _format_signed_billions(
+                    e.official_10yr_billions
+                ),
+                "Model ($B)": _format_signed_billions(e.model_10yr_billions),
+                "Δ% (self-comparison)": _format_pct(e.percent_difference),
+                "Stated source": e.official_source,
+            }
+            for e in sorted(rows, key=lambda e: (e.category, e.policy_name))
+        ],
         hide_index=True,
         width="stretch",
     )
@@ -170,7 +260,12 @@ def render_validation_scorecard_tab(st_module: Any) -> None:
     _render_summary(st_module, summary)
     _render_category_table(st_module, summary)
     _render_entry_table(st_module, summary)
+    _render_illustrations_table(st_module, summary)
     _render_caveats(st_module, summary)
 
 
-__all__ = ["render_validation_scorecard_tab"]
+__all__ = [
+    "illustration_entries",
+    "published_entries",
+    "render_validation_scorecard_tab",
+]

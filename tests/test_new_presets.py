@@ -35,9 +35,24 @@ def test_tax_preset_is_in_preset_policies(name):
     assert name in PRESET_POLICIES, f"{name} missing from PRESET_POLICIES"
 
 
+#: "Top Rate to 45%" is deliberately absent from CBO_SCORE_MAP. It carried an
+#: ``official_score`` of -$420B attributed to TPC until the Phase E provenance
+#: pass established that no such TPC (or CBO/JCT) figure exists, and the entry
+#: was removed rather than left quoting a number nobody published. The preset
+#: itself still ships and is still scoreable — it simply has no official
+#: comparison, which is the normal case for most of PRESET_POLICIES.
+PRESETS_WITHOUT_AN_OFFICIAL_SCORE = {"Top Rate to 45%"}
+
+
 @pytest.mark.parametrize("name", NEW_TAX_PRESETS)
 def test_tax_preset_has_cbo_score_entry(name):
     """CBO_SCORE_MAP should have a parallel entry for documentation."""
+    if name in PRESETS_WITHOUT_AN_OFFICIAL_SCORE:
+        assert name not in CBO_SCORE_MAP, (
+            f"{name} has no traceable official score; it must not reappear in "
+            "CBO_SCORE_MAP without a citation"
+        )
+        return
     assert name in CBO_SCORE_MAP
     entry = CBO_SCORE_MAP[name]
     assert "official_score" in entry

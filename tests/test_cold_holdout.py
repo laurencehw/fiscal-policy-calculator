@@ -54,11 +54,18 @@ def test_out_of_sample_tier_reports_both_accuracy_shares():
 
 def test_out_of_sample_battery_is_wide_enough_to_be_informative():
     """Phase A widened the honest tier from 4 friendly shapes to 9 cases
-    spanning ordinary rates, AGI-inclusive surtaxes and capital gains."""
+    spanning ordinary rates, AGI-inclusive surtaxes and capital gains; Phase B
+    took it to 23 with the CBO options battery.
+
+    ``top_rate_45`` used to be asserted here. Phase E retired it — its -$420B
+    target appears in no TPC, CBO or JCT publication — so the assertion is
+    inverted: a retired case must stay *out* of the battery, and the tier must
+    still be wide enough to be informative without it."""
     report = build_report()
     ids = {e["policy_id"] for e in report["out_of_sample"]["entries"]}
-    assert len(ids) >= 9
-    assert {"biden_capital_gains_39", "top_rate_45", "medicare_surcharge_2pp"} <= ids
+    assert len(ids) >= 20
+    assert {"biden_capital_gains_39", "medicare_surcharge_2pp"} <= ids
+    assert "top_rate_45" not in ids
 
 
 def test_poor_out_of_sample_cases_carry_a_documented_reason():

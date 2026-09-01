@@ -37,6 +37,7 @@ from collections.abc import Callable
 
 from ..app_data import CBO_SCORE_MAP
 from ..scoring import FiscalPolicyScorer
+from .benchmark_sources import provenance_for
 from .core import (
     ValidationResult,
     build_validation_result,
@@ -128,7 +129,7 @@ def validate_sectoral_policy(
         model_first_year=result.final_deficit_effect[0],
         model_parameters={
             "preset": scenario["preset"],
-            "provenance": scenario["provenance"],
+            "provenance": provenance_for(scenario_id),
             # False = the module carries no constant fitted to this target, so a
             # miss here is a finding about the module, not a calibration
             # regression. Consumed by the readiness gate.
@@ -149,7 +150,7 @@ def validate_sectoral_policy(
         print(f"Preset: {scenario['preset']}")
         print(
             f"Official ({scenario['official_source']}): "
-            f"${official_10yr:,.0f}B  [provenance: {scenario['provenance']}]"
+            f"${official_10yr:,.0f}B  [provenance: {provenance_for(scenario_id)}]"
         )
         print(f"Model estimate: ${validation_result.model_10yr:,.0f}B")
         print(
@@ -200,7 +201,7 @@ def _error_result(
         accuracy_rating="Error",
         model_parameters={
             "preset": scenario.get("preset"),
-            "provenance": scenario.get("provenance"),
+            "provenance": provenance_for(scenario_id),
             "calibrated_to_target": bool(scenario.get("calibrated_to_target", False)),
             "error": f"{type(exc).__name__}: {exc}",
         },

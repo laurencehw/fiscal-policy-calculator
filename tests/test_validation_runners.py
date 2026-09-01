@@ -24,8 +24,15 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from fiscal_model.app_data import CBO_SCORE_MAP  # noqa: E402
+from fiscal_model.validation.benchmark_sources import (  # noqa: E402
+    BENCHMARK_SOURCES,
+    CONFIRMATION_TOLERANCE_PCT,
+    provenance_for,
+    source_for,
+)
 from fiscal_model.validation.provenance import (  # noqa: E402
     LINE_ITEM,
+    LINE_ITEM_DIFFERS,
     MODEL_ESTIMATE,
     NON_PUBLISHED_BENCHMARK_IDS,
     PROVENANCE_LEVELS,
@@ -127,7 +134,11 @@ def test_every_result_carries_source_date_and_provenance(category, sectoral_resu
         scenario = registry[result.policy_id]
         assert result.official_source.strip()
         assert result.benchmark_date, f"{result.policy_id} has no benchmark date"
-        assert scenario["provenance"] in PROVENANCE_LEVELS
+        assert "provenance" not in scenario, (
+            f"{result.policy_id} restates its provenance in the scenario "
+            "registry; provenance lives only in benchmark_sources.py"
+        )
+        assert provenance_for(result.policy_id) in PROVENANCE_LEVELS
         assert result.benchmark_kind == "Calibrated reconstruction"
         assert result.policy_name.strip()
 
@@ -394,3 +405,232 @@ def test_classify_falls_back_to_unclassified():
 )
 def test_round_hundred_scale_detection(value, expected):
     assert is_round_hundred_scale(value) is expected
+
+
+# ---------------------------------------------------------------------------
+# Phase E provenance pass — the transcription registry
+#
+# The Phase E *labelling* pass could tell a rounded headline from a table row
+# by inspecting the record. It could not tell whether the row exists. These
+# tests guard the pass that went and looked.
+# ---------------------------------------------------------------------------
+
+
+def test_no_calibrated_entry_is_unclassified(scorecard):
+    """``unclassified`` means "nobody has looked". After the sourcing pass no
+    calibrated benchmark may be in that state: a target is either transcribed,
+    or it carries a record of what was searched and not found."""
+    unclassified = [
+        e.policy_id
+        for e in scorecard.entries
+        if e.category != GENERIC_CATEGORY and e.provenance == UNCLASSIFIED
+    ]
+    assert unclassified == []
+    assert scorecard.calibrated_provenance_breakdown[UNCLASSIFIED] == 0
+
+
+#: Calibrated benchmarks still labelled ``line_item`` by *inference* — they
+#: cite a deep link to a real document, and the Phase E labelling pass took
+#: that as evidence of a table row, but nobody has opened the document and read
+#: the row. They are the remaining backlog for the sourcing pass and the set
+#: may shrink, never grow. (The CBO-options entries are excluded separately:
+#: those *were* transcribed, by scripts/extract_cbo_options.py, with report and
+#: PDF page numbers recorded in the CSV and the pre-registration manifest.)
+CITED_BUT_NOT_TRANSCRIBED = {
+    "tcja_full_extension",  # CBO pub 60271; cbo.gov blocks non-browser clients
+    "cbo_2pp_all_brackets",  # CBO budget-options 54788
+    "pwbm_39_with_stepup",  # PWBM April 2021 brief
+    "pwbm_39_no_stepup",  # PWBM April 2021 brief
+}
+
+
+def test_transcribed_entries_cite_a_document(scorecard):
+    """A transcription is a claim that somebody opened a document and read a
+    row. Without a URL, a date and a table reference it is unverifiable, and no
+    better than the rounded headline it replaced."""
+    for entry in scorecard.entries:
+        if not entry.transcribed:
+            continue
+        assert entry.benchmark_url, f"{entry.policy_id}: transcribed with no URL"
+        assert entry.benchmark_url.startswith("https://")
+        assert entry.benchmark_date, f"{entry.policy_id}: transcribed with no date"
+        assert entry.benchmark_table, (
+            f"{entry.policy_id}: transcribed with no table/row reference"
+        )
+        assert entry.sourcing_note, f"{entry.policy_id}: transcribed with no note"
+
+
+def test_untranscribed_line_items_are_a_named_backlog(scorecard):
+    """``line_item`` without a transcription is the weakest thing the scorecard
+    says, so the set that is in that state is enumerated rather than inferred.
+    Every such entry must still carry a real document link and date."""
+    inferred = {
+        e.policy_id
+        for e in scorecard.entries
+        if e.provenance in (LINE_ITEM, LINE_ITEM_DIFFERS)
+        and not e.transcribed
+        and not e.policy_id.startswith("cbo_opt")
+    }
+    assert inferred <= CITED_BUT_NOT_TRANSCRIBED, (
+        f"new untranscribed line_item entries: {sorted(inferred - CITED_BUT_NOT_TRANSCRIBED)}"
+    )
+    by_id = {e.policy_id: e for e in scorecard.entries}
+    for policy_id in inferred:
+        entry = by_id[policy_id]
+        assert entry.benchmark_url and entry.benchmark_url.startswith("https://")
+        assert entry.benchmark_date
+
+
+def test_line_item_differs_carries_the_published_figure(scorecard):
+    """The point of the label: the gap has to be *visible*. A row that
+    disagrees with its source but does not say by how much has hidden the one
+    thing the pass was run to surface."""
+    differs = [e for e in scorecard.entries if e.provenance == LINE_ITEM_DIFFERS]
+    assert differs, "expected at least one transcription to disagree"
+    for entry in differs:
+        published = entry.official_10yr_billions_line_item
+        assert published is not None
+        gap = abs(published - entry.official_10yr_billions) / max(abs(published), 1e-9)
+        assert gap * 100 > CONFIRMATION_TOLERANCE_PCT, (
+            f"{entry.policy_id} is labelled line_item_differs but its published "
+            f"figure {published} is within rounding of the carried target "
+            f"{entry.official_10yr_billions}"
+        )
+
+
+def test_confirmed_line_items_agree_with_their_source(scorecard):
+    """The mirror image: a ``line_item`` row must sit within the rounding
+    tolerance of the figure transcribed for it, or the label is a quiet way of
+    adopting a number the document does not support."""
+    for entry in scorecard.entries:
+        if entry.provenance != LINE_ITEM:
+            continue
+        source = source_for(entry.policy_id)
+        if source is None or source.published_10yr_billions is None:
+            continue
+        published = source.published_10yr_billions
+        gap = abs(published - entry.official_10yr_billions) / max(abs(published), 1e-9)
+        assert gap * 100 <= CONFIRMATION_TOLERANCE_PCT, (
+            f"{entry.policy_id}: target {entry.official_10yr_billions} is "
+            f"{gap * 100:.1f}% from the transcribed {published}; that is a "
+            "line_item_differs, not a confirmation"
+        )
+
+
+def test_target_values_were_not_moved_to_match_a_transcription(scorecard):
+    """A sourcing pass records disagreements; it does not resolve them by
+    editing a calibrated target. Every calibrated target has a module constant
+    fitted to it, so moving one silently turns a 0% row into a miss that says
+    nothing about the model."""
+    for entry in scorecard.entries:
+        if entry.official_10yr_billions_line_item is None:
+            continue
+        assert entry.official_10yr_billions != entry.official_10yr_billions_line_item
+
+
+def test_secondhand_rows_record_what_was_searched():
+    """"Not located" is a finding and has to be written down, so the next
+    person does not repeat the search."""
+    for source in BENCHMARK_SOURCES:
+        if source.provenance != SECONDHAND:
+            continue
+        assert len(source.searched.strip()) > 80, (
+            f"{source.policy_id}: left secondhand with no real search record"
+        )
+
+
+def test_registry_covers_every_calibrated_benchmark(scorecard):
+    """Coverage is the claim being made — "we went through all of them" — so it
+    is asserted rather than counted by hand."""
+    calibrated = {
+        e.policy_id for e in scorecard.entries if e.category != GENERIC_CATEGORY
+    }
+    covered = {s.policy_id for s in BENCHMARK_SOURCES}
+    uncovered = calibrated - covered - CITED_BUT_NOT_TRANSCRIBED
+    assert uncovered == set(), f"not sourced: {sorted(uncovered)}"
+
+
+def test_headline_counts_exclude_the_illustrations(scorecard):
+    """``published_entries`` is what the footer, the README and the docs quote;
+    ``total_entries`` additionally includes rows with no official score."""
+    assert (
+        scorecard.published_entries + scorecard.model_estimate_entries
+        == scorecard.total_entries
+    )
+    assert scorecard.model_estimate_entries > 0
+    assert scorecard.published_entries == sum(
+        1 for e in scorecard.entries if e.provenance != MODEL_ESTIMATE
+    )
+    for policy_id in NON_PUBLISHED_BENCHMARK_IDS:
+        entry = next(e for e in scorecard.entries if e.policy_id == policy_id)
+        assert entry.provenance == MODEL_ESTIMATE
+
+
+def test_transcribed_and_differs_counts_match_the_entries(scorecard):
+    assert scorecard.transcribed_entries == sum(
+        1 for e in scorecard.entries if e.transcribed
+    )
+    assert scorecard.line_item_differs_entries == sum(
+        1 for e in scorecard.entries if e.provenance == LINE_ITEM_DIFFERS
+    )
+    # Transcribed is deliberately the stricter count: it is a subset of the
+    # rows labelled line_item / line_item_differs, because a deep link is a
+    # document and not a row.
+    labelled = sum(
+        1 for e in scorecard.entries if e.provenance in (LINE_ITEM, LINE_ITEM_DIFFERS)
+    )
+    assert scorecard.transcribed_entries < labelled
+
+
+def test_illustrative_distributional_benchmarks_are_not_counted():
+    """Plan §5.2's other two non-published benchmarks. They stay runnable and
+    visible; they simply may not be counted as published tables."""
+    from fiscal_model.validation.distributional_validation import (
+        DISTRIBUTIONAL_BENCHMARKS,
+        ILLUSTRATIVE_DISTRIBUTIONAL_BENCHMARKS,
+        PUBLISHED_DISTRIBUTIONAL_BENCHMARKS,
+    )
+    from fiscal_model.validation.provenance import (
+        NON_PUBLISHED_DISTRIBUTIONAL_BENCHMARKS,
+    )
+
+    published = set(PUBLISHED_DISTRIBUTIONAL_BENCHMARKS)
+    illustrative = set(ILLUSTRATIVE_DISTRIBUTIONAL_BENCHMARKS)
+    assert published | illustrative == set(DISTRIBUTIONAL_BENCHMARKS)
+    assert published & illustrative == set()
+    assert {
+        b.name for b in ILLUSTRATIVE_DISTRIBUTIONAL_BENCHMARKS.values()
+    } == set(NON_PUBLISHED_DISTRIBUTIONAL_BENCHMARKS)
+    assert len(published) == 2
+
+
+def test_tariff_presets_join_their_official_score():
+    """Two ``CBO_SCORE_MAP`` keys were spelled differently from their
+    ``PRESET_POLICIES`` counterparts, so the app showed no official score for
+    either preset. Pinned here because the join is by label string and nothing
+    else would notice it breaking again."""
+    from fiscal_model.app_data import PRESET_POLICIES
+    from fiscal_model.preset_ids import PRESET_ID_BY_LABEL
+
+    for label in (
+        "\U0001f3ed 25% Steel/Aluminum Tariff (-$60B)",
+        "\U0001f3ed Reciprocal Tariffs (-$1.2T)",
+    ):
+        assert label in CBO_SCORE_MAP, f"{label} lost its official score"
+        assert label in PRESET_POLICIES, f"{label} lost its preset row"
+        assert label in PRESET_ID_BY_LABEL
+
+
+def test_no_score_map_key_shadows_a_preset_under_another_spelling():
+    """The general form of the same bug: every ``CBO_SCORE_MAP`` label that
+    resolves to a catalog preset id must *be* that preset's own label."""
+    from fiscal_model.app_data import PRESET_POLICIES
+    from fiscal_model.preset_ids import PRESET_ID_BY_LABEL
+
+    label_by_id = {pid: label for label, pid in PRESET_ID_BY_LABEL.items()}
+    for label in CBO_SCORE_MAP:
+        preset_id = PRESET_ID_BY_LABEL.get(label)
+        if preset_id is None:
+            continue
+        assert label_by_id[preset_id] == label
+        assert label in PRESET_POLICIES

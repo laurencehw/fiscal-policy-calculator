@@ -105,7 +105,7 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
     "🏭 Trump Universal 10% Tariff (-$2T)": "tariff-universal-10pct",
     "🏭 Trump 60% China Tariff (-$500B)": "tariff-china-60pct",
     "🏭 25% Auto Tariff (-$100B)": "tariff-auto-25pct",
-    "🏭 25% Steel/Aluminum Tariff (-$15B)": "tariff-steel-aluminum-25pct",
+    "🏭 25% Steel/Aluminum Tariff (-$60B)": "tariff-steel-aluminum-25pct",
     "🏭 Reciprocal Tariffs (-$1.2T)": "tariff-reciprocal",
     # Climate / energy
     "🌱 Repeal IRA Clean Energy Credits ($783B)": "ira-clean-energy-repeal",
@@ -126,13 +126,21 @@ SCORE_ONLY_ID_BY_LABEL: dict[str, str] = {
     "📋 Eliminate SALT Deduction (-$1.2T)": "salt-deduction-eliminate",
 }
 
-#: Score-map labels that are an *alternative estimate* of an instrument that
+#: Score-map labels that are an *alternative spelling* of an instrument that
 #: already has a slug: they reuse it rather than mint a second id, so a link
 #: carrying either spelling lands on the same option.
-SCORE_ONLY_ALIAS_ID_BY_LABEL: dict[str, str] = {
-    "🏭 25% Steel & Aluminum Tariff (-$60B)": "tariff-steel-aluminum-25pct",
-    "🏭 Reciprocal Tariffs (~20pp) (-$1.2T)": "tariff-reciprocal",
-}
+#:
+#: Empty since the Phase E provenance pass. It held exactly two entries, both
+#: tariff labels that ``CBO_SCORE_MAP`` spelled differently from
+#: ``PRESET_POLICIES`` ("25% Steel & Aluminum Tariff (-$60B)" vs "25%
+#: Steel/Aluminum Tariff (-$15B)"; "Reciprocal Tariffs (~20pp) (-$1.2T)" vs
+#: "Reciprocal Tariffs (-$1.2T)"). The alias made *share links* resolve, but
+#: the two dictionaries still never joined on the label, so both presets showed
+#: **no official score at all** in the app. The labels are now identical in
+#: both dictionaries and the aliases are unnecessary. Kept as an empty dict
+#: rather than deleted: the mechanism is the right fix if a score map ever
+#: legitimately carries a second spelling.
+SCORE_ONLY_ALIAS_ID_BY_LABEL: dict[str, str] = {}
 
 #: Scorable presets first, then the Build-local score-only ids.
 ALL_ID_BY_LABEL: dict[str, str] = {**PRESET_ID_BY_LABEL, **SCORE_ONLY_ID_BY_LABEL}

@@ -25,10 +25,23 @@ class TestEscapeMarkdownDollars:
 
 
 class TestValidatedPolicyCount:
-    def test_matches_scorecard_total(self) -> None:
+    def test_matches_scorecard_published_entries(self) -> None:
+        """The footer says "validated against CBO/JCT", so it must count only
+        rows that have a CBO/JCT/Treasury figure behind them.
+
+        Phase E §5.2: ``total_entries`` also includes the illustrations —
+        policy shapes with no official score at all — so quoting it made a
+        claim about exactly the rows that cannot support one.
+        """
         from fiscal_model.validation.scorecard import cached_default_scorecard
 
-        assert validated_policy_count() == cached_default_scorecard().total_entries
+        summary = cached_default_scorecard()
+        assert validated_policy_count() == summary.published_entries
+        assert summary.published_entries < summary.total_entries
+        assert (
+            summary.published_entries + summary.model_estimate_entries
+            == summary.total_entries
+        )
 
 
 class TestFriendlyErrorMessage:

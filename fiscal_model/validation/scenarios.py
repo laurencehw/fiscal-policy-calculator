@@ -207,11 +207,24 @@ ESTATE_TAX_VALIDATION_SCENARIOS = {
         "notes": "Keep $14M+ exemption instead of reversion to $6.4M in 2026",
     },
     "biden_estate_reform": {
-        "description": "Biden estate reform ($3.5M, 45%)",
+        "description": "Estate reform ($3.5M exemption, 45% rate)",
         "policy_factory": create_biden_estate_proposal,
         "expected_10yr": -450.0,
-        "source": "Treasury estimate",
-        "notes": "Lower exemption to $3.5M + raise rate to 45%",
+        # Re-attributed in Phase E. No Biden Green Book (FY2022, FY2024 or
+        # FY2025) proposes a $3.5M exemption or a 45% rate; the FY2025 volume's
+        # entire estate section is administrative. The design is the "For the
+        # 99.5 Percent Act", which JCT did score.
+        "source": "JCT letter on the 'For the 99.5 Percent Act' (24 March 2021)",
+        "benchmark_date": "2021-03",
+        "benchmark_url": (
+            "https://www.sanders.senate.gov/wp-content/uploads/"
+            "For-the-99.5-Act-JCT-Score.pdf"
+        ),
+        "notes": (
+            "Lower exemption to $3.5M + raise rate to 45%. JCT scores the bill "
+            "containing that design at $429.6B over FY2021-2031, but for the "
+            "whole ten-section bill, not the exemption and rate alone."
+        ),
     },
     "eliminate_estate_tax": {
         "description": "Eliminate estate tax",
@@ -365,9 +378,12 @@ TAX_EXPENDITURE_VALIDATION_SCENARIOS_COMPARE = {
 #    and agency aggregates and has simply never been compared to this number —
 #    which is why several of them miss badly. Nothing here was retuned to close
 #    a gap; a miss is reported with a ``limitations`` note explaining it.
-# 3. **``provenance`` is the target's pedigree, not the model's accuracy.** Every
-#    one of these targets is a rounded headline figure or an explicit model
-#    estimate; none is a transcribed table row. See ``provenance.py``.
+# 3. **Provenance is not restated here.** A target's pedigree — whether anyone
+#    has opened the document it supposedly comes from — lives in
+#    ``benchmark_sources.py``, which is the single place the transcription was
+#    done. These registries used to carry a ``provenance`` string of their own
+#    and it went stale the moment the Phase E sourcing pass ran: 13 of the 17
+#    were wrong afterwards. Read it with ``provenance_for(scenario_id)``.
 
 INTERNATIONAL_VALIDATION_SCENARIOS_COMPARE = {
     "biden_gilti_reform": {
@@ -383,7 +399,6 @@ INTERNATIONAL_VALIDATION_SCENARIOS_COMPARE = {
             "https://home.treasury.gov/system/files/131/"
             "General-Explanations-FY2025.pdf"
         ),
-        "provenance": "secondhand",
         "calibrated_to_target": False,
         "notes": "Country-by-country GILTI at 21% with QBAI eliminated.",
         "limitations": [
@@ -408,7 +423,6 @@ INTERNATIONAL_VALIDATION_SCENARIOS_COMPARE = {
             "https://home.treasury.gov/system/files/131/"
             "General-Explanations-FY2025.pdf"
         ),
-        "provenance": "secondhand",
         "calibrated_to_target": False,
         "notes": "Full repeal of the 37.5% FDII deduction.",
         "limitations": [
@@ -426,7 +440,6 @@ INTERNATIONAL_VALIDATION_SCENARIOS_COMPARE = {
         "official_source": "Joint Committee on Taxation",
         "benchmark_date": "2023",
         "benchmark_url": None,
-        "provenance": "secondhand",
         "calibrated_to_target": False,
         "notes": "Qualified domestic minimum top-up tax at 15%.",
         "limitations": [
@@ -452,7 +465,6 @@ INTERNATIONAL_VALIDATION_SCENARIOS_COMPARE = {
             "https://home.treasury.gov/system/files/131/"
             "General-Explanations-FY2025.pdf"
         ),
-        "provenance": "secondhand",
         "calibrated_to_target": False,
         "notes": "Full package target; the module implements three of its provisions.",
         "limitations": [
@@ -471,10 +483,15 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
         "description": "Trump universal 10% tariff",
         "preset": "\U0001f3ed Trump Universal 10% Tariff (-$2T)",
         "policy_factory": create_trump_universal_10,
-        "official_source": "Tax Foundation / Yale Budget Lab",
-        "benchmark_date": "2024",
-        "benchmark_url": "https://budgetlab.yale.edu/research",
-        "provenance": "secondhand",
+        # Re-attributed in Phase E: the figure is Tax Foundation's (Fiscal Fact
+        # 861, Table 3). Yale Budget Lab publishes no standalone ten-year
+        # estimate for a 10% universal tariff, and the record's link was to
+        # Yale's research index rather than to any document.
+        "official_source": "Tax Foundation (Fiscal Fact 861)",
+        "benchmark_date": "2025-04",
+        "benchmark_url": (
+            "https://taxfoundation.org/wp-content/uploads/2025/04/FF861.pdf"
+        ),
         "calibrated_to_target": True,
         "notes": "10% on all imports; 70% effective coverage.",
         "limitations": [
@@ -493,7 +510,6 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
         "official_source": "Tax Foundation",
         "benchmark_date": "2024",
         "benchmark_url": None,
-        "provenance": "secondhand",
         "calibrated_to_target": True,
         "notes": "60% on Chinese imports, incremental above the existing ~20% average.",
         "limitations": [
@@ -511,7 +527,6 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
         "official_source": "Committee for a Responsible Federal Budget (CRFB)",
         "benchmark_date": "2024",
         "benchmark_url": None,
-        "provenance": "secondhand",
         "calibrated_to_target": False,
         "notes": "USMCA-exempt share removed from the base before the rate is applied.",
         "limitations": [
@@ -526,33 +541,36 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
     },
     "steel_tariff_25": {
         "description": "25% tariff on steel and aluminium",
-        "preset": "\U0001f3ed 25% Steel & Aluminum Tariff (-$60B)",
+        "preset": "\U0001f3ed 25% Steel/Aluminum Tariff (-$60B)",
         "policy_factory": create_steel_tariff_25,
         "official_source": "Tax Foundation",
         "benchmark_date": "2024",
         "benchmark_url": None,
-        "provenance": "secondhand",
         "calibrated_to_target": False,
         "notes": "Flat 25pp on a $50B steel/aluminium import base.",
         "limitations": [
             "Poor: the full 25pp is applied to the whole $50B base with no allowance "
             "for the Section 232 duties already in force, so the incremental rate is "
             "overstated.",
-            "Target bookkeeping defect: CBO_SCORE_MAP carries -$60B under the key "
-            "'25% Steel & Aluminum Tariff', while PRESET_POLICIES uses the key "
-            "'25% Steel/Aluminum Tariff' and labels it -$15B. The two dictionaries "
-            "never join, so the preset shows no official score in the app at all and "
-            "the two published figures differ by 4x.",
+            "The target is unsourced at either value. CBO_SCORE_MAP and "
+            "PRESET_POLICIES used to spell this preset differently (-$60B under "
+            "'25% Steel & Aluminum Tariff' against -$15B under '25% "
+            "Steel/Aluminum Tariff'), so the two dictionaries never joined and the "
+            "app showed no official score at all. Phase E reconciled the labels on "
+            "-$60B, but neither figure could be traced: no Tax Foundation or TPC "
+            "publication states a 25%-rate steel-and-aluminium ten-year estimate, "
+            "and -$15B is annual-scale. See benchmark_sources.py.",
         ],
     },
     "reciprocal_tariffs": {
         "description": "Reciprocal tariffs (~20pp average increase)",
-        "preset": "\U0001f3ed Reciprocal Tariffs (~20pp) (-$1.2T)",
+        "preset": "\U0001f3ed Reciprocal Tariffs (-$1.2T)",
         "policy_factory": create_reciprocal_tariffs,
-        "official_source": "Tax Foundation / Yale Budget Lab",
+        # The bare research-index link was not a citation and no published
+        # estimate scores this policy; see benchmark_sources.py.
+        "official_source": "Tax Foundation / Yale Budget Lab (unsourced figure)",
         "benchmark_date": "2024",
-        "benchmark_url": "https://budgetlab.yale.edu/research",
-        "provenance": "secondhand",
+        "benchmark_url": None,
         "calibrated_to_target": False,
         "notes": "Flat 20pp applied to half of all goods imports.",
         "limitations": [
@@ -562,9 +580,14 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
             "Neither retaliation nor GDP feedback is netted from this static score, "
             "which is most of the distance between a gross customs figure and a "
             "published net score (the knowledge base puts net at ~40-50% of gross).",
-            "Like the steel case, the CBO_SCORE_MAP key ('Reciprocal Tariffs "
-            "(~20pp)') does not match the PRESET_POLICIES key ('Reciprocal "
-            "Tariffs'), so the app shows no official score for this preset.",
+            "The -$1.2T target matches no published estimate of any reciprocal "
+            "tariff: Yale Budget Lab's illustrative proposal raises $2.7-3.5T over "
+            "2026-35 (and is a 13pp effective-rate rise, not 20pp), its April-2 "
+            "estimate $1.4T, and CRFB's $1.8T conventional. The label mismatch that "
+            "hid this preset's official score from the app ('Reciprocal Tariffs "
+            "(~20pp) (-$1.2T)' vs 'Reciprocal Tariffs (-$1.2T)') was fixed in "
+            "Phase E; the target's provenance was not, and is recorded as "
+            "secondhand.",
         ],
     },
 }
@@ -578,7 +601,6 @@ PHARMA_VALIDATION_SCENARIOS_COMPARE = {
         "official_source": "CBO (IRA baseline) extended by model estimate",
         "benchmark_date": "2023",
         "benchmark_url": None,
-        "provenance": "model_estimate",
         "calibrated_to_target": False,
         "notes": "50 negotiated drugs plus removal of the exclusivity delay.",
         "limitations": [
@@ -597,7 +619,6 @@ PHARMA_VALIDATION_SCENARIOS_COMPARE = {
         "official_source": "Congressional Budget Office",
         "benchmark_date": "2022",
         "benchmark_url": None,
-        "provenance": "secondhand",
         "calibrated_to_target": False,
         "notes": "$35/month cap extended from Medicare to private insurance.",
         "limitations": [
@@ -623,7 +644,6 @@ PHARMA_VALIDATION_SCENARIOS_COMPARE = {
         "official_source": "RAND price-comparison study, extended by model estimate",
         "benchmark_date": "2021",
         "benchmark_url": None,
-        "provenance": "model_estimate",
         "calibrated_to_target": False,
         "notes": "Cap Medicare drug prices at 120% of the OECD average.",
         "limitations": [
@@ -646,7 +666,6 @@ ENFORCEMENT_VALIDATION_SCENARIOS_COMPARE = {
         "official_source": "Congressional Budget Office (H.R. 5376 scoring)",
         "benchmark_date": "2022",
         "benchmark_url": None,
-        "provenance": "secondhand",
         "calibrated_to_target": True,
         "notes": "$80B of enforcement funding with a 3-year ramp.",
         "limitations": [
@@ -669,7 +688,6 @@ ENFORCEMENT_VALIDATION_SCENARIOS_COMPARE = {
         ),
         "benchmark_date": "2021",
         "benchmark_url": None,
-        "provenance": "secondhand",
         "calibrated_to_target": False,
         "notes": "$16B/year of additional enforcement above the IRA baseline.",
         "limitations": [
@@ -696,7 +714,6 @@ CLIMATE_VALIDATION_SCENARIOS_COMPARE = {
         ),
         "benchmark_date": "2024-03",
         "benchmark_url": None,
-        "provenance": "secondhand",
         "calibrated_to_target": True,
         "notes": "Full repeal of the IRA clean-energy credit suite.",
         "limitations": [
@@ -715,7 +732,6 @@ CLIMATE_VALIDATION_SCENARIOS_COMPARE = {
         "official_source": "CBO-style estimate (no published score)",
         "benchmark_date": "2024",
         "benchmark_url": None,
-        "provenance": "model_estimate",
         "calibrated_to_target": True,
         "notes": "Economy-wide CO2 tax starting at $50/ton.",
         "limitations": [
@@ -732,10 +748,14 @@ CLIMATE_VALIDATION_SCENARIOS_COMPARE = {
         "description": "Repeal the EV purchase tax credits",
         "preset": "\U0001f331 Repeal EV Credits ($200B)",
         "policy_factory": create_repeal_ev_credits,
-        "official_source": "Congressional Budget Office",
-        "benchmark_date": "2024",
-        "benchmark_url": None,
-        "provenance": "secondhand",
+        # Re-attributed in Phase E: the published score of terminating the
+        # clean-vehicle credits is JCT's (JCX-35-25), not CBO's.
+        "official_source": "Joint Committee on Taxation (JCX-35-25)",
+        "benchmark_date": "2025-07",
+        "benchmark_url": (
+            "https://www.jct.gov/getattachment/"
+            "eb21dc77-6439-4fc3-8f5d-fc23a8c377e0/x-35-25.pdf"
+        ),
         "calibrated_to_target": False,
         "notes": "Repeal of Sections 30D and 45W while other IRA credits stand.",
         "limitations": [

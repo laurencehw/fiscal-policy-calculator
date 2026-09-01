@@ -69,6 +69,12 @@ jobs:
       # re-derived both: 60 -> 55 (mean 44.8% -> 43.4%) and 5 -> 11
       # (6-of-9 -> 12-of-23). Tightening as the battery grows is expected;
       # loosening requires saying why in the PR.
+      # Phase E (provenance) re-derived both and neither moved, at 23 -> 22
+      # cases: retiring the unsourced top_rate_45 target (a 118% miss) and
+      # re-sourcing biden_capital_gains_39 to the Green Book line item (79% ->
+      # 142%, against a smaller and correctly-defined target) very nearly
+      # cancel, taking the mean 43.4% -> 42.9%. ceil(42.9 x 1.25) to the
+      # nearest 5 is still 55; 12-of-22 within 25%, minus one, is still 11.
       - name: Cold-holdout gate (out-of-sample tier)
         run: |
           python scripts/cold_holdout.py --max-mean-error 55 --min-within-25pct 11
