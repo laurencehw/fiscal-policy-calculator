@@ -24,7 +24,10 @@ CBO_SCORE_MAP = {
         "official_score": 4600.0,
         "source": "CBO",
         "source_date": "May 2024",
-        "source_url": "https://www.cbo.gov/publication/59710",
+        # CBO, "Budgetary Outcomes Under Alternative Assumptions About Spending
+        # and Revenues" (8 May 2024). Was 59710, which is the February 2024
+        # Budget and Economic Outlook -- the baseline, not this estimate.
+        "source_url": "https://www.cbo.gov/publication/60271",
         "notes": "Extend all individual TCJA provisions beyond 2025 sunset",
     },
     "🏛️ TCJA Extension (No SALT Cap)": {

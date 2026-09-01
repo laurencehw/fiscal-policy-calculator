@@ -15,9 +15,16 @@ Key TCJA Individual Provisions (sunsetting 2026):
 8. Increased AMT exemptions
 
 References:
-- CBO (May 2024): $4.6T cost over FY2025-2034 for full extension
+- CBO (May 8, 2024), "Budgetary Outcomes Under Alternative Assumptions About
+  Spending and Revenues": $4.6T cost over FY2025-2034 for full extension
+  (JCT-estimated $3.3T of primary deficit plus $467B of debt service on
+  CBO's baseline). This is the source of the $4.6T target the module is
+  calibrated to. https://www.cbo.gov/publication/60271
+  Previously cited here as "CBO Budget Options, publication 59710" -- both
+  halves were wrong: 59710 is CBO's February 2024 *Budget and Economic
+  Outlook*, which is the baseline the options battery is scored against
+  (see fiscal_model/validation/cbo_options.py), not the TCJA estimate.
 - JCT (2017): Original TCJA score: $1.456T over FY2018-2027
-- CBO Budget Options: https://www.cbo.gov/publication/59710
 """
 
 from dataclasses import dataclass
