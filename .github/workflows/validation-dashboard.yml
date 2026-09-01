@@ -56,6 +56,21 @@ jobs:
             exit $exit_code
           fi
 
+      # --- Phase A: gate the honest (out-of-sample) tier -------------------
+      # The Generic tier is the only one that claims predictive skill, and it
+      # was the only one with no numeric ceiling in CI. Thresholds are set from
+      # the *widened* 9-case battery (see docs/VALIDATION.md Tier 1), not from
+      # the four friendly shapes that preceded it:
+      #   --max-mean-error 60  = ceil(44.8% current mean x 1.25) rounded up to
+      #                          the nearest 5. Headroom for one new hard case,
+      #                          not for silent drift on the existing ones.
+      #   --min-within-25pct 5 = current 6-of-9 within 25%, minus one case.
+      # Tightening these as the battery grows (Phase B) is expected; loosening
+      # them requires saying why in the PR.
+      - name: Cold-holdout gate (out-of-sample tier)
+        run: |
+          python scripts/cold_holdout.py --max-mean-error 60 --min-within-25pct 5
+
       # Tier 2 (leave-one-out). Holds out one calibrated benchmark at a time and
       # asks whether the module's structural machinery — calibrated on the others
       # — can rebuild it. Kept as its own step and its own ceiling: this is a

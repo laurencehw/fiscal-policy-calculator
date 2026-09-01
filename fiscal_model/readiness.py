@@ -304,20 +304,26 @@ def _scorecard_checks(scorecard: Any) -> list[ReadinessCheck]:
     from fiscal_model.validation.holdout import summarize_holdout_protocol
 
     entries = list(getattr(scorecard, "entries", []))
+    # The Generic (out-of-sample) tier used to be exempt from this gate, which
+    # left the *only* tier that claims predictive skill as the *only* ungated
+    # one. Every entry is now held to the same bar: an Error rating or an
+    # undocumented Poor outlier fails strict readiness regardless of tier; a
+    # Poor entry that carries a known_limitations note is a warning, which is
+    # how a documented out-of-sample miss (kept, not tuned away) is recorded.
     calibrated = [entry for entry in entries if getattr(entry, "category", None) != "Generic"]
-    calibrated_error = [
-        entry for entry in calibrated
+    error_entries = [
+        entry for entry in entries
         if getattr(entry, "rating", None) == "Error"
     ]
     undocumented_poor = [
-        entry for entry in calibrated
+        entry for entry in entries
         if (
             getattr(entry, "rating", None) == "Poor"
             and not getattr(entry, "known_limitations", [])
         )
     ]
     documented_poor = [
-        entry for entry in calibrated
+        entry for entry in entries
         if (
             getattr(entry, "rating", None) == "Poor"
             and getattr(entry, "known_limitations", [])
@@ -338,16 +344,16 @@ def _scorecard_checks(scorecard: Any) -> list[ReadinessCheck]:
             "Revenue validation scorecard has no calibrated specialized entries.",
             details={"total_entries": len(entries), "calibrated_entries": 0},
         )
-    elif calibrated_error or undocumented_poor:
-        failing_entries = [*calibrated_error, *undocumented_poor]
+    elif error_entries or undocumented_poor:
+        failing_entries = [*error_entries, *undocumented_poor]
         scorecard_check = _check(
             "revenue_scorecard",
             "fail",
-            "At least one calibrated revenue benchmark is Error or an undocumented Poor outlier.",
+            "At least one revenue benchmark is Error or an undocumented Poor outlier.",
             details={
                 "total_entries": len(entries),
                 "calibrated_entries": len(calibrated),
-                "calibrated_error": len(calibrated_error),
+                "error_entries": len(error_entries),
                 "undocumented_poor": len(undocumented_poor),
                 "failing_policy_ids": [
                     getattr(entry, "policy_id", "unknown")
@@ -356,10 +362,23 @@ def _scorecard_checks(scorecard: Any) -> list[ReadinessCheck]:
             },
         )
     elif documented_poor:
+        # Split by tier: a *calibrated* benchmark drifting to Poor is a real
+        # regression (its parameters are tuned to reproduce that target), while
+        # a documented *out-of-sample* miss is the honest tier doing its job.
+        # Only the latter is exempted from the strict gate — see
+        # ``_is_documented_out_of_sample_warning``.
+        documented_calibrated = [
+            entry for entry in documented_poor
+            if getattr(entry, "category", None) != "Generic"
+        ]
+        documented_generic = [
+            entry for entry in documented_poor
+            if getattr(entry, "category", None) == "Generic"
+        ]
         scorecard_check = _check(
             "revenue_scorecard",
             "warn",
-            "At least one calibrated revenue benchmark is a documented Poor outlier.",
+            "At least one revenue benchmark is a documented Poor outlier.",
             details={
                 "total_entries": len(entries),
                 "calibrated_entries": len(calibrated),
@@ -368,13 +387,21 @@ def _scorecard_checks(scorecard: Any) -> list[ReadinessCheck]:
                     getattr(entry, "policy_id", "unknown")
                     for entry in documented_poor
                 ],
+                "documented_calibrated_policy_ids": [
+                    getattr(entry, "policy_id", "unknown")
+                    for entry in documented_calibrated
+                ],
+                "documented_generic_policy_ids": [
+                    getattr(entry, "policy_id", "unknown")
+                    for entry in documented_generic
+                ],
             },
         )
     else:
         scorecard_check = _check(
             "revenue_scorecard",
             "pass",
-            "Calibrated revenue benchmarks are within readiness bounds.",
+            "Revenue benchmarks are within readiness bounds.",
             details={
                 "total_entries": len(entries),
                 "calibrated_entries": len(calibrated),
@@ -507,15 +534,49 @@ def _is_environmental_data_warning(issue: ReadinessIssue) -> bool:
     )
 
 
+def _is_documented_out_of_sample_warning(issue: ReadinessIssue) -> bool:
+    """Return whether a warning is a documented *out-of-sample* benchmark miss.
+
+    The revenue scorecard now holds every tier to the same bar, including the
+    out-of-sample (Generic) one. That tier is expected to contain large,
+    honestly-reported misses — a top-rate target that is itself internally
+    inconsistent, capital-gains cases whose published targets disagree by 42%.
+    Each carries a ``known_limitations`` note, which is what turns it from a
+    hard failure into this warning.
+
+    Blocking the release gate on those would create exactly the wrong
+    incentive: the cheapest way to go green would be to delete the miss or
+    tune it away, which the pre-registration manifest exists to forbid.
+
+    A documented *calibrated* Poor entry is **not** exempted: those modules are
+    parameterized to reproduce their target, so drifting to Poor is a genuine
+    regression. ``Error`` and undocumented ``Poor`` in either tier are already
+    hard ``fail``s (see ``_scorecard_checks``) and reach this function with
+    severity ``fail``.
+    """
+    if issue.severity != "warn" or issue.name != "revenue_scorecard":
+        return False
+    details = issue.details
+    if details.get("documented_calibrated_policy_ids"):
+        return False
+    return bool(details.get("documented_generic_policy_ids"))
+
+
 def strict_readiness_issues(report: ReadinessReport) -> list[ReadinessIssue]:
     """Return issues that should fail the strict CI readiness gate.
 
-    The readiness payload still reports every warning. Strict CI only exempts
-    warnings caused by missing live external data in isolated build runners.
+    The readiness payload still reports every warning. Strict CI exempts
+    warnings caused by missing live external data in isolated build runners,
+    plus documented out-of-sample benchmark misses (see
+    :func:`_is_documented_out_of_sample_warning`).
     """
     return [
         issue for issue in report.issues
-        if issue.severity == "fail" or not _is_environmental_data_warning(issue)
+        if issue.severity == "fail"
+        or not (
+            _is_environmental_data_warning(issue)
+            or _is_documented_out_of_sample_warning(issue)
+        )
     ]
 
 

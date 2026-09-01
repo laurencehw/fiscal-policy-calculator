@@ -23,7 +23,7 @@ docs). It is the reproducible source for the "Out-of-sample" table in
 Usage:
     python scripts/cold_holdout.py
     python scripts/cold_holdout.py --json
-    python scripts/cold_holdout.py --max-mean-error 35   # CI guardrail
+    python scripts/cold_holdout.py --max-mean-error 60 --min-within-25pct 5  # CI gate
 """
 
 from __future__ import annotations
@@ -37,6 +37,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from fiscal_model.validation.preregistered import live_cases  # noqa: E402
 from fiscal_model.validation.scorecard import compute_scorecard  # noqa: E402
 
 UNCALIBRATED_CATEGORY = "Generic"
@@ -46,8 +47,10 @@ def build_report() -> dict:
     """Partition the live scorecard into uncalibrated vs calibrated tiers."""
     summary = compute_scorecard()
 
+    registered = live_cases()
+
     def _entry_dict(e) -> dict:
-        return {
+        row = {
             "policy_id": e.policy_id,
             "policy_name": e.policy_name,
             "official_10yr_billions": round(e.official_10yr_billions, 1),
@@ -56,14 +59,31 @@ def build_report() -> dict:
             "direction_match": e.direction_match,
             "official_source": e.official_source,
             "benchmark_date": e.benchmark_date,
+            "known_limitations": list(e.known_limitations),
         }
+        case = registered.get(e.policy_id)
+        if case is not None:
+            row["preregistered"] = {
+                "case_id": case.case_id,
+                "source_baseline_vintage": case.source_baseline_vintage,
+                "entered_commit": case.entered_commit,
+                "entered_date": case.entered_date,
+                "first_scoring_run_commit": case.first_scoring_run_commit,
+            }
+        return row
 
     uncal = [e for e in summary.entries if e.category == UNCALIBRATED_CATEGORY]
     cal = [e for e in summary.entries if e.category != UNCALIBRATED_CATEGORY]
 
     def _agg(entries) -> dict:
         if not entries:
-            return {"n": 0, "mean_abs_error": 0.0, "median_abs_error": 0.0, "within_15pct": 0}
+            return {
+                "n": 0,
+                "mean_abs_error": 0.0,
+                "median_abs_error": 0.0,
+                "within_15pct": 0,
+                "within_25pct": 0,
+            }
         errs = sorted(e.abs_percent_difference for e in entries)
         mid = len(errs) // 2
         median = errs[mid] if len(errs) % 2 else (errs[mid - 1] + errs[mid]) / 2
@@ -72,6 +92,7 @@ def build_report() -> dict:
             "mean_abs_error": round(sum(errs) / len(errs), 1),
             "median_abs_error": round(median, 1),
             "within_15pct": sum(1 for e in errs if e <= 15.0),
+            "within_25pct": sum(1 for e in errs if e <= 25.0),
         }
 
     return {
@@ -94,7 +115,7 @@ def corrected_out_of_sample() -> dict:
     the current default so the structural correction remains auditable.
     """
     from fiscal_model.scoring import FiscalPolicyScorer
-    from fiscal_model.validation.cbo_scores import KNOWN_SCORES
+    from fiscal_model.validation.cbo_scores import KNOWN_SCORES, validation_shape
     from fiscal_model.validation.core import create_policy_from_score
 
     base = build_report()["out_of_sample"]["entries"]
@@ -104,6 +125,10 @@ def corrected_out_of_sample() -> dict:
     for e in base:
         score = KNOWN_SCORES.get(e["policy_id"])
         if score is None:
+            continue
+        # The ordinary-income-base flag only exists on the ordinary-rate shape;
+        # capital-gains and spending shapes have no such switch.
+        if validation_shape(score) != "ordinary_rate":
             continue
         legacy_policy = create_policy_from_score(score, ordinary_income_base=False)
         corrected_policy = create_policy_from_score(score, ordinary_income_base=True)
@@ -151,10 +176,12 @@ def _print_human(report: dict) -> None:
     print("=" * 72)
     s = oos["summary"]
     print(
-        f"  {s['n']} policies scored bottom-up from IRS SOI, no target fitting.\n"
-        f"  Mean abs error: {s['mean_abs_error']}%   "
-        f"Median: {s['median_abs_error']}%   "
-        f"Within 15%: {s['within_15pct']}/{s['n']}"
+        f"  {s['n']} out-of-sample cases, mean abs error {s['mean_abs_error']}%, "
+        f"{s['within_15pct']}/{s['n']} within 15%, "
+        f"{s['within_25pct']}/{s['n']} within 25%.\n"
+        f"  Scored bottom-up from IRS SOI with no target fitting; every case is "
+        f"pre-registered in\n  fiscal_model/validation/preregistered.py. "
+        f"Median abs error: {s['median_abs_error']}%."
     )
     print()
     print(f"  {'Policy':<34}{'Official':>10}{'Model':>10}{'Err':>7}  Source")
@@ -173,7 +200,8 @@ def _print_human(report: dict) -> None:
     c = cal["summary"]
     print(
         f"  {c['n']} policies | mean abs error {c['mean_abs_error']}% | "
-        f"within 15%: {c['within_15pct']}/{c['n']}"
+        f"within 15%: {c['within_15pct']}/{c['n']} | "
+        f"within 25%: {c['within_25pct']}/{c['n']}"
     )
     print(
         "  These are tuned to reproduce published CBO/JCT decompositions; they\n"
@@ -224,6 +252,13 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Exit non-zero if out-of-sample mean abs error exceeds this percent (CI guardrail).",
     )
+    parser.add_argument(
+        "--min-within-25pct",
+        type=int,
+        default=None,
+        help="Exit non-zero if fewer than this many out-of-sample cases land within "
+        "25%% of their official target (CI guardrail).",
+    )
     args = parser.parse_args(argv)
 
     report = build_report()
@@ -237,17 +272,30 @@ def main(argv: list[str] | None = None) -> int:
         if args.ordinary_base:
             _print_correction(report["ordinary_base_correction"])
 
+    summary = report["out_of_sample"]["summary"]
+    failed = False
+
     if args.max_mean_error is not None:
-        mean_err = report["out_of_sample"]["summary"]["mean_abs_error"]
+        mean_err = summary["mean_abs_error"]
         if mean_err > args.max_mean_error:
             print(
                 f"\nFAIL: out-of-sample mean abs error {mean_err}% "
                 f"exceeds threshold {args.max_mean_error}%",
                 file=sys.stderr,
             )
-            return 1
+            failed = True
 
-    return 0
+    if args.min_within_25pct is not None:
+        within_25 = summary["within_25pct"]
+        if within_25 < args.min_within_25pct:
+            print(
+                f"\nFAIL: only {within_25}/{summary['n']} out-of-sample cases are within "
+                f"25% of their official target; floor is {args.min_within_25pct}",
+                file=sys.stderr,
+            )
+            failed = True
+
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

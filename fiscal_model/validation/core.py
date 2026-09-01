@@ -9,9 +9,21 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from ..policies import CapitalGainsPolicy, PolicyType, TaxPolicy
+from ..policies import (
+    CapitalGainsPolicy,
+    Policy,
+    PolicyType,
+    SpendingPolicy,
+    TaxPolicy,
+)
 from ..scoring import FiscalPolicyScorer
-from .cbo_scores import CBOScore, get_validation_targets
+from .cbo_scores import CBOScore, get_validation_targets, validation_shape
+
+_SPENDING_CATEGORY_TO_POLICY_TYPE = {
+    "defense": PolicyType.DISCRETIONARY_DEFENSE,
+    "nondefense": PolicyType.DISCRETIONARY_NONDEFENSE,
+    "mandatory": PolicyType.MANDATORY_SPENDING,
+}
 
 _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
     "biden_ctc_2021": [
@@ -58,6 +70,33 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
     ],
     "pwbm_39_no_stepup": [
         "Capital-gains timing responses remain sensitive to realization elasticities and gains-at-death assumptions.",
+    ],
+    # -- Phase A out-of-sample promotions (uncalibrated Generic path) --------
+    # These are large, documented misses. They are kept in the honest tier
+    # rather than tuned away; each note states the structural reason.
+    "top_rate_45": [
+        "The uncalibrated path applies a single ETI (0.25) with the standard 0.5 factor, "
+        "so an 8pp top-rate increase erodes by only ~12.5%; published top-rate estimates "
+        "assume a much larger response at that rate level.",
+        "The -$420B target is secondhand (a 'TPC-range' figure with a bare taxpolicycenter.org "
+        "URL) and is internally inconsistent with illustrative_top_rate_5pp from the same "
+        "source (+5pp above $1M = -$700B), so part of this error is target error.",
+    ],
+    "biden_capital_gains_39": [
+        "Scored with the frozen module-default realization elasticities (0.8 short-run / 0.4 "
+        "long-run) and no residual avoidance after step-up elimination; Treasury, JCT and PWBM "
+        "all assume far stronger lock-in at a 43.4% top rate, which is why the calibrated "
+        "CapitalGains runner needs case-specific multipliers up to 5.3x.",
+        "The gains-at-death channel uses the module's $54B CBO aggregate and a linear "
+        "exemption share, not an estate-level distribution of unrealized gains.",
+    ],
+    "treasury_capgains_39_plus_stepup_elim": [
+        "Same shape as biden_capital_gains_39 (39.6% above $1M plus step-up elimination), so "
+        "the uncalibrated path necessarily produces the same prediction; the two published "
+        "targets nevertheless differ by 42% (-$322B vs -$456B), which bounds how well any "
+        "single model can match both.",
+        "Scored with the frozen module-default realization elasticities (0.8 / 0.4); the "
+        "published estimates embed much stronger lock-in and avoidance responses.",
     ],
 }
 
@@ -223,34 +262,84 @@ def build_validation_result(
 
 def create_policy_from_score(
     score: CBOScore, *, ordinary_income_base: bool | None = None
-) -> TaxPolicy | None:
+) -> Policy | None:
     """
-    Create a TaxPolicy object matching a known CBO score's parameters.
+    Build the policy object a known official score describes.
 
-    Returns None if the score doesn't have enough parameters.
+    Dispatch is on the record's *shape* (:func:`validation_shape`), not on a
+    single hard-coded ``policy_type``:
 
-    For ordinary-bracket income-tax rate changes, ``ordinary_income_base``
-    defaults to True (exclude preferential LTCG/QDIV). Pass False, or set
-    ``score.agi_inclusive_base=True``, for AGI-inclusive surtaxes.
+    ``ordinary_rate``
+        :class:`TaxPolicy` from rate + threshold. ``ordinary_income_base``
+        defaults to True (exclude preferential LTCG/QDIV); pass False, or set
+        ``score.agi_inclusive_base=True``, for AGI-inclusive surtaxes.
+    ``capital_gains``
+        :class:`CapitalGainsPolicy` with the **module-default** elasticity set
+        (short-run 0.8 / long-run 0.4) and SOI auto-populated baseline
+        realizations and rate. Deliberately *not* the per-case hand-set
+        elasticity tuples in ``scenarios.py`` — this path is the uncalibrated
+        prediction, so its behavioural parameters are frozen across cases.
+    ``corporate_rate``
+        :class:`CorporateTaxPolicy` from the rate change, module defaults for
+        elasticity and base.
+    ``spending``
+        :class:`SpendingPolicy` from the source-stated annual level, growth,
+        phase-in and one-time flag.
+
+    Returns ``None`` when the record has no constructible shape.
     """
-    if score.policy_type != "income_tax":
+    shape = validation_shape(score)
+    if shape is None:
         return None
 
-    if score.rate_change is None:
-        return None
+    if shape == "ordinary_rate":
+        if ordinary_income_base is None:
+            ordinary_income_base = not score.agi_inclusive_base
+        return TaxPolicy(
+            name=f"Validation: {score.name}",
+            description=score.description,
+            policy_type=PolicyType.INCOME_TAX,
+            rate_change=score.rate_change,
+            affected_income_threshold=score.income_threshold or 0,
+            start_year=2025,
+            duration_years=10,
+            ordinary_income_base=ordinary_income_base,
+        )
 
-    if ordinary_income_base is None:
-        ordinary_income_base = not score.agi_inclusive_base
+    if shape == "capital_gains":
+        return create_capital_gains_policy_from_score(
+            score,
+            # 0.0 leaves both fields to the SOI auto-population inside
+            # CapitalGainsPolicy.estimate_static_revenue_effect().
+            baseline_capital_gains_rate=0.0,
+            baseline_realizations_billions=0.0,
+            eliminate_step_up=score.eliminate_step_up,
+        )
 
-    return TaxPolicy(
+    if shape == "corporate_rate":
+        from ..corporate import CorporateTaxPolicy
+
+        return CorporateTaxPolicy(
+            name=f"Validation: {score.name}",
+            description=score.description,
+            policy_type=PolicyType.CORPORATE_TAX,
+            rate_change=score.rate_change,
+            start_year=2025,
+            duration_years=10,
+        )
+
+    # shape == "spending"
+    return SpendingPolicy(
         name=f"Validation: {score.name}",
         description=score.description,
-        policy_type=PolicyType.INCOME_TAX,
-        rate_change=score.rate_change,
-        affected_income_threshold=score.income_threshold or 0,
+        policy_type=_SPENDING_CATEGORY_TO_POLICY_TYPE[score.spending_category],
+        annual_spending_change_billions=float(score.annual_amount_billions or 0.0),
+        annual_growth_rate=score.annual_growth_rate,
+        phase_in_years=score.phase_in_years,
+        is_one_time=score.is_one_time,
+        category=score.spending_category,
         start_year=2025,
         duration_years=10,
-        ordinary_income_base=ordinary_income_base,
     )
 
 
@@ -263,14 +352,20 @@ def create_capital_gains_policy_from_score(
     long_run_elasticity: float = 0.4,
     transition_years: int = 3,
     use_time_varying: bool = True,
+    eliminate_step_up: bool = False,
 ) -> CapitalGainsPolicy:
     """
     Create a CapitalGainsPolicy from a score entry plus required extra inputs.
+
+    The elasticity defaults here are the module defaults (0.8 short-run / 0.4
+    long-run, Auten-Clotfelter/CBO range). The calibrated ``CapitalGains``
+    runner overrides them per case; the Generic out-of-sample path must not.
     """
     if score.rate_change is None:
         raise ValueError("score.rate_change is required")
 
     return CapitalGainsPolicy(
+        eliminate_step_up=eliminate_step_up,
         name=f"Validation: {score.name}",
         description=score.description,
         policy_type=PolicyType.CAPITAL_GAINS_TAX,
@@ -288,6 +383,55 @@ def create_capital_gains_policy_from_score(
 
 
 create_capital_gains_example_from_score = create_capital_gains_policy_from_score
+
+
+def _model_parameters_for(policy: Policy) -> dict:
+    """Record the parameters that actually drove a shape's score.
+
+    Each shape reports its own drivers. In particular ``CorporateTaxPolicy``
+    subclasses ``TaxPolicy`` but ignores the individual bracket fields
+    (``affected_income_threshold``, ``affected_taxpayers_millions``,
+    ``avg_taxable_income_in_bracket``) — it scores off the corporate revenue
+    and profit bases — so reporting those would make the validation output
+    look auditable while describing nothing that moved the number.
+    """
+    from ..corporate import CorporateTaxPolicy
+
+    if isinstance(policy, SpendingPolicy):
+        return {
+            "annual_spending_change_billions": policy.annual_spending_change_billions,
+            "annual_growth_rate": policy.annual_growth_rate,
+            "phase_in_years": policy.phase_in_years,
+            "is_one_time": policy.is_one_time,
+        }
+
+    if isinstance(policy, CorporateTaxPolicy):
+        return {
+            "rate_change": policy.rate_change,
+            "baseline_rate": policy.baseline_rate,
+            "corporate_elasticity": policy.corporate_elasticity,
+            "baseline_revenue_billions": policy.baseline_revenue_billions,
+            "baseline_profits_billions": policy.baseline_profits_billions,
+            "include_passthrough_effects": policy.include_passthrough_effects,
+        }
+
+    params = {
+        "rate_change": policy.rate_change,
+        "threshold": policy.affected_income_threshold,
+        "taxpayers_millions": policy.affected_taxpayers_millions,
+        "avg_income": policy.avg_taxable_income_in_bracket,
+    }
+    if isinstance(policy, CapitalGainsPolicy):
+        params.update(
+            {
+                "baseline_rate": policy.baseline_capital_gains_rate,
+                "baseline_realizations": policy.baseline_realizations_billions,
+                "short_run_elasticity": policy.short_run_elasticity,
+                "long_run_elasticity": policy.long_run_elasticity,
+                "eliminate_step_up": policy.eliminate_step_up,
+            }
+        )
+    return params
 
 
 def validate_policy(
@@ -344,12 +488,7 @@ def validate_policy(
         official_source=score.source.value,
         model_10yr=result.total_10_year_cost,
         model_first_year=result.final_deficit_effect[0],
-        model_parameters={
-            "rate_change": policy.rate_change,
-            "threshold": policy.affected_income_threshold,
-            "taxpayers_millions": policy.affected_taxpayers_millions,
-            "avg_income": policy.avg_taxable_income_in_bracket,
-        },
+        model_parameters=_model_parameters_for(policy),
         notes=score.notes or "",
         benchmark_date=score.source_date,
         benchmark_url=score.source_url,

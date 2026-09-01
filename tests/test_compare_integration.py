@@ -101,7 +101,34 @@ class TestCreatePolicyFromScore:
                 assert policy is not None
             break
 
-    def test_non_income_tax_returns_none(self):
+    def test_shapeless_record_returns_none(self):
+        """Dispatch is on shape now, so a record with no constructible shape —
+        a comprehensive bill, a tariff — still yields None."""
+        from fiscal_model.validation.cbo_scores import CBOScore, ScoreSource
+
+        for policy_type, extra in (
+            ("other", {}),
+            ("comprehensive", {}),
+            ("tariff", {"rate_change": 0.1}),
+            ("income_tax", {}),  # no rate_change
+            ("spending", {}),  # no annual amount
+        ):
+            s = CBOScore(
+                policy_id=f"test_{policy_type}",
+                name=f"Test {policy_type}",
+                description="Test",
+                ten_year_cost=-100.0,
+                source=ScoreSource.CBO,
+                source_date="2025-01",
+                policy_type=policy_type,
+                **extra,
+            )
+            assert create_policy_from_score(s) is None, policy_type
+
+    def test_capital_gains_record_now_builds_a_policy(self):
+        """Regression: the old ``policy_type == 'income_tax'`` gate stranded
+        every capital-gains benchmark."""
+        from fiscal_model.policies import CapitalGainsPolicy
         from fiscal_model.validation.cbo_scores import CBOScore, ScoreSource
 
         s = CBOScore(
@@ -111,9 +138,10 @@ class TestCreatePolicyFromScore:
             ten_year_cost=-100.0,
             source=ScoreSource.CBO,
             source_date="2025-01",
-            policy_type="capital_gains",
+            policy_type="capital_gains_tax",
+            rate_change=0.05,
         )
-        assert create_policy_from_score(s) is None
+        assert isinstance(create_policy_from_score(s), CapitalGainsPolicy)
 
 
 # ── Full validation suite (exercises all validate_*_policy functions) ───

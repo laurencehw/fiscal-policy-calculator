@@ -2,7 +2,12 @@
 Contract tests for GitHub Actions workflow gates.
 """
 
+import sys
 from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 WORKFLOWS_DIR = Path(__file__).resolve().parents[1] / ".github" / "workflows"
 TESTS_WORKFLOW_PATH = WORKFLOWS_DIR / "tests.yml"
@@ -96,6 +101,39 @@ def test_validation_dashboard_workflow_uploads_json_artifact():
     assert "name: validation-dashboard" in workflow
     assert "path: |" in workflow
     assert "validation-dashboard-augmented.json" in workflow
+
+
+def test_validation_dashboard_workflow_gates_the_out_of_sample_tier():
+    """The Generic tier is the only one that claims predictive skill; before
+    Phase A it was the only one with no numeric ceiling in CI."""
+    workflow = VALIDATION_DASHBOARD_WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    gate_lines = [line for line in workflow.splitlines() if "cold_holdout.py" in line]
+    assert len(gate_lines) == 1, "expected exactly one cold-holdout gate invocation"
+    gate = gate_lines[0]
+    assert "--max-mean-error" in gate
+    assert "--min-within-25pct" in gate
+    # The gate must be blocking: no `|| true`, no continue-on-error.
+    assert "|| true" not in gate
+
+
+def test_cold_holdout_gate_thresholds_match_the_live_battery():
+    """Thresholds are derived from the widened battery, not hand-set. If the
+    battery moves enough to invalidate them, this test says so."""
+    import re
+
+    from scripts.cold_holdout import build_report
+
+    workflow = VALIDATION_DASHBOARD_WORKFLOW_PATH.read_text(encoding="utf-8")
+    gate = next(line for line in workflow.splitlines() if "cold_holdout.py" in line)
+    max_mean = float(re.search(r"--max-mean-error\s+([\d.]+)", gate).group(1))
+    min_within = int(re.search(r"--min-within-25pct\s+(\d+)", gate).group(1))
+
+    summary = build_report()["out_of_sample"]["summary"]
+    assert summary["mean_abs_error"] <= max_mean
+    assert summary["within_25pct"] >= min_within
+    # The ceiling should stay meaningful: no more than ~2x the live mean.
+    assert max_mean <= summary["mean_abs_error"] * 2
 
 
 def test_fred_seed_refresh_workflow_opens_seed_refresh_pr():

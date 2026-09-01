@@ -35,7 +35,6 @@ from __future__ import annotations
 import argparse
 import sys
 from pathlib import Path
-from textwrap import indent
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:

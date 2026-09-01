@@ -14,6 +14,30 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Literal
 
+PolicyTypeLabel = Literal[
+    "income_tax",
+    "corporate_tax",
+    "capital_gains_tax",
+    "spending",
+    "tariff",
+    "comprehensive",
+    "other",
+]
+
+#: The policy *shape* the validation stack can build from a score record.
+#: Dispatch is on the shape, not on a single hard-coded ``policy_type``.
+ValidationShape = Literal[
+    "ordinary_rate",
+    "capital_gains",
+    "corporate_rate",
+    "spending",
+]
+
+#: Generic (out-of-sample) dispatch is limited to records whose published
+#: target sits on a baseline close enough to the model's own that baseline
+#: drift does not dominate the error. Vintage matching is Phase D.
+MIN_GENERIC_BASELINE_YEAR = 2020
+
 
 class ScoreSource(Enum):
     """Source of the official estimate."""
@@ -59,7 +83,7 @@ class CBOScore:
     # Policy parameters for replication
     rate_change: float | None = None
     income_threshold: float | None = None
-    policy_type: Literal["income_tax", "corporate_tax", "spending", "other"] = "income_tax"
+    policy_type: PolicyTypeLabel = "income_tax"
 
     # Scoring details
     first_year_cost: float | None = None  # First year effect if known
@@ -73,6 +97,30 @@ class CBOScore:
     # capital gains / QDIV). Ordinary-bracket rate changes leave this False so the
     # Generic scorer excludes preferential income via ordinary_income_base=True.
     agi_inclusive_base: bool = False
+
+    # -- Validation dispatch metadata -------------------------------------
+    # Every record must either be runnable by some validation runner or say,
+    # in one line, why it is not. ``tests/test_validation_targets.py`` asserts
+    # the accounting closes (no record is silently dropped).
+    runnable: bool = True
+    not_runnable_reason: str | None = None
+    # When set, the record is scored by that scorecard category's specialized
+    # (calibrated) runner. Such records are excluded from the Generic
+    # out-of-sample dispatch so they are never counted in both tiers.
+    specialized_runner: str | None = None
+
+    # -- Extra shape parameters -------------------------------------------
+    # Capital gains: whether the reform also eliminates step-up basis at death.
+    eliminate_step_up: bool = False
+    # Spending: the annual level change the *source itself* states, plus its
+    # growth / phase-in / one-time structure. Left None when the published
+    # target is a net-of-offsets total from which no annual level can be read
+    # off — deriving one from the target would be fitting, not prediction.
+    annual_amount_billions: float | None = None
+    annual_growth_rate: float = 0.02
+    phase_in_years: int = 1
+    is_one_time: bool = False
+    spending_category: Literal["defense", "nondefense", "mandatory"] = "nondefense"
 
 
 # =============================================================================
@@ -99,7 +147,9 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         is_dynamic=False,
         baseline_year=2017,
         budget_window="FY2018-2027",
-        notes="Static score. JCT estimated dynamic score would reduce cost by ~$400B."
+        notes="Static score. JCT estimated dynamic score would reduce cost by ~$400B.",
+        runnable=False,
+        not_runnable_reason="Comprehensive 2017 package (individual rates, corporate rate, SALT cap, credits); no single rate/threshold shape.",
     ),
 
     "tcja_2017_individual": CBOScore(
@@ -115,7 +165,9 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         policy_type="income_tax",
         baseline_year=2017,
         budget_window="FY2018-2027",
-        notes="Individual provisions sunset after 2025."
+        notes="Individual provisions sunset after 2025.",
+        runnable=False,
+        not_runnable_reason="Bundled individual package (rates + standard deduction + exemption repeal + CTC); not a single rate change.",
     ),
 
     "tcja_2017_corporate": CBOScore(
@@ -128,7 +180,9 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         rate_change=-0.14,  # 35% → 21% = -14pp
         policy_type="corporate_tax",
         baseline_year=2017,
-        notes="Permanent provision. Gross cost ~$1.4T offset by base broadening."
+        notes="Permanent provision. Gross cost ~$1.4T offset by base broadening.",
+        runnable=False,
+        not_runnable_reason="Target is net of base broadening on an FY2018-2027 baseline; the rate-only corporate path scores the gross cut.",
     ),
 
     # -------------------------------------------------------------------------
@@ -146,7 +200,8 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         policy_type="income_tax",
         baseline_year=2024,
         budget_window="FY2025-2034",
-        notes="Cost varies significantly depending on baseline assumptions."
+        notes="Cost varies significantly depending on baseline assumptions.",
+        specialized_runner="TCJA",
     ),
 
     # -------------------------------------------------------------------------
@@ -181,7 +236,8 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         rate_change=0.07,  # 21% → 28% = +7pp
         policy_type="corporate_tax",
         baseline_year=2024,
-        notes="FY2025 Budget proposal."
+        notes="FY2025 Budget proposal.",
+        specialized_runner="Corporate",
     ),
 
     "biden_billionaire_minimum": CBOScore(
@@ -195,7 +251,9 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         income_threshold=100000000,  # $100M wealth threshold
         policy_type="income_tax",
         baseline_year=2024,
-        notes="Novel policy - high uncertainty. Wealth threshold, not income."
+        notes="Novel policy - high uncertainty. Wealth threshold, not income.",
+        runnable=False,
+        not_runnable_reason="Minimum tax on unrealized gains at a $100M wealth threshold; the model has no wealth-base shape.",
     ),
 
     "biden_capital_gains_39": CBOScore(
@@ -211,8 +269,12 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         policy_type="capital_gains_tax",
         baseline_year=2024,
         notes="Includes taxing unrealized gains at death. High behavioral uncertainty. "
-              "Validated via the CapitalGains specialized runner; the generic income-tax "
-              "auto-population path cannot model realizations elasticity or step-up basis."
+              "Scored on the uncalibrated Generic capital-gains path: SOI auto-populated "
+              "realizations and baseline rate above the $1M threshold, the frozen module-"
+              "default elasticities (0.8 short-run / 0.4 long-run) and step-up elimination. "
+              "It is NOT one of the three calibrated CapitalGains scenarios, which carry "
+              "hand-set per-case elasticity and lock-in tuples.",
+        eliminate_step_up=True,  # "Tax unrealized gains at death" is part of the proposal as described
     ),
 
     # -------------------------------------------------------------------------
@@ -234,7 +296,8 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         baseline_year=2018,
         budget_window="FY2019-2028",
         notes="JCT estimate. Reflects behavioral response (deferral). Does not change bracket thresholds. "
-              "Validated via the CapitalGains specialized runner."
+              "Validated via the CapitalGains specialized runner.",
+        specialized_runner="CapitalGains",
     ),
 
     "pwbm_capgains_39_with_stepup": CBOScore(
@@ -253,7 +316,8 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         budget_window="FY2022-2031",
         notes="CRITICAL: With step-up basis, high rates LOSE revenue due to lock-in. "
               "Taxpayers hold until death to avoid tax entirely. "
-              "Validated via the CapitalGains specialized runner."
+              "Validated via the CapitalGains specialized runner.",
+        specialized_runner="CapitalGains",
     ),
 
     "pwbm_capgains_39_no_stepup": CBOScore(
@@ -272,7 +336,9 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         budget_window="FY2022-2031",
         notes="Without step-up, taxpayers cannot avoid tax by holding until death. "
               "Lock-in effect is reduced, allowing higher rates to raise revenue. "
-              "Validated via the CapitalGains specialized runner."
+              "Validated via the CapitalGains specialized runner.",
+        specialized_runner="CapitalGains",
+        eliminate_step_up=True,
     ),
 
     "treasury_capgains_39_plus_stepup_elim": CBOScore(
@@ -290,7 +356,11 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         budget_window="FY2022-2031",
         notes="Combined effect of rate increase + step-up elimination. "
               "Treasury Green Book estimate (higher than PWBM due to methodology differences). "
-              "Validated via the CapitalGains specialized runner."
+              "Scored on the uncalibrated Generic capital-gains path with the same frozen "
+              "module-default elasticities as biden_capital_gains_39 — and, being the same "
+              "policy shape, it necessarily receives the same prediction even though the two "
+              "published targets differ from each other by 42%.",
+        eliminate_step_up=True,
     ),
 
     # -------------------------------------------------------------------------
@@ -360,6 +430,93 @@ KNOWN_SCORES: dict[str, CBOScore] = {
     ),
 
     # -------------------------------------------------------------------------
+    # PRESET-BACKED OUT-OF-SAMPLE TARGETS
+    #
+    # Promoted in Phase A from ``fiscal_model.app_data.CBO_SCORE_MAP``. Each of
+    # these presets already shipped with a published number but had no
+    # validation runner, so the number was never actually scored. They run on
+    # the uncalibrated Generic path (SOI base, ETI 0.25) with **no** target
+    # fitting; their pre-registration rows live in
+    # ``fiscal_model/validation/preregistered.py``.
+    #
+    # The fourth CBO_SCORE_MAP orphan named in the Phase A plan, "Biden 2025
+    # Proposal" (-$252B), is the *same* Treasury Green Book target already
+    # carried here as ``biden_high_income_tax``; it is deliberately not
+    # duplicated, which would double-count one prediction.
+    # -------------------------------------------------------------------------
+
+    "warren_ultramillionaire_surtax_3pp": CBOScore(
+        policy_id="warren_ultramillionaire_surtax_3pp",
+        name="Warren Ultra-Millionaire Surtax (3pp >$2M)",
+        description="3 percentage point surtax on AGI above $2 million.",
+        ten_year_cost=-350.0,
+        source=ScoreSource.TPC,
+        source_date="2020",
+        source_url="https://www.taxpolicycenter.org/",
+        rate_change=0.03,
+        income_threshold=2_000_000,
+        policy_type="income_tax",
+        baseline_year=2020,
+        budget_window="FY2021-2030",
+        notes=(
+            "Promoted from CBO_SCORE_MAP ('3pp surtax on AGI >$2M; TPC-range estimate'). "
+            "AGI-inclusive base: the surtax applies to AGI, which contains the "
+            "preferential LTCG/QDIV portion, so the ordinary-income-base correction "
+            "must NOT be applied. Secondhand provenance: the preset carries a "
+            "TPC-range figure and a bare taxpolicycenter.org URL, not a line item "
+            "(Phase E)."
+        ),
+        agi_inclusive_base=True,
+    ),
+
+    "top_rate_45": CBOScore(
+        policy_id="top_rate_45",
+        name="Top Rate to 45% (+8pp above the 37% bracket floor)",
+        description="Raise the top marginal ordinary rate from 37% to 45% on income "
+                   "above the current 37% bracket floor ($609,350 single, 2025).",
+        ten_year_cost=-420.0,
+        source=ScoreSource.TPC,
+        source_date="2023",
+        source_url="https://www.taxpolicycenter.org/",
+        rate_change=0.08,
+        income_threshold=609_350,
+        policy_type="income_tax",
+        baseline_year=2023,
+        budget_window="FY2024-2033",
+        notes=(
+            "Promoted from CBO_SCORE_MAP ('Raise top marginal rate from 37% to 45%; "
+            "TPC-range estimate'). Ordinary-bracket rate change, so it scores on the "
+            "ordinary-income base. The target itself is internally inconsistent with "
+            "illustrative_top_rate_5pp in this same database and from the same source "
+            "(+5pp above $1M = -$700B), which implies a larger rate increase on a "
+            "wider base raising less; treat -$420B as secondhand until a line-item "
+            "source replaces it (Phase E)."
+        ),
+    ),
+
+    "medicare_surcharge_2pp": CBOScore(
+        policy_id="medicare_surcharge_2pp",
+        name="High-Earner Medicare Surcharge (2pp >$400K)",
+        description="2 percentage point Medicare surcharge on wage and investment "
+                   "income above $400,000.",
+        ten_year_cost=-310.0,
+        source=ScoreSource.TREASURY,
+        source_date="2024",
+        source_url="https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf",
+        rate_change=0.02,
+        income_threshold=400_000,
+        policy_type="income_tax",
+        baseline_year=2024,
+        budget_window="FY2025-2034",
+        notes=(
+            "Promoted from CBO_SCORE_MAP ('+2pp Medicare surcharge on investment + wage "
+            "income >$400K'). AGI-inclusive base: investment income is explicitly in the "
+            "surcharge base, so the ordinary-income-base correction must NOT be applied."
+        ),
+        agi_inclusive_base=True,
+    ),
+
+    # -------------------------------------------------------------------------
     # INFRASTRUCTURE / SPENDING
     # -------------------------------------------------------------------------
 
@@ -375,7 +532,9 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         policy_type="spending",
         baseline_year=2021,
         budget_window="FY2022-2031",
-        notes="Gross spending ~$550B, partially offset by various provisions."
+        notes="Gross spending ~$550B, partially offset by various provisions.",
+        runnable=False,
+        not_runnable_reason="Target is net of offsets; the source's $550B gross outlay is a different quantity, so no annual level can be read off it.",
     ),
 
     "ira_2022": CBOScore(
@@ -390,7 +549,9 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         policy_type="other",
         baseline_year=2022,
         budget_window="FY2022-2031",
-        notes="Excludes ~$200B from IRS enforcement (not scored under budget rules)."
+        notes="Excludes ~$200B from IRS enforcement (not scored under budget rules).",
+        runnable=False,
+        not_runnable_reason="Comprehensive package (energy credits, drug pricing, ACA subsidies, corporate minimum); no single shape.",
     ),
 
     # -------------------------------------------------------------------------
@@ -409,7 +570,9 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         policy_type="other",
         baseline_year=2021,
         budget_window="FY2022-2031",
-        notes="Would be $3T+ if sunsets made permanent. Key methodological debate."
+        notes="Would be $3T+ if sunsets made permanent. Key methodological debate.",
+        runnable=False,
+        not_runnable_reason="Comprehensive bill whose score is dominated by heterogeneous provision sunsets.",
     ),
 
     "fiscal_responsibility_act_2023": CBOScore(
@@ -424,7 +587,9 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         policy_type="spending",
         baseline_year=2023,
         budget_window="FY2023-2033",
-        notes="Savings from spending caps vs baseline inflation growth."
+        notes="Savings from spending caps vs baseline inflation growth.",
+        runnable=False,
+        not_runnable_reason="Savings come from discretionary caps relative to baseline growth, not a fixed annual outlay change.",
     ),
 
     "social_security_fairness_2023": CBOScore(
@@ -439,7 +604,9 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         policy_type="spending",
         baseline_year=2023,
         budget_window="FY2024-2034",
-        notes="Affects state/local workers with pensions from non-covered employment."
+        notes="Affects state/local workers with pensions from non-covered employment.",
+        runnable=False,
+        not_runnable_reason="WEP/GPO repeal; the model has no covered-vs-noncovered pension benefit module.",
     ),
 
     "limit_save_grow_2023": CBOScore(
@@ -454,7 +621,9 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         policy_type="other",
         baseline_year=2023,
         budget_window="FY2023-2033",
-        notes="Large savings from strict spending caps and program repeals."
+        notes="Large savings from strict spending caps and program repeals.",
+        runnable=False,
+        not_runnable_reason="Comprehensive bill (spending caps + clean-energy credit repeal + loan-forgiveness cancellation).",
     ),
 
     "tax_relief_workers_2024": CBOScore(
@@ -469,7 +638,9 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         policy_type="income_tax",
         baseline_year=2024,
         budget_window="FY2024-2033",
-        notes="Example of offsetting tax cuts with closing loopholes."
+        notes="Example of offsetting tax cuts with closing loopholes.",
+        runnable=False,
+        not_runnable_reason="Near-neutral package (CTC + R&D expensing offset by ERTC claim limits); no rate/threshold shape.",
     ),
 
     "biden_2025_budget": CBOScore(
@@ -484,7 +655,9 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         policy_type="other",
         baseline_year=2024,
         budget_window="FY2025-2034",
-        notes="Tax increases on high earners more than offset spending increases."
+        notes="Tax increases on high earners more than offset spending increases.",
+        runnable=False,
+        not_runnable_reason="Whole-budget re-score against the CBO baseline, not a single provision.",
     ),
 
     "ndaa_2025": CBOScore(
@@ -499,7 +672,9 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         policy_type="spending",
         baseline_year=2024,
         budget_window="FY2025-2034",
-        notes="Authorization vs appropriation: CBO scores mandatory changes only."
+        notes="Authorization vs appropriation: CBO scores mandatory changes only.",
+        runnable=False,
+        not_runnable_reason="Authorization bill; only $178M of mandatory retirement-benefit changes are scored, below model resolution.",
     ),
 
     # -------------------------------------------------------------------------
@@ -517,7 +692,9 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         policy_type="comprehensive",
         baseline_year=2025,
         budget_window="2026-2035",
-        notes="Includes TCJA extension, new credits, spending cuts. Estimate may vary."
+        notes="Includes TCJA extension, new credits, spending cuts. Estimate may vary.",
+        runnable=False,
+        not_runnable_reason="Comprehensive enacted package; provision-level targets (JCX-35-25) are Phase D.",
     ),
 
     "trump_tariffs_2025": CBOScore(
@@ -532,7 +709,9 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         baseline_year=2025,
         budget_window="2026-2035",
         notes="Highly uncertain. Depends on trade volume response and retaliation. "
-              "CBO Feb 2026 baseline incorporates enacted tariffs."
+              "CBO Feb 2026 baseline incorporates enacted tariffs.",
+        runnable=False,
+        not_runnable_reason="Requires the tariff module (import base x pass-through elasticity); not wired into the validation dispatch.",
     ),
 
     # -------------------------------------------------------------------------
@@ -553,7 +732,9 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         baseline_year=2025,
         budget_window="2026-2035",
         notes="Tax Foundation/Yale Budget Lab estimate. Revenue offset by consumer costs. "
-              "Highly uncertain - depends on trade volume response and pass-through elasticity."
+              "Highly uncertain - depends on trade volume response and pass-through elasticity.",
+        runnable=False,
+        not_runnable_reason="Requires the tariff module (import base x pass-through elasticity); not wired into the validation dispatch.",
     ),
 
     "trump_china_tariff_60": CBOScore(
@@ -570,7 +751,9 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         baseline_year=2025,
         budget_window="2026-2035",
         notes="Tax Foundation estimate. Import substitution reduces revenue significantly "
-              "at this rate. Elasticity effects more pronounced than for universal tariff."
+              "at this rate. Elasticity effects more pronounced than for universal tariff.",
+        runnable=False,
+        not_runnable_reason="Requires the tariff module (import base x pass-through elasticity); not wired into the validation dispatch.",
     ),
 
     "auto_tariff_25": CBOScore(
@@ -586,7 +769,9 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         baseline_year=2025,
         budget_window="2026-2035",
         notes="CRFB/TPC estimate. USMCA exempts significant portion of imports. "
-              "Retaliation risk from trading partners is high."
+              "Retaliation risk from trading partners is high.",
+        runnable=False,
+        not_runnable_reason="Requires the tariff module (import base x pass-through elasticity); not wired into the validation dispatch.",
     ),
 
     "steel_aluminum_tariff_25": CBOScore(
@@ -601,7 +786,9 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         baseline_year=2025,
         budget_window="2026-2035",
         notes="TPC estimate. Narrow sectoral tariff with lower revenue impact than broad tariffs. "
-              "Domestic steel/aluminum producers benefit but consuming industries face higher costs."
+              "Domestic steel/aluminum producers benefit but consuming industries face higher costs.",
+        runnable=False,
+        not_runnable_reason="Requires the tariff module (import base x pass-through elasticity); not wired into the validation dispatch.",
     ),
 
     "reciprocal_tariffs_20": CBOScore(
@@ -617,7 +804,9 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         baseline_year=2025,
         budget_window="2026-2035",
         notes="TPC/Yale Budget Lab estimate. Highly uncertain due to complexity of calculating "
-              "truly reciprocal rates and unpredictable negotiation outcomes."
+              "truly reciprocal rates and unpredictable negotiation outcomes.",
+        runnable=False,
+        not_runnable_reason="Requires the tariff module (import base x pass-through elasticity); not wired into the validation dispatch.",
     ),
 }
 
@@ -674,21 +863,73 @@ def list_available_policies() -> list[str]:
     return list(KNOWN_SCORES.keys())
 
 
+def validation_shape(score: CBOScore) -> ValidationShape | None:
+    """
+    Return the policy shape a score record can be built into, or ``None``.
+
+    This is the dispatch key that replaced the old ``income_tax``-only gate.
+    It is a *pure* function of the record's parameters — it deliberately does
+    not consult ``runnable`` or ``specialized_runner``, so callers can tell
+    "no shape" apart from "deliberately excluded".
+    """
+    if score.policy_type == "income_tax":
+        return "ordinary_rate" if score.rate_change is not None else None
+    if score.policy_type == "capital_gains_tax":
+        return "capital_gains" if score.rate_change is not None else None
+    if score.policy_type == "corporate_tax":
+        return "corporate_rate" if score.rate_change is not None else None
+    if score.policy_type == "spending":
+        return "spending" if score.annual_amount_billions is not None else None
+    return None
+
+
 def get_validation_targets() -> list[CBOScore]:
     """
-    Get scores suitable for model validation.
+    Get the scores the **Generic (out-of-sample) runner** should score.
 
-    Returns scores that:
-    - Have specific rate_change and income_threshold parameters
-    - Are income tax policies (our model's strength)
-    - Have recent baselines
+    A record qualifies when it is runnable, has a constructible shape, is not
+    already covered by a specialized calibrated runner (which would double
+    count it across both accuracy tiers), and sits on a baseline no older than
+    :data:`MIN_GENERIC_BASELINE_YEAR`.
     """
     return [
         s for s in KNOWN_SCORES.values()
-        if s.policy_type == "income_tax"
-        and s.rate_change is not None
-        and s.baseline_year >= 2020
+        if s.runnable
+        and s.specialized_runner is None
+        and validation_shape(s) is not None
+        and s.baseline_year >= MIN_GENERIC_BASELINE_YEAR
     ]
+
+
+def get_specialized_targets() -> list[CBOScore]:
+    """Records scored by a specialized (calibrated) runner, not the Generic one."""
+    return [s for s in KNOWN_SCORES.values() if s.runnable and s.specialized_runner]
+
+
+def get_excluded_scores() -> list[CBOScore]:
+    """Records deliberately not scored, each carrying a one-line reason."""
+    return [s for s in KNOWN_SCORES.values() if not s.runnable]
+
+
+def describe_target_coverage() -> dict[str, object]:
+    """
+    Account for every record in :data:`KNOWN_SCORES`.
+
+    ``total`` must always equal ``generic + specialized + excluded``; anything
+    in ``unaccounted`` is a record that claims to be runnable but has neither a
+    shape nor a specialized runner, i.e. a silently dropped benchmark.
+    """
+    generic = get_validation_targets()
+    specialized = get_specialized_targets()
+    excluded = get_excluded_scores()
+    accounted = {s.policy_id for s in (*generic, *specialized, *excluded)}
+    return {
+        "total": len(KNOWN_SCORES),
+        "generic": sorted(s.policy_id for s in generic),
+        "specialized": sorted(s.policy_id for s in specialized),
+        "excluded": sorted(s.policy_id for s in excluded),
+        "unaccounted": sorted(set(KNOWN_SCORES) - accounted),
+    }
 
 
 def print_score_summary(score: CBOScore) -> None:
