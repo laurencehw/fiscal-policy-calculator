@@ -43,10 +43,45 @@ def test_entries_carry_provenance():
         assert isinstance(e["abs_percent_error"], (int, float))
 
 
+def test_out_of_sample_tier_reports_both_accuracy_shares():
+    """The headline is 'n cases, mean X%, Y/n within 15%, Z/n within 25%' —
+    never a single 'validated within X%' number."""
+    summary = build_report()["out_of_sample"]["summary"]
+    for key in ("n", "mean_abs_error", "median_abs_error", "within_15pct", "within_25pct"):
+        assert key in summary
+    assert summary["within_15pct"] <= summary["within_25pct"] <= summary["n"]
+
+
+def test_out_of_sample_battery_is_wide_enough_to_be_informative():
+    """Phase A widened the honest tier from 4 friendly shapes to 9 cases
+    spanning ordinary rates, AGI-inclusive surtaxes and capital gains."""
+    report = build_report()
+    ids = {e["policy_id"] for e in report["out_of_sample"]["entries"]}
+    assert len(ids) >= 9
+    assert {"biden_capital_gains_39", "top_rate_45", "medicare_surcharge_2pp"} <= ids
+
+
+def test_poor_out_of_sample_cases_carry_a_documented_reason():
+    """A >25% miss is kept in the honest tier, not tuned away — but it has to
+    say why it misses, which is also what keeps strict readiness at 'warn'."""
+    for entry in build_report()["out_of_sample"]["entries"]:
+        if entry["abs_percent_error"] > 25.0:
+            assert entry["known_limitations"], (
+                f"{entry['policy_id']} misses by "
+                f"{entry['abs_percent_error']}% with no known_limitations note"
+            )
+
+
 def test_guardrail_exit_codes():
     # A generous threshold passes; an impossible one fails.
     assert main(["--max-mean-error", "1000"]) == 0
     assert main(["--max-mean-error", "0"]) == 1
+
+
+def test_within_25pct_floor_guardrail_exit_codes():
+    n = build_report()["out_of_sample"]["summary"]["n"]
+    assert main(["--min-within-25pct", "0"]) == 0
+    assert main(["--min-within-25pct", str(n + 1)]) == 1
 
 
 def test_json_mode_runs(capsys):

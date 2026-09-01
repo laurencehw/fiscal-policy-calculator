@@ -81,7 +81,7 @@ This project is a **validated scoring core with experimental interfaces around i
 
 | Tier | What it covers | Trust level |
 |------|----------------|-------------|
-| **🟢 Core — validated** | Revenue scoring (static + behavioral), distributional analysis (return-level CPS microsim), dynamic scoring (FRB/US-calibrated) | Benchmarked against published CBO/JCT/Treasury scores. **Honest accuracy is published, not just the flattering cases:** calibrated reference models reproduce official decompositions (~5% revenue, ≤3pp distributional mean; live 4.4%, run `scripts/cold_holdout.py`); genuine *out-of-sample* predictions run ~8% mean error (`python scripts/cold_holdout.py`). |
+| **🟢 Core — validated** | Revenue scoring (static + behavioral), distributional analysis (return-level CPS microsim), dynamic scoring (FRB/US-calibrated) | Benchmarked against published CBO/JCT/Treasury scores. **Honest accuracy is published, not just the flattering cases:** calibrated reference models reproduce official decompositions (~5% revenue, ≤3pp distributional mean; live 4.4%, run `scripts/cold_holdout.py`); genuine *out-of-sample* predictions across 9 pre-registered cases run 44.8% mean error, 5/9 within 15%, 6/9 within 25% (`python scripts/cold_holdout.py`). |
 | **🟡 Specialized — calibrated, narrower** | The 14 policy-area modules (TCJA, corporate, international, estate, payroll, AMT, PTC, tax expenditures, enforcement, pharma, trade/tariff, climate), state-level modeling (top-10 states), OLG generational model | Each is parameterized to reproduce a published score. Trustworthy as transparent reconstructions and for directional comparison; not independent confirmation. State and OLG use a representative taxpayer / reduced form. |
 | **🔵 Exploratory — interfaces & pipelines** | Ask assistant, Real-Time Bill Tracker, Classroom Mode, multi-model pilot platform, admin dashboard, share links | Reading, teaching, and data-plumbing layers *over* the model — useful and guard-railed (e.g. the assistant is citation-disciplined and cost-capped), but **not themselves validated estimates**. The bill tracker's LLM provision extraction in particular is demo-grade. |
 
@@ -97,12 +97,17 @@ These policies are scored **bottom-up from IRS SOI** filer counts and incomes vi
 
 | Policy | Official | Model | Error | Source |
 |--------|---------:|------:|------:|--------|
+| Medicare surcharge 2pp (>\$400K) | -\$310B | -\$315B | 2% | Treasury |
 | 1pp all brackets | -\$960B | -\$935B | 3% | JCT |
 | 5pp top rate (\$1M+) | -\$700B | -\$648B | 7% | TPC |
 | 2pp rate cut (\$500K+) | +\$400B | +\$364B | 9% | TPC |
 | Biden top rate 39.6% (\$400K+) | -\$252B | -\$284B | 13% | Treasury |
+| Warren surtax 3pp (AGI >\$2M) | -\$350B | -\$284B | 19% | TPC |
+| Biden cap gains 39.6% + gains at death | -\$456B | -\$817B | 79% | Treasury |
+| Top rate to 45% (+8pp) | -\$420B | -\$916B | 118% | TPC |
+| Treasury 39.6% + step-up repeal | -\$322B | -\$817B | 154% | Treasury |
 
-**Mean absolute error: ~8% (median 8%); 4 of 4 within 15%** (`python scripts/cold_holdout.py`). Ordinary-bracket rate changes (JCT 1pp, Biden $400K) score on the ordinary-income base (excludes preferential LTCG/QDIV); AGI-inclusive TPC top-rate cases ($1M+/$500K+) score on the full taxable-income base that includes the preferential portion. The prior ~19%/2-of-4 figure was inflated by a base mislabeling — those two TPC cases were wrongly receiving the ordinary-base correction (the project's own `cold_holdout.py --ordinary-base` diagnostic flags this: the correction *worsens* them 7→30%, the AGI-inclusive tell). Correcting the classification, with no target fitting, yields the numbers above. The Treasury Biden figure is a bundled "combined with other provisions" estimate. Treat uncalibrated custom policies as **directional, ±15%** broad-rate and ±15% high-threshold.
+**9 out-of-sample cases, mean abs error 44.8%, 5/9 within 15%, 6/9 within 25%** (`python scripts/cold_holdout.py`). There is deliberately no single "validated within X%" figure: the distribution has a tight core and a long tail. Ordinary-bracket rate changes (JCT 1pp, Biden $400K) score on the ordinary-income base (excludes preferential LTCG/QDIV); AGI-inclusive surtaxes (TPC $1M+/$500K+, Warren, the Medicare surcharge) score on the full taxable-income base — a classification taken from how each source describes its base, not from which choice fits better (the `cold_holdout.py --ordinary-base` diagnostic shows the correction *worsens* the AGI-inclusive cases, the tell). The three tail cases are kept, not tuned away: the +8pp top-rate target is secondhand and internally inconsistent with this same database's +5pp figure, and the two capital-gains cases share one shape while their two published targets differ from each other by 42%. Every case is **pre-registered** ([`fiscal_model/validation/preregistered.py`](fiscal_model/validation/preregistered.py)) and the tier is **CI-gated** (`--max-mean-error 60 --min-within-25pct 5`). Treat uncalibrated custom rate policies as **directional, ±15-20%**, and uncalibrated capital-gains policies as not yet predictive.
 
 #### 2. Calibrated reference models — transparent reconstructions, not independent confirmation
 

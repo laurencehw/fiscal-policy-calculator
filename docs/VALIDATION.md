@@ -2,27 +2,57 @@
 
 > **Fiscal Policy Calculator — Comparison to Official CBO/JCT Estimates**
 >
-> Last Updated: July 12, 2026
+> Last Updated: September 1, 2026
 
 ---
 
 ## Executive Summary
 
-The model is benchmarked against **30+ official estimates** from CBO, JCT, Treasury, PWBM, and TPC. Crucially, those benchmarks fall into **two epistemically different tiers**, and reporting them together overstates predictive power. Both are reproducible live: `python scripts/cold_holdout.py`.
+The model is benchmarked against **30+ official estimates** from CBO, JCT, Treasury, PWBM, and TPC. Crucially, those benchmarks fall into **two epistemically different tiers**, and reporting them together overstates predictive power. Both are reproducible live: `python scripts/cold_holdout.py`. Tier 1 is additionally **pre-registered** (`fiscal_model/validation/preregistered.py`) and **CI-gated**.
 
 ### Tier 1 — Out-of-sample predictions (the genuine test)
 
-Policies scored **bottom-up from IRS SOI** via raw rate/threshold auto-population, with **no fitting to the official target**. This is the only tier that measures predictive accuracy.
+Policies scored **bottom-up from IRS SOI** via raw rate/threshold auto-population (and, for capital gains, one frozen elasticity set), with **no fitting to the official target**. This is the only tier that measures predictive accuracy.
 
-| Metric | Value |
-|--------|-------|
-| Out-of-sample policies | 4 |
-| Mean absolute error | **~8%** |
-| Median absolute error | ~8% |
-| Within 15% of official | 4/4 |
-| Direction match rate | 4/4 |
+> **9 out-of-sample cases, mean abs error 44.8%, 5/9 within 15%, 6/9 within 25%.**
+> There is deliberately no single "validated within X%" number: the distribution has a tight core and a long tail, and collapsing it would hide the tail.
 
-**Key finding**: ordinary-bracket rate changes (JCT 1pp, Biden $400K) are scored on the ordinary-income base (excludes preferential LTCG/QDIV); AGI-inclusive TPC top-rate cases ($1M+/$500K+) are scored on the full taxable-income base that includes the preferential portion. The prior ~19%/2-of-4 figure was inflated by a base mislabeling — the two AGI-inclusive TPC cases were wrongly receiving the ordinary-base correction (the `cold_holdout.py --ordinary-base` diagnostic flags this: the correction *worsens* them 7→30%, the AGI-inclusive tell); correcting the classification (no target fitting) brings all four within 15%. **Treat uncalibrated custom policies as directional, ±15%.**
+| Case | Official | Model | Err | Source (date) | Baseline the source used | Pre-registered at |
+|------|---------:|------:|----:|---------------|--------------------------|-------------------|
+| Medicare surcharge 2pp (>$400K) | -$310B | -$315B | 2% | Treasury (2024) | Green Book FY2025 | `PHASE_A_SHA` |
+| 1pp all brackets | -$960B | -$935B | 3% | JCT (2023-01) | CBO Feb 2023 | `be7e947` |
+| 5pp top rate ($1M+) | -$700B | -$648B | 7% | TPC (2023-06) | CBO Feb 2023 | `be7e947` |
+| 2pp rate cut ($500K+) | +$400B | +$364B | 9% | TPC (2023-06) | CBO Feb 2023 | `be7e947` |
+| Biden top rate 39.6% ($400K+) | -$252B | -$284B | 13% | Treasury (2024-03) | Green Book FY2025 | `be7e947` |
+| Warren surtax 3pp (AGI >$2M) | -$350B | -$284B | 19% | TPC (2020) | unstated (secondhand) | `PHASE_A_SHA` |
+| Biden cap gains 39.6% + gains at death | -$456B | -$817B | 79% | Treasury (2024-03) | Green Book FY2025 | `be7e947`, first scored `PHASE_A_SHA` |
+| Top rate to 45% (+8pp >$609,350) | -$420B | -$916B | 118% | TPC (2023) | unstated (secondhand) | `PHASE_A_SHA` |
+| Treasury 39.6% + step-up repeal | -$322B | -$817B | 154% | Treasury (2021-05) | Green Book FY2022 | `d11bf2c`, first scored `PHASE_A_SHA` |
+
+Live figures: `python scripts/cold_holdout.py`. Rows are the `Generic` category of the scorecard; every one has a row in [`fiscal_model/validation/preregistered.py`](../fiscal_model/validation/preregistered.py).
+
+**What the tight core shows.** Ordinary-bracket rate changes (JCT 1pp, Biden $400K) score on the ordinary-income base (excludes preferential LTCG/QDIV); AGI-inclusive surtaxes (TPC $1M+/$500K+, Warren, the Medicare surcharge) score on the full taxable-income base that includes the preferential portion. The classification comes from how each source describes its base, not from which choice fits better — the `cold_holdout.py --ordinary-base` diagnostic shows the correction *worsens* the AGI-inclusive cases (7→30%, 9→30%, 2→29%), which is the tell. For ordinary and AGI-inclusive rate changes in this range, **treat uncalibrated custom policies as directional, ±15-20%.**
+
+**What the tail shows.** Three cases miss badly and are kept rather than tuned away; each carries a `known_limitations` note in the scorecard:
+
+- **Top rate to 45% (118%).** The uncalibrated path applies a single ETI (0.25) with the standard 0.5 factor, so an 8pp top-rate increase erodes by only ~12.5% while published top-rate estimates assume a much larger response at that rate level. The target is also suspect: at -$420B it is *smaller* than this database's own +5pp-above-$1M TPC figure (-$700B), i.e. a bigger rate increase on a wider base raising less. Part of this error is target error, and the provenance is a "TPC-range" figure with a bare homepage URL (Phase E).
+- **The two capital-gains cases (79%, 154%).** Both are "39.6% above $1M plus step-up elimination", so the frozen-elasticity path necessarily produces the same prediction (-$817B) for both — while the two published targets differ from each other by 42% (-$322B vs -$456B, different Green Books three years apart). Treasury, JCT and PWBM all assume far stronger lock-in at a 43.4% top rate; the calibrated `CapitalGains` runner needs case-specific multipliers up to 5.3x to reproduce them. This is exactly the parameter Phase C is meant to cross-validate.
+
+**Honest reading**: the model predicts ordinary and AGI-inclusive *rate* changes well and capital-gains *behavioural* responses badly. The four-case ~8% figure this table replaces was not wrong, but it was measured on four friendly shapes; widening the battery moved the mean to 44.8% and that is the more useful number.
+
+### Pre-registration
+
+Every Tier 1 case is registered in [`fiscal_model/validation/preregistered.py`](../fiscal_model/validation/preregistered.py) with the official target, the publishing source and date, the budget baseline *that source* was scored against, the commit and date at which the record entered the repository, and the commit of the first scoring run.
+
+The discipline the manifest enforces (`assert_preregistered`, tested in `tests/test_preregistration.py`):
+
+1. **A target may never be edited to match a model run.** If an official number genuinely changes, the old row is marked `superseded_by` and a **new row with a new `case_id`** is added. The history stays in the file and in the diff.
+2. **No case may be scored out-of-sample without a row.** A Generic scorecard entry with no manifest row fails the test.
+3. **Misses are kept.** A row is never removed because the model scores it badly.
+
+Honest boundary, as with [`holdout.py`](../fiscal_model/validation/holdout.py): these are previously published numbers, and Phase A registered targets that already existed in the repository or in `CBO_SCORE_MAP`. What the manifest guarantees is that *from the entry commit onward* the target is frozen and any change is visible — not that nobody had ever seen the number.
+
+**CI gate.** `.github/workflows/validation-dashboard.yml` runs `python scripts/cold_holdout.py --max-mean-error 60 --min-within-25pct 5` as a blocking step, and strict readiness (`scripts/check_readiness.py --strict`) no longer exempts Generic entries: an `Error` rating fails, and a `Poor` rating fails unless it carries a documented `known_limitations` note.
 
 ### Tier 2 — Calibrated reference models (reconstructions, not confirmations)
 
@@ -77,13 +107,22 @@ These rows are the **uncalibrated** bottom-up Generic scorer (`create_policy_fro
 
 | Policy | Official Score | Model Score | Error | Rating | Source |
 |--------|----------------|-------------|-------|--------|--------|
+| Medicare surcharge 2pp (>$400K) | -$310B | -$315B | 2% | Excellent | Treasury |
 | 1pp all brackets | -$960B | -$935B | 3% | Excellent | JCT |
 | 5pp top rate ($1M+) | -$700B | -$648B | 7% | Excellent | TPC |
 | 2pp rate cut ($500K+) | +$400B | +$364B | 9% | Good | TPC |
 | Biden $400K+ (2.6pp) | -$252B | -$284B | 13% | Acceptable | Treasury |
+| Warren surtax 3pp (AGI >$2M) | -$350B | -$284B | 19% | Acceptable | TPC |
+| Biden cap gains 39.6% + gains at death | -$456B | -$817B | 79% | Poor | Treasury |
+| Top rate to 45% (+8pp) | -$420B | -$916B | 118% | Poor | TPC |
+| Treasury 39.6% + step-up repeal | -$322B | -$817B | 154% | Poor | Treasury |
+
+The three `Poor` rows are documented misses, not omissions — see the Tier 1 tail discussion above.
 
 **Methodology Notes**:
 - Uses IRS SOI data for taxpayer counts and income distributions
+- Dispatch is on the record's *shape* (ordinary rate / capital gains / corporate rate / spending), not on a single `policy_type`; every `KNOWN_SCORES` record is either runnable or carries an explicit `runnable=False` reason
+- Capital-gains cases use ONE frozen elasticity set (module defaults, short-run 0.8 / long-run 0.4), never the per-case tuples in `scenarios.py`
 - Ordinary-bracket changes default to `ordinary_income_base=True` (exclude LTCG/QDIV)
 - All-brackets (`threshold=0`) scored from total SOI taxable income, not `baseline × Δrate/0.18`
 - Elasticity of Taxable Income (ETI) = 0.25 (Saez et al. 2012)

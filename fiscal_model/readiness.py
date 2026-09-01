@@ -304,20 +304,26 @@ def _scorecard_checks(scorecard: Any) -> list[ReadinessCheck]:
     from fiscal_model.validation.holdout import summarize_holdout_protocol
 
     entries = list(getattr(scorecard, "entries", []))
+    # The Generic (out-of-sample) tier used to be exempt from this gate, which
+    # left the *only* tier that claims predictive skill as the *only* ungated
+    # one. Every entry is now held to the same bar: an Error rating or an
+    # undocumented Poor outlier fails strict readiness regardless of tier; a
+    # Poor entry that carries a known_limitations note is a warning, which is
+    # how a documented out-of-sample miss (kept, not tuned away) is recorded.
     calibrated = [entry for entry in entries if getattr(entry, "category", None) != "Generic"]
-    calibrated_error = [
-        entry for entry in calibrated
+    error_entries = [
+        entry for entry in entries
         if getattr(entry, "rating", None) == "Error"
     ]
     undocumented_poor = [
-        entry for entry in calibrated
+        entry for entry in entries
         if (
             getattr(entry, "rating", None) == "Poor"
             and not getattr(entry, "known_limitations", [])
         )
     ]
     documented_poor = [
-        entry for entry in calibrated
+        entry for entry in entries
         if (
             getattr(entry, "rating", None) == "Poor"
             and getattr(entry, "known_limitations", [])
@@ -338,16 +344,16 @@ def _scorecard_checks(scorecard: Any) -> list[ReadinessCheck]:
             "Revenue validation scorecard has no calibrated specialized entries.",
             details={"total_entries": len(entries), "calibrated_entries": 0},
         )
-    elif calibrated_error or undocumented_poor:
-        failing_entries = [*calibrated_error, *undocumented_poor]
+    elif error_entries or undocumented_poor:
+        failing_entries = [*error_entries, *undocumented_poor]
         scorecard_check = _check(
             "revenue_scorecard",
             "fail",
-            "At least one calibrated revenue benchmark is Error or an undocumented Poor outlier.",
+            "At least one revenue benchmark is Error or an undocumented Poor outlier.",
             details={
                 "total_entries": len(entries),
                 "calibrated_entries": len(calibrated),
-                "calibrated_error": len(calibrated_error),
+                "error_entries": len(error_entries),
                 "undocumented_poor": len(undocumented_poor),
                 "failing_policy_ids": [
                     getattr(entry, "policy_id", "unknown")
@@ -359,7 +365,7 @@ def _scorecard_checks(scorecard: Any) -> list[ReadinessCheck]:
         scorecard_check = _check(
             "revenue_scorecard",
             "warn",
-            "At least one calibrated revenue benchmark is a documented Poor outlier.",
+            "At least one revenue benchmark is a documented Poor outlier.",
             details={
                 "total_entries": len(entries),
                 "calibrated_entries": len(calibrated),
@@ -374,7 +380,7 @@ def _scorecard_checks(scorecard: Any) -> list[ReadinessCheck]:
         scorecard_check = _check(
             "revenue_scorecard",
             "pass",
-            "Calibrated revenue benchmarks are within readiness bounds.",
+            "Revenue benchmarks are within readiness bounds.",
             details={
                 "total_entries": len(entries),
                 "calibrated_entries": len(calibrated),

@@ -115,7 +115,7 @@ def _run_scenario(assistant: Any, scenario: dict[str, Any]) -> dict[str, Any]:
             accumulated.append(chunk)
             sys.stdout.write(chunk)
             sys.stdout.flush()
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         print(f"\n\n!!! Stream raised: {type(exc).__name__}: {exc}")
         return {
             "label": scenario["label"],
@@ -173,9 +173,9 @@ def main() -> int:
         return 1
 
     assistant = _build_assistant(model=args.model)
-    print(f"Model: {assistant._model}")  # noqa: SLF001 — debug script
+    print(f"Model: {assistant._model}")
     print(f"Knowledge dir: {ROOT / 'fiscal_model' / 'assistant' / 'knowledge'}")
-    print(f"Web search: {'on' if assistant._enable_web_search else 'off'}")  # noqa: SLF001
+    print(f"Web search: {'on' if assistant._enable_web_search else 'off'}")
 
     scenarios = SCENARIOS
     if args.only is not None:

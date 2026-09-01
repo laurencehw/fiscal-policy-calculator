@@ -324,6 +324,52 @@ def print_benchmarks() -> bool:
     return all_ok
 
 
+# --- Phase A: out-of-sample tier + pre-registration ------------------------
+# Informational only. The numeric ceiling on this tier lives in its own CI step
+# (`scripts/cold_holdout.py --max-mean-error ... --min-within-25pct ...`), so
+# this block never changes the dashboard's exit code.
+
+
+def print_out_of_sample_tier() -> None:
+    """Print the honest (uncalibrated) tier and its pre-registration status."""
+    print_banner("Out-of-sample tier (pre-registered)")
+    try:
+        from fiscal_model.validation.preregistered import (
+            manifest_problems,
+            summarize_preregistration,
+        )
+        from scripts.cold_holdout import build_report
+
+        report = build_report()
+        summary = report["out_of_sample"]["summary"]
+        manifest = summarize_preregistration()
+    except Exception as exc:  # pragma: no cover - best-effort diagnostic
+        print(f"  [ERROR] Out-of-sample report unavailable: {exc}")
+        return
+
+    print(
+        f"  {summary['n']} out-of-sample cases | mean abs error "
+        f"{summary['mean_abs_error']}% | within 15%: "
+        f"{summary['within_15pct']}/{summary['n']} | within 25%: "
+        f"{summary['within_25pct']}/{summary['n']}"
+    )
+    print(f"  pre-registered rows:     {manifest['live_cases']}")
+
+    try:
+        from fiscal_model.validation import cached_default_scorecard
+
+        problems = manifest_problems(cached_default_scorecard())
+    except Exception as exc:  # pragma: no cover - best-effort diagnostic
+        print(f"  [ERROR] Pre-registration check failed: {exc}")
+        return
+
+    if problems:
+        for problem in problems:
+            print(f"  [WARN] {problem}")
+    else:
+        print("  [OK] Every out-of-sample case has a matching pre-registration row.")
+
+
 def calibration_gate_ok(calibration: dict[str, Any]) -> bool:
     """Silent equivalent of print_calibration for JSON/reporting paths."""
     return not calibration_gate_issues(calibration)
@@ -679,6 +725,7 @@ def main() -> int:
     health_ok = print_health(health)
     calibration_ok = print_calibration(calibration)
     benchmarks_ok = print_benchmarks()
+    print_out_of_sample_tier()
     loo_suite = collect_loo()
     loo_ok = print_loo(loo_suite, args.max_loo_mean_error)
 

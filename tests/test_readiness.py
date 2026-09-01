@@ -223,6 +223,67 @@ def test_readiness_fails_undocumented_calibrated_revenue_poor_rating():
     assert scorecard.status == "fail"
 
 
+def _scorecard_with_generic(*, rating: str, known_limitations: list[str] | None = None):
+    """Healthy calibrated set plus one Generic (out-of-sample) entry."""
+    base = _scorecard()
+    generic = SimpleNamespace(
+        category="Generic",
+        rating=rating,
+        policy_id="top_rate_45",
+        known_limitations=known_limitations or [],
+        direction_match=True,
+    )
+    return SimpleNamespace(
+        entries=[*base.entries, generic],
+        within_15pct=base.within_15pct,
+        median_abs_percent_difference=base.median_abs_percent_difference,
+    )
+
+
+def test_readiness_fails_generic_revenue_error_rating():
+    """The out-of-sample tier used to be exempt from this gate, which left the
+    only tier claiming predictive skill as the only ungated one."""
+    report = build_readiness_report(
+        health=_healthy_payload(),
+        distribution_comparisons=[_comparison()],
+        scorecard=_scorecard_with_generic(rating="Error"),
+    )
+
+    assert report.verdict == "not_ready"
+    scorecard = next(check for check in report.checks if check.name == "revenue_scorecard")
+    assert scorecard.status == "fail"
+    assert "top_rate_45" in scorecard.details["failing_policy_ids"]
+
+
+def test_readiness_fails_undocumented_generic_revenue_poor_rating():
+    report = build_readiness_report(
+        health=_healthy_payload(),
+        distribution_comparisons=[_comparison()],
+        scorecard=_scorecard_with_generic(rating="Poor"),
+    )
+
+    assert report.verdict == "not_ready"
+    scorecard = next(check for check in report.checks if check.name == "revenue_scorecard")
+    assert scorecard.status == "fail"
+
+
+def test_readiness_warns_on_documented_generic_revenue_poor_rating():
+    """A documented out-of-sample miss is kept and reported, not tuned away."""
+    report = build_readiness_report(
+        health=_healthy_payload(),
+        distribution_comparisons=[_comparison()],
+        scorecard=_scorecard_with_generic(
+            rating="Poor",
+            known_limitations=["Target is secondhand and internally inconsistent."],
+        ),
+    )
+
+    assert report.verdict == "ready_with_warnings"
+    scorecard = next(check for check in report.checks if check.name == "revenue_scorecard")
+    assert scorecard.status == "warn"
+    assert "top_rate_45" in scorecard.details["documented_policy_ids"]
+
+
 def test_readiness_to_dict_serializes_nested_checks():
     report = build_readiness_report(
         health=_healthy_payload(),

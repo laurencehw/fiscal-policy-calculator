@@ -6,11 +6,13 @@
 
 The footer's "33 policies validated" is computed live from the scorecard and is accurate — but it describes a narrower thing than it sounds:
 
+*Phase A closed rows 1 and 3 of this table on 2026-09-01 — see §1. The pre-Phase-A state is kept below because it is what the plan was written against.*
+
 | | n | what it is | honest status |
 |---|---|---|---|
-| **Tier 1 — out-of-sample (Generic)** | **4** | plain `TaxPolicy` on the SOI base, no tuning; ~8% mean error | the only genuine test, and it is tiny; *not gated in CI* (`readiness.py:307` exempts Generic; `cold_holdout.py --max-mean-error` is never called by a workflow) |
+| **Tier 1 — out-of-sample (Generic)** | **4** → **9** | plain `TaxPolicy` on the SOI base, no tuning; ~8% mean error → **44.8%** across the widened battery | the only genuine test; **now pre-registered and CI-gated** (Phase A). Was: *not gated in CI* (`readiness.py:307` exempted Generic; `cold_holdout.py --max-mean-error` was never called by a workflow) |
 | **Tier 2 — calibrated** | 29 | 26 module presets + 3 capital-gains cases; ~5% mean error | low by construction: each module carries one hard-coded annual per benchmark (`payroll.py:377-494`, `estate.py:365-525`, `amt.py`, `credits_factory.py`, `tax_expenditures_factory.py`) |
-| Benchmark database (`cbo_scores.py` `KNOWN_SCORES`) | 31 | | **21 entries are stranded** — `get_validation_targets()` (`cbo_scores.py:677-691`) keeps only `income_tax` + `rate_change is not None` + `baseline_year>=2020`, so every tariff, spending, comprehensive-bill and `rate_change=None` score is dead data |
+| Benchmark database (`cbo_scores.py` `KNOWN_SCORES`) | 31 → 34 | | **was: 21 entries stranded** — `get_validation_targets()` kept only `income_tax` + `rate_change is not None` + `baseline_year>=2020`. **Now: shape-based dispatch**; 14 runnable, 20 excluded with an explicit one-line reason, 0 unaccounted |
 | Presets with an official score (`CBO_SCORE_MAP`) | 47 | | 21 have a live module *and* an official number but **no `validate_all_*` runner** (international 4, tariffs 5, pharma 3, enforcement 2, climate 3, four surtax presets) |
 | Distributional (`cbo_distributions.py`) | 6 real tables | CBO/JCT published distributions; all mapped and CI-gated | fine; the 4 quintile "benchmarks" in `distributional_validation.py` include two that are *not published tables* (corporate, capital gains) and should not be counted |
 
@@ -22,14 +24,26 @@ Three structural weaknesses a referee would find first:
 
 Expect Tier 1's mean error to **rise** as n grows — the four current cases are friendly shapes. That is the point: a wider, pre-registered, gated error distribution is worth more than a flattering 8% on four cases.
 
-## 1. Phase A — free wins (no new modelling; ~1 lane)
+## 1. Phase A — free wins (no new modelling; ~1 lane) — ✅ **LANDED** (2026-09-01)
 
-1. **Widen the target filter.** Replace the `income_tax`-only gate in `get_validation_targets()` with shape-based dispatch: `TaxPolicy`, `CapitalGainsPolicy`, `SpendingPolicy`, `CorporateTaxPolicy` records all become runnable. This alone revives the stranded entries.
-2. **Promote the orphans into Tier 1.** Directly constructible today with no tuning: Warren surtax (−350), Top rate 45% (−420), Medicare surcharge 2pp (−310), "Biden 2025" (−252) from `CBO_SCORE_MAP`; `biden_capital_gains_39` (−456) and `treasury_capgains_39_plus_stepup_elim` (−322) from `KNOWN_SCORES`. Tier 1 goes 4 → ~10.
-3. **Pre-registration manifest.** `fiscal_model/validation/preregistered.py`: per OOS case, the official target, source URL/date, the commit hash and date at which the record was entered, and the commit of the first scoring run. Analogous to `holdout.py:39-69`, but for Tier 1 and *prospective*. A test asserts every Generic entry has a manifest row.
-4. **Gate it.** Add `python scripts/cold_holdout.py --max-mean-error <N>` (and a within-25% floor) to `validation-dashboard.yml`; drop the Generic exemption in `readiness.py:307`. Pick N from the widened battery, not from the current four.
+1. ✅ **Widen the target filter.** `get_validation_targets()` now dispatches on the record's *shape* (`validation_shape()`: ordinary rate / capital gains / corporate rate / spending) rather than `policy_type == "income_tax"`. Every `KNOWN_SCORES` record is accounted for: **14 runnable** (9 Generic + 5 specialized) and **20 explicitly excluded**, each with a one-line `not_runnable_reason`. `describe_target_coverage()` + `tests/test_validation_targets.py` assert nothing is silently dropped. The spending branch is implemented and unit-tested but has no live record yet — no current spending target states an annual level the source itself published (deriving one from the target would be fitting); it comes online with the Phase B options battery.
+2. ✅ **Promote the orphans into Tier 1.** Added `warren_ultramillionaire_surtax_3pp` (−350), `top_rate_45` (−420), `medicare_surcharge_2pp` (−310) from `CBO_SCORE_MAP`, and revived `biden_capital_gains_39` (−456) and `treasury_capgains_39_plus_stepup_elim` (−322). The plan's fourth `CBO_SCORE_MAP` orphan, "Biden 2025 Proposal" (−252), turned out to be the **same Treasury target already carried as `biden_high_income_tax`**, so it was not duplicated. Tier 1: **4 → 9**.
+3. ✅ **Pre-registration manifest.** `fiscal_model/validation/preregistered.py` with `assert_preregistered()`; `tests/test_preregistration.py` asserts every Generic entry has a row, targets match `KNOWN_SCORES`, an edited target is rejected (a changed target must be a new row with `superseded_by`), and commit stamps are real shas.
+4. ✅ **Gate it.** `validation-dashboard.yml` runs `python scripts/cold_holdout.py --max-mean-error 60 --min-within-25pct 5` as a blocking step (60 = ceil(44.8 × 1.25) rounded up to 5; 5 = current 6-of-9 minus one case). `readiness.py` no longer exempts Generic: `Error` fails, `Poor` fails unless documented.
 
-Deliverable: Tier 1 n≈10, pre-registered, CI-gated. Docs/README report "n, mean abs error, share within 15%/25%" rather than a single percentage.
+**Result — the mean rose, as predicted.** Tier 1 is now **9 cases, mean abs error 44.8%, 5/9 within 15%, 6/9 within 25%** (was 4 cases / ~8% / 4-of-4). Three documented tail cases:
+
+| Case | Official | Model | Err | Why it misses |
+|---|---:|---:|---:|---|
+| Top rate 45% (+8pp) | −420 | −916 | 118% | Single ETI 0.25 understates the response at 8pp **and** the target is secondhand, internally inconsistent with `illustrative_top_rate_5pp` (+5pp/$1M = −700) |
+| Biden cap gains 39.6% | −456 | −817 | 79% | Frozen default elasticities (0.8/0.4) with no residual avoidance; official estimates embed far stronger lock-in |
+| Treasury 39.6% + step-up | −322 | −817 | 154% | Same shape as the above → same prediction, but the two published targets differ from each other by 42% |
+
+Findings worth carrying forward:
+
+- The anti-leakage invariant still holds comfortably (OOS 44.8% > calibrated 2.7%).
+- The `top_rate_45` target fails an internal coherence check against another TPC figure in the same database — Phase E should replace it with a line item or demote it, and the manifest now forces that to be a *new row*.
+- The two capital-gains OOS cases are the same policy shape scored against two targets 42% apart, which bounds how well any single model can match both. This is the sharpest available test for Phase C's frozen-elasticity work.
 
 ## 2. Phase B — CBO *Options for Reducing the Deficit: 2025–2034* as a pre-registered battery
 
@@ -93,7 +107,7 @@ Distributional validation is the strongest part of the stack (6 real tables, CI-
 
 | Phase | Effort | Tier 1 n after | What it buys |
 |---|---|---|---|
-| A — filter, orphans, manifest, CI gate | 1 lane, ~half day | ~10 | honest tier becomes gated and prospective |
+| A — filter, orphans, manifest, CI gate ✅ | 1 lane, ~half day | **9** (done) | honest tier becomes gated and prospective |
 | B — CBO options battery | 1–2 lanes | ~25–35 | breadth across tax *and* spending shapes |
 | C — leave-one-out | 1 lane per 2–3 modules | — | Tier 2 gets a held-out number |
 | D — vintage matching, enacted laws, JCX line items | 2 lanes | +5–10 | removes baseline drift; sourced targets |
