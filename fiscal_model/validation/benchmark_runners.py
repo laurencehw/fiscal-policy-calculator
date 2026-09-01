@@ -17,6 +17,8 @@ Coverage today
 - ``cbo_arp_2021``        → Biden CTC 2021, quintiles (best available)
 - ``jct_salt_repeal_2024`` → *not yet* — needs TaxExpenditurePolicy path
 - ``jct_corporate_28_2022`` → Biden corporate 28%, JCT dollar brackets
+- ``cbo_pl119_21_2026``    → P.L. 119-21 provision bundle, deciles
+  (CBO's taxes-and-cash-transfers column only — see ``cbo_distributions``)
 
 The engine returns group labels (``"Middle Quintile"``, ``"$100k-$200k"``
 etc.) that differ from the benchmark labels; a label-map normalises them
@@ -54,6 +56,13 @@ _BENCHMARK_POLICIES: dict[str, tuple[str, IncomeGroupType]] = {
         "create_repeal_salt_cap",
         IncomeGroupType.JCT_DOLLAR,
     ),
+    # Phase D. CBO 61367's "federal taxes and cash transfers" column for
+    # P.L. 119-21 is dominated by the eight provisions scored line by line in
+    # ``specialized_pl119_21.py`` - the TCJA rate schedule, standard deduction,
+    # personal-exemption repeal, CTC, 199A, estate exemption, AMT and the SALT
+    # cap - which together are exactly ``create_tcja_extension(extend_all=True,
+    # keep_salt_cap=True)``. The mapping is that policy, not a new construction.
+    "cbo_pl119_21_2026": ("create_tcja_extension", IncomeGroupType.DECILE),
 }
 
 
