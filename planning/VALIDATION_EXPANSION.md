@@ -33,11 +33,11 @@ Deliverable: Tier 1 n≈10, pre-registered, CI-gated. Docs/README report "n, mea
 
 ## 2. Phase B — CBO *Options for Reducing the Deficit: 2025–2034* as a pre-registered battery
 
-76 options, each with a published 10-year effect and a stated baseline (Jan 2025), reposted with updates Oct 2025 ([CBO 60557](https://www.cbo.gov/publication/60557), [PDF](https://www.cbo.gov/system/files/2024-12/60557-budget-options.pdf)). Not referenced anywhere in the repo today.
+76 options, each with a published 10-year effect, built on CBO's **2024** baseline (Feb or June 2024 — confirm from the PDF front matter before entering targets), reposted with updates Oct 2025 ([CBO 60557](https://www.cbo.gov/publication/60557), [PDF](https://www.cbo.gov/system/files/2024-12/60557-budget-options.pdf)). Not referenced anywhere in the repo today.
 
 1. Extract the options table to `fiscal_model/data_files/validation/cbo_options_2025_2034.csv` (title, category, 10-yr $, page, option id) with a script and a provenance header.
 2. Classify each option by whether the **uncalibrated** path can express it: ordinary-rate changes (raise all rates 1pp; raise top two rates), surtaxes above $Y, LTCG rate changes, SS taxable-maximum changes, discretionary caps, one-time outlays. Expect **15–25 runnable**; the rest are documented as out of scope (structural benefit changes, Medicare payment rules, etc.).
-3. Enter each runnable option through the pre-registration manifest *before* scoring; score on the matching vintage (see §4); publish the full error distribution, including the misses.
+3. Enter each runnable option through the pre-registration manifest *before* scoring. **Vintage-match inside this phase**: `CBO_FEB_2024` is an independently sourced vintage (`baseline.py:28-44`), so score the battery with `FiscalPolicyScorer(baseline=CBOBaseline(start_year=2025, vintage=BaselineVintage.CBO_FEB_2024).generate())` — no new plumbing needed (validation code today only hard-codes the default at `core.py:314, 369`; nothing anywhere selects a vintage). Publish the full error distribution, including the misses.
 
 Deliverable: Tier 1 n≈25–35 with a genuine spread across tax and spending shapes. This is the highest credibility-per-hour item in the repo.
 
@@ -55,13 +55,13 @@ Deliverable: a defensible held-out error for ~19 currently circular entries, or 
 
 The plumbing exists and is unused: `FiscalPolicyScorer(baseline=CBOBaseline(start_year=…, vintage=BaselineVintage.CBO_FEB_2024).generate())` (`baseline.py:20-24, 216`; `scoring.py:48-61`). Validation code hard-codes the Feb-2026 baseline (`core.py:314, 369`), so a benchmark published on the Jan-2025 baseline is scored on Feb-2026 — baseline drift contaminates every error we report.
 
-1. Score each benchmark on the vintage it was published against; make `CBO_JAN_2025` an independently sourced vintage (today it is a 0.5-weight interpolation, `baseline.py:76-86`).
+1. Score each benchmark on the vintage it was published against. The interpolation problem is confined to benchmarks published on the **Jan-2025** baseline (P.L. 119-21 and its JCT/CBO estimates): `CBO_JAN_2025` is a 0.5-weight interpolation (`baseline.py:76-86`) and needs to become an independently sourced vintage before those targets are scored.
 2. **Enacted-law replications as cold predictions**: IIJA 2021 (+256), IRA 2022 (−90), Fiscal Responsibility Act 2023 (−1500), Social Security Fairness Act (+196), P.L. 119-21 — all `SpendingPolicy`/`TaxPolicy`-expressible, all stranded today. Record the prediction first, then look up the CBO score.
 3. **P.L. 119-21 provision-level**: JCT's estimate ([JCX-35-25](https://www.jct.gov), present-law baseline) gives line items for TCJA permanence, SALT cap $40K, tips/overtime, CTC $2,200, senior deduction, energy-credit terminations. These become *sourced* calibrated targets (replacing round numbers) and, for provisions the generic path can express, additional Tier 1 cases. CBO's [distributional analysis of P.L. 119-21](https://www.cbo.gov/publication/61367) and [dynamic estimate](https://www.cbo.gov/publication/61486) add a 7th real distributional table and a dynamic-scoring benchmark.
 
 ## 5. Phase E — provenance cleanup (may lower the count; raises honesty)
 
-1. Replace the 17 round-hundred calibrated targets with line-item sources (JCX tables, Green Book revenue tables, CBO cost estimates) or mark them `secondhand` in the scorecard and exclude them from the headline count.
+1. Replace the 17 round-hundred calibrated targets with line-item sources (JCX tables, Green Book revenue tables, CBO cost estimates) or mark them `secondhand` in the scorecard and exclude them from the headline count. While auditing: `fiscal_model/tcja.py:20` labels CBO publication 59710 as "CBO Budget Options" — it is the TCJA-extension cost letter behind the $4.6T target, the single most load-bearing calibrated benchmark; fix the citation.
 2. Remove non-published "benchmarks" from every count: `TPC_CORPORATE_RATE_INCREASE`, `TPC_CAPITAL_GAINS_INCREASE` (`distributional_validation.py:80,105`), `eliminate_estate_tax`, `trump_corporate_15`, `tcja_no_salt_cap`, `tcja_rates_only` (`scenarios.py`). Keep them as *illustrations*, labelled.
 3. Add the runners the 21 module-backed presets lack (`validate_all_international/_trade/_pharma/_enforcement/_climate`) so the calibrated tier reflects the modules that exist — labelled reconstructions, as now.
 
@@ -69,7 +69,7 @@ Net: the calibrated count may move 29 → ~45 while the headline *validated* cou
 
 ## 6. Phase F — distributional and microsim reach (later)
 
-Distributional validation is the strongest part of the stack (6 real tables, CI-gated, 0.0–2.5pp on TCJA/corporate). Growth here is bounded by what the CPS microsim can represent (no itemized deductions beyond SALT, no pass-through/199A, no PTC eligibility, no explicit HOH). Add CBO 61367 (P.L. 119-21) and TPC's OBBBA tables as targets, then let the misses drive microsim features (children-in-household for ARP is already queued in `NEXT_STEPS.md`).
+Distributional validation is the strongest part of the stack (6 real tables, CI-gated, 0.0–2.5pp on TCJA/corporate). Growth here is bounded by what the CPS microsim can represent (no itemized deductions beyond SALT, no pass-through/199A, no PTC eligibility, no explicit HOH). Add CBO 61367 (P.L. 119-21) and TPC's OBBBA tables as targets, then let the misses drive microsim features — `NEXT_STEPS.md` already queues "Sprint 2: Microsimulation hardening — MFJ brackets, SALT, AMT, EITC, NIIT" and "wire one interaction-heavy benchmark through the microsim path"; the ARP children-in-household gap is new and belongs on that list.
 
 ## 7. Sequencing and effort
 
@@ -82,4 +82,4 @@ Distributional validation is the strongest part of the stack (6 real tables, CI-
 | E — provenance cleanup, missing runners | 1 lane | — | count that survives a referee |
 | F — distributional reach | ongoing | — | |
 
-Recommended order: **A → B → C → D → E**, with the README/`docs/VALIDATION.md` rewritten after C to report the three numbers separately (OOS pre-registered; calibrated by construction; calibrated LOO). Run `python scripts/cold_holdout.py` after each phase and keep the anti-leakage invariant in `test_cold_holdout.py` (OOS error > calibrated error) — if it ever flips, something leaked.
+Recommended order: **A → B (with its own vintage matching) → C → D → E**, with the README/`docs/VALIDATION.md` rewritten after C to report the three numbers separately (OOS pre-registered; calibrated by construction; calibrated LOO). Run `python scripts/cold_holdout.py` after each phase and keep the anti-leakage invariant in `test_cold_holdout.py` (OOS error > calibrated error) — if it ever flips, something leaked.
