@@ -103,6 +103,103 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "Scored with the frozen module-default realization elasticities (0.8 / 0.4); the "
         "published estimates embed much stronger lock-in and avoidance responses.",
     ],
+    # -- Phase B: CBO Options for Reducing the Deficit, 2025-2034 -----------
+    # Out-of-sample battery. Every miss below is kept and explained; none of
+    # these cases had a parameter moved to close its gap.
+    "cbo_opt45_all_rates_1pp": [
+        "Scored on the SOI ordinary-income base with a single ETI (0.25); JCT's "
+        "estimate rises through the window partly because bracket creep pushes "
+        "income into higher rates, which the flat-base auto-population does not "
+        "reproduce.",
+    ],
+    "cbo_opt45_top4_brackets_2pp": [
+        "'The four highest brackets' is a filing-status-specific boundary that also "
+        "moves in 2026 when the pre-2018 rate schedule returns; the generic path "
+        "carries one fixed threshold (the 2025 single-filer 24% floor), which counts "
+        "joint filers below their own bracket boundary and over-states the base.",
+    ],
+    "cbo_opt46_agi_surtax_1pp_20k": [
+        "A $20,000 single / $40,000 joint threshold sits near the bottom of the "
+        "filing population, where the single-threshold approximation is worst: the "
+        "model applies the $20,000 floor to every return, so joint filers between "
+        "$20,000 and $40,000 of AGI are taxed in the model and exempt in JCT's "
+        "estimate - yet the model still under-predicts, because SOI aggregate AGI "
+        "above the floor understates the surtax base JCT uses.",
+        "No behavioural distinction between a broad low-threshold surtax and a "
+        "narrow high-income one: both erode by ETI x 0.5.",
+    ],
+    "cbo_opt46_agi_surtax_2pp_100k": [
+        "Single-filer threshold applied to all returns; the model has no "
+        "filing-status dimension.",
+    ],
+    "cbo_opt47_ltcg_qdiv_2pp": [
+        "A uniform +2pp applies to the 0%, 15% and 20% brackets alike, but the "
+        "model scores it against the SOI statutory-rate baseline for the *whole* "
+        "realizations base, so gains that face the 0% rate (and gains inside "
+        "retirement accounts and other non-taxable holders reflected in the SOI "
+        "aggregate) are taxed at the margin in the model and not in JCT's estimate.",
+        "The frozen 0.8/0.4 realization elasticities are calibrated for large rate "
+        "changes; at 2pp the timing response JCT assumes is proportionally larger.",
+    ],
+    "cbo_opt51_gains_at_death": [
+        "The entire score runs through one module constant - $54B of unrealized "
+        "gains transferred at death - taxed at the SOI baseline rate. CBO/JCT's "
+        "estimate is roughly six times larger because it accrues gains on the full "
+        "stock of appreciated assets held by decedents, not an annual realizations "
+        "aggregate.",
+        "No lock-in unwind: constructive realization at death removes the incentive "
+        "to hold appreciated assets, which raises lifetime realizations. The module "
+        "models that channel only through an elasticity multiplier that a zero rate "
+        "change leaves inert.",
+    ],
+    "cbo_opt61_new_payroll_tax_1pct": [
+        "Scored off the module's Medicare revenue identity ($400B at 2.9%, so ~$140B "
+        "per percentage point) grown at 4%/yr. That identity covers all Medicare "
+        "wages including the employer share, while CBO's option is employee-side "
+        "only and is reduced by the income-tax offset a new payroll tax generates - "
+        "neither adjustment exists in the module.",
+    ],
+    "cbo_opt61_new_payroll_tax_2pct": [
+        "Same Medicare-base identity as the 1% alternative, so the error is the same "
+        "proportional over-statement; the module is linear in the rate while CBO's "
+        "estimate is very nearly so, which is why the two errors barely differ.",
+    ],
+    "cbo_opt64_corporate_rate_1pp": [
+        "The corporate module scores a rate change against its own baseline "
+        "corporate revenue and profit aggregates. Those aggregates reproduce the "
+        "calibrated 21%->28% benchmark, but at a 1pp step the model over-predicts: "
+        "it applies the full statutory-rate delta to the whole base, whereas JCT's "
+        "estimate reflects credits, loss carryforwards and the timing of estimated "
+        "payments that blunt the first few years.",
+    ],
+    "cbo_opt37_international_affairs": [
+        "SpendingPolicy converts a budget-authority level directly into outlays. "
+        "CBO's option spends that authority out over several years (2026 outlays are "
+        "-$8B against -$23B of budget authority), so the model front-loads savings "
+        "the official estimate defers past the window.",
+    ],
+    "cbo_opt38_national_service": [
+        "Same budget-authority-to-outlay lag as Option 37; grant programs with slow "
+        "spend-out rates lose proportionally more of the 10-year total to the tail "
+        "beyond 2034.",
+    ],
+    "cbo_opt39_pell_eligibility": [
+        "Budget-authority-to-outlay lag, but Pell spends out almost immediately, "
+        "which is why this is the most accurate spending case.",
+        "The target is the discretionary outlay total only; CBO reports a separate "
+        "-$9.2B mandatory effect that this shape cannot represent.",
+    ],
+    "cbo_opt42_nondefense_discretionary": [
+        "Budget-authority-to-outlay lag on transportation and education grants.",
+    ],
+    "cbo_opt43_state_local_grants": [
+        "The 2026 budget authority (-$12.0B) is inflated by IIJA advance funding and "
+        "by the option's 25%-then-50% schedule, so anchoring a constant level on it "
+        "over-states every later year; CBO's own path drops to -$9.3B in 2027.",
+        "Infrastructure and block grants have the slowest spend-out rates in the "
+        "battery - CBO's 2026 outlay saving is -$0.4B against -$12.0B of budget "
+        "authority - so the lag costs this case more than any other spending option.",
+    ],
 }
 
 

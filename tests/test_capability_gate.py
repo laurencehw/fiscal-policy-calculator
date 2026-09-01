@@ -4,8 +4,15 @@ nearest validated benchmark, not with a raw number nobody has checked.
 
 Acceptance criterion from ``planning/redesign/REDESIGN_PLAN.md`` §9.3: a
 "score a 25% corporate rate" question comes back within ~2x of the
-interpolated official anchors (CBO/Treasury 21%->28% = -$1.35T implies
-21%->25% ~ -$0.77T), and never 5x off.
+interpolated official anchors, and never 5x off.
+
+Since the CBO Options battery landed (Phase B), a +4pp corporate request is
+*bracketed* by two official scores -- CBO Option 64 at +1pp (-$136B) and
+Treasury's 21%->28% at +7pp (-$1,347B) -- so rule 4 in
+``fiscal_model/assistant/benchmarks`` interpolates between them (-$741B)
+instead of scaling the single 28% anchor through the origin (-$770B). Two real
+anchors bracketing the request is the better of the two rules, and the 4%
+change leaves the §9.3 criterion comfortably satisfied.
 """
 
 from __future__ import annotations
@@ -25,8 +32,12 @@ from fiscal_model.scoring import FiscalPolicyScorer
 
 # Treasury FY2025 Green Book, corporate rate 21% -> 28%.
 CORPORATE_28_OFFICIAL = -1347.0
-# Straight-line scaling of that anchor to +4pp.
-CORPORATE_25_ANCHORED = CORPORATE_28_OFFICIAL * (0.04 / 0.07)
+# CBO, Options for Reducing the Deficit: 2025-2034, option 64: 21% -> 22%.
+CORPORATE_22_OFFICIAL = -135.7
+# +4pp is bracketed by the two, so the gate interpolates rather than scaling.
+CORPORATE_25_ANCHORED = CORPORATE_22_OFFICIAL + (
+    CORPORATE_28_OFFICIAL - CORPORATE_22_OFFICIAL
+) * ((0.04 - 0.01) / (0.07 - 0.01))
 
 
 @pytest.fixture(scope="module")
@@ -52,7 +63,9 @@ class TestAnchorSelection:
     def test_corporate_increase_anchors_on_the_same_direction_score(self):
         anchors = candidate_anchors("corporate_tax", 0.04)
         assert anchors, "no corporate anchor found"
-        assert anchors[0].policy_id == "biden_corporate_28"
+        # Ordered nearest-first on rate change: +1pp (CBO Option 64) then +7pp.
+        assert anchors[0].policy_id == "cbo_opt64_corporate_rate_1pp"
+        assert "biden_corporate_28" in {a.policy_id for a in anchors}
         # The 2017 cut runs off a 35% base; it must not be mixed in.
         assert all(a.rate_change > 0 for a in anchors)
 
@@ -70,12 +83,27 @@ class TestAnchorSelection:
         assert candidate_anchors("estate_tax", 0.05) == []
         assert candidate_anchors("corporate_tax", 0.0) == []
 
-    def test_scaling_through_the_origin(self):
+    def test_interpolates_between_two_bracketing_anchors(self):
         anchors = candidate_anchors("corporate_tax", 0.04)
         interp = interpolate_from_anchors(anchors, 0.04)
         assert interp is not None
         assert interp["estimate_ten_year_billions"] == pytest.approx(
             CORPORATE_25_ANCHORED, abs=1.0
+        )
+        assert "linear interpolation" in interp["method"]
+        assert set(interp["anchors_used"]) == {
+            "cbo_opt64_corporate_rate_1pp",
+            "biden_corporate_28",
+        }
+
+    def test_scaling_through_the_origin(self):
+        """Outside the anchors' range there is nothing to interpolate between,
+        so the nearest anchor is scaled through the origin."""
+        anchors = candidate_anchors("corporate_tax", 0.10)
+        interp = interpolate_from_anchors(anchors, 0.10)
+        assert interp is not None
+        assert interp["estimate_ten_year_billions"] == pytest.approx(
+            CORPORATE_28_OFFICIAL * (0.10 / 0.07), abs=1.0
         )
         assert "scaling through the origin" in interp["method"]
         assert interp["anchors_used"] == ["biden_corporate_28"]

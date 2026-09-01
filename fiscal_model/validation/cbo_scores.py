@@ -859,8 +859,6 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         scoring_vintage="cbo_feb_2024",
         notes="CBO Options 2025-2034, option 45, alternative 1 (report p. 55). "
               "Estimated by the staff of the Joint Committee on Taxation.",
-        runnable=False,
-        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
     ),
 
     "cbo_opt45_top4_brackets_2pp": CBOScore(
@@ -883,8 +881,6 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2025,
         scoring_vintage="cbo_feb_2024",
         notes="CBO Options 2025-2034, option 45, alternative 2 (report p. 55).",
-        runnable=False,
-        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
     ),
 
     "cbo_opt46_agi_surtax_1pp_20k": CBOScore(
@@ -906,8 +902,6 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         agi_inclusive_base=True,
         notes="CBO Options 2025-2034, option 46, alternative 1 (report p. 56). "
               "Single-filer threshold; the model has no filing-status dimension.",
-        runnable=False,
-        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
     ),
 
     "cbo_opt46_agi_surtax_2pp_100k": CBOScore(
@@ -928,8 +922,6 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         scoring_vintage="cbo_feb_2024",
         agi_inclusive_base=True,
         notes="CBO Options 2025-2034, option 46, alternative 2 (report p. 56).",
-        runnable=False,
-        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
     ),
 
     "cbo_opt47_ltcg_qdiv_2pp": CBOScore(
@@ -950,8 +942,6 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         scoring_vintage="cbo_feb_2024",
         notes="CBO Options 2025-2034, option 47 (report p. 57). Applies to every "
               "rate bracket, so the threshold is zero.",
-        runnable=False,
-        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
     ),
 
     "cbo_opt51_gains_at_death": CBOScore(
@@ -975,8 +965,6 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         notes="CBO Options 2025-2034, option 51, alternative 2 (report p. 61). "
               "No rate change and no per-decedent exclusion, so the whole score "
               "runs through the module's gains-at-death channel.",
-        runnable=False,
-        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
     ),
 
     "cbo_opt61_new_payroll_tax_1pct": CBOScore(
@@ -996,8 +984,6 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         notes="CBO Options 2025-2034, option 61, alternative 1 (report p. 72). "
               "Scored on the Medicare base (all covered earnings, no taxable "
               "maximum), which is this option's base.",
-        runnable=False,
-        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
     ),
 
     "cbo_opt61_new_payroll_tax_2pct": CBOScore(
@@ -1015,8 +1001,6 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2025,
         scoring_vintage="cbo_feb_2024",
         notes="CBO Options 2025-2034, option 61, alternative 2 (report p. 72).",
-        runnable=False,
-        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
     ),
 
     "cbo_opt64_corporate_rate_1pp": CBOScore(
@@ -1035,8 +1019,6 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2025,
         scoring_vintage="cbo_feb_2024",
         notes="CBO Options 2025-2034, option 64 (report p. 75).",
-        runnable=False,
-        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
     ),
 
     "cbo_opt37_international_affairs": CBOScore(
@@ -1058,8 +1040,6 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         notes="CBO Options 2025-2034, option 37 (report p. 46). Annual level is "
               "CBO's own first-year budget authority; the target is CBO's 10-year "
               "outlay total, so the residual is the budget-authority-to-outlay lag.",
-        runnable=False,
-        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
     ),
 
     "cbo_opt38_national_service": CBOScore(
@@ -1080,8 +1060,6 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         annual_growth_rate=0.02,
         spending_category="nondefense",
         notes="CBO Options 2025-2034, option 38 (report p. 47).",
-        runnable=False,
-        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
     ),
 
     "cbo_opt39_pell_eligibility": CBOScore(
@@ -1104,8 +1082,6 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         notes="CBO Options 2025-2034, option 39 (report p. 48). Target is the "
               "discretionary outlay total; the separate -$9.2B mandatory effect is "
               "outside this shape.",
-        runnable=False,
-        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
     ),
 
     "cbo_opt42_nondefense_discretionary": CBOScore(
@@ -1127,8 +1103,6 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         spending_category="nondefense",
         notes="CBO Options 2025-2034, option 42 (report p. 51). Annual level is "
               "CBO's first-year spending authority.",
-        runnable=False,
-        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
     ),
 
     "cbo_opt43_state_local_grants": CBOScore(
@@ -1151,8 +1125,6 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         notes="CBO Options 2025-2034, option 43, total row (report pp. 52-53). "
               "The first-year budget authority is inflated by IIJA advance funding, "
               "which the level shape then carries across the whole window.",
-        runnable=False,
-        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
     ),
 }
 

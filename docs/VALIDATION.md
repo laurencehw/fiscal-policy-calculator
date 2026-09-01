@@ -8,37 +8,84 @@
 
 ## Executive Summary
 
-The model is benchmarked against **30+ official estimates** from CBO, JCT, Treasury, PWBM, and TPC. Crucially, those benchmarks fall into **two epistemically different tiers**, and reporting them together overstates predictive power. Both are reproducible live: `python scripts/cold_holdout.py`. Tier 1 is additionally **pre-registered** (`fiscal_model/validation/preregistered.py`) and **CI-gated**.
+The model is benchmarked against **50+ official estimates** from CBO, JCT, Treasury, PWBM, and TPC. Crucially, those benchmarks fall into **two epistemically different tiers**, and reporting them together overstates predictive power. Both are reproducible live: `python scripts/cold_holdout.py`. Tier 1 is additionally **pre-registered** (`fiscal_model/validation/preregistered.py`) and **CI-gated**.
 
 ### Tier 1 — Out-of-sample predictions (the genuine test)
 
-Policies scored **bottom-up from IRS SOI** via raw rate/threshold auto-population (and, for capital gains, one frozen elasticity set), with **no fitting to the official target**. This is the only tier that measures predictive accuracy.
+Policies scored **bottom-up** — IRS SOI filer counts and incomes via raw rate/threshold auto-population, the modules' own revenue identities, and spending levels stated by the source — with **no fitting to the official target** (and, for capital gains, one frozen elasticity set). This is the only tier that measures predictive accuracy.
 
-> **9 out-of-sample cases, mean abs error 44.8%, 5/9 within 15%, 6/9 within 25%.**
+> **23 out-of-sample cases, mean abs error 43.4%, 6/23 within 15%, 12/23 within 25%** (median 23.1%).
 > There is deliberately no single "validated within X%" number: the distribution has a tight core and a long tail, and collapsing it would hide the tail.
 
 | Case | Official | Model | Err | Source (date) | Baseline the source used | Pre-registered at |
 |------|---------:|------:|----:|---------------|--------------------------|-------------------|
-| Medicare surcharge 2pp (>$400K) | -$310B | -$315B | 2% | Treasury (2024) | Green Book FY2025 | `6c9bfa2` |
+| Medicare surcharge 2pp (>$400K) | -$310B | -$315B | 1% | Treasury (2024) | Green Book FY2025 | `6c9bfa2` |
 | 1pp all brackets | -$960B | -$935B | 3% | JCT (2023-01) | CBO Feb 2023 | `be7e947` |
 | 5pp top rate ($1M+) | -$700B | -$648B | 7% | TPC (2023-06) | CBO Feb 2023 | `be7e947` |
 | 2pp rate cut ($500K+) | +$400B | +$364B | 9% | TPC (2023-06) | CBO Feb 2023 | `be7e947` |
-| Biden top rate 39.6% ($400K+) | -$252B | -$284B | 13% | Treasury (2024-03) | Green Book FY2025 | `be7e947` |
-| Warren surtax 3pp (AGI >$2M) | -$350B | -$284B | 19% | TPC (2020) | unstated (secondhand) | `6c9bfa2` |
-| Biden cap gains 39.6% + gains at death | -$456B | -$817B | 79% | Treasury (2024-03) | Green Book FY2025 | `be7e947`, first scored `6c9bfa2` |
+| Tighten Pell grant eligibility | -$22B | -$24B | 10% | CBO Options 2025-2034 #39 (2024-12) | CBO June 2024 (scored on Feb 2024) | `752f0f1` |
+| Biden top rate 39.6% ($400K+) | -$252B | -$285B | 13% | Treasury (2024-03) | Green Book FY2025 | `be7e947` |
+| AGI surtax 2pp (>$100K single) | -$1,051B | -$882B | 16% | CBO Options 2025-2034 #46 (2024-12) | CBO Feb 2024 (matched) | `752f0f1` |
+| Cut selected nondefense discretionary | -$339B | -$400B | 18% | CBO Options 2025-2034 #42 (2024-12) | CBO June 2024 (scored on Feb 2024) | `752f0f1` |
+| Warren surtax 3pp (AGI >$2M) | -$350B | -$283B | 19% | TPC (2020) | unstated (secondhand) | `6c9bfa2` |
+| Cut international affairs 25% | -$187B | -$224B | 20% | CBO Options 2025-2034 #37 (2024-12) | CBO June 2024 (scored on Feb 2024) | `752f0f1` |
+| All ordinary rates +1pp | -$1,185B | -$935B | 21% | CBO Options 2025-2034 #45 (2024-12) | CBO Feb 2024 (matched) | `752f0f1` |
+| End national community service funding | -$10B | -$13B | 23% | CBO Options 2025-2034 #38 (2024-12) | CBO June 2024 (scored on Feb 2024) | `752f0f1` |
+| Top four ordinary brackets +2pp | -$570B | -$716B | 26% | CBO Options 2025-2034 #45 (2024-12) | CBO Feb 2024 (matched) | `752f0f1` |
+| AGI surtax 1pp (>$20K single) | -$1,440B | -$797B | 45% | CBO Options 2025-2034 #46 (2024-12) | CBO Feb 2024 (matched) | `752f0f1` |
+| Corporate rate +1pp (21% to 22%) | -$136B | -$200B | 47% | CBO Options 2025-2034 #64 (2024-12) | CBO Feb 2024 (matched) | `752f0f1` |
+| New 1% payroll tax (all earnings) | -$1,282B | -$1,975B | 54% | CBO Options 2025-2034 #61 (2024-12) | CBO Feb 2024 (matched) | `752f0f1` |
+| New 2% payroll tax (all earnings) | -$2,540B | -$3,950B | 56% | CBO Options 2025-2034 #61 (2024-12) | CBO Feb 2024 (matched) | `752f0f1` |
+| Cut certain state and local grants | -$67B | -$117B | 75% | CBO Options 2025-2034 #43 (2024-12) | CBO June 2024 (scored on Feb 2024) | `752f0f1` |
+| Biden cap gains 39.6% + gains at death | -$456B | -$817B | 79% | Treasury (2024-03) | Green Book FY2025 | `be7e947`, scored `6c9bfa2` |
+| Tax accrued gains at death | -$536B | -$84B | 84% | CBO Options 2025-2034 #51 (2024-12) | CBO Feb 2024 (matched) | `752f0f1` |
+| LTCG + qualified dividends +2pp | -$103B | -$206B | 99% | CBO Options 2025-2034 #47 (2024-12) | CBO Feb 2024 (matched) | `752f0f1` |
 | Top rate to 45% (+8pp >$609,350) | -$420B | -$916B | 118% | TPC (2023) | unstated (secondhand) | `6c9bfa2` |
-| Treasury 39.6% + step-up repeal | -$322B | -$817B | 154% | Treasury (2021-05) | Green Book FY2022 | `d11bf2c`, first scored `6c9bfa2` |
+| Treasury 39.6% + step-up repeal | -$322B | -$817B | 154% | Treasury (2021-05) | Green Book FY2022 | `d11bf2c`, scored `6c9bfa2` |
 
 Live figures: `python scripts/cold_holdout.py`. Rows are the `Generic` category of the scorecard; every one has a row in [`fiscal_model/validation/preregistered.py`](../fiscal_model/validation/preregistered.py).
 
-**What the tight core shows.** Ordinary-bracket rate changes (JCT 1pp, Biden $400K) score on the ordinary-income base (excludes preferential LTCG/QDIV); AGI-inclusive surtaxes (TPC $1M+/$500K+, Warren, the Medicare surcharge) score on the full taxable-income base that includes the preferential portion. The classification comes from how each source describes its base, not from which choice fits better — the `cold_holdout.py --ordinary-base` diagnostic shows the correction *worsens* the AGI-inclusive cases (7→30%, 9→30%, 2→29%), which is the tell. For ordinary and AGI-inclusive rate changes in this range, **treat uncalibrated custom policies as directional, ±15-20%.**
+#### The CBO Options battery (Phase B)
 
-**What the tail shows.** Three cases miss badly and are kept rather than tuned away; each carries a `known_limitations` note in the scorecard:
+Fourteen of the 23 cases come from CBO, *Options for Reducing the Deficit: 2025 to 2034* ([publication 60557](https://www.cbo.gov/publication/60557), December 2024; reposted with updates October 2025) — 76 independently scored single-provision options, the largest such published set that exists. They are extracted to `fiscal_model/data_files/validation/cbo_options_2025_2034.csv` (one row per option, from Table 1-1) and `..._alternatives.csv` (one row per reported line in each option's own table) by [`scripts/extract_cbo_options.py`](../scripts/extract_cbo_options.py), and classified in [`fiscal_model/validation/cbo_options.py`](../fiscal_model/validation/cbo_options.py).
+
+**14 runnable alternatives across 11 options; 65 options out of scope, each with a one-line reason.** `tests/test_cbo_options.py` asserts the accounting closes, so no option is silently dropped. Reasons, tallied:
+
+| Why not runnable | n |
+|------------------|--:|
+| Mandatory program-rule change (benefit formula, eligibility, payment rate). CBO publishes no funding-level *input* distinct from the outlay path being predicted, so feeding the first-year outlay back in would make the "prediction" an aggregation of the target itself. | 27 |
+| Revenue base or instrument with no module: excise, VAT, financial transactions, accounting-method timing, filing status, deduction bases, bond and fee schedules, non-covered employment. | 23 |
+| Discretionary path that is a ramp, wind-down or declining caseload rather than a level `SpendingPolicy` can express (Options 28-36, 40, 41, 44). | 12 |
+| **Leakage.** The module constant that would score it was calibrated to reproduce that same reform from another source: Option 53 (NIIT expansion — the module's $25B/yr is fitted to JCT's estimate of it), Option 56 (employer health — the tax-expenditure annual), Option 62 (Social Security taxable maximum — the covered-wage bands are anchored to reproduce the Trustees' 90%-coverage and $250K-donut annuals). | 3 |
+
+Excluding Option 62 costs the battery its two largest payroll targets, and that is the point: scoring them would have measured bookkeeping, exactly what Tier 2's by-construction number already measures.
+
+**Which spending options qualify** is decided mechanically, not case by case. `SpendingPolicy` produces `level × 1.02**t`, so `is_level_budget_authority_path()` requires CBO's *own* published budget-authority path to stay within 25% of that profile from the first effective year. Five options pass (37, 38, 39, 42, 43); twelve fail. The test is applied to CBO's numbers, never the model's.
+
+**Baseline vintage.** The report states its baselines on page 2: revenue options are measured against CBO's **February 2024** baseline (pub. 59710), spending options against the **June 2024** baseline (pub. 60039). The battery is scored on `BaselineVintage.CBO_FEB_2024` through the new `build_scorer_for_vintage()` in `validation/core.py`; the repository has no June-2024 vintage, and that mismatch is written on every spending row of the manifest rather than left implicit.
+
+Worth stating plainly, because it is a negative result: **vintage matching moves none of these 14 scores.** The two baselines really do differ ($61.8T vs $61.5T of projected revenue), but every uncalibrated shape is bottom-up — SOI filer counts, the module's Medicare revenue identity, a source-stated budget-authority level — and none of them reads a level off the baseline. Baseline drift is a real contaminant for shapes that scale off baseline aggregates (Phase D's concern); it is not one here. The plumbing is in place and honoured, and that is what it buys.
+
+**Effective dates are the source's.** A spending option that takes effect in October 2025 is scored from FY2026, not FY2025, so the model is not credited with a year of effect the official estimate never scored. `effective_start_year` is read from CBO's own table, pre-registered before scoring, and never adjusted afterwards.
+
+#### The misses, grouped by cause
+
+Every miss is kept and carries a `known_limitations` note in the scorecard. Five causes account for all of them:
+
+1. **Budget-authority-to-outlay lag (spending, 5 cases, 18-75%).** `SpendingPolicy` turns an annual funding level straight into outlays; CBO spends that authority out over several years. Option 37 saves -$8B of outlays in 2026 against -$23B of budget authority. The four fast-spending programs land at 10-23%; Option 43 (infrastructure and block grants, the slowest spend-out in the battery, -$0.4B of outlays against -$12.0B of authority in 2026, plus a first year inflated by IIJA advance funding) lands at 75%. This is the single most valuable thing the battery has surfaced: the spending shape has no spend-out model at all.
+2. **One threshold standing in for a filing-status-specific boundary (2 cases, 26% and 45%).** "The four highest brackets" and "AGI above $20,000 single / $40,000 joint" are boundaries the generic path cannot express; it carries one number. The error is largest at the low threshold (Option 46 alternative 1, 45%), where the mis-assignment covers most of the filing population.
+3. **Module revenue identities applied at the margin (3 cases, 47-99%).** The payroll shape scores a new tax on all earnings off the Medicare identity ($400B at 2.9%), which includes the employer share and no income-tax offset, so it over-predicts by ~55% at both 1% and 2%. The corporate shape applies the full statutory-rate delta to the whole base, over-predicting a 1pp step by 47%. The LTCG shape applies +2pp to the entire SOI realizations aggregate including gains that face the 0% rate, and misses by 99%.
+4. **Capital-gains behaviour and the stock of gains at death (3 cases, 79-154%).** The two legacy Treasury cases share one shape and two targets 42% apart. Option 51 is the new information: scoring constructive realization at death runs the whole estimate through one module constant — $54B of gains transferred at death — and under-predicts CBO by 84%, because CBO accrues gains on the stock of appreciated assets held by decedents rather than an annual realizations flow.
+5. **A single ETI at a large rate change, against a secondhand target (1 case, 118%).** Unchanged from Phase A; see below.
+
+**Honest reading**: the model predicts ordinary and AGI-inclusive *rate* changes at conventional thresholds well (1-21%), fast-spending discretionary funding cuts adequately (10-23%), and everything behavioural — capital-gains realizations, gains at death, payroll incidence — badly. Phase A's 9-case 44.8% and Phase B's 23-case 43.4% are the same story on four times the evidence: widening the battery did not move the mean, it explained it.
+
+**What the tight core shows.** Ordinary-bracket rate changes (JCT 1pp, Biden $400K, CBO Option 45) score on the ordinary-income base (excludes preferential LTCG/QDIV); AGI-inclusive surtaxes (TPC $1M+/$500K+, Warren, the Medicare surcharge, CBO Option 46) score on the full taxable-income base that includes the preferential portion. The classification comes from how each source describes its base, not from which choice fits better — the `cold_holdout.py --ordinary-base` diagnostic shows the correction *worsens* the AGI-inclusive cases (7→30%, 9→30%, 2→29%), which is the tell. For ordinary and AGI-inclusive rate changes in this range, **treat uncalibrated custom policies as directional, ±15-25%.**
+
+**The two Phase A tail cases**, unchanged:
 
 - **Top rate to 45% (118%).** The uncalibrated path applies a single ETI (0.25) with the standard 0.5 factor, so an 8pp top-rate increase erodes by only ~12.5% while published top-rate estimates assume a much larger response at that rate level. The target is also suspect: at -$420B it is *smaller* than this database's own +5pp-above-$1M TPC figure (-$700B), i.e. a bigger rate increase on a wider base raising less. Part of this error is target error, and the provenance is a "TPC-range" figure with a bare homepage URL (Phase E).
-- **The two capital-gains cases (79%, 154%).** Both are "39.6% above $1M plus step-up elimination", so the frozen-elasticity path necessarily produces the same prediction (-$817B) for both — while the two published targets differ from each other by 42% (-$322B vs -$456B, different Green Books three years apart). Treasury, JCT and PWBM all assume far stronger lock-in at a 43.4% top rate; the calibrated `CapitalGains` runner needs case-specific multipliers up to 5.3x to reproduce them. This is exactly the parameter Phase C is meant to cross-validate.
-
-**Honest reading**: the model predicts ordinary and AGI-inclusive *rate* changes well and capital-gains *behavioural* responses badly. The four-case ~8% figure this table replaces was not wrong, but it was measured on four friendly shapes; widening the battery moved the mean to 44.8% and that is the more useful number.
+- **The two Treasury capital-gains cases (79%, 154%).** Both are "39.6% above $1M plus step-up elimination", so the frozen-elasticity path necessarily produces the same prediction (-$817B) for both — while the two published targets differ from each other by 42% (-$322B vs -$456B, different Green Books three years apart). Treasury, JCT and PWBM all assume far stronger lock-in at a 43.4% top rate; the calibrated `CapitalGains` runner needs case-specific multipliers up to 5.3x to reproduce them. CBO Option 47 now adds a *third* capital-gains data point with no step-up component at all, and it misses by 99% in the opposite direction (over-prediction), which localises the problem to the realizations base rather than only the elasticities.
 
 ### Pre-registration
 
@@ -52,7 +99,7 @@ The discipline the manifest enforces (`assert_preregistered`, tested in `tests/t
 
 Honest boundary, as with [`holdout.py`](../fiscal_model/validation/holdout.py): these are previously published numbers, and Phase A registered targets that already existed in the repository or in `CBO_SCORE_MAP`. What the manifest guarantees is that *from the entry commit onward* the target is frozen and any change is visible — not that nobody had ever seen the number.
 
-**CI gate.** `.github/workflows/validation-dashboard.yml` runs `python scripts/cold_holdout.py --max-mean-error 60 --min-within-25pct 5` as a blocking step, and strict readiness (`scripts/check_readiness.py --strict`) no longer exempts Generic entries: an `Error` rating fails, and a `Poor` rating fails unless it carries a documented `known_limitations` note.
+**CI gate.** `.github/workflows/validation-dashboard.yml` runs `python scripts/cold_holdout.py --max-mean-error 55 --min-within-25pct 11` as a blocking step (re-derived in Phase B from 60/5 by the workflow's own rule: ceiling = ceil(mean x 1.25) to the nearest 5; floor = current count within 25%, minus one), and strict readiness (`scripts/check_readiness.py --strict`) no longer exempts Generic entries: an `Error` rating fails, and a `Poor` rating fails unless it carries a documented `known_limitations` note.
 
 ### Tier 2 — Calibrated reference models (reconstructions, not confirmations)
 

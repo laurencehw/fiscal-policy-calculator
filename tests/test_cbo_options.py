@@ -210,3 +210,44 @@ def test_spending_options_take_effect_the_year_cbo_says():
             KNOWN_SCORES[entry.score_id].effective_start_year
             == first_effective_year(alternative.annual_savings_billions)
         )
+
+
+# ── Vintage matching ───────────────────────────────────────────────────────
+
+
+def test_scorer_honours_a_requested_baseline_vintage():
+    """The battery's targets were published on a 2024 baseline, so the runner
+    must be able to score them on one."""
+    from fiscal_model.baseline import BaselineVintage
+    from fiscal_model.validation.core import build_scorer_for_vintage
+
+    matched = build_scorer_for_vintage(BaselineVintage.CBO_FEB_2024)
+    default = build_scorer_for_vintage(None)
+
+    # The two baselines really are different projections, so a shape that reads
+    # off baseline levels would move between them. (None of the 14 Phase B
+    # shapes does: they are bottom-up from SOI filer counts, module revenue
+    # identities and source-stated spending levels, so vintage matching is
+    # wired end-to-end here without changing any of their scores. It matters for
+    # shapes that scale off a baseline level - Phase D's concern.)
+    assert float(matched.baseline.total_revenues.sum()) != pytest.approx(
+        float(default.baseline.total_revenues.sum())
+    )
+
+
+def test_records_without_a_vintage_keep_the_default_scorer():
+    """Vintage matching must not disturb the pre-Phase-B cases."""
+    from fiscal_model.validation.core import _resolve_vintage
+
+    assert _resolve_vintage(KNOWN_SCORES["illustrative_1pp_all"]) is None
+
+
+def test_unknown_vintage_string_falls_back_to_the_default():
+    import dataclasses
+
+    from fiscal_model.validation.core import _resolve_vintage
+
+    bogus = dataclasses.replace(
+        KNOWN_SCORES["cbo_opt45_all_rates_1pp"], scoring_vintage="cbo_never_2099"
+    )
+    assert _resolve_vintage(bogus) is None

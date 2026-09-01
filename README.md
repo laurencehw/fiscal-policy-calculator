@@ -81,7 +81,7 @@ This project is a **validated scoring core with experimental interfaces around i
 
 | Tier | What it covers | Trust level |
 |------|----------------|-------------|
-| **🟢 Core — validated** | Revenue scoring (static + behavioral), distributional analysis (return-level CPS microsim), dynamic scoring (FRB/US-calibrated) | Benchmarked against published CBO/JCT/Treasury scores. **Honest accuracy is published, not just the flattering cases:** calibrated reference models reproduce official decompositions (~5% revenue, ≤3pp distributional mean; live 4.4%, run `scripts/cold_holdout.py`); genuine *out-of-sample* predictions across 9 pre-registered cases run 44.8% mean error, 5/9 within 15%, 6/9 within 25% (`python scripts/cold_holdout.py`). |
+| **🟢 Core — validated** | Revenue scoring (static + behavioral), distributional analysis (return-level CPS microsim), dynamic scoring (FRB/US-calibrated) | Benchmarked against published CBO/JCT/Treasury scores. **Honest accuracy is published, not just the flattering cases:** calibrated reference models reproduce official decompositions (~5% revenue, ≤3pp distributional mean; live 4.4%, run `scripts/cold_holdout.py`); genuine *out-of-sample* predictions across 23 pre-registered cases run 43.4% mean error, 6/23 within 15%, 12/23 within 25% (`python scripts/cold_holdout.py`). |
 | **🟡 Specialized — calibrated, narrower** | The 14 policy-area modules (TCJA, corporate, international, estate, payroll, AMT, PTC, tax expenditures, enforcement, pharma, trade/tariff, climate), state-level modeling (top-10 states), OLG generational model | Each is parameterized to reproduce a published score. Trustworthy as transparent reconstructions and for directional comparison; not independent confirmation. State and OLG use a representative taxpayer / reduced form. |
 | **🔵 Exploratory — interfaces & pipelines** | Ask assistant, Real-Time Bill Tracker, Classroom Mode, multi-model pilot platform, admin dashboard, share links | Reading, teaching, and data-plumbing layers *over* the model — useful and guard-railed (e.g. the assistant is citation-disciplined and cost-capped), but **not themselves validated estimates**. The bill tracker's LLM provision extraction in particular is demo-grade. |
 
@@ -95,19 +95,26 @@ Revenue validation comes in **two epistemically different kinds**, and we report
 
 These policies are scored **bottom-up from IRS SOI** filer counts and incomes via raw rate/threshold auto-population, with **no fitting to the official target**. This is the only tier that measures real predictive accuracy.
 
+Fourteen of the 23 cases are the [CBO *Options for Reducing the Deficit: 2025-2034*](https://www.cbo.gov/publication/60557) battery — 14 of that report's 76 options are expressible by the uncalibrated path, the other 62 carry a one-line exclusion reason. Selected rows (full table and per-case error causes in [`docs/VALIDATION.md`](docs/VALIDATION.md)):
+
 | Policy | Official | Model | Error | Source |
 |--------|---------:|------:|------:|--------|
-| Medicare surcharge 2pp (>\$400K) | -\$310B | -\$315B | 2% | Treasury |
+| Medicare surcharge 2pp (>\$400K) | -\$310B | -\$315B | 1% | Treasury |
 | 1pp all brackets | -\$960B | -\$935B | 3% | JCT |
 | 5pp top rate (\$1M+) | -\$700B | -\$648B | 7% | TPC |
-| 2pp rate cut (\$500K+) | +\$400B | +\$364B | 9% | TPC |
-| Biden top rate 39.6% (\$400K+) | -\$252B | -\$284B | 13% | Treasury |
-| Warren surtax 3pp (AGI >\$2M) | -\$350B | -\$284B | 19% | TPC |
-| Biden cap gains 39.6% + gains at death | -\$456B | -\$817B | 79% | Treasury |
+| Tighten Pell grant eligibility | -\$22B | -\$24B | 10% | CBO Options #39 |
+| Biden top rate 39.6% (\$400K+) | -\$252B | -\$285B | 13% | Treasury |
+| Cut selected nondefense discretionary | -\$339B | -\$400B | 18% | CBO Options #42 |
+| All ordinary rates +1pp | -\$1,185B | -\$935B | 21% | CBO Options #45 |
+| Corporate rate +1pp (21%→22%) | -\$136B | -\$200B | 47% | CBO Options #64 |
+| New 1% payroll tax (all earnings) | -\$1,282B | -\$1,975B | 54% | CBO Options #61 |
+| Cut certain state and local grants | -\$67B | -\$117B | 75% | CBO Options #43 |
+| Tax accrued gains at death | -\$536B | -\$84B | 84% | CBO Options #51 |
+| LTCG + qualified dividends +2pp | -\$103B | -\$206B | 99% | CBO Options #47 |
 | Top rate to 45% (+8pp) | -\$420B | -\$916B | 118% | TPC |
 | Treasury 39.6% + step-up repeal | -\$322B | -\$817B | 154% | Treasury |
 
-**9 out-of-sample cases, mean abs error 44.8%, 5/9 within 15%, 6/9 within 25%** (`python scripts/cold_holdout.py`). There is deliberately no single "validated within X%" figure: the distribution has a tight core and a long tail. Ordinary-bracket rate changes (JCT 1pp, Biden $400K) score on the ordinary-income base (excludes preferential LTCG/QDIV); AGI-inclusive surtaxes (TPC $1M+/$500K+, Warren, the Medicare surcharge) score on the full taxable-income base — a classification taken from how each source describes its base, not from which choice fits better (the `cold_holdout.py --ordinary-base` diagnostic shows the correction *worsens* the AGI-inclusive cases, the tell). The three tail cases are kept, not tuned away: the +8pp top-rate target is secondhand and internally inconsistent with this same database's +5pp figure, and the two capital-gains cases share one shape while their two published targets differ from each other by 42%. Every case is **pre-registered** ([`fiscal_model/validation/preregistered.py`](fiscal_model/validation/preregistered.py)) and the tier is **CI-gated** (`--max-mean-error 60 --min-within-25pct 5`). Treat uncalibrated custom rate policies as **directional, ±15-20%**, and uncalibrated capital-gains policies as not yet predictive.
+**23 out-of-sample cases, mean abs error 43.4%, 6/23 within 15%, 12/23 within 25%** (median 23.1%; `python scripts/cold_holdout.py`). There is deliberately no single "validated within X%" figure: the distribution has a tight core and a long tail. The model predicts ordinary and AGI-inclusive *rate* changes at conventional thresholds well (1-21%) and fast-spending discretionary funding cuts adequately (10-23%); everything behavioural — capital-gains realizations, gains at death, payroll incidence — it predicts badly (47-154%). Misses are kept, not tuned away, and each carries a documented structural cause: the spending shape has no budget-authority-to-outlay spend-out model; the generic path carries one threshold where the source states a filing-status-specific boundary; module revenue identities over-state a marginal base. Every case is **pre-registered** ([`fiscal_model/validation/preregistered.py`](fiscal_model/validation/preregistered.py)) *before* the commit that first scores it, and the tier is **CI-gated** (`--max-mean-error 55 --min-within-25pct 11`). Treat uncalibrated custom rate policies as **directional, ±15-25%**, and uncalibrated capital-gains, payroll and spending policies as not yet predictive.
 
 #### 2. Calibrated reference models — transparent reconstructions, not independent confirmation
 

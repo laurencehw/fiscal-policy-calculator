@@ -27,10 +27,14 @@ The interpolation rule, stated once so it can be argued with:
    a valid anchor point.
 
 Worked example (the acceptance case in the redesign plan §9.3): a 21% -> 25%
-corporate rate is ``rate_change=+0.04``. The only same-sign corporate anchor
-is Treasury's 21% -> 28% at -\\$1,347B, so the estimate is
-``-1347 * 0.04/0.07 = -$770B`` — the number the answer must be anchored to,
-rather than whatever the engine happens to return.
+corporate rate is ``rate_change=+0.04``. Two same-sign corporate anchors
+bracket it — CBO's Option 64 (21% -> 22%) at -\\$136B and Treasury's
+21% -> 28% at -\\$1,347B — so rule 4 interpolates:
+``-136 + (-1347 + 136) * (0.04-0.01)/(0.07-0.01) = -$741B``. That is the number
+the answer must be anchored to, rather than whatever the engine happens to
+return. (Before the CBO Options battery supplied the +1pp anchor, the same
+request fell back on rule 4's second clause and scaled the 28% anchor through
+the origin to -\\$770B.)
 """
 
 from __future__ import annotations
