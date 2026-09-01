@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from ..baseline import BaselineVintage, CBOBaseline
 from ..policies import (
     CapitalGainsPolicy,
     Policy,
@@ -18,6 +19,10 @@ from ..policies import (
 )
 from ..scoring import FiscalPolicyScorer
 from .cbo_scores import CBOScore, get_validation_targets, validation_shape
+
+#: Fiscal year the validation window opens on. A record may override it with
+#: ``effective_start_year`` when the *source* states a later effective date.
+DEFAULT_VALIDATION_START_YEAR = 2025
 
 _SPENDING_CATEGORY_TO_POLICY_TYPE = {
     "defense": PolicyType.DISCRETIONARY_DEFENSE,
@@ -97,6 +102,103 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "single model can match both.",
         "Scored with the frozen module-default realization elasticities (0.8 / 0.4); the "
         "published estimates embed much stronger lock-in and avoidance responses.",
+    ],
+    # -- Phase B: CBO Options for Reducing the Deficit, 2025-2034 -----------
+    # Out-of-sample battery. Every miss below is kept and explained; none of
+    # these cases had a parameter moved to close its gap.
+    "cbo_opt45_all_rates_1pp": [
+        "Scored on the SOI ordinary-income base with a single ETI (0.25); JCT's "
+        "estimate rises through the window partly because bracket creep pushes "
+        "income into higher rates, which the flat-base auto-population does not "
+        "reproduce.",
+    ],
+    "cbo_opt45_top4_brackets_2pp": [
+        "'The four highest brackets' is a filing-status-specific boundary that also "
+        "moves in 2026 when the pre-2018 rate schedule returns; the generic path "
+        "carries one fixed threshold (the 2025 single-filer 24% floor), which counts "
+        "joint filers below their own bracket boundary and over-states the base.",
+    ],
+    "cbo_opt46_agi_surtax_1pp_20k": [
+        "A $20,000 single / $40,000 joint threshold sits near the bottom of the "
+        "filing population, where the single-threshold approximation is worst: the "
+        "model applies the $20,000 floor to every return, so joint filers between "
+        "$20,000 and $40,000 of AGI are taxed in the model and exempt in JCT's "
+        "estimate - yet the model still under-predicts, because SOI aggregate AGI "
+        "above the floor understates the surtax base JCT uses.",
+        "No behavioural distinction between a broad low-threshold surtax and a "
+        "narrow high-income one: both erode by ETI x 0.5.",
+    ],
+    "cbo_opt46_agi_surtax_2pp_100k": [
+        "Single-filer threshold applied to all returns; the model has no "
+        "filing-status dimension.",
+    ],
+    "cbo_opt47_ltcg_qdiv_2pp": [
+        "A uniform +2pp applies to the 0%, 15% and 20% brackets alike, but the "
+        "model scores it against the SOI statutory-rate baseline for the *whole* "
+        "realizations base, so gains that face the 0% rate (and gains inside "
+        "retirement accounts and other non-taxable holders reflected in the SOI "
+        "aggregate) are taxed at the margin in the model and not in JCT's estimate.",
+        "The frozen 0.8/0.4 realization elasticities are calibrated for large rate "
+        "changes; at 2pp the timing response JCT assumes is proportionally larger.",
+    ],
+    "cbo_opt51_gains_at_death": [
+        "The entire score runs through one module constant - $54B of unrealized "
+        "gains transferred at death - taxed at the SOI baseline rate. CBO/JCT's "
+        "estimate is roughly six times larger because it accrues gains on the full "
+        "stock of appreciated assets held by decedents, not an annual realizations "
+        "aggregate.",
+        "No lock-in unwind: constructive realization at death removes the incentive "
+        "to hold appreciated assets, which raises lifetime realizations. The module "
+        "models that channel only through an elasticity multiplier that a zero rate "
+        "change leaves inert.",
+    ],
+    "cbo_opt61_new_payroll_tax_1pct": [
+        "Scored off the module's Medicare revenue identity ($400B at 2.9%, so ~$140B "
+        "per percentage point) grown at 4%/yr. That identity covers all Medicare "
+        "wages including the employer share, while CBO's option is employee-side "
+        "only and is reduced by the income-tax offset a new payroll tax generates - "
+        "neither adjustment exists in the module.",
+    ],
+    "cbo_opt61_new_payroll_tax_2pct": [
+        "Same Medicare-base identity as the 1% alternative, so the error is the same "
+        "proportional over-statement; the module is linear in the rate while CBO's "
+        "estimate is very nearly so, which is why the two errors barely differ.",
+    ],
+    "cbo_opt64_corporate_rate_1pp": [
+        "The corporate module scores a rate change against its own baseline "
+        "corporate revenue and profit aggregates. Those aggregates reproduce the "
+        "calibrated 21%->28% benchmark, but at a 1pp step the model over-predicts: "
+        "it applies the full statutory-rate delta to the whole base, whereas JCT's "
+        "estimate reflects credits, loss carryforwards and the timing of estimated "
+        "payments that blunt the first few years.",
+    ],
+    "cbo_opt37_international_affairs": [
+        "SpendingPolicy converts a budget-authority level directly into outlays. "
+        "CBO's option spends that authority out over several years (2026 outlays are "
+        "-$8B against -$23B of budget authority), so the model front-loads savings "
+        "the official estimate defers past the window.",
+    ],
+    "cbo_opt38_national_service": [
+        "Same budget-authority-to-outlay lag as Option 37; grant programs with slow "
+        "spend-out rates lose proportionally more of the 10-year total to the tail "
+        "beyond 2034.",
+    ],
+    "cbo_opt39_pell_eligibility": [
+        "Budget-authority-to-outlay lag, but Pell spends out almost immediately, "
+        "which is why this is the most accurate spending case.",
+        "The target is the discretionary outlay total only; CBO reports a separate "
+        "-$9.2B mandatory effect that this shape cannot represent.",
+    ],
+    "cbo_opt42_nondefense_discretionary": [
+        "Budget-authority-to-outlay lag on transportation and education grants.",
+    ],
+    "cbo_opt43_state_local_grants": [
+        "The 2026 budget authority (-$12.0B) is inflated by IIJA advance funding and "
+        "by the option's 25%-then-50% schedule, so anchoring a constant level on it "
+        "over-states every later year; CBO's own path drops to -$9.3B in 2027.",
+        "Infrastructure and block grants have the slowest spend-out rates in the "
+        "battery - CBO's 2026 outlay saving is -$0.4B against -$12.0B of budget "
+        "authority - so the lag costs this case more than any other spending option.",
     ],
 }
 
@@ -260,6 +362,41 @@ def build_validation_result(
     )
 
 
+def _resolve_vintage(score: CBOScore) -> BaselineVintage | None:
+    """The baseline vintage a score record asks to be scored on, if any."""
+    if not score.scoring_vintage:
+        return None
+    try:
+        return BaselineVintage(score.scoring_vintage)
+    except ValueError:
+        return None
+
+
+def build_scorer_for_vintage(
+    vintage: BaselineVintage | None,
+    *,
+    start_year: int = DEFAULT_VALIDATION_START_YEAR,
+    use_real_data: bool = True,
+) -> FiscalPolicyScorer:
+    """
+    Build a scorer on a specific baseline vintage.
+
+    ``None`` keeps the historical behaviour (the model's current default
+    baseline), so records that do not name a vintage are unaffected. A record
+    that *does* name one - the CBO Options battery names ``cbo_feb_2024``,
+    the vintage its targets were published against - is scored against that
+    baseline instead, which removes baseline drift from its error.
+    """
+    if vintage is None:
+        return FiscalPolicyScorer(start_year=start_year, use_real_data=use_real_data)
+    baseline = CBOBaseline(
+        start_year=start_year, use_real_data=use_real_data, vintage=vintage
+    ).generate()
+    return FiscalPolicyScorer(
+        baseline=baseline, start_year=start_year, use_real_data=use_real_data
+    )
+
+
 def create_policy_from_score(
     score: CBOScore, *, ordinary_income_base: bool | None = None
 ) -> Policy | None:
@@ -282,15 +419,28 @@ def create_policy_from_score(
     ``corporate_rate``
         :class:`CorporateTaxPolicy` from the rate change, module defaults for
         elasticity and base.
+    ``payroll_rate``
+        :class:`PayrollTaxPolicy` levying the rate on the **Medicare base** -
+        all covered earnings with no taxable maximum, which is the base a flat
+        new payroll tax applies to. Deliberately *not* the Social Security cap
+        machinery: those covered-wage bands are calibrated to reproduce the
+        Trustees' own reform annuals, so routing a target through them would
+        leak the answer.
     ``spending``
         :class:`SpendingPolicy` from the source-stated annual level, growth,
         phase-in and one-time flag.
+
+    Every shape honours ``score.effective_start_year`` - the year the *source*
+    says the policy takes effect - so an option that starts in FY2026 is not
+    credited with a year of effect the official estimate never scored.
 
     Returns ``None`` when the record has no constructible shape.
     """
     shape = validation_shape(score)
     if shape is None:
         return None
+
+    start_year = score.effective_start_year or DEFAULT_VALIDATION_START_YEAR
 
     if shape == "ordinary_rate":
         if ordinary_income_base is None:
@@ -301,7 +451,7 @@ def create_policy_from_score(
             policy_type=PolicyType.INCOME_TAX,
             rate_change=score.rate_change,
             affected_income_threshold=score.income_threshold or 0,
-            start_year=2025,
+            start_year=start_year,
             duration_years=10,
             ordinary_income_base=ordinary_income_base,
         )
@@ -314,6 +464,8 @@ def create_policy_from_score(
             baseline_capital_gains_rate=0.0,
             baseline_realizations_billions=0.0,
             eliminate_step_up=score.eliminate_step_up,
+            step_up_exemption=score.step_up_exemption,
+            start_year=start_year,
         )
 
     if shape == "corporate_rate":
@@ -324,7 +476,20 @@ def create_policy_from_score(
             description=score.description,
             policy_type=PolicyType.CORPORATE_TAX,
             rate_change=score.rate_change,
-            start_year=2025,
+            start_year=start_year,
+            duration_years=10,
+        )
+
+    if shape == "payroll_rate":
+        from ..payroll import PayrollTaxPolicy, PayrollTaxType
+
+        return PayrollTaxPolicy(
+            name=f"Validation: {score.name}",
+            description=score.description,
+            policy_type=PolicyType.PAYROLL_TAX,
+            payroll_tax_type=PayrollTaxType.MEDICARE,
+            medicare_rate_change=score.rate_change,
+            start_year=start_year,
             duration_years=10,
         )
 
@@ -338,7 +503,7 @@ def create_policy_from_score(
         phase_in_years=score.phase_in_years,
         is_one_time=score.is_one_time,
         category=score.spending_category,
-        start_year=2025,
+        start_year=start_year,
         duration_years=10,
     )
 
@@ -353,6 +518,8 @@ def create_capital_gains_policy_from_score(
     transition_years: int = 3,
     use_time_varying: bool = True,
     eliminate_step_up: bool = False,
+    step_up_exemption: float | None = None,
+    start_year: int = DEFAULT_VALIDATION_START_YEAR,
 ) -> CapitalGainsPolicy:
     """
     Create a CapitalGainsPolicy from a score entry plus required extra inputs.
@@ -364,6 +531,10 @@ def create_capital_gains_policy_from_score(
     if score.rate_change is None:
         raise ValueError("score.rate_change is required")
 
+    extra: dict = {}
+    if step_up_exemption is not None:
+        extra["step_up_exemption"] = float(step_up_exemption)
+
     return CapitalGainsPolicy(
         eliminate_step_up=eliminate_step_up,
         name=f"Validation: {score.name}",
@@ -371,8 +542,9 @@ def create_capital_gains_policy_from_score(
         policy_type=PolicyType.CAPITAL_GAINS_TAX,
         rate_change=score.rate_change,
         affected_income_threshold=score.income_threshold or 0,
-        start_year=2025,
+        start_year=start_year,
         duration_years=10,
+        **extra,
         baseline_capital_gains_rate=float(baseline_capital_gains_rate),
         baseline_realizations_billions=float(baseline_realizations_billions),
         short_run_elasticity=float(short_run_elasticity),
@@ -455,7 +627,7 @@ def validate_policy(
         return None
 
     if scorer is None:
-        scorer = FiscalPolicyScorer(start_year=2025, use_real_data=True)
+        scorer = build_scorer_for_vintage(_resolve_vintage(score))
 
     try:
         result = scorer.score_policy(policy, dynamic=dynamic)
@@ -505,14 +677,23 @@ def validate_all(dynamic: bool = False, verbose: bool = True) -> list[Validation
         print(f"\nRunning validation against {len(targets)} policies...")
         print("=" * 70)
 
-    scorer = FiscalPolicyScorer(start_year=2025, use_real_data=True)
+    # One scorer per baseline vintage. Records that name no vintage keep the
+    # model's current default baseline (the historical behaviour); records that
+    # name one - the CBO Options battery names the Feb 2024 baseline its targets
+    # were published against - are scored on it, so baseline drift is not folded
+    # into their error.
+    scorers: dict[BaselineVintage | None, FiscalPolicyScorer] = {}
 
     results = []
     for score in targets:
         if verbose:
             print(f"\nValidating: {score.name}...")
 
-        result = validate_policy(score, scorer=scorer, dynamic=dynamic)
+        vintage = _resolve_vintage(score)
+        if vintage not in scorers:
+            scorers[vintage] = build_scorer_for_vintage(vintage)
+
+        result = validate_policy(score, scorer=scorers[vintage], dynamic=dynamic)
         if result:
             results.append(result)
             if verbose:

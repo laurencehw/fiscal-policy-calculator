@@ -10,7 +10,7 @@ The footer's "33 policies validated" is computed live from the scorecard and is 
 
 | | n | what it is | honest status |
 |---|---|---|---|
-| **Tier 1 — out-of-sample (Generic)** | **4** → **9** | plain `TaxPolicy` on the SOI base, no tuning; ~8% mean error → **44.8%** across the widened battery | the only genuine test; **now pre-registered and CI-gated** (Phase A). Was: *not gated in CI* (`readiness.py:307` exempted Generic; `cold_holdout.py --max-mean-error` was never called by a workflow) |
+| **Tier 1 — out-of-sample (Generic)** | **4** → **9** → **23** | plain `TaxPolicy` on the SOI base, no tuning; ~8% mean error → **44.8%** (Phase A) → **43.4%** across the CBO Options battery (Phase B) | the only genuine test; **now pre-registered and CI-gated** (Phase A). Was: *not gated in CI* (`readiness.py:307` exempted Generic; `cold_holdout.py --max-mean-error` was never called by a workflow) |
 | **Tier 2 — calibrated** | 29 | 26 module presets + 3 capital-gains cases; ~5% mean error | low by construction: each module carries one hard-coded annual per benchmark (`payroll.py:377-494`, `estate.py:365-525`, `amt.py`, `credits_factory.py`, `tax_expenditures_factory.py`) |
 | Benchmark database (`cbo_scores.py` `KNOWN_SCORES`) | 31 → 34 | | **was: 21 entries stranded** — `get_validation_targets()` kept only `income_tax` + `rate_change is not None` + `baseline_year>=2020`. **Now: shape-based dispatch**; 14 runnable, 20 excluded with an explicit one-line reason, 0 unaccounted |
 | Presets with an official score (`CBO_SCORE_MAP`) | 47 | | 21 have a live module *and* an official number but **no `validate_all_*` runner** (international 4, tariffs 5, pharma 3, enforcement 2, climate 3, four surtax presets) |
@@ -22,7 +22,7 @@ Three structural weaknesses a referee would find first:
 2. **Round-number tell.** 17 of the 29 calibrated targets are exact round hundreds (450, 350, −1100, −2700, −3200, …): secondhand summaries, not sourced line items.
 3. **Calibrated ≠ validated.** With one constant per benchmark, Tier 2's 5% says nothing about predictive skill. Several modules have ≥3 benchmarks, so *leave-one-out* is mechanically possible and has never been run. — *Run in Phase C (§3): **59.3% mean over 18 derivable cases**, plus 4 declared not cross-validatable. The 5% was measuring bookkeeping.*
 
-Expect Tier 1's mean error to **rise** as n grows — the four current cases are friendly shapes. That is the point: a wider, pre-registered, gated error distribution is worth more than a flattering 8% on four cases.
+Expect Tier 1's mean error to **rise** as n grows — the four current cases are friendly shapes. That is the point: a wider, pre-registered, gated error distribution is worth more than a flattering 8% on four cases. *(Outturn: 4 cases 8% → 9 cases 44.8% (Phase A) → 23 cases 43.4% (Phase B). The rise happened at Phase A; Phase B quadrupled the evidence without moving the mean.)*
 
 ## 1. Phase A — free wins (no new modelling; ~1 lane) — ✅ **LANDED** (2026-09-01)
 
@@ -45,15 +45,34 @@ Findings worth carrying forward:
 - The `top_rate_45` target fails an internal coherence check against another TPC figure in the same database — Phase E should replace it with a line item or demote it, and the manifest now forces that to be a *new row*.
 - The two capital-gains OOS cases are the same policy shape scored against two targets 42% apart, which bounds how well any single model can match both. This is the sharpest available test for Phase C's frozen-elasticity work.
 
-## 2. Phase B — CBO *Options for Reducing the Deficit: 2025–2034* as a pre-registered battery
+## 2. Phase B — CBO *Options for Reducing the Deficit: 2025–2034* as a pre-registered battery — ✅ **done**
 
-76 options, each with a published 10-year effect, built on CBO's **2024** baseline (Feb or June 2024 — confirm from the PDF front matter before entering targets), reposted with updates Oct 2025 ([CBO 60557](https://www.cbo.gov/publication/60557), [PDF](https://www.cbo.gov/system/files/2024-12/60557-budget-options.pdf)). Not referenced anywhere in the repo today.
+76 options, each with a published 10-year effect ([CBO 60557](https://www.cbo.gov/publication/60557), December 2024; reposted Oct 2025).
 
-1. Extract the options table to `fiscal_model/data_files/validation/cbo_options_2025_2034.csv` (title, category, 10-yr $, page, option id) with a script and a provenance header.
-2. Classify each option by whether the **uncalibrated** path can express it: ordinary-rate changes (raise all rates 1pp; raise top two rates), surtaxes above $Y, LTCG rate changes, SS taxable-maximum changes, discretionary caps, one-time outlays. Expect **15–25 runnable**; the rest are documented as out of scope (structural benefit changes, Medicare payment rules, etc.).
-3. Enter each runnable option through the pre-registration manifest *before* scoring. **Vintage-match inside this phase**: `CBO_FEB_2024` is an independently sourced vintage (`baseline.py:28-44`), so score the battery with `FiscalPolicyScorer(baseline=CBOBaseline(start_year=2025, vintage=BaselineVintage.CBO_FEB_2024).generate())` — no new plumbing needed (validation code today only hard-codes the default at `core.py:314, 369`; nothing anywhere selects a vintage). Publish the full error distribution, including the misses.
+1. ✅ Extracted by `scripts/extract_cbo_options.py` (pdfplumber, provenance header) to `fiscal_model/data_files/validation/cbo_options_2025_2034.csv` (one row per option, from Table 1-1, both sign conventions) and `..._alternatives.csv` (one row per reported line in each option's own table — necessary because Table 1-1 reports a *range* whenever an option has several alternatives, and a range cannot be compared with a model score).
+2. ✅ Classified in `fiscal_model/validation/cbo_options.py`: **14 runnable alternatives across 11 options; 65 options out of scope**, each with a one-line reason, asserted complete by `tests/test_cbo_options.py`. Slightly under the 15–25 expected, and the shortfall is informative — see the tally below.
+3. ✅ Pre-registered in a commit *before* the commit that first scored them (`PHASE_B_ENTERED_COMMIT` / `PHASE_B_FIRST_SCORED_COMMIT` in `preregistered.py`). Vintage-matched on `CBO_FEB_2024` through a new `build_scorer_for_vintage()` in `validation/core.py`; records that name no vintage keep the previous default.
 
-Deliverable: Tier 1 n≈25–35 with a genuine spread across tax and spending shapes. This is the highest credibility-per-hour item in the repo.
+**Baseline the report states** (PDF p. 2): revenue options are measured against CBO's **February 2024** baseline (pub. 59710), spending options against the **June 2024** baseline (pub. 60039). The repo has no June-2024 vintage, so spending rows are scored on Feb 2024 and the mismatch is written on each manifest row.
+
+**Result — Tier 1 is now 23 cases, mean abs error 43.4% (median 23.1%), 6/23 within 15%, 12/23 within 25%** (was 9 / 44.8% / 6-of-9). The mean did not move; the battery *explained* it. CI thresholds re-derived by the workflow's own rule: `--max-mean-error 60 → 55`, `--min-within-25pct 5 → 11`.
+
+Out-of-scope tally:
+
+| Why not runnable | n |
+|---|--:|
+| Mandatory program-rule change; no funding-level input distinct from the outlay path being predicted | 27 |
+| Revenue base or instrument with no module (excise, VAT, FTT, accounting-method timing, filing status, deduction bases, fees) | 23 |
+| Discretionary path is a ramp, wind-down or declining caseload, not a level `SpendingPolicy` can express | 12 |
+| **Leakage** — the module constant that would score it is calibrated to reproduce that same reform (Options 53, 56, 62) | 3 |
+
+Findings worth carrying forward:
+
+- **The spending shape has no spend-out model.** All five spending cases over-predict because `SpendingPolicy` turns a budget-authority level straight into outlays. Fast-spending programs land at 10–23%; Option 43 (infrastructure and block grants) at 75%. A spend-out rate parameter is the single highest-value fix the battery identified.
+- **Option 62 had to be excluded for leakage**, which cost the battery its two largest payroll targets. The payroll module's covered-wage bands are anchored to reproduce the Trustees' 90%-coverage and $250K-donut annuals — i.e. exactly the two alternatives CBO publishes. Phase E should make that dependency explicit in the module docstring.
+- **Vintage matching changes none of the 14 scores.** The plumbing works and the two baselines differ ($61.8T vs $61.5T of revenue), but every uncalibrated shape is bottom-up and none reads a level off the baseline. Phase D's baseline-drift concern applies to shapes that scale off baseline aggregates, not to Tier 1 as currently implemented.
+- **CBO Option 47 is a third capital-gains data point** with no step-up component, and it over-predicts by 99% — the opposite direction from the two Treasury cases. That localises part of the capital-gains problem to the realizations *base* (the SOI aggregate includes gains facing the 0% rate) rather than only to the elasticities.
+- **The corporate shape is 47% off at 1pp** while the calibrated runner reproduces 21%→28% to 3.7%. That is the sharpest available evidence that the calibrated corporate tier is a reconstruction, not a predictor.
 
 ## 3. Phase C — leave-one-out for the calibrated modules (turn Tier 2 into a held-out number) — ✅ **done**
 
@@ -108,7 +127,7 @@ Distributional validation is the strongest part of the stack (6 real tables, CI-
 | Phase | Effort | Tier 1 n after | What it buys |
 |---|---|---|---|
 | A — filter, orphans, manifest, CI gate ✅ | 1 lane, ~half day | **9** (done) | honest tier becomes gated and prospective |
-| B — CBO options battery | 1–2 lanes | ~25–35 | breadth across tax *and* spending shapes |
+| B — CBO options battery ✅ | 1–2 lanes | **23** (done) | breadth across tax *and* spending shapes |
 | C — leave-one-out | 1 lane per 2–3 modules | — | Tier 2 gets a held-out number |
 | D — vintage matching, enacted laws, JCX line items | 2 lanes | +5–10 | removes baseline drift; sourced targets |
 | E — provenance cleanup, missing runners | 1 lane | — | count that survives a referee |

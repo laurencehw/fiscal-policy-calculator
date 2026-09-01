@@ -985,11 +985,13 @@ No fitting to the official target — the genuine test of predictive accuracy.
 | Policy | Official | Model | Error | Source |
 |--------|---------:|------:|------:|--------|
 | 1pp all brackets | −$960B | −$935B | 3% | JCT |
-| Biden top rate 39.6% ($400K+) | −$252B | −$284B | 13% | Treasury |
 | 5pp top rate ($1M+) | −$700B | −$648B | 7% | TPC |
-| 2pp rate cut ($500K+) | +$400B | +$364B | 9% | TPC |
+| Biden top rate 39.6% ($400K+) | −$252B | −$285B | 13% | Treasury |
+| All ordinary rates +1pp | −$1,185B | −$935B | 21% | CBO Options 2025–2034 #45 |
+| Corporate rate +1pp | −$136B | −$200B | 47% | CBO Options 2025–2034 #64 |
+| LTCG + qualified dividends +2pp | −$103B | −$206B | 99% | CBO Options 2025–2034 #47 |
 
-**Mean absolute error ~8% (median ~8%); 4 of 4 within 15%** (`scripts/cold_holdout.py`). Ordinary-bracket rate changes score on the ordinary-income base (excludes preferential LTCG/QDIV); AGI-inclusive TPC top-rate cases score on the full taxable-income base. The prior ~19%/2-of-4 figure was inflated by a base mislabeling (the two AGI-inclusive cases wrongly received the ordinary-base correction); correcting the classification — with no target fitting — yields the numbers above. Treat uncalibrated custom policies as directional, ±15%.
+**23 pre-registered cases, mean absolute error 43.4% (median 23.1%); 6 of 23 within 15%, 12 of 23 within 25%** (`scripts/cold_holdout.py`; full table in [VALIDATION.md](VALIDATION.md)). Do **not** collapse this into one tolerance: ordinary and AGI-inclusive rate changes at conventional thresholds land at 1–21% and fast-spending discretionary funding cuts at 10–23%, while capital-gains, payroll and corporate shapes miss by 47–154% for documented structural reasons. Ordinary-bracket rate changes score on the ordinary-income base (excludes preferential LTCG/QDIV); AGI-inclusive surtaxes score on the full taxable-income base — classified from how each source describes its base, never fitted. Treat uncalibrated custom rate policies as directional, ±15–25%.
 
 ### Tier 2 — Calibrated reference models (reconstructions, low error by construction)
 

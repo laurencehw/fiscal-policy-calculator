@@ -105,10 +105,25 @@ class TestHelperFunctions:
         targets = get_validation_targets()
         assert isinstance(targets, list)
 
-    def test_validation_targets_have_rate_change(self):
+    def test_validation_targets_carry_their_shape_parameter(self):
+        """Every target must state the parameter its own shape varies.
+
+        Rate shapes (ordinary, capital gains, corporate, payroll) carry a rate
+        change; the spending shape carries the annual level the source stated.
+        Asserting ``rate_change is not None`` for all of them predates the
+        spending branch and would have excluded it by accident.
+        """
+        from fiscal_model.validation.cbo_scores import validation_shape
+
         targets = get_validation_targets()
+        assert targets
         for t in targets:
-            assert t.rate_change is not None
+            shape = validation_shape(t)
+            assert shape is not None
+            if shape == "spending":
+                assert t.annual_amount_billions is not None
+            else:
+                assert t.rate_change is not None
             assert t.baseline_year >= 2020
 
 
