@@ -170,8 +170,8 @@ python scripts/update_bills.py --skip-cbo-fetch --cbo-fallback-file bill_tracker
 python scripts/import_cbo_fallback_scores.py --file bill_tracker/cbo_manual_scores.json
 ```
 
-This fetches ~100–250 fiscal bills from the 119th Congress, runs LLM-based
-provision extraction (Claude Haiku, ~$0.001/bill), and scores each bill
+This fetches \\~100–250 fiscal bills from the 119th Congress, runs LLM-based
+provision extraction (Claude Haiku, \\~$0.001/bill), and scores each bill
 using the calculator's existing pipeline.
 
 **For daily updates**, set a cron job:

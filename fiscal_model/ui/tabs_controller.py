@@ -228,7 +228,7 @@ def render_result_tabs(
                 st_module.markdown(
                     "**Biden 400K+ Tax**  \n"
                     "Restore 39.6% top rate  \n"
-                    "*Treasury: raises ~$252B over 10 years*"
+                    "*Treasury: raises \\~$252B over 10 years*"
                 )
             with col_c:
                 st_module.markdown(
@@ -240,7 +240,7 @@ def render_result_tabs(
             st_module.caption(
                 "This calculator uses CBO methodology with IRS Statistics of Income data. "
                 f"{validated_policy_count()} policies benchmarked against official CBO/JCT/Treasury scores — calibrated "
-                "models reproduce official scores; uncalibrated predictions are directional (~±20%)."
+                "models reproduce official scores; uncalibrated predictions are directional (\\~±20%)."
             )
         with tabs["tab_distribution"]:
             st_module.info(

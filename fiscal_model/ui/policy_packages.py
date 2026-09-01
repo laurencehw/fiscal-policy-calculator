@@ -67,7 +67,7 @@ PRESET_POLICY_PACKAGES = {
     "SS Solvency: Raise the Cap": {
         "description": (
             "Address the Social Security shortfall by raising the taxable earnings cap. "
-            "The SS trust fund is projected to be depleted by ~2033. These reforms extend solvency."
+            "The SS trust fund is projected to be depleted by \\~2033. These reforms extend solvency."
         ),
         "policies": [
             "💰 SS Donut Hole $250K (-$2.7T)",

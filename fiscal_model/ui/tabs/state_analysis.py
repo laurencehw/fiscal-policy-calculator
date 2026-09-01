@@ -226,7 +226,7 @@ def _render_policy_impact(
         st_module.metric(
             f"Federal Impact on {state} Taxpayers",
             f"{sign}${state_federal_impact:.1f}B / yr",
-            help=f"~{state_share * 100:.0f}% of national impact (state's share of federal income tax)",
+            help=f"\\~{state_share * 100:.0f}% of national impact (state's share of federal income tax)",
         )
     with col2:
         st_module.metric(
@@ -283,7 +283,7 @@ def _render_salt_section(
         with col2:
             st_module.markdown("**If SALT cap were lifted (pre-TCJA law):**")
             st_module.markdown(
-                f"- Affected filers: ~{result_lift.affected_filers:.1f}M\n"
+                f"- Affected filers: \\~{result_lift.affected_filers:.1f}M\n"
                 f"- Avg deduction increase: \\${result_lift.avg_deduction_change:,.0f}\n"
                 f"- Federal revenue cost: \\${result_lift.federal_revenue_change_billions:.1f}B / yr\n"
                 f"- Effective state rate change: {result_lift.effective_rate_change * 100:+.2f}pp"

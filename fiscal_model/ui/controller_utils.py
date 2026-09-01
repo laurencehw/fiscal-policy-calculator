@@ -187,7 +187,7 @@ def get_confidence_context(st_module: Any, policy: Any, result: Any) -> str:
         else:
             context += (
                 "\n- **Validation:** Custom policy scored bottom-up (uncalibrated); treat as "
-                "directional — mean out-of-sample error on such policies is ~8%"
+                "directional — mean out-of-sample error on such policies is \\~8%"
             )
 
         return context

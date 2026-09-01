@@ -567,7 +567,7 @@ def _render_empty_state(st_module: Any, score_label: str) -> None:
     st_module.caption(
         "Scores use CBO methodology with IRS Statistics of Income data. "
         "Calibrated presets reproduce official scores by construction; "
-        "custom policies are genuine out-of-sample predictions (~8% mean error)."
+        "custom policies are genuine out-of-sample predictions (\\~8% mean error)."
     )
 
 

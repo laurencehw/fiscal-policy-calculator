@@ -94,7 +94,7 @@ def render_assistant_admin_tab(st_module: Any) -> None:
     runway = estimate_runway_days(snap)
     if runway.get("projected_30d_burn"):
         st_module.caption(
-            f"📐 If today's pace held: ~${runway['projected_30d_burn']:.2f} over 30 days."
+            f"📐 If today's pace held: \\~${runway['projected_30d_burn']:.2f} over 30 days."
         )
 
     st_module.divider()

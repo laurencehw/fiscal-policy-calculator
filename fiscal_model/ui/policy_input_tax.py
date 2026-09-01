@@ -394,7 +394,7 @@ def render_tax_policy_inputs(
                 st_module.markdown("**Behavioral elasticity**")
                 st_module.caption(
                     "How much do investors change behavior in response to rate changes? "
-                    "CBO uses ~0.7-1.0 short-run, ~0.3-0.5 long-run "
+                    "CBO uses \\~0.7-1.0 short-run, \\~0.3-0.5 long-run "
                     "([CBO 2012](https://www.cbo.gov/publication/43334))."
                 )
 
@@ -476,7 +476,7 @@ def render_tax_policy_inputs(
                         "Annual gains at death ($B)",
                         step=5.0,
                         key=KEY_TAILOR_TAX_CG_GAINS_AT_DEATH,
-                        help="CBO estimates ~$54B/year in unrealized gains transferred at death.",
+                        help="CBO estimates \\~$54B/year in unrealized gains transferred at death.",
                     )
                     step_up_lock_in_multiplier = 1.0
                 else:

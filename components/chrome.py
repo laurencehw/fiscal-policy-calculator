@@ -152,9 +152,15 @@ def _render_degradation_banner(st_module: Any, health: dict[str, Any]) -> None:
     if degradation.get("severity") == "error":
         st_module.error("🔴 **Data error — results may be unreliable**\n\n" + reason_lines)
     else:
-        st_module.warning(
-            "🟡 **Some data sources are running on older snapshots**\n\n" + reason_lines
-        )
+        # Deliberately quiet (owner request, 2026-09-01): a collapsed, muted
+        # disclosure rather than a full-width warning box — people should
+        # notice it without discounting the whole exercise. The pill already
+        # carries the amber dot; the reasons live one click away.
+        with st_module.expander(
+            "🟡 Some data sources are running on older snapshots — details",
+            expanded=False,
+        ):
+            st_module.caption(reason_lines)
 
 
 def render_chrome(

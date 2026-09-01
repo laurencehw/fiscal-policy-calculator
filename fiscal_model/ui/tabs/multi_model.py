@@ -296,19 +296,19 @@ def render_multi_model_tab(
                 rel = abs(gap) / max(abs(c) for c in costs) * 100
                 if rel >= 25:
                     st_module.warning(
-                        f"Models disagree by ~{rel:.0f}% of the largest "
+                        f"Models disagree by \\~{rel:.0f}% of the largest "
                         "estimate — treat the headline as directional and "
                         "read the methodology notes below."
                     )
                 elif rel >= 10:
                     st_module.info(
-                        f"Models disagree by ~{rel:.0f}% of the largest "
+                        f"Models disagree by \\~{rel:.0f}% of the largest "
                         "estimate. Divergence usually reflects bracket "
                         "aggregates vs return-level interactions."
                     )
                 else:
                     st_module.success(
-                        f"Models agree within ~{rel:.0f}% — result looks "
+                        f"Models agree within \\~{rel:.0f}% — result looks "
                         "robust across the pilot backends."
                     )
         elif len(bundle.results) == 1:

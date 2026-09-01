@@ -46,7 +46,7 @@ def render_long_run_growth_tab(
                 value=33,
                 step=1,
                 help="Percentage of the deficit that crowds out domestic private investment. "
-                     "CBO assumes ~33% (meaning 67% is offset by foreign capital inflows). "
+                     "CBO assumes \\~33% (meaning 67% is offset by foreign capital inflows). "
                      "100% = Closed Economy (Maximum Impact). 0% = Small Open Economy (No Impact)."
             ) / 100.0
 
