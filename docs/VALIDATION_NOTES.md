@@ -713,6 +713,159 @@ into a bucket stays `unclassified` until someone finds the table.
 
 ---
 
+## 8. P.L. 119-21 — sourcing the first line-item block (Phase D)
+
+Phase E's provenance pass ended with an uncomfortable count: **4 of 46**
+calibrated targets were `line_item` — a number traceable to a specific row in a
+specific table. The other 42 were rounded headline figures, model estimates, or
+unclassifiable. Promoting one requires opening the document and transcribing the
+row, which Phase E deliberately left as work rather than asserting. Phase D does
+that work once, for the largest tax law in the database.
+
+### 8.1 Which document, and why
+
+| Document | What it scores | Baseline | Used here? |
+|---|---|---|---|
+| **JCX-35-25** (1 Jul 2025) | Tax provisions of Title VII of the Senate substitute | **present law** | **yes** |
+| JCX-34-25 (1 Jul 2025) | The same provisions | current policy | no |
+| JCX-36-25 / JCX-37-25 | Distribution of the revenue effects | both | no (revenue block) |
+| CBO 61570 (21 Jul 2025) | The whole law, including health provisions | CBO Jan 2025 | cross-check only |
+| CBO 61367 (11 Aug 2025) | Distribution of the whole law | CBO Jan 2025 | distributional block |
+
+**JCT published no separate "as enacted" estimate of the tax title.** The House
+passed the Senate substitute without amendment, so the Title VII text JCX-35-25
+scores is the text enacted as P.L. 119-21 on 4 July 2025. JCX-34-25 scores the
+same provisions against a *current policy* baseline — one in which the expiring
+2017 provisions are assumed to continue, which makes their permanent extension
+nearly free. The repository's convention, and CBO's, is present law, so
+JCX-35-25 is the right document and JCX-34-25 would have been the wrong one.
+
+**Cross-check that the transcription is of the right table**: JCX-35-25's own
+NET TOTAL is -$4,474,972M over 2025-2034. CBO publication 61570 describes the
+law as "a decrease in revenues of $4.5 trillion" and "a decrease in direct
+spending of $1.1 trillion", netting to a $3.4 trillion deficit increase relative
+to CBO's January 2025 baseline. Those agree, and `test_pl119_21_line_items.py`
+pins the net total so a future edit cannot quietly detach the two.
+
+### 8.2 How the rows were obtained
+
+cbo.gov and the jct.gov *landing pages* serve a bot challenge to plain HTTP
+clients, but the jct.gov attachment path does not: the PDF is fetchable directly
+and is parsed with `pdfplumber`. `scripts/extract_pl119_21_line_items.py` holds
+the transcription (`extracted_by=manual` — the JCX table is a fixed-width,
+multi-line-label layout no general parser handles cleanly) and **verifies** it:
+`--pdf` checks that every transcribed total appears verbatim in the extracted
+text. 34 of 34 verifiable totals are found; the thirty-fifth, the subchapter A
+energy subtotal, is the only figure JCT does not print, and it is instead
+cross-checked against the chapter total (subchapter A +542,653 plus subchapter B
+-43,573 equals the printed chapter total +499,080).
+
+Verification catches the failure mode a hand transcription actually has — a
+mistyped digit. It cannot catch a total read off the wrong row, which is why
+every row also carries its `pdf_page` and `jct_item`.
+
+### 8.3 What the block measures
+
+Eight provisions have a module path, all through
+`create_tcja_extension`'s component flags. Nothing is fitted to any of these
+rows: `TCJAExtensionPolicy` carries **one** calibration factor (1.77), fitted to
+CBO's $4.6T aggregate. So the block asks a question no other benchmark in the
+repository asks — *can a module tuned on one aggregate also decompose?* — and
+the answer is no:
+
+| Provision | JCT | Model | Error | Structural cause recorded |
+|---|---:|---:|---:|---|
+| Reduced rates | +2,193.4 | +3,114.7 | 42.0% | one aggregate annual at 3.5%/yr, no bracket structure |
+| Standard deduction | +1,424.7 | +1,217.5 | -14.5% | single national annual; cannot see the enhancement |
+| Personal exemption repeal | -1,807.1 | -1,116.0 | 38.2% | JCT nets the new senior deduction into this row |
+| Child tax credit | +816.8 | +969.1 | 18.6% | module holds the $2,000 credit, law sets $2,200 indexed |
+| Section 199A | +736.5 | +1,275.0 | 73.1% | one aggregate at 4%/yr, no pass-through distribution |
+| Estate/gift exemption | +211.7 | +222.6 | 5.1% | aggregate annual, not estate.py's exemption machinery |
+| AMT exemption | +1,362.8 | +811.6 | -40.4% | law also cuts phaseout thresholds and raises the rate |
+| SALT limitation | -946.2 | -1,912.6 | -102.1% | **design mismatch**: module has the flat $10K cap |
+
+Mean absolute error **41.8%**, 2 of 8 within 15%. Against 0.4% on the aggregate.
+That gap is the finding, and it is the sharpest evidence yet that the calibrated
+tier's low errors are reconstruction rather than structure. Nothing was retuned;
+every row carries its cause in `known_limitations`.
+
+The SALT row is worth isolating because it is not a calibration failure at all.
+P.L. 119-21 raises the SALT cap to $40,000, phases it down above $500,000 of
+income, and reverts to $10,000 after 2029. The module's SALT component
+represents the flat $10,000 cap, which raises about twice as much. The right fix
+is a cap-level input, not a constant.
+
+### 8.4 What was refused, and why
+
+Twenty further provisions are `out_of_scope` in the CSV with a stated reason and
+are never scored. Two reasons are load-bearing:
+
+**Leakage, not a gap.** The Chapter 5 energy-credit terminations (+$542.7B, the
+third-largest block in the law) *could* be routed through `climate.py`, and must
+not be: that module's IRA-repeal annual is documented as calibrated to reproduce
+the -$783B IRA-repeal target, so scoring an energy-credit repeal through it
+would meet a constant with the same reform that set it. This is the third
+instance of the pattern, after Phase B's Options 53, 56 and 62. It is now
+frequent enough to be a category rather than an accident: **any module whose
+constant was fitted to reform X cannot be used to predict reform X under another
+name.**
+
+**A line item that does not exist.** There is no senior-deduction row in
+JCX-35-25. JCT nets it inside item 3, whose label says so explicitly:
+"Termination of deduction for personal exemptions *other than temporary senior
+deduction*". The plan's §4.3 lists the senior deduction as a target to
+transcribe; it cannot be transcribed, and that is recorded rather than
+approximated.
+
+### 8.5 The January 2025 vintage
+
+Every P.L. 119-21 target is measured against CBO's January 2025 baseline, and
+until Phase D `BaselineVintage.CBO_JAN_2025` was a 0.5/0.5 interpolation between
+the February 2024 and February 2026 assumption sets — with **no base levels at
+all**, so it silently fell through to the February 2026 hardcoded fallback.
+"Scored on the January 2025 baseline" was not a true sentence.
+
+It is now transcribed from CBO, *The Budget and Economic Outlook: 2025 to 2035*
+(publication 61172) and its supplemental data (publication 60870): the calendar
+2025-2034 economic forecast, and FY2025 base levels from baseline tables B-1
+(revenues by source, outlay categories, debt, GDP) and B-4 (mandatory outlays
+net of the offsetting receipts that turn gross Social Security and Medicare into
+the net figures the model's categories represent). One number is derived rather
+than transcribed and is labelled as such: CBO's abbreviated January 2025 report
+publishes no defense/nondefense split of discretionary *outlays*, so the
+$1,847.9B total is divided in the Table B-5 budget-authority ratio (47.25 /
+52.75).
+
+The interpolation is kept and kept callable as
+`interpolated_jan_2025_assumptions()` — the honest fallback if the sourced
+figures ever have to be withdrawn — and `VINTAGE_SOURCING` records which of the
+two is in force, pinned by `tests/test_baseline_vintage.py`. Sanity: the
+generated FY2025 deficit is $1,868B against CBO's own $1,865B.
+
+**And, consistent with Phase B: it moves none of the eight scores.**
+`TCJAExtensionPolicy` builds its path from component annuals and never reads a
+level off the baseline. The value of the vintage work is that the manifest is
+now true, not that a number changed. Baseline drift is a real contaminant for
+shapes that scale off baseline aggregates; none of the shapes currently in
+either tier does.
+
+### 8.6 Provenance after Phase D
+
+| | before | after |
+|---|---:|---:|
+| calibrated benchmarks | 46 | 54 |
+| ... against a published figure | 39 | 47 |
+| `line_item` | 4 | **12** |
+| `secondhand` | 31 | 31 |
+| `model_estimate` | 7 | 7 |
+| `unclassified` | 4 | 4 |
+
+Eight of the twelve `line_item` targets are now this block. The 31 secondhand
+targets are untouched: promoting one still requires someone to open the document
+and transcribe the row, exactly as Phase E said.
+
+---
+
 ## References
 
 - SSA Trustees 2024: *Long-Range OASDI Cost and Income Estimates* (2024)
@@ -725,3 +878,18 @@ into a bucket stays `unclassified` until someone finds the table.
   1.1 and 1.2; *Estate Tax Returns Filed*, Table 1 Parts I & II
 - JCT (2021): *Macroeconomic Analysis of a Proposal to Increase the
   Corporate Income Tax Rate to 28 Percent*, JCX-32-21
+- JCT (2025): *Estimated Revenue Effects Relative to the Present Law Baseline
+  of the Tax Provisions in "Title VII - Finance" of the Substitute Legislation
+  as Passed by the Senate*, JCX-35-25 (1 July 2025)
+- CBO (2025): *Estimated Budgetary Effects of Public Law 119-21 ... Relative to
+  CBO's January 2025 Baseline*, publication 61570 (21 July 2025)
+- CBO (2025): *Distributional Effects of Public Law 119-21*, publication 61367
+  (11 August 2025)
+- CBO (2025): *The Budget and Economic Outlook: 2025 to 2035*, publication
+  61172 (January 2025), and its supplemental data, publication 60870
+- CBO (2024): cost estimate for H.R. 82, *Social Security Fairness Act of 2023*
+  (9 September 2024)
+- CBO (2023): *CBO's Estimate of the Budgetary Effects of H.R. 3746, the Fiscal
+  Responsibility Act of 2023* (30 May 2023)
+- CBO (2021): cost estimate for Senate Amendment 2137 to H.R. 3684, the
+  *Infrastructure Investment and Jobs Act* (revised 9 August 2021)
