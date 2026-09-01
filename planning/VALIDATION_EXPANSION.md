@@ -118,18 +118,18 @@ Deliverable: a defensible held-out error for ~19 currently circular entries, or 
    Entered in `aed5318`, first scored in `dca3a50`. **Tier 1: 23 → 26 cases, mean 43.4% → 52.7% (median 22.1%), 8/26 within 15%, 14/26 within 25%.** CI thresholds unchanged at `--max-mean-error 55 --min-within-25pct 11`: the widened battery still passes both, and loosening a gate that passes would be tightening in reverse. Anti-leakage invariant holds (52.7% out-of-sample against 2.7% fitted-calibrated).
 3. ✅ **P.L. 119-21 provision line items — the first sourced line-item block in the calibrated tier.** JCT published no separate "as enacted" estimate of the tax title; the House passed the Senate substitute unamended, so **JCX-35-25** (1 July 2025, present-law baseline) scores the enacted text. (JCX-34-25 is the same provisions on a current-policy baseline; JCX-36-25/37-25 are distributional.) Thirty-five rows are transcribed with page references into `fiscal_model/data_files/validation/pl119_21_jct_line_items.csv` by `scripts/extract_pl119_21_line_items.py`, which verifies every printed total against the PDF (34/34 found verbatim). JCX-35-25's net total (−$4,474,972M) cross-checks against CBO [publication 61570](https://www.cbo.gov/publication/61570)'s "$4.5 trillion decrease in revenues".
 
-   Eight provisions have a module path, all through `create_tcja_extension`'s component flags, scored on the newly-sourced Jan-2025 vintage. **Mean absolute error 41.8%**, 2/8 within 15% — against 0.4% on the aggregate the module's single calibration factor is fitted to. That gap is the finding. All eight are `calibrated_to_target=False`, so they sit in the unfitted-reconstruction tier (12 → 20 entries, 394.1% → 253.2% mean) and never touch the fitted-calibrated mean.
+   Eight provisions have a module path, all through `create_tcja_extension`'s component flags, scored on the newly-sourced Jan-2025 vintage over **JCT's own FY2025-2034 window** (the policy takes effect in FY2026, so `Policy.is_active()` leaves FY2025 at the zero JCT prints). **Mean absolute error 35.8%**, 2/8 within 15% — against 0.4% on the aggregate the module's single calibration factor is fitted to. That gap is the finding. All eight are `calibrated_to_target=False`, so they sit in the unfitted-reconstruction tier (12 → 20 entries, 394.1% → 250.8% mean) and never touch the fitted-calibrated mean.
 
    | Provision | JCT | Model | Err |
    |---|---:|---:|---:|
-   | reduced rates | +2,193.4 | +3,114.7 | 42.0% |
-   | standard deduction | +1,424.7 | +1,217.5 | −14.5% |
-   | personal exemption repeal | −1,807.1 | −1,116.0 | 38.2% |
-   | child tax credit | +816.8 | +969.1 | 18.6% |
-   | section 199A | +736.5 | +1,275.0 | 73.1% |
-   | estate/gift exemption | +211.7 | +222.6 | 5.1% |
-   | AMT exemption | +1,362.8 | +811.6 | −40.4% |
-   | SALT limitation | −946.2 | −1,912.6 | −102.1% |
+   | reduced rates | +2,193.4 | +2,752.8 | 25.5% |
+   | standard deduction | +1,424.7 | +1,078.9 | −24.3% |
+   | personal exemption repeal | −1,807.1 | −989.0 | 45.3% |
+   | child tax credit | +816.8 | +863.3 | 5.7% |
+   | section 199A | +736.5 | +1,123.9 | 52.6% |
+   | estate/gift exemption | +211.7 | +195.2 | −7.8% |
+   | AMT exemption | +1,362.8 | +719.3 | −47.2% |
+   | SALT limitation | −946.2 | −1,685.8 | −78.2% |
 
    Twenty further provisions are `out_of_scope` with a reason and never scored. Two are worth naming: **the energy-credit terminations (+$542.7B) are excluded for leakage, not a missing feature** — `climate.py`'s IRA-repeal annual is documented as fitted to the −$783B IRA-repeal target, the third instance of this pattern after Options 53, 56 and 62 — and **the senior deduction has no JCT line item at all**: JCT nets it inside the personal-exemption row, whose printed label says so. The plan asked for it; it cannot be transcribed, and that is recorded rather than approximated.
 

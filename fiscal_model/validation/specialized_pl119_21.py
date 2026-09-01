@@ -73,10 +73,18 @@ LINE_ITEMS_CSV = (
 #: rather than a label.
 PL119_21_VINTAGE = BaselineVintage.CBO_JAN_2025
 
-#: ``TCJAExtensionPolicy`` scores from the year the extension takes effect. The
-#: P.L. 119-21 individual provisions are generally effective for tax years
-#: beginning after 31 December 2025.
-_SCORER_START_YEAR = 2026
+#: The fiscal year JCX-35-25's own window opens on. The scorer's baseline window
+#: is what the model sums over, so it must be JCT's window - **FY2025-2034** -
+#: and not the year the provisions take effect. Getting this wrong silently
+#: replaces JCT's zero-effect 2025 column with a tenth year of effect in 2035.
+_SCORER_START_YEAR = 2025
+
+#: The year the provisions themselves take effect. P.L. 119-21's individual
+#: provisions are generally effective for tax years beginning after 31 December
+#: 2025, so the policy is built with ``start_year=2026`` and
+#: ``Policy.is_active()`` leaves FY2025 at zero inside the FY2025-2034 window -
+#: which is exactly what JCT prints for most of these rows.
+_POLICY_EFFECTIVE_YEAR = 2026
 
 PL119_21_BENCHMARK_KIND = "Sourced line item (JCX-35-25)"
 
@@ -287,7 +295,7 @@ def build_provision_policy(provision_id: str):
     kwargs = {name: False for name in _ALL_TCJA_FLAGS}
     kwargs[flag] = True
     policy = create_tcja_extension(
-        extend_all=False, start_year=_SCORER_START_YEAR, **kwargs
+        extend_all=False, start_year=_POLICY_EFFECTIVE_YEAR, **kwargs
     )
     policy.name = f"P.L. 119-21: {provision_id}"
     return policy
@@ -311,6 +319,7 @@ def validate_pl119_21_provision(
         )
 
     policy = build_provision_policy(provision_id)
+    # Baseline window = JCT's window (FY2025-2034); policy effect starts 2026.
     scorer = build_scorer_for_vintage(
         PL119_21_VINTAGE, start_year=_SCORER_START_YEAR, use_real_data=False
     )
@@ -336,6 +345,8 @@ def validate_pl119_21_provision(
             "jct_pdf_page": item.pdf_page,
             "module_path": item.module_path,
             "scoring_vintage": PL119_21_VINTAGE.value,
+            "scoring_window": f"FY{_SCORER_START_YEAR}-{_SCORER_START_YEAR + 9}",
+            "policy_effective_year": _POLICY_EFFECTIVE_YEAR,
         },
         notes=item.note,
         benchmark_date="2025-07",

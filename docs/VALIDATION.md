@@ -152,15 +152,15 @@ The specialized modules (TCJA, Corporate, Estate, Credits, AMT, Payroll, PTC, Ca
 | Metric | Calibrated reference (fitted) | Module reconstruction (not fitted) |
 |--------|---:|---:|
 | Benchmarks | **34** | **20** |
-| Mean absolute error | **2.7%** | **253.2%** |
-| Median absolute error | 0.2% | 40.7% |
+| Mean absolute error | **2.7%** | **250.8%** |
+| Median absolute error | 0.2% | 43.1% |
 | Within 15% of official | 33/34 | 4/20 |
 | Within 25% of official | 34/34 | 7/20 |
 
 The right-hand column grew from 12 to 20 in Phase D, and its mean fell from
-394.1% to 253.2% — not because anything improved, but because the eight
+394.1% to 250.8% — not because anything improved, but because the eight
 P.L. 119-21 line items below are a *tighter* class of unfitted reconstruction
-(41.8% mean) than the sectoral modules they were averaged with. The two
+(35.8% mean) than the sectoral modules they were averaged with. The two
 populations are described separately for that reason.
 
 The 2.7% on the left is **expected by construction** — those modules carry a constant fitted to each benchmark, so they demonstrate the model's structure and provide auditable, source-linked reconstructions of official scores; they are **not** evidence the model would have predicted them cold. (Earlier revisions of this file quoted 4.4%; the live figure from `python scripts/cold_holdout.py` is 2.7%, and that command is now the only place this number should be read from.)
@@ -203,23 +203,34 @@ question they answer is: can a module tuned on one aggregate also decompose?
 
 | Provision (JCX-35-25 item) | JCT | Model | Error | Rating |
 |---|---:|---:|---:|---|
-| Extension of reduced rates (1) | +$2,193.4B | +$3,114.7B | 42.0% | Poor |
-| Increased standard deduction (2) | +$1,424.7B | +$1,217.5B | -14.5% | Acceptable |
-| Termination of personal exemptions (3) | -$1,807.1B | -$1,116.0B | 38.2% | Poor |
-| Increased child tax credit (4) | +$816.8B | +$969.1B | 18.6% | Acceptable |
-| Section 199A deduction (5) | +$736.5B | +$1,275.0B | 73.1% | Poor |
-| Estate and gift exemption (6) | +$211.7B | +$222.6B | 5.1% | Good |
-| AMT exemption (7) | +$1,362.8B | +$811.6B | -40.4% | Poor |
-| SALT limitation (20) | -$946.2B | -$1,912.6B | -102.1% | Poor |
-| **Mean absolute error** | | | **41.8%** | 2/8 within 15% |
+| Extension of reduced rates (1) | +$2,193.4B | +$2,752.8B | 25.5% | Poor |
+| Increased standard deduction (2) | +$1,424.7B | +$1,078.9B | -24.3% | Poor |
+| Termination of personal exemptions (3) | -$1,807.1B | -$989.0B | 45.3% | Poor |
+| Increased child tax credit (4) | +$816.8B | +$863.3B | 5.7% | Good |
+| Section 199A deduction (5) | +$736.5B | +$1,123.9B | 52.6% | Poor |
+| Estate and gift exemption (6) | +$211.7B | +$195.2B | -7.8% | Good |
+| AMT exemption (7) | +$1,362.8B | +$719.3B | -47.2% | Poor |
+| SALT limitation (20) | -$946.2B | -$1,685.8B | -78.2% | Poor |
+| **Mean absolute error** | | | **35.8%** | 2/8 within 15% |
+
+**Scoring window.** The scorer's baseline window is JCT's own — **FY2025-2034** —
+and the policy takes effect in FY2026, so `Policy.is_active()` leaves FY2025 at
+zero, which is what JCT prints for most of these rows. An earlier revision of
+this branch built the scorer at 2026, which silently replaced JCT's zero-effect
+2025 column with a tenth year of effect in 2035 and inflated every row; the
+correction moved the block's mean from 41.8% to 35.8% and made three rows
+*worse*, so it is a window fix rather than a fit.
 
 **The headline finding: the module reproduces the aggregate to 0.4% and its own
-components to 42%.** Every error carries a structural reason in
+components to 36%.** Every error carries a structural reason in
 `known_limitations`, and nothing was retuned. The largest, SALT at 102%, is a
 declared design mismatch rather than calibration drift: P.L. 119-21 sets a
 $40,000 cap phasing down above $500,000 of income and reverting to $10,000 after
 2029, while the module's SALT component represents the flat $10,000 cap, which
-raises far more revenue.
+raises far more revenue. The largest *understatement*, AMT at 47%, is the mirror
+image: P.L. 119-21 also lowers the phaseout thresholds and raises the phaseout
+rate, both of which raise revenue relative to a plain extension, and the module
+carries one aggregate annual with no phaseout structure at all.
 
 **Twenty further provisions are recorded `out_of_scope` with a reason and never
 scored** — tips, overtime, car-loan interest, Trump accounts, full expensing,

@@ -775,16 +775,25 @@ the answer is no:
 
 | Provision | JCT | Model | Error | Structural cause recorded |
 |---|---:|---:|---:|---|
-| Reduced rates | +2,193.4 | +3,114.7 | 42.0% | one aggregate annual at 3.5%/yr, no bracket structure |
-| Standard deduction | +1,424.7 | +1,217.5 | -14.5% | single national annual; cannot see the enhancement |
-| Personal exemption repeal | -1,807.1 | -1,116.0 | 38.2% | JCT nets the new senior deduction into this row |
-| Child tax credit | +816.8 | +969.1 | 18.6% | module holds the $2,000 credit, law sets $2,200 indexed |
-| Section 199A | +736.5 | +1,275.0 | 73.1% | one aggregate at 4%/yr, no pass-through distribution |
-| Estate/gift exemption | +211.7 | +222.6 | 5.1% | aggregate annual, not estate.py's exemption machinery |
-| AMT exemption | +1,362.8 | +811.6 | -40.4% | law also cuts phaseout thresholds and raises the rate |
-| SALT limitation | -946.2 | -1,912.6 | -102.1% | **design mismatch**: module has the flat $10K cap |
+| Reduced rates | +2,193.4 | +2,752.8 | 25.5% | one aggregate annual at 3.5%/yr, no bracket structure |
+| Standard deduction | +1,424.7 | +1,078.9 | -24.3% | single national annual; cannot see the enhancement |
+| Personal exemption repeal | -1,807.1 | -989.0 | 45.3% | JCT nets the new senior deduction into this row |
+| Child tax credit | +816.8 | +863.3 | 5.7% | module holds the $2,000 credit, law sets $2,200 indexed |
+| Section 199A | +736.5 | +1,123.9 | 52.6% | one aggregate at 4%/yr, no pass-through distribution |
+| Estate/gift exemption | +211.7 | +195.2 | -7.8% | aggregate annual, not estate.py's exemption machinery |
+| AMT exemption | +1,362.8 | +719.3 | -47.2% | law also cuts phaseout thresholds and raises the rate |
+| SALT limitation | -946.2 | -1,685.8 | -78.2% | **design mismatch**: module has the flat $10K cap |
 
-Mean absolute error **41.8%**, 2 of 8 within 15%. Against 0.4% on the aggregate.
+The scoring window is JCT's own, FY2025-2034, with the policy effective in
+FY2026 so `Policy.is_active()` leaves FY2025 at the zero JCT prints for most of
+these rows. That is worth stating because an earlier revision of this branch
+built the scorer at 2026 and therefore summed FY2026-2035 — silently trading
+JCT's zero-effect 2025 column for a tenth year of effect in 2035 and inflating
+every row. Correcting it moved the block's mean from 41.8% to 35.8% and made
+three of the eight rows *worse*, which is the tell that it is a window fix and
+not a fit.
+
+Mean absolute error **35.8%**, 2 of 8 within 15%. Against 0.4% on the aggregate.
 That gap is the finding, and it is the sharpest evidence yet that the calibrated
 tier's low errors are reconstruction rather than structure. Nothing was retuned;
 every row carries its cause in `known_limitations`.

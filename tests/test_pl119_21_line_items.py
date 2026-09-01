@@ -10,8 +10,12 @@ with a reason - never silently dropped.
 
 They also pin the epistemics. No module constant is fitted to any individual JCT
 row, so every entry must report ``calibrated_to_target=False``; if that ever
-flips, a 41.8% mean error would start being read as a calibration regression
+flips, a 35.8% mean error would start being read as a calibration regression
 instead of the finding it is.
+
+The scoring window is pinned too. JCT's totals cover FY2025-2034; the scorer's
+baseline window is what the model sums over, so building it at 2026 would
+silently trade JCT's zero-effect 2025 column for a tenth year of effect in 2035.
 """
 
 import pytest
@@ -143,6 +147,32 @@ def test_entries_are_scored_on_the_january_2025_vintage():
     assert PL119_21_VINTAGE.value == "cbo_jan_2025"
     for result in validate_all_pl119_21(verbose=False):
         assert result.model_parameters["scoring_vintage"] == "cbo_jan_2025"
+
+
+def test_entries_are_scored_over_jcts_own_window():
+    """The scorer's baseline window must be JCT's FY2025-2034, not FY2026-2035.
+
+    ``ScoringResult.total_10_year_cost`` sums over the *baseline* years, and the
+    policy only contributes in years where ``Policy.is_active()``. Building the
+    scorer at 2026 would silently trade JCT's zero-effect 2025 column for a
+    tenth year of effect in 2035 and inflate every row in the block.
+    """
+    from fiscal_model.validation.specialized_pl119_21 import (
+        _POLICY_EFFECTIVE_YEAR,
+        _SCORER_START_YEAR,
+    )
+
+    assert _SCORER_START_YEAR == 2025
+    assert _POLICY_EFFECTIVE_YEAR == 2026
+    for result in validate_all_pl119_21(verbose=False):
+        assert result.model_parameters["scoring_window"] == "FY2025-2034"
+        assert result.model_parameters["policy_effective_year"] == 2026
+    # FY2025 is outside every provision's active window, so the first year of
+    # the model path must be exactly zero - the column JCT prints as "---".
+    for item in mapped_line_items():
+        policy = build_provision_policy(item.provision_id)
+        assert not policy.is_active(2025), item.provision_id
+        assert policy.is_active(2026), item.provision_id
 
 
 def test_entries_carry_a_jct_page_reference():
