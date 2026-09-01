@@ -55,13 +55,82 @@ KEY_SIDEBAR_SPENDING_PRESET = "sidebar_spending_preset"
 
 # Settings
 KEY_DARK_MODE = "dark_mode"
-KEY_DYNAMIC_SCORING = "dynamic_scoring_enabled"
+# Widget key on the "Enable dynamic scoring" checkbox
+# (``settings_controller._DYNAMIC_SCORING_KEY``); also written by share links.
+# It used to be declared here as "dynamic_scoring_enabled", a literal nothing
+# read or wrote, so ``SafeSessionState`` logged "unknown key" for the real one.
+KEY_DYNAMIC_SCORING = "sidebar_setting_dynamic_scoring"
 
-# Share-link handling
-KEY_SHARE_TOKEN = "_share_link_token"
+# Share-link handling — matches ``share_links._SHARE_TOKEN_KEY`` (was declared
+# here as the never-used "_share_link_token").
+KEY_SHARE_TOKEN = "_applied_share_token"
 
 # Ask assistant
 KEY_ASK_HISTORY = "ask_history"
+
+# ---------------------------------------------------------------------------
+# Redesign prep - explicit widget keys (behaviour-neutral)
+# ---------------------------------------------------------------------------
+#
+# The custom tax form, the spending form and the model settings were rendered
+# with unkeyed widgets, so their values lived only in Streamlit's positional
+# widget identity. Moving them out of the sidebar (onto ``/tailor`` and a
+# settings popover) would silently reset every field. Pinning them to explicit
+# keys makes that move a no-op.
+#
+# Naming: ``tailor_tax_*`` / ``tailor_spend_*`` for the two policy forms and
+# ``setting_*`` for model settings. Pre-existing keys keep their (now stale)
+# ``sidebar_*`` prefix - renaming them would break share links.
+
+# Tailor - custom tax policy form (``ui/policy_input_tax.py``)
+KEY_TAILOR_TAX_POLICY_NAME = "tailor_tax_policy_name"
+KEY_TAILOR_TAX_TYPE = "tailor_tax_type"
+KEY_TAILOR_TAX_RATE_CHANGE_PCT = "tailor_tax_rate_change_pct"
+KEY_TAILOR_TAX_THRESHOLD_CHOICE = "tailor_tax_threshold_choice"
+KEY_TAILOR_TAX_CUSTOM_THRESHOLD = "tailor_tax_custom_threshold"
+KEY_TAILOR_TAX_DURATION = "tailor_tax_duration"
+KEY_TAILOR_TAX_PHASE_IN = "tailor_tax_phase_in"
+KEY_TAILOR_TAX_ETI = "tailor_tax_eti"
+KEY_TAILOR_TAX_MANUAL_TAXPAYERS = "tailor_tax_manual_taxpayers"
+KEY_TAILOR_TAX_MANUAL_AVG_INCOME = "tailor_tax_manual_avg_income"
+KEY_TAILOR_TAX_ORDINARY_BASE = "tailor_tax_ordinary_base"
+
+# Tailor - capital-gains sub-form (same module)
+KEY_TAILOR_TAX_CG_BASE_YEAR = "tailor_tax_cg_base_year"
+KEY_TAILOR_TAX_CG_BASELINE_RATE = "tailor_tax_cg_baseline_rate"
+KEY_TAILOR_TAX_CG_BASELINE_REALIZATIONS = "tailor_tax_cg_baseline_realizations"
+KEY_TAILOR_TAX_CG_TIME_VARYING = "tailor_tax_cg_time_varying"
+KEY_TAILOR_TAX_CG_SHORT_RUN_ELASTICITY = "tailor_tax_cg_short_run_elasticity"
+KEY_TAILOR_TAX_CG_LONG_RUN_ELASTICITY = "tailor_tax_cg_long_run_elasticity"
+KEY_TAILOR_TAX_CG_TRANSITION_YEARS = "tailor_tax_cg_transition_years"
+KEY_TAILOR_TAX_CG_REALIZATION_ELASTICITY = "tailor_tax_cg_realization_elasticity"
+KEY_TAILOR_TAX_CG_ELIMINATE_STEP_UP = "tailor_tax_cg_eliminate_step_up"
+KEY_TAILOR_TAX_CG_STEP_UP_EXEMPTION = "tailor_tax_cg_step_up_exemption"
+KEY_TAILOR_TAX_CG_GAINS_AT_DEATH = "tailor_tax_cg_gains_at_death"
+KEY_TAILOR_TAX_CG_LOCK_IN_MULTIPLIER = "tailor_tax_cg_lock_in_multiplier"
+
+# Tailor - spending program form (``ui/policy_input_spending.py``)
+KEY_TAILOR_SPEND_PROGRAM_NAME = "tailor_spend_program_name"
+KEY_TAILOR_SPEND_ANNUAL = "tailor_spend_annual"
+KEY_TAILOR_SPEND_CATEGORY = "tailor_spend_category"
+KEY_TAILOR_SPEND_DURATION = "tailor_spend_duration"
+KEY_TAILOR_SPEND_GROWTH_RATE = "tailor_spend_growth_rate"
+KEY_TAILOR_SPEND_MULTIPLIER = "tailor_spend_multiplier"
+KEY_TAILOR_SPEND_ONE_TIME = "tailor_spend_one_time"
+# Code key (not a widget): which spending preset last seeded the fields above.
+# Unkeyed widgets re-derived their default from the preset on every switch
+# because the default was part of the widget identity; with stable keys the
+# re-seed has to be explicit, and this records what was last applied.
+KEY_TAILOR_SPEND_PRESET_APPLIED = "_tailor_spend_preset_applied"
+
+# Model settings (``ui/settings_controller.py``). ``dark_mode`` (code) and
+# ``sidebar_setting_dynamic_scoring`` (widget) already exist elsewhere.
+KEY_SETTING_DARK_MODE = "setting_dark_mode"
+KEY_SETTING_MACRO_MODEL = "setting_macro_model"
+KEY_SETTING_USE_REAL_DATA = "setting_use_real_data"
+KEY_SETTING_DATA_YEAR = "setting_data_year"
+KEY_SETTING_USE_MICROSIM = "setting_use_microsim"
+KEY_SETTING_USE_MICROSIM_DISTRIBUTION = "setting_use_microsim_distribution"
 
 
 @dataclass(frozen=True)
@@ -98,6 +167,48 @@ _SESSION_KEYS: tuple[_KeySpec, ...] = (
     # Ask assistant — the tab initializes its own list to avoid a shared
     # mutable default; we still register the key here so it's documented.
     _KeySpec(KEY_ASK_HISTORY, None, (list, type(None))),
+    # Tailor - custom tax policy form
+    _KeySpec(KEY_TAILOR_TAX_POLICY_NAME, "Tax Rate Change", str),
+    _KeySpec(KEY_TAILOR_TAX_TYPE, "Income Tax Rate", str),
+    _KeySpec(KEY_TAILOR_TAX_RATE_CHANGE_PCT, -2.0, float),
+    _KeySpec(KEY_TAILOR_TAX_THRESHOLD_CHOICE, "Top earners ($400K+)", str),
+    _KeySpec(KEY_TAILOR_TAX_CUSTOM_THRESHOLD, 400_000, int),
+    _KeySpec(KEY_TAILOR_TAX_DURATION, 10, int),
+    _KeySpec(KEY_TAILOR_TAX_PHASE_IN, 1, int),
+    _KeySpec(KEY_TAILOR_TAX_ETI, 0.25, float),
+    _KeySpec(KEY_TAILOR_TAX_MANUAL_TAXPAYERS, 0.0, float),
+    _KeySpec(KEY_TAILOR_TAX_MANUAL_AVG_INCOME, 0, int),
+    _KeySpec(KEY_TAILOR_TAX_ORDINARY_BASE, True, bool),
+    # Tailor - capital-gains sub-form
+    _KeySpec(KEY_TAILOR_TAX_CG_BASE_YEAR, 2024, int),
+    _KeySpec(KEY_TAILOR_TAX_CG_BASELINE_RATE, 0.238, float),
+    _KeySpec(KEY_TAILOR_TAX_CG_BASELINE_REALIZATIONS, 0.0, float),
+    _KeySpec(KEY_TAILOR_TAX_CG_TIME_VARYING, True, bool),
+    _KeySpec(KEY_TAILOR_TAX_CG_SHORT_RUN_ELASTICITY, 0.8, float),
+    _KeySpec(KEY_TAILOR_TAX_CG_LONG_RUN_ELASTICITY, 0.4, float),
+    _KeySpec(KEY_TAILOR_TAX_CG_TRANSITION_YEARS, 3, int),
+    _KeySpec(KEY_TAILOR_TAX_CG_REALIZATION_ELASTICITY, 0.5, float),
+    _KeySpec(KEY_TAILOR_TAX_CG_ELIMINATE_STEP_UP, False, bool),
+    _KeySpec(KEY_TAILOR_TAX_CG_STEP_UP_EXEMPTION, 1_000_000, int),
+    _KeySpec(KEY_TAILOR_TAX_CG_GAINS_AT_DEATH, 54.0, float),
+    _KeySpec(KEY_TAILOR_TAX_CG_LOCK_IN_MULTIPLIER, 2.0, float),
+    # Tailor - spending program form
+    _KeySpec(KEY_TAILOR_SPEND_PROGRAM_NAME, "Infrastructure Investment", str),
+    _KeySpec(KEY_TAILOR_SPEND_ANNUAL, 100.0, float),
+    _KeySpec(KEY_TAILOR_SPEND_CATEGORY, "Infrastructure", str),
+    _KeySpec(KEY_TAILOR_SPEND_DURATION, 10, int),
+    _KeySpec(KEY_TAILOR_SPEND_GROWTH_RATE, 2.0, float),
+    _KeySpec(KEY_TAILOR_SPEND_MULTIPLIER, 1.0, float),
+    _KeySpec(KEY_TAILOR_SPEND_ONE_TIME, False, bool),
+    _KeySpec(KEY_TAILOR_SPEND_PRESET_APPLIED, None, (str, type(None))),
+    # Model settings. ``setting_data_year`` defaults to None and is resolved
+    # against the years actually shipped under data_files/irs_soi at render.
+    _KeySpec(KEY_SETTING_DARK_MODE, False, bool),
+    _KeySpec(KEY_SETTING_MACRO_MODEL, "FRB/US-Lite (recommended)", str),
+    _KeySpec(KEY_SETTING_USE_REAL_DATA, True, bool),
+    _KeySpec(KEY_SETTING_DATA_YEAR, None, (int, type(None))),
+    _KeySpec(KEY_SETTING_USE_MICROSIM, False, bool),
+    _KeySpec(KEY_SETTING_USE_MICROSIM_DISTRIBUTION, True, bool),
 )
 
 
@@ -196,11 +307,48 @@ __all__ = [
     "KEY_QUICK_START_DISMISSED",
     "KEY_RESULTS",
     "KEY_RESULTS_RUN_ID",
+    "KEY_SETTING_DARK_MODE",
+    "KEY_SETTING_DATA_YEAR",
+    "KEY_SETTING_MACRO_MODEL",
+    "KEY_SETTING_USE_MICROSIM",
+    "KEY_SETTING_USE_MICROSIM_DISTRIBUTION",
+    "KEY_SETTING_USE_REAL_DATA",
     "KEY_SHARE_TOKEN",
     "KEY_SIDEBAR_ANALYSIS_MODE",
     "KEY_SIDEBAR_POLICY_AREA",
     "KEY_SIDEBAR_PRESET_CHOICE",
     "KEY_SIDEBAR_SPENDING_PRESET",
+    "KEY_TAILOR_SPEND_ANNUAL",
+    "KEY_TAILOR_SPEND_CATEGORY",
+    "KEY_TAILOR_SPEND_DURATION",
+    "KEY_TAILOR_SPEND_GROWTH_RATE",
+    "KEY_TAILOR_SPEND_MULTIPLIER",
+    "KEY_TAILOR_SPEND_ONE_TIME",
+    "KEY_TAILOR_SPEND_PRESET_APPLIED",
+    "KEY_TAILOR_SPEND_PROGRAM_NAME",
+    "KEY_TAILOR_TAX_CG_BASELINE_RATE",
+    "KEY_TAILOR_TAX_CG_BASELINE_REALIZATIONS",
+    "KEY_TAILOR_TAX_CG_BASE_YEAR",
+    "KEY_TAILOR_TAX_CG_ELIMINATE_STEP_UP",
+    "KEY_TAILOR_TAX_CG_GAINS_AT_DEATH",
+    "KEY_TAILOR_TAX_CG_LOCK_IN_MULTIPLIER",
+    "KEY_TAILOR_TAX_CG_LONG_RUN_ELASTICITY",
+    "KEY_TAILOR_TAX_CG_REALIZATION_ELASTICITY",
+    "KEY_TAILOR_TAX_CG_SHORT_RUN_ELASTICITY",
+    "KEY_TAILOR_TAX_CG_STEP_UP_EXEMPTION",
+    "KEY_TAILOR_TAX_CG_TIME_VARYING",
+    "KEY_TAILOR_TAX_CG_TRANSITION_YEARS",
+    "KEY_TAILOR_TAX_CUSTOM_THRESHOLD",
+    "KEY_TAILOR_TAX_DURATION",
+    "KEY_TAILOR_TAX_ETI",
+    "KEY_TAILOR_TAX_MANUAL_AVG_INCOME",
+    "KEY_TAILOR_TAX_MANUAL_TAXPAYERS",
+    "KEY_TAILOR_TAX_ORDINARY_BASE",
+    "KEY_TAILOR_TAX_PHASE_IN",
+    "KEY_TAILOR_TAX_POLICY_NAME",
+    "KEY_TAILOR_TAX_RATE_CHANGE_PCT",
+    "KEY_TAILOR_TAX_THRESHOLD_CHOICE",
+    "KEY_TAILOR_TAX_TYPE",
     "SafeSessionState",
     "initialize_session_state",
 ]

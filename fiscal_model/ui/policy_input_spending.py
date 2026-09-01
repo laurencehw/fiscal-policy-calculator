@@ -6,6 +6,22 @@ from __future__ import annotations
 
 from typing import Any
 
+from .session_state import (
+    KEY_TAILOR_SPEND_ANNUAL,
+    KEY_TAILOR_SPEND_CATEGORY,
+    KEY_TAILOR_SPEND_DURATION,
+    KEY_TAILOR_SPEND_GROWTH_RATE,
+    KEY_TAILOR_SPEND_MULTIPLIER,
+    KEY_TAILOR_SPEND_ONE_TIME,
+    KEY_TAILOR_SPEND_PRESET_APPLIED,
+    KEY_TAILOR_SPEND_PROGRAM_NAME,
+)
+
+# The program picker keeps its historic ``sidebar_*`` key (share links and
+# tests/test_share_links.py depend on the literal); everything below it is
+# newly keyed with the ``tailor_spend_*`` namespace.
+_SPENDING_PRESET_KEY = "sidebar_spending_preset"
+
 SPENDING_PRESETS: dict[str, dict[str, Any]] = {
     "Custom program": {
         "annual_spending": 100.0,
@@ -153,6 +169,42 @@ _CATEGORY_TO_MODEL = {
 }
 
 
+def _seed_widget_default(
+    st_module: Any, key: str, default: Any, *, force: bool = False
+) -> None:
+    """Seed a widget key before the widget is instantiated.
+
+    Passing both ``key=`` and ``value=``/``index=`` triggers Streamlit's
+    "created with a default value but also had its value set via Session
+    State" warning once the key exists, so the defaults are seeded here and
+    omitted on the widget itself.
+
+    ``force=True`` re-seeds an existing key. That is what preserves the old
+    unkeyed behaviour of the preset-driven fields: an unkeyed widget's identity
+    includes its default, so switching programs rebuilt the widget with the new
+    program's value. A stable key removes that identity change, so the re-seed
+    has to be explicit — see ``_apply_preset_defaults``.
+    """
+    if force or key not in st_module.session_state:
+        st_module.session_state[key] = default
+
+
+def _apply_preset_defaults(
+    st_module: Any, selected_preset: str, defaults: dict[str, Any]
+) -> None:
+    """Push a spending preset's values into the keyed widgets it drives.
+
+    Only fires when the selected program actually changed, so a user's manual
+    override survives an unrelated rerun exactly as it did when the widgets
+    were unkeyed.
+    """
+    changed = st_module.session_state.get(KEY_TAILOR_SPEND_PRESET_APPLIED) != selected_preset
+    if changed:
+        st_module.session_state[KEY_TAILOR_SPEND_PRESET_APPLIED] = selected_preset
+    for key, value in defaults.items():
+        _seed_widget_default(st_module, key, value, force=changed)
+
+
 def render_spending_policy_inputs(
     st_module: Any,
     default_preset: str | None = None,
@@ -161,7 +213,7 @@ def render_spending_policy_inputs(
     st_module.markdown("#### Spending program")
 
     preset_names = list(SPENDING_PRESETS.keys())
-    spending_key = "sidebar_spending_preset"
+    spending_key = _SPENDING_PRESET_KEY
     if (
         spending_key in st_module.session_state
         and st_module.session_state[spending_key] not in preset_names
@@ -182,25 +234,6 @@ def render_spending_policy_inputs(
 
     is_custom = selected_preset == "Custom program"
 
-    program_name = (
-        st_module.text_input(
-            "Program name",
-            "Infrastructure Investment",
-            help="A short label for this spending program.",
-        )
-        if is_custom
-        else selected_preset.split("(")[0].strip()
-    )
-
-    annual_spending = st_module.number_input(
-        "Annual spending change ($B)",
-        min_value=-500.0,
-        max_value=500.0,
-        value=float(preset["annual_spending"]),
-        step=10.0,
-        help="**Positive** = spending increase, **Negative** = spending cut.",
-    )
-
     all_categories = [
         "Infrastructure",
         "Defense",
@@ -212,14 +245,50 @@ def render_spending_policy_inputs(
         "Education",
         "Research & Development",
     ]
-    default_cat_index = (
-        all_categories.index(preset["category"]) if preset["category"] in all_categories else 0
+    preset_category = (
+        preset["category"] if preset["category"] in all_categories else all_categories[0]
+    )
+
+    # Re-seed every preset-driven field when the program changes (see
+    # ``_apply_preset_defaults``); the program-name box is not preset-driven.
+    _apply_preset_defaults(
+        st_module,
+        selected_preset,
+        {
+            KEY_TAILOR_SPEND_ANNUAL: float(preset["annual_spending"]),
+            KEY_TAILOR_SPEND_CATEGORY: preset_category,
+            KEY_TAILOR_SPEND_DURATION: int(preset["duration"]),
+            KEY_TAILOR_SPEND_GROWTH_RATE: float(preset["growth_rate"]) * 100,
+            KEY_TAILOR_SPEND_MULTIPLIER: float(preset["multiplier"]),
+            KEY_TAILOR_SPEND_ONE_TIME: bool(preset["is_one_time"]),
+        },
+    )
+
+    if is_custom:
+        _seed_widget_default(
+            st_module, KEY_TAILOR_SPEND_PROGRAM_NAME, "Infrastructure Investment"
+        )
+        program_name = st_module.text_input(
+            "Program name",
+            key=KEY_TAILOR_SPEND_PROGRAM_NAME,
+            help="A short label for this spending program.",
+        )
+    else:
+        program_name = selected_preset.split("(")[0].strip()
+
+    annual_spending = st_module.number_input(
+        "Annual spending change ($B)",
+        min_value=-500.0,
+        max_value=500.0,
+        step=10.0,
+        key=KEY_TAILOR_SPEND_ANNUAL,
+        help="**Positive** = spending increase, **Negative** = spending cut.",
     )
 
     spending_category = st_module.selectbox(
         "Category",
         all_categories,
-        index=default_cat_index,
+        key=KEY_TAILOR_SPEND_CATEGORY,
         help="Affects fiscal multiplier defaults and baseline projections.",
     )
 
@@ -232,7 +301,7 @@ def render_spending_policy_inputs(
             "Duration (years)",
             min_value=1,
             max_value=10,
-            value=int(preset["duration"]),
+            key=KEY_TAILOR_SPEND_DURATION,
             help="Standard CBO budget window is 10 years.",
         )
 
@@ -240,8 +309,8 @@ def render_spending_policy_inputs(
             "Annual real growth rate (%)",
             min_value=-5.0,
             max_value=10.0,
-            value=float(preset["growth_rate"]) * 100,
             step=0.5,
+            key=KEY_TAILOR_SPEND_GROWTH_RATE,
             help="How fast spending grows each year after the first.",
         ) / 100
 
@@ -249,8 +318,8 @@ def render_spending_policy_inputs(
             "Fiscal multiplier",
             min_value=0.0,
             max_value=2.0,
-            value=float(preset["multiplier"]),
             step=0.1,
+            key=KEY_TAILOR_SPEND_MULTIPLIER,
             help=(
                 "GDP impact per dollar spent. Typical values: infrastructure ~1.5, defense ~1.0, "
                 "transfers ~0.8. ([CBO 2015 estimates](https://www.cbo.gov/publication/49958))"
@@ -259,7 +328,7 @@ def render_spending_policy_inputs(
 
         is_one_time = st_module.checkbox(
             "One-time expenditure",
-            value=bool(preset["is_one_time"]),
+            key=KEY_TAILOR_SPEND_ONE_TIME,
             help="Check for one-time spending (e.g., disaster relief) rather than recurring.",
         )
 
