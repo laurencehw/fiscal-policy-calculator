@@ -18,7 +18,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from .results_summary import ensure_summary
+from .results_summary import _file_stem, ensure_summary
 
 
 def render_detailed_results_tab(
@@ -117,7 +117,7 @@ def render_detailed_results_tab(
         st_module.download_button(
             label="📥 Download as CSV",
             data=meta_header + detailed_df.to_csv(index=False),
-            file_name=f"fiscal_impact_{policy.name.replace(' ', '_')}.csv",
+            file_name=f"fiscal_impact_{_file_stem(scored)}.csv",
             mime="text/csv",
         )
 
@@ -156,6 +156,6 @@ def render_detailed_results_tab(
         st_module.download_button(
             label="📥 Download as JSON",
             data=json.dumps(export_data, indent=2),
-            file_name=f"fiscal_impact_{policy.name.replace(' ', '_')}.json",
+            file_name=f"fiscal_impact_{_file_stem(scored)}.json",
             mime="application/json",
         )

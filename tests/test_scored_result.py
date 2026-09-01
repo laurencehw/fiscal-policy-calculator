@@ -333,3 +333,22 @@ def test_hash_is_insensitive_to_key_order():
 def test_scored_result_carries_the_hash_it_was_built_with():
     scored = _build(_generic_result_data(), policy_spec_hash="deadbeef")
     assert scored.policy_spec_hash == "deadbeef"
+
+
+def test_detailed_results_download_names_use_the_shared_sanitizer():
+    """Copilot review (PR #66): CSV/JSON download names must go through
+    results_summary._file_stem, not a bare space replacement of policy.name."""
+    import pathlib
+    import re
+    from types import SimpleNamespace
+
+    from fiscal_model.ui.tabs.results_summary import _file_stem
+
+    stem = _file_stem(SimpleNamespace(display_name="My/Policy: 💥 v2"))
+    assert re.fullmatch(r"[a-z0-9_\-]+", stem), stem
+    assert _file_stem(SimpleNamespace(display_name="///")) == "policy"
+
+    src = pathlib.Path("fiscal_model/ui/tabs/detailed_results.py").read_text(encoding="utf-8")
+    names = re.findall(r"file_name=f\"([^\"]+)\"", src)
+    assert len(names) == 2, names
+    assert all("_file_stem(scored)" in n for n in names), names
