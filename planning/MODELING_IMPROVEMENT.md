@@ -1,0 +1,180 @@
+# Modeling improvement plan — close the errors by modelling the mechanism
+
+*Written 2026-09-01 against `main` @ `257219b` (Phases A/B/C/E landed: PRs #69, #72, #70, #71). Every number below is from `python scripts/cold_holdout.py --json` and `python scripts/run_loo.py --json` on that commit, or from a `file:line` in the tree.*
+
+The validation expansion did its job: it replaced a flattering 8% with three honest numbers — **43.4% out-of-sample (n=23)**, **59.3% leave-one-out (n=18)**, **394.1% on unfitted module reconstructions (n=12)**. This plan spends those numbers. It ranks the work by *error mass × tractability* and says, per lane, which mechanism is missing, what data closes it, which rows should move and in which direction.
+
+## 1. Principles
+
+1. **Mechanism, not tuning.** A lane succeeds by adding structure that a public-finance referee would recognise (a spend-out profile, a stock of accrued gains, a taxable-estate distribution). It fails the moment it adds a constant that happens to reproduce a target.
+2. **The yardstick is frozen.** `scripts/cold_holdout.py`, `scripts/run_loo.py`, `fiscal_model/validation/preregistered.py` and `loo.py`'s leakage guard are not modified by any modelling lane. Targets are not touched (§4).
+3. **Pre-register the prediction.** Each lane states, *before* it changes code, which rows it expects to move and roughly how far. A lane that moves rows it did not name has learned something it should write down, not claim.
+4. **Regressions count against the lane.** The score is the whole battery. Closing `cbo_opt43` by 55pp while breaking `cbo_opt37` by 20pp is a net 7pp gain, not a win.
+5. **Report movement, not attainment.** No lane is allowed to promise "within 15%". The two Treasury capital-gains targets differ from each other by 42%; that is the floor on what any single model can attain there.
+6. **Target problems go to the other lane.** `top_rate_45` (−420 vs the same database's −700 for a *smaller* increase on a *narrower* base), the 17 round-hundred targets, and the two capital-gains targets are Phase E-provenance work. Reference it; do not redo it.
+
+## 2. Error budget
+
+Error mass = Σ|error %| within a tier; share = that mechanism's contribution to the tier mean. Tier 1 total mass 997 (23 cases); LOO 1068 (18); reconstructions 4729 (12).
+
+### 2.1 Tier 1 — out-of-sample (43.4% mean, 23.1% median)
+
+| Mechanism | Cases | Mass | Share | Tractability |
+|---|---|--:|--:|---|
+| **Capital gains** — realizations base, lock-in, gains at death | `biden_capital_gains_39` 79, `cbo_opt51_gains_at_death` 84, `cbo_opt47_ltcg_qdiv_2pp` 99, `treasury_capgains_39_plus_stepup_elim` 154 | 416 | **41.7%** | Medium. Bounded change; SOI + SCF data must be fetched; 4 OOS + 3 LOO rows test it |
+| **Budget-authority → outlay spend-out** | `cbo_opt43` 75, `cbo_opt38` 23, `cbo_opt37` 20, `cbo_opt42` 18, `cbo_opt39` 10 | 146 | **14.6%** | **High.** One parameter vector; 14 donor profiles already in the repo's own CSV |
+| **ETI at a large rate change** (target also suspect) | `top_rate_45` 118 | 118 | 11.8% | Low. Half of it is target error → E-provenance |
+| **Payroll identity at the margin** | `cbo_opt61` 1% 54, 2% 56 | 110 | 11.0% | Medium. Needs employer-share incidence + income-tax offset, not new data |
+| **Filing-status-specific thresholds** | `cbo_opt46_1pp_20k` 45, `cbo_opt45_top4_2pp` 26 | 71 | 7.1% | Medium. Needs SOI by filing status; not in scope below |
+| **Corporate rate at the margin** | `cbo_opt64` 47 | 47 | 4.7% | Low priority; one row |
+| Residual (8 rate cases, 1–21%) | — | 89 | 8.9% | At the bracket-aggregate ceiling (`VALIDATION_NOTES.md` §5) |
+
+### 2.2 Tier 2 leave-one-out (59.3% mean, 35.6% median)
+
+| Module | Cases (LOO error) | Mass | Share | Tractability |
+|---|---|--:|--:|---|
+| **Capital gains** | `cbo_2pp_all` −120.5, `pwbm_39_with_stepup` −370.5 (sign flip), `pwbm_39_no_stepup` −22.6 | 514 | **48.1%** | Medium — same lane as §2.1 row 1 |
+| **Expenditures** | `cap_employer_health` +97.4, `eliminate_salt` +74.9, `cap_charitable` +15.7, `eliminate_mortgage` −5.1, `repeal_salt_cap` +4.0 | 197 | 18.4% | **High.** Two named unit bugs; base field already exists |
+| **AMT** | `extend_tcja_amt` +73.2, `repeal_individual_amt` +86.0 | 159 | 14.9% | **High.** Dead code path + missing 2026 ramp |
+| **Credits** | `biden_ctc_2021` −64.1, `biden_eitc_childless` −43.1, `ctc_extension` −28.0 | 135 | 12.7% | Medium–low. Needs children/ages from CPS; a rebuild may be required |
+| **Estate** | `biden_estate_reform` +45.6, `extend_tcja_exemption` +6.0 | 52 | 4.8% | **High.** One algebraic invariance |
+| **Payroll** | −3.7 / +1.3 / +6.3 | 11 | 1.1% | Holds up. Do not touch |
+
+### 2.3 Unfitted module reconstructions (394.1% mean, 57.1% median)
+
+| Mechanism | Cases | Mass | Share | Tractability |
+|---|---|--:|--:|---|
+| **Pharma incidence** | `universal_insulin_cap` 2868.6, `international_reference_pricing` 1287.9, `expand_drug_negotiation` 25.7 | 4182 | **88.4%** | **Highest.** Two localised bugs; the CBO anchor is already in the file and unread |
+| **Tariff pass-through / offsets** | `auto_tariff_25` 152.3, `reciprocal_tariffs` 128.0, `steel_tariff_25` 73.2 | 354 | 7.5% | High. Parameters exist but are wired only to display |
+| **International** | `biden_full_international` 41.0, `pillar_two` 23.5, `gilti` 17.8, `fdii` 15.0 | 97 | 2.1% | Medium; two of four are target/scope problems |
+| **Enforcement** | `double_enforcement` 82.3 | 82 | 1.7% | Target is not an official score |
+| **Climate** | `repeal_ev_credits` 14.2 | 14 | 0.3% | Published figures span an order of magnitude |
+
+## 3. Ranked lanes
+
+Effort in **Opus lanes** (one focused agent session ≈ half a day).
+
+### L1 — Capital gains: stock of accrued gains, decomposed elasticity, gains at death
+**Rank 1** (41.7% of Tier 1 mass + 48.1% of LOO mass). **3 lanes.**
+
+*Mechanism.* Four separable defects, all in the same two files.
+- **Base.** `CapitalGainsBaseline` prices realizations off a 3-row aggregate CSV times a hand-written share ladder (`data/capital_gains.py:21-32`) and a statutory proxy (`:95-109`). At threshold 0 it returns 100% of SOI realizations at a 15.5% average rate — including gains that face the **0% bracket**. That single fact is most of `cbo_opt47`'s 99%. Replace with realizations by AGI class × statutory bracket (0/15/20 + NIIT), so a +2pp rate change applies only to gains actually facing the changed rate.
+- **Elasticity.** Replace the `short_run 0.8 / long_run 0.4 / transition 3` blend (`policies_core.py:402-406, 442-461`) with an explicit **transitory + permanent** decomposition (Burman & Randolph 1994; Dowd, McClelland & Muthitacharoen 2015, persistent ≈ −0.72, transitory ≈ −1.2; Agersnap & Zidar 2021, −0.3 to −0.5), differing by holding period and by whether the taxpayer faces the top bracket.
+- **Lock-in.** Delete `step_up_lock_in_multiplier` (`policies_core.py:411`) and the three per-case tuples in `validation/scenarios.py:63-114`. The 5.3× in `pwbm_39_with_stepup` is an answer key: `run_loo.py --donor-matrix` shows it is the only donor that scores the other two cases, and under frozen defaults its own case flips sign (−370.5%). Lock-in must instead fall out of an accrued-gains stock with a hazard of realization that rises as the rate falls.
+- **Gains at death.** `gains_at_death_billions = 54.0` (`policies_core.py:410`) is one constant standing in for CBO's accrual on the **stock** of appreciated assets held by decedents; `estimate_step_up_elimination_revenue` (`:469-484`) multiplies it by an ad-hoc exemption share `min(0.9, 0.4 × $M)`. Model decedent wealth × unrealized-gain share × exemption schedule, indexed to grow with the asset stock.
+
+*Data.* Fetch: IRS SOI *Sales of Capital Assets Reported on Individual Income Tax Returns* (gains by asset type and holding period) and SOI Table 1.4 (gains by AGI class) — irs.gov/statistics; SCF 2022 or Financial Accounts B.101 for the household unrealized-gains stock — federalreserve.gov/econres/scfindex.htm; decedent gains from CBO's Option 51 text and Poterba & Weisbenner (2001). Nothing usable is vendored today (one 3-row CSV).
+
+*Should move.* `cbo_opt47` 99% ↓ (base fix; over-prediction shrinks by roughly the zero-bracket share); `cbo_opt51` 84% ↑ from under- toward the target (stock accrual is larger than a $54B flow); `biden_capital_gains_39` 79% and `treasury_...` 154% both ↓ toward the 42% band their two targets bracket. LOO capital gains 171.2% → target <60% with **one** frozen tuple.
+
+*Tests.* New: base excludes zero-bracket gains; elasticity decomposition reproduces published transitory/permanent split; step-up revenue scales with the stock, not a constant. Guards: 4 Tier 1 rows, 3 LOO rows, `--donor-matrix` must show no single-donor dependence.
+*Files.* `fiscal_model/data/capital_gains.py`, `policies_core.py:397-517`, `validation/scenarios.py:63-114`, new `data_files/capital_gains/*`.
+*Depends on.* E-provenance for the two Treasury targets (it bounds the attainable error, not the work).
+
+### L2 — Spending: a budget-authority → outlay spend-out model
+**Rank 2** (14.6% of Tier 1 mass; the highest tractability in the plan). **1 lane.**
+
+*Mechanism.* `SpendingPolicy.get_spending_in_year` (`policies_core.py:568-581`) returns `level × 1.02**t` and the scorer books it as outlays; there is **no spend-out anywhere in the repo** (grep for `spend_out|outlay_rate` returns nothing). Add an outlay vector: `outlays_t = Σ_k s_k · BA_{t−k}`, with `s` a first-year/out-year profile keyed by budget function, and expose `budget_authority` vs `outlays` distinctly on the result.
+
+*Data — already in the repo.* `data_files/validation/cbo_options_2025_2034_alternatives.csv` carries **both** an authority row (`budget_authority` or `spending_authority`) and an `outlays` row for **19 of the 76 options**; only 5 of those are scored, leaving **14 donor profiles** for a leave-one-out fit by function. CBO's own 10-year outlay/BA ratios: #37 0.824, #38 0.798, #39 0.913, #42 0.835, #43 0.693 — the within-window truncation alone is most of the gap. #43's 2026 BA (12.0) also exceeds 2027 (9.3), the IIJA advance-appropriation bulge. Cross-check `s` against OMB Circular A-11 §32 outlay rates.
+*Anti-leakage rule.* `s` for a scored case is fitted only on donors from *other* options in the same function. Assert it in a test.
+
+*Should move.* `cbo_opt43_state_local_grants` 75% → ~20%; `cbo_opt37` 20% → <5%; `cbo_opt38` 23% → <10%; `cbo_opt42` 18% → <5%; `cbo_opt39` 10% → ≤10%. **Tier 1 mean −4 to −5pp.** Also removes the `known_limitations` notes at `validation/core.py:176-201`.
+*Files.* `policies_core.py:547-581`, `validation/core.py:496-506`, `validation/cbo_options.py`, `scoring_engine.py`.
+
+### L3 — Credits: children (and dependents) from the CPS microdata
+**Rank 3** (12.7% of LOO mass; unblocks the ARP distributional gap). **2 lanes** (+1 if the raw-CPS rebuild is in scope).
+
+*Read this first.* All three credit benchmarks set `annual_revenue_change_billions` = target/10 (`credits_factory.py:74, :145, :227`), and `credits_core.py:200-201` short-circuits before the identity at `:203-211`. **The fitted tier cannot move; only the LOO number can.** Three declared policy levers are never read anywhere: `expand_qualifying_age` (`credits_core.py:125`), `include_childless_adults` (`:126`), `take_up_rate_change` (`:129`). `make_fully_refundable` and `remove_phase_out` reach only unreachable flat constants (`:213-218`), and the correct per-unit refundability logic in `calculate_credit_for_income` (`:167-181`) is never called from the revenue path.
+
+*Mechanism.* Compute Δcredit by summing per-unit baseline vs reform credit over the weighted CPS units instead of `Δcredit × units × participation`. The bridge already exists — `policy_to_microsim_reforms` (`distribution_effects.py:785-817`) — but carries only distributional traffic and collapses an EITC schedule reform to one scalar (`:815-817`), which cannot express a childless-only expansion.
+
+*Data.* `microsim/tax_microdata_2024.csv` (7.0 MB, 78,727 rows, 191.1M weighted units) is real CPS ASEC 2024. It has `children` = under-17 headcount (`data_builder.py:280`) **and** `dependent_count` (`:284`), and `dependent_count` is silently dropped by `data/cps_asec.py:48-61` although it differs from `children` on 11.5% of rows — free signal for the EITC qualifying-child base (under 19, or under 24 if a student). **Dependent ages do not survive the build** (only `age_head`, `:308`), so the ARP under-6/6–16 split and any age-17 expansion need a rebuild from raw CPS ASEC 2024 (`pppub24.csv`, `hhpub24.csv`, census.gov) retaining per-dependent `A_AGE`; `data_builder.py:16-42` already reads it.
+*Two engine bugs to fix en route.* `engine.py:64` applies a single 21.06% phase-out rate to **all** child counts — the statutory childless rate is 7.65% and `credits_core.py:46` has it right; that is exactly the population `biden_eitc_childless` is about. And engine EITC maxes (`engine.py:58-61`: 632/3995/6604/7430) contradict `credits_core.py:40-81` (632/4213/6960/7830).
+
+*Should move.* LOO credits 45.1% → <20%. ARP distributional children gap ~7pp → <4pp. No Tier 1 row moves.
+*Files.* `credits_core.py:190-238`, `credits_factory.py`, `microsim/engine.py:50-64, 264-325`, `data/cps_asec.py:48-61`, `distribution_effects.py:785-817`.
+
+### L4 — Estate: a taxable-estate distribution instead of a two-point blend
+**Rank 4** (4.8% of LOO mass, but it is an algebraic invariance — cheapest real fix in the plan). **1 lane.**
+
+*Mechanism.* `estimate_taxable_estates` (`estate.py:228-269`) sets, for any exemption `E ≤ $6.4M`, `estates = 19,000 · (6.4M/E)` and `mid_avg = 4M · (E/6.4M)`; the product is **exactly invariant**, and the top-tail blend multiplies both regimes by a constant in that branch, so `estates × avg` is invariant too. Lowering the exemption therefore derives **zero** revenue, and the whole `biden_estate_reform` LOO effect comes from 40%→45%. Replace with a taxable-estate size distribution (Pareto fitted to SOI size classes, or the classes integrated directly) evaluated above the exemption.
+
+*Data.* IRS SOI *Estate Tax Statistics*, Table 1 Parts I & II (returns and net estate tax by size of gross estate) — irs.gov/statistics; already in `VALIDATION_NOTES.md`'s reference list, not in the tree. Kopczuk & Slemrod (2003) for the reported-estate elasticity that should replace `planning_elasticity = 0.15` (`estate.py:105`).
+*Should move.* LOO `biden_estate_reform` +45.6% → <15%; `extend_tcja_exemption` +6.0% must not regress. No Tier 1 row.
+*Files.* `estate.py:80-107, 228-311`.
+
+### L5 — AMT: a live exemption path and a 2026 sunset ramp
+**Rank 5** (14.9% of LOO mass). **1 lane.**
+
+*Mechanism.* Two defects. (i) The exemption-change branch is **dead**: `estimate_static_revenue_effect` computes `baseline_taxpayers` and `policy_taxpayers` from the *same* call `self.estimate_affected_taxpayers(...)` (`amt.py:357, 360`), so it always returns 0, and three expressions above it (`:349-359`) are evaluated and discarded. Compute the baseline count from the current-law schedule and the policy count from the reform schedule. (ii) There is **no ramp**: the identity gives the steady-state post-sunset level (~$73B/yr, matching `revenue_post_tcja_2030 = 75.0`, `amt.py:119`) while the official $450B/10yr prices a window that ramps from the 2026 sunset. Add a year-indexed affected-count and average-liability path.
+
+*Data.* TPC model estimates for AMT taxpayers by year 2026–2034 (taxpolicycenter.org/model-estimates); JCT's TCJA-sunset tables. `AMT_EXEMPTIONS_TCJA` already carries the year keys.
+*Should move.* LOO `extend_tcja_amt` +73.2% and `repeal_individual_amt` +86.0% → both <25%. No Tier 1 row.
+*Files.* `amt.py:112-145, 275-370`.
+
+### L6 — Tax expenditures: bases with the right units
+**Rank 6** (18.4% of LOO mass; two named unit bugs). **1 lane.**
+
+*Mechanism.* (a) `eliminate_salt` derives against `annual_cost = 25.0` — the **post-cap** expenditure — while `annual_cost_no_cap = 120.0` sits in the same record (`tax_expenditures_core.py:66-67`) and is read only by the repeal-cap branch (`:256`). (b) `cap_employer_health` compares a $50,000 cap on excludable **premiums** against `avg_benefit = 1_600`, the average **tax benefit** (`:237-243`), concluding 0.32% of the base is affected. Fix is not two constants: give each expenditure a benefit distribution by AGI class so a cap is applied to the quantity it caps, and make eliminate/cap/limit rules declare their units.
+
+*Data.* JCT, *Estimates of Federal Tax Expenditures for Fiscal Years 2024–2028*, JCX-48-24 (jct.gov) — distribution tables, not just totals; the repo has a curated snapshot at `assistant/knowledge/jct_tax_expenditures.md`. Employer-premium distribution: MEPS-IC (meps.ahrq.gov) or KFF *Employer Health Benefits Survey*.
+*Should move.* LOO `cap_employer_health` +97.4% → <25%; `eliminate_salt` +74.9% → <20%; mortgage/SALT-cap/charitable must not regress. Unblocks CBO Option 56 for a future Tier 1 promotion.
+*Files.* `tax_expenditures_core.py:33-100, 215-270`.
+
+### L7 — Pharma: fix the two incidence bugs, then model the Part D channels
+**Rank 7 by tier weight, but the highest raw error mass in the repo (88.4% of the reconstruction mass) and the smallest diff.** **1 lane.**
+
+*Mechanism.* (a) `_estimate_insulin_savings` (`pharma.py:165-185`) books `(6000 − 420) × 8.4M` — the full retail-minus-cap differential for every user — as a federal outlay reduction, and `extend_to_private=True` sets `medicare_share = 1.0` (`:182-183`), so extending a cap to private insurance *raises* the modelled federal saving 2.5×. Score only the federal share: Part D plan liability net of direct/indirect remuneration rebates, plus reinsurance and low-income-subsidy channels; the private extension contributes ≈0 federally. **`CBO_PHARMA_ESTIMATES["insulin_cap"]["10yr_score"] = -6.4` already sits at `pharma.py:65-69` and is read by no code path.** (b) `_estimate_reference_pricing_savings` (`:187-204`) applies RAND's **gross-list-price** ratio 2.56 to **net** Part B + D spending ($275B) with no rebate adjustment and no branded/generic split (US generics are cheaper than OECD). Apply the ratio to a net-price base and restrict to brand molecules.
+
+*Data.* MedPAC *Report to the Congress: Medicare Payment Policy*, Part D chapter (gross-to-net and rebate share); CMS Part D Drug Spending Dashboard; CBO's IRA drug-pricing estimates. No such field exists in `PHARMA_BASELINE` today (`pharma.py:39-52`), and `part_d_oop_cap` at `:48` is defined and never read.
+*Should move.* `universal_insulin_cap` 2868.6% → <50%; `international_reference_pricing` 1287.9% → <100%. **Reconstruction tier mean 394.1% → ~40%.** Also delete the dead `"medicare_insulin_share": 0.4` copy-paste at `enforcement.py:38`.
+*Caveat.* This changes shipped user-facing preset output, not only a validation number.
+
+### L8 — Tariffs: pass-through, retaliation, and the income/payroll offset
+**Rank 8** (7.5% of reconstruction mass). **1 lane.**
+
+*Mechanism.* `estimate_static_revenue_effect` (`trade.py:99-118`) returns **gross customs revenue** with a flat 5% avoidance haircut (`:120-121`). `pass_through_rate = 0.60` (`:87`) and `retaliation_rate = 0.30` (`:89`) exist but feed only display paths (`estimate_consumer_cost` `:123-127`, `estimate_retaliation_cost` `:129-134` → `get_trade_summary` `:140-152`). There is **no income/payroll offset at all** — JCT scores indirect taxes net of a ~25% income-and-payroll offset, and the repo's own knowledge snapshot puts the net figure at 40–50% of gross. Route the import-demand response through the pass-through-adjusted price change, net retaliation's effect on export-linked receipts, and subtract the offset. Also: `create_reciprocal_tariffs` hard-codes a 0.5 coverage literal (`:214`) that belongs in `TRADE_BASELINE`, and `create_steel_tariff_25` (`:199-206`) applies the full 25pp with no netting of Section 232 duties already in force.
+
+*Data.* Yale Budget Lab, *State of U.S. Tariffs* methodology (budgetlab.yale.edu); Amiti, Redding & Weinstein (2019, *JEP*) and Fajgelbaum et al. (2020, *QJE*) on near-complete pass-through; JCT's revenue-offset convention; CBO's tariff estimates for a gross/net check. `CBO_TRADE_ESTIMATES` (`trade.py:58-71`) is defined and unread.
+*Should move.* `auto_tariff_25` 152.3%, `reciprocal_tariffs` 128.0%, `steel_tariff_25` 73.2% → all <40%. The two fitted coverage constants (`universal_coverage_rate`, `china_effective_coverage`) should be re-derivable rather than fitted afterwards.
+*Depends on.* The `app_data.py` key mismatch (`CBO_SCORE_MAP` "25% Steel & Aluminum Tariff" vs `PRESET_POLICIES` "25% Steel/Aluminum Tariff"; same for reciprocal) — a separate one-file fix, not this lane.
+
+### L9 — International: a base-overlap term
+**Rank 9** (2.1% of reconstruction mass; two of the four rows are target problems). **1 lane.**
+
+*Mechanism.* `estimate_static_revenue_effect` (`international.py:136-144`) is a bare four-way sum with no overlap term, so `create_biden_full_international` adds a 21% per-country GILTI to Pillar Two's UTPR on substantially the same undertaxed foreign profits. Add a netting term for the shared base. `_estimate_fdii_reform` repeal is a flat `return base["fdii_cost_billions"]` (`:183`) with no base × rate identity.
+*Data.* Treasury Green Book FY2025 line items (the −$700B package is a scope superset covering BEAT/SHIELD, which the module does not implement); JCT's Pillar Two range ($50–120B — the model's −$61B is already inside it, so 23.5% is target imprecision).
+*Should move.* `biden_full_international` 41.0% → <25%; `fdii_repeal` 15.0% and `gilti` 17.8% must not regress. Pillar Two should be re-benchmarked against the range, not the midpoint — that is E-provenance work.
+
+## 4. What not to do
+
+- **No new per-benchmark constants.** A lane that sets `annual_revenue_change_billions`, or adds a module constant keyed to a benchmark id, has failed regardless of the error it closes.
+- **No per-case elasticities.** One frozen, literature-sourced value per mechanism, cited in the docstring. `validation/scenarios.py`'s three capital-gains tuples get **deleted**, not extended, and the 5.3× lock-in multiplier does not survive in any form.
+- **No edits to targets** in `KNOWN_SCORES`, `CBO_SCORE_MAP`, or `preregistered.py` from a modelling lane. A target that looks wrong goes to Phase E-provenance and, if it changes, through the manifest's `superseded_by` rule (new `case_id`, old row kept).
+- **No touching the yardstick**: `scripts/cold_holdout.py`, `scripts/run_loo.py`, `loo.py`'s `LEAKAGE_TOLERANCE` guard, `tests/test_preregistration.py`.
+- **No loosening CI thresholds** except by the workflow's own published rule (`validation-dashboard.yml:64-67`), and only downward. Removing a case from the battery to go green is the failure mode pre-registration exists to forbid.
+- **No fitting a spend-out profile, elasticity, or distribution on the case being scored.** Donors come from other cases; assert it in a test.
+
+## 5. Sequencing
+
+Three waves. Files are disjoint within a wave, so lanes run in parallel.
+
+| Wave | Lanes | Files touched | Expected after |
+|---|---|---|---|
+| **1** | **L2** spend-out, **L7** pharma, **L5** AMT | `policies_core.py` (SpendingPolicy only) + `validation/core.py`; `pharma.py` + `enforcement.py`; `amt.py` | Tier 1 **43.4% → ~39%**; reconstructions **394% → ~40%**; LOO **59.3% → ~54%** |
+| **2** | **L1** capital gains (3 lanes), **L6** expenditures, **L4** estate | `data/capital_gains.py` + `policies_core.py` (CapitalGainsPolicy) + `scenarios.py`; `tax_expenditures_core.py`; `estate.py` | Tier 1 **→ ~30%**; LOO **→ ~30%** |
+| **3** | **L3** credits/microsim, **L8** tariffs, **L9** international | `credits_*` + `microsim/*` + `cps_asec.py`; `trade.py`; `international.py` | LOO **→ ~25%**; reconstructions **→ ~30%** |
+
+Conflict note: L1 and L2 both open `policies_core.py` but different classes — land L2 first. L8 waits on the `app_data.py` key reconciliation. L3's third lane is contingent on the raw-CPS decision (§6.4).
+
+**Reporting change, after Wave 3.** Restate the headline as **three numbers, never collapsed**: (i) out-of-sample pre-registered — n, mean, median, within-15/25; (ii) calibrated leave-one-out — n, mean; (iii) unfitted module reconstructions — n, mean, median. The by-construction 2.7% moves to a footnote, because by then several fitted annuals should be *deletable*: a module whose derived error beats its fitted error no longer needs the constant, and deleting it is the cleanest possible evidence the mechanism is real.
+
+## 6. Open owner decisions
+
+1. **Reported vs derived mode.** Should the calibrated modules keep their fitted annuals as a `reported` mode alongside a `derived` mode? Recommendation: yes — `derived` becomes the default in validation immediately, `reported` stays the app default per module until that module's derived error is below its fitted error. The alternative (delete the annuals now) makes the app worse before it makes it better.
+2. **Spend-out source.** Fit `s` by function from the 13 donor options in CBO's own report, or take OMB Circular A-11 §32 outlay rates as primary with CBO as the check? The donor route is self-contained and testable; the A-11 route is externally verifiable and immune to the "you fitted it on the battery" objection.
+3. **Which capital-gains elasticities to freeze.** Dowd–McClelland–Muthitacharoen (2015) (persistent −0.72 / transitory −1.2) or Agersnap–Zidar (2021) (−0.3 to −0.5)? They imply materially different revenue-maximizing rates and pull the two Treasury targets in opposite directions. One value, frozen, cited — but which.
+4. **Raw CPS ASEC rebuild.** Adding `pppub24.csv` / `hhpub24.csv` to the pipeline is what unblocks dependent ages (CTC under-6, age-17). Given the repo policy on large files, does the raw extract get vendored, fetched by script at build time, or does the derived microdata simply gain the extra columns?
+5. **Do the three credit benchmarks stay in the fitted tier?** Their annuals are the targets divided by ten, so `x/10 × 10 == x` is all they test. Move them to a documented-exclusion status like `repeal_corporate_amt`, or leave them and rely on the LOO number to carry the honesty.
+6. **Tariff presets change for users.** L8 turns gross customs revenue into a net score — the shipped preset numbers move by 40–50%. Does that need a UI note, and does it land with L8 or with a separate app change?
