@@ -27,6 +27,7 @@ from .provenance import (
     LINE_ITEM_DIFFERS,
     MODEL_ESTIMATE,
     PROVENANCE_LEVELS,
+    UNCLASSIFIED,
     classify_provenance,
 )
 from .specialized import (
@@ -207,7 +208,10 @@ class ScorecardSummary:
     #: Calibrated-tier size, including the illustrative entries.
     calibrated_entries: int = 0
     #: Calibrated entries whose target is a published figure — the honest
-    #: headline count. Excludes ``model_estimate`` entries (plan §5.2).
+    #: headline count. Excludes ``model_estimate`` entries (plan §5.2) *and*
+    #: ``unclassified`` ones: "no published score exists" and "nobody has
+    #: established whether one exists" are different states, and neither
+    #: belongs in a count captioned "against a published figure".
     calibrated_published_entries: int = 0
     #: Calibrated entries scored against a model estimate rather than a
     #: published score. Kept as labelled illustrations, reported separately.
@@ -216,6 +220,9 @@ class ScorecardSummary:
     #: published figure. This is what the footer and the README quote:
     #: ``total_entries`` includes the illustrations, which are not benchmarks
     #: and must never be counted as "policies validated against CBO/JCT".
+    #: ``unclassified`` entries are excluded too — the sourcing pass left that
+    #: bucket empty, and if a future benchmark lands in it the headline should
+    #: shrink until someone establishes where its target came from.
     published_entries: int = 0
     #: Entries across both tiers scored against a model estimate. Reported as
     #: "illustrations (no official score)", never folded into the headline.
@@ -324,9 +331,12 @@ def compute_scorecard(
         calibrated_provenance_breakdown=calibrated_provenance,
         calibrated_entries=len(calibrated),
         calibrated_published_entries=len(calibrated)
-        - calibrated_provenance[MODEL_ESTIMATE],
+        - calibrated_provenance[MODEL_ESTIMATE]
+        - calibrated_provenance[UNCLASSIFIED],
         calibrated_model_estimate_entries=calibrated_provenance[MODEL_ESTIMATE],
-        published_entries=len(entries) - provenance_breakdown[MODEL_ESTIMATE],
+        published_entries=len(entries)
+        - provenance_breakdown[MODEL_ESTIMATE]
+        - provenance_breakdown[UNCLASSIFIED],
         model_estimate_entries=provenance_breakdown[MODEL_ESTIMATE],
         transcribed_entries=sum(1 for e in entries if e.transcribed),
         line_item_differs_entries=provenance_breakdown[LINE_ITEM_DIFFERS],

@@ -39,9 +39,38 @@ class TestValidatedPolicyCount:
         assert validated_policy_count() == summary.published_entries
         assert summary.published_entries < summary.total_entries
         assert (
-            summary.published_entries + summary.model_estimate_entries
+            summary.published_entries
+            + summary.model_estimate_entries
+            + summary.provenance_breakdown["unclassified"]
             == summary.total_entries
         )
+
+    def test_falls_back_to_zero_rather_than_inventing_a_number(
+        self, monkeypatch
+    ) -> None:
+        """The fallback used to be a hard-coded 25, which claimed validation
+        coverage at precisely the moment the thing that measures it failed.
+        Callers drop the clause at 0 instead."""
+        import fiscal_model.validation.scorecard as scorecard_mod
+
+        def _boom():
+            raise RuntimeError("scorecard unavailable")
+
+        monkeypatch.setattr(scorecard_mod, "cached_default_scorecard", _boom)
+        assert validated_policy_count() == 0
+
+    def test_ui_clauses_drop_the_count_when_it_is_zero(self, monkeypatch) -> None:
+        from fiscal_model.ui import tabs_controller
+
+        monkeypatch.setattr(tabs_controller, "validated_policy_count", lambda: 0)
+        assert tabs_controller._footer_validation_clause() == ""
+        clause = tabs_controller._benchmark_count_clause()
+        assert "0 policies" not in clause
+        assert clause.startswith("Policies are benchmarked")
+
+        monkeypatch.setattr(tabs_controller, "validated_policy_count", lambda: 61)
+        assert "61 policies" in tabs_controller._footer_validation_clause()
+        assert "61 policies" in tabs_controller._benchmark_count_clause()
 
 
 class TestFriendlyErrorMessage:

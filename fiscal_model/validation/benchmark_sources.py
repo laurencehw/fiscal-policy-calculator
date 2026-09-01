@@ -121,9 +121,12 @@ class BenchmarkSource:
                 f"{self.policy_id}: unknown provenance {self.provenance!r}"
             )
         if self.provenance in (LINE_ITEM, LINE_ITEM_DIFFERS):
+            # ``row`` is in the list deliberately: a transcription that names a
+            # table but not the row inside it cannot be checked, which is the
+            # whole thing this label is asserting.
             missing = [
                 name
-                for name in ("url", "date", "table", "page")
+                for name in ("url", "date", "table", "row", "page")
                 if not getattr(self, name)
             ]
             if missing:

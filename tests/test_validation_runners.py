@@ -552,18 +552,40 @@ def test_registry_covers_every_calibrated_benchmark(scorecard):
 
 def test_headline_counts_exclude_the_illustrations(scorecard):
     """``published_entries`` is what the footer, the README and the docs quote;
-    ``total_entries`` additionally includes rows with no official score."""
+    ``total_entries`` additionally includes rows with no official score.
+
+    ``unclassified`` is excluded too. "No published score exists" and "nobody
+    has established whether one exists" are different states, and neither
+    belongs in a count captioned "against a published figure" — so if a future
+    benchmark lands unclassified, the headline shrinks until someone sources
+    it. The bucket is empty today, which is what the partition below asserts.
+    """
     assert (
-        scorecard.published_entries + scorecard.model_estimate_entries
+        scorecard.published_entries
+        + scorecard.model_estimate_entries
+        + scorecard.provenance_breakdown[UNCLASSIFIED]
         == scorecard.total_entries
     )
     assert scorecard.model_estimate_entries > 0
     assert scorecard.published_entries == sum(
-        1 for e in scorecard.entries if e.provenance != MODEL_ESTIMATE
+        1
+        for e in scorecard.entries
+        if e.provenance not in (MODEL_ESTIMATE, UNCLASSIFIED)
     )
     for policy_id in NON_PUBLISHED_BENCHMARK_IDS:
         entry = next(e for e in scorecard.entries if e.policy_id == policy_id)
         assert entry.provenance == MODEL_ESTIMATE
+
+
+def test_transcribed_rows_name_the_row_not_just_the_table(scorecard):
+    """A table reference without the row inside it is not checkable, which is
+    exactly what the ``line_item`` label claims to be."""
+    for source in BENCHMARK_SOURCES:
+        if source.provenance not in (LINE_ITEM, LINE_ITEM_DIFFERS):
+            continue
+        assert source.row and source.row.strip(), (
+            f"{source.policy_id}: transcribed with a table but no row label"
+        )
 
 
 def test_transcribed_and_differs_counts_match_the_entries(scorecard):

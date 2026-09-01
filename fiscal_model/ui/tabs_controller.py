@@ -20,6 +20,33 @@ from fiscal_model.ui.helpers import TEXTBOOK_HOME, validated_policy_count
 
 _logger = logging.getLogger(__name__)
 
+
+def _benchmark_count_clause() -> str:
+    """"N policies benchmarked against ..." — or the count-free wording.
+
+    ``validated_policy_count()`` returns 0 when the scorecard could not be
+    built. Printing "0 policies benchmarked" would be worse than saying
+    nothing, and printing a hard-coded fallback — which is what this used to
+    do — would be worse still: it asserted coverage at exactly the moment the
+    thing that measures coverage had failed.
+    """
+    n = validated_policy_count()
+    if not n:
+        return "Policies are benchmarked against official CBO/JCT/Treasury scores — "
+    return f"{n} policies benchmarked against official CBO/JCT/Treasury scores — "
+
+
+def _footer_validation_clause() -> str:
+    """Footer variant of :func:`_benchmark_count_clause`, separator included.
+
+    Returns an empty string at a zero count, so the footer simply loses the
+    clause rather than showing an empty one.
+    """
+    n = validated_policy_count()
+    if not n:
+        return ""
+    return f"{n} policies validated against CBO/JCT · "
+
 # Nested Calculator tab labels (order matters for build_main_tabs).
 CALCULATOR_TAB_LABELS: tuple[str, ...] = (
     "📊 Results & Details",
@@ -239,7 +266,7 @@ def render_result_tabs(
             st_module.markdown("---")
             st_module.caption(
                 "This calculator uses CBO methodology with IRS Statistics of Income data. "
-                f"{validated_policy_count()} policies benchmarked against official CBO/JCT/Treasury scores — calibrated "
+                f"{_benchmark_count_clause()}calibrated "
                 "models reproduce official scores; uncalibrated predictions are directional (\\~±20%)."
             )
         with tabs["tab_distribution"]:
@@ -447,6 +474,6 @@ def render_footer(st_module: Any) -> None:
         "[GitHub](https://github.com/laurencehw/fiscal-policy-calculator) · "
         "[Methodology](/methodology) · "
         f"[Textbook]({TEXTBOOK_HOME}) · "
-        f"{validated_policy_count()} policies validated against CBO/JCT · "
+        f"{_footer_validation_clause()}"
         f"Data: IRS SOI {_latest_soi_year()}, FRED, CBO Feb 2026"
     )
