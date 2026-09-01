@@ -167,6 +167,29 @@ def test_unfitted_scenarios_are_the_ones_that_miss(sectoral_results):
                 )
 
 
+def test_sectoral_scores_do_not_depend_on_the_scorer_start_year(sectoral_results):
+    """The suite scores on `_SCORER_START_YEAR` (2025, matching the policies'
+    own start year and the FY2025-2034 window the targets are quoted for).
+
+    All five modules build their effect paths from the policy's start year and
+    their own duration, so the scorer's baseline window does not move any of
+    these numbers. Pinned rather than assumed: if a module later becomes
+    window-sensitive, the error against a FY2025-2034 target would silently
+    shift and this catches it.
+    """
+    from fiscal_model.scoring import FiscalPolicyScorer
+
+    alt = FiscalPolicyScorer(start_year=2026, use_real_data=False)
+    for category, results in sectoral_results.items():
+        registry = SECTORAL_SCENARIO_REGISTRIES[category]
+        for result in results:
+            policy = registry[result.policy_id]["policy_factory"]()
+            rescored = alt.score_policy(policy, dynamic=False).total_10_year_cost
+            assert rescored == pytest.approx(result.model_10yr, rel=1e-9), (
+                f"{result.policy_id} moved when the scorer's start year changed"
+            )
+
+
 def test_a_failing_scenario_becomes_an_error_row_not_a_missing_one(monkeypatch):
     """A runner that swallowed an exception would silently shrink the
     calibrated tier and hide the failure from the readiness gate. The row must

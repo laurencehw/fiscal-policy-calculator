@@ -67,7 +67,13 @@ SECTORAL_SCENARIO_REGISTRIES: dict[str, dict[str, dict]] = {
 #: not have to infer it from the category name.
 SECTORAL_BENCHMARK_KIND = "Calibrated reconstruction"
 
-_SCORER_START_YEAR = 2026
+#: Match ``Policy.start_year`` (2025) and the FY2025-2034 window these targets
+#: are quoted for, rather than the scorer's own 2026 default. In practice the
+#: five sectoral modules build their effect paths from the policy's start year
+#: and their own duration, so this choice moves no score —
+#: ``test_sectoral_scores_do_not_depend_on_the_scorer_start_year`` pins that,
+#: and would catch a module that later became baseline-window sensitive.
+_SCORER_START_YEAR = 2025
 
 
 def official_target_for(scenario: dict) -> float:
