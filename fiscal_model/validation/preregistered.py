@@ -87,7 +87,7 @@ PHASE_D_ENTERED_DATE = "2026-09-01"
 
 #: Commit in which the Phase D enacted-law battery was first scored (the commit
 #: that flips those three records to ``runnable=True``).
-PHASE_D_FIRST_SCORED_COMMIT = "PENDING"
+PHASE_D_FIRST_SCORED_COMMIT = "1357e908ee5ab14069ac410c49a613d3ef90c0ed"
 
 #: The rule that set ``annual_amount_billions`` for every Phase D spending
 #: case, fixed before any of them was scored. Written here rather than only in
