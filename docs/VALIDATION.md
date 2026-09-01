@@ -19,15 +19,15 @@ Policies scored **bottom-up from IRS SOI** via raw rate/threshold auto-populatio
 
 | Case | Official | Model | Err | Source (date) | Baseline the source used | Pre-registered at |
 |------|---------:|------:|----:|---------------|--------------------------|-------------------|
-| Medicare surcharge 2pp (>$400K) | -$310B | -$315B | 2% | Treasury (2024) | Green Book FY2025 | `0d8be75` |
+| Medicare surcharge 2pp (>$400K) | -$310B | -$315B | 2% | Treasury (2024) | Green Book FY2025 | `6c9bfa2` |
 | 1pp all brackets | -$960B | -$935B | 3% | JCT (2023-01) | CBO Feb 2023 | `be7e947` |
 | 5pp top rate ($1M+) | -$700B | -$648B | 7% | TPC (2023-06) | CBO Feb 2023 | `be7e947` |
 | 2pp rate cut ($500K+) | +$400B | +$364B | 9% | TPC (2023-06) | CBO Feb 2023 | `be7e947` |
 | Biden top rate 39.6% ($400K+) | -$252B | -$284B | 13% | Treasury (2024-03) | Green Book FY2025 | `be7e947` |
-| Warren surtax 3pp (AGI >$2M) | -$350B | -$284B | 19% | TPC (2020) | unstated (secondhand) | `0d8be75` |
-| Biden cap gains 39.6% + gains at death | -$456B | -$817B | 79% | Treasury (2024-03) | Green Book FY2025 | `be7e947`, first scored `0d8be75` |
-| Top rate to 45% (+8pp >$609,350) | -$420B | -$916B | 118% | TPC (2023) | unstated (secondhand) | `0d8be75` |
-| Treasury 39.6% + step-up repeal | -$322B | -$817B | 154% | Treasury (2021-05) | Green Book FY2022 | `d11bf2c`, first scored `0d8be75` |
+| Warren surtax 3pp (AGI >$2M) | -$350B | -$284B | 19% | TPC (2020) | unstated (secondhand) | `6c9bfa2` |
+| Biden cap gains 39.6% + gains at death | -$456B | -$817B | 79% | Treasury (2024-03) | Green Book FY2025 | `be7e947`, first scored `6c9bfa2` |
+| Top rate to 45% (+8pp >$609,350) | -$420B | -$916B | 118% | TPC (2023) | unstated (secondhand) | `6c9bfa2` |
+| Treasury 39.6% + step-up repeal | -$322B | -$817B | 154% | Treasury (2021-05) | Green Book FY2022 | `d11bf2c`, first scored `6c9bfa2` |
 
 Live figures: `python scripts/cold_holdout.py`. Rows are the `Generic` category of the scorecard; every one has a row in [`fiscal_model/validation/preregistered.py`](../fiscal_model/validation/preregistered.py).
 
@@ -93,7 +93,7 @@ The 4.4% above is a bookkeeping number: each calibrated module carries **one har
 | Within 15% of official | 6/18 (33%) |
 | CI ceiling (`--max-loo-mean-error`) | 75% |
 
-**Read the three numbers separately and never collapse them**: Tier 1 out-of-sample, Tier 2 by construction (4.4%, n=29), Tier 2 leave-one-out (59.3%, n=18 derivable). The last is the honest statement of how much of the calibrated tier is structure and how much is a stored constant.
+**Read the three numbers separately and never collapse them**: Tier 1 out-of-sample (44.8% mean, n=9 pre-registered; 5/9 within 15%, 6/9 within 25%), Tier 2 by construction (4.4%, n=29), Tier 2 leave-one-out (59.3%, n=18 derivable). The last is the honest statement of how much of the calibrated tier is structure and how much is a stored constant.
 
 Four cases are **not cross-validatable** and carry a reason rather than a manufactured number: `expand_niit` (the module's only NIIT benchmark — nothing to calibrate the mechanism on), `eliminate_estate_tax` (the target is a model estimate, not a published score, and the machinery reproduces differences but not revenue *levels*), `repeal_corporate_amt` and `eliminate_step_up` (the base constant *is* the published target restated; a leakage guard in `loo.py` catches this mechanically). See [VALIDATION_NOTES.md](VALIDATION_NOTES.md) §6 for the per-module classification and what each error diagnoses.
 
