@@ -684,6 +684,10 @@ The calibrated tier is now 46 entries, but it is two populations:
 | Fitted calibrated references | 34 | 2.7% | 33/34 |
 | Unfitted module reconstructions | 12 | 394.1% | 2/12 |
 
+*(Phase D later added eight P.L. 119-21 line items to this same unfitted class, at
+35.8% mean, taking it to 20 entries and a 250.8% mean — see §8. The Phase E
+figures above are kept as the outturn of Phase E.)*
+
 `scripts/cold_holdout.py` reports them as separate tiers, and the anti-leakage
 invariant in `tests/test_cold_holdout.py` compares the out-of-sample tier
 against the *fitted* set — mixing the two would have flipped the invariant for
