@@ -140,8 +140,8 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "then carries the level forward, so it predicts $1,894B.",
         "The miss is not an artifact of choosing the first-year level: the "
         "alternative of spreading the source's stated FY2022-2026 authorization "
-        "($435.9B) evenly over those five years still yields about $950B, more "
-        "than double the published outlay total, because the level shape has no "
+        "($435.9B) evenly over those five years still yields $1,012.9B, more than "
+        "twice the published outlay total, because the level shape has no "
         "way to end an authorization or to lag an outlay.",
         "This case is deliberately kept rather than excluded: it is the sharpest "
         "available evidence for the budget-authority-to-outlay spend-out model that "

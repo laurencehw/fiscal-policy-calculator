@@ -96,7 +96,7 @@ non-zero effect, so the model window matches the source's own non-zero window.
 
 The IIJA miss is not an artifact of picking the first-year level: spreading the
 source's stated FY2022-2026 authorization ($435.9B) evenly over those five years
-still yields about $950B against a published $415.4B, because the level shape has
+still yields $1,012.9B against a published $415.4B, because the level shape has
 no way to *end* an authorization or to lag an outlay. It is kept in the battery
 rather than excluded precisely because it is the sharpest evidence for the
 missing spend-out model. No spend-out model was built in Phase D; it belongs to
