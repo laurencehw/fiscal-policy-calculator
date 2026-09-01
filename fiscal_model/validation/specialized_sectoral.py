@@ -37,7 +37,11 @@ from collections.abc import Callable
 
 from ..app_data import CBO_SCORE_MAP
 from ..scoring import FiscalPolicyScorer
-from .core import ValidationResult, build_validation_result
+from .core import (
+    ValidationResult,
+    build_validation_result,
+    calculate_percent_difference,
+)
 from .scenarios import (
     CLIMATE_VALIDATION_SCENARIOS_COMPARE,
     ENFORCEMENT_VALIDATION_SCENARIOS_COMPARE,
@@ -182,7 +186,10 @@ def _error_result(
         model_10yr=0.0,
         model_first_year=0.0,
         difference=-official,
-        percent_difference=0.0,
+        # A zero model score against a non-zero target is a 100% miss, not a
+        # perfect match. Reporting 0.0 here would let a broken runner count
+        # itself inside every accuracy band and drag the tier mean down.
+        percent_difference=calculate_percent_difference(0.0, official),
         direction_match=False,
         accuracy_rating="Error",
         model_parameters={

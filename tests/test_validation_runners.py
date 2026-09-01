@@ -192,6 +192,10 @@ def test_a_failing_scenario_becomes_an_error_row_not_a_missing_one(monkeypatch):
         SECTORAL_SCENARIO_REGISTRIES["Trade"]["auto_tariff_25"]
     )
     assert not failed.direction_match
+    # A zero model score against a non-zero target is a 100% miss. Reporting
+    # 0.0 would let the failure count inside every accuracy band and pull the
+    # tier mean down — the opposite of surfacing it.
+    assert failed.abs_percent_difference == 100.0
 
 
 def test_validate_sectoral_policy_rejects_unknown_inputs():
