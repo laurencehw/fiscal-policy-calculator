@@ -14,9 +14,14 @@ Owner decisions this implements (``planning/redesign/DECISIONS.md``):
   popover (Phase 4 additionally surfaces the dynamic toggle inline next to
   Calculate).
 
-Widget keys are unchanged from the sidebar implementation
-(``sidebar_setting_dynamic_scoring``, ``dark_mode``, ``augmentation_preview_toggle``)
-so share links and existing session state keep working.
+Widget keys: the dynamic-scoring toggle keeps its historical key
+``sidebar_setting_dynamic_scoring`` (share links encode it), and the
+microdata preview keeps ``augmentation_preview_toggle``; the other model
+settings use the ``setting_*`` keys introduced in the widget-keys commit
+(``setting_dark_mode``, ``setting_macro_model``, ``setting_use_real_data``,
+``setting_data_year``, ``setting_use_microsim``,
+``setting_use_microsim_distribution``), all registered in
+``fiscal_model/ui/session_state.py`` so cross-page state survives.
 """
 
 from __future__ import annotations
