@@ -62,6 +62,32 @@ VALIDATION_MODULE_DATE = "2025-12-08"
 TREASURY_CAPGAINS_COMMIT = "d11bf2cadd01a2933168af947cc70e0b6180a36e"
 TREASURY_CAPGAINS_DATE = "2025-12-31"
 
+#: Commit that entered the CBO *Options for Reducing the Deficit: 2025-2034*
+#: battery into this manifest. The rows below were added in that commit and
+#: scored for the first time in :data:`PHASE_B_FIRST_SCORED_COMMIT`, which is a
+#: *later* commit — the two-commit protocol is what makes "the target was fixed
+#: before the model was allowed to move" checkable from the git history rather
+#: than asserted in prose.
+PHASE_B_ENTERED_COMMIT = "PENDING"
+PHASE_B_ENTERED_DATE = "2026-09-01"
+
+#: Commit in which the Phase B battery was first scored (the commit that flips
+#: the 14 records to ``runnable=True`` and adds the vintage/effective-year/
+#: payroll plumbing they need).
+PHASE_B_FIRST_SCORED_COMMIT = "PENDING"
+
+#: Baselines the CBO options were built on, from PDF page 2 of publication
+#: 60557 ("Notes About This Report").
+CBO_OPTIONS_REVENUE_BASELINE = (
+    "CBO February 2024 baseline (The Budget and Economic Outlook: 2024 to 2034, "
+    "pub. 59710) - matched exactly by BaselineVintage.CBO_FEB_2024"
+)
+CBO_OPTIONS_SPENDING_BASELINE = (
+    "CBO June 2024 baseline (An Update to the Budget and Economic Outlook: "
+    "2024 to 2034, pub. 60039) - VINTAGE MISMATCH: the repository has no "
+    "June-2024 vintage, so this row is scored on CBO_FEB_2024"
+)
+
 
 @dataclass(frozen=True)
 class PreregisteredCase:
@@ -257,6 +283,231 @@ PREREGISTERED_CASES: tuple[PreregisteredCase, ...] = (
         first_scoring_run_commit=PHASE_A_COMMIT,
         note="AGI-inclusive base: the surcharge applies to wage *and* investment income.",
     ),
+
+    # ---- Phase B: CBO Options for Reducing the Deficit, 2025-2034 ---------
+    # Publication 60557 (December 2024; reposted October 2025). 76 options, of
+    # which 14 alternatives are expressible by the uncalibrated path; the other
+    # 62 options carry a one-line exclusion reason in
+    # ``fiscal_model/validation/cbo_options.py``. Targets are each option's own
+    # published 10-year total, never the Table 1-1 range.
+    PreregisteredCase(
+        case_id="cbo_opt45_all_rates_1pp.v1",
+        policy_id="cbo_opt45_all_rates_1pp",
+        official_10yr_billions=-1_185.3,
+        source_name="Congressional Budget Office",
+        source_url="https://www.cbo.gov/publication/60557",
+        source_date="2024-12",
+        source_baseline_vintage=CBO_OPTIONS_REVENUE_BASELINE,
+        entered_commit=PHASE_B_ENTERED_COMMIT,
+        entered_date=PHASE_B_ENTERED_DATE,
+        first_scoring_run_commit=PHASE_B_FIRST_SCORED_COMMIT,
+        note="Option 45, alternative 1 (report p. 55; PDF p. 61). JCT estimate.",
+    ),
+    PreregisteredCase(
+        case_id="cbo_opt45_top4_brackets_2pp.v1",
+        policy_id="cbo_opt45_top4_brackets_2pp",
+        official_10yr_billions=-569.5,
+        source_name="Congressional Budget Office",
+        source_url="https://www.cbo.gov/publication/60557",
+        source_date="2024-12",
+        source_baseline_vintage=CBO_OPTIONS_REVENUE_BASELINE,
+        entered_commit=PHASE_B_ENTERED_COMMIT,
+        entered_date=PHASE_B_ENTERED_DATE,
+        first_scoring_run_commit=PHASE_B_FIRST_SCORED_COMMIT,
+        note=(
+            "Option 45, alternative 2 (report p. 55; PDF p. 61). The bracket "
+            "boundary is filing-status specific and moves in 2026 when the "
+            "pre-2018 rate schedule returns; the model holds one fixed threshold."
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo_opt46_agi_surtax_1pp_20k.v1",
+        policy_id="cbo_opt46_agi_surtax_1pp_20k",
+        official_10yr_billions=-1_440.1,
+        source_name="Congressional Budget Office",
+        source_url="https://www.cbo.gov/publication/60557",
+        source_date="2024-12",
+        source_baseline_vintage=CBO_OPTIONS_REVENUE_BASELINE,
+        entered_commit=PHASE_B_ENTERED_COMMIT,
+        entered_date=PHASE_B_ENTERED_DATE,
+        first_scoring_run_commit=PHASE_B_FIRST_SCORED_COMMIT,
+        note="Option 46, alternative 1 (report p. 56; PDF p. 62). AGI-inclusive base.",
+    ),
+    PreregisteredCase(
+        case_id="cbo_opt46_agi_surtax_2pp_100k.v1",
+        policy_id="cbo_opt46_agi_surtax_2pp_100k",
+        official_10yr_billions=-1_051.0,
+        source_name="Congressional Budget Office",
+        source_url="https://www.cbo.gov/publication/60557",
+        source_date="2024-12",
+        source_baseline_vintage=CBO_OPTIONS_REVENUE_BASELINE,
+        entered_commit=PHASE_B_ENTERED_COMMIT,
+        entered_date=PHASE_B_ENTERED_DATE,
+        first_scoring_run_commit=PHASE_B_FIRST_SCORED_COMMIT,
+        note="Option 46, alternative 2 (report p. 56; PDF p. 62). AGI-inclusive base.",
+    ),
+    PreregisteredCase(
+        case_id="cbo_opt47_ltcg_qdiv_2pp.v1",
+        policy_id="cbo_opt47_ltcg_qdiv_2pp",
+        official_10yr_billions=-103.3,
+        source_name="Congressional Budget Office",
+        source_url="https://www.cbo.gov/publication/60557",
+        source_date="2024-12",
+        source_baseline_vintage=CBO_OPTIONS_REVENUE_BASELINE,
+        entered_commit=PHASE_B_ENTERED_COMMIT,
+        entered_date=PHASE_B_ENTERED_DATE,
+        first_scoring_run_commit=PHASE_B_FIRST_SCORED_COMMIT,
+        note=(
+            "Option 47 (report p. 57; PDF p. 63). The first out-of-sample "
+            "capital-gains case that is a plain rate change with no step-up "
+            "component, so it isolates the frozen realization elasticities."
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo_opt51_gains_at_death.v1",
+        policy_id="cbo_opt51_gains_at_death",
+        official_10yr_billions=-536.1,
+        source_name="Congressional Budget Office",
+        source_url="https://www.cbo.gov/publication/60557",
+        source_date="2024-12",
+        source_baseline_vintage=CBO_OPTIONS_REVENUE_BASELINE,
+        entered_commit=PHASE_B_ENTERED_COMMIT,
+        entered_date=PHASE_B_ENTERED_DATE,
+        first_scoring_run_commit=PHASE_B_FIRST_SCORED_COMMIT,
+        note=(
+            "Option 51, alternative 2 (report p. 61; PDF p. 67). Alternative 1 "
+            "(carryover basis) is out of scope: the module implements deemed "
+            "realization at death, not deferral to the heir's sale."
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo_opt61_new_payroll_tax_1pct.v1",
+        policy_id="cbo_opt61_new_payroll_tax_1pct",
+        official_10yr_billions=-1_281.5,
+        source_name="Congressional Budget Office",
+        source_url="https://www.cbo.gov/publication/60557",
+        source_date="2024-12",
+        source_baseline_vintage=CBO_OPTIONS_REVENUE_BASELINE,
+        entered_commit=PHASE_B_ENTERED_COMMIT,
+        entered_date=PHASE_B_ENTERED_DATE,
+        first_scoring_run_commit=PHASE_B_FIRST_SCORED_COMMIT,
+        note=(
+            "Option 61, alternative 1 (report p. 72; PDF p. 78). Scored on the "
+            "Medicare base (all covered earnings, no taxable maximum). The "
+            "module's covered-wage bands - which ARE calibrated - are not used "
+            "by this path; Option 62 is excluded precisely because it would use "
+            "them."
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo_opt61_new_payroll_tax_2pct.v1",
+        policy_id="cbo_opt61_new_payroll_tax_2pct",
+        official_10yr_billions=-2_540.0,
+        source_name="Congressional Budget Office",
+        source_url="https://www.cbo.gov/publication/60557",
+        source_date="2024-12",
+        source_baseline_vintage=CBO_OPTIONS_REVENUE_BASELINE,
+        entered_commit=PHASE_B_ENTERED_COMMIT,
+        entered_date=PHASE_B_ENTERED_DATE,
+        first_scoring_run_commit=PHASE_B_FIRST_SCORED_COMMIT,
+        note="Option 61, alternative 2 (report p. 72; PDF p. 78).",
+    ),
+    PreregisteredCase(
+        case_id="cbo_opt64_corporate_rate_1pp.v1",
+        policy_id="cbo_opt64_corporate_rate_1pp",
+        official_10yr_billions=-135.7,
+        source_name="Congressional Budget Office",
+        source_url="https://www.cbo.gov/publication/60557",
+        source_date="2024-12",
+        source_baseline_vintage=CBO_OPTIONS_REVENUE_BASELINE,
+        entered_commit=PHASE_B_ENTERED_COMMIT,
+        entered_date=PHASE_B_ENTERED_DATE,
+        first_scoring_run_commit=PHASE_B_FIRST_SCORED_COMMIT,
+        note=(
+            "Option 64 (report p. 75; PDF p. 81). The first out-of-sample "
+            "corporate case: the calibrated Corporate runner is tuned to the "
+            "21%->28% Biden score, and this 1pp step tests the same machinery "
+            "at a rate change seven times smaller."
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo_opt37_international_affairs.v1",
+        policy_id="cbo_opt37_international_affairs",
+        official_10yr_billions=-187.0,
+        source_name="Congressional Budget Office",
+        source_url="https://www.cbo.gov/publication/60557",
+        source_date="2024-12",
+        source_baseline_vintage=CBO_OPTIONS_SPENDING_BASELINE,
+        entered_commit=PHASE_B_ENTERED_COMMIT,
+        entered_date=PHASE_B_ENTERED_DATE,
+        first_scoring_run_commit=PHASE_B_FIRST_SCORED_COMMIT,
+        note=(
+            "Option 37 (report p. 46; PDF p. 52). First live case for the "
+            "spending shape added in Phase A. Input is CBO's first-year budget "
+            "authority (-$23B, 2026); target is CBO's 10-year outlay total, so "
+            "the residual measures the spend-out lag the shape cannot represent."
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo_opt38_national_service.v1",
+        policy_id="cbo_opt38_national_service",
+        official_10yr_billions=-10.3,
+        source_name="Congressional Budget Office",
+        source_url="https://www.cbo.gov/publication/60557",
+        source_date="2024-12",
+        source_baseline_vintage=CBO_OPTIONS_SPENDING_BASELINE,
+        entered_commit=PHASE_B_ENTERED_COMMIT,
+        entered_date=PHASE_B_ENTERED_DATE,
+        first_scoring_run_commit=PHASE_B_FIRST_SCORED_COMMIT,
+        note="Option 38 (report p. 47; PDF p. 53). First-year budget authority -$1.3B.",
+    ),
+    PreregisteredCase(
+        case_id="cbo_opt39_pell_eligibility.v1",
+        policy_id="cbo_opt39_pell_eligibility",
+        official_10yr_billions=-22.1,
+        source_name="Congressional Budget Office",
+        source_url="https://www.cbo.gov/publication/60557",
+        source_date="2024-12",
+        source_baseline_vintage=CBO_OPTIONS_SPENDING_BASELINE,
+        entered_commit=PHASE_B_ENTERED_COMMIT,
+        entered_date=PHASE_B_ENTERED_DATE,
+        first_scoring_run_commit=PHASE_B_FIRST_SCORED_COMMIT,
+        note=(
+            "Option 39 (report p. 48; PDF p. 54). Target is the discretionary "
+            "outlay total only; CBO reports a separate -$9.2B mandatory effect "
+            "that this shape does not cover (Table 1-1 footnote b)."
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo_opt42_nondefense_discretionary.v1",
+        policy_id="cbo_opt42_nondefense_discretionary",
+        official_10yr_billions=-339.0,
+        source_name="Congressional Budget Office",
+        source_url="https://www.cbo.gov/publication/60557",
+        source_date="2024-12",
+        source_baseline_vintage=CBO_OPTIONS_SPENDING_BASELINE,
+        entered_commit=PHASE_B_ENTERED_COMMIT,
+        entered_date=PHASE_B_ENTERED_DATE,
+        first_scoring_run_commit=PHASE_B_FIRST_SCORED_COMMIT,
+        note="Option 42 (report p. 51; PDF p. 57). First-year spending authority -$41B.",
+    ),
+    PreregisteredCase(
+        case_id="cbo_opt43_state_local_grants.v1",
+        policy_id="cbo_opt43_state_local_grants",
+        official_10yr_billions=-66.7,
+        source_name="Congressional Budget Office",
+        source_url="https://www.cbo.gov/publication/60557",
+        source_date="2024-12",
+        source_baseline_vintage=CBO_OPTIONS_SPENDING_BASELINE,
+        entered_commit=PHASE_B_ENTERED_COMMIT,
+        entered_date=PHASE_B_ENTERED_DATE,
+        first_scoring_run_commit=PHASE_B_FIRST_SCORED_COMMIT,
+        note=(
+            "Option 43, total row (report pp. 52-53; PDF pp. 58-59). The 2026 "
+            "budget authority is inflated by IIJA advance funding, so a level "
+            "shape anchored on it over-states every later year."
+        ),
+    ),
 )
 
 
@@ -367,6 +618,8 @@ def summarize_preregistration() -> dict[str, Any]:
         "superseded_cases": len(superseded_cases()),
         "policy_ids": sorted(live),
         "phase_a_commit": PHASE_A_COMMIT,
+        "phase_b_entered_commit": PHASE_B_ENTERED_COMMIT,
+        "phase_b_first_scored_commit": PHASE_B_FIRST_SCORED_COMMIT,
         "rows": [
             {
                 "case_id": case.case_id,
@@ -387,7 +640,11 @@ def summarize_preregistration() -> dict[str, Any]:
 
 
 __all__ = [
+    "CBO_OPTIONS_REVENUE_BASELINE",
+    "CBO_OPTIONS_SPENDING_BASELINE",
     "PHASE_A_COMMIT",
+    "PHASE_B_ENTERED_COMMIT",
+    "PHASE_B_FIRST_SCORED_COMMIT",
     "PREREGISTERED_CASES",
     "PreregisteredCase",
     "assert_preregistered",

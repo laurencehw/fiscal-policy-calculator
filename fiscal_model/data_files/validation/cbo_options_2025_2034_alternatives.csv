@@ -1,0 +1,208 @@
+# Source: CBO, Options for Reducing the Deficit: 2025 to 2034 (December 2024)
+# Landing page: https://www.cbo.gov/publication/60557
+# PDF: https://www.cbo.gov/system/files/2024-12/60557-budget-options.pdf
+# One row per reported line in an option's own table (report pages 5-88; PDF pages 11-94).
+# savings_* follow CBO (positive = reduces the deficit); deficit_effect_* follow this app.
+# Rebuilt by scripts/extract_cbo_options.py.
+option_number,alternative_id,label,measure,savings_5yr_billions,savings_10yr_billions,deficit_effect_10yr_billions,savings_2025_billions,savings_2026_billions,savings_2027_billions,savings_2028_billions,savings_2029_billions,savings_2030_billions,savings_2031_billions,savings_2032_billions,savings_2033_billions,savings_2034_billions,report_page,pdf_page,extracted_by
+1,1.1,Change in outlays Reduce premium subsidies,deficit_effect,14.9,32.7,-32.7,1.2,3.4,3.4,3.4,3.5,3.5,3.5,3.6,3.6,3.6,5,11,script
+1,1.2,Limit administrative expenses and the rate of return,deficit_effect,6.5,14.0,-14.0,0.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5,1.5,5,11,script
+1,1.3,Total,deficit_effect,21.4,46.7,-46.7,1.7,4.9,4.9,4.9,5.0,5.0,5.0,5.1,5.1,5.1,5,11,script
+2,2.1,Change in outlays a Increase guarantee fees,deficit_effect,-0.0,6.7,-6.7,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,3.3,3.4,6,12,script
+2,2.2,Decrease loan limits,deficit_effect,1.0,10.4,-10.4,-0.0,-0.0,0.1,0.3,0.6,0.8,1.1,1.4,2.8,3.3,6,12,script
+2,2.3,Implement both alternatives b,deficit_effect,1.0,14.7,-14.7,-0.0,-0.0,0.1,0.3,0.6,0.8,1.1,1.4,5.0,5.4,6,12,script
+3,3.1,Change in mandatory outlays,mandatory_outlays,17.2,44.4,-44.4,-0.0,1.4,5.2,5.3,5.3,5.4,5.4,5.4,5.5,5.5,7,13,script
+3,3.2,Budget authority,budget_authority,0.4,0.9,-0.9,-0.0,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,7,13,script
+3,3.3,Outlays,outlays,0.3,0.8,-0.8,-0.0,-0.0,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,7,13,script
+4,4.1,"Caps on overall spending Apply caps to all eligibility categories, with growth of caps based on the CPI-U Change in outlays",deficit_effect,111.0,761.0,-761.0,-0.0,2.0,3.0,43.0,63.0,83.0,103.0,127.0,155.0,182.0,8,14,script
+4,4.2,Change in revenues a,deficit_effect,3.0,19.0,-19.0,-0.0,-0.0,-0.0,1.0,2.0,2.0,3.0,3.0,4.0,4.0,8,14,script
+4,4.3,Establish Caps on Federal Spending for Medicaid,deficit_effect,108.0,742.0,-742.0,-0.0,2.0,3.0,42.0,61.0,81.0,100.0,124.0,151.0,178.0,8,14,script
+4,4.4,"Apply caps to all eligibility categories, with growth of caps based on the CPI-U plus 1 percentage point Change in outlays",deficit_effect,64.0,474.0,-474.0,-0.0,2.0,3.0,23.0,36.0,49.0,63.0,79.0,100.0,119.0,8,14,script
+4,4.5,Change in revenues a,deficit_effect,2.0,15.0,-15.0,-0.0,-0.0,-0.0,1.0,1.0,2.0,2.0,3.0,3.0,3.0,8,14,script
+4,4.6,Establish Caps on Federal Spending for Medicaid,deficit_effect,62.0,459.0,-459.0,-0.0,2.0,3.0,22.0,35.0,47.0,61.0,76.0,97.0,116.0,8,14,script
+4,4.7,"Caps on spending per enrollee Apply caps to all eligibility categories, with growth of caps based on the CPI-U Change in outlays",deficit_effect,153.0,907.0,-907.0,-0.0,2.0,3.0,64.0,84.0,105.0,126.0,149.0,174.0,200.0,8,14,script
+4,4.8,Change in revenues a,deficit_effect,2.0,14.0,-14.0,-0.0,-0.0,-0.0,1.0,1.0,2.0,2.0,2.0,3.0,3.0,8,14,script
+4,4.9,Establish Caps on Federal Spending for Medicaid,deficit_effect,151.0,893.0,-893.0,-0.0,2.0,3.0,63.0,83.0,103.0,124.0,147.0,171.0,197.0,8,14,script
+4,4.10,"Apply caps to all eligibility categories, with growth of caps based on the CPI-U plus 1 percentage point Change in outlays",deficit_effect,101.0,599.0,-599.0,-0.0,2.0,3.0,41.0,55.0,69.0,83.0,98.0,115.0,133.0,8,14,script
+4,4.11,Change in revenues a,deficit_effect,2.0,11.0,-11.0,-0.0,-0.0,-0.0,1.0,1.0,1.0,2.0,2.0,2.0,2.0,8,14,script
+4,4.12,Establish Caps on Federal Spending for Medicaid,deficit_effect,99.0,588.0,-588.0,-0.0,2.0,3.0,40.0,54.0,68.0,81.0,96.0,113.0,131.0,8,14,script
+5,5.1,Lower the tax threshold to 5 percent Change in outlays,deficit_effect,14.0,48.0,-48.0,-0.0,2.0,3.0,4.0,5.0,6.0,6.0,7.0,7.0,8.0,10,16,script
+5,5.2,Change in revenues a,deficit_effect,-0.0,-0.0,0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,-0.0,10,16,script
+5,5.3,Limit State Taxes on Health Care Providers,deficit_effect,14.0,48.0,-48.0,-0.0,2.0,3.0,4.0,5.0,6.0,6.0,7.0,7.0,8.0,10,16,script
+5,5.4,Lower the tax threshold to 2.5 percent Change in outlays,deficit_effect,73.0,248.0,-248.0,-0.0,13.0,16.0,20.0,24.0,29.0,32.0,35.0,38.0,41.0,10,16,script
+5,5.5,Change in revenues a,deficit_effect,2.0,7.0,-7.0,-0.0,-0.0,-0.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,10,16,script
+5,5.6,Limit State Taxes on Health Care Providers,deficit_effect,71.0,241.0,-241.0,-0.0,13.0,16.0,19.0,23.0,28.0,31.0,34.0,37.0,40.0,10,16,script
+5,5.7,Eliminate the tax threshold Change in outlays,deficit_effect,187.0,630.0,-630.0,-0.0,33.0,41.0,51.0,62.0,74.0,81.0,88.0,96.0,104.0,10,16,script
+5,5.8,Change in revenues a,deficit_effect,5.0,18.0,-18.0,-0.0,1.0,1.0,1.0,2.0,2.0,2.0,3.0,3.0,3.0,10,16,script
+5,5.9,Limit State Taxes on Health Care Providers,deficit_effect,182.0,612.0,-612.0,-0.0,32.0,40.0,50.0,60.0,72.0,79.0,85.0,93.0,101.0,10,16,script
+6,6.1,Use the same matching rate for all categories of administrative services Change in outlays,deficit_effect,27.0,69.0,-69.0,-0.0,6.0,7.0,7.0,7.0,8.0,8.0,8.0,9.0,9.0,11,17,script
+6,6.2,Remove the FMAP floor Change in outlays,deficit_effect,207.0,530.0,-530.0,-0.0,48.0,50.0,53.0,56.0,59.0,61.0,64.0,68.0,71.0,11,17,script
+6,6.3,Reduce the matching rate for enrollees made eligible by the ACA Change in outlays,deficit_effect,208.0,596.0,-596.0,-0.0,44.0,48.0,54.0,62.0,67.0,72.0,77.0,83.0,89.0,11,17,script
+6,6.4,Change in revenues a,deficit_effect,10.0,35.0,-35.0,-0.0,1.0,2.0,3.0,4.0,4.0,5.0,5.0,5.0,6.0,11,17,script
+6,6.5,Reduce Federal Medicaid Matching Rates,deficit_effect,198.0,561.0,-561.0,-0.0,43.0,46.0,51.0,58.0,63.0,67.0,72.0,78.0,83.0,11,17,script
+7,7.1,Increase the Premiums Paid for Medicare Part B,deficit_effect,114.0,510.0,-510.0,-0.0,10.0,21.0,34.0,49.0,67.0,72.0,78.0,86.0,93.0,13,19,script
+8,8.1,Change in outlays,deficit_effect,120.0,489.0,-489.0,-0.0,-0.0,18.0,50.0,52.0,61.0,66.0,72.0,85.0,85.0,14,20,script
+9,9.1,Adopt a voucher plan with growth based on the CPI-U Change in mandatory outlays a,deficit_effect,2.1,15.3,-15.3,-0.0,-0.0,0.4,0.7,1.0,1.6,2.2,2.5,3.2,3.7,15,21,script
+9,9.2,Change in revenues b,deficit_effect,0.1,0.9,-0.9,-0.0,-0.0,-0.0,-0.0,0.1,0.1,0.1,0.2,0.2,0.2,15,21,script
+9,9.3,Decrease (-) in the deficit from changes in mandatory outlays and revenues c,deficit_effect,2.0,14.4,-14.4,-0.0,-0.0,0.4,0.7,0.9,1.5,2.1,2.3,3.0,3.5,15,21,script
+9,9.4,Budget authority,budget_authority,2.3,17.3,-17.3,-0.0,-0.0,0.3,0.8,1.2,1.8,2.4,3.0,3.6,4.2,15,21,script
+9,9.5,Outlays,outlays,2.3,17.3,-17.3,-0.0,-0.0,0.3,0.8,1.2,1.8,2.4,3.0,3.6,4.2,15,21,script
+9,9.6,Adopt a voucher plan with growth based on the chained CPI-U Change in mandatory outlays a,deficit_effect,2.4,17.3,-17.3,-0.0,-0.0,0.4,0.7,1.3,1.8,2.4,2.9,3.6,4.2,15,21,script
+9,9.7,Change in revenues b,deficit_effect,0.1,1.0,-1.0,-0.0,-0.0,-0.0,-0.0,0.1,0.1,0.1,0.2,0.2,0.3,15,21,script
+9,9.8,Decrease (-) in the deficit from changes in mandatory outlays and revenues c,deficit_effect,2.3,16.3,-16.3,-0.0,-0.0,0.4,0.7,1.2,1.7,2.3,2.7,3.4,3.9,15,21,script
+9,9.9,Budget authority,budget_authority,2.7,19.8,-19.8,-0.0,-0.0,0.4,0.9,1.4,2.1,2.7,3.4,4.1,4.8,15,21,script
+9,9.10,Outlays,outlays,2.7,19.8,-19.8,-0.0,-0.0,0.4,0.9,1.4,2.1,2.7,3.4,4.1,4.8,15,21,script
+10,10.1,Change in outlays MERHCF,deficit_effect,6.6,23.7,-23.7,-0.0,-0.0,1.4,2.3,2.9,3.1,3.3,3.4,3.6,3.7,17,23,script
+10,10.2,Medicare,deficit_effect,-1.8,-7.0,7.0,-0.0,-0.0,-0.3,-0.6,-0.9,-1.0,-1.0,-1.0,-1.1,-1.1,17,23,script
+10,10.3,Total,deficit_effect,4.8,16.7,-16.7,-0.0,-0.0,1.1,1.7,2.0,2.1,2.3,2.4,2.5,2.6,17,23,script
+11,11.1,Change in outlays MERHCF,deficit_effect,4.4,21.0,-21.0,-0.0,-0.1,-0.1,1.8,2.8,3.0,3.2,3.3,3.5,3.6,18,24,script
+11,11.2,Medicare,deficit_effect,1.8,10.5,-10.5,-0.0,-0.0,-0.0,0.5,1.3,1.6,1.7,1.7,1.8,1.9,18,24,script
+11,11.3,Total,deficit_effect,6.2,31.5,-31.5,-0.0,-0.1,-0.1,2.3,4.1,4.6,4.9,5.0,5.3,5.5,18,24,script
+12,12.1,Change in outlays Establish uniform cost sharing and an out-of-pocket cap for Medicare,deficit_effect,5.0,20.0,-20.0,-0.0,-0.0,-0.0,2.0,3.0,3.0,3.0,3.0,3.0,3.0,19,25,script
+12,12.2,Restrict medigap policies,deficit_effect,26.0,116.0,-116.0,-0.0,-0.0,-0.0,11.0,15.0,16.0,17.0,18.0,19.0,20.0,19,25,script
+12,12.3,Implement both alternatives a,deficit_effect,31.0,129.0,-129.0,-0.0,-0.0,-0.0,13.0,18.0,18.0,19.0,20.0,20.0,21.0,19,25,script
+13,13.1,Change in outlays Reduce the percentage of allowable bad debt to 45 percent,deficit_effect,5.9,16.7,-16.7,-0.0,0.6,1.3,2.1,1.9,2.1,2.1,2.1,2.3,2.2,20,26,script
+13,13.2,Reduce the percentage of allowable bad debt to 25 percent,deficit_effect,11.9,33.2,-33.2,-0.0,1.3,2.6,4.1,3.9,4.1,4.2,4.2,4.5,4.3,20,26,script
+13,13.3,Eliminate the coverage of allowable bad debt,deficit_effect,19.3,54.1,-54.1,-0.0,2.1,4.2,6.7,6.3,6.7,6.8,6.9,7.3,7.1,20,26,script
+14,14.1,"Change in outlays Establish a grant program, with growth of funding based on the CPI-U",deficit_effect,24.0,94.0,-94.0,-0.0,4.0,5.0,7.0,8.0,10.0,12.0,14.0,16.0,18.0,21,27,script
+14,14.2,"Establish a grant program, with growth of funding based on the CPI-U minus 1 percentage point",deficit_effect,26.0,103.0,-103.0,-0.0,4.0,6.0,7.0,9.0,11.0,13.0,15.0,18.0,20.0,21,27,script
+15,15.1,Change in outlays Increase the minimum risk score reduction from 5.9 percent to 8 percent,deficit_effect,48.0,159.0,-159.0,-0.0,-0.0,15.0,17.0,16.0,18.0,20.0,22.0,26.0,25.0,22,28,script
+15,15.2,Increase the minimum risk score reduction from 5.9 percent to 20 percent,deficit_effect,314.0,1049.0,-1049.0,-0.0,-0.0,98.0,113.0,103.0,122.0,132.0,143.0,170.0,168.0,22,28,script
+15,15.3,Use two years of diagnostic data to calculate risk scores and exclude diagnoses from health risk assessments,deficit_effect,37.0,124.0,-124.0,-0.0,-0.0,12.0,13.0,12.0,14.0,16.0,17.0,20.0,20.0,22,28,script
+16,16.1,Change in outlays Pay site-neutral rates for most services to all off-campus and on-campus HOPDs,deficit_effect,48.9,156.9,-156.9,-0.0,7.4,12.5,14.4,14.6,16.9,18.9,21.0,24.8,26.4,23,29,script
+16,16.2,Apply site-neutral rates to drug administration services for all off-campus HOPDs,deficit_effect,1.7,5.6,-5.6,-0.0,0.3,0.4,0.5,0.5,0.6,0.7,0.8,0.9,0.9,23,29,script
+16,16.3,Apply site-neutral rates to imaging services for all off-campus HOPDs,deficit_effect,2.4,7.6,-7.6,-0.0,0.4,0.6,0.7,0.7,0.8,0.9,1.0,1.2,1.3,23,29,script
+17,17.1,Change in outlays Reduce payment rates for 340B hospitals to a drug's average sales price minus 22.5 percent,deficit_effect,24.2,73.5,-73.5,-0.0,5.2,5.7,6.6,6.7,7.7,8.6,9.6,11.3,12.1,24,30,script
+17,17.2,Reduce payment rates for 340B hospitals to a drug's average sales price,deficit_effect,5.1,15.4,-15.4,-0.0,1.1,1.2,1.4,1.4,1.6,1.8,2.0,2.4,2.5,24,30,script
+18,18.1,Change in outlays,deficit_effect,5.7,14.1,-14.1,0.1,1.1,1.4,1.5,1.6,1.6,1.6,1.7,1.7,1.8,25,31,script
+19,19.1,Change in outlays Add a bend point at the 70th percentile of earners and reduce PIA factors over 9 years,deficit_effect,3.0,48.0,-48.0,-0.0,-0.0,-0.0,1.0,2.0,3.0,6.0,8.0,12.0,16.0,26,32,script
+19,19.2,Add a bend point at the 50th percentile of earners and reduce PIA factors over 9 years,deficit_effect,8.0,117.0,-117.0,-0.0,-0.0,1.0,2.0,5.0,8.0,13.0,20.0,29.0,39.0,26,32,script
+19,19.3,Add a bend point at the 50th percentile of earners and reduce PIA factors over 5 years,deficit_effect,15.0,197.0,-197.0,-0.0,-0.0,2.0,4.0,9.0,15.0,24.0,35.0,47.0,61.0,26,32,script
+20,20.1,Change in outlays Set Social Security benefits to 150 percent of the federal poverty guidelines,deficit_effect,27.0,283.0,-283.0,-0.0,1.0,4.0,8.0,14.0,22.0,34.0,50.0,65.0,85.0,28,34,script
+20,20.2,Set Social Security benefits to 125 percent of the federal poverty guidelines,deficit_effect,69.0,607.0,-607.0,-0.0,3.0,10.0,21.0,35.0,52.0,75.0,106.0,135.0,170.0,28,34,script
+21,21.1,Change in outlays,deficit_effect,3.1,94.7,-94.7,-0.0,0.1,0.3,0.9,1.8,3.2,9.6,16.6,25.4,36.8,29,35,script
+22,22.1,Change in outlays,deficit_effect,12.4,59.8,-59.8,-0.0,0.9,2.3,3.9,5.3,6.7,8.1,9.5,10.9,12.2,30,36,script
+23,23.1,Change in outlays,deficit_effect,144.0,384.0,-384.0,-0.0,26.0,37.0,43.0,38.0,43.0,45.0,47.0,53.0,52.0,31,37,script
+24,24.1,Change in outlays End IU payments to all veterans age 67 or older,deficit_effect,23.4,61.1,-61.1,-0.0,4.3,6.1,7.0,6.0,6.9,7.1,7.4,8.3,8.0,32,38,script
+25,25.1,Change in outlays,deficit_effect,7.7,33.8,-33.8,-0.0,0.6,1.6,2.4,3.1,3.8,4.5,5.2,5.9,6.7,33,39,script
+26,26.1,Change in outlays Require disability ratings of 30 percent or higher for disability compensation for all veterans,deficit_effect,19.5,58.6,-58.6,-0.0,3.2,4.9,5.4,6.0,6.6,7.2,7.8,8.4,9.1,34,40,script
+26,26.2,Require disability ratings of 30 percent or higher for disability compensation for new applicants,deficit_effect,2.2,11.2,-11.2,-0.0,0.1,0.4,0.7,1.0,1.3,1.5,1.8,2.1,2.3,34,40,script
+27,27.1,Change in outlays Social Security,deficit_effect,38.5,204.2,-204.2,-0.0,2.9,7.2,11.8,16.6,21.9,27.3,33.0,38.8,44.7,35,41,script
+27,27.2,Other benefit programs with COLAs a,deficit_effect,10.2,50.5,-50.5,-0.0,0.8,1.9,3.1,4.4,5.4,6.7,8.0,9.4,10.8,35,41,script
+27,27.3,Effects on SNAP from interactions with COLA programs b,deficit_effect,-1.0,-4.5,4.5,-0.0,-0.1,-0.2,-0.3,-0.4,-0.5,-0.6,-0.7,-0.8,-0.9,35,41,script
+27,27.4,Health programs c,deficit_effect,4.5,27.5,-27.5,-0.0,0.4,0.9,1.4,1.8,2.5,3.4,6.5,5.0,5.6,35,41,script
+27,27.5,Other federal spending d,deficit_effect,0.6,4.0,-4.0,-0.0,-0.0,0.1,0.2,0.3,0.4,0.5,0.7,0.8,1.0,35,41,script
+27,27.6,Total,deficit_effect,52.8,281.7,-281.7,-0.0,4.0,9.9,16.2,22.7,29.7,37.3,47.5,53.2,61.2,35,41,script
+27,27.7,Change in revenues e,deficit_effect,0.5,3.7,-3.7,-0.0,0.1,0.1,0.1,0.2,0.2,0.2,0.8,0.9,1.1,35,41,script
+27,27.8,Use an Alternative Measure of Inflation to Index Social Security and Other Mandatory Programs,deficit_effect,52.3,278.0,-278.0,-0.0,3.9,9.8,16.1,22.5,29.5,37.1,46.7,52.3,60.1,35,41,script
+28,28.1,Budget authority,budget_authority,293.0,1118.0,-1118.0,-0.0,28.0,57.0,88.0,120.0,154.0,161.0,165.0,170.0,175.0,37,43,script
+28,28.2,Outlays,outlays,210.0,959.0,-959.0,-0.0,15.0,38.0,64.0,93.0,125.0,143.0,153.0,161.0,167.0,37,43,script
+29,29.1,Budget authority,budget_authority,5.3,21.7,-21.7,-0.0,0.4,1.0,1.6,2.3,3.0,3.2,3.3,3.4,3.5,38,44,script
+29,29.2,Outlays,outlays,5.2,21.5,-21.5,-0.0,0.4,1.0,1.6,2.2,2.9,3.2,3.3,3.4,3.5,38,44,script
+29,29.3,Change in mandatory outlays,mandatory_outlays,-1.3,-5.6,5.6,-0.0,-0.1,-0.2,-0.4,-0.6,-0.8,-0.8,-0.9,-0.9,-0.9,38,44,script
+30,30.1,Budget authority,budget_authority,4.8,18.4,-18.4,-0.0,0.3,0.9,1.5,2.1,2.5,2.6,2.7,2.8,3.0,39,45,script
+30,30.2,Outlays,outlays,4.1,17.1,-17.1,-0.0,0.2,0.7,1.3,1.9,2.3,2.5,2.6,2.7,2.9,39,45,script
+30,30.3,Change in mandatory outlays,mandatory_outlays,-2.2,-8.2,8.2,-0.0,-0.1,-0.4,-0.7,-1.0,-1.2,-1.2,-1.2,-1.2,-1.2,39,45,script
+31,31.1,Budget authority,budget_authority,6.2,27.4,-27.4,-0.0,-0.0,0.6,2.7,2.9,3.0,4.6,5.5,5.2,2.9,40,46,script
+31,31.2,Outlays,outlays,1.0,14.6,-14.6,-0.0,-0.0,-0.0,0.2,0.8,1.4,2.0,2.7,3.5,4.0,40,46,script
+32,32.1,Budget authority,budget_authority,10.4,16.0,-16.0,-0.0,2.1,2.5,2.7,3.1,2.8,2.2,0.4,0.2,-0.0,41,47,script
+32,32.2,Outlays,outlays,6.6,15.2,-15.2,-0.0,0.9,1.6,1.9,2.2,2.3,2.4,2.0,1.3,0.6,41,47,script
+33,33.1,Budget authority,budget_authority,4.4,13.9,-13.9,-0.0,0.8,1.1,1.1,1.4,1.7,1.8,2.1,2.0,1.9,42,48,script
+33,33.2,Outlays,outlays,2.9,10.5,-10.5,-0.0,0.3,0.7,0.9,1.0,1.2,1.4,1.5,1.7,1.8,42,48,script
+34,34.1,Budget authority,budget_authority,4.6,5.8,-5.8,-0.0,1.3,1.3,1.1,0.9,0.7,0.5,-0.0,-0.0,-0.0,43,49,script
+34,34.2,Outlays,outlays,4.2,5.8,-5.8,-0.0,0.9,1.2,1.1,1.0,0.8,0.6,0.2,-0.0,-0.0,43,49,script
+35,35.1,Budget authority,budget_authority,14.9,31.0,-31.0,-0.0,3.8,3.7,3.7,3.7,3.6,3.3,3.1,3.0,3.1,44,50,script
+35,35.2,Outlays,outlays,11.5,28.7,-28.7,-0.0,1.8,2.8,3.3,3.6,3.6,3.6,3.5,3.3,3.2,44,50,script
+36,36.1,Budget authority,budget_authority,2.4,16.9,-16.9,-0.0,0.1,0.3,0.8,1.2,1.7,2.3,2.9,3.5,4.1,45,51,script
+36,36.2,Outlays,outlays,2.4,16.6,-16.6,-0.0,0.1,0.3,0.8,1.2,1.7,2.3,2.8,3.4,4.0,45,51,script
+36,36.3,Change in mandatory outlays,mandatory_outlays,0.3,3.2,-3.2,-0.0,-0.0,-0.0,0.1,0.2,0.3,0.4,0.6,0.8,0.8,45,51,script
+37,37.1,Budget authority,budget_authority,96.0,227.0,-227.0,-0.0,23.0,24.0,24.0,25.0,25.0,26.0,26.0,27.0,27.0,46,52,script
+37,37.2,Outlays,outlays,64.0,187.0,-187.0,-0.0,8.0,15.0,19.0,22.0,23.0,24.0,25.0,25.0,26.0,46,52,script
+38,38.1,Budget authority,budget_authority,5.4,12.9,-12.9,-0.0,1.3,1.3,1.4,1.4,1.4,1.5,1.5,1.5,1.6,47,53,script
+38,38.2,Outlays,outlays,3.5,10.3,-10.3,-0.0,0.3,0.9,1.1,1.2,1.2,1.3,1.4,1.4,1.5,47,53,script
+39,39.1,Budget authority,budget_authority,10.3,24.2,-24.2,-0.0,2.5,2.5,2.6,2.7,2.7,2.8,2.8,2.8,2.8,48,54,script
+39,39.2,Outlays,outlays,8.3,22.1,-22.1,-0.0,0.6,2.5,2.6,2.6,2.7,2.7,2.8,2.8,2.8,48,54,script
+39,39.3,Change in mandatory outlays,mandatory_outlays,3.5,9.2,-9.2,-0.0,0.3,1.0,1.1,1.1,1.1,1.1,1.1,1.2,1.2,48,54,script
+40,40.1,Budget authority,budget_authority,32.6,60.6,-60.6,-0.0,8.9,8.8,7.5,7.4,6.1,6.0,5.4,5.3,5.2,49,55,script
+40,40.2,Outlays,outlays,31.7,59.8,-59.8,-0.0,8.1,8.7,7.5,7.4,6.2,6.0,5.4,5.3,5.2,49,55,script
+40,40.3,Change in mandatory outlays,mandatory_outlays,-15.2,-28.8,28.8,-0.0,-4.1,-4.1,-3.5,-3.5,-2.9,-2.9,-2.6,-2.6,-2.6,49,55,script
+41,41.1,Budget authority,budget_authority,14.8,77.3,-77.3,-0.0,1.2,2.8,4.5,6.3,8.2,10.3,12.4,14.6,17.0,50,56,script
+41,41.2,Outlays,outlays,14.4,76.5,-76.5,-0.0,1.1,2.7,4.4,6.2,8.2,10.2,12.3,14.5,16.9,50,56,script
+41,41.3,Change in mandatory outlays,mandatory_outlays,-3.6,-18.9,18.9,-0.0,-0.3,-0.7,-1.1,-1.5,-2.0,-2.5,-3.0,-3.6,-4.2,50,56,script
+42,42.1,Spending authority,spending_authority,171.0,406.0,-406.0,-0.0,41.0,43.0,43.0,44.0,45.0,46.0,47.0,48.0,49.0,51,57,script
+42,42.2,Outlays,outlays,118.0,339.0,-339.0,-0.0,13.0,30.0,36.0,39.0,41.0,43.0,44.0,46.0,47.0,51,57,script
+43,43.1,Reduce Department of Energy funding for energy conservation and weatherization grants - Budget authority,budget_authority,1.0,2.5,-2.5,-0.0,0.1,0.3,0.3,0.3,0.3,0.3,0.3,0.3,0.3,52,58,script
+43,43.2,Reduce Department of Energy funding for energy conservation and weatherization grants - Outlays,outlays,0.4,1.8,-1.8,-0.0,-0.0,0.1,0.1,0.2,0.2,0.3,0.3,0.3,0.3,52,58,script
+43,43.3,Reduce Environmental Protection Agency funding for wastewater and drinking water infrastructure and other grantsa - Budget authority,budget_authority,11.1,24.0,-24.0,-0.0,4.0,2.3,2.4,2.4,2.5,2.5,2.6,2.6,2.7,52,58,script
+43,43.4,Reduce Environmental Protection Agency funding for wastewater and drinking water infrastructure and other grantsa - Outlays,outlays,5.9,19.8,-19.8,-0.0,0.2,1.0,2.1,2.6,2.8,2.9,2.9,2.7,2.6,52,58,script
+43,43.5,Reduce Department of Housing and Urban Development funding for Community Development Block Grants - Budget authority,budget_authority,16.2,35.8,-35.8,-0.0,5.3,3.6,3.6,3.7,3.8,3.8,3.9,4.0,4.1,52,58,script
+43,43.6,Reduce Department of Housing and Urban Development funding for Community Development Block Grants - Outlays,outlays,5.0,21.9,-21.9,-0.0,0.1,0.9,1.7,2.3,2.9,3.3,3.4,3.6,3.7,52,58,script
+43,43.7,Reduce funding for certain Department of Education grants - Budget authority,budget_authority,3.8,13.6,-13.6,-0.0,0.5,1.0,1.1,1.2,1.4,1.6,1.9,2.2,2.7,52,58,script
+43,43.8,Reduce funding for certain Department of Education grants - Outlays,outlays,2.1,9.8,-9.8,-0.0,-0.0,0.3,0.8,1.0,1.2,1.3,1.5,1.7,2.0,52,58,script
+43,43.9,Reduce funding for certain Department of Justice grantsb - Budget authority,budget_authority,8.6,20.4,-20.4,-0.0,2.1,2.1,2.2,2.2,2.3,2.3,2.4,2.4,2.4,52,58,script
+43,43.10,Reduce funding for certain Department of Justice grantsb - Outlays,outlays,2.9,13.4,-13.4,-0.0,0.1,0.4,0.9,1.5,1.9,2.1,2.1,2.2,2.2,52,58,script
+43,43.11,Total - Budget authority,budget_authority,40.7,96.3,-96.3,-0.0,12.0,9.3,9.6,9.8,10.3,10.5,11.1,11.5,12.2,52,58,script
+43,43.12,Total - Outlays,outlays,16.3,66.7,-66.7,-0.0,0.4,2.7,5.6,7.6,9.0,9.9,10.2,10.5,10.8,52,58,script
+44,44.1,Spending authority,spending_authority,9.8,24.7,-24.7,-0.0,1.5,2.7,2.8,2.8,2.9,2.9,3.0,3.0,3.1,54,60,script
+44,44.2,Budget authority,budget_authority,4.7,11.7,-11.7,-0.0,0.8,1.3,1.3,1.3,1.4,1.4,1.4,1.4,1.4,54,60,script
+44,44.3,Outlays,outlays,6.8,17.8,-17.8,-0.0,0.8,1.9,2.0,2.1,2.2,2.2,2.2,2.2,2.2,54,60,script
+44,44.4,Change in mandatory outlays,mandatory_outlays,0.3,0.4,-0.4,-0.0,-0.0,0.1,0.1,0.1,0.1,-0.0,-0.0,-0.0,-0.0,54,60,script
+45,45.1,Raise all tax rates on ordinary income by 1 percentage point,deficit_effect,523.2,1185.3,-1185.3,82.3,106.3,106.4,111.7,116.5,121.5,126.8,132.4,137.9,143.5,55,61,script
+45,45.2,Raise tax rates on ordinary income in the four highest brackets by 2 percentage points,deficit_effect,257.2,569.5,-569.5,45.1,53.0,50.7,53.3,55.1,57.2,59.7,62.4,65.0,67.9,55,61,script
+46,46.1,"Impose a surtax of 1 percentage point on AGI above $20,000 for single filers and $40,000 for joint filers",deficit_effect,610.6,1440.1,-1440.1,70.7,124.4,131.3,139.0,145.2,151.7,158.6,165.9,173.1,180.4,56,62,script
+46,46.2,"Impose a surtax of 2 percentage points on AGI above $100,000 for single filers and $200,000 for joint filers",deficit_effect,439.8,1051.0,-1051.0,49.5,89.1,94.2,101.2,105.8,110.8,116.3,122.1,127.9,133.9,56,62,script
+47,47.1,Raise the Tax Rates on Long-Term Capital Gains and Qualified Dividends by 2 Percentage Points,deficit_effect,41.1,103.3,-103.3,2.4,8.3,8.4,10.8,11.2,11.5,12.0,12.5,12.9,13.4,57,63,script
+48,48.1,Eliminate head-of-household filing status,deficit_effect,94.8,209.2,-209.2,17.8,19.8,18.1,19.1,20.0,20.9,21.8,22.8,23.9,24.9,58,64,script
+49,49.1,Eliminate itemized deductions,deficit_effect,1355.9,3423.5,-3423.5,66.4,240.7,340.6,350.3,357.9,375.7,396.9,414.4,431.8,448.7,59,65,script
+49,49.2,Eliminate state and local tax deductions,deficit_effect,609.8,1621.0,-1621.0,8.8,89.2,166.9,168.4,176.5,184.7,193.3,202.1,211.2,220.0,59,65,script
+49,49.3,Limit the tax benefit of itemized deductions to 15 percent of their total value,deficit_effect,756.1,1909.8,-1909.8,41.5,134.9,184.1,193.8,201.8,210.8,220.3,232.0,241.1,249.5,59,65,script
+49,49.4,Limit the tax benefit of itemized deductions to 4 percent of AGI,deficit_effect,290.6,736.4,-736.4,20.4,54.0,68.3,72.2,75.7,79.8,84.3,89.1,94.0,98.5,59,65,script
+50,50.1,Limit deductibility to charitable contributions in excess of 2 percent of adjusted gross income,deficit_effect,132.8,347.7,-347.7,3.6,21.3,34.2,36.0,37.7,39.4,41.1,42.9,44.8,46.6,60,66,script
+50,50.2,Limit deductibility to cash contributions,deficit_effect,128.7,324.3,-324.3,4.7,25.2,31.7,32.9,34.2,35.7,37.4,39.1,40.8,42.5,60,66,script
+51,51.1,Enact carryover basis for assets held until death,deficit_effect,53.7,196.9,-196.9,1.0,7.5,11.5,15.1,18.6,21.9,25.1,28.5,32.0,35.6,61,67,script
+51,51.2,Include accrued capital gains in the last income tax return of decedents,deficit_effect,205.3,536.1,-536.1,9.1,48.7,46.8,48.8,51.9,55.8,60.5,65.8,71.4,77.3,61,67,script
+52,52.1,Eliminate the Tax Exemption for New Qualified Private Activity Bonds,deficit_effect,9.7,43.1,-43.1,0.2,0.9,1.9,2.9,3.8,4.8,5.7,6.7,7.6,8.6,62,68,script
+53,53.1,Expand the Base of the Net Investment Income Tax to Include the Income of Active Participants in S Corporations and Limited Partnerships,deficit_effect,184.2,420.0,-420.0,24.5,37.1,40.0,40.7,41.9,43.4,45.2,47.0,48.8,51.0,63,69,script
+54,54.1,Tax Carried Interest as Ordinary Income,deficit_effect,5.5,13.0,-13.0,0.5,1.1,1.3,1.3,1.3,1.4,1.4,1.5,1.5,1.6,64,70,script
+55,55.1,Include VA's Disability Payments in Taxable Income,deficit_effect,83.6,234.5,-234.5,1.6,16.6,18.3,20.4,26.7,25.9,28.1,30.0,31.7,35.0,65,71,script
+56,56.1,Limit the income and payroll tax exclusion for employment-based health insurance to the 50th percentile of premiums - Change in mandatory outlays,mandatory_outlays,-3.0,-20.0,20.0,-0.0,-0.0,-0.0,-1.0,-2.0,-3.0,-4.0,-2.0,-4.0,-4.0,66,72,script
+56,56.2,Change in revenues a,deficit_effect,-202.0,-985.0,985.0,-0.0,-0.0,-0.0,-82.0,-120.0,-131.0,-144.0,-156.0,-169.0,-183.0,66,72,script
+56,56.3,Reduce Tax Subsidies for Employment-Based Health Benefits,deficit_effect,199.0,965.0,-965.0,-0.0,-0.0,-0.0,81.0,118.0,128.0,140.0,154.0,165.0,179.0,66,72,script
+56,56.4,Limit the income and payroll tax exclusion for employment-based health insurance to the 75th percentile of premiums - Change in mandatory outlays,mandatory_outlays,-1.0,-13.0,13.0,-0.0,-0.0,-0.0,-0.0,-1.0,-2.0,-2.0,-2.0,-3.0,-3.0,66,72,script
+56,56.5,Change in revenues a,deficit_effect,-105.0,-534.0,534.0,-0.0,-0.0,-0.0,-42.0,-63.0,-70.0,-77.0,-85.0,-94.0,-103.0,66,72,script
+56,56.6,Reduce Tax Subsidies for Employment-Based Health Benefits,deficit_effect,104.0,521.0,-521.0,-0.0,-0.0,-0.0,42.0,62.0,68.0,75.0,83.0,91.0,100.0,66,72,script
+56,56.7,Limit only the income tax exclusion for employment-based health insurance to the 50th percentile of premiums - Change in mandatory outlays,mandatory_outlays,-1.0,-12.0,12.0,-0.0,-0.0,-0.0,-0.0,-1.0,-2.0,-2.0,-1.0,-3.0,-3.0,66,72,script
+56,56.8,Change in revenues a,deficit_effect,-145.0,-709.0,709.0,-0.0,-0.0,-0.0,-59.0,-86.0,-94.0,-103.0,-112.0,-123.0,-132.0,66,72,script
+56,56.9,Reduce Tax Subsidies for Employment-Based Health Benefits,deficit_effect,144.0,697.0,-697.0,-0.0,-0.0,-0.0,59.0,85.0,92.0,101.0,111.0,120.0,129.0,66,72,script
+57,57.1,Further Limit Annual Contributions to Retirement Plans,deficit_effect,79.2,187.1,-187.1,10.4,15.1,16.8,18.0,18.9,20.2,21.0,21.6,22.1,22.9,68,74,script
+58,58.1,Eliminate Certain Tax Preferences for Education Expenses,deficit_effect,61.6,130.4,-130.4,3.0,14.8,14.8,14.6,14.4,14.2,13.9,13.7,13.5,13.3,69,75,script
+59,59.1,Lower the Investment Income Limit for the Earned Income Tax Credit and Extend That Limit to the Refundable Portion of the Child Tax Credit,deficit_effect,5.1,10.6,-10.6,-0.0,1.5,1.2,1.2,1.2,1.2,1.1,1.1,1.1,1.1,70,76,script
+60,60.1,Require People Who Claim the Earned Income Tax Credit and Child Tax Credit to Have a Social Security Number That is Valid for Employment,deficit_effect,13.5,27.8,-27.8,1.1,3.7,2.7,3.0,3.0,2.9,2.9,2.8,2.8,2.8,71,77,script
+61,61.1,Impose a payroll tax of 1 percent on earnings,deficit_effect,556.0,1281.5,-1281.5,56.7,118.2,122.8,127.2,131.1,135.3,140.1,145.0,150.0,155.0,72,78,script
+61,61.2,Impose a payroll tax of 2 percent on earnings,deficit_effect,1100.9,2540.0,-2540.0,112.4,234.5,243.6,251.2,259.2,268.4,278.0,287.7,297.5,307.4,72,78,script
+62,62.1,Raise the taxable share to 90 percent of earnings a,deficit_effect,321.0,727.6,-727.6,22.5,72.3,73.9,75.3,77.0,78.9,80.2,81.4,82.5,83.6,73,79,script
+62,62.2,"Subject earnings greater than $250,000 to payroll taxes",deficit_effect,567.5,1426.8,-1426.8,35.7,122.0,129.4,136.7,143.7,152.5,161.7,171.5,181.5,192.0,73,79,script
+63,63.1,Expand Social Security to Include Newly Hired State and Local Government Employees,deficit_effect,37.3,148.8,-148.8,1.3,4.5,7.7,10.3,13.5,16.5,19.4,22.5,25.0,28.2,74,80,script
+64,64.1,Increase the Corporate Income Tax Rate by 1 Percentage Point,deficit_effect,61.6,135.7,-135.7,7.5,12.7,13.6,13.7,14.1,14.4,14.5,14.6,14.9,15.7,75,81,script
+65,65.1,Tax All Foreign Income of U.S. Corporations at the Full Statutory Corporate Rate,deficit_effect,157.1,340.0,-340.0,21.4,36.5,31.3,33.3,34.6,35.8,35.0,34.6,37.9,39.7,76,82,script
+66,66.1,"Repeal the ""Last In, First Out"" Approach to Inventory Identification and the ""Lower of Cost or Market"" and ""Subnormal Goods"" Methods of Inventory Valuation",deficit_effect,93.6,104.4,-104.4,11.6,23.2,23.1,23.1,12.6,2.1,2.1,2.2,2.2,2.3,77,83,script
+67,67.1,Require half of advertising expenses to be amortized over 5 years,deficit_effect,68.4,83.2,-83.2,14.3,21.4,16.6,11.0,5.1,2.8,2.9,3.0,3.1,3.1,78,84,script
+67,67.2,Require half of advertising expenses to be amortized over 10 years,deficit_effect,111.1,177.2,-177.2,16.1,26.5,25.0,22.9,20.6,18.3,15.9,13.3,10.7,7.9,78,84,script
+68,68.1,Repeal the Low-Income Housing Tax Credit,deficit_effect,12.2,69.1,-69.1,0.1,0.8,2.1,3.7,5.5,7.4,9.3,11.3,13.4,15.6,79,85,script
+69,69.1,Increase tax,deficit_effect,42.0,88.2,-88.2,6.6,8.7,8.8,8.9,9.0,9.1,9.2,9.2,9.3,9.4,80,86,script
+69,69.2,Increase tax and index for inflation,deficit_effect,44.9,102.3,-102.3,6.6,8.9,9.4,9.8,10.2,10.6,11.0,11.5,11.9,12.4,80,86,script
+70,70.1,Change in outlays,deficit_effect,0.3,0.8,-0.8,-0.0,-0.0,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,81,87,script
+70,70.2,Increase Excise Taxes on Tobacco Products,deficit_effect,-22.1,-50.2,50.2,-3.1,-4.4,-4.6,-4.9,-5.1,-5.3,-5.6,-5.7,-5.8,-5.7,81,87,script
+70,70.3,Increase Excise Taxes on Tobacco Products,deficit_effect,22.4,51.0,-51.0,3.1,4.4,4.7,4.9,5.2,5.4,5.7,5.8,5.9,5.8,81,87,script
+71,71.1,Increase Excise Taxes on Motor Fuels and Index Them for Inflation,deficit_effect,99.0,211.6,-211.6,14.6,20.5,20.9,21.3,21.7,22.1,22.3,22.5,22.7,22.9,82,88,script
+72,72.1,Apply a 5 percent VAT to a,deficit_effect,1310.0,3380.0,-3380.0,-0.0,230.0,350.0,360.0,370.0,390.0,400.0,410.0,430.0,440.0,83,89,script
+72,72.2,broad base Apply a 5 percent VAT to a,deficit_effect,830.0,2180.0,-2180.0,-0.0,140.0,220.0,230.0,240.0,250.0,260.0,270.0,280.0,290.0,83,89,script
+73,73.1,Apply a $25 tax per metric ton of emissions and increase that tax annually by 5 percent,deficit_effect,391.7,919.3,-919.3,53.4,81.3,82.5,85.1,89.4,94.1,99.4,105.0,111.0,118.1,84,90,script
+73,73.2,Apply a $25 tax per metric ton of emissions and increase that tax annually by 2 percent,deficit_effect,373.7,813.6,-813.6,53.4,80.2,79.4,79.6,81.1,82.9,85.3,87.7,90.4,93.6,84,90,script
+73,73.3,Apply a $15 tax per metric ton of emissions and increase that tax annually by 8 percent,deficit_effect,254.0,645.4,-645.4,33.1,50.7,52.9,56.5,60.8,65.6,71.4,77.6,84.5,92.4,84,90,script
+73,73.4,"Apply a $25 tax per metric ton of emissions, excluding gasoline, and increase that tax annually by 5 percent",deficit_effect,301.7,700.2,-700.2,42.2,63.3,63.3,65.0,67.9,71.2,75.1,79.3,83.8,89.2,84,90,script
+74,74.1,Increase or decrease (-) in the deficit,deficit_effect,93.6,296.8,-296.8,-10.3,10.3,25.0,32.7,35.9,37.6,39.1,40.6,42.2,43.8,86,92,script
+75,75.1,USCIS fees,deficit_effect,4.1,10.1,-10.1,-0.0,0.6,1.1,1.2,1.2,1.2,1.2,1.2,1.2,1.2,87,93,script
+75,75.2,CBP fees a,deficit_effect,3.0,5.4,-5.4,-0.0,0.4,0.8,0.9,0.9,0.9,0.9,0.2,0.2,0.2,87,93,script
+75,75.3,Total,deficit_effect,7.1,15.5,-15.5,-0.0,1.0,1.9,2.1,2.1,2.1,2.1,1.4,1.4,1.4,87,93,script
+76,76.1,Increase Federal Civilian Employees' Contributions to the Federal Employees Retirement System,deficit_effect,17.7,39.6,-39.6,1.3,2.6,3.9,5.0,4.9,4.7,4.6,4.4,4.2,4.0,88,94,script

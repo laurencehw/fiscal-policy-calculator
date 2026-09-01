@@ -18,6 +18,7 @@ PolicyTypeLabel = Literal[
     "income_tax",
     "corporate_tax",
     "capital_gains_tax",
+    "payroll_tax",
     "spending",
     "tariff",
     "comprehensive",
@@ -30,6 +31,7 @@ ValidationShape = Literal[
     "ordinary_rate",
     "capital_gains",
     "corporate_rate",
+    "payroll_rate",
     "spending",
 ]
 
@@ -110,8 +112,19 @@ class CBOScore:
     specialized_runner: str | None = None
 
     # -- Extra shape parameters -------------------------------------------
+    # The fiscal year the *source* says the policy takes effect. Left None for
+    # records that start with the scoring window. Recorded from the source, so
+    # it is a pre-registered input, never a knob turned to close a gap.
+    effective_start_year: int | None = None
+    # The budget baseline vintage the record should be scored on, as a
+    # ``BaselineVintage`` value (e.g. "cbo_feb_2024"). None keeps the runner's
+    # default (the model's current baseline).
+    scoring_vintage: str | None = None
     # Capital gains: whether the reform also eliminates step-up basis at death.
     eliminate_step_up: bool = False
+    # Capital gains: per-decedent exclusion under a step-up-elimination reform.
+    # None keeps the module default ($1M, the Biden design).
+    step_up_exemption: float | None = None
     # Spending: the annual level change the *source itself* states, plus its
     # growth / phase-in / one-time structure. Left None when the published
     # target is a net-of-offsets total from which no annual level can be read
@@ -808,6 +821,339 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         runnable=False,
         not_runnable_reason="Requires the tariff module (import base x pass-through elasticity); not wired into the validation dispatch.",
     ),
+
+    # -------------------------------------------------------------------------
+    # CBO, OPTIONS FOR REDUCING THE DEFICIT: 2025 TO 2034 (December 2024)
+    # -------------------------------------------------------------------------
+    # Publication 60557; https://www.cbo.gov/publication/60557
+    #
+    # 76 independently scored single-provision options. The 14 alternatives the
+    # *uncalibrated* path can express are entered here as out-of-sample targets;
+    # the other 62 options carry a one-line exclusion reason in
+    # ``fiscal_model/validation/cbo_options.py``.
+    #
+    # Baselines (PDF p. 2, "Notes About This Report"): revenue options are
+    # measured against CBO's February 2024 baseline (pub. 59710) and spending
+    # options against the June 2024 baseline (pub. 60039). Both are scored on
+    # ``BaselineVintage.CBO_FEB_2024``; the repository has no June-2024 vintage,
+    # and that mismatch is recorded on each spending row of the manifest.
+    #
+    # Every target is the option's *own* published 10-year total (report pp.
+    # 46-75), not the Table 1-1 range, because a range cannot be compared with
+    # a model score.
+
+    "cbo_opt45_all_rates_1pp": CBOScore(
+        policy_id="cbo_opt45_all_rates_1pp",
+        name="CBO Option 45: All Ordinary Rates +1pp",
+        description="Raise all tax rates on ordinary income by 1 percentage point",
+        ten_year_cost=-1_185.3,
+        source=ScoreSource.CBO,
+        source_date="2024-12",
+        source_url="https://www.cbo.gov/publication/60557",
+        rate_change=0.01,
+        income_threshold=0.0,
+        policy_type="income_tax",
+        baseline_year=2024,
+        budget_window="FY2025-2034",
+        effective_start_year=2025,
+        scoring_vintage="cbo_feb_2024",
+        notes="CBO Options 2025-2034, option 45, alternative 1 (report p. 55). "
+              "Estimated by the staff of the Joint Committee on Taxation.",
+        runnable=False,
+        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
+    ),
+
+    "cbo_opt45_top4_brackets_2pp": CBOScore(
+        policy_id="cbo_opt45_top4_brackets_2pp",
+        name="CBO Option 45: Top Four Brackets +2pp",
+        description="Raise tax rates on ordinary income in the four highest "
+                    "brackets by 2 percentage points",
+        ten_year_cost=-569.5,
+        source=ScoreSource.CBO,
+        source_date="2024-12",
+        source_url="https://www.cbo.gov/publication/60557",
+        rate_change=0.02,
+        # 2025 single-filer floor of the 24% bracket (IRS Rev. Proc. 2024-40).
+        # The generic path takes one threshold, so this stands in for a
+        # filing-status-specific bracket boundary.
+        income_threshold=103_350.0,
+        policy_type="income_tax",
+        baseline_year=2024,
+        budget_window="FY2025-2034",
+        effective_start_year=2025,
+        scoring_vintage="cbo_feb_2024",
+        notes="CBO Options 2025-2034, option 45, alternative 2 (report p. 55).",
+        runnable=False,
+        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
+    ),
+
+    "cbo_opt46_agi_surtax_1pp_20k": CBOScore(
+        policy_id="cbo_opt46_agi_surtax_1pp_20k",
+        name="CBO Option 46: 1pp AGI Surtax Above $20K",
+        description="Impose a surtax of 1 percentage point on AGI above $20,000 "
+                    "for single filers and $40,000 for joint filers",
+        ten_year_cost=-1_440.1,
+        source=ScoreSource.CBO,
+        source_date="2024-12",
+        source_url="https://www.cbo.gov/publication/60557",
+        rate_change=0.01,
+        income_threshold=20_000.0,
+        policy_type="income_tax",
+        baseline_year=2024,
+        budget_window="FY2025-2034",
+        effective_start_year=2025,
+        scoring_vintage="cbo_feb_2024",
+        agi_inclusive_base=True,
+        notes="CBO Options 2025-2034, option 46, alternative 1 (report p. 56). "
+              "Single-filer threshold; the model has no filing-status dimension.",
+        runnable=False,
+        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
+    ),
+
+    "cbo_opt46_agi_surtax_2pp_100k": CBOScore(
+        policy_id="cbo_opt46_agi_surtax_2pp_100k",
+        name="CBO Option 46: 2pp AGI Surtax Above $100K",
+        description="Impose a surtax of 2 percentage points on AGI above $100,000 "
+                    "for single filers and $200,000 for joint filers",
+        ten_year_cost=-1_051.0,
+        source=ScoreSource.CBO,
+        source_date="2024-12",
+        source_url="https://www.cbo.gov/publication/60557",
+        rate_change=0.02,
+        income_threshold=100_000.0,
+        policy_type="income_tax",
+        baseline_year=2024,
+        budget_window="FY2025-2034",
+        effective_start_year=2025,
+        scoring_vintage="cbo_feb_2024",
+        agi_inclusive_base=True,
+        notes="CBO Options 2025-2034, option 46, alternative 2 (report p. 56).",
+        runnable=False,
+        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
+    ),
+
+    "cbo_opt47_ltcg_qdiv_2pp": CBOScore(
+        policy_id="cbo_opt47_ltcg_qdiv_2pp",
+        name="CBO Option 47: LTCG and Qualified Dividends +2pp",
+        description="Raise the tax rates on long-term capital gains and qualified "
+                    "dividends by 2 percentage points",
+        ten_year_cost=-103.3,
+        source=ScoreSource.CBO,
+        source_date="2024-12",
+        source_url="https://www.cbo.gov/publication/60557",
+        rate_change=0.02,
+        income_threshold=0.0,
+        policy_type="capital_gains_tax",
+        baseline_year=2024,
+        budget_window="FY2025-2034",
+        effective_start_year=2025,
+        scoring_vintage="cbo_feb_2024",
+        notes="CBO Options 2025-2034, option 47 (report p. 57). Applies to every "
+              "rate bracket, so the threshold is zero.",
+        runnable=False,
+        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
+    ),
+
+    "cbo_opt51_gains_at_death": CBOScore(
+        policy_id="cbo_opt51_gains_at_death",
+        name="CBO Option 51: Tax Accrued Gains at Death",
+        description="Include accrued capital gains in the last income tax return "
+                    "of decedents (constructive realization at death)",
+        ten_year_cost=-536.1,
+        source=ScoreSource.CBO,
+        source_date="2024-12",
+        source_url="https://www.cbo.gov/publication/60557",
+        rate_change=0.0,
+        income_threshold=0.0,
+        policy_type="capital_gains_tax",
+        baseline_year=2024,
+        budget_window="FY2025-2034",
+        effective_start_year=2025,
+        scoring_vintage="cbo_feb_2024",
+        eliminate_step_up=True,
+        step_up_exemption=0.0,
+        notes="CBO Options 2025-2034, option 51, alternative 2 (report p. 61). "
+              "No rate change and no per-decedent exclusion, so the whole score "
+              "runs through the module's gains-at-death channel.",
+        runnable=False,
+        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
+    ),
+
+    "cbo_opt61_new_payroll_tax_1pct": CBOScore(
+        policy_id="cbo_opt61_new_payroll_tax_1pct",
+        name="CBO Option 61: New 1% Payroll Tax on All Earnings",
+        description="Impose a new payroll tax of 1 percent on all earnings",
+        ten_year_cost=-1_281.5,
+        source=ScoreSource.CBO,
+        source_date="2024-12",
+        source_url="https://www.cbo.gov/publication/60557",
+        rate_change=0.01,
+        policy_type="payroll_tax",
+        baseline_year=2024,
+        budget_window="FY2025-2034",
+        effective_start_year=2025,
+        scoring_vintage="cbo_feb_2024",
+        notes="CBO Options 2025-2034, option 61, alternative 1 (report p. 72). "
+              "Scored on the Medicare base (all covered earnings, no taxable "
+              "maximum), which is this option's base.",
+        runnable=False,
+        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
+    ),
+
+    "cbo_opt61_new_payroll_tax_2pct": CBOScore(
+        policy_id="cbo_opt61_new_payroll_tax_2pct",
+        name="CBO Option 61: New 2% Payroll Tax on All Earnings",
+        description="Impose a new payroll tax of 2 percent on all earnings",
+        ten_year_cost=-2_540.0,
+        source=ScoreSource.CBO,
+        source_date="2024-12",
+        source_url="https://www.cbo.gov/publication/60557",
+        rate_change=0.02,
+        policy_type="payroll_tax",
+        baseline_year=2024,
+        budget_window="FY2025-2034",
+        effective_start_year=2025,
+        scoring_vintage="cbo_feb_2024",
+        notes="CBO Options 2025-2034, option 61, alternative 2 (report p. 72).",
+        runnable=False,
+        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
+    ),
+
+    "cbo_opt64_corporate_rate_1pp": CBOScore(
+        policy_id="cbo_opt64_corporate_rate_1pp",
+        name="CBO Option 64: Corporate Rate +1pp",
+        description="Increase the corporate income tax rate by 1 percentage point, "
+                    "from 21 percent to 22 percent",
+        ten_year_cost=-135.7,
+        source=ScoreSource.CBO,
+        source_date="2024-12",
+        source_url="https://www.cbo.gov/publication/60557",
+        rate_change=0.01,
+        policy_type="corporate_tax",
+        baseline_year=2024,
+        budget_window="FY2025-2034",
+        effective_start_year=2025,
+        scoring_vintage="cbo_feb_2024",
+        notes="CBO Options 2025-2034, option 64 (report p. 75).",
+        runnable=False,
+        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
+    ),
+
+    "cbo_opt37_international_affairs": CBOScore(
+        policy_id="cbo_opt37_international_affairs",
+        name="CBO Option 37: Cut International Affairs Funding 25%",
+        description="Reduce the total international affairs budget by 25 percent",
+        ten_year_cost=-187.0,
+        source=ScoreSource.CBO,
+        source_date="2024-12",
+        source_url="https://www.cbo.gov/publication/60557",
+        policy_type="spending",
+        baseline_year=2024,
+        budget_window="FY2025-2034",
+        effective_start_year=2026,
+        scoring_vintage="cbo_feb_2024",
+        annual_amount_billions=-23.0,
+        annual_growth_rate=0.02,
+        spending_category="nondefense",
+        notes="CBO Options 2025-2034, option 37 (report p. 46). Annual level is "
+              "CBO's own first-year budget authority; the target is CBO's 10-year "
+              "outlay total, so the residual is the budget-authority-to-outlay lag.",
+        runnable=False,
+        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
+    ),
+
+    "cbo_opt38_national_service": CBOScore(
+        policy_id="cbo_opt38_national_service",
+        name="CBO Option 38: End National Community Service Funding",
+        description="Eliminate federal funding for the Corporation for National and "
+                    "Community Service except the National Service Trust",
+        ten_year_cost=-10.3,
+        source=ScoreSource.CBO,
+        source_date="2024-12",
+        source_url="https://www.cbo.gov/publication/60557",
+        policy_type="spending",
+        baseline_year=2024,
+        budget_window="FY2025-2034",
+        effective_start_year=2026,
+        scoring_vintage="cbo_feb_2024",
+        annual_amount_billions=-1.3,
+        annual_growth_rate=0.02,
+        spending_category="nondefense",
+        notes="CBO Options 2025-2034, option 38 (report p. 47).",
+        runnable=False,
+        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
+    ),
+
+    "cbo_opt39_pell_eligibility": CBOScore(
+        policy_id="cbo_opt39_pell_eligibility",
+        name="CBO Option 39: Tighten Pell Grant Eligibility",
+        description="Restrict Pell grant eligibility to students eligible for the "
+                    "maximum award",
+        ten_year_cost=-22.1,
+        source=ScoreSource.CBO,
+        source_date="2024-12",
+        source_url="https://www.cbo.gov/publication/60557",
+        policy_type="spending",
+        baseline_year=2024,
+        budget_window="FY2025-2034",
+        effective_start_year=2026,
+        scoring_vintage="cbo_feb_2024",
+        annual_amount_billions=-2.5,
+        annual_growth_rate=0.02,
+        spending_category="nondefense",
+        notes="CBO Options 2025-2034, option 39 (report p. 48). Target is the "
+              "discretionary outlay total; the separate -$9.2B mandatory effect is "
+              "outside this shape.",
+        runnable=False,
+        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
+    ),
+
+    "cbo_opt42_nondefense_discretionary": CBOScore(
+        policy_id="cbo_opt42_nondefense_discretionary",
+        name="CBO Option 42: Cut Selected Nondefense Discretionary Spending",
+        description="Reduce funding for transportation and education grant programs "
+                    "by one-third",
+        ten_year_cost=-339.0,
+        source=ScoreSource.CBO,
+        source_date="2024-12",
+        source_url="https://www.cbo.gov/publication/60557",
+        policy_type="spending",
+        baseline_year=2024,
+        budget_window="FY2025-2034",
+        effective_start_year=2026,
+        scoring_vintage="cbo_feb_2024",
+        annual_amount_billions=-41.0,
+        annual_growth_rate=0.02,
+        spending_category="nondefense",
+        notes="CBO Options 2025-2034, option 42 (report p. 51). Annual level is "
+              "CBO's first-year spending authority.",
+        runnable=False,
+        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
+    ),
+
+    "cbo_opt43_state_local_grants": CBOScore(
+        policy_id="cbo_opt43_state_local_grants",
+        name="CBO Option 43: Cut Certain State and Local Grants",
+        description="Reduce new funding for five grant programs by 25 percent in "
+                    "2026 and 50 percent thereafter",
+        ten_year_cost=-66.7,
+        source=ScoreSource.CBO,
+        source_date="2024-12",
+        source_url="https://www.cbo.gov/publication/60557",
+        policy_type="spending",
+        baseline_year=2024,
+        budget_window="FY2025-2034",
+        effective_start_year=2026,
+        scoring_vintage="cbo_feb_2024",
+        annual_amount_billions=-12.0,
+        annual_growth_rate=0.02,
+        spending_category="nondefense",
+        notes="CBO Options 2025-2034, option 43, total row (report pp. 52-53). "
+              "The first-year budget authority is inflated by IIJA advance funding, "
+              "which the level shape then carries across the whole window.",
+        runnable=False,
+        not_runnable_reason="Pre-registered in Phase B; the first scoring run lands in the following commit.",
+    ),
 }
 
 
@@ -878,6 +1224,8 @@ def validation_shape(score: CBOScore) -> ValidationShape | None:
         return "capital_gains" if score.rate_change is not None else None
     if score.policy_type == "corporate_tax":
         return "corporate_rate" if score.rate_change is not None else None
+    if score.policy_type == "payroll_tax":
+        return "payroll_rate" if score.rate_change is not None else None
     if score.policy_type == "spending":
         return "spending" if score.annual_amount_billions is not None else None
     return None

@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from ..baseline import BaselineVintage, CBOBaseline
 from ..policies import (
     CapitalGainsPolicy,
     Policy,
@@ -18,6 +19,10 @@ from ..policies import (
 )
 from ..scoring import FiscalPolicyScorer
 from .cbo_scores import CBOScore, get_validation_targets, validation_shape
+
+#: Fiscal year the validation window opens on. A record may override it with
+#: ``effective_start_year`` when the *source* states a later effective date.
+DEFAULT_VALIDATION_START_YEAR = 2025
 
 _SPENDING_CATEGORY_TO_POLICY_TYPE = {
     "defense": PolicyType.DISCRETIONARY_DEFENSE,
@@ -260,6 +265,41 @@ def build_validation_result(
     )
 
 
+def _resolve_vintage(score: CBOScore) -> BaselineVintage | None:
+    """The baseline vintage a score record asks to be scored on, if any."""
+    if not score.scoring_vintage:
+        return None
+    try:
+        return BaselineVintage(score.scoring_vintage)
+    except ValueError:
+        return None
+
+
+def build_scorer_for_vintage(
+    vintage: BaselineVintage | None,
+    *,
+    start_year: int = DEFAULT_VALIDATION_START_YEAR,
+    use_real_data: bool = True,
+) -> FiscalPolicyScorer:
+    """
+    Build a scorer on a specific baseline vintage.
+
+    ``None`` keeps the historical behaviour (the model's current default
+    baseline), so records that do not name a vintage are unaffected. A record
+    that *does* name one - the CBO Options battery names ``cbo_feb_2024``,
+    the vintage its targets were published against - is scored against that
+    baseline instead, which removes baseline drift from its error.
+    """
+    if vintage is None:
+        return FiscalPolicyScorer(start_year=start_year, use_real_data=use_real_data)
+    baseline = CBOBaseline(
+        start_year=start_year, use_real_data=use_real_data, vintage=vintage
+    ).generate()
+    return FiscalPolicyScorer(
+        baseline=baseline, start_year=start_year, use_real_data=use_real_data
+    )
+
+
 def create_policy_from_score(
     score: CBOScore, *, ordinary_income_base: bool | None = None
 ) -> Policy | None:
@@ -282,15 +322,28 @@ def create_policy_from_score(
     ``corporate_rate``
         :class:`CorporateTaxPolicy` from the rate change, module defaults for
         elasticity and base.
+    ``payroll_rate``
+        :class:`PayrollTaxPolicy` levying the rate on the **Medicare base** -
+        all covered earnings with no taxable maximum, which is the base a flat
+        new payroll tax applies to. Deliberately *not* the Social Security cap
+        machinery: those covered-wage bands are calibrated to reproduce the
+        Trustees' own reform annuals, so routing a target through them would
+        leak the answer.
     ``spending``
         :class:`SpendingPolicy` from the source-stated annual level, growth,
         phase-in and one-time flag.
+
+    Every shape honours ``score.effective_start_year`` - the year the *source*
+    says the policy takes effect - so an option that starts in FY2026 is not
+    credited with a year of effect the official estimate never scored.
 
     Returns ``None`` when the record has no constructible shape.
     """
     shape = validation_shape(score)
     if shape is None:
         return None
+
+    start_year = score.effective_start_year or DEFAULT_VALIDATION_START_YEAR
 
     if shape == "ordinary_rate":
         if ordinary_income_base is None:
@@ -301,7 +354,7 @@ def create_policy_from_score(
             policy_type=PolicyType.INCOME_TAX,
             rate_change=score.rate_change,
             affected_income_threshold=score.income_threshold or 0,
-            start_year=2025,
+            start_year=start_year,
             duration_years=10,
             ordinary_income_base=ordinary_income_base,
         )
@@ -314,6 +367,8 @@ def create_policy_from_score(
             baseline_capital_gains_rate=0.0,
             baseline_realizations_billions=0.0,
             eliminate_step_up=score.eliminate_step_up,
+            step_up_exemption=score.step_up_exemption,
+            start_year=start_year,
         )
 
     if shape == "corporate_rate":
@@ -324,7 +379,20 @@ def create_policy_from_score(
             description=score.description,
             policy_type=PolicyType.CORPORATE_TAX,
             rate_change=score.rate_change,
-            start_year=2025,
+            start_year=start_year,
+            duration_years=10,
+        )
+
+    if shape == "payroll_rate":
+        from ..payroll import PayrollTaxPolicy, PayrollTaxType
+
+        return PayrollTaxPolicy(
+            name=f"Validation: {score.name}",
+            description=score.description,
+            policy_type=PolicyType.PAYROLL_TAX,
+            payroll_tax_type=PayrollTaxType.MEDICARE,
+            medicare_rate_change=score.rate_change,
+            start_year=start_year,
             duration_years=10,
         )
 
@@ -338,7 +406,7 @@ def create_policy_from_score(
         phase_in_years=score.phase_in_years,
         is_one_time=score.is_one_time,
         category=score.spending_category,
-        start_year=2025,
+        start_year=start_year,
         duration_years=10,
     )
 
@@ -353,6 +421,8 @@ def create_capital_gains_policy_from_score(
     transition_years: int = 3,
     use_time_varying: bool = True,
     eliminate_step_up: bool = False,
+    step_up_exemption: float | None = None,
+    start_year: int = DEFAULT_VALIDATION_START_YEAR,
 ) -> CapitalGainsPolicy:
     """
     Create a CapitalGainsPolicy from a score entry plus required extra inputs.
@@ -364,6 +434,10 @@ def create_capital_gains_policy_from_score(
     if score.rate_change is None:
         raise ValueError("score.rate_change is required")
 
+    extra: dict = {}
+    if step_up_exemption is not None:
+        extra["step_up_exemption"] = float(step_up_exemption)
+
     return CapitalGainsPolicy(
         eliminate_step_up=eliminate_step_up,
         name=f"Validation: {score.name}",
@@ -371,8 +445,9 @@ def create_capital_gains_policy_from_score(
         policy_type=PolicyType.CAPITAL_GAINS_TAX,
         rate_change=score.rate_change,
         affected_income_threshold=score.income_threshold or 0,
-        start_year=2025,
+        start_year=start_year,
         duration_years=10,
+        **extra,
         baseline_capital_gains_rate=float(baseline_capital_gains_rate),
         baseline_realizations_billions=float(baseline_realizations_billions),
         short_run_elasticity=float(short_run_elasticity),
@@ -455,7 +530,7 @@ def validate_policy(
         return None
 
     if scorer is None:
-        scorer = FiscalPolicyScorer(start_year=2025, use_real_data=True)
+        scorer = build_scorer_for_vintage(_resolve_vintage(score))
 
     try:
         result = scorer.score_policy(policy, dynamic=dynamic)
@@ -505,14 +580,23 @@ def validate_all(dynamic: bool = False, verbose: bool = True) -> list[Validation
         print(f"\nRunning validation against {len(targets)} policies...")
         print("=" * 70)
 
-    scorer = FiscalPolicyScorer(start_year=2025, use_real_data=True)
+    # One scorer per baseline vintage. Records that name no vintage keep the
+    # model's current default baseline (the historical behaviour); records that
+    # name one - the CBO Options battery names the Feb 2024 baseline its targets
+    # were published against - are scored on it, so baseline drift is not folded
+    # into their error.
+    scorers: dict[BaselineVintage | None, FiscalPolicyScorer] = {}
 
     results = []
     for score in targets:
         if verbose:
             print(f"\nValidating: {score.name}...")
 
-        result = validate_policy(score, scorer=scorer, dynamic=dynamic)
+        vintage = _resolve_vintage(score)
+        if vintage not in scorers:
+            scorers[vintage] = build_scorer_for_vintage(vintage)
+
+        result = validate_policy(score, scorer=scorers[vintage], dynamic=dynamic)
         if result:
             results.append(result)
             if verbose:
