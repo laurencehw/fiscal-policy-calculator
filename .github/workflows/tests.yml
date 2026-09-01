@@ -103,7 +103,11 @@ jobs:
           # Pin ruff: an unpinned linter silently drifts as new rules ship and
           # turns CI red on untouched code. Bump deliberately, not by surprise.
           pip install 'ruff==0.15.8'
-          ruff check fiscal_model/ tests/ --output-format=github
+          # Scope covers the whole app, not just the model package: the
+          # ask-first redesign moved the Streamlit surface into app.py, the
+          # st.navigation router pages (app_pages/) and the shared widgets
+          # (components/), which the old fiscal_model/ tests/ scope never linted.
+          ruff check fiscal_model/ tests/ app.py app_pages/ components/ classroom_app.py --output-format=github
 
       - name: Type-check gate (blocking) — green-core allowlist
         run: |

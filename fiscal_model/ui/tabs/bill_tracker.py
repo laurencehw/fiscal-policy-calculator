@@ -89,18 +89,64 @@ def render_bill_tracker_tab(st_module: Any, db_path: str | None = None) -> None:
 # Sub-renderers
 # ------------------------------------------------------------------
 
+def _is_operator_view(st_module: Any) -> bool:
+    """Whether this request carries the ``?admin=<token>`` operator gate.
+
+    Reuses the assistant's admin check so the tracker's runbook is visible on
+    exactly the same terms as the admin dashboard.
+    """
+    try:
+        from fiscal_model.assistant.admin import is_admin_request
+    except Exception:  # pragma: no cover — defensive
+        return False
+
+    try:
+        query_params = st_module.query_params
+    except AttributeError:  # older Streamlit / test fakes
+        try:
+            query_params = st_module.experimental_get_query_params()
+        except Exception:
+            return False
+    except Exception:  # pragma: no cover — defensive
+        return False
+
+    try:
+        return bool(is_admin_request(query_params))
+    except Exception:  # pragma: no cover — defensive
+        return False
+
+
 def _render_no_db_state(st_module: Any) -> None:
-    """Shown when the database hasn't been populated yet."""
+    """Shown when the database hasn't been populated yet.
+
+    User-facing copy states the *condition*, not the fix: "run
+    ``python scripts/update_bills.py``" is an instruction only the deployment
+    operator can act on, so it lives in the log line and the operator runbook
+    below (see :func:`_render_update_instructions`).
+    """
     st_module.warning(
-        "Bill database not found. "
-        "Run the update pipeline to populate it with live data from congress.gov."
+        "Live legislation data is not available on this deployment — "
+        "data refresh pending."
+    )
+    logging.getLogger(__name__).info(
+        "Bill database not found; populate it with `python scripts/update_bills.py` "
+        "(see the operator runbook in the Tracker page)."
     )
     _render_update_instructions(st_module)
 
 
 def _render_update_instructions(st_module: Any) -> None:
-    """Show instructions for running the update pipeline."""
-    with st_module.expander("How to populate the bill database"):
+    """Operator runbook for the update pipeline — gated on ``?admin=<token>``.
+
+    This is developer documentation (API keys, shell commands, a cron line).
+    Showing it to a visitor who cannot run any of it is noise; showing it to
+    the operator is the whole point. Everyone else sees the "data refresh
+    pending" notice above.
+    """
+    if not _is_operator_view(st_module):
+        return
+
+    with st_module.expander("Operator runbook — populate the bill database"):
         st_module.markdown(
             """
 **1. Get a congress.gov API key** (free):
@@ -159,8 +205,8 @@ def _render_global_freshness_banner(st_module: Any, db: Any) -> bool:
 
     st_module.warning(
         f"⚠ Data as of {last_update.strftime('%b %d, %Y')} ({age_days} days "
-        "old). Bill statuses and scores may have changed on congress.gov "
-        "since this snapshot was taken."
+        "old) — data refresh pending. Bill statuses and scores may have "
+        "changed on congress.gov since this snapshot was taken."
     )
     return True
 

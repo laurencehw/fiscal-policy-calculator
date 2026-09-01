@@ -11,23 +11,15 @@ from __future__ import annotations
 
 import logging
 import time
-from pathlib import Path
 from typing import Any
 
 from .a11y import inject_a11y_styles
-from .calculation_controller import (
-    ensure_results_state,
-    execute_calculation_if_requested,
-    render_policy_inputs,
-)
-from .controller_utils import compute_run_id
 from .helpers import TEXTBOOK_LINKS
 from .session_state import (
     KEY_PENDING_SIDEBAR_UPDATES,
     KEY_QS_CALCULATE,
     initialize_session_state,
 )
-from .tabs_controller import build_main_tabs, render_result_tabs
 
 _HOW_SCORED_MARKDOWN = (
     "The calculator applies three steps:\n\n"
@@ -81,10 +73,6 @@ _SECTION_ERROR_MESSAGES: dict[str, str] = {
     "Budget Builder": (
         "The Budget Builder encountered an issue. "
         "Please try reloading the page or clearing your inputs."
-    ),
-    "Package Studio": (
-        "The Package Studio encountered an issue. "
-        "Please try reloading the page or picking a canned philosophy."
     ),
     "Bill Tracker": (
         "The Bill Tracker encountered an issue. "
@@ -712,98 +700,3 @@ CLASSROOM_BLURB = (
     "submissions. Covers Laffer curves, TCJA, distributional analysis, and more.\n\n"
     "[➡️ Open Classroom Mode](?mode=classroom)"
 )
-
-
-def render_policy_workbench(
-    st_module: Any,
-    deps: Any,
-    *,
-    settings: dict[str, Any],
-    model_available: bool,
-    app_root: Path | None,
-    modes: tuple[str, ...],
-    inputs_heading: str,
-    show_quick_start: bool,
-    split_layout: bool,
-) -> None:
-    """Render a score-a-policy surface: inputs, Calculate, and the result tabs.
-
-    Shared by ``/explore`` (preset flow) and ``/tailor`` (custom + spending
-    forms). This is the old ``_render_calculator`` with the sidebar unwrapped
-    into the page body and the analysis-mode set made a parameter — the same
-    widgets, the same session-state keys, the same calculation pipeline.
-
-    ``settings`` comes from the shared chrome (``components.chrome``), which now
-    owns the Model settings panel the sidebar used to hold.
-    """
-    _apply_pending_sidebar_updates(st_module=st_module)
-
-    # Reserve the hero slot before the inputs so quick-start cards can render
-    # above the controls while still knowing whether a run was requested.
-    hero = st_module.container()
-
-    if split_layout:
-        input_col, result_col = st_module.columns([2, 3], gap="large")
-    else:
-        input_col = st_module.container(border=True)
-        result_col = st_module.container()
-
-    with input_col:
-        st_module.subheader(inputs_heading)
-        calc_context = render_policy_inputs(
-            st_module=st_module,
-            deps=deps,
-            modes=modes,
-        )
-
-        calculate = st_module.button(
-            "Calculate Impact",
-            type="primary",
-            use_container_width=True,
-        )
-        # Auto-trigger from a quick-start card click or a ``?run=1`` share link.
-        if getattr(st_module.session_state, KEY_QS_CALCULATE, False):
-            del st_module.session_state[KEY_QS_CALCULATE]
-            calculate = True
-        calc_context["calculate"] = calculate
-
-    calc_context["run_id"] = compute_run_id(calc_context=calc_context, settings=settings)
-    st_module.session_state.current_run_id = calc_context["run_id"]
-
-    with hero:
-        if show_quick_start:
-            render_quick_start(
-                st_module=st_module, calculating=bool(calc_context.get("calculate"))
-            )
-        with st_module.expander("🔍 How is this scored?", expanded=False):
-            st_module.markdown(_HOW_SCORED_MARKDOWN)
-
-    with result_col:
-        # Anchor for post-calculation scroll: landing the reader on the tab bar
-        # puts the headline number in view.
-        st_module.markdown('<div id="results-anchor"></div>', unsafe_allow_html=True)
-
-        tabs = build_main_tabs(st_module=st_module, mode=calc_context["mode"])
-
-        ensure_results_state(st_module=st_module)
-        execute_calculation_if_requested(
-            st_module=st_module,
-            deps=deps,
-            app_root=app_root,
-            model_available=model_available,
-            calc_context=calc_context,
-            settings=settings,
-        )
-
-        if calc_context.get("calculate") and st_module.session_state.get("results"):
-            _scroll_to_results_anchor(run_id=str(calc_context.get("run_id", "")))
-
-        render_result_tabs(
-            st_module=st_module,
-            deps=deps,
-            tabs=tabs,
-            settings=settings,
-            model_available=model_available,
-            is_spending=calc_context["is_spending"],
-            mode=calc_context["mode"],
-        )
