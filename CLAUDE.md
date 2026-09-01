@@ -343,7 +343,7 @@ Next: broaden multi-model microsim reform mappings further (corporate/payroll NI
 
 **Tier 1 — out-of-sample predictions** (uncalibrated, bottom-up from SOI; the genuine test). Mean abs error **~8%**, 4/4 within 15%. Ordinary-bracket rate changes (JCT 1pp, Biden $400K) score on the ordinary-income base; AGI-inclusive TPC top-rate cases ($1M+/$500K+) score on the full taxable-income base. The prior ~19%/2-of-4 figure was inflated by a base mislabeling — the two AGI-inclusive cases wrongly received the ordinary-base correction (`cold_holdout.py --ordinary-base` flags this: the correction *worsens* them 7→30%, the AGI-inclusive tell); correcting the classification (no target fitting) yields ~8% mean. The Biden $400K+ Generic path scores **−$284B vs −$252B official (~13%)** — earlier docs that cited "~−$250B / ~1%" were showing a hand-tuned figure, not the prediction. See [[fpc-review-roadmap]].
 
-**Tier 2 — calibrated reference models** (parameters tuned to reproduce the official decomposition; low error expected by construction, ~5% mean across 29 benchmarks; live 4.4%). Examples:
+**Tier 2 — calibrated reference models** (parameters tuned to reproduce the official decomposition; low error expected by construction, ~5% mean across 29 benchmarks; live 4.4%). Held out, the same modules score **~59% mean / ~36% median over 18 leave-one-out cases** (4 more declared not cross-validatable, never folded in) — run `python scripts/run_loo.py`; report that separately from the by-construction figure, never as a replacement for it. Examples:
 
 | Policy (calibrated) | Official Score | Model Score | Error |
 |--------|----------------|-------------|-------|

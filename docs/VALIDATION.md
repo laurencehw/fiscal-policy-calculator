@@ -41,6 +41,32 @@ The ~5% error here is **expected by construction** — these demonstrate the mod
 
 **Calibration / holdout note**: The live scorecard and API credibility blocks distinguish specialized calibrated benchmark paths, generic parameterized paths, and the locked post-change holdout protocol (`revenue-scorecard-post-lock-2026-05-02`). Holdout labels are future regression checkpoints, not retroactive historical out-of-sample claims.
 
+### Tier 2 (leave-one-out) — the same modules, held out
+
+The 4.4% above is a bookkeeping number: each calibrated module carries **one hard-coded annual per benchmark**, so it reproduces its own targets because it was told the answer. Leave-one-out asks the question that number cannot: *holding out one benchmark, can the module's structural machinery — calibrated on the others — rebuild it?* Live figures: `python scripts/run_loo.py` (add `--donor-matrix` for the capital-gains diagnostic).
+
+| Module | Kind | n derivable | Mean abs error | Cases (LOO error) |
+|---|---|---|---|---|
+| **Payroll** | structural | 3 | **3.8%** | eliminate cap −3.7%; $250K donut +1.3%; 90% coverage +6.3% |
+| **Estate** | structural | 2 | **25.8%** | extend TCJA exemption +6.0%; Biden $3.5M/45% +45.6% |
+| **AMT** | structural | 2 | **79.6%** | extend TCJA relief +73.2%; repeal individual AMT +86.0% |
+| **Credits** | structural | 3 | **45.1%** | Biden CTC 2021 −64.1%; CTC extension −28.0%; childless EITC −43.1% |
+| **Expenditures** | bottom-up | 5 | **39.4%** | mortgage −5.1%; SALT-cap repeal +4.0%; charitable cap +15.7%; SALT repeal +74.9%; employer-health cap +97.4% |
+| **Capital gains** | structural (frozen elasticities) | 3 | **171.2%** | PWBM no step-up −22.6%; CBO +2pp −120.5%; PWBM with step-up −370.5% |
+
+| Aggregate — derivable cases only | Value |
+|---|---|
+| Cases in aggregate | 18 |
+| Not cross-validatable | 4 (reported alongside, never folded in) |
+| Mean absolute error | **59.3%** |
+| Median absolute error | 35.6% |
+| Within 15% of official | 6/18 (33%) |
+| CI ceiling (`--max-loo-mean-error`) | 75% |
+
+**Read the three numbers separately and never collapse them**: Tier 1 out-of-sample, Tier 2 by construction (4.4%, n=29), Tier 2 leave-one-out (59.3%, n=18 derivable). The last is the honest statement of how much of the calibrated tier is structure and how much is a stored constant.
+
+Four cases are **not cross-validatable** and carry a reason rather than a manufactured number: `expand_niit` (the module's only NIIT benchmark — nothing to calibrate the mechanism on), `eliminate_estate_tax` (the target is a model estimate, not a published score, and the machinery reproduces differences but not revenue *levels*), `repeal_corporate_amt` and `eliminate_step_up` (the base constant *is* the published target restated; a leakage guard in `loo.py` catches this mechanically). See [VALIDATION_NOTES.md](VALIDATION_NOTES.md) §6 for the per-module classification and what each error diagnoses.
+
 ---
 
 ## Validation Results by Policy Category

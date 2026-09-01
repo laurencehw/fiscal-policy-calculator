@@ -395,6 +395,133 @@ was written here the last time this doc was edited.
 
 ---
 
+## 6. Leave-one-out: what the calibrated tier looks like held out
+
+`fiscal_model/validation/loo.py` (`python scripts/run_loo.py`) drops one
+calibrated benchmark's hard-coded annual at a time and asks whether the
+module's structural machinery — calibrated on the others — can put it back.
+The reconstructed policy is then scored through the *same* validation runner
+the by-construction scorecard uses, so the LOO number and the by-construction
+number differ in exactly one input. `tests/test_loo.py` pins this: replaying
+the calibrated annual through the LOO harness reproduces the scorecard value
+exactly, and monkeypatching `loo.official_target` to raise proves no
+derivation ever reads the held-out answer.
+
+**Aggregate: 59.3% mean / 35.6% median over 18 derivable cases, 6/18 within
+15%, plus 4 cases reported as not cross-validatable.** Against the
+by-construction 4.4%. The gap is the size of the claim the by-construction
+number cannot support.
+
+### Classification, module by module
+
+**(a) Structurally derivable** — a shared mechanism can produce the held-out
+case from base data plus the other cases' calibration.
+
+- **Payroll (3 of 4, mean 3.8%).** The three OASDI benchmarks anchor
+  `SSA_COVERED_WAGES_ABOVE_BILLIONS`; the 400K/500K/1M rows are documented as
+  interpolated from them and are therefore excluded from every LOO calibration
+  set (using them would smuggle the held-out anchor back in). Holding out one
+  anchor, the covered-wage level at its threshold is refitted from the other
+  two anchors' Pareto slope, times 12.4%. Errors of −3.7% / +1.3% / +6.3% say
+  the log-linear tail assumption in §1 is doing real work — this is the one
+  module where the calibrated constants are close to redundant with the
+  structure.
+- **Estate (2 of 3, mean 25.8%).** The two-regime taxable-estate machinery is
+  evaluated at the baseline and reform exemption. Extending the TCJA exemption
+  comes out at +6.0% — good. The Biden $3.5M/45% case misses by +45.6%, and
+  the reason is visible in the machinery: below the post-sunset exemption,
+  `estates × avg_taxable` is invariant (19,000 × $25.8M and 34,742 × $14.1M are
+  the same product), so *lowering the exemption raises no revenue at all* and
+  the whole derived effect comes from the 40% → 45% rate change. The calibrated
+  $45B/yr annual is carrying the exemption-broadening that the two-regime blend
+  cancels out.
+- **AMT (2 of 3, mean 79.6%).** Derived from the taxpayer-count × average-
+  liability identity in `BASELINE_AMT_DATA` (7.3M filers at ~$10K post-sunset
+  per TPC; 200K at ~$25K under TCJA), bypassing the `CBO_AMT_ESTIMATES`
+  calibration constants. Both cases come out high (+73.2%, +86.0%) for the same
+  reason: the identity gives the *steady-state* post-sunset level (~$73B/yr,
+  which matches `revenue_post_tcja_2030 = 75.0`), while the official $450B/10yr
+  scores a window that ramps from the 2026 sunset. A LOO derivation that phased
+  the ramp in would close most of this; the module has no ramp.
+- **Credits (3 of 3, mean 45.1%).** The per-unit identity (credit change ×
+  affected units × participation) systematically *understates* all three
+  expansions (−64.1% / −28.0% / −43.1%), because it prices only the per-child
+  credit increase and none of the refundability expansion or phase-out
+  relaxation the official scores include. That is a known structural omission,
+  not noise — see §2.
+- **Capital gains (3 of 3, mean 171.2%).** The sharpest test. The three
+  scenarios carry three *different* hand-set elasticity/lock-in tuples; freezing
+  the `CapitalGainsPolicy` dataclass defaults (short 0.8 / long 0.4, transition
+  3, lock-in 2.0, avoidance 1.0 — the ETI-literature values, not fitted to any
+  target) and scoring all three gives −22.6% (PWBM no step-up), −120.5% (CBO
+  +2pp) and −370.5% (PWBM with step-up, a **sign flip**). `--donor-matrix`
+  identifies the answer key: the `pwbm_39_with_stepup` tuple (0.8/0.4 with the
+  **5.3× lock-in multiplier**) is the only donor that scores the other two
+  cases tolerably — mean |error| 29.7%, versus 104.8% and 333.2% for the other
+  two donors. The lock-in multiplier alone is producing PWBM's revenue-*loss*
+  result; nothing else in the module does.
+
+**(b) Independent constants, rebuilt bottom-up** — the annuals are free
+parameters with no shared fit to hold out, so LOO instead runs the module's own
+reform-action rules against its published base table.
+
+- **Tax expenditures (5 of 6, mean 39.4%).** Base is `JCT_TAX_EXPENDITURES`,
+  sourced to JCT's *Estimates of Federal Tax Expenditures* (JCX-48-24; curated
+  snapshot at `fiscal_model/assistant/knowledge/jct_tax_expenditures.md`). The
+  two "eliminate" cases whose base entry is a real expenditure total land well
+  (mortgage −5.1%, SALT-cap repeal +4.0%); the charitable 28% cap is +15.7%.
+  Two misses are diagnostic rather than noisy:
+  - `eliminate_salt` (+74.9%) uses `annual_cost = 25.0` — the *post-cap* SALT
+    expenditure — where the $1,200B target is for eliminating the deduction
+    against an uncapped baseline. The base table has
+    `annual_cost_no_cap = 120.0` and the eliminate rule never reaches for it.
+  - `cap_employer_health` (+97.4%) is a **unit mismatch in the uncalibrated cap
+    path**: `cap_amount` is a $50,000 cap on excludable *premiums*, but the
+    share-affected rule compares it against `avg_benefit = $1,600`, which is the
+    average *tax benefit*. The rule concludes 0.32% of the base is affected and
+    returns $0.8B/yr against a $45B/yr target. This does not affect any scored
+    preset (the calibrated annual short-circuits it), but it means the module
+    cannot derive this benchmark from its base — flagged here rather than
+    patched, because fixing the cap rule is a scoring-path change that belongs
+    with the Phase E provenance work.
+
+**Not cross-validatable (4 cases).** Reported with a reason; never folded into
+the aggregate.
+
+| Case | Why |
+|---|---|
+| `expand_niit` | NIIT expansion is a different mechanism (3.8% on pass-through income) from the OASDI wage bands, and it is the module's only NIIT benchmark — there is nothing to calibrate it on. |
+| `eliminate_estate_tax` | The target is sourced "Model estimate", not a published score. The machinery also reproduces estate-tax *differences* but not *levels*: its implied baseline is ~$196B/yr against CBO's ~$50B/yr, so a full-repeal case cannot be derived from it. Phase E already lists this entry for removal from the headline count. |
+| `repeal_corporate_amt` | Its only base constant, `CORPORATE_AMT["revenue_per_year"] = 22.0`, is the CBO $220B/10yr target restated. |
+| `eliminate_step_up` | Same shape: `JCT_TAX_EXPENDITURES["step_up_basis"]["annual_cost"] = 50.0` is the $500B/10yr target restated. |
+
+The last two are caught **mechanically**, not by a hand-maintained list:
+`loo.py` excludes any case whose derived annual matches `official / 10` to
+within 0.5% (`LEAKAGE_TOLERANCE`). The same guard would have caught the estate
+and AMT `extend_tcja_*` short-circuits had those not already been bypassed
+explicitly in the derivation.
+
+### Why these numbers differ from the by-construction ~5%
+
+The by-construction figure measures whether a stored constant was stored
+correctly. It is not a measure of the machinery, because in every module the
+constant *overrides* the machinery: `estimate_static_revenue_effect` returns
+`annual_revenue_change_billions` unchanged whenever it is set. LOO removes that
+override for one case at a time, and what is left is the module's actual
+predictive content. Where that content is a genuine shared mechanism
+(payroll's covered-wage bands, estate's exemption machinery on the extension
+case), the held-out error is single-digit. Where the "mechanism" is one free
+parameter per benchmark (capital-gains elasticities, most tax expenditures),
+the held-out error is large — as it should be, because there was never
+anything there to predict with.
+
+The gate in `scripts/run_validation_dashboard.py` (`--max-loo-mean-error`,
+default 75 — the observed 59.3% × 1.25, rounded to 5) exists to catch a
+*regression* in the structural machinery — a base table edited without
+re-deriving — not to certify accuracy. Do not quote it as an accuracy claim.
+
+---
+
 ## References
 
 - SSA Trustees 2024: *Long-Range OASDI Cost and Income Estimates* (2024)
