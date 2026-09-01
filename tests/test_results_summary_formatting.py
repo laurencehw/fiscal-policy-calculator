@@ -108,6 +108,9 @@ def test_build_interpretation_html_avoids_markdown_currency_markup():
     )
 
     assert "**" not in html
+    # Bare "$" is correct here: the caller wraps this in <p>…</p> and renders it
+    # with unsafe_allow_html, and an HTML block is opaque to remark-math — so
+    # neither KaTeX nor markdown escaping applies (tests/test_dollar_rendering.py).
     assert "<strong>add approximately $4,582 billion</strong>" in html
     assert "<strong>$458B per year</strong>" in html
     assert "<strong>1.4% of GDP annually</strong>" in html
@@ -162,5 +165,7 @@ def test_render_results_summary_uses_html_for_interpretation():
 
     body, kwargs = interpretation_calls[0]
     assert kwargs.get("unsafe_allow_html") is True
+    # HTML bold, not markdown bold. Currency stays unescaped on purpose: an
+    # HTML block is opaque to both markdown escapes and KaTeX.
     assert "<strong>$" in body
     assert "**" not in body

@@ -89,7 +89,7 @@ def render_long_run_growth_tab(
                 labels={"x": "Year", "y": "% Change from Baseline"},
             )
             fig_gdp.add_hline(y=0, line_dash="dash", line_color="gray")
-            st_module.plotly_chart(fig_gdp, use_container_width=True)
+            st_module.plotly_chart(fig_gdp, width="stretch")
 
         with c2:
             st_module.subheader("Capital Stock (% Change vs Baseline)")
@@ -99,7 +99,7 @@ def render_long_run_growth_tab(
                 labels={"x": "Year", "y": "% Change from Baseline"},
             )
             fig_cap.add_hline(y=0, line_dash="dash", line_color="gray")
-            st_module.plotly_chart(fig_cap, use_container_width=True)
+            st_module.plotly_chart(fig_cap, width="stretch")
 
         st_module.info(
             """

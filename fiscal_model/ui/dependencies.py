@@ -28,7 +28,6 @@ from fiscal_model.policies import CapitalGainsPolicy, PolicyType, SpendingPolicy
 from fiscal_model.preset_handler import create_policy_from_preset
 from fiscal_model.scoring import FiscalPolicyScorer
 
-from .app_controller import run_main_app
 from .helpers import build_macro_scenario
 from .policy_execution import calculate_tax_policy_result, run_microsim_calculation
 from .policy_input import (
@@ -180,7 +179,6 @@ class AppDependencies:
     BaseScoringModel: type[BaseScoringModel]
     CBOStyleModel: type[CBOStyleModel]
     apply_app_styles: Any
-    run_main_app: Any
     pd: Any
     fiscal_assistant: Any
     render_ask_tab: Any
@@ -259,7 +257,6 @@ def build_app_dependencies(pd_module: Any) -> AppDependencies:
         BaseScoringModel=BaseScoringModel,
         CBOStyleModel=CBOStyleModel,
         apply_app_styles=apply_app_styles,
-        run_main_app=run_main_app,
         pd=pd_module,
         fiscal_assistant=fiscal_assistant,
         render_ask_tab=_render_ask_tab,

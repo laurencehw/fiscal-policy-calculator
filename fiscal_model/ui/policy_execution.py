@@ -1,11 +1,60 @@
 """
-Policy execution helpers for tab1 calculation paths.
+Policy execution helpers for the single-policy calculation paths.
+
+This module owns the *one* point where a run completes. Everything a result
+surface needs is assembled here — including the macro "dynamic view" — so that
+the headline, Key Metrics, the Economic Effects tab, Copy Summary and the CSV
+export cannot disagree (``planning/redesign/NOTES.md`` §4.4).
 """
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
+
+
+def run_dynamic_view(
+    *,
+    policy: Any,
+    result: Any,
+    is_spending: bool,
+    macro_model_name: str | None,
+    macro_scenario_cls: Any,
+    frbus_adapter_lite_cls: Any,
+    simple_multiplier_adapter_cls: Any,
+    build_macro_scenario_fn: Any,
+) -> tuple[Any, Any]:
+    """Run the macro adapter once and return ``(DynamicView, MacroResult)``.
+
+    Called from :func:`~fiscal_model.ui.calculation_controller.
+    execute_calculation_if_requested` when dynamic scoring is on. The result is
+    stashed on the run so the Economic Effects tab, the Results headline panel
+    and the exports all read identical numbers from one adapter run rather than
+    each estimating feedback their own way.
+
+    Returns ``(None, None)`` if the adapter fails — a broken macro model must
+    degrade the dynamic view, never the conventional score.
+    """
+    from .tabs.dynamic_scoring import compute_dynamic_view, resolve_macro_adapter
+
+    try:
+        scenario = build_macro_scenario_fn(
+            policy=policy,
+            result=result,
+            is_spending_policy=is_spending,
+            macro_scenario_cls=macro_scenario_cls,
+        )
+        adapter, model_name = resolve_macro_adapter(
+            macro_model_name, frbus_adapter_lite_cls, simple_multiplier_adapter_cls
+        )
+        macro_result = adapter.run(scenario)
+        return compute_dynamic_view(result, macro_result, model_name), macro_result
+    except Exception:  # pragma: no cover — defensive; adapters are unit-tested
+        logger.exception("Dynamic view computation failed for %r", getattr(policy, "name", "?"))
+        return None, None
 
 
 def run_microsim_calculation(
@@ -161,6 +210,24 @@ def calculate_tax_policy_result(
         if baseline_realizations <= 0:
             policy.baseline_realizations_billions = 0.0
             policy.baseline_capital_gains_rate = 0.0
+    elif policy_type == "Corporate Tax":
+        # A bare TaxPolicy with policy_type=CORPORATE_TAX runs the individual
+        # income-tax base and scores 21%->28% at -$1,855B (37% off Treasury's
+        # -$1,347B). CorporateTaxPolicy is driven by the rate alone and lands
+        # at -$1,397B (3.7%), so the Tailor "Corporate" option routes here.
+        # There is no income threshold on the corporate base, so the
+        # "who is affected" control does not apply.
+        from fiscal_model.corporate import CorporateTaxPolicy
+
+        policy = CorporateTaxPolicy(
+            name=policy_name,
+            description=f"{rate_change_pct:+.1f}pp corporate rate change",
+            policy_type=policy_type_cls.CORPORATE_TAX,
+            rate_change=rate_change,
+            duration_years=duration,
+            phase_in_years=max(1, int(phase_in)),
+            corporate_elasticity=eti if eti > 0 else 0.25,
+        )
     else:
         policy = tax_policy_cls(
             name=policy_name,
@@ -175,10 +242,13 @@ def calculate_tax_policy_result(
             ordinary_income_base=ordinary_income_base,
         )
 
-    if policy_type != "Capital Gains" and manual_taxpayers > 0:
-        policy.affected_taxpayers_millions = manual_taxpayers
-    if policy_type != "Capital Gains" and manual_avg_income > 0:
-        policy.avg_taxable_income_in_bracket = manual_avg_income
+    # Only the individual-base paths take a taxpayer count / average income;
+    # capital gains scores off realizations and corporate off profits.
+    if policy_type in ("Income Tax Rate", "Payroll Tax"):
+        if manual_taxpayers > 0:
+            policy.affected_taxpayers_millions = manual_taxpayers
+        if manual_avg_income > 0:
+            policy.avg_taxable_income_in_bracket = manual_avg_income
 
     scorer = fiscal_policy_scorer_cls(baseline=None, use_real_data=use_real_data)
     result = scorer.score_policy(policy, dynamic=dynamic_scoring)

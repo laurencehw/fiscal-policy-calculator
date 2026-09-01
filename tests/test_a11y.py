@@ -199,13 +199,13 @@ def test_render_accessible_chart_survives_figure_without_update_layout():
     assert any('class="sr-only"' in text for text, _ in st.markdowns)
 
 
-def test_run_main_app_invokes_inject_a11y_styles(monkeypatch):
-    """``run_main_app`` must call ``inject_a11y_styles`` before rendering.
+def test_bootstrap_page_invokes_inject_a11y_styles(monkeypatch):
+    """``bootstrap_page`` must call ``inject_a11y_styles`` on every page.
 
-    Uses a spy to record the first call, then short-circuits the rest of
-    bootstrap by raising so we don't have to build a full fake deps/tab
-    tree. The assertion is on the call log, not on successful completion
-    of the whole pipeline.
+    Under the multipage router the per-run bootstrap moved out of
+    ``run_main_app`` into ``bootstrap_page``, which the shared chrome calls at
+    the top of each page. Uses a spy to record the call, then short-circuits by
+    raising; the assertion is on the call log.
     """
     import fiscal_model.ui.app_controller as app_controller
 
@@ -240,12 +240,7 @@ def test_run_main_app_invokes_inject_a11y_styles(monkeypatch):
 
     fake_st = _FakeSt()
     try:
-        app_controller.run_main_app(
-            st_module=fake_st,
-            deps=None,
-            model_available=True,
-            app_root=None,
-        )
+        app_controller.bootstrap_page(fake_st)
     except RuntimeError as exc:
         assert exc is sentinel
 

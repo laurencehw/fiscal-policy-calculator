@@ -92,7 +92,7 @@ def _render_category_table(st_module: Any, summary: ScorecardSummary) -> None:
             "Poor": ratings.get("Poor", 0),
         })
     if rows:
-        st_module.dataframe(rows, hide_index=True, use_container_width=True)
+        st_module.dataframe(rows, hide_index=True, width="stretch")
 
 
 def _render_entry_table(st_module: Any, summary: ScorecardSummary) -> None:
@@ -112,7 +112,7 @@ def _render_entry_table(st_module: Any, summary: ScorecardSummary) -> None:
     st_module.dataframe(
         [_entry_to_row(e) for e in rows],
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
     )
 
 

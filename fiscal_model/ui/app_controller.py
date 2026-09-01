@@ -1,29 +1,24 @@
 """
-Top-level Streamlit app orchestration.
+Shared page-level Streamlit orchestration.
+
+``app.py`` is the ``st.navigation`` router and ``app_pages/`` holds one module
+per surface; this module holds what those pages share — the per-run bootstrap,
+the error boundary, the quick-start cards, the Data Status panel, and the
+score-a-policy workbench used by ``/explore`` and ``/tailor``.
 """
 
 from __future__ import annotations
 
 import logging
-import time
-from pathlib import Path
 from typing import Any
 
 from .a11y import inject_a11y_styles
-from .calculation_controller import (
-    ensure_results_state,
-    execute_calculation_if_requested,
-    render_sidebar_inputs,
-)
-from .controller_utils import compute_run_id
-from .helpers import TEXTBOOK_HOME, TEXTBOOK_LINKS
+from .helpers import TEXTBOOK_LINKS
 from .session_state import (
     KEY_PENDING_SIDEBAR_UPDATES,
     KEY_QS_CALCULATE,
     initialize_session_state,
 )
-from .settings_controller import render_settings_tab
-from .tabs_controller import build_main_tabs, render_footer, render_result_tabs
 
 _HOW_SCORED_MARKDOWN = (
     "The calculator applies three steps:\n\n"
@@ -58,13 +53,25 @@ _SECTION_ERROR_MESSAGES: dict[str, str] = {
         "The Calculator encountered an issue. "
         "Please try reloading the page or clearing your inputs."
     ),
+    "Explore": (
+        "Explore encountered an issue. "
+        "Please try reloading the page or picking a different proposal."
+    ),
+    "Tailor": (
+        "Tailor encountered an issue. "
+        "Please try reloading the page or clearing your inputs."
+    ),
+    "Build": (
+        "Build encountered an issue. "
+        "Please try reloading the page or clearing your selections."
+    ),
+    "Classroom": (
+        "Classroom Mode failed to start. "
+        "Please reload the page or check the deployment logs."
+    ),
     "Budget Builder": (
         "The Budget Builder encountered an issue. "
         "Please try reloading the page or clearing your inputs."
-    ),
-    "Package Studio": (
-        "The Package Studio encountered an issue. "
-        "Please try reloading the page or picking a canned philosophy."
     ),
     "Bill Tracker": (
         "The Bill Tracker encountered an issue. "
@@ -130,10 +137,25 @@ def _apply_pending_sidebar_updates(st_module: Any) -> None:
         st_module.session_state[key] = value
 
 
-def render_data_status(st_module: Any, deps: Any) -> None:
+def render_data_status(
+    st_module: Any,
+    deps: Any,
+    *,
+    health: dict[str, Any] | None = None,
+    show_banner: bool = True,
+) -> None:
     """
-    Render a data status indicator in the sidebar showing CBO baseline vintage
-    and FRED data status. Placed at the bottom of the sidebar.
+    Render the Data Status panel: CBO baseline vintage, IRS SOI, FRED and
+    runtime state, plus the degraded-data reasons.
+
+    Since the redesign this renders inside the shared chrome's status popover
+    (``components.chrome``) rather than at the bottom of a global sidebar.
+
+    ``health`` lets a caller pass an already-computed ``check_health()``
+    payload (the chrome computes one per run for the pill). ``show_banner=False``
+    suppresses the degraded-data banner for callers that render it themselves —
+    the per-component warnings stay suppressed either way, so the reasons are
+    never listed twice.
     """
     try:
         from fiscal_model.health import check_health, summarize_data_degradation
@@ -174,7 +196,7 @@ def render_data_status(st_module: Any, deps: Any) -> None:
                 return "API configured"
             return "Unavailable"
 
-        health = check_health()
+        health = check_health() if health is None else health
         baseline = health.get("baseline", {})
         irs_soi = health.get("irs_soi", {})
         fred = health.get("fred", {})
@@ -203,7 +225,7 @@ def render_data_status(st_module: Any, deps: Any) -> None:
         # yellow dot. Summarises *why* the app is running on fallback data.
         degradation = summarize_data_degradation(health)
         degradation_banner_shown = degradation["is_degraded"]
-        if degradation_banner_shown:
+        if degradation_banner_shown and show_banner:
             reason_lines = "\n".join(f"- {r}" for r in degradation["reasons"])
             if degradation["severity"] == "error":
                 st_module.error(
@@ -378,6 +400,74 @@ def _render_augmentation_preview(st_module: Any, microdata: dict) -> None:
     )
 
 
+_MONTH_ABBREVIATIONS: dict[str, str] = {
+    "january": "Jan",
+    "february": "Feb",
+    "march": "Mar",
+    "april": "Apr",
+    "may": "May",
+    "june": "Jun",
+    "july": "Jul",
+    "august": "Aug",
+    "september": "Sep",
+    "october": "Oct",
+    "november": "Nov",
+    "december": "Dec",
+}
+
+# Dot colours mirror ``_status_icon`` inside ``render_data_status`` so the
+# compact pill and the full panel never disagree about severity.
+_PILL_DOTS: dict[str, str] = {
+    "ok": "🟢",
+    "degraded": "🟡",
+    "error": "🔴",
+}
+
+
+def _short_vintage(vintage: Any) -> str:
+    """``"February 2026"`` -> ``"Feb 2026"``; anything unexpected passes through."""
+    text = str(vintage or "").strip()
+    if not text:
+        return "unknown"
+    parts = text.split()
+    if len(parts) == 2 and parts[0].lower() in _MONTH_ABBREVIATIONS:
+        return f"{_MONTH_ABBREVIATIONS[parts[0].lower()]} {parts[1]}"
+    return text
+
+
+def data_status_pill(health: dict[str, Any]) -> dict[str, Any]:
+    """Build the compact data-status pill shown in the shared chrome.
+
+    Returns ``{"label", "dot", "severity"}`` where ``label`` is the
+    ``CBO Feb 2026 · SOI 2023`` string and ``severity`` is the worst component
+    status ("ok" / "degraded" / "error"). Reuses the same freshness payload the
+    full Data Status panel renders, so the dot cannot drift from the panel.
+    """
+    baseline = health.get("baseline") or {}
+    irs_soi = health.get("irs_soi") or {}
+
+    baseline_label = f"CBO {_short_vintage(baseline.get('vintage'))}"
+    latest_year = irs_soi.get("latest_year")
+    soi_label = f"SOI {latest_year}" if latest_year else "SOI unavailable"
+
+    statuses = {
+        str((health.get(component) or {}).get("status") or "")
+        for component in ("baseline", "irs_soi", "fred", "runtime", "microdata")
+    }
+    if "error" in statuses:
+        severity = "error"
+    elif "degraded" in statuses:
+        severity = "degraded"
+    else:
+        severity = "ok"
+
+    return {
+        "label": f"{baseline_label} · {soi_label}",
+        "dot": _PILL_DOTS.get(severity, "⚪"),
+        "severity": severity,
+    }
+
+
 _QUICK_START_CARDS: tuple[dict[str, Any], ...] = (
     {
         "key": "tcja",
@@ -481,7 +571,7 @@ def _render_quick_start_card(
         if st_module.button(
             "Try this →",
             key=f"qs_btn_{card['key']}",
-            use_container_width=True,
+            width="stretch",
         ):
             _queue_sidebar_updates(st_module=st_module, **card["preset"])
             st_module.rerun()
@@ -509,7 +599,7 @@ def render_quick_start(st_module: Any, calculating: bool = False) -> None:
     with col1:
         st_module.markdown(
             "### Start here\n"
-            "1. Pick a question below (or a preset in the sidebar)\n"
+            "1. Pick a question below (or a proposal from the picker)\n"
             "2. Click **Calculate Impact**\n"
             "3. Read the headline deficit number and the **Validation evidence** card\n\n"
             "Optional depth: Distribution, Economic Effects, and Scoring Models tabs."
@@ -539,293 +629,30 @@ def render_quick_start(st_module: Any, calculating: bool = False) -> None:
     st_module.markdown("---")
 
 
-def run_main_app(st_module: Any, deps: Any, model_available: bool, app_root: Path) -> None:
-    """
-    Render and orchestrate the full Streamlit app flow.
+# ---------------------------------------------------------------------------
+# Page shell (multipage router)
+# ---------------------------------------------------------------------------
+#
+# Before the ask-first redesign this module owned ``run_main_app``: a single
+# ``st.tabs`` call plus a global ``with st.sidebar`` block. ``app.py`` is now an
+# ``st.navigation`` router and each surface in ``app_pages/`` renders itself, so
+# what remains here are the pieces every page shares.
 
-    Top-level tabs: Calculator | Ask | Budget Builder | Package Studio |
-    Bill Tracker | Methodology (includes Validation). Generational and State
-    analysis live under Calculator nested tabs. Admin is inserted only when
-    gated.
+
+def bootstrap_page(st_module: Any) -> None:
+    """Per-run bootstrap shared by every page.
+
+    Seeds declared session-state defaults before any widget is constructed and
+    injects the accessibility CSS + skip-to-content link. Idempotent, and safe
+    to call once per page render.
     """
-    # Ensure every known session key has its declared default before any
-    # widgets are constructed. Safe to call on every rerun — does not
-    # overwrite existing values.
     initialize_session_state(st_module)
-
-    # Inject a11y CSS (sr-only, focus rings) and the skip-to-main-content
-    # link before rendering any content. Idempotent per-render.
     inject_a11y_styles(st_module)
 
-    st_module.title("Fiscal Policy Impact Calculator")
-    st_module.markdown(
-        "Estimate the 10-year budgetary and economic effects of U.S. tax and "
-        "spending proposals. Powered by IRS data, FRED, and CBO methodology. "
-        f"Companion to the [Public Economics textbook]({TEXTBOOK_HOME}). "
-        "🎓 [**Classroom Mode**](?mode=classroom) — interactive assignments for Public Economics courses.\n\n"
-        "💬 **Have a public-finance question?** Try the **Ask** tab — answers grounded "
-        "in this app's scoring engine plus CBO, JCT, PWBM, Yale Budget Lab, TPC, SSA "
-        "Trustees, BEA, BLS, and FRED, with every claim cited. "
-        "⚖️ Or balance the budget yourself in **Budget Builder**."
-    )
 
-    # Admin tab is only inserted when the URL has a matching admin token —
-    # non-admins never see it.
-    from fiscal_model.assistant.admin import is_admin_request
-
-    try:
-        _query_params = st_module.query_params
-    except AttributeError:  # older Streamlit
-        try:
-            _query_params = st_module.experimental_get_query_params()
-        except Exception:
-            _query_params = {}
-    show_admin = is_admin_request(_query_params)
-
-    _tab_labels = [
-        "📊 Calculator",
-        "💬 Ask",
-        "⚖️ Budget Builder",
-        "🧭 Package Studio",
-        "📋 Bill Tracker",
-        "📖 Methodology",
-    ]
-    if show_admin:
-        _tab_labels.append("💼 Admin")
-
-    top_tabs = st_module.tabs(_tab_labels)
-
-    with top_tabs[0]:
-        _render_guarded_section(
-            st_module,
-            "Calculator",
-            lambda: _render_calculator(
-                st_module=st_module,
-                deps=deps,
-                model_available=model_available,
-                app_root=app_root,
-            ),
-        )
-        render_footer(st_module=st_module)
-
-    with top_tabs[1]:
-        _render_guarded_section(
-            st_module,
-            "Ask",
-            lambda: deps.render_ask_tab(
-                st_module=st_module,
-                fiscal_assistant=deps.fiscal_assistant,
-                scoring_result=st_module.session_state.get("results"),
-            ),
-        )
-        render_footer(st_module=st_module)
-
-    with top_tabs[2]:
-        _render_guarded_section(
-            st_module,
-            "Budget Builder",
-            lambda: _render_budget_builder(st_module=st_module, deps=deps),
-        )
-        render_footer(st_module=st_module)
-
-    with top_tabs[3]:
-        _render_guarded_section(
-            st_module,
-            "Package Studio",
-            lambda: _render_package_studio(st_module=st_module),
-        )
-        render_footer(st_module=st_module)
-
-    with top_tabs[4]:
-        _render_guarded_section(
-            st_module,
-            "Bill Tracker",
-            lambda: deps.render_bill_tracker_tab(st_module=st_module),
-        )
-        render_footer(st_module=st_module)
-
-    with top_tabs[5]:
-        _render_guarded_section(
-            st_module,
-            "Methodology",
-            lambda: deps.render_methodology_tab(st_module=st_module),
-        )
-        render_footer(st_module=st_module)
-
-    if show_admin:
-        with top_tabs[6]:
-            def _render_admin() -> None:
-                from .tabs.assistant_admin import render_assistant_admin_tab
-
-                render_assistant_admin_tab(st_module=st_module)
-
-            _render_guarded_section(st_module, "Admin", _render_admin)
-            render_footer(st_module=st_module)
-
-
-def _scroll_to_results_anchor(run_id: str | None = None) -> None:
-    """Scroll the page to the results tab bar after a calculation completes.
-
-    Streamlit sanitizes <script> in markdown, so this uses a zero-height
-    component iframe (same-origin) to scroll the parent document. Clicking
-    Calculate otherwise produces no visible change — results render well
-    below the fold.
-
-    Two failure modes this must handle:
-    - Streamlit reuses a component iframe when its HTML is byte-identical,
-      so the script would run only on the *first* calculation. Embedding
-      the run id makes each calculation's HTML unique and forces a reload.
-    - The anchor may not be laid out yet when the iframe script first runs
-      (the page is still rendering), so retry briefly instead of giving up.
-    """
-    try:
-        import streamlit.components.v1 as components
-
-        # run_id repeats for identical settings, so add a per-render nonce —
-        # this only renders on Calculate clicks, so uniqueness is cheap.
-        cache_buster = f"{run_id or 'unkeyed'}:{time.time_ns()}"
-        components.html(
-            "<script>"
-            f"/* run:{cache_buster} */"
-            "const tryScroll = (n) => {"
-            "  const anchor = window.parent.document.getElementById('results-anchor');"
-            "  if (anchor && anchor.isConnected) {"
-            "    anchor.scrollIntoView({behavior: 'smooth', block: 'start'});"
-            "  } else if (n > 0) {"
-            "    setTimeout(() => tryScroll(n - 1), 150);"
-            "  }"
-            "};"
-            "setTimeout(() => tryScroll(10), 100);"
-            "</script>",
-            height=0,
-        )
-    except Exception:
-        # Non-Streamlit contexts (unit tests with stub st modules) skip the scroll.
-        pass
-
-
-def _render_calculator(
-    st_module: Any,
-    deps: Any,
-    model_available: bool,
-    app_root: Path,
-) -> None:
-    """Render the Calculator tab: sidebar inputs + results tabs."""
-    # ── Sidebar ──────────────────────────────────────────────────────────
-    _apply_pending_sidebar_updates(st_module=st_module)
-
-    with st_module.sidebar:
-        st_module.header("Policy Configuration")
-
-        # 1. Policy inputs (no Calculate button yet)
-        calc_context = render_sidebar_inputs(st_module=st_module, deps=deps)
-
-        # 2. Model settings expander (above Calculate button)
-        settings = render_settings_tab(
-            st_module=st_module,
-            settings_tab=st_module.expander("⚙️ Model settings", expanded=False),
-        )
-
-        # Apply dark mode via CSS class (better compatibility). The sidebar
-        # keeps its theme secondaryBackgroundColor unless overridden here —
-        # without the stSidebar rule its background stays light while the
-        # text rules below flip it near-white (unreadable, ~1:1 contrast).
-        if settings.get("dark_mode", False):
-            st_module.markdown(
-                '<style>'
-                'body, .stApp {background-color: #0e1117 !important; color: #fafafa !important;} '
-                'section[data-testid="stSidebar"], section[data-testid="stSidebar"] > div '
-                '{background-color: #262730 !important;} '
-                '.stMarkdown, p, h1, h2, h3, label {color: #fafafa !important;} '
-                '.metric-card {background-color: #262730 !important;}'
-                '</style>',
-                unsafe_allow_html=True,
-            )
-
-        # 3. Calculate button
-        st_module.markdown("---")
-        calculate = st_module.button(
-            "Calculate Impact",
-            type="primary",
-            use_container_width=True,
-        )
-        # Auto-trigger from quick-start card click
-        if getattr(st_module.session_state, KEY_QS_CALCULATE, False):
-            del st_module.session_state[KEY_QS_CALCULATE]
-            calculate = True
-        calc_context["calculate"] = calculate
-
-        # 4. Data Status (bottom of sidebar — infrastructure, not decision-relevant)
-        render_data_status(st_module=st_module, deps=deps)
-
-        with st_module.expander("🎓 Classroom Mode", expanded=False):
-            st_module.markdown(
-                "**Interactive assignments for Public Economics courses.**\n\n"
-                "7 guided assignments with hints, auto-grading, and PDF export for student submissions. "
-                "Covers Laffer curves, TCJA, distributional analysis, and more.\n\n"
-                "[➡️ Open Classroom Mode](?mode=classroom)"
-            )
-
-    # ── Main content ─────────────────────────────────────────────────────
-    calc_context["run_id"] = compute_run_id(calc_context=calc_context, settings=settings)
-    st_module.session_state.current_run_id = calc_context["run_id"]
-
-    # Dismissible welcome guide (auto-hides after first calculation)
-    render_quick_start(
-        st_module=st_module, calculating=bool(calc_context.get("calculate"))
-    )
-
-    # "How is this scored?" — prominent in main content below title
-    with st_module.expander("🔍 How is this scored?", expanded=False):
-        st_module.markdown(_HOW_SCORED_MARKDOWN)
-
-    # Anchor for post-calculation scroll: landing the reader on the tab bar
-    # puts the headline number in view.
-    st_module.markdown('<div id="results-anchor"></div>', unsafe_allow_html=True)
-
-    tabs = build_main_tabs(
-        st_module=st_module,
-        mode=calc_context["mode"],
-    )
-
-    ensure_results_state(st_module=st_module)
-    execute_calculation_if_requested(
-        st_module=st_module,
-        deps=deps,
-        app_root=app_root,
-        model_available=model_available,
-        calc_context=calc_context,
-        settings=settings,
-    )
-
-    if calc_context.get("calculate") and st_module.session_state.get("results"):
-        _scroll_to_results_anchor(run_id=str(calc_context.get("run_id", "")))
-
-    render_result_tabs(
-        st_module=st_module,
-        deps=deps,
-        tabs=tabs,
-        settings=settings,
-        model_available=model_available,
-        is_spending=calc_context["is_spending"],
-        mode=calc_context["mode"],
-    )
-
-
-def _render_package_studio(st_module: Any) -> None:
-    """Render the Package Studio tab — goal-driven policy mix composer."""
-    from fiscal_model.ui.tabs.package_studio import render_package_studio_tab
-
-    render_package_studio_tab(st_module=st_module)
-
-
-def _render_budget_builder(st_module: Any, deps: Any) -> None:
-    """Render the Budget Builder tab — standalone deficit reduction planner."""
-    from fiscal_model.ui.tabs.deficit_target import render_deficit_target_tab
-
-    render_deficit_target_tab(
-        st_module=st_module,
-        cbo_score_map=deps.CBO_SCORE_MAP,
-        fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
-        use_real_data=True,
-    )
+CLASSROOM_BLURB = (
+    "**Interactive assignments for Public Economics courses.**\n\n"
+    "7 guided assignments with hints, auto-grading, and PDF export for student "
+    "submissions. Covers Laffer curves, TCJA, distributional analysis, and more.\n\n"
+    "[➡️ Open Classroom Mode](?mode=classroom)"
+)

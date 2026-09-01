@@ -1,0 +1,118 @@
+# Manual values-tag overrides for the Build catalog.
+#
+# `scripts/derive_policy_tags.py` derives the five plan §5b.1 tags
+# mechanically: `progressivity` from the app's own distribution engine (via
+# `fiscal_model/composer/progressivity.py`), the other four from the catalog's
+# `is_*` flags and the model's own 10-year deficit sign. This file is where
+# that derivation is corrected, and every correction must say why.
+#
+# Rules enforced by the script:
+#   * keys are stable preset ids (`fiscal_model/preset_ids.py`), never labels;
+#   * every entry needs a `note`;
+#   * every tag value must be in `ALLOWED_TAG_VALUES`;
+#   * overrides are recorded as `override` in the generated TAG_SOURCES, so
+#     the UI can always show which tags are asserted rather than measured.
+#
+# `not_modeled` entries are listed here explicitly rather than defaulted
+# silently: declining to assert a progressivity is a claim about the model's
+# reach, and it should be reviewable in one place.
+
+version: 1
+
+overrides:
+
+  # ── progressivity the distribution engine cannot reach ────────────────
+  # The engine works from return-level AGI tables and returns an all-zero
+  # table for these; `progressivity.py` has no documented incidence family
+  # for individual AMT either, so the honest tag is "not modeled".
+  amt-extend-tcja-relief:
+    progressivity: not_modeled
+    note: >-
+      Individual AMT liability is not represented in the return-level AGI
+      tables the distribution engine works from, and there is no documented
+      incidence fallback for it. The benefit is understood to sit in the
+      upper-middle of the distribution, but the app does not measure it.
+
+  amt-repeal-individual:
+    progressivity: not_modeled
+    note: >-
+      Same as amt-extend-tcja-relief: the engine is silent on individual AMT
+      and no incidence family covers it.
+
+  # Drug pricing raises money by cutting outlays, so there is no household
+  # tax base to distribute. progressivity.py flags the family
+  # `outlay_side` with is_household_tax=False for exactly this reason.
+  drug-negotiation-expand:
+    progressivity: not_modeled
+    generational: current
+    note: >-
+      Savings come from Medicare outlays, not from a household tax base, so
+      the 0.50 `outlay_side` placeholder is a ranking input and must not be
+      read as a distributional finding.
+
+  insulin-cap-universal:
+    progressivity: not_modeled
+    generational: current
+    note: >-
+      Outlay-side; no household tax base. (The pharma module also scores this
+      far above its official -$15B anchor — see docs/VALIDATION.md — so treat
+      its magnitude as provisional too.)
+
+  drug-reference-pricing:
+    progressivity: not_modeled
+    generational: current
+    note: >-
+      Outlay-side; no household tax base.
+
+  drug-reform-comprehensive:
+    progressivity: not_modeled
+    generational: current
+    note: >-
+      Outlay-side; no household tax base.
+
+  # ── govt_size, where the revenue sign points the wrong way ────────────
+  # The mechanical rule reads "raises revenue" as "grows government".
+  # Repealing a subsidy delivered through the tax code raises revenue by
+  # *withdrawing* a government programme, so the size tag flips.
+  ira-clean-energy-repeal:
+    govt_size: shrink
+    base: corporate
+    generational: future
+    note: >-
+      Repeals the IRA clean-energy credits. Raises revenue, but by ending a
+      government subsidy programme, so govt_size is shrink, not grow. The
+      credits are predominantly production/investment credits claimed by
+      firms (45X/45Y/48E), hence a corporate base.
+
+  ev-credit-repeal:
+    govt_size: shrink
+    base: individual
+    generational: future
+    note: >-
+      Repeals the $7,500 consumer EV credit: a household-claimed credit, so
+      an individual base, and a withdrawal of a subsidy, so shrink.
+
+  ira-clean-energy-extend:
+    base: corporate
+    generational: future
+    note: >-
+      Mirror of ira-clean-energy-repeal: same base, opposite direction.
+
+  # ── generational, where the module rule is too coarse ─────────────────
+  amt-repeal-corporate:
+    generational: mixed
+    note: >-
+      Keyed to the AMT module, which is otherwise individual and therefore
+      current. The corporate AMT is a corporate-base policy and inherits the
+      corporate channel: it moves the capital stock, so future wages too.
+
+  ctc-expansion-2021:
+    generational: mixed
+    note: >-
+      A current-period transfer whose measured effects (child poverty, later
+      earnings) land on the next cohort; tagged mixed rather than current.
+
+  ctc-extension:
+    generational: mixed
+    note: >-
+      Same reasoning as ctc-expansion-2021.

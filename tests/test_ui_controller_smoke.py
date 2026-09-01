@@ -10,9 +10,9 @@ from types import SimpleNamespace
 from fiscal_model.ui.app_controller import (
     _PENDING_SIDEBAR_UPDATES_KEY,
     _apply_pending_sidebar_updates,
+    _render_guarded_section,
     render_data_status,
     render_quick_start,
-    run_main_app,
 )
 from fiscal_model.ui.calculation_controller import (
     POLICY_PACKAGES_MODE,
@@ -154,17 +154,31 @@ class _QuickStartStreamlit(_DummyStreamlit):
         return None
 
 
-class _TopLevelStreamlit(_DummyStreamlit):
+class _NavStreamlit(_DummyStreamlit):
+    """Fake ``st`` that records ``st.Page`` / ``st.navigation`` registration."""
+
     def __init__(self) -> None:
         super().__init__(radio_values=[])
         self.titles: list[str] = []
+        self.pages: list[SimpleNamespace] = []
+        self.nav: SimpleNamespace | None = None
 
     def title(self, text):
         self.titles.append(text)
 
-    def tabs(self, labels):
-        self.tab_labels = labels
-        return [_DummyContext() for _ in labels]
+    def set_page_config(self, **kwargs):
+        return None
+
+    def Page(self, page, *, title=None, url_path=None, default=False, **kwargs):  # Streamlit API name
+        del kwargs
+        entry = SimpleNamespace(run_fn=page, title=title, url_path=url_path, default=default)
+        self.pages.append(entry)
+        return entry
+
+    def navigation(self, pages, *, position="sidebar", **kwargs):
+        del kwargs
+        self.nav = SimpleNamespace(sections=pages, position=position, run=lambda: None)
+        return self.nav
 
 
 def test_render_sidebar_inputs_single_mode_uses_tax_inputs():
@@ -438,64 +452,42 @@ def test_render_result_tabs_contains_tab_failures():
     assert "state" in calls
 
 
-def test_run_main_app_contains_calculator_failure(monkeypatch):
-    """A Calculator crash should not prevent other top-level sections from rendering."""
-    from fiscal_model.ui import app_controller as module
+def test_router_registers_the_redesigned_page_set():
+    """The top-level surface list — the successor to the old tab-label list."""
+    import app
 
-    st_module = _TopLevelStreamlit()
-    calls: list[str] = []
+    st_module = _NavStreamlit()
+    st_module.query_params = {}
+    deps = SimpleNamespace(apply_app_styles=lambda st: None)
 
-    def _boom_calculator(**kwargs):
-        del kwargs
-        raise RuntimeError("calculator broke")
+    app.main(st_module=st_module, pd_module=object(), deps_builder=lambda **kw: deps)
 
-    monkeypatch.setattr(module, "_render_calculator", _boom_calculator)
-    monkeypatch.setattr(
-        module,
-        "_render_budget_builder",
-        lambda **kwargs: calls.append("budget"),
-    )
-    monkeypatch.setattr(
-        module,
-        "_render_package_studio",
-        lambda **kwargs: calls.append("package_studio"),
-    )
-    monkeypatch.setattr(
-        module,
-        "render_footer",
-        lambda st_module: calls.append("footer"),
-    )
-
-    deps = SimpleNamespace(
-        fiscal_assistant=None,
-        render_ask_tab=lambda **kwargs: calls.append("ask"),
-        render_bill_tracker_tab=lambda **kwargs: calls.append("bill_tracker"),
-        render_methodology_tab=lambda **kwargs: calls.append("methodology"),
-    )
-
-    run_main_app(
-        st_module=st_module,
-        deps=deps,
-        model_available=True,
-        app_root=Path("."),
-    )
-
-    assert any("Calculator encountered an issue" in msg for msg in st_module.errors)
-    assert st_module.tab_labels == [
-        "📊 Calculator",
-        "💬 Ask",
-        "⚖️ Budget Builder",
-        "🧭 Package Studio",
-        "📋 Bill Tracker",
-        "📖 Methodology",
+    assert st_module.nav is not None
+    assert st_module.nav.position == "top"
+    assert [page.title for page in st_module.nav.sections[""]] == [
+        "Ask",
+        "Build",
+        "Tailor",
+        "Explore",
     ]
-    assert "ask" in calls
-    assert "budget" in calls
-    assert "package_studio" in calls
-    assert "bill_tracker" in calls
-    assert "methodology" in calls
-    assert "generational" not in calls
-    assert "state" not in calls
+    assert [page.title for page in st_module.nav.sections["More"]] == [
+        "Bill Tracker",
+        "Methodology",
+        "Classroom",
+    ]
+    assert [page.url_path for page in st_module.pages if page.default] == ["ask"]
+
+
+def test_page_body_failure_is_contained_by_the_error_boundary():
+    """A crashing page body renders a contained error, not a blank app."""
+    st_module = _DummyStreamlit(radio_values=[])
+
+    def _boom():
+        raise RuntimeError("explore broke")
+
+    _render_guarded_section(st_module, "Explore", _boom)
+
+    assert any("Explore encountered an issue" in msg for msg in st_module.errors)
 
 
 def test_render_quick_start_defers_sidebar_updates_until_rerun():
@@ -711,3 +703,73 @@ def test_render_data_status_surfaces_runtime_warning(monkeypatch):
 
     assert any("**Runtime:** Python 3.14.0" in text for text in st_module.markdowns)
     assert any("outside supported range" in msg for msg in st_module.warnings)
+
+
+def test_detailed_results_receives_the_scored_result():
+    """Copilot review (PR #66): both Details call sites must forward ``scored`` so
+    Detailed Results' tier/benchmark/export metadata match the shared panel."""
+    st_module = _DummyStreamlit(radio_values=[])
+    st_module.session_state = SimpleNamespace(
+        results={"policy": object()},
+        current_run_id="current",
+        results_run_id="current",
+        last_run_id="current",
+    )
+    captured: list[dict] = []
+    deps = SimpleNamespace(
+        CBO_SCORE_MAP={},
+        PRESET_POLICIES={},
+        PRESET_POLICY_PACKAGES={},
+        PolicyType=SimpleNamespace(INCOME_TAX="income_tax"),
+        FiscalPolicyScorer=object,
+        TaxPolicy=object,
+        DistributionalEngine=object,
+        IncomeGroupType=object,
+        format_distribution_table=lambda *args, **kwargs: None,
+        generate_winners_losers_summary=lambda *args, **kwargs: None,
+        MacroScenario=object,
+        FRBUSAdapterLite=object,
+        SimpleMultiplierAdapter=object,
+        SolowGrowthModel=object,
+        build_macro_scenario=lambda *args, **kwargs: None,
+        render_results_summary_tab=lambda **kwargs: None,
+        render_distribution_tab=lambda **kwargs: None,
+        render_dynamic_scoring_tab=lambda **kwargs: None,
+        render_detailed_results_tab=lambda **kwargs: captured.append(kwargs),
+        render_long_run_growth_tab=lambda **kwargs: None,
+        render_policy_comparison_tab=lambda **kwargs: None,
+        render_multi_model_tab=lambda **kwargs: None,
+        render_side_by_side_tab=lambda **kwargs: None,
+        render_generational_analysis_tab=lambda **kwargs: None,
+        render_state_analysis_tab=lambda **kwargs: None,
+    )
+    tabs = {
+        "tab_summary": _DummyContext(),
+        "tab_distribution": _DummyContext(),
+        "tab_economic": _DummyContext(),
+        "tab_scoring": _DummyContext(),
+        "tab_generational": _DummyContext(),
+        "tab_state": _DummyContext(),
+    }
+    settings = {
+        "dynamic_scoring": False,
+        "macro_model": "FRBUSAdapterLite",
+        "data_year": 2022,
+        "use_real_data": True,
+        "use_microsim_distribution": True,
+    }
+    sentinel = object()
+
+    render_result_tabs(
+        st_module=st_module,
+        deps=deps,
+        tabs=tabs,
+        settings=settings,
+        model_available=True,
+        is_spending=False,
+        mode=SINGLE_POLICY_MODE,
+        scored=sentinel,
+    )
+
+    assert captured, "Detailed Results was never rendered"
+    assert all(call.get("scored") is sentinel for call in captured)

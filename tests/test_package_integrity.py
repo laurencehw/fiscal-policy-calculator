@@ -11,6 +11,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from components.results import render_score_surface
 from fiscal_model.app_data import CBO_SCORE_MAP, PRESET_POLICIES
 from fiscal_model.baseline import CBOBaseline
 from fiscal_model.data import CapitalGainsBaseline, FREDData, IRSSOIData
@@ -24,7 +25,6 @@ from fiscal_model.ui import (
     calculate_tax_policy_result,
     render_spending_policy_inputs,
     render_tax_policy_inputs,
-    run_main_app,
     run_microsim_calculation,
 )
 from fiscal_model.ui.calculation_controller import (
@@ -334,7 +334,9 @@ def test_results_summary_tab_renderer_importable():
 
 
 def test_spending_policy_input_helpers_importable():
-    assert callable(run_main_app)
+    # ``render_policy_workbench`` was deleted in Phase 6a; ``render_score_surface``
+    # is the live score-a-policy surface both /explore and /tailor render.
+    assert callable(render_score_surface)
     assert callable(build_app_dependencies)
     assert callable(render_settings_tab)
     assert callable(render_sidebar_inputs)

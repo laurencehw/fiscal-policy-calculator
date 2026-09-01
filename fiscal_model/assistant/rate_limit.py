@@ -226,9 +226,14 @@ class RateLimiter:
 
         if today_spend >= self.config.daily_cost_cap_usd:
             decision.allowed = False
+            # ``reason`` is rendered as markdown (``st.warning``), and an
+            # unescaped ``$…$`` pair is a KaTeX span — the two amounts below
+            # would render as math, not money. Escaped at the source so every
+            # caller is safe.
             decision.reason = (
                 f"Today's free-tier budget is exhausted "
-                f"(${today_spend:.2f} of ${self.config.daily_cost_cap_usd:.2f} "
+                f"(\\${today_spend:.2f} of "
+                f"\\${self.config.daily_cost_cap_usd:.2f} "
                 "used across all visitors). The cap resets at UTC midnight."
             )
             return decision

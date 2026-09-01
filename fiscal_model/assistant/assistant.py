@@ -42,9 +42,27 @@ MAX_TOOL_ITERATIONS = 4
 # Tighter than the SDK default — most public-finance answers are 200-400
 # output tokens, and the cap prevents accidental long-form rambling. 800
 # proved too tight in practice: answers with a small comparison table were
-# cut off mid-row. 1200 leaves room to finish a table while still bounding
-# latency and cost (the daily cost cap is the real budget control).
-DEFAULT_MAX_TOKENS = 1200
+# cut off mid-row; 1200 still cut off distributional answers that carry a
+# decile table *and* a Sources block. 1600 finishes those while keeping
+# latency and per-turn cost bounded (the daily cost cap, not this number, is
+# the real budget control: at Sonnet output pricing 1600 tokens is ~$0.02).
+# Override with ASSISTANT_MAX_TOKENS for local experiments.
+DEFAULT_MAX_TOKENS = 1600
+# Hard ceiling on the override so a stray env var cannot blow the daily cap.
+MAX_MAX_TOKENS = 4000
+
+
+def resolve_max_tokens() -> int:
+    """Output-token budget for one call, honouring ``ASSISTANT_MAX_TOKENS``."""
+    raw = os.environ.get("ASSISTANT_MAX_TOKENS", "").strip()
+    if not raw:
+        return DEFAULT_MAX_TOKENS
+    try:
+        value = int(raw)
+    except ValueError:
+        logger.warning("Ignoring non-integer ASSISTANT_MAX_TOKENS=%r", raw)
+        return DEFAULT_MAX_TOKENS
+    return max(256, min(value, MAX_MAX_TOKENS))
 
 
 class FiscalAssistant:
@@ -102,6 +120,11 @@ class FiscalAssistant:
         self.last_message: dict[str, Any] | None = None
         self.last_stripped_markers: list[int] = []
         self.last_web_citations: list[str] = []
+        # ``stop_reason`` of the final API call; ``last_truncated`` is the
+        # single flag the UI needs to offer a "continue" affordance instead
+        # of leaving an answer that stops mid-table.
+        self.last_stop_reason: str | None = None
+        self.last_truncated: bool = False
         self._cache_prewarmed: bool = False
 
     # ---- lazy client -----------------------------------------------------
@@ -261,6 +284,8 @@ class FiscalAssistant:
         self.last_message = None
         self.last_stripped_markers = []
         self.last_web_citations = []
+        self.last_stop_reason = None
+        self.last_truncated = False
 
         # ------------------------------------------------------------------
         # Build system blocks. We split into a cache-stable prefix and a
@@ -419,10 +444,13 @@ class FiscalAssistant:
         # If the final call ran out of output budget, say so rather than
         # ending mid-sentence (or mid-table) as if the answer were complete.
         # ------------------------------------------------------------------
-        if getattr(final_message, "stop_reason", None) == "max_tokens":
+        self.last_stop_reason = getattr(final_message, "stop_reason", None)
+        if self.last_stop_reason == "max_tokens":
+            self.last_truncated = True
             truncation_note = (
                 "\n\n> ✂️ *This answer hit its length budget and may end "
-                "abruptly. Ask a follow-up for the rest.*"
+                "abruptly. Use **Continue the answer** below, or ask a "
+                "follow-up.*"
             )
             accumulated_text += truncation_note
             yield truncation_note
@@ -480,7 +508,7 @@ class FiscalAssistant:
         try:
             with client.messages.stream(
                 model=self._model,
-                max_tokens=DEFAULT_MAX_TOKENS,
+                max_tokens=resolve_max_tokens(),
                 system=system_blocks,
                 messages=messages,
                 tools=tools,
@@ -621,8 +649,10 @@ def _brief_args(args: dict[str, Any]) -> str:
 
 
 __all__ = [
+    "DEFAULT_MAX_TOKENS",
     "DEFAULT_MODEL",
     "MAX_TOOL_ITERATIONS",
     "OPUS_MODEL",
     "FiscalAssistant",
+    "resolve_max_tokens",
 ]

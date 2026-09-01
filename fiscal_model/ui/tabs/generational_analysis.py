@@ -276,7 +276,7 @@ def _render_results(st_module: Any, olg_result) -> None:
         height=380,
         margin=dict(l=40, r=40, t=60, b=40),
     )
-    st_module.plotly_chart(fig_trans, use_container_width=True)
+    st_module.plotly_chart(fig_trans, width="stretch")
 
     # Capital and interest rate sub-charts
     col_a, col_b = st_module.columns(2)
@@ -290,7 +290,7 @@ def _render_results(st_module: Any, olg_result) -> None:
         )
         fig_k.update_layout(yaxis=dict(range=[-_K_CLAMP, _K_CLAMP]))
         fig_k.add_hline(y=0, line_dash="dash", line_color="gray")
-        st_module.plotly_chart(fig_k, use_container_width=True)
+        st_module.plotly_chart(fig_k, width="stretch")
 
     with col_b:
         rate_ppts_raw = (trans.r_path - baseline.r) * 100
@@ -304,7 +304,7 @@ def _render_results(st_module: Any, olg_result) -> None:
         )
         fig_r.update_layout(yaxis=dict(range=[-_R_CLAMP, _R_CLAMP]))
         fig_r.add_hline(y=0, line_dash="dash", line_color="gray")
-        st_module.plotly_chart(fig_r, use_container_width=True)
+        st_module.plotly_chart(fig_r, width="stretch")
 
     # ── Generational accounts ─────────────────────────────────────────
     if olg_result.gen_accounts is not None:
@@ -388,14 +388,14 @@ def _render_gen_accounts(st_module: Any, gen_accounts) -> None:
         legend=dict(orientation="h", yanchor="bottom", y=1.02),
         margin=dict(l=40, r=60, t=60, b=40),
     )
-    st_module.plotly_chart(fig_burden, use_container_width=True)
+    st_module.plotly_chart(fig_burden, width="stretch")
 
     # Table
     with st_module.expander("📊 Burden table by age group", expanded=False):
         display_df = df[["age", "baseline_burden", "reform_burden", "burden_change"]].copy()
         display_df.columns = ["Age", "Baseline burden", "Reform burden", "Change"]
         display_df = display_df[display_df["age"].isin(range(21, 76, 5))]
-        st_module.dataframe(display_df.set_index("Age").round(4), use_container_width=True)
+        st_module.dataframe(display_df.set_index("Age").round(4), width="stretch")
 
 
 def _render_demo_section(st_module: Any) -> None:

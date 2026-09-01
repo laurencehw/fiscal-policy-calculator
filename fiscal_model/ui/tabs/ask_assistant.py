@@ -20,15 +20,17 @@ Streamlit pitfalls handled here:
 
 from __future__ import annotations
 
+import contextlib
 import os
 import re
 import time
+from collections.abc import Iterable, Iterator
 from typing import Any
 
 from fiscal_model.assistant.citations import (
-    describe_sources,
-    format_answer_for_display,
+    build_answer_display,
     render_provenance_footer,
+    render_sources_markdown,
 )
 from fiscal_model.assistant.rate_limit import RateLimiter, new_session_id
 from fiscal_model.assistant.share import build_share_url, decode_share_payload
@@ -57,17 +59,50 @@ def _safe_dollar_markdown(text: str) -> str:
     return "".join(out)
 
 
-def _display_answer_markdown(text: str) -> str:
-    """Prepare a finished assistant answer for display.
+def _stream_safe_chunks(chunks: Iterable[str]) -> Iterator[str]:
+    """Re-chunk a raw model stream so every emitted piece is ``$``-safe.
 
-    Streamlit markdown has no footnote support, so raw ``[^N]`` markers and
-    ``[^N]: ...`` lines render literally. Convert markers to plain/linked
-    ``[N]`` and append the Sources entries as a visible list.
+    ``st.write_stream`` concatenates what it is given, so escaping each raw
+    chunk independently would miss a ``$`` that lands at the end of one chunk
+    with its digit at the start of the next — exactly the case that renders a
+    dollar figure as KaTeX. Escape the *accumulated* text each time, emit only
+    the new tail, and hold back a trailing ``$`` until its next character
+    arrives. If escaping ever rewrites text already emitted (an unterminated
+    code fence closing later), emit nothing further this iteration: the
+    finished answer is re-rendered from scratch once the stream ends.
     """
-    body, source_lines = format_answer_for_display(text)
-    if source_lines:
-        body += "\n\n**Sources**\n" + "\n".join(f"- {line}" for line in source_lines)
-    return _safe_dollar_markdown(body)
+    raw = ""
+    emitted = ""
+    for chunk in chunks:
+        if not chunk:
+            continue
+        raw += chunk
+        safe = _safe_dollar_markdown(raw)
+        target = safe[:-1] if safe.endswith("$") else safe
+        if len(target) > len(emitted) and target.startswith(emitted):
+            delta = target[len(emitted):]
+            emitted = target
+            yield delta
+    final = _safe_dollar_markdown(raw)
+    if len(final) > len(emitted) and final.startswith(emitted):
+        yield final[len(emitted):]
+
+
+def _render_answer(st_module: Any, turn: dict[str, Any]) -> None:
+    """Render a finished assistant answer plus its numbered Sources row.
+
+    Streamlit markdown has no footnote support, so raw ``[^N]`` markers used
+    to render literally. :func:`build_answer_display` turns each resolvable
+    marker into a linked superscript, drops the rest, and returns the sources
+    behind them.
+    """
+    body, sources = build_answer_display(
+        str(turn.get("content") or ""),
+        turn.get("provenance") or [],
+    )
+    st_module.markdown(_safe_dollar_markdown(body))
+    if sources:
+        st_module.markdown(_safe_dollar_markdown(render_sources_markdown(sources)))
 
 
 _HISTORY_KEY = "ask_history"
@@ -76,6 +111,14 @@ _SESSION_ID_KEY = "_ask_session_id"
 _LAST_TS_KEY = "_ask_last_message_ts"
 _LIMITER_CACHE_KEY = "_ask_limiter"
 _SHARED_TOKEN_APPLIED_KEY = "_ask_share_applied"
+_PILLS_NONCE_KEY = "_ask_pills_nonce"
+_PREFILL_APPLIED_KEY = "_ask_prefill_applied"
+
+# Continuation turn sent when the previous answer ran out of output budget.
+CONTINUE_PROMPT = (
+    "Continue the previous answer from exactly where it stopped. "
+    "Do not repeat anything you already wrote."
+)
 
 
 def _promote_secret_to_env(st_module: Any) -> dict[str, Any]:
@@ -162,33 +205,161 @@ _STARTER_PROMPTS: list[str] = [
     "Score a 25% corporate rate and tell me what it costs.",
 ]
 
+# Short chip labels for the pills row; the full question is what gets asked.
+_STARTER_CHIP_LABELS: dict[str, str] = {
+    _STARTER_PROMPTS[0]: "10-year deficit outlook",
+    _STARTER_PROMPTS[1]: "TCJA by income decile",
+    _STARTER_PROMPTS[2]: "PWBM vs CBO on corporate",
+    _STARTER_PROMPTS[3]: "Explain dynamic scoring",
+    _STARTER_PROMPTS[4]: "SS trust fund depletion",
+    _STARTER_PROMPTS[5]: "Score a 25% corporate rate",
+}
+
+HERO_TITLE = "Ask a public-finance question"
+HERO_SUBTITLE = (
+    "Answers grounded in this calculator's validated scoring engine plus CBO, "
+    "JCT, PWBM, TPC, SSA and FRED — every claim cited."
+)
+HERO_PLACEHOLDER = "e.g. What did extending the TCJA cost, and who benefits?"
+
 
 def render_ask_tab(
     st_module: Any,
     fiscal_assistant: Any,
     scoring_result: Any = None,
+    *,
+    prefill: str | None = None,
+    show_hero: bool = True,
 ) -> None:
     """Top-level renderer; wraps the body in ``st.fragment`` if available.
 
     Streamlit ≥1.33 has ``st.fragment``; on older versions we fall back
     to a plain render (the user will see occasional stream interruption
-    when they click sidebar widgets — known limitation).
+    when they click a widget elsewhere on the page — known limitation).
+
+    ``prefill`` is a question to ask once on this render (the ``?q=`` URL
+    contract, or a worked-example card click). It is guarded by a session
+    flag so a prefilled URL asks exactly one question, not one per rerun.
     """
     fragment = getattr(st_module, "fragment", None)
     if callable(fragment):
         @fragment
         def _body() -> None:
-            _render_body(st_module, fiscal_assistant, scoring_result)
+            _render_body(
+                st_module,
+                fiscal_assistant,
+                scoring_result,
+                prefill=prefill,
+                show_hero=show_hero,
+            )
 
         _body()
     else:
-        _render_body(st_module, fiscal_assistant, scoring_result)
+        _render_body(
+            st_module,
+            fiscal_assistant,
+            scoring_result,
+            prefill=prefill,
+            show_hero=show_hero,
+        )
+
+
+def queue_question(st_module: Any, question: str) -> None:
+    """Queue a question for the chat fragment to ask on the next rerun.
+
+    The public seam used by surfaces outside the fragment — the worked-example
+    cards on the Ask home page — so they don't have to know the session-state
+    key the chat uses.
+    """
+    text = (question or "").strip()
+    if text:
+        st_module.session_state[_PENDING_PROMPT_KEY] = text
+
+
+def _render_hero(st_module: Any) -> None:
+    """Centered hero: one H1, one line of subtitle. No scrolling required."""
+    st_module.markdown(f"# {HERO_TITLE}")
+    st_module.caption(HERO_SUBTITLE)
+
+
+def _hero_column(st_module: Any) -> Any:
+    """A centered, ratio-sized column for the hero block.
+
+    Ratios rather than pixels, so the hero narrows with the window and the
+    spacers collapse when Streamlit stacks columns on a phone. Nothing is
+    nested inside this column that itself uses ``st.columns`` — Streamlit
+    allows only one level of column nesting.
+    """
+    try:
+        return st_module.columns([1, 6, 1])[1]
+    except Exception:  # pragma: no cover — hand-rolled test doubles
+        return contextlib.nullcontext()
+
+
+def _render_context_chip(st_module: Any, scoring_result: Any) -> None:
+    """"Using current scored policy: <name>" — hidden when nothing is scored."""
+    name = _current_policy_name(scoring_result)
+    if not name:
+        return
+    st_module.caption(f"📊 Using current scored policy: **{_safe_dollar_markdown(name)}**")
+
+
+def _render_suggestion_pills(st_module: Any, state: Any) -> str | None:
+    """Row of suggestion chips. Returns the full question when one is picked.
+
+    ``st.pills`` keeps its selection, and a widget key cannot be cleared after
+    the widget is instantiated, so the key carries a nonce that is bumped on
+    each selection — the next render builds a fresh, unselected widget.
+    """
+    pills = getattr(st_module, "pills", None)
+    nonce = int(state.get(_PILLS_NONCE_KEY, 0))
+    labels = [_STARTER_CHIP_LABELS[p] for p in _STARTER_PROMPTS]
+    by_label = dict(zip(labels, _STARTER_PROMPTS, strict=True))
+
+    if callable(pills):
+        try:
+            choice = pills(
+                "Suggested questions",
+                labels,
+                key=f"_ask_pills_{nonce}",
+                label_visibility="collapsed",
+            )
+        except TypeError:  # pragma: no cover — hand-rolled test doubles
+            choice = pills("Suggested questions", labels)
+        if isinstance(choice, list):
+            choice = choice[0] if choice else None
+        if choice:
+            state[_PILLS_NONCE_KEY] = nonce + 1
+            return by_label.get(str(choice))
+        return None
+
+    # Fallback for runtimes (and UI test doubles) without st.pills. Plain
+    # stacked buttons, not a column grid: this renders inside the hero
+    # column and Streamlit allows only one level of column nesting.
+    for i, label in enumerate(labels):
+        if st_module.button(label, key=f"_ask_starter_{i}"):
+            return by_label[label]
+    return None
+
+
+def _consume_prefill(state: Any, prefill: str | None) -> str | None:
+    """Apply a ``?q=`` / card prefill exactly once per session."""
+    question = (prefill or "").strip()
+    if not question:
+        return None
+    if state.get(_PREFILL_APPLIED_KEY) == question:
+        return None
+    state[_PREFILL_APPLIED_KEY] = question
+    return question
 
 
 def _render_body(
     st_module: Any,
     fiscal_assistant: Any,
     scoring_result: Any,
+    *,
+    prefill: str | None = None,
+    show_hero: bool = True,
 ) -> None:
     state = st_module.session_state
 
@@ -196,18 +367,10 @@ def _render_body(
     # Streamlit Cloud deployments work without an env var.
     diag = _promote_secret_to_env(st_module)
 
-    st_module.subheader("💬 Ask")
-    st_module.markdown(
-        "Pose public-finance questions about this app's scoring or the broader "
-        "fiscal picture. Answers draw on the app's calibrated engine and a "
-        "curated set of authoritative sources — CBO, JCT, Penn Wharton Budget "
-        "Model, Yale Budget Lab, Tax Policy Center, Peterson Foundation, "
-        "BEA, BLS, SSA Trustees, and FRED. Every substantive claim is "
-        "cited — markers with no source are stripped automatically."
-    )
-
     # --- API key check --------------------------------------------------
     if not fiscal_assistant.is_available():
+        if show_hero:
+            _render_hero(st_module)
         _render_unavailable(st_module, diag)
         return
 
@@ -225,41 +388,43 @@ def _render_body(
 
     limiter = _get_rate_limiter(state)
 
-    # --- options bar ----------------------------------------------------
-    cols = st_module.columns([4, 1])
-    with cols[0]:
-        scoring_label = (
-            f"📊 Using current scored policy as context: **{_scoring_summary(scoring_result)}**"
-            if scoring_result is not None
-            else "_No policy scored yet — score one on the Calculator tab to "
-            "ground the conversation in your own numbers._"
-        )
-        st_module.caption(scoring_label)
-    with cols[1]:
-        if st_module.button("🗑 Clear", use_container_width=True):
-            state[_HISTORY_KEY] = []
-            fiscal_assistant.cost.turns = []
-            st_module.rerun()
-
     # Model is fixed to Sonnet 4.6 for cost predictability. To experiment
     # with Opus locally, set ASSISTANT_MODEL=claude-opus-4-7 in your env.
     fiscal_assistant._model = (
         os.environ.get("ASSISTANT_MODEL", "").strip() or "claude-sonnet-4-6"
     )
 
+    # --- hero: title, subtitle, chat input, chips ------------------------
+    # ``st.chat_input`` pins itself to the bottom of the viewport when it is
+    # called at the top level of the page; inside a container it renders
+    # inline, which is where the wireframe puts it.
+    with _hero_column(st_module):
+        if show_hero:
+            _render_hero(st_module)
+        typed = st_module.chat_input(
+            HERO_PLACEHOLDER,
+            max_chars=2000,
+            key="_ask_chat_input",
+        )
+        picked = _render_suggestion_pills(st_module, state)
+
+    # --- context chip + clear -------------------------------------------
+    cols = st_module.columns([4, 1])
+    with cols[0]:
+        _render_context_chip(st_module, scoring_result)
+    with cols[1]:
+        # ``width="stretch"`` rather than the deprecated
+        # ``use_container_width``, which prints a deprecation notice into the
+        # app itself from Streamlit 1.56.
+        if state[_HISTORY_KEY] and st_module.button(
+            "🗑 Clear", key="_ask_clear", width="stretch"
+        ):
+            state[_HISTORY_KEY] = []
+            fiscal_assistant.cost.turns = []
+            st_module.rerun()
+
     # --- daily budget readout ------------------------------------------
     _render_budget_status(st_module, limiter)
-
-    # --- starter prompts (only visible when history is empty) -----------
-    if not state[_HISTORY_KEY]:
-        st_module.markdown("**Try one of these to start:**")
-        prompt_cols = st_module.columns(2)
-        for i, prompt in enumerate(_STARTER_PROMPTS):
-            col = prompt_cols[i % 2]
-            if col.button(prompt, key=f"_ask_starter_{i}", use_container_width=True):
-                state[_PENDING_PROMPT_KEY] = prompt
-                st_module.rerun()
-        st_module.markdown("---")
 
     # --- render history --------------------------------------------------
     history = state[_HISTORY_KEY]
@@ -267,7 +432,7 @@ def _render_body(
     for idx, turn in enumerate(history):
         with st_module.chat_message(turn["role"]):
             if turn["role"] == "assistant":
-                st_module.markdown(_display_answer_markdown(turn["content"]))
+                _render_answer(st_module, turn)
             else:
                 st_module.markdown(_safe_dollar_markdown(turn["content"]))
             if turn["role"] == "assistant":
@@ -280,20 +445,20 @@ def _render_body(
                 _render_assistant_extras(
                     st_module, turn, user_question=paired_question
                 )
-                # Follow-up chips appear only on the most-recent assistant
-                # turn — older suggestions are stale.
+                # Follow-up chips and the continuation affordance apply only
+                # to the most-recent assistant turn — older ones are stale.
                 if idx == last_idx:
+                    _render_continue_affordance(
+                        st_module, state, turn, key_suffix=str(idx)
+                    )
                     _maybe_generate_and_render_followups(
                         st_module, state, fiscal_assistant, turn
                     )
 
-    # --- handle pending starter-prompt click -----------------------------
+    # --- resolve this run's question -------------------------------------
     pending = state.pop(_PENDING_PROMPT_KEY, None)
-
-    # --- chat input ------------------------------------------------------
-    user_message = pending or st_module.chat_input(
-        "Ask a public-finance question…",
-        max_chars=2000,
+    user_message = (
+        pending or picked or typed or _consume_prefill(state, prefill)
     )
 
     if not user_message:
@@ -314,7 +479,7 @@ def _render_body(
 
     # --- render the user turn --------------------------------------------
     with st_module.chat_message("user"):
-        st_module.markdown(user_message)
+        st_module.markdown(_safe_dollar_markdown(user_message))
 
     # --- stream the assistant turn ---------------------------------------
     history_for_api = _history_for_api(state[_HISTORY_KEY])
@@ -322,20 +487,30 @@ def _render_body(
     turn_start = time.time()
     error_msg: str | None = None
     with st_module.chat_message("assistant"):
-        placeholder = st_module.empty()
         # The tool-consultation phase produces no text, which used to look
-        # like a hung request for up to a minute — show life immediately.
-        placeholder.markdown("*Consulting sources…*")
+        # like a hung request for up to a minute — show life immediately,
+        # then clear the status the moment the first token lands.
+        status = st_module.empty()
+        status.markdown("*Consulting sources…*")
+        placeholder = st_module.empty()
         accumulated: list[str] = []
         try:
-            for chunk in fiscal_assistant.stream_response(
-                user_message=user_message,
-                history=history_for_api,
-                scoring_context=scoring_context,
-            ):
-                accumulated.append(chunk)
-                placeholder.markdown(_safe_dollar_markdown("".join(accumulated)))
+            def _tracked() -> Iterator[str]:
+                first = True
+                for chunk in fiscal_assistant.stream_response(
+                    user_message=user_message,
+                    history=history_for_api,
+                    scoring_context=scoring_context,
+                ):
+                    if first:
+                        status.empty()
+                        first = False
+                    accumulated.append(chunk)
+                    yield chunk
+
+            _write_stream(st_module, placeholder, _stream_safe_chunks(_tracked()))
         except Exception as exc:
+            status.empty()
             placeholder.error(f"Assistant error: {exc}")
             error_msg = f"{type(exc).__name__}: {exc}"
             # Still record so a runaway error doesn't go unbilled in budget terms.
@@ -351,8 +526,6 @@ def _render_body(
             return
 
         final_text = fiscal_assistant.last_full_text or "".join(accumulated)
-        placeholder.markdown(_display_answer_markdown(final_text))
-
         turn_entry = {
             "role": "assistant",
             "content": final_text,
@@ -363,8 +536,23 @@ def _render_body(
                 else None
             ),
             "stripped_markers": list(fiscal_assistant.last_stripped_markers),
+            "truncated": bool(getattr(fiscal_assistant, "last_truncated", False)),
         }
+        # Swap the streamed text for the finished render: citation markers
+        # become linked superscripts and the Sources row appears.
+        with _container(placeholder):
+            _render_answer(st_module, turn_entry)
         _render_assistant_extras(st_module, turn_entry)
+        # Same key the history pass will use for this turn once it is
+        # appended (user at N, assistant at N+1) — a button whose key changes
+        # between the run that drew it and the rerun that reads it loses the
+        # click.
+        _render_continue_affordance(
+            st_module,
+            state,
+            turn_entry,
+            key_suffix=str(len(state[_HISTORY_KEY]) + 1),
+        )
 
     # Follow-up generation is deferred to a subsequent rerun (see the
     # render-history pass at the top of _render_body). Storing the seed
@@ -395,6 +583,111 @@ def _render_body(
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _container(placeholder: Any) -> Any:
+    """A context manager that makes ``placeholder`` the active container.
+
+    ``st.empty()`` replaces its whole contents each time ``.container()`` is
+    entered, which is how the finished answer takes over from the streamed
+    text. Test doubles that lack ``.container`` fall back to a no-op.
+    """
+    factory = getattr(placeholder, "container", None)
+    if callable(factory):
+        try:
+            return factory()
+        except Exception:  # pragma: no cover — defensive
+            pass
+    return contextlib.nullcontext()
+
+
+def _write_stream(st_module: Any, placeholder: Any, chunks: Iterable[str]) -> None:
+    """Render a token stream with ``st.write_stream`` inside ``placeholder``.
+
+    Falls back to the pre-redesign repaint loop when the runtime has no
+    ``write_stream`` (the hand-rolled ``st_module`` doubles the UI tests use).
+    """
+    writer = getattr(st_module, "write_stream", None)
+    if callable(writer):
+        with _container(placeholder):
+            writer(chunks)
+        return
+    seen: list[str] = []
+    for chunk in chunks:
+        seen.append(chunk)
+        placeholder.markdown("".join(seen))
+
+
+def _render_continue_affordance(
+    st_module: Any,
+    state: Any,
+    turn: dict[str, Any],
+    *,
+    key_suffix: str,
+) -> None:
+    """Offer a continuation turn when the answer ran out of output budget.
+
+    Without this, a table that stops mid-row simply stops: the reader has no
+    way to tell an incomplete answer from a terse one, and no way to finish it
+    short of retyping the question. ``key_suffix`` keeps the button unique
+    when a truncated history turn and a freshly truncated answer both render
+    in the same run (clicking Continue on a truncated answer that is itself
+    truncated is exactly that case).
+    """
+    if not turn.get("truncated"):
+        return
+    st_module.caption(
+        "✂️ This answer hit its length budget and may end mid-thought."
+    )
+    if st_module.button(
+        "Continue the answer →",
+        key=f"_ask_continue_{key_suffix}",
+        help="Sends a follow-up asking the assistant to pick up where it stopped.",
+    ):
+        state[_PENDING_PROMPT_KEY] = CONTINUE_PROMPT
+        st_module.rerun()
+
+
+def _engine_result(scoring_result: Any) -> Any:
+    """Unwrap whatever the app stored in ``session_state['results']``.
+
+    Three shapes have to work: the legacy dict written by
+    ``ui/policy_execution.py`` (``{"policy", "result", "policy_name", ...}``),
+    the ``ScoredResult`` object Phase 4 introduces, and a bare
+    ``ScoringResult``. Read through this rather than reaching for ``.policy``
+    directly — the legacy dict has no such attribute, which is why the Ask
+    tab's scoring context used to inject nothing but zeros.
+    """
+    if scoring_result is None:
+        return None
+    if hasattr(scoring_result, "get"):
+        inner = scoring_result.get("result")
+        if inner is not None:
+            return inner
+    inner = getattr(scoring_result, "result", None)
+    if inner is not None and inner is not scoring_result:
+        return inner
+    return scoring_result
+
+
+def _current_policy_name(scoring_result: Any) -> str | None:
+    """Name of the policy behind the current result, or ``None``."""
+    if scoring_result is None:
+        return None
+    name = getattr(scoring_result, "policy_name", None)
+    if not name and hasattr(scoring_result, "get"):
+        name = scoring_result.get("policy_name")
+    if not name:
+        for candidate in (scoring_result, _engine_result(scoring_result)):
+            policy = getattr(candidate, "policy", None)
+            if policy is None and hasattr(candidate, "get"):
+                policy = candidate.get("policy")
+            if policy is not None:
+                name = getattr(policy, "name", None)
+                if name:
+                    break
+    text = str(name).strip() if name else ""
+    return text or None
 
 
 def _detect_typo(keys: list[str], expected: str, max_distance: int = 2) -> str | None:
@@ -512,29 +805,34 @@ def _render_unavailable(st_module: Any, diag: dict[str, Any] | None = None) -> N
 
 
 def _scoring_context(scoring_result: Any) -> dict[str, Any] | None:
-    """Distill a ScoringResult into a small dict for prompt injection."""
+    """Distill the current run into a small dict for prompt injection."""
     if scoring_result is None:
         return None
     try:
-        policy = getattr(scoring_result, "policy", None)
-        cred = getattr(scoring_result, "credibility", None)
+        engine = _engine_result(scoring_result)
+        if engine is None:
+            return None
+        policy = getattr(engine, "policy", None)
+        cred = getattr(engine, "credibility", None) or getattr(
+            scoring_result, "credibility", None
+        )
         return {
-            "policy_name": getattr(policy, "name", None) if policy else None,
+            "policy_name": _current_policy_name(scoring_result),
             "policy_type": (
                 getattr(getattr(policy, "policy_type", None), "value", None)
                 if policy
                 else None
             ),
             "ten_year_deficit_impact_billions": float(
-                getattr(scoring_result, "total_10_year_cost", 0.0)
+                getattr(engine, "total_10_year_cost", 0.0)
             ),
             "static_total_billions": float(
-                getattr(scoring_result, "total_static_cost", 0.0)
+                getattr(engine, "total_static_cost", 0.0)
             ),
             "revenue_feedback_10yr_billions": float(
-                getattr(scoring_result, "revenue_feedback_10yr", 0.0)
+                getattr(engine, "revenue_feedback_10yr", 0.0)
             ),
-            "is_dynamic": bool(getattr(scoring_result, "is_dynamic", False)),
+            "is_dynamic": bool(getattr(engine, "is_dynamic", False)),
             "credibility": {
                 "evidence_type": getattr(cred, "evidence_type", None),
                 "n_benchmarks": getattr(cred, "n_benchmarks", None),
@@ -548,9 +846,8 @@ def _scoring_context(scoring_result: Any) -> dict[str, Any] | None:
 
 
 def _scoring_summary(scoring_result: Any) -> str:
-    policy = getattr(scoring_result, "policy", None)
-    name = getattr(policy, "name", None) or "current policy"
-    impact = getattr(scoring_result, "total_10_year_cost", None)
+    name = _current_policy_name(scoring_result) or "current policy"
+    impact = getattr(_engine_result(scoring_result), "total_10_year_cost", None)
     if impact is None:
         return name
     sign = "+" if impact >= 0 else "−"
@@ -735,7 +1032,7 @@ def _render_followups(
         if col.button(
             question,
             key=f"_ask_followup_{i}_{hash(question) & 0xFFFFFF:06x}",
-            use_container_width=True,
+            width="stretch",
         ):
             state[_PENDING_PROMPT_KEY] = question
             st_module.rerun()
@@ -749,10 +1046,10 @@ def _render_assistant_extras(
 ) -> None:
     """Render a small per-turn caption and the Share affordance.
 
-    Tool internals are intentionally hidden from the reader by default —
-    sources are already cited in the answer via [^N] footnotes. Deployers
-    who want to inspect tool calls can set ASSISTANT_SHOW_TOOLS=1 in the
-    environment to surface a collapsed expander.
+    The numbered "Sources (N)" row now sits directly under the answer (see
+    :func:`_render_answer`), so this no longer duplicates it with a "Drew on
+    N sources" expander. Tool internals stay hidden unless a deployer sets
+    ASSISTANT_SHOW_TOOLS=1.
     """
     provenance = turn.get("provenance") or []
     usage = turn.get("usage")
@@ -768,17 +1065,6 @@ def _render_assistant_extras(
         ):
             st_module.markdown(render_provenance_footer(provenance))
 
-    if provenance:
-        # Count distinct tools used (more reader-friendly than the raw list),
-        # and make the claim inspectable: the expander lists each source
-        # consulted in plain language, with links where available.
-        distinct = len({p.get("tool") for p in provenance})
-        with st_module.expander(
-            f"Drew on {distinct} source{'s' if distinct != 1 else ''}",
-            expanded=False,
-        ):
-            for line in describe_sources(provenance):
-                st_module.markdown(f"- {line}", unsafe_allow_html=True)
     if stripped:
         st_module.caption(
             f"⚠️ {len(stripped)} unsupported claim{'s' if len(stripped) != 1 else ''} stripped"
@@ -792,7 +1078,10 @@ def _render_assistant_extras(
             answer=str(turn["content"]),
             provenance=provenance,
             model=(usage or {}).get("model") if isinstance(usage, dict) else None,
-            turn_key=str(id(turn)),
+            # Keyed on the content, not ``id(turn)``: under ``st.fragment``
+            # plus ``st.navigation`` a turn dict can be rebuilt at a new
+            # address, which silently reset the share widget's state.
+            turn_key=f"{hash((user_question, str(turn['content'])[:200])) & 0xFFFFFF:06x}",
         )
 
 
@@ -867,4 +1156,10 @@ def _record_turn(
     )
 
 
-__all__ = ["render_ask_tab"]
+__all__ = [
+    "CONTINUE_PROMPT",
+    "HERO_SUBTITLE",
+    "HERO_TITLE",
+    "queue_question",
+    "render_ask_tab",
+]

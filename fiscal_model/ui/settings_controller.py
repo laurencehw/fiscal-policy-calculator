@@ -7,7 +7,43 @@ from __future__ import annotations
 import datetime
 from typing import Any
 
+from .session_state import (
+    KEY_SETTING_DARK_MODE,
+    KEY_SETTING_DATA_YEAR,
+    KEY_SETTING_MACRO_MODEL,
+    KEY_SETTING_USE_MICROSIM,
+    KEY_SETTING_USE_MICROSIM_DISTRIBUTION,
+    KEY_SETTING_USE_REAL_DATA,
+    seed_widget_default,
+)
+
+# Pre-existing widget key: share_links.py writes it and tests/test_share_links.py
+# pins the literal, so it keeps the now-stale ``sidebar_`` prefix. New settings
+# widgets use the ``setting_*`` namespace.
 _DYNAMIC_SCORING_KEY = "sidebar_setting_dynamic_scoring"
+
+#: Set by a page (before the chrome renders) to say "I render the dynamic
+#: toggle inline beside my Score button, don't render it here". Two widgets
+#: sharing one key in a single run is a Streamlit ``DuplicateWidgetID`` error;
+#: the value still lives under the same key, so share links and the chrome
+#: agree either way. Popped on read, so the claim lasts exactly one run.
+INLINE_DYNAMIC_TOGGLE_CLAIM = "_inline_dynamic_toggle_claim"
+
+
+def claim_inline_dynamic_toggle(st_module: Any) -> None:
+    """Tell the next :func:`render_settings_tab` that the page owns the toggle."""
+    st_module.session_state[INLINE_DYNAMIC_TOGGLE_CLAIM] = True
+
+
+def _seed_widget_default(
+    st_module: Any, key: str, default: Any, *, force: bool = False
+) -> None:
+    """Seed a widget key before instantiation (see :func:`seed_widget_default`).
+
+    Thin alias kept because the module-private name is what the rest of this
+    file reads; the cross-page mirroring lives in ``ui/session_state.py``.
+    """
+    seed_widget_default(st_module, key, default, force=force)
 
 
 def _available_irs_data_years() -> list[int]:
@@ -35,15 +71,24 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
     Render settings panel and return selected configuration values.
     """
     macro_model = None
+    inline_claimed = bool(
+        st_module.session_state.pop(INLINE_DYNAMIC_TOGGLE_CLAIM, False)
+    )
 
     with settings_tab:
         # Dark mode toggle (persisted in session state)
         if "dark_mode" not in st_module.session_state:
             st_module.session_state.dark_mode = False
 
+        # The widget key is distinct from the ``dark_mode`` code key on purpose:
+        # the block below writes ``dark_mode`` *after* the widget renders, which
+        # Streamlit forbids for a key bound to an already-instantiated widget.
+        _seed_widget_default(
+            st_module, KEY_SETTING_DARK_MODE, bool(st_module.session_state.dark_mode)
+        )
         dark_mode = st_module.checkbox(
             "🌙 Dark mode",
-            value=st_module.session_state.dark_mode,
+            key=KEY_SETTING_DARK_MODE,
             help="Toggle between light and dark theme. Persists during session.",
         )
         if dark_mode != st_module.session_state.dark_mode:
@@ -51,21 +96,34 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
             # Force rerun to apply CSS changes
             st_module.rerun()
 
-        dynamic_scoring = st_module.checkbox(
-            "Enable dynamic scoring",
-            value=bool(st_module.session_state.get(_DYNAMIC_SCORING_KEY, False)),
-            key=_DYNAMIC_SCORING_KEY,
-            help=(
-                "Add macroeconomic feedback to the estimate. "
-                "A tax cut that boosts GDP generates some offsetting revenue; "
-                "a spending increase may crowd out private investment. "
-                "Uses FRB/US-calibrated multipliers from the Federal Reserve."
-            ),
-        )
+        _seed_widget_default(st_module, _DYNAMIC_SCORING_KEY, False)
+        if inline_claimed:
+            # The page renders this control beside its Score button
+            # (DECISIONS #2); read the shared key rather than duplicating it.
+            dynamic_scoring = bool(st_module.session_state.get(_DYNAMIC_SCORING_KEY, False))
+            st_module.caption(
+                "Dynamic scoring is toggled beside the Score button on this page."
+            )
+        else:
+            dynamic_scoring = st_module.checkbox(
+                "Enable dynamic scoring",
+                key=_DYNAMIC_SCORING_KEY,
+                help=(
+                    "Add a labeled Dynamic view to the estimate. A tax cut that "
+                    "boosts GDP generates some offsetting revenue; a spending "
+                    "increase may crowd out private investment. Uses "
+                    "FRB/US-calibrated multipliers from the Federal Reserve. "
+                    "The headline stays the conventional score either way."
+                ),
+            )
         if dynamic_scoring:
+            _seed_widget_default(
+                st_module, KEY_SETTING_MACRO_MODEL, "FRB/US-Lite (recommended)"
+            )
             macro_model = st_module.selectbox(
                 "Macro model",
                 ["FRB/US-Lite (recommended)", "Simple Multiplier"],
+                key=KEY_SETTING_MACRO_MODEL,
                 help=(
                     "**FRB/US-Lite** — Federal Reserve-calibrated multipliers "
                     "(spending 1.4x, tax 0.7x, with decay). "
@@ -74,9 +132,10 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
             )
 
         with st_module.expander("Data & methodology"):
+            _seed_widget_default(st_module, KEY_SETTING_USE_REAL_DATA, True)
             use_real_data = st_module.checkbox(
                 "Use real IRS/FRED data",
-                value=True,
+                key=KEY_SETTING_USE_REAL_DATA,
                 help=(
                     "When enabled, the model auto-populates taxpayer counts and "
                     "income levels from IRS Statistics of Income tables, and GDP "
@@ -85,9 +144,20 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
                 ),
             )
 
+            # The option list is discovered from the shipped data files, so a
+            # stored year can go stale (or start as the schema's ``None``).
+            # Fall back to the newest available vintage, matching the old
+            # unkeyed default of ``index=0``.
+            available_years = _available_irs_data_years()
+            _seed_widget_default(st_module, KEY_SETTING_DATA_YEAR, available_years[0])
+            if st_module.session_state.get(KEY_SETTING_DATA_YEAR) not in available_years:
+                _seed_widget_default(
+                    st_module, KEY_SETTING_DATA_YEAR, available_years[0], force=True
+                )
             data_year = st_module.selectbox(
                 "IRS data year",
-                _available_irs_data_years(),
+                available_years,
+                key=KEY_SETTING_DATA_YEAR,
                 help=(
                     "Which year of IRS Statistics of Income data to use for "
                     "taxpayer counts and income distributions. Options are "
@@ -110,9 +180,10 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
                     f"This is normal — IRS SOI data has a ~2 year publication lag."
                 )
 
+            _seed_widget_default(st_module, KEY_SETTING_USE_MICROSIM, False)
             use_microsim_general = st_module.checkbox(
                 "Microsimulation mode for revenue scoring (experimental)",
-                value=False,
+                key=KEY_SETTING_USE_MICROSIM,
                 help=(
                     "Score revenue via individual tax units (JCT-style) instead of "
                     "bracket averages. More accurate for phase-outs, but requires "
@@ -121,9 +192,10 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
                 ),
             )
 
+            _seed_widget_default(st_module, KEY_SETTING_USE_MICROSIM_DISTRIBUTION, True)
             use_microsim_distribution = st_module.checkbox(
                 "Return-level microsim for distributional analysis",
-                value=True,
+                key=KEY_SETTING_USE_MICROSIM_DISTRIBUTION,
                 help=(
                     "Default on. Uses return-level microsimulation for who-pays "
                     "tables (ordinary vs preferential rates, SALT, refundable "

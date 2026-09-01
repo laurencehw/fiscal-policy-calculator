@@ -4,6 +4,15 @@ Application data for the Fiscal Policy Calculator.
 Contains:
 - CBO_SCORE_MAP: Official CBO/JCT scores for preset policies
 - PRESET_POLICIES: Preset policy configurations
+- PRESETS_BY_ID: the same preset entries, keyed by stable slug id
+
+``PRESET_POLICIES`` stays keyed by its emoji display label and keeps its
+iteration order: the sidebar, the share links, ``CBO_SCORE_MAP`` and the
+validation mapping all key on those labels today. The catalog *schema* the
+redesign needs — a stable ``preset_id``, ``exclusive_group(s)``/``subsumes``
+overlap structure, and the five values ``tags`` — is attached onto each entry
+at the bottom of this module from :mod:`fiscal_model.preset_ids`. Nothing
+about the labels or their order changes.
 """
 
 # =============================================================================
@@ -771,3 +780,25 @@ PRESET_POLICIES = {
         "climate_type": "extend_ira",
     },
 }
+
+
+# =============================================================================
+# CATALOG SCHEMA - stable ids, exclusivity groups, and values tags
+# =============================================================================
+# Attached after the literal above so the label keys and their order stay
+# exactly as written. Each entry gains:
+#   preset_id         stable kebab-case slug, safe for share URLs
+#   exclusive_groups  tuple of "pick at most one" group ids (may be empty)
+#   exclusive_group   the first of those, or None (plan §5.3 names a singular
+#                     field; the plural is authoritative)
+#   subsumes          ids this bundle already contains
+#   tags              {direction, progressivity, govt_size, base, generational}
+#   tag_sources       per-tag provenance (engine / fallback / derived / override)
+#
+# See fiscal_model/preset_ids.py for the registry and helpers
+# (resolve_preset, conflicting_selections, ...) and
+# scripts/derive_policy_tags.py for how the tags are derived.
+from fiscal_model.preset_ids import attach_catalog_metadata  # noqa: E402
+
+#: The same preset dicts as PRESET_POLICIES, keyed by stable id.
+PRESETS_BY_ID: dict[str, dict] = attach_catalog_metadata(PRESET_POLICIES)

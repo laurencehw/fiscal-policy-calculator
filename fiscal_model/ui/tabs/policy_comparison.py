@@ -194,7 +194,7 @@ def render_policy_comparison_tab(
                     for row in model_results
                 ]
             )
-            st_module.dataframe(comparison_df, use_container_width=True, hide_index=True)
+            st_module.dataframe(comparison_df, width="stretch", hide_index=True)
 
             divergence_rows: list[dict[str, float | str]] = []
             for policy_name in policies_to_compare:
@@ -230,7 +230,7 @@ def render_policy_comparison_tab(
                         for row in divergence_rows
                     ]
                 )
-                st_module.dataframe(divergence_df, use_container_width=True, hide_index=True)
+                st_module.dataframe(divergence_df, width="stretch", hide_index=True)
 
             st_module.markdown("---")
             st_module.subheader("10-Year Effect by Model")
@@ -253,7 +253,7 @@ def render_policy_comparison_tab(
                 height=500,
                 hovermode="x",
             )
-            st_module.plotly_chart(fig_compare, use_container_width=True)
+            st_module.plotly_chart(fig_compare, width="stretch")
 
             st_module.markdown("---")
             st_module.subheader("Year-by-Year Comparison")
@@ -276,7 +276,7 @@ def render_policy_comparison_tab(
                 height=500,
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
             )
-            st_module.plotly_chart(fig_timeline, use_container_width=True)
+            st_module.plotly_chart(fig_timeline, width="stretch")
 
             st_module.markdown("---")
             st_module.subheader("📝 Model Divergence & Insights")

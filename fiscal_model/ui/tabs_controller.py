@@ -30,6 +30,29 @@ CALCULATOR_TAB_LABELS: tuple[str, ...] = (
     "🗺️ State",
 )
 
+# Deep-view labels used by the shared result panel (``components/results.py``).
+# The panel renders the headline, Key Metrics and exports itself, so the
+# summary tab is replaced by a "Details" tab holding the charts, assumptions,
+# comparison and sensitivity blocks.
+CALCULATOR_DEEP_TAB_LABELS: tuple[str, ...] = (
+    "👥 Distribution",
+    "🌍 Economic Effects",
+    "⚖️ Scoring Models",
+    "🌐 Generational",
+    "🗺️ State",
+    "📋 Details",
+)
+
+_LABEL_TO_SLOT: dict[str, str] = {
+    "📊 Results & Details": "tab_summary",
+    "👥 Distribution": "tab_distribution",
+    "🌍 Economic Effects": "tab_economic",
+    "⚖️ Scoring Models": "tab_scoring",
+    "🌐 Generational": "tab_generational",
+    "🗺️ State": "tab_state",
+    "📋 Details": "tab_details",
+}
+
 
 def _render_tab_error(st_module: Any, tab_label: str, exc: Exception) -> None:
     """Render a user-safe tab failure without breaking sibling tabs."""
@@ -66,26 +89,23 @@ def _latest_soi_year() -> int:
 def build_main_tabs(
     st_module: Any,
     mode: str,
+    *,
+    include_summary: bool = True,
 ) -> dict[str, Any]:
     """
-    Create Calculator nested result tabs (6 tabs).
+    Create the nested result tabs.
 
-    Bill Tracker and Methodology remain top-level app tabs. Generational and
-    State analysis are nested here so the primary score loop stays together.
+    ``include_summary=True`` (default, legacy layout) opens with
+    "Results & Details". ``include_summary=False`` is the shared result panel:
+    the headline lives above the tabs, so the summary slot becomes "Details".
     """
     del mode  # reserved for future mode-specific tab sets
-    labels = list(CALCULATOR_TAB_LABELS)
+    labels = list(CALCULATOR_TAB_LABELS if include_summary else CALCULATOR_DEEP_TAB_LABELS)
 
     tabs = st_module.tabs(labels)
-    tab_map = dict(zip(labels, tabs, strict=False))
-
     return {
-        "tab_summary": tab_map["📊 Results & Details"],
-        "tab_distribution": tab_map["👥 Distribution"],
-        "tab_economic": tab_map["🌍 Economic Effects"],
-        "tab_scoring": tab_map["⚖️ Scoring Models"],
-        "tab_generational": tab_map["🌐 Generational"],
-        "tab_state": tab_map["🗺️ State"],
+        _LABEL_TO_SLOT[label]: tab
+        for label, tab in zip(labels, tabs, strict=False)
     }
 
 
@@ -167,9 +187,19 @@ def render_result_tabs(
     model_available: bool,
     is_spending: bool,
     mode: str,
+    *,
+    include_summary: bool = True,
+    scored: Any = None,
 ) -> None:
     """
-    Render post-calculation tabs for the Calculator section.
+    Render post-calculation tabs.
+
+    ``include_summary=False`` is the shared-result-panel layout: the headline,
+    Key Metrics and exports are rendered above these tabs by
+    ``components.results.render_results``, and the summary slot is replaced by
+    a "Details" tab. ``scored`` is the run's single
+    :class:`~components.results.ScoredResult`, threaded through so the tab
+    bodies read the same numbers as the panel above them.
     """
     del mode
     current_run_id = getattr(st_module.session_state, "current_run_id", None)
@@ -180,10 +210,10 @@ def render_result_tabs(
 
     # ── Onboarding state (no results yet) ────────────────────────────────
     if not st_module.session_state.results:
-        with tabs["tab_summary"]:
+        with tabs.get("tab_summary") or tabs.get("tab_details"):
             st_module.markdown("### Welcome to the Fiscal Policy Calculator")
             st_module.markdown(
-                "Select a tax or spending proposal in the sidebar and click "
+                "Choose a proposal above (or define your own on **Tailor**) and click "
                 "**Calculate Impact** to see its 10-year budgetary effect.\n\n"
                 "**Quick examples to try:**"
             )
@@ -203,7 +233,7 @@ def render_result_tabs(
             with col_c:
                 st_module.markdown(
                     "**Infrastructure $100B/yr**  \n"
-                    "Select *Spending program* in sidebar  \n"
+                    "Choose *Spending program* on **Tailor**  \n"
                     "*Model GDP effects with multipliers*"
                 )
             st_module.markdown("---")
@@ -247,26 +277,47 @@ def render_result_tabs(
     result_data = st_module.session_state.results
     policy = result_data.get("policy")
 
-    # Tab 1: Results & Details (merged)
-    with tabs["tab_summary"]:
-        def _render_summary_body() -> None:
-            if is_stale:
-                st_module.warning(
-                    "Inputs changed since the last run. "
-                    "Click **Calculate Impact** to refresh results."
+    # Tab 1: Results & Details (legacy layout) or Details (panel layout)
+    if include_summary:
+        with tabs["tab_summary"]:
+            def _render_summary_body() -> None:
+                if is_stale:
+                    st_module.warning(
+                        "Inputs changed since the last run. "
+                        "Click **Calculate Impact** to refresh results."
+                    )
+                deps.render_results_summary_tab(
+                    st_module=st_module,
+                    result_data=result_data,
+                    cbo_score_map=deps.CBO_SCORE_MAP,
                 )
-            deps.render_results_summary_tab(
-                st_module=st_module,
-                result_data=result_data,
-                cbo_score_map=deps.CBO_SCORE_MAP,
-            )
-            # Detailed breakdown in an expander within the same tab
-            with st_module.expander("📋 Detailed Year-by-Year Breakdown", expanded=False):
-                deps.render_detailed_results_tab(
-                    st_module=st_module, result_data=result_data
+                # Detailed breakdown in an expander within the same tab
+                with st_module.expander("📋 Detailed Year-by-Year Breakdown", expanded=False):
+                    deps.render_detailed_results_tab(
+                        st_module=st_module, result_data=result_data, scored=scored
+                    )
+
+            _render_guarded_tab(st_module, "Results & Details", _render_summary_body)
+    elif "tab_details" in tabs:
+        with tabs["tab_details"]:
+            def _render_details_body() -> None:
+                from fiscal_model.ui.tabs.results_summary import (
+                    ensure_summary,
+                    render_details_block,
                 )
 
-        _render_guarded_tab(st_module, "Results & Details", _render_summary_body)
+                summary = ensure_summary(
+                    result_data, scored, cbo_score_map=deps.CBO_SCORE_MAP
+                )
+                render_details_block(
+                    st_module, summary, result_data, deps.CBO_SCORE_MAP
+                )
+                with st_module.expander("📋 Detailed Year-by-Year Breakdown", expanded=False):
+                    deps.render_detailed_results_tab(
+                        st_module=st_module, result_data=result_data, scored=scored
+                    )
+
+            _render_guarded_tab(st_module, "Details", _render_details_body)
 
     # Tab 2: Distribution
     with tabs["tab_distribution"]:

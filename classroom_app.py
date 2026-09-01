@@ -72,14 +72,29 @@ TYPE_ICONS = {
 # Entry point
 # ---------------------------------------------------------------------------
 
-def render_classroom_app() -> None:
-    """Render the full classroom UI."""
+def _configure_page_once() -> None:
+    """Set the page config only when this file is the Streamlit entry script.
+
+    ``streamlit run classroom_app.py`` runs this module as ``__main__`` and gets
+    its own title and icon. When Classroom renders inside the main app — as the
+    ``/classroom`` page or via the ``?mode=classroom`` alias — ``app.py`` owns
+    ``st.set_page_config`` (the router calls it exactly once), so we skip it
+    rather than override the app-wide title. No exception guard is needed:
+    Streamlit >= 1.45 tolerates repeat calls, and the requirements floor is 1.50.
+    """
+    if __name__ != "__main__":
+        return
     st.set_page_config(
         page_title="Classroom Mode — Fiscal Policy Calculator",
         page_icon="📚",
         layout="wide",
         initial_sidebar_state="auto",
     )
+
+
+def render_classroom_app() -> None:
+    """Render the full classroom UI."""
+    _configure_page_once()
 
     loader = AssignmentLoader()
     runner = ExerciseRunner()

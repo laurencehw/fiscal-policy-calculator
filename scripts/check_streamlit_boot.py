@@ -3,8 +3,8 @@
 Start the Streamlit app locally and verify core routes return the app shell.
 
 This is a CI smoke check, not a full browser test. It catches deployment-class
-failures where Streamlit cannot boot, bind a port, or serve the calculator and
-classroom-mode entry URLs.
+failures where Streamlit cannot boot, bind a port, or serve the multipage
+routes and the classroom-mode entry URLs.
 
 Usage:
     python scripts/check_streamlit_boot.py
@@ -54,10 +54,52 @@ def _build_command(entrypoint: Path, port: int) -> list[str]:
     ]
 
 
+#: The exact legacy share link in the acceptance criteria (plan §9.7): the
+#: pre-redesign URL shape, carrying the live emoji display label.
+LEGACY_PRESET_URL_QUERY = (
+    "?analysis=preset"
+    "&preset=%F0%9F%8F%9B%EF%B8%8F+TCJA+Full+Extension+%28CBO%3A+%244.6T%29"
+    "&dynamic=0&run=1"
+)
+
+
 def _route_checks(base_url: str) -> list[dict[str, str]]:
+    """Routes the app must serve.
+
+    Three groups:
+
+    1. **Pages.** ``/`` is the Ask home (the default ``st.Page``); ``/build``,
+       ``/tailor``, ``/explore``, ``/tracker``, ``/methodology`` and
+       ``/classroom`` are the registered page URLs. ``/ask`` is *not* a
+       registered pathname — Streamlit forces the default page's ``url_path``
+       to ``""`` — so it exercises the canonicalisation in
+       ``app._apply_legacy_url_shim``.
+    2. **The URL contract** (plan §7): ``?preset=`` / ``?type=…&who=…`` links
+       with ``run=1``, which boot *and score* on arrival, and ``/ask?q=``.
+    3. **Back-compat.** ``/?mode=classroom`` predates the router and is still
+       linked from the app copy and the README; the legacy ``?analysis=preset``
+       link is acceptance criterion §9.7.
+    """
     return [
-        {"name": "calculator", "url": f"{base_url}/"},
-        {"name": "classroom", "url": f"{base_url}/?mode=classroom"},
+        {"name": "home_ask", "url": f"{base_url}/"},
+        {"name": "build", "url": f"{base_url}/build"},
+        {"name": "tailor", "url": f"{base_url}/tailor"},
+        {"name": "explore", "url": f"{base_url}/explore"},
+        {"name": "tracker", "url": f"{base_url}/tracker"},
+        {"name": "methodology", "url": f"{base_url}/methodology"},
+        {"name": "classroom", "url": f"{base_url}/classroom"},
+        {"name": "ask_pathname", "url": f"{base_url}/ask"},
+        {"name": "ask_prefill", "url": f"{base_url}/ask?q=x"},
+        {
+            "name": "explore_preset",
+            "url": f"{base_url}/explore?preset=tcja-full-extension&run=1",
+        },
+        {
+            "name": "tailor_contract",
+            "url": f"{base_url}/tailor?type=income&rate=2&who=top400k&phase=1&run=1",
+        },
+        {"name": "explore_legacy_label", "url": f"{base_url}/{LEGACY_PRESET_URL_QUERY}"},
+        {"name": "classroom_legacy", "url": f"{base_url}/?mode=classroom"},
     ]
 
 
@@ -132,7 +174,7 @@ def _wait_for_server(
                 "ok": False,
                 "message": f"Streamlit process exited early with code {process.returncode}.",
             }
-        last_report = _check_route("calculator", url, timeout_seconds=2.0)
+        last_report = _check_route("home_ask", url, timeout_seconds=2.0)
         if last_report["ok"]:
             return {"ok": True, "message": "Streamlit server is accepting requests."}
         time.sleep(1.0)

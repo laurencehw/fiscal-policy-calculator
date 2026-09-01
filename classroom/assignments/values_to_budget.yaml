@@ -1,0 +1,236 @@
+id: values_to_budget
+title: "Build a Budget From Your Philosophy, Then Defend It"
+description: >
+  The normative-to-positive mapping, as an exercise. Start from a stated fiscal
+  philosophy on Build's "Start from your values" panel, watch a deterministic
+  selector turn it into a package of scored policies, then defend the package —
+  including the parts you did not choose and would not have chosen. Uses the
+  values links directly: open /build?values=<archetype_id> and the panel
+  restores that philosophy, its dials, and its package.
+complexity_levels:
+  - undergraduate
+  - graduate
+  - advanced
+estimated_minutes: 50
+tags:
+  - normative_economics
+  - budget_process
+  - deficit
+  - distributional_analysis
+  - values
+learning_objectives:
+  - "Translate a normative commitment into an explicit values vector"
+  - "Trace how tags plus a values vector determine a package, with no discretion in between"
+  - "Quantify the cost of a protected commitment in coverage of a deficit target"
+  - "Defend a package you did not assemble by hand, including its uncomfortable parts"
+
+exercises:
+  - id: values_ug_ex1
+    title: "Pick a Philosophy and Read Its Package"
+    type: parameter_exploration
+    complexity: undergraduate
+    prompt: >
+      Open the Build page on "Start from your values"
+      (/build?values=deficit-hawk) and read the panel on the right.
+
+      Every archetype is written as its own holder's steelman, in value
+      language: no party, no politician. The panel shows five dials, a list of
+      protected commitments, and the package those imply.
+
+      Work through all five philosophies — deficit-hawk, small-government,
+      growth-first, egalitarian, generational-steward — by editing the ?values=
+      slug in the URL. For each one, record:
+      (a) how many policies it selects,
+      (b) what share of its own deficit target it reaches,
+      (c) the single largest policy in the package.
+
+      Then answer with the number of policies the *deficit-hawk* package
+      contains.
+
+      Nothing here needs an API key: the archetype path never calls a model.
+    parameters:
+      - name: n_policies
+        label: "Policies in the deficit-hawk package"
+        min: 1.0
+        max: 20.0
+        step: 1.0
+        default: 12.0
+        unit: "policies"
+    hints:
+      - level: 1
+        text: >
+          The panel's coverage line reads "N policies, X% of target". The
+          selector is capped at 12 policies (MAX_VALUES_POLICIES) and floored
+          at 4 (MIN_VALUES_POLICIES), and against a 3%-of-GDP target it hits
+          the cap.
+      - level: 2
+        text: >
+          The five archetypes reach different shares of *different* targets.
+          Target is itself a value: deficit-hawk, small-government and
+          generational-steward aim at 3.0% of GDP; growth-first at 4.0%;
+          egalitarian at 4.5%. Comparing coverage across them without
+          comparing targets is a category error.
+    validation:
+      method: range_check
+      min_acceptable: 10.0
+      max_acceptable: 12.0
+    expected_insight: >
+      The same catalog of ~47 scored policies produces five visibly different
+      packages, and none of them is a strawman. The differences come entirely
+      from the values vector and the policy tags — there is no step in between
+      where a model, or an author, picks a favourite.
+
+  - id: values_ug_ex2
+    title: "What Does a Protected Commitment Cost?"
+    type: target_finding
+    complexity: undergraduate
+    prompt: >
+      A "protected" commitment is a veto, not a preference: no alignment score
+      buys past it. The deficit-hawk philosophy protects middle-class rates and
+      safety-net transfers, which removes every consumption-base raiser (the
+      tariffs, the carbon tax), the employer-health-exclusion cap, and the ACA
+      premium-credit repeal from the candidate set.
+
+      In the panel, note the coverage of the deficit-hawk package. Then remove
+      "Middle-class rates" from the Protected control and note it again.
+
+      Enter the *increase* in coverage, in percentage points.
+
+      Every edit re-runs the selector with no model call — the package updates
+      the moment you let go of the control.
+    parameters:
+      - name: coverage_gain_pp
+        label: "Coverage gain from dropping the middle-class protection (pp)"
+        min: 0.0
+        max: 60.0
+        step: 1.0
+        default: 15.0
+        unit: "pp"
+    hints:
+      - level: 1
+        text: >
+          The protection is worth roughly what the excluded raisers are worth.
+          The universal 10% tariff alone scores -$2,000B and the $50/ton carbon
+          tax -$1,700B against a gap near $17,900B.
+      - level: 2
+        text: >
+          Coverage is (deficit reduction) / (gap to target). Adding ~$3.7T of
+          newly-eligible raisers to a ~$17.9T gap is worth on the order of 10-20
+          percentage points, depending on what they displace at the 12-policy cap.
+    validation:
+      method: range_check
+      min_acceptable: 3.0
+      max_acceptable: 40.0
+    expected_insight: >
+      Commitments are priced, not free. "Don't raise taxes on the middle class"
+      is a defensible position with a number attached to it, and the number is
+      the share of the target you give up — or the policies you have to accept
+      elsewhere to make up for it.
+
+  - id: values_grad_ex1
+    title: "Contest the Reading"
+    type: comparison
+    complexity: graduate
+    prompt: >
+      The panel's right-hand side is headed "HOW I READ YOUR PHILOSOPHY —
+      CONTEST ANY OF IT". That is the whole design: the reading is a claim, and
+      it is editable.
+
+      Starting from any archetype, move exactly one dial (redistribution,
+      deficit concern, size of government, growth priority, generational
+      weight) by 0.4 in either direction and record which policies enter and
+      leave the package.
+
+      Then answer: how many of the twelve picks changed identity?
+
+      Do this three times, on three different dials. Note that the free-text
+      box, when a key is configured, produces *only* a vector and one sentence
+      of reading — it cannot name a policy, so anything you disagree with in
+      the package is downstream of a number you can see and change.
+    parameters:
+      - name: picks_changed
+        label: "Picks that changed after one 0.4 dial move"
+        min: 0.0
+        max: 12.0
+        step: 1.0
+        default: 3.0
+        unit: "policies"
+    hints:
+      - level: 1
+        text: >
+          Alignment is a weighted sum of five terms (progressivity x
+          redistribution, govt_size tag x govt_size dial, a growth-cost term, a
+          generational term, and a scale term weighted by deficit concern).
+          Moving one dial 0.4 shifts one term by at most ~0.4 x its weight,
+          which reorders the middle of the ranking more than the ends.
+      - level: 2
+        text: >
+          The biggest raiser in a package rarely moves: it wins on the scale
+          term whatever else you believe. The interesting churn is between the
+          $200B-$800B options, where the value terms dominate the size term.
+    validation:
+      method: none
+    expected_insight: >
+      Sensitivity is informative. A pick that survives every dial move is
+      robust to your philosophy — which is a different, and stronger, claim
+      than "it fits my philosophy". A pick that flips on a 0.4 nudge is telling
+      you the package is nearly indifferent between it and its neighbour.
+
+  - id: values_adv_ex1
+    title: "Defend the Package You Did Not Choose"
+    type: open_analysis
+    complexity: advanced
+    prompt: >
+      Load your package into the checklist ("Load into the checklist") and
+      read the scoreboard. Then write a 700-word defence of it, addressed to
+      someone who holds a different philosophy. Your defence must:
+
+      1. State your values vector explicitly, including your protected
+         commitments, and justify each protection in normative terms.
+      2. Identify every pick whose "why" sentence begins "is here for the
+         arithmetic, not for your values" — the selector's own admission that
+         nothing in your dials argues for it — and either defend it or say what
+         you would cut instead and what that costs in coverage.
+      3. Identify every pick flagged as carrying no distributional tag, and say
+         what you would need to know before quoting it.
+      4. Address the gap: your package almost certainly does not reach 100% of
+         its target. Argue either that the residual gap is acceptable, or that
+         your target was wrong.
+      5. Name one policy the overlap guardrails removed from your package (the
+         checklist reports these) and explain why summing it with what remains
+         would have double-counted.
+
+      Then load a philosophy you disagree with (a different ?values= slug),
+      read its package, and write 300 words on the strongest version of its
+      case. The archetypes are written as steelmen precisely so this exercise
+      is possible.
+    parameters:
+      - name: residual_gap_pct
+        label: "Residual gap left by your package (% of target)"
+        min: 0.0
+        max: 100.0
+        step: 5.0
+        default: 40.0
+        unit: "%"
+    hints:
+      - level: 1
+        text: >
+          The scores on Build are official list prices from CBO/JCT/Treasury,
+          summed without interaction effects: overlapping bases and stacked
+          marginal rates are not modeled, so the package total is not a joint
+          estimate. Say so in your defence rather than being caught by it.
+      - level: 2
+        text: >
+          The honest form of point 4 is usually "my target was a value, not a
+          constraint". A 3%-of-GDP target is a claim that debt should grow no
+          faster than the economy; a 4.5% target is a claim that something else
+          matters more. Both are arguable; neither is arithmetic.
+    validation:
+      method: none
+    expected_insight: >
+      The exercise is the mapping, not the package. Public finance is practised
+      in instruments and scores; people arrive holding commitments. Making the
+      translation explicit — a vector you can see, a selector with no
+      discretion, a why-sentence per pick — turns "which policies do you
+      support?" into "what do you believe, and what does believing it cost?",
+      which is the question most budget arguments are actually about.

@@ -29,8 +29,8 @@ a clean slate.
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from collections.abc import Callable, Iterable, Mapping, Sequence
+from dataclasses import dataclass, field
 from typing import Any
 
 from fiscal_model.app_data import PRESET_POLICIES
@@ -754,16 +754,678 @@ def compose_and_score(spec: GoalSpec, *, n_mixes: int = 3) -> list[ScoredMix]:
     return mixes
 
 
+# ════════════════════════════════════════════════════════════════════════
+# Values selector — "Start from your values" (REDESIGN_PLAN.md §5b.4)
+# ════════════════════════════════════════════════════════════════════════
+#
+# The second entry point into this module, and the one Build's opening panel
+# uses. It answers a different question from ``compose_and_score`` above:
+#
+#   compose_and_score(GoalSpec)   — "score me some candidate mixes", live
+#                                   engine output, ~2s cold, three variants;
+#   select_package(ValuesVector)  — "given what I believe, which policies off
+#                                   the Build checklist?", official list
+#                                   prices, instantaneous, one package.
+#
+# The panel re-runs the selector on every slider drag, so it must be cheap and
+# it must agree with the scoreboard the reader is looking at. Both fall out of
+# using the *same catalog the checklist uses* — ``CBO_SCORE_MAP`` official
+# scores plus the five values tags — rather than re-scoring the library.
+#
+# Everything here is a pure function of (vector, catalog, gap). Same vector →
+# byte-identical output: every sort key ends in ``policy_id``, and alignment is
+# rounded before it is compared, so float jitter cannot reorder a package.
+# The LLM never reaches this code; it only ever produces the vector.
+
+from .values_schema import (  # noqa: E402  (section-local import, by design)
+    ValuesVector,
+    vetoing_rules,
+)
+
+#: How many policies a values package may contain. Closing a 3%-of-GDP gap
+#: takes many instruments; the panel lists them all and the checklist owns them
+#: from there.
+MAX_VALUES_POLICIES = 12
+#: …and never fewer than this, so no archetype can be a strawman by running out
+#: of aligned candidates after two picks.
+MIN_VALUES_POLICIES = 4
+#: A deficit-*increasing* policy (a credit expansion, a rate cut) may be
+#: included as a "commitment" — something the values positively want to buy —
+#: but only one, and only when the vector endorses it this strongly …
+MAX_VALUES_COMMITMENTS = 1
+COMMITMENT_ALIGNMENT_FLOOR = 0.45
+#: … and never for a reader whose overriding concern is the gap itself. A
+#: deficit hawk is not shopping, however progressive the thing on the shelf.
+COMMITMENT_DEFICIT_CONCERN_CEILING = 0.6
+#: Alignment is rounded to this many decimals before sorting (determinism).
+ALIGNMENT_PRECISION = 6
+
+# ── Alignment weights ───────────────────────────────────────────────────
+# Five terms, one per vector dimension. The weights are a ranking device, not
+# an estimate: they decide *order of preference*, never a number the app
+# reports. They are deliberately close in magnitude so no single dial
+# dominates, with ``deficit_concern`` (the scale term) slightly heavier
+# because "does this actually move the number" is the one dimension whose
+# neglect produces obviously silly packages.
+W_REDISTRIBUTION = 1.0
+W_GOVT_SIZE = 0.9
+W_GROWTH = 0.7
+W_GENERATIONAL = 0.6
+W_SCALE = 0.9
+#: A policy scoring this much or more counts as "moves the number" in full.
+SCALE_REFERENCE_BILLIONS = 2_000.0
+
+#: ``progressivity`` tag → where the policy's burden lands. The tag is already
+#: direction-aware (repealing a credit for the bottom is tagged *regressive*),
+#: so no sign flip is applied here.
+_PROGRESSIVITY_SCORE: dict[str, float] = {
+    "strong_progressive": 1.0,
+    "progressive": 0.5,
+    "neutral": 0.0,
+    "regressive": -0.7,
+    "not_modeled": 0.0,
+}
+_GOVT_SIZE_SCORE: dict[str, float] = {"grow": 1.0, "neutral": 0.0, "shrink": -1.0}
+#: Centred, so ``generational_weight`` discriminates rather than only rewarding.
+_GENERATIONAL_SCORE: dict[str, float] = {"future": 0.7, "mixed": 0.0, "current": -0.3}
+
+#: Growth cost of *raising* a dollar on this base — the classic ordering of
+#: excess burden by margin (capital > labour > consumption), with enforcement
+#: negative because collecting tax already owed changes no marginal rate.
+_GROWTH_COST_BY_BASE: dict[str, float] = {
+    "corporate": 0.75,
+    "payroll": 0.55,
+    "individual": 0.40,
+    "estate": 0.20,
+    "consumption": 0.15,
+    "transfer": 0.10,
+    "enforcement": -0.10,
+}
+#: Where the Build *area* separates instruments the base tag cannot: a top-rate
+#: change and a deduction cap are both ``individual``, and a tariff and a
+#: carbon tax are both ``consumption``, but their growth costs are not alike.
+_GROWTH_COST_BY_AREA: dict[str, float] = {
+    "Individual rates": 0.60,
+    "Tax expenditures": 0.05,
+    "IRS enforcement": -0.10,
+    "Trade / tariffs": 0.70,
+    "Corporate": 0.75,
+}
+#: Outlay-side directions: a spending cut relieves crowding out, new spending
+#: adds a little. Neither is a marginal-rate effect, so both are small.
+_GROWTH_COST_BY_DIRECTION: dict[str, float] = {
+    "cut_spending": -0.15,
+    "add_spending": 0.10,
+}
+
+
+@dataclass(frozen=True)
+class CatalogPolicy:
+    """One checkable Build option, as the values selector needs it.
+
+    A narrow view of ``deficit_target.BuildOption`` so the selector stays a
+    pure function over plain data and can be exercised against a synthetic
+    catalog in tests.
+    """
+
+    policy_id: str
+    label: str
+    #: 10-year official score, deficit convention (+ increases the deficit).
+    score: float
+    area: str = ""
+    tags: Mapping[str, str] = field(default_factory=dict)
+    exclusive_groups: tuple[str, ...] = ()
+    subsumes: tuple[str, ...] = ()
+
+    @property
+    def reduces_deficit(self) -> bool:
+        return self.score < 0
+
+    @property
+    def magnitude(self) -> float:
+        return abs(float(self.score))
+
+    @property
+    def is_tagged(self) -> bool:
+        """True when the catalog asserts a full five-tag values profile."""
+        return bool(self.tags) and "direction" in self.tags and "progressivity" in self.tags
+
+    @property
+    def is_not_modeled(self) -> bool:
+        """Tagged, but the app declines to assert where the burden lands."""
+        return self.tags.get("progressivity") == "not_modeled"
+
+
+def _short_label(label: str) -> str:
+    """Preset label without emoji or trailing score, for reader-facing copy."""
+    from fiscal_model.ui.tabs.deficit_target import short_name
+
+    return short_name(label)
+
+
+# ── Catalog ─────────────────────────────────────────────────────────────
+_VALUES_CATALOG_CACHE: dict[str, CatalogPolicy] | None = None
+_BASELINE_SNAPSHOT_CACHE: tuple[float, float, int] | None = None
+
+
+def reset_values_caches() -> None:
+    """Drop the memoized values catalog and baseline snapshot. For tests."""
+    global _VALUES_CATALOG_CACHE, _BASELINE_SNAPSHOT_CACHE
+    _VALUES_CATALOG_CACHE = None
+    _BASELINE_SNAPSHOT_CACHE = None
+
+
+def values_catalog(
+    cbo_score_map: Mapping[str, Mapping[str, Any]] | None = None,
+) -> dict[str, CatalogPolicy]:
+    """The Build checklist, projected onto :class:`CatalogPolicy`. Memoized.
+
+    Deliberately the *same* catalog builder the checklist uses, so a package
+    the panel previews and a package the reader then edits by hand are the
+    same 47 options with the same scores and the same overlap structure.
+    """
+    global _VALUES_CATALOG_CACHE
+    if cbo_score_map is None and _VALUES_CATALOG_CACHE is not None:
+        return dict(_VALUES_CATALOG_CACHE)
+
+    from fiscal_model.ui.tabs.deficit_target import build_catalog
+
+    if cbo_score_map is None:
+        from fiscal_model.app_data import CBO_SCORE_MAP
+
+        cbo_score_map = CBO_SCORE_MAP
+
+    memoize = cbo_score_map is None
+    catalog = {
+        build_id: CatalogPolicy(
+            policy_id=build_id,
+            label=option.label,
+            score=float(option.score),
+            area=option.area,
+            tags=dict(option.tags or {}),
+            exclusive_groups=tuple(option.exclusive_groups or ()),
+            subsumes=tuple(option.subsumes or ()),
+        )
+        for build_id, option in build_catalog(cbo_score_map).items()
+    }
+    if memoize:
+        _VALUES_CATALOG_CACHE = catalog
+    return dict(catalog)
+
+
+def _baseline_snapshot() -> tuple[float, float, int]:
+    """``(avg annual deficit $B, avg annual nominal GDP $B, years)``. Memoized.
+
+    ``use_real_data=True`` deliberately, because that is what
+    ``app_pages/build.py`` hands the checklist: the real-data baseline runs
+    ~$3.0T/yr against ~$40T of GDP where the synthetic one runs $1.6T against
+    $37.7T, and a panel quoting "62% of target" off a different baseline from
+    the scoreboard beside it would be quietly wrong. Costs ~1s once per
+    process; the checklist pays the same cost on its own first render.
+    """
+    global _BASELINE_SNAPSHOT_CACHE
+    if _BASELINE_SNAPSHOT_CACHE is None:
+        baseline = FiscalPolicyScorer(use_real_data=True).baseline
+        _BASELINE_SNAPSHOT_CACHE = (
+            float(baseline.deficit.mean()),
+            float(baseline.nominal_gdp.mean()),
+            max(1, len(baseline.years)),
+        )
+    return _BASELINE_SNAPSHOT_CACHE
+
+
+def gap_to_target_billions(target_pct_gdp: float) -> float:
+    """10-year deficit reduction needed to reach ``target_pct_gdp``.
+
+    Positive when the baseline runs above the target, which is the only case
+    the greedy fill has work to do in. The arithmetic is the scoreboard's:
+    average annual deficit minus ``target % × average annual GDP``, times the
+    baseline window — so "62% of target" in the panel and "remaining gap" on
+    the scoreboard are the same number seen twice.
+    """
+    annual_deficit, annual_gdp, n_years = _baseline_snapshot()
+    target_annual = float(target_pct_gdp) / 100.0 * annual_gdp
+    return max(0.0, (annual_deficit - target_annual) * n_years)
+
+
+# ── Alignment ───────────────────────────────────────────────────────────
+def _growth_cost(policy: CatalogPolicy) -> float:
+    """GDP cost of this policy, positive = costly. Direction-aware."""
+    direction = str(policy.tags.get("direction", ""))
+    outlay = _GROWTH_COST_BY_DIRECTION.get(direction)
+    if outlay is not None:
+        return outlay
+    base_cost = _GROWTH_COST_BY_AREA.get(
+        policy.area, _GROWTH_COST_BY_BASE.get(str(policy.tags.get("base", "")), 0.30)
+    )
+    # Cutting a costly tax is growth-*friendly* by exactly the same margin.
+    return -base_cost if direction == "cut_revenue" else base_cost
+
+
+def alignment_terms(policy: CatalogPolicy, vector: ValuesVector) -> dict[str, float]:
+    """Per-dimension contributions to a policy's alignment with a vector.
+
+    Returned rather than summed so the "why this one" sentence can name the
+    dimension that actually did the work, instead of asserting a reason after
+    the fact.
+    """
+    tags = policy.tags
+    scale = min(1.0, policy.magnitude / SCALE_REFERENCE_BILLIONS)
+    return {
+        "redistribution": W_REDISTRIBUTION
+        * float(vector.redistribution)
+        * _PROGRESSIVITY_SCORE.get(str(tags.get("progressivity", "")), 0.0),
+        "govt_size": W_GOVT_SIZE
+        * float(vector.govt_size)
+        * _GOVT_SIZE_SCORE.get(str(tags.get("govt_size", "")), 0.0),
+        "growth_priority": -W_GROWTH * float(vector.growth_priority) * _growth_cost(policy),
+        "generational_weight": W_GENERATIONAL
+        * float(vector.generational_weight)
+        * _GENERATIONAL_SCORE.get(str(tags.get("generational", "")), 0.0),
+        # Size only counts toward closing a gap; buying something bigger is not
+        # a better fit for a deficit concern.
+        "deficit_concern": (
+            W_SCALE * float(vector.deficit_concern) * scale
+            if policy.reduces_deficit
+            else 0.0
+        ),
+    }
+
+
+def alignment(policy: CatalogPolicy, vector: ValuesVector) -> float:
+    """Total alignment, rounded so ordering cannot drift with float noise."""
+    return round(sum(alignment_terms(policy, vector).values()), ALIGNMENT_PRECISION)
+
+
+# ── Selection ───────────────────────────────────────────────────────────
+@dataclass(frozen=True)
+class ValuesPick:
+    """One selected policy plus everything the panel needs to explain it."""
+
+    policy_id: str
+    label: str                  # short, reader-facing
+    score: float                # 10-year, deficit convention
+    area: str
+    why: str
+    alignment: float
+    #: True when the policy carries no asserted distributional tag and was
+    #: only reached because the target could not be met without it.
+    conservative: bool = False
+    #: True for a deficit-*increasing* pick the values positively wanted.
+    commitment: bool = False
+    tags: Mapping[str, str] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class ValuesPackage:
+    """A selected package, its coverage, and the vetoes that shaped it."""
+
+    vector: ValuesVector
+    picks: tuple[ValuesPick, ...]
+    gap_billions: float             # 10-year reduction needed to hit the target
+    total_billions: float           # 10-year deficit effect of the picks (signed)
+    #: ``(policy_id, protected_key)`` for every option a commitment ruled out.
+    vetoed: tuple[tuple[str, str], ...] = ()
+
+    @property
+    def coverage(self) -> float:
+        """Share of the gap this package closes, 0..1+ (0 when no gap)."""
+        if self.gap_billions <= 0:
+            return 1.0 if self.picks else 0.0
+        return max(0.0, -self.total_billions) / self.gap_billions
+
+    @property
+    def policy_ids(self) -> list[str]:
+        return [pick.policy_id for pick in self.picks]
+
+    def summary(self) -> str:
+        """"7 policies, 62% of target" — the wireframe's coverage line."""
+        count = len(self.picks)
+        return (
+            f"{count} polic{'y' if count == 1 else 'ies'}, "
+            f"{self.coverage * 100:.0f}% of target"
+        )
+
+
+_DRIVER_PHRASES: dict[str, tuple[str, str]] = {
+    # dimension -> (phrase when the contribution is positive-and-dominant,
+    #               phrase for the negative side, currently unused but kept so
+    #               the table reads as a complete mapping)
+    "redistribution": (
+        "its burden lands where you weighted it",
+        "it spreads the burden rather than concentrating it",
+    ),
+    "govt_size": (
+        "it moves the size of the state in the direction you asked for",
+        "it moves the size of the state against you",
+    ),
+    "growth_priority": (
+        "it is one of the cheaper instruments in growth terms",
+        "it carries a real growth cost",
+    ),
+    "generational_weight": (
+        "it is scored on the future side of the ledger",
+        "its effects fall on today's cohorts",
+    ),
+    "deficit_concern": (
+        "it moves the number more than most of what is available",
+        "it barely moves the number",
+    ),
+}
+
+#: When a pick's total alignment is not positive, the archetype's own sentence
+#: frame would put a reason on it that the numbers do not support. These two
+#: frames replace it outright and say what actually happened. Both keep
+#: ``{policy}``/``{amount}``/``{share}``/``{contrast}`` so the row still reads
+#: like its neighbours.
+AGAINST_THE_GRAIN_TEMPLATE = (
+    "{policy} ({amount}) is here for the arithmetic, not for your values: "
+    "nothing in your dials argues for it, and {share} of the gap had to come "
+    "from somewhere{contrast}."
+)
+NO_TAG_TEMPLATE = (
+    "{policy} ({amount}) carries no distributional tag in this catalog, so it "
+    "was held back until nothing else could close the gap; it covers "
+    "{share} of it{contrast}."
+)
+
+
+def _driver_phrase(terms: Mapping[str, float]) -> str:
+    """Name the dimension that did the most work. ``""`` when none did."""
+    dimension = max(terms, key=lambda name: (round(terms[name], ALIGNMENT_PRECISION), name))
+    return _DRIVER_PHRASES[dimension][0] if terms[dimension] > 0 else ""
+
+
+def _format_share(score: float, gap: float) -> str:
+    """This policy's own share of the gap, or a share-free phrase when the
+    target is already met at baseline and there is no gap to divide by."""
+    if gap <= 0:
+        return "its share"
+    share = abs(float(score)) / gap * 100
+    return "<1%" if 0 < share < 0.5 else f"{share:.0f}%"
+
+
+def _format_amount(score: float) -> str:
+    return f"{'+' if score >= 0 else '-'}${abs(float(score)):,.0f}B"
+
+
+class _SafeFields(dict):
+    """``format_map`` helper: an unknown ``{field}`` renders as nothing."""
+
+    def __missing__(self, key: str) -> str:  # pragma: no cover - template typo guard
+        return ""
+
+
+def _why_sentence(
+    policy: CatalogPolicy,
+    vector: ValuesVector,
+    *,
+    template: str,
+    gap: float,
+    contrast: str,
+    conservative: bool,
+) -> str:
+    terms = alignment_terms(policy, vector)
+    total = round(sum(terms.values()), ALIGNMENT_PRECISION)
+    driver = _driver_phrase(terms)
+    if conservative:
+        template = NO_TAG_TEMPLATE
+    elif total <= 0 or not driver:
+        template = AGAINST_THE_GRAIN_TEMPLATE
+    sentence = template.format_map(
+        _SafeFields(
+            policy=_short_label(policy.label),
+            driver=driver,
+            amount=_format_amount(policy.score),
+            share=_format_share(policy.score, gap),
+            contrast=contrast,
+        )
+    )
+    return " ".join(sentence.split())
+
+
+def _blocks(policy: CatalogPolicy, chosen: Mapping[str, CatalogPolicy]) -> bool:
+    """True when adding ``policy`` would double-count something already chosen.
+
+    Both halves of the overlap structure, in the direction the checklist
+    enforces: at most one member of an exclusive group, and a bundle never
+    coexists with a component (whichever arrives first wins, and the selector
+    walks in alignment order, so the better-aligned option is the survivor).
+    """
+    if policy.policy_id in chosen:
+        return True
+    claimed = {
+        group for picked in chosen.values() for group in picked.exclusive_groups
+    }
+    if claimed.intersection(policy.exclusive_groups):
+        return True
+    if set(policy.subsumes).intersection(chosen):
+        return True
+    return any(policy.policy_id in picked.subsumes for picked in chosen.values())
+
+
+def _ranked(
+    policies: Iterable[CatalogPolicy],
+    vector: ValuesVector,
+) -> list[tuple[CatalogPolicy, float]]:
+    """Alignment order, with size then id as stable tie-breaks."""
+    scored = [(policy, alignment(policy, vector)) for policy in policies]
+    scored.sort(key=lambda pair: (-pair[1], -pair[0].magnitude, pair[0].policy_id))
+    return scored
+
+
+def compose_values_package(
+    vector: ValuesVector,
+    catalog: Mapping[str, CatalogPolicy] | None = None,
+    *,
+    rationale_template: str | None = None,
+    gap_billions: float | None = None,
+) -> ValuesPackage:
+    """Deterministically pick a package for a values vector.
+
+    The walk, in order:
+
+    1. **Veto.** Drop every policy a protected commitment rules out. A veto is
+       absolute — no alignment score buys past it. Untagged options are dropped
+       too whenever *any* commitment is named, because we cannot certify that
+       an untagged instrument respects it.
+    2. **Commit.** At most one deficit-*increasing* policy, and only when the
+       vector endorses it above :data:`COMMITMENT_ALIGNMENT_FLOOR`. Its cost is
+       added to what the raisers then have to cover, so "spend at the bottom"
+       is priced rather than assumed away.
+    3. **Fill.** Walk the deficit-reducing options in alignment order, skipping
+       anything that would double-count an earlier pick, until the target is
+       covered or :data:`MAX_VALUES_POLICIES` is reached — and never stopping
+       below :data:`MIN_VALUES_POLICIES` while candidates remain.
+    4. **Reserve.** Only if the tagged candidates ran out with the target still
+       unmet: the ``not_modeled`` options, each flagged as such in its "why".
+
+    Same vector in, byte-identical package out.
+    """
+    vector = vector.clamped()
+    if catalog is None:
+        catalog = values_catalog()
+    if gap_billions is None:
+        gap_billions = gap_to_target_billions(vector.target_pct_gdp)
+    gap = max(0.0, float(gap_billions))
+
+    from .archetypes import DEFAULT_RATIONALE_TEMPLATE
+
+    template = rationale_template or DEFAULT_RATIONALE_TEMPLATE
+
+    # ---- 1. vetoes ------------------------------------------------------
+    allowed: list[CatalogPolicy] = []
+    vetoed: list[tuple[str, str]] = []
+    has_commitments = bool(vector.protected)
+    for policy_id in sorted(catalog):
+        policy = catalog[policy_id]
+        rules = vetoing_rules(policy.policy_id, policy.tags, vector.protected)
+        if rules:
+            vetoed.append((policy.policy_id, rules[0].key))
+            continue
+        if has_commitments and not policy.is_tagged:
+            vetoed.append((policy.policy_id, "untagged"))
+            continue
+        allowed.append(policy)
+
+    # The one contrast the panel draws, attached to the leading pick: the
+    # biggest thing the reader's own commitments took off the table.
+    contrast = _protected_contrast(catalog, vetoed)
+
+    tagged = [p for p in allowed if p.is_tagged and not p.is_not_modeled]
+    reserve = [p for p in allowed if not p.is_tagged or p.is_not_modeled]
+
+    chosen: dict[str, CatalogPolicy] = {}
+    picks: list[ValuesPick] = []
+    # A commitment's cost lands in ``total`` like any other score, so the
+    # fill has to out-raise it to reach the same gap: "spend at the bottom"
+    # is priced against the target rather than exempted from it.
+    required = gap
+    total = 0.0
+
+    def _take(policy: CatalogPolicy, score: float, **kwargs: Any) -> None:
+        nonlocal total
+        chosen[policy.policy_id] = policy
+        total += float(policy.score)
+        picks.append(
+            ValuesPick(
+                policy_id=policy.policy_id,
+                label=_short_label(policy.label),
+                score=float(policy.score),
+                area=policy.area,
+                why=_why_sentence(
+                    policy,
+                    vector,
+                    template=template,
+                    gap=gap,
+                    contrast=contrast if not picks else "",
+                    conservative=bool(kwargs.get("conservative")),
+                ),
+                alignment=score,
+                conservative=bool(kwargs.get("conservative")),
+                commitment=bool(kwargs.get("commitment")),
+                tags=dict(policy.tags),
+            )
+        )
+
+    # ---- 2. commitments -------------------------------------------------
+    commitments = (
+        _ranked((p for p in tagged if not p.reduces_deficit), vector)
+        if vector.deficit_concern <= COMMITMENT_DEFICIT_CONCERN_CEILING
+        else []
+    )
+    for policy, score in commitments[:MAX_VALUES_COMMITMENTS]:
+        if score < COMMITMENT_ALIGNMENT_FLOOR or _blocks(policy, chosen):
+            continue
+        _take(policy, score, commitment=True)
+
+    # ---- 3. greedy fill -------------------------------------------------
+    def _fill(pool: list[CatalogPolicy], *, conservative: bool) -> None:
+        for policy, score in _ranked(
+            (p for p in pool if p.reduces_deficit), vector
+        ):
+            if len(picks) >= MAX_VALUES_POLICIES:
+                return
+            covered = -total >= required
+            if covered and len(picks) >= MIN_VALUES_POLICIES:
+                return
+            if _blocks(policy, chosen):
+                continue
+            _take(policy, score, conservative=conservative)
+
+    _fill(tagged, conservative=False)
+
+    # ---- 4. conservative reserve ---------------------------------------
+    if -total < required and len(picks) < MAX_VALUES_POLICIES:
+        _fill(reserve, conservative=True)
+
+    return ValuesPackage(
+        vector=vector,
+        picks=tuple(picks),
+        gap_billions=gap,
+        total_billions=total,
+        vetoed=tuple(vetoed),
+    )
+
+
+def _protected_contrast(
+    catalog: Mapping[str, CatalogPolicy],
+    vetoed: Sequence[tuple[str, str]],
+) -> str:
+    """", rather than X, which you protected Y" — or "" when nothing was vetoed.
+
+    Picks the largest deficit-reducing option the reader's own commitments took
+    off the table, so the sentence names a real trade-off rather than a token
+    one. Ties break on id, so the clause is stable.
+    """
+    from .values_schema import PROTECTED_RULE_BY_KEY
+
+    candidates = [
+        (catalog[policy_id], key)
+        for policy_id, key in vetoed
+        if policy_id in catalog
+        and key in PROTECTED_RULE_BY_KEY
+        and catalog[policy_id].reduces_deficit
+    ]
+    if not candidates:
+        return ""
+    policy, key = max(candidates, key=lambda pair: (pair[0].magnitude, pair[0].policy_id))
+    return (
+        f", rather than {_short_label(policy.label)}, which "
+        f"{PROTECTED_RULE_BY_KEY[key].clause}"
+    )
+
+
+def select_package(
+    vector: ValuesVector,
+    catalog: Mapping[str, CatalogPolicy] | None = None,
+    *,
+    rationale_template: str | None = None,
+    gap_billions: float | None = None,
+) -> list[tuple[str, str]]:
+    """``[(policy_id, why_sentence)]`` for a values vector — the plan's §5b.4 API.
+
+    Thin projection of :func:`compose_values_package`, which carries the same
+    picks plus the coverage arithmetic the panel renders.
+    """
+    package = compose_values_package(
+        vector,
+        catalog,
+        rationale_template=rationale_template,
+        gap_billions=gap_billions,
+    )
+    return [(pick.policy_id, pick.why) for pick in package.picks]
+
+
 __all__ = [
+    "AGAINST_THE_GRAIN_TEMPLATE",
+    "ALIGNMENT_PRECISION",
+    "COMMITMENT_ALIGNMENT_FLOOR",
+    "COMMITMENT_DEFICIT_CONCERN_CEILING",
     "COVERAGE_TOLERANCE",
     "DEFAULT_ANNUAL_SPENDING_BILLIONS",
     "MAX_REVENUE_COMPONENTS",
+    "MAX_VALUES_COMMITMENTS",
+    "MAX_VALUES_POLICIES",
     "MIN_DEFICIT_REDUCTION_BILLIONS",
+    "MIN_VALUES_POLICIES",
+    "NO_TAG_TEMPLATE",
     "OVERSHOOT_ALLOWANCE",
+    "SCALE_REFERENCE_BILLIONS",
+    "CatalogPolicy",
     "RevenueCandidate",
+    "ValuesPackage",
+    "ValuesPick",
+    "alignment",
+    "alignment_terms",
     "compose_and_score",
+    "compose_values_package",
+    "gap_to_target_billions",
     "reset_caches",
+    "reset_values_caches",
     "revenue_candidates",
     "revenue_target_billions",
+    "select_package",
     "top_quintile_burden_share",
+    "values_catalog",
 ]

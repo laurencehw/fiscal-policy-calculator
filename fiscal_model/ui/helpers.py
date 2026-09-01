@@ -93,30 +93,84 @@ def build_macro_scenario(policy: Any, result: Any, is_spending_policy: bool, mac
     )
 
 
+# ── Preset categorisation ───────────────────────────────────────────────
+# Every scoring module the preset handler can route to, in the order
+# `policy_input_presets._preset_category` resolves them. This list used to
+# cover only the first eight flags, which silently dropped 28 of the 52
+# presets (all of International / Trade / Climate / Drug Pricing / IRS
+# Enforcement) and emptied 4 of the 12 PRESET_POLICY_PACKAGES. Adding a
+# policy module means adding a row here; `tests/test_policy_catalog.py`
+# fails if a preset ever falls through again.
+#
+# These are *scoring-module* names, not the sidebar's display areas, so
+# `ui_category` (a display override on four entries) is deliberately not
+# consulted here.
+PRESET_CATEGORY_BY_FLAG: tuple[tuple[str, str], ...] = (
+    ("is_tcja", "TCJA"),
+    ("is_corporate", "Corporate"),
+    ("is_international", "International Tax"),
+    ("is_credit", "Tax Credits"),
+    ("is_estate", "Estate Tax"),
+    ("is_payroll", "Payroll Tax"),
+    ("is_amt", "AMT"),
+    ("is_ptc", "Premium Tax Credits"),
+    ("is_expenditure", "Tax Expenditures"),
+    ("is_enforcement", "IRS Enforcement"),
+    ("is_pharma", "Drug Pricing"),
+    ("is_trade", "Trade / Tariffs"),
+    ("is_climate", "Climate / Energy"),
+)
+
+#: Presets with no module flag are plain rate-and-threshold income-tax
+#: policies (Warren surtax, Top Rate to 45%, ...). They are scored as a
+#: generic `TaxPolicy` and are just as selectable as the calibrated ones.
+GENERIC_PRESET_CATEGORY = "Income Tax"
+
+# What makes an unflagged entry a real generic preset rather than a stub:
+# it has to carry the parameters the generic scoring path reads.
+_GENERIC_PRESET_FIELDS = ("rate_change", "threshold")
+
+
+def preset_scoring_category(preset_data: dict[str, Any]) -> str | None:
+    """Scoring-module category for one preset, or ``None`` if unscorable.
+
+    Derived from the ``is_*`` module flags the preset handler itself routes
+    on, with a fallback to the generic rate-and-threshold path — never from
+    an optional per-entry field, which is how the previous version came to
+    drop half the catalog.
+    """
+    for flag_name, category in PRESET_CATEGORY_BY_FLAG:
+        if preset_data.get(flag_name):
+            return category
+    if any(field in preset_data for field in _GENERIC_PRESET_FIELDS):
+        return GENERIC_PRESET_CATEGORY
+    return None
+
+
 def build_scorable_policy_map(preset_policies: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
     """
-    Index scorable preset policies by display category.
+    Index scorable preset policies by scoring-module category.
+
+    Keyed by display label (callers still key on labels); each value carries
+    the entry's stable ``preset_id`` too, so Build-side consumers can move to
+    ids without a second lookup.
     """
+    from fiscal_model.preset_ids import CUSTOM_POLICY_LABEL
+
     all_scorable_policies: dict[str, dict[str, Any]] = {}
 
-    category_flags = [
-        ("is_tcja", "TCJA"),
-        ("is_corporate", "Corporate"),
-        ("is_credit", "Tax Credits"),
-        ("is_estate", "Estate Tax"),
-        ("is_payroll", "Payroll Tax"),
-        ("is_amt", "AMT"),
-        ("is_ptc", "Premium Tax Credits"),
-        ("is_expenditure", "Tax Expenditures"),
-    ]
-
     for name, data in preset_policies.items():
-        if name == "Custom Policy":
+        if name == CUSTOM_POLICY_LABEL:
             continue
 
-        for flag_name, category in category_flags:
-            if data.get(flag_name):
-                all_scorable_policies[name] = {"category": category, "data": data}
-                break
+        category = preset_scoring_category(data)
+        if category is None:
+            continue
+
+        all_scorable_policies[name] = {
+            "category": category,
+            "preset_id": data.get("preset_id"),
+            "data": data,
+        }
 
     return all_scorable_policies

@@ -17,6 +17,7 @@ import json
 import logging
 from typing import Any
 
+from .benchmarks import build_capability_gate
 from .sources import SOURCES, allowlisted_domain, web_search_allowed_domains
 
 logger = logging.getLogger(__name__)
@@ -110,7 +111,14 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             "spending policy. Returns the 10-year deficit impact, year-by-"
             "year effects, and (optionally) dynamic feedback. Use this for "
             "requests like 'score a 25% corporate rate' or 'what if the top "
-            "marginal rate were 45%'."
+            "marginal rate were 45%'. "
+            "IMPORTANT: the result passes through a capability gate. Quote "
+            "`headline_estimate_billions`, not the raw engine figure, and "
+            "follow `capability_note`. When `estimate_basis` is "
+            "`official_benchmark_interpolation` the answer must name the "
+            "`official_benchmark_anchors` and the interpolation used, and may "
+            "mention `uncalibrated_model_estimate_billions` only as an "
+            "explicitly labelled uncalibrated model estimate."
         ),
         "input_schema": {
             "type": "object",
@@ -365,6 +373,10 @@ class AssistantTools:
                 "args": args,
                 "result_summary": _summarize(result),
                 "urls": _collect_urls(result),
+                # Reader-facing source records (title / publisher / date /
+                # URL) so the Ask tab can render a real numbered "Sources"
+                # row instead of a tool-name dump.
+                "sources": collect_source_records(tool_name, args or {}, result),
             }
         )
         return _safe_jsonable(result)
@@ -491,6 +503,7 @@ class AssistantTools:
                     duration_years=duration_years,
                 )
                 scoring_path = "spending path (standard multipliers)"
+                calibrated = False
             elif policy_type == "corporate_tax":
                 # A plain TaxPolicy with CORPORATE_TAX type is scored against
                 # the *individual* income-tax base for all filers — a 21%→25%
@@ -509,6 +522,7 @@ class AssistantTools:
                     "calibrated corporate-tax module (benchmarked vs CBO "
                     "21%→28% score within ~4%)"
                 )
+                calibrated = True
             else:
                 policy = self._tax_policy_cls(
                     name=name,
@@ -523,6 +537,7 @@ class AssistantTools:
                     "(~8% mean out-of-sample error); quote the nearest "
                     "validated preset when one exists"
                 )
+                calibrated = False
         except Exception as exc:
             return {"error": f"could not construct policy: {exc}"}
 
@@ -531,10 +546,28 @@ class AssistantTools:
         except Exception as exc:
             return {"error": f"scoring failed: {exc}"}
 
-        return {
+        engine_estimate = float(getattr(result, "total_10_year_cost", 0.0))
+
+        # ---- capability gate -------------------------------------------
+        # An uncalibrated engine run is not an answer. Anchor it to the
+        # nearest officially scored benchmark(s) and let the gate decide
+        # which number the assistant is allowed to lead with.
+        gate = build_capability_gate(
+            policy_type=policy_type,
+            rate_change=float(rate_change or 0.0),
+            income_threshold=float(affected_income_threshold or 0.0),
+            engine_estimate_billions=engine_estimate,
+            calibrated=calibrated,
+        )
+
+        payload: dict[str, Any] = {
             "name": name,
             "policy_type": policy_type,
-            "ten_year_deficit_impact_billions": float(getattr(result, "total_10_year_cost", 0.0)),
+            # Kept as the headline for backwards compatibility: it is the
+            # number the gate says to quote, which for an uncalibrated path
+            # is the benchmark-anchored estimate rather than the engine run.
+            "ten_year_deficit_impact_billions": gate["headline_estimate_billions"],
+            "raw_engine_estimate_billions": engine_estimate,
             "static_deficit_total_billions": float(getattr(result, "total_static_cost", 0.0)),
             "revenue_feedback_10yr_billions": float(getattr(result, "revenue_feedback_10yr", 0.0)),
             "is_dynamic": bool(getattr(result, "is_dynamic", False)),
@@ -548,6 +581,8 @@ class AssistantTools:
                 "state which one this run used."
             ),
         }
+        payload.update(gate)
+        return payload
 
     # ---- knowledge -------------------------------------------------------
 
@@ -717,6 +752,115 @@ def _summarize(result: Any) -> str:
     return s[:240] + ("…" if len(s) > 240 else "")
 
 
+# Tool -> the reader-facing name of the thing it consulted. Used when a tool
+# result carries no bibliographic detail of its own (the app's own engine,
+# baseline and preset library have no external URL to cite).
+_INTERNAL_SOURCE_TITLES: dict[str, str] = {
+    "get_app_scoring_context": "Your current scored policy (this app)",
+    "get_cbo_baseline": "CBO baseline as loaded by this app",
+    "get_validation_scorecard": "This app's CBO/JCT validation scorecard",
+    "list_presets": "This app's preset policy library",
+    "get_preset": "This app's preset policy library",
+    "score_hypothetical_policy": "This app's scoring engine",
+}
+
+
+def collect_source_records(
+    tool_name: str,
+    args: dict[str, Any],
+    result: Any,
+) -> list[dict[str, Any]]:
+    """Extract citable source records from one tool result.
+
+    Each record is ``{"title", "publisher", "date", "url"}`` with any field
+    possibly ``None``. The Ask tab renders these as the numbered "Sources (N)"
+    row under an answer, so they must be things a reader can recognise and
+    (where a URL exists) follow — not tool names.
+    """
+    if not isinstance(result, dict) or "error" in result:
+        return []
+
+    records: list[dict[str, Any]] = []
+
+    def _add(
+        title: Any,
+        *,
+        publisher: Any = None,
+        date: Any = None,
+        url: Any = None,
+    ) -> None:
+        text = str(title).strip() if title else ""
+        if not text:
+            return
+        record = {
+            "title": text,
+            "publisher": str(publisher).strip() if publisher else None,
+            "date": str(date).strip() if date else None,
+            "url": str(url).strip() if url else None,
+        }
+        if record not in records:
+            records.append(record)
+
+    if tool_name == "search_knowledge":
+        for hit in result.get("hits") or []:
+            if isinstance(hit, dict):
+                _add(
+                    hit.get("title"),
+                    publisher=hit.get("org"),
+                    date=hit.get("year"),
+                    url=hit.get("source_url"),
+                )
+    elif tool_name == "query_fred":
+        series = result.get("series_id")
+        latest = result.get("latest") or {}
+        _add(
+            f"FRED series {series}" if series else "FRED series",
+            publisher="Federal Reserve Bank of St. Louis",
+            date=latest.get("date") if isinstance(latest, dict) else None,
+            url=result.get("source_url"),
+        )
+    elif tool_name == "fetch_url":
+        _add(
+            result.get("url"),
+            publisher=result.get("domain"),
+            url=result.get("url"),
+        )
+    elif tool_name == "get_validation_scorecard":
+        for row in (result.get("rows") or [])[:5]:
+            if isinstance(row, dict) and row.get("source"):
+                _add(
+                    row.get("preset_name"),
+                    publisher=row.get("source"),
+                    date=row.get("source_date"),
+                    url=row.get("source_url"),
+                )
+    elif tool_name == "get_preset":
+        official = result.get("official_score") or {}
+        if isinstance(official, dict) and official.get("source"):
+            _add(
+                result.get("name"),
+                publisher=official.get("source"),
+                date=official.get("source_date"),
+                url=official.get("source_url"),
+            )
+        else:
+            _add(_INTERNAL_SOURCE_TITLES.get(tool_name))
+    elif tool_name == "score_hypothetical_policy":
+        for anchor in result.get("official_benchmark_anchors") or []:
+            if isinstance(anchor, dict):
+                _add(
+                    anchor.get("name"),
+                    publisher=anchor.get("source"),
+                    date=anchor.get("source_date"),
+                    url=anchor.get("source_url"),
+                )
+        _add(_INTERNAL_SOURCE_TITLES.get(tool_name))
+    else:
+        _add(_INTERNAL_SOURCE_TITLES.get(tool_name))
+
+    return records
+
+
 def _collect_urls(result: Any) -> list[str]:
     """Recursively pull every ``url``/``source_url`` value out of a tool result.
 
@@ -746,5 +890,6 @@ def _collect_urls(result: Any) -> list[str]:
 __all__ = [
     "TOOL_SCHEMAS",
     "AssistantTools",
+    "collect_source_records",
     "web_search_tool_definition",
 ]

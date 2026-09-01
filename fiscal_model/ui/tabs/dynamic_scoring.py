@@ -1,10 +1,34 @@
 """
-Dynamic scoring tab renderer.
+Dynamic scoring tab renderer — and the app's single source of truth for
+macroeconomic feedback.
+
+Phase 4 of the redesign resolved the three-way disagreement documented in
+``planning/redesign/NOTES.md`` §4.4 with one rule:
+
+* **The headline is always the conventional score** — ``static_deficit +
+  behavioral``, positive = increases the deficit. It never moves when the
+  dynamic-scoring toggle is flipped, so a calibrated preset keeps matching its
+  official benchmark either way.
+* **Dynamic scoring adds a clearly-labeled "Dynamic view"**, never a different
+  headline: revenue feedback, debt service, and the dynamic total.
+* **One feedback number, one model.** Every surface that prints revenue
+  feedback (Results Key Metrics, the Economic Effects tab, Copy Summary, CSV)
+  reads :func:`compute_dynamic_view`, which is driven by the macro adapter the
+  Economic Effects tab already used (FRB/US-Lite or Simple Multiplier, per the
+  model setting). The engine's *internal* ``EconomicModel`` feedback
+  (``ScoringResult.dynamic_effects.revenue_feedback``) is no longer displayed
+  anywhere; it stays on the result object for the API and validation suites.
+* **Debt service is included in both places or neither** — here, in both.
+  CBO's dynamic analyses net the interest cost of the added deficit against
+  growth feedback, and a "dynamic total" that ignores it overstates the offset.
+  The old headline had no interest term, which is exactly how the same policy
+  ended up with two different dynamic totals.
 """
 
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
@@ -17,6 +41,82 @@ from fiscal_model.ui.a11y import (
     render_accessible_chart,
 )
 from fiscal_model.ui.charts import apply_base_layout, horizontal_legend
+
+#: Value of the "Macro model" setting that selects the simple Keynesian path.
+SIMPLE_MULTIPLIER_SETTING = "Simple Multiplier"
+#: Display names for the two adapters (used in captions, exports and metadata).
+FRBUS_LITE_MODEL_LABEL = "FRB/US-Lite (Federal Reserve calibrated)"
+SIMPLE_MULTIPLIER_MODEL_LABEL = "Simple Keynesian Multiplier"
+
+
+@dataclass(frozen=True)
+class DynamicView:
+    """The dynamic decomposition of one scored policy.
+
+    Every field is in the deficit convention: **positive increases the
+    deficit**. ``feedback`` is subtracted (extra revenue shrinks the deficit)
+    and ``debt_service`` is added, so::
+
+        dynamic_total = conventional - feedback + debt_service
+    """
+
+    model_name: str
+    conventional: float
+    feedback: float
+    debt_service: float
+    dynamic_total: float
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "model_name": self.model_name,
+            "conventional": self.conventional,
+            "feedback": self.feedback,
+            "debt_service": self.debt_service,
+            "dynamic_total": self.dynamic_total,
+        }
+
+
+def conventional_total(result: Any) -> float:
+    """Return the conventional (static + behavioral) 10-year deficit effect.
+
+    This is the headline number on every surface, in every mode. It is
+    deliberately *not* ``result.final_deficit_effect``: with dynamic scoring on,
+    the engine subtracts its internal feedback there, which pushed calibrated
+    presets off their benchmark purely because a toggle was flipped.
+    """
+    return float(
+        (np.asarray(result.static_deficit_effect) + np.asarray(result.behavioral_offset)).sum()
+    )
+
+
+def resolve_macro_adapter(
+    macro_model_name: str | None,
+    frbus_adapter_lite_cls: Any,
+    simple_multiplier_adapter_cls: Any,
+) -> tuple[Any, str]:
+    """Instantiate the macro adapter named by the model setting.
+
+    Shared by the calculation pipeline and the Economic Effects tab so both
+    always run the *same* model — the precondition for the two surfaces
+    printing the same feedback number.
+    """
+    if macro_model_name == SIMPLE_MULTIPLIER_SETTING:
+        return simple_multiplier_adapter_cls(), SIMPLE_MULTIPLIER_MODEL_LABEL
+    return frbus_adapter_lite_cls(), FRBUS_LITE_MODEL_LABEL
+
+
+def compute_dynamic_view(result: Any, macro_result: Any, model_name: str) -> DynamicView:
+    """Build the one dynamic decomposition every surface renders."""
+    conventional = conventional_total(result)
+    feedback = float(macro_result.cumulative_revenue_feedback)
+    debt_service = float(np.sum(macro_result.interest_cost_billions))
+    return DynamicView(
+        model_name=model_name,
+        conventional=conventional,
+        feedback=feedback,
+        debt_service=debt_service,
+        dynamic_total=conventional - feedback + debt_service,
+    )
 
 
 def render_dynamic_scoring_tab(
@@ -39,7 +139,7 @@ def render_dynamic_scoring_tab(
         st_module.markdown(
             """
             <div class="info-box">
-            💡 <strong>Dynamic scoring is disabled.</strong> Enable it in the sidebar to see macroeconomic effects
+            💡 <strong>Dynamic scoring is disabled.</strong> Enable it in the ⚙ settings menu to see macroeconomic effects
             (GDP impact, employment changes, interest rates, and revenue feedback).
             </div>
             """,
@@ -57,7 +157,7 @@ def render_dynamic_scoring_tab(
             - **Interest Rates**: Deficits can raise rates through crowding out
             - **Revenue Feedback**: GDP growth generates additional tax revenue
 
-            **Enable dynamic scoring** in the sidebar to see these effects for your policy.
+            **Enable dynamic scoring** in the settings menu to see these effects for your policy.
             """
         )
         return
@@ -88,13 +188,9 @@ def render_dynamic_scoring_tab(
             macro_scenario_cls=macro_scenario_cls,
         )
 
-        use_simple = macro_model_name == "Simple Multiplier"
-        if use_simple:
-            adapter = simple_multiplier_adapter_cls()
-            model_name = "Simple Keynesian Multiplier"
-        else:
-            adapter = frbus_adapter_lite_cls()
-            model_name = "FRB/US-Lite (Federal Reserve calibrated)"
+        adapter, model_name = resolve_macro_adapter(
+            macro_model_name, frbus_adapter_lite_cls, simple_multiplier_adapter_cls
+        )
 
         cache_key = f"macro:{run_id}:{macro_model_name}" if run_id else None
         macro_result = st_module.session_state.get(cache_key) if cache_key else None
@@ -150,26 +246,25 @@ def render_dynamic_scoring_tab(
         # block made the same policy flip sign between tabs, and showed $0B
         # conventional for spending policies (their impulse is not in
         # static_revenue_effect).
-        conventional_total = float(
-            (result.static_deficit_effect + result.behavioral_offset).sum()
-        )
-        feedback_total = float(macro_result.cumulative_revenue_feedback)
-        # CBO's dynamic analyses net the debt-service cost of the added
-        # deficit against growth feedback; a "dynamic score" that ignores
-        # interest costs overstates the offset.
-        interest_total = float(np.sum(macro_result.interest_cost_billions))
-        dynamic_total = conventional_total - feedback_total + interest_total
+        #
+        # One function, one set of numbers: the Results tab's Key Metrics and
+        # Copy Summary render this same DynamicView (NOTES §4.4).
+        view = compute_dynamic_view(result, macro_result, model_name)
+        conventional_score = view.conventional
+        feedback_total = view.feedback
+        interest_total = view.debt_service
+        dynamic_total = view.dynamic_total
 
         col1, col2, col3, col4 = st_module.columns(4)
 
         with col1:
             st_module.metric(
                 "Conventional Score",
-                f"${conventional_total:+.0f}B",
+                f"${conventional_score:+.0f}B",
                 help=(
                     "Static + behavioral, before macro feedback "
-                    "(positive = increases the deficit — same convention as "
-                    "the Results tab headline)."
+                    "(positive = increases the deficit — this is the Results "
+                    "tab headline, in every mode)."
                 ),
             )
 
@@ -199,8 +294,8 @@ def render_dynamic_scoring_tab(
                 "Dynamic Score",
                 f"${dynamic_total:+.0f}B",
                 delta=(
-                    f"{(net_dynamic_delta / abs(conventional_total) * 100):+.1f}% vs conventional"
-                    if conventional_total != 0
+                    f"{(net_dynamic_delta / abs(conventional_score) * 100):+.1f}% vs conventional"
+                    if conventional_score != 0
                     else "N/A"
                 ),
                 # A positive delta means the dynamic score adds deficit
@@ -208,7 +303,7 @@ def render_dynamic_scoring_tab(
                 delta_color="inverse" if net_dynamic_delta != 0 else "off",
             )
 
-        sign_conv = "+" if conventional_total >= 0 else "-"
+        sign_conv = "+" if conventional_score >= 0 else "-"
         # Feedback is subtracted (it offsets the deficit) and debt service is
         # added; sign each printed term so the arithmetic always matches the
         # Dynamic Score, including when a deficit-reducing policy earns
@@ -217,23 +312,20 @@ def render_dynamic_scoring_tab(
         sign_int = "+" if interest_total >= 0 else "-"
         sign_dyn = "+" if dynamic_total >= 0 else "-"
         st_module.markdown(
-            f"**Calculation:** {sign_conv}\\${abs(conventional_total):.0f}B (conventional) "
+            f"**Calculation:** {sign_conv}\\${abs(conventional_score):.0f}B (conventional) "
             f"{sign_fb} \\${abs(feedback_total):.0f}B (feedback) "
             f"{sign_int} \\${abs(interest_total):.0f}B (debt service) "
             f"= **{sign_dyn}\\${abs(dynamic_total):.0f}B (dynamic)** "
             f"— positive = increases the deficit"
         )
-        if result.dynamic_effects is not None:
-            headline_feedback = float(result.dynamic_effects.revenue_feedback.sum())
-            st_module.caption(
-                f"ℹ️ Dynamic scoring is enabled in the sidebar, so the "
-                f"Results tab headline already includes "
-                f"${headline_feedback:+,.0f}B of revenue feedback from the "
-                f"app's internal model. This tab runs an independent "
-                f"macro adapter ({model_name}) for comparison — the two "
-                f"feedback estimates come from different models and will "
-                f"not match exactly."
-            )
+        st_module.caption(
+            f"ℹ️ The Results headline stays at the conventional "
+            f"{sign_conv}\\${abs(conventional_score):.0f}B in every mode — dynamic "
+            f"scoring adds this view, it does not move the headline. The "
+            f"feedback and debt-service figures above are the same numbers the "
+            f"Results tab's Key Metrics, Copy Summary and CSV export print, "
+            f"computed here from {model_name}."
+        )
         st_module.caption(
             "⚠️ Demand-side model only: GDP effects come from temporary "
             "fiscal-impulse multipliers that fade as the Fed responds and "
@@ -398,7 +490,10 @@ def render_dynamic_scoring_tab(
         st_module.subheader("Detailed Year-by-Year Results")
 
         macro_df = macro_result.to_dataframe()
-        st_module.dataframe(macro_df, use_container_width=True, hide_index=True)
+        try:
+            st_module.dataframe(macro_df, width="stretch", hide_index=True)
+        except TypeError:  # pragma: no cover - older Streamlit / test fakes
+            st_module.dataframe(macro_df, hide_index=True)
         dynamic_meta = (
             f"# Policy: {policy.name}\n"
             f"# Export Date: {date.today().isoformat()}\n"

@@ -26,6 +26,30 @@ def test_smoke_job_runs_local_streamlit_boot_flow():
     assert "python scripts/check_streamlit_boot.py --timeout 45" in workflow
 
 
+def test_ruff_lint_step_covers_the_streamlit_app_surface():
+    """The redesign moved the UI into ``app.py`` / ``app_pages/`` /
+    ``components/``. Linting only ``fiscal_model/ tests/`` left the entire
+    router and every page module unchecked in CI.
+    """
+    workflow = TESTS_WORKFLOW_PATH.read_text(encoding="utf-8")
+
+    lint_lines = [line for line in workflow.splitlines() if "ruff check" in line]
+    assert len(lint_lines) == 1, "expected exactly one ruff check invocation"
+    lint = lint_lines[0]
+    for target in (
+        "fiscal_model/",
+        "tests/",
+        "app.py",
+        "app_pages/",
+        "components/",
+        "classroom_app.py",
+    ):
+        assert target in lint, f"ruff scope is missing {target}"
+
+    # Pinned, not floating: an unpinned linter turns CI red on untouched code.
+    assert "pip install 'ruff==0.15.8'" in workflow
+
+
 def test_type_check_gate_is_blocking_and_full_pass_is_advisory():
     workflow = TESTS_WORKFLOW_PATH.read_text(encoding="utf-8")
 

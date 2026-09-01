@@ -1,0 +1,140 @@
+# Starting philosophies for Build's "Start from your values" panel.
+# ---------------------------------------------------------------------------
+# REDESIGN_PLAN.md §5b.3. Five archetypes, loaded once by
+# fiscal_model/composer/archetypes.py and turned into ValuesVector objects that
+# the deterministic selector consumes. Nothing here needs an API key: the
+# archetype path is the offline path.
+#
+# Naming rules (binding, from the plan):
+#   * value language only — never a party, a politician, or a campaign;
+#   * every archetype must read as its own holder's steelman, written as they
+#     would write it, not as an opponent would summarise it;
+#   * `id` is a stable slug. It ships in share links (/build?values=<id>), so
+#     renaming one breaks every link ever pasted. Rename `name`, never `id`.
+#
+# `vector` fields are the ValuesVector contract (values_schema.py):
+#   redistribution      -1..1   -1 = flat burden, +1 = judge by the worst-off
+#   deficit_concern      0..1   how much closing the gap drives the choices
+#   govt_size           -1..1   -1 = a smaller state, +1 = a larger one
+#   growth_priority      0..1   weight on the growth cost of the instrument
+#   generational_weight  0..1   weight on cohorts who cannot vote yet
+#   protected           list    commitments the package may not violate
+#                               (keys from values_schema.PROTECTED_RULES)
+#   target_pct_gdp      float   the deficit this philosophy is aiming at
+#
+# `target_pct_gdp` differs across archetypes on purpose. "How much consolidation
+# is the point of the exercise" is itself a value, and forcing every philosophy
+# to a 3%-of-GDP target would caricature the ones whose priority lies elsewhere.
+#
+# `rationale_template` is the sentence frame for the per-policy "why this one,
+# given your values" line. Fields available to it:
+#   {policy}      short policy name
+#   {driver}      the dimension that did the most work for this pick
+#   {amount}      signed 10-year total, e.g. "-$3,200B"
+#   {share}       this policy's share of the gap, e.g. "18%"
+#   {contrast}    ", rather than <X>, which <clause>" when a protected
+#                 commitment ruled out a bigger alternative in the same area —
+#                 an empty string otherwise, so the sentence still reads.
+# A template that omits a field simply does not show it; nothing raises.
+
+archetypes:
+  - id: deficit-hawk
+    name: "Deficit hawk, protect the vulnerable"
+    one_line: >-
+      Get to 3% of GDP, but the adjustment shouldn't fall on the bottom of the
+      distribution.
+    chips: ["progressive raisers", "protects transfers", "target 3.0%"]
+    vector:
+      redistribution: 0.6
+      deficit_concern: 0.95
+      govt_size: 0.0
+      growth_priority: 0.4
+      generational_weight: 0.6
+      protected: [middle_class_rates, safety_net]
+      target_pct_gdp: 3.0
+    rationale_template: >-
+      {policy} closes {share} of the gap on its own{contrast} — {driver}.
+
+  - id: small-government
+    name: "Small government"
+    one_line: >-
+      Close the gap on the spending side; leave rates where they are or lower.
+    chips: ["spending cuts first", "no new taxes", "shrinks state"]
+    vector:
+      redistribution: -0.2
+      deficit_concern: 0.8
+      govt_size: -0.9
+      growth_priority: 0.6
+      generational_weight: 0.4
+      protected: [defense]
+      target_pct_gdp: 3.0
+    rationale_template: >-
+      {policy} takes {share} of the gap out of the size of the state{contrast} —
+      {driver}.
+
+  - id: growth-first
+    name: "Growth-first"
+    one_line: >-
+      Broaden bases rather than raise marginal rates; keep investment
+      incentives intact.
+    chips: ["base-broadening", "low marginal rates", "investment-friendly"]
+    vector:
+      redistribution: -0.1
+      deficit_concern: 0.5
+      govt_size: -0.3
+      growth_priority: 0.95
+      generational_weight: 0.5
+      protected: [corporate_investment]
+      target_pct_gdp: 4.0
+    rationale_template: >-
+      {policy} raises {share} of the gap at a low growth cost{contrast} —
+      {driver}.
+
+  - id: egalitarian
+    name: "Egalitarian"
+    one_line: >-
+      Judge the budget by what it does for the worst-off — raise at the top,
+      spend at the bottom.
+    chips: ["raises at top", "expands credits", "mixed package"]
+    vector:
+      redistribution: 0.9
+      deficit_concern: 0.35
+      govt_size: 0.6
+      growth_priority: 0.25
+      generational_weight: 0.4
+      protected: [safety_net, medicare, middle_class_rates]
+      target_pct_gdp: 4.5
+    rationale_template: >-
+      {policy} moves {share} of the gap and lands where you said it should
+      land{contrast} — {driver}.
+
+  - id: generational-steward
+    name: "Generational steward"
+    one_line: >-
+      Weigh future cohorts equally; stabilize debt without loading costs onto
+      the young.
+    chips: ["long-run balance", "OLG-informed", "phased reforms"]
+    vector:
+      redistribution: 0.3
+      deficit_concern: 0.9
+      govt_size: 0.1
+      growth_priority: 0.55
+      generational_weight: 0.95
+      protected: [clean_energy_credits]
+      target_pct_gdp: 3.0
+    rationale_template: >-
+      {policy} carries {share} of the gap over the window{contrast} — {driver}.
+
+# ---------------------------------------------------------------------------
+# Migration record — Package Studio's three canned philosophies (#65,
+# goal_spec.CANNED_GOAL_SPECS) folded into the five above, per DECISIONS.md #3.
+# None of the three was a distinct *philosophy*; each was a GoalSpec shape.
+# CANNED_GOAL_SPECS itself stays in goal_spec.py because it is the fallback for
+# the deep, live-scored compose_and_score path and its own tests.
+migrated_from_package_studio:
+  Progressive investment: egalitarian     # progressive revenue funding new programs
+  Deficit hawk: deficit-hawk              # same philosophy, now with the protections named
+  Corporate-funded rebuild: egalitarian   # public investment paid for at the top;
+                                          # the corporate emphasis is an instrument
+                                          # choice, not a value, and the selector
+                                          # reaches it from redistribution + govt_size

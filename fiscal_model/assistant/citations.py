@@ -196,6 +196,208 @@ def format_answer_for_display(text: str) -> tuple[str, list[str]]:
     return display_body, source_lines
 
 
+# ---------------------------------------------------------------------------
+# Reader-facing Sources row
+# ---------------------------------------------------------------------------
+
+_SUPERSCRIPTS = str.maketrans("0123456789", "⁰¹²³⁴⁵⁶⁷⁸⁹")
+
+# ``CBO (2026), "Budget Outlook", https://…`` -> title / publisher-and-date.
+_SOURCE_QUOTED_TITLE_RE = re.compile(r"[\"“]([^\"”]+)[\"”]")
+_SOURCE_YEAR_RE = re.compile(r"\((\d{4}(?:[-/]\d{1,2})?)\)")
+
+
+def _superscript(n: int) -> str:
+    return str(n).translate(_SUPERSCRIPTS)
+
+
+def _parse_source_entry(entry: str) -> dict[str, Any]:
+    """Split a ``[^N]: …`` Sources line into title / publisher / date / URL."""
+    text = entry.strip()
+    urls = _URL_RE.findall(text)
+    url = urls[0] if urls else None
+
+    without_url = text
+    if url:
+        without_url = without_url.replace(url, "").strip().strip(",;. ")
+
+    date = None
+    year_match = _SOURCE_YEAR_RE.search(without_url)
+    if year_match:
+        date = year_match.group(1)
+
+    quoted = _SOURCE_QUOTED_TITLE_RE.search(without_url)
+    if quoted:
+        title = quoted.group(1).strip()
+        publisher = without_url[: quoted.start()].strip().strip(",;-— ")
+        if year_match:
+            publisher = publisher.replace(year_match.group(0), "").strip().strip(",;-— ")
+    else:
+        title = without_url or (url or "Source")
+        publisher = None
+        if year_match:
+            title = title.replace(year_match.group(0), "").strip().strip(",;-— ")
+
+    return {
+        "title": title or (url or "Source"),
+        "publisher": publisher or None,
+        "date": date,
+        "url": url,
+    }
+
+
+def _record_key(record: dict[str, Any]) -> str:
+    """Identity used to de-duplicate sources across markers and provenance."""
+    url = (record.get("url") or "").strip().rstrip("/")
+    if url:
+        return f"url:{url.lower()}"
+    return f"title:{(record.get('title') or '').strip().lower()}"
+
+
+def _provenance_source_records(
+    provenance: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Every citable record the tools surfaced this turn, in call order."""
+    records: list[dict[str, Any]] = []
+    for call in provenance or []:
+        explicit = call.get("sources")
+        if explicit:
+            for record in explicit:
+                if isinstance(record, dict) and record.get("title"):
+                    records.append(dict(record))
+            continue
+        # Shared links and older transcripts carry only ``tool``/``args``.
+        tool = call.get("tool", "")
+        label = _TOOL_FRIENDLY_NAMES.get(tool)
+        urls = [u for u in (call.get("urls") or []) if u]
+        if not urls and tool == "fetch_url":
+            arg_url = (call.get("args") or {}).get("url")
+            if arg_url:
+                urls = [str(arg_url)]
+        if urls:
+            for url in urls:
+                records.append(
+                    {"title": label or url, "publisher": None, "date": None, "url": url}
+                )
+        elif label:
+            records.append(
+                {"title": label, "publisher": None, "date": None, "url": None}
+            )
+    return records
+
+
+def format_source_line(record: dict[str, Any]) -> str:
+    """One numbered Sources entry as markdown: title, publisher, date, link."""
+    title = str(record.get("title") or "Source").strip()
+    url = record.get("url")
+    head = f"[{title}]({url})" if url else title
+    detail = " · ".join(
+        str(part).strip()
+        for part in (record.get("publisher"), record.get("date"))
+        if part
+    )
+    return f"{record['n']}. {head}" + (f" — {detail}" if detail else "")
+
+
+def build_answer_display(
+    text: str,
+    provenance: list[dict[str, Any]] | None = None,
+) -> tuple[str, list[dict[str, Any]]]:
+    """Render an answer for display and build its numbered Sources list.
+
+    Streamlit markdown has no footnote support, so a raw ``[^N]`` renders
+    literally — the tab promised citations and delivered dangling markers.
+    This is the replacement contract:
+
+    * every ``[^N]`` that resolves to a source becomes a **superscript
+      numeral**, hyperlinked to that source when it has a URL;
+    * markers are renumbered ``1..k`` in order of first appearance so the
+      superscripts match the Sources row exactly;
+    * a marker that resolves to nothing is **removed** — a bare ``[^N]``
+      never reaches the reader;
+    * sources the tools surfaced but the model never cited are appended, so
+      the row is honest about what the answer actually drew on.
+
+    Returns ``(display_body, sources)`` where each source is
+    ``{"n", "title", "publisher", "date", "url"}``.
+    """
+    body, sources_block = split_body_and_sources(text or "")
+    sources_map = _parse_sources(sources_block)
+    prov_records = _provenance_source_records(provenance or [])
+
+    # A marker with no Sources entry still means "grounded in a tool this
+    # turn" (annotate_unsupported already stripped the unsupported ones), so
+    # fall back to the first internal record rather than dropping the claim.
+    fallback = next(
+        (r for r in prov_records if not r.get("url")),
+        prov_records[0] if prov_records else None,
+    )
+
+    ordered: list[dict[str, Any]] = []
+    by_key: dict[str, dict[str, Any]] = {}
+    marker_to_number: dict[int, int | None] = {}
+
+    def _register(record: dict[str, Any]) -> dict[str, Any]:
+        key = _record_key(record)
+        existing = by_key.get(key)
+        if existing is not None:
+            return existing
+        entry = dict(record)
+        entry["n"] = len(ordered) + 1
+        ordered.append(entry)
+        by_key[key] = entry
+        return entry
+
+    def _resolve(marker: int) -> int | None:
+        if marker in marker_to_number:
+            return marker_to_number[marker]
+        raw = sources_map.get(marker)
+        record = _parse_source_entry(raw) if raw else fallback
+        number = _register(record)["n"] if record else None
+        marker_to_number[marker] = number
+        return number
+
+    def _repl(match: re.Match[str]) -> str:
+        number = _resolve(int(match.group(1)))
+        if number is None:
+            return ""
+        entry = ordered[number - 1]
+        marker = _superscript(number)
+        url = entry.get("url")
+        return f"[{marker}]({url})" if url else marker
+
+    display_body = _CITATION_MARKER_RE.sub(_repl, body).rstrip()
+
+    # System notes appended after the model's ``## Sources`` block (the
+    # truncation and stripped-marker blockquotes) would otherwise vanish.
+    trailing_notes = [
+        line.strip()
+        for line in (sources_block or "").splitlines()
+        if line.lstrip().startswith(">")
+    ]
+    if trailing_notes:
+        display_body += "\n\n" + "\n".join(trailing_notes)
+
+    # Anything the model listed but never cited inline, then anything the
+    # tools surfaced that is still unrepresented.
+    for marker in sorted(sources_map):
+        if marker not in marker_to_number:
+            _register(_parse_source_entry(sources_map[marker]))
+    for record in prov_records:
+        _register(record)
+
+    return display_body, ordered
+
+
+def render_sources_markdown(sources: list[dict[str, Any]]) -> str:
+    """The ``**Sources (N)**`` block as a single markdown string."""
+    if not sources:
+        return ""
+    lines = [f"**Sources ({len(sources)})**", ""]
+    lines += [format_source_line(record) for record in sources]
+    return "\n".join(lines)
+
+
 def render_provenance_footer(provenance: list[dict[str, Any]]) -> str:
     """Render a compact bullet list of tool calls used this turn.
 
@@ -257,9 +459,12 @@ def describe_sources(provenance: list[dict[str, Any]]) -> list[str]:
 
 __all__ = [
     "annotate_unsupported",
+    "build_answer_display",
     "describe_sources",
     "extract_citation_markers",
     "format_answer_for_display",
+    "format_source_line",
     "render_provenance_footer",
+    "render_sources_markdown",
     "split_body_and_sources",
 ]
