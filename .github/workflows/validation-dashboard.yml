@@ -11,6 +11,11 @@ name: Validation Dashboard
 #       needs_improvement; CI job FAILS so the PR cannot merge.
 #   2 — calibration warning (a single bracket <60% AGI coverage); CI job
 #       still passes. This is a data-quality signal, not a regression.
+#
+# A separate step runs scripts/run_loo.py — Tier 2 leave-one-out — with its own
+# ceiling. That number is held out and is expected to be an order of magnitude
+# worse than the by-construction Tier 2 figure; the ceiling catches regressions
+# in the structural machinery, it is not an accuracy claim.
 
 on:
   push:
@@ -51,6 +56,21 @@ jobs:
             exit $exit_code
           fi
 
+      # Tier 2 (leave-one-out). Holds out one calibrated benchmark at a time and
+      # asks whether the module's structural machinery — calibrated on the others
+      # — can rebuild it. Kept as its own step and its own ceiling: this is a
+      # held-out number and must never be conflated with the by-construction
+      # Tier 2 figure (~5%) or with the Tier 1 out-of-sample battery. Ceiling is
+      # the observed aggregate mean (~59%) x 1.25, rounded to the nearest 5.
+      - name: Run leave-one-out cross-validation (Tier 2 LOO)
+        run: |
+          python scripts/run_loo.py --donor-matrix --max-mean-error 75
+
+      - name: Leave-one-out JSON artifact
+        if: always()
+        run: |
+          python scripts/run_loo.py --json --donor-matrix > validation-loo.json || true
+
       - name: Run validation dashboard (JSON)
         if: always()
         run: |
@@ -69,4 +89,5 @@ jobs:
           path: |
             validation-dashboard.json
             validation-dashboard-augmented.json
+            validation-loo.json
           retention-days: 30

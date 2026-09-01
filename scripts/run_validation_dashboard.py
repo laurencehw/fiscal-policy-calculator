@@ -41,11 +41,19 @@ from fiscal_model.validation.benchmark_runners import default_model_runner  # no
 from fiscal_model.validation.cbo_distributions import (  # noqa: E402
     run_full_cbo_jct_validation,
 )
+from fiscal_model.validation.loo import LOOSuite, run_leave_one_out  # noqa: E402
 
 STATUS_DEGRADED = {"degraded", "error", "needs_improvement", "unknown"}
 HEALTH_COMPONENTS = ("runtime", "baseline", "fred", "irs_soi", "model", "microdata")
 CALIBRATION_AGI_RATIO_MIN = 0.60
 UTC = timezone.utc
+
+# Tier 2 (leave-one-out) ceiling. The observed aggregate mean absolute error
+# over the derivable cases is ~59%; the gate sits at that x 1.25, rounded to
+# the nearest 5, so it catches a regression in the structural machinery without
+# tripping on ordinary re-calibration noise. This is a *held-out* number and is
+# expected to be an order of magnitude worse than the by-construction ~5%.
+DEFAULT_MAX_LOO_MEAN_ERROR = 75.0
 
 
 def _fmt_billion(value: float | None) -> str:
@@ -441,6 +449,86 @@ def print_calibration(calibration: dict[str, Any]) -> bool:
     return worst_ratio >= CALIBRATION_AGI_RATIO_MIN
 
 
+# ---------------------------------------------------------------------------
+# Tier 2 (leave-one-out) — see fiscal_model/validation/loo.py
+# ---------------------------------------------------------------------------
+
+
+def collect_loo() -> LOOSuite | None:
+    """Run the leave-one-out suite, returning ``None`` if it crashed."""
+    try:
+        return run_leave_one_out()
+    except Exception as exc:  # pragma: no cover - best-effort diagnostic
+        print(f"  [ERROR] Leave-one-out suite crashed: {exc}")
+        return None
+
+
+def print_loo(suite: LOOSuite | None, ceiling: float) -> bool:
+    """Print the Tier 2 (LOO) section. Return True when under the ceiling."""
+    print_banner("Tier 2 (leave-one-out) — held-out calibrated modules")
+    if suite is None:
+        print("  [FAIL] Leave-one-out suite unavailable.")
+        return False
+
+    print(f"    {'Module':<14} {'Kind':<11} {'n':>3} {'not x-val':>10} {'mean err':>10}")
+    print(f"    {'-' * 14} {'-' * 11} {'-' * 3} {'-' * 10} {'-' * 10}")
+    for report in suite.reports:
+        mean = report.mean_abs_percent_error
+        print(
+            f"    {report.module:<14} {report.derivation_kind:<11} "
+            f"{len(report.included_cases):>3} {len(report.excluded_cases):>10} "
+            f"{_fmt_pct(mean):>10}"
+        )
+    included = len(suite.included_cases)
+    print()
+    print(f"  aggregate mean:     {_fmt_pct(suite.mean_abs_percent_error)} (n={included})")
+    print(f"  aggregate median:   {_fmt_pct(suite.median_abs_percent_error)}")
+    print(f"  within 15%:         {suite.within_15pct}/{included}")
+    print(f"  not cross-validatable: {len(suite.excluded_cases)} (never folded into the aggregate)")
+    print(f"  ceiling:            {ceiling:.1f}%")
+    return not loo_gate_issues(suite, ceiling)
+
+
+def loo_gate_ok(suite: LOOSuite | None, ceiling: float) -> bool:
+    """Silent equivalent of print_loo for JSON/reporting paths."""
+    return not loo_gate_issues(suite, ceiling)
+
+
+def loo_gate_issues(suite: LOOSuite | None, ceiling: float) -> list[dict[str, Any]]:
+    """Return Tier 2 (LOO) ceiling breaches in artifact-friendly form."""
+    if suite is None:
+        return [
+            {
+                "surface": "loo",
+                "severity": "fail",
+                "message": "Leave-one-out suite failed to run.",
+            }
+        ]
+    mean = suite.mean_abs_percent_error
+    if mean is None:
+        return [
+            {
+                "surface": "loo",
+                "severity": "fail",
+                "message": "Leave-one-out suite produced no derivable cases.",
+            }
+        ]
+    if mean > ceiling:
+        return [
+            {
+                "surface": "loo",
+                "severity": "fail",
+                "mean_abs_percent_error": mean,
+                "ceiling": ceiling,
+                "message": (
+                    f"Tier 2 (LOO) mean absolute error {mean:.1f}% exceeds the "
+                    f"{ceiling:.1f}% ceiling."
+                ),
+            }
+        ]
+    return []
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -470,6 +558,15 @@ def main() -> int:
             "Drop CPS tax units that are clearly non-filers (no income, "
             "no children, below statutory threshold). Aligns aggregate "
             "microdata totals with SOI's filed-return counts."
+        ),
+    )
+    parser.add_argument(
+        "--max-loo-mean-error",
+        type=float,
+        default=DEFAULT_MAX_LOO_MEAN_ERROR,
+        help=(
+            "Ceiling on the Tier 2 (leave-one-out) aggregate mean absolute error, "
+            f"in percent (default: {DEFAULT_MAX_LOO_MEAN_ERROR:.0f})."
         ),
     )
     args = parser.parse_args()
@@ -534,18 +631,30 @@ def main() -> int:
             },
             "distributional_benchmarks": benchmarks_json,
         }
+        loo_suite = collect_loo()
+        payload["leave_one_out"] = (
+            {**loo_suite.to_dict(), "ceiling": args.max_loo_mean_error}
+            if loo_suite is not None
+            else {"error": "leave-one-out suite failed to run"}
+        )
         gates = {
             "health": health_gate_ok(health),
             "calibration": calibration_gate_ok(calibration),
             "distributional_benchmarks": benchmarks_gate_ok(benchmarks_json),
+            "leave_one_out": loo_gate_ok(loo_suite, args.max_loo_mean_error),
         }
         issues = [
             *health_gate_issues(health),
             *calibration_gate_issues(calibration),
             *benchmark_gate_issues(benchmarks_json),
+            *loo_gate_issues(loo_suite, args.max_loo_mean_error),
         ]
         has_warn_issues = any(issue["severity"] == "warn" for issue in issues)
-        if not gates["health"] or not gates["distributional_benchmarks"]:
+        if (
+            not gates["health"]
+            or not gates["distributional_benchmarks"]
+            or not gates["leave_one_out"]
+        ):
             overall = "fail"
         elif not gates["calibration"] or has_warn_issues:
             overall = "warn"
@@ -563,13 +672,15 @@ def main() -> int:
     health_ok = print_health(health)
     calibration_ok = print_calibration(calibration)
     benchmarks_ok = print_benchmarks()
+    loo_suite = collect_loo()
+    loo_ok = print_loo(loo_suite, args.max_loo_mean_error)
 
     health_warnings = [
         issue for issue in health_gate_issues(health) if issue["severity"] == "warn"
     ]
 
     print_banner("Summary")
-    if health_ok and calibration_ok and benchmarks_ok and not health_warnings:
+    if health_ok and calibration_ok and benchmarks_ok and loo_ok and not health_warnings:
         print("  [OK] All surfaces nominal.")
         return 0
     if not health_ok:
@@ -577,6 +688,10 @@ def main() -> int:
         return 1
     if not benchmarks_ok:
         print("  [FAIL] At least one distributional benchmark flagged needs_improvement.")
+        return 1
+    if not loo_ok:
+        for issue in loo_gate_issues(loo_suite, args.max_loo_mean_error):
+            print(f"  [FAIL] {issue['message']}")
         return 1
     if not calibration_ok:
         print("  [WARN] Calibration has at least one bracket with <60% AGI coverage.")
