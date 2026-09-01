@@ -332,7 +332,7 @@ def render_spending_policy_inputs(
             key=KEY_TAILOR_SPEND_MULTIPLIER,
             help=(
                 "GDP impact per dollar spent. Typical values: infrastructure \\~1.5, defense \\~1.0, "
-                "transfers ~0.8. ([CBO 2015 estimates](https://www.cbo.gov/publication/49958))"
+                "transfers \\~0.8. ([CBO 2015 estimates](https://www.cbo.gov/publication/49958))"
             ),
         )
 

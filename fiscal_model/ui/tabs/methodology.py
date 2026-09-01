@@ -173,7 +173,7 @@ def render_methodology_tab(st_module: Any) -> None:
 |----------|-------|--------|
 | Rate change (Δτ) | 0.026 (2.6 pp) | Policy |
 | Threshold (*T*) | \$400,000 | Policy |
-| Avg. taxable income above threshold (*Ȳ*) | ~\$950,000 | IRS SOI |
+| Avg. taxable income above threshold (*Ȳ*) | \~\$950,000 | IRS SOI |
 | Marginal income per filer (*Ȳ* − *T*) | \$550,000 | Derived |
 | Filers above threshold (*N*) | \~1.8 million | IRS SOI |
 """)
@@ -387,7 +387,7 @@ def render_methodology_tab(st_module: Any) -> None:
         st_module.markdown(r"""
 | Variable | Value | Source |
 |----------|-------|--------|
-| Baseline realizations (*R*₀) | ~\$500 B/yr | IRS SOI, calibrated |
+| Baseline realizations (*R*₀) | \~\$500 B/yr | IRS SOI, calibrated |
 | Baseline rate (τ₀) | 23.8% (20% + 3.8% NIIT) | Current law |
 | New rate (τ₁) | 28.0% | Policy |
 | Rate change (Δτ) | 4.2 pp = 0.042 | Derived |
@@ -499,9 +499,9 @@ def render_methodology_tab(st_module: Any) -> None:
         st_module.markdown(r"""
 | Scenario | 10-yr score | Behavioral offset (avg) |
 |----------|------------|------------------------|
-| Rate ↑ to 28%, step-up retained | ~\$110 B | \~48% of static |
-| Rate ↑ to 28%, step-up eliminated | ~\$180 B | \~14% of static |
-| Static (no behavioral response) | ~\$210 B | 0% |
+| Rate ↑ to 28%, step-up retained | \~\$110 B | \~48% of static |
+| Rate ↑ to 28%, step-up eliminated | \~\$180 B | \~14% of static |
+| Static (no behavioral response) | \~\$210 B | 0% |
 """)
         st_module.markdown(
             "> **Key takeaway for public economics:** The revenue effect of a "
