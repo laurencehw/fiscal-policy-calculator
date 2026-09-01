@@ -130,7 +130,7 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
         "description": (
             "Federal subsidy capping childcare at 7% of family income for households <\\$300k. "
             "Moderate-to-high multiplier (\\~1.3) via labor-force participation of primary caregivers. "
-            "Build Back Better-style (\\$381B/10yr in 2021 estimate, inflation-adjusted to ~\\$100B/yr)."
+            "Build Back Better-style (\\$381B/10yr in 2021 estimate, inflation-adjusted to \\~\\$100B/yr)."
         ),
     },
     "Medicare Buy-in Age 55+ ($50B/yr)": {
@@ -141,7 +141,7 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
         "duration": 10,
         "is_one_time": False,
         "description": (
-            "Optional Medicare enrollment from age 55. Modest net federal cost (~\\$50B/yr) after "
+            "Optional Medicare enrollment from age 55. Modest net federal cost (\\~\\$50B/yr) after "
             "premium offsets and reduced ACA marketplace subsidies. CBO 2019 scored at \\$487B/10yr."
         ),
     },
