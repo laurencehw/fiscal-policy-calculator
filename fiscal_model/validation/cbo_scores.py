@@ -828,9 +828,9 @@ KNOWN_SCORES: dict[str, CBOScore] = {
     # Publication 60557; https://www.cbo.gov/publication/60557
     #
     # 76 independently scored single-provision options. The 14 alternatives the
-    # *uncalibrated* path can express are entered here as out-of-sample targets;
-    # the other 62 options carry a one-line exclusion reason in
-    # ``fiscal_model/validation/cbo_options.py``.
+    # *uncalibrated* path can express - drawn from 11 of the options - are entered
+    # here as out-of-sample targets; the other 65 options carry a one-line
+    # exclusion reason in ``fiscal_model/validation/cbo_options.py``.
     #
     # Baselines (PDF p. 2, "Notes About This Report"): revenue options are
     # measured against CBO's February 2024 baseline (pub. 59710) and spending

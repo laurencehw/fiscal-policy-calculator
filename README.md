@@ -95,7 +95,7 @@ Revenue validation comes in **two epistemically different kinds**, and we report
 
 These policies are scored **bottom-up from IRS SOI** filer counts and incomes via raw rate/threshold auto-population, with **no fitting to the official target**. This is the only tier that measures real predictive accuracy.
 
-Fourteen of the 23 cases are the [CBO *Options for Reducing the Deficit: 2025-2034*](https://www.cbo.gov/publication/60557) battery — 14 of that report's 76 options are expressible by the uncalibrated path, the other 62 carry a one-line exclusion reason. Selected rows (full table and per-case error causes in [`docs/VALIDATION.md`](docs/VALIDATION.md)):
+Fourteen of the 23 cases are the [CBO *Options for Reducing the Deficit: 2025-2034*](https://www.cbo.gov/publication/60557) battery — **14 alternatives across 11 of that report's 76 options** are expressible by the uncalibrated path; the other **65 options** carry a one-line exclusion reason. Selected rows (full table and per-case error causes in [`docs/VALIDATION.md`](docs/VALIDATION.md)):
 
 | Policy | Official | Model | Error | Source |
 |--------|---------:|------:|------:|--------|
