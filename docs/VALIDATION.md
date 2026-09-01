@@ -23,9 +23,9 @@ Policies scored **bottom-up** — IRS SOI filer counts and incomes via raw rate/
 | 1pp all brackets | -$960B | -$935B | 3% | JCT (2023-01) | CBO Feb 2023 | `be7e947` |
 | 5pp top rate ($1M+) | -$700B | -$648B | 7% | TPC (2023-06) | CBO Feb 2023 | `be7e947` |
 | 2pp rate cut ($500K+) | +$400B | +$364B | 9% | TPC (2023-06) | CBO Feb 2023 | `be7e947` |
-| Fiscal Responsibility Act: discretionary caps | -$1,332B | -$1,254B | 6% | CBO, H.R. 3746 letter (2023-05) | CBO May 2023 (no vintage in repo) | `f2f308a`, scored `1357e90` |
+| Fiscal Responsibility Act: discretionary caps | -$1,332B | -$1,254B | 6% | CBO, H.R. 3746 letter (2023-05) | CBO May 2023 (no vintage in repo) | `aed5318`, scored `dca3a50` |
 | Tighten Pell grant eligibility | -$22B | -$24B | 10% | CBO Options 2025-2034 #39 (2024-12) | CBO June 2024 (scored on Feb 2024) | `752f0f1`, scored `36d683f` |
-| Social Security Fairness Act: WEP/GPO repeal | +$196B | +$215B | 10% | CBO, H.R. 82 (2024-09) | CBO June 2024 (no vintage in repo) | `f2f308a`, scored `1357e90` |
+| Social Security Fairness Act: WEP/GPO repeal | +$196B | +$215B | 10% | CBO, H.R. 82 (2024-09) | CBO June 2024 (no vintage in repo) | `aed5318`, scored `dca3a50` |
 | Biden top rate 39.6% ($400K+) | -$252B | -$285B | 13% | Treasury (2024-03) | Green Book FY2025 | `be7e947` |
 | AGI surtax 2pp (>$100K single) | -$1,051B | -$882B | 16% | CBO Options 2025-2034 #46 (2024-12) | CBO Feb 2024 (matched) | `752f0f1`, scored `36d683f` |
 | Cut selected nondefense discretionary | -$339B | -$400B | 18% | CBO Options 2025-2034 #42 (2024-12) | CBO June 2024 (scored on Feb 2024) | `752f0f1`, scored `36d683f` |
@@ -44,7 +44,7 @@ Policies scored **bottom-up** — IRS SOI filer counts and incomes via raw rate/
 | LTCG + qualified dividends +2pp | -$103B | -$206B | 99% | CBO Options 2025-2034 #47 (2024-12) | CBO Feb 2024 (matched) | `752f0f1`, scored `36d683f` |
 | Top rate to 45% (+8pp >$609,350) | -$420B | -$916B | 118% | TPC (2023) | unstated (secondhand) | `6c9bfa2` |
 | Treasury 39.6% + step-up repeal | -$322B | -$817B | 154% | Treasury (2021-05) | Green Book FY2022 | `d11bf2c`, scored `6c9bfa2` |
-| IIJA 2021: discretionary component | +$415B | +$1,894B | 356% | CBO, S.Amdt. 2137 (2021-08) | CBO July 2021 (no vintage in repo) | `f2f308a`, scored `1357e90` |
+| IIJA 2021: discretionary component | +$415B | +$1,894B | 356% | CBO, S.Amdt. 2137 (2021-08) | CBO July 2021 (no vintage in repo) | `aed5318`, scored `dca3a50` |
 
 Live figures: `python scripts/cold_holdout.py`. Rows are the `Generic` category of the scorecard; every one has a row in [`fiscal_model/validation/preregistered.py`](../fiscal_model/validation/preregistered.py).
 
@@ -136,7 +136,7 @@ Every Tier 1 case is registered in [`fiscal_model/validation/preregistered.py`](
 
 The discipline the manifest enforces (`assert_preregistered`, tested in `tests/test_preregistration.py`):
 
-0. **The target is entered in a commit before the commit that first scores it.** Phase B's 14 CBO Options rows were entered in `752f0f1` (`PHASE_B_ENTERED_COMMIT`) and first scored in `36d683f` (`PHASE_B_FIRST_SCORED_COMMIT`), which is the commit that flips them to `runnable=True`. Phase D's three enacted-law rows were entered in `f2f308a` (`PHASE_D_ENTERED_COMMIT`) and first scored in `1357e90` (`PHASE_D_FIRST_SCORED_COMMIT`). A file cannot contain its own hash, so both are stamped in the immediately following commit — the same convention Phase A used.
+0. **The target is entered in a commit before the commit that first scores it.** Phase B's 14 CBO Options rows were entered in `752f0f1` (`PHASE_B_ENTERED_COMMIT`) and first scored in `36d683f` (`PHASE_B_FIRST_SCORED_COMMIT`), which is the commit that flips them to `runnable=True`. Phase D's three enacted-law rows were entered in `aed5318` (`PHASE_D_ENTERED_COMMIT`) and first scored in `dca3a50` (`PHASE_D_FIRST_SCORED_COMMIT`). A file cannot contain its own hash, so both are stamped in the immediately following commit — the same convention Phase A used.
 1. **A target may never be edited to match a model run.** If an official number genuinely changes, the old row is marked `superseded_by` and a **new row with a new `case_id`** is added. The history stays in the file and in the diff.
 2. **No case may be scored out-of-sample without a row.** A Generic scorecard entry with no manifest row fails the test.
 3. **Misses are kept.** A row is never removed because the model scores it badly.

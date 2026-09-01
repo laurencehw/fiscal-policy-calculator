@@ -82,12 +82,16 @@ PHASE_B_FIRST_SCORED_COMMIT = "36d683f9a24f7609d0a179de5f8f36b0ec44a9fc"
 #: Phase B, the rows were added in this commit and first scored in a *later*
 #: one, so "the target was fixed before the model was allowed to move" is
 #: checkable from the git history rather than asserted in prose.
-PHASE_D_ENTERED_COMMIT = "f2f308a8de8b3a99f5beb21d74efd167286fbaac"
+# Note: the Phase D branch was rebased onto origin/main before review, which
+# rewrote these two hashes. They are re-stamped here to the commits that
+# actually carry the entry and the first scoring run on the merged history; the
+# two-commit ordering they record is unchanged.
+PHASE_D_ENTERED_COMMIT = "aed531816f597601a26810ae80fbe5c76fc14a38"
 PHASE_D_ENTERED_DATE = "2026-09-01"
 
 #: Commit in which the Phase D enacted-law battery was first scored (the commit
 #: that flips those three records to ``runnable=True``).
-PHASE_D_FIRST_SCORED_COMMIT = "1357e908ee5ab14069ac410c49a613d3ef90c0ed"
+PHASE_D_FIRST_SCORED_COMMIT = "dca3a50053d0b6727fef116f6a1020efccaad823"
 
 #: The rule that set ``annual_amount_billions`` for every Phase D spending
 #: case, fixed before any of them was scored. Written here rather than only in
