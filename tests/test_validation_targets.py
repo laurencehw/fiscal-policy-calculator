@@ -200,6 +200,50 @@ def test_create_policy_builds_spending_policy():
     assert policy.category == "mandatory"
 
 
+def test_model_parameters_report_each_shapes_real_drivers():
+    """``CorporateTaxPolicy`` subclasses ``TaxPolicy`` but ignores the
+    individual bracket fields, so reporting them would look auditable while
+    describing nothing that moved the number."""
+    from fiscal_model.validation.core import _model_parameters_for
+
+    corporate = create_policy_from_score(_score(policy_type="corporate_tax", rate_change=0.07))
+    params = _model_parameters_for(corporate)
+    assert set(params) == {
+        "rate_change",
+        "baseline_rate",
+        "corporate_elasticity",
+        "baseline_revenue_billions",
+        "baseline_profits_billions",
+        "include_passthrough_effects",
+    }
+
+    spending = create_policy_from_score(
+        _score(policy_type="spending", annual_amount_billions=40.0)
+    )
+    assert set(_model_parameters_for(spending)) == {
+        "annual_spending_change_billions",
+        "annual_growth_rate",
+        "phase_in_years",
+        "is_one_time",
+    }
+
+    capgains = create_policy_from_score(
+        _score(policy_type="capital_gains_tax", rate_change=0.05)
+    )
+    capgains_params = _model_parameters_for(capgains)
+    assert {"short_run_elasticity", "long_run_elasticity", "eliminate_step_up"} <= set(
+        capgains_params
+    )
+
+    ordinary = create_policy_from_score(_score(policy_type="income_tax", rate_change=0.02))
+    assert set(_model_parameters_for(ordinary)) == {
+        "rate_change",
+        "threshold",
+        "taxpayers_millions",
+        "avg_income",
+    }
+
+
 def test_create_policy_returns_none_without_a_shape():
     assert create_policy_from_score(_score(policy_type="other")) is None
     assert create_policy_from_score(_score(policy_type="tariff", rate_change=0.1)) is None

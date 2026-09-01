@@ -386,13 +386,33 @@ create_capital_gains_example_from_score = create_capital_gains_policy_from_score
 
 
 def _model_parameters_for(policy: Policy) -> dict:
-    """Record the parameters that actually drove a shape's score."""
+    """Record the parameters that actually drove a shape's score.
+
+    Each shape reports its own drivers. In particular ``CorporateTaxPolicy``
+    subclasses ``TaxPolicy`` but ignores the individual bracket fields
+    (``affected_income_threshold``, ``affected_taxpayers_millions``,
+    ``avg_taxable_income_in_bracket``) — it scores off the corporate revenue
+    and profit bases — so reporting those would make the validation output
+    look auditable while describing nothing that moved the number.
+    """
+    from ..corporate import CorporateTaxPolicy
+
     if isinstance(policy, SpendingPolicy):
         return {
             "annual_spending_change_billions": policy.annual_spending_change_billions,
             "annual_growth_rate": policy.annual_growth_rate,
             "phase_in_years": policy.phase_in_years,
             "is_one_time": policy.is_one_time,
+        }
+
+    if isinstance(policy, CorporateTaxPolicy):
+        return {
+            "rate_change": policy.rate_change,
+            "baseline_rate": policy.baseline_rate,
+            "corporate_elasticity": policy.corporate_elasticity,
+            "baseline_revenue_billions": policy.baseline_revenue_billions,
+            "baseline_profits_billions": policy.baseline_profits_billions,
+            "include_passthrough_effects": policy.include_passthrough_effects,
         }
 
     params = {
