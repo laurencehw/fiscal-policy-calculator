@@ -302,6 +302,7 @@ def _distribution_benchmark_check(comparisons: list[Any]) -> ReadinessCheck:
 
 def _scorecard_checks(scorecard: Any) -> list[ReadinessCheck]:
     from fiscal_model.validation.holdout import summarize_holdout_protocol
+    from fiscal_model.validation.scorecard import GENERIC_CATEGORY
 
     entries = list(getattr(scorecard, "entries", []))
     # The Generic (out-of-sample) tier used to be exempt from this gate, which
@@ -310,7 +311,10 @@ def _scorecard_checks(scorecard: Any) -> list[ReadinessCheck]:
     # undocumented Poor outlier fails strict readiness regardless of tier; a
     # Poor entry that carries a known_limitations note is a warning, which is
     # how a documented out-of-sample miss (kept, not tuned away) is recorded.
-    calibrated = [entry for entry in entries if getattr(entry, "category", None) != "Generic"]
+    calibrated = [
+        entry for entry in entries
+        if getattr(entry, "category", None) != GENERIC_CATEGORY
+    ]
     error_entries = [
         entry for entry in entries
         if getattr(entry, "rating", None) == "Error"
@@ -377,17 +381,17 @@ def _scorecard_checks(scorecard: Any) -> list[ReadinessCheck]:
         #    Exempt — see ``_is_documented_benchmark_warning``.
         documented_calibrated = [
             entry for entry in documented_poor
-            if getattr(entry, "category", None) != "Generic"
+            if getattr(entry, "category", None) != GENERIC_CATEGORY
             and getattr(entry, "calibrated_to_target", True)
         ]
         documented_reconstruction = [
             entry for entry in documented_poor
-            if getattr(entry, "category", None) != "Generic"
+            if getattr(entry, "category", None) != GENERIC_CATEGORY
             and not getattr(entry, "calibrated_to_target", True)
         ]
         documented_generic = [
             entry for entry in documented_poor
-            if getattr(entry, "category", None) == "Generic"
+            if getattr(entry, "category", None) == GENERIC_CATEGORY
         ]
         scorecard_check = _check(
             "revenue_scorecard",

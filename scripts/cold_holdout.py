@@ -45,9 +45,14 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from fiscal_model.validation.preregistered import live_cases  # noqa: E402
-from fiscal_model.validation.scorecard import compute_scorecard  # noqa: E402
+from fiscal_model.validation.scorecard import (  # noqa: E402
+    GENERIC_CATEGORY,
+    compute_scorecard,
+)
 
-UNCALIBRATED_CATEGORY = "Generic"
+#: The scorecard's own name for the out-of-sample tier. Aliased rather than
+#: re-spelled so a rename of the tier cannot silently split this report in two.
+UNCALIBRATED_CATEGORY = GENERIC_CATEGORY
 
 
 def build_report() -> dict:

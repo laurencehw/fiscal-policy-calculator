@@ -167,6 +167,33 @@ def test_unfitted_scenarios_are_the_ones_that_miss(sectoral_results):
                 )
 
 
+def test_a_failing_scenario_becomes_an_error_row_not_a_missing_one(monkeypatch):
+    """A runner that swallowed an exception would silently shrink the
+    calibrated tier and hide the failure from the readiness gate. The row must
+    survive with an ``Error`` rating, which readiness hard-fails on."""
+
+    def _boom():
+        raise RuntimeError("module exploded")
+
+    monkeypatch.setitem(
+        SECTORAL_SCENARIO_REGISTRIES["Trade"]["auto_tariff_25"],
+        "policy_factory",
+        _boom,
+    )
+    results = SECTORAL_RUNNERS["Trade"](verbose=False)
+
+    assert len(results) == len(SECTORAL_SCENARIO_REGISTRIES["Trade"])
+    failed = next(r for r in results if r.policy_id == "auto_tariff_25")
+    assert failed.accuracy_rating == "Error"
+    assert failed.known_limitations, "an Error row still needs a note"
+    assert "module exploded" in failed.notes
+    # The target stays readable even when the module is broken.
+    assert failed.official_10yr == official_target_for(
+        SECTORAL_SCENARIO_REGISTRIES["Trade"]["auto_tariff_25"]
+    )
+    assert not failed.direction_match
+
+
 def test_validate_sectoral_policy_rejects_unknown_inputs():
     with pytest.raises(ValueError, match="Unknown sectoral category"):
         validate_sectoral_policy("Nope", "whatever", verbose=False)

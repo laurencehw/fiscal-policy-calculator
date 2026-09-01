@@ -32,6 +32,7 @@ output are directly comparable with no sign flip.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 
 from ..app_data import CBO_SCORE_MAP
@@ -44,6 +45,8 @@ from .scenarios import (
     PHARMA_VALIDATION_SCENARIOS_COMPARE,
     TRADE_VALIDATION_SCENARIOS_COMPARE,
 )
+
+logger = logging.getLogger(__name__)
 
 #: Scorecard category → scenario registry. Also the registry the scorecard
 #: iterates when wiring ``DEFAULT_RUNNERS``.
@@ -156,6 +159,48 @@ def validate_sectoral_policy(
     return validation_result
 
 
+def _error_result(
+    category: str, scenario_id: str, exc: Exception
+) -> ValidationResult:
+    """Return a placeholder ``Error`` row for a scenario that failed to score.
+
+    The official target is still readable from ``CBO_SCORE_MAP`` even when the
+    module blows up, so the row keeps its real target and reports a zero model
+    score with an ``Error`` rating rather than vanishing from the scorecard.
+    """
+    scenario = SECTORAL_SCENARIO_REGISTRIES[category][scenario_id]
+    try:
+        official = official_target_for(scenario)
+    except Exception:  # pragma: no cover - only if the preset key also broke
+        official = 0.0
+
+    return ValidationResult(
+        policy_id=scenario_id,
+        policy_name=scenario.get("description", scenario_id),
+        official_10yr=official,
+        official_source=scenario.get("official_source", "unknown"),
+        model_10yr=0.0,
+        model_first_year=0.0,
+        difference=-official,
+        percent_difference=0.0,
+        direction_match=False,
+        accuracy_rating="Error",
+        model_parameters={
+            "preset": scenario.get("preset"),
+            "provenance": scenario.get("provenance"),
+            "calibrated_to_target": bool(scenario.get("calibrated_to_target", False)),
+            "error": f"{type(exc).__name__}: {exc}",
+        },
+        notes=f"Scoring raised {type(exc).__name__}: {exc}",
+        benchmark_kind=SECTORAL_BENCHMARK_KIND,
+        benchmark_date=scenario.get("benchmark_date"),
+        benchmark_url=scenario.get("benchmark_url"),
+        known_limitations=[
+            f"This benchmark could not be scored: {type(exc).__name__}: {exc}",
+        ],
+    )
+
+
 def _run_suite(
     category: str,
     verbose: bool,
@@ -173,9 +218,17 @@ def _run_suite(
     for scenario_id in registry:
         try:
             results.append(validate_sectoral_policy(category, scenario_id, verbose=verbose))
-        except Exception as exc:  # pragma: no cover - defensive, matches siblings
+        except Exception as exc:
+            # Never drop the row. The older suites swallow the exception and
+            # return a shorter list, which silently shrinks the calibrated tier
+            # and hides the failure from the readiness gate and the API. An
+            # explicit Error row keeps one entry per registered scenario, and
+            # readiness hard-fails on an Error rating in any tier — which is
+            # exactly the right response to a runner that stopped working.
+            logger.exception("Sectoral validation failed: %s/%s", category, scenario_id)
             if verbose:
                 print(f"\nError validating {scenario_id}: {exc}")
+            results.append(_error_result(category, scenario_id, exc))
 
     if verbose and results:
         accurate = sum(1 for result in results if result.is_accurate)
