@@ -68,13 +68,13 @@ TREASURY_CAPGAINS_DATE = "2025-12-31"
 #: *later* commit — the two-commit protocol is what makes "the target was fixed
 #: before the model was allowed to move" checkable from the git history rather
 #: than asserted in prose.
-PHASE_B_ENTERED_COMMIT = "PENDING"
+PHASE_B_ENTERED_COMMIT = "752f0f1b204a2ee9f8b7b987c52b0e19b88e6995"
 PHASE_B_ENTERED_DATE = "2026-09-01"
 
 #: Commit in which the Phase B battery was first scored (the commit that flips
 #: the 14 records to ``runnable=True`` and adds the vintage/effective-year/
 #: payroll plumbing they need).
-PHASE_B_FIRST_SCORED_COMMIT = "PENDING"
+PHASE_B_FIRST_SCORED_COMMIT = "36d683f9a24f7609d0a179de5f8f36b0ec44a9fc"
 
 #: Baselines the CBO options were built on, from PDF page 2 of publication
 #: 60557 ("Notes About This Report").
