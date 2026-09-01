@@ -82,7 +82,7 @@ PHASE_B_FIRST_SCORED_COMMIT = "36d683f9a24f7609d0a179de5f8f36b0ec44a9fc"
 #: its -$456B target turned out to appear in no Treasury volume. A *re-sourced*
 #: target is exactly the case the "new row, never an edit" rule exists for: the
 #: old row and the reason it went are both still in this file.
-PHASE_E_PROVENANCE_COMMIT = "eee1e75e64bd0f9c6a83b40b9ba2e97fe4b3ad3d"
+PHASE_E_PROVENANCE_COMMIT = "0bcfbc3b4ba1e4a73864369d8f50f3bb6528efe5"
 PHASE_E_PROVENANCE_DATE = "2026-09-01"
 
 #: Baselines the CBO options were built on, from PDF page 2 of publication
