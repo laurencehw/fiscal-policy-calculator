@@ -528,7 +528,8 @@ Phase E (plan §5.3) wired the five sectoral modules into the scorecard:
 `validate_all_international`, `_trade`, `_pharma`, `_enforcement`,
 `_climate` in `fiscal_model/validation/specialized_sectoral.py`. Seventeen
 presets that ship in the app with an official number attached had never been
-compared to it. Twelve of them carry no module constant fitted to the target,
+compared to it. (Three of those seventeen targets are model estimates rather
+than published scores; the provenance label on each row says which.) Twelve of them carry no module constant fitted to the target,
 and their mean absolute error is **394.1%** (median 57.1%) against **2.7%** for
 the 34 genuinely fitted benchmarks.
 

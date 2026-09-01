@@ -563,9 +563,9 @@ def _is_documented_benchmark_warning(issue: ReadinessIssue) -> bool:
       inconsistent, capital-gains cases whose published targets disagree by 42%.
     * **Calibrated-tier reconstructions** (``calibrated_to_target=False``) —
       the Phase E sectoral runners score the international, trade, pharma,
-      enforcement and climate modules against published figures those modules
-      were never fitted to. A miss there is a finding about the module, which
-      is the entire reason for adding the runner.
+      enforcement and climate modules against figures those modules were
+      never fitted to. A miss there is a finding about the module, which is
+      the entire reason for adding the runner.
 
     Each carries a ``known_limitations`` note, which is what turns it from a
     hard failure into this warning. Blocking the release gate on either would
