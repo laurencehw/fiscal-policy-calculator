@@ -187,10 +187,53 @@ KEY_BUILD_SHARE_TOKEN = "_build_share_token"
 
 SHADOW_PREFIX = "_shadow:"
 
+#: Records the last value *code* wrote to a widget key. Streamlit resolves a
+#: user key through the widget's own state first and falls back to the plain
+#: session-state entry; once the widget is garbage-collected that fallback is
+#: exactly this value. So "the key still holds the last thing we wrote, but the
+#: mirror holds something else" is a precise signal that the widget state was
+#: dropped on another page — and that the mirror, not the key, is the truth.
+SEED_ECHO_PREFIX = "_shadow_seed:"
+
+#: Key namespaces that get the mirror treatment: the two Tailor policy forms,
+#: the model settings, and the preset pickers. These are the widget keys that
+#: render on some pages and not others. Result/run bookkeeping keys are left
+#: alone — they are code state, and ``results`` is large enough that mirroring
+#: it would double the session's memory for no benefit.
+MIRRORED_KEY_PREFIXES: tuple[str, ...] = ("tailor_", "setting_", "sidebar_")
+
+_MISSING = object()
+
 
 def shadow_key(key: str) -> str:
     """Name of the non-widget mirror for ``key``."""
     return f"{SHADOW_PREFIX}{key}"
+
+
+def _echo_key(key: str) -> str:
+    """Name of the record of the last code-written value for ``key``."""
+    return f"{SEED_ECHO_PREFIX}{key}"
+
+
+def _write_widget_value(state: Any, key: str, value: Any) -> None:
+    """Write a value by code and keep the mirror and echo in step."""
+    state[key] = value
+    state[shadow_key(key)] = value
+    state[_echo_key(key)] = value
+
+
+def _is_stale_echo(state: Any, key: str) -> bool:
+    """True when ``state[key]`` is Streamlit's echo of our own last write.
+
+    That happens when the widget did not render on the page the user was just
+    on: its state is gone and the lookup falls back to the code-written value,
+    silently reverting the field. The mirror still holds what the user chose.
+    """
+    mirror = shadow_key(key)
+    echo = _echo_key(key)
+    if mirror not in state or echo not in state:
+        return False
+    return state[key] == state[echo] and state[mirror] != state[echo]
 
 
 def seed_widget_default(st_module: Any, key: str, default: Any, *, force: bool = False) -> None:
@@ -205,18 +248,17 @@ def seed_widget_default(st_module: Any, key: str, default: Any, *, force: bool =
     fields), so switching presets must overwrite explicitly.
     """
     state = st_module.session_state
-    mirror = shadow_key(key)
     if force:
-        state[key] = default
-        state[mirror] = default
+        _write_widget_value(state, key, default)
         return
-    if key in state:
-        state[mirror] = state[key]
-    elif mirror in state:
-        state[key] = state[mirror]
-    else:
-        state[key] = default
-        state[mirror] = default
+    if key not in state:
+        mirror = shadow_key(key)
+        _write_widget_value(state, key, state.get(mirror, default))
+        return
+    if _is_stale_echo(state, key):
+        _write_widget_value(state, key, state[shadow_key(key)])
+        return
+    state[shadow_key(key)] = state[key]
 
 
 def restore_widget_value(st_module: Any, key: str) -> None:
@@ -227,10 +269,14 @@ def restore_widget_value(st_module: Any, key: str) -> None:
     """
     state = st_module.session_state
     mirror = shadow_key(key)
-    if key in state:
-        state[mirror] = state[key]
-    elif mirror in state:
-        state[key] = state[mirror]
+    if key not in state:
+        if mirror in state:
+            _write_widget_value(state, key, state[mirror])
+        return
+    if _is_stale_echo(state, key):
+        _write_widget_value(state, key, state[mirror])
+        return
+    state[mirror] = state[key]
 
 
 def mirror_widget_value(st_module: Any, key: str) -> None:
@@ -249,6 +295,7 @@ def forget_widget_value(st_module: Any, key: str) -> None:
     """
     st_module.session_state.pop(key, None)
     st_module.session_state.pop(shadow_key(key), None)
+    st_module.session_state.pop(_echo_key(key), None)
 
 
 @dataclass(frozen=True)
@@ -351,15 +398,28 @@ _KEY_INDEX: dict[str, _KeySpec] = {spec.name: spec for spec in _SESSION_KEYS}
 
 
 def initialize_session_state(st_module: Any) -> None:
-    """Ensure every known key exists with its default.
+    """Ensure every known key exists, preferring a mirrored value to the default.
 
     Safe to call multiple times per rerun. Never overwrites an existing
     value — Streamlit reruns depend on prior state being preserved.
+
+    For widget keys (see :data:`MIRRORED_KEY_PREFIXES`) the seed is taken from
+    the mirror when one exists, and the write is recorded as a *code* write.
+    Both halves matter for surviving a page switch: this function runs on every
+    page via ``app_controller.bootstrap_page``, so it is the write Streamlit
+    later echoes back once the widget's own state has been garbage-collected —
+    which is exactly the signal :func:`seed_widget_default` uses to tell a
+    reverted field from a real edit.
     """
     state = st_module.session_state
     for spec in _SESSION_KEYS:
-        if spec.name not in state:
+        if spec.name in state:
+            continue
+        if not spec.name.startswith(MIRRORED_KEY_PREFIXES):
             state[spec.name] = spec.default
+            continue
+        mirror = shadow_key(spec.name)
+        _write_widget_value(state, spec.name, state.get(mirror, spec.default))
 
 
 @dataclass
@@ -488,6 +548,8 @@ __all__ = [
     "KEY_TAILOR_TAX_RATE_CHANGE_PCT",
     "KEY_TAILOR_TAX_THRESHOLD_CHOICE",
     "KEY_TAILOR_TAX_TYPE",
+    "MIRRORED_KEY_PREFIXES",
+    "SEED_ECHO_PREFIX",
     "SHADOW_PREFIX",
     "SafeSessionState",
     "forget_widget_value",

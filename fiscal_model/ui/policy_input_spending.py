@@ -15,6 +15,10 @@ from .session_state import (
     KEY_TAILOR_SPEND_ONE_TIME,
     KEY_TAILOR_SPEND_PRESET_APPLIED,
     KEY_TAILOR_SPEND_PROGRAM_NAME,
+    forget_widget_value,
+    mirror_widget_value,
+    restore_widget_value,
+    seed_widget_default,
 )
 
 # The program picker keeps its historic ``sidebar_*`` key (share links and
@@ -184,9 +188,13 @@ def _seed_widget_default(
     includes its default, so switching programs rebuilt the widget with the new
     program's value. A stable key removes that identity change, so the re-seed
     has to be explicit — see ``_apply_preset_defaults``.
+
+    The shared implementation also mirrors the value to a plain session key so
+    it survives leaving ``/tailor`` and coming back: Streamlit scopes widget
+    state by ``active_script_hash`` and drops the state of widgets that did not
+    render on the page just left (``ui/session_state.py``).
     """
-    if force or key not in st_module.session_state:
-        st_module.session_state[key] = default
+    seed_widget_default(st_module, key, default, force=force)
 
 
 def _apply_preset_defaults(
@@ -214,11 +222,12 @@ def render_spending_policy_inputs(
 
     preset_names = list(SPENDING_PRESETS.keys())
     spending_key = _SPENDING_PRESET_KEY
+    restore_widget_value(st_module, spending_key)
     if (
         spending_key in st_module.session_state
         and st_module.session_state[spending_key] not in preset_names
     ):
-        del st_module.session_state[spending_key]
+        forget_widget_value(st_module, spending_key)
 
     selected_preset = st_module.selectbox(
         "Select a program",
@@ -227,6 +236,7 @@ def render_spending_policy_inputs(
         key=spending_key,
         help="Choose a pre-configured spending scenario or define a custom program.",
     )
+    mirror_widget_value(st_module, spending_key)
     preset = SPENDING_PRESETS[selected_preset]
 
     if selected_preset != "Custom program":

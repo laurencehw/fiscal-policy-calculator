@@ -4,12 +4,16 @@ Calculation workflow helpers.
 
 from __future__ import annotations
 
+import contextlib
+import logging
 import time
 from pathlib import Path
 from typing import Any
 
 from .controller_utils import render_input_guardrails, run_with_spinner_feedback
 from .share_links import apply_share_query_params
+
+logger = logging.getLogger(__name__)
 
 SINGLE_POLICY_MODE = "📊 Single Policy"
 COMPARE_POLICIES_MODE = "🔀 Compare Policies"
@@ -34,6 +38,7 @@ def render_policy_inputs(
     st_module: Any,
     deps: Any,
     modes: tuple[str, ...] = ALL_ANALYSIS_MODES,
+    tax_input_kwargs: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
     Render policy input controls and return interaction context.
@@ -102,8 +107,15 @@ def render_policy_inputs(
             default_preset=default_spending_preset,
         )
     else:
+        # ``tax_input_kwargs`` lets a page turn off a control it renders itself
+        # (Tailor owns the policy-type chips), without a second widget on the
+        # same session key.
         tax_inputs = deps.render_tax_policy_inputs(
-            st_module, preset_policies, use_preset=use_preset, default_preset=default_preset
+            st_module,
+            preset_policies,
+            use_preset=use_preset,
+            default_preset=default_preset,
+            **(tax_input_kwargs or {}),
         )
 
     st_module.markdown("---")
@@ -152,6 +164,90 @@ def _record_run_outcome(st_module: Any, ok: bool, run_id: str | None) -> None:
         return
     st_module.session_state.results = None
     st_module.session_state.results_run_id = None
+    _store_scored_result(st_module, None)
+
+
+def _store_scored_result(st_module: Any, scored: Any) -> None:
+    """Write the single result object, tolerating stripped-down session fakes."""
+    try:
+        from components.results import store_scored_result
+
+        store_scored_result(st_module, scored)
+    except Exception:  # pragma: no cover — components/ absent (library-only use)
+        with contextlib.suppress(Exception):
+            st_module.session_state["scored_result"] = scored
+
+
+def _finalize_run(
+    st_module: Any,
+    deps: Any,
+    ok: bool,
+    calc_context: dict[str, Any],
+    settings: dict[str, Any],
+) -> None:
+    """Record the run and publish its :class:`ScoredResult` — one place, once."""
+    _record_run_outcome(st_module, ok, calc_context.get("run_id"))
+    if not ok:
+        return
+    _store_scored_result(
+        st_module, build_scored_result(st_module, deps, calc_context, settings)
+    )
+
+
+def build_scored_result(
+    st_module: Any,
+    deps: Any,
+    calc_context: dict[str, Any],
+    settings: dict[str, Any],
+) -> Any:
+    """Assemble the single result object at the one point a run completes.
+
+    Runs the macro adapter exactly once when dynamic scoring is on, so the
+    Results panel, the Economic Effects tab and every export quote the *same*
+    feedback and debt-service numbers (``planning/redesign/NOTES.md`` §4.4).
+    Failure is non-fatal: the raw ``results`` dict is still usable, the panel
+    just falls back to its invalidation notice.
+    """
+    result_data = st_module.session_state.get("results")
+    if not result_data or result_data.get("is_microsim"):
+        return None
+
+    try:
+        from components.results import ScoredResult, resolve_baseline_vintage
+
+        dynamic_view = None
+        if settings.get("dynamic_scoring"):
+            from .policy_execution import run_dynamic_view
+
+            dynamic_view, macro_result = run_dynamic_view(
+                policy=result_data["policy"],
+                result=result_data["result"],
+                is_spending=bool(result_data.get("is_spending", False)),
+                macro_model_name=settings.get("macro_model"),
+                macro_scenario_cls=deps.MacroScenario,
+                frbus_adapter_lite_cls=deps.FRBUSAdapterLite,
+                simple_multiplier_adapter_cls=deps.SimpleMultiplierAdapter,
+                build_macro_scenario_fn=deps.build_macro_scenario,
+            )
+            # Prime the Economic Effects tab's cache with this exact run so the
+            # tab does not re-run (and possibly re-estimate) the same scenario.
+            run_id = calc_context.get("run_id")
+            if macro_result is not None and run_id:
+                st_module.session_state[f"macro:{run_id}:{settings.get('macro_model')}"] = (
+                    macro_result
+                )
+
+        return ScoredResult.from_pipeline(
+            result_data=result_data,
+            policy_spec_hash=str(calc_context.get("run_id") or ""),
+            dynamic_scoring=bool(settings.get("dynamic_scoring")),
+            dynamic_view=dynamic_view,
+            cbo_score_map=getattr(deps, "CBO_SCORE_MAP", None),
+            baseline_vintage=resolve_baseline_vintage(),
+        )
+    except Exception:
+        logger.exception("Could not build the ScoredResult for this run")
+        return None
 
 
 def execute_calculation_if_requested(
@@ -169,7 +265,6 @@ def execute_calculation_if_requested(
     if not (calc_context["calculate"] and model_available):
         return
 
-    run_id = calc_context.get("run_id")
     is_spending = calc_context["is_spending"]
     preset_policies = calc_context["preset_policies"]
     tax_inputs = calc_context["tax_inputs"]
@@ -197,7 +292,7 @@ def execute_calculation_if_requested(
             error_prefix="Microsimulation failed",
             action_fn=_run_microsim,
         )
-        _record_run_outcome(st_module, ok, run_id)
+        _finalize_run(st_module, deps, ok, calc_context, settings)
         return
 
     if is_spending:
@@ -218,7 +313,7 @@ def execute_calculation_if_requested(
             error_prefix="Error calculating spending impact",
             action_fn=_run_spending,
         )
-        _record_run_outcome(st_module, ok, run_id)
+        _finalize_run(st_module, deps, ok, calc_context, settings)
         return
 
     def _run_tax() -> None:
@@ -265,4 +360,4 @@ def execute_calculation_if_requested(
         error_prefix="Error calculating policy impact",
         action_fn=_run_tax,
     )
-    _record_run_outcome(st_module, ok, run_id)
+    _finalize_run(st_module, deps, ok, calc_context, settings)

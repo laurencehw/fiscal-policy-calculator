@@ -36,6 +36,10 @@ from .session_state import (
     KEY_TAILOR_TAX_RATE_CHANGE_PCT,
     KEY_TAILOR_TAX_THRESHOLD_CHOICE,
     KEY_TAILOR_TAX_TYPE,
+    forget_widget_value,
+    mirror_widget_value,
+    restore_widget_value,
+    seed_widget_default,
 )
 
 # Preset pickers above keep their historic ``sidebar_*`` keys (share links and
@@ -43,6 +47,15 @@ from .session_state import (
 # below is newly keyed with the ``tailor_tax_*`` namespace.
 _POLICY_AREA_KEY = "sidebar_policy_area"
 _PRESET_CHOICE_KEY = "sidebar_preset_choice"
+
+
+#: Policy-type options, in the order the Tailor segmented control shows them.
+TAX_TYPE_OPTIONS: tuple[str, ...] = (
+    "Income Tax Rate",
+    "Capital Gains",
+    "Corporate Tax",
+    "Payroll Tax",
+)
 
 
 def _seed_widget_default(st_module: Any, key: str, default: Any) -> None:
@@ -55,9 +68,15 @@ def _seed_widget_default(st_module: Any, key: str, default: Any) -> None:
     Streamlit's "created with a default value but also had its value set via
     Session State" warning once the key is pre-seeded. So: seed here, and omit
     the default on the widget. The rendered value is unchanged.
+
+    A stable key is necessary but *not sufficient* under ``st.navigation``:
+    Streamlit scopes widget state by ``active_script_hash`` and drops the state
+    of widgets that did not render on the page just left, so a round trip
+    through ``/explore`` re-seeded every field here to its default.
+    ``seed_widget_default`` also mirrors the value to a plain (non-widget)
+    session key and restores it — see ``ui/session_state.py``.
     """
-    if key not in st_module.session_state:
-        st_module.session_state[key] = default
+    seed_widget_default(st_module, key, default)
 
 
 def render_tax_policy_inputs(
@@ -65,8 +84,15 @@ def render_tax_policy_inputs(
     preset_policies: dict[str, dict[str, Any]],
     use_preset: bool = True,
     default_preset: str | None = None,
+    show_type_selector: bool = True,
 ) -> dict[str, Any]:
-    """Render tax policy input controls and return selected values."""
+    """Render tax policy input controls and return selected values.
+
+    ``show_type_selector=False`` is the Tailor layout: the page renders the
+    policy-type choice as a segmented control at the top of its form card and
+    writes ``tailor_tax_type`` itself, so this module must not instantiate a
+    second widget on the same key (Streamlit raises ``DuplicateWidgetID``).
+    """
     # A lingering preset pre-selection (query param or quick-start card) must
     # never leak into Custom mode: scoring would silently use the preset and
     # ignore the user's custom inputs.
@@ -88,11 +114,14 @@ def render_tax_policy_inputs(
                 default_cat_index = available_cats.index(default_cat)
 
         area_key = _POLICY_AREA_KEY
+        # Restore across a page switch *before* the stale-option guard, so the
+        # guard judges the value the user actually chose.
+        restore_widget_value(st_module, area_key)
         if (
             area_key in st_module.session_state
             and st_module.session_state[area_key] not in available_cats
         ):
-            del st_module.session_state[area_key]
+            forget_widget_value(st_module, area_key)
 
         selected_cat = st_module.selectbox(
             "Policy area",
@@ -111,11 +140,12 @@ def render_tax_policy_inputs(
         )
 
         preset_key = _PRESET_CHOICE_KEY
+        restore_widget_value(st_module, preset_key)
         if (
             preset_key in st_module.session_state
             and st_module.session_state[preset_key] not in short_names
         ):
-            del st_module.session_state[preset_key]
+            forget_widget_value(st_module, preset_key)
 
         selected_short = st_module.selectbox(
             "Select a proposal",
@@ -124,6 +154,9 @@ def render_tax_policy_inputs(
             key=preset_key,
             help="Each proposal is pre-configured with parameters matching official estimates.",
         )
+        mirror_widget_value(st_module, area_key)
+        mirror_widget_value(st_module, preset_key)
+
         preset_choice = short_names[selected_short]
         preset_data = preset_policies[preset_choice]
 
@@ -218,17 +251,19 @@ def render_tax_policy_inputs(
         )
 
         _seed_widget_default(st_module, KEY_TAILOR_TAX_TYPE, "Income Tax Rate")
-        policy_type = st_module.selectbox(
-            "What type of tax?",
-            ["Income Tax Rate", "Capital Gains", "Corporate Tax", "Payroll Tax"],
-            key=KEY_TAILOR_TAX_TYPE,
-            help=(
-                "**Income Tax Rate** — changes to individual marginal rates  \n"
-                "**Capital Gains** — changes to rates on investment gains  \n"
-                "**Corporate Tax** — changes to the 21% corporate rate  \n"
-                "**Payroll Tax** — changes to Social Security / Medicare taxes"
-            ),
-        )
+        policy_type = st_module.session_state.get(KEY_TAILOR_TAX_TYPE, "Income Tax Rate")
+        if show_type_selector:
+            policy_type = st_module.selectbox(
+                "What type of tax?",
+                list(TAX_TYPE_OPTIONS),
+                key=KEY_TAILOR_TAX_TYPE,
+                help=(
+                    "**Income Tax Rate** — changes to individual marginal rates  \n"
+                    "**Capital Gains** — changes to rates on investment gains  \n"
+                    "**Corporate Tax** — changes to the 21% corporate rate  \n"
+                    "**Payroll Tax** — changes to Social Security / Medicare taxes"
+                ),
+            )
 
         st_module.markdown("##### Rate and scope")
 
@@ -271,6 +306,11 @@ def render_tax_policy_inputs(
                 "Only income *above* this threshold is affected — not total income."
             ),
         )
+        if policy_type == "Corporate Tax":
+            st_module.caption(
+                "Corporate rate changes score off taxable profits, so there is "
+                "no income threshold — this control is ignored."
+            )
 
         if threshold_choice == "Custom amount":
             _seed_widget_default(st_module, KEY_TAILOR_TAX_CUSTOM_THRESHOLD, 400_000)

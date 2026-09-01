@@ -14,6 +14,7 @@ from .session_state import (
     KEY_SETTING_USE_MICROSIM,
     KEY_SETTING_USE_MICROSIM_DISTRIBUTION,
     KEY_SETTING_USE_REAL_DATA,
+    seed_widget_default,
 )
 
 # Pre-existing widget key: share_links.py writes it and tests/test_share_links.py
@@ -21,19 +22,28 @@ from .session_state import (
 # widgets use the ``setting_*`` namespace.
 _DYNAMIC_SCORING_KEY = "sidebar_setting_dynamic_scoring"
 
+#: Set by a page (before the chrome renders) to say "I render the dynamic
+#: toggle inline beside my Score button, don't render it here". Two widgets
+#: sharing one key in a single run is a Streamlit ``DuplicateWidgetID`` error;
+#: the value still lives under the same key, so share links and the chrome
+#: agree either way. Popped on read, so the claim lasts exactly one run.
+INLINE_DYNAMIC_TOGGLE_CLAIM = "_inline_dynamic_toggle_claim"
 
-def _seed_widget_default(st_module: Any, key: str, default: Any) -> None:
-    """Seed a widget key before the widget is instantiated.
 
-    Five of the seven model settings were unkeyed, so their values lived only
-    in Streamlit's positional widget identity and would reset when the panel
-    moves out of the sidebar. Passing both ``key=`` and ``value=``/``index=``
-    triggers Streamlit's "created with a default value but also had its value
-    set via Session State" warning once the key exists, so defaults are seeded
-    here and omitted on the widget.
+def claim_inline_dynamic_toggle(st_module: Any) -> None:
+    """Tell the next :func:`render_settings_tab` that the page owns the toggle."""
+    st_module.session_state[INLINE_DYNAMIC_TOGGLE_CLAIM] = True
+
+
+def _seed_widget_default(
+    st_module: Any, key: str, default: Any, *, force: bool = False
+) -> None:
+    """Seed a widget key before instantiation (see :func:`seed_widget_default`).
+
+    Thin alias kept because the module-private name is what the rest of this
+    file reads; the cross-page mirroring lives in ``ui/session_state.py``.
     """
-    if key not in st_module.session_state:
-        st_module.session_state[key] = default
+    seed_widget_default(st_module, key, default, force=force)
 
 
 def _available_irs_data_years() -> list[int]:
@@ -61,6 +71,9 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
     Render settings panel and return selected configuration values.
     """
     macro_model = None
+    inline_claimed = bool(
+        st_module.session_state.pop(INLINE_DYNAMIC_TOGGLE_CLAIM, False)
+    )
 
     with settings_tab:
         # Dark mode toggle (persisted in session state)
@@ -83,17 +96,26 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
             # Force rerun to apply CSS changes
             st_module.rerun()
 
-        dynamic_scoring = st_module.checkbox(
-            "Enable dynamic scoring",
-            value=bool(st_module.session_state.get(_DYNAMIC_SCORING_KEY, False)),
-            key=_DYNAMIC_SCORING_KEY,
-            help=(
-                "Add macroeconomic feedback to the estimate. "
-                "A tax cut that boosts GDP generates some offsetting revenue; "
-                "a spending increase may crowd out private investment. "
-                "Uses FRB/US-calibrated multipliers from the Federal Reserve."
-            ),
-        )
+        _seed_widget_default(st_module, _DYNAMIC_SCORING_KEY, False)
+        if inline_claimed:
+            # The page renders this control beside its Score button
+            # (DECISIONS #2); read the shared key rather than duplicating it.
+            dynamic_scoring = bool(st_module.session_state.get(_DYNAMIC_SCORING_KEY, False))
+            st_module.caption(
+                "Dynamic scoring is toggled beside the Score button on this page."
+            )
+        else:
+            dynamic_scoring = st_module.checkbox(
+                "Enable dynamic scoring",
+                key=_DYNAMIC_SCORING_KEY,
+                help=(
+                    "Add a labeled Dynamic view to the estimate. A tax cut that "
+                    "boosts GDP generates some offsetting revenue; a spending "
+                    "increase may crowd out private investment. Uses "
+                    "FRB/US-calibrated multipliers from the Federal Reserve. "
+                    "The headline stays the conventional score either way."
+                ),
+            )
         if dynamic_scoring:
             _seed_widget_default(
                 st_module, KEY_SETTING_MACRO_MODEL, "FRB/US-Lite (recommended)"
@@ -127,8 +149,11 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
             # Fall back to the newest available vintage, matching the old
             # unkeyed default of ``index=0``.
             available_years = _available_irs_data_years()
+            _seed_widget_default(st_module, KEY_SETTING_DATA_YEAR, available_years[0])
             if st_module.session_state.get(KEY_SETTING_DATA_YEAR) not in available_years:
-                st_module.session_state[KEY_SETTING_DATA_YEAR] = available_years[0]
+                _seed_widget_default(
+                    st_module, KEY_SETTING_DATA_YEAR, available_years[0], force=True
+                )
             data_year = st_module.selectbox(
                 "IRS data year",
                 available_years,
