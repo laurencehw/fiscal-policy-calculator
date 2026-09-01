@@ -703,3 +703,73 @@ def test_render_data_status_surfaces_runtime_warning(monkeypatch):
 
     assert any("**Runtime:** Python 3.14.0" in text for text in st_module.markdowns)
     assert any("outside supported range" in msg for msg in st_module.warnings)
+
+
+def test_detailed_results_receives_the_scored_result():
+    """Copilot review (PR #66): both Details call sites must forward ``scored`` so
+    Detailed Results' tier/benchmark/export metadata match the shared panel."""
+    st_module = _DummyStreamlit(radio_values=[])
+    st_module.session_state = SimpleNamespace(
+        results={"policy": object()},
+        current_run_id="current",
+        results_run_id="current",
+        last_run_id="current",
+    )
+    captured: list[dict] = []
+    deps = SimpleNamespace(
+        CBO_SCORE_MAP={},
+        PRESET_POLICIES={},
+        PRESET_POLICY_PACKAGES={},
+        PolicyType=SimpleNamespace(INCOME_TAX="income_tax"),
+        FiscalPolicyScorer=object,
+        TaxPolicy=object,
+        DistributionalEngine=object,
+        IncomeGroupType=object,
+        format_distribution_table=lambda *args, **kwargs: None,
+        generate_winners_losers_summary=lambda *args, **kwargs: None,
+        MacroScenario=object,
+        FRBUSAdapterLite=object,
+        SimpleMultiplierAdapter=object,
+        SolowGrowthModel=object,
+        build_macro_scenario=lambda *args, **kwargs: None,
+        render_results_summary_tab=lambda **kwargs: None,
+        render_distribution_tab=lambda **kwargs: None,
+        render_dynamic_scoring_tab=lambda **kwargs: None,
+        render_detailed_results_tab=lambda **kwargs: captured.append(kwargs),
+        render_long_run_growth_tab=lambda **kwargs: None,
+        render_policy_comparison_tab=lambda **kwargs: None,
+        render_multi_model_tab=lambda **kwargs: None,
+        render_side_by_side_tab=lambda **kwargs: None,
+        render_generational_analysis_tab=lambda **kwargs: None,
+        render_state_analysis_tab=lambda **kwargs: None,
+    )
+    tabs = {
+        "tab_summary": _DummyContext(),
+        "tab_distribution": _DummyContext(),
+        "tab_economic": _DummyContext(),
+        "tab_scoring": _DummyContext(),
+        "tab_generational": _DummyContext(),
+        "tab_state": _DummyContext(),
+    }
+    settings = {
+        "dynamic_scoring": False,
+        "macro_model": "FRBUSAdapterLite",
+        "data_year": 2022,
+        "use_real_data": True,
+        "use_microsim_distribution": True,
+    }
+    sentinel = object()
+
+    render_result_tabs(
+        st_module=st_module,
+        deps=deps,
+        tabs=tabs,
+        settings=settings,
+        model_available=True,
+        is_spending=False,
+        mode=SINGLE_POLICY_MODE,
+        scored=sentinel,
+    )
+
+    assert captured, "Detailed Results was never rendered"
+    assert all(call.get("scored") is sentinel for call in captured)

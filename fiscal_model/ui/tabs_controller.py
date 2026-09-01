@@ -294,7 +294,7 @@ def render_result_tabs(
                 # Detailed breakdown in an expander within the same tab
                 with st_module.expander("📋 Detailed Year-by-Year Breakdown", expanded=False):
                     deps.render_detailed_results_tab(
-                        st_module=st_module, result_data=result_data
+                        st_module=st_module, result_data=result_data, scored=scored
                     )
 
             _render_guarded_tab(st_module, "Results & Details", _render_summary_body)
@@ -314,7 +314,7 @@ def render_result_tabs(
                 )
                 with st_module.expander("📋 Detailed Year-by-Year Breakdown", expanded=False):
                     deps.render_detailed_results_tab(
-                        st_module=st_module, result_data=result_data
+                        st_module=st_module, result_data=result_data, scored=scored
                     )
 
             _render_guarded_tab(st_module, "Details", _render_details_body)
