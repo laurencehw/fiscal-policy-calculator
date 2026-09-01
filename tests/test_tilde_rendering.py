@@ -40,8 +40,26 @@ def _string_constants(path: pathlib.Path):
     src = path.read_text(encoding="utf-8")
     tree = ast.parse(src, filename=str(path))
     skip = _docstring_nodes(tree)
+    # Literal fragments of f-strings are reported through their JoinedStr.
+    for node in ast.walk(tree):
+        if isinstance(node, ast.JoinedStr):
+            skip.update(id(part) for part in node.values if isinstance(part, ast.Constant))
     lines = src.splitlines()
     for node in ast.walk(tree):
+        # f-strings: a tilde at the end of a literal fragment followed by a
+        # formatted number (``f"~{rel:.0f}%"``) is invisible to the Constant
+        # scan below, so reconstruct the runtime text with a digit standing
+        # in for each formatted value.
+        if isinstance(node, ast.JoinedStr):
+            text = "".join(
+                part.value if isinstance(part, ast.Constant) and isinstance(part.value, str) else "0"
+                for part in node.values
+            )
+            if "<style" in text or text.lstrip().startswith("<"):
+                continue  # pass-through CSS / block HTML, as below
+            line = lines[node.lineno - 1] if node.lineno - 1 < len(lines) else ""
+            yield node.lineno, text, line
+            continue
         if isinstance(node, ast.Constant) and isinstance(node.value, str) and id(node) not in skip:
             # CSS and block-level HTML are passed through verbatim by
             # Streamlit (block HTML is opaque to the Markdown parser), so

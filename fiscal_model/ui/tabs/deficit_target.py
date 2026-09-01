@@ -797,7 +797,7 @@ def render_deficit_target_tab(
                     **({} if _has_session_value(st_module, KEY_BUILD_TARGET_PCT)
                        else {"value": 3.0}),
                     help=(
-                        f"Baseline: ~{baseline_pct:.1f}%. Economists often cite "
+                        f"Baseline: \\~{baseline_pct:.1f}%. Economists often cite "
                         "3% as sustainable."
                     ),
                 )
