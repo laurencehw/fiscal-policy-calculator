@@ -30,6 +30,7 @@ EXPECTED_PAGES: dict[str, str] = {
     "tracker": "tracker",
     "methodology": "methodology",
     "classroom": "classroom",
+    "about": "about",
 }
 
 ALL_PAGE_MODULES = [*EXPECTED_PAGES.values(), "admin"]
@@ -155,6 +156,7 @@ def test_router_groups_secondary_surfaces_under_more():
         "tracker",
         "methodology",
         "classroom",
+        "about",
     }
 
 

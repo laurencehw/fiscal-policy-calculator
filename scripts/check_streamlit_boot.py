@@ -69,8 +69,8 @@ def _route_checks(base_url: str) -> list[dict[str, str]]:
     Three groups:
 
     1. **Pages.** ``/`` is the Ask home (the default ``st.Page``); ``/build``,
-       ``/tailor``, ``/explore``, ``/tracker``, ``/methodology`` and
-       ``/classroom`` are the registered page URLs. ``/ask`` is *not* a
+       ``/tailor``, ``/explore``, ``/tracker``, ``/methodology``,
+       ``/classroom`` and ``/about`` are the registered page URLs. ``/ask`` is *not* a
        registered pathname — Streamlit forces the default page's ``url_path``
        to ``""`` — so it exercises the canonicalisation in
        ``app._apply_legacy_url_shim``.
@@ -88,6 +88,7 @@ def _route_checks(base_url: str) -> list[dict[str, str]]:
         {"name": "tracker", "url": f"{base_url}/tracker"},
         {"name": "methodology", "url": f"{base_url}/methodology"},
         {"name": "classroom", "url": f"{base_url}/classroom"},
+        {"name": "about", "url": f"{base_url}/about"},
         {"name": "ask_pathname", "url": f"{base_url}/ask"},
         {"name": "ask_prefill", "url": f"{base_url}/ask?q=x"},
         {

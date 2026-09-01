@@ -429,14 +429,24 @@ def render_result_tabs(
 
 
 def render_footer(st_module: Any) -> None:
-    """Render app footer with version and validation info."""
+    """Render app footer: credit, cross-links, version and data vintages.
+
+    One ``st.caption`` line, so it stays theme-neutral (the caption colour is
+    Streamlit's own muted ink, which the dark-mode overlay in
+    ``components/chrome.py`` already repaints).
+
+    ``About`` and ``Methodology`` are plain ``/about`` and ``/methodology``
+    links rather than ``st.page_link`` widgets: a widget is its own block
+    element and would break the single line. ``components.chrome.page_link``
+    is the widget-shaped route, used inside page bodies.
+    """
     st_module.markdown("---")
     st_module.caption(
-        "**Fiscal Policy Impact Calculator** v1.0 · "
-        f"{validated_policy_count()} policies validated against CBO/JCT · "
-        f"Data: IRS SOI {_latest_soi_year()}, FRED, CBO Feb 2026 · "
-        "[Methodology](https://github.com/laurencehw/fiscal-policy-calculator"
-        "/blob/main/docs/METHODOLOGY.md) · "
+        "Built by Laurence Wilse-Samson · "
+        "[About](/about) · "
+        "[GitHub](https://github.com/laurencehw/fiscal-policy-calculator) · "
+        "[Methodology](/methodology) · "
         f"[Textbook]({TEXTBOOK_HOME}) · "
-        "[Source code](https://github.com/laurencehw/fiscal-policy-calculator)"
+        f"{validated_policy_count()} policies validated against CBO/JCT · "
+        f"Data: IRS SOI {_latest_soi_year()}, FRED, CBO Feb 2026"
     )

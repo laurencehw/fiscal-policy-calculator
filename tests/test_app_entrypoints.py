@@ -131,7 +131,7 @@ def test_head_metadata_emits_open_graph_tags():
 EXPECTED_PRIMARY_PATHS = ["ask", "build", "tailor", "explore"]
 # Package Studio was registered here in Phase 1 and retired in Phase 3b: it
 # is now Build's "Start from your values" panel (DECISIONS.md #3).
-EXPECTED_MORE_PATHS = ["tracker", "methodology", "classroom"]
+EXPECTED_MORE_PATHS = ["tracker", "methodology", "classroom", "about"]
 
 
 def test_router_registers_expected_pages_with_ask_default():
@@ -160,6 +160,7 @@ def test_router_page_titles_match_the_wireframe_nav():
     assert titles["tailor"] == "Tailor"
     assert titles["explore"] == "Explore"
     assert titles["classroom"] == "Classroom"
+    assert titles["about"] == "About"
 
 
 def test_admin_page_hidden_without_matching_token(monkeypatch):
