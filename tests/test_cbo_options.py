@@ -16,7 +16,9 @@ from __future__ import annotations
 import pytest
 
 from fiscal_model.validation.cbo_options import (
+    ALTERNATIVES_CSV,
     N_OPTIONS,
+    OPTIONS_CSV,
     OUT_OF_SCOPE_ALTERNATIVES,
     OUT_OF_SCOPE_REASONS,
     RUNNABLE_OPTIONS,
@@ -251,3 +253,38 @@ def test_unknown_vintage_string_falls_back_to_the_default():
         KNOWN_SCORES["cbo_opt45_all_rates_1pp"], scoring_vintage="cbo_never_2099"
     )
     assert _resolve_vintage(bogus) is None
+
+
+# ── The CSV provenance header must stay loader-compatible ──────────────────
+
+
+@pytest.mark.parametrize(
+    "path", [OPTIONS_CSV, ALTERNATIVES_CSV], ids=["options", "alternatives"]
+)
+def test_every_provenance_line_is_a_comment(path):
+    """Consumers skip lines starting with ``#`` and treat the rest as CSV.
+
+    The provenance block is written as a list of Python string literals, some
+    of which are implicit concatenations spanning two source lines. If one of
+    those ever loses its ``#`` prefix, the block silently becomes data rows.
+    """
+    lines = path.read_text(encoding="utf-8").splitlines()
+    header_index = next(
+        i for i, line in enumerate(lines) if line.startswith("option_number,")
+    )
+    assert header_index > 0, "expected a provenance block before the CSV header"
+    for line in lines[:header_index]:
+        assert line.startswith("#"), f"non-comment provenance line: {line!r}"
+
+
+@pytest.mark.parametrize(
+    "path", [OPTIONS_CSV, ALTERNATIVES_CSV], ids=["options", "alternatives"]
+)
+def test_comment_stripping_leaves_only_the_header_and_data(path):
+    """The exact filter every loader in this repo applies."""
+    import csv as _csv
+
+    with path.open(encoding="utf-8") as handle:
+        rows = list(_csv.DictReader(line for line in handle if not line.startswith("#")))
+    assert rows
+    assert all(row["option_number"].isdigit() for row in rows)
