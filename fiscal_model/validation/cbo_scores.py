@@ -269,8 +269,11 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         policy_type="capital_gains_tax",
         baseline_year=2024,
         notes="Includes taxing unrealized gains at death. High behavioral uncertainty. "
-              "Validated via the CapitalGains specialized runner; the generic income-tax "
-              "auto-population path cannot model realizations elasticity or step-up basis.",
+              "Scored on the uncalibrated Generic capital-gains path: SOI auto-populated "
+              "realizations and baseline rate above the $1M threshold, the frozen module-"
+              "default elasticities (0.8 short-run / 0.4 long-run) and step-up elimination. "
+              "It is NOT one of the three calibrated CapitalGains scenarios, which carry "
+              "hand-set per-case elasticity and lock-in tuples.",
         eliminate_step_up=True,  # "Tax unrealized gains at death" is part of the proposal as described
     ),
 
@@ -353,7 +356,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         budget_window="FY2022-2031",
         notes="Combined effect of rate increase + step-up elimination. "
               "Treasury Green Book estimate (higher than PWBM due to methodology differences). "
-              "Validated via the CapitalGains specialized runner.",
+              "Scored on the uncalibrated Generic capital-gains path with the same frozen "
+              "module-default elasticities as biden_capital_gains_39 — and, being the same "
+              "policy shape, it necessarily receives the same prediction even though the two "
+              "published targets differ from each other by 42%.",
         eliminate_step_up=True,
     ),
 

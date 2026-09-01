@@ -362,6 +362,19 @@ def _scorecard_checks(scorecard: Any) -> list[ReadinessCheck]:
             },
         )
     elif documented_poor:
+        # Split by tier: a *calibrated* benchmark drifting to Poor is a real
+        # regression (its parameters are tuned to reproduce that target), while
+        # a documented *out-of-sample* miss is the honest tier doing its job.
+        # Only the latter is exempted from the strict gate — see
+        # ``_is_documented_out_of_sample_warning``.
+        documented_calibrated = [
+            entry for entry in documented_poor
+            if getattr(entry, "category", None) != "Generic"
+        ]
+        documented_generic = [
+            entry for entry in documented_poor
+            if getattr(entry, "category", None) == "Generic"
+        ]
         scorecard_check = _check(
             "revenue_scorecard",
             "warn",
@@ -373,6 +386,14 @@ def _scorecard_checks(scorecard: Any) -> list[ReadinessCheck]:
                 "documented_policy_ids": [
                     getattr(entry, "policy_id", "unknown")
                     for entry in documented_poor
+                ],
+                "documented_calibrated_policy_ids": [
+                    getattr(entry, "policy_id", "unknown")
+                    for entry in documented_calibrated
+                ],
+                "documented_generic_policy_ids": [
+                    getattr(entry, "policy_id", "unknown")
+                    for entry in documented_generic
                 ],
             },
         )
@@ -513,15 +534,49 @@ def _is_environmental_data_warning(issue: ReadinessIssue) -> bool:
     )
 
 
+def _is_documented_out_of_sample_warning(issue: ReadinessIssue) -> bool:
+    """Return whether a warning is a documented *out-of-sample* benchmark miss.
+
+    The revenue scorecard now holds every tier to the same bar, including the
+    out-of-sample (Generic) one. That tier is expected to contain large,
+    honestly-reported misses — a top-rate target that is itself internally
+    inconsistent, capital-gains cases whose published targets disagree by 42%.
+    Each carries a ``known_limitations`` note, which is what turns it from a
+    hard failure into this warning.
+
+    Blocking the release gate on those would create exactly the wrong
+    incentive: the cheapest way to go green would be to delete the miss or
+    tune it away, which the pre-registration manifest exists to forbid.
+
+    A documented *calibrated* Poor entry is **not** exempted: those modules are
+    parameterized to reproduce their target, so drifting to Poor is a genuine
+    regression. ``Error`` and undocumented ``Poor`` in either tier are already
+    hard ``fail``s (see ``_scorecard_checks``) and reach this function with
+    severity ``fail``.
+    """
+    if issue.severity != "warn" or issue.name != "revenue_scorecard":
+        return False
+    details = issue.details
+    if details.get("documented_calibrated_policy_ids"):
+        return False
+    return bool(details.get("documented_generic_policy_ids"))
+
+
 def strict_readiness_issues(report: ReadinessReport) -> list[ReadinessIssue]:
     """Return issues that should fail the strict CI readiness gate.
 
-    The readiness payload still reports every warning. Strict CI only exempts
-    warnings caused by missing live external data in isolated build runners.
+    The readiness payload still reports every warning. Strict CI exempts
+    warnings caused by missing live external data in isolated build runners,
+    plus documented out-of-sample benchmark misses (see
+    :func:`_is_documented_out_of_sample_warning`).
     """
     return [
         issue for issue in report.issues
-        if issue.severity == "fail" or not _is_environmental_data_warning(issue)
+        if issue.severity == "fail"
+        or not (
+            _is_environmental_data_warning(issue)
+            or _is_documented_out_of_sample_warning(issue)
+        )
     ]
 
 

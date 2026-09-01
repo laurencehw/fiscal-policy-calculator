@@ -284,6 +284,36 @@ def test_readiness_warns_on_documented_generic_revenue_poor_rating():
     assert "top_rate_45" in scorecard.details["documented_policy_ids"]
 
 
+def test_strict_gate_exempts_documented_benchmark_outliers():
+    """A documented out-of-sample miss must not block the release gate —
+    otherwise the cheapest way to go green is to delete or tune away the miss,
+    which the pre-registration manifest exists to forbid."""
+    report = build_readiness_report(
+        health=_healthy_payload(),
+        distribution_comparisons=[_comparison()],
+        scorecard=_scorecard_with_generic(
+            rating="Poor",
+            known_limitations=["Target is secondhand and internally inconsistent."],
+        ),
+    )
+
+    assert report.verdict == "ready_with_warnings"
+    assert any(issue.name == "revenue_scorecard" for issue in report.issues)
+    assert strict_readiness_issues(report) == []
+
+
+def test_strict_gate_still_blocks_undocumented_benchmark_outliers():
+    report = build_readiness_report(
+        health=_healthy_payload(),
+        distribution_comparisons=[_comparison()],
+        scorecard=_scorecard_with_generic(rating="Poor"),
+    )
+
+    blocking = strict_readiness_issues(report)
+    assert [issue.name for issue in blocking] == ["revenue_scorecard"]
+    assert blocking[0].severity == "fail"
+
+
 def test_readiness_to_dict_serializes_nested_checks():
     report = build_readiness_report(
         health=_healthy_payload(),
