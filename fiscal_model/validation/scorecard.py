@@ -2,9 +2,16 @@
 Consolidated revenue-level validation scorecard.
 
 Aggregates every category of validation runner (specialized TCJA, corporate,
-credits, estate, payroll, AMT, PTC, capital gains, tax expenditures, plus
-the generic fallback) into one scorecard with summary statistics. Powers
-the ``/validation/scorecard`` API endpoint and the Streamlit Validation tab.
+credits, estate, payroll, AMT, PTC, capital gains, tax expenditures, the five
+sectoral modules, plus the generic fallback) into one scorecard with summary
+statistics. Powers the ``/validation/scorecard`` API endpoint and the
+Streamlit Validation tab.
+
+Each entry also carries a ``provenance`` label (:mod:`.provenance`) recording
+what kind of source the *target* came from — a table row, a rounded summary,
+or a model estimate with no published score behind it at all. The headline
+calibrated count excludes the ``model_estimate`` entries, which are kept as
+labelled illustrations rather than deleted (plan §5.2).
 """
 
 from __future__ import annotations
@@ -15,21 +22,35 @@ from dataclasses import asdict, dataclass, field
 from functools import lru_cache
 
 from .core import ValidationResult, validate_all
+from .provenance import MODEL_ESTIMATE, PROVENANCE_LEVELS, classify_provenance
 from .specialized import (
     validate_all_amt,
     validate_all_capital_gains,
+    validate_all_climate,
     validate_all_corporate,
     validate_all_credits,
+    validate_all_enforcement,
     validate_all_estate,
     validate_all_expenditures,
+    validate_all_international,
     validate_all_payroll,
+    validate_all_pharma,
     validate_all_ptc,
     validate_all_tcja,
+    validate_all_trade,
 )
+
+#: The out-of-sample tier's category name. Everything else is the calibrated
+#: tier — the split the readiness gate and the API summary both key on.
+GENERIC_CATEGORY = "Generic"
 
 # Order matters — specialized runners first (they produce calibrated results
 # for the published presets), generic last (raw-parameter auto-population for
 # remaining KNOWN_SCORES targets, where larger drift is expected).
+#
+# The five sectoral runners (International .. Climate) were added in Phase E,
+# plan §5.3: those modules ship in the app with presets that carry an official
+# number, and the scorecard previously ignored every one of them.
 DEFAULT_RUNNERS: dict[str, Callable[..., list[ValidationResult]]] = {
     "TCJA": validate_all_tcja,
     "Corporate": validate_all_corporate,
@@ -40,6 +61,11 @@ DEFAULT_RUNNERS: dict[str, Callable[..., list[ValidationResult]]] = {
     "PTC": validate_all_ptc,
     "CapitalGains": validate_all_capital_gains,
     "Expenditures": validate_all_expenditures,
+    "International": validate_all_international,
+    "Trade": validate_all_trade,
+    "Pharma": validate_all_pharma,
+    "Enforcement": validate_all_enforcement,
+    "Climate": validate_all_climate,
     "Generic": validate_all,
 }
 
@@ -64,9 +90,18 @@ class ScorecardEntry:
     direction_match: bool
     known_limitations: list[str]
     notes: str
+    #: Where the *target* came from: ``line_item`` / ``secondhand`` /
+    #: ``model_estimate`` / ``unclassified``. See :mod:`.provenance`.
+    provenance: str = "unclassified"
+    #: Whether the module carries a constant fitted to reproduce this target.
+    #: True for the nine original specialized suites (a Poor there is a genuine
+    #: calibration regression); False for module reconstructions that have
+    #: simply never been compared to the published figure.
+    calibrated_to_target: bool = True
 
     @classmethod
     def from_result(cls, category: str, r: ValidationResult) -> ScorecardEntry:
+        params = r.model_parameters or {}
         return cls(
             category=category,
             policy_id=r.policy_id,
@@ -84,6 +119,15 @@ class ScorecardEntry:
             direction_match=bool(r.direction_match),
             known_limitations=list(r.known_limitations),
             notes=r.notes or "",
+            provenance=classify_provenance(
+                policy_id=r.policy_id,
+                official_source=r.official_source,
+                benchmark_url=r.benchmark_url,
+                official_10yr=float(r.official_10yr),
+                benchmark_kind=r.benchmark_kind,
+                declared=params.get("provenance"),
+            ),
+            calibrated_to_target=bool(params.get("calibrated_to_target", True)),
         )
 
 
@@ -102,6 +146,19 @@ class ScorecardSummary:
     median_abs_percent_difference: float
     ratings_breakdown: dict[str, int]
     by_category: dict[str, dict]
+    #: Provenance counts across every entry, keyed by label.
+    provenance_breakdown: dict[str, int] = field(default_factory=dict)
+    #: Provenance counts across the calibrated (non-Generic) tier only. Sums to
+    #: :attr:`calibrated_entries`.
+    calibrated_provenance_breakdown: dict[str, int] = field(default_factory=dict)
+    #: Calibrated-tier size, including the illustrative entries.
+    calibrated_entries: int = 0
+    #: Calibrated entries whose target is a published figure — the honest
+    #: headline count. Excludes ``model_estimate`` entries (plan §5.2).
+    calibrated_published_entries: int = 0
+    #: Calibrated entries scored against a model estimate rather than a
+    #: published score. Kept as labelled illustrations, reported separately.
+    calibrated_model_estimate_entries: int = 0
     entries: list[ScorecardEntry] = field(default_factory=list)
 
 
@@ -117,6 +174,17 @@ def _percentile(values: list[float], p: float) -> float:
     upper = min(lower + 1, len(sorted_vals) - 1)
     weight = rank - lower
     return sorted_vals[lower] * (1 - weight) + sorted_vals[upper] * weight
+
+
+def _provenance_counts(entries: list[ScorecardEntry]) -> dict[str, int]:
+    """Count entries by provenance label, always emitting every label.
+
+    Zero-filling matters: a caller reading ``breakdown["line_item"]`` should
+    see 0 rather than a KeyError when no benchmark in the tier has a table
+    reference, and the counts must sum to the tier size.
+    """
+    counts = Counter(e.provenance for e in entries)
+    return {level: counts.get(level, 0) for level in PROVENANCE_LEVELS}
 
 
 def _category_summary(entries: list[ScorecardEntry]) -> dict:
@@ -167,6 +235,10 @@ def compute_scorecard(
         cat_entries = [e for e in entries if e.category == cat]
         by_cat[cat] = _category_summary(cat_entries)
 
+    calibrated = [e for e in entries if e.category != GENERIC_CATEGORY]
+    provenance_breakdown = _provenance_counts(entries)
+    calibrated_provenance = _provenance_counts(calibrated)
+
     return ScorecardSummary(
         total_entries=len(entries),
         within_5pct=sum(1 for d in abs_diffs if d <= 5.0),
@@ -179,6 +251,12 @@ def compute_scorecard(
         median_abs_percent_difference=_percentile(abs_diffs, 50.0),
         ratings_breakdown=dict(ratings),
         by_category=by_cat,
+        provenance_breakdown=provenance_breakdown,
+        calibrated_provenance_breakdown=calibrated_provenance,
+        calibrated_entries=len(calibrated),
+        calibrated_published_entries=len(calibrated)
+        - calibrated_provenance[MODEL_ESTIMATE],
+        calibrated_model_estimate_entries=calibrated_provenance[MODEL_ESTIMATE],
         entries=entries,
     )
 
@@ -222,6 +300,7 @@ def reset_scorecard_cache() -> None:
 
 __all__ = [
     "DEFAULT_RUNNERS",
+    "GENERIC_CATEGORY",
     "ScorecardEntry",
     "ScorecardSummary",
     "cached_default_scorecard",

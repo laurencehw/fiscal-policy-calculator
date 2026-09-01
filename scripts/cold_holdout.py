@@ -15,7 +15,12 @@ The headline validation table mixes two epistemically different things:
   auto-population, with **no fitting to the official target**. This is the only
   tier that measures genuine out-of-sample accuracy.
 
-This script runs the live scorecard and reports the two tiers separately, so
+* **Uncalibrated module reconstructions** (Phase E: the international, trade,
+  pharma, enforcement and climate runners): presets that carry a published
+  figure whose module holds no constant fitted to it. Reported as their own
+  tier — neither a calibration reference nor a bottom-up SOI prediction.
+
+This script runs the live scorecard and reports the tiers separately, so
 the genuine prediction error is stated plainly (and never goes stale in the
 docs). It is the reproducible source for the "Out-of-sample" table in
 ``README.md`` and ``docs/VALIDATION.md``.
@@ -73,7 +78,15 @@ def build_report() -> dict:
         return row
 
     uncal = [e for e in summary.entries if e.category == UNCALIBRATED_CATEGORY]
-    cal = [e for e in summary.entries if e.category != UNCALIBRATED_CATEGORY]
+    specialized = [e for e in summary.entries if e.category != UNCALIBRATED_CATEGORY]
+    # Phase E split the specialized tier in two. Entries whose module carries a
+    # constant *fitted* to the benchmark are the calibrated reference set, whose
+    # low error is expected by construction. Entries added by the sectoral
+    # runners (international, trade, pharma, enforcement, climate) are scored
+    # against published figures their modules were never fitted to, so folding
+    # them into the calibrated mean would misdescribe both tiers.
+    cal = [e for e in specialized if getattr(e, "calibrated_to_target", True)]
+    recon = [e for e in specialized if not getattr(e, "calibrated_to_target", True)]
 
     def _agg(entries) -> dict:
         if not entries:
@@ -103,6 +116,13 @@ def build_report() -> dict:
         "calibrated_reference": {
             "summary": _agg(cal),
             "entries": [_entry_dict(e) for e in sorted(cal, key=lambda x: x.abs_percent_difference)],
+        },
+        "uncalibrated_reconstruction": {
+            "summary": _agg(recon),
+            "entries": [
+                _entry_dict(e)
+                for e in sorted(recon, key=lambda x: x.abs_percent_difference)
+            ],
         },
     }
 
@@ -207,6 +227,25 @@ def _print_human(report: dict) -> None:
         "  These are tuned to reproduce published CBO/JCT decompositions; they\n"
         "  demonstrate the model's structure, not independent predictive accuracy."
     )
+
+    reconstruction = report.get("uncalibrated_reconstruction")
+    if reconstruction and reconstruction["summary"]["n"]:
+        r = reconstruction["summary"]
+        print()
+        print("-" * 72)
+        print("UNCALIBRATED MODULE RECONSTRUCTIONS (published target, no fitting)")
+        print("-" * 72)
+        print(
+            f"  {r['n']} policies | mean abs error {r['mean_abs_error']}% | "
+            f"within 15%: {r['within_15pct']}/{r['n']} | "
+            f"within 25%: {r['within_25pct']}/{r['n']}"
+        )
+        print(
+            "  Sectoral modules (international, trade, pharma, enforcement,"
+            " climate)\n  scored against published figures they were never"
+            " fitted to. Large misses\n  here are findings about those modules;"
+            " each carries a known-limitations\n  note and none was retuned."
+        )
 
 
 def _print_correction(corr: dict) -> None:
