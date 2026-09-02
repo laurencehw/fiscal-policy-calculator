@@ -423,7 +423,30 @@ computed from the scored result so it cannot drift from it:
 A policy scored with `include_retaliation` off drops that clause rather than
 claiming a channel it did not use.
 
-### 7.6 What this lane did not do
+### 7.6 A sign defect the lane found in its own diff, after the outturn
+
+Recorded here rather than folded into §7.1, because it landed in `a212f7a`,
+after the outturn commit.
+
+`estimate_behavioral_offset` returned an **unsigned positive** number. The
+scorer adds that to `-static_revenue`, which is right for a tariff increase and
+exactly wrong for a tariff **cut**: a 5pp cut on a $1,000B base scored **$711B**
+of deficit against a gross revenue loss of **$553B** — the income and payroll
+bases being shrunk by a tax that had just been reduced. The offset now carries
+the static effect's sign, which is `docs/METHODOLOGY.md`'s own convention for a
+behavioural offset, and the same cut scores **$394B**: eroded, as it should be.
+`estimate_income_payroll_offset` is signed the same way so `get_trade_summary`'s
+net figure agrees with the score in both directions.
+
+The bug pre-dated this lane — the 5% avoidance haircut had it too — but the lane
+made it roughly six times larger by adding a 25% offset and a retaliation
+channel on top of it, so it is fixed here rather than left for someone else.
+**No shipped preset moves**: all five are tariff increases and score
+identically, and every figure in §7.1 through §7.5 is unchanged. The caption
+now reads "of net receipts" rather than "of deficit reduction", which is true in
+both directions.
+
+### 7.7 What this lane did not do
 
 No target moved. `preregistered.py`, `KNOWN_SCORES`, `CBO_SCORE_MAP`'s figures,
 `benchmark_sources.py`, `target_revisions.py`, `cold_holdout.py`, `run_loo.py`,
