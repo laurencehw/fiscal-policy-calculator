@@ -319,6 +319,42 @@ def test_a_data_error_still_interrupts_every_page(monkeypatch):
     assert len([e for e in st_module.errors if "Data error" in e]) == 2
 
 
+# ---------------------------------------------------------------------------
+# Cold start (external UI review, 2026-09-01)
+# ---------------------------------------------------------------------------
+
+
+def test_the_brand_paints_before_the_health_probe_runs(monkeypatch):
+    """Order matters: Streamlit streams elements as they are created.
+
+    ``get_health_snapshot`` costs ~2-3s on a container's first request and
+    every later run is a memo hit. Computing it before the title meant the
+    whole of that showed as a blank page. Nothing above the pill needs the
+    payload, so the title must already be on the wire when the probe starts.
+    """
+    order: list[str] = []
+
+    def _probe():
+        order.append("health")
+        return _HEALTH_OK
+
+    monkeypatch.setattr(chrome, "get_health_snapshot", _probe)
+    monkeypatch.setattr(chrome, "render_data_status", lambda **kwargs: None)
+
+    st_module = _ChromeStreamlit()
+    original_markdown = st_module.markdown
+
+    def _record(text="", *args, **kwargs):
+        if str(text).startswith("### "):
+            order.append("brand")
+        return original_markdown(text, *args, **kwargs)
+
+    st_module.markdown = _record
+    chrome.render_chrome(st_module=st_module, deps=SimpleNamespace())
+
+    assert order[:2] == ["brand", "health"], order
+
+
 def test_notice_label_names_the_number_of_late_sources(monkeypatch):
     both_late = {
         **_HEALTH_OK,

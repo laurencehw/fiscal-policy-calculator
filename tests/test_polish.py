@@ -19,6 +19,7 @@ Two things that are easy to regress and invisible in unit tests:
 from __future__ import annotations
 
 import time
+from types import SimpleNamespace
 
 import pytest
 
@@ -260,3 +261,111 @@ def test_stale_data_banner_says_refresh_pending_without_a_command():
     assert bill_tracker._render_global_freshness_banner(st, _DB()) is True
     assert "data refresh pending" in st.warnings[0].lower()
     assert "scripts/" not in st.all_text()
+
+
+# ---------------------------------------------------------------------------
+# 3. Cold start: something paints before the slow first-run work
+# ---------------------------------------------------------------------------
+#
+# An external reviewer reported ~20s of blank grey on the first hit of the
+# Streamlit Cloud deployment (2026-09-01). Measured locally, the first script
+# run cost 7.9s and the second 0.06s, and the two biggest in-script items both
+# sat in front of the first visible element: ``validated_policy_count()``
+# (~2.5s, for a ``<meta>`` description) and ``get_health_snapshot()`` (~2-3s,
+# inside the chrome, before the title). Both are now behind the first paint.
+
+
+def test_the_meta_blurb_never_computes_the_scorecard(monkeypatch):
+    """The count is worth having; it is not worth a cold-start second."""
+    from types import SimpleNamespace as _NS
+
+    import fiscal_model.validation.scorecard as scorecard_module
+    from fiscal_model.ui.helpers import validated_policy_count
+
+    calls: list[int] = []
+
+    class _Memo:
+        def __init__(self, currsize: int) -> None:
+            self._currsize = currsize
+
+        def cache_info(self):
+            return _NS(currsize=self._currsize)
+
+        def __call__(self):
+            calls.append(1)
+            return _NS(published_entries=72)
+
+    monkeypatch.setattr(scorecard_module, "cached_default_scorecard", _Memo(0))
+    assert validated_policy_count(allow_compute=False) == 0
+    assert calls == [], "a cold run must not compute the scorecard"
+
+    # Warm — the footer computed it on an earlier run, so the tag gets the
+    # real number from then on.
+    monkeypatch.setattr(scorecard_module, "cached_default_scorecard", _Memo(1))
+    assert validated_policy_count(allow_compute=False) == 72
+
+    # The default is still "compute it": the footer wants the number.
+    monkeypatch.setattr(scorecard_module, "cached_default_scorecard", _Memo(0))
+    assert validated_policy_count() == 72
+
+
+def test_a_placeholder_paints_before_the_scorer_bundle_is_built():
+    """``st.empty`` claimed up front, filled, then cleared for the real page."""
+    import app as app_module
+
+    order: list[str] = []
+
+    class _Slot:
+        def caption(self, text):
+            order.append(f"placeholder:{text[:20]}")
+
+        def empty(self):
+            order.append("placeholder-cleared")
+
+    class _Page:
+        def __init__(self, fn, **kwargs):
+            self.url_path = kwargs.get("url_path", "")
+
+    class _Nav:
+        def run(self):
+            order.append("page-body")
+
+    class _FakeSt:
+        session_state: dict = {}
+        query_params: dict = {}
+
+        def set_page_config(self, **kwargs):
+            return None
+
+        def markdown(self, *args, **kwargs):
+            return None
+
+        def empty(self):
+            return _Slot()
+
+        def Page(self, fn, **kwargs):  # mirrors ``st.Page``
+            return _Page(fn, **kwargs)
+
+        def navigation(self, pages, **kwargs):
+            return _Nav()
+
+        def error(self, *args, **kwargs):
+            order.append("error")
+
+    def _builder(*, pd_module):
+        order.append("deps-built")
+        return SimpleNamespace(apply_app_styles=lambda st_module: None)
+
+    app_module.main(st_module=_FakeSt(), pd_module=None, deps_builder=_builder)
+
+    assert order[0].startswith("placeholder:"), order
+    assert order[1] == "deps-built", order
+    assert order.index("placeholder-cleared") < order.index("page-body"), order
+
+
+def test_the_boot_placeholder_is_gone_by_the_time_the_page_renders():
+    """Through the real router: the notice must not survive into the tree."""
+    at = _run_page(None)
+    assert not at.exception, [e.message for e in at.exception]
+    captions = [str(element.value) for element in at.caption]
+    assert not [text for text in captions if "Waking the calculator" in text]

@@ -266,18 +266,26 @@ def render_chrome(
     """
     bootstrap_page(st_module)
 
-    try:
-        health = get_health_snapshot()
-    except Exception:  # pragma: no cover — health must never break a page
-        health = {}
-    pill = data_status_pill(health)
-
+    # Layout and brand first, health second. Streamlit streams each element to
+    # the browser as it is created, and ``get_health_snapshot`` costs ~3s on the
+    # first request of a container (it probes the baseline, FRED, SOI and the
+    # microdata calibration; every later run is a memo hit). Computing it before
+    # the title meant three seconds of blank page on a cold start, which is what
+    # an external reviewer saw as a grey skeleton (2026-09-01). Nothing above
+    # depends on the payload, so the title, subtitle and column frame can paint
+    # while the probe runs.
     brand_col, status_col, settings_col = st_module.columns([6, 3, 1])
 
     with brand_col:
         if show_brand:
             st_module.markdown(f"### {APP_TITLE}")
             st_module.caption(APP_SUBTITLE)
+
+    try:
+        health = get_health_snapshot()
+    except Exception:  # pragma: no cover — health must never break a page
+        health = {}
+    pill = data_status_pill(health)
 
     # The chrome surfaces the degraded-data reasons inline below, so the panel
     # inside the popover renders its detail without repeating the banner.
