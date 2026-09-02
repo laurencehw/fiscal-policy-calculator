@@ -169,8 +169,13 @@ class TariffPolicy(TaxPolicy):
         if self.retaliation_export_base_billions <= 0:
             total_imports = TRADE_BASELINE["total_imports_billions"]
             exposure = self.import_base_billions / total_imports if total_imports else 0.0
+            # Exposure is a *share* of trade, so it is capped at 1. A caller can
+            # pass an import base above total US goods imports (the API takes an
+            # arbitrary figure, and a hypothetical can exceed the 2024 vintage);
+            # without the cap that would invite retaliation against more US
+            # exports than exist, which is not what "proportional" means.
             self.retaliation_export_base_billions = (
-                TRADE_BASELINE["total_exports_billions"] * exposure
+                TRADE_BASELINE["total_exports_billions"] * min(1.0, exposure)
             )
 
     # -- the scoring chain -------------------------------------------------

@@ -397,6 +397,31 @@ class TestRetaliationBase:
         )
         assert policy.estimate_retaliation_cost() < policy.import_base_billions
 
+    def test_the_exposure_share_is_capped_at_all_of_us_exports(self):
+        """A base above total goods imports cannot retaliate against more
+        exports than exist. The API takes an arbitrary import base, and a
+        hypothetical can exceed the 2024 Census vintage."""
+        policy = TariffPolicy(
+            name="Bigger than the world",
+            description="Test",
+            tariff_rate_change=0.10,
+            import_base_billions=TRADE_BASELINE["total_imports_billions"] * 3,
+        )
+        assert policy.retaliation_export_base_billions == pytest.approx(
+            TRADE_BASELINE["total_exports_billions"]
+        )
+
+    def test_a_base_at_exactly_total_imports_exposes_all_exports(self):
+        policy = TariffPolicy(
+            name="Everything",
+            description="Test",
+            tariff_rate_change=0.10,
+            import_base_billions=TRADE_BASELINE["total_imports_billions"],
+        )
+        assert policy.retaliation_export_base_billions == pytest.approx(
+            TRADE_BASELINE["total_exports_billions"]
+        )
+
     def test_receipts_loss_is_the_export_loss_at_the_marginal_rate(self):
         policy = create_reciprocal_tariffs()
         assert policy.estimate_retaliation_revenue_loss() == pytest.approx(
