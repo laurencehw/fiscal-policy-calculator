@@ -441,6 +441,14 @@ class TaxExpenditurePolicy(TaxPolicy):
 
     def _share_of_benefit_above_cap(self, data: dict) -> float:
         """Share of the expenditure's value denied by this policy's cap."""
+        if self.cap_rate is None and self.cap_unit is CapUnit.BENEFIT_DOLLARS:
+            # The old rule, now reachable only by asking for it by name. It
+            # needs no distribution, which is exactly why it was wrong.
+            avg_benefit = data.get("avg_benefit", 2000)
+            if self.cap_amount >= avg_benefit:
+                return 0.1 * (avg_benefit / self.cap_amount)
+            return 0.3 + 0.4 * (1 - self.cap_amount / avg_benefit)
+
         spec = self._base_distribution_spec(data)
         if spec is None:
             raise ExpenditureDistributionMissing(
@@ -457,12 +465,6 @@ class TaxExpenditurePolicy(TaxPolicy):
             return load_deduction_distribution(spec["column"]).benefit_share_above_rate(
                 self.cap_rate
             )
-        if self.cap_unit is CapUnit.BENEFIT_DOLLARS:
-            # The old rule, now reachable only by asking for it by name.
-            avg_benefit = data.get("avg_benefit", 2000)
-            if self.cap_amount >= avg_benefit:
-                return 0.1 * (avg_benefit / self.cap_amount)
-            return 0.3 + 0.4 * (1 - self.cap_amount / avg_benefit)
         if spec["kind"] == "premium":
             return load_premium_distribution().base_share_above(
                 self.cap_amount,
