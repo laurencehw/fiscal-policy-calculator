@@ -1168,8 +1168,8 @@ components; two rate cases whose source states a filing-status-specific boundary
 the generic path cannot express land at **26%** and **45%**; and everything
 behavioral — capital-gains realizations, gains at death, payroll incidence,
 corporate margins — misses by **47–154%** for documented structural reasons.
-Capital gains is now the tier's dominant error mass: 4 cases carrying 479 of the
-tier's 860 units, 56%.
+Capital gains is now the tier's dominant error mass: 4 cases carrying 479.4 of
+the tier's 859.5 units, 55.8%.
 
 The mean moved from Phase B's 43.4% on 23 cases to 52.6% on 25 while the median
 *fell* from 23.1% to 21.1%: `top_rate_45` was retired in Phase E (its −$420B target

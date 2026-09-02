@@ -244,17 +244,18 @@ summary.
 | Distributional | 7 | 0.00–5.86pp | **unchanged** |
 
 Tier 1 error mass fell **1,315 → 859.5**. The ranking inverted: spend-out was
-38.7% of the tier and is now **7.4%** (63 units), while capital gains is now
-**55.8%** (479 units) — so **L1 is the whole of Wave 2's argument**, where before
-it shared the top of the table.
+38.7% of the tier and is now **7.4%** (63.4 units), while capital gains is now
+**55.8%** (479.4 units) — so **L1 is the whole of Wave 2's argument**, where
+before it shared the top of the table. Masses below are Σ|error %| over each
+group's cases and sum to 859.5 exactly.
 
 | Mechanism | Cases | Mass | Share |
 |---|--:|--:|--:|
-| Capital gains — realizations base, lock-in, gains at death | 4 | 479 | **55.8%** |
-| Module revenue identities at the margin (payroll ×2, corporate) | 3 | 157 | 18.2% |
-| Bracket-aggregate ceiling on rate changes | 8 | 90 | 10.4% |
-| Filing-status-specific thresholds | 2 | 71 | 8.2% |
-| Spending: spend-out, level shape, window, growth rate | 8 | 63 | 7.4% |
+| Capital gains — realizations base, lock-in, gains at death | 4 | 479.4 | **55.8%** |
+| Module revenue identities at the margin (payroll ×2, corporate) | 3 | 156.7 | 18.2% |
+| Bracket-aggregate ceiling on rate changes | 8 | 89.5 | 10.4% |
+| Filing-status-specific thresholds | 2 | 70.5 | 8.2% |
+| Spending: spend-out, level shape, window, growth rate | 8 | 63.4 | 7.4% |
 
 ### Three findings the wave produced
 

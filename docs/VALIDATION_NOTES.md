@@ -410,7 +410,7 @@ outlays_t = Σ_k s_k · BA_{t−k}
 with `s` a first-year/out-year profile keyed by **account class**, and budget
 authority and outlays are distinct quantities on the policy and on the result.
 The eight spending rows moved to 0-18% and the tier fell to 34.4%; the
-mechanism's error mass is now **63 units of 860 (7%)**. Per-row detail is in
+mechanism's error mass is now **63.4 units of 859.5 (7.4%)**. Per-row detail is in
 [VALIDATION.md](VALIDATION.md); the pre-registration and outturn are in
 [`planning/lanes/L2_spend_out.md`](../planning/lanes/L2_spend_out.md).
 
