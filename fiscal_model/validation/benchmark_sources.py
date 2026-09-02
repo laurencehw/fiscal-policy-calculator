@@ -225,8 +225,8 @@ _JCX_CH1 = (
     "Ch.1: Providing Permanent Tax Relief for Middle-Class Families and Workers"
 )
 #: JCT's chapter heading verbatim, as the CSV carries it since PR #76 replaced
-#: the truncated "Ch.1 Permanent Tax Relief"; ``test_pl119_21_sources_match_the_
-#: transcribed_csv`` pins the two to each other.
+#: the truncated "Ch.1 Permanent Tax Relief". The two are pinned to each other by
+#: ``test_pl119_21_sources_match_the_transcribed_csv``.
 BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
     # ------------------------------------------------------------------
     # Treasury Green Book rows
