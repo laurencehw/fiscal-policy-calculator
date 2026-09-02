@@ -151,15 +151,25 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "published estimates embed much stronger lock-in and avoidance responses.",
     ],
     "cbo_opt56_employer_health_income_only": [
-        "The level is close and the growth path is not, which is the whole residual. "
-        "CBO's revenue grows about 14%/yr because the exclusion limit is indexed to "
-        "the chained CPI-U while premiums grow faster, so a widening slice of every "
-        "premium sits above it. The module evaluates its excess share once, at "
-        "start_year, and the engine then grows the result at the expenditure's own "
-        "4%/yr. A year-indexed excess share is the missing structure.",
+        "The excess share is now year-indexed (Wave 4 lane 3a), which is what CBO's "
+        "own text specifies: the limit grows with a price index while premiums grow "
+        "with health costs, so a widening slice of every premium sits above it. That "
+        "took the row from 24.0% to 13.1% and the model's revenue growth from 4.0%/yr "
+        "to 8.3%/yr against CBO's 14.4%/yr. The remaining shape gap is the two items "
+        "below; neither is a parameter.",
+        "The base is premiums only. CBO caps 'the total amount of contributions for a "
+        "worker's premiums and health spending accounts' (pub. 60557, report p. 66), "
+        "and the repository's premium distribution has no flexible-spending, health "
+        "reimbursement or health-savings-account dimension, so the dollars above the "
+        "limit are understated by whatever those contributions add.",
         "No plan-switching channel. CBO's own text names enrolment in lower-premium "
         "plans as the dominant behavioural response, which converts excluded premium "
-        "into taxable wages; the module carries only a flat 0.2 elasticity.",
+        "into taxable wages; the module carries only a flat 0.2 elasticity. The "
+        "option states the direction and publishes no magnitude, so a value for it "
+        "would have to be fitted to this row.",
+        "The limit's indexation uses the baseline's own price path in place of the "
+        "chained CPI-U the option names, because the repository carries no "
+        "chained-CPI-U series. CBO projects both near 2.0% over 2028-2034.",
     ],
     # -- Phase D: enacted-law component replications -------------------------
     # Each row states whether its miss is attributable to the missing
