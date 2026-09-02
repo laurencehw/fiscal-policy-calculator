@@ -60,7 +60,8 @@ def _render_head_metadata(st_module: Any) -> None:
     )
     _blurb = (
         "Estimate the budgetary impact of tax and spending proposals. "
-        "Policies benchmarked against CBO/JCT/Treasury scores."
+        "Policies benchmarked against published CBO, JCT, Treasury and "
+        "think-tank scores."
     )
     try:
         from fiscal_model.ui.helpers import validated_policy_count
@@ -70,7 +71,8 @@ def _render_head_metadata(st_module: Any) -> None:
         if (_n := validated_policy_count()) > 0:
             _blurb = (
                 "Estimate the budgetary impact of tax and spending proposals. "
-                f"{_n} policies benchmarked against CBO/JCT/Treasury scores."
+                f"{_n} policies benchmarked against published CBO, JCT, "
+                "Treasury and think-tank scores."
             )
     except Exception:
         pass

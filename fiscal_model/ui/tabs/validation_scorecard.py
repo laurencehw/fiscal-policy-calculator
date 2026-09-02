@@ -1,6 +1,6 @@
 """
 Validation tab — live scorecard of model accuracy against published
-CBO/JCT/Treasury revenue scores.
+agency and think-tank revenue scores.
 
 Surfaces the same data as the ``/validation/scorecard`` API endpoint so
 users can verify, in-app, what's actually been validated and at what
@@ -288,7 +288,8 @@ def render_validation_scorecard_tab(st_module: Any) -> None:
     st_module.header("Validation scorecard")
     st_module.markdown(
         "Live comparison of this model's revenue scores against published "
-        "CBO/JCT/Treasury/PWBM estimates.\n\n"
+        "estimates from CBO, JCT, Treasury, SSA, TPC, PWBM and the Tax "
+        "Foundation.\n\n"
         "Ratings: 🟢 **Excellent** ≤5%, 🟢 **Good** ≤10%, 🟡 **Acceptable** ≤20%, "
         "🔴 **Poor** >20%. The **Generic** category uses raw "
         "rate/threshold parameters and is expected to drift — calibrated "

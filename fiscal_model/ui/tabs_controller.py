@@ -24,6 +24,11 @@ _logger = logging.getLogger(__name__)
 def _benchmark_count_clause() -> str:
     """"N policies benchmarked against ..." — or the count-free wording.
 
+    The publisher list is deliberately not "CBO/JCT/Treasury". The count is
+    ``published_entries``, which spans TPC, PWBM, the Tax Foundation, the
+    Social Security Trustees and CRFB as well as the three agencies, so naming
+    only those three described a narrower set than the number counts.
+
     ``validated_policy_count()`` returns 0 when the scorecard could not be
     built. Printing "0 policies benchmarked" would be worse than saying
     nothing, and printing a hard-coded fallback — which is what this used to
@@ -32,8 +37,14 @@ def _benchmark_count_clause() -> str:
     """
     n = validated_policy_count()
     if not n:
-        return "Policies are benchmarked against official CBO/JCT/Treasury scores — "
-    return f"{n} policies benchmarked against official CBO/JCT/Treasury scores — "
+        return (
+            "Policies are benchmarked against published scores from CBO, JCT, "
+            "Treasury, SSA and independent scorekeepers — "
+        )
+    return (
+        f"{n} policies benchmarked against published scores from CBO, JCT, "
+        "Treasury, SSA and independent scorekeepers — "
+    )
 
 
 def _footer_validation_clause() -> str:
@@ -45,7 +56,7 @@ def _footer_validation_clause() -> str:
     n = validated_policy_count()
     if not n:
         return ""
-    return f"{n} policies validated against CBO/JCT · "
+    return f"{n} policies benchmarked against published scores · "
 
 # Nested Calculator tab labels (order matters for build_main_tabs).
 CALCULATOR_TAB_LABELS: tuple[str, ...] = (

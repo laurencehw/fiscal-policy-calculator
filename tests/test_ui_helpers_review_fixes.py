@@ -26,8 +26,8 @@ class TestEscapeMarkdownDollars:
 
 class TestValidatedPolicyCount:
     def test_matches_scorecard_published_entries(self) -> None:
-        """The footer says "validated against CBO/JCT", so it must count only
-        rows that have a CBO/JCT/Treasury figure behind them.
+        """The footer says "benchmarked against published scores", so it must
+        count only rows that have a published figure behind them.
 
         Phase E §5.2: ``total_entries`` also includes the illustrations —
         policy shapes with no official score at all — so quoting it made a
@@ -71,6 +71,25 @@ class TestValidatedPolicyCount:
         monkeypatch.setattr(tabs_controller, "validated_policy_count", lambda: 61)
         assert "61 policies" in tabs_controller._footer_validation_clause()
         assert "61 policies" in tabs_controller._benchmark_count_clause()
+
+
+    def test_the_clauses_do_not_name_a_narrower_publisher_set_than_they_count(
+        self, monkeypatch
+    ) -> None:
+        """``published_entries`` spans TPC, PWBM, the Tax Foundation, the Social
+        Security Trustees and CRFB as well as CBO, JCT and Treasury. A clause
+        that attaches that count to "CBO/JCT/Treasury scores" describes a
+        narrower set than the number it prints."""
+        from fiscal_model.ui import tabs_controller
+
+        monkeypatch.setattr(tabs_controller, "validated_policy_count", lambda: 72)
+        for clause in (
+            tabs_controller._benchmark_count_clause(),
+            tabs_controller._footer_validation_clause(),
+        ):
+            assert "CBO/JCT/Treasury" not in clause
+            assert "validated against CBO/JCT" not in clause
+            assert "published scores" in clause
 
 
 class TestFriendlyErrorMessage:
