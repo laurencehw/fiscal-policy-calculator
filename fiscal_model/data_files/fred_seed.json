@@ -1,25 +1,25 @@
 {
-  "generated_at": "2026-08-31T14:21:16.391047Z",
+  "generated_at": "2026-09-02T01:48:52.858851Z",
   "max_age_days": 120,
   "refresh_command": "python scripts/refresh_fred_seed.py",
   "series": {
     "DGS10": {
       "label": "10-Year Treasury Constant Maturity Rate",
-      "latest_observation": "2026-08-27 00:00:00",
+      "latest_observation": "2026-08-31 00:00:00",
       "observations": 8,
       "series_id": "DGS10",
       "source_url": "https://fred.stlouisfed.org/series/DGS10",
       "units": "Percent",
-      "updated_at": "2026-08-31T14:21:16.391047Z",
+      "updated_at": "2026-09-02T01:48:52.858851Z",
       "values": {
-        "2026-08-18 00:00:00": 4.71,
-        "2026-08-19 00:00:00": 4.65,
         "2026-08-20 00:00:00": 4.69,
         "2026-08-21 00:00:00": 4.74,
         "2026-08-24 00:00:00": 4.7,
         "2026-08-25 00:00:00": 4.64,
         "2026-08-26 00:00:00": 4.66,
-        "2026-08-27 00:00:00": 4.67
+        "2026-08-27 00:00:00": 4.67,
+        "2026-08-28 00:00:00": 4.73,
+        "2026-08-31 00:00:00": 4.75
       }
     },
     "GDP": {
@@ -29,7 +29,7 @@
       "series_id": "GDP",
       "source_url": "https://fred.stlouisfed.org/series/GDP",
       "units": "Billions of dollars, seasonally adjusted annual rate",
-      "updated_at": "2026-08-31T14:21:16.391047Z",
+      "updated_at": "2026-09-02T01:48:52.858851Z",
       "values": {
         "2024-07-01 00:00:00": 29511.664,
         "2024-10-01 00:00:00": 29825.182,
@@ -48,7 +48,7 @@
       "series_id": "GDPC1",
       "source_url": "https://fred.stlouisfed.org/series/GDPC1",
       "units": "Billions of chained 2017 dollars, seasonally adjusted annual rate",
-      "updated_at": "2026-08-31T14:21:16.391047Z",
+      "updated_at": "2026-09-02T01:48:52.858851Z",
       "values": {
         "2024-07-01 00:00:00": 23478.57,
         "2024-10-01 00:00:00": 23586.542,
@@ -67,7 +67,7 @@
       "series_id": "UNRATE",
       "source_url": "https://fred.stlouisfed.org/series/UNRATE",
       "units": "Percent",
-      "updated_at": "2026-08-31T14:21:16.391047Z",
+      "updated_at": "2026-09-02T01:48:52.858851Z",
       "values": {
         "2025-12-01 00:00:00": 4.4,
         "2026-01-01 00:00:00": 4.3,
@@ -81,5 +81,5 @@
     }
   },
   "source": "Bundled FRED seed snapshot for deterministic offline smoke/readiness checks.",
-  "updated_at": "2026-08-31T14:21:16.391047Z"
+  "updated_at": "2026-09-02T01:48:52.858851Z"
 }
