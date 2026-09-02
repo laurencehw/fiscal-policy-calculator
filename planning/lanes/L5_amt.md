@@ -1,4 +1,9 @@
-# Lane L5 — AMT: a live exemption path and a 2026 sunset ramp
+# Lane L5 — AMT: a live exemption path and a year-indexed sunset
+
+*The plan calls this lane "a live exemption path and a 2026 sunset ramp"
+(`MODELING_IMPROVEMENT.md` §3 L5). The ramp half of that title did not
+survive contact with the data — see §3 and finding 1 in §4 — so the heading
+here matches what the lane found rather than what it set out to build.*
 
 *Pre-registered 2026-09-01 against `main` @ `cff6b88`, before any code change.
 Outturn appended at the end of the lane, in the last commit.*

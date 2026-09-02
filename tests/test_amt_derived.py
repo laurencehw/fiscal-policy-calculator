@@ -318,3 +318,52 @@ def test_invalid_mode_is_rejected():
             policy_type=PolicyType.INCOME_TAX,
             mode="fitted",
         )
+
+
+# ---------------------------------------------------------------------------
+# Review findings (PR #86)
+# ---------------------------------------------------------------------------
+
+
+def test_extension_is_a_no_op_before_the_sunset():
+    """
+    Copilot / Bugbot: a 2025 start compared current law's $137,000 MFJ
+    exemption against the extended schedule's out-of-range fallback ($180,000,
+    the 2034 row) and booked a revenue loss in a year the policy cannot touch.
+    """
+    policy = create_extend_tcja_amt_relief(start_year=2025, mode=AMT_MODE_DERIVED)
+    assert policy.get_exemption_for_year(2025, "mfj") == 137_000
+    assert policy.derived_annual_effect(2025) == pytest.approx(0.0)
+    assert policy.derived_annual_effect(2026) < 0.0
+
+
+def test_a_zero_opening_year_does_not_zero_the_whole_window():
+    """
+    Copilot / Bugbot: anchoring the phase factor on ``start_year`` made
+    ``estimate_static_revenue_effect`` return 0.0 for a policy that is a no-op
+    only in its opening years, and the engine multiplied that zero through the
+    entire window.
+    """
+    policy = create_extend_tcja_amt_relief(start_year=2025, mode=AMT_MODE_DERIVED)
+    path = dict(policy.derived_revenue_path())
+    assert path[2025] == pytest.approx(0.0)
+    assert policy.estimate_static_revenue_effect(0.0) == pytest.approx(path[2026])
+
+    result = _score(policy)
+    assert result.total_10_year_cost == pytest.approx(-sum(path.values()), rel=1e-9)
+    assert result.total_10_year_cost > 700.0
+    for year, effect in zip(result.years, result.final_deficit_effect, strict=False):
+        assert effect == pytest.approx(-path[year], rel=1e-9), year
+
+
+def test_exemption_schedules_clamp_to_the_nearest_published_year():
+    """A year before a schedule starts must not read its last row."""
+    policy = AMTPolicy(
+        name="probe",
+        description="probe",
+        policy_type=PolicyType.INCOME_TAX,
+        extend_tcja_relief=True,
+        start_year=2026,
+    )
+    assert policy.get_exemption_for_year(2040, "mfj") == 180_000  # clamped forward
+    assert policy.get_exemption_for_year(2024, "mfj") == 133_300  # current law, not 2034

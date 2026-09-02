@@ -352,13 +352,30 @@ def amt_regime_year(regime: str, year: int) -> AMTYearRow:
     )
 
 
+def _schedule_row(
+    schedule: dict[int, tuple[float, float, float]],
+    year: int,
+) -> tuple[float, float, float]:
+    """
+    One year's ``(single, mfj, mfs)`` exemptions, clamped to the nearest
+    published year. Clamping to the *nearest* end matters: falling back to the
+    last row for a year that precedes the schedule would price a 2025 policy on
+    2034's exemptions.
+    """
+    if year in schedule:
+        return schedule[year]
+    return schedule[max(schedule)] if year > max(schedule) else schedule[min(schedule)]
+
+
 def _schedule_mfj(schedule: dict[int, tuple[float, float, float]], year: int) -> float:
     """MFJ exemption from one of the module's exemption schedules."""
-    if year in schedule:
-        return float(schedule[year][1])
-    if year > max(schedule):
-        return float(schedule[max(schedule)][1])
-    return float(schedule[min(schedule)][1])
+    return float(_schedule_row(schedule, year)[1])
+
+
+@cache
+def _last_tcja_regime_year() -> int:
+    """Last published year in which TCJA's larger AMT exemption still applies."""
+    return _regime_series(REGIME_TCJA)[-1].year
 
 
 def current_law_amt_exemption_mfj(year: int) -> float:
@@ -380,8 +397,9 @@ def _amt_anchors(year: int) -> tuple[tuple[float, AMTYearRow], tuple[float, AMTY
     while TCJA is still in force, which collapses the interpolation to a
     single point, as it should.
     """
-    last_tcja_year = _regime_series(REGIME_TCJA)[-1].year
-    low_regime = REGIME_TCJA if year <= last_tcja_year else REGIME_POST_SUNSET
+    low_regime = (
+        REGIME_TCJA if year <= _last_tcja_regime_year() else REGIME_POST_SUNSET
+    )
     low = (_schedule_mfj(AMT_EXEMPTIONS_TCJA, year), amt_regime_year(low_regime, year))
     high = (
         _schedule_mfj(AMT_EXEMPTIONS_TCJA_EXTENDED, year),
@@ -556,18 +574,16 @@ class AMTPolicy(TaxPolicy):
         if filing_status == "mfs" and self.new_exemption_mfj is not None:
             return self.new_exemption_mfj / 2  # MFS is half of MFJ
 
-        # TCJA extension
-        if self.extend_tcja_relief:
-            if year in AMT_EXEMPTIONS_TCJA_EXTENDED:
-                exemptions = AMT_EXEMPTIONS_TCJA_EXTENDED[year]
-            else:
-                exemptions = AMT_EXEMPTIONS_TCJA_EXTENDED[2034]
+        # TCJA extension. Before the sunset there is nothing to extend, so the
+        # extension is a no-op and both legs read the same schedule; without
+        # that guard a 2025 start compared current law's $137,000 against the
+        # extended schedule's out-of-range fallback and booked a revenue loss
+        # in a year the policy cannot touch.
+        if self.extend_tcja_relief and year > _last_tcja_regime_year():
+            exemptions = _schedule_row(AMT_EXEMPTIONS_TCJA_EXTENDED, year)
         else:
             # Current law baseline
-            if year in AMT_EXEMPTIONS_TCJA:
-                exemptions = AMT_EXEMPTIONS_TCJA[year]
-            else:
-                exemptions = AMT_EXEMPTIONS_TCJA[2034]
+            exemptions = _schedule_row(AMT_EXEMPTIONS_TCJA, year)
 
         # Extract by filing status
         idx = {"single": 0, "mfj": 1, "mfs": 2}.get(filing_status, 1)
@@ -662,6 +678,22 @@ class AMTPolicy(TaxPolicy):
             for offset in range(self.duration_years)
         ]
 
+    def derived_anchor_effect(self) -> float:
+        """
+        The level the engine multiplies, in derived mode.
+
+        The **first non-zero** year of the path, not the first year. A policy
+        can be a no-op in its opening years and bite later — extending TCJA
+        relief from 2025 does nothing until the 2026 sunset — and anchoring on
+        a zero would make ``estimate_static_revenue_effect`` return 0.0, which
+        the engine then multiplies through the whole window and books the
+        entire path as zero.
+        """
+        for _, effect in self.derived_revenue_path():
+            if effect != 0.0:
+                return effect
+        return 0.0
+
     def get_phase_in_factor(self, year: int) -> float:
         """
         Phase factor, carrying the derived year path when ``mode`` is derived.
@@ -671,9 +703,10 @@ class AMTPolicy(TaxPolicy):
         get_phase_in_factor(year)`` and passes no year into the first term, so
         a year-indexed path can only reach the engine through this factor. In
         derived mode it therefore returns the ratio of the module's own path in
-        ``year`` to the flat-and-grown level the engine would otherwise book,
-        which leaves the scored annual exactly equal to
-        :meth:`derived_annual_effect`. Reported mode is untouched.
+        ``year`` to the flat-and-grown level the engine would otherwise book
+        from :meth:`derived_anchor_effect`, which leaves the scored annual
+        exactly equal to :meth:`derived_annual_effect`. Reported mode is
+        untouched.
         """
         base = super().get_phase_in_factor(year)
         if (
@@ -682,10 +715,10 @@ class AMTPolicy(TaxPolicy):
             or self.amt_type == AMTType.CORPORATE
         ):
             return base
-        first = self.derived_annual_effect(self.start_year)
-        if first == 0.0:
+        anchor = self.derived_anchor_effect()
+        if anchor == 0.0:
             return base
-        engine_level = first * (1 + AMT_ENGINE_GROWTH_RATE) ** (year - self.start_year)
+        engine_level = anchor * (1 + AMT_ENGINE_GROWTH_RATE) ** (year - self.start_year)
         return base * self.derived_annual_effect(year) / engine_level
 
     def estimate_static_revenue_effect(
@@ -697,9 +730,10 @@ class AMTPolicy(TaxPolicy):
         Estimate static revenue effect of an AMT policy change.
 
         In ``reported`` mode this is the fitted annual constant when one is
-        set. In ``derived`` mode the constant is ignored and the answer is the
-        first year of the structural path; the remaining years arrive through
-        :meth:`get_phase_in_factor`.
+        set. In ``derived`` mode the constant is ignored and the answer is
+        :meth:`derived_anchor_effect` -- the first non-zero year of the
+        structural path; every year, including the anchor's own, then arrives
+        through :meth:`get_phase_in_factor`.
 
         Args:
             baseline_revenue: Baseline revenue (unused; AMT is scored from its
@@ -715,7 +749,7 @@ class AMTPolicy(TaxPolicy):
         if self.amt_type == AMTType.CORPORATE:
             return self._corporate_static_effect()
 
-        return self.derived_annual_effect(self.start_year)
+        return self.derived_anchor_effect()
 
     def estimate_behavioral_offset(self, static_effect: float) -> float:
         """

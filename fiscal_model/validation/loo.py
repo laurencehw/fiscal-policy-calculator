@@ -712,8 +712,8 @@ def derive_amt_annual(case_id: str) -> float | None:
     calibration constants in ``CBO_AMT_ESTIMATES`` are bypassed, and so is the
     single-point ``BASELINE_AMT_DATA`` summary the earlier derivation used.
 
-    The value returned is the **first year** of that path, which is what
-    ``AMTPolicy.estimate_static_revenue_effect`` returns in derived mode; the
+    The value returned is the first **non-zero** year of that path, which is
+    what ``AMTPolicy.estimate_static_revenue_effect`` returns in derived mode; the
     remaining years reach the scorer through ``AMTPolicy.get_phase_in_factor``,
     so the LOO 10-year figure is the path's own sum rather than this number
     grown at a flat rate. It is reported here because it is the quantity the
@@ -729,7 +729,7 @@ def derive_amt_annual(case_id: str) -> float | None:
     policy = scenario["policy_factory"](
         **scenario.get("kwargs", {}), mode=AMT_HELD_OUT_MODE
     )
-    return float(policy.derived_annual_effect(policy.start_year))
+    return float(policy.derived_anchor_effect())
 
 
 def run_amt_loo() -> LOOReport:
