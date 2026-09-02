@@ -1,6 +1,6 @@
 # Next Steps — Fiscal Policy Calculator
 
-> Roadmap last reviewed April 2026; the validation scorecard below was re-derived 2026-09-01. This file tracks roadmap items beyond the current shipped branch.
+> Roadmap last reviewed April 2026; the validation scorecard below was re-derived 2026-09-02. This file tracks roadmap items beyond the current shipped branch.
 
 For a manuscript-focused path to citation-grade quality, see [MANUSCRIPT_95_PLUS.md](MANUSCRIPT_95_PLUS.md). For repo-grounded go/no-go gates on the two biggest upgrades, see [FEASIBILITY_CHECKLISTS.md](FEASIBILITY_CHECKLISTS.md).
 
@@ -19,20 +19,29 @@ phrasing was on this line until 2026-09-01 and was wrong. Live numbers from
 | Tier | What it measures | n | Mean | Median |
 |---|---|--:|--:|--:|
 | Out-of-sample, pre-registered | prediction | 25 | **34.4%** | 16.1% |
-| Calibrated, fitted | bookkeeping (low by construction) | 34 | **2.7%** | 0.2% |
-| Unfitted module reconstructions | modules vs targets never fitted to | 20 | **82.6%** | 43.1% |
-| Calibrated, leave-one-out | how much of the calibration is structure | 18 | **61.7%** | 35.6% |
+| Calibrated, fitted | bookkeeping (low by construction) | 33 | **2.8%** | 0.3% |
+| Unfitted module reconstructions | modules vs targets never fitted to | 21 | **76.7%** | 41.0% |
+| Calibrated, leave-one-out | how much of the calibration is structure | 18 | **58.7%** | 32.5% |
 
-The reconstruction tier is itself two populations — 12 sectoral presets at 113.8%
-and 8 P.L. 119-21 line items at 35.8% — and must not be quoted as one number.
-Distributional accuracy is separate again: 7 published CBO/JCT tables at
-0.00-5.86pp, two of which are circular. See [`docs/VALIDATION.md`](../docs/VALIDATION.md).
+The fitted tier lost a row when a target it was fitted to was corrected:
+`ScorecardSummary.revised_target_entries` is **2**, a constant fitted to a
+superseded figure is not fitted to its replacement, and the revised row therefore
+reports among the reconstructions. Held in place instead the fitted tier reads
+**34 at 4.7%, 32/34 within 15%** — quote either, never one alone. The
+reconstruction tier is itself three populations — 12 sectoral presets at 104.8%,
+8 P.L. 119-21 line items at 35.8% and that revised row at 66.8% — and must not be
+quoted as one number. Distributional accuracy is separate again: 7 published
+CBO/JCT tables at 0.00-5.86pp, two of which are circular. See
+[`docs/VALIDATION.md`](../docs/VALIDATION.md).
 
-*Re-derived 2026-09-02, after Wave 1 (PRs #85–#88). Tier 1 moved 52.6% → 34.4%
-on the eight spending rows; the 20-row reconstruction tier 250.8% → 82.6% on two
-pharma rows; leave-one-out **rose** 59.3% → 61.7% on the two AMT rows, which is
-the AMT module becoming more structural rather than less accurate — see
-[`MODELING_IMPROVEMENT.md`](MODELING_IMPROVEMENT.md) §5.1.*
+*Re-derived 2026-09-02, after Wave 1 (PRs #85–#88) and the provenance lane
+(PR #90). Tier 1 moved 52.6% → 34.4% on the eight spending rows and is unchanged
+since; the reconstruction tier 250.8% → 82.6% on two pharma rows and then to
+21 rows at 76.7% on two target corrections; leave-one-out rose 59.3% → 61.7% on
+the two AMT rows (the AMT module becoming more structural rather than less
+accurate) and then fell to 58.7% when the AMT extension's target was corrected —
+the derivation is unchanged at $855.3B and only the figure it is measured against
+moved. See [`MODELING_IMPROVEMENT.md`](MODELING_IMPROVEMENT.md) §5.1.*
 
 ### Completed work
 
@@ -50,7 +59,7 @@ the AMT module becoming more structural rather than less accurate — see
 - Feature 3: State-Level Modeling — top 10 states, SALT interaction, combined rate curves
 - Feature 4: Real-Time Bill Tracker — congress.gov pipeline, LLM provision extraction, SQLite storage, Streamlit UI
 
-## Modelling plan: Wave 1 done, Wave 2 next
+## Modelling plan: Wave 1 done, Wave 2 running
 
 [`MODELING_IMPROVEMENT.md`](MODELING_IMPROVEMENT.md) Wave 1 landed 2026-09-01/02
 (PRs #83, #85, #86, #87, #88): the budget-authority-to-outlay spend-out model
@@ -59,18 +68,35 @@ federal incidence (L7), IIJA's superseding authorization-path row, and spend-out
 for the app's own spending presets. §5.1 of that file has the outturn and the
 three findings.
 
+**The AMT / insulin target provenance lane closed two of its three targets**
+(PR #90, 2026-09-02). `extend_tcja_amt` moved $450B → **$1,357.1B** (CRS R48286
+Table 1, transcribing CBO 60114/60271) and `universal_insulin_cap` −$15B →
+**+$11.4B** (CBO pub. 57957), both through a new Tier-2 supersede ledger,
+`fiscal_model/validation/target_revisions.py`, which mirrors `preregistered.py`'s
+rule: ledger entry in one commit, first scoring in the next, old figure kept as a
+`superseded_by` row. **No constant was retuned and no threshold moved.**
+`KNOWN_TARGET_SIGN_INVERSIONS` is now empty, and the emptiness is the assertion.
+`AMT_APP_MODE` and `AMT_SCORECARD_MODE` both stay `reported` — 22.3% reported
+against 54.2% derived across the three AMT benchmarks, which is Decision 1's own
+rule — so nothing a user sees changed.
+
 Next, in order:
 
-1. **AMT / insulin target provenance lane.** Three `line_item_differs` rows need
-   superseding manifest rows: `extend_tcja_amt` and `repeal_individual_amt` both
-   carry $450B against a published $1,357.1B that `benchmark_sources.py` already
-   records as looking like a five-year figure in a ten-year column, and
-   `universal_insulin_cap` carries −$15B against CBO 57957's +$11.4B — a sign
-   flip the *model* no longer has. None is a modelling decision. Settling them
-   also unblocks `AMT_SCORECARD_MODE`, the scorecard half of owner Decision 1.
-2. **Wave 2** — L1 capital gains (now **55.8%** of Tier 1 error mass, with DMM
-   2015 frozen per Decision 3 and `validation/scenarios.py`'s three per-case
-   elasticity tuples **deleted**, not extended), L6 tax expenditures, L4 estate.
+1. **Wave 2, launched 2026-09-02** — L1 capital gains (now **55.8%** of Tier 1
+   error mass, with DMM 2015 frozen per Decision 3 and
+   `validation/scenarios.py`'s three per-case elasticity tuples **deleted**, not
+   extended), L6 tax expenditures, L4 estate.
+2. **`repeal_individual_amt` — the one target the provenance lane could not
+   close.** It keeps an unsourced $450B that is internally incoherent with the
+   transcribed $1,357.1B (a full repeal cannot cost less than extending the
+   exemption on the same baseline). No published post-2025 repeal score exists at
+   JCT, CBO or TPC, and TPC T25-0049's $948.9B is deliberately not adopted: it is
+   a baseline projection rather than a scored repeal, *and* it is `amt.py`'s own
+   input, so adopting it would manufacture a 0% row out of the leakage `loo.py`
+   guards against. Closing it needs either a published score or an **owner
+   decision** to re-register `holdout.py`'s locked
+   `revenue-scorecard-post-lock-2026-05-02` protocol, which has no
+   re-registration path and is a gate no lane may edit.
 3. **Still open from L2**: CBO's account-level spendout rates (publications
    61913 and 62256) as the external cross-check on the outlay profiles — needs
    an environment that can reach cbo.gov.
