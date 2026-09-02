@@ -80,6 +80,40 @@ def test_unicode_minus_reads_as_negative():
     assert _printed_signs("Total −3,963,431", "3,963,431") == [-1]
 
 
+def test_a_minus_detached_from_the_digits_still_reads_as_negative():
+    """Another extractor may leave a space between the sign and the number."""
+    assert _printed_signs("Total of Chapter 1 - 3,963,431", "3,963,431") == [-1]
+    assert _printed_signs("Total −  3,963,431", "3,963,431") == [-1]
+
+
+def test_spaced_accounting_parentheses_read_as_negative():
+    assert _printed_signs("Total ( 3,963,431 )", "3,963,431") == [-1]
+
+
+def test_an_unclosed_parenthesis_is_not_an_accounting_negative():
+    assert _printed_signs("Total (3,963,431 continued", "3,963,431") == [1]
+
+
+def test_jcts_zero_cell_is_not_a_sign():
+    """JCT writes an empty year as '---'. The figure after it is a raiser.
+
+    This is the trap in tolerating a gap between the marker and the digits:
+    read naively, every figure following a zero cell becomes a revenue loss.
+    """
+    assert _printed_signs("tyba 12/31/25 --- 1,639 3,110", "1,639") == [1]
+    assert _printed_signs("credit .... DOE - - - - - 231,553", "231,553") == [1]
+
+
+def test_a_minus_attached_after_a_zero_cell_still_reads_as_negative():
+    """The other half of that trap: '--- -147,679' is a genuine loss."""
+    assert _printed_signs("tyba 12/31/25 --- -147,679", "147,679") == [-1]
+
+
+def test_a_minus_belonging_to_the_previous_column_is_not_borrowed():
+    """'-9,264 110,625' is a loss then a raiser, not two losses."""
+    assert _printed_signs("tyba 12/31/24 -9,264 110,625", "110,625") == [1]
+
+
 def test_a_magnitude_inside_a_longer_number_is_not_a_match():
     """'39,532' must not be verified by the '39,532' inside '1,139,532'."""
     assert _printed_signs(SYNTHETIC_PAGE, "39,532") == []

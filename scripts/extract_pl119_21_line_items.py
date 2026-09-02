@@ -764,6 +764,46 @@ _MINUS_CHARS = "-\u2010\u2011\u2012\u2013\u2014\u2015\u2212"
 _DERIVED_TOTALS = frozenset({"pl119_21_energy_credit_terminations"})
 
 
+def _is_negative(text: str, start: int, end: int) -> bool:
+    """Is the figure at ``text[start:end]`` printed as a negative?
+
+    JCX-35-25's own text layer attaches the minus to the digits, but another
+    extractor can leave a gap (``"- 2,193,378"``) or space out accounting
+    parentheses (``"( 2,193,378 )"``), so whitespace between the marker and the
+    number is tolerated. Two guards stop that tolerance from inventing
+    negatives out of JCT's other uses of the same character:
+
+    * A **detached** dash counts as a sign only when it stands alone. JCT
+      writes a zero cell as ``"---"`` and rules columns off with runs of spaced
+      dashes, and neither is a sign - so ``"--- 1,639"`` is a zero followed by
+      a positive, not a negative. An **adjacent** dash is always a sign, which
+      keeps ``"--- -147,679"`` reading correctly.
+    * A leading parenthesis counts only when a closing one actually follows the
+      digits.
+    """
+    gap = start - 1
+    while gap >= 0 and text[gap].isspace():
+        gap -= 1
+    if gap < 0:
+        return False
+
+    if text[gap] == "(":
+        close = end
+        while close < len(text) and text[close].isspace():
+            close += 1
+        return close < len(text) and text[close] == ")"
+
+    if text[gap] not in _MINUS_CHARS:
+        return False
+    if gap == start - 1:  # attached to the digits: JCT's own convention
+        return True
+
+    prior = gap - 1
+    while prior >= 0 and text[prior].isspace():
+        prior -= 1
+    return prior < 0 or text[prior] not in _MINUS_CHARS
+
+
 def _printed_signs(haystack: str, magnitude: str) -> list[int]:
     """Sign of every printed occurrence of ``magnitude`` in ``haystack``.
 
@@ -771,19 +811,16 @@ def _printed_signs(haystack: str, magnitude: str) -> list[int]:
     thousands separators (``"2,193,378"``). Matches are anchored on digit
     boundaries, so ``"39,532"`` does not match inside ``"1,139,532"``.
 
-    Returns ``-1`` for an occurrence carrying a minus sign or wrapped in
-    parentheses and ``+1`` otherwise. A bare figure really is JCT's convention
-    for a revenue gain in this table - the sign is "minus or nothing" - so the
-    absence of a marker is itself evidence, not a skipped check.
+    Returns ``-1`` for an occurrence :func:`_is_negative` reads as a loss and
+    ``+1`` otherwise. A bare figure really is JCT's convention for a revenue
+    gain in this table - the sign is "minus or nothing" - so the absence of a
+    marker is itself evidence, not a skipped check.
     """
-    signs: list[int] = []
     pattern = re.compile(r"(?<![\d,])" + re.escape(magnitude) + r"(?![\d,])")
-    for match in pattern.finditer(haystack):
-        before = haystack[match.start() - 1] if match.start() else ""
-        after = haystack[match.end()] if match.end() < len(haystack) else ""
-        negative = before in _MINUS_CHARS or (before == "(" and after == ")")
-        signs.append(-1 if negative else 1)
-    return signs
+    return [
+        -1 if _is_negative(haystack, match.start(), match.end()) else 1
+        for match in pattern.finditer(haystack)
+    ]
 
 
 @dataclass
