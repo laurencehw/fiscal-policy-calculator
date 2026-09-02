@@ -618,7 +618,15 @@ class SpendingPolicy(Policy):
                 return 0.0
             return self.budget_authority_path[years_since_start] * phase_factor
 
-        base = start_amount if start_amount else self.annual_spending_change_billions
+        # `is not None`, not truthiness: a caller overriding the level with 0.0
+        # means zero authority, and must not silently get the policy's own level
+        # back. The branch above already tests `start_amount is None`, so a
+        # truthiness test here would disagree with it for exactly that value.
+        base = (
+            start_amount
+            if start_amount is not None
+            else self.annual_spending_change_billions
+        )
         growth_factor = (1 + self.annual_growth_rate) ** years_since_start
         return base * growth_factor * phase_factor
 

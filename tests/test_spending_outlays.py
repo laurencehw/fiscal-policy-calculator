@@ -176,6 +176,18 @@ def test_default_growth_path_is_untouched():
     assert policy.get_spending_in_year(2029) == pytest.approx(100.0 * 1.02**3)
 
 
+def test_a_zero_start_amount_override_means_zero_authority():
+    """A caller overriding the level with 0.0 means zero, and must not get the
+    policy's own level back through a truthiness test."""
+    policy = _spending_policy(annual_spending_change_billions=-10.0, annual_growth_rate=0.0)
+    assert policy.get_budget_authority_in_year(2026, 0.0) == 0.0
+    assert policy.get_outlays_in_year(2026, 0.0) == 0.0
+    assert policy.get_spending_in_year(2026, 0.0) == 0.0
+    # None still means "use my own level".
+    assert policy.get_budget_authority_in_year(2026, None) == pytest.approx(-10.0)
+    assert policy.get_budget_authority_in_year(2026, -4.0) == pytest.approx(-4.0)
+
+
 def test_unmapped_validation_case_falls_back_to_the_identity():
     assert spending_outlay_class("a_case_nobody_classified") == IMMEDIATE
 
