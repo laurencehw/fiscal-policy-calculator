@@ -42,7 +42,12 @@ credit, ``0.21*Y - 0.8*T`` exceeds ``0.15*Y - T`` for every positive ``Y`` and
 ``T``, so a 21% GILTI subsumes a 15% top-up in every jurisdiction. That is
 algebra, not a property of the data. Below about 15% the two provisions
 interleave and the share falls under 1, which is why it is computed rather than
-asserted.
+asserted. A *blended* GILTI is a different claim and is computed as one —
+pooled over all foreign income so high-tax jurisdictions cross-credit against
+low-tax ones, then allocated on the OECD's blended-CFC key. That changes the
+GILTI level a great deal (at current law's 10.5% the pooled claim is $1.0B
+against a per-country $62.5B) and the overlap share not at all, because the
+OECD's key is the top-up key.
 
 **The FDII identity.** Repeal used to return a flat $20B/yr while the
 rate-change branch of the same function used ``base x rate`` on a $160B base —
