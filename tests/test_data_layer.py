@@ -107,22 +107,63 @@ class TestCapitalGainsBaseline:
         cg = CapitalGainsBaseline()
         assert cg is not None
 
-    def test_share_above_threshold_zero(self):
+    def test_brackets_price_each_statutory_rate_separately(self):
+        """SOI Table 3.5 reports income taxed at 0, 15 and 20 percent; the base
+        must keep them apart so a rate change applies to each bracket's own
+        price rather than one blended average."""
         cg = CapitalGainsBaseline()
-        share = cg._share_above_threshold(0)
-        assert share == 1.0
+        brackets = cg.get_brackets_above_threshold(2023, 0.0)
+        rates = {bracket.statutory_rate for bracket in brackets}
+        assert rates == {0.00, 0.15, 0.20}
 
-    def test_share_above_threshold_high(self):
+    def test_zero_bracket_gains_are_priced_at_zero(self):
+        """The old aggregate booked every realized dollar at a blended 15.5%,
+        including gains facing the 0% bracket."""
         cg = CapitalGainsBaseline()
-        share = cg._share_above_threshold(10_000_000)
-        assert 0 < share <= 0.10
+        zero = [
+            bracket
+            for bracket in cg.get_brackets_above_threshold(2023, 0.0)
+            if bracket.statutory_rate == 0.0
+        ]
+        assert zero, "the 0% bracket must be represented, not folded away"
+        assert sum(bracket.realizations_billions for bracket in zero) > 0
+        assert sum(bracket.tax_billions for bracket in zero) == 0.0
 
-    def test_share_monotonically_decreasing(self):
+    def test_niit_applies_only_above_its_statutory_threshold(self):
+        cg = CapitalGainsBaseline()
+        for bracket in cg.get_brackets_above_threshold(2023, 1_000_000.0):
+            assert bracket.niit_rate == 0.038
+        low = cg.get_brackets_above_threshold(2023, 0.0)
+        assert any(bracket.niit_rate == 0.0 for bracket in low)
+
+    def test_share_above_threshold_monotonically_decreasing(self):
         cg = CapitalGainsBaseline()
         thresholds = [0, 50_000, 200_000, 500_000, 1_000_000, 5_000_000]
-        shares = [cg._share_above_threshold(t) for t in thresholds]
+        shares = [
+            cg.get_baseline_above_threshold_with_rate_method(2023, t)[
+                "share_of_total_realizations"
+            ]
+            for t in thresholds
+        ]
+        assert shares[0] == pytest.approx(1.0)
         for i in range(len(shares) - 1):
             assert shares[i] >= shares[i + 1]
+
+    def test_accrued_gains_stock_and_death_flow_are_indexed(self):
+        cg = CapitalGainsBaseline()
+        assert cg.accrued_gains_stock_billions(2030) > cg.accrued_gains_stock_billions(2025)
+        assert cg.gains_at_death_billions(2030) > cg.gains_at_death_billions(2025)
+        assert 0 < cg.realization_hazard(2023) < 0.2
+        assert 0 < cg.death_exit_rate() < 0.2
+
+    def test_decedent_classes_apply_an_exemption_per_decedent(self):
+        cg = CapitalGainsBaseline()
+        classes = cg.decedent_classes(2025)
+        assert len(classes) >= 3
+        untaxed = sum(c.taxable_gains_billions(0.0) for c in classes)
+        exempted = sum(c.taxable_gains_billions(5_000_000.0) for c in classes)
+        assert untaxed > exempted > 0
+        assert untaxed == pytest.approx(cg.gains_at_death_billions(2025), rel=1e-6)
 
     def test_baseline_with_rate_method(self):
         cg = CapitalGainsBaseline()
@@ -133,10 +174,17 @@ class TestCapitalGainsBaseline:
         assert "average_effective_tax_rate" in result
         assert result["net_capital_gain_billions"] > 0
 
-    def test_statutory_proxy_rate(self):
-        rate_low = CapitalGainsBaseline._statutory_proxy_rate(50_000)
-        rate_high = CapitalGainsBaseline._statutory_proxy_rate(1_000_000)
-        assert rate_high > rate_low
+    def test_average_rate_rises_with_the_threshold(self):
+        cg = CapitalGainsBaseline()
+        low = cg.get_baseline_above_threshold_with_rate_method(2023, 50_000)
+        high = cg.get_baseline_above_threshold_with_rate_method(2023, 1_000_000)
+        assert high["average_effective_tax_rate"] > low["average_effective_tax_rate"]
+        assert high["rate_source"] == "soi_statutory_bracket"
+
+    def test_statutory_rate_on_a_gain_follows_the_bracket_ladder(self):
+        assert CapitalGainsBaseline.statutory_rate_on_gain(10_000) == 0.0
+        assert CapitalGainsBaseline.statutory_rate_on_gain(100_000) == pytest.approx(0.15)
+        assert CapitalGainsBaseline.statutory_rate_on_gain(5_000_000) == pytest.approx(0.238)
 
     def test_taxfoundation_rate_method(self):
         cg = CapitalGainsBaseline()
