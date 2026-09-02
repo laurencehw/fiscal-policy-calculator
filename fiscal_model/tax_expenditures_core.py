@@ -483,6 +483,15 @@ class TaxExpenditurePolicy(TaxPolicy):
         Estimate static revenue effect of tax expenditure reform.
 
         Returns revenue change in billions where positive values raise revenue.
+
+        In ``reported`` mode this is the fitted annual constant when one is
+        set. In ``derived`` mode the constant is ignored and the answer is the
+        expenditure's level under the baseline in force, times the share of it
+        the reform denies -- where "the share" comes from the distribution of
+        the quantity the reform's parameter is denominated in.
+
+        Raises :class:`ExpenditureDistributionMissing` for a cap on an
+        expenditure whose base has no transcribed distribution.
         """
         del baseline_revenue, use_real_data
 
