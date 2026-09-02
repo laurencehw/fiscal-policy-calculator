@@ -68,7 +68,7 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
     "💰 Eliminate SS Cap (-$3.2T)": "ss-cap-eliminate",
     "💰 Expand NIIT (JCT: -$250B)": "niit-expand",
     # AMT
-    "⚖️ AMT: Extend TCJA Relief ($450B)": "amt-extend-tcja-relief",
+    "⚖️ AMT: Extend TCJA Relief ($1.36T)": "amt-extend-tcja-relief",
     "⚖️ Repeal Individual AMT ($450B)": "amt-repeal-individual",
     "⚖️ Repeal Corporate AMT (-$220B)": "amt-repeal-corporate",
     # ACA premium tax credits
@@ -98,7 +98,7 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
     "🔍 High-Income Enforcement (-$250B)": "irs-enforcement-high-income",
     # Drug pricing
     "💊 Expand Drug Negotiation (-$500B)": "drug-negotiation-expand",
-    "💊 Universal Insulin Cap (-$15B)": "insulin-cap-universal",
+    "💊 Universal Insulin Cap ($11B)": "insulin-cap-universal",
     "💊 International Reference Pricing (-$100B)": "drug-reference-pricing",
     "💊 Comprehensive Drug Reform (-$600B)": "drug-reform-comprehensive",
     # Trade / tariffs

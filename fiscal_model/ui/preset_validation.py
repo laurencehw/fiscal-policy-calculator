@@ -30,7 +30,7 @@ PRESET_TO_SCORECARD_ID: dict[str, str] = {
     "💰 SS Donut Hole $250K (-$2.7T)": "ss_donut_250k",
     "💰 Eliminate SS Cap (-$3.2T)": "ss_eliminate_cap",
     "💰 Expand NIIT (JCT: -$250B)": "expand_niit",
-    "⚖️ AMT: Extend TCJA Relief ($450B)": "extend_tcja_amt",
+    "⚖️ AMT: Extend TCJA Relief ($1.36T)": "extend_tcja_amt",
     "⚖️ Repeal Individual AMT ($450B)": "repeal_individual_amt",
     "⚖️ Repeal Corporate AMT (-$220B)": "repeal_corporate_amt",
     "🏥 Extend ACA Enhanced PTCs ($350B)": "extend_enhanced_ptc",

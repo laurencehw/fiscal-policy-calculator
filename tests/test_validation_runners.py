@@ -111,17 +111,19 @@ def test_every_scenario_points_at_a_preset_with_an_official_score(category):
         )
 
 
-#: The one sectoral row where the module and its stored target legitimately
-#: disagree about direction, because the *target* points the wrong way.
-#: ``benchmark_sources.py`` records it as ``line_item_differs``: CBO scores a
-#: $35 insulin cost-sharing cap extended to private plans at +$6.566B of outlays
-#: and -$4.793B of revenues over FY2022-2031 — about +$11.4B **added** to the
-#: deficit (publication 57957) — against the -$15B of savings the repository
-#: carries. Lane L7 fixed the module side; moving the target is provenance work
-#: through the manifest's ``superseded_by`` rule. Until that lands, requiring
-#: this row to point the same way as its benchmark would require the module to
-#: be wrong on purpose.
-KNOWN_TARGET_SIGN_INVERSIONS = {"universal_insulin_cap"}
+#: Sectoral rows where the module and its stored target disagree about
+#: direction. **Empty since 2026-09-02**, and the empty set is the assertion.
+#:
+#: It held exactly one id — ``universal_insulin_cap`` — for as long as the
+#: repository carried a -$15B *saving* for a policy CBO scores as a +$11.4B
+#: deficit increase (publication 57957: +$6.566B of outlays, -$4.793B of
+#: revenues over FY2022-2031). Lane L7 fixed the module half; the target half
+#: was moved through ``validation/target_revisions.py``
+#: (``universal_insulin_cap.v1`` -> ``.v2``), and with both halves pointing the
+#: same way the exemption has nothing left to cover. It stays as a named,
+#: empty set rather than being deleted so that a future row needing the same
+#: licence has to be added here deliberately.
+KNOWN_TARGET_SIGN_INVERSIONS: set[str] = set()
 
 
 @pytest.mark.parametrize("category", SECTORAL_CATEGORIES)
@@ -132,21 +134,21 @@ def test_results_match_the_official_target_and_direction(category, sectoral_resu
         assert result.official_10yr == expected
         if result.policy_id in KNOWN_TARGET_SIGN_INVERSIONS:
             continue
-        # Every other sectoral target is deficit-reducing and so is every model
-        # score; a sign flip would mean the module and the target disagree
-        # about what the policy even does.
+        # A sign flip would mean the module and the target disagree about what
+        # the policy even does.
         assert result.direction_match, f"{result.policy_id} flipped sign"
 
 
-def test_the_insulin_cap_is_the_only_sign_disagreement_and_it_agrees_with_cbo(
-    sectoral_results,
-):
-    """Pin the exception so it cannot quietly grow to cover a real regression.
+def test_no_sectoral_row_disagrees_with_its_target_on_sign(sectoral_results):
+    """No module now points the opposite way from its own benchmark.
 
-    Two claims: exactly one sectoral row disagrees with its target on sign, and
-    that row disagrees in the direction CBO's own estimate points — a
-    cost-sharing cap *adds* to the deficit. Any second row flipping sign, or
-    this one flipping back to a modelled saving, fails here.
+    Three claims. (1) No sectoral row flips sign at all. (2) The insulin cap —
+    the row that used to be the sole exception — scores as a deficit
+    *increase*, which is the direction CBO publication 57957 scores a $35
+    cost-sharing cap extended to private plans: capping a patient's liability
+    moves cost onto plans and onto the federal subsidy for them. (3) Its target
+    now points that way too, at CBO's own +$11.4B rather than the -$15B saving
+    no CBO document produces. Any of the three regressing fails here.
     """
     flipped = {
         result.policy_id
@@ -154,17 +156,19 @@ def test_the_insulin_cap_is_the_only_sign_disagreement_and_it_agrees_with_cbo(
         for result in results
         if not result.direction_match
     }
-    assert flipped == KNOWN_TARGET_SIGN_INVERSIONS
+    assert flipped == KNOWN_TARGET_SIGN_INVERSIONS == set()
 
     insulin = next(
         result
         for result in sectoral_results["Pharma"]
         if result.policy_id == "universal_insulin_cap"
     )
-    assert insulin.official_10yr < 0, "the stored target still reads as a saving"
     assert insulin.model_10yr > 0, (
         "the module must score an insulin cost-sharing cap as widening the "
         "deficit, the direction CBO publication 57957 scores it"
+    )
+    assert insulin.official_10yr == pytest.approx(11.4), (
+        "the target must be CBO's own +$11.4B, not the superseded -$15B"
     )
 
 
@@ -628,7 +632,16 @@ def test_target_values_were_not_moved_to_match_a_transcription(scorecard):
     """A sourcing pass records disagreements; it does not resolve them by
     editing a calibrated target. Every calibrated target has a module constant
     fitted to it, so moving one silently turns a 0% row into a miss that says
-    nothing about the model."""
+    nothing about the model.
+
+    "Silently" is the load-bearing word. A target *may* be moved — through
+    ``validation/target_revisions.py``, which keeps the old figure as a row
+    marked ``superseded_by``, records the document the new one was read from,
+    and takes the row out of the fitted tier because the constant is still
+    fitted to the superseded number. What this test forbids is the other
+    route: quietly setting ``official_10yr`` to a transcribed figure while the
+    entry still advertises a ``line_item_differs`` gap, which would leave the
+    scorecard claiming a disagreement it had already resolved."""
     for entry in scorecard.entries:
         if entry.official_10yr_billions_line_item is None:
             continue

@@ -401,7 +401,16 @@ class ScorecardEntryModel(BaseModel):
     # fiscal_model/validation/provenance.py.
     provenance: str = "unclassified"
     # Whether the module carries a constant fitted to reproduce this target.
+    # False once a target has been revised: the constant is fitted to the
+    # superseded figure, never to the replacement.
     calibrated_to_target: bool = True
+    # Set when this benchmark's target has been *moved* to a published figure
+    # through fiscal_model/validation/target_revisions.py. The three fields say
+    # which ledger row is in force, what the target used to be, and why it was
+    # retired — so a client can tell "the model changed" from "the target did".
+    target_revision_id: str | None = None
+    superseded_10yr_billions: float | None = None
+    target_revision_reason: str = ""
     # Table/row/page reference for a target transcribed from a primary document.
     benchmark_table: str | None = None
     # The figure the primary document actually prints, when it disagrees with
@@ -472,6 +481,10 @@ class ScorecardResponse(BaseModel):
     model_estimate_entries: int = 0
     transcribed_entries: int = 0
     line_item_differs_entries: int = 0
+    # Entries whose target has been moved to a published figure. Each one also
+    # leaves the fitted-calibrated tier, so a client computing a fitted mean
+    # needs this count to know the denominator moved.
+    revised_target_entries: int = 0
     by_category: dict[str, ScorecardCategorySummary]
     entries: list[ScorecardEntryModel]
     issues: list[ScorecardIssueModel] = Field(default_factory=list)
@@ -932,6 +945,7 @@ def validation_scorecard():
         model_estimate_entries=summary.model_estimate_entries,
         transcribed_entries=summary.transcribed_entries,
         line_item_differs_entries=summary.line_item_differs_entries,
+        revised_target_entries=summary.revised_target_entries,
         by_category={
             cat: ScorecardCategorySummary(**sub) for cat, sub in summary.by_category.items()
         },

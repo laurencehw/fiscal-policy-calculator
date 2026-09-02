@@ -126,10 +126,19 @@ CBO_SCORE_MAP = {
         "notes": "Apply 3.8% NIIT to pass-through business income",
     },
     # AMT
-    "⚖️ AMT: Extend TCJA Relief ($450B)": {
-        "official_score": 450.0,
-        "source": "CBO",
-        "source_date": "2024",
+    "⚖️ AMT: Extend TCJA Relief ($1.36T)": {
+        # Target revised 2026-09-02 (validation/target_revisions.py,
+        # extend_tcja_amt.v1 -> .v2). The label used to read \\$450B, a
+        # figure traceable to no document and 3.5% from CRS R48286 Table 1's
+        # *five*-year column; the ten-year column reads \\$1,357.1B and JCT's
+        # own JCX-35-25 row for the same provision reads \\$1,362.8B.
+        "official_score": 1357.1,
+        "source": "CRS R48286 Table 1 (transcribing CBO 60114/60271)",
+        "source_date": "November 2024",
+        "source_url": (
+            "https://www.congress.gov/crs_external_products/R/HTML/"
+            "R48286.web.html"
+        ),
         "notes": "Maintain high AMT exemption beyond 2025",
     },
     "⚖️ Repeal Individual AMT ($450B)": {
@@ -272,10 +281,18 @@ CBO_SCORE_MAP = {
         "source_date": "2023",
         "notes": "Negotiate 50 drugs, remove exclusivity delays",
     },
-    "💊 Universal Insulin Cap (-$15B)": {
-        "official_score": -15.0,
-        "source": "CBO",
-        "source_date": "2022",
+    "💊 Universal Insulin Cap ($11B)": {
+        # Target revised 2026-09-02 (validation/target_revisions.py,
+        # universal_insulin_cap.v1 -> .v2). A \\$35 monthly cap is a
+        # cost-sharing cap: it shifts a patient's liability onto the plan and
+        # onto the federal subsidy for it, so it ADDS to the deficit. CBO
+        # pub. 57957 scores this policy at +\\$6.566B of outlays and
+        # -\\$4.793B of revenues over FY2022-2031. The label used to read
+        # -\\$15B, a saving no CBO document produces.
+        "official_score": 11.4,
+        "source": "CBO (publication 57957, H.R. 6833)",
+        "source_date": "March 2022",
+        "source_url": "https://www.cbo.gov/publication/57957",
         "notes": "\\$35/month insulin cap for Medicare and private insurance",
     },
     "💊 International Reference Pricing (-$100B)": {
@@ -482,10 +499,10 @@ PRESET_POLICIES = {
         "is_payroll": True,
         "payroll_type": "expand_niit",
     },
-    "⚖️ AMT: Extend TCJA Relief ($450B)": {
+    "⚖️ AMT: Extend TCJA Relief ($1.36T)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Extend TCJA's higher AMT exemptions (\\$88K single, \\$137K MFJ) past 2025. Costs ~\\$450B.",
+        "description": "Extend TCJA's higher AMT exemptions (\\$88K single, \\$137K MFJ) past 2025. CRS/CBO put the 10-year cost at ~\\$1.36T.",
         "is_tcja": False,
         "is_corporate": False,
         "is_amt": True,
@@ -695,10 +712,10 @@ PRESET_POLICIES = {
         "is_pharma": True,
         "pharma_type": "expand_negotiation",
     },
-    "💊 Universal Insulin Cap (-$15B)": {
+    "💊 Universal Insulin Cap ($11B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "\\$35/month insulin cap for Medicare and private insurance. Saves ~\\$15B over 10 years.",
+        "description": "\\$35/month insulin cap for Medicare and private insurance. A cost-sharing cap shifts liability onto plans, so CBO scores it as adding ~\\$11B to the deficit over 10 years.",
         "is_tcja": False,
         "is_pharma": True,
         "pharma_type": "insulin_cap",

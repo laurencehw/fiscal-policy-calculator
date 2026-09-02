@@ -81,7 +81,7 @@ POLICY_STATUS_MAP: dict[str, PolicyStatus] = {
     "🏛️ TCJA Rates Only": PolicyStatus("superseded", _OBBBA_NOTE),
     "🏠 Estate Tax: Extend TCJA (CBO: $167B)": PolicyStatus("superseded", _OBBBA_NOTE),
     "👶 CTC Extension (CBO: $600B)": PolicyStatus("superseded", _OBBBA_NOTE),
-    "⚖️ AMT: Extend TCJA Relief ($450B)": PolicyStatus("superseded", _OBBBA_NOTE),
+    "⚖️ AMT: Extend TCJA Relief ($1.36T)": PolicyStatus("superseded", _OBBBA_NOTE),
     "📋 Repeal SALT Cap ($1.1T)": PolicyStatus(
         "superseded",
         "The July 2025 reconciliation law (P.L. 119-21) modified the SALT "
