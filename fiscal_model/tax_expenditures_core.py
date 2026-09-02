@@ -378,6 +378,10 @@ class TaxExpenditurePolicy(TaxPolicy):
             self.policy_type = PolicyType.TAX_DEDUCTION
         if self.mode not in EXPENDITURE_MODES:
             raise ValueError(f"mode must be one of {EXPENDITURE_MODES}, got {self.mode!r}")
+        if self.cap_amount is not None and self.cap_amount < 0:
+            raise ValueError(f"cap_amount must not be negative, got {self.cap_amount}")
+        if self.cap_rate is not None and not 0.0 <= self.cap_rate <= 1.0:
+            raise ValueError(f"cap_rate must be a rate in [0, 1], got {self.cap_rate}")
         super().__post_init__()
 
     def get_expenditure_data(self) -> dict:
@@ -444,6 +448,10 @@ class TaxExpenditurePolicy(TaxPolicy):
         if self.cap_rate is None and self.cap_unit is CapUnit.BENEFIT_DOLLARS:
             # The old rule, now reachable only by asking for it by name. It
             # needs no distribution, which is exactly why it was wrong.
+            if self.cap_amount == 0:
+                # A cap of zero denies the whole benefit, which is what the
+                # other two paths return for the same input.
+                return 1.0
             avg_benefit = data.get("avg_benefit", 2000)
             if self.cap_amount >= avg_benefit:
                 return 0.1 * (avg_benefit / self.cap_amount)

@@ -347,6 +347,44 @@ def test_unknown_mode_is_rejected():
         create_cap_charitable_deduction(mode="fitted")
 
 
+def test_a_negative_cap_is_rejected_and_a_zero_cap_denies_everything():
+    """
+    A zero cap must mean the same thing in all three units.
+
+    All three paths are asked "what share of the benefit sits above zero",
+    and all three must answer "all of it" rather than one of them dividing
+    by the cap.
+    """
+    with pytest.raises(ValueError, match="cap_amount must not be negative"):
+        create_cap_employer_health_exclusion(cap_amount=-1)
+    with pytest.raises(ValueError, match="cap_rate must be a rate"):
+        create_cap_charitable_deduction(cap_rate=28)
+
+    premium = create_cap_employer_health_exclusion(
+        cap_amount=0, mode=EXPENDITURE_MODE_DERIVED
+    )
+    premium.annual_revenue_change_billions = None
+    assert premium.estimate_static_revenue_effect(0.0) == pytest.approx(250.0)
+
+    benefit_unit = create_cap_employer_health_exclusion(
+        cap_amount=0, mode=EXPENDITURE_MODE_DERIVED
+    )
+    benefit_unit.annual_revenue_change_billions = None
+    benefit_unit.cap_unit = CapUnit.BENEFIT_DOLLARS
+    assert benefit_unit.estimate_static_revenue_effect(0.0) == pytest.approx(250.0)
+
+    deduction = TaxExpenditurePolicy(
+        name="Zero charitable cap",
+        description="Deny the whole deduction",
+        policy_type=PolicyType.TAX_DEDUCTION,
+        expenditure_type=TaxExpenditureType.CHARITABLE,
+        action="cap",
+        cap_amount=0,
+        mode=EXPENDITURE_MODE_DERIVED,
+    )
+    assert deduction.estimate_static_revenue_effect(0.0) == pytest.approx(70.0)
+
+
 def test_soi_base_year_is_declared():
     """A silent vintage change would move every derived cap."""
     assert SOI_BASE_YEAR == 2023
