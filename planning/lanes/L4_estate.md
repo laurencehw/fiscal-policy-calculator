@@ -197,4 +197,190 @@ Anything that moves outside this list is a finding, and gets written into §4.
 
 ## 4. Outturn
 
-*Appended in the lane's last commit.*
+*Appended 2026-09-02, after the code. Numbers from `python scripts/run_loo.py
+--donor-matrix` and `python scripts/cold_holdout.py` on the finished branch.*
+
+### Leave-one-out
+
+| Case | Official | By-constr | LOO before | LOO after | Err before | Err after |
+|---|--:|--:|--:|--:|--:|--:|
+| `extend_tcja_exemption` | 167.0 | 167.0 | 176.9 | **199.0** | +6.0% | **+19.2%** |
+| `biden_estate_reform` | −450.0 | −450.0 | −244.9 | **−457.2** | +45.6% | **−1.6%** |
+| `eliminate_estate_tax` | 350.0 | 350.0 | — | — | not x-val | not x-val |
+
+Estate module mean 25.8% → **10.4%**. Suite aggregate 58.7% → **57.0%** mean,
+median 32.5% → **25.3%**, **6/18** within 15% (unchanged), 18 derivable and 4
+not cross-validatable (unchanged). Ceiling 75%: passes.
+
+### Against the pre-registration
+
+| Row | Predicted | Actual | |
+|---|--:|--:|---|
+| LOO `extend_tcja_exemption` | +5% to +15% | **+19.2%** | **missed — see finding 3** |
+| LOO `biden_estate_reform` | −5% to +15% | **−1.6%** | in band |
+| Estate module mean | 5% to 12% | **10.4%** | in band |
+| LOO suite mean | 55% to 58% | **57.0%** | in band |
+| LOO suite within 15% | 7/18 | **6/18** | **missed** (same cause) |
+| `eliminate_estate_tax` | not x-val | **not x-val** | as registered |
+| Tier 1 | 34.4% / 16.1% / 12 / 16, unmoved | **unmoved** | as registered |
+| Calibrated fitted tier | 2.8%, 32/33, unmoved | **unmoved** | as registered |
+| Unfitted reconstructions | 21 at 76.7%, unmoved | **unmoved** | as registered |
+| Other LOO modules | unmoved | **unmoved** | as registered |
+| App presets | unmoved | **unmoved** | as registered |
+| `create_estate_exemption_change` | stops returning $0 | **$0.0B → +$35.4B/yr at $3.5M** | as registered |
+
+### What the module now says
+
+| Quantity | Before | After |
+|---|--:|--:|
+| Implied 2026 estate-tax revenue at the $6.4M exemption | ~$195.9B | **$47.6B** |
+| Taxable estates, 2026 at $6.4M | 19,000 (fitted anchor) | **10,981** |
+| Taxable estates, 2026 at $14.4M | 7,000 (fitted anchor) | **2,682** |
+| Average taxable amount at $6.4M | $25.8M (blended) | **$11.70M** |
+| `create_estate_exemption_change(3.5M)` annual | **$0.0B** | **+$35.4B** |
+
+Fitted constants deleted, not left unused: `taxable_estates_tcja`,
+`taxable_estates_post_tcja`, `avg_taxable_amount_tcja`,
+`avg_taxable_amount_post_tcja`, `top_tail_threshold`, `top_tail_count_share`,
+`top_tail_value_share`, `top_tail_avg_multiplier`. What replaces them is
+`alpha = 1.73843` (seven local estimates pooled from the transcribed file, range
+1.656–1.867), SOI's FY2024 anchor row (2,663 taxable returns, $62.894B of base
+above the exemption, $23.313B of net estate tax), a mean-excess ratio of 1.828
+and an effective-rate factor of 0.9267 — every one of them read out of the CSV
+at run time rather than typed into the module.
+
+### Reported vs derived, per benchmark
+
+| Benchmark | Carried target | Reported | Err | Derived | Err |
+|---|--:|--:|--:|--:|--:|
+| `extend_tcja_exemption` | $167B | $167.0B | +0.0% | **$199.0B** | +19.2% |
+| `biden_estate_reform` | −$450B | −$450.0B | +0.0% | **−$457.2B** | −1.6% |
+| `eliminate_estate_tax` | $350B | $350.0B | +0.0% | **$471.3B** | +34.7% |
+
+**App default stays `reported`** under Decision 1's own rule: derived does not
+beat fitted on the carried benchmarks. Nothing a user sees changes — the four
+shipped estate presets score 167.0 / −450.0 / −2,600.0 / 350.0 exactly as
+before. The scorecard stays on `reported` too, so the calibrated tier keeps
+measuring bookkeeping rather than quietly becoming a second copy of the LOO
+column.
+
+### Findings
+
+1. **The two carried targets are not jointly attainable, and the year path is
+   what gets close anyway.** Holding the level fixed, a flat-window
+   exemption-and-rate model can only produce
+   `biden / extend = (1.125·(6.4/3.5)^(α−1) − 1) / (1 − (6.4/14.4)^(α−1))`,
+   which is **1.67** at α = 1.738 and needs **α ≈ 2.6** to reach the 450/167 =
+   2.695 the targets demand — far outside anything SOI supports. The shipped
+   model returns **2.30**, and the difference is entirely the year-indexed
+   path: the Biden reform's first live fiscal year prices 2025 decedents, whose
+   baseline is still TCJA's $13.99M exemption, and the baseline exemption then
+   grows at inflation while $3.5M does not. Registering the ratio argument
+   before writing the code is what made it obvious that a shape fix alone could
+   not do this.
+2. **Growth is the lane's biggest lever and the data pulls two ways.** Fitting
+   the level *and* the growth jointly to SOI's own three filing years returns
+   **6.81%/yr** and reproduces SOI's history to within 8% in every year, because
+   household net worth outgrew GDP badly over 2009–2023. Projected forward that
+   gives `extend` **+66.9%** and `biden` **+40.3%**, which no published CBO or
+   JCT estate estimate is consistent with. The module ships nominal GDP growth
+   (**3.82%**, the app's own `CBOBaseline.nominal_gdp` compound rate), i.e.
+   wealth held at a constant ratio to GDP, and therefore **over**-states what
+   was actually collected from 2009 decedents by 109% and from 2012 decedents
+   by 56%. That is a known, deliberate and unresolved bias; it is pinned by
+   `test_growth_is_the_baseline_gdp_rate_not_the_rate_soi_history_implies` so a
+   data refresh cannot turn it into an accident. The full surface:
+
+   | growth | 2026 base | `extend` | `biden` |
+   |---|--:|--:|--:|
+   | 0.0% | $39.2B | 129.9 (−22.2%) | 306.2 (−31.9%) |
+   | 2.0% | $43.4B | 162.3 (−2.8%) | 377.0 (−16.2%) |
+   | 3.0% | $45.7B | 181.5 (+8.7%) | 419.0 (−6.9%) |
+   | **3.82% (shipped)** | **$47.6B** | **199.0 (+19.2%)** | **457.2 (−1.6%)** |
+   | 5.0% | $50.5B | 227.3 (+36.1%) | 519.0 (+15.3%) |
+   | 6.81% (SOI-fitted) | $55.2B | 278.7 (+66.9%) | 631.1 (+40.3%) |
+
+3. **The pre-registration's growth semantics were wrong, and correcting them
+   cost the lane its best-looking row.** §3 was computed on the module's legacy
+   convention that *revenue* grows at 3%/yr. The object that grows is the size
+   *distribution*, so revenue at a fixed exemption grows at `α` times it — real
+   bracket creep, and the reason the baseline path (whose exemption is indexed
+   at ~2.8%/yr) still comes out near 3%. Fixing that and taking the rate from
+   the repository's own CBO baseline instead of the module's ambiguous 3% moved
+   `extend` from the registered +9.9% to +19.2%. **The pre-registered
+   configuration scores better on both rows** (3.0%: +8.7% and −6.9%) and was
+   not shipped. That is the strongest evidence available that the choice was
+   made on structure and not on the error it produces.
+
+   The same pass changed the **level anchor**, and §2.3 above is therefore a
+   record of the plan rather than of the code. §2.3 registered CBO's carried
+   `revenue_baseline_2026 = 50.0` as the one level input, with SOI as a check.
+   The shipped module reverses them: the level is SOI's own FY2024 anchor row,
+   so the whole model comes out of one transcribed file plus one baseline
+   growth rate, and CBO's $50B becomes the external check — which it passes at
+   **$47.6B, 4.8% low**. The level check §3 registered ("$27.3B against SOI's
+   $23.3B, roughly 17% high") is consequently no longer a prediction: the model
+   reproduces that row **exactly**, by construction, because it is now the
+   anchor. The check that replaced it is the harder one, and it is finding 2's
+   backcast to the two years the model does *not* anchor on.
+4. **`extend_tcja_exemption`'s +6.0% was two large errors cancelling.** The old
+   machinery had a level four times too high and an exemption response of
+   exactly zero below $6.4M; the extension's whole effect came from the
+   branch structure at the high end. Correcting both removes the cancellation,
+   which is the same thing L2 recorded for `fra_2023_discretionary_caps`
+   (6% → 12% after a correct spend-out). A row that gets worse when two
+   compounding defects are repaired was not measuring accuracy.
+5. **The invariance was user-facing, not only a validation artefact.**
+   `create_estate_exemption_change` returned **exactly $0.0B** for every
+   exemption at or below $6.4M — the app scored "cut the estate exemption to
+   $3.5M" as free. It now returns +$35.4B/yr, and the sign flips correctly
+   above the baseline (−$24.3B/yr at a $20M exemption).
+6. **`eliminate_estate_tax` is now derivable and stays excluded for the other
+   reason.** Its old exclusion cited two things: an unpublished target *and* a
+   machinery that "reproduces differences but not revenue levels". The second
+   is no longer true — the model's 2026 baseline is $47.6B against CBO's ~$50B
+   — so only the first is carried. Derived it scores **$471.3B** against the
+   $350B model estimate (+34.7%), reported here as a diagnostic and folded into
+   nothing.
+7. **The tax base is not a pure Pareto, and the module papers over it with a
+   second SOI statistic.** The count slope across SOI's class boundaries is
+   α = 1.738, but the mean excess at the anchor implies 1 + 1/1.828 = **1.547**
+   — the tail is fatter in value than the count slope says. The module reads
+   the mean-excess ratio off SOI directly rather than deriving it from α, which
+   makes the count and the average both right at the anchor (2,663 returns
+   reproduced exactly) instead of splitting a correct aggregate 25% wrongly.
+   The honest fix is to integrate the classes piecewise rather than fit one
+   shape, and that is the next real structure this module is missing.
+8. **Not a benchmark, but a large gap worth writing down:**
+   `create_warren_estate_proposal` carries a fitted −$2,600B from PWBM and
+   derives **−$663.6B**. The module prices a 55% flat rate on a $3.5M
+   exemption; PWBM's $2.6T scores a package with a separate wealth tax. The
+   preset is not in `ESTATE_TAX_VALIDATION_SCENARIOS` so nothing in the battery
+   sees this, but the two numbers are not estimates of the same policy.
+
+### What the lane did not do
+
+- Did not touch any target, `preregistered.py`, `cold_holdout.py`,
+  `run_loo.py`, `loo.py`'s leakage guard or `LEAKAGE_TOLERANCE`,
+  `tests/test_preregistration.py`, or any CI threshold. `benchmark_sources.py`
+  and `target_revisions.py` are untouched.
+- Did not add a per-benchmark constant. The module gained one data file, one
+  pooled shape statistic, one anchor row, one growth rate taken from the app's
+  own baseline, one receipts lag with a statutory citation, and one literature
+  elasticity — and lost eight fitted constants.
+- Did not model the **portability** of a deceased spouse's unused exclusion.
+  `modify_portability` and `portability_cap` are still declared and never read,
+  and portability is why the effective per-couple exemption is up to twice the
+  per-person figure the module prices. SOI's Table 1 carries a "Deceased
+  spousal unused exclusion" column this transcription does not take, which is
+  where that work would start.
+- Did not model **gift tax**. The base includes adjusted taxable gifts, as it
+  must, but a policy that changes the estate exemption also changes lifetime
+  giving, and nothing here responds to that.
+- Did not touch the **graduated rate schedule**. Every rate here is a single
+  top rate scaled proportionally, which is why `biden_estate_reform`'s target —
+  a bill with 50/55/65% brackets above $10M/$50M/$1B — remains an upper bound
+  on what this module can construct, exactly as `benchmark_sources.py` says.
+- Did not raise the question of whether the `biden_estate_reform` target should
+  move from $450B to JCT's published $429.6B. It is a `line_item_differs` row
+  and that is the provenance lane's call, not this one's.
