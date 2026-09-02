@@ -103,8 +103,15 @@ class TestGILTIReform:
 
 class TestFDIIReform:
     def test_repeal_recovers_full_expenditure(self):
+        # Repeal now runs the same base x rate identity as the rate-change
+        # branch, on an FDII income implied by Treasury OTA's published tax
+        # expenditure, so it returns that expenditure exactly. The old flat
+        # `fdii_cost_billions` constant is gone — see
+        # tests/test_international_overlap.py for the identity's own tests.
         p = create_fdii_repeal()
-        assert p._estimate_fdii_reform() == INTERNATIONAL_BASELINE["fdii_cost_billions"]
+        assert p._estimate_fdii_reform() == pytest.approx(
+            INTERNATIONAL_BASELINE["fdii_deduction_tax_expenditure_billions"]
+        )
 
     def test_no_fdii_change_is_zero(self):
         p = InternationalTaxPolicy(name="noop", description="noop")
