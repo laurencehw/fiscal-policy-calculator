@@ -128,4 +128,58 @@ All figures land in `fiscal_model/data_files/pharma/` with a provenance header.
 
 ## 5. Outturn
 
-*(appended in the lane's final commit)*
+Measured on `ddba514`, the lane's last code commit.
+
+| Row | Target | Before | After | Error before → after |
+|---|---:|---:|---:|---:|
+| `universal_insulin_cap` | −$15.0B | −$445.3B | **+$7.0B** | 2,868.6% → 146.4% |
+| `international_reference_pricing` | −$100.0B | −$1,387.9B | **−$746.2B** | 1,287.9% → 646.2% |
+| `expand_drug_negotiation` | −$500.0B | −$371.5B | −$371.5B | 25.7% → 25.7% |
+| **12-row sectoral mean** | | **394.1%** | **113.8%** | median 57.1% → 57.1% |
+| 20-row reconstruction mean | | 250.8% | **82.6%** | median 43.1% → 43.1% |
+| Tier 1 out-of-sample (n=25) | | 52.6% | 52.6% | unchanged |
+| Calibrated fitted (n=34) | | 2.7% | 2.7% | unchanged |
+| Leave-one-out (n=18) | | 59.3% | 59.3% | unchanged |
+
+**The pre-registration held to a tenth of a point.** §3.2 predicted ≈114%
+sectoral and ≈83% for the 20-row tier from hand arithmetic; the runners return
+113.8% and 82.6%. The insulin row was predicted at ≈+$7B and returns +$6.96B;
+reference pricing was predicted at ≈−$746B / ≈646% and returns −$746.2B /
+646.2%. None of the nine untouched sectoral rows moved, and neither did any
+other tier — which is the falsification test in §3.3, passed.
+
+**The insulin row, read against both benchmarks.** Model **+$7.0B**; carried
+target **−$15.0B** (146.4%, directions disagree); CBO publication 57957
+**+$11.4B** (38.8% below, directions agree). The model now says what CBO says —
+a $35 cost-sharing cap extended to private plans *adds* to the deficit — and the
+146.4% is the price of saying it, because the stored benchmark points the other
+way. The 38.8% gap to CBO is two named omissions: induced utilisation, and
+growth in insulin cost and enrolment across a ten-year window, since ASPE's
+$734M is a single 2020 figure held flat.
+
+**Neither plan target was met, exactly as §3.2 said before the code changed.**
+Reference pricing came in at 646%, not <100%, and the sectoral mean at 113.8%,
+not ~40% — 66pp of which is the 47.7% floor the other lanes own. What did change
+is the sectoral mass: 4,729 → 1,366, a **71% reduction**, and 4,157 of the 4,182
+this lane was scoped on (§2.3) is gone. The residual on the reference-pricing
+row is now mostly the *target*: −$100B is provenance `model_estimate`, while the
+model's −$746B sits above CBO's ~$456B for H.R. 3's narrower version of the same
+cap, which is where a broader policy should sit.
+
+**Shipped preset output moved**, as §3 L7's caveat warned it would:
+
+| Preset | Before | After |
+|---|---:|---:|
+| 💊 Universal Insulin Cap | −$445.3B | **+$7.0B** |
+| 💊 International Reference Pricing | −$1,387.9B | −$746.2B |
+| 💊 Comprehensive Drug Reform | −$1,025.8B | −$573.5B |
+| 💊 Expand Drug Negotiation | −$371.5B | unchanged |
+
+No preset label or `CBO_SCORE_MAP` entry changed: those labels carry the
+official score, not the model's, and this lane touched no target.
+
+**Left for a later lane.** The reference-pricing base is still overstated —
+RAND's index is computed on presentations sold in both markets, and the module
+applies it to all brand spending — and no utilisation, launch-delay or
+availability response is modelled on either row. `expand_drug_negotiation`'s
+linear per-drug scaling is untouched; its target is `model_estimate` too.
