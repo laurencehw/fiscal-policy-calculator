@@ -28,7 +28,7 @@ An option is runnable only if **all** of the following hold.
    frozen module defaults (ETI 0.25; capital-gains elasticities 0.8/0.4;
    corporate elasticity 0.25). Where a module constant was *calibrated to
    reproduce this same reform* from another source, the option is excluded as
-   **leakage**, not scored — see Options 53, 56 and 62.
+   **leakage**, not scored — see Options 53 and 62.
 3. **Every input is stated by CBO, not derived from the answer.** For spending
    options that means the option's own table must state a *budget authority*
    level path distinct from the outlay total being predicted, and that path
@@ -42,6 +42,12 @@ An option is runnable only if **all** of the following hold.
    Mandatory options fail (3) categorically: CBO publishes no funding-level
    input distinct from the outlay path, so feeding the first-year outlay back
    in would make the "prediction" an aggregation of the target itself.
+
+   A leakage exclusion is not permanent. Option 56 was excluded on that ground
+   until the expenditure module stopped needing a fitted annual to express a
+   percentile cap: it now scores the published expenditure level times a share
+   read off a premium distribution, so nothing calibrated to a target sits in
+   the path and the option is runnable. Options 53 and 62 still are not.
 
    The budget authority a runnable spending option states is now spent out
    into outlays rather than booked as one (:mod:`fiscal_model.spending_outlays`),
@@ -173,7 +179,7 @@ class OptionClassification:
 # Runnable set
 # ---------------------------------------------------------------------------
 
-#: The 14 alternatives the uncalibrated path can express. ``score_id`` is the
+#: The 15 alternatives the uncalibrated path can express. ``score_id`` is the
 #: ``KNOWN_SCORES`` key; ``alternative_id`` indexes the alternatives CSV.
 RUNNABLE_OPTIONS: tuple[RunnableOption, ...] = (
     # -- Individual income tax rates ---------------------------------------
@@ -221,6 +227,17 @@ RUNNABLE_OPTIONS: tuple[RunnableOption, ...] = (
     RunnableOption(
         64, "64.1", "cbo_opt64_corporate_rate_1pp", "corporate_rate",
         "21% -> 22%; module-default corporate elasticity and revenue base.",
+    ),
+    # -- Tax expenditures ---------------------------------------------------
+    RunnableOption(
+        56, "56.9", "cbo_opt56_employer_health_income_only", "tax_expenditure",
+        "Limit only the income-tax exclusion for employment-based health "
+        "insurance to the 50th percentile of premiums. Scored in the "
+        "expenditure module's derived mode: the published expenditure level "
+        "times the share of premium dollars above CBO's own stated 2028 "
+        "limits ($10,000 individual, $24,400 family). No fitted annual is "
+        "read. The option's other two alternatives limit the payroll-tax "
+        "exclusion as well and are out of scope per alternative.",
     ),
     # -- Discretionary spending --------------------------------------------
     RunnableOption(
@@ -320,7 +337,6 @@ OUT_OF_SCOPE_REASONS: dict[int, str] = {
     53: "NIIT base expansion to active S-corp and partnership income: the payroll module's NIIT constant ($25B/yr) is calibrated to JCT's estimate of this same reform - leakage, not prediction.",
     54: "Carried interest: partnership character-conversion rule; no such module.",
     55: "Taxing VA disability payments: needs a benefit-recipient income distribution the model does not carry.",
-    56: "Employment-based health benefits: routed to the calibrated tax-expenditure module (cap_employer_health), whose annual is fitted to a published benchmark.",
     57: "Retirement contribution limits: needs contribution-level microdata; no such module.",
     58: "Education tax preferences: credit-module territory, and its annuals are calibrated per benchmark.",
     59: "EITC/CTC investment income limit: credit eligibility rule inside the calibrated credits module.",
@@ -348,6 +364,18 @@ OUT_OF_SCOPE_ALTERNATIVES: dict[str, str] = {
         "Carryover basis defers the tax until the heir sells; the capital-gains "
         "module only implements deemed realization at death, so it has no "
         "carryover path."
+    ),
+    "56.3": (
+        "Limits the income *and payroll* tax exclusion. The expenditure module "
+        "carries the income-tax expenditure only and has no payroll base, so "
+        "scoring this alternative would be a known base mismatch rather than a "
+        "prediction. CBO's third alternative is the same cap on the income-tax "
+        "exclusion alone, and that is the one this battery scores."
+    ),
+    "56.6": (
+        "As 56.3 at the 75th percentile of premiums: income and payroll "
+        "exclusion together, and CBO publishes no income-tax-only counterpart "
+        "at that percentile."
     ),
 }
 

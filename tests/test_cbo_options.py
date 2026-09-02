@@ -40,6 +40,7 @@ _EXPECTED_SHAPES = {
     "corporate_rate",
     "payroll_rate",
     "spending",
+    "tax_expenditure",
 }
 
 
@@ -166,7 +167,7 @@ def test_runnable_option_builds_a_concrete_policy(entry):
 
 @pytest.mark.parametrize("entry", RUNNABLE_OPTIONS, ids=lambda e: e.score_id)
 def test_runnable_option_is_scored_on_the_published_vintage(entry):
-    """Both chapters were built on a 2024 baseline, so all 14 name it."""
+    """Every chapter was built on a 2024 baseline, so all of them name it."""
     assert KNOWN_SCORES[entry.score_id].scoring_vintage == "cbo_feb_2024"
 
 

@@ -150,6 +150,17 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "Scored with the frozen module-default realization elasticities (0.8 / 0.4); the "
         "published estimates embed much stronger lock-in and avoidance responses.",
     ],
+    "cbo_opt56_employer_health_income_only": [
+        "The level is close and the growth path is not, which is the whole residual. "
+        "CBO's revenue grows about 14%/yr because the exclusion limit is indexed to "
+        "the chained CPI-U while premiums grow faster, so a widening slice of every "
+        "premium sits above it. The module evaluates its excess share once, at "
+        "start_year, and the engine then grows the result at the expenditure's own "
+        "4%/yr. A year-indexed excess share is the missing structure.",
+        "No plan-switching channel. CBO's own text names enrolment in lower-premium "
+        "plans as the dominant behavioural response, which converts excluded premium "
+        "into taxable wages; the module carries only a flat 0.2 elasticity.",
+    ],
     # -- Phase D: enacted-law component replications -------------------------
     # Each row states whether its miss is attributable to the missing
     # budget-authority-to-outlay spend-out model (Phase B's finding), because
@@ -532,6 +543,14 @@ def create_policy_from_score(
     ``spending``
         :class:`SpendingPolicy` from the source-stated annual level, growth,
         phase-in and one-time flag.
+    ``tax_expenditure``
+        :class:`TaxExpenditurePolicy` in the module's **derived** mode, so the
+        score is the published expenditure level times the share of it the
+        reform denies — never the per-benchmark annual a factory fits to a
+        target. The cap is read in dollars of the excluded or deducted
+        quantity, exactly as the source states it. Routing this shape through
+        ``reported`` mode would be leakage, which is why the mode is pinned
+        here rather than left to the module's app default.
 
     Every shape honours ``score.effective_start_year`` - the year the *source*
     says the policy takes effect - so an option that starts in FY2026 is not
@@ -592,6 +611,45 @@ def create_policy_from_score(
             policy_type=PolicyType.PAYROLL_TAX,
             payroll_tax_type=PayrollTaxType.MEDICARE,
             medicare_rate_change=score.rate_change,
+            start_year=start_year,
+            duration_years=10,
+        )
+
+    if shape == "tax_expenditure":
+        from ..tax_expenditures_core import (
+            EXPENDITURE_MODE_DERIVED,
+            TAX_EXPENDITURE_DATA_KEYS,
+            CapUnit,
+            TaxExpenditurePolicy,
+        )
+
+        expenditure_type = next(
+            (
+                kind
+                for kind, key in TAX_EXPENDITURE_DATA_KEYS.items()
+                if key == score.expenditure_key
+            ),
+            None,
+        )
+        if expenditure_type is None:
+            return None
+        return TaxExpenditurePolicy(
+            name=f"Validation: {score.name}",
+            description=score.description,
+            policy_type=PolicyType.TAX_DEDUCTION,
+            expenditure_type=expenditure_type,
+            action=score.expenditure_action,
+            cap_amount=score.expenditure_cap_amount,
+            cap_unit=CapUnit.BASE_DOLLARS,
+            caps_by_coverage_tier=(
+                dict(score.expenditure_caps_by_tier)
+                if score.expenditure_caps_by_tier
+                else None
+            ),
+            # The uncalibrated path must not see a fitted annual, so the
+            # constant is left unset and the mode pinned to ``derived``.
+            annual_revenue_change_billions=None,
+            mode=EXPENDITURE_MODE_DERIVED,
             start_year=start_year,
             duration_years=10,
         )

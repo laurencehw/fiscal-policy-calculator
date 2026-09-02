@@ -109,7 +109,8 @@ class TestHelperFunctions:
         """Every target must state the parameter its own shape varies.
 
         Rate shapes (ordinary, capital gains, corporate, payroll) carry a rate
-        change; the spending shape carries the annual level the source stated.
+        change; the spending shape carries the annual level the source stated;
+        the tax-expenditure shape carries the expenditure the reform changes.
         Asserting ``rate_change is not None`` for all of them predates the
         spending branch and would have excluded it by accident.
         """
@@ -122,6 +123,13 @@ class TestHelperFunctions:
             assert shape is not None
             if shape == "spending":
                 assert t.annual_amount_billions is not None
+            elif shape == "tax_expenditure":
+                assert t.expenditure_key is not None
+                assert (
+                    t.expenditure_cap_amount is not None
+                    or t.expenditure_caps_by_tier is not None
+                    or t.expenditure_action != "cap"
+                )
             else:
                 assert t.rate_change is not None
             assert t.baseline_year >= 2020

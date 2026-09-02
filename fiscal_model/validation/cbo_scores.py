@@ -34,6 +34,7 @@ ValidationShape = Literal[
     "corporate_rate",
     "payroll_rate",
     "spending",
+    "tax_expenditure",
 ]
 
 #: Generic (out-of-sample) dispatch is limited to records whose published
@@ -1237,9 +1238,6 @@ KNOWN_SCORES: dict[str, CBOScore] = {
               "the option's three alternatives the module can express: the other two "
               "limit the payroll-tax exclusion as well, and the expenditure module has "
               "no payroll base.",
-        runnable=False,
-        not_runnable_reason="Pre-registered in preregistered.py and not yet scored; "
-                            "the tax-expenditure shape it needs lands in the next commit.",
     ),
 
     # -------------------------------------------------------------------------
@@ -1437,6 +1435,8 @@ def validation_shape(score: CBOScore) -> ValidationShape | None:
         return "payroll_rate" if score.rate_change is not None else None
     if score.policy_type == "spending":
         return "spending" if score.annual_amount_billions is not None else None
+    if score.policy_type == "tax_expenditure":
+        return "tax_expenditure" if score.expenditure_key is not None else None
     return None
 
 
