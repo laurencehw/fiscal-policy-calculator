@@ -135,6 +135,41 @@ IIJA_AUTHORIZATION_PATH_RULE = (
     "the source's own total by construction."
 )
 
+#: Commit that entered CBO Option 56's third alternative — the income-tax-only
+#: limit on the employer-health exclusion — into this manifest. Option 56 was
+#: excluded from the Phase B battery as *leakage*: the only path that could
+#: score it was ``cap_employer_health``'s annual, a constant fitted to a
+#: published benchmark. Lane L6 replaced that path with a premium distribution
+#: and a published expenditure level, so the option became expressible without
+#: reading any fitted constant, and this row promotes it. Same two-commit
+#: protocol as Phases B and D: the row is entered here and first scored in
+#: :data:`OPTION_56_FIRST_SCORED_COMMIT`, a *later* commit.
+#: Provisional until the stamping commit: a file cannot contain its own
+#: commit hash, so this holds the branch point until the two real hashes
+#: are written in the commit that immediately follows the scoring run.
+OPTION_56_ENTERED_COMMIT = "7f25bed2377ca52204ae02927b2ad9b8a4fcf6bb"
+OPTION_56_ENTERED_DATE = "2026-09-02"
+
+#: Commit in which Option 56 was first scored — the commit that adds the
+#: ``tax_expenditure`` validation shape and flips the record to
+#: ``runnable=True``.
+OPTION_56_FIRST_SCORED_COMMIT = "7f25bed2377ca52204ae02927b2ad9b8a4fcf6bb"
+
+#: The rule that fixed Option 56's shape inputs, written down before the
+#: option was scored, because a per-case choice of cap would be a knob.
+OPTION_56_SHAPE_RULE = (
+    "expenditure_caps_by_tier = the dollar limits CBO's own text states for "
+    "the alternative being scored, in the year the option takes effect "
+    "($10,000 individual and $24,400 family in 2028, the 50th percentile of "
+    "2026 premiums indexed with the chained CPI-U). effective_start_year = "
+    "the first fiscal year CBO's own table shows a non-zero effect (2028). "
+    "The expenditure level the cap is applied to is the published "
+    "JCT_TAX_EXPENDITURES annual for the employer-health exclusion, and the "
+    "premium distribution's shape is identified from the two percentile "
+    "values the same option prints. No parameter is read from, or chosen "
+    "against, the -$697B the option is scored on."
+)
+
 #: Commit of the Phase E provenance pass (plan §5.1-§5.2): the pass that opened
 #: the primary documents and transcribed the rows behind the benchmark targets.
 #: It supersedes one out-of-sample row — ``biden_capital_gains_39`` — because
@@ -639,6 +674,40 @@ PREREGISTERED_CASES: tuple[PreregisteredCase, ...] = (
         ),
     ),
     # ---- Phase D: enacted-law component replications (entered, then scored) --
+    # ---- Wave 3 promotion: CBO Option 56, previously excluded as leakage ----
+    PreregisteredCase(
+        case_id="cbo_opt56_employer_health_income_only.v1",
+        policy_id="cbo_opt56_employer_health_income_only",
+        official_10yr_billions=-697.0,
+        source_name="Congressional Budget Office",
+        source_url="https://www.cbo.gov/publication/60557",
+        source_date="2024-12",
+        source_baseline_vintage=CBO_OPTIONS_REVENUE_BASELINE,
+        entered_commit=OPTION_56_ENTERED_COMMIT,
+        entered_date=OPTION_56_ENTERED_DATE,
+        first_scoring_run_commit=OPTION_56_FIRST_SCORED_COMMIT,
+        note=(
+            "Option 56, third alternative (report p. 66; PDF p. 72), row "
+            "'Decrease (-) in the deficit': -$697B over FY2025-2034, which is "
+            "$709B of added revenue net of $12B of added mandatory outlays. "
+            "The option was out of scope in Phase B for leakage — the only "
+            "path that could score it was the fitted `cap_employer_health` "
+            "annual — and lane L6 removed that dependency by giving the "
+            "module a premium distribution, so the score is now built from a "
+            "published expenditure level times a share the distribution "
+            "supplies. Shape inputs are fixed by OPTION_56_SHAPE_RULE. Only "
+            "this one of the option's three alternatives is registered: the "
+            "other two limit the payroll-tax exclusion as well, and the "
+            "expenditure module has no payroll base, so scoring them would be "
+            "a known base mismatch rather than a prediction. Provenance "
+            "caveat, stated rather than buried: the premium distribution's "
+            "*shape* parameter is identified from the two percentile values "
+            "this same option prints. That is a design input, exactly like "
+            "the budget-authority level a spending option donates to its own "
+            "prediction; the target — the revenue CBO scores — is a different "
+            "series and is not read anywhere."
+        ),
+    ),
     PreregisteredCase(
         case_id="ssfa_wep_gpo_repeal_outlays.v1",
         policy_id="ssfa_wep_gpo_repeal_outlays",
