@@ -10,6 +10,8 @@ transcription stops disagreeing, and the entry leaves the fitted tier.
 
 from __future__ import annotations
 
+import dataclasses
+
 import pytest
 
 from fiscal_model.app_data import CBO_SCORE_MAP, PRESET_POLICIES
@@ -44,6 +46,26 @@ def test_the_ledger_is_internally_consistent():
     """Unique ids, one live row per benchmark, both halves reasoned, the
     replacement cites a document, and the figure actually moved."""
     assert target_revision_problems() == []
+
+
+@pytest.mark.parametrize(
+    "revision_id",
+    ["extend_tcja_amt", "extend_tcja_amt.", "extend_tcja_amt.2", "extend_tcja_amt.v0"],
+)
+def test_a_malformed_revision_id_is_rejected(revision_id, monkeypatch):
+    """The id carries the version ordering, so the suffix is checked and not
+    only the prefix: a ledger whose rows do not sort cannot be read as a
+    history."""
+    from fiscal_model.validation import target_revisions as tr
+
+    row = tr.CALIBRATED_TARGETS[0]
+    monkeypatch.setattr(
+        tr,
+        "CALIBRATED_TARGETS",
+        (dataclasses.replace(row, revision_id=revision_id, superseded_by=None),),
+    )
+    problems = tr.target_revision_problems()
+    assert any("'.v<n>'" in problem for problem in problems)
 
 
 def test_the_ledger_agrees_with_what_the_scorecard_scores(scorecard):

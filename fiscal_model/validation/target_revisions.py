@@ -59,10 +59,17 @@ see it" checkable from the git history rather than asserted in prose.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
-#: Commit that introduced this ledger and its first three rows (two
-#: superseded, one live pair each). Stamped in the commit that follows it.
+#: A revision id is ``<policy_id>.v<n>``. The version suffix is checked, not
+#: only the prefix: an id that does not sort by version is a ledger whose
+#: history cannot be read in order.
+_REVISION_ID = re.compile(r"^[A-Za-z0-9_]+\.v[1-9][0-9]*$")
+
+#: Commit that introduced this ledger and its first four rows — two
+#: supersessions, each a superseded row plus its live replacement. Stamped in
+#: the commit that follows it.
 AMT_INSULIN_PROVENANCE_ENTERED_COMMIT = (
     "2a341d8e3deaf07a565306c77adc1af123ccf5af"
 )
@@ -89,7 +96,10 @@ class CalibratedTarget:
             superseded row whose figure was never traced to a document — which
             is usually *why* it was superseded.
         source_url: Deep link to the document.
-        source_date: ``YYYY-MM`` where the document states a month.
+        source_date: ``YYYY-MM`` where the document states a month, ``YYYY``
+            where it does not — which is the usual state of a *superseded*
+            row, since a figure nobody could trace to a document rarely came
+            with a month either.
         source_table: Table name/number the row sits in.
         source_row: The row label, quoted from the source.
         source_page: Page reference.
@@ -351,10 +361,12 @@ def target_revision_problems(entries: list[object] | None = None) -> list[str]:
         if target.revision_id in by_id:
             problems.append(f"duplicate revision_id {target.revision_id}")
         by_id[target.revision_id] = target
-        if not target.revision_id.startswith(f"{target.policy_id}."):
+        if not _REVISION_ID.fullmatch(
+            target.revision_id
+        ) or not target.revision_id.startswith(f"{target.policy_id}."):
             problems.append(
-                f"{target.revision_id}: id must be prefixed with its policy_id "
-                f"{target.policy_id!r}"
+                f"{target.revision_id}: id must be its policy_id "
+                f"{target.policy_id!r} followed by '.v<n>'"
             )
 
     for target in CALIBRATED_TARGETS:
