@@ -214,3 +214,151 @@ can redo it: bracket base × `exp(−b·Δτ)` × the reform rate, minus the bas
 - **The realizations base is not projected.** §2.6's rule keeps the flow at its
   observed SOI level; a realizations projection is the obvious next lane and
   would move every rate-change row.
+
+## 5. Outturn
+
+Measured on `afd5c15`, the lane's last code commit.
+
+### 5.1 The tiers, before → after
+
+| tier | n | before | after |
+|---|--:|---|---|
+| Out-of-sample (Tier 1) | 25 | 34.4% / 16.1% median / 12 within 15 / 16 within 25 | **32.2% / 14.1% / 13 / 18** |
+| Calibrated reference (fitted) | 33 | 2.8% / 32 within 15 | **6.2% / 30 within 15** |
+| Unfitted reconstruction | 21 | 76.7% / 41.0% median | **unchanged, to the decimal** |
+| Leave-one-out | 18 | 58.7% / 32.5% median / 6 within 15 | **38.0% / 32.5% / 6** |
+|  — `CapitalGains` module | 3 | 171.2% | **46.8%** |
+
+Tier 1 error mass fell **859.5 → 804.7**; the four capital-gains rows fell
+**479.4 → 428.5** and are still the tier's largest mass, at 53.2%.
+
+### 5.2 The seven registered rows
+
+| Row | official | before | after | error before → after | band |
+|---|--:|--:|--:|--:|---|
+| `cbo_opt51_gains_at_death` | −536.1 | −83.7 | **−581.2** | 84.4% → **8.4%** | 0–25 ✓ |
+| `cbo_opt47_ltcg_qdiv_2pp` | −103.3 | −205.7 | **−55.8** | 99.1% → **46.0%** | 20–45 ✗ by 1pp |
+| `biden_capital_gains_39` | −288.6 | −699.4 | **−708.8** | 142.3% → **145.6%** | 5–45 ✗ |
+| `treasury_capgains_39_plus_stepup_elim` | −322.0 | −816.6 | **−1057.9** | 153.6% → **228.5%** | 30–80 ✗ |
+| `cbo_2pp_all_brackets` (LOO) | −70.0 | −154.3 | **−81.0** | −120.5% → **−15.7%** | 15–40 ✓ |
+| `pwbm_39_with_stepup` (LOO) | +33.0 | −89.3 | **+14.7** | −370.5% → **−55.5%** | 40–90, sign restored ✓ |
+| `pwbm_39_no_stepup` (LOO) | −113.0 | −138.6 | **−34.8** | −22.6% → **+69.2%** | 40–90, worse ✓ |
+
+Six of the ten pre-registered bands were hit. The four misses are §5.4.
+
+### 5.3 What the mechanism did, defect by defect
+
+**1 — Base.** At threshold 0 the base went from $1,368B of Tax Foundation
+realizations at one blended 15.5% rate to $1,107.7B of SOI income in five
+priced buckets: $66.8B at 0%, $13.9B at 0%+NIIT, $81.1B at 15%, $263.1B at
+15%+NIIT, $682.6B at 20%+NIIT. Above $1M it went from 38% of the aggregate to
+$670.8B at a realizations-weighted 23.5%. That plus the unit fix took
+`cbo_opt47` from over-predicting by 99% to under-predicting by 46%.
+
+**2 — Elasticity.** The registered claim in §2.1 held: with `b = 3.273` the
+model's revenue-maximizing rate is 30.6%, so 43.4% sits past the peak and a
+rate rise *loses* revenue while step-up survives. `pwbm_39_with_stepup` scores
+**+$14.7B of deficit** against PWBM's +$33.0B — the sign PWBM reports, reached
+with no multiplier, where the frozen 0.8/0.4 net-of-tax form gave −$89.3B and
+a 370% sign flip.
+
+**3 — Lock-in.** The wedge comes out at **1.44×**: with a realization hazard
+of 2.35%/yr against a mortality-weighted death exit of 2.65%/yr, 53% of accrued
+gains escape while step-up survives, over an expected 20-year horizon
+discounted at 4%. That is the whole difference between the two PWBM rows, and
+it is smaller than the 1.5× residual-avoidance multiplier it replaces — which
+is why `pwbm_39_no_stepup` moved from −22.6% to +69.2%, exactly as §4.2 said it
+would.
+
+**4 — Gains at death.** $54B/yr flat became $196.2B of gains in 2025 growing at
+5.8%/yr, distributed over five estate-size classes with the exemption applied
+per decedent: 409 decedents at $119.6M of gains each, 3,677 at $12.5M, 36,768
+at $2.0M, 163,413 at $0.15M, 204,266 at $0.01M. `cbo_opt51` — no exclusion, no
+rate change, so the whole score runs through this channel — moved from 84%
+under to **8.4% over**. That is the sharpest single result in the lane, and it
+is a genuine prediction: the level is Poterba & Weisbenner's 1998 SCF flow
+scaled by household net worth, the shape is Avery-Grodzicki-Moore's, and
+neither was ever fitted to a CBO figure.
+
+### 5.4 Where the pre-registration was wrong
+
+**1 — Four Tier-1 rows the lane did not name moved,** because
+`preferential_income_share` reads the same baseline. It measures the share of
+marginal income above a threshold that is taxed at preferential rates and so is
+*not* reached by an ordinary-rate change, and it now reads the SOI bracket
+table instead of the aggregate ladder. `cbo_opt45_top4_brackets_2pp` improved
+25.8% → 17.9%; `illustrative_1pp_all` 2.6% → 4.1%, `cbo_opt45_all_rates_1pp`
+21.1% → 22.4% and `biden_high_income_tax` 12.9% → 14.1% got slightly worse.
+Net −4.4 units of mass. §4.1 named this as a falsification test and it fired;
+the correct reading is that the falsification test was written too tightly, not
+that the base fix was wrong — the new measurement is strictly better sourced.
+
+**2 — `biden_capital_gains_39` and `treasury_capgains_39_plus_stepup_elim` got
+worse, and the reason is the lock-in wedge running the other way on them.**
+§4 predicted the rate channel would turn slightly negative at 43.4%. It does
+not, because both proposals *eliminate* step-up, which divides `b` by the 1.44×
+wedge and leaves the rate channel firmly positive (+$25.7B/yr on the $638.6B
+base above $1M). Add the death channel — $32B/yr under Biden's $5M exclusion,
+$56B/yr under the FY2022 $1M exclusion — and the model lands at −$709B and
+−$1,058B against −$288.6B and −$322.0B. The pre-registration got the mechanism
+right and the *sign of its interaction with step-up elimination* wrong, which
+is worth more than the band it missed.
+
+**3 — The residual on those two rows is now a nameable omission, not a
+mystery.** The model applies **no behavioural response to the death channel**:
+Biden's proposal carves out transfers to a spouse and to charity, preserves the
+§121 residence exclusion, excludes tangible personal property, defers
+family-business gains until sale and offers a 15-year installment election, and
+Treasury's score prices all of that. This model prices only the per-decedent
+exclusion. That is the single largest thing left undone in the capital-gains
+module, and it is a bigger effect than anything the elasticity can supply.
+
+**4 — A target-provenance flag, for the other lane, not this one.** Treasury's
+FY2022 Green Book carries a separate line for treating transfers at death as
+realization events; `treasury_capgains_39_plus_stepup_elim` describes its
+−$322.0B as the *combined* rate-plus-realization figure, and the model's death
+channel alone under a $1M exclusion is larger than that whole target. Whether
+−$322.0B is the combined row or the rate-only row is a manifest question. This
+lane changed no target and takes no position beyond recording the tension.
+
+**5 — The three calibrated capital-gains scenarios left the fitted tier, so
+that tier's mean rose 2.8% → 6.2%.** Nothing regressed: those three rows were
+*only* low because their behavioural tuples were the fit, and deleting the
+tuples turned them into reconstructions scored by one frozen literature set.
+Whether they should now be reclassified out of `calibrated_reference` is a
+`benchmark_sources.py` question this lane is forbidden to touch.
+
+**6 — `check_readiness.py`'s `holdout_protocol` check went PASS → FAIL.**
+`pwbm_39_with_stepup` is a locked holdout id and now rates Poor at 55.5%. The
+protocol was locked on 2026-05-02 over a scorecard in which that entry carried
+its own fitted 5.3× multiplier. The entry stays in the battery; re-locking the
+protocol is an owner decision. `--strict` was already non-zero on the branch
+point (exit 2, warnings only); it is now exit 1.
+
+### 5.5 Shipped output moved
+
+No preset changed: the only capital-gains-shaped preset,
+`📋 Eliminate Step-Up Basis (-$500B)`, runs through `TaxExpenditurePolicy` and
+is untouched. **Tailor's capital-gains form** moves, as §3 L1's caveat warned:
+
+| Tailor input (defaults, data year 2024) | before | after |
+|---|--:|--:|
+| +2pp, all brackets | −$219.2B | **−$55.1B** |
+| +5pp, all brackets | −$524.9B | **−$108.1B** |
+| +5pp above $1M, step-up retained | −$165.7B | **−$30.6B** |
+| 39.6% above $1M + eliminate step-up, $1M exemption | −$861.1B | **−$1,050.3B** |
+
+The form itself loses four widgets — short-run and long-run elasticity, the
+transition slider, the "annual gains at death ($B)" input and the lock-in
+multiplier slider whose help text offered 5.3 as a setting — and gains
+persistent and transitory elasticity inputs.
+
+### 5.6 What this lane did not do
+
+No target moved. The runners, `loo.py`'s leakage guard,
+`tests/test_preregistration.py`, the anti-leakage invariant in
+`tests/test_cold_holdout.py` and every CI threshold are untouched. No
+per-benchmark constant was added. The realizations base is still not projected
+across the window (§2.6), the death channel has no behavioural response, the
+decedent ladder has five classes and no within-class dispersion, and the
+`--ordinary-base` classification was not revisited.
