@@ -106,6 +106,31 @@ PHASE_D_SPENDING_LEVEL_RULE = (
     "window."
 )
 
+#: Commit that entered the IIJA authorization-path row
+#: (``iija_2021_discretionary.v2``) into this manifest. As in Phase B and
+#: Phase D, the row was added in this commit and first scored in a *later*
+#: one: the shape input is frozen in the git history before the mechanism is
+#: allowed to read it.
+IIJA_AUTHORIZATION_PATH_ENTERED_COMMIT = "PENDING"
+IIJA_AUTHORIZATION_PATH_ENTERED_DATE = "2026-09-01"
+
+#: Commit in which the authorization-path shape was first scored (the commit
+#: that lets ``validation/core.py`` read ``annual_authority_path_billions``).
+IIJA_AUTHORIZATION_PATH_FIRST_SCORED_COMMIT = "PENDING"
+
+#: The rule that sets every year of IIJA's budget-authority path, fixed before
+#: the model was allowed to read it. Written here rather than only in the
+#: record's notes because a per-year choice of authority would be a knob.
+IIJA_AUTHORIZATION_PATH_RULE = (
+    "budget_authority_path = the discretionary budget authority CBO's own cost "
+    "estimate states for each fiscal year it names ($162,996M in FY2022, then "
+    "$70.1B, $68.5B, $68.1B and $66.2B), with the remainder of the estimate's "
+    "stated $446,306M budget-authority total spread evenly over the fiscal "
+    "years it describes only as 'about $2B/yr' (FY2027-2031, $2.082B each). "
+    "No year is grown, discounted or otherwise adjusted, and the path sums to "
+    "the source's own total by construction."
+)
+
 #: Commit of the Phase E provenance pass (plan §5.1-§5.2): the pass that opened
 #: the primary documents and transcribed the rows behind the benchmark targets.
 #: It supersedes one out-of-sample row — ``biden_capital_gains_39`` — because
@@ -685,6 +710,43 @@ PREREGISTERED_CASES: tuple[PreregisteredCase, ...] = (
             "$70.0B in 2026), which a level SpendingPolicy with no spend-out "
             "model cannot reproduce. " + PHASE_D_SPENDING_LEVEL_RULE
         ),
+        superseded_by="iija_2021_discretionary.v2",
+    ),
+    # ---- The IIJA authorization path (entered, then scored) ---------------
+    PreregisteredCase(
+        case_id="iija_2021_discretionary.v2",
+        policy_id="iija_2021_discretionary",
+        official_10yr_billions=415.448,
+        source_name="Congressional Budget Office",
+        source_url=(
+            "https://www.cbo.gov/system/files/2021-08/hr3684_infrastructure.pdf"
+        ),
+        source_date="2021-08",
+        source_baseline_vintage=(
+            "CBO July 2021 baseline - VINTAGE MISMATCH: the repository's oldest "
+            "vintage is CBO_FEB_2024, so this row is scored on the model's "
+            "current default baseline."
+        ),
+        entered_commit=IIJA_AUTHORIZATION_PATH_ENTERED_COMMIT,
+        entered_date=IIJA_AUTHORIZATION_PATH_ENTERED_DATE,
+        first_scoring_run_commit=IIJA_AUTHORIZATION_PATH_FIRST_SCORED_COMMIT,
+        note=(
+            "**The target does not change.** This row replaces v1's *shape "
+            "input*, not CBO's $415.448B figure: the official number, the "
+            "source, the document and the window are all identical. What "
+            "changes is what the model is given to work from. v1 applied "
+            "PHASE_D_SPENDING_LEVEL_RULE, which reads the first fully-funded "
+            "year off the source and carries it forward at 2%/yr - the only "
+            "shape a SpendingPolicy could express when v1 was entered. The "
+            "source does not state a level; it states a five-year "
+            "authorization that then falls to about $2B/yr, and "
+            "SpendingPolicy.budget_authority_path (lane L2, PR #85) can now "
+            "carry that schedule. Keeping v1 would have meant scoring a shape "
+            "the source contradicts because the model used to be unable to "
+            "express the one it states. v1 stays in this file, unedited, with "
+            "its +$1,894B / 356% and post-spend-out +$1,621B / 290% both on "
+            "the record. " + IIJA_AUTHORIZATION_PATH_RULE
+        ),
     ),
 )
 
@@ -822,6 +884,12 @@ def summarize_preregistration() -> dict[str, Any]:
         "phase_b_first_scored_commit": PHASE_B_FIRST_SCORED_COMMIT,
         "phase_d_entered_commit": PHASE_D_ENTERED_COMMIT,
         "phase_d_first_scored_commit": PHASE_D_FIRST_SCORED_COMMIT,
+        "iija_authorization_path_entered_commit": (
+            IIJA_AUTHORIZATION_PATH_ENTERED_COMMIT
+        ),
+        "iija_authorization_path_first_scored_commit": (
+            IIJA_AUTHORIZATION_PATH_FIRST_SCORED_COMMIT
+        ),
         "rows": [
             {
                 "case_id": case.case_id,
@@ -844,6 +912,9 @@ def summarize_preregistration() -> dict[str, Any]:
 __all__ = [
     "CBO_OPTIONS_REVENUE_BASELINE",
     "CBO_OPTIONS_SPENDING_BASELINE",
+    "IIJA_AUTHORIZATION_PATH_ENTERED_COMMIT",
+    "IIJA_AUTHORIZATION_PATH_FIRST_SCORED_COMMIT",
+    "IIJA_AUTHORIZATION_PATH_RULE",
     "PHASE_A_COMMIT",
     "PHASE_B_ENTERED_COMMIT",
     "PHASE_B_FIRST_SCORED_COMMIT",

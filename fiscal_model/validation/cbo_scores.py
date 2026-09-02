@@ -130,6 +130,13 @@ class CBOScore:
     # target is a net-of-offsets total from which no annual level can be read
     # off — deriving one from the target would be fitting, not prediction.
     annual_amount_billions: float | None = None
+    # Spending: the source's own year-by-year budget authority, for a proposal
+    # whose authority is a *schedule* rather than a level - a multi-year
+    # authorization that ends, say. When set it replaces
+    # ``annual_amount_billions`` x growth as the shape's authority path. Like
+    # the level, it is transcribed from the source's own table and is a
+    # pre-registered shape input, never a knob turned to close a gap.
+    annual_authority_path_billions: tuple[float, ...] | None = None
     annual_growth_rate: float = 0.02
     phase_in_years: int = 1
     is_one_time: bool = False
@@ -1278,6 +1285,16 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         budget_window="FY2022-2031",
         effective_start_year=2022,
         annual_amount_billions=162.996,
+        # The source's own authorization schedule, FY2022-2031. Five figures
+        # are stated in CBO's table ($163.0B, $70.1B, $68.5B, $68.1B, $66.2B);
+        # the last five years are the remainder of CBO's stated $446,306M
+        # budget-authority total spread evenly, which is the "about $2B/yr"
+        # the record's own notes already describe. See
+        # ``IIJA_AUTHORIZATION_PATH_RULE`` in ``preregistered.py``: one rule
+        # sets every year, and no year was chosen by the error it produced.
+        annual_authority_path_billions=(
+            162.996, 70.1, 68.5, 68.1, 66.2, 2.082, 2.082, 2.082, 2.082, 2.082,
+        ),
         annual_growth_rate=0.02,
         spending_category="nondefense",
         notes="CBO cost estimate for Senate Amendment 2137 to H.R. 3684 (revised "
@@ -1285,9 +1302,12 @@ KNOWN_SCORES: dict[str, CBOScore] = {
               "budget authority $446,306M, estimated outlays $415,448M over "
               "FY2021-2031. Annual level = the FY2022 budget authority CBO states "
               "($162,996M), the first and only fully-funded year; the authorization "
-              "then falls to $70.1B, $68.5B, $68.1B, $66.2B and about $2B/yr. "
-              "Deliberately kept in the battery as the sharpest available evidence "
-              "for the missing budget-authority-to-outlay spend-out model.",
+              "then falls to $70.1B, $68.5B, $68.1B, $66.2B and about $2B/yr - "
+              "the schedule ``annual_authority_path_billions`` now carries, "
+              "registered as 'iija_2021_discretionary.v2'. The level shape that "
+              "read only the first year is 'iija_2021_discretionary.v1', "
+              "superseded because the source states a schedule and SpendingPolicy "
+              "can now express one.",
     ),
 }
 
