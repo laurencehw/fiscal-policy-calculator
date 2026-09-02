@@ -21,6 +21,7 @@ error here would turn a benchmark into an answer key.
 from __future__ import annotations
 
 import csv
+import dataclasses
 from pathlib import Path
 
 import pytest
@@ -246,5 +247,18 @@ def test_superseded_incidence_constants_are_gone():
         "avg_drug_price_ratio_to_intl",
         "insulin_avg_cost_per_year",
         "medicare_insulin_share",
+        "part_d_oop_cap",
     ):
         assert retired not in PHARMA_BASELINE
+
+
+def test_no_policy_field_is_declared_without_being_read():
+    """A settable field that changes no score is worse than a missing one.
+
+    ``oop_cap`` was declared on the dataclass and read by nothing, so a caller
+    could set a $2,000 Part D out-of-pocket cap and get a silent no-op. The
+    field is gone; restoring it means implementing the mechanism, which needs a
+    sourced per-beneficiary shift the way the insulin channel has one.
+    """
+    fields = {field.name for field in dataclasses.fields(DrugPricingPolicy)}
+    assert "oop_cap" not in fields

@@ -138,7 +138,9 @@ def test_results_match_the_official_target_and_direction(category, sectoral_resu
         assert result.direction_match, f"{result.policy_id} flipped sign"
 
 
-def test_the_insulin_cap_is_the_only_sign_disagreement_and_it_agrees_with_cbo():
+def test_the_insulin_cap_is_the_only_sign_disagreement_and_it_agrees_with_cbo(
+    sectoral_results,
+):
     """Pin the exception so it cannot quietly grow to cover a real regression.
 
     Two claims: exactly one sectoral row disagrees with its target on sign, and
@@ -148,17 +150,17 @@ def test_the_insulin_cap_is_the_only_sign_disagreement_and_it_agrees_with_cbo():
     """
     flipped = {
         result.policy_id
-        for results in (
-            validate_sectoral_policy(category, scenario_id, verbose=False)
-            for category in SECTORAL_CATEGORIES
-            for scenario_id in SECTORAL_SCENARIO_REGISTRIES[category]
-        )
-        for result in (results,)
+        for results in sectoral_results.values()
+        for result in results
         if not result.direction_match
     }
     assert flipped == KNOWN_TARGET_SIGN_INVERSIONS
 
-    insulin = validate_sectoral_policy("Pharma", "universal_insulin_cap", verbose=False)
+    insulin = next(
+        result
+        for result in sectoral_results["Pharma"]
+        if result.policy_id == "universal_insulin_cap"
+    )
     assert insulin.official_10yr < 0, "the stored target still reads as a saving"
     assert insulin.model_10yr > 0, (
         "the module must score an insulin cost-sharing cap as widening the "

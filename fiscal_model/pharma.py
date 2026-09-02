@@ -160,6 +160,16 @@ class DrugPricingPolicy(Policy):
     Models savings from drug pricing reforms, which primarily affect
     the spending side (reducing Medicare/Medicaid outlays) rather than
     the revenue side.
+
+    Not modelled: **the Part D annual out-of-pocket cap** (the IRA's $2,000
+    limit and any change to it). It has the same incidence as the insulin cap —
+    liability moves from the beneficiary to plans, and Medicare's basic-benefit
+    subsidy picks up most of it — but no published per-beneficiary shift
+    comparable to ASPE's $734M insulin figure has been transcribed for it. An
+    ``oop_cap`` field used to sit here, declared and read by nothing, so a
+    caller could set it and get a silent no-op; it is gone rather than left as
+    a lever that does nothing. Adding the mechanism means adding a sourced
+    shift, not restoring the field.
     """
     reform_type: DrugPricingReformType = DrugPricingReformType.COMPREHENSIVE
 
@@ -171,7 +181,6 @@ class DrugPricingPolicy(Policy):
     remove_exclusivity_delay: bool = False  # Remove 9/13 year delay for small molecule/biologic
 
     # Part D redesign
-    oop_cap: float | None = None  # Out-of-pocket cap (current: $2,000 from IRA)
     manufacturer_discount_pct: float = 0.0  # Mandatory manufacturer discount
 
     # Insulin
