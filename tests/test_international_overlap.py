@@ -116,12 +116,13 @@ class TestSharedClaimShare:
         ftc = INTERNATIONAL_BASELINE["gilti_ftc_limit"]
         sbie = INTERNATIONAL_BASELINE["pillar_two_sbie_tangible_rate"]
         for row in load_foreign_profit_by_etr():
-            tax = max(0.0, row.tax_accrued_billions)
-            gilti = max(0.0, 0.21 * row.profit_billions - ftc * tax)
+            gilti = max(
+                0.0, 0.21 * row.profit_billions - ftc * row.creditable_tax_billions
+            )
             excess = max(
                 0.0, row.profit_billions - sbie * row.tangible_assets_billions
             )
-            top_up = max(0.0, 0.15 - tax / row.profit_billions) * excess
+            top_up = max(0.0, 0.15 - row.creditable_effective_rate) * excess
             assert gilti >= top_up, row.jurisdiction
 
     def test_negative_accrued_tax_is_floored_at_zero(self):

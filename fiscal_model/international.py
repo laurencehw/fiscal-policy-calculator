@@ -140,7 +140,13 @@ FOREIGN_PROFIT_BY_ETR_FILE = (
 
 @dataclass(frozen=True)
 class ForeignProfitRow:
-    """One jurisdiction's low-taxed foreign profit, as filed on Form 8975."""
+    """One jurisdiction's low-taxed foreign profit, as filed on Form 8975.
+
+    ``employees_thousands`` is carried but not read: it is the input the
+    payroll half of the substance-based income exclusion would need, and
+    Form 8975 reports headcount rather than payroll. See
+    ``pillar_two_sbie_tangible_rate`` in :data:`INTERNATIONAL_BASELINE`.
+    """
 
     jurisdiction: str
     etr_band: str
@@ -153,6 +159,22 @@ class ForeignProfitRow:
     def effective_rate(self) -> float:
         """Income tax accrued over profit before income tax. May be negative."""
         return self.tax_accrued_billions / self.profit_billions
+
+    @property
+    def creditable_tax_billions(self) -> float:
+        """Accrued tax floored at zero.
+
+        58 rows of Table 4 accrue negative current-year tax on positive book
+        profit. Letting that run through unclamped would credit GILTI with more
+        than its own rate on the profit and top a jurisdiction up by more than
+        the minimum rate, neither of which either regime does.
+        """
+        return max(0.0, self.tax_accrued_billions)
+
+    @property
+    def creditable_effective_rate(self) -> float:
+        """:attr:`effective_rate` with negative accrued tax floored at zero."""
+        return self.creditable_tax_billions / self.profit_billions
 
 
 @lru_cache(maxsize=1)
@@ -250,16 +272,18 @@ def shared_claim_share(gilti_rate: float, minimum_rate: float) -> float:
     shared_total = 0.0
 
     for row in load_foreign_profit_by_etr():
-        creditable_tax = max(0.0, row.tax_accrued_billions)
-        effective_rate = creditable_tax / row.profit_billions
         gilti_claim = max(
-            0.0, gilti_rate * row.profit_billions - ftc_limit * creditable_tax
+            0.0,
+            gilti_rate * row.profit_billions
+            - ftc_limit * row.creditable_tax_billions,
         )
         excess_profit = max(
             0.0,
             row.profit_billions - sbie_rate * row.tangible_assets_billions,
         )
-        top_up_claim = max(0.0, minimum_rate - effective_rate) * excess_profit
+        top_up_claim = (
+            max(0.0, minimum_rate - row.creditable_effective_rate) * excess_profit
+        )
 
         gilti_total += gilti_claim
         pillar_two_total += top_up_claim
