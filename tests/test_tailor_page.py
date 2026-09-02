@@ -266,3 +266,44 @@ def test_a_scored_result_survives_the_round_trip_and_stays_valid():
     assert _state(at, SCORED_RESULT_KEY).policy_spec_hash == hash_before
     assert _state(at, "current_run_id") == hash_before
     assert _headline_is_rendered(at)
+
+
+# ---------------------------------------------------------------------------
+# Deselecting a chip must not kill the page (live-app report, 2026-09-01)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("key", "expected"),
+    [("tailor_policy_kind", "Income"), ("tailor_start_from", "Blank")],
+)
+def test_deselecting_a_chip_restores_the_stored_value_instead_of_crashing(key, expected):
+    """``st.segmented_control`` returns ``None`` when the active chip is clicked.
+
+    The page used to write the widget key *after* the widget existed, and the
+    resulting ``StreamlitAPIException`` surfaced through the section error
+    boundary as "Tailor encountered an issue". The stored value must come back
+    and the rest of the form must still render.
+    """
+    at = _fresh()
+    assert at.button_group(key=key).value == expected
+    at.button_group(key=key).set_value([])
+    at.run()
+    assert not at.exception, at.exception
+    assert not at.error, [element.value for element in at.error]
+    assert at.session_state[key] == expected
+    assert at.button_group(key=key).value == expected
+    assert [button.key for button in at.button] == [SCORE_BUTTON]
+
+
+def test_deselecting_the_kind_chip_brings_back_the_users_last_choice():
+    """The restore comes from the mirror, so a non-default choice survives."""
+    at = _fresh()
+    at.button_group(key="tailor_policy_kind").set_value("Corporate")
+    at.run()
+    assert at.session_state["tailor_policy_kind"] == "Corporate"
+    at.button_group(key="tailor_policy_kind").set_value([])
+    at.run()
+    assert not at.exception, at.exception
+    assert not at.error, [element.value for element in at.error]
+    assert at.session_state["tailor_policy_kind"] == "Corporate"
