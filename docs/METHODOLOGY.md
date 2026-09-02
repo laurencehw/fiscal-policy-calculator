@@ -867,7 +867,7 @@ The model reports per-household consumer cost by income quintile (lower-income h
 ### Country-Specific Modeling
 
 Every level below is a **2024 Census measurement**
-(`fiscal_model/data_files/trade/census_trade_2024.csv`, USA Trade Online /
+(`fiscal_model/data_files/trade/tariff_scoring_inputs.csv`, USA Trade Online /
 Census API, retrieved 2026-09-02): general imports at customs value
 (`GEN_VAL_YR`), effective duty rates as calculated duty over imports for
 consumption (`CAL_DUT_YR / CON_VAL_YR`, which includes the Section 232 and 301

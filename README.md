@@ -36,7 +36,7 @@ The calculator scores fiscal policy proposals through a three-stage pipeline:
 | Tax Expenditures | SALT cap, employer health, step-up basis, charitable | 4 |
 | IRS Enforcement | IRA funding, double enforcement, high-income targeting | 3 |
 | Drug Pricing | Expanded negotiation, insulin cap, reference pricing | 4 |
-| Trade / Tariffs | Universal 10%, China 60%, autos 25%, reciprocal tariffs | 5 |
+| Trade / Tariffs | Universal 10%, China 60%, autos 25%, steel and aluminium 25%, reciprocal tariffs | 5 |
 | Climate / Energy | IRA repeal, carbon tax paths, methane fee repeal | 5 |
 
 Plus fully custom policy design with adjustable parameters.
@@ -65,7 +65,7 @@ phones the top nav collapses into a sidebar toggle.
 ### Additional features
 
 - **💬 Ask assistant** — Citation-grounded Q&A about public finance and this model's outputs. Streams answers from Claude Sonnet 4.6 with tool access to the app's scoring engine, CBO baseline, validation scorecard, and 19 curated authoritative snapshots (CBO, JCT, PWBM, Yale Budget Lab, TPC, PGPF, BEA, BLS, SSA Trustees, FRED). Every substantive claim carries a `[^N]` footnote cross-referenced against the tool-call provenance; unsupported markers are auto-stripped. Hard daily cost cap ($5/day default across all visitors), per-session message cap, cool-down, and kill-switch protect the deployer's API budget. Available as a Streamlit tab, a non-streaming `POST /ask` endpoint, and an SSE `POST /ask/stream` endpoint.
-- **Tariff scoring** — 5 presets (universal 10%, China 60%, autos 25%, reciprocal), consumer price impact by income quintile. Since Wave 3 the headline is **net**, not gross customs duty: it subtracts duty avoidance, the ~25% income-and-payroll offset CBO, JCT and Treasury apply to any indirect tax, and the receipts lost to retaliation. Net/gross runs 0.60-0.66 across the five presets, every one of them moved 28-49%, and a caption computed from the scored result says so under the number
+- **Tariff scoring** — 5 presets (universal 10%, China 60%, autos 25%, steel and aluminium 25%, reciprocal), consumer price impact by income quintile. Since Wave 3 the headline is **net**, not gross customs duty: it subtracts duty avoidance, the ~25% income-and-payroll offset CBO, JCT and Treasury apply to any indirect tax, and the receipts lost to retaliation. Net/gross runs 0.60-0.66 across the five presets, every one of them moved 28-49%, and a caption computed from the scored result says so under the number.
 - **State-level modeling** — Combined federal + state effective rates for top 10 states, with SALT cap interaction
 - **OLG model** — 30-period Auerbach-Kotlikoff-style generational accounting for Social Security and Medicare reform
 - **Classroom Mode** — 7 interactive assignments (intro → advanced), Laffer curve explorer, PDF export; accessible at `streamlit run classroom_app.py`

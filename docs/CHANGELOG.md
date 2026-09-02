@@ -29,7 +29,7 @@ like-for-like readings are printed beside them:**
 | Calibrated, leave-one-out | 17 derivable @ 32.3% / 19.2% median / 8 within 15 | **18 derivable @ 28.4% / 16.5% / 9** (**29.5%** over the 17) |
 | — `Credits` | 45.1% | **20.5%** |
 | — `Expenditures` | 4 cases @ 28.8% | **5 cases @ 30.2%** |
-| Not cross-validatable | 5 | **4** (`eliminate_salt` left) |
+| Not cross-validatable | 5 | **4** — `eliminate_salt` left the excluded set and re-entered the derivable one |
 | Distributional (7 tables) | 0.00–5.86pp | **0.00–7.77pp** (ARP 4.76 → **7.77**) |
 | Scorecard rows | 79 (72 published) | **80 (73 published)** |
 | `revised_target_entries` | 2 | **3** |
