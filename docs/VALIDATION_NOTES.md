@@ -395,6 +395,97 @@ was written here the last time this doc was edited.
 
 ---
 
+## 5a. Budget authority → outlays: where the spend-out profiles came from (Wave 1, L2)
+
+Until 2026-09-01 `SpendingPolicy` turned an annual funding level straight into
+an outlay in the year the authority was provided — `grep -rn
+'spend_out\|outlay_rate' fiscal_model/` returned nothing — and that single
+defect carried **509 of Tier 1's 1,315 units of error mass (38.7%)**, the
+largest in the tier. Outlays are now the convolution
+
+```
+outlays_t = Σ_k s_k · BA_{t−k}
+```
+
+with `s` a first-year/out-year profile keyed by **account class**, and budget
+authority and outlays are distinct quantities on the policy and on the result.
+The eight spending rows moved to 0-18% and the tier fell to 34.4%; the
+mechanism's error mass is now **63.4 units of 859.5 (7.4%)**. Per-row detail is in
+[VALIDATION.md](VALIDATION.md); the pre-registration and outturn are in
+[`planning/lanes/L2_spend_out.md`](../planning/lanes/L2_spend_out.md).
+
+**The finding is about the source, not the fit.** Owner Decision 2 named **OMB
+Circular A-11 §32 outlay rates** as the primary source, with CBO's donor options
+as the check. *That source does not exist as described*, and this is a finding
+rather than a fetch failure:
+
+- **A-11 §32 is "Personnel Compensation, Benefits, and Related Costs."** Checked
+  in the 2016 edition and against the current table of contents. It contains no
+  outlay rates of any kind.
+- **A-11 publishes no numeric outlay-rate table in any section.** §80
+  ("Development of Baseline Estimates") requires only that new budgetary
+  resources "outlay at a rate that is consistent with Presidential policy
+  spendout rates"; §81 requires *agencies* to enter their own account-level
+  "outlay rates that apply to BA or limitations provided in the CY and beyond"
+  into MAX. The rates are agency-supplied and unpublished.
+- **CBO does publish account-level spendout rates** — publications 61913 and
+  62256, the discretionary-outlay interactive tools — but `cbo.gov` returns
+  HTTP 403 to this environment on every URL including `system/files`, and
+  `web.archive.org` was not reachable either.
+
+So **Decision 2's own fallback clause governs: the CBO donor options in the
+repository's own `cbo_options_2025_2034_alternatives.csv` are the shipped
+primary source**, and CBO's account-level rates are the open external
+cross-check, blocked on network access to cbo.gov. Both
+`fiscal_model/data_files/spending/outlay_rates.csv`'s header and
+`scripts/fit_outlay_rates.py`'s docstring say this in full, so the file cannot
+be read as claiming an A-11 provenance it does not have.
+
+**Anti-leakage.** Nineteen of the 76 options publish both an authority row and
+an outlays row. The five that are scored by the battery — options 37, 38, 39,
+42 and 43 — **never donate to any profile**, and option 44 is excluded because
+its outlays exceed its authority in every year (10-year ratio 1.52: repealing
+Davis-Bacon also cheapens work paid from prior-year balances, so its implied
+profile violates `s_k ≥ 0, Σs_k ≤ 1` and is not a spend-out observation). The
+remaining 14 are the donor pool, fitted by non-negative least squares;
+`tests/test_spending_outlays.py` asserts the disjointness directly and asserts
+that the committed CSV is what the documented fit reproduces.
+
+| class | donors (all unscored) | s₀ | Σs | level-path 10yr ratio |
+|---|---|--:|--:|--:|
+| `personnel_and_benefits` | 29, 36, 40, 41 | 0.921 | 1.000 | 0.991 |
+| `operations_and_support` | 28, 34 | 0.539 | 0.977 | 0.893 |
+| `grants_and_procurement` | 32, 33, 35 | 0.405 | 1.000 | 0.848 |
+| `construction_and_capital` | 31 | 0.022 | 0.973 | 0.663 |
+| `mandatory_benefit` | 3, 9 | 0.977 | 1.000 | 0.998 |
+
+**Class assignment is a classification, never a fit** — from the predominant
+account type of the programs each case funds, as the *source* describes them,
+the same discipline the repository already uses for the ordinary-vs-AGI-inclusive
+base split. No profile rate is keyed to a benchmark id, and no rate was chosen
+by looking at the error it produced.
+
+**Two honest edges.** The window truncates the **tail, not the head**: authority
+whose outlays fall past the projection end is dropped (the truncation official
+10-year totals embed), but a policy that began before the window still spends
+its earlier authority into it. Truncating the head too would have discarded
+authority the model's own shape claims to provide — worth about 90 points of
+flattery on IIJA alone. And these are account *classes*, not accounts:
+`cbo_opt39` now under-predicts at 8.1% because Pell disburses in two years while
+the generic grants profile takes six. That is what the blocked account-level
+rates would close.
+
+**The app follows.** Every Tailor spending program declares an
+`outlay_account_class` in its own definition and Build's spending goals derive
+one from the goal category, so the same $100B/yr of infrastructure funding no
+longer scores $1,146B in the app and $750B in the battery. Each spending score
+renders one line naming its profile and its outlay/authority ratio, computed
+from the scored result so it cannot drift from the number above it. `immediate`
+remains reachable as an explicit choice under Economic parameters and is the
+default for nothing.
+
+---
+
 ## 6. Leave-one-out: what the calibrated tier looks like held out
 
 `fiscal_model/validation/loo.py` (`python scripts/run_loo.py`) drops one
@@ -407,10 +498,15 @@ the calibrated annual through the LOO harness reproduces the scorecard value
 exactly, and monkeypatching `loo.official_target` to raise proves no
 derivation ever reads the held-out answer.
 
-**Aggregate: 59.3% mean / 35.6% median over 18 derivable cases, 6/18 within
+**Aggregate: 61.7% mean / 35.6% median over 18 derivable cases, 6/18 within
 15%, plus 4 cases reported as not cross-validatable.** Against the
-by-construction 4.4%. The gap is the size of the claim the by-construction
+by-construction 2.7%. The gap is the size of the claim the by-construction
 number cannot support.
+
+*Wave 1 moved this number in the direction people do not expect: 59.3% → 61.7%,
+entirely on the two AMT rows, because L5 replaced a flat constant with a
+published path. Read the AMT bullet under (a) before quoting the rise as a
+regression.*
 
 ### Classification, module by module
 
@@ -435,14 +531,66 @@ case from base data plus the other cases' calibration.
   the whole derived effect comes from the 40% → 45% rate change. The calibrated
   $45B/yr annual is carrying the exemption-broadening that the two-regime blend
   cancels out.
-- **AMT (2 of 3, mean 79.6%).** Derived from the taxpayer-count × average-
-  liability identity in `BASELINE_AMT_DATA` (7.3M filers at ~$10K post-sunset
-  per TPC; 200K at ~$25K under TCJA), bypassing the `CBO_AMT_ESTIMATES`
-  calibration constants. Both cases come out high (+73.2%, +86.0%) for the same
-  reason: the identity gives the *steady-state* post-sunset level (~$73B/yr,
-  which matches `revenue_post_tcja_2030 = 75.0`), while the official $450B/10yr
-  scores a window that ramps from the 2026 sunset. A LOO derivation that phased
-  the ramp in would close most of this; the module has no ramp.
+- **AMT (2 of 3, mean 100.5%).** Derived from the taxpayer-count × average-
+  liability identity, evaluated year by year on **TPC Table T25-0049**
+  ("Aggregate Alternative Minimum Tax Projections, 2024-2035", April 2025,
+  transcribed to `fiscal_model/data_files/amt/tpc_t25_0049_aggregate_amt.csv`),
+  with the baseline leg at the current-law exemption and the policy leg at the
+  reform exemption. Both cases come out high — **+90.1%** and **+110.9%** — and
+  Wave 1's L5 lane established that the reason this file previously gave was
+  **wrong**.
+
+  *What was believed.* Until 2026-09-01 this section, and `MODELING_IMPROVEMENT.md`
+  §3 L5 with it, said the overshoot was a missing 2026 phase-in: "the identity
+  gives the steady-state post-sunset level (~$73B/yr) while the official
+  $450B/10yr scores a window that ramps from the 2026 sunset. A LOO derivation
+  that phased the ramp in would close most of this; the module has no ramp."
+
+  *What the data shows.* There is no ramp to add. T25-0049 — whose baseline is
+  the law in place as of 1 January 2025, i.e. with the TCJA sunset still in law —
+  shows a **cliff**: AMT payers go from **0.2M in 2025 to 7.6M in 2026**, and the
+  post-sunset path then *grows*, from **$71.6B in 2026 to $124.2B in 2035**. The
+  flat ~$73B/yr was the window's **early-year** level, not its average, so
+  indexing the path by year *raises* the derived score rather than lowering it.
+  The LOO errors moved +73.2% → +90.1% and +86.0% → +110.9% for exactly that
+  reason, and the lane pre-registered both bands before writing the code.
+  `tests/test_amt_derived.py` pins the cliff so a data refresh cannot quietly
+  reintroduce the assumption, and an independent vintage (TPC T18-0145, 2018)
+  agrees on the shape — a cliff, not a ramp — while differing on level by ~15%.
+
+  *Why the rows still cannot come down.* Because the disagreement is with the
+  target, not the path. `benchmark_sources.py` records `extend_tcja_amt`'s
+  published line item as **$1,357.1B** (CRS R48286 Table 1, transcribing CBO
+  pub. 60114), noting that the *five*-year figure is $466.2B — "the carried
+  target looks like a five-year number sitting in a ten-year column". Scored
+  against the **published** figure instead of the carried one, the derived path
+  is **-37.0%** where the fitted constant is **-66.8%**: roughly 1.8× closer to
+  the document. The two published figures answer different questions (TPC's is a
+  standalone current-law sunset; CRS/CBO's is the AMT provision scored inside a
+  full TCJA-extension package, where extended rate cuts push far more filers
+  into AMT), so -37% and not 0% is the honest expectation.
+
+  *A second defect L5 found and closed.* Interpolating payer count and average
+  liability separately between the two regime anchors and multiplying them is
+  **not safe**: both are individually monotone in the exemption — the count falls,
+  the average rises — but their product turns upward, so a +$25K exemption
+  increase priced as a revenue *gain*. Revenue and payers are each interpolated
+  now and the average is their ratio. The exemption-change branch had been dead
+  code (`baseline_taxpayers` and `policy_taxpayers` computed from the same call),
+  so before L5 no exemption change had ever been scored at all, which is what
+  had been hiding it.
+
+  *Mode, and what a user sees.* `AMTPolicy` now has a `reported` mode (the
+  fitted annual) and a `derived` mode (the structural path). Under owner
+  Decision 1 the app default stays **`reported`**, because derived does not beat
+  fitted against the carried benchmarks; `derived` is the default in the
+  held-out path, which is where the honesty claim lives. The scorecard half of
+  Decision 1 is **blocked and stays blocked**: `repeal_individual_amt` is a
+  locked id in `holdout.py`'s `revenue-scorecard-post-lock-2026-05-02` protocol
+  and `readiness.py` hard-fails strict readiness on any holdout entry rated
+  Poor, which derived would be. `AMT_SCORECARD_MODE` is the one line that flips
+  it once the owner has settled the target — which is the same decision as
+  correcting these two targets, and is provenance work, not a modelling lane.
 - **Credits (3 of 3, mean 45.1%).** The per-unit identity (credit change ×
   affected units × participation) systematically *understates* all three
   expansions (−64.1% / −28.0% / −43.1%), because it prices only the per-child
@@ -516,9 +664,11 @@ the held-out error is large — as it should be, because there was never
 anything there to predict with.
 
 The gate in `scripts/run_validation_dashboard.py` (`--max-loo-mean-error`,
-default 75 — the observed 59.3% × 1.25, rounded to 5) exists to catch a
-*regression* in the structural machinery — a base table edited without
-re-deriving — not to certify accuracy. Do not quote it as an accuracy claim.
+default 75 — derived as the then-observed 59.3% × 1.25, rounded to 5) exists to
+catch a *regression* in the structural machinery — a base table edited without
+re-deriving — not to certify accuracy. Do not quote it as an accuracy claim. It
+is deliberately **not** re-derived from the post-Wave-1 61.7%: a ceiling that
+tracks every observation upward is not a gate, and this one still has room.
 
 ---
 
@@ -529,9 +679,13 @@ Phase E (plan §5.3) wired the five sectoral modules into the scorecard:
 `_climate` in `fiscal_model/validation/specialized_sectoral.py`. Seventeen
 presets that ship in the app with an official number attached had never been
 compared to it. (Three of those seventeen targets are model estimates rather
-than published scores; the provenance label on each row says which.) Twelve of them carry no module constant fitted to the target,
-and their mean absolute error is **394.1%** (median 57.1%) against **2.7%** for
-the 34 genuinely fitted benchmarks.
+than published scores; the provenance label on each row says which.) Twelve of
+them carry no module constant fitted to the target, and their mean absolute
+error was **394.1%** (median 57.1%) against **2.7%** for the 34 genuinely fitted
+benchmarks. **Wave 1's L7 lane took that 394.1% to 113.8%** by repairing the two
+pharma incidence bugs §7.3 diagnosed; the median is unchanged at 57.1%, because
+the repair moved two rows a long way and the other ten not at all. The
+per-family figures below are the Phase E outturn except where marked.
 
 Nothing below was retuned. The instruction the phase was run under, and the
 right one, is that a module far from its published figure gets reported as
@@ -607,40 +761,87 @@ these rows as accuracy statements:
   Foundation or TPC publication states a 25%-rate steel-and-aluminium ten-year
   estimate, and -$15B is annual-scale. See §8.3.
 
-### 7.3 Drug pricing (3 cases, mean 1,394.1%, 0 fitted)
+### 7.3 Drug pricing (3 cases, mean 272.8%, 0 fitted) — repaired in Wave 1 (L7)
 
-| Case | Official | Model | Error |
-|---|---:|---:|---:|
-| Expand drug negotiation | -$500B | -$372B | 25.7% |
-| Universal insulin cap | -$15B | -$445B | 2,868.6% |
-| International reference pricing | -$100B | -$1,388B | 1,287.9% |
+| Case | Official | Model (Phase E) | Err | **Model (post-L7)** | **Err** |
+|---|---:|---:|---:|---:|---:|
+| Expand drug negotiation | -$500B | -$372B | 25.7% | -$372B | 25.7% |
+| Universal insulin cap | -$15B | -$445B | 2,868.6% | **+$7.0B** | **146.4%** |
+| International reference pricing | -$100B | -$1,388B | 1,287.9% | **-$746B** | **646.2%** |
 
-**This is the phase's most substantive finding.** Two of the three are not
-calibration drift — they are incidence bugs in `pharma.py`:
+Family mean **1,394.1% → 272.8%**; the 12-row sectoral subset it sits in moved
+**394.1% → 113.8%** (median 57.1%, unchanged), and the 20-row reconstruction
+tier **250.8% → 82.6%**. **No parameter was fitted to any of these three
+targets**, and none of the nine untouched sectoral rows moved.
 
-- `DrugPricingPolicy._estimate_insulin_savings` credits the *entire* difference
-  between a $6,000 average annual insulin cost and the $420 capped cost to the
-  federal budget, for all 8.4M insulin users. A price cap that mostly
-  reallocates cost among patients, insurers and manufacturers is therefore
-  scored as ~$47B/yr of federal saving. Worse, `extend_to_private=True`
-  *increases* the modelled federal saving, when in the published scores the
-  private-market portion has essentially no federal budget effect. The module's
-  own `CBO_PHARMA_ESTIMATES` carries CBO's -$6.4B for the Medicare-only cap,
-  which the code never uses as a check.
-- `_estimate_reference_pricing_savings` applies the full US/OECD price-ratio
-  reduction (2.56x → 1.20x, a 53% cut) to *all* $275B of Medicare Part B + Part D
-  drug spending, ignoring the manufacturer rebates already netted out of Part D
-  and any utilisation or availability response.
+**What Phase E found.** Two of the three were not calibration drift but
+incidence bugs in `pharma.py`:
 
-The negotiation case is milder: savings scale linearly in drug count from the
-IRA per-drug average with a flat 60% productivity haircut, while CBO's scoring
-is strongly non-linear in *which* molecules enter the window. Its -$500B target
-is itself labelled "CBO/Estimate" in the record and is not a CBO score of this
-policy.
+- `_estimate_insulin_savings` credited the *entire* difference between a $6,000
+  average annual insulin cost and the $420 capped cost to the federal budget,
+  for all 8.4M insulin users — ~$47B/yr of "federal saving" from a cap that
+  mostly reallocates cost among patients, insurers and manufacturers. Worse,
+  `extend_to_private=True` set `medicare_share = 1.0`, so extending the cap to
+  private insurance *raised* the modelled federal saving 2.5×.
+- `_estimate_reference_pricing_savings` applied RAND's **gross list-price**
+  ratio (2.56) to a **net** Part B + Part D spending base with no rebate
+  adjustment and no brand/generic split — even though US unbranded generics are
+  *cheaper* than the OECD comparison (67% of comparison-country prices) and
+  cannot contribute savings.
 
-Fixing the two incidence bugs changes a shipped module's output for users, not
-just a validation number, so it belongs in a `pharma.py` change with its own
-review — not in a validation runner.
+**What L7 repaired.** Both are now specified on a net-price, brand-only,
+federal-share basis, with every input transcribed with document, page and URL to
+`fiscal_model/data_files/pharma/drug_pricing_incidence.csv` and pinned against
+`PHARMA_BASELINE` by `tests/test_pharma_incidence.py`:
+
+- **Insulin** is a **cost-sharing** cap, so it moves a patient's liability onto
+  the plan and the federal budget picks up only its share of that shift: ASPE's
+  $734M/yr of Part D out-of-pocket relief × Medicare's 74.5% statutory
+  basic-benefit subsidy share (MedPAC), plus the private-market cost shift ×
+  CBO's 32% marginal income-plus-payroll offset. The result is **+$7.0B — a
+  deficit *increase***.
+- **Reference pricing** applies RAND's *net* brand ratio (3.08, after a 37.2%
+  gross-to-net adjustment) to a brand-only, rebate-netted Part D + Part B base,
+  times the federal share of each program.
+
+**The insulin row read against both benchmarks.** Model **+$7.0B**; carried
+target **-$15.0B** (146.4%, directions disagree); **CBO publication 57957
++$11.4B** (+$6.566B outlays, -$4.793B revenues, FY2022-2031 — 39% away,
+directions agree). The model now says what CBO says: a $35 cost-sharing cap
+extended to private plans *adds* to the deficit. **The 146.4% is the price of
+saying it**, because the stored benchmark points the other way, and no
+percentage against that target can be read as accuracy. The remaining gap to
+CBO is two named omissions: induced utilisation, and growth in insulin cost and
+enrolment across a ten-year window, since ASPE's $734M is a single 2020 figure
+held flat.
+
+**What is *not* repaired, on either row.**
+
+- The reference-pricing base is still **overstated**: RAND's index is computed
+  on presentations sold in both markets, and the module applies it to **all**
+  brand spending.
+- **No utilisation, launch-delay or availability response is modelled** on
+  either row.
+- `expand_drug_negotiation`'s linear per-drug scaling is untouched — savings
+  scale linearly in drug count from the IRA per-drug average with a flat 60%
+  productivity haircut, while CBO's scoring is strongly non-linear in *which*
+  molecules enter the window. Its -$500B target is `model_estimate` and is not a
+  CBO score of this policy.
+
+The residual on the reference-pricing row is now mostly the **target**: -$100B
+is provenance `model_estimate` — a RAND price statistic, not a budget score —
+while the model's -$746B sits above CBO's ~$456B for H.R. 3's *narrower*
+international-reference cap (120% of the average international market price on a
+limited set of drugs), which is where a broader policy should sit. Closing this
+row to under 100% would require making the model wrong; the lane said so in its
+pre-registration, before the code changed.
+
+**Shipped preset output moved**, as the plan's L7 caveat warned it would:
+💊 Universal Insulin Cap -$445.3B → **+$7.0B**; 💊 International Reference
+Pricing -$1,387.9B → **-$746.2B**; 💊 Comprehensive Drug Reform -$1,025.8B →
+**-$573.5B**; 💊 Expand Drug Negotiation unchanged. No preset label and no
+`CBO_SCORE_MAP` entry changed — those carry the official score, not the
+model's.
 
 ### 7.4 IRS enforcement (2 cases, mean 43.9%, 1 fitted)
 
@@ -691,8 +892,11 @@ The calibrated tier is now 46 entries, but it is two populations:
 | Unfitted module reconstructions | 12 | 394.1% | 2/12 |
 
 *(Phase D later added eight P.L. 119-21 line items to this same unfitted class, at
-35.8% mean, taking it to 20 entries and a 250.8% mean — see §8. The Phase E
-figures above are kept as the outturn of Phase E.)*
+35.8% mean, taking it to 20 entries and a 250.8% mean — see §8. Wave 1's L7 lane
+then repaired the two pharma incidence bugs, taking the 12-row sectoral subset to
+**113.8%** and the 20-row tier to **82.6%** — see §7.3. The Phase E figures above
+are kept as the outturn of Phase E; **live numbers come from
+`python scripts/cold_holdout.py`**, never from this table.)*
 
 `scripts/cold_holdout.py` reports them as separate tiers, and the anti-leakage
 invariant in `tests/test_cold_holdout.py` compares the out-of-sample tier
@@ -810,15 +1014,20 @@ Five are worth more than a row:
    (pub. 57957) is **+$6.566B of outlays and -$4.793B of revenues** over
    FY2022-2031 — about **+$11.4B added to the deficit**, because capping a
    patient's cost sharing reallocates cost to plans and to the federal subsidy
-   for them. The repository carries -$15B as a saving. §7.3 already identified
-   the model side of this as an incidence bug; the target has the same bug.
-   The row's 2,869% "error" is measured against a benchmark pointing the wrong
-   way, so it cannot be read as an accuracy statement in either direction.
+   for them. The repository carries -$15B as a saving. §7.3 identified the model
+   side of this as an incidence bug; the target has the same bug. **The model
+   side is now fixed** — Wave 1's L7 lane scores federal incidence and returns
+   **+$7.0B**, 39% below CBO's +$11.4B and agreeing with it in sign — so the
+   row's remaining 146.4% "error" is measured against a benchmark pointing the
+   wrong way, and cannot be read as an accuracy statement in either direction.
 2. **Extend TCJA AMT relief looks like a window error.** The published ten-year
    cost is $1,357.1B; the *five*-year cost is $466.2B; the repository carries
    $450B. A five-year figure sitting in a ten-year column would explain it
-   exactly. Not corrected here — the AMT module's annual is fitted to $450B, so
-   moving the target means retuning the module.
+   exactly. Not corrected here — the AMT module's fitted annual is set to $450B,
+   so moving the target means retuning the module. Wave 1's L5 lane sharpened
+   the case for moving it: the module's **derived** path (TPC T25-0049) scores
+   $855.3B, **-37.0%** against the published row where the fitted constant is
+   -66.8%. See §6's AMT bullet.
 3. **Repeal FDII nets to zero as Treasury scores it.** Gross repeal raises
    $157,993M, and Treasury pairs it one-for-one with "Provide additional support
    for research and development expenditures" (-$157,993M), printing an explicit
