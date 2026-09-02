@@ -259,7 +259,7 @@ def test_repeal_individual_amt_was_left_alone_with_the_search_recorded():
     assert "T25-0049" in source.searched
 
 
-def test_a_range_row_rejects_a_carried_figure_outside_its_bounds(monkeypatch):
+def test_a_range_row_rejects_a_carried_figure_outside_its_bounds():
     """The containment check is the range row's version of "the ledger and the
     registry must agree", and it has to actually fail when they do not."""
     from fiscal_model.validation import target_revisions as tr
