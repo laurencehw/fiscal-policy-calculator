@@ -208,6 +208,21 @@ alternatives together.
 *Appended 2026-09-02, after the code. Numbers from `python scripts/run_loo.py
 --donor-matrix` and `python scripts/cold_holdout.py` on the finished branch.*
 
+**Main moved under the lane.** Wave 2's L4 estate lane (PR #93) merged while
+this branch was open and changed two estate LOO rows —
+`extend_tcja_exemption` +6.0% → **+19.2%**, `biden_estate_reform` +45.6% →
+**−1.6%** — so the suite the lane is measured against is not the one §1
+recorded. Both baselines are given below and §1 is left exactly as it was
+written; restating a pre-registration after the fact is the thing
+pre-registration exists to prevent. **Nothing in the expenditure module
+depends on which base is used**: the per-case rows below are identical on
+either.
+
+| suite | n | mean | median | within 15% |
+|---|--:|--:|--:|--:|
+| Branch point `9a1e8bc`, what §1 registered against | 18 | 58.7% | 32.5% | 6 |
+| Merged base (after L4), what this lane is measured against | 18 | **57.0%** | **25.3%** | **6** |
+
 ### Leave-one-out
 
 | Case | Official | By-constr | LOO before | LOO after | Err before | Err after |
@@ -226,13 +241,13 @@ rather than 5, with 2 excluded rather than 1.
 
 | | n | mean | median | within 15% |
 |---|--:|--:|--:|--:|
-| Before | 18 | 58.7% | 32.5% | 6 |
-| **After, as the script reports it** | **17** | **57.3%** | **28.0%** | **7** |
-| After, like-for-like (counting `eliminate_salt` at its derived +20.4%) | 18 | **55.3%** | **25.3%** | **7** |
+| Merged base | 18 | 57.0% | 25.3% | 6 |
+| **After, as the script reports it** | **17** | **55.5%** | **22.6%** | **7** |
+| After, like-for-like (counting `eliminate_salt` at its derived +20.4%) | 18 | **53.6%** | **21.5%** | **7** |
 
-The 57.3% is what `run_loo.py` prints. It is **1.4pp better than the 58.7% it
+The 55.5% is what `run_loo.py` prints. It is **1.5pp better than the 57.0% it
 replaces partly because a 74.9% case left the denominator**, and saying so is
-the point of printing both rows: the like-for-like number, 55.3%, is the one
+the point of printing both rows: the like-for-like number, 53.6%, is the one
 that measures the model change. The reported figure improving *because a case
 was reclassified as not cross-validatable* is a worse outcome for the
 repository than the like-for-like improvement, not a better one — the module
@@ -248,8 +263,8 @@ now cross-validates on four benchmarks where it used to claim five.
 | LOO `eliminate_mortgage` | unchanged | **-5.1%** | as registered |
 | LOO `repeal_salt_cap` | unchanged | **+4.0%** | as registered |
 | Expenditure module mean | 26% to 29% | **28.8%** | in band |
-| LOO suite mean (like-for-like) | 54% to 57% | **55.3%** | in band, exactly the point prediction |
-| LOO suite median (like-for-like) | ~25% | **25.3%** | exact |
+| LOO suite mean (like-for-like) | 54% to 57% | **53.6%**, or **55.3%** on the base §1 registered against | in band on the registered base; 0.4pp below it on the merged one, because L4 moved the estate rows |
+| LOO suite median (like-for-like) | ~25% | **21.5%**, or **25.3%** on the registered base | exact on the registered base |
 | LOO within 15% (like-for-like) | 7/18 | **7/18** | exact |
 | Derived employer health | $2.12B/yr | **$2.116B/yr** | exact |
 | Derived SALT elimination | $120.0B/yr | **$120.0B/yr** | exact |
@@ -257,7 +272,7 @@ now cross-validates on four benchmarks where it used to claim five.
 | Tier 1 | 34.4% / 12 / 16, unmoved | **34.4% / 12 / 16** | as registered |
 | Fitted tier (33) | 2.8%, unmoved | **2.8%, 32/33** | as registered |
 | Unfitted reconstructions (21) | 76.7%, unmoved | **76.7%** | as registered |
-| Other LOO modules | unmoved | **unmoved** | as registered |
+| Other LOO modules | unmoved | **unmoved by this branch** | as registered; L4's estate rows moved on main, not here |
 | App presets | unmoved | **unmoved** | as registered |
 | Suite case count | 18 derivable | **17 derivable** | **missed — finding 1** |
 
@@ -420,10 +435,10 @@ The lane brief puts `README.md`, `CLAUDE.md`, `docs/VALIDATION*.md`,
 
 | File | Says | Should say |
 |---|---|---|
-| `docs/VALIDATION_NOTES.md` §6, aggregate | "61.7% mean / 35.6% median over 18 derivable cases, 6/18 within 15%, plus 4 cases reported as not cross-validatable" | **57.3% / 28.0% over 17, 7/17 within 15%, 5 not cross-validatable** — and the like-for-like 55.3% / 25.3% / 7 of 18 belongs next to it, because 1.4pp of the fall is a case leaving the denominator |
+| `docs/VALIDATION_NOTES.md` §6, aggregate | "58.7% mean / 32.5% median over 18 derivable cases, 6/18 within 15%, plus 4 cases reported as not cross-validatable" (also stale by L4, which takes the merged base to 57.0% / 25.3% / 6) | **55.5% / 22.6% over 17, 7/17 within 15%, 5 not cross-validatable** — and the like-for-like 53.6% / 21.5% / 7 of 18 belongs next to it, because 1.5pp of the fall is a case leaving the denominator |
 | `docs/VALIDATION_NOTES.md` §6, expenditures bullet | "Tax expenditures (5 of 6, mean 39.4%)"; the `eliminate_salt` and `cap_employer_health` sub-bullets describe both bugs as unfixed and "flagged here rather than patched" | **4 of 6, mean 28.8%**; both bugs are fixed, `eliminate_salt` is now excluded by the leakage guard, and the sub-bullets should become findings 1 and 2 above |
 | `docs/VALIDATION_NOTES.md` §6, "Not cross-validatable (4 cases)" table | four rows | **five** — add `eliminate_salt`, "`annual_cost_no_cap = 120.0` is the $1,200B target restated" |
-| `CLAUDE.md`, Target Validation | "~59% mean / ~36% median over 18 leave-one-out cases (4 more declared not cross-validatable)" | **~57% / ~28% over 17 (5 more not cross-validatable)** |
+| `CLAUDE.md`, Target Validation | "58.7% mean / 32.5% median over 18 leave-one-out cases, 6/18 within 15% (4 more declared not cross-validatable)" | **55.5% / 22.6% over 17, 7/17 (5 more not cross-validatable)** |
 
 Nothing in Tier 1, the fitted tier, the reconstruction tier or the
 distributional tables moved, so no other doc row is affected.
