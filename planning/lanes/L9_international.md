@@ -213,4 +213,122 @@ Both are §1.6 work and this lane does not touch a target.
 
 ## 6. Outturn
 
-*Appended in the lane's last commit.*
+Measured on `676b336`, the lane's last code commit.
+
+| Row | Target | Before | After | Error before → after |
+|---|---:|---:|---:|---:|
+| `biden_gilti_reform` | −$280.0B | −$230.27B | −$230.27B | 17.76% → **17.76%** |
+| `fdii_repeal` | −$200.0B | −$170.00B | **−$110.70B** | 15.00% → **44.65%** |
+| `pillar_two_adoption` | −$80.0B | −$61.20B | −$61.20B | 23.50% → **23.50%** |
+| `biden_full_international` | −$700.0B | −$413.00B | **−$353.71B** | 41.00% → **49.47%** |
+| **12-row sectoral subset** | | **104.84%** | **108.01%** | median 39.98% → 47.06% |
+| 24-row reconstruction tier | | 72.1% | **73.7%** | 5/24 → 4/24 within 15% |
+| Tier 1 out-of-sample (n=25) | | 31.3% | **31.3%** | 13/25 and 18/25 unchanged |
+| Calibrated fitted (n=30) | | 2.2% | **2.2%** | 30/30 within 15% unchanged |
+| Leave-one-out (n=17) | | 32.3% | **32.3%** | median 19.2%, 8/17 unchanged |
+
+**The pre-registration held on everything it argued from, and missed one number
+it did not.** §3.2 predicted `fdii_repeal` at ≈ −$110.7B / ≈ 44.7% and the
+package at ≈ −$353.7B / ≈ 49.5%; the runners return −$110.70B / 44.65% and
+−$353.71B / 49.47%. The sectoral mean was predicted at ≈ 108.0% and returns
+108.01%; the 24-row tier at ≈ 73.7% and returns 73.7%. The sectoral **median**
+was predicted at ≈ 41.8% and came in at **47.06%** — an indexing slip in the
+hand arithmetic, which took the 5th and 6th of twelve sorted errors instead of
+the 6th and 7th. Recorded rather than quietly corrected, per §1.3.
+
+**Every falsification test in §3.3 passed.** None of the eight sectoral rows
+this lane does not own moved by any amount; `biden_gilti_reform` and
+`pillar_two_adoption` are unchanged to the cent; the overlap term returns
+exactly zero for all five shipped factories, which
+`test_no_shipped_factory_books_an_overlap` now pins; and Tier 1, the fitted
+tier and the leave-one-out tier are unchanged, as is the distributional set.
+
+### The overlap term, and the finding that came with it
+
+It ships and it changes nothing on the battery — which was registered in
+advance and is the point, not an excuse. What it does establish is a result
+worth having in writing:
+
+> With an 80% foreign tax credit, a per-country GILTI at 21% claims
+> `0.21·Y − 0.8·T` from a jurisdiction where a 15% Pillar Two top-up claims at
+> most `0.15·Y − T`. The difference is `0.06·Y + 0.2·T`, positive for every
+> positive profit and non-negative tax. **A 21% per-country GILTI subsumes a
+> 15% minimum tax in every jurisdiction, without exception**, so a policy
+> carrying both raises the larger of the two, never the sum.
+
+That is algebra; the CbCR distribution is what shows where it stops holding.
+`shared_claim_share(0.13125, 0.15)` — the 2026 statutory GILTI rate against the
+OECD minimum — returns **0.9916**, not 1: at that rate the two provisions
+interleave across jurisdictions and about 0.8% of the smaller claim sits
+outside the larger. A constant would have got the 21% case right and this one
+wrong.
+
+The plan's premise about *where* the double count sits did not survive contact
+with the code, and §3.2 said so before the lane opened a file. The module's
+UTPR reads foreign-parented profits and its GILTI reads US-parented CFC income;
+`create_biden_full_international` combines exactly those two, so its overlap is
+zero. The package's residual is a **level**: a \$15B UTPR against Treasury's own
+\$136,313M row and JCT's implied \$133.9B, partly offset by an FDII repeal
+booked at \$130B where Treasury's printed subtotal is \$0.
+
+### `pillar_two_adoption` read against the range, not the midpoint
+
+Required by the lane brief; no target was touched.
+
+| Comparator | Figure | Model −$61.2B is |
+|---|---:|---:|
+| Carried benchmark (midpoint) | −$80.0B | 23.5% low |
+| The module's own stated range | $50–120B | **inside it** |
+| JCT JCX-22-23 Scenario 4 — the scenario this factory models | +$102.6B | 40.4% low |
+| JCT Scenario 2 — rest of the world enacts too | **−$56.5B**, a revenue *loss* | opposite sign |
+
+The row's real problem is not its distance from any of these. It is that
+`create_pillar_two_adoption` models US adoption **conditional on nobody else
+adopting**, which is the only state of the world in which JCT scores it as a
+raiser at all. Provenance work (§1.6), flagged here and left alone.
+
+### Shipped preset output moved
+
+| Preset | Official | Before | After |
+|---|---:|---:|---:|
+| 🌍 Biden GILTI Reform | −$280B | −$230.27B | unchanged |
+| 🌍 Repeal FDII | −$200B | −$170.00B | **−$110.70B** |
+| 🌍 Pillar Two Adoption | −$80B | −$61.20B | unchanged |
+| 🌍 Biden International Package | −$700B | −$413.00B | **−$353.71B** |
+
+No preset label or `CBO_SCORE_MAP` entry changed: those carry the official
+score, not the model's, and this lane touched no target.
+
+### What this lane did not do
+
+- **The UTPR was not re-based.** It needs OECD country-by-country aggregates by
+  ultimate-parent jurisdiction to size the global low-taxed pool and the US
+  allocation key of JCT's Equation 2; `oecd.org` returns HTTP 403 to this
+  environment, and the only reachable figure for the quantity — Treasury's own
+  \$136,313M — sits inside the `biden_full_international` benchmark, so
+  deriving the base from it would be circular. **This is the single largest
+  remaining item in the module** and it is what a Wave 4 lane should open with.
+- **`biden_gilti_reform`'s two fitted constants were not replaced**, for the
+  reasons in §5.2. The identity and its published figure are recorded there.
+- **No target moved**, no per-benchmark constant was added, and
+  `cold_holdout.py`, `run_loo.py`, `loo.py`, `preregistered.py`,
+  `target_revisions.py`, `benchmark_sources.py`, `KNOWN_SCORES` and
+  `CBO_SCORE_MAP` were not opened.
+- **`fiscal_model/assistant/knowledge/international_tax.md` is stale and was
+  left stale.** Its "What the app reproduces" block claims GILTI \$340B, FDII
+  \$145B and a \$960B package; the module returned \$230B / \$170B / \$413B
+  *before* this lane and \$230B / \$111B / \$354B after. The file is the Ask
+  assistant's citation-grounded knowledge base, not this lane's to edit, and it
+  was already wrong by a factor the lane did not create. Flagged for whoever
+  owns it.
+
+### Gates
+
+| Gate | Exit |
+|---|---|
+| `ruff check fiscal_model/ tests/ app.py app_pages/ components/ classroom_app.py scripts/` | 0 |
+| `pytest tests/ -q -x` | 0 — 3,026 passed, 1 skipped |
+| `cold_holdout.py --max-mean-error 40 --min-within-25pct 17` | 0 |
+| `run_loo.py --donor-matrix --max-mean-error 75` | 0 |
+| `run_validation_dashboard.py` | 1 — pre-existing (runtime Python 3.14 and microdata calibration degraded) |
+| `check_readiness.py --strict` | 2 — pre-existing (same two warnings plus the two documented Poor outliers) |
