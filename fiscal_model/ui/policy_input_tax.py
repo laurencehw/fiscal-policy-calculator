@@ -491,7 +491,13 @@ def render_tax_policy_inputs(
                         max_value=6.0,
                         step=0.5,
                         key=KEY_TAILOR_TAX_CG_LOCK_IN_MULTIPLIER,
-                        help="How much step-up increases the incentive to defer. 2.0 = calibrated to Penn Wharton estimates.",
+                        help=(
+                            "How much step-up at death raises the incentive to defer "
+                            "realizations (it multiplies the realization elasticity). "
+                            "2.0 is the module default. 5.3 is the value one calibrated "
+                            "validation scenario uses to reproduce Penn Wharton's revenue "
+                            "loss; it is not current-law evidence."
+                        ),
                     )
         else:
             with st_module.expander("Advanced parameters", expanded=False):

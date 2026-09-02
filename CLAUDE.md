@@ -152,7 +152,7 @@ CapitalGainsPolicy(
     eliminate_step_up=False,         # Set True to model step-up elimination
     step_up_exemption=1_000_000,     # Biden: $1M per person
     gains_at_death_billions=54.0,    # CBO estimate
-    step_up_lock_in_multiplier=2.0,  # 5.3x matches PWBM revenue loss
+    step_up_lock_in_multiplier=2.0,  # module default; 5.3 is a per-scenario calibration (scenarios.py pwbm_39_with_stepup) that reproduces PWBM's revenue loss
 )
 
 # TCJA Extension (calibrated to CBO $4.6T)
