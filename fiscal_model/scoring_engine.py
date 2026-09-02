@@ -181,6 +181,11 @@ class FiscalPolicyScorer:
             low = final_deficit.copy()
             high = final_deficit.copy()
 
+        if isinstance(policy, SpendingPolicy):
+            budget_authority = self._score_spending_authority(policy)
+        else:
+            budget_authority = static_spending.copy()
+
         result = ScoringResult(
             policy=policy,
             baseline=self.baseline,
@@ -189,6 +194,7 @@ class FiscalPolicyScorer:
             static_spending_effect=static_spending,
             static_deficit_effect=static_deficit,
             behavioral_offset=behavioral,
+            budget_authority_effect=budget_authority,
             dynamic_effects=dynamic_effects,
             final_deficit_effect=final_deficit,
             low_estimate=low,
@@ -214,14 +220,17 @@ class FiscalPolicyScorer:
         total_static_revenue = np.zeros(n_years)
         total_static_spending = np.zeros(n_years)
         total_behavioral = np.zeros(n_years)
+        total_budget_authority = np.zeros(n_years)
 
         for result in results:
             total_static_revenue += result.static_revenue_effect
             total_static_spending += result.static_spending_effect
             total_behavioral += result.behavioral_offset
+            total_budget_authority += result.budget_authority_effect
 
         total_static_revenue *= package.interaction_factor
         total_static_spending *= package.interaction_factor
+        total_budget_authority *= package.interaction_factor
         static_deficit = total_static_spending - total_static_revenue
         deficit_after_behavioral = static_deficit + total_behavioral
 
@@ -253,6 +262,7 @@ class FiscalPolicyScorer:
             static_spending_effect=total_static_spending,
             static_deficit_effect=static_deficit,
             behavioral_offset=total_behavioral,
+            budget_authority_effect=total_budget_authority,
             dynamic_effects=combined_dynamic,
             final_deficit_effect=final_deficit,
             low_estimate=low,
@@ -358,14 +368,36 @@ class FiscalPolicyScorer:
         return self.baseline.individual_income_tax[baseline_index]
 
     def _score_spending_policy(self, policy: SpendingPolicy) -> np.ndarray:
-        """Calculate static spending effect for spending policy."""
+        """Outlays for a spending policy - the quantity that hits the deficit.
+
+        Budget authority is spent out over the years the account's profile
+        implies (:mod:`fiscal_model.spending_outlays`); under the default
+        ``immediate`` class the two coincide.
+
+        The window truncates the *tail*, not the head: authority whose outlays
+        fall past the end of the projection is dropped (the within-window
+        truncation official 10-year totals embed), but a policy that began
+        before the window still spends its earlier authority out into it,
+        because that authority is a fact about the policy and not about where
+        the projection happens to start.
+        """
         n_years = len(self.baseline.years)
         spending = np.zeros(n_years)
 
         for idx, year in enumerate(self.baseline.years):
-            spending[idx] = policy.get_spending_in_year(year)
+            spending[idx] = policy.get_outlays_in_year(year)
 
         return spending
+
+    def _score_spending_authority(self, policy: SpendingPolicy) -> np.ndarray:
+        """Budget authority a spending policy provides or withdraws, by year."""
+        n_years = len(self.baseline.years)
+        authority = np.zeros(n_years)
+
+        for idx, year in enumerate(self.baseline.years):
+            authority[idx] = policy.get_budget_authority_in_year(year)
+
+        return authority
 
     def _score_transfer_policy(self, policy: TransferPolicy) -> np.ndarray:
         """Calculate static cost effect for transfer policy."""
