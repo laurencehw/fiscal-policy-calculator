@@ -310,15 +310,20 @@ def print_benchmarks() -> bool:
         return True
 
     all_ok = True
-    print(f"    {'Source':<9} {'Rating':<17} {'Err (pp)':>9}  Benchmark")
-    print(f"    {'-' * 9} {'-' * 17} {'-' * 9}  {'-' * 40}")
+    print(
+        f"    {'Source':<9} {'Universe':<10} {'Rating':<17} {'Err (pp)':>9}  Benchmark"
+    )
+    print(f"    {'-' * 9} {'-' * 10} {'-' * 17} {'-' * 9}  {'-' * 40}")
     for c in comparisons:
         source = c.benchmark.source.value.split()[0]
+        # Two rows with the same error mean different things if they were
+        # scored on different populations, so the universe travels with it.
+        universe = c.benchmark.ranking_universe
         rating = c.overall_rating
         err = c.mean_absolute_share_error_pp
         err_str = f"{err:.2f}" if err is not None else "—"
         name = c.benchmark.policy_name[:50]
-        print(f"    {source:<9} {rating:<17} {err_str:>9}  {name}")
+        print(f"    {source:<9} {universe:<10} {rating:<17} {err_str:>9}  {name}")
         if rating == "needs_improvement":
             all_ok = False
     return all_ok

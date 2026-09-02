@@ -653,6 +653,10 @@ full taxable-income base. Treat uncalibrated custom policies as directional
     st_module.markdown("#### Live distributional accuracy (CBO/JCT)")
     st_module.caption(
         "Computed at render time against the current distributional engine. "
+        "Each row is scored on the universe its own source ranks: CBO's tables "
+        "on **households**, ranked by income before transfers and taxes divided "
+        "by the square root of household size into groups holding equal numbers "
+        "of people; JCT's on **tax filing units**, by income class. "
         "Also exposed via the `GET /benchmarks` API endpoint and "
         "`scripts/run_validation_dashboard.py`."
     )
@@ -670,21 +674,29 @@ full taxable-income base. Treat uncalibrated custom policies as directional
                 continue
             comparison = compare_distribution(model_result, benchmark)
             err = comparison.mean_absolute_share_error_pp
+            universe = (
+                "households"
+                if benchmark.ranking_universe == "household"
+                else "tax units"
+            )
             rows.append(
                 f"| {benchmark.source.value.split()[0]} | "
                 f"{benchmark.source_document} | "
+                f"{universe} | "
                 f"{comparison.overall_rating} | "
                 f"{err:.2f} |"
                 if err is not None
                 else f"| {benchmark.source.value.split()[0]} | "
                 f"{benchmark.source_document} | "
+                f"{universe} | "
                 f"{comparison.overall_rating} | — |"
             )
         if rows:
             st_module.markdown(
-                "| Source | Document | Rating | Mean abs. share error (pp) |\n"
-                "|--------|----------|--------|---------------------------:|\n"
-                + "\n".join(rows)
+                "| Source | Document | Universe | Rating "
+                "| Mean abs. share error (pp) |\n"
+                "|--------|----------|----------|--------"
+                "|---------------------------:|\n" + "\n".join(rows)
             )
         else:
             st_module.info(

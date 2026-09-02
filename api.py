@@ -321,6 +321,11 @@ class BenchmarkResult(BaseModel):
     mean_absolute_share_error_pp: float | None
     matched_rows: int
     benchmark_rows: int
+    #: The universe the source ranks, and therefore the one the model was
+    #: scored on: "household" (CBO's tables) or "tax_unit" (JCT's). Two
+    #: benchmarks with the same error mean different things if they were
+    #: scored on different populations, so the field travels with the number.
+    ranking_universe: str = "tax_unit"
 
 
 class BenchmarksResponse(BaseModel):
@@ -769,6 +774,7 @@ def summary():
                 mean_absolute_share_error_pp=comparison.mean_absolute_share_error_pp,
                 matched_rows=len(comparison.per_group),
                 benchmark_rows=len(benchmark.rows),
+                ranking_universe=benchmark.ranking_universe,
             )
         )
 
@@ -876,6 +882,7 @@ def list_benchmarks():
                 mean_absolute_share_error_pp=comparison.mean_absolute_share_error_pp,
                 matched_rows=len(comparison.per_group),
                 benchmark_rows=len(benchmark.rows),
+                ranking_universe=benchmark.ranking_universe,
             )
         )
 
