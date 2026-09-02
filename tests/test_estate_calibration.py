@@ -1,5 +1,5 @@
 """
-Estate tax window-average calibration and two-regime taxable-amount tests.
+Estate tax window-average calibration and SOI mean-excess taxable-amount tests.
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ from fiscal_model.estate import (
     create_eliminate_estate_tax,
     create_tcja_estate_extension,
     create_warren_estate_proposal,
+    soi_estate_anchor,
 )
 from fiscal_model.policies import PolicyType
 from fiscal_model.scoring import FiscalPolicyScorer
@@ -38,8 +39,15 @@ def test_warren_and_eliminate_use_flat_window_averages():
     assert eliminate.total_10_year_cost == pytest.approx(350.0, rel=1e-6)
 
 
-def test_two_regime_avg_exceeds_mid_only_avg():
-    """Ultra-high tail blend must raise average taxable amount vs mid-only."""
+def test_taxable_amount_tracks_the_soi_mean_excess_ratio():
+    """
+    Replaces the old two-regime blend test.
+
+    The blend existed to stop a single mid-distribution Pareto underweighting
+    the $50M+ tail; the SOI-fitted distribution measures the mean excess
+    directly off SOI's own anchor row instead, so the average taxable amount
+    is 1.83 times the exemption and no top-tail constant is needed.
+    """
     policy = EstateTaxPolicy(
         name="Bottom-up",
         description="Bottom-up",
@@ -47,10 +55,12 @@ def test_two_regime_avg_exceeds_mid_only_avg():
         new_exemption=3_500_000,
         new_rate=0.45,
     )
-    _n, blended = policy.estimate_taxable_estates(3_500_000)
-    post_tcja_exemption = 6_400_000
-    mid_only = BASELINE_ESTATE_DATA["avg_taxable_amount_post_tcja"] * (
-        3_500_000 / post_tcja_exemption
-    )
-    assert blended > mid_only
-    assert blended > mid_only * 1.5  # top-tail value share is material
+    estates, average = policy.estimate_taxable_estates(3_500_000, 2026)
+    ratio = soi_estate_anchor().mean_excess_ratio
+    assert average == pytest.approx(3_500_000 * ratio)
+    assert 1.5 < ratio < 2.2
+    assert estates > 0
+    # The 2024 fitted anchors it replaces are gone, not merely unused.
+    assert "avg_taxable_amount_post_tcja" not in BASELINE_ESTATE_DATA
+    assert "taxable_estates_post_tcja" not in BASELINE_ESTATE_DATA
+    assert "top_tail_value_share" not in BASELINE_ESTATE_DATA
