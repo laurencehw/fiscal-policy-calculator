@@ -915,9 +915,12 @@ be traced to a document at all. An error against a target that is itself wrong
 is not an accuracy statement, and the scorecard now says which rows those are
 rather than leaving a reader to assume all 46 are equally solid.
 
-The headline counts moved too: `published_entries` (61) replaces
-`total_entries` (68) everywhere a sentence ends "validated against CBO/JCT",
-because the seven illustrations have no CBO/JCT number to be validated against.
+The headline counts moved too: `published_entries` replaces `total_entries`
+everywhere a sentence ends "validated against CBO/JCT", because the seven
+illustrations have no CBO/JCT number to be validated against. Phase E left that
+at 61 of 68 rows; merged with Phase D's additions it reads **72 of 79**. Both
+numbers are computed live, so no document should ever restate them without
+running `scripts/run_validation_dashboard.py` first.
 ---
 
 ## 8. P.L. 119-21 — sourcing the first line-item block (Phase D)
