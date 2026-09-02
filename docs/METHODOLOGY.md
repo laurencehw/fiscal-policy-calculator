@@ -586,10 +586,26 @@ the TCJA sunset: AMT payers go from **0.2M in 2025 to 7.6M in 2026** — a cliff
 not a ramp — and the post-sunset path then grows from **$71.6B in 2026 to
 $124.2B in 2035**. The derived ten-year cost of extending TCJA AMT relief is
 therefore **$855.3B**, above the flat identity's ~$73B/yr, and full repeal from
-2026 is **$948.9B**. **`reported` is the app default**: derived does not beat
-fitted against the carried $450B benchmarks, though it is much closer to the
-*published* line item those benchmarks disagree with ($1,357.1B; −37.0% derived
-against −66.8% fitted). `derived` is the default in the held-out validation path.
+2026 is **$948.9B**.
+
+**`reported` is the app default, and stayed there when the targets were
+corrected.** Owner Decision 1's rule is that a module keeps its fitted mode
+until its derived error beats its fitted error, and across the three AMT
+benchmarks it does not: **22.3% reported against 54.2% derived**.
+
+| Benchmark | Target | Reported (fitted) | Err | Derived (structural) | Err |
+|---|--:|--:|--:|--:|--:|
+| `extend_tcja_amt` | $1,357.1B | $450.5B | **−66.8%** | **$855.3B** | **−37.0%** |
+| `repeal_individual_amt` | $450.0B | $450.5B | +0.1% | $948.9B | +110.9% |
+| `repeal_corporate_amt` | $220.0B | $220.1B | +0.05% | $252.2B | +14.6% |
+| **Mean abs** | | | **22.3%** | | **54.2%** |
+
+Read the two rows on which derived loses before treating that mean as evidence
+for the fitted path: both are targets a constant was fitted to, so their ~0% is bookkeeping,
+and `repeal_corporate_amt`'s derived path is the flat base `loo.py`'s leakage
+guard already flags. **The one AMT benchmark whose target no constant was fitted
+to is the one derived wins**, by a factor of 1.8. `AMT_SCORECARD_MODE` also stays
+`reported`; `derived` is the default in the held-out validation path.
 
 Not modelled: the phase-out thresholds. `phase_out_threshold_change` is declared
 and never read, and under the post-sunset schedule the phase-out is what claws
@@ -1192,12 +1208,20 @@ uncalibrated custom rate policies as directional, ±15–25%.
 
 Specialized modules parameterized to reproduce the published decomposition. Useful
 as auditable, source-linked reconstructions of official scores, *not* as
-independent confirmation. **34 fitted benchmarks, mean absolute error 2.7%, 33 of
-34 within 15%, 34 of 34 within 25%.** Twenty-nine of them reproduce a published
+independent confirmation. **33 fitted benchmarks, mean absolute error 2.8%, 32 of
+33 within 15%, 33 of 33 within 25%.** Twenty-eight of them reproduce a published
 CBO/JCT/Treasury decomposition; the other five are fitted to a target that is
 itself a model estimate, so those measure internal consistency only. (Earlier
-revisions of this file quoted “≈ 5% across 29 benchmarks”; `scripts/cold_holdout.py`
-is now the only place this figure should be read from.)
+revisions of this file quoted “≈ 5% across 29 benchmarks”, then 2.7% over 34;
+`scripts/cold_holdout.py` is now the only place this figure should be read from.)
+
+**Quote the 33 with the row that left it.** `ScorecardSummary.revised_target_entries`
+is **2**: two calibrated targets were corrected through the Tier-2 revision ledger
+(`fiscal_model/validation/target_revisions.py`), and a constant fitted to a
+superseded figure is not fitted to its replacement — so the revised
+`extend_tcja_amt` row reports in Tier 2b, where a miss is a finding rather than a
+regression. Held in place instead, this tier reads **34 benchmarks at 4.7%, 32 of
+34 within 15%**, the extra miss being that row at 66.8%.
 
 | Policy | Official Score | Model Score | Error | Status |
 |--------|----------------|-------------|-------|--------|
@@ -1219,23 +1243,25 @@ is now the only place this figure should be read from.)
 
 ### Tier 2b — Unfitted module reconstructions (target never fitted to)
 
-**20 policies, mean absolute error 82.6%, median 43.1%; 4 of 20 within 15%, 7 of
-20 within 25%.** These are two populations and must never be read as one number:
+**21 policies, mean absolute error 76.7%, median 41.0%; 4 of 21 within 15%, 7 of
+21 within 25%.** These are three populations and must never be read as one
+number:
 
 - **Twelve Phase E sectoral presets** (international, trade, pharma, IRS
-  enforcement, climate) at **113.8% mean / 57.1% median**. They ship in the app
+  enforcement, climate) at **104.8% mean / 40.0% median**. They ship in the app
   with an official figure attached and no module constant was ever fitted to any
   of them. Two — the universal insulin cap and international reference pricing —
   diagnosed real federal-incidence bugs in `pharma.py`, and **Wave 1's L7 lane
   repaired both**, taking this subset from 394.1% to 113.8% without fitting a
-  parameter to any of the three pharma targets. The insulin *target* remains
-  mis-signed: CBO publication 57957 scores a private-market insulin cap at about
-  **+$11.4B**, i.e. as *adding* to the deficit, against the carried −$15B — and
-  the model now scores **+$7.0B**, so it is the benchmark, not the module, that
-  points the wrong way. Reference pricing at −$746B against a −$100B
-  `model_estimate` target is the family's largest remaining row; CBO scored
-  H.R. 3's narrower international-reference cap at about $456B, which is where a
-  broader policy should sit.
+  parameter to any of the three pharma targets. The insulin *target* was then
+  corrected too: CBO publication 57957 scores a private-market insulin cap at
+  about **+$11.4B**, i.e. as *adding* to the deficit, against the carried −$15B,
+  and the model scores **+$7.0B** — so the row moved from 146.4% with the
+  directions disagreeing to **39.0%** with them agreeing, taking this subset to
+  104.8% / 40.0%. Reference pricing at −$746B against a −$100B `model_estimate`
+  target is the family's largest remaining row; CBO scored H.R. 3's narrower
+  international-reference cap at about $456B, which is where a broader policy
+  should sit.
 - **Eight Phase D P.L. 119-21 line items** (JCT JCX-35-25, transcribed with page
   references to `fiscal_model/data_files/validation/pl119_21_jct_line_items.csv`)
   at **35.8% mean**, 2 of 8 within 15%, scored over JCT's own FY2025–2034 window.
@@ -1244,15 +1270,20 @@ is now the only place this figure should be read from.)
   aggregate to **0.4%** and JCT's own component rows to **36%**, because one
   calibration factor is fitted to the aggregate and no factor is fitted to any
   component.
+- **One revised-target row**, `extend_tcja_amt`, at **66.8%**. Its target moved
+  from $450B to CRS R48286's published $1,357.1B and the AMT constant — still
+  fitted to the superseded figure — was deliberately not retuned, so it reports
+  here rather than in Tier 2a. The module's *derived* path scores $855.3B,
+  **−37.0%** against the same row.
 
-Nothing in either group was retuned to close a gap, and every row carries a
+Nothing in any of the three was retuned to close a gap, and every row carries a
 `known_limitations` note naming the structural cause.
 
 ### Tier 2c — Calibrated modules, held out (leave-one-out)
 
 `python scripts/run_loo.py` refits each calibrated module's mechanism on the
 *other* benchmarks in its module and asks it to rebuild the held-out one.
-**18 derivable cases, mean absolute error 61.7%, median 35.6%, 6 of 18 within
+**18 derivable cases, mean absolute error 58.7%, median 32.5%, 6 of 18 within
 15%**, plus **4 cases declared not cross-validatable** — no second benchmark to
 calibrate on, or a base constant that is the published target restated — which are
 reported and never folded into the aggregate.
@@ -1263,23 +1294,25 @@ reported and never folded into the aggregate.
 | Estate | structural | 2 | 1 | 25.8% |
 | Expenditures | bottom-up | 5 | 1 | 39.4% |
 | Credits | structural | 3 | 0 | 45.1% |
-| AMT | structural | 2 | 1 | 100.5% |
+| AMT | structural | 2 | 1 | 73.9% |
 | CapitalGains | structural | 3 | 0 | 171.2% |
 
-Compare against the 2.7% in Tier 2a: that number measures bookkeeping, this one
+Compare against the 2.8% in Tier 2a: that number measures bookkeeping, this one
 measures whether the machinery predicts.
 
-**This aggregate rose in Wave 1, 59.3% → 61.7%, entirely on AMT** (79.6% →
-100.5%), and the rise is the module becoming more structural rather than less
-accurate. L5 replaced a flat steady-state identity (~$73B/yr) with TPC
-T25-0049's published year-indexed path. The plan's hypothesis had been that a
-missing 2026 phase-in biased the derivation high; the table shows a **cliff**
-(0.2M AMT payers in 2025, 7.6M in 2026) followed by *growth* ($71.6B in 2026 to
-$124.2B in 2035), so the flat level was the window's early-year value and
-indexing it by year **raises** the score. Both rows therefore moved away from
-their carried $450B targets while the extension moved *toward* the published
-line item it is really being compared with ($1,357.1B: −66.8% fitted → **−37.0%**
-derived). See [VALIDATION_NOTES.md](VALIDATION_NOTES.md) §6.
+**This aggregate has moved twice, and neither move was a model change.** Wave 1
+took it 59.3% → 61.7%, entirely on AMT (79.6% → 100.5%), and that rise was the
+module becoming more structural rather than less accurate: L5 replaced a flat
+steady-state identity (~$73B/yr) with TPC T25-0049's published year-indexed path.
+The plan's hypothesis had been that a missing 2026 phase-in biased the derivation
+high; the table shows a **cliff** (0.2M AMT payers in 2025, 7.6M in 2026)
+followed by *growth* ($71.6B in 2026 to $124.2B in 2035), so the flat level was
+the window's early-year value and indexing it by year **raises** the score. Both
+rows therefore moved away from their carried $450B targets. Correcting
+`extend_tcja_amt`'s target to the published $1,357.1B then took the aggregate to
+**58.7%** and AMT to **73.9%**: the held-out derivation is **unchanged at
+$855.3B** and only the figure it is measured against moved, so that row reads
+**−37.0%** instead of +90.1%. See [VALIDATION_NOTES.md](VALIDATION_NOTES.md) §6.
 
 ### Reading the tiers
 
@@ -1288,9 +1321,9 @@ derived). See [VALIDATION_NOTES.md](VALIDATION_NOTES.md) §6.
 | Tier | What it measures | n | Mean | Median |
 |---|---|--:|--:|--:|
 | 1 — out-of-sample, pre-registered | prediction | 25 | **34.4%** | 16.1% |
-| 2a — calibrated, fitted | bookkeeping (low by construction) | 34 | **2.7%** | 0.2% |
-| 2b — unfitted module reconstructions | modules against targets they never saw | 20 | **82.6%** | 43.1% |
-| 2c — calibrated, leave-one-out | how much of the calibration is structure | 18 | **61.7%** | 35.6% |
+| 2a — calibrated, fitted | bookkeeping (low by construction) | 33 | **2.8%** | 0.3% |
+| 2b — unfitted module reconstructions | modules against targets they never saw | 21 | **76.7%** | 41.0% |
+| 2c — calibrated, leave-one-out | how much of the calibration is structure | 18 | **58.7%** | 32.5% |
 
 Distributional accuracy is a fifth, separate number: **seven published CBO/JCT
 tables at 0.00–5.86pp** mean absolute share error, **two of which are circular**

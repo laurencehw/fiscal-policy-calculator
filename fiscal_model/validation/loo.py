@@ -79,13 +79,12 @@ from typing import Any
 
 from ..amt import AMT_HELD_OUT_MODE, AMT_MODE_REPORTED
 from ..estate import (
-    CURRENT_ESTATE_TAX_RATE,
-    ESTATE_TAX_EXEMPTIONS,
-    TCJA_EXTENDED_EXEMPTIONS,
-    EstateTaxPolicy,
+    ESTATE_HELD_OUT_MODE,
+    ESTATE_MODE_REPORTED,
+    soi_estate_anchor,
+    soi_tax_base_pareto_alpha,
 )
 from ..payroll import SOCIAL_SECURITY_PARAMS, SSA_COVERED_WAGES_ABOVE_BILLIONS
-from ..policies import PolicyType
 from ..tax_expenditures_core import (
     EXPENDITURE_HELD_OUT_MODE,
     ExpenditureDistributionMissing,
@@ -593,56 +592,62 @@ def run_payroll_loo() -> LOOReport:
 # Estate — kind (a): exemption / rate machinery
 # ---------------------------------------------------------------------------
 
-ESTATE_BASELINE_YEAR = 2026
-ESTATE_BIDEN_EXEMPTION = 3_500_000.0
-ESTATE_BIDEN_RATE = 0.45
+#: The one estate benchmark whose target is a model estimate rather than a
+#: published score, and which the module therefore never folds into the
+#: aggregate however well it derives.
+ESTATE_UNPUBLISHED_TARGET_CASES = ("eliminate_estate_tax",)
 
 
-def _estate_annual_revenue(exemption: float, rate: float) -> float:
-    """Annual estate-tax revenue ($B) implied by the module's machinery."""
-    probe = EstateTaxPolicy(
-        name="LOO probe",
-        description="Structural probe for leave-one-out derivation",
-        policy_type=PolicyType.ESTATE_TAX,
-    )
-    estates, avg_taxable = probe.estimate_taxable_estates(exemption)
-    return estates * avg_taxable * rate / 1e9
+def _estate_derived_runner(case_id: str, verbose: bool = False) -> ValidationResult:
+    """Score an estate case through the SOI-fitted size distribution."""
+    return validate_estate_policy(case_id, verbose=verbose, mode=ESTATE_HELD_OUT_MODE)
+
+
+def _estate_reported_runner(case_id: str, verbose: bool = False) -> ValidationResult:
+    """Score an estate case through the fitted annual constant."""
+    return validate_estate_policy(case_id, verbose=verbose, mode=ESTATE_MODE_REPORTED)
 
 
 def derive_estate_annual(case_id: str) -> float | None:
     """
-    Re-derive an estate benchmark's annual from the exemption/rate machinery.
+    Re-derive an estate benchmark's annual from the size distribution.
 
-    Deliberately bypasses ``EstateTaxPolicy.estimate_static_revenue_effect``'s
-    ``extend_tcja_exemption`` short-circuit, which returns
-    ``CBO_ESTATE_ESTIMATES["extend_tcja_annual"]`` — that constant *is* the
-    published $167B target divided by ten, so using it would be reading the
-    answer key. The derivation here runs the shared two-regime taxable-estate
-    machinery on both the baseline and the reform exemption instead.
+    Builds the scenario's own policy in ``derived`` mode and returns the
+    window average of its structural path, which reads no fitted constant:
+    ``annual_revenue_change_billions`` is ignored in that mode. The
+    ``extend_tcja_exemption`` short-circuit that used to return
+    ``CBO_ESTATE_ESTIMATES["extend_tcja_annual"]`` — the published $167B target
+    divided by ten, i.e. the answer key — is gone from
+    ``estimate_static_revenue_effect`` outright, so there is nothing left to
+    bypass. Nothing here touches :func:`official_target`.
     """
-    baseline = _estate_annual_revenue(
-        ESTATE_TAX_EXEMPTIONS[ESTATE_BASELINE_YEAR], CURRENT_ESTATE_TAX_RATE
-    )
-    if case_id == "extend_tcja_exemption":
-        reform = _estate_annual_revenue(
-            TCJA_EXTENDED_EXEMPTIONS[ESTATE_BASELINE_YEAR], CURRENT_ESTATE_TAX_RATE
-        )
-        return reform - baseline
-    if case_id == "biden_estate_reform":
-        reform = _estate_annual_revenue(ESTATE_BIDEN_EXEMPTION, ESTATE_BIDEN_RATE)
-        return reform - baseline
-    return None
+    scenario = ESTATE_TAX_VALIDATION_SCENARIOS.get(case_id)
+    if scenario is None:
+        return None
+    if case_id in ESTATE_UNPUBLISHED_TARGET_CASES:
+        return None
+    policy = scenario["policy_factory"]()
+    policy.mode = ESTATE_HELD_OUT_MODE
+    return policy.derived_window_average()
 
 
 def run_estate_loo() -> LOOReport:
     """Leave-one-out over the three estate benchmarks."""
+    alpha = soi_tax_base_pareto_alpha()
+    anchor = soi_estate_anchor()
     report = LOOReport(
         module="Estate",
         mechanism=(
-            "Two-regime taxable-estate machinery (EstateTaxPolicy.estimate_taxable_estates) "
-            "evaluated at the baseline and reform exemption, times the reform rate. The "
-            "regime anchors (7,000 estates / $8M average under TCJA; 19,000 / $4M after "
-            "sunset) are shared base data, not per-benchmark constants."
+            "Pareto size distribution of the estate tax base (taxable estate + adjusted "
+            f"taxable gifts), shape alpha={alpha:.3f} pooled from IRS SOI Estate Tax "
+            "Statistics Table 1 across filing years 2010, 2013 and 2024, level anchored "
+            f"on SOI's own {anchor.filing_year} taxable-return panel "
+            f"({anchor.taxable_returns:,} returns, "
+            f"${anchor.net_estate_tax_billions:.1f}B of net estate tax at a "
+            f"${anchor.exemption/1e6:.2f}M exemption). Evaluated on the baseline and "
+            "reform exemption paths year by year, one year behind the fiscal year "
+            "because Form 706 is filed the year after death. Shared base data, not "
+            "per-benchmark constants."
         ),
     )
     all_ids = tuple(ESTATE_TAX_VALIDATION_SCENARIOS)
@@ -655,20 +660,20 @@ def run_estate_loo() -> LOOReport:
                     module="Estate",
                     case_id=case_id,
                     registry=ESTATE_TAX_VALIDATION_SCENARIOS,
-                    runner=validate_estate_policy,
+                    runner=_estate_derived_runner,
+                    calibrated_runner=_estate_reported_runner,
                     derived_annual=None,
                     derivation=DERIVATION_NONE,
                     calibration_set=(),
                     notes=(
-                        "Full repeal needs the *level* of estate-tax revenue, but the "
-                        "machinery is calibrated in differences: its implied baseline is "
-                        "~$196B/yr against CBO's ~$50B/yr projection. The target is also "
-                        "sourced 'Model estimate', not a published score."
+                        "The machinery now reproduces revenue levels as well as "
+                        "differences — its 2026 baseline is ~$47.6B against CBO's ~$50B "
+                        "projection, where the old two-point blend implied ~$196B — so "
+                        "full repeal is derivable. It stays out of the aggregate for the "
+                        "other reason: the $350B target is sourced 'Model estimate', not "
+                        "a published score."
                     ),
-                    exclusion_reason=(
-                        "target is not a published official score, and the machinery "
-                        "reproduces differences but not revenue levels"
-                    ),
+                    exclusion_reason="target is not a published official score",
                 )
             )
             continue
@@ -677,13 +682,15 @@ def run_estate_loo() -> LOOReport:
                 module="Estate",
                 case_id=case_id,
                 registry=ESTATE_TAX_VALIDATION_SCENARIOS,
-                runner=validate_estate_policy,
+                runner=_estate_derived_runner,
+                calibrated_runner=_estate_reported_runner,
                 derived_annual=derived,
                 derivation=DERIVATION_STRUCTURAL,
                 calibration_set=retained,
                 notes=(
-                    "Derived from the shared exemption/rate machinery; the "
-                    "extend_tcja_annual short-circuit (= target / 10) is bypassed."
+                    "Derived from the SOI-fitted tax-base distribution; the fitted annual "
+                    "is ignored in derived mode and the extend_tcja_annual short-circuit "
+                    "(= target / 10) no longer exists in the module at all."
                 ),
             )
         )

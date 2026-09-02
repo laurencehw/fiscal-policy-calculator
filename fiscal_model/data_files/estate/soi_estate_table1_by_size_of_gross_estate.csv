@@ -1,0 +1,105 @@
+# Source: IRS, Statistics of Income Division, Estate Tax Statistics.
+#   "Table 1. Estate Tax Returns Filed in <year>, by Tax Status and Size of
+#   Gross Estate" -- Part I (all returns), Part II (taxable returns) and
+#   Part III (nontaxable returns) of the same printed table.
+# Landing page: https://www.irs.gov/statistics/soi-tax-stats-estate-tax-filing-year-tables
+# Workbooks:
+#   filing year 2010 -> https://www.irs.gov/pub/irs-soi/10es01fy.xlsx
+#   filing year 2013 -> https://www.irs.gov/pub/irs-soi/13es01fy.xlsx
+#   filing year 2024 -> https://www.irs.gov/pub/irs-soi/24es01fy.xlsx
+# Read: 2026-09-02. SOI release stamps on the sheets read
+#   "August 2012" (FY2010), "October 2014" (FY2013), "July 2026" (FY2024).
+# Units: money amounts in THOUSANDS of dollars, exactly as SOI prints them;
+#   size-class bounds in dollars. Counts are returns (Forms 706), and every
+#   figure is an estimate based on a sample.
+# Why these three filing years and no others: each one observes the estate
+#   distribution at a different filing threshold -- $3.5M (2009 decedents),
+#   $5.12M (2012 decedents) and $12.92M (2023 decedents) -- so together they
+#   pin the Pareto shape of the tax base across thresholds a factor of 3.7
+#   apart. A shape estimated inside one year needs no wealth deflator.
+# Filing lag: SOI's own footnote to every one of these tables reads
+#   "Generally, an estate files a federal estate tax return (Form 706) in the
+#   year after a decedent's death", which is the source for the module's
+#   one-year receipts lag (IRC 6075(a): nine months, extendable six under 6081).
+# Columns:
+#   filing_year            SOI filing year (the table's own year)
+#   decedent_year          the year of death most returns in that table are for
+#   filing_threshold_usd   gross-estate filing threshold for that decedent year
+#   statutory_top_rate     top statutory estate tax rate for that decedent year
+#                          (IRC 2001(c) as amended: 45% for 2009 deaths, 35%
+#                          for 2012 deaths under P.L. 111-312, 40% for 2023
+#                          deaths under P.L. 112-240). NOT a SOI column -- it
+#                          is added here so the three years can be compared at
+#                          a common rate, and it is the only non-transcribed
+#                          field in the file.
+#   tax_status             all | taxable | nontaxable  (Parts I, II, III)
+#   size_class_lower_usd   lower bound of the printed size class, 0 for the
+#                          open-ended bottom class and for the panel total row
+#   size_class_upper_usd   upper bound; blank for the open-ended top class and
+#                          for the panel total row (lower 0 + upper blank)
+#   returns                number of returns (Form 706)
+#   gross_estate_thou      gross estate for tax purposes, $ thousands
+#   taxable_estate_thou    taxable estate, $ thousands
+#   adjusted_taxable_gifts_thou  adjusted taxable gifts, $ thousands
+#   net_estate_tax_thou    net estate tax, $ thousands
+# Caveats carried from SOI's own notes: the bottom size class of each table is
+#   contaminated -- gross estate can fall below the filing threshold for deaths
+#   in earlier years, and gross estate excludes gift taxes paid during life --
+#   so the module reads no class boundary below 95% of a year's filing
+#   threshold. Detail may not add to totals because of taxpayer reporting
+#   discrepancies and rounding (FY2010 all-returns total is 15,191 against
+#   15,190 taxable + nontaxable; FY2024's under-$10M class 553 against 554).
+#   "d" cells (disclosure suppression) fall only in type-of-property columns
+#   this file does not carry.
+filing_year,decedent_year,filing_threshold_usd,statutory_top_rate,tax_status,size_class_lower_usd,size_class_upper_usd,returns,gross_estate_thou,taxable_estate_thou,adjusted_taxable_gifts_thou,net_estate_tax_thou
+2010,2009,3500000,0.45,all,0,,15191,130195505,66059457,6088249,13216723
+2010,2009,3500000,0.45,all,0,3500000,3306,8404649,6347204,747441,267354
+2010,2009,3500000,0.45,all,3500000,5000000,5027,20851245,14521525,838811,718859
+2010,2009,3500000,0.45,all,5000000,10000000,4439,30016010,17685887,1350859,2681793
+2010,2009,3500000,0.45,all,10000000,20000000,1526,20828411,10396384,1032574,2871395
+2010,2009,3500000,0.45,all,20000000,,892,50095190,17108457,2118563,6677322
+2010,2009,3500000,0.45,taxable,0,,6711,69151158,47701772,4439688,13216723
+2010,2009,3500000,0.45,taxable,0,3500000,1325,3617934,3332160,411022,267354
+2010,2009,3500000,0.45,taxable,3500000,5000000,1912,8034067,7265217,521423,718859
+2010,2009,3500000,0.45,taxable,5000000,10000000,2106,14376020,12125065,973049,2681793
+2010,2009,3500000,0.45,taxable,10000000,20000000,825,11321355,8707815,770713,2871395
+2010,2009,3500000,0.45,taxable,20000000,,543,31801782,16271517,1763483,6677322
+2010,2009,3500000,0.45,nontaxable,0,,8479,61044347,18357684,1648561,0
+2010,2009,3500000,0.45,nontaxable,0,3500000,1981,4786715,3015044,336420,0
+2010,2009,3500000,0.45,nontaxable,3500000,5000000,3115,12817178,7256308,317389,0
+2010,2009,3500000,0.45,nontaxable,5000000,10000000,2333,15639990,5560823,377810,0
+2010,2009,3500000,0.45,nontaxable,10000000,20000000,701,9507057,1688569,261862,0
+2010,2009,3500000,0.45,nontaxable,20000000,,349,18293407,836941,355081,0
+2013,2012,5120000,0.35,all,0,,10568,138704642,72363695,13395550,12666774
+2013,2012,5120000,0.35,all,0,5000000,1053,3736167,2806632,2154137,169678
+2013,2012,5120000,0.35,all,5000000,10000000,6206,41843297,27716676,3006834,1596514
+2013,2012,5120000,0.35,all,10000000,20000000,2158,29164299,16267966,2587891,2938845
+2013,2012,5120000,0.35,all,20000000,50000000,854,25517927,12383580,2307383,3350454
+2013,2012,5120000,0.35,all,50000000,,297,38442952,13188841,3339304,4611283
+2013,2012,5120000,0.35,taxable,0,,4687,76384517,53620084,10182338,12666774
+2013,2012,5120000,0.35,taxable,0,5000000,427,1443883,1291573,1257459,169678
+2013,2012,5120000,0.35,taxable,5000000,10000000,2401,16872751,15151862,1993744,1596514
+2013,2012,5120000,0.35,taxable,10000000,20000000,1161,15833060,13000080,2032150,2938845
+2013,2012,5120000,0.35,taxable,20000000,50000000,508,15358930,11320973,1862628,3350454
+2013,2012,5120000,0.35,taxable,50000000,,190,26875893,12855596,3036357,4611283
+2013,2012,5120000,0.35,nontaxable,0,,5881,62320125,18743611,3213212,0
+2013,2012,5120000,0.35,nontaxable,0,5000000,626,2292284,1515059,896678,0
+2013,2012,5120000,0.35,nontaxable,5000000,10000000,3805,24970546,12564814,1013091,0
+2013,2012,5120000,0.35,nontaxable,10000000,20000000,997,13331240,3267886,555741,0
+2013,2012,5120000,0.35,nontaxable,20000000,50000000,346,10158997,1062607,444756,0
+2013,2012,5120000,0.35,nontaxable,50000000,,107,11567059,333244,302948,0
+2024,2023,12920000,0.40,all,0,,7195,248944039,113948285,27347967,23313220
+2024,2023,12920000,0.40,all,0,10000000,553,3721032,2401287,5290210,241980
+2024,2023,12920000,0.40,all,10000000,20000000,3662,55252297,34781889,7326334,1611039
+2024,2023,12920000,0.40,all,20000000,50000000,2154,63414579,32462764,6979475,5614599
+2024,2023,12920000,0.40,all,50000000,,825,126556130,44302345,7751948,15845602
+2024,2023,12920000,0.40,taxable,0,,2663,128752441,81264108,16035925,23313220
+2024,2023,12920000,0.40,taxable,0,10000000,217,1416809,1230492,2370510,241980
+2024,2023,12920000,0.40,taxable,10000000,20000000,1002,15318253,13855590,3452252,1611039
+2024,2023,12920000,0.40,taxable,20000000,50000000,975,29663391,23639772,4294667,5614599
+2024,2023,12920000,0.40,taxable,50000000,,469,82353988,42538253,5918496,15845602
+2024,2023,12920000,0.40,nontaxable,0,,4532,120191599,32684177,11312042,0
+2024,2023,12920000,0.40,nontaxable,0,10000000,337,2304223,1170795,2919700,0
+2024,2023,12920000,0.40,nontaxable,10000000,20000000,2660,39934044,20926298,3874082,0
+2024,2023,12920000,0.40,nontaxable,20000000,50000000,1179,33751189,8822992,2684808,0
+2024,2023,12920000,0.40,nontaxable,50000000,,356,44202142,1764092,1833452,0

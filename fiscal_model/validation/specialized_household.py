@@ -2,6 +2,7 @@
 Household-side validation runners for credits, estate, and payroll policies.
 """
 
+from ..estate import ESTATE_MODES, ESTATE_SCORECARD_MODE
 from ..scoring import FiscalPolicyScorer
 from .core import ValidationResult, _rate_accuracy, build_validation_result
 from .scenarios import (
@@ -125,16 +126,36 @@ def validate_all_credits(verbose: bool = True) -> list[ValidationResult]:
 def validate_estate_policy(
     scenario_id: str,
     verbose: bool = True,
+    mode: str | None = None,
 ) -> ValidationResult:
-    """Validate estate tax scoring against CBO/Treasury estimates."""
+    """
+    Validate estate tax scoring against CBO/Treasury estimates.
+
+    Args:
+        scenario_id: Key in ``ESTATE_TAX_VALIDATION_SCENARIOS``.
+        verbose: Print the year-by-year breakdown.
+        mode: ``fiscal_model.estate``'s ``ESTATE_MODE_REPORTED`` (the fitted
+            annual) or ``ESTATE_MODE_DERIVED`` (the SOI-fitted size
+            distribution, year-indexed). ``None`` uses
+            :data:`~fiscal_model.estate.ESTATE_SCORECARD_MODE`, which is what
+            the by-construction scorecard scores; ``run_estate_loo`` passes
+            :data:`~fiscal_model.estate.ESTATE_HELD_OUT_MODE` instead, so the
+            leave-one-out number is the derived one.
+    """
     if scenario_id not in ESTATE_TAX_VALIDATION_SCENARIOS:
         raise ValueError(
             f"Unknown scenario: {scenario_id}. "
             f"Available: {list(ESTATE_TAX_VALIDATION_SCENARIOS.keys())}"
         )
 
+    resolved_mode = mode or ESTATE_SCORECARD_MODE
+    if resolved_mode not in ESTATE_MODES:
+        raise ValueError(f"mode must be one of {ESTATE_MODES}, got {resolved_mode!r}")
+
     scenario = ESTATE_TAX_VALIDATION_SCENARIOS[scenario_id]
     policy = scenario["policy_factory"]()
+    if hasattr(policy, "mode"):
+        policy.mode = resolved_mode
     expected_10yr = scenario["expected_10yr"]
     official_source = scenario.get("source", "CBO")
     result = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False).score_policy(

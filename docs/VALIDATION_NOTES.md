@@ -498,15 +498,17 @@ the calibrated annual through the LOO harness reproduces the scorecard value
 exactly, and monkeypatching `loo.official_target` to raise proves no
 derivation ever reads the held-out answer.
 
-**Aggregate: 61.7% mean / 35.6% median over 18 derivable cases, 6/18 within
+**Aggregate: 58.7% mean / 32.5% median over 18 derivable cases, 6/18 within
 15%, plus 4 cases reported as not cross-validatable.** Against the
-by-construction 2.7%. The gap is the size of the claim the by-construction
+by-construction 2.8%. The gap is the size of the claim the by-construction
 number cannot support.
 
-*Wave 1 moved this number in the direction people do not expect: 59.3% → 61.7%,
-entirely on the two AMT rows, because L5 replaced a flat constant with a
-published path. Read the AMT bullet under (a) before quoting the rise as a
-regression.*
+*This number has moved twice, and neither move was a model change. Wave 1 took
+it 59.3% → 61.7%, in the direction people do not expect, because L5 replaced a
+flat AMT constant with a published path. Correcting `extend_tcja_amt`'s target
+to $1,357.1B then took it to **58.7%**: the held-out derivation is unchanged at
+$855.3B and only the figure it is measured against moved. Read the AMT bullet
+under (a) before quoting either move as a model result.*
 
 ### Classification, module by module
 
@@ -531,14 +533,17 @@ case from base data plus the other cases' calibration.
   the whole derived effect comes from the 40% → 45% rate change. The calibrated
   $45B/yr annual is carrying the exemption-broadening that the two-regime blend
   cancels out.
-- **AMT (2 of 3, mean 100.5%).** Derived from the taxpayer-count × average-
+- **AMT (2 of 3, mean 73.9%).** Derived from the taxpayer-count × average-
   liability identity, evaluated year by year on **TPC Table T25-0049**
   ("Aggregate Alternative Minimum Tax Projections, 2024-2035", April 2025,
   transcribed to `fiscal_model/data_files/amt/tpc_t25_0049_aggregate_amt.csv`),
   with the baseline leg at the current-law exemption and the policy leg at the
-  reform exemption. Both cases come out high — **+90.1%** and **+110.9%** — and
-  Wave 1's L5 lane established that the reason this file previously gave was
-  **wrong**.
+  reform exemption. `repeal_individual_amt` comes out high at **+110.9%** against
+  an unsourced $450B; `extend_tcja_amt` reads **-37.0%**, because its target was
+  corrected to the published $1,357.1B while its derivation stayed at $855.3B.
+  Before that correction they read +90.1% and +110.9%, and Wave 1's L5
+  lane established that the reason this file previously gave for the overshoot
+  was **wrong**.
 
   *What was believed.* Until 2026-09-01 this section, and `MODELING_IMPROVEMENT.md`
   §3 L5 with it, said the overshoot was a missing 2026 phase-in: "the identity
@@ -667,8 +672,9 @@ The gate in `scripts/run_validation_dashboard.py` (`--max-loo-mean-error`,
 default 75 — derived as the then-observed 59.3% × 1.25, rounded to 5) exists to
 catch a *regression* in the structural machinery — a base table edited without
 re-deriving — not to certify accuracy. Do not quote it as an accuracy claim. It
-is deliberately **not** re-derived from the post-Wave-1 61.7%: a ceiling that
-tracks every observation upward is not a gate, and this one still has room.
+is deliberately **not** re-derived from the post-Wave-1 61.7% or the current
+58.7%: a ceiling that tracks every observation is not a gate, and this one still
+has room.
 
 ---
 
@@ -681,11 +687,14 @@ presets that ship in the app with an official number attached had never been
 compared to it. (Three of those seventeen targets are model estimates rather
 than published scores; the provenance label on each row says which.) Twelve of
 them carry no module constant fitted to the target, and their mean absolute
-error was **394.1%** (median 57.1%) against **2.7%** for the 34 genuinely fitted
-benchmarks. **Wave 1's L7 lane took that 394.1% to 113.8%** by repairing the two
-pharma incidence bugs §7.3 diagnosed; the median is unchanged at 57.1%, because
-the repair moved two rows a long way and the other ten not at all. The
-per-family figures below are the Phase E outturn except where marked.
+error was **394.1%** (median 57.1%) against **2.7%** for the 34 benchmarks then
+counted as fitted. **Wave 1's L7 lane took that 394.1% to 113.8%** by repairing
+the two pharma incidence bugs §7.3 diagnosed; the median was unchanged at 57.1%,
+because the repair moved two rows a long way and the other ten not at all.
+**Correcting the insulin *target* on 2026-09-02 then took the subset to 104.8%
+(median 40.0%)** — see §8.2 — against **2.8%** for the 33 benchmarks now counted
+as fitted. The per-family figures below are the Phase E outturn except where
+marked.
 
 Nothing below was retuned. The instruction the phase was run under, and the
 right one, is that a module far from its published figure gets reported as
@@ -766,13 +775,17 @@ these rows as accuracy statements:
 | Case | Official | Model (Phase E) | Err | **Model (post-L7)** | **Err** |
 |---|---:|---:|---:|---:|---:|
 | Expand drug negotiation | -$500B | -$372B | 25.7% | -$372B | 25.7% |
-| Universal insulin cap | -$15B | -$445B | 2,868.6% | **+$7.0B** | **146.4%** |
+| Universal insulin cap | -$15B → **+$11.4B** | -$445B | 2,868.6% | **+$7.0B** | **39.0%** |
 | International reference pricing | -$100B | -$1,388B | 1,287.9% | **-$746B** | **646.2%** |
 
-Family mean **1,394.1% → 272.8%**; the 12-row sectoral subset it sits in moved
-**394.1% → 113.8%** (median 57.1%, unchanged), and the 20-row reconstruction
-tier **250.8% → 82.6%**. **No parameter was fitted to any of these three
-targets**, and none of the nine untouched sectoral rows moved.
+Family mean **1,394.1% → 272.8%** on the model repair alone; the 12-row sectoral
+subset it sits in moved **394.1% → 113.8%** (median 57.1%, unchanged), and the
+20-row reconstruction tier **250.8% → 82.6%**. The insulin *target* was then
+corrected on 2026-09-02 (§8.2), which is a target movement rather than a model
+one: the family reads **237.0%**, the sectoral subset **104.8%** (median 40.0%),
+and the reconstruction tier **21 rows at 76.7%**. **No parameter was fitted to
+any of these three targets**, and none of the nine untouched sectoral rows
+moved.
 
 **What Phase E found.** Two of the three were not calibration drift but
 incidence bugs in `pharma.py`:
@@ -804,16 +817,16 @@ federal-share basis, with every input transcribed with document, page and URL to
   gross-to-net adjustment) to a brand-only, rebate-netted Part D + Part B base,
   times the federal share of each program.
 
-**The insulin row read against both benchmarks.** Model **+$7.0B**; carried
-target **-$15.0B** (146.4%, directions disagree); **CBO publication 57957
-+$11.4B** (+$6.566B outlays, -$4.793B revenues, FY2022-2031 — 39% away,
-directions agree). The model now says what CBO says: a $35 cost-sharing cap
-extended to private plans *adds* to the deficit. **The 146.4% is the price of
-saying it**, because the stored benchmark points the other way, and no
-percentage against that target can be read as accuracy. The remaining gap to
-CBO is two named omissions: induced utilisation, and growth in insulin cost and
-enrolment across a ten-year window, since ASPE's $734M is a single 2020 figure
-held flat.
+**The insulin row, and the target that has since caught up with it.** Model
+**+$7.0B** against **CBO publication 57957's +$11.4B** (+$6.566B outlays,
+-$4.793B revenues, FY2022-2031): **39.0% below it**, directions agreeing. When
+L7 landed, the carried benchmark was still -$15.0B and the row read 146.4% — the price of
+saying what CBO says, since no percentage against a benchmark pointing the other
+way can be read as accuracy. The target was moved to +$11.4B on 2026-09-02
+through `validation/target_revisions.py` (§8.2), so the 39.0% *is* an accuracy
+statement now. The residual is two named omissions: induced utilisation, and
+growth in insulin cost and enrolment across a ten-year window, since ASPE's
+$734M is a single 2020 figure held flat.
 
 **What is *not* repaired, on either row.**
 
@@ -891,24 +904,36 @@ The calibrated tier is now 46 entries, but it is two populations:
 | Fitted calibrated references | 34 | 2.7% | 33/34 |
 | Unfitted module reconstructions | 12 | 394.1% | 2/12 |
 
+*(Live as of 2026-09-02: **33 fitted at 2.8%, 32/33** — a 34th row left the
+fitted tier when its target was revised, and held in place the tier reads 34 at
+4.7%, 32/34 — against **21 reconstructions at 76.7%**.)*
+
 *(Phase D later added eight P.L. 119-21 line items to this same unfitted class, at
 35.8% mean, taking it to 20 entries and a 250.8% mean — see §8. Wave 1's L7 lane
 then repaired the two pharma incidence bugs, taking the 12-row sectoral subset to
-**113.8%** and the 20-row tier to **82.6%** — see §7.3. The Phase E figures above
-are kept as the outturn of Phase E; **live numbers come from
+113.8% and the 20-row tier to 82.6% — see §7.3 — and the 2026-09-02 target
+revisions took them to **104.8%** and **21 rows at 76.7%**. The Phase E figures
+above are kept as the outturn of Phase E; **live numbers come from
 `python scripts/cold_holdout.py`**, never from this table.)*
 
 `scripts/cold_holdout.py` reports them as separate tiers, and the anti-leakage
 invariant in `tests/test_cold_holdout.py` compares the out-of-sample tier
 against the *fitted* set — mixing the two would have flipped the invariant for
 the wrong reason (44.8% out-of-sample vs a 104.8% "calibrated" mean) and hidden
-the fact that the fitted tier is still 2.7%.
+the fact that the fitted tier is still low by construction (2.8% over 33).
 
 `readiness.py --strict` treats a documented `Poor` on an unfitted reconstruction
 the same way it treats a documented out-of-sample miss: a warning, not a
 blocker. A documented `Poor` on a *fitted* benchmark stays strict-blocking,
 because those parameters exist to reproduce the target and a miss there really
-is a regression. Blocking on the reconstructions would have made deleting the
+is a regression. That sentence stops being true the moment a target is
+**revised**, since the constant reproduces the *superseded* figure and was never
+fitted to its replacement — so `scorecard.py` derives `calibrated_to_target`
+from the revision ledger, and a revised row reports in the reconstruction tier.
+Retuning the constant would also have turned it green, and that is the move a
+provenance pass is forbidden to make.
+
+Blocking on the reconstructions would have made deleting the
 runner the cheapest route back to green — precisely the incentive the
 pre-registration manifest exists to forbid.
 
@@ -933,8 +958,10 @@ what happened when someone asked it. **Post-transcription the breakdown is 9 /
 
 Phase D's eight P.L. 119-21 line items then joined the tier already
 transcribed — their targets *are* JCT's rows, extracted with page references
-into `pl119_21_jct_line_items.csv` — so the live calibrated breakdown over 54
-benchmarks is **17 / 15 / 15 / 7 / 0**, of which **28 have actually been read
+into `pl119_21_jct_line_items.csv` — taking the calibrated breakdown over 54
+benchmarks to 17 / 15 / 15 / 7 / 0. Two targets were then **revised** rather than
+carried (§8.2), moving both rows from `line_item_differs` to `line_item`, so the
+live breakdown is **19 / 13 / 15 / 7 / 0**, of which **28 have actually been read
 out of a document** and 4 are the cited-but-unread backlog below. Across both
 tiers the scorecard holds 79 rows, 72 of them against a published figure.
 
@@ -1010,24 +1037,53 @@ Notes worth carrying:
 The full table with deltas is in [VALIDATION.md](VALIDATION.md#line_item_differs--the-transcription-disagrees-with-the-target-owner-decisions).
 Five are worth more than a row:
 
-1. **Universal insulin cap: the sign is inverted.** CBO's estimate for H.R. 6833
-   (pub. 57957) is **+$6.566B of outlays and -$4.793B of revenues** over
-   FY2022-2031 — about **+$11.4B added to the deficit**, because capping a
-   patient's cost sharing reallocates cost to plans and to the federal subsidy
-   for them. The repository carries -$15B as a saving. §7.3 identified the model
-   side of this as an incidence bug; the target has the same bug. **The model
-   side is now fixed** — Wave 1's L7 lane scores federal incidence and returns
-   **+$7.0B**, 39% below CBO's +$11.4B and agreeing with it in sign — so the
-   row's remaining 146.4% "error" is measured against a benchmark pointing the
-   wrong way, and cannot be read as an accuracy statement in either direction.
-2. **Extend TCJA AMT relief looks like a window error.** The published ten-year
-   cost is $1,357.1B; the *five*-year cost is $466.2B; the repository carries
-   $450B. A five-year figure sitting in a ten-year column would explain it
-   exactly. Not corrected here — the AMT module's fitted annual is set to $450B,
-   so moving the target means retuning the module. Wave 1's L5 lane sharpened
-   the case for moving it: the module's **derived** path (TPC T25-0049) scores
-   $855.3B, **-37.0%** against the published row where the fitted constant is
-   -66.8%. See §6's AMT bullet.
+1. **Universal insulin cap: the sign was inverted — and the target has been
+   corrected (2026-09-02).** CBO's estimate for H.R. 6833 (pub. 57957) is
+   **+$6.566B of outlays and -$4.793B of revenues** over FY2022-2031 — about
+   **+$11.4B added to the deficit**, because capping a patient's cost sharing
+   reallocates cost to plans and to the federal subsidy for them. The repository
+   carried -$15B as a saving, traceable to no CBO document. §7.3 identified the
+   model side as an incidence bug and Wave 1's L7 lane fixed it (**+$7.0B**); the
+   target had the same bug, and was moved to +$11.4B through
+   `validation/target_revisions.py`, with -$15B kept on the record as a
+   `superseded_by` row. The row now reads **39.0%**, an accuracy statement
+   rather than a direction dispute, and `KNOWN_TARGET_SIGN_INVERSIONS` in
+   `tests/test_validation_runners.py` is an **empty set** — the emptiness being
+   the assertion.
+2. **Extend TCJA AMT relief was a window error — and the target has been
+   corrected (2026-09-02).** The published ten-year cost is $1,357.1B; the
+   *five*-year cost in the adjacent column is $466.2B; the repository carried
+   $450B, which is 3.5% from the five-year figure and 66.8% from the ten-year
+   one. A five-year figure sitting in a ten-year column explains it exactly, and
+   JCT's JCX-35-25 corroborates the ten-year number independently at $1,362.810B
+   for P.L. 119-21's AMT provision. The target was moved; **the module was
+   not retuned**, because retuning it would re-fit the module to the number it is
+   being tested on. So the fitted annual now reads **-66.8%** against its own
+   corrected target and the **derived** path (TPC T25-0049, $855.3B) reads
+   **-37.0%** — the unfitted machinery landing about 1.8× closer to the document
+   than the fitted constant, which is L5's claim measured rather than asserted.
+   The row reports in the unfitted-reconstruction tier for exactly that reason.
+   See §6's AMT bullet.
+
+   *Definitional caveat, stated rather than split:* CRS/CBO score the AMT
+   provision *inside* a full TCJA-extension package, where extended rate cuts
+   push more filers into AMT; TPC's T25-0049 reconstructs the **standalone**
+   post-sunset counterfactual and implies about $855B. Both are published and
+   they answer different questions. The package figure is the one this
+   benchmark's own description asks for, and the only one of the two that is a
+   *scored provision* rather than a baseline projection.
+
+   *`repeal_individual_amt` was searched again and not moved.* No published
+   post-2025 repeal score exists at JCT, CBO or TPC; the nearest primary figure,
+   JCX-46-17 p. 3 (-$695.5B, FY2018-2027), is a pre-TCJA baseline and a different
+   decade. TPC T25-0049's $948.9B column is deliberately not adopted: it is a
+   baseline projection rather than a scored repeal, and it is `amt.py`'s own
+   input, so adopting it would manufacture a 0% row out of the leakage `loo.py`
+   guards against. It stays at an unsourced $450B that is internally incoherent
+   with the transcribed $1,357.1B — a full repeal cannot cost less than
+   extending the exemption on the same baseline — and closing it needs a
+   published score or an owner decision to re-register `holdout.py`'s locked
+   protocol.
 3. **Repeal FDII nets to zero as Treasury scores it.** Gross repeal raises
    $157,993M, and Treasury pairs it one-for-one with "Provide additional support
    for research and development expenditures" (-$157,993M), printing an explicit
@@ -1118,11 +1174,14 @@ record; the four structural ones:
 ### 8.5 What this changes about the headline
 
 Nothing about the model, and quite a lot about how its errors should be read.
-The calibrated tier's 2.7% is measured against 46 targets of which 15 are now
-known to disagree with the document they cite, one in sign, and 15 more cannot
-be traced to a document at all. An error against a target that is itself wrong
-is not an accuracy statement, and the scorecard now says which rows those are
-rather than leaving a reader to assume all 46 are equally solid.
+The calibrated tier's low by-construction error is measured against targets of
+which **13 are still known to disagree** with the document they cite and 15 more
+cannot be traced to a document at all; **2 were corrected**, and none disagrees
+in sign any more. An error against a target that is itself wrong is not an
+accuracy statement, and the scorecard now says which rows those are — including,
+per entry, `target_revision_id`, `superseded_10yr_billions` and
+`target_revision_reason`, with `revised_target_entries` on the summary — rather
+than leaving a reader to assume every row is equally solid.
 
 The headline counts moved too: `published_entries` replaces `total_entries`
 everywhere a sentence ends "validated against CBO/JCT", because the seven

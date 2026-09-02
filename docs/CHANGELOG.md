@@ -5,6 +5,88 @@ in git history, not here.
 
 ## 2026 — ongoing
 
+### Tier-2 target revisions, and a supersede rule for the calibrated tier (2026-09-02)
+
+PR **#90**. Two modelling lanes had referred *target* problems out of Wave 1:
+L5 (`amt.py`) found its structural path landing about 1.8× closer to the document
+than its fitted constant but could only say so, because the carried target
+disagreed with the document; L7 (`pharma.py`) fixed an incidence bug and was
+rewarded with a *worse* percentage, because its benchmark pointed the opposite
+way. **No modelling change**: no constant retuned, no mechanism altered, no CI
+threshold touched.
+
+The calibrated tier had no supersede rule, so this adds the smallest mirror of
+`preregistered.py`'s — `fiscal_model/validation/target_revisions.py`. The old
+figure stays as a row marked `superseded_by`; the new row carries document,
+table, row, page, date and a reason; `target_revision_problems()` fails if the
+ledger and the registries the app reads ever disagree. Ledger entry and first
+scoring are separate commits, so "the target moved before the model was allowed
+to see it" is checkable from `git log`.
+
+| Benchmark | Was | Is | Document |
+|---|--:|--:|---|
+| `extend_tcja_amt` | $450.0B | **$1,357.1B** | CRS **R48286** Table 1 (transcribing CBO 60114/60271) — "Increased Alternative Minimum Tax Exemption", FY2025–FY2034. The adjacent five-year column prints $466.2B, so $450B was 3.5% from the five-year cost and 66.8% from the ten-year one: a five-year figure in a ten-year column. Corroborated by JCT **JCX-35-25** at $1,362.810B (0.4% away) for P.L. 119-21's AMT provision. |
+| `universal_insulin_cap` | −$15.0B (a saving) | **+$11.4B (a cost)** | CBO pub. **57957** (H.R. 6833), table p. 1 — outlays 6,566, revenues −4,793, FY2022–2031. A $35 monthly cap is a *cost-sharing* cap: it moves liability onto the plan and onto the federal subsidy for it. |
+| `repeal_individual_amt` | $450.0B | **not moved** | Nothing to move it to — see below. |
+
+**The tiers moved; report them separately, as always.**
+
+| Tier | Before this PR | After |
+|---|---|---|
+| Out-of-sample, pre-registered (n=25) | 34.4% / 16.1% median / 12 within 15 / 16 within 25 | **unchanged** |
+| Calibrated, fitted | 34 @ 2.7%, 33/34 within 15 | **33 @ 2.8%, 32/33** — or **34 @ 4.7%, 32/34** held in place |
+| Unfitted module reconstructions | 20 @ 82.6% / 43.1% median | **21 @ 76.7% / 41.0%** |
+| — 12 sectoral presets | 113.8% / 57.1% median | **104.8% / 40.0%** |
+| Calibrated, leave-one-out | 18 @ 61.7% / 35.6% median | **18 @ 58.7% / 32.5%** |
+| Calibrated provenance | 17 `line_item` / 15 `differs` / 15 `secondhand` / 7 `model_estimate` | **19 / 13 / 15 / 7** |
+| Sectoral rows disagreeing with their target on **sign** | 1 | **0** |
+
+- **A revised row leaves the fitted tier, and the summary says so.** A constant
+  fitted to a superseded figure is not fitted to its replacement, so
+  `scorecard.py` derives `calibrated_to_target` from the ledger and
+  `extend_tcja_amt` reports among the unfitted reconstructions, where a miss is a
+  finding rather than a regression. `ScorecardSummary.revised_target_entries`
+  (= **2**) is on the scorecard and on `/validation/scorecard`, so the move can
+  never be silent. **Quote "33 at 2.8%" only next to the statement that a 34th
+  row moved out**, and never retune the constant to close the 66.8% — that is the
+  move a provenance pass is forbidden to make.
+- **The LOO fall is a target moving, not a model.** `extend_tcja_amt`'s held-out
+  derivation is **unchanged at $855.3B**; its error against the corrected row is
+  −37.0% instead of +90.1%, taking the AMT module 100.5% → 73.9% and the suite
+  61.7% → 58.7%. No donor-matrix entry moved.
+- **`KNOWN_TARGET_SIGN_INVERSIONS` is now an empty set**, and the emptiness is
+  the assertion: no scorecard row disagrees with its own target about what a
+  policy does.
+- **`AMT_APP_MODE` and `AMT_SCORECARD_MODE` stay `reported`.** Across the three
+  AMT benchmarks reported means **22.3%** against derived's **54.2%**, which is
+  owner Decision 1's own rule, so **no shipped number changes**. Read past the
+  mean: both rows on which derived loses are targets a constant was fitted to, so their
+  ~0% is bookkeeping — and the one AMT benchmark no constant was fitted to is the
+  one derived wins, 37.0% against 66.8%.
+- **`repeal_individual_amt` keeps an unsourced, internally incoherent target.**
+  No published post-2025 repeal score exists at JCT, CBO or TPC. TPC T25-0049's
+  $948.9B is deliberately not adopted: it is a baseline projection rather than a
+  scored repeal, *and* it is `amt.py`'s own input, so adopting it would
+  manufacture a 0% row out of the leakage `loo.py` guards against. Closing it
+  needs a published score or an owner decision to re-register `holdout.py`'s
+  locked `revenue-scorecard-post-lock-2026-05-02` protocol — which has no
+  re-registration path. `check_readiness.py --strict` is unchanged from the base
+  commit.
+- **Two user-facing labels moved with their targets** (slugs unchanged, so no
+  share link breaks): `⚖️ AMT: Extend TCJA Relief ($450B)` → `($1.36T)`, and
+  `💊 Universal Insulin Cap (-$15B)` → `($11B)`. `/validation/scorecard` and the
+  Validation tab now carry `target_revision_id`, `superseded_10yr_billions`,
+  `target_revision_reason` per entry and a "Target moved from" column.
+
+### Tier 1 CI gate tightened to 45 / 15 (2026-09-02)
+
+PR **#91**. The out-of-sample gate's own rule — ceiling = `ceil(mean × 1.25)`
+rounded up to the nearest 5, floor = the current count within 25% minus one —
+derives **45 / 15** from the post-Wave-1 battery (25 cases, 34.4% mean, 16 within
+25%), against the **55 / 13** the workflow carried. Both are tightenings, which
+the rule says need no reason. The derivation is recorded in the workflow comment
+beside the earlier ones, and the places that quote the command now match.
+
 ### Modelling Wave 1 — spend-out, AMT, pharma incidence (2026-09-02)
 
 Wave 1 of [`planning/MODELING_IMPROVEMENT.md`](../planning/MODELING_IMPROVEMENT.md),
@@ -26,6 +108,9 @@ spend-out).
 | — 8 P.L. 119-21 line items | 8 | 35.8% | **unchanged** |
 | Calibrated, leave-one-out | 18 | 59.3% / 35.6% median / 6 within 15 | **61.7% / 35.6% / 6** |
 | Distributional | 7 | 0.00–5.86pp | **unchanged** |
+
+*Two of these Tier 2 figures moved again the same day, in the target-revision
+entry above; the numbers here are Wave 1's outturn, not the current ones.*
 
 - **Budget authority and outlays are now distinct quantities (L2).**
   `SpendingPolicy` no longer books a funding level straight into outlays;
@@ -128,7 +213,7 @@ gross→net change with its UI note.
 `run_loo.py`, `loo.py`'s leakage guard, `tests/test_preregistration.py` and the
 CI thresholds are all unchanged. The CI derivation rule now implies a ceiling of
 45 and a floor of 15 against the workflow's current 55 and 13; both pass with
-room and tightening them is left to whoever lands next.
+room and tightening them is left to whoever lands next. *(Done in PR #91, above.)*
 
 ### Documentation honesty sync (2026-09-01)
 

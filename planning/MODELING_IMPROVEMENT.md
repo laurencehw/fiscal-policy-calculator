@@ -5,15 +5,19 @@
 
 The validation expansion did its job: it replaced a flattering 8% with three honest numbers — **52.6% out-of-sample (n=25)**, **59.3% leave-one-out (n=18 derivable)**, and **250.8% on unfitted module reconstructions (n=20)**, the last of which is itself two populations that must be reported apart: **394.1% across the 12 sectoral presets** and **35.8% across the 8 P.L. 119-21 line items**. This plan spends those numbers. It ranks the work by *error mass × tractability* and says, per lane, which mechanism is missing, what data closes it, which rows should move and in which direction.
 
-> **Wave 1 has landed (2026-09-01/02).** The current numbers are **34.4%
-> out-of-sample (n=25, median 16.1%, 12 within 15%, 16 within 25%)**, **61.7%
-> leave-one-out (n=18)**, and **82.6% on the 20 unfitted reconstructions** — 12
-> sectoral presets at **113.8%** and the 8 P.L. 119-21 line items unchanged at
-> **35.8%**. Fitted calibrated stays at 2.7% over 34, and the 7 distributional
-> tables at 0.00–5.86pp. **§2's error budget below is the pre-Wave-1 snapshot on
-> `b616144` and is kept as the record the lanes were scoped against**; §5.1 has
-> the outturn and re-derives the budget. Live numbers always come from
-> `python scripts/cold_holdout.py` and `python scripts/run_loo.py --donor-matrix`.
+> **Wave 1 has landed (2026-09-01/02) and Wave 2 launched 2026-09-02.** The
+> current numbers are **34.4% out-of-sample (n=25, median 16.1%, 12 within 15%,
+> 16 within 25%)**, **58.7% leave-one-out (n=18)**, and **76.7% on the 21
+> unfitted reconstructions** — 12 sectoral presets at **104.8%**, the 8
+> P.L. 119-21 line items unchanged at **35.8%**, and the revised
+> `extend_tcja_amt` row at **66.8%**. Fitted calibrated is **2.8% over 33**, or
+> 4.7% over 34 with that revised row held in place; the 7 distributional tables
+> stay at 0.00–5.86pp. The two Tier-2 movements since Wave 1 are **target**
+> corrections, not model changes (PR #90; see §5.1). **§2's error budget below is
+> the pre-Wave-1 snapshot on `b616144` and is kept as the record the lanes were
+> scoped against**; §5.1 has the outturn and re-derives the budget. Live numbers
+> always come from `python scripts/cold_holdout.py` and
+> `python scripts/run_loo.py --donor-matrix`.
 
 ## 1. Principles
 
@@ -210,8 +214,8 @@ Three waves. Files are disjoint within a wave, so lanes run in parallel.
 
 | Wave | Lanes | Files touched | Starting point (b616144) | Expected after |
 |---|---|---|---|---|
-| **1** ✅ **done** | **L2** spend-out, **L7** pharma, **L5** AMT | `policies_core.py` (SpendingPolicy only) + `validation/core.py`; `pharma.py` + `enforcement.py`; `amt.py` | Tier 1 **52.6%**; sectoral reconstructions **394.1%** (20-row tier **250.8%**); LOO **59.3%** | *Named:* sectoral **→ ~40%**; LOO **→ ~54%**; Tier 1's endpoint re-derived by the lane. *Actual:* Tier 1 **34.4%**, sectoral **113.8%** (20-row tier **82.6%**), LOO **61.7%**. Two of the three named endpoints were missed, both for reasons the lanes pre-registered before opening a file — see §5.1 |
-| **2** | **L1** capital gains (3 lanes), **L6** expenditures, **L4** estate | `data/capital_gains.py` + `policies_core.py` (CapitalGainsPolicy) + `scenarios.py`; `tax_expenditures_core.py`; `estate.py` | Tier 1 after wave 1; LOO after wave 1 | LOO **→ ~30%**. Tier 1's “→ ~30%” likewise assumed the 23-case battery and the pre-Phase-E `biden_capital_gains_39` target at 79%; re-derive once wave 1 has restated the baseline |
+| **1** ✅ **done** | **L2** spend-out, **L7** pharma, **L5** AMT | `policies_core.py` (SpendingPolicy only) + `validation/core.py`; `pharma.py` + `enforcement.py`; `amt.py` | Tier 1 **52.6%**; sectoral reconstructions **394.1%** (20-row tier **250.8%**); LOO **59.3%** | *Named:* sectoral **→ ~40%**; LOO **→ ~54%**; Tier 1's endpoint re-derived by the lane. *Actual:* Tier 1 **34.4%**, sectoral **113.8%** (20-row tier **82.6%**), LOO **61.7%**. Two of the three named endpoints were missed, both for reasons the lanes pre-registered before opening a file — see §5.1. Post-wave target corrections (PR #90) then moved sectoral to 104.8%, the tier to 21 rows at 76.7% and LOO to 58.7%, none of it a model change |
+| **2** ▶ **launched 2026-09-02** | **L1** capital gains (3 lanes), **L6** expenditures, **L4** estate | `data/capital_gains.py` + `policies_core.py` (CapitalGainsPolicy) + `scenarios.py`; `tax_expenditures_core.py`; `estate.py` | Tier 1 after wave 1; LOO after wave 1 | LOO **→ ~30%**. Tier 1's “→ ~30%” likewise assumed the 23-case battery and the pre-Phase-E `biden_capital_gains_39` target at 79%; re-derive once wave 1 has restated the baseline |
 | **3** | **L3** credits/microsim, **L8** tariffs, **L9** international | `credits_*` + `microsim/*` + `cps_asec.py`; `trade.py`; `international.py` | LOO after wave 2; reconstructions after wave 1 | LOO **→ ~25%**; reconstructions **→ ~30%** |
 
 **On the two blanked endpoints.** Phases D and E changed *what is in* Tier 1, not
@@ -242,6 +246,16 @@ summary.
 |  — 8 P.L. 119-21 line items | 8 | 35.8% | **unchanged** |
 | Leave-one-out | 18 | 59.3% / 35.6% median / 6 within 15 | **61.7% / 35.6% / 6** |
 | Distributional | 7 | 0.00–5.86pp | **unchanged** |
+
+*This table is Wave 1's outturn and is kept as that record. Two Tier-2 figures
+moved again on 2026-09-02, when the provenance lane (PR #90) corrected the
+`universal_insulin_cap` and `extend_tcja_amt` **targets** without touching a
+model constant: the reconstruction tier became **21 rows at 76.7%** (sectoral
+subset 104.8%), the fitted tier **33 at 2.8%** — the revised row moving out,
+since a constant fitted to a superseded figure is not fitted to its replacement —
+and leave-one-out **58.7% / 32.5%**, with `extend_tcja_amt`'s held-out derivation
+unchanged at $855.3B. Tier 1 and the distributional tables are untouched. Live
+numbers: `python scripts/cold_holdout.py`, `python scripts/run_loo.py`.*
 
 Tier 1 error mass fell **1,315 → 859.5**. The ranking inverted: spend-out was
 38.7% of the tier and is now **7.4%** (63.4 units), while capital gains is now
@@ -302,8 +316,11 @@ the data showed.
 pointing the wrong way.** Both bugs are repaired and neither repair was fitted
 to a benchmark. **Insulin −$445.3B → +$7.0B**, a deficit *increase*, agreeing in
 sign with CBO publication 57957's **+$11.4B** for the same policy (39% away);
-the carried −$15B target still points the wrong way, so its 146.4% is the price
-of pointing the right way and cannot be read as accuracy. **Reference pricing
+the carried −$15B target still pointed the wrong way at the time, so its 146.4%
+was the price of pointing the right way and could not be read as accuracy.
+*(Since: the provenance lane moved that target to CBO's +$11.4B on 2026-09-02,
+PR #90, so the row now reads **−39.0%** and it is an accuracy statement. The
+model side did not move.)* **Reference pricing
 −$1,387.9B → −$746.2B** against a −$100B target whose provenance is
 `model_estimate` — a RAND price statistic, not a budget score — while CBO scored
 H.R. 3's *narrower* international-reference cap at about **$456B**, which is
@@ -333,11 +350,17 @@ Kept because §1.3 requires it, and because two of them are the informative part
   Reference pricing to <100% is unreachable against a target that is not a score
   of the policy, and the sectoral mean to ~40% has a **47.7% floor** from the
   nine rows other lanes own. Predicted ≈114% and ≈83%; returned 113.8% and
-  82.6%. The hand arithmetic held to a tenth of a point.
+  82.6%. The hand arithmetic held to a tenth of a point. *(Both figures moved
+  again on the insulin target correction — 104.8% and 21 rows at 76.7% — which is
+  a target movement, not a modelling one, and does not bear on the
+  pre-registration.)*
 - **L5 missed one registered row: the fitted tier stayed at 2.7% / 33-of-34**
   where the lane predicted ~9% / ~30-of-34. That is a scope change, not a
   modelling surprise — the scorecard flip was not made, for the reason in
-  finding 2 — and it is recorded rather than absorbed.
+  finding 2 — and it is recorded rather than absorbed. *(The fitted tier did move
+  afterwards, to 33 rows at 2.8%, when `extend_tcja_amt`'s target was corrected
+  and the row left the tier. That is the target moving, not the flip L5
+  predicted.)*
 
 ### What Wave 1 did not do
 
@@ -352,7 +375,7 @@ through the manifest's `superseded_by` rule in two commits, entry before scoring
 
 **Decided 2026-09-01 (owner accepted the coordinator's recommendation on all six).** The questions are kept below as written; the decisions are:
 
-1. Keep both modes. `derived` is the validation default immediately; `reported` stays the app default per module until that module's derived error is below its fitted error. (Wave 1: L5 AMT implements the switch module-locally.) **Outturn:** implemented; `derived` is the default in the held-out path, `reported` stays the app default because derived does not beat fitted on the carried targets. The *scorecard* half is blocked by `holdout.py`'s locked protocol plus `readiness.py`'s hard fail on a Poor holdout entry, and needs the AMT targets settled first. `AMT_SCORECARD_MODE` is the one line that flips it.
+1. Keep both modes. `derived` is the validation default immediately; `reported` stays the app default per module until that module's derived error is below its fitted error. (Wave 1: L5 AMT implements the switch module-locally.) **Outturn:** implemented; `derived` is the default in the held-out path, `reported` stays the app default. Re-measured against the corrected targets (PR #90, 2026-09-02) it stays there: across the three AMT benchmarks **reported means 22.3% and derived 54.2%**, so the rule's own condition is not met. Read past the mean before calling that a win for the fitted path — both rows derived loses are targets a constant was fitted to, so their ~0% is bookkeeping, and **the one AMT benchmark whose target no constant was fitted to (`extend_tcja_amt`, now $1,357.1B) is the one derived wins**, 37.0% against 66.8%. The *scorecard* half stays blocked, and its blocker has changed character: it used to be "the AMT targets have not been checked" and is now "`repeal_individual_amt`'s target does not exist" — no published post-2025 repeal score, and TPC T25-0049's $948.9B is both a baseline projection and `amt.py`'s own input. Unblocking it needs a published score or an owner decision to re-register `holdout.py`'s locked protocol. `AMT_SCORECARD_MODE` is still the one line that flips it.
 2. OMB Circular A-11 §32 outlay rates are the primary spend-out source; CBO's donor options are the check. (L2.) **Outturn: the named source does not exist** — A-11 §32 is personnel compensation and A-11 publishes no outlay-rate table in any section, so the decision's own fallback governed and CBO's donor options shipped as primary. CBO's account-level rates (pubs 61913, 62256) are the open cross-check, blocked by cbo.gov 403s. See §5.1 finding 1.
 3. Freeze Dowd–McClelland–Muthitacharoen (2015): persistent −0.72, transitory −1.2, cited. (Wave 2, L1.)
 4. Fetch the raw CPS ASEC extract by script at build time; never vendor it. (Wave 3, L3.)
