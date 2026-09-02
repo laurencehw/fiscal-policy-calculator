@@ -48,26 +48,19 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-#: Census Bureau URL for the 2024 ASEC public-use CSV archive.
-ASEC_2024_URL = (
-    "https://www2.census.gov/programs-surveys/cps/datasets/2024/march/"
-    "asecpub24csv.zip"
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+# The archive's identity belongs to the package, not to this script: it is part
+# of the derived microdata's provenance, which an install must be able to state
+# without ``scripts/`` on disk. Re-exported here so the CLI and its tests can
+# read them from either place.
+from fiscal_model.microsim.data_builder import (
+    ASEC_2024_ARCHIVE,
+    ASEC_2024_BYTES,
+    ASEC_2024_MEMBERS,
+    ASEC_2024_SHA256,
+    ASEC_2024_URL,
 )
-
-#: Archive filename inside the cache directory.
-ASEC_2024_ARCHIVE = "asecpub24csv.zip"
-
-#: SHA-256 of the archive as published (Last-Modified 2024-09-10,
-#: Content-Length 148,664,101), verified 2026-09-02.
-ASEC_2024_SHA256 = "cdb39cdac34bef99dd0940ab28e306f692404c2eea44d85dfd634214872a0a09"
-
-#: Expected size in bytes, checked before the (slower) hash.
-ASEC_2024_BYTES = 148_664_101
-
-#: The two members the builder actually reads. ``ffpub24.csv`` (family) and
-#: the replicate-weight file are not extracted: nothing in this repository
-#: reads them, and they are another 200 MB on disk.
-ASEC_2024_MEMBERS = ("pppub24.csv", "hhpub24.csv")
 
 #: Chunk size for the streaming download and the streaming hash.
 _CHUNK = 1 << 20

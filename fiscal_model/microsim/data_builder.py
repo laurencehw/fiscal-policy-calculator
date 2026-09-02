@@ -103,17 +103,51 @@ NUMERIC_DEFAULTS = {
     "GESTFIPS": pd.NA,
 }
 
+# ---------------------------------------------------------------------------
+# Identity of the source archive
+# ---------------------------------------------------------------------------
+#
+# These live in the package rather than in ``scripts/fetch_cps_asec.py``, and
+# the script imports them from here. The archive's identity is part of the
+# derived file's provenance, which every install must be able to state; the
+# fetching is a build-time action that only a checkout needs. Putting the
+# constants in the script and reading them back would make writing provenance
+# depend on ``scripts/`` being present.
+
 #: Census landing page for the 2024 ASEC public-use files.
 ASEC_LANDING_PAGE = (
     "https://www.census.gov/data/datasets/2024/demo/cps/cps-asec-2024.html"
 )
 
+#: Census Bureau URL for the 2024 ASEC public-use CSV archive.
+ASEC_2024_URL = (
+    "https://www2.census.gov/programs-surveys/cps/datasets/2024/march/"
+    "asecpub24csv.zip"
+)
+
+#: Archive filename inside the cache directory.
+ASEC_2024_ARCHIVE = "asecpub24csv.zip"
+
+#: SHA-256 of the archive as published (Last-Modified 2024-09-10,
+#: Content-Length 148,664,101), verified 2026-09-02.
+ASEC_2024_SHA256 = "cdb39cdac34bef99dd0940ab28e306f692404c2eea44d85dfd634214872a0a09"
+
+#: Expected size in bytes, checked before the (slower) hash.
+ASEC_2024_BYTES = 148_664_101
+
+#: The two members the builder reads. ``ffpub24.csv`` (family) and the
+#: replicate-weight file are not extracted: nothing in this repository reads
+#: them, and they are another 200 MB on disk.
+ASEC_2024_MEMBERS = ("pppub24.csv", "hhpub24.csv")
+
 
 def _fetch_module():
     """Import ``scripts/fetch_cps_asec.py`` lazily.
 
-    It lives in ``scripts/`` rather than the package because it is a build
-    tool, not a runtime dependency: nothing an app user runs imports it.
+    It lives in ``scripts/`` rather than the package because *fetching* is a
+    build-time action, not a runtime dependency: nothing an app user runs
+    imports it, and only ``--fetch`` calls this. Writing provenance does not,
+    which is why the archive constants above are the package's own.
     """
     import importlib.util
 
@@ -516,7 +550,6 @@ def write_provenance(
     it is a machine-local cache path, not provenance.
     """
     sidecar = output_path.with_suffix(".provenance.json")
-    fetch = _fetch_module()
     payload = {
         "built_on": date.today().isoformat(),
         "builder": "fiscal_model.microsim.data_builder",
@@ -525,8 +558,8 @@ def write_provenance(
             "Economic Supplement (ASEC), March 2024, public-use microdata"
         ),
         "source_url": ASEC_LANDING_PAGE,
-        "archive_url": fetch.ASEC_2024_URL,
-        "archive_sha256": archive_sha256 or fetch.ASEC_2024_SHA256,
+        "archive_url": ASEC_2024_URL,
+        "archive_sha256": archive_sha256 or ASEC_2024_SHA256,
         "person_file": "pppub24.csv",
         "household_file": "hhpub24.csv",
         "output_columns": list(OUTPUT_COLUMNS),
@@ -642,9 +675,8 @@ def main(argv: list[str] | None = None) -> int:
 
     archive_sha256 = None
     if args.fetch:
-        fetch = _fetch_module()
-        data_dir = str(fetch.ensure_cps_asec())
-        archive_sha256 = fetch.ASEC_2024_SHA256
+        data_dir = str(_fetch_module().ensure_cps_asec())
+        archive_sha256 = ASEC_2024_SHA256
         output_dir = args.output_dir or str(Path(__file__).resolve().parent)
     else:
         data_dir = args.data_dir or str(project_root / "data" / "asecpub24csv")

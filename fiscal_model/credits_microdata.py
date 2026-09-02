@@ -283,10 +283,16 @@ def window_average_change(
     annuals = []
     for offset in range(years):
         factor = (1.0 + growth) ** offset
-        year = start_year + offset
+        # Two different senses of "year", and they must not be conflated.
+        # ``law_year`` picks the *legal regime* in force — which is how the
+        # 2025 sunset enters. The calculator's own parameter vintage stays at
+        # ``start_year`` on purpose: the window's nominal growth is carried on
+        # incomes and on the indexed parameters, so re-vintaging the brackets
+        # as well would apply it twice.
+        law_year = start_year + offset
         annuals.append(
             weighted_liability_change(
-                baseline_for_year(year).grown(factor),
+                baseline_for_year(law_year).grown(factor),
                 reform.grown(factor),
                 growth_factor=factor,
                 year=start_year,
