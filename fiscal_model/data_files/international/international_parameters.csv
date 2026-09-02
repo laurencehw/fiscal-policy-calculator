@@ -1,0 +1,38 @@
+# Transcribed inputs for fiscal_model/international.py's FDII identity and its
+# Pillar Two / GILTI base-overlap term, plus the published figures the module is
+# checked against but never fitted to.
+#
+# INTERNATIONAL_BASELINE in fiscal_model/international.py carries the same
+# values for every row with role=model_input, and
+# tests/test_international_overlap.py pins the two against each other so they
+# cannot drift.
+#
+# Transcribed 2026-09-02 for lane L9 of planning/MODELING_IMPROVEMENT.md.
+#
+# Columns
+#   key        matches the INTERNATIONAL_BASELINE key where role=model_input
+#   value      the number as published (shares and rates as decimals)
+#   units      what the number counts
+#   data_year  the period the figure describes, not its publication date
+#   role       model_input    = read by international.py
+#              derived        = computed from a model_input by a stated identity
+#              external_check = a published figure the module is compared with
+#              documentation  = recorded so a reader can see what is not modelled
+#   source     document, table and page
+key,value,units,data_year,role,source
+fdii_deduction_tax_expenditure_billions,13.023,billions of dollars per year,FY2025-2034,model_input,"Treasury OTA, Tax Expenditures FY2026 (27 Nov 2024), Table 1 line 5 'Deduction for foreign-derived intangible income derived from trade or business within the United States': $130,230M over FY2025-2034, divided by ten. Annual path FY2025-2034: 16420, 11200, 11540, 11880, 12240, 12610, 12990, 13380, 13780, 14190. PDF p. 25."
+fdii_deduction_rate,0.375,share of FDII deducted,TY2018-2025,model_input,"IRC section 250(a)(1)(A). Treasury OTA, Tax Expenditures FY2026, item 5 description, PDF p. 4."
+fdii_deduction_rate_post_2025,0.21875,share of FDII deducted,TY2026 onward,documentation,"IRC section 250(a)(3). The step-down is embedded in the published tax-expenditure path above (FY2025 $16.42B falls to FY2026 $11.20B), so the window average already reflects it; the module carries a single scalar and cannot express the year in which it happens."
+current_corporate_rate,0.21,statutory rate,2018 onward,model_input,"IRC section 11(b)."
+fdii_base_billions,165.37,billions of dollars per year,FY2025-2034,derived,"fdii_deduction_tax_expenditure_billions / (fdii_deduction_rate * current_corporate_rate) = 13.023 / 0.07875. A window-average FDII-eligible income, not a tax-year-2025 level, because the tax expenditure it inverts spans the section 250(a)(3) step-down."
+pillar_two_rate,0.15,minimum effective rate,2024 onward,model_input,"OECD Global Anti-Base Erosion Model Rules (Pillar Two). JCT, JCX-22-23, p. 3."
+pillar_two_sbie_tangible_rate,0.05,share of tangible assets excluded,2024 onward,model_input,"Substance-based income exclusion. JCT, JCX-22-23, p. 3: 'payroll and tangible assets, which are each excludable at a rate of five percent'. The payroll half is not modelled — Form 8975 reports employee counts, not payroll — which raises the modelled top-up by about 3% and leaves the overlap share unchanged."
+gilti_ftc_limit,0.80,share of foreign tax creditable,TY2018 onward,model_input,"IRC section 960(d): the GILTI foreign tax credit is limited to 80 percent of foreign taxes paid. JCT, JCX-22-23, p. 2."
+cfc_active_income_tax_expenditure_billions,383.830,billions of dollars,FY2025-2034,external_check,"Treasury OTA, Tax Expenditures FY2026, Table 1 line 4 'Reduced tax rate on active income of controlled foreign corporations (normal tax method)', PDF p. 25. The cost of the whole CFC active-income preference, which is what a GILTI rate rise to the statutory rate with QBAI eliminated would recover, less the section 245A exclusions it does not reach."
+green_book_global_minimum_tax_billions,373.919,billions of dollars,FY2025-2034,external_check,"Treasury, General Explanations of the Administration's FY2025 Revenue Proposals, Table of Revenue Estimates, 'Revise the global minimum tax regime, limit inversions, and make related reforms', report p. 239 / PDF p. 247."
+green_book_utpr_billions,136.313,billions of dollars,FY2025-2034,external_check,"Same table, 'Adopt the undertaxed profits rule'. The module's UTPR returns $15B over the same window, one ninth of this, and that gap is the largest single residual in the biden_full_international row."
+green_book_fdii_repeal_gross_billions,157.993,billions of dollars,FY2025-2034,external_check,"Same table, 'Repeal the deduction for foreign-derived intangible income'. Treasury pairs it one-for-one with 'Provide additional support for research and development expenditures' at -$157,993M and prints an explicit subtotal of $0. The gross row exceeds the tax expenditure above by 21% because Green Book proposals are scored on a baseline that already carries the same volume's 28% corporate rate: 130.230 * (28/21) = 173.6, less behaviour."
+green_book_international_subtotal_billions,632.200,billions of dollars,FY2025-2034,external_check,"Same table, 'Subtotal; Reform International Taxation', report p. 240 / PDF p. 248. The carried benchmark for biden_full_international is -$700B; the three provisions the module implements sum to $510,232M of it."
+jct_scenario_4_billions,102.6,billions of dollars,FY2023-2033,external_check,"JCT, JCX-22-23, Table 2, 'Rest of the world does not enact Pillar Two; United States enacts Pillar Two in 2025, but no U.S. UTPR', p. 10. This is the scenario create_pillar_two_adoption models."
+jct_scenario_5_billions,236.5,billions of dollars,FY2023-2033,external_check,"JCT, JCX-22-23, Table 2, same but including a US UTPR, p. 10. Scenario 5 less Scenario 4 prices a US UTPR at $133.9B, within 2% of Treasury's own $136.313B row."
+jct_scenario_2_billions,-56.5,billions of dollars,FY2023-2033,external_check,"JCT, JCX-22-23, Table 2, 'Rest of the world enacts Pillar Two in 2025; United States also enacts Pillar Two in 2025', p. 10. In the state of the world where others have enacted, US adoption is a revenue *loss* — the opposite sign to the carried benchmark."

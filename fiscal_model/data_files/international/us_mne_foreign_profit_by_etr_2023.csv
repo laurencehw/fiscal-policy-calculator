@@ -1,0 +1,71 @@
+# US multinationals' foreign profit that sits below a 15% effective tax rate,
+# by jurisdiction — the shared base that a per-country GILTI and a Pillar Two
+# top-up both reach.
+#
+# Source: IRS, Statistics of Income Division, Country-by-Country Report
+#         (Form 8975) Study, Table 4, tax year 2023, published March 2026.
+#         https://www.irs.gov/statistics/soi-tax-stats-country-by-country-report
+#         File 23it04cbc.xlsx, sheet "Publishable Data 4". Form 8975 is filed by
+#         US ultimate parents of multinational groups with annual revenue of
+#         $850,000,000 or more — very nearly the EUR 750M Pillar Two population.
+#
+# Transcribed 2026-09-02 for lane L9 of planning/MODELING_IMPROVEMENT.md.
+#
+# Rows are the "MNE sub-groups with an ETR under 15%" band plus the
+# "MNE sub-groups with negative income tax accrued and positive profit" band,
+# which is also below 15% by construction. The United States row is excluded
+# from both: this file is the *foreign* pool. Sub-groups with negative or zero
+# profit are excluded — Pillar Two tops up positive excess profit only.
+#
+# The 24 named jurisdictions carry 89.4% of the pool; the remaining 138 rows are
+# summed into "All other jurisdictions" so the file totals reconcile exactly to
+# the published band figures:
+#   profit $812.44B, income tax accrued $25.71B (ETR 3.16%),
+#   tangible assets $1,187.67B, employees 5,560.7 thousand.
+# For context, the same table's ETR>=15% band holds $463.0B of foreign profit
+# with $137.6B of tax accrued (ETR 29.7%), so 64% of US multinationals' positive
+# foreign profit sits in sub-groups below 15%.
+#
+# READ THIS BEFORE TAKING A LEVEL OFF THIS FILE. Form 8975 "profit (loss)
+# before income tax" is a financial-accounting measure that includes intra-group
+# dividends and equity income, and "income tax accrued - current year" excludes
+# deferred tax. The same table's *United States* row therefore shows a 5.4%
+# effective rate on its below-15% sub-groups, which is an artefact, not a fact
+# about US taxation. fiscal_model/international.py uses this file only for the
+# *shape* of the distribution — which jurisdictions fall below a given minimum
+# rate and how two provisions' claims interleave across them, a scale-free
+# quantity — and takes no revenue level from it.
+#
+# Columns
+#   jurisdiction   as printed in Table 4, commas replaced by semicolons
+#   etr_band       etr_under_15 | negative_tax_positive_profit | residual
+#   profit_before_income_tax_billions   Table 4 column (6)
+#   income_tax_accrued_billions         Table 4 column (8), current year
+#   tangible_assets_billions            Table 4 column (12), other than cash
+#   employees_thousands                 Table 4 column (11)
+jurisdiction,etr_band,profit_before_income_tax_billions,income_tax_accrued_billions,tangible_assets_billions,employees_thousands
+Stateless entities and other countries,etr_under_15,232.66,1.65,586.81,1111.3
+Ireland,etr_under_15,101.27,10.36,62.66,85.1
+Singapore,etr_under_15,99.66,4.82,39.40,82.4
+Switzerland,etr_under_15,67.52,4.41,47.95,44.7
+United Kingdom (England; Northern Ireland; Scotland; and Wales),etr_under_15,26.21,1.27,48.68,348.4
+Cyprus,etr_under_15,23.46,0.06,0.03,0.6
+Netherlands,etr_under_15,21.96,1.24,16.09,25.7
+Puerto Rico,etr_under_15,21.42,0.82,25.29,39.7
+Cayman Islands,etr_under_15,16.76,0.10,2.02,20.3
+Hong Kong,etr_under_15,14.91,0.84,6.88,40.0
+Bermuda,etr_under_15,11.63,0.20,11.47,0.8
+Canada,etr_under_15,11.50,0.57,29.13,177.7
+Switzerland,negative_tax_positive_profit,10.29,-2.11,0.27,2.1
+Germany,etr_under_15,9.00,0.53,12.43,67.4
+Barbados,etr_under_15,8.89,0.11,0.25,1.3
+Luxembourg,etr_under_15,7.32,0.16,10.10,5.9
+Hungary,etr_under_15,6.72,0.17,3.10,39.4
+Stateless entities and other countries,negative_tax_positive_profit,6.50,-0.04,13.89,488.1
+Israel,etr_under_15,6.03,0.50,4.17,24.6
+Malaysia,etr_under_15,5.99,0.07,13.73,169.0
+Jersey,etr_under_15,4.44,0.06,0.14,0.2
+Malta,etr_under_15,4.27,0.06,0.47,1.7
+China,etr_under_15,4.10,0.40,12.00,136.5
+United Arab Emirates,etr_under_15,3.98,0.06,8.28,37.7
+All other jurisdictions,residual,85.96,-0.59,232.40,2610.2
