@@ -32,6 +32,27 @@ def test_holdout_protocol_covers_required_categories():
     assert details["failing_policy_ids"] == []
 
 
+def test_a_poor_holdout_entry_must_carry_its_reason_to_be_tolerated():
+    """The protocol was locked on 2026-05-02 over a scorecard in which every
+    capital-gains scenario carried its own fitted elasticity/lock-in tuple.
+    Wave 2's L1 deleted those tuples, so ``pwbm_39_with_stepup`` is now scored
+    by one frozen literature set and rates Poor - with the direction right,
+    which the old calibration needed a 5.3x multiplier to achieve. It stays in
+    the battery: removing it to go green is the failure mode the protocol
+    exists to prevent. What it must do instead is say why, in
+    ``known_limitations``, which is the same bar ``_scorecard_checks`` already
+    holds a documented Poor entry to. A Poor entry with nothing written down
+    still lands in ``failing_policy_ids`` and still fails readiness.
+    """
+    summary = cached_default_scorecard()
+    details = summarize_holdout_protocol(list(summary.entries))
+
+    for policy_id in details["documented_poor_policy_ids"]:
+        entry = next(e for e in summary.entries if e.policy_id == policy_id)
+        assert entry.known_limitations
+        assert entry.direction_match
+
+
 def test_holdout_roles_and_evidence_types_are_entry_specific():
     summary = cached_default_scorecard()
     holdout = holdout_entries(list(summary.entries))[0]

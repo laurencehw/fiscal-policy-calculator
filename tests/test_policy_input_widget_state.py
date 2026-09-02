@@ -199,13 +199,11 @@ def test_capital_gains_subform_returns_the_pre_key_defaults():
     assert out["baseline_cg_rate"] == 0.238
     assert out["baseline_realizations"] == 0.0
     assert out["use_time_varying"] is True
-    assert out["short_run_elasticity"] == 0.8
-    assert out["long_run_elasticity"] == 0.4
-    assert out["transition_years"] == 3
-    assert out["realization_elasticity"] == pytest.approx(0.6)
+    assert out["persistent_elasticity"] == 0.72
+    assert out["transitory_elasticity"] == 1.20
+    assert out["realization_elasticity"] == pytest.approx(0.72)
     assert out["eliminate_step_up"] is False
     assert out["step_up_exemption"] == 0.0
-    assert out["step_up_lock_in_multiplier"] == 2.0
 
 
 def test_capital_gains_step_up_branch_defaults():
@@ -216,8 +214,9 @@ def test_capital_gains_step_up_branch_defaults():
     out = render_tax_policy_inputs(st, PRESET_POLICIES, use_preset=False)
     assert out["eliminate_step_up"] is True
     assert out["step_up_exemption"] == 1_000_000
-    assert out["gains_at_death"] == 54.0
-    assert out["step_up_lock_in_multiplier"] == 1.0
+    # The flow of gains transferred at death is no longer a form input: it is
+    # estimated from decedent wealth and household net worth.
+    assert "gains_at_death" not in out
 
 
 # ---------------------------------------------------------------------------

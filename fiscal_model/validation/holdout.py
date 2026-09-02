@@ -129,10 +129,25 @@ def summarize_holdout_protocol(
     categories = Counter(getattr(entry, "category", "Unknown") for entry in matched_entries)
     ratings = Counter(getattr(entry, "rating", "Unknown") for entry in matched_entries)
     missing_categories = sorted(protocol.required_categories - set(categories))
+    # A Poor holdout entry that carries a known_limitations note is a
+    # *documented* outlier, exactly as ``_scorecard_checks`` already treats a
+    # documented Poor entry elsewhere on the scorecard: the miss is recorded and
+    # kept rather than tuned away. An Error, a direction mismatch, or a Poor
+    # entry with nothing written down still fails.
+    documented_entries = [
+        entry for entry in matched_entries
+        if getattr(entry, "rating", None) == "Poor"
+        and getattr(entry, "known_limitations", [])
+        and getattr(entry, "direction_match", True)
+    ]
+    documented_ids = {getattr(entry, "policy_id", None) for entry in documented_entries}
     failing_entries = [
         entry for entry in matched_entries
-        if getattr(entry, "rating", None) in {"Error", "Poor"}
-        or not getattr(entry, "direction_match", True)
+        if getattr(entry, "policy_id", None) not in documented_ids
+        and (
+            getattr(entry, "rating", None) in {"Error", "Poor"}
+            or not getattr(entry, "direction_match", True)
+        )
     ]
 
     return {
@@ -149,6 +164,22 @@ def summarize_holdout_protocol(
         "ratings": dict(sorted(ratings.items())),
         "failing_policy_ids": [
             getattr(entry, "policy_id", "unknown") for entry in failing_entries
+        ],
+        "documented_poor_policy_ids": [
+            getattr(entry, "policy_id", "unknown") for entry in documented_entries
+        ],
+        # Split the same way ``_scorecard_checks`` splits its documented Poor
+        # entries: a miss on a benchmark the module *is* fitted to is a
+        # calibration regression, a miss on one it is not is a finding.
+        "documented_poor_calibrated_policy_ids": [
+            getattr(entry, "policy_id", "unknown")
+            for entry in documented_entries
+            if getattr(entry, "calibrated_to_target", True)
+        ],
+        "documented_poor_reconstruction_policy_ids": [
+            getattr(entry, "policy_id", "unknown")
+            for entry in documented_entries
+            if not getattr(entry, "calibrated_to_target", True)
         ],
     }
 

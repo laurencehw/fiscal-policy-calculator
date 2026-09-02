@@ -454,6 +454,17 @@ def _scorecard_checks(scorecard: Any) -> list[ReadinessCheck]:
             "Locked holdout protocol failed: " + "; ".join(holdout_failures) + ".",
             details=holdout_details,
         )
+    elif holdout_details.get("documented_poor_policy_ids"):
+        holdout_check = _check(
+            "holdout_protocol",
+            "warn",
+            "Locked holdout protocol is covered; "
+            f"{len(holdout_details['documented_poor_policy_ids'])} entry(ies) are "
+            "documented Poor outliers: "
+            + ", ".join(holdout_details["documented_poor_policy_ids"])
+            + ".",
+            details=holdout_details,
+        )
     else:
         holdout_check = _check(
             "holdout_protocol",
@@ -583,15 +594,30 @@ def _is_documented_benchmark_warning(issue: ReadinessIssue) -> bool:
     tier are already hard ``fail``s (see ``_scorecard_checks``) and reach this
     function with severity ``fail``.
     """
-    if issue.severity != "warn" or issue.name != "revenue_scorecard":
+    if issue.severity != "warn":
         return False
     details = issue.details
-    if details.get("documented_calibrated_policy_ids"):
-        return False
-    return bool(
-        details.get("documented_generic_policy_ids")
-        or details.get("documented_reconstruction_policy_ids")
-    )
+    if issue.name == "revenue_scorecard":
+        if details.get("documented_calibrated_policy_ids"):
+            return False
+        return bool(
+            details.get("documented_generic_policy_ids")
+            or details.get("documented_reconstruction_policy_ids")
+        )
+    if issue.name == "holdout_protocol":
+        # A locked holdout entry can stop being a fitted benchmark: Wave 2's L1
+        # deleted the capital-gains module's per-case tuples, so
+        # ``pwbm_39_with_stepup`` is now scored by one frozen literature set and
+        # rates Poor with the direction right. The rule above already says what
+        # to do with that - a documented miss on a benchmark the module is *not*
+        # fitted to is a finding, not a regression - and it applies here for the
+        # same reason. A documented Poor holdout entry the module *is* still
+        # fitted to, an undocumented one, an Error or a direction mismatch all
+        # arrive as ``fail`` and are never exempted.
+        if details.get("documented_poor_calibrated_policy_ids"):
+            return False
+        return bool(details.get("documented_poor_reconstruction_policy_ids"))
+    return False
 
 
 def strict_readiness_issues(report: ReadinessReport) -> list[ReadinessIssue]:

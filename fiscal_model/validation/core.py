@@ -631,20 +631,22 @@ def create_capital_gains_policy_from_score(
     *,
     baseline_capital_gains_rate: float,
     baseline_realizations_billions: float,
-    short_run_elasticity: float = 0.8,
-    long_run_elasticity: float = 0.4,
-    transition_years: int = 3,
+    persistent_elasticity: float = 0.72,
+    transitory_elasticity: float = 1.20,
     use_time_varying: bool = True,
     eliminate_step_up: bool = False,
     step_up_exemption: float | None = None,
+    score_gains_at_death: bool = True,
     start_year: int = DEFAULT_VALIDATION_START_YEAR,
 ) -> CapitalGainsPolicy:
     """
     Create a CapitalGainsPolicy from a score entry plus required extra inputs.
 
-    The elasticity defaults here are the module defaults (0.8 short-run / 0.4
-    long-run, Auten-Clotfelter/CBO range). The calibrated ``CapitalGains``
-    runner overrides them per case; the Generic out-of-sample path must not.
+    The elasticity defaults here are the module defaults: Dowd, McClelland &
+    Muthitacharoen (2015)'s persistent -0.72 and transitory -1.2 at a 22%
+    reference rate, stored as the magnitudes 0.72 and 1.20 because the sign
+    lives in the ``exp(-b * delta_tau)`` response itself. There is one frozen
+    set: no case supplies its own.
     """
     if score.rate_change is None:
         raise ValueError("score.rate_change is required")
@@ -665,10 +667,10 @@ def create_capital_gains_policy_from_score(
         **extra,
         baseline_capital_gains_rate=float(baseline_capital_gains_rate),
         baseline_realizations_billions=float(baseline_realizations_billions),
-        short_run_elasticity=float(short_run_elasticity),
-        long_run_elasticity=float(long_run_elasticity),
-        transition_years=int(transition_years),
+        persistent_elasticity=float(persistent_elasticity),
+        transitory_elasticity=float(transitory_elasticity),
         use_time_varying_elasticity=use_time_varying,
+        score_gains_at_death=bool(score_gains_at_death),
     )
 
 
@@ -716,8 +718,8 @@ def _model_parameters_for(policy: Policy) -> dict:
             {
                 "baseline_rate": policy.baseline_capital_gains_rate,
                 "baseline_realizations": policy.baseline_realizations_billions,
-                "short_run_elasticity": policy.short_run_elasticity,
-                "long_run_elasticity": policy.long_run_elasticity,
+                "persistent_elasticity": policy.persistent_elasticity,
+                "transitory_elasticity": policy.transitory_elasticity,
                 "eliminate_step_up": policy.eliminate_step_up,
             }
         )

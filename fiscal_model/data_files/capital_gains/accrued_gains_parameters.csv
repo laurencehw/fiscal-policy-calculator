@@ -1,0 +1,25 @@
+# Parameters of the accrued-gains stock and the gains-at-death channel.
+# Sources are named per row.  Nothing here is fitted to a benchmark: the
+# level of gains at death comes from Poterba & Weisbenner (2001) Table 8
+# over 1998 household net worth, the mortality weighting from the NCHS
+# 2022 life table against Federal Reserve DFA net worth by age, and the
+# realization elasticities from Dowd, McClelland & Muthitacharoen (2015)
+# with the reference rate CRS R48562 states they are adjusted to.
+# Regenerate with: python scripts/build_capital_gains_data.py
+key,value,source
+household_net_worth_anchor_millions_usd,161238775.0,"Federal Reserve DFA (Z.1), 2024:Q4"
+household_net_worth_anchor_year,2024.0,"Federal Reserve DFA (Z.1), 2024:Q4"
+household_net_worth_growth_rate,0.05801476904492042,"Federal Reserve DFA (Z.1), compound annual growth 1998:Q4 to 2024:Q4"
+households_millions,127.8583027362738,Federal Reserve DFA (Z.1) 2022:Q4 aggregate divided by SCF 2022 Table 4 mean family net worth
+estate_flow_rate,0.003195194856902567,"Poterba & Weisbenner (2001) Table 8 expected estates $118.9B over Federal Reserve DFA household net worth, 1998:Q4"
+gains_at_death_share_of_net_worth,0.001150162656647854,"Poterba & Weisbenner (2001) Table 8 expected unrealized gains at death $42.8B over DFA household net worth, 1998:Q4"
+gain_share_of_estates,0.36,Poterba & Weisbenner (2001) Table 8
+mortality_weighted_net_worth_share,0.02646831735981903,"NCHS United States Life Tables 2022 (NVSR 74-02) Table 1 against Federal Reserve DFA net worth by age of head, 2024:Q4"
+accrued_gain_share_of_net_worth,0.3093238650132389,"Avery, Grodzicki & Moore (FEDS 2013-28) Figure 1 evaluated on Federal Reserve DFA net worth by percentile group, 2024:Q4"
+persistent_elasticity,0.72,"Dowd, McClelland & Muthitacharoen (2015), NTJ 68(3)"
+transitory_elasticity,1.2,"Dowd, McClelland & Muthitacharoen (2015), NTJ 68(3)"
+elasticity_reference_rate,0.22,CRS R48562 (2025) Table 4 note: estimates adjusted to a 22 percent tax rate; the semi-log coefficient is the elasticity over this rate
+mortality_rate_ageunder40,0.001088056289981779,NCHS United States Life Tables 2022 (NVSR 74-02) Table 1
+mortality_rate_age40to54,0.0039392355957177235,NCHS United States Life Tables 2022 (NVSR 74-02) Table 1
+mortality_rate_age55to69,0.011945646925379865,NCHS United States Life Tables 2022 (NVSR 74-02) Table 1
+mortality_rate_age70plus,0.06525941437448177,NCHS United States Life Tables 2022 (NVSR 74-02) Table 1

@@ -343,14 +343,11 @@ def execute_calculation_if_requested(
             baseline_cg_rate=float(tax_inputs["baseline_cg_rate"]),
             baseline_realizations=float(tax_inputs["baseline_realizations"]),
             realization_elasticity=float(tax_inputs["realization_elasticity"]),
-            short_run_elasticity=float(tax_inputs["short_run_elasticity"]),
-            long_run_elasticity=float(tax_inputs["long_run_elasticity"]),
-            transition_years=int(tax_inputs["transition_years"]),
+            persistent_elasticity=float(tax_inputs["persistent_elasticity"]),
+            transitory_elasticity=float(tax_inputs["transitory_elasticity"]),
             use_time_varying=bool(tax_inputs["use_time_varying"]),
             eliminate_step_up=bool(tax_inputs["eliminate_step_up"]),
             step_up_exemption=float(tax_inputs["step_up_exemption"]),
-            gains_at_death=float(tax_inputs["gains_at_death"]),
-            step_up_lock_in_multiplier=float(tax_inputs["step_up_lock_in_multiplier"]),
         )
 
     ok = run_with_spinner_feedback(

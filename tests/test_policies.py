@@ -300,56 +300,97 @@ class TestTaxPolicyBehavioralOffset:
 
 
 # =============================================================================
-# CapitalGainsPolicy.get_elasticity_for_year
+# CapitalGainsPolicy semi-log realizations response
 # =============================================================================
 
 class TestCapitalGainsElasticity:
-    def test_year_zero_short_run(self, cap_gains_policy):
-        """Year 0 returns short-run elasticity."""
-        e = cap_gains_policy.get_elasticity_for_year(0)
-        assert e == pytest.approx(0.8)
+    """The response is to the tax rate, not the net-of-tax rate.
 
-    def test_year_at_or_beyond_transition_long_run(self, cap_gains_policy):
-        """Year >= transition_years returns long-run elasticity."""
-        e3 = cap_gains_policy.get_elasticity_for_year(3)
-        e5 = cap_gains_policy.get_elasticity_for_year(5)
-        assert e3 == pytest.approx(0.4)
-        assert e5 == pytest.approx(0.4)
+    CRS R48562 defines the realization elasticity as the percentage change in
+    realizations over the percentage change in the *tax rate*, behind a
+    semi-log function R = B exp(-b t). So b = elasticity / reference rate and
+    the implied elasticity b*t rises with the rate.
+    """
 
-    def test_interpolation_midpoint(self, cap_gains_policy):
-        """Year 1 with transition_years=3: weight=1/3, e = 0.8*2/3 + 0.4*1/3."""
-        e = cap_gains_policy.get_elasticity_for_year(1)
-        expected = 0.8 * (2 / 3) + 0.4 * (1 / 3)
-        assert e == pytest.approx(expected, rel=1e-6)
+    def test_coefficient_is_elasticity_over_reference_rate(self, cap_gains_policy):
+        assert cap_gains_policy.semi_log_coefficient(1) == pytest.approx(0.72 / 0.22)
 
-    def test_step_up_multiplier_applied(self):
-        """When step_up_at_death=True, elasticity is multiplied by lock-in multiplier."""
+    def test_transitory_term_applies_in_the_enactment_year_only(self, cap_gains_policy):
+        year_zero = cap_gains_policy.semi_log_coefficient(0, long_term_share=1.0)
+        later = cap_gains_policy.semi_log_coefficient(1, long_term_share=1.0)
+        assert year_zero == pytest.approx((0.72 + 1.20) / 0.22)
+        assert later == pytest.approx(0.72 / 0.22)
+        assert year_zero > later
+
+    def test_transitory_term_scales_with_the_timing_margin(self, cap_gains_policy):
+        """Qualified dividends cannot be retimed, so only the long-term-gain
+        share of a bracket's base carries the transitory response."""
+        full = cap_gains_policy.semi_log_coefficient(0, long_term_share=1.0)
+        half = cap_gains_policy.semi_log_coefficient(0, long_term_share=0.5)
+        none = cap_gains_policy.semi_log_coefficient(0, long_term_share=0.0)
+        assert none == pytest.approx(0.72 / 0.22)
+        assert half == pytest.approx((0.72 + 0.5 * 1.20) / 0.22)
+        assert full > half > none
+
+    def test_implied_elasticity_rises_with_the_rate(self, cap_gains_policy):
+        """e(t) = b*t, so the top bracket responds more than the 15% bracket."""
+        coefficient = cap_gains_policy.semi_log_coefficient(1)
+        assert coefficient * 0.15 < coefficient * 0.238
+        # DMM's 0.72 at 22% implies a revenue-maximizing rate of 1/b.
+        assert 1.0 / coefficient == pytest.approx(0.3056, abs=0.001)
+
+    def test_constant_elasticity_mode_drops_the_transitory_term(self):
         policy = CapitalGainsPolicy(
-            name="StepUp", description="", policy_type=PolicyType.CAPITAL_GAINS_TAX,
+            name="Constant", description="", policy_type=PolicyType.CAPITAL_GAINS_TAX,
             rate_change=0.05,
             baseline_capital_gains_rate=0.20,
             baseline_realizations_billions=1000.0,
-            step_up_at_death=True,
-            eliminate_step_up=False,
-            step_up_lock_in_multiplier=2.0,
+            use_time_varying_elasticity=False,
+            realization_elasticity=0.5,
         )
-        e = policy.get_elasticity_for_year(0)
-        assert e == pytest.approx(0.8 * 2.0)
+        assert policy.semi_log_coefficient(0) == pytest.approx(0.5 / 0.22)
+        assert policy.semi_log_coefficient(4) == pytest.approx(0.5 / 0.22)
 
-    def test_no_step_up_avoidance_multiplier_applied(self):
-        """No-step-up policies can model residual avoidance without full lock-in."""
-        policy = CapitalGainsPolicy(
-            name="NoStepUp", description="", policy_type=PolicyType.CAPITAL_GAINS_TAX,
-            rate_change=0.05,
-            baseline_capital_gains_rate=0.20,
-            baseline_realizations_billions=1000.0,
+
+class TestCapitalGainsLockIn:
+    """Lock-in is a price wedge off the accrued-gains stock, not a multiplier."""
+
+    def _policy(self, eliminate: bool) -> CapitalGainsPolicy:
+        return CapitalGainsPolicy(
+            name="LockIn", description="", policy_type=PolicyType.CAPITAL_GAINS_TAX,
+            rate_change=0.196,
+            baseline_capital_gains_rate=0.238,
+            baseline_realizations_billions=100.0,
             step_up_at_death=True,
-            eliminate_step_up=True,
-            step_up_lock_in_multiplier=5.3,
-            no_step_up_avoidance_multiplier=1.5,
+            eliminate_step_up=eliminate,
         )
-        e = policy.get_elasticity_for_year(0)
-        assert e == pytest.approx(0.8 * 1.5)
+
+    def test_wedge_exceeds_one_because_gains_escape_at_death(self):
+        assert self._policy(False).lock_in_wedge() > 1.0
+
+    def test_eliminating_step_up_damps_the_response(self):
+        """DMM estimated under current law, so the literature coefficient is the
+        with-step-up one; without step-up deferral saves less and the response
+        to a rate change is smaller."""
+        with_step_up = self._policy(False).semi_log_coefficient(1)
+        without = self._policy(True).semi_log_coefficient(1)
+        assert without < with_step_up
+        assert without == pytest.approx(
+            with_step_up / self._policy(True).lock_in_wedge()
+        )
+
+    def test_a_rate_rise_past_the_peak_loses_revenue_under_step_up(self):
+        """PWBM's result, reached without a lock-in multiplier: 43.4% is past
+        the revenue-maximizing 1/b = 30.6%."""
+        policy = self._policy(False)
+        static = policy.estimate_static_revenue_effect(0.0)
+        offset = policy.estimate_behavioral_offset(static, years_since_start=1)
+        assert static - offset < 0
+
+    def test_stock_ratio_grows_when_realizations_are_deferred(self):
+        policy = self._policy(False)
+        assert policy.stock_ratio(0) == pytest.approx(1.0)
+        assert policy.stock_ratio(5) > 1.0
 
 
 # =============================================================================
@@ -402,41 +443,46 @@ class TestCapitalGainsBehavioralOffset:
 # =============================================================================
 
 class TestStepUpEliminationRevenue:
+    """Decedent wealth x unrealized-gain share x an exemption schedule,
+    indexed to the asset stock - not one constant times an ad-hoc share."""
+
+    def _policy(self, exemption: float, rate_change: float = 0.0) -> CapitalGainsPolicy:
+        return CapitalGainsPolicy(
+            name="Eliminate StepUp", description="",
+            policy_type=PolicyType.CAPITAL_GAINS_TAX,
+            rate_change=rate_change,
+            baseline_capital_gains_rate=0.238,
+            baseline_realizations_billions=1000.0,
+            eliminate_step_up=True,
+            step_up_exemption=exemption,
+            step_up_at_death=True,
+            start_year=2025,
+        )
+
     def test_no_elimination_returns_zero(self, cap_gains_policy):
         assert cap_gains_policy.estimate_step_up_elimination_revenue() == 0.0
 
     def test_elimination_returns_positive(self):
-        policy = CapitalGainsPolicy(
-            name="Eliminate StepUp", description="",
-            policy_type=PolicyType.CAPITAL_GAINS_TAX,
-            rate_change=0.05,
-            baseline_capital_gains_rate=0.20,
-            baseline_realizations_billions=1000.0,
-            eliminate_step_up=True,
-            step_up_exemption=1_000_000,
-            gains_at_death_billions=54.0,
-            step_up_at_death=True,
-        )
-        rev = policy.estimate_step_up_elimination_revenue()
-        # tau1 = 0.25, exemption_share = min(0.9, 0.4*1) = 0.4
-        # taxable = 54 * (1 - 0.4) = 32.4, rev = 0.25 * 32.4 = 8.1
-        assert rev == pytest.approx(0.25 * 54.0 * 0.6)
-        assert rev > 0
+        assert self._policy(1_000_000).estimate_step_up_elimination_revenue() > 0
 
-    def test_zero_exemption_taxes_all_gains(self):
-        policy = CapitalGainsPolicy(
-            name="No Exempt", description="",
-            policy_type=PolicyType.CAPITAL_GAINS_TAX,
-            rate_change=0.0,
-            new_rate=0.25,
-            baseline_capital_gains_rate=0.20,
-            baseline_realizations_billions=1000.0,
-            eliminate_step_up=True,
-            step_up_exemption=0,
-            gains_at_death_billions=54.0,
-        )
-        rev = policy.estimate_step_up_elimination_revenue()
-        assert rev == pytest.approx(0.25 * 54.0)
+    def test_a_larger_exemption_raises_less(self):
+        none = self._policy(0.0).estimate_step_up_elimination_revenue()
+        small = self._policy(1_000_000).estimate_step_up_elimination_revenue()
+        large = self._policy(5_000_000).estimate_step_up_elimination_revenue()
+        assert none > small > large
+
+    def test_revenue_grows_with_the_asset_stock(self):
+        """The flow is a share of household net worth, so it is indexed rather
+        than repeated as one constant across the window."""
+        policy = self._policy(0.0)
+        first = policy.estimate_step_up_elimination_revenue(0)
+        last = policy.estimate_step_up_elimination_revenue(9)
+        assert last > first * 1.4
+
+    def test_scope_flag_switches_the_channel_off(self):
+        policy = self._policy(0.0)
+        policy.score_gains_at_death = False
+        assert policy.estimate_step_up_elimination_revenue() == 0.0
 
 
 # =============================================================================

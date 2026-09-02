@@ -1,0 +1,13 @@
+# Decedent estate-size classes: Federal Reserve DFA household net worth by
+# percentile group at the anchor quarter, with the unrealized-gain share of
+# the gross estate that Avery, Grodzicki & Moore (FEDS 2013-28) Figure 1
+# reports for an estate of that size.  Household counts come from the DFA
+# aggregate divided by the SCF 2022 mean, so mean_net_worth_millions_usd is
+# a group mean and carries no within-group dispersion.
+# Regenerate with: python scripts/build_capital_gains_data.py
+group,household_share,net_worth_millions_usd,mean_net_worth_millions_usd,unrealized_gain_share
+TopPt1,0.001,22620305.0,176.91698165787204,0.549
+RemainingTop1,0.009,27423021.0,23.831086977732028,0.425
+Next9,0.09,58724123.0,5.103229446908981,0.325
+Next40,0.4,48485811.0,0.9480379835013331,0.128
+Bottom50,0.5,3985515.0,0.06234268584372968,0.128
