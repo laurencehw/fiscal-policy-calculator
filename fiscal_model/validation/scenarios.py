@@ -480,8 +480,14 @@ INTERNATIONAL_VALIDATION_SCENARIOS_COMPARE = {
             "against the module's implied $271B, which is the identity that would "
             "replace both.",
             "The -$280B target is the repo's rounded Green Book figure, not a "
-            "transcribed row of the FY2025 Green Book revenue table; the table's own "
-            "row is $373,919M.",
+            "transcribed row of the FY2025 Green Book revenue table. There is no "
+            "row for a GILTI change alone: the nearest is 'Revise the global "
+            "minimum tax regime, limit inversions, and make related reforms' at "
+            "$373,919M, whose proposal text matches this factory's shape "
+            "(jurisdiction-by-jurisdiction, rate to 21%, QBAI eliminated) but whose "
+            "scope also covers the inversion and related-reform provisions the "
+            "module does not implement. So the 34% gap between the two figures is "
+            "part target rounding and part scope, in unknown proportions.",
         ],
     },
     "fdii_repeal": {

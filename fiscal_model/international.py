@@ -8,11 +8,20 @@ Models international corporate tax provisions including:
 4. Country-by-country minimum tax (UTPR)
 5. Profit shifting / base erosion provisions
 
-Key parameters calibrated to CBO/JCT estimates:
-- GILTI reform (Biden): raises ~$280B/10yr (Treasury FY2025)
-- FDII repeal: Treasury OTA prices the deduction at $130.2B/10yr
-- Pillar Two adoption: raises ~$50-120B/10yr (JCT estimates vary)
-- Combined Biden international package: ~$700-900B/10yr
+Parameters, and whether each is fitted or transcribed — the distinction matters,
+because only the fitted ones make a small error bookkeeping rather than skill:
+
+- GILTI reform (Biden): **calibrated** to ~$280B/10yr (Treasury FY2025), through
+  two constants whose own comments say so
+- FDII repeal: **transcribed**, not calibrated. Treasury OTA prices the
+  deduction at $130.2B/10yr and the module runs a base x rate identity on the
+  income that figure implies
+- Pillar Two adoption: **calibrated** to a ~$50-120B/10yr range (JCT estimates
+  vary, and are conditional — see below)
+- Combined Biden international package: ~$700-900B/10yr, of which this module
+  implements three provisions
+- The base-overlap term is **structural**: statutory rates and a published
+  jurisdictional distribution, with no revenue level taken from either
 
 Two things are modelled structurally rather than as constants, both added by
 lane L9 of ``planning/MODELING_IMPROVEMENT.md``:
@@ -118,6 +127,14 @@ INTERNATIONAL_BASELINE = {
     # provision's claim on the low-taxed foreign-profit pool the other has
     # already taken. Neither sets a revenue level.
     "gilti_ftc_limit": 0.80,  # IRC 960(d): GILTI FTC capped at 80% of foreign tax
+    # IRS SOI CbCR Table 4, "ETR of 15% or greater" band, all jurisdictions less
+    # the United States row. A *blended* GILTI pools this with the low-taxed
+    # profit in us_mne_foreign_profit_by_etr_2023.csv — cross-crediting a 29.7%
+    # effective rate against a 3.2% one is why current-law GILTI collects so
+    # little — while a per-country GILTI cannot reach it at all. Read only by
+    # `shared_claim_share`'s blended branch.
+    "high_taxed_foreign_profit_billions": 462.97,
+    "high_taxed_foreign_tax_billions": 137.65,
     # Substance-based income exclusion, tangible-asset half only. JCT JCX-22-23
     # p. 3 gives 5% of payroll *and* 5% of tangible assets; Form 8975 reports
     # employee counts rather than payroll, so the payroll half is omitted. That
@@ -233,10 +250,57 @@ def fdii_income_billions() -> float:
     )
 
 
-def shared_claim_share(gilti_rate: float, minimum_rate: float) -> float:
+def _blended_gilti_claims(
+    rows: tuple[ForeignProfitRow, ...],
+    gilti_rate: float,
+    minimum_rate: float,
+) -> list[float]:
+    """Per-jurisdiction GILTI claims when GILTI is computed on a blended pool.
+
+    A blended GILTI is one calculation over *all* foreign income, so high-tax
+    jurisdictions cross-credit against low-tax ones and the charge is far
+    smaller than the per-country sum — that is the mechanism a country-by-country
+    reform removes. The pool therefore has to include the high-taxed foreign
+    profit the low-taxed distribution file deliberately excludes::
+
+        pooled = max(0, gilti_rate * sum(Y) - ftc_limit * sum(T))
+
+    over the low-taxed rows *plus* ``high_taxed_foreign_profit_billions`` and
+    ``high_taxed_foreign_tax_billions``. The pooled charge is then spread over
+    the low-taxed jurisdictions on the OECD's own blended-CFC allocation key —
+    jurisdictional income times its shortfall from the minimum rate (Pillar Two
+    Administrative Guidance, February 2023, Article 2.10, the "simplified
+    allocation method for blended CFC tax regimes"; JCT JCX-22-23 p. 5 n. 10
+    notes it "generally results in the allocation of taxes to low-tax
+    jurisdictions").
+    """
+    ftc_limit = INTERNATIONAL_BASELINE["gilti_ftc_limit"]
+    pooled_profit = sum(r.profit_billions for r in rows) + INTERNATIONAL_BASELINE[
+        "high_taxed_foreign_profit_billions"
+    ]
+    pooled_tax = sum(r.creditable_tax_billions for r in rows) + INTERNATIONAL_BASELINE[
+        "high_taxed_foreign_tax_billions"
+    ]
+    pooled = max(0.0, gilti_rate * pooled_profit - ftc_limit * pooled_tax)
+
+    keys = [
+        r.profit_billions * max(0.0, minimum_rate - r.creditable_effective_rate)
+        for r in rows
+    ]
+    total_key = sum(keys)
+    if total_key <= 0.0:
+        return [0.0] * len(rows)
+    return [pooled * key / total_key for key in keys]
+
+
+def shared_claim_share(
+    gilti_rate: float,
+    minimum_rate: float,
+    country_by_country: bool = True,
+) -> float:
     """How much of the smaller provision's claim the other one already takes.
 
-    A per-country GILTI at ``gilti_rate`` and a Pillar Two top-up to
+    A reformed GILTI at ``gilti_rate`` and a Pillar Two top-up to
     ``minimum_rate`` both reach a US group's foreign profit in jurisdictions
     taxed below the minimum. JCT's ordering rule (JCX-22-23 p. 6) says the two
     do not add: whichever provision reaches a jurisdiction first, the other
@@ -246,6 +310,16 @@ def shared_claim_share(gilti_rate: float, minimum_rate: float) -> float:
         g_j = max(0, gilti_rate * Y - ftc_limit * T)          # CFC rules
         p_j = max(0, minimum_rate - T / Y) * (Y - sbie * A)   # IIR / QDMTT
         share = sum_j min(g_j, p_j) / min(sum_j g_j, sum_j p_j)
+
+    ``country_by_country`` selects which GILTI is being netted. That first
+    line for ``g_j`` is the **per-country** claim, which is what a
+    jurisdiction-by-jurisdiction reform imposes. With ``country_by_country=False``
+    the claim comes from :func:`_blended_gilti_claims` instead: one pooled
+    computation over all foreign income, allocated to low-taxed jurisdictions on
+    the OECD's blended-CFC key. Netting a blended GILTI as though it were a
+    per-country one would overstate the overlap, because pooling lets high-tax
+    jurisdictions absorb the charge that a per-country regime levies on low-tax
+    ones.
 
     ``T`` is floored at zero. A jurisdiction can accrue negative current-year
     tax on positive book profit — 58 rows of Table 4 do — and letting that run
@@ -259,24 +333,31 @@ def shared_claim_share(gilti_rate: float, minimum_rate: float) -> float:
     claims nothing, so a caller can multiply it by ``min(gilti, pillar_two)``
     unconditionally.
 
-    At ``gilti_rate=0.21`` and ``minimum_rate=0.15`` the share is exactly 1,
-    and that is algebra rather than data: ``0.21*Y - 0.8*T`` minus
+    At ``gilti_rate=0.21`` and ``minimum_rate=0.15``, per country, the share is
+    exactly 1, and that is algebra rather than data: ``0.21*Y - 0.8*T`` minus
     ``0.15*Y - T`` is ``0.06*Y + 0.2*T``, positive for every positive profit
     and non-negative tax, so the 21% claim dominates everywhere.
     """
     ftc_limit = INTERNATIONAL_BASELINE["gilti_ftc_limit"]
     sbie_rate = INTERNATIONAL_BASELINE["pillar_two_sbie_tangible_rate"]
+    rows = load_foreign_profit_by_etr()
+
+    if country_by_country:
+        gilti_claims = [
+            max(
+                0.0,
+                gilti_rate * r.profit_billions - ftc_limit * r.creditable_tax_billions,
+            )
+            for r in rows
+        ]
+    else:
+        gilti_claims = _blended_gilti_claims(rows, gilti_rate, minimum_rate)
 
     gilti_total = 0.0
     pillar_two_total = 0.0
     shared_total = 0.0
 
-    for row in load_foreign_profit_by_etr():
-        gilti_claim = max(
-            0.0,
-            gilti_rate * row.profit_billions
-            - ftc_limit * row.creditable_tax_billions,
-        )
+    for row, gilti_claim in zip(rows, gilti_claims):
         excess_profit = max(
             0.0,
             row.profit_billions - sbie_rate * row.tangible_assets_billions,
@@ -420,14 +501,17 @@ class InternationalTaxPolicy(TaxPolicy):
         rate, and 13.023 x 10 x (28/21) = $173.6B before behaviour, which is
         where that row's 21% premium over the tax expenditure comes from.
         """
-        if not self.fdii_repeal and self.fdii_new_rate is None:
-            return 0.0
-
         base = INTERNATIONAL_BASELINE
         statutory_rate = base["current_corporate_rate"]
-        current_effective = statutory_rate * (1 - base["fdii_deduction_rate"])
-        new_effective = statutory_rate if self.fdii_repeal else self.fdii_new_rate
 
+        if self.fdii_repeal:
+            new_effective = statutory_rate
+        elif self.fdii_new_rate is not None:
+            new_effective = self.fdii_new_rate
+        else:
+            return 0.0
+
+        current_effective = statutory_rate * (1 - base["fdii_deduction_rate"])
         return (new_effective - current_effective) * fdii_income_billions()
 
     def _estimate_base_overlap(self) -> float:
@@ -441,6 +525,12 @@ class InternationalTaxPolicy(TaxPolicy):
         larger claim, not the sum. This returns the non-negative amount to
         subtract; :func:`shared_claim_share` says how much of the smaller claim
         the larger absorbs.
+
+        Which GILTI is being netted matters, so the policy's own
+        ``gilti_country_by_country`` flag is passed through: a blended GILTI
+        lets high-tax jurisdictions absorb the charge and reaches the shared
+        base less far than a per-country one, and netting it as though it were
+        per-country would overstate the overlap.
 
         Two pairs are deliberately *not* netted, because as this module defines
         them their bases are disjoint:
@@ -465,7 +555,11 @@ class InternationalTaxPolicy(TaxPolicy):
             if self.gilti_new_rate is not None
             else INTERNATIONAL_BASELINE["gilti_rate"]
         )
-        share = shared_claim_share(gilti_rate, self.pillar_two_rate)
+        share = shared_claim_share(
+            gilti_rate,
+            self.pillar_two_rate,
+            country_by_country=self.gilti_country_by_country,
+        )
         return share * min(gilti, pillar_two)
 
     def _estimate_pillar_two(self) -> float:

@@ -22,6 +22,7 @@ from fiscal_model.international import (
     FOREIGN_PROFIT_BY_ETR_FILE,
     INTERNATIONAL_BASELINE,
     InternationalTaxPolicy,
+    _blended_gilti_claims,
     create_biden_full_international,
     create_biden_gilti_reform,
     create_fdii_repeal,
@@ -146,6 +147,51 @@ class TestSharedClaimShare:
         high = shared_claim_share(0.21, 0.15)
         assert high >= low
 
+    def test_cross_crediting_shrinks_the_blended_gilti_claim(self):
+        # The mechanism a country-by-country reform removes: pooling lets a
+        # 29.7% high-taxed band absorb the charge a per-country regime levies
+        # on the 3.2% low-taxed one. The gap widens as the rate falls, until at
+        # current law the blended claim all but vanishes.
+        rows = load_foreign_profit_by_etr()
+        for rate in (0.105, 0.13125, 0.21):
+            blended = sum(_blended_gilti_claims(rows, rate, 0.15))
+            per_country = sum(
+                max(
+                    0.0,
+                    rate * r.profit_billions
+                    - INTERNATIONAL_BASELINE["gilti_ftc_limit"]
+                    * r.creditable_tax_billions,
+                )
+                for r in rows
+            )
+            assert blended < per_country, rate
+        assert sum(_blended_gilti_claims(rows, 0.105, 0.15)) < 5.0
+
+    def test_the_share_is_near_one_under_both_regimes(self):
+        # Not a tautology and not an assumption: the OECD's blended-CFC
+        # allocation key is the top-up key, so a pooled charge lands where the
+        # top-up would fall and one provision dominates uniformly whatever the
+        # pool's size. The blended branch exists to establish that rather than
+        # to assume it — the *level* still differs, and _estimate_base_overlap
+        # picks that up through _estimate_gilti_reform's own cbc multiplier.
+        assert shared_claim_share(0.21, 0.15, country_by_country=False) == pytest.approx(
+            1.0
+        )
+        assert shared_claim_share(0.105, 0.15, country_by_country=False) == pytest.approx(
+            1.0
+        )
+
+    def test_the_blended_pool_includes_the_high_taxed_band(self):
+        # The distribution file holds only below-15% jurisdictions; a blended
+        # calculation has to reach past it or it is not blended at all.
+        assert INTERNATIONAL_BASELINE["high_taxed_foreign_profit_billions"] > 0
+        assert INTERNATIONAL_BASELINE["high_taxed_foreign_tax_billions"] > 0
+        implied_rate = (
+            INTERNATIONAL_BASELINE["high_taxed_foreign_tax_billions"]
+            / INTERNATIONAL_BASELINE["high_taxed_foreign_profit_billions"]
+        )
+        assert implied_rate > 0.15
+
     def test_no_claim_means_no_overlap(self):
         assert shared_claim_share(0.21, 0.0) == 0.0
         assert shared_claim_share(0.0, 0.15) == 0.0
@@ -185,6 +231,34 @@ class TestBaseOverlapTerm:
         static = combined.estimate_static_revenue_effect(0.0)
         assert static == pytest.approx(max(gilti, top_up))
         assert static < gilti + top_up
+
+    def test_the_overlap_reads_the_policy_s_own_gilti_regime(self):
+        # Same two levers, same rates; only the GILTI regime differs. The
+        # blended policy raises less GILTI, and the netting is computed on that
+        # regime rather than on a per-country claim the policy does not impose.
+        shared = dict(
+            description="both levers on the same low-taxed foreign profits",
+            gilti_new_rate=0.21,
+            gilti_eliminate_qbai=True,
+            pillar_two_adopt=True,
+        )
+        per_country = InternationalTaxPolicy(
+            name="per-country", gilti_country_by_country=True, **shared
+        )
+        blended = InternationalTaxPolicy(
+            name="blended", gilti_country_by_country=False, **shared
+        )
+        assert blended._estimate_gilti_reform() < per_country._estimate_gilti_reform()
+        # Here the top-up is the smaller claim under both regimes, so both net
+        # the whole of it — the regime shows up in the GILTI level, not the
+        # share. Asserted so a future change to either is visible.
+        for policy in (per_country, blended):
+            assert policy._estimate_base_overlap() == pytest.approx(
+                policy._estimate_pillar_two()
+            )
+        assert blended.estimate_static_revenue_effect(
+            0.0
+        ) < per_country.estimate_static_revenue_effect(0.0)
 
     def test_the_breakdown_still_reconciles_with_an_overlap_present(self):
         combined = InternationalTaxPolicy(
