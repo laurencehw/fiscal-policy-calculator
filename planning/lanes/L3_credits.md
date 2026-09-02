@@ -260,4 +260,194 @@ Anything that moves outside this list is a finding, and gets written into §4.
 
 ## 4. Outturn
 
-*Appended after the code, in the last commit.*
+*Appended 2026-09-02, after the code. Numbers from `python scripts/run_loo.py
+--donor-matrix`, `python scripts/cold_holdout.py` and
+`python scripts/run_validation_dashboard.py` on the finished branch. `main` did
+not move under the lane, so §1's baseline is the one this is measured against.*
+
+### Leave-one-out
+
+| Case | Official | By-constr | LOO before | LOO after | Err before | Err after |
+|---|--:|--:|--:|--:|--:|--:|
+| `biden_ctc_2021` | 1,600.0 | 1,600.0 | 574.1 | **1,528.5** | −64.1% | **−4.5%** |
+| `ctc_extension` | 600.0 | 600.0 | 432.0 | **714.2** | −28.0% | **+19.0%** |
+| `biden_eitc_childless` | 178.0 | 178.0 | 101.2 | **110.4** | −43.1% | **−38.0%** |
+
+Credits module mean **45.1% → 20.5%**, still over three derivable cases with
+none excluded.
+
+| suite | n | mean | median | within 15% | not x-val |
+|---|--:|--:|--:|--:|--:|
+| Before | 17 | 32.3% | 19.2% | 8 | 5 |
+| **After** | **17** | **28.0%** | **14.0%** | **9** | **5** |
+
+Nothing left or entered the denominator, so the 4.3pp is a like-for-like
+movement — unlike L6's, which was partly a case leaving.
+
+### Against the pre-registration
+
+| Row | Predicted | Actual | |
+|---|--:|--:|---|
+| LOO `biden_ctc_2021` | −40% to −15% | **−4.5%** | **missed, on the good side — finding 1** |
+| LOO `ctc_extension` | −10% to +45% | **+19.0%** | in band |
+| LOO `biden_eitc_childless` | −45% to −10% | **−38.0%** | in band |
+| Credits module mean | 20% to 32% | **20.5%** | in band, at its edge |
+| LOO suite mean (n=17) | 28% to 33% | **28.0%** | in band, at its edge |
+| LOO suite median | 17% to 22% | **14.0%** | **missed, on the good side** |
+| LOO within 15% | 8/17 to 10/17 | **9/17** | in band |
+| Distributional ARP 2021 | 2.0pp to 4.5pp | **7.77pp** | **missed, badly — finding 2** |
+| Tier 1 | 31.3% / 13 / 18, unmoved | **31.3% / 13 / 18** | as registered |
+| Fitted tier (30) | 2.2%, unmoved | **2.2%, 30/30** | as registered |
+| Unfitted reconstructions (24) | 72.1%, unmoved | **72.1%** | as registered |
+| Six other distributional tables | unmoved | **unmoved to the hundredth** | as registered |
+| App presets | unmoved | **unmoved** | as registered |
+| Other LOO modules | unmoved | **unmoved** | as registered |
+| SOI coverage after rebuild | 119% / 81%, unmoved | **119% / 81%** | as registered |
+
+The plan's own §3 L3 targets: **LOO credits <20% — missed by half a point, at
+20.5%**, which §3 of this file predicted and gave the reason for. **ARP
+distributional <4pp — missed outright, and in the wrong direction.**
+
+### Distributional benchmarks, all seven
+
+| Benchmark | Before | After |
+|---|--:|--:|
+| Tax Cuts and Jobs Act, calendar 2018 | 0.00 | **0.00** |
+| TCJA conference agreement, calendar 2019 | 2.10 | **2.10** |
+| **American Rescue Plan refundable credits, 2021** | **4.76** | **7.77** |
+| SALT cap repeal, 2024 | 5.86 | **5.86** |
+| Corporate rate 21% to 28%, 2022 | 2.51 | **2.51** |
+| TCJA individual-provisions permanent extension, 2026 | 0.74 | **0.74** |
+| P.L. 119-21 tax and cash-transfer provisions, 2026 | 3.96 | **3.96** |
+
+Six unmoved to the hundredth, exactly as §3 registered — including SALT-cap
+repeal, the only other benchmark that routes through the microsim. The ARP row
+is finding 2.
+
+### Reported vs derived (owner Decision 1)
+
+| Benchmark | Carried target | Reported | Err | Derived | Err |
+|---|--:|--:|--:|--:|--:|
+| `biden_ctc_2021` | $1,600B | $1,600.0B | 0.0% | **$1,528.5B** | −4.5% |
+| `ctc_extension` | $600B | $600.0B | 0.0% | **$714.2B** | +19.0% |
+| `biden_eitc_childless` | $178B | $178.0B | 0.0% | **$110.4B** | −38.0% |
+
+Mean 0.0% reported against 20.5% derived, so under Decision 1's own rule
+**the app default stays `reported`** and nothing a user sees changed. Read that
+0.0% with Decision 5 in hand: it is three annuals that are their targets over
+ten, so the comparison is not a contest the derived path could win. The
+declaration now travels with each benchmark.
+
+Against the one **published line item** that scores nearly the same provision —
+JCT's JCX-35-25 row for P.L. 119-21's child credit, **+$816.846B** over
+FY2025-2034, already transcribed in this repository:
+
+| `ctc_extension` | vs $600B carried | vs $816.8B published |
+|---|--:|--:|
+| Reported (fitted $600.0B) | 0.0% | **−26.5%** |
+| Derived ($714.2B) | +19.0% | **−12.6%** |
+
+The structural path is **twice as close to the document as the fitted
+constant**, while scoring worse against the carried target. That is the same
+shape L5 found on AMT and L6 on SALT, and it is only visible because the
+carried target and the document disagree. No target moved: JCT scores a $2,200
+indexed credit against this benchmark's $2,000 flat one, so it is an anchor,
+not a replacement, and moving one is provenance work.
+
+### Findings
+
+**1 — The pre-registration's central error was about *which* counterfactual,
+not about the mechanism.** §3 predicted `biden_ctc_2021` at about −28% and it
+landed at −4.5%. The band was drawn on arithmetic that scored the ARP credit
+against a $2,000 baseline throughout the window; the statute does not. IRC
+sec. 24's $2,000 reverts to $1,000 after 2025 (P.L. 115-97 sec. 11022(b)), so a
+ten-year window opening in 2025 is scored against current law for one year and
+the pre-TCJA regime for nine. Against a fixed $2,000 baseline the reform costs
+**$883B**; against the counterfactual the law actually specifies, **$1,528B**.
+That one point is more than 40 percentage points of this row, and it was
+neither in §3's arithmetic nor in the old cost identity. It is the statute, not
+a fit — `test_credits_microdata.py` pins both legs so it cannot quietly change.
+
+**2 — The ARP distributional benchmark got worse, and the 4.76pp it replaced
+was two universes partially cancelling.** §3 L3 of the plan says the residual
+is "how CBO models children-in-household distribution for the Recovery
+Rebate — a microsim-level detail that bracket-aggregate scoring can't replicate
+without return-level data", so this lane put the rebate on return-level data:
+a per-person credit of $1,400 for the filer, spouse and every dependent,
+phasing linearly across $75k–$80k / $150k–$160k (IRC sec. 6428B). Three
+measurements, in the order they happened:
+
+| configuration | ARP err (pp) |
+|---|--:|
+| Before the lane: CTC + EITC on the microsim, rebate on the synthetic path | **4.76** |
+| Statutory CTC/EITC corrections, rebate still synthetic | **6.29** |
+| All three components on the microsim | **7.77** |
+
+The cause is a **universe mismatch the old configuration was hiding**. CBO's
+quintiles are of about 130M households; the model's are of 191M CPS tax units,
+and its bottom quintile is 38.2M units with a *mean AGI of $0* — the tax-unit
+construction fragments households into non-filing and dependent units that
+CBO's household ranking never separates. Under full refundability those units
+collect the whole ARP credit, so the model puts 53% of the bundle's dollars in
+its bottom quintile against CBO's 34%. Running the rebate on the synthetic
+bracket path used IRS return counts for one of the three components and tax
+units for the other two, and the two rankings pulled in opposite directions.
+
+Two things say the microsim configuration is the more correct one even though
+it scores worse. The **dollar levels** move from a third of CBO's to close to
+them: scored as one combined reform the quintile averages run −$2,461 / −$2,846
+/ −$2,782 / −$2,864 / −$1,738 against CBO's −$2,800 / −$3,150 / −$2,450 /
+−$1,620 / −$920, where the merged path gave −$892 / −$954 / −$949 / −$1,030 /
+−$55. And the bundle's total, **$485B**, is within 10% of the ARP's actual
+cost for these three provisions (~$411B of rebates plus roughly $105B of CTC
+and $12B of EITC), where the old path could not be summed at all.
+
+Choosing the mixed configuration back would improve the reported number by 3pp
+by keeping one component in a different universe from the other two. That is
+the flattery §4 of the plan exists to forbid, so it was not chosen. **The
+honest statement is that this benchmark's 4.76pp was never measuring what it
+appeared to, and the open work is the tax-unit-versus-household universe, which
+is a distributional-pipeline lane and not this one.** `filing_threshold.py` and
+`top_tail.py` already exist for it and neither is wired into the benchmark
+runner.
+
+**3 — The three levers were dead because there was nothing for them to move.**
+`expand_qualifying_age`, `include_childless_adults` and `take_up_rate_change`
+had no reader, and it is worth saying why rather than treating it as an
+oversight: a `Δcredit × units × participation` identity has no place to put an
+eligibility expansion. Neither did the microdata, which carried only an
+under-17 headcount. Both had to exist before the fields could. The same is true
+of `make_fully_refundable` and `remove_phase_out`, whose −50.0 and −5.0 return
+values were placeholders no calculation ever produced; they now score $85.5B/yr
+and $70.1B/yr respectively over the CPS units.
+
+**4 — Two shipped factory shapes were wrong, and one of them contradicted its
+own description.** `create_biden_eitc_childless` is described as "expand age
+range 19-65+" and set no age fields at all, because none were read. And
+`create_biden_ctc_2021` modelled the ARP as a flat $3,300 credit phasing out in
+one tier from $75,000 — which both over-phases the pre-existing $2,000 and
+cannot see the age-17 expansion. Neither correction is fitted: every amount and
+threshold is in ARPA secs. 9611 and 9621.
+
+**5 — The EITC's qualifying-child count was the CTC's.** Not named in the plan,
+found on the way: the engine counted children under 17 where IRC sec. 32(c)(3)
+counts children under 19, or under 24 and a full-time student. On the rebuilt
+file that is **79.7M against 65.0M**, a 23% undercount of the population the
+credit is scaled on. Fixing it raises baseline EITC and moves no benchmark,
+because every EITC-relevant reform is differenced against the same baseline.
+
+**6 — census.gov was reachable and the rebuild is exactly reproducible.**
+Every one of the twenty pre-existing microdata columns comes back byte for byte
+from the fetched archive, so the five new ones are the only change, and the SOI
+calibration ratios (119% of returns, 81% of AGI) did not move. That is what
+makes the fetch-not-vendor decision safe: a future rebuild that changes an old
+column is a bug, and now it is a visible one.
+
+### What this lane did not do
+
+No yardstick file was touched except `loo.py`'s credits derivation and its
+per-case notes, which the lane brief allows and the PR body lists. No target
+moved. No per-benchmark constant was added — the derived path reads
+`CTC_CURRENT_LAW`, `EITC_CURRENT_LAW` and the CPS file, and nothing else. The
+raw 148 MB archive is not in the repository. `CREDIT_APP_MODE` is the one line
+that would change what a user sees, and it stays `reported`.
