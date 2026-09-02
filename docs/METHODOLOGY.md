@@ -204,10 +204,14 @@ We model this with a **lock-in multiplier** applied to the base elasticity:
 defaults to `2.0` (`fiscal_model/policies_core.py:411`) and `get_elasticity_for_year`
 applies it whenever `step_up_at_death=True` and `eliminate_step_up=False`. The `5.3×`
 that earlier revisions of this file printed as “current law” is **not** a model
-constant: it occurs in exactly one place in the repository — the
-`pwbm_39_with_stepup` entry of `fiscal_model/validation/scenarios.py:89` — where it is
-a per-case constant hand-fitted to reproduce PWBM's published revenue loss. Nothing
-outside that single calibrated reconstruction uses it.
+constant. Exactly one place in the codebase ever *sets* it — the
+`pwbm_39_with_stepup` entry of `fiscal_model/validation/scenarios.py:89`, where it is a
+per-case constant hand-fitted to reproduce PWBM's published revenue loss. (Grep will
+also find `5.3` in `tests/test_loo.py` and `tests/test_policies.py`, which assert that
+scenario's value, and in prose here and in
+[`planning/MODELING_IMPROVEMENT.md`](../planning/MODELING_IMPROVEMENT.md). Those are
+references to the same one constant, not additional uses of it.) No scoring path
+outside that single calibrated reconstruction runs on 5.3×.
 
 | Setting | Lock-in multiplier | Effective ε (short / long run) | Where it applies |
 |---|---|---|---|
@@ -1048,7 +1052,7 @@ within 15%, 14 of 25 within 25%** (`scripts/cold_holdout.py`; full table in
 [VALIDATION.md](VALIDATION.md)). Do **not** collapse this into one tolerance.
 Ordinary-bracket and AGI-inclusive rate changes at conventional thresholds land at
 **2–21%**; fast-spending discretionary funding cuts at **6–23%**; and everything
-behavioural — capital-gains realizations, gains at death, payroll incidence,
+behavioral — capital-gains realizations, gains at death, payroll incidence,
 corporate margins — misses by **47–154%** for documented structural reasons. One
 case sits in a class of its own: **IIJA's 356%**, an enacted law's
 budget-authority path scored with no budget-authority-to-outlay spend-out model

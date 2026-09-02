@@ -18,9 +18,10 @@ in git history, not here.
   Tier 2.
 - **Step-up lock-in multiplier corrected.** METHODOLOGY printed `5.3×` as the
   current-law setting. The module default is **2.0**
-  (`CapitalGainsPolicy.step_up_lock_in_multiplier`), and `5.3` exists only as a
-  per-case constant in the `pwbm_39_with_stepup` validation scenario, fitted to
-  reproduce PWBM's revenue loss. The document now says which multiplier each
+  (`CapitalGainsPolicy.step_up_lock_in_multiplier`), and `5.3` is set only by
+  the `pwbm_39_with_stepup` validation scenario, where it is fitted to reproduce
+  PWBM's revenue loss. (Tests assert that scenario's value and the docs discuss
+  it; those reference the same constant rather than adding uses of it.) The document now says which multiplier each
   published result was produced with, and records that the 5.3× is a known
   answer key (`run_loo.py --donor-matrix`), not a parameter.
 - **Distributional claim replaced.** The two-line "vs. TPC TCJA analysis"
