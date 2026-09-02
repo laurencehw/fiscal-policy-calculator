@@ -18,6 +18,7 @@ from ..policies import (
     TaxPolicy,
 )
 from ..scoring import FiscalPolicyScorer
+from ..spending_outlays import IMMEDIATE
 from .cbo_scores import CBOScore, get_validation_targets, validation_shape
 
 #: Fiscal year the validation window opens on. A record may override it with
@@ -28,6 +29,52 @@ _SPENDING_CATEGORY_TO_POLICY_TYPE = {
     "defense": PolicyType.DISCRETIONARY_DEFENSE,
     "nondefense": PolicyType.DISCRETIONARY_NONDEFENSE,
     "mandatory": PolicyType.MANDATORY_SPENDING,
+}
+
+#: How fast each spending case's budget authority becomes an outlay.
+#:
+#: This is a **classification, not a fit** - the same discipline the
+#: ordinary-vs-AGI-inclusive base split follows. Each case is assigned from the
+#: predominant account type of the programs it funds, as the *source* describes
+#: them, by this rule and no other:
+#:
+#: * pay, benefits, allowances, medical-care enrollment
+#:       -> ``personnel_and_benefits``
+#: * agency operations, force structure, O&M, across-the-board discretionary
+#:   caps that fall on the whole discretionary budget
+#:       -> ``operations_and_support``
+#: * project and formula grants, assistance awards, student aid, foreign
+#:   assistance, procurement, R&D
+#:       -> ``grants_and_procurement``
+#: * construction, infrastructure and other capital grants
+#:       -> ``construction_and_capital``
+#: * direct benefit payments, outlaid in the year they are owed
+#:       -> ``mandatory_benefit``
+#:
+#: The *rates* behind each class come from CBO options that are not in this
+#: battery (see :mod:`fiscal_model.spending_outlays` and
+#: ``scripts/fit_outlay_rates.py``). No rate here is keyed to a benchmark, and
+#: no assignment was chosen by the error it produced - ``ssfa_wep_gpo_repeal``
+#: keeps its ~10% miss under this mapping, which is the point: its residual was
+#: never a spend-out miss, and a rule that "fixed" it would be a fitted rule.
+_SPENDING_OUTLAY_CLASS: dict[str, str] = {
+    # Foreign assistance and State Department programs.
+    "cbo_opt37_international_affairs": "grants_and_procurement",
+    # AmeriCorps and related national-service grants.
+    "cbo_opt38_national_service": "grants_and_procurement",
+    # Discretionary Pell Grant student aid.
+    "cbo_opt39_pell_eligibility": "grants_and_procurement",
+    # CBO's own note names transportation and education grants.
+    "cbo_opt42_nondefense_discretionary": "grants_and_procurement",
+    # Infrastructure and community-development grants to states and localities.
+    "cbo_opt43_state_local_grants": "construction_and_capital",
+    # Social Security benefits: paid in the year owed, no authority-to-outlay lag.
+    "ssfa_wep_gpo_repeal_outlays": "mandatory_benefit",
+    # Caps on the whole discretionary budget, defense and nondefense together.
+    "fra_2023_discretionary_caps": "operations_and_support",
+    # IIJA's discretionary title is highways, transit, water and broadband
+    # construction - the slowest spend-out in the federal budget.
+    "iija_2021_discretionary": "construction_and_capital",
 }
 
 _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
@@ -111,41 +158,47 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "SpendingPolicy carries one annual level grown at 2%/yr; CBO's own path for "
         "the WEP/GPO repeal grows at about 1.1%/yr after the first full year, so the "
         "model drifts above the published path across the window.",
-        "NOT a spend-out miss. Benefit payments are outlaid in the year they are "
-        "owed, so there is no budget-authority-to-outlay lag to model here - which "
-        "is why this is the most accurate of the three enacted-law cases.",
+        "NOT a spend-out miss, and the spend-out model confirms that rather than "
+        "closing it: classified 'mandatory_benefit', 99.8% of the authority outlays "
+        "inside the window and the residual is unchanged. Benefit payments are "
+        "outlaid in the year they are owed, so the whole miss is the growth rate.",
         "The FY2025 retroactive catch-up CBO describes ($25.0B, against a $19.7B "
         "steady state) is outside the level shape entirely; the model neither "
         "reproduces the spike nor is credited with it.",
     ],
     "fra_2023_discretionary_caps": [
-        "PARTLY a spend-out miss, in both directions. CBO's outlay path for the "
-        "section 101(a) caps runs -$64.1B in 2024 and -$106.7B in 2025 against "
-        "budget-authority reductions of -$112.3B and -$135.9B, so the model - which "
-        "outlays budget authority in the year it is provided - over-predicts the "
-        "first two years and under-predicts the later ones as the lower funding "
-        "base compounds (CBO reaches -$159.7B by 2033 against the model's ~-$134B).",
-        "The two errors largely cancel over ten years, so the small total error "
-        "overstates how well the shape reproduces the path.",
+        "What remains is the level shape, not the spend-out. CBO's caps compound "
+        "against a falling funding base and reach -$159.7B by 2033, while a level "
+        "grown at 2%/yr reaches only about -$134B, so the model under-predicts for "
+        "that reason alone.",
+        "This case got WORSE when spend-out was added, and that is the correct "
+        "outcome. Its old ~6% total was a cancellation: the model over-predicted the "
+        "early years (CBO's 2024 outlay saving is -$64.1B against -$112.3B of budget "
+        "authority) and under-predicted the late ones. Spend-out removes the first "
+        "error and leaves the second, so a truer path shows a larger total error. "
+        "The old number measured the cancellation, not the fit.",
         "Only the caps component is scored. The bill's -$1.5T headline also bundles "
         "the $45B Toxic Exposures Fund appropriation, student-loan payment "
         "resumption, an IRS rescission and debt service.",
     ],
     "iija_2021_discretionary": [
-        "ENTIRELY a spend-out miss, and the largest in the battery. CBO's table "
-        "shows $163.0B of discretionary budget authority in FY2022 falling to "
-        "$70.1B, $68.5B, $68.1B, $66.2B and then about $2B/yr, producing a humped "
-        "outlay path that peaks at $70.0B in FY2026 and totals $415.4B. "
-        "SpendingPolicy outlays budget authority 1:1 in the year it is provided and "
-        "then carries the level forward, so it predicts $1,894B.",
-        "The miss is not an artifact of choosing the first-year level: the "
-        "alternative of spreading the source's stated FY2022-2026 authorization "
-        "($435.9B) evenly over those five years still yields $1,012.9B, more than "
-        "twice the published outlay total, because the level shape has no "
-        "way to end an authorization or to lag an outlay.",
-        "This case is deliberately kept rather than excluded: it is the sharpest "
-        "available evidence for the budget-authority-to-outlay spend-out model that "
-        "Phase B identified as the highest-value missing feature.",
+        "Now a LEVEL-SHAPE miss rather than a spend-out miss. The authority path is "
+        "the whole remaining error: CBO's table shows $163.0B of discretionary "
+        "budget authority in FY2022 falling to $70.1B, $68.5B, $68.1B, $66.2B and "
+        "then about $2B/yr ($446.3B in total), while the pre-registered level rule "
+        "carries $163.0B forward for ten years at 2%/yr - about $1,894B. Spending "
+        "authority out correctly cannot rescue a total built on four times too much "
+        "of it.",
+        "Spreading the source's stated FY2022-2026 authorization ($435.9B) evenly "
+        "over those five years still yields $1,012.9B of authority, so this is not "
+        "an artifact of choosing the first-year level either. Only a humped "
+        "authority path reaches the published figure. SpendingPolicy can now carry "
+        "one (budget_authority_path); wiring IIJA's authorization schedule to it "
+        "changes a pre-registered shape input, which is a manifest decision rather "
+        "than a modelling one.",
+        "This case is deliberately kept rather than excluded: it was the sharpest "
+        "available evidence for the missing spend-out model, and it is now the "
+        "sharpest available evidence for the missing authorization path.",
     ],
     # -- Phase B: CBO Options for Reducing the Deficit, 2025-2034 -----------
     # Out-of-sample battery. Every miss below is kept and explained; none of
@@ -217,32 +270,35 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "payments that blunt the first few years.",
     ],
     "cbo_opt37_international_affairs": [
-        "SpendingPolicy converts a budget-authority level directly into outlays. "
-        "CBO's option spends that authority out over several years (2026 outlays are "
-        "-$8B against -$23B of budget authority), so the model front-loads savings "
-        "the official estimate defers past the window.",
+        "Foreign assistance is classified 'grants_and_procurement', a profile fitted "
+        "on defence procurement options this battery does not score. What is left is "
+        "the gap between that generic profile and this account's own speed.",
     ],
     "cbo_opt38_national_service": [
-        "Same budget-authority-to-outlay lag as Option 37; grant programs with slow "
-        "spend-out rates lose proportionally more of the 10-year total to the tail "
-        "beyond 2034.",
+        "Same generic grants profile as Option 37. National-service grants spend out "
+        "a little slower than the profile implies, so the model still books slightly "
+        "more inside the window than CBO does.",
     ],
     "cbo_opt39_pell_eligibility": [
-        "Budget-authority-to-outlay lag, but Pell spends out almost immediately, "
-        "which is why this is the most accurate spending case.",
+        "Pell spends out faster than the generic grants profile - CBO's own path is "
+        "essentially complete in two years - so the model now defers past the window "
+        "savings CBO books inside it. Closing this needs an account-level rate "
+        "rather than an account-class one.",
         "The target is the discretionary outlay total only; CBO reports a separate "
         "-$9.2B mandatory effect that this shape cannot represent.",
     ],
     "cbo_opt42_nondefense_discretionary": [
-        "Budget-authority-to-outlay lag on transportation and education grants.",
+        "A broad nondefense reduction scored on one grants profile; the option's "
+        "real composition spans several account types with different speeds.",
     ],
     "cbo_opt43_state_local_grants": [
-        "The 2026 budget authority (-$12.0B) is inflated by IIJA advance funding and "
-        "by the option's 25%-then-50% schedule, so anchoring a constant level on it "
-        "over-states every later year; CBO's own path drops to -$9.3B in 2027.",
-        "Infrastructure and block grants have the slowest spend-out rates in the "
-        "battery - CBO's 2026 outlay saving is -$0.4B against -$12.0B of budget "
-        "authority - so the lag costs this case more than any other spending option.",
+        "What remains is the level, not the lag. The 2026 budget authority "
+        "(-$12.0B) is inflated by IIJA advance funding and by the option's "
+        "25%-then-50% schedule, so anchoring a constant level on it over-states "
+        "every later year; CBO's own path drops to -$9.3B in 2027.",
+        "Infrastructure and block grants have the slowest spend-out in the battery "
+        "(CBO's 2026 outlay saving is -$0.4B against -$12.0B of authority), which is "
+        "why this case gained most from the spend-out model.",
     ],
 }
 
@@ -547,9 +603,20 @@ def create_policy_from_score(
         phase_in_years=score.phase_in_years,
         is_one_time=score.is_one_time,
         category=score.spending_category,
+        outlay_account_class=spending_outlay_class(score.policy_id),
         start_year=start_year,
         duration_years=10,
     )
+
+
+def spending_outlay_class(policy_id: str) -> str:
+    """Account class governing how fast a spending case's authority outlays.
+
+    Falls back to ``immediate`` for an unmapped case, so a newly added record
+    scores exactly as it would have before spend-out existed until somebody
+    classifies it deliberately.
+    """
+    return _SPENDING_OUTLAY_CLASS.get(policy_id, IMMEDIATE)
 
 
 def create_capital_gains_policy_from_score(

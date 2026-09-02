@@ -43,6 +43,15 @@ An option is runnable only if **all** of the following hold.
    input distinct from the outlay path, so feeding the first-year outlay back
    in would make the "prediction" an aggregation of the target itself.
 
+   The budget authority a runnable spending option states is now spent out
+   into outlays rather than booked as one (:mod:`fiscal_model.spending_outlays`),
+   which is what makes the authority-vs-outlay distinction above load-bearing:
+   the model predicts an outlay path from an authority level, instead of
+   quietly asserting they are the same number. The spend-out **rates** are
+   fitted on the 14 options that publish both rows and are *not* scored here;
+   options 37, 38, 39, 42 and 43 never donate to a profile they are then
+   scored against.
+
 Sign conventions
 ----------------
 The CSVs carry both. ``savings_*`` columns follow CBO (positive = reduces the
