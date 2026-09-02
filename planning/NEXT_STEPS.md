@@ -1,6 +1,6 @@
 # Next Steps — Fiscal Policy Calculator
 
-> Updated April 2026. This file tracks roadmap items beyond the current shipped branch.
+> Roadmap last reviewed April 2026; the validation scorecard below was re-derived 2026-09-01. This file tracks roadmap items beyond the current shipped branch.
 
 For a manuscript-focused path to citation-grade quality, see [MANUSCRIPT_95_PLUS.md](MANUSCRIPT_95_PLUS.md). For repo-grounded go/no-go gates on the two biggest upgrades, see [FEASIBILITY_CHECKLISTS.md](FEASIBILITY_CHECKLISTS.md).
 
