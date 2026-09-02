@@ -49,9 +49,11 @@ the donor pool is disjoint from the battery.
 from __future__ import annotations
 
 import csv
+from collections.abc import Mapping
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
+from types import MappingProxyType
 
 #: Account class for spending that outlays in the year the authority is
 #: provided. Not a fitted profile - it is the identity, and the default, so a
@@ -117,8 +119,12 @@ IMMEDIATE_PROFILE = OutlayProfile(
 
 
 @lru_cache(maxsize=1)
-def load_outlay_profiles() -> dict[str, OutlayProfile]:
-    """Load the fitted spend-out profiles, plus the ``immediate`` identity."""
+def load_outlay_profiles() -> Mapping[str, OutlayProfile]:
+    """Load the fitted spend-out profiles, plus the ``immediate`` identity.
+
+    Cached and returned read-only: one caller mutating a shared spend-out rate
+    would silently move every spending score in the process.
+    """
     profiles: dict[str, OutlayProfile] = {IMMEDIATE: IMMEDIATE_PROFILE}
 
     with DATA_FILE.open(encoding="utf-8") as handle:
@@ -141,7 +147,7 @@ def load_outlay_profiles() -> dict[str, OutlayProfile]:
                 donor_options=donors,
                 rationale=row.get("donor_rationale", ""),
             )
-    return profiles
+    return MappingProxyType(profiles)
 
 
 def get_outlay_profile(account_class: str | None) -> OutlayProfile:
