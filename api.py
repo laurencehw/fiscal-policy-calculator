@@ -410,6 +410,12 @@ class ScorecardEntryModel(BaseModel):
     official_10yr_billions_line_item: float | None = None
     # One line on what the transcription established, or what was searched.
     sourcing_note: str = ""
+    # True when somebody opened the primary document and read the row, as
+    # opposed to the entry merely being *labelled* line_item from a deep link.
+    # Deliberately stricter than `provenance`, and the summary's
+    # `transcribed_entries` counts exactly these: without the per-entry flag a
+    # client could see the count but not which rows it refers to.
+    transcribed: bool = False
     evidence_type: str = "specialized_benchmark_comparison"
     holdout_status: str = "calibration_reference"
 

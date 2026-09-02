@@ -70,6 +70,40 @@ def test_scorecard_entries_have_required_fields(client):
     assert all(entry["evidence_type"] == "locked_holdout_benchmark" for entry in holdouts)
 
 
+def test_entry_model_carries_every_scorecard_entry_field():
+    """``ScorecardEntryModel`` is built from ``**entry.__dict__``, and Pydantic
+    ignores keys it has no field for. So a field added to ``ScorecardEntry``
+    disappears from the API silently — which is what happened to
+    ``transcribed``: the response exposed the summary's ``transcribed_entries``
+    count while no entry said which rows it counted.
+
+    Pinned as parity rather than as a list of names, so the next field added to
+    the dataclass fails here instead of vanishing."""
+    import dataclasses
+
+    from fiscal_model.validation.scorecard import ScorecardEntry
+
+    dataclass_fields = {f.name for f in dataclasses.fields(ScorecardEntry)}
+    model_fields = set(api_module.ScorecardEntryModel.model_fields)
+    missing = dataclass_fields - model_fields
+    assert missing == set(), (
+        f"ScorecardEntryModel would silently drop {sorted(missing)}"
+    )
+
+
+def test_scorecard_entries_expose_transcription_status(client):
+    """The summary counts transcribed rows; the entries must say which ones."""
+    payload = client.get("/validation/scorecard").json()
+    assert all("transcribed" in e for e in payload["entries"])
+    transcribed = [e for e in payload["entries"] if e["transcribed"]]
+    assert transcribed, "no entry reports a transcribed target"
+    # Only a line_item-family label can have been read out of a document.
+    assert all(
+        e["provenance"] in {"line_item", "line_item_differs"} for e in transcribed
+    )
+    assert len(transcribed) == payload["transcribed_entries"]
+
+
 def test_scorecard_categories_cover_specialized_validators(client):
     payload = client.get("/validation/scorecard").json()
     cats = set(payload["by_category"].keys())
