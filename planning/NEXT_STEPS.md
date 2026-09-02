@@ -18,15 +18,21 @@ phrasing was on this line until 2026-09-01 and was wrong. Live numbers from
 
 | Tier | What it measures | n | Mean | Median |
 |---|---|--:|--:|--:|
-| Out-of-sample, pre-registered | prediction | 25 | **52.6%** | 21.1% |
+| Out-of-sample, pre-registered | prediction | 25 | **34.4%** | 16.1% |
 | Calibrated, fitted | bookkeeping (low by construction) | 34 | **2.7%** | 0.2% |
-| Unfitted module reconstructions | modules vs targets never fitted to | 20 | **250.8%** | 43.1% |
-| Calibrated, leave-one-out | how much of the calibration is structure | 18 | **59.3%** | 35.6% |
+| Unfitted module reconstructions | modules vs targets never fitted to | 20 | **82.6%** | 43.1% |
+| Calibrated, leave-one-out | how much of the calibration is structure | 18 | **61.7%** | 35.6% |
 
-The reconstruction tier is itself two populations — 12 sectoral presets at 394.1%
+The reconstruction tier is itself two populations — 12 sectoral presets at 113.8%
 and 8 P.L. 119-21 line items at 35.8% — and must not be quoted as one number.
 Distributional accuracy is separate again: 7 published CBO/JCT tables at
 0.00-5.86pp, two of which are circular. See [`docs/VALIDATION.md`](../docs/VALIDATION.md).
+
+*Re-derived 2026-09-02, after Wave 1 (PRs #85–#88). Tier 1 moved 52.6% → 34.4%
+on the eight spending rows; the 20-row reconstruction tier 250.8% → 82.6% on two
+pharma rows; leave-one-out **rose** 59.3% → 61.7% on the two AMT rows, which is
+the AMT module becoming more structural rather than less accurate — see
+[`MODELING_IMPROVEMENT.md`](MODELING_IMPROVEMENT.md) §5.1.*
 
 ### Completed work
 
@@ -43,6 +49,31 @@ Distributional accuracy is separate again: 7 published CBO/JCT tables at
 - Feature 2: Classroom Mode — 7 assignments (intro → advanced), OLG exercises, PDF export, relative validation
 - Feature 3: State-Level Modeling — top 10 states, SALT interaction, combined rate curves
 - Feature 4: Real-Time Bill Tracker — congress.gov pipeline, LLM provision extraction, SQLite storage, Streamlit UI
+
+## Modelling plan: Wave 1 done, Wave 2 next
+
+[`MODELING_IMPROVEMENT.md`](MODELING_IMPROVEMENT.md) Wave 1 landed 2026-09-01/02
+(PRs #83, #85, #86, #87, #88): the budget-authority-to-outlay spend-out model
+(L2), the AMT live exemption branch and published year-indexed path (L5), pharma
+federal incidence (L7), IIJA's superseding authorization-path row, and spend-out
+for the app's own spending presets. §5.1 of that file has the outturn and the
+three findings.
+
+Next, in order:
+
+1. **AMT / insulin target provenance lane.** Three `line_item_differs` rows need
+   superseding manifest rows: `extend_tcja_amt` and `repeal_individual_amt` both
+   carry $450B against a published $1,357.1B that `benchmark_sources.py` already
+   records as looking like a five-year figure in a ten-year column, and
+   `universal_insulin_cap` carries −$15B against CBO 57957's +$11.4B — a sign
+   flip the *model* no longer has. None is a modelling decision. Settling them
+   also unblocks `AMT_SCORECARD_MODE`, the scorecard half of owner Decision 1.
+2. **Wave 2** — L1 capital gains (now **55.8%** of Tier 1 error mass, with DMM
+   2015 frozen per Decision 3 and `validation/scenarios.py`'s three per-case
+   elasticity tuples **deleted**, not extended), L6 tax expenditures, L4 estate.
+3. **Still open from L2**: CBO's account-level spendout rates (publications
+   61913 and 62256) as the external cross-check on the outlay profiles — needs
+   an environment that can reach cbo.gov.
 
 ## Immediate next moves (next 2-3 weeks)
 

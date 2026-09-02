@@ -569,6 +569,33 @@ AMT_Liability = max(Regular_Tax, AMT_Rate × (AMTI - Exemption))
 
 TCJA dramatically reduced AMT exposure by doubling the exemption and adding a phaseout. Extending TCJA AMT relief versus reverting to pre-TCJA rules is calibrated to JCT estimates.
 
+**Two modes.** `AMTPolicy.mode` selects between `reported` — the fitted annual,
+which reproduces the carried benchmark by construction — and `derived`, a
+year-indexed affected-payer and average-liability path read from **TPC Table
+T25-0049** ("Aggregate Alternative Minimum Tax Projections, 2024–2035", April
+2025), transcribed to `fiscal_model/data_files/amt/tpc_t25_0049_aggregate_amt.csv`
+with the table's own footnotes. The baseline leg is evaluated at the current-law
+exemption and the policy leg at the reform exemption; revenue and payers are each
+interpolated between the two regime anchors and the average liability is their
+ratio (interpolating the average separately is unsafe — the two are individually
+monotone in the exemption but their product turns upward, so an exemption
+*increase* prices as a revenue gain).
+
+The TPC table's baseline is the law in place as of 1 January 2025, so it carries
+the TCJA sunset: AMT payers go from **0.2M in 2025 to 7.6M in 2026** — a cliff,
+not a ramp — and the post-sunset path then grows from **$71.6B in 2026 to
+$124.2B in 2035**. The derived ten-year cost of extending TCJA AMT relief is
+therefore **$855.3B**, above the flat identity's ~$73B/yr, and full repeal from
+2026 is **$948.9B**. **`reported` is the app default**: derived does not beat
+fitted against the carried $450B benchmarks, though it is much closer to the
+*published* line item those benchmarks disagree with ($1,357.1B; −37.0% derived
+against −66.8% fitted). `derived` is the default in the held-out validation path.
+
+Not modelled: the phase-out thresholds. `phase_out_threshold_change` is declared
+and never read, and under the post-sunset schedule the phase-out is what claws
+the exemption back from high-income filers — but it needs a published phase-out
+path, which T25-0049 does not carry.
+
 ### Corporate AMT (CAMT)
 
 The IRA 2022 established a 15% book minimum tax on adjusted financial statement income for corporations with >$1B in book profits. Scoring uses aggregate estimates from CBO (2022) of ~$35B/year in additional corporate minimum tax revenue.
@@ -782,11 +809,53 @@ The IRA 2022 also redesigned Part D cost-sharing, capping out-of-pocket costs at
 
 ### Insulin Cap
 
-The $35/month insulin cap applies to Medicare beneficiaries (approximately 40% of insulin users). Revenue impact is modest (around $6.4B/10yr) but significant for affected patients.
+A $35/month insulin cap is a **cost-sharing** cap: it moves a patient's liability
+onto the plan, and the federal budget picks up only its share of that shift. The
+module scores that share, not the retail-minus-cap differential:
+
+```
+Federal effect = ASPE Part D out-of-pocket relief ($734M/yr, 2020)
+                 × Medicare's basic-benefit subsidy share (74.5%, statutory)
+               + private-market cost shift
+                 × marginal income-plus-payroll offset on premiums (32%)
+```
+
+Every input is transcribed with document, page and URL to
+`fiscal_model/data_files/pharma/drug_pricing_incidence.csv` (HHS ASPE, *Report
+on the Affordability of Insulin*; MedPAC, *Report to the Congress: Medicare
+Payment Policy*; CBO budget option 58627). The result is a **deficit increase**
+of about +$7B over ten years, which agrees in sign with CBO's own score of a
+private-market cap — publication 57957 (H.R. 6833) puts it at +$6.566B of
+outlays and −$4.793B of revenues, about **+$11.4B**. Not modelled: induced
+utilisation, and growth in insulin cost and enrolment across the window (ASPE's
+$734M is a single 2020 figure held flat).
+
+*Prior specification, corrected 2026-09-01:* the module booked the whole
+`($6,000 − $420) × 8.4M` retail differential as a federal outlay reduction, and
+extending the cap to private insurance *raised* the modelled federal saving 2.5×.
 
 ### International Reference Pricing
 
-Reference pricing to international drug prices (US pays 1.25–1.5× international median) is modeled as a share of the price gap between US and comparable-country prices. The US pays ~2.56× international prices on average (RAND 2021).
+Referencing Medicare drug prices to an international benchmark is scored on a
+**net-price, brand-only, federal-share** basis. US unbranded generics are
+*cheaper* than the OECD comparison (67% of comparison-country prices) and cannot
+contribute savings, so only brand molecules are referenced; and the price ratio
+applied is RAND's **net** brand ratio of **3.08** — US brand-name originator
+prices at 422% of 33 OECD comparison countries before rebates, less a 37.2%
+gross-to-net adjustment (RAND RR-A788-3 / ASPE, *International Prescription Drug
+Price Comparisons: Estimates Using 2022 Data*, February 2024). The base is Part D
+gross spending net of the 23% manufacturer-rebate share and restricted to the
+80% brand share, plus Part B drug spending, each times the federal share of its
+program.
+
+*Prior specification, corrected 2026-09-01:* RAND's **gross list-price** all-drug
+ratio (2.56) was applied to a **net** Part B + D base with no rebate adjustment
+and no brand/generic split.
+
+**Known limitation, unrepaired.** RAND's index is computed on presentations sold
+in both markets, and the module applies it to all brand spending; no utilisation,
+launch-delay or availability response is modelled on either this row or the
+insulin row.
 
 ---
 
@@ -886,6 +955,45 @@ The OLG model is used to analyze:
 ---
 
 ## Spending Multipliers
+
+### Budget authority → outlays (spend-out)
+
+A spending proposal states **budget authority**; a budget score reports
+**outlays**. `SpendingPolicy` keeps the two distinct and converts between them
+with a lagged convolution:
+
+```
+outlays_t = Σ_k s_k · BA_{t−k}
+```
+
+`s` is a first-year/out-year profile keyed by **account class** — the thing that
+governs how fast an obligation becomes a disbursement. Pay and benefits disburse
+at once; construction and capital take years.
+
+| Account class | What it covers | s₀ | Σs | 10-yr outlay/authority on a level path |
+|---|---|--:|--:|--:|
+| `personnel_and_benefits` | pay, allowances, medical-care enrolment | 0.921 | 1.000 | 0.991 |
+| `mandatory_benefit` | direct benefit payments, outlaid when owed | 0.977 | 1.000 | 0.998 |
+| `operations_and_support` | agency operations, O&M, force structure, across-the-board caps | 0.539 | 0.977 | 0.893 |
+| `grants_and_procurement` | project and formula grants, student aid, foreign assistance, procurement, R&D | 0.405 | 1.000 | 0.848 |
+| `construction_and_capital` | construction, infrastructure and other capital grants | 0.022 | 0.973 | 0.663 |
+
+**Provenance.** The profiles are fitted by non-negative least squares on the
+14 options in CBO, *Options for Reducing the Deficit: 2025 to 2034*
+([publication 60557](https://www.cbo.gov/publication/60557)) that publish both a
+budget-authority row and an outlays row **and are not scored by the validation
+battery**; the five that are scored never donate to any profile, and option 44 is
+excluded because its outlays exceed its authority in every year. Class assignment
+is a classification from the predominant account type each program funds, never
+a fit. OMB Circular A-11 publishes no numeric outlay-rate table (see
+[VALIDATION_NOTES.md](VALIDATION_NOTES.md) §5a); CBO's account-level spendout
+rates (publications 61913 and 62256) are the open external cross-check.
+
+The window truncates the **tail, not the head**: authority whose outlays fall
+past the projection end is dropped — the truncation official 10-year totals
+embed — while a policy that began before the window still spends its earlier
+authority into it. `immediate` (the identity, `s₀ = 1`) remains available as an
+explicit choice and is the default for nothing.
 
 ### State-Dependent Multipliers
 
@@ -1037,34 +1145,43 @@ commit that lands *before* the commit that first scores it.
 
 | Policy | Official | Model | Error | Source |
 |--------|---------:|------:|------:|--------|
+| Cut international affairs 25% | −$187B | −$187B | 0% | CBO Options 2025–2034 #37 |
+| Cut selected nondefense discretionary | −$339B | −$333B | 2% | CBO Options 2025–2034 #42 |
 | 1pp all brackets | −$960B | −$935B | 3% | JCT |
-| Fiscal Responsibility Act 2023, discretionary caps | −$1,332B | −$1,254B | 6% | CBO |
 | 5pp top rate ($1M+) | −$700B | −$648B | 7% | TPC |
 | Social Security Fairness Act, WEP/GPO repeal | +$196B | +$215B | 10% | CBO |
-| Biden top rate 39.6% ($400K+) | −$252B | −$285B | 13% | Treasury |
+| Fiscal Responsibility Act 2023, discretionary caps | −$1,332B | −$1,170B | 12% | CBO |
+| Biden top rate 39.6% ($400K+) | −$252B | −$284B | 13% | Treasury |
+| IIJA 2021, discretionary component | +$415B | +$340B | 18% | CBO |
 | All ordinary rates +1pp | −$1,185B | −$935B | 21% | CBO Options 2025–2034 #45 |
 | Corporate rate +1pp | −$136B | −$200B | 47% | CBO Options 2025–2034 #64 |
 | LTCG + qualified dividends +2pp | −$103B | −$206B | 99% | CBO Options 2025–2034 #47 |
-| IIJA 2021, discretionary component | +$415B | +$1,894B | 356% | CBO |
 
-**25 pre-registered cases, mean absolute error 52.6% (median 21.1%); 8 of 25
-within 15%, 14 of 25 within 25%** (`scripts/cold_holdout.py`; full table in
+**25 pre-registered cases, mean absolute error 34.4% (median 16.1%); 12 of 25
+within 15%, 16 of 25 within 25%** (`scripts/cold_holdout.py`; full table in
 [VALIDATION.md](VALIDATION.md)). Do **not** collapse this into one tolerance.
-Ordinary-bracket and AGI-inclusive rate changes at conventional thresholds land at
-**2–21%**; fast-spending discretionary funding cuts at **6–23%**; and everything
+Ordinary-bracket and AGI-inclusive rate changes at conventional thresholds land
+at **2–21%**; discretionary funding changes, now scored through the
+budget-authority-to-outlay spend-out model described above, land at **0–11%**
+for the five CBO Options rows and **10–18%** for the three enacted-law
+components; two rate cases whose source states a filing-status-specific boundary
+the generic path cannot express land at **26%** and **45%**; and everything
 behavioral — capital-gains realizations, gains at death, payroll incidence,
-corporate margins — misses by **47–154%** for documented structural reasons. One
-case sits in a class of its own: **IIJA's 356%**, an enacted law's
-budget-authority path scored with no budget-authority-to-outlay spend-out model
-behind it. It is kept in the battery deliberately, as the sharpest available
-evidence for that missing mechanism.
+corporate margins — misses by **47–154%** for documented structural reasons.
+Capital gains is now the tier's dominant error mass: 4 cases carrying 479.4 of
+the tier's 859.5 units, 55.8%.
 
 The mean moved from Phase B's 43.4% on 23 cases to 52.6% on 25 while the median
 *fell* from 23.1% to 21.1%: `top_rate_45` was retired in Phase E (its −$420B target
 appears in no TPC, CBO or JCT publication), `biden_capital_gains_39` was re-sourced
 to the FY2025 Green Book's actual line item and got *worse* (79% → 142%), and three
-enacted-law components joined. A mean that moves on one case while the median does
-not is the tail, not a change in the core.
+enacted-law components joined — one of them IIJA at **356%**, which was kept
+deliberately as the sharpest available evidence for a missing mechanism.
+**Wave 1 then built that mechanism** (2026-09-01/02): the spend-out model took
+the mean to 45.3%, and superseding IIJA's shape input with the authorization
+schedule CBO's own estimate states — a new manifest row, `.v1` → `.v2`, target
+unchanged — took it to **34.4%**, with within-15 rising 8 → 12. No tax row moved
+and no target was edited.
 
 Ordinary-bracket rate changes score on the ordinary-income base (excluding
 preferential LTCG/QDIV); AGI-inclusive surtaxes score on the full taxable-income
@@ -1102,17 +1219,23 @@ is now the only place this figure should be read from.)
 
 ### Tier 2b — Unfitted module reconstructions (target never fitted to)
 
-**20 policies, mean absolute error 250.8%, median 43.1%; 4 of 20 within 15%, 7 of
+**20 policies, mean absolute error 82.6%, median 43.1%; 4 of 20 within 15%, 7 of
 20 within 25%.** These are two populations and must never be read as one number:
 
 - **Twelve Phase E sectoral presets** (international, trade, pharma, IRS
-  enforcement, climate) at **394.1% mean / 57.1% median**. They ship in the app
+  enforcement, climate) at **113.8% mean / 57.1% median**. They ship in the app
   with an official figure attached and no module constant was ever fitted to any
   of them. Two — the universal insulin cap and international reference pricing —
-  are off by three and one orders of magnitude respectively and diagnose real
-  incidence bugs in `pharma.py`. The insulin *target* is also mis-signed: CBO
-  publication 57957 scores a private-market insulin cap at about **+$11.4B**, i.e.
-  as *adding* to the deficit, against the carried −$15B.
+  diagnosed real federal-incidence bugs in `pharma.py`, and **Wave 1's L7 lane
+  repaired both**, taking this subset from 394.1% to 113.8% without fitting a
+  parameter to any of the three pharma targets. The insulin *target* remains
+  mis-signed: CBO publication 57957 scores a private-market insulin cap at about
+  **+$11.4B**, i.e. as *adding* to the deficit, against the carried −$15B — and
+  the model now scores **+$7.0B**, so it is the benchmark, not the module, that
+  points the wrong way. Reference pricing at −$746B against a −$100B
+  `model_estimate` target is the family's largest remaining row; CBO scored
+  H.R. 3's narrower international-reference cap at about $456B, which is where a
+  broader policy should sit.
 - **Eight Phase D P.L. 119-21 line items** (JCT JCX-35-25, transcribed with page
   references to `fiscal_model/data_files/validation/pl119_21_jct_line_items.csv`)
   at **35.8% mean**, 2 of 8 within 15%, scored over JCT's own FY2025–2034 window.
@@ -1129,7 +1252,7 @@ Nothing in either group was retuned to close a gap, and every row carries a
 
 `python scripts/run_loo.py` refits each calibrated module's mechanism on the
 *other* benchmarks in its module and asks it to rebuild the held-out one.
-**18 derivable cases, mean absolute error 59.3%, median 35.6%, 6 of 18 within
+**18 derivable cases, mean absolute error 61.7%, median 35.6%, 6 of 18 within
 15%**, plus **4 cases declared not cross-validatable** — no second benchmark to
 calibrate on, or a base constant that is the published target restated — which are
 reported and never folded into the aggregate.
@@ -1140,11 +1263,23 @@ reported and never folded into the aggregate.
 | Estate | structural | 2 | 1 | 25.8% |
 | Expenditures | bottom-up | 5 | 1 | 39.4% |
 | Credits | structural | 3 | 0 | 45.1% |
-| AMT | structural | 2 | 1 | 79.6% |
+| AMT | structural | 2 | 1 | 100.5% |
 | CapitalGains | structural | 3 | 0 | 171.2% |
 
 Compare against the 2.7% in Tier 2a: that number measures bookkeeping, this one
 measures whether the machinery predicts.
+
+**This aggregate rose in Wave 1, 59.3% → 61.7%, entirely on AMT** (79.6% →
+100.5%), and the rise is the module becoming more structural rather than less
+accurate. L5 replaced a flat steady-state identity (~$73B/yr) with TPC
+T25-0049's published year-indexed path. The plan's hypothesis had been that a
+missing 2026 phase-in biased the derivation high; the table shows a **cliff**
+(0.2M AMT payers in 2025, 7.6M in 2026) followed by *growth* ($71.6B in 2026 to
+$124.2B in 2035), so the flat level was the window's early-year value and
+indexing it by year **raises** the score. Both rows therefore moved away from
+their carried $450B targets while the extension moved *toward* the published
+line item it is really being compared with ($1,357.1B: −66.8% fitted → **−37.0%**
+derived). See [VALIDATION_NOTES.md](VALIDATION_NOTES.md) §6.
 
 ### Reading the tiers
 
@@ -1152,10 +1287,10 @@ measures whether the machinery predicts.
 
 | Tier | What it measures | n | Mean | Median |
 |---|---|--:|--:|--:|
-| 1 — out-of-sample, pre-registered | prediction | 25 | **52.6%** | 21.1% |
+| 1 — out-of-sample, pre-registered | prediction | 25 | **34.4%** | 16.1% |
 | 2a — calibrated, fitted | bookkeeping (low by construction) | 34 | **2.7%** | 0.2% |
-| 2b — unfitted module reconstructions | modules against targets they never saw | 20 | **250.8%** | 43.1% |
-| 2c — calibrated, leave-one-out | how much of the calibration is structure | 18 | **59.3%** | 35.6% |
+| 2b — unfitted module reconstructions | modules against targets they never saw | 20 | **82.6%** | 43.1% |
+| 2c — calibrated, leave-one-out | how much of the calibration is structure | 18 | **61.7%** | 35.6% |
 
 Distributional accuracy is a fifth, separate number: **seven published CBO/JCT
 tables at 0.00–5.86pp** mean absolute share error, **two of which are circular**
