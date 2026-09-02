@@ -775,7 +775,7 @@ these rows as accuracy statements:
 | Case | Official | Model (Phase E) | Err | **Model (post-L7)** | **Err** |
 |---|---:|---:|---:|---:|---:|
 | Expand drug negotiation | -$500B | -$372B | 25.7% | -$372B | 25.7% |
-| Universal insulin cap | -$15B → **+$11.4B** | -$445B | 2,868.6% | **+$7.0B** | **-39.0%** |
+| Universal insulin cap | -$15B → **+$11.4B** | -$445B | 2,868.6% | **+$7.0B** | **39.0%** |
 | International reference pricing | -$100B | -$1,388B | 1,287.9% | **-$746B** | **646.2%** |
 
 Family mean **1,394.1% → 272.8%** on the model repair alone; the 12-row sectoral
@@ -819,11 +819,11 @@ federal-share basis, with every input transcribed with document, page and URL to
 
 **The insulin row, and the target that has since caught up with it.** Model
 **+$7.0B** against **CBO publication 57957's +$11.4B** (+$6.566B outlays,
--$4.793B revenues, FY2022-2031): **-39.0%**, directions agreeing. When L7 landed,
-the carried benchmark was still -$15.0B and the row read 146.4% — the price of
+-$4.793B revenues, FY2022-2031): **39.0% below it**, directions agreeing. When
+L7 landed, the carried benchmark was still -$15.0B and the row read 146.4% — the price of
 saying what CBO says, since no percentage against a benchmark pointing the other
 way can be read as accuracy. The target was moved to +$11.4B on 2026-09-02
-through `validation/target_revisions.py` (§8.2), so the -39.0% *is* an accuracy
+through `validation/target_revisions.py` (§8.2), so the 39.0% *is* an accuracy
 statement now. The residual is two named omissions: induced utilisation, and
 growth in insulin cost and enrolment across a ten-year window, since ASPE's
 $734M is a single 2020 figure held flat.
@@ -1046,7 +1046,7 @@ Five are worth more than a row:
    model side as an incidence bug and Wave 1's L7 lane fixed it (**+$7.0B**); the
    target had the same bug, and was moved to +$11.4B through
    `validation/target_revisions.py`, with -$15B kept on the record as a
-   `superseded_by` row. The row now reads **-39.0%**, an accuracy statement
+   `superseded_by` row. The row now reads **39.0%**, an accuracy statement
    rather than a direction dispute, and `KNOWN_TARGET_SIGN_INVERSIONS` in
    `tests/test_validation_runners.py` is an **empty set** — the emptiness being
    the assertion.

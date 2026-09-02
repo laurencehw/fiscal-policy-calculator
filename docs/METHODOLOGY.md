@@ -1257,7 +1257,7 @@ number:
   corrected too: CBO publication 57957 scores a private-market insulin cap at
   about **+$11.4B**, i.e. as *adding* to the deficit, against the carried −$15B,
   and the model scores **+$7.0B** — so the row moved from 146.4% with the
-  directions disagreeing to **−39.0%** with them agreeing, taking this subset to
+  directions disagreeing to **39.0%** with them agreeing, taking this subset to
   104.8% / 40.0%. Reference pricing at −$746B against a −$100B `model_estimate`
   target is the family's largest remaining row; CBO scored H.R. 3's narrower
   international-reference cap at about $456B, which is where a broader policy

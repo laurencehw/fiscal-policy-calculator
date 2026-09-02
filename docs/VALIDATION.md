@@ -268,7 +268,9 @@ Plus one out-of-sample row, where the target is frozen by pre-registration: **Bi
 
 #### Revised targets — where the disagreement went
 
-Two calibrated targets were **corrected**, not carried. Both went through
+Two calibrated targets were **corrected**, not carried. Errors in this table are
+**signed** — negative means the model scores below the target — where every other
+table on this page reports absolute percent error. Both went through
 [`fiscal_model/validation/target_revisions.py`](../fiscal_model/validation/target_revisions.py),
 the calibrated tier's mirror of `preregistered.py`'s supersede rule: entered in
 one commit and first scored in the next, so "the target moved before the model
@@ -276,7 +278,7 @@ was allowed to see it" is checkable from `git log`. **No constant was retuned**,
 which is the whole point — a module still fitted to the superseded figure now
 reads as a miss, and that miss is the finding.
 
-| Benchmark | Superseded | Live target | Model | Err vs live | Document |
+| Benchmark | Superseded | Live target | Model | Err vs live (signed) | Document |
 |---|--:|--:|--:|--:|---|
 | Universal insulin cap | -$15B | **+$11.4B** | +$7.0B | **-39.0%** | CBO pub. **57957** (H.R. 6833), table p. 1 — "Secs. 2 and 3, Cost-Sharing for Certain Insulin Products": outlays 6,566, revenues -4,793, FY2022-2031. A $35 monthly cap is a *cost-sharing* cap: it moves liability onto the plan and onto the federal subsidy for it, so it adds to the deficit. -$15B is traceable to no CBO document. |
 | Extend TCJA AMT relief | $450B | **$1,357.1B** | $450.5B reported / $855.3B derived | **-66.8%** reported, **-37.0%** derived | CRS **R48286** Table 1, transcribing CBO 60114/60271 — "Increased Alternative Minimum Tax Exemption", FY2025-FY2034. The adjacent FY2025-FY2029 column prints $466.2B, so the carried $450B was 3.5% from the five-year cost and 66.8% from the ten-year one: a five-year figure in a ten-year column. Corroborated by JCT's **JCX-35-25** at $1,362.810B for P.L. 119-21's AMT provision (0.4% away, and already a benchmark here). |
