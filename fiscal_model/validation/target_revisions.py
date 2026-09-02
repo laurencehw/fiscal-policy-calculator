@@ -63,12 +63,16 @@ from dataclasses import dataclass
 
 #: Commit that introduced this ledger and its first three rows (two
 #: superseded, one live pair each). Stamped in the commit that follows it.
-AMT_INSULIN_PROVENANCE_ENTERED_COMMIT = "PENDING"
+AMT_INSULIN_PROVENANCE_ENTERED_COMMIT = (
+    "2a341d8e3deaf07a565306c77adc1af123ccf5af"
+)
 AMT_INSULIN_PROVENANCE_ENTERED_DATE = "2026-09-02"
 
 #: Commit in which the revised targets were first actually scored — the commit
 #: that writes the new figures into ``scenarios.py`` and ``app_data.py``.
-AMT_INSULIN_PROVENANCE_FIRST_SCORED_COMMIT = "PENDING"
+AMT_INSULIN_PROVENANCE_FIRST_SCORED_COMMIT = (
+    "d6288922bc082608bda35111f58217b13a121eb2"
+)
 
 
 @dataclass(frozen=True)
