@@ -169,4 +169,69 @@ Any movement there is a bug in the default path, not a result.
 
 ## 7. Outturn
 
-*(appended as the lane's last commit)*
+*Measured 2026-09-01 on `a186a42`, `python scripts/cold_holdout.py --json`.*
+
+| policy_id | class | before | **predicted** | **after** | vs prediction |
+|---|---|--:|--:|--:|---|
+| `cbo_opt37_international_affairs` | grants_and_procurement | 20.0% | ~2% | **0.0%** | better |
+| `cbo_opt38_national_service` | grants_and_procurement | 23.1% | ~5% | **2.6%** | better |
+| `cbo_opt42_nondefense_discretionary` | grants_and_procurement | 18.0% | ~0% | **1.7%** | as named |
+| `cbo_opt39_pell_eligibility` | grants_and_procurement | 10.3% | ~6% | **8.1%** | as named |
+| `cbo_opt43_state_local_grants` | construction_and_capital | 75.5% | ~16% | **10.8%** | better |
+| `ssfa_wep_gpo_repeal_outlays` | mandatory_benefit | 10.1% | ~10% | **9.8%** | as named |
+| `fra_2023_discretionary_caps` | operations_and_support | 5.8% | ~16% ↑ | **12.2%** ↑ | regressed, as named |
+| `iija_2021_discretionary` | construction_and_capital | 355.9% | ~200% | **290.2%** | **worse than named** |
+
+| tier | n | before | after |
+|---|--:|---|---|
+| **out-of-sample (Tier 1)** | 25 | 52.6% mean / 21.1% median / 8 within 15 / 14 within 25 | **45.3% / 16.1% / 12 / 15** |
+| calibrated reference (fitted) | 34 | 2.7% / 0.2% / 33 / 34 | **unchanged** |
+| unfitted reconstruction | 20 | 250.8% / 43.1% / 4 / 7 | **unchanged** |
+| leave-one-out | 18 | 59.3% / 35.6% / 6 within 15 | **unchanged** |
+
+**No row moved that this file did not name.** The eight above are the only
+rows that changed anywhere in the 79-row scorecard, which is what the
+`immediate` default was for.
+
+### Where the prediction was wrong, and why
+
+**IIJA landed at 290.2%, not the ~200% named.** The pre-registered figure
+assumed the window would truncate authority at both ends — that the model would
+only spend out authority provided inside 2025-2034. It does not, and should not:
+the convolution is a property of the policy, so a policy whose `start_year` is
+2022 spends its 2022-2024 authority into the window's head. Truncating the head
+too would have discarded authority the model's own shape claims to provide, and
+would have flattered the result by about 90 points. The choice is documented in
+`ScoringEngine._score_spending_policy`; the honest reading is that IIJA's
+in-window outlay ratio is 0.856, not the 0.663 a wholly-inside-window
+construction path implies, and the level shape is even more of the residual than
+the pre-registration assumed.
+
+**`fra_2023_discretionary_caps` regressed less than named** (12.2% against ~16%)
+and **`cbo_opt43` improved more** (10.8% against ~16%), both because the
+predicted ratios were computed for a full ten active years while these cases
+start one year into the window and lose more of their tail.
+
+### What is left
+
+1. **IIJA is still the tier's largest row, and it is no longer a spend-out
+   row.** $163.0B carried forward at 2%/yr is ~$1,894B of authority against the
+   $446.3B CBO's table provides; spending the wrong authority out correctly
+   cannot fix a total built on four times too much of it.
+   `SpendingPolicy.budget_authority_path` exists and is tested for exactly this
+   shape, but wiring IIJA's authorization schedule to it changes a
+   *pre-registered shape input* — `preregistered.py` and `cbo_scores.py` are
+   both off-limits to a modelling lane, so it is a manifest decision, not a
+   modelling one. Recommend it as the next spending item.
+2. **The classes are account *classes*, not accounts.** `cbo_opt39` now
+   under-predicts (8.1%) because Pell spends out in two years while the generic
+   grants profile takes six. Account-level rates would close that, and CBO
+   publishes them (publications 61913 and 62256) — from an environment that can
+   reach cbo.gov.
+3. **The A-11 cross-check is still open.** Nothing here has been checked against
+   an outlay rate published outside CBO's options report, because no such
+   published table was reachable. See §5.
+4. **The app is untouched by design.** Every user-facing `SpendingPolicy` — the
+   composer's per-goal builds included — is still `immediate`. Turning spend-out
+   on for those changes shipped preset numbers and belongs with a UI lane, not
+   this one.
