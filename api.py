@@ -411,6 +411,15 @@ class ScorecardEntryModel(BaseModel):
     target_revision_id: str | None = None
     superseded_10yr_billions: float | None = None
     target_revision_reason: str = ""
+    # Set when the live ledger row records a published *range* rather than a
+    # point — the case where the agency scored the policy under several
+    # scenarios and published no single figure. When these are set,
+    # percent_difference is a distance from an editorial midpoint and is not a
+    # measurement of accuracy: read within_published_range instead.
+    published_range_low_billions: float | None = None
+    published_range_high_billions: float | None = None
+    within_published_range: bool | None = None
+    distance_to_published_range_billions: float | None = None
     # Table/row/page reference for a target transcribed from a primary document.
     benchmark_table: str | None = None
     # The figure the primary document actually prints, when it disagrees with

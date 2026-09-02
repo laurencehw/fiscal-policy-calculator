@@ -20,6 +20,7 @@ PolicyTypeLabel = Literal[
     "capital_gains_tax",
     "payroll_tax",
     "spending",
+    "tax_expenditure",
     "tariff",
     "comprehensive",
     "other",
@@ -33,6 +34,7 @@ ValidationShape = Literal[
     "corporate_rate",
     "payroll_rate",
     "spending",
+    "tax_expenditure",
 ]
 
 #: Generic (out-of-sample) dispatch is limited to records whose published
@@ -141,6 +143,20 @@ class CBOScore:
     phase_in_years: int = 1
     is_one_time: bool = False
     spending_category: Literal["defense", "nondefense", "mandatory"] = "nondefense"
+    # Tax expenditure: the reform's own design, as the source states it. The
+    # key indexes ``TAX_EXPENDITURE_DATA_KEYS``; a cap is read in dollars of
+    # the *excluded or deducted quantity*, and ``expenditure_caps_by_tier``
+    # carries a design that sets a different limit per coverage tier — which is
+    # how every published version of the employer-health option is written.
+    # These are shape inputs transcribed from the source, never fitted: the
+    # uncalibrated path scores such a record in the module's *derived* mode, so
+    # the fitted per-benchmark annual is never read.
+    expenditure_key: str | None = None
+    expenditure_action: Literal[
+        "eliminate", "cap", "phase_out", "convert", "expand"
+    ] = "cap"
+    expenditure_cap_amount: float | None = None
+    expenditure_caps_by_tier: dict[str, float] | None = None
 
 
 # =============================================================================
@@ -394,7 +410,14 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         policy_type="capital_gains_tax",
         baseline_year=2021,
         budget_window="FY2022-2031",
-        notes="Combined effect of rate increase + step-up elimination. "
+        notes="Combined effect of rate increase + step-up elimination, and the "
+              "'combined' is confirmed rather than assumed: the FY2022 Green Book's "
+              "Table of Revenue Estimates carries ONE row for 'Reform the taxation of "
+              "capital income' ($322,485M over FY2022-2031) and no separate "
+              "realization-at-death line anywhere in the table, even though the "
+              "narrative section states the rate change and the transfers-at-death "
+              "change as two proposals under one heading (report p. 105; PDF p. 111; "
+              "re-read 2026-09-02). "
               "Treasury Green Book estimate (higher than PWBM due to methodology differences). "
               "Scored on the uncalibrated Generic capital-gains path with the same frozen "
               "module-default elasticities as biden_capital_gains_39 — and, being the same "
@@ -1188,6 +1211,42 @@ KNOWN_SCORES: dict[str, CBOScore] = {
               "which the level shape then carries across the whole window.",
     ),
 
+    # -- Option 56: employment-based health benefits ------------------------
+    # Excluded from the Phase B battery as leakage — the only path that could
+    # score it was the fitted ``cap_employer_health`` annual. Lane L6 built the
+    # premium-distribution mechanism that scores a *percentile* cap from the
+    # published expenditure level and a distribution of the quantity the cap
+    # actually caps, so the option is now expressible without reading any
+    # constant fitted to a target.
+    "cbo_opt56_employer_health_income_only": CBOScore(
+        policy_id="cbo_opt56_employer_health_income_only",
+        name="CBO Option 56: Limit the Income-Tax Exclusion for Employer Health Benefits",
+        description="Limit only the income tax exclusion for employment-based health "
+                    "insurance to the 50th percentile of premiums",
+        ten_year_cost=-697.0,
+        source=ScoreSource.CBO,
+        source_date="2024-12",
+        source_url="https://www.cbo.gov/publication/60557",
+        policy_type="tax_expenditure",
+        baseline_year=2024,
+        budget_window="FY2025-2034",
+        effective_start_year=2028,
+        scoring_vintage="cbo_feb_2024",
+        expenditure_key="employer_health",
+        expenditure_action="cap",
+        expenditure_cap_amount=10_000.0,
+        expenditure_caps_by_tier={"single": 10_000.0, "family": 24_400.0},
+        notes="CBO Options 2025-2034, option 56, third alternative (report p. 66; "
+              "PDF p. 72), 'Decrease (-) in the deficit' row: -$697B over FY2025-2034. "
+              "The option takes effect in January 2028 and CBO prints zeros for "
+              "2025-2027, so the model window starts there too. The cap dollars are "
+              "CBO's own stated design — the 50th percentile of 2026 premiums indexed "
+              "to 2028, $10,000 individual and $24,400 family. This is the only one of "
+              "the option's three alternatives the module can express: the other two "
+              "limit the payroll-tax exclusion as well, and the expenditure module has "
+              "no payroll base.",
+    ),
+
     # -------------------------------------------------------------------------
     # PHASE D: ENACTED-LAW REPLICATIONS (component-level, out-of-sample)
     # -------------------------------------------------------------------------
@@ -1383,6 +1442,8 @@ def validation_shape(score: CBOScore) -> ValidationShape | None:
         return "payroll_rate" if score.rate_change is not None else None
     if score.policy_type == "spending":
         return "spending" if score.annual_amount_billions is not None else None
+    if score.policy_type == "tax_expenditure":
+        return "tax_expenditure" if score.expenditure_key is not None else None
     return None
 
 

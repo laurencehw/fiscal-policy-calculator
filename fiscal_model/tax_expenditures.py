@@ -21,6 +21,7 @@ from .tax_expenditures_core import (
     TaxExpenditureType,
     estimate_expenditure_revenue,
     get_all_expenditure_estimates,
+    uncapped_salt_expenditure_billions,
 )
 from .tax_expenditures_factory import (
     create_cap_charitable_deduction,
@@ -56,4 +57,5 @@ __all__ = [
     "create_repeal_salt_cap",
     "estimate_expenditure_revenue",
     "get_all_expenditure_estimates",
+    "uncapped_salt_expenditure_billions",
 ]

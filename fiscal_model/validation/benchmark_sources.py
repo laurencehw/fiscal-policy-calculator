@@ -430,7 +430,24 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
             "including the net investment income tax)' — so this row's "
             "incremental rate is 23.8% to 43.4%, i.e. the +19.6pp the record "
             "already carries — plus transfers by gift or at death as "
-            "realization events with a $1 million per-person exclusion."
+            "realization events with a $1 million per-person exclusion. "
+            "RE-OPENED 2026-09-02 to settle a flag from the capital-gains "
+            "lane, which observed that the volume describes the "
+            "realization-at-death change as a proposal of its own and asked "
+            "whether -$322.0B is the combined figure or the rate-only one. "
+            "It is combined, and the table settles it: under 'American "
+            "Families Plan — Strengthen taxation of high-income taxpayers' "
+            "the Table of Revenue Estimates prints exactly two rows, "
+            "'Increase the top marginal income tax rate for high earners' "
+            "($131,920M, and zero from 2027 on, because the 39.6% rate "
+            "returns by itself when TCJA sunsets) and 'Reform the taxation "
+            "of capital income' ($1,241M in 2021 rising to $45,693M in 2031, "
+            "$136,263M over 2022-26 and $322,485M over 2022-31). No row "
+            "anywhere in the table names transfers, gifts, death, "
+            "realization or appreciated property, so the volume publishes no "
+            "split of the two sub-proposals its narrative section describes "
+            "under one heading. The combined reading stands and the target is "
+            "unmoved."
         ),
     ),
     BenchmarkSource(
@@ -785,7 +802,16 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
             "too, which is the state of the world — JCT scores US adoption at "
             "**-$56.5B of receipts**, i.e. a revenue *loss*, the opposite sign "
             "to this benchmark. The module's own note gives a $50-120B range, "
-            "and $102.6B is inside it."
+            "and $102.6B is inside it. "
+            "The conditioning is now recorded as a **range target** in "
+            "``target_revisions.py`` (``pillar_two_adoption.v2``): Scenarios 2 "
+            "and 4 are the two JCT publishes for this design — US enacts, no "
+            "US UTPR — and they bracket the answer at -$102.6B and +$56.5B of "
+            "deficit effect, a range containing zero. This row stays "
+            "``line_item_differs`` rather than becoming a confirmation, which "
+            "is the point: the carried -$80B is an editorial midpoint, the "
+            "gap to the nearest published scenario is real, and a range "
+            "revision does not close it — it says no point closes it."
         ),
         alternatives=(
             "Scenario 1 (RoW enacts, US does not): -$122.0B of US receipts.",

@@ -43,6 +43,7 @@ from fiscal_model.tax_expenditures import (
     create_eliminate_mortgage_deduction,
     create_eliminate_salt_deduction,
     create_repeal_salt_cap,
+    uncapped_salt_expenditure_billions,
 )
 
 # ---------------------------------------------------------------------------
@@ -109,18 +110,28 @@ def test_soi_times_the_statutory_schedule_reproduces_the_capped_salt_expenditure
     $25.0B/yr against the base table's own `annual_cost = 25.0` -- two
     numbers with no common ancestor agreeing to a tenth of a percent.
 
-    The same computation on the *unlimited* deduction gives about $89.6B,
-    against the record's `annual_cost_no_cap = 120.0`. That 25% gap is a
-    finding, not a failure: it is recorded in the lane file and handed to the
-    provenance lane, and it is pinned here so a data refresh cannot close it
-    silently.
+    The same computation on the *unlimited* deduction gives about $89.6B. That
+    used to be 25% below the record's `annual_cost_no_cap = 120.0`, and the
+    gap was the finding L6 handed to the provenance lane: 120.0 was exactly the
+    $1,200B target over ten, unsourced, and load-bearing once the `eliminate`
+    rule started reading it. The provenance lane replaced the constant with
+    this computation, so the record now *is* the derived figure and the
+    assertion below is the stronger one -- they must agree exactly, not merely
+    differ in a known direction. Both levels stay pinned so a data refresh
+    cannot move either silently.
     """
     capped = load_deduction_distribution("salt_limited").implied_benefit_billions
     uncapped = load_deduction_distribution("salt").implied_benefit_billions
 
     assert capped == pytest.approx(JCT_TAX_EXPENDITURES["salt"]["annual_cost"], rel=0.01)
     assert uncapped == pytest.approx(89.6, rel=0.01)
-    assert uncapped < JCT_TAX_EXPENDITURES["salt"]["annual_cost_no_cap"]
+    assert uncapped == pytest.approx(
+        JCT_TAX_EXPENDITURES["salt"]["annual_cost_no_cap"]
+    )
+    assert uncapped == pytest.approx(uncapped_salt_expenditure_billions())
+    # The constant it replaced was the benchmark target restated. Pin the
+    # separation so nobody quietly puts a round number back.
+    assert JCT_TAX_EXPENDITURES["salt"]["annual_cost_no_cap"] != 120.0
 
 
 def test_premium_distribution_shape_comes_from_cbo_option_56():
