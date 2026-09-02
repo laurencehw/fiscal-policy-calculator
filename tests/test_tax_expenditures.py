@@ -68,8 +68,18 @@ def test_get_expenditure_data_defaults_to_charitable_for_unmapped_type():
 @pytest.mark.parametrize(
     ("action", "kwargs", "expected"),
     [
-        ("cap", {"cap_amount": 1_000}, pytest.approx(39.0)),
-        ("cap", {"cap_rate": 0.28}, pytest.approx(10.5)),
+        # A $1,000 per-return cap on charitable deductions denies 96.1% of the
+        # deduction's value: SOI TY2023 puts the average claimed contribution
+        # at about $18,000 per claiming return, so almost the whole deduction
+        # sits above $1,000. Before the base distribution existed this returned
+        # 39.0, from a share-affected rule that compared the cap with
+        # `avg_benefit` -- a *tax benefit* of $2,800, not a deduction.
+        ("cap", {"cap_amount": 1_000}, pytest.approx(67.272, rel=1e-4)),
+        # A 28% ceiling on the deduction's value denies 15.47% of it: the share
+        # of charitable deductions claimed by filers whose statutory marginal
+        # rate exceeds 28%. Previously a flat 0.15 with no distribution behind
+        # it, which landed near the right answer by coincidence.
+        ("cap", {"cap_rate": 0.28}, pytest.approx(10.831, rel=1e-4)),
         ("phase_out", {}, pytest.approx(14.0)),
         ("convert", {}, pytest.approx(7.0)),
     ],

@@ -1,0 +1,60 @@
+# Source: Internal Revenue Service, Statistics of Income Division, "Table 2.1.
+#   Returns with Itemized Deductions: Sources of Income, Adjustments, Itemized
+#   Deductions, and Tax Items, by Size of Adjusted Gross Income, Tax Year 2023
+#   (Filing Year 2024)".
+# File: https://www.irs.gov/pub/irs-soi/23in21id.xls
+# Transcribed 2026-09-02 from the published .xls, "All returns" panel.
+#
+# Why this table and not JCT's own distribution tables: JCX-48-24 is what
+#   `planning/MODELING_IMPROVEMENT.md` section 3 L6 names first, and jct.gov
+#   returns HTTP 403 to this environment on every URL tried (so does cbo.gov).
+#   SOI Table 2.1 is the administrative source underlying those tables, it is
+#   published by tax year with returns and amounts by AGI class, and --
+#   decisively for this lane -- it reports total *and* limited state-and-local
+#   taxes separately, which JCT's summary tables do not.
+#
+# Units, exactly as published:
+#   agi_lower / agi_upper  bounds of the AGI class in dollars; agi_upper is
+#                          empty for the open-ended top class.
+#   *_returns              number of returns (not thousands, not millions).
+#   *_amount               thousands of dollars.
+#
+# Column meanings, from the table's own column headers:
+#   salt_*                 "Taxes paid deduction / Total state and local taxes"
+#                          -- the amount before the $10,000 cap is applied.
+#   salt_limited_*         "Taxes paid deduction / Limited state and local
+#                          taxes" -- the amount actually deductible with the
+#                          IRC 164(b)(6) cap in force.
+#   mortgage_interest_*    "Interest paid deduction / Home mortgage interest".
+#   charitable_*           "Contributions deduction / Total".
+#
+# Published totals this transcription reproduces (the "All returns, total" row
+#   of the same table): 15,106,257 returns; SALT $331,823,221K; limited SALT
+#   $121,050,787K; home mortgage interest $171,364,787K; charitable
+#   $211,975,123K. `tests/test_tax_expenditure_units.py` re-adds the columns
+#   and checks them against these figures.
+#
+# NOTE (SOI's own): detail may not add to totals because of rounding.
+agi_lower,agi_upper,returns,agi_less_deficit,salt_returns,salt_amount,salt_limited_returns,salt_limited_amount,mortgage_interest_returns,mortgage_interest_amount,charitable_returns,charitable_amount
+0,5000,81112,168444,76980,476652,76980,390436,47561,657196,43440,37390
+5000,10000,79867,621124,74821,455612,74821,385531,48277,657012,36451,77178
+10000,15000,86917,1089193,79885,654284,79885,348603,44731,520341,43469,117373
+15000,20000,154660,2704169,143100,732000,143100,646795,77154,798789,93387,305920
+20000,25000,163015,3649449,152922,831158,152922,701725,81645,968049,102352,396557
+25000,30000,152148,4167591,145124,857219,145124,750469,78710,872789,102727,462112
+30000,35000,210567,6855326,199991,1209344,199991,989704,106281,1379007,132409,735100
+35000,40000,256611,9610355,240947,1483432,240947,1182917,136408,1673824,178513,1285701
+40000,45000,245482,10438207,235928,1460194,235928,1268969,145743,1987058,169669,1138927
+45000,50000,287977,13683828,280514,1850469,280514,1512367,167664,1877653,206633,1288128
+50000,55000,302183,15838821,300159,1845654,300159,1677779,197801,2120515,206211,1281002
+55000,60000,315301,18135433,309402,2055229,309402,1802946,197058,2194741,222884,1483136
+60000,75000,1067756,72272221,1047428,7990491,1047428,6808491,761686,8375495,769968,5084953
+75000,100000,1956139,170936604,1928135,16987932,1928135,14033640,1497866,17514586,1414668,9481442
+100000,200000,4873950,695936621,4853309,60442712,4853309,41929634,4002513,52777652,3855067,34699019
+200000,500000,3404313,1033396936,3395077,80778715,3395077,32375976,2902181,52483114,2851933,38381376
+500000,1000000,923935,629179310,921762,45124400,921762,8961116,773454,16354301,810658,20699338
+1000000,1500000,229991,277515096,229416,19408693,229416,2238459,175329,3792115,210205,10599985
+1500000,2000000,99572,171000315,99244,10977585,99244,963598,70290,1511713,93130,6224545
+2000000,5000000,148521,443705553,148085,26438468,148085,1440661,97446,2092154,140285,17067510
+5000000,10000000,39784,272499929,39688,15036207,39688,385947,22361,486148,38235,11187529
+10000000,,26456,815927875,26365,34726770,26365,255023,12190,270535,25658,49940901
