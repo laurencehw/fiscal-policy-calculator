@@ -287,4 +287,148 @@ Anything that moves outside these lists is a finding, and goes in §5.
 
 ## 5. Outturn
 
-*Appended in the last commit, after the code.*
+*Appended 2026-09-02, in the last commit. Numbers from
+`run_full_cbo_jct_validation(default_model_runner)`, `python
+scripts/cold_holdout.py`, `python scripts/run_loo.py --donor-matrix` and
+`python scripts/run_validation_dashboard.py` on the finished branch. `main` did
+not move under the lane, so §1's baseline is the one this is measured against.*
+
+### All seven distributional tables
+
+| Benchmark | Universe registered | Engine path | Before | After |
+|---|---|---|--:|--:|
+| Tax Cuts and Jobs Act, calendar 2018 | household | synthetic | 0.00 | **0.00** |
+| TCJA conference agreement, calendar 2019 | tax_unit | synthetic | 2.10 | **2.10** |
+| **American Rescue Plan refundable credits, 2021** | **household** | **microsim** | **7.77** | **3.72** |
+| SALT cap repeal, 2024 | tax_unit | microsim | 5.86 | **5.86** |
+| Corporate rate 21% to 28%, 2022 | tax_unit | synthetic | 2.51 | **2.51** |
+| TCJA individual-provisions permanent extension, 2026 | household | synthetic | 0.74 | **0.74** |
+| P.L. 119-21 tax and cash-transfer provisions, 2026 | household | synthetic | 3.96 | **3.96** |
+
+Six unmoved to the hundredth — including SALT-cap repeal, the other benchmark
+that routes through the microsim and the lane's real control. ARP goes
+`acceptable` → `good`.
+
+### The ARP table, row by row
+
+| quintile | model before | model after | CBO | err before | err after |
+|---|--:|--:|--:|--:|--:|
+| Lowest | 53.4% | **28.6%** | 34.0% | 19.42 | **5.44** |
+| Second | 20.0% | **24.7%** | 28.0% | 8.03 | **3.30** |
+| Middle | 14.1% | **23.5%** | 20.0% | 5.86 | **3.53** |
+| Fourth | 11.9% | **17.8%** | 12.0% | 0.13 | **5.77** |
+| Highest | 0.6% | **5.4%** | 6.0% | 5.40 | **0.56** |
+
+The bottom row is the lane in one line: 53.4% → 28.6% against CBO's 34.0%. Note
+the fourth quintile is the one row that got *worse*, 0.13pp → 5.77pp — its 0.13
+was a coincidence of two universes, not agreement, which is the same shape L3
+found in the 4.76pp it replaced.
+
+Per-household dollars, after the universe change and the merge fix:
+
+| quintile | before | after | CBO |
+|---|--:|--:|--:|
+| Lowest | −$892 | **−$4,503** | −$2,800 |
+| Second | −$954 | **−$4,211** | −$3,150 |
+| Middle | −$949 | **−$4,435** | −$2,450 |
+| Fourth | −$1,030 | **−$3,404** | −$1,620 |
+| Highest | −$55 | **−$1,013** | −$920 |
+
+### Against the pre-registration
+
+| Row | Predicted | Actual | |
+|---|--:|--:|---|
+| ARP 2021 distributional | 1.5pp to 6.0pp (point 3.5) | **3.72pp** | in band, within 0.22 of the point |
+| ARP lowest-quintile share | 26% to 40% (point 33%) | **28.6%** | in band |
+| ARP highest-quintile share | 1% to 6% (point 3%) | **5.4%** | in band |
+| ARP per-household dollars | roughly ×3, then reranked | **×3.4 to ×18** | directionally as registered; §5's finding 2 |
+| Tables 1, 2, 5, 6, 7 | unmoved to the hundredth | **unmoved to the hundredth** | as registered |
+| Table 4 (SALT), the control | unmoved to the hundredth | **5.86pp exactly** | as registered |
+| Tier 1 | 26 / 31.0% / 13 / 19, unmoved | **26 / 31.0% / 13 / 19** | as registered |
+| Calibrated fitted | 28 / 2.0% / 28 within 15% | **28 / 2.0% / 28** | as registered |
+| Unfitted reconstructions | 26 / 61.8% / 5 / 9 | **26 / 61.8% / 5 / 9** | as registered |
+| Leave-one-out | 18 / 28.4% / 16.5% / 9, 4 not x-val | **18 / 28.4% / 16.5% / 9, 4** | as registered |
+| LOO per module | unmoved | **3.8 / 10.4 / 73.9 / 20.5 / 30.2 / 39.6%** | as registered |
+| Pre-existing microdata columns | byte-identical | **all 25 identical** | as registered |
+| Pre-existing microdata summaries | unmoved | **all unmoved** | as registered |
+| App default universe | tax units, unchanged | **tax units** | as registered |
+| File size | "close to 7.0 MB, well under 8" | **8.57 MB, +10.9%** | **missed — finding 3** |
+
+`run_validation_dashboard.py`'s output before and after the lane differs in
+**exactly one region**: the distributional table's ARP row and the new Universe
+column. Health, SOI calibration coverage, the out-of-sample tier, the
+pre-registration audit and every LOO block are byte-identical. That is the
+strongest form the "nothing else moved" claim can take here, and it is stronger
+than reading the aggregates back.
+
+### The household universe, as built
+
+| group | households | people | size-adjusted income before transfers and taxes |
+|---|--:|--:|---|
+| Lowest Quintile | 29.88M | 64.17M | up to $20,514 |
+| Second Quintile | 27.62M | 64.18M | $20,514–$38,160 |
+| Middle Quintile | 24.99M | 64.18M | $38,162–$60,522 |
+| Fourth Quintile | 24.59M | 64.17M | $60,527–$97,946 |
+| Top Quintile | 25.31M | 64.19M | $97,946 and up |
+| **total** | **132.39M** | **320.89M** | |
+
+Equal people to within a tenth of a percent, households spread across a 21%
+range — CBO's own description of what its quintiles are, reproduced rather than
+asserted, and pinned by a test in both directions.
+
+### Findings
+
+**1 — Three of the four CBO tables cannot honour their own registration, and
+that is now visible rather than latent.** `policy_to_microsim_reforms` returns
+an empty dict for every `TCJAExtensionPolicy` and for the corporate policy, so
+`cbo_tcja_2018`, `cbo_tcja_extension_2026` and `cbo_pl119_21_2026` take the
+synthetic bracket path, which aggregates IRS SOI *return* counts and has no
+household layer to rank. Their registration is a statement about the document —
+correct, sourced, and inert. The alternative to registering them was to leave
+them silently on the wrong universe, which is what they were on before.
+
+The declaration is not decorative. Two of those three are the tables whose
+0.00pp and 0.74pp `cbo_distributions.py` already describes as bookkeeping —
+`calculate_tcja_effect` builds its decile tiers straight out of CBO 54796 and
+CBO 60007. So the suite now says, in a field a reader can check, that the two
+circular rows are *also* scored on a population CBO does not use. Giving
+`TCJAExtensionPolicy` a microsim path would move all three at once, and it is
+the obvious next lane: it is the only way to find out what those tables say when
+they are not reading CBO's own shares back.
+
+**2 — The dollar column was wrong by a factor of three, and nobody could see it
+because the error metric never looks at dollars.**
+`_combine_distributional_results` reported a merged component's per-group
+average as the *mean* of the components' averages where the bundle is their
+*sum*. `compare_distribution` scores shares, and the shares were computed from a
+correctly dollar-weighted merge, so the bug was invisible to every gate in the
+repository while the ARP row's rendered dollars read −$892 against CBO's
+−$2,800. `docs/VALIDATION_NOTES.md` even quotes the difference between the
+merged path's −$892 and a single combined reform's −$2,461 without naming the
+cause. Fixed, with a test that a household getting $1,400 and $3,000 got $4,400.
+
+The averages now read −$4,503 / −$4,211 / −$4,435 / −$3,404 / −$1,013 against
+CBO's −$2,800 / −$3,150 / −$2,450 / −$1,620 / −$920 — the right order of
+magnitude everywhere and about 40% high in the middle. That residual is a
+*level* disagreement, not a distributional one: the model's ARP bundle costs
+more than CBO's, and this benchmark scores shares, so nothing in the lane
+touches it. It is worth its own look, because a level that is 40% high with
+shares that are within 3.7pp is a different kind of error from either one alone.
+
+**3 — The derived file grew 10.9%, more than §3 said it would.** 7,727,496 →
+8,569,294 bytes for two columns on 78,727 rows, because `household_weight`
+repeats a nine-character float on every tax unit rather than once per household.
+`household_persons` is redundant with `Σ member_count` and could be dropped for
+about 0.24 MB; it was kept because carrying the roster count from the source is
+what makes the partition check a check rather than a tautology, and that check is
+now a builder warning. A tax-unit file that stored household attributes once, in
+a sidecar keyed by `household_id`, would be the right shape if this file grows
+again — but it is a schema change for 0.8 MB and it was not worth making here.
+
+**4 — A negative result worth stating plainly.** The lane's mechanism is a
+universe correction, and it bought 4.05pp on one benchmark out of seven. That is
+the honest size of this class of fix, and it should temper the reading of the
+other six: five of them are on a path where the universe question cannot even be
+asked, and the sixth is a JCT table that was already on the right universe. The
+suite's distributional evidence base did not get broader; one of its seven rows
+stopped comparing two different populations.

@@ -5,7 +5,7 @@ Fetch the raw CPS ASEC extract the microdata builder reads, by script.
 Owner Decision 4 (``planning/MODELING_IMPROVEMENT.md`` §6, accepted
 2026-09-01): the raw CPS ASEC person and household files are **fetched at
 build time and never vendored**. Only the derived tax-unit file
-(``fiscal_model/microsim/tax_microdata_2024.csv``, 7 MB) is under version
+(``fiscal_model/microsim/tax_microdata_2024.csv``, 8.6 MB) is under version
 control; the source archive is 148 MB and lives in a cache outside the
 repository.
 
