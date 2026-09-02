@@ -1,0 +1,28 @@
+# Budget-authority -> outlay spend-out profiles, by account class.
+# Each year_N is the share of a dollar of budget authority that becomes an
+# outlay N years after the authority is provided.
+#
+# PRIMARY SOURCE (the fallback in planning/MODELING_IMPROVEMENT.md Sec. 6
+# decision 2, and what shipped): CBO, Options for Reducing the Deficit:
+# 2025 to 2034 (December 2024; reposted October 2025), publication 60557.
+#   https://www.cbo.gov/publication/60557
+# Fitted by non-negative least squares on the 14 options that report both a
+# budget-authority row and an outlays row and are NOT in the scored battery
+# (options 37, 38, 39, 42, 43 are scored and are never donors; option 44 is
+# excluded because its outlays exceed its authority in every year).
+#
+# NOT sourced from OMB Circular A-11 Sec. 32, which decision 2 named: that
+# section is 'Personnel Compensation, Benefits, and Related Costs' and
+# carries no outlay rates. A-11 publishes no numeric outlay-rate table
+# anywhere - Sec. 80 requires only consistency with 'Presidential policy
+# spendout rates' and Sec. 81 has agencies enter their own rates into MAX.
+# CBO's published account-level rates (publications 61913 and 62256) are the
+# external cross-check and were unreachable when this was built (cbo.gov 403).
+#
+# Rebuilt by scripts/fit_outlay_rates.py.
+account_class,year_0,year_1,year_2,year_3,year_4,year_5,year_6,year_7,donor_options,donor_rationale
+personnel_and_benefits,0.9207,0.0753,0.0000,0.0039,0.0000,0.0000,0.0000,0.0000,29 36 40 41,Military basic pay; basic allowance for housing; VA medical care enrollment; federal civilian pay adjustment. Compensation and benefit accounts disburse in the year the authority is provided.
+operations_and_support,0.5387,0.2571,0.0666,0.0726,0.0416,0.0000,0.0000,0.0000,28 34,"The Department of Defense's annual budget as a whole; retiring the B-1B bomber force. Operations, maintenance and force structure — a mix of pay that disburses at once and equipment that does not."
+grants_and_procurement,0.4051,0.2528,0.1358,0.0733,0.0261,0.0676,0.0393,0.0000,32 33 35,"Cancelling the Long-Range Standoff Weapon; cancelling the Future Long-Range Assault Aircraft; retiring the F-22 fighter force. Procurement and R&D obligate quickly and disburse over several years, the same shape as project and formula grants and assistance awards."
+construction_and_capital,0.0218,0.2286,0.2009,0.2144,0.0870,0.1145,0.0000,0.1055,31,"Stopping Ford-class aircraft carrier construction. Shipbuilding is the slowest spend-out CBO reports, and is the closest observed analogue to infrastructure and other capital grants."
+mandatory_benefit,0.9772,0.0228,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,3 9,"The mandatory Pell Grant add-on; the federal employee health voucher plan. Direct benefit payments are outlaid in the year they are owed, so there is no authority-to-outlay lag to model."

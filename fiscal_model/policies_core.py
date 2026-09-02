@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Literal
 
+from .spending_outlays import IMMEDIATE, OutlayProfile, get_outlay_profile
+
 logger = logging.getLogger(__name__)
 
 # Cap on the preferential-income correction. Even at the very top, some income
@@ -545,7 +547,21 @@ class CapitalGainsPolicy(TaxPolicy):
 
 @dataclass
 class SpendingPolicy(Policy):
-    """Spending policy proposal."""
+    """Spending policy proposal.
+
+    Budget authority and outlays are **distinct quantities**.
+    ``annual_spending_change_billions`` (and ``budget_authority_path``) describe
+    the *authority* a proposal provides or withdraws;
+    :meth:`get_outlays_in_year` spends that authority out over time using the
+    profile named by ``outlay_account_class``
+    (see :mod:`fiscal_model.spending_outlays`).
+
+    ``outlay_account_class`` defaults to ``"immediate"`` - the identity, one
+    dollar of authority becoming one dollar of outlay in the year it is
+    provided - so an existing policy scores exactly as it did before spend-out
+    existed. Callers that know the account type opt in; the validation shapes
+    in ``validation/core.py`` do.
+    """
 
     annual_spending_change_billions: float = 0.0
     annual_growth_rate: float = 0.02
@@ -553,6 +569,11 @@ class SpendingPolicy(Policy):
     employment_per_billion: float = 10000
     is_one_time: bool = False
     category: Literal["defense", "nondefense", "mandatory"] = "nondefense"
+    outlay_account_class: str = IMMEDIATE
+    #: Explicit year-by-year budget authority from ``start_year``, for a
+    #: proposal whose authority is *not* a level - a multi-year authorization
+    #: that ends, say. When set it overrides the level-times-growth path.
+    budget_authority_path: tuple[float, ...] | None = None
 
     def __post_init__(self):
         super().__post_init__()
@@ -564,21 +585,81 @@ class SpendingPolicy(Policy):
         expected_type = category_to_type.get(self.category)
         if expected_type and self.policy_type != expected_type:
             self.policy_type = expected_type
+        if self.budget_authority_path is not None:
+            self.budget_authority_path = tuple(float(x) for x in self.budget_authority_path)
+        # Fail fast on an unknown class rather than silently outlaying 1:1.
+        get_outlay_profile(self.outlay_account_class)
 
-    def get_spending_in_year(self, year: int, start_amount: float | None = None) -> float:
-        """Calculate spending amount for a given year, including growth."""
+    @property
+    def outlay_profile(self) -> "OutlayProfile":
+        """The spend-out profile this policy's account class implies."""
+        return get_outlay_profile(self.outlay_account_class)
+
+    def get_budget_authority_in_year(
+        self, year: int, start_amount: float | None = None
+    ) -> float:
+        """Budget authority provided in a year, including growth and phase-in.
+
+        This is the quantity a proposal actually sets. It is *not* the outlay
+        unless the account spends out immediately.
+        """
         if not self.is_active(year):
             return 0.0
 
-        base = start_amount if start_amount else self.annual_spending_change_billions
         years_since_start = year - self.start_year
-        phase_factor = self.get_phase_in_factor(year)
 
         if self.is_one_time and years_since_start > 0:
             return 0.0
 
+        phase_factor = self.get_phase_in_factor(year)
+
+        if self.budget_authority_path is not None and start_amount is None:
+            if years_since_start >= len(self.budget_authority_path):
+                return 0.0
+            return self.budget_authority_path[years_since_start] * phase_factor
+
+        base = start_amount if start_amount else self.annual_spending_change_billions
         growth_factor = (1 + self.annual_growth_rate) ** years_since_start
         return base * growth_factor * phase_factor
+
+    def get_outlays_in_year(
+        self,
+        year: int,
+        start_amount: float | None = None,
+        *,
+        window_start: int | None = None,
+    ) -> float:
+        """Outlays in a year: budget authority from this and earlier years, spent out.
+
+        ``window_start`` bounds how far back authority is drawn from. It
+        defaults to ``start_year``, so authority provided before the policy
+        began contributes nothing - which is what a *change* in authority
+        means.
+        """
+        profile = self.outlay_profile
+        if len(profile.shares) <= 1:
+            return self.get_budget_authority_in_year(year, start_amount)
+
+        earliest = self.start_year if window_start is None else max(window_start, self.start_year)
+        total = 0.0
+        for lag, share in enumerate(profile.shares):
+            source_year = year - lag
+            if source_year < earliest:
+                break
+            if share == 0.0:
+                continue
+            total += share * self.get_budget_authority_in_year(source_year, start_amount)
+        return total
+
+    def get_spending_in_year(self, year: int, start_amount: float | None = None) -> float:
+        """Outlays in a given year.
+
+        Kept under its original name because every caller in the model, the app
+        and the tests means *the amount that hits the deficit this year*, which
+        is the outlay. Under the default ``immediate`` class this is identical
+        to :meth:`get_budget_authority_in_year`.
+        """
+        return self.get_outlays_in_year(year, start_amount)
 
 
 @dataclass

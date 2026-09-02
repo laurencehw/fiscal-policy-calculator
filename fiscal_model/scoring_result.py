@@ -24,6 +24,14 @@ class ScoringResult:
     static_spending_effect: np.ndarray
     static_deficit_effect: np.ndarray
     behavioral_offset: np.ndarray
+    #: Budget authority the policy provides or withdraws, by year. Distinct
+    #: from ``static_spending_effect``, which is the **outlay** path that
+    #: authority spends out into. The two coincide for tax policies and for
+    #: spending accounts that outlay immediately; they diverge for anything
+    #: slower (see :mod:`fiscal_model.spending_outlays`). Authority whose
+    #: outlays fall past the end of the window is provided but never spent
+    #: inside it, which is why the two totals differ.
+    budget_authority_effect: np.ndarray = field(default_factory=lambda: np.zeros(10))
     dynamic_effects: DynamicEffects | None = None
     final_deficit_effect: np.ndarray = field(default_factory=lambda: np.zeros(10))
     low_estimate: np.ndarray = field(default_factory=lambda: np.zeros(10))
@@ -33,6 +41,25 @@ class ScoringResult:
     def is_dynamic(self) -> bool:
         """Whether dynamic scoring was applied."""
         return self.dynamic_effects is not None
+
+    @property
+    def total_budget_authority(self) -> float:
+        """Total budget authority over the window."""
+        return float(np.sum(self.budget_authority_effect))
+
+    @property
+    def outlay_rate_in_window(self) -> float:
+        """Share of the window's budget authority that outlays inside it.
+
+        Below 1.0 whenever authority is provided late enough in the window that
+        its spend-out tail falls outside. This is the ratio CBO publishes for
+        its own spending options (0.693 to 0.913 across the five in the
+        battery), and the reason a budget-authority total is not a score.
+        """
+        authority = self.total_budget_authority
+        if authority == 0.0:
+            return 0.0
+        return float(np.sum(self.static_spending_effect) / authority)
 
     @property
     def total_10_year_cost(self) -> float:
