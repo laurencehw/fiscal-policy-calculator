@@ -948,12 +948,28 @@ def estimate_estate_revenue(policy: EstateTaxPolicy) -> dict:
     """
     Estimate total revenue effect of an estate tax policy.
 
+    In ``derived`` mode the year path is the module's own, so it is summed
+    directly rather than grown off a single annual -- growing it again would
+    apply the base's growth twice.
+
     Returns dict with:
         - annual_static: Average annual static effect
         - ten_year_static: Total 10-year static effect
         - behavioral_offset: Total behavioral offset
         - net_effect: Final effect after behavioral response
     """
+    if policy.mode == ESTATE_MODE_DERIVED:
+        path = np.array([effect for _year, effect in policy.derived_revenue_path()])
+        annual_static = float(path.mean()) if path.size else 0.0
+        behavioral = policy.estimate_behavioral_offset(annual_static)
+        share = behavioral / annual_static if annual_static else 0.0
+        return {
+            "annual_static": annual_static,
+            "ten_year_static": float(path.sum()),
+            "behavioral_offset": float(path.sum()) * share,
+            "net_effect": float(path.sum()) * (1.0 + share),
+        }
+
     annual_static = policy.estimate_static_revenue_effect(0)
     behavioral = policy.estimate_behavioral_offset(annual_static)
 

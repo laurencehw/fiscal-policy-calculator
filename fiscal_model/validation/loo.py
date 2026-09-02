@@ -609,13 +609,13 @@ def derive_estate_annual(case_id: str) -> float | None:
     Re-derive an estate benchmark's annual from the size distribution.
 
     Builds the scenario's own policy in ``derived`` mode and returns the
-    window average of its structural path, which bypasses every fitted
-    constant in the module: ``annual_revenue_change_billions`` is ignored in
-    that mode, and so is ``estimate_static_revenue_effect``'s
-    ``extend_tcja_exemption`` short-circuit to
-    ``CBO_ESTATE_ESTIMATES["extend_tcja_annual"]`` — that constant *is* the
-    published $167B target divided by ten, so reading it would be reading the
-    answer key. Nothing here touches :func:`official_target`.
+    window average of its structural path, which reads no fitted constant:
+    ``annual_revenue_change_billions`` is ignored in that mode. The
+    ``extend_tcja_exemption`` short-circuit that used to return
+    ``CBO_ESTATE_ESTIMATES["extend_tcja_annual"]`` — the published $167B target
+    divided by ten, i.e. the answer key — is gone from
+    ``estimate_static_revenue_effect`` outright, so there is nothing left to
+    bypass. Nothing here touches :func:`official_target`.
     """
     scenario = ESTATE_TAX_VALIDATION_SCENARIOS.get(case_id)
     if scenario is None:
@@ -684,9 +684,9 @@ def run_estate_loo() -> LOOReport:
                 derivation=DERIVATION_STRUCTURAL,
                 calibration_set=retained,
                 notes=(
-                    "Derived from the SOI-fitted tax-base distribution; both the fitted "
-                    "annual and the extend_tcja_annual short-circuit (= target / 10) are "
-                    "ignored in derived mode."
+                    "Derived from the SOI-fitted tax-base distribution; the fitted annual "
+                    "is ignored in derived mode and the extend_tcja_annual short-circuit "
+                    "(= target / 10) no longer exists in the module at all."
                 ),
             )
         )
