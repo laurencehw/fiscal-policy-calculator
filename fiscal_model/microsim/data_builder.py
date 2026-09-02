@@ -20,6 +20,25 @@ archive digest and the builder that produced it. (The provenance is a sidecar
 rather than a comment header inside the CSV because several callers read the
 file with a bare ``pandas.read_csv``, which would choke on one.)
 
+Household layer
+---------------
+CBO ranks **households** — the people sharing a housing unit — not tax units,
+so a distributional table cut CBO's way needs the household back. The CPS
+household sequence number already survives as ``household_id``; what did not
+survive were the household's own weight and roster count. The builder therefore
+also emits ``household_weight`` (``HSUP_WGT / 100``, the ASEC household
+supplement weight) and ``household_persons`` (``H_NUMPER``, the roster count),
+both read straight off ``hhpub24.csv``, which the builder already merges. They
+are copied, never derived: ``household_weight`` sums to 132.4M households and
+``household_weight x household_persons`` to 320.9M people, which is the CPS's
+own published civilian noninstitutional population.
+
+``household_persons`` is redundant with ``sum(member_count)`` over the
+household — the tax-unit construction assigns every person to exactly one unit,
+and the two agree in all 56,251 households — and that is the point: carrying
+the roster count from the source makes the agreement checkable instead of
+assumed.
+
 Dependent age bands
 -------------------
 ``children`` is the under-17 headcount and is what the CTC's current-law
@@ -101,6 +120,8 @@ NUMERIC_DEFAULTS = {
     "TAX_INC": 0.0,
     "A_ENRLW": 0,
     "GESTFIPS": pd.NA,
+    "HSUP_WGT": 0.0,
+    "H_NUMPER": 0,
 }
 
 # ---------------------------------------------------------------------------
@@ -163,6 +184,8 @@ def _fetch_module():
 OUTPUT_COLUMNS = [
     "id",
     "household_id",
+    "household_weight",
+    "household_persons",
     "family_id",
     "tax_unit_index",
     "member_count",
@@ -389,6 +412,12 @@ def construct_tax_units(records: pd.DataFrame) -> pd.DataFrame:
     for household_id, household in records.groupby("PH_SEQ", sort=True):
         household = household.sort_values("A_LINENO")
         household_units: list[dict[str, object]] = []
+        # Household-level facts, copied off ``hhpub24.csv`` and repeated on each
+        # of the household's tax units so the household layer can be rebuilt by
+        # a groupby without a second file. ``HSUP_WGT`` carries two implied
+        # decimals, exactly like ``MARSUPWT``.
+        household_weight = float(household["HSUP_WGT"].iloc[0]) / 100.0
+        household_persons = int(household["H_NUMPER"].iloc[0])
 
         family_ids = sorted(int(value) for value in household["A_FAMNUM"].dropna().unique())
         positive_family_ids = [family_id for family_id in family_ids if family_id > 0]
@@ -426,6 +455,8 @@ def construct_tax_units(records: pd.DataFrame) -> pd.DataFrame:
                 {
                     "id": int(household_id) * 100 + tax_unit_index,
                     "household_id": int(household_id),
+                    "household_weight": household_weight,
+                    "household_persons": household_persons,
                     "family_id": int(unit["family_id"]),
                     "tax_unit_index": tax_unit_index,
                     "member_count": int(len(members)),
@@ -487,9 +518,41 @@ def _weighted_millions(clean_df: pd.DataFrame, columns: tuple[str, ...]) -> floa
     return float((total * clean_df["weight"]).sum() / 1e6)
 
 
+#: Columns the household layer needs to exist at all.
+HOUSEHOLD_LAYER_COLUMNS = (
+    "household_id",
+    "household_weight",
+    "household_persons",
+    "member_count",
+)
+
+
+def _household_frame(clean_df: pd.DataFrame) -> pd.DataFrame:
+    """Collapse the tax-unit frame to one row per household.
+
+    ``household_weight`` and ``household_persons`` are constant within a
+    household by construction, so ``first`` reads the value rather than
+    aggregating one. ``member_count`` is summed because it is the tax unit's own
+    size and the units partition the household roster.
+
+    Partial frames (the validation tests build some by hand) return an empty
+    frame rather than raising: a missing column means "not measured".
+    """
+    if clean_df.empty or not set(HOUSEHOLD_LAYER_COLUMNS) <= set(clean_df.columns):
+        return pd.DataFrame(
+            columns=["household_weight", "household_persons", "member_count"]
+        )
+    return clean_df.groupby("household_id", sort=True).agg(
+        household_weight=("household_weight", "first"),
+        household_persons=("household_persons", "first"),
+        member_count=("member_count", "sum"),
+    )
+
+
 def summarize_tax_units(clean_df: pd.DataFrame) -> dict[str, float]:
     """Return headline validation metrics for the built microdata file."""
     households = int(clean_df["household_id"].nunique()) if not clean_df.empty else 0
+    by_household = _household_frame(clean_df)
     return {
         "records_created": float(len(clean_df)),
         "unique_households": float(households),
@@ -513,6 +576,33 @@ def summarize_tax_units(clean_df: pd.DataFrame) -> dict[str, float]:
         "weighted_eitc_qualifying_children_millions": _weighted_millions(
             clean_df, EITC_QUALIFYING_BANDS
         ),
+        "weighted_households": (
+            float(by_household["household_weight"].sum())
+            if not by_household.empty
+            else 0.0
+        ),
+        "weighted_household_persons": (
+            float(
+                (
+                    by_household["household_weight"]
+                    * by_household["household_persons"]
+                ).sum()
+            )
+            if not by_household.empty
+            else 0.0
+        ),
+        # Tax units partition the household roster, so this must be zero. It is
+        # the check that says the household layer can be rebuilt from the
+        # tax-unit file by a groupby without losing or duplicating anybody.
+        "households_with_roster_mismatch": (
+            float(
+                (
+                    by_household["member_count"] != by_household["household_persons"]
+                ).sum()
+            )
+            if not by_household.empty
+            else 0.0
+        ),
     }
 
 
@@ -531,6 +621,16 @@ def validate_tax_units(clean_df: pd.DataFrame) -> list[str]:
         warnings.append("Weighted tax units fell outside the expected range.")
     if summary["weighted_agi_billions"] < summary["weighted_wages_billions"]:
         warnings.append("Weighted AGI fell below weighted wages, which is unlikely.")
+    if summary["households_with_roster_mismatch"] > 0:
+        warnings.append(
+            "Tax-unit member counts do not sum to the household roster in "
+            f"{int(summary['households_with_roster_mismatch']):,} households; a "
+            "household layer built off this file would lose or double-count people."
+        )
+    if summary["weighted_households"] and not (
+        100_000_000 <= summary["weighted_households"] <= 160_000_000
+    ):
+        warnings.append("Weighted households fell outside the expected range.")
 
     return warnings
 
@@ -640,6 +740,12 @@ def build_tax_microdata(
     print(
         "Weighted EITC qualifying children: "
         f"{summary['weighted_eitc_qualifying_children_millions']:,.1f}M"
+    )
+    print(f"Weighted Households: {summary['weighted_households']:,.0f}")
+    print(f"Weighted Persons in Households: {summary['weighted_household_persons']:,.0f}")
+    print(
+        "Households whose tax units do not sum to the roster: "
+        f"{int(summary['households_with_roster_mismatch']):,}"
     )
     for warning in warnings:
         print(f"WARNING: {warning}")
