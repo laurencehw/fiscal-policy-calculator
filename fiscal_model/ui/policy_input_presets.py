@@ -65,10 +65,17 @@ def _strip_emoji_prefix(name: str) -> str:
 
 
 def _short_display_name(name: str) -> str:
-    """Strip emoji prefix and trailing official score label for dropdown display."""
+    """Strip emoji prefix and trailing official score label for dropdown display.
+
+    Also drops the markdown ``\\$`` escape a few preset keys carry: a selectbox
+    *option* is plain text, so the escape reached the dropdown as a visible
+    backslash ("Carbon Tax \\$50/ton").
+    """
     import re as _re
 
-    stripped = _strip_emoji_prefix(name)
+    from fiscal_model.ui.helpers import unescape_markdown_dollars
+
+    stripped = _strip_emoji_prefix(unescape_markdown_dollars(name))
     return _re.sub(r"\s*\((?:CBO|JCT):[^)]+\)\s*$", "", stripped).strip()
 
 

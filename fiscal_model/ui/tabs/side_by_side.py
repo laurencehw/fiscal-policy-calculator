@@ -13,6 +13,7 @@ import numpy as np
 import plotly.graph_objects as go
 
 from fiscal_model.preset_handler import create_policy_from_preset
+from fiscal_model.ui.helpers import unescape_markdown_dollars
 
 
 def _build_policy(
@@ -113,6 +114,10 @@ def render_side_by_side_tab(
             options=options,
             index=0,
             key="side_by_side_a",
+            # Display only: the value stays the preset key. A selectbox option
+            # is plain text, so a key carrying the markdown ``\$`` escape read
+            # "Carbon Tax \$50/ton" in the dropdown.
+            format_func=unescape_markdown_dollars,
         )
     with col_right:
         default_b = min(1, len(options) - 1)
@@ -121,6 +126,7 @@ def render_side_by_side_tab(
             options=options,
             index=default_b,
             key="side_by_side_b",
+            format_func=unescape_markdown_dollars,
         )
 
     if policy_a_name == policy_b_name:

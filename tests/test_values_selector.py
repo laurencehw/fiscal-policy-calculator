@@ -18,6 +18,8 @@ The acceptance criteria from plan §5b.8 that live at this layer:
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from fiscal_model.composer.archetypes import (
@@ -330,6 +332,69 @@ def test_protections_report_what_they_removed(catalog):
     assert vetoed["tariff-universal-10pct"] == "middle_class_rates"
     # …and the leading pick's sentence names the trade-off out loud.
     assert "rather than" in package.picks[0].why
+
+
+# ---------------------------------------------------------------------------
+# The why sentence has to read as English (external UI review, 2026-09-01)
+# ---------------------------------------------------------------------------
+#
+# Build shipped "…, rather than Trump Universal 10% Tariff, which you protected
+# middle-class rates — it moves the number…": the contrast frame glued a
+# relative pronoun onto a ``ProtectedRule.clause``, which is a second-person
+# *statement*, not a relative clause.
+
+
+@pytest.mark.parametrize("archetype_id", sorted(archetype_ids()))
+def test_no_why_sentence_is_template_broken(archetype_id, catalog):
+    package = _package(archetype_id, catalog)
+    for pick in package.picks:
+        why = pick.why
+        assert not re.search(r", which (?:you|your) ", why), (
+            f"{archetype_id}/{pick.policy_id}: a relative pronoun glued to a "
+            f"second-person clause — {why!r}"
+        )
+        # No empty slot, dangling connector or doubled word left behind.
+        assert "  " not in why, f"{archetype_id}/{pick.policy_id}: {why!r}"
+        assert "— ." not in why, f"{archetype_id}/{pick.policy_id}: {why!r}"
+        assert not re.search(r"\b(\w+) \1\b", why), (
+            f"{archetype_id}/{pick.policy_id}: doubled word — {why!r}"
+        )
+        assert not re.search(r"\b(?:covers|closes|carries|moves) 0% ", why), (
+            f"{archetype_id}/{pick.policy_id}: a pick that does nothing — {why!r}"
+        )
+        assert why.endswith("."), f"{archetype_id}/{pick.policy_id}: {why!r}"
+
+
+def test_the_protected_contrast_joins_with_a_connective(catalog):
+    """The clause bank stays second-person; the frame supplies the join."""
+    from fiscal_model.composer.values_schema import PROTECTED_RULES
+
+    package = _package("egalitarian", catalog)
+    why = package.picks[0].why
+    assert ", which is off the table because you protected " in why, why
+    for rule in PROTECTED_RULES:
+        assert rule.clause.startswith("you "), (
+            f"{rule.key}: the clause is joined after 'because', so it must "
+            f"stay a statement — {rule.clause!r}"
+        )
+
+
+@pytest.mark.parametrize(
+    ("score", "gap", "expected"),
+    [
+        (0.4, 100.0, "<1%"),
+        # 0.5% used to print "0%" — f"{0.5:.0f}" is "0" under banker's rounding.
+        (0.5, 100.0, "<1%"),
+        (0.9, 100.0, "<1%"),
+        (1.0, 100.0, "1%"),
+        (18.0, 100.0, "18%"),
+        (5.0, 0.0, "its share"),
+    ],
+)
+def test_share_never_reads_as_zero(score, gap, expected):
+    from fiscal_model.composer.composer import _format_share
+
+    assert _format_share(score, gap) == expected
 
 
 def test_untagged_options_are_vetoed_whenever_any_commitment_is_named(catalog):

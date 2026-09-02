@@ -13,6 +13,7 @@ import plotly.graph_objects as go
 
 from fiscal_model.models.base import build_scorer_for_start_year, policy_start_year
 from fiscal_model.preset_handler import create_policy_from_preset
+from fiscal_model.ui.helpers import unescape_markdown_dollars
 
 STATIC_MODEL = "CBO-Style (Static + ETI)"
 DYNAMIC_MODEL = "FRB/US-Lite (Dynamic)"
@@ -126,6 +127,11 @@ def render_policy_comparison_tab(
         options=comparison_options,
         default=comparison_options[:1],
         max_selections=4,
+        # The option *value* stays the preset key (it indexes
+        # ``preset_policies``); only the display drops the markdown ``\$``
+        # escape a couple of those keys carry, which a plain-text option list
+        # would otherwise show as a backslash.
+        format_func=unescape_markdown_dollars,
     )
     model_options = [STATIC_MODEL]
     default_models = [STATIC_MODEL]

@@ -596,7 +596,15 @@ def test_vector_link_beats_the_slug(no_api_key, monkeypatch):
 
 
 def test_dollar_amounts_in_markdown_are_escaped(no_api_key, monkeypatch):
-    """Two unescaped ``$`` in one line render as a KaTeX span in Streamlit."""
+    """Two unescaped ``$`` in one line render as a KaTeX span in Streamlit.
+
+    …but *inside* a code span the escape is the bug: markdown processes no
+    escapes there, so ``` `-\\$3,200B` ``` puts a literal backslash on screen
+    (external UI review, 2026-09-01). Each pick line is a bold label plus a
+    code span, so the rule is: escaped outside the backticks, raw inside.
+    """
+    import re
+
     _forbid_translation(monkeypatch)
     _stub_selector(monkeypatch)
     st = _DummyStreamlit()
@@ -606,7 +614,19 @@ def test_dollar_amounts_in_markdown_are_escaped(no_api_key, monkeypatch):
     money_lines = [text for text in st.markdowns if "B`" in text and "$" in text]
     assert money_lines
     for line in money_lines:
-        assert "\\$" in line, line
+        spans = re.findall(r"`[^`]+`", line)
+        assert spans, line
+        for span in spans:
+            assert "\\$" not in span, f"escaped inside a code span: {span!r}"
+        outside = re.sub(r"`[^`]+`", "", line)
+        assert not re.search(r"(?<!\\)\$\d", outside), (
+            f"unescaped currency outside the code span: {outside!r}"
+        )
+
+    # The coverage line is plain markdown throughout, so it must be escaped.
+    coverage = [text for text in st.markdowns if "of target" in text]
+    assert coverage
+    assert "\\$" in coverage[0], coverage[0]
 
 
 def test_lazy_bridges_call_the_agreed_composer_api(monkeypatch):

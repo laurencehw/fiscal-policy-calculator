@@ -37,6 +37,7 @@ from fiscal_model.models.comparison import (
     compare_policy_models,
 )
 from fiscal_model.preset_handler import create_policy_from_preset
+from fiscal_model.ui.helpers import unescape_markdown_dollars
 
 
 def _build_policy(
@@ -217,6 +218,10 @@ def render_multi_model_tab(
         "Policy",
         options=labeled_options,
         index=0,
+        # Display only: the value stays the label that keys ``label_to_name``.
+        # A selectbox option is plain text, so a preset key carrying the
+        # markdown ``\$`` escape read "Carbon Tax \$50/ton" in the dropdown.
+        format_func=unescape_markdown_dollars,
         help=(
             "CBO+TPC = both default pilots can score this family. "
             "CBO only = specialized module runs on CBO-Style; TPC skips honestly."

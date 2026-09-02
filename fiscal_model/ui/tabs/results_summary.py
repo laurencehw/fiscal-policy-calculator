@@ -34,6 +34,7 @@ from fiscal_model.ui.a11y import (
     render_accessible_chart,
 )
 from fiscal_model.ui.charts import apply_base_layout, horizontal_legend
+from fiscal_model.ui.helpers import unescape_markdown_dollars
 from fiscal_model.ui.share_links import build_share_url
 
 #: Stated once, rendered under the headline on every result panel.
@@ -927,9 +928,15 @@ def render_assumptions_block(st_module: Any, scored: Any, result_data: dict[str,
 
 
 def build_headline_copy(scored: Any) -> str:
-    """One-line quick-copy headline (rendered in an ``st.code`` copy box)."""
+    """One-line quick-copy headline (rendered in an ``st.code`` copy box).
+
+    ``st.code`` is literal, and some policy names carry a markdown ``\\$``
+    escape for the benefit of the markdown surfaces — so the escape has to come
+    back off here, or the line the reader copies and pastes says
+    "Carbon Tax (\\$50/ton)".
+    """
     direction = "Deficit Reduction" if scored.headline < 0 else "Deficit Increase"
-    return (
+    return unescape_markdown_dollars(
         f"{scored.display_name}: ${scored.headline:+,.1f}B over {scored.window} "
         f"({direction}, conventional score) — {scored.tier_label}, "
         f"{scored.baseline_vintage} baseline — Fiscal Policy Calculator, "
@@ -1066,7 +1073,9 @@ def build_text_summary(scored: Any, result_data: dict[str, Any], share_url: str 
         "scoring is reported as a separate view with FRB/US-calibrated "
         "multipliers and netted debt service.\n"
     )
-    return text
+    # Plain text, downloaded and pasted: markdown escapes carried by policy
+    # names have no business in it.
+    return unescape_markdown_dollars(text)
 
 
 def _file_stem(scored: Any) -> str:
@@ -1136,6 +1145,10 @@ def render_compare_block(
         options=["(none)", *compare_presets],
         key="compare_policy_select",
         help="See how this policy's fiscal impact compares to another.",
+        # Display only: the value still keys ``cbo_score_map``. A selectbox
+        # option is plain text, so a preset name carrying the markdown ``\$``
+        # escape read "Carbon Tax \$50/ton" in the dropdown.
+        format_func=unescape_markdown_dollars,
     )
     if compare_choice == "(none)":
         return

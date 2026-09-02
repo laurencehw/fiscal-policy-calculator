@@ -1142,7 +1142,10 @@ def _format_share(score: float, gap: float) -> str:
     if gap <= 0:
         return "its share"
     share = abs(float(score)) / gap * 100
-    return "<1%" if 0 < share < 0.5 else f"{share:.0f}%"
+    # The cutoff is 1, not 0.5: ``f"{0.5:.0f}"`` is ``"0"`` (banker's
+    # rounding), so a policy covering half a percent of the gap read
+    # "covers 0% of the gap" — a sentence that says the pick does nothing.
+    return "<1%" if 0 < share < 1 else f"{share:.0f}%"
 
 
 def _format_amount(score: float) -> str:
@@ -1352,11 +1355,19 @@ def _protected_contrast(
     catalog: Mapping[str, CatalogPolicy],
     vetoed: Sequence[tuple[str, str]],
 ) -> str:
-    """", rather than X, which you protected Y" — or "" when nothing was vetoed.
+    """", rather than X, which is off the table because you protected Y".
 
-    Picks the largest deficit-reducing option the reader's own commitments took
-    off the table, so the sentence names a real trade-off rather than a token
-    one. Ties break on id, so the clause is stable.
+    Empty when nothing was vetoed. Picks the largest deficit-reducing option
+    the reader's own commitments took off the table, so the sentence names a
+    real trade-off rather than a token one. Ties break on id, so the clause is
+    stable.
+
+    The frame used to be ``", rather than {X}, which {clause}"``, which glued a
+    relative pronoun onto a clause whose subject is *you*: "…, rather than
+    Trump Universal 10% Tariff, which you protected middle-class rates —". The
+    ``ProtectedRule.clause`` strings are second-person statements, not relative
+    clauses, so the connective has to supply the join (external UI review,
+    2026-09-01).
     """
     from .values_schema import PROTECTED_RULE_BY_KEY
 
@@ -1371,8 +1382,8 @@ def _protected_contrast(
         return ""
     policy, key = max(candidates, key=lambda pair: (pair[0].magnitude, pair[0].policy_id))
     return (
-        f", rather than {_short_label(policy.label)}, which "
-        f"{PROTECTED_RULE_BY_KEY[key].clause}"
+        f", rather than {_short_label(policy.label)}, which is off the table "
+        f"because {PROTECTED_RULE_BY_KEY[key].clause}"
     )
 
 

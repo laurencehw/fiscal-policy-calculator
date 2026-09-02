@@ -23,6 +23,23 @@ def escape_markdown_dollars(text: str) -> str:
     return _DOLLAR_BEFORE_DIGIT_RE.sub(r"\\$", text)
 
 
+# The inverse. Several preset labels and policy names carry the escape in the
+# source data (``app_data.PRESET_POLICIES`` keys, ``climate`` policy names),
+# because most of the places they are rendered *are* markdown. The rest are
+# not — ``st.code``, a code span inside markdown, a selectbox option, a
+# dataframe cell — and there the escape shows as a literal backslash on
+# screen: "🌱 Carbon Tax \$50/ton" (external UI review, 2026-09-01). Strip it
+# at the sink rather than un-escaping the data, which the markdown sinks need.
+_ESCAPED_MARKDOWN_CHAR_RE = re.compile(r"\\([$~])")
+
+
+def unescape_markdown_dollars(text: str) -> str:
+    """Drop ``\\$`` / ``\\~`` escapes for a sink that does not read markdown."""
+    if not text:
+        return text
+    return _ESCAPED_MARKDOWN_CHAR_RE.sub(r"\1", text)
+
+
 def validated_policy_count() -> int:
     """Count of benchmark entries scored against a *published* figure.
 

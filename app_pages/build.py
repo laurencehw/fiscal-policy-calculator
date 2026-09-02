@@ -503,8 +503,13 @@ def _render_package_preview(st_module: Any, package: Any, *, reading: str) -> No
         return
 
     for pick in package.picks:
+        # Escape the label, which markdown renders; leave the code span alone.
+        # Markdown does not process escapes inside a code span (and does not
+        # run KaTeX in one either), so escaping the amount is what put a
+        # literal backslash on screen — "-\$3,200B" (external UI review,
+        # 2026-09-01).
         st_module.markdown(
-            escape_markdown_dollars(f"**{pick.label}** — `{_money(pick.score)}`")
+            f"**{escape_markdown_dollars(pick.label)}** — `{_money(pick.score)}`"
         )
         st_module.caption(escape_markdown_dollars(pick.why))
         with st_module.expander(f"Tags behind {pick.label}", expanded=False):
