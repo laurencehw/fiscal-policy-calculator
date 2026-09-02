@@ -315,8 +315,9 @@ class TestNettingChain:
 class TestTariffCutSigns:
     """A tariff cut must have its cost eroded, not amplified.
 
-    ``docs/METHODOLOGY.md``'s convention is that a behavioural offset carries
-    the static effect's sign, because the scorer adds it to ``-static_revenue``.
+``TaxPolicy.estimate_behavioral_offset``'s convention is that a behavioural
+    offset carries the static effect's sign, because the scorer adds it to
+    ``-static_revenue``.
     An unsigned offset made a 5pp tariff *cut* cost more than its own gross duty
     - the income and payroll bases were being shrunk by a tax that had just been
     reduced.

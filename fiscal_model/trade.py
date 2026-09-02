@@ -235,8 +235,9 @@ class TariffPolicy(TaxPolicy):
           ``include_retaliation`` is off, which is what a strictly conventional
           (no-retaliation) score wants.
 
-        **Signed to match ``static_effect``**, the repository's convention for
-        a behavioural offset (see ``docs/METHODOLOGY.md``): the scorer adds
+        **Signed to match ``static_effect``**, the convention
+        :meth:`fiscal_model.policies_core.TaxPolicy.estimate_behavioral_offset`
+        sets for every behavioural offset in the repository: the scorer adds
         this to ``-static_revenue``, so an offset carrying the static effect's
         sign erodes the magnitude in *both* directions. A tariff cut loses less
         revenue than its gross figure because the income and payroll bases grow
