@@ -82,13 +82,16 @@ AMT_INSULIN_PROVENANCE_FIRST_SCORED_COMMIT = (
 )
 
 #: Commit that entered the Wave 3 provenance rows — the Pillar Two range and
-#: the estate row's examined-and-left verdict. Provisional until the stamping
-#: commit at the end of the lane: a file cannot contain its own commit hash.
-WAVE3_PROVENANCE_ENTERED_COMMIT = "7f25bed2377ca52204ae02927b2ad9b8a4fcf6bb"
+#: the estate row's examined-and-left verdict — and, being one change, the
+#: commit they were first scored against too. Unlike the AMT/insulin pair
+#: these move no registry figure, so there is no second commit to separate:
+#: the range's whole content is that the carried point is not a published
+#: target, and the check it introduces is a containment test the existing
+#: -$80B already satisfied.
+WAVE3_PROVENANCE_ENTERED_COMMIT = "d5985c41970dd6fd6a900af8bc5441df1787f950"
 WAVE3_PROVENANCE_ENTERED_DATE = "2026-09-02"
 
-#: Commit in which the Wave 3 rows were first scored against.
-WAVE3_PROVENANCE_FIRST_SCORED_COMMIT = "7f25bed2377ca52204ae02927b2ad9b8a4fcf6bb"
+WAVE3_PROVENANCE_FIRST_SCORED_COMMIT = "d5985c41970dd6fd6a900af8bc5441df1787f950"
 
 
 @dataclass(frozen=True)

@@ -144,16 +144,13 @@ IIJA_AUTHORIZATION_PATH_RULE = (
 #: reading any fitted constant, and this row promotes it. Same two-commit
 #: protocol as Phases B and D: the row is entered here and first scored in
 #: :data:`OPTION_56_FIRST_SCORED_COMMIT`, a *later* commit.
-#: Provisional until the stamping commit: a file cannot contain its own
-#: commit hash, so this holds the branch point until the two real hashes
-#: are written in the commit that immediately follows the scoring run.
-OPTION_56_ENTERED_COMMIT = "7f25bed2377ca52204ae02927b2ad9b8a4fcf6bb"
+OPTION_56_ENTERED_COMMIT = "3738ffceba2afb876d3af2e29e2c809693a0112a"
 OPTION_56_ENTERED_DATE = "2026-09-02"
 
 #: Commit in which Option 56 was first scored — the commit that adds the
 #: ``tax_expenditure`` validation shape and flips the record to
 #: ``runnable=True``.
-OPTION_56_FIRST_SCORED_COMMIT = "7f25bed2377ca52204ae02927b2ad9b8a4fcf6bb"
+OPTION_56_FIRST_SCORED_COMMIT = "d189a269f4430765ca085cb9d8fa70de0166016b"
 
 #: The rule that fixed Option 56's shape inputs, written down before the
 #: option was scored, because a per-case choice of cap would be a knob.
