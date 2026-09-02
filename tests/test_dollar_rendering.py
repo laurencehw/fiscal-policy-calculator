@@ -211,7 +211,13 @@ def test_detector_flags_the_shape_it_is_meant_to_catch():
 
 
 def test_detector_flags_signed_amounts():
-    """The live offender was ``$+4,581.9B to $+4,581.9B`` — a signed pair."""
+    """The live offender was ``$+4,581.9B to $+4,581.9B`` — a signed pair.
+
+    Note the repeated number: the app really did print a zero-width range
+    there. That was a second, unrelated bug in ``_sensitivity_band``, fixed on
+    2026-09-01 and pinned in ``tests/test_scored_result.py``. The string stays
+    here verbatim because it is still a valid input for *this* detector.
+    """
     assert latex_risk("Sensitivity range: $+4,581.9B to $+4,581.9B (ETI 0.15-0.35)")
     assert latex_risk("From $-1,040B to $-960B")
 
