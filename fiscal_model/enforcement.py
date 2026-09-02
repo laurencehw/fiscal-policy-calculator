@@ -35,7 +35,6 @@ ENFORCEMENT_BASELINE = {
     "current_audit_rate_corporate": 0.01,  # ~1% for large corps
     "revenue_per_dollar_marginal": 5.0,  # First-dollar ROI (diminishes)
     "avoidance_response_rate": 0.05,  # 5% behavioral offset from increased avoidance
-    "medicare_insulin_share": 0.4,  # ~40% of insulin users are on Medicare
 }
 
 CBO_ENFORCEMENT_ESTIMATES = {

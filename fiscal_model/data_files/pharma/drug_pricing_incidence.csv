@@ -1,0 +1,54 @@
+# Transcribed inputs for fiscal_model/pharma.py's incidence model.
+#
+# Every parameter the drug-pricing module uses to decide *who pays* — the
+# federal share of a Medicare cost shift, the gross-to-net and brand/generic
+# split of Medicare drug spending, and the international price ratio the
+# reference-pricing identity is built on — is transcribed here with the
+# document, page and URL it was read from. `PHARMA_BASELINE` in
+# fiscal_model/pharma.py carries the same values, and
+# tests/test_pharma_incidence.py pins the two against each other so they
+# cannot drift.
+#
+# Transcribed 2026-09-01 for lane L7 of planning/MODELING_IMPROVEMENT.md.
+#
+# Columns
+#   key        matches the PHARMA_BASELINE key where role=model_input
+#   value      the number as published (shares as decimals)
+#   units      what the number counts
+#   data_year  the year the published figure describes, not its publication date
+#   role       model_input  = read by pharma.py
+#              external_check = a published score the module is compared against,
+#                               never an input to it
+#              context      = published alongside an input and needed to read it
+#   source / page / url / published
+#
+# Sign convention: none of these are budget effects. The module applies its own
+# sign — deficit effect, positive widens the deficit.
+#
+# On the two figures this file replaces. `avg_drug_price_ratio_to_intl = 2.56`
+# was RAND's *all-drug, gross list-price* ratio from the 2018-data edition of
+# the same ASPE series, applied to a net Part B + D spending base; and
+# `insulin_avg_cost_per_year = 6000` was a retail insulin *price*, applied as
+# though the whole of it were a federal outlay. Both are superseded below. The
+# 2018-data edition would give a *smaller* modelled price cut than the 2022-data
+# edition used here (all-drug gross 256% vs 278%, brand gross 344% vs 422%), so
+# the choice of the newer edition is not error-minimising.
+key,value,units,data_year,role,source,page,url,published
+insulin_users_millions,7.5,millions of people,2019,context,"HHS ASPE, Report on the Affordability of Insulin (Report to Congress)",p. 39,https://aspe.hhs.gov/reports/insulin-affordability-report-congress,2022-12
+insulin_medicare_user_share,0.52,share of insulin users,2019,model_input,"HHS ASPE, Report on the Affordability of Insulin",p. 39,https://aspe.hhs.gov/reports/insulin-affordability-report-congress,2022-12
+insulin_private_user_share,0.33,share of insulin users,2019,model_input,"HHS ASPE, Report on the Affordability of Insulin",p. 39,https://aspe.hhs.gov/reports/insulin-affordability-report-congress,2022-12
+insulin_oop_per_fill_dollars,63.0,dollars per monthly fill,2019,model_input,"HHS ASPE, Report on the Affordability of Insulin — ""Medicare enrollees and privately insured patients both paid an average of $63 per insulin fill in 2019""",p. 12,https://aspe.hhs.gov/reports/insulin-affordability-report-congress,2022-12
+insulin_cap_reference_monthly_dollars,35.0,dollars per month,2020,model_input,"HHS ASPE, Report on the Affordability of Insulin — the cap the $734M relief estimate prices",p. 15,https://aspe.hhs.gov/reports/insulin-affordability-report-congress,2022-12
+insulin_cap_reference_part_d_oop_relief_billions,0.734,billions of dollars per year,2020,model_input,"HHS ASPE, Report on the Affordability of Insulin — ""Medicare beneficiaries who use insulin would have saved $734 million in Part D if the IRA's out-of-pocket copayment cap of $35 per month supply of covered insulin had been in effect in 2020""",p. 15,https://aspe.hhs.gov/reports/insulin-affordability-report-congress,2022-12
+part_d_basic_benefit_federal_share,0.745,share of Part D basic benefit cost,2025,model_input,"MedPAC, Report to the Congress: Medicare Payment Policy, ch. 12 (Part D status report) — direct subsidy plus reinsurance cover 74.5%, enrollee premiums the remaining 25.5%",p. 7 of ch. 12,https://www.medpac.gov/wp-content/uploads/2025/03/Mar25_Ch12_MedPAC_Report_To_Congress_SEC.pdf,2025-03
+part_d_program_federal_share,0.763,share of total Part D program spending,2023,model_input,"MedPAC, Report to the Congress: Medicare Payment Policy, ch. 12 — Medicare paid $68.2B in basic-benefit subsidies plus $43.9B of low-income subsidy against $128.2B of plan payments plus $18.8B of enrollee cost sharing, i.e. 112.1/147.0",p. 409,https://www.medpac.gov/wp-content/uploads/2025/03/Mar25_Ch12_MedPAC_Report_To_Congress_SEC.pdf,2025-03
+part_b_drug_federal_share,0.60,share of Part B drug spending,2025,model_input,"Statutory: Medicare pays 80% of allowed charges for Part B drugs and beneficiaries 20% (SSA sec. 1833(a)); Part B is 75% general-revenue funded with enrollee premiums covering 25% (SSA sec. 1839), so 0.80 x 0.75",n/a,https://www.ssa.gov/OP_Home/ssact/title18/1833.htm,statute
+esi_premium_revenue_offset,0.32,share of an employer-premium increase,2026,model_input,"CBO, Reduce Tax Subsidies for Employment-Based Health Insurance (budget option 58627) — average marginal income tax rate about 18% and average marginal payroll tax rate about 14%, employer and employee shares combined",option page,https://www.cbo.gov/budget-options/58627,2022-12
+part_d_brand_share_of_gross,0.80,share of gross Part D spending,2021,model_input,"MedPAC, Report to the Congress: Medicare Payment Policy, ch. 2 (Assessing postsale rebates for prescription drugs in Medicare Part D) — ""over 80 percent of gross Part D spending was for brand-name drugs and biologics""",p. 7 of ch. 2,https://www.medpac.gov/wp-content/uploads/2023/06/Jun23_Ch2_MedPAC_Report_To_Congress_SEC.pdf,2023-06
+part_d_manufacturer_rebate_share_of_gross,0.23,share of gross Part D spending,2021,model_input,"MedPAC, Report to the Congress, ch. 2 — ""manufacturer rebates averaged 23 percent of gross Part D spending, including spending for generics (which typically have no rebates)""; total direct and indirect remuneration was about 29% with pharmacy DIR",p. 12 of ch. 2,https://www.medpac.gov/wp-content/uploads/2023/06/Jun23_Ch2_MedPAC_Report_To_Congress_SEC.pdf,2023-06
+brand_price_ratio_to_intl_net,3.08,US price as a multiple of 33 OECD countries,2022,model_input,"RAND RR-A788-3 / HHS ASPE, International Prescription Drug Price Comparisons: Estimates Using 2022 Data — a 37.2% gross-to-net reduction applied to retail-dispensed US brand prices leaves brand-name originator prices at 308% of comparison-country prices",p. 19,https://www.rand.org/pubs/research_reports/RRA788-3.html,2024-02
+brand_price_ratio_to_intl_gross,4.22,US price as a multiple of 33 OECD countries,2022,context,"RAND RR-A788-3 — US brand-name originator prices were 422% of comparison-country prices before any rebate adjustment",p. v,https://www.rand.org/pubs/research_reports/RRA788-3.html,2024-02
+generic_price_ratio_to_intl,0.67,US price as a multiple of 33 OECD countries,2022,context,"RAND RR-A788-3 — US unbranded generics were 67% of comparison-country prices, i.e. cheaper; they are 90% of US prescription volume. Referencing them to the OECD would raise US prices, which is why the module scores brand molecules only",p. v,https://www.rand.org/pubs/research_reports/RRA788-3.html,2024-02
+all_drug_price_ratio_to_intl_gross,2.78,US price as a multiple of 33 OECD countries,2022,context,"RAND RR-A788-3 — the all-drug gross ratio, the 2022-data successor to the 2.56 the module used to apply to a net base",p. v,https://www.rand.org/pubs/research_reports/RRA788-3.html,2024-02
+cbo_57957_insulin_cap_deficit_billions,11.4,billions of dollars over FY2022-2031,2022,external_check,"CBO, Estimated Budgetary Effects of H.R. 6833, the Affordable Insulin Now Act, publication 57957 — secs. 2 and 3 score at +$6.566B of outlays and -$4.793B of revenues, i.e. about +$11.4B of deficit. A $35 cap extended to private plans ADDS to the deficit",table p. 1,https://www.cbo.gov/publication/57957,2022-03
+cbo_55936_hr3_negotiation_savings_billions,456.0,billions of dollars over 2020-2029,2019,external_check,"CBO, H.R. 3, Elijah E. Cummings Lower Drug Costs Now Act, publication 55936 — the price-negotiation title, capped at 120% of the average international market price for a limited set of drugs, lowers spending by about $456B. CBO put the average net-price reduction for the first negotiated group at about 55%",cost estimate summary,https://www.cbo.gov/publication/55936,2019-12
