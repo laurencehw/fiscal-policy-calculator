@@ -6,8 +6,11 @@ calibrated tier. Every other calibrated target in the repository is either a
 rounded headline figure or a model estimate; these targets are individual rows
 of a published JCT table, transcribed with page references into
 ``fiscal_model/data_files/validation/pl119_21_jct_line_items.csv`` by
-``scripts/extract_pl119_21_line_items.py`` (which verifies every transcribed
-total against the PDF).
+``scripts/extract_pl119_21_line_items.py``. Its ``--pdf`` mode re-checks every
+printed total against the page the row records, **sign included**, so a revenue
+loss transcribed as a raiser fails rather than passing on its digits; the one
+derived total JCT never prints is reported as unverifiable there and is
+cross-checked against JCT's own chapter subtotal instead.
 
 Source
 ------
