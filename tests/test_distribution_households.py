@@ -205,6 +205,23 @@ class TestPeopleWeightedGroups:
         with pytest.raises(ValueError, match="filing-unit construct"):
             assign_people_weighted_groups(households, IncomeGroupType.JCT_DOLLAR)
 
+    def test_a_non_finite_ranking_key_is_refused_not_ranked_last(self):
+        """A non-finite ranking key sorts to the end — i.e. to the top quintile.
+
+        A household whose income could not be computed would otherwise be
+        ranked silently as the richest in the country, which is the worst
+        failure mode a ranking function has. It must raise instead.
+
+        (A NaN in a source column would not get this far: ``groupby.sum`` skips
+        it, so the household is ranked on its remaining income. An infinity
+        propagates, which is what this exercises.)
+        """
+        frame = _toy_frame()
+        frame.loc[0, "agi"] = float("inf")
+        households = aggregate_to_households(frame)
+        with pytest.raises(ValueError, match="non-finite income"):
+            assign_people_weighted_groups(households, IncomeGroupType.QUINTILE)
+
     def test_group_rows_carry_household_counts_and_ranking_bounds(self):
         households = aggregate_to_households(
             MICRODATA.assign(final_tax=0.0), sum_columns=("final_tax",)

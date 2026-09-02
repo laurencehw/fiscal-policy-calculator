@@ -184,6 +184,16 @@ def assign_people_weighted_groups(
         )
     n_groups = HOUSEHOLD_GROUP_COUNTS[group_type]
 
+    # A NaN ranking key sorts to the end of an ascending sort, so a household
+    # with one missing income component would be silently ranked as the richest
+    # in the country. Fail loudly instead.
+    if not np.isfinite(households["adjusted_income"].to_numpy(dtype=float)).all():
+        bad = int((~np.isfinite(households["adjusted_income"])).sum())
+        raise ValueError(
+            f"{bad} household(s) have a non-finite income before transfers and "
+            "taxes, which cannot be ranked. Check the microdata build."
+        )
+
     # ``mergesort`` is stable, so ties (many households sit at exactly $0) keep
     # household order and the assignment is reproducible.
     order = households["adjusted_income"].values.argsort(kind="mergesort")
