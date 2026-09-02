@@ -133,13 +133,15 @@ def _nearest_benchmark(
 #: point estimate printed twice.
 _MIN_BAND_WIDTH_BILLIONS = 0.1
 
-#: Shown in place of the range when no honest one exists.
+#: Shown in place of the range when no honest one exists. Deliberately says
+#: only what is true on every path that reaches it — the behavioural channel is
+#: zero *and* the engine's uncertainty path is flat. It must not assert that
+#: the score is a calibrated reference: spending runs, custom policies and any
+#: near-zero score land here too (Cursor review, 2026-09-01).
 _NO_BAND_REASON = (
-    "No sensitivity range: this score carries no parameter the app can flex "
-    "independently — a calibrated reference reproduces a published "
-    "decomposition, so its behavioural response is inside the calibration "
-    "rather than an elasticity sitting on top of it. The validation evidence "
-    "above is the uncertainty that applies."
+    "No sensitivity range: nothing in this score varies independently of the "
+    "point estimate — the behavioural channel is zero and the model's "
+    "uncertainty path is flat — so a range would print the same number twice."
 )
 
 
@@ -186,7 +188,9 @@ def _sensitivity_band(
         low = float(np.asarray(result.low_estimate).sum())
         high = float(np.asarray(result.high_estimate).sum())
     except Exception:
-        return None, _NO_BAND_REASON
+        # The arrays could not be read, so nothing is known about the width.
+        # Say nothing rather than explain an absence we cannot account for.
+        return None, ""
     if abs(high - low) < _MIN_BAND_WIDTH_BILLIONS:
         return None, _NO_BAND_REASON
     return (min(low, high), max(low, high)), "model uncertainty band"

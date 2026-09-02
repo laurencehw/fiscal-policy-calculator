@@ -30,6 +30,13 @@ from fiscal_model.scoring import FiscalPolicyScorer
 from fiscal_model.ui.session_state import ALL_KEYS, KEY_SCORED_RESULT
 from fiscal_model.ui.tabs.dynamic_scoring import DynamicView
 
+# The width the *UI* requires before it will draw a range, read from the
+# production constant with the production comparison so the two cannot drift
+# apart (Copilot review, 2026-09-01).
+from fiscal_model.ui.tabs.results_summary import (
+    _MIN_BAND_WIDTH_BILLIONS as MIN_BAND_WIDTH,
+)
+
 TCJA_PRESET = next(name for name in PRESET_POLICIES if "TCJA Full Extension" in name)
 
 #: Every field the redesign plan §6.3 requires on the result object.
@@ -240,7 +247,7 @@ def test_sensitivity_band_brackets_the_headline_for_an_eti_policy():
     assert scored.sensitivity is not None
     low, high = scored.sensitivity
     assert low <= scored.headline <= high
-    assert high - low > 0.1, "an ETI band must have width, not just brackets"
+    assert high - low >= MIN_BAND_WIDTH, "an ETI band must have width, not just brackets"
     assert "ETI" in scored.sensitivity_note
 
 
@@ -287,7 +294,7 @@ def test_calibrated_presets_never_report_a_zero_width_band(preset_name):
         assert "No sensitivity range" in scored.sensitivity_note
         return
     low, high = scored.sensitivity
-    assert high - low > 0.1, (
+    assert high - low >= MIN_BAND_WIDTH, (
         f"{preset_name} reports a degenerate band {low:+,.1f} to {high:+,.1f}; "
         "a calibrated preset has no ETI channel to flex, so it must fall "
         "through to the engine's uncertainty band or say it has no range"

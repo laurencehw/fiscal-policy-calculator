@@ -276,6 +276,14 @@ def test_caveats_alone_do_not_raise_a_page_level_notice(monkeypatch):
             [],
             id="fred-bundled-fresh",
         ),
+        # An expired *cache* is stale, and the Data Status panel says so — but
+        # ``summarize_data_degradation`` writes no reason line for it, so
+        # counting it here would headline a source the reasons never mention.
+        pytest.param(
+            {"fred": {"source": "cache", "cache_is_expired": True}},
+            [],
+            id="fred-expired-cache-has-no-reason-line",
+        ),
         pytest.param(
             {"irs_soi": {"freshness": {"level": "aging", "is_stale": False}}},
             [],
