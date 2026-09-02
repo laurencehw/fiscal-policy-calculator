@@ -1,0 +1,71 @@
+# The distribution of annual employment-based health insurance premiums, by
+# coverage tier. This is the quantity a dollar cap on the employer health
+# exclusion caps -- premiums -- and it is what
+# `tax_expenditure_distributions.PremiumDistribution` reads. Before this file
+# existed, `tax_expenditures_core.py` compared a $50,000 premium cap against
+# `avg_benefit = 1_600`, an average *tax benefit*
+# (`docs/VALIDATION_NOTES.md` section 6; `planning/lanes/L6_tax_expenditures.md`).
+#
+# SHAPE -- Congressional Budget Office, "Options for Reducing the Deficit:
+#   2025 to 2034" (publication 60557, December 2024), Option 56, "Reduce Tax
+#   Subsidies for Employment-Based Health Benefits", report p. 66 (PDF p. 72).
+#   CBO states the option's limits in dollars at two percentiles of the 2026
+#   premium distribution, indexed to 2028 with the chained CPI-U:
+#
+#       50th percentile: $10,000 individual coverage, $24,400 family coverage
+#       75th percentile: $12,700 individual coverage, $31,300 family coverage
+#
+#   Each tier's premium distribution is taken to be lognormal, whose shape is
+#   then exactly identified by that pair: sigma = ln(p75/p50) / z(0.75), with
+#   z(0.75) = 0.6744898. The two tiers agree to within 4.2% on sigma (0.35437
+#   individual, 0.36922 family), which is the check that the shape is a
+#   property of the premium distribution and not of one tier.
+#
+# LEVEL -- KFF, "2024 Employer Health Benefits Survey", Section 1, "Cost of
+#   Health Insurance" (https://www.kff.org/report-section/
+#   ehbs-2024-section-1-cost-of-health-insurance/): "The average annual
+#   premiums for employer-sponsored health insurance in 2024 are $8,951 for
+#   single coverage and $25,572 for family coverage." Means are grown from
+#   2024 to the policy's first year at the expenditure record's own growth
+#   rate.
+#
+#   Cross-check, same KFF section, Figures 1.10 and 1.11: "Seven percent of
+#   covered workers are at a firm with an average annual premium of at least
+#   $12,500 for single coverage" and "Ten percent ... at least $33,000 for
+#   family coverage." The lognormals above put 13.1% above $12,500 (single)
+#   and 19.1% above $33,000 (family) in 2024 dollars -- roughly twice KFF's
+#   tails, not a close match. The direction is the expected one: KFF's figures
+#   are distributions of *firm-average* premiums, which average away
+#   within-firm variation and are therefore less dispersed than the
+#   worker-level distribution CBO's percentiles describe. The magnitude is
+#   recorded here rather than smoothed over. It means this shape is CBO's,
+#   with KFF as a same-direction sanity check and not a confirmation, and it
+#   is why the model's answer for a cap set *inside* the distribution should
+#   be read as approximate. For the benchmark this file actually feeds -- a
+#   $50,000 cap, far outside both tails -- the disagreement is immaterial.
+#
+# WEIGHTS -- Agency for Healthcare Research and Quality, MEPS Insurance
+#   Component, Statistical Brief #207 (July 2008), "Employer-Sponsored Single,
+#   Employee-Plus-One, and Family Health Insurance Coverage: Selection and
+#   Cost, 2006": "Of those employees enrolled in health insurance plans, 48.9
+#   percent (29.6 million employees) had single coverage, 18.0 percent (10.9
+#   million) had employee-plus-one coverage, and 33.2 percent (20.1 million)
+#   had family coverage."
+#
+#   Two caveats, stated rather than buried. (1) This is the most recent
+#   MEPS-IC publication reporting the split that could be reached from this
+#   environment; the 2024 Research Findings #54 reports premiums by tier but
+#   not enrolment shares, and the MEPS-IC national summary tables 404. (2)
+#   Employee-plus-one is folded into "family" here because that is CBO's own
+#   two-tier division in Option 56, giving 48.9% / 51.1%. The composition is
+#   slow-moving and the benchmark it feeds is insensitive to it: at a $50,000
+#   cap the single tier contributes essentially nothing, so the aggregate
+#   excess share is bounded by [0, the family tier's value] for any weights.
+#
+# Units: mean_premium in dollars of `mean_premium_year`; share_of_policies is
+# a share of enrolled employees; sigma is the lognormal shape parameter;
+# p50/p75 are CBO's own percentile values in `percentile_year` dollars and are
+# carried for provenance and for the shape test, not read by the model.
+tier,share_of_policies,mean_premium,mean_premium_year,sigma,p50_premium,p75_premium,percentile_year
+single,0.489,8951,2024,0.354367,10000,12700,2028
+family,0.511,25572,2024,0.369220,24400,31300,2028
