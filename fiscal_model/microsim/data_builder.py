@@ -4,11 +4,42 @@ Build a CPS ASEC-backed tax-unit file for the microsimulation engine.
 The earlier prototype aggregated whole households into one tax unit. This file
 now uses the CPS family identifier, spouse pointers, and parent pointers to
 construct explicit tax units with documented fallback rules.
+
+Source data (owner Decision 4, plan §6)
+---------------------------------------
+The raw CPS ASEC person and household files are **fetched by script at build
+time and never vendored**: ``scripts/fetch_cps_asec.py`` downloads the Census
+archive to a cache outside the repository and verifies its SHA-256. Run
+
+    python -m fiscal_model.microsim.data_builder --fetch
+
+to fetch, verify, extract and rebuild in one step, or ``--data-dir DIR`` to
+build from an extract you already have. Only the derived tax-unit file is
+under version control, alongside a ``*.provenance.json`` sidecar recording the
+archive digest and the builder that produced it. (The provenance is a sidecar
+rather than a comment header inside the CSV because several callers read the
+file with a bare ``pandas.read_csv``, which would choke on one.)
+
+Dependent age bands
+-------------------
+``children`` is the under-17 headcount and is what the CTC's current-law
+qualifying-child test needs. It is *not* the EITC's qualifying-child test
+(under 19, or under 24 and a full-time student), and it cannot express the
+ARP CTC's $3,600-under-6 / $3,000-ages-6-17 split or an age-17 expansion.
+The builder therefore also emits five dependent age-band counts —
+``dependents_under_6``, ``dependents_6_to_16``, ``dependents_age_17``,
+``dependents_age_18`` and ``dependents_19_to_23_student`` — over the same
+dependent set that ``dependent_count`` counts. Student status uses ``A_ENRLW``
+(attending school last week; universe 16-24), the only school-enrollment
+variable on the ASEC person file.
 """
 
 from __future__ import annotations
 
+import argparse
+import json
 import os
+from datetime import date
 from pathlib import Path
 
 import pandas as pd
@@ -39,6 +70,7 @@ PERSON_COLUMNS = [
     "A_CLSWKR",
     "PEDISEYE",
     "PEDISREM",
+    "A_ENRLW",
 ]
 
 HOUSEHOLD_COLUMNS = [
@@ -67,8 +99,66 @@ NUMERIC_DEFAULTS = {
     "CAP_VAL": 0.0,
     "MARSUPWT": 0.0,
     "TAX_INC": 0.0,
+    "A_ENRLW": 0,
     "GESTFIPS": pd.NA,
 }
+
+# ---------------------------------------------------------------------------
+# Identity of the source archive
+# ---------------------------------------------------------------------------
+#
+# These live in the package rather than in ``scripts/fetch_cps_asec.py``, and
+# the script imports them from here. The archive's identity is part of the
+# derived file's provenance, which every install must be able to state; the
+# fetching is a build-time action that only a checkout needs. Putting the
+# constants in the script and reading them back would make writing provenance
+# depend on ``scripts/`` being present.
+
+#: Census landing page for the 2024 ASEC public-use files.
+ASEC_LANDING_PAGE = (
+    "https://www.census.gov/data/datasets/2024/demo/cps/cps-asec-2024.html"
+)
+
+#: Census Bureau URL for the 2024 ASEC public-use CSV archive.
+ASEC_2024_URL = (
+    "https://www2.census.gov/programs-surveys/cps/datasets/2024/march/"
+    "asecpub24csv.zip"
+)
+
+#: Archive filename inside the cache directory.
+ASEC_2024_ARCHIVE = "asecpub24csv.zip"
+
+#: SHA-256 of the archive as published (Last-Modified 2024-09-10,
+#: Content-Length 148,664,101), verified 2026-09-02.
+ASEC_2024_SHA256 = "cdb39cdac34bef99dd0940ab28e306f692404c2eea44d85dfd634214872a0a09"
+
+#: Expected size in bytes, checked before the (slower) hash.
+ASEC_2024_BYTES = 148_664_101
+
+#: The two members the builder reads. ``ffpub24.csv`` (family) and the
+#: replicate-weight file are not extracted: nothing in this repository reads
+#: them, and they are another 200 MB on disk.
+ASEC_2024_MEMBERS = ("pppub24.csv", "hhpub24.csv")
+
+
+def _fetch_module():
+    """Import ``scripts/fetch_cps_asec.py`` lazily.
+
+    It lives in ``scripts/`` rather than the package because *fetching* is a
+    build-time action, not a runtime dependency: nothing an app user runs
+    imports it, and only ``--fetch`` calls this. Writing provenance does not,
+    which is why the archive constants above are the package's own.
+    """
+    import importlib.util
+
+    path = Path(__file__).resolve().parents[2] / "scripts" / "fetch_cps_asec.py"
+    spec = importlib.util.spec_from_file_location("fetch_cps_asec", path)
+    if spec is None or spec.loader is None:  # pragma: no cover - packaging guard
+        raise RuntimeError(f"Cannot load the CPS fetch script from {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
 
 OUTPUT_COLUMNS = [
     "id",
@@ -77,6 +167,11 @@ OUTPUT_COLUMNS = [
     "tax_unit_index",
     "member_count",
     "dependent_count",
+    "dependents_under_6",
+    "dependents_6_to_16",
+    "dependents_age_17",
+    "dependents_age_18",
+    "dependents_19_to_23_student",
     "weight",
     "wages",
     "interest_income",
@@ -140,6 +235,50 @@ def _is_dependent_candidate(row: pd.Series) -> bool:
     age = int(row["A_AGE"])
     has_parent_pointer = int(row["PEPAR1"]) > 0 or int(row["PEPAR2"]) > 0
     return age < 19 or (age < 24 and has_parent_pointer)
+
+
+#: ``A_ENRLW`` code for "attending school last week" (universe: ages 16-24).
+ENROLLED_IN_SCHOOL = 1
+
+
+def _is_student(row: pd.Series) -> bool:
+    """Whether a person is recorded as attending school last week."""
+    return int(row.get("A_ENRLW", 0) or 0) == ENROLLED_IN_SCHOOL
+
+
+def _dependent_age_bands(dependents: pd.DataFrame) -> dict[str, int]:
+    """Count a unit's dependents into the five bands the credit rules need.
+
+    The bands are cut at the statutory boundaries, not at convenient ones:
+    6 is the ARP CTC's higher-amount boundary, 17 is the current-law CTC
+    qualifying age, 19 is the EITC qualifying-child age, and 24 is the EITC's
+    student extension. ``dependents_19_to_23_student`` is restricted to
+    dependents recorded as attending school, because the EITC's over-18 test
+    requires full-time student status.
+
+    The bands are counted over the *same* dependent set as ``dependent_count``
+    so the two can be read together; they therefore need not sum to
+    ``children`` (the under-17 headcount over all members, dependent or not).
+    """
+    if dependents.empty:
+        return {
+            "dependents_under_6": 0,
+            "dependents_6_to_16": 0,
+            "dependents_age_17": 0,
+            "dependents_age_18": 0,
+            "dependents_19_to_23_student": 0,
+        }
+    ages = dependents["A_AGE"].astype(int)
+    students = dependents.apply(_is_student, axis=1)
+    return {
+        "dependents_under_6": int((ages < 6).sum()),
+        "dependents_6_to_16": int(((ages >= 6) & (ages <= 16)).sum()),
+        "dependents_age_17": int((ages == 17).sum()),
+        "dependents_age_18": int((ages == 18).sum()),
+        "dependents_19_to_23_student": int(
+            ((ages >= 19) & (ages <= 23) & students).sum()
+        ),
+    }
 
 
 def _parent_lines(row: pd.Series) -> list[int]:
@@ -291,6 +430,7 @@ def construct_tax_units(records: pd.DataFrame) -> pd.DataFrame:
                     "tax_unit_index": tax_unit_index,
                     "member_count": int(len(members)),
                     "dependent_count": int(len(dependents)),
+                    **_dependent_age_bands(dependents),
                     "weight": float(weight_source["MARSUPWT"].mean() / 100.0),
                     "wages": float(members["WSAL_VAL"].sum()),
                     "interest_income": float(members["INT_VAL"].sum()),
@@ -324,6 +464,29 @@ def construct_tax_units(records: pd.DataFrame) -> pd.DataFrame:
     return clean_df[OUTPUT_COLUMNS]
 
 
+#: The dependent age bands that make up an EITC qualifying-child count:
+#: under 19, or under 24 and a full-time student (IRC §32(c)(3)).
+EITC_QUALIFYING_BANDS = (
+    "dependents_under_6",
+    "dependents_6_to_16",
+    "dependents_age_17",
+    "dependents_age_18",
+    "dependents_19_to_23_student",
+)
+
+
+def _weighted_millions(clean_df: pd.DataFrame, columns: tuple[str, ...]) -> float:
+    """Weighted sum of ``columns`` in millions, 0.0 when any is absent.
+
+    Callers hand this function partial frames (the validation tests build one
+    by hand), so a missing column means "not measured", not an error.
+    """
+    if clean_df.empty or any(column not in clean_df.columns for column in columns):
+        return 0.0
+    total = sum(clean_df[column] for column in columns)
+    return float((total * clean_df["weight"]).sum() / 1e6)
+
+
 def summarize_tax_units(clean_df: pd.DataFrame) -> dict[str, float]:
     """Return headline validation metrics for the built microdata file."""
     households = int(clean_df["household_id"].nunique()) if not clean_df.empty else 0
@@ -340,6 +503,15 @@ def summarize_tax_units(clean_df: pd.DataFrame) -> dict[str, float]:
         ),
         "weighted_children_millions": (
             float((clean_df["children"] * clean_df["weight"]).sum() / 1e6) if not clean_df.empty else 0.0
+        ),
+        "weighted_dependents_millions": _weighted_millions(
+            clean_df, ("dependent_count",)
+        ),
+        "weighted_dependents_under_6_millions": _weighted_millions(
+            clean_df, ("dependents_under_6",)
+        ),
+        "weighted_eitc_qualifying_children_millions": _weighted_millions(
+            clean_df, EITC_QUALIFYING_BANDS
         ),
     }
 
@@ -363,13 +535,66 @@ def validate_tax_units(clean_df: pd.DataFrame) -> list[str]:
     return warnings
 
 
-def build_tax_microdata(data_dir: str, output_file: str = "tax_microdata_2024.csv") -> pd.DataFrame | None:
+def write_provenance(
+    output_path: Path,
+    *,
+    summary: dict[str, float],
+    warnings: list[str],
+    archive_sha256: str | None = None,
+) -> Path:
+    """Write the sidecar recording where this microdata file came from.
+
+    A JSON sidecar rather than a comment header inside the CSV: several
+    callers read the file with a bare ``pandas.read_csv`` and a ``#`` line
+    would break them. The extract directory is deliberately not recorded —
+    it is a machine-local cache path, not provenance.
+    """
+    sidecar = output_path.with_suffix(".provenance.json")
+    payload = {
+        "built_on": date.today().isoformat(),
+        "builder": "fiscal_model.microsim.data_builder",
+        "source": (
+            "U.S. Census Bureau, Current Population Survey, Annual Social and "
+            "Economic Supplement (ASEC), March 2024, public-use microdata"
+        ),
+        "source_url": ASEC_LANDING_PAGE,
+        "archive_url": ASEC_2024_URL,
+        "archive_sha256": archive_sha256 or ASEC_2024_SHA256,
+        "person_file": "pppub24.csv",
+        "household_file": "hhpub24.csv",
+        "output_columns": list(OUTPUT_COLUMNS),
+        "summary": summary,
+        "warnings": warnings,
+        "note": (
+            "The raw archive is fetched by scripts/fetch_cps_asec.py and is "
+            "never vendored (owner Decision 4). Rebuild with "
+            "`python -m fiscal_model.microsim.data_builder --fetch`. The "
+            "extract directory is deliberately not recorded here: it is a "
+            "machine-local cache path, not provenance."
+        ),
+    }
+    sidecar.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    return sidecar
+
+
+def build_tax_microdata(
+    data_dir: str,
+    output_file: str = "tax_microdata_2024.csv",
+    output_dir: str | Path | None = None,
+    *,
+    archive_sha256: str | None = None,
+) -> pd.DataFrame | None:
     """
     Ingest CPS ASEC 2024 CSV files and create a clean tax-unit microdata file.
 
     Args:
         data_dir: Path to directory containing pppub24.csv and hhpub24.csv
-        output_file: Name of the output CSV file (saved in data_dir/..)
+        output_file: Name of the output CSV file
+        output_dir: Where to write it. Defaults to
+            ``data_dir/../../fiscal_model/microsim`` so an in-tree
+            ``data/asecpub24csv`` extract still writes to the package; pass it
+            explicitly when building from a cache outside the repository.
+        archive_sha256: Digest of the source archive, recorded in the sidecar.
     """
     print("--- CPS ASEC DATA BUILDER ---")
     print(f"Source: {data_dir}")
@@ -386,9 +611,18 @@ def build_tax_microdata(data_dir: str, output_file: str = "tax_microdata_2024.cs
     summary = summarize_tax_units(clean_df)
     warnings = validate_tax_units(clean_df)
 
-    output_path = os.path.join(Path(data_dir).parent.parent, "fiscal_model", "microsim", output_file)
+    if output_dir is None:
+        output_dir = os.path.join(Path(data_dir).parent.parent, "fiscal_model", "microsim")
+    output_path = Path(output_dir) / output_file
     print(f"5. Saving to {output_path}...")
     clean_df.to_csv(output_path, index=False)
+    sidecar = write_provenance(
+        output_path,
+        summary=summary,
+        warnings=warnings,
+        archive_sha256=archive_sha256,
+    )
+    print(f"   Provenance written to {sidecar}")
 
     print("\n--- SUMMARY ---")
     print(f"Records Created: {int(summary['records_created']):,}")
@@ -398,6 +632,15 @@ def build_tax_microdata(data_dir: str, output_file: str = "tax_microdata_2024.cs
     print(f"Total Weighted Wages: ${summary['weighted_wages_billions']:,.1f}B")
     print(f"Total Weighted AGI: ${summary['weighted_agi_billions']:,.1f}B")
     print(f"Weighted Children <17: {summary['weighted_children_millions']:,.1f}M")
+    print(f"Weighted Dependents: {summary['weighted_dependents_millions']:,.1f}M")
+    print(
+        "Weighted Dependents <6: "
+        f"{summary['weighted_dependents_under_6_millions']:,.1f}M"
+    )
+    print(
+        "Weighted EITC qualifying children: "
+        f"{summary['weighted_eitc_qualifying_children_millions']:,.1f}M"
+    )
     for warning in warnings:
         print(f"WARNING: {warning}")
     print("Done.")
@@ -405,12 +648,56 @@ def build_tax_microdata(data_dir: str, output_file: str = "tax_microdata_2024.cs
     return clean_df
 
 
-if __name__ == "__main__":
+def main(argv: list[str] | None = None) -> int:
+    """CLI entry point: fetch (optionally) and rebuild the tax-unit file."""
     project_root = Path(__file__).resolve().parents[2]
-    base_dir = project_root / "data" / "asecpub24csv"
+    parser = argparse.ArgumentParser(description="Build the CPS ASEC tax-unit file.")
+    parser.add_argument(
+        "--fetch",
+        action="store_true",
+        help=(
+            "Fetch and verify the Census archive first (owner Decision 4). "
+            "Implies --data-dir <cache>/extracted."
+        ),
+    )
+    parser.add_argument(
+        "--data-dir",
+        default=None,
+        help="Directory holding pppub24.csv and hhpub24.csv.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        default=None,
+        help="Where to write the tax-unit CSV (default: the installed package).",
+    )
+    parser.add_argument("--output-file", default="tax_microdata_2024.csv")
+    args = parser.parse_args(argv)
 
-    if base_dir.exists():
-        build_tax_microdata(str(base_dir))
+    archive_sha256 = None
+    if args.fetch:
+        data_dir = str(_fetch_module().ensure_cps_asec())
+        archive_sha256 = ASEC_2024_SHA256
+        output_dir = args.output_dir or str(Path(__file__).resolve().parent)
     else:
-        print(f"Data directory not found at {base_dir}")
-        print("Please provide path or ensure data is in project/data/asecpub24csv")
+        data_dir = args.data_dir or str(project_root / "data" / "asecpub24csv")
+        output_dir = args.output_dir
+        if not Path(data_dir).exists():
+            print(f"Data directory not found at {data_dir}")
+            print(
+                "Run `python -m fiscal_model.microsim.data_builder --fetch` to "
+                "download it (148 MB, cached outside the repository), or pass "
+                "--data-dir."
+            )
+            return 1
+
+    result = build_tax_microdata(
+        data_dir,
+        output_file=args.output_file,
+        output_dir=output_dir,
+        archive_sha256=archive_sha256,
+    )
+    return 0 if result is not None else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

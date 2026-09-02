@@ -15,15 +15,17 @@ Supported paths
    covers ~191M weighted tax units / ~$12T weighted AGI — the real US
    population, not a synthetic sample.
 
-2. **Custom CPS ASEC rebuild**. To refresh against a newer CPS release:
-   download the ASEC Public Use March CPS from
-   https://www.census.gov/data/datasets/2024/demo/cps/cps-asec-2024.html
-   and place ``pppub24.csv`` and ``hhpub24.csv`` in
-   ``data/asecpub24csv/``. Then run
+2. **CPS ASEC rebuild**. Under owner Decision 4 the raw extract is
+   *fetched by script and never vendored*:
 
-       python -m fiscal_model.microsim.data_builder
+       python -m fiscal_model.microsim.data_builder --fetch
 
-   to overwrite ``fiscal_model/microsim/tax_microdata_2024.csv``.
+   downloads the Census archive to a cache outside the repository
+   (``scripts/fetch_cps_asec.py``, SHA-256 verified), extracts
+   ``pppub24.csv`` / ``hhpub24.csv`` and overwrites
+   ``fiscal_model/microsim/tax_microdata_2024.csv`` plus its
+   ``.provenance.json`` sidecar. Pass ``--data-dir DIR`` instead to build
+   from an extract you already have.
 
 :func:`load_tax_microdata` also returns a :class:`MicrodataSource`
 descriptor with an ``is_synthetic`` flag. The bundled file is *not*
@@ -43,7 +45,7 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 
-# Column contract returned to callers. Must match
+# Column contract returned to callers. Must be a subset of
 # ``fiscal_model.microsim.data_builder.OUTPUT_COLUMNS``.
 REQUIRED_COLUMNS = (
     "id",
@@ -58,6 +60,22 @@ REQUIRED_COLUMNS = (
     "married",
     "age_head",
     "agi",
+)
+
+#: Dependent detail the credit rules need: the dependent headcount and the
+#: five statutory age bands (:mod:`fiscal_model.microsim.data_builder`).
+#: Deliberately **not** in :data:`REQUIRED_COLUMNS` — a small demonstration or
+#: CI-fixture file can legitimately lack them, and the microsim engine falls
+#: back to ``children`` when they are absent. Callers that need real dependent
+#: ages should check :attr:`MicrodataSource.has_dependent_ages` rather than
+#: assume a zero-filled column means "no dependents".
+DEPENDENT_COLUMNS = (
+    "dependent_count",
+    "dependents_under_6",
+    "dependents_6_to_16",
+    "dependents_age_17",
+    "dependents_age_18",
+    "dependents_19_to_23_student",
 )
 
 DEFAULT_MICRODATA_FILENAME = "tax_microdata_2024.csv"
@@ -81,6 +99,10 @@ class MicrodataSource:
     weighted_tax_units: float
     weighted_agi_billions: float
     notes: str = ""
+    #: Whether every column in :data:`DEPENDENT_COLUMNS` is present, i.e.
+    #: whether dependent ages survived the build. False for pre-2026-09
+    #: files and for small fixtures.
+    has_dependent_ages: bool = False
 
 
 def load_tax_microdata(
@@ -121,6 +143,7 @@ def load_tax_microdata(
 
     weighted_units = float(df["weight"].sum())
     weighted_agi = float((df["agi"] * df["weight"]).sum() / 1e9)
+    has_dependent_ages = all(column in df.columns for column in DEPENDENT_COLUMNS)
 
     # Heuristic: the bundled synthetic file has far fewer rows (~50-150)
     # and a very small weighted-population total. The real CPS-derived
@@ -141,6 +164,7 @@ def load_tax_microdata(
         weighted_tax_units=weighted_units,
         weighted_agi_billions=weighted_agi,
         notes=notes,
+        has_dependent_ages=has_dependent_ages,
     )
 
 
@@ -162,14 +186,16 @@ def describe_microdata(
         "path": str(source.path),
         "weighted_tax_units": source.weighted_tax_units,
         "weighted_agi_billions": source.weighted_agi_billions,
+        "has_dependent_ages": source.has_dependent_ages,
         "notes": source.notes,
     }
 
 
 __all__ = [
     "DEFAULT_MICRODATA_FILENAME",
-    "MicrodataSource",
+    "DEPENDENT_COLUMNS",
     "REQUIRED_COLUMNS",
+    "MicrodataSource",
     "describe_microdata",
     "load_tax_microdata",
 ]

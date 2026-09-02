@@ -51,7 +51,17 @@ def create_ctc_expansion(
 
 
 def create_biden_ctc_2021() -> TaxCreditPolicy:
-    """Create the Biden 2021 American Rescue Plan CTC expansion."""
+    """Create the Biden 2021 American Rescue Plan CTC expansion.
+
+    The ARP's actual design, as ARPA sec. 9611 wrote it: $3,600 per child
+    under 6 and $3,000 for ages 6 through 17, fully refundable, with the
+    *increment* over the pre-existing $2,000 phasing down at 5% from
+    $75,000 / $150,000 while the $2,000 itself keeps the $200,000 /
+    $400,000 thresholds. This used to be modelled as a flat $3,300 credit
+    phasing out in one tier from $75,000 - a shape that both overstates the
+    phase-out on the base credit and cannot see the age-17 expansion. Neither
+    the amount nor the thresholds are fitted: every one is in the statute.
+    """
     avg_credit = 3300
     return TaxCreditPolicy(
         name="Biden CTC 2021 (ARP-style)",
@@ -59,7 +69,12 @@ def create_biden_ctc_2021() -> TaxCreditPolicy:
         policy_type=PolicyType.TAX_CREDIT,
         credit_type=CreditType.CHILD_TAX_CREDIT,
         is_refundable=True,
-        max_credit_per_unit=avg_credit,
+        max_credit_per_unit=3000.0,
+        max_credit_under_6=3600.0,
+        # 17-year-olds qualified under the ARP: the bound is exclusive, so 18.
+        expand_qualifying_age=18,
+        # The pre-existing $2,000 is not subject to the lower phase-out.
+        protected_credit_per_unit=CTC_CURRENT_LAW["credit_per_child"],
         credit_change_per_unit=avg_credit - CTC_CURRENT_LAW["credit_per_child"],
         units_affected_millions=CREDIT_RECIPIENT_COUNTS["ctc_children"],
         has_phase_out=True,
@@ -102,11 +117,18 @@ def create_arp_recovery_rebate() -> TaxCreditPolicy:
         is_refundable=True,
         max_credit_per_unit=4200,
         credit_change_per_unit=4200,
+        # The per-*person* amount, which is what the statute pays and what the
+        # microsim path scores: $1,400 for the filer, the spouse and every
+        # dependent. The $4,200 above is the 2.1-person average the
+        # bracket-aggregate path needs and is kept for it.
+        credit_per_person=1400.0,
         # ~130M filers received some amount; ~165M eligible before phaseout.
         units_affected_millions=130.0,
         has_phase_out=True,
         phase_out_threshold_single=75000.0,
         phase_out_threshold_married=150000.0,
+        phase_out_end_single=80000.0,
+        phase_out_end_married=160000.0,
         # Steep phaseout: \$1,400 / \$5,000 width = 0.28 per dollar of
         # excess income. With the underlying model's formula
         # (credit_reduction = excess_income * rate / credit), this
@@ -204,7 +226,15 @@ def create_eitc_expansion(
 
 
 def create_biden_eitc_childless() -> TaxCreditPolicy:
-    """Create Biden proposal to expand EITC for childless workers."""
+    """Create Biden proposal to expand EITC for childless workers.
+
+    Makes the ARP's childless expansion permanent: roughly triple the maximum
+    credit, raise the phase-in and phase-out rates to 15.3%, and — the half
+    the description always claimed and the code never expressed — drop the
+    minimum age from 25 to 19 and remove the 65 ceiling
+    (ARPA sec. 9621, amending IRC sec. 32(c)(1)(A)(ii)). ``include_childless_adults``
+    is the field that says so, and until this lane nothing read it.
+    """
     return TaxCreditPolicy(
         name="Biden EITC Childless Expansion",
         description="Triple max credit to ~$1,500, expand age range 19-65+",
@@ -222,6 +252,9 @@ def create_biden_eitc_childless() -> TaxCreditPolicy:
         phase_out_threshold_single=11610.0,
         phase_out_threshold_married=17550.0,
         phase_out_rate=0.153,
+        include_childless_adults=True,
+        childless_min_age=19,
+        childless_max_age=200,
         participation_rate=0.75,
         labor_supply_elasticity=0.30,
         annual_revenue_change_billions=-17.8,

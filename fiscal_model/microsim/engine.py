@@ -2,13 +2,73 @@
 import numpy as np
 import pandas as pd
 
+from ..credits_core import CTC_CURRENT_LAW, EITC_CURRENT_LAW
+
+#: Dependent age-band columns the credit rules read when the microdata file
+#: carries them (:mod:`fiscal_model.microsim.data_builder`). When it does not
+#: — a small fixture, or a file built before 2026-09 — the engine falls back to
+#: the ``children`` column for both credits, which is the behaviour it had.
+_CTC_AGE_BANDS = ("dependents_under_6", "dependents_6_to_16")
+_CTC_AGE_17_BAND = "dependents_age_17"
+_EITC_AGE_BANDS = (
+    "dependents_under_6",
+    "dependents_6_to_16",
+    "dependents_age_17",
+    "dependents_age_18",
+    "dependents_19_to_23_student",
+)
+
 
 class MicroTaxCalculator:
     """
     Vectorized tax calculator that processes individual tax units.
     This allows for capturing complex interactions (cliffs, phase-outs, AMT, SALT cap, EITC, NIIT)
     that aggregate models miss.
+
+    Credit parameters come from :mod:`fiscal_model.credits_core`, which holds
+    the statutory schedules, rather than being restated here. They used to be
+    restated and the two copies had drifted: the engine applied a single
+    21.06% EITC phase-out rate to every child count (the statutory childless
+    rate is 7.65% and the one-child rate 15.98%) and carried a stale vintage of
+    the maxima. Reading one source makes that class of drift impossible.
     """
+
+    #: Every scalar parameter ``apply_reform`` may change. Snapshotted and
+    #: restored wholesale so a reform key cannot be added without its restore.
+    _REFORMABLE_SCALARS = (
+        "ctc_amount",
+        "ctc_amount_under_6",
+        "ctc_qualifying_age",
+        "ctc_protected_amount",
+        "ctc_phaseout_start_single",
+        "ctc_phaseout_start_married",
+        "ctc_phaseout_start_low_single",
+        "ctc_phaseout_start_low_married",
+        "ctc_fully_refundable",
+        "actc_max_per_child",
+        "actc_earned_threshold",
+        "actc_phasein_rate",
+        "salt_cap",
+        "std_deduction_single",
+        "std_deduction_married",
+        "eitc_max_0_children",
+        "eitc_max_1_child",
+        "eitc_max_2_children",
+        "eitc_max_3plus_children",
+        "eitc_phasein_0_children",
+        "eitc_phaseout_rate_0_children",
+        "eitc_phaseout_start_single_0_children",
+        "eitc_phaseout_start_married_0_children",
+        "eitc_childless_min_age",
+        "eitc_childless_max_age",
+        "rebate_per_person",
+        "rebate_phaseout_start_single",
+        "rebate_phaseout_end_single",
+        "rebate_phaseout_start_married",
+        "rebate_phaseout_end_married",
+        "amt_exemption_single",
+        "amt_exemption_married",
+    )
 
     def __init__(self, year: int = 2025):
         self.year = year
@@ -24,18 +84,33 @@ class MicroTaxCalculator:
         self.std_deduction_single = 15000
         self.std_deduction_married = 30000
 
-        # CTC Parameters (2025)
-        self.ctc_amount = 2000
-        self.ctc_phaseout_start_single = 200000
-        self.ctc_phaseout_start_married = 400000
-        self.ctc_phaseout_rate = 0.05  # $50 per $1000 over threshold
+        # CTC Parameters (2025), from CTC_CURRENT_LAW
+        self.ctc_amount = CTC_CURRENT_LAW["credit_per_child"]
+        # ARP paid $3,600 for children under 6 and $3,000 for the rest. Under
+        # current law the two are the same, so this is a no-op until a reform
+        # sets it.
+        self.ctc_amount_under_6 = CTC_CURRENT_LAW["credit_per_child"]
+        # Exclusive upper age bound for a qualifying child: 17 under current
+        # law (children *under* 17), 18 under the ARP.
+        self.ctc_qualifying_age = int(CTC_CURRENT_LAW["qualifying_age"])
+        self.ctc_phaseout_start_single = CTC_CURRENT_LAW["phase_out_start_single"]
+        self.ctc_phaseout_start_married = CTC_CURRENT_LAW["phase_out_start_married"]
+        self.ctc_phaseout_rate = CTC_CURRENT_LAW["phase_out_rate"]  # $50 per $1000
+        # The ARP left the pre-existing $2,000 alone at the high thresholds and
+        # phased *only the increment* down from $75k/$150k. ``ctc_protected``
+        # is the per-child amount exempt from that lower phase-out; setting it
+        # equal to the credit (the default) collapses to one phase-out, which
+        # is current law.
+        self.ctc_protected_amount = CTC_CURRENT_LAW["credit_per_child"]
+        self.ctc_phaseout_start_low_single = CTC_CURRENT_LAW["phase_out_start_single"]
+        self.ctc_phaseout_start_low_married = CTC_CURRENT_LAW["phase_out_start_married"]
         # Refundability: under current law the CTC is partially refundable
         # (Additional CTC, capped per child and phased in on earnings). Under the
         # 2021 ARP it was made fully refundable (reform sets ctc_fully_refundable).
         self.ctc_fully_refundable = False
-        self.actc_max_per_child = 1700        # 2025 refundable cap per child
-        self.actc_earned_threshold = 2500     # earnings floor for ACTC phase-in
-        self.actc_phasein_rate = 0.15         # 15% of earnings above the floor
+        self.actc_max_per_child = CTC_CURRENT_LAW["refundable_max"]
+        self.actc_earned_threshold = CTC_CURRENT_LAW["refund_threshold"]
+        self.actc_phasein_rate = CTC_CURRENT_LAW["refund_rate"]
 
         # SALT Cap (TCJA, 2017+)
         self.salt_cap = 10000  # None = no cap
@@ -47,29 +122,62 @@ class MicroTaxCalculator:
         self.amt_rate_2 = 0.28  # 28% above
         self.amt_threshold = 232600
 
-        # EITC Parameters (2025) - single/head of household for simplicity
-        # Phase-in rates by number of children
-        self.eitc_phasein_0_children = 0.0765   # 7.65% (no children)
-        self.eitc_phasein_1_child = 0.34
-        self.eitc_phasein_2_children = 0.40
-        self.eitc_phasein_3plus_children = 0.45
+        # EITC parameters, from EITC_CURRENT_LAW — the statutory schedule of
+        # Rev. Proc. 2023-34 sec. 2.06 (tax year 2024). Every value below was
+        # previously restated here and three groups of them were wrong: the
+        # 1/2/3+ maxima were a stale vintage, the phase-out thresholds were a
+        # stale vintage, and a single 21.06% phase-out rate was applied to all
+        # four child counts when the statute sets 7.65% for childless filers
+        # and 15.98% for one child.
+        self.eitc_phasein_0_children = EITC_CURRENT_LAW[0]["phase_in_rate"]
+        self.eitc_phasein_1_child = EITC_CURRENT_LAW[1]["phase_in_rate"]
+        self.eitc_phasein_2_children = EITC_CURRENT_LAW[2]["phase_in_rate"]
+        self.eitc_phasein_3plus_children = EITC_CURRENT_LAW[3]["phase_in_rate"]
 
-        # Maximum credit by children
-        self.eitc_max_0_children = 632
-        self.eitc_max_1_child = 3995
-        self.eitc_max_2_children = 6604
-        self.eitc_max_3plus_children = 7430
+        self.eitc_max_0_children = EITC_CURRENT_LAW[0]["max_credit"]
+        self.eitc_max_1_child = EITC_CURRENT_LAW[1]["max_credit"]
+        self.eitc_max_2_children = EITC_CURRENT_LAW[2]["max_credit"]
+        self.eitc_max_3plus_children = EITC_CURRENT_LAW[3]["max_credit"]
 
-        # Phase-out rates (same for all)
-        self.eitc_phaseout_rate = 0.2106
+        # Phase-out rates by child count. IRC sec. 32(b)(1).
+        self.eitc_phaseout_rate_0_children = EITC_CURRENT_LAW[0]["phase_out_rate"]
+        self.eitc_phaseout_rate_1_child = EITC_CURRENT_LAW[1]["phase_out_rate"]
+        self.eitc_phaseout_rate_2_children = EITC_CURRENT_LAW[2]["phase_out_rate"]
+        self.eitc_phaseout_rate_3plus_children = EITC_CURRENT_LAW[3]["phase_out_rate"]
 
         # Phase-out start thresholds (single/HOH)
-        self.eitc_phaseout_start_single_0_children = 9100
-        self.eitc_phaseout_start_single_with_children = 20600
+        self.eitc_phaseout_start_single_0_children = EITC_CURRENT_LAW[0][
+            "phase_out_start_single"
+        ]
+        self.eitc_phaseout_start_single_with_children = EITC_CURRENT_LAW[1][
+            "phase_out_start_single"
+        ]
 
         # Phase-out start thresholds (married)
-        self.eitc_phaseout_start_married_0_children = 14500
-        self.eitc_phaseout_start_married_with_children = 27400
+        self.eitc_phaseout_start_married_0_children = EITC_CURRENT_LAW[0][
+            "phase_out_start_married"
+        ]
+        self.eitc_phaseout_start_married_with_children = EITC_CURRENT_LAW[1][
+            "phase_out_start_married"
+        ]
+
+        # Childless EITC age test, IRC sec. 32(c)(1)(A)(ii): at least 25 and
+        # under 65. The ARP suspended the upper bound and moved the lower one
+        # to 19 (24 for students); a reform expresses that by moving these.
+        self.eitc_childless_min_age = 25
+        self.eitc_childless_max_age = 65
+
+        # Per-person recovery rebate (IRC sec. 6428B, the ARP's third payment).
+        # Zero under current law; a reform sets the amount and the band. It is
+        # a per-*person* credit rather than a per-child one, which is why it
+        # needs the dependent headcount rather than a qualifying-child count,
+        # and it phases out linearly to zero across a narrow band rather than
+        # at a rate per $1,000.
+        self.rebate_per_person = 0.0
+        self.rebate_phaseout_start_single = 75_000.0
+        self.rebate_phaseout_end_single = 80_000.0
+        self.rebate_phaseout_start_married = 150_000.0
+        self.rebate_phaseout_end_married = 160_000.0
 
         # Medicare Surtax (NIIT) Parameters (3.8% on investment income)
         self.niit_rate = 0.038
@@ -139,8 +247,10 @@ class MicroTaxCalculator:
         #    AMT floor and the final result is NOT clipped at zero.
         ctc_total = self._calculate_ctc(df)
         eitc = self._calculate_eitc(df)
+        rebate = self._calculate_rebate(df)
         df.loc[:, 'ctc_value'] = ctc_total
         df.loc[:, 'eitc_value'] = eitc
+        df.loc[:, 'rebate_value'] = rebate
 
         # 6. AMT, then gross tax = higher of regular vs AMT (both >= 0).
         amt = self._calculate_amt(df)
@@ -154,7 +264,8 @@ class MicroTaxCalculator:
             ctc_refundable = leftover_ctc
         else:
             wages = df.get('wages', pd.Series(0, index=df.index)).values
-            actc_cap = self.actc_max_per_child * df['children'].values
+            under_6, older = self.ctc_qualifying_children(df)
+            actc_cap = self.actc_max_per_child * (under_6 + older)
             earned_based = self.actc_phasein_rate * np.maximum(
                 0, wages - self.actc_earned_threshold
             )
@@ -163,7 +274,7 @@ class MicroTaxCalculator:
         # 8. Non-refundable credits floor tax at 0; refundable credits then apply
         #    and may produce a net refund (negative).
         tax_after_nonref = np.maximum(0, gross_tax - ctc_nonref)
-        refundable_credits = eitc + ctc_refundable
+        refundable_credits = eitc + ctc_refundable + rebate
         income_tax_final = tax_after_nonref - refundable_credits
         df.loc[:, 'income_tax_after_credits'] = income_tax_final
         df.loc[:, 'income_tax_final'] = income_tax_final
@@ -179,6 +290,37 @@ class MicroTaxCalculator:
         df.loc[:, 'effective_tax_rate'] = np.where(df['agi'] > 0, df['final_tax'] / df['agi'], 0)
 
         return df
+
+    def ctc_qualifying_children(self, df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
+        """Split CTC qualifying children into the under-6 and older bands.
+
+        Returns ``(under_6, older)``. Falls back to ``(zeros, children)`` when
+        the microdata carries no dependent age bands, which reproduces the
+        engine's previous single-rate behaviour exactly.
+        """
+        children = df["children"].values.astype(float)
+        if not all(band in df.columns for band in _CTC_AGE_BANDS):
+            return np.zeros(len(df)), children
+        under_6 = df["dependents_under_6"].values.astype(float)
+        older = df["dependents_6_to_16"].values.astype(float)
+        if self.ctc_qualifying_age > 17 and _CTC_AGE_17_BAND in df.columns:
+            older = older + df[_CTC_AGE_17_BAND].values.astype(float)
+        return under_6, older
+
+    def eitc_qualifying_children(self, df: pd.DataFrame) -> np.ndarray:
+        """Count EITC qualifying children — IRC sec. 32(c)(3).
+
+        A qualifying child is under 19, or under 24 and a full-time student.
+        The engine used ``children`` (under 17), which undercounts the
+        population by about 23% on the bundled CPS file. Falls back to
+        ``children`` when the age bands are absent.
+        """
+        if not all(band in df.columns for band in _EITC_AGE_BANDS):
+            return df["children"].values.astype(float)
+        total = np.zeros(len(df))
+        for band in _EITC_AGE_BANDS:
+            total = total + df[band].values.astype(float)
+        return total
 
     def preferential_income(self, df: pd.DataFrame) -> np.ndarray:
         """Income taxed at preferential capital-gains rates rather than ordinary
@@ -236,64 +378,108 @@ class MicroTaxCalculator:
             ordinary_ti, pref, is_married
         )
 
+    def _ctc_reduction(
+        self,
+        agi: np.ndarray,
+        married: np.ndarray,
+        start_single: float,
+        start_married: float,
+    ) -> np.ndarray:
+        """Statutory $50 per $1,000 (or fraction) of income above a threshold."""
+        start = np.where(married == 1, start_married, start_single)
+        excess = np.maximum(0, agi - start)
+        return np.ceil(excess / 1000) * self.ctc_phaseout_rate * 1000
+
     def _calculate_ctc(self, df: pd.DataFrame) -> np.ndarray:
-        """Calculate Child Tax Credit with phase-out."""
-        children = df['children'].values
+        """Calculate Child Tax Credit with its one or two phase-outs.
+
+        Current law has one: $50 per $1,000 of AGI above $200k/$400k. The ARP
+        design has two, because it left the pre-existing $2,000 alone at those
+        thresholds and phased only the increment down from $75k/$150k. The
+        second tier is inert whenever ``ctc_protected_amount`` equals the
+        credit, which is the default.
+        """
         agi = df['agi'].values
         married = df['married'].values
+        under_6, older = self.ctc_qualifying_children(df)
 
-        # Base credit
-        max_credit = children * self.ctc_amount
+        gross = under_6 * self.ctc_amount_under_6 + older * self.ctc_amount
+        protected = (under_6 + older) * self.ctc_protected_amount
+        protected = np.minimum(protected, gross)
+        bonus = gross - protected
 
-        # Phase-out start
-        phaseout_start = np.where(
-            married == 1,
-            self.ctc_phaseout_start_married,
-            self.ctc_phaseout_start_single
+        bonus_after = np.maximum(
+            0,
+            bonus
+            - self._ctc_reduction(
+                agi,
+                married,
+                self.ctc_phaseout_start_low_single,
+                self.ctc_phaseout_start_low_married,
+            ),
         )
-
-        # Excess income
-        excess_income = np.maximum(0, agi - phaseout_start)
-
-        # Reduction: $50 per $1000 (or part thereof)
-        reduction = np.ceil(excess_income / 1000) * 50
-
-        ctc = np.maximum(0, max_credit - reduction)
-        return ctc
+        protected_after = np.maximum(
+            0,
+            protected
+            - self._ctc_reduction(
+                agi,
+                married,
+                self.ctc_phaseout_start_single,
+                self.ctc_phaseout_start_married,
+            ),
+        )
+        return protected_after + bonus_after
 
     def _calculate_eitc(self, df: pd.DataFrame) -> np.ndarray:
-        """Calculate Earned Income Tax Credit (refundable)."""
-        children = df['children'].values
+        """Calculate Earned Income Tax Credit (refundable).
+
+        Three things this used to get wrong, all now read off the statutory
+        schedule in ``credits_core``: the phase-out rate varied by child count
+        (7.65 / 15.98 / 21.06 / 21.06 percent, not 21.06 throughout), the
+        qualifying-child count is the EITC's own (under 19, or under 24 and a
+        student) rather than the CTC's under-17 count, and childless filers
+        must be at least 25 and under 65.
+        """
+        children = self.eitc_qualifying_children(df)
         agi = df['agi'].values
         married = df['married'].values
         wages = df.get('wages', pd.Series(0, index=df.index)).values
+        age_head = df.get('age_head', pd.Series(0, index=df.index)).values
 
         # Only available to workers with earned income
         has_earned_income = wages > 0
 
-        # Determine phase-in rate and max credit by children
+        # Childless filers face an age test; filers with a qualifying child do
+        # not. ``age_head`` is the only age on the file, so a married couple is
+        # tested on the head — the ARP-style reform this supports moves both
+        # bounds, so the approximation matters only at the boundary years.
+        childless_eligible = (age_head >= self.eitc_childless_min_age) & (
+            age_head < self.eitc_childless_max_age
+        )
+
         phase_in = np.zeros(len(df))
         max_credit = np.zeros(len(df))
+        phase_out_rate = np.zeros(len(df))
 
-        # 0 children
-        mask_0 = (children == 0) & has_earned_income
+        mask_0 = (children == 0) & has_earned_income & childless_eligible
         phase_in[mask_0] = self.eitc_phasein_0_children
         max_credit[mask_0] = self.eitc_max_0_children
+        phase_out_rate[mask_0] = self.eitc_phaseout_rate_0_children
 
-        # 1 child
         mask_1 = (children == 1) & has_earned_income
         phase_in[mask_1] = self.eitc_phasein_1_child
         max_credit[mask_1] = self.eitc_max_1_child
+        phase_out_rate[mask_1] = self.eitc_phaseout_rate_1_child
 
-        # 2 children
         mask_2 = (children == 2) & has_earned_income
         phase_in[mask_2] = self.eitc_phasein_2_children
         max_credit[mask_2] = self.eitc_max_2_children
+        phase_out_rate[mask_2] = self.eitc_phaseout_rate_2_children
 
-        # 3+ children
         mask_3plus = (children >= 3) & has_earned_income
         phase_in[mask_3plus] = self.eitc_phasein_3plus_children
         max_credit[mask_3plus] = self.eitc_max_3plus_children
+        phase_out_rate[mask_3plus] = self.eitc_phaseout_rate_3plus_children
 
         # Phase-in credit = min(earned income * phase_in_rate, max_credit)
         phasein_credit = np.minimum(wages * phase_in, max_credit)
@@ -318,11 +504,50 @@ class MicroTaxCalculator:
 
         # Phase-out credit = max_credit - (excess * phase_out_rate)
         # Use the max_credit from phase-in (where they plateau)
-        phaseout_credit = np.maximum(0, phasein_credit - excess * self.eitc_phaseout_rate)
+        return np.maximum(0, phasein_credit - excess * phase_out_rate)
 
-        eitc = phaseout_credit
+    def household_persons(self, df: pd.DataFrame) -> np.ndarray:
+        """People a per-person credit counts: filer(s) plus dependents.
 
-        return eitc
+        Uses ``dependent_count`` where the file carries it — the column the
+        public loader used not to expose — and falls back to the under-17
+        ``children`` count, which undercounts by about 25%.
+        """
+        married = df['married'].values
+        if 'dependent_count' in df.columns:
+            dependents = df['dependent_count'].values.astype(float)
+        else:
+            dependents = df['children'].values.astype(float)
+        return 1.0 + married + dependents
+
+    def _calculate_rebate(self, df: pd.DataFrame) -> np.ndarray:
+        """Per-person recovery rebate, phased out linearly over a band.
+
+        Zero unless a reform sets ``rebate_per_person``. The ARP's third
+        payment phased from full to nothing across $75,000-$80,000 (single)
+        and $150,000-$160,000 (joint) - a cliff steep enough that a rate
+        per $1,000 of the kind the CTC uses misstates it, which is why this
+        is a band rather than a rate. Head-of-household's own
+        $112,500-$120,000 band is not represented: the microdata has no
+        filing status beyond married/not.
+        """
+        if not self.rebate_per_person:
+            return np.zeros(len(df))
+        agi = df['agi'].values
+        married = df['married'].values
+        start = np.where(
+            married == 1,
+            self.rebate_phaseout_start_married,
+            self.rebate_phaseout_start_single,
+        )
+        end = np.where(
+            married == 1,
+            self.rebate_phaseout_end_married,
+            self.rebate_phaseout_end_single,
+        )
+        width = np.maximum(end - start, 1.0)
+        remaining = np.clip((end - agi) / width, 0.0, 1.0)
+        return self.rebate_per_person * self.household_persons(df) * remaining
 
     def _calculate_amt(self, df: pd.DataFrame) -> np.ndarray:
         """Calculate Alternative Minimum Tax (simplified)."""
@@ -392,6 +617,22 @@ class MicroTaxCalculator:
                 - 'rate_changes': dict of bracket_index: new_rate (single brackets)
                 - 'rate_changes_mfj': dict of bracket_index: new_rate (MFJ brackets)
                 - 'ctc_amount': new CTC amount
+                - 'ctc_amount_under_6': separate amount for children under 6
+                - 'ctc_qualifying_age': exclusive upper age bound (17 or 18)
+                - 'ctc_protected_amount': per-child amount exempt from the
+                  lower phase-out (the ARP's two-tier design)
+                - 'ctc_phaseout_start_single' / '_married': high-tier starts
+                - 'ctc_phaseout_start_low_single' / '_married': low-tier starts
+                - 'ctc_fully_refundable': ARP-style full refundability
+                - 'actc_max_per_child' / 'actc_earned_threshold' /
+                  'actc_phasein_rate': the partial-refundability schedule
+                - 'eitc_childless_max_credit': childless-only maximum
+                - 'eitc_childless_phasein_rate' / '_phaseout_rate'
+                - 'eitc_childless_phaseout_start_single' / '_married'
+                - 'eitc_childless_min_age' / '_max_age': the age test
+                - 'rebate_per_person': per-person recovery rebate
+                - 'rebate_phaseout_start_single' / '_end_single' and the
+                  married pair: the band the rebate phases out across
                 - 'salt_cap': new SALT cap (None = uncapped)
                 - 'std_deduction_bonus': additional std deduction
                 - 'new_top_rate': override top marginal rate
@@ -403,22 +644,17 @@ class MicroTaxCalculator:
         Returns:
             Calculated DataFrame with reform applied
         """
-        # Save original state
+        # Save original state. The bracket/rate lists are mutated in place, so
+        # they are copied; every other reformable parameter is a scalar and is
+        # snapshotted by name, which is what stops a new reform key from being
+        # added without a matching restore.
         original_brackets_single = self.brackets_single.copy()
         original_rates_single = self.rates_single.copy()
         original_brackets_mfj = self.brackets_mfj.copy()
         original_rates_mfj = self.rates_mfj.copy()
-        original_ctc = self.ctc_amount
-        original_ctc_fully_refundable = self.ctc_fully_refundable
-        original_salt_cap = self.salt_cap
-        original_std_ded_single = self.std_deduction_single
-        original_std_ded_married = self.std_deduction_married
-        original_eitc_max_0 = self.eitc_max_0_children
-        original_eitc_max_1 = self.eitc_max_1_child
-        original_eitc_max_2 = self.eitc_max_2_children
-        original_eitc_max_3plus = self.eitc_max_3plus_children
-        original_amt_exemption_single = self.amt_exemption_single
-        original_amt_exemption_married = self.amt_exemption_married
+        original_scalars = {
+            name: getattr(self, name) for name in self._REFORMABLE_SCALARS
+        }
 
         try:
             # Apply rate changes (single)
@@ -438,9 +674,38 @@ class MicroTaxCalculator:
                 self.rates_single[-1] = reforms['new_top_rate']
                 self.rates_mfj[-1] = reforms['new_top_rate']
 
-            # Apply CTC change
+            # Apply CTC change. ``ctc_amount`` on its own also moves the
+            # under-6 amount and the protected amount, so a plain "raise the
+            # credit to X" reform keeps a single-tier, single-amount CTC unless
+            # the caller asks for the ARP's structure explicitly.
             if 'ctc_amount' in reforms:
                 self.ctc_amount = reforms['ctc_amount']
+                self.ctc_amount_under_6 = reforms['ctc_amount']
+                self.ctc_protected_amount = reforms['ctc_amount']
+
+            for key in (
+                'rebate_per_person',
+                'rebate_phaseout_start_single',
+                'rebate_phaseout_end_single',
+                'rebate_phaseout_start_married',
+                'rebate_phaseout_end_married',
+                'ctc_amount_under_6',
+                'ctc_protected_amount',
+                'ctc_phaseout_start_single',
+                'ctc_phaseout_start_married',
+                'ctc_phaseout_start_low_single',
+                'ctc_phaseout_start_low_married',
+                'actc_max_per_child',
+                'actc_earned_threshold',
+                'actc_phasein_rate',
+                'eitc_childless_min_age',
+                'eitc_childless_max_age',
+            ):
+                if key in reforms:
+                    setattr(self, key, float(reforms[key]))
+
+            if 'ctc_qualifying_age' in reforms:
+                self.ctc_qualifying_age = int(reforms['ctc_qualifying_age'])
 
             # Apply CTC full refundability (e.g. 2021 ARP)
             if 'ctc_fully_refundable' in reforms:
@@ -456,13 +721,36 @@ class MicroTaxCalculator:
                 self.std_deduction_single += bonus
                 self.std_deduction_married += bonus
 
-            # Apply EITC expansion
+            # Apply EITC expansion (a multiplier on every child count).
             if 'eitc_expansion' in reforms:
                 multiplier = reforms['eitc_expansion']
                 self.eitc_max_0_children = int(self.eitc_max_0_children * multiplier)
                 self.eitc_max_1_child = int(self.eitc_max_1_child * multiplier)
                 self.eitc_max_2_children = int(self.eitc_max_2_children * multiplier)
                 self.eitc_max_3plus_children = int(self.eitc_max_3plus_children * multiplier)
+
+            # Childless-only EITC reform. A childless expansion is not a
+            # multiple of the whole schedule — the ARP tripled the childless
+            # maximum and left the with-children maxima untouched — so it gets
+            # its own keys rather than being folded into ``eitc_expansion``.
+            if 'eitc_childless_max_credit' in reforms:
+                self.eitc_max_0_children = float(reforms['eitc_childless_max_credit'])
+            if 'eitc_childless_phasein_rate' in reforms:
+                self.eitc_phasein_0_children = float(
+                    reforms['eitc_childless_phasein_rate']
+                )
+            if 'eitc_childless_phaseout_rate' in reforms:
+                self.eitc_phaseout_rate_0_children = float(
+                    reforms['eitc_childless_phaseout_rate']
+                )
+            if 'eitc_childless_phaseout_start_single' in reforms:
+                self.eitc_phaseout_start_single_0_children = float(
+                    reforms['eitc_childless_phaseout_start_single']
+                )
+            if 'eitc_childless_phaseout_start_married' in reforms:
+                self.eitc_phaseout_start_married_0_children = float(
+                    reforms['eitc_childless_phaseout_start_married']
+                )
 
             # Apply AMT exemption adjustment
             if 'amt_exemption_adjustment' in reforms:
@@ -510,17 +798,8 @@ class MicroTaxCalculator:
             self.rates_single = original_rates_single
             self.brackets_mfj = original_brackets_mfj
             self.rates_mfj = original_rates_mfj
-            self.ctc_amount = original_ctc
-            self.ctc_fully_refundable = original_ctc_fully_refundable
-            self.salt_cap = original_salt_cap
-            self.std_deduction_single = original_std_ded_single
-            self.std_deduction_married = original_std_ded_married
-            self.eitc_max_0_children = original_eitc_max_0
-            self.eitc_max_1_child = original_eitc_max_1
-            self.eitc_max_2_children = original_eitc_max_2
-            self.eitc_max_3plus_children = original_eitc_max_3plus
-            self.amt_exemption_single = original_amt_exemption_single
-            self.amt_exemption_married = original_amt_exemption_married
+            for name, value in original_scalars.items():
+                setattr(self, name, value)
 
     def run_reform(self, pop: pd.DataFrame, reform_func) -> pd.DataFrame:
         """

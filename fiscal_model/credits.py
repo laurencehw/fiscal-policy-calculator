@@ -4,13 +4,21 @@ Backward-compatible facade for tax credit scoring.
 The implementation now lives in focused modules:
 - `credits_core.py` for types, constants, and calculator helpers
 - `credits_factory.py` for common policy constructors
+- `credits_microdata.py` for the per-unit CPS scoring path (`derived` mode)
 """
 
 from .credits_core import (
     BASELINE_CREDIT_COSTS,
+    CREDIT_APP_MODE,
+    CREDIT_HELD_OUT_MODE,
+    CREDIT_MODE_DERIVED,
+    CREDIT_MODE_REPORTED,
+    CREDIT_MODES,
     CREDIT_RECIPIENT_COUNTS,
+    CREDIT_SCORECARD_MODE,
     CREDIT_VALIDATION_SCENARIOS,
     CTC_CURRENT_LAW,
+    CTC_SUNSET_YEAR,
     EITC_CURRENT_LAW,
     CreditType,
     TaxCreditPolicy,
@@ -27,9 +35,16 @@ from .credits_factory import (
 
 __all__ = [
     "BASELINE_CREDIT_COSTS",
+    "CREDIT_APP_MODE",
+    "CREDIT_HELD_OUT_MODE",
+    "CREDIT_MODES",
+    "CREDIT_MODE_DERIVED",
+    "CREDIT_MODE_REPORTED",
     "CREDIT_RECIPIENT_COUNTS",
+    "CREDIT_SCORECARD_MODE",
     "CREDIT_VALIDATION_SCENARIOS",
     "CTC_CURRENT_LAW",
+    "CTC_SUNSET_YEAR",
     "EITC_CURRENT_LAW",
     "CreditType",
     "TaxCreditPolicy",

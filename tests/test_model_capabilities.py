@@ -64,7 +64,9 @@ def test_ctc_and_eitc_map_to_microsim_reforms():
     ctc = create_biden_ctc_2021()
     eitc = create_biden_eitc_childless()
     assert "ctc_amount" in policy_to_microsim_reforms(ctc)
-    assert "eitc_expansion" in policy_to_microsim_reforms(eitc)
+    # A childless expansion moves the childless schedule only; it used to be
+    # mapped to a single multiplier over all four child counts.
+    assert "eitc_childless_max_credit" in policy_to_microsim_reforms(eitc)
     assert support_label(ctc) == "CBO+TPC"
     assert support_label(eitc) == "CBO+TPC"
 

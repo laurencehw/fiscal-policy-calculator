@@ -136,30 +136,42 @@ def test_calculate_credit_for_income_remove_phase_out_bypasses_reduction():
             ),
             -8.0,
         ),
-        (
-            TaxCreditPolicy(
-                name="Full refundability",
-                description="Make CTC fully refundable",
-                policy_type=PolicyType.TAX_CREDIT,
-                credit_type=CreditType.CHILD_TAX_CREDIT,
-                make_fully_refundable=True,
-            ),
-            -50.0,
-        ),
-        (
-            TaxCreditPolicy(
-                name="Remove phase-out",
-                description="Remove CTC phase-out",
-                policy_type=PolicyType.TAX_CREDIT,
-                credit_type=CreditType.CHILD_TAX_CREDIT,
-                remove_phase_out=True,
-            ),
-            -5.0,
-        ),
     ],
 )
 def test_estimate_static_revenue_effect_branches(policy, expected):
     assert policy.estimate_static_revenue_effect(0) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    ("field", "minimum"),
+    [
+        # Making the CTC fully refundable pays the credit to families with too
+        # little tax liability to use it. Roughly $30B/yr of CTC is currently
+        # left on the table, so anything in single digits is not a real answer.
+        ("make_fully_refundable", 20.0),
+        # Removing the phase-out pays the full credit above $200k/$400k.
+        ("remove_phase_out", 2.0),
+    ],
+)
+def test_refundability_and_phase_out_reach_the_per_unit_path(field, minimum):
+    """These two used to return unreachable flat constants (-50.0 / -5.0).
+
+    Neither had anything behind it: the branch was a placeholder that no
+    per-unit calculation ever produced. Both now score per tax unit over the
+    CPS microdata, so the assertion is on the magnitude the mechanism implies
+    rather than on a constant.
+    """
+    policy = TaxCreditPolicy(
+        name=f"Lever: {field}",
+        description=f"CTC with {field}",
+        policy_type=PolicyType.TAX_CREDIT,
+        credit_type=CreditType.CHILD_TAX_CREDIT,
+        **{field: True},
+    )
+    effect = policy.estimate_static_revenue_effect(0)
+    assert effect < 0, "expanding a credit costs revenue"
+    assert abs(effect) > minimum
+    assert effect not in (-50.0, -5.0), "the old placeholder constants are gone"
 
 
 @pytest.mark.parametrize(

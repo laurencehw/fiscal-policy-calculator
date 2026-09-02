@@ -699,30 +699,35 @@ class TestApplyReform:
         assert reform_result.loc[0, 'final_tax'] < baseline.loc[0, 'final_tax']
 
     def test_reform_eitc_expansion(self):
-        """apply_reform with EITC expansion (multiplier)."""
+        """apply_reform with EITC expansion (multiplier).
+
+        Income sits just past the one-child phase-in end ($12,390 under
+        Rev. Proc. 2023-34 sec. 2.06) so the baseline is capped at the
+        statutory $4,213 maximum and a higher maximum is what the reform
+        actually buys. The figures here were $3,995/$12,000 while the engine
+        carried a stale maximum; at $12,000 the phase-in binds under both
+        legs and the test could not see the expansion at all.
+        """
         calc = MicroTaxCalculator(year=2025)
         pop = pd.DataFrame({
-            'agi': [12000],  # Upper phase-in range for 1 child (34% * 12000 = 4080 > baseline max of 3995)
-            'wages': [12000],
+            'agi': [13000],
+            'wages': [13000],
             'married': [0],
             'children': [1],
             'weight': [1.0],
             'age_head': [30],
         })
 
-        # Baseline
+        # Baseline: min(13000 * 0.34, 4213) = 4213 (capped at the maximum)
         baseline = calc.calculate(pop)
         baseline_eitc = baseline.loc[0, 'eitc_value']
-        # At $12K: baseline = min(12000 * 0.34, 3995) = 3995 (capped at max)
+        assert baseline_eitc == pytest.approx(4213.0)
 
-        # Reform: 1.5x EITC expansion (max changes from $3,995 to ~$5,993)
-        reforms = {'eitc_expansion': 1.5}
-        reform_result = calc.apply_reform(pop, reforms)
-
-        # Reform EITC should be larger
-        # After 1.5x: max becomes 3995 * 1.5 = 5992.5
-        # At $12K: reform = min(12000 * 0.34, 5992.5) = min(4080, 5992.5) = 4080 > baseline 3995
+        # Reform: 1.5x, so the maximum becomes 6319 and the phase-in binds:
+        # min(13000 * 0.34, 6319) = 4420.
+        reform_result = calc.apply_reform(pop, {'eitc_expansion': 1.5})
         reform_eitc = reform_result.loc[0, 'eitc_value']
+        assert reform_eitc == pytest.approx(4420.0)
         assert reform_eitc > baseline_eitc
 
     def test_reform_restores_original_state(self):
