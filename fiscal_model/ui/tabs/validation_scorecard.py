@@ -50,6 +50,16 @@ _PROVENANCE_LABEL = {
 
 
 def _entry_to_row(entry: ScorecardEntry) -> dict[str, Any]:
+    # "Target moved from" is empty for almost every row, and that is the
+    # point: where it is filled in, the number in "Official ($B)" is not the
+    # one this app used to score against, and a reader comparing against an
+    # older screenshot needs to see that before they read the Δ%.
+    revised = (
+        f"{_format_signed_billions(entry.superseded_10yr_billions)} "
+        f"({entry.target_revision_id})"
+        if entry.superseded_10yr_billions is not None
+        else ""
+    )
     return {
         "Status": _RATING_COLOR.get(entry.rating, "⚪"),
         "Category": entry.category,
@@ -60,6 +70,7 @@ def _entry_to_row(entry: ScorecardEntry) -> dict[str, Any]:
         "Rating": entry.rating,
         "Source": entry.official_source,
         "Target provenance": _PROVENANCE_LABEL.get(entry.provenance, entry.provenance),
+        "Target moved from": revised,
     }
 
 
@@ -131,11 +142,14 @@ def _render_summary(st_module: Any, summary: ScorecardSummary) -> None:
     )
     illustrations = summary.model_estimate_entries
     transcribed = summary.transcribed_entries
+    revised = summary.revised_target_entries
     st_module.caption(
         f"{n} benchmarks against a published figure "
         f"({transcribed} transcribed from a primary document, "
         f"{summary.line_item_differs_entries} of those disagreeing with the "
-        f"target this app carries) · {illustrations} illustrations with no "
+        f"target this app carries, {revised} where the target has since been "
+        "moved to the published figure and the module was deliberately not "
+        f"retuned) · {illustrations} illustrations with no "
         "official score are listed separately below and are excluded from "
         "every number above."
     )

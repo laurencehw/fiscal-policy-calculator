@@ -47,6 +47,7 @@ from .specialized import (
     validate_all_trade,
 )
 from .specialized_pl119_21 import validate_all_pl119_21
+from .target_revisions import live_target_for, superseded_targets_for
 
 #: The out-of-sample tier's category name. Everything else is the calibrated
 #: tier — the split the readiness gate and the API summary both key on.
@@ -135,6 +136,17 @@ class ScorecardEntry:
     #: One line on what the transcription established (or what was searched
     #: and not found).
     sourcing_note: str = ""
+    #: ``revision_id`` of the live row in :mod:`.target_revisions` when this
+    #: benchmark's target has been **moved** to a published figure, e.g.
+    #: ``"extend_tcja_amt.v2"``. ``None`` for a target nobody has revised —
+    #: which is most of them.
+    target_revision_id: str | None = None
+    #: The target this entry used to be scored against, before the revision.
+    #: Kept beside the live figure so a reader can see what moved and by how
+    #: much without opening the ledger.
+    superseded_10yr_billions: float | None = None
+    #: Why the old target was retired, quoted from the ledger's superseded row.
+    target_revision_reason: str = ""
     #: True when somebody opened the primary document and read the row, i.e.
     #: the entry has a :mod:`.benchmark_sources` record carrying the figure it
     #: found. A handful of entries are labelled ``line_item`` by *inference*
@@ -150,6 +162,17 @@ class ScorecardEntry:
         # only place a human actually opened the document. A runner's declared
         # label is the fallback for records nobody has sourced yet.
         source = source_for(r.policy_id)
+        # A target the ledger has moved is, by construction, not the target the
+        # module's constant was fitted to — the constant reproduces the
+        # *superseded* figure. So a revision turns ``calibrated_to_target``
+        # off, and the entry reports in the unfitted-reconstruction tier where
+        # a miss is a finding about the module rather than a calibration
+        # regression. The alternative reading — keeping the row in the fitted
+        # tier — is not hidden: both are reported in
+        # ``planning/lanes/PROVENANCE_amt_insulin.md``, and the summary counts
+        # the revised rows so the move is never silent.
+        superseded = superseded_targets_for(r.policy_id)
+        live_revision = live_target_for(r.policy_id) if superseded else None
         return cls(
             category=category,
             policy_id=r.policy_id,
@@ -178,7 +201,19 @@ class ScorecardEntry:
                     else params.get("provenance")
                 ),
             ),
-            calibrated_to_target=bool(params.get("calibrated_to_target", True)),
+            calibrated_to_target=(
+                bool(params.get("calibrated_to_target", True))
+                and not superseded
+            ),
+            target_revision_id=(
+                live_revision.revision_id if live_revision is not None else None
+            ),
+            superseded_10yr_billions=(
+                superseded[-1].official_10yr_billions if superseded else None
+            ),
+            target_revision_reason=(
+                superseded[-1].reason if superseded else ""
+            ),
             benchmark_table=_table_reference(source),
             official_10yr_billions_line_item=(
                 source.published_10yr_billions
@@ -242,6 +277,13 @@ class ScorecardSummary:
     #: Entries where the transcribed row disagrees with the carried target.
     #: Each is an open owner decision; see ``docs/VALIDATION.md``.
     line_item_differs_entries: int = 0
+    #: Entries whose target has been **moved** to a published figure through
+    #: :mod:`.target_revisions`. Counted separately because a revision has a
+    #: consequence for every number below it: the module constant is still
+    #: fitted to the superseded figure, so the row leaves the fitted tier for
+    #: the reconstruction tier and the fitted mean is computed over a smaller
+    #: set. Quoting the fitted mean without this count hides that.
+    revised_target_entries: int = 0
     entries: list[ScorecardEntry] = field(default_factory=list)
 
 
@@ -347,6 +389,9 @@ def compute_scorecard(
         model_estimate_entries=provenance_breakdown[MODEL_ESTIMATE],
         transcribed_entries=sum(1 for e in entries if e.transcribed),
         line_item_differs_entries=provenance_breakdown[LINE_ITEM_DIFFERS],
+        revised_target_entries=sum(
+            1 for e in entries if e.target_revision_id is not None
+        ),
         entries=entries,
     )
 

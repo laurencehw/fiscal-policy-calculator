@@ -270,11 +270,42 @@ PAYROLL_TAX_VALIDATION_SCENARIOS = {
 
 AMT_VALIDATION_SCENARIOS_COMPARE = {
     "extend_tcja_amt": {
+        # Target revised 2026-09-02 through
+        # ``validation/target_revisions.py`` (extend_tcja_amt.v1 -> .v2).
+        # The carried $450B was never traceable to a document and is 3.5%
+        # from CRS R48286 Table 1's *five*-year column ($466.2B); the
+        # ten-year column for the same row reads $1,357.1B.
+        "expected_10yr": 1_357.1,
         "description": "Extend TCJA AMT relief",
         "policy_factory": create_extend_tcja_amt_relief,
-        "expected_10yr": 450.0,
-        "source": "JCT/CBO",
+        "source": "CRS R48286 Table 1 (transcribing CBO 60114/60271)",
+        "benchmark_date": "2024-11",
+        "benchmark_url": (
+            "https://www.congress.gov/crs_external_products/R/HTML/"
+            "R48286.web.html"
+        ),
+        # No `calibrated_to_target` key here on purpose: `scorecard.py`
+        # derives it from the ledger, because "the module carries a constant
+        # fitted to THIS target" stops being true for every revised row at
+        # once, and a hand-set flag per scenario would drift.
         "notes": "Keep higher exemptions instead of sunset to pre-TCJA levels",
+        "limitations": [
+            "Poor against the corrected target by construction, and the gap is "
+            "the point of correcting it: the fitted annual scores $450.5B "
+            "against a published $1,357.1B (-66.8%). Retuning the constant to "
+            "close that is forbidden — it would re-fit the module to the "
+            "number it is being tested on.",
+            "The module's structural (derived) path scores $855.3B, -37.0% "
+            "against the same row, so the unfitted machinery is about 1.8x "
+            "closer to the document than the fitted constant. See "
+            "planning/lanes/PROVENANCE_amt_insulin.md.",
+            "Definitional gap, not split: CRS/CBO score the AMT provision "
+            "inside a full TCJA-extension package, where extended rate cuts "
+            "push more filers into AMT than a standalone AMT extension would. "
+            "TPC's T25-0049 reconstructs the standalone counterfactual and "
+            "implies roughly $855B; both are published and they answer "
+            "different questions.",
+        ],
     },
     "repeal_individual_amt": {
         "description": "Repeal individual AMT (post-2025)",
@@ -614,7 +645,7 @@ PHARMA_VALIDATION_SCENARIOS_COMPARE = {
     },
     "universal_insulin_cap": {
         "description": "Universal $35/month insulin cap",
-        "preset": "\U0001f48a Universal Insulin Cap (-$15B)",
+        "preset": "\U0001f48a Universal Insulin Cap ($11B)",
         "policy_factory": create_insulin_cap_all,
         "official_source": "Congressional Budget Office",
         "benchmark_date": "2022",

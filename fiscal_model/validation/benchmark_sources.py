@@ -542,25 +542,44 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
     ),
     BenchmarkSource(
         policy_id="extend_tcja_amt",
-        provenance=LINE_ITEM_DIFFERS,
+        provenance=LINE_ITEM,
         document=_CRS_TCJA_EXTENSION,
         publisher="Congressional Research Service (transcribing CBO)",
         url=_CRS_TCJA_EXTENSION_URL,
         date="2024-11",
         table=_CRS_TCJA_TABLE,
         row="Increased Alternative Minimum Tax Exemption",
-        page="Table 1",
+        page="Table 1 (FY2025-FY2034 column)",
         window="FY2025-2034",
         published_10yr_billions=1_357.1,
         note=(
-            "The largest disagreement the sourcing pass found, and it looks "
-            "like a window error rather than a modelling one: the published "
-            "10-year cost is $1,357.1B, while the *five*-year cost is "
-            "$466.2B — and the repository's target is $450B. CRS R47846 "
+            "The largest disagreement the sourcing pass found, and the owner "
+            "decision it left open is now taken: the target was **moved** to "
+            "this figure through ``validation/target_revisions.py`` "
+            "(extend_tcja_amt.v1 -> .v2), so the row is a confirmation rather "
+            "than a disagreement. What the pass established: the published "
+            "10-year cost is $1,357.1B and the *five*-year cost in the "
+            "adjacent column is $466.2B, against a carried target of $450B — "
+            "3.5% from the five-year figure and 66.8% from the ten-year one, "
+            "i.e. a five-year cost sitting in a ten-year column. CRS R47846 "
             "states the same 10-year figure as '-$1.4 trillion "
-            "(FY2025-FY2034)'. The AMT module's annual constant is fitted to "
-            "$450B, so correcting the target means retuning the module: an "
-            "owner decision, out of scope for a sourcing pass."
+            "(FY2025-FY2034)'. The AMT module's annual constant is still "
+            "fitted to the superseded $450B and was deliberately not retuned, "
+            "which is why the entry now reports in the unfitted-reconstruction "
+            "tier at -66.8%."
+        ),
+        alternatives=(
+            "JCT, JCX-35-25 (1 July 2025), AMT-exemption row of P.L. 119-21: "
+            "$1,362.810B over FY2025-2034, 0.4% from this figure. Carried "
+            "separately in this repository as the `pl119_21_amt_exemption` "
+            "benchmark.",
+            "Bipartisan Policy Center, 'The 2025 Tax Debate: The Alternative "
+            "Minimum Tax in TCJA', citing JCT: 'Extending the TCJA's "
+            "individual AMT changes would reduce revenues by nearly $1.4 "
+            "trillion from FY2025 through FY2034.'",
+            "TPC T25-0049 implies about $855B for the *standalone* "
+            "post-sunset counterfactual (no accompanying rate extension), "
+            "which is a different question and is not the target.",
         ),
     ),
     # ------------------------------------------------------------------
@@ -698,10 +717,34 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
             "2017) p. 3, 'G. Repeal of Alternative Minimum Tax on "
             "Individuals ... -695.5' over FY2018-2027 — repeal measured "
             "against *pre-TCJA* law, a different baseline and a different "
-            "decade, so not comparable. Worth flagging for the owner: since "
-            "extending merely the TCJA exemption is transcribed at $1,357.1B, "
-            "a full repeal from 2026 should exceed that, and $450B looks low "
-            "on its face."
+            "decade, so not comparable. "
+            "SEARCHED AGAIN 2026-09-02, in the pass that corrected "
+            "`extend_tcja_amt` and `universal_insulin_cap`, and the answer is "
+            "still no: TPC publishes no 'repeal the individual AMT' model "
+            "estimate at any date, JCT and CBO publish no post-2025 repeal "
+            "score, and the Bipartisan Policy Center's 2025 tax-debate "
+            "explainer — which does quote JCT's $1.4T for *extending* the "
+            "exemption and JCT's $637B for TCJA's original AMT change — has no "
+            "repeal figure either. The one published quantity that fits the "
+            "policy is TPC's own T25-0049 AMT-revenue column, which sums to "
+            "$948.9B over 2026-2035 on exactly this baseline. It is "
+            "**deliberately not adopted as the target**, for two independent "
+            "reasons. (1) It is a baseline projection of what the AMT will "
+            "raise, not a scored repeal — the same rule that stops JCX-48-24's "
+            "exchange-subsidy projection standing in for `repeal_ptc` above. "
+            "(2) It is `amt.py`'s own input: the module's derived path reads "
+            "that CSV and reproduces the column year for year, so adopting it "
+            "would manufacture a 0% row out of the leakage pattern `loo.py` "
+            "already guards against. Two things the owner should still weigh: "
+            "$450B is traceable to nothing, and it is internally incoherent "
+            "with the transcribed $1,357.1B for merely extending the exemption "
+            "— a full repeal cannot cost less than a partial one on the same "
+            "baseline. It is left in force because `repeal_individual_amt` is "
+            "a locked id in `holdout.py`'s "
+            "revenue-scorecard-post-lock-2026-05-02 protocol, which has no "
+            "re-registration path, and moving a locked target to an "
+            "unpublished figure would fail a release gate on the strength of a "
+            "number no document states."
         ),
     ),
     # ------------------------------------------------------------------
@@ -881,7 +924,7 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
     # ------------------------------------------------------------------
     BenchmarkSource(
         policy_id="universal_insulin_cap",
-        provenance=LINE_ITEM_DIFFERS,
+        provenance=LINE_ITEM,
         document=(
             "CBO, Estimated Budgetary Effects of H.R. 6833, the Affordable "
             "Insulin Now Act, publication 57957"
@@ -899,18 +942,26 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
         # Outlays +$6.566B and revenues -$4.793B both widen the deficit.
         published_10yr_billions=11.4,
         note=(
-            "**Sign inversion, not a magnitude gap.** CBO scores a $35 insulin "
-            "cap extended to private plans as *adding* about $11.4B to the "
-            "deficit over FY2022-2031 ($6.566B of outlays plus $4.793B of "
-            "forgone revenue), because capping a patient's cost sharing "
-            "reallocates cost to plans and to the federal subsidy for them. "
-            "The repository carries it as a -$15B saving. This is the target "
-            "half of the same error the module already carries on the model "
-            "side (``pharma.py`` credits the whole patient-side cost of "
-            "insulin to the federal budget), so the row's 2,869% miss is "
-            "measured against a benchmark that is itself pointing the wrong "
-            "way. Fixing either half is a module/target decision for the "
-            "owner; the sourcing pass records both."
+            "**Sign inversion, not a magnitude gap — and now corrected on "
+            "both sides.** CBO scores a $35 insulin cap extended to private "
+            "plans as *adding* about $11.4B to the deficit over FY2022-2031 "
+            "($6.566B of outlays plus $4.793B of forgone revenue), because "
+            "capping a patient's cost sharing reallocates cost to plans and "
+            "to the federal subsidy for them. The repository used to carry it "
+            "as a -$15B saving; the target was moved to this row through "
+            "``validation/target_revisions.py`` "
+            "(universal_insulin_cap.v1 -> .v2) on 2026-09-02, after lane L7 "
+            "had fixed the module half (``pharma.py`` used to credit the whole "
+            "patient-side cost of insulin to the federal budget and now scores "
+            "the federal share of a cost-sharing shift, +$7.0B). The residual "
+            "against this figure is ~39% and is an accuracy statement, where "
+            "the old 2,869% was a direction dispute between a model and a "
+            "benchmark pointing opposite ways."
+        ),
+        alternatives=(
+            "cbo.gov returns HTTP 403 to non-browser clients; the same table "
+            "is reported by InsideHealthPolicy, 'CBO: Insulin Cost Cap Hikes "
+            "Spending $6.6B, Lowers Revenues $4.8B' (31 March 2022).",
         ),
     ),
     # ------------------------------------------------------------------

@@ -75,8 +75,24 @@ AMT_MODE_DERIVED = "derived"
 AMT_MODES = (AMT_MODE_REPORTED, AMT_MODE_DERIVED)
 
 #: What the shipped app scores. Decision 1 keeps a module on ``reported``
-#: until its derived error beats its fitted error; AMT's does not (see
-#: ``planning/lanes/L5_amt.md`` §4), so every preset stays on ``reported``.
+#: until its derived error beats its fitted error, and it still does not —
+#: re-run against the corrected targets on 2026-09-02
+#: (``planning/lanes/PROVENANCE_amt_insulin.md``), derived wins one of the
+#: three AMT benchmarks and loses the other two:
+#:
+#: ===========================  ===========  ==========  =========  ==========
+#: Benchmark                    Target       Reported    Derived    Winner
+#: ===========================  ===========  ==========  =========  ==========
+#: ``extend_tcja_amt``          $1,357.1B    -66.8%      -37.0%     derived
+#: ``repeal_individual_amt``    $450B        +0.1%       +110.9%    reported
+#: ``repeal_corporate_amt``     $220B        +0.05%      +14.6%     reported
+#: ===========================  ===========  ==========  =========  ==========
+#:
+#: Mean 22.3% reported against 54.2% derived, so every preset stays on
+#: ``reported`` and no shipped number changes. Read the two losing rows before
+#: treating that as evidence for the fitted path: both targets are reproduced
+#: by a constant fitted to them, so their ~0% is bookkeeping. The one row with
+#: a target no constant was fitted to is the row derived wins.
 AMT_APP_MODE = AMT_MODE_REPORTED
 
 #: What the *held-out* validation path scores. ``validation/loo.py``'s
@@ -86,19 +102,23 @@ AMT_APP_MODE = AMT_MODE_REPORTED
 AMT_HELD_OUT_MODE = AMT_MODE_DERIVED
 
 #: What the by-construction scorecard scores. Decision 1 asks for ``derived``
-#: here too, and this constant is the single line that would flip it — but it
-#: cannot flip yet, and the reason is a gate rather than the model.
-#: ``repeal_individual_amt`` is a locked id in ``validation/holdout.py``'s
-#: ``revenue-scorecard-post-lock-2026-05-02`` protocol, and
-#: ``fiscal_model/readiness.py`` hard-*fails* strict readiness on any holdout
-#: entry rated Poor. Derived scores that case at roughly +110% against a $450B
-#: target whose own provenance record (``validation/benchmark_sources.py``)
-#: puts the published line item at $1,357.1B and calls $450B "a five-year
-#: number sitting in a ten-year column". Flipping before the target is
-#: corrected would break a release gate for a reason that is not about model
-#: quality, and loosening the gate to get green is what
-#: ``MODELING_IMPROVEMENT.md`` §4 forbids. The flip is an owner call that
-#: belongs with the target correction.
+#: here too, and this constant is the single line that would flip it. The
+#: 2026-09-02 provenance pass corrected ``extend_tcja_amt``'s target to the
+#: published $1,357.1B, which removes half the reason this was blocked — but
+#: not the other half, and the remaining half is still a gate rather than the
+#: model. ``repeal_individual_amt`` is a locked id in
+#: ``validation/holdout.py``'s ``revenue-scorecard-post-lock-2026-05-02``
+#: protocol, ``fiscal_model/readiness.py`` hard-*fails* strict readiness on any
+#: holdout entry rated Poor, and derived scores that case at +110.9%. Its $450B
+#: target could not be corrected: the search recorded in
+#: ``validation/benchmark_sources.py`` found no published score of a
+#: post-sunset individual-AMT repeal anywhere, and the one published quantity
+#: that fits (TPC T25-0049's revenue column, $948.9B) is the file the derived
+#: path *reads*, so adopting it would manufacture a 0% row out of leakage.
+#: Flipping this constant would therefore fail a release gate on a target no
+#: document states, and loosening the gate to get green is what
+#: ``MODELING_IMPROVEMENT.md`` §4 forbids. Still an owner call, now blocked on
+#: a target that does not exist rather than one nobody had checked.
 AMT_SCORECARD_MODE = AMT_MODE_REPORTED
 
 #: Growth rate ``ScoringEngine`` applies to an ``AMTPolicy``'s annual static
