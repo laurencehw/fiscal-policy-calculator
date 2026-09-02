@@ -1,0 +1,16 @@
+# Avery, R., D. Grodzicki and K. Moore (2013), 'Estate vs. Capital Gains
+# Taxation: An Evaluation of Prospective Policies for Taxing Wealth at the
+# Time of Death', Federal Reserve FEDS 2013-28, Figure 1, 'Current Law'
+# series.  Unrealized capital gains as a share of the gross estate, by
+# wealth at death, projected over 2013-2023.
+# https://www.federalreserve.gov/pubs/feds/2013/201328/figure_data.html
+# Regenerate with: python scripts/build_capital_gains_data.py
+wealth_at_death_lower_millions_usd,unrealized_gain_share
+0.0,0.128
+2.0,0.228
+3.5,0.282
+5.0,0.325
+10.0,0.356
+20.0,0.425
+50.0,0.459
+100.0,0.549
