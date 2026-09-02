@@ -18,30 +18,41 @@ phrasing was on this line until 2026-09-01 and was wrong. Live numbers from
 
 | Tier | What it measures | n | Mean | Median |
 |---|---|--:|--:|--:|
-| Out-of-sample, pre-registered | prediction | 25 | **34.4%** | 16.1% |
-| Calibrated, fitted | bookkeeping (low by construction) | 33 | **2.8%** | 0.3% |
-| Unfitted module reconstructions | modules vs targets never fitted to | 21 | **76.7%** | 41.0% |
-| Calibrated, leave-one-out | how much of the calibration is structure | 18 | **58.7%** | 32.5% |
+| Out-of-sample, pre-registered | prediction | 25 | **31.3%** | 14.1% |
+| Calibrated, fitted | bookkeeping (low by construction) | 30 | **2.2%** | 0.2% |
+| Unfitted module reconstructions | modules vs targets never fitted to | 24 | **72.1%** | 40.0% |
+| Calibrated, leave-one-out | how much of the calibration is structure | 17 | **32.3%** | 19.2% |
 
-The fitted tier lost a row when a target it was fitted to was corrected:
+**The fitted tier has lost four rows, and both reasons must be quoted with the
+number.** One left when a target it was fitted to was corrected:
 `ScorecardSummary.revised_target_entries` is **2**, a constant fitted to a
 superseded figure is not fitted to its replacement, and the revised row therefore
 reports among the reconstructions. Held in place instead the fitted tier reads
-**34 at 4.7%, 32/34 within 15%** — quote either, never one alone. The
-reconstruction tier is itself three populations — 12 sectoral presets at 104.8%,
-8 P.L. 119-21 line items at 35.8% and that revised row at 66.8% — and must not be
-quoted as one number. Distributional accuracy is separate again: 7 published
-CBO/JCT tables at 0.00-5.86pp, two of which are circular. See
+**31 at 4.2%, 30/31 within 15%** — quote either, never one alone. Three more
+left in Wave 2, when deleting `fiscal_model/validation/scenarios.py`'s per-case behavioural
+tuples removed the only constants ever fitted to the capital-gains scenarios; the
+fitted mean *fell* 2.8% → 2.2% because those rows were what it had been
+carrying, which is **composition, not accuracy**. The reconstruction tier is
+itself four populations — 12 sectoral presets at 104.8%, 8 P.L. 119-21 line
+items at 35.8%, 3 capital-gains scenarios at 39.6% and that revised row at 66.8%
+— and must not be quoted as one number. The leave-one-out tier likewise dropped
+from 18 derivable cases to 17: `eliminate_salt` is now caught by the leakage
+guard. Distributional accuracy is separate again: 7 published CBO/JCT tables at
+0.00-5.86pp, two of which are circular. See
 [`docs/VALIDATION.md`](../docs/VALIDATION.md).
 
-*Re-derived 2026-09-02, after Wave 1 (PRs #85–#88) and the provenance lane
-(PR #90). Tier 1 moved 52.6% → 34.4% on the eight spending rows and is unchanged
-since; the reconstruction tier 250.8% → 82.6% on two pharma rows and then to
-21 rows at 76.7% on two target corrections; leave-one-out rose 59.3% → 61.7% on
-the two AMT rows (the AMT module becoming more structural rather than less
-accurate) and then fell to 58.7% when the AMT extension's target was corrected —
-the derivation is unchanged at $855.3B and only the figure it is measured against
-moved. See [`MODELING_IMPROVEMENT.md`](MODELING_IMPROVEMENT.md) §5.1.*
+*Re-derived 2026-09-02, after Wave 2 (PRs #93–#95). Tier 1 moved 52.6% → 34.4%
+on the eight spending rows in Wave 1 and 34.4% → **31.3%** on the four
+capital-gains rows in Wave 2 — gains at death alone went 84.4% → 8.4%.
+Leave-one-out rose 59.3% → 61.7% on the two AMT rows (the AMT module becoming
+more structural rather than less accurate), fell to 58.7% when the AMT
+extension's target was corrected, and then fell to **32.3%** in Wave 2 on three
+rebuilt modules — the first of those moves that is a model change rather than a
+target one, and the only one carrying a case-count caveat (31.7% like-for-like
+over 18). The reconstruction tier went 250.8% → 82.6% on two pharma rows, then
+to 21 rows at 76.7% on two target corrections, then to **24 rows at 72.1%** when
+the capital-gains scenarios arrived from the fitted tier. See
+[`MODELING_IMPROVEMENT.md`](MODELING_IMPROVEMENT.md) §§5.1 and 5.2.*
 
 ### Completed work
 
@@ -59,7 +70,7 @@ moved. See [`MODELING_IMPROVEMENT.md`](MODELING_IMPROVEMENT.md) §5.1.*
 - Feature 3: State-Level Modeling — top 10 states, SALT interaction, combined rate curves
 - Feature 4: Real-Time Bill Tracker — congress.gov pipeline, LLM provision extraction, SQLite storage, Streamlit UI
 
-## Modelling plan: Wave 1 done, Wave 2 running
+## Modelling plan: Waves 1 and 2 done, Wave 3 next
 
 [`MODELING_IMPROVEMENT.md`](MODELING_IMPROVEMENT.md) Wave 1 landed 2026-09-01/02
 (PRs #83, #85, #86, #87, #88): the budget-authority-to-outlay spend-out model
@@ -80,13 +91,50 @@ rule: ledger entry in one commit, first scoring in the next, old figure kept as 
 against 54.2% derived across the three AMT benchmarks, which is Decision 1's own
 rule — so nothing a user sees changed.
 
+**Wave 2 landed 2026-09-02** (PRs #93, #94, #95): L4 estate replaced a
+two-point taxable-estate blend that was *exactly invariant* in the exemption with
+a SOI-fitted Pareto size distribution; L6 tax expenditures made every cap declare
+its unit and gave each expenditure a transcribed benefit distribution; L1 capital
+gains rebuilt the realizations base (IRS SOI Table 3.5), the elasticity (the
+semi-log **tax-rate** form CRS R48562 defines — the frozen 0.8 had been applied
+as a net-of-tax elasticity and was an effective 0.25), lock-in (a derived 1.44×
+price wedge in place of the 5.3× multiplier) and gains at death (a
+decedent-wealth stock in place of a flat $54B/yr). Tier 1 **34.4% → 31.3%**, LOO
+**58.7% → 32.3%**. Every module keeps `reported` as its app default under
+Decision 1, so **no shipped preset moved**. §5.2 of
+[`MODELING_IMPROVEMENT.md`](MODELING_IMPROVEMENT.md) has the outturn, the four
+findings and the three missed bands; §6.1 has the six open owner decisions.
+
 Next, in order:
 
-1. **Wave 2, launched 2026-09-02** — L1 capital gains (now **55.8%** of Tier 1
-   error mass, with DMM 2015 frozen per Decision 3 and
-   `validation/scenarios.py`'s three per-case elasticity tuples **deleted**, not
-   extended), L6 tax expenditures, L4 estate.
-2. **`repeal_individual_amt` — the one target the provenance lane could not
+1. **Wave 3** — the last wave in the plan, three lanes on disjoint files:
+   - **L3 credits / microsim** (45.1% of the LOO tier and the largest module
+     left). Per owner **Decision 4** the raw CPS ASEC extract is *fetched by
+     script at build time and never vendored*, which is what unblocks dependent
+     ages for the ARP under-6/6–16 split; per **Decision 5** the three
+     tautological credit benchmarks — whose annuals are their targets divided by
+     ten — move to documented-exclusion status, like `repeal_corporate_amt`,
+     with the LOO number carrying the honesty meanwhile.
+   - **L8 tariffs** (gross customs revenue → net of pass-through, retaliation
+     and the income/payroll offset). Per **Decision 6** the shipped preset
+     numbers move by 40–50%, so the **UI note lands in the same PR**.
+   - **L9 international** (a base-overlap term, so a per-country GILTI and
+     Pillar Two's UTPR stop double-counting the same undertaxed profits).
+2. **Carry-overs from Waves 1 and 2**, none of them a whole lane:
+   - **L7's Part D channels** — the incidence bugs are fixed but no utilisation,
+     launch-delay or availability response is modelled on either pharma row.
+   - **L5's phase-out thresholds** — the AMT exemption phase-out is still a
+     fixed schedule.
+   - **L1's death-channel behavioural response** — no spousal or charitable
+     carve-out, no §121 residence exclusion, no tangible-personal-property
+     exclusion, no family-business deferral. This is the entire residual on the
+     two Treasury Tier-1 rows (135% and 218%) and the single largest thing left
+     undone in the capital-gains module.
+   - **Promote CBO Option 56** once L6's excess share is indexed by year. It
+     scores **+2.5%** in the option's own first year today and −32.6% over the
+     window, because the share is evaluated once at `start_year`; recomputed
+     annually it is −12.8%.
+3. **`repeal_individual_amt` — the one target the provenance lane could not
    close.** It keeps an unsourced $450B that is internally incoherent with the
    transcribed $1,357.1B (a full repeal cannot cost less than extending the
    exemption on the same baseline). No published post-2025 repeal score exists at
@@ -97,9 +145,17 @@ Next, in order:
    decision** to re-register `holdout.py`'s locked
    `revenue-scorecard-post-lock-2026-05-02` protocol, which has no
    re-registration path and is a gate no lane may edit.
-3. **Still open from L2**: CBO's account-level spendout rates (publications
+4. **Still open from L2**: CBO's account-level spendout rates (publications
    61913 and 62256) as the external cross-check on the outlay profiles — needs
    an environment that can reach cbo.gov.
+5. **The other five open owner decisions**, all listed in one place at
+   [`MODELING_IMPROVEMENT.md`](MODELING_IMPROVEMENT.md) §6.1: whether to re-lock
+   the holdout protocol or keep the documented-miss warning convention that now
+   covers `pwbm_39_with_stepup`; the SALT constants (the unsourced $120.0B
+   no-cap level against SOI's derived $89.6B, a joint decision about
+   `eliminate_salt` and `repeal_salt_cap`); whether Treasury's FY2022 −$322.0B
+   is the combined or the rate-only row; the estate growth rate (SOI-fitted
+   6.81% against the shipped nominal-GDP 3.82%); and the Option 56 promotion.
 
 ## Immediate next moves (next 2-3 weeks)
 
