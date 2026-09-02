@@ -221,6 +221,12 @@ _CRS_TCJA_TABLE = (
 )
 
 
+_JCX_CH1 = (
+    "Ch.1: Providing Permanent Tax Relief for Middle-Class Families and Workers"
+)
+#: JCT's chapter heading verbatim, as the CSV carries it since PR #76 replaced
+#: the truncated "Ch.1 Permanent Tax Relief"; ``test_pl119_21_sources_match_the_
+#: transcribed_csv`` pins the two to each other.
 BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
     # ------------------------------------------------------------------
     # Treasury Green Book rows
@@ -1502,7 +1508,7 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
         publisher=_JCT,
         url=_JCX_35_25_URL,
         date=_JCX_35_25_DATE,
-        table=_jcx_table("Ch.1 Permanent Tax Relief"),
+        table=_jcx_table(_JCX_CH1),
         row=(
             "Extension and limited enhancement of reduced rates "
             "(item 1)"
@@ -1523,7 +1529,7 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
         publisher=_JCT,
         url=_JCX_35_25_URL,
         date=_JCX_35_25_DATE,
-        table=_jcx_table("Ch.1 Permanent Tax Relief"),
+        table=_jcx_table(_JCX_CH1),
         row=(
             "Extension and enhancement of increased standard deduction "
             "(item 2)"
@@ -1544,7 +1550,7 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
         publisher=_JCT,
         url=_JCX_35_25_URL,
         date=_JCX_35_25_DATE,
-        table=_jcx_table("Ch.1 Permanent Tax Relief"),
+        table=_jcx_table(_JCX_CH1),
         row=(
             "Termination of deduction for personal exemptions other than temporary senior deduction "
             "(item 3)"
@@ -1565,7 +1571,7 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
         publisher=_JCT,
         url=_JCX_35_25_URL,
         date=_JCX_35_25_DATE,
-        table=_jcx_table("Ch.1 Permanent Tax Relief"),
+        table=_jcx_table(_JCX_CH1),
         row=(
             "Extension and enhancement of increased child tax credit "
             "(item 4)"
@@ -1586,7 +1592,7 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
         publisher=_JCT,
         url=_JCX_35_25_URL,
         date=_JCX_35_25_DATE,
-        table=_jcx_table("Ch.1 Permanent Tax Relief"),
+        table=_jcx_table(_JCX_CH1),
         row=(
             "Extension and enhancement of deduction for qualified business income "
             "(item 5)"
@@ -1607,7 +1613,7 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
         publisher=_JCT,
         url=_JCX_35_25_URL,
         date=_JCX_35_25_DATE,
-        table=_jcx_table("Ch.1 Permanent Tax Relief"),
+        table=_jcx_table(_JCX_CH1),
         row=(
             "Extension and enhancement of increased estate and gift tax exemption amounts "
             "(item 6)"
@@ -1628,7 +1634,7 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
         publisher=_JCT,
         url=_JCX_35_25_URL,
         date=_JCX_35_25_DATE,
-        table=_jcx_table("Ch.1 Permanent Tax Relief"),
+        table=_jcx_table(_JCX_CH1),
         row=(
             "Extension of increased alternative minimum tax exemption amounts, modification of phaseout thresholds, and increased threshold phaseout rate "
             "(item 7)"
@@ -1649,7 +1655,7 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
         publisher=_JCT,
         url=_JCX_35_25_URL,
         date=_JCX_35_25_DATE,
-        table=_jcx_table("Ch.1 Permanent Tax Relief"),
+        table=_jcx_table(_JCX_CH1),
         row=(
             "Limitation on individual deductions for certain State and local taxes "
             "(item 20)"
