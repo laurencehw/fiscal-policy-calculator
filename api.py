@@ -396,11 +396,26 @@ class ScorecardEntryModel(BaseModel):
     direction_match: bool
     known_limitations: list[str] = Field(default_factory=list)
     notes: str = ""
-    # Where the *target* came from: line_item | secondhand | model_estimate |
-    # unclassified. Orthogonal to accuracy — see fiscal_model/validation/provenance.py.
+    # Where the *target* came from: line_item | line_item_differs | secondhand |
+    # model_estimate | unclassified. Orthogonal to accuracy — see
+    # fiscal_model/validation/provenance.py.
     provenance: str = "unclassified"
     # Whether the module carries a constant fitted to reproduce this target.
     calibrated_to_target: bool = True
+    # Table/row/page reference for a target transcribed from a primary document.
+    benchmark_table: str | None = None
+    # The figure the primary document actually prints, when it disagrees with
+    # official_10yr_billions. Set only for provenance == "line_item_differs":
+    # a sourcing pass records the gap, it never moves a calibrated target.
+    official_10yr_billions_line_item: float | None = None
+    # One line on what the transcription established, or what was searched.
+    sourcing_note: str = ""
+    # True when somebody opened the primary document and read the row, as
+    # opposed to the entry merely being *labelled* line_item from a deep link.
+    # Deliberately stricter than `provenance`, and the summary's
+    # `transcribed_entries` counts exactly these: without the per-entry flag a
+    # client could see the count but not which rows it refers to.
+    transcribed: bool = False
     evidence_type: str = "specialized_benchmark_comparison"
     holdout_status: str = "calibration_reference"
 
@@ -450,6 +465,13 @@ class ScorecardResponse(BaseModel):
     calibrated_provenance_breakdown: dict[str, int] = Field(default_factory=dict)
     calibrated_published_entries: int = 0
     calibrated_model_estimate_entries: int = 0
+    # Headline counts across both tiers. ``published_entries`` is what the app
+    # footer and the README quote; ``total_entries`` additionally includes the
+    # illustrations, which have no official score to be validated against.
+    published_entries: int = 0
+    model_estimate_entries: int = 0
+    transcribed_entries: int = 0
+    line_item_differs_entries: int = 0
     by_category: dict[str, ScorecardCategorySummary]
     entries: list[ScorecardEntryModel]
     issues: list[ScorecardIssueModel] = Field(default_factory=list)
@@ -906,6 +928,10 @@ def validation_scorecard():
         calibrated_provenance_breakdown=summary.calibrated_provenance_breakdown,
         calibrated_published_entries=summary.calibrated_published_entries,
         calibrated_model_estimate_entries=summary.calibrated_model_estimate_entries,
+        published_entries=summary.published_entries,
+        model_estimate_entries=summary.model_estimate_entries,
+        transcribed_entries=summary.transcribed_entries,
+        line_item_differs_entries=summary.line_item_differs_entries,
         by_category={
             cat: ScorecardCategorySummary(**sub) for cat, sub in summary.by_category.items()
         },

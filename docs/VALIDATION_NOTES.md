@@ -592,14 +592,20 @@ these rows as accuracy statements:
   base with no allowance for the Section 232 duties already in force; the auto
   case applies 22.5pp to $133B, which yields ~$25B/yr against a target implying
   ~$10B/yr.
-- **A bookkeeping defect in `app_data.py`.** `CBO_SCORE_MAP` keys the steel
-  preset as "25% Steel & Aluminum Tariff (-$60B)" while `PRESET_POLICIES` keys it
-  "25% Steel/Aluminum Tariff (-$15B)"; the reciprocal preset has the same
-  mismatch ("Reciprocal Tariffs (~20pp)" vs "Reciprocal Tariffs"). The two
-  dictionaries never join, so **the app shows no official score for either
-  preset**, and in the steel case the two figures in the repo differ by 4x.
-  The runners read the `CBO_SCORE_MAP` key deliberately; reconciling the keys
-  is an `app_data.py` change and was left out of this phase.
+- **A bookkeeping defect in `app_data.py` — fixed in the provenance pass.**
+  `CBO_SCORE_MAP` keyed the steel preset as "25% Steel & Aluminum Tariff
+  (-$60B)" while `PRESET_POLICIES` keyed it "25% Steel/Aluminum Tariff
+  (-$15B)"; the reciprocal preset had the same mismatch ("Reciprocal Tariffs
+  (~20pp)" vs "Reciprocal Tariffs"). The two dictionaries never joined, so **the
+  app showed no official score for either preset**, and in the steel case the
+  two figures differed by 4x. Both labels are now identical in both
+  dictionaries (steel on -$60B), the two `SCORE_ONLY_ALIAS_ID_BY_LABEL` aliases
+  that had been papering over the share-link half of the problem are gone, and
+  `tests/test_validation_runners.py` pins the join — plus the general form of
+  the rule, that no `CBO_SCORE_MAP` label may resolve to a preset id under a
+  different spelling. **Which figure is right remains unknown**: no Tax
+  Foundation or TPC publication states a 25%-rate steel-and-aluminium ten-year
+  estimate, and -$15B is annual-scale. See §8.3.
 
 ### 7.3 Drug pricing (3 cases, mean 1,394.1%, 0 fitted)
 
@@ -702,19 +708,219 @@ is a regression. Blocking on the reconstructions would have made deleting the
 runner the cheapest route back to green — precisely the incentive the
 pre-registration manifest exists to forbid.
 
-### 7.7 Provenance of the targets
+### 7.7 Provenance of the targets (as first labelled)
 
-Of the 46 calibrated-tier benchmarks: **4 `line_item`**, **31 `secondhand`**,
-**7 `model_estimate`**, **4 `unclassified`**. Only four benchmarks in the whole
-calibrated tier — CBO's May 2024 *Budgetary Outcomes Under Alternative
-Assumptions* ([pub. 60271](https://www.cbo.gov/publication/60271)) and the three
-capital-gains cases — cite a specific document; every sectoral target added in
-this phase is a rounded headline figure or an explicit model estimate. Labels
-are assigned in `fiscal_model/validation/provenance.py`, either declared by the
-runner or inferred from the record's own source string, URL and the roundness
-of the target, and are never guessed: a record that does not unambiguously fall
-into a bucket stays `unclassified` until someone finds the table.
+Of the 46 calibrated-tier benchmarks, the *inference* pass found: **4
+`line_item`**, **31 `secondhand`**, **7 `model_estimate`**, **4
+`unclassified`**. Only four benchmarks in the whole calibrated tier — CBO's May
+2024 *Budgetary Outcomes Under Alternative Assumptions*
+([pub. 60271](https://www.cbo.gov/publication/60271)) and the three
+capital-gains cases — cited a specific document; every sectoral target added in
+that phase was a rounded headline figure or an explicit model estimate. Labels
+are assigned in `fiscal_model/validation/provenance.py`, either declared or
+inferred from the record's own source string, URL and the roundness of the
+target, and are never guessed.
 
+That pass could tell a rounded headline from a citation. It could not tell
+whether the row being cited exists — which is a different question, and §8 is
+what happened when someone asked it. **Post-transcription the breakdown is 9 /
+15 / 15 / 7 / 0** (`line_item` / `line_item_differs` / `secondhand` /
+`model_estimate` / `unclassified`) across those same 46.
+
+Phase D's eight P.L. 119-21 line items then joined the tier already
+transcribed — their targets *are* JCT's rows, extracted with page references
+into `pl119_21_jct_line_items.csv` — so the live calibrated breakdown over 54
+benchmarks is **17 / 15 / 15 / 7 / 0**, of which **28 have actually been read
+out of a document** and 4 are the cited-but-unread backlog below. Across both
+tiers the scorecard holds 79 rows, 72 of them against a published figure.
+
+---
+
+## 8. Phase E provenance pass — per-target sourcing notes
+
+§7.7 counted labels that were *inferred* from each record's own source string,
+URL and roundness. This section records what happened when somebody opened the
+documents. Full transcriptions — document, table, row, page, date, figure — are
+in [`fiscal_model/validation/benchmark_sources.py`](../fiscal_model/validation/benchmark_sources.py);
+this is the compact index, and the notes below are the parts that are not
+obvious from the figures.
+
+**Rule applied throughout:** `line_item_differs` requires the source to score
+the *same policy definition*, just with a different number. Where the primary
+document scores a materially different instrument — a different rate, a
+different cap design, a bundle of provisions — the record stays `secondhand`
+and the search record names the nearest published row instead. Calling another
+policy's number "the line item" would be worse than having no citation.
+
+**Access caveat.** `cbo.gov` returns HTTP 403 to every non-browser client
+(bot challenge), on every path and user-agent, and `web.archive.org` was
+unreachable. Several CBO figures were therefore read from a *published document
+quoting the CBO table verbatim* — usually a CRS report, which names the CBO
+publication in its own source note. Those rows cite what was actually read.
+
+### 8.1 Confirmed (9 calibrated + 1 out-of-sample)
+
+| Benchmark | Target | Published | Document |
+|---|--:|--:|---|
+| Biden corporate 28% | -$1,347B | $1,349,941M | FY2025 Green Book, report p. 239 |
+| Extend TCJA estate exemption | $167B | $166.9B | CRS R48286 Table 1 (CBO pub 60114) |
+| Repeal corporate AMT | $220B | $222,248M | JCX-18-22 p. 1 — **JCT's estimate, not CBO's** |
+| SS cap to 90% of earnings | -$800B | $804.9B | CBO Options 2019-2028, budget-options 54806 |
+| Expand NIIT to pass-through | -$250B | $252,163M | JCX-46-21 p. 6 (Build Back Better) |
+| Treasury 39.6% + step-up repeal | -$322B | $322,485M | FY2022 Green Book, report p. 105 |
+| TCJA full extension | $4,600B | — | CBO pub 60271: cited, **not re-transcribed** (cbo.gov blocked) |
+| CBO +2pp all brackets | -$70B | — | budget-options 54788: cited, not re-transcribed |
+| PWBM 39.6% with / without step-up | $33B / -$113B | — | PWBM April 2021 brief: cited, not re-transcribed |
+
+The last four are the remaining calibrated backlog: they carry a deep link to a
+real document, which the first Phase E pass took as evidence of a table row,
+but nobody has read the row. They are enumerated in
+`tests/test_validation_runners.py::CITED_BUT_NOT_TRANSCRIBED` and the set may
+shrink, never grow. `ScorecardEntry.transcribed` is deliberately stricter than
+the `line_item` label for exactly this reason.
+
+Phase D's three enacted-law components — the Social Security Fairness Act's
+WEP/GPO repeal, the Fiscal Responsibility Act's discretionary caps and IIJA's
+discretionary component — join that backlog on the out-of-sample side, for the
+same access reason: their targets are unrounded to three decimals and the
+manifest notes quote the estimates' own outlay paths, so the tables were read
+when the targets were entered, but all three cbo.gov deep links still return
+HTTP 403 and this pass could not re-open them to record a row.
+
+Notes worth carrying:
+
+- **SS cap to 90%** is the *2018* volume ($804.9B revenue, $785.1B deficit
+  effect). CBO's 2024 volume scores the same option at $727.6B — 10.6% lower,
+  which is about the size of the residual the payroll module is asked to close.
+- **Repeal corporate AMT** and **repeal EV credits** were both attributed to CBO
+  and are both JCT estimates. Corrected in `CBO_SCORE_MAP` and in the scenario
+  registries.
+- **Treasury 39.6% + step-up repeal** confirms the *shape*, not only the number:
+  FY2022 Green Book footnote 1 states that "a separate proposal would first
+  increase the top ordinary individual income tax rate to 39.6 percent (43.4
+  percent including the net investment income tax)", so this row's incremental
+  rate really is 23.8% → 43.4%, the +19.6pp the record already carried.
+
+### 8.2 Transcribed and different — the owner-decision list
+
+The full table with deltas is in [VALIDATION.md](VALIDATION.md#line_item_differs--the-transcription-disagrees-with-the-target-owner-decisions).
+Five are worth more than a row:
+
+1. **Universal insulin cap: the sign is inverted.** CBO's estimate for H.R. 6833
+   (pub. 57957) is **+$6.566B of outlays and -$4.793B of revenues** over
+   FY2022-2031 — about **+$11.4B added to the deficit**, because capping a
+   patient's cost sharing reallocates cost to plans and to the federal subsidy
+   for them. The repository carries -$15B as a saving. §7.3 already identified
+   the model side of this as an incidence bug; the target has the same bug.
+   The row's 2,869% "error" is measured against a benchmark pointing the wrong
+   way, so it cannot be read as an accuracy statement in either direction.
+2. **Extend TCJA AMT relief looks like a window error.** The published ten-year
+   cost is $1,357.1B; the *five*-year cost is $466.2B; the repository carries
+   $450B. A five-year figure sitting in a ten-year column would explain it
+   exactly. Not corrected here — the AMT module's annual is fitted to $450B, so
+   moving the target means retuning the module.
+3. **Repeal FDII nets to zero as Treasury scores it.** Gross repeal raises
+   $157,993M, and Treasury pairs it one-for-one with "Provide additional support
+   for research and development expenditures" (-$157,993M), printing an explicit
+   subtotal of $0 — in FY2022, FY2024 and FY2025 alike. The module scores repeal
+   *without* the offset, i.e. the gross row, so -$200B matches neither.
+4. **Pillar Two's sign depends on a condition nobody states.** JCT's
+   revenue-raising scenarios assume the **rest of the world does not enact**.
+   Under the scenario that actually obtains — everyone enacts — JCT scores US
+   adoption at **-$56.5B of receipts**, a loss. The module's -$61B against a
+   -$80B target looked like a 23.5% miss; the more useful reading is that the
+   benchmark's sign is conditional.
+5. **The estate benchmark was attributed to the wrong agency and the wrong
+   policy.** No Biden Green Book (FY2022, FY2024, FY2025) proposes a $3.5M
+   exemption or a 45% rate — the FY2025 volume's entire estate section is
+   administrative and anti-abuse, subtotal $97,221M. The design is the "For the
+   99.5 Percent Act", scored by JCT at $429.6B over FY2021-2031 — for the whole
+   ten-section bill, including graduated 50/55/65% brackets, grantor-trust
+   step-up denial, valuation-discount limits and GST changes. So $429.6B is an
+   upper bound on what the exemption-and-rate change alone scores, and the
+   repository's -$450B is above it.
+
+### 8.3 Searched and not found
+
+Fifteen calibrated targets stayed `secondhand`. Each carries a `searched`
+record; the four structural ones:
+
+- **The two Social Security payroll targets have no dollar source.** OCACT does
+  score both provisions — E2.1 (eliminate the taxable maximum) and E2.5 (tax
+  earnings above $250,000) — on the 2025 Trustees basis, and publishes **only
+  percent-of-taxable-payroll and trust-fund dates**: +2.55% and +2.50% of
+  payroll, depletion moving from 2034 to 2059 and 2057. No ten-year dollar
+  figure exists at OCACT for any payroll provision, so "-$3.2T / -$2.7T
+  (Social Security Trustees)" cannot be what it says it is. The "$2.7 trillion
+  over 10 years" traces to a think-tank explainer with no report year and no
+  run number. CBO's figures for the same designs are roughly half: $1,222.6B
+  (2018 volume) and $1,426.8B (2024 volume, Option 62).
+- **`repeal_ira_credits` cites a CBO document that does not appear to exist.**
+  JCT's original score is -$205.2B (JCX-18-22, Subtitle D) and its score of the
+  enacted terminations is $499.1B (JCX-35-25). The -$783B most plausibly comes
+  from CRFB reading CBO's 2024 baseline ("closer to $800 billion" through 2033
+  absent the EPA rule) — a projection of what the credits will *cost*, not a
+  scored repeal. Since the climate module's annual constant is this target
+  restated, the row's 0.0% error was never evidence of anything, and now the
+  target is not evidence either.
+- **`cap_employer_health` scores a cap design nobody has published.** Every
+  published option caps the exclusion at a *percentile of premiums*, which in
+  dollars is far below the record's "$50K": CBO's 2013 volume caps at $6,420
+  individual / $15,620 family. Across four CBO volumes the alternatives run
+  -$174B to -$965B; -$450B sits inside that spread and matches no alternative in
+  any of them.
+- **`cap_charitable` points at a real proposal that is not a charitable cap.**
+  The Obama-era 28% limitation is a genuine Green Book row with a genuine score
+  ($645,538M over FY2017-2026), but it limits the value of *all itemized
+  deductions* plus municipal-bond interest, employer health coverage, retirement
+  contributions, HSAs and student-loan interest. Scoring a charitable-only cap
+  against a figure three times larger and mostly driven by other provisions
+  would be worse than leaving it unsourced.
+
+### 8.4 Out-of-sample: one retirement, one re-sourcing, two open questions
+
+- **`top_rate_45` retired.** TPC's full sitemap was enumerated (11 sub-sitemaps,
+  ~20,600 URLs, ~6,500 model-estimate pages): no table for a 45% ordinary rate
+  exists at any date. CBO and JCT publish no +8pp top-bracket option. PWBM
+  (May 2025) brackets the range at $401.6B (revert the top bracket to 39.6%) and
+  $222.4B (new 39.6% bracket above $1M), making -$420B for +8pp above $609,350
+  implausibly *low*. Withdrawn with the search recorded, and the unsourced
+  figure removed from `CBO_SCORE_MAP` so the app stops quoting it.
+- **`biden_capital_gains_39` re-sourced, and it now scores worse.** -$456B is in
+  no Treasury volume; the FY2025 Green Book's combined "Reform the taxation of
+  capital income" row is $288,583M and Treasury never splits the rate change
+  from the realization-at-death change. The manifest row is superseded
+  (`.v1` → `.v2`) and the shape corrected to the source's definition — taxable
+  income over $1M, $5M per-donor exclusion — moving the prediction from -$817B
+  to -$699B against a smaller target: **79% → 142%**. Across four Green Books the
+  same row reads $322,485M → $174,488M → $213,855M → $288,583M, so the 42% gap
+  Phase A flagged between this and the FY2022 case was not two estimates
+  disagreeing; one of them was never published.
+- **Open: `illustrative_top_rate_5pp` (-$700B)** — no TPC table states it, and
+  the record calls itself illustrative. PWBM scores a smaller change on the same
+  threshold at $222.4B.
+- **Open: `warren_ultramillionaire_surtax_3pp` (-$350B)** — TPC's only AGI-surtax
+  table, T19-0037 (23 September 2019), scores a **10pp** surtax on AGI over $2M
+  at $585.3B, i.e. ~$58.5B per percentage point, implying ~$175B for 3pp. The
+  table does confirm the record's `agi_inclusive_base=True` flag.
+- **Open: `biden_high_income_tax` (-$252B)** — published at $245,924M (2.5%).
+  Pre-registered targets are frozen, so correcting it needs a new manifest row.
+
+### 8.5 What this changes about the headline
+
+Nothing about the model, and quite a lot about how its errors should be read.
+The calibrated tier's 2.7% is measured against 46 targets of which 15 are now
+known to disagree with the document they cite, one in sign, and 15 more cannot
+be traced to a document at all. An error against a target that is itself wrong
+is not an accuracy statement, and the scorecard now says which rows those are
+rather than leaving a reader to assume all 46 are equally solid.
+
+The headline counts moved too: `published_entries` replaces `total_entries`
+everywhere a sentence ends "validated against CBO/JCT", because the seven
+illustrations have no CBO/JCT number to be validated against. Phase E left that
+at 61 of 68 rows; merged with Phase D's additions it reads **72 of 79**. Both
+numbers are computed live, so no document should ever restate them without
+running `scripts/run_validation_dashboard.py` first.
 ---
 
 ## 8. P.L. 119-21 — sourcing the first line-item block (Phase D)

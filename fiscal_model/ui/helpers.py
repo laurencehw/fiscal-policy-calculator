@@ -24,18 +24,29 @@ def escape_markdown_dollars(text: str) -> str:
 
 
 def validated_policy_count() -> int:
-    """Count of CBO/JCT-validated benchmark entries, from the scorecard.
+    """Count of benchmark entries scored against a *published* figure.
 
     The footer, welcome text, and scorecard used to quote three different
     hardcoded numbers (25 / 25+ / 33). Everything now reads the same
     computed source the Validation Scorecard tab reports.
+
+    Phase E §5.2: this reads ``published_entries``, not ``total_entries``.
+    The scorecard also carries *illustrations* — policy shapes for which no
+    official score exists at all, compared against a model estimate — and
+    counting those inside a sentence ending "validated against CBO/JCT"
+    would make a claim about exactly the rows that have no CBO/JCT number.
+
+    Returns **0** when the scorecard cannot be computed, and callers must drop
+    the whole clause rather than print a zero. The fallback used to be a
+    hard-coded 25, which asserted validation coverage at precisely the moment
+    the thing that measures it had failed.
     """
     try:
         from fiscal_model.validation.scorecard import cached_default_scorecard
 
-        return int(cached_default_scorecard().total_entries)
+        return int(cached_default_scorecard().published_entries)
     except Exception:
-        return 25
+        return 0
 
 # ── Textbook links ──────────────────────────────────────────────────────
 # NOTE: "public-economcis" is the actual GitBook slug (intentional spelling).

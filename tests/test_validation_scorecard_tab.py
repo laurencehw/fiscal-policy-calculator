@@ -82,3 +82,60 @@ def test_render_validation_scorecard_tab_handles_compute_failure(monkeypatch):
     st_mock = MagicMock()
     render_validation_scorecard_tab(st_mock)
     assert st_mock.error.called
+
+
+def test_unsourced_entries_get_their_own_table():
+    """An entry whose provenance was never established is in neither the
+    published table nor the illustrations table. It must still be rendered,
+    or a future sourcing gap would silently vanish from the tab."""
+    from fiscal_model.ui.tabs.validation_scorecard import (
+        _render_unsourced_table,
+        unsourced_entries,
+    )
+    from fiscal_model.validation.scorecard import ScorecardSummary
+
+    entry = _make_entry(policy_id="mystery", provenance="unclassified")
+    summary = ScorecardSummary(
+        total_entries=1,
+        within_5pct=1,
+        within_10pct=1,
+        within_15pct=1,
+        within_20pct=1,
+        direction_match=1,
+        poor=0,
+        mean_abs_percent_difference=4.0,
+        median_abs_percent_difference=4.0,
+        ratings_breakdown={"Excellent": 1},
+        by_category={},
+        entries=[entry],
+    )
+
+    assert [e.policy_id for e in unsourced_entries(summary)] == ["mystery"]
+
+    st_mock = MagicMock()
+    _render_unsourced_table(st_mock, summary)
+    assert st_mock.subheader.called
+    assert st_mock.dataframe.called
+
+
+def test_unsourced_table_is_skipped_when_the_bucket_is_empty():
+    from fiscal_model.ui.tabs.validation_scorecard import _render_unsourced_table
+    from fiscal_model.validation.scorecard import ScorecardSummary
+
+    summary = ScorecardSummary(
+        total_entries=0,
+        within_5pct=0,
+        within_10pct=0,
+        within_15pct=0,
+        within_20pct=0,
+        direction_match=0,
+        poor=0,
+        mean_abs_percent_difference=0.0,
+        median_abs_percent_difference=0.0,
+        ratings_breakdown={},
+        by_category={},
+        entries=[_make_entry(provenance="line_item")],
+    )
+    st_mock = MagicMock()
+    _render_unsourced_table(st_mock, summary)
+    assert not st_mock.subheader.called

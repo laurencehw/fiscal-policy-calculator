@@ -76,10 +76,20 @@ def test_promoted_preset_targets_are_registered_as_generic():
     generic = {s.policy_id for s in get_validation_targets()}
     for policy_id in (
         "warren_ultramillionaire_surtax_3pp",
-        "top_rate_45",
         "medicare_surcharge_2pp",
     ):
         assert policy_id in generic
+
+
+def test_retired_target_is_not_dispatched():
+    """``top_rate_45`` was promoted in Phase A and retired in Phase E: its
+    -$420B target is in no TPC, CBO or JCT publication. The record stays in
+    KNOWN_SCORES so the withdrawal is visible in the diff, but it must not be
+    scored."""
+    record = KNOWN_SCORES["top_rate_45"]
+    assert not record.runnable
+    assert record.not_runnable_reason and "RETIRED" in record.not_runnable_reason
+    assert "top_rate_45" not in {s.policy_id for s in get_validation_targets()}
 
 
 def test_biden_2025_preset_is_not_double_registered():

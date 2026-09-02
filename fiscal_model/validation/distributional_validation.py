@@ -30,6 +30,13 @@ class DistributionalBenchmark:
     quintile_data: dict[str, tuple]
 
     notes: str = ""
+    #: Whether a published distributional table stands behind these numbers.
+    #: ``False`` marks an *illustration*: the shares were reasoned from an
+    #: incidence assumption plus a concentration statistic rather than copied
+    #: from an agency table, so agreeing with them measures internal
+    #: consistency, not accuracy. Illustrations are kept and labelled but
+    #: excluded from every count (``planning/VALIDATION_EXPANSION.md`` §5.2).
+    is_published: bool = True
 
 
 # =============================================================================
@@ -96,6 +103,7 @@ TPC_CORPORATE_RATE_INCREASE = DistributionalBenchmark(
     with the top 1% alone bearing ~35-40%. Shares sum to 1.0 and are the
     validated metric; dollar averages are illustrative.
     """,
+    is_published=False,
 )
 
 
@@ -119,6 +127,7 @@ TPC_CAPITAL_GAINS_INCREASE = DistributionalBenchmark(
     rate increase. This benchmark validates that the model reproduces that
     concentration; the bottom four quintiles should collectively bear <5%.
     """,
+    is_published=False,
 )
 
 
@@ -144,6 +153,25 @@ DISTRIBUTIONAL_BENCHMARKS: dict[str, DistributionalBenchmark] = {
     "tcja_2027": TPC_TCJA_2027,
     "corporate_rate_increase": TPC_CORPORATE_RATE_INCREASE,
     "capital_gains_increase": TPC_CAPITAL_GAINS_INCREASE,
+}
+
+#: The benchmarks backed by a *published* distributional table. Plan §5.2:
+#: the corporate and capital-gains entries above are reasoned illustrations,
+#: not TPC tables, and counting them as benchmarks overstated the
+#: distributional evidence base by half. Callers that report "n distributional
+#: benchmarks" must iterate this dict; ``DISTRIBUTIONAL_BENCHMARKS`` stays the
+#: full set so the illustrations remain runnable and visible.
+PUBLISHED_DISTRIBUTIONAL_BENCHMARKS: dict[str, DistributionalBenchmark] = {
+    key: bench
+    for key, bench in DISTRIBUTIONAL_BENCHMARKS.items()
+    if bench.is_published
+}
+
+#: The complement: kept, labelled, never counted.
+ILLUSTRATIVE_DISTRIBUTIONAL_BENCHMARKS: dict[str, DistributionalBenchmark] = {
+    key: bench
+    for key, bench in DISTRIBUTIONAL_BENCHMARKS.items()
+    if not bench.is_published
 }
 
 

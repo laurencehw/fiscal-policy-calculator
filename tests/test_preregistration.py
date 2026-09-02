@@ -99,7 +99,39 @@ def test_one_live_row_per_policy():
 def test_superseded_rows_point_at_an_existing_row():
     ids = {case.case_id for case in PREREGISTERED_CASES}
     for case in superseded_cases():
+        if case.retired:
+            # Withdrawn, not replaced: there is no successor row to point at.
+            continue
         assert case.superseded_by in ids
+
+
+def test_retired_rows_say_why_and_are_not_live():
+    """A case can leave the honest tier only by saying what was searched.
+    Silently dropping a badly-scoring target is the failure mode this guards."""
+    from fiscal_model.validation.preregistered import retired_cases
+
+    retired = retired_cases()
+    assert retired, "expected at least one retired row (top_rate_45.v1)"
+    for case in retired:
+        assert not case.is_live
+        assert case.superseded_by is None
+        assert len(case.retired_reason.strip()) > 80, (
+            f"{case.case_id} was withdrawn with a one-line excuse"
+        )
+
+
+def test_retired_row_without_a_reason_is_rejected(monkeypatch):
+    import fiscal_model.validation.preregistered as prereg
+
+    tampered = tuple(
+        replace(case, retired=True, retired_reason="")
+        if case.policy_id == "medicare_surcharge_2pp"
+        else case
+        for case in PREREGISTERED_CASES
+    )
+    monkeypatch.setattr(prereg, "PREREGISTERED_CASES", tampered)
+    problems = prereg.manifest_problems(SimpleNamespace(entries=[]))
+    assert any("retired with no retired_reason" in p for p in problems)
 
 
 # ── The manifest must actually catch violations ────────────────────────────
@@ -130,7 +162,7 @@ def test_edited_manifest_target_is_rejected(monkeypatch):
 
     tampered = tuple(
         replace(case, official_10yr_billions=case.official_10yr_billions * 1.1)
-        if case.policy_id == "top_rate_45"
+        if case.policy_id == "medicare_surcharge_2pp"
         else case
         for case in PREREGISTERED_CASES
     )
@@ -143,8 +175,10 @@ def test_edited_manifest_target_is_rejected(monkeypatch):
 def test_duplicate_live_rows_are_rejected(monkeypatch):
     import fiscal_model.validation.preregistered as prereg
 
-    original = next(c for c in PREREGISTERED_CASES if c.policy_id == "top_rate_45")
-    duplicate = replace(original, case_id="top_rate_45.v2")
+    original = next(
+        c for c in PREREGISTERED_CASES if c.policy_id == "medicare_surcharge_2pp"
+    )
+    duplicate = replace(original, case_id="medicare_surcharge_2pp.v2")
     monkeypatch.setattr(
         prereg, "PREREGISTERED_CASES", (*PREREGISTERED_CASES, duplicate)
     )

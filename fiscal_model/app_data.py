@@ -84,8 +84,14 @@ CBO_SCORE_MAP = {
     },
     "🏠 Biden Estate Reform (-$450B)": {
         "official_score": -450.0,
-        "source": "Treasury",
-        "source_date": "2024",
+        # Re-attributed in the Phase E provenance pass. No Biden Green Book
+        # (FY2022, FY2024, FY2025) proposes a \\$3.5M exemption or a 45% rate —
+        # the FY2025 volume's whole estate section is administrative. The design
+        # is the "For the 99.5 Percent Act", which JCT scored at \\$429.6B over
+        # FY2021-2031 (for the entire ten-section bill, not the rate alone).
+        "source": "JCT (For the 99.5 Percent Act)",
+        "source_date": "March 2021",
+        "source_url": "https://www.sanders.senate.gov/wp-content/uploads/For-the-99.5-Act-JCT-Score.pdf",
         "notes": "Return to 2009 parameters: \\$3.5M exemption, 45% rate",
     },
     "🏠 Eliminate Estate Tax ($350B)": {
@@ -134,8 +140,11 @@ CBO_SCORE_MAP = {
     },
     "⚖️ Repeal Corporate AMT (-$220B)": {
         "official_score": -220.0,
-        "source": "CBO",
-        "source_date": "2024",
+        # JCX-18-22 scores CAMT as enacted at \\$222,248M over FY2022-2031. The
+        # estimate is JCT's, not CBO's.
+        "source": "JCT (JCX-18-22)",
+        "source_date": "August 2022",
+        "source_url": "https://www.jct.gov/getattachment/efcca154-9fc1-4e72-83c0-d78b9e7372eb/x-18-22.pdf",
         "notes": "Repeal 15% corporate book minimum tax (CAMT)",
     },
     # Premium Tax Credits
@@ -203,13 +212,14 @@ CBO_SCORE_MAP = {
         "source_url": "https://www.taxpolicycenter.org/",
         "notes": "3pp surtax on AGI >\\$2M; TPC-range estimate",
     },
-    "Top Rate to 45%": {
-        "official_score": -420.0,
-        "source": "TPC",
-        "source_date": "2023",
-        "source_url": "https://www.taxpolicycenter.org/",
-        "notes": "Raise top marginal rate from 37% to 45%; TPC-range estimate",
-    },
+    # "Top Rate to 45%" used to sit here with an "official_score" of -$420B
+    # attributed to TPC. The Phase E provenance pass enumerated TPC's entire
+    # sitemap and found no table for a 45% ordinary rate at any date, and no
+    # CBO or JCT option for an +8pp top-bracket increase either. An official
+    # score nobody published should not be quoted in the app, so the entry was
+    # removed; the preset itself is unchanged and still scoreable, it simply
+    # shows the model's own estimate with no official comparison. See
+    # fiscal_model/validation/preregistered.py (top_rate_45.v1, retired).
     "High-Earner Medicare Surcharge 2pp": {
         "official_score": -310.0,
         "source": "Treasury",
@@ -293,13 +303,13 @@ CBO_SCORE_MAP = {
         "source_date": "2024",
         "notes": "25% tariff on auto imports",
     },
-    "🏭 25% Steel & Aluminum Tariff (-$60B)": {
+    "🏭 25% Steel/Aluminum Tariff (-$60B)": {
         "official_score": -60.0,
         "source": "Tax Foundation",
         "source_date": "2024",
         "notes": "25% tariff on steel and aluminum imports",
     },
-    "🏭 Reciprocal Tariffs (~20pp) (-$1.2T)": {
+    "🏭 Reciprocal Tariffs (-$1.2T)": {
         "official_score": -1200.0,
         "source": "Tax Foundation / Yale Budget Lab",
         "source_date": "2024",
@@ -320,8 +330,13 @@ CBO_SCORE_MAP = {
     },
     "🌱 Repeal EV Credits ($200B)": {
         "official_score": -200.0,
-        "source": "CBO",
-        "source_date": "2024",
+        # Re-attributed in the Phase E provenance pass: the only published
+        # score of terminating the clean-vehicle credits is JCT's, not CBO's.
+        # JCX-35-25 puts sec. 30D + sec. 45W at \\$182.3B over FY2025-2034
+        # (\\$189.8B including the used-vehicle credit, sec. 25E).
+        "source": "JCT (JCX-35-25)",
+        "source_date": "July 2025",
+        "source_url": "https://www.jct.gov/getattachment/eb21dc77-6439-4fc3-8f5d-fc23a8c377e0/x-35-25.pdf",
         "notes": "Repeal \\$7,500 EV tax credit",
     },
 }
@@ -593,7 +608,11 @@ PRESET_POLICIES = {
         "description": (
             "Raise the top marginal rate from 37% to 45% on income above "
             "the current 37% bracket floor (\\$609,350 single, 2025). "
-            "Illustrative of the upper end of progressive proposals."
+            "Illustrative of the upper end of progressive proposals. "
+            "**No official score**: the \\$420B figure this preset used to "
+            "quote could not be traced to any TPC, CBO or JCT publication and "
+            "was withdrawn in the Phase E provenance pass, so the model's own "
+            "estimate is the only number shown."
         ),
         "is_tcja": False,
         "ui_category": "Income Tax",
@@ -725,7 +744,7 @@ PRESET_POLICIES = {
         "is_trade": True,
         "trade_type": "auto_25",
     },
-    "🏭 25% Steel/Aluminum Tariff (-$15B)": {
+    "🏭 25% Steel/Aluminum Tariff (-$60B)": {
         "rate_change": 0.0,
         "threshold": 0,
         "description": "25% tariff on steel and aluminum imports (~\\$50B base).",

@@ -58,19 +58,24 @@ def _render_head_metadata(st_module: Any) -> None:
         # longer uses a global sidebar, but Classroom Mode still renders one.
         initial_sidebar_state="auto",
     )
+    _blurb = (
+        "Estimate the budgetary impact of tax and spending proposals. "
+        "Policies benchmarked against published CBO, JCT, Treasury and "
+        "think-tank scores."
+    )
     try:
         from fiscal_model.ui.helpers import validated_policy_count
 
-        _blurb = (
-            "Estimate the budgetary impact of tax and spending proposals. "
-            f"{validated_policy_count()} policies benchmarked against "
-            "CBO/JCT/Treasury scores."
-        )
+        # 0 means the scorecard could not be computed. Say nothing about
+        # coverage rather than print a number the scorecard cannot back.
+        if (_n := validated_policy_count()) > 0:
+            _blurb = (
+                "Estimate the budgetary impact of tax and spending proposals. "
+                f"{_n} policies benchmarked against published CBO, JCT, "
+                "Treasury and think-tank scores."
+            )
     except Exception:
-        _blurb = (
-            "Estimate the budgetary impact of tax and spending proposals. "
-            "Policies benchmarked against CBO/JCT/Treasury scores."
-        )
+        pass
     st_module.markdown(
         f"""
         <meta name="description" content="{_blurb}">

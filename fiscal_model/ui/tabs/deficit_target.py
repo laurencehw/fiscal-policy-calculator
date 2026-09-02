@@ -86,13 +86,18 @@ SIGN_CONVENTION = (
 )
 
 # ── Catalog assembly ─────────────────────────────────────────────────────
-# Four ``CBO_SCORE_MAP`` entries are score-only: they carry an official number
-# but have no ``PRESET_POLICIES`` row, so ``preset_ids`` has no slug for them.
-# Two are genuinely new options (the mortgage and SALT deduction repeals) and
-# get a Build-local id; two are alternative estimates of instruments that *do*
-# have a slug, so they reuse it and inherit its exclusivity. Build-local ids are
-# still stable — they ship in share URLs — they just are not in the registry
-# because the registry is keyed on presets the scoring engine can run.
+# Two ``CBO_SCORE_MAP`` entries are score-only: they carry an official number
+# but have no ``PRESET_POLICIES`` row, so ``preset_ids`` has no slug for them,
+# and they get a Build-local id here. Build-local ids are still stable — they
+# ship in share URLs — they just are not in the registry because the registry
+# is keyed on presets the scoring engine can run.
+#
+# There used to be four. The other two were the steel/aluminium and reciprocal
+# tariffs, which are *not* score-only at all: they have PRESET_POLICIES rows,
+# and only a label spelling mismatch between the two dictionaries made them
+# look score-only (and, more damagingly, left both presets showing no official
+# score in the app). The labels were reconciled in the Phase E provenance
+# pass, so those two now resolve through the normal catalog path.
 _SCORE_ONLY_ENTRIES: dict[str, dict[str, str]] = {
     "📋 Eliminate Mortgage Deduction (-$300B)": {
         "build_id": "mortgage-deduction-eliminate",
@@ -101,14 +106,6 @@ _SCORE_ONLY_ENTRIES: dict[str, dict[str, str]] = {
     "📋 Eliminate SALT Deduction (-$1.2T)": {
         "build_id": "salt-deduction-eliminate",
         "area": "Tax Expenditures",
-    },
-    "🏭 25% Steel & Aluminum Tariff (-$60B)": {
-        "build_id": "tariff-steel-aluminum-25pct",
-        "area": "Trade / Tariffs",
-    },
-    "🏭 Reciprocal Tariffs (~20pp) (-$1.2T)": {  # tilde-ok: catalog label key
-        "build_id": "tariff-reciprocal",
-        "area": "Trade / Tariffs",
     },
 }
 
