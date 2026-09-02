@@ -19,6 +19,7 @@ fiscal_model/uncertainty.py
 fiscal_model/international.py
 fiscal_model/enforcement.py
 fiscal_model/ptc.py
+fiscal_model/tax_expenditure_distributions.py
 fiscal_model/tax_expenditures.py
 fiscal_model/tax_expenditures_core.py
 fiscal_model/tax_expenditures_factory.py

@@ -31,7 +31,7 @@ path each caller takes.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 
@@ -142,7 +142,11 @@ EXPENDITURE_HELD_OUT_MODE = EXPENDITURE_MODE_DERIVED
 # the expenditure, with the statute that created it and the year through which
 # it binds. ``annual_cost`` is then the expenditure *with* the limit in force
 # and ``unlimited_cost_key`` points at the level without it.
-JCT_TAX_EXPENDITURES = {
+#
+# Annotated because the records are now heterogeneous — floats alongside the
+# ``base_distribution`` and ``limitation`` objects — so an inferred value type
+# of ``object`` would make every ``record["annual_cost"]`` a type error.
+JCT_TAX_EXPENDITURES: dict[str, dict[str, Any]] = {
     "employer_health": {
         "annual_cost": 250.0,
         "affected_millions": 155.0,
@@ -445,17 +449,19 @@ class TaxExpenditurePolicy(TaxPolicy):
 
     def _share_of_benefit_above_cap(self, data: dict) -> float:
         """Share of the expenditure's value denied by this policy's cap."""
+        # A cap of zero denies the whole benefit, and an absent one is treated
+        # the same way, so every unit answers a zero cap identically.
+        cap_amount = float(self.cap_amount) if self.cap_amount is not None else 0.0
+
         if self.cap_rate is None and self.cap_unit is CapUnit.BENEFIT_DOLLARS:
             # The old rule, now reachable only by asking for it by name. It
             # needs no distribution, which is exactly why it was wrong.
-            if self.cap_amount == 0:
-                # A cap of zero denies the whole benefit, which is what the
-                # other two paths return for the same input.
+            if cap_amount == 0:
                 return 1.0
-            avg_benefit = data.get("avg_benefit", 2000)
-            if self.cap_amount >= avg_benefit:
-                return 0.1 * (avg_benefit / self.cap_amount)
-            return 0.3 + 0.4 * (1 - self.cap_amount / avg_benefit)
+            avg_benefit = float(data.get("avg_benefit", 2000))
+            if cap_amount >= avg_benefit:
+                return 0.1 * (avg_benefit / cap_amount)
+            return 0.3 + 0.4 * (1 - cap_amount / avg_benefit)
 
         spec = self._base_distribution_spec(data)
         if spec is None:
@@ -475,13 +481,13 @@ class TaxExpenditurePolicy(TaxPolicy):
             )
         if spec["kind"] == "premium":
             return load_premium_distribution().base_share_above(
-                self.cap_amount,
+                cap_amount,
                 year=self.start_year,
                 growth_rate=data.get("growth_rate", 0.03),
                 caps_by_tier=self.caps_by_coverage_tier,
             )
         return load_deduction_distribution(spec["column"]).benefit_share_above_amount(
-            self.cap_amount
+            cap_amount
         )
 
     def estimate_static_revenue_effect(
