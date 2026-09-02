@@ -210,7 +210,6 @@ class TestProvenanceSidecar:
         output.write_text("id\n1\n", encoding="utf-8")
         sidecar = write_provenance(
             output,
-            data_dir=str(tmp_path),
             summary={"records_created": 1.0},
             warnings=["a warning"],
         )
@@ -224,9 +223,7 @@ class TestProvenanceSidecar:
     def test_sidecar_is_valid_json_with_a_trailing_newline(self, tmp_path):
         output = tmp_path / "x.csv"
         output.write_text("id\n", encoding="utf-8")
-        sidecar = write_provenance(
-            output, data_dir=str(tmp_path), summary={}, warnings=[]
-        )
+        sidecar = write_provenance(output, summary={}, warnings=[])
         text = sidecar.read_text(encoding="utf-8")
         assert text.endswith("\n")
         json.loads(io.StringIO(text).read())

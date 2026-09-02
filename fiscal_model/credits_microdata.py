@@ -114,28 +114,31 @@ class CreditSchedule:
     #: Reform-dict entries handed straight to ``MicroTaxCalculator``.
     params: dict[str, float | bool | int] = field(default_factory=dict)
 
-    def grown(self, factor: float, *, grow_eitc: bool = True) -> CreditSchedule:
+    #: Dollar parameters the statute indexes for inflation, and which therefore
+    #: move with incomes across the window. IRC sec. 32(j) indexes the EITC's
+    #: amounts and thresholds; IRC sec. 24 does **not** index the child
+    #: credit's $2,000, its $200k/$400k thresholds or the ACTC's $2,500 floor,
+    #: nor sec. 6428B a recovery rebate, so none of those appear here.
+    INDEXED_PARAMS = (
+        "eitc_childless_max_credit",
+        "eitc_childless_phaseout_start_single",
+        "eitc_childless_phaseout_start_married",
+    )
+
+    def grown(self, factor: float) -> CreditSchedule:
         """Return the schedule with its indexed dollar amounts scaled.
 
-        The CTC's amounts and thresholds are *not* indexed under current law,
-        so they are left alone; the EITC's are, so they move with incomes.
-        Applying growth to incomes but not to an indexed parameter would
-        manufacture real bracket creep the statute does not have.
+        Growing incomes but not an indexed parameter would manufacture real
+        bracket creep the statute does not have; growing an *unindexed* one
+        would erase the erosion the statute does have. Only
+        :data:`INDEXED_PARAMS` move.
         """
-        if not grow_eitc:
+        if factor == 1.0:
             return self
         grown = dict(self.params)
-        for key in (
-            "eitc_childless_max_credit",
-            "eitc_childless_phaseout_start_single",
-            "eitc_childless_phaseout_start_married",
-        ):
+        for key in self.INDEXED_PARAMS:
             if key in grown:
                 grown[key] = float(grown[key]) * factor
-        if "eitc_expansion" in grown:
-            # A multiplier, not a dollar amount — indexation is already in the
-            # level it multiplies.
-            pass
         return replace(self, params=grown)
 
 

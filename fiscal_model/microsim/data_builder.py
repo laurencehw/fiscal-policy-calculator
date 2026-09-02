@@ -504,7 +504,6 @@ def validate_tax_units(clean_df: pd.DataFrame) -> list[str]:
 def write_provenance(
     output_path: Path,
     *,
-    data_dir: str,
     summary: dict[str, float],
     warnings: list[str],
     archive_sha256: str | None = None,
@@ -513,7 +512,8 @@ def write_provenance(
 
     A JSON sidecar rather than a comment header inside the CSV: several
     callers read the file with a bare ``pandas.read_csv`` and a ``#`` line
-    would break them.
+    would break them. The extract directory is deliberately not recorded —
+    it is a machine-local cache path, not provenance.
     """
     sidecar = output_path.with_suffix(".provenance.json")
     fetch = _fetch_module()
@@ -540,7 +540,6 @@ def write_provenance(
             "machine-local cache path, not provenance."
         ),
     }
-    del data_dir
     sidecar.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     return sidecar
 
@@ -586,7 +585,6 @@ def build_tax_microdata(
     clean_df.to_csv(output_path, index=False)
     sidecar = write_provenance(
         output_path,
-        data_dir=data_dir,
         summary=summary,
         warnings=warnings,
         archive_sha256=archive_sha256,
