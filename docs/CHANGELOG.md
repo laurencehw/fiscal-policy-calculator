@@ -5,7 +5,136 @@ in git history, not here.
 
 ## 2026 — ongoing
 
-### Documentation honesty sync (September 2026)
+### Modelling Wave 1 — spend-out, AMT, pharma incidence (2026-09-02)
+
+Wave 1 of [`planning/MODELING_IMPROVEMENT.md`](../planning/MODELING_IMPROVEMENT.md),
+three lanes on disjoint files plus a follow-up, with the owner's six §6 decisions
+recorded first. Every lane pre-registered its expected movement in
+`planning/lanes/` **before** touching code; §5.1 of the plan carries the outturn
+and the three findings. PRs **#83** (decisions), **#85** (L2 spend-out),
+**#86** (L5 AMT), **#87** (L7 pharma), **#88** (IIJA authorization path + app
+spend-out).
+
+**Validation tiers moved. Report them separately, as always:**
+
+| Tier | n | Before | After |
+|---|--:|---|---|
+| Out-of-sample, pre-registered | 25 | 52.6% mean / 21.1% median / 8 within 15 / 14 within 25 | **34.4% / 16.1% / 12 / 16** |
+| Calibrated, fitted | 34 | 2.7% / 33 within 15 | **unchanged** |
+| Unfitted module reconstructions | 20 | 250.8% / 43.1% median | **82.6% / 43.1%** |
+| — 12 sectoral presets | 12 | 394.1% / 57.1% median | **113.8% / 57.1%** |
+| — 8 P.L. 119-21 line items | 8 | 35.8% | **unchanged** |
+| Calibrated, leave-one-out | 18 | 59.3% / 35.6% median / 6 within 15 | **61.7% / 35.6% / 6** |
+| Distributional | 7 | 0.00–5.86pp | **unchanged** |
+
+- **Budget authority and outlays are now distinct quantities (L2).**
+  `SpendingPolicy` no longer books a funding level straight into outlays;
+  `outlays_t = Σ_k s_k · BA_{t−k}`, with `s` an account-class profile fitted by
+  non-negative least squares on the 14 CBO options that publish both an
+  authority row and an outlays row **and are not scored by the battery**. The
+  five scored options never donate. Class assignment is a classification from
+  the account type each program funds, never a fit. **Finding:** owner Decision
+  2 named OMB Circular A-11 §32 as the primary source; A-11 §32 is personnel
+  compensation and A-11 publishes **no** outlay-rate table in any section, so
+  the decision's own fallback governed and the CBO donor options shipped as
+  primary. CBO's account-level rates (publications 61913, 62256) are the open
+  cross-check, blocked by cbo.gov 403s.
+- **IIJA is scored on the schedule its source states (#88).** The shape input
+  was superseded under the manifest's own rule — a **new row**, never an edit —
+  in two commits, entry before scoring. `iija_2021_discretionary.v1` stays on
+  the record (+$1,894B, 356%; +$1,621B, 290.2% after spend-out); `.v2` carries
+  CBO's own authorization path and scores **+$340.0B against an unchanged
+  +$415.4B target, 18.2%**. What remains is a window mismatch: $92.6B of the
+  path's outlays fall in FY2022-2024, before the model's FY2025-2034 window
+  opens. Earlier docs saying IIJA "is kept at 356% deliberately, as the sharpest
+  evidence for the missing spend-out model" are now history on both halves.
+- **The Fiscal Responsibility Act row got worse, as pre-registered** (5.8% →
+  12.2%). The old figure was two errors cancelling; a correct spend-out removes
+  one and leaves the other, so the total error rises while the path gets more
+  right.
+- **AMT gained a live exemption branch and a published year-indexed path (L5).**
+  The exemption-change branch had been dead code, so no exemption change had
+  ever been scored. The path is TPC Table T25-0049, transcribed to
+  `fiscal_model/data_files/amt/`. **Finding:** the plan's "missing 2026 ramp"
+  hypothesis was **wrong** — T25-0049 shows a *cliff* (0.2M → 7.6M AMT payers,
+  2025 → 2026) and then *growth* ($71.6B → $124.2B by 2035), so the flat
+  ~$73B/yr was the window's early-year level and indexing it **raises** the
+  score. Both AMT LOO rows moved away from their carried $450B targets (+73.2%
+  → +90.1%, +86.0% → +110.9%) while the extension moved *toward* the published
+  line item ($1,357.1B: −66.8% fitted → **−37.0%** derived). **App default stays
+  `reported`**; nothing a user sees changed. `docs/VALIDATION_NOTES.md` §6 was
+  corrected rather than deleted.
+- **Drug pricing now scores federal incidence (L7).** A $35 insulin cap is a
+  cost-sharing cap, so the federal budget picks up only its share of the
+  liability shift; and international reference pricing is scored on a net-price,
+  brand-only, federal-share basis (US unbranded generics are *cheaper* than the
+  OECD comparison and cannot contribute savings). Every input is transcribed
+  with document, page and URL to
+  `fiscal_model/data_files/pharma/drug_pricing_incidence.csv`. No parameter was
+  fitted to any of the three pharma benchmarks. **Still unrepaired:** RAND's
+  index is computed on presentations sold in both markets and the module applies
+  it to all brand spending; no utilisation, launch-delay or availability
+  response is modelled on either row.
+
+**Shipped preset numbers moved.** No preset label and no `CBO_SCORE_MAP` entry
+changed — labels carry the official score or an annual funding level, not the
+model's ten-year total.
+
+| Preset | Before | After |
+|---|--:|--:|
+| 💊 Universal Insulin Cap | −$445.3B | **+$7.0B** |
+| 💊 International Reference Pricing | −$1,387.9B | **−$746.2B** |
+| 💊 Comprehensive Drug Reform | −$1,025.8B | **−$573.5B** |
+| 💊 Expand Drug Negotiation | −$371.5B | unchanged |
+
+The insulin cap now reads as a deficit *increase*, which is what CBO scores for
+the same policy (publication 57957, +$11.4B); the carried −$15B benchmark is the
+thing still pointing the wrong way.
+
+**Every spending program's 10-year outlays now follow a spend-out profile.** The
+label still quotes the annual funding level, which is budget authority and is
+unchanged; only the ten-year outlay total moved. Each score renders one line
+naming its profile and its outlay/authority ratio, computed from the scored
+result. `immediate` stays reachable under Economic parameters and is the default
+for nothing.
+
+| Program (Tailor) | Account class | 10-yr before | 10-yr after | outlay/authority |
+|---|---|--:|--:|--:|
+| Custom program | construction and capital | +$1,095.0B | **+$725.4B** | 0.663 |
+| Infrastructure Investment ($100B/yr) | construction and capital | +$1,146.4B | **+$749.8B** | 0.654 |
+| Defense Spending Increase (+10%) | operations and support | +$985.5B | **+$880.2B** | 0.893 |
+| Universal Pre-K ($40B/yr) | grants and procurement | +$458.6B | **+$386.9B** | 0.844 |
+| R&D Investment ($50B/yr) | grants and procurement | +$600.3B | **+$503.8B** | 0.839 |
+| Discretionary Spending Cut (−$50B/yr) | operations and support | −$547.5B | **−$489.0B** | 0.893 |
+| Disaster Relief ($30B one-time) | grants and procurement | +$30.0B | +$30.0B | 1.000 |
+| Student Debt Forgiveness ($400B one-time) | benefit payments | +$400.0B | +$400.0B | 1.000 |
+| Universal Childcare ($100B/yr) | grants and procurement | +$1,146.4B | **+$967.4B** | 0.844 |
+| Medicare Buy-in Age 55+ ($50B/yr) | benefit payments | +$573.2B | **+$571.7B** | 0.997 |
+| High-Speed Rail Program ($30B/yr) | construction and capital | +$328.5B | **+$217.6B** | 0.663 |
+
+The two one-time programs are unchanged because their whole spend-out tail lands
+inside the window — the timing moves, the total does not. Explore ships no
+spending preset.
+
+**Owner decisions recorded (#83).** All six of the plan's §6 questions were
+answered on 2026-09-01: keep `reported` and `derived` modes; A-11 as the primary
+spend-out source (superseded by finding 1 above, via the decision's own fallback
+clause); freeze Dowd–McClelland–Muthitacharoen (2015) capital-gains elasticities;
+fetch raw CPS ASEC by script rather than vendoring it; move the three
+tautological credit benchmarks to documented exclusion; ship the tariff
+gross→net change with its UI note.
+
+**No yardstick was touched.** `preregistered.py`'s targets, `cold_holdout.py`,
+`run_loo.py`, `loo.py`'s leakage guard, `tests/test_preregistration.py` and the
+CI thresholds are all unchanged. The CI derivation rule now implies a ceiling of
+45 and a floor of 15 against the workflow's current 55 and 13; both pass with
+room and tightening them is left to whoever lands next.
+
+### Documentation honesty sync (2026-09-01)
+
+*Superseded on 2026-09-02 by the Wave 1 entry above: the tier figures below were
+correct when written and are kept as the record of that change, not as current
+numbers.*
 
 - `docs/METHODOLOGY.md` now reports **four validation tiers separately** and
   states outright that there is no single "validated within X%" figure:
