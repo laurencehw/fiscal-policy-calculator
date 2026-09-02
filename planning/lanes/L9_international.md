@@ -213,7 +213,9 @@ Both are §1.6 work and this lane does not touch a target.
 
 ## 6. Outturn
 
-Measured on `676b336`, the lane's last code commit.
+Measured on `65b9f9d`, the lane's last code commit. (The figures were first
+measured on `676b336`; the readability pass after it changed no number — the
+commit message records the check.)
 
 | Row | Target | Before | After | Error before → after |
 |---|---:|---:|---:|---:|
