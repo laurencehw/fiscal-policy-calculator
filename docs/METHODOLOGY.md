@@ -1239,7 +1239,7 @@ superseded figure is not fitted to its replacement — so the revised
 `extend_tcja_amt` row reports in Tier 2b, where a miss is a finding rather than a
 regression. Held in place instead, this tier reads **31 benchmarks at 4.2%, 30 of
 31 within 15%**, the extra miss being that row at 66.8%. Second, **Wave 2 took
-this tier 33 → 30**: deleting `validation/scenarios.py`'s per-case behavioural
+this tier 33 → 30**: deleting `fiscal_model/validation/scenarios.py`'s per-case behavioural
 tuples removed the only constants ever fitted to the three capital-gains
 scenarios, so they now report in Tier 2b too. The mean *fell* 2.8% → 2.2% and
 the worst row is now `tcja_no_salt_cap` at 13.9%, because the rows that left
@@ -1298,7 +1298,7 @@ number:
   component.
 - **Three capital-gains scenarios** at **39.6% mean** — CBO +2pp −14.0%, PWBM
   39.6% with step-up −28.4%, PWBM 39.6% without step-up +76.5%. They arrived in
-  Wave 2, when `validation/scenarios.py`'s per-case behavioural tuples were
+  Wave 2, when `fiscal_model/validation/scenarios.py`'s per-case behavioural tuples were
   deleted: those tuples *were* the fit, so once they were gone
   `calibrated_to_target` became simply `False`. Because no per-case constant is
   left, these three figures are **identical** to the same three rows in Tier 2c,

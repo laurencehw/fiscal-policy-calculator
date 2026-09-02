@@ -401,7 +401,7 @@ rows carry 352.4 of the group's 405.6 between them.
 
 **Two composition changes travel with these numbers and neither may be
 dropped.** (i) The three capital-gains scenarios moved from the *fitted* tier to
-the *reconstruction* tier, because deleting `validation/scenarios.py`'s per-case
+the *reconstruction* tier, because deleting `fiscal_model/validation/scenarios.py`'s per-case
 behavioural tuples removed the only constants that had ever been fitted to those
 targets — `calibrated_to_target=False` is now simply true of them. The fitted
 mean *fell* 2.8% → 2.2% while nothing regressed; left in place those rows would

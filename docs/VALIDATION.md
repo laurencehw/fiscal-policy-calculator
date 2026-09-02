@@ -213,7 +213,7 @@ because the pooled number moves on composition as readily as on modelling.
 The 2.2% on the left is **expected by construction** — those modules carry a constant fitted to each benchmark, so they demonstrate the model's structure and provide auditable, source-linked reconstructions of official scores; they are **not** evidence the model would have predicted them cold. (Earlier revisions of this file quoted 4.4%, then 2.7% over 34, then 2.8% over 33; the live figures come from `python scripts/cold_holdout.py`, which is the only place they should be read from.)
 
 **The left-hand column has lost four rows, and the losses must be quoted with
-it.** Three of them left in Wave 2: `validation/scenarios.py`'s per-case
+it.** Three of them left in Wave 2: `fiscal_model/validation/scenarios.py`'s per-case
 behavioural tuples *were* the fit on the three capital-gains benchmarks, so
 deleting them made `calibrated_to_target=False` simply true and the runner now
 says so. Left in the fitted tier they would have raised its mean to **6.2%**

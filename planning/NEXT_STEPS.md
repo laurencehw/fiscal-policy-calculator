@@ -29,7 +29,7 @@ number.** One left when a target it was fitted to was corrected:
 superseded figure is not fitted to its replacement, and the revised row therefore
 reports among the reconstructions. Held in place instead the fitted tier reads
 **31 at 4.2%, 30/31 within 15%** — quote either, never one alone. Three more
-left in Wave 2, when deleting `validation/scenarios.py`'s per-case behavioural
+left in Wave 2, when deleting `fiscal_model/validation/scenarios.py`'s per-case behavioural
 tuples removed the only constants ever fitted to the capital-gains scenarios; the
 fitted mean *fell* 2.8% → 2.2% because those rows were what it had been
 carrying, which is **composition, not accuracy**. The reconstruction tier is

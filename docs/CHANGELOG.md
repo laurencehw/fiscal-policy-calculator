@@ -60,7 +60,7 @@ the four findings and the three missed bands. PRs **#93** (L4 estate), **#94**
   gives **b = 3.273** against **JCT's own 3.1** and a revenue-maximizing rate of
   30.6% — so 43.4% sits past the peak and the model reproduces PWBM's
   revenue-*loss* finding with no multiplier at all. The 5.3× lock-in multiplier,
-  the residual-avoidance multiplier and `validation/scenarios.py`'s three
+  the residual-avoidance multiplier and `fiscal_model/validation/scenarios.py`'s three
   per-case tuples are **deleted**. The base is now IRS SOI Table 3.5's
   bracket-priced income ($1,107.7B in five buckets, not $1,368B at a blended
   15.5%); lock-in is a derived **1.44×** price wedge from an accrued-gains stock;
