@@ -516,7 +516,7 @@ def tariff_net_caption(policy: Any, result: Any) -> str:
     retaliation = " and the receipts lost to retaliation" if policy.include_retaliation else ""
     return (
         f"Net of offsets: \\${gross:,.1f}B of gross customs duty becomes "
-        f"\\${net:,.1f}B of deficit reduction - a {net / gross:.2f} net/gross "
+        f"\\${net:,.1f}B of net receipts - a {net / gross:.2f} net/gross "
         f"ratio - after duty avoidance, the {offset_pct:.0%} income-and-payroll "
         f"offset CBO, JCT and Treasury apply to any indirect tax{retaliation}. "
         f"Import demand responds to the whole tariff (near-complete border "

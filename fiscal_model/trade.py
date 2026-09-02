@@ -19,9 +19,10 @@ The chain, per year::
     net     = gross − avoid − offset − retal
 
 ``estimate_static_revenue_effect`` returns ``gross``;
-``estimate_behavioral_offset`` returns ``avoid + offset + retal``, so the
-scorer's ``final_deficit_effect`` is the net figure and both halves stay
-separately readable — which is what the app's tariff caption renders.
+``estimate_behavioral_offset`` returns ``avoid + offset + retal`` **signed to
+match ``gross``**, so the scorer's ``final_deficit_effect`` is the net figure,
+both halves stay separately readable — which is what the app's tariff caption
+renders — and a tariff *cut* has its cost eroded rather than amplified.
 
 Three things about that chain are worth stating plainly, because the module
 used to do none of them:
@@ -71,6 +72,7 @@ References:
 - U.S. Census Bureau international trade series, 2024
 """
 
+import math
 from dataclasses import dataclass
 
 from .constants import MARGINAL_REVENUE_RATE
@@ -221,16 +223,25 @@ class TariffPolicy(TaxPolicy):
     def estimate_behavioral_offset(self, static_effect: float) -> float:
         """Everything between gross customs duty and the budget effect.
 
-        Three channels, all positive (they erode the revenue gain):
+        Three channels:
 
         * **Avoidance and evasion** — a flat share of gross duty.
         * **The income-and-payroll offset** — the CBO/JCT/OTA convention that
           an indirect tax shrinks the income and payroll tax bases by about a
           quarter of its net receipts.
         * **Retaliation** — the federal receipts lost when partners tax US
-          exports back, converted at the app's own marginal revenue rate.
-          Suppressed when ``include_retaliation`` is off, which is what a
-          strictly conventional (no-retaliation) score wants.
+          exports back, converted at the app's own marginal revenue rate. Zero
+          for a tariff *cut*, which invites none, and suppressed when
+          ``include_retaliation`` is off, which is what a strictly conventional
+          (no-retaliation) score wants.
+
+        **Signed to match ``static_effect``**, the repository's convention for
+        a behavioural offset (see ``docs/METHODOLOGY.md``): the scorer adds
+        this to ``-static_revenue``, so an offset carrying the static effect's
+        sign erodes the magnitude in *both* directions. A tariff cut loses less
+        revenue than its gross figure because the income and payroll bases grow
+        back; returning an unsigned positive here would make a cut cost more
+        than its own gross, not less.
 
         Scales with ``static_effect`` so a phased-in tariff nets down by the
         same proportion its gross duty phases in by.
@@ -244,14 +255,18 @@ class TariffPolicy(TaxPolicy):
         if self.include_retaliation:
             full = abs(self.estimate_static_revenue_effect(0.0))
             phase = gross / full if full else 0.0
-            retaliation = self.estimate_retaliation_revenue_loss() * phase
-        return avoidance + offset + retaliation
+            retaliation = abs(self.estimate_retaliation_revenue_loss()) * phase
+        return math.copysign(avoidance + offset + retaliation, static_effect)
 
     # -- the channels, separately readable ---------------------------------
 
     def estimate_income_payroll_offset(self) -> float:
-        """Annual income and payroll receipts lost to the tariff itself."""
-        gross = abs(self.estimate_static_revenue_effect(0.0))
+        """Annual income and payroll receipts lost to the tariff itself.
+
+        Signed like the duty it offsets, so a tariff cut returns a negative
+        figure — the income and payroll bases grow when duty falls.
+        """
+        gross = self.estimate_static_revenue_effect(0.0)
         avoidance = gross * TRADE_BASELINE["tariff_avoidance_rate"]
         return (gross - avoidance) * TRADE_BASELINE["income_payroll_offset_rate"]
 

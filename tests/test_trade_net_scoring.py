@@ -312,6 +312,66 @@ class TestNettingChain:
         assert result.total_10_year_cost == pytest.approx(-annual_net * 10, rel=1e-6)
 
 
+class TestTariffCutSigns:
+    """A tariff cut must have its cost eroded, not amplified.
+
+    ``docs/METHODOLOGY.md``'s convention is that a behavioural offset carries
+    the static effect's sign, because the scorer adds it to ``-static_revenue``.
+    An unsigned offset made a 5pp tariff *cut* cost more than its own gross duty
+    - the income and payroll bases were being shrunk by a tax that had just been
+    reduced.
+    """
+
+    @staticmethod
+    def _cut():
+        return TariffPolicy(
+            name="Tariff cut",
+            description="Test",
+            tariff_rate_change=-0.05,
+            import_base_billions=1000.0,
+        )
+
+    def test_a_cut_loses_revenue(self):
+        assert self._cut().estimate_static_revenue_effect(0) < 0
+
+    def test_the_offset_carries_the_static_effect_sign(self):
+        policy = self._cut()
+        gross = policy.estimate_static_revenue_effect(0)
+        assert policy.estimate_behavioral_offset(gross) < 0
+        assert policy.estimate_income_payroll_offset() < 0
+
+    def test_the_offset_erodes_the_cut_rather_than_amplifying_it(self):
+        policy = self._cut()
+        gross = policy.estimate_static_revenue_effect(0)
+        result = FiscalPolicyScorer(start_year=2025, use_real_data=False).score_policy(
+            policy, dynamic=False
+        )
+        gross_cost = -gross * 10
+        assert result.total_10_year_cost > 0, "a tariff cut widens the deficit"
+        assert result.total_10_year_cost < gross_cost, (
+            "the offset must shrink a cut's cost, not grow it"
+        )
+
+    def test_a_cut_invites_no_retaliation(self):
+        policy = self._cut()
+        assert policy.estimate_retaliation_cost() == 0.0
+        assert policy.estimate_retaliation_revenue_loss() == 0.0
+
+    def test_an_increase_still_erodes_in_the_other_direction(self):
+        policy = TariffPolicy(
+            name="Tariff rise",
+            description="Test",
+            tariff_rate_change=0.05,
+            import_base_billions=1000.0,
+        )
+        gross = policy.estimate_static_revenue_effect(0)
+        result = FiscalPolicyScorer(start_year=2025, use_real_data=False).score_policy(
+            policy, dynamic=False
+        )
+        assert policy.estimate_behavioral_offset(gross) > 0
+        assert 0 > result.total_10_year_cost > -gross * 10
+
+
 class TestRetaliationBase:
     """Partners retaliate in proportion to the harm, against a real base."""
 
