@@ -340,14 +340,27 @@ class FiscalPolicyScorer:
                 continue
 
             base_rev = self.baseline.corporate_income_tax[baseline_index] if use_corporate_base else 0.0
-            static_annual = policy.estimate_static_revenue_effect(
-                base_rev,
-                use_real_data=self.use_real_data,
-            )
 
             if isinstance(policy, TaxExpenditurePolicy):
+                # A cap's bite is a function of the year: the limit and the
+                # quantity it limits grow at different rates, so the share of
+                # the base above the limit has to be asked for in the year
+                # being scored rather than once at start_year. The level still
+                # grows at the expenditure's own rate below; only the share is
+                # year-indexed here.
+                static_annual = policy.estimate_static_revenue_effect(
+                    base_rev,
+                    use_real_data=self.use_real_data,
+                    year=year,
+                )
                 growth_rate = policy.get_expenditure_data().get("growth_rate", 0.03)
-            elif isinstance(policy, TaxCreditPolicy) and policy.uses_window_average_annual():
+            else:
+                static_annual = policy.estimate_static_revenue_effect(
+                    base_rev,
+                    use_real_data=self.use_real_data,
+                )
+
+            if isinstance(policy, TaxCreditPolicy) and policy.uses_window_average_annual():
                 # Covers both a fitted annual and the derived CPS path, which
                 # averages over the window itself.
                 growth_rate = 0.0
