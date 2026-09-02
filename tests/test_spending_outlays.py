@@ -191,6 +191,22 @@ def test_outlays_are_the_convolution_of_authority_with_the_profile():
     assert profile.outlays([100.0, 100.0, 100.0]) == pytest.approx([50.0, 80.0, 100.0])
 
 
+def test_a_single_year_profile_below_one_still_applies_its_rate(monkeypatch):
+    """Guards the identity short-circuit in ``get_outlays_in_year``: it must key
+    on the *rate* being a whole dollar, not on the profile having one entry. A
+    profile that outlays 60 cents in year 0 and lapses the rest is not the
+    identity, and short-circuiting it would silently outlay the full dollar."""
+    lapsing = OutlayProfile(account_class="lapsing", shares=(0.6,))
+    assert lapsing.outlays([100.0, 100.0]) == pytest.approx([60.0, 60.0])
+
+    from fiscal_model import policies_core
+
+    monkeypatch.setattr(policies_core, "get_outlay_profile", lambda _name: lapsing)
+    policy = _spending_policy(annual_spending_change_billions=-10.0, annual_growth_rate=0.0)
+    assert policy.get_budget_authority_in_year(2026) == pytest.approx(-10.0)
+    assert policy.get_outlays_in_year(2026) == pytest.approx(-6.0)
+
+
 def test_outlays_past_the_end_of_the_path_are_dropped():
     """Tail truncation - the reason a 10-year outlay total sits below its
     10-year budget-authority total."""

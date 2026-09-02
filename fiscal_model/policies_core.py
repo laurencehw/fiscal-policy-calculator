@@ -637,7 +637,10 @@ class SpendingPolicy(Policy):
         means.
         """
         profile = self.outlay_profile
-        if len(profile.shares) <= 1:
+        if profile.shares == (1.0,):
+            # The identity. Short-circuited on the *rate*, not on the profile's
+            # length: a one-entry profile that outlays less than a full dollar
+            # still has to be applied.
             return self.get_budget_authority_in_year(year, start_amount)
 
         earliest = self.start_year if window_start is None else max(window_start, self.start_year)
