@@ -235,3 +235,68 @@ start one year into the window and lose more of their tail.
    composer's per-goal builds included — is still `immediate`. Turning spend-out
    on for those changes shipped preset numbers and belongs with a UI lane, not
    this one.
+
+## 8. Follow-ups
+
+*Appended by the L2 follow-up lane (branch `model/l2-followups`), 2026-09-01.
+It closed items 1 and 4 of §7 "What is left"; items 2 and 3 (account-level
+rates, the A-11 cross-check) are still open and still need an environment that
+can reach cbo.gov.*
+
+### 8.1 IIJA: the authorization path (§7 item 1)
+
+The shape input was superseded under the manifest's own rule — a **new row**,
+never an edit — because CBO's estimate states a schedule and
+`SpendingPolicy.budget_authority_path` can now carry one:
+
+| row | shape input | model | official | err |
+|---|---|--:|--:|--:|
+| `iija_2021_discretionary.v1` | $163.0B level at 2%/yr | +$1,894.0B → +$1,621.1B after L2 | +$415.4B | 356% → **290%** |
+| `iija_2021_discretionary.v2` | the source's own $163.0B → $70.1B → $68.5B → $68.1B → $66.2B → $2.08B/yr | **+$340.0B** | +$415.4B | **18.2%** |
+
+The **target never moved** — same $415.448B, same document, same window — and
+`.v1` stays in `preregistered.py` unedited. `IIJA_AUTHORIZATION_PATH_RULE` sets
+every year of the path: the five figures CBO states, plus the remainder of
+CBO's own $446,306M authority total spread evenly over the years the estimate
+describes only as "about $2B/yr". Entered in `1a68118`, scored in `327a69b` —
+the two-commit protocol, checkable from the history.
+
+| tier | n | before | after |
+|---|--:|---|---|
+| **out-of-sample (Tier 1)** | 25 | 45.3% mean / 16.1% median / 12 within 15 / 15 within 25 | **34.4% / 16.1% / 12 / 16** |
+| calibrated reference (fitted) | 34 | 2.7% | **unchanged** |
+| unfitted reconstruction | 20 | 250.8% | **unchanged** |
+| leave-one-out | 18 | 59.3% | **unchanged** |
+
+Exactly one row moved anywhere in the 79-row scorecard.
+
+**What the remaining 18% is.** Not the shape and not the spend-out: the path
+outlays **$433.2B in total** against CBO's $415.4B — 4.3% high, which is the
+construction profile's 0.973 spend-out sum applied to the full authority — but
+**$92.6B of that falls in FY2022-2024**, before the model's FY2025-2034 window
+opens, against a published figure covering FY2021-2031. It is a window
+mismatch, recorded rather than corrected; the repository has no 2021 vintage to
+score the bill on its own window. Between them the two rows now separate the
+two defects this case surfaced: the missing spend-out model (`.v1`) and the
+missing authorization path (`.v2`).
+
+### 8.2 The app spends out too (§7 item 4)
+
+§7 recorded "the app is untouched by design… belongs with a UI lane". It is
+done. Every Tailor spending program declares an `outlay_account_class` in its
+own definition and Build's spending goals derive one from the goal category —
+classification by account type, on the same taxonomy §5 records, never keyed to
+a benchmark id. Explore ships no spending preset.
+
+10-year figures, `immediate` → classified: infrastructure +1,146.4 → +749.8,
+custom +1,095.0 → +725.4, defence +985.5 → +880.2, childcare +1,146.4 →
++967.4, R&D +600.3 → +503.8, pre-K +458.6 → +386.9, high-speed rail +328.5 →
++217.6, the discretionary cut −547.5 → −489.0, Medicare buy-in +573.2 →
++571.7; the two one-time programs are unchanged (+30.0, +400.0) because their
+whole tail lands inside the window. No preset label moved — every label quotes
+an *annual* funding level, which is authority and is what it always was.
+
+Each spending score now renders one line naming its profile and its
+outlay/authority ratio, computed from the scored result so it cannot drift from
+the number above it. `immediate` stays reachable under Economic parameters as
+an explicit choice, and is the default for nothing.
