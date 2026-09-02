@@ -118,7 +118,9 @@ IIJA_AUTHORIZATION_PATH_ENTERED_DATE = "2026-09-01"
 
 #: Commit in which the authorization-path shape was first scored (the commit
 #: that lets ``validation/core.py`` read ``annual_authority_path_billions``).
-IIJA_AUTHORIZATION_PATH_FIRST_SCORED_COMMIT = "PENDING"
+IIJA_AUTHORIZATION_PATH_FIRST_SCORED_COMMIT = (
+    "327a69b61c0424bfb9708e0623787c8fb7641b20"
+)
 
 #: The rule that sets every year of IIJA's budget-authority path, fixed before
 #: the model was allowed to read it. Written here rather than only in the
