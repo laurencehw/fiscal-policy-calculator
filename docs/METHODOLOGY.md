@@ -54,10 +54,10 @@ The Fiscal Policy Calculator uses a **three-stage approach** consistent with Con
 ### Key Principles
 
 1. **Current Law Baseline**: All estimates are relative to current law (not current policy)
-2. **10-Year Budget Window**: Standard FY2025–2034 window
+2. **10-Year Budget Window**: `FiscalPolicyScorer` defaults to `start_year=2025`, so the standard window is **FY2025–FY2034** — the same fiscal-year window JCT scores P.L. 119-21 over (see [VALIDATION.md](VALIDATION.md), “Scoring window”). Inputs are **tax-year** (calendar-year) SOI aggregates; outputs are fiscal-year totals, and the model carries the former into the latter without a calendar-to-fiscal conversion
 3. **Conventional Scoring**: Behavioral but not macroeconomic by default
 4. **Dynamic Scoring**: Optional macroeconomic feedback via FRB/US-calibrated adapter
-5. **25+ validated policies**: Calibrated to CBO, JCT, and Treasury official estimates
+5. **Tiered validation**: the calibrated modules *reconstruct* official CBO/JCT/Treasury estimates; a separate pre-registered battery *predicts* them cold. The tiers are reported separately and never averaged into one tolerance — see [Validation Results](#validation-results)
 
 The calculator currently exposes 14 preset policy areas: TCJA / individual tax, general income tax, corporate, international, tax credits, estate tax, payroll / Social Security, AMT, ACA / healthcare, tax expenditures, IRS enforcement, drug pricing, trade / tariffs, and climate / energy.
 
@@ -108,11 +108,19 @@ We use IRS Statistics of Income (SOI) Table 1.1 and Table 3.3 to obtain:
 from fiscal_model.data import IRSSOIData
 
 irs = IRSSOIData()
-bracket_info = irs.get_filers_by_bracket(year=2022, threshold=400_000)
+bracket_info = irs.get_filers_by_bracket(year=2023, threshold=400_000)
 # Returns: {'num_filers': 1.8M, 'avg_taxable_income': 1.2M, ...}
 ```
 
-**Data lag**: IRS SOI data is typically 2 years behind; the model uses the most recent available (2022 data as of 2024–2025).
+**Tax-year basis and data lag.** SOI tables are compiled on a **tax year**
+(calendar-year) basis, while every score in this document is reported over a
+**fiscal-year** budget window. The repository ships Table 1.1 and Table 3.3 for
+tax years **2021, 2022 and 2023** (`fiscal_model/data_files/irs_soi/`), and
+auto-population takes the **latest available year** unless a policy sets
+`data_year` — so production scoring runs on **tax year 2023**
+(`policies_core._estimate_from_irs_data`; confirmed by the `irs_soi` row of
+`python scripts/run_validation_dashboard.py`, which reports `latest 2023`).
+SOI runs roughly two years behind the current tax year.
 
 ### Credits and Deductions
 
@@ -192,13 +200,45 @@ We model this with a **lock-in multiplier** applied to the base elasticity:
 ε_effective = ε_base × step_up_lock_in_multiplier
 ```
 
-| Scenario | Lock-in Multiplier | Effective ε |
-|----------|-------------------|-------------|
-| With step-up (current law) | 5.3× | ~4.2 short-run |
-| Step-up eliminated | 1.0× | 0.8 short-run |
-| Step-up eliminated, PWBM residual avoidance calibration | 1.5× | 1.2 short-run |
+**The module default is 2.0×, not 5.3×.** `CapitalGainsPolicy.step_up_lock_in_multiplier`
+defaults to `2.0` (`fiscal_model/policies_core.py:411`) and `get_elasticity_for_year`
+applies it whenever `step_up_at_death=True` and `eliminate_step_up=False`. The `5.3×`
+that earlier revisions of this file printed as “current law” is **not** a model
+constant. Exactly one place in the codebase ever *sets* it — the
+`pwbm_39_with_stepup` entry of `fiscal_model/validation/scenarios.py:89`, where it is a
+per-case constant hand-fitted to reproduce PWBM's published revenue loss. (Grep will
+also find `5.3` in `tests/test_loo.py` and `tests/test_policies.py`, which assert that
+scenario's value, and in prose here and in
+[`planning/MODELING_IMPROVEMENT.md`](../planning/MODELING_IMPROVEMENT.md). Those are
+references to the same one constant, not additional uses of it.) No scoring path
+outside that single calibrated reconstruction runs on 5.3×.
 
-The no-step-up PWBM validation case uses the residual avoidance calibration because PWBM notes that threshold timing and business-form shifting remain even when constructive realization at death removes the full step-up lock-in channel.
+| Setting | Lock-in multiplier | Effective ε (short / long run) | Where it applies |
+|---|---|---|---|
+| Step-up in force — **module default** | **2.0×** | 1.6 / 0.8 | The `CapitalGainsPolicy` default, the Tailor UI default (slider 1.0–6.0), every Tier 1 out-of-sample capital-gains case, and every leave-one-out run (`validation/loo.py:912` freezes it) |
+| Step-up eliminated | 1.0× | 0.8 / 0.4 | `eliminate_step_up=True` switches to `no_step_up_avoidance_multiplier`, whose own default is 1.0 |
+| Step-up eliminated, PWBM residual-avoidance calibration | 1.5× | 1.2 / 0.6 | The `pwbm_39_no_stepup` validation scenario only |
+| Step-up in force, PWBM revenue-matching calibration | 5.3× | ~4.2 / ~2.1 | The `pwbm_39_with_stepup` validation scenario only — a fitted answer key, not a parameter |
+
+**Which multiplier is behind which published result.** The two Tier 2a rows
+“PWBM 39.6% capital gains (with step-up), +$33B official vs +$30B model” and
+“(no step-up), −$113B vs −$113B” are the *only* results that use 5.3× and the 1.5×
+residual-avoidance value respectively, and both are calibrated reconstructions.
+Every Tier 1 out-of-sample capital-gains case — CBO Option 47, CBO Option 51,
+`biden_capital_gains_39`, `treasury_capgains_39_plus_stepup_elim` — and every
+leave-one-out row runs on the frozen `2.0` default together with the frozen
+0.8 / 0.4 elasticity pair. That is what makes them predictions rather than fits.
+
+**The 5.3× is a known defect, not a finding.** `python scripts/run_loo.py --donor-matrix`
+shows it is the only donor tuple that can score the other two capital-gains cases
+(mean absolute error on the others: 29.7% for the 5.3× donor, against 104.8% and
+333.2% for the other two), and under the frozen defaults its own case flips sign at
+−370.5%. Lane L1 of the
+[modeling-improvement plan](../planning/MODELING_IMPROVEMENT.md) is to delete the
+multiplier outright and let lock-in fall out of a stock of accrued gains with a
+realization hazard.
+
+The no-step-up PWBM validation case uses the residual-avoidance calibration because PWBM notes that threshold timing and business-form shifting remain even when constructive realization at death removes the full step-up lock-in channel.
 
 When step-up is eliminated, gains become taxable at death:
 ```
@@ -932,9 +972,14 @@ JCT is the official congressional scorer for tax legislation, using IRS SOI micr
 | TCJA component breakdown | ✅ | ✅ |
 | Public methodology | ✅ | ✅ |
 
-**Distributional validation** (vs. TPC TCJA analysis):
-- Middle quintile: 10% share (exact match)
-- Top quintile: 65% vs. 68% (4.4% error)
+**Distributional validation** is benchmarked against **seven published CBO/JCT
+tables**, not against TPC alone. Mean absolute share errors span **0.00pp to
+5.86pp** (`python scripts/run_validation_dashboard.py`; full table in
+[VALIDATION.md](VALIDATION.md)). Two of the seven are **circular** and must not be
+counted as skill: `distribution_effects.calculate_tcja_effect` builds its decile
+tiers *out of* CBO 54796 and CBO 60007, so the 0.00pp against the first and the
+0.74pp against the second are bookkeeping. The five non-circular tables run
+2.10pp (JCT JCX-68-17) to 5.86pp (JCT JCX-4-24).
 
 ### vs. Penn Wharton Budget Model (PWBM)
 
@@ -976,26 +1021,66 @@ JCT is the official congressional scorer for tax legislation, using IRS SOI micr
 
 ## Validation Results
 
-Benchmarks fall into two epistemically different tiers. We report them separately because conflating calibration with prediction overstates the model's predictive power. Both reproduce live via `python scripts/cold_holdout.py`; see [`docs/VALIDATION.md`](VALIDATION.md) for the full matrix.
+Benchmarks fall into **four** epistemically different tiers, plus a separate
+distributional number. We report them separately because conflating calibration
+with prediction overstates the model's predictive power, and there is **no single
+“validated within X%” figure for this model**. Every number below reproduces live
+via `python scripts/cold_holdout.py`, `python scripts/run_loo.py` and
+`python scripts/run_validation_dashboard.py`; see [`docs/VALIDATION.md`](VALIDATION.md)
+for the full matrix.
 
 ### Tier 1 — Out-of-sample predictions (uncalibrated, bottom-up from IRS SOI)
 
 No fitting to the official target — the genuine test of predictive accuracy.
+Every case is pre-registered in `fiscal_model/validation/preregistered.py`, in a
+commit that lands *before* the commit that first scores it.
 
 | Policy | Official | Model | Error | Source |
 |--------|---------:|------:|------:|--------|
 | 1pp all brackets | −$960B | −$935B | 3% | JCT |
+| Fiscal Responsibility Act 2023, discretionary caps | −$1,332B | −$1,254B | 6% | CBO |
 | 5pp top rate ($1M+) | −$700B | −$648B | 7% | TPC |
+| Social Security Fairness Act, WEP/GPO repeal | +$196B | +$215B | 10% | CBO |
 | Biden top rate 39.6% ($400K+) | −$252B | −$285B | 13% | Treasury |
 | All ordinary rates +1pp | −$1,185B | −$935B | 21% | CBO Options 2025–2034 #45 |
 | Corporate rate +1pp | −$136B | −$200B | 47% | CBO Options 2025–2034 #64 |
 | LTCG + qualified dividends +2pp | −$103B | −$206B | 99% | CBO Options 2025–2034 #47 |
+| IIJA 2021, discretionary component | +$415B | +$1,894B | 356% | CBO |
 
-**23 pre-registered cases, mean absolute error 43.4% (median 23.1%); 6 of 23 within 15%, 12 of 23 within 25%** (`scripts/cold_holdout.py`; full table in [VALIDATION.md](VALIDATION.md)). Do **not** collapse this into one tolerance: ordinary and AGI-inclusive rate changes at conventional thresholds land at 1–21% and fast-spending discretionary funding cuts at 10–23%, while capital-gains, payroll and corporate shapes miss by 47–154% for documented structural reasons. Ordinary-bracket rate changes score on the ordinary-income base (excludes preferential LTCG/QDIV); AGI-inclusive surtaxes score on the full taxable-income base — classified from how each source describes its base, never fitted. Treat uncalibrated custom rate policies as directional, ±15–25%.
+**25 pre-registered cases, mean absolute error 52.6% (median 21.1%); 8 of 25
+within 15%, 14 of 25 within 25%** (`scripts/cold_holdout.py`; full table in
+[VALIDATION.md](VALIDATION.md)). Do **not** collapse this into one tolerance.
+Ordinary-bracket and AGI-inclusive rate changes at conventional thresholds land at
+**2–21%**; fast-spending discretionary funding cuts at **6–23%**; and everything
+behavioral — capital-gains realizations, gains at death, payroll incidence,
+corporate margins — misses by **47–154%** for documented structural reasons. One
+case sits in a class of its own: **IIJA's 356%**, an enacted law's
+budget-authority path scored with no budget-authority-to-outlay spend-out model
+behind it. It is kept in the battery deliberately, as the sharpest available
+evidence for that missing mechanism.
 
-### Tier 2 — Calibrated reference models (reconstructions, low error by construction)
+The mean moved from Phase B's 43.4% on 23 cases to 52.6% on 25 while the median
+*fell* from 23.1% to 21.1%: `top_rate_45` was retired in Phase E (its −$420B target
+appears in no TPC, CBO or JCT publication), `biden_capital_gains_39` was re-sourced
+to the FY2025 Green Book's actual line item and got *worse* (79% → 142%), and three
+enacted-law components joined. A mean that moves on one case while the median does
+not is the tail, not a change in the core.
 
-Specialized modules parameterized to reproduce the published decomposition. Useful as auditable reconstructions of official scores, *not* as independent confirmation. Mean absolute error across 29 benchmarks ≈ 5% (live 4.4%).
+Ordinary-bracket rate changes score on the ordinary-income base (excluding
+preferential LTCG/QDIV); AGI-inclusive surtaxes score on the full taxable-income
+base — classified from how each source describes its base, never fitted. Treat
+uncalibrated custom rate policies as directional, ±15–25%.
+
+### Tier 2a — Calibrated reference models (fitted; low error by construction)
+
+Specialized modules parameterized to reproduce the published decomposition. Useful
+as auditable, source-linked reconstructions of official scores, *not* as
+independent confirmation. **34 fitted benchmarks, mean absolute error 2.7%, 33 of
+34 within 15%, 34 of 34 within 25%.** Twenty-nine of them reproduce a published
+CBO/JCT/Treasury decomposition; the other five are fitted to a target that is
+itself a model estimate, so those measure internal consistency only. (Earlier
+revisions of this file quoted “≈ 5% across 29 benchmarks”; `scripts/cold_holdout.py`
+is now the only place this figure should be read from.)
 
 | Policy | Official Score | Model Score | Error | Status |
 |--------|----------------|-------------|-------|--------|
@@ -1014,6 +1099,68 @@ Specialized modules parameterized to reproduce the published decomposition. Usef
 | PWBM 39.6% cap gains (no step-up) | −$113B | −$113B | 0% | calibrated |
 
 *Positive values indicate deficit increase (cost); negative values indicate deficit reduction (savings). All estimates are 10-year totals.*
+
+### Tier 2b — Unfitted module reconstructions (target never fitted to)
+
+**20 policies, mean absolute error 250.8%, median 43.1%; 4 of 20 within 15%, 7 of
+20 within 25%.** These are two populations and must never be read as one number:
+
+- **Twelve Phase E sectoral presets** (international, trade, pharma, IRS
+  enforcement, climate) at **394.1% mean / 57.1% median**. They ship in the app
+  with an official figure attached and no module constant was ever fitted to any
+  of them. Two — the universal insulin cap and international reference pricing —
+  are off by three and one orders of magnitude respectively and diagnose real
+  incidence bugs in `pharma.py`. The insulin *target* is also mis-signed: CBO
+  publication 57957 scores a private-market insulin cap at about **+$11.4B**, i.e.
+  as *adding* to the deficit, against the carried −$15B.
+- **Eight Phase D P.L. 119-21 line items** (JCT JCX-35-25, transcribed with page
+  references to `fiscal_model/data_files/validation/pl119_21_jct_line_items.csv`)
+  at **35.8% mean**, 2 of 8 within 15%, scored over JCT's own FY2025–2034 window.
+  This is the sharpest available evidence that the calibrated tier is
+  reconstruction rather than structure: the TCJA module reproduces CBO's $4.6T
+  aggregate to **0.4%** and JCT's own component rows to **36%**, because one
+  calibration factor is fitted to the aggregate and no factor is fitted to any
+  component.
+
+Nothing in either group was retuned to close a gap, and every row carries a
+`known_limitations` note naming the structural cause.
+
+### Tier 2c — Calibrated modules, held out (leave-one-out)
+
+`python scripts/run_loo.py` refits each calibrated module's mechanism on the
+*other* benchmarks in its module and asks it to rebuild the held-out one.
+**18 derivable cases, mean absolute error 59.3%, median 35.6%, 6 of 18 within
+15%**, plus **4 cases declared not cross-validatable** — no second benchmark to
+calibrate on, or a base constant that is the published target restated — which are
+reported and never folded into the aggregate.
+
+| Module | Kind | n | Not x-val | LOO mean abs error |
+|---|---|--:|--:|--:|
+| Payroll | structural | 3 | 1 | 3.8% |
+| Estate | structural | 2 | 1 | 25.8% |
+| Expenditures | bottom-up | 5 | 1 | 39.4% |
+| Credits | structural | 3 | 0 | 45.1% |
+| AMT | structural | 2 | 1 | 79.6% |
+| CapitalGains | structural | 3 | 0 | 171.2% |
+
+Compare against the 2.7% in Tier 2a: that number measures bookkeeping, this one
+measures whether the machinery predicts.
+
+### Reading the tiers
+
+**Report these separately and never collapse them:**
+
+| Tier | What it measures | n | Mean | Median |
+|---|---|--:|--:|--:|
+| 1 — out-of-sample, pre-registered | prediction | 25 | **52.6%** | 21.1% |
+| 2a — calibrated, fitted | bookkeeping (low by construction) | 34 | **2.7%** | 0.2% |
+| 2b — unfitted module reconstructions | modules against targets they never saw | 20 | **250.8%** | 43.1% |
+| 2c — calibrated, leave-one-out | how much of the calibration is structure | 18 | **59.3%** | 35.6% |
+
+Distributional accuracy is a fifth, separate number: **seven published CBO/JCT
+tables at 0.00–5.86pp** mean absolute share error, **two of which are circular**
+(see [above](#vs-tpc-tax-policy-center)). There is no single “validated within X%”
+figure for this model, and any document that states one is wrong.
 
 ---
 

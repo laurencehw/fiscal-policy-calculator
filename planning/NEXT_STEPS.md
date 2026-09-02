@@ -1,6 +1,6 @@
 # Next Steps — Fiscal Policy Calculator
 
-> Updated April 2026. This file tracks roadmap items beyond the current shipped branch.
+> Roadmap last reviewed April 2026; the validation scorecard below was re-derived 2026-09-01. This file tracks roadmap items beyond the current shipped branch.
 
 For a manuscript-focused path to citation-grade quality, see [MANUSCRIPT_95_PLUS.md](MANUSCRIPT_95_PLUS.md). For repo-grounded go/no-go gates on the two biggest upgrades, see [FEASIBILITY_CHECKLISTS.md](FEASIBILITY_CHECKLISTS.md).
 
@@ -10,7 +10,23 @@ For the ranked plan to close the errors the validation expansion exposed - by mo
 
 ## Current state (April 2026)
 
-**Large automated test suite, 85% enforced coverage gate, 25+ policies validated within 15% of CBO/JCT**
+**Large automated test suite, 85% enforced coverage gate, and a four-tier
+validation scorecard.** There is no single "validated within 15%" figure — that
+phrasing was on this line until 2026-09-01 and was wrong. Live numbers from
+`python scripts/cold_holdout.py`, `python scripts/run_loo.py` and
+`python scripts/run_validation_dashboard.py`:
+
+| Tier | What it measures | n | Mean | Median |
+|---|---|--:|--:|--:|
+| Out-of-sample, pre-registered | prediction | 25 | **52.6%** | 21.1% |
+| Calibrated, fitted | bookkeeping (low by construction) | 34 | **2.7%** | 0.2% |
+| Unfitted module reconstructions | modules vs targets never fitted to | 20 | **250.8%** | 43.1% |
+| Calibrated, leave-one-out | how much of the calibration is structure | 18 | **59.3%** | 35.6% |
+
+The reconstruction tier is itself two populations — 12 sectoral presets at 394.1%
+and 8 P.L. 119-21 line items at 35.8% — and must not be quoted as one number.
+Distributional accuracy is separate again: 7 published CBO/JCT tables at
+0.00-5.86pp, two of which are circular. See [`docs/VALIDATION.md`](../docs/VALIDATION.md).
 
 ### Completed work
 
@@ -71,7 +87,9 @@ Replace IRS bracket-level aggregates and synthetic tax units with CPS ASEC micro
 - **Housing** — Mortgage deduction reform, first-time buyer credits
 
 ### Data freshness
-- IRS SOI 2023 data (available ~2025, currently using 2022)
+- ~~IRS SOI 2023 data~~ — **done.** Tables 1.1 and 3.3 for tax years 2021, 2022
+  and 2023 ship in `fiscal_model/data_files/irs_soi/`, and auto-population takes
+  the latest available year, so production scoring runs on **tax year 2023**.
 - CBO baseline auto-loader from `cbo.gov` instead of hardcoded values
 
 ### Production hardening
@@ -90,7 +108,7 @@ Replace IRS bracket-level aggregates and synthetic tax units with CPS ASEC micro
 | Full multi-model comparison | High | High | Start after feasibility gate |
 | Full CPS microsimulation | High | High | Start after feasibility gate |
 | Climate module | Med-High | Medium | Good standalone sprint |
-| IRS SOI 2023 | Medium | Low | Easy warm-up task |
+| ~~IRS SOI 2023~~ | Medium | Low | **Done** — shipped and in use |
 | Docker/lock file | Medium | Low | Interleave with above |
 
 ---
