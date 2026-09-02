@@ -5,6 +5,130 @@ in git history, not here.
 
 ## 2026 — ongoing
 
+### Modelling Wave 3 — international overlap, net tariffs, credits from CPS microdata, five targets onto their documents (2026-09-02)
+
+Wave 3 of [`planning/MODELING_IMPROVEMENT.md`](../planning/MODELING_IMPROVEMENT.md)
+completes the plan: three modelling lanes on disjoint files, a target-provenance
+lane alongside them, and the coordinator's gate re-derivation. Every lane
+pre-registered its expected movement in `planning/lanes/` **before** touching
+code; §5.3 of the plan carries the outturn, the five findings and the three
+missed pre-registrations. PRs **#98** (L9 international), **#99** (L8 tariffs),
+**#100** (target provenance), **#101** (L3 credits), **#102** (CI gate).
+
+**Validation tiers moved, and three of the four changed population — so the
+like-for-like readings are printed beside them:**
+
+| Tier | Before | After |
+|---|---|---|
+| Out-of-sample, pre-registered | 25 @ 31.3% / 14.1% median / 13 within 15 / 18 within 25 | **26 @ 31.0% / 15.1% / 13 / 19** |
+| Calibrated, fitted | 30 @ 2.2%, 30/30 within 15 | **28 @ 2.0%, 28/28** — or **29 @ 4.3%, 28/29** with the revised row held in place |
+| Unfitted module reconstructions | 24 @ 72.1% / 40.0% median | **26 @ 61.8% / 38.0%** (**63.6%** over the pre-L8 24 rows) |
+| — sectoral presets | 12 @ 104.8% / 40.0% median | **14 @ 81.0% / 38.0%** (**87.8% / 32.3%** over the 12) |
+| — 8 P.L. 119-21 line items | 35.8% | **unchanged** |
+| — 3 capital-gains scenarios | 39.6% | **unchanged** |
+| Calibrated, leave-one-out | 17 derivable @ 32.3% / 19.2% median / 8 within 15 | **18 derivable @ 28.4% / 16.5% / 9** (**29.5%** over the 17) |
+| — `Credits` | 45.1% | **20.5%** |
+| — `Expenditures` | 4 cases @ 28.8% | **5 cases @ 30.2%** |
+| Not cross-validatable | 5 | **4** — `eliminate_salt` left the excluded set and re-entered the derivable one |
+| Distributional (7 tables) | 0.00–5.86pp | **0.00–7.77pp** (ARP 4.76 → **7.77**) |
+| Scorecard rows | 79 (72 published) | **80 (73 published)** |
+| `revised_target_entries` | 2 | **3** |
+| CBO Options battery | 14 alternatives / 11 options / 65 excluded / 3 leakage | **15 / 12 / 64 / 2** |
+| Tier 1 CI gate | `--max-mean-error 40 --min-within-25pct 17` | **`40 / 18`** |
+
+**Per-case, the rows that moved:**
+
+| Row | Official | Before | After | Error |
+|---|--:|--:|--:|--:|
+| `cbo_opt56_employer_health_income_only` (Tier 1, **new**) | −$697.0B | — | **−$529.9B** | — → **24.0%** |
+| `fdii_repeal` (Tier 2b) | −$200.0B | −$170.0B | **−$110.7B** | 15.0% → **44.65%** |
+| `biden_full_international` (Tier 2b) | −$700.0B | −$413.0B | **−$353.7B** | 41.0% → **49.47%** |
+| `trump_universal_10` (fitted → Tier 2b) | −$2,000.0B | −$2,021.6B | **−$1,258.5B** | 1.1% → **37.1%** |
+| `trump_china_60` (fitted → Tier 2b) | −$500.0B | −$531.1B | **−$278.4B** | 6.2% → **44.3%** |
+| `auto_tariff_25` (Tier 2b) | −$100.0B | −$252.3B | **−$182.2B** | 152.3% → **82.2%** |
+| `steel_tariff_25` (Tier 2b) | −$60.0B | −$103.9B | **−$52.9B** | 73.2% → **11.9%** |
+| `reciprocal_tariffs` (Tier 2b) | −$1,200.0B | −$2,736.0B | **−$1,396.8B** | 128.0% → **16.4%** |
+| `biden_ctc_2021` (LOO) | +$1,600.0B | +$574.1B | **+$1,528.5B** | −64.1% → **−4.5%** |
+| `ctc_extension` (LOO) | +$600.0B | +$432.0B | **+$714.2B** | −28.0% → **+19.0%** |
+| `biden_eitc_childless` (LOO) | +$178.0B | +$101.2B | **+$110.4B** | −43.1% → **−38.0%** |
+| `eliminate_salt` (LOO, **readmitted**) | −$1,200.0B | *excluded* | **−$1,077.9B** | — → **+10.2%** |
+| `repeal_salt_cap` (LOO) | +$1,100.0B | +$1,144.0B | **+$777.0B** | +4.0% → **−29.4%** |
+| ARP refundable credits (distributional) | — | 4.76pp | **7.77pp** | worse, and the more correct configuration |
+
+- **L9 (PR #98): the double count the plan named does not exist.** The module's
+  UTPR reads profits of foreign-parented groups and its GILTI reads US-parented
+  CFC income, so the new `_estimate_base_overlap()` term nets **exactly zero**
+  for every shipped factory. What it establishes instead is algebra: with an 80%
+  foreign tax credit, a per-country GILTI at 21% claims more than a 15% top-up in
+  every jurisdiction, so a policy carrying both raises the larger, never the sum —
+  and at 2026's statutory 13.125% the shared-claim share is 0.9916, not 1, so a
+  constant would have got one case right and the other wrong. The **FDII
+  identity** replaced a flat $20B/yr with Treasury OTA's published $130,230M
+  cost, moving the row toward the document and away from a target 54% above it;
+  both regressions were pre-registered and landed to two decimal places. The
+  package's real residual is a **level**: a $15B UTPR against Treasury's own
+  $136,313M row and JCT's implied $133.9B.
+- **L8 (PR #99): tariff scores are net, not gross, and every shipped preset
+  moved.** `estimate_static_revenue_effect` had no income-and-payroll offset at
+  all. It now subtracts duty avoidance, the ~25% offset CBO/JCT/Treasury apply to
+  any indirect tax, and the receipts lost to retaliation, on Census 2024 levels,
+  a tax-inclusive rate and a border pass-through frozen at 1.00. **The five
+  presets moved 28–49%**, with a caption computed from the scored result shipping
+  in the same PR under owner Decision 6. Two fitted coverage constants were
+  re-derived or deleted, so no `TRADE_BASELINE` constant is fitted to any target
+  and both Trump rows left the fitted tier. The lane also found and fixed a **sign
+  defect**: `estimate_behavioral_offset` returned an unsigned positive number, so
+  a 5pp tariff *cut* on a $1,000B base scored $711B of deficit against a $553B
+  gross revenue loss; signed, the same cut scores $394B. No shipped preset moves
+  on that fix — all five are increases.
+- **L3 (PR #101): credits are computed per unit over CPS ASEC tax units.** Two
+  statutory parameter sets run through `MicroTaxCalculator` and differenced on
+  final liability, in place of `Δcredit × units × participation`. The largest
+  single correction is a **counterfactual**, not a parameter: IRC §24's $2,000
+  reverts to $1,000 after 2025, so a window opening in 2025 is scored against
+  current law for one year and the pre-TCJA regime for nine — $883B against a
+  fixed baseline, **$1,528B** against the one the statute specifies. Three dead
+  levers now have readers, and the engine's EITC qualifying-child count moved
+  from the CTC's under-17 column to IRC §32(c)(3)'s definition (**79.7M against
+  65.0M**). Per owner **Decision 4** the raw 148 MB March 2024 ASEC archive is
+  fetched by `scripts/fetch_cps_asec.py` (SHA-256 verified) into a cache outside
+  the repository and never vendored; five dependent age bands were added and
+  every pre-existing column comes back byte-identical, with the SOI ratios
+  (119% / 81%) unmoved. Per **Decision 5** the three tautological credit
+  benchmarks carry a per-case declaration. **The ARP distributional benchmark got
+  worse, 4.76pp → 7.77pp**, and that is the finding: the old figure ranked one of
+  three components by IRS return counts and the other two by CPS tax units, and
+  the two universes were partly cancelling. Scored consistently the quintile
+  dollar levels move from about a third of CBO's to close to them and the bundle
+  totals $485B, within 10% of the three provisions' actual cost, while the share
+  error grows because the model's bottom quintile is 38.2M tax units against
+  CBO's ~26M households.
+- **PR #100: five targets, five judgements, one modelling change.** **CBO Option
+  56 promoted into Tier 1** at −$529.9B against −$697.0B (24.0%) — a leakage
+  exclusion is not permanent, and L6 had removed the fitted annual its only path
+  ran through; only CBO's third alternative is scored, because 56.3 and 56.6 need
+  a payroll base the module does not have. **Pillar Two re-benchmarked as a
+  published range**, [−$102.6B, +$56.5B] from JCX-22-23 Table 2, with the model
+  **inside** it at distance $0.0B — the ledger gained `is_range`, `contains()`
+  and `distance_to_range()`, and the scorecard and API gained
+  `published_range_low_billions` / `..._high_billions` / `within_published_range`
+  / `distance_to_published_range_billions`. **The leaked SALT constant replaced by
+  its computation**: `annual_cost_no_cap = 120.0` was exactly the `eliminate_salt`
+  target over ten and is now **$89.55B** from IRS SOI Table 2.1 priced at the
+  statutory schedule, checked by the identical computation on the *limited* column
+  returning $25.0B against the record's own 25.0. **The estate target examined and
+  deliberately not moved**, under a new `EXAMINED_NOT_REVISED` state, because
+  JCT's −$429.6B totals a ten-section bill the module does not construct. **The
+  Treasury FY2022 combined-row reading confirmed**, not superseded.
+- **PR #102: the Tier 1 CI gate re-derived by the workflow's own rule** after the
+  battery grew — ceiling `ceil(31.0 × 1.25) = 39 → 40`, unchanged; floor
+  `19 − 1 = 18`, a tightening from 17.
+- **Nothing else a user sees changed.** Every Wave 3 module keeps `reported` as
+  its app default under owner Decision 1 (credits: 0.0% reported against 20.5%
+  derived — read with Decision 5 in hand, since the fitted annuals *are* their
+  targets over ten). No target moved from a modelling branch, no CI threshold was
+  touched by a lane, no per-benchmark constant was added, and two were deleted.
+
 ### Modelling Wave 2 — estate distribution, tax-expenditure units, capital gains (2026-09-02)
 
 Wave 2 of [`planning/MODELING_IMPROVEMENT.md`](../planning/MODELING_IMPROVEMENT.md),
