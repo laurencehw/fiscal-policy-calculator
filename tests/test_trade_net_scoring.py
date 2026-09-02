@@ -12,7 +12,8 @@ the mechanism rather than the numbers it happens to produce:
   retail one;
 * no coverage constant is fitted to a benchmark any more - the two that were
   are derived or deleted, and a per-case elasticity override is gone;
-* the steel preset is incremental over the Section 232 duty actually collected.
+* the steel preset is incremental over the Section 232 duty actually collected;
+* every shipped tariff preset renders the note that explains the new number.
 """
 
 import csv
@@ -34,6 +35,7 @@ from fiscal_model.trade import (
     create_trump_china_60,
     create_trump_universal_10,
 )
+from fiscal_model.ui.tabs.results_summary import tariff_net_caption
 
 CSV_PATH = (
     Path(__file__).parent.parent
@@ -50,6 +52,24 @@ FACTORIES = (
     create_steel_tariff_25,
     create_reciprocal_tariffs,
 )
+
+
+class _FakeStreamlit:
+    """Enough Streamlit to render the headline block and collect its captions."""
+
+    def __init__(self):
+        self.captions: list[str] = []
+        self.markdowns: list[str] = []
+        self.codes: list[str] = []
+
+    def markdown(self, body="", *args, **kwargs):
+        self.markdowns.append(body)
+
+    def caption(self, body="", *args, **kwargs):
+        self.captions.append(body)
+
+    def code(self, body="", *args, **kwargs):
+        self.codes.append(body)
 
 
 def _transcribed_rows() -> dict[str, dict[str, str]]:
@@ -350,3 +370,83 @@ class TestSection232Netting:
         assert TRADE_BASELINE["china_existing_avg_tariff"] > (
             TRADE_BASELINE["current_avg_tariff_rate"]
         )
+
+
+class TestTariffNoteOnTheScore:
+    """Decision 6: the gross->net change ships with its user-facing note."""
+
+    @staticmethod
+    def _scored(factory):
+        policy = factory()
+        result = FiscalPolicyScorer(start_year=2025, use_real_data=False).score_policy(
+            policy, dynamic=False
+        )
+        return policy, result
+
+    @pytest.mark.parametrize("factory", FACTORIES, ids=lambda f: f.__name__)
+    def test_every_tariff_preset_explains_its_number(self, factory):
+        policy, result = self._scored(factory)
+        note = tariff_net_caption(policy, result)
+        assert note, f"{policy.name} renders no note"
+        assert "gross customs duty" in note
+        assert "income-and-payroll offset" in note
+        assert "retaliation" in note
+        assert "net/gross ratio" in note
+
+    def test_the_note_carries_the_scored_figures_not_a_restatement(self):
+        policy, result = self._scored(create_trump_universal_10)
+        note = tariff_net_caption(policy, result)
+        gross = float(sum(result.static_revenue_effect))
+        net = gross - float(sum(result.behavioral_offset))
+        assert f"{gross:,.1f}B" in note
+        assert f"{net:,.1f}B" in note
+        assert f"{net / gross:.2f}" in note
+        # And the net figure in the note is the headline the user reads.
+        assert net == pytest.approx(-result.total_10_year_cost, rel=1e-9)
+
+    def test_a_no_retaliation_score_does_not_claim_a_retaliation_channel(self):
+        policy = TariffPolicy(
+            name="Conventional",
+            description="Test",
+            tariff_rate_change=0.10,
+            import_base_billions=1000.0,
+            include_retaliation=False,
+        )
+        result = FiscalPolicyScorer(start_year=2025, use_real_data=False).score_policy(
+            policy, dynamic=False
+        )
+        note = tariff_net_caption(policy, result)
+        assert "income-and-payroll offset" in note
+        assert "retaliation" not in note
+
+    def test_a_non_tariff_policy_renders_no_tariff_note(self):
+        from fiscal_model.policies import PolicyType, TaxPolicy
+
+        policy = TaxPolicy(
+            name="Custom rate",
+            description="+2pp above $400,000",
+            policy_type=PolicyType.INCOME_TAX,
+            rate_change=0.02,
+            affected_income_threshold=400_000,
+        )
+        result = FiscalPolicyScorer(use_real_data=False).score_policy(policy, dynamic=False)
+        assert tariff_net_caption(policy, result) == ""
+
+    def test_the_headline_block_renders_the_note(self):
+        from components.results import ScoredResult
+        from fiscal_model.app_data import CBO_SCORE_MAP
+        from fiscal_model.ui.tabs.results_summary import render_headline_block
+
+        policy, result = self._scored(create_trump_universal_10)
+        data = {"policy": policy, "result": result}
+        scored = ScoredResult.from_pipeline(
+            result_data=data,
+            policy_spec_hash="tariff-net-note",
+            dynamic_scoring=False,
+            dynamic_view=None,
+            cbo_score_map=CBO_SCORE_MAP,
+            baseline_vintage="CBO Feb 2026",
+        )
+        st = _FakeStreamlit()
+        render_headline_block(st, scored, data)
+        assert any("Net of offsets:" in caption for caption in st.captions), st.captions

@@ -29,6 +29,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from fiscal_model.spending_outlays import IMMEDIATE, account_class_label
+from fiscal_model.trade import TRADE_BASELINE, TariffPolicy
 from fiscal_model.ui.a11y import (
     ChartDescription,
     format_currency_rows,
@@ -491,6 +492,38 @@ def spend_out_caption(policy: Any, result: Any) -> str:
     )
 
 
+def tariff_net_caption(policy: Any, result: Any) -> str:
+    """One line saying that a tariff headline is net, and of what.
+
+    A tariff's gross customs duty is not its budget effect: CBO, JCT and
+    Treasury all score an indirect tax net of an income-and-payroll offset of
+    about 25%, because duty paid is income not paid to labour and capital. The
+    module used to show the gross figure, so the headline moved by roughly
+    40-50% when the offset and the retaliation channel were wired in. That is a
+    user-visible change in the number, and it ships with its explanation rather
+    than in silence.
+
+    Computed from the scored result, so it cannot drift from the figure above
+    it. Returns ``""`` for anything that is not a tariff.
+    """
+    if not isinstance(policy, TariffPolicy):
+        return ""
+    gross = float(np.sum(result.static_revenue_effect))
+    if gross == 0.0:
+        return ""
+    net = gross - float(np.sum(result.behavioral_offset))
+    offset_pct = TRADE_BASELINE["income_payroll_offset_rate"]
+    retaliation = " and the receipts lost to retaliation" if policy.include_retaliation else ""
+    return (
+        f"Net of offsets: \\${gross:,.1f}B of gross customs duty becomes "
+        f"\\${net:,.1f}B of deficit reduction - a {net / gross:.2f} net/gross "
+        f"ratio - after duty avoidance, the {offset_pct:.0%} income-and-payroll "
+        f"offset CBO, JCT and Treasury apply to any indirect tax{retaliation}. "
+        f"Import demand responds to the whole tariff (near-complete border "
+        f"pass-through). GDP feedback is not in this number."
+    )
+
+
 def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, Any]) -> None:
     """Tier badge, headline number, interpretation, sensitivity, provenance."""
     policy = result_data["policy"]
@@ -528,6 +561,10 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     spend_out = spend_out_caption(policy, result)
     if spend_out:
         st_module.caption(spend_out)
+
+    tariff_note = tariff_net_caption(policy, result)
+    if tariff_note:
+        st_module.caption(tariff_note)
 
     credibility_html = _build_credibility_html(getattr(scored, "credibility", None))
     if credibility_html:

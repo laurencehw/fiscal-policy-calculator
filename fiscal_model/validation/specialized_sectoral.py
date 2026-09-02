@@ -17,13 +17,17 @@ layer therefore cannot drift away from the number the app shows a user, and
 adding a runner cannot smuggle in a new target.
 
 **Nothing was retuned to close a gap.** Several of these reconstructions miss
-badly — the universal insulin cap by three orders of magnitude, reciprocal
-tariffs by 128%. Every one of those is reported as ``Poor`` with a
-``known_limitations`` note naming the structural cause. Where the module *does*
-carry a constant fitted to its benchmark (the 70% tariff coverage rate, the
-IRA-enforcement ROI multiplier, the IRA-repeal annual), the scenario records
-``calibrated_to_target=True`` so a near-zero error is read as bookkeeping
-rather than skill.
+badly. Every one of those is reported as ``Poor`` with a ``known_limitations``
+note naming the structural cause. Where the module *does* carry a constant
+fitted to its benchmark (the IRA-enforcement ROI multiplier, the IRA-repeal
+annual), the scenario records ``calibrated_to_target=True`` so a near-zero
+error is read as bookkeeping rather than skill. **The two tariff entries that
+used to carry that flag no longer do**: lane L8 replaced the 70% universal
+coverage rate with a Census-derived figure and deleted the 50% China coverage
+rate outright, so no ``TRADE_BASELINE`` constant is fitted to any target and
+all five trade rows report as unfitted reconstructions. Both moved *away* from
+their targets when the fitted constants went, which is what those constants
+were concealing.
 
 Sign convention: ``CBO_SCORE_MAP`` and ``ScoringResult.total_10_year_cost``
 both use deficit effect — negative reduces the deficit — so targets and model

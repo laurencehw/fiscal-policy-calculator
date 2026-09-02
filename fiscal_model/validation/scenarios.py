@@ -557,15 +557,25 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
         "benchmark_url": (
             "https://taxfoundation.org/wp-content/uploads/2025/04/FF861.pdf"
         ),
-        "calibrated_to_target": True,
-        "notes": "10% on all imports; 70% effective coverage.",
+        # Lane L8: no TRADE_BASELINE constant is fitted to this target any
+        # more. The coverage rate is 1 minus the Canada-plus-Mexico share of
+        # 2024 goods imports, and the score is net of the income-and-payroll
+        # offset. The row's error rose from 1.1% to 37.1% as a result, which is
+        # what the old figure was hiding.
+        "calibrated_to_target": False,
+        "notes": "10% outside the USMCA carve-out; scored net of offsets.",
         "limitations": [
-            "The 70% effective-coverage constant in TRADE_BASELINE is calibrated to "
-            "reproduce this ~$2T figure; it stands in for exemptions, existing duties "
-            "and de minimis rather than being derived from HTS line data.",
-            "The static score nets only the import-demand response. The GDP-feedback "
-            "drag on income and payroll receipts that Yale and CBO include reaches the "
-            "number through the dynamic path, not this entry.",
+            "Poor: the module carves out USMCA-qualifying Canadian and Mexican goods "
+            "(1 - 28.03% of 2024 goods imports, Census) because every universal tariff "
+            "actually proposed or imposed has done so. FF861 applies no carve-out - its "
+            "Table 2 base is the whole $3,353.7B of goods imports - so the two are not "
+            "scoring the same policy, and roughly two-fifths of the gap is that.",
+            "The target is FF861's *conventional* column. The model's net figure sits "
+            "between FF861's dynamic ($1,721B) and dynamic-with-retaliation ($1,443B) "
+            "estimates, because it nets retaliation but carries no GDP feedback.",
+            "The retaliation channel is a reduced form: an export-value loss converted "
+            "at the app's marginal revenue rate, with no multiplier and no supply-chain "
+            "effect. It returns about $111B over ten years against FF861 p. 2's $278B.",
         ],
     },
     "trump_china_60": {
@@ -575,14 +585,22 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
         "official_source": "Tax Foundation",
         "benchmark_date": "2024",
         "benchmark_url": None,
-        "calibrated_to_target": True,
-        "notes": "60% on Chinese imports, incremental above the existing ~20% average.",
+        # Lane L8: the fitted 50% coverage constant is deleted. The rate is
+        # now incremental over the duty Census says China's imports actually
+        # pay (10.93% in 2024), applied to the whole base. Error 6.2% -> 44.3%.
+        "calibrated_to_target": False,
+        "notes": "60% on Chinese imports, incremental over the 10.9% collected in 2024.",
         "limitations": [
-            "The 50% China effective-coverage constant is calibrated to this target; "
-            "the split between goods already under Section 301 duties and goods newly "
-            "exposed is an assumption, not a tariff-line calculation.",
+            "Poor, and against a target that is itself untraceable: -$500B exceeds "
+            "CRFB's upper bound by two-thirds and is only obtainable as a residual from "
+            "a Tax Foundation bundle (see benchmark_sources.py). The model now returns "
+            "-$278B, inside CRFB's stated range rather than above it.",
+            "A 49pp rate change sits well past the 30pp threshold where the elasticity "
+            "doubles, so most of the movement is the volume response: imports fall to "
+            "32% of base. That is the least well-identified part of the chain.",
             "Trade diversion through third countries — the dominant response in the "
-            "2018-2019 episode — is captured only through a single elasticity.",
+            "2018-2019 episode — is captured only through a single elasticity, and "
+            "diverted goods pay no US duty at all in this model.",
         ],
     },
     "auto_tariff_25": {
@@ -593,14 +611,21 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
         "benchmark_date": "2024",
         "benchmark_url": None,
         "calibrated_to_target": False,
-        "notes": "USMCA-exempt share removed from the base before the rate is applied.",
+        "notes": "USMCA share of HS-87 removed from the base before the rate is applied.",
         "limitations": [
-            "Poor: the effective base is 35% of $380B of auto imports at a 22.5pp "
-            "incremental rate, which mechanically yields ~$25B/yr. The -$100B/10yr "
-            "target implies roughly $10B/yr — a materially narrower base, or a much "
-            "larger volume response than the module's -0.5 import elasticity gives.",
+            "Poor, and the target is the reason. Census 2024 puts HS-87 (vehicles and "
+            "parts) imports at $384.9B, of which $186.4B — 48.4% — comes from Canada and "
+            "Mexico. Even carving all of that out leaves a $198.5B base, and the "
+            "-$100B/10yr target implies about $10B/yr of net receipts off it. The two "
+            "located primary estimates are far larger: Tax Foundation's tariff tracker "
+            "gives $386.2B conventional and Yale Budget Lab $600-650B, and the model's "
+            "-$182B sits between them and the carried figure.",
+            "The carve-out itself is generous: the March 2025 proclamation exempts only "
+            "the US-content share of USMCA-qualifying vehicles, not the whole import "
+            "value, so the real base is larger than the one scored here.",
             "Not retuned: the target is a secondhand round number with no published "
-            "table behind it, so the gap is reported rather than closed by moving "
+            "table behind it (CRFB, its stated source, itemises no auto figure in any of "
+            "four posts), so the gap is reported rather than closed by moving "
             "TRADE_BASELINE constants.",
         ],
     },
@@ -612,11 +637,16 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
         "benchmark_date": "2024",
         "benchmark_url": None,
         "calibrated_to_target": False,
-        "notes": "Flat 25pp on a $50B steel/aluminium import base.",
+        "notes": "25pp net of the 3.06% Section 232 duty collected, on a $58.9B base.",
         "limitations": [
-            "Poor: the full 25pp is applied to the whole $50B base with no allowance "
-            "for the Section 232 duties already in force, so the incremental rate is "
-            "overstated.",
+            "The Section 232 netting is now measured, not assumed: Census puts calculated "
+            "duty on HS-72 plus HS-76 at 3.06% of imports for consumption in 2024, far "
+            "below the 25%/10% statutory rates because Canada, Mexico and Australia were "
+            "exempted and the EU, UK, Japan, Brazil and South Korea traded under quotas "
+            "or product exclusions. The proposed 25% is incremental to that 3.06%.",
+            "HS-72 plus HS-76 is a proxy for 'steel and aluminium'. Section 232 also "
+            "reaches derivative products in HS-73 ($49.6B of imports at 5.63% collected), "
+            "which are excluded here; including them would roughly triple the base.",
             "The target is unsourced at either value. CBO_SCORE_MAP and "
             "PRESET_POLICIES used to spell this preset differently (-$60B under "
             "'25% Steel & Aluminum Tariff' against -$15B under '25% "
@@ -637,14 +667,18 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
         "benchmark_date": "2024",
         "benchmark_url": None,
         "calibrated_to_target": False,
-        "notes": "Flat 20pp applied to half of all goods imports.",
+        "notes": "Flat 20pp applied to half of all goods imports, scored net of offsets.",
         "limitations": [
-            "Poor: 'reciprocal' is implemented as a flat 20pp on 50% of imports. The "
+            "'Reciprocal' is implemented as a flat 20pp on 50% of imports — the one "
+            "shape assumption left in the trade module that is not a measurement. The "
             "published estimates apply partner-specific rates to partner-specific "
             "bases and assume substantially larger trade diversion.",
-            "Neither retaliation nor GDP feedback is netted from this static score, "
-            "which is most of the distance between a gross customs figure and a "
-            "published net score (the knowledge base puts net at ~40-50% of gross).",
+            "The score is now net of avoidance, the income-and-payroll offset and "
+            "retaliation, which is most of the distance between a gross customs figure "
+            "and a published net score. GDP feedback is still absent, so the model's "
+            "-$1,397B sits above where a fully dynamic estimate would land: Yale's "
+            "April-2 conventional figure is $1.4T and CRFB's $1.8T conventional / "
+            "$1.6T dynamic.",
             "The -$1.2T target matches no published estimate of any reciprocal "
             "tariff: Yale Budget Lab's illustrative proposal raises $2.7-3.5T over "
             "2026-35 (and is a 13pp effective-rate rise, not 20pp), its April-2 "
