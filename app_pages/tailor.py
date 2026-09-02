@@ -47,6 +47,7 @@ from fiscal_model.ui.session_state import (
     KEY_TAILOR_TAX_TYPE,
     mirror_widget_value,
     seed_widget_default,
+    shadow_key,
 )
 from fiscal_model.ui.settings_controller import claim_inline_dynamic_toggle
 from fiscal_model.ui.share_links import decode_tailor_query
@@ -81,23 +82,46 @@ _THRESHOLD_LABELS: dict[int, str] = {
 }
 
 
-def _segmented(st_module: Any, label: str, options: tuple[str, ...], key: str, *, help: str | None = None) -> str:
+def _segmented(
+    st_module: Any,
+    label: str,
+    options: tuple[str, ...],
+    key: str,
+    *,
+    default: str,
+    help: str | None = None,
+) -> str:
     """Render a segmented control, falling back to a radio on older runtimes.
 
-    ``st.segmented_control`` allows *deselection*, which would leave the page
-    with no policy type at all — so an empty selection falls back to the stored
-    value rather than to ``None``.
+    ``st.segmented_control`` allows *deselection*: clicking the active chip
+    leaves ``None`` in the widget key, which would leave the page with no
+    policy type at all. The stored value is restored **before** the widget is
+    instantiated — the only point in a run where Streamlit lets code write a
+    widget key. Writing it afterwards raises ``StreamlitAPIException:
+    ... cannot be modified after the widget with key ... is instantiated``,
+    which is how the page used to die on a deselect.
+
+    ``default`` seeds the key on first render, replacing the separate
+    ``seed_widget_default`` call the callers used to make: that call has to
+    run *after* the restore, or it copies the ``None`` into the mirror.
     """
-    previous = st_module.session_state.get(key, options[0])
+    state = st_module.session_state
+    if key in state and state[key] not in options:
+        # Deselected (or stale) on the previous run: fall back to the mirror,
+        # then to the default. Legal here — the widget does not exist yet.
+        fallback = state.get(shadow_key(key))
+        state[key] = fallback if fallback in options else default
+    seed_widget_default(st_module, key, default)
+    previous = state.get(key, default)
     widget = getattr(st_module, "segmented_control", None)
     if widget is None:
         widget = st_module.radio
         chosen = widget(label, list(options), key=key, help=help, horizontal=True)
     else:
         chosen = widget(label, list(options), key=key, help=help)
-    if chosen is None:
-        st_module.session_state[key] = previous
-        chosen = previous
+    if chosen is None:  # pragma: no cover — the restore above pre-empts this
+        # Never write the widget key here; the next run's restore handles it.
+        return str(previous)
     mirror_widget_value(st_module, key)
     return str(chosen)
 
@@ -152,12 +176,12 @@ def _seed_form_from_preset(st_module: Any, preset_name: str, preset_data: dict[s
 
 def _render_form_header(st_module: Any, deps: Any) -> None:
     """"Start from" + policy-type chips, above the rest of the form card."""
-    seed_widget_default(st_module, KEY_TAILOR_START_FROM, START_FROM_OPTIONS[0])
     start_from = _segmented(
         st_module,
         "Start from",
         START_FROM_OPTIONS,
         KEY_TAILOR_START_FROM,
+        default=START_FROM_OPTIONS[0],
         help=(
             "**Blank** — an empty form. **A preset** — seed the rate, "
             "threshold and timing from a scored proposal, then change it."
@@ -188,12 +212,12 @@ def _render_form_header(st_module: Any, deps: Any) -> None:
     else:
         st_module.session_state.pop(KEY_TAILOR_SEED_APPLIED, None)
 
-    seed_widget_default(st_module, KEY_TAILOR_POLICY_KIND, POLICY_KINDS[0])
     _segmented(
         st_module,
         "Policy type",
         POLICY_KINDS,
         KEY_TAILOR_POLICY_KIND,
+        default=POLICY_KINDS[0],
         help=(
             "**Income** and **Capital gains** score individual filers; "
             "**Corporate** scores taxable corporate profits; "
