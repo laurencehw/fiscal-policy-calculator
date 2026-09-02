@@ -2,7 +2,7 @@
 
 > **Fiscal Policy Calculator — Comparison to Official CBO/JCT Estimates**
 >
-> Last Updated: September 2, 2026 (post-Wave-1: PRs #85 spend-out, #86 AMT, #87 pharma, #88 IIJA path + app spend-out)
+> Last Updated: September 2, 2026 (post-Wave-2: PRs #93 estate distribution, #94 tax-expenditure cap units, #95 capital-gains base/elasticity/lock-in/gains-at-death)
 
 ---
 
@@ -14,10 +14,12 @@ The model is benchmarked against **72 published estimates** — from CBO, JCT, T
 
 Policies scored **bottom-up** — IRS SOI filer counts and incomes via raw rate/threshold auto-population, the modules' own revenue identities, and spending levels stated by the source — with **no fitting to the official target** (and, for capital gains, one frozen elasticity set). This is the only tier that measures predictive accuracy.
 
-> **25 out-of-sample cases, mean abs error 34.4%, 12/25 within 15%, 16/25 within 25%** (median 16.1%).
+> **25 out-of-sample cases, mean abs error 31.3%, 13/25 within 15%, 18/25 within 25%** (median 14.1%).
 > There is deliberately no single "validated within X%" number: the distribution has a tight core and a long tail, and collapsing it would hide the tail.
 
-*Wave 1 of [`planning/MODELING_IMPROVEMENT.md`](../planning/MODELING_IMPROVEMENT.md) moved this tier from 52.6% to 34.4% and its median from 21.1% to 16.1%, on the eight spending rows only. Lane L2 (PR #85) added the budget-authority-to-outlay spend-out model the battery had been diagnosing since Phase D; PR #88 then superseded IIJA's shape input with CBO's own authorization schedule (`.v1` → `.v2`, target unchanged). No tax row moved, and no target was edited. The two lanes' pre-registrations are in [`planning/lanes/L2_spend_out.md`](../planning/lanes/L2_spend_out.md).*
+*Wave 2 (PRs #93, #94, #95) moved this tier from 34.4% to **31.3%** and its median from 16.1% to **14.1%**, on the capital-gains rows only — lane L1 replaced the realizations base, the elasticity unit, the lock-in multiplier and the gains-at-death constant. Two rows improved (`cbo_opt51_gains_at_death` 84.4% → **8.4%**, `cbo_opt47_ltcg_qdiv_2pp` 99.1% → **44.8%**), one barely moved (`biden_capital_gains_39` 142.3% → 134.9%) and one got worse (`treasury_capgains_39_plus_stepup_elim` 153.6% → **217.5%**), because the derived lock-in wedge runs the *other* way on a proposal that eliminates step-up. Four rows the lane did not name also moved, all through `preferential_income_share` reading the new SOI bracket base: `cbo_opt45_top4_brackets_2pp` 25.8% → **17.9%**, `illustrative_1pp_all` 2.6% → 4.1%, `cbo_opt45_all_rates_1pp` 21.1% → 22.4%, `biden_high_income_tax` 12.9% → 14.1%. Neither L4 (estate) nor L6 (tax expenditures) touches a Tier 1 row. The lanes' pre-registrations are in [`planning/lanes/`](../planning/lanes/).*
+
+*Wave 1 had earlier moved this tier from 52.6% to 34.4% and its median from 21.1% to 16.1%, on the eight spending rows only. Lane L2 (PR #85) added the budget-authority-to-outlay spend-out model the battery had been diagnosing since Phase D; PR #88 then superseded IIJA's shape input with CBO's own authorization schedule (`.v1` → `.v2`, target unchanged). No tax row moved, and no target was edited. The two lanes' pre-registrations are in [`planning/lanes/L2_spend_out.md`](../planning/lanes/L2_spend_out.md).*
 
 *Phase E had earlier changed two rows, in opposite directions and for the same reason — somebody opened the document. `top_rate_45` was **retired**: its -$420B is in no TPC, CBO or JCT publication. `biden_capital_gains_39` was **re-sourced** from an unsupported -$456B to the FY2025 Green Book's actual line item, -$288.6B, and its shape corrected to the source's own definition, which made it score worse. Details below and in [`preregistered.py`](../fiscal_model/validation/preregistered.py).*
 
@@ -27,27 +29,27 @@ Policies scored **bottom-up** — IRS SOI filer counts and incomes via raw rate/
 | Medicare surcharge 2pp (>$400K) | -$310B | -$315B | 2% | Treasury (2024) | Green Book FY2025 | `6c9bfa2` |
 | Cut selected nondefense discretionary | -$339B | -$333B | 2% | CBO Options 2025-2034 #42 (2024-12) | CBO June 2024 (scored on Feb 2024) | `752f0f1`, scored `36d683f` |
 | End national community service funding | -$10B | -$11B | 3% | CBO Options 2025-2034 #38 (2024-12) | CBO June 2024 (scored on Feb 2024) | `752f0f1`, scored `36d683f` |
-| 1pp all brackets | -$960B | -$935B | 3% | JCT (2023-01) | CBO Feb 2023 | `be7e947` |
+| 1pp all brackets | -$960B | -$920B | 4% | JCT (2023-01) | CBO Feb 2023 | `be7e947` |
 | 5pp top rate ($1M+) | -$700B | -$648B | 7% | TPC (2023-06) | CBO Feb 2023 | `be7e947` |
 | Tighten Pell grant eligibility | -$22B | -$20B | 8% | CBO Options 2025-2034 #39 (2024-12) | CBO June 2024 (scored on Feb 2024) | `752f0f1`, scored `36d683f` |
+| Tax accrued gains at death | -$536B | -$581B | 8% | CBO Options 2025-2034 #51 (2024-12) | CBO Feb 2024 (matched) | `752f0f1`, scored `36d683f` |
 | 2pp rate cut ($500K+) | +$400B | +$364B | 9% | TPC (2023-06) | CBO Feb 2023 | `be7e947` |
 | Social Security Fairness Act: WEP/GPO repeal | +$196B | +$215B | 10% | CBO, H.R. 82 (2024-09) | CBO June 2024 (no vintage in repo) | `aed5318`, scored `dca3a50` |
 | Cut certain state and local grants | -$67B | -$74B | 11% | CBO Options 2025-2034 #43 (2024-12) | CBO June 2024 (scored on Feb 2024) | `752f0f1`, scored `36d683f` |
 | Fiscal Responsibility Act: discretionary caps | -$1,332B | -$1,170B | 12% | CBO, H.R. 3746 letter (2023-05) | CBO May 2023 (no vintage in repo) | `aed5318`, scored `dca3a50` |
-| Biden top rate 39.6% ($400K+) | -$252B | -$284B | 13% | Treasury (2024-03) — published row is **-$245.9B** | Green Book FY2025 | `be7e947` |
+| Biden top rate 39.6% ($400K+) | -$252B | -$217B | 14% | Treasury (2024-03) — published row is **-$245.9B** | Green Book FY2025 | `be7e947` |
 | AGI surtax 2pp (>$100K single) | -$1,051B | -$882B | 16% | CBO Options 2025-2034 #46 (2024-12) | CBO Feb 2024 (matched) | `752f0f1`, scored `36d683f` |
+| Top four ordinary brackets +2pp | -$570B | -$672B | 18% | CBO Options 2025-2034 #45 (2024-12) | CBO Feb 2024 (matched) | `752f0f1`, scored `36d683f` |
 | IIJA 2021: discretionary component | +$415B | +$340B | 18% | CBO, S.Amdt. 2137 (2021-08) | CBO July 2021 (no vintage in repo) | `1a68118` (`.v2`, superseding `.v1`), scored `327a69b` |
 | Warren surtax 3pp (AGI >$2M) | -$350B | -$284B | 19% | TPC (2020) | unstated (secondhand) | `6c9bfa2` |
-| All ordinary rates +1pp | -$1,185B | -$935B | 21% | CBO Options 2025-2034 #45 (2024-12) | CBO Feb 2024 (matched) | `752f0f1`, scored `36d683f` |
-| Top four ordinary brackets +2pp | -$570B | -$716B | 26% | CBO Options 2025-2034 #45 (2024-12) | CBO Feb 2024 (matched) | `752f0f1`, scored `36d683f` |
+| All ordinary rates +1pp | -$1,185B | -$920B | 22% | CBO Options 2025-2034 #45 (2024-12) | CBO Feb 2024 (matched) | `752f0f1`, scored `36d683f` |
 | AGI surtax 1pp (>$20K single) | -$1,440B | -$797B | 45% | CBO Options 2025-2034 #46 (2024-12) | CBO Feb 2024 (matched) | `752f0f1`, scored `36d683f` |
+| LTCG + qualified dividends +2pp | -$103B | -$57B | 45% | CBO Options 2025-2034 #47 (2024-12) | CBO Feb 2024 (matched) | `752f0f1`, scored `36d683f` |
 | Corporate rate +1pp (21% to 22%) | -$136B | -$200B | 47% | CBO Options 2025-2034 #64 (2024-12) | CBO Feb 2024 (matched) | `752f0f1`, scored `36d683f` |
 | New 1% payroll tax (all earnings) | -$1,282B | -$1,975B | 54% | CBO Options 2025-2034 #61 (2024-12) | CBO Feb 2024 (matched) | `752f0f1`, scored `36d683f` |
 | New 2% payroll tax (all earnings) | -$2,540B | -$3,950B | 56% | CBO Options 2025-2034 #61 (2024-12) | CBO Feb 2024 (matched) | `752f0f1`, scored `36d683f` |
-| Tax accrued gains at death | -$536B | -$84B | 84% | CBO Options 2025-2034 #51 (2024-12) | CBO Feb 2024 (matched) | `752f0f1`, scored `36d683f` |
-| LTCG + qualified dividends +2pp | -$103B | -$206B | 99% | CBO Options 2025-2034 #47 (2024-12) | CBO Feb 2024 (matched) | `752f0f1`, scored `36d683f` |
-| Biden capital income at ordinary rates | -$289B | -$699B | 142% | Treasury (2024-03), Green Book FY2025 table row | Green Book FY2025 | `0bcfbc3` (`.v2`, superseding `.v1`) |
-| Treasury 39.6% + step-up repeal | -$322B | -$817B | 154% | Treasury (2021-05) | Green Book FY2022 | `d11bf2c`, scored `6c9bfa2` |
+| Biden capital income at ordinary rates | -$289B | -$678B | 135% | Treasury (2024-03), Green Book FY2025 table row | Green Book FY2025 | `0bcfbc3` (`.v2`, superseding `.v1`) |
+| Treasury 39.6% + step-up repeal | -$322B | -$1,022B | 218% | Treasury (2021-05) | Green Book FY2022 | `d11bf2c`, scored `6c9bfa2` |
 
 Live figures: `python scripts/cold_holdout.py`. Rows are the `Generic` category of the scorecard; every one has a row in [`fiscal_model/validation/preregistered.py`](../fiscal_model/validation/preregistered.py).
 
@@ -136,17 +138,17 @@ recorded** rather than scored:
 
 #### The misses, grouped by cause
 
-Every miss is kept and carries a `known_limitations` note in the scorecard. Five causes account for all of them, and after Wave 1 the largest is capital gains, not spending. Group masses (Σ|error %|, tier total **859.5** over 25 cases):
+Every miss is kept and carries a `known_limitations` note in the scorecard. Five causes account for all of them, and after Wave 2 the largest is still capital gains — but only its rate-and-step-up half. Group masses (Σ|error %|, tier total **781.8** over 25 cases):
 
-1. **Capital-gains behaviour and the stock of gains at death (4 cases, 84-154%; mass 479.4, 55.8% of the tier).** The two legacy Treasury cases share one shape and two targets 42% apart. Option 51 runs the whole estimate through one module constant — $54B of gains transferred at death — and under-predicts CBO by 84%, because CBO accrues gains on the *stock* of appreciated assets held by decedents rather than an annual realizations flow. Option 47 applies +2pp to the entire SOI realizations aggregate including gains that face the 0% rate, and misses by 99%. All four are scored with one frozen elasticity set (the module defaults, 0.8 short-run / 0.4 long-run), never the per-case tuples in `scenarios.py`. This is Wave 2 lane L1.
-2. **Module revenue identities applied at the margin (3 cases, 47-56%; mass 156.7, 18.2%).** The payroll shape scores a new tax on all earnings off the Medicare identity ($400B at 2.9%), which includes the employer share and carries no income-tax offset, so it over-predicts by ~55% at both 1% and 2%. The corporate shape applies the full statutory-rate delta to the whole base, over-predicting a 1pp step by 47%.
-3. **One threshold standing in for a filing-status-specific boundary (2 cases, 26% and 45%; mass 70.5, 8.2%).** "The four highest brackets" and "AGI above $20,000 single / $40,000 joint" are boundaries the generic path cannot express; it carries one number. The error is largest at the low threshold (Option 46 alternative 1, 45%), where the mis-assignment covers most of the filing population.
-4. **The bracket-aggregate ceiling on ordinary and AGI-inclusive rate changes (8 cases, 2-21%; mass 89.5, 10.4%).** Flat SOI bracket aggregates with a single ETI, against sources whose own estimates rise through the window as bracket creep pushes income upward.
-5. **Budget-authority-to-outlay lag and the level shape (8 cases, 0-18%; mass 63.4, 7.4%).** **This was 509 units and 38.7% of the tier before Wave 1, and it was the plan's rank-2 lane for that reason.** L2 built the spend-out model — `outlays_t = Σ_k s_k · BA_{t−k}`, with `s` fitted by NNLS on the 14 CBO donor options the battery does not score — and PR #88 gave IIJA the authorization schedule CBO's own estimate states. The five CBO Options spending rows now land at 0-11% (Option 43, the slowest spend-out in the battery, went 75% → 11%), the three enacted-law components at 10-18%. What is left is *not* spend-out: Option 39 under-predicts (8%) because Pell disburses in two years while the generic grants profile takes six, Option 43's residual is a first-year authority level inflated by IIJA advance funding, FRA's is the level shape, IIJA's is a window mismatch, and SSFA's is a growth rate. Account-level rates would close the first of those, and CBO publishes them (publications 61913 and 62256) — from an environment that can reach cbo.gov.
+1. **Capital-gains behaviour at the top rate and at death (4 cases, 8-218%; mass 405.6, 51.9% of the tier).** Wave 2's lane L1 rebuilt all four mechanisms and the group split in two. **Option 51 is now the tier's fourth-best row at 8.4%** — the $54B/yr flow constant became decedent wealth × an unrealized-gain share by estate size, $196.2B of gains in 2025 growing 5.8%/yr across five estate-size classes, none of it fitted to a CBO figure. **Option 47 fell from 99% to 44.8%**, now *under*-predicting: the base went from $1,368B of Tax Foundation realizations at a blended 15.5% to $1,107.7B of SOI Table 3.5 income in five priced buckets, and the frozen Dowd–McClelland–Muthitacharoen persistent elasticity is well below the 1.5-2.0 JCT's own path implies at a 2pp change. **The two step-up-elimination rows went the other way, to 134.9% and 217.5%**, and the reason is nameable: the derived lock-in wedge (1.44×) *divides* the semi-log coefficient when step-up is eliminated, leaving the rate channel firmly positive, and the death channel carries **no behavioural response at all** — no spousal or charitable carve-out, no §121 residence exclusion, no tangible-personal-property exclusion, no family-business deferral, all of which Treasury's own score prices. All four are scored with ONE frozen elasticity set — the `CapitalGainsPolicy` dataclass defaults, persistent 0.72 / transitory 1.20 at a 22% reference rate, applied semi-logarithmically because CRS R48562 defines the elasticity on the tax rate — and `scenarios.py`'s per-case tuples no longer exist.
+2. **Module revenue identities applied at the margin (3 cases, 47-56%; mass 156.7, 20.0%).** The payroll shape scores a new tax on all earnings off the Medicare identity ($400B at 2.9%), which includes the employer share and carries no income-tax offset, so it over-predicts by ~55% at both 1% and 2%. The corporate shape applies the full statutory-rate delta to the whole base, over-predicting a 1pp step by 47%.
+3. **One threshold standing in for a filing-status-specific boundary (2 cases, 18% and 45%; mass 62.6, 8.0%).** "The four highest brackets" and "AGI above $20,000 single / $40,000 joint" are boundaries the generic path cannot express; it carries one number. The error is largest at the low threshold (Option 46 alternative 1, 45%), where the mis-assignment covers most of the filing population.
+4. **The bracket-aggregate ceiling on ordinary and AGI-inclusive rate changes (8 cases, 2-22%; mass 93.5, 12.0%).** Flat SOI bracket aggregates with a single ETI, against sources whose own estimates rise through the window as bracket creep pushes income upward.
+5. **Budget-authority-to-outlay lag and the level shape (8 cases, 0-18%; mass 63.4, 8.1%).** **This was 509 units and 38.7% of the tier before Wave 1, and it was the plan's rank-2 lane for that reason.** L2 built the spend-out model — `outlays_t = Σ_k s_k · BA_{t−k}`, with `s` fitted by NNLS on the 14 CBO donor options the battery does not score — and PR #88 gave IIJA the authorization schedule CBO's own estimate states. The five CBO Options spending rows now land at 0-11% (Option 43, the slowest spend-out in the battery, went 75% → 11%), the three enacted-law components at 10-18%. What is left is *not* spend-out: Option 39 under-predicts (8%) because Pell disburses in two years while the generic grants profile takes six, Option 43's residual is a first-year authority level inflated by IIJA advance funding, FRA's is the level shape, IIJA's is a window mismatch, and SSFA's is a growth rate. Account-level rates would close the first of those, and CBO publishes them (publications 61913 and 62256) — from an environment that can reach cbo.gov.
 
 *(A sixth cause, "a single ETI at a large rate change against a secondhand target", left the battery with `top_rate_45` in Phase E.)*
 
-**Honest reading**: the model predicts ordinary and AGI-inclusive *rate* changes at conventional thresholds well (2-21%), discretionary funding changes well now that authority is spent out (CBO Options rows 0-11%, enacted-law components 10-18%), and everything behavioural — capital-gains realizations, gains at death, payroll incidence, corporate margins — badly (47-154%). Phase A's 9-case 44.8% and Phase B's 23-case 43.4% were the same story on more than twice the evidence: widening the battery did not move the mean, it explained it. Phase D then added the one shape that moved it — IIJA's 356% — taking the 25-case mean to 52.6% while the median *fell* to 21.1%. Wave 1 built the mechanism that 356% was evidence for, and the mean fell to **34.4%** with the median at **16.1%** and within-15 rising 8 → 12. The tier is now what it always claimed to be underneath: a tight rate-and-spending core and a behavioural tail.
+**Honest reading**: the model predicts ordinary and AGI-inclusive *rate* changes at conventional thresholds well (2-22%), discretionary funding changes well now that authority is spent out (CBO Options rows 0-11%, enacted-law components 10-18%), and **gains at death** well now that they are accrued on a stock rather than a flow (8%). What it still predicts badly is a preferential-rate change at a small step (45%), corporate margins (47%), payroll incidence (54-56%) and, worst of all, step-up elimination (135-218%). Phase A's 9-case 44.8% and Phase B's 23-case 43.4% were the same story on more than twice the evidence: widening the battery did not move the mean, it explained it. Phase D then added the one shape that moved it — IIJA's 356% — taking the 25-case mean to 52.6% while the median *fell* to 21.1%. Wave 1 built the mechanism that 356% was evidence for, and the mean fell to 34.4% with the median at 16.1% and within-15 rising 8 → 12. Wave 2 did the same for capital gains and it fell again, to **31.3%** / **14.1%** / **13 within 15** / **18 within 25**. The tier is now what it always claimed to be underneath: a tight rate-and-spending core and a behavioural tail — and the tail is one row shorter and much better named than it was.
 
 **What the tight core shows.** Ordinary-bracket rate changes (JCT 1pp, Biden $400K, CBO Option 45) score on the ordinary-income base (excludes preferential LTCG/QDIV); AGI-inclusive surtaxes (TPC $1M+/$500K+, Warren, the Medicare surcharge, CBO Option 46) score on the full taxable-income base that includes the preferential portion. The classification comes from how each source describes its base, not from which choice fits better — the `cold_holdout.py --ordinary-base` diagnostic shows the correction *worsens* the AGI-inclusive cases (7→30%, 9→30%, 2→29%), which is the tell. For ordinary and AGI-inclusive rate changes in this range, **treat uncalibrated custom policies as directional, ±15-25%.**
 
@@ -176,7 +178,7 @@ The discipline the manifest enforces (`assert_preregistered`, tested in `tests/t
 
 Honest boundary, as with [`holdout.py`](../fiscal_model/validation/holdout.py): these are previously published numbers, and Phase A registered targets that already existed in the repository or in `CBO_SCORE_MAP`. What the manifest guarantees is that *from the entry commit onward* the target is frozen and any change is visible — not that nobody had ever seen the number.
 
-**CI gate.** `.github/workflows/validation-dashboard.yml` runs `python scripts/cold_holdout.py --max-mean-error 45 --min-within-25pct 15` as a blocking step. The workflow's own rule sets both: ceiling = ceil(mean x 1.25) to the nearest 5; floor = current count within 25%, minus one. On the post-Wave-1 battery (25 cases, mean 34.4%, 16 within 25%) the rule gives a ceiling of **45** and a floor of **15**. The workflow was tightened to **45 / 15** after Wave 1 (from 55 / 13; a modelling lane never touches the yardstick, so the coordinator did it in a separate PR once the docs were synced). Strict readiness (`scripts/check_readiness.py --strict`) no longer exempts Generic entries: an `Error` rating fails, and a `Poor` rating fails unless it carries a documented `known_limitations` note.
+**CI gate.** `.github/workflows/validation-dashboard.yml` runs `python scripts/cold_holdout.py --max-mean-error 40 --min-within-25pct 17` as a blocking step. The workflow's own rule sets both: ceiling = ceil(mean x 1.25) to the nearest 5; floor = current count within 25%, minus one. On the post-Wave-2 battery (25 cases, mean 31.3%, 18 within 25%) the rule gives a ceiling of **40** (31.3 × 1.25 = 39.1) and a floor of **17**. The workflow was tightened to **40 / 17** after Wave 2, from the **45 / 15** Wave 1 had derived and the **55 / 13** before that; a modelling lane never touches the yardstick, so the coordinator re-derives it in a separate PR once the docs are synced. Strict readiness (`scripts/check_readiness.py --strict`) no longer exempts Generic entries: an `Error` rating fails, and a `Poor` rating fails unless it carries a documented `known_limitations` note.
 
 ### Tier 2 — Calibrated reference models (reconstructions, not confirmations)
 
@@ -184,11 +186,11 @@ The specialized modules (TCJA, Corporate, Estate, Credits, AMT, Payroll, PTC, Ca
 
 | Metric | Calibrated reference (fitted) | Module reconstruction (not fitted) |
 |--------|---:|---:|
-| Benchmarks | **33** | **21** |
-| Mean absolute error | **2.8%** | **76.7%** |
-| Median absolute error | 0.3% | 41.0% |
-| Within 15% of official | 32/33 | 4/21 |
-| Within 25% of official | 33/33 | 7/21 |
+| Benchmarks | **30** | **24** |
+| Mean absolute error | **2.2%** | **72.1%** |
+| Median absolute error | 0.2% | 40.0% |
+| Within 15% of official | 30/30 | 5/24 |
+| Within 25% of official | 30/30 | 8/24 |
 
 The right-hand column grew from 12 to 20 in Phase D, and its mean fell from
 394.1% to 250.8% — not because anything improved, but because the eight
@@ -197,15 +199,32 @@ P.L. 119-21 line items below are a *tighter* class of unfitted reconstruction
 lane then took it from 250.8% to 82.6%, and that fall *is* a modelling
 improvement: two federal-incidence bugs in `pharma.py` were re-specified from
 transcribed MedPAC/ASPE/RAND figures, moving the 12-row sectoral subset from
-394.1% to 113.8%. It then reached **21 rows at 76.7%** on two *target*
+394.1% to 113.8%. It then reached 21 rows at 76.7% on two *target*
 corrections (below): the insulin target stopped pointing the wrong way, taking
 that row from 146.4% to 39.0%, and `extend_tcja_amt` arrived from the left-hand
-column. The populations are described separately throughout, because the pooled
-number moves on composition as readily as on modelling.
+column. Wave 2 then took it to **24 rows at 72.1%**, and that is composition
+again, not modelling: L1 deleted the three per-case capital-gains elasticity
+tuples, which were the only constants ever fitted to `cbo_2pp_all_brackets`,
+`pwbm_39_with_stepup` and `pwbm_39_no_stepup`, so those three rows arrived from
+the left-hand column at **39.6%** — better than the tier they joined, which is
+why the pooled mean fell. The populations are described separately throughout,
+because the pooled number moves on composition as readily as on modelling.
 
-The 2.8% on the left is **expected by construction** — those modules carry a constant fitted to each benchmark, so they demonstrate the model's structure and provide auditable, source-linked reconstructions of official scores; they are **not** evidence the model would have predicted them cold. (Earlier revisions of this file quoted 4.4%, then 2.7% over 34; the live figures come from `python scripts/cold_holdout.py`, which is the only place they should be read from.)
+The 2.2% on the left is **expected by construction** — those modules carry a constant fitted to each benchmark, so they demonstrate the model's structure and provide auditable, source-linked reconstructions of official scores; they are **not** evidence the model would have predicted them cold. (Earlier revisions of this file quoted 4.4%, then 2.7% over 34, then 2.8% over 33; the live figures come from `python scripts/cold_holdout.py`, which is the only place they should be read from.)
 
-**The left-hand column lost a row, and the loss must be quoted with it.**
+**The left-hand column has lost four rows, and the losses must be quoted with
+it.** Three of them left in Wave 2: `validation/scenarios.py`'s per-case
+behavioural tuples *were* the fit on the three capital-gains benchmarks, so
+deleting them made `calibrated_to_target=False` simply true and the runner now
+says so. Left in the fitted tier they would have raised its mean to **6.2%**
+while nothing had regressed — which is the misreading the flag exists to
+prevent. Moved, the fitted mean *falls* 2.8% → **2.2%**, because those rows
+were what the tier had been carrying: the worst fitted row used to be
+`cbo_2pp_all_brackets` at 19.2% and is now `tcja_no_salt_cap` at **13.9%**, so
+the tier is 30/30 within 15% for the first time. Read that as composition, not
+as improvement.
+
+The fourth loss is older and works the same way.
 `ScorecardSummary.revised_target_entries` is **2**: two calibrated targets were
 corrected through the Tier-2 revision ledger
 ([`fiscal_model/validation/target_revisions.py`](../fiscal_model/validation/target_revisions.py)),
@@ -216,13 +235,13 @@ a regression. Both readings, and never one alone:
 
 | Reading | n | Mean | Median | Within 15% | Off by >15% |
 |---|--:|--:|--:|--:|---|
-| **As reported** — revised row moved to the reconstruction tier | **33** | **2.8%** | 0.3% | **32/33** | `cbo_2pp_all_brackets` (19.2%) |
-| **Held in place** — revised row kept in the fitted tier | 34 | **4.7%** | 0.3% | 32/34 | `cbo_2pp_all_brackets` (19.2%), `extend_tcja_amt` (66.8%) |
+| **As reported** — revised row moved to the reconstruction tier | **30** | **2.2%** | 0.2% | **30/30** | none (worst is `tcja_no_salt_cap`, 13.9%) |
+| **Held in place** — revised row kept in the fitted tier | 31 | **4.2%** | 0.2% | 30/31 | `extend_tcja_amt` (66.8%) |
 
 Only `extend_tcja_amt` changes tier. `universal_insulin_cap` was already
 unfitted, so its correction lands entirely inside the reconstruction column.
 
-The 76.7% on the right is three populations, and they should not be read as one number. **Twelve are the Phase E sectoral presets** (international, trade, pharma, IRS enforcement, climate) at **104.8% mean / 40.0% median**: they ship in the app with an official figure attached and no module constant was ever fitted to any of them (ten of those targets are published scores; two are model estimates — the provenance column says which). The two `pharma.py` incidence bugs they diagnosed are now repaired (§7.3 of [VALIDATION_NOTES.md](VALIDATION_NOTES.md)), and the insulin *target* has since been corrected too, which is what took that subset from 113.8% / 57.1% to 104.8% / 40.0%; the largest remaining row, international reference pricing at 646%, is measured against a target whose own provenance is `model_estimate`. **Eight are the Phase D P.L. 119-21 line items** at **35.8% mean**, a much tighter class, detailed below and in §8 of the same file. **One is `extend_tcja_amt` at 66.8%**, which sits here because its target was revised and the AMT constant reproduces the superseded figure. Nothing in any of the three was retuned to close a gap — the plan is explicit that a miss gets reported, not calibrated away, and L7 fitted no parameter to any of the three pharma benchmarks — and every row carries a `known_limitations` note naming the structural cause.
+The 72.1% on the right is four populations, and they should not be read as one number. **Twelve are the Phase E sectoral presets** (international, trade, pharma, IRS enforcement, climate) at **104.8% mean / 40.0% median**: they ship in the app with an official figure attached and no module constant was ever fitted to any of them (ten of those targets are published scores; two are model estimates — the provenance column says which). The two `pharma.py` incidence bugs they diagnosed are now repaired (§7.3 of [VALIDATION_NOTES.md](VALIDATION_NOTES.md)), and the insulin *target* has since been corrected too, which is what took that subset from 113.8% / 57.1% to 104.8% / 40.0%; the largest remaining row, international reference pricing at 646%, is measured against a target whose own provenance is `model_estimate`. **Eight are the Phase D P.L. 119-21 line items** at **35.8% mean**, a much tighter class, detailed below and in §8 of the same file. **Three are the capital-gains scenarios** at **39.6% mean** (CBO +2pp −14.0%, PWBM with step-up −28.4%, PWBM no step-up +76.5%), which arrived in Wave 2 when the constants fitted to them were deleted; because there is no per-case tuple left, these three numbers are identical to the leave-one-out column below, and `run_loo.py --donor-matrix` now prints three identical rows. **One is `extend_tcja_amt` at 66.8%**, which sits here because its target was revised and the AMT constant reproduces the superseded figure. Nothing in any of the four was retuned to close a gap — the plan is explicit that a miss gets reported, not calibrated away, and L7 fitted no parameter to any of the three pharma benchmarks — and every row carries a `known_limitations` note naming the structural cause.
 
 ### Provenance of the targets — what the documents actually say
 
@@ -461,43 +480,74 @@ Every target below is read live from `CBO_SCORE_MAP`; none is restated in the va
 
 ### Tier 2 (leave-one-out) — the same modules, held out
 
-The 2.8% above is a bookkeeping number: each calibrated module carries **one hard-coded annual per benchmark**, so it reproduces its own targets because it was told the answer. Leave-one-out asks the question that number cannot: *holding out one benchmark, can the module's structural machinery — calibrated on the others — rebuild it?* Live figures: `python scripts/run_loo.py` (add `--donor-matrix` for the capital-gains diagnostic).
+The 2.2% above is a bookkeeping number: each calibrated module carries **one hard-coded annual per benchmark**, so it reproduces its own targets because it was told the answer. Leave-one-out asks the question that number cannot: *holding out one benchmark, can the module's structural machinery — calibrated on the others — rebuild it?* Live figures: `python scripts/run_loo.py` (add `--donor-matrix` for the capital-gains diagnostic).
 
 | Module | Kind | n derivable | Mean abs error | Cases (LOO error) |
 |---|---|---|---|---|
 | **Payroll** | structural | 3 | **3.8%** | eliminate cap −3.7%; $250K donut +1.3%; 90% coverage +6.3% |
-| **Estate** | structural | 2 | **25.8%** | extend TCJA exemption +6.0%; Biden $3.5M/45% +45.6% |
+| **Estate** | structural | 2 | **10.4%** | extend TCJA exemption +19.2%; Biden $3.5M/45% −1.6% |
 | **AMT** | structural | 2 | **73.9%** | extend TCJA relief -37.0%; repeal individual AMT +110.9% |
 | **Credits** | structural | 3 | **45.1%** | Biden CTC 2021 −64.1%; CTC extension −28.0%; childless EITC −43.1% |
-| **Expenditures** | bottom-up | 5 | **39.4%** | mortgage −5.1%; SALT-cap repeal +4.0%; charitable cap +15.7%; SALT repeal +74.9%; employer-health cap +97.4% |
-| **Capital gains** | structural (frozen elasticities) | 3 | **171.2%** | PWBM no step-up −22.6%; CBO +2pp −120.5%; PWBM with step-up −370.5% |
+| **Expenditures** | bottom-up | 4 | **28.8%** | mortgage −5.1%; SALT-cap repeal +4.0%; charitable cap +13.1%; employer-health cap +93.2% (SALT repeal left the derivable set — see below) |
+| **Capital gains** | structural (frozen elasticities) | 3 | **39.6%** | CBO +2pp −14.0%; PWBM with step-up −28.4%; PWBM no step-up +76.5% |
 
 | Aggregate — derivable cases only | Value |
 |---|---|
-| Cases in aggregate | 18 |
-| Not cross-validatable | 4 (reported alongside, never folded in) |
-| Mean absolute error | **58.7%** |
-| Median absolute error | 32.5% |
-| Within 15% of official | 6/18 (33%) |
+| Cases in aggregate | 17 |
+| Not cross-validatable | 5 (reported alongside, never folded in) |
+| Mean absolute error | **32.3%** |
+| Median absolute error | 19.2% |
+| Within 15% of official | 8/17 (47%) |
 | CI ceiling (`--max-loo-mean-error`) | 75% |
 
-**The LOO mean moved twice, and neither move was the model.** Wave 1's L5 lane
-took it 59.3% → 61.7% by replacing the AMT module's flat steady-state identity
-(~$73B/yr) with TPC T25-0049's published year-indexed path, which *raises* the
-derived score — see §6 of [VALIDATION_NOTES.md](VALIDATION_NOTES.md) for why the
-plan's "missing 2026 ramp" hypothesis was wrong — so both AMT rows moved further
-from their carried $450B targets (+73.2% → +90.1%, +86.0% → +110.9%). Correcting
-`extend_tcja_amt`'s target to the published $1,357.1B then took it back to
-**58.7%**: the held-out derivation is **unchanged at $855.3B** and only the
-figure it is measured against moved, so that row reads **-37.0%** instead of
-+90.1% and the AMT module reads 73.9% instead of 100.5%. The within-15 count, the
-donor matrix and every other module are unchanged to the decimal.
+**Wave 2 moved three modules and the case count.** `CapitalGains` **171.2% →
+39.6%**: one frozen literature set replaced three hand-set tuples, the semi-log
+form put the revenue-maximizing rate at 30.6% so a 43.4% rate *loses* revenue
+while step-up survives — PWBM's own finding, reached with no multiplier, where
+the old net-of-tax form gave a 370% sign flip. `Estate` **25.8% → 10.4%**: a
+SOI-fitted Pareto size distribution replaced a two-point blend whose
+count-times-average product was *exactly invariant* in the exemption, so
+`biden_estate_reform` went +45.6% → −1.6% while `extend_tcja_exemption` got
+*worse*, +6.0% → +19.2%, because its old 6% was a four-times-too-high level
+cancelling against a zero exemption response. `Expenditures` **39.4% → 28.8%**:
+declared cap units and SOI benefit distributions took `cap_employer_health`
+97.4% → 93.2% (the row cannot reach its target — a $50,000 premium cap is above
+the entire distribution; CBO's own 75th-percentile family premium is $31,300,
+and the carried −$450B corresponds to a cap near $26,400) and `cap_charitable`
+15.7% → 13.1%.
 
-**Read the four numbers separately and never collapse them**: Tier 1 out-of-sample (34.4% mean, n=25 pre-registered; 12/25 within 15%, 16/25 within 25%), Tier 2 by construction (2.8%, n=33 fitted — or 4.7% over 34 with the revised row held in place), Tier 2 unfitted reconstructions (76.7% mean / 41.0% median, n=21 — 12 Phase E sectoral presets at 104.8%, 8 Phase D P.L. 119-21 line items at 35.8% and the revised TCJA-AMT-relief row at 66.8%, none fitted to their target), Tier 2 leave-one-out (58.7%, n=18 derivable). The last two are the honest statement of how much of the calibrated tier is structure and how much is a stored constant.
+**Part of the suite improvement is a case leaving the denominator, and it must
+be said out loud.** `eliminate_salt` was scoring +74.9% and is now **excluded**:
+L6 made `annual_cost_no_cap = 120.0` load-bearing, and `loo.py`'s untouched
+leakage guard saw that $120.0B is exactly the carried −$1,200B target over ten
+— "the base constant is the answer key restated". The module now
+cross-validates on **four** benchmarks where it used to claim five. Counting
+that row at its derived +20.4% instead, the suite would read **31.7% over 18**;
+the printed 32.3% over 17 is the honest figure and the difference is the
+composition change. `repeal_salt_cap`'s +4.0% is built from the same constant
+(it is `−(120.0 − 25.0)`) and should be read as leaked too; the guard does not
+catch it only because its own target is $1,100B rather than $1,200B.
+
+**Before Wave 2 the LOO mean had moved twice, and neither move was the model.**
+Wave 1's L5 lane took it 59.3% → 61.7% by replacing the AMT module's flat
+steady-state identity (~$73B/yr) with TPC T25-0049's published year-indexed
+path, which *raises* the derived score — see §6 of
+[VALIDATION_NOTES.md](VALIDATION_NOTES.md) for why the plan's "missing 2026
+ramp" hypothesis was wrong — so both AMT rows moved further from their carried
+$450B targets (+73.2% → +90.1%, +86.0% → +110.9%). Correcting
+`extend_tcja_amt`'s target to the published $1,357.1B then took it back to
+58.7%: the held-out derivation is **unchanged at $855.3B** and only the figure
+it is measured against moved, so that row reads **-37.0%** instead of +90.1% and
+the AMT module reads 73.9% instead of 100.5%. Wave 2's 58.7% → **32.3%** is the
+first move that *is* the model — three modules rebuilt — with the case-count
+caveat above attached. The AMT and Credits modules are unchanged to the decimal
+through all of it.
+
+**Read the four numbers separately and never collapse them**: Tier 1 out-of-sample (31.3% mean, n=25 pre-registered; 13/25 within 15%, 18/25 within 25%), Tier 2 by construction (2.2%, n=30 fitted — or 4.2% over 31 with the revised row held in place), Tier 2 unfitted reconstructions (72.1% mean / 40.0% median, n=24 — 12 Phase E sectoral presets at 104.8%, 8 Phase D P.L. 119-21 line items at 35.8%, 3 capital-gains scenarios at 39.6% and the revised TCJA-AMT-relief row at 66.8%, none fitted to their target), Tier 2 leave-one-out (32.3%, n=17 derivable). The last two are the honest statement of how much of the calibrated tier is structure and how much is a stored constant.
 
 And read all four alongside the provenance split above, because a percentage error is only as meaningful as the target it is measured against: **13 of the 54 calibrated targets are still known to disagree with the document they cite**, and **2 more were corrected** rather than carried. None disagrees in sign any more.
 
-Four cases are **not cross-validatable** and carry a reason rather than a manufactured number: `expand_niit` (the module's only NIIT benchmark — nothing to calibrate the mechanism on), `eliminate_estate_tax` (the target is a model estimate, not a published score, and the machinery reproduces differences but not revenue *levels*), `repeal_corporate_amt` and `eliminate_step_up` (the base constant *is* the published target restated; a leakage guard in `loo.py` catches this mechanically). See [VALIDATION_NOTES.md](VALIDATION_NOTES.md) §6 for the per-module classification and what each error diagnoses.
+Five cases are **not cross-validatable** and carry a reason rather than a manufactured number: `expand_niit` (the module's only NIIT benchmark — nothing to calibrate the mechanism on), `eliminate_estate_tax` (the target is not a published score), and `repeal_corporate_amt`, `eliminate_step_up` and — since Wave 2 — `eliminate_salt` (the base constant *is* the published target restated; a leakage guard in `loo.py` catches this mechanically). `eliminate_estate_tax`'s exclusion is now carried on **one** ground rather than two: it used to cite both an unpublished target *and* machinery that "reproduces differences but not revenue levels", and the second is no longer true — L4's model puts 2026 estate revenue at **$47.6B** against CBO's carried ~$50B, where the old machinery implied $195.9B. See [VALIDATION_NOTES.md](VALIDATION_NOTES.md) §6 for the per-module classification and what each error diagnoses.
 
 ---
 
@@ -753,7 +803,7 @@ distributional tables, all mapped through
 `distribution_effects.calculate_tcja_effect` builds its decile tiers *out of*
 CBO 54796 and CBO 60007 — its own docstring says so — so 0.00pp and 0.74pp
 against those two tables is bookkeeping, not skill, in exactly the way Tier 2's
-by-construction 2.8% is.
+by-construction 2.2% is.
 
 ### P.L. 119-21 (CBO 61367, August 2025) — added in Phase D
 
