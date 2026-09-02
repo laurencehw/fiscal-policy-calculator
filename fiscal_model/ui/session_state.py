@@ -131,11 +131,17 @@ KEY_TAILOR_SPEND_DURATION = "tailor_spend_duration"
 KEY_TAILOR_SPEND_GROWTH_RATE = "tailor_spend_growth_rate"
 KEY_TAILOR_SPEND_MULTIPLIER = "tailor_spend_multiplier"
 KEY_TAILOR_SPEND_ONE_TIME = "tailor_spend_one_time"
+KEY_TAILOR_SPEND_OUTLAY_CLASS = "tailor_spend_outlay_class"
 # Code key (not a widget): which spending preset last seeded the fields above.
 # Unkeyed widgets re-derived their default from the preset on every switch
 # because the default was part of the widget identity; with stable keys the
 # re-seed has to be explicit, and this records what was last applied.
 KEY_TAILOR_SPEND_PRESET_APPLIED = "_tailor_spend_preset_applied"
+# Code key (not a widget): the (program, category) pair the spend-out
+# profile was last seeded from. The profile is a *classification* of the
+# account being funded, so changing either re-derives it; a manual override
+# survives every other rerun.
+KEY_TAILOR_SPEND_OUTLAY_SEEDED_FROM = "_tailor_spend_outlay_seeded_from"
 
 # Model settings (``ui/settings_controller.py``). ``dark_mode`` (code) and
 # ``sidebar_setting_dynamic_scoring`` (widget) already exist elsewhere.
@@ -422,7 +428,9 @@ _SESSION_KEYS: tuple[_KeySpec, ...] = (
     _KeySpec(KEY_TAILOR_SPEND_GROWTH_RATE, 2.0, float),
     _KeySpec(KEY_TAILOR_SPEND_MULTIPLIER, 1.0, float),
     _KeySpec(KEY_TAILOR_SPEND_ONE_TIME, False, bool),
+    _KeySpec(KEY_TAILOR_SPEND_OUTLAY_CLASS, "construction_and_capital", str),
     _KeySpec(KEY_TAILOR_SPEND_PRESET_APPLIED, None, (str, type(None))),
+    _KeySpec(KEY_TAILOR_SPEND_OUTLAY_SEEDED_FROM, None, (str, type(None))),
     # Model settings. ``setting_data_year`` defaults to None and is resolved
     # against the years actually shipped under data_files/irs_soi at render.
     _KeySpec(KEY_SETTING_DARK_MODE, False, bool),
@@ -589,6 +597,8 @@ __all__ = [
     "KEY_TAILOR_SPEND_GROWTH_RATE",
     "KEY_TAILOR_SPEND_MULTIPLIER",
     "KEY_TAILOR_SPEND_ONE_TIME",
+    "KEY_TAILOR_SPEND_OUTLAY_CLASS",
+    "KEY_TAILOR_SPEND_OUTLAY_SEEDED_FROM",
     "KEY_TAILOR_SPEND_PRESET_APPLIED",
     "KEY_TAILOR_SPEND_PROGRAM_NAME",
     "KEY_TAILOR_START_FROM",

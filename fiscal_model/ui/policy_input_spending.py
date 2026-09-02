@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..spending_outlays import ACCOUNT_CLASS_LABELS, IMMEDIATE
 from .session_state import (
     KEY_TAILOR_SPEND_ANNUAL,
     KEY_TAILOR_SPEND_CATEGORY,
@@ -13,6 +14,8 @@ from .session_state import (
     KEY_TAILOR_SPEND_GROWTH_RATE,
     KEY_TAILOR_SPEND_MULTIPLIER,
     KEY_TAILOR_SPEND_ONE_TIME,
+    KEY_TAILOR_SPEND_OUTLAY_CLASS,
+    KEY_TAILOR_SPEND_OUTLAY_SEEDED_FROM,
     KEY_TAILOR_SPEND_PRESET_APPLIED,
     KEY_TAILOR_SPEND_PROGRAM_NAME,
     forget_widget_value,
@@ -28,6 +31,10 @@ _SPENDING_PRESET_KEY = "sidebar_spending_preset"
 
 SPENDING_PRESETS: dict[str, dict[str, Any]] = {
     "Custom program": {
+        # A blank slate seeded as infrastructure, so it carries the class its
+        # own category implies. Changing the category below re-derives it, and
+        # Advanced parameters can override it outright.
+        "outlay_account_class": "construction_and_capital",
         "annual_spending": 100.0,
         "category": "Infrastructure",
         "multiplier": 1.0,
@@ -37,6 +44,9 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
         "description": "Define your own spending program with custom parameters.",
     },
     "Infrastructure Investment ($100B/yr)": {
+        # Roads, bridges, broadband, water systems - capital construction, the
+        # slowest-disbursing class in the federal budget.
+        "outlay_account_class": "construction_and_capital",
         "annual_spending": 100.0,
         "category": "Infrastructure",
         "multiplier": 1.5,
@@ -49,6 +59,9 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
         ),
     },
     "Defense Spending Increase (+10%)": {
+        # A rise in the base defence budget is predominantly force structure and
+        # operation and maintenance - agency operations, not capital.
+        "outlay_account_class": "operations_and_support",
         "annual_spending": 90.0,
         "category": "Defense",
         "multiplier": 1.0,
@@ -61,6 +74,9 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
         ),
     },
     "Universal Pre-K ($40B/yr)": {
+        # Formula and project grants to states and districts, disbursed as they
+        # draw down their awards.
+        "outlay_account_class": "grants_and_procurement",
         "annual_spending": 40.0,
         "category": "Education",
         "multiplier": 1.3,
@@ -73,6 +89,9 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
         ),
     },
     "R&D Investment ($50B/yr)": {
+        # Research awards and contracts at NIH, NSF, DARPA and DOE - assistance
+        # awards and procurement.
+        "outlay_account_class": "grants_and_procurement",
         "annual_spending": 50.0,
         "category": "Research & Development",
         "multiplier": 1.2,
@@ -85,6 +104,9 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
         ),
     },
     "Discretionary Spending Cut (−$50B/yr)": {
+        # An across-the-board cut falls on the whole discretionary budget, which
+        # is the account type the FRA caps carry in the validation battery.
+        "outlay_account_class": "operations_and_support",
         "annual_spending": -50.0,
         "category": "Non-Defense Discretionary",
         "multiplier": 0.9,
@@ -96,6 +118,10 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
         ),
     },
     "Disaster Relief ($30B one-time)": {
+        # Public-assistance and individual-assistance awards. The "rapid" in the
+        # description is about the multiplier, not the account: relief awards are
+        # drawn down over several years even when obligated at once.
+        "outlay_account_class": "grants_and_procurement",
         "annual_spending": 30.0,
         "category": "Non-Defense Discretionary",
         "multiplier": 1.7,
@@ -108,6 +134,10 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
         ),
     },
     "Student Debt Forgiveness ($400B one-time)": {
+        # A credit-subsidy write-down is recorded when the modification happens
+        # rather than spent out - the one class here that is nearly the identity,
+        # and classified that way because that is what the account does.
+        "outlay_account_class": "mandatory_benefit",
         "annual_spending": 400.0,
         "category": "Non-Defense Discretionary",
         "multiplier": 0.5,
@@ -121,6 +151,9 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
         ),
     },
     "Universal Childcare ($100B/yr)": {
+        # Subsidy payments routed through state agencies - assistance awards
+        # rather than federal operations.
+        "outlay_account_class": "grants_and_procurement",
         "annual_spending": 100.0,
         "category": "Non-Defense Discretionary",
         "multiplier": 1.3,
@@ -134,6 +167,9 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
         ),
     },
     "Medicare Buy-in Age 55+ ($50B/yr)": {
+        # Benefit payments made in the year they are owed; no authority-to-outlay
+        # lag.
+        "outlay_account_class": "mandatory_benefit",
         "annual_spending": 50.0,
         "category": "Medicare",
         "multiplier": 0.9,
@@ -146,6 +182,9 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
         ),
     },
     "High-Speed Rail Program ($30B/yr)": {
+        # Capital grants for rail corridors - construction, on multi-year
+        # drawdowns.
+        "outlay_account_class": "construction_and_capital",
         "annual_spending": 30.0,
         "category": "Infrastructure",
         "multiplier": 1.4,
@@ -159,6 +198,53 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
         ),
     },
 }
+
+#: Which spend-out profile a category implies when a preset does not state one
+#: (the Custom program) or when the user changes the category out from under a
+#: preset. This is the same *classification* the validation battery uses
+#: (``validation/core.py``): the account type governs how fast authority
+#: becomes an outlay. It is keyed to the account being funded, never to a
+#: benchmark id, and no rate here was chosen by the number it produced.
+_CATEGORY_TO_OUTLAY_CLASS = {
+    "Infrastructure": "construction_and_capital",
+    "Defense": "operations_and_support",
+    "Non-Defense Discretionary": "operations_and_support",
+    "Mandatory Programs": "mandatory_benefit",
+    "Social Security": "mandatory_benefit",
+    "Medicare": "mandatory_benefit",
+    "Medicaid": "mandatory_benefit",
+    "Education": "grants_and_procurement",
+    "Research & Development": "grants_and_procurement",
+}
+
+#: The spend-out profiles the Tailor form offers, in disbursement-speed order.
+#: ``immediate`` stays on the list as an explicit choice - it is the identity,
+#: one dollar of authority becoming one dollar of outlay in the year it is
+#: provided - but it is no longer the default for any program.
+OUTLAY_CLASS_ORDER: tuple[str, ...] = (
+    "mandatory_benefit",
+    "personnel_and_benefits",
+    "operations_and_support",
+    "grants_and_procurement",
+    "construction_and_capital",
+    IMMEDIATE,
+)
+
+
+def outlay_class_for(preset: dict[str, Any], category: str) -> str:
+    """The account class a program spends out on.
+
+    The preset's own declaration wins; a category the preset does not cover -
+    the Custom program, or a category the user changed - falls back to what
+    that category implies.
+    """
+    declared = preset.get("outlay_account_class")
+    if declared and category == preset.get("category"):
+        return str(declared)
+    return _CATEGORY_TO_OUTLAY_CLASS.get(
+        category, declared or "operations_and_support"
+    )
+
 
 _CATEGORY_TO_MODEL = {
     "Infrastructure": "nondefense",
@@ -302,6 +388,19 @@ def render_spending_policy_inputs(
         help="Affects fiscal multiplier defaults and baseline projections.",
     )
 
+    # The spend-out profile is a classification of the account being funded, so
+    # it is re-derived whenever the program or the category changes. A manual
+    # override survives every other rerun, exactly like the sliders below.
+    seeded_from = f"{selected_preset}|{spending_category}"
+    _seed_widget_default(
+        st_module,
+        KEY_TAILOR_SPEND_OUTLAY_CLASS,
+        outlay_class_for(preset, spending_category),
+        force=st_module.session_state.get(KEY_TAILOR_SPEND_OUTLAY_SEEDED_FROM)
+        != seeded_from,
+    )
+    st_module.session_state[KEY_TAILOR_SPEND_OUTLAY_SEEDED_FROM] = seeded_from
+
     with st_module.expander("Economic parameters", expanded=False):
         st_module.caption(
             "Pre-populated from the selected program. Override if you have specific values "
@@ -342,6 +441,20 @@ def render_spending_policy_inputs(
             help="Check for one-time spending (e.g., disaster relief) rather than recurring.",
         )
 
+        outlay_account_class = st_module.selectbox(
+            "Spend-out profile",
+            options=list(OUTLAY_CLASS_ORDER),
+            format_func=lambda name: ACCOUNT_CLASS_LABELS[name].capitalize(),
+            key=KEY_TAILOR_SPEND_OUTLAY_CLASS,
+            help=(
+                "How fast budget authority becomes an outlay. Defaults to the "
+                "account type this program funds; profiles are fitted on CBO "
+                "options that the validation battery does not score. "
+                "**Immediate** turns the spend-out off and books authority as "
+                "outlays in the year it is provided."
+            ),
+        )
+
     return {
         "selected_preset": selected_preset,
         "program_name": program_name,
@@ -351,6 +464,7 @@ def render_spending_policy_inputs(
         "growth_rate": growth_rate,
         "multiplier": multiplier,
         "is_one_time": is_one_time,
+        "outlay_account_class": outlay_account_class,
     }
 
 
@@ -375,6 +489,13 @@ def calculate_spending_policy_result(
         gdp_multiplier=spending_inputs["multiplier"],
         is_one_time=spending_inputs["is_one_time"],
         category=_CATEGORY_TO_MODEL.get(spending_inputs["spending_category"], "nondefense"),
+        # Spending presets spend out. A caller that omits the key keeps the
+        # classification its category implies rather than silently reverting to
+        # the identity, so an older share link scores like the current form.
+        outlay_account_class=spending_inputs.get("outlay_account_class")
+        or _CATEGORY_TO_OUTLAY_CLASS.get(
+            spending_inputs["spending_category"], "operations_and_support"
+        ),
         duration_years=spending_inputs["duration"],
     )
 

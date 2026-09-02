@@ -409,6 +409,23 @@ _CATEGORY_TO_BUDGET_CATEGORY: dict[str, str] = {
 }
 
 
+#: GoalSpec categories -> the account class that governs how fast the goal's
+#: budget authority becomes an outlay. A *classification* of what is being
+#: funded, on the taxonomy ``validation/core.py`` documents: construction and
+#: capital grants are slowest, benefit payments are outlaid when owed. Never
+#: keyed to a benchmark, and no class here was chosen by the number it gives.
+_CATEGORY_TO_OUTLAY_CLASS: dict[str, str] = {
+    "infrastructure": "construction_and_capital",
+    "climate": "construction_and_capital",
+    "education": "grants_and_procurement",
+    "research": "grants_and_procurement",
+    "other": "grants_and_procurement",
+    "defense": "operations_and_support",
+    "healthcare": "mandatory_benefit",
+    "safety_net": "mandatory_benefit",
+}
+
+
 def _build_spending_policy(goal: SpendingGoal, start_year: int) -> Any:
     """One generic, uncalibrated SpendingPolicy for a spending goal."""
     annual = goal.annual_billions
@@ -418,6 +435,9 @@ def _build_spending_policy(goal: SpendingGoal, start_year: int) -> Any:
         name=goal.label,
         annual_billions=float(annual),
         category=_CATEGORY_TO_BUDGET_CATEGORY.get(goal.category, "nondefense"),
+        outlay_account_class=_CATEGORY_TO_OUTLAY_CLASS.get(
+            goal.category, "grants_and_procurement"
+        ),
         start_year=start_year,
         duration=WINDOW_YEARS,
     )

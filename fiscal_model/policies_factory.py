@@ -5,6 +5,7 @@ Convenience constructors for common policy types.
 from typing import Literal
 
 from .policies_core import PolicyType, SpendingPolicy, TaxPolicy
+from .spending_outlays import IMMEDIATE
 
 
 def create_income_tax_cut(
@@ -56,8 +57,15 @@ def create_spending_increase(
     start_year: int = 2025,
     duration: int = 10,
     multiplier: float = 1.0,
+    outlay_account_class: str = IMMEDIATE,
 ) -> SpendingPolicy:
-    """Create a spending increase policy."""
+    """Create a spending increase policy.
+
+    ``outlay_account_class`` says how fast the authority becomes an outlay
+    (:mod:`fiscal_model.spending_outlays`). It defaults to the identity so an
+    existing caller is unmoved; callers that know the account type - the
+    composer's per-goal builds do - pass their classification.
+    """
     policy_type = (
         PolicyType.DISCRETIONARY_NONDEFENSE
         if category == "nondefense"
@@ -72,6 +80,7 @@ def create_spending_increase(
         annual_spending_change_billions=annual_billions,
         category=category,
         gdp_multiplier=multiplier,
+        outlay_account_class=outlay_account_class,
         start_year=start_year,
         duration_years=duration,
     )
