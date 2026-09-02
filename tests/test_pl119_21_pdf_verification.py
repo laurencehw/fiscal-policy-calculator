@@ -25,6 +25,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from scripts.extract_pl119_21_line_items import (  # noqa: E402
     LINE_ITEMS,
     OUT_DIR,
+    OUT_OF_SCOPE,
     LineItem,
     VerificationReport,
     _printed_signs,
@@ -32,8 +33,6 @@ from scripts.extract_pl119_21_line_items import (  # noqa: E402
     verify_against_pdf,
     verify_pages,
 )
-
-OUT_OF_SCOPE = "out_of_scope"
 
 
 def _item(provision_id: str, total: int, page: int = 1) -> LineItem:
