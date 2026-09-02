@@ -34,6 +34,7 @@ from fiscal_model.ui.a11y import (
     render_accessible_chart,
 )
 from fiscal_model.ui.charts import apply_base_layout, horizontal_legend
+from fiscal_model.ui.helpers import unescape_markdown_dollars
 from fiscal_model.ui.share_links import build_share_url
 
 #: Stated once, rendered under the headline on every result panel.
@@ -128,6 +129,22 @@ def _nearest_benchmark(
     return _entry(name, data, exact=False)
 
 
+#: Narrower than this ($B over the whole window) is not a range, it is the
+#: point estimate printed twice.
+_MIN_BAND_WIDTH_BILLIONS = 0.1
+
+#: Shown in place of the range when no honest one exists. Deliberately says
+#: only what is true on every path that reaches it — the behavioural channel is
+#: zero *and* the engine's uncertainty path is flat. It must not assert that
+#: the score is a calibrated reference: spending runs, custom policies and any
+#: near-zero score land here too (Cursor review, 2026-09-01).
+_NO_BAND_REASON = (
+    "No sensitivity range: nothing in this score varies independently of the "
+    "point estimate — the behavioural channel is zero and the model's "
+    "uncertainty path is flat — so a range would print the same number twice."
+)
+
+
 def _sensitivity_band(
     result: Any,
     policy: Any,
@@ -141,22 +158,41 @@ def _sensitivity_band(
     Reported for generic runs where the behavioral parameter is the dominant
     uncertainty. Calibrated presets embed their behavioral response in the
     calibration, so their band comes from the engine's uncertainty path.
+
+    That second sentence described the intent but not the code until
+    2026-09-01. The ETI branch was entered on ``taxable_income_elasticity``
+    alone — which every ``TaxPolicy`` subclass inherits at 0.25 — while the
+    calibrated module factories zero the *offset* rather than the elasticity
+    (``tcja.estimate_behavioral_offset`` returns 0.0 outright; estate, payroll,
+    AMT and PTC set their own elasticities to 0.0). Flexing an elasticity that
+    multiplies a zero offset moves nothing, so both ends landed on the point
+    estimate and Explore printed ``Sensitivity range: $+4,581.9B to
+    $+4,581.9B (ETI 0.15–0.35)`` — a band of zero width, presented as a range
+    (external UI review, 2026-09-01). Credits presets were the tell: they
+    escape it only because their factory zeroes the elasticity itself.
+
+    The ETI branch now requires a behavioral channel that actually responds.
+    Returns ``(None, reason)`` when no honest band can be drawn, so the caller
+    can say why rather than print a width that is not there.
     """
     base_eti = getattr(policy, "taxable_income_elasticity", None)
-    if base_eti and not is_spending and base_eti > 0:
+    if base_eti and not is_spending and base_eti > 0 and behavioral_total:
         eti_low = max(0.05, base_eti - 0.1)
         eti_high = base_eti + 0.1
         low = static_total + behavioral_total * (eti_low / base_eti)
         high = static_total + behavioral_total * (eti_high / base_eti)
-        note = f"ETI {eti_low:.2f}–{eti_high:.2f}"
-        return (min(low, high), max(low, high)), note
+        if abs(high - low) >= _MIN_BAND_WIDTH_BILLIONS:
+            note = f"ETI {eti_low:.2f}–{eti_high:.2f}"
+            return (min(low, high), max(low, high)), note
     try:
         low = float(np.asarray(result.low_estimate).sum())
         high = float(np.asarray(result.high_estimate).sum())
     except Exception:
+        # The arrays could not be read, so nothing is known about the width.
+        # Say nothing rather than explain an absence we cannot account for.
         return None, ""
-    if abs(high - low) < 0.1:
-        return None, ""
+    if abs(high - low) < _MIN_BAND_WIDTH_BILLIONS:
+        return None, _NO_BAND_REASON
     return (min(low, high), max(low, high)), "model uncertainty band"
 
 
@@ -469,8 +505,8 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     st_module.code(build_headline_copy(scored), language=None)
 
     band = getattr(scored, "sensitivity", None)
-    if band:
-        note = getattr(scored, "sensitivity_note", "")
+    note = getattr(scored, "sensitivity_note", "")
+    if band and abs(band[1] - band[0]) >= _MIN_BAND_WIDTH_BILLIONS:
         # ``<small>`` is an *inline* tag, so this is a markdown paragraph with
         # raw HTML in it — not an opaque HTML block like the interpretation
         # card. KaTeX therefore does parse it, and unescaped
@@ -483,6 +519,11 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
             + "</small>",
             unsafe_allow_html=True,
         )
+    elif note:
+        # Belt and braces: a degenerate pair is truthy, and "X to X" reads as
+        # a broken widget rather than as the absence of a range. Say which it
+        # is instead.
+        st_module.caption(note)
 
     benchmark = getattr(scored, "benchmark", None)
     if benchmark and benchmark.get("is_exact"):
@@ -891,9 +932,15 @@ def render_assumptions_block(st_module: Any, scored: Any, result_data: dict[str,
 
 
 def build_headline_copy(scored: Any) -> str:
-    """One-line quick-copy headline (rendered in an ``st.code`` copy box)."""
+    """One-line quick-copy headline (rendered in an ``st.code`` copy box).
+
+    ``st.code`` is literal, and some policy names carry a markdown ``\\$``
+    escape for the benefit of the markdown surfaces — so the escape has to come
+    back off here, or the line the reader copies and pastes says
+    "Carbon Tax (\\$50/ton)".
+    """
     direction = "Deficit Reduction" if scored.headline < 0 else "Deficit Increase"
-    return (
+    return unescape_markdown_dollars(
         f"{scored.display_name}: ${scored.headline:+,.1f}B over {scored.window} "
         f"({direction}, conventional score) — {scored.tier_label}, "
         f"{scored.baseline_vintage} baseline — Fiscal Policy Calculator, "
@@ -998,11 +1045,13 @@ def build_text_summary(scored: Any, result_data: dict[str, Any], share_url: str 
     if hasattr(policy, "affected_income_threshold"):
         text += f"  Income Threshold: ${policy.affected_income_threshold:,.0f}\n"
     band = getattr(scored, "sensitivity", None)
-    if band:
+    if band and abs(band[1] - band[0]) >= _MIN_BAND_WIDTH_BILLIONS:
         text += (
             f"  Sensitivity: ${band[0]:+,.1f}B to ${band[1]:+,.1f}B "
             f"({scored.sensitivity_note})\n"
         )
+    elif getattr(scored, "sensitivity_note", ""):
+        text += f"  Sensitivity: {scored.sensitivity_note}\n"
 
     benchmark = getattr(scored, "benchmark", None)
     if benchmark:
@@ -1028,7 +1077,9 @@ def build_text_summary(scored: Any, result_data: dict[str, Any], share_url: str 
         "scoring is reported as a separate view with FRB/US-calibrated "
         "multipliers and netted debt service.\n"
     )
-    return text
+    # Plain text, downloaded and pasted: markdown escapes carried by policy
+    # names have no business in it.
+    return unescape_markdown_dollars(text)
 
 
 def _file_stem(scored: Any) -> str:
@@ -1098,6 +1149,10 @@ def render_compare_block(
         options=["(none)", *compare_presets],
         key="compare_policy_select",
         help="See how this policy's fiscal impact compares to another.",
+        # Display only: the value still keys ``cbo_score_map``. A selectbox
+        # option is plain text, so a preset name carrying the markdown ``\$``
+        # escape read "Carbon Tax \$50/ton" in the dropdown.
+        format_func=unescape_markdown_dollars,
     )
     if compare_choice == "(none)":
         return

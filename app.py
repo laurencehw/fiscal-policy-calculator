@@ -66,9 +66,13 @@ def _render_head_metadata(st_module: Any) -> None:
     try:
         from fiscal_model.ui.helpers import validated_policy_count
 
-        # 0 means the scorecard could not be computed. Say nothing about
-        # coverage rather than print a number the scorecard cannot back.
-        if (_n := validated_policy_count()) > 0:
+        # 0 means the scorecard could not be computed *or* has not been
+        # computed yet. Say nothing about coverage rather than print a number
+        # the scorecard cannot back — and never block on computing it here:
+        # this runs before the first pixel of the first script run, and the
+        # scorecard takes ~2.5s cold, for a ``<meta>`` tag. The page footer
+        # computes it a moment later, so every run after the first has it.
+        if (_n := validated_policy_count(allow_compute=False)) > 0:
             _blurb = (
                 "Estimate the budgetary impact of tax and spending proposals. "
                 f"{_n} policies benchmarked against published CBO, JCT, "
@@ -88,6 +92,40 @@ def _render_head_metadata(st_module: Any) -> None:
         """,
         unsafe_allow_html=True,
     )
+
+
+#: What the reader sees while the first script run builds the model. Kept to
+#: one caption: it is replaced by the real page a moment later, and a spinner
+#: that outlives its own work is worse than none.
+_BOOT_NOTICE = "Waking the calculator — loading the CBO baseline and IRS tables…"
+
+
+def _boot_placeholder(st_module: Any) -> Any:
+    """Paint something before the heavy first-run work, and return its slot.
+
+    On a cold Streamlit Cloud container nothing reaches the browser until the
+    script emits its first element, and the first element used to come after
+    the scorer bundle was built. An ``st.empty`` claimed here paints as soon as
+    the module imports finish; :func:`_clear_boot_placeholder` empties it once
+    the router has registered its pages, so a warm run never shows it for a
+    perceptible moment.
+    """
+    empty = getattr(st_module, "empty", None)
+    if empty is None:  # pragma: no cover — hand-rolled test doubles
+        return None
+    try:
+        slot = empty()
+        slot.caption(_BOOT_NOTICE)
+        return slot
+    except Exception:  # pragma: no cover — a placeholder must never break boot
+        return None
+
+
+def _clear_boot_placeholder(slot: Any) -> None:
+    if slot is None:
+        return
+    with contextlib.suppress(Exception):  # pragma: no cover — defensive
+        slot.empty()
 
 
 def _default_deps_builder(*, pd_module):
@@ -414,10 +452,15 @@ def main(
     builder = deps_builder or _default_deps_builder
     app_root = app_root or Path(__file__).parent
 
+    # Claimed before the scorer bundle is built — the first run's slowest step
+    # with nothing on screen. Cleared once the navigation frame exists.
+    boot_slot = _boot_placeholder(st_module)
+
     try:
         deps = _get_dependencies(st_module, pd_module, builder)
     except ImportError as exc:
         logger.exception("App dependency import failed")
+        _clear_boot_placeholder(boot_slot)
         st_module.error(f"⚠️ Could not import fiscal model: {exc}")
         return
 
@@ -428,9 +471,11 @@ def main(
         # time, so a legacy URL has to be rewritten ahead of it, not after.
         _apply_legacy_url_shim(st_module)
         nav = build_navigation(st_module=st_module, deps=deps, app_root=app_root)
+        _clear_boot_placeholder(boot_slot)
         nav.run()
     except Exception:
         logger.exception("App bootstrap failed")
+        _clear_boot_placeholder(boot_slot)
         st_module.error(
             "⚠️ The app failed to start. Please reload the page or check the deployment logs."
         )

@@ -225,8 +225,8 @@ def render_data_status(
         # yellow dot. Summarises *why* the app is running on fallback data.
         degradation = summarize_data_degradation(health)
         degradation_banner_shown = degradation["is_degraded"]
+        reason_lines = "\n".join(f"- {r}" for r in degradation["reasons"])
         if degradation_banner_shown and show_banner:
-            reason_lines = "\n".join(f"- {r}" for r in degradation["reasons"])
             if degradation["severity"] == "error":
                 st_module.error(
                     "🔴 **Data error — results may be unreliable**\n\n" + reason_lines
@@ -236,6 +236,14 @@ def render_data_status(
                     "🟡 **Some data sources are running on older snapshots**\n\n"
                     + reason_lines
                 )
+        elif degradation_banner_shown:
+            # ``show_banner=False`` means the caller (the shared chrome) owns
+            # the page-level notice — and since 2026-09-01 it raises one only
+            # for sources past their release-calendar tolerance, once per
+            # session. The caveats it deliberately does not shout about still
+            # have to be readable *somewhere*, so the panel behind the pill
+            # lists every reason, quietly, on every page.
+            st_module.caption(reason_lines)
 
         st_module.markdown(
             f"{_status_icon(baseline.get('status'))} **Baseline:** {baseline_summary}"

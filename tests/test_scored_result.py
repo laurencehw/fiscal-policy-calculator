@@ -30,6 +30,13 @@ from fiscal_model.scoring import FiscalPolicyScorer
 from fiscal_model.ui.session_state import ALL_KEYS, KEY_SCORED_RESULT
 from fiscal_model.ui.tabs.dynamic_scoring import DynamicView
 
+# The width the *UI* requires before it will draw a range, read from the
+# production constant with the production comparison so the two cannot drift
+# apart (Copilot review, 2026-09-01).
+from fiscal_model.ui.tabs.results_summary import (
+    _MIN_BAND_WIDTH_BILLIONS as MIN_BAND_WIDTH,
+)
+
 TCJA_PRESET = next(name for name in PRESET_POLICIES if "TCJA Full Extension" in name)
 
 #: Every field the redesign plan §6.3 requires on the result object.
@@ -240,7 +247,116 @@ def test_sensitivity_band_brackets_the_headline_for_an_eti_policy():
     assert scored.sensitivity is not None
     low, high = scored.sensitivity
     assert low <= scored.headline <= high
+    assert high - low >= MIN_BAND_WIDTH, "an ETI band must have width, not just brackets"
     assert "ETI" in scored.sensitivity_note
+
+
+# ---------------------------------------------------------------------------
+# Sensitivity band width (external UI review, 2026-09-01)
+# ---------------------------------------------------------------------------
+#
+# Explore printed "Sensitivity range: $+4,581.9B to $+4,581.9B (ETI
+# 0.15-0.35)" for every calibrated preset whose module zeroes the behavioural
+# *offset* while leaving TaxPolicy's default 0.25 elasticity in place: flexing
+# an elasticity that multiplies zero moves neither end of the band.
+
+
+@pytest.mark.parametrize(
+    "preset_name",
+    [
+        name
+        for name in (
+            TCJA_PRESET,
+            next((n for n in PRESET_POLICIES if "Estate" in n), None),
+            next((n for n in PRESET_POLICIES if "Donut" in n), None),
+            next((n for n in PRESET_POLICIES if "Corporate AMT" in n), None),
+        )
+        if name is not None
+    ],
+)
+def test_calibrated_presets_never_report_a_zero_width_band(preset_name):
+    policy = create_policy_from_preset(PRESET_POLICIES[preset_name])
+    scorer = FiscalPolicyScorer(
+        start_year=getattr(policy, "start_year", 2025), use_real_data=False
+    )
+    scored = _build(
+        {
+            "policy": policy,
+            "result": scorer.score_policy(policy, dynamic=False),
+            "scorer": scorer,
+            "is_spending": False,
+            "policy_name": preset_name,
+        }
+    )
+    if scored.sensitivity is None:
+        # Acceptable, but only when the surface says why instead of drawing a
+        # range with no width.
+        assert "No sensitivity range" in scored.sensitivity_note
+        return
+    low, high = scored.sensitivity
+    assert high - low >= MIN_BAND_WIDTH, (
+        f"{preset_name} reports a degenerate band {low:+,.1f} to {high:+,.1f}; "
+        "a calibrated preset has no ETI channel to flex, so it must fall "
+        "through to the engine's uncertainty band or say it has no range"
+    )
+    assert "ETI" not in scored.sensitivity_note, (
+        "a calibrated preset's behavioural response is inside its "
+        "calibration; the band must not be labelled as an ETI sweep"
+    )
+
+
+def test_a_zero_behavioral_offset_never_takes_the_eti_branch():
+    """The precise condition, unit-tested away from any particular preset."""
+    from fiscal_model.ui.tabs.results_summary import _sensitivity_band
+
+    policy = TaxPolicy(
+        name="Calibrated stand-in",
+        description="behavioural response already inside the calibration",
+        policy_type=PolicyType.INCOME_TAX,
+        rate_change=0.02,
+        affected_income_threshold=400_000,
+    )
+    assert policy.taxable_income_elasticity > 0  # inherited default, the trap
+
+    class _Result:
+        low_estimate = [90.0] * 10
+        high_estimate = [110.0] * 10
+
+    band, note = _sensitivity_band(
+        _Result(),
+        policy,
+        static_total=1000.0,
+        behavioral_total=0.0,
+        is_spending=False,
+    )
+    assert band == (900.0, 1100.0)
+    assert note == "model uncertainty band"
+
+
+def test_no_band_at_all_is_reported_as_a_reason_not_a_range():
+    from fiscal_model.ui.tabs.results_summary import _sensitivity_band
+
+    policy = TaxPolicy(
+        name="Calibrated stand-in",
+        description="no uncertainty path either",
+        policy_type=PolicyType.INCOME_TAX,
+        rate_change=0.02,
+        affected_income_threshold=400_000,
+    )
+
+    class _Result:
+        low_estimate = [100.0] * 10
+        high_estimate = [100.0] * 10
+
+    band, note = _sensitivity_band(
+        _Result(),
+        policy,
+        static_total=1000.0,
+        behavioral_total=0.0,
+        is_spending=False,
+    )
+    assert band is None
+    assert "No sensitivity range" in note
 
 
 def test_spending_policy_is_flagged_and_scored_on_the_outlay_path():

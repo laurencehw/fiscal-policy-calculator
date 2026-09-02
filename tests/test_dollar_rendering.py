@@ -211,7 +211,13 @@ def test_detector_flags_the_shape_it_is_meant_to_catch():
 
 
 def test_detector_flags_signed_amounts():
-    """The live offender was ``$+4,581.9B to $+4,581.9B`` — a signed pair."""
+    """The live offender was ``$+4,581.9B to $+4,581.9B`` — a signed pair.
+
+    Note the repeated number: the app really did print a zero-width range
+    there. That was a second, unrelated bug in ``_sensitivity_band``, fixed on
+    2026-09-01 and pinned in ``tests/test_scored_result.py``. The string stays
+    here verbatim because it is still a valid input for *this* detector.
+    """
     assert latex_risk("Sensitivity range: $+4,581.9B to $+4,581.9B (ETI 0.15-0.35)")
     assert latex_risk("From $-1,040B to $-960B")
 
@@ -252,3 +258,110 @@ def test_rate_limit_over_cap_message_is_escaped():
     assert not decision.allowed
     assert "budget is exhausted" in decision.reason
     assert latex_risk(decision.reason) == []
+
+
+# ---------------------------------------------------------------------------
+# The mirror-image bug: an escape that reaches a sink which does not read
+# markdown, so the backslash itself shows (external UI review, 2026-09-01).
+# ---------------------------------------------------------------------------
+#
+# ``escape_markdown_dollars`` is right for markdown and wrong everywhere else.
+# Build printed ``**Eliminate SS Cap** — `-\$3,200B` `` because the escape was
+# applied *around* a code span, and markdown processes no escapes inside one;
+# Explore's dropdowns and copy box showed ``Carbon Tax \$50/ton`` because a few
+# preset keys and policy names carry the escape in the source data. The cure is
+# ``unescape_markdown_dollars`` at the sink, not un-escaping the data.
+
+#: ``\$`` or ``\~`` — the two characters the app's guards escape.
+LITERAL_ESCAPE = re.compile(r"\\[$~]")
+
+#: Inline code spans inside an otherwise markdown-rendered string.
+INLINE_CODE = re.compile(r"`[^`\n]+`")
+
+#: Elements whose text Streamlit renders as markdown. Only their code spans can
+#: carry a visible backslash. ``help=`` tooltips are markdown too, and so are
+#: widget *labels*; neither is inspected below.
+_MARKDOWN_SINKS = ("markdown", "caption", "info", "warning", "error", "success")
+
+#: Elements that render their text literally: ``st.code`` bodies, metric
+#: values, and the *option* lists of choice widgets (a widget's label is
+#: markdown, its options are not — pass ``format_func`` for those).
+_LITERAL_SINKS = ("code", "metric", "text")
+_OPTION_SINKS = ("selectbox", "multiselect", "radio")
+
+
+def _escape_offenders(at) -> list[tuple[str, str]]:
+    out: list[tuple[str, str]] = []
+    for name in _MARKDOWN_SINKS:
+        for element in getattr(at, name, []):
+            value = getattr(element, "value", None)
+            if not isinstance(value, str):
+                continue
+            out += [
+                (f"{name}/code-span", span)
+                for span in INLINE_CODE.findall(value)
+                if LITERAL_ESCAPE.search(span)
+            ]
+    for name in _LITERAL_SINKS:
+        for element in getattr(at, name, []):
+            for attr in ("value", "body", "delta"):
+                value = getattr(element, attr, None)
+                if isinstance(value, str) and LITERAL_ESCAPE.search(value):
+                    out.append((f"{name}.{attr}", value))
+    for name in _OPTION_SINKS:
+        for element in getattr(at, name, []):
+            for option in getattr(element, "options", None) or []:
+                if isinstance(option, str) and LITERAL_ESCAPE.search(option):
+                    out.append((f"{name}.option", option))
+    return out
+
+
+@pytest.mark.parametrize(
+    ("page", "query", "label"),
+    [
+        ("app_pages/build.py", {"values": "deficit-hawk"}, "build-values-panel"),
+        ("app_pages/build.py", {"values": "deficit-hawk", "load": "1"}, "build-loaded"),
+        ("app_pages/explore.py", EXPLORE_RUN, "explore-after-a-run"),
+        (
+            "app_pages/explore.py",
+            {"preset": "carbon-tax-50", "run": "1"},
+            "explore-escaped-preset-name",
+        ),
+    ],
+)
+def test_no_markdown_escape_reaches_a_plain_text_sink(page, query, label):
+    at = _run(page, query=query)
+    assert not at.exception, [e.message for e in at.exception]
+
+    offenders = _escape_offenders(at)
+    assert not offenders, (
+        f"{label}: {len(offenders)} string(s) carry a literal backslash where "
+        "the sink does not read markdown, so the reader sees a stray '\\'. Use "
+        "fiscal_model.ui.helpers.unescape_markdown_dollars at the sink (or "
+        "format_func= for a widget's options). First offender: "
+        f"{offenders[0][0]} -> {offenders[0][1][:160]!r}"
+    )
+
+
+def test_build_values_panel_really_rendered_money_in_a_code_span():
+    """Guards the guard: an empty package would pass the assertion vacuously."""
+    at = _run("app_pages/build.py", query={"values": "deficit-hawk"})
+    assert not at.exception, [e.message for e in at.exception]
+    joined = " ".join(text for _, text in _rendered_text(at))
+    assert "of the gap" in joined, "the composer rationale did not render"
+    assert "`-$" in joined or "`+$" in joined, "no money code span rendered"
+
+
+def test_unescape_is_the_inverse_of_escape():
+    from fiscal_model.ui.helpers import (
+        escape_markdown_dollars,
+        unescape_markdown_dollars,
+    )
+
+    for raw in ("Carbon Tax $50/ton", "$5.00 of $6.00", "no currency here", ""):
+        assert unescape_markdown_dollars(escape_markdown_dollars(raw)) == raw
+    # Also strips the hand-written escapes that live in the source data.
+    assert unescape_markdown_dollars("Carbon Tax \\$50/ton") == "Carbon Tax $50/ton"
+    assert unescape_markdown_dollars("depleted by \\~2033") == "depleted by ~2033"
+    # Only ``\$`` and ``\~`` are ours; every other backslash survives.
+    assert unescape_markdown_dollars(r"C:\path\to") == r"C:\path\to"

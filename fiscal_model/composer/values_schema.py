@@ -98,7 +98,10 @@ class ProtectedRule:
 
     key: str
     label: str                      # reader-facing, for the multiselect
-    #: One clause, used in the "why" sentence: "…, which you protected".
+    #: A second-person statement, joined into the "why" sentence by
+    #: ``composer._protected_contrast``: "…, which is off the table because
+    #: {clause}". Write it as a statement ("you protected X"), never as a bare
+    #: relative clause — the connective is the caller's job.
     clause: str
     #: Tag predicate, expressed as data: every listed tag must match one of the
     #: allowed values, and ``direction`` must be a burden direction.

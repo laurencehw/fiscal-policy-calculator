@@ -23,7 +23,24 @@ def escape_markdown_dollars(text: str) -> str:
     return _DOLLAR_BEFORE_DIGIT_RE.sub(r"\\$", text)
 
 
-def validated_policy_count() -> int:
+# The inverse. Several preset labels and policy names carry the escape in the
+# source data (``app_data.PRESET_POLICIES`` keys, ``climate`` policy names),
+# because most of the places they are rendered *are* markdown. The rest are
+# not — ``st.code``, a code span inside markdown, a selectbox option, a
+# dataframe cell — and there the escape shows as a literal backslash on
+# screen: "🌱 Carbon Tax \$50/ton" (external UI review, 2026-09-01). Strip it
+# at the sink rather than un-escaping the data, which the markdown sinks need.
+_ESCAPED_MARKDOWN_CHAR_RE = re.compile(r"\\([$~])")
+
+
+def unescape_markdown_dollars(text: str) -> str:
+    """Drop ``\\$`` / ``\\~`` escapes for a sink that does not read markdown."""
+    if not text:
+        return text
+    return _ESCAPED_MARKDOWN_CHAR_RE.sub(r"\1", text)
+
+
+def validated_policy_count(*, allow_compute: bool = True) -> int:
     """Count of benchmark entries scored against a *published* figure.
 
     The footer, welcome text, and scorecard used to quote three different
@@ -40,10 +57,20 @@ def validated_policy_count() -> int:
     the whole clause rather than print a zero. The fallback used to be a
     hard-coded 25, which asserted validation coverage at precisely the moment
     the thing that measures it had failed.
+
+    ``allow_compute=False`` answers only from the memo: computing the scorecard
+    runs every specialized validator and takes ~2.5s on a cold process. That is
+    fine at the foot of a page that has already painted, and not fine on the
+    critical path of the very first script run — see ``app._render_head_metadata``,
+    which wants the number for a ``<meta>`` tag nobody is waiting to read.
     """
     try:
         from fiscal_model.validation.scorecard import cached_default_scorecard
 
+        if not allow_compute:
+            cache_info = getattr(cached_default_scorecard, "cache_info", None)
+            if cache_info is None or cache_info().currsize == 0:
+                return 0
         return int(cached_default_scorecard().published_entries)
     except Exception:
         return 0
