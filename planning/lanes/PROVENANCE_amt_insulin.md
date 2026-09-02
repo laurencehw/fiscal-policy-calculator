@@ -249,9 +249,19 @@ target: `target_revision_id`, `superseded_10yr_billions`,
   Social Security payroll targets, `repeal_ira_credits`) have no published
   figure to move to at all.
 - **`docs/`, `README.md`, `CLAUDE.md`, `planning/MODELING_IMPROVEMENT.md`,
-  `planning/NEXT_STEPS.md` and `docs/CHANGELOG.md` are owned by the concurrent
-  `docs/wave1-sync` lane** and were not touched. Two figures there will need
-  that lane's attention: the fitted-tier headline (§5), and a pre-existing
-  drift — `CLAUDE.md` states Tier 1 at "52.6% mean, 8/25 within 15%, 14/25
-  within 25%", while `main` @ `dff096d` already produces **34.4%, 12/25, 16/25**.
-  That drift is not from this branch; it was there at the branch point.
+  `planning/NEXT_STEPS.md` and `docs/CHANGELOG.md` are owned by the
+  `docs/wave1-sync` lane** and were not touched here. That lane merged as
+  PR #89 while this branch was open (`origin/main` @ `4fe4865`, merged in at
+  `3d1355a` — a merge, not a rebase, because this branch's ledger stamps the
+  commits a rebase would rewrite). It anticipated this work and wrote the three
+  rows as *"what main carries today"*, pending this PR. Handing back, the rows
+  it will now want to revise:
+
+  | Where | Says today | Should say |
+  |---|---|---|
+  | `CLAUDE.md` "Model maturity" and "Target Validation" | fitted **34 @ 2.7%**, reconstructions **20 @ 82.6%** | **33 @ 2.8%** and **21 @ 76.7%**, with §5's held-in-place reading beside it |
+  | `CLAUDE.md` "Next: (1) the AMT/insulin target provenance lane" | the lane as open work | done for two of three; `repeal_individual_amt` stays open with §3's reason |
+  | `docs/VALIDATION.md` `line_item_differs` table (rows 231-232) | insulin and TCJA AMT relief listed as disagreements | both are `line_item` confirmations now; the disagreement moved to the revision ledger |
+  | `docs/VALIDATION.md` per-benchmark tables (l. 391, 574) | insulin `-$15B` / 146.4%; AMT relief `$450B` / 0.1% | `+$11.4B` / −39.0%; `$1,357.1B` / −66.8% |
+  | `docs/VALIDATION.md` calibrated-provenance counts | 17 / 15 / 15 / 7 | **19 / 13 / 15 / 7** |
+  | `docs/VALIDATION_NOTES.md` LOO section | suite 61.7% / 35.6% | **58.7% / 32.5%** (target moved, model did not) |
