@@ -259,13 +259,16 @@ CBO_ARP_2021 = CBODistributionalBenchmark(
         "childless extension + $1400 Recovery Rebate. The strong inverse-"
         "income gradient reflects full refundability + zero-earnings "
         "eligibility + the Recovery Rebate's relatively flat dollar "
-        "amount per person. Scope note: the current benchmark runner "
-        "maps this to create_biden_ctc_2021 (the CTC piece alone), so "
-        "the resulting comparison measures how well the CTC-only "
-        "distribution approximates the bundle. That approximation is "
-        "systematically too concentrated at the bottom because it is "
-        "missing the Recovery Rebate's mass above $75k — the ~9pp "
-        "mean absolute share error documented in validation runs."
+        "amount per person. Scope note: the runner composes all three "
+        "provisions through _run_arp_bundle and merges them by dollar "
+        "weight; the older note here described an earlier configuration "
+        "that scored the CTC piece alone. This is the benchmark the "
+        "tax-unit-versus-household universe was visible in — it read "
+        "7.77pp with the model's bottom quintile taking 53.4% of the "
+        "bundle's dollars against CBO's 34.0%, because CPS tax-unit "
+        "construction splits a household into filing, non-filing and "
+        "dependent units that this ranking never separates. Scored on "
+        "CBO's own universe it reads 3.72pp at 28.6%."
     ),
     ranking_universe="household",
     ranking_universe_source=CBO_HOUSEHOLD_RANKING_QUOTE,
