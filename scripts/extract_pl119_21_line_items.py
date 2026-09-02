@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
-Rebuild the P.L. 119-21 (One Big Beautiful Bill Act) JCT line-item data file.
+Rebuild the P.L. 119-21 JCT line-item data file.
+
+P.L. 119-21 is the budget-reconciliation law enacted 4 July 2025 (H.R. 1,
+119th Congress). This file names it P.L. 119-21 and refers to the estimate
+by JCT's own title for it, never by a popular short name.
 
 Source
 ------
@@ -56,9 +60,35 @@ One row per transcribed provision, chapter subtotal, or net total, carrying:
 
 Every row carries ``extracted_by``. The rows below are ``manual``: the JCX
 table is a fixed-width, multi-line-label layout that no general parser handles
-cleanly, so the totals were transcribed by hand. ``--pdf`` then *verifies* every
-transcribed total against the text of the PDF, which is the part a machine can
-do reliably - a typo in a transcription is caught, and the check is repeatable.
+cleanly, so the totals were transcribed by hand.
+
+``--pdf`` then runs :func:`verify_pages` over the PDF's extracted text. It
+checks, for each row, that JCT's printed 2025-34 total appears **on the page
+the row records**, with thousands separators as JCT prints them, and **with the
+sign JCT printed** - a leading minus for a revenue loss, no marker for a
+revenue gain, which is this table's whole sign vocabulary. A mistyped digit and
+a flipped sign both fail; a magnitude found only on another page fails and says
+so. It does **not** check that a figure was read off the right row (two rows on
+one page sharing a magnitude and a sign are indistinguishable to a text
+search), it does not check the annual columns (only the total is transcribed),
+and it does not check the prose - row labels, chapter headings and effective
+dates were verified by reading. One transcribed figure is not printed in the
+document at all, the subchapter-A sum; it is reported under ``not_printed``
+rather than counted as verified, and :func:`check_internal_consistency`
+constrains it against the chapter-5 subtotal instead.
+
+Labels
+------
+``provision`` is JCT's printed row label and ``chapter`` is JCT's printed
+chapter heading, both quoted verbatim from JCX-35-25 with footnote markers
+dropped. Where a heading carries the bill's own framing, that framing is the
+source's, reproduced rather than paraphrased: selectively trimming a heading
+would substitute this file's judgement for the document's words. Two rows carry
+a label JCT does not print in that form, and both say so in ``note``: the
+subchapter-A sum (JCT's printed subchapter heading plus a parenthetical naming
+what was summed) and the net total (JCT prints only "NET TOTAL"). Free-text
+``note`` fields describe the provision and the app's ability to model it; they
+carry no judgement of the policy.
 
 Usage
 -----
@@ -78,6 +108,7 @@ import argparse
 import csv
 import re
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -132,6 +163,28 @@ class LineItem:
         return round(-self.revenue_effect_2025_34_millions / 1000.0, 3)
 
 
+#: JCT's printed chapter headings, quoted verbatim from JCX-35-25 (pages 1-7).
+#: They carry the bill's own framing because they are the document's words:
+#: trimming a heading down to a neutral gist would replace the source's label
+#: with this file's summary of it, which is exactly what a transcription must
+#: not do. ``provision`` below follows the same rule at row level.
+_CH1 = "Ch.1: Providing Permanent Tax Relief for Middle-Class Families and Workers"
+_CH2 = (
+    "Ch.2: Delivering on Presidential Priorities to Provide New "
+    "Middle-Class Tax Relief"
+)
+_CH3 = "Ch.3: Establishing Certainty and Competitiveness for American Job Creators"
+_CH4 = "Ch.4: Investing in American Families, Communities, and Small Businesses"
+_CH5 = (
+    "Ch.5: Ending Green New Deal Spending, Promoting America-First Energy "
+    "and Other Reforms"
+)
+_CH6 = "Ch.6: Enhancing Deduction and Income Tax Credit Guardrails, and Other Reforms"
+
+#: The title the net-total row covers. JCT prints it as the table's first
+#: heading line.
+_TITLE_VII = "Title VII - Finance Committee"
+
 MAPPED = "mapped"
 OUT_OF_SCOPE = "out_of_scope"
 REFERENCE = "reference"
@@ -145,7 +198,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     # -- Chapter 1: Providing Permanent Tax Relief for Middle-Class Families --
     LineItem(
         provision_id="pl119_21_rate_extension",
-        chapter="Ch.1 Permanent Tax Relief",
+        chapter=_CH1,
         jct_item="1",
         provision="Extension and limited enhancement of reduced rates",
         effective="tyba 12/31/25",
@@ -158,7 +211,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_standard_deduction",
-        chapter="Ch.1 Permanent Tax Relief",
+        chapter=_CH1,
         jct_item="2",
         provision="Extension and enhancement of increased standard deduction",
         effective="tyba 12/31/24",
@@ -170,7 +223,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_personal_exemption_termination",
-        chapter="Ch.1 Permanent Tax Relief",
+        chapter=_CH1,
         jct_item="3",
         provision=(
             "Termination of deduction for personal exemptions other than "
@@ -187,7 +240,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_child_tax_credit",
-        chapter="Ch.1 Permanent Tax Relief",
+        chapter=_CH1,
         jct_item="4",
         provision="Extension and enhancement of increased child tax credit",
         effective="tyba 12/31/25",
@@ -200,7 +253,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_qbi_199a",
-        chapter="Ch.1 Permanent Tax Relief",
+        chapter=_CH1,
         jct_item="5",
         provision=(
             "Extension and enhancement of deduction for qualified business income"
@@ -214,7 +267,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_estate_gift_exemption",
-        chapter="Ch.1 Permanent Tax Relief",
+        chapter=_CH1,
         jct_item="6",
         provision=(
             "Extension and enhancement of increased estate and gift tax "
@@ -229,7 +282,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_amt_exemption",
-        chapter="Ch.1 Permanent Tax Relief",
+        chapter=_CH1,
         jct_item="7",
         provision=(
             "Extension of increased alternative minimum tax exemption amounts, "
@@ -245,7 +298,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_mortgage_interest_limitation",
-        chapter="Ch.1 Permanent Tax Relief",
+        chapter=_CH1,
         jct_item="8",
         provision=(
             "Extension of limitation on deduction for qualified residence interest"
@@ -261,7 +314,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_casualty_loss_limitation",
-        chapter="Ch.1 Permanent Tax Relief",
+        chapter=_CH1,
         jct_item="9",
         provision=(
             "Extension and modification of limitation on casualty loss deduction"
@@ -274,7 +327,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_misc_itemized_termination",
-        chapter="Ch.1 Permanent Tax Relief",
+        chapter=_CH1,
         jct_item="10",
         provision=(
             "Termination of miscellaneous itemized deductions other than "
@@ -288,7 +341,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_itemized_benefit_limitation",
-        chapter="Ch.1 Permanent Tax Relief",
+        chapter=_CH1,
         jct_item="11",
         provision="Limitation on tax benefit of itemized deductions",
         effective="tyba 12/31/25",
@@ -300,7 +353,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_salt_cap_40k",
-        chapter="Ch.1 Permanent Tax Relief",
+        chapter=_CH1,
         jct_item="20",
         provision=(
             "Limitation on individual deductions for certain State and local taxes"
@@ -318,7 +371,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_chapter_1_total",
-        chapter="Ch.1 Permanent Tax Relief",
+        chapter=_CH1,
         jct_item="Total",
         provision="Total of Chapter 1",
         effective="",
@@ -331,7 +384,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     # -- Chapter 2: New Middle-Class Tax Relief --------------------------------
     LineItem(
         provision_id="pl119_21_no_tax_on_tips",
-        chapter="Ch.2 New Middle-Class Relief",
+        chapter=_CH2,
         jct_item="1",
         provision="No tax on tips (sunset 12/31/28)",
         effective="tyba 12/31/24",
@@ -343,7 +396,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_no_tax_on_overtime",
-        chapter="Ch.2 New Middle-Class Relief",
+        chapter=_CH2,
         jct_item="2",
         provision="No tax on overtime (sunset 12/31/28)",
         effective="tyba 12/31/24",
@@ -355,7 +408,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_car_loan_interest",
-        chapter="Ch.2 New Middle-Class Relief",
+        chapter=_CH2,
         jct_item="3",
         provision="No tax on car loan interest",
         effective="iia 12/31/24",
@@ -366,7 +419,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_trump_accounts",
-        chapter="Ch.2 New Middle-Class Relief",
+        chapter=_CH2,
         jct_item="4",
         provision="Trump accounts and contribution pilot program",
         effective="tyba 12/31/25",
@@ -378,7 +431,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_chapter_2_total",
-        chapter="Ch.2 New Middle-Class Relief",
+        chapter=_CH2,
         jct_item="Total",
         provision="Total of Chapter 2",
         effective="",
@@ -390,7 +443,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     # -- Chapter 3: Business and international ---------------------------------
     LineItem(
         provision_id="pl119_21_full_expensing",
-        chapter="Ch.3 Business and International",
+        chapter=_CH3,
         jct_item="A.1",
         provision="Full expensing for certain business property",
         effective="paa 1/19/25",
@@ -402,7 +455,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_rd_expensing",
-        chapter="Ch.3 Business and International",
+        chapter=_CH3,
         jct_item="A.2",
         provision=(
             "Full expensing of domestic research and experimental expenditures"
@@ -415,7 +468,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_business_interest",
-        chapter="Ch.3 Business and International",
+        chapter=_CH3,
         jct_item="A.3",
         provision="Modification of limitation on business interest",
         effective="tyba 12/31/24",
@@ -426,7 +479,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_foreign_tax_credit",
-        chapter="Ch.3 Business and International",
+        chapter=_CH3,
         jct_item="B.I.1",
         provision="Modifications related to foreign tax credit limitation",
         effective="tyba 12/31/25",
@@ -438,7 +491,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_fdii_cfc_deduction",
-        chapter="Ch.3 Business and International",
+        chapter=_CH3,
         jct_item="B.II.1",
         provision=(
             "Modification of deduction for foreign-derived deduction eligible "
@@ -455,7 +508,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_beat",
-        chapter="Ch.3 Business and International",
+        chapter=_CH3,
         jct_item="B.III",
         provision=(
             "Extension and modification of base erosion minimum tax amount"
@@ -468,7 +521,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_chapter_3_total",
-        chapter="Ch.3 Business and International",
+        chapter=_CH3,
         jct_item="Total",
         provision="Total of Chapter 3",
         effective="",
@@ -480,7 +533,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     # -- Chapter 4 -------------------------------------------------------------
     LineItem(
         provision_id="pl119_21_chapter_4_total",
-        chapter="Ch.4 Families, Communities, Small Business",
+        chapter=_CH4,
         jct_item="Total",
         provision="Total of Chapter 4",
         effective="",
@@ -495,7 +548,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     # -- Chapter 5: energy -----------------------------------------------------
     LineItem(
         provision_id="pl119_21_clean_electricity_investment_credit",
-        chapter="Ch.5 Energy",
+        chapter=_CH5,
         jct_item="A.13",
         provision=(
             "Termination and restrictions on clean electricity investment credit"
@@ -509,7 +562,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_commercial_clean_vehicles_credit",
-        chapter="Ch.5 Energy",
+        chapter=_CH5,
         jct_item="A.3",
         provision="Termination of qualified commercial clean vehicles credit",
         effective="vaa 9/30/25",
@@ -521,7 +574,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_clean_vehicle_credit",
-        chapter="Ch.5 Energy",
+        chapter=_CH5,
         jct_item="A.2",
         provision="Termination of clean vehicle credit",
         effective="vaa 9/30/25",
@@ -533,7 +586,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_residential_clean_energy_credit",
-        chapter="Ch.5 Energy",
+        chapter=_CH5,
         jct_item="A.6",
         provision="Termination of residential clean energy credit",
         effective="ema 12/31/25",
@@ -545,7 +598,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_advanced_manufacturing_credit_phaseout",
-        chapter="Ch.5 Energy",
+        chapter=_CH5,
         jct_item="A.14",
         provision=(
             "Phase-out and restrictions on advanced manufacturing production credit"
@@ -559,27 +612,30 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_energy_credit_terminations",
-        chapter="Ch.5 Energy",
+        chapter=_CH5,
         jct_item="Subchapter A",
         provision=(
-            "Termination of Green New Deal subsidies (subchapter A, all 15 rows)"
+            "Termination of Green New Deal Subsidies (subchapter A, all 15 rows)"
         ),
         effective="",
         pdf_page=6,
         revenue_effect_2025_34_millions=542_653,
         mapping_status=OUT_OF_SCOPE,
         is_reference_row=True,
-        note="LEAKAGE, not a missing feature. The climate module's IRA-repeal "
-             "annual is documented as calibrated to reproduce the -$783B "
-             "IRA-repeal target, so scoring an energy-credit repeal through it "
-             "would reproduce a constant fitted to the same reform. Sum of the "
-             "15 subchapter A rows; the subchapter has no printed subtotal, so "
-             "this figure is the sum of the transcribed rows and is checked "
-             "against the chapter total below.",
+        note="'Termination of Green New Deal Subsidies' is JCT's own "
+             "printed subchapter heading (JCX-35-25 p. 5), quoted verbatim; "
+             "the parenthetical says what was summed. LEAKAGE, not a missing "
+             "feature: the climate module's IRA-repeal annual is documented as "
+             "calibrated to reproduce the -$783B IRA-repeal target, so scoring "
+             "an energy-credit repeal through it would reproduce a constant "
+             "fitted to the same reform. The subchapter has no printed "
+             "subtotal, so this figure is the sum of its 15 rows and is the "
+             "one transcribed total the PDF check cannot confirm; it is "
+             "checked against the chapter total below instead.",
     ),
     LineItem(
         provision_id="pl119_21_chapter_5_total",
-        chapter="Ch.5 Energy",
+        chapter=_CH5,
         jct_item="Total",
         provision="Total of Chapter 5",
         effective="",
@@ -593,7 +649,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     # -- Chapter 6 and the net total -------------------------------------------
     LineItem(
         provision_id="pl119_21_chapter_6_total",
-        chapter="Ch.6 Deduction and Credit Enhancements",
+        chapter=_CH6,
         jct_item="Total",
         provision="Total of Chapter 6",
         effective="",
@@ -604,7 +660,7 @@ LINE_ITEMS: tuple[LineItem, ...] = (
     ),
     LineItem(
         provision_id="pl119_21_net_total",
-        chapter="All titles",
+        chapter=_TITLE_VII,
         jct_item="NET TOTAL",
         provision="Net total, all provisions scored in JCX-35-25",
         effective="",
@@ -612,8 +668,10 @@ LINE_ITEMS: tuple[LineItem, ...] = (
         revenue_effect_2025_34_millions=-4_474_972,
         mapping_status=REFERENCE,
         is_reference_row=True,
-        note="Cross-checks against CBO publication 61570, which puts the law's "
-             "revenue decrease at $4.5 trillion over 2025-2034.",
+        note="JCT prints only 'NET TOTAL' as this row's label; the text "
+             "here says what it is the net of. Cross-checks against CBO "
+             "publication 61570, which puts the law's revenue decrease at "
+             "$4.5 trillion over 2025-2034.",
     ),
 )
 
@@ -642,7 +700,15 @@ HEADER_COMMENT = f"""\
 # CBO companion estimate of the same law: {CBO_COMPANION_URL}
 # Sign conventions: revenue_effect_2025_34_millions follows JCT (negative =
 #   revenue loss); deficit_effect_10yr_billions follows this app (positive =
-#   increases the deficit) and is computed, not typed.
+#   increases the deficit) and is computed, not typed. --pdf re-checks every
+#   printed total against the page it was read from, sign included.
+# Labels: 'provision' is JCT's printed row label and 'chapter' is JCT's printed
+#   chapter heading, both verbatim from JCX-35-25 with footnote markers dropped.
+#   Where a heading carries the bill's own framing it is quoted, not
+#   paraphrased or trimmed. Two rows carry a label JCT does not print in that
+#   form and say so in 'note': the subchapter-A sum and the net total. 'note'
+#   describes the provision and whether the app can model it; it carries no
+#   judgement of the policy.
 # JCT published no separate 'as enacted' estimate of the tax title: the House
 #   passed the Senate substitute unamended, so JCX-35-25's Title VII text is the
 #   text enacted as P.L. 119-21. JCX-34-25 scores the same provisions against a
@@ -683,24 +749,156 @@ def write_csv(path: Path = LINE_ITEMS_CSV) -> int:
     return len(LINE_ITEMS)
 
 
+#: Characters a PDF text layer may use for JCT's minus sign. JCX-35-25's own
+#: text layer uses plain ASCII hyphen-minus (U+002D) and nothing else; the
+#: dashes and the true minus sign are accepted as well so that swapping the
+#: extractor (PyMuPDF, pdftotext) cannot turn a correctly transcribed negative
+#: into a spurious sign mismatch.
+_MINUS_CHARS = "-\u2010\u2011\u2012\u2013\u2014\u2015\u2212"
+
+#: Transcribed totals JCT does not print anywhere in the document, so no amount
+#: of text searching can confirm them. They are reported separately rather than
+#: counted as verified. The subchapter-A figure is the sum of that subchapter's
+#: fifteen printed rows; :func:`check_internal_consistency` is what actually
+#: constrains it, against the chapter-5 subtotal.
+_DERIVED_TOTALS = frozenset({"pl119_21_energy_credit_terminations"})
+
+
+def _printed_signs(haystack: str, magnitude: str) -> list[int]:
+    """Sign of every printed occurrence of ``magnitude`` in ``haystack``.
+
+    ``magnitude`` is an absolute value formatted the way JCT prints it, with
+    thousands separators (``"2,193,378"``). Matches are anchored on digit
+    boundaries, so ``"39,532"`` does not match inside ``"1,139,532"``.
+
+    Returns ``-1`` for an occurrence carrying a minus sign or wrapped in
+    parentheses and ``+1`` otherwise. A bare figure really is JCT's convention
+    for a revenue gain in this table - the sign is "minus or nothing" - so the
+    absence of a marker is itself evidence, not a skipped check.
+    """
+    signs: list[int] = []
+    pattern = re.compile(r"(?<![\d,])" + re.escape(magnitude) + r"(?![\d,])")
+    for match in pattern.finditer(haystack):
+        before = haystack[match.start() - 1] if match.start() else ""
+        after = haystack[match.end()] if match.end() < len(haystack) else ""
+        negative = before in _MINUS_CHARS or (before == "(" and after == ")")
+        signs.append(-1 if negative else 1)
+    return signs
+
+
 @dataclass
 class VerificationReport:
-    """Which transcribed totals were found verbatim in the PDF text."""
+    """Outcome of checking the transcribed totals against the PDF's text.
+
+    Four disjoint buckets, one entry per row checked:
+
+    ``found``
+        The figure is printed on the page the row records, with the sign the
+        row transcribes.
+    ``sign_mismatch``
+        The magnitude is printed on that page, but only with the *opposite*
+        sign - a revenue loss transcribed as a raiser, or the reverse. This is
+        the failure an ``abs()`` comparison cannot see.
+    ``missing``
+        The magnitude is not printed on that page at all. The message says
+        whether it turns up on another page, which would mean the row's
+        ``pdf_page`` is wrong rather than its digits.
+    ``not_printed``
+        The row's total is derived rather than printed, so it is unverifiable
+        here by construction. Reported, never silently skipped.
+    """
 
     found: list[str] = field(default_factory=list)
+    sign_mismatch: list[str] = field(default_factory=list)
     missing: list[str] = field(default_factory=list)
+    not_printed: list[str] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
-        return not self.missing
+        return not self.missing and not self.sign_mismatch
+
+
+def verify_pages(
+    pages: Sequence[str], items: Sequence[LineItem] = LINE_ITEMS
+) -> VerificationReport:
+    """Check each transcribed total against the page of PDF text it came from.
+
+    What this verifies
+    ------------------
+    For every row, that JCT's printed 2025-34 total appears **on the page the
+    row records** (``pdf_page``), formatted as JCT formats it, and **carrying
+    the sign JCT printed**: a leading minus for a revenue loss, no marker for a
+    revenue gain. A transcription that keeps the right digits but flips the
+    sign lands in ``sign_mismatch`` and fails the run. Matches are anchored on
+    digit boundaries, so a magnitude is never "verified" by a longer number
+    that happens to contain it.
+
+    What this does NOT verify
+    -------------------------
+    * **That a total was read off the right row.** Two rows on one page whose
+      totals share a magnitude and a sign are indistinguishable to a text
+      search. Only the subtotal cross-checks in
+      :func:`check_internal_consistency` constrain that.
+    * **The annual columns.** Only the 2025-34 total is transcribed, so only
+      the total is checked.
+    * **Row labels, chapter headings and effective dates.** Those are prose;
+      they are verified by reading against the PDF, not by this function.
+    * **Derived totals.** The subchapter-A sum in :data:`_DERIVED_TOTALS` is
+      not printed in the document at all, so it is reported under
+      ``not_printed`` and constrained by the chapter-5 cross-check instead.
+
+    ``pages`` is one string of extracted text per PDF page, in order.
+    """
+    # JCT wraps row labels across lines; normalising whitespace keeps a figure
+    # from being hidden by the line break in front of it.
+    normalised = [re.sub(r"\s+", " ", page) for page in pages]
+
+    report = VerificationReport()
+    for item in items:
+        if item.provision_id in _DERIVED_TOTALS:
+            report.not_printed.append(
+                f"{item.provision_id}: derived, not printed in JCX-35-25; "
+                "cross-checked against the chapter subtotal instead"
+            )
+            continue
+
+        value = item.revenue_effect_2025_34_millions
+        printed = f"{abs(value):,}"
+        expected = -1 if value < 0 else 1
+        index = item.pdf_page - 1
+        page_text = normalised[index] if 0 <= index < len(normalised) else ""
+        signs = _printed_signs(page_text, printed)
+
+        if not signs:
+            elsewhere = [
+                str(number)
+                for number, text in enumerate(normalised, start=1)
+                if _printed_signs(text, printed)
+            ]
+            where = (
+                f"; it is printed on page {', '.join(elsewhere)}, so the row's "
+                "pdf_page is wrong"
+                if elsewhere
+                else ", or anywhere else in the document"
+            )
+            report.missing.append(
+                f"{item.provision_id}: {printed} not on PDF page "
+                f"{item.pdf_page}{where}"
+            )
+        elif expected in signs:
+            report.found.append(item.provision_id)
+        else:
+            report.sign_mismatch.append(
+                f"{item.provision_id}: transcribed as {value:+,} but JCX-35-25 "
+                f"page {item.pdf_page} prints {signs[0] * abs(value):+,}"
+            )
+    return report
 
 
 def verify_against_pdf(pdf_path: Path) -> VerificationReport:
-    """Check every transcribed total appears in the PDF's extracted text.
+    """Extract the PDF page by page and hand the text to :func:`verify_pages`.
 
-    This is the half of the job a machine does well. It will not catch a total
-    read off the wrong row, but it does catch a mistyped digit, which is the
-    failure mode a hand transcription actually has.
+    See :func:`verify_pages` for exactly what is and is not checked.
     """
     try:
         import pdfplumber
@@ -710,23 +908,8 @@ def verify_against_pdf(pdf_path: Path) -> VerificationReport:
         ) from exc
 
     with pdfplumber.open(str(pdf_path)) as pdf:
-        text = "\n".join(page.extract_text() or "" for page in pdf.pages)
-    # JCT prints thousands separators; normalise whitespace so a wrapped line
-    # does not hide a match.
-    haystack = re.sub(r"\s+", " ", text)
-
-    report = VerificationReport()
-    for item in LINE_ITEMS:
-        value = abs(item.revenue_effect_2025_34_millions)
-        printed = f"{value:,}"
-        # The derived subchapter-A sum is not printed anywhere in the document.
-        if item.provision_id == "pl119_21_energy_credit_terminations":
-            continue
-        if printed in haystack:
-            report.found.append(item.provision_id)
-        else:
-            report.missing.append(f"{item.provision_id}: {printed} not in PDF text")
-    return report
+        pages = [page.extract_text() or "" for page in pdf.pages]
+    return verify_pages(pages)
 
 
 def check_internal_consistency() -> list[str]:
@@ -737,7 +920,7 @@ def check_internal_consistency() -> list[str]:
     chapter_1 = sum(
         item.revenue_effect_2025_34_millions
         for item in LINE_ITEMS
-        if item.chapter.startswith("Ch.1") and not item.is_reference_row
+        if item.chapter == _CH1 and not item.is_reference_row
     )
     stated = by_id["pl119_21_chapter_1_total"].revenue_effect_2025_34_millions
     # The transcribed chapter-1 rows are the eleven largest of twenty, so they
@@ -789,11 +972,18 @@ def main(argv: list[str] | None = None) -> int:
     if pdf_path.exists():
         verified = verify_against_pdf(pdf_path)
         print(
-            f"PDF verification: {len(verified.found)} totals found verbatim, "
-            f"{len(verified.missing)} missing."
+            f"PDF verification: {len(verified.found)} totals found on their "
+            f"recorded page with JCT's printed sign, "
+            f"{len(verified.sign_mismatch)} sign mismatches, "
+            f"{len(verified.missing)} missing, "
+            f"{len(verified.not_printed)} not printed in the document."
         )
+        for line in verified.sign_mismatch:
+            print(f"  SIGN MISMATCH {line}", file=sys.stderr)
         for line in verified.missing:
             print(f"  MISSING {line}", file=sys.stderr)
+        for line in verified.not_printed:
+            print(f"  NOT PRINTED (unverifiable here) {line}")
     else:
         print(
             f"PDF verification SKIPPED: {pdf_path} not found. Download it from "
