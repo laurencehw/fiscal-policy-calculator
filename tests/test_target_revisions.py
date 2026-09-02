@@ -299,7 +299,7 @@ def test_a_half_stated_range_is_rejected(monkeypatch):
 
 
 def test_the_estate_target_is_recorded_as_examined_and_not_moved():
-    """"Somebody checked this and decided against" has to be state, not prose.
+    """A "checked this and decided against" verdict has to be stated, not prose.
 
     Without the registry, a benchmark whose published figure disagrees with the
     carried one is indistinguishable from one nobody has opened, and the
