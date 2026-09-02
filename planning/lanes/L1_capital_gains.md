@@ -217,7 +217,7 @@ can redo it: bracket base × `exp(−b·Δτ)` × the reform rate, minus the bas
 
 ## 5. Outturn
 
-Measured on `9d8b0ec`, the lane's last code commit — after the review round,
+Measured on `6b1df73`, the lane's last code commit — after the review round,
 which moved five of the seven rows and is folded in below rather than
 reported separately (§5.7 lists what it changed).
 
@@ -381,7 +381,7 @@ persistent and transitory elasticity inputs.
 ### 5.6 What the review round changed
 
 Copilot and Cursor Bugbot between them found five defects in the first push,
-all real and all fixed in `9d8b0ec`. Four of the seven registered rows moved,
+all real and all fixed in `6b1df73`. Four of the seven registered rows moved,
 every one of them toward its target, and Tier 1 went 32.2% → **31.3%** with
 `cbo_opt47` crossing back inside its band.
 
