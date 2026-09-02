@@ -313,4 +313,143 @@ measured against −$60B because that is what is carried; it is not a claim that
 
 ## 7. Outturn
 
-*Appended by the lane's last commit.*
+Measured on `0ad2b66`, the lane's last code commit.
+
+### 7.1 The five rows
+
+| Row | Target | Before | After | Error before → after | Registered |
+|---|---:|---:|---:|---:|---:|
+| `trump_universal_10` | −$2,000.0B | −$2,021.6B | **−$1,258.5B** | 1.1% → **37.1%** | ≈37.1% |
+| `trump_china_60` | −$500.0B | −$531.1B | **−$278.4B** | 6.2% → **44.3%** | ≈44.3% |
+| `auto_tariff_25` | −$100.0B | −$252.3B | **−$182.2B** | 152.3% → **82.2%** | ≈82.3% |
+| `steel_tariff_25` | −$60.0B | −$103.9B | **−$52.9B** | 73.2% → **11.9%** | ≈11.9% |
+| `reciprocal_tariffs` | −$1,200.0B | −$2,736.0B | **−$1,396.8B** | 128.0% → **16.4%** | ≈16.4% |
+
+**The hand arithmetic held to a tenth of a point on all five.** The only
+deviation is `auto_tariff_25` at 82.2% against a registered 82.3%, which is the
+Census levels being rounded to one decimal in `TRADE_BASELINE`.
+
+Two of the plan's three registered rows landed under 40% — steel at 11.9% and
+reciprocal at 16.4%, from 73.2% and 128.0%. `auto_tariff_25` did not, exactly as
+§4.2 said it would not and for the reason stated there: the target implies about
+$10B/yr against a measured $198.5B base, and the model's −$182.2B now sits
+*between* the carried −$100B and the two located primary estimates (Tax
+Foundation $386.2B conventional, Yale Budget Lab $600-650B) rather than beyond
+all three.
+
+### 7.2 The tiers
+
+| Aggregate | Before | Registered | After |
+|---|---:|---:|---:|
+| Three unfitted trade rows, summed error | 353.5 | ≈110.6 | **110.5** |
+| All five trade rows, summed error | 360.8 | ≈192.0 | **191.9** |
+| **12-row sectoral mean** (constant population) | **104.8%** | ≈84.6% | **84.6%** |
+| 14-row sectoral mean (with the two reclassified) | — | ≈78.3% | **78.3%** |
+| **24-row reconstruction mean** (constant population) | **72.1%** | ≈62.0% | **62.0%** |
+| 26-row reconstruction mean (as reported) | — | ≈60.3% | **60.3%**, median 32.7% |
+| Fitted calibrated reference | **30 @ 2.2%** | *(mis-registered — see 7.4)* | **28 @ 2.0%** |
+| Out-of-sample (Tier 1) | 25 @ 31.3%, 13/25 ≤15%, 18/25 ≤25% | unchanged | **unchanged** |
+| Leave-one-out | 17 @ 32.3%, median 19.2%, 8/17 ≤15% | unchanged | **unchanged** |
+| Distributional | 7 @ 0.00–5.86pp | unchanged | **unchanged** |
+
+`diff` on `scripts/cold_holdout.py` output before and after shows **four changed
+lines**, all of them the two tier-composition counts. Every out-of-sample row,
+every leave-one-out row, the donor matrix and the whole validation dashboard are
+byte-identical. That is §4.5's falsification test, passed.
+
+### 7.3 The two out-of-sample cross-checks
+
+1. **Net as a share of gross: 0.599 to 0.655** across the five presets
+   (universal 0.655, China 0.599, auto 0.637, steel 0.639, reciprocal 0.641).
+   Registered as 0.60–0.66, and above the 0.50 floor §4.5 named as the
+   double-counting tell. The knowledge snapshot's 40–50% band includes a
+   GDP-feedback drag this module does not carry, so sitting above it is the
+   right side to miss on.
+2. **Retaliation: $111.4B over ten years for the 10% universal tariff**,
+   against FF861 p. 2's **$278B**. Registered at $111.4B; the 2.5× gap is the
+   channel's stated limitation, not a surprise. An export-value loss is not an
+   income loss, and the module carries no multiplier and no supply-chain effect.
+
+### 7.4 Where the pre-registration was wrong
+
+Kept because §1.3 requires it, and because it is the informative miss.
+
+**§4.3 registered the fitted tier as "55 @ 15.4% → 53 @ ≈15.8%", and both the
+population and the direction were wrong.** The fitted tier is **30 rows at
+2.2%**, not 55 at 15.4%: the 55 was computed by counting every scorecard entry
+with `calibrated_to_target=True`, which sweeps in the **25 out-of-sample Generic
+rows** that carry the flag by default and are not calibrated to anything. With
+the correct population the two departing rows scored 1.1% and 6.2% against a
+2.2% mean, so removing them *lowers* it — **28 @ 2.0%** — where the inflated
+population implied a rise. The registered claim that the fitted tier "gets worse
+by construction" is therefore false as stated: it gets marginally better,
+because one of the two rows leaving was above the tier mean and one below.
+
+(§4.3 also wrote the distributional range as 0.00–3.96pp; it is 0.00–5.86pp. That row was registered as "unchanged" and is unchanged.)
+
+The lesson generalises past this lane: `cold_holdout.py` splits the *specialized*
+entries into fitted and unfitted and excludes the Generic category first, and any
+tier arithmetic done outside that script has to do the same. The reconstruction
+figures in §4.3 were computed on the right population and all four came back
+exact.
+
+### 7.5 Shipped preset output moved, as Decision 6 said it would
+
+| Preset | Official (unchanged) | Before | After | Move |
+|---|---:|---:|---:|---:|
+| 🏭 Trump Universal 10% Tariff | −$2,000B | −$2,021.6B | **−$1,258.5B** | −37.7% |
+| 🏭 Trump 60% China Tariff | −$500B | −$531.1B | **−$278.4B** | −47.6% |
+| 🏭 25% Auto Tariff | −$100B | −$252.3B | **−$182.2B** | −27.8% |
+| 🏭 25% Steel/Aluminum Tariff | −$60B | −$103.9B | **−$52.9B** | −49.1% |
+| 🏭 Reciprocal Tariffs | −$1,200B | −$2,736.0B | **−$1,396.8B** | −49.0% |
+
+Four of the five move by 38–49%, inside Decision 6's "roughly 40–50%". The auto
+preset moves less because it gains base (the measured USMCA share is 48.4%, not
+the hand-written 65%) at the same time as it loses the offset.
+
+**No preset label and no `CBO_SCORE_MAP` figure changed**, so `preset_ids.py`'s
+label/id twins are untouched: every tariff label quotes the *official* score,
+not the model's, and this lane touched no official figure.
+
+The note that ships with the move, rendered under any tariff headline and
+computed from the scored result so it cannot drift from it:
+
+> Net of offsets: $1,922.6B of gross customs duty becomes $1,258.5B of deficit
+> reduction — a 0.65 net/gross ratio — after duty avoidance, the 25%
+> income-and-payroll offset CBO, JCT and Treasury apply to any indirect tax and
+> the receipts lost to retaliation. Import demand responds to the whole tariff
+> (near-complete border pass-through). GDP feedback is not in this number.
+
+A policy scored with `include_retaliation` off drops that clause rather than
+claiming a channel it did not use.
+
+### 7.6 What this lane did not do
+
+No target moved. `preregistered.py`, `KNOWN_SCORES`, `CBO_SCORE_MAP`'s figures,
+`benchmark_sources.py`, `target_revisions.py`, `cold_holdout.py`, `run_loo.py`,
+`loo.py`'s leakage guard, `tests/test_preregistration.py` and every CI threshold
+are untouched. No per-benchmark constant was added; two were deleted.
+
+**Left open, named rather than discovered later:**
+
+- **No GDP-feedback channel.** The score nets the tariff's own income-and-payroll
+  offset and retaliation but not the receipts lost to lower output. That is why
+  net/gross sits at 0.60–0.66 rather than in the published 40–50% band, and it
+  is the single largest remaining piece.
+- **The retaliation channel is a reduced form** and returns 2.5× less than
+  FF861's estimate for the same policy.
+- **`reciprocal_coverage_rate = 0.50` is the one shape assumption left** that is
+  not a measurement. No published estimate scores a flat 20pp on half of goods
+  imports, so there is nothing to derive it from; a partner-specific
+  implementation is the honest fix and it is not this lane's.
+- **The steel base is HS-72 + HS-76 only.** Section 232 also reaches derivative
+  products in HS-73 ($49.6B at 5.63% collected); including them roughly triples
+  the base.
+- **Three targets remain untraceable** — the auto −$100B, the steel −$60B and
+  the reciprocal −$1.2T — and two of the three now bracket the model rather
+  than sitting far from it. Moving them is provenance work (§1.6), not a
+  modelling lane's.
+- **The `min_volume_factor = 0.20` floor now binds above about 55pp**, where
+  it previously bound only above 95pp, because the elasticity roughly doubled.
+  The China preset's 49pp is the closest shipped case and does not reach it,
+  but the floor is an unsourced constant doing more work than it used to.
