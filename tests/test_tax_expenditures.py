@@ -8,6 +8,7 @@ import pytest
 
 from fiscal_model.policies import PolicyType
 from fiscal_model.tax_expenditures import (
+    JCT_TAX_EXPENDITURES,
     TaxExpenditurePolicy,
     TaxExpenditureType,
     create_cap_charitable_deduction,
@@ -20,6 +21,7 @@ from fiscal_model.tax_expenditures import (
     create_repeal_salt_cap,
     estimate_expenditure_revenue,
     get_all_expenditure_estimates,
+    uncapped_salt_expenditure_billions,
 )
 
 
@@ -112,7 +114,15 @@ def test_expand_branch_handles_salt_and_generic_expansion():
         action="expand",
     )
 
-    assert salt_policy.estimate_static_revenue_effect(0) == pytest.approx(-95.0)
+    # Repealing a limitation is worth the limitation's own value: the
+    # difference between the uncapped and capped levels. The uncapped level is
+    # derived from SOI rather than carried, so this asserts the identity and
+    # not a literal -- the literal it replaced (-95.0) was -(120.0 - 25.0),
+    # built from a constant that was the eliminate_salt target restated.
+    salt_record = JCT_TAX_EXPENDITURES["salt"]
+    assert salt_policy.estimate_static_revenue_effect(0) == pytest.approx(
+        -(salt_record["annual_cost_no_cap"] - salt_record["annual_cost"])
+    )
     assert generic_policy.estimate_static_revenue_effect(0) == pytest.approx(-14.0)
 
 
@@ -152,5 +162,7 @@ def test_estimate_expenditure_revenue_returns_consistent_totals():
 def test_get_all_expenditure_estimates_contains_major_categories():
     estimates = get_all_expenditure_estimates()
     assert estimates["Employer Health Insurance"] == 250.0
-    assert estimates["SALT (no cap)"] == 120.0
+    assert estimates["SALT (no cap)"] == pytest.approx(
+        uncapped_salt_expenditure_billions()
+    )
     assert "Like-Kind Exchange" in estimates

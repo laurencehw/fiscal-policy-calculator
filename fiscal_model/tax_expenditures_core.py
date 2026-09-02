@@ -132,6 +132,46 @@ EXPENDITURE_APP_MODE = EXPENDITURE_MODE_REPORTED
 EXPENDITURE_HELD_OUT_MODE = EXPENDITURE_MODE_DERIVED
 
 
+def uncapped_salt_expenditure_billions() -> float:
+    """The SALT deduction's annual cost with **no** $10,000 cap, in $B.
+
+    Derived, not carried. The constant this replaced -- ``annual_cost_no_cap =
+    120.0`` -- was exactly the ``eliminate_salt`` benchmark's $1,200B target
+    divided by ten, which is why ``loo.py``'s leakage guard reclassified the
+    case as not cross-validatable the moment lane L6's ``eliminate`` rule
+    started reading it: "the base constant is the answer key restated". The
+    guard cannot tell "the target restated" from "a round number that happens
+    to equal the target over ten", and both readings were live, because the
+    module's *fitted* annual for that same benchmark is 104.7 rather than
+    120.0. What was not in doubt is that 120.0 was unsourced and load-bearing.
+
+    The replacement is the same computation the module already trusts for the
+    *capped* level: IRS SOI Table 2.1's total (unlimited) state-and-local-tax
+    deduction, priced AGI class by AGI class at the statutory married-joint
+    ordinary rate under IRC section 1 as adjusted for 2025 (Rev. Proc.
+    2024-40). Run on SOI's **limited** SALT column the identical computation
+    returns $25.0B against the record's own ``annual_cost = 25.0`` -- two
+    numbers with no common ancestor agreeing to a tenth of a percent, which is
+    the check that the method is not made up. Run on the unlimited column it
+    returns about **$89.6B**, 25% below the constant it replaces.
+
+    Both figures are pinned in ``tests/test_tax_expenditure_units.py`` so a
+    data refresh cannot move them silently. Consequences, all of them
+    deliberate and none of them a retune: ``eliminate_salt`` becomes
+    cross-validatable again (the derived annual is no longer the target over
+    ten) and lands near +10% instead of leaving the LOO denominator, while
+    ``repeal_salt_cap`` -- which is ``-(no_cap - capped)`` and was therefore
+    built from the same unsourced constant -- moves from about +4% to about
+    -29%. That +4% was never evidence of anything; it was the same leak under
+    a different benchmark. No fitted annual changes, so no shipped preset and
+    no fitted-tier row moves.
+
+    See ``planning/lanes/L6_tax_expenditures.md`` finding 1 for the derivation
+    and ``planning/lanes/PROVENANCE_wave3.md`` for the decision.
+    """
+    return load_deduction_distribution("salt").implied_benefit_billions
+
+
 # ``annual_cost`` is the expenditure in **tax dollars** -- the revenue the
 # provision costs, not the amount excluded or deducted. ``avg_benefit`` is the
 # same quantity per participant. Neither is a cap-able quantity, which is what
@@ -192,7 +232,9 @@ JCT_TAX_EXPENDITURES: dict[str, dict[str, Any]] = {
     },
     "salt": {
         "annual_cost": 25.0,
-        "annual_cost_no_cap": 120.0,
+        # Derived from SOI Table 2.1 times the statutory schedule, not carried.
+        # See uncapped_salt_expenditure_billions() for what it replaced and why.
+        "annual_cost_no_cap": uncapped_salt_expenditure_billions(),
         "affected_millions": 15.0,
         "avg_benefit": 1_700,
         "growth_rate": 0.03,
