@@ -577,6 +577,48 @@ def test_headline_counts_exclude_the_illustrations(scorecard):
         assert entry.provenance == MODEL_ESTIMATE
 
 
+def test_ui_tables_partition_the_scorecard_the_same_way_the_counts_do(scorecard):
+    """The Validation tab's accessors must slice the scorecard exactly the way
+    :class:`ScorecardSummary` counts it.
+
+    The tab's ``published_entries`` used to exclude only ``model_estimate``,
+    so an ``unclassified`` row would have been rendered inside the table
+    captioned "against a published figure" while the count printed beside it
+    excluded that row — the metrics and their own caption would have been
+    describing different sets. Pinned row-for-row, not merely by count.
+    """
+    from fiscal_model.ui.tabs.validation_scorecard import (
+        illustration_entries,
+        published_entries,
+        unsourced_entries,
+    )
+
+    buckets = {
+        "published": published_entries(scorecard),
+        "illustrations": illustration_entries(scorecard),
+        "unsourced": unsourced_entries(scorecard),
+    }
+
+    assert len(buckets["published"]) == scorecard.published_entries
+    assert len(buckets["illustrations"]) == scorecard.model_estimate_entries
+    assert len(buckets["unsourced"]) == scorecard.provenance_breakdown[UNCLASSIFIED]
+    assert sum(len(g) for g in buckets.values()) == scorecard.total_entries
+
+    for entry in scorecard.entries:
+        hits = [
+            name
+            for name, group in buckets.items()
+            if any(e is entry for e in group)
+        ]
+        assert hits == [
+            "published"
+            if entry.provenance not in (MODEL_ESTIMATE, UNCLASSIFIED)
+            else "illustrations"
+            if entry.provenance == MODEL_ESTIMATE
+            else "unsourced"
+        ], f"{entry.policy_id} ({entry.provenance}) landed in {hits}"
+
+
 def test_transcribed_rows_name_the_row_not_just_the_table(scorecard):
     """A table reference without the row inside it is not checkable, which is
     exactly what the ``line_item`` label claims to be."""

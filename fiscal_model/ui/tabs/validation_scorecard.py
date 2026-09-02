@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from fiscal_model.validation.provenance import MODEL_ESTIMATE
+from fiscal_model.validation.provenance import MODEL_ESTIMATE, UNCLASSIFIED
 from fiscal_model.validation.scorecard import (
     ScorecardEntry,
     ScorecardSummary,
@@ -66,16 +66,33 @@ def _entry_to_row(entry: ScorecardEntry) -> dict[str, Any]:
 def published_entries(summary: ScorecardSummary) -> list[ScorecardEntry]:
     """Entries whose target is a published figure — the benchmarks.
 
-    The complement (:func:`illustration_entries`) has no official score at
-    all, so an accuracy statistic computed over it measures the model against
-    itself. The two are reported in separate tables for that reason.
+    Must stay row-for-row consistent with
+    :attr:`ScorecardSummary.published_entries`, which is the number the footer
+    and the README quote: both exclude ``model_estimate`` (no published score
+    exists) *and* ``unclassified`` (nobody has established whether one does).
+    If this filter kept the unclassified rows, the tab's headline metrics would
+    be computed over a wider set than the count printed beside them.
     """
-    return [e for e in summary.entries if e.provenance != MODEL_ESTIMATE]
+    return [
+        e
+        for e in summary.entries
+        if e.provenance not in (MODEL_ESTIMATE, UNCLASSIFIED)
+    ]
 
 
 def illustration_entries(summary: ScorecardSummary) -> list[ScorecardEntry]:
     """Entries scored against a model estimate rather than a published score."""
     return [e for e in summary.entries if e.provenance == MODEL_ESTIMATE]
+
+
+def unsourced_entries(summary: ScorecardSummary) -> list[ScorecardEntry]:
+    """Entries whose target provenance was never established.
+
+    Empty after the Phase E sourcing pass. Kept as its own accessor so that a
+    future benchmark landing here is visible in the tab rather than silently
+    dropped out of both tables.
+    """
+    return [e for e in summary.entries if e.provenance == UNCLASSIFIED]
 
 
 def _median(values: list[float]) -> float:
@@ -206,6 +223,41 @@ def _render_illustrations_table(st_module: Any, summary: ScorecardSummary) -> No
     )
 
 
+def _render_unsourced_table(st_module: Any, summary: ScorecardSummary) -> None:
+    """Rows whose target provenance was never established.
+
+    Empty after the Phase E sourcing pass, and every count on this page is
+    computed as if it stays empty. Rendering it means a future benchmark that
+    lands here is visible as an omission rather than disappearing between the
+    published table (which excludes it) and the illustrations table (which
+    also excludes it).
+    """
+    rows = unsourced_entries(summary)
+    if not rows:
+        return
+    st_module.subheader("Unsourced targets (provenance not established)")
+    st_module.caption(
+        "Nobody has established whether a published figure exists for these "
+        "targets, so they are excluded from every count and accuracy "
+        "statistic above until somebody sources them."
+    )
+    st_module.dataframe(
+        [
+            {
+                "Category": e.category,
+                "Policy": e.policy_name,
+                "Target ($B)": _format_signed_billions(e.official_10yr_billions),
+                "Model ($B)": _format_signed_billions(e.model_10yr_billions),
+                "Δ%": _format_pct(e.percent_difference),
+                "Stated source": e.official_source,
+            }
+            for e in sorted(rows, key=lambda e: (e.category, e.policy_name))
+        ],
+        hide_index=True,
+        width="stretch",
+    )
+
+
 def _render_caveats(st_module: Any, summary: ScorecardSummary) -> None:
     flagged = [
         e for e in summary.entries
@@ -261,6 +313,7 @@ def render_validation_scorecard_tab(st_module: Any) -> None:
     _render_category_table(st_module, summary)
     _render_entry_table(st_module, summary)
     _render_illustrations_table(st_module, summary)
+    _render_unsourced_table(st_module, summary)
     _render_caveats(st_module, summary)
 
 
@@ -268,4 +321,5 @@ __all__ = [
     "illustration_entries",
     "published_entries",
     "render_validation_scorecard_tab",
+    "unsourced_entries",
 ]
