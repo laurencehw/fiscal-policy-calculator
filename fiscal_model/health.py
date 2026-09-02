@@ -356,11 +356,15 @@ def summarize_data_degradation(health: dict[str, Any]) -> dict[str, Any]:
         reasons.append("FRED data failed to load.")
     elif fred_source == "fallback":
         reasons.append("FRED is using hardcoded fallback values (no live or cached data).")
-    elif fred_source == "bundled" and fred.get("cache_is_expired"):
+    elif fred_source in ("bundled", "cache") and fred.get("cache_is_expired"):
+        # Both expired states are "degraded" in ``_component_status_from_fred``
+        # and both must carry a reason line here: the page-level notice in
+        # ``components.chrome`` only headlines a source the reasons can explain.
         age = fred.get("cache_age_days")
         age_label = f" {int(age)} days old" if isinstance(age, int | float) else " older than expected"
+        origin = "a bundled snapshot" if fred_source == "bundled" else "a cached download"
         reasons.append(
-            f"Economic data (FRED) is from a snapshot{age_label}; "
+            f"Economic data (FRED) is from {origin}{age_label}; "
             "interest-rate and GDP inputs may lag current conditions."
         )
 

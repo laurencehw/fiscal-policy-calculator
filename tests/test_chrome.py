@@ -276,13 +276,18 @@ def test_caveats_alone_do_not_raise_a_page_level_notice(monkeypatch):
             [],
             id="fred-bundled-fresh",
         ),
-        # An expired *cache* is stale, and the Data Status panel says so — but
-        # ``summarize_data_degradation`` writes no reason line for it, so
-        # counting it here would headline a source the reasons never mention.
+        # An expired on-disk *cache* is late in the same way an expired bundled
+        # snapshot is, and ``summarize_data_degradation`` now writes a reason
+        # line for it, so the headline and the reasons agree.
         pytest.param(
             {"fred": {"source": "cache", "cache_is_expired": True}},
+            ["fred"],
+            id="fred-expired-cache",
+        ),
+        pytest.param(
+            {"fred": {"source": "cache", "cache_is_expired": False}},
             [],
-            id="fred-expired-cache-has-no-reason-line",
+            id="fred-cache-fresh",
         ),
         pytest.param(
             {"irs_soi": {"freshness": {"level": "aging", "is_stale": False}}},

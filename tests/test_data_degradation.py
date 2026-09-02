@@ -3,6 +3,8 @@ Tests for ``summarize_data_degradation`` — the plain-language reducer that tur
 a ``check_health()`` dict into a user-facing degraded-mode banner summary.
 """
 
+import pytest
+
 from fiscal_model.health import summarize_data_degradation
 
 
@@ -97,3 +99,35 @@ class TestErrorState:
         health["runtime"] = {"status": "degraded", "message": "Python 3.8 is EOL"}
         summary = summarize_data_degradation(health)
         assert "Python 3.8 is EOL" in summary["reasons"]
+
+
+class TestExpiredFredStates:
+    """Both expired FRED states are ``degraded`` in ``_component_status_from_fred``
+    and both must carry a reason line, or the page-level notice in
+    ``components.chrome`` would headline a source the reasons never mention."""
+
+    @pytest.mark.parametrize(
+        ("source", "origin_words"),
+        [("bundled", "bundled snapshot"), ("cache", "cached download")],
+    )
+    def test_expired_state_carries_a_reason_naming_its_origin(self, source, origin_words):
+        health = {
+            "fred": {
+                "status": "degraded",
+                "source": source,
+                "cache_is_expired": True,
+                "cache_age_days": 45,
+            }
+        }
+        summary = summarize_data_degradation(health)
+        assert summary["is_degraded"]
+        fred_reasons = [reason for reason in summary["reasons"] if "FRED" in reason]
+        assert len(fred_reasons) == 1
+        assert origin_words in fred_reasons[0]
+        assert "45 days old" in fred_reasons[0]
+
+    def test_fresh_cache_carries_no_reason(self):
+        health = {"fred": {"status": "ok", "source": "cache", "cache_is_expired": False}}
+        reasons = summarize_data_degradation(health)["reasons"]
+        assert not [reason for reason in reasons if "FRED" in reason]
+

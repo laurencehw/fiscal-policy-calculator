@@ -174,14 +174,14 @@ def _sources_past_tolerance(health: dict[str, Any]) -> list[str]:
     ):
         late.append("baseline")
 
-    # Only the two FRED states ``summarize_data_degradation`` writes a reason
-    # for. An *expired cache* is stale too, and the Data Status panel says so
-    # ("Stale cache (N days)"), but the summary emits no reason line for it —
-    # counting it here would headline a late source the reasons never mention
-    # (Cursor review, 2026-09-01). Add it once the summary grows that line.
+    # Exactly the FRED states ``summarize_data_degradation`` writes a reason
+    # for: hardcoded fallback, and an expired bundled snapshot *or* expired
+    # on-disk cache (the summary grew the cache line after the Cursor review of
+    # 2026-09-01 noted the headline could otherwise count a source the reasons
+    # never mention). ``tests/test_chrome.py`` pins the two in step.
     fred = health.get("fred") or {}
     if fred.get("source") == "fallback" or (
-        fred.get("source") == "bundled" and fred.get("cache_is_expired")
+        fred.get("source") in ("bundled", "cache") and fred.get("cache_is_expired")
     ):
         late.append("fred")
 
