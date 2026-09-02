@@ -238,7 +238,7 @@ start one year into the window and lose more of their tail.
 
 ## 8. Follow-ups
 
-*Appended by the L2 follow-up lane (branch `model/l2-followups`), 2026-09-01.
+*Appended by the L2 follow-up lane (branch `model/l2-followups`), 2026-09-01/02.
 It closed items 1 and 4 of §7 "What is left"; items 2 and 3 (account-level
 rates, the A-11 cross-check) are still open and still need an environment that
 can reach cbo.gov.*
