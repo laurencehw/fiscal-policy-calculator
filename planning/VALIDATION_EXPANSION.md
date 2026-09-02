@@ -10,7 +10,7 @@ The footer's "33 policies validated" is computed live from the scorecard and is 
 
 | | n | what it is | honest status |
 |---|---|---|---|
-| **Tier 1 — out-of-sample (Generic)** | **4** → **9** → **23** → **26** | plain `TaxPolicy` on the SOI base, no tuning; ~8% mean error → **44.8%** (Phase A) → **43.4%** across the CBO Options battery (Phase B) → **52.7%** with the enacted-law components (Phase D) | the only genuine test; **now pre-registered and CI-gated** (Phase A). Was: *not gated in CI* (`readiness.py:307` exempted Generic; `cold_holdout.py --max-mean-error` was never called by a workflow) |
+| **Tier 1 — out-of-sample (Generic)** | **4** → **9** → **23** → **26** → **25** | plain `TaxPolicy` on the SOI base, no tuning; ~8% mean error → **44.8%** (Phase A) → **43.4%** across the CBO Options battery (Phase B) → **52.7%** with the enacted-law components (Phase D) → **52.6%** over 25 cases once Phase E's retirement and re-sourcing merge in | the only genuine test; **now pre-registered and CI-gated** (Phase A). Was: *not gated in CI* (`readiness.py:307` exempted Generic; `cold_holdout.py --max-mean-error` was never called by a workflow) |
 | **Tier 2 — calibrated** | 29 | 26 module presets + 3 capital-gains cases; ~5% mean error | low by construction: each module carries one hard-coded annual per benchmark (`payroll.py:377-494`, `estate.py:365-525`, `amt.py`, `credits_factory.py`, `tax_expenditures_factory.py`) |
 | Benchmark database (`cbo_scores.py` `KNOWN_SCORES`) | 31 → 34 | | **was: 21 entries stranded** — `get_validation_targets()` kept only `income_tax` + `rate_change is not None` + `baseline_year>=2020`. **Now: shape-based dispatch**; 14 runnable, 20 excluded with an explicit one-line reason, 0 unaccounted |
 | Presets with an official score (`CBO_SCORE_MAP`) | 47 | | 21 have a live module *and* an official number but **no `validate_all_*` runner** (international 4, tariffs 5, pharma 3, enforcement 2, climate 3, four surtax presets) |
@@ -203,7 +203,60 @@ Transcriptions live in `fiscal_model/validation/benchmark_sources.py` — docume
 
 Two more Tier 1 targets failed the same sweep and are recorded as open owner decisions rather than acted on, because the plan named only the first: `illustrative_top_rate_5pp` (−$700B, no TPC table) and `warren_ultramillionaire_surtax_3pp` (−$350B against TPC's own T19-0037, which implies ~$175B for 3pp). And `biden_high_income_tax` now has a transcribed row that disagrees with it (−$245.9B vs −$252B); pre-registered targets are frozen, so correcting it needs a new manifest row.
 
-**Tier 1: 23 → 22 cases, mean 43.4% → 42.9%** (median 23.1% → 22.1%; 6/22 within 15%, 12/22 within 25%). The retirement removed a 118% miss and the re-sourcing added a 142% one, which very nearly cancel. Both CI thresholds re-derived by the workflow's own rule and both unchanged: `--max-mean-error 55 --min-within-25pct 11`.
+**Tier 1: 23 → 22 cases, mean 43.4% → 42.9%** (median 23.1% → 22.1%; 6/22 within 15%, 12/22 within 25%). The retirement removed a 118% miss and the re-sourcing added a 142% one, which very nearly cancel. Both CI thresholds re-derived by the workflow's own rule and both unchanged at the time: `--max-mean-error 55 --min-within-25pct 11`.
+
+### 5c. Post-merge with Phase D (2026-09-01)
+
+Phase D landed on `main` while this branch was in review, so the two passes are
+composed rather than sequential and the live numbers are neither branch's.
+`origin/main` was merged in (a merge, not a rebase: the manifest stamps the
+commit that entered each target and the commit that first scored it, and a
+rebase would rewrite exactly those hashes).
+
+- ✅ **Rebase/merge onto `main` done.** Five conflicts — `CLAUDE.md`,
+  `README.md`, `docs/VALIDATION.md`, `preregistered.py`,
+  `planning/VALIDATION_EXPANSION.md` — resolved by keeping both sides'
+  substance: Phase D's three enacted-law rows, eight P.L. 119-21 line items,
+  Jan-2025 vintage and 7th distributional table alongside Phase E's retirement,
+  supersession, `line_item_differs` label and published/illustrative split.
+- ✅ **Social Security Fairness mis-citation fixed.** §5b reported it; it is now
+  corrected. `social_security_fairness_2023` cited publication 59434 (CBO's
+  estimate of H.R. 3938, a different bill) and now cites CBO's 9 September 2024
+  estimate of H.R. 82, with the unrounded $195.65B component figure recorded
+  beside the rounded $196B target. A test pins the URL.
+- ✅ **Phase D's benchmarks sourced.** The eight P.L. 119-21 rows get
+  `BenchmarkSource` records (JCT's own provision label, PDF page, chapter,
+  figure in this repository's sign convention), cross-checked against the CSV
+  the runner reads its targets from; the runner stops restating a `provenance`
+  literal. The three enacted-law components stay `line_item` on the strength of
+  their deep links and join `CITED_BUT_NOT_TRANSCRIBED` — all three cbo.gov
+  links still return HTTP 403.
+
+**Post-merge tally (every figure re-derived, not carried over):**
+
+| | n | Mean | Median | Within 15% | Within 25% |
+|---|--:|--:|--:|--:|--:|
+| Tier 1 — out-of-sample | **25** | **52.6%** | **21.1%** | 8/25 | 14/25 |
+| Tier 2 — fitted calibrated | 34 | 2.7% | 0.2% | 33/34 | 34/34 |
+| Tier 2 — unfitted reconstructions | 20 | 250.8% | 43.1% | 4/20 | 7/20 |
+| — of which Phase E sectoral | 12 | 394.1% | 57.1% | 2/12 | — |
+| — of which Phase D P.L. 119-21 | 8 | 35.8% | 35.4% | 2/8 | — |
+| Tier 2 — leave-one-out | 18 | 59.3% | 35.6% | 6/18 | — |
+
+Calibrated tier **54**, provenance **17 `line_item` / 15 `line_item_differs` /
+15 `secondhand` / 7 `model_estimate` / 0 `unclassified`**, of which 28 were
+actually read out of a document and 4 are the cited-but-unread backlog;
+**47 calibrated benchmarks against a published figure**. Across both tiers: 79
+scorecard rows, **72 published**, 7 illustrations. Distributional: **7 CBO/JCT
+tables, 0.00–5.86pp**, two of them circular by construction.
+
+**CI thresholds re-derived by the workflow's own rule, and they part company.**
+The rule gives a ceiling of ceil(52.6 × 1.25) rounded up to 5 = **70** and a
+floor of 14 − 1 = **13**. The ceiling stays at **55**: raising it is loosening a
+gate that passes, which the workflow demands a reason for and there is none.
+The floor moves **11 → 13**, the tightening the rule anticipates as the battery
+grows — Phase D's "unchanged" left it one derivation behind its own rule.
+Anti-leakage invariant holds (52.6% out-of-sample against 2.7% fitted).
 
 **Item 3's leftover fixed.** The two `CBO_SCORE_MAP` / `PRESET_POLICIES` key mismatches §5 identified are reconciled, so the steel/aluminium and reciprocal tariff presets show an official score in the app for the first time. The two `SCORE_ONLY_ALIAS_ID_BY_LABEL` aliases that papered over the share-link half of the problem are gone, and a test pins the general rule: no `CBO_SCORE_MAP` label may resolve to a preset id under a different spelling. **Which steel figure is right is still unknown** — neither −$60B nor −$15B is traceable, and Tax Foundation's only Section 232 metals estimate is at 50% and includes copper — so the reconciliation picked the one that is at least dimensionally a decade figure and recorded the rest.
 

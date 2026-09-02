@@ -75,9 +75,18 @@ jobs:
       # 142%, against a smaller and correctly-defined target) very nearly
       # cancel, taking the mean 43.4% -> 42.9%. ceil(42.9 x 1.25) to the
       # nearest 5 is still 55; 12-of-22 within 25%, minus one, is still 11.
+      # Phase D merged with Phase E gives the live battery: 25 cases, mean
+      # 52.6%, 14 within 25%. The rule now points the two thresholds in
+      # opposite directions and they are treated differently, on purpose:
+      #   ceiling  ceil(52.6 x 1.25) -> 70, which would be LOOSENING a gate
+      #            that passes. Left at 55; the rule above says loosening needs
+      #            a reason in the PR, and there is none.
+      #   floor    14 - 1 = 13, which is the tightening the rule anticipates as
+      #            the battery grows. Raised 11 -> 13. Phase D reported this
+      #            one "unchanged" and so left it a derivation behind.
       - name: Cold-holdout gate (out-of-sample tier)
         run: |
-          python scripts/cold_holdout.py --max-mean-error 55 --min-within-25pct 11
+          python scripts/cold_holdout.py --max-mean-error 55 --min-within-25pct 13
 
       # Tier 2 (leave-one-out). Holds out one calibrated benchmark at a time and
       # asks whether the module's structural machinery — calibrated on the others

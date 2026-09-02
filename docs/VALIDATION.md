@@ -8,13 +8,13 @@
 
 ## Executive Summary
 
-The model is benchmarked against **61 published estimates** from CBO, JCT, Treasury, PWBM, and TPC — plus 7 *illustrations* with no official score at all, which are labelled and reported separately and never counted (`published_entries` vs `total_entries` on the scorecard). Crucially, those benchmarks fall into **two epistemically different tiers**, and reporting them together overstates predictive power. Both are reproducible live: `python scripts/cold_holdout.py`. Tier 1 is additionally **pre-registered** (`fiscal_model/validation/preregistered.py`) and **CI-gated**.
+The model is benchmarked against **72 published estimates** from CBO, JCT, Treasury, PWBM, and TPC — plus 7 *illustrations* with no official score at all, which are labelled and reported separately and never counted (`published_entries` vs `total_entries` on the scorecard). Crucially, those benchmarks fall into **two epistemically different tiers**, and reporting them together overstates predictive power. Both are reproducible live: `python scripts/cold_holdout.py`. Tier 1 is additionally **pre-registered** (`fiscal_model/validation/preregistered.py`) and **CI-gated**.
 
 ### Tier 1 — Out-of-sample predictions (the genuine test)
 
 Policies scored **bottom-up** — IRS SOI filer counts and incomes via raw rate/threshold auto-population, the modules' own revenue identities, and spending levels stated by the source — with **no fitting to the official target** (and, for capital gains, one frozen elasticity set). This is the only tier that measures predictive accuracy.
 
-> **26 out-of-sample cases, mean abs error 52.7%, 8/26 within 15%, 14/26 within 25%** (median 22.1%).
+> **25 out-of-sample cases, mean abs error 52.6%, 8/25 within 15%, 14/25 within 25%** (median 21.1%).
 > There is deliberately no single "validated within X%" number: the distribution has a tight core and a long tail, and collapsing it would hide the tail.
 
 *Phase E changed two of these rows, in opposite directions and for the same reason — somebody opened the document. `top_rate_45` was **retired**: its -$420B is in no TPC, CBO or JCT publication. `biden_capital_gains_39` was **re-sourced** from an unsupported -$456B to the FY2025 Green Book's actual line item, -$288.6B, and its shape corrected to the source's own definition, which made it score worse. Details below and in [`preregistered.py`](../fiscal_model/validation/preregistered.py).*
@@ -28,7 +28,7 @@ Policies scored **bottom-up** — IRS SOI filer counts and incomes via raw rate/
 | Fiscal Responsibility Act: discretionary caps | -$1,332B | -$1,254B | 6% | CBO, H.R. 3746 letter (2023-05) | CBO May 2023 (no vintage in repo) | `aed5318`, scored `dca3a50` |
 | Tighten Pell grant eligibility | -$22B | -$24B | 10% | CBO Options 2025-2034 #39 (2024-12) | CBO June 2024 (scored on Feb 2024) | `752f0f1`, scored `36d683f` |
 | Social Security Fairness Act: WEP/GPO repeal | +$196B | +$215B | 10% | CBO, H.R. 82 (2024-09) | CBO June 2024 (no vintage in repo) | `aed5318`, scored `dca3a50` |
-| Biden top rate 39.6% ($400K+) | -$252B | -$285B | 13% | Treasury (2024-03) — published row is **-$245.9B** | Green Book FY2025 | `be7e947` |
+| Biden top rate 39.6% ($400K+) | -$252B | -$284B | 13% | Treasury (2024-03) — published row is **-$245.9B** | Green Book FY2025 | `be7e947` |
 | AGI surtax 2pp (>$100K single) | -$1,051B | -$882B | 16% | CBO Options 2025-2034 #46 (2024-12) | CBO Feb 2024 (matched) | `752f0f1`, scored `36d683f` |
 | Cut selected nondefense discretionary | -$339B | -$400B | 18% | CBO Options 2025-2034 #42 (2024-12) | CBO June 2024 (scored on Feb 2024) | `752f0f1`, scored `36d683f` |
 | Warren surtax 3pp (AGI >$2M) | -$350B | -$283B | 19% | TPC (2020) | unstated (secondhand) | `6c9bfa2` |
@@ -51,7 +51,7 @@ Live figures: `python scripts/cold_holdout.py`. Rows are the `Generic` category 
 
 #### The CBO Options battery (Phase B)
 
-Fourteen of the 23 cases come from CBO, *Options for Reducing the Deficit: 2025 to 2034* ([publication 60557](https://www.cbo.gov/publication/60557), December 2024; reposted with updates October 2025) — 76 independently scored single-provision options, the largest such published set that exists. They are extracted to `fiscal_model/data_files/validation/cbo_options_2025_2034.csv` (one row per option, from Table 1-1) and `..._alternatives.csv` (one row per reported line in each option's own table) by [`scripts/extract_cbo_options.py`](../scripts/extract_cbo_options.py), and classified in [`fiscal_model/validation/cbo_options.py`](../fiscal_model/validation/cbo_options.py).
+Fourteen of the 25 cases come from CBO, *Options for Reducing the Deficit: 2025 to 2034* ([publication 60557](https://www.cbo.gov/publication/60557), December 2024; reposted with updates October 2025) — 76 independently scored single-provision options, the largest such published set that exists. They are extracted to `fiscal_model/data_files/validation/cbo_options_2025_2034.csv` (one row per option, from Table 1-1) and `..._alternatives.csv` (one row per reported line in each option's own table) by [`scripts/extract_cbo_options.py`](../scripts/extract_cbo_options.py), and classified in [`fiscal_model/validation/cbo_options.py`](../fiscal_model/validation/cbo_options.py).
 
 **14 runnable alternatives across 11 options; 65 options out of scope, each with a one-line reason.** `tests/test_cbo_options.py` asserts the accounting closes, so no option is silently dropped. Reasons, tallied:
 
@@ -74,7 +74,7 @@ Worth stating plainly, because it is a negative result: **vintage matching moves
 
 #### Enacted-law replications (Phase D)
 
-Three of the 26 cases replicate laws that actually passed. They are components,
+Three of the 25 cases replicate laws that actually passed. They are components,
 not bills: the headline score of an enacted law is a *net* of provisions no
 single policy shape can construct, and scoring a total you cannot build is not a
 prediction. So each case takes the one component whose own annual level the CBO
@@ -122,7 +122,7 @@ Every miss is kept and carries a `known_limitations` note in the scorecard. Five
 4. **Capital-gains behaviour and the stock of gains at death (3 cases, 79-154%).** The two legacy Treasury cases share one shape and two targets 42% apart. Option 51 is the new information: scoring constructive realization at death runs the whole estimate through one module constant — $54B of gains transferred at death — and under-predicts CBO by 84%, because CBO accrues gains on the stock of appreciated assets held by decedents rather than an annual realizations flow.
 5. **A single ETI at a large rate change, against a secondhand target (1 case, 118%).** Unchanged from Phase A; see below.
 
-**Honest reading**: the model predicts ordinary and AGI-inclusive *rate* changes at conventional thresholds well (1-21%), fast-spending discretionary funding cuts adequately (10-23%), and everything behavioural — capital-gains realizations, gains at death, payroll incidence — badly. Phase A's 9-case 44.8% and Phase B's 23-case 43.4% are the same story on four times the evidence: widening the battery did not move the mean, it explained it.
+**Honest reading**: the model predicts ordinary and AGI-inclusive *rate* changes at conventional thresholds well (2-21%), fast-spending discretionary funding cuts adequately (6-23%), and everything behavioural — capital-gains realizations, gains at death, payroll incidence — badly. Phase A's 9-case 44.8% and Phase B's 23-case 43.4% are the same story on more than twice the evidence: widening the battery did not move the mean, it explained it. Phase D then added the one shape that does move it — IIJA's 356%, an enacted law's budget-authority path with no spend-out model behind it — taking the 25-case mean to 52.6% while the median *fell* to 21.1%. A mean that moves on one case and a median that does not is the tail, not a change in the core.
 
 **What the tight core shows.** Ordinary-bracket rate changes (JCT 1pp, Biden $400K, CBO Option 45) score on the ordinary-income base (excludes preferential LTCG/QDIV); AGI-inclusive surtaxes (TPC $1M+/$500K+, Warren, the Medicare surcharge, CBO Option 46) score on the full taxable-income base that includes the preferential portion. The classification comes from how each source describes its base, not from which choice fits better — the `cold_holdout.py --ordinary-base` diagnostic shows the correction *worsens* the AGI-inclusive cases (7→30%, 9→30%, 2→29%), which is the tell. For ordinary and AGI-inclusive rate changes in this range, **treat uncalibrated custom policies as directional, ±15-25%.**
 
@@ -152,7 +152,7 @@ The discipline the manifest enforces (`assert_preregistered`, tested in `tests/t
 
 Honest boundary, as with [`holdout.py`](../fiscal_model/validation/holdout.py): these are previously published numbers, and Phase A registered targets that already existed in the repository or in `CBO_SCORE_MAP`. What the manifest guarantees is that *from the entry commit onward* the target is frozen and any change is visible — not that nobody had ever seen the number.
 
-**CI gate.** `.github/workflows/validation-dashboard.yml` runs `python scripts/cold_holdout.py --max-mean-error 55 --min-within-25pct 11` as a blocking step (re-derived in Phase B from 60/5 by the workflow's own rule: ceiling = ceil(mean x 1.25) to the nearest 5; floor = current count within 25%, minus one). **Phase D left both thresholds unchanged**: widening the battery to 26 cases raised the mean to 52.7%, still under the 55 ceiling, and the count within 25% rose from 12 to 14, above the floor of 11. Loosening a gate that still passes would be tightening-in-reverse, so nothing moved, and strict readiness (`scripts/check_readiness.py --strict`) no longer exempts Generic entries: an `Error` rating fails, and a `Poor` rating fails unless it carries a documented `known_limitations` note.
+**CI gate.** `.github/workflows/validation-dashboard.yml` runs `python scripts/cold_holdout.py --max-mean-error 55 --min-within-25pct 13` as a blocking step. The workflow's own rule sets both: ceiling = ceil(mean x 1.25) to the nearest 5; floor = current count within 25%, minus one. On the merged battery (25 cases, mean 52.6%, 14 within 25%) the rule gives a ceiling of 70 and a floor of 13. **The ceiling stays at 55 and the floor moves to 13.** Raising the ceiling would be loosening a gate that passes, which the workflow requires a reason for and there isn't one; raising the floor is the tightening the rule anticipates as the battery grows, and Phase D's "unchanged" left it one derivation behind. Strict readiness (`scripts/check_readiness.py --strict`) no longer exempts Generic entries: an `Error` rating fails, and a `Poor` rating fails unless it carries a documented `known_limitations` note.
 
 ### Tier 2 — Calibrated reference models (reconstructions, not confirmations)
 
@@ -180,15 +180,15 @@ The 250.8% on the right is two populations, and they should not be read as one n
 
 Phase E's first pass labelled every calibrated target by *inspecting the record*: a deep link meant `line_item`, a round hundred meant `secondhand`. That could tell a rounded headline from a citation. It could not tell whether the row being cited exists. The second pass went and looked, and the transcriptions live in [`fiscal_model/validation/benchmark_sources.py`](../fiscal_model/validation/benchmark_sources.py) — document, table, row, page, date, and the figure that was read, in this repository's sign convention.
 
-| Label | Before | After | What it means |
-|---|--:|--:|---|
-| `line_item` | 4 | **9** | The row was found and it says what the target says (within 1.5%). |
-| `line_item_differs` | — | **15** | The row was found and it says something **else**. |
-| `secondhand` | 31 | **15** | Searched, not found — and the search is recorded. |
-| `model_estimate` | 7 | **7** | No official score exists. Illustrations, never counted. |
-| `unclassified` | 4 | **0** | Nothing is left in the "nobody has looked" bucket. |
+| Label | Before (46) | After (46) | With Phase D (54) | What it means |
+|---|--:|--:|--:|---|
+| `line_item` | 4 | **9** | **17** | The row was found and it says what the target says (within 1.5%). |
+| `line_item_differs` | — | **15** | **15** | The row was found and it says something **else**. |
+| `secondhand` | 31 | **15** | **15** | Searched, not found — and the search is recorded. |
+| `model_estimate` | 7 | **7** | **7** | No official score exists. Illustrations, never counted. |
+| `unclassified` | 4 | **0** | **0** | Nothing is left in the "nobody has looked" bucket. |
 
-So **24 of the 46 calibrated targets have now been read out of a primary document**, against 4 that merely cited one. Of those 24, **15 disagree with the figure this repository carries.**
+So **24 of the 46 calibrated targets the pass covered were read out of a primary document**, against 4 that merely cited one. Of those 24, **15 disagree with the figure this repository carries.** Phase D's eight P.L. 119-21 rows then arrived already transcribed — they *are* their JCT rows, extracted into `pl119_21_jct_line_items.csv` with page references — taking the calibrated tier to **32 `line_item`-family labels across 54 benchmarks, 28 of them actually read** (the remaining 4 cite a document nobody has re-opened and are enumerated in `tests/test_validation_runners.py::CITED_BUT_NOT_TRANSCRIBED`), and the honest calibrated published-target count to **47**. Across both tiers the scorecard holds 79 rows, **72 of them against a published figure**.
 
 One access caveat, stated because it shapes several rows: `cbo.gov` returns HTTP 403 to every non-browser client, and `web.archive.org` was unreachable. Where a CBO figure could not be fetched directly it was transcribed from a *published document that quotes the CBO table verbatim* — usually a CRS report, which names the CBO publication in its own source note — and the citation is to what was actually read, never to a PDF nobody opened.
 
@@ -392,7 +392,7 @@ The 4.4% above is a bookkeeping number: each calibrated module carries **one har
 | Within 15% of official | 6/18 (33%) |
 | CI ceiling (`--max-loo-mean-error`) | 75% |
 
-**Read the four numbers separately and never collapse them**: Tier 1 out-of-sample (52.7% mean, n=26 pre-registered; 8/26 within 15%, 14/26 within 25%), Tier 2 by construction (2.7%, n=34 fitted), Tier 2 unfitted reconstructions (250.8% mean / 43.1% median, n=20 — 12 Phase E sectoral presets at 394.1% plus 8 Phase D P.L. 119-21 line items at 35.8%, none fitted to their target), Tier 2 leave-one-out (59.3%, n=18 derivable). The last two are the honest statement of how much of the calibrated tier is structure and how much is a stored constant.
+**Read the four numbers separately and never collapse them**: Tier 1 out-of-sample (52.6% mean, n=25 pre-registered; 8/25 within 15%, 14/25 within 25%), Tier 2 by construction (2.7%, n=34 fitted), Tier 2 unfitted reconstructions (250.8% mean / 43.1% median, n=20 — 12 Phase E sectoral presets at 394.1% plus 8 Phase D P.L. 119-21 line items at 35.8%, none fitted to their target), Tier 2 leave-one-out (59.3%, n=18 derivable). The last two are the honest statement of how much of the calibrated tier is structure and how much is a stored constant.
 
 And read all four alongside the provenance split above, because a percentage error is only as meaningful as the target it is measured against: **15 of the 54 calibrated targets are now known to disagree with the document they cite**, one of them in sign.
 

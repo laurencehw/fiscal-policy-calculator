@@ -725,7 +725,14 @@ That pass could tell a rounded headline from a citation. It could not tell
 whether the row being cited exists — which is a different question, and §8 is
 what happened when someone asked it. **Post-transcription the breakdown is 9 /
 15 / 15 / 7 / 0** (`line_item` / `line_item_differs` / `secondhand` /
-`model_estimate` / `unclassified`).
+`model_estimate` / `unclassified`) across those same 46.
+
+Phase D's eight P.L. 119-21 line items then joined the tier already
+transcribed — their targets *are* JCT's rows, extracted with page references
+into `pl119_21_jct_line_items.csv` — so the live calibrated breakdown over 54
+benchmarks is **17 / 15 / 15 / 7 / 0**, of which **28 have actually been read
+out of a document** and 4 are the cited-but-unread backlog below. Across both
+tiers the scorecard holds 79 rows, 72 of them against a published figure.
 
 ---
 
@@ -765,12 +772,20 @@ publication in its own source note. Those rows cite what was actually read.
 | CBO +2pp all brackets | -$70B | — | budget-options 54788: cited, not re-transcribed |
 | PWBM 39.6% with / without step-up | $33B / -$113B | — | PWBM April 2021 brief: cited, not re-transcribed |
 
-The last four are the remaining backlog: they carry a deep link to a real
-document, which the first Phase E pass took as evidence of a table row, but
-nobody has read the row. They are enumerated in
+The last four are the remaining calibrated backlog: they carry a deep link to a
+real document, which the first Phase E pass took as evidence of a table row,
+but nobody has read the row. They are enumerated in
 `tests/test_validation_runners.py::CITED_BUT_NOT_TRANSCRIBED` and the set may
 shrink, never grow. `ScorecardEntry.transcribed` is deliberately stricter than
 the `line_item` label for exactly this reason.
+
+Phase D's three enacted-law components — the Social Security Fairness Act's
+WEP/GPO repeal, the Fiscal Responsibility Act's discretionary caps and IIJA's
+discretionary component — join that backlog on the out-of-sample side, for the
+same access reason: their targets are unrounded to three decimals and the
+manifest notes quote the estimates' own outlay paths, so the tables were read
+when the targets were entered, but all three cbo.gov deep links still return
+HTTP 403 and this pass could not re-open them to record a row.
 
 Notes worth carrying:
 
