@@ -86,6 +86,10 @@ from ..estate import (
 )
 from ..payroll import SOCIAL_SECURITY_PARAMS, SSA_COVERED_WAGES_ABOVE_BILLIONS
 from ..policies import PolicyType
+from ..tax_expenditures_core import (
+    EXPENDITURE_HELD_OUT_MODE,
+    ExpenditureDistributionMissing,
+)
 from .core import ValidationResult
 from .scenarios import (
     AMT_VALIDATION_SCENARIOS_COMPARE,
@@ -876,8 +880,10 @@ def derive_expenditure_annual(case_id: str) -> float | None:
     sourced to JCT's *Estimates of Federal Tax Expenditures* (JCX-48-24; the
     curated snapshot lives in ``assistant/knowledge/jct_tax_expenditures.md``).
 
-    Returns ``None`` only when the expenditure type has **no base-table entry**
-    at all — there is then nothing to rebuild from. A rule that runs and
+    Returns ``None`` when the expenditure type has **no base-table entry** at
+    all — there is then nothing to rebuild from — or when a cap is asked for
+    on an expenditure whose base has no transcribed distribution, since the
+    rule then cannot see the quantity it is capping. A rule that runs and
     returns ``0.0`` is a real (and very wrong) derivation, and is reported as
     a ~100% error rather than quietly dropped: silently excluding it would hide
     exactly the misconfiguration this suite exists to surface.
@@ -888,8 +894,12 @@ def derive_expenditure_annual(case_id: str) -> float | None:
     policy = scenario["policy_factory"](**scenario.get("kwargs", {}))
     if not policy.get_expenditure_data():
         return None
+    policy.mode = EXPENDITURE_HELD_OUT_MODE
     policy.annual_revenue_change_billions = None
-    return float(policy.estimate_static_revenue_effect(0.0))
+    try:
+        return float(policy.estimate_static_revenue_effect(0.0))
+    except ExpenditureDistributionMissing:
+        return None
 
 
 def run_tax_expenditure_loo() -> LOOReport:
@@ -923,7 +933,13 @@ def run_tax_expenditure_loo() -> LOOReport:
                     "calibration is retained because none exists to retain."
                 ),
                 exclusion_reason=(
-                    None if derived is not None else "no JCT base-table entry for this expenditure type"
+                    None
+                    if derived is not None
+                    else (
+                        "no JCT base-table entry for this expenditure type, or "
+                        "no transcribed distribution of the quantity this "
+                        "reform caps"
+                    )
                 ),
             )
         )
