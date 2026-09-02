@@ -92,9 +92,14 @@ jobs:
       #   floor    16 - 1 = 15. Raised 13 -> 15.
       # Re-derive after every wave; Wave 2 (capital gains) is expected to move
       # the mean again.
+      # Wave 2 (PRs #93-#95: estate size distribution, expenditure units,
+      # capital gains base/elasticity/stock/death channel) took the same 25
+      # cases to mean 31.3%, 18 within 25%. Both tighten by the rule again:
+      #   ceiling  ceil(31.3 x 1.25) = 40 -> nearest 5 = 40. Lowered 45 -> 40.
+      #   floor    18 - 1 = 17. Raised 15 -> 17.
       - name: Cold-holdout gate (out-of-sample tier)
         run: |
-          python scripts/cold_holdout.py --max-mean-error 45 --min-within-25pct 15
+          python scripts/cold_holdout.py --max-mean-error 40 --min-within-25pct 17
 
       # Tier 2 (leave-one-out). Holds out one calibrated benchmark at a time and
       # asks whether the module's structural machinery — calibrated on the others
