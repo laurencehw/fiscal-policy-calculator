@@ -410,7 +410,14 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         policy_type="capital_gains_tax",
         baseline_year=2021,
         budget_window="FY2022-2031",
-        notes="Combined effect of rate increase + step-up elimination. "
+        notes="Combined effect of rate increase + step-up elimination, and the "
+              "'combined' is confirmed rather than assumed: the FY2022 Green Book's "
+              "Table of Revenue Estimates carries ONE row for 'Reform the taxation of "
+              "capital income' ($322,485M over FY2022-2031) and no separate "
+              "realization-at-death line anywhere in the table, even though the "
+              "narrative section states the rate change and the transfers-at-death "
+              "change as two proposals under one heading (report p. 105; PDF p. 111; "
+              "re-read 2026-09-02). "
               "Treasury Green Book estimate (higher than PWBM due to methodology differences). "
               "Scored on the uncalibrated Generic capital-gains path with the same frozen "
               "module-default elasticities as biden_capital_gains_39 — and, being the same "
