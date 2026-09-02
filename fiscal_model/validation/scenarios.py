@@ -470,9 +470,18 @@ INTERNATIONAL_VALIDATION_SCENARIOS_COMPARE = {
             "GILTI is modelled as an aggregate rate change on a single CFC income "
             "pool; the country-by-country mechanics that drive the Treasury proposal "
             "(per-jurisdiction blending, loss ring-fencing, the foreign tax credit "
-            "haircut) are not represented.",
+            "haircut) are not represented. The jurisdictional distribution added for "
+            "the base-overlap term is used for the overlap share only, not to set "
+            "this level.",
+            "Two of the constants behind this row describe themselves as fitted: "
+            "gilti_cbc_revenue_multiplier 1.20 ('Treasury calibrated') and "
+            "gilti_ftc_offset_rate 0.40 ('Calibration factor'). Treasury OTA prices "
+            "the whole CFC active-income preference at $383,830M over FY2025-2034 "
+            "against the module's implied $271B, which is the identity that would "
+            "replace both.",
             "The -$280B target is the repo's rounded Green Book figure, not a "
-            "transcribed row of the FY2025 Green Book revenue table.",
+            "transcribed row of the FY2025 Green Book revenue table; the table's own "
+            "row is $373,919M.",
         ],
     },
     "fdii_repeal": {
@@ -491,11 +500,25 @@ INTERNATIONAL_VALIDATION_SCENARIOS_COMPARE = {
         "calibrated_to_target": False,
         "notes": "Full repeal of the 37.5% FDII deduction.",
         "limitations": [
-            "Scored off a single $160B FDII-eligible income aggregate at a fixed "
-            "deduction rate; no behavioural relocation of intangible property and no "
-            "interaction with the GILTI rate change is modelled.",
+            "Scored by one base x rate identity — FDII income x the deduction rate x "
+            "the statutory rate — on an income implied by Treasury OTA's own tax "
+            "expenditure for the deduction ($130,230M over FY2025-2034, Tax "
+            "Expenditures FY2026 Table 1 line 5). The module therefore reproduces "
+            "that published cost by construction and the whole of this row's error "
+            "is the distance between it and the carried target.",
+            "The IRC 250(a)(3) step-down from a 37.5% to a 21.875% deduction in "
+            "TY2026 is inside the published path the income base is inverted from, "
+            "so the window average reflects it, but the module's scalar interface "
+            "cannot say which years are which.",
+            "No behavioural relocation of intangible property, and no interaction "
+            "with the GILTI rate change. Treasury's own gross repeal row is "
+            "$157,993M, 21% above their tax expenditure, because Green Book "
+            "proposals are scored on a baseline already carrying the same volume's "
+            "28% corporate rate.",
             "The -$200B target is a rounded headline figure, not a Green Book table "
-            "row.",
+            "row: Treasury's gross row is $157,993M and, paired one-for-one with "
+            "'Provide additional support for research and development expenditures', "
+            "their printed subtotal for repealing FDII is $0.",
         ],
     },
     "pillar_two_adoption": {
@@ -514,7 +537,15 @@ INTERNATIONAL_VALIDATION_SCENARIOS_COMPARE = {
             "reassigned abroad once other jurisdictions apply the UTPR.",
             "The -$80B target is the midpoint of a range the module's own source note "
             "gives as $50-120B, so the model's -$61B sits inside the published range "
-            "even though it rates Poor against the midpoint.",
+            "even though it rates Poor against the midpoint. JCT publishes no -$80B; "
+            "the scenario this factory models — a US QDMTT and a Pillar-Two-compliant "
+            "IIR with no US UTPR — is JCX-22-23 Table 2 Scenario 4 at +$102.6B over "
+            "FY2023-2033, against which the model is 40% low.",
+            "Every JCT scenario that raises revenue assumes the rest of the world "
+            "does not enact. Under Scenario 2, where it does and the US follows, JCT "
+            "scores US adoption at -$56.5B of receipts — a revenue loss, the opposite "
+            "sign to this benchmark. Re-benchmarking against the range or a named "
+            "scenario is provenance work, not a modelling change.",
         ],
     },
     "biden_full_international": {
@@ -535,9 +566,26 @@ INTERNATIONAL_VALIDATION_SCENARIOS_COMPARE = {
         "limitations": [
             "Poor: the -$700B package covers GILTI + FDII + UTPR plus the BEAT/SHIELD "
             "replacement, anti-inversion rules and several base-protection provisions "
-            "the module does not implement. It scores only the three provisions it has.",
-            "Component additivity is assumed: GILTI, FDII and UTPR effects are summed "
-            "with no interaction term, while a package estimate nets overlapping bases.",
+            "the module does not implement. It scores only the three provisions it "
+            "has, and Treasury's own subtotal is $632,200M of which those three are "
+            "$510,232M.",
+            "The residual is a level, not an interaction. The module now carries a "
+            "base-overlap term, but it nets zero here: _estimate_utpr scores "
+            "foreign-parented profits and _estimate_gilti_reform scores US-parented "
+            "CFC income, so this package's two minimum-tax provisions do not share a "
+            "base. The overlap fires only when a policy pulls the GILTI and Pillar "
+            "Two levers together, which no shipped preset does.",
+            "The UTPR is the package's dominant miss: the module returns $15B over "
+            "ten years where Treasury's own row is $136,313M and JCT's Scenario 5 "
+            "less Scenario 4 prices one at $133.9B. Closing it means re-basing the "
+            "UTPR on JCT's Equation 2 — the group's global low-taxed profit allocated "
+            "to the US by an employee-and-tangible-asset key rather than profits "
+            "booked in the US — which needs OECD country-by-country aggregates by "
+            "ultimate-parent jurisdiction.",
+            "FDII repeal is booked at $130B where Treasury's printed subtotal for the "
+            "same provision is $0, because they pair it with an equal-and-opposite "
+            "R&D support proposal the module does not implement. That overstatement "
+            "and the UTPR understatement point in opposite directions.",
         ],
     },
 }
