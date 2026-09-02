@@ -85,6 +85,14 @@ CAPITAL_GAINS_VALIDATION_SCENARIOS = {
             "is larger than the frozen persistent value, so this row is "
             "expected to over-predict."
         ),
+        "limitations": [
+            "The realization elasticity JCT's own path implies at a 2pp change "
+            "is roughly twice the frozen persistent value (Dowd, McClelland & "
+            "Muthitacharoen 2015), and owner Decision 3 forbids reaching for a "
+            "larger one.",
+            "The scenario supplies a 2018 aggregate base at one blended rate, so "
+            "it bypasses the SOI bracket detail the uncalibrated path uses.",
+        ],
     },
     "pwbm_39_with_stepup": {
         "score_id": "pwbm_capgains_39_with_stepup",
@@ -99,6 +107,18 @@ CAPITAL_GAINS_VALIDATION_SCENARIOS = {
             "43.4% is past the peak and the rate change loses revenue - which "
             "is PWBM's own result, reached here without a lock-in multiplier."
         ),
+        "limitations": [
+            "Scored on the one frozen literature elasticity set (Dowd, McClelland "
+            "& Muthitacharoen 2015) rather than the 5.3x lock-in multiplier this "
+            "scenario carried until Wave 2's L1, which was chosen after seeing "
+            "this case's own target and which the leave-one-out donor matrix "
+            "identified as the module's answer key. The model now agrees with "
+            "PWBM on sign - a 43.4% rate loses revenue while step-up survives - "
+            "and under-states the size of the loss by about half.",
+            "The realizations flow is held at its observed SOI level across the "
+            "window, so a rate change that shifts realizations has no compounding "
+            "growth effect beyond the accrued-gains stock ratio.",
+        ],
     },
     "pwbm_39_no_stepup": {
         "score_id": "pwbm_capgains_39_no_stepup",
@@ -118,6 +138,15 @@ CAPITAL_GAINS_VALIDATION_SCENARIOS = {
             "is for the rate change only; the gains-at-death channel is scored "
             "separately and is switched off here."
         ),
+        "limitations": [
+            "The with/without-step-up price wedge derived from the accrued-gains "
+            "stock is 1.44x, smaller than the 1.5x residual-avoidance multiplier "
+            "this scenario carried until Wave 2's L1 - which was chosen after "
+            "seeing this case's own target. The row is less accurate and no "
+            "longer fitted.",
+            "PWBM's own estimate embeds threshold timing and business-form "
+            "shifting that survive step-up elimination; neither is modelled.",
+        ],
     },
 }
 

@@ -64,6 +64,14 @@ def validate_capital_gains_policy(
             "elasticity_reference_rate": policy.elasticity_reference_rate,
             "lock_in_wedge": policy.lock_in_wedge(),
             "eliminate_step_up": policy.eliminate_step_up,
+            # Wave 2's L1 deleted the three per-case elasticity/lock-in tuples,
+            # which were the only constants ever fitted to these three targets.
+            # What scores them now is one frozen literature set, so a miss here
+            # is a finding about the module rather than a calibration
+            # regression - which is exactly what calibrated_to_target=False
+            # means, and which moves these rows into the unfitted-
+            # reconstruction tier where the sectoral runners already sit.
+            "calibrated_to_target": False,
         },
         notes=scenario.get("notes", ""),
         benchmark_date=score.source_date,

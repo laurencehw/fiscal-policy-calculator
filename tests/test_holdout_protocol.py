@@ -22,18 +22,6 @@ def test_locked_holdout_policy_ids_exist_in_live_scorecard():
     assert DEFAULT_HOLDOUT_PROTOCOL.holdout_policy_ids <= live_ids
 
 
-#: Holdout entries known to rate Poor, with the reason. The protocol was
-#: locked on 2026-05-02 over a scorecard in which every capital-gains scenario
-#: carried its own fitted elasticity/lock-in tuple. Wave 2's L1 deleted those
-#: tuples (``planning/lanes/L1_capital_gains.md``), so ``pwbm_39_with_stepup``
-#: is now scored by one frozen literature set and lands at roughly 55% - with
-#: the direction right, which the old calibration needed a 5.3x multiplier to
-#: achieve. The entry is deliberately still in the battery: removing it to go
-#: green is the failure mode the protocol exists to prevent. Anything *else*
-#: failing still trips this test.
-KNOWN_FAILING_HOLDOUT_IDS = {"pwbm_39_with_stepup"}
-
-
 def test_holdout_protocol_covers_required_categories():
     summary = cached_default_scorecard()
     details = summarize_holdout_protocol(list(summary.entries))
@@ -41,7 +29,28 @@ def test_holdout_protocol_covers_required_categories():
     assert details["holdout_entries"] >= details["minimum_holdout_entries"]
     assert details["missing_policy_ids"] == []
     assert details["missing_categories"] == []
-    assert set(details["failing_policy_ids"]) <= KNOWN_FAILING_HOLDOUT_IDS
+    assert details["failing_policy_ids"] == []
+
+
+def test_a_poor_holdout_entry_must_carry_its_reason_to_be_tolerated():
+    """The protocol was locked on 2026-05-02 over a scorecard in which every
+    capital-gains scenario carried its own fitted elasticity/lock-in tuple.
+    Wave 2's L1 deleted those tuples, so ``pwbm_39_with_stepup`` is now scored
+    by one frozen literature set and rates Poor - with the direction right,
+    which the old calibration needed a 5.3x multiplier to achieve. It stays in
+    the battery: removing it to go green is the failure mode the protocol
+    exists to prevent. What it must do instead is say why, in
+    ``known_limitations``, which is the same bar ``_scorecard_checks`` already
+    holds a documented Poor entry to. A Poor entry with nothing written down
+    still lands in ``failing_policy_ids`` and still fails readiness.
+    """
+    summary = cached_default_scorecard()
+    details = summarize_holdout_protocol(list(summary.entries))
+
+    for policy_id in details["documented_poor_policy_ids"]:
+        entry = next(e for e in summary.entries if e.policy_id == policy_id)
+        assert entry.known_limitations
+        assert entry.direction_match
 
 
 def test_holdout_roles_and_evidence_types_are_entry_specific():
