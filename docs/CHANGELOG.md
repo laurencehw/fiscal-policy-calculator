@@ -5,6 +5,36 @@ in git history, not here.
 
 ## 2026 — ongoing
 
+### Documentation honesty sync (September 2026)
+
+- `docs/METHODOLOGY.md` now reports **four validation tiers separately** and
+  states outright that there is no single "validated within X%" figure:
+  out-of-sample pre-registered (25 cases, 52.6% mean / 21.1% median, 8/25 within
+  15%, 14/25 within 25%), calibrated-and-fitted (34 at 2.7%), unfitted module
+  reconstructions (20 at 250.8% mean / 43.1% median — 12 sectoral presets at
+  394.1% plus 8 P.L. 119-21 line items at 35.8%), and calibrated leave-one-out
+  (18 derivable at 59.3% mean / 35.6% median, 4 not cross-validatable). It
+  previously carried a stale 23-case/43.4% Tier 1 and a "29 benchmarks ≈ 5%"
+  Tier 2.
+- **Step-up lock-in multiplier corrected.** METHODOLOGY printed `5.3×` as the
+  current-law setting. The module default is **2.0**
+  (`CapitalGainsPolicy.step_up_lock_in_multiplier`), and `5.3` exists only as a
+  per-case constant in the `pwbm_39_with_stepup` validation scenario, fitted to
+  reproduce PWBM's revenue loss. The document now says which multiplier each
+  published result was produced with, and records that the 5.3× is a known
+  answer key (`run_loo.py --donor-matrix`), not a parameter.
+- **Distributional claim replaced.** The two-line "vs. TPC TCJA analysis"
+  summary is now the seven published CBO/JCT tables at 0.00-5.86pp, with the two
+  circular ones (CBO 54796, CBO 60007) named as circular.
+- **IRS SOI vintage.** METHODOLOGY contradicted itself on the tax-year basis; it
+  now states that tax years 2021-2023 ship and production scoring runs on **tax
+  year 2023**, and that tax-year (calendar) aggregates are carried into a
+  fiscal-year window without conversion.
+- `planning/MODELING_IMPROVEMENT.md` §2 error budget and §5 sequencing
+  re-derived against the post-Phase-D/E battery; `planning/NEXT_STEPS.md` lost
+  its "25+ policies validated within 15%" line.
+
+
 ### Ask assistant (May 2026)
 
 - New **💬 Ask** tab (now the second top-level tab) and matching
