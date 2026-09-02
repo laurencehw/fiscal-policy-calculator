@@ -199,12 +199,14 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
     },
 }
 
-#: Which spend-out profile a category implies when a preset does not state one
-#: (the Custom program) or when the user changes the category out from under a
-#: preset. This is the same *classification* the validation battery uses
-#: (``validation/core.py``): the account type governs how fast authority
-#: becomes an outlay. It is keyed to the account being funded, never to a
-#: benchmark id, and no rate here was chosen by the number it produced.
+#: Which spend-out profile a category implies. Every preset states its own
+#: class for its own category, so this map is what answers the question the
+#: preset no longer can: the user has changed the category, and the program
+#: being funded is no longer the one the preset classified. This is the same
+#: *classification* the validation battery uses (``validation/core.py``): the
+#: account type governs how fast authority becomes an outlay. It is keyed to
+#: the account being funded, never to a benchmark id, and no class here was
+#: chosen by the number it produced.
 _CATEGORY_TO_OUTLAY_CLASS = {
     "Infrastructure": "construction_and_capital",
     "Defense": "operations_and_support",
@@ -234,9 +236,11 @@ OUTLAY_CLASS_ORDER: tuple[str, ...] = (
 def outlay_class_for(preset: dict[str, Any], category: str) -> str:
     """The account class a program spends out on.
 
-    The preset's own declaration wins; a category the preset does not cover -
-    the Custom program, or a category the user changed - falls back to what
-    that category implies.
+    The preset's declaration wins while its own category is selected. Once the
+    user changes the category the preset has classified a different program
+    from the one on screen, so the class comes from what the new category
+    implies instead - including for the Custom program, which declares the
+    class its seeded Infrastructure category implies and then follows the user.
     """
     declared = preset.get("outlay_account_class")
     if declared and category == preset.get("category"):
