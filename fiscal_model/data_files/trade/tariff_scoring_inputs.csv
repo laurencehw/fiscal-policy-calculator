@@ -1,0 +1,75 @@
+# Transcribed inputs for fiscal_model/trade.py's tariff scoring identity.
+#
+# Two kinds of number live here. The trade *levels* — import and export values,
+# and the duty each base already collects — are 2024 Census measurements, so
+# `TRADE_BASELINE` no longer carries a hand-written import base or a coverage
+# rate fitted to a benchmark. The *behavioural* parameters — border
+# pass-through, the import-demand elasticity, and the income-and-payroll
+# offset — are one frozen, cited value per mechanism, never a per-case value.
+#
+# `TRADE_BASELINE` in fiscal_model/trade.py carries the same values, and
+# tests/test_trade_net_scoring.py pins the two against each other so they
+# cannot drift.
+#
+# Transcribed 2026-09-02 for lane L8 of planning/MODELING_IMPROVEMENT.md.
+#
+# Columns
+#   key        matches the TRADE_BASELINE key where role=model_input
+#   value      the number as published (shares and rates as decimals)
+#   units      what the number counts
+#   data_year  the year the published figure describes, not its publication date
+#   role       model_input    = read by trade.py
+#              context        = published alongside an input and needed to read it
+#              external_check = a published quantity the module is compared
+#                               against, never an input to it
+#   source / page / url / published
+#
+# Census series. Imports are general imports at customs value (GEN_VAL_YR),
+# summed over all HS2 chapters and all partners, year-to-date through December
+# 2024. Effective duty rates are calculated duty over imports for consumption
+# (CAL_DUT_YR / CON_VAL_YR); that ratio includes the Section 232 and Section
+# 301 duties actually collected, which is why China reads 10.93% against a
+# 2.36% world average and why netting it out of a proposed rate is a
+# measurement rather than an assumption. Exports are total exports
+# (ALL_VAL_YR). Tax Foundation FF861 p. 3 n. 4 builds its own baseline from
+# USITC DataWeb, which republishes the same Census series.
+#
+# On the four constants this file replaces. `universal_coverage_rate = 0.70`
+# and `china_effective_coverage = 0.50` were fitted to reproduce their own
+# benchmarks — the Trade validation runner said so on the entry. The first is
+# now 1 minus the Canada-plus-Mexico share of goods imports, which is the USMCA
+# carve-out every universal-tariff proposal has carried; the second is deleted,
+# because a 60% tariff on China raises the rate by 60pp minus the duty already
+# collected on the whole base, not by 40pp on half of it. `china_existing_avg_
+# tariff = 0.20` and `auto_usmca_exempt_share = 0.65` were hand numbers; the
+# data says 10.93% and 48.42%. Three of the four moves make the modelled score
+# *larger*, so this is not error-minimising.
+key,value,units,data_year,role,source,page,url,published
+total_imports_billions,3263.9,billions of dollars,2024,model_input,"U.S. Census Bureau, general imports at customs value (GEN_VAL_YR), all HS2 chapters, all partners, YTD through December 2024",API timeseries/intltrade/imports/hs,https://api.census.gov/data/timeseries/intltrade/imports/hs,2025-02
+total_exports_billions,2063.0,billions of dollars,2024,model_input,"U.S. Census Bureau, total exports (ALL_VAL_YR), all HS2 chapters, all partners, YTD through December 2024",API timeseries/intltrade/exports/hs,https://api.census.gov/data/timeseries/intltrade/exports/hs,2025-02
+current_avg_tariff_rate,0.0236,share of imports for consumption,2024,model_input,"U.S. Census Bureau, calculated duty over imports for consumption (CAL_DUT_YR / CON_VAL_YR), all chapters, all partners",API timeseries/intltrade/imports/hs,https://api.census.gov/data/timeseries/intltrade/imports/hs,2025-02
+current_tariff_revenue_billions,76.6,billions of dollars,2024,model_input,"U.S. Census Bureau, calculated duty (CAL_DUT_YR), all chapters, all partners",API timeseries/intltrade/imports/hs,https://api.census.gov/data/timeseries/intltrade/imports/hs,2025-02
+china_imports_billions,440.3,billions of dollars,2024,model_input,"U.S. Census Bureau, general imports at customs value from China (country code 5700)",API timeseries/intltrade/imports/hs,https://api.census.gov/data/timeseries/intltrade/imports/hs,2025-02
+china_existing_avg_tariff,0.1093,share of imports for consumption,2024,model_input,"U.S. Census Bureau, calculated duty over imports for consumption for China — $47.1B of duty on $431.0B, i.e. the Section 301 duties actually collected",API timeseries/intltrade/imports/hs,https://api.census.gov/data/timeseries/intltrade/imports/hs,2025-02
+us_exports_to_china_billions,143.3,billions of dollars,2024,model_input,"U.S. Census Bureau, total exports to China (country code 5700), all HS2 chapters — the base a China-targeted tariff invites retaliation against",API timeseries/intltrade/exports/hs,https://api.census.gov/data/timeseries/intltrade/exports/hs,2025-02
+usmca_partner_import_share,0.2803,share of US goods imports,2024,context,"U.S. Census Bureau — Canada $411.8B plus Mexico $503.1B against $3,263.9B of goods imports",API timeseries/intltrade/imports/hs,https://api.census.gov/data/timeseries/intltrade/imports/hs,2025-02
+universal_coverage_rate,0.7197,share of US goods imports,2024,model_input,"Derived: 1 minus the Canada-plus-Mexico share of goods imports. Every universal tariff actually proposed or imposed exempts USMCA-qualifying Canadian and Mexican goods; Tax Foundation FF861 applies no such carve-out, which is one named reason the model does not reproduce its Table 3",derived from the Census series above,https://api.census.gov/data/timeseries/intltrade/imports/hs,2025-02
+auto_imports_billions,384.9,billions of dollars,2024,model_input,"U.S. Census Bureau, general imports at customs value, HS chapter 87 (vehicles other than railway, and parts)",API timeseries/intltrade/imports/hs,https://api.census.gov/data/timeseries/intltrade/imports/hs,2025-02
+auto_existing_avg_tariff,0.0199,share of imports for consumption,2024,model_input,"U.S. Census Bureau, calculated duty over imports for consumption, HS chapter 87 — $7.7B on $388.3B",API timeseries/intltrade/imports/hs,https://api.census.gov/data/timeseries/intltrade/imports/hs,2025-02
+auto_usmca_exempt_share,0.4842,share of HS-87 imports,2024,model_input,"U.S. Census Bureau — Canada $50.2B plus Mexico $136.1B of HS-87 imports against $384.9B. The March 2025 proclamation exempts only the US-content share of USMCA-qualifying vehicles, not the whole import value, so this over-states the carve-out and the modelled base is if anything too small",API timeseries/intltrade/imports/hs,https://api.census.gov/data/timeseries/intltrade/imports/hs,2025-02
+steel_aluminum_imports_billions,58.9,billions of dollars,2024,model_input,"U.S. Census Bureau, general imports at customs value, HS chapters 72 (iron and steel, $31.4B) and 76 (aluminium, $27.4B)",API timeseries/intltrade/imports/hs,https://api.census.gov/data/timeseries/intltrade/imports/hs,2025-02
+steel_aluminum_existing_avg_tariff,0.0306,share of imports for consumption,2024,model_input,"U.S. Census Bureau, calculated duty over imports for consumption, HS 72 plus HS 76 — $1.78B on $58.2B. Far below the 25%/10% Section 232 statutory rates because Canada, Mexico and Australia were exempted and the EU, UK, Japan, Brazil and South Korea traded under quotas or product exclusions; this is the duty the base actually pays, which is what a proposed rate must be netted against",API timeseries/intltrade/imports/hs,https://api.census.gov/data/timeseries/intltrade/imports/hs,2025-02
+hs73_derivative_imports_billions,49.6,billions of dollars,2024,context,"U.S. Census Bureau, HS chapter 73 (articles of iron or steel), effective duty 5.63%. Section 232 reaches derivative products in this chapter; the module's steel base excludes them, and including them would roughly triple it",API timeseries/intltrade/imports/hs,https://api.census.gov/data/timeseries/intltrade/imports/hs,2025-02
+border_pass_through_rate,1.00,share of the tariff passed into duty-inclusive US import prices,2019,model_input,"Amiti, Redding and Weinstein, 'The Impact of the 2018 Tariffs on Prices and Welfare', Journal of Economic Perspectives 33(4), and Fajgelbaum, Goldberg, Kennedy and Khandelwal, 'The Return to Protectionism', Quarterly Journal of Economics 135(1): US duty-inclusive import prices rose approximately one-for-one with the tariff and foreign export prices did not fall, so the whole tariff reaches the price importers face",JEP 33(4) pp. 187-210; QJE 135(1) pp. 1-55,https://www.aeaweb.org/articles?id=10.1257/jep.33.4.187,2019-11
+consumer_pass_through_rate,0.60,share of the tariff reaching retail prices,2021,model_input,"Retained module default for the household-cost display, a different and smaller object than border pass-through: Cavallo, Gopinath, Neiman and Tang, 'Tariff Pass-Through at the Border and at the Store', American Economic Review: Insights 3(1), find near-complete pass-through at the border but only partial pass-through into retail prices",AERI 3(1) pp. 19-34,https://www.aeaweb.org/articles?id=10.1257/aeri.20190536,2021-03
+import_price_elasticity,-0.997,percent change in import volume per percent change in price,2016,model_input,"Ghodsi, Grubler and Stehrer, 'Import Demand Elasticities Revisited', wiiw Working Paper 132 — binding weighted-average elasticity for the United States across 5,124 products; adopted by Tax Foundation FF861 p. 4 for its universal-tariff estimates",wiiw WP 132; FF861 p. 4,https://wiiw.ac.at/import-demand-elasticities-revisited-dlp-4075.pdf,2016-11
+high_tariff_elasticity_multiplier,2.0,multiple of the base elasticity above a 30pp import-price change,2023,model_input,"Boehm, Levchenko and Pandalai-Nayar, 'The Long and Short (Run) of Trade Elasticities', American Economic Review 113(4): -0.76 in the year after a tariff change converging to -1.75 to -2.25 within 7 to 10 years; USITC publication 5405 finds the 2018-19 China elasticity rising to more than -2 by the end of the second year",AER 113(4) pp. 861-905; USITC pub. 5405,https://www.aeaweb.org/articles?id=10.1257/aer.20210225,2023-04
+income_payroll_offset_rate,0.25,share of net indirect-tax receipts,2011,model_input,"The longstanding CBO/JCT/Treasury OTA convention that a policy change does not alter total nominal income, so duty paid is income not paid to labour and capital and the income and payroll tax bases shrink. Cited secondhand: jct.gov and cbo.gov both return HTTP 403 to this environment, so the primary — JCT, 'The Income and Payroll Tax Offset to Changes in Excise Tax Revenues' (JCX-59-11) — was not read directly. Tax Foundation FF861 p. 3 n. 3 cites it for the convention and n. 11 cites JCX-9-24 for the 2024-2034 percentages",FF861 p. 3 nn. 3 and 11,https://taxfoundation.org/wp-content/uploads/2025/04/FF861.pdf,2011-12
+tariff_avoidance_rate,0.05,share of gross customs revenue,2024,model_input,"Retained module default. Tax Foundation FF861 p. 4 uses an 8% noncompliance rate drawn from the IRS tax gap (8% to 23% across tax types), so 5% is the conservative end of the same range",FF861 p. 4,https://taxfoundation.org/wp-content/uploads/2025/04/FF861.pdf,2025-04
+ff861_income_payroll_offset_2025_2034,0.262,share of net indirect-tax receipts,2025,external_check,"Tax Foundation FF861 p. 4 — 'we estimate income and payroll tax offsets average 26.2 percent over the next decade', from Tax Foundation's own calculator. The module uses the round 25% convention instead, because 26.2% is a model output for this window and adopting it would move a parameter toward one of the benchmarks",p. 4,https://taxfoundation.org/wp-content/uploads/2025/04/FF861.pdf,2025-04
+ff861_universal_10_conventional_billions,2171.1,billions of dollars over FY2025-2034,2025,external_check,"Tax Foundation FF861 Table 3, '10 Percent Universal Tariff', column 2025-2034 — the conventional estimate, and the figure the repository's -$2,000B target rounds",Table 3 p. 4,https://taxfoundation.org/wp-content/uploads/2025/04/FF861.pdf,2025-04
+ff861_universal_10_dynamic_billions,1721.0,billions of dollars over FY2025-2034,2025,external_check,"Tax Foundation FF861 p. 1 — the same policy scored dynamically, after the 0.4% GDP loss feeds back into receipts",p. 1,https://taxfoundation.org/wp-content/uploads/2025/04/FF861.pdf,2025-04
+ff861_universal_10_dynamic_retaliation_billions,1443.0,billions of dollars over FY2025-2034,2025,external_check,"Tax Foundation FF861 p. 1 — dynamic, assuming tit-for-tat retaliation",p. 1,https://taxfoundation.org/wp-content/uploads/2025/04/FF861.pdf,2025-04
+ff861_retaliation_revenue_loss_billions,278.0,billions of dollars over FY2025-2034,2025,external_check,"Tax Foundation FF861 p. 2 — 'in-kind retaliation to 10 percent universal tariffs would reduce federal tax revenue by $278 billion'. The module's retaliation channel is checked against this and comes in well below it, because an export-value loss is not an income loss and the module carries no multiplier",p. 2,https://taxfoundation.org/wp-content/uploads/2025/04/FF861.pdf,2025-04
+ff861_universal_tariff_base_2025_billions,2747.0,billions of dollars,2025,external_check,"Tax Foundation FF861 Table 2 — the 2025 tax base for a 10% universal tariff after the import-demand and noncompliance adjustments, from a $3,353.7B pre-tariff goods base (Table 1). No coverage carve-out is applied",Tables 1 and 2 pp. 3-4,https://taxfoundation.org/wp-content/uploads/2025/04/FF861.pdf,2025-04
+net_to_gross_ratio_published_band,0.45,share of gross customs revenue,2025,external_check,"The repository's own knowledge snapshot, fiscal_model/assistant/knowledge/tariff_scoring_methodology.md, puts a fully-netted tariff score at 40-50% of gross customs revenue. That chain includes a GDP-feedback drag this module does not carry, so a module that stops at the income-and-payroll offset and retaliation should sit above the band, not inside it. The 40-50% is the snapshot's own synthesis, not a sentence quoted from any single agency document",'Putting it together',fiscal_model/assistant/knowledge/tariff_scoring_methodology.md,2025

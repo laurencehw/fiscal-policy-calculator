@@ -75,12 +75,25 @@ final figure — about **40-50% of gross**.
 
 ## How this maps to the app
 
-- The app's `trade.py` module implements all three components for the
-  5 calibrated tariff presets (Trump 10% universal, Trump 60% China,
-  Biden Section 301, etc.).
+- The app's `trade.py` scores a tariff **net**: gross customs duty at the
+  tax-inclusive rate, less the import-demand response, duty avoidance, the
+  **25% income-and-payroll offset**, and the federal receipts lost to
+  retaliation. Net lands at roughly **60-65% of gross** across the five
+  shipped presets — above the 40-50% quoted above, because the app carries
+  no GDP-feedback channel in the conventional score.
+- Import demand responds to the **border** pass-through (frozen at ~1.0, the
+  near-complete pass-through the 2018-19 evidence supports), not to the
+  smaller retail pass-through the household-cost figure uses.
+- Import and export levels, and the duty each base already collects, are 2024
+  Census measurements transcribed to
+  `fiscal_model/data_files/trade/tariff_scoring_inputs.csv`. **No tariff
+  constant is fitted to a published score**, so every tariff preset reports as
+  an unfitted reconstruction rather than a calibrated one.
 - `score/tariff` endpoint exposes this via the REST API with
-  `include_consumer_cost` and `include_retaliation` toggles.
+  `include_consumer_cost` and `include_retaliation` toggles;
+  `include_retaliation=False` gives a strictly conventional (no-retaliation)
+  score.
 
 > Cite Yale Budget Lab for distributional/household-cost numbers; cite
 > CBO/USITC for revenue and macro feedback; cite this app's `trade.py`
-> for the integrated net score.
+> for the integrated net score, and say that it excludes GDP feedback.

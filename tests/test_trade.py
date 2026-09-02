@@ -3,13 +3,17 @@ Tests for trade and tariff policy module.
 
 Covers:
 - TariffPolicy creation and validation
-- Revenue calculation for tariff presets
+- Gross customs revenue for tariff presets
 - Consumer cost estimation
 - Retaliation cost estimation
 - Household impact calculation
-- Behavioral offset (avoidance)
+- The netting chain (avoidance + income-and-payroll offset + retaliation)
 - Edge cases and non-linear volume effects
 - Trade summary and factory functions
+
+Bands here are calibration guards, not benchmarks: wide enough to survive a
+data-vintage refresh, narrow enough to catch a sign flip or a factor-of-ten
+slip. The mechanism itself is pinned in ``tests/test_trade_net_scoring.py``.
 """
 
 import sys
@@ -101,34 +105,34 @@ class TestRevenueCalculation:
     """Test tariff revenue calculations for different presets."""
 
     def test_trump_universal_10_revenue(self):
-        """Test universal 10% tariff revenue calculation."""
+        """Universal 10% tariff, gross customs duty before netting."""
         policy = create_trump_universal_10()
         static_revenue = policy.estimate_static_revenue_effect(0)
-        assert static_revenue > 200 and static_revenue < 250
+        assert 170 < static_revenue < 215
 
     def test_trump_china_60_revenue(self):
         """Test China 60% tariff revenue calculation."""
         policy = create_trump_china_60()
         static_revenue = policy.estimate_static_revenue_effect(0)
-        assert static_revenue > 40 and static_revenue < 90
+        assert 35 < static_revenue < 60
 
     def test_auto_tariff_25_revenue(self):
         """Test 25% auto tariff revenue calculation."""
         policy = create_auto_tariff_25()
         static_revenue = policy.estimate_static_revenue_effect(0)
-        assert static_revenue > 20 and static_revenue < 35
+        assert 22 < static_revenue < 36
 
     def test_steel_tariff_25_revenue(self):
         """Test 25% steel/aluminum tariff revenue calculation."""
         policy = create_steel_tariff_25()
         static_revenue = policy.estimate_static_revenue_effect(0)
-        assert static_revenue > 8 and static_revenue < 15
+        assert 6 < static_revenue < 12
 
     def test_reciprocal_tariff_revenue(self):
         """Test reciprocal tariff revenue calculation."""
         policy = create_reciprocal_tariffs()
         static_revenue = policy.estimate_static_revenue_effect(0)
-        assert static_revenue > 250 and static_revenue < 330
+        assert 195 < static_revenue < 245
 
 
 class TestConsumerImpact:
@@ -185,14 +189,20 @@ class TestConsumerImpact:
         """Test universal 10% tariff consumer cost."""
         policy = create_trump_universal_10()
         consumer_cost = policy.estimate_consumer_cost()
-        assert 130 < consumer_cost < 140
+        assert 130 < consumer_cost < 150
 
 
 class TestRetaliationCost:
     """Test retaliation cost estimation."""
 
     def test_estimate_retaliation_cost_basic(self):
-        """Test basic retaliation cost calculation."""
+        """Retaliation is scored against the exposed export base, not all exports.
+
+        A $1,000B tariff base is about 31% of US goods imports, so partners
+        retaliate against about 31% of US goods exports - not against the whole
+        $2,063B, which is what the module used to assume for every policy
+        whatever its size.
+        """
         policy = TariffPolicy(
             name="Test",
             description="Test",
@@ -200,8 +210,12 @@ class TestRetaliationCost:
             import_base_billions=1000.0,
             retaliation_rate=0.30,
         )
-        retaliation_cost = policy.estimate_retaliation_cost()
-        assert retaliation_cost == 63.0
+        exposure = 1000.0 / TRADE_BASELINE["total_imports_billions"]
+        expected_base = TRADE_BASELINE["total_exports_billions"] * exposure
+        assert abs(policy.retaliation_export_base_billions - expected_base) < 0.01
+        assert abs(
+            policy.estimate_retaliation_cost() - 0.30 * 0.10 * expected_base
+        ) < 0.01
 
     def test_estimate_retaliation_cost_zero_tariff(self):
         """Test that zero tariff yields zero retaliation cost."""
@@ -223,14 +237,16 @@ class TestRetaliationCost:
             import_base_billions=1000.0,
             retaliation_rate=0.50,
         )
-        retaliation_cost = policy.estimate_retaliation_cost()
-        assert retaliation_cost == 105.0
+        expected_base = policy.retaliation_export_base_billions
+        assert abs(
+            policy.estimate_retaliation_cost() - 0.50 * 0.10 * expected_base
+        ) < 0.01
 
     def test_universal_10_retaliation_cost(self):
         """Test universal 10% tariff retaliation cost."""
         policy = create_trump_universal_10()
         retaliation_cost = policy.estimate_retaliation_cost()
-        assert 60 < retaliation_cost < 70
+        assert 35 < retaliation_cost < 55
 
 
 class TestHouseholdImpact:
@@ -267,17 +283,21 @@ class TestHouseholdImpact:
         assert 1000 < household_cost < 1100
 
     def test_china_60_household_impact(self):
-        """Test China 60% tariff household impact."""
+        """Test China 60% tariff household impact.
+
+        Larger than it used to be, because the incremental rate now applies to
+        the whole China base rather than to a fitted half of it.
+        """
         policy = create_trump_china_60()
         household_cost = policy.get_household_impact()
-        assert household_cost < 500
+        assert 800 < household_cost < 1200
 
 
 class TestBehavioralOffset:
-    """Test tariff avoidance behavioral offset."""
+    """Test everything standing between gross duty and the budget effect."""
 
     def test_behavioral_offset_basic(self):
-        """Test basic behavioral offset calculation."""
+        """The offset is avoidance plus the JCT offset plus retaliation."""
         policy = TariffPolicy(
             name="Test",
             description="Test",
@@ -286,8 +306,13 @@ class TestBehavioralOffset:
         )
         static = policy.estimate_static_revenue_effect(0)
         offset = policy.estimate_behavioral_offset(static)
-        expected = TRADE_BASELINE["tariff_avoidance_rate"] * static
-        assert abs(offset - expected) < 0.01
+        avoidance = TRADE_BASELINE["tariff_avoidance_rate"] * static
+        income_payroll = (
+            (static - avoidance) * TRADE_BASELINE["income_payroll_offset_rate"]
+        )
+        retaliation = policy.estimate_retaliation_revenue_loss()
+        assert abs(offset - (avoidance + income_payroll + retaliation)) < 0.01
+        assert offset > avoidance
 
     def test_behavioral_offset_zero_static(self):
         """Test that zero static revenue yields zero offset."""
@@ -347,7 +372,8 @@ class TestEdgeCases:
             import_base_billions=1000.0,
         )
         static_revenue = policy.estimate_static_revenue_effect(0)
-        assert static_revenue >= 200.0
+        # base x volume floor x tax-inclusive rate = 1000 x 0.20 x (1.0/2.0)
+        assert abs(static_revenue - 100.0) < 0.01
 
     def test_negative_tariff_rate(self):
         """Test that negative tariff (tariff cut) produces negative revenue."""
@@ -424,7 +450,8 @@ class TestNonLinearVolumeEffects:
             import_base_billions=1000.0,
         )
         static_revenue = policy.estimate_static_revenue_effect(0)
-        assert static_revenue >= 400.0
+        # base x volume floor x tax-inclusive rate = 1000 x 0.20 x (2.0/3.0)
+        assert abs(static_revenue - 1000.0 * 0.20 * (2.0 / 3.0)) < 0.01
 
 
 class TestGetTradeSummary:
@@ -435,9 +462,13 @@ class TestGetTradeSummary:
         policy = create_trump_universal_10()
         summary = policy.get_trade_summary()
         required_keys = {
+            "gross_tariff_revenue",
             "tariff_revenue",
             "behavioral_offset",
+            "income_payroll_offset",
+            "retaliation_revenue_loss",
             "net_revenue",
+            "net_to_gross_ratio",
             "consumer_cost",
             "retaliation_cost",
             "household_cost",
@@ -449,8 +480,15 @@ class TestGetTradeSummary:
         policy = create_trump_universal_10()
         summary = policy.get_trade_summary()
         assert abs(
-            summary["net_revenue"] - (summary["tariff_revenue"] - summary["behavioral_offset"])
+            summary["net_revenue"]
+            - (
+                summary["gross_tariff_revenue"]
+                - summary["behavioral_offset"]
+                - summary["income_payroll_offset"]
+                - summary["retaliation_revenue_loss"]
+            )
         ) < 0.01
+        assert summary["tariff_revenue"] == summary["gross_tariff_revenue"]
         assert abs(summary["consumer_cost"] - policy.estimate_consumer_cost()) < 0.01
         assert abs(summary["retaliation_cost"] - policy.estimate_retaliation_cost()) < 0.01
 
@@ -513,18 +551,18 @@ class TestTariffValidationAgainstCBO:
         policy = create_trump_universal_10()
         summary = policy.get_trade_summary()
         annual_net = summary["net_revenue"]
-        assert 150 < annual_net < 250, f"Annual revenue {annual_net}B outside expected range"
+        assert 100 < annual_net < 160, f"Annual revenue {annual_net}B outside expected range"
 
     def test_china_60_within_range(self):
         """Test that China 60% tariff revenue is within plausible range."""
         policy = create_trump_china_60()
         summary = policy.get_trade_summary()
         annual_net = summary["net_revenue"]
-        assert 30 < annual_net < 70, f"Annual revenue {annual_net}B outside expected range"
+        assert 20 < annual_net < 45, f"Annual revenue {annual_net}B outside expected range"
 
     def test_auto_25_within_range(self):
         """Test that auto 25% tariff revenue is within plausible range."""
         policy = create_auto_tariff_25()
         summary = policy.get_trade_summary()
         annual_net = summary["net_revenue"]
-        assert 15 < annual_net < 35, f"Annual revenue {annual_net}B outside expected range"
+        assert 12 < annual_net < 28, f"Annual revenue {annual_net}B outside expected range"

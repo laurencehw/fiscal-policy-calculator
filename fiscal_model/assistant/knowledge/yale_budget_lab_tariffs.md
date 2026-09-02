@@ -47,9 +47,12 @@ feedback** (GDP, jobs) in a single integrated estimate.
 
 ## How this maps to the app
 
-- The app has a `trade.py` tariff scoring module with 5 calibrated
-  presets and the same conceptual channels (revenue, consumer price
-  impact, GDP effect).
+- The app has a `trade.py` tariff scoring module with 5 presets and the
+  same conceptual channels except one: it nets the import-demand response,
+  duty avoidance, the income-and-payroll offset and retaliation, but carries
+  **no GDP-feedback channel** in the conventional score, so its figures sit
+  above a fully dynamic estimate. None of its constants is fitted to a
+  published tariff score; the trade levels are 2024 Census measurements.
 - For a specific Yale Budget Lab tariff number on a specific scenario
   ("Trump 10% universal + 60% on China"), the assistant should
   `web_search` `budgetlab.yale.edu` or `fetch_url` the specific
