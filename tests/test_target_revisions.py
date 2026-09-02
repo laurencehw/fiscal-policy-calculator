@@ -28,6 +28,7 @@ from fiscal_model.validation.scorecard import (
 )
 from fiscal_model.validation.target_revisions import (
     CALIBRATED_TARGETS,
+    EXAMINED_NOT_REVISED,
     REVISED_POLICY_IDS,
     assert_target_revisions,
     live_target_for,
@@ -105,7 +106,18 @@ def test_a_revised_row_leaves_the_fitted_tier(policy_id, scorecard):
     assert entry.target_revision_reason.strip()
 
 
-@pytest.mark.parametrize("policy_id", sorted(REVISED_POLICY_IDS))
+#: Revisions that moved the target to another *point*, and revisions that
+#: replaced a point with a published *range*. The two make different claims, so
+#: they are held to different — but equally strict — assertions below.
+_POINT_REVISIONS = sorted(
+    p for p in REVISED_POLICY_IDS if not live_target_for(p).is_range
+)
+_RANGE_REVISIONS = sorted(
+    p for p in REVISED_POLICY_IDS if live_target_for(p).is_range
+)
+
+
+@pytest.mark.parametrize("policy_id", _POINT_REVISIONS)
 def test_a_revised_row_now_confirms_its_transcription(policy_id, scorecard):
     """A revision resolves a ``line_item_differs``: the carried target *is* the
     published figure now, so the entry must read as a confirmation and must not
@@ -121,7 +133,34 @@ def test_a_revised_row_now_confirms_its_transcription(policy_id, scorecard):
     assert gap <= CONFIRMATION_TOLERANCE_PCT
 
 
-@pytest.mark.parametrize("policy_id", sorted(REVISED_POLICY_IDS))
+@pytest.mark.parametrize("policy_id", _RANGE_REVISIONS)
+def test_a_range_revision_publishes_its_bounds_and_keeps_the_gap_visible(
+    policy_id, scorecard
+):
+    """A range revision makes the opposite claim to a point revision.
+
+    It says the agency published no single figure, so the point the registries
+    carry is an editorial midpoint that stays where it is. The transcription
+    must therefore still read ``line_item_differs`` and still advertise the
+    published figure it found — hiding that would leave the carried midpoint
+    looking sourced — while the entry exposes the bounds and where the model
+    falls relative to them.
+    """
+    entry = next(e for e in scorecard.entries if e.policy_id == policy_id)
+    live = live_target_for(policy_id)
+
+    assert entry.published_range_low_billions == live.published_low_10yr_billions
+    assert entry.published_range_high_billions == live.published_high_10yr_billions
+    assert entry.within_published_range is not None
+    assert entry.distance_to_published_range_billions is not None
+    # The carried point must be inside what was published, or the ledger is
+    # asserting a range the scorecard contradicts.
+    assert live.contains(entry.official_10yr_billions)
+    assert entry.official_10yr_billions_line_item is not None
+    assert entry.provenance != LINE_ITEM
+
+
+@pytest.mark.parametrize("policy_id", _POINT_REVISIONS)
 def test_a_revision_moves_the_figure_by_more_than_rounding(policy_id):
     """A "revision" that restates the old number is noise. Each of these has to
     be a change a reader would care about."""
@@ -133,20 +172,43 @@ def test_a_revision_moves_the_figure_by_more_than_rounding(policy_id):
     )
 
 
+@pytest.mark.parametrize("policy_id", _RANGE_REVISIONS)
+def test_a_range_revision_replaces_a_point_that_was_not_a_bound(policy_id):
+    """The range has to be news too: a point that already sat on a bound would
+    make the revision a relabelling rather than a correction."""
+    live = live_target_for(policy_id)
+    old = superseded_targets_for(policy_id)[-1]
+    assert not old.is_range
+    assert old.official_10yr_billions is not None
+    assert old.official_10yr_billions != live.published_low_10yr_billions
+    assert old.official_10yr_billions != live.published_high_10yr_billions
+
+
 def test_the_summary_counts_the_revisions(scorecard):
     """A moved target shrinks the fitted tier, so the count has to be visible
     next to the mean it changes."""
     assert scorecard.revised_target_entries == len(REVISED_POLICY_IDS)
 
 
-def test_the_two_revisions_are_the_ones_this_pass_made():
-    """Pin the ledger's contents. A third revision appearing without a test
+def test_the_three_revisions_are_the_ones_these_passes_made():
+    """Pin the ledger's contents. A fourth revision appearing without a test
     change means a target moved without anyone deciding to move it."""
     assert sorted(REVISED_POLICY_IDS) == [
         "extend_tcja_amt",
+        "pillar_two_adoption",
         "universal_insulin_cap",
     ]
-    assert len(CALIBRATED_TARGETS) == 4
+    assert len(CALIBRATED_TARGETS) == 6
+    pillar = live_target_for("pillar_two_adoption")
+    assert pillar.is_range
+    assert pillar.official_10yr_billions is None
+    assert (pillar.published_low_10yr_billions, pillar.published_high_10yr_billions) == (
+        -102.6,
+        56.5,
+    )
+    assert superseded_targets_for("pillar_two_adoption")[-1].official_10yr_billions == (
+        -80.0
+    )
     assert live_target_for("extend_tcja_amt").official_10yr_billions == 1_357.1
     assert superseded_targets_for("extend_tcja_amt")[-1].official_10yr_billions == 450.0
     assert live_target_for("universal_insulin_cap").official_10yr_billions == 11.4
@@ -195,3 +257,76 @@ def test_repeal_individual_amt_was_left_alone_with_the_search_recorded():
     assert source is not None
     assert "SEARCHED AGAIN 2026-09-02" in source.searched
     assert "T25-0049" in source.searched
+
+
+def test_a_range_row_rejects_a_carried_figure_outside_its_bounds(monkeypatch):
+    """The containment check is the range row's version of "the ledger and the
+    registry must agree", and it has to actually fail when they do not."""
+    from fiscal_model.validation import target_revisions as tr
+
+    live = live_target_for("pillar_two_adoption")
+    outside = live.published_low_10yr_billions - 10.0
+    entry = dataclasses.replace(
+        next(
+            e
+            for e in cached_default_scorecard().entries
+            if e.policy_id == "pillar_two_adoption"
+        ),
+        official_10yr_billions=outside,
+    )
+    problems = tr.target_revision_problems([entry])
+    assert any("outside the published range" in p for p in problems)
+
+
+def test_a_half_stated_range_is_rejected(monkeypatch):
+    """One bound says nothing. A row that states a low without a high is a
+    typo, not a range, and must not pass as one."""
+    from fiscal_model.validation import target_revisions as tr
+
+    broken = dataclasses.replace(
+        live_target_for("pillar_two_adoption"), published_high_10yr_billions=None
+    )
+    monkeypatch.setattr(
+        tr,
+        "CALIBRATED_TARGETS",
+        tuple(
+            broken if t.revision_id == broken.revision_id else t
+            for t in CALIBRATED_TARGETS
+        ),
+    )
+    problems = tr.target_revision_problems()
+    assert any("needs both bounds" in p for p in problems)
+
+
+def test_the_estate_target_is_recorded_as_examined_and_not_moved():
+    """"Somebody checked this and decided against" has to be state, not prose.
+
+    Without the registry, a benchmark whose published figure disagrees with the
+    carried one is indistinguishable from one nobody has opened, and the
+    question gets re-opened every pass. The estate row is the case: JCT's
+    $429.6B scores a ten-section bill whose other eight sections `estate.py`
+    does not construct, so the figure is an upper bound on a superset and
+    adopting it as a point target would measure the missing sections.
+    """
+    assert "biden_estate_reform" in EXAMINED_NOT_REVISED
+    reason = EXAMINED_NOT_REVISED["biden_estate_reform"]
+    assert "429.6" in reason
+    assert "ten-section" in reason
+    # Examined-and-left is the opposite of revised, and the ledger says so.
+    assert not target_was_revised("biden_estate_reform")
+    source = source_for("biden_estate_reform")
+    assert source is not None
+    assert source.published_10yr_billions == pytest.approx(-429.6)
+
+
+def test_examined_and_revised_are_mutually_exclusive(monkeypatch):
+    """A target is either moved or left. Claiming both hides which happened."""
+    from fiscal_model.validation import target_revisions as tr
+
+    monkeypatch.setattr(
+        tr,
+        "EXAMINED_NOT_REVISED",
+        {**EXAMINED_NOT_REVISED, "pillar_two_adoption": "contradiction"},
+    )
+    problems = tr.target_revision_problems()
+    assert any("examined-and-left AND carries a ledger row" in p for p in problems)

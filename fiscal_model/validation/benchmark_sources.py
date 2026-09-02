@@ -802,7 +802,16 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
             "too, which is the state of the world — JCT scores US adoption at "
             "**-$56.5B of receipts**, i.e. a revenue *loss*, the opposite sign "
             "to this benchmark. The module's own note gives a $50-120B range, "
-            "and $102.6B is inside it."
+            "and $102.6B is inside it. "
+            "The conditioning is now recorded as a **range target** in "
+            "``target_revisions.py`` (``pillar_two_adoption.v2``): Scenarios 2 "
+            "and 4 are the two JCT publishes for this design — US enacts, no "
+            "US UTPR — and they bracket the answer at -$102.6B and +$56.5B of "
+            "deficit effect, a range containing zero. This row stays "
+            "``line_item_differs`` rather than becoming a confirmation, which "
+            "is the point: the carried -$80B is an editorial midpoint, the "
+            "gap to the nearest published scenario is real, and a range "
+            "revision does not close it — it says no point closes it."
         ),
         alternatives=(
             "Scenario 1 (RoW enacts, US does not): -$122.0B of US receipts.",

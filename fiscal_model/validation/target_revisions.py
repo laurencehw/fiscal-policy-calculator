@@ -81,16 +81,37 @@ AMT_INSULIN_PROVENANCE_FIRST_SCORED_COMMIT = (
     "d6288922bc082608bda35111f58217b13a121eb2"
 )
 
+#: Commit that entered the Wave 3 provenance rows — the Pillar Two range and
+#: the estate row's examined-and-left verdict. Provisional until the stamping
+#: commit at the end of the lane: a file cannot contain its own commit hash.
+WAVE3_PROVENANCE_ENTERED_COMMIT = "7f25bed2377ca52204ae02927b2ad9b8a4fcf6bb"
+WAVE3_PROVENANCE_ENTERED_DATE = "2026-09-02"
+
+#: Commit in which the Wave 3 rows were first scored against.
+WAVE3_PROVENANCE_FIRST_SCORED_COMMIT = "7f25bed2377ca52204ae02927b2ad9b8a4fcf6bb"
+
 
 @dataclass(frozen=True)
 class CalibratedTarget:
     """One calibrated benchmark target, live or superseded.
 
+    A row is either a **point** target (``official_10yr_billions`` set, the
+    usual case) or a **range** target (both bounds set, the point ``None``).
+    A range is not a stylistic choice: it is what the ledger says when the
+    publishing agency scored the policy under several scenarios and published
+    no single figure, so that any point a repository carries is an editorial
+    midpoint rather than something the document contains. For a range row the
+    consistency check asks whether the figure the scorecard carries lies
+    *inside* the published bounds, not whether it equals a number.
+
     Attributes:
         revision_id: Stable row id, ``<policy_id>.v<n>``. Never reused.
         policy_id: Scorecard entry this target belongs to.
         official_10yr_billions: The target, in the repository's sign convention
-            (**positive increases the deficit**).
+            (**positive increases the deficit**). ``None`` on a range row.
+        published_low_10yr_billions: Low bound of a published range, same
+            convention. Set together with the high bound, or neither.
+        published_high_10yr_billions: High bound of a published range.
         source_name: Publishing organization, as the record credits it.
         source_document: Full document title, as published. Empty for a
             superseded row whose figure was never traced to a document — which
@@ -120,7 +141,7 @@ class CalibratedTarget:
 
     revision_id: str
     policy_id: str
-    official_10yr_billions: float
+    official_10yr_billions: float | None
     source_name: str
     source_date: str
     window: str
@@ -132,6 +153,8 @@ class CalibratedTarget:
     source_table: str | None = None
     source_row: str | None = None
     source_page: str | None = None
+    published_low_10yr_billions: float | None = None
+    published_high_10yr_billions: float | None = None
     superseded_by: str | None = None
     reason: str = ""
     note: str = ""
@@ -140,6 +163,34 @@ class CalibratedTarget:
     def is_live(self) -> bool:
         """A row still in force: not replaced by a later row."""
         return self.superseded_by is None
+
+    @property
+    def is_range(self) -> bool:
+        """Whether this row's target is a published range rather than a point."""
+        return (
+            self.published_low_10yr_billions is not None
+            and self.published_high_10yr_billions is not None
+        )
+
+    def contains(self, value: float) -> bool:
+        """Whether ``value`` lies inside this row's published range."""
+        if not self.is_range:
+            return False
+        return (
+            self.published_low_10yr_billions
+            <= value
+            <= self.published_high_10yr_billions
+        )
+
+    def distance_to_range(self, value: float) -> float:
+        """How far ``value`` sits outside the range, in $B. 0.0 when inside."""
+        if not self.is_range:
+            return 0.0
+        if value < self.published_low_10yr_billions:
+            return self.published_low_10yr_billions - value
+        if value > self.published_high_10yr_billions:
+            return value - self.published_high_10yr_billions
+        return 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -165,6 +216,19 @@ _CBO_57957 = (
     "Now Act, publication 57957"
 )
 _CBO_57957_URL = "https://www.cbo.gov/publication/57957"
+
+_JCX_22_23 = (
+    "Joint Committee on Taxation, JCX-22-23, 'Possible Effects of Adopting "
+    "the OECD's Pillar Two, Both Worldwide and in the United States'"
+)
+_JCX_22_23_URL = (
+    "https://www.jct.gov/getattachment/07a143e4-277b-4344-b230-c499a9c16be3/"
+    "OECD-Pillar-Two-Report-June-2023.pdf"
+)
+_JCX_22_23_TABLE = (
+    "Table 2, 'Fiscal Year Federal Tax Receipt Revenue Effects for Various "
+    "Scenarios', column 2023-2033"
+)
 
 
 CALIBRATED_TARGETS: tuple[CalibratedTarget, ...] = (
@@ -292,7 +356,118 @@ CALIBRATED_TARGETS: tuple[CalibratedTarget, ...] = (
             "rather than a direction dispute."
         ),
     ),
+    # ------------------------------------------------------------------
+    # Pillar Two — a point where the document publishes a range
+    # ------------------------------------------------------------------
+    CalibratedTarget(
+        revision_id="pillar_two_adoption.v1",
+        policy_id="pillar_two_adoption",
+        official_10yr_billions=-80.0,
+        source_name="JCT (2023)",
+        source_date="2023",
+        window="stated as 10-year; not traceable to any published scenario",
+        entered_commit="unknown (predates the validation manifest)",
+        entered_date="2025-12-08",
+        first_scoring_run_commit="unknown (predates the validation manifest)",
+        superseded_by="pillar_two_adoption.v2",
+        reason=(
+            "-$80B is the midpoint of the '$50-120B' range "
+            "`international.py` documents in its own module header, not a "
+            "figure JCT publishes. JCT scored this policy under five "
+            "scenarios and printed five numbers; none of them is $80B, and "
+            "the two that describe the design this benchmark names span "
+            "*both signs*. Superseded by a range rather than by another "
+            "point: choosing one scenario would mean choosing the rest of "
+            "the world's behaviour, which is not part of the US policy "
+            "being scored, and the scenario the module's own mechanism "
+            "matches is also the one it scores best against — exactly the "
+            "selection this ledger exists to prevent."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="pillar_two_adoption.v2",
+        policy_id="pillar_two_adoption",
+        official_10yr_billions=None,
+        published_low_10yr_billions=-102.6,
+        published_high_10yr_billions=56.5,
+        source_name="Joint Committee on Taxation",
+        source_document=_JCX_22_23,
+        source_url=_JCX_22_23_URL,
+        source_date="2023-06",
+        source_table=_JCX_22_23_TABLE,
+        source_row=(
+            "Scenario 4, 'Rest of the world does not enact Pillar Two; United "
+            "States enacts Pillar Two in 2025, but no U.S. UTPR': +$102.6B of "
+            "US receipts, i.e. -$102.6B of deficit. Scenario 2, 'Rest of the "
+            "world enacts Pillar Two; United States enacts Pillar Two in "
+            "2025, but no U.S. UTPR': -$56.5B of US receipts, i.e. +$56.5B of "
+            "deficit."
+        ),
+        source_page="report p. 10",
+        window="FY2023-2033",
+        entered_commit=WAVE3_PROVENANCE_ENTERED_COMMIT,
+        entered_date=WAVE3_PROVENANCE_ENTERED_DATE,
+        first_scoring_run_commit=WAVE3_PROVENANCE_FIRST_SCORED_COMMIT,
+        reason=(
+            "The published target for 'the United States adopts Pillar Two "
+            "with no U.S. UTPR' is a range, because JCT's own answer depends "
+            "on a variable outside the policy: whether the rest of the world "
+            "enacts. Its two scenarios for that design bracket the answer at "
+            "-$102.6B and +$56.5B of deficit effect, and the range contains "
+            "zero. That is the honest statement of what is known, and it is "
+            "not expressible as a point."
+        ),
+        note=(
+            "The two scenarios JCT publishes that are NOT this design are "
+            "recorded so the bounds cannot be mistaken for a selection: "
+            "Scenario 1 (rest of the world enacts, the US does not) loses "
+            "$122.0B of US receipts, and Scenario 5 (the US enacts *with* a "
+            "UTPR) gains $236.5B — a different instrument, which the module "
+            "carries behind its own `adopt_utpr` flag and which this "
+            "benchmark does not set. What follows for the scorecard: the "
+            "model's -$61.2B is inside the range, distance to the nearest "
+            "bound $0.0B, so the 23.5% this row reports against the carried "
+            "-$80B is a distance from an editorial midpoint and is not a "
+            "measurement of accuracy. The point figure is deliberately left "
+            "where it is in the registries rather than moved to a bound: a "
+            "range row's consistency check asks whether the carried figure "
+            "lies inside the published bounds, and -$80B does."
+        ),
+    ),
 )
+
+
+#: Targets a provenance pass opened the document for and deliberately did
+#: **not** move, with the reason. Recorded rather than left in a lane file so
+#: that "somebody checked this and decided against" is machine-readable state:
+#: without it, a benchmark whose published figure disagrees with the carried
+#: one is indistinguishable from one nobody has examined, and the question gets
+#: re-opened every pass. A row here must NOT also have a live revision — a
+#: target is either moved or left, never both — and ``target_revision_problems``
+#: enforces that.
+EXAMINED_NOT_REVISED: dict[str, str] = {
+    "biden_estate_reform": (
+        "JCT scores the 'For the 99.5 Percent Act' at $429.6B over "
+        "FY2021-2031 and the repository carries $450B, 4.7% apart, so the "
+        "gap alone would argue for moving it. The design does not. JCT's "
+        "figure is the total for a ten-section bill: graduated 50/55/65% "
+        "brackets above $10M/$50M/$1B, denial of grantor-trust step-up, "
+        "valuation-discount limits, a 10-year minimum GRAT term and GST "
+        "changes. `estate.py` constructs an exemption change to $3.5M and a "
+        "single top rate of 45% — not even the whole rate section, since it "
+        "carries no graduated schedule. $429.6B is therefore an upper bound "
+        "on a superset, and adopting an upper bound as a point target would "
+        "convert a bookkeeping 0.0% into a 4.7% that measures the eight "
+        "sections the module does not model rather than the two it does. "
+        "Reported both ways for the record (2026-09-02): fitted -$450.0B is "
+        "0.00% against $450B and -4.75% against $429.6B; the structural "
+        "derived path's -$457.2B is -1.60% and -6.43%. Neither reading "
+        "changes the verdict. What would change it is a JCT or Treasury "
+        "score of an exemption-and-rate change alone; none exists. Recorded "
+        "in `benchmark_sources.py` as `line_item_differs`, which is where a "
+        "disagreement lives when it is not moved."
+    ),
+}
 
 
 def _by_policy() -> dict[str, list[CalibratedTarget]]:
@@ -346,14 +521,20 @@ def target_revision_problems(entries: list[object] | None = None) -> list[str]:
     * every ``superseded_by`` names a row that exists, for the same benchmark,
       and is not itself the row doing the superseding;
     * exactly one live row per benchmark;
-    * a supersession actually moves the number — a "revision" that restates the
-      old figure is bookkeeping noise and hides the rows that matter;
+    * a row states either a point target or a range (both bounds, low below
+      high), never neither and never a half-range;
+    * a supersession actually moves the target — a "revision" that restates the
+      old figure is bookkeeping noise and hides the rows that matter. Replacing
+      a point with a range counts as a move: it changes what is being asserted
+      about the target even when a bound coincides with the old point;
     * both halves of a supersession state a reason;
     * a live row that replaced something cites a document (url, date, table,
       row, page): the whole point of moving a target is that the new one can be
       checked;
+    * a benchmark is not both revised and recorded as examined-and-left;
     * and, when ``entries`` is supplied, that every live row agrees with the
-      figure the scorecard is actually scoring against.
+      figure the scorecard is actually scoring against — equality for a point
+      row, containment for a range row.
     """
     problems: list[str] = []
     by_id: dict[str, CalibratedTarget] = {}
@@ -367,6 +548,47 @@ def target_revision_problems(entries: list[object] | None = None) -> list[str]:
             problems.append(
                 f"{target.revision_id}: id must be its policy_id "
                 f"{target.policy_id!r} followed by '.v<n>'"
+            )
+
+    for target in CALIBRATED_TARGETS:
+        has_point = target.official_10yr_billions is not None
+        half_range = (
+            target.published_low_10yr_billions is None
+        ) != (target.published_high_10yr_billions is None)
+        if half_range:
+            problems.append(
+                f"{target.revision_id}: a range target needs both bounds; "
+                "one alone says nothing"
+            )
+        elif target.is_range:
+            if has_point:
+                problems.append(
+                    f"{target.revision_id}: states both a point target and a "
+                    "range; a row asserts one or the other"
+                )
+            if (
+                target.published_low_10yr_billions
+                >= target.published_high_10yr_billions
+            ):
+                problems.append(
+                    f"{target.revision_id}: range low bound "
+                    f"{target.published_low_10yr_billions} is not below high "
+                    f"bound {target.published_high_10yr_billions}"
+                )
+        elif not has_point:
+            problems.append(
+                f"{target.revision_id}: states neither a point target nor a range"
+            )
+
+    for policy_id in sorted(EXAMINED_NOT_REVISED):
+        if not EXAMINED_NOT_REVISED[policy_id].strip():
+            problems.append(
+                f"{policy_id}: recorded as examined-and-left with no reason"
+            )
+        if policy_id in _by_policy():
+            problems.append(
+                f"{policy_id}: is recorded as examined-and-left AND carries a "
+                "ledger row; a target is either moved or left, never both"
             )
 
     for target in CALIBRATED_TARGETS:
@@ -386,7 +608,16 @@ def target_revision_problems(entries: list[object] | None = None) -> list[str]:
             )
         if successor.revision_id == target.revision_id:
             problems.append(f"{target.revision_id}: supersedes itself")
-        if successor.official_10yr_billions == target.official_10yr_billions:
+        # Replacing a point with a range is a move even if a bound happens to
+        # equal the old point: what the row asserts about the target changed.
+        if (
+            successor.is_range == target.is_range
+            and successor.official_10yr_billions == target.official_10yr_billions
+            and successor.published_low_10yr_billions
+            == target.published_low_10yr_billions
+            and successor.published_high_10yr_billions
+            == target.published_high_10yr_billions
+        ):
             problems.append(
                 f"{target.revision_id}: superseded without changing the "
                 "figure; a revision that restates the old target is noise"
@@ -444,7 +675,18 @@ def target_revision_problems(entries: list[object] | None = None) -> list[str]:
         if live is None:
             continue
         carried = float(getattr(entry, "official_10yr_billions", float("nan")))
-        if abs(carried - live.official_10yr_billions) > 1e-6:
+        if live.is_range:
+            # A range row makes no claim about which point the registries
+            # carry, only that the point is not outside what was published.
+            if not live.contains(carried):
+                problems.append(
+                    f"{policy_id}: the scorecard scores against {carried}, "
+                    f"outside the published range the live ledger row "
+                    f"{live.revision_id} records "
+                    f"[{live.published_low_10yr_billions}, "
+                    f"{live.published_high_10yr_billions}]"
+                )
+        elif abs(carried - live.official_10yr_billions) > 1e-6:
             problems.append(
                 f"{policy_id}: the scorecard scores against {carried}, but the "
                 f"live ledger row {live.revision_id} says "
@@ -468,7 +710,11 @@ __all__ = [
     "AMT_INSULIN_PROVENANCE_ENTERED_DATE",
     "AMT_INSULIN_PROVENANCE_FIRST_SCORED_COMMIT",
     "CALIBRATED_TARGETS",
+    "EXAMINED_NOT_REVISED",
     "REVISED_POLICY_IDS",
+    "WAVE3_PROVENANCE_ENTERED_COMMIT",
+    "WAVE3_PROVENANCE_ENTERED_DATE",
+    "WAVE3_PROVENANCE_FIRST_SCORED_COMMIT",
     "CalibratedTarget",
     "assert_target_revisions",
     "live_target_for",

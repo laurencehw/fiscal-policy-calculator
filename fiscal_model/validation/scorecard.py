@@ -147,6 +147,19 @@ class ScorecardEntry:
     superseded_10yr_billions: float | None = None
     #: Why the old target was retired, quoted from the ledger's superseded row.
     target_revision_reason: str = ""
+    #: Bounds of the **published range** when the live ledger row records one
+    #: instead of a point — the case where the publishing agency scored the
+    #: policy under several scenarios and published no single figure, so any
+    #: point the repository carries is an editorial midpoint. When these are
+    #: set, :attr:`percent_difference` is a distance from that midpoint and is
+    #: not a measurement of accuracy; read the two fields below instead.
+    published_range_low_billions: float | None = None
+    published_range_high_billions: float | None = None
+    #: Whether the *model's* score lies inside the published range, and how far
+    #: outside it sits when it does not ($B, 0.0 when inside). ``None`` for the
+    #: entries — nearly all of them — whose target is a point.
+    within_published_range: bool | None = None
+    distance_to_published_range_billions: float | None = None
     #: True when somebody opened the primary document and read the row, i.e.
     #: the entry has a :mod:`.benchmark_sources` record carrying the figure it
     #: found. A handful of entries are labelled ``line_item`` by *inference*
@@ -213,6 +226,26 @@ class ScorecardEntry:
             ),
             target_revision_reason=(
                 superseded[-1].reason if superseded else ""
+            ),
+            published_range_low_billions=(
+                live_revision.published_low_10yr_billions
+                if live_revision is not None
+                else None
+            ),
+            published_range_high_billions=(
+                live_revision.published_high_10yr_billions
+                if live_revision is not None
+                else None
+            ),
+            within_published_range=(
+                live_revision.contains(float(r.model_10yr))
+                if live_revision is not None and live_revision.is_range
+                else None
+            ),
+            distance_to_published_range_billions=(
+                live_revision.distance_to_range(float(r.model_10yr))
+                if live_revision is not None and live_revision.is_range
+                else None
             ),
             benchmark_table=_table_reference(source),
             official_10yr_billions_line_item=(
