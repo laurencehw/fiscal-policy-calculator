@@ -28,6 +28,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+from fiscal_model.spending_outlays import IMMEDIATE, account_class_label
 from fiscal_model.ui.a11y import (
     ChartDescription,
     format_currency_rows,
@@ -464,6 +465,32 @@ def _tier_badge_html(scored: Any) -> str:
 # ---------------------------------------------------------------------------
 
 
+def spend_out_caption(policy: Any, result: Any) -> str:
+    """One line saying that outlays lag authority, and by how much.
+
+    Spending presets book budget authority and spend it out on the profile
+    their account type implies, so the headline is smaller than the funding
+    the program provides. That is a user-visible change in the number, and it
+    ships with its explanation rather than in silence. Returns ``""`` for
+    anything that is not a spending policy or that outlays immediately.
+    """
+    account_class = getattr(policy, "outlay_account_class", None)
+    if not account_class or account_class == IMMEDIATE:
+        return ""
+    authority = float(getattr(result, "total_budget_authority", 0.0) or 0.0)
+    if authority == 0.0:
+        return ""
+    outlays = float(np.sum(result.static_spending_effect))
+    ratio = outlays / authority
+    return (
+        f"Spend-out: outlays follow the **{account_class_label(account_class)}** "
+        f"profile, so \\${authority:+,.1f}B of budget authority becomes "
+        f"\\${outlays:+,.1f}B of outlays inside the window - a "
+        f"{ratio:.2f} 10-year outlay/authority ratio. Profiles are fitted on "
+        f"CBO options the validation battery does not score."
+    )
+
+
 def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, Any]) -> None:
     """Tier badge, headline number, interpretation, sensitivity, provenance."""
     policy = result_data["policy"]
@@ -497,6 +524,10 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
         unsafe_allow_html=True,
     )
     st_module.caption(SIGN_CONVENTION_CAPTION)
+
+    spend_out = spend_out_caption(policy, result)
+    if spend_out:
+        st_module.caption(spend_out)
 
     credibility_html = _build_credibility_html(getattr(scored, "credibility", None))
     if credibility_html:

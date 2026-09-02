@@ -341,3 +341,66 @@ def test_classified_spending_cases_build_with_their_class():
         policy = create_policy_from_score(KNOWN_SCORES[policy_id])
         assert isinstance(policy, SpendingPolicy)
         assert policy.outlay_account_class == account_class
+
+
+# --------------------------------------------------------------------------
+# 7. A source that states a schedule, not a level (IIJA)
+# --------------------------------------------------------------------------
+
+
+def test_iija_carries_the_sources_own_authorization_schedule():
+    """``iija_2021_discretionary.v2`` scores the path CBO's table states, not a
+    level carried forward. The path is a *pre-registered shape input*: it must
+    sum to the estimate's own $446,306M of budget authority, and its first year
+    must be the $162,996M CBO states for FY2022."""
+    policy = create_policy_from_score(KNOWN_SCORES["iija_2021_discretionary"])
+    path = policy.budget_authority_path
+    assert path is not None, "the level shape was superseded by the schedule"
+    assert path[0] == pytest.approx(162.996)
+    assert sum(path) == pytest.approx(446.306, abs=0.01)
+    # Humped, not level: every year after the first is far below it, and the
+    # last five are the "about $2B/yr" tail.
+    assert all(year < path[0] / 2 for year in path[1:])
+    assert all(year == pytest.approx(2.082) for year in path[5:])
+
+
+def test_iija_authority_path_beats_the_level_it_superseded():
+    """The point of the v2 shape. Scored on the level, IIJA provided about four
+    times CBO's authority; on the schedule it provides exactly CBO's."""
+    score = KNOWN_SCORES["iija_2021_discretionary"]
+    on_path = create_policy_from_score(score)
+    years = range(on_path.start_year, on_path.start_year + on_path.duration_years)
+
+    level = SpendingPolicy(
+        name="IIJA on the superseded v1 level shape",
+        description="level carried forward at 2%/yr",
+        policy_type=PolicyType.DISCRETIONARY_NONDEFENSE,
+        annual_spending_change_billions=float(score.annual_amount_billions),
+        annual_growth_rate=score.annual_growth_rate,
+        category=score.spending_category,
+        outlay_account_class=on_path.outlay_account_class,
+        start_year=on_path.start_year,
+        duration_years=on_path.duration_years,
+    )
+
+    path_authority = sum(on_path.get_budget_authority_in_year(y) for y in years)
+    level_authority = sum(level.get_budget_authority_in_year(y) for y in years)
+    assert path_authority == pytest.approx(446.306, abs=0.01)
+    assert level_authority > 3.5 * path_authority
+
+
+def test_only_a_score_that_states_a_schedule_gets_one():
+    """Every other spending case keeps its level shape. A path silently
+    appearing on a case whose source states a level would be a shape change
+    with no manifest row behind it."""
+    with_paths = [
+        policy_id
+        for policy_id in _SPENDING_OUTLAY_CLASS
+        if KNOWN_SCORES[policy_id].annual_authority_path_billions is not None
+    ]
+    assert with_paths == ["iija_2021_discretionary"]
+    for policy_id in _SPENDING_OUTLAY_CLASS:
+        if policy_id in with_paths:
+            continue
+        built = create_policy_from_score(KNOWN_SCORES[policy_id])
+        assert built.budget_authority_path is None

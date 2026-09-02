@@ -164,6 +164,29 @@ def get_outlay_profile(account_class: str | None) -> OutlayProfile:
         ) from None
 
 
+#: Plain-English name for each account class, for anything a reader sees. The
+#: model layer owns these because two surfaces quote them - the Tailor form's
+#: profile picker and the note printed beside a spending score - and a second
+#: copy would be a second thing to keep true.
+ACCOUNT_CLASS_LABELS: Mapping[str, str] = MappingProxyType(
+    {
+        IMMEDIATE: "immediate (no spend-out)",
+        "mandatory_benefit": "benefit payments",
+        "personnel_and_benefits": "pay and benefits",
+        "operations_and_support": "operations and support",
+        "grants_and_procurement": "grants and procurement",
+        "construction_and_capital": "construction and capital",
+    }
+)
+
+
+def account_class_label(account_class: str | None) -> str:
+    """Plain-English name for an account class; the raw name if it has none."""
+    if not account_class:
+        return ACCOUNT_CLASS_LABELS[IMMEDIATE]
+    return ACCOUNT_CLASS_LABELS.get(account_class, account_class)
+
+
 def account_classes() -> tuple[str, ...]:
     """Every account class the model can spend out, ``immediate`` included."""
     return tuple(sorted(load_outlay_profiles()))

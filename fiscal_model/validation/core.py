@@ -182,23 +182,26 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "resumption, an IRS rescission and debt service.",
     ],
     "iija_2021_discretionary": [
-        "Now a LEVEL-SHAPE miss rather than a spend-out miss. The authority path is "
-        "the whole remaining error: CBO's table shows $163.0B of discretionary "
-        "budget authority in FY2022 falling to $70.1B, $68.5B, $68.1B, $66.2B and "
-        "then about $2B/yr ($446.3B in total), while the pre-registered level rule "
-        "carries $163.0B forward for ten years at 2%/yr - about $1,894B. Spending "
-        "authority out correctly cannot rescue a total built on four times too much "
-        "of it.",
-        "Spreading the source's stated FY2022-2026 authorization ($435.9B) evenly "
-        "over those five years still yields $1,012.9B of authority, so this is not "
-        "an artifact of choosing the first-year level either. Only a humped "
-        "authority path reaches the published figure. SpendingPolicy can now carry "
-        "one (budget_authority_path); wiring IIJA's authorization schedule to it "
-        "changes a pre-registered shape input, which is a manifest decision rather "
-        "than a modelling one.",
-        "This case is deliberately kept rather than excluded: it was the sharpest "
-        "available evidence for the missing spend-out model, and it is now the "
-        "sharpest available evidence for the missing authorization path.",
+        "Now a WINDOW miss, and no longer either a spend-out or a level-shape miss. "
+        "The shape is the source's own authorization schedule "
+        "(iija_2021_discretionary.v2: $163.0B of budget authority in FY2022, then "
+        "$70.1B, $68.5B, $68.1B, $66.2B and $2.08B/yr, summing to CBO's stated "
+        "$446.3B), spent out on the construction_and_capital profile. Total "
+        "outlays across every year the policy touches are $433.2B against CBO's "
+        "$415.4B - 4.3% high, which is just the profile's 0.973 spend-out sum "
+        "applied to the full authority.",
+        "The residual is arithmetic, not behaviour: $92.6B of those outlays fall in "
+        "FY2022-2024, before the model's FY2025-2034 window opens, so $340.0B is "
+        "in-window against a published figure that covers FY2021-2031. The "
+        "repository has no 2021 vintage to score this bill on its own window, which "
+        "is the vintage mismatch the manifest row already records. Nothing here is "
+        "corrected for that: the case is scored on the model's window and reports "
+        "the gap.",
+        "The superseded v1 row (a level carried forward at 2%/yr) is kept in "
+        "preregistered.py at its +$1,894B / 356% and post-spend-out +$1,621B / "
+        "290%. Between them the two rows separate the two defects this case "
+        "surfaced: the missing spend-out model (L2) and the missing authorization "
+        "path (this row).",
     ],
     # -- Phase B: CBO Options for Reducing the Deficit, 2025-2034 -----------
     # Out-of-sample battery. Every miss below is kept and explained; none of
@@ -599,6 +602,10 @@ def create_policy_from_score(
         description=score.description,
         policy_type=_SPENDING_CATEGORY_TO_POLICY_TYPE[score.spending_category],
         annual_spending_change_billions=float(score.annual_amount_billions or 0.0),
+        # A source that states a *schedule* rather than a level gets the
+        # schedule; the level and its growth rate are then unused. See
+        # ``IIJA_AUTHORIZATION_PATH_RULE`` in ``preregistered.py``.
+        budget_authority_path=score.annual_authority_path_billions,
         annual_growth_rate=score.annual_growth_rate,
         phase_in_years=score.phase_in_years,
         is_one_time=score.is_one_time,
