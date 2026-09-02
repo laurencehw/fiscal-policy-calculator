@@ -324,13 +324,54 @@ score, not the model's, and this lane touched no target.
   was already wrong by a factor the lane did not create. Flagged for whoever
   owns it.
 
+### The review round
+
+Three findings from the Copilot review, all acted on; none moved a score.
+
+1. **The overlap term assumed a per-country GILTI even when the policy set
+   `gilti_country_by_country=False`.** A blended GILTI is one calculation over
+   all foreign income, so high-tax jurisdictions cross-credit against low-tax
+   ones — that is the mechanism a country-by-country reform removes — and
+   netting it as though it were per-country would overstate the overlap.
+   `shared_claim_share` now takes the regime and, for a blended one, pools the
+   low-taxed distribution with the high-taxed band ($463.0B of profit at a
+   29.7% effective rate, transcribed from the same Table 4) and allocates the
+   pooled charge on the OECD's own blended-CFC key (Administrative Guidance
+   February 2023, Article 2.10; JCT JCX-22-23 p. 5 n. 10).
+
+   **What that showed is worth more than the fix.** Cross-crediting is large —
+   at a 21% rate the blended claim is $135B against the per-country $148B, and
+   at current law's 10.5% it collapses to **$1.0B against $62.5B** — but the
+   *share* comes out ~1 under both regimes, because the OECD's allocation key
+   is the top-up key, so a pooled charge lands exactly where the top-up would
+   fall and one provision dominates uniformly whatever the pool's size. The
+   regime therefore reaches the netting through the GILTI **level**, not the
+   share. Established rather than assumed, and pinned by two tests.
+2. **The module docstring called the FDII figure "calibrated".** It is
+   transcribed. The header now says which parameters are fitted (GILTI, Pillar
+   Two), which are transcribed (FDII) and which are structural (the overlap),
+   because only the fitted ones make a small error bookkeeping rather than
+   skill.
+3. **`$373,919M` read as though it were a Green Book row for the −$280B GILTI
+   proposal.** There is no row for a GILTI change alone; the nearest also
+   covers inversions and related reforms. The limitation now says so, and that
+   the 34% gap between the two figures is part rounding and part scope in
+   unknown proportions.
+
+CI also caught a gate this lane had not run locally: the **blocking mypy
+green-core allowlist** (`mypy.gate.txt`, which includes `international.py`).
+`new_effective = statutory_rate if self.fdii_repeal else self.fdii_new_rate`
+is `float | None` to mypy even though the guard above it excludes the None
+case. Restructured into an explicit branch; behaviour identical.
+
 ### Gates
 
 | Gate | Exit |
 |---|---|
 | `ruff check fiscal_model/ tests/ app.py app_pages/ components/ classroom_app.py scripts/` | 0 |
-| `pytest tests/ -q -x` | 0 — 3,026 passed, 1 skipped |
+| `mypy $(cat mypy.gate.txt)` — the blocking green-core gate | 0 — 18 files |
+| `pytest tests/ -q -x` | 0 — 3,030 passed, 1 skipped |
 | `cold_holdout.py --max-mean-error 40 --min-within-25pct 17` | 0 |
 | `run_loo.py --donor-matrix --max-mean-error 75` | 0 |
-| `run_validation_dashboard.py` | 1 — pre-existing (runtime Python 3.14 and microdata calibration degraded) |
-| `check_readiness.py --strict` | 2 — pre-existing (same two warnings plus the two documented Poor outliers) |
+| `run_validation_dashboard.py` | 1 locally — pre-existing (runtime Python 3.14 and microdata calibration degraded); **passes in CI**, which runs supported Pythons |
+| `check_readiness.py --strict` | 2 locally — pre-existing (same two warnings plus the two documented Poor outliers); **passes in CI** |
