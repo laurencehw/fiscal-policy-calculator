@@ -1,0 +1,58 @@
+# Source: Urban-Brookings Tax Policy Center, Table T25-0049, "Aggregate
+#   Alternative Minimum Tax (AMT) Projections, 2024-2035", Urban-Brookings Tax
+#   Policy Center Microsimulation Model (version 0325-1).
+# Landing page: https://taxpolicycenter.org/model-estimates/t25-0049-aggregate-alternative-minimum-tax-amt-projections-2024-2035
+# Spreadsheet: https://taxpolicycenter.org/sites/default/files/2025-04/T25-0049.xlsx
+# Display date: 2025-04-03. Transcribed 2026-09-01 from the published .xlsx.
+#
+# Baseline (TPC's footnote 1): "Calendar years. Baseline is the law in place for
+#   each year as of January 1, 2025. Tax units that are dependents of other tax
+#   units are excluded from the analysis." That baseline still carries the TCJA
+#   sunset, so 2024-2025 are scored under TCJA's larger AMT exemption and
+#   2026-2035 after it lapses. That is exactly the counterfactual the
+#   `extend_tcja_amt` and `repeal_individual_amt` benchmarks describe.
+#
+# Definitions, verbatim from the table's footnotes:
+#   (2) "AMT payers are those with higher income taxes because they either have
+#       positive AMT liability on form 6251 or have lower tax credits or
+#       deductions because of the AMT."
+#   (6) "AMT revenue includes direct AMT liability on Form 6251 and the revenue
+#       from lost credits and reduced deductions because of the AMT."
+#   Revenue is calendar-year liability, not fiscal-year receipts.
+#
+# Columns: `year`, `amt_payers_millions` (TPC "Number (millions)"),
+#   `amt_payers_pct_of_income_tax_payers` (TPC "Income Tax Payers"),
+#   `amt_revenue_billions` (TPC "Total (billions of $)"),
+#   `amt_revenue_per_payer_dollars` (TPC "Per AMT Payer ($)").
+#   `regime` is NOT a TPC column: it is this repository's annotation of which
+#   side of the sunset each year sits on under the table's own baseline.
+#   Payers x per-payer does not reproduce revenue exactly because TPC rounds
+#   each row independently; `amt_revenue_billions` is the authoritative column.
+#
+# Cross-check against an earlier vintage: TPC T18-0145, "Aggregate AMT
+#   Projections, 2016-2028" (2 October 2018,
+#   https://taxpolicycenter.org/sites/default/files/model-estimates/spreadsheet/t18-0145.xlsx)
+#   put the same post-sunset first year at 7.1M payers and $62.1B, against 7.6M
+#   and $71.6B here. The two vintages agree on the shape - a cliff at the 2026
+#   sunset, not a ramp - and differ on level by about 15%, which is the vintage
+#   uncertainty around this path.
+#
+# Not in this file, and why: TPC publishes no post-2025 row for the
+#   TCJA-exemption regime, because that regime does not exist under the table's
+#   baseline. `fiscal_model/amt.py` extends it by holding TPC's own 0.2M payer
+#   count and growing their $29,740 per-payer liability at the table's own
+#   2024-to-2025 rate. That rule is stated in the module, applies to every year
+#   uniformly, and is not fitted to any benchmark.
+year,regime,amt_payers_millions,amt_payers_pct_of_income_tax_payers,amt_revenue_billions,amt_revenue_per_payer_dollars
+2024,tcja,0.2,0.2,7.1,28870
+2025,tcja,0.2,0.2,7.4,29740
+2026,post_sunset,7.6,6.2,71.6,9470
+2027,post_sunset,7.7,6.2,74.7,9750
+2028,post_sunset,7.9,6.3,80.0,10110
+2029,post_sunset,8.2,6.5,84.4,10260
+2030,post_sunset,8.6,6.7,90.4,10540
+2031,post_sunset,8.9,6.8,96.3,10870
+2032,post_sunset,9.1,6.9,102.7,11230
+2033,post_sunset,9.6,7.2,109.2,11410
+2034,post_sunset,10.0,7.4,115.4,11560
+2035,post_sunset,10.3,7.5,124.2,12020
