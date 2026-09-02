@@ -142,14 +142,11 @@ def calculate_tax_policy_result(
     baseline_cg_rate: float,
     baseline_realizations: float,
     realization_elasticity: float,
-    short_run_elasticity: float,
-    long_run_elasticity: float,
-    transition_years: int,
+    persistent_elasticity: float,
+    transitory_elasticity: float,
     use_time_varying: bool,
     eliminate_step_up: bool,
     step_up_exemption: float,
-    gains_at_death: float,
-    step_up_lock_in_multiplier: float,
 ) -> dict[str, Any]:
     """
     Build and score a tax policy from UI inputs and preset metadata.
@@ -196,15 +193,12 @@ def calculate_tax_policy_result(
             baseline_capital_gains_rate=float(baseline_cg_rate),
             baseline_realizations_billions=float(baseline_realizations),
             realization_elasticity=float(realization_elasticity),
-            short_run_elasticity=float(short_run_elasticity),
-            long_run_elasticity=float(long_run_elasticity),
-            transition_years=int(transition_years),
+            persistent_elasticity=float(persistent_elasticity),
+            transitory_elasticity=float(transitory_elasticity),
             use_time_varying_elasticity=use_time_varying,
             step_up_at_death=True,
             eliminate_step_up=eliminate_step_up,
             step_up_exemption=float(step_up_exemption),
-            gains_at_death_billions=float(gains_at_death),
-            step_up_lock_in_multiplier=float(step_up_lock_in_multiplier),
         )
 
         if baseline_realizations <= 0:

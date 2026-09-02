@@ -171,8 +171,11 @@ def test_validate_capital_gains_policy_applies_step_up_fields(monkeypatch, capsy
         affected_income_threshold=400_000,
         baseline_capital_gains_rate=0.238,
         baseline_realizations_billions=100.0,
-        short_run_elasticity=0.8,
-        long_run_elasticity=0.4,
+        persistent_elasticity=0.72,
+        transitory_elasticity=1.20,
+        elasticity_reference_rate=0.22,
+        eliminate_step_up=False,
+        lock_in_wedge=lambda: 1.44,
     )
     monkeypatch.setattr(
         capital_gains,
@@ -183,11 +186,9 @@ def test_validate_capital_gains_policy_applies_step_up_fields(monkeypatch, capsy
                 "score_id": "cg_score",
                 "baseline_capital_gains_rate": 0.238,
                 "baseline_realizations_billions": 100.0,
-                "short_run_elasticity": 0.8,
-                "long_run_elasticity": 0.4,
+                "score_gains_at_death": False,
                 "eliminate_step_up": True,
                 "step_up_exemption": 0.0,
-                "gains_at_death_billions": 0.0,
                 "notes": "note",
             }
         },

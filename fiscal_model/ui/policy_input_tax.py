@@ -19,14 +19,11 @@ from .session_state import (
     KEY_TAILOR_TAX_CG_BASELINE_RATE,
     KEY_TAILOR_TAX_CG_BASELINE_REALIZATIONS,
     KEY_TAILOR_TAX_CG_ELIMINATE_STEP_UP,
-    KEY_TAILOR_TAX_CG_GAINS_AT_DEATH,
-    KEY_TAILOR_TAX_CG_LOCK_IN_MULTIPLIER,
-    KEY_TAILOR_TAX_CG_LONG_RUN_ELASTICITY,
+    KEY_TAILOR_TAX_CG_PERSISTENT_ELASTICITY,
     KEY_TAILOR_TAX_CG_REALIZATION_ELASTICITY,
-    KEY_TAILOR_TAX_CG_SHORT_RUN_ELASTICITY,
     KEY_TAILOR_TAX_CG_STEP_UP_EXEMPTION,
     KEY_TAILOR_TAX_CG_TIME_VARYING,
-    KEY_TAILOR_TAX_CG_TRANSITION_YEARS,
+    KEY_TAILOR_TAX_CG_TRANSITORY_ELASTICITY,
     KEY_TAILOR_TAX_CUSTOM_THRESHOLD,
     KEY_TAILOR_TAX_DURATION,
     KEY_TAILOR_TAX_ETI,
@@ -227,14 +224,11 @@ def render_tax_policy_inputs(
     baseline_cg_rate = 0.20
     baseline_realizations = 0.0
     use_time_varying = True
-    short_run_elasticity = 0.8
-    long_run_elasticity = 0.4
-    transition_years = 3
+    persistent_elasticity = 0.72
+    transitory_elasticity = 1.20
     realization_elasticity = 0.5
     eliminate_step_up = False
     step_up_exemption = 0.0
-    gains_at_death = 54.0
-    step_up_lock_in_multiplier = 2.0
 
     if use_preset:
         # Specialized modules create their own policy via create_policy_from_preset.
@@ -400,52 +394,54 @@ def render_tax_policy_inputs(
 
                 _seed_widget_default(st_module, KEY_TAILOR_TAX_CG_TIME_VARYING, True)
                 use_time_varying = st_module.checkbox(
-                    "Use time-varying elasticity (recommended)",
+                    "Split the response into permanent and transitory (recommended)",
                     key=KEY_TAILOR_TAX_CG_TIME_VARYING,
-                    help="Short-run: timing effects dominate. Long-run: only permanent responses remain.",
+                    help=(
+                        "The permanent response applies every year; the transitory "
+                        "one is retiming around the effective date and applies only "
+                        "in the first year."
+                    ),
                 )
 
                 if use_time_varying:
                     _seed_widget_default(
-                        st_module, KEY_TAILOR_TAX_CG_SHORT_RUN_ELASTICITY, 0.8
+                        st_module, KEY_TAILOR_TAX_CG_PERSISTENT_ELASTICITY, 0.72
                     )
-                    short_run_elasticity = st_module.number_input(
-                        "Short-run elasticity (years 1-3)",
-                        step=0.1,
-                        key=KEY_TAILOR_TAX_CG_SHORT_RUN_ELASTICITY,
-                        help="Higher because investors can time when to sell.",
+                    persistent_elasticity = st_module.number_input(
+                        "Persistent elasticity (at a 22% rate)",
+                        step=0.05,
+                        key=KEY_TAILOR_TAX_CG_PERSISTENT_ELASTICITY,
+                        help=(
+                            "Percent change in realizations per percent change in the "
+                            "tax rate. 0.72 is Dowd, McClelland and Muthitacharoen "
+                            "(2015); it implies a revenue-maximizing rate of 30.6%."
+                        ),
                     )
                     _seed_widget_default(
-                        st_module, KEY_TAILOR_TAX_CG_LONG_RUN_ELASTICITY, 0.4
+                        st_module, KEY_TAILOR_TAX_CG_TRANSITORY_ELASTICITY, 1.20
                     )
-                    long_run_elasticity = st_module.number_input(
-                        "Long-run elasticity (years 4+)",
-                        step=0.1,
-                        key=KEY_TAILOR_TAX_CG_LONG_RUN_ELASTICITY,
-                        help="Lower because timing effects have dissipated.",
+                    transitory_elasticity = st_module.number_input(
+                        "Transitory elasticity (at a 22% rate)",
+                        step=0.05,
+                        key=KEY_TAILOR_TAX_CG_TRANSITORY_ELASTICITY,
+                        help=(
+                            "Retiming around the effective date, applied in the first "
+                            "year only and only to realized long-term gains. 1.2 is "
+                            "the same study."
+                        ),
                     )
-                    _seed_widget_default(st_module, KEY_TAILOR_TAX_CG_TRANSITION_YEARS, 3)
-                    transition_years = st_module.slider(
-                        "Transition period (years)",
-                        min_value=1,
-                        max_value=5,
-                        key=KEY_TAILOR_TAX_CG_TRANSITION_YEARS,
-                    )
-                    realization_elasticity = (
-                        short_run_elasticity + long_run_elasticity
-                    ) / 2
+                    realization_elasticity = persistent_elasticity
                 else:
                     _seed_widget_default(
                         st_module, KEY_TAILOR_TAX_CG_REALIZATION_ELASTICITY, 0.5
                     )
                     realization_elasticity = st_module.number_input(
-                        "Realization elasticity (constant)",
+                        "Realization elasticity (constant, at a 22% rate)",
                         step=0.05,
                         key=KEY_TAILOR_TAX_CG_REALIZATION_ELASTICITY,
                     )
-                    short_run_elasticity = realization_elasticity
-                    long_run_elasticity = realization_elasticity
-                    transition_years = 1
+                    persistent_elasticity = realization_elasticity
+                    transitory_elasticity = 0.0
 
                 st_module.markdown("**Step-up basis at death**")
                 st_module.caption(
@@ -468,37 +464,14 @@ def render_tax_policy_inputs(
                         "Exemption per decedent ($)",
                         step=100_000,
                         key=KEY_TAILOR_TAX_CG_STEP_UP_EXEMPTION,
-                    )
-                    _seed_widget_default(
-                        st_module, KEY_TAILOR_TAX_CG_GAINS_AT_DEATH, 54.0
-                    )
-                    gains_at_death = st_module.number_input(
-                        "Annual gains at death ($B)",
-                        step=5.0,
-                        key=KEY_TAILOR_TAX_CG_GAINS_AT_DEATH,
-                        help="CBO estimates \\~$54B/year in unrealized gains transferred at death.",
-                    )
-                    step_up_lock_in_multiplier = 1.0
-                else:
-                    step_up_exemption = 0.0
-                    gains_at_death = 54.0
-                    _seed_widget_default(
-                        st_module, KEY_TAILOR_TAX_CG_LOCK_IN_MULTIPLIER, 2.0
-                    )
-                    step_up_lock_in_multiplier = st_module.slider(
-                        "Lock-in multiplier",
-                        min_value=1.0,
-                        max_value=6.0,
-                        step=0.5,
-                        key=KEY_TAILOR_TAX_CG_LOCK_IN_MULTIPLIER,
                         help=(
-                            "How much step-up at death raises the incentive to defer "
-                            "realizations (it multiplies the realization elasticity). "
-                            "2.0 is the module default. 5.3 is the value one calibrated "
-                            "validation scenario uses to reproduce Penn Wharton's revenue "
-                            "loss; it is not current-law evidence."
+                            "Gains above this amount per decedent are taxed. The flow "
+                            "of gains transferred at death is estimated from decedent "
+                            "wealth and household net worth, not entered here."
                         ),
                     )
+                else:
+                    step_up_exemption = 0.0
         else:
             with st_module.expander("Advanced parameters", expanded=False):
                 st_module.caption(
@@ -562,16 +535,13 @@ def render_tax_policy_inputs(
         "eti": eti,
         "ordinary_income_base": ordinary_income_base,
         "cg_base_year": cg_base_year,
-        "cg_rate_source": "Statutory/NIIT proxy (by AGI bracket)",
+        "cg_rate_source": "IRS SOI Table 3.5 income taxed at each rate, plus NIIT",
         "baseline_cg_rate": baseline_cg_rate,
         "baseline_realizations": baseline_realizations,
         "use_time_varying": use_time_varying,
-        "short_run_elasticity": short_run_elasticity,
-        "long_run_elasticity": long_run_elasticity,
-        "transition_years": transition_years,
+        "persistent_elasticity": persistent_elasticity,
+        "transitory_elasticity": transitory_elasticity,
         "realization_elasticity": realization_elasticity,
         "eliminate_step_up": eliminate_step_up,
         "step_up_exemption": step_up_exemption,
-        "gains_at_death": gains_at_death,
-        "step_up_lock_in_multiplier": step_up_lock_in_multiplier,
     }

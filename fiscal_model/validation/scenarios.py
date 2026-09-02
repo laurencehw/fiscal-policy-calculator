@@ -61,20 +61,29 @@ from ..trade import (
     create_trump_universal_10,
 )
 
+#: The three capital-gains benchmarks. Every behavioural field is gone: the
+#: three hand-set elasticity/lock-in tuples these scenarios used to carry
+#: (3.2/2.8 with lock-in 1.0; 0.8/0.4 with lock-in 5.3; 0.8/0.4 with a 1.5x
+#: residual-avoidance multiplier) were each chosen after seeing that case's own
+#: target, and the leave-one-out donor matrix showed the 5.3x tuple was the
+#: module's answer key. What is left is structural: what the policy *is* - its
+#: base, its baseline rate, whether step-up survives, whether the published
+#: figure covers the gains-at-death channel at all. The behaviour comes from
+#: one frozen literature set on ``CapitalGainsPolicy`` (Dowd, McClelland &
+#: Muthitacharoen 2015; owner Decision 3 of planning/MODELING_IMPROVEMENT.md).
 CAPITAL_GAINS_VALIDATION_SCENARIOS = {
     "cbo_2pp_all_brackets": {
         "score_id": "cbo_capgains_2pp_all",
         "description": "CBO +2pp rate increase across all brackets",
         "baseline_realizations_billions": 955.0,
         "baseline_capital_gains_rate": 0.15,
-        "short_run_elasticity": 3.2,
-        "long_run_elasticity": 2.8,
         "step_up_at_death": True,
         "eliminate_step_up": False,
-        "step_up_lock_in_multiplier": 1.0,
         "notes": (
-            "2018 baseline. JCT implied elasticity much higher than academic estimates. "
-            "This may reflect additional behavioral channels not in simple model."
+            "2018 baseline. Scored on the one frozen semi-log realizations "
+            "response; the elasticity implied by JCT's own path at a 2pp change "
+            "is larger than the frozen persistent value, so this row is "
+            "expected to over-predict."
         ),
     },
     "pwbm_39_with_stepup": {
@@ -82,15 +91,13 @@ CAPITAL_GAINS_VALIDATION_SCENARIOS = {
         "description": "PWBM 39.6% rate (with step-up basis at death)",
         "baseline_realizations_billions": 100.0,
         "baseline_capital_gains_rate": 0.238,
-        "short_run_elasticity": 0.8,
-        "long_run_elasticity": 0.4,
         "step_up_at_death": True,
         "eliminate_step_up": False,
-        "step_up_lock_in_multiplier": 5.3,
         "notes": (
-            "With step-up, taxpayers avoid tax by holding until death. "
-            "Lock-in multiplier of 5.3x calibrated to match PWBM's revenue loss. "
-            "Implies effective elasticity of ~4.2 (short-run) and ~2.1 (long-run)."
+            "With step-up, holding until death escapes tax entirely. The "
+            "semi-log form puts the revenue-maximizing rate at 1/b = 30.6%, so "
+            "43.4% is past the peak and the rate change loses revenue - which "
+            "is PWBM's own result, reached here without a lock-in multiplier."
         ),
     },
     "pwbm_39_no_stepup": {
@@ -98,20 +105,18 @@ CAPITAL_GAINS_VALIDATION_SCENARIOS = {
         "description": "PWBM 39.6% rate (without step-up basis)",
         "baseline_realizations_billions": 100.0,
         "baseline_capital_gains_rate": 0.238,
-        "short_run_elasticity": 0.8,
-        "long_run_elasticity": 0.4,
         "step_up_at_death": True,
         "eliminate_step_up": True,
-        "step_up_lock_in_multiplier": 1.0,
-        "no_step_up_avoidance_multiplier": 1.5,
         "step_up_exemption": 0.0,
-        "gains_at_death_billions": 0.0,
+        # PWBM's $113B is the rate change only; they score step-up elimination
+        # separately. A scope statement about the published figure, not a
+        # behavioural parameter.
+        "score_gains_at_death": False,
         "notes": (
-            "Without step-up, behavioral response is more moderate. "
-            "A 1.5x residual avoidance multiplier captures PWBM's caveat that "
-            "threshold timing and business-form shifting remain even after step-up "
-            "basis is eliminated. PWBM $113B is for rate change only; step-up "
-            "elimination revenue separate."
+            "Without step-up nothing escapes by being held, so the lock-in "
+            "wedge between the two worlds shrinks the response. PWBM's $113B "
+            "is for the rate change only; the gains-at-death channel is scored "
+            "separately and is switched off here."
         ),
     },
 }

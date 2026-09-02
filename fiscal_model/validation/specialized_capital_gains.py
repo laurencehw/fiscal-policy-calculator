@@ -32,17 +32,15 @@ def validate_capital_gains_policy(
         score,
         baseline_capital_gains_rate=scenario["baseline_capital_gains_rate"],
         baseline_realizations_billions=scenario["baseline_realizations_billions"],
-        short_run_elasticity=scenario["short_run_elasticity"],
-        long_run_elasticity=scenario["long_run_elasticity"],
     )
 
+    # Only structural fields are read off the scenario: the behavioural
+    # parameters are the module's one frozen literature set.
     for field_name in (
         "step_up_at_death",
         "eliminate_step_up",
-        "step_up_lock_in_multiplier",
-        "no_step_up_avoidance_multiplier",
         "step_up_exemption",
-        "gains_at_death_billions",
+        "score_gains_at_death",
     ):
         if field_name in scenario:
             setattr(policy, field_name, scenario[field_name])
@@ -61,16 +59,11 @@ def validate_capital_gains_policy(
             "threshold": policy.affected_income_threshold,
             "baseline_rate": policy.baseline_capital_gains_rate,
             "baseline_realizations": policy.baseline_realizations_billions,
-            "short_run_elasticity": policy.short_run_elasticity,
-            "long_run_elasticity": policy.long_run_elasticity,
-            "step_up_lock_in_multiplier": getattr(
-                policy,
-                "step_up_lock_in_multiplier",
-                1.0,
-            ),
-            "no_step_up_avoidance_multiplier": (
-                getattr(policy, "no_step_up_avoidance_multiplier", 1.0)
-            ),
+            "persistent_elasticity": policy.persistent_elasticity,
+            "transitory_elasticity": policy.transitory_elasticity,
+            "elasticity_reference_rate": policy.elasticity_reference_rate,
+            "lock_in_wedge": policy.lock_in_wedge(),
+            "eliminate_step_up": policy.eliminate_step_up,
         },
         notes=scenario.get("notes", ""),
         benchmark_date=score.source_date,
@@ -96,8 +89,9 @@ def validate_capital_gains_policy(
         print(f"  Threshold: ${policy.affected_income_threshold:,.0f}")
         print(f"  Baseline rate: {policy.baseline_capital_gains_rate*100:.1f}%")
         print(f"  Baseline realizations: ${policy.baseline_realizations_billions:,.0f}B")
-        print(f"  Short-run elasticity: {policy.short_run_elasticity:.2f}")
-        print(f"  Long-run elasticity: {policy.long_run_elasticity:.2f}")
+        print(f"  Persistent elasticity: {policy.persistent_elasticity:.2f}")
+        print(f"  Transitory elasticity: {policy.transitory_elasticity:.2f}")
+        print(f"  Lock-in wedge (with/without step-up): {policy.lock_in_wedge():.2f}x")
         if scenario.get("notes"):
             print(f"\nNotes: {scenario['notes']}")
 

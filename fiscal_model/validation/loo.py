@@ -935,16 +935,18 @@ def run_tax_expenditure_loo() -> LOOReport:
 # ---------------------------------------------------------------------------
 
 #: The behavioural parameter set used by ``frozen`` mode: the
-#: ``CapitalGainsPolicy`` dataclass defaults, which come from the ETI /
-#: realizations literature (short-run 0.8, long-run 0.4 over a 3-year
-#: transition) rather than from any of the three benchmarks. Structural fields
-#: (baseline rate, realizations, whether step-up applies, the gains-at-death
-#: scope) stay at their scenario values — those define *what* the policy is.
+#: ``CapitalGainsPolicy`` dataclass defaults, which come from the realizations
+#: literature (Dowd, McClelland & Muthitacharoen 2015 — persistent 0.72,
+#: transitory 1.2, both at the 22% reference rate CRS R48562 states its
+#: estimates are adjusted to) rather than from any of the three benchmarks.
+#: Structural fields (baseline rate, realizations, whether step-up applies, the
+#: gains-at-death scope) stay at their scenario values — those define *what*
+#: the policy is. Since Wave 2's L1 the scenarios carry no behavioural fields
+#: at all, so every donor row of the matrix is this same set.
 FROZEN_CAPITAL_GAINS_PARAMS: dict[str, float] = {
-    "short_run_elasticity": 0.8,
-    "long_run_elasticity": 0.4,
-    "step_up_lock_in_multiplier": 2.0,
-    "no_step_up_avoidance_multiplier": 1.0,
+    "persistent_elasticity": 0.72,
+    "transitory_elasticity": 1.20,
+    "elasticity_reference_rate": 0.22,
 }
 
 
@@ -952,20 +954,23 @@ def run_capital_gains_loo() -> LOOReport:
     """
     Score all three capital-gains benchmarks with one frozen elasticity set.
 
-    The three scenarios currently carry three *different* hand-set
+    The three scenarios used to carry three *different* hand-set
     elasticity/lock-in tuples (3.2/2.8 with lock-in 1.0; 0.8/0.4 with lock-in
-    5.3; 0.8/0.4 with a 1.5x residual-avoidance multiplier). Each tuple is the
+    5.3; 0.8/0.4 with a 1.5x residual-avoidance multiplier). Each was the
     module's most-tuned parameter, and each was chosen after seeing its own
-    target. Freezing one set and scoring all three converts that parameter
-    into a prediction.
+    target. Wave 2's L1 deleted them, so the scenarios now carry only
+    structural fields and this runner scores all three on the one frozen
+    literature set — which is what converted that parameter into a prediction.
     """
     report = LOOReport(
         module="CapitalGains",
         mechanism=(
-            "Realizations response R1 = R0 x ((1-t1)/(1-t0))^e(t) with the elasticity "
-            "set frozen at the CapitalGainsPolicy dataclass defaults "
-            "(short 0.8 / long 0.4 / transition 3, lock-in 2.0, avoidance 1.0) instead "
-            "of each scenario's hand-set tuple."
+            "Semi-log realizations response R1 = R0 x exp(-b (t1 - t0)) with "
+            "b = elasticity / reference rate, frozen at the CapitalGainsPolicy "
+            "dataclass defaults (Dowd, McClelland & Muthitacharoen 2015: persistent "
+            "0.72, transitory 1.2, at a 22% reference rate) instead of each "
+            "scenario's hand-set tuple. Lock-in is the with/without-step-up price "
+            "wedge implied by the accrued-gains stock, not a multiplier."
         ),
     )
     # Built directly rather than through _build_case: this module's held-out

@@ -169,8 +169,9 @@ def test_create_policy_builds_capital_gains_with_frozen_module_defaults():
         _score(policy_type="capital_gains_tax", rate_change=0.196, eliminate_step_up=True)
     )
     assert isinstance(policy, CapitalGainsPolicy)
-    assert policy.short_run_elasticity == 0.8
-    assert policy.long_run_elasticity == 0.4
+    assert policy.persistent_elasticity == 0.72
+    assert policy.transitory_elasticity == 1.20
+    assert policy.elasticity_reference_rate == 0.22
     assert policy.eliminate_step_up is True
     # Left at 0 so the SOI auto-population fills them in at scoring time.
     assert policy.baseline_realizations_billions == 0.0
@@ -183,7 +184,9 @@ def test_every_generic_capital_gains_target_shares_one_elasticity_set():
         if validation_shape(s) == "capital_gains"
     ]
     assert policies
-    assert {(p.short_run_elasticity, p.long_run_elasticity) for p in policies} == {(0.8, 0.4)}
+    assert {(p.persistent_elasticity, p.transitory_elasticity) for p in policies} == {
+        (0.72, 1.20)
+    }
 
 
 def test_create_policy_builds_corporate_rate_policy():
@@ -241,7 +244,7 @@ def test_model_parameters_report_each_shapes_real_drivers():
         _score(policy_type="capital_gains_tax", rate_change=0.05)
     )
     capgains_params = _model_parameters_for(capgains)
-    assert {"short_run_elasticity", "long_run_elasticity", "eliminate_step_up"} <= set(
+    assert {"persistent_elasticity", "transitory_elasticity", "eliminate_step_up"} <= set(
         capgains_params
     )
 

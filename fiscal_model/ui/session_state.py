@@ -114,14 +114,11 @@ KEY_TAILOR_TAX_CG_BASE_YEAR = "tailor_tax_cg_base_year"
 KEY_TAILOR_TAX_CG_BASELINE_RATE = "tailor_tax_cg_baseline_rate"
 KEY_TAILOR_TAX_CG_BASELINE_REALIZATIONS = "tailor_tax_cg_baseline_realizations"
 KEY_TAILOR_TAX_CG_TIME_VARYING = "tailor_tax_cg_time_varying"
-KEY_TAILOR_TAX_CG_SHORT_RUN_ELASTICITY = "tailor_tax_cg_short_run_elasticity"
-KEY_TAILOR_TAX_CG_LONG_RUN_ELASTICITY = "tailor_tax_cg_long_run_elasticity"
-KEY_TAILOR_TAX_CG_TRANSITION_YEARS = "tailor_tax_cg_transition_years"
+KEY_TAILOR_TAX_CG_PERSISTENT_ELASTICITY = "tailor_tax_cg_persistent_elasticity"
+KEY_TAILOR_TAX_CG_TRANSITORY_ELASTICITY = "tailor_tax_cg_transitory_elasticity"
 KEY_TAILOR_TAX_CG_REALIZATION_ELASTICITY = "tailor_tax_cg_realization_elasticity"
 KEY_TAILOR_TAX_CG_ELIMINATE_STEP_UP = "tailor_tax_cg_eliminate_step_up"
 KEY_TAILOR_TAX_CG_STEP_UP_EXEMPTION = "tailor_tax_cg_step_up_exemption"
-KEY_TAILOR_TAX_CG_GAINS_AT_DEATH = "tailor_tax_cg_gains_at_death"
-KEY_TAILOR_TAX_CG_LOCK_IN_MULTIPLIER = "tailor_tax_cg_lock_in_multiplier"
 
 # Tailor - spending program form (``ui/policy_input_spending.py``)
 KEY_TAILOR_SPEND_PROGRAM_NAME = "tailor_spend_program_name"
@@ -412,14 +409,11 @@ _SESSION_KEYS: tuple[_KeySpec, ...] = (
     _KeySpec(KEY_TAILOR_TAX_CG_BASELINE_RATE, 0.238, float),
     _KeySpec(KEY_TAILOR_TAX_CG_BASELINE_REALIZATIONS, 0.0, float),
     _KeySpec(KEY_TAILOR_TAX_CG_TIME_VARYING, True, bool),
-    _KeySpec(KEY_TAILOR_TAX_CG_SHORT_RUN_ELASTICITY, 0.8, float),
-    _KeySpec(KEY_TAILOR_TAX_CG_LONG_RUN_ELASTICITY, 0.4, float),
-    _KeySpec(KEY_TAILOR_TAX_CG_TRANSITION_YEARS, 3, int),
+    _KeySpec(KEY_TAILOR_TAX_CG_PERSISTENT_ELASTICITY, 0.72, float),
+    _KeySpec(KEY_TAILOR_TAX_CG_TRANSITORY_ELASTICITY, 1.20, float),
     _KeySpec(KEY_TAILOR_TAX_CG_REALIZATION_ELASTICITY, 0.5, float),
     _KeySpec(KEY_TAILOR_TAX_CG_ELIMINATE_STEP_UP, False, bool),
     _KeySpec(KEY_TAILOR_TAX_CG_STEP_UP_EXEMPTION, 1_000_000, int),
-    _KeySpec(KEY_TAILOR_TAX_CG_GAINS_AT_DEATH, 54.0, float),
-    _KeySpec(KEY_TAILOR_TAX_CG_LOCK_IN_MULTIPLIER, 2.0, float),
     # Tailor - spending program form
     _KeySpec(KEY_TAILOR_SPEND_PROGRAM_NAME, "Infrastructure Investment", str),
     _KeySpec(KEY_TAILOR_SPEND_ANNUAL, 100.0, float),
@@ -606,14 +600,11 @@ __all__ = [
     "KEY_TAILOR_TAX_CG_BASELINE_REALIZATIONS",
     "KEY_TAILOR_TAX_CG_BASE_YEAR",
     "KEY_TAILOR_TAX_CG_ELIMINATE_STEP_UP",
-    "KEY_TAILOR_TAX_CG_GAINS_AT_DEATH",
-    "KEY_TAILOR_TAX_CG_LOCK_IN_MULTIPLIER",
-    "KEY_TAILOR_TAX_CG_LONG_RUN_ELASTICITY",
+    "KEY_TAILOR_TAX_CG_PERSISTENT_ELASTICITY",
     "KEY_TAILOR_TAX_CG_REALIZATION_ELASTICITY",
-    "KEY_TAILOR_TAX_CG_SHORT_RUN_ELASTICITY",
     "KEY_TAILOR_TAX_CG_STEP_UP_EXEMPTION",
     "KEY_TAILOR_TAX_CG_TIME_VARYING",
-    "KEY_TAILOR_TAX_CG_TRANSITION_YEARS",
+    "KEY_TAILOR_TAX_CG_TRANSITORY_ELASTICITY",
     "KEY_TAILOR_TAX_CUSTOM_THRESHOLD",
     "KEY_TAILOR_TAX_DURATION",
     "KEY_TAILOR_TAX_ETI",

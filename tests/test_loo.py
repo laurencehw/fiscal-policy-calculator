@@ -90,12 +90,22 @@ def test_scenario_registries_are_restored(suite):
         for scenario in registry.values():
             assert "policy_factory" in scenario or "score_id" in scenario
     # The frozen capital-gains parameters must not have leaked into the
-    # persistent registry.
-    cbo = CAPITAL_GAINS_VALIDATION_SCENARIOS["cbo_2pp_all_brackets"]
-    assert cbo["short_run_elasticity"] == 3.2
-    assert cbo["long_run_elasticity"] == 2.8
-    pwbm = CAPITAL_GAINS_VALIDATION_SCENARIOS["pwbm_39_with_stepup"]
-    assert pwbm["step_up_lock_in_multiplier"] == 5.3
+    # persistent registry. Since Wave 2's L1 that registry carries no
+    # behavioural fields at all, which is the stronger statement: there is
+    # nothing left for the frozen set to overwrite.
+    behavioural = {
+        "short_run_elasticity",
+        "long_run_elasticity",
+        "transition_years",
+        "step_up_lock_in_multiplier",
+        "no_step_up_avoidance_multiplier",
+        "persistent_elasticity",
+        "transitory_elasticity",
+        "elasticity_reference_rate",
+        "realization_elasticity",
+    }
+    for scenario in CAPITAL_GAINS_VALIDATION_SCENARIOS.values():
+        assert not behavioural & set(scenario)
 
 
 # ---------------------------------------------------------------------------
@@ -232,13 +242,21 @@ def test_frozen_params_are_the_dataclass_defaults():
         assert getattr(defaults, field_name) == value
 
 
-def test_frozen_run_differs_from_the_hand_set_tuples(suite):
-    """Freezing must actually change the scores, or it proves nothing."""
+def test_frozen_run_matches_the_production_run_now_the_tuples_are_gone(suite):
+    """The tuples this comparison existed to expose have been deleted.
+
+    Before Wave 2's L1 the three scenarios each carried their own
+    elasticity/lock-in tuple, and freezing one set changed every score - which
+    is what made the LOO number informative. Now the scenarios are structural
+    only, so the frozen run and the production run are the same run, and the
+    whole module scores out-of-sample by construction. That equality is the
+    property worth guarding: if it ever breaks, a per-case behavioural
+    parameter has come back.
+    """
     report = next(r for r in suite.reports if r.module == "CapitalGains")
-    changed = [
-        c for c in report.cases if c.loo_10yr != pytest.approx(c.calibrated_10yr)
-    ]
-    assert len(changed) >= 2
+    assert report.cases
+    for case in report.cases:
+        assert case.loo_10yr == pytest.approx(case.calibrated_10yr)
 
 
 def test_donor_matrix_is_square_and_complete():
@@ -287,7 +305,19 @@ def test_loo_is_materially_worse_than_by_construction(suite):
     ]
     mean_by_construction = sum(by_construction) / len(by_construction)
     assert suite.mean_abs_percent_error > mean_by_construction
-    assert mean_by_construction < 10.0
+
+    # The by-construction number measures bookkeeping only where a constant was
+    # actually fitted. Wave 2's L1 deleted the capital-gains tuples, so those
+    # three cases have nothing held out and their "by-construction" score is
+    # their out-of-sample score. Excluding them keeps this assertion measuring
+    # what it was written to measure; it removes no case from any reported
+    # error, and the LOO aggregate above still includes all 18.
+    fitted = [
+        abs((c.calibrated_10yr - c.official_10yr) / c.official_10yr) * 100
+        for c in included
+        if c.module != "CapitalGains"
+    ]
+    assert sum(fitted) / len(fitted) < 10.0
 
 
 # ---------------------------------------------------------------------------

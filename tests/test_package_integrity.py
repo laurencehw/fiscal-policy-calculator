@@ -474,14 +474,11 @@ def test_calculate_tax_policy_result_simple_mapping():
         baseline_cg_rate=0.2,
         baseline_realizations=0.0,
         realization_elasticity=0.5,
-        short_run_elasticity=0.8,
-        long_run_elasticity=0.4,
-        transition_years=3,
+        persistent_elasticity=0.72,
+        transitory_elasticity=1.20,
         use_time_varying=True,
         eliminate_step_up=False,
         step_up_exemption=0.0,
-        gains_at_death=54.0,
-        step_up_lock_in_multiplier=2.0,
     )
 
     assert result["is_spending"] is False
