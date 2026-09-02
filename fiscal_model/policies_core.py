@@ -3,6 +3,7 @@ Core policy parameter definitions.
 """
 
 import logging
+import math
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Literal
@@ -397,21 +398,76 @@ class TaxPolicy(Policy):
 
 @dataclass
 class CapitalGainsPolicy(TaxPolicy):
-    """Capital gains tax policy with realizations behavioral response."""
+    """Capital gains policy: a semi-log realizations response on a stock of
+    accrued gains, with step-up at death as an escape from that stock.
+
+    **The response is to the tax rate, not to the net-of-tax rate.** The
+    capital-gains realization literature reports an elasticity defined as the
+    percentage change in realizations over the percentage change in the *tax
+    rate* (CRS R48562, *Boundaries on the Long-Run Realization Response to
+    Changes in Capital Gains Taxes*, 2025, pp. 1 and 13), behind which sits a
+    semi-log realizations function ``R = B exp(-b t)``.  So::
+
+        R1 = R0 * exp(-b * (tau1 - tau0))       b = elasticity / reference rate
+
+    Two properties come free with that form and neither is a second parameter.
+    The implied elasticity ``e(t) = b*t`` **rises with the rate**, so the top
+    bracket responds more than the 15 percent bracket to the same
+    percentage-point change; and there is a revenue-maximizing rate at
+    ``tau* = 1/b``.
+
+    **Frozen elasticities.** Dowd, McClelland & Muthitacharoen (2015),
+    *New Evidence on the Tax Elasticity of Capital Gains*, National Tax Journal
+    68(3): persistent -0.72, transitory -1.2, both at the 22 percent reference
+    rate CRS states its Table 4 estimates are adjusted to.  That gives
+    ``b = 3.273`` and ``tau* = 30.6%``; JCT's own working coefficient is 3.1
+    (CRS R48562 p. 8) and Treasury's is 0.72 at 22 percent, the same as DMM's.
+    Agersnap & Zidar (2021) estimate a much lower -0.3 to -0.5 and imply a
+    higher revenue-maximizing rate; they are named here as the alternative and
+    are deliberately **not** used - one frozen set, per owner Decision 3 of
+    ``planning/MODELING_IMPROVEMENT.md``.
+
+    The transitory elasticity is a *retiming* response, so it applies in the
+    enactment year only, and only to the share of the base that has a timing
+    margin: realized long-term gains, not qualified dividends or capital gain
+    distributions, which a taxpayer cannot choose when to receive.
+
+    **Lock-in** is not a multiplier.  A share ``omega = m/(h+m)`` of the accrued
+    gains stock leaves it at death rather than by sale, where ``h`` is the
+    observed realization hazard and ``m`` the mortality-weighted exit rate.
+    While step-up is available those gains are never taxed, so the price of
+    realizing now is ``tau*(1 - (1-omega)*d)`` against ``tau*(1 - d)`` once
+    death is a realization event, with ``d`` discounting the deferral over the
+    expected holding horizon ``1/(h+m)``.  DMM estimated under current law, so
+    the literature ``b`` is the with-step-up value and the without-step-up
+    value is the smaller one that ratio implies.  Lower realizations also let
+    the stock accumulate, which feeds back into later realizations and into the
+    flow of gains transferred at death; that is tracked as a ratio to the
+    baseline stock so no growth rate is introduced into the realizations flow.
+    """
 
     baseline_capital_gains_rate: float = 0.20
     baseline_realizations_billions: float = 0.0
-    short_run_elasticity: float = 0.8
-    long_run_elasticity: float = 0.4
-    transition_years: int = 3
+    #: Dowd, McClelland & Muthitacharoen (2015), at ``elasticity_reference_rate``.
+    persistent_elasticity: float = 0.72
+    transitory_elasticity: float = 1.20
+    #: The tax rate the frozen elasticities are evaluated at (CRS R48562 Table 4).
+    elasticity_reference_rate: float = 0.22
+    #: Constant-elasticity override, used when ``use_time_varying_elasticity``
+    #: is off; interpreted the same way, as a tax-rate elasticity at the
+    #: reference rate.
     realization_elasticity: float = 0.5
     use_time_varying_elasticity: bool = True
     step_up_at_death: bool = True
     eliminate_step_up: bool = False
     step_up_exemption: float = 1_000_000
-    gains_at_death_billions: float = 54.0
-    step_up_lock_in_multiplier: float = 2.0
-    no_step_up_avoidance_multiplier: float = 1.0
+    #: Whether the score includes the gains-at-death channel.  A benchmark that
+    #: scores only the rate change of a combined proposal sets this False; it
+    #: is a statement about the policy's scope, not a behavioural parameter.
+    score_gains_at_death: bool = True
+    #: Discount rate on deferred realization, used only to price the lock-in
+    #: wedge between the with- and without-step-up worlds.
+    deferral_discount_rate: float = 0.04
 
     def __post_init__(self):
         super().__post_init__()
@@ -420,129 +476,304 @@ class CapitalGainsPolicy(TaxPolicy):
                 "baseline_capital_gains_rate must be between 0 and 1, "
                 f"got {self.baseline_capital_gains_rate}"
             )
-        if self.short_run_elasticity < 0:
+        if self.persistent_elasticity < 0:
             raise ValueError(
-                f"short_run_elasticity must be >= 0, got {self.short_run_elasticity}"
+                f"persistent_elasticity must be >= 0, got {self.persistent_elasticity}"
             )
-        if self.long_run_elasticity < 0:
+        if self.transitory_elasticity < 0:
             raise ValueError(
-                f"long_run_elasticity must be >= 0, got {self.long_run_elasticity}"
+                f"transitory_elasticity must be >= 0, got {self.transitory_elasticity}"
             )
-        if self.transition_years < 0:
-            raise ValueError(f"transition_years must be >= 0, got {self.transition_years}")
-        if self.step_up_lock_in_multiplier < 0:
+        if not (0 < self.elasticity_reference_rate < 1):
             raise ValueError(
-                "step_up_lock_in_multiplier must be >= 0, "
-                f"got {self.step_up_lock_in_multiplier}"
+                "elasticity_reference_rate must be in (0, 1), "
+                f"got {self.elasticity_reference_rate}"
             )
-        if self.no_step_up_avoidance_multiplier < 0:
+        if self.realization_elasticity < 0:
             raise ValueError(
-                "no_step_up_avoidance_multiplier must be >= 0, "
-                f"got {self.no_step_up_avoidance_multiplier}"
+                f"realization_elasticity must be >= 0, got {self.realization_elasticity}"
             )
+        if self.deferral_discount_rate < 0:
+            raise ValueError(
+                f"deferral_discount_rate must be >= 0, got {self.deferral_discount_rate}"
+            )
+        self._bracket_cache = None
+        self._baseline_cache = None
 
-    def get_elasticity_for_year(self, years_since_start: int) -> float:
-        """Get the appropriate realization elasticity for a given year."""
-        if not self.use_time_varying_elasticity:
-            base_elasticity = float(self.realization_elasticity)
-        elif years_since_start <= 0:
-            base_elasticity = float(self.short_run_elasticity)
-        elif years_since_start >= self.transition_years:
-            base_elasticity = float(self.long_run_elasticity)
-        else:
-            weight = years_since_start / self.transition_years
-            base_elasticity = float(
-                self.short_run_elasticity * (1 - weight)
-                + self.long_run_elasticity * weight
-            )
+    # ------------------------------------------------------------------
+    # Baseline data
+    # ------------------------------------------------------------------
 
-        if self.eliminate_step_up:
-            return base_elasticity * self.no_step_up_avoidance_multiplier
-        if self.step_up_at_death:
-            return base_elasticity * self.step_up_lock_in_multiplier
-        return base_elasticity
+    def _data_year(self, baseline) -> int:
+        if self.data_year:
+            return int(self.data_year)
+        return max(baseline.available_years())
+
+    def _baseline_source(self):
+        if self._baseline_cache is None:
+            from fiscal_model.data import CapitalGainsBaseline
+
+            self._baseline_cache = CapitalGainsBaseline()
+        return self._baseline_cache
+
+    def get_brackets(self, use_real_data: bool = True) -> list:
+        """Realizations facing this policy, grouped by the rate they face.
+
+        A caller that set ``baseline_realizations_billions`` explicitly - every
+        calibrated validation scenario does - gets that single aggregate priced
+        at ``baseline_capital_gains_rate``, so those cases are unaffected by
+        the SOI bracket table.
+        """
+        from fiscal_model.data.capital_gains import GainsBracket
+
+        if self._bracket_cache is not None:
+            return self._bracket_cache
+
+        if float(self.baseline_realizations_billions) > 0 or not use_real_data:
+            realized = float(self.baseline_realizations_billions)
+            if realized <= 0:
+                raise ValueError(
+                    "baseline_realizations_billions must be > 0 for CapitalGainsPolicy "
+                    "(set it manually or enable real-data auto-population)."
+                )
+            self._bracket_cache = [
+                GainsBracket(
+                    statutory_rate=float(self.baseline_capital_gains_rate),
+                    niit_rate=0.0,
+                    realizations_billions=realized,
+                    tax_billions=realized * float(self.baseline_capital_gains_rate),
+                    long_term_share=1.0,
+                )
+            ]
+            return self._bracket_cache
+
+        source = self._baseline_source()
+        year = self._data_year(source)
+        brackets = source.get_brackets_above_threshold(
+            year=year, threshold=float(self.affected_income_threshold)
+        )
+        if not brackets:
+            raise ValueError(
+                "No capital gains realizations above threshold "
+                f"{self.affected_income_threshold:,.0f} in tax year {year}"
+            )
+        realized = sum(bracket.realizations_billions for bracket in brackets)
+        weighted = sum(
+            bracket.realizations_billions * bracket.effective_rate for bracket in brackets
+        )
+        # Keep the aggregate fields in step so callers that read them - the
+        # validation reporter, the UI - describe the base that was used.
+        self.baseline_realizations_billions = realized
+        self.baseline_capital_gains_rate = weighted / realized if realized > 0 else 0.0
+        self._bracket_cache = brackets
+        return brackets
+
+    def _reform_rate(self, bracket) -> float:
+        """Rate facing one bracket after the reform."""
+        if self.new_rate is not None:
+            return float(self.new_rate) + bracket.niit_rate
+        return float(bracket.statutory_rate + self.rate_change + bracket.niit_rate)
 
     def _reform_capital_gains_rate(self) -> float:
-        """Determine the reform capital gains rate."""
+        """Aggregate reform rate, for callers that want a single number."""
         if self.new_rate is not None:
             return float(self.new_rate)
         return float(self.baseline_capital_gains_rate + self.rate_change)
 
-    def estimate_step_up_elimination_revenue(self) -> float:
-        """Estimate annual revenue from eliminating step-up basis at death."""
-        if not self.eliminate_step_up:
-            return 0.0
+    # ------------------------------------------------------------------
+    # Behaviour
+    # ------------------------------------------------------------------
 
-        tau1 = float(self._reform_capital_gains_rate())
-        gains_at_death = float(self.gains_at_death_billions)
+    def lock_in_wedge(self) -> float:
+        """Ratio of the realization price with step-up to the price without.
 
-        if self.step_up_exemption > 0:
-            exemption_millions = self.step_up_exemption / 1_000_000
-            exemption_share = min(0.9, 0.4 * exemption_millions)
+        ``1.0`` when the accrued-gains stock is unavailable, so the module
+        degrades to "step-up makes no difference" rather than failing.
+        """
+        try:
+            source = self._baseline_source()
+            year = self._data_year(source)
+            hazard = source.realization_hazard(year)
+            death = source.death_exit_rate()
+        except Exception as exc:  # pragma: no cover - data-availability guard
+            logger.warning("lock_in_wedge: accrued-gains data unavailable (%s)", exc)
+            return 1.0
+
+        exit_rate = hazard + death
+        if exit_rate <= 0 or death <= 0:
+            return 1.0
+        escape_share = death / exit_rate
+        horizon = 1.0 / exit_rate
+        discount = 1.0 / (1.0 + self.deferral_discount_rate) ** horizon
+        price_without = 1.0 - discount
+        if price_without <= 0:
+            return 1.0
+        price_with = 1.0 - (1.0 - escape_share) * discount
+        return price_with / price_without
+
+    def semi_log_coefficient(
+        self, years_since_start: int = 0, long_term_share: float = 1.0
+    ) -> float:
+        """``b`` in ``R = B exp(-b t)`` for a given year of the window."""
+        reference = float(self.elasticity_reference_rate)
+        if self.use_time_varying_elasticity:
+            persistent = float(self.persistent_elasticity)
+            transitory = float(self.transitory_elasticity)
         else:
-            exemption_share = 0.0
+            persistent = float(self.realization_elasticity)
+            transitory = 0.0
 
-        taxable_gains = gains_at_death * (1 - exemption_share)
-        return tau1 * taxable_gains
+        coefficient = persistent / reference
+        if years_since_start <= 0 and transitory > 0:
+            # The transitory response is retiming around the effective date and
+            # is exhausted after it, and only gains a taxpayer chooses when to
+            # realize have a timing margin.
+            coefficient += (transitory / reference) * max(0.0, min(1.0, long_term_share))
+
+        if self.eliminate_step_up:
+            wedge = self.lock_in_wedge()
+            if wedge > 0:
+                coefficient /= wedge
+        return coefficient
+
+    def _realizations_ratio(self, bracket, years_since_start: int) -> float:
+        """``R1/R0`` for one bracket in a given year of the window."""
+        delta = self._reform_rate(bracket) - bracket.effective_rate
+        coefficient = self.semi_log_coefficient(
+            years_since_start=years_since_start,
+            long_term_share=bracket.long_term_share,
+        )
+        return math.exp(-coefficient * delta)
+
+    def stock_ratio(self, years_since_start: int, use_real_data: bool = True) -> float:
+        """Reform accrued-gains stock over the baseline stock, in ``t`` years.
+
+        Realizations that do not happen stay in the stock, which then supplies
+        later realizations and a larger flow of gains transferred at death.
+        Expressed as a ratio so the baseline's own growth cancels and no growth
+        rate enters the realizations flow.
+        """
+        if years_since_start <= 0:
+            return 1.0
+        try:
+            source = self._baseline_source()
+            year = self._data_year(source)
+            hazard = source.realization_hazard(year)
+            death = source.death_exit_rate()
+            growth = source._parameters["household_net_worth_growth_rate"]
+        except Exception as exc:  # pragma: no cover - data-availability guard
+            logger.warning("stock_ratio: accrued-gains data unavailable (%s)", exc)
+            return 1.0
+
+        brackets = self.get_brackets(use_real_data=use_real_data)
+        realized = sum(bracket.realizations_billions for bracket in brackets)
+        if realized <= 0 or hazard <= 0:
+            return 1.0
+        # Permanent hazard response only: the transitory term is a retiming,
+        # so it does not change the stock's steady drift.
+        reform_realized = sum(
+            bracket.realizations_billions * self._realizations_ratio(bracket, 1)
+            for bracket in brackets
+        )
+        reform_hazard = hazard * reform_realized / realized
+
+        ratio = 1.0
+        for _ in range(years_since_start):
+            inflow = hazard + death
+            outflow = (reform_hazard + death) * ratio
+            ratio += (inflow - outflow) / (1.0 + growth)
+        return max(0.0, ratio)
+
+    # ------------------------------------------------------------------
+    # Scoring
+    # ------------------------------------------------------------------
 
     def estimate_static_revenue_effect(
         self,
         baseline_revenue: float,
         use_real_data: bool = True,
     ) -> float:
-        """Static effect holding realizations fixed."""
+        """Static effect holding realizations fixed, summed over brackets."""
         _ = baseline_revenue
-        if use_real_data and float(self.baseline_realizations_billions) <= 0:
-            from fiscal_model.data import CapitalGainsBaseline
-
-            year = int(self.data_year) if self.data_year else 2022
-            baseline = CapitalGainsBaseline().get_baseline_above_threshold_with_rate_method(
-                year=year,
-                threshold=float(self.affected_income_threshold),
-                rate_method="statutory_by_agi",
-            )
-            self.baseline_realizations_billions = float(baseline["net_capital_gain_billions"])
-            self.baseline_capital_gains_rate = float(baseline["average_effective_tax_rate"])
-
-        tau0 = float(self.baseline_capital_gains_rate)
-        tau1 = float(self._reform_capital_gains_rate())
-        r0 = float(self.baseline_realizations_billions)
-
-        if r0 <= 0:
-            raise ValueError(
-                "baseline_realizations_billions must be > 0 for CapitalGainsPolicy "
-                "(set it manually or enable real-data auto-population)."
-            )
-        if not (0 <= tau0 < 1) or not (0 <= tau1 < 1):
-            raise ValueError("Capital gains rates must be in [0, 1) for CapitalGainsPolicy")
-
-        return (tau1 - tau0) * r0
+        brackets = self.get_brackets(use_real_data=use_real_data)
+        total = 0.0
+        for bracket in brackets:
+            tau0 = bracket.effective_rate
+            tau1 = self._reform_rate(bracket)
+            if not (0 <= tau0 < 1) or not (0 <= tau1 < 1):
+                raise ValueError(
+                    "Capital gains rates must be in [0, 1) for CapitalGainsPolicy"
+                )
+            total += (tau1 - tau0) * bracket.realizations_billions
+        return total
 
     def estimate_behavioral_offset(
         self,
         static_effect: float,
         years_since_start: int = 0,
+        use_real_data: bool = True,
     ) -> float:
-        """Behavioral offset from realizations response."""
+        """Behavioral offset from the realizations response."""
         _ = static_effect
-        tau0 = float(self.baseline_capital_gains_rate)
-        tau1 = float(self._reform_capital_gains_rate())
-        r0 = float(self.baseline_realizations_billions)
-        eps = self.get_elasticity_for_year(years_since_start)
+        brackets = self.get_brackets(use_real_data=use_real_data)
+        stock = self.stock_ratio(years_since_start, use_real_data=use_real_data)
 
-        if r0 <= 0:
-            raise ValueError("baseline_realizations_billions must be > 0 for CapitalGainsPolicy")
-        if eps < 0:
-            raise ValueError("realization_elasticity must be >= 0 for CapitalGainsPolicy")
-        if not (0 <= tau0 < 1) or not (0 <= tau1 < 1):
-            raise ValueError("Capital gains rates must be in [0, 1) for CapitalGainsPolicy")
+        delta_static = 0.0
+        delta_total = 0.0
+        for bracket in brackets:
+            tau0 = bracket.effective_rate
+            tau1 = self._reform_rate(bracket)
+            if not (0 <= tau0 < 1) or not (0 <= tau1 < 1):
+                raise ValueError(
+                    "Capital gains rates must be in [0, 1) for CapitalGainsPolicy"
+                )
+            r0 = bracket.realizations_billions
+            r1 = r0 * self._realizations_ratio(bracket, years_since_start) * stock
+            delta_static += (tau1 - tau0) * r0
+            delta_total += tau1 * r1 - tau0 * r0
+        return delta_static - delta_total
 
-        net0 = 1 - tau0
-        net1 = 1 - tau1
-        r1 = r0 * (net1 / net0) ** eps
-        delta_rev_static = (tau1 - tau0) * r0
-        delta_rev_total = (tau1 * r1) - (tau0 * r0)
-        return delta_rev_static - delta_rev_total
+    def estimate_step_up_elimination_revenue(self, years_since_start: int = 0) -> float:
+        """Revenue from treating transfers at death as realization events.
+
+        Decedent wealth times the unrealized-gain share of an estate that size,
+        with the exemption applied per decedent, priced at the rate the gain
+        would face on a final return.  Indexed to household net worth, so the
+        flow grows with the asset stock instead of sitting at one constant.
+        """
+        if not self.eliminate_step_up or not self.score_gains_at_death:
+            return 0.0
+        try:
+            source = self._baseline_source()
+        except Exception as exc:  # pragma: no cover - data-availability guard
+            logger.warning("gains at death: data unavailable (%s)", exc)
+            return 0.0
+
+        year = int(self.start_year) + max(0, int(years_since_start))
+        exemption = max(0.0, float(self.step_up_exemption))
+        stock = self.stock_ratio(years_since_start)
+
+        from fiscal_model.data.capital_gains import NIIT_RATE, NIIT_THRESHOLD
+
+        revenue = 0.0
+        for decedent_class in source.decedent_classes(year):
+            taxable = decedent_class.taxable_gains_billions(exemption) * stock
+            if taxable <= 0:
+                continue
+            gain = decedent_class.gains_per_decedent_dollars
+            niit = NIIT_RATE if gain >= NIIT_THRESHOLD else 0.0
+            statutory = source.statutory_rate_on_gain(gain) - niit
+            # A rate change that applies above an income threshold reaches a
+            # decedent only if the gain on the final return clears it.
+            in_scope = gain >= float(self.affected_income_threshold)
+            if self.new_rate is not None and in_scope:
+                rate = float(self.new_rate) + niit
+            elif in_scope:
+                rate = statutory + float(self.rate_change) + niit
+            else:
+                rate = statutory + niit
+            revenue += taxable * max(0.0, min(rate, 0.999))
+        return revenue
 
 
 @dataclass

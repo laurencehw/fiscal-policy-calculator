@@ -305,13 +305,21 @@ class FiscalPolicyScorer:
             )
             revenue[idx] = static_annual * phase
 
-            if isinstance(policy, CapitalGainsPolicy) and policy.eliminate_step_up:
-                step_up_revenue = policy.estimate_step_up_elimination_revenue()
-                revenue[idx] += step_up_revenue * phase
-
             if isinstance(policy, CapitalGainsPolicy):
                 years_since_start = year - policy.start_year
-                behavioral[idx] = policy.estimate_behavioral_offset(revenue[idx], years_since_start)
+                if policy.eliminate_step_up:
+                    # Gains transferred at death are indexed to the asset
+                    # stock, so this grows across the window rather than
+                    # repeating one constant.
+                    step_up_revenue = policy.estimate_step_up_elimination_revenue(
+                        years_since_start
+                    )
+                    revenue[idx] += step_up_revenue * phase
+                behavioral[idx] = policy.estimate_behavioral_offset(
+                    revenue[idx],
+                    years_since_start,
+                    use_real_data=self.use_real_data,
+                )
             else:
                 behavioral[idx] = policy.estimate_behavioral_offset(revenue[idx])
 

@@ -247,49 +247,49 @@ class TestCapitalGainsPolicyBounds:
                 baseline_capital_gains_rate=-0.05,
             )
 
-    def test_rejects_negative_short_run_elasticity(self):
-        with pytest.raises(ValueError, match="short_run_elasticity"):
+    def test_rejects_negative_persistent_elasticity(self):
+        with pytest.raises(ValueError, match="persistent_elasticity"):
             CapitalGainsPolicy(
                 name="bad",
                 description="",
                 policy_type=PolicyType.CAPITAL_GAINS_TAX,
-                short_run_elasticity=-0.1,
+                persistent_elasticity=-0.1,
             )
 
-    def test_rejects_negative_long_run_elasticity(self):
-        with pytest.raises(ValueError, match="long_run_elasticity"):
+    def test_rejects_negative_transitory_elasticity(self):
+        with pytest.raises(ValueError, match="transitory_elasticity"):
             CapitalGainsPolicy(
                 name="bad",
                 description="",
                 policy_type=PolicyType.CAPITAL_GAINS_TAX,
-                long_run_elasticity=-0.1,
+                transitory_elasticity=-0.1,
             )
 
-    def test_rejects_negative_transition_years(self):
-        with pytest.raises(ValueError, match="transition_years"):
+    def test_rejects_reference_rate_outside_the_unit_interval(self):
+        with pytest.raises(ValueError, match="elasticity_reference_rate"):
             CapitalGainsPolicy(
                 name="bad",
                 description="",
                 policy_type=PolicyType.CAPITAL_GAINS_TAX,
-                transition_years=-1,
+                elasticity_reference_rate=0.0,
             )
 
     def test_rejects_negative_lock_in_multiplier(self):
-        with pytest.raises(ValueError, match="step_up_lock_in_multiplier"):
+        with pytest.raises(ValueError, match="deferral_discount_rate"):
             CapitalGainsPolicy(
                 name="bad",
                 description="",
                 policy_type=PolicyType.CAPITAL_GAINS_TAX,
-                step_up_lock_in_multiplier=-0.5,
+                deferral_discount_rate=-0.5,
             )
 
-    def test_rejects_negative_no_step_up_avoidance_multiplier(self):
-        with pytest.raises(ValueError, match="no_step_up_avoidance_multiplier"):
+    def test_rejects_negative_realization_elasticity(self):
+        with pytest.raises(ValueError, match="realization_elasticity"):
             CapitalGainsPolicy(
                 name="bad",
                 description="",
                 policy_type=PolicyType.CAPITAL_GAINS_TAX,
-                no_step_up_avoidance_multiplier=-0.5,
+                realization_elasticity=-0.5,
             )
 
     def test_scoring_rejects_nonpositive_realizations(self):
