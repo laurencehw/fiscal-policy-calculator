@@ -28,8 +28,11 @@ from fiscal_model.ui.tabs import bill_tracker
 # The two banner headlines rendered by ``components.chrome`` and (previously,
 # also) by ``app_controller.render_data_status``.
 # Since 2026-09-01 the degraded (non-error) notice is a collapsed expander
-# rather than an ``st.warning`` box — deliberately quieter, per the owner.
-DEGRADED_BANNER = "Some data sources are running on older snapshots"
+# rather than an ``st.warning`` box — deliberately quieter, per the owner —
+# and it names lateness rather than "older snapshots", because it now fires
+# only for sources past their own release-calendar tolerance.
+DEGRADED_BANNER = "past its refresh window"
+DEGRADED_BANNER_PLURAL = "past their refresh window"
 ERROR_BANNER = "**Data error — results may be unreliable**"
 
 # A health payload that is unambiguously degraded for exactly one reason, so
@@ -96,7 +99,9 @@ def _banner_count(at) -> int:
     return sum(
         1
         for text in alerts
-        if DEGRADED_BANNER in str(text) or ERROR_BANNER in str(text)
+        if DEGRADED_BANNER in str(text)
+        or DEGRADED_BANNER_PLURAL in str(text)
+        or ERROR_BANNER in str(text)
     )
 
 
@@ -125,6 +130,52 @@ def test_degraded_banner_is_actually_raised_when_data_is_degraded(
     at = _run_page(None)
     assert not at.exception, [e.message for e in at.exception]
     assert _banner_count(at) == 1
+
+
+# A deployment whose every data vintage is current, but whose microdata
+# overcounts the filing population and whose interpreter is off-support. This
+# is what the live app reported to an external reviewer on 2026-09-01, and it
+# used to draw "🟡 Some data sources are running on older snapshots" on every
+# page before anything had been scored.
+CAVEATS_ONLY_HEALTH: dict = {
+    **DEGRADED_HEALTH,
+    "baseline": {**DEGRADED_HEALTH["baseline"], "source": "real_data", "status": "ok"},
+    "microdata": {"status": "degraded", "coverage_overcount": True},
+    "runtime": {
+        "status": "degraded",
+        "python_version": "3.14.0",
+        "message": "Python 3.14.0 is outside supported range >=3.10,<3.14",
+    },
+}
+
+
+@pytest.fixture()
+def _caveats_only_health_snapshot():
+    ui_cache.clear_health_snapshot()
+    ui_cache._health_snapshot["value"] = CAVEATS_ONLY_HEALTH
+    ui_cache._health_snapshot["at"] = time.monotonic()
+    yield
+    ui_cache.clear_health_snapshot()
+
+
+def test_caveats_alone_raise_no_page_level_notice(_caveats_only_health_snapshot):
+    """Coverage and interpreter caveats are not data staleness.
+
+    They stay reachable in the Data Status popover — asserted below — but they
+    no longer interrupt the page, because neither says the numbers on screen
+    are out of date.
+    """
+    at = _run_page(None)
+    assert not at.exception, [e.message for e in at.exception]
+    assert _banner_count(at) == 0
+
+
+def test_caveats_still_readable_in_the_data_status_panel(_caveats_only_health_snapshot):
+    """The quiet path must not become a silent one."""
+    at = _run_page(None)
+    assert not at.exception, [e.message for e in at.exception]
+    captions = [str(element.value) for element in at.caption]
+    assert any("Microdata coverage is degraded" in text for text in captions), captions
 
 
 # ---------------------------------------------------------------------------

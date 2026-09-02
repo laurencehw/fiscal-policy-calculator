@@ -137,8 +137,84 @@ def _disclosure(st_module: Any, label: str, *, help_text: str | None = None) -> 
     return st_module.expander(label, expanded=False)
 
 
+#: Session flag: the quiet degraded notice has already been shown this session.
+_DEGRADATION_NOTICE_KEY = "_degradation_notice_shown"
+
+#: Headline of the quiet notice, for one source and for several. Named so the
+#: tests can assert on the exact strings the user reads.
+DEGRADED_NOTICE_LABEL = "🟡 A data source is past its refresh window — details"
+DEGRADED_NOTICE_LABEL_PLURAL = "🟡 {n} data sources are past their refresh window — details"
+
+
+def _sources_past_tolerance(health: dict[str, Any]) -> list[str]:
+    """Data sources that are *late*, not merely running on a snapshot.
+
+    ``summarize_data_degradation`` is deliberately generous: it reports every
+    caveat worth knowing, including ones that say nothing about whether the
+    numbers on screen are current — microdata coverage against SOI, and the
+    Python interpreter version. Neither is a data vintage, yet either alone
+    used to raise a page-level "some data sources are running on older
+    snapshots" notice, which is how a healthy deployment came to read as
+    broken before anyone had scored anything (external UI review, 2026-09-01).
+
+    A page-level notice is earned only when a source has fallen back to
+    hardcoded values or has passed *its own* release-calendar tolerance — the
+    ``is_stale`` flag each freshness payload computes, and FRED's expired-cache
+    flag. IRS SOI three years behind is not late: that is the publication lag,
+    and ``fiscal_model.freshness`` scores it ``level: "aging"``,
+    ``is_stale: False``. Everything else stays a caveat, one click away in the
+    data-status pill, which carries the amber dot either way.
+    """
+    late: list[str] = []
+
+    baseline = health.get("baseline") or {}
+    baseline_freshness = baseline.get("freshness") or {}
+    if baseline.get("source") == "hardcoded_fallback" or baseline_freshness.get(
+        "is_stale"
+    ):
+        late.append("baseline")
+
+    fred = health.get("fred") or {}
+    if fred.get("source") == "fallback" or (
+        fred.get("source") in {"bundled", "cache"} and fred.get("cache_is_expired")
+    ):
+        late.append("fred")
+
+    irs = health.get("irs_soi") or {}
+    if (irs.get("freshness") or {}).get("is_stale"):
+        late.append("irs_soi")
+
+    return late
+
+
+def _claim_notice_slot(st_module: Any) -> bool:
+    """True the first time a session asks to draw the quiet notice.
+
+    Under ``st.navigation`` every page change is a full script rerun, so a
+    per-page banner re-fires on every click of the top nav. Once per session is
+    enough: the condition has not changed between clicks, and the data-status
+    pill still shows amber on every page.
+    """
+    session_state = getattr(st_module, "session_state", None)
+    if session_state is None:  # pragma: no cover — exotic test doubles
+        return True
+    try:
+        if session_state.get(_DEGRADATION_NOTICE_KEY):
+            return False
+        session_state[_DEGRADATION_NOTICE_KEY] = True
+    except Exception:  # pragma: no cover — exotic session_state stand-ins
+        return True
+    return True
+
+
 def _render_degradation_banner(st_module: Any, health: dict[str, Any]) -> None:
-    """Render the degraded-data banner once per page, above the fold."""
+    """Raise a page-level notice only when a data source is actually late.
+
+    An *error* interrupts every page — a component that failed to load means
+    the numbers cannot be trusted, and that bears repeating. The amber case is
+    shown once per session, and only for the sources
+    :func:`_sources_past_tolerance` accepts.
+    """
     try:
         from fiscal_model.health import summarize_data_degradation
     except Exception:  # pragma: no cover — defensive
@@ -151,16 +227,28 @@ def _render_degradation_banner(st_module: Any, health: dict[str, Any]) -> None:
     reason_lines = "\n".join(f"- {reason}" for reason in degradation.get("reasons", []))
     if degradation.get("severity") == "error":
         st_module.error("🔴 **Data error — results may be unreliable**\n\n" + reason_lines)
-    else:
-        # Deliberately quiet (owner request, 2026-09-01): a collapsed, muted
-        # disclosure rather than a full-width warning box — people should
-        # notice it without discounting the whole exercise. The pill already
-        # carries the amber dot; the reasons live one click away.
-        with st_module.expander(
-            "🟡 Some data sources are running on older snapshots — details",
-            expanded=False,
-        ):
-            st_module.caption(reason_lines)
+        return
+
+    late = _sources_past_tolerance(health)
+    if not late:
+        # Caveats, not staleness. The pill's amber dot and the Data Status
+        # popover carry them; a page-level notice would overstate the problem.
+        return
+
+    if not _claim_notice_slot(st_module):
+        return
+
+    # Deliberately quiet (owner request, 2026-09-01): a collapsed, muted
+    # disclosure rather than a full-width warning box — people should notice
+    # it without discounting the whole exercise. The pill already carries the
+    # amber dot; the reasons live one click away.
+    label = (
+        DEGRADED_NOTICE_LABEL
+        if len(late) == 1
+        else DEGRADED_NOTICE_LABEL_PLURAL.format(n=len(late))
+    )
+    with st_module.expander(label, expanded=False):
+        st_module.caption(reason_lines)
 
 
 def render_chrome(
