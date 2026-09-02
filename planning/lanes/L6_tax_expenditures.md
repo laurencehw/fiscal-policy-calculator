@@ -412,6 +412,22 @@ of the two must be $0. Both rules are written the way their own sources score
 them, the asymmetry is commented at the rule, and reconciling it needs a
 baseline-vintage concept this module does not have.
 
+### Rows this branch invalidates in the shared docs
+
+The lane brief puts `README.md`, `CLAUDE.md`, `docs/VALIDATION*.md`,
+`docs/METHODOLOGY.md`, `planning/MODELING_IMPROVEMENT.md`, `NEXT_STEPS.md` and
+`CHANGELOG.md` off-limits, so these are handed over rather than edited:
+
+| File | Says | Should say |
+|---|---|---|
+| `docs/VALIDATION_NOTES.md` §6, aggregate | "61.7% mean / 35.6% median over 18 derivable cases, 6/18 within 15%, plus 4 cases reported as not cross-validatable" | **57.3% / 28.0% over 17, 7/17 within 15%, 5 not cross-validatable** — and the like-for-like 55.3% / 25.3% / 7 of 18 belongs next to it, because 1.4pp of the fall is a case leaving the denominator |
+| `docs/VALIDATION_NOTES.md` §6, expenditures bullet | "Tax expenditures (5 of 6, mean 39.4%)"; the `eliminate_salt` and `cap_employer_health` sub-bullets describe both bugs as unfixed and "flagged here rather than patched" | **4 of 6, mean 28.8%**; both bugs are fixed, `eliminate_salt` is now excluded by the leakage guard, and the sub-bullets should become findings 1 and 2 above |
+| `docs/VALIDATION_NOTES.md` §6, "Not cross-validatable (4 cases)" table | four rows | **five** — add `eliminate_salt`, "`annual_cost_no_cap = 120.0` is the $1,200B target restated" |
+| `CLAUDE.md`, Target Validation | "~59% mean / ~36% median over 18 leave-one-out cases (4 more declared not cross-validatable)" | **~57% / ~28% over 17 (5 more not cross-validatable)** |
+
+Nothing in Tier 1, the fitted tier, the reconstruction tier or the
+distributional tables moved, so no other doc row is affected.
+
 ### What the lane did not do
 
 - Did not touch any target, `preregistered.py`, `benchmark_sources.py`,
