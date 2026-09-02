@@ -2,6 +2,7 @@
 Benefit-side validation runners for AMT and premium tax credits.
 """
 
+from ..amt import AMT_MODES, AMT_SCORECARD_MODE
 from ..scoring import FiscalPolicyScorer
 from .core import ValidationResult, build_validation_result
 from .scenarios import (
@@ -13,16 +14,35 @@ from .scenarios import (
 def validate_amt_policy(
     scenario_id: str,
     verbose: bool = True,
+    mode: str | None = None,
 ) -> ValidationResult:
-    """Validate AMT scoring against CBO/JCT estimates."""
+    """
+    Validate AMT scoring against CBO/JCT estimates.
+
+    Args:
+        scenario_id: Key in ``AMT_VALIDATION_SCENARIOS_COMPARE``.
+        verbose: Print the year-by-year breakdown.
+        mode: ``fiscal_model.amt``'s ``AMT_MODE_REPORTED`` (the fitted annual)
+            or ``AMT_MODE_DERIVED`` (the published year-indexed path).
+            ``None`` uses :data:`~fiscal_model.amt.AMT_SCORECARD_MODE`, which
+            is what the by-construction scorecard scores; ``run_amt_loo``
+            passes :data:`~fiscal_model.amt.AMT_HELD_OUT_MODE` instead, so the
+            leave-one-out number is the derived one.
+    """
     if scenario_id not in AMT_VALIDATION_SCENARIOS_COMPARE:
         raise ValueError(
             f"Unknown scenario: {scenario_id}. "
             f"Available: {list(AMT_VALIDATION_SCENARIOS_COMPARE.keys())}"
         )
 
+    resolved_mode = mode or AMT_SCORECARD_MODE
+    if resolved_mode not in AMT_MODES:
+        raise ValueError(f"mode must be one of {AMT_MODES}, got {resolved_mode!r}")
+
     scenario = AMT_VALIDATION_SCENARIOS_COMPARE[scenario_id]
     policy = scenario["policy_factory"](**scenario.get("kwargs", {}))
+    if hasattr(policy, "mode"):
+        policy.mode = resolved_mode
     expected_10yr = scenario["expected_10yr"]
     official_source = scenario.get("source", "CBO/JCT")
     result = FiscalPolicyScorer(start_year=policy.start_year, use_real_data=False).score_policy(
@@ -38,6 +58,7 @@ def validate_amt_policy(
         model_first_year=result.final_deficit_effect[0],
         model_parameters={
             "amt_type": str(policy.amt_type.value) if hasattr(policy, "amt_type") else "unknown",
+            "mode": resolved_mode,
             "extend_tcja_relief": getattr(policy, "extend_tcja_relief", False),
             "repeal_individual_amt": getattr(policy, "repeal_individual_amt", False),
             "repeal_corporate_amt": getattr(policy, "repeal_corporate_amt", False),

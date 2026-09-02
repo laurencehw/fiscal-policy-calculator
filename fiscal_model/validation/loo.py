@@ -77,7 +77,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any
 
-from ..amt import BASELINE_AMT_DATA
+from ..amt import AMT_HELD_OUT_MODE, AMT_MODE_REPORTED
 from ..estate import (
     CURRENT_ESTATE_TAX_RATE,
     ESTATE_TAX_EXEMPTIONS,
@@ -387,11 +387,20 @@ def _build_case(
     calibration_set: tuple[str, ...],
     notes: str,
     exclusion_reason: str | None = None,
+    calibrated_runner: Callable[..., ValidationResult] | None = None,
 ) -> LOOCase:
-    """Assemble one :class:`LOOCase`, applying the leakage guard."""
+    """
+    Assemble one :class:`LOOCase`, applying the leakage guard.
+
+    ``calibrated_runner`` scores the by-construction leg when it must differ
+    from the held-out leg by more than the one annual — AMT is the only such
+    module: its held-out leg runs the module in ``derived`` mode, so the
+    ``By-constr`` column has to be scored explicitly in ``reported`` mode or it
+    would silently become a copy of the LOO column.
+    """
     scenario = registry[case_id]
     official = official_target(module, case_id)
-    calibrated = _calibrated_result(runner, case_id)
+    calibrated = _calibrated_result(calibrated_runner or runner, case_id)
 
     case = LOOCase(
         module=module,
@@ -682,30 +691,45 @@ def run_estate_loo() -> LOOReport:
 # ---------------------------------------------------------------------------
 
 
-def _amt_revenue(taxpayers_key: str, average_key: str) -> float:
-    return BASELINE_AMT_DATA[taxpayers_key] * BASELINE_AMT_DATA[average_key] / 1e9
+def _amt_derived_runner(case_id: str, verbose: bool = False) -> ValidationResult:
+    """Score an AMT case through the module's structural (``derived``) path."""
+    return validate_amt_policy(case_id, verbose=verbose, mode=AMT_HELD_OUT_MODE)
+
+
+def _amt_reported_runner(case_id: str, verbose: bool = False) -> ValidationResult:
+    """Score an AMT case through the fitted (``reported``) annual constant."""
+    return validate_amt_policy(case_id, verbose=verbose, mode=AMT_MODE_REPORTED)
 
 
 def derive_amt_annual(case_id: str) -> float | None:
     """
-    Re-derive an individual-AMT benchmark from the module's base data.
+    Re-derive an individual-AMT benchmark from the module's published base.
 
-    Uses the taxpayer-count x average-liability identity in
-    ``BASELINE_AMT_DATA`` (7.3M affected filers at ~$10K after the TCJA sunset,
-    per TPC; 200K at ~$25K under TCJA). Bypasses
-    ``CBO_AMT_ESTIMATES["extend_tcja_annual"]`` and
-    ``["current_individual_annual"]``, which are calibration constants rather
-    than base data. Corporate AMT returns ``None``: its only base constant,
+    The identity is unchanged — affected-payer count x average liability — but
+    it is now evaluated **year by year** against TPC's T25-0049 aggregate AMT
+    path, with the baseline leg at the current-law exemption and the policy leg
+    at the reform exemption (``AMTPolicy.derived_annual_effect``). The
+    calibration constants in ``CBO_AMT_ESTIMATES`` are bypassed, and so is the
+    single-point ``BASELINE_AMT_DATA`` summary the earlier derivation used.
+
+    The value returned is the first **non-zero** year of that path, which is
+    what ``AMTPolicy.estimate_static_revenue_effect`` returns in derived mode; the
+    remaining years reach the scorer through ``AMTPolicy.get_phase_in_factor``,
+    so the LOO 10-year figure is the path's own sum rather than this number
+    grown at a flat rate. It is reported here because it is the quantity the
+    leakage guard has to inspect.
+
+    Corporate AMT returns ``None``: its only base constant,
     ``CORPORATE_AMT["revenue_per_year"] = 22.0``, is the published $220B target
-    restated.
+    restated, and no published year path exists for CAMT to replace it.
     """
-    post_sunset = _amt_revenue("taxpayers_post_tcja", "avg_amt_post_tcja")
-    under_tcja = _amt_revenue("taxpayers_tcja", "avg_amt_tcja")
-    if case_id == "extend_tcja_amt":
-        return -(post_sunset - under_tcja)
-    if case_id == "repeal_individual_amt":
-        return -post_sunset
-    return None
+    if case_id not in ("extend_tcja_amt", "repeal_individual_amt"):
+        return None
+    scenario = AMT_VALIDATION_SCENARIOS_COMPARE[case_id]
+    policy = scenario["policy_factory"](
+        **scenario.get("kwargs", {}), mode=AMT_HELD_OUT_MODE
+    )
+    return float(policy.derived_anchor_effect())
 
 
 def run_amt_loo() -> LOOReport:
@@ -713,9 +737,11 @@ def run_amt_loo() -> LOOReport:
     report = LOOReport(
         module="AMT",
         mechanism=(
-            "Individual-AMT revenue as affected-taxpayer count x average liability "
-            "(BASELINE_AMT_DATA). Extending TCJA relief costs the difference between "
-            "the post-sunset and TCJA regimes; full repeal costs the post-sunset level."
+            "Individual-AMT revenue as affected-payer count x average liability, "
+            "evaluated year by year on TPC T25-0049 with the baseline leg at the "
+            "current-law exemption and the policy leg at the reform exemption. "
+            "Extending TCJA relief costs the difference between the two regimes; "
+            "full repeal costs the whole post-sunset path."
         ),
     )
     all_ids = tuple(AMT_VALIDATION_SCENARIOS_COMPARE)
@@ -728,14 +754,16 @@ def run_amt_loo() -> LOOReport:
                     module="AMT",
                     case_id=case_id,
                     registry=AMT_VALIDATION_SCENARIOS_COMPARE,
-                    runner=validate_amt_policy,
+                    runner=_amt_derived_runner,
+                    calibrated_runner=_amt_reported_runner,
                     derived_annual=None,
                     derivation=DERIVATION_NONE,
                     calibration_set=(),
                     notes=(
                         "CAMT's only base constant is CORPORATE_AMT['revenue_per_year'] "
                         "= $22B/yr, which is the CBO $220B/10yr target restated. Nothing "
-                        "independent remains to derive."
+                        "independent remains to derive, and TPC publishes no year path "
+                        "for the corporate book minimum tax."
                     ),
                     exclusion_reason="base constant is the published target restated",
                 )
@@ -746,15 +774,21 @@ def run_amt_loo() -> LOOReport:
                 module="AMT",
                 case_id=case_id,
                 registry=AMT_VALIDATION_SCENARIOS_COMPARE,
-                runner=validate_amt_policy,
+                runner=_amt_derived_runner,
+                calibrated_runner=_amt_reported_runner,
                 derived_annual=derived,
                 derivation=DERIVATION_STRUCTURAL,
                 calibration_set=retained,
                 notes=(
-                    "Derived from taxpayer counts x average liabilities; the calibrated "
-                    "annuals in CBO_AMT_ESTIMATES are bypassed. The derivation uses the "
-                    "steady-state post-sunset level and does not ramp the 2026 phase-in, "
-                    "which biases both individual-AMT cases high."
+                    "Scored through AMTPolicy's derived mode, so the fitted annual is "
+                    "not read at all rather than replaced by a scalar. Both cases come "
+                    "out further above the carried $450B than the old flat derivation "
+                    "did, and that is the finding: TPC shows the 2026 sunset as a cliff "
+                    "(0.2M payers to 7.6M) with the path then *growing* to $124.2B by "
+                    "2035, so the flat ~$73B/yr was the window's early-year level, not "
+                    "its average. The residual is a target problem this lane may not "
+                    "touch — benchmark_sources.py records the published line item at "
+                    "$1,357.1B and the five-year figure at $466.2B."
                 ),
             )
         )
