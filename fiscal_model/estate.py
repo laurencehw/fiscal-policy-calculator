@@ -346,10 +346,12 @@ def soi_tax_base_pareto_alpha() -> float:
     inside a filing year makes it scale-free: no wealth index is needed to
     compare 2009 dollars with 2023 dollars, because no comparison is made.
 
-    Ten local estimates across filing years 2010, 2013 and 2024 -- decedents
-    fourteen years apart, filing thresholds a factor of 3.7 apart -- return
-    1.66 to 1.87. That the same number comes back from three regimes is the
-    evidence this is structure and not a fit.
+    Seven local estimates -- three from filing year 2010, three from 2013 and
+    one from 2024, the count of *adjacent pairs* of readable boundaries in each
+    year rather than of boundaries -- across decedents fourteen years apart and
+    filing thresholds a factor of 3.7 apart, returning 1.66 to 1.87. That the
+    same number comes back from three regimes is the evidence this is structure
+    and not a fit.
     """
     estimates: list[float] = []
     for filing_year in sorted({int(row["filing_year"]) for row in load_soi_estate_table1()}):
