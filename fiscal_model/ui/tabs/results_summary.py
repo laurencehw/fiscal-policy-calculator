@@ -486,8 +486,8 @@ def spend_out_caption(policy: Any, result: Any) -> str:
         f"Spend-out: outlays follow the **{account_class_label(account_class)}** "
         f"profile, so \\${authority:+,.1f}B of budget authority becomes "
         f"\\${outlays:+,.1f}B of outlays inside the window - a "
-        f"{ratio:.2f} 10-year outlay/authority ratio. Change it under "
-        f"Economic parameters."
+        f"{ratio:.2f} 10-year outlay/authority ratio. Profiles are fitted on "
+        f"CBO options the validation battery does not score."
     )
 
 

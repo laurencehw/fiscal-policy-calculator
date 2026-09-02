@@ -59,7 +59,7 @@ SPENDING_PRESETS: dict[str, dict[str, Any]] = {
         ),
     },
     "Defense Spending Increase (+10%)": {
-        # A rise in the base defence budget is predominantly force structure and
+        # A rise in the base defense budget is predominantly force structure and
         # operation and maintenance - agency operations, not capital.
         "outlay_account_class": "operations_and_support",
         "annual_spending": 90.0,
