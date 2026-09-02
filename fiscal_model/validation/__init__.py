@@ -57,6 +57,7 @@ from .compare import (
     validate_all_international,
     validate_all_payroll,
     validate_all_pharma,
+    validate_all_pl119_21,
     validate_all_ptc,
     validate_all_tcja,
     validate_all_trade,
@@ -74,6 +75,7 @@ from .compare import (
     validate_expenditure_policy,
     # Payroll tax validation
     validate_payroll_policy,
+    validate_pl119_21_provision,
     validate_policy,
     # PTC validation
     validate_ptc_policy,
@@ -245,6 +247,7 @@ __all__ = [
     'validate_all_international',
     'validate_all_payroll',
     'validate_all_pharma',
+    'validate_all_pl119_21',
     'validate_all_ptc',
     'validate_all_tcja',
     'validate_all_trade',
@@ -255,6 +258,7 @@ __all__ = [
     'validate_estate_policy',
     'validate_expenditure_policy',
     'validate_payroll_policy',
+    'validate_pl119_21_provision',
     'validate_policy',
     'validate_ptc_policy',
     'validate_sectoral_policy',

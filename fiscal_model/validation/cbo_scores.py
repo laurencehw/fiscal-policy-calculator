@@ -1170,6 +1170,115 @@ KNOWN_SCORES: dict[str, CBOScore] = {
               "The first-year budget authority is inflated by IIJA advance funding, "
               "which the level shape then carries across the whole window.",
     ),
+
+    # -------------------------------------------------------------------------
+    # PHASE D: ENACTED-LAW REPLICATIONS (component-level, out-of-sample)
+    # -------------------------------------------------------------------------
+    #
+    # The bundle records above (``iija_2021``, ``ira_2022``,
+    # ``fiscal_responsibility_act_2023``, ``social_security_fairness_2023``,
+    # ``tax_relief_workers_2024``, ``ndaa_2025``) carry a *net* total that no
+    # single policy shape can construct, and they stay excluded. What follows
+    # are new records for the individual components whose own annual level the
+    # CBO cost estimate itself states, so a bottom-up prediction is possible
+    # without reading anything off the target.
+    #
+    # One rule sets ``annual_amount_billions`` for all of them, fixed before
+    # any of them was scored:
+    #
+    #   the source's own stated funding or benefit change for the first fiscal
+    #   year in which the provision is fully in effect - excluding any year the
+    #   source itself describes as carrying retroactive or transition amounts -
+    #   grown at the module default 2%/yr.
+    #
+    # ``effective_start_year`` is the first fiscal year the source's table shows
+    # a non-zero effect, so the model window matches the source's own non-zero
+    # window.
+
+    "ssfa_wep_gpo_repeal_outlays": CBOScore(
+        policy_id="ssfa_wep_gpo_repeal_outlays",
+        name="Social Security Fairness Act: WEP/GPO repeal (direct spending)",
+        description="Repeal the Windfall Elimination Provision and the Government "
+                    "Pension Offset. Off-budget direct spending for OASI and DI "
+                    "benefits; no revenue provisions.",
+        ten_year_cost=195.65,
+        source=ScoreSource.CBO,
+        source_date="2024-09",
+        source_url="https://www.cbo.gov/system/files/2024-09/hr82.pdf",
+        policy_type="spending",
+        baseline_year=2024,
+        budget_window="FY2024-2034",
+        effective_start_year=2025,
+        annual_amount_billions=19.67,
+        annual_growth_rate=0.02,
+        spending_category="mandatory",
+        notes="CBO cost estimate for H.R. 82, Social Security Fairness Act of 2023 "
+              "(9 September 2024), Table 1. Total direct-spending outlays "
+              "FY2024-2034 = $195,650M; FY2024 is zero. Annual level = the FY2026 "
+              "outlay ($10,730M WEP + $10,270M GPO - $1,330M interaction = "
+              "$19,670M): CBO states that benefits owed for months before "
+              "enactment 'would be paid retroactively mostly in fiscal year 2025', "
+              "so FY2025 ($24,970M) is not a steady-state level. Distinct from the "
+              "rounded $196B bundle record 'social_security_fairness_2023'.",
+    ),
+
+    "fra_2023_discretionary_caps": CBOScore(
+        policy_id="fra_2023_discretionary_caps",
+        name="Fiscal Responsibility Act 2023: discretionary caps (outlays)",
+        description="Statutory caps on most discretionary funding for 2024 and 2025 "
+                    "under section 101(a), plus the lower funding base those caps "
+                    "carry forward through 2033.",
+        ten_year_cost=-1331.8,
+        source=ScoreSource.CBO,
+        source_date="2023-05",
+        source_url=(
+            "https://www.cbo.gov/system/files/2023-05/hr3746_Letter_McCarthy.pdf"
+        ),
+        policy_type="spending",
+        baseline_year=2023,
+        budget_window="FY2024-2033",
+        effective_start_year=2024,
+        annual_amount_billions=-112.3,
+        annual_growth_rate=0.02,
+        spending_category="nondefense",
+        notes="CBO, 'CBO's Estimate of the Budgetary Effects of H.R. 3746, the "
+              "Fiscal Responsibility Act of 2023' (30 May 2023), discretionary "
+              "table (PDF p. 14): total discretionary outlay change under the caps "
+              "= -$1,331.8B over FY2024-2033. Annual level = the FY2024 budget "
+              "authority reduction CBO states for section 101(a) (-$112.3B); FY2025 "
+              "is -$135.9B. This is the caps component only - the bill's -$1.5T "
+              "total also bundles the $45B Toxic Exposures Fund appropriation, "
+              "student-loan payment resumption, an IRS rescission, administrative "
+              "PAYGO and debt service, none of which this shape can express.",
+    ),
+
+    "iija_2021_discretionary": CBOScore(
+        policy_id="iija_2021_discretionary",
+        name="IIJA 2021: discretionary spending component (outlays)",
+        description="The discretionary funding provided by the Infrastructure "
+                    "Investment and Jobs Act and the outlays that flow from it.",
+        ten_year_cost=415.448,
+        source=ScoreSource.CBO,
+        source_date="2021-08",
+        source_url=(
+            "https://www.cbo.gov/system/files/2021-08/hr3684_infrastructure.pdf"
+        ),
+        policy_type="spending",
+        baseline_year=2021,
+        budget_window="FY2022-2031",
+        effective_start_year=2022,
+        annual_amount_billions=162.996,
+        annual_growth_rate=0.02,
+        spending_category="nondefense",
+        notes="CBO cost estimate for Senate Amendment 2137 to H.R. 3684 (revised "
+              "9 August 2021), Table 1: 'Changes in Discretionary Spending' - "
+              "budget authority $446,306M, estimated outlays $415,448M over "
+              "FY2021-2031. Annual level = the FY2022 budget authority CBO states "
+              "($162,996M), the first and only fully-funded year; the authorization "
+              "then falls to $70.1B, $68.5B, $68.1B, $66.2B and about $2B/yr. "
+              "Deliberately kept in the battery as the sharpest available evidence "
+              "for the missing budget-authority-to-outlay spend-out model.",
+    ),
 }
 
 

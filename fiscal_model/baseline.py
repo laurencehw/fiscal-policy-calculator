@@ -63,27 +63,134 @@ _CBO_FEB_2026_ASSUMPTIONS = {
 }
 
 
-def _interpolate_assumptions(vintage: BaselineVintage) -> dict:
-    """
-    Interpolate economic assumptions for a given vintage.
+# CBO January 2025 economic assumptions - SOURCED, not interpolated.
+#
+# Source: Congressional Budget Office, *The Budget and Economic Outlook: 2025 to
+# 2035* (January 2025), publication 61172, whose supplemental economic data file
+# (publication 60870, ``51135-2025-01-Economic-Projections.xlsx``, sheet
+# "2. Calendar Year") carries the year-by-year forecast. Calendar years
+# 2025-2034, from the sheet's own rows:
+#
+#   real_gdp_growth            "Real GDP", percentage change
+#   inflation                  "Price index, personal consumption expenditures
+#                              (PCE)", percentage change
+#   unemployment               "Unemployment rate, civilian, 16 years or older"
+#   interest_rate_10yr         "10-Year Treasury note"
+#   labor_force_participation  "Labor force participation rate, 16 years or older"
+#
+# Before Phase D this vintage carried a 0.5/0.5 interpolation between the
+# February 2024 and February 2026 assumption sets. That interpolation is kept
+# below as :func:`interpolated_jan_2025_assumptions` - it is the documented
+# fallback - and :data:`VINTAGE_SOURCING` records which of the two is in force
+# so the distinction cannot be lost in a report.
+_CBO_JAN_2025_ASSUMPTIONS = {
+    'real_gdp_growth': np.array([
+        0.0212, 0.0183, 0.0176, 0.0174, 0.0179, 0.0182, 0.0182, 0.0184, 0.0183, 0.0180
+    ]),
+    'inflation': np.array([
+        0.0219, 0.0212, 0.0202, 0.0200, 0.0198, 0.0197, 0.0197, 0.0196, 0.0196, 0.0196
+    ]),
+    'unemployment': np.array([
+        0.0428, 0.0436, 0.0439, 0.0440, 0.0438, 0.0438, 0.0437, 0.0436, 0.0435, 0.0433
+    ]),
+    'interest_rate_10yr': np.array([
+        0.0409, 0.0394, 0.0391, 0.0389, 0.0387, 0.0385, 0.0384, 0.0383, 0.0381, 0.0380
+    ]),
+    'labor_force_participation': np.array([
+        0.6265, 0.6242, 0.6211, 0.6188, 0.6173, 0.6163, 0.6155, 0.6148, 0.6143, 0.6139
+    ]),
+}
 
-    For CBO_JAN_2025, interpolates between Feb 2024 and Feb 2026 values.
+#: Base-year (FY2025) budget levels for the January 2025 vintage, in billions of
+#: dollars, from CBO's own baseline tables in publication 60870 (the data file
+#: behind publication 61172):
+#:
+#: * **Table B-1** - revenues by source, total outlays by category, debt held by
+#:   the public and GDP.
+#: * **Table B-4** - mandatory outlays by program, and the offsetting receipts
+#:   that turn gross Social Security and Medicare into the net figures the
+#:   model's spending categories represent.
+#: * **Table B-5** - 2025 discretionary *budget authority* split between defense
+#:   ($861.6B) and nondefense ($962.0B). CBO's abbreviated January 2025 report
+#:   publishes no defense/nondefense split of discretionary *outlays*, so the
+#:   $1,847.9B outlay total is divided in that budget-authority ratio (47.25% /
+#:   52.75%). Those two numbers are derived rather than transcribed and say so.
+_CBO_JAN_2025_BASE_LEVELS = {
+    'base_gdp': 30_136.0,                   # Table B-1, addendum "GDP", 2025
+    'base_individual_income_tax': 2_621.0,  # Table B-1, "Individual income taxes"
+    'base_corporate_tax': 524.0,            # Table B-1, "Corporate income taxes"
+    'base_payroll_tax': 1_759.0,            # Table B-1, "Payroll taxes"
+    'base_other_revenue': 259.0,            # Table B-1, "Other"
+    # Table B-4: 1,572.108 gross - 23.368 Social Security offsetting receipts.
+    'base_social_security': 1_548.7,
+    # Table B-4: 1,145.447 gross - 203.243 Medicare offsetting receipts.
+    'base_medicare': 942.2,
+    'base_medicaid': 655.9,                 # Table B-4, "Medicaid"
+    # Table B-1 mandatory total 4,227.993 less the three named programs above.
+    'base_other_mandatory': 1_081.2,
+    'base_defense': 873.1,                  # derived: 1,847.890 x 861.567/1,823.539
+    'base_nondefense': 974.8,               # derived: 1,847.890 x 961.972/1,823.539
+    'base_debt': 30_103.0,                  # Table B-1, "Debt held by the public"
+}
+
+#: How each vintage's numbers were obtained. ``"sourced"`` means every economic
+#: assumption and base level was transcribed from that vintage's own published
+#: tables; ``"interpolated"`` means they were manufactured from neighbouring
+#: vintages. Reporting a benchmark as "scored on the January 2025 baseline" is
+#: only honest when this says ``sourced``, so the distinction is data rather
+#: than prose and ``tests/test_baseline_vintage.py`` pins it.
+VINTAGE_SOURCING: dict[BaselineVintage, str] = {
+    BaselineVintage.CBO_FEB_2024: "sourced",
+    BaselineVintage.CBO_JAN_2025: "sourced",
+    BaselineVintage.CBO_FEB_2026: "sourced",
+}
+
+#: Citation per vintage, so a report can name the document it scored against.
+VINTAGE_SOURCE_DOCUMENT: dict[BaselineVintage, str] = {
+    BaselineVintage.CBO_FEB_2024: (
+        "CBO, The Budget and Economic Outlook: 2024 to 2034 (February 2024), "
+        "publication 59710"
+    ),
+    BaselineVintage.CBO_JAN_2025: (
+        "CBO, The Budget and Economic Outlook: 2025 to 2035 (January 2025), "
+        "publication 61172; baseline tables B-1, B-4 and B-5 plus the economic "
+        "projections in the accompanying data files (publication 60870)"
+    ),
+    BaselineVintage.CBO_FEB_2026: (
+        "CBO, The Budget and Economic Outlook: 2026 to 2036 (February 2026)"
+    ),
+}
+
+
+def interpolated_jan_2025_assumptions() -> dict:
+    """Pre-Phase-D fallback: interpolate Jan 2025 from its neighbouring vintages.
+
+    Kept, and kept callable, because it is the honest fallback if the sourced
+    figures above ever have to be withdrawn. It is **not** used by
+    :func:`vintage_assumptions`; a vintage built from it would have to be
+    reported as ``interpolated`` in :data:`VINTAGE_SOURCING`.
     """
+    return {
+        key: _CBO_FEB_2024_ASSUMPTIONS[key] * 0.5 + _CBO_FEB_2026_ASSUMPTIONS[key] * 0.5
+        for key in _CBO_FEB_2024_ASSUMPTIONS
+    }
+
+
+def vintage_assumptions(vintage: BaselineVintage) -> dict:
+    """Economic assumptions for a vintage, transcribed from its own tables."""
     if vintage == BaselineVintage.CBO_FEB_2024:
         return _CBO_FEB_2024_ASSUMPTIONS
-    elif vintage == BaselineVintage.CBO_FEB_2026:
+    if vintage == BaselineVintage.CBO_JAN_2025:
+        return _CBO_JAN_2025_ASSUMPTIONS
+    if vintage == BaselineVintage.CBO_FEB_2026:
         return _CBO_FEB_2026_ASSUMPTIONS
-    elif vintage == BaselineVintage.CBO_JAN_2025:
-        # Interpolate between Feb 2024 and Feb 2026 (0.5 weighting)
-        assumptions = {}
-        for key in _CBO_FEB_2024_ASSUMPTIONS:
-            assumptions[key] = (
-                _CBO_FEB_2024_ASSUMPTIONS[key] * 0.5 +
-                _CBO_FEB_2026_ASSUMPTIONS[key] * 0.5
-            )
-        return assumptions
-    else:
-        raise ValueError(f"Unknown vintage: {vintage}")
+    raise ValueError(f"Unknown vintage: {vintage}")
+
+
+#: Backwards-compatible alias. The name is now a misnomer - only the fallback
+#: :func:`interpolated_jan_2025_assumptions` interpolates anything - but it is
+#: part of this module's existing surface.
+_interpolate_assumptions = vintage_assumptions
 
 
 @dataclass
@@ -265,11 +372,20 @@ class CBOBaseline:
         return vintage_dates.get(self.baseline_vintage, "Unknown")
 
     @property
+    def baseline_vintage_sourcing(self) -> str:
+        """``"sourced"`` or ``"interpolated"`` for this vintage's own figures."""
+        return VINTAGE_SOURCING.get(self.baseline_vintage, "unknown")
+
+    @property
     def metadata(self) -> dict[str, Any]:
         """Return machine-readable metadata about the baseline inputs used."""
         return {
             "vintage": self.baseline_vintage.value,
             "vintage_date": self.baseline_vintage_date,
+            "vintage_sourcing": self.baseline_vintage_sourcing,
+            "vintage_source_document": VINTAGE_SOURCE_DOCUMENT.get(
+                self.baseline_vintage, "unknown"
+            ),
             "source": self.baseline_data_source,
             "requested_real_data": self.requested_real_data,
             "load_error": self.load_error,
@@ -337,7 +453,13 @@ class CBOBaseline:
         """Use hardcoded baseline values (fallback when data unavailable)."""
         self.baseline_data_source = "hardcoded_fallback"
         self.gdp_source = "hardcoded"
-        if self.baseline_vintage == BaselineVintage.CBO_FEB_2024:
+        if self.baseline_vintage == BaselineVintage.CBO_JAN_2025:
+            # Base year (FY2025) values in billions, transcribed from CBO's
+            # January 2025 baseline tables. _CBO_JAN_2025_BASE_LEVELS carries
+            # the table reference behind each line.
+            for attr, value in _CBO_JAN_2025_BASE_LEVELS.items():
+                setattr(self, attr, value)
+        elif self.baseline_vintage == BaselineVintage.CBO_FEB_2024:
             # Base year (2024) values in billions
             self.base_gdp = 28500
             self.base_individual_income_tax = 2500

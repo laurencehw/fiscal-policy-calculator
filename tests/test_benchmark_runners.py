@@ -121,10 +121,11 @@ class TestEndToEndBenchmarks:
 
     def test_full_runner_executes_every_benchmark(self):
         comparisons = run_full_cbo_jct_validation(default_model_runner)
-        # 6 mapped benchmarks: three TCJA (2018 deciles + 2019 JCT +
+        # 7 mapped benchmarks: three TCJA (2018 deciles + 2019 JCT +
         # 2026 deciles), ARP 2021 quintiles, Corporate 28% 2022 JCT
-        # brackets, SALT cap repeal 2024 JCT brackets.
-        assert len(comparisons) == 6
+        # brackets, SALT cap repeal 2024 JCT brackets, and P.L. 119-21
+        # 2026-2034 deciles (CBO 61367, added in Phase D).
+        assert len(comparisons) == 7
         for c in comparisons:
             # No crashes, each comparison is well-formed.
             assert c.benchmark is not None
