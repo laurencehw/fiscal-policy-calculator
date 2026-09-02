@@ -40,3 +40,53 @@ Left for a later lane:
 ## Owner decisions still open (non-blocking)
 - [ ] **Scoring window**: Build renders FY2025–2034 because `FiscalPolicyScorer` defaults `start_year=2025`; plan and wireframes say FY2026–2035 (matches the CBO Feb 2026 baseline). Changing the scorer default is outside the redesign's non-goals — owner call.
 - [ ] Archetype names/vectors (§5b.3) — review for steelman quality before launch.
+
+## From the external app assessment (2026-09-01) — queued, not implemented
+
+Raised by an outside reviewer against the live app. Product/UX items only; the
+validation-documentation half of that review landed separately in
+`docs/METHODOLOGY.md`, `planning/MODELING_IMPROVEMENT.md` and
+`planning/NEXT_STEPS.md`.
+
+- [ ] **Classroom as a first-class path, not a mode flag.** Today an instructor
+  can send `?mode=classroom`, but nothing in the URL pins the *inputs*, so two
+  students can hand in different numbers for the same assignment and both be
+  right. Wanted: an assignment deep link that **freezes baseline vintage, scoring
+  engine, and dynamic on/off**, and says so on the page — the same provenance
+  triple share links already carry (`baseline=<vintage>&spec=<hash>&mode=`), but
+  locked rather than merely recorded, with the frozen controls disabled and
+  labelled. Owner call on whether a frozen link also pins the preset/policy set
+  or only the model settings. Touches `app_pages/classroom.py`,
+  `fiscal_model/ui/share_links.py`, and `components/chrome.py` (the ⚙ settings
+  popover must show and honour the lock).
+- [ ] **Cold start: ~20s of blank skeleton on Streamlit Cloud.** The first hit
+  after the container sleeps renders nothing recognisable — no brand line, no
+  explanation, no progress — which reads as a broken link rather than a waking
+  app. Decide whether *any* in-app placeholder is possible: Streamlit does not
+  paint until the first script run completes, so the honest options are (a) a
+  cheap first paint — emit the chrome/brand line before any data load or heavy
+  import and defer the expensive work behind `st.spinner`/fragments, (b) keep the
+  container warm (paid tier, or an external pinger), (c) accept it and put the
+  explanation outside the app, in the copy that surrounds the link. Measure first:
+  if most of the 20s is import time, (a) is real work; if it is cold container
+  scheduling, only (b) helps.
+- [ ] **The "older snapshots" data banner reads like an outage.** The
+  degraded-data banner fires on page load, before the visitor has scored
+  anything, and its wording makes a routine baseline-vintage lag look like the
+  site is broken. The first impression of the landing page is a warning about a
+  problem the visitor does not yet have. Wanted: state the vintage as a neutral
+  fact where it matters — at the result, next to the number it conditions — and
+  reserve alert styling for genuinely unusable data. `components/chrome.py` owns
+  both the banner and the data-status pill.
+- [ ] **Zero-width sensitivity band on calibrated presets looks broken.** A
+  calibrated preset renders "Sensitivity range: $+4,581.9B to $+4,581.9B" — the
+  same number twice, which reads as a rendering bug rather than as "this preset
+  carries a point estimate with no modelled band". Either suppress the range when
+  it is degenerate and say why, or give calibrated presets a real band.
+  *In progress on branch `ui/polish-assessment`.*
+- [ ] **Build-page garbled reasoning sentences and raw `\$` escapes.** The Build
+  page's generated reasoning text shows truncated and ungrammatical sentences, and
+  backslash-dollar escapes leak through to the reader where the string is
+  block-level HTML (opaque to `remark-math`) and therefore should not have been
+  escaped at all — the inverse of the bug `tests/test_dollar_rendering.py` was
+  written for. *In progress on branch `ui/polish-assessment`.*
