@@ -89,6 +89,33 @@ class DistributionalBenchmarkRow:
     share_with_tax_cut: float | None = None
 
 
+#: CBO's published ranking rule, quoted once and pointed at by every CBO
+#: benchmark below. Sources: CBO, *The Distribution of Household Income*
+#: (https://www.cbo.gov/publication/60706), and the methodology working paper
+#: *Current Work on the Distributional Analysis of Household Income*
+#: (https://www.cbo.gov/system/files/2022-12/58508-WP.pdf).
+CBO_HOUSEHOLD_RANKING_QUOTE = (
+    "CBO ranks households by income before transfers and taxes, adjusted for "
+    "household size: 'CBO calculates adjusted household income by dividing "
+    "household income by the square root of the number of people in the "
+    "household', and 'CBO adjusts income for household size only for the "
+    "purpose of ranking households and assigning them to income groups.' The "
+    "resulting groups each contain 'roughly an equal number of people', so "
+    "'the quintiles contain equal numbers of people, but because households "
+    "vary in size, quintiles generally contain unequal numbers of households.'"
+)
+
+#: JCT's unit, from JCX-68-17's own table stub and JCT's methodology note
+#: (JCX-12R-23, summarised in ``assistant/knowledge/jct_distributional_
+#: methodology.md``): the rows are income classes of *tax filing units*, not of
+#: households, and a joint return is one record.
+JCT_FILING_UNIT_QUOTE = (
+    "JCT reports by income class of the 'tax-filing unit', which collapses a "
+    "joint return into one record; the classes are dollar bands of JCT's "
+    "expanded income, not people-weighted groups of households."
+)
+
+
 @dataclass(frozen=True)
 class CBODistributionalBenchmark:
     """A complete distributional benchmark from an official source."""
@@ -104,6 +131,15 @@ class CBODistributionalBenchmark:
     rows: list[DistributionalBenchmarkRow]
     corporate_incidence_capital_share: float = 0.75
     notes: str = ""
+    #: The universe the *source* ranks and reports on — ``"household"`` or
+    #: ``"tax_unit"``. The model must be asked for the same universe or the
+    #: comparison is between two different populations, which is what the ARP
+    #: benchmark's error was largely measuring before Wave 4. This is a
+    #: statement about the document, never a tuning knob: it is set from the
+    #: sentence recorded in ``ranking_universe_source``.
+    ranking_universe: str = "tax_unit"
+    #: The source's own words for the line above.
+    ranking_universe_source: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -145,6 +181,8 @@ CBO_TCJA_2018 = CBODistributionalBenchmark(
         "incidence is 75/25 capital/labor. Figures capture 2018 only, "
         "before the individual provisions sunset."
     ),
+    ranking_universe="household",
+    ranking_universe_source=CBO_HOUSEHOLD_RANKING_QUOTE,
 )
 
 
@@ -187,6 +225,8 @@ JCT_TCJA_2019 = CBODistributionalBenchmark(
         "CBO. Filing-unit definition is JCT's 'tax-filing unit' which "
         "collapses joint returns into one record."
     ),
+    ranking_universe="tax_unit",
+    ranking_universe_source=JCT_FILING_UNIT_QUOTE,
 )
 
 
@@ -227,6 +267,8 @@ CBO_ARP_2021 = CBODistributionalBenchmark(
         "missing the Recovery Rebate's mass above $75k — the ~9pp "
         "mean absolute share error documented in validation runs."
     ),
+    ranking_universe="household",
+    ranking_universe_source=CBO_HOUSEHOLD_RANKING_QUOTE,
 )
 
 
@@ -272,6 +314,8 @@ CBO_TCJA_EXTENSION_2026 = CBODistributionalBenchmark(
         "decomposition. Good cross-check against the 2018 CBO TCJA "
         "benchmark already in this module."
     ),
+    ranking_universe="household",
+    ranking_universe_source=CBO_HOUSEHOLD_RANKING_QUOTE,
 )
 
 
@@ -307,6 +351,8 @@ JCT_SALT_REPEAL_2024 = CBODistributionalBenchmark(
         "benchmark in this suite — 66% of the revenue loss accrues to "
         "filers above $500k. Good stress test for distributional output."
     ),
+    ranking_universe="tax_unit",
+    ranking_universe_source=JCT_FILING_UNIT_QUOTE,
 )
 
 
@@ -349,6 +395,8 @@ JCT_CORPORATE_28_2022 = CBODistributionalBenchmark(
         "fall mostly on high-income owners' finding: 46% of the burden "
         "is on filers above $500k under the 75/25 split."
     ),
+    ranking_universe="tax_unit",
+    ranking_universe_source=JCT_FILING_UNIT_QUOTE,
 )
 
 
@@ -436,6 +484,8 @@ CBO_PL119_21_2026 = CBODistributionalBenchmark(
         "genuinely held-out distributional number the suite has produced for "
         "the TCJA shape."
     ),
+    ranking_universe="household",
+    ranking_universe_source=CBO_HOUSEHOLD_RANKING_QUOTE,
 )
 
 

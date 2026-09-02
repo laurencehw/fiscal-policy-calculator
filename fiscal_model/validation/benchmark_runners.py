@@ -23,6 +23,25 @@ Coverage today
 The engine returns group labels (``"Middle Quintile"``, ``"$100k-$200k"``
 etc.) that differ from the benchmark labels; a label-map normalises them
 so ``compare_distribution`` finds overlap.
+
+Universes
+---------
+Each benchmark declares the universe *its own source* ranks
+(``CBODistributionalBenchmark.ranking_universe``, with the source sentence in
+``ranking_universe_source``), and the runner asks the engine for that universe.
+CBO's four tables are households ranked by size-adjusted income before transfers
+and taxes into people-weighted groups; JCT's three are income classes of tax
+filing units. Comparing across the two is comparing different populations, which
+is most of what the ARP benchmark's error was measuring before Wave 4.
+
+The household universe needs the return-level microsim. Only the ARP bundle and
+the SALT-cap repeal reach it today — every ``TCJAExtensionPolicy`` and the
+corporate policy return an empty reform dict and take the synthetic bracket
+path, which aggregates IRS return counts and has no household layer. For those,
+the request degrades to the tax-unit path and the returned analysis says so on
+``DistributionalAnalysis.unit``; the declaration is still worth carrying,
+because it is a fact about the document and it is what a microsim path for those
+policies would have to honour.
 """
 
 from __future__ import annotations
@@ -162,8 +181,16 @@ def _combine_distributional_results(results: list[Any]) -> Any:
     double-count because each component's shares already sum to 1.0.
 
     Used to approximate composite policies (the ARP bundle = CTC +
-    EITC childless) for benchmarks that aggregate multiple provisions
-    the engine scores separately.
+    EITC childless + Recovery Rebate) for benchmarks that aggregate multiple
+    provisions the engine scores separately.
+
+    The per-group *average* is the **sum** of the components' averages, not
+    their mean. Every component is scored over the same population and the
+    same groups, so a household that gets $1,400 of rebate and $3,000 of child
+    credit got $4,400; averaging the three components instead reported a third
+    of the bundle, which is why the ARP row's dollar column read −$892 against
+    CBO's −$2,800 while its *shares* — computed from the dollar-weighted merge
+    below, and the only quantity ``compare_distribution`` scores — were right.
     """
     from types import SimpleNamespace
 
@@ -188,12 +215,10 @@ def _combine_distributional_results(results: list[Any]) -> Any:
                     "income_group": row.income_group,
                     "tax_change_avg_sum": 0.0,
                     "dollar_effect": 0.0,
-                    "avg_weight": 0.0,
                 },
             )
             entry["tax_change_avg_sum"] += float(row.tax_change_avg)
             entry["dollar_effect"] += dollar_effect
-            entry["avg_weight"] += 1
 
     total_dollar_effect = sum(e["dollar_effect"] for e in totals_by_group.values())
     if total_dollar_effect == 0:
@@ -202,11 +227,7 @@ def _combine_distributional_results(results: list[Any]) -> Any:
     combined_rows = []
     for entry in totals_by_group.values():
         normalized_share = entry["dollar_effect"] / total_dollar_effect
-        avg_dollars = (
-            entry["tax_change_avg_sum"] / entry["avg_weight"]
-            if entry["avg_weight"] > 0
-            else 0.0
-        )
+        avg_dollars = entry["tax_change_avg_sum"]
         combined_rows.append(
             SimpleNamespace(
                 income_group=entry["income_group"],
@@ -231,7 +252,9 @@ def _run_arp_bundle(benchmark: CBODistributionalBenchmark) -> Any | None:
         create_biden_eitc_childless,
     )
 
-    engine = DistributionalEngine(data_year=benchmark.analysis_year)
+    engine = DistributionalEngine(
+        data_year=benchmark.analysis_year, unit=benchmark.ranking_universe
+    )
     components = [
         create_biden_ctc_2021(),
         create_biden_eitc_childless(),
@@ -283,7 +306,9 @@ def default_model_runner(
     elif benchmark.grouping == IncomeGroupingType.AGI_CLASS:
         group_type = IncomeGroupType.JCT_DOLLAR
 
-    engine = DistributionalEngine(data_year=benchmark.analysis_year)
+    engine = DistributionalEngine(
+        data_year=benchmark.analysis_year, unit=benchmark.ranking_universe
+    )
     try:
         result = engine.analyze_policy(
             policy, group_type=group_type, prefer_microsim=prefer_microsim
