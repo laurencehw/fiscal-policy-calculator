@@ -33,6 +33,7 @@ stock rather than frozen at one constant.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
@@ -159,17 +160,54 @@ class CapitalGainsBaseline:
     # Realizations by bracket
     # ------------------------------------------------------------------
 
-    @staticmethod
-    def _share_of_class_above(row: pd.Series, threshold: float) -> float:
+    def pareto_tail_index(self, year: int) -> float:
+        """Pareto index of the top AGI class, fitted to the two classes below it.
+
+        SOI's top class is open-ended ("$10,000,000 or more"), so a threshold
+        inside it cannot be prorated across a range.  The amount above ``x`` in
+        a Pareto tail scales as ``x**(1-alpha)``, and the two topmost classes
+        pin ``alpha`` down: the share of their combined realizations that sits
+        in the open-ended class is ``(L_top/L_prev)**(1-alpha)``.  Returns 1.0 -
+        an infinitely thin tail, so a threshold inside the top class takes all
+        of it - if the fit is degenerate, which keeps the old behaviour as the
+        fallback rather than as the rule.
+        """
+        frame = self._brackets[self._brackets["tax_year"] == self._resolve_year(year)]
+        frame = frame[frame["statutory_rate"].isin(self.RATE_CHANGE_BRACKETS)]
+        if frame.empty:
+            return 1.0
+        top = frame[frame["agi_upper"] == float("inf")]
+        if top.empty:
+            return 1.0
+        top_lower = float(top["agi_lower"].max())
+        previous = frame[frame["agi_upper"] == top_lower]
+        if previous.empty or top_lower <= 0:
+            return 1.0
+        previous_lower = float(previous["agi_lower"].min())
+        if previous_lower <= 0 or previous_lower >= top_lower:
+            return 1.0
+        top_amount = float(top["income_taxed_at_rate_thousands"].sum())
+        previous_amount = float(previous["income_taxed_at_rate_thousands"].sum())
+        combined = top_amount + previous_amount
+        if combined <= 0 or top_amount <= 0 or top_amount >= combined:
+            return 1.0
+        share = top_amount / combined
+        return 1.0 - math.log(share) / math.log(top_lower / previous_lower)
+
+    def _share_of_class_above(
+        self, row: pd.Series, threshold: float, tail_index: float = 1.0
+    ) -> float:
         """Share of an AGI class that lies above ``threshold``.
 
         Classes wholly above the threshold count in full and classes wholly
         below not at all.  A class straddling the threshold is prorated
         linearly across its AGI range - an approximation, flagged here because
         it is one: gains are concentrated toward the top of a class, so a
-        straddling class contributes slightly more than this allows.  Every
-        threshold in the validation battery (0 and $1,000,000) falls on an SOI
-        class boundary, so the rule does not bind for any scored case.
+        straddling class contributes slightly more than this allows.  The
+        open-ended top class has no range to prorate across, so it uses the
+        Pareto tail :meth:`pareto_tail_index` fits to the classes below it.
+        Every threshold in the validation battery (0 and $1,000,000) falls on
+        an SOI class boundary, so neither rule binds for any scored case.
         """
         lower = float(row["agi_lower"])
         upper = float(row["agi_upper"])
@@ -177,30 +215,44 @@ class CapitalGainsBaseline:
             return 1.0
         if upper <= threshold:
             return 0.0
-        if upper == float("inf") or upper <= lower:
+        if upper == float("inf"):
+            if tail_index <= 1.0 or lower <= 0:
+                return 1.0
+            return float(min(1.0, (lower / threshold) ** (tail_index - 1.0)))
+        if upper <= lower:
             return 1.0
         return (upper - threshold) / (upper - lower)
 
-    def long_term_share_above_threshold(self, year: int, threshold: float) -> float:
-        """Share of realized net gain above ``threshold`` that is long term.
+    def timing_margin_share(self, year: int, threshold: float) -> float:
+        """Share of the preferential base above ``threshold`` that can be retimed.
 
-        From SOI Table 1.4A.  Long-term gains are the part of the preferential
-        base a taxpayer can retime; short-term gains are taxed at ordinary
-        rates and do not belong to it at all.
+        A taxpayer chooses when to sell an appreciated asset and cannot choose
+        when a fund distributes or a corporation declares a dividend, so the
+        transitory response belongs to realized **long-term gains** and not to
+        the qualified dividends and capital gain distributions that share the
+        preferential rates with them.  Numerator: net long-term capital gain by
+        AGI class, SOI Table 1.4A.  Denominator: the preferential base itself,
+        SOI Table 3.5 - not long-term plus short-term, because short-term gains
+        are taxed at ordinary rates and were never in this base to begin with.
         """
-        frame = self._holding[self._holding["tax_year"] == self._resolve_year(year)]
+        resolved = self._resolve_year(year)
+        tail_index = self.pareto_tail_index(resolved)
+        holding = self._holding[self._holding["tax_year"] == resolved]
         long_term = 0.0
-        short_term = 0.0
-        for _, row in frame.iterrows():
-            share = self._share_of_class_above(row, threshold)
-            if share <= 0:
-                continue
-            long_term += share * float(row["net_long_term_gain_thousands"])
-            short_term += share * float(row["net_short_term_gain_thousands"])
-        total = long_term + short_term
-        if total <= 0:
+        for _, row in holding.iterrows():
+            share = self._share_of_class_above(row, threshold, tail_index)
+            if share > 0:
+                long_term += share * float(row["net_long_term_gain_thousands"]) / 1e6
+
+        base = sum(
+            bracket.realizations_billions
+            for bracket in self.get_brackets_above_threshold(
+                resolved, threshold, with_timing_share=False
+            )
+        )
+        if base <= 0:
             return 1.0
-        return float(min(1.0, max(0.0, long_term / total)))
+        return float(min(1.0, max(0.0, long_term / base)))
 
     def get_brackets_above_threshold(
         self,
@@ -208,19 +260,29 @@ class CapitalGainsBaseline:
         threshold: float,
         *,
         rate_change_brackets_only: bool = True,
+        with_timing_share: bool = True,
     ) -> list[GainsBracket]:
-        """Realizations above ``threshold``, grouped by the rate they face."""
+        """Realizations above ``threshold``, grouped by the rate they face.
+
+        ``with_timing_share=False`` skips the long-term share lookup, which
+        :meth:`timing_margin_share` needs to avoid recursing into itself.
+        """
         resolved = self._resolve_year(year)
         threshold = max(0.0, float(threshold))
         frame = self._brackets[self._brackets["tax_year"] == resolved]
-        timing_share = self.long_term_share_above_threshold(resolved, threshold)
+        tail_index = self.pareto_tail_index(resolved)
+        timing_share = (
+            self.timing_margin_share(resolved, threshold)
+            if with_timing_share
+            else 1.0
+        )
 
         buckets: dict[tuple[float, float], list[float]] = {}
         for _, row in frame.iterrows():
             statutory = float(row["statutory_rate"])
             if rate_change_brackets_only and statutory not in self.RATE_CHANGE_BRACKETS:
                 continue
-            share = self._share_of_class_above(row, threshold)
+            share = self._share_of_class_above(row, threshold, tail_index)
             if share <= 0:
                 continue
             key = (statutory, float(row["niit_rate"]))

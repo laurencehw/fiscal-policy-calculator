@@ -642,9 +642,11 @@ def create_capital_gains_policy_from_score(
     """
     Create a CapitalGainsPolicy from a score entry plus required extra inputs.
 
-    The elasticity defaults here are the module defaults, which are Dowd,
-    McClelland & Muthitacharoen (2015)'s persistent -0.72 and transitory -1.2
-    at a 22% reference rate. There is one frozen set: no case supplies its own.
+    The elasticity defaults here are the module defaults: Dowd, McClelland &
+    Muthitacharoen (2015)'s persistent -0.72 and transitory -1.2 at a 22%
+    reference rate, stored as the magnitudes 0.72 and 1.20 because the sign
+    lives in the ``exp(-b * delta_tau)`` response itself. There is one frozen
+    set: no case supplies its own.
     """
     if score.rate_change is None:
         raise ValueError("score.rate_change is required")

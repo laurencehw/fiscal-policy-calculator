@@ -419,7 +419,10 @@ class CapitalGainsPolicy(TaxPolicy):
     **Frozen elasticities.** Dowd, McClelland & Muthitacharoen (2015),
     *New Evidence on the Tax Elasticity of Capital Gains*, National Tax Journal
     68(3): persistent -0.72, transitory -1.2, both at the 22 percent reference
-    rate CRS states its Table 4 estimates are adjusted to.  That gives
+    rate CRS states its Table 4 estimates are adjusted to.  They are stored
+    here as **magnitudes** - 0.72 and 1.20 - because the sign already lives in
+    ``exp(-b * delta_tau)``; a rate rise cuts realizations either way.  That
+    gives
     ``b = 3.273`` and ``tau* = 30.6%``; JCT's own working coefficient is 3.1
     (CRS R48562 p. 8) and Treasury's is 0.72 at 22 percent, the same as DMM's.
     Agersnap & Zidar (2021) estimate a much lower -0.3 to -0.5 and imply a
@@ -675,7 +678,22 @@ class CapitalGainsPolicy(TaxPolicy):
             bracket.realizations_billions * self._realizations_ratio(bracket, 1)
             for bracket in brackets
         )
-        reform_hazard = hazard * reform_realized / realized
+        # ``hazard`` is national - all SOI realizations over the whole accrued-
+        # gains stock - while ``brackets`` is only the slice a thresholded
+        # policy reaches. Applying the slice's response to the whole hazard
+        # would let a $1M+ proposal slow every taxpayer's realizations. The
+        # gains outside the slice keep realizing at the baseline rate, and the
+        # slice's share of national realizations stands in for its share of the
+        # stock, which SOI does not report.
+        national = sum(
+            bracket.realizations_billions
+            for bracket in source.get_brackets_above_threshold(
+                year, 0.0, with_timing_share=False
+            )
+        )
+        affected_share = min(1.0, realized / national) if national > 0 else 1.0
+        response = reform_realized / realized
+        reform_hazard = hazard * (1.0 - affected_share + affected_share * response)
 
         ratio = 1.0
         for _ in range(years_since_start):
@@ -712,8 +730,16 @@ class CapitalGainsPolicy(TaxPolicy):
         static_effect: float,
         years_since_start: int = 0,
         use_real_data: bool = True,
+        phase: float = 1.0,
     ) -> float:
-        """Behavioral offset from the realizations response."""
+        """Behavioral offset from the realizations response.
+
+        ``static_effect`` is not read: the offset is rebuilt bracket by bracket
+        because each bracket faces its own price. ``phase`` carries the
+        engine's phase-in factor, so a policy that phases its rate change in
+        over several years phases the response in with it rather than applying
+        the full-strength offset against a partial static effect.
+        """
         _ = static_effect
         brackets = self.get_brackets(use_real_data=use_real_data)
         stock = self.stock_ratio(years_since_start, use_real_data=use_real_data)
@@ -731,7 +757,7 @@ class CapitalGainsPolicy(TaxPolicy):
             r1 = r0 * self._realizations_ratio(bracket, years_since_start) * stock
             delta_static += (tau1 - tau0) * r0
             delta_total += tau1 * r1 - tau0 * r0
-        return delta_static - delta_total
+        return (delta_static - delta_total) * max(0.0, float(phase))
 
     def estimate_step_up_elimination_revenue(self, years_since_start: int = 0) -> float:
         """Revenue from treating transfers at death as realization events.

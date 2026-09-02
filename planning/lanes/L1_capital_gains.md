@@ -217,17 +217,19 @@ can redo it: bracket base × `exp(−b·Δτ)` × the reform rate, minus the bas
 
 ## 5. Outturn
 
-Measured on `afd5c15`, the lane's last code commit.
+Measured on `9d8b0ec`, the lane's last code commit — after the review round,
+which moved five of the seven rows and is folded in below rather than
+reported separately (§5.7 lists what it changed).
 
 ### 5.1 The tiers, before → after
 
 | tier | n | before | after |
 |---|--:|---|---|
-| Out-of-sample (Tier 1) | 25 | 34.4% / 16.1% median / 12 within 15 / 16 within 25 | **32.2% / 14.1% / 13 / 18** |
+| Out-of-sample (Tier 1) | 25 | 34.4% / 16.1% median / 12 within 15 / 16 within 25 | **31.3% / 14.1% / 13 / 18** |
 | Calibrated reference (fitted) | 33 → **30** | 2.8% / 32 within 15 | **2.2% / 30 within 15** |
-| Unfitted reconstruction | 21 → **24** | 76.7% / 41.0% median | **73.0% / 43.1% median** |
-| Leave-one-out | 18 | 58.7% / 32.5% median / 6 within 15 | **38.0% / 32.5% / 6** |
-|  — `CapitalGains` module | 3 | 171.2% | **46.8%** |
+| Unfitted reconstruction | 21 → **24** | 76.7% / 41.0% median | **72.1% / 40.0% median** |
+| Leave-one-out | 18 | 58.7% / 32.5% median / 6 within 15 | **36.8% / 28.2% / 7** |
+|  — `CapitalGains` module | 3 | 171.2% | **39.6%** |
 
 The two calibrated tiers change *composition*, not accuracy: the three
 capital-gains scenarios moved from the fitted tier to the unfitted-
@@ -238,22 +240,24 @@ it to `False`. Nothing in the fitted tier regressed — its mean *fell* 2.8% →
 reconstruction tier's mean fell 76.7% → 73.0% because the arrivals score better
 than the sectoral rows already there. Read the two together or neither.
 
-Tier 1 error mass fell **859.5 → 804.7**; the four capital-gains rows fell
-**479.4 → 428.5** and are still the tier's largest mass, at 53.2%.
+Tier 1 error mass fell **859.5 → 781.8**; the four capital-gains rows fell
+**479.4 → 405.6** and are still the tier's largest mass, at 51.9%.
 
 ### 5.2 The seven registered rows
 
 | Row | official | before | after | error before → after | band |
 |---|--:|--:|--:|--:|---|
 | `cbo_opt51_gains_at_death` | −536.1 | −83.7 | **−581.2** | 84.4% → **8.4%** | 0–25 ✓ |
-| `cbo_opt47_ltcg_qdiv_2pp` | −103.3 | −205.7 | **−55.8** | 99.1% → **46.0%** | 20–45 ✗ by 1pp |
-| `biden_capital_gains_39` | −288.6 | −699.4 | **−708.8** | 142.3% → **145.6%** | 5–45 ✗ |
-| `treasury_capgains_39_plus_stepup_elim` | −322.0 | −816.6 | **−1057.9** | 153.6% → **228.5%** | 30–80 ✗ |
-| `cbo_2pp_all_brackets` (LOO) | −70.0 | −154.3 | **−81.0** | −120.5% → **−15.7%** | 15–40 ✓ |
-| `pwbm_39_with_stepup` (LOO) | +33.0 | −89.3 | **+14.7** | −370.5% → **−55.5%** | 40–90, sign restored ✓ |
-| `pwbm_39_no_stepup` (LOO) | −113.0 | −138.6 | **−34.8** | −22.6% → **+69.2%** | 40–90, worse ✓ |
+| `cbo_opt47_ltcg_qdiv_2pp` | −103.3 | −205.7 | **−57.1** | 99.1% → **44.8%** | 20–45 ✓ |
+| `biden_capital_gains_39` | −288.6 | −699.4 | **−678.1** | 142.3% → **134.9%** | 5–45 ✗ |
+| `treasury_capgains_39_plus_stepup_elim` | −322.0 | −816.6 | **−1022.3** | 153.6% → **217.5%** | 30–80 ✗ |
+| `cbo_2pp_all_brackets` (LOO) | −70.0 | −154.3 | **−79.8** | −120.5% → **−14.0%** | 15–40, beaten ✓ |
+| `pwbm_39_with_stepup` (LOO) | +33.0 | −89.3 | **+23.6** | −370.5% → **−28.4%** | 40–90, beaten, sign restored ✓ |
+| `pwbm_39_no_stepup` (LOO) | −113.0 | −138.6 | **−26.6** | −22.6% → **+76.5%** | 40–90, worse ✓ |
 
-Six of the ten pre-registered bands were hit. The four misses are §5.4.
+Seven of the ten pre-registered bands were hit or beaten. The three misses are
+§5.4: Tier 1's mean landed at 31.3% against a registered 18–26%, and the two
+Treasury rows moved the wrong way.
 
 ### 5.3 What the mechanism did, defect by defect
 
@@ -267,16 +271,16 @@ $670.8B at a realizations-weighted 23.5%. That plus the unit fix took
 **2 — Elasticity.** The registered claim in §2.1 held: with `b = 3.273` the
 model's revenue-maximizing rate is 30.6%, so 43.4% sits past the peak and a
 rate rise *loses* revenue while step-up survives. `pwbm_39_with_stepup` scores
-**+$14.7B of deficit** against PWBM's +$33.0B — the sign PWBM reports, reached
-with no multiplier, where the frozen 0.8/0.4 net-of-tax form gave −$89.3B and
-a 370% sign flip.
+**+$23.6B of deficit** against PWBM's +$33.0B — the sign PWBM reports, within
+29%, reached with no multiplier, where the frozen 0.8/0.4 net-of-tax form gave
+−$89.3B and a 370% sign flip.
 
 **3 — Lock-in.** The wedge comes out at **1.44×**: with a realization hazard
 of 2.35%/yr against a mortality-weighted death exit of 2.65%/yr, 53% of accrued
 gains escape while step-up survives, over an expected 20-year horizon
 discounted at 4%. That is the whole difference between the two PWBM rows, and
 it is smaller than the 1.5× residual-avoidance multiplier it replaces — which
-is why `pwbm_39_no_stepup` moved from −22.6% to +69.2%, exactly as §4.2 said it
+is why `pwbm_39_no_stepup` moved from −22.6% to +76.5%, exactly as §4.2 said it
 would.
 
 **4 — Gains at death.** $54B/yr flat became $196.2B of gains in 2025 growing at
@@ -307,11 +311,11 @@ worse, and the reason is the lock-in wedge running the other way on them.**
 §4 predicted the rate channel would turn slightly negative at 43.4%. It does
 not, because both proposals *eliminate* step-up, which divides `b` by the 1.44×
 wedge and leaves the rate channel firmly positive (+$25.7B/yr on the $638.6B
-base above $1M). Add the death channel — $32B/yr under Biden's $5M exclusion,
-$56B/yr under the FY2022 $1M exclusion — and the model lands at −$709B and
-−$1,058B against −$288.6B and −$322.0B. The pre-registration got the mechanism
-right and the *sign of its interaction with step-up elimination* wrong, which
-is worth more than the band it missed.
+base above $1M). Add the death channel — roughly $32B/yr under Biden's $5M
+exclusion and $56B/yr under the FY2022 $1M exclusion — and the model lands at
+−$678B and −$1,022B against −$288.6B and −$322.0B. The pre-registration got the
+mechanism right and the *sign of its interaction with step-up elimination*
+wrong, which is worth more than the band it missed.
 
 **3 — The residual on those two rows is now a nameable omission, not a
 mystery.** The model applies **no behavioural response to the death channel**:
@@ -364,17 +368,32 @@ is untouched. **Tailor's capital-gains form** moves, as §3 L1's caveat warned:
 
 | Tailor input (defaults, data year 2024) | before | after |
 |---|--:|--:|
-| +2pp, all brackets | −$219.2B | **−$55.1B** |
-| +5pp, all brackets | −$524.9B | **−$108.1B** |
-| +5pp above $1M, step-up retained | −$165.7B | **−$30.6B** |
-| 39.6% above $1M + eliminate step-up, $1M exemption | −$861.1B | **−$1,050.3B** |
+| +2pp, all brackets | −$219.2B | **−$56.4B** |
+| +5pp, all brackets | −$524.9B | **−$110.9B** |
+| +5pp above $1M, step-up retained | −$165.7B | **−$22.3B** |
+| 39.6% above $1M + eliminate step-up, $1M exemption | −$861.1B | **−$1,016.5B** |
 
 The form itself loses four widgets — short-run and long-run elasticity, the
 transition slider, the "annual gains at death ($B)" input and the lock-in
 multiplier slider whose help text offered 5.3 as a setting — and gains
 persistent and transitory elasticity inputs.
 
-### 5.6 What this lane did not do
+### 5.6 What the review round changed
+
+Copilot and Cursor Bugbot between them found five defects in the first push,
+all real and all fixed in `9d8b0ec`. Four of the seven registered rows moved,
+every one of them toward its target, and Tier 1 went 32.2% → **31.3%** with
+`cbo_opt47` crossing back inside its band.
+
+| Finding | Fix | Effect |
+|---|---|---|
+| `_share_of_class_above` returned 100% of the open-ended top AGI class for *any* threshold inside it, so a user threshold above $10M was not monotone | The top class now uses a **Pareto tail fitted to the two classes below it** (α = 1.31 on TY2023), so realizations above $20M are $291.6B against $361.3B above $10M | No scored case (thresholds 0 and $1M sit on class boundaries); fixes the Tailor form |
+| The timing margin used long-term over long-term-plus-short-term from Schedule D (~93%), but short-term gains were never in the preferential base — the denominator should be the base itself | `timing_margin_share` now divides net long-term gain by the SOI Table 3.5 base, giving **87.7%** at threshold 0 and isolating the qualified dividends and fund distributions that cannot be retimed | `cbo_opt47` 46.0% → 44.8% |
+| `stock_ratio` applied the *threshold-restricted* slice's hazard response to the **national** hazard, so a $1M+ proposal slowed every taxpayer's realizations | The response is weighted by the slice's share of national realizations; gains outside it keep realizing at the baseline rate | `biden` 145.6% → 134.9%, `treasury` 228.5% → 217.5%, `pwbm_39_with_stepup` 55.5% → **28.4%** |
+| `estimate_behavioral_offset` ignored phase-in, so a phased rate change got a full-strength offset against a partial static effect (pre-existing, not a regression) | The engine passes `phase` explicitly | No scored case phases a capital-gains change in |
+| Two docstrings wrote the frozen elasticities as −0.72 / −1.2 while the fields hold magnitudes; one test name still said `lock_in_multiplier` | Wording and rename | None |
+
+### 5.7 What this lane did not do
 
 No target moved, and the locked holdout protocol's membership, minimum and
 required categories are unchanged. The runners, `loo.py`'s leakage guard,

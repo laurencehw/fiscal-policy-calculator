@@ -319,6 +319,7 @@ class FiscalPolicyScorer:
                     revenue[idx],
                     years_since_start,
                     use_real_data=self.use_real_data,
+                    phase=phase,
                 )
             else:
                 behavioral[idx] = policy.estimate_behavioral_offset(revenue[idx])

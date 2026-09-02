@@ -274,7 +274,7 @@ class TestCapitalGainsPolicyBounds:
                 elasticity_reference_rate=0.0,
             )
 
-    def test_rejects_negative_lock_in_multiplier(self):
+    def test_rejects_negative_deferral_discount_rate(self):
         with pytest.raises(ValueError, match="deferral_discount_rate"):
             CapitalGainsPolicy(
                 name="bad",
