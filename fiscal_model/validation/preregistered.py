@@ -111,7 +111,9 @@ PHASE_D_SPENDING_LEVEL_RULE = (
 #: Phase D, the row was added in this commit and first scored in a *later*
 #: one: the shape input is frozen in the git history before the mechanism is
 #: allowed to read it.
-IIJA_AUTHORIZATION_PATH_ENTERED_COMMIT = "PENDING"
+IIJA_AUTHORIZATION_PATH_ENTERED_COMMIT = (
+    "1a681183e5b77cc23770f253ee3b7320239f6ced"
+)
 IIJA_AUTHORIZATION_PATH_ENTERED_DATE = "2026-09-01"
 
 #: Commit in which the authorization-path shape was first scored (the commit

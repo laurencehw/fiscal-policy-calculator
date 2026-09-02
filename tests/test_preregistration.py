@@ -134,6 +134,37 @@ def test_retired_row_without_a_reason_is_rejected(monkeypatch):
     assert any("retired with no retired_reason" in p for p in problems)
 
 
+# ── A shape input may change only by superseding its row ───────────────────
+
+
+def test_iija_shape_change_is_a_new_row_with_the_same_target():
+    """The IIJA authorization path replaced a *shape input*, not a target. The
+    rule is the same either way: a new row, the old one superseded and kept,
+    and CBO's published figure untouched on both."""
+    rows = {c.case_id: c for c in PREREGISTERED_CASES}
+    v1 = rows["iija_2021_discretionary.v1"]
+    v2 = rows["iija_2021_discretionary.v2"]
+
+    assert v1.superseded_by == "iija_2021_discretionary.v2"
+    assert not v1.is_live and v2.is_live
+    assert v1.official_10yr_billions == v2.official_10yr_billions
+    assert v1.source_url == v2.source_url
+    assert v1.source_date == v2.source_date
+    # The entry commit must precede the first scoring run: the shape input is
+    # frozen in the history before the mechanism is allowed to read it.
+    assert v2.entered_commit != v2.first_scoring_run_commit
+
+
+def test_the_iija_path_rule_is_recorded_not_left_per_year():
+    """A per-year choice of budget authority would be a knob. One rule sets
+    every year, and it names the source's own total."""
+    from fiscal_model.validation.preregistered import IIJA_AUTHORIZATION_PATH_RULE
+
+    assert "446,306" in IIJA_AUTHORIZATION_PATH_RULE
+    rows = {c.case_id: c for c in PREREGISTERED_CASES}
+    assert IIJA_AUTHORIZATION_PATH_RULE in rows["iija_2021_discretionary.v2"].note
+
+
 # ── The manifest must actually catch violations ────────────────────────────
 
 
