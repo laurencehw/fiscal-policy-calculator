@@ -129,4 +129,127 @@ Anything that moves outside this list is a finding, and gets written into §4.
 
 ## 4. Outturn
 
-*(appended in the lane's last commit)*
+*Appended 2026-09-01, after the code. Numbers from `python scripts/run_loo.py
+--donor-matrix`, `python scripts/cold_holdout.py` and
+`python scripts/run_validation_dashboard.py` on the finished branch.*
+
+### Leave-one-out
+
+| Case | Official | By-constr | LOO before | LOO after | Err before | Err after |
+|---|--:|--:|--:|--:|--:|--:|
+| `extend_tcja_amt` | 450.0 | 450.5 | 779.5 | **855.3** | +73.2% | **+90.1%** |
+| `repeal_individual_amt` | 450.0 | 450.5 | 836.9 | **948.9** | +86.0% | **+110.9%** |
+| `repeal_corporate_amt` | 220.0 | 220.1 | — | — | not cross-validatable | unchanged |
+
+AMT module mean 79.6% → **100.5%**. Suite aggregate 59.3% → **61.7%** mean,
+median **35.6%** (unchanged), **6/18** within 15% (unchanged), 18 derivable and
+4 not cross-validatable (unchanged). Ceiling 75%: passes.
+
+### Against the pre-registration
+
+| Row | Predicted | Actual | |
+|---|--:|--:|---|
+| LOO `extend_tcja_amt` | +85% to +95% | **+90.1%** | in band |
+| LOO `repeal_individual_amt` | +105% to +115% | **+110.9%** | in band |
+| LOO suite mean | 61% to 63% | **61.7%** | in band |
+| Derived extend, 10-year | ~$860B | **$855.3B** | 0.5% off the hand arithmetic |
+| Derived repeal, 10-year | ~$949B | **$948.9B** | exact |
+| Tier 1 | 52.6% / 8 / 14, unmoved | **52.6% / 8 / 14** | as registered |
+| Unfitted reconstructions | 250.8%, unmoved | **250.8%** | as registered |
+| Other LOO modules | unmoved | **unmoved** | as registered |
+| App presets | unmoved | **unmoved** | as registered |
+| Fitted tier mean | ~9% (33/34 → ~30/34) | **2.7%, 33/34** | **missed — see finding 3** |
+
+Every registered row landed where it was registered except the fitted tier,
+which did not move because the scorecard flip was not made. That is a scope
+change, not a modelling surprise, and it is written up below rather than
+quietly absorbed.
+
+### Reported vs derived, per benchmark
+
+| Benchmark | Carried target | Reported | Err | Derived | Err |
+|---|--:|--:|--:|--:|--:|
+| `extend_tcja_amt` | $450B | $450.5B | +0.1% | **$855.3B** | +90.1% |
+| `repeal_individual_amt` | $450B | $450.5B | +0.1% | **$948.9B** | +110.9% |
+| `repeal_corporate_amt` | $220B | $220.1B | +0.0% | **$252.2B** | +14.6% |
+
+**App default stays `reported`** under Decision 1's own rule: derived does not
+beat fitted on the carried benchmarks. Nothing a user sees changes.
+
+Against the **published line item** instead of the carried target — CRS R48286
+Table 1, transcribing CBO pub. 60114, $1,357.1B over FY2025-2034, recorded in
+`validation/benchmark_sources.py`:
+
+| `extend_tcja_amt` | vs $1,357.1B |
+|---|--:|
+| Reported (fitted $450.5B) | **-66.8%** |
+| Derived ($855.3B) | **-37.0%** |
+
+That is the lane's result. The structural path is *closer to the document* than
+the fitted constant, by a factor of about 1.8, while scoring worse against the
+carried target — which is only possible because the carried target and the
+document disagree.
+
+### Findings
+
+1. **The plan's ramp hypothesis is wrong, and the data says so plainly.**
+   §3 L5 and `VALIDATION_NOTES.md` §6 both attribute the AMT overshoot to a
+   missing 2026 phase-in: "a LOO derivation that phased the ramp in would close
+   most of this". TPC T25-0049 shows a cliff — 0.2M AMT payers in 2025, 7.6M in
+   2026 — and then *growth*, $71.6B to $124.2B by 2035. The flat ~$73B/yr was
+   the window's early-year level, not its average, so indexing the path by year
+   raises the score. There is no ramp to add. `tests/test_amt_derived.py`
+   pins the cliff so a data refresh cannot quietly reintroduce the assumption.
+2. **Interpolating the average liability separately is not safe.** The first
+   implementation interpolated payer count and average liability between the
+   two regime anchors and multiplied them. Both are individually monotone in
+   the exemption — the count falls, the average rises — but their product turns
+   upward, so a +$25K exemption increase priced as a revenue *gain*. Revenue
+   and payers are each interpolated now and the average is their ratio. This
+   was caught by writing the sign test before trusting the shape, and it is
+   the kind of defect the dead branch had been hiding: with the branch
+   returning 0.0, no exemption change had ever been scored at all.
+3. **The scorecard half of Decision 1 is blocked by a locked protocol, not by
+   the model.** Decision 1 asks for `derived` to become the default in
+   validation. It is the default in the *held-out* path (`run_amt_loo`), which
+   is where the honesty claim lives. It is **not** the default in the
+   by-construction scorecard, and deliberately so: `repeal_individual_amt` is a
+   locked id in `validation/holdout.py`'s
+   `revenue-scorecard-post-lock-2026-05-02` protocol, and
+   `fiscal_model/readiness.py` **hard-fails** strict readiness on any holdout
+   entry rated Poor. Derived rates it Poor at +110% against a target
+   `benchmark_sources.py` already records as a five-year figure. Flipping it
+   would fail a release gate for a reason that has nothing to do with model
+   quality, and loosening the gate to get green is exactly what §4 forbids.
+   `AMT_SCORECARD_MODE` in `fiscal_model/amt.py` is the one line that flips it
+   once the owner has settled the target. **This needs an owner decision**, and
+   it is the same decision as correcting the `extend_tcja_amt` /
+   `repeal_individual_amt` targets — E-provenance work, not a modelling lane.
+4. **Derived repeal reproduces TPC's revenue column exactly.** Scoring
+   `repeal_individual_amt` in derived mode returns $71.6B, $74.7B, $80.0B …
+   $124.2B — TPC's printed path, year for year. That started as a plumbing
+   check but it is also the substantive claim: for that policy the model no
+   longer approximates a projection, it *is* one, and the residual against the
+   benchmark is entirely the benchmark's.
+5. **The definitional gap between the two published figures is real and should
+   not be split.** TPC's path is a standalone current-law sunset. CRS/CBO's
+   $1,357.1B is the AMT provision scored inside a full TCJA-extension package,
+   where extended rate cuts push far more filers into AMT. Both are published;
+   they answer different questions. The derived model reconstructs TPC's, which
+   is why -37% and not 0% is the honest expectation against the CRS row.
+
+### What the lane did not do
+
+- Did not touch any target, `preregistered.py`, the yardstick scripts, the
+  leakage guard, or any CI threshold.
+- Did not add a per-benchmark constant. The module gained one data file, one
+  extrapolation rule applied identically to both regimes, and one interpolation
+  shape that was already the module's.
+- Did not change `AMT_EXEMPTIONS_TCJA` or `AMT_EXEMPTIONS_TCJA_EXTENDED`. Both
+  still fall back to their 2034 row past the table's end, which is harmless
+  here because each benchmark sits exactly on a regime anchor.
+- Did not model the phase-out thresholds. `phase_out_threshold_change` is still
+  declared and never read; `AMT_PHASEOUT_TCJA` still stops at 2030. Under the
+  post-sunset schedule the phase-out is what claws the exemption back from
+  high-income filers, so it is the next real structure this module is missing —
+  but it needs a published phase-out path, which T25-0049 does not carry.
