@@ -73,8 +73,58 @@ def test_corporate_policy_returns_empty():
     assert reforms == {}
 
 
-def test_biden_eitc_childless_maps_to_eitc_expansion():
+def test_biden_eitc_childless_maps_to_the_childless_schedule_only():
+    """A childless expansion must not scale the with-children maxima.
+
+    The bridge used to return ``eitc_expansion = 1500 / 632`` — a single
+    multiplier applied to all four child counts, so a reform that leaves the
+    three-child maximum untouched was modelled as raising it by 137%. The
+    childless keys move the childless schedule and nothing else.
+    """
     from fiscal_model.credits import create_biden_eitc_childless
 
     reforms = policy_to_microsim_reforms(create_biden_eitc_childless())
-    assert reforms["eitc_expansion"] == pytest.approx(1500 / 632)
+    assert "eitc_expansion" not in reforms
+    assert reforms["eitc_childless_max_credit"] == pytest.approx(1500.0)
+    assert reforms["eitc_childless_phasein_rate"] == pytest.approx(0.153)
+    assert reforms["eitc_childless_phaseout_rate"] == pytest.approx(0.153)
+    # The age expansion the description always claimed and the code never made.
+    assert reforms["eitc_childless_min_age"] == 19
+    assert reforms["eitc_childless_max_age"] > 65
+
+
+def test_arp_ctc_maps_to_the_two_tier_design():
+    """ARPA sec. 9611's structure, not a flat credit at one threshold."""
+    from fiscal_model.credits import create_biden_ctc_2021
+
+    reforms = policy_to_microsim_reforms(create_biden_ctc_2021())
+    assert reforms["ctc_amount_under_6"] == pytest.approx(3600.0)
+    assert reforms["ctc_amount"] == pytest.approx(3000.0)
+    assert reforms["ctc_qualifying_age"] == 18
+    assert reforms["ctc_protected_amount"] == pytest.approx(2000.0)
+    # The increment phases from $75k/$150k; the $2,000 base keeps $200k/$400k.
+    assert reforms["ctc_phaseout_start_low_single"] == pytest.approx(75_000.0)
+    assert reforms["ctc_phaseout_start_single"] == pytest.approx(200_000.0)
+
+
+def test_post_sunset_credit_policy_is_not_representable():
+    """A counterfactual the microsim baseline cannot express returns ``{}``.
+
+    Extending the $2,000 CTC is scored against the post-2025 sunset. The
+    microsim distributional path always computes its baseline leg from the
+    engine's current-law defaults, so handing it this reform would report no
+    change at all. An empty dict routes it to the synthetic path instead.
+    """
+    from fiscal_model.credits import create_ctc_permanent_extension
+
+    assert policy_to_microsim_reforms(create_ctc_permanent_extension()) == {}
+
+
+def test_arp_recovery_rebate_maps_to_the_per_person_rebate():
+    from fiscal_model.credits import create_arp_recovery_rebate
+
+    reforms = policy_to_microsim_reforms(create_arp_recovery_rebate())
+    assert reforms["rebate_per_person"] == pytest.approx(1400.0)
+    assert reforms["rebate_phaseout_start_single"] == pytest.approx(75_000.0)
+    assert reforms["rebate_phaseout_end_single"] == pytest.approx(80_000.0)
+    assert reforms["rebate_phaseout_end_married"] == pytest.approx(160_000.0)

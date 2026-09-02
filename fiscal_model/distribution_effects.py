@@ -735,6 +735,41 @@ def dispatch_distributional_effect(
     return calculate_group_effect(policy, group, brackets=brackets)
 
 
+def _credit_schedule_reforms(policy: Policy) -> dict[str, Any]:
+    """Reform-dict entries for a CTC or EITC policy, or ``{}``.
+
+    Empty when the policy is not a credit the schedules can express, or when
+    its counterfactual is not current law — see
+    :func:`policy_to_microsim_reforms` for why the second case must not be
+    handed to the microsim.
+    """
+    TaxCreditPolicy, _ = _get_credit_policy()
+    if not isinstance(policy, TaxCreditPolicy):
+        return {}
+    schedules = policy.credit_schedules()
+    if schedules is None:
+        return {}
+
+    from .credits_microdata import (
+        current_law_ctc_schedule,
+        current_law_eitc_schedule,
+        no_rebate_schedule,
+    )
+
+    baseline_for_year, reform = schedules
+    baseline = baseline_for_year(getattr(policy, "start_year", 2025))
+    current_law = {
+        **current_law_ctc_schedule().params,
+        **current_law_eitc_schedule().params,
+        **no_rebate_schedule().params,
+    }
+    if any(
+        current_law.get(key) != value for key, value in baseline.params.items()
+    ):
+        return {}
+    return dict(reform.params)
+
+
 def policy_to_microsim_reforms(policy: Policy, year: int = 2025) -> dict:
     """
     Convert a Policy object into ``MicroTaxCalculator`` reform parameters.
@@ -750,17 +785,24 @@ def policy_to_microsim_reforms(policy: Policy, year: int = 2025) -> dict:
 
     - ``rate_change`` on income-tax policies → threshold rate adjustment, or
       top-rate reform when no threshold is supplied
-    - ``credit_change_per_unit`` + CHILD_TAX_CREDIT → ctc_amount
-    - EITC (``eitc_expansion_factor`` or EARNED_INCOME_CREDIT max credit) →
-      eitc_expansion
+    - CTC and EITC policies → the policy's **own** reform schedule
+      (``TaxCreditPolicy.credit_schedules``), which is the same object the
+      revenue path scores. One definition, so a distributional table and a
+      revenue score can never describe different reforms.
     - ``std_deduction_bonus`` → std_deduction_bonus
     - TaxExpenditurePolicy SALT → salt_cap
     - AMT exemption dollar change → amt_exemption_adjustment
-    - ``make_fully_refundable`` + CTC → force_refundable flag
 
     Corporate, estate, OASDI payroll, trade, climate, and composite TCJA
     packages intentionally return ``{}`` so the TPC pilot reports
     "not representable" rather than inventing a score.
+
+    So does a credit policy whose counterfactual is **not** current law. The
+    microsim distributional path always computes its baseline leg from the
+    engine's own defaults, so a policy scored against the post-2025 sunset —
+    extending the $2,000 CTC, say — would come out as "no change" if its
+    reform schedule were handed over. Returning ``{}`` sends it to the
+    synthetic bracket path instead of reporting a silent zero.
     """
     del year  # reserved for year-specific baselines
     reforms: dict[str, Any] = {}
@@ -782,39 +824,17 @@ def policy_to_microsim_reforms(policy: Policy, year: int = 2025) -> dict:
             else:
                 reforms["new_top_rate"] = 0.37 + rate_change
 
-    # Tax credits: translate credit_change_per_unit to new ctc_amount.
-    credit_change = getattr(policy, "credit_change_per_unit", 0) or getattr(
-        policy, "ctc_change", 0
-    )
-    credit_type = getattr(policy, "credit_type", None)
-    credit_type_name = getattr(credit_type, "name", None) or getattr(
-        credit_type, "value", None
-    )
-    if credit_change and credit_type_name in {"CHILD_TAX_CREDIT", "ctc"}:
-        # Current-law CTC is $2,000; credit_change is the delta per child.
-        reforms["ctc_amount"] = 2000 + credit_change
-
-    # Make-fully-refundable is an ARP-style flag on the CTC engine.
-    if getattr(policy, "make_fully_refundable", False) and credit_type_name in {
-        "CHILD_TAX_CREDIT",
-        "ctc",
-    }:
-        reforms["ctc_fully_refundable"] = True
+    # Tax credits: hand over the policy's own reform schedule. This used to be
+    # two ad-hoc translations — ``ctc_amount = 2000 + credit_change`` and, for
+    # any EITC policy, a single ``max_credit / 632`` multiplier applied to all
+    # four child counts. The second could not express a childless-only
+    # expansion at all: it scaled the three-child maximum by 2.37 to model a
+    # reform that leaves it untouched.
+    reforms.update(_credit_schedule_reforms(policy))
 
     eitc_expansion = getattr(policy, "eitc_expansion_factor", None)
     if eitc_expansion is not None and float(eitc_expansion) != 1.0:
         reforms["eitc_expansion"] = float(eitc_expansion)
-    elif credit_type_name in {
-        "EARNED_INCOME_CREDIT",
-        "eitc",
-        "EITC",
-        "earned_income_credit",
-    }:
-        # Approximate childless (or overall) expansion from max credit vs
-        # current-law childless maximum ($632 in the microsim baseline).
-        max_credit = float(getattr(policy, "max_credit_per_unit", 0) or 0)
-        if max_credit > 0:
-            reforms["eitc_expansion"] = max_credit / 632.0
 
     if hasattr(policy, "std_deduction_bonus"):
         std_ded_bonus = getattr(policy, "std_deduction_bonus", 0)

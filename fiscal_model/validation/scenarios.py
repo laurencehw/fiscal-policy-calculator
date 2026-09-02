@@ -207,6 +207,24 @@ CORPORATE_VALIDATION_SCENARIOS = {
 }
 
 
+# Owner Decision 5 (plan §6, accepted 2026-09-01): all three of these
+# benchmarks are **tautological in the fitted tier**. Each carries an
+# ``annual_revenue_change_billions`` that is the published target divided by
+# exactly ten — -160.0 against $1,600B, -60.0 against $600B, -17.8 against
+# $178B — so the by-construction scorecard reproduces them because it was told
+# the answer, exactly as it does for ``repeal_corporate_amt``.
+#
+# The decision is to declare that per case rather than delete a case, which is
+# what the ``limitations`` block below does: the declaration travels with the
+# benchmark into ``ScorecardEntry.known_limitations``, the API payload and the
+# validation tab, so a reader who sees the 0.0% also sees why it is not
+# evidence. ``calibrated_to_target`` stays True because it is true — the module
+# *is* fitted to these targets, and moving them into the unfitted-reconstruction
+# tier would say the opposite.
+#
+# The leave-one-out row is what carries the honesty, and after Wave 3's L3 it
+# has something to say: the derivation is per-unit over the CPS microdata and
+# reads no annual at all.
 TAX_CREDIT_VALIDATION_SCENARIOS = {
     "biden_ctc_2021": {
         "description": "Biden 2021 ARP-style CTC (permanent)",
@@ -214,6 +232,19 @@ TAX_CREDIT_VALIDATION_SCENARIOS = {
         "expected_10yr": 1600.0,
         "source": "CBO/JCT 2021",
         "notes": "ARP CTC was 1-year ($110B). Permanent would be ~$1.6T over 10 years.",
+        "limitations": [
+            "TAUTOLOGICAL FITTED ROW (owner Decision 5). The module's annual for "
+            "this benchmark is -$160.0B, the carried $1,600B target divided by "
+            "exactly ten, so the by-construction error tests x/10 x 10 == x and "
+            "nothing else. Read the leave-one-out row instead: run_loo.py derives "
+            "this case per unit from the CPS microdata and never touches the "
+            "annual. The row is kept rather than deleted so the tautology stays "
+            "visible - deleting a benchmark to improve a tier mean is the failure "
+            "mode pre-registration exists to forbid.",
+            "The $1,600B is a rounded secondhand figure attributed to 'CBO/JCT "
+            "2021' with no transcribed table row behind it, so the residual on "
+            "the derived side is measured against a target of unknown precision.",
+        ],
     },
     "ctc_extension": {
         "description": "Extend current CTC beyond 2025",
@@ -221,6 +252,24 @@ TAX_CREDIT_VALIDATION_SCENARIOS = {
         "expected_10yr": 600.0,
         "source": "CBO 2024",
         "notes": "Part of TCJA extension cost. Without extension, CTC reverts to $1,000.",
+        "limitations": [
+            "TAUTOLOGICAL FITTED ROW (owner Decision 5). The module's annual for "
+            "this benchmark is -$60.0B, the carried $600B target divided by "
+            "exactly ten, so the by-construction error tests x/10 x 10 == x and "
+            "nothing else. Read the leave-one-out row instead: run_loo.py derives "
+            "this case per unit from the CPS microdata and never touches the "
+            "annual. The row is kept rather than deleted so the tautology stays "
+            "visible - deleting a benchmark to improve a tier mean is the failure "
+            "mode pre-registration exists to forbid.",
+            "There is a published line item for very nearly this provision and it "
+            "is not $600B: JCT's JCX-35-25 scores P.L. 119-21's child-credit "
+            "extension at +$816.8B over FY2025-2034 (transcribed in "
+            "data_files/validation/pl119_21_jct_line_items.csv). The designs "
+            "differ - JCT scores a $2,200 indexed credit against this "
+            "benchmark's $2,000 flat one - so it is an anchor rather than a "
+            "replacement target, and moving a target is provenance work, not a "
+            "modelling lane's.",
+        ],
     },
     "biden_eitc_childless": {
         "description": "Biden childless EITC expansion",
@@ -228,6 +277,22 @@ TAX_CREDIT_VALIDATION_SCENARIOS = {
         "expected_10yr": 178.0,
         "source": "Treasury Green Book 2024",
         "notes": "Triple max credit to ~$1,500, expand age range 19-65+.",
+        "limitations": [
+            "TAUTOLOGICAL FITTED ROW (owner Decision 5). The module's annual for "
+            "this benchmark is -$17.8B, the carried $178B target divided by "
+            "exactly ten, so the by-construction error tests x/10 x 10 == x and "
+            "nothing else. Read the leave-one-out row instead: run_loo.py derives "
+            "this case per unit from the CPS microdata and never touches the "
+            "annual. The row is kept rather than deleted so the tautology stays "
+            "visible - deleting a benchmark to improve a tier mean is the failure "
+            "mode pre-registration exists to forbid.",
+            "The derived side under-predicts this row for two reasons in the "
+            "survey file rather than the rules: CPS ASEC carries no "
+            "self-employment earnings, which the EITC counts, and the tax-unit "
+            "builder folds 19-to-23-year-olds with a parent pointer into the "
+            "parent's unit - which is most of the population an age expansion "
+            "from 25 to 19 is about.",
+        ],
     },
 }
 

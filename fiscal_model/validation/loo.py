@@ -60,6 +60,14 @@ downgraded to ``not_cross_validatable`` automatically. That single mechanical
 rule catches ``expand_niit`` (payroll), ``repeal_corporate_amt`` (AMT) and
 ``eliminate_step_up`` (tax expenditures) without any hand-maintained list.
 
+It does **not** catch the three credit benchmarks, and that is worth stating
+because their fitted annuals *are* the target over ten. The guard tests the
+**derived** annual, not the fitted one, and the credits module derives from the
+CPS microdata rather than from its own constant — so the derivation is genuinely
+held out even though the constant it replaces is the answer key. The tautology
+on the fitted side is declared per case in ``scenarios.py`` under owner
+Decision 5 instead of being deleted.
+
 Aggregation
 -----------
 The suite reports mean / median / share-within-15% over the **derivable cases
@@ -78,6 +86,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from ..amt import AMT_HELD_OUT_MODE, AMT_MODE_REPORTED
+from ..credits_core import CREDIT_HELD_OUT_MODE
+from ..credits_microdata import CreditMicrodataUnavailable
 from ..estate import (
     ESTATE_HELD_OUT_MODE,
     ESTATE_MODE_REPORTED,
@@ -813,24 +823,35 @@ def run_amt_loo() -> LOOReport:
 
 def derive_credit_annual(case_id: str) -> float | None:
     """
-    Re-derive a credit benchmark from the CTC/EITC per-unit cost identity.
+    Re-derive a credit benchmark by summing per-unit credits over the CPS file.
 
-    ``credit_change_per_unit x units_affected x participation_rate`` — the same
-    formula ``TaxCreditPolicy.estimate_static_revenue_effect`` uses when no
-    calibrated annual is present. All three inputs come from shared base data
-    (``CTC_CURRENT_LAW``, ``CREDIT_RECIPIENT_COUNTS``, statutory EITC
-    parameters), none from the held-out target.
+    Builds the scenario's own policy in ``derived`` mode and returns the window
+    average of its structural path: the counterfactual and reform statutory
+    schedules evaluated tax unit by tax unit over CPS ASEC 2024, differenced on
+    final tax liability. Nothing here reads
+    ``annual_revenue_change_billions`` — which matters more for this module
+    than any other, because all three of its annuals are the published target
+    divided by exactly ten.
+
+    This replaced the per-unit *cost identity*
+    (``credit_change x units x participation``), which understated all three
+    expansions by 28 to 64 percent for a structural reason rather than a noisy
+    one: it prices a change in the credit amount and nothing else, so
+    refundability, an eligibility expansion and a phase-out threshold are all
+    invisible to it.
+
+    Returns ``None`` when the policy has no CTC or EITC schedule to move, or
+    when the microdata file carries no dependent ages.
     """
     scenario = TAX_CREDIT_VALIDATION_SCENARIOS.get(case_id)
     if scenario is None:
         return None
     policy = scenario["policy_factory"](**scenario.get("kwargs", {}))
-    change = getattr(policy, "credit_change_per_unit", 0.0)
-    units = getattr(policy, "units_affected_millions", 0.0)
-    participation = getattr(policy, "participation_rate", 0.0)
-    if not change or not units:
+    policy.mode = CREDIT_HELD_OUT_MODE
+    try:
+        return policy.derived_window_average()
+    except CreditMicrodataUnavailable:
         return None
-    return -(change * units * participation * 1e6 / 1e9)
 
 
 def run_credits_loo() -> LOOReport:
@@ -838,9 +859,13 @@ def run_credits_loo() -> LOOReport:
     report = LOOReport(
         module="Credits",
         mechanism=(
-            "Per-unit credit cost identity: credit change per child/filer x affected "
-            "units x participation rate, from CTC_CURRENT_LAW and "
-            "CREDIT_RECIPIENT_COUNTS."
+            "Per-unit credit schedules evaluated over CPS ASEC 2024 tax units: the "
+            "counterfactual and reform CTC/EITC parameter sets are each run through "
+            "MicroTaxCalculator and differenced on final tax liability, weighted and "
+            "averaged over the window. The counterfactual moves with the law - "
+            "current law in 2025, the pre-TCJA regime from 2026 - and the statutory "
+            "schedules come from CTC_CURRENT_LAW and EITC_CURRENT_LAW, not from any "
+            "per-benchmark constant."
         ),
     )
     all_ids = tuple(TAX_CREDIT_VALIDATION_SCENARIOS)
@@ -859,12 +884,25 @@ def run_credits_loo() -> LOOReport:
                 ),
                 calibration_set=retained if derived is not None else (),
                 notes=(
-                    "The per-unit identity omits the refundability expansion and "
-                    "phase-out relaxation the official scores price in, so it "
-                    "systematically understates the expansions."
+                    "Read the By-constr column here as arithmetic, not evidence: each "
+                    "of these three annuals is the published target divided by exactly "
+                    "ten, so a 0.0% fitted error tests x/10 x 10 == x (owner "
+                    "Decision 5; scenarios.py carries the per-case declaration). The "
+                    "LOO column is the only one that measures anything, and the "
+                    "residual it leaves is a coverage gap in the survey file rather "
+                    "than a missing rule: CPS ASEC records no self-employment "
+                    "earnings, which the EITC counts, and its dependency rule folds "
+                    "19-to-23-year-olds with a parent pointer into the parent's tax "
+                    "unit - the population a childless-EITC age expansion is mostly "
+                    "about."
                 ),
                 exclusion_reason=(
-                    None if derived is not None else "no per-unit credit change to expand"
+                    None
+                    if derived is not None
+                    else (
+                        "no CTC or EITC schedule to move, or the microdata file "
+                        "carries no dependent ages"
+                    )
                 ),
             )
         )

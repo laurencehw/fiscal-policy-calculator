@@ -347,8 +347,12 @@ class FiscalPolicyScorer:
 
             if isinstance(policy, TaxExpenditurePolicy):
                 growth_rate = policy.get_expenditure_data().get("growth_rate", 0.03)
+            elif isinstance(policy, TaxCreditPolicy) and policy.uses_window_average_annual():
+                # Covers both a fitted annual and the derived CPS path, which
+                # averages over the window itself.
+                growth_rate = 0.0
             elif (
-                isinstance(policy, (TaxCreditPolicy, EstateTaxPolicy, PayrollTaxPolicy))
+                isinstance(policy, (EstateTaxPolicy, PayrollTaxPolicy))
                 and getattr(policy, "annual_revenue_change_billions", None) is not None
             ):
                 # Explicit annual figures are window-average calibrations
