@@ -7,9 +7,16 @@ The implementation now lives in focused modules:
 """
 
 from .tax_expenditures_core import (
+    EXPENDITURE_APP_MODE,
+    EXPENDITURE_HELD_OUT_MODE,
+    EXPENDITURE_MODE_DERIVED,
+    EXPENDITURE_MODE_REPORTED,
+    EXPENDITURE_MODES,
     JCT_TAX_EXPENDITURES,
     REFORM_ESTIMATES,
     TAX_EXPENDITURE_VALIDATION_SCENARIOS,
+    CapUnit,
+    ExpenditureDistributionMissing,
     TaxExpenditurePolicy,
     TaxExpenditureType,
     estimate_expenditure_revenue,
@@ -27,9 +34,16 @@ from .tax_expenditures_factory import (
 )
 
 __all__ = [
+    "EXPENDITURE_APP_MODE",
+    "EXPENDITURE_HELD_OUT_MODE",
+    "EXPENDITURE_MODES",
+    "EXPENDITURE_MODE_DERIVED",
+    "EXPENDITURE_MODE_REPORTED",
     "JCT_TAX_EXPENDITURES",
     "REFORM_ESTIMATES",
     "TAX_EXPENDITURE_VALIDATION_SCENARIOS",
+    "CapUnit",
+    "ExpenditureDistributionMissing",
     "TaxExpenditurePolicy",
     "TaxExpenditureType",
     "create_cap_charitable_deduction",
