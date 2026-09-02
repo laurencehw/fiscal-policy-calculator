@@ -111,16 +111,59 @@ def test_every_scenario_points_at_a_preset_with_an_official_score(category):
         )
 
 
+#: The one sectoral row where the module and its stored target legitimately
+#: disagree about direction, because the *target* points the wrong way.
+#: ``benchmark_sources.py`` records it as ``line_item_differs``: CBO scores a
+#: $35 insulin cost-sharing cap extended to private plans at +$6.566B of outlays
+#: and -$4.793B of revenues over FY2022-2031 — about +$11.4B **added** to the
+#: deficit (publication 57957) — against the -$15B of savings the repository
+#: carries. Lane L7 fixed the module side; moving the target is provenance work
+#: through the manifest's ``superseded_by`` rule. Until that lands, requiring
+#: this row to point the same way as its benchmark would require the module to
+#: be wrong on purpose.
+KNOWN_TARGET_SIGN_INVERSIONS = {"universal_insulin_cap"}
+
+
 @pytest.mark.parametrize("category", SECTORAL_CATEGORIES)
 def test_results_match_the_official_target_and_direction(category, sectoral_results):
     registry = SECTORAL_SCENARIO_REGISTRIES[category]
     for result in sectoral_results[category]:
         expected = official_target_for(registry[result.policy_id])
         assert result.official_10yr == expected
-        # Every sectoral target is deficit-reducing and so is every model
+        if result.policy_id in KNOWN_TARGET_SIGN_INVERSIONS:
+            continue
+        # Every other sectoral target is deficit-reducing and so is every model
         # score; a sign flip would mean the module and the target disagree
         # about what the policy even does.
         assert result.direction_match, f"{result.policy_id} flipped sign"
+
+
+def test_the_insulin_cap_is_the_only_sign_disagreement_and_it_agrees_with_cbo():
+    """Pin the exception so it cannot quietly grow to cover a real regression.
+
+    Two claims: exactly one sectoral row disagrees with its target on sign, and
+    that row disagrees in the direction CBO's own estimate points — a
+    cost-sharing cap *adds* to the deficit. Any second row flipping sign, or
+    this one flipping back to a modelled saving, fails here.
+    """
+    flipped = {
+        result.policy_id
+        for results in (
+            validate_sectoral_policy(category, scenario_id, verbose=False)
+            for category in SECTORAL_CATEGORIES
+            for scenario_id in SECTORAL_SCENARIO_REGISTRIES[category]
+        )
+        for result in (results,)
+        if not result.direction_match
+    }
+    assert flipped == KNOWN_TARGET_SIGN_INVERSIONS
+
+    insulin = validate_sectoral_policy("Pharma", "universal_insulin_cap", verbose=False)
+    assert insulin.official_10yr < 0, "the stored target still reads as a saving"
+    assert insulin.model_10yr > 0, (
+        "the module must score an insulin cost-sharing cap as widening the "
+        "deficit, the direction CBO publication 57957 scores it"
+    )
 
 
 @pytest.mark.parametrize("category", SECTORAL_CATEGORIES)

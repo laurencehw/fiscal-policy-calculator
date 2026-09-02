@@ -622,19 +622,24 @@ PHARMA_VALIDATION_SCENARIOS_COMPARE = {
         "calibrated_to_target": False,
         "notes": "$35/month cap extended from Medicare to private insurance.",
         "limitations": [
-            "Poor by three orders of magnitude, and the cause is an incidence/unit "
-            "error in the module rather than calibration drift: "
-            "DrugPricingPolicy._estimate_insulin_savings credits the entire "
-            "difference between a $6,000 average annual insulin cost and the $420 "
-            "capped cost to the federal budget for all 8.4M insulin users, scoring a "
-            "price cap that mostly reallocates cost among patients, insurers and "
-            "manufacturers as ~$47B/yr of federal saving.",
-            "extend_to_private=True increases the modelled federal saving, whereas "
-            "in the published scores the private-market portion has essentially no "
-            "federal budget effect.",
-            "Reported, not repaired: correcting the incidence changes a shipped "
-            "pharma module's output and belongs in a module change, not in a "
-            "validation runner.",
+            "Read the sign before the percentage. The stored -$15B target points "
+            "the wrong way: CBO scores a $35 cap extended to private plans at "
+            "+$6.566B of outlays and -$4.793B of revenues over FY2022-2031, about "
+            "+$11.4B ADDED to the deficit (publication 57957). The module now also "
+            "scores it as a deficit increase, so the percent difference against "
+            "this target is large *because* model and benchmark disagree about "
+            "direction — it is not an accuracy statement in either direction.",
+            "Against CBO's own +$11.4B the module's +$7.0B is the right sign and "
+            "the right order of magnitude, about 39% below it. Two omitted "
+            "channels explain most of that gap: induced utilisation, and growth in "
+            "insulin cost and enrolment across the window, since ASPE's $734M of "
+            "Part D out-of-pocket relief is a single 2020 figure held flat.",
+            "Repaired in lane L7: _estimate_insulin_cap_deficit_effect now scores "
+            "the federal share of a cost-sharing shift (Part D plan liability at "
+            "Medicare's 74.5% basic-benefit subsidy share, plus the private "
+            "market's premium increase at CBO's 32% marginal income-and-payroll "
+            "offset) instead of crediting the whole retail-minus-cap differential "
+            "for every insulin user to the federal budget.",
         ],
     },
     "international_reference_pricing": {
@@ -647,12 +652,29 @@ PHARMA_VALIDATION_SCENARIOS_COMPARE = {
         "calibrated_to_target": False,
         "notes": "Cap Medicare drug prices at 120% of the OECD average.",
         "limitations": [
-            "Poor: the module applies the full US/OECD ratio reduction (2.56x -> "
-            "1.20x, a 53% cut) to all $275B of Medicare Part B + Part D drug spending, "
-            "ignoring the manufacturer rebates already netted out of Part D and any "
-            "utilisation or availability response.",
-            "The -$100B target is a RAND-derived illustrative figure ('RAND/Estimate' "
-            "in the record), not a scored legislative proposal.",
+            "The -$100B target is a RAND-derived illustrative figure "
+            "('RAND/Estimate' in the record), not a scored legislative proposal, "
+            "and it is far below what any published score of a policy like this "
+            "carries: CBO scored H.R. 3's cap at 120% of the average "
+            "international market price — which reached a limited set of drugs, "
+            "not the whole Medicare book — at about $456B over 2020-2029 "
+            "(publication 55936). Most of this row's remaining error is the "
+            "target, not the module.",
+            "Repaired in lane L7: the identity now applies RAND's *net* brand "
+            "price ratio (3.08x, RR-A788-3 p. 19) to a brand-only, "
+            "rebate-netted Part D base plus ASP-priced Part B drugs, and books "
+            "only the federal share of each (Part D 76.3%, Part B 60%). It used "
+            "to apply the all-drug *gross list* ratio 2.56x to all $275B of "
+            "Medicare drug spending, including the generics where US prices are "
+            "already 33% below the OECD comparison.",
+            "The implied cut in net brand prices, about 61%, is close to the "
+            "roughly 55% average net-price reduction CBO estimated for H.R. 3's "
+            "first negotiated group, so the residual is a base question rather "
+            "than a price question.",
+            "Still missing: RAND's index is computed on presentations sold in "
+            "both markets, and the module applies it to all brand spending, so "
+            "the reachable base is overstated. No utilisation, launch-delay or "
+            "availability response is modelled either.",
         ],
     },
 }
