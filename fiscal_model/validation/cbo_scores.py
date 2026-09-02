@@ -643,12 +643,22 @@ KNOWN_SCORES: dict[str, CBOScore] = {
                    "Full SS benefits for retirees with non-covered pensions.",
         ten_year_cost=196.0,  # $196B deficit increase
         source=ScoreSource.CBO,
-        source_date="2023-09",
-        source_url="https://www.cbo.gov/publication/59434",
+        # Was publication 59434, which is CBO's estimate of H.R. 3938 (the Build
+        # It in America Act) — a different bill entirely. The right document is
+        # CBO's 9 September 2024 estimate of H.R. 82, whose WEP/GPO repeal
+        # component is transcribed at $195.65B in the pre-registration manifest
+        # (``ssfa_wep_gpo_repeal_outlays.v1``); the $196B here is that figure
+        # rounded.
+        source_date="2024-09",
+        source_url="https://www.cbo.gov/system/files/2024-09/hr82.pdf",
         policy_type="spending",
         baseline_year=2023,
         budget_window="FY2024-2034",
-        notes="Affects state/local workers with pensions from non-covered employment.",
+        notes=(
+            "Affects state/local workers with pensions from non-covered "
+            "employment. The transcribed component figure is $195.65B; this "
+            "record carries it rounded."
+        ),
         runnable=False,
         not_runnable_reason="WEP/GPO repeal; the model has no covered-vs-noncovered pension benefit module.",
     ),

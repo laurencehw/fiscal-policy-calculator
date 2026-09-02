@@ -630,9 +630,10 @@ PREREGISTERED_CASES: tuple[PreregisteredCase, ...] = (
         note=(
             "Component record, not the bill total. The repository's existing "
             "'social_security_fairness_2023' record carries a rounded $196B and "
-            "a source_url (publication 59434) that resolves to CBO's estimate of "
-            "H.R. 3938, a different bill; that record is left untouched here and "
-            "the mis-citation is reported for the provenance pass. "
+            "used to cite publication 59434, which is CBO's estimate of H.R. "
+            "3938, a different bill; the provenance pass repointed it at the "
+            "H.R. 82 estimate this row transcribes and noted the $195.65B "
+            "component figure there. The rounded target itself is unchanged. "
             + PHASE_D_SPENDING_LEVEL_RULE
         ),
     ),

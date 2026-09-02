@@ -191,6 +191,28 @@ _CRS_TCJA_EXTENSION = (
 _CRS_TCJA_EXTENSION_URL = (
     "https://www.congress.gov/crs_external_products/R/HTML/R48286.web.html"
 )
+_JCX_35_25 = (
+    "Joint Committee on Taxation, Estimated Revenue Effects Relative to the "
+    "Present Law Baseline of the Tax Provisions in 'Title VII - Finance' of the "
+    "Substitute Legislation as Passed by the Senate to Provide for "
+    "Reconciliation of the Fiscal Year 2025 Budget, JCX-35-25"
+)
+_JCX_35_25_URL = (
+    "https://www.jct.gov/getattachment/eb21dc77-6439-4fc3-8f5d-fc23a8c377e0/"
+    "x-35-25.pdf"
+)
+_JCT = "Joint Committee on Taxation"
+_JCX_35_25_DATE = "2025-07"
+_JCX_35_25_WINDOW = "FY2025-2034"
+#: JCX-35-25 is one continuous revenue table; the chapter heading is the only
+#: sub-division it prints, so it is what identifies where a row sits.
+def _jcx_table(chapter: str) -> str:
+    return (
+        f"Estimated revenue effects table (the document's single table), "
+        f"{chapter}"
+    )
+
+
 _CRS_TCJA_TABLE = (
     "Table 1, 'Revenue Costs of Extending the TCJA: Major Provisions "
     "(Billions of Dollars)', transcribing CBO, Budgetary Outcomes Under "
@@ -1454,6 +1476,191 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
             "climate.py documents carbon_tax_behavioral_factor as calibrated "
             "so that $50/ton yields ~$1.7T, and the target restates that. "
             "Scoring against it measures internal consistency only."
+        ),
+    ),
+    # ------------------------------------------------------------------
+    # P.L. 119-21 (One Big Beautiful Bill Act) - JCX-35-25 line items
+    #
+    # The only block in this registry whose target *is* the transcription: the
+    # runner reads each target straight out of
+    # ``data_files/validation/pl119_21_jct_line_items.csv``, which
+    # ``scripts/extract_pl119_21_line_items.py`` built from the PDF and checks
+    # against JCT's own printed subtotals. So every row here is ``line_item`` by
+    # construction, and ``test_pl119_21_sources_match_the_transcribed_csv``
+    # pins these figures against that file so the two cannot drift.
+    #
+    # ``line_item`` labels the *target*, not the fit. Nothing in the TCJA module
+    # is calibrated to an individual JCT row - its one factor is fitted to CBO's
+    # $4.6T aggregate - which is why these entries carry
+    # ``calibrated_to_target=False`` and sit in the unfitted-reconstruction
+    # population.
+    # ------------------------------------------------------------------
+    BenchmarkSource(
+        policy_id="pl119_21_rate_extension",
+        provenance=LINE_ITEM,
+        document=_JCX_35_25,
+        publisher=_JCT,
+        url=_JCX_35_25_URL,
+        date=_JCX_35_25_DATE,
+        table=_jcx_table("Ch.1 Permanent Tax Relief"),
+        row=(
+            "Extension and limited enhancement of reduced rates "
+            "(item 1)"
+        ),
+        page="PDF p. 1",
+        window=_JCX_35_25_WINDOW,
+        published_10yr_billions=2193.378,
+        note=(
+            "JCT prints -2,193,378M of revenue over FY2025-2034, which is "
+            "$+2,193.378B of deficit effect in this repository's sign "
+            "convention. Maps to the module's Individual Rate Cuts component, which carries one hard-coded aggregate grown at 3.5%/yr and no bracket structure."
+        ),
+    ),
+    BenchmarkSource(
+        policy_id="pl119_21_standard_deduction",
+        provenance=LINE_ITEM,
+        document=_JCX_35_25,
+        publisher=_JCT,
+        url=_JCX_35_25_URL,
+        date=_JCX_35_25_DATE,
+        table=_jcx_table("Ch.1 Permanent Tax Relief"),
+        row=(
+            "Extension and enhancement of increased standard deduction "
+            "(item 2)"
+        ),
+        page="PDF p. 1",
+        window=_JCX_35_25_WINDOW,
+        published_10yr_billions=1424.682,
+        note=(
+            "JCT prints -1,424,682M of revenue over FY2025-2034, which is "
+            "$+1,424.682B of deficit effect in this repository's sign "
+            "convention. The module's Doubled Standard Deduction component is a single national annual cost, so it cannot represent the enhancement above a plain TCJA extension that this row scores."
+        ),
+    ),
+    BenchmarkSource(
+        policy_id="pl119_21_personal_exemption_termination",
+        provenance=LINE_ITEM,
+        document=_JCX_35_25,
+        publisher=_JCT,
+        url=_JCX_35_25_URL,
+        date=_JCX_35_25_DATE,
+        table=_jcx_table("Ch.1 Permanent Tax Relief"),
+        row=(
+            "Termination of deduction for personal exemptions other than temporary senior deduction "
+            "(item 3)"
+        ),
+        page="PDF p. 1",
+        window=_JCX_35_25_WINDOW,
+        published_10yr_billions=-1807.074,
+        note=(
+            "JCT prints +1,807,074M of revenue over FY2025-2034, which is "
+            "$-1,807.074B of deficit effect in this repository's sign "
+            "convention. A revenue raiser. JCT nets the new temporary senior deduction inside this row rather than giving it a line of its own, so the row cannot be decomposed further; the module's offset represents the repeal alone."
+        ),
+    ),
+    BenchmarkSource(
+        policy_id="pl119_21_child_tax_credit",
+        provenance=LINE_ITEM,
+        document=_JCX_35_25,
+        publisher=_JCT,
+        url=_JCX_35_25_URL,
+        date=_JCX_35_25_DATE,
+        table=_jcx_table("Ch.1 Permanent Tax Relief"),
+        row=(
+            "Extension and enhancement of increased child tax credit "
+            "(item 4)"
+        ),
+        page="PDF p. 1",
+        window=_JCX_35_25_WINDOW,
+        published_10yr_billions=816.846,
+        note=(
+            "JCT prints -816,846M of revenue over FY2025-2034, which is "
+            "$+816.846B of deficit effect in this repository's sign "
+            "convention. P.L. 119-21 sets a $2,200 indexed credit; the module's component represents the $2,000 TCJA credit."
+        ),
+    ),
+    BenchmarkSource(
+        policy_id="pl119_21_qbi_199a",
+        provenance=LINE_ITEM,
+        document=_JCX_35_25,
+        publisher=_JCT,
+        url=_JCX_35_25_URL,
+        date=_JCX_35_25_DATE,
+        table=_jcx_table("Ch.1 Permanent Tax Relief"),
+        row=(
+            "Extension and enhancement of deduction for qualified business income "
+            "(item 5)"
+        ),
+        page="PDF p. 1",
+        window=_JCX_35_25_WINDOW,
+        published_10yr_billions=736.539,
+        note=(
+            "JCT prints -736,539M of revenue over FY2025-2034, which is "
+            "$+736.539B of deficit effect in this repository's sign "
+            "convention. Section 199A. The module scores one aggregate annual growing at 4%/yr, with no pass-through income distribution and no phase-in thresholds."
+        ),
+    ),
+    BenchmarkSource(
+        policy_id="pl119_21_estate_gift_exemption",
+        provenance=LINE_ITEM,
+        document=_JCX_35_25,
+        publisher=_JCT,
+        url=_JCX_35_25_URL,
+        date=_JCX_35_25_DATE,
+        table=_jcx_table("Ch.1 Permanent Tax Relief"),
+        row=(
+            "Extension and enhancement of increased estate and gift tax exemption amounts "
+            "(item 6)"
+        ),
+        page="PDF p. 1",
+        window=_JCX_35_25_WINDOW,
+        published_10yr_billions=211.725,
+        note=(
+            "JCT prints -211,725M of revenue over FY2025-2034, which is "
+            "$+211.725B of deficit effect in this repository's sign "
+            "convention. $15M per decedent from 2026, indexed. The module's estate component is an aggregate annual cost, not the exemption/rate machinery in estate.py."
+        ),
+    ),
+    BenchmarkSource(
+        policy_id="pl119_21_amt_exemption",
+        provenance=LINE_ITEM,
+        document=_JCX_35_25,
+        publisher=_JCT,
+        url=_JCX_35_25_URL,
+        date=_JCX_35_25_DATE,
+        table=_jcx_table("Ch.1 Permanent Tax Relief"),
+        row=(
+            "Extension of increased alternative minimum tax exemption amounts, modification of phaseout thresholds, and increased threshold phaseout rate "
+            "(item 7)"
+        ),
+        page="PDF p. 1",
+        window=_JCX_35_25_WINDOW,
+        published_10yr_billions=1362.81,
+        note=(
+            "JCT prints -1,362,810M of revenue over FY2025-2034, which is "
+            "$+1,362.810B of deficit effect in this repository's sign "
+            "convention. The provision also lowers the phaseout thresholds and raises the phaseout rate, which raises revenue relative to a plain extension; the module's single AMT aggregate has no way to represent either."
+        ),
+    ),
+    BenchmarkSource(
+        policy_id="pl119_21_salt_cap_40k",
+        provenance=LINE_ITEM,
+        document=_JCX_35_25,
+        publisher=_JCT,
+        url=_JCX_35_25_URL,
+        date=_JCX_35_25_DATE,
+        table=_jcx_table("Ch.1 Permanent Tax Relief"),
+        row=(
+            "Limitation on individual deductions for certain State and local taxes "
+            "(item 20)"
+        ),
+        page="PDF p. 2",
+        window=_JCX_35_25_WINDOW,
+        published_10yr_billions=-946.209,
+        note=(
+            "JCT prints +946,209M of revenue over FY2025-2034, which is "
+            "$-946.209B of deficit effect in this repository's sign "
+            "convention. DESIGN MISMATCH, stated rather than tuned away: the enacted provision raises the cap to $40,000 with a phase-down above $500,000 of income and reverts to $10,000 after 2029, while the module's SALT component represents the flat $10,000 cap. The target is still this row - it is what the law does - and the resulting error is the block's largest."
         ),
     ),
 )

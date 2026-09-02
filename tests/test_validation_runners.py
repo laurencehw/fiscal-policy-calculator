@@ -326,6 +326,29 @@ def test_tcja_full_extension_is_a_line_item(scorecard):
     assert entry.benchmark_url == "https://www.cbo.gov/publication/60271"
 
 
+def test_social_security_fairness_cites_the_right_bill():
+    """The record used to point at publication 59434 — CBO's estimate of
+    H.R. 3938, the Build It in America Act, which has nothing to do with
+    WEP/GPO. The $196B is a rounding of the $195.65B WEP/GPO repeal component
+    in CBO's 9 September 2024 estimate of H.R. 82, and the citation must say
+    so. Pinned because a plausible-looking cbo.gov link is exactly the kind of
+    error nothing else notices."""
+    from fiscal_model.validation.cbo_scores import KNOWN_SCORES
+    from fiscal_model.validation.preregistered import get_case
+
+    record = KNOWN_SCORES["social_security_fairness_2023"]
+    assert record.source_url == "https://www.cbo.gov/system/files/2024-09/hr82.pdf"
+    assert record.source_date == "2024-09"
+    assert record.ten_year_cost == 196.0
+    assert "195.65" in record.notes
+
+    # The manifest row and the score record must cite the same document; the
+    # pre-registered target is the unrounded figure the same estimate states.
+    case = get_case("ssfa_wep_gpo_repeal_outlays")
+    assert case.source_url == record.source_url
+    assert case.official_10yr_billions == 195.65
+
+
 def test_classify_declared_provenance_wins():
     assert (
         classify_provenance(
@@ -441,7 +464,46 @@ CITED_BUT_NOT_TRANSCRIBED = {
     "cbo_2pp_all_brackets",  # CBO budget-options 54788
     "pwbm_39_with_stepup",  # PWBM April 2021 brief
     "pwbm_39_no_stepup",  # PWBM April 2021 brief
+    # Phase D's three enacted-law components. Their targets are unrounded to
+    # three decimals and their manifest notes quote the estimates' own outlay
+    # paths, so the Phase D lane plainly read the tables — but the sourcing pass
+    # could not re-read them to record a row (all three deep links return HTTP
+    # 403 to every non-browser client, checked again on 2026-09-01), and this
+    # registry only records what was actually opened. They stay `line_item` on
+    # the strength of the deep link and join the backlog.
+    "ssfa_wep_gpo_repeal_outlays",  # CBO, H.R. 82 (2024-09)
+    "fra_2023_discretionary_caps",  # CBO, H.R. 3746 letter to Speaker McCarthy
+    "iija_2021_discretionary",  # CBO, H.R. 3684 / S.Amdt. 2137
 }
+
+
+def test_pl119_21_sources_match_the_transcribed_csv():
+    """The P.L. 119-21 provenance records restate figures that live in
+    ``pl119_21_jct_line_items.csv``, which is where the runner reads its
+    targets. Two copies of a transcribed number is one copy too many unless
+    something checks them, so this does."""
+    from fiscal_model.validation.specialized_pl119_21 import (
+        PL119_21_LINE_ITEMS,
+        mapped_line_items,
+    )
+
+    by_id = {item.provision_id: item for item in PL119_21_LINE_ITEMS}
+    mapped = {item.provision_id for item in mapped_line_items()}
+    sourced = {s.policy_id for s in BENCHMARK_SOURCES if s.policy_id in by_id}
+    assert sourced == mapped, (
+        "every mapped JCT line item needs a provenance record, and only the "
+        f"mapped ones may have one; symmetric difference {sourced ^ mapped}"
+    )
+
+    for policy_id in mapped:
+        item = by_id[policy_id]
+        source = source_for(policy_id)
+        assert source.provenance == LINE_ITEM
+        assert source.published_10yr_billions == item.deficit_effect_10yr_billions
+        assert source.page == f"PDF p. {item.pdf_page}"
+        assert item.provision in source.row
+        assert f"(item {item.jct_item})" in source.row
+        assert item.chapter in source.table
 
 
 def test_transcribed_entries_cite_a_document(scorecard):

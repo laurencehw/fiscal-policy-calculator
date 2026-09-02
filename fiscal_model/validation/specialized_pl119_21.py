@@ -50,6 +50,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ..baseline import BaselineVintage
+from .benchmark_sources import provenance_for
 from .core import (
     ValidationResult,
     build_scorer_for_vintage,
@@ -333,9 +334,11 @@ def validate_pl119_21_provision(
         model_10yr=result.total_10_year_cost,
         model_first_year=result.final_deficit_effect[0],
         model_parameters={
-            # The strongest provenance label in the repository: a specific row of
-            # a specific table on a specific page.
-            "provenance": "line_item",
+            # Provenance is not restated here. ``benchmark_sources.py`` is the
+            # single authority on where a target came from, and it carries a
+            # transcribed record for every row of this block; a runner that
+            # asserted its own label could only ever disagree with it.
+            "provenance": provenance_for(provision_id),
             # No module constant is fitted to any individual JCT row - the TCJA
             # calibration factor is fitted to CBO's $4.6T aggregate - so a miss
             # here is a finding about the decomposition, not a regression.
@@ -396,7 +399,10 @@ def _error_result(item: PL11921LineItem, exc: Exception) -> ValidationResult:
         percent_difference=calculate_percent_difference(0.0, official),
         direction_match=False,
         accuracy_rating="Error",
-        model_parameters={"provenance": "line_item", "calibrated_to_target": False},
+        model_parameters={
+            "provenance": provenance_for(item.provision_id),
+            "calibrated_to_target": False,
+        },
         notes=f"Model error: {exc!s}",
         benchmark_kind=PL119_21_BENCHMARK_KIND,
         benchmark_date="2025-07",
