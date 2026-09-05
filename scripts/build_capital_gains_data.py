@@ -28,6 +28,11 @@ Sources, all fetched over HTTPS from the publishing agency:
 * **Federal Reserve, Survey of Consumer Finances 2022**, historical tables,
   used only for mean family net worth, which turns the DFA aggregate into a
   household count.
+* **IRS SOI Estate Tax Statistics, Table 1**, filing year 2024,
+  ``https://www.irs.gov/pub/irs-soi/24es01fy.xlsx``.  The charitable deduction
+  and bequests to a surviving spouse by size of gross estate, which is what a
+  realization-at-death proposal's charitable carve-out removes and - for the
+  spousal column - what it would double-count if it removed it again.
 
 Two figures are transcribed by hand from papers rather than fetched, and both
 carry their page reference in the emitted CSV:
@@ -36,7 +41,11 @@ carry their page reference in the emitted CSV:
   Estates and Unrealized Capital Gains at Death", in *Rethinking Estate and
   Gift Taxation* (Brookings), Table 8: expected estates $118.9B and expected
   unrealized capital gains at death $42.8B per year, the latter **36 percent**
-  of the former, from the 1998 Survey of Consumer Finances.
+  of the former, from the 1998 Survey of Consumer Finances; and the same
+  table's lower panel, the share of unrealized capital gain held in the primary
+  residence and in active business and farm holdings by estate size, which is
+  what the section 121 exclusion and the Green Books' family-business deferral
+  reach.
 * Avery, R., D. Grodzicki and K. Moore (2013), "Estate vs. Capital Gains
   Taxation", FEDS 2013-28, Figure 1: the unrealized-gain share of the gross
   estate by wealth at death, 12.8 percent below $2M rising to 54.9 percent
@@ -58,6 +67,7 @@ OUT_DIR = REPO_ROOT / "fiscal_model" / "data_files" / "capital_gains"
 
 SOI_TABLE_35 = "https://www.irs.gov/pub/irs-soi/{yy}in35tr.xls"
 SOI_TABLE_14A = "https://www.irs.gov/pub/irs-soi/{yy}in14acg.xls"
+SOI_ESTATE_TABLE_1 = "https://www.irs.gov/pub/irs-soi/24es01fy.xlsx"
 DFA_ZIP = "https://www.federalreserve.gov/releases/z1/dataviz/download/zips/dfa.zip"
 NCHS_LIFE_TABLE = (
     "https://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/NVSR/74-02/Table01.xlsx"
@@ -132,6 +142,47 @@ PW2001_EXPECTED_ESTATES_BILLIONS = 118.9
 PW2001_GAINS_AT_DEATH_BILLIONS = 42.8
 PW2001_GAIN_SHARE_OF_ESTATES = 0.36
 PW2001_SCF_YEAR = 1998
+
+#: Poterba & Weisbenner (2001) Table 8, lower panel, "Share of Total Unrealized
+#: Capital Gain (in percent)", by insurance-augmented net worth of the decedent.
+#: Keyed by the lower bound of each class in millions of dollars.  Only the two
+#: shares a realization-at-death proposal carves out are carried: the primary
+#: residence (which the section 121 exclusion reaches) and active business and
+#: farm holdings (which the Green Books' family-business election defers).
+#: The table's own note settles two more of the six Green Book reliefs -
+#: "Bonds, vehicles, and collectibles are assumed to have no accrued capital
+#: gains" and "It is assumed a decedent transfers his/her full estate to a
+#: surviving spouse.  Such inter-spousal transfers are not included in the
+#: estate totals reported above" - so tangible personal property and spousal
+#: transfers are already absent from this base and are emitted as zero.
+PW2001_TABLE_8_GAIN_SHARES: tuple[tuple[float, float, float], ...] = (
+    # (lower bound of net-worth class, primary residence, active business & farm)
+    (0.0, 1.001, 0.006),
+    (0.25, 0.831, 0.014),
+    (0.50, 0.460, 0.017),
+    (1.0, 0.352, 0.114),
+    (5.0, 0.102, 0.172),
+    (10.0, 0.036, 0.723),
+)
+
+#: Columns of IRS SOI *Estate Tax Statistics* Table 1 (filing year 2024) that
+#: the charitable and marital shares are read from, and the printed size
+#: classes, keyed by the lower bound of the class in millions of dollars.
+#: Column indices are zero-based positions in the sheet as published.
+SOI_ESTATE_COLUMNS = {"gross_estate": 2, "spousal_bequests": 68, "charitable": 70}
+SOI_ESTATE_ROWS: tuple[tuple[float, int], ...] = (
+    (0.0, 9),  # "Under $10 million"
+    (10.0, 10),  # "$10 million < $20 million"
+    (20.0, 11),  # "$20 million < $50 million"
+    (50.0, 12),  # "$50 million or more"
+)
+#: A ladder class whose mean estate is below $1 million gets no charitable
+#: share at all.  SOI's table is estate-tax filers only - the filing threshold
+#: was $13.61 million for 2023 decedents - so borrowing their propensity for a
+#: sub-million-dollar estate would over-state the carve-out.  Zero over-states
+#: the model's revenue instead, which is the conservative direction for a
+#: channel that already over-predicts.
+SOI_ESTATE_FLOOR_MILLIONS = 1.0
 
 #: Dowd, McClelland & Muthitacharoen (2015), National Tax Journal 68(3), and
 #: the reference rate CRS R48562 states its Table 4 estimates are adjusted to.
@@ -288,6 +339,78 @@ def _agm_gain_share(estate_millions: float) -> float:
         else:
             break
     return share
+
+
+def _pw_gain_shares(estate_millions: float) -> tuple[float, float]:
+    """Residence and active-business shares of unrealized gain at this estate size."""
+    residence, business = PW2001_TABLE_8_GAIN_SHARES[0][1:]
+    for lower, res, bus in PW2001_TABLE_8_GAIN_SHARES:
+        if estate_millions >= lower:
+            residence, business = res, bus
+        else:
+            break
+    return residence, business
+
+
+def _soi_estate_bequest_shares() -> list[tuple[float, float, float]]:
+    """Charitable and marital bequest shares by size of gross estate.
+
+    Returns ``(lower bound in millions, charitable share, marital share)``.  The
+    charitable denominator is the gross estate **net of bequests to a surviving
+    spouse**, because the base these shares are applied to - Poterba &
+    Weisbenner's flow of unrealized gains at death - already excludes
+    inter-spousal transfers.  The marital share is over the gross estate and is
+    carried only as the magnitude cross-check for what deducting it twice would
+    cost.
+    """
+    frame = pd.read_excel(io.BytesIO(_fetch(SOI_ESTATE_TABLE_1)), header=None)
+    rows = []
+    for lower, index in SOI_ESTATE_ROWS:
+        gross = float(frame.iloc[index, SOI_ESTATE_COLUMNS["gross_estate"]])
+        spousal = float(frame.iloc[index, SOI_ESTATE_COLUMNS["spousal_bequests"]])
+        charitable = float(frame.iloc[index, SOI_ESTATE_COLUMNS["charitable"]])
+        non_marital = gross - spousal
+        if gross <= 0 or non_marital <= 0:
+            raise ValueError(f"SOI estate Table 1 row {index}: non-positive estate")
+        rows.append((lower, charitable / non_marital, spousal / gross))
+    return rows
+
+
+def _soi_charitable_share(
+    estate_millions: float, ladder: list[tuple[float, float, float]]
+) -> tuple[float, float]:
+    if estate_millions < SOI_ESTATE_FLOOR_MILLIONS:
+        return 0.0, 0.0
+    charitable, marital = ladder[0][1], ladder[0][2]
+    for lower, share, spousal in ladder:
+        if estate_millions >= lower:
+            charitable, marital = share, spousal
+        else:
+            break
+    return charitable, marital
+
+
+def build_carveout_table(ladder: pd.DataFrame) -> pd.DataFrame:
+    """Shares of decedent unrealized gain each stated carve-out removes."""
+    soi = _soi_estate_bequest_shares()
+    records = []
+    for _, row in ladder.iterrows():
+        mean_millions = float(row["mean_net_worth_millions_usd"])
+        residence, business = _pw_gain_shares(mean_millions)
+        charitable, marital = _soi_charitable_share(mean_millions, soi)
+        records.append(
+            {
+                "group": row["group"],
+                "mean_net_worth_millions_usd": mean_millions,
+                "residence_gain_share": residence,
+                "active_business_gain_share": business,
+                "charitable_bequest_share": charitable,
+                # Carried, never applied: see the file header.
+                "marital_bequest_share": marital,
+                "tangible_personal_property_gain_share": 0.0,
+            }
+        )
+    return pd.DataFrame.from_records(records)
 
 
 def build_stock_tables() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -493,6 +616,35 @@ HEADERS = {
         "# https://www.federalreserve.gov/pubs/feds/2013/201328/figure_data.html",
         "# Regenerate with: python scripts/build_capital_gains_data.py",
     ),
+    "decedent_carveout_shares.csv": (
+        "# Shares of decedent unrealized capital gain that a realization-at-death",
+        "# proposal's stated carve-outs remove, by the decedent ladder's own",
+        "# estate-size classes.",
+        "#",
+        "# residence_gain_share and active_business_gain_share: Poterba, J. and",
+        "#   S. Weisbenner (2001), 'The Distributional Burden of Taxing Estates and",
+        "#   Unrealized Capital Gains at Death', in Rethinking Estate and Gift",
+        "#   Taxation (Brookings), Table 8, lower panel ('Share of Total Unrealized",
+        "#   Capital Gain'), by insurance-augmented net worth of the decedent.",
+        "#   Matched to a ladder class by that class's mean estate.",
+        "# charitable_bequest_share: IRS Statistics of Income, Estate Tax Statistics,",
+        "#   Table 1, filing year 2024 (https://www.irs.gov/pub/irs-soi/24es01fy.xlsx):",
+        "#   the charitable deduction over the gross estate NET of bequests to a",
+        "#   surviving spouse, by size of gross estate.  Zero for a class whose mean",
+        "#   estate is under $1,000,000, which is far below SOI's filing threshold.",
+        "# marital_bequest_share: the same table's bequests to a surviving spouse",
+        "#   over the gross estate.  CARRIED AND NEVER APPLIED.  Poterba &",
+        "#   Weisbenner's note reads 'It is assumed a decedent transfers his/her full",
+        "#   estate to a surviving spouse.  Such inter-spousal transfers are not",
+        "#   included in the estate totals reported above', so the spousal carve-out",
+        "#   is already absent from the base and deducting it again would be a",
+        "#   double count.  This column records what that double count would cost.",
+        "# tangible_personal_property_gain_share: zero, for the same reason.  The",
+        "#   same note reads 'Bonds, vehicles, and collectibles are assumed to have",
+        "#   no accrued capital gains', and the Green Books exclude collectibles from",
+        "#   their tangible-personal-property exclusion in any case.",
+        "# Regenerate with: python scripts/build_capital_gains_data.py",
+    ),
 }
 
 
@@ -513,6 +665,7 @@ def main() -> None:
     _write("accrued_gains_parameters.csv", parameters)
     _write("decedent_estate_ladder.csv", ladder)
     _write("agm_unrealized_gain_share_by_estate_size.csv", agm)
+    _write("decedent_carveout_shares.csv", build_carveout_table(ladder))
 
 
 if __name__ == "__main__":
