@@ -114,9 +114,18 @@ jobs:
       # merged battery to about 18.0% and leave within-25 at 21, which derives to
       # the same 25 / 20 -- so this PR is stacked on #108 and is not re-run per
       # lane. Re-derive again after the next wave.
+      # Wave 5 (PRs #113, #114, #116: the payroll base CBO names, the corporate
+      # base the IRS publishes, a projected realizations base) took the same 26
+      # cases to mean 15.9%, 22 within 25%. Two of the three lanes were
+      # pre-registered regressions on their own rows and the tier still fell,
+      # because the payroll pair went 54-56% -> 7.5-8.1%. Both thresholds
+      # tighten by the rule, and tightening needs no reason:
+      #   ceiling  ceil(15.9 x 1.25) = 20 -> nearest 5 = 20. Lowered 25 -> 20.
+      #   floor    22 - 1 = 21. Raised 20 -> 21.
+      # Re-derive again after the next wave.
       - name: Cold-holdout gate (out-of-sample tier)
         run: |
-          python scripts/cold_holdout.py --max-mean-error 25 --min-within-25pct 20
+          python scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 21
 
       # Tier 2 (leave-one-out). Holds out one calibrated benchmark at a time and
       # asks whether the module's structural machinery — calibrated on the others
