@@ -66,16 +66,34 @@ def _available_irs_data_years() -> list[int]:
     return [2022, 2021]
 
 
-def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
+def render_settings_tab(
+    st_module: Any, settings_tab: Any, frozen: Any = None
+) -> dict[str, Any]:
     """
     Render settings panel and return selected configuration values.
+
+    ``frozen`` is the :class:`~fiscal_model.ui.frozen_links.FrozenAssignment`
+    a ``?frozen=1`` link put in force, or ``None``. When present the popover
+    says so and renders the two controls the link pins — dynamic scoring and
+    the macro model — disabled, and the returned mapping carries the link's
+    values regardless of what is sitting in the widget keys. Disabling a
+    widget is a UI affordance, not a guarantee; the override is the guarantee.
     """
     macro_model = None
     inline_claimed = bool(
         st_module.session_state.pop(INLINE_DYNAMIC_TOGGLE_CLAIM, False)
     )
+    is_frozen = frozen is not None
 
     with settings_tab:
+        if is_frozen:
+            from .frozen_links import FROZEN_LABEL, frozen_summary
+
+            st_module.caption(
+                f"**{FROZEN_LABEL}** — {frozen_summary(frozen)}. "
+                "The baseline, the scoring engine and dynamic scoring are set "
+                "by the assignment link and cannot be changed here."
+            )
         # Dark mode toggle (persisted in session state)
         if "dark_mode" not in st_module.session_state:
             st_module.session_state.dark_mode = False
@@ -101,13 +119,15 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
             # The page renders this control beside its Score button
             # (DECISIONS #2); read the shared key rather than duplicating it.
             dynamic_scoring = bool(st_module.session_state.get(_DYNAMIC_SCORING_KEY, False))
-            st_module.caption(
-                "Dynamic scoring is toggled beside the Score button on this page."
-            )
+            if not is_frozen:
+                st_module.caption(
+                    "Dynamic scoring is toggled beside the Score button on this page."
+                )
         else:
             dynamic_scoring = st_module.checkbox(
                 "Enable dynamic scoring",
                 key=_DYNAMIC_SCORING_KEY,
+                disabled=is_frozen,
                 help=(
                     "Add a labeled Dynamic view to the estimate. A tax cut that "
                     "boosts GDP generates some offsetting revenue; a spending "
@@ -124,6 +144,7 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
                 "Macro model",
                 ["FRB/US-Lite (recommended)", "Simple Multiplier"],
                 key=KEY_SETTING_MACRO_MODEL,
+                disabled=is_frozen,
                 help=(
                     "**FRB/US-Lite** — Federal Reserve-calibrated multipliers "
                     "(spending 1.4x, tax 0.7x, with decay). "
@@ -210,6 +231,13 @@ def render_settings_tab(st_module: Any, settings_tab: Any) -> dict[str, Any]:
                 "CBO Baseline Projections. "
                 "[Full methodology →](https://github.com/laurencehw/fiscal-policy-calculator/blob/main/docs/METHODOLOGY.md)"
             )
+
+    if is_frozen:
+        # The link is the source of truth, not the widget state a disabled
+        # control happens to be holding.
+        dynamic_scoring = bool(frozen.dynamic)
+        if dynamic_scoring and frozen.engine_label:
+            macro_model = frozen.engine_label
 
     return {
         "use_real_data": use_real_data,

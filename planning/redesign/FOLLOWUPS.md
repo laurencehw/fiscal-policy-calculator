@@ -48,17 +48,16 @@ validation-documentation half of that review landed separately in
 `docs/METHODOLOGY.md`, `planning/MODELING_IMPROVEMENT.md` and
 `planning/NEXT_STEPS.md`.
 
-- [ ] **Classroom as a first-class path, not a mode flag.** Today an instructor
-  can send `?mode=classroom`, but nothing in the URL pins the *inputs*, so two
-  students can hand in different numbers for the same assignment and both be
-  right. Wanted: an assignment deep link that **freezes baseline vintage, scoring
-  engine, and dynamic on/off**, and says so on the page — the same provenance
-  triple share links already carry (`baseline=<vintage>&spec=<hash>&mode=`), but
-  locked rather than merely recorded, with the frozen controls disabled and
-  labelled. Owner call on whether a frozen link also pins the preset/policy set
-  or only the model settings. Touches `app_pages/classroom.py`,
-  `fiscal_model/ui/share_links.py`, and `components/chrome.py` (the ⚙ settings
-  popover must show and honour the lock).
+- [x] **Classroom as a first-class path, not a mode flag.** Done: `frozen=1`
+  alongside the provenance stamps locks baseline vintage, scoring engine,
+  dynamic on/off **and** the policy (the owner's call), renders those controls
+  disabled under "🔒 Frozen for this assignment" in the form, beside Score and
+  in the ⚙ popover, and **refuses to score** when the URL's vintage is not the
+  one the deployment serves. Codec and UI in `fiscal_model/ui/frozen_links.py`;
+  instructors make one from a result surface opened with `?classroom=1`.
+  Carry-over: Build packages are not freezable, and the frozen link does not
+  pin the Data & methodology options (a spec-hash mismatch is captioned, not
+  refused).
 - [ ] **Cold start: ~20s of blank skeleton on Streamlit Cloud.** The first hit
   after the container sleeps renders nothing recognisable — no brand line, no
   explanation, no progress — which reads as a broken link rather than a waking

@@ -15,6 +15,12 @@ Every field is optional. ``who`` is the enum in
 ``top200k``, ``top400k``, ``top500k``, ``top1m``); a bare amount
 (``who=275000``, ``who=400k``) becomes a custom threshold. ``rate`` is in
 percentage points, ``+`` for a tax increase. See :func:`_apply_query_params`.
+
+A link that also carries ``&baseline=…&engine=…&spec=…&mode=…&frozen=1`` is a
+**frozen assignment link** (``ui/frozen_links.py``): the form renders read-only
+with the link's parameters in it, the model settings are locked, and the page
+refuses to score if the baseline vintage the link names is not the one this
+deployment serves.
 """
 
 from __future__ import annotations
@@ -28,6 +34,13 @@ from components.results import render_score_surface
 from fiscal_model.ui.calculation_controller import (
     CUSTOM_ANALYSIS_MODE,
     SPENDING_ANALYSIS_MODE,
+)
+from fiscal_model.ui.frozen_links import (
+    apply_frozen_assignment,
+    clear_frozen_assignment,
+    decode_frozen_assignment,
+    frozen_refusal,
+    render_frozen_refusal,
 )
 from fiscal_model.ui.session_state import (
     KEY_DYNAMIC_SCORING,
@@ -175,6 +188,10 @@ def _seed_form_from_preset(st_module: Any, preset_name: str, preset_data: dict[s
 
 
 def _render_form_header(st_module: Any, deps: Any) -> None:
+    # ``st_module`` here is whatever ``render_score_surface`` renders its input
+    # column through — the real module, or the disabled stand-in a frozen
+    # assignment link installs. The chips must go through the same one, or a
+    # frozen link would leave the policy type editable.
     """"Start from" + policy-type chips, above the rest of the form card."""
     start_from = _segmented(
         st_module,
@@ -305,14 +322,30 @@ def _apply_query_params(st_module: Any) -> None:
 
 def render(st_module: Any, deps: Any, app_root: Any = None) -> None:
     """Render the Tailor surface."""
+    # The lock first: a link this deployment cannot honour must not seed the
+    # form or arm an auto-run before the page discovers it cannot score.
+    frozen = decode_frozen_assignment(getattr(st_module, "query_params", {}) or {})
+    problem = frozen_refusal(frozen)
+    if problem is not None:
+        clear_frozen_assignment(st_module)
+        claim_inline_dynamic_toggle(st_module)
+        render_chrome(st_module=st_module, deps=deps)
+        render_frozen_refusal(st_module, problem)
+        render_page_footer(st_module)
+        return
+
     # Before every widget on the page: a ``/tailor?…`` link seeds the form.
     _apply_query_params(st_module)
+    if frozen is None:
+        clear_frozen_assignment(st_module)
+    else:
+        apply_frozen_assignment(st_module, frozen)
     # Claim the dynamic toggle before the chrome builds its settings popover:
     # two widgets sharing ``sidebar_setting_dynamic_scoring`` in one run is a
     # Streamlit DuplicateWidgetID error, and the shared key is what keeps the
     # chrome, share links and this page in agreement.
     claim_inline_dynamic_toggle(st_module)
-    settings = render_chrome(st_module=st_module, deps=deps)
+    settings = render_chrome(st_module=st_module, deps=deps, frozen=frozen)
 
     st_module.markdown("## Tailor a policy")
     st_module.caption(
@@ -341,8 +374,9 @@ def render(st_module: Any, deps: Any, app_root: Any = None) -> None:
         score_label="Score this policy",
         show_quick_start=False,
         split_layout=True,
-        before_inputs=lambda: _render_form_header(st_module, deps),
+        before_inputs=lambda inputs_module: _render_form_header(inputs_module, deps),
         tax_input_kwargs={"show_type_selector": False},
+        frozen=frozen,
     )
 
     render_page_footer(st_module)
