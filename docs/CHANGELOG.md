@@ -21,8 +21,8 @@ the summary and the four findings. PRs **#111** (frozen assignment links),
 **Only Tier 1 moved, and that is the point.** No target moved and no constant was
 retuned, so 0 of the 23 fitted rows and 0 of the 31 reconstruction rows changed
 and `run_loo.py --donor-matrix` is byte-identical — a falsification test each
-lane registered in advance and each passed. It is the first wave since Wave 1
-with no composition to net out.
+lane registered in advance and each passed. It is the first wave in which only
+Tier 1 moved, so there is no composition to net out.
 
 | Tier | Before | After |
 |---|---|---|
