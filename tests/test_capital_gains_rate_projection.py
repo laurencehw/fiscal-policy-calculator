@@ -244,3 +244,66 @@ def test_the_coverage_file_is_carried_and_never_read():
     }
     assert "soi_preferential_base_coverage.csv" not in names
     assert (source.data_dir / "soi_preferential_base_coverage.csv").exists()
+
+
+# ---------------------------------------------------------------------------
+# The note that ships with the projection (Decision 6)
+# ---------------------------------------------------------------------------
+
+
+def _score(policy):
+    from fiscal_model.scoring import FiscalPolicyScorer
+
+    return FiscalPolicyScorer(baseline=None, use_real_data=True).score_policy(
+        policy, dynamic=False
+    )
+
+
+def test_the_note_names_the_tax_year_the_rate_and_both_endpoints():
+    """A reader has to be able to tell that the base is dated and that it grows.
+
+    Four of the five capital-gains rows on the Tailor form move by 26% to 110%
+    in this lane, so the number ships with its explanation rather than in
+    silence.
+    """
+    from fiscal_model.ui.tabs.results_summary import realizations_projection_caption
+
+    policy = _policy(data_year=2024)
+    caption = realizations_projection_caption(policy, _score(policy)).replace("\\", "")
+    assert "IRS SOI tax year 2023" in caption
+    assert "5.8% a year" in caption
+    assert "in 2025" in caption and "in 2034" in caption
+    assert "hazard falling" in caption
+
+
+def test_the_note_reports_the_policys_own_projection_factors():
+    """Computed from the factors, so it cannot drift from the score above it."""
+    from fiscal_model.ui.tabs.results_summary import realizations_projection_caption
+
+    policy = _policy(data_year=2024)
+    result = _score(policy)
+    caption = realizations_projection_caption(policy, result).replace("\\", "")
+    reported = [
+        float(chunk.split("B in")[0].split("$")[-1].replace(",", ""))
+        for chunk in caption.split("so the base is ")[1].split(" and ")
+    ]
+    base = float(policy.baseline_realizations_billions)
+    expected = [
+        base * policy.realizations_projection_factor(int(result.years[0])),
+        base * policy.realizations_projection_factor(int(result.years[-1])),
+    ]
+    assert reported == pytest.approx(expected, abs=0.5)
+
+
+def test_no_note_where_no_rate_channel_was_projected():
+    from fiscal_model.ui.tabs.results_summary import realizations_projection_caption
+
+    supplied = _policy(
+        baseline_realizations_billions=955.0, baseline_capital_gains_rate=0.15
+    )
+    assert realizations_projection_caption(supplied, _score(supplied)) == ""
+    death_only = _policy(
+        rate_change=0.0, eliminate_step_up=True, step_up_exemption=0.0
+    )
+    assert realizations_projection_caption(death_only, _score(death_only)) == ""
+    assert realizations_projection_caption(object(), None) == ""
