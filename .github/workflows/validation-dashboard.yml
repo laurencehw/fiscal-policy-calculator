@@ -101,9 +101,22 @@ jobs:
       # battery: 26 cases, mean 31.0%, 19 within 25%.
       #   ceiling  ceil(31.0 x 1.25) = 39 -> nearest 5 = 40. Unchanged.
       #   floor    19 - 1 = 18. Raised 17 -> 18.
+      # Wave 4 lane 2 (PR #108: the six Green Book carve-outs and a behavioural
+      # response on the gains-at-death channel) took the same 26 cases to mean
+      # 18.5%, 21 within 25%, and for the first time the meta-test in
+      # tests/test_ci_workflow.py fired: a ceiling of 40 is more than twice the
+      # live mean, so the gate had stopped meaning anything. Both tighten by the
+      # rule, and tightening needs no reason:
+      #   ceiling  ceil(18.5 x 1.25) = 24 -> nearest 5 = 25. Lowered 40 -> 25.
+      #   floor    21 - 1 = 20. Raised 18 -> 20.
+      # The other Wave 4 lanes that touch Tier 1 (PR #105, Option 56 24.0% ->
+      # 13.1%; PR #107, biden_high_income_tax re-sourced 14.1% -> 12.0%) take the
+      # merged battery to about 18.0% and leave within-25 at 21, which derives to
+      # the same 25 / 20 -- so this PR is stacked on #108 and is not re-run per
+      # lane. Re-derive again after the next wave.
       - name: Cold-holdout gate (out-of-sample tier)
         run: |
-          python scripts/cold_holdout.py --max-mean-error 40 --min-within-25pct 18
+          python scripts/cold_holdout.py --max-mean-error 25 --min-within-25pct 20
 
       # Tier 2 (leave-one-out). Holds out one calibrated benchmark at a time and
       # asks whether the module's structural machinery — calibrated on the others

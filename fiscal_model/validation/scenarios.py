@@ -931,12 +931,36 @@ PHARMA_VALIDATION_SCENARIOS_COMPARE = {
         "calibrated_to_target": False,
         "notes": "50 negotiated drugs plus removal of the exclusivity delay.",
         "limitations": [
-            "Poor: savings scale linearly in drug count from the IRA per-drug average "
-            "with a flat 60% productivity haircut, while CBO's own scoring is highly "
-            "non-linear in which molecules enter the negotiation window.",
             "The -$500B target is not a CBO score of this policy — the record's own "
-            "source string reads 'CBO/Estimate', and the only published CBO number in "
-            "the module is -$237B for the IRA's 20 drugs.",
+            "source string reads 'CBO/Estimate'. The published CBO figure for the "
+            "negotiation program itself is about -$98.5B over FY2022-2031; the -$237B "
+            "the module used to divide by a drug count is CBO's score of the IRA's "
+            "ENTIRE drug-pricing title, negotiation plus inflation rebates plus the "
+            "Part D redesign.",
+            "Rebuilt in lane W4-pharma, and the row moved sharply AWAY from its "
+            "target: -$371.5B to -$33.5B, 25.7% to 93.3%. Three corrections "
+            "compound, all in the same direction. (1) Current law is not '20 drugs': "
+            "the IRA selects 10 for 2026, up to 15 more for 2027, up to 15 more for "
+            "2028 and up to 20 a year after that, so the negotiated set reaches 160 "
+            "molecules by 2034 and an expansion is measured against that, not against "
+            "20. (2) Savings are not linear in drug count: CMS's three selection "
+            "cycles (10 drugs at $56.2B of gross spending, the next 15 at $41B, the "
+            "next 15 at $27B) are a measured rank-size curve, and the molecules an "
+            "expansion adds sit in its tail. (3) The per-dollar saving is CMS's own "
+            "observed $6B on $56.2B of gross spending for the first negotiated "
+            "cycle, times the three-channel federal share, rather than a per-drug "
+            "average derived from the wrong CBO total.",
+            "The check that matters is not the -$500B. Run over current law's own "
+            "schedule the rebuilt identity gives $74.1B of federal saving over "
+            "2026-2031 against CBO's ~$98.5B for the same program — a quarter low — "
+            "and $134.4B over the fuller 2026-2034 run. That is the right order of "
+            "magnitude on a policy CBO actually scored, which -$500B is not.",
+            "Not modelled: the exclusivity delay's effect on WHICH molecules are "
+            "negotiated. Under a statutory cap on selections per year the 7/11-year "
+            "eligibility bar changes the composition of the negotiated set, not its "
+            "size, and no published figure prices that shift. The flag now governs "
+            "only whether an expansion beyond the statutory annual cap is feasible "
+            "at all.",
         ],
     },
     "universal_insulin_cap": {
@@ -961,6 +985,15 @@ PHARMA_VALIDATION_SCENARIOS_COMPARE = {
             "channels explain most of that gap: induced utilisation, and growth in "
             "insulin cost and enrolment across the window, since ASPE's $734M of "
             "Part D out-of-pocket relief is a single 2020 figure held flat.",
+            "Unmoved by lane W4-pharma, deliberately. That lane rebuilt the "
+            "federal share of a Part D DRUG-COST reduction from three channels "
+            "(direct subsidy, reinsurance, low-income subsidy) re-weighted to the "
+            "2025 benefit redesign. A cost-sharing cap reduces no drug cost: it "
+            "converts beneficiary liability into plan liability, which is "
+            "subsidised at the statutory 74.5%. Routing it through the "
+            "drug-cost channels would double-count the low-income subsidy, which "
+            "is already inside ASPE's $734M, and credit a reinsurance channel "
+            "that has carried no beneficiary cost sharing since 2024.",
             "Repaired in lane L7: _estimate_insulin_cap_deficit_effect now scores "
             "the federal share of a cost-sharing shift (Part D plan liability at "
             "Medicare's 74.5% basic-benefit subsidy share, plus the private "
@@ -987,21 +1020,43 @@ PHARMA_VALIDATION_SCENARIOS_COMPARE = {
             "not the whole Medicare book — at about $456B over 2020-2029 "
             "(publication 55936). Most of this row's remaining error is the "
             "target, not the module.",
-            "Repaired in lane L7: the identity now applies RAND's *net* brand "
+            "Repaired in lane L7: the identity applies RAND's *net* brand "
             "price ratio (3.08x, RR-A788-3 p. 19) to a brand-only, "
             "rebate-netted Part D base plus ASP-priced Part B drugs, and books "
-            "only the federal share of each (Part D 76.3%, Part B 60%). It used "
-            "to apply the all-drug *gross list* ratio 2.56x to all $275B of "
-            "Medicare drug spending, including the generics where US prices are "
-            "already 33% below the OECD comparison.",
+            "only the federal share of each. It used to apply the all-drug "
+            "*gross list* ratio 2.56x to all $275B of Medicare drug spending, "
+            "including the generics where US prices are already 33% below the "
+            "OECD comparison.",
             "The implied cut in net brand prices, about 61%, is close to the "
             "roughly 55% average net-price reduction CBO estimated for H.R. 3's "
             "first negotiated group, so the residual is a base question rather "
             "than a price question.",
-            "Still missing: RAND's index is computed on presentations sold in "
-            "both markets, and the module applies it to all brand spending, so "
-            "the reachable base is overstated. No utilisation, launch-delay or "
-            "availability response is modelled either.",
+            "Extended in lane W4-pharma, and the row moved AWAY from its target "
+            "on balance: -$746.2B to -$801.0B, 646.2% to 701.0%. Four changes, "
+            "and the decomposition matters because three of them run one way "
+            "and the fourth is bigger than all three. Restricting the base to "
+            "the 87.1% of US brand-originator sales RAND's index actually "
+            "reaches (its own Tables A.4 p. 36, A.6 p. 38 and 2.2 p. 12 — the "
+            "index is computed on presentations sold in both markets) takes it "
+            "to -$649.8B. Rebuilding the Part D federal share from the three "
+            "channels Medicare actually pays through, re-weighted to the IRA's "
+            "2025 benefit redesign (0.776 against the 2023 aggregate's 0.763), "
+            "puts it at -$658.1B. Replacing an unsourced flat 5% availability "
+            "haircut with CBO's own H.R. 3 figure — 8 to 15 fewer launches out "
+            "of ~300 over a decade, so 3.83% — adds $9.7B. Against those, the "
+            "gross Part D base moved from an unsourced $220B to the $281B CMS's "
+            "own selected-drug statement implies ($56.2B being 'about 20 "
+            "percent of total Part D gross spending in 2023'), worth $136.3B on "
+            "its own — because the negotiation ladder built in the same lane "
+            "contradicts $220B outright: current law's 160 cumulative "
+            "selections carry $256.8B of gross spending by 2034.",
+            "Still missing: no utilisation response. A 61% cut in brand prices "
+            "should raise the quantity dispensed. Lane W4 looked for CBO's "
+            "assumption and found no published price elasticity of demand for "
+            "prescription drugs; the one published CBO utilisation parameter "
+            "runs the other way and against a base this module does not have "
+            "(a 1% rise in prescriptions cuts spending on other medical "
+            "services by ~0.2%, publication 43741). No term was invented.",
         ],
     },
 }

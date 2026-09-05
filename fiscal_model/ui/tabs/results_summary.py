@@ -28,6 +28,13 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+from fiscal_model.pharma import (
+    PHARMA_BASELINE,
+    DrugPricingPolicy,
+    current_law_negotiated_molecules,
+    part_d_federal_channels,
+)
+from fiscal_model.policies import CapitalGainsPolicy
 from fiscal_model.spending_outlays import IMMEDIATE, account_class_label
 from fiscal_model.trade import TRADE_BASELINE, TariffPolicy
 from fiscal_model.ui.a11y import (
@@ -524,6 +531,155 @@ def tariff_net_caption(policy: Any, result: Any) -> str:
     )
 
 
+def pharma_channels_caption(policy: Any, result: Any) -> str:
+    """One line saying whose dollar a drug-pricing headline is, and how it was counted.
+
+    Lane W4-pharma moved three of the four shipped drug-pricing presets, two of
+    them by more than half, so the numbers ship with their explanation rather
+    than in silence (Decision 6). Three things changed and each gets a clause,
+    but only if the scored policy actually uses that channel:
+
+    - **The federal share is three channels, re-weighted to the 2025 benefit.**
+      Medicare pays Part D through a capitated direct subsidy, cost-based
+      catastrophic reinsurance and the low-income subsidy. The IRA's redesign
+      cut reinsurance from 80 percent of catastrophic cost to 20, and the 6
+      percent cap on the base beneficiary premium pushed the difference onto the
+      direct subsidy. Percentages are read off
+      :func:`~fiscal_model.pharma.part_d_federal_channels`, so the caption
+      cannot drift from the identity that produced the number above it.
+    - **Negotiation runs against current law's own cumulative schedule.** The
+      set reaches 160 molecules by 2034, not the 20 the module used to assume,
+      and the molecules an expansion adds are priced off CMS's three published
+      selection cycles as a rank-size ladder rather than as replicas of the
+      first ten.
+    - **A cost-sharing cap is a cost.** It moves liability onto plans, which
+      Medicare subsidises at the statutory rate, so it widens the deficit.
+
+    Returns ``""`` for anything that is not a drug-pricing policy.
+    """
+    if not isinstance(policy, DrugPricingPolicy):
+        return ""
+
+    clauses: list[str] = []
+
+    # The three channels apportion a reduction in *drug cost*. A policy that
+    # only moves cost sharing around reduces no drug cost, so it gets no such
+    # clause - the same distinction the module draws between the insulin
+    # channel's statutory 74.5% and ``part_d_federal_channels``.
+    cuts_drug_cost = (
+        policy.expand_negotiation
+        or policy.reference_pricing
+        or policy.manufacturer_discount_pct > 0
+    )
+    if cuts_drug_cost:
+        channels = part_d_federal_channels()
+        federal = sum(channels.values())
+        clauses.append(
+            "Federal share only: of every dollar Part D drug cost falls by, "
+            f"Medicare keeps {channels['direct_subsidy']:.0%} through the "
+            f"capitated direct subsidy, {channels['reinsurance']:.0%} through "
+            f"catastrophic reinsurance and {channels['low_income_subsidy']:.0%} "
+            f"through the low-income subsidy - {federal:.0%} in all, weighted to "
+            "the IRA's 2025 benefit redesign rather than to the 2023 outturn. "
+            "The rest is enrollee premiums and cost sharing, which never reached "
+            "the Treasury."
+        )
+
+    if policy.expand_negotiation:
+        end_year = int(policy.start_year) + int(policy.duration_years) - 1
+        clauses.append(
+            "Negotiation is scored against current law's own cumulative schedule "
+            f"- {current_law_negotiated_molecules(end_year)} molecules by "
+            f"{end_year}, not 20 - and the molecules an expansion adds are "
+            "priced down CMS's three published selection cycles, so the "
+            "hundredth is worth a fraction of the tenth."
+        )
+
+    if policy.reference_pricing:
+        coverage = (
+            PHARMA_BASELINE["rand_us_sales_share_in_comparison"]
+            * PHARMA_BASELINE["rand_brand_share_of_contributing_us_sales"]
+            / PHARMA_BASELINE["rand_brand_share_of_all_us_sales"]
+        )
+        clauses.append(
+            f"Reference pricing reaches the {coverage:.0%} of US brand-originator "
+            "sales RAND's index actually covers - it compares only presentations "
+            "sold in both markets - and no utilisation response is modelled."
+        )
+
+    if policy.insulin_cap_monthly is not None or policy.oop_cap is not None:
+        share = PHARMA_BASELINE["part_d_basic_benefit_federal_share"]
+        clauses.append(
+            "A cost-sharing cap saves nothing: it converts beneficiary liability "
+            f"into plan liability, which Medicare subsidises at {share:.1%}, so "
+            "it widens the deficit rather than narrowing it."
+        )
+
+    clauses.append("GDP feedback is not in this number.")
+    return " ".join(clauses)
+
+
+def gains_at_death_caption(policy: Any, result: Any) -> str:
+    """One line saying what a realization-at-death headline does and does not tax.
+
+    A proposal that ends stepped-up basis does not tax the whole flow of
+    unrealized gain transferred by decedents, and no published one claims to:
+    appreciated property left to charity generates no taxable gain, the
+    section 121 exclusion covers a quarter-million dollars of gain on a
+    principal residence, and the Treasury Green Books defer the tax on a
+    family-owned and -operated business until the interest is sold. Wiring
+    those in moved the headline on this form materially, so it ships with its
+    explanation rather than in silence.
+
+    Computed by replaying the scorer's own death-channel loop over the same
+    window, so it cannot drift from the figure above it. Returns ``""`` for
+    anything that is not a step-up-elimination capital-gains policy.
+    """
+    if not isinstance(policy, CapitalGainsPolicy):
+        return ""
+    if not policy.eliminate_step_up or not policy.score_gains_at_death:
+        return ""
+
+    years = getattr(result, "years", None)
+    if years is None or len(years) == 0:
+        return ""
+    death = 0.0
+    for year in years:
+        if not policy.is_active(int(year)):
+            continue
+        phase = policy.get_phase_in_factor(int(year))
+        death += (
+            policy.estimate_step_up_elimination_revenue(int(year) - policy.start_year)
+            * phase
+        )
+    if death == 0.0:
+        return ""
+
+    exclusion = float(policy.step_up_exemption)
+    deferral = (
+        " Tax on a family-owned and -operated business is deferred until the "
+        "interest is sold, so only what is sold inside the window is collected."
+        if policy.defer_family_business_gains
+        else ""
+    )
+    per_donor = (
+        f" A \\${exclusion:,.0f} per-decedent exclusion then applies to what is "
+        f"left, not to the whole gain."
+        if exclusion > 0
+        else " This design states no per-decedent exclusion."
+    )
+    return (
+        f"Gains at death: \\${-death:+,.1f}B of the static score above is "
+        f"constructive realization at death - Poterba & Weisbenner's flow of "
+        f"unrealized gain transferred by decedents, indexed to household net "
+        f"worth. It is not the whole flow: bequests to charity and the "
+        f"\\${policy.section_121_exclusion:,.0f} section 121 exclusion on a "
+        f"principal residence come out first.{deferral}{per_donor} "
+        f"Inter-spousal transfers and tangible personal property are already "
+        f"outside that flow, so neither is deducted twice."
+    )
+
+
 def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, Any]) -> None:
     """Tier badge, headline number, interpretation, sensitivity, provenance."""
     policy = result_data["policy"]
@@ -565,6 +721,13 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     tariff_note = tariff_net_caption(policy, result)
     if tariff_note:
         st_module.caption(tariff_note)
+
+    pharma_note = pharma_channels_caption(policy, result)
+    if pharma_note:
+        st_module.caption(pharma_note)
+    death_note = gains_at_death_caption(policy, result)
+    if death_note:
+        st_module.caption(death_note)
 
     credibility_html = _build_credibility_html(getattr(scored, "credibility", None))
     if credibility_html:

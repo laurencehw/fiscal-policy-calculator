@@ -3,7 +3,7 @@ Alternative Minimum Tax (AMT) Module
 
 Models federal Alternative Minimum Tax policy changes including:
 - Individual AMT exemption level changes
-- Phase-out threshold changes
+- Phase-out threshold and claw-back-rate changes (IRC 55(d)(2))
 - AMT rate changes (26%/28%)
 - Corporate AMT (CAMT - 15% book minimum)
 
@@ -19,12 +19,20 @@ Current Law (TCJA, through 2025):
 - Taxpayers affected: ~200,000/year
 - Revenue: ~$5B/year
 
-Scheduled 2026 (post-TCJA sunset):
-- Single exemption: ~$60,000 (projected)
-- MFJ exemption: ~$93,000 (projected)
-- Phase-out thresholds drop significantly
+Scheduled 2026 under the TCJA sunset (the counterfactual both individual-AMT
+benchmarks describe, and what TPC T25-0049 projects):
+- Single exemption: $72,000; MFJ $111,500 -- pre-TCJA law indexed forward
+- Phase-out thresholds drop by an order of magnitude, to ~$212,300 MFJ, and
+  the 25% claw-back above them is what makes high-income filers AMT payers
 - Taxpayers affected: 7.6M in 2026, rising to 10.3M by 2035 (TPC T25-0049)
 - Revenue: $71.6B in 2026, rising to $124.2B by 2035 (TPC T25-0049)
+
+Enacted current law from 2026 (P.L. 119-21 sec. 70107) -- expressible as a
+reform via ``create_pl119_21_amt`` but NOT the derived path's baseline, because
+no TPC vintage projects a post-OBBBA AMT path:
+- TCJA exemption made permanent ($140,200 MFJ in 2026)
+- Phase-out thresholds reset DOWN to $500,000 / $1,000,000
+- Claw-back rate raised from 25% to 50%
 
 Corporate AMT (IRA 2022, permanent):
 - 15% on adjusted financial statement income
@@ -132,48 +140,10 @@ AMT_ENGINE_GROWTH_RATE = 0.03
 # CURRENT LAW PARAMETERS
 # =============================================================================
 
-# Individual AMT exemption levels under TCJA (inflation-indexed)
-AMT_EXEMPTIONS_TCJA = {
-    # (single, mfj, mfs)
-    2024: (85_700, 133_300, 66_650),
-    2025: (88_100, 137_000, 68_500),
-    # Post-TCJA sunset (estimated)
-    2026: (60_000, 93_000, 46_500),
-    2027: (62_000, 96_000, 48_000),
-    2028: (64_000, 99_000, 49_500),
-    2029: (66_000, 102_000, 51_000),
-    2030: (68_000, 105_000, 52_500),
-    2031: (70_000, 108_000, 54_000),
-    2032: (72_000, 111_000, 55_500),
-    2033: (74_000, 114_000, 57_000),
-    2034: (76_000, 117_000, 58_500),
-}
-
-# If TCJA is extended (keep higher exemptions)
-AMT_EXEMPTIONS_TCJA_EXTENDED = {
-    2026: (91_000, 141_000, 70_500),
-    2027: (94_000, 145_000, 72_500),
-    2028: (97_000, 150_000, 75_000),
-    2029: (100_000, 155_000, 77_500),
-    2030: (103_000, 160_000, 80_000),
-    2031: (106_000, 165_000, 82_500),
-    2032: (109_000, 170_000, 85_000),
-    2033: (112_000, 175_000, 87_500),
-    2034: (115_000, 180_000, 90_000),
-}
-
-# Phase-out thresholds under TCJA
-AMT_PHASEOUT_TCJA = {
-    # (single, mfj) - exemption phases out at 25 cents per dollar above these
-    2024: (609_350, 1_218_700),
-    2025: (626_350, 1_252_700),
-    # Post-TCJA (reverts to lower thresholds)
-    2026: (150_000, 200_000),  # Pre-TCJA levels (estimated with inflation)
-    2027: (155_000, 206_000),
-    2028: (160_000, 212_000),
-    2029: (165_000, 218_000),
-    2030: (170_000, 225_000),
-}
+# Individual AMT exemption and phase-out schedules are built from the
+# transcribed statutory table (see the STATUTORY SCHEDULES section below);
+# ``AMT_EXEMPTIONS_TCJA`` and ``AMT_EXEMPTIONS_TCJA_EXTENDED`` are assigned
+# there, once the loader exists, and are documented at that point.
 
 # AMT rates (unchanged by TCJA)
 AMT_RATES = {
@@ -372,24 +342,391 @@ def amt_regime_year(regime: str, year: int) -> AMTYearRow:
     )
 
 
-def _schedule_row(
-    schedule: dict[int, tuple[float, float, float]],
+# =============================================================================
+# STATUTORY SCHEDULES — EXEMPTION, PHASE-OUT THRESHOLD, CLAW-BACK RATE
+# =============================================================================
+# Lane L5 stopped here: "it needs a published phase-out path, which T25-0049
+# does not carry." T25-0049 does not carry one and does not need to. The
+# phase-out is **statutory**, not projected. IRC § 55(d)(2) (§ 55(d)(3) before
+# 2018) reduces the exemption "by an amount equal to 25 percent of the amount by
+# which the alternative minimum taxable income of the taxpayer exceeds" a
+# threshold amount; § 1(f)(3) indexes the exemption and the threshold; and the
+# IRS publishes both, for every filing status, in each year's inflation Revenue
+# Procedure. P.L. 119-21 § 70107 reset the threshold and raised the claw-back
+# rate to 50 percent. All of that is transcribed in
+# ``data_files/amt/statutory_amt_parameters.csv``, with the rate confirmed
+# arithmetically against the IRS's own printed "Complete Phaseout Amount".
+#
+# Under the post-sunset schedule this claw-back is what makes high-income filers
+# AMT payers: a joint filer whose AMTI exceeds the threshold by four times the
+# exemption has no exemption left at all.
+
+STATUTORY_AMT_PARAMETERS_PATH = (
+    Path(__file__).parent / "data_files" / "amt" / "statutory_amt_parameters.csv"
+)
+
+#: Pre-TCJA law — the schedule the TCJA sunset reverts to.
+STATUTE_PRE_TCJA = "pre_tcja"
+
+#: P.L. 115-97 § 12003, taxable years 2018-2025.
+STATUTE_TCJA = "tcja"
+
+#: P.L. 119-21 § 70107, taxable years from 2026: the TCJA exemption made
+#: permanent, thresholds reset *down* to $500,000/$1,000,000, claw-back rate
+#: raised from 25% to 50%.
+STATUTE_PL119_21 = "pl119_21"
+
+AMT_STATUTES = (STATUTE_PRE_TCJA, STATUTE_TCJA, STATUTE_PL119_21)
+
+#: Last year of the TCJA exemption schedule under the sunset. From 2026 the
+#: derived path's *current law* is pre-TCJA, because that is the counterfactual
+#: TPC T25-0049 projects and the one both individual-AMT benchmarks describe.
+#: It is deliberately **not** P.L. 119-21: pricing the module against enacted
+#: post-2025 law would need a TPC vintage on a post-OBBBA baseline, which does
+#: not exist, and inventing one is what ``MODELING_IMPROVEMENT.md`` §4 forbids.
+#: ``STATUTE_PL119_21`` is expressible as a *reform* — see
+#: :func:`create_pl119_21_amt` — just not as the baseline.
+LAST_TCJA_STATUTE_YEAR = 2025
+
+_FILING_STATUS_INDEX = {"single": 0, "mfj": 1, "mfs": 2}
+
+
+@dataclass(frozen=True)
+class AMTStatutoryYear:
+    """One year of statutory AMT parameters, by filing status."""
+
+    year: int
+    statute: str
+    exemption: tuple[float, float, float]  # (single, mfj, mfs)
+    phase_out_threshold: tuple[float, float, float]  # (single, mfj, mfs)
+    phase_out_rate: float
+    source: str
+    published: bool
+
+    def exemption_for(self, filing_status: str = "mfj") -> float:
+        return float(self.exemption[_FILING_STATUS_INDEX.get(filing_status, 1)])
+
+    def threshold_for(self, filing_status: str = "mfj") -> float:
+        return float(
+            self.phase_out_threshold[_FILING_STATUS_INDEX.get(filing_status, 1)]
+        )
+
+    def complete_phase_out_for(self, filing_status: str = "mfj") -> float:
+        """AMTI at which the exemption is fully clawed back, per § 55(d)(2)."""
+        if self.phase_out_rate <= 0:
+            return float("inf")
+        return self.threshold_for(filing_status) + self.exemption_for(
+            filing_status
+        ) / self.phase_out_rate
+
+
+@lru_cache(maxsize=1)
+def load_statutory_amt_parameters() -> dict[str, dict[int, AMTStatutoryYear]]:
+    """Load the transcribed Revenue Procedure rows, keyed by statute and year."""
+    table: dict[str, dict[int, AMTStatutoryYear]] = {}
+    with open(STATUTORY_AMT_PARAMETERS_PATH, newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(line for line in handle if not line.startswith("#"))
+        for record in reader:
+            statute = record["regime"]
+            year = int(record["year"])
+            table.setdefault(statute, {})[year] = AMTStatutoryYear(
+                year=year,
+                statute=statute,
+                exemption=(
+                    float(record["exemption_single"]),
+                    float(record["exemption_mfj"]),
+                    float(record["exemption_mfs"]),
+                ),
+                phase_out_threshold=(
+                    float(record["threshold_single"]),
+                    float(record["threshold_mfj"]),
+                    float(record["threshold_mfs"]),
+                ),
+                phase_out_rate=float(record["phaseout_rate"]),
+                source=record["source"],
+                published=True,
+            )
+    missing = [name for name in AMT_STATUTES if name not in table]
+    if missing:
+        raise ValueError(
+            f"Statutory AMT table {STATUTORY_AMT_PARAMETERS_PATH} is missing "
+            f"regime(s): {missing}"
+        )
+    return table
+
+
+@cache
+def statutory_indexation_rate() -> float:
+    """
+    The single § 1(f)(3) indexation rate the module applies to every schedule.
+
+    It is the compound rate implied by the *published* TCJA MFJ phase-out
+    threshold series over its own span ($1,000,000 in 2018 to $1,252,700 in
+    2025), so it measures the realised chained-CPI path over exactly the years
+    the module has documents for. It is applied identically to every statute and
+    every filing status, and is fitted to nothing. The published exemption series
+    over the same years implies the same rate to within 0.005pp, which
+    ``tests/test_amt_phaseouts.py`` pins.
+
+    Continuing a schedule at the rate its own two-row span implies — the rule
+    ``_regime_growth`` uses for the TPC path — is *not* usable here: the
+    pre-TCJA statute has published rows only for 2017 and 2018, whose 1.99% is
+    one year of low inflation rather than the 2017-2026 path, and would
+    under-index the sunset threshold by about 10%.
+    """
+    tcja = load_statutory_amt_parameters()[STATUTE_TCJA]
+    first, last = min(tcja), max(tcja)
+    span = last - first
+    if span <= 0:
+        raise ValueError("TCJA statutory series needs at least two published years")
+    return (tcja[last].threshold_for("mfj") / tcja[first].threshold_for("mfj")) ** (
+        1.0 / span
+    ) - 1.0
+
+
+def _index_to_hundred(amount: float, years: int) -> float:
+    """Index one statutory amount, rounded to $100 as § 1(f)(7) requires."""
+    grown = amount * (1.0 + statutory_indexation_rate()) ** years
+    return float(round(grown / 100.0) * 100.0)
+
+
+@lru_cache(maxsize=512)
+def amt_statutory_year(statute: str, year: int) -> AMTStatutoryYear:
+    """
+    Statutory AMT parameters for ``statute`` in ``year``.
+
+    A published Revenue Procedure row is returned as transcribed. Any other year
+    is the nearest published row carried by :func:`statutory_indexation_rate`,
+    which is what replaces the old tables that simply stopped — the phase-out
+    table at 2030, the exemption tables at 2034, both clamping to their last row
+    afterwards. Indexing off the *nearest* end rather than the last one matters
+    for the reason the clamp it replaces already knew: a 2019 question must not
+    be answered from 2025's row.
+    """
+    if statute not in AMT_STATUTES:
+        raise ValueError(f"statute must be one of {AMT_STATUTES}, got {statute!r}")
+    rows = load_statutory_amt_parameters()[statute]
+    if year in rows:
+        return rows[year]
+    anchor = rows[max(rows)] if year > max(rows) else rows[min(rows)]
+    span = year - anchor.year
+    return AMTStatutoryYear(
+        year=year,
+        statute=statute,
+        exemption=tuple(_index_to_hundred(v, span) for v in anchor.exemption),
+        phase_out_threshold=tuple(
+            _index_to_hundred(v, span) for v in anchor.phase_out_threshold
+        ),
+        phase_out_rate=anchor.phase_out_rate,
+        source=f"{anchor.source}, indexed {span:+d}y at "
+        f"{statutory_indexation_rate() * 100:.3f}%/yr",
+        published=False,
+    )
+
+
+def current_law_amt_statute(year: int) -> str:
+    """
+    The statute the derived path treats as current law in ``year``.
+
+    TCJA through 2025, pre-TCJA from 2026 — TPC T25-0049's own baseline, "the
+    law in place for each year as of January 1, 2025". See
+    :data:`LAST_TCJA_STATUTE_YEAR` for why this is not P.L. 119-21.
+    """
+    return STATUTE_TCJA if year <= LAST_TCJA_STATUTE_YEAR else STATUTE_PRE_TCJA
+
+
+def _statute_schedule(
+    statute_for_year, first: int = 2018, last: int = 2045
+) -> dict[int, tuple[float, float, float]]:
+    return {
+        year: amt_statutory_year(statute_for_year(year), year).exemption
+        for year in range(first, last + 1)
+    }
+
+
+#: Individual AMT exemptions under **current law** as the derived path defines
+#: it — the TCJA schedule through 2025 and the pre-TCJA schedule after it.
+#: Every row is now either a transcribed Revenue Procedure amount or that
+#: amount indexed by the one statutory rule, replacing the hand-estimated
+#: post-sunset rows the module used to carry (which put 2026 MFJ at $93,000
+#: against the statutory reversion's $112,900).
+AMT_EXEMPTIONS_TCJA = _statute_schedule(current_law_amt_statute)
+
+#: Individual AMT exemptions if TCJA's larger amounts are extended. Identical to
+#: current law through 2025 — before the sunset there is nothing to extend — and
+#: the indexed TCJA schedule afterwards.
+AMT_EXEMPTIONS_TCJA_EXTENDED = _statute_schedule(lambda _year: STATUTE_TCJA)
+
+#: Phase-out thresholds ``(single, mfj, mfs)`` under current law. Replaces
+#: ``AMT_PHASEOUT_TCJA``, which carried only two statuses, guessed its
+#: post-sunset rows and stopped at 2030 — and which nothing read.
+AMT_PHASEOUT_CURRENT_LAW = {
+    year: amt_statutory_year(current_law_amt_statute(year), year).phase_out_threshold
+    for year in range(2018, 2046)
+}
+
+
+# =============================================================================
+# THE EXEMPTION-EQUIVALENT — FOLDING A PHASE-OUT INTO ONE SCALAR
+# =============================================================================
+# The derived path interpolates published aggregates on a single scalar, the MFJ
+# exemption. A phase-out is a second and a third parameter (threshold, rate), so
+# something has to reduce the triple to one number the interpolation can eat.
+#
+# The reduction used here is an **exemption-equivalent**: the flat exemption
+# that, with no phase-out at all, would leave the same aggregate AMT base as the
+# actual (exemption, threshold, rate) schedule does. It is exactly the exemption
+# when the phase-out is out of reach, it rises with the exemption and with the
+# threshold, and it falls as the claw-back rate rises — the four properties the
+# interpolation needs, and each one is a test.
+#
+# The base is computed on the published IRS SOI Table 1.1 AGI distribution, so
+# the only assumption is how filers sit *within* a published bracket, and that is
+# pinned by the bracket's own published mean rather than chosen: each bracket
+# gets the bounded-Pareto shape that reproduces its printed count and its printed
+# mean AGI. The open top bracket gets the unbounded Pareto its own mean implies
+# (alpha = 1.50 on 2023 data, which is the standard US top-tail figure).
+#
+# Two qualifications, stated rather than buried. SOI Table 1.1 pools filing
+# statuses while the module's coordinate is MFJ-denominated; and AGI is not
+# AMTI. Neither can bias a benchmark, because both regime anchors are computed
+# through this same function and both individual-AMT benchmarks sit exactly on an
+# anchor — they set only how steeply an *off-anchor* reform is priced.
+
+#: SOI year the income grid is built from, and the rate it is aged at. The
+#: growth rate is the module's existing engine constant rather than a new one.
+SOI_GRID_YEAR = 2023
+SOI_GRID_POINTS_PER_BRACKET = 200
+
+
+@lru_cache(maxsize=1)
+def _soi_income_grid() -> tuple[np.ndarray, np.ndarray]:
+    """
+    Representative ``(agi, weight)`` filers from IRS SOI Table 1.1.
+
+    Within each published bracket the returns are laid out on a bounded Pareto
+    whose shape is solved so the grid reproduces that bracket's own printed mean
+    AGI; the count is the bracket's printed count. Nothing here is fitted to an
+    AMT quantity. The negative/zero-AGI bracket is dropped: it has no AMT base.
+    """
+    from .data.irs_soi import IRSSOIData
+
+    quantiles = (np.arange(SOI_GRID_POINTS_PER_BRACKET) + 0.5) / (
+        SOI_GRID_POINTS_PER_BRACKET
+    )
+    incomes: list[np.ndarray] = []
+    weights: list[np.ndarray] = []
+    for bracket in IRSSOIData().get_bracket_distribution(SOI_GRID_YEAR):
+        floor = float(bracket.agi_floor)
+        count = float(bracket.num_returns)
+        if floor <= 0.0 or count <= 0.0:
+            continue
+        mean = bracket.total_agi * 1e9 / count
+        ceiling = bracket.agi_ceiling
+        if ceiling is None:
+            # Unbounded Pareto: E[Y] = alpha * floor / (alpha - 1).
+            alpha = mean / (mean - floor) if mean > floor else 2.0
+            draws = floor * (1.0 - quantiles * 0.99999) ** (-1.0 / alpha)
+        elif not floor < mean < ceiling:
+            draws = np.full_like(quantiles, min(max(mean, floor), float(ceiling)))
+        else:
+            draws = _bounded_pareto_matching_mean(
+                floor, float(ceiling), mean, quantiles
+            )
+        incomes.append(draws)
+        weights.append(np.full_like(draws, count / SOI_GRID_POINTS_PER_BRACKET))
+    return np.concatenate(incomes), np.concatenate(weights)
+
+
+def _bounded_pareto_matching_mean(
+    floor: float,
+    ceiling: float,
+    mean: float,
+    quantiles: np.ndarray,
+) -> np.ndarray:
+    """Bounded-Pareto draws on ``[floor, ceiling]`` with the published mean."""
+    low, high = 0.02, 60.0
+    draws = np.full_like(quantiles, mean)
+    for _ in range(80):
+        alpha = 0.5 * (low + high)
+        ratio = (floor / ceiling) ** alpha
+        draws = floor / (1.0 - quantiles * (1.0 - ratio)) ** (1.0 / alpha)
+        if draws.mean() > mean:
+            low = alpha
+        else:
+            high = alpha
+    return draws
+
+
+def _aged_incomes(year: int) -> np.ndarray:
+    incomes, _ = _soi_income_grid()
+    return incomes * (1.0 + AMT_ENGINE_GROWTH_RATE) ** (year - SOI_GRID_YEAR)
+
+
+def amt_clawback_per_filer(
+    exemption: float,
+    threshold: float,
+    phase_out_rate: float,
     year: int,
-) -> tuple[float, float, float]:
+) -> float:
     """
-    One year's ``(single, mfj, mfs)`` exemptions, clamped to the nearest
-    published year. Clamping to the *nearest* end matters: falling back to the
-    last row for a year that precedes the schedule would price a 2025 policy on
-    2034's exemptions.
+    Average statutory claw-back per return in ``year``, in dollars.
+
+    ``min(exemption, rate x max(0, AMTI - threshold))`` — IRC § 55(d)(2) — over
+    the published SOI distribution. Zero when the phase-out cannot bind, and the
+    full exemption once every filer is past the complete-phase-out point.
     """
-    if year in schedule:
-        return schedule[year]
-    return schedule[max(schedule)] if year > max(schedule) else schedule[min(schedule)]
+    if exemption == float("inf") or phase_out_rate <= 0.0:
+        return 0.0
+    _, weights = _soi_income_grid()
+    incomes = _aged_incomes(year)
+    clawback = np.minimum(
+        exemption, phase_out_rate * np.maximum(0.0, incomes - threshold)
+    )
+    return float((weights * clawback).sum() / weights.sum())
 
 
-def _schedule_mfj(schedule: dict[int, tuple[float, float, float]], year: int) -> float:
-    """MFJ exemption from one of the module's exemption schedules."""
-    return float(_schedule_row(schedule, year)[1])
+def _aggregate_amt_base(exempt_amounts: np.ndarray, year: int) -> float:
+    _, weights = _soi_income_grid()
+    incomes = _aged_incomes(year)
+    return float((weights * np.maximum(0.0, incomes - exempt_amounts)).sum())
+
+
+@lru_cache(maxsize=4096)
+def amt_exemption_equivalent(
+    exemption: float,
+    threshold: float,
+    phase_out_rate: float,
+    year: int,
+) -> float:
+    """
+    The flat exemption that leaves the same aggregate AMT base as this schedule.
+
+    Returns ``exemption`` exactly when the claw-back cannot bind, and otherwise
+    something strictly below it. This is the scalar the published-path
+    interpolation is indexed on once a phase-out exists.
+    """
+    if exemption == float("inf"):
+        return float("inf")
+    if exemption <= 0:
+        raise ValueError(f"AMT exemption must be positive, got {exemption}")
+    if phase_out_rate <= 0.0 or threshold == float("inf"):
+        return float(exemption)
+
+    incomes = _aged_incomes(year)
+    clawback = np.minimum(
+        exemption, phase_out_rate * np.maximum(0.0, incomes - threshold)
+    )
+    target = _aggregate_amt_base(exemption - clawback, year)
+
+    low, high = 0.0, float(incomes.max())
+    for _ in range(100):
+        middle = 0.5 * (low + high)
+        if _aggregate_amt_base(np.float64(middle), year) > target:
+            low = middle
+        else:
+            high = middle
+    return 0.5 * (low + high)
 
 
 @cache
@@ -405,24 +742,60 @@ def current_law_amt_exemption_mfj(year: int) -> float:
     This is the counterfactual leg the exemption-change branch was missing:
     it used to compare the reform schedule against itself.
     """
-    return _schedule_mfj(AMT_EXEMPTIONS_TCJA, year)
+    return amt_statutory_year(current_law_amt_statute(year), year).exemption_for("mfj")
+
+
+def current_law_amt_effective_exemption_mfj(year: int) -> float:
+    """
+    Current law's MFJ exemption-equivalent — exemption *net of* the claw-back.
+
+    The gap between this and :func:`current_law_amt_exemption_mfj` is the
+    structure this lane adds. Post-sunset it is worth about 11% of the
+    exemption, because the pre-TCJA threshold sits low in the income
+    distribution; under TCJA's own thresholds it is worth under 2%.
+    """
+    statutory = amt_statutory_year(current_law_amt_statute(year), year)
+    return amt_exemption_equivalent(
+        statutory.exemption_for("mfj"),
+        statutory.threshold_for("mfj"),
+        statutory.phase_out_rate,
+        year,
+    )
 
 
 def _amt_anchors(year: int) -> tuple[tuple[float, AMTYearRow], tuple[float, AMTYearRow]]:
     """
-    The two published regimes as ``(MFJ exemption, path row)`` anchors.
+    The two published regimes as ``(MFJ exemption-equivalent, path row)`` anchors.
 
-    Low exemption = current law for that year (post-sunset from 2026); high
-    exemption = the TCJA schedule extended. Both anchors are the *same* row
-    while TCJA is still in force, which collapses the interpolation to a
-    single point, as it should.
+    Low = current law for that year (pre-TCJA from 2026); high = the TCJA
+    schedule extended. Both anchors are the *same* row while TCJA is still in
+    force, which collapses the interpolation to a single point, as it should.
+
+    Each anchor's coordinate is now that anchor's **own** statutory triple —
+    exemption, threshold and claw-back rate — put through
+    :func:`amt_exemption_equivalent`. That is what keeps the phase-out from
+    disturbing anything the module already scored: a benchmark whose policy leg
+    *is* an anchor still lands on that anchor exactly, so it returns the
+    published row it returned before.
     """
+    low_statute = current_law_amt_statute(year)
     low_regime = (
         REGIME_TCJA if year <= _last_tcja_regime_year() else REGIME_POST_SUNSET
     )
-    low = (_schedule_mfj(AMT_EXEMPTIONS_TCJA, year), amt_regime_year(low_regime, year))
+    low = (
+        current_law_amt_effective_exemption_mfj(year),
+        amt_regime_year(low_regime, year),
+    )
+    tcja_statutory = amt_statutory_year(STATUTE_TCJA, year)
     high = (
-        _schedule_mfj(AMT_EXEMPTIONS_TCJA_EXTENDED, year),
+        low[0]
+        if low_statute == STATUTE_TCJA
+        else amt_exemption_equivalent(
+            tcja_statutory.exemption_for("mfj"),
+            tcja_statutory.threshold_for("mfj"),
+            tcja_statutory.phase_out_rate,
+            year,
+        ),
         amt_regime_year(REGIME_TCJA, year),
     )
     if high[0] <= low[0]:
@@ -545,8 +918,18 @@ class AMTPolicy(TaxPolicy):
     new_first_tier_rate: float | None = None  # 26% default
     new_second_tier_rate: float | None = None  # 28% default
 
-    # Phase-out changes
-    phase_out_threshold_change: float = 0.0  # Change to phase-out start
+    # Phase-out changes (IRC § 55(d)(2)). Until Wave 4 lane 3c
+    # ``phase_out_threshold_change`` was declared and never read, so a threshold
+    # reform scored exactly 0.0 — the same class of dead branch L5 found in the
+    # exemption leg. All three are live now.
+    phase_out_threshold_change: float = 0.0  # Dollar change to the threshold
+    new_phase_out_threshold_mfj: float | None = None  # Specific MFJ threshold
+    new_phase_out_rate: float | None = None  # e.g. 0.50 under P.L. 119-21
+
+    # Which statutory schedule the reform's phase-out is measured from. ``None``
+    # follows the exemption: TCJA's thresholds when TCJA relief is extended,
+    # current law's otherwise.
+    statute: str | None = None
 
     # Behavioral parameters
     timing_elasticity: float = 0.15
@@ -594,22 +977,80 @@ class AMTPolicy(TaxPolicy):
         if filing_status == "mfs" and self.new_exemption_mfj is not None:
             return self.new_exemption_mfj / 2  # MFS is half of MFJ
 
-        # TCJA extension. Before the sunset there is nothing to extend, so the
-        # extension is a no-op and both legs read the same schedule; without
-        # that guard a 2025 start compared current law's $137,000 against the
-        # extended schedule's out-of-range fallback and booked a revenue loss
-        # in a year the policy cannot touch.
+        return (
+            self.statutory_year(year).exemption_for(filing_status)
+            + self.exemption_change
+        )
+
+    def statute_for_year(self, year: int) -> str:
+        """
+        Which statutory schedule this policy's parameters are measured from.
+
+        TCJA's when TCJA relief is extended past the sunset, current law's
+        otherwise. Before the sunset there is nothing to extend, so the
+        extension is a no-op and both legs read the same schedule; without that
+        guard a 2025 start compared current law's $137,000 against the extended
+        schedule and booked a revenue loss in a year the policy cannot touch.
+        """
+        if self.statute is not None:
+            return self.statute
         if self.extend_tcja_relief and year > _last_tcja_regime_year():
-            exemptions = _schedule_row(AMT_EXEMPTIONS_TCJA_EXTENDED, year)
-        else:
-            # Current law baseline
-            exemptions = _schedule_row(AMT_EXEMPTIONS_TCJA, year)
+            return STATUTE_TCJA
+        return current_law_amt_statute(year)
 
-        # Extract by filing status
-        idx = {"single": 0, "mfj": 1, "mfs": 2}.get(filing_status, 1)
-        base = exemptions[idx]
+    def statutory_year(self, year: int) -> AMTStatutoryYear:
+        """The statutory parameter row this policy starts from in ``year``."""
+        return amt_statutory_year(self.statute_for_year(year), year)
 
-        return base + self.exemption_change
+    def get_phase_out_threshold_for_year(
+        self,
+        year: int,
+        filing_status: str = "mfj",
+    ) -> float:
+        """
+        Effective § 55(d)(2) phase-out threshold in ``year``, after the reform.
+
+        ``new_phase_out_threshold_mfj`` replaces the MFJ threshold outright and
+        scales the other statuses by the statutory ratio; otherwise
+        ``phase_out_threshold_change`` shifts every status by the same dollar
+        amount. A threshold cannot go below zero — at zero the exemption is
+        being clawed back from the first dollar of AMTI.
+        """
+        statutory = self.statutory_year(year)
+        base = statutory.threshold_for(filing_status)
+        if self.new_phase_out_threshold_mfj is not None:
+            mfj = statutory.threshold_for("mfj")
+            scale = self.new_phase_out_threshold_mfj / mfj if mfj else 1.0
+            return max(0.0, base * scale)
+        return max(0.0, base + self.phase_out_threshold_change)
+
+    def get_phase_out_rate(self, year: int) -> float:
+        """Effective claw-back rate: 25% by statute, 50% under P.L. 119-21."""
+        if self.new_phase_out_rate is not None:
+            return float(self.new_phase_out_rate)
+        return self.statutory_year(year).phase_out_rate
+
+    def get_effective_exemption_for_year(
+        self,
+        year: int,
+        filing_status: str = "mfj",
+    ) -> float:
+        """
+        The reform's exemption net of its own statutory claw-back.
+
+        This — not the headline exemption — is what the derived path prices,
+        because two schedules with the same exemption and different thresholds
+        are not the same policy.
+        """
+        exemption = self.get_exemption_for_year(year, filing_status)
+        if exemption == float("inf"):
+            return exemption
+        return amt_exemption_equivalent(
+            exemption,
+            self.get_phase_out_threshold_for_year(year, filing_status),
+            self.get_phase_out_rate(year),
+            year,
+        )
 
     def get_rate_for_tier(self, tier: int = 1) -> float:
         """
@@ -642,18 +1083,24 @@ class AMTPolicy(TaxPolicy):
         sunset it is ~7.6M (TPC T25-0049), and the count now moves with the
         year as well as with the exemption.
 
+        The count is evaluated **through the phase-out**: the exemption passed
+        to the published-path interpolation is the reform's exemption net of its
+        own statutory claw-back, so moving the threshold moves the affected
+        population without touching the headline exemption at all.
+
         Args:
             year: Tax year.
-            exemption: MFJ exemption to evaluate. Defaults to the policy's own
-                reform schedule. Pass ``current_law_amt_exemption_mfj(year)``
-                to ask the counterfactual question — how many filers current
-                law catches — which is the leg
-                :meth:`estimate_static_revenue_effect` used to be missing.
+            exemption: MFJ exemption-equivalent to evaluate. Defaults to the
+                policy's own reform schedule. Pass
+                ``current_law_amt_effective_exemption_mfj(year)`` to ask the
+                counterfactual question — how many filers current law catches —
+                which is the leg :meth:`estimate_static_revenue_effect` used to
+                be missing.
         """
         if exemption is None:
             if self.repeal_individual_amt:
                 return 0
-            exemption = self.get_exemption_for_year(year, "mfj")
+            exemption = self.get_effective_exemption_for_year(year, "mfj")
         payers, _ = amt_payers_and_liability(exemption, year)
         return int(payers)
 
@@ -685,10 +1132,14 @@ class AMTPolicy(TaxPolicy):
         Repeal, TCJA extension and a plain exemption change are all the same
         identity here rather than three separate constants.
         """
-        baseline = amt_revenue_billions(current_law_amt_exemption_mfj(year), year)
+        baseline = amt_revenue_billions(
+            current_law_amt_effective_exemption_mfj(year), year
+        )
         if self.repeal_individual_amt:
             return -baseline
-        policy = amt_revenue_billions(self.get_exemption_for_year(year, "mfj"), year)
+        policy = amt_revenue_billions(
+            self.get_effective_exemption_for_year(year, "mfj"), year
+        )
         return policy * self._rate_scale() - baseline
 
     def derived_revenue_path(self) -> list[tuple[int, float]]:
@@ -926,6 +1377,81 @@ def create_increase_amt_exemption(
         amt_type=AMTType.INDIVIDUAL,
         exemption_change=exemption_increase,
         annual_revenue_change_billions=annual_cost,
+        start_year=start_year,
+        duration_years=duration_years,
+        mode=mode,
+    )
+
+
+def create_amt_phase_out_threshold_change(
+    threshold_change: float,
+    start_year: int = 2026,
+    duration_years: int = 10,
+    mode: str = AMT_MODE_DERIVED,
+) -> AMTPolicy:
+    """
+    Move the § 55(d)(2) phase-out threshold, leaving the exemption alone.
+
+    A *cut* to the threshold claws the exemption back from more filers and
+    therefore **raises** revenue; an increase loses it. This is the reform the
+    module could not express at all before Wave 4 lane 3c —
+    ``phase_out_threshold_change`` was declared and never read, so every value
+    of it scored 0.0.
+
+    The default mode is ``derived`` because there is no fitted annual for this
+    policy and there should not be one: the whole point is that the answer comes
+    out of the statutory claw-back rather than out of a constant.
+    """
+    direction = "Raise" if threshold_change > 0 else "Cut"
+    return AMTPolicy(
+        name=f"AMT Phase-Out Threshold {direction} ${abs(threshold_change)/1000:.0f}K",
+        description=(
+            f"{direction} the AMT exemption phase-out threshold by "
+            f"${abs(threshold_change):,.0f}"
+        ),
+        policy_type=PolicyType.INCOME_TAX,
+        amt_type=AMTType.INDIVIDUAL,
+        phase_out_threshold_change=threshold_change,
+        timing_elasticity=0.0,
+        avoidance_elasticity=0.0,
+        start_year=start_year,
+        duration_years=duration_years,
+        mode=mode,
+    )
+
+
+def create_pl119_21_amt(
+    start_year: int = 2026,
+    duration_years: int = 10,
+    mode: str = AMT_MODE_DERIVED,
+) -> AMTPolicy:
+    """
+    Enacted current law: P.L. 119-21 § 70107's AMT provision, as a reform.
+
+    Three moves at once, and until this lane the module could express only the
+    first: the TCJA exemption made permanent, the phase-out thresholds reset
+    **down** to $500,000/$1,000,000, and the claw-back rate raised from 25% to
+    50%. The last two are why JCT's line item for this provision
+    (JCX-35-25, +$1,362.810B over FY2025-2034) is not the same quantity as a
+    naive TCJA extension.
+
+    **Not a benchmark, and deliberately not wired into one.** The repository's
+    ``pl119_21_amt_exemption`` row is scored by ``tcja.py``; this factory exists
+    so the mechanism can be *measured* against a published figure rather than
+    only asserted. See ``planning/lanes/W4_amt_phaseouts.md`` §4.
+    """
+    return AMTPolicy(
+        name="P.L. 119-21 AMT Provision",
+        description=(
+            "Make the TCJA AMT exemption permanent, reset the phase-out "
+            "thresholds to $500K/$1M and raise the claw-back rate to 50%"
+        ),
+        policy_type=PolicyType.INCOME_TAX,
+        amt_type=AMTType.INDIVIDUAL,
+        extend_tcja_relief=True,
+        statute=STATUTE_PL119_21,
+        timing_elasticity=0.0,
+        avoidance_elasticity=0.0,
         start_year=start_year,
         duration_years=duration_years,
         mode=mode,
