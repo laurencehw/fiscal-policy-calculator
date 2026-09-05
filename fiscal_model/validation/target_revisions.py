@@ -100,12 +100,14 @@ WAVE3_PROVENANCE_FIRST_SCORED_COMMIT = "d5985c41970dd6fd6a900af8bc5441df1787f950
 #: ``CBO_SCORE_MAP`` / ``scenarios.py`` and renames the preset labels that
 #: embed them. "The target moved before the model was scored against it" is
 #: therefore checkable from ``git log`` rather than asserted in prose.
-WAVE4_PROVENANCE_ENTERED_COMMIT = "0000000000000000000000000000000000000000"
+WAVE4_PROVENANCE_ENTERED_COMMIT = (
+    "318be6bea12f92ae02300e0a5da6b84b98a6bff0"
+)
 WAVE4_PROVENANCE_ENTERED_DATE = "2026-09-02"
 
 #: Commit in which the Wave 4 targets were first actually scored.
 WAVE4_PROVENANCE_FIRST_SCORED_COMMIT = (
-    "0000000000000000000000000000000000000000"
+    "22ccdd24182f5e319eebb16caf7128ed8e6537b2"
 )
 
 

@@ -185,13 +185,15 @@ PHASE_E_PROVENANCE_DATE = "2026-09-01"
 #: Phase B and Phase D the row is entered here and first scored in a *later*
 #: commit, so "the target was fixed before the model was scored against it"
 #: is checkable from the git history rather than asserted in prose.
-WAVE4_PROVENANCE_ENTERED_COMMIT = "0000000000000000000000000000000000000000"
+WAVE4_PROVENANCE_ENTERED_COMMIT = (
+    "318be6bea12f92ae02300e0a5da6b84b98a6bff0"
+)
 WAVE4_PROVENANCE_ENTERED_DATE = "2026-09-02"
 
 #: Commit in which the Wave 4 out-of-sample target was first actually scored
 #: (the commit that writes $245.9B into ``KNOWN_SCORES``).
 WAVE4_PROVENANCE_FIRST_SCORED_COMMIT = (
-    "0000000000000000000000000000000000000000"
+    "22ccdd24182f5e319eebb16caf7128ed8e6537b2"
 )
 
 #: Baselines the CBO options were built on, from PDF page 2 of publication
