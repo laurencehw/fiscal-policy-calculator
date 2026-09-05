@@ -1051,7 +1051,9 @@ tax-expenditure cap 13.1 (3.2%).
 
 - **PR #113 payroll** is the whole of the improvement and more. The two CBO
   Option 61 rows went **54.1% / 55.5% → 7.5% / 8.1%** — 25th and 26th most
-  accurate of 26 to 8th and 10th — and the outturn matched §3's hand arithmetic
+  accurate of 26 to **7th and 9th** on the merged tree (the lane doc says 8th
+  and 10th, which held on its own branch before the other two lanes moved rows
+  past them) — and the outturn matched §3's hand arithmetic
   to the decimal (−$1,378.2B and −$2,745.0B, both computed before a file was
   opened). All seven falsification tests fired and none against the lane; every
   Tier 1 row other than the two named is identical to the dollar, and the
