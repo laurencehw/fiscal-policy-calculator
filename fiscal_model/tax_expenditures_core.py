@@ -263,17 +263,30 @@ JCT_TAX_EXPENDITURES: dict[str, dict[str, Any]] = {
     },
     "mortgage_interest": {
         "annual_cost": 25.0,
-        # Deliberately *not* wired into any rule. Nothing in the repository
-        # says which limitation this is the "no limit" level of. The natural
-        # candidate, TCJA's $750,000 acquisition-debt cap (IRC 163(h)(3)(F)),
-        # is worth single-digit billions a year, not $75B, so this looks like
-        # a pre-TCJA level reflecting the smaller standard deduction rather
-        # than a debt-limit counterfactual. A rule that read it would move
-        # `eliminate_mortgage` from -5.1% to about +244% on an unsourced
-        # constant, so it stays unread and goes to the provenance lane. Give
-        # it a `limitation` block with a statute and an expiry and it becomes
-        # live automatically, which is the point of declaring limitations.
-        "annual_cost_no_limit": 100.0,
+        # SOURCED in the Wave 4 provenance lane, and the source says the name
+        # is wrong. The Phase E guess was right about the shape of the number:
+        # this is a *pre-TCJA-law* level, not a debt-limit counterfactual.
+        # Treasury OTA, `Tax Expenditures` (FY2019 edition, 16 October 2017,
+        # law as of 1 July 2017 -- so before the $750,000 acquisition-debt
+        # limit existed), Table 1 row 59, "Deductibility of mortgage interest
+        # on owner-occupied homes", projects $1,003,230M over FY2018-2027 =
+        # **$100.32B/yr**, which is where the carried 100.0 came from (0.3%
+        # away). JCT's JCX-59-23 corroborates the order of magnitude from the
+        # other direction: $100.6B in FY2027, the first full year after the
+        # TCJA provisions were then scheduled to expire.
+        #
+        # It stays **deliberately unwired**, because what it is the "no limit"
+        # level *of* is the pre-TCJA regime as a whole -- the smaller standard
+        # deduction and the uncapped SALT deduction, which together set how
+        # many filers itemise -- and not IRC 163(h)(3)(F). The acquisition-debt
+        # limit on its own is worth about $4B/yr: JCT's JCX-35-25 scores
+        # "Extension of limitation on deduction for qualified residence
+        # interest" at +$39,532M over FY2025-2034. So attaching a `limitation`
+        # block keyed to the $750,000 cap and pointing `unlimited_cost_key`
+        # here would still be wrong by an order of magnitude, and would move
+        # `eliminate_mortgage` from -5.1% to about +244%.
+        # https://home.treasury.gov/system/files/131/Tax-Expenditures-FY2019.pdf
+        "annual_cost_no_limit": 100.3,
         "affected_millions": 20.0,
         "avg_benefit": 1_250,
         "growth_rate": 0.03,

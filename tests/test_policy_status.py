@@ -36,7 +36,7 @@ def test_green_book_proposals_marked_proposed():
     for name in (
         "🏢 Biden Corporate 28% (CBO: -$1.35T)",
         "🏠 Biden Estate Reform (-$450B)",
-        "🌍 Biden International Package (-$700B)",
+        "🌍 Biden International Package (-$632B)",
     ):
         status = get_policy_status(name)
         assert status is not None and status.status == "proposed", name

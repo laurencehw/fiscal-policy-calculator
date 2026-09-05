@@ -456,7 +456,7 @@ class TestScorablePolicyMap:
 
     def test_map_carries_preset_ids(self) -> None:
         mapped = build_scorable_policy_map(PRESET_POLICIES)
-        assert mapped["🌍 Repeal FDII (-$200B)"]["preset_id"] == "fdii-repeal"
+        assert mapped["🌍 Repeal FDII (-$158B)"]["preset_id"] == "fdii-repeal"
 
     def test_no_preset_package_is_empty(self) -> None:
         """4 of the 12 curated packages resolved to nothing before the fix."""

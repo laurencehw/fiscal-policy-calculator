@@ -82,7 +82,7 @@ POLICY_STATUS_MAP: dict[str, PolicyStatus] = {
     "🏠 Estate Tax: Extend TCJA (CBO: $167B)": PolicyStatus("superseded", _OBBBA_NOTE),
     "👶 CTC Extension (CBO: $600B)": PolicyStatus("superseded", _OBBBA_NOTE),
     "⚖️ AMT: Extend TCJA Relief ($1.36T)": PolicyStatus("superseded", _OBBBA_NOTE),
-    "📋 Repeal SALT Cap ($1.1T)": PolicyStatus(
+    "📋 Repeal SALT Cap ($1.17T)": PolicyStatus(
         "superseded",
         "The July 2025 reconciliation law (P.L. 119-21) modified the SALT "
         "cap. This preset models full repeal against the original \\$10K cap "
@@ -95,7 +95,7 @@ POLICY_STATUS_MAP: dict[str, PolicyStatus] = {
         "Proposal to make the temporary 2021 ARP expansion permanent; "
         "not enacted.",
     ),
-    "💼 EITC Childless Expansion (CBO: $178B)": PolicyStatus(
+    "💼 EITC Childless Expansion (Treasury: $163B)": PolicyStatus(
         "proposed",
         "Proposal to make the temporary 2021 ARP expansion permanent; "
         "not enacted.",
@@ -103,9 +103,9 @@ POLICY_STATUS_MAP: dict[str, PolicyStatus] = {
     "🏠 Biden Estate Reform (-$450B)": PolicyStatus("proposed", _GREEN_BOOK_NOTE),
     "📋 Eliminate Step-Up Basis (-$500B)": PolicyStatus("proposed", _GREEN_BOOK_NOTE),
     "💰 Expand NIIT (JCT: -$250B)": PolicyStatus("proposed", _GREEN_BOOK_NOTE),
-    "🌍 Biden GILTI Reform (-$280B)": PolicyStatus("proposed", _GREEN_BOOK_NOTE),
-    "🌍 Repeal FDII (-$200B)": PolicyStatus("proposed", _GREEN_BOOK_NOTE),
-    "🌍 Biden International Package (-$700B)": PolicyStatus("proposed", _GREEN_BOOK_NOTE),
+    "🌍 Biden GILTI Reform (-$374B)": PolicyStatus("proposed", _GREEN_BOOK_NOTE),
+    "🌍 Repeal FDII (-$158B)": PolicyStatus("proposed", _GREEN_BOOK_NOTE),
+    "🌍 Biden International Package (-$632B)": PolicyStatus("proposed", _GREEN_BOOK_NOTE),
     "Biden 2025 Proposal": PolicyStatus("proposed", _GREEN_BOOK_NOTE),
     # ── Campaign / legislative proposals ─────────────────────────────────
     "🏢 Trump Corporate 15%": PolicyStatus(
@@ -121,7 +121,7 @@ POLICY_STATUS_MAP: dict[str, PolicyStatus] = {
     "💰 SS Donut Hole $250K (-$2.7T)": PolicyStatus("proposed", _SS_OPTION_NOTE),
     "💰 Eliminate SS Cap (-$3.2T)": PolicyStatus("proposed", _SS_OPTION_NOTE),
     # ── Tariffs: executive action moved faster than these presets ────────
-    "🏭 Trump Universal 10% Tariff (-$2T)": PolicyStatus(
+    "🏭 Trump Universal 10% Tariff (-$2.17T)": PolicyStatus(
         "partially",
         "Broad tariff actions were imposed by executive order in 2025; this "
         "preset models a stylized schedule, not the enacted structure.",
@@ -132,7 +132,7 @@ POLICY_STATUS_MAP: dict[str, PolicyStatus] = {
         "2025; this preset models a stylized schedule, not the enacted "
         "structure.",
     ),
-    "🏭 Reciprocal Tariffs (-$1.2T)": PolicyStatus(
+    "🏭 Reciprocal Tariffs (-$1.5T)": PolicyStatus(
         "partially",
         "Reciprocal-tariff actions were imposed by executive order in 2025; "
         "this preset models a stylized schedule, not the enacted structure.",
@@ -144,7 +144,7 @@ POLICY_STATUS_MAP: dict[str, PolicyStatus] = {
         "clean-energy credits. This preset models full repeal as scored "
         "before that law.",
     ),
-    "🌱 Repeal EV Credits ($200B)": PolicyStatus(
+    "🌱 Repeal EV Credits ($182B)": PolicyStatus(
         "partially",
         "The July 2025 reconciliation law curtailed clean-vehicle credits. "
         "This preset models repeal as scored before that law.",
@@ -159,7 +159,7 @@ POLICY_STATUS_MAP: dict[str, PolicyStatus] = {
         "proposed", "Analytic option scored by CBO; never enacted."
     ),
     # ── ACA premium credits ──────────────────────────────────────────────
-    "🏥 Extend ACA Enhanced PTCs ($350B)": PolicyStatus(
+    "🏥 Extend ACA Enhanced PTCs ($335B)": PolicyStatus(
         "proposed",
         "Extension proposal for the enhanced credits that were scheduled "
         "to lapse after 2025; not enacted.",

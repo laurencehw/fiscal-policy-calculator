@@ -563,8 +563,12 @@ CREDIT_VALIDATION_SCENARIOS = {
     "biden_eitc_childless": {
         "description": "Biden childless EITC expansion",
         "policy_factory": "create_biden_eitc_childless",
-        "expected_10yr": -178.0,
-        "source": "Treasury Green Book 2024",
+        # Wave 4 target revision (biden_eitc_childless.v2): Treasury FY2025
+        # Green Book prints $162,553M for this row (report p. 242). The live
+        # registry the runners read is validation/scenarios.py; this copy is a
+        # legacy export kept in step with it.
+        "expected_10yr": -162.6,
+        "source": "Treasury FY2025 Green Book (report p. 242)",
         "notes": "Expand age range and nearly triple credit",
     },
 }

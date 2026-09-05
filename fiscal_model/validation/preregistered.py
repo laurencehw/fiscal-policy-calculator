@@ -176,6 +176,26 @@ OPTION_56_SHAPE_RULE = (
 PHASE_E_PROVENANCE_COMMIT = "0bcfbc3b4ba1e4a73864369d8f50f3bb6528efe5"
 PHASE_E_PROVENANCE_DATE = "2026-09-01"
 
+#: Commit of the Wave 4 provenance pass, which supersedes one out-of-sample
+#: row: ``biden_high_income_tax``. Phase E transcribed the Green Book row this
+#: target is credited to and found it prints $245,924 million against the
+#: -$252B the manifest froze, then deliberately left it, because a Tier 1
+#: target may only move through a new manifest row and that is an owner
+#: decision rather than a bookkeeping one. This is that decision. As in
+#: Phase B and Phase D the row is entered here and first scored in a *later*
+#: commit, so "the target was fixed before the model was scored against it"
+#: is checkable from the git history rather than asserted in prose.
+WAVE4_PROVENANCE_ENTERED_COMMIT = (
+    "318be6bea12f92ae02300e0a5da6b84b98a6bff0"
+)
+WAVE4_PROVENANCE_ENTERED_DATE = "2026-09-02"
+
+#: Commit in which the Wave 4 out-of-sample target was first actually scored
+#: (the commit that writes $245.9B into ``KNOWN_SCORES``).
+WAVE4_PROVENANCE_FIRST_SCORED_COMMIT = (
+    "22ccdd24182f5e319eebb16caf7128ed8e6537b2"
+)
+
 #: Baselines the CBO options were built on, from PDF page 2 of publication
 #: 60557 ("Notes About This Report").
 CBO_OPTIONS_REVENUE_BASELINE = (
@@ -297,10 +317,48 @@ PREREGISTERED_CASES: tuple[PreregisteredCase, ...] = (
         entered_commit=VALIDATION_MODULE_COMMIT,
         entered_date=VALIDATION_MODULE_DATE,
         first_scoring_run_commit=VALIDATION_MODULE_COMMIT,
+        superseded_by="biden_high_income_tax.v2",
         note=(
             "Same target as the 'Biden 2025 Proposal' entry in CBO_SCORE_MAP; registered "
             "once so the prediction is not double-counted. Treasury describes it as "
-            "'combined with other provisions', so the target is itself a bundled figure."
+            "'combined with other provisions', so the target is itself a bundled figure. "
+            "SUPERSEDED in Wave 4: the Green Book row this record cites prints $245,924 "
+            "million, not $252,000 million. Phase E transcribed the row (report p. 242; "
+            "PDF p. 250) and left the manifest alone because a frozen out-of-sample "
+            "target may only move through a new row. The 'combined with other "
+            "provisions' caveat in this note also turns out to be wrong about the "
+            "table: Treasury prints the top-rate increase as its own line."
+        ),
+    ),
+    PreregisteredCase(
+        case_id="biden_high_income_tax.v2",
+        policy_id="biden_high_income_tax",
+        official_10yr_billions=-245.9,
+        source_name="U.S. Treasury",
+        source_url=(
+            "https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf"
+        ),
+        source_date="2024-03",
+        source_baseline_vintage="Administration FY2025 Budget baseline (Green Book FY2025)",
+        entered_commit=WAVE4_PROVENANCE_ENTERED_COMMIT,
+        entered_date=WAVE4_PROVENANCE_ENTERED_DATE,
+        first_scoring_run_commit=WAVE4_PROVENANCE_FIRST_SCORED_COMMIT,
+        note=(
+            "Treasury, General Explanations of the Administration's FY2025 Revenue "
+            "Proposals, Table of Revenue Estimates, row 'Increase the top marginal "
+            "income tax rate for high-income earners': $245,924 million over "
+            "FY2025-2034 (report p. 242; PDF p. 250). The proposal text (report p. 78) "
+            "matches the shape the Generic runner scores exactly -- 39.6% on taxable "
+            "income over $450,000 married / $400,000 unmarried, C-CPI-U indexed after "
+            "2024 -- so this is a re-sourcing of the same design, not a change of "
+            "policy. Nothing in the model reads it: the case is scored bottom-up from "
+            "SOI filer counts with ETI 0.25 and the ordinary-income base, exactly as "
+            "before. The FY2024 Green Book prints $235,263M for the same row over "
+            "FY2024-2033, which is the check that the row is stable across vintages "
+            "rather than a one-off. Moving the target improves this case's reported "
+            "error (-252.0 -> -245.9 against an unchanged model), and that is a "
+            "consequence of the correction rather than a reason for it: the same "
+            "transcription pass moved seven Tier 2 targets *away* from their models."
         ),
     ),
     # ---- Phase A promotions: capital gains (previously stranded) ----------

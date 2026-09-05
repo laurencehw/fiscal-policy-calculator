@@ -93,6 +93,23 @@ WAVE3_PROVENANCE_ENTERED_DATE = "2026-09-02"
 
 WAVE3_PROVENANCE_FIRST_SCORED_COMMIT = "d5985c41970dd6fd6a900af8bc5441df1787f950"
 
+#: Commit that entered the Wave 4 rows — eleven point revisions and one range —
+#: and, unlike Wave 3, every one of them moves a figure the app and the runners
+#: read. So the AMT/insulin two-commit split applies again: the ledger rows
+#: land here, and the commit that follows writes the figures into
+#: ``CBO_SCORE_MAP`` / ``scenarios.py`` and renames the preset labels that
+#: embed them. "The target moved before the model was scored against it" is
+#: therefore checkable from ``git log`` rather than asserted in prose.
+WAVE4_PROVENANCE_ENTERED_COMMIT = (
+    "318be6bea12f92ae02300e0a5da6b84b98a6bff0"
+)
+WAVE4_PROVENANCE_ENTERED_DATE = "2026-09-02"
+
+#: Commit in which the Wave 4 targets were first actually scored.
+WAVE4_PROVENANCE_FIRST_SCORED_COMMIT = (
+    "22ccdd24182f5e319eebb16caf7128ed8e6537b2"
+)
+
 
 @dataclass(frozen=True)
 class CalibratedTarget:
@@ -231,6 +248,74 @@ _JCX_22_23_URL = (
 _JCX_22_23_TABLE = (
     "Table 2, 'Fiscal Year Federal Tax Receipt Revenue Effects for Various "
     "Scenarios', column 2023-2033"
+)
+
+_GREEN_BOOK_FY2025 = (
+    "U.S. Treasury, General Explanations of the Administration's Fiscal Year "
+    "2025 Revenue Proposals (Green Book)"
+)
+_GREEN_BOOK_FY2025_URL = (
+    "https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf"
+)
+_GREEN_BOOK_TABLE = "Table of Revenue Estimates (the volume's only table)"
+
+_CBO_60557 = "CBO, Options for Reducing the Deficit: 2025 to 2034"
+_CBO_60557_URL = "https://www.cbo.gov/publication/60557"
+
+_CBO_58390 = (
+    "CBO, letter to Rep. Kevin Brady and Rep. Jason Smith, 'Additional "
+    "Information About Increased Enforcement by the Internal Revenue "
+    "Service', publication 58390"
+)
+_CBO_58390_URL = "https://www.cbo.gov/publication/58390"
+
+_CBO_60437 = (
+    "CBO, letter to Chairman Jodey Arrington and Chairman Jason Smith, 'The "
+    "Effects of Permanently Extending the Expansion of the Premium Tax "
+    "Credit...', publication 60437"
+)
+_CBO_60437_URL = (
+    "https://www.cbo.gov/system/files/2024-06/60437-Arrington-Smith-Letter.pdf"
+)
+
+_JCX_35_25 = (
+    "Joint Committee on Taxation, JCX-35-25, estimated budget effects of the "
+    "revenue provisions of H.R. 1 as passed by the Senate"
+)
+_JCX_35_25_URL = (
+    "https://www.jct.gov/getattachment/eb21dc77-6439-4fc3-8f5d-fc23a8c377e0/"
+    "x-35-25.pdf"
+)
+
+_PWBM_SALT = (
+    "Penn Wharton Budget Model, Brendan Novak, 'Lifting the SALT Cap: "
+    "Estimated Budgetary Effects, 2024 and Beyond'"
+)
+_PWBM_SALT_URL = (
+    "https://budgetmodel.wharton.upenn.edu/issues/2024/2/8/"
+    "lifting-the-salt-cap-budget-effect"
+)
+
+_TF_FF861 = (
+    "Erica York and Alex Durante, 'How Much Revenue Can Tariffs Really Raise "
+    "for the Federal Government?', Tax Foundation Fiscal Fact 861"
+)
+_TF_FF861_URL = "https://taxfoundation.org/wp-content/uploads/2025/04/FF861.pdf"
+
+_TF_TRACKER = (
+    "Tax Foundation, 'Trump Tariffs: Tracking the Economic Impact of the "
+    "Trump Trade War' (a living tracker; read at its 20 August 2026 revision)"
+)
+_TF_TRACKER_URL = (
+    "https://taxfoundation.org/research/all/federal/trump-tariffs-trade-war/"
+)
+
+_CRFB_TARIFFS = (
+    "Committee for a Responsible Federal Budget, 'How Much Will Trump's New "
+    "Tariffs Raise?'"
+)
+_CRFB_TARIFFS_URL = (
+    "https://www.crfb.org/blogs/how-much-will-trumps-new-tariffs-raise"
 )
 
 
@@ -437,6 +522,765 @@ CALIBRATED_TARGETS: tuple[CalibratedTarget, ...] = (
             "lies inside the published bounds, and -$80B does."
         ),
     ),
+    # ------------------------------------------------------------------
+    # Wave 4. Phase E transcribed fourteen calibrated targets that disagree
+    # with the document they cite and moved none of them. Waves 1-3 resolved
+    # three. The eleven point revisions and one range below are the rest,
+    # each with the same per-target test: does the module score the design
+    # the document scored? Where the answer was no, the row is in
+    # EXAMINED_NOT_REVISED instead, and there are five of those.
+    # ------------------------------------------------------------------
+    # Eliminate the SALT deduction — CBO's option is the policy label
+    # ------------------------------------------------------------------
+    CalibratedTarget(
+        revision_id="eliminate_salt.v1",
+        policy_id="eliminate_salt",
+        official_10yr_billions=-1_200.0,
+        source_name="JCT (2024)",
+        source_date="2024",
+        window="stated as FY2025-2034; not traceable to any published table",
+        entered_commit="unknown (predates the validation manifest)",
+        entered_date="2025-12-08",
+        first_scoring_run_commit="unknown (predates the validation manifest)",
+        superseded_by="eliminate_salt.v2",
+        reason=(
+            "Attributed to JCT with no table behind it, and JCT has no clean "
+            "counterpart: its nearest figure, JCX-46-17 item I.D.1, is "
+            "$1,253.4B over FY2018-2027 but repeals most itemized deductions "
+            "while *keeping* $10,000 of real property tax, so it is both "
+            "broader and narrower than this policy. CBO, meanwhile, scores "
+            "exactly this reform under exactly this label."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="eliminate_salt.v2",
+        policy_id="eliminate_salt",
+        official_10yr_billions=-1_621.0,
+        source_name="Congressional Budget Office",
+        source_document=_CBO_60557,
+        source_url=_CBO_60557_URL,
+        source_date="2024-12",
+        source_table="Option 49, 'Eliminate or Limit Itemized Deductions'",
+        source_row="Eliminate state and local tax deductions",
+        source_page="report p. 59; PDF p. 65",
+        window="FY2025-2034",
+        entered_commit=WAVE4_PROVENANCE_ENTERED_COMMIT,
+        entered_date=WAVE4_PROVENANCE_ENTERED_DATE,
+        first_scoring_run_commit=WAVE4_PROVENANCE_FIRST_SCORED_COMMIT,
+        reason=(
+            "The same reform, scored by CBO under the same name, on the same "
+            "ten-year window, and on the same lapsed-cap baseline the "
+            "expenditure module's own `limitation` block already cites this "
+            "very option for ('Beginning in 2026, deductions for state and "
+            "local taxes will not be limited', report p. 59). Nothing in the "
+            "module reads $1,621.0B, so this is a measurement rather than a "
+            "mirror: PR #100 replaced the leaked `annual_cost_no_cap = 120.0` "
+            "-- which was the superseded $1,200B target over ten -- with "
+            "$89.55B computed from IRS SOI Table 2.1, and this revision "
+            "retires the last echo of that constant."
+        ),
+        note=(
+            "Baseline caveat, recorded rather than corrected: CBO's option is "
+            "measured on the Feb/June 2024 baseline, where IRC 164(b)(6)'s "
+            "$10,000 cap lapses after 2025. P.L. 119-21 has since raised the "
+            "cap to $40,000 for 2025-2029 (indexed 1%/yr, phased down above "
+            "$500,000 of MAGI, never below $10,000) and reverts it "
+            "permanently to $10,000 from 2030, so a post-2025 'eliminate the "
+            "SALT deduction' reform is no longer scored against a no-cap "
+            "world for most of the window. Fixing that needs a "
+            "baseline-vintage concept the expenditure module does not have; "
+            "it is a model gap, not a target one. CBO's adjacent alternative "
+            "-- eliminate *all* itemized deductions -- is $3,423.5B, which is "
+            "the check that the transcribed row is the SALT-only one."
+        ),
+    ),
+    # ------------------------------------------------------------------
+    # Repeal the SALT cap — the $1.1T was PWBM's, against extended TCJA
+    # ------------------------------------------------------------------
+    CalibratedTarget(
+        revision_id="repeal_salt_cap.v1",
+        policy_id="repeal_salt_cap",
+        official_10yr_billions=1_100.0,
+        source_name="JCT (2024)",
+        source_date="2024",
+        window="stated as FY2025-2034; not traceable to any published table",
+        entered_commit="unknown (predates the validation manifest)",
+        entered_date="2025-12-08",
+        first_scoring_run_commit="unknown (predates the validation manifest)",
+        superseded_by="repeal_salt_cap.v2",
+        reason=(
+            "The JCT attribution is wrong: JCT has never published a "
+            "standalone score of repealing the $10,000 cap. What $1,100B "
+            "*is* turns out to be findable -- it is Penn Wharton's figure, "
+            "rounded, and the rounding hid the thing that matters about it. "
+            "PWBM scores this reform twice in one paper, at -$1,116B against "
+            "an extended-TCJA baseline and at -$197B against current law, a "
+            "factor of 5.7 apart, because the cap was scheduled to expire "
+            "after 2025 and a repeal therefore bit for one year. A target "
+            "carried without its baseline is ambiguous by an order of "
+            "magnitude, which is what this row was."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="repeal_salt_cap.v2",
+        policy_id="repeal_salt_cap",
+        official_10yr_billions=1_169.0,
+        source_name="Penn Wharton Budget Model",
+        source_document=_PWBM_SALT,
+        source_url=_PWBM_SALT_URL,
+        source_date="2024-02",
+        source_table=(
+            "Table 3, 'Conventional budget estimates: Policy Options for the "
+            "SALT Cap Against Extended TCJA FY25-34'"
+        ),
+        source_row="Repeal SALT Cap",
+        source_page=(
+            "Table 3 (the 8 February 2024 brief as updated by its "
+            "17 September 2024 addendum)"
+        ),
+        window="FY2025-2034, against an extended-TCJA baseline",
+        entered_commit=WAVE4_PROVENANCE_ENTERED_COMMIT,
+        entered_date=WAVE4_PROVENANCE_ENTERED_DATE,
+        first_scoring_run_commit=WAVE4_PROVENANCE_FIRST_SCORED_COMMIT,
+        reason=(
+            "The published figure on the repository's own ten-year window, "
+            "from the paper the carried number came from: 'This proposal, to "
+            "eliminate the SALT cap entirely beginning in 2025, would cost an "
+            "additional $1,169 billion over the 2025 to 2034 budget window.' "
+            "The v1 row's $1,100B is PWBM's FY2024-2033 figure ($1,116B) "
+            "rounded, so this moves the target onto the right decade as well "
+            "as onto a document. The baseline now travels with it, which is "
+            "the substantive change: this is the marginal, stacked cost of "
+            "repeal *on top of* a permanent TCJA extension, i.e. against a "
+            "permanent $10,000 cap -- and that is the counterfactual the "
+            "expenditure module's derived path actually computes, since it "
+            "prices repeal as (unlimited SALT expenditure - limited SALT "
+            "expenditure) with the cap in force throughout."
+        ),
+        note=(
+            "The same paper's Table 1, 'Against Current Law Baseline FY24-33', "
+            "scores the identical reform at -$197B (-48 / -98 / -51 / zero "
+            "thereafter), because under the law as it stood the cap expired "
+            "after 2025. Both are published and they answer different "
+            "questions; the extended-TCJA figure is the one the module's "
+            "construction asks for. Two things a reader should know and this "
+            "lane did not fix. (1) `eliminate_salt` is scored on the opposite "
+            "baseline -- CBO Option 49 measures a world where the cap has "
+            "lapsed -- so the repository's two SALT benchmarks now state "
+            "contradictory baselines instead of hiding them; reconciling them "
+            "needs a baseline-vintage concept the module does not have. "
+            "(2) P.L. 119-21 sec. 70120 replaced the $10,000 cap with $40,000 "
+            "for 2025, rising 1%/yr through 2029, phased down by 30% of MAGI "
+            "above $500,000 but never below $10,000, and reverting "
+            "permanently to $10,000 in 2030. 'Repeal the $10,000 cap' "
+            "therefore describes no live reform for 2025-2029, and the "
+            "nearest current-law anchor is JCT's own JCX-35-25 row for that "
+            "provision, +$946.2B over FY2025-2034 -- already carried in this "
+            "repository as `pl119_21_salt_cap_40k`, which is why it is an "
+            "anchor and not a replacement target."
+        ),
+    ),
+    # ------------------------------------------------------------------
+    # Three Treasury FY2025 Green Book rows and one Treasury subtotal
+    # ------------------------------------------------------------------
+    CalibratedTarget(
+        revision_id="biden_gilti_reform.v1",
+        policy_id="biden_gilti_reform",
+        official_10yr_billions=-280.0,
+        source_name="Treasury (FY2025 Green Book)",
+        source_date="2024",
+        window="stated as FY2025-2034; not traceable to any published row",
+        entered_commit="unknown (predates the validation manifest)",
+        entered_date="2025-12-08",
+        first_scoring_run_commit="unknown (predates the validation manifest)",
+        superseded_by="biden_gilti_reform.v2",
+        reason=(
+            "Credited to the volume that contains the proposal but to no row "
+            "inside it. Treasury prints one figure for this proposal and it "
+            "is 25% larger."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="biden_gilti_reform.v2",
+        policy_id="biden_gilti_reform",
+        official_10yr_billions=-373.9,
+        source_name="U.S. Treasury, Office of Tax Analysis",
+        source_document=_GREEN_BOOK_FY2025,
+        source_url=_GREEN_BOOK_FY2025_URL,
+        source_date="2024-03",
+        source_table=_GREEN_BOOK_TABLE,
+        source_row=(
+            "Revise the global minimum tax regime, limit inversions, and make "
+            "related reforms"
+        ),
+        source_page="report p. 239; PDF p. 247",
+        window="FY2025-2034",
+        entered_commit=WAVE4_PROVENANCE_ENTERED_COMMIT,
+        entered_date=WAVE4_PROVENANCE_ENTERED_DATE,
+        first_scoring_run_commit=WAVE4_PROVENANCE_FIRST_SCORED_COMMIT,
+        reason=(
+            "$373,919 million, the only figure Treasury publishes for the "
+            "proposal this benchmark names, on the repository's own window. "
+            "The proposal text (report p. 29) is the design the module "
+            "constructs: the QBAI exemption eliminated, the rate to 21%, and "
+            "a jurisdiction-by-jurisdiction calculation."
+        ),
+        note=(
+            "The row title bundles 'limit inversions, and make related "
+            "reforms' with the minimum-tax change, and Treasury publishes no "
+            "split, so the target is the whole proposal where the module "
+            "carries only the minimum-tax legs. That is a bundle caveat, not "
+            "a different policy -- the anti-inversion rules are the same "
+            "proposal's ancillary provisions -- and it is the reason to read "
+            "the residual as an upper bound on the module's own miss. Two "
+            "earlier vintages of the same row, for scale on how much this "
+            "number moves: FY2022 $533,503M (FY2022-2031, the title the "
+            "repository's description was copied from) and FY2024 $493,341M "
+            "(FY2024-2033). GILTI's two self-declared calibration constants "
+            "(`gilti_cbc_revenue_multiplier`, `gilti_ftc_offset_rate`) were "
+            "set against the superseded -$280B and are deliberately not "
+            "retuned here: closing the gap by re-fitting is the move this "
+            "ledger exists to make visible rather than to invite."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="fdii_repeal.v1",
+        policy_id="fdii_repeal",
+        official_10yr_billions=-200.0,
+        source_name="Treasury (FY2025 Green Book)",
+        source_date="2024",
+        window="stated as FY2025-2034; not traceable to any published row",
+        entered_commit="unknown (predates the validation manifest)",
+        entered_date="2025-12-08",
+        first_scoring_run_commit="unknown (predates the validation manifest)",
+        superseded_by="fdii_repeal.v2",
+        reason=(
+            "-$200B matches neither figure Treasury prints for this proposal: "
+            "not the gross repeal row ($157,993M, 21% away) and not the "
+            "volume's own 'Subtotal, Repeal the deduction for foreign-derived "
+            "intangible income' of $0, which nets the repeal against the "
+            "R&D-support proposal Treasury pairs it with one-for-one."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="fdii_repeal.v2",
+        policy_id="fdii_repeal",
+        official_10yr_billions=-158.0,
+        source_name="U.S. Treasury, Office of Tax Analysis",
+        source_document=_GREEN_BOOK_FY2025,
+        source_url=_GREEN_BOOK_FY2025_URL,
+        source_date="2024-03",
+        source_table=_GREEN_BOOK_TABLE,
+        source_row="Repeal the deduction for foreign-derived intangible income",
+        source_page="report p. 239; PDF p. 247",
+        window="FY2025-2034",
+        entered_commit=WAVE4_PROVENANCE_ENTERED_COMMIT,
+        entered_date=WAVE4_PROVENANCE_ENTERED_DATE,
+        first_scoring_run_commit=WAVE4_PROVENANCE_FIRST_SCORED_COMMIT,
+        reason=(
+            "The gross row is the design the module scores. "
+            "`InternationalTaxPolicy` repeals the section 250 deduction and "
+            "applies no research-and-development offset, so Treasury's $0 "
+            "subtotal scores a two-provision package the module does not "
+            "construct while the $157,993M row scores the one it does."
+        ),
+        note=(
+            "Not leakage: the module's repeal identity runs on FDII income "
+            "inverted from Treasury OTA's *tax expenditure* for the deduction "
+            "($13.023B/yr, Tax Expenditures FY2026 Table 1 line 5), which is "
+            "a different published series from this repeal row. The two do "
+            "not agree, and the module's own docstring says why: Treasury's "
+            "$157,993M repeals the deduction on a baseline that already "
+            "carries the same volume's 28% corporate rate, and "
+            "13.023 x 10 x (28/21) = $173.6B before behaviour, which is where "
+            "the row's ~21% premium over the tax expenditure comes from. "
+            "Earlier vintages of the same pair: FY2022 gross $123,943M / net "
+            "$0; FY2024 gross $115,621M / net $0."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="biden_full_international.v1",
+        policy_id="biden_full_international",
+        official_10yr_billions=-700.0,
+        source_name="Treasury (FY2025)",
+        source_date="2024",
+        window="stated as FY2025-2034; not traceable to any published row",
+        entered_commit="unknown (predates the validation manifest)",
+        entered_date="2025-12-08",
+        first_scoring_run_commit="unknown (predates the validation manifest)",
+        superseded_by="biden_full_international.v2",
+        reason=(
+            "A round number 10.7% above Treasury's own printed subtotal for "
+            "the package this benchmark names, and the description behind it "
+            "named a 'BEAT replacement' that is not in the FY2025 volume at "
+            "all -- SHIELD was an FY2022 row ($390,051M) that the undertaxed "
+            "profits rule replaced."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="biden_full_international.v2",
+        policy_id="biden_full_international",
+        official_10yr_billions=-632.2,
+        source_name="U.S. Treasury, Office of Tax Analysis",
+        source_document=_GREEN_BOOK_FY2025,
+        source_url=_GREEN_BOOK_FY2025_URL,
+        source_date="2024-03",
+        source_table=_GREEN_BOOK_TABLE,
+        source_row="Subtotal, Reform International Taxation",
+        source_page="report p. 240; PDF p. 248",
+        window="FY2025-2034",
+        entered_commit=WAVE4_PROVENANCE_ENTERED_COMMIT,
+        entered_date=WAVE4_PROVENANCE_ENTERED_DATE,
+        first_scoring_run_commit=WAVE4_PROVENANCE_FIRST_SCORED_COMMIT,
+        reason=(
+            "This benchmark's design *is* the package, and Treasury prints "
+            "the package's subtotal: $632,200 million. Unlike "
+            "`biden_estate_reform`, where the module constructs a narrow "
+            "reform and the document totals a ten-section bill, here the "
+            "label and the document agree about the object and it is the "
+            "module that is short of it."
+        ),
+        note=(
+            "What the residual now measures, stated so it is not read as "
+            "accuracy: the three provisions the module implements sum to "
+            "$510,232M inside this subtotal (global minimum tax $373,919M + "
+            "undertaxed profits rule $136,313M + FDII net $0), so roughly a "
+            "fifth of the target is provisions `international.py` does not "
+            "carry. The superseded -$700B was larger still, so the move is "
+            "toward the document in both senses."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="biden_eitc_childless.v1",
+        policy_id="biden_eitc_childless",
+        official_10yr_billions=178.0,
+        source_name="JCT (2021)",
+        source_date="2021",
+        window="stated as ten-year; not traceable to any published row",
+        entered_commit="unknown (predates the validation manifest)",
+        entered_date="2025-12-08",
+        first_scoring_run_commit="unknown (predates the validation manifest)",
+        superseded_by="biden_eitc_childless.v2",
+        reason=(
+            "Credited to JCT in 2021 with no table behind it, while the "
+            "proposal the benchmark scores is a Treasury one with a printed "
+            "figure 9.5% lower on the repository's own window."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="biden_eitc_childless.v2",
+        policy_id="biden_eitc_childless",
+        official_10yr_billions=162.6,
+        source_name="U.S. Treasury, Office of Tax Analysis",
+        source_document=_GREEN_BOOK_FY2025,
+        source_url=_GREEN_BOOK_FY2025_URL,
+        source_date="2024-03",
+        source_table=_GREEN_BOOK_TABLE,
+        source_row=(
+            "Restore and make permanent the American Rescue Plan expansion of "
+            "the earned income tax credit for workers without qualifying "
+            "children"
+        ),
+        source_page="report p. 242; PDF p. 250",
+        window="FY2025-2034",
+        entered_commit=WAVE4_PROVENANCE_ENTERED_COMMIT,
+        entered_date=WAVE4_PROVENANCE_ENTERED_DATE,
+        first_scoring_run_commit=WAVE4_PROVENANCE_FIRST_SCORED_COMMIT,
+        reason=(
+            "$162,553 million, Treasury's published cost of exactly the "
+            "design the credits module constructs -- the ARP childless "
+            "expansion restored and made permanent, with the age range "
+            "widened and the maximum credit roughly tripled. Footnote /3 on "
+            "the row confirms it includes the outlay effect of the refundable "
+            "portion, which is the leg the module's microsimulation prices."
+        ),
+        note=(
+            "The credits module's per-unit constant reproduces the superseded "
+            "$178B, so this revision converts a bookkeeping 0.0% into a real "
+            "9.5% and nothing is retuned to close it. The held-out reading is "
+            "the one to quote: `run_loo.py` derives this case from CPS ASEC "
+            "tax units and never touches the fitted annual."
+        ),
+    ),
+    # ------------------------------------------------------------------
+    # IRS enforcement — CBO's own revised revenue figure
+    # ------------------------------------------------------------------
+    CalibratedTarget(
+        revision_id="ira_enforcement.v1",
+        policy_id="ira_enforcement",
+        official_10yr_billions=-200.0,
+        source_name="CBO (2022)",
+        source_date="2022",
+        window="stated as FY2025-2034; CBO's figure is FY2022-2031",
+        entered_commit="unknown (predates the validation manifest)",
+        entered_date="2025-12-08",
+        first_scoring_run_commit="unknown (predates the validation manifest)",
+        superseded_by="ira_enforcement.v2",
+        reason=(
+            "The record's own description called it 'the rounded revenue "
+            "side', and it rounds the wrong estimate: -$200B is 11% above "
+            "CBO's current figure and 2% below the one CBO explicitly "
+            "superseded ($203.7B). Carrying a withdrawn estimate is worse "
+            "than carrying a round one."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="ira_enforcement.v2",
+        policy_id="ira_enforcement",
+        official_10yr_billions=-180.4,
+        source_name="Congressional Budget Office",
+        source_document=_CBO_58390,
+        source_url=_CBO_58390_URL,
+        source_date="2022-08",
+        source_table="Letter text",
+        source_row=(
+            "revenues will increase by $180.4 billion over the 2022-2031 "
+            "period"
+        ),
+        source_page="letter p. 1",
+        window="FY2022-2031",
+        entered_commit=WAVE4_PROVENANCE_ENTERED_COMMIT,
+        entered_date=WAVE4_PROVENANCE_ENTERED_DATE,
+        first_scoring_run_commit=WAVE4_PROVENANCE_FIRST_SCORED_COMMIT,
+        reason=(
+            "CBO's own current estimate of the revenue effect of the "
+            "Inflation Reduction Act's IRS enforcement funding, which is the "
+            "quantity this benchmark and the enforcement module both score. "
+            "It explicitly revises CBO's earlier $203.7B."
+        ),
+        note=(
+            "Two mismatches this revision does *not* close, both of them "
+            "model findings rather than target ones. (1) CBO's $180.4B is the "
+            "revenue side; the *net* deficit effect is roughly $101B once the "
+            "$79B appropriation is counted, and this benchmark scores the "
+            "revenue side by construction. (2) CBO says the act provides $79B "
+            "of total IRS funding of which $46B is enforcement, where the "
+            "module assumes $80B of enforcement funding -- so the module "
+            "prices a larger dose than the one CBO scored. The enforcement "
+            "module's ROI multiplier was fitted to the superseded -$200B, so "
+            "this row leaves the fitted tier."
+        ),
+    ),
+    # ------------------------------------------------------------------
+    # EV credits — the two sections the module names, summed from JCT
+    # ------------------------------------------------------------------
+    CalibratedTarget(
+        revision_id="repeal_ev_credits.v1",
+        policy_id="repeal_ev_credits",
+        official_10yr_billions=-200.0,
+        source_name="CBO (July 2025)",
+        source_date="2025-07",
+        window="stated as FY2025-2034",
+        entered_commit="unknown (predates the validation manifest)",
+        entered_date="2025-12-08",
+        first_scoring_run_commit="unknown (predates the validation manifest)",
+        superseded_by="repeal_ev_credits.v2",
+        reason=(
+            "Attributed to CBO; the estimate is JCT's. And -$200B is 9.7% "
+            "above the sum of the two sections the module's own stated scope "
+            "names, which JCT prints as separate rows in the document the "
+            "record already links."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="repeal_ev_credits.v2",
+        policy_id="repeal_ev_credits",
+        official_10yr_billions=-182.3,
+        source_name="Joint Committee on Taxation",
+        source_document=_JCX_35_25,
+        source_url=_JCX_35_25_URL,
+        source_date="2025-07",
+        source_table="Chapter 5, Subchapter A, fiscal years 2025-2034",
+        source_row=(
+            "Termination of clean vehicle credit (sec. 30D) 77,829 + "
+            "Termination of qualified commercial clean vehicles credit "
+            "(sec. 45W) 104,516"
+        ),
+        source_page="p. 3 (PDF p. 5)",
+        window="FY2025-2034",
+        entered_commit=WAVE4_PROVENANCE_ENTERED_COMMIT,
+        entered_date=WAVE4_PROVENANCE_ENTERED_DATE,
+        first_scoring_run_commit=WAVE4_PROVENANCE_FIRST_SCORED_COMMIT,
+        reason=(
+            "$77,829M + $104,516M = $182,345M, the sum of exactly the two "
+            "sections the climate module's stated scope names, from JCT's own "
+            "line items. Both rows are already transcribed in this repository "
+            "in `data_files/validation/pl119_21_jct_line_items.csv`, so the "
+            "target is now the same arithmetic the P.L. 119-21 block reads."
+        ),
+        note=(
+            "The Phase E record transcribed this sum as -$182.4B; the two "
+            "rows add to $182.345B, so the figure is corrected to -$182.3B "
+            "here and the source record is corrected with it. Adding the "
+            "previously-owned clean vehicle credit (sec. 25E, $7.4B) would "
+            "give $189.8B, and the module does not score it. For scale on how "
+            "far this number has travelled, JCX-18-22 scored the same credits "
+            "at $14.2B over FY2022-2031."
+        ),
+    ),
+    # ------------------------------------------------------------------
+    # Enhanced premium tax credits — the figure and its vintage disagreed
+    # ------------------------------------------------------------------
+    CalibratedTarget(
+        revision_id="extend_enhanced_ptc.v1",
+        policy_id="extend_enhanced_ptc",
+        official_10yr_billions=350.0,
+        source_name="CBO (2024)",
+        source_date="2024",
+        window="stated as FY2025-2034; the figure is a FY2026-2035 one",
+        entered_commit="unknown (predates the validation manifest)",
+        entered_date="2025-12-08",
+        first_scoring_run_commit="unknown (predates the validation manifest)",
+        superseded_by="extend_enhanced_ptc.v2",
+        reason=(
+            "The number and its stated vintage disagree by one budget window. "
+            "$350B is CBO/JCT's *September 2025* re-estimate (publication "
+            "61734) over FY2026-2035, reported by CRS R48290 as "
+            "'approximately $350 billion'; CBO's 2024 estimate, which is what "
+            "the record claims and what the repository's FY2025-2034 window "
+            "asks for, is $335B. A target whose window does not match the "
+            "window the record declares is not a target, it is two."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="extend_enhanced_ptc.v2",
+        policy_id="extend_enhanced_ptc",
+        official_10yr_billions=335.0,
+        source_name="Congressional Budget Office / Joint Committee on Taxation",
+        source_document=_CBO_60437,
+        source_url=_CBO_60437_URL,
+        source_date="2024-06",
+        source_table="Letter text (CBO's June 2024 baseline)",
+        source_row=(
+            "CBO and JCT estimate that making the policy permanent would "
+            "increase the budget deficit by $335 billion over the 2025-2034 "
+            "period"
+        ),
+        source_page="letter p. 1",
+        window="FY2025-2034",
+        entered_commit=WAVE4_PROVENANCE_ENTERED_COMMIT,
+        entered_date=WAVE4_PROVENANCE_ENTERED_DATE,
+        first_scoring_run_commit=WAVE4_PROVENANCE_FIRST_SCORED_COMMIT,
+        reason=(
+            "The 2024 CBO/JCT estimate the record names, on the window the "
+            "record declares, of the design the module scores: making "
+            "permanent the ARP premium-tax-credit expansion later extended "
+            "through 2025. The letter decomposes it as a $415B increase in "
+            "the cost of the credit -- $250B of outlays and $164B of forgone "
+            "revenue -- against $80B of offsetting effects."
+        ),
+        note=(
+            "The letter is addressed to Chairman Jodey Arrington and Chairman "
+            "Jason Smith; the Phase E record said Sen. Crapo, and that is "
+            "corrected here. The September 2025 re-estimate (publication "
+            "61734, ~$350B over FY2026-2035) is the superseded figure and "
+            "remains the right target for anyone scoring on a FY2026-2035 "
+            "window; some outlets carried $383B, which is $335B plus $48B of "
+            "debt service. The PTC module's annual is fitted to the "
+            "superseded $350B, so this row leaves the fitted tier and its "
+            "residual becomes a measurement."
+        ),
+    ),
+    # ------------------------------------------------------------------
+    # Tariffs — three targets, three different failures
+    # ------------------------------------------------------------------
+    CalibratedTarget(
+        revision_id="trump_universal_10.v1",
+        policy_id="trump_universal_10",
+        official_10yr_billions=-2_000.0,
+        source_name="Tax Foundation / Yale Budget Lab",
+        source_date="2024",
+        window="stated as FY2025-2034",
+        entered_commit="unknown (predates the validation manifest)",
+        entered_date="2025-12-08",
+        first_scoring_run_commit="unknown (predates the validation manifest)",
+        superseded_by="trump_universal_10.v2",
+        reason=(
+            "The conventional figure rounded down, carried with a second "
+            "attribution that scores nothing: Yale publishes no standalone "
+            "ten-year figure for a 10% universal tariff. Rounding $2,171.1B "
+            "to '$2T' also puts the target 7.9% from the only published "
+            "estimate of this policy, and close enough to Tax Foundation's "
+            "*dynamic* $1,721B to be misread as one."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="trump_universal_10.v2",
+        policy_id="trump_universal_10",
+        official_10yr_billions=-2_171.1,
+        source_name="Tax Foundation",
+        source_document=_TF_FF861,
+        source_url=_TF_FF861_URL,
+        source_date="2025-04",
+        source_table="Table 3, 'Conventional Revenue Estimates, in Billions'",
+        source_row="10 Percent Universal Tariff, column 2025-2034",
+        source_page="report p. 4",
+        window="2025-2034",
+        entered_commit=WAVE4_PROVENANCE_ENTERED_COMMIT,
+        entered_date=WAVE4_PROVENANCE_ENTERED_DATE,
+        first_scoring_run_commit=WAVE4_PROVENANCE_FIRST_SCORED_COMMIT,
+        reason=(
+            "The published conventional estimate of exactly this policy, on "
+            "the repository's window, from the table's own row. Conventional "
+            "is the right tier: Tax Foundation's conventional tariff scores "
+            "already net the income-and-payroll offset (averaging 26.2% in "
+            "FF861), which is the offset lane L8 built into `trade.py`, so "
+            "the two now measure the same object."
+        ),
+        note=(
+            "Tax Foundation's other two tiers for the same policy, recorded "
+            "so the conventional figure cannot be mistaken for a choice among "
+            "them: $1,720.8B dynamic and $1,442.5B dynamic with tit-for-tat "
+            "retaliation (Table 5, report p. 8). FF861's method, for anyone "
+            "checking the comparison: import elasticity -0.997, 8% "
+            "noncompliance, and revenue computed on the tax-inclusive rate "
+            "t/(1+t). Lane L8 already de-fitted this row -- "
+            "`universal_coverage_rate` became a Census measurement -- so no "
+            "constant is fitted to either the superseded figure or this one."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="auto_tariff_25.v1",
+        policy_id="auto_tariff_25",
+        official_10yr_billions=-100.0,
+        source_name="Committee for a Responsible Federal Budget (2024)",
+        source_date="2024",
+        window="stated as FY2025-2034",
+        entered_commit="unknown (predates the validation manifest)",
+        entered_date="2025-12-08",
+        first_scoring_run_commit="unknown (predates the validation manifest)",
+        superseded_by="auto_tariff_25.v2",
+        reason=(
+            "Not a scorekeeper estimate at all, and not a ten-year one. CRFB, "
+            "the stated source, itemises no auto tariff in any of its "
+            "tariff-revenue posts. The figure traces instead to a White House "
+            "claim -- Peter Navarro, 30 March 2025, 'We're going to raise "
+            "about $100 billion with the auto tariffs alone' -- which was "
+            "stated *per year*, inside the '$6 to $7 trillion over the "
+            "10-year period' that FactCheck.org and the Washington Post Fact "
+            "Checker both ran down as unsupported. So this is the same "
+            "failure mode as `extend_tcja_amt`: a short-window figure sitting "
+            "in a ten-year column, here by a factor of ten."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="auto_tariff_25.v2",
+        policy_id="auto_tariff_25",
+        official_10yr_billions=-386.2,
+        source_name="Tax Foundation",
+        source_document=_TF_TRACKER,
+        source_url=_TF_TRACKER_URL,
+        source_date="2026-08",
+        source_table="Table 5, 'Detailed Tariff Revenue Estimates'",
+        source_row=(
+            "Section 232 Autos, Heavy Trucks, Buses, and Parts, conventional "
+            "revenue column"
+        ),
+        source_page="Table 5 (2026-2035 column)",
+        window="2026-2035",
+        entered_commit=WAVE4_PROVENANCE_ENTERED_COMMIT,
+        entered_date=WAVE4_PROVENANCE_ENTERED_DATE,
+        first_scoring_run_commit=WAVE4_PROVENANCE_FIRST_SCORED_COMMIT,
+        reason=(
+            "The only ten-year conventional estimate printed as a table row "
+            "for the design this preset describes -- '25% tariff on imported "
+            "vehicles and parts'. Same publisher, same model family and same "
+            "revenue tier as `trump_universal_10`'s FF861 row, so the two "
+            "trade benchmarks are now scored against one methodology instead "
+            "of against a talking point and a table."
+        ),
+        note=(
+            "A point rather than a range, and the reason is that the second "
+            "published figure is not a second estimate of the same thing. "
+            "Yale Budget Lab (28 March 2025) put 25% auto tariffs at "
+            "'$600-650 billion over 2026-35', but that scores the tariff *as "
+            "announced*, before the trade-deal carve-outs and US-content "
+            "exceptions that the Tax Foundation tracker's as-in-force row "
+            "reflects. A range across the two would assert a bracket neither "
+            "publisher supports. The design gaps that remain are stated "
+            "rather than adjusted: the transcribed row bundles heavy trucks "
+            "and buses (at 10%, not 25%) and auto parts with passenger "
+            "vehicles, and neither publisher applies the 65% USMCA carve-out "
+            "`trade.py` models -- they model US-content exceptions instead. "
+            "The source is a living tracker, so the revision it was read at "
+            "is part of the citation."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="reciprocal_tariffs.v1",
+        policy_id="reciprocal_tariffs",
+        official_10yr_billions=-1_200.0,
+        source_name="Yale Budget Lab / Tax Foundation (2024)",
+        source_date="2024",
+        window="stated as FY2025-2034",
+        entered_commit="unknown (predates the validation manifest)",
+        entered_date="2025-12-08",
+        first_scoring_run_commit="unknown (predates the validation manifest)",
+        superseded_by="reciprocal_tariffs.v2",
+        reason=(
+            "A tier error, not a magnitude error. -$1,200B is exactly Tax "
+            "Foundation's *dynamic* score of the reciprocal tariffs, sitting "
+            "in a scorecard whose every other target is conventional -- and "
+            "below all three published conventional estimates of the same "
+            "policy. Superseded by a range rather than by another point "
+            "because the three modellers who scored it disagree by 29% and "
+            "none of their figures is more authoritative than the others."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="reciprocal_tariffs.v2",
+        policy_id="reciprocal_tariffs",
+        official_10yr_billions=None,
+        published_low_10yr_billions=-1_800.0,
+        published_high_10yr_billions=-1_400.0,
+        source_name="Committee for a Responsible Federal Budget",
+        source_document=_CRFB_TARIFFS,
+        source_url=_CRFB_TARIFFS_URL,
+        source_date="2025-04",
+        source_table=(
+            "'Ten-Year Scores of Trump's Tariffs, If Made Permanent', "
+            "fiscal years 2025-2034"
+        ),
+        source_row=(
+            "Reciprocal Tariffs: conventional $1.8 trillion (CRFB), $1.5 "
+            "trillion (Tax Foundation), $1.4 trillion (Yale Budget Lab); "
+            "dynamic $1.6 / $1.2 / $1.0 trillion"
+        ),
+        source_page="the post's only table",
+        window="FY2025-2034",
+        entered_commit=WAVE4_PROVENANCE_ENTERED_COMMIT,
+        entered_date=WAVE4_PROVENANCE_ENTERED_DATE,
+        first_scoring_run_commit=WAVE4_PROVENANCE_FIRST_SCORED_COMMIT,
+        reason=(
+            "Three organisations scored the same announced schedule on the "
+            "same fiscal window and published conventional figures spanning "
+            "$1.4T to $1.8T. That spread is the honest target: it is "
+            "disagreement between models about one policy, which is exactly "
+            "what a range row asserts and a point cannot. The carried figure "
+            "moves to the middle of the three -- Tax Foundation's $1.5T "
+            "conventional -- because Tax Foundation is the publisher the "
+            "repository's other two tariff benchmarks are scored against, so "
+            "the anchor is a published figure from the transcribed table "
+            "rather than an invented midpoint."
+        ),
+        note=(
+            "Design caveat that the range does not close: the published "
+            "estimates score the April 2025 schedule -- a 10% floor rising to "
+            "50%, set by halving each partner's bilateral-deficit-to-imports "
+            "ratio, and exempting steel, aluminium, autos and auto parts, "
+            "copper, pharmaceuticals, semiconductors and lumber -- while "
+            "`trade.py` applies a flat ~20pp to a `reciprocal_coverage_rate` "
+            "of 0.50. The exemptions make 'about half of goods imports' a "
+            "fair characterisation of the base, but the flat rate is the "
+            "module's assumption and no publisher scores it. An internal "
+            "cross-check on the scale: FF861 puts a 20% tariff on *all* "
+            "imports at $3,399.7B conventional, so ~20pp on half of imports "
+            "lands near $1,700B, inside this range and well above the "
+            "superseded point. Separately, the tariffs these figures score "
+            "were struck down by the Supreme Court in February 2026; the "
+            "benchmark scores the policy, not its legal survival."
+        ),
+    ),
 )
 
 
@@ -469,6 +1313,99 @@ EXAMINED_NOT_REVISED: dict[str, str] = {
         "score of an exemption-and-rate change alone; none exists. Recorded "
         "in `benchmark_sources.py` as `line_item_differs`, which is where a "
         "disagreement lives when it is not moved."
+    ),
+    "ctc_extension": (
+        "Two published figures score a child-credit extension and neither is "
+        "a replacement for this benchmark's $600B. (1) CRS R48286 Table 1, "
+        "transcribing CBO's May 2024 pub. 60114/60271, prints $735.3B over "
+        "FY2025-2034 for 'Increase and Modification of Child and Dependent "
+        "Credit' -- but CRS states the figure 'include[s] the budgetary "
+        "impact of the Credit for other dependents', which `credits.py` does "
+        "not score, so it is a superset. (2) JCT's JCX-35-25 scores "
+        "P.L. 119-21's child credit at +$816.846B over the same window -- a "
+        "$2,200 indexed credit against this benchmark's $2,000 flat one, and "
+        "already carried in this repository as the `pl119_21_child_tax_credit` "
+        "benchmark. Adopting it here would score one JCT row as two "
+        "benchmarks and count one document twice. Both published figures sit "
+        "*above* the module's design rather than bracketing it, so a range "
+        "row would assert a containment neither publisher supports. Reported "
+        "both ways for the record (2026-09-02): the fitted $600.0B is 0.00% "
+        "against $600B, -18.4% against CRS and -26.5% against JCT; the "
+        "held-out structural path's $714.2B is +19.0%, -2.9% and -12.6%. The "
+        "structural path is twice as close to JCT's row as the fitted "
+        "constant while scoring worse against the carried target, which is "
+        "the finding -- and it is only visible because the two disagree. What "
+        "would move this target is a published score of a $2,000 flat "
+        "extension without the other-dependents credit; none exists."
+    ),
+    "double_enforcement": (
+        "Treasury's American Families Plan Tax Compliance Agenda (report "
+        "p. 18) says '$320 billion', 6% from the carried -$340B, so the gap "
+        "alone would argue for moving it. The dose does not. That $320B is "
+        "the yield on an **$80 billion** increase in the IRS budget, scored "
+        "in 2021 on a **pre-IRA** baseline. This preset's own description is "
+        "'Double IRS enforcement beyond IRA levels (~$16B/year)', i.e. about "
+        "$160B of additional funding stacked *on top of* the IRA's $80B -- "
+        "twice the dose, on a baseline that already contains the dose "
+        "Treasury scored. Adopting $320B would convert a bookkeeping number "
+        "into a 6% agreement that measures nothing, because the two figures "
+        "are not estimates of the same reform. Treasury's $700B headline is "
+        "the full package including bank information reporting ($460B of "
+        "it), which the module does not implement at all, so it is not a "
+        "candidate either. Recorded in `benchmark_sources.py` as "
+        "`line_item_differs`, which is where a disagreement lives when it is "
+        "not moved."
+    ),
+    "steel_tariff_25": (
+        "Searched again on 2026-09-02 and the answer is still that nobody "
+        "scored this. A 25% Section 232 rate on steel and aluminium was in "
+        "force only from 12 March 2025 to 3 June 2025, when it doubled to "
+        "50%, and no scorekeeper published a ten-year estimate for the "
+        "ten-week regime. The nearest published figures score different "
+        "policies: Tax Foundation's tariff tracker Table 5 gives 'Section 232 "
+        "Steel, Aluminum, and Copper' at $341.4B conventional / $235.9B "
+        "dynamic over 2026-2035, but at **50%**, with copper folded in and "
+        "derivatives included; CRFB's two steel/aluminium posts score "
+        "*derivative-rule* changes (+$70B through FY2036 in April 2026, "
+        "revised to -$90B once the proclamation landed), not a base tariff; "
+        "and CRS IN12519, the one congressional product on the tariff, "
+        "carries no revenue estimate at all -- its full text was extracted to "
+        "confirm that. On the derivatives question the sourcing pass asked: "
+        "every published figure includes them and none separates with from "
+        "without, so the distinction cannot be sourced either. The carried "
+        "-$60B is therefore left in place and left unsourced rather than "
+        "replaced by a 50%-plus-copper figure, and it is not retired, because "
+        "retiring a case to avoid reporting an unsourced target is the "
+        "failure mode this ledger exists to prevent. `searched` on the "
+        "`benchmark_sources` row carries the full negative result."
+    ),
+    "eliminate_mortgage": (
+        "Searched again on 2026-09-02, and no official repeal score exists. "
+        "CBO has published no budget option repealing the mortgage interest "
+        "deduction since TCJA; JCT publishes the *tax expenditure* rather "
+        "than a repeal estimate (JCX-48-24 Table 1, $382.2B over FY2024-2028; "
+        "JCX-45-25 Table 1, $261.1B over FY2025-2029), and a tax expenditure "
+        "is not a repeal score because it omits the behavioural and "
+        "itemisation response. The only located ten-year repeal figure "
+        "remains CRS In Focus IF13190 (23 March 2026) Table 2, 'Repeal MID "
+        "$495' over FY2026-2035, which CRS itself labels an estimate from the "
+        "Yale Budget Lab Tax-Simulator and 'not considered official for "
+        "revenue scoring purposes'; Yale's own June 2025 options paper puts "
+        "full repeal against current law at 'close to $1.2 trillion', a "
+        "figure that differs from CRS's by 2.4x on the same simulator, which "
+        "is itself the argument against adopting either. The carried -$300B "
+        "matches none of them and stays where it is. Two things a reader "
+        "should know, both handed off rather than acted on because they are "
+        "modelling changes: the record's `annual_cost = 25.0` is a "
+        "pre-P.L.119-21 level -- JCT's JCX-45-25 puts the capped expenditure "
+        "at $45.5B in FY2025 rising to $54.9B in FY2029, because raising the "
+        "SALT cap to $40,000 took itemising claimants from 11.8M to 17.8M "
+        "returns -- and Treasury's FY2027 edition gives $23.9B falling to "
+        "$14.1B on the *same* statute, a 2-4x disagreement driven by "
+        "Treasury's comprehensive-income baseline against JCT's normal-tax "
+        "one. Whichever is adopted is an owner decision with a visible "
+        "consequence for `eliminate_mortgage`, and a provenance lane may not "
+        "make it."
     ),
 }
 
@@ -718,6 +1655,9 @@ __all__ = [
     "WAVE3_PROVENANCE_ENTERED_COMMIT",
     "WAVE3_PROVENANCE_ENTERED_DATE",
     "WAVE3_PROVENANCE_FIRST_SCORED_COMMIT",
+    "WAVE4_PROVENANCE_ENTERED_COMMIT",
+    "WAVE4_PROVENANCE_ENTERED_DATE",
+    "WAVE4_PROVENANCE_FIRST_SCORED_COMMIT",
     "CalibratedTarget",
     "assert_target_revisions",
     "live_target_for",

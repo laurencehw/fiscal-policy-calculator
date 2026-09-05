@@ -530,7 +530,7 @@ _QUICK_START_CARDS: tuple[dict[str, Any], ...] = (
         "preset": {
             "sidebar_analysis_mode": "📋 Tax proposal (preset)",
             "sidebar_policy_area": "Trade / Tariffs",
-            "sidebar_preset_choice": "Trump Universal 10% Tariff (-$2T)",
+            "sidebar_preset_choice": "Trump Universal 10% Tariff (-$2.17T)",
         },
     },
     {

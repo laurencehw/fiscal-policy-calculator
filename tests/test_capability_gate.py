@@ -34,6 +34,11 @@ from fiscal_model.scoring import FiscalPolicyScorer
 CORPORATE_28_OFFICIAL = -1347.0
 # CBO, Options for Reducing the Deficit: 2025-2034, option 64: 21% -> 22%.
 CORPORATE_22_OFFICIAL = -135.7
+# Treasury FY2025 Green Book, "Increase the top marginal income tax rate for
+# high-income earners" (report p. 242). The Wave 4 provenance lane moved this
+# anchor from a rounded -$252.0B to the row Treasury actually prints,
+# $245,924M; see ``validation/preregistered.py`` (biden_high_income_tax.v2).
+BIDEN_TOP_RATE_OFFICIAL = -245.9
 # +4pp is bracketed by the two, so the gate interpolates rather than scaling.
 CORPORATE_25_ANCHORED = CORPORATE_22_OFFICIAL + (
     CORPORATE_28_OFFICIAL - CORPORATE_22_OFFICIAL
@@ -124,7 +129,7 @@ class TestGatePayload:
             calibrated=False,
         )
         assert gate["estimate_basis"] == "official_benchmark_interpolation"
-        assert gate["headline_estimate_billions"] == pytest.approx(-252.0, abs=1.0)
+        assert gate["headline_estimate_billions"] == pytest.approx(BIDEN_TOP_RATE_OFFICIAL, abs=1.0)
         assert gate["uncalibrated_model_estimate_billions"] == -409.0
         assert gate["official_benchmark_anchors"]
         assert "uncalibrated model estimate" in gate["capability_note"]
@@ -238,7 +243,7 @@ class TestToolOutputShape:
             },
         )
         assert result["estimate_basis"] == "official_benchmark_interpolation"
-        assert result["headline_estimate_billions"] == pytest.approx(-252.0, abs=1.0)
+        assert result["headline_estimate_billions"] == pytest.approx(BIDEN_TOP_RATE_OFFICIAL, abs=1.0)
         # The raw engine run is reported, but explicitly as uncalibrated.
         assert "uncalibrated_model_estimate_billions" in result
         assert result["raw_engine_estimate_billions"] != (

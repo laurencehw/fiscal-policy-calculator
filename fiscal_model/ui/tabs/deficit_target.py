@@ -103,7 +103,7 @@ _SCORE_ONLY_ENTRIES: dict[str, dict[str, str]] = {
         "build_id": "mortgage-deduction-eliminate",
         "area": "Tax Expenditures",
     },
-    "📋 Eliminate SALT Deduction (-$1.2T)": {
+    "📋 Eliminate SALT Deduction (-$1.62T)": {
         "build_id": "salt-deduction-eliminate",
         "area": "Tax Expenditures",
     },
