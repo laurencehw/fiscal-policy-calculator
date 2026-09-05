@@ -354,6 +354,18 @@ class FiscalPolicyScorer:
                     year=year,
                 )
                 growth_rate = policy.get_expenditure_data().get("growth_rate", 0.03)
+            elif isinstance(policy, PayrollTaxPolicy) and policy.uses_covered_earnings_base():
+                # A new flat tax on covered earnings is priced off CBO's own
+                # baseline wage path, which already grows, and its first year
+                # carries the share of the fiscal year the stated effective
+                # month covers. So the year is asked for and the module-default
+                # 4%/yr is switched off rather than compounded on top.
+                static_annual = policy.estimate_static_revenue_effect(
+                    base_rev,
+                    use_real_data=self.use_real_data,
+                    year=year,
+                )
+                growth_rate = 0.0
             else:
                 static_annual = policy.estimate_static_revenue_effect(
                     base_rev,

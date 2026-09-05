@@ -215,9 +215,15 @@ RUNNABLE_OPTIONS: tuple[RunnableOption, ...] = (
     # -- Payroll ------------------------------------------------------------
     RunnableOption(
         61, "61.1", "cbo_opt61_new_payroll_tax_1pct", "payroll_rate",
-        "A new flat tax on all earnings shares the Medicare base (all covered "
-        "earnings, no taxable maximum), so it is scored as a Medicare-base rate "
-        "change; the module constant is the $400B/2.9% revenue identity.",
+        "A new flat tax on all earnings, on the base CBO names for it: 'the "
+        "income subject to the tax would match that of the Medicare payroll "
+        "tax, so there would be no taxable maximum'. The base is CBO's own "
+        "February 2024 wage path times one covered-earnings ratio measured on "
+        "completed history - not the $400B/2.9% receipts identity, which "
+        "divided the 0.9% Additional Medicare Tax's receipts by the 2.9% rate. "
+        "Statutory incidence and effective date are the source's: 'The new tax "
+        "would be paid entirely by employees' and 'This option would take "
+        "effect in January 2025'.",
     ),
     RunnableOption(
         61, "61.2", "cbo_opt61_new_payroll_tax_2pct", "payroll_rate",
