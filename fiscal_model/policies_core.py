@@ -435,6 +435,18 @@ class CapitalGainsPolicy(TaxPolicy):
     margin: realized long-term gains, not qualified dividends or capital gain
     distributions, which a taxpayer cannot choose when to receive.
 
+    **The base is a dated flow and is projected across the window.**  SOI
+    reports realizations for a tax year; a ten-year score prices ten later
+    years.  Realizations are a flow off the accrued-gains stock at the observed
+    hazard - ``R = h * A`` - so the flow grows at the same rate the stock
+    already grows at (:meth:`realizations_projection_factor`), and holding it
+    flat instead would assert a hazard falling 5.8 percent a year.  No new
+    constant enters: both ``h`` and the growth rate are already read from
+    ``accrued_gains_parameters.csv``.  The projection applies only to the
+    SOI-populated base, whose tax year is known; a caller who supplies
+    ``baseline_realizations_billions`` supplies an aggregate whose vintage this
+    class has no field for, so that base is used exactly as given.
+
     **Lock-in** is not a multiplier.  A share ``omega = m/(h+m)`` of the accrued
     gains stock leaves it at death rather than by sale, where ``h`` is the
     observed realization hazard and ``m`` the mortality-weighted exit rate.
@@ -550,6 +562,11 @@ class CapitalGainsPolicy(TaxPolicy):
                 "charitable_bequest_price_elasticity must be >= 0 (it is a "
                 f"magnitude), got {self.charitable_bequest_price_elasticity}"
             )
+        # Whether the caller supplied the base themselves.  ``get_brackets``
+        # overwrites the field once it auto-populates, so the question cannot
+        # be asked afterwards - and it decides whether the base carries a known
+        # tax year and can therefore be projected.
+        self._supplied_realizations = float(self.baseline_realizations_billions) > 0
         self._bracket_cache = None
         self._baseline_cache = None
 
@@ -636,6 +653,25 @@ class CapitalGainsPolicy(TaxPolicy):
     # ------------------------------------------------------------------
     # Behaviour
     # ------------------------------------------------------------------
+
+    def realizations_projection_factor(self, year: int | None) -> float:
+        """Growth of the realizations base from its SOI tax year to ``year``.
+
+        ``1.0`` when the year is not known, when the caller supplied the base,
+        or when the accrued-gains parameters are unavailable, so the module
+        degrades to the flat flow it used before rather than failing.
+        """
+        if year is None or self._supplied_realizations:
+            return 1.0
+        try:
+            source = self._baseline_source()
+            tax_year = source._resolve_year(self._data_year(source))
+            return source.realizations_projection_factor(tax_year, int(year))
+        except Exception as exc:  # pragma: no cover - data-availability guard
+            logger.warning(
+                "realizations_projection_factor: data unavailable (%s)", exc
+            )
+            return 1.0
 
     def lock_in_wedge(self) -> float:
         """Ratio of the realization price with step-up to the price without.
@@ -760,10 +796,18 @@ class CapitalGainsPolicy(TaxPolicy):
         self,
         baseline_revenue: float,
         use_real_data: bool = True,
+        year: int | None = None,
     ) -> float:
-        """Static effect holding realizations fixed, summed over brackets."""
+        """Static effect holding realizations fixed, summed over brackets.
+
+        ``year`` is the year being scored, which the base is projected to; the
+        engine passes it for a capital-gains policy and nothing else.  Omitted,
+        the base stays at its SOI level, which is what a caller asking for the
+        data-year identity wants.
+        """
         _ = baseline_revenue
         brackets = self.get_brackets(use_real_data=use_real_data)
+        factor = self.realizations_projection_factor(year)
         total = 0.0
         for bracket in brackets:
             tau0 = bracket.effective_rate
@@ -772,7 +816,7 @@ class CapitalGainsPolicy(TaxPolicy):
                 raise ValueError(
                     "Capital gains rates must be in [0, 1) for CapitalGainsPolicy"
                 )
-            total += (tau1 - tau0) * bracket.realizations_billions
+            total += (tau1 - tau0) * bracket.realizations_billions * factor
         return total
 
     def estimate_behavioral_offset(
@@ -793,6 +837,11 @@ class CapitalGainsPolicy(TaxPolicy):
         _ = static_effect
         brackets = self.get_brackets(use_real_data=use_real_data)
         stock = self.stock_ratio(years_since_start, use_real_data=use_real_data)
+        # The same projection the static leg applies, so the two stay a
+        # decomposition of the score rather than one absorbing the other.
+        factor = self.realizations_projection_factor(
+            int(self.start_year) + int(years_since_start)
+        )
 
         delta_static = 0.0
         delta_total = 0.0
@@ -803,7 +852,7 @@ class CapitalGainsPolicy(TaxPolicy):
                 raise ValueError(
                     "Capital gains rates must be in [0, 1) for CapitalGainsPolicy"
                 )
-            r0 = bracket.realizations_billions
+            r0 = bracket.realizations_billions * factor
             r1 = r0 * self._realizations_ratio(bracket, years_since_start) * stock
             delta_static += (tau1 - tau0) * r0
             delta_total += tau1 * r1 - tau0 * r0
