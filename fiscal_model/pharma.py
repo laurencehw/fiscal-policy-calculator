@@ -964,7 +964,14 @@ def create_insulin_cap_all() -> DrugPricingPolicy:
     """$35 insulin cap for all Americans."""
     return DrugPricingPolicy(
         name="Universal Insulin Cap ($35)",
-        description="\\$35/month insulin cap for Medicare and private insurance. Estimated: -\\$15B/10yr.",
+        description=(
+            "\\$35/month insulin cap for Medicare and private insurance. A "
+            "cost-sharing cap shifts a patient's liability onto the plan and "
+            "onto the federal subsidy for it, so CBO scores it as ADDING to "
+            "the deficit: +\\$11.4B/10yr (pub. 57957, FY2022-2031). The "
+            "-\\$15B this line used to quote was superseded by "
+            "universal_insulin_cap.v2 and points the wrong way."
+        ),
         policy_type=PolicyType.MANDATORY_SPENDING,
         reform_type=DrugPricingReformType.INSULIN_CAP,
         insulin_cap_monthly=35.0,
