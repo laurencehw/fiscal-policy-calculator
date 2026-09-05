@@ -56,9 +56,22 @@ GDP** — comparable to the entire defense budget.
 
 ## Policy levers commonly modeled
 
-- **Drug price negotiation (IRA expansion)** — CBO scored the 2022
-  IRA negotiations at roughly **\$160 billion** in Medicare savings
-  over 10 years. Broader negotiation could roughly double this.
+- **Drug price negotiation (IRA expansion)** — separate CBO's three
+  figures, which are routinely conflated. The **negotiation program
+  alone** is about **\$98.5 billion** over FY2022–2031 (HHS, quoting
+  CBO, put it at "about \$100 billion over 10 years, and a \$3.7
+  billion savings in the first year"); the **inflation rebates** add
+  about **\$63.2 billion**; the IRA's **entire drug-pricing title** is
+  about **\$237 billion**. A "\$160B for negotiation" figure is the
+  first two added together.
+  Broader negotiation does **not** scale linearly. CMS selects in
+  descending order of Medicare spending and has published all three
+  cycles: 10 drugs at \$56.2B of gross Part D spending, the next 15 at
+  \$41B, the next 15 at \$27B — \$5.62B, \$2.73B and \$1.80B per
+  molecule. The set is also already cumulative under current law (10
+  for 2026, +15, +15, then up to 20 a year), reaching 160 molecules by
+  2034, so an expansion is measured against that and adds the tail of
+  a steep curve.
 - **Medicare eligibility age** raised to 67 (matching Social
   Security) — saves roughly **\$70–100 billion** over 10 years per CBO,
   but shifts costs to other payers and is regressive.
@@ -73,7 +86,14 @@ GDP** — comparable to the entire defense budget.
 - The app's `MedicareReformPolicy` (in fiscal_model/) handles
   eligibility-age and premium changes.
 - For Medicare price-negotiation scoring, see the app's `pharma.py`
-  module — calibrated to CBO IRA estimates.
+  module. Nothing in it is calibrated to a validation target: the
+  negotiated set comes from the IRA's own selection schedule, the
+  spending ladder from CMS's three published cycles, the saving rate
+  from CMS's own \$6B-on-\$56.2B first-cycle figure, and the federal
+  share from MedPAC's Part D channels re-weighted to the 2025 benefit
+  redesign. Its drug-pricing presets are **unfitted reconstructions**
+  scored against targets no constant reproduces — report their errors
+  as findings, never as accuracy.
 - Generational distribution of Medicare reforms is computable via
   the OLG model (`fiscal_model/models/olg/`).
 
