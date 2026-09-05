@@ -325,4 +325,205 @@ Anything that moves outside these lists is a finding and goes in §5.
 
 ## 5. Outturn
 
-*Appended after the code.*
+*Appended 2026-09-05, after the code. Numbers from
+`python scripts/cold_holdout.py --json`, `python scripts/run_loo.py
+--donor-matrix`, `python scripts/run_validation_dashboard.py` and
+`validate_all_corporate(mode=...)` on the finished branch.*
+
+### Against the pre-registration
+
+| Row | Predicted | Actual | |
+|---|---|---|---|
+| `cbo_opt64_corporate_rate_1pp` | −220.3, 62.3% | **−220.3, 62.3%** | as registered |
+| Tier 1 mean / median | 18.6% / 12.6% | **18.6% / 12.6%** | as registered |
+| Tier 1 within 15 / 25 | 14 / 21 | **14 / 21** | as registered |
+| `biden_corporate_28` reported | unchanged | **−1,397.21, 3.73%** | as registered |
+| `trump_corporate_15` reported | unchanged | **+1,917.98, 0.11%** | as registered |
+| `biden_corporate_28` derived | −1,452.1, 7.81% | **−1,452.14, 7.81%** | as registered |
+| `trump_corporate_15` derived | +1,698.6, 11.53% | **+1,698.57, 11.53%** | as registered |
+| Decision 1 means | 1.92% vs 9.67% | **1.92% vs 9.67%** | as registered |
+| `CORPORATE_APP_MODE` | stays `reported` | **stays `reported`** | as registered |
+| Fitted calibrated tier | 23 @ 1.6% | **23 @ 1.6%**, no row moved | as registered |
+| Unfitted reconstructions | 31 @ 56.6% | **31 @ 56.6%**, no row moved | as registered |
+| Leave-one-out | 18 @ 29.6% | **byte-identical output** | as registered |
+| Shipped presets | unchanged | **unchanged** | as registered |
+| Decision 6 caption | none owed | **none owed** | as registered |
+| CI gate | passes | **exit 0** | as registered |
+
+**Every registered row landed, to the decimal, including the regression.** The
+hand arithmetic in §4 was computed on a spreadsheet before the module was
+opened and the engine reproduced all seven of its figures exactly. The whole
+`run_validation_dashboard.py` output differs from the branch point by **one
+line** — the Tier 1 mean.
+
+The dashboard still exits 1, before and after and identically: `runtime`
+degraded (Python 3.14.0 against a supported range of `>=3.10,<3.14`) and
+`microdata` warn (SOI 2023 coverage 119% returns / 81% AGI). Neither component
+touches this module; the failure was verified against a stashed tree on the
+branch point.
+
+The CI thresholds needed no change and the workflow's own rule says why:
+`ceil(18.6 × 1.25)` rounded up to the nearest 5 is still **25**, and
+`21 − 1` is still **20**. A modelling lane may not edit them either way; this
+is only the note that the rule re-derives to what is already there.
+
+### Reported vs derived, per benchmark — the Decision 1 table
+
+`validate_all_corporate(mode=...)` against the live targets:
+
+| Benchmark | Target | Reported | Err | Derived | Err |
+|---|--:|--:|--:|--:|--:|
+| `biden_corporate_28` | −$1,347.0B | −$1,397.21B | −3.73% | −$1,452.14B | −7.81% |
+| `trump_corporate_15` | +$1,920.0B | +$1,917.98B | −0.11% | +$1,698.57B | −11.53% |
+| **Mean abs** | | | **1.92%** | | **9.67%** |
+
+`CORPORATE_APP_MODE` stays `reported`. Read it the way
+`PROVENANCE_amt_insulin.md` §2 says to: the second row's target is provenance
+`model_estimate` — it is this model's own output written down as an expectation
+— so its 0.11% is bookkeeping and derived loses it by construction. Unlike the
+AMT case there is no consolation row: on the one corporate benchmark with a
+document behind it, reported wins as well, 3.73% to 7.81%. That is an honest
+loss for the structural path.
+
+### What the lane actually bought
+
+**1. A per-point yield that depends on the point.** Reported returns the same
+dollars per percentage point at every step; derived does not:
+
+| Step | Reported per pp | Derived per pp |
+|---|--:|--:|
+| +1pp | 199.60 | **220.28** |
+| +2pp | 199.60 | 218.14 |
+| +5pp | 199.60 | 211.73 |
+| +7pp | 199.60 | 207.45 |
+| +14pp | 199.03 | **191.91** |
+
+Reported's one wobble at 14pp is not curvature in the rate identity: it is the
+pass-through branch firing when the corporate rate clears the 29.6% effective
+pass-through rate, the module's only other non-linearity and one that has
+nothing to do with the base.
+
+**2. A base with an identity behind it instead of a comment.** The channel
+decomposition on `cbo_opt64`, each step applied to the one before:
+
+| | 10yr |
+|---|--:|
+| SOI statutory base, aged and grown, nothing else | −388.83 |
+| × credit realization (0.7085) | −275.50 |
+| × profit shifting (1 − 0.8 × 0.22) | −227.01 |
+| × IRC §6655 settlement | **−220.28** |
+| *reported, for comparison* | *−199.60* |
+| *CBO 60557 Option 64* | *−135.70* |
+
+Credits and behaviour together take 42% off the mechanical figure. They are
+not enough, and the reason is the row above them.
+
+**3. The residual, located.** Re-running the derived identity with every input
+fixed except the SOI anchor year:
+
+| Anchor | Base | Realization | Derived | Err |
+|---|--:|--:|--:|--:|
+| TY2019 | 1,733.3 | 0.6714 | −141.35 | **4.2%** |
+| TY2020 | 1,780.3 | 0.7024 | −146.06 | **7.6%** |
+| TY2021 | 2,422.1 | 0.7023 | −191.04 | 40.8% |
+| TY2022 (shipped) | 2,879.1 | 0.7085 | −220.28 | **62.3%** |
+
+**CBO's Option 64 prices a percentage point of corporate rate at the
+*pre-pandemic* base.** Its published path peaks at $15.7B in FY2034; SOI's
+TY2022 base already yields $20.4B per point *before* any behavioural response.
+That is not a modelling residual it is in this module's power to close, and it
+is the single most useful number this lane produced. Note also what it means
+for the discipline: anchoring on TY2019 would have scored the row at 4.2%, and
+the only reason this branch does not is that §4 fixed the anchor as "latest
+published" before the code was written.
+
+### Findings
+
+1. **The two targets disagree by 42% per percentage point, and the module was
+   quietly split between them.** CBO 60557 Option 64 is $135.7B per point over
+   FY2025-2034; Treasury's FY2025 Green Book row is $192.8B per point over the
+   same window; the module returned $199.6B per point at every step. The
+   direction is the part that cannot be modelled away — the *larger* rate
+   change carries the *larger* per-point yield, which no concave-in-rate
+   behavioural response produces. The 3.7% and the 47.1% were never two
+   different accuracies; they were one number meeting two documents.
+2. **The offsetting error the lane was sent to find is real, and it is two
+   errors.** The fitted base is 34% below SOI's published statutory base, and
+   the fitted offset (a flat 12.5%) is well below what the published
+   semi-elasticity implies at a 7pp step (22.4%). A base that is too small and
+   an offset that is too small pull in opposite directions and very nearly
+   cancel at 7pp — reported −1,397 against derived −1,452, both within 8% of
+   Treasury's −1,347 — while at 1pp they do not, because the offset term is
+   almost inert there. Correcting *one* of them alone would have looked like a
+   regression on both rows; correcting both leaves the 7pp row where it was and
+   moves the 1pp row further out, which is what the documents say should
+   happen.
+3. **$1,900B is not a wrong concept, it is a stale vintage.** SOI's income
+   subject to tax was **$1,956.7B in TY2018** and is **$2,879.1B in TY2022**.
+   The fitted constant is within 3% of the TY2018 base. Nobody chose a wrong
+   quantity; a right quantity stopped being updated, and because the module is
+   linear in the base the staleness was invisible against a target that had
+   been calibrated to at the same vintage.
+4. **The behavioural offset had a sign bug that only a rate cut could show.**
+   `policies_core.py` documents a signed offset so that the engine erodes a
+   gain and recovers part of a cut. `corporate.py` overrode it with
+   `abs(static_effect)`, so `create_republican_corporate_cut` — a shipped
+   preset — books a first-year deficit effect of **+$159.75B** on a static
+   −$142B: the behavioural response makes a corporate rate cut *more*
+   expensive. Derived signs it correctly. Reported keeps the bug on purpose,
+   because `trump_corporate_15`'s fitted number is scored through it and
+   Decision 1 forbids moving a shipped number in a lane that does not also ship
+   a caption for it — and a caption for a number nobody has decided to change
+   would be worse than the bug. **Both behaviours are now pinned by a test**, so
+   the next person to touch it is making a decision rather than an edit. This
+   is the lane's clearest hand-off.
+5. **The corporate module is not in the leave-one-out suite at all.** The suite
+   holds Payroll, Estate, AMT, Credits, Expenditures and CapitalGains. The one
+   module whose base constant is *self-documented as calibrated* has never been
+   cross-validated, which is precisely the population `run_loo.py` exists to
+   catch. Adding it is a `loo.py` edit and no modelling lane may make one, so
+   this is recorded and not done.
+6. **A concavity large enough to reconcile the two documents needs β ≈ 2.37**,
+   three times Heckemeyer & Overesch's consensus 0.8 and outside every
+   published estimate except Dowd, Landefeld & Moore (2017) at very low foreign
+   rates. Written into §4 *before* the code, together with the note that no lane
+   may pick it. It is recorded here so that a future lane which arrives at
+   β ≈ 2.4 by some other route knows it is standing exactly where a fitted
+   constant would stand.
+7. **The average-equals-marginal credit assumption survived a check it could
+   have failed.** SOI's after÷before ratio is 0.7085; a §904 decomposition
+   built from the same rows — the FTC treated as the statutory tax on the
+   foreign-source share of the base, the remaining credits absorbing the
+   domestic remainder at their own average — returns **0.7012**, 1.0% away. Two
+   constructions with nothing in common but the source table. It is a test, not
+   a remark.
+
+### What the lane did not do
+
+- Did not touch any target, `preregistered.py`, `holdout.py`, `loo.py`,
+  `target_revisions.py`, `KNOWN_SCORES`, `CBO_SCORE_MAP`,
+  `benchmark_sources.py`, the yardstick scripts, or any CI threshold.
+- Did not add a per-benchmark constant, and did not add a per-case elasticity.
+  `profit_shifting_semi_elasticity` is one frozen literature value; a test
+  asserts no factory overrides it.
+- Did not re-derive the international, R&D, bonus-depreciation or
+  book-minimum channels. `GILTI_REVENUE_BILLIONS`, `FDII_COST_BILLIONS`, the
+  −$12B R&D annual, the −$28B depreciation annual and the $100B book-minimum
+  base are all unsourced and all untouched: this lane re-derived the *rate*
+  identity, which is what its title says. The R&D and depreciation constants
+  are the obvious next item, and they matter to `trump_corporate_15`, whose
+  derived score is 20% depreciation.
+- Did not build the three channels that would move the derived score toward
+  CBO — credit carryforwards under §38(c) and §904(c), CAMT, and the
+  individual-side dividend/capital-gain interaction. Each needs a quantity that
+  is not published in the source the module reads, and each would arrive as a
+  constant that landed on CBO by construction. All three are named in the row's
+  `known_limitations`.
+- Did not adjust SOI's TY2022 base for §174 R&D capitalisation or the
+  bonus-depreciation phase-down, both of which inflate it and both of which
+  reverse. Adjusting needs a number that would be chosen rather than read.
+- Did not flip `CORPORATE_APP_MODE`, and so shipped no user-visible change and
+  owes no Decision 6 caption.
+- Did not open `international.py`, `amt.py` or `payroll.py`, so
+  `fdii_repeal`, `biden_gilti_reform` and `repeal_corporate_amt` are untouched
+  even though their names contain the word corporate.
