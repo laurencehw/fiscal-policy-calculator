@@ -728,8 +728,12 @@ def derive_amt_annual(case_id: str) -> float | None:
 
     The identity is unchanged — affected-payer count x average liability — but
     it is now evaluated **year by year** against TPC's T25-0049 aggregate AMT
-    path, with the baseline leg at the current-law exemption and the policy leg
-    at the reform exemption (``AMTPolicy.derived_annual_effect``). The
+    path, with the baseline leg at current law's exemption-equivalent and the
+    policy leg at the reform's — each net of its own statutory § 55(d)(2)
+    claw-back (``AMTPolicy.derived_annual_effect``). Both benchmarks sit exactly
+    on a published regime anchor, so adding the phase-out left both derivations
+    unchanged to the cent; what it changed is the set of reforms the module can
+    express at all. The
     calibration constants in ``CBO_AMT_ESTIMATES`` are bypassed, and so is the
     single-point ``BASELINE_AMT_DATA`` summary the earlier derivation used.
 
@@ -759,10 +763,14 @@ def run_amt_loo() -> LOOReport:
         module="AMT",
         mechanism=(
             "Individual-AMT revenue as affected-payer count x average liability, "
-            "evaluated year by year on TPC T25-0049 with the baseline leg at the "
-            "current-law exemption and the policy leg at the reform exemption. "
-            "Extending TCJA relief costs the difference between the two regimes; "
-            "full repeal costs the whole post-sunset path."
+            "evaluated year by year on TPC T25-0049 with the baseline leg at "
+            "current law's exemption-equivalent and the policy leg at the "
+            "reform's. Each leg is a statutory triple - exemption, "
+            "IRC 55(d)(2) phase-out threshold and claw-back rate, from the "
+            "IRS inflation Revenue Procedures - reduced to the flat exemption "
+            "that leaves the same aggregate AMT base. Extending TCJA relief "
+            "costs the difference between the two regimes; full repeal costs "
+            "the whole post-sunset path."
         ),
     )
     all_ids = tuple(AMT_VALIDATION_SCENARIOS_COMPARE)

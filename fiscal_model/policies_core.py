@@ -447,6 +447,22 @@ class CapitalGainsPolicy(TaxPolicy):
     the stock accumulate, which feeds back into later realizations and into the
     flow of gains transferred at death; that is tracked as a ratio to the
     baseline stock so no growth rate is introduced into the realizations flow.
+
+    **The death channel is not the whole flow of gains at death.**  Every
+    published realization-at-death proposal states reliefs, and
+    :meth:`reachable_gains_per_decedent` prices the ones that bite on a base
+    measured as unrealized gains: the charitable exclusion, section 121 on the
+    principal residence, and - where the design offers it - deferral of tax on
+    a family-owned and -operated business until the interest is sold.  Two more
+    reliefs those proposals state, the spousal carry-over and the exclusion for
+    tangible personal property, remove nothing from this base because Poterba &
+    Weisbenner's flow already excludes inter-spousal transfers and assigns no
+    accrued gain to vehicles, bonds or collectibles; deducting either would be
+    a double count.  Gains at death then respond to a change in *their* rate
+    with the **persistent** coefficient only
+    (:meth:`death_response_coefficient`) - death cannot be retimed, so the
+    transitory term has no place - and the tax induces further charitable
+    substitution at the Bakija-Gale-Slemrod price elasticity.
     """
 
     baseline_capital_gains_rate: float = 0.20
@@ -471,6 +487,31 @@ class CapitalGainsPolicy(TaxPolicy):
     #: Discount rate on deferred realization, used only to price the lock-in
     #: wedge between the with- and without-step-up worlds.
     deferral_discount_rate: float = 0.04
+    #: Whether the death channel applies the carve-outs every published
+    #: realization-at-death proposal states.  A caller that wants the bare
+    #: "every dollar of accrued gain, taxed" identity turns it off; nothing in
+    #: the validation battery does.
+    apply_death_carveouts: bool = True
+    #: 26 U.S.C. 121(b)(1): $250,000 of gain on a principal residence, per
+    #: person.  Both Green Books preserve it and make it portable to a
+    #: surviving spouse ($500,000 per couple); the per-person figure is what a
+    #: single decedent's final return can use.
+    section_121_exclusion: float = 250_000.0
+    #: Whether tax on the appreciation of family-owned and -operated businesses
+    #: is deferred until the interest is sold.  Stated by both Green Books and
+    #: by neither CBO budget option, so it is a **design** switch, not a
+    #: behavioural parameter: see ``validation/core.py``'s
+    #: ``GREEN_BOOK_DEATH_DESIGN_RULE``.  Off by default, so a policy scores the
+    #: bare construction unless its source states the election.
+    defer_family_business_gains: bool = False
+    #: Price elasticity of charitable bequests, as a magnitude.  Bakija, Gale &
+    #: Slemrod (2003), *Charitable Bequests and Taxes on Inheritances and
+    #: Estates*, NBER WP 9661 / AEA Papers & Proceedings, Table 1,
+    #: specification (a).  Their most robust specification (d) reports -2.142
+    #: and Joulfaian (2000) reports -0.74; (a) is the smallest magnitude in the
+    #: frozen paper's own table and is taken for that reason, since a larger
+    #: one moves every step-up-elimination score further down.
+    charitable_bequest_price_elasticity: float = 1.617
 
     def __post_init__(self):
         super().__post_init__()
@@ -499,6 +540,15 @@ class CapitalGainsPolicy(TaxPolicy):
         if self.deferral_discount_rate < 0:
             raise ValueError(
                 f"deferral_discount_rate must be >= 0, got {self.deferral_discount_rate}"
+            )
+        if self.section_121_exclusion < 0:
+            raise ValueError(
+                f"section_121_exclusion must be >= 0, got {self.section_121_exclusion}"
+            )
+        if self.charitable_bequest_price_elasticity < 0:
+            raise ValueError(
+                "charitable_bequest_price_elasticity must be >= 0 (it is a "
+                f"magnitude), got {self.charitable_bequest_price_elasticity}"
             )
         self._bracket_cache = None
         self._baseline_cache = None
@@ -759,13 +809,128 @@ class CapitalGainsPolicy(TaxPolicy):
             delta_total += tau1 * r1 - tau0 * r0
         return (delta_static - delta_total) * max(0.0, float(phase))
 
+    def death_response_coefficient(self) -> float:
+        """``b`` for the response of gains at death to a change in their rate.
+
+        The **persistent** coefficient only.  The transitory term is a retiming
+        response - a taxpayer brings a sale forward or pushes it back around an
+        effective date - and death cannot be retimed to the rate, so it has no
+        place here.  The lock-in wedge divides it for the same reason it
+        divides the realizations coefficient: once death is a realization
+        event, holding on no longer escapes the tax.
+        """
+        reference = float(self.elasticity_reference_rate)
+        persistent = (
+            float(self.persistent_elasticity)
+            if self.use_time_varying_elasticity
+            else float(self.realization_elasticity)
+        )
+        coefficient = persistent / reference
+        if self.eliminate_step_up:
+            wedge = self.lock_in_wedge()
+            if wedge > 0:
+                coefficient /= wedge
+        return coefficient
+
+    def _charitable_share_at_death(self, decedent_class, rate: float) -> float:
+        """Share of a class's gain that goes to charity once gains are taxed.
+
+        Two parts.  The **level** is what already goes to charity: IRS SOI
+        *Estate Tax Statistics* Table 1's charitable deduction over the estate
+        net of spousal bequests, by size of estate.  The **increment** is the
+        substitution the tax induces, and it is the death channel's avoidance
+        response: taxing gains at death makes a charitable bequest cheaper
+        relative to a bequest to heirs, because the estate saves ``rate`` times
+        the unrealized-gain share of the wealth given.  With a constant
+        elasticity of charitable bequests with respect to that price, the share
+        rises by ``(1 - rate * gain_share) ** -elasticity``.
+
+        The price change ignores that a charitable bequest already avoids
+        estate tax for a taxable estate, so the fall in price - and therefore
+        the response - is understated.
+        """
+        baseline = max(0.0, min(1.0, float(decedent_class.charitable_bequest_share)))
+        if baseline <= 0:
+            return 0.0
+        gain_share = max(0.0, min(1.0, float(decedent_class.unrealized_gain_share)))
+        price = 1.0 - max(0.0, min(1.0, rate)) * gain_share
+        if price <= 0:
+            return 1.0
+        induced = price ** (-float(self.charitable_bequest_price_elasticity))
+        return max(0.0, min(1.0, baseline * induced))
+
+    def reachable_gains_per_decedent(
+        self,
+        decedent_class,
+        rate: float,
+        rate_change_faced: float = 0.0,
+        years_since_start: int = 0,
+    ) -> float:
+        """Gain per decedent a realization-at-death proposal actually reaches.
+
+        The carve-outs apply in the order the statute does, and the per-donor
+        exclusion is **not** among them: both Green Books grant it against
+        *"other* unrealized capital gains", meaning what is left after the
+        named reliefs.  The caller subtracts it afterwards.
+
+        1. **Charity.**  Appreciated property transferred to charity generates
+           no taxable gain, and the tax itself induces more of it
+           (:meth:`_charitable_share_at_death`).
+        2. **The family-owned-business election**, where the design offers it.
+           Tax on the appreciation of a family-owned and -operated business is
+           not due until the interest is sold, so inside a ten-year window only
+           what is sold is collected - at the module's own observed realization
+           hazard, which introduces no new constant.
+        3. **Section 121**, up to :attr:`section_121_exclusion` of the gain on
+           the principal residence.
+        4. **The rate response**, where the proposal changes the rate this
+           decedent faces by ``rate_change_faced``
+           (:meth:`death_response_coefficient`).
+
+        The spousal and tangible-personal-property reliefs are absent because
+        the base already excludes both - Poterba & Weisbenner's Table 8 note,
+        quoted in :mod:`fiscal_model.data.capital_gains`.
+        """
+        gain = float(decedent_class.gains_per_decedent_dollars)
+        if gain <= 0 or not self.apply_death_carveouts:
+            return max(0.0, gain)
+
+        gain *= 1.0 - self._charitable_share_at_death(decedent_class, rate)
+
+        if self.defer_family_business_gains:
+            deferred = max(
+                0.0, min(1.0, float(decedent_class.active_business_gain_share))
+            )
+            if deferred > 0:
+                hazard = self._realization_hazard()
+                recaptured = 1.0 - (1.0 - hazard) ** (max(0, int(years_since_start)) + 1)
+                gain *= 1.0 - deferred * (1.0 - recaptured)
+
+        residence = max(0.0, min(1.0, float(decedent_class.residence_gain_share)))
+        gain -= min(gain * residence, max(0.0, float(self.section_121_exclusion)))
+
+        if rate_change_faced != 0.0:
+            gain *= math.exp(-self.death_response_coefficient() * rate_change_faced)
+
+        return max(0.0, gain)
+
+    def _realization_hazard(self) -> float:
+        try:
+            source = self._baseline_source()
+            return float(source.realization_hazard(self._data_year(source)))
+        except Exception as exc:  # pragma: no cover - data-availability guard
+            logger.warning("family-business deferral: hazard unavailable (%s)", exc)
+            return 0.0
+
     def estimate_step_up_elimination_revenue(self, years_since_start: int = 0) -> float:
         """Revenue from treating transfers at death as realization events.
 
         Decedent wealth times the unrealized-gain share of an estate that size,
-        with the exemption applied per decedent, priced at the rate the gain
-        would face on a final return.  Indexed to household net worth, so the
-        flow grows with the asset stock instead of sitting at one constant.
+        less the carve-outs the proposal states
+        (:meth:`reachable_gains_per_decedent`), less the per-donor exclusion,
+        priced at the rate the gain would face on a final return.  Indexed to
+        household net worth, so the flow grows with the asset stock instead of
+        sitting at one constant.
         """
         if not self.eliminate_step_up or not self.score_gains_at_death:
             return 0.0
@@ -783,14 +948,16 @@ class CapitalGainsPolicy(TaxPolicy):
 
         revenue = 0.0
         for decedent_class in source.decedent_classes(year):
-            taxable = decedent_class.taxable_gains_billions(exemption) * stock
-            if taxable <= 0:
-                continue
             gain = decedent_class.gains_per_decedent_dollars
+            if gain <= 0 or decedent_class.decedents_per_year <= 0:
+                continue
             niit = NIIT_RATE if gain >= NIIT_THRESHOLD else 0.0
             statutory = source.statutory_rate_on_gain(gain) - niit
             # A rate change that applies above an income threshold reaches a
-            # decedent only if the gain on the final return clears it.
+            # decedent only if the gain on the final return clears it.  The
+            # bracket is read off the class's gain before carve-outs, so a
+            # decedent whose reliefs drop them into a lower preferential
+            # bracket is still priced at the higher one.
             in_scope = gain >= float(self.affected_income_threshold)
             if self.new_rate is not None and in_scope:
                 rate = float(self.new_rate) + niit
@@ -798,7 +965,18 @@ class CapitalGainsPolicy(TaxPolicy):
                 rate = statutory + float(self.rate_change) + niit
             else:
                 rate = statutory + niit
-            revenue += taxable * max(0.0, min(rate, 0.999))
+            rate = max(0.0, min(rate, 0.999))
+            rate_change_faced = rate - (statutory + niit) if in_scope else 0.0
+            reachable = self.reachable_gains_per_decedent(
+                decedent_class, rate, rate_change_faced, years_since_start
+            )
+            taxable_per_decedent = max(0.0, reachable - exemption)
+            if taxable_per_decedent <= 0:
+                continue
+            taxable = (
+                decedent_class.decedents_per_year * taxable_per_decedent / 1e9 * stock
+            )
+            revenue += taxable * rate
         return revenue
 
 

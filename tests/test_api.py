@@ -137,6 +137,25 @@ def test_benchmarks_endpoint_lists_distributional_accuracy():
         assert entry["matched_rows"] <= entry["benchmark_rows"]
         assert "source_document" in entry
         assert entry["analysis_year"] > 2000
+        # The universe the source ranks and the one the model was actually
+        # scored on are separate fields: a household-registered benchmark
+        # whose policy has no microsim path is scored on tax units.
+        assert entry["ranking_universe"] in {"household", "tax_unit"}
+        assert entry["scored_universe"] in {"household", "tax_unit"}
+        assert entry["universe_fell_back"] == (
+            entry["scored_universe"] != entry["ranking_universe"]
+        )
+
+    by_id = {entry["policy_id"]: entry for entry in payload["benchmarks"]}
+    # Pinned: registered on CBO's households, scored on tax units, because
+    # every TCJA-extension policy takes the synthetic bracket path.
+    for policy_id in ("cbo_tcja_2018", "cbo_tcja_extension_2026", "cbo_pl119_21_2026"):
+        assert by_id[policy_id]["ranking_universe"] == "household"
+        assert by_id[policy_id]["scored_universe"] == "tax_unit"
+        assert by_id[policy_id]["universe_fell_back"] is True
+    # The one household registration the model honours, via the microsim.
+    assert by_id["cbo_arp_2021"]["scored_universe"] == "household"
+    assert by_id["cbo_arp_2021"]["universe_fell_back"] is False
 
 
 def test_benchmark_issues_flatten_needs_improvement():

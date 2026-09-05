@@ -27,6 +27,16 @@ Two shapes are enough for every reform the module scores.
     56 of *Options for Reducing the Deficit: 2025 to 2034*. Prices a dollar
     cap on excludable premiums.
 
+Indexed limits
+--------------
+A dollar limit and the quantity it limits do not grow at the same rate, and
+the gap between the two is a mechanism rather than a detail. Every published
+design of the employer-health cap indexes the limit to a **price** series while
+premiums grow with health costs, so a widening slice of every premium rises
+above the limit each year. :func:`price_index_factor` supplies the price leg
+from the repository's own baseline, so a caller can ask what a limit stated in
+one year is worth in another.
+
 Both return **shares of the expenditure's own benefit**, never dollar levels.
 The level always comes from the published expenditure total in
 ``JCT_TAX_EXPENDITURES``; this module only supplies shape. That split is
@@ -58,6 +68,8 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
+from .baseline import BaselineVintage, vintage_assumptions
+
 DATA_DIR = Path(__file__).parent / "data_files" / "tax_expenditures"
 
 SOI_ITEMIZED_FILE = DATA_DIR / "soi_2023_itemized_deductions_by_agi.csv"
@@ -85,6 +97,37 @@ STATUTORY_MFJ_BRACKETS_2025: tuple[tuple[float, float], ...] = (
 #: a lognormal shape parameter.
 _Z75 = 0.6744897501960817
 
+#: First projection year of the assumption arrays in :mod:`fiscal_model.baseline`
+#: -- ``CBOBaseline``'s own default ``start_year``, so ``inflation[0]`` is the
+#: rate in this year.
+BASELINE_ASSUMPTION_FIRST_YEAR = 2025
+
+#: Baseline vintage whose price path indexes a statutory dollar limit.
+#:
+#: CBO's February 2024 baseline, which is the one *Options for Reducing the
+#: Deficit: 2025 to 2034* was built on (``preregistered.py``'s
+#: ``CBO_OPTIONS_REVENUE_BASELINE``) and the one the out-of-sample battery
+#: scores on. The choice is close to immaterial: the three vintages the
+#: repository carries put price growth at 2.00%, 1.96% and 2.00% over the years
+#: an indexed limit is actually compounded across, and
+#: ``tests/test_tax_expenditure_units.py`` pins that they agree.
+CAP_INDEXATION_VINTAGE = BaselineVintage.CBO_FEB_2024
+
+#: What the price leg of an indexed limit is, and what it is *not*.
+#:
+#: CBO indexes Option 56's limits with the chained CPI-U. The repository
+#: carries no chained-CPI-U series -- ``baseline.py``'s price variable is the
+#: PCE price index and ``data/fred_data.py`` fetches only GDP, unemployment and
+#: the 10-year yield -- so the baseline's own inflation path stands in for it.
+#: Over 2028-2034 CBO projects both near 2.0% (the CPI-U runs about 0.3pp above
+#: each), so the substitution is worth a few basis points a year on the limit.
+#: It is recorded here rather than buried because it is the one input in the
+#: indexation path that is not the series the source names.
+CAP_INDEXATION_SERIES_NOTE = (
+    "baseline price inflation (PCE), standing in for the chained CPI-U the "
+    "source names; the repository carries no chained-CPI-U series"
+)
+
 
 def statutory_marginal_rate(taxable_income: float) -> float:
     """Ordinary marginal rate under :data:`STATUTORY_MFJ_BRACKETS_2025`."""
@@ -97,6 +140,44 @@ def statutory_marginal_rate(taxable_income: float) -> float:
 
 def _normal_cdf(z: float) -> float:
     return 0.5 * math.erfc(-z / math.sqrt(2.0))
+
+
+@lru_cache(maxsize=8)
+def _inflation_path(vintage: BaselineVintage) -> tuple[float, ...]:
+    return tuple(float(rate) for rate in vintage_assumptions(vintage)["inflation"])
+
+
+def price_index_factor(
+    from_year: int,
+    to_year: int,
+    vintage: BaselineVintage = CAP_INDEXATION_VINTAGE,
+) -> float:
+    """
+    Cumulative price growth between two years, from the repository's baseline.
+
+    What a limit stated in ``from_year`` dollars is worth in ``to_year``: the
+    product of ``1 + inflation`` over the years in between, taken from
+    :func:`fiscal_model.baseline.vintage_assumptions`. Years outside the
+    projection are held at the nearest projected rate rather than extrapolated,
+    which is what the baseline itself does with its terminal assumption.
+
+    ``to_year < from_year`` returns the reciprocal, so the function is a proper
+    index and a limit can be restated backwards as well as forwards. A limit
+    stated in its own year is worth exactly itself: ``price_index_factor(y, y)``
+    is ``1.0`` for every ``y``, which is why adding indexation to a policy
+    scored in its start year changes nothing.
+    """
+    if to_year == from_year:
+        return 1.0
+    if to_year < from_year:
+        return 1.0 / price_index_factor(to_year, from_year, vintage)
+
+    path = _inflation_path(vintage)
+    factor = 1.0
+    for year in range(from_year + 1, to_year + 1):
+        index = min(max(year - BASELINE_ASSUMPTION_FIRST_YEAR, 0), len(path) - 1)
+        factor *= 1.0 + path[index]
+    return factor
 
 
 def _read_rows(path: Path) -> list[dict[str, str]]:
@@ -261,6 +342,7 @@ class PremiumDistribution:
         growth_rate: float,
         *,
         caps_by_tier: dict[str, float] | None = None,
+        cap_index_factor: float = 1.0,
     ) -> float:
         """
         Share of total premium dollars sitting above the cap.
@@ -270,11 +352,19 @@ class PremiumDistribution:
         Option 56 sets both limits at the same *percentile*). Without it the
         single ``cap`` applies to every tier, which is how the repository's
         ``cap_employer_health`` benchmark is written.
+
+        ``cap_index_factor`` restates the limit in ``year`` dollars: it is what
+        :func:`price_index_factor` returns between the year the limit is stated
+        in and the year being scored. The default of ``1.0`` is a limit fixed
+        in nominal terms. Premiums grow at ``growth_rate`` and the limit grows
+        at this factor, so the share this returns rises across a window
+        whenever health costs outpace prices -- which is the whole reason the
+        share has to be asked for year by year rather than once.
         """
         numerator = 0.0
         denominator = 0.0
         for tier in self.tiers:
-            tier_cap = (caps_by_tier or {}).get(tier.tier, cap)
+            tier_cap = (caps_by_tier or {}).get(tier.tier, cap) * cap_index_factor
             weight = tier.share_of_policies
             numerator += weight * tier.excess_above(tier_cap, year, growth_rate)
             denominator += weight * tier.mean_in_year(year, growth_rate)

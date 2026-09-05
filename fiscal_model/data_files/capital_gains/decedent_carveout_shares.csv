@@ -1,0 +1,33 @@
+# Shares of decedent unrealized capital gain that a realization-at-death
+# proposal's stated carve-outs remove, by the decedent ladder's own
+# estate-size classes.
+#
+# residence_gain_share and active_business_gain_share: Poterba, J. and
+#   S. Weisbenner (2001), 'The Distributional Burden of Taxing Estates and
+#   Unrealized Capital Gains at Death', in Rethinking Estate and Gift
+#   Taxation (Brookings), Table 8, lower panel ('Share of Total Unrealized
+#   Capital Gain'), by insurance-augmented net worth of the decedent.
+#   Matched to a ladder class by that class's mean estate.
+# charitable_bequest_share: IRS Statistics of Income, Estate Tax Statistics,
+#   Table 1, filing year 2024 (https://www.irs.gov/pub/irs-soi/24es01fy.xlsx):
+#   the charitable deduction over the gross estate NET of bequests to a
+#   surviving spouse, by size of gross estate.  Zero for a class whose mean
+#   estate is under $1,000,000, which is far below SOI's filing threshold.
+# marital_bequest_share: the same table's bequests to a surviving spouse
+#   over the gross estate.  CARRIED AND NEVER APPLIED.  Poterba &
+#   Weisbenner's note reads 'It is assumed a decedent transfers his/her full
+#   estate to a surviving spouse.  Such inter-spousal transfers are not
+#   included in the estate totals reported above', so the spousal carve-out
+#   is already absent from the base and deducting it again would be a
+#   double count.  This column records what that double count would cost.
+# tangible_personal_property_gain_share: zero, for the same reason.  The
+#   same note reads 'Bonds, vehicles, and collectibles are assumed to have
+#   no accrued capital gains', and the Green Books exclude collectibles from
+#   their tangible-personal-property exclusion in any case.
+# Regenerate with: python scripts/build_capital_gains_data.py
+group,mean_net_worth_millions_usd,residence_gain_share,active_business_gain_share,charitable_bequest_share,marital_bequest_share,tangible_personal_property_gain_share
+TopPt1,176.91698165787204,0.036,0.723,0.3619679243828308,0.34706207435388553,0.0
+RemainingTop1,23.831086977732028,0.036,0.723,0.12031621306325102,0.34572207756831436,0.0
+Next9,5.103229446908981,0.102,0.172,0.0429960969842013,0.2440395567681224,0.0
+Next40,0.9480379835013332,0.46,0.017,0.0,0.0,0.0
+Bottom50,0.0623426858437296,1.001,0.006,0.0,0.0,0.0

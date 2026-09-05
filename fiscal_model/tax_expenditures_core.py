@@ -27,6 +27,37 @@ Every policy in this module carries a ``mode``. ``reported`` scores the fitted
 ``annual_revenue_change_billions``; ``derived`` ignores it and scores from the
 base table plus the distributions. See the SCORING MODES block below for which
 path each caller takes.
+
+Indexed limits, and why the share is a function of the year
+-----------------------------------------------------------
+A cap's bite is not a constant. The limit and the quantity it limits grow at
+different rates, so the share of the base sitting above the limit moves every
+year of a window. Until Wave 4 this module evaluated that share **once**, at
+``start_year``, and the scoring engine then grew the answer at the
+expenditure's own rate -- which says the share never moves, and it does.
+
+CBO's Option 56 is the case that makes it visible, because CBO writes the
+indexation down (pub. 60557, report p. 66): *"To set the tax exclusion limits
+in 2028 and later years, those 2026 premium percentiles would be indexed for
+inflation using the chained consumer price index for all urban consumers
+(chained CPI-U)."* Premiums grow with health costs -- 4%/yr in the record below
+and in ``ptc.py``'s ``healthcare_growth_rate`` -- and the limit grows with
+prices at about 2%/yr, so a widening slice of every premium rises above it and
+CBO's own revenue path grows 14%/yr against a flat-share model's 4%.
+
+:meth:`TaxExpenditurePolicy.estimate_static_revenue_effect` therefore takes an
+optional ``year``. It defaults to ``start_year``, where the index factor is
+exactly 1.0, so every existing caller is unchanged; the scoring engine, which
+already loops over years, passes the year it is in. An expenditure declares
+that its limit is indexed with a ``cap_indexation`` block, in the same style
+as SALT's ``limitation`` -- a declared object with its source, not a spare
+field -- and the rule takes no per-case input: **the cap dollars are
+denominated in the policy's own start year** and are grown from there.
+
+The rule reaches the premium path only. A deduction distribution
+(``DeductionDistribution``) carries SOI class aggregates with no year
+dimension, so indexing a limit against it would shrink the share on one side
+of a comparison whose other side cannot move.
 """
 
 from dataclasses import dataclass, field
@@ -37,8 +68,10 @@ import numpy as np
 
 from .policies import PolicyType, TaxPolicy
 from .tax_expenditure_distributions import (
+    CAP_INDEXATION_SERIES_NOTE,
     load_deduction_distribution,
     load_premium_distribution,
+    price_index_factor,
 )
 
 
@@ -191,8 +224,24 @@ JCT_TAX_EXPENDITURES: dict[str, dict[str, Any]] = {
         "annual_cost": 250.0,
         "affected_millions": 155.0,
         "avg_benefit": 1_600,
+        # Doubles as the employer-premium growth series: the income-tax
+        # expenditure is premiums times a marginal rate times enrolment, so
+        # the two grow together. `ptc.py` carries the same 4% independently as
+        # `healthcare_growth_rate`.
         "growth_rate": 0.04,
         "base_distribution": {"kind": "premium"},
+        "cap_indexation": {
+            "series": CAP_INDEXATION_SERIES_NOTE,
+            "design": (
+                "CBO, Options for Reducing the Deficit: 2025 to 2034 "
+                "(pub. 60557, Dec 2024), Option 56, report p. 66 (PDF p. 72): "
+                "'To set the tax exclusion limits in 2028 and later years, "
+                "those 2026 premium percentiles would be indexed for inflation "
+                "using the chained consumer price index for all urban "
+                "consumers (chained CPI-U), one measure of overall price "
+                "inflation.'"
+            ),
+        },
     },
     "retirement_401k": {
         "annual_cost": 251.0,
@@ -489,8 +538,29 @@ class TaxExpenditurePolicy(TaxPolicy):
                 return unlimited
         return data.get("base_distribution")
 
-    def _share_of_benefit_above_cap(self, data: dict) -> float:
-        """Share of the expenditure's value denied by this policy's cap."""
+    def cap_index_factor(self, data: dict, year: int) -> float:
+        """
+        What this policy's cap dollars are worth in ``year``.
+
+        ``1.0`` unless the expenditure declares a ``cap_indexation`` block, and
+        ``1.0`` in the policy's own ``start_year`` either way: the cap is
+        stated in start-year dollars and grown from there, so nothing about a
+        policy scored in a single year changes when indexation is declared.
+        """
+        if not data.get("cap_indexation"):
+            return 1.0
+        return price_index_factor(self.start_year, year)
+
+    def _share_of_benefit_above_cap(self, data: dict, year: int | None = None) -> float:
+        """
+        Share of the expenditure's value denied by this policy's cap in ``year``.
+
+        ``year`` defaults to ``start_year``. It reaches only the premium path:
+        a deduction distribution is a set of SOI class aggregates with no year
+        dimension, so a limit indexed against it would move while the amounts
+        it is compared with could not.
+        """
+        year = self.start_year if year is None else year
         # A cap of zero denies the whole benefit, and an absent one is treated
         # the same way, so every unit answers a zero cap identically.
         cap_amount = float(self.cap_amount) if self.cap_amount is not None else 0.0
@@ -524,9 +594,10 @@ class TaxExpenditurePolicy(TaxPolicy):
         if spec["kind"] == "premium":
             return load_premium_distribution().base_share_above(
                 cap_amount,
-                year=self.start_year,
+                year=year,
                 growth_rate=data.get("growth_rate", 0.03),
                 caps_by_tier=self.caps_by_coverage_tier,
+                cap_index_factor=self.cap_index_factor(data, year),
             )
         return load_deduction_distribution(spec["column"]).benefit_share_above_amount(
             cap_amount
@@ -536,6 +607,7 @@ class TaxExpenditurePolicy(TaxPolicy):
         self,
         baseline_revenue: float,
         use_real_data: bool = True,
+        year: int | None = None,
     ) -> float:
         """
         Estimate static revenue effect of tax expenditure reform.
@@ -547,6 +619,13 @@ class TaxExpenditurePolicy(TaxPolicy):
         expenditure's level under the baseline in force, times the share of it
         the reform denies -- where "the share" comes from the distribution of
         the quantity the reform's parameter is denominated in.
+
+        ``year`` is the year being scored, and reaches the ``cap`` rule only.
+        It defaults to ``start_year``, which is where the answer is *stated*:
+        the cap dollars are start-year dollars and the index factor there is
+        exactly 1.0. The scoring engine passes each year of the window so the
+        excess share moves across it; a caller that wants the stated annual
+        omits it. Every other action is a level and does not depend on it.
 
         Raises :class:`ExpenditureDistributionMissing` for a cap on an
         expenditure whose base has no transcribed distribution.
@@ -569,7 +648,9 @@ class TaxExpenditurePolicy(TaxPolicy):
             return self.benefit_level_billions(data)
 
         if self.action == "cap" and (self.cap_amount is not None or self.cap_rate is not None):
-            return self.benefit_level_billions(data) * self._share_of_benefit_above_cap(data)
+            return self.benefit_level_billions(data) * self._share_of_benefit_above_cap(
+                data, year
+            )
 
         if self.action == "phase_out":
             return baseline_cost * 0.20

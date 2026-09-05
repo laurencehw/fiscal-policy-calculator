@@ -140,9 +140,19 @@ def test_average_liability_rises_with_the_exemption():
 
 
 def test_current_law_exemption_ignores_the_policy():
+    """
+    Both legs read a *statutory* schedule since Wave 4 lane 3c: TCJA's $137,000
+    indexed once for the reform leg, pre-TCJA's $84,500 indexed nine times for
+    current law. The hand-estimated $141,000/$93,000 the module used to carry
+    are gone, and the sunset leg moved most: $93,000 was ~20% below the
+    statutory reversion.
+    """
     policy = create_extend_tcja_amt_relief(mode=AMT_MODE_DERIVED)
-    assert policy.get_exemption_for_year(2026, "mfj") == 141_000
-    assert current_law_amt_exemption_mfj(2026) == 93_000
+    assert policy.get_exemption_for_year(2026, "mfj") == 141_500
+    assert current_law_amt_exemption_mfj(2026) == 111_500
+    assert policy.get_exemption_for_year(2026, "mfj") > current_law_amt_exemption_mfj(
+        2026
+    )
 
 
 def test_affected_taxpayers_take_an_explicit_exemption():
@@ -356,8 +366,14 @@ def test_a_zero_opening_year_does_not_zero_the_whole_window():
         assert effect == pytest.approx(-path[year], rel=1e-9), year
 
 
-def test_exemption_schedules_clamp_to_the_nearest_published_year():
-    """A year before a schedule starts must not read its last row."""
+def test_exemption_schedules_index_off_the_nearest_published_year():
+    """
+    The clamp is gone: past the last published Revenue Procedure row a schedule
+    is *indexed*, not frozen. What survives from the old clamp test is the half
+    that mattered — a year before a schedule starts must not read a later row.
+    """
+    from fiscal_model.amt import statutory_indexation_rate
+
     policy = AMTPolicy(
         name="probe",
         description="probe",
@@ -365,5 +381,9 @@ def test_exemption_schedules_clamp_to_the_nearest_published_year():
         extend_tcja_relief=True,
         start_year=2026,
     )
-    assert policy.get_exemption_for_year(2040, "mfj") == 180_000  # clamped forward
-    assert policy.get_exemption_for_year(2024, "mfj") == 133_300  # current law, not 2034
+    indexed = 137_000 * (1 + statutory_indexation_rate()) ** 15
+    assert policy.get_exemption_for_year(2040, "mfj") == pytest.approx(indexed, abs=100)
+    assert policy.get_exemption_for_year(2040, "mfj") > policy.get_exemption_for_year(
+        2034, "mfj"
+    )
+    assert policy.get_exemption_for_year(2024, "mfj") == 133_300  # published, not 2034

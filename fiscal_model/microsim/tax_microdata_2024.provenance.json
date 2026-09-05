@@ -10,6 +10,8 @@
   "output_columns": [
     "id",
     "household_id",
+    "household_weight",
+    "household_persons",
     "family_id",
     "tax_unit_index",
     "member_count",
@@ -44,7 +46,10 @@
     "weighted_children_millions": 65.00082253833334,
     "weighted_dependents_millions": 86.56470831,
     "weighted_dependents_under_6_millions": 20.346136390833333,
-    "weighted_eitc_qualifying_children_millions": 79.68787787000001
+    "weighted_eitc_qualifying_children_millions": 79.68787787000001,
+    "weighted_households": 132391925.45,
+    "weighted_household_persons": 320890854.43,
+    "households_with_roster_mismatch": 0.0
   },
   "warnings": [],
   "note": "The raw archive is fetched by scripts/fetch_cps_asec.py and is never vendored (owner Decision 4). Rebuild with `python -m fiscal_model.microsim.data_builder --fetch`. The extract directory is deliberately not recorded here: it is a machine-local cache path, not provenance."
