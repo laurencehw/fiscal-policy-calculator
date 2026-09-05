@@ -8,6 +8,28 @@ from typing import Any
 
 from fiscal_model.ui.helpers import TEXTBOOK_LINKS
 
+#: Plain-English names for the two distributional universes.
+_UNIVERSE_LABELS = {"household": "households", "tax_unit": "tax units"}
+
+
+def _universe_cell(registered: str, scored: str | None) -> str:
+    """Render one benchmark's universe: what was ranked, and whether it was asked for.
+
+    ``registered`` is ``CBODistributionalBenchmark.ranking_universe`` — the
+    universe the *source* ranks, and the one the runner requests. ``scored`` is
+    ``DistributionalAnalysis.unit`` — the universe actually ranked. They differ
+    whenever a household request lands on the synthetic bracket path, which has
+    no household layer, so the cell shows ``households->tax units`` rather than
+    letting the registration stand in for the run.
+    """
+    registered_label = _UNIVERSE_LABELS.get(registered, registered)
+    if scored is None:
+        return f"{registered_label} (requested; not reported)"
+    scored_label = _UNIVERSE_LABELS.get(scored, scored)
+    if scored == registered:
+        return scored_label
+    return f"{registered_label}→{scored_label}"
+
 
 def render_methodology_tab(st_module: Any) -> None:
     """
@@ -653,10 +675,17 @@ full taxable-income base. Treat uncalibrated custom policies as directional
     st_module.markdown("#### Live distributional accuracy (CBO/JCT)")
     st_module.caption(
         "Computed at render time against the current distributional engine. "
-        "Each row is scored on the universe its own source ranks: CBO's tables "
-        "on **households**, ranked by income before transfers and taxes divided "
-        "by the square root of household size into groups holding equal numbers "
-        "of people; JCT's on **tax filing units**, by income class. "
+        "Each row is *requested* on the universe its own source ranks: CBO's "
+        "tables on **households**, ranked by income before transfers and taxes "
+        "divided by the square root of household size into groups holding equal "
+        "numbers of people; JCT's on **tax filing units**, by income class. "
+        "The **Universe** column reports what was actually ranked, and marks "
+        "`registered→scored` where the two differ. Three rows do differ "
+        "today — the 2018 TCJA, the 2026 TCJA extension and P.L. 119-21 "
+        "are registered on households but scored on tax units, because a "
+        "TCJA-extension policy takes the synthetic bracket path, which "
+        "aggregates IRS return counts and has no household layer to rank. "
+        "Their errors are a comparison against a population CBO does not use. "
         "Also exposed via the `GET /benchmarks` API endpoint and "
         "`scripts/run_validation_dashboard.py`."
     )
@@ -668,28 +697,28 @@ full taxable-income base. Treat uncalibrated custom policies as directional
         )
 
         rows = []
+        fell_back = []
         for benchmark in CBO_JCT_BENCHMARKS:
             model_result = default_model_runner(benchmark)
             if model_result is None:
                 continue
             comparison = compare_distribution(model_result, benchmark)
+            if comparison.universe_fell_back:
+                fell_back.append(benchmark.policy_name)
             err = comparison.mean_absolute_share_error_pp
-            universe = (
-                "households"
-                if benchmark.ranking_universe == "household"
-                else "tax units"
+            # Report the universe actually ranked, not the one registered:
+            # a household request that cannot reach the return-level microsim
+            # is scored on tax units, and the row says so.
+            universe = _universe_cell(
+                benchmark.ranking_universe, comparison.scored_universe
             )
+            err_cell = f"{err:.2f}" if err is not None else "—"
             rows.append(
                 f"| {benchmark.source.value.split()[0]} | "
                 f"{benchmark.source_document} | "
                 f"{universe} | "
                 f"{comparison.overall_rating} | "
-                f"{err:.2f} |"
-                if err is not None
-                else f"| {benchmark.source.value.split()[0]} | "
-                f"{benchmark.source_document} | "
-                f"{universe} | "
-                f"{comparison.overall_rating} | — |"
+                f"{err_cell} |"
             )
         if rows:
             st_module.markdown(
@@ -698,6 +727,14 @@ full taxable-income base. Treat uncalibrated custom policies as directional
                 "|--------|----------|----------|--------"
                 "|---------------------------:|\n" + "\n".join(rows)
             )
+            if fell_back:
+                st_module.caption(
+                    f"→ marks a fallback: {len(fell_back)} of {len(rows)} "
+                    "rows were scored on a universe their source does not "
+                    "rank, because the policy has no return-level microsim "
+                    "path and the synthetic bracket path has no household "
+                    "layer — " + "; ".join(fell_back) + "."
+                )
         else:
             st_module.info(
                 "Benchmark runner produced no results — check "

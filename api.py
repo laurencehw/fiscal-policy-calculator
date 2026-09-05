@@ -321,11 +321,23 @@ class BenchmarkResult(BaseModel):
     mean_absolute_share_error_pp: float | None
     matched_rows: int
     benchmark_rows: int
-    #: The universe the source ranks, and therefore the one the model was
-    #: scored on: "household" (CBO's tables) or "tax_unit" (JCT's). Two
-    #: benchmarks with the same error mean different things if they were
-    #: scored on different populations, so the field travels with the number.
+    #: The universe the source ranks — "household" (CBO's tables) or
+    #: "tax_unit" (JCT's) — and therefore the one the runner *requests*. It is
+    #: a statement about the document, not about this run.
     ranking_universe: str = "tax_unit"
+    #: The universe the model was actually scored on, read off
+    #: ``DistributionalAnalysis.unit``. It differs from ``ranking_universe``
+    #: when a household request cannot reach the return-level microsim: every
+    #: TCJA-extension and corporate policy takes the synthetic bracket path,
+    #: which aggregates IRS return counts and has no household layer, so the
+    #: request degrades to tax units. null when the model reported no
+    #: universe. Two benchmarks with the same error mean different things if
+    #: they were scored on different populations, so this is the field to read
+    #: beside the number.
+    scored_universe: str | None = None
+    #: True when ``scored_universe`` differs from ``ranking_universe`` — the
+    #: comparison is against a population the source does not use.
+    universe_fell_back: bool = False
 
 
 class BenchmarksResponse(BaseModel):
@@ -775,6 +787,8 @@ def summary():
                 matched_rows=len(comparison.per_group),
                 benchmark_rows=len(benchmark.rows),
                 ranking_universe=benchmark.ranking_universe,
+                scored_universe=comparison.scored_universe,
+                universe_fell_back=comparison.universe_fell_back,
             )
         )
 
@@ -883,6 +897,8 @@ def list_benchmarks():
                 matched_rows=len(comparison.per_group),
                 benchmark_rows=len(benchmark.rows),
                 ranking_universe=benchmark.ranking_universe,
+                scored_universe=comparison.scored_universe,
+                universe_fell_back=comparison.universe_fell_back,
             )
         )
 

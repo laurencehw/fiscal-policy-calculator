@@ -577,6 +577,32 @@ class BenchmarkComparison:
     per_group: list[dict[str, Any]] = field(default_factory=list)
     mean_absolute_share_error_pp: float | None = None
     overall_rating: str = "unknown"
+    #: The universe the model *actually* ranked, read off
+    #: ``DistributionalAnalysis.unit``: ``"household"``, ``"tax_unit"``, or
+    #: ``None`` when the model output did not report one. This is **not**
+    #: ``benchmark.ranking_universe``, which is the universe the source ranks
+    #: and therefore the one the runner *requests*. A household request that
+    #: cannot reach the return-level microsim degrades to the synthetic
+    #: bracket path, which has no household layer, and the two fields then
+    #: disagree — see ``universe_fell_back``.
+    scored_universe: str | None = None
+
+    @property
+    def universe_fell_back(self) -> bool:
+        """True when the model was scored on a universe the source does not use."""
+        return (
+            self.scored_universe is not None
+            and self.scored_universe != self.benchmark.ranking_universe
+        )
+
+    @property
+    def universe_label(self) -> str:
+        """``"household"``, or ``"household->tax_unit"`` when it fell back."""
+        if self.scored_universe is None:
+            return f"{self.benchmark.ranking_universe}?"
+        if self.universe_fell_back:
+            return f"{self.benchmark.ranking_universe}->{self.scored_universe}"
+        return self.scored_universe
 
 
 def compare_distribution(
@@ -601,6 +627,13 @@ def compare_distribution(
     not all match every model run; the comparison simply skips rows whose
     labels do not appear on both sides, and reports the mean-absolute
     share error over the matched rows.
+
+    The universe the model was scored on is read off ``model_results.unit``
+    and carried on ``BenchmarkComparison.scored_universe``. It is recorded
+    rather than assumed because a benchmark registered on ``household`` whose
+    policy cannot reach the return-level microsim is scored on tax units, and
+    a reader comparing two errors needs to know which populations produced
+    them. ``None`` means the model output reported no universe at all.
     """
     if group_label_getter is None:
         group_label_getter = lambda row: getattr(row, "income_group", row).name  # noqa: E731
@@ -651,11 +684,13 @@ def compare_distribution(
     else:
         rating = "needs_improvement"
 
+    scored_universe = getattr(model_results, "unit", None)
     return BenchmarkComparison(
         benchmark=benchmark,
         per_group=matched,
         mean_absolute_share_error_pp=mean_err,
         overall_rating=rating,
+        scored_universe=scored_universe if scored_universe else None,
     )
 
 
@@ -665,6 +700,9 @@ def format_comparison(comparison: BenchmarkComparison) -> str:
     out = [
         f"=== {b.source.value} — {b.policy_name} ({b.source_document}) ===",
         f"Source date: {b.source_date}; analysis year: {b.analysis_year}",
+        f"Universe: source ranks {b.ranking_universe}; "
+        f"model scored on {comparison.scored_universe or 'unreported'}"
+        + (" (fell back)" if comparison.universe_fell_back else ""),
         f"Overall rating: {comparison.overall_rating}",
     ]
     if comparison.mean_absolute_share_error_pp is not None:

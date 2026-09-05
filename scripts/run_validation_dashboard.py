@@ -311,21 +311,39 @@ def print_benchmarks() -> bool:
 
     all_ok = True
     print(
-        f"    {'Source':<9} {'Universe':<10} {'Rating':<17} {'Err (pp)':>9}  Benchmark"
+        f"    {'Source':<9} {'Universe (scored)':<21} {'Rating':<17} "
+        f"{'Err (pp)':>9}  Benchmark"
     )
-    print(f"    {'-' * 9} {'-' * 10} {'-' * 17} {'-' * 9}  {'-' * 40}")
+    print(f"    {'-' * 9} {'-' * 21} {'-' * 17} {'-' * 9}  {'-' * 40}")
+    fell_back = []
     for c in comparisons:
         source = c.benchmark.source.value.split()[0]
         # Two rows with the same error mean different things if they were
-        # scored on different populations, so the universe travels with it.
-        universe = c.benchmark.ranking_universe
+        # scored on different populations, so the universe travels with it —
+        # and it is the universe actually *ranked*, not the one the source
+        # ranks. "registered->scored" marks a request that could not be met.
+        universe = c.universe_label
         rating = c.overall_rating
         err = c.mean_absolute_share_error_pp
         err_str = f"{err:.2f}" if err is not None else "—"
         name = c.benchmark.policy_name[:50]
-        print(f"    {source:<9} {universe:<10} {rating:<17} {err_str:>9}  {name}")
+        print(f"    {source:<9} {universe:<21} {rating:<17} {err_str:>9}  {name}")
+        if c.universe_fell_back:
+            fell_back.append(c)
         if rating == "needs_improvement":
             all_ok = False
+    if fell_back:
+        print()
+        print(
+            f"    {len(fell_back)} benchmark(s) scored on a universe their "
+            "source does not rank ('registered->scored' above): the policy"
+        )
+        print(
+            "    takes the synthetic bracket path, which aggregates IRS return "
+            "counts and has no household layer."
+        )
+        for c in fell_back:
+            print(f"      - {c.benchmark.policy_id} ({c.universe_label})")
     return all_ok
 
 
@@ -653,6 +671,12 @@ def main() -> int:
                     "mean_absolute_share_error_pp": c.mean_absolute_share_error_pp,
                     "matched_rows": len(c.per_group),
                     "benchmark_rows": len(c.benchmark.rows),
+                    # The universe the source ranks (requested) vs the one the
+                    # model actually ranked; they differ when a household
+                    # request falls back to the synthetic bracket path.
+                    "ranking_universe": c.benchmark.ranking_universe,
+                    "scored_universe": c.scored_universe,
+                    "universe_fell_back": c.universe_fell_back,
                 }
                 for c in comparisons
             ]

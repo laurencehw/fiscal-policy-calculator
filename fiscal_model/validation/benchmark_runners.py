@@ -42,6 +42,18 @@ the request degrades to the tax-unit path and the returned analysis says so on
 ``DistributionalAnalysis.unit``; the declaration is still worth carrying,
 because it is a fact about the document and it is what a microsim path for those
 policies would have to honour.
+
+**Requested is not scored.** ``benchmark.ranking_universe`` is what the source
+ranks and what this runner *asks* the engine for; the universe the model was
+*scored* on is whatever comes back on ``DistributionalAnalysis.unit``, which
+``compare_distribution`` records as ``BenchmarkComparison.scored_universe``.
+Three of the four CBO tables — ``cbo_tcja_2018``, ``cbo_tcja_extension_2026``
+and ``cbo_pl119_21_2026`` — are registered on ``household`` and scored on
+``tax_unit`` for exactly the reason above, and every reporting surface (the
+``/benchmarks`` and ``/summary`` API responses, ``run_validation_dashboard.py``
+and the Methodology tab) shows both fields with the fallback marked. Every
+runner returning a result for this suite must therefore set ``unit``: the
+composite ARP merge propagates its components'.
 """
 
 from __future__ import annotations
@@ -49,7 +61,11 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from fiscal_model.distribution import DistributionalEngine, IncomeGroupType
+from fiscal_model.distribution import (
+    TAX_UNIT,
+    DistributionalEngine,
+    IncomeGroupType,
+)
 from fiscal_model.validation.cbo_distributions import (
     CBODistributionalBenchmark,
     IncomeGroupingType,
@@ -184,6 +200,14 @@ def _combine_distributional_results(results: list[Any]) -> Any:
     EITC childless + Recovery Rebate) for benchmarks that aggregate multiple
     provisions the engine scores separately.
 
+    The merged result carries ``unit`` — the universe the components were
+    actually ranked on — so ``compare_distribution`` can record what was
+    scored rather than what was asked for. Components are scored by one engine
+    on one universe, so the value is unanimous in practice; a disagreement
+    would mean the merge spanned two populations, and the merged table is then
+    reported on the weaker claim, ``tax_unit``. ``None`` means no component
+    reported a universe.
+
     The per-group *average* is the **sum** of the components' averages, not
     their mean. Every component is scored over the same population and the
     same groups, so a household that gets $1,400 of rebate and $3,000 of child
@@ -224,6 +248,19 @@ def _combine_distributional_results(results: list[Any]) -> Any:
     if total_dollar_effect == 0:
         return None
 
+    units = {u for u in (getattr(res, "unit", None) for res in results) if u}
+    if not units:
+        merged_unit = None
+    elif len(units) == 1:
+        merged_unit = next(iter(units))
+    else:
+        logger.warning(
+            "Composite merge spans more than one universe (%s); reporting the "
+            "merged table on tax units.",
+            ", ".join(sorted(units)),
+        )
+        merged_unit = TAX_UNIT
+
     combined_rows = []
     for entry in totals_by_group.values():
         normalized_share = entry["dollar_effect"] / total_dollar_effect
@@ -235,7 +272,7 @@ def _combine_distributional_results(results: list[Any]) -> Any:
                 share_of_total_change=normalized_share,
             )
         )
-    return SimpleNamespace(results=combined_rows)
+    return SimpleNamespace(results=combined_rows, unit=merged_unit)
 
 
 def _run_arp_bundle(benchmark: CBODistributionalBenchmark) -> Any | None:

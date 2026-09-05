@@ -9,7 +9,8 @@ What is pinned here, and why:
 - **The people-weighted group construction**, including CBO's own observation
   that equal numbers of people means *unequal* numbers of households.
 - **The universe is honestly reported.** A household request that cannot reach
-  the microsim must say it produced a tax-unit table.
+  the microsim must say it produced a tax-unit table — on the analysis, on the
+  benchmark comparison, and on every surface that prints a benchmark error.
 - **The tax-unit path is inert.** Every default-constructed engine must behave
   exactly as it did before the household layer existed.
 """
@@ -46,6 +47,7 @@ from fiscal_model.validation.cbo_distributions import (
     CBO_JCT_BENCHMARKS,
     JCT_SALT_REPEAL_2024,
     compare_distribution,
+    run_full_cbo_jct_validation,
 )
 
 MICRODATA = pd.read_csv(
@@ -384,3 +386,149 @@ class TestCompositeMergeAverages:
         )
         assert merged.results[0].tax_change_avg == pytest.approx(-4_400.0)
         assert merged.results[0].share_of_total_change == pytest.approx(1.0)
+
+
+class TestScoredUniverseIsReported:
+    """The universe a row was *scored* on, not the one its source ranks.
+
+    ``benchmark.ranking_universe`` is a fact about the document and the
+    universe the runner requests; it is not evidence that the model reached
+    it. Every household-registered benchmark whose policy takes the synthetic
+    bracket path is scored on tax units, and the reporting surfaces have to
+    say so or a reader compares two errors computed on two populations.
+    """
+
+    #: Registered on households, scored on tax units: every one of these maps
+    #: to a ``TCJAExtensionPolicy``, for which ``policy_to_microsim_reforms``
+    #: returns an empty dict, so the run lands on the synthetic bracket path —
+    #: IRS return counts, no household layer to rank.
+    FALLBACK_IDS = {
+        "cbo_tcja_2018",
+        "cbo_tcja_extension_2026",
+        "cbo_pl119_21_2026",
+    }
+
+    def _comparisons(self) -> dict[str, object]:
+        return {
+            c.benchmark.policy_id: c
+            for c in run_full_cbo_jct_validation(default_model_runner)
+        }
+
+    def test_every_benchmark_reports_the_universe_it_was_scored_on(self):
+        for policy_id, comparison in self._comparisons().items():
+            assert comparison.scored_universe in (TAX_UNIT, HOUSEHOLD), policy_id
+
+    def test_the_fallback_set_is_exactly_the_synthetic_household_rows(self):
+        comparisons = self._comparisons()
+        fell_back = {
+            policy_id
+            for policy_id, c in comparisons.items()
+            if c.universe_fell_back
+        }
+        assert fell_back == self.FALLBACK_IDS
+        for policy_id in self.FALLBACK_IDS:
+            c = comparisons[policy_id]
+            assert c.benchmark.ranking_universe == HOUSEHOLD
+            assert c.scored_universe == TAX_UNIT
+            assert c.universe_label == "household->tax_unit"
+
+    def test_arp_is_the_one_household_registration_the_model_honours(self):
+        """The composite merge must propagate its components' universe."""
+        comparison = self._comparisons()["cbo_arp_2021"]
+        assert comparison.benchmark.ranking_universe == HOUSEHOLD
+        assert comparison.scored_universe == HOUSEHOLD
+        assert not comparison.universe_fell_back
+        assert comparison.universe_label == "household"
+
+    def test_tax_unit_registrations_never_fall_back(self):
+        comparisons = self._comparisons()
+        for policy_id, c in comparisons.items():
+            if c.benchmark.ranking_universe != TAX_UNIT:
+                continue
+            assert c.scored_universe == TAX_UNIT, policy_id
+            assert not c.universe_fell_back, policy_id
+            assert c.universe_label == "tax_unit", policy_id
+
+    def test_composite_merge_carries_the_components_universe(self):
+        from types import SimpleNamespace
+
+        def component(unit):
+            group = SimpleNamespace(name="Lowest Quintile", num_returns=1_000)
+            return SimpleNamespace(
+                total_tax_change=-100.0,
+                unit=unit,
+                results=[
+                    SimpleNamespace(
+                        income_group=group,
+                        tax_change_avg=-1_000.0,
+                        share_of_total_change=1.0,
+                    )
+                ],
+            )
+
+        assert (
+            _combine_distributional_results(
+                [component(HOUSEHOLD), component(HOUSEHOLD)]
+            ).unit
+            == HOUSEHOLD
+        )
+        # A merge that spanned two populations is reported on the weaker claim.
+        assert (
+            _combine_distributional_results(
+                [component(HOUSEHOLD), component(TAX_UNIT)]
+            ).unit
+            == TAX_UNIT
+        )
+
+    def test_a_model_result_without_a_universe_reports_none(self):
+        """``scored_universe`` is read, never inferred from the registration."""
+        from types import SimpleNamespace
+
+        comparison = compare_distribution(
+            SimpleNamespace(results=[]), CBO_ARP_2021
+        )
+        assert comparison.scored_universe is None
+        assert not comparison.universe_fell_back
+        assert comparison.universe_label == "household?"
+
+
+class TestUniverseReportingSurfaces:
+    """The three surfaces Copilot flagged on PR #104 print the scored universe."""
+
+    def test_methodology_cell_marks_a_fallback(self):
+        from fiscal_model.ui.tabs.methodology import _universe_cell
+
+        assert _universe_cell(HOUSEHOLD, TAX_UNIT) == "households\u2192tax units"
+        assert _universe_cell(HOUSEHOLD, HOUSEHOLD) == "households"
+        assert _universe_cell(TAX_UNIT, TAX_UNIT) == "tax units"
+        assert _universe_cell(HOUSEHOLD, None) == "households (requested; not reported)"
+
+    def test_api_benchmarks_expose_both_universes(self):
+        import api as api_module
+
+        payload = api_module.list_benchmarks()
+        by_id = {b.policy_id: b for b in payload.benchmarks}
+        assert by_id, "no benchmarks ran"
+        for policy_id, entry in by_id.items():
+            assert entry.scored_universe in (TAX_UNIT, HOUSEHOLD), policy_id
+            assert entry.universe_fell_back == (
+                entry.scored_universe != entry.ranking_universe
+            )
+        # The pinned case: a household-registered synthetic-path benchmark
+        # must report scored universe "tax_unit".
+        assert by_id["cbo_tcja_2018"].ranking_universe == HOUSEHOLD
+        assert by_id["cbo_tcja_2018"].scored_universe == TAX_UNIT
+        assert by_id["cbo_tcja_2018"].universe_fell_back is True
+        assert by_id["cbo_arp_2021"].scored_universe == HOUSEHOLD
+        assert by_id["cbo_arp_2021"].universe_fell_back is False
+
+    def test_dashboard_prints_the_scored_universe(self, capsys):
+        from scripts.run_validation_dashboard import print_benchmarks
+
+        print_benchmarks()
+        out = capsys.readouterr().out
+        assert "Universe (scored)" in out
+        assert "household->tax_unit" in out
+        assert "scored on a universe their source does not rank" in out
+        for policy_id in TestScoredUniverseIsReported.FALLBACK_IDS:
+            assert policy_id in out

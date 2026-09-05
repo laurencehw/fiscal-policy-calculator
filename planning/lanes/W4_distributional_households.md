@@ -432,3 +432,33 @@ other six: five of them are on a path where the universe question cannot even be
 asked, and the sixth is a JCT table that was already on the right universe. The
 suite's distributional evidence base did not get broader; one of its seven rows
 stopped comparing two different populations.
+
+### Addendum, 2026-09-05 — registered is not scored, and the surfaces now say so
+
+*Appended after review of PR #104. No model, target or threshold moved; the
+seven errors above are unchanged to the hundredth.*
+
+The outturn table's "Universe registered" column is the universe each
+**source** ranks, which is also the universe the runner *requests* — and
+finding 1 above says three requests cannot be met. Three surfaces were
+printing that registration under a heading that implied the model had been
+scored on it: `api.py`'s `BenchmarkResult.ranking_universe` ("the universe the
+source ranks, **and therefore the one the model was scored on**"),
+`run_validation_dashboard.py`'s "Universe" column, and the Methodology tab's
+"Each row is scored on the universe its own source ranks". **Exactly three of
+the seven rows fall back — `cbo_tcja_2018`, `cbo_tcja_extension_2026` and
+`cbo_pl119_21_2026`, all `household → tax_unit`**, because each maps to a
+`TCJAExtensionPolicy` for which `policy_to_microsim_reforms` returns `{}`;
+`cbo_arp_2021` is the one household registration the model honours, and the
+three JCT rows are registered and scored on `tax_unit`. The scored universe is
+now carried from `DistributionalAnalysis.unit` through
+`BenchmarkComparison.scored_universe` (the composite ARP merge propagates its
+components', so the bundle is not a hole in the chain), and both fields are
+exposed side by side with the fallback marked: `scored_universe` /
+`universe_fell_back` on `GET /benchmarks` and `GET /summary`, a
+`registered->scored` cell plus a named list under the dashboard's
+"Universe (scored)" column and in its `--json` payload, and a
+`households→tax units` cell plus a footnote in the Methodology tab. The
+fallback set is pinned by test in all three places, so a future microsim path
+for `TCJAExtensionPolicy` — the next lane finding 1 names — will fail these
+tests until the expectation is updated deliberately, which is the point.
