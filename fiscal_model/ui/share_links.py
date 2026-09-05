@@ -11,7 +11,13 @@ URL                                                   Surface
 ``/tailor?type=…&rate=…&who=…&phase=…&run=1``         Tailor, restore + run
 ``/build?policies=<ids>&target=…&metric=…``           Build (codec below)
 ``/?analysis=preset&preset=<label>&…``                legacy → shimmed
+``…&baseline=&spec=&mode=&engine=&frozen=1``          any of the above, locked
 ===================================================== ==========================
+
+``frozen=1`` is the classroom lock — the provenance stamps below stop being a
+record of a past run and become a constraint on the next one. Its codec, its
+refusals and its UI live in ``ui/frozen_links.py``; the only thing this module
+owes it is that the legacy shim carries its keys through (``_PRESERVED_QUERY_KEYS``).
 
 Two rules hold everywhere:
 
@@ -60,20 +66,32 @@ ASK_URL_PATH = "ask"
 UNRESOLVED_PRESET_KEY = "_share_preset_unresolved"
 
 
-def _normalize_query_value(value: Any) -> str | None:
+def normalize_query_value(value: Any) -> str | None:
+    """First non-empty value of a query param, whatever shape it arrives in.
+
+    Streamlit hands back a bare string; ``urllib.parse.parse_qs`` hands back a
+    list. Public because ``ui/frozen_links.py`` reads the same URLs and must
+    fold them identically — two normalizers would be two contracts.
+    """
     if value is None:
         return None
     if isinstance(value, (list, tuple)):
         if not value:
             return None
-        return _normalize_query_value(value[0])
+        return normalize_query_value(value[0])
     normalized = str(value).strip()
     return normalized or None
 
 
-def _query_flag(query_params: Mapping[str, Any], key: str) -> bool:
-    value = _normalize_query_value(query_params.get(key))
+def query_flag(query_params: Mapping[str, Any], key: str) -> bool:
+    """True when ``key`` is present and reads as truthy (``1``/``true``/…)."""
+    value = normalize_query_value(query_params.get(key))
     return value is not None and value.lower() in _TRUTHY_QUERY_VALUES
+
+
+#: The names the rest of this module has always used.
+_normalize_query_value = normalize_query_value
+_query_flag = query_flag
 
 
 def _share_request_from_query_params(query_params: Mapping[str, Any]) -> dict[str, Any] | None:
@@ -520,6 +538,17 @@ _PRESERVED_QUERY_KEYS: tuple[str, ...] = (
     "embed_options",
     "theme",
     "utm_source",
+    # Provenance and the classroom lock. A frozen assignment link
+    # (``ui/frozen_links.py``) says nothing about *which* policy — that is
+    # carried by ``preset=``/``type=`` and rewritten below — but dropping these
+    # would turn a link an instructor issued in the old shape into an ordinary
+    # one, scored on whatever the student's settings happened to be.
+    "baseline",
+    "spec",
+    "mode",
+    "engine",
+    "frozen",
+    "classroom",
 )
 
 
