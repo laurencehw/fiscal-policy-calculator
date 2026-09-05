@@ -445,3 +445,175 @@ Written before the code, and each one fails the lane rather than being adjusted:
   pass owns them.
 
 Anything that moves outside this list is a finding, and gets written into §6.
+
+## 6. Outturn
+
+*Appended 2026-09-05, after the code. Numbers from `python
+scripts/cold_holdout.py --json`, `python scripts/run_loo.py --donor-matrix` and
+`python scripts/run_validation_dashboard.py` on the finished branch. Main did
+not move under the lane, so §1's baseline is the one these are measured
+against.*
+
+**The prediction held to the decimal on both rows and on every aggregate.**
+§3 said −$1,378.2B / +7.5% and −$2,745.0B / +8.1%, computed by hand before a
+file was opened. The runner reports −$1,378.2B / 7.5% and −$2,745.0B / 8.1%.
+
+### The two rows
+
+| policy_id | official | before | after | before | after |
+|---|--:|--:|--:|--:|--:|
+| `cbo_opt61_new_payroll_tax_1pct` | −1,281.5 | −1,975.0 | **−1,378.2** | 54.1% | **7.5%** |
+| `cbo_opt61_new_payroll_tax_2pct` | −2,540.0 | −3,950.0 | **−2,745.0** | 55.5% | **8.1%** |
+
+Year by year, 1% alternative, against CBO's own row:
+
+| FY | CBO | before | after | after err |
+|---|--:|--:|--:|--:|
+| 2025 | −56.7 | −164.5 | **−87.6** | +54.5% |
+| 2026 | −118.2 | −171.1 | **−122.0** | +3.2% |
+| 2027 | −122.8 | −177.9 | **−127.0** | +3.4% |
+| 2028 | −127.2 | −185.0 | **−132.1** | +3.8% |
+| 2029 | −131.1 | −192.4 | **−137.4** | +4.8% |
+| 2030 | −135.3 | −200.1 | **−142.9** | +5.6% |
+| 2031 | −140.1 | −208.1 | **−148.6** | +6.0% |
+| 2032 | −145.0 | −216.5 | **−154.3** | +6.4% |
+| 2033 | −150.0 | −225.1 | **−160.2** | +6.8% |
+| 2034 | −155.0 | −234.1 | **−166.1** | +7.2% |
+| **total** | **−1,281.5** | **−1,975.0** | **−1,378.2** | **+7.5%** |
+
+### Everything else
+
+| | before | after |
+|---|--:|--:|
+| **Tier 1 mean** | 18.0% | **14.4%** |
+| **Tier 1 median** | 12.6% | **11.4%** |
+| **Tier 1 within 15%** | 14/26 | **16/26** |
+| **Tier 1 within 25%** | 21/26 | **23/26** |
+| Fitted calibrated references | 23 @ 1.6% | **23 @ 1.6%** |
+| Unfitted reconstructions | 31 @ 56.6% | **31 @ 56.6%** |
+| Payroll LOO (n=3 derivable) | 3.8% | **3.8%** |
+| LOO suite | 18 @ 29.6% / 19.1% / 8 | **18 @ 29.6% / 19.1% / 8** |
+| Tests | 3,322 passed, 1 skipped | **3,335 passed, 1 skipped** |
+
+`run_loo.py --donor-matrix` output is **byte-identical** before and after, and
+so is the shipped-preset sweep (all 53 `PRESET_POLICIES` entries scored on both
+commits). Every Tier-1 row other than the two named ones is identical to the
+dollar. The two payroll rows are now the 8th and 10th most accurate of 26,
+where they were the 25th and 26th.
+
+`run_validation_dashboard.py` exits 1 on this branch — and it exits 1 on
+`1d35f1b` too, for the same two reasons: `runtime [degraded] Python 3.14.0
+(supported >=3.10,<3.14)` and `microdata [warn] SOI 2023: returns 119% / AGI
+81%`. Diffing the two runs, the only substantive line that changed is the
+out-of-sample summary. Neither degraded component is touched by this lane.
+
+### All seven falsification tests fired, and none of them fired against the lane
+
+`tests/test_payroll_new_earnings_tax.py`, 13 tests. Test 3 is the one worth
+reading: the covered-earnings ratio measured on CY2024 is 1.0220 against
+CY2023's 1.0314 — 0.9% apart, and worth 0.9pp on the row (+6.6% instead of
++7.5%). **CY2022 gives 0.9342, which would take the row to −2.6%**, i.e. the
+excluded year is the flattering one. It is excluded on the Trustees' own
+footnote 10 ($33.4B of Accelerated Payments repayments inside that year's
+expenditures break the expenditures-over-cost-rate identity), and the exclusion
+was written into the data file's header and this document's §2.1 in the
+commit *before* the row was scored. The test now says so in as many words, so
+nobody has to take it on trust.
+
+### Six findings
+
+**1 — The plan's own scoping was wrong on both halves, and the source says so
+in two sentences.** §2.1 of `MODELING_IMPROVEMENT.md` scoped this row as
+"employer-share incidence + income-tax offset". CBO's option text says *"The
+new tax would be paid entirely by employees"* and its *Other Considerations*
+paragraph exists to explain that an employer-side tax would raise **less**,
+because only then does the reduction in earnings shrink the income and payroll
+bases. Adding the offset the plan named would have moved the model further from
+the target, for a reason the source explicitly rules out. The employer-share
+rule is built anyway — the module could not otherwise represent Medicare, which
+is half employer-side — and it evaluates to exactly zero here. **Reading the
+option before writing the mechanism is what this lane did differently, and it
+is the whole finding.**
+
+**2 — The identity was not double-counting an employer share; it was dividing
+one tax's receipts by another tax's rate.** `$400B / 2.9% = $13,793B` treats
+Medicare payroll receipts as if they all came from the 2.9% base, when
+`BASELINE_WAGE_DATA` carries `additional_medicare_billions: 15.0` four lines
+above it — the 0.9% Additional Medicare Tax, levied on a far smaller base. The
+row's carried `known_limitations` note named the wrong defect ("all Medicare
+wages including the employer share"), which is a category error: the Medicare
+base is *earnings*, and the 1.45/1.45 split is who remits, not what is taxed.
+A note that describes a plausible defect is worse than no note, because it
+tells the next lane where not to look.
+
+**3 — The behavioural offset made a tax increase raise more than it levied, and
+it is the second module to have done so.** `estimate_behavioral_offset` returned
+the *opposite* sign to the static effect while the engine computes `deficit =
+−revenue + behavioural`, so 0.10 of labour supply plus 0.075 of avoidance
+**magnified** the score by 17.5%. That is the same defect L8 found in
+`trade.py`'s tariff offset in Wave 3, in a different module, with the same
+consequence and the same fix. Two of the repository's fourteen modules have now
+been found with an inverted offset convention, and both were found by a lane
+that happened to be reading the file — **not by any test, because both modules'
+calibrated factories zero the elasticity, so the fitted tier and the LOO
+column are structurally blind to the sign**. Worth a sweep of the other twelve.
+
+**4 — The module's "elasticities" are flat shares of the revenue effect, so
+nothing responded to the size of the change.** `labor_supply_elasticity = 0.1`
+and `tax_avoidance_elasticity = 0.15` multiply `|static|`, not a net-of-tax
+share, so a 0.1pp tax and a 10pp tax erode by the same 17.5%. That is why the
+1% and 2% alternatives had errors 1.4pp apart before the lane and 0.5pp apart
+after: the model was exactly linear in the rate where CBO's is very slightly
+concave. The new branch's erosion is `(r + τ)·ε / (1 − τ)`, 11.6% at 1pp and
+12.0% at 2pp, which is slightly *convex* — so the model now misses the
+curvature in the other direction, by less. The two legacy constants are left in
+place for the OASDI branches, where every factory zeroes them, and they remain
+unsourced. **Carry-over.**
+
+**5 — Two-thirds of what is left is a base-growth gap the option text does not
+explain, and a third is one year.** FY2025 alone is +$30.9B of the +$96.7B
+residual: CBO's own first-year row is **0.48** of its second-year row where a
+January effective date and a fiscal year give **0.75**. The volume gives no
+convention to read off — its income-tax options run 0.77–0.85 and its other
+payroll options 0.29–0.31 — so 0.75 is the calendar and the gap is unexplained.
+The other two-thirds is growth: the model prices the base off CBO's own
+February 2024 wage path at 3.9%/yr, while the base implied by CBO's published
+revenue row grows **3.45%/yr**, which is why the annual error drifts from +3.2%
+in FY2026 to +7.2% in FY2034. Nothing in the option text says why JCT's earnings
+base should grow more slowly than CBO's wages. **Both are carry-overs, and
+neither is closable from the published record this lane could reach.**
+
+**6 — The engine now has two year-indexed policy classes and no general
+concept.** `_score_growth_tax_policy_year` grows one annual by a per-class
+constant, and two classes have now had to opt out of it: `TaxExpenditurePolicy`
+in Wave 4 (a cap's bite is a function of the year) and `PayrollTaxPolicy` here
+(the base is a path). Each opt-out is six lines of `isinstance` in the engine.
+A third will make it a pattern worth naming — `Policy.scores_by_year()`, say —
+rather than a third special case. **Not this lane's to build**, and on the
+carry-over list.
+
+### What this lane did not do
+
+- Did not open `preregistered.py`, `holdout.py`, `loo.py`, `target_revisions.py`,
+  `KNOWN_SCORES`, `CBO_SCORE_MAP`, any CI threshold or
+  `tests/test_cold_holdout.py`. Both rows keep their pre-registered targets and
+  their `.v1` case ids.
+- Did not touch the OASDI cap/donut/90%/NIIT branches,
+  `SSA_COVERED_WAGES_ABOVE_BILLIONS` or `CBO_PAYROLL_ESTIMATES`.
+- Did not build the reduced-hours labour-supply channel (CBO files it under
+  *Economic Effects*, outside a conventional score) or re-estimate the two
+  legacy flat shares (finding 4).
+- Did not promote Options 62 or 63, which stay excluded as leakage against the
+  calibrated covered-wage bands.
+- **Did not add a Decision 6 caption, because no shipped number moved.** All 53
+  `PRESET_POLICIES` entries score identically before and after; the four payroll
+  presets route through factories with pinned annuals and zeroed elasticities,
+  and Tailor builds no payroll policy. The one user-visible surface that *can*
+  reach the corrected sign is `bill_tracker/auto_scorer.py`'s `payroll` branch,
+  which builds a policy with module-default elasticities — an exploratory-tier,
+  demo-grade path whose numbers were being magnified rather than eroded and are
+  now correct.
+- Did not touch the shared docs. `planning/MODELING_IMPROVEMENT.md` §2.1's
+  payroll row and `CLAUDE.md`'s Tier-1 paragraph are both stale after this lane
+  and a docs pass owns them; §2.1's scoping sentence is wrong on the merits, not
+  merely out of date (finding 1).
