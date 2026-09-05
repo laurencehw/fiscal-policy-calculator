@@ -371,3 +371,198 @@ never reaches this channel.
   holds the bracket composition at TY2023, so the $80.7B in the 0% bracket grows
   at the same rate as the $682.6B in the 20% bracket. Bracket thresholds are
   indexed and the composition drifts; nothing here tracks that.
+
+## 8. Outturn
+
+*Appended 2026-09-05, after the code. Every number from
+`python scripts/cold_holdout.py --json`, `python scripts/run_loo.py
+--donor-matrix`, `python scripts/run_validation_dashboard.py` and the §5.1
+reproduction script, run on the finished branch and on `1d35f1b` in the same
+session, so the before column is measured rather than quoted.*
+
+**Every registered number landed, including the registered regression.** The
+mechanism is exact — both legs of the score are linear in the base and the stock
+ratio is a ratio — so the outturn is not close to §5's arithmetic, it is §5's
+arithmetic.
+
+### 8.1 Predicted vs actual
+
+| Row | before | §5 said | after | inside? |
+|---|--:|---|--:|---|
+| `cbo_opt47_ltcg_qdiv_2pp` | 44.8% | 8-14%, still under | **10.5%**, under | yes |
+| `cbo_opt51_gains_at_death` | 19.3% | unchanged to the dollar | **19.3%**, −432.8 → −432.8 | yes |
+| `biden_capital_gains_39` | 16.7% under | 28-35%, now over | **31.4%**, over | yes |
+| `treasury_capgains_39_plus_stepup_elim` | 0.2% | 40-47%, now over | **43.3%**, over | yes |
+| Tier 1 mean | 18.0% | 18.5-19.3% | **18.9%** | yes |
+| Tier 1 median | 12.6% | 12.5-13.0% | **12.6%** | yes |
+| Tier 1 within 15% | 14 | 14 | **14** | yes |
+| Tier 1 within 25% | 21 | 20 | **20** | yes |
+| `CapitalGains` LOO (n=3) | 39.6% | unchanged | **39.6%** | yes |
+| LOO suite (n=18) | 29.6% | unchanged | **29.6%** | yes |
+| calibrated fitted (n=23) | 1.6% | unchanged | **1.6%** | yes |
+| unfitted reconstruction (n=31) | 56.6% | unchanged | **56.6%** | yes |
+
+§5 predicted rate channels of **92.5**, **359.0** and **359.0** and Tailor rows
+of **−$91.4B / −$183.7B / −$46.9B / −$626.9B / −$432.8B**. The model returns
+92.46, 359.02, 359.02 and −$91.4B / −$183.7B / −$46.9B / −$626.9B / −$432.8B.
+
+### 8.2 The three rows, channel by channel
+
+The rate and death channels are separate addends, so the split is exact. The
+death column is unchanged to the cent on every row, which is the §6 test that
+the projection did not leak into W4's work.
+
+| Row | rate before | rate after | death before | death after | total before | total after | target |
+|---|--:|--:|--:|--:|--:|--:|--:|
+| `cbo_opt47_ltcg_qdiv_2pp` | 57.07 | **92.46** | 0.00 | 0.00 | −57.1 | **−92.5** | −103.3 |
+| `cbo_opt51_gains_at_death` | 0.00 | 0.00 | 432.75 | **432.75** | −432.8 | −432.8 | −536.1 |
+| `biden_capital_gains_39` | 220.27 | **359.02** | 20.19 | **20.19** | −240.5 | **−379.2** | −288.6 |
+| `treasury_capgains_39_plus_stepup_elim` | 220.27 | **359.02** | 102.45 | **102.45** | −322.7 | **−461.5** | −322.0 |
+
+### 8.3 Findings
+
+**1 — The base was two years stale and the residual was almost all of it.** On
+Option 47, the row this lane was opened on, projecting the flow closed **34.3 of
+the 44.8 points**, leaving 10.5. Nothing else in the rate channel was touched:
+not an elasticity, not a bracket, not a threshold, not a rule.
+
+**2 — CBO's own path says the frozen elasticity was never the problem.**
+Inverting the option's published annual figures for the semi-log coefficient
+gives, on a **flat** base, 4.17 in FY2025 falling to **1.81** in FY2034 — a
+coefficient no scorekeeper's method produces, because it is the projection error
+being absorbed by the elasticity year after year. On the **projected** base it is
+**3.17 / 3.01 / 3.12** across FY2026-2034, against the frozen Dowd–McClelland–
+Muthitacharoen 3.2727 and **JCT's own published working coefficient of 3.1**
+(CRS R48562 p. 8). That number was not chosen here and is not fitted here: the
+growth rate is the module's own shipped constant, and the rate that would make
+FY2034 imply DMM's 3.2727 *exactly* is **6.77%**, not the 5.80% used. The lane is
+using the slower rate and still under-predicts, which is the direction to be
+wrong in.
+
+**3 — The qualified-dividends worry was the obvious hypothesis and it was
+wrong, and the arithmetic that says so was already in the tree.** SOI Table 3.5's
+preferential columns are what the capital-gains schedule taxed, so they contain
+qualified dividends by construction — and the proof needs no assumption, because
+the base **exceeds the whole year's realized gains** in both vendored years
+(1.046 and 1.189). Against gains plus qualified dividends the coverage ratio is a
+stable 0.840 and 0.876 across a year in which realizations fell 27%. Adding a
+qualified-dividends column would have double-counted $313-336B of base and moved
+the row from 45% under to about 28% under *by being wrong twice*. The check now
+ships as `soi_preferential_base_coverage.csv`, carried and never read.
+
+**4 — The stale note was wrong about the 0% bracket in direction, not just in
+vintage.** It said gains facing the 0% rate "are taxed at the margin in the model
+and not in JCT's estimate". CBO's Option 47 raises all three preferential rates,
+so they are taxed in both; and dropping the bracket moves the row from 57.3% to
+**71.5%** under on a like-for-like replay. A note written to explain an
+over-prediction survived two waves of the row under-predicting.
+
+**5 — The FY2022 Green Book row's 0.2% was the second error in a cancelling
+pair, and this lane removed the first.** W4 §8.4 had already said the number was
+not a measurement of accuracy. It now reads 43.3% over, and about **17 of those
+points are the window it is scored on**: its target is FY2022-2031 on a 2021
+baseline, the record states no `effective_start_year` so the model scores
+FY2025-2034, and running the same channel on the target's own window returns
+$405.6B against $461.5B. That is a manifest question, not a modelling one.
+
+**6 — A projection is a property of the base's vintage, and the rule that says
+so is what keeps three rows still.** `cbo_2pp_all_brackets` carries a
+2018-vintage JCT target *and* a 2018-vintage $955B base; growing that base into
+a 2025-2034 window would multiply its rate channel by 1.94 and take the row from
+14.0% to about 121%. The two PWBM rows are the same story at a 2021 vintage. All
+three are untouched, and `run_loo.py --donor-matrix` is byte-identical.
+
+### 8.4 Where the pre-registration was wrong
+
+**Nowhere on the numbers, and that is worth saying plainly rather than
+celebrating: the rescaling is algebra, not prediction.** Both legs of the score
+are linear in the base and the stock ratio is a ratio, so §5's figures were
+always going to be reproduced exactly if the implementation was correct. What §5
+was really registering was the *choice* — which rate, on which rows, and at what
+cost — and the honest test of that is §8.3 finding 2, which the lane could not
+compute in advance of choosing.
+
+**One thing §2.6 of the Wave 2 lane got wrong is now settled.** It predicted that
+growing the realizations base at 5.79% would take `cbo_opt47` "from a predicted
+~30% to ~150%". It cannot: the row was at 55% of its target and the largest
+factor the projection applies in any year is 1.86. It went to 90% of target. The
+rule that arithmetic was defending — "stocks are indexed, flows are not" — was
+right about estate and payroll and wrong about this flow, for the reason in §3's
+H2: this flow is not free-standing.
+
+### 8.5 Falsification checks
+
+| §6 test | result |
+|---|---|
+| Any Tier-1 row other than the three named moving | **clean** — 3 of 26 moved; the other 23 identical to the dollar |
+| `cbo_opt51_gains_at_death` moving by any amount | **clean** — −432.8 before and after |
+| The death addend on either Green Book row moving | **clean** — 20.19 and 102.45, unchanged |
+| `CapitalGains` LOO, LOO suite, fitted tier or reconstruction tier moving | **clean** — `run_loo.py --donor-matrix` byte-identical; 0 of 23 and 0 of 31 scorecard rows moved |
+| The donor matrix's three identical rows ceasing to be identical | **clean** |
+| `cbo_opt47` outside 8-14%, or either Green Book row outside its band | **clean** — 10.5%, 31.4%, 43.3% |
+| Tier 1 within-25 below 20 | **clean at exactly 20** — `cold_holdout.py --max-mean-error 25 --min-within-25pct 20` exits 0 |
+
+Suite: **3,338 passed, 1 skipped**, from 3,322 before. All sixteen new tests are
+this lane's (`tests/test_capital_gains_rate_projection.py`); **no existing test
+had to be restated**, because none pinned a rate-channel level.
+`scripts/run_validation_dashboard.py` exits 1 before and after for the same two
+environment reasons (Python 3.14 outside the supported range, the SOI microdata
+warn), and the whole diff between its two runs is the one Tier 1 line.
+
+### 8.6 Shipped output, and the note that ships with it
+
+§5.1's table, reproduced on the finished branch:
+
+| Tailor input | before | after |
+|---|--:|--:|
+| +2pp, all brackets | −$56.4B | **−$91.4B** |
+| +5pp, all brackets | −$110.9B | **−$183.7B** |
+| +5pp above $1M, step-up retained | −$22.3B | **−$46.9B** |
+| 39.6% above $1M + eliminate step-up, $1M exemption | −$490.7B | **−$626.9B** |
+| constructive realization at death only, no exclusion | −$432.8B | −$432.8B |
+
+No preset moves: `Eliminate Step-Up Basis (-$500B)` scores −$523.5B before and
+after, because it runs through `TaxExpenditurePolicy`.
+
+Four shipped numbers move by 26% to 110%, so **Decision 6 binds** and the note
+ships in its own commit — `realizations_projection_caption` in
+`fiscal_model/ui/tabs/results_summary.py`, directly after
+`gains_at_death_caption`, computed from the policy's own projection factors so it
+cannot drift from the figure above it:
+
+> Realizations base: the rate change is priced on $1,108B of gains and qualified
+> dividends taxed at the preferential rates in IRS SOI tax year 2023, grown at
+> 5.8% a year — the rate the accrued-gains stock it is a flow off already grows
+> at — so the base is $1,240B in 2025 and $2,060B in 2034. Holding it at its 2023
+> level instead would assert a realization hazard falling 5.8% a year.
+
+It is silent where no rate channel was projected: a policy whose base the caller
+supplied, and one that changes no rate — so the death-only row above keeps its W4
+note and gains nothing.
+
+### 8.7 What the lane did not do
+
+- **No receipts lag.** The enactment year is still scored at full strength
+  against a fiscal year CBO scores at a fraction of one, and the module's
+  enactment-year coefficient of 8.06 against CBO's implied 4.23 is not a
+  like-for-like comparison because of it. Building one is a scoring-engine change
+  that would move every row in the battery.
+- **No smoothing of the SOI anchor**, though TY2023 is a trough between $1,283.6B
+  and $1,368.1B on the vendored aggregate series.
+- **The realizations growth rate is a net-worth CAGR**, not a published
+  realizations projection. CBO publishes one; `cbo.gov` returns 403 to this
+  environment, which is carry-over item 17's existing blocker.
+- **The Green Book rows' window is unchanged.** §8.3 finding 5 quantifies it at
+  about 17 points on the FY2022 row; moving it is a shape input under the
+  manifest's supersede rule.
+- **The $1M threshold is still not indexed**, so both Green Book rows understate
+  their own base growth — the conservative direction on rows that now
+  over-predict.
+- **No target moved and no constant was retuned.** `preregistered.py`,
+  `holdout.py`, `loo.py`, `target_revisions.py`, `KNOWN_SCORES` and
+  `CBO_SCORE_MAP` are untouched, and the CI gate was not loosened.
+- **The CI gate's ceiling was not re-derived and does not need to be.** At 18.9%
+  the standing `--max-mean-error 25` is 1.32x the live mean and
+  `--min-within-25pct 20` sits exactly on the count, so the gate passes and
+  `tests/test_ci_workflow.py` passes with it. Other Wave 5 lanes are moving the
+  same battery, so any re-derivation belongs after all of them land, not here.
