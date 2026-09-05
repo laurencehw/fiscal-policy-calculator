@@ -48,10 +48,11 @@ is the thing a student hands in. Build packages are not freezable yet.
 
 from __future__ import annotations
 
+import contextlib
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
-from collections.abc import Mapping
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from .session_state import (
@@ -251,10 +252,8 @@ def apply_frozen_assignment(st_module: Any, frozen: FrozenAssignment) -> None:
     label = frozen.engine_label
     if label:
         seed_widget_default(st_module, KEY_SETTING_MACRO_MODEL, label, force=True)
-    try:
+    with contextlib.suppress(Exception):  # pragma: no cover — exotic session_state stand-ins
         st_module.session_state[FROZEN_STATE_KEY] = frozen
-    except Exception:  # pragma: no cover — exotic session_state stand-ins
-        pass
 
 
 def clear_frozen_assignment(st_module: Any) -> None:
@@ -262,10 +261,8 @@ def clear_frozen_assignment(st_module: Any) -> None:
     session = getattr(st_module, "session_state", None)
     if session is None:  # pragma: no cover — exotic test doubles
         return
-    try:
+    with contextlib.suppress(Exception):  # pragma: no cover — defensive
         session.pop(FROZEN_STATE_KEY, None)
-    except Exception:  # pragma: no cover — defensive
-        pass
 
 
 def active_frozen_assignment(st_module: Any) -> FrozenAssignment | None:

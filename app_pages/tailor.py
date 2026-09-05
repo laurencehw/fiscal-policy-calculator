@@ -35,6 +35,13 @@ from fiscal_model.ui.calculation_controller import (
     CUSTOM_ANALYSIS_MODE,
     SPENDING_ANALYSIS_MODE,
 )
+from fiscal_model.ui.frozen_links import (
+    apply_frozen_assignment,
+    clear_frozen_assignment,
+    decode_frozen_assignment,
+    frozen_refusal,
+    render_frozen_refusal,
+)
 from fiscal_model.ui.session_state import (
     KEY_DYNAMIC_SCORING,
     KEY_QS_CALCULATE,
@@ -54,13 +61,6 @@ from fiscal_model.ui.session_state import (
     mirror_widget_value,
     seed_widget_default,
     shadow_key,
-)
-from fiscal_model.ui.frozen_links import (
-    apply_frozen_assignment,
-    clear_frozen_assignment,
-    decode_frozen_assignment,
-    frozen_refusal,
-    render_frozen_refusal,
 )
 from fiscal_model.ui.settings_controller import claim_inline_dynamic_toggle
 from fiscal_model.ui.share_links import decode_tailor_query
