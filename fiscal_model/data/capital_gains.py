@@ -29,6 +29,20 @@ percent of estate value - on the convention that transfers to a surviving
 spouse are not realization events.  Both are carried as shares of household net
 worth in the same year and grown with it, so the flow is indexed to the asset
 stock rather than frozen at one constant.
+
+**What the carve-outs reach.**  A realization-at-death proposal does not tax
+all of that flow.  The same Table 8 splits unrealized gain by asset type, which
+is what decides how much of a decedent's gain the section 121 principal-
+residence exclusion and a family-owned-business deferral remove, and IRS SOI
+*Estate Tax Statistics* Table 1 gives the charitable share by size of estate.
+Two of the reliefs every such proposal states are already absent from this
+base, and the table's own note is what says so: *"Bonds, vehicles, and
+collectibles are assumed to have no accrued capital gains"* and *"It is assumed
+a decedent transfers his/her full estate to a surviving spouse.  Such
+inter-spousal transfers are not included in the estate totals reported above."*
+So the tangible-personal-property and spousal carve-outs remove nothing here,
+and deducting either would be a double count - which is why the spousal share
+is carried in the data file and never read.
 """
 
 from __future__ import annotations
@@ -81,12 +95,38 @@ class GainsBracket:
 
 @dataclass(frozen=True)
 class DecedentClass:
-    """One estate-size class in the gains-at-death schedule."""
+    """One estate-size class in the gains-at-death schedule.
+
+    The three ``*_share`` fields are shares of this class's **unrealized capital
+    gain**, not of its estate value, and each corresponds to a relief a
+    realization-at-death proposal states:
+
+    ``residence_gain_share``
+        The share held in the primary residence, which the section 121
+        exclusion reaches up to its statutory per-person cap.
+    ``active_business_gain_share``
+        The share held in businesses the decedent actively participated in and
+        in farms, which the Green Books' family-owned-business election defers
+        until the interest is sold.
+    ``charitable_bequest_share``
+        The share transferred to charity, which no such proposal taxes.
+
+    The spousal and tangible-personal-property reliefs have no field, because
+    the base already excludes both (see the module docstring).
+
+    ``unrealized_gain_share`` is a different object: unrealized gain per dollar
+    of *wealth* at this estate size (Avery, Grodzicki & Moore), which prices
+    how much tax a bequest of appreciated property avoids.
+    """
 
     group: str
     decedents_per_year: float
     gains_per_decedent_dollars: float
     gains_billions: float
+    residence_gain_share: float = 0.0
+    active_business_gain_share: float = 0.0
+    charitable_bequest_share: float = 0.0
+    unrealized_gain_share: float = 0.0
 
     def taxable_gains_billions(self, exemption: float) -> float:
         """Gains above a per-decedent exemption, in billions."""
@@ -101,6 +141,7 @@ class CapitalGainsBaseline:
     HOLDING_FILE = "soi_gains_by_holding_period.csv"
     PARAMETER_FILE = "accrued_gains_parameters.csv"
     LADDER_FILE = "decedent_estate_ladder.csv"
+    CARVEOUT_FILE = "decedent_carveout_shares.csv"
     AGGREGATE_FILE = "taxfoundation_capital_gains_2022_2024.csv"
 
     #: A capital-gains rate change is a change to the 0/15/20 percent ladder.
@@ -140,6 +181,27 @@ class CapitalGainsBaseline:
     @cached_property
     def _ladder(self) -> pd.DataFrame:
         return self._read(self.LADDER_FILE)
+
+    @cached_property
+    def _carveouts(self) -> dict[str, dict[str, float]]:
+        """Carve-out shares keyed by ladder group.
+
+        ``marital_bequest_share`` is deliberately not returned: it is in the
+        file as the record of a double count that would be wrong to make, not
+        as an input.
+        """
+        frame = self._read(self.CARVEOUT_FILE)
+        fields = (
+            "residence_gain_share",
+            "active_business_gain_share",
+            "charitable_bequest_share",
+        )
+        return {
+            str(row["group"]): {
+                name: float(min(1.0, max(0.0, row[name]))) for name in fields
+            }
+            for _, row in frame.iterrows()
+        }
 
     @cached_property
     def _aggregate(self) -> pd.DataFrame:
@@ -420,25 +482,37 @@ class CapitalGainsBaseline:
         groups, so the classes carry no within-group dispersion - a coarse
         schedule, but one with a per-decedent exemption in it, which a single
         aggregate flow cannot have.
+
+        Each class also carries the shares of its gain that the stated
+        carve-outs reach, from ``decedent_carveout_shares.csv``.
         """
         total_gains = self.gains_at_death_billions(year)
         households = self._parameters["households_millions"] * 1e6
         flow_rate = self._parameters["estate_flow_rate"]
         ladder = self._ladder
+        carveouts = self._carveouts
         weights = ladder["net_worth_millions_usd"] * ladder["unrealized_gain_share"]
         total_weight = float(weights.sum())
 
         classes: list[DecedentClass] = []
         for (_, row), weight in zip(ladder.iterrows(), weights):
+            group = str(row["group"])
             decedents = households * float(row["household_share"]) * flow_rate
             gains = total_gains * float(weight) / total_weight if total_weight > 0 else 0.0
             per_decedent = (gains * 1e9 / decedents) if decedents > 0 else 0.0
+            shares = carveouts.get(group, {})
             classes.append(
                 DecedentClass(
-                    group=str(row["group"]),
+                    group=group,
                     decedents_per_year=decedents,
                     gains_per_decedent_dollars=per_decedent,
                     gains_billions=gains,
+                    residence_gain_share=shares.get("residence_gain_share", 0.0),
+                    active_business_gain_share=shares.get(
+                        "active_business_gain_share", 0.0
+                    ),
+                    charitable_bequest_share=shares.get("charitable_bequest_share", 0.0),
+                    unrealized_gain_share=float(row["unrealized_gain_share"]),
                 )
             )
         return classes

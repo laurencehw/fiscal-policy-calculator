@@ -19,7 +19,41 @@ from ..policies import (
 )
 from ..scoring import FiscalPolicyScorer
 from ..spending_outlays import IMMEDIATE
-from .cbo_scores import CBOScore, get_validation_targets, validation_shape
+from .cbo_scores import CBOScore, ScoreSource, get_validation_targets, validation_shape
+
+#: Which realization-at-death design a capital-gains record carries.
+#:
+#: Both Treasury Green Books state six reliefs in the same paragraph as their
+#: per-donor exclusion (FY2022 report p. 63, PDF p. 69; FY2025 report p. 81,
+#: PDF p. 89), and one of them - deferral of the tax on a family-owned and
+#: -operated business until the interest is sold - changes a score materially.
+#: CBO's Option 51, alternative 2 (pub. 60557, report p. 61) states none of
+#: them: its whole text is that capital gains "would be taxed as if the
+#: decedent had sold the asset at death".
+#:
+#: So: **a realization-at-death proposal published by the Treasury in a Green
+#: Book carries the reliefs that Green Book states alongside its per-donor
+#: exclusion; a budget option that states none carries only what its own text
+#: describes.** The key is the publisher of the document, not the size of the
+#: target, and ``tests/test_capital_gains_death_channel.py`` pins that it
+#: selects the same rows as the alternative key (a positive per-donor
+#: exclusion), so the rule cannot quietly become a per-row switch.
+#:
+#: The charitable and section 121 carve-outs and the behavioural response are
+#: **not** covered by this rule and apply to every design: a tax-exempt donee,
+#: a statutory exclusion the proposals preserve and a price response are
+#: properties of any regime that taxes gains at death.
+GREEN_BOOK_DEATH_DESIGN_RULE = (
+    "A capital-gains record that eliminates step-up and is sourced to a "
+    "Treasury Green Book is scored with the Green Book's stated "
+    "family-owned-business deferral; one sourced to a CBO or JCT budget option "
+    "is not, because those documents state no such election."
+)
+
+
+def uses_green_book_death_design(score: CBOScore) -> bool:
+    """Whether ``score``'s document states the Green Book's death-channel reliefs."""
+    return bool(score.eliminate_step_up) and score.source is ScoreSource.TREASURY
 
 #: Fiscal year the validation window opens on. A record may override it with
 #: ``effective_start_year`` when the *source* states a later effective date.
@@ -536,10 +570,14 @@ def create_policy_from_score(
         ``score.agi_inclusive_base=True``, for AGI-inclusive surtaxes.
     ``capital_gains``
         :class:`CapitalGainsPolicy` with the **module-default** elasticity set
-        (short-run 0.8 / long-run 0.4) and SOI auto-populated baseline
+        (Dowd, McClelland & Muthitacharoen 2015, persistent 0.72 / transitory
+        1.2 at a 22% reference rate) and SOI auto-populated baseline
         realizations and rate. Deliberately *not* the per-case hand-set
         elasticity tuples in ``scenarios.py`` — this path is the uncalibrated
-        prediction, so its behavioural parameters are frozen across cases.
+        prediction, so its behavioural parameters are frozen across cases. The
+        death channel's *design* — whether the family-owned-business deferral
+        applies — comes from the record's own document under
+        :data:`GREEN_BOOK_DEATH_DESIGN_RULE`.
     ``corporate_rate``
         :class:`CorporateTaxPolicy` from the rate change, module defaults for
         elasticity and base.
@@ -597,6 +635,7 @@ def create_policy_from_score(
             baseline_realizations_billions=0.0,
             eliminate_step_up=score.eliminate_step_up,
             step_up_exemption=score.step_up_exemption,
+            defer_family_business_gains=uses_green_book_death_design(score),
             start_year=start_year,
         )
 
@@ -705,6 +744,7 @@ def create_capital_gains_policy_from_score(
     eliminate_step_up: bool = False,
     step_up_exemption: float | None = None,
     score_gains_at_death: bool = True,
+    defer_family_business_gains: bool = False,
     start_year: int = DEFAULT_VALIDATION_START_YEAR,
 ) -> CapitalGainsPolicy:
     """
@@ -739,6 +779,7 @@ def create_capital_gains_policy_from_score(
         transitory_elasticity=float(transitory_elasticity),
         use_time_varying_elasticity=use_time_varying,
         score_gains_at_death=bool(score_gains_at_death),
+        defer_family_business_gains=bool(defer_family_business_gains),
     )
 
 

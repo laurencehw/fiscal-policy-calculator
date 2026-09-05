@@ -28,6 +28,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+from fiscal_model.policies import CapitalGainsPolicy
 from fiscal_model.spending_outlays import IMMEDIATE, account_class_label
 from fiscal_model.trade import TRADE_BASELINE, TariffPolicy
 from fiscal_model.ui.a11y import (
@@ -524,6 +525,67 @@ def tariff_net_caption(policy: Any, result: Any) -> str:
     )
 
 
+def gains_at_death_caption(policy: Any, result: Any) -> str:
+    """One line saying what a realization-at-death headline does and does not tax.
+
+    A proposal that ends stepped-up basis does not tax the whole flow of
+    unrealized gain transferred by decedents, and no published one claims to:
+    appreciated property left to charity generates no taxable gain, the
+    section 121 exclusion covers a quarter-million dollars of gain on a
+    principal residence, and the Treasury Green Books defer the tax on a
+    family-owned and -operated business until the interest is sold. Wiring
+    those in moved the headline on this form materially, so it ships with its
+    explanation rather than in silence.
+
+    Computed by replaying the scorer's own death-channel loop over the same
+    window, so it cannot drift from the figure above it. Returns ``""`` for
+    anything that is not a step-up-elimination capital-gains policy.
+    """
+    if not isinstance(policy, CapitalGainsPolicy):
+        return ""
+    if not policy.eliminate_step_up or not policy.score_gains_at_death:
+        return ""
+
+    years = getattr(result, "years", None)
+    if years is None or len(years) == 0:
+        return ""
+    death = 0.0
+    for year in years:
+        if not policy.is_active(int(year)):
+            continue
+        phase = policy.get_phase_in_factor(int(year))
+        death += (
+            policy.estimate_step_up_elimination_revenue(int(year) - policy.start_year)
+            * phase
+        )
+    if death == 0.0:
+        return ""
+
+    exclusion = float(policy.step_up_exemption)
+    deferral = (
+        " Tax on a family-owned and -operated business is deferred until the "
+        "interest is sold, so only what is sold inside the window is collected."
+        if policy.defer_family_business_gains
+        else ""
+    )
+    per_donor = (
+        f" A \\${exclusion:,.0f} per-decedent exclusion then applies to what is "
+        f"left, not to the whole gain."
+        if exclusion > 0
+        else " This design states no per-decedent exclusion."
+    )
+    return (
+        f"Gains at death: \\${-death:+,.1f}B of the static score above is "
+        f"constructive realization at death - Poterba & Weisbenner's flow of "
+        f"unrealized gain transferred by decedents, indexed to household net "
+        f"worth. It is not the whole flow: bequests to charity and the "
+        f"\\${policy.section_121_exclusion:,.0f} section 121 exclusion on a "
+        f"principal residence come out first.{deferral}{per_donor} "
+        f"Inter-spousal transfers and tangible personal property are already "
+        f"outside that flow, so neither is deducted twice."
+    )
+
+
 def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, Any]) -> None:
     """Tier badge, headline number, interpretation, sensitivity, provenance."""
     policy = result_data["policy"]
@@ -565,6 +627,10 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     tariff_note = tariff_net_caption(policy, result)
     if tariff_note:
         st_module.caption(tariff_note)
+
+    death_note = gains_at_death_caption(policy, result)
+    if death_note:
+        st_module.caption(death_note)
 
     credibility_html = _build_credibility_html(getattr(scored, "credibility", None))
     if credibility_html:
