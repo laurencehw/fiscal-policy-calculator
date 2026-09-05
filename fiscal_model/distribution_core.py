@@ -133,6 +133,11 @@ class DistributionalAnalysis:
     total_affected_returns: int = 0
     # Which path produced this analysis: "microsim" or "synthetic".
     engine: str = "synthetic"
+    # Which universe was *actually* ranked: "tax_unit" or "household". This is
+    # the produced value, not the requested one — a household request that falls
+    # back to the synthetic bracket path reports ``tax_unit``, because that is
+    # what it ranked.
+    unit: str = "tax_unit"
 
     def get_winners(self) -> list[DistributionalResult]:
         """Get income groups that receive a net tax cut."""
@@ -176,6 +181,7 @@ class DistributionalAnalysis:
             f"Distributional Analysis: {self.policy.name}",
             f"Year: {self.year}",
             f"Grouping: {self.group_type.value}",
+            f"Universe: {self.unit}",
             f"Total Tax Change: ${self.total_tax_change:.1f}B",
             "",
             "By Income Group:",

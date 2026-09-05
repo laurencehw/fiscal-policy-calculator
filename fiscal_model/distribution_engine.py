@@ -25,6 +25,14 @@ from .distribution_grouping import (
     generate_synthetic_brackets,
     get_group_thresholds,
 )
+from .distribution_households import (
+    HOUSEHOLD,
+    SUPPORTED_UNITS,
+    TAX_UNIT,
+    aggregate_to_households,
+    assign_people_weighted_groups,
+    build_household_groups,
+)
 from .policies import Policy
 
 logger = logging.getLogger(__name__)
@@ -33,10 +41,35 @@ logger = logging.getLogger(__name__)
 class DistributionalEngine:
     """
     Engine for computing distributional effects of tax policies.
+
+    ``unit`` selects the universe that is ranked and reported on:
+
+    ``"tax_unit"`` (default)
+        CPS tax units ranked by AGI into buckets cut at fixed dollar
+        thresholds, averages per return. This is what the TPC and JCT
+        return-level tables publish and what every app surface renders.
+    ``"household"``
+        CBO's universe: households ranked by income before transfers and taxes
+        divided by the square root of household size, into groups holding equal
+        numbers of people, averages per household. See
+        :mod:`fiscal_model.distribution_households` for the published
+        definitions this implements.
+
+    The household universe needs the return-level microsimulation — the
+    synthetic bracket path aggregates IRS return counts and has no household
+    layer — so a household request for a policy the microsim cannot represent
+    falls back to the tax-unit path and says so on
+    ``DistributionalAnalysis.unit``.
     """
 
-    def __init__(self, data_year: int = 2022):
+    def __init__(self, data_year: int = 2022, unit: str = TAX_UNIT):
+        if unit not in SUPPORTED_UNITS:
+            raise ValueError(
+                f"Unknown distributional unit {unit!r}; expected one of "
+                f"{', '.join(SUPPORTED_UNITS)}."
+            )
         self.data_year = data_year
+        self.unit = unit
         self._irs_data = None
         self._brackets = None
         self._total_returns = None
@@ -80,6 +113,7 @@ class DistributionalEngine:
         group_type: IncomeGroupType = IncomeGroupType.QUINTILE,
         year: int | None = None,
         prefer_microsim: bool = True,
+        unit: str | None = None,
     ) -> DistributionalAnalysis:
         """Analyze distributional effects of a tax policy.
 
@@ -90,9 +124,16 @@ class DistributionalEngine:
         microsim cannot yet represent — or any microsim failure — fall back to
         the synthetic bracket path, which is also used for the offline
         readiness checks.
+
+        ``unit`` overrides the engine's universe for this call; it defaults to
+        whatever the engine was constructed with. A ``"household"`` request
+        that cannot reach the microsim falls back to the tax-unit synthetic
+        path, and the returned analysis records ``unit="tax_unit"`` so the
+        caller can tell what it actually got.
         """
         if year is None:
             year = getattr(policy, "start_year", 2025)
+        unit = self._resolve_unit(unit)
 
         if prefer_microsim:
             try:
@@ -100,7 +141,7 @@ class DistributionalEngine:
 
                 if policy_to_microsim_reforms(policy, year):
                     return self.analyze_policy_microsim(
-                        policy, group_type=group_type, year=year
+                        policy, group_type=group_type, year=year, unit=unit
                     )
             except Exception as exc:
                 logger.warning(
@@ -110,7 +151,25 @@ class DistributionalEngine:
                     exc,
                 )
 
+        if unit == HOUSEHOLD:
+            logger.info(
+                "Household universe requested for '%s' but the policy takes the "
+                "synthetic bracket path, which ranks IRS return counts and has "
+                "no household layer; reporting on tax units.",
+                getattr(policy, "name", type(policy).__name__),
+            )
         return self._analyze_policy_synthetic(policy, group_type, year)
+
+    def _resolve_unit(self, unit: str | None) -> str:
+        """Validate a per-call universe override, defaulting to the engine's."""
+        if unit is None:
+            return self.unit
+        if unit not in SUPPORTED_UNITS:
+            raise ValueError(
+                f"Unknown distributional unit {unit!r}; expected one of "
+                f"{', '.join(SUPPORTED_UNITS)}."
+            )
+        return unit
 
     def _analyze_policy_synthetic(
         self,
@@ -169,12 +228,14 @@ class DistributionalEngine:
         microdata: pd.DataFrame | None = None,
         group_type: IncomeGroupType = IncomeGroupType.QUINTILE,
         year: int | None = None,
+        unit: str | None = None,
     ) -> DistributionalAnalysis:
         """Run distributional analysis using microsimulation."""
         from fiscal_model.microsim.engine import MicroTaxCalculator
 
         if year is None:
             year = getattr(policy, "start_year", 2025)
+        unit = self._resolve_unit(unit)
 
         if microdata is None:
             microdata_path = Path(__file__).parent / "microsim" / "tax_microdata_2024.csv"
@@ -199,6 +260,9 @@ class DistributionalEngine:
         merged = baseline.copy()
         merged.loc[:, "reform_tax"] = reform["final_tax"].values
         merged.loc[:, "tax_change"] = merged["reform_tax"] - merged["final_tax"]
+
+        if unit == HOUSEHOLD:
+            return self._analyze_households(policy, merged, group_type, year)
 
         groups = create_groups_from_microdata(merged, group_type)
         results = []
@@ -288,6 +352,107 @@ class DistributionalEngine:
             total_tax_change=total_tax_change,
             total_affected_returns=total_affected,
             engine="microsim",
+            unit=TAX_UNIT,
+        )
+
+    def _analyze_households(
+        self,
+        policy: Policy,
+        merged: pd.DataFrame,
+        group_type: IncomeGroupType,
+        year: int,
+    ) -> DistributionalAnalysis:
+        """Report the microsim result on CBO's household universe.
+
+        Tax units are collapsed to households by ``household_id``, ranked by
+        income before transfers and taxes divided by the square root of
+        household size, and cut into groups holding equal numbers of people.
+        Every dollar reported is unadjusted and per household, and the household
+        weight is applied once — at the household — so an average really is an
+        average over households.
+        """
+        households = aggregate_to_households(
+            merged,
+            sum_columns=("tax_change", "final_tax", "reform_tax"),
+        )
+        group_index = assign_people_weighted_groups(households, group_type)
+        groups = build_household_groups(households, group_index, group_type)
+
+        results: list[DistributionalResult] = []
+        total_tax_change = 0.0
+        total_affected = 0
+
+        for index, group in enumerate(groups):
+            members = households[group_index == index]
+            if members.empty:
+                results.append(
+                    DistributionalResult(
+                        income_group=group,
+                        pct_unchanged=100.0,
+                    )
+                )
+                continue
+
+            weight = members["household_weight"].values
+            weight_sum = weight.sum()
+            change = members["tax_change"].values
+            weighted_change = float((change * weight).sum())
+
+            # Income before transfers and taxes less the household's baseline
+            # federal income tax — the denominator CBO's "percent of income"
+            # column is a percent of.
+            after_tax = np.maximum(
+                members["income_before_transfers_and_taxes"].values
+                - members["final_tax"].values,
+                1.0,
+            )
+            after_tax_avg = float((after_tax * weight).sum() / weight_sum)
+
+            increased = float(weight[change > 0.01].sum())
+            decreased = float(weight[change < -0.01].sum())
+            baseline_income = float(
+                (members["income_before_transfers_and_taxes"].values * weight).sum()
+            )
+            baseline_tax = float((members["final_tax"].values * weight).sum())
+            reform_tax = float((members["reform_tax"].values * weight).sum())
+            baseline_etr = baseline_tax / baseline_income if baseline_income > 0 else 0.0
+            new_etr = reform_tax / baseline_income if baseline_income > 0 else 0.0
+
+            result = DistributionalResult(
+                income_group=group,
+                tax_change_total=weighted_change / 1e9,
+                tax_change_avg=weighted_change / weight_sum,
+                tax_change_pct_income=(
+                    (weighted_change / weight_sum) / after_tax_avg * 100
+                    if after_tax_avg > 0
+                    else 0.0
+                ),
+                share_of_total_change=0.0,
+                pct_with_increase=increased / weight_sum * 100,
+                pct_with_decrease=decreased / weight_sum * 100,
+                pct_unchanged=(weight_sum - increased - decreased) / weight_sum * 100,
+                baseline_etr=baseline_etr,
+                new_etr=new_etr,
+                etr_change=new_etr - baseline_etr,
+            )
+            results.append(result)
+            total_tax_change += result.tax_change_total
+            if result.pct_with_increase > 0 or result.pct_with_decrease > 0:
+                total_affected += group.num_returns
+
+        if abs(total_tax_change) > 0.001:
+            for result in results:
+                result.share_of_total_change = result.tax_change_total / total_tax_change
+
+        return DistributionalAnalysis(
+            policy=policy,
+            year=year,
+            group_type=group_type,
+            results=results,
+            total_tax_change=total_tax_change,
+            total_affected_returns=total_affected,
+            engine="microsim",
+            unit=HOUSEHOLD,
         )
 
     def create_top_income_breakout(

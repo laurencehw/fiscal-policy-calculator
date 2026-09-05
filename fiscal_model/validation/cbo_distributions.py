@@ -89,6 +89,33 @@ class DistributionalBenchmarkRow:
     share_with_tax_cut: float | None = None
 
 
+#: CBO's published ranking rule, quoted once and pointed at by every CBO
+#: benchmark below. Sources: CBO, *The Distribution of Household Income*
+#: (https://www.cbo.gov/publication/60706), and the methodology working paper
+#: *Current Work on the Distributional Analysis of Household Income*
+#: (https://www.cbo.gov/system/files/2022-12/58508-WP.pdf).
+CBO_HOUSEHOLD_RANKING_QUOTE = (
+    "CBO ranks households by income before transfers and taxes, adjusted for "
+    "household size: 'CBO calculates adjusted household income by dividing "
+    "household income by the square root of the number of people in the "
+    "household', and 'CBO adjusts income for household size only for the "
+    "purpose of ranking households and assigning them to income groups.' The "
+    "resulting groups each contain 'roughly an equal number of people', so "
+    "'the quintiles contain equal numbers of people, but because households "
+    "vary in size, quintiles generally contain unequal numbers of households.'"
+)
+
+#: JCT's unit, from JCX-68-17's own table stub and JCT's methodology note
+#: (JCX-12R-23, summarised in ``assistant/knowledge/jct_distributional_
+#: methodology.md``): the rows are income classes of *tax filing units*, not of
+#: households, and a joint return is one record.
+JCT_FILING_UNIT_QUOTE = (
+    "JCT reports by income class of the 'tax-filing unit', which collapses a "
+    "joint return into one record; the classes are dollar bands of JCT's "
+    "expanded income, not people-weighted groups of households."
+)
+
+
 @dataclass(frozen=True)
 class CBODistributionalBenchmark:
     """A complete distributional benchmark from an official source."""
@@ -104,6 +131,15 @@ class CBODistributionalBenchmark:
     rows: list[DistributionalBenchmarkRow]
     corporate_incidence_capital_share: float = 0.75
     notes: str = ""
+    #: The universe the *source* ranks and reports on — ``"household"`` or
+    #: ``"tax_unit"``. The model must be asked for the same universe or the
+    #: comparison is between two different populations, which is what the ARP
+    #: benchmark's error was largely measuring before Wave 4. This is a
+    #: statement about the document, never a tuning knob: it is set from the
+    #: sentence recorded in ``ranking_universe_source``.
+    ranking_universe: str = "tax_unit"
+    #: The source's own words for the line above.
+    ranking_universe_source: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -145,6 +181,8 @@ CBO_TCJA_2018 = CBODistributionalBenchmark(
         "incidence is 75/25 capital/labor. Figures capture 2018 only, "
         "before the individual provisions sunset."
     ),
+    ranking_universe="household",
+    ranking_universe_source=CBO_HOUSEHOLD_RANKING_QUOTE,
 )
 
 
@@ -187,6 +225,8 @@ JCT_TCJA_2019 = CBODistributionalBenchmark(
         "CBO. Filing-unit definition is JCT's 'tax-filing unit' which "
         "collapses joint returns into one record."
     ),
+    ranking_universe="tax_unit",
+    ranking_universe_source=JCT_FILING_UNIT_QUOTE,
 )
 
 
@@ -219,14 +259,19 @@ CBO_ARP_2021 = CBODistributionalBenchmark(
         "childless extension + $1400 Recovery Rebate. The strong inverse-"
         "income gradient reflects full refundability + zero-earnings "
         "eligibility + the Recovery Rebate's relatively flat dollar "
-        "amount per person. Scope note: the current benchmark runner "
-        "maps this to create_biden_ctc_2021 (the CTC piece alone), so "
-        "the resulting comparison measures how well the CTC-only "
-        "distribution approximates the bundle. That approximation is "
-        "systematically too concentrated at the bottom because it is "
-        "missing the Recovery Rebate's mass above $75k — the ~9pp "
-        "mean absolute share error documented in validation runs."
+        "amount per person. Scope note: the runner composes all three "
+        "provisions through _run_arp_bundle and merges them by dollar "
+        "weight; the older note here described an earlier configuration "
+        "that scored the CTC piece alone. This is the benchmark the "
+        "tax-unit-versus-household universe was visible in — it read "
+        "7.77pp with the model's bottom quintile taking 53.4% of the "
+        "bundle's dollars against CBO's 34.0%, because CPS tax-unit "
+        "construction splits a household into filing, non-filing and "
+        "dependent units that this ranking never separates. Scored on "
+        "CBO's own universe it reads 3.72pp at 28.6%."
     ),
+    ranking_universe="household",
+    ranking_universe_source=CBO_HOUSEHOLD_RANKING_QUOTE,
 )
 
 
@@ -272,6 +317,8 @@ CBO_TCJA_EXTENSION_2026 = CBODistributionalBenchmark(
         "decomposition. Good cross-check against the 2018 CBO TCJA "
         "benchmark already in this module."
     ),
+    ranking_universe="household",
+    ranking_universe_source=CBO_HOUSEHOLD_RANKING_QUOTE,
 )
 
 
@@ -307,6 +354,8 @@ JCT_SALT_REPEAL_2024 = CBODistributionalBenchmark(
         "benchmark in this suite — 66% of the revenue loss accrues to "
         "filers above $500k. Good stress test for distributional output."
     ),
+    ranking_universe="tax_unit",
+    ranking_universe_source=JCT_FILING_UNIT_QUOTE,
 )
 
 
@@ -349,6 +398,8 @@ JCT_CORPORATE_28_2022 = CBODistributionalBenchmark(
         "fall mostly on high-income owners' finding: 46% of the burden "
         "is on filers above $500k under the 75/25 split."
     ),
+    ranking_universe="tax_unit",
+    ranking_universe_source=JCT_FILING_UNIT_QUOTE,
 )
 
 
@@ -436,6 +487,8 @@ CBO_PL119_21_2026 = CBODistributionalBenchmark(
         "genuinely held-out distributional number the suite has produced for "
         "the TCJA shape."
     ),
+    ranking_universe="household",
+    ranking_universe_source=CBO_HOUSEHOLD_RANKING_QUOTE,
 )
 
 
@@ -524,6 +577,32 @@ class BenchmarkComparison:
     per_group: list[dict[str, Any]] = field(default_factory=list)
     mean_absolute_share_error_pp: float | None = None
     overall_rating: str = "unknown"
+    #: The universe the model *actually* ranked, read off
+    #: ``DistributionalAnalysis.unit``: ``"household"``, ``"tax_unit"``, or
+    #: ``None`` when the model output did not report one. This is **not**
+    #: ``benchmark.ranking_universe``, which is the universe the source ranks
+    #: and therefore the one the runner *requests*. A household request that
+    #: cannot reach the return-level microsim degrades to the synthetic
+    #: bracket path, which has no household layer, and the two fields then
+    #: disagree — see ``universe_fell_back``.
+    scored_universe: str | None = None
+
+    @property
+    def universe_fell_back(self) -> bool:
+        """True when the model was scored on a universe the source does not use."""
+        return (
+            self.scored_universe is not None
+            and self.scored_universe != self.benchmark.ranking_universe
+        )
+
+    @property
+    def universe_label(self) -> str:
+        """``"household"``, or ``"household->tax_unit"`` when it fell back."""
+        if self.scored_universe is None:
+            return f"{self.benchmark.ranking_universe}?"
+        if self.universe_fell_back:
+            return f"{self.benchmark.ranking_universe}->{self.scored_universe}"
+        return self.scored_universe
 
 
 def compare_distribution(
@@ -548,6 +627,13 @@ def compare_distribution(
     not all match every model run; the comparison simply skips rows whose
     labels do not appear on both sides, and reports the mean-absolute
     share error over the matched rows.
+
+    The universe the model was scored on is read off ``model_results.unit``
+    and carried on ``BenchmarkComparison.scored_universe``. It is recorded
+    rather than assumed because a benchmark registered on ``household`` whose
+    policy cannot reach the return-level microsim is scored on tax units, and
+    a reader comparing two errors needs to know which populations produced
+    them. ``None`` means the model output reported no universe at all.
     """
     if group_label_getter is None:
         group_label_getter = lambda row: getattr(row, "income_group", row).name  # noqa: E731
@@ -598,11 +684,13 @@ def compare_distribution(
     else:
         rating = "needs_improvement"
 
+    scored_universe = getattr(model_results, "unit", None)
     return BenchmarkComparison(
         benchmark=benchmark,
         per_group=matched,
         mean_absolute_share_error_pp=mean_err,
         overall_rating=rating,
+        scored_universe=scored_universe if scored_universe else None,
     )
 
 
@@ -612,6 +700,9 @@ def format_comparison(comparison: BenchmarkComparison) -> str:
     out = [
         f"=== {b.source.value} — {b.policy_name} ({b.source_document}) ===",
         f"Source date: {b.source_date}; analysis year: {b.analysis_year}",
+        f"Universe: source ranks {b.ranking_universe}; "
+        f"model scored on {comparison.scored_universe or 'unreported'}"
+        + (" (fell back)" if comparison.universe_fell_back else ""),
         f"Overall rating: {comparison.overall_rating}",
     ]
     if comparison.mean_absolute_share_error_pp is not None:
