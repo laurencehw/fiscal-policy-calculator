@@ -361,7 +361,9 @@ def render_results(
 # ---------------------------------------------------------------------------
 
 
-def render_inline_dynamic_toggle(st_module: Any, settings: dict[str, Any]) -> bool:
+def render_inline_dynamic_toggle(
+    st_module: Any, settings: dict[str, Any], frozen: Any = None
+) -> bool:
     """Render the dynamic toggle beside the Score button and sync ``settings``.
 
     Uses the pre-existing ``sidebar_setting_dynamic_scoring`` key so share
@@ -369,19 +371,26 @@ def render_inline_dynamic_toggle(st_module: Any, settings: dict[str, Any]) -> bo
     The page claims the key from the chrome first (see
     ``settings_controller.claim_inline_dynamic_toggle``) — two widgets sharing a
     key in one run is a Streamlit ``DuplicateWidgetID`` error.
+
+    Under a frozen assignment link the toggle renders disabled and the link's
+    value wins, exactly as in the ⚙ popover: the two controls are one piece of
+    state, so locking one and not the other would lock nothing.
     """
     widget = getattr(st_module, "toggle", None) or st_module.checkbox
     if _DYNAMIC_SCORING_KEY not in st_module.session_state:
         st_module.session_state[_DYNAMIC_SCORING_KEY] = bool(
             settings.get("dynamic_scoring", False)
         )
-    enabled = bool(
-        widget(
-            DYNAMIC_TOGGLE_LABEL,
-            key=_DYNAMIC_SCORING_KEY,
-            help=DYNAMIC_TOGGLE_HELP,
-        )
-    )
+    kwargs: dict[str, Any] = {"key": _DYNAMIC_SCORING_KEY, "help": DYNAMIC_TOGGLE_HELP}
+    label = DYNAMIC_TOGGLE_LABEL
+    if frozen is not None:
+        from fiscal_model.ui.frozen_links import FROZEN_LABEL
+
+        kwargs["disabled"] = True
+        kwargs["help"] = f"{FROZEN_LABEL} — set by the assignment link."
+    enabled = bool(widget(label, **kwargs))
+    if frozen is not None:
+        enabled = bool(frozen.dynamic)
     settings["dynamic_scoring"] = enabled
     if enabled and not settings.get("macro_model"):
         settings["macro_model"] = st_module.session_state.get(
@@ -425,12 +434,24 @@ def render_score_surface(
     split_layout: bool = True,
     before_inputs: Any = None,
     tax_input_kwargs: dict[str, Any] | None = None,
+    frozen: Any = None,
 ) -> None:
     """Inputs on the left, the shared result panel on the right.
 
     The successor to ``app_controller.render_policy_workbench``: same widgets,
     same session keys, same calculation pipeline — plus the inline dynamic
     toggle, the single result object, and hash-based invalidation.
+
+    ``frozen`` is the :class:`~fiscal_model.ui.frozen_links.FrozenAssignment`
+    an ``?frozen=1`` link put in force. The whole input column is then rendered
+    through ``frozen_links.frozen_input_module`` — the same widgets, on the
+    same keys, holding the same values, but disabled — so the student can
+    press Score and read the number without being able to change what is
+    scored. Quick-start cards are suppressed for the same reason: they are
+    one-click preset switches.
+
+    ``before_inputs`` is called with the module the inputs render through, so
+    a page that owns part of its own form (Tailor's chips) is frozen too.
     """
     from fiscal_model.ui.app_controller import (
         _HOW_SCORED_MARKDOWN,
@@ -454,12 +475,21 @@ def render_score_surface(
         input_col = st_module.container(border=True)
         result_col = st_module.container()
 
+    from fiscal_model.ui.frozen_links import (
+        frozen_input_module,
+        render_frozen_banner,
+    )
+
+    inputs_module = frozen_input_module(st_module, frozen)
+
     with input_col:
         st_module.subheader(inputs_heading)
+        if frozen is not None:
+            render_frozen_banner(st_module, frozen)
         if before_inputs is not None:
-            before_inputs()
+            before_inputs(inputs_module)
         calc_context = render_policy_inputs(
-            st_module=st_module,
+            st_module=inputs_module,
             deps=deps,
             modes=modes,
             tax_input_kwargs=tax_input_kwargs,
@@ -469,7 +499,7 @@ def render_score_surface(
         with button_col:
             calculate = _full_width_button(st_module, score_label)
         with toggle_col:
-            render_inline_dynamic_toggle(st_module, settings)
+            render_inline_dynamic_toggle(st_module, settings, frozen)
 
         if getattr(st_module.session_state, KEY_QS_CALCULATE, False):
             del st_module.session_state[KEY_QS_CALCULATE]
@@ -481,7 +511,7 @@ def render_score_surface(
     st_module.session_state.current_run_id = spec_hash
 
     with hero:
-        if show_quick_start:
+        if show_quick_start and frozen is None:
             render_quick_start(
                 st_module=st_module, calculating=bool(calc_context.get("calculate"))
             )
@@ -511,6 +541,7 @@ def render_score_surface(
             settings=settings,
             spec_hash=spec_hash,
             score_label=score_label,
+            frozen=frozen,
         )
 
 
@@ -522,11 +553,16 @@ def render_result_panel(
     spec_hash: str,
     score_label: str = "Score this policy",
     model_available: bool = True,
+    frozen: Any = None,
 ) -> None:
     """Render the panel for whatever is in session state, or say why not.
 
     Chip ⑩: when the recomputed spec hash differs from the stored result's, the
     stale numbers are *replaced* by the invalidation notice.
+
+    Under a frozen assignment link the number carries a compact provenance
+    line naming the baseline it was scored on, the scoring mode, and that a
+    person — not the reader — chose both.
     """
     result_data = st_module.session_state.get("results")
     if not result_data:
@@ -546,6 +582,11 @@ def render_result_panel(
             f"Click **{score_label}** to re-run with the current configuration."
         )
         return
+
+    if frozen is not None:
+        from fiscal_model.ui.frozen_links import render_frozen_provenance
+
+        render_frozen_provenance(st_module, scored, frozen, spec_hash=spec_hash)
 
     render_results(
         scored,
