@@ -5,6 +5,137 @@ in git history, not here.
 
 ## 2026 — ongoing
 
+### Modelling Wave 4 — the death channel's carve-outs, CBO's household universe, Option 56's indexation, Part D's three channels, statutory AMT phase-outs, thirteen targets onto their documents (2026-09-05)
+
+Six lanes on disjoint files plus a target-provenance lane and the coordinator's
+gate re-derivation. **Wave 4 is not in the plan's sequencing** — it is six of
+§6.2's carry-over items taken in parallel. Every lane pre-registered its expected
+movement in [`planning/lanes/`](../planning/lanes/) **before** touching code and
+appended an outturn afterwards; §5.4 of
+[`planning/MODELING_IMPROVEMENT.md`](../planning/MODELING_IMPROVEMENT.md) carries
+the summary, the three findings and the five missed pre-registrations. PRs
+**#104** (distributional households), **#105** (Option 56 excess share), **#106**
+(AMT phase-outs), **#107** (target provenance), **#108** (gains at death),
+**#109** (pharma Part D), **#110** (CI gate).
+
+**Validation tiers moved, and two of the four changed population — so the
+like-for-like readings are printed beside them, and in this wave both printed
+means fell for reasons that are not improvements:**
+
+| Tier | Before | After |
+|---|---|---|
+| Out-of-sample, pre-registered | 26 @ 31.0% / 15.1% median / 13 within 15 / 19 within 25 | **26 @ 18.0% / 12.6% / 14 / 21** |
+| Calibrated, fitted | 28 @ 2.0%, 28/28 within 15 | **23 @ 1.6%, 23/23** — or **28 @ 3.0%, 27/28** with Wave 4's five revised rows held in place (29 @ 5.2%, 27/29 with the TCJA-AMT row too) |
+| Unfitted module reconstructions | 26 @ 61.8% / 38.0% median / 5 within 15 | **31 @ 56.6% / 29.9% / 9** — but **65.7% / 40.5% over the same 26 rows**, i.e. *worse* |
+| — sectoral presets | 14 @ 81.0% / 38.0% median | **15 @ 82.6% / 39.0%** (**88.2%** over the 14) |
+| — 8 P.L. 119-21 line items | 35.8% | **unchanged** |
+| — 3 capital-gains scenarios | 39.6% | **unchanged** |
+| — TCJA AMT relief | 66.8% | **unchanged** |
+| — Wave 4 provenance arrivals | — | **5 @ 9.4%** |
+| Calibrated, leave-one-out | 18 derivable @ 28.4% / 16.5% median / 9 within 15 | **18 derivable @ 29.6% / 19.1% / 8** — every bit of it a *target* movement, no derivation moved |
+| — `Credits` | 20.5% | **18.5%** |
+| — `Expenditures` | 30.2% | **35.7%** |
+| Not cross-validatable | 4 | **unchanged** |
+| Distributional (7 tables) | 0.00–7.77pp | **0.00–5.86pp** (ARP 7.77 → **3.72**) |
+| Scorecard rows | 80 (73 published) | **unchanged** |
+| `revised_target_entries` | 3 | **15** |
+| `line_item_differs` (calibrated) | 13 | **5**, each with a written verdict |
+| Provenance (calibrated) | 19 / 13 / 15 / 7 / 0 | **30 / 5 / 12 / 7 / 0** |
+| Tier 1 CI gate | `--max-mean-error 40 --min-within-25pct 18` | **`25 / 20`** |
+| Tests | — | **3322 passed, 1 skipped** (`python -m pytest tests/ -q`) |
+
+**Per-case, the rows that moved:**
+
+| Row | Official | Before | After | Error |
+|---|--:|--:|--:|--:|
+| `treasury_capgains_39_plus_stepup_elim` (Tier 1) | −$322.0B | −$1,022.3B | **−$322.7B** | 217.5% → **0.2%** |
+| `biden_capital_gains_39` (Tier 1) | −$288.6B | −$678.1B | **−$240.5B** | 134.9% → **16.7%** |
+| `cbo_opt51_gains_at_death` (Tier 1) | −$536.1B | −$581.2B | **−$432.8B** | 8.4% → **19.3%** *(worse, pre-registered as a regression)* |
+| `cbo_opt56_employer_health_income_only` (Tier 1) | −$697.0B | −$529.9B | **−$605.8B** | 24.0% → **13.1%** |
+| `biden_high_income_tax` (Tier 1, **target revised**) | −$252.0B → **−$245.9B** | −$216.5B | −$216.5B | 14.1% → **12.0%** |
+| `expand_drug_negotiation` (Tier 2b) | −$500.0B | −$371.5B | **−$33.5B** | 25.7% → **93.3%** *(worse, by design)* |
+| `international_reference_pricing` (Tier 2b) | −$100.0B | −$746.2B | **−$801.0B** | 646.2% → **701.0%** *(worse, by design)* |
+| `universal_insulin_cap` (Tier 2b) | +$11.4B | +$7.0B | +$7.0B | **39.0%**, unchanged to the cent |
+| `eliminate_salt` (fitted → Tier 2b, **target revised**) | −$1,200.0B → **−$1,621.0B** | −$1,260.3B | −$1,260.3B | 5.0% → **22.3%** |
+| `repeal_salt_cap` (fitted → Tier 2b, **target revised**) | +$1,100.0B → **+$1,169.0B** | +$1,155.6B | +$1,155.6B | 5.1% → **1.2%** |
+| `biden_eitc_childless` (fitted → Tier 2b, **target revised**) | +$178.0B → **+$162.6B** | +$178.0B | +$178.0B | 0.0% → **9.5%** |
+| `extend_enhanced_ptc` (fitted → Tier 2b, **target revised**) | +$350.0B → **+$335.0B** | +$366.2B | +$366.2B | 4.6% → **9.3%** |
+| `ira_enforcement` (fitted → Tier 2b, **target revised**) | −$200.0B → **−$180.4B** | −$188.9B | −$188.9B | 5.5% → **4.7%** |
+| `biden_gilti_reform` (Tier 2b, **target revised**) | −$280.0B → **−$373.9B** | −$230.3B | −$230.3B | 17.8% → **38.4%** |
+| `fdii_repeal` (Tier 2b, **target revised**) | −$200.0B → **−$158.0B** | −$110.7B | −$110.7B | 44.7% → **29.9%** |
+| `biden_full_international` (Tier 2b, **target revised**) | −$700.0B → **−$632.2B** | −$353.7B | −$353.7B | 49.5% → **44.1%** |
+| `repeal_ev_credits` (Tier 2b, **target revised**) | −$200.0B → **−$182.3B** | −$228.4B | −$228.4B | 14.2% → **25.3%** |
+| `trump_universal_10` (Tier 2b, **target revised**) | −$2,000.0B → **−$2,171.1B** | −$1,258.5B | −$1,258.5B | 37.1% → **42.0%** |
+| `auto_tariff_25` (Tier 2b, **target revised**) | −$100.0B → **−$386.2B** | −$182.2B | −$182.2B | 82.2% → **52.8%** |
+| `reciprocal_tariffs` (Tier 2b, **target → a range**) | −$1,200.0B → **[−$1,800B, −$1,400B]**, anchor −$1,500B | −$1,396.8B | −$1,396.8B | 16.4% → **6.9%** vs the anchor; $3.2B outside the nearer bound |
+| ARP refundable credits (distributional) | — | 7.77pp | **3.72pp** | scored on CBO's own household universe |
+
+- **PR #108: the death channel now knows what a realization-at-death proposal
+  does not tax.** Six carve-outs transcribed from the Green Books' own text —
+  spousal transfers, charitable bequests, the §121 residence exclusion, tangible
+  personal property, a family-owned-business deferral, and the per-donor
+  exclusion applied *after* the others — plus a semi-log rate response at death.
+  Tier 1 fell **31.0% → 18.5% on this PR alone** and the capital-gains error mass
+  **405.6 → 81.0**, from half the tier's mass to a sixth. **The Treasury row's
+  0.2% is two errors cancelling and must never be quoted as accuracy**: the
+  mechanism removes 87.2% of that row's death channel where the pre-registered
+  hand path said 92.8%. Option 51 got **worse by design**, and that was
+  registered in advance — its 8.4% had been bought by taxing charitable bequests
+  and small decedents' housing gains that no such regime reaches.
+- **PR #104: the distributional engine gained CBO's household universe**,
+  size-adjusted household income before transfers and taxes with quintiles
+  containing equal numbers of *people*, and each benchmark is now registered on
+  the universe **its source ranks**, with the surfaces reporting the universe
+  **scored**. ARP **7.77pp → 3.72pp**; six of the seven tables unmoved to the
+  hundredth. Two findings: **3 of the 7 fall back `household→tax_unit`** because
+  `TCJAExtensionPolicy` and the corporate policy have no microsim path — so the
+  two *circular* rows are visibly scored on a population CBO does not use — and a
+  per-household **dollar column was wrong by a factor of three** and invisible to
+  every gate, because the error metric scores shares.
+- **PR #105: Option 56's excess share now knows what year it is.** 24.0% →
+  **13.1%**, from CBO's own chained-CPI indexation rather than a fitted
+  parameter; the pre-registered 5%/yr escape hatch that would have landed the row
+  at 0.6% was declared in advance and **not taken**. What is left: a **base
+  omission** (CBO caps premiums *and* FSA/HRA/HSA contributions) and an
+  **unsourced behavioural offset whose sign convention is the reverse of
+  `TaxPolicy`'s**, both named and neither tuned.
+- **PR #106: statutory §55(d)(2) transcribed from eleven Revenue Procedures.**
+  No benchmark moved, by design. A threshold reform stops scoring exactly zero
+  (a −$200,000 MFJ change is now +$300.1B over ten years where every value used
+  to return 0.0), and the module can represent P.L. 119-21's design as distinct
+  from a naive TCJA extension. Finding worth keeping: two schedule rows were 20%
+  wrong and it never showed, because both benchmarks sit on anchors.
+- **PR #109: Part D's three federal channels — and the reconstruction rows got
+  worse.** Direct subsidy 0.37269, reinsurance 0.10470, low-income subsidy
+  0.29864, federal total 0.77603 against the 2023 aggregate's 0.7626; a
+  negotiation ladder reproducing all three published CMS cycles to within 2.1%;
+  a RAND coverage base. The two pre-registered mechanisms landed within $3B of
+  the pre-registered figure, and then the lane's **own** ladder condemned an
+  unsourced $220B Part D gross-spending constant the reference-pricing leg also
+  reads — CMS's own sentence puts the total at $281B. **The alternative was to
+  keep an unsourced number because it flattered the prediction.** Presets moved
+  by design, with a Decision 6 caption in the same PR: negotiation −$371.5B →
+  **−$33.5B**, reference pricing −$746.2B → **−$801.0B**, comprehensive −$573.5B
+  → **−$150.5B**, insulin unchanged.
+- **PR #107: thirteen targets onto their documents, and no modelling change at
+  all.** Every `model_10yr_billions` byte-identical, every LOO derivation
+  unchanged, no constant retuned, no threshold touched. Two of the thirteen were
+  not merely unsourced but the wrong *kind* of number: the auto tariff's −$100B
+  was a **per-year** claim in a ten-year column, and the reciprocal-tariff target
+  was **Tax Foundation's dynamic score in a conventional column** — a tier error
+  no rescaling would have found, now the second **range** revision. **Six of the
+  thirteen got worse**, which is the shape a correct provenance pass has. Four
+  more benchmarks were examined and deliberately left; `line_item_differs` went
+  13 → **5**, and all five carry a written verdict.
+- **PR #110: the Tier 1 CI gate re-derived by the workflow's own rule** after the
+  death channel halved the tier — ceiling `ceil(18.0 × 1.25) = 23` rounded up to
+  **25**, floor `21 − 1 = **20**`, a tightening on both.
+
+**Every Wave 4 module keeps `reported` as its app default under Decision 1.** The
+shipped numbers that moved are the three drug-pricing presets, by design; the
+insulin preset's *description string* was also corrected, having still quoted the
+−$15B target PR #90 superseded.
+
 ### Modelling Wave 3 — international overlap, net tariffs, credits from CPS microdata, five targets onto their documents (2026-09-02)
 
 Wave 3 of [`planning/MODELING_IMPROVEMENT.md`](../planning/MODELING_IMPROVEMENT.md)
