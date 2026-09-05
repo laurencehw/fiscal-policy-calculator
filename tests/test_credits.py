@@ -203,7 +203,10 @@ def test_refundability_and_phase_out_reach_the_per_unit_path(field, minimum):
                 credit_type=CreditType.OTHER,
                 labor_supply_elasticity=0.2,
             ),
-            0.6,
+            # Signed with the static effect since the offset-sign sweep
+            # (2026-09-05); this branch returned ``abs()`` and so ``+0.6``
+            # before, which magnified a credit expansion instead of eroding it.
+            -0.6,
         ),
     ],
 )

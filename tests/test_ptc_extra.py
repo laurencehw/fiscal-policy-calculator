@@ -117,7 +117,16 @@ def test_estimate_static_revenue_effect_handles_cap_change_branch():
     assert policy.estimate_static_revenue_effect(0) == pytest.approx(-20.0)
 
 
-def test_estimate_behavioral_offset_flips_sign_for_savings_vs_costs():
+def test_estimate_behavioral_offset_erodes_both_ways_and_stays_asymmetric():
+    """Signed with the static effect, and still bigger when subsidies are cut.
+
+    The module returned the *negation* of these numbers until the offset-sign
+    sweep (2026-09-05) — a PTC repeal booked 13% more saving than its own
+    static effect, and the fitted ``repeal_ptc`` benchmark read 0.3% through
+    that. The magnitudes are unchanged and stay asymmetric on purpose:
+    ``adverse_selection_factor`` fires only when subsidies are taken away,
+    because the premium spiral has no mirror image when they are extended.
+    """
     policy = PremiumTaxCreditPolicy(
         name="Behavior",
         description="Behavior",
@@ -126,8 +135,8 @@ def test_estimate_behavioral_offset_flips_sign_for_savings_vs_costs():
         adverse_selection_factor=0.1,
     )
 
-    assert policy.estimate_behavioral_offset(100.0) == pytest.approx(-13.0)
-    assert policy.estimate_behavioral_offset(-100.0) == pytest.approx(3.0)
+    assert policy.estimate_behavioral_offset(100.0) == pytest.approx(13.0)
+    assert policy.estimate_behavioral_offset(-100.0) == pytest.approx(-3.0)
 
 
 def test_factory_helpers_produce_expected_static_costs():

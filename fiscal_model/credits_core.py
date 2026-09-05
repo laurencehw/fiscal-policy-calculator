@@ -532,6 +532,19 @@ class TaxCreditPolicy(TaxPolicy):
         When ``annual_revenue_change_billions`` is an explicit window-average
         calibration to an official score, skip additional behavioral haircuts
         so we do not erode a figure that already embeds official assumptions.
+
+        All three live branches carry the **same sign as** ``static_effect``,
+        the convention
+        :meth:`fiscal_model.policies_core.TaxPolicy.estimate_behavioral_offset`
+        documents: the engine computes ``deficit = -revenue + behavioural``, so
+        a same-signed offset erodes and an opposite-signed one magnifies. The
+        EITC and CTC branches always did; the labour-supply fallback returned
+        ``abs(...)`` until 2026-09-05, so a credit that is neither EITC nor CTC
+        — an education credit, a rebate — cost 3% *more* than its own static
+        effect when expanded and raised 3% more when cut. Every calibrated
+        credit factory either pins an annual (offset 0.0) or is a CTC or an
+        EITC, so no benchmark and no preset reaches the fallback; Tailor and
+        the composer do.
         """
         if self.annual_revenue_change_billions is not None:
             return 0.0
@@ -542,7 +555,8 @@ class TaxCreditPolicy(TaxPolicy):
         if self.credit_type == CreditType.CHILD_TAX_CREDIT:
             return static_effect * 0.05
 
-        return abs(static_effect) * self.labor_supply_elasticity * 0.3
+        # Same sign as the static effect, so the offset erodes it.
+        return static_effect * self.labor_supply_elasticity * 0.3
 
 
 CREDIT_VALIDATION_SCENARIOS = {

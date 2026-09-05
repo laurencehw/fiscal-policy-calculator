@@ -144,6 +144,25 @@ class TestBehavioralAndBreakdown:
         offset = p.estimate_behavioral_offset(static)
         assert 0 < offset < abs(static)
 
+    def test_offset_is_signed_in_both_directions(self):
+        """The engine's contract, on the direction no benchmark exercises.
+
+        Every international reform the repository scores raises revenue, so its
+        static is positive and the ``abs(...)`` this returned until 2026-09-05
+        agreed with the signed rule to the cent. A reform that *lowers* an
+        international rate has a negative static, and the unsigned offset made
+        it cost 15% more than its own static effect. Reachable from Tailor and
+        the composer; simply not in the battery, which is why it is pinned here
+        rather than caught by a scorecard row.
+        """
+        p = create_biden_full_international()
+        assert p.estimate_behavioral_offset(100.0) == pytest.approx(
+            -p.estimate_behavioral_offset(-100.0)
+        )
+        assert p.estimate_behavioral_offset(100.0) > 0
+        assert p.estimate_behavioral_offset(-100.0) < 0
+        assert p.estimate_behavioral_offset(0.0) == 0.0
+
     def test_breakdown_keys_and_sum(self):
         p = create_biden_full_international()
         bd = p.get_component_breakdown()
