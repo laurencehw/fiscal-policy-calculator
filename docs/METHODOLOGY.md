@@ -1326,11 +1326,11 @@ commit that lands *before* the commit that first scores it.
 | Cut selected nondefense discretionary | −$339B | −$333B | 2% | CBO Options 2025–2034 #42 |
 | 1pp all brackets | −$960B | −$920B | 4% | JCT |
 | 5pp top rate ($1M+) | −$700B | −$648B | 7% | TPC |
-| Tax accrued gains at death | −$536B | −$581B | 8% | CBO Options 2025–2034 #51 |
 | Social Security Fairness Act, WEP/GPO repeal | +$196B | +$215B | 10% | CBO |
 | Fiscal Responsibility Act 2023, discretionary caps | −$1,332B | −$1,170B | 12% | CBO |
 | Biden top rate 39.6% ($400K+) | −$246B | −$217B | 12% | Treasury |
 | IIJA 2021, discretionary component | +$415B | +$340B | 18% | CBO |
+| Tax accrued gains at death | −$536B | −$433B | 19% | CBO Options 2025–2034 #51 |
 | All ordinary rates +1pp | −$1,185B | −$920B | 22% | CBO Options 2025–2034 #45 |
 | LTCG + qualified dividends +2pp | −$103B | −$57B | 45% | CBO Options 2025–2034 #47 |
 | Corporate rate +1pp | −$136B | −$200B | 47% | CBO Options 2025–2034 #64 |
