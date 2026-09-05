@@ -330,12 +330,35 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "is why the two errors differ by half a point rather than not at all.",
     ],
     "cbo_opt64_corporate_rate_1pp": [
-        "The corporate module scores a rate change against its own baseline "
-        "corporate revenue and profit aggregates. Those aggregates reproduce the "
-        "calibrated 21%->28% benchmark, but at a 1pp step the model over-predicts: "
-        "it applies the full statutory-rate delta to the whole base, whereas JCT's "
-        "estimate reflects credits, loss carryforwards and the timing of estimated "
-        "payments that blunt the first few years.",
+        "Scored in the corporate module's derived mode, so the base is IRS SOI "
+        "Table 11's published income subject to tax ($2,879.1B, TY2022) rather "
+        "than the fitted profits aggregate, realized at SOI's own "
+        "after-credits/before-credits ratio (0.7085) and settled on IRC section "
+        "6655's estimated-payment calendar. That base is 34% larger than the "
+        "fitted one, so the derived path over-predicts this row by MORE than the "
+        "fitted path did - and it does so while reproducing the 21%->28% "
+        "benchmark to about 8%. The residual is a disagreement between the two "
+        "documents, not a defect the model can close: CBO's option is $135.7B "
+        "per percentage point over the window and Treasury's FY2025 Green Book "
+        "row is $192.8B, a 42% gap in which the LARGER rate change carries the "
+        "LARGER per-point yield.",
+        "Three channels that would push the derived score down are named and "
+        "not built, because each needs a number that is not published. Credit "
+        "CARRYFORWARDS: section 38(c) and section 904(c) limits rise with the "
+        "rate, so the marginal absorption exceeds the average ratio the module "
+        "applies, and Table 11 publishes claimed credits rather than the "
+        "carryforward stock. CAMT: for a book-minimum payer a point of regular "
+        "rate raises nothing until the regular tax clears the minimum, and CAMT "
+        "began in TY2023, after the last SOI year on file. The individual-side "
+        "interaction: a higher corporate rate lowers dividends and share values "
+        "and so lowers individual receipts, which the repository has an "
+        "incidence split for but no revenue feedback from.",
+        "SOI's TY2022 base is inflated by two timing items that reverse - "
+        "section 174 R&D capitalisation, which began that year, and the "
+        "bonus-depreciation phase-down. The module anchors on the latest "
+        "published complete report and does not adjust for them; an earlier "
+        "anchor year would score this row better, which is exactly why the year "
+        "is fixed as 'latest published' rather than chosen.",
     ],
     "cbo_opt37_international_affairs": [
         "Foreign assistance is classified 'grants_and_procurement', a profile fitted "
@@ -589,8 +612,16 @@ def create_policy_from_score(
         applies — comes from the record's own document under
         :data:`GREEN_BOOK_DEATH_DESIGN_RULE`.
     ``corporate_rate``
-        :class:`CorporateTaxPolicy` from the rate change, module defaults for
-        elasticity and base.
+        :class:`CorporateTaxPolicy` in the module's **derived** mode: the rate
+        change applied to IRS SOI Table 11's published *income subject to tax*,
+        realized at SOI's own after-credits/before-credits ratio, offset by one
+        frozen profit-shifting semi-elasticity and settled on IRC section
+        6655's estimated-payment calendar. Deliberately *not* the fitted
+        ``BASELINE_TAXABLE_PROFITS_BILLIONS`` profits aggregate, which the
+        module's own comment describes as calibrated to reproduce
+        ``biden_corporate_28`` - routing an out-of-sample prediction through it
+        would be leakage, which is why the mode is pinned here rather than left
+        to the module's ``reported`` app default.
     ``payroll_rate``
         :class:`PayrollTaxPolicy` levying the rate as a **new flat tax on
         covered earnings** - all earnings with no taxable maximum, which CBO
@@ -656,7 +687,7 @@ def create_policy_from_score(
         )
 
     if shape == "corporate_rate":
-        from ..corporate import CorporateTaxPolicy
+        from ..corporate import CORPORATE_VALIDATION_MODE, CorporateTaxPolicy
 
         return CorporateTaxPolicy(
             name=f"Validation: {score.name}",
@@ -665,6 +696,12 @@ def create_policy_from_score(
             rate_change=score.rate_change,
             start_year=start_year,
             duration_years=10,
+            # The uncalibrated path must not read a base fitted to another
+            # benchmark, and ``BASELINE_TAXABLE_PROFITS_BILLIONS`` is fitted to
+            # ``biden_corporate_28`` by its own comment. Derived mode reads IRS
+            # SOI's published statutory base instead. Same reasoning, and the
+            # same pinning, as the ``tax_expenditure`` shape below.
+            mode=CORPORATE_VALIDATION_MODE,
         )
 
     if shape == "payroll_rate":

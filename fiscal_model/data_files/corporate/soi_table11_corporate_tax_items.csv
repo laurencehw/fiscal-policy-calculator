@@ -1,0 +1,57 @@
+# Source: IRS, Statistics of Income Division, Corporation Income Tax Returns
+#   Complete Report. "Table 11. Selected Tax Items: Dividends, Net Income (Less
+#   Deficit), Statutory Special Deductions, Income Subject to Tax, Taxes,
+#   Credits, and Payments, by Sector", column 1, "All sectors".
+#   Universe: returns of active corporations.
+# Landing page: https://www.irs.gov/statistics/soi-tax-stats-corporation-complete-report
+# Workbooks:
+#   tax year 2019 -> https://www.irs.gov/pub/irs-soi/19co11ccr.xlsx
+#   tax year 2020 -> https://www.irs.gov/pub/irs-soi/20co11ccr.xlsx
+#   tax year 2021 -> https://www.irs.gov/pub/irs-soi/21co11ccr.xlsx
+#   tax year 2022 -> https://www.irs.gov/pub/irs-soi/22co11ccr.xlsx
+# Read: 2026-09-05.
+# Units: money amounts in THOUSANDS of dollars, exactly as SOI prints them.
+#   Every figure is an estimate based on a sample.
+#
+# WHY THIS FILE EXISTS. `fiscal_model/corporate.py` scored a statutory-rate
+# change against BASELINE_TAXABLE_PROFITS_BILLIONS = 1900.0, a constant its own
+# comment describes as "Calibrated: $1,900B gives closer match to CBO". The base
+# a statutory rate change reaches is not a thing that needs calibrating: SOI
+# publishes it, under the name "income subject to tax", and publishes the tax on
+# it beside it.
+#
+# THE IDENTITY THAT MAKES THIS THE RIGHT BASE. SOI's `income_tax` line is the
+# statutory 21% of `income_subject_to_tax` to within a tenth of a percentage
+# point in every post-TCJA year on this file: 0.2103 (2019), 0.2100 (2020),
+# 0.2100 (2021), 0.2099 (2022). `tests/test_corporate_derived.py` asserts it.
+#
+# THE OTHER RATIO THE MODULE READS. `total_income_tax_after_credits` divided by
+# `total_income_tax_before_credits` is the share of a pre-credit dollar that
+# reaches receipts: 0.6714 (2019), 0.7024 (2020), 0.7023 (2021), 0.7085 (2022).
+# The derived path applies the latest year's ratio to the *marginal* pre-credit
+# dollar. That is an average standing in for a marginal, and the module says so;
+# the cross-check that it is not wild is a section 904 decomposition built from
+# the same row set (foreign tax credit absorbing the tax on the foreign-source
+# share of the base, the remaining credits absorbing the domestic remainder at
+# their own average), which returns 0.7012 against 0.7085 - 1.0% apart.
+#
+# WHY TAX YEAR 2018 IS NOT HERE. TY2018 is the section 15 blended-rate
+# transition year, and SOI's own TY2018 Table 11 prints total income tax before
+# credits ($404,083,686k) BELOW income tax ($414,842,981k), so neither ratio
+# above is comparable. It is excluded for that reason and not because it scored
+# badly; the derived path reads the latest published year and nothing else.
+#
+# WHAT IS NOT IN THIS FILE. The corporate alternative minimum tax (CAMT) began
+# in TY2023, after the last row here, so no year on this file prices it. Credit
+# CARRYFORWARD stocks - which is what a rate increase actually unlocks under
+# section 38(c) and section 904(c) - are not published in Table 11 at all.
+#
+# COLUMNS. `tax_year` is SOI's tax year. `soi_row` gives the row number in that
+# year's workbook, since the row order moves between years. All amounts are as
+# printed. A `d` in SOI (data deleted to avoid disclosure) is written as an
+# empty cell.
+tax_year,soi_row_income_subject_to_tax,foreign_deemed_income_thousands,net_operating_loss_deduction_thousands,foreign_deemed_deductions_thousands,income_subject_to_tax_thousands,total_income_tax_before_credits_thousands,income_tax_thousands,foreign_tax_credit_thousands,general_business_credit_thousands,credit_prior_year_minimum_tax_thousands,credit_tax_credit_bonds_thousands,total_income_tax_after_credits_thousands
+2019,35,619236294,212042243,334123231,1733277148,382998470,364425026,73369591,49858957,2233708,335778,257130349
+2020,38,537609967,169344997,308788141,1780304543,393791783,373896384,67009035,49834149,30013,296363,276611038
+2021,36,744239056,263870832,446252545,2422050144,528805470,508563771,96529525,,50542,286437,371403253
+2022,35,828820403,377103205,516943168,2879100959,633315735,604225798,112161586,72167189,32364,254218,448720584

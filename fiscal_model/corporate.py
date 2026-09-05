@@ -16,9 +16,30 @@ References:
 - CBO (2024): $450B corporate revenue baseline
 - Biden FY2025: 21%→28% raises ~$1.35T/10yr
 - JCT (2017): TCJA corporate cut ~$329B net
+
+Two scoring modes
+-----------------
+Owner Decision 1 (``planning/MODELING_IMPROVEMENT.md`` §6.1) gives a calibrated
+module a ``reported`` mode that keeps its fitted constants and a ``derived``
+mode that scores from published structure instead. Here the fitted constant is
+:data:`BASELINE_TAXABLE_PROFITS_BILLIONS`, whose own comment calls it
+calibrated, and the structure is IRS SOI Table 11's *income subject to tax* —
+the base a statutory rate change actually reaches, published rather than tuned.
+
+``planning/lanes/W5_corporate_margin.md`` carries the arithmetic. The short
+version is that the module's yield is **$199.6B per percentage point at any
+step**, while CBO 60557's Option 64 says 135.7 and Treasury's FY2025 Green Book
+says 192.8 — the two documents disagree by 42% per point, with the *larger*
+rate change carrying the *larger* per-point yield, which no concave-in-rate
+behavioural model can produce. Correcting the base moves this module toward
+Treasury and away from CBO. That is a fact about the documents, not a repair.
 """
 
+import csv
+import math
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
 
 from .policies import PolicyType, TaxPolicy
 
@@ -50,6 +71,171 @@ BASELINE_PASSTHROUGH_INCOME_BILLIONS = 1400.0
 # International (GILTI/FDII)
 GILTI_REVENUE_BILLIONS = 25.0  # Current GILTI revenue ~$25B/year
 FDII_COST_BILLIONS = 20.0  # FDII deduction costs ~$20B/year
+
+
+# =============================================================================
+# SCORING MODES
+# =============================================================================
+
+#: Score the rate channel off :data:`BASELINE_TAXABLE_PROFITS_BILLIONS`, the
+#: fitted profits aggregate, with the flat ``|static| x elasticity x 0.5``
+#: offset. This is what the app has always done and what it still does.
+CORPORATE_MODE_REPORTED = "reported"
+
+#: Ignore the fitted aggregate and score the rate channel from IRS SOI's
+#: published statutory base, its published credit-realization ratio, a
+#: literature-frozen profit-shifting semi-elasticity and IRC section 6655's
+#: estimated-payment timing.
+CORPORATE_MODE_DERIVED = "derived"
+
+CORPORATE_MODES = (CORPORATE_MODE_REPORTED, CORPORATE_MODE_DERIVED)
+
+#: What the shipped app scores. Decision 1 keeps a module on ``reported`` until
+#: its derived error beats its fitted error across the benchmarks it carries,
+#: and here it does not:
+#:
+#: =========================  ===========  ==========  =========  ==========
+#: Benchmark                  Target       Reported    Derived    Winner
+#: =========================  ===========  ==========  =========  ==========
+#: ``biden_corporate_28``     -$1,347.0B   +3.7%       +7.8%      reported
+#: ``trump_corporate_15``     +$1,920.0B   -0.1%       -11.5%     reported
+#: =========================  ===========  ==========  =========  ==========
+#:
+#: Read the second row before treating that as evidence for the fitted path:
+#: ``trump_corporate_15``'s target has provenance ``model_estimate`` — it is
+#: this model's own output, recorded as an expectation — so derived loses it by
+#: construction. The first row is the one with a document behind it (Treasury
+#: Green Book FY2025, report p. 239) and reported still wins it, which is an
+#: honest loss for the structural path and is recorded as one.
+CORPORATE_APP_MODE = CORPORATE_MODE_REPORTED
+
+#: What the *uncalibrated* validation path scores.
+#: ``validation/core.py``'s ``create_policy_from_score`` pins the
+#: ``corporate_rate`` shape to this mode for the same reason it pins the
+#: ``tax_expenditure`` shape to derived: an out-of-sample prediction must not
+#: read a base fitted to a different benchmark, and
+#: :data:`BASELINE_TAXABLE_PROFITS_BILLIONS` is fitted to
+#: ``biden_corporate_28``.
+CORPORATE_VALIDATION_MODE = CORPORATE_MODE_DERIVED
+
+
+# =============================================================================
+# DERIVED-MODE INPUTS
+# =============================================================================
+
+SOI_TABLE11_PATH = (
+    Path(__file__).parent
+    / "data_files"
+    / "corporate"
+    / "soi_table11_corporate_tax_items.csv"
+)
+
+#: Growth rate ``ScoringEngine`` applies to a :class:`CorporateTaxPolicy`'s
+#: annual static effect (``scoring_engine._growth_tax_policy_handlers``). The
+#: derived path ages SOI's base from its tax year to ``start_year`` at the same
+#: rate, so exactly one growth assumption exists in the module rather than two;
+#: ``tests/test_corporate_derived.py`` pins this constant to the engine's.
+CORPORATE_BASE_GROWTH = 0.04
+
+#: Semi-elasticity of reported pre-tax corporate profits with respect to the
+#: statutory tax rate: a 1 percentage point higher rate reduces the reported
+#: base by 0.8%. Heckemeyer & Overesch, "Multinationals' profit response to tax
+#: differentials: effect size and shifting channels" (ZEW Discussion Paper
+#: 13-045, 2013; *Canadian Journal of Economics* 50(4), 2017), consensus
+#: estimate across 27 studies. One value, one mechanism, applied identically to
+#: every case — never per benchmark (``MODELING_IMPROVEMENT.md`` §4).
+#:
+#: The offset it produces is ``beta x (tau_0 + delta)``, a function of the rate
+#: *level*, which is what makes the derived identity concave in the rate step.
+#: The module's ``reported`` offset is a flat 12.5% of the static effect, whose
+#: implied semi-elasticity therefore *falls* as the rate rises (0.568 at a 1pp
+#: step, 0.446 at 7pp). The literature says the opposite.
+PROFIT_SHIFTING_SEMI_ELASTICITY = 0.8
+
+#: IRC section 6655(c)(2): a calendar-year corporation pays estimated tax in
+#: four instalments, due on the 15th day of the 4th, 6th, 9th and 12th months
+#: of its tax year. Three of those — April, June, September — fall inside the
+#: federal fiscal year that shares the tax year's number; the December
+#: instalment and the settlement with the return fall in the next one. So a
+#: fiscal year collects three quarters of its own tax year's liability change
+#: and one quarter of the previous year's.
+ESTIMATED_PAYMENT_SAME_FY_SHARE = 0.75
+
+
+@lru_cache(maxsize=1)
+def load_soi_table11() -> tuple[dict[str, str], ...]:
+    """Read the transcribed SOI Table 11 rows, comments stripped."""
+    with SOI_TABLE11_PATH.open(encoding="utf-8") as handle:
+        body = (line for line in handle if not line.startswith("#"))
+        return tuple(csv.DictReader(body))
+
+
+@lru_cache(maxsize=1)
+def latest_soi_tax_year() -> int:
+    """The most recent tax year on the transcribed file."""
+    return max(int(row["tax_year"]) for row in load_soi_table11())
+
+
+def soi_row(tax_year: int | None = None) -> dict[str, str]:
+    """One SOI Table 11 row, defaulting to the latest published tax year."""
+    year = latest_soi_tax_year() if tax_year is None else tax_year
+    for row in load_soi_table11():
+        if int(row["tax_year"]) == year:
+            return row
+    raise KeyError(f"No SOI Table 11 row transcribed for tax year {year}")
+
+
+def statutory_base_billions(tax_year: int | None = None) -> float:
+    """
+    SOI's "income subject to tax" — the base a statutory rate change reaches.
+
+    Not "profits", and not a calibrated aggregate: SOI's own "income tax" line
+    is 21.0% of this quantity to within a tenth of a percentage point in every
+    post-TCJA year on the file, which is the identity that identifies it.
+    """
+    return float(soi_row(tax_year)["income_subject_to_tax_thousands"]) / 1e6
+
+
+def credit_realization_ratio(tax_year: int | None = None) -> float:
+    """
+    Share of a pre-credit dollar of corporate tax that reaches receipts.
+
+    SOI's total income tax after credits over total income tax before credits:
+    0.7085 in TY2022, and between 0.67 and 0.71 in every year on the file. The
+    derived path applies this *average* share to the *marginal* pre-credit
+    dollar; :func:`section_904_realization_ratio` is the cross-check that the
+    substitution is not wild, and the module's docstring says where it is
+    weakest (section 38(c) carryforwards, which a rate rise unlocks and which
+    Table 11 does not publish).
+    """
+    row = soi_row(tax_year)
+    before = float(row["total_income_tax_before_credits_thousands"])
+    after = float(row["total_income_tax_after_credits_thousands"])
+    return after / before
+
+
+def section_904_realization_ratio(tax_year: int | None = None) -> float:
+    """
+    The same share, built the other way, as a check on the average.
+
+    The section 904 limitation scales with the statutory rate, so for a
+    taxpayer in an excess-credit position the marginal US tax on foreign-source
+    income is fully absorbed by the foreign tax credit. Treat the FTC as
+    exactly the tax on the foreign-source share of the base at the statutory
+    rate, and the remaining credits as absorbing the domestic remainder at
+    their own average share. Returns 0.7012 for TY2022 against
+    :func:`credit_realization_ratio`'s 0.7085 — 1.0% apart.
+    """
+    row = soi_row(tax_year)
+    before = float(row["total_income_tax_before_credits_thousands"])
+    after = float(row["total_income_tax_after_credits_thousands"])
+    ftc = float(row["foreign_tax_credit_thousands"])
+    base = float(row["income_subject_to_tax_thousands"])
+
+    foreign_share = (ftc / CURRENT_CORPORATE_RATE) / base
+    non_ftc_credits = (before - after) - ftc
+    domestic_before = before - ftc
+    return (1.0 - foreign_share) * (1.0 - non_ftc_credits / domestic_before)
 
 
 @dataclass
@@ -110,10 +296,69 @@ class CorporateTaxPolicy(TaxPolicy):
     adjust_book_minimum: bool = False
     book_minimum_rate_change: float = 0.0  # Change in 15% rate
 
+    # Scoring mode: "reported" (fitted profits aggregate, flat offset) or
+    # "derived" (SOI statutory base, published credit ratio, semi-elastic
+    # offset, IRC 6655 timing). Decision 1 keeps the app on ``reported``.
+    mode: str = CORPORATE_APP_MODE
+
+    # Derived-mode behavioural parameter. Frozen at the module constant; a
+    # per-case value here would be exactly what MODELING_IMPROVEMENT.md §4
+    # forbids, and no factory or validation shape sets it.
+    profit_shifting_semi_elasticity: float = PROFIT_SHIFTING_SEMI_ELASTICITY
+
     def __post_init__(self):
         """Set policy type to corporate."""
         self.policy_type = PolicyType.CORPORATE_TAX
+        if self.mode not in CORPORATE_MODES:
+            raise ValueError(
+                f"Unknown corporate scoring mode {self.mode!r}; "
+                f"expected one of {CORPORATE_MODES}"
+            )
         super().__post_init__()
+
+    def get_phase_in_factor(self, year: int) -> float:
+        """
+        Phase-in factor, carrying IRC section 6655 settlement timing in derived mode.
+
+        A tax-year liability change is not a fiscal-year receipt change. Three
+        of the four estimated instalments fall inside the tax year's own fiscal
+        year and one falls in the next, so
+        ``FY_t = 0.75 L_t + 0.25 L_(t-1)``. The engine grows ``L`` at
+        :data:`CORPORATE_BASE_GROWTH`, which makes that convolution a constant
+        multiple of ``L_t`` — ``0.75`` in the first year, when there is no
+        previous year to collect from, and
+        ``0.75 + 0.25 / (1 + g) = 0.99038`` thereafter. Expressing it as a
+        phase factor keeps it out of the engine, and means the behavioural
+        offset (computed on the phased revenue) is timed with it.
+
+        ``reported`` mode returns the base class's factor unchanged.
+        """
+        base = super().get_phase_in_factor(year)
+        if self.mode != CORPORATE_MODE_DERIVED or base == 0.0:
+            return base
+        if year <= self.start_year:
+            return base * ESTIMATED_PAYMENT_SAME_FY_SHARE
+        carry = 1.0 - ESTIMATED_PAYMENT_SAME_FY_SHARE
+        return base * (
+            ESTIMATED_PAYMENT_SAME_FY_SHARE + carry / (1.0 + CORPORATE_BASE_GROWTH)
+        )
+
+    def _derived_rate_effect(self) -> float:
+        """
+        Rate-channel revenue change in ``start_year``, from published inputs.
+
+        ``delta x (income subject to tax) x (credit realization)``, with the
+        base aged from SOI's tax year to ``start_year`` at the engine's own
+        corporate growth rate. Nothing here reads the baseline, so the derived
+        score is independent of the vintage it is run on — the property
+        ``validation/cbo_options.py`` claims for every uncalibrated shape.
+        """
+        delta = self._get_reform_rate() - self.baseline_rate
+        if delta == 0.0:
+            return 0.0
+        years = self.start_year - latest_soi_tax_year()
+        base = statutory_base_billions() * (1.0 + CORPORATE_BASE_GROWTH) ** years
+        return delta * base * credit_realization_ratio()
 
     def _get_reform_rate(self) -> float:
         """Get the reform corporate tax rate."""
@@ -126,10 +371,17 @@ class CorporateTaxPolicy(TaxPolicy):
         """
         Estimate static revenue effect from corporate rate change.
 
-        For corporate tax, the static formula is simpler:
+        In ``reported`` mode the formula is
             ΔRevenue = ΔRate × Taxable_Profits
+        against the fitted profits aggregate. In ``derived`` mode it is
+            ΔRevenue = ΔRate × (income subject to tax) × (credit realization)
+        against IRS SOI's published statutory base — see
+        :meth:`_derived_rate_effect`.
 
-        This gives the mechanical revenue change before behavioral responses.
+        Either way this is the mechanical change before behavioral responses.
+        The international, R&D, depreciation and book-minimum channels below
+        are the same in both modes: this lane re-derived the rate identity and
+        left those constants where it found them.
 
         Args:
             baseline_revenue: Baseline corporate revenue (can use or override)
@@ -138,15 +390,20 @@ class CorporateTaxPolicy(TaxPolicy):
         Returns:
             Static revenue change in billions (positive = revenue gain)
         """
-        # Use stored profits base or estimate from revenue
-        profits = self.baseline_profits_billions
-        if profits <= 0:
-            # Estimate from baseline revenue and current rate
-            profits = baseline_revenue / self.baseline_rate if self.baseline_rate > 0 else 0
+        if self.mode == CORPORATE_MODE_DERIVED:
+            static_effect = self._derived_rate_effect()
+        else:
+            # Use stored profits base or estimate from revenue
+            profits = self.baseline_profits_billions
+            if profits <= 0:
+                # Estimate from baseline revenue and current rate
+                profits = (
+                    baseline_revenue / self.baseline_rate if self.baseline_rate > 0 else 0
+                )
 
-        # Core rate change effect
-        rate_change = self._get_reform_rate() - self.baseline_rate
-        static_effect = rate_change * profits
+            # Core rate change effect
+            rate_change = self._get_reform_rate() - self.baseline_rate
+            static_effect = rate_change * profits
 
         # Add international provision effects
         static_effect += self._estimate_international_effects()
@@ -220,9 +477,38 @@ class CorporateTaxPolicy(TaxPolicy):
         - Corporate profits are less elastic than taxable income
         - Less ability to shift timing (vs individual cap gains)
 
+        ``reported`` mode returns ``|static| × elasticity × 0.5``, a flat
+        12.5% of the static effect whatever the rate step and whatever its
+        sign. **That is unsigned, and the sign matters.** ``policies_core``'s
+        contract is that the offset carries the static effect's sign, so the
+        engine's ``deficit = -static + behavioral`` erodes a gain *and* recovers
+        part of a cut; returning an absolute value instead makes a corporate
+        rate cut cost *more* than its static effect, which is backwards. The
+        ``abs()`` is kept in ``reported`` because ``trump_corporate_15``'s
+        fitted number is scored through it.
+
+        ``derived`` mode returns ``static × β × (τ₀ + Δτ)``, signed as the
+        parent documents. The base falls by ``β`` per unit of statutory rate
+        (:data:`PROFIT_SHIFTING_SEMI_ELASTICITY`), so the revenue lost is that
+        contraction valued at the *new* rate — which makes the offset a
+        function of the rate level rather than of the step, and the whole
+        identity concave in the step.
+
         Returns:
-            Behavioral offset in billions (positive = revenue lost)
+            Behavioral offset in billions (reported: positive = revenue lost;
+            derived: signed with ``static_effect``)
         """
+        if self.mode == CORPORATE_MODE_DERIVED:
+            base_offset = (
+                static_effect
+                * self.profit_shifting_semi_elasticity
+                * self._get_reform_rate()
+            )
+            if self.include_passthrough_effects and self.rate_change != 0:
+                shift = self._estimate_passthrough_shift()
+                base_offset += math.copysign(shift, static_effect or 1.0)
+            return base_offset
+
         # Base behavioral offset
         base_offset = abs(static_effect) * self.corporate_elasticity * 0.5
 
@@ -284,11 +570,16 @@ class CorporateTaxPolicy(TaxPolicy):
         - depreciation_effect: From bonus depreciation
         - book_minimum_effect: From 15% minimum tax
         - behavioral_offset: From behavioral responses
-        """
-        profits = self.baseline_profits_billions
-        rate_change = self._get_reform_rate() - self.baseline_rate
 
-        rate_effect = rate_change * profits
+        The ``rate_change_effect`` follows the policy's mode, so a breakdown
+        printed beside a score always adds up to that score.
+        """
+        if self.mode == CORPORATE_MODE_DERIVED:
+            rate_effect = self._derived_rate_effect()
+        else:
+            profits = self.baseline_profits_billions
+            rate_change = self._get_reform_rate() - self.baseline_rate
+            rate_effect = rate_change * profits
         intl_effect = self._estimate_international_effects()
         rd_effect = self._estimate_rd_effect()
         depreciation_effect = self._estimate_bonus_depreciation_effect()
@@ -316,6 +607,7 @@ def create_corporate_rate_change(
     include_passthrough: bool = True,
     start_year: int = 2025,
     duration_years: int = 10,
+    mode: str = CORPORATE_APP_MODE,
 ) -> CorporateTaxPolicy:
     """
     Create a simple corporate rate change policy.
@@ -342,10 +634,13 @@ def create_corporate_rate_change(
         include_passthrough_effects=include_passthrough,
         start_year=start_year,
         duration_years=duration_years,
+        mode=mode,
     )
 
 
-def create_biden_corporate_rate_only() -> CorporateTaxPolicy:
+def create_biden_corporate_rate_only(
+    mode: str = CORPORATE_APP_MODE,
+) -> CorporateTaxPolicy:
     """
     Create Biden's corporate rate increase (21%→28%) without international changes.
 
@@ -365,10 +660,13 @@ def create_biden_corporate_rate_only() -> CorporateTaxPolicy:
         eliminate_fdii=False,
         start_year=2025,
         duration_years=10,
+        mode=mode,
     )
 
 
-def create_biden_corporate_proposal() -> CorporateTaxPolicy:
+def create_biden_corporate_proposal(
+    mode: str = CORPORATE_APP_MODE,
+) -> CorporateTaxPolicy:
     """
     Create Biden's full FY2025 corporate tax proposal.
 
@@ -393,10 +691,13 @@ def create_biden_corporate_proposal() -> CorporateTaxPolicy:
         eliminate_fdii=True,
         start_year=2025,
         duration_years=10,
+        mode=mode,
     )
 
 
-def create_tcja_corporate_repeal() -> CorporateTaxPolicy:
+def create_tcja_corporate_repeal(
+    mode: str = CORPORATE_APP_MODE,
+) -> CorporateTaxPolicy:
     """
     Create policy to repeal TCJA corporate rate cut (restore 35%).
 
@@ -413,10 +714,13 @@ def create_tcja_corporate_repeal() -> CorporateTaxPolicy:
         include_passthrough_effects=True,
         start_year=2025,
         duration_years=10,
+        mode=mode,
     )
 
 
-def create_republican_corporate_cut() -> CorporateTaxPolicy:
+def create_republican_corporate_cut(
+    mode: str = CORPORATE_APP_MODE,
+) -> CorporateTaxPolicy:
     """
     Create policy for further corporate rate reduction (Trump 2024 proposal).
 
@@ -434,6 +738,7 @@ def create_republican_corporate_cut() -> CorporateTaxPolicy:
         extend_bonus_depreciation=True,  # Usually paired with depreciation extension
         start_year=2025,
         duration_years=10,
+        mode=mode,
     )
 
 
