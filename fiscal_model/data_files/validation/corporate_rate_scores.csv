@@ -19,7 +19,9 @@
 #                    rate moving in tandem, per the source's own chapter text
 #   graduated        every bracket of a graduated schedule moves, not one rate
 # `per_point_billions` is `ten_year_billions / rate_change_pp` and is arithmetic
-# on the printed total, never a figure the source prints. It is NOT comparable
+# on the printed total, never a figure the source prints. Dividing by a negative
+# step keeps it signed as a rate INCREASE would be, which is why the TCJA row's
+# +1,348.5 deficit increase over a -14pp cut reads -96.32. It is NOT comparable
 # across `scope` values, across statutory rate levels (a point off 35% is
 # 1/35 of the base; a point off 21% is 1/21) or across windows without the
 # adjustment the memo's section 4 makes.

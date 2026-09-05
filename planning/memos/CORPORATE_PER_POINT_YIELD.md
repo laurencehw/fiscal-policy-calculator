@@ -194,8 +194,8 @@ Year by year, against CBO's own February 2024 receipts path (script table 4):
 **JCT's Option 64 is 0.59 × (CBO's own baseline corporate receipts ÷ 21%) × Δτ,
 in every year from FY2027 to FY2034, flat to 2.1%** — FY2025 and FY2026 being
 the tail of a January 2025 effective date. That is not a behavioural response
-with a shape; it is a level. The model's column starts at 0.83 and ends at
-**1.016**: by FY2033 it scores a percentage point of statutory rate against
+with a shape; it is a level. The model's column runs 0.83 in FY2026 to **1.016**
+in FY2034: by FY2033 it scores a percentage point of statutory rate against
 *more* base than the entire baseline corporate tax implies exists. No marginal
 base can exceed the average base it is part of, so that is an internal
 inconsistency independent of any target.
