@@ -144,10 +144,74 @@ would improve the reported number by 3pp by keeping one component in a different
 universe from the other two, which is the flattery the plan's §4 forbids.
 
 **The honest statement is that this benchmark's 4.76pp was never measuring what
-it appeared to.** The open work is the tax-unit-versus-household universe, which
-is a distributional-pipeline lane and not a credits one; `filing_threshold.py`
-and `top_tail.py` already exist for it and neither is wired into the benchmark
-runner.
+it appeared to.** The open work was the tax-unit-versus-household universe, and
+**Wave 4 (PR #104) closed it.**
+
+#### Wave 4 — the universe, and the row it fixed
+
+`DistributionalEngine` gained CBO's own household universe, built to CBO's
+published methodology rather than fitted: **size-adjusted household income
+before transfers and taxes** (income ÷ √household size), with quintiles
+containing equal numbers of *people*. As built that is 132.39M households and
+320.89M people — 29.88M / 27.62M / 24.99M / 24.59M / 25.31M households holding
+64.17M / 64.18M / 64.18M / 64.17M / 64.19M people, equal to within a tenth of a
+percent across a 21% spread in household counts, pinned by a test in both
+directions. Each benchmark is now **registered on the universe its source
+ranks** — CBO ranks households, JCT ranks tax units — and the surfaces report
+the universe the row was *actually scored on*, not the one it declares.
+
+| ARP quintile | share before | share after | CBO | err before | err after |
+|---|--:|--:|--:|--:|--:|
+| Lowest | 53.4% | **28.6%** | 34.0% | 19.42 | **5.44** |
+| Second | 20.0% | **24.7%** | 28.0% | 8.03 | **3.30** |
+| Middle | 14.1% | **23.5%** | 20.0% | 5.86 | **3.53** |
+| Fourth | 11.9% | **17.8%** | 12.0% | 0.13 | **5.77** |
+| Highest | 0.6% | **5.4%** | 6.0% | 5.40 | **0.56** |
+| **mean abs** | | | | **7.77** | **3.72** |
+
+The fourth quintile is the one row that got *worse*, 0.13pp → 5.77pp — and its
+0.13 was a coincidence of two universes rather than agreement, the same shape L3
+found in the 4.76pp it replaced. **Six of the seven tables are unmoved to the
+hundredth**, including SALT-cap repeal, the other benchmark that routes through
+the microsim and the lane's real control. `run_validation_dashboard.py`'s output
+before and after the lane differs in **exactly one region**: the ARP row and the
+new Universe column.
+
+**Two findings came with it.**
+
+**1 — Three of the four CBO tables cannot honour their own registration, and
+that is now visible rather than latent.** `policy_to_microsim_reforms` returns an
+empty dict for every `TCJAExtensionPolicy` and for the corporate policy, so
+`cbo_tcja_2018`, `cbo_tcja_extension_2026` and `cbo_pl119_21_2026` take the
+synthetic bracket path, which aggregates IRS *return* counts and has no household
+layer to rank; they show as `household→tax_unit`. Their registration is a
+statement about the document — correct, sourced, and inert. The declaration is
+not decorative: two of those three are the tables whose 0.00pp and 0.74pp this
+file already describes as bookkeeping, so the suite now says, in a field a reader
+can check, that the two circular rows are *also* scored on a population CBO does
+not use. Giving `TCJAExtensionPolicy` a microsim path would move all three at
+once, and it is the obvious next lane — the only way to find out what those
+tables say when they are not reading CBO's own shares back.
+
+**2 — The dollar column was wrong by a factor of three and no gate could see
+it.** `_combine_distributional_results` reported a merged component's per-group
+average as the *mean* of the components' averages where the bundle is their
+*sum*. `compare_distribution` scores shares, and the shares were computed from a
+correctly dollar-weighted merge, so the bug was invisible to every gate in the
+repository while the ARP row's rendered dollars read −$892 against CBO's
+−$2,800 — a difference this file used to quote without naming the cause. Fixed,
+with a test that a household getting $1,400 and $3,000 got $4,400. The averages
+now read **−$4,503 / −$4,211 / −$4,435 / −$3,404 / −$1,013** against CBO's
+−$2,800 / −$3,150 / −$2,450 / −$1,620 / −$920 — the right order of magnitude
+everywhere and about 40% high in the middle. That residual is a **level**
+disagreement rather than a distributional one, and nothing in the lane touches
+it: a level 40% high with shares within 3.7pp is a different kind of error from
+either one alone, and it is worth its own look.
+
+One thing the lane missed in its own pre-registration: the derived microdata file
+grew **10.9%** (7,727,496 → 8,569,294 bytes) rather than the predicted ~7.0MB,
+because `household_weight` repeats a nine-character float on every tax unit
+rather than once per household.
 
 ### Remaining (bottom-up path only)
 
@@ -539,10 +603,23 @@ the calibrated annual through the LOO harness reproduces the scorecard value
 exactly, and monkeypatching `loo.official_target` to raise proves no
 derivation ever reads the held-out answer.
 
-**Aggregate: 28.4% mean / 16.5% median over 18 derivable cases, 9/18 within
+**Aggregate: 29.6% mean / 19.1% median over 18 derivable cases, 8/18 within
 15%, plus 4 cases reported as not cross-validatable.** Against the
-by-construction 2.0%. The gap is the size of the claim the by-construction
+by-construction 1.6%. The gap is the size of the claim the by-construction
 number cannot support.
+
+*Wave 4 took this 28.4% → **29.6%**, and every bit of the move is a **target**
+movement rather than a derivation one.* `run_loo.py --donor-matrix` differs from
+pre-Wave-4 main in **exactly five lines**, and every derived figure in them is
+identical: PR #107 moved three of the targets the suite scores against and none
+of the machinery. `biden_eitc_childless` −38.0% → **−32.1%** (derivation
+unchanged at 110.4), `repeal_salt_cap` −29.4% → **−33.5%** (777.0),
+`eliminate_salt` +10.2% → **+33.5%** (−1,077.9). Per module: **Credits
+20.5% → 18.5%** (n=3) and **Expenditures 30.2% → 35.7%** (5 of 6, 1 not
+cross-validatable); Payroll 3.8%, Estate 10.4%, AMT 73.9% and CapitalGains 39.6%
+are untouched, and no donor-matrix entry moved. `loo.py`'s leakage guard was not
+touched and does not fire on any revised row — the Wave 4 revisions removed the
+last constant that was a target restated, they did not create one.
 
 *Wave 3 took this 32.3% → **28.4%**, and the two moves inside it point opposite
 ways.* **(i) The credits module was rebuilt: 45.1% → 20.5%** (PR #101, lane L3),
@@ -855,7 +932,7 @@ case from base data plus the other cases' calibration.
 parameters with no shared fit to hold out, so LOO instead runs the module's own
 reform-action rules against its published base table.
 
-- **Tax expenditures (5 of 6, mean 30.2%).** Base is `JCT_TAX_EXPENDITURES`,
+- **Tax expenditures (5 of 6, mean 35.7%).** Base is `JCT_TAX_EXPENDITURES`,
   sourced to JCT's *Estimates of Federal Tax Expenditures* (JCX-48-24; curated
   snapshot at `fiscal_model/assistant/knowledge/jct_tax_expenditures.md`), now
   with a **benefit distribution by AGI class** per expenditure, transcribed from
@@ -930,14 +1007,39 @@ reform-action rules against its published base table.
   *What this unblocked.* **CBO Option 56 was promoted into Tier 1** (PR #100).
   A percentile cap is exactly what the `BASE_DOLLARS` path prices, and in the
   option's own effective year, 2028, the module gives **$60.5B against CBO's
-  $59B, +2.5%**. Over the full window it gives **−$529.9B against −$697.0B,
-  24.0%**, and the whole residual is the growth path: CBO's revenue grows
+  $59B, +2.5%**. Over the full window it entered at **−$529.9B against −$697.0B,
+  24.0%**, and the residual was the growth path: CBO's revenue grows
   ~14%/yr because the limit is indexed to the chained CPI-U while premiums grow
   faster, so a widening slice of every premium sits above it. The module's
-  distribution already produces that widening — its excess share goes 0.185 in
-  2026 to 0.224 in 2028 — but `estimate_static_revenue_effect` evaluates it
-  **once, at `start_year`**, and the engine then applies a flat 4%. **A
-  year-indexed excess share is the next real structure this module is missing**,
+  distribution already produced that widening — its excess share goes 0.185 in
+  2026 to 0.224 in 2028 — but `estimate_static_revenue_effect` evaluated it
+  **once, at `start_year`**, and the engine then applied a flat 4%.
+  **Wave 4 (PR #105) built the year-indexed excess share, and the row is now
+  −$605.8B against −$697.0B, 13.1%.** The model's revenue path grows at 8.3%/yr
+  against 4.0% before, and nothing in the lane was chosen against −$697B: the
+  indexation is a sentence in the option text, the price leg is the repository's
+  own baseline path, the premium leg is the record's own 4%, and the
+  pre-registered escape hatch (5%/yr premium growth, landing the row at 0.6%)
+  was declared in advance and **not taken**. What remains is two findings, both
+  named and neither tuned: about **half is a base omission** — CBO caps
+  premiums *and* FSA/HRA/HSA contributions (report p. 66) and the repository's
+  premium distribution has no account dimension, a level *and* a shape error
+  since account contributions concentrate in the same households — and about a
+  **fifth is an unsourced behavioural offset whose sign convention is the
+  reverse of the base class's**: `TaxExpenditurePolicy.estimate_behavioral_offset`
+  returns an offset opposite in sign to `static_effect` where
+  `TaxPolicy.estimate_behavioral_offset` returns one with the same sign, so the
+  expenditure module *magnifies* where the tax module erodes. On this row that is
+  worth +20% (−$504.8B without it, −$605.8B with). It is directionally right
+  *here* — CBO's text says both behavioural channels increase revenue — and
+  unsourced in magnitude on every other expenditure benchmark; changing it is
+  module-wide and moves the fitted tier and the LOO column together, so it is an
+  owner decision on the carry-over list. Also now sized: CBO's alternatives 1 and
+  3 differ only in whether the payroll exclusion is limited, $985B against $709B,
+  so **the payroll leg is $276B, 38.9% of the income-tax leg** — and reaching it
+  needs a joint distribution of premiums and earnings the repository does not
+  have (it has both marginals and neither joint). **A year-indexed excess share
+  was the next real structure this module was missing**,
   and it is now measured *inside* the battery rather than as hand arithmetic
   beside it. The option's validation shape pins `mode="derived"` and
   `annual_revenue_change_billions=None`; routing it through the module's app
@@ -996,7 +1098,7 @@ default 75 — derived as the then-observed 59.3% × 1.25, rounded to 5) exists 
 catch a *regression* in the structural machinery — a base table edited without
 re-deriving — not to certify accuracy. Do not quote it as an accuracy claim. It
 is deliberately **not** re-derived from the post-Wave-1 61.7%, the
-post-provenance 58.7%, Wave 2's 32.3% or the current **28.4%**: a ceiling that
+post-provenance 58.7%, Wave 2's 32.3%, Wave 3's 28.4% or the current **29.6%**: a ceiling that
 tracks every observation is not a gate, and this one now has a great deal of
 room.
 
@@ -1022,13 +1124,24 @@ as fitted. The 12-row sectoral subset was unchanged by Wave 2.
 **Wave 3 moved it twice, in opposite directions, and changed its population.**
 L8 (PR #99) netted the tariff scores and took the 12-row subset **104.8% →
 84.6%**; L9 (PR #98) gave FDII repeal a base × rate identity and pushed it back
-up to **87.8%**. L8 also unfitted the two Trump tariff rows, so the subset is now
-**14 rows at 81.0% (median 38.0%)** against **2.0%** for the 28 benchmarks
-counted as fitted, and the tier it sits in is **26 rows at 61.8%** — or **63.6%**
-on the 24 rows it held before L8. Quote the constant-population figures beside
-the printed ones; a mean that moves because the population moved has not
-improved. The per-family figures below are updated to the Wave 3 outturn, with
-the Phase E starting points kept.
+up to **87.8%**. L8 also unfitted the two Trump tariff rows, taking the subset to
+14 rows at 81.0% (median 38.0%).
+
+**Wave 4 moved it again, and in the direction the lane pre-registered.** PR #109
+rebuilt the pharma module and **two of its three rows got worse**
+(`expand_drug_negotiation` 25.7% → **93.3%**, `international_reference_pricing`
+646.2% → **701.0%**, insulin unchanged at 39.0%), because the lane's own
+negotiation ladder condemned an unsourced $220B Part D gross-spending constant
+that the reference-pricing leg also reads; PR #107 then moved seven of the
+subset's targets onto their documents, and `ira_enforcement` arrived from the
+fitted tier. The subset is now **15 rows at 82.6% (median 39.0%)** against
+**1.6%** for the 23 benchmarks counted as fitted, and the tier it sits in is
+**31 rows at 56.6%** — or **88.2%** on the 14 sectoral rows it held before
+Wave 4, and **65.7%** on the 26 rows the whole tier held. **Quote the
+constant-population figures beside the printed ones**: both printed means fell
+while the model got worse, so a mean that moves because the population moved has
+not improved. The per-family figures below are updated to the Wave 4 outturn,
+with the Phase E starting points kept.
 
 Nothing below was retuned. The instruction the phase was run under, and the
 right one, is that a module far from its published figure gets reported as
@@ -1041,14 +1154,21 @@ runner reads `CBO_SCORE_MAP[preset]["official_score"]`, so the validation layer
 and the app cannot drift apart; a test enforces that no sectoral scenario
 carries its own `expected_10yr`.
 
-### 7.1 International tax (4 cases, mean 33.9%, 0 fitted) — reworked in Wave 3 (L9)
+### 7.1 International tax (4 cases, mean 34.0%, 0 fitted) — reworked in Wave 3 (L9), re-targeted in Wave 4 (PR #107)
 
-| Case | Official | Phase E | **Wave 3** | Error then → now |
+| Case | Official (live) | Phase E model | **Live model** | Err vs Phase E target → live |
 |---|---:|---:|---:|---:|
-| Biden GILTI reform | -$280B | -$230.27B | -$230.27B | 17.76% → **17.76%** |
-| Repeal FDII | -$200B | -$170.00B | **-$110.70B** | 15.00% → **44.65%** |
-| Pillar Two adoption | -$80B | -$61.20B | -$61.20B | 23.50% → **23.50%** |
-| Biden international package | -$700B | -$413.00B | **-$353.71B** | 41.00% → **49.47%** |
+| Biden GILTI reform | **-$373.9B** *(was -$280B)* | -$230.27B | -$230.27B | 17.76% → **38.42%** |
+| Repeal FDII | **-$158.0B** *(was -$200B)* | -$170.00B | **-$110.70B** | 15.00% → **29.94%** |
+| Pillar Two adoption | -$80B *(range [-$102.6B, +$56.5B])* | -$61.20B | -$61.20B | 23.50% → **23.50%** |
+| Biden international package | **-$632.2B** *(was -$700B)* | -$413.00B | **-$353.71B** | 41.00% → **44.05%** |
+
+**Three of the four targets moved in Wave 4 and no model figure did.** The
+family mean goes 33.9% → **34.0%** for that reason alone: FDII improved
+(44.65% → 29.94%) because its target moved *toward* the model when the rounded
+-$200B was replaced by the Green Book's own gross row, and GILTI worsened
+(17.76% → 38.42%) because its target moved away. The residuals themselves are
+unchanged, and the mechanisms that would close them are §6.2's items 9-11.
 
 **Two of the four got worse, and the lane pre-registered both before it opened
 a file** (`planning/lanes/L9_international.md` §3.2). The predicted figures were
@@ -1147,15 +1267,32 @@ than skill. And `$373,919M` is no longer described as a Green Book row for the
 -$280B GILTI proposal: there is no row for a GILTI change alone, and the nearest
 also covers inversions and related reforms.
 
-### 7.2 Trade / tariffs (5 cases, mean 38.4%, 0 fitted) — gross → net in Wave 3 (L8)
+### 7.2 Trade / tariffs (5 cases, mean 31.6%, 0 fitted) — gross → net in Wave 3 (L8), re-targeted in Wave 4 (PR #107)
 
-| Case | Official | Phase E | **Wave 3** | Error then → now |
+| Case | Official (live) | Phase E | **Live model** | Err vs Phase E target → live |
 |---|---:|---:|---:|---:|
-| Universal 10% tariff | -$2,000B | -$2,021.6B *(fitted)* | **-$1,258.5B** | 1.1% → **37.1%** |
+| Universal 10% tariff | **-$2,171.1B** *(was -$2,000B)* | -$2,021.6B *(fitted)* | **-$1,258.5B** | 1.1% → **42.0%** |
 | 60% China tariff | -$500B | -$531.1B *(fitted)* | **-$278.4B** | 6.2% → **44.3%** |
-| 25% auto tariff | -$100B | -$252.3B | **-$182.2B** | 152.3% → **82.2%** |
+| 25% auto tariff | **-$386.2B** *(was -$100B)* | -$252.3B | **-$182.2B** | 152.3% → **52.8%** |
 | 25% steel & aluminium tariff | -$60B | -$103.9B | **-$52.9B** | 73.2% → **11.9%** |
-| Reciprocal tariffs (~20pp) | -$1,200B | -$2,736.0B | **-$1,396.8B** | 128.0% → **16.4%** |
+| Reciprocal tariffs (~20pp) | **-$1,500B**, range **[-$1,800B, -$1,400B]** *(was -$1,200B)* | -$2,736.0B | **-$1,396.8B** | 128.0% → **6.9%** vs the anchor; **$3.2B outside** the nearer bound |
+
+**Three targets moved in Wave 4 and no model figure did**, taking the family
+mean 38.4% → **31.6%**. Two of the three were not merely unsourced but the
+wrong *kind* of number. `auto_tariff_25`'s -$100B traces to a **per-year** claim
+of 30 March 2025 carried as a decade figure — wrong by a factor of ten, and in
+the direction that flattered the model, since the published conventional
+estimate is Tax Foundation's -$386.2B. `reciprocal_tariffs`' -$1,200B was
+**exactly Tax Foundation's dynamic score** sitting in a scorecard whose every
+other target is conventional: a **tier** error, not a magnitude error, and no
+rescaling would have found it. It is now a range, because CRFB ($1.8T), Tax
+Foundation ($1.5T) and Yale ($1.4T) score the same announced schedule on the
+same window **29% apart**; Tax Foundation's is the in-range anchor, because Tax
+Foundation publishes the repository's other two tariff benchmarks. One design
+caveat the range does not close: the published estimates apply a 10% floor
+rising to 50% by halving each partner's bilateral-deficit-to-imports ratio, with
+sectoral exemptions, where the module applies a flat ~20pp to half of goods
+imports.
 
 **The headline finding was structural and it was large: `trade.py` had no
 income-and-payroll offset at all.** `estimate_static_revenue_effect` returned
@@ -1238,13 +1375,50 @@ these rows as accuracy statements:
   Foundation or TPC publication states a 25%-rate steel-and-aluminium ten-year
   estimate, and -$15B is annual-scale. See §8.3.
 
-### 7.3 Drug pricing (3 cases, mean 236.9%, 0 fitted) — repaired in Wave 1 (L7)
+### 7.3 Drug pricing (3 cases, mean 277.8%, 0 fitted) — repaired in Wave 1 (L7), rebuilt in Wave 4 (PR #109)
 
-| Case | Official | Model (Phase E) | Err | **Model (post-L7)** | **Err** |
-|---|---:|---:|---:|---:|---:|
-| Expand drug negotiation | -$500B | -$372B | 25.7% | -$372B | 25.7% |
-| Universal insulin cap | -$15B → **+$11.4B** | -$445B | 2,868.6% | **+$7.0B** | **39.0%** |
-| International reference pricing | -$100B | -$1,388B | 1,287.9% | **-$746B** | **646.2%** |
+| Case | Official | Model (Phase E) | Err | Model (post-L7) | Err | **Model (post-Wave 4)** | **Err** |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Expand drug negotiation | -$500B | -$372B | 25.7% | -$372B | 25.7% | **-$33.5B** | **93.3%** |
+| Universal insulin cap | -$15B → **+$11.4B** | -$445B | 2,868.6% | **+$7.0B** | 39.0% | **+$7.0B** | **39.0%** |
+| International reference pricing | -$100B | -$1,388B | 1,287.9% | -$746B | 646.2% | **-$801.0B** | **701.0%** |
+
+**Wave 4 rebuilt the module and two of the three rows got worse. The lane
+pre-registered the direction, missed the size, and reports both.** PR #109 built
+the three federal Part D channels the 2023 aggregate had been standing in for —
+direct subsidy **0.37269**, reinsurance **0.10470**, low-income subsidy
+**0.29864**, federal total **0.77603** against the aggregate's 0.7626 — a
+negotiation ladder fitted to all three published CMS cycles (scale 16.614,
+exponent 0.6316, reproducing $56.2B / $41B / $27B to within 2.1%), and a
+RAND-sourced coverage restriction. The redesign moves 33 cents of every program
+dollar out of reinsurance and 34 into the direct subsidy while changing the
+federal total by 1.3pp: a finding about *which channel bears a drug policy*, not
+about how much the Treasury bears.
+
+**The two pre-registered mechanisms landed within $3B of the pre-registered
+figure. A fifth change nobody pre-registered was larger than the three that
+were.** The lane's own ladder condemned a constant the reference-pricing leg
+also reads: `medicare_part_d_gross_spending_billions = 220.0` was unsourced, and
+current law's 160 cumulative selections carry **$256.8B** of gross Part D
+spending by 2034, which does not fit inside a $220B total. CMS's own sentence —
+$56.2B is "about 20 percent of total Part D gross spending in 2023" — puts the
+total at **$281B**, and the second cycle's "$41 billion … or about 14%"
+independently implies $293B over a later window. The re-source is forced by the
+lane's mechanism rather than chosen, and
+`test_the_negotiated_set_never_exceeds_total_part_d_gross_spending` pins the
+contradiction so it cannot come back. **The alternative was to keep an unsourced
+number because it flattered the prediction, and that is the thing the
+pre-registration protocol exists to stop.** The negotiation row's own smaller
+slip: the hand calculation ran the selection-cap expansion across the whole
+window and the code cannot, because an expansion of the *annual* cap has nothing
+to raise until 2029 — before then the statute names the count outright (10, then
+up to 15, then up to 15), so the expansion bites in 6 of 10 years, not 10.
+Neither pharma target moved, and neither is in `target_revisions.py`; whether
+-$500B should be retired for want of a document is an owner decision on the
+ledger's own terms, and a carry-over. The presets moved with the module, by
+design: negotiation -$371.5B → **-$33.5B**, reference pricing -$746.2B →
+**-$801.0B**, comprehensive -$573.5B → **-$150.5B**, insulin unchanged, with a
+Decision 6 caption shipped in the same PR.
 
 Family mean **1,394.1% → 272.8%** on the model repair alone; the 12-row sectoral
 subset it sits in moved **394.1% → 113.8%** (median 57.1%, unchanged), and the
@@ -1326,12 +1500,27 @@ Pricing -$1,387.9B → **-$746.2B**; 💊 Comprehensive Drug Reform -$1,025.8B �
 `CBO_SCORE_MAP` entry changed — those carry the official score, not the
 model's.
 
-### 7.4 IRS enforcement (2 cases, mean 43.9%, 1 fitted)
+### 7.4 IRS enforcement (2 cases, mean 43.5%, 0 fitted)
 
-| Case | Official | Model | Error |
+| Case | Official (live) | Model | Error |
 |---|---:|---:|---:|
-| IRA enforcement funding *(fitted)* | -$200B | -$189B | 5.5% |
+| IRA enforcement funding | **-$180.4B** *(was -$200B)* | -$189B | **4.7%** |
 | Double IRS enforcement | -$340B | -$60B | 82.3% |
+
+**Wave 4 unfitted the first row by moving its target.** The carried -$200B sat
+2% below CBO's $203.7B — a figure CBO had **withdrawn**; the live target is CBO
+pub. 58390's own sentence, *"revenues will increase by $180.4 billion over the
+2022-2031 period"* (letter p. 1). `base_roi_multiplier = 5.0` is still fitted to
+the superseded figure, so the row now reports as a reconstruction, and its 4.7%
+is a reconstruction error rather than bookkeeping. **The second row was examined
+and deliberately left** (`EXAMINED_NOT_REVISED`): Treasury's *American Families
+Plan Tax Compliance Agenda* p. 18 prints $320B, 6% from the carried -$340B, so
+the *gap* argues for moving it — but that $320B is the yield on an **$80B**
+increase in the IRS budget scored in 2021 on a **pre-IRA** baseline, where this
+preset scores ~$160B of funding stacked *on top of* the IRA's $80B. Twice the
+dose, on a baseline that already contains the dose Treasury scored. Treasury's
+$700B headline is not a candidate either: $460B of it is bank information
+reporting the module does not implement.
 
 The IRA case matches because `base_roi_multiplier = 5.0` was chosen to land on
 it. The doubling case applies both a lower base ROI (4.0) *and* a faster
@@ -1345,13 +1534,18 @@ Unrelated, spotted while reading: `ENFORCEMENT_BASELINE` in
 `fiscal_model/enforcement.py` contains a stray `"medicare_insulin_share": 0.4`
 key copy-pasted from `PHARMA_BASELINE`. It is dead, but it should go.
 
-### 7.5 Climate / energy (3 cases, mean 5.0%, 2 fitted)
+### 7.5 Climate / energy (3 cases, mean 8.7%, 2 fitted)
 
-| Case | Official | Model | Error |
+| Case | Official (live) | Model | Error |
 |---|---:|---:|---:|
 | Repeal IRA clean-energy credits *(fitted)* | -$783B | -$783B | 0.0% |
 | Carbon tax $50/ton *(fitted)* | -$1,700B | -$1,715B | 0.9% |
-| Repeal EV credits | -$200B | -$228B | 14.2% |
+| Repeal EV credits | **-$182.3B** *(was -$200B)* | -$228B | **25.3%** |
+
+**The EV row's target moved in Wave 4 and the model did not**, taking it
+14.2% → 25.3% and the family mean 5.0% → 8.7%. The live figure is JCT
+**JCX-35-25**, sec. 30D ($77,829M) + sec. 45W ($104,516M), p. 3 — and the source
+had been mislabelled CBO.
 
 The two near-zero rows are pure bookkeeping and should be read as such. The IRA
 repeal annual **is** the target restated over ten years — the same leakage
@@ -1374,21 +1568,31 @@ The calibrated tier is now 46 entries, but it is two populations:
 | Fitted calibrated references | 34 | 2.7% | 33/34 |
 | Unfitted module reconstructions | 12 | 394.1% | 2/12 |
 
-*(Live as of 2026-09-02, after Wave 3: **28 fitted at 2.0%, 28/28** — a 34th
+*(Live as of 2026-09-05, after Wave 4: **23 fitted at 1.6%, 23/23** — a 34th
 row left the fitted tier when its target was revised, three more left when
-L1 deleted the constants fitted to them, and two tariff rows left when L8
-replaced their fitted coverage constants with Census measurements, so held in
-place the revised row would make it 29 at 4.3%, 28/29 — against **26
-reconstructions at 61.8%**.)*
+L1 deleted the constants fitted to them, two tariff rows left when L8
+replaced their fitted coverage constants with Census measurements, and **five
+more left in Wave 4 when PR #107 moved their targets** (`biden_eitc_childless`,
+`eliminate_salt`, `extend_enhanced_ptc`, `ira_enforcement`, `repeal_salt_cap`).
+Held in place, Wave 4's five make it **28 at 3.0%, 27/28**, and adding the
+revised TCJA-AMT row on top makes it 29 at 5.2%, 27/29 — against **31
+reconstructions at 56.6%**, or **65.7% on the 26 rows that tier already held**,
+which is the like-for-like reading and is *worse* than the 61.8% before
+Wave 4.)*
 
 *(Phase D later added eight P.L. 119-21 line items to this same unfitted class, at
 35.8% mean, taking it to 20 entries and a 250.8% mean — see §8. Wave 1's L7 lane
 then repaired the two pharma incidence bugs, taking the 12-row sectoral subset to
 113.8% and the 20-row tier to 82.6% — see §7.3 — the 2026-09-02 target
 revisions took them to **104.8%** and 21 rows at 76.7%, Wave 2's three
-capital-gains arrivals took the tier to **24 rows at 72.1%**, and Wave 3's L8 and
+capital-gains arrivals took the tier to **24 rows at 72.1%**, Wave 3's L8 and
 L9 lanes plus the two reclassified tariff rows took it to **26 rows at 61.8%**
-(63.6% on the pre-L8 population). The Phase E figures above are kept as the
+(63.6% on the pre-L8 population), and Wave 4 took it to **31 rows at 56.6%** —
+a fall that is *entirely* composition, since on the 26 rows it already held the
+tier reads **65.7%**, worse, because PR #109's pharma rebuild moved two rows
+away from their targets while PR #107's five arrivals came in at 9.4%. The
+sectoral subset is now **15 rows at 82.6%**, or **88.2%** on the 14 it held
+before Wave 4. The Phase E figures above are kept as the
 outturn of Phase E; **live numbers come from `python scripts/cold_holdout.py`**,
 never from this table.)*
 
@@ -1396,7 +1600,7 @@ never from this table.)*
 invariant in `tests/test_cold_holdout.py` compares the out-of-sample tier
 against the *fitted* set — mixing the two would have flipped the invariant for
 the wrong reason (44.8% out-of-sample vs a 104.8% "calibrated" mean) and hidden
-the fact that the fitted tier is still low by construction (2.0% over 28).
+the fact that the fitted tier is still low by construction (1.6% over 23).
 
 `readiness.py --strict` treats a documented `Poor` on an unfitted reconstruction
 the same way it treats a documented out-of-sample miss: a warning, not a
@@ -1515,8 +1719,23 @@ Notes worth carrying:
 
 ### 8.2 Transcribed and different — the owner-decision list
 
-The full table with deltas is in [VALIDATION.md](VALIDATION.md#line_item_differs--the-transcription-disagrees-with-the-target-owner-decisions).
-Five are worth more than a row:
+The full table with deltas is in [VALIDATION.md](VALIDATION.md#line_item_differs--the-transcription-disagrees-with-the-target-each-a-recorded-verdict).
+
+**This list is closed.** Wave 4's provenance pass (PR #107) moved twelve of the
+outstanding targets onto their documents and recorded four more as
+examined-and-left, taking `line_item_differs` from 13 to **5** — and every one
+of the 5 now carries a written verdict rather than an open question: two are
+**range revisions** with in-range anchors (`pillar_two_adoption`,
+`reciprocal_tariffs`) and three are **examined-and-left** decisions
+(`biden_estate_reform`, `ctc_extension`, `double_enforcement`). The Generic tier
+has none at all, `biden_high_income_tax` having gone through the Tier-1 manifest
+as `.v2` at -$245.9B. `EXAMINED_NOT_REVISED` now holds five verdicts, adding
+`steel_tariff_25` and `eliminate_mortgage` to the three above. **Six of the
+thirteen Wave 4 revisions made their row's error worse**, which is the shape a
+correct provenance pass has: if every revision improved its row, the suspicion
+would be that the documents were chosen to fit rather than read.
+
+Five of the historical entries are worth more than a row:
 
 1. **Universal insulin cap: the sign was inverted — and the target has been
    corrected (2026-09-02).** CBO's estimate for H.R. 6833 (pub. 57957) is
