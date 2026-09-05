@@ -608,6 +608,21 @@ derivation ever reads the held-out answer.
 by-construction 1.6%. The gap is the size of the claim the by-construction
 number cannot support.
 
+*Wave 5 left this suite **byte-identical** — and named the population it does
+not cover.* All three Wave 5 lanes (#113 payroll, #114 corporate, #116
+preferential rate) worked at the Tier 1 margin; the payroll and capital-gains
+factories this suite reads pin their own annuals and elasticities, so nothing
+here moved. The corporate lane could not move it for a different reason: **the
+suite has no `Corporate` module row at all.** It holds Payroll, Estate, AMT,
+Credits, Expenditures and CapitalGains, and the one module whose base constant
+was self-documented as calibrated to its own benchmark — a fitted $1,900B that
+turned out to be within 3% of the TY2018 SOI vintage while the module scored a
+2025-2034 window — has never been cross-validated. That is precisely the failure
+mode `loo.py` exists to catch, and it caught it nowhere because there was no row
+to catch it in. Adding one is a `loo.py` edit and no modelling lane may make
+one, so PR #114 recorded it (finding 5) and left it; it is a carry-over in
+`planning/MODELING_IMPROVEMENT.md` §6.2.
+
 *Wave 4 took this 28.4% → **29.6%**, and every bit of the move is a **target**
 movement rather than a derivation one.* `run_loo.py --donor-matrix` differs from
 pre-Wave-4 main in **exactly five lines**, and every derived figure in them is
@@ -1568,7 +1583,11 @@ The calibrated tier is now 46 entries, but it is two populations:
 | Fitted calibrated references | 34 | 2.7% | 33/34 |
 | Unfitted module reconstructions | 12 | 394.1% | 2/12 |
 
-*(Live as of 2026-09-05, after Wave 4: **23 fitted at 1.6%, 23/23** — a 34th
+*(Live as of 2026-09-05, after Wave 5, which moved **neither** calibrated tier:
+its three lanes all worked at the Tier 1 margin, no target moved and no constant
+was retuned, so 0 of 23 fitted rows and 0 of 31 reconstruction rows changed —
+each lane registered that as a falsification test in advance and each passed it.
+The figures below are therefore Wave 4's, still live: **23 fitted at 1.6%, 23/23** — a 34th
 row left the fitted tier when its target was revised, three more left when
 L1 deleted the constants fitted to them, two tariff rows left when L8
 replaced their fitted coverage constants with Census measurements, and **five

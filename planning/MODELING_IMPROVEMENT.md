@@ -51,10 +51,10 @@ Error mass = Σ|error %| within a tier; share = that mechanism's contribution to
 |---|---|--:|--:|---|
 | **Budget-authority → outlay spend-out** | `iija_2021_discretionary` 355.9, `cbo_opt43` 75.5, `cbo_opt38` 23.1, `cbo_opt37` 20.0, `cbo_opt42` 18.0, `cbo_opt39` 10.3, `fra_2023_discretionary_caps` 5.8 | 509 | **38.7%** | **High.** One parameter vector; 14 donor profiles already in the repo's own CSV |
 | **Capital gains** — realizations base, lock-in, gains at death | `treasury_capgains_39_plus_stepup_elim` 153.6, `biden_capital_gains_39` 142.3, `cbo_opt47_ltcg_qdiv_2pp` 99.1, `cbo_opt51_gains_at_death` 84.4 | 479 | **36.5%** | Medium. Bounded change; SOI + SCF data must be fetched; 4 OOS + 3 LOO rows test it |
-| **Payroll identity at the margin** | `cbo_opt61` 1% 54.1, 2% 55.5 | 110 | 8.3% | Medium. Needs employer-share incidence + income-tax offset, not new data |
+| **Payroll identity at the margin** | `cbo_opt61` 1% 54.1, 2% 55.5 | 110 | 8.3% | Medium. ~~Needs employer-share incidence + income-tax offset, not new data~~ — **this scoping was wrong on the merits**; see §5.5 finding 1. Shipped Wave 5 (PR #113): 7.5% / 8.1% |
 | Residual (8 rate cases, 1.5–21.1%) | — | 90 | 6.8% | At the bracket-aggregate ceiling (`VALIDATION_NOTES.md` §5) |
 | **Filing-status-specific thresholds** | `cbo_opt46_1pp_20k` 44.7, `cbo_opt45_top4_2pp` 25.8 | 71 | 5.4% | Medium. Needs SOI by filing status; not in scope below |
-| **Corporate rate at the margin** | `cbo_opt64` 47.1 | 47 | 3.6% | Low priority; one row |
+| **Corporate rate at the margin** | `cbo_opt64` 47.1 | 47 | 3.6% | ~~Low priority; one row~~ — taken Wave 5 (PR #114) and **registered as a regression to 62.3%**, because the fitted base was a TY2018 vintage and two documents price the point 42% apart; see §5.5 |
 | **Direct-spending benefit growth rate** | `ssfa_wep_gpo_repeal_outlays` 10.1 | 10 | 0.8% | Low. Explicitly *not* a spend-out case — benefits are outlaid in the year owed; the residual is the model's 2%/yr growth against CBO's ~1.1%/yr |
 
 **Spend-out is now the largest single mass in Tier 1**, and one case is why:
@@ -997,6 +997,184 @@ a Decision 6 caption in the same PR. `repeal_individual_amt`'s $450B stays
 and nothing was done about *why* the international rows miss — those are items
 9, 10 and 11.
 
+## 5.5 Wave 5 outturn (2026-09-05)
+
+Three modelling lanes on disjoint files — payroll at the margin
+(`model/w5-payroll-margin`, PR #113), corporate at the margin
+(`model/w5-corporate-margin`, PR #114) and the preferential rate
+(`model/w5-preferential-margin`, PR #116) — plus two blue-tier PRs (frozen
+classroom links, #111; the app's default scoring window, #115) and the
+coordinator's gate re-derivation (#117). **Like Wave 4, Wave 5 is not in §5's
+sequencing**: it is three of §6.2's carry-over items taken in parallel. Each lane
+pre-registered its expected movement in `planning/lanes/` before touching code
+and appended an outturn; those files carry the per-row detail and are the record,
+not this summary. Every figure here is from `python scripts/cold_holdout.py`,
+`python scripts/run_loo.py --donor-matrix` and `python
+scripts/run_validation_dashboard.py` on the **merged** tree — which is not any
+lane's own before/after, because all three moved the same battery against the
+same 18.0% base.
+
+### The tiers, before → after
+
+| tier | n | before | after |
+|---|--:|---|---|
+| Out-of-sample (Tier 1) | 26 | 18.0% mean / 12.6% median / 14 within 15 / 21 within 25 | **15.9% / 11.4% / 16 / 22** |
+| Calibrated reference (fitted) | 23 | 1.6% / 0.1% median / 23 within 15 | **1.6% / 0.1% / 23**, unmoved — 0 rows changed |
+| Unfitted reconstructions | 31 | 56.6% / 29.9% median / 9 within 15 | **56.6% / 29.9% / 9**, unmoved — 0 rows changed |
+| Leave-one-out | 18 derivable | 29.6% / 19.1% median / 8 within 15 | **byte-identical output** |
+| Distributional | 7 | 0.00–5.86pp (ARP 3.72) | **unchanged** |
+| Scorecard rows | 80 | 73 published | **80 / 73**, unchanged |
+| `revised_target_entries` | 15 | — | **15**, unchanged — no target moved |
+| Tier 1 CI gate | — | `25 / 20` | **`20 / 21`** (PR #117) |
+| Tests | — | 3322 passed, 1 skipped | **3415 passed, 1 skipped** on the merged tree |
+
+**Wave 5 is the first wave in which only Tier 1 moved, and that is the point.**
+Waves 2, 3 and 4 each had to be read with a constant-population caveat attached,
+because rows entered or left a calibrated tier. Here nothing did: no target
+moved, no constant was retuned, and **0 of 23 fitted rows and 0 of 31
+reconstruction rows changed**, with `run_loo.py --donor-matrix` byte-identical.
+Each lane registered that as a falsification test in advance and each passed it.
+So the Tier 1 movement is the model, with no composition to net out — which also
+means it is the wave with the fewest hiding places, and two of its five moved
+rows moved the wrong way on purpose.
+
+Tier 1's error mass fell **468.1 → 412.9**. The composition changed more than the
+total: payroll went 109.6 → **15.6** (from the largest single mass to 3.8% of the
+tier), capital gains 80.9 → **104.5** (17.3% → 25.3%, the largest again), and
+corporate 47.1 → **62.3** (15.1%). Grouped by cause, the tier is now capital
+gains 104.5 (25.3%), the bracket-aggregate ceiling 91.4 (22.1%), module revenue
+identities at the margin 77.9 (18.9%), budget-authority spend-out and level shape
+63.4 (15.4%), the filing-status threshold 62.6 (15.2%) and the one
+tax-expenditure cap 13.1 (3.2%).
+
+### Per-lane, what moved
+
+- **PR #113 payroll** is the whole of the improvement and more. The two CBO
+  Option 61 rows went **54.1% / 55.5% → 7.5% / 8.1%** — 25th and 26th most
+  accurate of 26 to **7th and 9th** on the merged tree (the lane doc says 8th
+  and 10th, which held on its own branch before the other two lanes moved rows
+  past them) — and the outturn matched §3's hand arithmetic
+  to the decimal (−$1,378.2B and −$2,745.0B, both computed before a file was
+  opened). All seven falsification tests fired and none against the lane; every
+  Tier 1 row other than the two named is identical to the dollar, and the
+  donor-matrix output and the 53-preset sweep are byte-identical.
+- **PR #114 corporate** is a **pre-registered regression that landed to the
+  decimal**: `cbo_opt64_corporate_rate_1pp` **47.1% → 62.3%**, with all fifteen
+  registered rows landing as registered and the whole
+  `run_validation_dashboard.py` output differing from the branch point by **one
+  line**. `biden_corporate_28` and `trump_corporate_15` are unmoved in the
+  shipped `reported` mode; in `derived` they read 7.81% and 11.53% against
+  reported's 3.73% and 0.11%, so Decision 1 keeps `CORPORATE_APP_MODE` at
+  `reported` (1.92% against 9.67%) and nothing a user sees changed.
+- **PR #116 preferential rate** landed every registered figure exactly, including
+  the registered regression, because both legs of the score are linear in the
+  base and the stock ratio is a ratio: `cbo_opt47_ltcg_qdiv_2pp` **44.8% →
+  10.5%** (registered 8–14%), `biden_capital_gains_39` **16.7% → 31.4%**
+  (registered 28–35%), `treasury_capgains_39_plus_stepup_elim` **0.2% → 43.3%**
+  (registered 40–47%), `cbo_opt51_gains_at_death` unchanged to the dollar. The
+  death channel is unchanged to the cent on every row, which is the test that the
+  projection did not leak into Wave 4's work.
+- **PR #115 window** moved no scorecard number at all — five scripts compared
+  structurally before and after, all identical — and two pharma presets by one
+  calendar year, correctly.
+
+### Four findings the wave produced
+
+**1 — A plan's scoping can be wrong on the merits, and the source says so in two
+sentences.** §2.1 of this file scoped the payroll rows as "employer-share
+incidence + income-tax offset". CBO's own option text says *"The new tax would be
+paid entirely by employees"*, and its *Other Considerations* paragraph exists to
+explain that an employer-side tax would raise **less**. Adding the offset the
+plan named would have moved the model *further* from the target, for a reason the
+source explicitly rules out. The employer-share rule is built anyway — the module
+could not otherwise represent Medicare — and evaluates to exactly zero here.
+Reading the option before writing the mechanism is what that lane did
+differently, and the plan's §2.1 row is wrong on the merits rather than merely
+out of date.
+
+**2 — Three modules have now been found with an inverted or absolute-valued
+behavioural offset, and every gate in the repository was blind to all three.**
+`trade.py` (Wave 3, L8), `payroll.py` (W5-A finding 3) and `corporate.py` (W5-B
+finding 4). The mechanism is the same each time: the engine computes
+`deficit = −revenue + behavioural`, so an offset returned with the wrong sign (or
+wrapped in `abs()`) **magnifies** the score where it should erode it — a payroll
+tax increase that raises 17.5% more than it levies, a shipped corporate rate cut
+that books a first-year deficit effect of **+$159.75B** on a static −$142B. None
+of the three was found by a test. They cannot be, as things stand: **each
+module's calibrated factories zero the elasticity**, so the fitted tier and the
+leave-one-out column are structurally blind to the sign, and the only surfaces
+that reach the bug are the uncalibrated Tier 1 shapes and the demo-grade bill
+tracker. Two of fourteen modules were found by a lane that happened to be reading
+the file; the third by a lane that was looking for something else. **The
+remaining modules have not been swept**, and `tax_expenditures`' reverse
+convention (W4-3a finding 3) is a fourth instance of the same family. This is
+item 1 of §6.2.
+
+**3 — A fitted constant can be a right quantity that stopped being updated, and
+linearity hides it perfectly.** `corporate.py`'s $1,900B base is within 3% of
+SOI's **TY2018** income subject to tax ($1,956.7B); the TY2022 figure is
+$2,879.1B. Nobody chose a wrong concept. Because the module is linear in the
+base, the staleness was invisible against a target calibrated at the same vintage
+— and it was two errors, not one: a base 34% too small and a flat 12.5% offset
+well below what the published semi-elasticity implies at 7pp, which nearly cancel
+at 7pp and do not at 1pp. Correcting *one* would have looked like a regression on
+both rows. The general lesson is a vintage audit rather than a corporate one.
+
+**4 — A row that agrees with its target can be hiding a stale input, and removing
+the offsetting error is progress that looks like damage.**
+`treasury_capgains_39_plus_stepup_elim` read **0.2%** after Wave 4 and Wave 4's
+own lane doc already recorded that as two errors cancelling. The second of the
+two was a realizations base frozen at IRS SOI tax year 2023 and priced unchanged
+in every year of a ten-year window. W5-C removed it and the row reads **43.3%**,
+which is not a worse model but an honest one — and about **17 of those 43 points
+are the window the row is scored on** (target FY2022–2031, model FY2025–2034, no
+`effective_start_year` on the record). Two more results from that lane are worth
+keeping. The **qualified-dividends hypothesis is refuted**, and by arithmetic
+already in the tree: SOI Table 3.5's preferential columns *exceed* the whole
+year's realized gains in both vendored years (1.046 and 1.189), so they contain
+qualified dividends by construction, and adding a column would have moved the row
+from 45% under to about 28% under *by being wrong twice*. And **CBO's own path
+says the frozen elasticity was never the problem**: inverting Option 47's
+published annuals gives a semi-log coefficient of 4.17 falling to 1.81 on a flat
+base — the projection error being absorbed by the elasticity year after year —
+against **3.17 / 3.01 / 3.12** on the projected base, either side of JCT's own
+published 3.1 and the frozen DMM 3.2727.
+
+### Where the pre-registrations were wrong
+
+| lane | what it said | what happened |
+|---|---|---|
+| payroll | −$1,378.2B / +7.5% and −$2,745.0B / +8.1%, every aggregate | **exact**, to the decimal, on both rows and every aggregate |
+| corporate | fifteen rows including the 62.3% regression and the 1.92%/9.67% Decision 1 means | **exact**, all fifteen; the dashboard differs from the branch point by one line |
+| preferential rate | three bands, three channel figures, five Tailor rows | **all inside**; and the lane says plainly that this is algebra rather than prediction — both legs are linear in the base, so the figures were always going to reproduce if the implementation was correct |
+| preferential rate (Wave 2's §2.6) | growing the realizations base would take `cbo_opt47` "from ~30% to ~150%" | it cannot: the row was at 55% of its target and the largest factor applied in any year is 1.86. It went to **90% of target**. The rule being defended — "stocks are indexed, flows are not" — was right about estate and payroll and wrong about this flow |
+| corporate (CI) | `ceil(18.6 × 1.25)` → 25 and `21 − 1` → 20, unchanged | correct for that lane alone; on the **merged** battery the rule gives **20 / 21**, which is PR #117 |
+
+**The honest reading of three exact outturns is not that the lanes were prescient
+but that the mechanisms are algebraic**, and the lanes say so themselves. What
+was really being registered was the *choice* — which base, which rate, on which
+rows and at what cost — and the test of a choice is the finding it produces, not
+the decimal it reproduces.
+
+### What Wave 5 did not do
+
+No lane touched `preregistered.py`, `holdout.py`, `loo.py`,
+`target_revisions.py`, `KNOWN_SCORES`, `CBO_SCORE_MAP`, `benchmark_sources.py`,
+any CI threshold or `tests/test_cold_holdout.py`; PR #117 re-derived the gate by
+the workflow's own published rule, which a modelling lane may never do.
+**Every Wave 5 module keeps `reported` as the app default under Decision 1** —
+corporate 1.92% reported against 9.67% derived, and payroll and capital gains
+shipped no mode flag at all. The only shipped numbers that moved are the four
+Tailor capital-gains rows (Decision 6 caption in the same PR) and the two pharma
+presets PR #115's window carried forward a year. Left undone and recorded:
+the corporate module's missing leave-one-out row and its `abs()` offset (both
+pinned by tests so the next person makes a decision rather than an edit);
+payroll's two unsourced flat-share "elasticities" and its unexplained
+base-growth gap; the capital-gains receipts lag, the un-indexed $1M threshold and
+the FY2022 window; corporate's R&D, depreciation, CAMT and credit-carryforward
+channels; and the engine's want of a general `Policy.scores_by_year()` now that
+two classes have had to opt out of the year-indexed path.
+
 ## 6. Open owner decisions
 
 **Decided 2026-09-01 (owner accepted the coordinator's recommendation on all six).** The questions are kept below as written; the decisions are:
@@ -1083,12 +1261,42 @@ mechanism — the $54B flow constant, the 0.8/0.4 net-of-tax elasticities and th
 target, but it is a `preregistered.py` edit and a modelling lane may not open
 that file.
 
-### 6.2 Carry-over list after Wave 4 (rewritten 2026-09-05) — the single live list
+### 6.2 Carry-over list after Wave 5 (rewritten 2026-09-05) — the single live list
 
-**Waves 1–4 of this plan are complete.** What follows replaces the Wave 3
+**Waves 1–5 of this plan are complete.** What follows replaces the Wave 3
 edition of this list. None of it is a modelling lane's call to make on its own;
 sequencing is the owner's. Each item names the artefact it lives in so nobody has
 to rediscover it.
+
+**Wave 5 closed three of §2.1's own rows and opened six items.** Struck, with
+where the work landed:
+
+- ~~**Payroll identity at the margin** (§2.1 row 3, 110 units, 8.3% of the
+  pre-Wave-1 tier)~~ — **PR #113**, `planning/lanes/W5_payroll_margin.md`. The
+  two Option 61 rows **54.1% / 55.5% → 7.5% / 8.1%**. Note that §2.1's own
+  tractability note — "needs employer-share incidence + income-tax offset" — was
+  **wrong on the merits**, not merely out of date: CBO's option text says the tax
+  is paid entirely by employees, so the offset it named does not exist and adding
+  it would have moved the model further away. The real defect was a base built as
+  Medicare receipts ÷ 2.9%. See §5.5 finding 1.
+- ~~**Corporate rate at the margin** (§2.1 row 6, 47 units, "low priority; one
+  row")~~ — **PR #114**, `planning/lanes/W5_corporate_margin.md`. Taken, and the
+  row went **47.1% → 62.3%** as a pre-registered regression: the base is now IRS
+  SOI Table 11's published statutory figure and the fitted constant it replaced
+  was a **TY2018 vintage**. What is left is CBO 60557 and Treasury's FY2025 Green
+  Book pricing a percentage point 42% apart, which is not this module's to close.
+  The lane's two live findings became items 22 and 23 below.
+- ~~**The preferential-rate base** (`cbo_opt47_ltcg_qdiv_2pp`, the residual L1 and
+  Wave 4 both left behind)~~ — **PR #116**,
+  `planning/lanes/W5_preferential_margin.md`. **44.8% → 10.5%** by projecting the
+  realizations base with the accrued-gains stock it is a flow off; the
+  qualified-dividends hypothesis was **refuted** rather than adopted. The
+  registered cost was the two Green Book rows crossing their targets (16.7% →
+  31.4%, 0.2% → 43.3%), and the window half of the second became item 24.
+
+**Item 15 below — the five-class decedent ladder — is unchanged and is still the
+first place a later capital-gains lane should look.** Wave 5 touched the rate
+channel only; the death channel is unchanged to the cent on every row.
 
 **Wave 4 closed nine items and half-closed a tenth.** Struck, with where the work
 landed: the household/tax-unit distributional universe (**PR #104**; ARP
@@ -1187,7 +1395,9 @@ by 2–4×.
    directionally right (CBO's text says both channels increase revenue), but it
    is unsourced in magnitude on every expenditure benchmark. Changing it is
    module-wide: it moves every fitted expenditure row **and** the leave-one-out
-   column together. An owner decision, not a lane's.
+   column together. An owner decision, not a lane's. **Wave 5 found the same
+   family of defect in two more modules** — see item 22, which subsumes this one
+   into a sweep.
 9. **Re-base the UTPR on JCT Equation 2** (OECD CbCR aggregates by
    ultimate-parent jurisdiction). The single largest remaining item in
    `international.py`: the module's $15B against Treasury's $136,313M and JCT's
@@ -1271,3 +1481,99 @@ by 2–4×.
     because `household_weight` repeats a nine-character float on every tax unit
     rather than once per household. Cosmetic, cheap, and the one thing PR #104's
     pre-registration got wrong.
+
+**New after Wave 5**
+
+22. **Sweep every module for an inverted or absolute-valued behavioural offset.**
+    *(New, from `W5_payroll_margin.md` finding 3 and `W5_corporate_margin.md`
+    finding 4; item 8 above is a fourth instance of the same family.)* **Three
+    modules have now been found with the defect and none of them by a test.**
+    `trade.py` (Wave 3, L8), `payroll.py` (W5-A) and `corporate.py` (W5-B), plus
+    `tax_expenditures.py`'s reverse convention (W4-3a). The engine computes
+    `deficit = −revenue + behavioural`, so an offset returned with the wrong sign
+    — or wrapped in `abs()`, which `corporate.py` does — **magnifies** a score
+    where it should erode it: a payroll tax increase raising 17.5% more than it
+    levies, and the shipped `create_republican_corporate_cut` preset booking a
+    first-year deficit effect of **+$159.75B** on a static −$142B. **This is
+    invisible to every gate the repository has**, because each module's
+    calibrated factories zero the elasticity, so the fitted tier and the
+    leave-one-out column are structurally blind to the sign; only the
+    uncalibrated Tier 1 shapes and the demo-grade bill-tracker auto-scorer reach
+    it. Two were found by a lane that happened to be reading the file and one by
+    a lane looking for something else — **the remaining ten modules have not been
+    swept**. `corporate.py`'s bug is deliberately *kept* in `reported` mode and
+    pinned by a test in both behaviours, because `trump_corporate_15`'s shipped
+    number scores through it and Decision 1 forbids moving a shipped number in a
+    lane that ships no caption for it. This is the wave's sharpest finding and
+    should be the next item taken.
+23. **The corporate module has no leave-one-out row.** *(New, from
+    `W5_corporate_margin.md` finding 5.)* `run_loo.py` holds Payroll, Estate,
+    AMT, Credits, Expenditures and CapitalGains. The one module whose base
+    constant was **self-documented as calibrated** to its own benchmark — and
+    which turned out to be a stale TY2018 vintage — has never been
+    cross-validated, which is precisely the population `loo.py` exists to catch.
+    Adding it is a `loo.py` edit and **no modelling lane may make one**, so the
+    lane recorded it and stopped. Depends on nothing; blocked only on whose job
+    it is.
+24. **`treasury_capgains_39_plus_stepup_elim` is scored on the wrong window, and
+    the projection is what makes that bite.** *(New, from
+    `W5_preferential_margin.md` §8.3 finding 5.)* The target is the FY2022 Green
+    Book's FY2022–2031 row on a 2021 baseline; the manifest states no
+    `effective_start_year`, so the model scores FY2025–2034. Running the same
+    channel on the target's own window returns **$405.6B against $461.5B** —
+    about **17 of the row's 43 points**. That is a *manifest* question, not a
+    modelling one: moving it is a shape input under the supersede rule (a new
+    `.v2` row, never an edit), and the repository has no 2021 vintage either way.
+    Related and smaller from the same lane: no receipts lag on the enactment
+    year, no smoothing of the TY2023 SOI anchor (a trough), the $1M threshold
+    still un-indexed, and the growth rate is a net-worth CAGR rather than CBO's
+    own published realizations projection (blocked by cbo.gov 403s, item 16).
+25. **The AGI-surtax filing-status threshold row is now the tier's
+    second-largest, at 44.7%, and nothing in Wave 5 touched it.** A $20,000
+    single / $40,000 joint boundary applied as one floor to every return, at the
+    bottom of the filing population where a single-threshold approximation is
+    worst — joint filers between $20,000 and $40,000 are taxed in the model and
+    exempt in JCT's estimate, and the model *still* under-predicts, because SOI
+    aggregate AGI above the floor understates JCT's base. Together with
+    `cbo_opt45_top4_brackets_2pp` at 17.9% this is **62.6 units, 15.2% of the
+    tier**. Closing it needs SOI by filing status, which is why §2.1 scoped it
+    "medium, not in scope below"; it has now outlasted five waves.
+26. **Payroll's two flat-share "elasticities" and its unexplained base-growth
+    gap.** *(New, from `W5_payroll_margin.md` findings 4 and 5.)*
+    `labor_supply_elasticity = 0.1` and `tax_avoidance_elasticity = 0.15`
+    multiply `|static|` rather than a net-of-tax share, so a 0.1pp tax and a 10pp
+    tax erode by the same 17.5%; both are unsourced and both are left in place
+    for the OASDI branches, where every factory zeroes them. Separately,
+    two-thirds of what is left of the Option 61 residual is a base-growth gap the
+    option text does not explain — the model prices the base off CBO's own
+    February 2024 wage path at 3.9%/yr while the base implied by CBO's published
+    revenue row grows **3.45%/yr** — and a third is FY2025 alone, where CBO's
+    first-year row is 0.48 of its second-year row against the 0.75 a January
+    effective date and a fiscal year give. **Neither is closable from the
+    published record that lane could reach.**
+27. **The engine has two year-indexed policy classes and no general concept.**
+    *(New, from `W5_payroll_margin.md` finding 6.)* `TaxExpenditurePolicy` opted
+    out of `_score_growth_tax_policy_year` in Wave 4 (a cap's bite is a function
+    of the year) and `PayrollTaxPolicy` in Wave 5 (the base is a path), each as
+    six lines of `isinstance` in the scoring engine. A third will make it a
+    pattern worth naming — `Policy.scores_by_year()`, say — rather than a third
+    special case.
+28. **Two classroom locks the frozen-link work deliberately did not build.**
+    *(New, from PR #111.)* **Build packages are not freezable**: `frozen=1` is
+    honoured on `/explore` and `/tailor` only, the two surfaces producing one
+    `ScoredResult`, and freezing a package would mean disabling the checklist
+    inside `ui/tabs/deficit_target.py`, which also owns the target slider and the
+    exports — so `frozen=1` on `/build` does nothing rather than claiming a lock
+    it is not holding. And the **Data & methodology options are not pinned**, per
+    the owner's stated scope (vintage, engine, dynamic, policy); they still move
+    the number, which is what the spec-hash caption is for. Blue tier, so held to
+    a UX bar rather than an accuracy one.
+29. **The cold-start measurement in `planning/redesign/FOLLOWUPS.md` is still
+    open.** Carried, and still marked partially done rather than ticked: PR #82
+    shipped option (a), painting the chrome before any data load, and what
+    remains is Streamlit Cloud's container sleep, which needs either (b) a warm
+    container or (c) an explanation in the copy around the link. **The
+    measurement that decides between them has not been made**, and nothing in
+    Waves 4 or 5 made it — if most of the remaining wait is import time there is
+    more of (a) to do; if it is cold container scheduling, only (b) helps. It is
+    the one open blue-tier item that is a measurement rather than a build.
