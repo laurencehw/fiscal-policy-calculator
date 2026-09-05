@@ -380,4 +380,246 @@ gate the repository has**, and exactly one of the seven reaches a scorecard row.
 
 ## 7. Outturn
 
-*Appended in the lane's last commit.*
+*Appended in the lane's last commit. Every figure below is from a command named
+beside it, run on this branch.*
+
+### 7.1 Six modules signed, one convention left
+
+`python scripts/audit_offset_signs.py`, same script and same cases as section 6:
+
+| class | module | dir | static/yr | f(+100) | f(-100) | window static | window behav | window final | erodes | tag |
+|---|---|---|--:|--:|--:|--:|--:|--:|:-:|---|
+| TaxPolicy | policies_core.py | increase | 36.0 | 12.5 | -12.5 | -359.6 | 44.9 | -314.6 | yes |  |
+|  |  | cut | -36.0 | 12.5 | -12.5 | 359.6 | -44.9 | 314.6 | yes | correct |
+| CapitalGainsPolicy | policies_core.py | increase | 20.0 | 35.7 | 35.7 | -247.5 | 201.0 | -46.4 | yes |  |
+|  |  | cut | -20.0 | -35.3 | -35.3 | 247.5 | -181.6 | 65.8 | yes | correct |
+| AMTPolicy | amt.py | increase | 100.0 | 25.0 | -25.0 | -1,146.4 | 286.6 | -859.8 | yes |  |
+|  |  | cut | -100.0 | 25.0 | -25.0 | 1,146.4 | -286.6 | 859.8 | yes | correct |
+| CorporateTaxPolicy [reported] | corporate.py | increase | 114.0 | 12.5 | -12.5 | -1,368.7 | 171.1 | -1,197.6 | yes |  |
+|  |  | cut | -114.0 | 12.5 | -12.5 | 1,368.7 | -171.1 | 1,197.6 | yes | correct |
+| CorporateTaxPolicy [derived] | corporate.py | increase | 137.7 | 21.6 | -21.6 | -1,604.0 | 346.5 | -1,257.5 | yes |  |
+|  |  | cut | -137.7 | 12.0 | -12.0 | 1,604.0 | -192.5 | 1,411.5 | yes | correct |
+| TaxCreditPolicy [EITC/CTC] | credits_core.py | increase | 17.0 | 12.0 | -12.0 | -194.9 | 23.4 | -171.5 | yes |  |
+|  |  | cut | -17.0 | 12.0 | -12.0 | 194.9 | -23.4 | 171.5 | yes | correct |
+| TaxCreditPolicy [other credits] | credits_core.py | increase | 17.0 | 3.0 | -3.0 | -194.9 | 5.8 | -189.0 | yes |  |
+|  |  | cut | -17.0 | 3.0 | -3.0 | 194.9 | -5.8 | 189.0 | yes | correct |
+| IRSEnforcementPolicy | enforcement.py | increase | 19.5 | 5.0 | -5.0 | -194.9 | 9.7 | -185.1 | yes |  |
+|  |  | cut | - | - | - | - | - | - | - | correct |
+| EstateTaxPolicy | estate.py | increase | 3.1 | 11.4 | -11.4 | -35.9 | 4.1 | -31.8 | yes |  |
+|  |  | cut | -3.1 | 11.3 | -11.3 | 35.9 | -4.1 | 31.8 | yes | correct |
+| InternationalTaxPolicy | international.py | increase | 22.1 | 15.0 | -15.0 | -220.5 | 33.1 | -187.4 | yes |  |
+|  |  | cut | -11.2 | 15.0 | -15.0 | 112.5 | -16.9 | 95.6 | yes | correct |
+| PayrollTaxPolicy | payroll.py | increase | 90.0 | 17.5 | -17.5 | -1,080.5 | 189.1 | -891.5 | yes |  |
+|  |  | cut | -90.0 | 17.5 | -17.5 | 1,080.5 | -189.1 | 891.5 | yes | correct |
+| PremiumTaxCreditPolicy | ptc.py | increase | 95.0 | 13.0 | -3.0 | -1,140.6 | 148.3 | -992.3 | yes |  |
+|  |  | cut | -35.0 | 13.0 | -3.0 | 420.2 | -12.6 | 407.6 | yes | correct |
+| TaxExpenditurePolicy | tax_expenditures_core.py | increase | 83.1 | -5.0 | 5.0 | -952.6 | -47.6 | -1,000.2 | **NO** |  |
+|  |  | cut | -64.5 | -5.0 | 5.0 | 740.0 | 37.0 | 777.0 | **NO** | convention |
+| TCJAExtensionPolicy | tcja.py | increase | -460.2 | 0.0 | 0.0 | 4,058.5 | 0.0 | 4,058.5 | yes |  |
+|  |  | cut | - | - | - | - | - | - | - | zero |
+| TariffPolicy | trade.py | increase | 81.8 | 34.5 | -34.5 | -818.5 | 282.7 | -535.7 | yes |  |
+|  |  | cut | -122.2 | 28.8 | -28.8 | 1,221.9 | -351.3 | 870.6 | yes | correct |
+
+**Thirteen classes `correct`, one `convention`, one `zero`**, where the branch
+point had seven against the contract. Nothing else in any module changed: no
+elasticity value, no base, no growth rate, no target. The whole diff is
+`math.copysign` (and, in `credits_core.py`, dropping an `abs`), plus the
+docstring that says why.
+
+`tax_expenditures_core.py` is deliberately unchanged and is now documented in
+its own docstring rather than only in a lane doc. Its source is CBO,
+*Options for Reducing the Deficit: 2025 to 2034* (pub. 60557), Option 56: a cap
+on the employer-health exclusion makes employers offer less generous coverage
+**and** shifts compensation back into taxable wages, and CBO's text has both
+channels raising revenue, so an offset that adds to the static effect is right
+*there*. It is unsourced in magnitude on the other five expenditure benchmarks,
+and choosing it module-wide moves every fitted expenditure row and the whole
+leave-one-out column together. **That is section 6.2 item 8's owner decision and
+this lane did not make it** - see 7.6.
+
+### 7.2 What moved
+
+| | before | after |
+|---|--:|--:|
+| **Tier 1 - out-of-sample** | 26 @ 15.9% / 11.4% / 16 / 22 | **unchanged, to the cent on all 26 rows** |
+| **Tier 2 - fitted calibrated** | 23 @ 1.6%, 23/23 within 15% | **23 @ 3.4%, 21/23 within 15%** |
+| **Tier 2 - unfitted reconstructions** | 31 @ 56.6% / 29.9% | **unchanged** |
+| **Tier 2 - leave-one-out** | 18 @ 29.6% / 19.1%, 8 within 15% | **unchanged; `--donor-matrix` byte-identical** |
+| Shipped presets (53) | - | **2 moved** |
+
+**Two scorecard rows moved, both in the fitted calibrated tier, and neither was
+retuned.**
+
+| row | target | provenance | model before | model after | error |
+|---|--:|---|--:|--:|---|
+| `trump_corporate_15` | +$1,920.0B | `model_estimate` | +1,918.0 | **+1,491.8** | 0.1% -> **22.3%** |
+| `repeal_ptc` | -$1,100.0B | `secondhand` | -1,096.2 | **-896.9** | 0.3% -> **18.5%** |
+
+Both are the case the lane brief describes: **a fitted constant that was
+compensating for a sign bug**. `create_republican_corporate_cut` books a static
+of -$142B/yr and was adding 12.5% of it to the deficit rather than taking it
+off; `create_repeal_ptc` books +$99.65B/yr of saving and was adding 10% of it to
+the saving. In both, the annual level had been chosen so that
+*static x (1 + offset share)* landed on the target, so signing the offset takes
+the score to *static x (1 - offset share)* - a movement of twice the offset,
+which is exactly what the table shows. **No constant was moved to put either
+back**: section 1.1 of the plan forbids it, and putting them back would re-fit
+the level to the defect.
+
+Read both misses with their provenance attached. `trump_corporate_15`'s +$1,920B
+carries provenance **`model_estimate`** - it is this repository's own output,
+recorded as an expectation - and `repeal_ptc`'s -$1,100B is one of the twelve
+`secondhand` rows section 6.2 item 5 lists as untraceable to any document ("CBO
+estimate", no publication). So neither 22.3% nor 18.5% is a distance from a
+published score. What they measure is that the calibrated tier had two rows
+whose agreement was buying part of its 0.1% from a bug, which is the honest
+reading and the reason the fitted mean rose.
+
+The fitted mean moving **1.6% -> 3.4%** is the whole of the tier's change; the
+other 21 rows are identical to the cent.
+
+### 7.3 The two presets, and the caption
+
+`PRESET_POLICIES` swept end to end on both trees (all 53 scored through
+`create_policy_from_preset` on the app's FY2026-FY2035 window):
+
+| preset | before | after | |
+|---|--:|--:|--:|
+| **Trump Corporate 15%** | +$1,690.6B | **+$1,314.9B** | **-22.2%** |
+| **Repeal ACA Premium Credits (-$1.1T)** | -$966.2B | **-$790.5B** | **+18.2%** |
+
+The other **51 score to the cent** what they scored on `790caff`. Under
+Decision 6 the two that moved ship with their explanation:
+`behavioural_sign_caption` in `fiscal_model/ui/tabs/results_summary.py`, after
+the existing captions, computed from the scored result so it cannot drift from
+the headline above it. It names the static effect, the offset, the current
+figure **and the figure the user would have seen before the sweep**. It fires
+only where the number actually moved - the three inverted modules moved in both
+directions, the four `abs()` ones only for a revenue-losing policy - so
+`biden_corporate_28` and the other 50 stay silent, and a test pins that.
+
+**Their validation badges drop with them**, which is the other user-visible
+consequence and is not a caption's job to soften. `fiscal_model/ui/preset_validation.py`
+rates a preset off its scorecard row, so Trump Corporate 15% goes
+**Excellent (0.1%) -> Poor (22.3%)** and Repeal ACA Premium Credits
+**Excellent (0.3%) -> Acceptable (18.5%)**. That is the correct reading: the
+green badges were partly bought by the defect, and the app now says how far
+those two rows are from targets that are themselves a `model_estimate` and an
+untraceable `secondhand` figure.
+
+Two user-visible surfaces that are not presets also change, both quietly for the
+better: `bill_tracker/auto_scorer.py` builds a raw `EstateTaxPolicy` with
+module-default elasticities (inverted until now) and calls
+`create_corporate_rate_change(include_behavioral=True)` (`abs` until now), and
+Tailor/Build can reach any of the six classes through the composer without a
+factory's zeroed elasticity in the way. Both are exploratory-tier surfaces held
+to a UX bar, not an accuracy one, and neither is gated.
+
+### 7.4 Falsification: one of the four fired
+
+1. **A row moving whose class 5.1 called `correct`** - did **not** fire. No
+   `TaxPolicy`, `CapitalGainsPolicy`, `PayrollTaxPolicy`, `TariffPolicy` or
+   corporate-`derived` row moved anywhere in the three tiers or the LOO suite.
+2. **A row moving that 5.2 named as not moving** - **fired**, on `repeal_ptc`.
+   Section 5.2 said "PTC - `create_extend_enhanced_ptc` and `create_repeal_ptc`
+   zero the elasticities". That is true of the first factory and **false of the
+   second**: `create_repeal_ptc` sets `coverage_elasticity=0.0` under the
+   comment *"Not modeling coverage offset"* and never touches
+   `adverse_selection_factor`, which keeps its dataclass default of `0.1`. So
+   the module's *other* channel was live on a shipped preset and a fitted
+   benchmark the whole time, and the pre-registration was written from the
+   factory's comment rather than from its argument list. The lesson generalises
+   past this row: **"the factory zeroes the elasticity" is a claim about every
+   elasticity the module has, and a module with two of them can zero one.**
+3. **`trump_corporate_15` not moving** - did not fire; it moved, by 22.2%,
+   within a point of the 22% section 5.2 predicted and to a figure (+$1,491.8B)
+   about 0.1% off the +$1,490B it named.
+4. **A class classifying differently from 5.1** - fired once and harmlessly:
+   `TaxCreditPolicy` was predicted `asymmetric` and the audit gives its two
+   branches a row each, `correct` and `abs`. Recorded in 6.1.
+
+### 7.5 Gates and tests
+
+| command | result |
+|---|---|
+| `python -m pytest tests/ -q` | **3,503 passed, 7 skipped in 14m27s** (`790caff` documents 3,415 passed, 1 skipped; the lane adds 94 tests, 6 of them the convention's and capital gains' skips) |
+| `python scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 21` | **exit 0** (15.9%, 22/26 - the gate is not approached) |
+| `python scripts/run_loo.py --donor-matrix --max-mean-error 75` | **exit 0** (29.6%) |
+| `python scripts/run_loo.py --donor-matrix` | **byte-identical** to `790caff` |
+| `python scripts/run_validation_dashboard.py` | **exit 1, byte-identical output to `790caff`** |
+| `python scripts/check_readiness.py --strict` | **exit 2, byte-identical output to `790caff`** |
+| `python -m ruff check fiscal_model/ tests/ scripts/` | clean |
+
+The dashboard and the readiness check both fail on `790caff` too, for the two
+reasons they name themselves - `runtime [degraded] Python 3.14.0 (supported
+>=3.10,<3.14)` and `microdata [warn] SOI 2023: returns 119% / AGI 81%` - and
+neither is touched by this lane. Both were re-run against a clean export of
+`790caff` rather than taken on trust, and both produced **identical bytes**; the
+dashboard does not print the by-construction calibrated tier, which is why the
+two moved rows do not appear in it.
+
+`tests/test_offset_sign_contract.py` is the lane's own gate: parametrised over
+every class in both directions, plus three caption tests and two structural
+ones. **The one that matters is
+`test_every_offset_implementation_is_covered`**, which greps the package for
+`def estimate_behavioral_offset` and fails if a class is missing from
+`build_cases` - because "a module nobody swept" is how all four of the
+previously found defects got in.
+
+It was verified to *fail* rather than assumed to work: putting `enforcement.py`'s
+`abs()` back makes it fail, and the **first draft of the test did not catch
+it**, because probing only the direction a module's own constructor can reach
+lets a clamped module through. That is now the reason the test probes plus and
+minus $100B on every instance, and the reason is written into the test.
+
+### 7.6 For the owner
+
+Three things this lane found and did not decide.
+
+1. **Decision 1's corporate comparison reverses with the sign, and the module
+   is now due to flip.** `CORPORATE_APP_MODE`'s own docstring table records
+   reported at -0.1% / +3.7% against derived's -11.5% / +7.8% and concludes that
+   Decision 1's rule keeps the module on `reported`. Signing the reported offset
+   takes reported's mean to **13.02%** against derived's **unmoved 9.67%**, so
+   by the decision's own words - *"reported stays the app default per module
+   until that module's derived error is below its fitted error"* - corporate is
+   now due to flip. **This lane did not flip it**, for two reasons worth
+   separating: flipping moves both corporate benchmark rows and the two
+   shipped corporate presets with them (on the benchmarks' own window,
+   `biden_corporate_28` -$1,397.2B -> -$1,452.1B and `trump_corporate_15`
+   +$1,491.8B -> +$1,698.6B), so it needs its own caption and its own
+   pre-registration; and the
+   row that produces the reversal, `trump_corporate_15`, has provenance
+   `model_estimate`, so *neither* ranking is evidence about the world. The
+   comparison is pinned as a test
+   (`test_decision_1_now_ranks_derived_ahead_of_reported`) so the reversal
+   cannot be lost.
+2. **The expenditure convention is still unchosen, and it is now the only one.**
+   Item 8 stands exactly as written, but its context has changed: it used to be
+   one of four modules whose offset pointed the wrong way and is now the only
+   one, which makes it a deliberate exception rather than a member of a family.
+   It is the single entry in `CONVENTION_EXCEPTIONS`, cited to CBO Option 56,
+   and the decision is still whether the same convention is right for
+   `eliminate_salt`, `repeal_salt_cap`, `eliminate_mortgage`, `cap_charitable`
+   and `eliminate_step_up`, where nothing sources it. Worth noting the size: the
+   convention is worth **+5.0% of the static effect** on a SALT elimination and
+   **+20%** on Option 56, and it moves the fitted rows and the LOO column
+   together.
+3. **Two fitted rows are now visibly carrying a target nobody can check.**
+   `trump_corporate_15` (`model_estimate`, "CBO/Treasury") and `repeal_ptc`
+   (`secondhand`, "CBO estimate") both sat at about 0% while a sign bug was
+   inflating them. `repeal_ptc` is on section 6.2 item 5's list of twelve
+   untraceable `secondhand` rows; `trump_corporate_15` is not on it because it
+   is not `secondhand` at all - it is one of the seven `model_estimate` rows,
+   i.e. this model's own output recorded as an expectation, which is a
+   different and weaker thing again. A provenance pass on the two would say
+   whether 22.3% and 18.5% are model error or target error; today nobody can
+   tell, and the tier reports them as model error.
+
+### 7.7 What this lane did not touch
+
+`preregistered.py`, `holdout.py`, `loo.py`, `target_revisions.py`,
+`KNOWN_SCORES`, `CBO_SCORE_MAP`, `tests/test_cold_holdout.py`'s anti-leakage
+invariant, `.github/workflows/`, any CI threshold, any elasticity value, any
+base, any growth rate, and `planning/MODELING_IMPROVEMENT.md` - whose section
+6.2 items 22 and 8 are both stale after this lane, and which a docs pass owns.
