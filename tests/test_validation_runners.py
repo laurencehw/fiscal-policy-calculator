@@ -798,7 +798,7 @@ def test_tariff_presets_join_their_official_score():
 
     for label in (
         "\U0001f3ed 25% Steel/Aluminum Tariff (-$60B)",
-        "\U0001f3ed Reciprocal Tariffs (-$1.2T)",
+        "\U0001f3ed Reciprocal Tariffs (-$1.5T)",
     ):
         assert label in CBO_SCORE_MAP, f"{label} lost its official score"
         assert label in PRESET_POLICIES, f"{label} lost its preset row"

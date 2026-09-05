@@ -57,7 +57,7 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
     # Credits
     "👶 Biden CTC Expansion (CBO: $1.6T)": "ctc-expansion-2021",
     "👶 CTC Extension (CBO: $600B)": "ctc-extension",
-    "💼 EITC Childless Expansion (CBO: $178B)": "eitc-childless-expansion",
+    "💼 EITC Childless Expansion (Treasury: $163B)": "eitc-childless-expansion",
     # Estate
     "🏠 Estate Tax: Extend TCJA (CBO: $167B)": "estate-extend-tcja",
     "🏠 Biden Estate Reform (-$450B)": "estate-exemption-3-5m",
@@ -72,11 +72,11 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
     "⚖️ Repeal Individual AMT ($450B)": "amt-repeal-individual",
     "⚖️ Repeal Corporate AMT (-$220B)": "amt-repeal-corporate",
     # ACA premium tax credits
-    "🏥 Extend ACA Enhanced PTCs ($350B)": "aca-ptc-extend-enhanced",
+    "🏥 Extend ACA Enhanced PTCs ($335B)": "aca-ptc-extend-enhanced",
     "🏥 Repeal ACA Premium Credits (-$1.1T)": "aca-ptc-repeal",
     # Tax expenditures
     "📋 Cap Employer Health Exclusion (-$450B)": "cap-employer-health-exclusion",
-    "📋 Repeal SALT Cap ($1.1T)": "salt-cap-repeal",
+    "📋 Repeal SALT Cap ($1.17T)": "salt-cap-repeal",
     "📋 Eliminate Step-Up Basis (-$500B)": "step-up-basis-eliminate",
     "📋 Cap Charitable Deduction (-$200B)": "charitable-deduction-cap",
     # Generic individual rate presets (no is_* flag; scored as plain TaxPolicy)
@@ -88,12 +88,12 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
     "Top Rate to 45%": "top-rate-45",
     "High-Earner Medicare Surcharge 2pp": "medicare-surcharge-2pp",
     # International
-    "🌍 Biden GILTI Reform (-$280B)": "gilti-reform",
-    "🌍 Repeal FDII (-$200B)": "fdii-repeal",
+    "🌍 Biden GILTI Reform (-$374B)": "gilti-reform",
+    "🌍 Repeal FDII (-$158B)": "fdii-repeal",
     "🌍 Pillar Two Adoption (-$80B)": "pillar-two-adoption",
-    "🌍 Biden International Package (-$700B)": "international-package",
+    "🌍 Biden International Package (-$632B)": "international-package",
     # IRS enforcement
-    "🔍 IRA Enforcement Funding (-$200B)": "irs-enforcement-ira",
+    "🔍 IRA Enforcement Funding (-$180B)": "irs-enforcement-ira",
     "🔍 Double IRS Enforcement (-$340B)": "irs-enforcement-double",
     "🔍 High-Income Enforcement (-$250B)": "irs-enforcement-high-income",
     # Drug pricing
@@ -102,16 +102,16 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
     "💊 International Reference Pricing (-$100B)": "drug-reference-pricing",
     "💊 Comprehensive Drug Reform (-$600B)": "drug-reform-comprehensive",
     # Trade / tariffs
-    "🏭 Trump Universal 10% Tariff (-$2T)": "tariff-universal-10pct",
+    "🏭 Trump Universal 10% Tariff (-$2.17T)": "tariff-universal-10pct",
     "🏭 Trump 60% China Tariff (-$500B)": "tariff-china-60pct",
-    "🏭 25% Auto Tariff (-$100B)": "tariff-auto-25pct",
+    "🏭 25% Auto Tariff (-$386B)": "tariff-auto-25pct",
     "🏭 25% Steel/Aluminum Tariff (-$60B)": "tariff-steel-aluminum-25pct",
-    "🏭 Reciprocal Tariffs (-$1.2T)": "tariff-reciprocal",
+    "🏭 Reciprocal Tariffs (-$1.5T)": "tariff-reciprocal",
     # Climate / energy
     "🌱 Repeal IRA Clean Energy Credits ($783B)": "ira-clean-energy-repeal",
     "🌱 Carbon Tax \\$50/ton (-$1.7T)": "carbon-tax-50",
     "🌱 Carbon Tax \\$25/ton (-$1.0T)": "carbon-tax-25",
-    "🌱 Repeal EV Credits ($200B)": "ev-credit-repeal",
+    "🌱 Repeal EV Credits ($182B)": "ev-credit-repeal",
     "🌱 Extend IRA Credits Beyond 2032 ($400B)": "ira-clean-energy-extend",
 }
 
@@ -123,7 +123,7 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
 #: exclusive group. Same rule as the catalog ids: **frozen once shipped**.
 SCORE_ONLY_ID_BY_LABEL: dict[str, str] = {
     "📋 Eliminate Mortgage Deduction (-$300B)": "mortgage-deduction-eliminate",
-    "📋 Eliminate SALT Deduction (-$1.2T)": "salt-deduction-eliminate",
+    "📋 Eliminate SALT Deduction (-$1.62T)": "salt-deduction-eliminate",
 }
 
 #: Score-map labels that are an *alternative spelling* of an instrument that

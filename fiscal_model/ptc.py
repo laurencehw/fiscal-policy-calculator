@@ -584,8 +584,13 @@ PTC_VALIDATION_SCENARIOS = {
     "extend_enhanced_ptc": {
         "description": "Extend enhanced PTCs (ARPA/IRA)",
         "policy_factory": "create_extend_enhanced_ptc",
-        "expected_10yr": 350.0,  # Cost (increases deficit)
-        "source": "CBO 2024",
+        # Wave 4 target revision (extend_enhanced_ptc.v2): CBO/JCT pub. 60437
+        # (June 2024) puts permanent extension at $335B over FY2025-2034. The
+        # superseded $350B is the September 2025 re-estimate on FY2026-2035.
+        # The live registry the runners read is validation/scenarios.py; this
+        # copy is a legacy export kept in step with it.
+        "expected_10yr": 335.0,  # Cost (increases deficit)
+        "source": "CBO/JCT pub. 60437 (June 2024)",
         "notes": "Extend subsidies beyond 2025 sunset",
     },
     "repeal_ptc": {

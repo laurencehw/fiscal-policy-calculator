@@ -93,13 +93,20 @@ def test_retired_target_is_not_dispatched():
 
 
 def test_biden_2025_preset_is_not_double_registered():
-    """'Biden 2025 Proposal' in CBO_SCORE_MAP is the same -$252B Treasury target
+    """'Biden 2025 Proposal' in CBO_SCORE_MAP is the same Treasury target
     already carried as ``biden_high_income_tax``; registering it twice would
-    count one prediction twice."""
-    targets_at_252 = [
-        s for s in get_validation_targets() if s.ten_year_cost == -252.0
+    count one prediction twice.
+
+    The figure moved in the Wave 4 provenance lane (-$252.0B -> -$245.9B, the
+    Green Book row this record always cited), so the test pins the revised
+    number and, separately, that the superseded one is gone from every target:
+    a stale duplicate would be exactly the double-registration this guards.
+    """
+    targets_at_official = [
+        s for s in get_validation_targets() if s.ten_year_cost == -245.9
     ]
-    assert [s.policy_id for s in targets_at_252] == ["biden_high_income_tax"]
+    assert [s.policy_id for s in targets_at_official] == ["biden_high_income_tax"]
+    assert not [s for s in get_validation_targets() if s.ten_year_cost == -252.0]
 
 
 # ── Shape dispatch ─────────────────────────────────────────────────────────

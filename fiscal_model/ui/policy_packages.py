@@ -28,8 +28,8 @@ PRESET_POLICY_PACKAGES = {
     "Biden Full International Package": {
         "description": "GILTI reform + FDII repeal + IRS enforcement",
         "policies": [
-            "🌍 Biden International Package (-$700B)",
-            "🔍 IRA Enforcement Funding (-$200B)",
+            "🌍 Biden International Package (-$632B)",
+            "🔍 IRA Enforcement Funding (-$180B)",
         ],
         "official_total": -900,
         "source": "Treasury FY2025",
@@ -106,7 +106,7 @@ PRESET_POLICY_PACKAGES = {
             "but increases consumer prices substantially."
         ),
         "policies": [
-            "🏭 Trump Universal 10% Tariff (-$2T)",
+            "🏭 Trump Universal 10% Tariff (-$2.17T)",
             "🏭 Trump 60% China Tariff (-$500B)",
         ],
         "official_total": -2500,
@@ -132,7 +132,7 @@ PRESET_POLICY_PACKAGES = {
         "description": "Expand Medicare negotiation and boost IRS enforcement",
         "policies": [
             "💊 Expand Drug Negotiation (-$500B)",
-            "🔍 IRA Enforcement Funding (-$200B)",
+            "🔍 IRA Enforcement Funding (-$180B)",
         ],
         "official_total": -700,
         "source": "CBO estimates",

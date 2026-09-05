@@ -253,7 +253,12 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         name="Biden High-Income Tax Increase",
         description="Increase top marginal rate to 39.6% for income above $400K "
                    "(single) / $450K (married). Restore pre-TCJA top rate.",
-        ten_year_cost=-252.0,  # Raises ~$252B (reduces deficit)
+        # Wave 4 Tier 1 revision (preregistered.py, biden_high_income_tax.v1 ->
+        # .v2). The Green Book row this record cites — "Increase the top
+        # marginal income tax rate for high-income earners" (report p. 242;
+        # PDF p. 250) — prints $245,924 million over FY2025-2034, not
+        # $252,000 million. Nothing in the model reads the target.
+        ten_year_cost=-245.9,  # Raises ~$246B (reduces deficit)
         source=ScoreSource.TREASURY,
         source_date="2024-03",
         source_url="https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf",
@@ -263,7 +268,12 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         first_year_cost=-22.0,  # ~$22B/year
         baseline_year=2024,
         budget_window="FY2025-2034",
-        notes="Treasury Green Book FY2025. Combined with other provisions."
+        notes=(
+            "Treasury Green Book FY2025, Table of Revenue Estimates, row "
+            "'Increase the top marginal income tax rate for high-income "
+            "earners' — which Treasury prints as its own line, so the earlier "
+            "'combined with other provisions' caveat was wrong about the table."
+        )
     ),
 
     "biden_corporate_28": CBOScore(

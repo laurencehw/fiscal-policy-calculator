@@ -15,7 +15,7 @@ import dataclasses
 import pytest
 
 from fiscal_model.app_data import CBO_SCORE_MAP, PRESET_POLICIES
-from fiscal_model.preset_ids import PRESET_ID_BY_LABEL
+from fiscal_model.preset_ids import PRESET_ID_BY_LABEL, SCORE_ONLY_ID_BY_LABEL
 from fiscal_model.validation.benchmark_sources import (
     CONFIRMATION_TOLERANCE_PCT,
     source_for,
@@ -190,56 +190,177 @@ def test_the_summary_counts_the_revisions(scorecard):
     assert scorecard.revised_target_entries == len(REVISED_POLICY_IDS)
 
 
-def test_the_three_revisions_are_the_ones_these_passes_made():
-    """Pin the ledger's contents. A fourth revision appearing without a test
+#: Every revision the ledger carries, pinned as ``policy_id -> (superseded,
+#: live)``. Three are the AMT/insulin and Wave 3 passes; the other twelve are
+#: the Wave 4 provenance lane. A ``None`` live figure is a range row, whose
+#: bounds are pinned separately below.
+_LEDGER: dict[str, tuple[float, float | None]] = {
+    # AMT / insulin pass
+    "extend_tcja_amt": (450.0, 1_357.1),
+    "universal_insulin_cap": (-15.0, 11.4),
+    # Wave 3
+    "pillar_two_adoption": (-80.0, None),
+    # Wave 4 -- the twelve targets the provenance lane moved
+    "auto_tariff_25": (-100.0, -386.2),
+    "biden_eitc_childless": (178.0, 162.6),
+    "biden_full_international": (-700.0, -632.2),
+    "biden_gilti_reform": (-280.0, -373.9),
+    "eliminate_salt": (-1_200.0, -1_621.0),
+    "extend_enhanced_ptc": (350.0, 335.0),
+    "fdii_repeal": (-200.0, -158.0),
+    "ira_enforcement": (-200.0, -180.4),
+    "reciprocal_tariffs": (-1_200.0, None),
+    "repeal_ev_credits": (-200.0, -182.3),
+    "repeal_salt_cap": (1_100.0, 1_169.0),
+    "trump_universal_10": (-2_000.0, -2_171.1),
+}
+
+#: The label each revised benchmark is shown under, since a label embeds the
+#: official figure and so has to move with it. ``eliminate_salt`` is a
+#: score-only entry: it has an official score and a Build id but no preset row.
+_REVISED_LABELS: dict[str, str] = {
+    "auto_tariff_25": "\U0001f3ed 25% Auto Tariff (-$386B)",
+    "biden_eitc_childless": "\U0001f4bc EITC Childless Expansion (Treasury: $163B)",
+    "biden_full_international": "\U0001f30d Biden International Package (-$632B)",
+    "biden_gilti_reform": "\U0001f30d Biden GILTI Reform (-$374B)",
+    "eliminate_salt": "\U0001f4cb Eliminate SALT Deduction (-$1.62T)",
+    "extend_enhanced_ptc": "\U0001f3e5 Extend ACA Enhanced PTCs ($335B)",
+    "extend_tcja_amt": "⚖️ AMT: Extend TCJA Relief ($1.36T)",
+    "fdii_repeal": "\U0001f30d Repeal FDII (-$158B)",
+    "ira_enforcement": "\U0001f50d IRA Enforcement Funding (-$180B)",
+    "pillar_two_adoption": "\U0001f30d Pillar Two Adoption (-$80B)",
+    "reciprocal_tariffs": "\U0001f3ed Reciprocal Tariffs (-$1.5T)",
+    "repeal_ev_credits": "\U0001f331 Repeal EV Credits ($182B)",
+    "repeal_salt_cap": "\U0001f4cb Repeal SALT Cap ($1.17T)",
+    "trump_universal_10": "\U0001f3ed Trump Universal 10% Tariff (-$2.17T)",
+    "universal_insulin_cap": "\U0001f48a Universal Insulin Cap ($11B)",
+}
+
+#: Score-only entries live in their own id map, so the label test looks for
+#: them there rather than in the preset catalog.
+_SCORE_ONLY_REVISIONS = frozenset({"eliminate_salt"})
+
+#: The stable id each revised preset resolves to. Written out rather than read
+#: back off the catalog, because a test that derives the id from the catalog
+#: cannot notice the catalog renaming it.
+_STABLE_IDS_FOR_REVISED: dict[str, str] = {
+    "auto_tariff_25": "tariff-auto-25pct",
+    "biden_eitc_childless": "eitc-childless-expansion",
+    "biden_full_international": "international-package",
+    "biden_gilti_reform": "gilti-reform",
+    "eliminate_salt": "salt-deduction-eliminate",
+    "extend_enhanced_ptc": "aca-ptc-extend-enhanced",
+    "extend_tcja_amt": "amt-extend-tcja-relief",
+    "fdii_repeal": "fdii-repeal",
+    "ira_enforcement": "irs-enforcement-ira",
+    "pillar_two_adoption": "pillar-two-adoption",
+    "reciprocal_tariffs": "tariff-reciprocal",
+    "repeal_ev_credits": "ev-credit-repeal",
+    "repeal_salt_cap": "salt-cap-repeal",
+    "trump_universal_10": "tariff-universal-10pct",
+    "universal_insulin_cap": "insulin-cap-universal",
+}
+
+
+def test_the_ledger_holds_exactly_the_revisions_these_passes_made():
+    """Pin the ledger's contents. A sixteenth revision appearing without a test
     change means a target moved without anyone deciding to move it."""
-    assert sorted(REVISED_POLICY_IDS) == [
-        "extend_tcja_amt",
-        "pillar_two_adoption",
-        "universal_insulin_cap",
-    ]
-    assert len(CALIBRATED_TARGETS) == 6
+    assert sorted(REVISED_POLICY_IDS) == sorted(_LEDGER)
+    # Two rows per revision: a superseded one and its live replacement.
+    assert len(CALIBRATED_TARGETS) == 2 * len(_LEDGER) == 30
+
+    for policy_id, (superseded, live_point) in sorted(_LEDGER.items()):
+        live = live_target_for(policy_id)
+        assert superseded_targets_for(policy_id)[-1].official_10yr_billions == (
+            pytest.approx(superseded)
+        ), policy_id
+        if live_point is None:
+            assert live.is_range, policy_id
+            assert live.official_10yr_billions is None, policy_id
+        else:
+            assert not live.is_range, policy_id
+            assert live.official_10yr_billions == pytest.approx(live_point), policy_id
+
+
+def test_the_two_range_revisions_state_the_bounds_they_were_read_from():
+    """A range is the ledger's strongest claim -- that the agency published no
+    single figure -- so both sets of bounds are pinned rather than derived."""
     pillar = live_target_for("pillar_two_adoption")
-    assert pillar.is_range
-    assert pillar.official_10yr_billions is None
-    assert (pillar.published_low_10yr_billions, pillar.published_high_10yr_billions) == (
-        -102.6,
-        56.5,
-    )
-    assert superseded_targets_for("pillar_two_adoption")[-1].official_10yr_billions == (
-        -80.0
-    )
-    assert live_target_for("extend_tcja_amt").official_10yr_billions == 1_357.1
-    assert superseded_targets_for("extend_tcja_amt")[-1].official_10yr_billions == 450.0
-    assert live_target_for("universal_insulin_cap").official_10yr_billions == 11.4
     assert (
-        superseded_targets_for("universal_insulin_cap")[-1].official_10yr_billions
-        == -15.0
-    )
+        pillar.published_low_10yr_billions,
+        pillar.published_high_10yr_billions,
+    ) == (-102.6, 56.5)
+    # Wave 4: three modellers scored the same announced reciprocal schedule on
+    # the same fiscal window and disagree by 29%, so the target is the spread.
+    reciprocal = live_target_for("reciprocal_tariffs")
+    assert (
+        reciprocal.published_low_10yr_billions,
+        reciprocal.published_high_10yr_billions,
+    ) == (-1_800.0, -1_400.0)
+    # The superseded point was not merely a different magnitude: it was Tax
+    # Foundation's *dynamic* score in a column of conventional ones, which is
+    # why it falls outside the conventional range entirely.
+    assert not reciprocal.contains(-1_200.0)
 
 
 def test_the_app_labels_carry_the_revised_figures():
     """Preset labels embed the official number, so a moved target that leaves
     the label alone would show the app quoting a figure the scorecard no longer
     scores against. The label and its ``preset_ids`` twin must move together."""
-    amt_label = "⚖️ AMT: Extend TCJA Relief ($1.36T)"
-    insulin_label = "\U0001f48a Universal Insulin Cap ($11B)"
-    for label, policy_id in ((amt_label, "extend_tcja_amt"), (insulin_label, "universal_insulin_cap")):
+    assert set(_REVISED_LABELS) == set(REVISED_POLICY_IDS)
+
+    for policy_id, label in sorted(_REVISED_LABELS.items()):
         assert label in CBO_SCORE_MAP, f"{label} missing from CBO_SCORE_MAP"
-        assert label in PRESET_POLICIES, f"{label} missing from PRESET_POLICIES"
-        assert label in PRESET_ID_BY_LABEL, f"{label} missing from preset_ids"
-        assert CBO_SCORE_MAP[label]["official_score"] == pytest.approx(
-            live_target_for(policy_id).official_10yr_billions
-        )
+        if policy_id in _SCORE_ONLY_REVISIONS:
+            assert label in SCORE_ONLY_ID_BY_LABEL, f"{label} lost its Build id"
+        else:
+            assert label in PRESET_POLICIES, f"{label} missing from PRESET_POLICIES"
+            assert label in PRESET_ID_BY_LABEL, f"{label} missing from preset_ids"
+
+        live = live_target_for(policy_id)
+        carried = CBO_SCORE_MAP[label]["official_score"]
+        if live.is_range:
+            # A range row carries an in-range anchor rather than a transcribed
+            # point, so the assertion is containment, not equality.
+            assert live.contains(carried), (label, carried)
+        else:
+            assert carried == pytest.approx(live.official_10yr_billions), label
+
     # And the superseded spellings are gone, so no share link, status map or
     # validation badge can still resolve the old figure.
     for stale in (
         "⚖️ AMT: Extend TCJA Relief ($450B)",
         "\U0001f48a Universal Insulin Cap (-$15B)",
+        "\U0001f3ed 25% Auto Tariff (-$100B)",
+        "\U0001f4bc EITC Childless Expansion (CBO: $178B)",
+        "\U0001f30d Biden International Package (-$700B)",
+        "\U0001f30d Biden GILTI Reform (-$280B)",
+        "\U0001f4cb Eliminate SALT Deduction (-$1.2T)",
+        "\U0001f3e5 Extend ACA Enhanced PTCs ($350B)",
+        "\U0001f30d Repeal FDII (-$200B)",
+        "\U0001f50d IRA Enforcement Funding (-$200B)",
+        "\U0001f3ed Reciprocal Tariffs (-$1.2T)",
+        "\U0001f331 Repeal EV Credits ($200B)",
+        "\U0001f4cb Repeal SALT Cap ($1.1T)",
+        "\U0001f3ed Trump Universal 10% Tariff (-$2T)",
     ):
         assert stale not in CBO_SCORE_MAP
         assert stale not in PRESET_POLICIES
         assert stale not in PRESET_ID_BY_LABEL
+        assert stale not in SCORE_ONLY_ID_BY_LABEL
+
+
+def test_the_preset_ids_themselves_never_move():
+    """The labels moved; the ids they resolve to must not. Share links, the
+    Build checklist and every saved package address a preset by id, so a
+    provenance pass that renamed an id would break links already in the wild.
+    """
+    for policy_id, label in sorted(_REVISED_LABELS.items()):
+        expected = _STABLE_IDS_FOR_REVISED[policy_id]
+        if policy_id in _SCORE_ONLY_REVISIONS:
+            assert SCORE_ONLY_ID_BY_LABEL[label] == expected, policy_id
+        else:
+            assert PRESET_ID_BY_LABEL[label] == expected, policy_id
 
 
 def test_repeal_individual_amt_was_left_alone_with_the_search_recorded():

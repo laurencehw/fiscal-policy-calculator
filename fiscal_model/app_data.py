@@ -69,10 +69,16 @@ CBO_SCORE_MAP = {
         "source_date": "2024",
         "notes": "Extend current \\$2,000 CTC beyond 2025",
     },
-    "💼 EITC Childless Expansion (CBO: $178B)": {
-        "official_score": 178.0,
-        "source": "JCT",
-        "source_date": "2021",
+    "💼 EITC Childless Expansion (Treasury: $163B)": {
+        # Wave 4 target revision (biden_eitc_childless.v2): Treasury FY2025
+        # Green Book, Table of Revenue Estimates, "Restore and make permanent
+        # the American Rescue Plan expansion of the earned income tax credit
+        # for workers without qualifying children", $162,553M over FY2025-2034
+        # (report p. 242). The superseded $178B was credited to JCT with no
+        # table behind it.
+        "official_score": 162.6,
+        "source": "Treasury (FY2025 Green Book)",
+        "source_date": "2024-03",
         "notes": "Triple EITC for childless workers, expand age range",
     },
     # Estate Tax
@@ -157,10 +163,15 @@ CBO_SCORE_MAP = {
         "notes": "Repeal 15% corporate book minimum tax (CAMT)",
     },
     # Premium Tax Credits
-    "🏥 Extend ACA Enhanced PTCs ($350B)": {
-        "official_score": 350.0,
-        "source": "CBO",
-        "source_date": "2024",
+    "🏥 Extend ACA Enhanced PTCs ($335B)": {
+        # Wave 4 target revision (extend_enhanced_ptc.v2): CBO/JCT, pub. 60437
+        # (June 2024) — "making the policy permanent would increase the budget
+        # deficit by $335 billion over the 2025-2034 period". The superseded
+        # $350B is CBO/JCT's September 2025 re-estimate on a FY2026-2035
+        # window, so the figure and its stated vintage disagreed by one window.
+        "official_score": 335.0,
+        "source": "CBO/JCT (pub. 60437)",
+        "source_date": "2024-06",
         "notes": "Extend ACA enhanced premium subsidies beyond 2025",
     },
     "🏥 Repeal ACA Premium Credits (-$1.1T)": {
@@ -182,16 +193,30 @@ CBO_SCORE_MAP = {
         "source_date": "2024",
         "notes": "Repeal mortgage interest deduction",
     },
-    "📋 Repeal SALT Cap ($1.1T)": {
-        "official_score": 1100.0,
-        "source": "JCT",
-        "source_date": "2024",
-        "notes": "Remove \\$10K cap on state/local tax deduction",
+    "📋 Repeal SALT Cap ($1.17T)": {
+        # Wave 4 target revision (repeal_salt_cap.v2): Penn Wharton Budget
+        # Model, "Lifting the SALT Cap", Table 3, row "Repeal SALT Cap",
+        # -\\$1,169B over FY2025-2034 **against an extended-TCJA baseline**.
+        # The same paper scores the same repeal at -\\$197B against current
+        # law, so the baseline is part of the target. JCT, the superseded
+        # attribution, has never scored a standalone repeal of the cap.
+        "official_score": 1169.0,
+        "source": "Penn Wharton Budget Model",
+        "source_date": "2024-02",
+        "notes": (
+            "Remove \\$10K cap on state/local tax deduction; scored against a "
+            "permanent-cap (extended TCJA) baseline"
+        ),
     },
-    "📋 Eliminate SALT Deduction (-$1.2T)": {
-        "official_score": -1200.0,
-        "source": "JCT",
-        "source_date": "2024",
+    "📋 Eliminate SALT Deduction (-$1.62T)": {
+        # Wave 4 target revision (eliminate_salt.v2): CBO, Options for
+        # Reducing the Deficit: 2025 to 2034 (pub. 60557), Option 49, row
+        # "Eliminate state and local tax deductions", \\$1,621.0B over
+        # FY2025-2034 — the same option the SALT expenditure record's
+        # `limitation` block already cites for its lapse date.
+        "official_score": -1621.0,
+        "source": "CBO (pub. 60557, Option 49)",
+        "source_date": "2024-12",
         "notes": "Repeal state/local tax deduction entirely",
     },
     "📋 Cap Charitable Deduction (-$200B)": {
@@ -208,7 +233,9 @@ CBO_SCORE_MAP = {
     },
     # Income Tax
     "Biden 2025 Proposal": {
-        "official_score": -252.0,
+        # Wave 4 Tier 1 revision (biden_high_income_tax.v2): the Green Book row
+        # this record already cites prints $245,924M, not $252,000M.
+        "official_score": -245.9,
         "source": "Treasury",
         "source_date": "March 2024",
         "source_url": "https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf",
@@ -237,16 +264,24 @@ CBO_SCORE_MAP = {
         "notes": "+2pp Medicare surcharge on investment + wage income >\\$400K",
     },
     # International Tax
-    "🌍 Biden GILTI Reform (-$280B)": {
-        "official_score": -280.0,
-        "source": "Treasury",
-        "source_date": "FY2025 Green Book",
+    "🌍 Biden GILTI Reform (-$374B)": {
+        # Wave 4 target revision (biden_gilti_reform.v2): Treasury FY2025 Green
+        # Book, "Revise the global minimum tax regime, limit inversions, and
+        # make related reforms", $373,919M over FY2025-2034 (report p. 239).
+        "official_score": -373.9,
+        "source": "Treasury (FY2025 Green Book)",
+        "source_date": "2024-03",
         "notes": "Country-by-country GILTI at 21%, eliminate QBAI exemption",
     },
-    "🌍 Repeal FDII (-$200B)": {
-        "official_score": -200.0,
-        "source": "Treasury",
-        "source_date": "FY2025",
+    "🌍 Repeal FDII (-$158B)": {
+        # Wave 4 target revision (fdii_repeal.v2): Treasury FY2025 Green Book,
+        # "Repeal the deduction for foreign-derived intangible income",
+        # $157,993M gross over FY2025-2034 (report p. 239). Treasury's own
+        # subtotal nets this against a paired R&D proposal to $0; the module
+        # scores repeal without that offset, which is the gross row.
+        "official_score": -158.0,
+        "source": "Treasury (FY2025 Green Book)",
+        "source_date": "2024-03",
         "notes": "Repeal Foreign-Derived Intangible Income deduction",
     },
     "🌍 Pillar Two Adoption (-$80B)": {
@@ -255,18 +290,27 @@ CBO_SCORE_MAP = {
         "source_date": "2023",
         "notes": "Adopt OECD Pillar Two 15% global minimum tax",
     },
-    "🌍 Biden International Package (-$700B)": {
-        "official_score": -700.0,
-        "source": "Treasury",
-        "source_date": "FY2025",
+    "🌍 Biden International Package (-$632B)": {
+        # Wave 4 target revision (biden_full_international.v2): Treasury FY2025
+        # Green Book, "Subtotal, Reform International Taxation", $632,200M over
+        # FY2025-2034 (report p. 240). The three provisions the module carries
+        # sum to $510,232M inside that subtotal, so about a fifth of the target
+        # is provisions it does not model — stated, not tuned away.
+        "official_score": -632.2,
+        "source": "Treasury (FY2025 Green Book)",
+        "source_date": "2024-03",
         "notes": "Full package: GILTI reform + FDII repeal + UTPR",
     },
     # IRS Enforcement
-    "🔍 IRA Enforcement Funding (-$200B)": {
-        "official_score": -200.0,
-        "source": "CBO",
-        "source_date": "2022",
-        "notes": "IRA \\$80B enforcement funding, ~\\$200B net revenue",
+    "🔍 IRA Enforcement Funding (-$180B)": {
+        # Wave 4 target revision (ira_enforcement.v2): CBO pub. 58390 (Aug
+        # 2022) — "revenues will increase by \\$180.4 billion over the
+        # 2022-2031 period", explicitly revising CBO's earlier \\$203.7B. The
+        # superseded -\\$200B sat 2% below the withdrawn estimate.
+        "official_score": -180.4,
+        "source": "CBO (pub. 58390)",
+        "source_date": "2022-08",
+        "notes": "IRA IRS enforcement funding, ~\\$180B of added revenue",
     },
     "🔍 Double IRS Enforcement (-$340B)": {
         "official_score": -340.0,
@@ -302,10 +346,15 @@ CBO_SCORE_MAP = {
         "notes": "Cap Medicare drug prices at 120% of international average",
     },
     # Trade / Tariffs
-    "🏭 Trump Universal 10% Tariff (-$2T)": {
-        "official_score": -2000.0,
-        "source": "Tax Foundation / Yale Budget Lab",
-        "source_date": "2024",
+    "🏭 Trump Universal 10% Tariff (-$2.17T)": {
+        # Wave 4 target revision (trump_universal_10.v2): Tax Foundation Fiscal
+        # Fact 861, Table 3, "10 Percent Universal Tariff", \\$2,171.1B
+        # conventional over 2025-2034 (report p. 4). Yale publishes no
+        # standalone ten-year figure for this policy, so that half of the old
+        # attribution is dropped. The same table's dynamic tier is \\$1,720.8B.
+        "official_score": -2171.1,
+        "source": "Tax Foundation (FF861)",
+        "source_date": "2025-04",
         "notes": "10% tariff on all imports, ~\\$1,700/household cost",
     },
     "🏭 Trump 60% China Tariff (-$500B)": {
@@ -314,10 +363,15 @@ CBO_SCORE_MAP = {
         "source_date": "2024",
         "notes": "60% tariff on Chinese imports",
     },
-    "🏭 25% Auto Tariff (-$100B)": {
-        "official_score": -100.0,
-        "source": "CRFB",
-        "source_date": "2024",
+    "🏭 25% Auto Tariff (-$386B)": {
+        # Wave 4 target revision (auto_tariff_25.v2): Tax Foundation tariff
+        # tracker, Table 5, "Section 232 Autos, Heavy Trucks, Buses, and
+        # Parts", \\$386.2B conventional over 2026-2035. The superseded
+        # -\\$100B was a White House claim stated *per year* — CRFB, its
+        # stated source, itemises no auto tariff anywhere.
+        "official_score": -386.2,
+        "source": "Tax Foundation (tariff tracker)",
+        "source_date": "2026-08",
         "notes": "25% tariff on auto imports",
     },
     "🏭 25% Steel/Aluminum Tariff (-$60B)": {
@@ -326,10 +380,18 @@ CBO_SCORE_MAP = {
         "source_date": "2024",
         "notes": "25% tariff on steel and aluminum imports",
     },
-    "🏭 Reciprocal Tariffs (-$1.2T)": {
-        "official_score": -1200.0,
-        "source": "Tax Foundation / Yale Budget Lab",
-        "source_date": "2024",
+    "🏭 Reciprocal Tariffs (-$1.5T)": {
+        # Wave 4 target revision (reciprocal_tariffs.v2) — superseded by a
+        # published *range*. CRFB's "Ten-Year Scores of Trump's Tariffs, If
+        # Made Permanent" (FY2025-2034) prints three conventional estimates of
+        # the same schedule: \\$1.8T (CRFB), \\$1.5T (Tax Foundation), \\$1.4T
+        # (Yale Budget Lab). The honest target is [-\\$1,800B, -\\$1,400B]; the
+        # anchor carried here is Tax Foundation's, the publisher the other two
+        # tariff benchmarks are scored against. The superseded -\\$1,200B was
+        # Tax Foundation's *dynamic* score sitting in a conventional column.
+        "official_score": -1500.0,
+        "source": "CRFB / Tax Foundation / Yale Budget Lab",
+        "source_date": "2025-04",
         "notes": "Match trading partners\\' tariff rates (~20pp average increase)",
     },
     # Climate / Energy
@@ -345,8 +407,12 @@ CBO_SCORE_MAP = {
         "source_date": "2024",
         "notes": "\\$50/ton CO2 tax with 5% annual escalator",
     },
-    "🌱 Repeal EV Credits ($200B)": {
-        "official_score": -200.0,
+    "🌱 Repeal EV Credits ($182B)": {
+        # Wave 4 target revision (repeal_ev_credits.v2): sec. 30D (\\$77,829M)
+        # + sec. 45W (\\$104,516M) = \\$182,345M, exactly the two sections the
+        # climate module's stated scope names. Phase E transcribed the sum as
+        # \\$182.4B; the rows add to \\$182.3B.
+        "official_score": -182.3,
         # Re-attributed in the Phase E provenance pass: the only published
         # score of terminating the clean-vehicle credits is JCT's, not CBO's.
         # JCX-35-25 puts sec. 30D + sec. 45W at \\$182.3B over FY2025-2034
@@ -424,7 +490,7 @@ PRESET_POLICIES = {
         "is_credit": True,
         "credit_type": "ctc_extension",
     },
-    "💼 EITC Childless Expansion (CBO: $178B)": {
+    "💼 EITC Childless Expansion (Treasury: $163B)": {
         "rate_change": 0.0,
         "threshold": 0,
         "description": "Triple EITC for childless workers (~\\$1,500 max), expand age range to 19-65+.",
@@ -526,10 +592,10 @@ PRESET_POLICIES = {
         "is_amt": True,
         "amt_type": "repeal_corporate",
     },
-    "🏥 Extend ACA Enhanced PTCs ($350B)": {
+    "🏥 Extend ACA Enhanced PTCs ($335B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Extend enhanced premium tax credits (ARPA/IRA) past 2025. Costs ~\\$350B over 10 years.",
+        "description": "Extend enhanced premium tax credits (ARPA/IRA) past 2025. Costs ~\\$335B over FY2025-2034 (CBO/JCT pub. 60437).",
         "is_tcja": False,
         "is_corporate": False,
         "is_ptc": True,
@@ -553,10 +619,10 @@ PRESET_POLICIES = {
         "is_expenditure": True,
         "expenditure_type": "cap_employer_health",
     },
-    "📋 Repeal SALT Cap ($1.1T)": {
+    "📋 Repeal SALT Cap ($1.17T)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Remove \\$10K cap on state and local tax deduction. Costs ~\\$1.1T over 10 years.",
+        "description": "Remove \\$10K cap on state and local tax deduction. Costs ~\\$1.17T over 10 years measured against a permanent-cap baseline (Penn Wharton); ~\\$197B against a baseline where the cap expires.",
         "is_tcja": False,
         "is_corporate": False,
         "is_expenditure": True,
@@ -646,18 +712,18 @@ PRESET_POLICIES = {
         "ui_category": "Income Tax",
     },
     # International Tax Presets
-    "🌍 Biden GILTI Reform (-$280B)": {
+    "🌍 Biden GILTI Reform (-$374B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Country-by-country GILTI at 21%, eliminate QBAI exemption. Raises ~\\$280B over 10 years.",
+        "description": "Country-by-country GILTI at 21%, eliminate QBAI exemption. Raises ~\\$374B over 10 years (Treasury FY2025 Green Book).",
         "is_tcja": False,
         "is_international": True,
         "international_type": "biden_gilti",
     },
-    "🌍 Repeal FDII (-$200B)": {
+    "🌍 Repeal FDII (-$158B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Repeal Foreign-Derived Intangible Income deduction. Raises ~\\$200B over 10 years.",
+        "description": "Repeal Foreign-Derived Intangible Income deduction. Raises ~\\$158B over 10 years (Treasury FY2025 Green Book, before the R&D proposal Treasury pairs it with).",
         "is_tcja": False,
         "is_international": True,
         "international_type": "fdii_repeal",
@@ -670,19 +736,19 @@ PRESET_POLICIES = {
         "is_international": True,
         "international_type": "pillar_two",
     },
-    "🌍 Biden International Package (-$700B)": {
+    "🌍 Biden International Package (-$632B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Full Biden international reform: GILTI at 21% per-country + FDII repeal + UTPR. Raises ~\\$700B.",
+        "description": "Full Biden international reform: GILTI at 21% per-country + FDII repeal + UTPR. Raises ~\\$632B (Treasury FY2025 Green Book subtotal).",
         "is_tcja": False,
         "is_international": True,
         "international_type": "biden_full",
     },
     # IRS Enforcement Presets
-    "🔍 IRA Enforcement Funding (-$200B)": {
+    "🔍 IRA Enforcement Funding (-$180B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "IRA \\$80B IRS enforcement over 10 years. CBO: raises ~\\$200B net after costs.",
+        "description": "IRA IRS enforcement funding. CBO: raises ~\\$180B of revenue over FY2022-2031 (pub. 58390), about \\$101B net of the \\$79B appropriation.",
         "is_tcja": False,
         "is_enforcement": True,
         "enforcement_type": "ira",
@@ -737,10 +803,10 @@ PRESET_POLICIES = {
         "pharma_type": "comprehensive",
     },
     # Trade / Tariff Presets
-    "🏭 Trump Universal 10% Tariff (-$2T)": {
+    "🏭 Trump Universal 10% Tariff (-$2.17T)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "10% tariff on all imports. Raises ~\\$2T but costs ~\\$1,700/household in higher prices.",
+        "description": "10% tariff on all imports. Raises ~\\$2.17T conventionally (Tax Foundation FF861) but costs ~\\$1,700/household in higher prices.",
         "is_tcja": False,
         "is_trade": True,
         "trade_type": "universal_10",
@@ -753,10 +819,10 @@ PRESET_POLICIES = {
         "is_trade": True,
         "trade_type": "china_60",
     },
-    "🏭 25% Auto Tariff (-$100B)": {
+    "🏭 25% Auto Tariff (-$386B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "25% tariff on imported vehicles and parts (~\\$380B base). Raises ~\\$100B.",
+        "description": "25% tariff on imported vehicles and parts (~\\$380B base). Raises ~\\$386B conventionally (Tax Foundation tariff tracker).",
         "is_tcja": False,
         "is_trade": True,
         "trade_type": "auto_25",
@@ -769,10 +835,10 @@ PRESET_POLICIES = {
         "is_trade": True,
         "trade_type": "steel_25",
     },
-    "🏭 Reciprocal Tariffs (-$1.2T)": {
+    "🏭 Reciprocal Tariffs (-$1.5T)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Match trading partners' tariff rates (~20pp average increase). Raises ~\\$1.2T.",
+        "description": "Match trading partners' tariff rates (~20pp average increase). Published conventional estimates of the announced schedule span \\$1.4-1.8T; the official score shown anchors on Tax Foundation's \\$1.5T.",
         "is_tcja": False,
         "is_trade": True,
         "trade_type": "reciprocal",
@@ -802,10 +868,10 @@ PRESET_POLICIES = {
         "is_climate": True,
         "climate_type": "carbon_25",
     },
-    "🌱 Repeal EV Credits ($200B)": {
+    "🌱 Repeal EV Credits ($182B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Repeal \\$7,500 EV tax credit. Saves ~\\$200B over 10 years.",
+        "description": "Repeal the \\$7,500 clean-vehicle credit (sec. 30D) and the commercial clean-vehicle credit (sec. 45W). Saves ~\\$182B over FY2025-2034 (JCT JCX-35-25).",
         "is_tcja": False,
         "is_climate": True,
         "climate_type": "repeal_ev",
