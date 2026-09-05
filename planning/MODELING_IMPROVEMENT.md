@@ -5,24 +5,27 @@
 
 The validation expansion did its job: it replaced a flattering 8% with three honest numbers — **52.6% out-of-sample (n=25)**, **59.3% leave-one-out (n=18 derivable)**, and **250.8% on unfitted module reconstructions (n=20)**, the last of which is itself two populations that must be reported apart: **394.1% across the 12 sectoral presets** and **35.8% across the 8 P.L. 119-21 line items**. This plan spends those numbers. It ranks the work by *error mass × tractability* and says, per lane, which mechanism is missing, what data closes it, which rows should move and in which direction.
 
-> **Waves 1, 2 and 3 have all landed (2026-09-01/02). The plan is complete;
-> §6.2 is the carry-over list.** The current numbers are
-> **31.0% out-of-sample (n=26, median 15.1%, 13 within 15%, 19 within 25%)**,
-> **28.4% leave-one-out (n=18 derivable, 4 not cross-validatable)**, and
-> **61.8% on the 26 unfitted reconstructions** — 14 sectoral presets at
-> **81.0%**, the 8 P.L. 119-21 line items unchanged at **35.8%**, the 3
-> capital-gains scenarios Wave 2 unfitted at **39.6%**, and the revised
-> `extend_tcja_amt` row at **66.8%**. Fitted calibrated is **2.0% over 28**, or
-> 4.3% over 29 with that revised row held in place; the 7 distributional tables
-> now span **0.00–7.77pp**, the ARP row having risen 4.76 → 7.77 when its three
-> components were put on one universe. **Three of those tiers changed population
-> in Wave 3**, so quote the like-for-like readings beside them: reconstructions
-> **63.6%** over the pre-L8 24 rows, the sectoral subset **87.8%** over the 12,
-> and leave-one-out **29.5%** over the 17 it held before `eliminate_salt` was
-> readmitted. **§2's error budget below is the pre-Wave-1 snapshot on
-> `b616144` and is kept as the record the lanes were scoped against**; §§5.1,
-> 5.2 and 5.3 carry the three outturns. Live numbers always come from
-> `python scripts/cold_holdout.py` and
+> **Waves 1, 2, 3 and 4 have all landed (2026-09-01 to 2026-09-05). The plan is
+> complete; §6.2 is the carry-over list.** The current numbers are
+> **18.0% out-of-sample (n=26, median 12.6%, 14 within 15%, 21 within 25%)**,
+> **29.6% leave-one-out (n=18 derivable, 4 not cross-validatable)**, and
+> **56.6% on the 31 unfitted reconstructions** — 15 sectoral presets at
+> **82.6%**, the 8 P.L. 119-21 line items unchanged at **35.8%**, the 3
+> capital-gains scenarios Wave 2 unfitted at **39.6%**, the revised
+> `extend_tcja_amt` row at **66.8%**, and Wave 4's 5 provenance arrivals at
+> **9.4%**. Fitted calibrated is **1.6% over 23**, or **3.0% over 28** with Wave
+> 4's five revised rows held in place (5.2% over 29 with the TCJA-AMT row too);
+> the 7 distributional tables now span **0.00–5.86pp**, the ARP row having fallen
+> 7.77 → **3.72** when Wave 4 scored it on CBO's own household universe.
+> **Two of those tiers changed population in Wave 4 and both means fell for
+> reasons that are not improvements**, so quote the like-for-like readings beside
+> them: reconstructions **65.7% / 40.5%** over the 26 rows they already held —
+> *worse* than 61.8% / 38.0% — and the sectoral subset **88.2%** over the 14.
+> Leave-one-out is the mirror case: it *rose* 28.4% → 29.6% with **no derivation
+> moving**, because three of its targets did. **§2's error budget below is the
+> pre-Wave-1 snapshot on `b616144` and is kept as the record the lanes were
+> scoped against**; §§5.1, 5.2, 5.3 and 5.4 carry the four outturns. Live numbers
+> always come from `python scripts/cold_holdout.py` and
 > `python scripts/run_loo.py --donor-matrix`.
 
 ## 1. Principles
@@ -826,6 +829,174 @@ carry no mode switch, and the tariff presets moved because the *score* changed,
 not because a default did. `CREDIT_APP_MODE` was the one line that would have
 changed what a user sees, and it did not change.
 
+## 5.4 Wave 4 outturn (2026-09-05)
+
+Six lanes on disjoint files — distributional households (`model/w4-distributional-households`, PR #104),
+Option 56's excess share (`model/w4-option56-excess-share`, PR #105), AMT
+phase-outs (`model/w4-amt-phaseouts`, PR #106), gains at death
+(`model/w4-gains-at-death`, PR #108) and pharma Part D (`model/w4-pharma-part-d`,
+PR #109) — plus a target-provenance lane (`provenance/wave4-targets`, PR #107)
+and the coordinator's gate re-derivation (PR #110). **Wave 4 is not in §5's
+sequencing; it is six of §6.2's carry-over items taken in parallel.** Each lane
+pre-registered its expected movement in `planning/lanes/` before touching code,
+and each appended an outturn; those files carry the per-row detail and are the
+record, not this summary. Every figure here is from `python
+scripts/cold_holdout.py`, `python scripts/run_loo.py --donor-matrix` and `python
+scripts/run_validation_dashboard.py` on the **merged** tree — which is not the
+same as any lane's own before/after, because several lanes touch the same tiers.
+
+### The tiers, before → after
+
+| tier | n | before | after |
+|---|--:|---|---|
+| Out-of-sample (Tier 1) | 26 | 31.0% mean / 15.1% median / 13 within 15 / 19 within 25 | **18.0% / 12.6% / 14 / 21** |
+| Calibrated reference (fitted) | 28 → **23** | 2.0% / 0.1% median / 28 within 15 | **1.6% / 0.1% / 23 within 15** |
+|  — *rows held in place* | — | 29 @ 4.3%, 28/29 | **28 @ 3.0%, 27/28** (`eliminate_salt` 22.3%); 29 @ 5.2%, 27/29 with the TCJA-AMT row too |
+| Unfitted reconstructions | 26 → **31** | 61.8% / 38.0% median / 5 within 15 | **56.6% / 29.9% / 9 within 15** |
+|  — *the same 26 rows* | 26 | 61.8% / 38.0% | **65.7% / 40.5%** — *worse* |
+|  — sectoral subset | 14 → **15** | 81.0% / 38.0% median | **82.6% / 39.0%**; **88.2%** on the constant 14 |
+|  — P.L. 119-21 line items | 8 | 35.8% | **35.8%**, unmoved |
+|  — capital-gains scenarios | 3 | 39.6% | **39.6%**, unmoved |
+|  — TCJA AMT relief | 1 | 66.8% | **66.8%**, unmoved |
+|  — *Wave 4 arrivals* | **5** | — | **9.4%** |
+| Leave-one-out | 18 derivable | 28.4% / 16.5% median / 9 within 15 | **29.6% / 19.1% / 8** |
+|  — `Credits` | 3 | 20.5% | **18.5%** |
+|  — `Expenditures` | 5 | 30.2% | **35.7%** |
+| Not cross-validatable | 4 | — | **4**, unchanged |
+| Scorecard rows | 80 | 73 published | **80 / 73**, unchanged |
+| `revised_target_entries` | 3 → **15** | — | 12 Tier-2 revisions, one of them a **range** |
+| `line_item_differs` (calibrated) | 13 → **5** | — | every remaining row carries a written verdict |
+| Provenance (calibrated) | — | 19 / 13 / 15 / 7 / 0 | **30 / 5 / 12 / 7 / 0** |
+| Distributional | 7 | 0.00–7.77pp | **0.00–5.86pp** (ARP 7.77 → **3.72**) |
+| Tests | — | — | **3322 passed, 1 skipped** on the merged tree |
+
+**Two of those tiers changed population and both means fell for reasons that are
+not improvements, so the like-for-like readings are printed beside them and
+neither may be dropped.** The fitted tier lost five rows *mechanically* when
+PR #107 moved their targets, and held in place it reads 28 @ 3.0%. The
+reconstruction tier gained those same five at an average of 9.4% and its printed
+mean fell 5.2pp — but on the 26 rows it already held it reads **65.7%**, *worse*
+than 61.8%, because PR #109's pharma rebuild moved two rows away from their
+targets. Leave-one-out is the mirror case: it **rose** 28.4% → 29.6% with **no
+derivation moving at all**, because three of its targets did. A mean that moves
+because the population moved has not improved, and a mean that moves because a
+target moved has not measured the model — §2.3's own rule, twice over.
+
+Tier 1's error mass fell **805.8 → 468.1**, and capital gains went from 405.6 of
+it (50.3%) to **80.9** (17.3%). The two payroll rows are now the tier's largest
+single mass at 109.6 (23.4%).
+
+### Per-lane, what moved
+
+- **PR #108 gains at death** did almost all of Tier 1's move, on its own taking
+  the tier 31.0% → 18.5%. Six carve-outs transcribed from the Green Books'
+  own text — spousal, charitable, §121 residence, tangible personal property, a
+  family-owned-business deferral, and the per-donor exclusion applied *after* the
+  others — plus a semi-log rate response at death. Predicted bands and actuals:
+  `cbo_opt51_gains_at_death` registered 12–28% and landed **19.3%**;
+  `biden_capital_gains_39` registered 5–30% and landed **16.7%**;
+  `treasury_capgains_39_plus_stepup_elim` registered 0–28% and landed **0.2%**;
+  Tier 1 registered 16–23% and landed 18.5%. The hand path computed before any
+  module code changed predicted death channels of ≈−431, −238 and −278 and the
+  model returned **−432.8, −240.5 and −322.7**.
+- **PR #105 Option 56** landed on its number and missed two counts: −$605.8B
+  against −$697.0B, **13.1%**, where §3 said "about 13%, approximately −$606B".
+  The slip is arithmetic — §3 predicted the median and both within-N counts
+  unchanged "because 24% and 13% are both outside 15%", and 13.1% is not.
+- **PR #104 distributional households** landed every registered row: ARP
+  registered 1.5–6.0pp (point 3.5) and landed **3.72**, its lowest quintile
+  registered 26–40% and landed 28.6%, its highest registered 1–6% and landed
+  5.4%, and the six control tables were registered unmoved to the hundredth and
+  were. The one miss was the derived file's size (**8.57 MB, +10.9%**, against a
+  registered "close to 7.0 MB").
+- **PR #106 AMT phase-outs** moved no benchmark, by design, and every registered
+  row landed. The one miss was a magnitude hedged too low: a $100,000 MFJ
+  threshold cut was registered as "low-single-digit $B/yr" and returns **$9.09B
+  in 2026, $92.7B over ten**.
+- **PR #109 pharma Part D** is the lane whose prediction failed, and it failed in
+  the direction the lane had ruled out: **every aggregate got worse**. The two
+  pre-registered mechanisms landed within $3B of the pre-registered figure; a
+  fifth change nobody pre-registered was larger than the three that were.
+- **PR #107 provenance** moved thirteen targets and **no model figure at all** —
+  every `model_10yr_billions` byte-identical, every LOO derivation unchanged, no
+  constant retuned, no threshold touched. **Six of the thirteen got worse.**
+
+### Three findings the wave produced
+
+**1 — A row can land on its target for the wrong reason, and the only defence is
+the pre-registered decomposition.** `treasury_capgains_39_plus_stepup_elim`
+reads **0.2%** and that is **two errors cancelling**. The lane predicted 7.2%
+retention of the death channel and the model delivered 12.8%; the row landed
+because a death channel nearly twice the hand path's size closed a gap the hand
+path had left open in the other direction. The honest statement is the retention
+ratio — the mechanism removes **87.2%** of that row's death channel where the
+pre-registration said 92.8% — and it is only sayable because the lane wrote the
+ratio down first. **Nothing in this repository may quote that 0.2% as accuracy.**
+
+**2 — A lane's own mechanism can condemn a constant in a different leg, and the
+protocol's whole value is what happens next.** PR #109's negotiation ladder
+implies that current law's 160 cumulative selections carry **$256.8B** of gross
+Part D spending by 2034, which does not fit inside the unsourced
+`medicare_part_d_gross_spending_billions = 220.0` that the *reference-pricing*
+leg also reads. CMS's own sentence puts the total at **$281B**. Taking the
+sourced number pushed international reference pricing from an ≈−$660B prediction
+to **−$801.0B**, i.e. 646.2% → **701.0%** — past where it started. The
+alternative was to keep an unsourced number because it flattered the prediction,
+and the lane took the $281B and reported the miss. `expand_drug_negotiation` went
+25.7% → **93.3%** for a separate, smaller reason: an expansion of the *annual
+selection cap* has nothing to raise until 2029, so it bites in 6 of 10 years.
+
+**3 — A falsification test can fire and still be pointing at the wrong thing.**
+The gains-at-death lane registered "the two Green Book rows landing on opposite
+sides of their targets" as evidence of a bug in the exclusion ordering. They do
+land on opposite sides. The ordering is not the cause, and the evidence is
+arithmetic: the ordering is pinned by a test, applying the exclusion first would
+raise **both** scores, and the residual is **monotone in the exclusion**. The
+cause is the **five-class decedent ladder**, which has no within-group
+dispersion — after carve-outs, gain per decedent is $9.71M / $1.89M / $0.92M /
+$79K across the classes, so a $1M exclusion leaves two classes in tax and a $5M
+exclusion leaves one, knocking 3,677 decedents × $0.89M out in a single step.
+Moving the exclusion $1M → $5M costs the model **$82.2B** of death channel where
+it costs Treasury **$33.4B**. That is a dispersion defect and it is now item 26
+below.
+
+Two smaller findings worth keeping: **PR #105** found that CBO caps premiums
+*and* health spending accounts (FSA/HRA/HSA), which the repository's premium
+distribution cannot represent, and that `TaxExpenditurePolicy`'s behavioural
+offset carries the **reverse sign convention** to `TaxPolicy`'s — magnifying
+where the base class erodes, worth +20% on this row and unsourced in magnitude on
+every expenditure benchmark. **PR #104** found a per-household dollar column
+wrong by a factor of three that no gate in the repository could see, because the
+error metric scores shares and the shares came from a correctly weighted merge.
+
+### Where the pre-registrations were wrong
+
+| lane | what it said | what happened |
+|---|---|---|
+| pharma | reference pricing ≈−$660B (≈560%), negotiation ≈−$64B (≈87%), sectoral ≈79%, reconstruction ≈61% | **−$801.0B (701.0%)**, **−$33.5B (93.3%)**, sectoral 89.8%, reconstruction 66.5% — the omission is §5.6 of that lane, and it is the whole of the miss |
+| Option 56 | median and both within-N counts unchanged | 13.1% crosses the 15% line, so within-15 went 13 → **14** and the median 15.1% → 13.6% |
+| gains at death | the two Green Book rows on opposite sides ⇒ exclusion-ordering bug | they are, and the cause is the decedent ladder's dispersion (finding 3) |
+| distributional | derived file "close to 7.0 MB, well under 8" | **8.57 MB, +10.9%** |
+| AMT | a $100,000 MFJ threshold cut is "low-single-digit $B/yr" | **$9.09B in 2026**; the band was written from the claw-back's average value rather than its value where the threshold sits |
+| provenance | none — the lane pre-registered no model movement, and none occurred | — |
+
+### What Wave 4 did not do
+
+No lane touched `preregistered.py` from a modelling branch, `cold_holdout.py`,
+`run_loo.py`, `loo.py`'s leakage guard, `tests/test_preregistration.py` or any CI
+threshold; PR #107 used the two supersede mechanisms and PR #110 re-derived the
+gate by the workflow's own published rule (ceiling `ceil(18.0 × 1.25) = 23`,
+rounded up to the nearest 5 = **25**; floor `21 − 1 = **20**`, a tightening on
+both). **Every Wave 4 module keeps `reported` as the app default under
+Decision 1** — the AMT lane's numbers are unchanged at 22.3% reported against
+54.2% derived, and `AMT_SCORECARD_MODE`'s blocker is still
+`repeal_individual_amt`'s locked-protocol entry, a gate no lane may edit. The
+shipped numbers that moved are the three drug-pricing presets, by design and with
+a Decision 6 caption in the same PR. `repeal_individual_amt`'s $450B stays
+(item 2 below), the twelve remaining calibrated `secondhand` rows are untouched,
+and nothing was done about *why* the international rows miss — those are items
+9, 10 and 11.
+
 ## 6. Open owner decisions
 
 **Decided 2026-09-01 (owner accepted the coordinator's recommendation on all six).** The questions are kept below as written; the decisions are:
@@ -912,116 +1083,191 @@ mechanism — the $54B flow constant, the 0.8/0.4 net-of-tax elasticities and th
 target, but it is a `preregistered.py` edit and a modelling lane may not open
 that file.
 
-### 6.2 Carry-over list after Wave 3 (2026-09-02) — the single live list
+### 6.2 Carry-over list after Wave 4 (rewritten 2026-09-05) — the single live list
 
-**Waves 1–3 of this plan are complete.** What follows replaces §6.1 as the one
-list of open work, and none of it is a modelling lane's call to make on its own;
+**Waves 1–4 of this plan are complete.** What follows replaces the Wave 3
+edition of this list. None of it is a modelling lane's call to make on its own;
 sequencing is the owner's. Each item names the artefact it lives in so nobody has
 to rediscover it.
+
+**Wave 4 closed nine items and half-closed a tenth.** Struck, with where the work
+landed: the household/tax-unit distributional universe (**PR #104**; ARP
+7.77 → 3.72pp, benchmarks registered on the universe their source ranks, surfaces
+reporting the universe *scored*); the death-channel behavioural response and its
+carve-outs (**PR #108**; Tier 1 31.0% → 18.5% on that PR alone); Option 56's
+year-indexed excess share (**PR #105**; 24.0% → 13.1%); L7's Part D channels
+(**PR #109**; three federal channels, a negotiation ladder, a RAND base — and two
+reconstruction rows got worse, which the lane reports); L5's phase-out thresholds
+(**PR #106**; statutory §55(d)(2) from eleven Revenue Procedures, no benchmark
+moved by design); the twelve remaining `line_item_differs` rows (**PR #107**;
+nine revised, three examined-and-left, `line_item_differs` 13 → 5 with a written
+verdict on every survivor); `repeal_salt_cap`'s unsourced $1,100B (**PR #107**;
+PWBM Table 3's +$1,169.0B, on this repository's own window); `ctc_extension`
+against JCT's +$816.8B (**PR #107**; answered "no", recorded in
+`EXAMINED_NOT_REVISED` — CRS's figure is a superset and JCT's scores a different
+credit already carried here); and the dead `PHARMA_VALIDATION_SCENARIOS`
+registry (**PR #109**). The half-closed one is the mortgage record's
+`annual_cost_no_limit` — **sourced** to Treasury OTA's FY2019 *Tax Expenditures*
+Table 1 row 59 ($100.32B/yr) and still deliberately **unwired**, because the
+source shows what it is the "no limit" level *of* is the pre-TCJA regime as a
+whole rather than IRC §163(h)(3)(F); the open half is now its sibling
+`annual_cost = 25.0`, a pre-P.L.119-21 level on which JCT and Treasury disagree
+by 2–4×.
 
 **Yardstick and protocol**
 
 1. **Re-lock the holdout protocol, or keep the warning convention?** Carried
-   unchanged from §6.1.1. `pwbm_39_with_stepup` is a locked id in
+   unchanged. `pwbm_39_with_stepup` is a locked id in
    `revenue-scorecard-post-lock-2026-05-02` and rates Poor with the direction
    right, so `check_readiness.py`'s `holdout_protocol` check reports **WARN**
    under the documented-miss convention rather than failing. The protocol was
    locked over a scorecard in which that entry carried a fitted 5.3× multiplier
    that no longer exists. **The entry stays in the battery either way.** This is
-   also the one line blocking Decision 1's scorecard half for AMT.
+   also the one line blocking Decision 1's scorecard half for AMT, and it is what
+   blocks item 2.
 
 **Targets that are wrong, unsourced, or contradicted**
 
-2. **`repeal_individual_amt`'s $450B.** Carried from §6.1.2. No published
-   post-2025 repeal score exists; TPC T25-0049's $948.9B is a baseline
-   projection *and* `amt.py`'s own input, so adopting it would manufacture a 0%
-   row out of the leakage `loo.py` guards against. Internally incoherent with the
-   transcribed $1,357.1B, since a full repeal cannot cost less than extending the
-   exemption on the same baseline.
-3. **`repeal_salt_cap`'s $1,100B is still unsourced**, and the row now reports
-   **−29.4%** against it on a bottom-up path. Whether $1,100B is the honest target
-   at all is the open question: `L6_tax_expenditures.md` §6 shows the two SALT
-   benchmarks are scored against contradictory baselines (the $10,000 cap has
-   lapsed for `eliminate` and binds for `expand`), and reconciling that needs a
-   baseline-vintage concept the module does not have.
-4. **`annual_cost_no_limit = 100.0` on the mortgage record is unsourced and
-   dead.** It names no statute; the natural candidate, TCJA's $750,000
-   acquisition-debt cap, is worth single-digit billions a year. Giving it a
-   `limitation` block would make it live automatically and move
-   `eliminate_mortgage` from −5.1% to about **+244%** on an unsourced constant.
-   It stays unread until somebody sources it.
-5. **`ctc_extension` against JCT's +$816.8B line item.** The carried $600B has a
-   one-line "CBO 2024" provenance; the only published row for a comparable
-   provision is JCX-35-25's child-credit line, against which the fitted constant
-   reads −26.5% and the structural path −12.6%. JCT scores a $2,200 indexed
-   credit against this benchmark's $2,000 flat one, so it is an anchor and not a
-   drop-in replacement — which is exactly what makes it a judgement rather than
-   an edit.
-6. **The 12 remaining `line_item_differs` rows.** Wave 3 gave one a range
-   revision and one an examined-and-left verdict; the rest carry no per-target
-   judgement. Several — both Social Security payroll targets, `repeal_ira_credits`
-   — have no published figure to move *to* at all. Each needs the same treatment
-   `PROVENANCE_wave3.md` applied to five.
-7. **Treasury FY2022's death channel.** The re-read is closed (the −$322.0B is
-   the combined row), but L1's substantive point stands and is a **model**
-   finding: the death channel alone under a $1M exclusion exceeds the whole
-   target, and the model applies **no behavioural response** to it while
-   Treasury's score prices the spousal, charitable, §121, tangible-property,
-   family-business and 15-year installment carve-outs.
+2. **`repeal_individual_amt`'s $450B.** Carried unchanged through three passes.
+   No published post-2025 repeal score exists; TPC T25-0049's $948.9B is a
+   baseline projection *and* `amt.py`'s own input, so adopting it would
+   manufacture a 0% row out of the leakage `loo.py` guards against. Internally
+   incoherent with the transcribed $1,357.1B, since a full repeal cannot cost
+   less than extending the exemption on the same baseline. Closing it needs a
+   published score or an owner decision on item 1.
+3. **The two SALT baselines still contradict each other.** `PROVENANCE_wave4.md`
+   §3 states rather than resolves it: `repeal_salt_cap` is now explicitly priced
+   against a permanent $10,000 cap (PWBM Table 3's extended-TCJA world) while
+   `eliminate_salt` is priced on CBO Option 49's world where the cap has lapsed.
+   Reconciling them needs a baseline-vintage concept the expenditure module does
+   not have — and `eliminate_salt`'s CBO baseline is in any case no longer
+   current law after P.L. 119-21 sec. 70120.
+4. **`annual_cost = 25.0` on the mortgage record is a pre-P.L.119-21 level.**
+   JCT's JCX-45-25 puts the capped expenditure at $45.5B in FY2025 rising to
+   $54.9B in FY2029 (the $40,000 SALT cap took itemising claimants from 11.8M to
+   17.8M returns), while Treasury's FY2027 edition gives $23.9B falling to $14.1B
+   on the *same* statute — a 2–4× disagreement driven by Treasury's
+   comprehensive-income baseline against JCT's normal-tax one. Choosing between
+   them is an owner decision with a visible consequence for `eliminate_mortgage`.
+   Its sibling `annual_cost_no_limit` stays sourced-but-unwired, for the reason
+   above.
+5. **The twelve remaining calibrated `secondhand` rows.** Down from fifteen.
+   Several have nothing to move *to*: both Social Security payroll targets
+   (OCACT publishes percent-of-payroll and no dollars), `repeal_ira_credits`,
+   `trump_china_60`, `cap_charitable`, `eliminate_step_up`, `biden_ctc_2021`,
+   `repeal_ptc`, `cap_employer_health`, plus `repeal_individual_amt` and the two
+   Wave 4 examined and left (`steel_tariff_25`, `eliminate_mortgage`). Each needs
+   the same per-target judgement `PROVENANCE_wave4.md` applied to seventeen.
+6. **`expand_drug_negotiation`'s −$500B and `international_reference_pricing`'s
+   −$100B are `model_estimate` targets** and the two worst rows in the
+   reconstruction tier. Neither is in `target_revisions.py`; whether either
+   should be **retired** for want of a document is an owner decision on the
+   ledger's own terms. `W4_pharma_part_d.md` §5 says so explicitly.
 
 **Mechanisms named and not built**
 
-8. **A year-indexed excess share in `tax_expenditures_core.py`.** The whole of
-   CBO Option 56's 24.0% residual, and now measured inside the battery rather
-   than beside it. **Option 56's other two alternatives (56.3, 56.6) stay out of
-   scope until the expenditure module has a payroll base** — they are recorded
-   per alternative, so promoting them later is a one-line change plus the
-   mechanism.
+7. **Option 56's two payroll alternatives and its FSA/HRA/HSA base.** Two halves
+   of the same gap. CBO does not cap premiums, it caps "premiums **and** health
+   spending accounts"; the repository's premium distribution has no account
+   dimension, and account contributions concentrate in the same households whose
+   premiums already exceed the cap — a level *and* a shape error, with a named
+   source (MEPS-IC, KFF). Separately, alternatives 56.3 and 56.6 stay out of
+   scope until the module has a payroll base: CBO's own table sizes that leg at
+   **$276B, 38.9% of the income-tax leg**, and reaching it needs the joint
+   distribution of premiums and earnings, which the repository does not have
+   (`employer_health_premium_distribution.csv` has no earnings dimension,
+   `tax_microdata_2024.csv` has no premium column). *(New framing from
+   `W4_option56_excess_share.md` findings 2 and 4.)*
+8. **The expenditure module's behavioural sign convention.** *(New, from
+   `W4_option56_excess_share.md` finding 3.)*
+   `TaxExpenditurePolicy.estimate_behavioral_offset` returns an offset with the
+   **opposite** sign to `static_effect`, where `TaxPolicy` returns one with the
+   same sign and its docstring says why — so the expenditure module *magnifies*
+   where the base class erodes. On Option 56 it is worth **+20%** and is
+   directionally right (CBO's text says both channels increase revenue), but it
+   is unsourced in magnitude on every expenditure benchmark. Changing it is
+   module-wide: it moves every fitted expenditure row **and** the leave-one-out
+   column together. An owner decision, not a lane's.
 9. **Re-base the UTPR on JCT Equation 2** (OECD CbCR aggregates by
    ultimate-parent jurisdiction). The single largest remaining item in
    `international.py`: the module's $15B against Treasury's $136,313M and JCT's
    implied $133.9B. Blocked by `oecd.org` HTTP 403s; deriving the base from
    Treasury's own row would be circular because that row sits inside the
-   benchmark. **This is what a Wave 4 international lane should open with.**
+   benchmark. **This is what a later international lane should open with** — and
+   `biden_full_international` now reads **44.1%** against its own document.
 10. **GILTI's two self-declared calibration constants**
     (`gilti_cbc_revenue_multiplier = 1.20`, `gilti_ftc_offset_rate = 0.40`).
     Treasury OTA prices the whole CFC active-income preference at $383,830M over
     FY2025-2034 against the module's implied $271B for the identity that would
     replace both — but the tax expenditure also covers §245A exclusions a GILTI
     rate change does not recover, so the swap is not one-for-one.
+    `biden_gilti_reform` now reads **38.4%** against the Green Book's own row.
 11. **A GDP-feedback channel for tariffs.** The single largest remaining piece in
     `trade.py`, and why net/gross sits at 0.60–0.66 rather than the published
     40–50% band. The retaliation channel is also a reduced form returning 2.5×
     less than FF861 for the same policy, `reciprocal_coverage_rate = 0.50` is the
     one shape assumption left that is not a measurement, and `min_volume_factor =
     0.20` now binds above ~55pp rather than ~95pp because the elasticity roughly
-    doubled.
-12. **L7's Part D channels.** Carried from Wave 1: the incidence bugs are fixed,
-    the channels are not built.
-13. **L5's phase-out thresholds.** Carried from Wave 1.
-14. **L1's death-channel behavioural response.** Item 7 above, stated as the
-    model half of it.
-15. **The estate growth lever.** Carried from §6.1.5. SOI-fitted **6.81%/yr**
-    reproduces history and projects to figures no published estimate supports;
-    the shipped **3.82%** (nominal GDP) projects sensibly and backcasts badly.
-    Moves both estate LOO rows across −32% to +67%.
-16. **The tax-unit-versus-household distributional universe.** The ARP
-    benchmark's real residual: 191M CPS tax units against CBO's ~130M households,
-    with a bottom quintile of 38.2M units at a mean AGI of $0.
-    `filing_threshold.py` and `top_tail.py` exist and neither is wired into the
-    benchmark runner. **A distributional-pipeline lane, not a credits one.**
-17. **CBO's account-level spendout rates** (pubs 61913, 62256) as an external
+    doubled. One design gap the reciprocal **range** does not close: the
+    published estimates apply a 10% floor rising to 50% by halving each partner's
+    bilateral-deficit-to-imports ratio, with sectoral exemptions, where the module
+    applies a flat ~20pp to half of goods imports.
+12. **Pharma's utilisation response, Part B/D split and cost-sharing re-split.**
+    *(New, from `W4_pharma_part_d.md` §5.9.)* The module still applies a price
+    index to spending with no utilisation or launch-delay response, still carries
+    one Part B base beside a now-three-channel Part D, and still splits
+    cost-sharing on shares the Part D redesign has superseded. These are the
+    named residuals behind a 701.0% row.
+13. **§55(b)(1)'s 26/28% AMT bracket.** *(New, from `W4_amt_phaseouts.md`.)* The
+    module reduces each statutory triple to a flat exemption-equivalent and
+    prices the base at a single rate; the second AMT bracket is not represented.
+    Wave 4 transcribed the exemption and the phase-out; the rate schedule is the
+    remaining statutory element.
+14. **The estate growth lever.** SOI-fitted **6.81%/yr** reproduces history and
+    projects to figures no published estimate supports; the shipped **3.82%**
+    (nominal GDP) projects sensibly and backcasts badly. Moves both estate LOO
+    rows across −32% to +67%.
+15. **The five-class decedent ladder has no within-group dispersion.** *(New,
+    from `W4_gains_at_death.md` §8.4.)* After the carve-outs, gain per decedent is
+    $9.71M / $1.89M / $0.92M / $79K across the classes, so the per-donor exclusion
+    is a **step function** on a schedule with no spread: moving it $1M → $5M costs
+    the model **$82.2B** of death channel where it costs Treasury **$33.4B**.
+    That is the whole of why the two Green Book rows land on opposite sides of
+    their targets, and it is the first place a later capital-gains lane should
+    look. Related and smaller, from the same lane: the decedent **headcount** is
+    unchanged and is the coarsest thing in the channel; the rate on the final
+    return is priced on the class's *pre*-carve-out gain; the 72.3%
+    active-business share is an **upper bound**; and the realizations base is
+    still not projected across the window.
+16. **CBO's account-level spendout rates** (pubs 61913, 62256) as an external
     cross-check on L2. Carried from Wave 1, still blocked by cbo.gov 403s.
+17. **Give `TCJAExtensionPolicy` a microsim path.** *(New, from
+    `W4_distributional_households.md` finding 1.)* Three of the four CBO
+    distributional benchmarks are registered on `household` and scored on
+    `tax_unit`, because `policy_to_microsim_reforms` returns an empty dict for
+    every `TCJAExtensionPolicy` and for the corporate policy. Two of those three
+    are also the **circular** rows. Building the path would move all three at
+    once, and it is the only way to find out what those tables say when they are
+    not reading CBO's own shares back.
+18. **The ARP bundle's dollar *level* is about 40% high.** *(New, from
+    `W4_distributional_households.md` finding 2.)* With the merge bug fixed the
+    per-household averages read −$4,503 / −$4,211 / −$4,435 / −$3,404 / −$1,013
+    against CBO's −$2,800 / −$3,150 / −$2,450 / −$1,620 / −$920 — the right order
+    of magnitude everywhere and high in the middle. The benchmark scores *shares*,
+    so nothing gates it; a level 40% high with shares within 3.7pp is a different
+    kind of error from either one alone.
 
 **Housekeeping with a data-file or gate consequence**
 
-18. **The alternatives CSV's revenue sub-rows carry an extraction sign artifact.**
+19. **The alternatives CSV's revenue sub-rows carry an extraction sign artifact.**
     Only the deficit rows are read, so nothing is wrong today; fixing it means
     re-running `scripts/extract_cbo_options.py`, which rewrites a pre-registered
     data file and needs its own commit pair.
-19. **Dead `PHARMA_VALIDATION_SCENARIOS`.** Unread shadow registry, on the same
-    footing as the `CBO_TRADE_ESTIMATES` and `TRADE_VALIDATION_SCENARIOS` that
-    L8 deleted for asserting a provenance the figures do not have.
 20. **The four capital-gains `known_limitations` notes** in `preregistered.py`
-    still describe the pre-Wave-2 mechanism. Refreshing them touches no target,
-    but it is a `preregistered.py` edit and no modelling lane may open that file.
+    still describe the pre-Wave-2 mechanism, and the two step-up rows' notes now
+    also predate Wave 4's carve-outs. Refreshing them touches no target, but it is
+    a `preregistered.py` edit and no modelling lane may open that file.
+21. **The derived microdata file grew 10.9%** (7,727,496 → 8,569,294 bytes)
+    because `household_weight` repeats a nine-character float on every tax unit
+    rather than once per household. Cosmetic, cheap, and the one thing PR #104's
+    pre-registration got wrong.
