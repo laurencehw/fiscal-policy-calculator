@@ -1,0 +1,73 @@
+# Statutory individual-AMT exemption amounts, phase-out threshold amounts and
+# phase-out (claw-back) rates, by filing status and taxable year.
+#
+# WHAT THIS IS. Unlike the aggregate path in tpc_t25_0049_aggregate_amt.csv,
+# nothing here is a projection. IRC section 55(d) fixes the exemption amount,
+# the phase-out threshold and the rate at which the exemption is clawed back;
+# section 1(f)(3) indexes the first two for inflation; and the IRS publishes the
+# indexed amounts for every filing status in each year's inflation Revenue
+# Procedure. Every row below is transcribed verbatim from one of those Revenue
+# Procedures, named in the `source` column, and each was read from the PDF on
+# irs.gov on 2026-09-02.
+#
+# THE STATUTE. Section 55(d)(2) (before 2018, section 55(d)(3)): "the exemption
+# amount ... shall be reduced (but not below zero) by an amount equal to 25
+# percent of the amount by which the alternative minimum taxable income of the
+# taxpayer exceeds [the threshold amount]." P.L. 119-21 section 70107 replaced
+# "25 percent" with "50 percent" and reset the threshold for taxable years
+# beginning after 2025. The `phaseout_rate` column carries that rate.
+#
+# THE RATE IS CHECKABLE FROM THE PUBLISHED ROWS, and was checked. Each Revenue
+# Procedure prints a "Complete Phaseout Amount" beside the threshold, which must
+# equal threshold + exemption / rate:
+#   2025 MFJ (Rev. Proc. 2024-40): 1,252,700 + 137,000 / 0.25 = 1,800,700, and
+#     the document prints 1,800,700.
+#   2026 MFJ (Rev. Proc. 2025-32): 1,000,000 + 140,200 / 0.50 = 1,280,400, and
+#     the document prints 1,280,400.
+#   2026 single: 500,000 + 90,100 / 0.50 = 680,200, printed 680,200.
+#   2026 MFS: 500,000 + 70,100 / 0.50 = 640,200, printed 640,200.
+# So the 25 percent -> 50 percent change is confirmed arithmetically from the
+# IRS's own numbers, not only from the statutory text.
+#
+# THE THREE REGIMES.
+#   `pre_tcja`   The law the TCJA sunset reverts to. Two published rows: 2017
+#                (the last pre-TCJA year) and 2018 as the IRS published it in
+#                Rev. Proc. 2017-58, which was issued in October 2017 -- before
+#                the Act -- and is therefore the IRS's own statement of what
+#                pre-TCJA law would have been in 2018. That is the counterfactual
+#                schedule, published, and not this repository's estimate.
+#   `tcja`       2018-2025 under section 12003 of P.L. 115-97.
+#   `pl119_21`   Current law from 2026 under section 70107 of P.L. 119-21: the
+#                TCJA exemption made permanent, thresholds reset DOWN to
+#                500,000 / 1,000,000, and the claw-back rate raised to 50%.
+#
+# NOTE ON MFS THRESHOLDS. Under TCJA and P.L. 119-21 the married-filing-separate
+# threshold equals the unmarried threshold rather than half the joint one; the
+# Revenue Procedures group "Married Individuals Filing Separate Returns" with the
+# unmarried figure. Under pre-TCJA law it is half the joint threshold. Both are
+# transcribed as printed. Estates and trusts are out of scope for this module and
+# are not transcribed.
+#
+# EXTRAPOLATION. `fiscal_model/amt.py` carries each regime past its last
+# published row by one rule, applied identically to every regime and every
+# filing status: the compound rate implied by the published TCJA MFJ threshold
+# series (2018 -> 2025), rounded to the nearest $100 as section 1(f)(7) requires.
+# That rate is computed from this file rather than written into the module, and
+# it is fitted to nothing. The exemption series over the same years implies the
+# same rate to within 0.005pp.
+#
+# Columns: `year`, `regime`, `exemption_single`, `exemption_mfj`,
+#   `exemption_mfs`, `threshold_single`, `threshold_mfj`, `threshold_mfs`,
+#   `phaseout_rate`, `source`. Dollars, nominal, as printed.
+year,regime,exemption_single,exemption_mfj,exemption_mfs,threshold_single,threshold_mfj,threshold_mfs,phaseout_rate,source
+2017,pre_tcja,54300,84500,42250,120700,160900,80450,0.25,Rev. Proc. 2016-55 sec. 3.10
+2018,pre_tcja,55400,86200,43100,123100,164100,82050,0.25,Rev. Proc. 2017-58 sec. 3.10 (published before P.L. 115-97)
+2018,tcja,70300,109400,54700,500000,1000000,500000,0.25,Rev. Proc. 2018-18 (I.R.B. 2018-10) sec. 2.08
+2019,tcja,71700,111700,55850,510300,1020600,510300,0.25,Rev. Proc. 2018-57 sec. 3.10
+2020,tcja,72900,113400,56700,518400,1036800,518400,0.25,Rev. Proc. 2019-44 sec. 3.10
+2021,tcja,73600,114600,57300,523600,1047200,523600,0.25,Rev. Proc. 2020-45 sec. 3.10
+2022,tcja,75900,118100,59050,539900,1079800,539900,0.25,Rev. Proc. 2021-45 sec. 3.10
+2023,tcja,81300,126500,63250,578150,1156300,578150,0.25,Rev. Proc. 2022-38 sec. 3.10
+2024,tcja,85700,133300,66650,609350,1218700,609350,0.25,Rev. Proc. 2023-34 sec. 3.10
+2025,tcja,88100,137000,68500,626350,1252700,626350,0.25,Rev. Proc. 2024-40 sec. 3.11
+2026,pl119_21,90100,140200,70100,500000,1000000,500000,0.50,Rev. Proc. 2025-32 sec. 3.10
