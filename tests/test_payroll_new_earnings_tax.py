@@ -57,6 +57,27 @@ def test_covered_earnings_ratio_inverts_a_published_definition():
     assert 1.00 < COVERED_EARNINGS_TO_WAGES < 1.08
 
 
+def test_the_ratio_is_not_an_artifact_of_the_year_it_was_measured_in():
+    """The same construction on CY2024 agrees to within a percent.
+
+    Both rows come from the same two documents as CY2023: 2024 Medicare
+    Trustees Report Table III.B4 (expenditures) and Table III.B7 (cost rate),
+    against CBO's February 2024 calendar-year wages and salaries.
+
+    CY2022 is *not* checked, and the reason is documentary rather than
+    numerical: Table III.B4's footnote 10 puts $33.4B of net repayments under
+    the Medicare Accelerated and Advance Payments Program inside that year's
+    expenditures, so expenditures-over-cost-rate does not recover taxable
+    payroll there. It is worth saying out loud that the excluded year is also
+    the flattering one - it would put the ratio at 0.934 and take CBO Option 61
+    from +7.5% to -2.6% - which is exactly why the exclusion was written into
+    the data file's header before the row was scored.
+    """
+    ratio_2023 = COVERED_EARNINGS_TO_WAGES
+    ratio_2024 = (417.4 / 0.0330) / 12_375.8
+    assert ratio_2024 == pytest.approx(ratio_2023, rel=0.015)
+
+
 def test_covered_earnings_follows_cbos_own_wage_path():
     """The base grows at the baseline's wage growth, not a module constant."""
     assert covered_earnings(2025) == pytest.approx(13_210.3, abs=0.1)
