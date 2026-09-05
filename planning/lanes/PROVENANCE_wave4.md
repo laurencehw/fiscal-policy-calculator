@@ -109,8 +109,12 @@ The row therefore stays `line_item_differs`, exactly as `pillar_two_adoption`
 does, because the anchor is not the transcribed figure and hiding the gap would
 leave an editorial midpoint looking sourced.
 
-The model's −$1,396.8B is **inside** the range. Its 6.9% against the anchor is a
-distance from one modeller's point, not a measurement of accuracy; and one
+The model's −$1,396.8B is **not quite inside** the range: it sits $3.2B short of
+the −$1,400B lower bound, so `within_published_range` is False and
+`distance_to_published_range_billions` is 3.2 — the honest reading, corrected
+in the Wave 4 docs sync after this section first claimed containment. Its 6.9%
+against the anchor is a distance from one modeller's point, not a measurement
+of accuracy; and one
 design caveat the range does not close is that the published estimates apply a
 10% floor rising to 50% by halving each partner's bilateral-deficit-to-imports
 ratio (exempting steel, aluminium, autos and parts, copper, pharmaceuticals,

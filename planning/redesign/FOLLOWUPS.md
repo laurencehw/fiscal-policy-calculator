@@ -58,34 +58,31 @@ validation-documentation half of that review landed separately in
   Carry-over: Build packages are not freezable, and the frozen link does not
   pin the Data & methodology options (a spec-hash mismatch is captioned, not
   refused).
-- [ ] **Cold start: ~20s of blank skeleton on Streamlit Cloud.** The first hit
-  after the container sleeps renders nothing recognisable — no brand line, no
-  explanation, no progress — which reads as a broken link rather than a waking
-  app. Decide whether *any* in-app placeholder is possible: Streamlit does not
-  paint until the first script run completes, so the honest options are (a) a
-  cheap first paint — emit the chrome/brand line before any data load or heavy
-  import and defer the expensive work behind `st.spinner`/fragments, (b) keep the
-  container warm (paid tier, or an external pinger), (c) accept it and put the
-  explanation outside the app, in the copy that surrounds the link. Measure first:
-  if most of the 20s is import time, (a) is real work; if it is cold container
-  scheduling, only (b) helps.
-- [ ] **The "older snapshots" data banner reads like an outage.** The
-  degraded-data banner fires on page load, before the visitor has scored
-  anything, and its wording makes a routine baseline-vintage lag look like the
-  site is broken. The first impression of the landing page is a warning about a
-  problem the visitor does not yet have. Wanted: state the vintage as a neutral
-  fact where it matters — at the result, next to the number it conditions — and
-  reserve alert styling for genuinely unusable data. `components/chrome.py` owns
-  both the banner and the data-status pill.
-- [ ] **Zero-width sensitivity band on calibrated presets looks broken.** A
-  calibrated preset renders "Sensitivity range: $+4,581.9B to $+4,581.9B" — the
-  same number twice, which reads as a rendering bug rather than as "this preset
-  carries a point estimate with no modelled band". Either suppress the range when
-  it is degenerate and say why, or give calibrated presets a real band.
-  *In progress on branch `ui/polish-assessment`.*
-- [ ] **Build-page garbled reasoning sentences and raw `\$` escapes.** The Build
-  page's generated reasoning text shows truncated and ungrammatical sentences, and
-  backslash-dollar escapes leak through to the reader where the string is
-  block-level HTML (opaque to `remark-math`) and therefore should not have been
-  escaped at all — the inverse of the bug `tests/test_dollar_rendering.py` was
-  written for. *In progress on branch `ui/polish-assessment`.*
+- [~] **Cold start: ~20s of blank skeleton on Streamlit Cloud.** *Partially done
+  in #82* — option (a) shipped: the chrome and brand line are painted before any
+  data load or heavy import, so the first script run no longer renders nothing
+  recognisable. What remains is the part (a) cannot reach: Streamlit Cloud
+  container sleep itself, which needs (b) a warm container (paid tier or an
+  external pinger) or (c) an explanation in the copy surrounding the link. The
+  measurement that decides between them has not been made, and it is the next
+  step: if most of the remaining wait is import time there is more of (a) to do;
+  if it is cold container scheduling, only (b) helps. Streamlit does not paint
+  until the first script run completes, so no in-app placeholder can cover the
+  scheduling half.
+- [x] **The "older snapshots" data banner reads like an outage.** — done in #82.
+  The degraded-data banner used to fire on page load, before the visitor had
+  scored anything, and its wording made a routine baseline-vintage lag look like
+  the site was broken — the landing page's first impression was a warning about a
+  problem the visitor did not yet have. The vintage is now stated as a neutral
+  fact where it matters, and alert styling is reserved for genuinely unusable
+  data. `components/chrome.py` owns both the banner and the data-status pill.
+- [x] **Zero-width sensitivity band on calibrated presets looks broken.** — done
+  in #82. A calibrated preset used to render "Sensitivity range: $+4,581.9B to
+  $+4,581.9B" — the same number twice, which read as a rendering bug rather than
+  as "this preset carries a point estimate with no modelled band".
+- [x] **Build-page garbled reasoning sentences and raw `\$` escapes.** — done in
+  #82. The Build page's generated reasoning text used to show truncated and
+  ungrammatical sentences, and backslash-dollar escapes leaked through to the
+  reader where the string is block-level HTML (opaque to `remark-math`) and
+  therefore should not have been escaped at all — the inverse of the bug
+  `tests/test_dollar_rendering.py` was written for.
