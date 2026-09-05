@@ -1,0 +1,72 @@
+# Covered earnings (the Medicare / HI payroll tax base), FY2025-2034.
+#
+# Why this file exists
+# --------------------
+# A flat payroll tax on "all earnings" is levied on the base CBO names in its
+# own option text: "the income subject to the tax would match that of the
+# Medicare payroll tax, so there would be no taxable maximum" (CBO, Options for
+# Reducing the Deficit, 2023 to 2032 - Volume I, pub. 58164, option "Impose a
+# New Payroll Tax", https://www.cbo.gov/budget-options/58636, 2022-12-07). The
+# module used to price that base as a rounded receipts aggregate divided by a
+# statutory rate ($400B / 2.9%), which attributes the 0.9% Additional Medicare
+# Tax's receipts to the 2.9% base. This file replaces it with two published
+# series and one ratio measured on history.
+#
+# The path: CBO's own baseline
+# ----------------------------
+# wages_and_salaries_billions is transcribed from
+#   CBO, The Budget and Economic Outlook: 2024 to 2034 (February 2024),
+#   publication 59710; supplemental economic projections file
+#   51135-2024-02-Economic-Projections.xlsx, sheet "3. Fiscal Year",
+#   row "Wages and salaries" (billions of dollars).
+# That is the vintage the CBO Options battery scores on
+# (CBO_OPTIONS_REVENUE_BASELINE) and the one JCT's own estimates rest on: "The
+# estimates rely on the Congressional Budget Office's projections of the
+# economy over the next decade, particularly projections of wages and
+# employment" (pub. 58164, option text, "Uncertainty About the Budgetary
+# Effects").
+#
+# The level: one ratio, measured once, on history
+# -----------------------------------------------
+# Covered earnings are not NIPA wages: they add self-employment net earnings
+# and drop employment that is not HI-covered. The ratio between them is
+# measured on CY2023 - the last completed year both documents cover - and never
+# on a projection year:
+#
+#   HI taxable payroll (CY2023) = HI total expenditures / HI cost rate
+#                               = 403.1 / 0.0331 = 12,178.2
+#     403.1  : 2024 Annual Report of the Boards of Trustees of the Federal
+#              Hospital Insurance and Federal Supplementary Medical Insurance
+#              Trust Funds, Table III.B4 (report p. 56), Expenditures - Total,
+#              calendar year 2023.
+#     3.31%  : same report, Table III.B7 (report p. 63), HI cost rate, calendar
+#              year 2023. The cost rate is defined as expenditures as a
+#              percentage of taxable payroll, so the division inverts a
+#              published definition rather than fitting anything.
+#              Taxable payroll is defined at p. 63 fn. 35 as "the total amount
+#              of wages, salaries, tips, self-employment income, and other
+#              compensation subject to HI taxes".
+#
+#   NIPA wages and salaries (CY2023) = 11,807.6
+#     same CBO file, sheet "2. Calendar Year", row "Wages and salaries".
+#
+#   covered_earnings_to_wages = 12,178.2 / 11,807.6 = 1.03139
+#
+# CY2022 is deliberately not used for the same measurement: the Trustees'
+# Table III.B4 footnote 10 records $33.4B of net repayments under the Medicare
+# Accelerated and Advance Payments Program inside that year's expenditures, so
+# the cost-rate identity does not hold there. That exclusion is for a stated
+# reason, not because 2022 disagreed.
+#
+# Fiscal years, billions of current dollars.
+fiscal_year,wages_and_salaries_billions
+2025,12808.2
+2026,13375.8
+2027,13927.4
+2028,14487.2
+2029,15070.9
+2030,15675.0
+2031,16294.1
+2032,16926.0
+2033,17566.2
+2034,18217.2

@@ -116,8 +116,14 @@ def test_estimate_behavioral_offset_sign_and_avoidance_branches():
         tax_avoidance_elasticity=0.15,
     )
 
-    assert high_avoidance.estimate_behavioral_offset(100.0) == pytest.approx(-25.0)
-    assert low_avoidance.estimate_behavioral_offset(-100.0) == pytest.approx(17.5)
+    # The offset carries the *same* sign as the static effect, matching
+    # ``TaxPolicy.estimate_behavioral_offset``. The engine computes
+    # ``deficit = -revenue + behavioral``, so a same-signed offset erodes the
+    # revenue effect. This module returned the opposite sign until 2026-09-05,
+    # which made a payroll tax increase raise more than its own static effect.
+    # These two assertions pinned that, so they were pinning the defect.
+    assert high_avoidance.estimate_behavioral_offset(100.0) == pytest.approx(25.0)
+    assert low_avoidance.estimate_behavioral_offset(-100.0) == pytest.approx(-17.5)
 
 
 def test_factory_helpers_use_window_average_annuals():
@@ -168,5 +174,7 @@ def test_estimate_payroll_revenue_leaves_window_averages_flat():
 
     assert result["annual_static"] == 100.0
     assert result["ten_year_static"] == pytest.approx(1000.0)
-    assert result["behavioral_offset"] == pytest.approx(-175.0)
+    # Same-signed offset, subtracted rather than added; ``net_effect`` is the
+    # same 825.0 it always was.
+    assert result["behavioral_offset"] == pytest.approx(175.0)
     assert result["net_effect"] == pytest.approx(825.0)
