@@ -62,6 +62,26 @@ produced its numbers. Older links — including the pre-redesign
 Data Status and Model settings live in popovers in the shared page chrome; on
 phones the top nav collapses into a sidebar toggle.
 
+**Frozen assignment links (classroom).** Adding `&engine=<macro model>&frozen=1`
+to those stamps turns them from a record of a past run into a lock on the next
+one, so a class hands in one set of numbers rather than one per student:
+
+```
+/explore?preset=tcja-full-extension&dynamic=0&run=1
+        &baseline=february2026&engine=frbus_lite&spec=506d91e321f8
+        &mode=conventional&frozen=1
+```
+
+The baseline vintage, the macro model, dynamic scoring **and** the policy are
+applied from the URL and their controls render disabled under "🔒 Frozen for
+this assignment" — in the form, beside the Score button and in the ⚙ popover —
+with a provenance line under the number. A link naming a baseline vintage this
+deployment is not serving is **refused**: the page says which vintage the
+assignment wants and scores nothing, rather than quietly answering with
+different numbers. To make one, open a result surface with `?classroom=1`
+(`/classroom` links there) and copy the **🔒 Assignment link** from Export
+Results.
+
 ### Additional features
 
 - **💬 Ask assistant** — Citation-grounded Q&A about public finance and this model's outputs. Streams answers from Claude Sonnet 4.6 with tool access to the app's scoring engine, CBO baseline, validation scorecard, and 23 curated authoritative snapshots (CBO, JCT, PWBM, Yale Budget Lab, TPC, PGPF, BEA, BLS, SSA Trustees, FRED). Every substantive claim carries a `[^N]` footnote cross-referenced against the tool-call provenance; unsupported markers are auto-stripped. Hard daily cost cap ($5/day default across all visitors), per-session message cap, cool-down, and kill-switch protect the deployer's API budget. Available as a Streamlit tab, a non-streaming `POST /ask` endpoint, and an SSE `POST /ask/stream` endpoint.

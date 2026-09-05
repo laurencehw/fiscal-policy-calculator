@@ -1356,10 +1356,43 @@ def render_export_block(st_module: Any, scored: Any, result_data: dict[str, Any]
                 mime="text/plain",
             )
 
+        _render_assignment_link(st_module, scored, result_data)
+
         st_module.markdown("---")
         st_module.subheader("Copy Summary for Reports")
         st_module.caption("Select all text below and copy to paste into documents:")
         st_module.code(text_summary, language="text")
+
+
+def _render_assignment_link(
+    st_module: Any, scored: Any, result_data: dict[str, Any]
+) -> None:
+    """The instructor's frozen-link control, shown only in classroom context.
+
+    Gated on ``?classroom=1`` (and the ``?mode=classroom`` alias) rather than
+    shown to everyone: a frozen link is a teaching artefact, and the plain
+    share link above it is what a reader wants. ``/classroom`` links here with
+    the flag set.
+    """
+    from fiscal_model.ui.frozen_links import (
+        is_classroom_request,
+        render_assignment_link_block,
+    )
+
+    query_params = getattr(st_module, "query_params", {}) or {}
+    try:
+        if not is_classroom_request(query_params):
+            return
+    except Exception:  # pragma: no cover — exotic query-param stand-ins
+        return
+
+    st_module.markdown("---")
+    render_assignment_link_block(
+        st_module,
+        scored,
+        result_data,
+        engine=st_module.session_state.get("setting_macro_model"),
+    )
 
 
 def render_compare_block(

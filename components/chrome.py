@@ -261,6 +261,7 @@ def render_chrome(
     deps: Any,
     *,
     show_brand: bool = True,
+    frozen: Any = None,
 ) -> dict[str, Any]:
     """Render the shared chrome and return the model-settings dict.
 
@@ -268,6 +269,11 @@ def render_chrome(
     (``use_real_data``, ``dynamic_scoring``, ``macro_model``, ``use_microsim``,
     ``use_microsim_distribution``, ``data_year``, ``dark_mode``), so the scoring
     pages can pass it straight into the calculation pipeline.
+
+    ``frozen`` is the :class:`~fiscal_model.ui.frozen_links.FrozenAssignment`
+    a ``?frozen=1`` assignment link put in force, or ``None``. It is handed
+    straight to the ⚙ popover, which is the piece of chrome that would
+    otherwise let a student quietly unpick the lock.
     """
     bootstrap_page(st_module)
 
@@ -310,8 +316,15 @@ def render_chrome(
         settings = render_settings_tab(
             st_module=st_module,
             settings_tab=_disclosure(
-                st_module, "⚙", help_text="Model settings, dark mode, and data options."
+                st_module,
+                "🔒" if frozen is not None else "⚙",
+                help_text=(
+                    "Frozen for this assignment — model settings are set by the link."
+                    if frozen is not None
+                    else "Model settings, dark mode, and data options."
+                ),
             ),
+            frozen=frozen,
         )
 
     if settings.get("dark_mode", False):
