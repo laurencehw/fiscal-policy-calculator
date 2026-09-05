@@ -456,6 +456,7 @@ class RelativeValidator:
         return resolved
 
     def _run_income_tax(self, params: dict, target_field: str) -> float:
+        from fiscal_model.baseline import APP_DEFAULT_START_YEAR
         from fiscal_model.policies import PolicyType, TaxPolicy
         from fiscal_model.scoring import FiscalPolicyScorer
 
@@ -466,12 +467,16 @@ class RelativeValidator:
             rate_change=float(params["rate_change"]),
             affected_income_threshold=float(params.get("affected_income_threshold", 0)),
             taxable_income_elasticity=float(params.get("taxable_income_elasticity", 0.25)),
+            start_year=APP_DEFAULT_START_YEAR,
         )
-        scorer = FiscalPolicyScorer(use_real_data=True)
+        scorer = FiscalPolicyScorer(
+            start_year=APP_DEFAULT_START_YEAR, use_real_data=True
+        )
         result = scorer.score_policy(policy, dynamic=False)
         return float(getattr(result, target_field))
 
     def _run_capital_gains(self, params: dict, target_field: str) -> float:
+        from fiscal_model.baseline import APP_DEFAULT_START_YEAR
         from fiscal_model.data.capital_gains import CapitalGainsTaxPolicy
         from fiscal_model.scoring import FiscalPolicyScorer
 
@@ -479,12 +484,16 @@ class RelativeValidator:
             name=str(params.get("name", "Capital Gains Policy")),
             description=str(params.get("description", "")),
             rate_change=float(params["rate_change"]),
+            start_year=APP_DEFAULT_START_YEAR,
         )
-        scorer = FiscalPolicyScorer(use_real_data=True)
+        scorer = FiscalPolicyScorer(
+            start_year=APP_DEFAULT_START_YEAR, use_real_data=True
+        )
         result = scorer.score_policy(policy, dynamic=False)
         return float(getattr(result, target_field))
 
     def _run_corporate(self, params: dict, target_field: str) -> float:
+        from fiscal_model.baseline import APP_DEFAULT_START_YEAR
         from fiscal_model.corporate import CorporateTaxPolicy
         from fiscal_model.scoring import FiscalPolicyScorer
 
@@ -492,12 +501,16 @@ class RelativeValidator:
             name=str(params.get("name", "Corporate Policy")),
             description=str(params.get("description", "")),
             rate_change=float(params["rate_change"]),
+            start_year=APP_DEFAULT_START_YEAR,
         )
-        scorer = FiscalPolicyScorer(use_real_data=True)
+        scorer = FiscalPolicyScorer(
+            start_year=APP_DEFAULT_START_YEAR, use_real_data=True
+        )
         result = scorer.score_policy(policy, dynamic=False)
         return float(getattr(result, target_field))
 
     def _run_spending(self, params: dict, target_field: str) -> float:
+        from fiscal_model.baseline import APP_DEFAULT_START_YEAR
         from fiscal_model.policies import PolicyType, SpendingPolicy
         from fiscal_model.scoring import FiscalPolicyScorer
 
@@ -506,12 +519,16 @@ class RelativeValidator:
             description=str(params.get("description", "")),
             policy_type=PolicyType.DISCRETIONARY_NONDEFENSE,
             annual_change_billions=float(params["annual_change_billions"]),
+            start_year=APP_DEFAULT_START_YEAR,
         )
-        scorer = FiscalPolicyScorer(use_real_data=True)
+        scorer = FiscalPolicyScorer(
+            start_year=APP_DEFAULT_START_YEAR, use_real_data=True
+        )
         result = scorer.score_policy(policy, dynamic=False)
         return float(getattr(result, target_field))
 
     def _run_trade(self, params: dict, target_field: str) -> float:
+        from fiscal_model.baseline import APP_DEFAULT_START_YEAR
         from fiscal_model.scoring import FiscalPolicyScorer
         from fiscal_model.trade import TariffPolicy
 
@@ -520,8 +537,11 @@ class RelativeValidator:
             description=str(params.get("description", "")),
             tariff_rate=float(params["tariff_rate"]),
             import_base_billions=float(params.get("import_base_billions", 3200.0)),
+            start_year=APP_DEFAULT_START_YEAR,
         )
-        scorer = FiscalPolicyScorer(use_real_data=True)
+        scorer = FiscalPolicyScorer(
+            start_year=APP_DEFAULT_START_YEAR, use_real_data=True
+        )
         result = scorer.score_policy(policy, dynamic=False)
         return float(getattr(result, target_field))
 

@@ -143,6 +143,7 @@ def _build_preset_policy(preset_name: str, preset_data: dict[str, Any]) -> tuple
         rate_change=raw_rate_change / 100.0 if abs(raw_rate_change) > 1 else raw_rate_change,
         affected_income_threshold=float(preset_data.get("threshold", 0.0)),
         taxable_income_elasticity=0.25,
+        start_year=DEFAULT_SCORER_START_YEAR,
         duration_years=WINDOW_YEARS,
         ordinary_income_base=not bool(preset_data.get("agi_inclusive_base", False)),
     )
@@ -985,7 +986,9 @@ def _baseline_snapshot() -> tuple[float, float, int]:
     """
     global _BASELINE_SNAPSHOT_CACHE
     if _BASELINE_SNAPSHOT_CACHE is None:
-        baseline = FiscalPolicyScorer(use_real_data=True).baseline
+        baseline = FiscalPolicyScorer(
+            start_year=DEFAULT_SCORER_START_YEAR, use_real_data=True
+        ).baseline
         _BASELINE_SNAPSHOT_CACHE = (
             float(baseline.deficit.mean()),
             float(baseline.nominal_gdp.mean()),

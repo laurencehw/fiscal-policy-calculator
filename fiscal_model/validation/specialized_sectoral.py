@@ -72,12 +72,16 @@ SECTORAL_SCENARIO_REGISTRIES: dict[str, dict[str, dict]] = {
 #: not have to infer it from the category name.
 SECTORAL_BENCHMARK_KIND = "Calibrated reconstruction"
 
-#: Match ``Policy.start_year`` (2025) and the FY2025-2034 window these targets
-#: are quoted for, rather than the scorer's own 2026 default. In practice the
-#: five sectoral modules build their effect paths from the policy's start year
-#: and their own duration, so this choice moves no score —
-#: ``test_sectoral_scores_do_not_depend_on_the_scorer_start_year`` pins that,
-#: and would catch a module that later became baseline-window sensitive.
+#: The FY2025-2034 window these targets are quoted for. Both the scorer *and*
+#: the policy open on it — see :func:`validate_sectoral_policy`.
+#:
+#: The scorer's own window is not what moves these rows;
+#: ``test_sectoral_scores_do_not_depend_on_the_scorer_start_year`` shows a
+#: 2025 policy scores identically on a 2026 window. What moves them is the
+#: *gap* between the two: all five modules contribute a flat annual for each
+#: year the policy is active inside the window, so a policy that opens a year
+#: after the window is credited with nine of its ten years and the row loses
+#: ~10% for a reason that is nothing to do with the module.
 _SCORER_START_YEAR = 2025
 
 
@@ -120,6 +124,16 @@ def validate_sectoral_policy(
     scenario = registry[scenario_id]
     official_10yr = official_target_for(scenario)
     policy = scenario["policy_factory"]()
+
+    # Pin the policy to the window its target is quoted for. These factories
+    # are shared with the app, and none of them states a year of its own, so
+    # without this the scenario inherits whatever ``Policy.start_year``
+    # happens to default to — a value the app is entitled to move. Every
+    # factory states 2025 today, so the assignment is a no-op;
+    # ``test_sectoral_factories_open_on_the_validation_window`` is the alarm
+    # that fires if one ever stops agreeing, rather than a target quietly
+    # losing a year.
+    policy.start_year = _SCORER_START_YEAR
 
     scorer = FiscalPolicyScorer(start_year=_SCORER_START_YEAR, use_real_data=False)
     result = scorer.score_policy(policy, dynamic=False)

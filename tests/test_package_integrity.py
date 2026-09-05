@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from components.results import render_score_surface
 from fiscal_model.app_data import CBO_SCORE_MAP, PRESET_POLICIES
-from fiscal_model.baseline import CBOBaseline
+from fiscal_model.baseline import APP_DEFAULT_START_YEAR, CBOBaseline
 from fiscal_model.data import CapitalGainsBaseline, FREDData, IRSSOIData
 from fiscal_model.preset_handler import create_policy_from_preset
 from fiscal_model.ui import (
@@ -357,8 +357,9 @@ def test_calculate_spending_policy_result_mapping():
             self.__dict__.update(kwargs)
 
     class DummyScorer:
-        def __init__(self, baseline, use_real_data):
+        def __init__(self, baseline, start_year, use_real_data):
             self.baseline = baseline
+            self.start_year = start_year
             self.use_real_data = use_real_data
 
         def score_policy(self, policy, dynamic):
@@ -385,6 +386,11 @@ def test_calculate_spending_policy_result_mapping():
     assert result["policy"].name == "Test Program"
     assert result["policy"].policy_type == "disc_nondefense"
     assert result["result"].policy_name == "Test Program"
+    # Policy and scorer must open on the same year, and that year is the app's.
+    # A spending policy one year behind its window is credited with nine of its
+    # ten years of outlays under a "10-year" heading.
+    assert result["policy"].start_year == APP_DEFAULT_START_YEAR
+    assert result["scorer"].start_year == APP_DEFAULT_START_YEAR
 
 
 def test_run_microsim_calculation_with_synthetic_data(tmp_path):

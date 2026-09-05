@@ -13,6 +13,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from ..baseline import APP_DEFAULT_START_YEAR
+
 
 @dataclass
 class ModelResult:
@@ -50,7 +52,11 @@ class BaseScoringModel(ABC):
         return {"name": self.name, "methodology": self.methodology}
 
 
-DEFAULT_SCORER_START_YEAR = 2025
+#: Window the multi-model platform opens on when the policy names no year.
+#: The app's window, not the library's — every consumer of this module (the
+#: composer, the comparison tabs, the multi-model pilot) is a user-facing
+#: surface.
+DEFAULT_SCORER_START_YEAR = APP_DEFAULT_START_YEAR
 
 
 def build_scorer_for_start_year(

@@ -36,6 +36,7 @@ from fiscal_model.api_serialization import serialize_scoring_result
 from fiscal_model.app_data import CBO_SCORE_MAP, PRESET_POLICIES
 from fiscal_model.assistant import FiscalAssistant
 from fiscal_model.assistant.rate_limit import RateLimiter, new_session_id
+from fiscal_model.baseline import APP_DEFAULT_START_YEAR
 from fiscal_model.exceptions import (
     FiscalModelError,
     PolicyValidationError,
@@ -569,6 +570,7 @@ def _build_preset_policy(preset_name: str) -> tuple[Any, bool]:
         rate_change=raw_rate_change / 100.0 if abs(raw_rate_change) > 1 else raw_rate_change,
         affected_income_threshold=float(preset.get("threshold", 0.0)),
         taxable_income_elasticity=0.25,
+        start_year=APP_DEFAULT_START_YEAR,
         duration_years=10,
         ordinary_income_base=not bool(preset.get("agi_inclusive_base", False)),
     )
@@ -1037,12 +1039,15 @@ def score_policy(
             rate_change=request.rate_change,
             affected_income_threshold=request.income_threshold,
             taxable_income_elasticity=request.elasticity,
+            start_year=APP_DEFAULT_START_YEAR,
             duration_years=request.duration_years,
             ordinary_income_base=request.ordinary_income_base,
         )
 
         # Score policy
-        scorer = FiscalPolicyScorer(use_real_data=True)
+        scorer = FiscalPolicyScorer(
+            start_year=APP_DEFAULT_START_YEAR, use_real_data=True
+        )
         result = scorer.score_policy(policy, dynamic=request.dynamic)
 
         payload = serialize_scoring_result(
@@ -1101,7 +1106,10 @@ def score_preset(
         policy, use_real_data = _build_preset_policy(request.preset_name)
 
         scorer = FiscalPolicyScorer(
-            start_year=getattr(policy, "start_year", 2025),
+            start_year=max(
+                int(getattr(policy, "start_year", APP_DEFAULT_START_YEAR)),
+                APP_DEFAULT_START_YEAR,
+            ),
             use_real_data=use_real_data,
         )
         result = scorer.score_policy(policy, dynamic=request.dynamic)
@@ -1148,7 +1156,10 @@ def score_tariff(
             include_retaliation=request.include_retaliation,
         )
         scorer = FiscalPolicyScorer(
-            start_year=getattr(policy, "start_year", 2025),
+            start_year=max(
+                int(getattr(policy, "start_year", APP_DEFAULT_START_YEAR)),
+                APP_DEFAULT_START_YEAR,
+            ),
             use_real_data=False,
         )
         result = scorer.score_policy(policy, dynamic=False)
@@ -1295,7 +1306,7 @@ def _build_api_assistant() -> FiscalAssistant:
         / "assistant"
         / "knowledge"
     )
-    scorer = FiscalPolicyScorer()
+    scorer = FiscalPolicyScorer(start_year=APP_DEFAULT_START_YEAR)
     return FiscalAssistant(
         scorer=scorer,
         baseline=scorer.baseline,

@@ -21,6 +21,8 @@ from collections.abc import Callable
 from functools import lru_cache
 from typing import Any, TypeVar
 
+from fiscal_model.baseline import APP_DEFAULT_START_YEAR
+
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
@@ -69,7 +71,9 @@ def get_fred_data() -> Any:
 
 
 @_cache_resource
-def get_cbo_baseline(start_year: int = 2025, use_real_data: bool = True) -> Any:
+def get_cbo_baseline(
+    start_year: int = APP_DEFAULT_START_YEAR, use_real_data: bool = True
+) -> Any:
     """Cached CBO baseline projection keyed by (start_year, use_real_data)."""
     from fiscal_model.baseline import CBOBaseline
 
@@ -82,7 +86,9 @@ def get_cbo_baseline(start_year: int = 2025, use_real_data: bool = True) -> Any:
 
 
 @_cache_resource
-def get_default_scorer(start_year: int = 2025, use_real_data: bool = True) -> Any:
+def get_default_scorer(
+    start_year: int = APP_DEFAULT_START_YEAR, use_real_data: bool = True
+) -> Any:
     """Cached :class:`FiscalPolicyScorer` sharing the cached baseline.
 
     Avoids re-running baseline construction on every Streamlit rerun. The

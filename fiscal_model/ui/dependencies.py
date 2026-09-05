@@ -10,6 +10,7 @@ from typing import Any
 
 from fiscal_model.app_data import CBO_SCORE_MAP, PRESET_POLICIES
 from fiscal_model.assistant import FiscalAssistant
+from fiscal_model.baseline import APP_DEFAULT_START_YEAR
 from fiscal_model.data.fred_data import FREDData
 from fiscal_model.distribution import (
     DistributionalEngine,
@@ -199,7 +200,7 @@ def build_app_dependencies(pd_module: Any) -> AppDependencies:
     knowledge_dir = (
         Path(__file__).resolve().parent.parent / "assistant" / "knowledge"
     )
-    _assistant_scorer = FiscalPolicyScorer()
+    _assistant_scorer = FiscalPolicyScorer(start_year=APP_DEFAULT_START_YEAR)
     fiscal_assistant = FiscalAssistant(
         scorer=_assistant_scorer,
         baseline=_assistant_scorer.baseline,

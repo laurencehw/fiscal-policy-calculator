@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..baseline import APP_DEFAULT_START_YEAR
 from ..spending_outlays import ACCOUNT_CLASS_LABELS, IMMEDIATE
 from .session_state import (
     KEY_TAILOR_SPEND_ANNUAL,
@@ -500,10 +501,13 @@ def calculate_spending_policy_result(
         or _CATEGORY_TO_OUTLAY_CLASS.get(
             spending_inputs["spending_category"], "operations_and_support"
         ),
+        start_year=APP_DEFAULT_START_YEAR,
         duration_years=spending_inputs["duration"],
     )
 
-    scorer = fiscal_policy_scorer_cls(baseline=None, use_real_data=use_real_data)
+    scorer = fiscal_policy_scorer_cls(
+        baseline=None, start_year=APP_DEFAULT_START_YEAR, use_real_data=use_real_data
+    )
     result = scorer.score_policy(policy, dynamic=dynamic_scoring)
 
     return {
