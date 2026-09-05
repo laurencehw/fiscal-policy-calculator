@@ -253,8 +253,130 @@ The lane is falsified — and says so in §7 rather than adjusting — if:
 
 ## 6. Inventory
 
-*Appended in the commit that adds `scripts/audit_offset_signs.py`. Built by
-running the script, not by reading.*
+*Built by running `python scripts/audit_offset_signs.py` on `790caff` + this
+lane's script commit, not by reading. The script is committed with this section
+and is re-runnable; `--json` gives the same rows machine-readable.*
+
+Two probes, as §3 pre-registered. `f(+100)` and `f(-100)` are
+`estimate_behavioral_offset` called on that instance with a synthetic static
+revenue effect of plus or minus $100B - the class's **sign rule**, deliberately
+independent of whether its own factories ever hand it a negative static,
+because Tailor, the composer and `bill_tracker/auto_scorer.py` are not bound by
+the factories. The window columns are
+`FiscalPolicyScorer.score_policy(dynamic=False)` summed over FY2026-FY2035, in
+deficit space. `erodes` is `|final| <= |static|`.
+
+| class | module | dir | static/yr | f(+100) | f(-100) | window static | window behav | window final | erodes | tag |
+|---|---|---|--:|--:|--:|--:|--:|--:|:-:|---|
+| TaxPolicy | policies_core.py | increase | 36.0 | 12.5 | -12.5 | -359.6 | 44.9 | -314.6 | yes |  |
+|  |  | cut | -36.0 | 12.5 | -12.5 | 359.6 | -44.9 | 314.6 | yes | correct |
+| CapitalGainsPolicy | policies_core.py | increase | 20.0 | 35.7 | 35.7 | -247.5 | 201.0 | -46.4 | yes |  |
+|  |  | cut | -20.0 | -35.3 | -35.3 | 247.5 | -181.6 | 65.8 | yes | correct |
+| AMTPolicy | amt.py | increase | 100.0 | -25.0 | 25.0 | -1,146.4 | -286.6 | -1,433.0 | **NO** |  |
+|  |  | cut | -100.0 | -25.0 | 25.0 | 1,146.4 | 286.6 | 1,433.0 | **NO** | inverted |
+| CorporateTaxPolicy [reported] | corporate.py | increase | 114.0 | 12.5 | 12.5 | -1,368.7 | 171.1 | -1,197.6 | yes |  |
+|  |  | cut | -114.0 | 12.5 | 12.5 | 1,368.7 | 171.1 | 1,539.8 | **NO** | abs |
+| CorporateTaxPolicy [derived] | corporate.py | increase | 137.7 | 21.6 | -21.6 | -1,604.0 | 346.5 | -1,257.5 | yes |  |
+|  |  | cut | -137.7 | 12.0 | -12.0 | 1,604.0 | -192.5 | 1,411.5 | yes | correct |
+| TaxCreditPolicy [EITC/CTC] | credits_core.py | increase | 17.0 | 12.0 | -12.0 | -194.9 | 23.4 | -171.5 | yes |  |
+|  |  | cut | -17.0 | 12.0 | -12.0 | 194.9 | -23.4 | 171.5 | yes | correct |
+| TaxCreditPolicy [other credits] | credits_core.py | increase | 17.0 | 3.0 | 3.0 | -194.9 | 5.8 | -189.0 | yes |  |
+|  |  | cut | -17.0 | 3.0 | 3.0 | 194.9 | 5.8 | 200.7 | **NO** | abs |
+| IRSEnforcementPolicy | enforcement.py | increase | 19.5 | 5.0 | 5.0 | -194.9 | 9.7 | -185.1 | yes |  |
+|  |  | cut | - | - | - | - | - | - | - | abs |
+| EstateTaxPolicy | estate.py | increase | 3.1 | -11.4 | 11.4 | -35.9 | -4.1 | -40.0 | **NO** |  |
+|  |  | cut | -3.1 | -11.3 | 11.3 | 35.9 | 4.1 | 39.9 | **NO** | inverted |
+| InternationalTaxPolicy | international.py | increase | 22.1 | 15.0 | 15.0 | -220.5 | 33.1 | -187.4 | yes |  |
+|  |  | cut | -11.2 | 15.0 | 15.0 | 112.5 | 16.9 | 129.4 | **NO** | abs |
+| PayrollTaxPolicy | payroll.py | increase | 90.0 | 17.5 | -17.5 | -1,080.5 | 189.1 | -891.5 | yes |  |
+|  |  | cut | -90.0 | 17.5 | -17.5 | 1,080.5 | -189.1 | 891.5 | yes | correct |
+| PremiumTaxCreditPolicy | ptc.py | increase | 95.0 | -13.0 | 3.0 | -1,140.6 | -148.3 | -1,288.9 | **NO** |  |
+|  |  | cut | -35.0 | -13.0 | 3.0 | 420.2 | 12.6 | 432.8 | **NO** | inverted |
+| TaxExpenditurePolicy | tax_expenditures_core.py | increase | 83.1 | -5.0 | 5.0 | -952.6 | -47.6 | -1,000.2 | **NO** |  |
+|  |  | cut | -64.5 | -5.0 | 5.0 | 740.0 | 37.0 | 777.0 | **NO** | convention |
+| TCJAExtensionPolicy | tcja.py | increase | -460.2 | 0.0 | 0.0 | 4,058.5 | 0.0 | 4,058.5 | yes |  |
+|  |  | cut | - | - | - | - | - | - | - | zero |
+| TariffPolicy | trade.py | increase | 81.8 | 34.5 | -34.5 | -818.5 | 282.7 | -535.7 | yes |  |
+|  |  | cut | -122.2 | 28.8 | -28.8 | 1,221.9 | -351.3 | 870.6 | yes | correct |
+
+**Seven classes are against the contract, and one is a convention.**
+
+| tag | classes |
+|---|---|
+| `correct` (6) | `TaxPolicy`, `CapitalGainsPolicy`, `CorporateTaxPolicy` [derived], `TaxCreditPolicy` [EITC/CTC branches], `PayrollTaxPolicy`, `TariffPolicy` |
+| `inverted` (3) | `AMTPolicy`, `EstateTaxPolicy`, `PremiumTaxCreditPolicy` |
+| `abs` (4) | `CorporateTaxPolicy` [reported - the app default], `TaxCreditPolicy` [fallback branch], `IRSEnforcementPolicy`, `InternationalTaxPolicy` |
+| `convention` (1) | `TaxExpenditurePolicy` |
+| `zero` (1) | `TCJAExtensionPolicy` |
+
+### 6.1 What the table says that the prediction did not
+
+**§5.1 held on all thirteen classes, with one refinement.** The prediction
+called `TaxCreditPolicy` `asymmetric`, on the strength of two signed branches
+and one `abs` fallback. That is right about the module and wrong about the
+grain: the branch a policy takes is a property of its `credit_type` and not of
+the call, so the audit gives the two branches a row each and they classify
+`correct` and `abs` separately rather than blending into one tag. Nothing else
+in §5.1 moved.
+
+The prediction about *provenance* held too. `amt.py`, `estate.py` and `ptc.py`
+carry the identical comment pair -
+
+```python
+# Offset reduces revenue gain or loss
+if static_effect > 0:
+    return -total_offset  # Reduces revenue gain
+else:
+    return total_offset  # Reduces revenue loss
+```
+
+- above a return that does the opposite of what the comment says, in three
+files by three different mechanisms. One copy-paste, three modules, and an
+author who read `behavioral` as a quantity the engine *subtracts*. It does not:
+`scoring_engine.py` line 166 adds it.
+
+Four things the table shows that reading did not:
+
+1. **The magnification is not small.** AMT books **25 percent** more than its
+   own static in *both* directions ($1,146.4B of static deficit becomes
+   $1,433.0B). Corporate `reported` books **12.5 percent** more on a cut,
+   international **15 percent** more, PTC **13 percent** more on a repeal and 3
+   percent more on an extension, the credits fallback 3 percent. None of these
+   is a rounding artefact.
+2. **`PremiumTaxCreditPolicy` is inverted *and* asymmetric in magnitude.**
+   `f(+100) = -13.0` against `f(-100) = +3.0`, because `adverse_selection` fires
+   only when `static_effect > 0`. Signing it does not make the two directions
+   symmetric and is not supposed to - the asymmetry is a modelling claim about
+   who drops coverage; the sign is not.
+3. **`IRSEnforcementPolicy` cannot express a revenue loss at all.**
+   `annual_enforcement_spending_billions = -16.0` returns a static of exactly
+   `0.0`, so the module clamps rather than scoring a funding cut. Its `abs()` is
+   therefore unreachable *today* through its own constructor - which is
+   precisely why the sign rule has to be probed at the function and not only at
+   the score, and why the row is still a defect: a clamp is not a contract.
+4. **`CapitalGainsPolicy` has no function-level sign rule to probe.** It ignores
+   `static_effect` entirely and rebuilds the response bracket by bracket, so
+   `f(+100)` and `f(-100)` return the same number and a function-level
+   classifier would call it `abs`. It is classified from the window instead
+   (`classify_from="score"`), where it erodes in both directions. The script
+   records that exception rather than hiding it.
+
+### 6.2 Which of these is reachable, and by what
+
+The defects divide by whether anything shipped can currently reach them:
+
+| class | reachable today by | live in a benchmark? |
+|---|---|---|
+| `CorporateTaxPolicy` [reported] | the **Trump Corporate 15%** preset, `bill_tracker/auto_scorer.py`'s `corporate` branch, Tailor | **yes** - `trump_corporate_15` |
+| `EstateTaxPolicy` | `bill_tracker/auto_scorer.py`'s `estate` branch (raw construction, module-default elasticities), `create_estate_rate_change`, `create_estate_exemption_change` | no - every calibrated estate factory zeroes both elasticities |
+| `AMTPolicy` | Tailor/composer and any raw construction | no - all five AMT factories zero both elasticities |
+| `PremiumTaxCreditPolicy` | `create_let_enhanced_expire` (0.3), raw construction | no - the two preset factories zero them |
+| `InternationalTaxPolicy` | every international preset and benchmark - but all four are revenue **raisers**, where `abs` and the signed rule agree to the cent | latent |
+| `TaxCreditPolicy` [fallback] | any credit that is neither CTC nor EITC and has no pinned annual | latent |
+| `IRSEnforcementPolicy` | nothing - the static clamps at 0 for a funding cut | latent |
+
+That table is item 22's own claim, measured: **the defect is invisible to every
+gate the repository has**, and exactly one of the seven reaches a scorecard row.
 
 ## 7. Outturn
 
