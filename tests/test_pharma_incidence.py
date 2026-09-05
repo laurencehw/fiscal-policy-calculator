@@ -43,6 +43,7 @@ from fiscal_model.pharma import (
     PHARMA_BASELINE,
     DrugPricingPolicy,
     DrugPricingReformType,
+    create_comprehensive_pharma_reform,
     create_expand_drug_negotiation,
     create_insulin_cap_all,
     create_reference_pricing,
@@ -655,3 +656,111 @@ def test_the_unread_shadow_registries_are_gone():
     assert not hasattr(pharma, "CBO_PHARMA_ESTIMATES")
 
 
+# ---------------------------------------------------------------------------
+# 9. The user-facing caption (Decision 6)
+# ---------------------------------------------------------------------------
+
+
+class _FakeStreamlit:
+    """Enough Streamlit to render the headline block and collect its captions."""
+
+    def __init__(self):
+        self.captions: list[str] = []
+        self.markdowns: list[str] = []
+        self.codes: list[str] = []
+
+    def markdown(self, body="", *args, **kwargs):
+        self.markdowns.append(body)
+
+    def caption(self, body="", *args, **kwargs):
+        self.captions.append(body)
+
+    def code(self, body="", *args, **kwargs):
+        self.codes.append(body)
+
+
+def test_every_moved_preset_explains_its_number():
+    """Decision 6: a shipped number that moves ships with its caption.
+
+    Three of the four drug-pricing presets moved in this lane, two of them by
+    more than half. Each has to say which mechanism moved it.
+    """
+    from fiscal_model.ui.tabs.results_summary import pharma_channels_caption
+
+    negotiation = pharma_channels_caption(create_expand_drug_negotiation(), None)
+    assert "capitated direct subsidy" in negotiation
+    assert "cumulative schedule" in negotiation
+    assert "160 molecules by 2034" in negotiation
+
+    reference = pharma_channels_caption(create_reference_pricing(), None)
+    assert "capitated direct subsidy" in reference
+    assert "RAND's index actually covers" in reference
+    assert "no utilisation response is modelled" in reference
+
+    comprehensive = pharma_channels_caption(create_comprehensive_pharma_reform(), None)
+    assert "cumulative schedule" in comprehensive
+    assert "cost-sharing cap saves nothing" in comprehensive
+
+
+def test_the_caption_carries_the_channel_shares_the_module_computed():
+    """Read off ``part_d_federal_channels``, so it cannot drift from the score."""
+    from fiscal_model.ui.tabs.results_summary import pharma_channels_caption
+
+    note = pharma_channels_caption(create_reference_pricing(), None)
+    channels = part_d_federal_channels()
+    for share in channels.values():
+        assert f"{share:.0%}" in note
+    assert f"{sum(channels.values()):.0%} in all" in note
+
+
+def test_a_cost_sharing_cap_claims_no_drug_cost_channel():
+    """The insulin preset did not move, and its caption may not imply it did.
+
+    The three channels apportion a reduction in *drug cost*. A cost-sharing cap
+    reduces none, which is why the module scores it at the statutory 74.5%
+    instead. The caption draws the same line.
+    """
+    from fiscal_model.ui.tabs.results_summary import pharma_channels_caption
+
+    note = pharma_channels_caption(create_insulin_cap_all(), None)
+    assert "cost-sharing cap saves nothing" in note
+    assert "74.5%" in note
+    assert "direct subsidy" not in note
+    assert "reinsurance" not in note
+
+
+def test_a_non_pharma_policy_renders_no_pharma_note():
+    from fiscal_model.policies import TaxPolicy
+    from fiscal_model.ui.tabs.results_summary import pharma_channels_caption
+
+    policy = TaxPolicy(
+        name="Custom rate",
+        description="+2pp above $400,000",
+        policy_type=PolicyType.INCOME_TAX,
+        rate_change=0.02,
+        affected_income_threshold=400_000,
+    )
+    assert pharma_channels_caption(policy, None) == ""
+
+
+def test_the_headline_block_renders_the_note():
+    from components.results import ScoredResult
+    from fiscal_model.app_data import CBO_SCORE_MAP
+    from fiscal_model.ui.tabs.results_summary import render_headline_block
+
+    policy = create_reference_pricing()
+    result = FiscalPolicyScorer(start_year=2025, use_real_data=False).score_policy(
+        policy, dynamic=False
+    )
+    data = {"policy": policy, "result": result}
+    scored = ScoredResult.from_pipeline(
+        result_data=data,
+        policy_spec_hash="pharma-channels-note",
+        dynamic_scoring=False,
+        dynamic_view=None,
+        cbo_score_map=CBO_SCORE_MAP,
+        baseline_vintage="CBO Feb 2026",
+    )
+    st = _FakeStreamlit()
+    render_headline_block(st, scored, data)
+    assert any("Federal share only:" in caption for caption in st.captions), st.captions
