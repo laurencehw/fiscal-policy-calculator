@@ -1326,18 +1326,20 @@ commit that lands *before* the commit that first scores it.
 | Cut selected nondefense discretionary | −$339B | −$333B | 2% | CBO Options 2025–2034 #42 |
 | 1pp all brackets | −$960B | −$920B | 4% | JCT |
 | 5pp top rate ($1M+) | −$700B | −$648B | 7% | TPC |
+| New 1% payroll tax (all earnings) | −$1,282B | −$1,378B | 8% | CBO Options 2025–2034 #61 |
 | Social Security Fairness Act, WEP/GPO repeal | +$196B | +$215B | 10% | CBO |
+| LTCG + qualified dividends +2pp | −$103B | −$93B | 10% | CBO Options 2025–2034 #47 |
 | Fiscal Responsibility Act 2023, discretionary caps | −$1,332B | −$1,170B | 12% | CBO |
 | Biden top rate 39.6% ($400K+) | −$246B | −$217B | 12% | Treasury |
 | IIJA 2021, discretionary component | +$415B | +$340B | 18% | CBO |
 | Tax accrued gains at death | −$536B | −$433B | 19% | CBO Options 2025–2034 #51 |
 | All ordinary rates +1pp | −$1,185B | −$920B | 22% | CBO Options 2025–2034 #45 |
-| LTCG + qualified dividends +2pp | −$103B | −$57B | 45% | CBO Options 2025–2034 #47 |
-| Corporate rate +1pp | −$136B | −$200B | 47% | CBO Options 2025–2034 #64 |
-| Treasury 39.6% + step-up repeal | −$322B | −$323B | 0.2% | Treasury (Green Book FY2022) |
+| Biden capital income at ordinary rates | −$289B | −$379B | 31% | Treasury (Green Book FY2025) |
+| Treasury 39.6% + step-up repeal | −$322B | −$462B | 43% | Treasury (Green Book FY2022) |
+| Corporate rate +1pp | −$136B | −$220B | 62% | CBO Options 2025–2034 #64 |
 
-**26 pre-registered cases, mean absolute error 18.0% (median 12.6%); 14 of 26
-within 15%, 21 of 26 within 25%** (`scripts/cold_holdout.py`; full table in
+**26 pre-registered cases, mean absolute error 15.9% (median 11.4%); 16 of 26
+within 15%, 22 of 26 within 25%** (`scripts/cold_holdout.py`; full table in
 [VALIDATION.md](VALIDATION.md)). Do **not** collapse this into one tolerance.
 Ordinary-bracket and AGI-inclusive rate changes at conventional thresholds land
 at **1–22%**; discretionary funding changes, now scored through the
@@ -1350,24 +1352,37 @@ contributions; the repository's premium distribution has no account dimension)
 and about a fifth an unsourced behavioral offset whose sign convention is the
 reverse of `TaxPolicy`'s; two rate cases whose source states a
 filing-status-specific boundary the generic path cannot express land at **18%**
-and **45%**. **The whole gains-at-death group moved in Wave 4**, which gave the
-death channel the six carve-outs a realization-at-death proposal does not tax —
-spousal, charitable, the §121 residence exclusion, tangible personal property, a
+and **45%**; and a new broad payroll tax lands at **7.5–8.1%** since Wave 5
+priced its base as earnings — CBO's own wage path times the Trustees'
+covered-earnings ratio — instead of Medicare receipts divided by a 2.9% rate
+that does not raise all of them. **The gains-at-death group moved in Wave 4 and
+the capital-gains rate channel moved in Wave 5.** Wave 4 gave the death channel
+the six carve-outs a realization-at-death proposal does not tax — spousal,
+charitable, the §121 residence exclusion, tangible personal property, a
 family-business deferral and the per-donor exclusion applied *after* the others —
 plus a semi-log rate response at death: the two step-up-elimination rows went
 **218% → 0.2%** and **135% → 17%**, and gains at death itself went **8% → 19%,
 worse and pre-registered as a regression**, because its 8% had been bought by
 taxing charitable bequests and small decedents' housing gains that no such
-regime reaches. **Quote the 0.2% only with its lane's own caveat that it is two
-errors cancelling** — the mechanism removes 87.2% of that row's death channel
-where the pre-registered hand path said 92.8% — and note that the two Green Book
-rows land on opposite sides of their targets because the five-class decedent
-ladder has no within-group dispersion, not because the exclusion is mis-ordered.
-What is left of the behavioral tail runs **45%** (a 2pp preferential-rate
-change), **47%** (corporate margins) and **54–56%** (payroll incidence).
-**Capital gains is no longer the tier's dominant error mass** — 4 cases carrying
-80.9 of the tier's 468.1 units, 17.3%, down from 405.6 of 805.8 — and the two
-payroll rows are, at 109.6 units (23.4%).
+regime reaches. **That 0.2% was never accuracy**: its own lane recorded it as two
+errors cancelling, one of which was a realizations base frozen at IRS SOI tax
+year 2023 and priced unchanged in every year of the window. Wave 5 projected
+that base with the accrued-gains stock it is a flow off, so **Option 47 fell
+45% → 10.5%** while the two Green Book rows crossed their targets to
+**43%** and **31%** — both registered in advance as regressions, and the
+Treasury row now reporting its own residual rather than an offset (about 17 of
+its 43 points are the FY2022–2031 window the record does not state). The
+five-class decedent ladder finding stands unclosed: the two Green Book rows'
+dispersion problem is the ladder having none within a group, not a mis-ordered
+exclusion. What is left of the behavioral tail runs **62%** (corporate margins,
+a pre-registered Wave 5 regression whose residual is CBO and Treasury pricing a
+percentage point of corporate rate 42% apart), **45%** (a filing-status-specific
+threshold), and **43% / 31%** (the two Green Book capital-gains rows).
+**Capital gains is again the tier's largest error mass, though a much smaller
+one than before Wave 4** — 4 cases carrying 104.5 of the tier's 412.9 units
+(25.3%), against 405.6 of 805.8 (50.3%) before Wave 4 and 80.9 of 468.1 (17.3%)
+after it. Corporate is next at 62.3 units (15.1%); the two payroll rows, the
+largest mass after Wave 4 at 109.6, are now 15.6 (3.8%).
 
 The mean moved from Phase B's 43.4% on 23 cases to 52.6% on 25 while the median
 *fell* from 23.1% to 21.1%: `top_rate_45` was retired in Phase E (its −$420B target
@@ -1405,9 +1420,27 @@ PR #108 did almost all of it, by building the death channel's statutory
 carve-outs and its rate response; PR #105 indexed Option 56's excess share
 (24.0% → 13.1%); PR #107 moved `biden_high_income_tax`'s target onto the Green
 Book's own printed −$245.9B, which moved only the error column (14.1% → 12.0%).
-The CI gate was then re-derived again, to **`--max-mean-error 25
---min-within-25pct 20`** (PR #110) — ceiling `ceil(18.0 × 1.25) = 23`, rounded
+The CI gate was then re-derived again, to `--max-mean-error 25
+--min-within-25pct 20` (PR #110) — ceiling `ceil(18.0 × 1.25) = 23`, rounded
 up to the nearest 5; floor `21 − 1 = 20`.
+
+**Wave 5 (2026-09-05, PRs #113, #114, #116) took the tier 18.0% → 15.9%**, the
+median to **11.4%**, within-15 to **16** and within-25 to **22** — *through* two
+pre-registered regressions rather than around them, which is the reading to
+keep. **PR #113** rebuilt the new-payroll-tax base and the two Option 61 rows
+went 54.1% / 55.5% → **7.5% / 8.1%**, on its own worth more than the two
+regressions cost; the plan's scoping was wrong on both halves, because CBO's own
+option text says the tax is paid entirely by employees, so the income-tax offset
+it named does not exist. **PR #114** rebuilt the corporate rate identity on IRS
+SOI Table 11's published statutory base and the 1pp row went 47.1% → **62.3%**,
+registered as a regression: the fitted base it replaced was within 3% of the
+TY2018 vintage, and what is left is CBO 60557 and Treasury's FY2025 Green Book
+pricing a percentage point 42% apart ($135.7B against $192.8B). **PR #116**
+projected the capital-gains realizations base with the accrued-gains stock, so
+Option 47 fell 44.8% → **10.5%** while the two Green Book rows crossed to
+**31.4%** and **43.3%**. The CI gate was re-derived a third time, to
+**`--max-mean-error 20 --min-within-25pct 21`** (PR #117) — ceiling
+`ceil(15.9 × 1.25) = 20`; floor `22 − 1 = 21`. Both tighten.
 
 Ordinary-bracket rate changes score on the ordinary-income base (excluding
 preferential LTCG/QDIV); AGI-inclusive surtaxes score on the full taxable-income
@@ -1646,7 +1679,7 @@ is one model change and one provenance fix pulling against each other, and Wave
 
 | Tier | What it measures | n | Mean | Median |
 |---|---|--:|--:|--:|
-| 1 — out-of-sample, pre-registered | prediction | 26 | **18.0%** | 12.6% |
+| 1 — out-of-sample, pre-registered | prediction | 26 | **15.9%** | 11.4% |
 | 2a — calibrated, fitted | bookkeeping (low by construction) | 23 | **1.6%** | 0.1% |
 | 2b — unfitted module reconstructions | modules against targets they never saw | 31 | **56.6%** | 29.9% |
 | 2c — calibrated, leave-one-out | how much of the calibration is structure | 18 | **29.6%** | 19.1% |
@@ -1659,7 +1692,13 @@ rows held in place (29 at 5.2% with the TCJA-AMT row held in too); **Tier 2b is
 and its sectoral subset **88.2% over the 14 it held**. Tier 2c is the mirror
 case: it *rose* 28.4% → 29.6% without a single derivation moving. A mean that
 moves because the population moved has not improved, and a mean that moves
-because a target moved has not measured the model.
+because a target moved has not measured the model. **Wave 5 moved only Tier 1**,
+and it is the one tier where a moving mean *does* measure the model: 2a, 2b and
+2c are unchanged to the decimal, and `run_loo.py --donor-matrix` is
+byte-identical, because all three lanes worked at the out-of-sample margin
+without touching a target or retuning a constant. Wave 5 also named a hole in
+2c: the suite has **no `Corporate` row**, so the module whose fitted base turned
+out to be a stale vintage has never been cross-validated.
 
 Distributional accuracy is a fifth, separate number: **seven published CBO/JCT
 tables at 0.00–5.86pp** mean absolute share error, **two of which are circular**
