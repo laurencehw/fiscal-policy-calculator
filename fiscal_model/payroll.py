@@ -20,9 +20,13 @@ Current Law (2025):
 - NIIT: 3.8% on investment income over $200K/$250K
 """
 
+import csv
 import itertools
+import math
 from dataclasses import dataclass
 from enum import Enum
+from functools import lru_cache
+from pathlib import Path
 
 import numpy as np
 
@@ -36,6 +40,8 @@ class PayrollTaxType(Enum):
     ADDITIONAL_MEDICARE = "additional_medicare"
     NIIT = "niit"  # Net Investment Income Tax
     COMBINED = "combined"
+    #: A new flat tax on all covered earnings, outside the existing programs.
+    NEW_EARNINGS_TAX = "new_earnings_tax"
 
 
 # =============================================================================
@@ -160,6 +166,124 @@ def covered_wages_above(threshold: float) -> float:
     return float(w1 * (t1 / threshold) ** alpha)
 
 
+# =============================================================================
+# COVERED EARNINGS — the Medicare / HI base a flat payroll tax applies to
+# =============================================================================
+#
+# A new payroll tax "on all earnings" is levied on the base CBO names for it:
+# "the income subject to the tax would match that of the Medicare payroll tax,
+# so there would be no taxable maximum" (CBO, *Options for Reducing the
+# Deficit, 2023 to 2032 — Volume I*, pub. 58164, option "Impose a New Payroll
+# Tax", https://www.cbo.gov/budget-options/58636).
+#
+# The path is CBO's own baseline wage projection and the level is that path
+# times one ratio measured on completed history. Both, and the reason CY2022 is
+# excluded from the measurement, are documented in the data file's header.
+
+COVERED_EARNINGS_DATA_FILE = (
+    Path(__file__).resolve().parent
+    / "data_files"
+    / "payroll"
+    / "covered_earnings_base.csv"
+)
+
+#: HI taxable payroll for CY2023, in billions: total HI expenditures divided by
+#: the HI cost rate, which is *defined* as expenditures over taxable payroll.
+#: 2024 Medicare Trustees Report, Table III.B4 (p. 56) and Table III.B7 (p. 63).
+HI_TOTAL_EXPENDITURES_CY2023_BILLIONS = 403.1
+HI_COST_RATE_CY2023 = 0.0331
+
+#: NIPA wages and salaries for CY2023, from the same CBO February 2024 file the
+#: fiscal-year path below is transcribed from (sheet "2. Calendar Year").
+NIPA_WAGES_CY2023_BILLIONS = 11_807.6
+
+#: Covered earnings as a multiple of NIPA wages and salaries. Above one because
+#: the HI base adds self-employment net earnings; below what that alone would
+#: imply because some employment is not HI-covered. Measured once, on the last
+#: completed year both source documents cover, and never on a projection year.
+COVERED_EARNINGS_TO_WAGES = (
+    HI_TOTAL_EXPENDITURES_CY2023_BILLIONS / HI_COST_RATE_CY2023
+) / NIPA_WAGES_CY2023_BILLIONS
+
+#: Economywide marginal federal tax rate on labor income — individual income
+#: tax plus payroll tax, on the last dollar of *taxable* compensation. CBO,
+#: *Marginal Federal Tax Rates on Labor Income: 1962 to 2028* (January 2019,
+#: publication 54911), Summary: 27% in 2018, rising 2pp in 2026 when the 2017
+#: tax act's individual provisions expire and drifting to **31 percent** by the
+#: end of the projection period. Nine of the ten years of the FY2025-2034 window
+#: sit in that post-2025 regime under the February 2024 current-law baseline.
+#:
+#: CBO lists that publication under Option 61's own *Related Publications*, and
+#: defines the rate to "account for forms of labor compensation that are not
+#: subject to federal taxes — for instance, many fringe benefits", which is
+#: exactly the margin a new payroll tax pushes compensation along.
+LABOR_INCOME_MARGINAL_TAX_RATE = 0.31
+
+
+@lru_cache(maxsize=1)
+def _wages_by_fiscal_year() -> tuple[tuple[int, float], ...]:
+    """CBO's February 2024 fiscal-year wage-and-salary path, as read from disk."""
+    with COVERED_EARNINGS_DATA_FILE.open(newline="", encoding="utf-8") as handle:
+        lines = [line for line in handle if not line.startswith("#")]
+    rows = [
+        (int(row["fiscal_year"]), float(row["wages_and_salaries_billions"]))
+        for row in csv.DictReader(lines)
+    ]
+    if len(rows) < 2:
+        raise ValueError(
+            f"{COVERED_EARNINGS_DATA_FILE.name} needs at least two years to "
+            f"extrapolate from; found {len(rows)}"
+        )
+    return tuple(sorted(rows))
+
+
+def covered_earnings(year: int) -> float:
+    """
+    Covered (HI-taxable) earnings for a fiscal ``year``, in billions.
+
+    ``COVERED_EARNINGS_TO_WAGES`` times CBO's own baseline wage path. Outside
+    the tabulated window the nearest observed growth rate is continued, so a
+    caller that asks for a year the baseline does not project gets an
+    extrapolation rather than a silent clamp.
+    """
+    table = _wages_by_fiscal_year()
+    first_year, first_wages = table[0]
+    last_year, last_wages = table[-1]
+
+    if year < first_year:
+        growth = (table[1][1] / first_wages) - 1.0
+        wages = first_wages / ((1 + growth) ** (first_year - year))
+    elif year > last_year:
+        growth = (last_wages / table[-2][1]) - 1.0
+        wages = last_wages * ((1 + growth) ** (year - last_year))
+    else:
+        wages = dict(table)[year]
+
+    return wages * COVERED_EARNINGS_TO_WAGES
+
+
+def first_fiscal_year_share(effective_month: int) -> float:
+    """
+    Share of a fiscal year a policy effective in ``effective_month`` covers.
+
+    A federal fiscal year runs October through September, so a policy that
+    takes effect in January of a calendar year is in force for nine of the
+    twelve months of the fiscal year that contains that January. This is a
+    calendar identity read off the source's stated effective date — CBO prints
+    "This option would take effect in January 2025" above Option 61's table —
+    and not an estimate of how quickly receipts arrive.
+
+    Months October through December already fall in the *next* fiscal year, so
+    a policy stated to begin then is recorded with that later ``start_year``
+    and covers all twelve of its months.
+    """
+    if not 1 <= effective_month <= 12:
+        raise ValueError(f"effective_month must be 1-12, got {effective_month}")
+    if effective_month >= 10:
+        return 1.0
+    return (10 - effective_month) / 12.0
+
+
 # CBO official estimates
 CBO_PAYROLL_ESTIMATES = {
     # Raise SS cap to cover 90% of earnings (~$305K in 2024)
@@ -228,6 +352,19 @@ class PayrollTaxPolicy(TaxPolicy):
     expand_niit_to_passthrough: bool = False
     niit_rate_change: float = 0.0
 
+    # A new flat payroll tax on all covered earnings, outside the existing
+    # programs. Scored bottom-up off ``covered_earnings`` rather than off any
+    # program's receipts aggregate.
+    new_payroll_tax_rate: float = 0.0
+    #: Share of the new tax levied on employers. CBO's rule: employers reduce
+    #: earnings to leave compensation cost unchanged, so the employer share
+    #: shrinks the income and payroll tax bases and is booked net of the
+    #: marginal rate on labour income. Option 61 states 0.0 — "The new tax
+    #: would be paid entirely by employees."
+    employer_share: float = 0.0
+    #: Calendar month the tax takes effect, used only for the first fiscal year.
+    effective_month: int = 1
+
     # Behavioral parameters
     labor_supply_elasticity: float = 0.1  # Labor supply response
     tax_avoidance_elasticity: float = 0.15  # Shifting income to avoid tax
@@ -262,10 +399,23 @@ class PayrollTaxPolicy(TaxPolicy):
         growth = SOCIAL_SECURITY_PARAMS["cap_growth_rate"]
         return (base_cap + self.ss_cap_change) * ((1 + growth) ** years_from_2025)
 
+    def uses_covered_earnings_base(self) -> bool:
+        """True when this policy is scored off the year-indexed earnings base.
+
+        The scoring engine asks this before deciding whether to pass a year and
+        whether to apply its own growth rate: the covered-earnings path already
+        carries CBO's wage growth, so growing it again would double-count.
+        """
+        return (
+            self.new_payroll_tax_rate != 0.0
+            and self.annual_revenue_change_billions is None
+        )
+
     def estimate_static_revenue_effect(
         self,
         baseline_revenue: float,
         use_real_data: bool = True,
+        year: int | None = None,
     ) -> float:
         """
         Estimate static revenue effect of payroll tax policy change.
@@ -273,12 +423,19 @@ class PayrollTaxPolicy(TaxPolicy):
         Args:
             baseline_revenue: Baseline payroll tax revenue (billions)
             use_real_data: Whether to use detailed calculations
+            year: Fiscal year being scored. Read only by the new-flat-tax
+                branch, whose base is a year-indexed path rather than one
+                annual grown by the engine. Defaults to ``start_year``, so
+                every pre-existing caller is unchanged.
 
         Returns:
             Revenue change in billions (negative = revenue loss)
         """
         if self.annual_revenue_change_billions is not None:
             return self.annual_revenue_change_billions
+
+        if self.new_payroll_tax_rate != 0.0:
+            return self._new_earnings_tax_revenue(year if year is not None else self.start_year)
 
         total_revenue = 0.0
         rate = SOCIAL_SECURITY_PARAMS["rate_combined"]
@@ -321,18 +478,89 @@ class PayrollTaxPolicy(TaxPolicy):
 
         return total_revenue
 
+    def _new_earnings_tax_revenue(self, year: int) -> float:
+        """Gross receipts from a new flat tax on covered earnings, in ``year``.
+
+        ``rate x covered earnings``, scaled in the first fiscal year by the
+        share of it the source's stated effective month covers. Gross of the
+        compensation-shifting response, which the engine takes off through
+        :meth:`estimate_behavioral_offset` so that the static and behavioural
+        legs stay separable on the result object.
+        """
+        base = covered_earnings(year)
+        share = (
+            first_fiscal_year_share(self.effective_month)
+            if year == self.start_year
+            else 1.0
+        )
+        return self.new_payroll_tax_rate * base * share
+
+    def new_earnings_tax_offset_share(self) -> float:
+        """Fraction of a new flat tax's gross receipts lost to the two channels.
+
+        CBO puts exactly one behavioural channel inside a *conventional*
+        estimate of a new payroll tax: "The higher payroll tax would create an
+        incentive for employers and employees to seek to change the composition
+        of compensation, shifting from taxable compensation, such as wages and
+        salary, to forms of nontaxable compensation, such as employment-based
+        health insurance. The estimates account for that behavioral response."
+        (pub. 58164, "Impose a New Payroll Tax", *Effects on the Budget*.) The
+        hours response is filed under *Economic Effects* — dynamic, not
+        conventional — so it is deliberately absent here.
+
+        The shift is the standard net-of-tax-share response,
+        ``s = eti x rate / (1 - tau)``, and it costs revenue twice: the new tax
+        is levied on a base that is ``s`` smaller, and the income and payroll
+        taxes already levied on that compensation are lost at ``tau``. So the
+        erosion, as a share of gross receipts, is ``(rate + tau) x s / rate``,
+        i.e. ``(rate + tau) x eti / (1 - tau)`` — 11.6% at a 1pp tax and 12.0%
+        at 2pp. Unlike the flat share below it, it rises with the rate.
+
+        The second term is statutory incidence. CBO: "employers would reduce
+        their employees' earnings over time to leave the cost of those
+        employees' compensation unchanged... the reduction in employees'
+        earnings would reduce the income base for individual income and payroll
+        taxes" (same option, *Other Considerations*). A tax paid entirely by
+        employees carries no such term, which is why that paragraph concludes a
+        split tax "would be estimated to result in less additional revenue than
+        a payroll tax paid entirely by employees" — and why this term is zero
+        for CBO's own alternatives.
+        """
+        rate = abs(self.new_payroll_tax_rate)
+        tau = LABOR_INCOME_MARGINAL_TAX_RATE
+        shift = self.taxable_income_elasticity * rate / (1.0 - tau)
+        shifting_term = (rate + tau) * shift / rate if rate else 0.0
+        incidence_term = tau * self.employer_share
+        return shifting_term + incidence_term
+
     def estimate_behavioral_offset(self, static_effect: float) -> float:
         """
         Estimate behavioral response to payroll tax changes.
 
         Behavioral responses include:
+        - Compensation shifting into nontaxable forms (the new-flat-tax branch)
         - Labor supply effects (work less in response to higher taxes)
         - Income shifting (convert wages to other income types)
         - Tax avoidance (S-corps, etc.)
 
+        The returned offset carries the **same sign as** ``static_effect``,
+        matching :meth:`TaxPolicy.estimate_behavioral_offset`. The engine
+        computes ``deficit = -revenue + behavioral``, so a same-signed offset
+        erodes the revenue effect and an opposite-signed one magnifies it. This
+        module returned the opposite sign until 2026-09-05, which made a
+        payroll tax increase raise 17.5% *more* than its own static effect
+        because workers were assumed to work less and shift income — the same
+        defect ``trade.py``'s L8 lane found in the tariff offset. Every
+        calibrated payroll factory sets both elasticities below to 0.0, so the
+        correction multiplies a zero on all four fitted benchmarks and on all
+        four shipped presets.
+
         Returns:
             Behavioral offset in billions
         """
+        if self.new_payroll_tax_rate != 0.0:
+            return static_effect * self.new_earnings_tax_offset_share()
+
         # Labor supply effect
         labor_offset = abs(static_effect) * self.labor_supply_elasticity
 
@@ -344,11 +572,8 @@ class PayrollTaxPolicy(TaxPolicy):
 
         total_offset = labor_offset + avoidance_offset
 
-        # Offset reduces revenue gain
-        if static_effect > 0:
-            return -total_offset
-        else:
-            return total_offset
+        # Same sign as the static effect, so the offset erodes it.
+        return math.copysign(total_offset, static_effect) if static_effect else 0.0
 
 
 # =============================================================================
@@ -530,6 +755,47 @@ def create_medicare_rate_increase(
     )
 
 
+def create_new_payroll_tax(
+    rate: float,
+    employer_share: float = 0.0,
+    start_year: int = 2025,
+    effective_month: int = 1,
+    duration_years: int = 10,
+) -> PayrollTaxPolicy:
+    """
+    Create a new flat payroll tax on all covered earnings.
+
+    Not a change to Social Security or Medicare: a separate levy on the same
+    base as the Medicare tax, with no taxable maximum, whose proceeds are
+    general revenues. This is the shape of CBO's Option 61 (*Options for
+    Reducing the Deficit: 2025 to 2034*, pub. 60557, report p. 72), which
+    states 1 percent and 2 percent alternatives "paid entirely by employees".
+
+    Args:
+        rate: Tax rate on covered earnings (0.01 for 1 percentage point).
+        employer_share: Share of the statutory tax levied on employers.
+        start_year: First fiscal year of the policy.
+        effective_month: Calendar month the tax takes effect. January means
+            nine of the first fiscal year's twelve months.
+        duration_years: Duration.
+    """
+    rate_pp = rate * 100
+    return PayrollTaxPolicy(
+        name=f"New Payroll Tax +{rate_pp:.1f}pp",
+        description=(
+            f"Impose a new payroll tax of {rate_pp:.1f} percent on all covered "
+            f"earnings, with no taxable maximum"
+        ),
+        policy_type=PolicyType.PAYROLL_TAX,
+        payroll_tax_type=PayrollTaxType.NEW_EARNINGS_TAX,
+        new_payroll_tax_rate=rate,
+        employer_share=employer_share,
+        effective_month=effective_month,
+        start_year=start_year,
+        duration_years=duration_years,
+    )
+
+
 def create_biden_payroll_proposal() -> PayrollTaxPolicy:
     """
     Create Biden's payroll tax proposal for Social Security.
@@ -605,20 +871,36 @@ def estimate_payroll_revenue(policy: PayrollTaxPolicy) -> dict:
         - behavioral_offset: Total behavioral offset
         - net_effect: Final effect after behavioral response
     """
-    annual_static = policy.estimate_static_revenue_effect(0)
-    behavioral = policy.estimate_behavioral_offset(annual_static)
-
-    # Explicit annuals are window-average calibrations — leave flat over the
-    # horizon (same rule as TaxCreditPolicy / FiscalPolicyScorer). Bottom-up
-    # scores without an annual still get modest wage growth.
-    if policy.annual_revenue_change_billions is not None:
-        growth = 0.0
-    else:
-        growth = 0.04
-
     years = np.arange(10)
-    annual_effects = annual_static * ((1 + growth) ** years)
-    behavioral_effects = behavioral * ((1 + growth) ** years)
+
+    if policy.uses_covered_earnings_base():
+        # The covered-earnings path carries CBO's own wage growth, and the
+        # first year carries the effective-month share, so each year is asked
+        # for rather than grown from one annual.
+        annual_effects = np.array(
+            [
+                policy.estimate_static_revenue_effect(0, year=policy.start_year + int(t))
+                for t in years
+            ]
+        )
+        behavioral_effects = np.array(
+            [policy.estimate_behavioral_offset(v) for v in annual_effects]
+        )
+        annual_static = float(annual_effects[0])
+    else:
+        annual_static = policy.estimate_static_revenue_effect(0)
+        behavioral = policy.estimate_behavioral_offset(annual_static)
+
+        # Explicit annuals are window-average calibrations — leave flat over the
+        # horizon (same rule as TaxCreditPolicy / FiscalPolicyScorer). Bottom-up
+        # scores without an annual still get modest wage growth.
+        if policy.annual_revenue_change_billions is not None:
+            growth = 0.0
+        else:
+            growth = 0.04
+
+        annual_effects = annual_static * ((1 + growth) ** years)
+        behavioral_effects = behavioral * ((1 + growth) ** years)
 
     ten_year_static = np.sum(annual_effects)
     ten_year_behavioral = np.sum(behavioral_effects)
@@ -627,5 +909,8 @@ def estimate_payroll_revenue(policy: PayrollTaxPolicy) -> dict:
         "annual_static": annual_static,
         "ten_year_static": ten_year_static,
         "behavioral_offset": ten_year_behavioral,
-        "net_effect": ten_year_static + ten_year_behavioral,
+        # The offset now carries the static effect's own sign (see
+        # ``estimate_behavioral_offset``), so it is subtracted here rather than
+        # added. The reported ``net_effect`` is unchanged for every caller.
+        "net_effect": ten_year_static - ten_year_behavioral,
     }

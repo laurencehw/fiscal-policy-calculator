@@ -308,16 +308,26 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "change leaves inert.",
     ],
     "cbo_opt61_new_payroll_tax_1pct": [
-        "Scored off the module's Medicare revenue identity ($400B at 2.9%, so ~$140B "
-        "per percentage point) grown at 4%/yr. That identity covers all Medicare "
-        "wages including the employer share, while CBO's option is employee-side "
-        "only and is reduced by the income-tax offset a new payroll tax generates - "
-        "neither adjustment exists in the module.",
+        "A third of the residual is the first fiscal year alone: the option takes "
+        "effect in January 2025, so nine of FY2025's twelve months are inside it and "
+        "the model books 0.75 of a year, where CBO's own FY2025 row is 0.48 of its "
+        "FY2026 row. The volume's income-tax options run 0.77-0.85 and its other "
+        "payroll options 0.29-0.31, so there is no stated convention to read off and "
+        "0.75 is the calendar rather than a fitted lag.",
+        "The rest is base growth. The model prices covered earnings off CBO's own "
+        "February 2024 wage path, which grows 3.9%/yr; the base implied by CBO's "
+        "published revenue row grows 3.45%/yr, so the model drifts from +3.2% in "
+        "FY2026 to +7.2% in FY2034. Nothing in the option text says why CBO's base "
+        "grows more slowly than CBO's wages.",
+        "The compensation-shifting response uses the repository's frozen ETI of 0.25 "
+        "against CBO's own 31% economywide marginal rate on labor income. Neither "
+        "was chosen against this target; an ETI of 0.40 would land the row at 0.9%.",
     ],
     "cbo_opt61_new_payroll_tax_2pct": [
-        "Same Medicare-base identity as the 1% alternative, so the error is the same "
-        "proportional over-statement; the module is linear in the rate while CBO's "
-        "estimate is very nearly so, which is why the two errors barely differ.",
+        "Same base, incidence and shifting response as the 1% alternative, so the "
+        "same three residuals apply. The model is very slightly convex in the rate "
+        "(the shift grows with it) where CBO's row is very slightly concave, which "
+        "is why the two errors differ by half a point rather than not at all.",
     ],
     "cbo_opt64_corporate_rate_1pp": [
         "The corporate module scores a rate change against its own baseline "
@@ -582,12 +592,18 @@ def create_policy_from_score(
         :class:`CorporateTaxPolicy` from the rate change, module defaults for
         elasticity and base.
     ``payroll_rate``
-        :class:`PayrollTaxPolicy` levying the rate on the **Medicare base** -
-        all covered earnings with no taxable maximum, which is the base a flat
-        new payroll tax applies to. Deliberately *not* the Social Security cap
-        machinery: those covered-wage bands are calibrated to reproduce the
-        Trustees' own reform annuals, so routing a target through them would
-        leak the answer.
+        :class:`PayrollTaxPolicy` levying the rate as a **new flat tax on
+        covered earnings** - all earnings with no taxable maximum, which CBO
+        states is this option's base ("the income subject to the tax would
+        match that of the Medicare payroll tax"). The base is CBO's own
+        baseline wage path times one covered-earnings ratio measured on
+        completed history, not a receipts aggregate divided by a statutory
+        rate. Statutory incidence is taken from the source: CBO's own
+        alternatives are paid entirely by employees, so the employer-share
+        term - the one that would shrink the income and payroll bases - is
+        zero. Deliberately *not* the Social Security cap machinery: those
+        covered-wage bands are calibrated to reproduce the Trustees' own reform
+        annuals, so routing a target through them would leak the answer.
     ``spending``
         :class:`SpendingPolicy` from the source-stated annual level, growth,
         phase-in and one-time flag.
@@ -658,8 +674,12 @@ def create_policy_from_score(
             name=f"Validation: {score.name}",
             description=score.description,
             policy_type=PolicyType.PAYROLL_TAX,
-            payroll_tax_type=PayrollTaxType.MEDICARE,
-            medicare_rate_change=score.rate_change,
+            payroll_tax_type=PayrollTaxType.NEW_EARNINGS_TAX,
+            new_payroll_tax_rate=score.rate_change,
+            # CBO: "The new tax would be paid entirely by employees."
+            employer_share=0.0,
+            # CBO: "This option would take effect in January 2025."
+            effective_month=1,
             start_year=start_year,
             duration_years=10,
         )
