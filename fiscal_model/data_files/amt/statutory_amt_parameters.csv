@@ -54,7 +54,7 @@
 # series (2018 -> 2025), rounded to the nearest $100 as section 1(f)(7) requires.
 # That rate is computed from this file rather than written into the module, and
 # it is fitted to nothing. The exemption series over the same years implies the
-# same rate to within 0.002pp.
+# same rate to within 0.005pp.
 #
 # Columns: `year`, `regime`, `exemption_single`, `exemption_mfj`,
 #   `exemption_mfs`, `threshold_single`, `threshold_mfj`, `threshold_mfs`,

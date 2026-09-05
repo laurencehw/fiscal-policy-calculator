@@ -174,4 +174,176 @@ Anything that moves outside this list is a finding, and gets written into §4.
 
 ## 4. Outturn
 
-*Appended after the code, in the last commit.*
+*Appended 2026-09-02, after the code. Numbers from `python scripts/run_loo.py
+--donor-matrix`, `python scripts/cold_holdout.py` and
+`validate_amt_policy(case, mode=...)` on the finished branch.*
+
+### Against the pre-registration
+
+| Row | Predicted | Actual | |
+|---|---|---|---|
+| LOO `extend_tcja_amt` | unchanged | **−37.0%, $855.3B** | as registered |
+| LOO `repeal_individual_amt` | unchanged | **+110.9%, $948.9B** | as registered |
+| LOO `repeal_corporate_amt` | unchanged | not cross-validatable | as registered |
+| AMT module LOO mean | unchanged | **73.9%** (n=2) | as registered |
+| LOO suite | 28.4% / 16.5% / 9-of-18 | **28.4% / 16.5% / 9-of-18** | as registered |
+| Tier 1 | 26 @ 31.0% / 13 / 19 | **26 @ 31.0% / 13 / 19** | as registered |
+| Fitted calibrated | 28 @ 2.0% | **28 @ 2.0%** | as registered |
+| Unfitted reconstructions | 26 @ 61.8% | **26 @ 61.8%** | as registered |
+| Reported vs derived mean | 22.32% vs 54.16% | **22.32% vs 54.16%** | as registered |
+| App preset output | unchanged | **unchanged** | as registered |
+| Threshold reform sign | cut gains, rise loses | **+$9.09B / −$7.23B in 2026** | sign as registered; **magnitude above band** |
+| P.L. 119-21 derived | $780B-$880B, −35% to −43% | **$800.8B, −41.2%** | in band |
+| `create_increase_amt_exemption` | same sign, within ~1.5× | **−$379.4B → −$359.7B (5%)** | in band, and much smaller than allowed for |
+
+**Every registered row landed where it was registered.** The one miss is a
+magnitude I hedged too low: a $100,000 MFJ threshold cut was registered as
+"low-single-digit $B/yr" and returns **$9.09B in 2026, $92.7B over ten years**.
+The band was written from the claw-back's *average* value per return and should
+have been written from its value where the threshold sits in the distribution;
+the sign, which was the actual test, is right.
+
+### Reported vs derived, per benchmark — unchanged, to two decimals
+
+| Benchmark | Target | Reported | Err | Derived | Err |
+|---|--:|--:|--:|--:|--:|
+| `extend_tcja_amt` | $1,357.1B | $450.53B | −66.80% | $855.33B | −36.97% |
+| `repeal_individual_amt` | $450.0B | $450.53B | +0.12% | $948.90B | +110.87% |
+| `repeal_corporate_amt` | $220.0B | $220.11B | +0.05% | $252.21B | +14.64% |
+| **Mean abs** | | | **22.32%** | | **54.16%** |
+
+**`AMT_APP_MODE` stays `reported`** under Decision 1's own rule — derived's
+54.16% does not beat reported's 22.32%, and neither number moved, so no shipped
+number changes and Decision 6's explain-a-change obligation is not triggered.
+`AMT_SCORECARD_MODE` stays `reported` too, and its blocker is untouched: it is
+`repeal_individual_amt`'s locked-protocol entry, a gate this lane may not edit.
+
+Read the mean the way `PROVENANCE_amt_insulin.md` §2 says to: both rows derived
+loses are targets a constant was fitted to, so their ~0% is bookkeeping, and the
+one AMT benchmark whose target no constant was fitted to is the one derived
+wins, 37.0% against 66.8%.
+
+### What the lane actually bought
+
+**1. A threshold reform stops scoring zero.** Derived, from 2026:
+
+| MFJ threshold change | 2026 effect | 10-year |
+|---|--:|--:|
+| −$200,000 | **+$29.55B** | **+$300.1B** |
+| −$100,000 | +$9.09B | +$92.7B |
+| −$50,000 | +$3.23B | +$34.9B |
+| +$50,000 | −$4.29B | −$50.1B |
+| +$100,000 | −$7.23B | −$86.1B |
+| +$200,000 | −$10.96B | −$134.0B |
+
+Every one of those was **0.0** before, for every value, because
+`phase_out_threshold_change` was declared and never read.
+
+**2. P.L. 119-21's AMT provision, measured against a published figure.** JCT
+scores it at **+$1,362.810B** (JCX-35-25, FY2025-2034). Three sources for the
+same provision, in the repository:
+
+| Path | 10-year | vs JCT $1,362.8B |
+|---|--:|--:|
+| `tcja.py`'s `create_tcja_extension(extend_amt=True)` — the carried reconstruction | $719.3B | **−47.2%** |
+| `AMTPolicy` derived, TCJA extension only (no threshold reset, no rate change) | $855.3B | −37.3% |
+| **`AMTPolicy` derived, `create_pl119_21_amt` — the enacted design** | **$800.8B** | **−41.2%** |
+
+The middle row is the point. Extending TCJA's exemption and enacting
+P.L. 119-21 are **not the same policy**: the Act extends the same exemption but
+claws it back from $1,000,000 instead of $1,293,700 and at 50 cents on the
+dollar instead of 25, so it must cost *less*. Before this lane the module could
+not represent that difference at all — both would have scored the identical
+exemption path. It now scores the enacted design 6.4% cheaper than the naive
+extension, which is the sign and roughly the size a reader of the statute would
+expect.
+
+`pl119_21_amt_exemption` is **not** rescored: it is scored by `tcja.py`, this
+lane does not open that file, and the reconstruction tier is unmoved at 26 rows
+and 61.8%. The residual against JCT is the same definitional gap L5 documented —
+JCT scores the provision inside a package where extended rate cuts push far more
+filers into AMT — and it is not closable from a standalone AMT path.
+
+**3. Nothing stops at a year any more.** `AMT_PHASEOUT_TCJA` ended at 2030 and
+was never read; both exemption dictionaries ended at 2034 and clamped to their
+last row. All three are now generated from the transcribed Revenue Procedure
+rows and indexed by one rule, for every filing status, for as far as they are
+asked.
+
+### Findings
+
+1. **L5's blocker was a category error, and naming it is most of the lane.**
+   L5 left this work saying it "needs a published phase-out path, which
+   T25-0049 does not carry". T25-0049 does not carry one because the phase-out
+   is not the kind of thing a microsimulation projects: **§ 55(d)(2) is
+   statute**, the IRS publishes the indexed threshold for every filing status in
+   every year's inflation Revenue Procedure, and eleven of those rows are now in
+   the repository. The source is *stronger* than the one the lane was waiting
+   for — a transcription rather than a projection — and it was available the
+   whole time.
+2. **The claw-back rate is checkable arithmetic, not a reading of the statute.**
+   Each Revenue Procedure prints a "Complete Phaseout Amount" beside the
+   threshold, which must equal `threshold + exemption / rate`. Rev. Proc.
+   2025-32 prints $1,280,400 for 2026 MFJ, and $1,000,000 + $140,200/0.50 is
+   $1,280,400 — so P.L. 119-21's 25% → 50% change is confirmed from the IRS's
+   own numbers on three filing statuses. That check is a test, not a comment.
+3. **Two of the module's schedule rows were 20% wrong, and it never showed.**
+   Current law's post-sunset exemption was a hand-estimated $93,000 MFJ for
+   2026; pre-TCJA law indexed forward from Rev. Proc. 2016-55's $84,500 is
+   **$111,500**. It never showed because both benchmarks sit on anchors, where
+   only the *row* matters and the coordinate cancels. The same property that
+   makes this lane safe is what let a 20% error sit unnoticed — worth saying out
+   loud, because it means "the benchmarks did not move" is weaker evidence about
+   this module than it looks.
+4. **The approximations cannot touch a benchmark, and that is measurable rather
+   than assertable.** Re-running with the SOI grid aged at 2%, 4% and 5% instead
+   of the module's 3%, and with the within-bracket shape replaced by a uniform
+   one:
+
+   | Variant | extend | repeal | P.L. 119-21 | −$100K threshold |
+   |---|--:|--:|--:|--:|
+   | shipped | −855.3 | −948.9 | −800.8 | +92.7 |
+   | aged 2%/yr | −855.3 | −948.9 | −800.7 | +89.2 |
+   | aged 4%/yr | −855.3 | −948.9 | −800.9 | +96.2 |
+   | aged 5%/yr | −855.3 | −948.9 | −800.9 | +99.8 |
+   | uniform within bracket | −855.3 | −948.9 | −807.2 | +106.7 |
+
+   Both benchmarks are invariant **exactly**, to every digit, under every
+   variant — the anchor property, demonstrated instead of argued. P.L. 119-21
+   moves by at most 0.8%. The threshold reform moves ±15%, which is precisely
+   where §3 said the approximations would bite and where the lane's numbers
+   should be read as a shape rather than a score.
+5. **An interpolation coordinate needs a definition, not a proxy.** The obvious
+   move — average the surviving exempt amount over the affected population — is
+   wrong, and wrong in a way that would have shipped: the population it has to
+   average over moves with the exemption, so the "effective exemption" stops
+   being monotone in the exemption and an increase can price as a revenue gain.
+   The same trap L5 hit interpolating the average liability separately. What
+   works is defining the coordinate by what it must *reproduce*: the flat
+   exemption that leaves the same aggregate AMT base. That has no free
+   population, is monotone in all three arguments by construction, and is exact
+   when the phase-out cannot bind. Four tests, one per property.
+
+### What the lane did not do
+
+- Did not touch any target, `preregistered.py`, `KNOWN_SCORES`,
+  `CBO_SCORE_MAP`, `benchmark_sources.py`, `target_revisions.py`, the yardstick
+  scripts, `loo.py`'s leakage guard, `holdout.py`, or any CI threshold. The only
+  `loo.py` edit is two description strings that had gone stale.
+- Did not add a per-benchmark constant. The module gained one transcribed data
+  file, one indexation rule applied identically to every statute and filing
+  status, and one coordinate definition with no free parameter — each SOI
+  bracket's shape is pinned by its own printed mean.
+- Did not open `tcja.py`, so `pl119_21_amt_exemption` and the whole 26-row
+  reconstruction tier are untouched.
+- Did not make `STATUTE_PL119_21` the derived path's baseline. Enacted law is
+  expressible as a *reform*; scoring the module against it as the counterfactual
+  would need a TPC vintage on a post-OBBBA baseline, which does not exist.
+- Did not model the § 55(b)(1) 26%/28% rate bracket, which the Revenue
+  Procedures also publish and which the module still treats as a flat scale
+  factor. That is the next piece of § 55 structure missing, and it is small
+  next to the phase-out.
+- Did not give the exemption-equivalent a filing-status-specific income
+  distribution. SOI Table 1.1 pools statuses and the coordinate is
+  MFJ-denominated; closing that needs a status-split distribution the repository
+  does not carry.
