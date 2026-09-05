@@ -347,3 +347,28 @@ def test_the_uncalibrated_path_never_reads_the_fitted_aggregate():
     static = policy.estimate_static_revenue_effect(0.0)
     fitted = policy.rate_change * BASELINE_TAXABLE_PROFITS_BILLIONS
     assert abs(static - fitted) / abs(fitted) > 0.15
+
+
+def test_the_corporate_runner_prints_both_modes():
+    """Decision 1's comparison has a runner, as ``validate_amt_policy`` does."""
+    from fiscal_model.validation.specialized_business import validate_all_corporate
+
+    means = {}
+    for mode in (CORPORATE_MODE_REPORTED, CORPORATE_MODE_DERIVED):
+        rows = validate_all_corporate(verbose=False, mode=mode)
+        assert len(rows) == 2
+        means[mode] = sum(abs(row.percent_difference) for row in rows) / len(rows)
+
+    assert means[CORPORATE_MODE_REPORTED] == pytest.approx(1.92, abs=0.01)
+    assert means[CORPORATE_MODE_DERIVED] == pytest.approx(9.67, abs=0.01)
+
+    default = validate_all_corporate(verbose=False)
+    reported = validate_all_corporate(verbose=False, mode=CORPORATE_APP_MODE)
+    assert [row.model_10yr for row in default] == [row.model_10yr for row in reported]
+
+
+def test_the_corporate_runner_refuses_an_unknown_mode():
+    from fiscal_model.validation.specialized_business import validate_corporate_policy
+
+    with pytest.raises(ValueError, match="mode must be one of"):
+        validate_corporate_policy("biden_corporate_28", verbose=False, mode="fitted")

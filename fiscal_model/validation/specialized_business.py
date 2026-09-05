@@ -2,6 +2,7 @@
 Business-side validation runners for corporate and tax expenditure policies.
 """
 
+from ..corporate import CORPORATE_APP_MODE, CORPORATE_MODES
 from ..scoring import FiscalPolicyScorer
 from .cbo_scores import KNOWN_SCORES
 from .core import ValidationResult, build_validation_result
@@ -14,16 +15,35 @@ from .scenarios import (
 def validate_corporate_policy(
     scenario_id: str = "biden_corporate_28",
     verbose: bool = True,
+    mode: str | None = None,
 ) -> ValidationResult:
-    """Validate corporate tax scoring against CBO/Treasury estimates."""
+    """
+    Validate corporate tax scoring against CBO/Treasury estimates.
+
+    Args:
+        scenario_id: Key in ``CORPORATE_VALIDATION_SCENARIOS``.
+        verbose: Print the year-by-year breakdown.
+        mode: ``fiscal_model.corporate``'s ``CORPORATE_MODE_REPORTED`` (the
+            fitted profits aggregate) or ``CORPORATE_MODE_DERIVED`` (SOI's
+            published statutory base). ``None`` uses
+            :data:`~fiscal_model.corporate.CORPORATE_APP_MODE`, which is what
+            the app and the by-construction scorecard score; pass the other one
+            to print the Decision 1 comparison, exactly as
+            ``validate_amt_policy`` does.
+    """
     if scenario_id not in CORPORATE_VALIDATION_SCENARIOS:
         raise ValueError(
             f"Unknown scenario: {scenario_id}. "
             f"Available: {list(CORPORATE_VALIDATION_SCENARIOS.keys())}"
         )
 
+    resolved_mode = mode or CORPORATE_APP_MODE
+    if resolved_mode not in CORPORATE_MODES:
+        raise ValueError(f"mode must be one of {CORPORATE_MODES}, got {resolved_mode!r}")
+
     scenario = CORPORATE_VALIDATION_SCENARIOS[scenario_id]
     policy = scenario["policy_factory"]()
+    policy.mode = resolved_mode
     expected_10yr = scenario["expected_10yr"]
     scorer = FiscalPolicyScorer(start_year=2025, use_real_data=False)
     result = scorer.score_policy(policy, dynamic=False)
@@ -57,6 +77,7 @@ def validate_corporate_policy(
     if verbose:
         print(f"\n{'='*70}")
         print(f"Corporate Tax Validation: {scenario['description']}")
+        print(f"Mode: {resolved_mode}")
         print(f"{'='*70}")
         print(f"Expected ({official_source}): ${expected_10yr:,.0f}B")
         print(f"Model estimate: ${validation_result.model_10yr:,.0f}B")
@@ -83,8 +104,11 @@ def validate_corporate_policy(
     return validation_result
 
 
-def validate_all_corporate(verbose: bool = True) -> list[ValidationResult]:
-    """Run validation against all corporate tax scenarios."""
+def validate_all_corporate(
+    verbose: bool = True,
+    mode: str | None = None,
+) -> list[ValidationResult]:
+    """Run validation against all corporate tax scenarios, in one mode."""
     results = []
 
     if verbose:
@@ -94,7 +118,9 @@ def validate_all_corporate(verbose: bool = True) -> list[ValidationResult]:
 
     for scenario_id in CORPORATE_VALIDATION_SCENARIOS:
         try:
-            results.append(validate_corporate_policy(scenario_id, verbose=verbose))
+            results.append(
+                validate_corporate_policy(scenario_id, verbose=verbose, mode=mode)
+            )
         except Exception as exc:
             if verbose:
                 print(f"\nError validating {scenario_id}: {exc}")

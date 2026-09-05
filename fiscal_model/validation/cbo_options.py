@@ -226,7 +226,16 @@ RUNNABLE_OPTIONS: tuple[RunnableOption, ...] = (
     # -- Corporate ----------------------------------------------------------
     RunnableOption(
         64, "64.1", "cbo_opt64_corporate_rate_1pp", "corporate_rate",
-        "21% -> 22%; module-default corporate elasticity and revenue base.",
+        "21% -> 22%, scored in the corporate module's derived mode: IRS SOI "
+        "Table 11's published income subject to tax, realized at SOI's own "
+        "after-credits/before-credits ratio, offset by one frozen "
+        "profit-shifting semi-elasticity and settled on IRC section 6655's "
+        "estimated-payment calendar. Not the module's fitted profits "
+        "aggregate, whose own comment calls it calibrated to reproduce the "
+        "21% -> 28% benchmark - a different reform, so not a leakage "
+        "exclusion under (2) above, but not a bottom-up input either. Nothing "
+        "in the derived path reads a level off the baseline, so this shape "
+        "keeps the vintage-independence every other one has.",
     ),
     # -- Tax expenditures ---------------------------------------------------
     RunnableOption(
