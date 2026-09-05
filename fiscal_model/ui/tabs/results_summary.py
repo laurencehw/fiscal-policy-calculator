@@ -680,6 +680,59 @@ def gains_at_death_caption(policy: Any, result: Any) -> str:
     )
 
 
+def realizations_projection_caption(policy: Any, result: Any) -> str:
+    """One line saying that the realizations base grows across the window.
+
+    A capital-gains rate change is priced on the income IRS SOI reports as
+    taxed at the preferential rates in one tax year, and a ten-year score
+    prices ten later years. Realizations are a flow off the accrued-gains stock
+    at an observed hazard, so the base grows at the rate the stock already
+    grows at; holding it flat would assert a hazard falling by that same rate
+    every year. Wiring that in moved this form's headline materially, so it
+    ships with its explanation rather than in silence.
+
+    Computed from the policy's own projection factors, so it cannot drift from
+    the figure above it. Returns ``""`` for anything with no projected rate
+    channel - a policy whose base the caller supplied, or one that changes no
+    rate.
+    """
+    if not isinstance(policy, CapitalGainsPolicy):
+        return ""
+    if getattr(policy, "_supplied_realizations", True):
+        return ""
+    if not policy.rate_change and policy.new_rate is None:
+        return ""
+
+    years = getattr(result, "years", None)
+    if years is None or len(years) == 0:
+        return ""
+    base = float(getattr(policy, "baseline_realizations_billions", 0.0) or 0.0)
+    if base <= 0:
+        return ""
+
+    first, last = int(years[0]), int(years[-1])
+    try:
+        source = policy._baseline_source()
+        tax_year = source._resolve_year(policy._data_year(source))
+        rate = source.realizations_growth_rate()
+    except Exception:  # pragma: no cover - data-availability guard
+        return ""
+    start = base * policy.realizations_projection_factor(first)
+    end = base * policy.realizations_projection_factor(last)
+    if start <= 0 or end <= 0:
+        return ""
+
+    return (
+        f"Realizations base: the rate change is priced on \\${base:,.0f}B of "
+        f"gains and qualified dividends taxed at the preferential rates in IRS "
+        f"SOI tax year {tax_year}, grown at {rate:.1%} a year - the rate the "
+        f"accrued-gains stock it is a flow off already grows at - so the base "
+        f"is \\${start:,.0f}B in {first} and \\${end:,.0f}B in {last}. "
+        f"Holding it at its {tax_year} level instead would assert a realization "
+        f"hazard falling {rate:.1%} a year."
+    )
+
+
 def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, Any]) -> None:
     """Tier badge, headline number, interpretation, sensitivity, provenance."""
     policy = result_data["policy"]
@@ -728,6 +781,9 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     death_note = gains_at_death_caption(policy, result)
     if death_note:
         st_module.caption(death_note)
+    projection_note = realizations_projection_caption(policy, result)
+    if projection_note:
+        st_module.caption(projection_note)
 
     credibility_html = _build_credibility_html(getattr(scored, "credibility", None))
     if credibility_html:

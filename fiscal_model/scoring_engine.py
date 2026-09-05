@@ -299,10 +299,21 @@ class FiscalPolicyScorer:
                 continue
 
             base_rev = self._get_baseline_revenue_for_tax_policy(policy=policy, baseline_index=idx)
-            static_annual = policy.estimate_static_revenue_effect(
-                base_rev,
-                use_real_data=self.use_real_data,
-            )
+            if isinstance(policy, CapitalGainsPolicy):
+                # The realizations base is a dated flow off the accrued-gains
+                # stock, so it has to be asked for in the year being scored
+                # rather than once - the same reason TaxExpenditurePolicy takes
+                # a year for its cap. No other policy class sees this argument.
+                static_annual = policy.estimate_static_revenue_effect(
+                    base_rev,
+                    use_real_data=self.use_real_data,
+                    year=year,
+                )
+            else:
+                static_annual = policy.estimate_static_revenue_effect(
+                    base_rev,
+                    use_real_data=self.use_real_data,
+                )
             revenue[idx] = static_annual * phase
 
             if isinstance(policy, CapitalGainsPolicy):

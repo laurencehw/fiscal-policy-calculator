@@ -22,6 +22,15 @@ two is an observed hazard rather than an assumption, and the share of accrued
 gains that leaves the stock at death rather than by sale is what makes step-up
 at death worth avoiding tax for.
 
+That identity is also what projects the flow.  ``R = h * A``, so a realizations
+level read off one tax year and used across a ten-year window has to grow with
+``A`` or the hazard ``h`` is falling - by 5.8 percent a year, which is a
+behavioural assumption nobody stated.  :meth:`realizations_growth_rate` is
+therefore the same growth rate the stock already uses, and no new constant
+enters.  It applies only where the base's tax year is known, which is the SOI
+table below; an aggregate a caller supplies carries its own vintage and this
+module has nowhere to record it, so such a base is left exactly as given.
+
 **Gains transferred at death.**  Poterba & Weisbenner (2001) Table 8 report,
 from the 1998 Survey of Consumer Finances, expected estates of $118.9 billion a
 year and expected unrealized capital gains at death of $42.8 billion - 36
@@ -443,6 +452,22 @@ class CapitalGainsBaseline:
         )
         stock = self.accrued_gains_stock_billions(year)
         return realized / stock if stock > 0 else 0.0
+
+    def realizations_growth_rate(self) -> float:
+        """Annual growth of the realizations flow.
+
+        Realizations are a flow off the accrued-gains stock at the observed
+        hazard, ``R = h * A``, so holding ``R`` fixed while ``A`` grows is not
+        a neutral choice: it asserts that ``h`` falls by this rate every year.
+        The flow therefore grows at the stock's own rate, which is already in
+        the parameter file and already prices the death channel.
+        """
+        return float(self._parameters["household_net_worth_growth_rate"])
+
+    def realizations_projection_factor(self, from_tax_year: int, to_year: int) -> float:
+        """Growth of the realizations flow from an SOI tax year to ``to_year``."""
+        rate = self.realizations_growth_rate()
+        return float((1.0 + rate) ** (int(to_year) - int(from_tax_year)))
 
     def death_exit_rate(self) -> float:
         """Share of the accrued-gains stock leaving it at death in a year.

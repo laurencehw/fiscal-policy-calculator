@@ -1,0 +1,25 @@
+# What the Table 3.5 preferential base is made of.  CARRIED AND NEVER
+# READ.  A capital-gains rate option raises the rates on long-term gains
+# AND qualified dividends, so this file records that both are already in
+# the base the model prices, and that adding a qualified-dividends column
+# would double-count.
+#
+# preferential_base_billions: IRS SOI Table 3.5, every preferential rate
+#   (0, 15, 20, 25, 28 percent), summed over AGI classes - the same
+#   quantity soi_capital_gains_by_rate_bracket.csv carries.
+# net_capital_gain_billions: Tax Foundation, Federal Capital Gains Tax
+#   Collections, the vendored taxfoundation_capital_gains_2022_2024.csv.
+# qualified_dividends_billions: IRS SOI Table 1.4, All Returns: Sources of
+#   Income, column 'Qualified dividends [2]', all-returns total
+#   (https://www.irs.gov/pub/irs-soi/22in14ar.xls, .../23in14ar.xls).
+#
+# Read base_over_gains_only first: it exceeds 1.0 in both years, and a
+# base holding only capital gains cannot exceed the year's capital gains.
+# base_over_gains_plus_qualified_dividends is then stable at 0.84-0.88
+# across a year in which realizations fell 27 percent; the shortfall is
+# gains and dividends on returns with no modified taxable income, which
+# no rate schedule reaches.
+# Regenerate with: python scripts/build_capital_gains_data.py
+tax_year,preferential_base_billions,net_capital_gain_billions,qualified_dividends_billions,base_over_gains_only,base_over_gains_plus_qualified_dividends
+2022,1342.151,1283.649,313.231,1.0456,0.8405
+2023,1121.419,943.421,336.07,1.1887,0.8765

@@ -169,20 +169,42 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "source (+5pp above $1M = -$700B), so part of this error is target error.",
     ],
     "biden_capital_gains_39": [
-        "Scored with the frozen module-default realization elasticities (0.8 short-run / 0.4 "
-        "long-run) and no residual avoidance after step-up elimination; Treasury, JCT and PWBM "
-        "all assume far stronger lock-in at a 43.4% top rate, which is why the calibrated "
-        "CapitalGains runner needs case-specific multipliers up to 5.3x.",
-        "The gains-at-death channel uses the module's $54B CBO aggregate and a linear "
-        "exemption share, not an estate-level distribution of unrealized gains.",
+        "The target is Treasury's single combined row - the rate change and the "
+        "realization-at-death change together - and the model's two channels "
+        "split it $359.0B of rate against $20.2B of death. The rate channel "
+        "alone therefore exceeds the whole published figure, which is where this "
+        "row's residual now lives. It over-predicts by 31%; before Wave 5 "
+        "projected the realizations base it under-predicted by 17%, on a base "
+        "two years stale and never grown.",
+        "At +19.6pp the semi-log response is evaluated well up its own curve: "
+        "eliminating step-up divides the coefficient by the lock-in wedge, so "
+        "b = 2.27 and the revenue-maximizing rate is 44.1% against a reform rate "
+        "of 43.4%. Treasury's own estimate implies a much stronger response than "
+        "the frozen literature value gives at that rate, and owner Decision 3 "
+        "freezes the value.",
+        "The $1,000,000 threshold is not indexed, so the projected base is the "
+        "above-$1M slice measured in tax-year-2023 AGI. Real bracket creep would "
+        "push more gains across a fixed nominal threshold, which understates the "
+        "base growth on a row that already over-predicts.",
     ],
     "treasury_capgains_39_plus_stepup_elim": [
-        "Same shape as biden_capital_gains_39 (39.6% above $1M plus step-up elimination), so "
-        "the uncalibrated path necessarily produces the same prediction; the two published "
-        "targets nevertheless differ by 42% (-$322B vs -$456B), which bounds how well any "
-        "single model can match both.",
-        "Scored with the frozen module-default realization elasticities (0.8 / 0.4); the "
-        "published estimates embed much stronger lock-in and avoidance responses.",
+        "Same rate channel as biden_capital_gains_39 - +19.6pp above $1M, $359.0B "
+        "over the window - against a combined FY2022 Green Book row, with a "
+        "death channel of $102.4B under this design's $1M per-donor exclusion. "
+        "The row read 0.2% before Wave 5 projected the realizations base, and "
+        "that agreement was already documented as two errors cancelling "
+        "(planning/lanes/W4_gains_at_death.md section 8.4); one of the two was a "
+        "tax-year-2023 base priced unchanged in every year of the window.",
+        "It is scored on the wrong window, and the projection is what makes that "
+        "bite. The target is FY2022-2031 on a 2021 baseline; the record states no "
+        "effective_start_year, so the model scores FY2025-2034. Running the same "
+        "channel on the target's own window returns $405.6B against $461.5B - "
+        "about 17 of the row's 43 points. Moving the window is a shape input and "
+        "goes through the manifest's supersede rule, not through a modelling "
+        "lane.",
+        "The earlier note here cited a -$456B companion target that Phase E "
+        "retired; it appears in no Treasury volume, so there is no "
+        "published-disagreement floor under this row.",
     ],
     "cbo_opt56_employer_health_income_only": [
         "The excess share is now year-indexed (Wave 4 lane 3a), which is what CBO's "
@@ -288,13 +310,37 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "filing-status dimension.",
     ],
     "cbo_opt47_ltcg_qdiv_2pp": [
-        "A uniform +2pp applies to the 0%, 15% and 20% brackets alike, but the "
-        "model scores it against the SOI statutory-rate baseline for the *whole* "
-        "realizations base, so gains that face the 0% rate (and gains inside "
-        "retirement accounts and other non-taxable holders reflected in the SOI "
-        "aggregate) are taxed at the margin in the model and not in JCT's estimate.",
-        "The frozen 0.8/0.4 realization elasticities are calibrated for large rate "
-        "changes; at 2pp the timing response JCT assumes is proportionally larger.",
+        "The realizations base is projected across the window from its IRS SOI "
+        "tax year at the accrued-gains stock's own growth rate (5.80%/yr, Federal "
+        "Reserve DFA 1998-2024), on the identity that realizations are a flow off "
+        "that stock at the observed hazard. Until Wave 5 it was held flat, which "
+        "was most of a 44.8% under-prediction. The rate is a net-worth CAGR "
+        "carried forward, not a realizations projection - CBO's own baseline has "
+        "realizations returning toward a historical share of GDP - and tax year "
+        "2023 is a trough: the vendored aggregate reads $1,283.6B (2022), $943.4B "
+        "(2023), $1,368.1B (2024). So the level anchor is probably low and the "
+        "growth possibly high, in opposite directions, and neither is corrected.",
+        "The enactment year is scored at full strength against a fiscal year CBO "
+        "scores at a fraction of one. The module's FY2025 rate channel is "
+        "negative, because the enactment-year coefficient (8.06, the persistent "
+        "3.27 plus the transitory term on the timing-margin share) takes "
+        "realizations down 14.9% in a single year; CBO's FY2025 is +$2.4B against "
+        "its own +$8.3B for FY2026, which is what a calendar-year tax paid at "
+        "filing looks like in fiscal-year receipts. This module has no receipts "
+        "lag, and building one is a scoring-engine change that would move every "
+        "row in the battery.",
+        "Inverting CBO's own published annual path is the check on the frozen "
+        "elasticity rather than a limitation of it: on a projected base its "
+        "out-years imply a semi-log coefficient of 3.0-3.2, against the frozen "
+        "3.2727 (Dowd, McClelland & Muthitacharoen 2015 at CRS R48562's 22% "
+        "reference rate) and JCT's own working 3.1. On a flat base the same "
+        "inversion gives a coefficient falling from 4.17 to 1.81 across the "
+        "window, which no scorekeeper's method produces.",
+        "The +2pp does apply to the 0% bracket ($80.7B, 7.29% of the base), and "
+        "that is the option's own design - it raises all three preferential "
+        "rates. An earlier note here claimed the opposite and used it to explain "
+        "an over-prediction; dropping the bracket moves the row further under, "
+        "not closer.",
     ],
     "cbo_opt51_gains_at_death": [
         "The entire score runs through one module constant - $54B of unrealized "

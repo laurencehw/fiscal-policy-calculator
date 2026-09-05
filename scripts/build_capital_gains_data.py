@@ -19,6 +19,12 @@ Sources, all fetched over HTTPS from the publishing agency:
   Assets Reported on Form 1040, Schedule D*, same report.
   ``https://www.irs.gov/pub/irs-soi/<yy>in14acg.xls``.  Supplies the short-term
   / long-term split that decides which part of the base has a timing margin.
+* **IRS SOI Table 1.4** - *All Returns: Sources of Income, Adjustments,
+  Deductions, and Tax Items*, same report,
+  ``https://www.irs.gov/pub/irs-soi/<yy>in14ar.xls``.  Read for one column,
+  qualified dividends, and only as a **check**: Table 3.5's preferential base
+  already contains them, and this is what says so in the tree rather than in a
+  commit message.
 * **Federal Reserve Distributional Financial Accounts** (Z.1 companion),
   ``https://www.federalreserve.gov/releases/z1/dataviz/download/zips/dfa.zip``.
   Household net worth by age of reference person and by net-worth percentile
@@ -67,6 +73,7 @@ OUT_DIR = REPO_ROOT / "fiscal_model" / "data_files" / "capital_gains"
 
 SOI_TABLE_35 = "https://www.irs.gov/pub/irs-soi/{yy}in35tr.xls"
 SOI_TABLE_14A = "https://www.irs.gov/pub/irs-soi/{yy}in14acg.xls"
+SOI_TABLE_14 = "https://www.irs.gov/pub/irs-soi/{yy}in14ar.xls"
 SOI_ESTATE_TABLE_1 = "https://www.irs.gov/pub/irs-soi/24es01fy.xlsx"
 DFA_ZIP = "https://www.federalreserve.gov/releases/z1/dataviz/download/zips/dfa.zip"
 NCHS_LIFE_TABLE = (
@@ -89,6 +96,12 @@ TABLE_35_RATE_COLUMNS: dict[str, tuple[int, int, int | None]] = {
     "0.25": (29, 30, 31),
     "0.28": (32, 33, 34),
 }
+
+#: Column offsets in SOI Table 1.4 (all returns, sources of income): the
+#: "Qualified dividends [2]" amount.  Read only to *check* that the Table 3.5
+#: preferential base already contains qualified dividends; never used as an
+#: input, because adding it would double-count.
+TABLE_14_QUALIFIED_DIVIDENDS_COLUMN = 26
 
 #: Column offsets in SOI Table 1.4A.
 TABLE_14A_COLUMNS = {
@@ -287,6 +300,64 @@ def build_holding_period_table() -> pd.DataFrame:
             for name, column in TABLE_14A_COLUMNS.items():
                 record[name] = float(frame.iloc[index, column] or 0.0)
             records.append(record)
+    return pd.DataFrame.from_records(records)
+
+
+def build_base_coverage_table(
+    brackets: pd.DataFrame, aggregate_path: Path
+) -> pd.DataFrame:
+    """What the Table 3.5 preferential base is made of.  A check, not an input.
+
+    A capital-gains rate option raises the rates on long-term gains **and**
+    qualified dividends, so the obvious worry about a base called "realizations"
+    is that it holds only the first.  Table 3.5 is not a gains table - its
+    preferential-rate columns are the income the capital-gains schedule taxed,
+    which is adjusted net capital gain plus qualified dividends - and the
+    arithmetic settles it without anyone having to take that on trust: in both
+    vendored years the base is **larger than the whole year's realized gains**,
+    which a gains-only base cannot be, and the ratio to gains plus qualified
+    dividends is stable across a year in which realizations fell 27 percent.
+
+    Nothing reads the emitted file.  It exists so that "qualified dividends are
+    already in there" is a number in the tree rather than an assertion in a
+    commit message, and so that adding a qualified-dividends column later is
+    visibly a double count.
+    """
+    aggregate = pd.read_csv(aggregate_path)
+    records = []
+    for year in SOI_YEARS:
+        raw = _fetch(SOI_TABLE_14.format(yy=str(year)[2:]))
+        frame = pd.read_excel(io.BytesIO(raw), header=None)
+        total_row = next(
+            index
+            for index in range(frame.shape[0])
+            if str(frame.iloc[index, 0]).strip().lower().startswith("all returns")
+        )
+        qualified = (
+            float(frame.iloc[total_row, TABLE_14_QUALIFIED_DIVIDENDS_COLUMN]) / 1e6
+        )
+        base = float(
+            brackets.loc[
+                brackets["tax_year"] == year, "income_taxed_at_rate_thousands"
+            ].sum()
+        ) / 1e6
+        gains = float(
+            aggregate.loc[
+                aggregate["tax_year"] == year, "total_realized_capital_gains_billions"
+            ].iloc[0]
+        )
+        records.append(
+            {
+                "tax_year": year,
+                "preferential_base_billions": round(base, 3),
+                "net_capital_gain_billions": round(gains, 3),
+                "qualified_dividends_billions": round(qualified, 3),
+                "base_over_gains_only": round(base / gains, 4),
+                "base_over_gains_plus_qualified_dividends": round(
+                    base / (gains + qualified), 4
+                ),
+            }
+        )
     return pd.DataFrame.from_records(records)
 
 
@@ -616,6 +687,30 @@ HEADERS = {
         "# https://www.federalreserve.gov/pubs/feds/2013/201328/figure_data.html",
         "# Regenerate with: python scripts/build_capital_gains_data.py",
     ),
+    "soi_preferential_base_coverage.csv": (
+        "# What the Table 3.5 preferential base is made of.  CARRIED AND NEVER",
+        "# READ.  A capital-gains rate option raises the rates on long-term gains",
+        "# AND qualified dividends, so this file records that both are already in",
+        "# the base the model prices, and that adding a qualified-dividends column",
+        "# would double-count.",
+        "#",
+        "# preferential_base_billions: IRS SOI Table 3.5, every preferential rate",
+        "#   (0, 15, 20, 25, 28 percent), summed over AGI classes - the same",
+        "#   quantity soi_capital_gains_by_rate_bracket.csv carries.",
+        "# net_capital_gain_billions: Tax Foundation, Federal Capital Gains Tax",
+        "#   Collections, the vendored taxfoundation_capital_gains_2022_2024.csv.",
+        "# qualified_dividends_billions: IRS SOI Table 1.4, All Returns: Sources of",
+        "#   Income, column 'Qualified dividends [2]', all-returns total",
+        "#   (https://www.irs.gov/pub/irs-soi/22in14ar.xls, .../23in14ar.xls).",
+        "#",
+        "# Read base_over_gains_only first: it exceeds 1.0 in both years, and a",
+        "# base holding only capital gains cannot exceed the year's capital gains.",
+        "# base_over_gains_plus_qualified_dividends is then stable at 0.84-0.88",
+        "# across a year in which realizations fell 27 percent; the shortfall is",
+        "# gains and dividends on returns with no modified taxable income, which",
+        "# no rate schedule reaches.",
+        "# Regenerate with: python scripts/build_capital_gains_data.py",
+    ),
     "decedent_carveout_shares.csv": (
         "# Shares of decedent unrealized capital gain that a realization-at-death",
         "# proposal's stated carve-outs remove, by the decedent ladder's own",
@@ -659,8 +754,15 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.parse_args()
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    _write("soi_capital_gains_by_rate_bracket.csv", build_bracket_table())
+    brackets = build_bracket_table()
+    _write("soi_capital_gains_by_rate_bracket.csv", brackets)
     _write("soi_gains_by_holding_period.csv", build_holding_period_table())
+    _write(
+        "soi_preferential_base_coverage.csv",
+        build_base_coverage_table(
+            brackets, OUT_DIR / "taxfoundation_capital_gains_2022_2024.csv"
+        ),
+    )
     parameters, ladder, agm = build_stock_tables()
     _write("accrued_gains_parameters.csv", parameters)
     _write("decedent_estate_ladder.csv", ladder)
