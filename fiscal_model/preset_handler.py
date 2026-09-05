@@ -32,6 +32,7 @@ from fiscal_model import (
     create_tcja_extension,
     create_tcja_repeal_salt_cap,
 )
+from fiscal_model.baseline import APP_DEFAULT_START_YEAR
 from fiscal_model.climate import (
     create_carbon_tax_25,
     create_carbon_tax_50,
@@ -65,18 +66,58 @@ from fiscal_model.trade import (
 )
 
 
-def create_policy_from_preset(preset_data: dict) -> Any | None:
+def create_policy_from_preset(
+    preset_data: dict, *, start_year: int | None = None
+) -> Any | None:
     """
     Create a policy object from preset configuration data.
+
+    This is the app's single preset -> policy boundary (Explore, Build, the
+    comparison tabs and ``/score/preset`` all come through here), so it is
+    also where the app's budget window is applied: the returned policy opens
+    no earlier than ``start_year``, which defaults to
+    :data:`~fiscal_model.baseline.APP_DEFAULT_START_YEAR`.
+
+    The factories below are shared with ``fiscal_model/validation``, and most
+    of them state 2025 — the window their published targets are quoted for.
+    Scoring such a policy on the app's FY2026-FY2035 window without moving it
+    would leave the last year of the window outside the policy's ten, so the
+    app would print a nine-year total under a ten-year heading. Validation
+    calls the factories directly and is unaffected.
 
     Args:
         preset_data: Dictionary containing preset configuration with keys like
                      is_tcja, is_corporate, is_credit, etc. and type-specific
                      keys like tcja_type, corporate_type, etc.
+        start_year: First year of the window the caller is scoring on.
+                    ``None`` uses the app default.
 
     Returns:
         Policy object if preset_data matches a known policy type, None otherwise
     """
+    policy = _dispatch_preset(preset_data)
+    if policy is None:
+        return None
+    return _open_no_earlier_than(policy, start_year)
+
+
+def _open_no_earlier_than(policy: Any, start_year: int | None) -> Any:
+    """Move ``policy`` forward to ``start_year`` if it opens before it.
+
+    ``max`` rather than assignment: a preset whose factory states a *later*
+    effective year than the window's first (a reform that phases in mid-decade)
+    keeps it, because that year is a fact about the policy rather than a
+    default nobody chose.
+    """
+    window_start = APP_DEFAULT_START_YEAR if start_year is None else int(start_year)
+    current = getattr(policy, "start_year", None)
+    if current is not None and int(current) < window_start:
+        policy.start_year = window_start
+    return policy
+
+
+def _dispatch_preset(preset_data: dict) -> Any | None:
+    """Route ``preset_data`` to the factory for its policy family."""
     if preset_data.get("is_tcja", False):
         return _create_tcja_policy(preset_data)
 

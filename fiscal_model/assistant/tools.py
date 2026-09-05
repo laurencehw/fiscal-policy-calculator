@@ -17,6 +17,7 @@ import json
 import logging
 from typing import Any
 
+from ..baseline import APP_DEFAULT_START_YEAR
 from .benchmarks import build_capability_gate
 from .sources import SOURCES, allowlisted_domain, web_search_allowed_domains
 
@@ -493,6 +494,12 @@ class AssistantTools:
             "mandatory_spending",
         }
 
+        # Open the hypothetical on the same year the scorer's window does.
+        # Left to the dataclass default it would start a year before the
+        # window and be scored one year further into its own phase-in and
+        # growth path than the window it is reported over.
+        start_year = int(getattr(self._scorer, "start_year", APP_DEFAULT_START_YEAR))
+
         try:
             if is_spending:
                 policy = self._spending_policy_cls(
@@ -500,6 +507,7 @@ class AssistantTools:
                     description=f"Assistant hypothetical: {name}",
                     policy_type=pt,
                     spending_change_billions=spending_change_billions,
+                    start_year=start_year,
                     duration_years=duration_years,
                 )
                 scoring_path = "spending path (standard multipliers)"
@@ -516,6 +524,7 @@ class AssistantTools:
                     description=f"Assistant hypothetical: {name}",
                     policy_type=pt,
                     rate_change=rate_change,
+                    start_year=start_year,
                     duration_years=duration_years,
                 )
                 scoring_path = (
@@ -530,6 +539,7 @@ class AssistantTools:
                     policy_type=pt,
                     rate_change=rate_change,
                     affected_income_threshold=affected_income_threshold,
+                    start_year=start_year,
                     duration_years=duration_years,
                 )
                 scoring_path = (

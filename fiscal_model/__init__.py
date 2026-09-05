@@ -24,7 +24,7 @@ from .amt import (
     create_repeal_individual_amt,
     estimate_amt_revenue,
 )
-from .baseline import BaselineProjection, CBOBaseline
+from .baseline import APP_DEFAULT_START_YEAR, BaselineProjection, CBOBaseline
 from .corporate import (
     BASELINE_CORPORATE_REVENUE_BILLIONS,
     CURRENT_CORPORATE_RATE,
@@ -171,6 +171,7 @@ __all__ = [
     "AMT_EXEMPTIONS_TCJA_EXTENDED",
     "AMT_RATES",
     "AMT_VALIDATION_SCENARIOS",
+    "APP_DEFAULT_START_YEAR",
     "BASELINE_AMT_DATA",
     "BASELINE_CORPORATE_REVENUE_BILLIONS",
     "BASELINE_CREDIT_COSTS",

@@ -42,6 +42,7 @@ from typing import Any
 import pandas as pd
 import plotly.graph_objects as go
 
+from fiscal_model.baseline import APP_DEFAULT_START_YEAR
 from fiscal_model.preset_ids import (
     EXCLUSIVE_GROUPS,
     SUBSUMES,
@@ -754,7 +755,9 @@ def render_deficit_target_tab(
     blockers = selection_blockers(selection, catalog)
 
     # ---- 2. Baseline ------------------------------------------------------
-    scorer = fiscal_policy_scorer_cls(use_real_data=use_real_data)
+    scorer = fiscal_policy_scorer_cls(
+        start_year=APP_DEFAULT_START_YEAR, use_real_data=use_real_data
+    )
     baseline = scorer.baseline
     if len(baseline.deficit) == 0 or len(baseline.nominal_gdp) == 0:
         st_module.error("Baseline data unavailable.")

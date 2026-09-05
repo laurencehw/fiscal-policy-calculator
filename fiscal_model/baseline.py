@@ -24,6 +24,27 @@ class BaselineVintage(Enum):
     CBO_FEB_2026 = "cbo_feb_2026"
 
 
+#: The fiscal year every **app** surface opens its ten-year window on.
+#:
+#: Ask, Build, Tailor, Explore, the classroom engine and the public API all
+#: score FY2026-FY2035, which is the window :data:`BaselineVintage`'s own app
+#: default (``CBO_FEB_2026``) projects. Before this constant existed the window
+#: was whatever the policy in hand happened to carry: a calibrated preset that
+#: named 2026 rendered "FY2026-FY2035" while a generic Tailor run took
+#: ``Policy.start_year``'s 2025 and rendered "FY2025-FY2034" on the next page
+#: over, for the same baseline.
+#:
+#: Deliberately **not** the library default. ``Policy.start_year``,
+#: ``FiscalPolicyScorer.start_year`` and ``BaselineProjection.start_year`` stay
+#: at 2025 because the validation suite's targets are quoted on the windows
+#: their documents used, and the suite reaches the same policy factories the
+#: app does. Moving the app's window is a presentation-and-baseline decision;
+#: moving a benchmark's window would be a target revision, which is a different
+#: lane with a different ledger. Everything the user sees routes through here;
+#: nothing under ``fiscal_model/validation/`` does.
+APP_DEFAULT_START_YEAR = 2026
+
+
 # CBO February 2024 economic assumptions (legacy)
 _CBO_FEB_2024_ASSUMPTIONS = {
     'real_gdp_growth': np.array([

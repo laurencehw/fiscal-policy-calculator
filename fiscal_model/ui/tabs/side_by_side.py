@@ -12,6 +12,7 @@ from typing import Any
 import numpy as np
 import plotly.graph_objects as go
 
+from fiscal_model.baseline import APP_DEFAULT_START_YEAR
 from fiscal_model.preset_handler import create_policy_from_preset
 from fiscal_model.ui.helpers import unescape_markdown_dollars
 
@@ -142,7 +143,11 @@ def render_side_by_side_tab(
         return
 
     with st_module.spinner("Scoring both policies..."):
-        scorer = fiscal_policy_scorer_cls(baseline=None, use_real_data=use_real_data)
+        scorer = fiscal_policy_scorer_cls(
+            baseline=None,
+            start_year=APP_DEFAULT_START_YEAR,
+            use_real_data=use_real_data,
+        )
 
         policy_a = _build_policy(
             policy_a_name, preset_policies[policy_a_name],

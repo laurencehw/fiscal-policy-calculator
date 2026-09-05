@@ -13,6 +13,8 @@ import logging
 from pathlib import Path
 from typing import Any
 
+from fiscal_model.baseline import APP_DEFAULT_START_YEAR
+
 logger = logging.getLogger(__name__)
 
 
@@ -155,7 +157,14 @@ def calculate_tax_policy_result(
     policy = create_policy_from_preset_fn(preset_data)
 
     if policy:
-        start_year = getattr(policy, "start_year", 2025)
+        # ``create_policy_from_preset`` has already moved the policy onto the
+        # app window, so this is APP_DEFAULT_START_YEAR for every preset that
+        # states no later year of its own. The ``max`` is the belt: a scorer
+        # window that opened before the policy would cost the run a year.
+        start_year = max(
+            int(getattr(policy, "start_year", APP_DEFAULT_START_YEAR)),
+            APP_DEFAULT_START_YEAR,
+        )
         scorer = fiscal_policy_scorer_cls(start_year=start_year, use_real_data=False)
         result = scorer.score_policy(policy, dynamic=dynamic_scoring)
 
@@ -188,6 +197,7 @@ def calculate_tax_policy_result(
             rate_change=rate_change,
             affected_income_threshold=threshold,
             data_year=int(cg_base_year),
+            start_year=APP_DEFAULT_START_YEAR,
             duration_years=duration,
             phase_in_years=max(1, int(phase_in)),
             baseline_capital_gains_rate=float(baseline_cg_rate),
@@ -218,6 +228,7 @@ def calculate_tax_policy_result(
             description=f"{rate_change_pct:+.1f}pp corporate rate change",
             policy_type=policy_type_cls.CORPORATE_TAX,
             rate_change=rate_change,
+            start_year=APP_DEFAULT_START_YEAR,
             duration_years=duration,
             phase_in_years=max(1, int(phase_in)),
             corporate_elasticity=eti if eti > 0 else 0.25,
@@ -230,6 +241,7 @@ def calculate_tax_policy_result(
             rate_change=rate_change,
             affected_income_threshold=threshold,
             data_year=data_year,
+            start_year=APP_DEFAULT_START_YEAR,
             duration_years=duration,
             phase_in_years=max(1, int(phase_in)),
             taxable_income_elasticity=eti,
@@ -244,7 +256,9 @@ def calculate_tax_policy_result(
         if manual_avg_income > 0:
             policy.avg_taxable_income_in_bracket = manual_avg_income
 
-    scorer = fiscal_policy_scorer_cls(baseline=None, use_real_data=use_real_data)
+    scorer = fiscal_policy_scorer_cls(
+        baseline=None, start_year=APP_DEFAULT_START_YEAR, use_real_data=use_real_data
+    )
     result = scorer.score_policy(policy, dynamic=dynamic_scoring)
 
     return {

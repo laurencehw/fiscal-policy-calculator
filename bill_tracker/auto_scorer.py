@@ -48,8 +48,10 @@ class AutoScorer:
     @property
     def scorer(self):
         if self._scorer is None:
-            from fiscal_model import FiscalPolicyScorer
-            self._scorer = FiscalPolicyScorer(use_real_data=True)
+            from fiscal_model import APP_DEFAULT_START_YEAR, FiscalPolicyScorer
+            self._scorer = FiscalPolicyScorer(
+                start_year=APP_DEFAULT_START_YEAR, use_real_data=True
+            )
         return self._scorer
 
     def score(self, mapping_result: MappingResult) -> BillScore | None:

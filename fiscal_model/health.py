@@ -215,6 +215,11 @@ def check_health() -> dict[str, Any]:
     try:
         from fiscal_model.policies import PolicyType, TaxPolicy
         from fiscal_model.scoring import FiscalPolicyScorer
+        # Deliberately the library default window, not APP_DEFAULT_START_YEAR.
+        # This probe answers "does the engine still run and return a sane
+        # number", and its ``test_score`` is quoted by the readiness gate and
+        # the validation dashboard as a fixed tripwire. Moving the app's
+        # window is not a reason for that tripwire to move.
         scorer = FiscalPolicyScorer(use_real_data=True)
         test_policy = TaxPolicy(
             name="health_check",
