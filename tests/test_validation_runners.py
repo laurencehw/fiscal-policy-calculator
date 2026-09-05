@@ -250,6 +250,34 @@ def test_sectoral_scores_do_not_depend_on_the_scorer_start_year(sectoral_results
             )
 
 
+def test_sectoral_factories_open_on_the_validation_window():
+    """Every sectoral factory must state the year its target is quoted for.
+
+    ``validate_sectoral_policy`` pins ``policy.start_year`` to
+    ``_SCORER_START_YEAR`` because these factories are shared with the app and
+    none of them names a year of its own — so, unpinned, the scenario would
+    inherit whatever ``Policy.start_year`` defaults to, and the app is
+    entitled to move that (it opens its own window on
+    ``APP_DEFAULT_START_YEAR``). The pin is a no-op while this holds; when it
+    stops holding, the failure belongs here, where a human reads it, and not
+    in a scorecard row that quietly drops one of its ten active years.
+    """
+    from fiscal_model.validation.specialized_sectoral import _SCORER_START_YEAR
+
+    off_window = []
+    for category, registry in SECTORAL_SCENARIO_REGISTRIES.items():
+        for scenario_id, scenario in registry.items():
+            stated = int(getattr(scenario["policy_factory"](), "start_year", -1))
+            if stated != _SCORER_START_YEAR:
+                off_window.append(f"{category}/{scenario_id} states {stated}")
+
+    assert not off_window, (
+        "sectoral factories no longer open on the window their targets are "
+        f"quoted for ({_SCORER_START_YEAR}): {off_window}. Decide per row "
+        "whether the target's window moved too before touching the pin."
+    )
+
+
 def test_a_failing_scenario_becomes_an_error_row_not_a_missing_one(monkeypatch):
     """A runner that swallowed an exception would silently shrink the
     calibrated tier and hide the failure from the readiness gate. The row must
