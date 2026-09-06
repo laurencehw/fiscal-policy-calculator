@@ -121,7 +121,7 @@ Every legacy URL (`?analysis=preset&preset=<emoji label>&run=1`, `/ask`,
 | `fiscal_model/validation/compare.py` | Comparison framework (model vs official) |
 | `fiscal_model/validation/distributional_validation.py` | TPC distributional benchmark validation |
 | `fiscal_model/assistant/` | Ask assistant — `FiscalAssistant` orchestrator, `AssistantTools` dispatcher, BM25 knowledge search, citation post-processor, cost meter, sqlite rate limiter, admin queries, share-link encoding |
-| `fiscal_model/assistant/knowledge/` | 23 curated Markdown snapshots (CBO baseline, SSA Trustees, TCJA, capital gains, international tax, retirement, fiscal multipliers, ETI literature, state/local, IRA, etc.); frontmatter carries the canonical source URL for citations |
+| `fiscal_model/assistant/knowledge/` | 23 hand-curated Markdown files — 22 topic snapshots plus the corpus README, all of them BM25-indexed, which is the count `check_readiness.py` reports. Topics: CBO baseline, CBO long-term outlook, SSA Trustees, TCJA overview, PWBM TCJA dynamic, TPC TCJA distribution, capital gains, international tax, retirement accounts, IRA clean energy, tariff scoring, Yale Budget Lab tariffs, JCT tax expenditures, JCT distributional methodology, fiscal multipliers, dynamic-scoring concepts, ETI literature, debt sustainability, state/local, Medicare/Medicaid drivers, key definitions, common-confusion FAQ. Frontmatter carries the canonical source URL for citations |
 | `fiscal_model/ui/tabs/ask_assistant.py` | Streamlit chat UI — streaming, dollar-sign safety, follow-up chips, share button, rate-limit and unavailable-key UX |
 | `fiscal_model/ui/tabs/assistant_admin.py` | Token-gated admin dashboard (visible only when URL `?admin=<token>` matches `ASSISTANT_ADMIN_TOKEN`) |
 
@@ -144,17 +144,26 @@ CapitalGainsPolicy(
     name, description, policy_type,  # PolicyType.CAPITAL_GAINS_TAX
     rate_change, affected_income_threshold,
     baseline_realizations_billions, baseline_capital_gains_rate,
-    # Time-varying elasticity (CBO/JCT methodology)
-    short_run_elasticity=0.8,  # Years 1-3: timing effects
-    long_run_elasticity=0.4,   # Years 4+: permanent response
-    transition_years=3,
+    # Semi-log response to the TAX rate (CRS R48562), b = elasticity / reference rate.
+    # One frozen set for every scored case (Decision 3); scenarios.py's per-case
+    # tuples and the 0.8/0.4 net-of-tax pair were deleted in Wave 2.
+    persistent_elasticity=0.72,        # Dowd, McClelland & Muthitacharoen (2015)
+    transitory_elasticity=1.20,        # retiming; enactment year only, on the timing margin
+    elasticity_reference_rate=0.22,    # CRS R48562 Table 4 note
     # Step-up basis at death (Biden proposal)
     step_up_at_death=True,           # Current law
     eliminate_step_up=False,         # Set True to model step-up elimination
-    step_up_exemption=1_000_000,     # Biden: $1M per person
-    gains_at_death_billions=54.0,    # CBO estimate
-    step_up_lock_in_multiplier=2.0,  # module default; 5.3 is a per-scenario calibration (scenarios.py pwbm_39_with_stepup) that reproduces PWBM's revenue loss
+    step_up_exemption=1_000_000,     # per donor; FY2022 Green Book. FY2025 states $5M
+    apply_death_carveouts=True,      # charity, family business, §121, rate response
+    defer_family_business_gains=False,  # design switch: the Green Books state it, CBO Option 51 does not
+    section_121_exclusion=250_000.0,    # 26 U.S.C. §121(b)(1)
+    charitable_bequest_price_elasticity=1.617,  # Bakija, Gale & Slemrod (2003) Table 1 (a)
+    deferral_discount_rate=0.04,     # prices the derived 1.44x lock-in wedge
 )
+# There is no lock-in multiplier: `lock_in_wedge()` derives 1.44x from the
+# realization hazard (2.35%/yr) and the mortality-weighted death exit (2.65%/yr).
+# Gains at death are decedent wealth x an unrealized-gain share by estate size
+# ($196.2B in 2025 over 408,532 decedents), not a flat $54B/yr constant.
 
 # TCJA Extension (calibrated to CBO $4.6T)
 from fiscal_model import create_tcja_extension
@@ -216,7 +225,7 @@ print(f"Revenue feedback: ${result.cumulative_revenue_feedback:.1f}B")
 
 Standard parameters (see `docs/METHODOLOGY.md`):
 - **ETI**: 0.25 (Saez et al. 2012)
-- **Capital gains elasticity**: time-varying (short-run 0.8, long-run 0.4)
+- **Capital gains elasticity**: semi-log on the **tax** rate (CRS R48562), persistent 0.72 / transitory 1.20 at a 22% reference rate (Dowd–McClelland–Muthitacharoen 2015) → `b = 3.273`, `τ* = 30.6%`
 - **Spending multiplier**: 1.0 normal, 1.5-2.0 recession
 - **Marginal revenue rate** (dynamic feedback): 0.25
 - **Labor/capital shares**: 0.65/0.35
@@ -242,10 +251,11 @@ Final  = Static + Offset_signed_against_deficit
        = Static × (1 − ETI × 0.5)     # erodes magnitude in both directions
 ```
 
-Capital gains behavioral offset (time-varying):
+Capital gains behavioral offset (semi-log, on the **tax** rate):
 ```
-R₁ = R₀ × ((1-τ₁)/(1-τ₀))^ε(t)
-where ε(t) transitions from short_run to long_run over transition_years
+R₁ = R₀ × exp(−b × (τ₁ − τ₀))        b = elasticity / elasticity_reference_rate
+b   = 0.72/0.22 = 3.273 persistent, plus 1.20/0.22 in the enactment year on the
+      timing-margin share (87.7% of the base); ÷ 1.44 when step-up is eliminated
 ```
 
 ## Ask Assistant
@@ -334,7 +344,7 @@ Completed:
 9. ✅ Multi-model pilot platform (CBO-style, TPC-microsim, PWBM-OLG) wired into the Scoring Models tab
 10. ✅ API hardening (X-API-Key auth, rate limiting, structured logging)
 11. ✅ `GET /summary`, `GET /benchmarks` API endpoints + `scripts/run_validation_dashboard.py` CI gate
-12. ✅ **Ask assistant** — citation-grounded Q&A, 23 curated authoritative snapshots, streaming tool-use loop, `/ask` + `/ask/stream` (SSE) endpoints, token-gated admin dashboard, share-link encoding, hard daily cost cap, /health + /readiness integration. 105 tests across the assistant stack.
+12. ✅ **Ask assistant** — citation-grounded Q&A, 23 curated authoritative knowledge files, streaming tool-use loop, `/ask` + `/ask/stream` (SSE) endpoints, token-gated admin dashboard, share-link encoding, hard daily cost cap, /health + /readiness integration. 105 tests across the assistant stack.
 
 **Wave 1 of `planning/MODELING_IMPROVEMENT.md` is done** (2026-09-01/02, PRs #83, #85, #86, #87, #88): L2 budget-authority→outlay spend-out, L5 AMT live exemption branch + published year-indexed path, L7 pharma federal incidence, plus IIJA's superseding authorization-path row and spend-out for the app's spending presets.
 

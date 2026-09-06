@@ -364,7 +364,7 @@ The 💬 Ask tab is a citation-disciplined Q&A interface over this model and 23 
 
 ### Curated knowledge corpus
 
-19 hand-maintained Markdown snapshots live in `fiscal_model/assistant/knowledge/`. Each carries a frontmatter `source:` URL the assistant uses for citation. To add or refresh a snapshot, use the helper:
+23 hand-maintained Markdown files live in `fiscal_model/assistant/knowledge/` — 22 topic snapshots plus the corpus README, all of them indexed. Each carries a frontmatter `source:` URL the assistant uses for citation. To add or refresh a snapshot, use the helper:
 
 ```bash
 python scripts/refresh_knowledge.py \
