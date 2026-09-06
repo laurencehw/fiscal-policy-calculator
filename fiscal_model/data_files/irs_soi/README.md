@@ -36,6 +36,36 @@ This directory contains IRS Statistics of Income (SOI) Individual Income Tax Sta
    - Save as: `table_3_3_2022.csv`
    - Contains: Tax liability, effective tax rates by AGI bracket
 
+### Tax Year 2023 — Table 1.2 (by filing status)
+
+**Table 1.2 - All Returns: Adjusted Gross Income, Deductions, and Tax Items, by
+Size of Adjusted Gross Income and by Filing Status**
+
+- Source workbook: <https://www.irs.gov/pub/irs-soi/23in12ms.xls>
+- Publication: IRS, Statistics of Income Division, *Individual Income Tax
+  Returns Complete Report* (Publication 1304), March 2026
+- Saved as: `table_1_2_2023.csv`
+- Rebuilt by: `python scripts/build_filing_status_data.py`
+- Contains: the same 19 AGI size classes as Table 1.1, split five ways — all
+  returns; married filing jointly and surviving spouses; married filing
+  separately; heads of households; single — with returns, AGI, itemised and
+  standard deductions, taxable income, income tax after credits and total
+  income tax for each.
+
+**Why it is here and how it is used.** Statutory income-tax thresholds are
+stated per filing status (CBO's Option 46 surtax at "$20,000 for single filers
+and $40,000 for joint filers"; the 2025 24% bracket at $206,700 joint against
+$103,350 otherwise). `IRSSOIData.get_bracket_distribution_by_status` reads this
+table for the **composition** of each AGI class only — Table 1.1 still supplies
+the level — because Table 1.2's taxable-income column is measured on *all*
+returns where Table 1.1's is measured on *taxable* returns, a 2.7% difference
+that has nothing to do with filing status. Apportioning keeps the split exactly
+neutral: a per-status base evaluated at one uniform threshold reproduces the
+pooled `get_filers_by_bracket` result to the cent.
+
+The `.xls` workbooks are **not** tracked (`.gitignore` excludes `*.xls`); the
+CSVs are the auditable artefacts and the build script re-downloads the source.
+
 ## Download Instructions
 
 ### Step 1: Navigate to IRS SOI Website
