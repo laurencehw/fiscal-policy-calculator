@@ -1,0 +1,64 @@
+# ACTUAL federal corporate income tax receipts, by fiscal year.
+#
+# Source: U.S. Department of the Treasury, Monthly Treasury Statement, Table 4
+#   "Receipts of the U.S. Government", classification "Corporation Income
+#   Taxes", net receipts, fiscal-year-to-date at the September month-end (i.e.
+#   the full fiscal year). Read through the Fiscal Data API:
+#   https://api.fiscaldata.treasury.gov/services/api/fiscal_service
+#     /v1/accounting/mts/mts_table_4
+#     ?filter=line_code_nbr:eq:130,record_calendar_month:eq:09
+#     &fields=record_fiscal_year,classification_desc,current_fytd_net_rcpt_amt
+#   Read: 2026-09-05. Units: DOLLARS, exactly as the API returns them.
+#
+# WHY THIS FILE EXISTS. It supplies the denominator of one ratio, measured once,
+# on the last completed year that both this series and IRS SOI's Table 11 cover:
+#
+#     BASE_PER_DOLLAR_OF_RECEIPTS
+#       = (SOI income subject to tax, TY2022 x SOI credit realization, TY2022)
+#         / (actual net corporate receipts, FY2022)
+#       = (2,879.101 x 0.708526) / 424.865  =  2,039.92 / 424.865  =  4.80133
+#
+# against 1 / 0.21 = 4.76190 - 0.83% apart. That agreement is the whole content
+# of the anchor: two published series, built from different data by different
+# agencies, measure the credit-realized statutory corporate base for the same
+# year and land within one percent of each other. It is what makes replacing
+# `SOI base x 1.04^t` with `CBO receipts path x 4.80133` a change of VINTAGE
+# rather than a change of CONCEPT. tests/test_corporate_derived.py pins the
+# tolerance at 2%.
+#
+# The same rule as fiscal_model/payroll.py's COVERED_EARNINGS_TO_WAGES: one
+# ratio, measured on completed history, never on a projection year.
+#
+# WHAT THE RATIO IS NOT. It is not a marginal-realization share. The number that
+# would reproduce CBO Option 64 is a total factor of 0.5785, and JCT's own
+# steady-state marginal share against this baseline is 0.590; the memo names
+# both and forbids picking either, because JCT's 0.59 is its answer read
+# backwards and is not separable from the behavioural term the module already
+# applies. 4.80133 is 1.0083/tau - a wedge between two measurements of one
+# year's base, not a share of anything.
+#
+# A KNOWN IMPRECISION. SOI's TY2022 base is a TAX year and Treasury's FY2022
+# receipts are a FISCAL year, and under IRC section 6655 a fiscal year collects
+# about three quarters of its own tax year's liability and a quarter of the
+# previous one. Applying that blend to the anchor instead returns 410.60 against
+# the actual 424.87 - 3.4% apart, WORSE than the naive 0.83%. So the two series
+# disagree by more than the timing convention explains, and neither agreement
+# should be read as precision. The module takes the simple construction, states
+# the tolerance it needs, and does not tune the anchor to improve it.
+#
+# The other years are here for context and for the ratio's stability, not
+# because the module reads them: FY2020 and FY2021 are pandemic years, FY2018 is
+# the section 15 blended-rate transition, and FY2024-2025 are after the last SOI
+# tax year on file.
+fiscal_year,net_corporate_receipts_dollars
+2015,343797276067.09
+2016,299570939628.32
+2017,297047881064.55
+2018,204733303759.09
+2019,230244746813.76
+2020,211844662323.66
+2021,371831354722.44
+2022,424865169899.91
+2023,419583849964.32
+2024,529866802637.57
+2025,452089303419.78

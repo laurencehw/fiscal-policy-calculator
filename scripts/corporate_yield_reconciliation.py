@@ -242,18 +242,33 @@ LABELS = (
 # The model, on the same metric
 # ---------------------------------------------------------------------------
 #: What ``fiscal_model/corporate.py`` scores today, FY2025-2034, from
-#: ``scripts/cold_holdout.py`` and ``validate_all_corporate``. Both modes are
+#: ``scripts/cold_holdout.py`` and ``validate_all_corporate``. ``reported`` is
 #: exactly linear in the base; ``derived`` is mildly concave in the step.
+#:
+#: The ``derived`` rows moved in lane W6
+#: (``planning/lanes/W6_corporate_base_projection.md``), which built §5's
+#: counterfactual: the base is now projected off CBO's own corporate receipts
+#: path instead of aged at a flat 4%/yr. The pre-W6 figures are kept below,
+#: labelled, because §4's table and most of this memo's prose were written
+#: against them.
 MODEL_ROWS = (
     ("model reported +1pp", 1.0, -199.60, "rate_only"),
     ("model reported +7pp", 7.0, -1397.21, "rate_only"),
-    ("model derived +1pp", 1.0, -220.28, "rate_only"),
-    ("model derived +7pp", 7.0, -1452.14, "rate_only"),
+    ("model derived +1pp", 1.0, -196.08, "rate_only"),
+    ("model derived +7pp", 7.0, -1292.62, "rate_only"),
+    ("model derived +1pp (pre-W6)", 1.0, -220.28, "rate_only"),
+    ("model derived +7pp (pre-W6)", 7.0, -1452.14, "rate_only"),
 )
 
 #: The derived path's own annual path at +1pp, FY2025-2034 ($B, deficit sign),
 #: for the year-by-year marginal-share check.
 MODEL_DERIVED_1PP_ANNUAL = [
+    -14.66, -19.47, -19.23, -19.35, -19.72, -20.11, -20.44, -20.54, -20.96, -21.62
+]
+
+#: The same path before W6, when the base was aged at a flat 4%/yr. Kept so the
+#: year-by-year table can print the drift the lane removed rather than assert it.
+MODEL_DERIVED_1PP_ANNUAL_PRE_W6 = [
     -14.18, -19.47, -20.25, -21.06, -21.91, -22.78, -23.69, -24.64, -25.63, -26.65
 ]
 
@@ -417,8 +432,10 @@ def print_same_window(rows: list[dict]) -> None:
         f"Excluding Treasury, the published shares on this window span "
         f"{min(shares):.1%} to {max(shares):.1%}. Treasury's is 79.5% and it is\n"
         "the only one of the four whose scope is not rate-only. The model's "
-        "derived path is 90.8% -\nhigher than every published estimate on the "
-        "record, and the benchmark it is fitted to is the second highest."
+        "derived path is 80.8% since lane\nW6 projected its base off CBO's own "
+        "receipts path - Treasury's neighbourhood, and above every other "
+        "estimator\non the record. It was 90.8% before, higher than all four, "
+        "and the benchmark it is fitted to is the second highest."
     )
     print(
         "\nRead the shares with the denominator in mind. Only the JCT/CBO rows "
@@ -437,7 +454,7 @@ def print_year_by_year() -> None:
         f"{'FY':>5s} {'receipts':>9s} {'B_avg':>9s} "
         f"{'Opt64 B_m':>10s} {'share':>7s} "
         f"{'GB25 B_m':>10s} {'share':>7s} "
-        f"{'model B_m':>10s} {'share':>7s}"
+        f"{'model B_m':>10s} {'share':>7s} {'pre-W6':>7s}"
     )
     print(_rule())
     for i, fy in enumerate(range(2025, 2035)):
@@ -446,11 +463,12 @@ def print_year_by_year() -> None:
         b_opt = OPT64_ANNUAL[i] / 0.01
         b_gb = GB2025_ANNUAL[i] / 0.07
         b_mod = abs(MODEL_DERIVED_1PP_ANNUAL[i]) / 0.01
+        b_old = abs(MODEL_DERIVED_1PP_ANNUAL_PRE_W6[i]) / 0.01
         print(
             f"{fy:5d} {receipts:9.1f} {b_avg:9.1f} "
             f"{b_opt:10.1f} {b_opt / b_avg:7.1%} "
             f"{b_gb:10.1f} {b_gb / b_avg:7.1%} "
-            f"{b_mod:10.1f} {b_mod / b_avg:7.1%}"
+            f"{b_mod:10.1f} {b_mod / b_avg:7.1%} {b_old / b_avg:7.1%}"
         )
     print(_rule())
     shares = [OPT64_ANNUAL[i] / 0.01 / (base["annual"][i] / 0.21) for i in range(2, 10)]
@@ -458,19 +476,36 @@ def print_year_by_year() -> None:
         f"CBO Option 64's share over FY2027-2034: {min(shares):.3f} to "
         f"{max(shares):.3f} - flat to {100 * (max(shares) / min(shares) - 1):.1f}%."
     )
+    old = [
+        abs(MODEL_DERIVED_1PP_ANNUAL_PRE_W6[i]) / 0.01 / (base["annual"][i] / 0.21)
+        for i in range(10)
+    ]
     mod = [
         abs(MODEL_DERIVED_1PP_ANNUAL[i]) / 0.01 / (base["annual"][i] / 0.21)
         for i in range(10)
     ]
     print(
-        f"The model's share over the same window: {mod[0]:.3f} rising to "
-        f"{mod[-1]:.3f} - it prices more than 100% of the vintage's own average "
-        "base\nin the last two years, which no marginal base can be."
+        f"The model's share ran {old[0]:.3f} rising to {old[-1]:.3f} before lane "
+        "W6 - it priced more than 100% of the vintage's own\naverage base in the "
+        "last two years, which no marginal base can be. W6 projected the base "
+        "off this same\nreceipts path, and the column now reads "
+        f"{mod[0]:.3f} then flat at about {sum(mod[1:]) / 9:.3f}: the drift is "
+        "gone because the\nnumerator and the denominator are the same series. "
+        "The LEVEL is unchanged in kind - about 0.83 of the\naverage base "
+        "against Treasury's 0.795, JCT's 0.559 and Tax Foundation's 0.551 - "
+        "and section 5's diagnosis holds:\nthe residual is a disagreement between "
+        "estimators, not a vintage problem."
     )
 
 
 def print_counterfactual() -> None:
-    """What a vintage-projected base would read. Hand arithmetic, not a run."""
+    """What a vintage-projected base reads. Hand arithmetic, now also built.
+
+    Lane W6 (``planning/lanes/W6_corporate_base_projection.md``) shipped this
+    mechanism. The figures below are still the memo's own hand arithmetic,
+    unchanged, so the prediction stays legible beside what was built; the two
+    differ by 1.4% for two stated reasons, printed at the end.
+    """
     print("\n5. COUNTERFACTUAL: THE BASE PROJECTED OFF THE SCORED VINTAGE")
     print(_rule())
     base = BASELINES["cbo_feb_2024"]
@@ -513,8 +548,16 @@ def print_counterfactual() -> None:
     )
     print(_rule())
     print(
-        "Hand arithmetic on published inputs, to be checked by any lane that\n"
-        "builds it. It is a prediction, not an attainment."
+        "Hand arithmetic on published inputs. Lane W6 built it, and the shipped\n"
+        "identity returns -196.08 at +1pp (44.50% vs Option 64) and -1,292.62 at\n"
+        "+7pp (4.04% vs the Green Book row) - 1.4% above the figures printed\n"
+        "above, for two stated reasons. The lane keeps the section 6655\n"
+        "convolution `0.75 + 0.25 B(t-1)/B(t)` rather than the closed form\n"
+        "0.99038 above, which assumes the constant growth the lane removes; and\n"
+        "it anchors the level on SOI's own credit-realized TY2022 base over\n"
+        "Treasury's actual FY2022 receipts (4.80133 per receipts dollar) rather\n"
+        "than on 1/tau (4.76190) - 0.83% apart, which is the check that the two\n"
+        "series measure the same thing."
     )
 
 
