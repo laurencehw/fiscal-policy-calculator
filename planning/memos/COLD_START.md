@@ -170,11 +170,14 @@ caption can appear.
 
 ### 2.1 What was *not* done, and why
 
-The prompt's own bar was "implement lazy imports if import time is ≥3s of the
-local first hit". On the pre-change tree it was 1.59s before paint (warm) —
-under the bar — and 4.32s with a stripped `__pycache__`, over it. The change was
-made on the stripped reading, which is the one a real container pays, and it is
-confined to ordering.
+The bar set before measuring was: *act on imports only if they are ≥3s of the
+local first hit.* On the pre-change tree they were **1.59s** before paint with a
+warm `__pycache__` — under the bar — and **4.32s** with it stripped, over it.
+The change was made on the stripped reading, because that is the one a real
+container pays, and it is confined to ordering. Recording the bar and both
+readings because the decision turned on which of the two you look at, and a
+later reader should be able to disagree with the choice rather than have to
+reconstruct it.
 
 Beyond that, **nothing further was implemented, deliberately**:
 
