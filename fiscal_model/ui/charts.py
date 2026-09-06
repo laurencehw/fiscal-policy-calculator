@@ -52,6 +52,7 @@ colour, different fonts, x-grid on — and light is the half being held fixed.
 from __future__ import annotations
 
 import copy
+from collections.abc import Mapping
 from typing import Any
 
 # Shared palette. These hex values were previously hard-coded across tabs; name
@@ -305,7 +306,7 @@ def apply_base_layout(
     *,
     height: int,
     margin: dict[str, Any] | None = None,
-    title: str | None = None,
+    title: str | Mapping[str, Any] | None = None,
     xaxis_title: Any = _UNSET,
     yaxis_title: str | None = None,
     showlegend: bool | None = None,
@@ -320,7 +321,10 @@ def apply_base_layout(
     Only the keyword arguments a caller supplies are forwarded to
     ``fig.update_layout`` (plus any ``extra`` for chart-specific keys such as
     ``yaxis2`` or ``meta``), so this is behaviour-preserving for existing
-    charts. The page theme is applied afterwards via :func:`theme_figure`,
+    charts. ``title`` takes either a string or Plotly's title mapping (the
+    Build waterfall sets its own font size), which ``update_layout`` merges
+    key-by-key, so :func:`theme_figure`'s title colour lands without
+    discarding it. The page theme is applied afterwards via :func:`theme_figure`,
     which does nothing on a light page. Returns ``fig`` for chaining.
     """
     layout: dict[str, Any] = {"height": height}
