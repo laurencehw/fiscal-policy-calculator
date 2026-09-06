@@ -271,8 +271,13 @@ def test_stale_data_banner_says_refresh_pending_without_a_command():
 # Streamlit Cloud deployment (2026-09-01). Measured locally, the first script
 # run cost 7.9s and the second 0.06s, and the two biggest in-script items both
 # sat in front of the first visible element: ``validated_policy_count()``
-# (~2.5s, for a ``<meta>`` description) and ``get_health_snapshot()`` (~2-3s,
-# inside the chrome, before the title). Both are now behind the first paint.
+# (measured at 7.65s of an 8.40s first run once ``COLD_START.md`` §3 went
+# looking, not the ~2.5s the docstring then claimed) and ``get_health_snapshot()``
+# (~2-3s, inside the chrome, before the title). Both are now behind the first
+# paint, and since ``perf/footer-scorecard`` the count is not computed at all
+# on a first run: it is read from the artifact
+# ``fiscal_model/data_files/validation/headline_counts.json``, which
+# ``tests/test_validation_headline.py`` pins to the live scorecard.
 
 
 def test_the_meta_blurb_never_computes_the_scorecard(monkeypatch):
@@ -280,6 +285,7 @@ def test_the_meta_blurb_never_computes_the_scorecard(monkeypatch):
     from types import SimpleNamespace as _NS
 
     import fiscal_model.validation.scorecard as scorecard_module
+    from fiscal_model.ui import validation_headline as vh
     from fiscal_model.ui.helpers import validated_policy_count
 
     calls: list[int] = []
@@ -295,18 +301,28 @@ def test_the_meta_blurb_never_computes_the_scorecard(monkeypatch):
             calls.append(1)
             return _NS(published_entries=72)
 
+    # Cold, and with the artifact out of the way: there is no free answer, so
+    # ``allow_compute=False`` declines rather than paying for one.
     monkeypatch.setattr(scorecard_module, "cached_default_scorecard", _Memo(0))
+    monkeypatch.setattr(vh, "pinned_published_entries", lambda: None)
     assert validated_policy_count(allow_compute=False) == 0
     assert calls == [], "a cold run must not compute the scorecard"
 
-    # Warm — the footer computed it on an earlier run, so the tag gets the
-    # real number from then on.
+    # Cold, artifact present: the tag gets the real number on the *first* run
+    # now, and still without computing anything.
+    monkeypatch.setattr(vh, "pinned_published_entries", lambda: 71)
+    assert validated_policy_count(allow_compute=False) == 71
+    assert calls == [], "the artifact path must not compute the scorecard"
+
+    # Warm — something else computed the scorecard, so the live number wins
+    # over the pinned one. On a tree whose artifact is current they agree; when
+    # they do not, the one measured from the running tree is the honest answer.
     monkeypatch.setattr(scorecard_module, "cached_default_scorecard", _Memo(1))
     assert validated_policy_count(allow_compute=False) == 72
 
-    # The default is still "compute it": the footer wants the number.
+    # The default is still "get the number": from the artifact, for free.
     monkeypatch.setattr(scorecard_module, "cached_default_scorecard", _Memo(0))
-    assert validated_policy_count() == 72
+    assert validated_policy_count() == 71
 
 
 def test_a_placeholder_paints_before_the_scorer_bundle_is_built():
