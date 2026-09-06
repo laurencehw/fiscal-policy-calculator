@@ -79,7 +79,7 @@ def _download(year: int, destination: Path) -> None:
     url = SOI_TABLE_12_URL.format(yy=yy)
     print(f"  downloading {url}")
     request = Request(url, headers={"User-Agent": "fiscal-policy-calculator/1.0"})
-    with urlopen(request, timeout=60) as response:  # noqa: S310 - fixed irs.gov host
+    with urlopen(request, timeout=60) as response:
         payload = response.read()
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_bytes(payload)

@@ -333,7 +333,7 @@ def test_no_declared_threshold_is_a_target_over_ten():
     """The anti-fitting invariant, restated for this lane's inputs."""
     for policy_id, score in KNOWN_SCORES.items():
         for value in (score.income_threshold_by_filing_status or {}).values():
-            assert value != pytest.approx(abs(score.ten_year_cost) / 10.0)
+            assert value != pytest.approx(abs(score.ten_year_cost) / 10.0), policy_id
 
 
 def test_the_rule_for_unnamed_statuses_is_written_down():
