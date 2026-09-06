@@ -202,12 +202,14 @@ WAVE4_PROVENANCE_FIRST_SCORED_COMMIT = (
 #: and the same *kind* of change as that one: the shape input moves and the
 #: published target does not. The row is added here and first scored in
 #: :data:`FY2022_WINDOW_FIRST_SCORED_COMMIT`, a *later* commit.
-FY2022_WINDOW_ENTERED_COMMIT = "0" * 39 + "1"  # placeholder; stamped below
+FY2022_WINDOW_ENTERED_COMMIT = "2353f83206a25f9ef5df524c2b476fcc0823bb95"
 FY2022_WINDOW_ENTERED_DATE = "2026-09-06"
 
 #: Commit in which the FY2022 window was first scored (the commit that lets
 #: ``validation/core.py`` read ``scoring_window_first_year``).
-FY2022_WINDOW_FIRST_SCORED_COMMIT = "0" * 39 + "2"  # placeholder; stamped below
+FY2022_WINDOW_FIRST_SCORED_COMMIT = (
+    "804e5521bd8d69128f78204a047b47cb07dae16b"
+)
 
 #: The rule that sets the scoring window for every case that carries one,
 #: fixed before the model was allowed to read it. Written here rather than only
