@@ -121,7 +121,7 @@ Every legacy URL (`?analysis=preset&preset=<emoji label>&run=1`, `/ask`,
 | `fiscal_model/validation/compare.py` | Comparison framework (model vs official) |
 | `fiscal_model/validation/distributional_validation.py` | TPC distributional benchmark validation |
 | `fiscal_model/assistant/` | Ask assistant — `FiscalAssistant` orchestrator, `AssistantTools` dispatcher, BM25 knowledge search, citation post-processor, cost meter, sqlite rate limiter, admin queries, share-link encoding |
-| `fiscal_model/assistant/knowledge/` | 23 curated Markdown snapshots (CBO baseline, SSA Trustees, TCJA, capital gains, international tax, retirement, fiscal multipliers, ETI literature, state/local, IRA, etc.); frontmatter carries the canonical source URL for citations |
+| `fiscal_model/assistant/knowledge/` | 23 hand-curated Markdown files — 22 topic snapshots plus the corpus README, all of them BM25-indexed, which is the count `check_readiness.py` reports. Topics: CBO baseline, CBO long-term outlook, SSA Trustees, TCJA overview, PWBM TCJA dynamic, TPC TCJA distribution, capital gains, international tax, retirement accounts, IRA clean energy, tariff scoring, Yale Budget Lab tariffs, JCT tax expenditures, JCT distributional methodology, fiscal multipliers, dynamic-scoring concepts, ETI literature, debt sustainability, state/local, Medicare/Medicaid drivers, key definitions, common-confusion FAQ. Frontmatter carries the canonical source URL for citations |
 | `fiscal_model/ui/tabs/ask_assistant.py` | Streamlit chat UI — streaming, dollar-sign safety, follow-up chips, share button, rate-limit and unavailable-key UX |
 | `fiscal_model/ui/tabs/assistant_admin.py` | Token-gated admin dashboard (visible only when URL `?admin=<token>` matches `ASSISTANT_ADMIN_TOKEN`) |
 
@@ -344,7 +344,7 @@ Completed:
 9. ✅ Multi-model pilot platform (CBO-style, TPC-microsim, PWBM-OLG) wired into the Scoring Models tab
 10. ✅ API hardening (X-API-Key auth, rate limiting, structured logging)
 11. ✅ `GET /summary`, `GET /benchmarks` API endpoints + `scripts/run_validation_dashboard.py` CI gate
-12. ✅ **Ask assistant** — citation-grounded Q&A, 23 curated authoritative snapshots, streaming tool-use loop, `/ask` + `/ask/stream` (SSE) endpoints, token-gated admin dashboard, share-link encoding, hard daily cost cap, /health + /readiness integration. 105 tests across the assistant stack.
+12. ✅ **Ask assistant** — citation-grounded Q&A, 23 curated authoritative knowledge files, streaming tool-use loop, `/ask` + `/ask/stream` (SSE) endpoints, token-gated admin dashboard, share-link encoding, hard daily cost cap, /health + /readiness integration. 105 tests across the assistant stack.
 
 **Wave 1 of `planning/MODELING_IMPROVEMENT.md` is done** (2026-09-01/02, PRs #83, #85, #86, #87, #88): L2 budget-authority→outlay spend-out, L5 AMT live exemption branch + published year-indexed path, L7 pharma federal incidence, plus IIJA's superseding authorization-path row and spend-out for the app's spending presets.
 

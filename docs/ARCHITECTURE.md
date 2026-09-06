@@ -791,7 +791,7 @@ fiscal_model/assistant/
 │                           #   live:         query_fred, web_search,
 │                           #                 fetch_url (with pdfplumber)
 ├── knowledge_search.py     # tiny BM25 over assistant/knowledge/*.md
-├── knowledge/              # 19 hand-curated Markdown snapshots with
+├── knowledge/              # 23 hand-curated Markdown files with
 │                           # frontmatter source URLs
 ├── assistant.py            # FiscalAssistant — Anthropic streaming +
 │                           # tool-use loop (max 4 iterations + forced
@@ -848,7 +848,7 @@ count is reported back to the user as a defect signal.
 
 ### Knowledge corpus
 
-The 19 snapshots in `assistant/knowledge/*.md` are hand-curated, with
+The 23 files in `assistant/knowledge/*.md` are hand-curated, with
 frontmatter providing `source:` URL, `org:`, `year:`, and a
 `keywords:` line that BM25 indexes alongside the body for synonym
 recall (e.g., "tax expenditures" surfaces for a query about "revenue
