@@ -159,7 +159,15 @@ def test_estimate_ptc_cost_applies_growth_curve():
     assert cost["coverage_change_millions"] == 4.0
 
 
-def test_repeal_ptc_defaults_to_baseline_savings_when_not_calibrated():
+def test_repeal_removes_the_vintages_own_credit_path_not_a_level():
+    """An uncalibrated repeal reads CBO's projection for the year it is asked about.
+
+    Before lane W7 this branch returned ``CBO_PTC_ESTIMATES``'
+    ``baseline_enhanced_annual``, an unsourced "~$95B/year" that no factory ever
+    reached — ``create_repeal_ptc`` pinned an annual of 83.0 on top of it. The
+    constant is left in the module for the other branches; nothing in the
+    scoring path reads it any more.
+    """
     policy = PremiumTaxCreditPolicy(
         name="Repeal",
         description="Repeal",
@@ -167,4 +175,12 @@ def test_repeal_ptc_defaults_to_baseline_savings_when_not_calibrated():
         repeal_ptc=True,
     )
 
-    assert policy.estimate_static_revenue_effect(0) == CBO_PTC_ESTIMATES["baseline_enhanced_annual"]
+    assert policy.uses_baseline_credit_path() is True
+    # Publication 51298 (February 2026) Table 2: FY2028 outlays 66 + revenue
+    # reductions 8. Not a level, and not 95.0.
+    assert policy.estimate_static_revenue_effect(0, year=2028) == pytest.approx(74.0)
+    assert policy.estimate_static_revenue_effect(0, year=2034) == pytest.approx(113.0)
+    assert (
+        policy.estimate_static_revenue_effect(0, year=2028)
+        != CBO_PTC_ESTIMATES["baseline_enhanced_annual"]
+    )
