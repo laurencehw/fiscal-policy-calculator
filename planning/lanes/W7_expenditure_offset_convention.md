@@ -524,7 +524,7 @@ rather than counting. Nothing downstream turned on the count.
 
 | command | result |
 |---|---|
-| `python -m pytest tests/ -q` | **3,537 passed, 7 skipped** (`a251b32`: 3,518 passed, 7 skipped — the lane adds 19, counted by `--collect-only` on the two changed files: 110 → 129) |
+| `python -m pytest tests/ -q` | **3,537 passed, 7 skipped** (`a251b32`: 3,518 passed, 7 skipped — the lane adds 19, counted by `--collect-only` on the two changed test files: 110 → 129). Measured on the outturn commit; the finding-6 commit that follows it adds and removes no test, and its two touched files were re-run green (`tests/test_tax_expenditures.py` + `tests/test_offset_sign_contract.py`, 123 passed / 6 skipped) |
 | `python scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 21` | **exit 0** (15.2%, 22/26 — the gate is not approached) |
 | `python scripts/run_loo.py --donor-matrix --max-mean-error 75` | **exit 0** (30.1%) |
 | `python scripts/run_validation_dashboard.py` | **exit 1**, as on `a251b32`; the diff is **two lines**, both the Expenditures LOO figure |
