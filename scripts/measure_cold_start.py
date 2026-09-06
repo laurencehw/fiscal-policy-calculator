@@ -342,10 +342,10 @@ from fiscal_model.ui import cache as ui_cache
 ui_cache._health_snapshot["value"] = {"status": "healthy", "checks": {}}
 ui_cache._health_snapshot["at"] = time.monotonic()
 
-# Instrument the two phases that happen *inside* the script run. app.py
-# imports both at call time, so patching the module objects here reaches the
-# copy AppTest's freshly executed script will import from sys.modules.
-inner = {"deps_build": 0.0, "chrome": 0.0, "page_config": 0.0}
+# Instrument the phases that happen *inside* the script run. app.py imports
+# these at call time, so patching the module objects here reaches the copy
+# AppTest's freshly executed script will import from sys.modules.
+inner = {"deps_build": 0.0, "scorecard": 0.0, "page_config": 0.0}
 
 _real_build = deps_mod.build_app_dependencies
 def _timed_build(*a, **k):
@@ -356,15 +356,29 @@ def _timed_build(*a, **k):
         inner["deps_build"] += time.perf_counter() - t
 deps_mod.build_app_dependencies = _timed_build
 
-import components.chrome as chrome_mod
-_real_chrome = chrome_mod.render_chrome
-def _timed_chrome(*a, **k):
+# The page footer asks for the benchmark count on every page, which computes
+# the whole validation scorecard. It is memoized process-wide, so exactly one
+# visitor per container pays it — the first one, on the critical path of the
+# first script run. Timed here because it turned out to be the largest single
+# term in the local cold hit, larger than every import put together.
+import fiscal_model.validation as validation_pkg
+import fiscal_model.validation.scorecard as scorecard_mod
+scorecard_mod.reset_scorecard_cache()
+_real_scorecard = scorecard_mod.cached_default_scorecard
+def _timed_scorecard(*a, **k):
     t = time.perf_counter()
     try:
-        return _real_chrome(*a, **k)
+        return _real_scorecard(*a, **k)
     finally:
-        inner["chrome"] += time.perf_counter() - t
-chrome_mod.render_chrome = _timed_chrome
+        inner["scorecard"] += time.perf_counter() - t
+# BOTH bindings, and the second one is not optional. ui/helpers.py imports it
+# from the submodule but ui/preset_validation.py imports it from the *package*,
+# which re-exported it into a separate name at import time. Patching only the
+# submodule reported 0.000s on a scored first hit — where the evidence card
+# reaches the package binding first, computes the scorecard, and leaves the
+# footer a warm cache to read through the instrumented one.
+scorecard_mod.cached_default_scorecard = _timed_scorecard
+validation_pkg.cached_default_scorecard = _timed_scorecard
 
 import streamlit as st
 _real_page_config = st.set_page_config
