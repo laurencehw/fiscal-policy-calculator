@@ -638,6 +638,14 @@ def gains_at_death_caption(policy: Any, result: Any) -> str:
     those in moved the headline on this form materially, so it ships with its
     explanation rather than in silence.
 
+    Wave 7 added the clause about the distribution. Every one of those reliefs,
+    and the per-donor exclusion itself, is a function of how big the estate is,
+    and the model now integrates over a fitted size distribution of estates at
+    death rather than five class averages. It moved this form's figures by 1-3
+    percent, which is small; the sentence is there because a reader entitled to
+    know that an exclusion applies *per decedent* is also entitled to know that
+    the decedents differ.
+
     Computed by replaying the scorer's own death-channel loop over the same
     window, so it cannot drift from the figure above it. Returns ``""`` for
     anything that is not a step-up-elimination capital-gains policy.
@@ -671,7 +679,8 @@ def gains_at_death_caption(policy: Any, result: Any) -> str:
     )
     per_donor = (
         f" A \\${exclusion:,.0f} per-decedent exclusion then applies to what is "
-        f"left, not to the whole gain."
+        f"left, not to the whole gain, and it is subtracted across a fitted "
+        f"distribution of estate sizes rather than from an average estate."
         if exclusion > 0
         else " This design states no per-decedent exclusion."
     )

@@ -622,6 +622,8 @@ def test_the_note_ships_with_the_number_that_moved():
     assert "$1,000,000 per-decedent exclusion" in caption.replace("\\", "")
     assert "to what is left, not to the whole gain" in caption
     assert "Inter-spousal transfers and tangible personal property" in caption
+    # Wave 7: and that the exclusion meets a spread of estates, not an average.
+    assert "fitted distribution of estate sizes" in caption
 
 
 def test_the_note_reports_the_scorer_s_own_death_channel():
