@@ -33,18 +33,28 @@ decision is made.
 from __future__ import annotations
 
 import contextlib
+import sys
 from pathlib import Path
 from typing import Any
 
-import pandas as pd
 import streamlit as st
 
-from fiscal_model.ui.runtime_logging import (
-    build_runtime_metadata,
-    configure_runtime_logger,
-    log_runtime_event,
-)
-
+# NOTE — nothing under ``fiscal_model`` and no ``pandas`` at module scope.
+#
+# Streamlit runs this file top to bottom before ``main`` executes a line, so
+# every module-level import is time the visitor spends looking at nothing.
+# Measured with ``scripts/measure_cold_start.py paint``: importing
+# ``fiscal_model.ui.runtime_logging`` here cost **1.56s** before the first
+# ``st.set_page_config`` — and almost none of it was the logging helpers, which
+# are three stdlib functions. It was the *packages on the way there*:
+# ``fiscal_model/__init__`` (0.98s, which re-exports every policy module, and
+# through them scipy.stats and matplotlib.pyplot) and ``fiscal_model/ui/__init__``
+# (0.13s). Python must execute a package's ``__init__`` to reach a submodule,
+# so the only way not to pay that before the first paint is not to name a
+# ``fiscal_model`` submodule until after it.
+#
+# Both are pulled in a moment later by the dependency build regardless — the
+# point is *ordering*, not avoidance. See ``planning/memos/COLD_START.md``.
 _DEPS_SESSION_KEY = "_app_dependencies"
 
 
@@ -64,14 +74,25 @@ def _render_head_metadata(st_module: Any) -> None:
         "think-tank scores."
     )
     try:
+        # ``allow_compute=False`` answers only from the scorecard's ``lru_cache``,
+        # and a cache inside a module that has not been imported is empty by
+        # construction — so on the first script run the answer is provably 0
+        # and asking costs a 1.1s import of ``fiscal_model`` to be told so.
+        # Skip the question until something else has loaded the module, which
+        # the page footer does a moment later; from the second run on this
+        # branch is taken and the blurb is exactly what it always was.
+        if "fiscal_model.validation.scorecard" not in sys.modules:
+            raise LookupError("scorecard memo cannot be warm yet")
+
         from fiscal_model.ui.helpers import validated_policy_count
 
         # 0 means the scorecard could not be computed *or* has not been
         # computed yet. Say nothing about coverage rather than print a number
         # the scorecard cannot back — and never block on computing it here:
         # this runs before the first pixel of the first script run, and the
-        # scorecard takes ~2.5s cold, for a ``<meta>`` tag. The page footer
-        # computes it a moment later, so every run after the first has it.
+        # scorecard takes ~5.8s cold (measured 2026-09-05), for a ``<meta>``
+        # tag. The page footer computes it a moment later, so every run after
+        # the first has it.
         if (_n := validated_policy_count(allow_compute=False)) > 0:
             _blurb = (
                 "Estimate the budgetary impact of tax and spending proposals. "
@@ -130,6 +151,10 @@ def _clear_boot_placeholder(slot: Any) -> None:
 
 def _default_deps_builder(*, pd_module):
     from fiscal_model.ui.dependencies import build_app_dependencies
+
+    if pd_module is None:
+        # Deliberately here and not at module scope: see the note at the top.
+        import pandas as pd_module
 
     return build_app_dependencies(pd_module=pd_module)
 
@@ -416,19 +441,41 @@ def _register_page_links(registry: dict[str, Any]) -> None:
         pass
 
 
+def _runtime_logging():
+    """The structured-logging helpers, imported on demand.
+
+    They are three stdlib-only functions, but they live under ``fiscal_model``,
+    and naming a submodule executes ``fiscal_model/__init__`` — 0.98s of policy
+    modules, scipy.stats and matplotlib.pyplot. Deferred so the boot placeholder
+    is on screen before that bill comes due.
+    """
+    from fiscal_model.ui.runtime_logging import (
+        build_runtime_metadata,
+        configure_runtime_logger,
+        log_runtime_event,
+    )
+
+    return build_runtime_metadata, configure_runtime_logger, log_runtime_event
+
+
 def main(
     *,
     st_module=st,
-    pd_module=pd,
+    pd_module=None,
     app_root: Path | None = None,
     deps_builder=None,
     classroom_renderer=None,
 ) -> None:
-    """Bootstrap the Streamlit router in a testable, import-safe wrapper."""
-    logger = configure_runtime_logger(__name__)
+    """Bootstrap the Streamlit router in a testable, import-safe wrapper.
+
+    Order is load-bearing. ``set_page_config`` and the boot placeholder come
+    **first**, before any ``fiscal_model`` import, because on a cold container
+    everything up to the first emitted element is a blank page. The boot log
+    line therefore lands a moment later than it used to — after the placeholder
+    rather than before ``set_page_config`` — which is a change to the log
+    ordering and to nothing a visitor sees.
+    """
     route_mode = getattr(st_module, "query_params", {}).get("mode", "")
-    metadata = build_runtime_metadata(entrypoint="app.py", mode=route_mode or "calculator")
-    log_runtime_event(logger, "app_boot", **metadata)
 
     _render_head_metadata(st_module)
 
@@ -438,6 +485,8 @@ def main(
     # frame, exactly as it behaves today. ``/classroom`` is the new canonical
     # route and does the same thing from inside the nav.
     if route_mode == "classroom":
+        _, configure_runtime_logger, log_runtime_event = _runtime_logging()
+        logger = configure_runtime_logger(__name__)
         renderer = classroom_renderer or _default_classroom_renderer
         try:
             log_runtime_event(logger, "app_route", route="classroom")
@@ -455,6 +504,11 @@ def main(
     # Claimed before the scorer bundle is built — the first run's slowest step
     # with nothing on screen. Cleared once the navigation frame exists.
     boot_slot = _boot_placeholder(st_module)
+
+    build_runtime_metadata, configure_runtime_logger, log_runtime_event = _runtime_logging()
+    logger = configure_runtime_logger(__name__)
+    metadata = build_runtime_metadata(entrypoint="app.py", mode=route_mode or "calculator")
+    log_runtime_event(logger, "app_boot", **metadata)
 
     try:
         deps = _get_dependencies(st_module, pd_module, builder)
