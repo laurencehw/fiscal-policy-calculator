@@ -322,132 +322,237 @@ clamp is not a contract.
 
 ### Capital Gains: Realizations Elasticity
 
-Capital gains realizations respond more strongly than wage income due to timing flexibility (the lock-in effect). We model this with **time-varying elasticity** following CBO/JCT methodology:
+**The response is to the tax rate, not to the net-of-tax rate.** The realization
+literature reports an elasticity defined as the percentage change in
+realizations over the percentage change in the *capital gains tax rate*, and the
+functional form behind it is semi-log. CRS R48562, *Boundaries on the Long-Run
+Realization Response to Changes in Capital Gains Taxes* (2025), states both
+(pp. 1 and 13): `R = B·exp(−b·t)`, so `ε(t) = b·t`. The module therefore applies
 
 ```
-R₁ = R₀ × ((1-τ₁)/(1-τ₀))^ε(t)
+R₁ = R₀ × exp(−b × (τ₁ − τ₀))        b = elasticity / reference rate
 ```
 
-Where:
-- R₀ = baseline realizations
-- τ₀, τ₁ = baseline and reform tax rates
-- ε(t) = elasticity that transitions from short-run to long-run
+Until Wave 2 it applied `R₁ = R₀ × ((1−τ₁)/(1−τ₀))^ε` — an elasticity with
+respect to the **net-of-tax** rate — using values the literature reports on the
+**tax** rate. That understates the response by roughly `(1−τ)/τ`: at τ = 23.8% a
+nominal ε = 0.8 is an effective tax-rate elasticity of **0.25**, a third of
+anything in CRS's Table 4. The unit error, not a parameter choice, was most of
+why every rate-change row over-predicted.
 
-**Time-Varying Elasticity Parameters:**
+Two properties come free with the correct form and neither is a second
+parameter. The implied elasticity `ε(τ) = b·τ` **rises with the rate**, so the
+top bracket responds more than the 15% bracket to the same percentage-point
+change. And there is a **revenue-maximizing rate**, `τ* = 1/b`.
 
-| Parameter | Value | Rationale |
-|-----------|-------|-----------|
-| Short-run elasticity (years 1–3) | 0.8 | Timing and anticipation effects dominate |
-| Long-run elasticity (years 4+) | 0.4 | Only permanent behavioral response |
-| Transition period | 3 years | Linear interpolation |
+**Frozen elasticity parameters.** One set for every scored case — the
+`CapitalGainsPolicy` dataclass defaults, per owner Decision 3 of
+[`planning/MODELING_IMPROVEMENT.md`](../planning/MODELING_IMPROVEMENT.md). The
+`scenarios.py` per-case behavioural tuples earlier revisions of this file
+described no longer exist.
 
-**References:**
-- CBO (2012): Short-run ε ≈ 0.7–1.0
-- Dowd, McClelland & Muthitacharoen (2015): Long-run ε ≈ 0.3–0.5
-- Penn Wharton Budget Model: Distinguishes transitory vs. permanent response
+| Parameter | Value | Source |
+|-----------|------:|--------|
+| `persistent_elasticity` | 0.72 | Dowd, McClelland & Muthitacharoen (2015), *New Evidence on the Tax Elasticity of Capital Gains*, NTJ 68(3) |
+| `transitory_elasticity` | 1.20 | same |
+| `elasticity_reference_rate` | 0.22 | CRS R48562 Table 4 note — the tax rate its estimates are adjusted to |
+
+That gives **b = 3.273** and **τ\* = 30.6%**. JCT's own working coefficient is
+**3.1** (CRS R48562 p. 8, supplied by the committee) and Treasury's is 0.72 at
+22%, the same as DMM's — agreement to within 6%, which is the cross-check that
+this is a unit fix rather than a tuning knob. Agersnap & Zidar (2021) estimate a
+much lower 0.3–0.5 and imply a higher τ\*; they are named in the docstring as
+the alternative and are deliberately **not** used.
+
+The transitory coefficient is a **retiming** response, so it applies in the
+enactment year only, and only to the share of the base a taxpayer can choose
+when to realize: net long-term gain (IRS SOI Table 1.4A), **87.7%** of the base
+at threshold 0. Qualified dividends and capital-gain distributions have no
+timing margin and do not get it.
+
+**The base is IRS SOI Table 3.5.** Table 3.5 publishes, for every AGI class, the
+income actually taxed at each preferential rate and the tax it generated, so a
+rate change applies to each bracket's own price rather than to one blended
+aggregate. At threshold 0, tax year 2023 (the §1411 NIIT surtax is added where
+the AGI class lies above its threshold):
+
+| Bracket | Realizations | Effective rate |
+|---|--:|--:|
+| 0% | $66.8B | 0.0% |
+| 0% + NIIT | $13.9B | 3.8% |
+| 15% | $81.1B | 15.0% |
+| 15% + NIIT | $263.1B | 18.8% |
+| 20% + NIIT | $682.6B | 23.8% |
+| **Total** | **$1,107.7B** | |
+
+**And it is projected across the window.** SOI reports a tax year; a ten-year
+score prices ten later ones. Realizations are a flow off the accrued-gains stock
+at the observed hazard — `R = h·A` — so the flow grows at the rate the stock
+already grows at, **5.80%/yr**, the Federal Reserve Distributional Financial
+Accounts' 1998–2024 net-worth CAGR (`realizations_projection_factor`). Holding it
+flat instead would assert a hazard falling 5.8% a year, which is a behavioural
+claim nobody made, and no new constant enters either way. The projection applies
+only where the base's tax year is known: a caller who supplies
+`baseline_realizations_billions` supplies an aggregate whose vintage this class
+has no field for, so that base is used exactly as given.
+
+**What the rate channel does not do.** There is no receipts lag — the enactment
+year is scored at full strength against a fiscal year scorekeepers book at a
+fraction of one, which is most of what is left on `cbo_opt47_ltcg_qdiv_2pp`. And
+5.80% is a net-worth CAGR carried forward, not a realizations projection: CBO's
+own baseline returns realizations toward a historical share of GDP, and tax year
+2023 is a trough ($1,283.6B in 2022, $943.4B in 2023, $1,368.1B in 2024). The
+level anchor is probably low and the growth possibly high, in opposite
+directions, and neither is corrected.
 
 ### Step-Up Basis at Death
 
-Under current law, unrealized capital gains are forgiven at death (step-up basis), creating a much stronger lock-in effect because taxpayers can avoid tax entirely by holding until death.
+Under current law unrealized gains are forgiven at death, so holding until death
+avoids the tax entirely.
 
-We model this with a **lock-in multiplier** applied to the base elasticity:
-```
-ε_effective = ε_base × step_up_lock_in_multiplier
-```
+**Lock-in is not a multiplier.** The `5.3×` and `2.0×`
+`step_up_lock_in_multiplier` earlier revisions of this file described were
+deleted in Wave 2, along with `no_step_up_avoidance_multiplier`. The wedge is
+derived instead. A share `ω = m/(h+m)` of the accrued-gains stock leaves it at
+death rather than by sale, where `h` is the observed realization hazard and `m`
+the mortality-weighted death-exit rate, so those gains are never taxed while
+step-up survives. The price of realizing now is `τ·(1 − (1−ω)·d)` with step-up
+against `τ·(1 − d)` once death is a realization event, where `d` discounts the
+deferral over the expected holding horizon `1/(h+m)`:
 
-**The module default is 2.0×, not 5.3×.** `CapitalGainsPolicy.step_up_lock_in_multiplier`
-defaults to `2.0` (`fiscal_model/policies_core.py:411`) and `get_elasticity_for_year`
-applies it whenever `step_up_at_death=True` and `eliminate_step_up=False`. The `5.3×`
-that earlier revisions of this file printed as “current law” is **not** a model
-constant. Exactly one place in the codebase ever *sets* it — the
-`pwbm_39_with_stepup` entry of `fiscal_model/validation/scenarios.py:89`, where it is a
-per-case constant hand-fitted to reproduce PWBM's published revenue loss. (Grep will
-also find `5.3` in `tests/test_loo.py` and `tests/test_policies.py`, which assert that
-scenario's value, and in prose here and in
-[`planning/MODELING_IMPROVEMENT.md`](../planning/MODELING_IMPROVEMENT.md). Those are
-references to the same one constant, not additional uses of it.) No scoring path
-outside that single calibrated reconstruction runs on 5.3×.
+| Quantity | Value | Where from |
+|---|--:|---|
+| Realization hazard `h` | 2.35%/yr | SOI realizations over the DFA accrued-gains stock |
+| Death exit rate `m` | 2.65%/yr | NCHS *United States Life Tables, 2022* (NVSR 74-02) Table 1 against DFA net worth by age of head |
+| Escape share `ω` | 53% | `m/(h+m)` |
+| Holding horizon | 20 years | `1/(h+m)` |
+| `deferral_discount_rate` | 4% | module default |
+| **Lock-in wedge** | **1.44×** | `CapitalGainsPolicy.lock_in_wedge()` |
 
-| Setting | Lock-in multiplier | Effective ε (short / long run) | Where it applies |
-|---|---|---|---|
-| Step-up in force — **module default** | **2.0×** | 1.6 / 0.8 | The `CapitalGainsPolicy` default, the Tailor UI default (slider 1.0–6.0), every Tier 1 out-of-sample capital-gains case, and every leave-one-out run (`validation/loo.py:912` freezes it) |
-| Step-up eliminated | 1.0× | 0.8 / 0.4 | `eliminate_step_up=True` switches to `no_step_up_avoidance_multiplier`, whose own default is 1.0 |
-| Step-up eliminated, PWBM residual-avoidance calibration | 1.5× | 1.2 / 0.6 | The `pwbm_39_no_stepup` validation scenario only |
-| Step-up in force, PWBM revenue-matching calibration | 5.3× | ~4.2 / ~2.1 | The `pwbm_39_with_stepup` validation scenario only — a fitted answer key, not a parameter |
+DMM estimated their elasticity under current law, so the literature `b` is the
+**with**-step-up value; eliminating step-up divides it by the wedge, and that
+division is the whole difference between the with- and without-step-up scores.
+Realizations that do not happen stay in the stock, which then supplies later
+realizations and a larger flow of gains at death; that feedback is tracked as a
+**ratio** to the baseline stock (`stock_ratio`), so the baseline's own growth
+cancels and no growth rate enters the realizations flow.
 
-**Which multiplier is behind which published result.** The two Tier 2a rows
-“PWBM 39.6% capital gains (with step-up), +$33B official vs +$30B model” and
-“(no step-up), −$113B vs −$113B” are the *only* results that use 5.3× and the 1.5×
-residual-avoidance value respectively, and both are calibrated reconstructions.
-Every Tier 1 out-of-sample capital-gains case — CBO Option 47, CBO Option 51,
-`biden_capital_gains_39`, `treasury_capgains_39_plus_stepup_elim` — and every
-leave-one-out row runs on the frozen `2.0` default together with the frozen
-0.8 / 0.4 elasticity pair. That is what makes them predictions rather than fits.
+#### The flow of gains transferred at death
 
-**The 5.3× is a known defect, not a finding.** `python scripts/run_loo.py --donor-matrix`
-shows it is the only donor tuple that can score the other two capital-gains cases
-(mean absolute error on the others: 29.7% for the 5.3× donor, against 104.8% and
-333.2% for the other two), and under the frozen defaults its own case flips sign at
-−370.5%. Lane L1 of the
-[modeling-improvement plan](../planning/MODELING_IMPROVEMENT.md) is to delete the
-multiplier outright and let lock-in fall out of a stock of accrued gains with a
-realization hazard.
+The flat **$54B/yr** constant this section used to quote is gone as well.
+Poterba & Weisbenner (2001) Table 8 report, from the 1998 Survey of Consumer
+Finances, expected estates of $118.9B/yr and expected unrealized capital gains at
+death of $42.8B — **36% of estate value** — on the convention that transfers to a
+surviving spouse are not realization events. Both are carried as shares of
+household net worth in the same year and grown with the Financial Accounts stock,
+so the flow is indexed to the asset stock rather than frozen at a constant:
+**$196.2B in 2025**, spread over **408,532 decedents**.
 
-The no-step-up PWBM validation case uses the residual-avoidance calibration because PWBM notes that threshold timing and business-form shifting remain even when constructive realization at death removes the full step-up lock-in channel.
+#### What such a proposal actually reaches
 
-When step-up is eliminated, gains become taxable at death:
-```
-Revenue_death = τ × Gains_at_death × (1 - exemption_share)
-```
+Every published realization-at-death proposal states reliefs. The module prices
+the ones that bite on a base measured as *unrealized gains*, in this order, and
+the per-donor exclusion is applied **after** all of them, because both Green
+Books grant it against *"other* unrealized capital gains" (FY2022 report
+pp. 62–63; FY2025 pp. 80–81):
 
-Key estimates:
-- Annual gains at death: ~$54B (CBO)
-- Biden proposal ($1M exemption): ~$14B/year additional revenue
-- Full elimination (no exemption): ~$23B/year
+| Relief | How it is priced | Source |
+|---|---|---|
+| Charitable bequests | The charitable deduction over the gross estate net of spousal bequests, by size of estate: **36.20%** at $50M+, 12.03% ($20–50M), 6.20% ($10–20M), 4.30% below $10M, and zero below SOI's smallest printed class | IRS SOI *Estate Tax Statistics* Table 1, filing year 2024 |
+| Family-owned-business deferral | The active-business share of unrealized gain (72.3% at $10M+, 0.6% at the bottom), recaptured inside the window at the module's own realization hazard, `1 − (1−h)^(t+1)` | PW Table 8; the election is stated by both Green Books |
+| §121 principal residence | `min(residence gain, $250,000)` per decedent, on PW Table 8's residence share of unrealized gain (100.1% below $250K of net worth, 3.6% at $10M+) | 26 U.S.C. §121(b)(1) |
+| Rate response at death | `exp(−b·Δτ)` with the **persistent** coefficient only, divided by the lock-in wedge | Death cannot be retimed, so the transitory term has no place here |
+| Charitable substitution | Taxing gains at death makes a charitable bequest cheaper by `τ·g` per dollar given, so the share rises by `(1 − τ·g)^(−ε_c)`, `ε_c = 1.617` | Bakija, Gale & Slemrod (2003), NBER WP 9661, Table 1 spec (a) — the *smallest* magnitude in their own table; their (d) is 2.142 and Joulfaian (2000) reports 0.74 |
 
-> **Correction, 2026-09-06.** *Everything above this line describes the module as
-> it stood before Wave 2, and three of its load-bearing constants no longer
-> exist.* Wave 2's lane L1 deleted `scenarios.py`'s three per-case behavioural
-> tuples **and the 5.3× lock-in multiplier with them**, replacing the 0.8 / 0.4
-> net-of-tax pair with the `CapitalGainsPolicy` dataclass defaults —
-> Dowd–McClelland–Muthitacharoen (2015) persistent **0.72** / transitory **1.20**
-> at a 22% reference rate, applied **semi-logarithmically** as
-> `R₁ = R₀·exp(−b·Δτ)` with `b = ε/τ_ref`, because CRS R48562 defines the
-> realization elasticity on the **tax** rate rather than the net-of-tax rate.
-> Lock-in is now the with/without-step-up price wedge implied by the accrued-gains
-> stock, not a multiplier. The same lane replaced the flat **$54B/yr** gains-at-death
-> constant with decedent wealth times an unrealized-gain share by estate size.
-> The prose above is left as written rather than rewritten, per the repository's
-> own convention that history is not edited; **rebuilding this section on the
-> current mechanism is a carry-over.**
->
-> **Wave 7's PR #132 then replaced the estate-size schedule itself.** The
-> five-class decedent ladder — five point masses, each reading three published
-> carve-out step functions at that class's *mean* estate — became a
-> **piecewise-Pareto size distribution of net worth at death**, fitted to the
-> Distributional Financial Accounts' own percentile-group aggregates so that every
-> group's published aggregate is reproduced exactly, with the published wealth
-> breakpoints of all three ladders forced in as quadrature edges and the per-donor
-> exclusion applied pointwise. **The level is untouched** (Poterba & Weisbenner's
-> flow); only the shape changed. It revived **six of the seven published rows the
-> five means never evaluated**, including the whole $1M–$5M band both Green Book
-> exclusions sit in. The fit **refuses below the top decile and says so twice** —
-> the index comes back below one, and the implied median net worth of $389,500 is
-> 2.02× the SCF's published $192,700 — so the two groups there keep their old
-> group means. And it **disproved the hypothesis it was built to test**:
-> `max(0, gain − E)` is convex in the gain, so a mean-preserving spread *raises*
-> the taxable excess, and the $1M → $5M exclusion step went 82.26 → **85.02**,
-> further from Treasury's own $33.4B rather than nearer. **What moves that step is
-> the decedent headcount**: `estate_flow_rate` is Poterba & Weisbenner's *dollar*
-> flow of estates over net worth (0.3195%/yr) used as a *headcount* rate, giving
-> 408,532 decedents against roughly 3.09 million NCHS deaths, and about twice the
-> shipped count reproduces Treasury's step to within two billion.
-> `accrued_gains_parameters.csv` already carries an independently derived
-> `mortality_weighted_net_worth_share` of 2.65% that this channel does not read.
-> The headcount is a level change to the whole channel and moves CBO Option 51 the
-> wrong way, so it is an owner decision rather than a dispersion lane's — and
-> whoever takes it should start at the top, where the implied count is short by
-> only 1.6× against SOI's estate-tax returns while the total is short by 7.6×.
+**Two of the six stated reliefs remove nothing, and deducting them would be the
+error rather than the fix.** Poterba & Weisbenner's own Table 8 note settles it:
+*"Bonds, vehicles, and collectibles are assumed to have no accrued capital
+gains. … It is assumed a decedent transfers his/her full estate to a surviving
+spouse. Such inter-spousal transfers are not included in the estate totals
+reported above."* So the tangible-personal-property share is carried at **0.0**
+with the quotation attached and the marital-bequest share (24.4–34.7% of the
+gross estate by size class) is carried purely as a magnitude cross-check;
+neither is ever applied.
+
+Whether the family-business deferral applies is a **design** switch, not a
+behavioural parameter, and `GREEN_BOOK_DEATH_DESIGN_RULE` in
+`fiscal_model/validation/core.py` sets it from the documents: a Treasury Green
+Book proposal carries the reliefs its own volume states, and a budget option
+carries only what its own text describes. **CBO's Option 51 states none** — its
+whole text is *"capital gains would be taxed as if the decedent had sold the
+asset at death"* — so `defer_family_business_gains` is off by default and off for
+that row. The carve-outs and behavioural channels above are *not* design
+switches: a tax-exempt donee, a statutory §121 exclusion and a price response
+are properties of any constructive-realization regime, so Option 51 gets them.
+
+#### How big each estate is
+
+Every one of those reliefs is a function of estate size, and all three published
+ladders are step functions. Until Wave 7 the module evaluated them at **five
+class means**, so seven of their eighteen published rows were never read by any
+scored case — including the whole $1M–$5M band both Green Book per-donor
+exclusions sit in — and a per-decedent exclusion applied to a group mean was
+itself a step function, removing a whole class at once when it moved from $1M to
+$5M.
+
+`CapitalGainsBaseline.decedent_classes` now integrates over a **piecewise-Pareto
+size distribution of net worth at death**, fitted so that each Distributional
+Financial Accounts percentile group's own published aggregate is reproduced
+exactly, with the published wealth breakpoints of all three ladders forced in as
+quadrature edges and each bin represented by its analytic conditional mean
+(`DECEDENT_SLICES_PER_REGION = 200`; a convergence test pins that doubling the
+count moves the ten-year death channel by less than half a percent). The
+open-ended top class takes the index of the class below it, the convention
+`pareto_tail_index` already applies to SOI's open-ended top AGI class. **The
+level is untouched** — still Poterba & Weisbenner's flow — and only the shape
+changed.
+
+| Region | α | Threshold |
+|---|--:|---|
+| `s ≤ 0.01` (top 1%) | 1.526 | $61.01M at the 99.9th percentile, $13.50M at the 99th |
+| `0.01 < s ≤ 0.10` | 1.470 | $2.818M at the 90th |
+| `0.10 < s ≤ 0.50` | 0.813 | **not integrated** |
+
+**The fit refuses below the top decile and says so twice.** The third region's
+index comes back below one — a Pareto with no finite mean, which is what "these
+aggregates are not a tail" looks like in arithmetic — and the median it implies,
+$389,500, is 2.02× the Survey of Consumer Finances' published 2022 figure of
+$192,700. The two groups below the top decile therefore keep the group means they
+always had, which holds the death channel down.
+
+#### What is not modelled
+
+- **The decedent headcount is the coarsest thing left in the channel.**
+  `estate_flow_rate` is Poterba & Weisbenner's *dollar* flow of estates over net
+  worth (0.3195%/yr) used as a *headcount* rate, giving 408,532 decedents a year
+  against roughly 3.09 million NCHS deaths;
+  `accrued_gains_parameters.csv` already carries an independently derived
+  `mortality_weighted_net_worth_share` of 2.65% that this channel does not read.
+  Because a fixed per-donor exclusion bites on gains *per decedent*, too few
+  decedents means too much gain each and too little exclusion — about **twice**
+  the shipped count reproduces Treasury's own $1M → $5M step to within two
+  billion. It is a level change to the whole channel and moves CBO Option 51 the
+  wrong way, so it is an owner decision rather than a lane's, and whoever takes
+  it should start at the top, where the implied count is short by only 1.6×
+  against SOI's estate-tax returns while the total is short by 7.6×.
+- **Dispersion was not the cause of the exclusion-step gap, and Wave 7 disproved
+  the hypothesis it was built to test.** `max(0, gain − E)` is convex in the
+  gain, so a mean-preserving spread *raises* the taxable excess: replacing the
+  five means with the fitted distribution moved the $1M → $5M step **82.26 →
+  85.02**, further from Treasury's own $33.4B rather than nearer.
+- **The 15-year installment election** both Green Books state is not modelled; no
+  share of it is separately measurable in PW Table 8, and it would move both
+  Green Book rows down.
+- **The estate-tax deduction** for the capital gains tax paid at death — stated
+  by both Green Books *and* by Option 51 — is not modelled either. It is an
+  estate-tax interaction rather than a capital-gains one, worth roughly a tenth
+  of the channel on SOI's taxable returns.
+- **No lock-in unwind.** Constructive realization at death removes the incentive
+  to hold appreciated assets and so raises lifetime realizations; the module
+  reaches that channel only through a coefficient a zero rate change leaves
+  inert, which is why Option 51 gets none of it.
+- **The death rate does not vary with wealth.** One mortality-weighted exit rate
+  is applied across every wealth group.
 
 ---
 
@@ -1544,7 +1649,7 @@ universe is the open item.
 | Revenue feedback and crowding out | ✅ | ✅ |
 | Tax microsimulation | ✅ | Bracket-level + synthetic |
 | Distributional analysis | ✅ | ✅ |
-| Capital gains realization (time-varying ε) | ✅ | ✅ |
+| Capital gains realization (semi-log, rate-dependent ε) | ✅ | ✅ |
 | Trade/tariff policy | ✅ | ✅ |
 | International tax (GILTI, Pillar Two) | ✅ | ✅ |
 | Drug pricing | Partial | ✅ |
