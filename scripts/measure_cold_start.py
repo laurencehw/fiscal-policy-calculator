@@ -10,7 +10,7 @@ remaining wait is **import + first-run compute** there is more app-side work to
 do; if it is **container scheduling**, only a warm container or a note in the
 copy around the link helps.
 
-Three lanes, each runnable on its own:
+Four lanes, each runnable on its own:
 
 ``imports``
     ``python -X importtime`` over ``app``, the page modules and the third-party
@@ -41,14 +41,18 @@ Three lanes, each runnable on its own:
 
 ``live``
     A plain ``GET /`` against the deployment, split into DNS, TCP, TLS, TTFB
-    and body. This measures a **warm** container unless the app has actually
-    slept — see ``planning/memos/COLD_START.md`` for the runbook that gets a
-    cold one.
+    and body, following the redirect chain — ``<app>.streamlit.app/`` answers
+    ``303`` to an auth bounce rather than serving the shell, so a single hop
+    times the edge and not the app. This measures a **warm** container unless
+    the app has actually slept; Community Cloud sleeps an app after 12 hours
+    without traffic and does not wake it automatically. See
+    ``planning/memos/COLD_START.md`` for the runbook that gets a cold one.
 
 Usage::
 
     python scripts/measure_cold_start.py all
-    python scripts/measure_cold_start.py imports --repeats 3
+    python scripts/measure_cold_start.py imports --repeats 3 [--no-pycache]
+    python scripts/measure_cold_start.py paint --repeats 5
     python scripts/measure_cold_start.py firstrun --repeats 3
     python scripts/measure_cold_start.py live --repeats 3 --url https://…
     python scripts/measure_cold_start.py all --json out.json
@@ -463,8 +467,8 @@ def measure_firstrun(repeats: int) -> dict[str, Any]:
 # ── lane 4: the live deployment ──────────────────────────────────────────
 
 
-def _timed_get(url: str) -> dict[str, Any]:
-    """DNS / TCP / TLS / TTFB / body, one plain ``GET``, no redirects followed."""
+def _timed_get(url: str, cookies: dict[str, str] | None = None) -> dict[str, Any]:
+    """DNS / TCP / TLS / TTFB / body for one hop. Redirects are reported, not followed."""
     import http.client
     import socket
     import ssl
@@ -497,10 +501,16 @@ def _timed_get(url: str) -> dict[str, Any]:
 
     conn = http.client.HTTPConnection(host, port, timeout=60)
     conn.sock = sock
+    headers = {"User-Agent": "fpc-cold-start-measure/1.0"}
+    if cookies:
+        headers["Cookie"] = "; ".join(f"{k}={v}" for k, v in cookies.items())
     t3 = time.perf_counter()
-    conn.request("GET", path, headers={"User-Agent": "fpc-cold-start-measure/1.0"})
+    conn.request("GET", path, headers=headers)
     response = conn.getresponse()
     status = response.status
+    # Case-insensitive: the edge answers HTTP/2-style lowercase header names,
+    # and a dict lookup on "Location" silently returns None for every redirect.
+    response_location = response.getheader("Location")
     # First byte of the body — getresponse() has already read the headers.
     first = response.read(1)
     t_ttfb = time.perf_counter() - t3
@@ -521,9 +531,58 @@ def _timed_get(url: str) -> dict[str, Any]:
         "total_seconds": t_dns + t_tcp + t_tls + t_ttfb + t_body,
         # Streamlit Cloud serves its own interstitial when a container is
         # asleep or being scheduled; the shell HTML is otherwise static.
-        "looks_asleep": ("wake" in text.lower() and "app" in text.lower())
-        or "zzzz" in text.lower(),
+        # Streamlit Cloud serves the sleeping page when a container has been
+        # idle 12 hours. Its tell is the wake button's own label.
+        "looks_asleep": "get this app back up" in text.lower(),
+        "location": response_location,
+        "set_cookie": [v for k, v in response.getheaders() if k.lower() == "set-cookie"],
         "title": (re.search(r"<title>(.*?)</title>", text, re.S) or [None, ""])[1].strip()[:120],
+    }
+
+
+def _timed_get_following(url: str, *, max_hops: int = 8) -> dict[str, Any]:
+    """Walk the redirect chain like a browser would, summing the hops.
+
+    ``https://<app>.streamlit.app/`` does **not** answer with the app shell: it
+    answers ``303`` to ``share.streamlit.io/-/auth/app?redirect_uri=…``, an auth
+    bounce every anonymous visitor takes. Timing only the first hop measures the
+    edge redirect and calls it the app.
+
+    The bounce sets a cookie and only terminates for a client that sends it
+    back, so cookies are carried across hops. Without them the chain loops
+    ``/`` → auth → ``/-/login`` → ``/`` forever and the hop cap turns an
+    infinite redirect into a plausible-looking total — which is a measurement
+    artifact, not a slow app. ``looped`` says so explicitly rather than leaving
+    the reader to notice a repeated URL.
+    """
+    hops: list[dict[str, Any]] = []
+    cookies: dict[str, str] = {}
+    seen: set[str] = set()
+    current = url
+    looped = False
+    for _ in range(max_hops):
+        hop = _timed_get(current, cookies)
+        hops.append({**hop, "url": current})
+        for raw in hop.get("set_cookie", []):
+            name, _, rest = raw.partition("=")
+            cookies[name.strip()] = rest.split(";", 1)[0]
+        location = hop.get("location")
+        if hop["status"] not in (301, 302, 303, 307, 308) or not location:
+            break
+        current = location if "://" in location else current.rsplit("/", 1)[0] + location
+        if current in seen:
+            looped = True
+            break
+        seen.add(current)
+    total = sum(h["total_seconds"] for h in hops)
+    return {
+        "hops": hops,
+        "hop_count": len(hops),
+        "chain_total_seconds": total,
+        "final_status": hops[-1]["status"],
+        "final_url": hops[-1]["url"],
+        "looped": looped or len(hops) >= max_hops,
+        "looks_asleep": any(h["looks_asleep"] for h in hops),
     }
 
 
@@ -531,17 +590,27 @@ def measure_live(url: str, repeats: int) -> dict[str, Any]:
     runs: list[dict[str, Any]] = []
     for _ in range(repeats):
         try:
-            runs.append(_timed_get(url))
+            runs.append(_timed_get_following(url))
         except Exception as exc:  # network is allowed to be unavailable
             runs.append({"error": f"{type(exc).__name__}: {exc}"})
-    ok = [r for r in runs if "total_seconds" in r]
+    ok = [r for r in runs if "chain_total_seconds" in r]
     summary: dict[str, Any] = {"url": url, "runs": runs}
     if ok:
-        for key in ("dns", "tcp", "tls", "ttfb", "body", "total"):
-            summary[f"{key}_median_seconds"] = statistics.median([r[f"{key}_seconds"] for r in ok])
-        summary["status"] = ok[0]["status"]
-        summary["bytes"] = ok[0]["bytes"]
+        first = [r["hops"][0] for r in ok]
+        for key in ("dns", "tcp", "tls", "ttfb", "body"):
+            summary[f"{key}_median_seconds"] = statistics.median(
+                [h[f"{key}_seconds"] for h in first]
+            )
+        summary["first_hop_median_seconds"] = statistics.median([h["total_seconds"] for h in first])
+        summary["chain_median_seconds"] = statistics.median([r["chain_total_seconds"] for r in ok])
+        summary["hop_count"] = ok[0]["hop_count"]
+        summary["chain"] = [
+            {"url": h["url"], "status": h["status"], "seconds": round(h["total_seconds"], 3)}
+            for h in ok[0]["hops"]
+        ]
         summary["looks_asleep"] = any(r["looks_asleep"] for r in ok)
+        summary["looped"] = any(r["looped"] for r in ok)
+        summary["final_status"] = ok[0]["final_status"]
     return summary
 
 
@@ -608,18 +677,35 @@ def _print_firstrun(data: dict[str, Any]) -> None:
 def _print_live(data: dict[str, Any]) -> None:
     print("\n=== 4. Live deployment, plain GET / ===\n")
     print(f"  url: {data['url']}")
-    if "total_median_seconds" not in data:
+    if "chain_median_seconds" not in data:
         for run in data["runs"]:
             print(f"  ERROR {run.get('error')}")
         return
-    for key in ("dns", "tcp", "tls", "ttfb", "body", "total"):
-        print(f"  {key:<8}{data[f'{key}_median_seconds']:>8.3f}s")
-    print(f"  status {data['status']}, {data['bytes']} bytes")
-    print(f"  interstitial detected: {data['looks_asleep']}")
+    print("  first hop, split:")
+    for key in ("dns", "tcp", "tls", "ttfb", "body"):
+        print(f"    {key:<6}{data[f'{key}_median_seconds']:>8.3f}s")
+    print(f"    {'total':<6}{data['first_hop_median_seconds']:>8.3f}s")
+    print(
+        f"\n  redirect chain ({data['hop_count']} hop(s)); median total over all "
+        f"repeats {data['chain_median_seconds']:.3f}s. Per-hop timings below are "
+        "from the first repeat, not medians:"
+    )
+    for hop in data["chain"]:
+        print(f"    {hop['status']}  {hop['seconds']:>6.3f}s  {hop['url'][:88]}")
+    print(f"\n  final status: {data['final_status']}")
+    print(f"  sleeping page detected: {data['looks_asleep']}")
+    if data["looped"]:
+        print(
+            "  WARNING: the chain did not terminate — the total above is an\n"
+            "  artifact of the hop cap, not a page load time. Do not quote it."
+        )
     print(
         "\n  NOTE: this measures whatever state the container is in *now*. A\n"
         "  container that has served traffic recently is warm, and a warm TTFB\n"
-        "  says nothing about the cold one. See planning/memos/COLD_START.md."
+        "  says nothing about the cold one. Community Cloud apps sleep after\n"
+        "  12 hours without traffic and do NOT wake on their own — the visitor\n"
+        "  gets a page with a 'Yes, get this app back up!' button and has to\n"
+        "  click it. See planning/memos/COLD_START.md for the cold runbook."
     )
 
 
