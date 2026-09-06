@@ -16,6 +16,11 @@ layer here.
    disabled, the label and the provenance line are on the page, and an
    ordinary (non-frozen) link is untouched.
 
+Build is the same three layers over a *package* rather than a single score
+(final section). One extra thing has to hold there and is pinned explicitly:
+freezing must change what can be **touched** and never what is **counted**, so
+a frozen package and an open one are compared metric by metric and bar by bar.
+
 The AppTest fixtures are module-scoped: each one is a full script run of
 ``app.py`` including a scoring pass, which is seconds, not milliseconds.
 """
@@ -33,10 +38,16 @@ from fiscal_model.ui.frozen_links import (
     FROZEN_LABEL,
     FROZEN_REFUSAL_HEADING,
     FrozenAssignment,
+    FrozenBuildPackage,
     build_assignment_url,
+    build_package_assignment_url,
+    build_package_spec_hash,
     decode_frozen_assignment,
+    decode_frozen_build,
     engine_token,
     freeze_url,
+    frozen_build_refusal,
+    frozen_build_unresolved_refusal,
     frozen_refusal,
     is_classroom_request,
 )
@@ -544,3 +555,459 @@ def classroom_page_render(st_module):
     from app_pages import classroom as classroom_page
 
     classroom_page.render(st_module=st_module)
+
+
+# ---------------------------------------------------------------------------
+# Build — the same lock over a package (FOLLOWUPS carry-over)
+# ---------------------------------------------------------------------------
+#
+# ``/explore`` and ``/tailor`` freeze one score; ``/build`` freezes a checklist
+# and a deficit target. The lock half of the URL is byte-identical (the tests
+# above cover it once, for all three surfaces); what is new here is the package
+# half and the promise that freezing it changes nothing about the arithmetic.
+
+BUILD = "app_pages/build.py"
+PACKAGE_IDS = ("ss-donut-250k", "corporate-28pct")
+
+
+def _frozen_build_params(**overrides):
+    """A frozen ``/build`` link for a two-policy package at a 3% target."""
+    params = {
+        "policies": ",".join(PACKAGE_IDS),
+        "target": "3.0",
+        "metric": "pct_gdp",
+        "baseline": LIVE_BASELINE,
+        "engine": "frbus_lite",
+        "spec": build_package_spec_hash(PACKAGE_IDS, 3.0, "pct_gdp"),
+        "mode": "conventional",
+        "dynamic": "0",
+        "frozen": "1",
+    }
+    params.update(overrides)
+    return {key: value for key, value in params.items() if value is not None}
+
+
+# ---------------------------------------------------------------------------
+# Layer 1 — the package codec, without a runtime
+# ---------------------------------------------------------------------------
+
+
+def test_an_ordinary_build_link_carries_no_package():
+    assert decode_frozen_build({}) is None
+    assert decode_frozen_build({"policies": ",".join(PACKAGE_IDS), "target": "3.0"}) is None
+
+
+def test_decode_reads_the_whole_build_package():
+    package = decode_frozen_build(_frozen_build_params())
+
+    assert package == FrozenBuildPackage(
+        preset_ids=PACKAGE_IDS, target=3.0, metric="pct_gdp"
+    )
+    assert package.from_values is False
+    assert package.target_label == "3.0% of GDP"
+
+
+def test_the_build_package_round_trips_through_its_own_query_params():
+    package = decode_frozen_build(_frozen_build_params())
+    replayed = {**package.as_query_params(), "frozen": "1"}
+    assert decode_frozen_build(replayed) == package
+
+
+def test_the_build_package_decodes_legacy_labels_like_the_share_codec():
+    """One resolver for both link shapes — an old label is not a broken link."""
+    package = decode_frozen_build(_frozen_build_params(policies=TCJA_LABEL))
+    assert package.preset_ids == (TCJA_ID,)
+
+
+def test_a_dollar_target_keeps_its_own_metric():
+    package = decode_frozen_build(_frozen_build_params(target="1200", metric="usd_b"))
+    assert package.target == 1200.0
+    assert package.target_label == "$1,200B/yr"
+
+
+def test_a_frozen_build_link_naming_no_package_is_refused():
+    problem = frozen_build_refusal(
+        decode_frozen_build(_frozen_build_params(policies=None, target=None))
+    )
+    assert problem is not None
+    assert "names no package" in problem
+
+
+def test_a_values_link_is_a_package_and_is_not_refused():
+    """The composer is deterministic, so a philosophy is a package."""
+    package = decode_frozen_build(
+        _frozen_build_params(policies=None, target=None, values="deficit-hawk")
+    )
+    assert package.from_values is True
+    assert package.values_slug == "deficit-hawk"
+    assert frozen_build_refusal(package) is None
+    assert frozen_build_refusal(None) is None
+
+
+def test_a_package_this_catalog_cannot_rebuild_is_refused_too():
+    """Named but unresolvable is the same failure as unnamed, one step later."""
+    ids = decode_frozen_build(_frozen_build_params())
+    assert frozen_build_unresolved_refusal(ids, ["ss-donut-250k"]) is None
+
+    problem = frozen_build_unresolved_refusal(ids, [])
+    assert problem is not None and "not in this catalog" in problem
+
+    values = decode_frozen_build(
+        _frozen_build_params(policies=None, target=None, values="ghost-philosophy")
+    )
+    problem = frozen_build_unresolved_refusal(values, [])
+    assert problem is not None and "ghost-philosophy" in problem
+
+
+def test_the_build_spec_hash_covers_the_ids_the_target_and_the_metric():
+    base = build_package_spec_hash(PACKAGE_IDS, 3.0, "pct_gdp")
+    assert len(base) == 12
+    assert build_package_spec_hash(list(PACKAGE_IDS), 3.0, "pct_gdp") == base
+    assert build_package_spec_hash(PACKAGE_IDS[::-1], 3.0, "pct_gdp") != base
+    assert build_package_spec_hash(PACKAGE_IDS, 3.5, "pct_gdp") != base
+    assert build_package_spec_hash(PACKAGE_IDS, 3.0, "usd_b") != base
+
+
+def test_the_emitted_build_link_round_trips_onto_the_same_package_and_lock():
+    url = build_package_assignment_url(
+        PACKAGE_IDS,
+        3.0,
+        "pct_gdp",
+        engine="FRB/US-Lite (recommended)",
+        baseline=LIVE_BASELINE,
+        public_app_url="https://example.com",
+    )
+    params = {key: value[0] for key, value in parse_qs(urlparse(url).query).items()}
+
+    assert urlparse(url).path == "/build"
+    # The id list stays readable rather than %2C-escaped.
+    assert "policies=ss-donut-250k,corporate-28pct" in url
+
+    assert decode_frozen_build(params) == FrozenBuildPackage(
+        preset_ids=PACKAGE_IDS, target=3.0, metric="pct_gdp"
+    )
+    frozen = decode_frozen_assignment(params)
+    assert frozen == FrozenAssignment(
+        baseline=LIVE_BASELINE,
+        engine="frbus_lite",
+        dynamic=False,
+        spec=build_package_spec_hash(PACKAGE_IDS, 3.0, "pct_gdp"),
+        mode="conventional",
+    )
+    assert frozen_refusal(frozen) is None
+    assert frozen_build_refusal(decode_frozen_build(params)) is None
+
+
+def test_a_values_slug_rides_along_as_a_label_never_as_a_load():
+    """The ids are what is pinned; the philosophy is how it is described."""
+    url = build_package_assignment_url(
+        PACKAGE_IDS, 3.0, values_slug="deficit-hawk", public_app_url="https://example.com"
+    )
+    params = {key: value[0] for key, value in parse_qs(urlparse(url).query).items()}
+
+    assert params["values"] == "deficit-hawk"
+    assert params["policies"] == ",".join(PACKAGE_IDS)
+    # ``load=1`` would recompose the package from a catalog that may have been
+    # re-scored since the assignment was set.
+    assert "load" not in params
+
+
+def test_the_build_lock_survives_the_legacy_url_shim():
+    """A ``/build`` link is not legacy-shaped, so the shim leaves it alone."""
+    assert rewrite_legacy_query(_frozen_build_params()) is None
+
+
+# ---------------------------------------------------------------------------
+# Layer 2 — AppTest, through the real router
+# ---------------------------------------------------------------------------
+
+
+def _build_app(query_params: dict) -> AppTest:
+    at = AppTest.from_file("app.py", default_timeout=300)
+    at.switch_page(BUILD)
+    for key, value in query_params.items():
+        at.query_params[key] = value
+    at.run()
+    return at
+
+
+def _boxes(at: AppTest) -> dict:
+    return {
+        box.key: (box.value, box.disabled)
+        for box in at.checkbox
+        if box.key and box.key.startswith("dt_")
+    }
+
+
+def _metrics(at: AppTest) -> list:
+    return [(m.label, m.value, m.delta) for m in at.metric]
+
+
+def _search_box(at: AppTest):
+    return next(box for box in at.text_input if box.label.startswith("Search"))
+
+
+def _one(at: AppTest, kind: str, label: str):
+    """A widget AppTest has no typed accessor for (``download_button`` …)."""
+    for element in at.get(kind):
+        if getattr(element, "label", None) == label:
+            return element
+    raise AssertionError(f"no {kind} labelled {label!r}")
+
+
+def _waterfall(at: AppTest) -> dict:
+    """The bars themselves — labels, values and measures — from the figure spec."""
+    import json
+
+    charts = at.get("plotly_chart")
+    assert charts, "the waterfall did not render"
+    trace = json.loads(charts[0].proto.spec)["data"][0]
+    return {key: trace[key] for key in ("x", "y", "measure")}
+
+
+@pytest.fixture(scope="module")
+def frozen_build() -> AppTest:
+    return _build_app(_frozen_build_params())
+
+
+@pytest.fixture(scope="module")
+def open_build() -> AppTest:
+    """The same package with the lock taken off — the control case."""
+    params = _frozen_build_params()
+    for key in ("frozen", "spec", "baseline", "engine", "mode", "dynamic"):
+        params.pop(key, None)
+    return _build_app(params)
+
+
+def test_a_frozen_build_link_pins_the_package(frozen_build):
+    at = frozen_build
+    assert not at.exception, at.exception
+
+    assert at.session_state["build_selection"] == list(PACKAGE_IDS)
+    boxes = _boxes(at)
+    assert {key for key, (checked, _) in boxes.items() if checked} == {
+        f"dt_{build_id}" for build_id in PACKAGE_IDS
+    }
+    assert all(disabled for _, disabled in boxes.values()), "a checkbox is still editable"
+    assert len(boxes) > 40, "the whole catalog should still be readable"
+
+
+def test_a_frozen_build_link_disables_the_target_slider_at_the_links_value(frozen_build):
+    slider = _widget(frozen_build, "slider", "Target deficit (% of GDP)")
+    assert slider.value == 3.0
+    assert slider.disabled
+
+
+def test_a_frozen_build_link_disables_the_rest_of_the_strip(frozen_build):
+    at = frozen_build
+    # Search filters what is *visible*, and the metric toggle picks the unit the
+    # pinned target is expressed in; the mode toggle would swap the checklist
+    # for the panel that composes a different package.
+    assert _search_box(at).disabled
+    labels = {group.label: group.disabled for group in at.get("button_group")}
+    assert labels.get("Target metric") is True
+    assert labels.get("Start from") is True
+
+
+def test_a_frozen_build_link_says_it_is_frozen(frozen_build):
+    texts = _texts(frozen_build)
+
+    banner = [text for text in texts if FROZEN_LABEL in text and "2 policies" in text]
+    assert banner, "no frozen banner on the page"
+    assert "3.0% of GDP" in banner[0]
+
+    provenance = [text for text in texts if "frozen by your instructor" in text]
+    assert provenance, "no provenance line under the scoreboard"
+    assert provenance[0].startswith("Scored against CBO ")
+    assert "official list prices" in provenance[0]
+
+    assert any(
+        FROZEN_LABEL in text and "cannot be changed here" in text for text in texts
+    ), "the ⚙ popover does not show the lock"
+
+
+def test_a_frozen_build_counts_exactly_what_an_open_one_counts(frozen_build, open_build):
+    """The promise: freezing changes what can be touched, never what is counted."""
+    assert _metrics(frozen_build) == _metrics(open_build)
+    assert _waterfall(frozen_build) == _waterfall(open_build)
+
+
+def test_a_frozen_build_still_exports(frozen_build):
+    """A student has to be able to hand something in."""
+    assert not _one(frozen_build, "download_button", "Download CSV").disabled
+    assert any(
+        "Policy ids: ss-donut-250k,corporate-28pct" in text
+        for text in _texts(frozen_build)
+    ), "the copy summary is gone"
+
+
+def test_a_non_frozen_build_is_unchanged(open_build):
+    at = open_build
+    assert not at.exception, at.exception
+
+    assert at.session_state["build_selection"] == list(PACKAGE_IDS)
+    boxes = _boxes(at)
+    # Not "nothing is disabled": the overlap guardrails legitimately dim the
+    # exclusive siblings of what is ticked, frozen or not. The distinction is
+    # that a reader can still untick their own package and pick something else.
+    assert boxes["dt_ss-donut-250k"] == (True, False)
+    assert boxes["dt_corporate-28pct"] == (True, False)
+    assert sum(1 for _, disabled in boxes.values() if disabled) < len(boxes) / 2
+    assert not _widget(at, "slider", "Target deficit (% of GDP)").disabled
+    assert not _search_box(at).disabled
+    assert not any(FROZEN_LABEL in text for text in _texts(at))
+
+
+def test_editing_the_package_after_freezing_is_captioned_not_refused():
+    """The ``spec=`` convention, applied to ``policies=``.
+
+    A tampered link still renders: the hash covers the whole package, so a
+    retired catalog id would otherwise retire every assignment ever issued.
+    The page reports the divergence where it can be read and acted on — the
+    same call ``render_frozen_provenance`` makes on Explore and Tailor.
+    """
+    at = _build_app(_frozen_build_params(policies="ss-donut-250k"))
+    assert not at.exception, at.exception
+
+    # It scored the URL's package, not the instructor's...
+    assert at.session_state["build_selection"] == ["ss-donut-250k"]
+    warnings = [text for text in _texts(at) if "spec hash" in text]
+    assert warnings, "the tampered package was not reported"
+    assert build_package_spec_hash(["ss-donut-250k"], 3.0, "pct_gdp") in warnings[0]
+    assert build_package_spec_hash(PACKAGE_IDS, 3.0, "pct_gdp") in warnings[0]
+    assert "policies=" in warnings[0]
+    # ...and said so rather than refusing to show anything.
+    assert not any(FROZEN_REFUSAL_HEADING in text for text in _texts(at))
+
+
+def test_a_build_link_naming_another_vintage_counts_nothing():
+    at = _build_app(_frozen_build_params(baseline="january2025"))
+
+    assert not at.exception, at.exception
+    refusals = [text for text in _texts(at) if FROZEN_REFUSAL_HEADING in text]
+    assert refusals, "the refusal was not shown"
+    assert "CBO January 2025" in refusals[0]
+    # Nothing was drawn to read a number off, either.
+    assert not _boxes(at)
+    assert not at.metric
+
+
+def test_a_frozen_build_link_with_nothing_to_pin_is_refused():
+    at = _build_app(_frozen_build_params(policies=None, target=None))
+
+    assert not at.exception, at.exception
+    refusals = [text for text in _texts(at) if FROZEN_REFUSAL_HEADING in text]
+    assert refusals, "the refusal was not shown"
+    assert "names no package" in refusals[0]
+    assert not _boxes(at)
+
+
+def test_a_frozen_link_naming_a_philosophy_nobody_has_is_refused():
+    at = _build_app(
+        _frozen_build_params(policies=None, target=None, values="ghost-philosophy")
+    )
+
+    assert not at.exception, at.exception
+    refusals = [text for text in _texts(at) if FROZEN_REFUSAL_HEADING in text]
+    assert refusals, "the refusal was not shown"
+    assert "ghost-philosophy" in refusals[0]
+    assert not _boxes(at), "an unrebuildable package must not render an empty one"
+
+
+def test_a_frozen_values_link_composes_the_package_its_ids_would_have():
+    """Freezing a philosophy is legal exactly because this is true.
+
+    The composer is a pure function of tags × vector — the LLM only ever turns
+    free text into a vector, and a URL carries the vector, not the text — so
+    the philosophy and the id list it composes are two spellings of one
+    package.
+    """
+    from fiscal_model.composer.archetypes import get_archetype
+    from fiscal_model.composer.composer import compose_values_package, values_catalog
+
+    vector = get_archetype("deficit-hawk").vector
+    composed = list(compose_values_package(vector, values_catalog()).policy_ids)
+    # Deterministic before anything renders: same vector, same package.
+    assert composed == list(compose_values_package(vector, values_catalog()).policy_ids)
+
+    at = _build_app(
+        _frozen_build_params(policies=None, target=None, values="deficit-hawk")
+    )
+    assert not at.exception, at.exception
+    assert at.session_state["build_selection"] == composed
+    assert all(disabled for _, disabled in _boxes(at).values())
+    assert any(
+        "composed from the starting philosophy" in text for text in _texts(at)
+    ), "the banner does not say where the package came from"
+
+
+# ---------------------------------------------------------------------------
+# Making one: the instructor's control on Build
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def classroom_build() -> AppTest:
+    params = _frozen_build_params()
+    for key in ("frozen", "spec", "baseline", "engine", "mode", "dynamic"):
+        params.pop(key, None)
+    params["classroom"] = "1"
+    return _build_app(params)
+
+
+def test_the_build_assignment_control_is_classroom_only(classroom_build, open_build):
+    assert any("Assignment link" in text for text in _texts(classroom_build))
+    assert not any("Assignment link" in text for text in _texts(open_build))
+
+
+def test_the_values_panel_offers_the_frozen_package_it_composes():
+    """An instructor who starts from a philosophy can hand out its package.
+
+    The two links in that popover say different things and both are wanted:
+    the values link means "start where I started", the assignment link means
+    "hand in these numbers".
+    """
+    at = _build_app({"classroom": "1"})
+    assert not at.exception, at.exception
+
+    emitted = [
+        text
+        for text in _texts(at)
+        if text.startswith("http") and "frozen=1" in text and "values=" in text
+    ]
+    assert emitted, "the values panel emitted no frozen link"
+
+    params = {key: value[0] for key, value in parse_qs(urlparse(emitted[0]).query).items()}
+    package = decode_frozen_build(params)
+    # The philosophy is the label; the composed ids are what is pinned.
+    assert package.values_slug
+    assert package.preset_ids and not package.from_values
+    assert frozen_refusal(decode_frozen_assignment(params)) is None
+    assert "load" not in params
+
+
+def test_the_emitted_build_link_replays_onto_the_same_frozen_package(classroom_build):
+    """Encode → decode → replay, on a link the app really built."""
+    emitted = [
+        text
+        for text in _texts(classroom_build)
+        if text.startswith("http") and "frozen=1" in text
+    ]
+    assert emitted, "the instructor control emitted no frozen link"
+    params = {key: value[0] for key, value in parse_qs(urlparse(emitted[0]).query).items()}
+
+    package = decode_frozen_build(params)
+    assert package.preset_ids == PACKAGE_IDS
+    assert package.target == 3.0
+    frozen = decode_frozen_assignment(params)
+    assert frozen.baseline == LIVE_BASELINE
+    assert frozen.spec == build_package_spec_hash(PACKAGE_IDS, 3.0, "pct_gdp")
+    assert frozen_refusal(frozen) is None
+
+    replayed = _build_app(params)
+    assert not replayed.exception, replayed.exception
+    assert replayed.session_state["build_selection"] == list(PACKAGE_IDS)
+    assert all(disabled for _, disabled in _boxes(replayed).values())
+    assert _metrics(replayed) == _metrics(classroom_build)
+    # Replaying it raises no spec caption: the link records what the page finds.
+    assert not [text for text in _texts(replayed) if "spec hash" in text]

@@ -72,9 +72,19 @@ validation-documentation half of that review landed separately in
   in the ⚙ popover, and **refuses to score** when the URL's vintage is not the
   one the deployment serves. Codec and UI in `fiscal_model/ui/frozen_links.py`;
   instructors make one from a result surface opened with `?classroom=1`.
-  Carry-over: Build packages are not freezable, and the frozen link does not
-  pin the Data & methodology options (a spec-hash mismatch is captioned, not
-  refused).
+  **Build packages are freezable too** (closed 2026-09-06): `/build?policies=…
+  &target=…&metric=…` plus the same stamps pins the checklist and the target,
+  re-applied on every rerun rather than once per link, with every input on the
+  page rendered through the disabled proxy and the exports left working. The
+  package's `spec=` hashes ids + target + metric, so a hand-edited `policies=`
+  is captioned the way a spec mismatch is elsewhere; a link that names nothing,
+  or names policies this catalog does not have, is refused like an unserved
+  vintage. `?values=`/`?vector=` links are freezable because the composer is
+  deterministic — the LLM only turns free text into a vector, and a URL carries
+  the vector, not the text — and the emitted link resolves them to ids anyway,
+  so a re-scored catalog cannot recompose an assignment already handed out.
+  Carry-over: the frozen link still does not pin the Data & methodology options
+  (a spec-hash mismatch is captioned, not refused).
 - [~] **Cold start: ~20s of blank skeleton on Streamlit Cloud.** *Option (a)
   shipped in #82; **the measurement is now done** and written up in
   `planning/memos/COLD_START.md`, reproducible via
