@@ -397,11 +397,254 @@ Sequencing is the owner's; each names the artefact it lives in.
 6. **The residual.** Two of three rows read 50–130% in both modes. The mechanisms
    are named in `CORPORATE_PER_POINT_YIELD.md` §5(c) and none is buildable from a
    published source this module reads.
+7. **`run_validation_dashboard.py` does not print the calibrated tiers' means**
+   (§10.5 finding 1), so a change confined to calibrated rows passes the
+   repository's own CI dashboard byte-identically. Widening it is a script edit
+   and a separate decision; recorded so that "the dashboard is unchanged" is not
+   read as stronger evidence than it is.
 
 ## 10. Outturn
 
-*Appended in this lane's last commit.*
+*Appended 2026-09-05, after the code. Numbers from `python scripts/cold_holdout.py
+--json`, `python scripts/run_loo.py --donor-matrix`, `python
+scripts/run_validation_dashboard.py`, `validate_all_corporate(mode=...)` and a
+sweep of every shipped surface, run on the finished branch and diffed against
+the same commands at `ee5f563`.*
+
+### 10.1 Against the pre-registration
+
+| Row | Predicted | Actual | |
+|---|---|---|---|
+| `CORPORATE_APP_MODE` | `derived` | **`derived`** | as registered |
+| `biden_corporate_28` | −1,292.62, +4.04% | **−1,292.62, +4.04%** | as registered |
+| `biden_corporate_28_fy2022` | −1,292.62, −50.69% | **−1,292.62, −50.69%** | as registered |
+| `trump_corporate_15` | +1,545.24, +129.57% | **+1,545.24, +129.57%** | as registered |
+| Decision 1 mean, new default | 61.43% | **61.43%** (reported 62.75%) | as registered |
+| Tier 1 | identical, to the cent, every row | **identical** — the `out_of_sample` block of `cold_holdout.py --json` diffs to zero lines | as registered |
+| Fitted calibrated | 21 rows, one moves | **21 rows, one moves**; the runner's own summary 1.7% → **1.8%** | as registered |
+| Unfitted reconstructions | 34 rows, two move | **34 rows, two move**; summary 57.6% → **57.4%** | as registered |
+| Leave-one-out | byte-identical | **byte-identical** | as registered |
+| 🏢 Biden Corporate 28% | −1,310.92 (+6.18%) | **−1,310.92** | as registered |
+| 🏢 Trump Corporate 15% | +1,562.75 (+4.76%) | **+1,562.75** | as registered |
+| Package *Biden FY2025 Tax Plan* | −2,084.39 (+3.98%) | **−2,084.39** | as registered |
+| Package *Progressive Revenue Package* | −4,735.00 (+1.79%) | **−4,735.00** | as registered |
+| Seven Tailor corporate steps | +0.37% to +6.40%, each figure named | **all seven exactly** | as registered |
+| Three Ask hypothetical rows | +4.62% to +7.49%, each figure named | **all three exactly** | as registered |
+| Every other preset / package | 43 built presets, 8 `TaxPolicy` entries, 10 packages | **unchanged, to the cent** | as registered |
+| `cold_holdout.py --max-mean-error 20 --min-within-25pct 21` | exit 0 | **exit 0** | as registered |
+| `strict_readiness_issues` | `[('runtime', None)]` | **`[('runtime', None)]`**, and `check_readiness.py --strict` byte-identical at exit 2 | as registered |
+| `check_streamlit_boot.py` | exit 0 | **exit 0** | as registered |
+| `ruff` | 0 | **0** | as registered |
+| `pytest tests/ -q` | — | **3,525 passed, 7 skipped** (3,518 + 7 at the branch point) | — |
+| `run_validation_dashboard.py` | exit 1, differing in the corporate rows and the reconstruction mean | exit 1, **byte-identical** | **missed — finding 1** |
+
+**Every shipped figure landed on the registered number to the cent**, which is
+what a flip should do: it is a switch, not a model, and an unexpected figure
+would have meant a constant moved. `3,525 tests pass` (7 skipped), 7 of them
+new.
+
+### 10.2 The Decision 1 table under the new default
+
+| Benchmark | Target | `reported` | Err | `derived` (**shipped**) | Err |
+|---|--:|--:|--:|--:|--:|
+| `biden_corporate_28` | −$1,347.0B | −$1,397.21B | −3.73% | **−$1,292.62B** | **+4.04%** |
+| `biden_corporate_28_fy2022` | −$857.8B | −$1,397.21B | −62.88% | **−$1,292.62B** | **−50.69%** |
+| `trump_corporate_15` | +$673.1B (range [+$595.0B, +$673.1B]) | +$1,491.76B | +121.63% | **+$1,545.24B** | **+129.57%** |
+| **Mean abs** | | | **62.75%** | | **61.43%** |
+
+Ratings unchanged in both modes: Excellent / Poor / Poor.
+
+### 10.3 Every shipped number that moved
+
+| Surface | Before | After | Move |
+|---|--:|--:|--:|
+| 🏢 Biden Corporate 28% (CBO: −$1.35T) | −1,397.21 | **−1,310.92** | **+6.18%** |
+| 🏢 Trump Corporate 15% | +1,491.76 | **+1,562.75** | **+4.76%** |
+| Package *Biden FY2025 Tax Plan* | −2,170.68 | **−2,084.39** | +3.98% |
+| Package *Progressive Revenue Package* | −4,821.29 | **−4,735.00** | +1.79% |
+| Tailor −6pp | +1,197.61 | **+1,274.24** | +6.40% |
+| Tailor −2pp | +399.20 | **+409.30** | +2.53% |
+| Tailor −1pp | +199.60 | **+202.72** | +1.56% |
+| Tailor +1pp | −199.60 | **−198.86** | +0.37% |
+| Tailor +2pp | −399.20 | **−393.86** | +1.34% |
+| Tailor +5pp | −998.01 | **−955.68** | +4.24% |
+| Tailor +7pp | −1,397.21 | **−1,310.92** | +6.18% |
+| Ask hypothetical −6pp (FY2025 window) | +1,197.61 | **+1,256.45** | +4.91% |
+| Ask hypothetical +4pp | −798.41 | **−761.48** | +4.62% |
+| Ask hypothetical +7pp | −1,397.21 | **−1,292.62** | +7.49% |
+
+Nothing else moved. **43 of the 45 built presets, all 8 `TaxPolicy` preset
+entries and 10 of the 12 composite packages are identical to the cent**, and so
+is every scorecard row outside the three corporate benchmarks.
+
+Two shapes in that table are the derived identity showing through and both were
+registered in advance. The moves are **not uniform in the rate step** — +0.37%
+at +1pp against +6.18% at +7pp — because `derived` is concave in the rate where
+`reported` is exactly linear. And **every move is in the same direction**,
+toward a smaller deficit effect, because CBO's own projected receipts imply less
+base than the fitted $1,900B aggregate aged at 4%/yr does anywhere in the app's
+window.
+
+### 10.4 Falsification results
+
+All nine were checked. **One fired**, and in the direction of *less* change than
+registered.
+
+| # | Test | Result |
+|---|---|---|
+| 1 | Any non-corporate preset moves | 43 + 8 identical |
+| 2 | Any package but the two naming the Biden corporate preset moves | 10 of 12 identical |
+| 3 | Any scorecard row outside the three corporate benchmarks moves | 52 rows identical |
+| 4 | Tier 1 moves at all | **`out_of_sample` block diffs to zero lines** |
+| 5 | `run_loo.py --donor-matrix` not byte-identical | byte-identical |
+| 6 | A benchmark row lands off its registered figure | all three to the cent |
+| 7 | `strict_readiness_issues` returns anything but `[('runtime', None)]` | unchanged |
+| 8 | The Decision 1 margin is not 1.31pp | 62.75% and 61.43%, pinned by two tests |
+| 9 | `ruff`, boot or the CI gate changes exit code | 0 / 0 / 0, unchanged |
+| — | `run_validation_dashboard.py` differs as predicted | **byte-identical — finding 1** |
+
+### 10.5 Findings
+
+1. **The repository's own CI dashboard cannot see this flip.**
+   `run_validation_dashboard.py` is **byte-identical** before and after, where
+   the pre-registration expected it to move. It prints health components,
+   distributional calibration, the out-of-sample tier and the leave-one-out
+   suite — and **not** the calibrated tiers' means — so a change confined to
+   three calibrated rows passes it invisibly. The two tier means did move
+   (fitted 1.7% → 1.8%, reconstructions 57.6% → 57.4%) and are visible only in
+   `cold_holdout.py --json`. That is not an argument for widening the
+   dashboard here; it is a note that "the dashboard is unchanged" is weaker
+   evidence about this class of change than it reads, and it is carry-over 7.
+
+2. **The mean that decided the app default rose in the fitted tier and fell in
+   the reconstruction tier, and neither movement is an accuracy claim.** The
+   fitted tier's 1.7% → 1.8% is `biden_corporate_28` moving 3.73% → 4.04% —
+   the row with the strongest document behind it, going the wrong way. The
+   reconstruction tier's 57.6% → 57.4% is 12.19 points won on
+   `biden_corporate_28_fy2022` net of 7.95 lost on `trump_corporate_15`. Both
+   are composition inside a decision, not evidence for it.
+
+3. **`biden_corporate_28` is now a fitted row scored by a path with nothing
+   fitted in it.** `BASELINE_TAXABLE_PROFITS_BILLIONS` is the constant fitted to
+   that target, `scenarios.py` still declares `calibrated_to_target=True`, and
+   the `derived` path does not read the constant —
+   `test_the_uncalibrated_path_never_reads_the_fitted_aggregate` pins a >15%
+   gap. So the fitted tier's 21 rows now include one whose scored path is a
+   reconstruction. `CLAUDE.md` names three mechanisms that move a row out of the
+   fitted tier — a revised target, a deleted constant, an unfitted
+   reconstruction — and **a mode flip is a fourth the repository has no rule
+   for**. `scenarios.py` is on this lane's prohibited list and moving a row's
+   tier to improve a tier mean would be exactly what the prohibition exists to
+   stop, so it is recorded as carry-over 1 and not acted on. **Read the fitted
+   21 @ 1.8% with that attached.**
+
+4. **A caption disappeared as another arrived, on the same preset.**
+   `behavioural_sign_caption`'s corporate branch fires only in `reported` mode —
+   `derived`'s offset was already signed before the offset-sign sweep — so Trump
+   Corporate 15% stopped carrying the sign note and started carrying
+   `corporate_base_caption`. That is correct in both directions and neither is a
+   silence: the sign note would have been false about the path now scored, and
+   the flip's own move is the larger one. Both are asserted, in
+   `test_the_caption_fires_on_exactly_the_presets_the_sweep_moved`, so "the
+   caption disappeared" and "the caption was replaced" cannot be confused.
+
+5. **The app's window outruns the transcribed receipts path by a year, and the
+   caption now says so.** `APP_DEFAULT_START_YEAR` is 2026, so the app scores
+   FY2026-2035 while CBO's February 2024 table ends at FY2034; FY2035 is the
+   module's own continuation of the terminal growth rate. `reported` mode could
+   not expose this because its base was a growth rule with no published years in
+   it. Nothing is wrong — `cbo_corporate_receipts` documents the rule and a test
+   pins it — but a published figure and an extrapolated one were about to be
+   printed side by side under a user's headline, and now they are labelled.
+
+6. **`cold_holdout.py --json` rounds `abs_percent_error` to a tenth**, so a tier
+   mean recomputed from the JSON differs in the third decimal from one computed
+   on unrounded errors: 1.7476 against the 1.7494 this lane registered, and
+   57.4324 against 57.4312. Immaterial, recorded because the prediction was
+   stated to four decimals and the difference is arithmetic on the file rather
+   than movement in the model.
+
+### 10.6 The tests, and which edits the flip forced
+
+`tests/test_corporate_derived.py` — **four forced, six added.** Forced:
+`test_reported_is_exactly_linear_in_the_rate_step` and `test_reported_mode_pins`
+both relied on the module default being `reported` and now name the mode;
+`test_the_app_default_is_reported` became
+`test_the_app_default_is_derived`; and the Decision 1 test's closing assertion
+flipped. **The comparison itself was not deleted** — both means stay pinned to
+0.6275 and 0.6143, so a lane that improved the margin by retuning a constant
+fails there rather than passing quietly. Added: the scorecard runner follows the
+app default; derived-mode pins; every corporate preset equals the derived
+figure; the margin is one row of three (including that the two Green Book rows
+return one model number for targets 57% apart); and the two caption tests.
+
+`tests/test_offset_sign_contract.py` — **two forced, one corrected beyond what
+was forced, and it is named here because the brief asks.**
+`test_the_caption_fires_on_exactly_the_two_presets_that_moved` had to change
+(the corporate preset no longer carries the sign caption) and now asserts both
+halves of finding 4 rather than a smaller number.
+`test_the_caption_carries_the_scored_figures_and_the_old_headline` names
+`reported` explicitly. The third, `test_the_caption_stays_silent_on_a_rate_increase`,
+**passed after the flip without being touched — for the wrong reason**: it
+asserts a silence that used to mean "an `abs()` and the signed rule agree on a
+positive static" and would now have meant "this is not `reported` mode". It now
+names the mode too. That is one edit beyond what the flip forced, and it is a
+test that had quietly stopped testing its own claim.
+
+`tests/test_cbo_regression.py` — **one forced, one added.** The corporate band
+was `[-1460, -1330]` around `reported`'s −$1,397.2B and is now `[-1355, -1230]`
+around `derived`'s −$1,292.6B. The added test pins `reported` at −$1,397.21B
+under an explicit `mode=`, so that if a later lane retunes a corporate constant
+the band moving would no longer look like a decision.
+
+`tests/test_cold_holdout.py` — **untouched**, as required, and it did not need
+touching: Tier 1 did not move.
+
+### 10.7 What this lane did not do
+
+- Did not retune a constant. `BASELINE_TAXABLE_PROFITS_BILLIONS`,
+  `PROFIT_SHIFTING_SEMI_ELASTICITY`, `CORPORATE_BASE_GROWTH`,
+  `BASE_PER_DOLLAR_OF_RECEIPTS`, `ESTIMATED_PAYMENT_SAME_FY_SHARE` and
+  `corporate_elasticity` are byte-identical, and `reported` mode scores
+  −$1,397.21B and +$1,491.76B after the flip exactly as before it — pinned, so
+  the claim is checkable rather than asserted.
+- Did not touch any target, or `preregistered.py`, `holdout.py`, `loo.py`,
+  `target_revisions.py`, `benchmark_sources.py`, `scenarios.py`,
+  `cbo_scores.py`, `KNOWN_SCORES` or `CBO_SCORE_MAP`.
+- Did not move `CORPORATE_VALIDATION_MODE`, which is why Tier 1 is identical.
+- Did not edit a CI threshold or a workflow. Tier 1 did not move, so the
+  workflow's own rule re-derives to the 20 / 21 already there.
+- Did not touch `fiscal_model/app_data.py`. Neither corporate preset's
+  description quotes a model figure: the Biden entry quotes CBO's −$1.35T target
+  and the Trump entry quotes the published +$595B–$673B range, both of which are
+  targets and neither of which moved. The 2026-09-05 provenance lane had already
+  removed the "~$1.9T" that was this model's own output quoted back at users.
+- Did not build a `CORPORATE_SCORECARD_MODE`, did not open `reported` mode, did
+  not touch the four unsourced non-rate channels, and did not open any docs file
+  — those are the concurrent docs lane's and §11 is the handoff.
+- **Did not edit `scripts/audit_offset_signs.py`**, which is outside this lane's
+  files and now carries one false line: its `CorporateTaxPolicy [reported]` case
+  is annotated *"CORPORATE_APP_MODE — what the shipped app scores"*, and it is
+  not any more. The script still runs and its sweep is unaffected — it names
+  both modes explicitly rather than reading the default — so this is a stale
+  note, not a break. §11 carries it.
 
 ## 11. Handoff to the docs lane
 
-*Written with the outturn.*
+`CLAUDE.md`, `README.md`, `docs/`, `planning/NEXT_STEPS.md`,
+`planning/MODELING_IMPROVEMENT.md` and `docs/CHANGELOG.md` were **not touched**.
+The rows this branch invalidates:
+
+| File | Says today | Should say |
+|---|---|---|
+| `CLAUDE.md`, Wave 5 §, corporate | "`CORPORATE_APP_MODE` stays `reported` under Decision 1 (1.92% against derived's 9.67%), so no shipped number moved" | on three published targets it is **62.75% reported against 61.43% derived**, the module **flipped to `derived` on 2026-09-05**, and **two presets, two packages, every Tailor corporate row and the assistant's corporate branch moved with it** |
+| `CLAUDE.md` "Model maturity" + "Target Validation", fitted tier | "23 fitted at 1.6%" (already stale after PR #119/#122: the tier is 21) | **21 @ 1.8%**, up from 1.7%, the whole of the rise being `biden_corporate_28` 3.73% → 4.04% — and carrying **one row whose scored path reads no constant fitted to it** (finding 3) |
+| `CLAUDE.md` Target Validation, reconstruction tier | "31 rows at 56.6%" (stale; PR #122 left it 34 @ 57.6%) | **34 @ 57.4% / 34.2% median**, 9/34 within 15%; the constant-population read is the same 34 rows, and the −0.1pp is 12.19 points won on `biden_corporate_28_fy2022` net of 7.95 lost on `trump_corporate_15` |
+| `CLAUDE.md` Target Validation, the corporate benchmark rows | `biden_corporate_28` model −$1,397B / 3.7% in the examples table | **−$1,293B / 4.0%**, and the table's "Corporate 21%→28%" row with it |
+| `CLAUDE.md`, every statement that a module keeps `reported` as the app default | "Every module keeps `reported` as the app default under Decision 1" (Waves 2, 3, 4, 5) | **corporate is the first module to leave `reported`**; AMT and the rest are unchanged |
+| `docs/VALIDATION.md` corporate rows | still on pre-PR-#122 figures — line 491 reads "Trump corporate 15% \| $1,920B \| $1,918B \| −0.1%", and line 866 "Biden 21% to 28% \| −$1,347B \| −$1,397B \| 3.7%"; PR #122's own §10 already flagged both | model **−$1,292.6B** on the two Green Book rows and **+$1,545.2B** on `trump_corporate_15`, errors +4.04% / −50.69% / +129.57%, against targets −$1,347.0B / −$857.8B / +$673.1B |
+| `docs/METHODOLOGY.md` §"Corporate Tax" (l. 452, 467) and the limitations table (l. 1339) | "ΔRevenue = ΔRate × Corporate_Taxable_Income"; "calibrated to CBO's −1.347T (model: −1.397T, error 3.7%)"; "Corporate rate +1pp \| −$136B \| −$220B \| 62%" | the shipped path is CBO's own projected corporate receipts × 4.80133 with an IRC §6655 convolution, not a fitted $1,900B aggregate; the model is **−$1,293B, 4.0%**; and the +1pp row has been **−$196B, 44.5%** since PR #121, so that line was already stale |
+| `planning/MODELING_IMPROVEMENT.md` §6 | W6 carry-over 4, "Decision 1 for corporate is due a re-measure" | **done**; and this lane's six carry-overs (§9) join the list, of which carry-over 1 (a mode flip as a fourth mechanism moving a row out of the fitted tier) needs an owner rule |
+| `planning/NEXT_STEPS.md` | — | the corporate flip, and that it is the first Decision 1 flip in the repository |
+| `docs/CHANGELOG.md` | — | the flip, the two presets, the two packages and the caption |
+| `scripts/audit_offset_signs.py` l. 261 | the `[reported]` case is noted "CORPORATE_APP_MODE — what the shipped app scores" | it is not, since 2026-09-05; the `[derived]` case is. One line, and the script's behaviour does not depend on it |
