@@ -1839,6 +1839,8 @@ that file.
 
 ### 6.2 Carry-over list after Wave 7 (rewritten 2026-09-06) — the single live list
 
+> **Sequencing note (2026-09-06).** [`HIGH_STAKES_ACCURACY.md`](HIGH_STAKES_ACCURACY.md) re-ranks this list by *who reads the number* and supersedes its **sequencing**, not its rules or its contents; items that plan does not schedule stay open here.
+
 **Waves 1–7 of this plan are complete.** PRs #119–#122 closed three of the six
 items Wave 5 opened plus answered a fourth, and **Wave 7 (PRs #126–#132) closed
 seven more** — items 8 (on direction), 15, 24, 25, 30 and 31, plus the dashboard
