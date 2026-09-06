@@ -605,7 +605,7 @@ derivation ever reads the held-out answer.
 
 **Aggregate: 29.6% mean / 19.1% median over 18 derivable cases, 8/18 within
 15%, plus 4 cases reported as not cross-validatable.** Against the
-by-construction 1.6%. The gap is the size of the claim the by-construction
+by-construction 1.7%. The gap is the size of the claim the by-construction
 number cannot support.
 
 *Wave 5 left this suite **byte-identical** — and named the population it does
@@ -622,6 +622,36 @@ mode `loo.py` exists to catch, and it caught it nowhere because there was no row
 to catch it in. Adding one is a `loo.py` edit and no modelling lane may make
 one, so PR #114 recorded it (finding 5) and left it; it is a carry-over in
 `planning/MODELING_IMPROVEMENT.md` §6.2.
+
+*PRs #119–#122 left this suite byte-identical too, and answered that
+carry-over `no`.* All four checked `run_loo.py --donor-matrix` against their own
+branch points and none moved a line — the sign sweep because every module's
+calibrated factories zero the elasticity it corrected, the base projection
+because it opened `derived` only and no LOO case reads that mode, the provenance
+pass because it changed no model output. **PR #120's memo then answered the
+Corporate question, and `loo.py` is not what is stopping it.** LOO holds out one
+benchmark's fitted constant and asks whether the machinery calibrated on the
+*others* can put it back. The module has **one** fitted constant,
+`BASELINE_TAXABLE_PROFITS_BILLIONS`, and had **two** benchmarks — one of which,
+`trump_corporate_15`, carried provenance `model_estimate`, i.e. its target was the
+model's own output. Re-deriving the base from it would reconstruct the constant
+from itself, which is exactly the leakage `LEAKAGE_TOLERANCE` exists to catch, so
+`not cross-validatable` is the honest outcome and adding a row would manufacture a
+number rather than test one.
+
+**PR #122 shipped the substitute the memo named instead**: register the FY2022
+Green Book row — the last *rate-only* one, and the only rate-only corporate row
+any Green Book prints — as a second published target the module is **not fitted
+to**. `biden_corporate_28_fy2022` scores −$1,397.2B against Treasury's
+**−$857.8B** (report p. 104; FY2022-2031), **−62.9%**, and reports in the
+unfitted-reconstruction tier where a documented Poor is a warning rather than a
+strict-readiness failure. Its per-point yield is 36% below the FY2025 row's
+($122.55B against $192.85B) — a difference a vintage-anchored base could
+reproduce and a fixed base cannot, which is the hypothesis the row exists to test.
+It is **never to be fitted**, because a second constant fitted here would make the
+pair uninformative. So the module now has two published benchmarks and one fitted
+constant, and still nothing cross-validating either: a smaller gap, honestly
+stated, not a closed one.
 
 *Wave 4 took this 28.4% → **29.6%**, and every bit of the move is a **target**
 movement rather than a derivation one.* `run_loo.py --donor-matrix` differs from
@@ -1149,10 +1179,12 @@ rebuilt the pharma module and **two of its three rows got worse**
 negotiation ladder condemned an unsourced $220B Part D gross-spending constant
 that the reference-pricing leg also reads; PR #107 then moved seven of the
 subset's targets onto their documents, and `ira_enforcement` arrived from the
-fitted tier. The subset is now **15 rows at 82.6% (median 39.0%)** against
-**1.6%** for the 23 benchmarks counted as fitted, and the tier it sits in is
-**31 rows at 56.6%** — or **88.2%** on the 14 sectoral rows it held before
-Wave 4, and **65.7%** on the 26 rows the whole tier held. **Quote the
+fitted tier. The subset is still **15 rows at 82.6% (median 39.0%)**, unmoved by
+PRs #119-#122, against **1.7%** for the 21 benchmarks counted as fitted, and the
+tier it sits in is **34 rows at 57.6%** — or **57.4%** on the 33 rows that tier
+held before PR #122, **56.6%** on the 31 it held before PR #119, **88.2%** on the
+14 sectoral rows it held before Wave 4, and **65.7%** on the 26 rows the whole
+tier held then. **Quote the
 constant-population figures beside the printed ones**: both printed means fell
 while the model got worse, so a mean that moves because the population moved has
 not improved. The per-family figures below are updated to the Wave 4 outturn,
@@ -1583,21 +1615,32 @@ The calibrated tier is now 46 entries, but it is two populations:
 | Fitted calibrated references | 34 | 2.7% | 33/34 |
 | Unfitted module reconstructions | 12 | 394.1% | 2/12 |
 
-*(Live as of 2026-09-05, after Wave 5, which moved **neither** calibrated tier:
-its three lanes all worked at the Tier 1 margin, no target moved and no constant
-was retuned, so 0 of 23 fitted rows and 0 of 31 reconstruction rows changed —
-each lane registered that as a falsification test in advance and each passed it.
-The figures below are therefore Wave 4's, still live: **23 fitted at 1.6%, 23/23** — a 34th
-row left the fitted tier when its target was revised, three more left when
-L1 deleted the constants fitted to them, two tariff rows left when L8
-replaced their fitted coverage constants with Census measurements, and **five
-more left in Wave 4 when PR #107 moved their targets** (`biden_eitc_childless`,
-`eliminate_salt`, `extend_enhanced_ptc`, `ira_enforcement`, `repeal_salt_cap`).
-Held in place, Wave 4's five make it **28 at 3.0%, 27/28**, and adding the
-revised TCJA-AMT row on top makes it 29 at 5.2%, 27/29 — against **31
-reconstructions at 56.6%**, or **65.7% on the 26 rows that tier already held**,
-which is the like-for-like reading and is *worse* than the 61.8% before
-Wave 4.)*
+*(Live as of 2026-09-05, after PRs #119–#122. Wave 5 moved **neither** calibrated
+tier — its three lanes all worked at the Tier 1 margin, so 0 of 23 fitted rows
+and 0 of 31 reconstruction rows changed, each lane registering that as a
+falsification test in advance — and **PR #121 did the same** at the corporate
+margin, moving one Tier 1 row and 0 of the 21 fitted and 0 of the 33
+reconstructions the tier then held. **PRs #119 and #122 moved both tiers by
+composition**, and the live figures are **21 fitted at 1.7%, 21/21**: a 34th row
+left the fitted tier when its target was revised, three more left when L1 deleted
+the constants fitted to them, two tariff rows left when L8 replaced their fitted
+coverage constants with Census measurements, **five more left in Wave 4 when
+PR #107 moved their targets** (`biden_eitc_childless`, `eliminate_salt`,
+`extend_enhanced_ptc`, `ira_enforcement`, `repeal_salt_cap`), and **two left in
+PR #119 on a mechanism that is not the ledger's** — `trump_corporate_15` and
+`repeal_ptc`, whose constants had been fitted so that *static × (1 + offset
+share)* hit the target and which signing the offset took to *static × (1 − offset
+share)*. Held in place, the sweep's two make it **23 at 7.7%, 21/23** (the sweep's
+own lane doc records 3.4%, which was true before PR #122 moved
+`trump_corporate_15`'s target off the model's own output), Wave 4's five on top of
+that make it **28 at 8.0%, 25/28**, and the revised TCJA-AMT row on top of that
+**29 at 10.0%, 25/29** — against **34 reconstructions at 57.6% / 34.2%**, or
+**57.4% on the 33 rows the tier held before PR #122** and **56.6% on the 31 it
+held before PR #119**, which are the like-for-like readings. The whole of the
+56.6% → 57.4% step is `trump_corporate_15` going 22.3% → 121.6%; the remaining
+0.2pp is the FY2022 corporate benchmark arriving at 62.9%. Behind those, Wave 4's
+own constant-population reading still stands: **65.7% on the 26 rows the tier held
+before it**, *worse* than the 61.8% before Wave 4.)*
 
 *(Phase D later added eight P.L. 119-21 line items to this same unfitted class, at
 35.8% mean, taking it to 20 entries and a 250.8% mean — see §8. Wave 1's L7 lane
@@ -1606,12 +1649,16 @@ then repaired the two pharma incidence bugs, taking the 12-row sectoral subset t
 revisions took them to **104.8%** and 21 rows at 76.7%, Wave 2's three
 capital-gains arrivals took the tier to **24 rows at 72.1%**, Wave 3's L8 and
 L9 lanes plus the two reclassified tariff rows took it to **26 rows at 61.8%**
-(63.6% on the pre-L8 population), and Wave 4 took it to **31 rows at 56.6%** —
+(63.6% on the pre-L8 population), Wave 4 took it to **31 rows at 56.6%** —
 a fall that is *entirely* composition, since on the 26 rows it already held the
 tier reads **65.7%**, worse, because PR #109's pharma rebuild moved two rows
-away from their targets while PR #107's five arrivals came in at 9.4%. The
-sectoral subset is now **15 rows at 82.6%**, or **88.2%** on the 14 it held
-before Wave 4. The Phase E figures above are kept as the
+away from their targets while PR #107's five arrivals came in at 9.4% — and
+PRs #119 and #122 took it to **33 rows at 54.4%** and then **34 at 57.6%**, a fall
+and a rise that are both composition again: the sweep moved in two rows better
+than this tier's average and worse than the fitted tier's, and the provenance pass
+then took one of those from 22.3% to 121.6% by giving it a document. The
+sectoral subset is unmoved through all of it at **15 rows at 82.6%**, or **88.2%**
+on the 14 it held before Wave 4. The Phase E figures above are kept as the
 outturn of Phase E; **live numbers come from `python scripts/cold_holdout.py`**,
 never from this table.)*
 
@@ -1619,7 +1666,7 @@ never from this table.)*
 invariant in `tests/test_cold_holdout.py` compares the out-of-sample tier
 against the *fitted* set — mixing the two would have flipped the invariant for
 the wrong reason (44.8% out-of-sample vs a 104.8% "calibrated" mean) and hidden
-the fact that the fitted tier is still low by construction (1.6% over 23).
+the fact that the fitted tier is still low by construction (1.7% over 21).
 
 `readiness.py --strict` treats a documented `Poor` on an unfitted reconstruction
 the same way it treats a documented out-of-sample miss: a warning, not a
@@ -1651,8 +1698,9 @@ target, and are never guessed.
 
 That pass could tell a rounded headline from a citation. It could not tell
 whether the row being cited exists — which is a different question, and §8 is
-what happened when someone asked it. **Post-transcription the breakdown is 9 /
-15 / 15 / 7 / 0** (`line_item` / `line_item_differs` / `secondhand` /
+what happened when someone asked it. **Post-transcription the breakdown was 9 /
+15 / 15 / 7 / 0**, and live it is **30 / 7 / 12 / 6 / 0** over 55 calibrated rows
+(`line_item` / `line_item_differs` / `secondhand` /
 `model_estimate` / `unclassified`) across those same 46.
 
 Phase D's eight P.L. 119-21 line items then joined the tier already
@@ -1697,7 +1745,8 @@ publication in its own source note. Those rows cite what was actually read.
 
 | Benchmark | Target | Published | Document |
 |---|--:|--:|---|
-| Biden corporate 28% | -$1,347B | $1,349,941M | FY2025 Green Book, report p. 239 |
+| Biden corporate 28% | -$1,347B | $1,349,941M | FY2025 Green Book, report p. 239 — the figure agrees; PR #122 made it `line_item_differs` on **scope** (the row prices rate **plus** a GILTI step) |
+| Biden corporate 28%, FY2022 | -$857.8B | $857,817M | FY2022 Green Book, report p. 104 (PDF p. 110) — registered by PR #122 as a second published target, **not fitted**; the only rate-only corporate row any Green Book prints |
 | Extend TCJA estate exemption | $167B | $166.9B | CRS R48286 Table 1 (CBO pub 60114) |
 | Repeal corporate AMT | $220B | $222,248M | JCX-18-22 p. 1 — **JCT's estimate, not CBO's** |
 | SS cap to 90% of earnings | -$800B | $804.9B | CBO Options 2019-2028, budget-options 54806 |
@@ -1740,16 +1789,57 @@ Notes worth carrying:
 
 The full table with deltas is in [VALIDATION.md](VALIDATION.md#line_item_differs--the-transcription-disagrees-with-the-target-each-a-recorded-verdict).
 
-**This list is closed.** Wave 4's provenance pass (PR #107) moved twelve of the
-outstanding targets onto their documents and recorded four more as
-examined-and-left, taking `line_item_differs` from 13 to **5** — and every one
-of the 5 now carries a written verdict rather than an open question: two are
-**range revisions** with in-range anchors (`pillar_two_adoption`,
-`reciprocal_tariffs`) and three are **examined-and-left** decisions
-(`biden_estate_reform`, `ctc_extension`, `double_enforcement`). The Generic tier
+**Wave 4 closed this list, and PR #122 opened it once more on purpose.** Wave 4's
+provenance pass (PR #107) moved twelve of the outstanding targets onto their
+documents and recorded four more as examined-and-left, taking
+`line_item_differs` from 13 to **5**; PR #122 then took it to **7**, because the
+offset-sign sweep had left two corporate/PTC rows visibly carrying targets nobody
+could check. **Every one of the 7 carries a written verdict rather than an open
+question**: three are **range revisions** with in-range anchors
+(`pillar_two_adoption`, `reciprocal_tariffs`, `trump_corporate_15` — though the
+third's model sits $818.7B *outside* its range, where the first is inside and the
+second $3.2B out), three are **examined-and-left** decisions
+(`biden_estate_reform`, `ctc_extension`, `double_enforcement`), and one is a
+**scope** verdict of a kind the label had not carried before.
+
+**`biden_corporate_28` is that scope verdict, and it forced the label to grow a
+second meaning.** `line_item_differs` had meant one thing — the transcribed
+*figure* disagrees. Here the figure agrees to **0.2%** (Treasury prints
+$1,349,941M; the carried −$1,347.0B is that rounded) and the *reform* does not:
+from the FY2023 Green Book onward the row's own chapter says the GILTI effective
+rate moves with the statutory rate, while `create_biden_corporate_rate_only` sets
+`gilti_rate_change=0.0`. `test_line_item_differs_carries_the_published_figure`
+would have rejected the row, because 0.2% is inside `CONFIRMATION_TOLERANCE_PCT`;
+calling it `line_item` would have asserted an agreement the documents do not
+support. So `BenchmarkSource` gained **`scope_differs`**, one sentence naming the
+mechanism, and the invariant became: a `line_item_differs` row must carry a figure
+gap wider than the tolerance **or** a filled `scope_differs`, never neither, so the
+label can never mean "something is wrong here, unspecified". `__post_init__`
+rejects `scope_differs` on any other provenance, and the test asserts both branches
+are live so neither can rot. **The target did not move**, because the GILTI leg's
+size is never printed and is not recoverable by differencing editions: FY2022
+excludes it (the global minimum tax is a separate $533,503M row), FY2023 is on a
+Build Back Better baseline with a 20% GILTI rate, and FY2024/FY2025 route
+21% → 14% *through* the corporate row while a separate $373,919M international row
+takes 14% → 21%.
+
+The Generic tier
 has none at all, `biden_high_income_tax` having gone through the Tier-1 manifest
-as `.v2` at -$245.9B. `EXAMINED_NOT_REVISED` now holds five verdicts, adding
-`steel_tariff_25` and `eliminate_mortgage` to the three above. **Six of the
+as `.v2` at -$245.9B. `EXAMINED_NOT_REVISED` now holds **six** verdicts, adding
+`steel_tariff_25` and `eliminate_mortgage` to the three above and, in PR #122,
+**`repeal_ptc`** — whose −$1,100B is no longer untraceable and whose trace is the
+reason not to adopt it. CBO/JCT pub. 51298 (June 2024) Table 2 prints $966B of
+premium-tax-credit outlays plus $176B of revenue reductions over FY2025-2034,
+**$1,142B, 3.8% from the carried figure** — a *baseline projection sitting in a
+repeal-score column*, carrying no coverage response and no interaction with
+Medicaid, employer coverage or taxable wages. Adopting it would make the row
+worse (18.5% → 21.5%), and no scored repeal exists to move to: CBO/JCT pub. 61734
+(Sept 2025), the most recent marketplace menu, contains no option eliminating the
+credit at all, and the 2018/2020/2022/2025 Options volumes carry none either. The
+mismatch is in the **shape** as much as the target — `create_repeal_ptc` sets
+`coverage_elasticity=0.0` under the comment "Not modeling coverage offset", so
+what the module computes *is* a baseline cost — and closing that is an owner
+decision about `ptc.py` that a provenance lane may not make. **Six of the
 thirteen Wave 4 revisions made their row's error worse**, which is the shape a
 correct provenance pass has: if every revision improved its row, the suspicion
 would be that the documents were chosen to fit rather than read.
