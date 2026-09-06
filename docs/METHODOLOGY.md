@@ -146,13 +146,15 @@ Taxpayers respond to rate changes by adjusting reported taxable income through a
 %ΔTaxable_Income = -ETI × %Δ(1 - marginal_rate)
 ```
 
-The **behavioral offset** reduces the static estimate:
+The **behavioral offset** shrinks the magnitude of the static estimate:
 
 ```python
-behavioral_offset = -static_effect × ETI × 0.5
+behavioral_offset = static_effect * ETI * 0.5   # signed, same sign as static
 ```
 
 The factor of 0.5 converts from the income elasticity to the revenue offset (accounting for the fact that the base only partially overlaps the rate change).
+
+*(This line carried a leading minus until the 2026-09 docs sync. `TaxPolicy.estimate_behavioral_offset` returns `static_effect * self.taxable_income_elasticity * 0.5` and its docstring says "Returns a SIGNED value with the same sign as `static_effect`", so the minus was a transcription error — and reading it as written is precisely the defect PR #119's sweep found in seven modules.)*
 
 #### The sign contract every module must follow
 
