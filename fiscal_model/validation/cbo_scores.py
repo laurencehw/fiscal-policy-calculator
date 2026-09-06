@@ -157,6 +157,15 @@ class CBOScore:
     ] = "cap"
     expenditure_cap_amount: float | None = None
     expenditure_caps_by_tier: dict[str, float] | None = None
+    # Income tax: the per-filing-status thresholds the *source itself* prints,
+    # keyed by ``fiscal_model.data.irs_soi.FILING_STATUSES``. A partial mapping
+    # is the natural shape - any status left out takes ``income_threshold`` -
+    # so a source that names two amounts is recorded as the two amounts it
+    # names. Like every other entry in this block these are transcribed shape
+    # inputs, never fitted: see ``FILING_STATUS_THRESHOLD_RULE`` in
+    # ``validation/core.py`` for the rule covering statuses a source does not
+    # name, and ``planning/lanes/W7_filing_status_split.md`` for the lane.
+    income_threshold_by_filing_status: dict[str, float] | None = None
 
 
 # =============================================================================
@@ -263,7 +272,20 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         source_date="2024-03",
         source_url="https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf",
         rate_change=0.026,  # 37% → 39.6% = +2.6pp
+        # All four amounts are printed in the proposal itself (report p. 78;
+        # PDF p. 86): "The top marginal tax rate would apply to taxable income
+        # over $450,000 for married individuals filing a joint return and
+        # surviving spouses, $400,000 for unmarried individuals (other than
+        # surviving spouses and head of household filers), $425,000 for head of
+        # household filers, and $225,000 for married individuals filing a
+        # separate return." Note the direction: the separate-return floor is
+        # BELOW the unmarried one, so recording it enlarges the base.
         income_threshold=400000,
+        income_threshold_by_filing_status={
+            "joint": 450_000.0,
+            "head_of_household": 425_000.0,
+            "separate": 225_000.0,
+        },
         policy_type="income_tax",
         first_year_cost=-22.0,  # ~$22B/year
         baseline_year=2024,
@@ -965,16 +987,25 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         source_date="2024-12",
         source_url="https://www.cbo.gov/publication/60557",
         rate_change=0.02,
-        # 2025 single-filer floor of the 24% bracket (IRS Rev. Proc. 2024-40).
-        # The generic path takes one threshold, so this stands in for a
-        # filing-status-specific bracket boundary.
+        # 2025 floor of the 24% bracket - the lowest of "the four highest
+        # brackets" (24, 32, 35 and 37 percent) the option raises - from IRS
+        # Rev. Proc. 2024-40 section 2.01, tables 1-4. Joint returns and
+        # surviving spouses use the section 1(j)(2)(A) schedule and start at
+        # $206,700; heads of households (1(j)(2)(B)), unmarried individuals
+        # (1(j)(2)(C)) and married filing separately (1(j)(2)(D)) all start at
+        # $103,350, which is why only the joint amount is stated here.
         income_threshold=103_350.0,
+        income_threshold_by_filing_status={"joint": 206_700.0},
         policy_type="income_tax",
         baseline_year=2024,
         budget_window="FY2025-2034",
         effective_start_year=2025,
         scoring_vintage="cbo_feb_2024",
-        notes="CBO Options 2025-2034, option 45, alternative 2 (report p. 55).",
+        notes="CBO Options 2025-2034, option 45, alternative 2 (report p. 55). "
+              "Bracket floors from IRS Rev. Proc. 2024-40 section 2.01. The "
+              "option's own text states that 'the scheduled changes to the "
+              "underlying tax brackets and rates would still take effect in "
+              "2026', which the model's single fixed threshold cannot express.",
     ),
 
     "cbo_opt46_agi_surtax_1pp_20k": CBOScore(
@@ -987,7 +1018,13 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         source_date="2024-12",
         source_url="https://www.cbo.gov/publication/60557",
         rate_change=0.01,
+        # The option's own alternative label: "a surtax of 1 percentage point
+        # would be imposed on AGI above $20,000 for single filers and $40,000
+        # for joint filers" (report p. 56). CBO names two amounts; heads of
+        # households and married-filing-separately take the single amount under
+        # FILING_STATUS_THRESHOLD_RULE.
         income_threshold=20_000.0,
+        income_threshold_by_filing_status={"joint": 40_000.0},
         policy_type="income_tax",
         baseline_year=2024,
         budget_window="FY2025-2034",
@@ -995,7 +1032,8 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         scoring_vintage="cbo_feb_2024",
         agi_inclusive_base=True,
         notes="CBO Options 2025-2034, option 46, alternative 1 (report p. 56). "
-              "Single-filer threshold; the model has no filing-status dimension.",
+              "Thresholds are the option's own; the base is still taxable "
+              "income rather than AGI and is not grown across the window.",
     ),
 
     "cbo_opt46_agi_surtax_2pp_100k": CBOScore(
@@ -1008,7 +1046,11 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         source_date="2024-12",
         source_url="https://www.cbo.gov/publication/60557",
         rate_change=0.02,
+        # "a surtax of 2 percentage points would be imposed on AGI above
+        # $100,000 for single filers and $200,000 for joint filers"
+        # (report p. 56), read under the same rule as alternative 1.
         income_threshold=100_000.0,
+        income_threshold_by_filing_status={"joint": 200_000.0},
         policy_type="income_tax",
         baseline_year=2024,
         budget_window="FY2025-2034",

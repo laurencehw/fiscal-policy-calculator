@@ -189,17 +189,26 @@ RUNNABLE_OPTIONS: tuple[RunnableOption, ...] = (
     ),
     RunnableOption(
         45, "45.2", "cbo_opt45_top4_brackets_2pp", "ordinary_rate",
-        "+2pp on the four highest brackets. The generic path takes a single "
-        "threshold, so the 2025 single-filer 24%-bracket floor ($103,350, IRS "
-        "Rev. Proc. 2024-40) stands in for a filing-status-specific boundary.",
+        "+2pp on the four highest brackets, which in 2025 are 24, 32, 35 and 37 "
+        "percent, so the boundary is the 24% bracket floor. Scored per filing "
+        "status on the floors IRS Rev. Proc. 2024-40 section 2.01 prints: "
+        "$206,700 for joint returns and surviving spouses (section 1(j)(2)(A)), "
+        "$103,350 for heads of households, unmarried individuals and married "
+        "filing separately (1(j)(2)(B)-(D)). The option's own text says the "
+        "pre-2018 schedule still returns in 2026, which the model's single "
+        "fixed threshold cannot express; that is a stated limitation, not a "
+        "choice of boundary.",
     ),
     RunnableOption(
         46, "46.1", "cbo_opt46_agi_surtax_1pp_20k", "ordinary_rate",
-        "AGI surtax: AGI-inclusive base, single-filer threshold.",
+        "AGI surtax on an AGI-inclusive base, at the option's own thresholds - "
+        "'$20,000 for single filers and $40,000 for joint filers'. CBO names "
+        "two amounts; heads of households and married-filing-separately take "
+        "the single amount under FILING_STATUS_THRESHOLD_RULE.",
     ),
     RunnableOption(
         46, "46.2", "cbo_opt46_agi_surtax_2pp_100k", "ordinary_rate",
-        "AGI surtax: AGI-inclusive base, single-filer threshold.",
+        "As 46.1 at the option's $100,000 single / $200,000 joint thresholds.",
     ),
     # -- Capital gains ------------------------------------------------------
     RunnableOption(
