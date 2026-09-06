@@ -699,6 +699,15 @@ Four things this lane found and did not decide.
    tell. Since 7.2.1 the tier no longer reports them as *calibration* error -
    both are reconstructions now - but it still reports them against targets no
    document backs.
+
+   > **Addendum, 2026-09-05 (docs sync).** Closed by PR #122,
+   > `planning/lanes/PROVENANCE_corporate_ptc.md` §3 and §4:
+   > `trump_corporate_15` was superseded to the published range
+   > [+$595.0B, +$673.1B] and now reads **121.6%** rather than 22.3%, so the
+   > 3.4% held-in-place fitted reading in §7.2 is **7.7%** on merged main;
+   > `repeal_ptc` was **examined and left**, its −$1,100B traced to CBO/JCT
+   > pub. 51298 Table 2's $1,142B — a baseline projection, not a repeal
+   > score, and adopting it would take the row to 21.5%.
 4. **`biden_corporate_28`'s target is a bundled rate-plus-GILTI row.** Not this
    lane's finding and not changed here: the corporate memo merged to `main` as
    `planning/memos/CORPORATE_PER_POINT_YIELD.md` (PR #120) recommends the
@@ -709,6 +718,14 @@ Four things this lane found and did not decide.
    on one benchmark and the row that puts derived ahead on the other are both
    now under provenance question, and the comparison should probably not be
    re-decided until they are settled. **Noted, not changed.**
+
+   > **Addendum, 2026-09-05 (docs sync).** Closed by PR #122 §1:
+   > `biden_corporate_28` is now `line_item_differs` carrying the new
+   > `scope_differs` kind — the figures agree to 0.2% and the *reforms* do
+   > not. The target did not move, because the GILTI leg's size is never
+   > printed. Item 1's Decision 1 reversal has since reversed twice more; on
+   > merged main it is **reported 62.75% vs derived 61.43%**, and a flip PR is
+   > open pending the owner. See `MODELING_IMPROVEMENT.md` §5.6 finding 4.
 
 ### 7.7 What this lane did not touch
 

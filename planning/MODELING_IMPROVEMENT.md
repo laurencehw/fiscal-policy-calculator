@@ -1175,6 +1175,257 @@ the FY2022 window; corporate's R&D, depreciation, CAMT and credit-carryforward
 channels; and the engine's want of a general `Policy.scores_by_year()` now that
 two classes have had to opt out of the year-indexed path.
 
+## 5.6 The sign sweep and the corporate follow-through (2026-09-05, PRs #119-#122)
+
+Four PRs, and only two of them touch a model: a **cross-cutting sweep** of the
+behavioural-offset sign contract (`model/offset-sign-sweep`, PR #119), a
+**research memo** on the published per-point corporate yields with no code
+change (`memo/corporate-per-point-yield`, PR #120), a **modelling lane** that
+projects the corporate base off the scored vintage (`model/w6-corporate-base-projection`,
+PR #121), and a **provenance pass** on the corporate and PTC targets
+(`provenance/corporate-ptc-targets`, PR #122). Like Waves 4 and 5, none of this
+is in §5's sequencing: it is §6.2's carry-over items 22 and 23 taken with the two
+follow-ups they generated. Each lane pre-registered in `planning/lanes/` (or, for
+#120, recommended in `planning/memos/`) before touching code and appended an
+outturn; those files are the record and this is the summary. **Every figure here
+is from `scripts/cold_holdout.py`, `scripts/run_loo.py --donor-matrix`,
+`scripts/run_validation_dashboard.py` and `compute_scorecard()` on the merged
+tree**, which is not any single lane's before/after — #119 and #122 both moved
+`trump_corporate_15`, in opposite directions and for different reasons.
+
+### The tiers, before → after
+
+| tier | n | before (Wave 5) | after (merged) |
+|---|--:|---|---|
+| Out-of-sample (Tier 1) | 26 | 15.9% mean / 11.4% median / 16 within 15 / 22 within 25 | **15.2% / 11.4% / 16 / 22** |
+| Calibrated reference (fitted) | 23 → **21** | 1.6% / 0.1% median / 23 within 15 | **1.7% / 0.1% / 21 within 21** |
+| Unfitted reconstructions | 31 → **34** | 56.6% / 29.9% median / 9 within 15 | **57.6% / 34.2% / 9 within 34** |
+| Leave-one-out | 18 derivable | 29.6% / 19.1% median / 8 within 15 | **byte-identical output**, on all four branches |
+| Distributional | 7 | 0.00–5.86pp (ARP 3.72) | **unchanged** |
+| Scorecard rows | 80 → **81** | 73 published | **81 / 75 published** (calibrated 55 / 49) |
+| `revised_target_entries` | 15 | — | **16** |
+| Calibrated provenance | 30 / 5 / 12 / 7 / 0 | — | **30 / 7 / 12 / 6 / 0** |
+| `EXAMINED_NOT_REVISED` | 5 | — | **6** |
+| Tier 1 CI gate | — | `20 / 21` | **`20 / 21`**, re-derives to itself |
+| Tests | — | 3415 passed, 1 skipped | **3518 passed, 7 skipped** |
+
+**Both calibrated tiers changed population and neither changed accuracy, so the
+constant-population readings are not optional here.** The fitted tier's
+1.6% → 1.7% is *two rows leaving*, and held in place it reads **23 at 7.7%,
+21/23 within 15%** (28 at 8.0% with Wave 4's five held in too; 29 at 10.0% with
+the TCJA-AMT row on top). The reconstruction tier's 56.6% → 57.6% is the same two
+rows arriving plus one new benchmark: on the **33 rows it held before #122** it
+reads **57.4% / 29.9%**, and on the **31 it held before #119** it reads
+**56.6% / 29.9%** — *exactly* what it read after Wave 5. So the whole of the
+56.6% → 57.4% step is `trump_corporate_15` going 22.3% → **121.6%**, and the
+remaining 0.2pp is `biden_corporate_28_fy2022` arriving at 62.9%.
+
+**Tier 1's error mass fell 412.9 → 395.1, and one row is all of it.** Corporate
+went 62.3 → **44.5** (15.1% → 11.3% of the tier) and every other row is identical
+to the decimal. Grouped by cause the tier is now capital gains 104.5 (26.4%), the
+bracket-aggregate ceiling 91.4 (23.1%), budget-authority spend-out and level shape
+63.4 (16.0%), the filing-status threshold 62.6 (15.8%), module revenue identities
+at the margin 60.1 (15.2%) and the one tax-expenditure cap 13.1 (3.3%). **The tail
+re-ordered**: `cbo_opt46_agi_surtax_1pp_20k` at **44.7%** is now the tier's largest
+single row, by two-tenths of a point over `cbo_opt64_corporate_rate_1pp` at
+**44.5%**, then `treasury_capgains_39_plus_stepup_elim` at 43.3% and
+`biden_capital_gains_39` at 31.4%. The AGI-surtax row has not moved through six
+waves; it became the largest because corporate fell past it.
+
+### Per-lane, what moved
+
+**PR #119 — the offset-sign sweep (item 22, subsuming item 8).**
+`scoring_engine.py` books `deficit_after_behavioral = static_deficit + behavioral`
+on the **static revenue** effect, so a same-signed offset erodes and an
+opposite-signed one magnifies. Probed twice — at the function (`f(+100)`,
+`f(−100)`) and at the score (an increase and a cut of equal size through the
+engine) — **7 of 15 implementations were against the contract**:
+
+| tag | classes | size of the error |
+|---|---|---|
+| `inverted` (3) | `AMTPolicy`, `EstateTaxPolicy`, `PremiumTaxCreditPolicy` | AMT booked **25% more** than its own static in *both* directions; PTC 13% on a repeal, 3% on an extension |
+| `abs` (4) | `CorporateTaxPolicy` [`reported`], `TaxCreditPolicy` [fallback], `IRSEnforcementPolicy`, `InternationalTaxPolicy` | corporate 12.5% more on a **cut**, international 15%, credits 3% |
+
+The three inverted modules carry the *identical* comment pair
+`# Reduces revenue gain` / `# Reduces revenue loss` above a `return -total_offset`
+— one copy-paste in three files, by an author who read `behavioral` as a
+quantity the engine subtracts. Six were fixed with `math.copysign`;
+`TaxExpenditurePolicy` is kept as a **sourced convention**, cited to CBO 60557
+Option 56, whose text has both channels raising revenue. Two shipped presets
+moved with a Decision 6 caption: **Trump Corporate 15% +$1,690.6B →
++$1,314.9B** and **Repeal ACA Premium Credits −$966.2B → −$790.5B**; the other 51
+score to the cent, and both moved presets' badges dropped (Excellent → Poor,
+Excellent → Acceptable). Strict readiness then failed on CI, and the owner chose
+**reclassify, don't retune, don't exempt**: `trump_corporate_15` and `repeal_ptc`
+became `calibrated_to_target=False` (fitted 23 → 21, reconstructions 31 → 33).
+
+**PR #120 — the corporate memo.** No code. 18 published corporate-rate estimates
+across 10 vintages, transcribed with page references and annual paths to
+`fiscal_model/data_files/validation/corporate_rate_scores.csv`, printed by
+`scripts/corporate_yield_reconciliation.py`. Three claims in `cbo_opt64`'s
+`known_limitations` refuted: the split is **JCT vs Treasury OTA**, not CBO vs
+Treasury; Treasury's 28% row has bundled a **GILTI step** since FY2023, so it is
+not rate-only; and per-point dollars are not comparable across rate levels or
+scopes — on the implied marginal base the record is Tax Foundation 55.1%, JCT
+55.9%, PWBM 64.4%, Treasury 79.5% and **this model 90.8%**. Nothing supports a
+yield rising with the step (JCT's 14-point cut from 35% and its 1-point increase
+from 21% imply marginal bases of $963.2B and $963.0B). And **Option 64 carries no
+income-and-payroll offset footnote though the facing Option 63 does**, which
+refutes the old "largest unmodelled channel" claim outright.
+
+**PR #121 — the corporate base projection (memo §7(i), lane C).** Base =
+CBO's February 2024 corporate receipts path (pub. 59710 Table 1-1) ×
+**4.80133** base-$/receipts-$, anchored on SOI TY2022 ÷ MTS FY2022, with a §6655
+convolution for the fiscal-year phase. `cbo_opt64` **62.3% → 44.5%** against a
+registered band of 42 ± 4; **Tier 1 15.9% → 15.2%**, only that row moving;
+derived `biden_corporate_28` **−7.81% → +4.04%**, crossing its target in the
+direction a rate-only shape scored against a rate-plus-GILTI row should. The
+window-average marginal share fell **90.8% → 80.8%**, closing an inconsistency
+that is independent of any target: the old flat 4%/yr aging grew the base 3.4×
+faster than the receipts it is a share of, so by FY2033 it priced a point against
+*more* base than the baseline implies exists. **Every registered figure landed,
+including a ten-row year-by-year build the engine reproduced to the third
+decimal** — which the lane reads as algebra rather than prescience, because the
+mechanism is linear; what was being registered was the *choice*.
+
+**PR #122 — the corporate/PTC provenance pass.** Neither `corporate.py` nor
+`ptc.py` was opened and no `model_10yr_billions` moved. `biden_corporate_28` →
+`line_item_differs` through the new **`scope_differs`** kind (see finding 2);
+`biden_corporate_28_fy2022` registered at **−62.9%**, `calibrated_to_target=False`
+and never to be fitted; `cbo_opt64`'s estimator corrected CBO → **JCT** and its
+`known_limitations` rewritten (with the §174 anchor inflation **sized** at 11.1%,
+an upper bound that takes the row to ~46%, not to CBO); `trump_corporate_15`
+superseded to the published range **[+$595.0B, +$673.1B]** with Tax Foundation's
+as anchor, 22.3% → **121.6%**, model **$818.7B outside** the range; and
+`repeal_ptc` **examined and left**, its origin identified as CBO/JCT pub. 51298
+Table 2's **$1,142B** — 3.8% from the carried figure and a *baseline projection
+in a repeal-score column*.
+
+### Four findings
+
+**1. A defect that every gate is structurally blind to is not rare — it was in
+seven of fifteen modules.** Item 22's own claim was that the sign error is
+invisible to every gate the repository has, because each module's calibrated
+factories zero the elasticity. Measured, that is exactly right: of the seven, **one**
+reached a scorecard row. The rest were reachable only through the app's Tailor and
+composer paths, `bill_tracker/auto_scorer.py`'s raw constructions, and two shipped
+presets. The gate that now exists is not the parametrised sign test but
+`test_every_offset_implementation_is_covered`, which greps the package for
+`def estimate_behavioral_offset` and fails if a class is missing from the case
+list — because "a module nobody swept" is how all four previously-found instances
+got in. It was verified to *fail* rather than assumed to work, and **its first
+draft did not catch `enforcement.py`**, because probing only the direction a
+module's own constructor can reach lets a clamped module through
+(`IRSEnforcementPolicy` returns a static of exactly 0.0 for a funding cut). A
+clamp is not a contract, which is why the sign must be probed at the function and
+not only at the score.
+
+**2. A provenance label can be right about the number and wrong about the
+reform, and the taxonomy had no word for it.** `biden_corporate_28`'s carried
+−$1,347.0B is Treasury's printed $1,349,941M rounded — they agree to **0.2%**,
+inside `CONFIRMATION_TOLERANCE_PCT` — while the row's own chapter has moved the
+GILTI effective rate with the statutory rate since the FY2023 edition and the
+factory scored against it sets `gilti_rate_change=0.0`. `line_item` would have
+asserted an agreement the documents do not support; `line_item_differs` would
+have been rejected by its own test. So `BenchmarkSource` gained **`scope_differs`**
+and the invariant became: a `line_item_differs` row carries a figure gap wider
+than the tolerance **or** a filled `scope_differs`, never neither, so the label
+can never mean "something is wrong here, unspecified". `__post_init__` rejects
+`scope_differs` on any other provenance and the test asserts both branches are
+live. **The target did not move**, because the GILTI leg's size is never printed
+and is not recoverable by differencing editions.
+
+**3. "Identical to main" is only evidence when the check being compared can
+distinguish them.** PR #119 passed `check_readiness.py --strict` locally and
+failed it on CI. The local run exits 2 on *both* trees, because Python 3.14 fails
+the runtime check first and masks everything after it; a byte diff of the output
+therefore showed nothing, while on CI's 3.12 `main` passed and the branch did not,
+because `trump_corporate_15` had become a Poor row still declared fitted. The
+direct query settles it —
+`strict_readiness_issues(build_readiness_report())` returned
+`[('runtime', None), ('revenue_scorecard', ['trump_corporate_15'])]` before the
+reclassification and `[('runtime', None)]` after — and a test now asserts that,
+so the next lane does not have to know to run it. This generalises past the sign
+sweep: a gate that is already failing for an unrelated reason is not a control.
+
+**4. The statistic that decides an app default can be decided by a row that
+measures nothing about the world — and fixing that reversed it twice.** Decision
+1 says a module stays on `reported` until its `derived` error is below its
+fitted error. Before the sweep, corporate read reported **1.92%** against derived
+9.67%. Signing the reported offset took reported to **13.02%** against derived's
+unmoved 9.67% — a reversal produced entirely by `trump_corporate_15`, whose
+target was provenance `model_estimate`, i.e. the model's own output. PR #121 then
+moved derived to 11.78%, still ahead. PR #122 re-measured on **three published**
+targets and got **62.75% reported against 76.48% derived** — reported ahead
+again, on documents this time. And the merge of the two lanes, which is the only
+tree where both apply, gives **reported 62.75% against derived 61.43%**: derived
+leads, narrowly, by winning the FY2022 rate-only row and losing a little on the
+other two. **`CORPORATE_APP_MODE` is unchanged on `main` at `reported`**, a flip
+PR is open pending the owner's confirmation, and the lesson is the one PR #121's
+own finding 4 states: carry the per-row table beside the mean, never instead of
+it, because a mean over three rows can be decided by whichever of them has the
+weakest target.
+
+### Where the pre-registrations were wrong
+
+**PR #119, falsification 2 fired.** §5.2 said "PTC — `create_extend_enhanced_ptc`
+and `create_repeal_ptc` zero the elasticities". True of the first factory and
+**false of the second**: `create_repeal_ptc` sets `coverage_elasticity=0.0` under
+the comment *"Not modeling coverage offset"* and never touches
+`adverse_selection_factor`, which keeps its dataclass default of 0.1. So the
+module's *other* channel was live on a shipped preset and a fitted benchmark the
+whole time, and the pre-registration had been written from the factory's comment
+rather than from its argument list. **The lesson generalises**: "the factory
+zeroes the elasticity" is a claim about *every* elasticity the module has, and a
+module with two of them can zero one. Falsification 4 also fired, harmlessly —
+`TaxCreditPolicy` was predicted `asymmetric` and the audit gives its two branches
+a row each, `correct` and `abs`, because the branch is a property of the
+`credit_type` and not of the call.
+
+**PR #121: none of eight fired**, and every registered figure landed to the
+decimal. That is not prescience — the mechanism is linear — but two of its
+findings were not registered and are worth more than the row: the
+`CBOBaseline` corporate path defect (finding 1 below), and the fact that the
+§6655 phase factor is **above 1.0** in FY2026 and FY2027 (1.00137, 1.00377)
+because CBO's projected receipts *fall* in those years, so a fiscal year
+collecting a quarter of the previous, larger tax year collects more than its own.
+Every other phase factor in the repository is a fraction and a reviewer's instinct
+will be that this is a bug; it is pinned by a test that asserts both signs.
+
+**PR #122's §7 table is stale on its own branch and correct on it.** It records
+Decision 1's corporate comparison as 62.75% reported against **76.48%** derived,
+which was right before the merge with #121; on merged main derived is **61.43%**,
+which is what the test pins and what this section quotes.
+
+### What this round did not do
+
+- **No lane touched** `preregistered.py`, `holdout.py`, `loo.py`, any CI
+  threshold, `tests/test_cold_holdout.py`'s anti-leakage invariant, or
+  `.github/workflows/`. PR #122 explicitly left `preregistered.py` alone: its
+  `source_name` field records the *publisher*, CBO did publish Option 64, and the
+  manifest is append-only.
+- **No constant was retuned anywhere**, including the two whose rows the sweep
+  moved by ~20%. Putting them back would have re-fitted the level to the defect.
+- **`CORPORATE_APP_MODE` was not flipped** by either corporate PR, so no shipped
+  corporate number moved on either. The two presets that moved did so in #119,
+  from the sign fix, and shipped with their caption.
+- **A `retire` state for `target_revisions.py` was deliberately not built.** The
+  brief allowed for one if no published 15% score existed; two do. A mechanism
+  with no user is dead code, `EXAMINED_NOT_REVISED` already covers "opened and
+  left", and what the ledger still lacks is a way to say "this target should not
+  exist and nothing replaces it" — which nothing in the repository needs today.
+  Recorded so the next lane does not re-derive the question.
+- **Nothing was done about *why* the corporate rows miss.** `biden_corporate_28`
+  at 3.7% is a fitted row measuring a scope mismatch; `biden_corporate_28_fy2022`
+  at 62.9% is a fixed base failing to track a vintage; `trump_corporate_15` at
+  121.6% is that plus a bundled provision plus a direction asymmetry. The
+  remaining 44 points of `cbo_opt64` are credit carryforwards under §38(c) and
+  §904(c), CAMT (which begins in TY2023, after the last SOI year on file) and the
+  individual-side dividend interaction — each needs a quantity no source this
+  module reads publishes, and each would otherwise arrive as a constant that
+  landed on CBO by construction. **A lane that asserts a share instead of deriving
+  one has failed even if the row lands.**
+
 ## 6. Open owner decisions
 
 **Decided 2026-09-01 (owner accepted the coordinator's recommendation on all six).** The questions are kept below as written; the decisions are:
@@ -1261,9 +1512,10 @@ mechanism — the $54B flow constant, the 0.8/0.4 net-of-tax elasticities and th
 target, but it is a `preregistered.py` edit and a modelling lane may not open
 that file.
 
-### 6.2 Carry-over list after Wave 5 (rewritten 2026-09-05) — the single live list
+### 6.2 Carry-over list after Wave 5 and PRs #119-#122 (rewritten 2026-09-05) — the single live list
 
-**Waves 1–5 of this plan are complete.** What follows replaces the Wave 3
+**Waves 1–5 of this plan are complete, and PRs #119–#122 closed three of the six
+items Wave 5 opened plus answered a fourth.** What follows replaces the Wave 3
 edition of this list. None of it is a modelling lane's call to make on its own;
 sequencing is the owner's. Each item names the artefact it lives in so nobody has
 to rediscover it.
@@ -1386,18 +1638,27 @@ by 2–4×.
    (`employer_health_premium_distribution.csv` has no earnings dimension,
    `tax_microdata_2024.csv` has no premium column). *(New framing from
    `W4_option56_excess_share.md` findings 2 and 4.)*
-8. **The expenditure module's behavioural sign convention.** *(New, from
-   `W4_option56_excess_share.md` finding 3.)*
+8. **The expenditure module's behavioural sign convention — now the *only* one,
+   sourced, and sized.** *(From `W4_option56_excess_share.md` finding 3; updated
+   2026-09-05 after PR #119, `SWEEP_offset_sign.md` §7.6 item 2.)*
    `TaxExpenditurePolicy.estimate_behavioral_offset` returns an offset with the
    **opposite** sign to `static_effect`, where `TaxPolicy` returns one with the
    same sign and its docstring says why — so the expenditure module *magnifies*
-   where the base class erodes. On Option 56 it is worth **+20%** and is
-   directionally right (CBO's text says both channels increase revenue), but it
-   is unsourced in magnitude on every expenditure benchmark. Changing it is
-   module-wide: it moves every fitted expenditure row **and** the leave-one-out
-   column together. An owner decision, not a lane's. **Wave 5 found the same
-   family of defect in two more modules** — see item 22, which subsumes this one
-   into a sweep.
+   where the base class erodes. **The item stands exactly as written and its
+   context has changed**: it used to be one of four modules whose offset pointed
+   the wrong way, and item 22's sweep signed the other six implementations, so
+   this is now a deliberate exception rather than a member of a family. It is the
+   single entry in `CONVENTION_EXCEPTIONS`, cited in the module's own docstring to
+   CBO 60557 Option 56 — a cap makes employers offer less generous coverage
+   **and** shifts compensation into taxable wages, and CBO has both channels
+   raising revenue, so an offset that adds to the static effect is right *there*.
+   It remains unsourced in magnitude on the other five expenditure benchmarks, and
+   **its size is now measured rather than estimated: +5.0% of the static effect on
+   a SALT elimination and +20% on Option 56.** The decision is still whether the
+   same convention is right for `eliminate_salt`, `repeal_salt_cap`,
+   `eliminate_mortgage`, `cap_charitable` and `eliminate_step_up`, where nothing
+   sources it; choosing it module-wide moves every fitted expenditure row **and**
+   the leave-one-out column together. An owner decision, not a lane's.
 9. **Re-base the UTPR on JCT Equation 2** (OECD CbCR aggregates by
    ultimate-parent jurisdiction). The single largest remaining item in
    `international.py`: the module's $15B against Treasury's $136,313M and JCT's
@@ -1484,37 +1745,43 @@ by 2–4×.
 
 **New after Wave 5**
 
-22. **Sweep every module for an inverted or absolute-valued behavioural offset.**
-    *(New, from `W5_payroll_margin.md` finding 3 and `W5_corporate_margin.md`
-    finding 4; item 8 above is a fourth instance of the same family.)* **Three
-    modules have now been found with the defect and none of them by a test.**
-    `trade.py` (Wave 3, L8), `payroll.py` (W5-A) and `corporate.py` (W5-B), plus
-    `tax_expenditures.py`'s reverse convention (W4-3a). The engine computes
-    `deficit = −revenue + behavioural`, so an offset returned with the wrong sign
-    — or wrapped in `abs()`, which `corporate.py` does — **magnifies** a score
-    where it should erode it: a payroll tax increase raising 17.5% more than it
-    levies, and the shipped `create_republican_corporate_cut` preset booking a
-    first-year deficit effect of **+$159.75B** on a static −$142B. **This is
-    invisible to every gate the repository has**, because each module's
-    calibrated factories zero the elasticity, so the fitted tier and the
-    leave-one-out column are structurally blind to the sign; only the
-    uncalibrated Tier 1 shapes and the demo-grade bill-tracker auto-scorer reach
-    it. Two were found by a lane that happened to be reading the file and one by
-    a lane looking for something else — **the remaining ten modules have not been
-    swept**. `corporate.py`'s bug is deliberately *kept* in `reported` mode and
-    pinned by a test in both behaviours, because `trump_corporate_15`'s shipped
-    number scores through it and Decision 1 forbids moving a shipped number in a
-    lane that ships no caption for it. This is the wave's sharpest finding and
-    should be the next item taken.
-23. **The corporate module has no leave-one-out row.** *(New, from
-    `W5_corporate_margin.md` finding 5.)* `run_loo.py` holds Payroll, Estate,
-    AMT, Credits, Expenditures and CapitalGains. The one module whose base
-    constant was **self-documented as calibrated** to its own benchmark — and
-    which turned out to be a stale TY2018 vintage — has never been
-    cross-validated, which is precisely the population `loo.py` exists to catch.
-    Adding it is a `loo.py` edit and **no modelling lane may make one**, so the
-    lane recorded it and stopped. Depends on nothing; blocked only on whose job
-    it is.
+22. ~~**Sweep every module for an inverted or absolute-valued behavioural
+    offset.**~~ — **done, PR #119, `planning/lanes/SWEEP_offset_sign.md`.**
+    All fifteen implementations were probed at the function (`f(+100)`, `f(−100)`)
+    and at the score, and **7 were against the contract**: three **inverted**
+    (`AMTPolicy`, `EstateTaxPolicy`, `PremiumTaxCreditPolicy`, all three carrying
+    the identical comment pair above a `return -total_offset` — one copy-paste in
+    three files) and four **`abs()`-ed** (`CorporateTaxPolicy` in `reported`, the
+    `TaxCreditPolicy` fallback branch, `IRSEnforcementPolicy`,
+    `InternationalTaxPolicy`). AMT booked 25% more than its own static in both
+    directions. Six were signed with `math.copysign`; the expenditure convention
+    is item 8 and is left. The item's own claim was confirmed rather than
+    disproved: **exactly one of the seven reached a scorecard row**, so the tier
+    and the leave-one-out column really were blind to it, and the gate that now
+    exists is `test_every_offset_implementation_is_covered` — a grep for
+    `def estimate_behavioral_offset` that fails if a class is missing from the
+    case list. Two shipped presets moved with a Decision 6 caption
+    (Trump Corporate 15% +$1,690.6B → +$1,314.9B; Repeal ACA Premium Credits
+    −$966.2B → −$790.5B), and `trump_corporate_15` and `repeal_ptc` were
+    **reclassified rather than retuned**. See §5.6 findings 1 and 3.
+23. ~~**The corporate module has no leave-one-out row.**~~ — **answered `no`,
+    PR #120's memo §7(iii); the substitute shipped in PR #122.** LOO holds out one
+    benchmark's fitted constant and asks whether the machinery calibrated on the
+    *others* can put it back. The corporate module has **one** fitted constant,
+    `BASELINE_TAXABLE_PROFITS_BILLIONS`, and had **two** benchmarks — one of
+    which, `trump_corporate_15`, carried provenance `model_estimate`, so
+    re-deriving the base from it would reconstruct the constant from itself, which
+    is the leakage `LEAKAGE_TOLERANCE` exists to catch. **`loo.py` is not what was
+    stopping it**, and `not cross-validatable` is the honest outcome. The honest
+    substitute, which PR #122 built, is a **second published target the module is
+    not fitted to**: `biden_corporate_28_fy2022`, Treasury's FY2022 Green Book row
+    ($857,817M, FY2022-2031, report p. 104) — the only *rate-only* corporate row
+    any Green Book prints, so it is the one published corporate target whose scope
+    matches the factory's shape. It reports in the reconstruction tier at
+    **−62.9%** and is **never to be fitted**, because a second constant fitted here
+    would make the pair uninformative. The module now has two published benchmarks
+    and one fitted constant and still nothing cross-validating either — a smaller
+    gap, honestly stated, not a closed one.
 24. **`treasury_capgains_39_plus_stepup_elim` is scored on the wrong window, and
     the projection is what makes that bite.** *(New, from
     `W5_preferential_margin.md` §8.3 finding 5.)* The target is the FY2022 Green
@@ -1528,16 +1795,18 @@ by 2–4×.
     year, no smoothing of the TY2023 SOI anchor (a trough), the $1M threshold
     still un-indexed, and the growth rate is a net-worth CAGR rather than CBO's
     own published realizations projection (blocked by cbo.gov 403s, item 16).
-25. **The AGI-surtax filing-status threshold row is now the tier's
-    second-largest, at 44.7%, and nothing in Wave 5 touched it.** A $20,000
+25. **The AGI-surtax filing-status threshold row is now the tier's *largest*, at
+    44.7%, and nothing since Wave 4 has touched it.** *(It became the largest in
+    PR #121, not by moving but by `cbo_opt64` falling past it to 44.5%.)* A $20,000
     single / $40,000 joint boundary applied as one floor to every return, at the
     bottom of the filing population where a single-threshold approximation is
     worst — joint filers between $20,000 and $40,000 are taxed in the model and
     exempt in JCT's estimate, and the model *still* under-predicts, because SOI
     aggregate AGI above the floor understates JCT's base. Together with
-    `cbo_opt45_top4_brackets_2pp` at 17.9% this is **62.6 units, 15.2% of the
+    `cbo_opt45_top4_brackets_2pp` at 17.9% this is **62.6 units, 15.8% of the
     tier**. Closing it needs SOI by filing status, which is why §2.1 scoped it
-    "medium, not in scope below"; it has now outlasted five waves.
+    "medium, not in scope below"; it has now outlasted five waves and the
+    corporate follow-through.
 26. **Payroll's two flat-share "elasticities" and its unexplained base-growth
     gap.** *(New, from `W5_payroll_margin.md` findings 4 and 5.)*
     `labor_supply_elasticity = 0.1` and `tax_avoidance_elasticity = 0.15`
@@ -1577,3 +1846,72 @@ by 2–4×.
     Waves 4 or 5 made it — if most of the remaining wait is import time there is
     more of (a) to do; if it is cold container scheduling, only (b) helps. It is
     the one open blue-tier item that is a measurement rather than a build.
+30. **`CBOBaseline`'s corporate receipts path is neither a vintage nor
+    distinguishable between vintages.** *(New, from
+    `W6_corporate_base_projection.md` finding 1 and carry-over 2.)*
+    `CBOBaseline.generate().corporate_income_tax` on `CBO_FEB_2024` grows at
+    **4.88%/yr** — *faster* than the flat 4% PR #121 removed, and 3.4× CBO's own
+    published **1.44%** — because the corporate line is a base level times
+    `real GDP growth + inflation + a corporate profit premium`. Worse, under
+    `use_real_data=True`, which is the app's default, it returns the **identical**
+    path for all three vintages (402.1 → 614.3), because `base_corporate_tax` is
+    set from an IRS-to-individual-income-tax ratio with no vintage in it. So a
+    score reported as "on the February 2024 baseline" has a corporate receipts
+    line that is neither February 2024's nor distinguishable from February 2026's.
+    **Nothing currently reads it for a scored quantity**, which is why PR #121 read
+    a transcribed CBO table instead and why this is a defect rather than a bug
+    report — but it is a 🟢-tier defect, and it is the reason the distinction
+    between "the vintage" and "the repository's reconstruction of the vintage" had
+    to be made explicit in that module's docstrings. Not a corporate lane's to fix.
+31. **`repeal_ptc`'s *shape* is as much of the mismatch as its target.** *(New,
+    from `PROVENANCE_corporate_ptc.md` §4.)* `create_repeal_ptc` sets
+    `coverage_elasticity=0.0` under the comment "Not modeling coverage offset", so
+    what the module computes *is* a baseline cost of the credit — which is
+    precisely what the only figure anyone can find for the target turns out to be
+    (CBO/JCT pub. 51298 Table 2's $1,142B, 3.8% away). The row and its target are
+    measuring the same wrong thing, from opposite ends. Adopting the projection
+    would make the row *worse* (18.5% → 21.5%) and no scored repeal exists to move
+    to; what would close it is a coverage response in `ptc.py`, which is an owner
+    decision and not a provenance lane's. Both halves are recorded in
+    `EXAMINED_NOT_REVISED` and in the row's `known_limitations`.
+32. **The corporate module's implied marginal base is still 80.8% of the vintage's
+    own average base, where JCT reads 55.9%.** *(New, from
+    `CORPORATE_PER_POINT_YIELD.md` §4b and `W6_corporate_base_projection.md`'s own
+    "what the lane did not do".)* PR #121 took the window average 90.8% → 80.8% and
+    removed the impossibility (a marginal base above the average base it is part
+    of), but the model is still above every published estimator but Treasury: Tax
+    Foundation 55.1%, JCT 55.9%, PWBM 64.4%, Treasury 79.5%. **Twenty of
+    `cbo_opt64`'s sixty-two points were a vintage problem; the remaining
+    forty-four are not.** They are credit **carryforwards** under §38(c) and
+    §904(c) — which CBO's 2018 Option 24, the only volume with a narrative, states
+    *is* inside JCT's estimate — **CAMT**, which begins in TY2023, after the last
+    SOI year on file, and the individual-side dividend interaction. Each needs a
+    quantity no source this module reads publishes (the carryforward stock is in
+    the Form 3800 and Form 1118 statistics, which is a data-acquisition item), and
+    **a lane that asserts a share instead of deriving one has failed even if the
+    row lands.** The number that *would* land it — a total factor of 0.5785
+    against JCT's own steady-state 0.590 — is printed by
+    `scripts/corporate_yield_reconciliation.py` and was deliberately not approached.
+33. **Decision 1's corporate flip is pending the owner.** *(New, from
+    `PROVENANCE_corporate_ptc.md` §7 and the merge that re-pinned it.)* Measured on
+    the merged tree, where both PR #121's base projection and PR #122's moved
+    targets apply, the corporate module reads **reported 62.75% against derived
+    61.43%** on three published targets — derived leads, narrowly, by winning the
+    FY2022 rate-only row and losing a little on the other two. By Decision 1's own
+    words the module is due to flip. **`CORPORATE_APP_MODE` is unchanged on `main`
+    at `reported`** and a flip is being prepared by a concurrent lane, awaiting the
+    owner's confirmation (not yet open as this was written); flipping moves both
+    corporate presets, so it needs its own caption under Decision 6. Two cautions
+    belong with the decision: neither figure is small, and the comparison has now
+    reversed three times in four PRs — twice because a row whose target was the
+    model's own output moved. Carry the per-row table beside the mean, never
+    instead of it.
+34. **A `retire` state for `target_revisions.py` was deliberately not built.**
+    *(New, from `PROVENANCE_corporate_ptc.md` §3.)* PR #122's brief allowed for one
+    if no published 15% corporate score existed; **two do** (PWBM's −$595B and Tax
+    Foundation's −$673.1B), so the row took a range instead and the mechanism would
+    have shipped with no user. `EXAMINED_NOT_REVISED` already covers "opened and
+    left". What the ledger still lacks is a way to record "**this target should not
+    exist and nothing replaces it**" — distinct from both a supersession and an
+    examined-and-left — and nothing in the repository needs that today. Recorded so
+    the next lane does not re-derive the question rather than because it is due.

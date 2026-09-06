@@ -334,6 +334,24 @@ reading JCT's answer backwards, and §4 forbids it.
 
 ## 7. Recommendation — (iii), both, target side first
 
+> **Addendum, 2026-09-05 (docs sync).** All of §7 has landed. **(ii)'s three
+> target-side records** were corrected by PR #122: `biden_corporate_28` →
+> `line_item_differs` through a new `scope_differs` kind, `cbo_opt64`'s
+> estimator → JCT, and the row's `known_limitations` rewritten with the §174
+> anchor inflation sized at 11.1%. **(i)'s Lane C** shipped as PR #121 and
+> landed inside its own predicted band — `cbo_opt64` **62.3% → 44.5%** against
+> "42 ± 4", derived `biden_corporate_28` **+4.04%** against "5.4 ± 1.5%",
+> Tier 1 **15.2%** against "15.1 ± 0.2%" — and the marginal share fell
+> 90.8% → **80.8%**, so the lane's named prohibition held: no
+> marginal-realization ratio was asserted. **(iii)'s substitute** was
+> registered by PR #122 as `biden_corporate_28_fy2022` (−$857.8B, FY2022-2031,
+> `calibrated_to_target=False`, model −62.9%), so the module now has two
+> published targets and one of them is not fitted. What §7 could not
+> anticipate: Decision 1's corporate comparison has reversed three times since
+> this memo, and on merged main reads **reported 62.75% vs derived 61.43%**
+> — the mean that decides an app default has twice been decided by a row
+> whose target was the model's own output.
+
 ### (ii) Target side: three records to correct, no target to move
 
 None of these changes a number. All three are provenance-lane work; a modelling
