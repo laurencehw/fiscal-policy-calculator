@@ -74,8 +74,14 @@ def test_the_two_vintages_are_different_shapes_not_two_speeds():
     assert baseline_credit_cost(2033, "cbo_feb_2026") >= 105.0
 
     # The June 2024 vintage still has FY2025 — the last full year of the
-    # enhancement, and the largest year in that table — inside its window.
+    # enhancement — inside its window, and even there the credit does not
+    # exceed its FY2025 level again until the last year of the window.
     assert baseline_credit_cost(2025, "cbo_jun_2024") == pytest.approx(129.0)
+    assert baseline_credit_cost(2027, "cbo_jun_2024") == pytest.approx(101.0)
+    assert max(
+        baseline_credit_cost(year, "cbo_jun_2024") for year in range(2026, 2034)
+    ) < 129.0
+    assert baseline_credit_cost(2034, "cbo_jun_2024") == pytest.approx(130.0)
 
 
 def test_an_untranscribed_vintage_raises_rather_than_falling_back():
