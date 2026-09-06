@@ -58,6 +58,7 @@ from fiscal_model.preset_ids import (
     label_for_preset_id,
     preset_id_for_token,
 )
+from fiscal_model.ui.charts import apply_base_layout
 from fiscal_model.ui.frozen_links import (
     frozen_input_module,
     is_classroom_request,
@@ -1321,7 +1322,8 @@ def _render_waterfall(
         annotation_text=f"Target: {target_label}",
         annotation_position="top right",
     )
-    fig.update_layout(
+    apply_base_layout(
+        fig,
         title={
             "text": f"Waterfall — baseline → policies → adjusted ({per_year_note})",
             "font": {"size": 13},

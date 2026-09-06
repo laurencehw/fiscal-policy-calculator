@@ -45,12 +45,20 @@ Left for a later lane:
   argument changed at any call site. Light mode is a no-op and
   `tests/test_charts_theme.py` pins its layout dict. The Vega tooltip
   (`#vg-tooltip-element`, appended to `<body>` outside every Streamlit
-  container) is repainted in `_DARK_MODE_CSS`. **Carry-over:** the Build
+  container) is repainted in `_DARK_MODE_CSS`. ~~**Carry-over:** the Build
   waterfall (`ui/tabs/deficit_target.py::_render_waterfall`) is the one site
-  still un-routed — it belongs to the Build lane, and the fix is one call,
-  `apply_base_layout(fig, height=380, …)` in place of its `fig.update_layout`.
-  `tests/test_dark_mode_render.py` pins it as the *only* exception, so that
-  test fails the day it is fixed or the day a second one appears.
+  still un-routed~~ — **closed 2026-09-06**: 21 of 21 now route through the
+  helpers. The waterfall's `fig.update_layout` became the same
+  `apply_base_layout(fig, height=380, …)` every other site calls, which took a
+  title *mapping* rather than a string (the chart sets its own 13px font), so
+  `apply_base_layout`'s `title` widened to `str | Mapping[str, Any] | None` —
+  `update_layout` merges the two key-by-key, so `theme_figure`'s ink colour
+  lands without discarding the size. `tests/test_dark_mode_render.py` was
+  inverted with it: the waiver and its `KNOWN_UNTHEMED_TITLE_PREFIX` are gone,
+  `test_dark_mode_leaves_no_light_canvas` now allows *no* offender on either
+  page, and `test_build_renders_no_light_canvas_chart` replaces the old pin —
+  it asserts the waterfall is both **present** and themed, because "no light
+  canvas on Build" is also true of a Build page that draws no waterfall.
 - [ ] **Dark mode is a CSS overlay, not a theme.** Streamlit exposes no runtime theme API and no CSS custom properties to override, so `_DARK_MODE_CSS` enumerates surfaces by `data-testid`. It is now correct on every surface the app renders, but a future Streamlit that adds a widget type will re-open the same class of bug. Worth revisiting if upstream ships a runtime theme switch. The Plotly work above did **not** change this: `st.context.theme` exists in the pinned Streamlit 1.56 but reports the *Streamlit* theme, which this deployment always serves light, so the charts read the app's own `dark_mode` session flag and fall back to `st.context.theme` only for a deployment whose Streamlit config is genuinely dark.
 - [x] Scoring-window drift is visible to users: Explore shows **FY2026–FY2035** for a calibrated preset while Tailor shows **FY2025–FY2034** for a generic run (`FiscalPolicyScorer` defaults `start_year=2025`). Same owner call as the entry below, but note it is now a *within-session* inconsistency, not just a plan mismatch. **Closed with the entry below** — one window, `fiscal_model.baseline.APP_DEFAULT_START_YEAR`; see `tests/test_scoring_window.py`.
 

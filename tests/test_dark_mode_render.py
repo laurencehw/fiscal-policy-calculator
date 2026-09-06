@@ -27,13 +27,13 @@ import pytest
 from fiscal_model.ui import cache as ui_cache
 from fiscal_model.ui.charts import DARK_GRID, DARK_INK, TRANSPARENT
 
-#: The Build waterfall is the one chart in the app that still bypasses both
-#: helpers. It lives in ``ui/tabs/deficit_target.py``, which belongs to the
-#: Build lane, and the fix is one call: ``apply_base_layout(fig, height=380,
-#: …)`` in place of its ``fig.update_layout(…)``. It is pinned here rather than
-#: waived so that this test fails the day it is fixed — and, more usefully, the
-#: day a *second* un-themed chart appears.
-KNOWN_UNTHEMED_TITLE_PREFIX = "Waterfall — baseline"
+#: The Build waterfall (``ui/tabs/deficit_target.py::_render_waterfall``) was
+#: the app's one un-routed chart, waived here while the Build lane owned the
+#: file; it now goes through ``apply_base_layout`` like every other site, so the
+#: waiver is gone and the prefix is kept only to *name* the chart in
+#: :func:`test_build_renders_no_light_canvas_chart` — the guard would otherwise
+#: pass just as happily if the waterfall stopped rendering at all.
+WATERFALL_TITLE_PREFIX = "Waterfall — baseline"
 
 HEALTHY_HEALTH: dict = {
     "runtime": {"status": "ok", "python_version": "3.12.0"},
@@ -130,16 +130,13 @@ def test_dark_mode_leaves_no_light_canvas(page, query, label):
     assert layouts, f"{label}: no chart rendered — the guard would pass vacuously"
 
     offenders = [_title(layout) or "<untitled>" for layout in layouts if _is_light_canvas(layout)]
-    expected = [t for t in offenders if t.startswith(KNOWN_UNTHEMED_TITLE_PREFIX)]
-    unexpected = [t for t in offenders if not t.startswith(KNOWN_UNTHEMED_TITLE_PREFIX)]
 
-    assert not unexpected, (
-        f"{label}: {len(unexpected)} chart(s) keep a light canvas in dark mode. "
+    assert not offenders, (
+        f"{label}: {len(offenders)} chart(s) keep a light canvas in dark mode. "
         "Route them through fiscal_model.ui.charts.apply_base_layout (or "
         "theme_figure, for a Plotly Express figure that sets its own layout). "
-        f"First offender: {unexpected[0]!r}"
+        f"First offender: {offenders[0]!r}"
     )
-    assert len(expected) <= 1, f"{label}: the Build waterfall rendered {len(expected)} times"
 
 
 @pytest.mark.parametrize(("page", "query", "label"), PAGES)
@@ -180,14 +177,26 @@ def test_light_mode_writes_no_theme_colours(page, query, label):
                 assert "gridcolor" not in axis, f"{_title(layout)} / {key}"
 
 
-def test_the_build_waterfall_is_still_the_only_exception():
-    """Pins the carry-over so it cannot quietly grow.
+def test_build_renders_no_light_canvas_chart():
+    """The inverse of the carry-over this file used to pin.
 
-    Recorded in ``planning/redesign/FOLLOWUPS.md``. When the Build lane routes
-    ``_render_waterfall`` through ``apply_base_layout``, this test fails and
-    should be deleted along with ``KNOWN_UNTHEMED_TITLE_PREFIX``.
+    ``/build`` once rendered exactly one light-canvas chart and that chart was
+    the waterfall; it now renders none. The assertion is deliberately stated
+    twice over — the waterfall is *present* and it is *themed* — because "no
+    light canvas on Build" is also true of a Build page that draws no waterfall,
+    and that is a regression this test should catch rather than reward.
     """
     at = _run("app_pages/build.py", BUILD_PACKAGE, dark=True)
-    unthemed = [_title(layout) for layout in _chart_layouts(at) if _is_light_canvas(layout)]
-    assert len(unthemed) == 1
-    assert unthemed[0].startswith(KNOWN_UNTHEMED_TITLE_PREFIX)
+    layouts = _chart_layouts(at)
+
+    waterfalls = [
+        layout for layout in layouts if _title(layout).startswith(WATERFALL_TITLE_PREFIX)
+    ]
+    assert len(waterfalls) == 1, (
+        f"expected exactly one Build waterfall, got {len(waterfalls)}: "
+        f"{[_title(layout) for layout in layouts]}"
+    )
+    assert waterfalls[0].get("paper_bgcolor") == TRANSPARENT, "the waterfall is not themed"
+
+    unthemed = [_title(layout) or "<untitled>" for layout in layouts if _is_light_canvas(layout)]
+    assert not unthemed, f"/build keeps {len(unthemed)} light canvas(es): {unthemed}"
