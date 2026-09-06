@@ -463,9 +463,12 @@ KNOWN_SCORES: dict[str, CBOScore] = {
               "re-read 2026-09-02). "
               "Treasury Green Book estimate (higher than PWBM due to methodology differences). "
               "Scored on the uncalibrated Generic capital-gains path with the same frozen "
-              "module-default elasticities as biden_capital_gains_39 — and, being the same "
-              "policy shape, it necessarily receives the same prediction even though the two "
-              "published targets differ from each other by 42%.",
+              "module-default elasticities as biden_capital_gains_39. It no longer receives "
+              "the same prediction as that row: Wave 4 gave each row its own volume's "
+              "per-donor exclusion ($1M here against the FY2025 volume's $5M), and PR #126 "
+              "moved this row onto its own document's FY2022-2031 decade "
+              "(scoring_window_first_year below), so the two differ in both the death "
+              "channel and the window.",
         eliminate_step_up=True,
         # The window this row's own document published its total over, and the
         # decade the model is therefore scored on. Same fiscal years on both
