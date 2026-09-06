@@ -199,10 +199,45 @@ CORPORATE_VALIDATION_SCENARIOS = {
         "score_id": None,
         "policy_factory": create_republican_corporate_cut,
         "expected_10yr": 1920.0,
+        # Reclassified 2026-09-05 by the offset-sign sweep
+        # (``planning/lanes/SWEEP_offset_sign.md``), on the precedent
+        # ``readiness.py`` itself cites and that Wave 2 L1 set for
+        # ``pwbm_39_with_stepup`` and Wave 3 L8 for the two tariff rows: a
+        # constant that reproduced its target only through a defect is not a
+        # calibration to that target.
+        #
+        # ``CorporateTaxPolicy.estimate_behavioral_offset`` returned
+        # ``abs(static)`` in ``reported`` mode, so this rate *cut* had 12.5% of
+        # its static effect ADDED to the deficit instead of taken off it, and
+        # the module's annual level had been chosen so that
+        # static x (1 + offset share) landed on +$1,920B. Signing the offset in
+        # this PR takes the row 0.1% -> 22.3% (+1,918.0 -> +1,491.8) with no
+        # constant retuned, because retuning would re-fit the level to the
+        # defect. So the row reports in the unfitted-reconstruction tier, where
+        # a documented miss is a finding rather than a calibration regression.
+        #
+        # The target is provenance ``model_estimate`` - this repository's own
+        # output recorded as an expectation, "no official score" by the note's
+        # own admission - so the 22.3% is not a distance from a published
+        # figure. Queued for the next provenance pass: retire it, or re-source
+        # it to a published score.
+        "calibrated_to_target": False,
         "notes": (
             "Trump 2024 proposal to lower corporate rate to 15%. No official score; "
             "expected estimate derived from model. Includes bonus depreciation extension."
         ),
+        "limitations": [
+            "Poor, and reclassified rather than retuned: the corporate module's "
+            "behavioural offset returned an absolute value, so this rate cut "
+            "booked 12.5% of its static effect as extra deficit rather than as "
+            "an offset, and the fitted annual was compensating for that. The "
+            "sign was corrected 2026-09-05 and the row moved 0.1% -> 22.3%; no "
+            "constant was moved to close it.",
+            "The +$1,920B target is provenance model_estimate - this model's "
+            "own output recorded as an expectation, not a published score - so "
+            "the residual is not a measurement against a document. Queued for "
+            "the next provenance pass to be retired or re-sourced.",
+        ],
     },
 }
 
@@ -456,7 +491,41 @@ PTC_VALIDATION_SCENARIOS_COMPARE = {
         "policy_factory": create_repeal_ptc,
         "expected_10yr": -1100.0,
         "source": "CBO estimate",
+        # Reclassified 2026-09-05 by the offset-sign sweep
+        # (``planning/lanes/SWEEP_offset_sign.md``), for the same reason and on
+        # the same precedent as ``trump_corporate_15`` above.
+        #
+        # ``PremiumTaxCreditPolicy.estimate_behavioral_offset`` returned the
+        # NEGATION of the contract, so a repeal booked 10% more saving than its
+        # own static effect (``adverse_selection_factor`` stayed at its 0.1
+        # default here - ``create_repeal_ptc`` zeroes ``coverage_elasticity``
+        # and not this one), and the module's annual level had been chosen so
+        # that static x 1.10 landed on -$1,100B. Signing the offset takes the
+        # row 0.3% -> 18.5% (-1,096.2 -> -896.9) with no constant retuned.
+        #
+        # It rates Acceptable rather than Poor today, so it is not what trips
+        # strict readiness - but it is 1.5pp from Poor, and a Poor row in the
+        # fitted tier is a *hard* readiness failure rather than a warning. The
+        # classification follows the finding, not the rating.
+        #
+        # The -$1,100B target is untraceable ``secondhand`` ("CBO estimate", no
+        # publication) and is one of the twelve rows on
+        # ``MODELING_IMPROVEMENT.md`` section 6.2 item 5. Queued for the next
+        # provenance pass: retire or re-source.
+        "calibrated_to_target": False,
         "notes": "Eliminate all ACA subsidies - major coverage loss",
+        "limitations": [
+            "Reclassified rather than retuned: the PTC module's behavioural "
+            "offset carried the opposite sign to the static effect, so this "
+            "repeal booked 10% more saving than it statically raises, and the "
+            "fitted annual was compensating for that. The sign was corrected "
+            "2026-09-05 and the row moved 0.3% -> 18.5%; no constant was moved "
+            "to close it.",
+            "The -$1,100B target is an untraceable secondhand figure ('CBO "
+            "estimate', no publication) on the section 6.2 item 5 list, so the "
+            "residual is not a measurement against a document. Queued for the "
+            "next provenance pass to be retired or re-sourced.",
+        ],
     },
 }
 

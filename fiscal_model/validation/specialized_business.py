@@ -66,6 +66,14 @@ def validate_corporate_policy(
             "rate_change": policy.rate_change,
             "baseline_rate": policy.baseline_rate,
             "corporate_elasticity": policy.corporate_elasticity,
+            # Defaults True, so only a scenario that says otherwise moves out
+            # of the fitted tier. ``trump_corporate_15`` says otherwise: its
+            # fitted annual reproduced +$1,920B only through the ``abs()``
+            # offset the sweep corrected, and a constant fitted through a
+            # defect is not a calibration to the target.
+            "calibrated_to_target": bool(
+                scenario.get("calibrated_to_target", True)
+            ),
         },
         notes=scenario.get("notes", ""),
         benchmark_date=score.source_date if score else scenario.get("benchmark_date"),

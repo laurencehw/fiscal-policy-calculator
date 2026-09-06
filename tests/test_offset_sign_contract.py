@@ -249,3 +249,78 @@ def test_the_caption_stays_silent_on_a_rate_increase(scorer):
     policy = create_biden_corporate_rate_only()
     result = scorer.score_policy(policy, dynamic=False, include_uncertainty=False)
     assert behavioural_sign_caption(policy, result) == ""
+
+
+# ---------------------------------------------------------------------------
+# The two rows the sweep moved report as reconstructions, not calibrations
+# ---------------------------------------------------------------------------
+
+#: The rows whose fitted constant reproduced its target only through the sign
+#: defect this lane corrected. Both were reclassified rather than retuned, on
+#: the precedent ``readiness.py`` cites and that Wave 2 L1 set for
+#: ``pwbm_39_with_stepup`` and Wave 3 L8 for the two tariff rows.
+RECLASSIFIED_BY_THE_SWEEP = ("trump_corporate_15", "repeal_ptc")
+
+
+def test_the_two_moved_rows_report_as_unfitted_reconstructions():
+    """Reclassify, do not retune, do not exempt.
+
+    A constant fitted so that *static x (1 + offset share)* lands on a target
+    is not a calibration to that target once the offset is signed - it was
+    fitted to the defect. Both rows therefore report in the
+    unfitted-reconstruction tier, where a documented miss is a finding about
+    the module rather than a calibration regression, and both carry a
+    ``known_limitations`` note saying so. Readiness requires the note: a Poor
+    row *without* one is a hard failure rather than a warning.
+    """
+    from fiscal_model.validation import compute_scorecard
+
+    entries = {e.policy_id: e for e in compute_scorecard().entries}
+    for policy_id in RECLASSIFIED_BY_THE_SWEEP:
+        entry = entries[policy_id]
+        assert entry.calibrated_to_target is False, policy_id
+        assert entry.known_limitations, policy_id
+        joined = " ".join(entry.known_limitations).lower()
+        assert "retuned" in joined, policy_id
+        assert "provenance pass" in joined, policy_id
+
+
+def test_no_other_row_left_the_fitted_tier():
+    """The reclassification is two rows, named, and nothing else.
+
+    ``calibrated_to_target`` is threaded through the corporate and PTC runners
+    with a default of ``True``, so a scenario that says nothing keeps its tier.
+    This fails if that default ever inverts and quietly empties the fitted tier.
+    """
+    from fiscal_model.validation import GENERIC_CATEGORY, compute_scorecard
+
+    summary = compute_scorecard()
+    # The same split ``scripts/cold_holdout.py`` makes: the Generic category is
+    # the out-of-sample tier and is neither of these two.
+    specialized = [e for e in summary.entries if e.category != GENERIC_CATEGORY]
+    fitted = [e for e in specialized if e.calibrated_to_target]
+    reconstructions = [e for e in specialized if not e.calibrated_to_target]
+    assert len(fitted) == 21, [e.policy_id for e in fitted]
+    assert len(reconstructions) == 33, len(reconstructions)
+
+
+def test_strict_readiness_reports_no_fitted_tier_regression():
+    """What the CI job actually checks, as a test rather than a CI log.
+
+    A *fitted* benchmark rated Poor is strict-blocking, because its parameters
+    exist to reproduce that target. Signing the corporate offset made
+    ``trump_corporate_15`` exactly that, and the fix is the classification, not
+    the constant and not an exemption. The runtime check is expected to fail
+    locally on Python 3.14 and to pass on CI's 3.12; it is not this lane's.
+    """
+    from fiscal_model.readiness import build_readiness_report, strict_readiness_issues
+
+    report = build_readiness_report()
+    issues = strict_readiness_issues(report)
+    offenders = [
+        policy_id
+        for issue in issues
+        for policy_id in (issue.details.get("documented_calibrated_policy_ids") or [])
+    ]
+    assert not offenders, offenders
+    assert all(issue.name == "runtime" for issue in issues), [i.name for i in issues]
