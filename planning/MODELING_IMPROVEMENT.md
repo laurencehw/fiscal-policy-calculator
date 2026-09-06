@@ -1899,7 +1899,8 @@ by 2–4×.
     61.43%** on three published targets — derived leads, narrowly, by winning the
     FY2022 rate-only row and losing a little on the other two. By Decision 1's own
     words the module is due to flip. **`CORPORATE_APP_MODE` is unchanged on `main`
-    at `reported`** and a flip PR is open awaiting confirmation; flipping moves both
+    at `reported`** and a flip is being prepared by a concurrent lane, awaiting the
+    owner's confirmation (not yet open as this was written); flipping moves both
     corporate presets, so it needs its own caption under Decision 6. Two cautions
     belong with the decision: neither figure is small, and the comparison has now
     reversed three times in four PRs — twice because a row whose target was the

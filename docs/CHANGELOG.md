@@ -151,8 +151,9 @@ pending.** Measured on the merged tree, where both PR #121's base projection and
 PR #122's moved targets apply, the module reads **reported 62.75% against derived
 61.43%** on three published targets — derived leads, narrowly, by winning the
 FY2022 rate-only row and losing a little on the other two. **`CORPORATE_APP_MODE`
-is unchanged at `reported`** and a flip PR is open pending the owner's
-confirmation; until it merges the corporate app default is `reported`. Neither
+is unchanged at `reported`** and a **flip is being prepared by a concurrent lane,
+awaiting the owner's confirmation** (not yet open as this was written); until it
+merges the corporate app default is `reported`. Neither
 figure is small, and the comparison has reversed three times in four PRs — twice
 because a row whose target was the model's own output moved.
 

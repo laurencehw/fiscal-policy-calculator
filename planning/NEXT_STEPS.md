@@ -496,9 +496,9 @@ branches; distributional unchanged; the CI gate re-derives to the same 20 / 21.
 other way.** Measured on the merged tree where both the base projection and the
 moved targets apply, the corporate module reads **reported 62.75% against derived
 61.43%** on three published targets — derived leads, narrowly, by winning the
-FY2022 rate-only row and losing a little on the other two. A flip PR is open
-pending the owner's confirmation; until it merges, describe the corporate app
-default as `reported`. Neither figure is small, and the honest summary is that a
+FY2022 rate-only row and losing a little on the other two. A flip is being prepared
+by a concurrent lane and awaits the owner's confirmation; it was not yet open when
+this was written, and until it merges the corporate app default is `reported`. Neither figure is small, and the honest summary is that a
 module whose implied marginal base is above every published estimator's misses both
 published corporate targets in the same direction and misses the third by more.
 
