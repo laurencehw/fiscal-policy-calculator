@@ -52,6 +52,22 @@ inter-spousal transfers are not included in the estate totals reported above."*
 So the tangible-personal-property and spousal carve-outs remove nothing here,
 and deducting either would be a double count - which is why the spousal share
 is carried in the data file and never read.
+
+**How big each decedent's estate is.**  Those three step functions are
+published on eighteen size classes between them, and until Wave 7 the module
+evaluated them at five group means, so seven of the eighteen were never read by
+any scored case - including the whole $1M-$5M band both Green Book per-donor
+exclusions sit in.  Worse, a per-decedent exclusion applied to a group mean is a
+step function: raising it from $1M to $5M removed a whole class at once.
+:meth:`CapitalGainsBaseline.decedent_classes` therefore integrates over a
+**piecewise-Pareto size distribution of net worth at death**, fitted in
+``decedent_size_distribution.csv`` so that each Distributional Financial
+Accounts percentile group's own aggregate is reproduced exactly, and evaluates
+each ladder at the estate's own size.  The fit is used only above the 90th
+percentile: below it the index comes back below one and the median it implies is
+twice the Survey of Consumer Finances' published figure, so those two groups
+keep the group mean they always had.  The **level** is untouched - it is still
+Poterba & Weisbenner's flow - and only the shape changes.
 """
 
 from __future__ import annotations
@@ -126,6 +142,12 @@ class DecedentClass:
     ``unrealized_gain_share`` is a different object: unrealized gain per dollar
     of *wealth* at this estate size (Avery, Grodzicki & Moore), which prices
     how much tax a bequest of appreciated property avoids.
+
+    A class is one **quantile slice** of the fitted size distribution, not one of
+    the five Distributional Financial Accounts percentile groups; ``group`` names
+    the DFA group the slice belongs to and ``net_worth_millions_usd`` is the
+    slice's own conditional mean estate, which is what every share above is read
+    at.  The two groups below the 90th percentile are a single slice each.
     """
 
     group: str
@@ -136,6 +158,7 @@ class DecedentClass:
     active_business_gain_share: float = 0.0
     charitable_bequest_share: float = 0.0
     unrealized_gain_share: float = 0.0
+    net_worth_millions_usd: float = 0.0
 
     def taxable_gains_billions(self, exemption: float) -> float:
         """Gains above a per-decedent exemption, in billions."""
@@ -150,8 +173,18 @@ class CapitalGainsBaseline:
     HOLDING_FILE = "soi_gains_by_holding_period.csv"
     PARAMETER_FILE = "accrued_gains_parameters.csv"
     LADDER_FILE = "decedent_estate_ladder.csv"
-    CARVEOUT_FILE = "decedent_carveout_shares.csv"
+    CARVEOUT_FILE = "decedent_carveout_ladders.csv"
+    SIZE_DISTRIBUTION_FILE = "decedent_size_distribution.csv"
+    AGM_FILE = "agm_unrealized_gain_share_by_estate_size.csv"
     AGGREGATE_FILE = "taxfoundation_capital_gains_2022_2024.csv"
+
+    #: Quantile slices per dispersed region.  This is quadrature resolution, not
+    #: a modelling parameter: the published wealth breakpoints of all three
+    #: ladders are forced in as slice edges and the open top slice is closed
+    #: analytically, so population and aggregate wealth are exact at any count
+    #: and the ten-year death channel is stable to well under a percent when it
+    #: is doubled.  ``tests/test_capital_gains_death_channel.py`` pins that.
+    DECEDENT_SLICES_PER_REGION = 200
 
     #: A capital-gains rate change is a change to the 0/15/20 percent ladder.
     #: The 25 percent (unrecaptured section 1250 gain) and 28 percent
@@ -163,6 +196,13 @@ class CapitalGainsBaseline:
     def __init__(self, data_dir: Optional[Path] = None):
         default_dir = Path(__file__).resolve().parent.parent / "data_files" / "capital_gains"
         self.data_dir = Path(data_dir) if data_dir else default_dir
+        # The size distribution does not depend on the year being scored, and
+        # the death channel asks for it once per year of a ten-year window.
+        self._slice_cache: dict[int, list[tuple[float, float, str]]] = {}
+        self._decedent_template_cache: dict[int, list[tuple]] = {}
+        # The family-business recapture asks for the realization hazard once per
+        # slice per year, and the hazard is a pure function of the year.
+        self._hazard_cache: dict[int, float] = {}
 
     # ------------------------------------------------------------------
     # Loading
@@ -192,25 +232,78 @@ class CapitalGainsBaseline:
         return self._read(self.LADDER_FILE)
 
     @cached_property
-    def _carveouts(self) -> dict[str, dict[str, float]]:
-        """Carve-out shares keyed by ladder group.
+    def _carveout_ladders(self) -> dict[str, tuple[tuple[float, float], ...]]:
+        """Carve-out step functions, keyed by quantity, on their own boundaries.
 
-        ``marital_bequest_share`` is deliberately not returned: it is in the
-        file as the record of a double count that would be wrong to make, not
-        as an input.
+        Each value is ``((lower bound in $M, share), ...)`` ascending.  Rows
+        marked ``applied=False`` are deliberately **not** returned: the spousal
+        and tangible-personal-property shares are in the file as the record of a
+        double count that would be wrong to make, not as inputs.
         """
         frame = self._read(self.CARVEOUT_FILE)
-        fields = (
-            "residence_gain_share",
-            "active_business_gain_share",
-            "charitable_bequest_share",
+        frame = frame[frame["applied"].astype(str).str.lower() == "true"]
+        ladders: dict[str, list[tuple[float, float]]] = {}
+        for _, row in frame.sort_values("size_class_lower_millions_usd").iterrows():
+            ladders.setdefault(str(row["quantity"]), []).append(
+                (
+                    float(row["size_class_lower_millions_usd"]),
+                    float(min(1.0, max(0.0, row["share"]))),
+                )
+            )
+        return {name: tuple(rows) for name, rows in ladders.items()}
+
+    @cached_property
+    def _agm_ladder(self) -> tuple[tuple[float, float], ...]:
+        """Unrealized-gain share of the estate by estate size (AGM Figure 1)."""
+        frame = self._read(self.AGM_FILE).sort_values(
+            "wealth_at_death_lower_millions_usd"
         )
-        return {
-            str(row["group"]): {
-                name: float(min(1.0, max(0.0, row[name]))) for name in fields
-            }
+        return tuple(
+            (
+                float(row["wealth_at_death_lower_millions_usd"]),
+                float(row["unrealized_gain_share"]),
+            )
             for _, row in frame.iterrows()
+        )
+
+    @cached_property
+    def _size_distribution(self) -> pd.DataFrame:
+        return self._read(self.SIZE_DISTRIBUTION_FILE)
+
+    @staticmethod
+    def _step(ladder: tuple[tuple[float, float], ...], estate_millions: float) -> float:
+        """Value of a published step function at this estate size."""
+        if not ladder:
+            return 0.0
+        value = ladder[0][1]
+        for lower, share in ladder:
+            if estate_millions >= lower:
+                value = share
+            else:
+                break
+        return value
+
+    def unrealized_gain_share_at(self, estate_millions: float) -> float:
+        """AGM Figure 1's gain share of the gross estate at this estate size."""
+        return self._step(self._agm_ladder, estate_millions)
+
+    def carveout_shares_at(self, estate_millions: float) -> dict[str, float]:
+        """Every applied carve-out share at this estate size.
+
+        The charitable share is zero below
+        ``soi_estate_charitable_floor_millions_usd``: SOI's Estate Tax Table 1 is
+        estate-tax filers only, so lending their charitable propensity to a
+        sub-million-dollar estate would over-state a relief.  Zero over-states
+        the model's revenue instead, which is the conservative direction.
+        """
+        floor = self._parameters.get("soi_estate_charitable_floor_millions_usd", 0.0)
+        shares = {
+            name: self._step(ladder, estate_millions)
+            for name, ladder in self._carveout_ladders.items()
         }
+        if estate_millions < floor:
+            shares["charitable_bequest_share"] = 0.0
+        return shares
 
     @cached_property
     def _aggregate(self) -> pd.DataFrame:
@@ -446,12 +539,17 @@ class CapitalGainsBaseline:
         A data identity: SOI realizations over the Financial Accounts stock, at
         the baseline rate.  This is the hazard a rate change moves.
         """
+        cached = self._hazard_cache.get(int(year))
+        if cached is not None:
+            return cached
         realized = sum(
             bracket.realizations_billions
             for bracket in self.get_brackets_above_threshold(year, 0.0)
         )
         stock = self.accrued_gains_stock_billions(year)
-        return realized / stock if stock > 0 else 0.0
+        hazard = realized / stock if stock > 0 else 0.0
+        self._hazard_cache[int(year)] = hazard
+        return hazard
 
     def realizations_growth_rate(self) -> float:
         """Annual growth of the realizations flow.
@@ -497,50 +595,185 @@ class CapitalGainsBaseline:
         share = self._parameters["gains_at_death_share_of_net_worth"]
         return self.household_net_worth_billions(year) * share
 
-    def decedent_classes(self, year: int) -> list[DecedentClass]:
-        """Gains at death split across estate-size classes.
+    def decedent_size_slices(
+        self, slices_per_region: Optional[int] = None
+    ) -> list[tuple[float, float, str]]:
+        """The decedent population as ``(population share, mean estate $M, group)``.
 
-        The level is Poterba & Weisbenner's; the *shape* is Avery, Grodzicki &
-        Moore's unrealized-gain share of the gross estate by estate size,
-        evaluated on DFA net worth by percentile group.  Decedent counts come
-        from applying Poterba & Weisbenner's estate-flow rate uniformly across
-        groups, so the classes carry no within-group dispersion - a coarse
-        schedule, but one with a per-decedent exemption in it, which a single
-        aggregate flow cannot have.
+        Above the 90th percentile this integrates the piecewise-Pareto fitted in
+        ``decedent_size_distribution.csv``.  Within a segment of index ``alpha``
+        anchored at wealth ``x_lo`` at cumulative population share ``s_lo``,
+        wealth at share ``s`` is ``x_lo * (s / s_lo) ** (-1 / alpha)``, so a
+        slice ``[a, b]`` of the population has conditional mean
 
-        Each class also carries the shares of its gain that the stated
-        carve-outs reach, from ``decedent_carveout_shares.csv``.
+            ``x_lo * s_lo ** (1/alpha) * (b**e - a**e) / (e * (b - a))``,
+            ``e = 1 - 1/alpha``,
+
+        which is exact, not a midpoint.  The open-ended top slice is closed with
+        the Pareto mean ``x * alpha / (alpha - 1)``, so the population and the
+        aggregate wealth of every group are reproduced exactly at any slice
+        count.  Slice edges are geometric in the survival probability with every
+        published wealth breakpoint - AGM's eight, Poterba & Weisbenner's six,
+        SOI's four and the charitable floor - forced in, so no slice straddles a
+        boundary of a step function it is about to read.
+
+        The two groups the fit refuses keep their group mean, which is exactly
+        what the five-class ladder gave them.
+        """
+        count = int(slices_per_region or self.DECEDENT_SLICES_PER_REGION)
+        if count < 1:
+            raise ValueError(f"slices_per_region must be >= 1, got {count}")
+        cached = self._slice_cache.get(count)
+        if cached is not None:
+            return cached
+
+        ladder = self._ladder.set_index("group")
+        breakpoints = sorted(
+            {
+                bound
+                for rows in self._carveout_ladders.values()
+                for bound, _ in rows
+                if bound > 0
+            }
+            | {bound for bound, _ in self._agm_ladder if bound > 0}
+            | {
+                value
+                for key, value in self._parameters.items()
+                if key == "soi_estate_charitable_floor_millions_usd" and value > 0
+            }
+        )
+
+        slices: list[tuple[float, float, str]] = []
+        for _, row in self._size_distribution.iterrows():
+            group = str(row["group"])
+            lower = float(row["percentile_share_lower"])
+            upper = float(row["percentile_share_upper"])
+            if not bool(row["dispersed"]):
+                slices.append(
+                    (
+                        upper - lower,
+                        float(ladder.loc[group, "mean_net_worth_millions_usd"]),
+                        group,
+                    )
+                )
+                continue
+
+            alpha = float(row["pareto_alpha"])
+            anchor = float(row["threshold_millions_usd"])
+            exponent = 1.0 - 1.0 / alpha
+            scale = anchor * upper ** (1.0 / alpha)
+
+            def mean_between(a: float, b: float) -> float:
+                return scale * (b**exponent - a**exponent) / (exponent * (b - a))
+
+            if lower <= 0.0:
+                # Open-ended top: cut it at **one household**, which is a bound
+                # with a meaning rather than an arbitrarily small number, and
+                # close that last slice with the Pareto mean above it.  On the
+                # shipped DFA vintage the richest household comes out at a few
+                # hundred billion dollars, which is the order of magnitude the
+                # published wealth lists put it at.
+                lower = 1.0 / (self._parameters["households_millions"] * 1e6)
+                top_wealth = anchor * (lower / upper) ** (-1.0 / alpha)
+                slices.append((lower, top_wealth * alpha / (alpha - 1.0), group))
+
+            edges = {lower * (upper / lower) ** (i / count) for i in range(count + 1)}
+            for wealth in breakpoints:
+                share = upper * (wealth / anchor) ** (-alpha)
+                if lower < share < upper:
+                    edges.add(share)
+            ordered = sorted(edges)
+            for a, b in zip(ordered[:-1], ordered[1:]):
+                slices.append((b - a, mean_between(a, b), group))
+        self._slice_cache[count] = slices
+        return slices
+
+    def decedent_classes(
+        self, year: int, slices_per_region: Optional[int] = None
+    ) -> list[DecedentClass]:
+        """Gains at death split across the fitted estate-size distribution.
+
+        The **level** is Poterba & Weisbenner's flow and is not this schedule's
+        to change: gains are distributed across slices in proportion to
+        ``wealth * unrealized_gain_share(wealth)`` and renormalised to that flow,
+        so ``sum(decedents * gain per decedent)`` is
+        :meth:`gains_at_death_billions` whatever the slice count is.  What
+        changed in Wave 7 is that the *shape* is a distribution rather than five
+        point masses, and that Avery, Grodzicki & Moore's, Poterba &
+        Weisbenner's and SOI's step functions are read at each slice's own estate
+        size instead of at five group means.
+
+        Decedent counts still apply one uniform death rate across the wealth
+        distribution - Poterba & Weisbenner's *dollar* flow of estates over net
+        worth, used as a headcount rate.  That is the coarsest thing left in the
+        channel and it is not this method's to fix: see
+        ``planning/lanes/W7_decedent_ladder.md`` §7.
         """
         total_gains = self.gains_at_death_billions(year)
+        count = int(slices_per_region or self.DECEDENT_SLICES_PER_REGION)
+        return [
+            DecedentClass(
+                group=group,
+                decedents_per_year=decedents,
+                gains_per_decedent_dollars=total_gains * gain_share * 1e9 / decedents
+                if decedents > 0
+                else 0.0,
+                gains_billions=total_gains * gain_share,
+                residence_gain_share=residence,
+                active_business_gain_share=business,
+                charitable_bequest_share=charitable,
+                unrealized_gain_share=agm,
+                net_worth_millions_usd=mean,
+            )
+            for (
+                group,
+                decedents,
+                gain_share,
+                residence,
+                business,
+                charitable,
+                agm,
+                mean,
+            ) in self._decedent_template(count)
+        ]
+
+    def _decedent_template(self, count: int) -> list[tuple]:
+        """Everything about the schedule that does not depend on the year.
+
+        The year enters only as the level of gains at death, so the decedent
+        counts, the share of the flow each slice carries and the four published
+        shares each slice reads are computed once.
+        """
+        cached = self._decedent_template_cache.get(count)
+        if cached is not None:
+            return cached
+
         households = self._parameters["households_millions"] * 1e6
         flow_rate = self._parameters["estate_flow_rate"]
-        ladder = self._ladder
-        carveouts = self._carveouts
-        weights = ladder["net_worth_millions_usd"] * ladder["unrealized_gain_share"]
-        total_weight = float(weights.sum())
+        schedule = self.decedent_size_slices(count)
+        weights = [
+            share * households * mean * self.unrealized_gain_share_at(mean)
+            for share, mean, _ in schedule
+        ]
+        total_weight = sum(weights)
 
-        classes: list[DecedentClass] = []
-        for (_, row), weight in zip(ladder.iterrows(), weights):
-            group = str(row["group"])
-            decedents = households * float(row["household_share"]) * flow_rate
-            gains = total_gains * float(weight) / total_weight if total_weight > 0 else 0.0
-            per_decedent = (gains * 1e9 / decedents) if decedents > 0 else 0.0
-            shares = carveouts.get(group, {})
-            classes.append(
-                DecedentClass(
-                    group=group,
-                    decedents_per_year=decedents,
-                    gains_per_decedent_dollars=per_decedent,
-                    gains_billions=gains,
-                    residence_gain_share=shares.get("residence_gain_share", 0.0),
-                    active_business_gain_share=shares.get(
-                        "active_business_gain_share", 0.0
-                    ),
-                    charitable_bequest_share=shares.get("charitable_bequest_share", 0.0),
-                    unrealized_gain_share=float(row["unrealized_gain_share"]),
+        template = []
+        for (share, mean, group), weight in zip(schedule, weights):
+            shares = self.carveout_shares_at(mean)
+            template.append(
+                (
+                    group,
+                    households * share * flow_rate,
+                    weight / total_weight if total_weight > 0 else 0.0,
+                    shares.get("residence_gain_share", 0.0),
+                    shares.get("active_business_gain_share", 0.0),
+                    shares.get("charitable_bequest_share", 0.0),
+                    self.unrealized_gain_share_at(mean),
+                    mean,
                 )
             )
-        return classes
+        self._decedent_template_cache[count] = template
+        return template
 
     @staticmethod
     def statutory_rate_on_gain(gain_dollars: float) -> float:

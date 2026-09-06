@@ -475,6 +475,15 @@ class CapitalGainsPolicy(TaxPolicy):
     (:meth:`death_response_coefficient`) - death cannot be retimed, so the
     transitory term has no place - and the tax induces further charitable
     substitution at the Bakija-Gale-Slemrod price elasticity.
+
+    **Every one of those reliefs is a function of how big the estate is**, and
+    since Wave 7 they are read at the estate's own size rather than at one of
+    five group means: :meth:`CapitalGainsBaseline.decedent_classes` integrates
+    over a piecewise-Pareto size distribution of net worth at death, so a
+    per-donor exclusion bites on a distribution instead of removing a whole
+    class at once.  The level is unchanged - it is still Poterba & Weisbenner's
+    flow - and so is the decedent headcount, which remains the coarsest thing
+    in the channel (``planning/lanes/W7_decedent_ladder.md`` §7).
     """
 
     baseline_capital_gains_rate: float = 0.20
@@ -922,6 +931,10 @@ class CapitalGainsPolicy(TaxPolicy):
         *"other* unrealized capital gains", meaning what is left after the
         named reliefs.  The caller subtracts it afterwards.
 
+        Each share below is the published step function evaluated at **this
+        slice's own estate size**, which is what changed in Wave 7; before it,
+        five class means read eighteen published rows at eleven of them.
+
         1. **Charity.**  Appreciated property transferred to charity generates
            no taxable gain, and the tax itself induces more of it
            (:meth:`_charitable_share_at_death`).
@@ -980,6 +993,10 @@ class CapitalGainsPolicy(TaxPolicy):
         priced at the rate the gain would face on a final return.  Indexed to
         household net worth, so the flow grows with the asset stock instead of
         sitting at one constant.
+
+        The sum runs over quantile slices of a fitted size distribution, not
+        over five estate-size classes, so the per-donor exclusion below is
+        subtracted from a spread of gains rather than from a class average.
         """
         if not self.eliminate_step_up or not self.score_gains_at_death:
             return 0.0
