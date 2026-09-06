@@ -1,0 +1,65 @@
+# CBO's own projected CORPORATE INCOME TAX RECEIPTS, by fiscal year.
+#
+# Source: Congressional Budget Office, The Budget and Economic Outlook: 2024 to
+#   2034 (February 2024), publication 59710, Table 1-1 "CBO's Baseline Budget
+#   Projections, by Category", revenue line "Corporate income taxes"; the same
+#   series is carried in the recurring supplemental budget-projections workbook
+#   51118-2024-02-budgetprojections.xlsx. Transcribed via
+#   scripts/corporate_yield_reconciliation.py, which reads it beside every
+#   published corporate-rate score and reconciles the two.
+#   Read: 2026-09-05. Units: BILLIONS of dollars, as CBO prints them.
+#
+# WHY THIS FILE EXISTS. `fiscal_model/corporate.py`'s derived path used to age
+# IRS SOI's TY2022 statutory base to the scoring year at a flat 4%/yr - the
+# scoring engine's own corporate growth constant, chosen so the module carried
+# one growth assumption rather than two, and sourced to nothing about corporate
+# profits. CBO's own baseline corporate receipts grow at 1.44%/yr over
+# FY2026-2034 (1.21%/yr over the full FY2025-2034), and both JCT's and
+# Treasury's implied marginal bases at about 2.7%. A base compounding at 4%
+# against a baseline growing at 1.4% reaches
+# 101.6% of the average base that baseline implies exists by FY2034 (see
+# planning/memos/CORPORATE_PER_POINT_YIELD.md section 4, table 4). No marginal
+# base can exceed the average base it is part of. This file is the projection
+# that removes that.
+#
+# WHY RECEIPTS AND NOT PROFITS. receipts / statutory rate is the base which,
+# taxed at the statutory rate, reproduces the receipts the vintage projects. It
+# already nets credits, net operating losses and profit shifting - which is what
+# makes it the right quantity for a statutory rate change, since those are
+# exactly what stands between a rate and a dollar. A pre-tax profits path would
+# need each of them re-applied on top, with its own assumption.
+#
+# WHICH VINTAGE, AND WHY ONLY ONE. `vintage` matches BaselineVintage's own
+# value strings, so a later lane adds a block rather than editing code. Only the
+# February 2024 block is here: cbo.gov returns HTTP 403 to this environment on
+# every URL, and the Wayback Machine holds no snapshot of
+# 51118-2025-01-budgetprojections.xlsx or 51118-2026-02-budgetprojections.xlsx
+# (checked 2026-09-05, `archived_snapshots: {}`). The memo's section 3 carries
+# 10-year totals for those two vintages (4,766.7 and 4,976.7) but no annual
+# path, and manufacturing a shape for them is exactly what the modelling plan's
+# section 1.1 forbids. February 2024 is in any case the vintage the CBO Options
+# battery is scored on (CBO_OPTIONS_REVENUE_BASELINE), the vintage CBO's
+# December 2024 Options volume names for its revenue options, and the vintage
+# cbo_opt64's own target is priced against.
+#
+# OUTSIDE THE WINDOW the module continues the nearest observed growth rate,
+# exactly as fiscal_model/payroll.py's covered_earnings() does with CBO's wage
+# path from the same publication. FY2035 - which the app's FY2026-2035 window
+# reaches - is therefore an extrapolation at the FY2033->FY2034 rate, and is
+# reached by nothing shipped, because the app scores `reported`.
+#
+# CHECK. The ten values sum to 5,093.9 against the 5,094.0 CBO prints as the
+# total - a tenth of a billion of CBO's own rounding, the same artefact the
+# alternatives CSV shows on Option 64 itself (Table 1-1 gives 136.0 where the
+# alternatives file gives 135.7). tests/test_corporate_derived.py asserts it.
+vintage,fiscal_year,corporate_receipts_billions
+cbo_feb_2024,2025,494.1
+cbo_feb_2024,2026,491.4
+cbo_feb_2024,2027,484.1
+cbo_feb_2024,2028,490.7
+cbo_feb_2024,2029,500.9
+cbo_feb_2024,2030,510.6
+cbo_feb_2024,2031,518.7
+cbo_feb_2024,2032,519.2
+cbo_feb_2024,2033,533.4
+cbo_feb_2024,2034,550.8

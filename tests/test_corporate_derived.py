@@ -1,5 +1,5 @@
 """
-Tests for the corporate module's derived (structural) rate identity — lane W5.
+Tests for the corporate module's derived (structural) rate identity — lanes W5 and W6.
 
 What these lock down:
 
@@ -9,11 +9,19 @@ What these lock down:
 - **The credit ratio is not a free parameter.** The average after/before ratio
   the module applies and an explicit section 904 decomposition built from the
   same rows agree to about 1%.
-- **The engine coupling is pinned.** The derived path ages SOI's base at the
-  growth rate the scoring engine applies to a ``CorporateTaxPolicy``, so the
-  two constants must be the same one.
-- **IRC section 6655 timing is exactly a phase factor.** 0.75 in the first
-  year, ``0.75 + 0.25/(1+g)`` after.
+- **The base is projected off CBO's own receipts path, not off a growth
+  constant** (W6). The level is anchored by one ratio measured on completed
+  history — SOI's credit-realized TY2022 base over Treasury's actual FY2022
+  receipts — and that ratio is within 1% of ``1/tau``, which is what makes the
+  splice a change of vintage rather than of concept.
+- **The marginal base never exceeds the average base it is part of.** Before
+  W6 the derived path priced 101.6% of CBO's own implied average base by
+  FY2034, which is arithmetically impossible whatever the target says.
+- **The engine coupling is pinned.** ``CORPORATE_BASE_GROWTH`` is the scoring
+  engine's own corporate growth rate, and the engine switches it off for a
+  policy whose rate channel carries its own path.
+- **IRC section 6655 timing is exactly a phase factor**, now the convolution
+  ``0.75 + 0.25 B(t-1)/B(t)`` rather than its constant-growth closed form.
 - **The identity is concave in the rate step.** Reported yields the same
   dollars per percentage point at 1pp and 7pp; derived does not, which is the
   whole point of the row.
@@ -23,11 +31,10 @@ What these lock down:
   signed ``reported`` too, which is why the pins below moved.
 - **Derived reads no baseline level**, so the score is the same on every
   vintage, which is the property ``validation/cbo_options.py`` claims for every
-  uncalibrated shape.
-- **Reported mode moved once, on purpose.** The pins below are the
-  post-sweep figures; ``create_republican_corporate_cut`` fell $426.2B when the
-  ``abs()`` came out, and the Decision 1 ranking flipped with it. See
-  ``planning/lanes/SWEEP_offset_sign.md``.
+  uncalibrated shape. A transcribed CBO table is an input like SOI's; the
+  scorer's own baseline object is not read.
+- **Reported mode has not moved since the offset-sign sweep**, and W6 did not
+  touch it.
 """
 
 from __future__ import annotations
@@ -36,24 +43,32 @@ import pytest
 
 from fiscal_model.baseline import BaselineVintage
 from fiscal_model.corporate import (
+    BASE_PER_DOLLAR_OF_RECEIPTS,
     BASELINE_TAXABLE_PROFITS_BILLIONS,
     CORPORATE_APP_MODE,
     CORPORATE_BASE_GROWTH,
     CORPORATE_MODE_DERIVED,
     CORPORATE_MODE_REPORTED,
+    CORPORATE_RECEIPTS_VINTAGE,
     CORPORATE_VALIDATION_MODE,
     CURRENT_CORPORATE_RATE,
     ESTIMATED_PAYMENT_SAME_FY_SHARE,
     PROFIT_SHIFTING_SEMI_ELASTICITY,
+    RECEIPTS_ANCHOR_YEAR,
     CorporateTaxPolicy,
+    actual_corporate_receipts,
+    cbo_corporate_receipts,
+    cbo_receipts_by_fiscal_year,
     create_biden_corporate_proposal,
     create_biden_corporate_rate_only,
     create_corporate_rate_change,
     create_republican_corporate_cut,
     create_tcja_corporate_repeal,
     credit_realization_ratio,
+    credit_realized_base_billions,
     latest_soi_tax_year,
     load_soi_table11,
+    projected_statutory_base,
     section_904_realization_ratio,
     soi_row,
     statutory_base_billions,
@@ -128,6 +143,115 @@ def test_a_missing_tax_year_is_an_error_not_a_silent_fallback():
 
 
 # ---------------------------------------------------------------------------
+# The projected base — lane W6
+# ---------------------------------------------------------------------------
+
+
+def test_the_transcribed_receipts_path_totals_what_cbo_publishes():
+    """The ten-year total is the check on the ten annual transcriptions.
+
+    5,093.9 against the 5,094.0 CBO prints as the total: a tenth of a billion of
+    CBO's own rounding, the same artefact the alternatives CSV shows on Option
+    64 itself (Table 1-1 gives 136.0 where the alternatives file gives 135.7).
+    """
+    table = cbo_receipts_by_fiscal_year(CORPORATE_RECEIPTS_VINTAGE)
+    assert [year for year, _ in table] == list(range(2025, 2035))
+    assert sum(value for _, value in table) == pytest.approx(5094.0, abs=0.15)
+
+
+def test_the_anchor_is_two_published_series_agreeing_on_one_year():
+    """SOI's credit-realized base and Treasury's receipts, same year, within 1%.
+
+    This is the whole content of the anchor. If the two series ever disagree by
+    more than a couple of percent, projecting the base off a receipts path is
+    not a change of vintage any more — it is a change of concept — and the
+    module should not be doing it silently.
+    """
+    soi_side = credit_realized_base_billions(RECEIPTS_ANCHOR_YEAR)
+    treasury_side = actual_corporate_receipts(RECEIPTS_ANCHOR_YEAR) / CURRENT_CORPORATE_RATE
+
+    assert soi_side == pytest.approx(2039.92, abs=0.05)
+    assert treasury_side == pytest.approx(2023.17, abs=0.05)
+    assert abs(soi_side / treasury_side - 1.0) < 0.02
+
+    # The ratio the module actually multiplies by is that agreement, expressed
+    # per dollar of receipts. Not a marginal-realization share: the factor that
+    # would reproduce CBO Option 64 is 0.5785 and JCT's own steady-state share
+    # is 0.590, and the memo forbids both.
+    assert BASE_PER_DOLLAR_OF_RECEIPTS == pytest.approx(4.80133, abs=1e-5)
+    assert BASE_PER_DOLLAR_OF_RECEIPTS * CURRENT_CORPORATE_RATE == pytest.approx(
+        1.0083, abs=0.001
+    )
+
+
+def test_the_projected_base_tracks_the_published_path():
+    for year in range(2025, 2035):
+        expected = cbo_corporate_receipts(year) * BASE_PER_DOLLAR_OF_RECEIPTS
+        assert projected_statutory_base(year) == pytest.approx(expected, rel=1e-12)
+    assert projected_statutory_base(2025) == pytest.approx(2372.34, abs=0.01)
+
+
+def test_outside_the_window_the_terminal_growth_rate_continues():
+    """The rule ``payroll.covered_earnings`` uses, not a silent clamp."""
+    table = cbo_receipts_by_fiscal_year()
+    terminal_growth = table[-1][1] / table[-2][1] - 1.0
+    assert cbo_corporate_receipts(2035) == pytest.approx(
+        table[-1][1] * (1 + terminal_growth)
+    )
+    leading_growth = table[1][1] / table[0][1] - 1.0
+    assert cbo_corporate_receipts(2024) == pytest.approx(
+        table[0][1] / (1 + leading_growth)
+    )
+
+
+def test_an_unsourced_vintage_raises_rather_than_borrowing_another_s_numbers():
+    """Reporting February 2024's path as January 2025's would be a false claim."""
+    with pytest.raises(KeyError, match="cbo_feb_2024"):
+        cbo_receipts_by_fiscal_year("cbo_jan_2025")
+
+
+def test_the_derived_base_grows_at_cbo_s_rate_not_the_module_s():
+    """The defect W6 closed, as an assertion.
+
+    CBO's own February 2024 corporate receipts grow at **1.44%/yr** over
+    FY2026-2034 — the memo's window, which drops FY2025 because it is the tail
+    of the pre-window level — and at 1.21%/yr over the full FY2025-2034. The
+    base used to be aged at ``CORPORATE_BASE_GROWTH`` = 4%, nearly three times
+    either.
+    """
+    table = cbo_receipts_by_fiscal_year()
+    full = (table[-1][1] / table[0][1]) ** (1 / (len(table) - 1)) - 1.0
+    memo_window = (table[-1][1] / table[1][1]) ** (1 / (len(table) - 2)) - 1.0
+    assert full == pytest.approx(0.0121, abs=0.0005)
+    assert memo_window == pytest.approx(0.0144, abs=0.0005)
+    assert CORPORATE_BASE_GROWTH > 2.5 * memo_window
+
+
+def test_the_marginal_base_never_exceeds_the_average_base(scorer):
+    """No marginal base can be more than 100% of the average base it is part of.
+
+    Before W6 this ran 0.603 in FY2025 to **1.016** in FY2034 — the derived path
+    priced a percentage point of statutory rate against more base than the whole
+    baseline corporate tax implies exists. It is an internal inconsistency
+    independent of any target, and closing it is the lane's reason to exist.
+    """
+    policy = create_corporate_rate_change(0.01, mode=CORPORATE_MODE_DERIVED)
+    result = scorer.score_policy(policy, dynamic=False)
+
+    shares = []
+    for year, deficit in zip(result.years, result.final_deficit_effect, strict=False):
+        average_base = cbo_corporate_receipts(int(year)) / CURRENT_CORPORATE_RATE
+        shares.append(abs(float(deficit)) / 0.01 / average_base)
+
+    assert max(shares) < 1.0
+    # And it is flat rather than drifting, because numerator and denominator are
+    # now the same series: (1 - beta x 0.22) x the anchor wedge.
+    steady = shares[1:]
+    assert max(steady) - min(steady) < 0.02
+    assert sum(steady) / len(steady) == pytest.approx(0.829, abs=0.01)
+
+
+# ---------------------------------------------------------------------------
 # Coupling to the engine and to the statute
 # ---------------------------------------------------------------------------
 
@@ -139,17 +263,46 @@ def test_the_derived_growth_constant_is_the_engine_s_own(scorer):
     assert registered["CorporateTaxPolicy"] == CORPORATE_BASE_GROWTH
 
 
-def test_section_6655_timing_is_exactly_a_phase_factor():
+def test_section_6655_timing_is_the_convolution_on_the_path():
+    """``0.75 + 0.25 B(t-1)/B(t)``, not its constant-growth closed form.
+
+    It exceeds 1.0 wherever the projected base falls, which is right: a fiscal
+    year collecting a quarter of a larger previous tax year collects more than
+    its own. CBO's February 2024 path falls in FY2026 and FY2027.
+    """
     policy = create_corporate_rate_change(0.01, mode=CORPORATE_MODE_DERIVED)
     carry = 1.0 - ESTIMATED_PAYMENT_SAME_FY_SHARE
-    steady = ESTIMATED_PAYMENT_SAME_FY_SHARE + carry / (1.0 + CORPORATE_BASE_GROWTH)
 
     assert policy.get_phase_in_factor(policy.start_year) == pytest.approx(
         ESTIMATED_PAYMENT_SAME_FY_SHARE
     )
     for year in range(policy.start_year + 1, policy.start_year + 10):
-        assert policy.get_phase_in_factor(year) == pytest.approx(steady)
+        expected = ESTIMATED_PAYMENT_SAME_FY_SHARE + carry * (
+            projected_statutory_base(year - 1) / projected_statutory_base(year)
+        )
+        assert policy.get_phase_in_factor(year) == pytest.approx(expected)
     assert policy.get_phase_in_factor(policy.start_year - 1) == 0.0
+
+    assert policy.get_phase_in_factor(2026) > 1.0
+    assert policy.get_phase_in_factor(2034) < 1.0
+
+
+def test_the_convolution_degenerates_to_the_old_closed_form_under_constant_growth():
+    """The check that W6 changed the path and not the statute.
+
+    Under a base growing at a constant ``g`` the convolution collapses to
+    ``0.75 + 0.25/(1+g)``, which is exactly what the module computed before it
+    read a path. Recomputed here on a synthetic constant-growth series.
+    """
+    growth = CORPORATE_BASE_GROWTH
+    closed_form = ESTIMATED_PAYMENT_SAME_FY_SHARE + (
+        1.0 - ESTIMATED_PAYMENT_SAME_FY_SHARE
+    ) / (1.0 + growth)
+    convolution = ESTIMATED_PAYMENT_SAME_FY_SHARE + (
+        1.0 - ESTIMATED_PAYMENT_SAME_FY_SHARE
+    ) * (1.0 / (1.0 + growth))
+    assert convolution == pytest.approx(closed_form)
+    assert closed_form == pytest.approx(0.99038, abs=1e-5)
 
 
 def test_reported_mode_keeps_the_base_class_phase_factor():
@@ -158,28 +311,51 @@ def test_reported_mode_keeps_the_base_class_phase_factor():
         assert policy.get_phase_in_factor(year) == 1.0
 
 
-def test_derived_reproduces_the_closed_form(scorer):
-    """The whole derived identity, recomputed here from the published inputs."""
+def test_derived_reproduces_the_identity_year_by_year(scorer):
+    """The whole derived identity, recomputed here from the published inputs.
+
+    Four factors and nothing else: CBO's projected receipts, the anchor ratio,
+    IRC section 6655's convolution, and one frozen profit-shifting
+    semi-elasticity applied at the reform rate level.
+    """
     delta = 0.01
     policy = create_corporate_rate_change(delta, mode=CORPORATE_MODE_DERIVED)
     reform_rate = CURRENT_CORPORATE_RATE + delta
-
-    years = policy.start_year - latest_soi_tax_year()
-    base = statutory_base_billions() * (1 + CORPORATE_BASE_GROWTH) ** years
-    static0 = delta * base * credit_realization_ratio()
-
     carry = 1.0 - ESTIMATED_PAYMENT_SAME_FY_SHARE
+
     expected = 0.0
     for t in range(10):
+        year = policy.start_year + t
+        base = cbo_corporate_receipts(year) * BASE_PER_DOLLAR_OF_RECEIPTS
         phase = (
             ESTIMATED_PAYMENT_SAME_FY_SHARE
             if t == 0
-            else ESTIMATED_PAYMENT_SAME_FY_SHARE + carry / (1 + CORPORATE_BASE_GROWTH)
+            else ESTIMATED_PAYMENT_SAME_FY_SHARE
+            + carry * projected_statutory_base(year - 1) / base
         )
-        revenue = static0 * (1 + CORPORATE_BASE_GROWTH) ** t * phase
+        revenue = delta * base * phase
         expected += -revenue + revenue * PROFIT_SHIFTING_SEMI_ELASTICITY * reform_rate
 
     assert _ten_year(scorer, policy) == pytest.approx(expected, rel=1e-9)
+    assert _ten_year(scorer, policy) == pytest.approx(-196.08, abs=0.01)
+
+
+def test_the_engine_does_not_regrow_the_projected_path(scorer):
+    """The path already grows; the engine's 4%/yr must be switched off for it.
+
+    If it were not, the FY2034 static effect would be ``1.04**9`` = 1.42x the
+    figure the identity above computes.
+    """
+    policy = create_corporate_rate_change(0.01, mode=CORPORATE_MODE_DERIVED)
+    assert policy.uses_projected_base() is True
+    assert create_corporate_rate_change(0.01, mode=CORPORATE_MODE_REPORTED).uses_projected_base() is False
+
+    result = scorer.score_policy(policy, dynamic=False)
+    last = abs(float(result.static_revenue_effect[-1]))
+    first = abs(float(result.static_revenue_effect[0]))
+    # 26.24 / 17.79 = 1.475 on the path with the first year's 0.75 in it;
+    # regrowing at 4% would put it near 2.1.
+    assert last / first == pytest.approx(1.475, abs=0.02)
 
 
 # ---------------------------------------------------------------------------
@@ -343,21 +519,38 @@ def test_decision_1_now_ranks_derived_ahead_of_reported(scorer):
     model's own output recorded as an expectation — so neither ranking is
     evidence about the world. Carried to the owner in
     ``planning/lanes/SWEEP_offset_sign.md``.
+
+    **W6 moved the derived mean the wrong way, 9.67% -> 11.78%, while improving
+    the only row with a document behind it**, 7.81% -> 4.04%. The whole of the
+    rise is ``trump_corporate_15`` moving away from a target the model itself
+    produced. The mean is the wrong statistic on this population and the
+    per-row assertions below are the ones to read.
     """
     targets = {
         create_biden_corporate_rate_only: -1347.0,
         create_republican_corporate_cut: 1920.0,
     }
     means = {}
+    per_row = {}
     for mode in (CORPORATE_MODE_REPORTED, CORPORATE_MODE_DERIVED):
-        errors = [
-            abs(_ten_year(scorer, factory(mode=mode)) - target) / abs(target)
+        errors = {
+            factory: abs(_ten_year(scorer, factory(mode=mode)) - target) / abs(target)
             for factory, target in targets.items()
-        ]
-        means[mode] = sum(errors) / len(errors)
+        }
+        per_row[mode] = errors
+        means[mode] = sum(errors.values()) / len(errors)
     assert means[CORPORATE_MODE_DERIVED] < means[CORPORATE_MODE_REPORTED]
     assert means[CORPORATE_MODE_REPORTED] == pytest.approx(0.1302, abs=0.0002)
-    assert means[CORPORATE_MODE_DERIVED] == pytest.approx(0.0967, abs=0.0002)
+    assert means[CORPORATE_MODE_DERIVED] == pytest.approx(0.1178, abs=0.0002)
+
+    # The published-target row, which is the one worth reading.
+    assert per_row[CORPORATE_MODE_DERIVED][
+        create_biden_corporate_rate_only
+    ] == pytest.approx(0.0404, abs=0.0002)
+    assert per_row[CORPORATE_MODE_REPORTED][
+        create_biden_corporate_rate_only
+    ] == pytest.approx(0.0373, abs=0.0002)
+
     assert CORPORATE_APP_MODE == CORPORATE_MODE_REPORTED
 
 
@@ -391,9 +584,10 @@ def test_the_corporate_runner_prints_both_modes():
         assert len(rows) == 2
         means[mode] = sum(abs(row.percent_difference) for row in rows) / len(rows)
 
-    # Reported was 1.92% before the offset-sign sweep signed its offset.
+    # Reported was 1.92% before the offset-sign sweep signed its offset;
+    # derived was 9.67% before W6 projected the base off CBO's own path.
     assert means[CORPORATE_MODE_REPORTED] == pytest.approx(13.02, abs=0.01)
-    assert means[CORPORATE_MODE_DERIVED] == pytest.approx(9.67, abs=0.01)
+    assert means[CORPORATE_MODE_DERIVED] == pytest.approx(11.78, abs=0.01)
 
     default = validate_all_corporate(verbose=False)
     reported = validate_all_corporate(verbose=False, mode=CORPORATE_APP_MODE)
