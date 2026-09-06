@@ -21,11 +21,21 @@ URL contract:
     /build?policies=ss-donut-250k,corporate-28pct&target=3.0&metric=pct_gdp
     /build?values=egalitarian[&load=1]
     /build?vector=<urlsafe-base64 json>[&load=1]
+    /build?policies=…&target=…&metric=…            — the same, frozen:
+           &baseline=february2026&engine=frbus_lite&spec=<package hash>
+           &mode=conventional&frozen=1
 
 ``policies`` opens the checklist; ``values``/``vector`` open the panel. Both
 restore *before* the page body renders, because both prime widget-backed
 session state and Streamlit refuses a write to a widget key once the widget
-exists in the current run. That constraint also explains the one piece of
+exists in the current run.
+
+``frozen=1`` turns the same link into a classroom assignment
+(``ui/frozen_links.py``): the package and the target are re-applied on every
+rerun rather than once, every input on the page renders disabled, and the page
+refuses to score at all when the baseline vintage the link names is not the one
+this deployment serves. It is decoded *above* the chrome, because two of the
+controls it pins live in the chrome's ⚙ popover. That constraint also explains the one piece of
 indirection here: "Load into the checklist" renders below the checkboxes'
 reconciliation point, so it queues its ids in ``KEY_VALUES_PENDING_LOAD`` and
 :func:`_apply_pending_load` drains them at the top of the next run.
@@ -591,7 +601,9 @@ def render_values_panel(deps: Any, on_load_selection: Any, *, st_module: Any = N
                 session[KEY_VALUES_PENDING_LOAD] = list(package.policy_ids)
                 _rerun(st_module)
         with share_col:
-            _render_share(st_module, vector, session.get(KEY_VALUES_ARCHETYPE))
+            _render_share(
+                st_module, vector, session.get(KEY_VALUES_ARCHETYPE), package
+            )
 
         st_module.caption(STARTING_POINT_NOTICE)
 
@@ -602,11 +614,31 @@ def render_values_panel(deps: Any, on_load_selection: Any, *, st_module: Any = N
     del on_load_selection
 
 
-def _render_share(st_module: Any, vector: Any, archetype_id: Any) -> None:
-    """The ⑮ share control: a values link, copyable from a popover or a caption."""
+def _render_share(
+    st_module: Any, vector: Any, archetype_id: Any, package: Any = None
+) -> None:
+    """The ⑮ share control: a values link, copyable from a popover or a caption.
+
+    Under ``?classroom=1`` it also offers the frozen link for the package these
+    values compose. The two links say different things and both are wanted: the
+    values link means "start where I started", the assignment link means "hand
+    in these numbers". The frozen one carries the composed **ids** with the
+    slug alongside as a label, so a re-scored catalog cannot recompose an
+    assignment that has already been handed out.
+    """
+    from fiscal_model.ui.frozen_links import (
+        is_classroom_request,
+        render_build_assignment_link_block,
+    )
     from fiscal_model.ui.share_links import encode_values_share
 
     url = encode_values_share(archetype_id, vector, load=True)
+    query_params = getattr(st_module, "query_params", {}) or {}
+    try:
+        classroom = bool(package) and is_classroom_request(query_params)
+    except Exception:  # pragma: no cover — exotic query-param stand-ins
+        classroom = False
+
     popover = getattr(st_module, "popover", None)
     if popover is None:  # pragma: no cover — older Streamlit / fakes
         st_module.caption(url)
@@ -617,6 +649,15 @@ def _render_share(st_module: Any, vector: Any, archetype_id: Any) -> None:
             "deterministic from these values."
         )
         st_module.code(url, language=None)
+        if classroom:
+            st_module.markdown("---")
+            render_build_assignment_link_block(
+                st_module,
+                list(package.policy_ids),
+                float(vector.target_pct_gdp),
+                values_slug=archetype_id,
+                engine=_session(st_module).get("setting_macro_model"),
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -656,6 +697,65 @@ def _render_mode_toggle(st_module: Any) -> str:
     return choice if choice in options else DEFAULT_MODE
 
 
+def _compose_frozen_values_package(st_module: Any, query_params: Any) -> list[str]:
+    """Ids for a frozen ``?values=`` / ``?vector=`` link, composed on the spot.
+
+    Freezing a values link is legal because the composer is deterministic:
+    ``select_package`` is a pure function of tags × vector, the LLM's only job
+    is turning *free text* into a vector, and free text is not what a URL
+    carries — ``?values=`` is an archetype slug and ``?vector=`` the vector
+    itself. So the same link always produces the same package, and this
+    resolves it every rerun rather than trusting the once-per-link restore.
+
+    The dials are written too, so a student who is shown the panel sees the
+    philosophy the package came from rather than an unrelated default.
+    """
+    from fiscal_model.composer.archetypes import get_archetype, rationale_template_for
+    from fiscal_model.ui.share_links import decode_values_share
+
+    request = decode_values_share(query_params)
+    archetype = (
+        get_archetype(request["archetype_id"]) if request["archetype_id"] else None
+    )
+    vector = request["vector"] or (archetype.vector if archetype else None)
+    if vector is None:
+        return []
+
+    _write_vector(st_module, vector, archetype_id=archetype.id if archetype else None)
+    package = _select_package(
+        vector, rationale_template=rationale_template_for(request["archetype_id"])
+    )
+    return [str(policy_id) for policy_id in package.policy_ids]
+
+
+def _apply_frozen_package(
+    st_module: Any, deps: Any, package: Any, query_params: Any
+) -> list[str]:
+    """Force the checklist, the metric and the target onto the link's package.
+
+    Unlike ``restore_build_state_from_query`` this ignores the once-per-link
+    token and runs on **every** rerun: an ordinary ``?policies=`` link is a
+    starting point the reader may then edit, and a frozen one is the
+    assignment. Returns the ids actually applied — which is what the provenance
+    hash is computed over, so a hand-edited ``policies=`` moves the hash and is
+    captioned rather than quietly scored.
+    """
+    from fiscal_model.ui.tabs.deficit_target import (
+        apply_build_target,
+        apply_preselection,
+    )
+
+    preset_ids = list(package.preset_ids) or _compose_frozen_values_package(
+        st_module, query_params
+    )
+    applied = apply_preselection(
+        preset_ids, st_module=st_module, cbo_score_map=deps.CBO_SCORE_MAP
+    )
+    # After the compose above, so an explicit ``target=`` beats the vector's.
+    apply_build_target(st_module, package.target, package.metric)
+    return applied
+
+
 def render(st_module: Any, deps: Any, app_root: Any = None) -> None:
     """Render the Build surface.
 
@@ -664,8 +764,19 @@ def render(st_module: Any, deps: Any, app_root: Any = None) -> None:
     (see ``planning/redesign/NOTES.md`` section 6.1).
     """
     del app_root
-    render_chrome(st_module=st_module, deps=deps)
 
+    from fiscal_model.ui.frozen_links import (
+        apply_frozen_assignment,
+        clear_frozen_assignment,
+        decode_frozen_assignment,
+        decode_frozen_build,
+        frozen_build_refusal,
+        frozen_build_unresolved_refusal,
+        frozen_input_module,
+        frozen_refusal,
+        render_frozen_build_banner,
+        render_frozen_refusal,
+    )
     from fiscal_model.ui.session_state import KEY_BUILD_MODE
     from fiscal_model.ui.styles import apply_build_scoreboard_styles
     from fiscal_model.ui.tabs.deficit_target import (
@@ -674,27 +785,74 @@ def render(st_module: Any, deps: Any, app_root: Any = None) -> None:
         restore_build_state_from_query,
     )
 
-    apply_build_scoreboard_styles(st_module)
-
     query_params = getattr(st_module, "query_params", {}) or {}
+
+    # Decode the lock before the chrome renders: two of the controls it pins
+    # live in the chrome's ⚙ popover, and Streamlit only accepts a write to a
+    # widget key ahead of the widget. A link this deployment cannot honour is
+    # refused here and nothing else about it is applied — a package restored
+    # under a banner naming a baseline nobody is serving is the failure the
+    # lock exists to prevent.
+    frozen = decode_frozen_assignment(query_params)
+    package = decode_frozen_build(query_params)
+    problem = frozen_refusal(frozen) or frozen_build_refusal(package)
+
+    if problem is not None:
+        clear_frozen_assignment(st_module)
+        render_chrome(st_module=st_module, deps=deps)
+        render_frozen_refusal(st_module, problem)
+        render_page_footer(st_module)
+        return
+
+    if frozen is None:
+        clear_frozen_assignment(st_module)
+    else:
+        apply_frozen_assignment(st_module, frozen)
+        # A frozen link names a package; the values panel is a way of *making*
+        # one, so the page opens on the checklist and cannot leave it.
+        st_module.session_state[KEY_BUILD_MODE] = MODE_SCRATCH
+
+    render_chrome(st_module=st_module, deps=deps, frozen=frozen)
+
+    apply_build_scoreboard_styles(st_module)
 
     # Restore from ``?policies=…&target=…&metric=…`` before any Build widget
     # exists: Streamlit only accepts writes to a widget's key ahead of the
     # widget itself. Applied once per distinct link, so it seeds the page
-    # without clobbering later edits.
-    restored = restore_build_state_from_query(
-        st_module,
-        query_params,
-        cbo_score_map=deps.CBO_SCORE_MAP,
-    )
-    if restored and restored.get("preset_ids"):
-        # A link that names policies wants the checklist, not the panel.
-        st_module.session_state[KEY_BUILD_MODE] = MODE_SCRATCH
+    # without clobbering later edits — unless the link is frozen, where
+    # "later edits" is precisely what there must not be.
+    applied_ids: list[str] = []
+    if package is not None:
+        applied_ids = _apply_frozen_package(st_module, deps, package, query_params)
+        unresolved = frozen_build_unresolved_refusal(package, applied_ids)
+        if unresolved is not None:
+            # Named a package, and this deployment cannot rebuild it. Showing
+            # an empty checklist under the instructor's banner would be worse
+            # than saying so.
+            render_frozen_refusal(st_module, unresolved)
+            render_page_footer(st_module)
+            return
+    else:
+        restored = restore_build_state_from_query(
+            st_module,
+            query_params,
+            cbo_score_map=deps.CBO_SCORE_MAP,
+        )
+        if restored and restored.get("preset_ids"):
+            # A link that names policies wants the checklist, not the panel.
+            st_module.session_state[KEY_BUILD_MODE] = MODE_SCRATCH
 
-    restore_values_from_query(st_module, query_params)
-    _apply_pending_load(st_module, deps)
+        restore_values_from_query(st_module, query_params)
+        _apply_pending_load(st_module, deps)
 
-    mode = _render_mode_toggle(st_module)
+    if frozen is not None and package is not None:
+        render_frozen_build_banner(
+            st_module, frozen, package, count=len(applied_ids)
+        )
+
+    mode = _render_mode_toggle(frozen_input_module(st_module, frozen))
+    if frozen is not None:
+        mode = MODE_SCRATCH
     if mode == MODE_VALUES:
         render_values_panel(
             deps,
@@ -712,6 +870,7 @@ def render(st_module: Any, deps: Any, app_root: Any = None) -> None:
         cbo_score_map=deps.CBO_SCORE_MAP,
         fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
         use_real_data=True,
+        frozen=frozen,
     )
 
     render_page_footer(st_module)

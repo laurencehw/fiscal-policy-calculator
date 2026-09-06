@@ -25,6 +25,14 @@ now reconciled against that structure on every render, *before* the checkboxes
 are instantiated, so an impossible package cannot exist — not from clicking,
 not from a stale session, and not from a hand-edited share link.
 
+**Frozen assignments.** A ``/build`` URL carrying ``frozen=1`` beside the
+provenance stamps is an assignment link (``ui/frozen_links.py``): the package
+and the deficit target come from the URL, every input on this page renders
+through the disabled stand-in, and the exports keep working, because an export
+is not an edit and a student has to be able to hand something in. The
+scoreboard and the waterfall are computed from the same selection either way —
+freezing changes what can be *touched*, never what is *counted*.
+
 Selection lives in ``st.session_state["build_selection"]`` (a plain list of
 build ids) and is mirrored onto the ``dt_<build_id>`` checkbox keys. The list is
 the source of truth because Streamlit garbage-collects the state of any widget
@@ -49,6 +57,12 @@ from fiscal_model.preset_ids import (
     exclusive_groups_of,
     label_for_preset_id,
     preset_id_for_token,
+)
+from fiscal_model.ui.frozen_links import (
+    frozen_input_module,
+    is_classroom_request,
+    render_build_assignment_link_block,
+    render_frozen_build_provenance,
 )
 from fiscal_model.ui.helpers import (
     TEXTBOOK_LINKS,
@@ -537,18 +551,30 @@ def restore_build_state_from_query(
             request["preset_ids"], st_module=st_module, cbo_score_map=cbo_score_map
         )
 
-    metric = request["metric"]
-    session[KEY_BUILD_METRIC] = METRIC_LABELS.get(metric, METRIC_PCT_LABEL)
-    if request["target"] is not None:
-        if metric == BUILD_METRIC_USD_B:
-            session[KEY_BUILD_TARGET_USD] = int(
-                max(0, min(2000, round(float(request["target"]) / 100) * 100))
-            )
-        else:
-            session[KEY_BUILD_TARGET_PCT] = float(
-                max(0.0, min(6.0, round(float(request["target"]) * 2) / 2))
-            )
+    apply_build_target(st_module, request["target"], request["metric"])
     return request
+
+
+def apply_build_target(st_module: Any, target: float | None, metric: str) -> None:
+    """Write a link's deficit target onto the slider key its metric selects.
+
+    Shared by the ordinary restore above and the frozen one in
+    ``app_pages.build``, so the clamping and the step-snapping cannot drift
+    between a link the reader may edit and one they may not. Must run before
+    the sliders are instantiated, like every other write on this page.
+    """
+    session = _session(st_module)
+    session[KEY_BUILD_METRIC] = METRIC_LABELS.get(metric, METRIC_PCT_LABEL)
+    if target is None:
+        return
+    if metric == BUILD_METRIC_USD_B:
+        session[KEY_BUILD_TARGET_USD] = int(
+            max(0, min(2000, round(float(target) / 100) * 100))
+        )
+    else:
+        session[KEY_BUILD_TARGET_PCT] = float(
+            max(0.0, min(6.0, round(float(target) * 2) / 2))
+        )
 
 
 # ── Export builders (pure, so they can be tested without Streamlit) ──────
@@ -744,9 +770,26 @@ def render_deficit_target_tab(
     cbo_score_map: dict[str, dict[str, Any]],
     fiscal_policy_scorer_cls: Any,
     use_real_data: bool = False,
+    *,
+    frozen: Any = None,
 ) -> None:
-    """Render the Build page: policy checklist left, sticky scoreboard right."""
+    """Render the Build page: policy checklist left, sticky scoreboard right.
+
+    ``frozen`` is the :class:`~fiscal_model.ui.frozen_links.FrozenAssignment`
+    a ``?frozen=1`` link put in force, or ``None``. The page then renders every
+    input — the metric toggle, the target slider, the search box and all ~50
+    checkboxes — through ``frozen_links.frozen_input_module``, so "frozen" is a
+    property of how the form is rendered rather than a keyword each widget has
+    to remember. The package itself is applied by ``app_pages.build`` before
+    this runs, because Streamlit only accepts a write to a widget key ahead of
+    the widget.
+    """
     catalog = build_catalog(cbo_score_map)
+
+    # The real module, or the stand-in that disables every input on it. The
+    # scoreboard column deliberately keeps the real one: an export is not an
+    # edit, and a student has to be able to download the package.
+    inputs = frozen_input_module(st_module, frozen)
 
     # ---- 1. Reconcile selection BEFORE any widget is instantiated ---------
     selection, dropped = resolve_selection(current_selection(st_module, catalog), catalog)
@@ -780,13 +823,13 @@ def render_deficit_target_tab(
 
     strip_metric, strip_target, strip_search = st_module.columns([2, 3, 3])
     with strip_metric:
-        metric_label = _render_metric_toggle(st_module)
+        metric_label = _render_metric_toggle(inputs)
     metric_key = METRIC_BY_LABEL.get(metric_label, BUILD_METRIC_PCT_GDP)
 
     with strip_target:
         if metric_key == BUILD_METRIC_PCT_GDP:
             target_value: float = float(
-                st_module.slider(
+                inputs.slider(
                     "Target deficit (% of GDP)",
                     min_value=0.0,
                     max_value=6.0,
@@ -806,7 +849,7 @@ def render_deficit_target_tab(
             target_label = f"{target_value:.1f}% of GDP"
         else:
             target_value = float(
-                st_module.slider(
+                inputs.slider(
                     "Target deficit ($B/year)",
                     min_value=0,
                     max_value=2000,
@@ -821,7 +864,7 @@ def render_deficit_target_tab(
             target_label = f"${target_value:,.0f}B/yr"
 
     with strip_search:
-        search_text = st_module.text_input(
+        search_text = inputs.text_input(
             f"Search {len(catalog)} scored policies",
             key=KEY_BUILD_SEARCH,
             placeholder="e.g. tariff, estate, ss-donut-250k",
@@ -842,7 +885,7 @@ def render_deficit_target_tab(
 
     with checklist_col:
         _render_checklist(
-            st_module,
+            inputs,
             catalog=catalog,
             selection=selection,
             blockers=blockers,
@@ -851,6 +894,15 @@ def render_deficit_target_tab(
         )
 
     with scoreboard_col, _keyed_container(st_module, "build_scoreboard"):
+        if frozen is not None:
+            render_frozen_build_provenance(
+                st_module,
+                frozen,
+                applied_ids=selection,
+                target=target_value,
+                metric=metric_key,
+                vintage=vintage,
+            )
         _render_scoreboard(
             st_module,
             catalog=catalog,
@@ -1342,10 +1394,40 @@ def _render_exports(
     with copy_col, _disclosure(st_module, "Copy summary"):
         st_module.code(summary, language=None)
 
+    _render_assignment_link(st_module, selection, target_value, metric_key)
+
     if selection:
         rows = package_rows(selection, catalog, n_years)
         with st_module.expander(f"Selected policies ({len(rows)})", expanded=False):
             st_module.dataframe(pd.DataFrame(rows), hide_index=True)
+
+
+def _render_assignment_link(
+    st_module: Any,
+    selection: Sequence[str],
+    target_value: float,
+    metric_key: str,
+) -> None:
+    """The frozen-link control, shown only in classroom context.
+
+    Gated on ``?classroom=1`` (and the ``?mode=classroom`` alias) exactly as on
+    the other two surfaces: a frozen link is a teaching artefact, and the share
+    link above it is what an ordinary reader wants.
+    """
+    query_params = getattr(st_module, "query_params", {}) or {}
+    try:
+        if not is_classroom_request(query_params):
+            return
+    except Exception:  # pragma: no cover — exotic query-param stand-ins
+        return
+
+    render_build_assignment_link_block(
+        st_module,
+        list(selection),
+        target_value,
+        metric_key,
+        engine=_session(st_module).get("setting_macro_model"),
+    )
 
 
 def _disclosure(st_module: Any, label: str) -> Any:
