@@ -210,6 +210,78 @@ def test_only_the_fy2022_row_names_its_own_window():
     assert named == {"treasury_capgains_39_plus_stepup_elim"}
 
 
+def test_a_named_window_is_the_decade_the_case_is_actually_scored_on():
+    """The shape input has to reach the runner, or the manifest row is prose.
+
+    Deliberately *relational* rather than a pinned level: the death channel is
+    an open modelling lane, so this asserts what the window does — the policy
+    starts in the source's own first year, and the same policy on the source's
+    own decade scores a smaller magnitude than on a decade three years later,
+    because both channels grow with household net worth."""
+    import copy
+
+    from fiscal_model.validation.core import (
+        DEFAULT_VALIDATION_START_YEAR,
+        _resolve_window_start,
+        build_scorer_for_vintage,
+        create_policy_from_score,
+    )
+
+    score = KNOWN_SCORES["treasury_capgains_39_plus_stepup_elim"]
+    assert _resolve_window_start(score) == 2022
+
+    policy = create_policy_from_score(score)
+    assert policy is not None
+    assert policy.start_year == 2022
+
+    on_source = build_scorer_for_vintage(None, start_year=2022).score_policy(
+        policy, dynamic=False
+    )
+    later = copy.deepcopy(policy)
+    later.start_year = DEFAULT_VALIDATION_START_YEAR
+    on_default = build_scorer_for_vintage(
+        None, start_year=DEFAULT_VALIDATION_START_YEAR
+    ).score_policy(later, dynamic=False)
+
+    assert abs(on_source.total_10_year_cost) < abs(on_default.total_10_year_cost)
+    official = score.ten_year_cost
+    assert abs(on_source.total_10_year_cost - official) < abs(
+        on_default.total_10_year_cost - official
+    )
+
+
+def test_a_record_without_a_window_keeps_the_runners_own():
+    """The field must be inert everywhere else, or it is a lever on the tier."""
+    from fiscal_model.validation.core import (
+        DEFAULT_VALIDATION_START_YEAR,
+        _resolve_window_start,
+        create_policy_from_score,
+    )
+
+    score = KNOWN_SCORES["warren_ultramillionaire_surtax_3pp"]
+    assert score.scoring_window_first_year is None
+    assert _resolve_window_start(score) == DEFAULT_VALIDATION_START_YEAR
+    policy = create_policy_from_score(score)
+    assert policy is not None
+    assert policy.start_year == DEFAULT_VALIDATION_START_YEAR
+
+
+def test_effective_start_year_still_beats_a_window():
+    """A source that states an effective date states a different fact from the
+    window it publishes over, and it keeps precedence — IIJA sets both."""
+    from dataclasses import replace as dc_replace
+
+    from fiscal_model.validation.core import create_policy_from_score
+
+    tampered = dc_replace(
+        KNOWN_SCORES["iija_2021_discretionary"], scoring_window_first_year=2019
+    )
+    policy = create_policy_from_score(tampered)
+    assert policy is not None
+    assert tampered.effective_start_year == 2022
+    assert policy.start_year == 2022
+
+
 def test_the_iija_path_rule_is_recorded_not_left_per_year():
     """A per-year choice of budget authority would be a knob. One rule sets
     every year, and it names the source's own total."""
