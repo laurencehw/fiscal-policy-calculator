@@ -475,3 +475,234 @@ Each of these fires against the lane, not for it.
   repeal path stops reading `CBO_PTC_ESTIMATES["baseline_enhanced_annual"]`;
   the constant stays for the other branches, which is a carry-over rather than a
   clean-up this lane is scoped for.
+
+## 6. Outturn
+
+*Appended 2026-09-06, after the code. Numbers from `python
+scripts/cold_holdout.py --json`, `python scripts/run_loo.py --donor-matrix`,
+`python scripts/run_validation_dashboard.py`, `python
+scripts/check_readiness.py --strict` and a sweep of `PRESET_POLICIES`, all on
+the finished branch. `main` did not move under the lane, so §1's baseline is
+what these are measured against.*
+
+**The prediction held to the decimal on the row, on both counterfactual reads,
+on the preset and on every aggregate.** §3 said −$774.1B / 29.62% against
+−$1,100B and −$677.3B for the preset, computed from the transcribed tables
+before `ptc.py` was opened. The runner reports **−$774.13B / 29.62%** and the
+sweep **−$677.27B**. The two figures §3 printed but did not ship — the gross
+read and the June 2024 read — came back at **−$959.0B** and **−$1,143.0B**, the
+second of which is **0.09%** from CBO's own $1,142B.
+
+### 6.0 Three corrections to §1, made here rather than there
+
+§§1-5 are the pre-registration and are left as committed, including where they
+are wrong. Three sentences in the diagnosis need correcting, and none of them
+touches a prediction or a falsification test:
+
+| §1 says | it should say |
+|---|---|
+| intro: the credit "falls by a quarter between FY2026 and FY2028" | **by nearly a third** — $105B to $74B, 29.5% |
+| §1.4: FY2025 at $129B is "the largest in the table" on the June 2024 vintage | **not quite** — FY2034 is $130B. What is true is that the credit falls to $101B in FY2027 and does not exceed its FY2025 level again until the last year of that window |
+| §1.4: the revenue leg is 11% against 15% "because the enhancement's expiry falls hardest on the non-refundable portion" | the two shares are **$107B of $959B (11.2%)** and **$177B of $1,143B (15.5%)**, on different windows *and* different vintages. The lane does not have a mechanism for the gap and should not have asserted one |
+
+§1.1's aside is also imprecise about its own subject: the lane was scoped calling
+`extend_enhanced_ptc` a fitted row whose figure must be protected. Its figure
+must indeed not move, and §1.5 is the promise that it does not — but it left the
+fitted tier in Wave 4, so a miss there would already have been a finding rather
+than a regression.
+
+### 6.1 `repeal_ptc`, year by year
+
+| FY | before (fitted 83.0 @ 4%) | after: CBO's own credit | offsetting effects | after: score |
+|---|--:|--:|--:|--:|
+| 2026 | 83.0 | **105.0** | 20.2 | **84.8** |
+| 2027 | 86.3 | **78.0** | 15.0 | **63.0** |
+| 2028 | 89.8 | **74.0** | 14.3 | **59.7** |
+| 2029 | 93.4 | **78.0** | 15.0 | **63.0** |
+| 2030 | 97.1 | **86.0** | 16.6 | **69.4** |
+| 2031 | 101.0 | **96.0** | 18.5 | **77.5** |
+| 2032 | 105.0 | **103.0** | 19.9 | **83.1** |
+| 2033 | 109.2 | **106.0** | 20.4 | **85.6** |
+| 2034 | 113.6 | **113.0** | 21.8 | **91.2** |
+| 2035 | 118.1 | **120.0** | 23.1 | **96.9** |
+| **total** | **996.5** | **959.0** | **185.0** | **−774.1** |
+
+| | model | vs −$1,100B | vs −$1,142B |
+|---|--:|--:|--:|
+| before | −$896.86B | 18.47% | 21.47% |
+| **after** | **−$774.13B** | **29.62%** | **32.21%** |
+| *not shipped:* gross, February 2026 | −$959.00B | 12.82% | 16.02% |
+| *not shipped:* net, June 2024, FY2025-2034 | −$922.66B | 16.12% | 19.21% |
+| *not shipped:* gross, June 2024, FY2025-2034 | −$1,143.00B | 3.91% | **0.09%** |
+
+Rating **Acceptable (18.5%) → Poor (29.6%)**, `calibrated_to_target` still
+`False`, provenance still `secondhand`, target still −$1,100B.
+
+### 6.2 Everything else
+
+| | before | after |
+|---|---|---|
+| **Tier 1 out-of-sample** | 26 @ 15.2% | **26 @ 15.2%**, identical row for row |
+| **Fitted calibrated** | 21 @ 1.7% | **21 @ 1.7%**, identical |
+| **Unfitted reconstructions** | 34 @ 57.55% / 34.18% median | **34 @ 57.88% / 34.18%** |
+| — within 15% / 25% | 9 / 13 | 9 / **12** |
+| — `extend_enhanced_ptc` | +$366.19B, 9.31%, Good | **unchanged, to three decimals** |
+| **LOO** | 18 @ 29.6% | **byte-identical**, donor matrix included |
+| CI gate `--max-mean-error 20 --min-within-25pct 21` | exit 0 | **exit 0** |
+| `run_validation_dashboard.py` | exit 1, pre-existing | **exit 1, byte-identical output** |
+| `check_readiness.py --strict` | `ready_with_warnings`, 4 warnings | **`ready_with_warnings`, 4 warnings** |
+| `strict_readiness_issues` | `[('runtime', None)]` | **`[('runtime', None)]`** |
+| `target_revision_problems()` | `[]` | **`[]`** |
+| `ruff check` | 0 | **0** |
+| `pytest tests/ -q` | 3518 passed, 7 skipped | **3534 passed, 7 skipped** (+16, all in `tests/test_ptc_repeal_shape.py`) |
+| preset **🏥 Repeal ACA Premium Credits**, sweep-script window | −$790.53B | **−$677.27B** (+14.3%) |
+| preset **🏥 Repeal ACA Premium Credits**, **the app's own window** | −$896.86B | **−$774.13B** (+13.7%) |
+| every other preset (52) | — | **to the cent**, on both windows |
+
+**This is the rare tier move that is not composition.** The reconstruction tier
+holds the same 34 rows before and after, so 57.55% → 57.88% is a like-for-like
+reading and the whole 0.33pp is one row getting further from its target. Nothing
+else in the repository moved: `cold_holdout.py --json` differs from `a251b32` in
+exactly one entry, and `run_loo.py --donor-matrix` and
+`run_validation_dashboard.py` do not differ at all.
+
+The one readiness line that changed wording: `holdout_protocol` went from
+*"1 entry(ies) are documented Poor outliers: pwbm_39_with_stepup"* to
+*"2 entry(ies): repeal_ptc, pwbm_39_with_stepup"*. It stays a **warning** rather
+than a failure, which is `readiness.py`'s own three-way split doing what §3.3
+predicted — a calibrated-tier reconstruction the module was never fitted to is a
+finding about the module, not a regression, and blocking on it would make
+deleting the runner the cheapest way back to green.
+
+### 6.3 All six falsification tests fired the right way
+
+1. **Any non-PTC scorecard row moving** — did **not** fire. One entry differs
+   across all three tiers.
+2. **`extend_enhanced_ptc` moving** — did **not** fire. +$366.186B before and
+   after, and the factory is untouched.
+3. **Tier 1 or the LOO donor matrix moving** — did **not** fire. Both checked by
+   diff rather than by summary line; the LOO output is byte-identical.
+4. **Landing *closer* to −$1,100B than 18.5%** — did **not** fire. 29.6%, the
+   direction §3.1 registered, and the mechanism that would have landed the row
+   (June 2024 vintage, no offset, 0.09%) is the one this lane declines.
+5. **Strict readiness failing** — did **not** fire.
+6. **The transcription missing CBO's printed totals** — did **not** fire, and it
+   is now a test rather than a claim: the June 2024 outlays column sums to 966
+   exactly, its revenue column to 177 against a printed 176, and February 2026's
+   2027-2036 columns to 880 and 102 against printed 878 and 103. All inside
+   CBO's rounding to the billion, all pinned.
+
+### 6.4 Six findings
+
+**1. The fitted constant was 3.9% from CBO's ten-year path and 21% from CBO in
+two separate years.** This is the finding that justifies the lane existing at
+all, because the row never *looked* broken. $83.0B growing at 4% totals $996.5B
+against CBO's $959B over the same window — close enough that a ten-year error
+metric cannot see anything wrong — while being 21% *low* in FY2026 and 21%
+*high* in FY2028. A ten-year total is a weak test of a path, and the app does
+not only show ten-year totals: it shows the annual profile, the distributional
+tables and the dynamic feedback, every one of which reads the year-by-year
+series. **A scoring error that a scorecard cannot detect is still a scoring
+error.**
+
+**2. The target and the model were measuring the same wrong thing from opposite
+ends, and now only one of them is.** §6.2 item 31 said exactly this and the lane
+confirms it in the strongest available form: run on the vintage and window the
+target came from, with no coverage response, the new mechanism returns
+**$1,143.0B against CBO's printed $1,142B — 0.09%**. That is not a validation.
+It is a demonstration that a model reading a baseline table can reproduce a
+baseline projection to a tenth of a percent, and therefore the *sharpest*
+possible argument for PR #122's refusal to adopt one as a repeal score. The
+repository can now show, rather than assert, why −$1,100B is not a target.
+
+**3. Most of the 29.6% is a vintage the target predates.** The credit costs
+$1,143B over FY2025-2034 on the June 2024 baseline and $959B over FY2026-2035 on
+the February 2026 one — a **16% smaller credit** — because the ARPA/IRA
+enhancement lapsed at the end of calendar 2025 and CBO's own Table 1 puts
+subsidized marketplace enrollment at 20.9M → 13.4M → 10.3M across that break. A
+repeal enacted in 2026 removes materially less than a repeal enacted in 2025
+would have. The $325.9B between the target and the shipped score decomposes
+exactly, in three published steps:
+
+| step | Δ | what it is |
+|---|--:|---|
+| −$1,100B → −$1,143B | **−$43B** | the target *understates* its own source: pub. 51298's June 2024 credit is $1,143B, and −$1,100B is a rounding of it |
+| −$1,143B → −$959B | **+$184B** | **vintage and window** — the enhancement lapsed, and the app scores FY2026-2035 on February 2026 rather than FY2025-2034 on June 2024 |
+| −$959B → −$774B | **+$185B** | **offsetting effects**, at CBO's own published 19.28% |
+| | **+$326B** | |
+
+Not one dollar of it is a residual nobody can name.
+
+**4. The unsourced 10% was in the wrong place as well as the wrong size.** The
+module applied `adverse_selection_factor = 0.1` under a docstring describing a
+premium spiral. CBO's own itemisation of the mirror policy has no premium-spiral
+line at all: the $80B is $101B of compensation shifting between taxable wages
+and tax-favoured insurance, plus $3B of employer penalties, against $21B of
+Medicaid and CHIP, $17B of Basic Health Program and §1332 waivers, and −$13B of
+other outlays. The channel is **employment-based coverage**, not selection, and
+`create_repeal_ptc` now switches both unsourced knobs off rather than reusing
+one of them as a container for a different mechanism.
+
+**5. The preset-sweep script every recent lane has used is not on the app's
+window, and its lane docs say it is.** `SWEEP_offset_sign.md` §7.3 reports "all
+53 scored through `create_policy_from_preset` on the app's FY2026-FY2035 window"
+and `L8_tariffs.md` §7.5 uses the same script; both call
+`FiscalPolicyScorer()`, whose `start_year` defaults to **2025**, not to
+`APP_DEFAULT_START_YEAR`. Because `create_repeal_ptc` starts in 2026, the sweep
+scores **nine** policy years and the app scores ten. The arithmetic is
+unambiguous: PR #119's reported −$966.2B is `83.0 × Σ₀⁸(1.04ᵗ) × 1.10`, and its
+−$790.5B is `83.0 × Σ₀⁸(1.04ᵗ) × 0.90` — nine terms in both. On the window a
+user actually sees, this preset read **−$896.86B** before this lane and reads
+**−$774.13B** after, a **+13.7%** move rather than +14.3%. §1.6 of this lane
+kept the same script for a like-for-like diff and said so; the numbers a **user**
+sees are the second pair. It changes no conclusion in either lane — the *other*
+52 presets are unchanged on both windows — but a sweep that reports a window it
+is not scoring is worth fixing before the next lane quotes it. **A carry-over.**
+
+**6. The sign sweep's caption now states a counterfactual about a static path
+that never shipped, and it could not be fixed here.** `_offset_sign_changed`
+returns `True` for every `PremiumTaxCreditPolicy`, so the sweep's caption still
+fires on this preset alongside the new one, and its "the headline above would
+have read \$X" is computed as `static − behavioural` on the *new* static path —
+−$1,000.7B on the app's window, a number the app has never displayed. The
+sentence remains true as a statement about the sign convention and false as
+local history. Narrowing `_offset_sign_changed` to exclude the baseline-credit
+path would fix it and would also break
+`tests/test_offset_sign_contract.py::test_the_caption_fires_on_exactly_the_two_presets_that_moved`,
+which this lane is not permitted to edit. **Recorded as a carry-over**: the
+sweep's caption and its two-preset pin were written when the PTC repeal had one
+scoring path, and it now has a second one that never carried the defect.
+
+### 6.5 What this lane did not do
+
+- **The target did not move.** −$1,100B stands, `EXAMINED_NOT_REVISED` still has
+  six entries, `revised_target_entries` is still 16, and `published_entries` is
+  still 75 of 81. The $1,142B is still declined, now with a demonstration
+  attached rather than an argument.
+- **`extend_enhanced_ptc` got no derived path** (§1.5), and no mode was added
+  (§1.5). The module still has one scoring path per branch.
+- **The composition of the coverage response is not modelled** (§5). The
+  transferred 19.28% is an extension's composition applied to a repeal's, and
+  the two differ in two directions that do not obviously cancel. Named in
+  `known_limitations`, with the letter's own $325B footnote recorded as a 21.7%
+  sensitivity.
+- **`CBO_PTC_ESTIMATES`, `BASELINE_PTC_COSTS` and `MARKETPLACE_DATA` are still
+  unsourced**, and two of the three are still read. `BASELINE_PTC_COSTS`
+  (`enhanced_annual: 95.0`, `original_aca_annual: 60.0`, `csr_annual: 15.0`) is
+  now read by **nothing at all**. `CBO_PTC_ESTIMATES` lost its repeal reader but
+  keeps its extension one: `estimate_static_revenue_effect`'s uncalibrated
+  extension branch still returns `-(baseline_enhanced_annual −
+  baseline_original_annual)` = −$35B/yr, which no factory reaches because
+  `create_extend_enhanced_ptc` pins its annual, but which any hand-built
+  extension policy would. And `estimate_coverage_effect` still returns "19
+  million lose coverage" and "4 million lose coverage" straight out of
+  `MARKETPLACE_DATA` — the module header's own uncited arithmetic, on a surface
+  users see. The document that would source it is now identified and read
+  (publication 51298's **Table 1**, whose subsidized-marketplace and uninsured
+  rows this lane quotes in the data file's header), but only its **Table 2** is
+  transcribed as data, because only Table 2 is what a repeal removes. A
+  carry-over, and a cheap one.
+- **No third vintage.** `cbo_jan_2025` is not transcribed, and asking for it
+  raises rather than falling back. CBO's January 2025 health-insurance baseline
+  has no Wayback snapshot at the filename pattern the other two use, and the
+  lane declined to guess a URL.
