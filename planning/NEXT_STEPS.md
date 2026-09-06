@@ -492,13 +492,16 @@ branches; distributional unchanged; the CI gate re-derives to the same 20 / 21.
   column, 3.8% away — adopting it would make the row worse). Published targets
   73 → **75**, `model_estimate` rows 7 → **6**.
 
-**`CORPORATE_APP_MODE` is still `reported` on `main`, and Decision 1 now points the
-other way.** Measured on the merged tree where both the base projection and the
-moved targets apply, the corporate module reads **reported 62.75% against derived
-61.43%** on three published targets — derived leads, narrowly, by winning the
-FY2022 rate-only row and losing a little on the other two. A flip is being prepared
-by a concurrent lane and awaits the owner's confirmation; it was not yet open when
-this was written, and until it merges the corporate app default is `reported`. Neither figure is small, and the honest summary is that a
+**`CORPORATE_APP_MODE` stays `reported` on `main` by owner decision, although
+Decision 1's rule now points the other way.** Measured on the merged tree where
+both the base projection and the moved targets apply, the corporate module reads
+**reported 62.75% against derived 61.43%** on three published targets — derived
+leads, narrowly, by winning the FY2022 rate-only row and losing a little on the
+other two. The flip was built and pre-registered as PR #124 and **closed unmerged
+on 2026-09-05**: the mean cannot discriminate on this set (one row of three won;
+two rows are the same reform 57% apart; the third missed by more than 100% in
+both modes), and flipping would leave a fitted row scored by an unfitted path.
+Revisit when a rate-only published 28% score on a carried vintage exists. Neither figure is small, and the honest summary is that a
 module whose implied marginal base is above every published estimator's misses both
 published corporate targets in the same direction and misses the third by more.
 
@@ -533,9 +536,10 @@ marginal base still 80.8% of the vintage average against JCT's 55.9%** (new,
 PR #120 §4b and PR #121's own "what the lane did not do" — the remaining 44 points
 of `cbo_opt64` are credit carryforwards under §38(c)/§904(c), CAMT and the
 individual-side dividend interaction, none available from a source this module
-reads, and none to be asserted as a constant); **Decision 1's corporate flip**
-(new, and pending — reported 62.75% vs derived 61.43% on the merged tree, with a
-flip PR open awaiting the owner); **a `retire` state for `target_revisions.py`**
+reads, and none to be asserted as a constant); **Decision 1's corporate override**
+(decided — reported 62.75% vs derived 61.43% on the merged tree; the flip, PR #124,
+was closed unmerged on 2026-09-05 and `reported` kept, revisit trigger recorded in
+§6.2 item 33); **a `retire` state for `target_revisions.py`**
 (new, PR #122 §3 — deliberately *not* built, because a mechanism with no user is
 dead code and the row that would have used it turned out to have a document;
 recorded so the next lane does not re-derive the question); **the
