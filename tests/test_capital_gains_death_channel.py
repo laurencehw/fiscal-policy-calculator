@@ -56,6 +56,24 @@ def classes(baseline) -> list:
     return baseline.decedent_classes(YEAR)
 
 
+def _death_channel(policy, slices: int | None = None) -> float:
+    """The ten-year death channel, optionally at a different slice count."""
+    if slices is not None:
+        from fiscal_model.data.capital_gains import CapitalGainsBaseline as _Base
+
+        _Base.DECEDENT_SLICES_PER_REGION = slices
+    try:
+        return sum(
+            policy.estimate_step_up_elimination_revenue(year)
+            for year in range(policy.duration_years)
+        )
+    finally:
+        if slices is not None:
+            from fiscal_model.data.capital_gains import CapitalGainsBaseline as _Base
+
+            _Base.DECEDENT_SLICES_PER_REGION = 200
+
+
 # ---------------------------------------------------------------------------
 # The data file
 # ---------------------------------------------------------------------------
@@ -92,15 +110,250 @@ def test_the_spousal_share_is_carried_and_never_read(baseline):
     """The double count the lane refused to make is in the file, not the model.
 
     Poterba & Weisbenner's flow already excludes inter-spousal transfers, so a
-    spousal deduction would be taken twice. The column stays in the CSV as the
+    spousal deduction would be taken twice. The row stays in the CSV as the
     record of what that would have cost - SOI puts it near a third of the gross
-    estate - and the loader must not hand it to anything.
+    estate - and the loader must not hand it to anything. Wave 7 moved the file
+    to one row per (source, size class, quantity); the ``applied`` column is
+    what carries the distinction now.
     """
     frame = baseline._read(CapitalGainsBaseline.CARVEOUT_FILE)
-    assert frame["marital_bequest_share"].max() > 0.2
-    for shares in baseline._carveouts.values():
-        assert "marital_bequest_share" not in shares
-    assert frame["tangible_personal_property_gain_share"].eq(0.0).all()
+    marital = frame[frame["quantity"] == "marital_bequest_share"]
+    assert not marital.empty
+    assert marital["share"].max() > 0.2
+    assert marital["applied"].astype(str).str.lower().eq("false").all()
+
+    tangible = frame[frame["quantity"] == "tangible_personal_property_gain_share"]
+    assert not tangible.empty
+    assert tangible["share"].eq(0.0).all()
+    assert tangible["applied"].astype(str).str.lower().eq("false").all()
+
+    # Neither reaches the loader, and neither reaches a decedent class.
+    assert "marital_bequest_share" not in baseline._carveout_ladders
+    assert "tangible_personal_property_gain_share" not in baseline._carveout_ladders
+    assert set(baseline.carveout_shares_at(50.0)) == {
+        "residence_gain_share",
+        "active_business_gain_share",
+        "charitable_bequest_share",
+    }
+
+
+# ---------------------------------------------------------------------------
+# The size distribution (Wave 7)
+# ---------------------------------------------------------------------------
+
+
+def test_the_fit_reproduces_every_dfa_group_aggregate(baseline):
+    """One unknown, one equation, and the equation is the published aggregate.
+
+    The piecewise-Pareto is fitted segment by segment so that each
+    Distributional Financial Accounts percentile group's own net worth comes
+    back out. If that ever stops holding, the distribution has acquired a free
+    parameter and is no longer the DFA's.
+    """
+    households = baseline._parameters["households_millions"] * 1e6
+    slices = baseline.decedent_size_slices()
+    published = {
+        str(row["group"]): float(row["net_worth_millions_usd"])
+        for _, row in baseline._ladder.iterrows()
+    }
+    for group, aggregate in published.items():
+        fitted = sum(
+            share * households * mean for share, mean, name in slices if name == group
+        )
+        assert fitted == pytest.approx(aggregate, rel=1e-9), group
+    assert sum(share for share, _, _ in slices) == pytest.approx(1.0, rel=1e-12)
+
+
+def test_the_fit_is_refused_below_the_ninetieth_percentile(baseline):
+    """The two reasons, both in the shipped file, and the model obeying them."""
+    frame = baseline._size_distribution
+    dispersed = frame[frame["dispersed"].astype(bool)]
+    refused = frame[~frame["dispersed"].astype(bool)]
+    assert set(dispersed["group"]) == {"TopPt1", "RemainingTop1", "Next9"}
+    assert set(refused["group"]) == {"Next40", "Bottom50"}
+
+    # Reason one: no finite-mean Pareto exists there.
+    assert (dispersed["pareto_alpha"] > 1.0).all()
+    assert (refused["pareto_alpha"] < 1.0).all()
+
+    # Reason two: the median it would imply is twice the SCF's published one.
+    median_row = refused[refused["percentile_share_upper"] == 0.5].iloc[0]
+    scf = baseline._parameters["scf_2022_median_family_net_worth_thousands"]
+    assert float(median_row["threshold_millions_usd"]) * 1e3 > 1.5 * scf
+    assert "SCF" in str(median_row["note"])
+
+    # And the model gives each refused group exactly one slice, at its mean.
+    slices = baseline.decedent_size_slices()
+    ladder = baseline._ladder.set_index("group")
+    for group in ("Next40", "Bottom50"):
+        rows = [row for row in slices if row[2] == group]
+        assert len(rows) == 1
+        assert rows[0][1] == pytest.approx(
+            float(ladder.loc[group, "mean_net_worth_millions_usd"])
+        )
+
+
+def test_the_level_is_not_this_schedules_to_change(baseline):
+    """Gains at death is Poterba & Weisbenner's flow at any slice count."""
+    for count in (1, 25, 200, 400):
+        classes = baseline.decedent_classes(YEAR, slices_per_region=count)
+        total = sum(
+            c.decedents_per_year * c.gains_per_decedent_dollars for c in classes
+        )
+        assert total / 1e9 == pytest.approx(
+            baseline.gains_at_death_billions(YEAR), rel=1e-9
+        )
+        assert sum(c.decedents_per_year for c in classes) == pytest.approx(
+            baseline._parameters["households_millions"]
+            * 1e6
+            * baseline._parameters["estate_flow_rate"],
+            rel=1e-9,
+        )
+
+
+def test_the_slice_count_is_quadrature_and_not_a_parameter():
+    """Doubling the resolution must not move the answer.
+
+    The slices are a numerical integration of a continuous distribution. If the
+    ten-year death channel depended on how many of them there are, the count
+    would be a modelling parameter this lane never declared.
+    """
+    policy = _policy(step_up_exemption=1_000_000.0)
+    coarse = _death_channel(policy, slices=100)
+    fine = _death_channel(policy, slices=200)
+    finer = _death_channel(policy, slices=400)
+    assert abs(fine - coarse) / coarse < 0.005
+    assert abs(finer - fine) / fine < 0.005
+
+
+def test_the_exclusion_is_no_longer_a_cliff():
+    """The defect item 15 names: an exclusion on point masses is a step function.
+
+    On the five-class ladder, raising the per-donor exclusion knocked out whole
+    classes, so the revenue schedule had flats and drops. On a distribution it
+    falls smoothly, and the test for "smoothly" is that no single $250,000 step
+    of the exclusion removes more than a fifth of what is left.
+    """
+    previous = None
+    for exclusion in range(0, 6_000_000, 250_000):
+        revenue = _death_channel(_policy(step_up_exemption=float(exclusion)))
+        if previous is not None:
+            assert revenue <= previous + 1e-9
+            assert previous - revenue < 0.20 * previous
+        previous = revenue
+
+
+def test_the_dead_published_rows_are_alive_where_the_fit_reaches(baseline):
+    """Seven of eighteen published rows were never read. Six of them now are.
+
+    The five class means read Poterba & Weisbenner's six published rows at four
+    points, Avery, Grodzicki & Moore's eight at four and SOI's four at three.
+    Every band above the 90th percentile now contains a slice. The one that is
+    still dark is PW's $250,000-$500,000 class, which lies inside the region the
+    fit refuses (``test_the_fit_is_refused_below_the_ninetieth_percentile``) and
+    where the two remaining group means fall either side of it - so the lane
+    says which row is still unread rather than claiming all eighteen.
+    """
+    estates = [mean for _, mean, _ in baseline.decedent_size_slices()]
+
+    def covered(lower: float, upper: float) -> bool:
+        return any(lower <= estate < upper for estate in estates)
+
+    frame = baseline._read(CapitalGainsBaseline.CARVEOUT_FILE)
+    frame = frame[frame["applied"].astype(str).str.lower() == "true"]
+    bands = {
+        (
+            float(row["size_class_lower_millions_usd"]),
+            float(row["size_class_upper_millions_usd"]),
+        )
+        for _, row in frame.iterrows()
+    }
+    agm_lowers = [bound for bound, _ in baseline._agm_ladder]
+    bands |= set(zip(agm_lowers, agm_lowers[1:] + [float("inf")]))
+
+    dark = sorted(band for band in bands if not covered(*band))
+    assert dark == [(0.25, 0.5)], dark
+    # And every band the fit reaches is read.
+    threshold = float(
+        baseline._size_distribution.set_index("group").loc[
+            "Next9", "threshold_millions_usd"
+        ]
+    )
+    for lower, upper in sorted(bands):
+        if lower >= threshold:
+            assert covered(lower, upper), f"${lower}M-${upper}M"
+
+
+def test_the_open_top_slice_is_one_household(baseline):
+    """The top of an open-ended Pareto is cut somewhere; here it is cut at one.
+
+    A bound with a meaning, and one with an external check: the conditional mean
+    above it is the fitted net worth of the single richest household, which on
+    the shipped Distributional Financial Accounts vintage comes out in the
+    hundreds of billions - the order of magnitude the published wealth lists put
+    it at, without any of this being fitted to them.
+    """
+    households = baseline._parameters["households_millions"] * 1e6
+    top = baseline.decedent_size_slices()[0]
+    assert top[2] == "TopPt1"
+    assert top[0] * households == pytest.approx(1.0)
+    assert 100_000.0 < top[1] < 1_000_000.0  # $100B-$1T, in millions
+
+
+def test_each_slice_reads_the_ladders_at_its_own_estate_size(baseline):
+    """No slice straddles a published boundary, and none reads a group mean."""
+    classes = baseline.decedent_classes(YEAR)
+    for decedent_class in classes:
+        estate = decedent_class.net_worth_millions_usd
+        expected = baseline.carveout_shares_at(estate)
+        assert decedent_class.residence_gain_share == pytest.approx(
+            min(1.0, expected["residence_gain_share"])
+        )
+        assert decedent_class.active_business_gain_share == pytest.approx(
+            min(1.0, expected["active_business_gain_share"])
+        )
+        assert decedent_class.charitable_bequest_share == pytest.approx(
+            expected["charitable_bequest_share"]
+        )
+        assert decedent_class.unrealized_gain_share == pytest.approx(
+            baseline.unrealized_gain_share_at(estate)
+        )
+    # A distribution, not five points: the top decile spans three orders of
+    # magnitude of estate size and the shares vary across it.
+    top = [c for c in classes if c.group in {"TopPt1", "RemainingTop1", "Next9"}]
+    assert len({c.charitable_bequest_share for c in top}) >= 3
+    assert len({c.unrealized_gain_share for c in top}) >= 4
+
+
+def test_the_charitable_floor_is_a_rule_about_soi_coverage(baseline):
+    """SOI's table is estate-tax filers; a small estate gets no share at all."""
+    floor = baseline._parameters["soi_estate_charitable_floor_millions_usd"]
+    assert baseline.carveout_shares_at(floor * 0.99)["charitable_bequest_share"] == 0.0
+    assert baseline.carveout_shares_at(floor * 1.01)["charitable_bequest_share"] > 0.0
+
+
+def test_the_soi_decedent_count_is_a_check_and_not_an_input(baseline):
+    """SOI's own return count against the fitted distribution's implied one.
+
+    SOI Estate Tax Table 1 reports the estates that actually filed above the
+    threshold; the fitted distribution says how many decedents it puts there.
+    The two are the same order of magnitude and neither feeds the other - the
+    figure is in the parameters file marked CHECK ONLY, and nothing multiplies
+    by it.
+    """
+    threshold = baseline._parameters["soi_fy2024_estate_filing_threshold_millions_usd"]
+    published = baseline._parameters["soi_fy2024_estate_returns_above_filing_threshold"]
+    implied = sum(
+        c.decedents_per_year
+        for c in baseline.decedent_classes(YEAR)
+        if c.net_worth_millions_usd >= threshold
+    )
+    assert 0.4 < implied / published < 2.5
+    # The check is not wired into anything: the whole channel is unchanged when
+    # the published count is not read, because it never is.
+    frame = baseline._read(CapitalGainsBaseline.PARAMETER_FILE)
+    row = frame[frame["key"] == "soi_fy2024_estate_returns_above_filing_threshold"]
+    assert "CHECK ONLY" in str(row["source"].iloc[0])
 
 
 # ---------------------------------------------------------------------------
