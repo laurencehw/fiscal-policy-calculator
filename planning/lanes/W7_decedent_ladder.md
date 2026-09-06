@@ -367,3 +367,317 @@ API's own `_build_preset_policy`; the only capital-gains-shaped one,
   realizations base is still a flow off a stock rather than CBO's own published
   projection, and the 72.3% active-business share is still an upper bound on
   "family-owned and -operated" — all three carried unchanged from W4 §7.
+
+## 8. Outturn
+
+*Appended 2026-09-06, after the code. Every number from `python
+scripts/cold_holdout.py --json`, `python scripts/run_loo.py --donor-matrix`,
+`python scripts/run_validation_dashboard.py` and the §5.2 reproduction scripts,
+run on the finished branch and on `a251b32` in the same session, so the before
+column is measured rather than quoted.*
+
+**The mechanism landed where §5 said it would, to two decimal places, and it did
+not fix what item 15 said it would fix.** Every one of the twelve bands in §5 was
+hit. Tier 1 goes **15.2% → 15.4%**, all three of the lane's rows get worse by
+1–2 points, and the exclusion step the lane was aimed at went **82.3 → 85.0**,
+the wrong way — which is the finding, and it is a finding about the carry-over
+item rather than about the model.
+
+### 8.1 Predicted vs actual
+
+| Row | before | §5 said | after | inside? |
+|---|--:|---|--:|---|
+| `cbo_opt51_gains_at_death` | 19.3% | 19–22%, still under | **20.3%**, still under | yes |
+| `biden_capital_gains_39` | 31.4% | 31–35%, still over | **32.8%**, still over | yes |
+| `treasury_capgains_39_plus_stepup_elim` | 43.3% | 43–48%, still over | **45.4%**, still over | yes |
+| `cbo_opt47_ltcg_qdiv_2pp` | 10.5% | unchanged | 10.5% | yes |
+| Tier 1 mean | 15.2% | 15.0–16.0% | **15.4%** | yes |
+| Tier 1 within 25% | 22 | 22 | **22** | yes |
+| Tier 1 within 15% | 16 | 16 | **16** | yes |
+| `CapitalGains` LOO (n=3) | 39.6% | unchanged | 39.6% | yes |
+| LOO suite (n=18) | 29.6% | unchanged | 29.6% | yes |
+| calibrated fitted (n=21) | 1.7% | unchanged | 1.7% | yes |
+| unfitted reconstruction (n=34) | 57.6% | unchanged | 57.6% | yes |
+| **exclusion step, $1M less $5M** | 82.26 | **about 85.0** | **85.02** | yes |
+
+§5's hand path — written before a line of module code changed — predicted
+ten-year death channels of about **427.5, 24.2 and 109.3**. The module returns
+**427.53, 24.23 and 109.24**. The hand path and the implementation are the same
+arithmetic, which is what makes the pre-registration worth having: nothing was
+adjusted between writing the prediction and reading the result.
+
+### 8.2 The three rows, channel by channel
+
+| Row | rate channel | death before | death after | total before | total after | target |
+|---|--:|--:|--:|--:|--:|--:|
+| `cbo_opt51_gains_at_death` | 0.00 | 432.75 | **427.53** | −432.75 | **−427.53** | −536.1 |
+| `biden_capital_gains_39` | 359.02 | 20.19 | **24.23** | −379.21 | **−383.25** | −288.6 |
+| `treasury_capgains_39_plus_stepup_elim` | 359.02 | 102.45 | **109.24** | −461.47 | **−468.26** | −322.0 |
+
+The rate channel is unchanged to the cent on both Green Book rows, before and
+after. Wave 5's `W5_preferential_margin.md` is untouched.
+
+### 8.3 What the distribution is worth, and what it is not
+
+Ten-year death channel with one relief switched off at a time. Not additive —
+they compose multiplicatively and the per-donor exclusion sits after all of
+them — but it says which relief does the work now that each is read at the
+estate's own size.
+
+| variant | Option 51 | FY2025 ($5M) | FY2022 ($1M) |
+|---|--:|--:|--:|
+| **full** | **427.53** | **24.23** | **109.24** |
+| no carve-outs at all | 580.97 | 485.67 | 794.54 |
+| no family-business deferral | 427.53 | 131.08 | 292.71 |
+| no per-donor exclusion | 427.53 | 289.03 | 289.03 |
+| no section 121 | 478.14 | 24.83 | 123.50 |
+| no charitable substitution | 445.95 | 38.53 | 127.18 |
+
+Read down the marginal effects and one of W4's orderings has flipped. On FY2025
+the per-donor exclusion is still the largest relief at **264.8**, with the
+family-business deferral at 106.9, §121 at 0.6 and the substitution channel at
+14.3. On **FY2022 the deferral is now the largest at 183.5**, against the
+exclusion's 179.8 — on the five-class ladder the exclusion led, 208.4 to 173.9 —
+because a $1M exclusion applied across a distribution wastes less of itself on
+decedents who fall just under it. That is the one ordering this lane changed,
+and it is a consequence of the mechanism rather than a finding about the
+proposals. On Option 51, which states neither relief, the whole change is charity
+plus §121 plus the substitution channel — **26.4%** of the base, against 25.5% on
+the old ladder.
+
+The quadrature is stable, which is what makes the slice count a resolution
+rather than a parameter:
+
+| slices/region | slices | Option 51 | FY2025 | FY2022 |
+|---|--:|--:|--:|--:|
+| 25 | 84 | 427.5254 | 24.2099 | 109.2343 |
+| 200 (shipped) | 609 | 427.5277 | 24.2283 | 109.2433 |
+| 800 | 2,409 | 427.5277 | 24.2286 | 109.2436 |
+
+Thirty-two-fold more slices moves the FY2022 channel by **$0.009B**, 0.009%.
+
+Six of the seven dead published rows are alive:
+
+| step function | published classes | evaluated before | evaluated now | still dark |
+|---|--:|--:|--:|---|
+| Poterba & Weisbenner Table 8 | 6 | 4 | **5** | $0.25M–$0.5M |
+| Avery, Grodzicki & Moore Figure 1 | 8 | 4 | **8** | — |
+| SOI Estate Table 1 (charitable) | 4 | 3 | **4** | — |
+
+The one still dark sits inside the region the fit refuses, between the two group
+means that survive there. Saying which row is unread is better than claiming all
+eighteen.
+
+One §3.1 figure moved with the schedule that produced it, and is restated here
+rather than edited there: the two groups the fit refuses hold **13.1% and 1.1%**
+of gains at death after the change, against the 12.4% and 1.0% measured on the
+five-class ladder before it. The groups the fit declines to disperse are still
+the two that matter least to the channel.
+
+### 8.4 Where the pre-registration was wrong — and where §6.2 item 15 was
+
+**No band was missed, so nothing in §5 was wrong.** What was wrong is the
+carry-over item the lane was sent to close, and the lane says so with arithmetic
+rather than assertion.
+
+**§6.2 item 15 attributes the exclusion step to the ladder's lack of
+within-group dispersion. It is not that.** Wave 4 measured the model paying
+**$82.2B** of death channel to move the per-donor exclusion from $1M to $5M,
+against $33.4B between Treasury's two published rows, and named the five-class
+ladder. This lane replaced the ladder with a fitted, continuous size
+distribution and the step went to **$85.0B** — *further* from $33.4B, not
+nearer. Dispersion cannot have been the cause, and the direction is not an
+accident: `max(0, gain − E)` is convex in the gain, so a mean-preserving spread
+of a fixed flow of gains raises the taxable excess at every exclusion. **A
+sharper schedule makes an exclusion cost more, not less.**
+
+**What does move it is the decedent headcount, and the sensitivity is not
+subtle.** Holding gains at death at Poterba & Weisbenner's flow and varying only
+the number of decedents it is spread over:
+
+| decedents | Option 51 | FY2025 | FY2022 | **step** |
+|---|--:|--:|--:|--:|
+| 408,532 (shipped) | 427.53 | 24.23 | 109.24 | **85.02** |
+| ×1.5 | 413.88 | 18.22 | 71.34 | **53.11** |
+| ×2 | 406.83 | 15.58 | 51.05 | **35.46** |
+| ×4 | 383.99 | 10.88 | 28.13 | **17.25** |
+| ×7.56 (≈ NCHS deaths) | 349.02 | 7.78 | 17.73 | **9.94** |
+
+A decedent count about **twice** the shipped one reproduces Treasury's own step
+to within two billion. The shipped count is `households × household_share ×
+estate_flow_rate`, where `estate_flow_rate` is Poterba & Weisbenner's **dollar**
+flow of estates over net worth (0.3195%/yr) used as a **headcount** rate, giving
+408,532 decedents against roughly 3.09 million NCHS deaths — and the module
+carries a second, independently derived quantity of exactly that kind,
+`mortality_weighted_net_worth_share` at **2.65%**, computed from NCHS mortality
+against DFA net worth by age, which it does not use here. **This lane did not
+touch it**, because it is a level change to the whole channel (it moves Option
+51 too, and in the wrong direction) and §6.2 files it separately. The
+measurement is the hand-off.
+
+**And the $33.4B was never the right comparator.** The two Treasury rows are
+scored on different windows on different baselines. The model's own death
+channel is **0.714×** as large on FY2022–2031 as on FY2025–2034 for the $1M
+design (0.744× for the $5M one), so restating the FY2022 row onto a common
+window makes it larger and makes the published step larger than $33.4B. Item
+24's memo lane owns the target question and this lane does not pre-empt it, but
+the number item 15 quotes is a difference between two windows as well as between
+two exclusions.
+
+**One thing the lane found that it did not predict**: the module's implied
+decedent count *at the top* is much closer to the published record than its total
+is. The fitted distribution puts **4,378** decedents a year above $12.92M of net
+worth against SOI's **7,194** estate-tax returns above that threshold — short by
+1.6×, where the headcount overall is short by 7.6×. So the two coarsenesses
+partly offset, and a headcount fix that simply scaled every group would overshoot
+at the top. Whoever takes item 15's headcount half should start there.
+
+### 8.5 Falsification checks
+
+| §6 test | result |
+|---|---|
+| Any Tier-1 row other than the three named moving | **clean** — 23 of 26 identical to the dollar |
+| `CapitalGains` LOO, LOO suite, fitted tier or reconstruction tier moving | **clean** — 0 of 21 and 0 of 34 scorecard rows moved; `run_loo.py --donor-matrix` identical line for line |
+| The first three Tailor rows moving, or any of the 53 presets moving | **clean** — −$91.4B / −$183.7B / −$46.9B unchanged; all 53 presets identical to four decimals |
+| Any row outside its §5 band, or changing sign, or moving >25% of its death channel | **clean** — largest death-channel move is +20.0% (FY2025), no sign change |
+| The fit failing to reproduce a DFA group aggregate, or the level moving | **clean** — every group to 1e-9, total gains at death exact at 1, 25, 200 and 400 slices |
+| The channel moving >0.5% when the slice count doubles | **clean** — 0.009% over a 32× range |
+| The two Green Book rows landing on opposite sides | **not fired** — both still over-predict, because Wave 5's rate channel over-shoots both targets. §6 said in advance this test could no longer fail for the reason it was written |
+
+Suite: **3,535 tests, 3,528 passed, 7 skipped, 0 failed.** Ten are new
+(`tests/test_capital_gains_death_channel.py`), and **one existing test was
+restated** rather than weakened:
+`test_the_spousal_share_is_carried_and_never_read` now reads the long-format
+file and additionally asserts the loader does not expose the two never-applied
+quantities at all. No test pinned a death-channel level, so none had to move.
+
+`python scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 21` exits
+**0**. `python scripts/run_validation_dashboard.py` exits 1 on this branch **and
+on `a251b32`**, for the same two reasons on both — the runtime check (Python
+3.14.0 against a supported range of `>=3.10,<3.14`) and the standing microdata
+warning — and its output differs between the two trees in exactly one line, the
+Tier 1 mean. The CI gate's own thresholds are untouched.
+
+### 8.6 Shipped output, and the note that ships with it
+
+| Tailor input | before | after |
+|---|--:|--:|
+| +2pp, all brackets | −$91.4B | −$91.4B |
+| +5pp, all brackets | −$183.7B | −$183.7B |
+| +5pp above $1M, step-up retained | −$46.9B | −$46.9B |
+| 39.6% above $1M + eliminate step-up, $1M exemption | −$626.9B | **−$643.4B** |
+| constructive realization at death only, no exclusion | −$432.8B | **−$427.5B** |
+
+Two shipped figures move, by **2.6%** and **1.2%** — an order of magnitude less
+than the moves that made Decision 6 bind in Waves 4 and 5. The note ships anyway,
+as one clause in the existing `gains_at_death_caption`: a reader told that an
+exclusion applies *per decedent* is entitled to know that the model no longer
+applies it to an average decedent.
+
+> … A $1,000,000 per-decedent exclusion then applies to what is left, not to the
+> whole gain, **and it is subtracted across a fitted distribution of estate sizes
+> rather than from an average estate.** …
+
+No preset moves. All 53 were scored through the API's own `_build_preset_policy`
+on `a251b32` and on this branch and are identical; the only capital-gains-shaped
+one, `📋 Eliminate Step-Up Basis (-$500B)`, runs through `TaxExpenditurePolicy`
+at −$523.4663B on both.
+
+### 8.7 Findings
+
+**1 — The ladder was not what item 15 said it was, and the sign of the movement
+is what says so.** Replacing five point masses with a fitted continuous
+distribution moved the $1M→$5M exclusion step from $82.3B to $85.0B. It could not
+have gone the other way: the taxable excess is convex in the gain, so spreading a
+fixed flow of gains over a distribution *raises* what an exclusion leaves in tax
+at every exclusion level. Wave 4 read a cliff in the schedule and inferred that
+the cliff was the cost; the cliff was real and the cost was somewhere else.
+
+**2 — It is the headcount, and the module already carries a second measurement of
+it.** Doubling the decedent count takes the step to $35.5B against Treasury's
+$33.4B. The shipped count comes from using Poterba & Weisbenner's *dollar* flow
+of estates over net worth as a *headcount* rate — 0.32% of households a year
+against roughly 2.4% — and `accrued_gains_parameters.csv` already holds
+`mortality_weighted_net_worth_share` at 2.65%, derived from NCHS mortality
+against DFA net worth by age, unused in this channel. That is a one-line
+comparison nobody had made, and it is the whole of item 15's remaining substance.
+
+**3 — Seven of eighteen published rows were dead, and the count is the point.**
+Three transcribed step functions with 6, 8 and 4 published classes were being
+evaluated at five group means, so eleven of eighteen rows were read and seven
+never were — including PW's entire $1M–$5M band, which is where both Green Book
+exclusions sit. Six are now alive. This is worth more than the error column says:
+a benchmark can be reproduced by a model that reads a third of its own data.
+
+**4 — The fit refuses below the top decile, and the refusal is arithmetic rather
+than judgement.** The same estimator that returns α = 1.53 and 1.47 for the top
+1% and the next 9% returns **α = 0.813** for the 10th–50th percentiles, and the
+median it implies, $389,500, is **2.02×** the SCF's published $192,700. A Pareto
+that has to go below one to fit is telling you the segment is not a tail. The two
+groups there keep the group means they always had, and the file carries both
+reasons on the row rather than in a commit message.
+
+**5 — An open-ended top class has to be cut somewhere, and "one household" is a
+cut with an external check.** The topmost slice is the single richest household,
+and the fitted conditional mean above it is **$392.2B** — the right order of
+magnitude for the richest American on the shipped 2024:Q4 vintage, arrived at
+from three DFA aggregates and a Pareto closure with nothing fitted to any wealth
+list. It is not an input to anything; it is the check that the tail is not
+absurd.
+
+**6 — The model's decedent count is short by 7.6× overall and only 1.6× at the
+top.** The fitted distribution puts 4,378 decedents above $12.92M of net worth
+against SOI's own 7,194 estate-tax returns above that threshold. So the headcount
+defect is not uniform, and a fix that scaled every group equally would overshoot
+the top while correcting the middle. Nobody had this number before, because the
+five-class ladder could not produce it.
+
+**7 — The death-channel loop needed no change at all.**
+`estimate_step_up_elimination_revenue` and `reachable_gains_per_decedent` in
+`policies_core.py` iterate whatever schedule `decedent_classes` hands them and
+read the shares off each entry, so replacing five point masses with 609 quantile
+slices touched neither. The only edits to that file in this lane are docstrings.
+That is a small piece of evidence that Wave 4 drew the seam in the right place —
+the reliefs are a function of the estate, and the estate schedule is a separate
+object — and it is worth recording because it is the reason a change this large
+in the base moved nothing else.
+
+### 8.8 What the lane did not do
+
+- **The decedent headcount is unchanged**, and §8.4 is the measurement of what
+  changing it would do. It is a level change to the whole channel — it moves
+  Option 51 as well as the two Green Book rows, and in the opposite direction —
+  so it is an owner decision about `estate_flow_rate`, not a dispersion lane's.
+- **Mortality is still uniform in wealth.** The wealthy are older and die at a
+  higher rate, so the true distribution of *decedents* is shifted up relative to
+  the distribution of the *living* this lane fits. The DFA publishes net worth by
+  age and by percentile group but not jointly.
+- **The fit is the DFA's, not SOI's.** SOI Estate Table 1 observes the estates of
+  the dead — the right universe — and its own tail is fatter (α **1.401** against
+  the DFA's 1.526 over the same range), but it sees only estates above the filing
+  threshold and its level would have to be spliced onto the DFA's. The lane took
+  one universe whole and recorded the other as a check.
+- **PW's $250,000–$500,000 class is still never evaluated**, for the same reason
+  the fit stops at the 90th percentile.
+- **The rate on the final return is still read off the pre-carve-out gain**, the
+  realizations base is still a flow off a stock rather than CBO's own published
+  projection, the 72.3% active-business share is still an upper bound on
+  "family-owned and -operated", and the 15-year installment election and the
+  estate-tax deduction are still not modelled — all carried unchanged from
+  `W4_gains_at_death.md` §8.8.
+- **`fiscal_model/data/` is invisible to the repository's lint gate**, and the
+  lane found it rather than fixed it. `.gitignore` carries a bare `data/` line
+  (line 89), which ruff's gitignore-respecting traversal applies at any depth, so
+  `python -m ruff check fiscal_model/ ...` — the gate CI runs — silently skips the
+  whole package, `capital_gains.py` included. Checked by explicit path it was
+  flagged for a closure over loop variables and a zip-of-offsets in this lane's
+  own new code; both are fixed, and the three remaining findings are the
+  `Optional[X]` style the file already used. Widening the gate is a repo-wide
+  change with an unknown blast radius and is not a modelling lane's to make.
+- **No target moved and no constant was retuned.** `preregistered.py`,
+  `holdout.py`, `loo.py`, `target_revisions.py`, `KNOWN_SCORES`, `CBO_SCORE_MAP`
+  and the CI thresholds are untouched; the three rows are scored against the same
+  figures they carried on `a251b32`.
+- **The CI gate needs no re-derivation.** By the workflow's own rule a 15.4% mean
+  gives a ceiling of `ceil(15.4 × 1.25) = 20` and a floor of `22 − 1 = 21`, which
+  is exactly the standing `--max-mean-error 20 --min-within-25pct 21`.
