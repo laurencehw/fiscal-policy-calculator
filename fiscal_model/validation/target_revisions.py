@@ -117,13 +117,13 @@ WAVE4_PROVENANCE_FIRST_SCORED_COMMIT = (
 #: ledger row lands here and the commit that follows writes the figure into
 #: ``scenarios.py``.
 CORPORATE_PTC_PROVENANCE_ENTERED_COMMIT = (
-    "PENDING (stamped in the commit that follows)"
+    "32d275aa915d6f084a289d0410ce45f4a060c6c8"
 )
 CORPORATE_PTC_PROVENANCE_ENTERED_DATE = "2026-09-05"
 
 #: Commit in which the corporate target was first actually scored.
 CORPORATE_PTC_PROVENANCE_FIRST_SCORED_COMMIT = (
-    "PENDING (stamped in the commit that follows)"
+    "fba838021c26089c9e624abbcf56ecfc778a5aad"
 )
 
 
