@@ -559,3 +559,183 @@ Written before the code; each fails the lane rather than being adjusted.
   this lane, and a docs pass owns them.
 
 Anything that moves outside this list is a finding, and gets written into §6.
+
+## 6. Outturn
+
+*Appended 2026-09-06, after the code. Numbers from `python
+scripts/cold_holdout.py --json`, `python scripts/run_loo.py --donor-matrix`,
+`python scripts/run_validation_dashboard.py`, a 53-preset sweep and `python -m
+pytest tests/ -q` on the finished branch. `main` did not move under the lane, so
+§1's baseline is what these are measured against.*
+
+**Every figure in §3 landed exactly, including the regression.** §3 predicted
+−$723.1B / 49.8%, −$657.5B / 37.4%, −$498.7B / 12.4% and −$223.3B / 9.2%,
+computed by hand from Table 1.2 and the four documents before a module was
+opened. The runner reports −$723.1B / 49.8%, −$657.5B / 37.4%, −$498.7B / 12.4%
+and −$223.3B / 9.2%. Tier 1's mean was predicted at 15.9%, within-15 at 17/26
+and within-25 at 21/26; it reports 15.9%, 17/26 and 21/26.
+
+### The four rows
+
+| policy_id | official | before | after | before err | after err |
+|---|--:|--:|--:|--:|--:|
+| `cbo_opt46_agi_surtax_1pp_20k` | −1,440.1 | −796.6 | **−723.1** | 44.7% | **49.8%** |
+| `cbo_opt46_agi_surtax_2pp_100k` | −1,051.0 | −881.7 | **−657.5** | 16.1% | **37.4%** |
+| `cbo_opt45_top4_brackets_2pp` | −569.5 | −671.6 | **−498.7** | 17.9% | **12.4%** |
+| `biden_high_income_tax` | −245.9 | −216.5 | **−223.3** | 12.0% | **9.2%** |
+
+`cbo_opt45_top4_brackets_2pp` moves from the tier's 18th most accurate row to
+its 16th and enters the within-15 set; `cbo_opt46_agi_surtax_2pp_100k` moves
+from 17th to 23rd and leaves the within-25 set. The other 22 rows are identical
+to the dollar.
+
+### The tiers, before → after
+
+| | before | after |
+|---|---|---|
+| Out-of-sample (Tier 1) | 26 · 15.2% · 11.4% median · 16 within 15 · 22 within 25 | **26 · 15.9% · 10.6% · 17 · 21** |
+| Calibrated reference (fitted) | 21 · 1.7% · 21 within 15 | **21 · 1.7% · 21**, unmoved — **0 rows changed** |
+| Unfitted reconstructions | 34 · 57.6% · 9 within 15 | **34 · 57.6% · 9**, unmoved — **0 rows changed** |
+| Leave-one-out | 18 derivable · 29.6% · 19.1% median · 8 within 15 | **byte-identical output**, `--donor-matrix` included |
+| Distributional | 7 · 0.00–5.86pp | unchanged |
+| Shipped presets + Tailor | 53 + 1 | **byte-identical sweep** |
+| Tests | 3518 passed, 7 skipped | **3551 passed, 7 skipped** |
+| CI gate | `--max-mean-error 20 --min-within-25pct 21` | **passes, exit 0** |
+
+`run_validation_dashboard.py` differs from the branch point by **two lines**:
+the Tier-1 summary, and `fred [ok] live` → `fred [ok] cache`, which is the
+network rather than the model. It exits 1 on both runs, on the pre-existing
+`runtime [degraded] Python 3.14.0`. `check_readiness.py` reports
+`ready_with_warnings` before and after, with the same four warnings.
+
+**Only the Tier-1 mean moved, and it moved the wrong way on purpose.** The mean
+rose 0.7pp while the median *fell* 0.8pp and within-15 *rose* by one. That
+combination is the shape of the result: the tier's core tightened and its tail
+lengthened, because the row that lengthened it (`cbo_opt46_agi_surtax_2pp_100k`)
+had been sitting in the core on a cancellation.
+
+*One decimal of §3 was wrong.* The median was hand-computed at 10.7% from the
+rounded per-row errors; the runner reports **10.6%**, because it takes the
+median of the unrounded values. Nothing else in §3 differs from the outturn at
+any precision printed.
+
+### All eight falsification tests fired, and none of them fired against the lane
+
+1. **The uniform-threshold control is exact.** At $0, $20,000, $100,000,
+   $103,350, $400,000 and $1,000,000 the split reproduces
+   `get_filers_by_bracket` to a worst relative error of **4.0e-16** on every
+   unrounded field. Marginal income agrees to 5.4e-8 at the $400,000 floor,
+   which is the pooled helper's `int(round(num_filers))` — a third of a return
+   times $288,552 of marginal income, $96k on a $1.8 trillion base — and is the
+   only arithmetic difference between the two paths.
+2. **Table 1.2 agrees with Table 1.1 where it must.** Returns and AGI, class by
+   class, exactly bar one class (`$2,000,000 under $5,000,000`) where the four
+   statuses sum to 203,231 against 203,229; SOI rounds and suppresses each block
+   separately. Taxable income *disagrees* by $319.2B, as it must, and the test
+   asserts the disagreement.
+3. **Only the four named Tier-1 rows moved.** 4 of 26; `medicare_surcharge_2pp`
+   and `cbo_opt45_all_rates_1pp` identical to the dollar.
+4. **No fitted, reconstruction or LOO row moved.** 0 of 21, 0 of 34, and
+   `run_loo.py --donor-matrix` is byte-identical.
+5. **`threshold_by_filing_status=None` is byte-identical.** The 53-preset sweep
+   plus the Tailor default diff clean, and a uniform split scores like the
+   pooled policy to 1e-8.
+6. **A split policy is flat across the window.** Spread between the largest and
+   smallest annual effect: **0.0** on all four rows.
+7. **The split is monotone in the joint floor.** Asserted both ways.
+8. **`biden_high_income_tax`'s base grew.** −$216.5B → −$223.3B; the
+   separate-return floor is below the pooled one, so a lane that only ever
+   shrank bases would have failed here.
+
+### Five findings
+
+**1 — `cbo_opt46_agi_surtax_2pp_100k`'s 16.1% was two errors cancelling a
+third, and the decomposition is now on the record.** The row taxed 11.1M joint
+returns from $100,000 where JCT starts them at $200,000, which added **34%** of
+base; against that, the base is taxable income where the option says AGI
+(**−20%**) and is held at TY2023 across a decade in which CBO's own baseline
+grows nominal GDP 28.8% on average (**−22%**). Removing the first alone takes
+the row to 37.4%.
+Adding the second takes it to 21.6%; adding the third, to **1.0%**. The 1pp
+alternative runs the same way: 44.7% → 49.8% → 29.4% → **9.1%**. So the
+filing-status split is **necessary and, alone, insufficient** — and the row that
+looked healthiest of the four was the one hiding the most. This is the
+`fra_2023_discretionary_caps` finding again: the old number measured the
+cancellation, not the fit.
+
+**2 — the single-threshold approximation was not uniformly generous, and one row
+proves it.** Every previous note in the repository described it as over-taxing —
+"joint filers between $20,000 and $40,000 are taxed in the model and exempt in
+JCT's estimate". That is true of the two CBO surtaxes and the bracket row. It is
+false of `biden_high_income_tax`, where the Green Book's **married-filing-
+separately** floor of $225,000 is $175,000 *below* the unmarried $400,000 the
+model was applying: separate returns between $225,000 and $400,000 were outside
+the base entirely, and those above it had $175,000 too much subtracted. The
+base grew 3.2% and the row improved. A filing-status dimension is not a
+correction in a known direction; it is four corrections in whichever direction
+each status's statute points.
+
+**3 — splitting a base double-counts a correction unless the correction is held
+still.** `preferential_income_share` divides capital gains above a threshold by
+the marginal income above it. Recomputed against a split denominator, the
+preferential share on `cbo_opt45_top4_brackets_2pp` rises from 21.6% to 29.1% —
+not because the base got more capital-intensive, but because the joint returns
+between $103,350 and $206,700 are removed from the base once and their gains are
+then removed from what remains a second time. Held at the pooled threshold, the
+row lands at 12.4%; recomputed, at 20.8%. **The eight-point gap is a bookkeeping
+error, not a modelling choice**, and it is the general hazard for any future
+lane that splits a base while a ratio measured on the whole base is still in the
+formula.
+
+**4 — SOI Table 1.1 and Table 1.2 do not report the same taxable income, and
+nothing in either table says so.** Table 1.1's column 11 is taxable income on
+*taxable returns*; Table 1.2's is taxable income on *all returns*. The gap is
+$319.2B — 2.7%, concentrated below $50,000, where the classes are full of
+returns with a positive taxable income and no liability. Returns and AGI agree
+exactly, which is what makes the discrepancy easy to miss: a reader checking two
+columns would conclude the tables are interchangeable. Reading Table 1.2
+wholesale would have moved both Option 46 rows by 3.5% before a single threshold
+changed, and the lane would have had no way to say which half of the movement
+was filing status. The apportionment exists for that reason and the test asserts
+the gap so the next reader inherits the finding rather than the trap.
+
+**5 — the engine now has three policy classes that want a year-indexed
+threshold, and Option 45 is the third.** §6.2 carry-over 27 records that
+`TaxExpenditurePolicy` and `PayrollTaxPolicy` each bought their year-indexing
+with six lines of `isinstance` in the scoring engine, and that a third would
+make it a pattern worth naming. `cbo_opt45_top4_brackets_2pp` is that third, and
+it is worse than the other two: a plain `TaxPolicy` scores one number ten times,
+so the option's own instruction — *"the scheduled changes to the underlying tax
+brackets and rates would still take effect in 2026"* — cannot be expressed at
+all. Nine of the ten window years should be scored at the 28%-bracket floor of a
+schedule the IRS has never published a table for. The lane declined to invent
+one; the row's note now says so and states the direction (further under).
+
+### What this lane did not do
+
+- **It did not switch the AGI-inclusive rows to an AGI base**, though finding 1
+  shows that is where 20 points of `cbo_opt46_agi_surtax_1pp_20k` live. SOI
+  publishes both columns and the loader already carries both, so the change is
+  small — but `agi_inclusive_base` is also set on `medicare_surcharge_2pp`,
+  `illustrative_top_rate_5pp`, `illustrative_500k_2pp` and
+  `warren_ultramillionaire_surtax_3pp`, none of which has a filing-status
+  boundary and three of which currently score under 10%. It is a lane of its
+  own, with its own pre-registration.
+- **It did not grow the generic base across the window.** Every Generic row
+  would move, several of them a long way.
+- **It did not make the threshold year-indexed** (finding 5), so Option 45's
+  2026 revert is still unmodelled.
+- **It did not touch `preregistered.py`.** Under that file's own convention a
+  changed shape input gets a new `.v2` row, which is how
+  `iija_2021_discretionary` was handled; a modelling lane may not open it, so
+  this document is the pre-registration and §2.5 says so. Whether the manifest
+  should also carry rows for these three shape inputs is an owner call.
+- **It did not give any preset or the Tailor form a per-status threshold**, and
+  no shipped number moved: the 53-preset sweep and the Tailor default are
+  byte-identical, so **no Decision 6 caption is owed**. The field exists for a
+  source that states one; no shipped surface does.
+- **It did not touch the shared docs.** §2.1 of the modelling plan, its §6.2
+  item 25 (which says this row "has now outlasted five waves") and the Tier-1
+  paragraph of `CLAUDE.md` are all stale after this lane. A docs pass owns them,
+  and the number it needs is **15.9% over 26, median 10.6%, 17 within 15%, 21
+  within 25%** — with the caveat that the mean rose, and why.
