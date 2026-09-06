@@ -528,7 +528,6 @@ def test_decision_1_ranks_the_two_modes_on_the_registered_targets(scorer):
     from fiscal_model.validation.scenarios import CORPORATE_VALIDATION_SCENARIOS
 
     means = {}
-    per_row = {}
     for mode in (CORPORATE_MODE_REPORTED, CORPORATE_MODE_DERIVED):
         errors = [
             abs(_ten_year(scorer, scenario["policy_factory"](mode=mode)) - target)
