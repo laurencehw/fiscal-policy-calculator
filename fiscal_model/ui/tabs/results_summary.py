@@ -29,7 +29,19 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from fiscal_model.amt import AMTPolicy
-from fiscal_model.corporate import CORPORATE_MODE_REPORTED, CorporateTaxPolicy
+from fiscal_model.corporate import (
+    BASE_PER_DOLLAR_OF_RECEIPTS,
+    BASELINE_TAXABLE_PROFITS_BILLIONS,
+    CORPORATE_APP_MODE,
+    CORPORATE_BASE_GROWTH,
+    CORPORATE_MODE_DERIVED,
+    CORPORATE_MODE_REPORTED,
+    CORPORATE_RECEIPTS_VINTAGE,
+    CorporateTaxPolicy,
+    cbo_corporate_receipts,
+    cbo_receipts_by_fiscal_year,
+    projected_statutory_base,
+)
 from fiscal_model.credits_core import CreditType, TaxCreditPolicy
 from fiscal_model.enforcement import IRSEnforcementPolicy
 from fiscal_model.estate import EstateTaxPolicy
@@ -740,6 +752,99 @@ def realizations_projection_caption(policy: Any, result: Any) -> str:
     )
 
 
+#: How ``CORPORATE_RECEIPTS_VINTAGE`` reads to a person. One entry, because the
+#: module raises rather than borrowing another vintage's numbers, and a label
+#: that silently fell back would be the false provenance claim the raise exists
+#: to prevent.
+_CORPORATE_VINTAGE_LABELS = {
+    "cbo_feb_2024": "CBO's February 2024 baseline",
+}
+
+
+def corporate_base_caption(policy: Any, result: Any) -> str:
+    """One line saying what base this corporate score prices, and in which mode.
+
+    Decision 6: on 2026-09-05 ``CORPORATE_APP_MODE`` moved ``reported`` ->
+    ``derived``, so every corporate headline in the app moved with it — the two
+    corporate presets by about 5-6%, the two packages that contain one by 2-4%,
+    every Tailor corporate step by between 0.4% and 6.4%, and the assistant's
+    corporate hypotheticals with them. A number that moves ships with its
+    explanation rather than in silence.
+
+    The three things a reader needs are the three the caption carries: the base
+    is **projected off the vintage the score is quoted on** rather than aged at
+    a growth constant, the behavioural response is **signed to erode** the
+    static effect in both directions, and **which mode** produced the figure.
+
+    Every number in it is read from the module's own constants and from the
+    scored window, never restated — so it cannot drift from the headline above
+    it, and it re-reads correctly if the vintage or the anchor ever changes.
+    Returns ``""`` for a corporate policy with no rate channel (a GILTI-only or
+    depreciation-only shape prices no statutory base) and for anything that is
+    not a ``CorporateTaxPolicy``.
+    """
+    if not isinstance(policy, CorporateTaxPolicy):
+        return ""
+    if policy.mode != CORPORATE_MODE_DERIVED:
+        return ""
+    if not policy.rate_change and policy.new_rate is None:
+        return ""
+
+    years = getattr(result, "years", None)
+    if years is None or len(years) == 0:
+        return ""
+    first, last = int(years[0]), int(years[-1])
+
+    try:
+        receipts_first = cbo_corporate_receipts(first)
+        receipts_last = cbo_corporate_receipts(last)
+        base_first = projected_statutory_base(first)
+        base_last = projected_statutory_base(last)
+    except (KeyError, OSError):  # pragma: no cover - data-availability guard
+        return ""
+    if base_first <= 0 or base_last <= 0:
+        return ""
+
+    vintage = _CORPORATE_VINTAGE_LABELS.get(
+        CORPORATE_RECEIPTS_VINTAGE, CORPORATE_RECEIPTS_VINTAGE
+    )
+    tabulated_last = cbo_receipts_by_fiscal_year(CORPORATE_RECEIPTS_VINTAGE)[-1][0]
+    # The app's window runs a year past the transcribed table, so the last year
+    # is the module's own continuation of the terminal growth rate rather than
+    # a published figure. Say which, rather than printing both as CBO's.
+    tail = (
+        ""
+        if last <= tabulated_last
+        else (
+            f" That path is published through {tabulated_last}; "
+            f"{'the year' if last == tabulated_last + 1 else 'the years'} after "
+            f"it continue{'s' if last == tabulated_last + 1 else ''} at the last "
+            f"growth rate it shows."
+        )
+    )
+    behavioural = float(np.sum(result.behavioral_offset))
+    static = float(np.sum(result.static_deficit_effect))
+    erodes = abs(static + behavioural) < abs(static)
+
+    return (
+        rf"Corporate base: the rate change is priced on the corporate receipts "
+        rf"{vintage} projects — \${receipts_first:,.1f}B in {first} and "
+        rf"\${receipts_last:,.1f}B in {last} — converted to a statutory base "
+        rf"at {BASE_PER_DOLLAR_OF_RECEIPTS:.4f} base-dollars per receipts "
+        f"dollar, the ratio IRS SOI's credit-realized base and Treasury's "
+        rf"actual receipts agree on for 2022. That is \${base_first:,.0f}B of "
+        rf"base in {first} and \${base_last:,.0f}B in {last}.{tail} Until "
+        rf"2026-09-05 the app priced it on a fitted "
+        rf"\${BASELINE_TAXABLE_PROFITS_BILLIONS:,.0f}B profits aggregate aged "
+        f"at {CORPORATE_BASE_GROWTH:.0%} a year, which grew past the receipts "
+        f"the same baseline projects; this score uses the "
+        rf"`{CORPORATE_APP_MODE}` mode instead. The behavioural response "
+        rf"({'erodes' if erodes else 'offsets'} \${abs(behavioural):,.1f}B) "
+        f"carries the static effect's sign, so a rate rise raises less than "
+        f"its static figure and a cut loses less."
+    )
+
+
 #: Classes whose behavioural offset returned the **negation** of the contract
 #: before the offset-sign sweep (2026-09-05), in every direction.
 _OFFSET_SIGN_INVERTED = (AMTPolicy, EstateTaxPolicy, PremiumTaxCreditPolicy)
@@ -868,6 +973,9 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     sign_note = behavioural_sign_caption(policy, result)
     if sign_note:
         st_module.caption(sign_note)
+    corporate_note = corporate_base_caption(policy, result)
+    if corporate_note:
+        st_module.caption(corporate_note)
 
     credibility_html = _build_credibility_html(getattr(scored, "credibility", None))
     if credibility_html:
