@@ -146,16 +146,24 @@ largest because corporate fell past it.
   scored repeal of §36B exists in any CBO or JCT publication, including the
   September 2025 marketplace menu (pub. 61734).
 
-**Decision 1's corporate comparison now points the other way, and the flip is
-pending.** Measured on the merged tree, where both PR #121's base projection and
-PR #122's moved targets apply, the module reads **reported 62.75% against derived
-61.43%** on three published targets — derived leads, narrowly, by winning the
-FY2022 rate-only row and losing a little on the other two. **`CORPORATE_APP_MODE`
-is unchanged at `reported`** and a **flip is being prepared by a concurrent lane,
-awaiting the owner's confirmation** (not yet open as this was written); until it
-merges the corporate app default is `reported`. Neither
-figure is small, and the comparison has reversed three times in four PRs — twice
-because a row whose target was the model's own output moved.
+**Decision 1's corporate comparison now points the other way, and the owner
+kept `reported`.** Measured on the merged tree, where both PR #121's base
+projection and PR #122's moved targets apply, the module reads **reported 62.75%
+against derived 61.43%** on three published targets — derived leads, narrowly, by
+winning the FY2022 rate-only row and losing a little on the other two. The flip
+was built and pre-registered as **PR #124** (`planning/lanes/DECISION1_corporate_mode.md`
+on that branch; every moved number landed on its prediction) and **closed
+unmerged on 2026-09-05 by owner decision**: on this benchmark set the mean cannot
+discriminate — derived wins one row of three, rows one and two are the *same
+reform on the same window* with published targets 57% apart, so one model number
+is scored against both and "winning" means sitting lower rather than tracking a
+vintage, and row three is missed by more than 100% in both modes. Flipping would
+also have left `biden_corporate_28` a fitted row scored by a path with nothing
+fitted in it, which no rule covers. **`CORPORATE_APP_MODE` stays `reported`**;
+the override and its revisit trigger — a rate-only published 28% score on a
+carried vintage — are recorded in `planning/MODELING_IMPROVEMENT.md` §6.2 item 33.
+Neither figure is small, and the comparison has reversed three times in four PRs —
+twice because a row whose target was the model's own output moved.
 
 ### Modelling Wave 5 — a payroll base that is earnings, a corporate base that is published, a realizations base that grows; plus frozen classroom links and one app scoring window (2026-09-05)
 

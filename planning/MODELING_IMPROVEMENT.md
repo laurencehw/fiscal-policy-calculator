@@ -1360,8 +1360,8 @@ targets and got **62.75% reported against 76.48% derived** — reported ahead
 again, on documents this time. And the merge of the two lanes, which is the only
 tree where both apply, gives **reported 62.75% against derived 61.43%**: derived
 leads, narrowly, by winning the FY2022 rate-only row and losing a little on the
-other two. **`CORPORATE_APP_MODE` is unchanged on `main` at `reported`**, a flip
-PR is open pending the owner's confirmation, and the lesson is the one PR #121's
+other two. **`CORPORATE_APP_MODE` is unchanged on `main` at `reported`** — the flip,
+PR #124, was closed unmerged by owner decision (§6.2 item 33) — and the lesson is the one PR #121's
 own finding 4 states: carry the per-row table beside the mean, never instead of
 it, because a mean over three rows can be decided by whichever of them has the
 weakest target.
@@ -1892,17 +1892,28 @@ by 2–4×.
     row lands.** The number that *would* land it — a total factor of 0.5785
     against JCT's own steady-state 0.590 — is printed by
     `scripts/corporate_yield_reconciliation.py` and was deliberately not approached.
-33. **Decision 1's corporate flip is pending the owner.** *(New, from
-    `PROVENANCE_corporate_ptc.md` §7 and the merge that re-pinned it.)* Measured on
-    the merged tree, where both PR #121's base projection and PR #122's moved
-    targets apply, the corporate module reads **reported 62.75% against derived
-    61.43%** on three published targets — derived leads, narrowly, by winning the
-    FY2022 rate-only row and losing a little on the other two. By Decision 1's own
-    words the module is due to flip. **`CORPORATE_APP_MODE` is unchanged on `main`
-    at `reported`** and a flip is being prepared by a concurrent lane, awaiting the
-    owner's confirmation (not yet open as this was written); flipping moves both
-    corporate presets, so it needs its own caption under Decision 6. Two cautions
-    belong with the decision: neither figure is small, and the comparison has now
+33. **Decision 1's corporate flip: rule says flip, owner kept `reported`.**
+    *(Decided 2026-09-05; from `PROVENANCE_corporate_ptc.md` §7, the merge that
+    re-pinned it, and PR #124.)* Measured on the merged tree, where both PR #121's
+    base projection and PR #122's moved targets apply, the corporate module reads
+    **reported 62.75% against derived 61.43%** on three published targets —
+    derived leads, narrowly, by winning the FY2022 rate-only row and losing a
+    little on the other two. By Decision 1's own words the module was due to
+    flip, and the flip was built, pre-registered and opened as **PR #124** (its
+    lane doc, `DECISION1_corporate_mode.md`, lives on that branch; every moved
+    preset, Tailor and Ask figure landed on its prediction; the revert is one
+    constant). **The owner closed it unmerged**, for a reason the rule does not
+    see: on this benchmark set the mean cannot discriminate. Derived wins one row
+    of three; rows one and two are the *same reform on the same window* with
+    published targets 57% apart, so one model number is scored against both and
+    "winning" means sitting lower, not tracking a vintage; row three is missed by
+    more than 100% in both modes. Flipping would also have left
+    `biden_corporate_28` a fitted row scored by a path with nothing fitted in it —
+    the repo names three mechanisms for moving a row out of the fitted tier and a
+    mode flip would be a fourth with no rule. **`CORPORATE_APP_MODE` stays
+    `reported`. Revisit trigger:** a rate-only published 28% score on a vintage
+    the repository carries, or a second published Trump-15% figure that narrows
+    the range. Two cautions stand: neither figure is small, and the comparison has
     reversed three times in four PRs — twice because a row whose target was the
     model's own output moved. Carry the per-row table beside the mean, never
     instead of it.
