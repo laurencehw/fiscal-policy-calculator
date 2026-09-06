@@ -749,6 +749,7 @@ def test_the_caption_fires_on_both_corporate_presets_and_carries_the_constants()
         # The base those receipts imply, at the anchor ratio.
         assert f"{projected_statutory_base(first):,.0f}B" in note
         assert f"{BASE_PER_DOLLAR_OF_RECEIPTS:.4f} base-dollars" in note
+        assert f"agree on for {RECEIPTS_ANCHOR_YEAR}" in note
         # The fitted aggregate and its aging - what the app scored until the flip.
         assert f"{BASELINE_TAXABLE_PROFITS_BILLIONS:,.0f}B profits aggregate" in note
         assert f"{CORPORATE_BASE_GROWTH:.0%} a year" in note

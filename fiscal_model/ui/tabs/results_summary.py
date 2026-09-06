@@ -37,6 +37,7 @@ from fiscal_model.corporate import (
     CORPORATE_MODE_DERIVED,
     CORPORATE_MODE_REPORTED,
     CORPORATE_RECEIPTS_VINTAGE,
+    RECEIPTS_ANCHOR_YEAR,
     CorporateTaxPolicy,
     cbo_corporate_receipts,
     cbo_receipts_by_fiscal_year,
@@ -832,7 +833,8 @@ def corporate_base_caption(policy: Any, result: Any) -> str:
         rf"\${receipts_last:,.1f}B in {last} — converted to a statutory base "
         rf"at {BASE_PER_DOLLAR_OF_RECEIPTS:.4f} base-dollars per receipts "
         f"dollar, the ratio IRS SOI's credit-realized base and Treasury's "
-        rf"actual receipts agree on for 2022. That is \${base_first:,.0f}B of "
+        rf"actual receipts agree on for {RECEIPTS_ANCHOR_YEAR}. That is "
+        rf"\${base_first:,.0f}B of "
         rf"base in {first} and \${base_last:,.0f}B in {last}.{tail} Until "
         rf"2026-09-05 the app priced it on a fitted "
         rf"\${BASELINE_TAXABLE_PROFITS_BILLIONS:,.0f}B profits aggregate aged "
