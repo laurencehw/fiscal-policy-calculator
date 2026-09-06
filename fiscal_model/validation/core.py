@@ -234,11 +234,17 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
     "biden_capital_gains_39": [
         "The target is Treasury's single combined row - the rate change and the "
         "realization-at-death change together - and the model's two channels "
-        "split it $359.0B of rate against $20.2B of death. The rate channel "
+        "split it $359.0B of rate against $24.2B of death. The rate channel "
         "alone therefore exceeds the whole published figure, which is where this "
-        "row's residual now lives. It over-predicts by 31%; before Wave 5 "
+        "row's residual now lives. It over-predicts by 33%; before Wave 5 "
         "projected the realizations base it under-predicted by 17%, on a base "
         "two years stale and never grown.",
+        "The death channel is now integrated over a fitted size distribution of "
+        "estates at death rather than five class means (Wave 7), which moved it "
+        "$20.2B to $24.2B: with dispersion the top of the 99th-99.9th percentile "
+        "band clears the $5,000,000 per-donor exclusion that its class average "
+        "of $1.9M after reliefs never did. That is a registered regression of "
+        "1.4 points on this row and it is not where the residual lives.",
         "At +19.6pp the semi-log response is evaluated well up its own curve: "
         "eliminating step-up divides the coefficient by the lock-in wedge, so "
         "b = 2.27 and the revenue-maximizing rate is 44.1% against a reform rate "
@@ -253,11 +259,24 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
     "treasury_capgains_39_plus_stepup_elim": [
         "Same rate channel as biden_capital_gains_39 - +19.6pp above $1M, $359.0B "
         "over the window - against a combined FY2022 Green Book row, with a "
-        "death channel of $102.4B under this design's $1M per-donor exclusion. "
+        "death channel of $109.2B under this design's $1M per-donor exclusion. "
         "The row read 0.2% before Wave 5 projected the realizations base, and "
         "that agreement was already documented as two errors cancelling "
         "(planning/lanes/W4_gains_at_death.md section 8.4); one of the two was a "
         "tax-year-2023 base priced unchanged in every year of the window.",
+        "The gap between this row and biden_capital_gains_39 is the per-donor "
+        "exclusion alone - $1M against $5M - and the model pays $85.0B of death "
+        "channel for that step where the two published rows differ by $33.4B. "
+        "Wave 4 blamed the five-class ladder for it; Wave 7 replaced the ladder "
+        "with a fitted size distribution and the step went 82.3 to 85.0, i.e. "
+        "the wrong way, so dispersion was not the cause "
+        "(planning/lanes/W7_decedent_ladder.md section 8). What does move it is "
+        "the decedent headcount - 408,532 a year against roughly 3.09 million "
+        "deaths, because Poterba & Weisbenner's dollar flow of estates is used "
+        "as a headcount rate - and doubling it takes the step to $35.5B. That is "
+        "a level change to the whole channel, so it is a carry-over rather than "
+        "this row's fix. The two published rows are also on different windows, "
+        "which makes $33.4B an understatement of the step Treasury itself paid.",
         "It is scored on the wrong window, and the projection is what makes that "
         "bite. The target is FY2022-2031 on a 2021 baseline; the record states no "
         "effective_start_year, so the model scores FY2025-2034. Running the same "
@@ -446,11 +465,24 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "not closer.",
     ],
     "cbo_opt51_gains_at_death": [
-        "The entire score runs through one module constant - $54B of unrealized "
-        "gains transferred at death - taxed at the SOI baseline rate. CBO/JCT's "
-        "estimate is roughly six times larger because it accrues gains on the full "
-        "stock of appreciated assets held by decedents, not an annual realizations "
-        "aggregate.",
+        "The whole score is the death channel: the option changes no rate and "
+        "states no per-donor exclusion, so it is the one row that tests the "
+        "level of gains transferred at death rather than a design. The $54B "
+        "constant an earlier note here described was deleted in Wave 2; the base "
+        "is now Poterba & Weisbenner's flow carried as a share of household net "
+        "worth and grown with the Financial Accounts stock, $196.2B in 2025.",
+        "It under-predicts by 20%, and about half of that was bought back "
+        "deliberately. Wave 4 registered a regression from 8.4% when it stopped "
+        "taxing charitable bequests and small decedents' housing gains, which no "
+        "realization-at-death regime reaches; Wave 7 added a further point by "
+        "integrating over a fitted size distribution, which shifts gains toward "
+        "estates whose charitable share is 36% rather than 4%.",
+        "The decedent headcount is the coarsest thing left in the channel: "
+        "408,532 a year, from Poterba & Weisbenner's *dollar* flow of estates "
+        "over net worth used as a headcount rate, against roughly 3.09 million "
+        "NCHS deaths. The module carries a second quantity of the same kind - "
+        "the mortality-weighted net worth share, 2.65% - and does not use it "
+        "here. Fixing it would move this row and both Green Book rows together.",
         "No lock-in unwind: constructive realization at death removes the incentive "
         "to hold appreciated assets, which raises lifetime realizations. The module "
         "models that channel only through an elasticity multiplier that a zero rate "

@@ -1,0 +1,65 @@
+# Shares of decedent unrealized capital gain that a realization-at-death
+# proposal's stated carve-outs remove, by size of estate, on each
+# source's OWN published class boundaries.  Long format: one row per
+# (source, size class, quantity).  size_class_upper_millions_usd is inf
+# for the open-ended top class of each ladder.
+#
+# poterba_weisbenner_2001_table8 -- Poterba, J. and S. Weisbenner (2001),
+#   'The Distributional Burden of Taxing Estates and Unrealized Capital
+#   Gains at Death', in Rethinking Estate and Gift Taxation (Brookings),
+#   Table 8, lower panel ('Share of Total Unrealized Capital Gain', in
+#   percent), by insurance-augmented net worth of the decedent, 1998
+#   Survey of Consumer Finances.  Six published classes, all six carried:
+#   residence_gain_share is what the section 121 exclusion reaches and
+#   active_business_gain_share what the Green Books' family-owned-business
+#   election defers.
+# poterba_weisbenner_2001_table8_note -- the same table's note, which
+#   reads 'Bonds, vehicles, and collectibles are assumed to have no
+#   accrued capital gains'.  CARRIED AND NEVER APPLIED (applied=False):
+#   the tangible-personal-property relief removes nothing this base
+#   contains, and the Green Books exclude collectibles from it anyway.
+# irs_soi_estate_table1_fy2024 -- IRS Statistics of Income, Estate Tax
+#   Statistics, Table 1, filing year 2024 (all returns), workbook
+#   https://www.irs.gov/pub/irs-soi/24es01fy.xlsx, sheet columns 2
+#   (gross estate), 68 (bequests to a surviving spouse) and 70
+#   (charitable deduction), rows 9-12; money amounts as published, in
+#   thousands of dollars.  charitable_bequest_share is the charitable
+#   deduction over the gross estate NET of spousal bequests, which is the
+#   right denominator because the base is Poterba & Weisbenner's flow and
+#   that flow already excludes inter-spousal transfers.  Below
+#   soi_estate_charitable_floor_millions_usd (accrued_gains_parameters.csv)
+#   the share is not applied at all: SOI's table is estate-tax filers only.
+# marital_bequest_share -- the same table's bequests to a surviving spouse
+#   over the gross estate.  CARRIED AND NEVER APPLIED (applied=False).
+#   Poterba & Weisbenner's note reads 'It is assumed a decedent transfers
+#   his/her full estate to a surviving spouse.  Such inter-spousal
+#   transfers are not included in the estate totals reported above', so
+#   deducting the spousal relief again would be a double count.  This
+#   column records what that double count would cost.
+#
+# This file replaced decedent_carveout_shares.csv, which evaluated all
+# three ladders at five decedent-class means and therefore never read
+# seven of their eighteen published rows.
+# Regenerate with: python scripts/build_capital_gains_data.py
+source,size_class_lower_millions_usd,size_class_upper_millions_usd,quantity,share,applied
+poterba_weisbenner_2001_table8,0.0,0.25,residence_gain_share,1.001,True
+poterba_weisbenner_2001_table8,0.0,0.25,active_business_gain_share,0.006,True
+poterba_weisbenner_2001_table8,0.25,0.5,residence_gain_share,0.831,True
+poterba_weisbenner_2001_table8,0.25,0.5,active_business_gain_share,0.014,True
+poterba_weisbenner_2001_table8,0.5,1.0,residence_gain_share,0.46,True
+poterba_weisbenner_2001_table8,0.5,1.0,active_business_gain_share,0.017,True
+poterba_weisbenner_2001_table8,1.0,5.0,residence_gain_share,0.352,True
+poterba_weisbenner_2001_table8,1.0,5.0,active_business_gain_share,0.114,True
+poterba_weisbenner_2001_table8,5.0,10.0,residence_gain_share,0.102,True
+poterba_weisbenner_2001_table8,5.0,10.0,active_business_gain_share,0.172,True
+poterba_weisbenner_2001_table8,10.0,inf,residence_gain_share,0.036,True
+poterba_weisbenner_2001_table8,10.0,inf,active_business_gain_share,0.723,True
+poterba_weisbenner_2001_table8_note,0.0,inf,tangible_personal_property_gain_share,0.0,False
+irs_soi_estate_table1_fy2024,0.0,10.0,charitable_bequest_share,0.0429960969842013,True
+irs_soi_estate_table1_fy2024,0.0,10.0,marital_bequest_share,0.2440395567681224,False
+irs_soi_estate_table1_fy2024,10.0,20.0,charitable_bequest_share,0.06198588417460549,True
+irs_soi_estate_table1_fy2024,10.0,20.0,marital_bequest_share,0.27381084265148287,False
+irs_soi_estate_table1_fy2024,20.0,50.0,charitable_bequest_share,0.12031621306325102,True
+irs_soi_estate_table1_fy2024,20.0,50.0,marital_bequest_share,0.34572207756831436,False
+irs_soi_estate_table1_fy2024,50.0,inf,charitable_bequest_share,0.3619679243828308,True
+irs_soi_estate_table1_fy2024,50.0,inf,marital_bequest_share,0.34706207435388553,False

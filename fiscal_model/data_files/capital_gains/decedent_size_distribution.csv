@@ -1,0 +1,37 @@
+# Piecewise-Pareto size distribution of household net worth at death,
+# fitted to the Federal Reserve Distributional Financial Accounts' own
+# percentile-group aggregates (Z.1 companion, dfa-networth-levels.csv,
+# anchor quarter as recorded in accrued_gains_parameters.csv) and to
+# nothing else.  It is what lets a per-decedent exclusion be integrated
+# over a distribution instead of applied to five group means.
+#
+# For a Pareto segment anchored at wealth x_lo at cumulative population
+# share s_lo, the wealth it holds down to s_hi is
+#   N * x_lo * s_lo * (r**beta - 1) / beta,   r = s_hi / s_lo,
+# with beta = 1 - 1/alpha.  One unknown, one equation per segment, and
+# the equation is the group's own published aggregate -- so every
+# aggregate_net_worth_millions_usd below is reproduced exactly.  The
+# open-ended top class takes the index of the class below it, which is
+# the convention CapitalGainsBaseline.pareto_tail_index already applies
+# to SOI's open-ended top AGI class.
+#
+# threshold_millions_usd is the fitted wealth at percentile_share_upper,
+# which is the group's own LOWER wealth bound -- i.e. the 99.9th, 99th,
+# 90th and 50th percentiles of household net worth.
+#
+# dispersed says whether the model integrates over the segment.  Below
+# the 90th percentile it does not, and the note on those rows carries
+# both reasons the fit refuses: the index comes back below one (no
+# finite-mean tail) and the median it implies is twice the Survey of
+# Consumer Finances' published 2022 figure.  Those groups keep the group
+# mean in decedent_estate_ladder.csv, exactly as the five-class ladder
+# did.  On this vintage they hold about 14 percent of gains at death
+# between them, so the two groups the fit refuses are also the two that
+# matter least to it.
+# Regenerate with: python scripts/build_capital_gains_data.py
+group,percentile_share_lower,percentile_share_upper,aggregate_net_worth_millions_usd,pareto_beta,pareto_alpha,threshold_millions_usd,dispersed,note
+TopPt1,0.0,0.001,22620305.0,0.34484770981647966,1.5263626716772698,61.00941595236131,True,"open-ended top class; index taken from the class below it, the convention pareto_tail_index already uses for SOI's top AGI class"
+RemainingTop1,0.001,0.01,27423021.0,0.3448477098164797,1.5263626716772698,13.497227785273529,True,fitted so the group's own DFA aggregate is reproduced exactly
+Next9,0.01,0.1,58724123.0,0.3197272686860665,1.469998654904952,2.8182002298120152,True,fitted so the group's own DFA aggregate is reproduced exactly
+Next40,0.1,0.5,48485811.0,-0.2295595737332325,0.8132993482892126,0.3895350896620195,False,"NOT integrated: fitted index 0.8133 is below 1, so there is no finite-mean Pareto here, and the 50th-percentile net worth it implies ($389.5k) is 2.02x the SCF's published 2022 median of $192.7k. The group keeps its mean"
+Bottom50,0.5,1.0,3985515.0,-0.9989999999999999,0.5002501250625313,0.0974512971023566,False,"NOT integrated: below the 90th percentile, where the fit is refused - see the group above. beta is at the solver bound and the figures on this row are not used by anything"

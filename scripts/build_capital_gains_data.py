@@ -38,7 +38,18 @@ Sources, all fetched over HTTPS from the publishing agency:
   ``https://www.irs.gov/pub/irs-soi/24es01fy.xlsx``.  The charitable deduction
   and bequests to a surviving spouse by size of gross estate, which is what a
   realization-at-death proposal's charitable carve-out removes and - for the
-  spousal column - what it would double-count if it removed it again.
+  spousal column - what it would double-count if it removed it again.  Its
+  return counts by size class are also read as a *check* on the fitted decedent
+  size distribution, never as an input.
+
+The DFA percentile aggregates are additionally used to fit a **piecewise-Pareto
+size distribution of net worth at death** (``decedent_size_distribution.csv``),
+so that a per-decedent exclusion is integrated over a distribution rather than
+applied to five group means.  The fit reproduces each DFA group's own aggregate
+exactly and is deliberately *not* extended below the 90th percentile: the index
+it returns there is below one and the median it implies is twice the Survey of
+Consumer Finances' published figure, which is what a Pareto refusing a
+non-tail looks like.
 
 Two figures are transcribed by hand from papers rather than fetched, and both
 carry their page reference in the emitted CSV:
@@ -62,6 +73,7 @@ from __future__ import annotations
 
 import argparse
 import io
+import math
 import zipfile
 from pathlib import Path
 from urllib.request import Request, urlopen
@@ -178,16 +190,40 @@ PW2001_TABLE_8_GAIN_SHARES: tuple[tuple[float, float, float], ...] = (
     (10.0, 0.036, 0.723),
 )
 
+#: DFA percentile groups from the top down, as (group, cumulative population
+#: share at the group's upper wealth edge, share at its lower one).  These are
+#: the boundaries the piecewise-Pareto size distribution is fitted between; they
+#: are the DFA's own published percentile definitions and nothing here chooses
+#: them.
+DFA_CUMULATIVE_EDGES: tuple[tuple[str, float, float], ...] = (
+    ("TopPt1", 0.0, 0.001),
+    ("RemainingTop1", 0.001, 0.01),
+    ("Next9", 0.01, 0.10),
+    ("Next40", 0.10, 0.50),
+    ("Bottom50", 0.50, 1.00),
+)
+
+#: The groups the fitted distribution is integrated over.  Everything below the
+#: 90th percentile keeps its group mean, because the fit there returns an index
+#: below one and a median twice the SCF's published one - see
+#: ``build_size_distribution_table``.
+DFA_DISPERSED_GROUPS = ("TopPt1", "RemainingTop1", "Next9")
+
 #: Columns of IRS SOI *Estate Tax Statistics* Table 1 (filing year 2024) that
 #: the charitable and marital shares are read from, and the printed size
 #: classes, keyed by the lower bound of the class in millions of dollars.
 #: Column indices are zero-based positions in the sheet as published.
-SOI_ESTATE_COLUMNS = {"gross_estate": 2, "spousal_bequests": 68, "charitable": 70}
-SOI_ESTATE_ROWS: tuple[tuple[float, int], ...] = (
-    (0.0, 9),  # "Under $10 million"
-    (10.0, 10),  # "$10 million < $20 million"
-    (20.0, 11),  # "$20 million < $50 million"
-    (50.0, 12),  # "$50 million or more"
+SOI_ESTATE_COLUMNS = {
+    "gross_estate": 2,
+    "spousal_bequests": 68,
+    "charitable": 70,
+    "returns": 1,
+}
+SOI_ESTATE_ROWS: tuple[tuple[float, float, int], ...] = (
+    (0.0, 10.0, 9),  # "Under $10 million"
+    (10.0, 20.0, 10),  # "$10 million < $20 million"
+    (20.0, 50.0, 11),  # "$20 million < $50 million"
+    (50.0, float("inf"), 12),  # "$50 million or more"
 )
 #: A ladder class whose mean estate is below $1 million gets no charitable
 #: share at all.  SOI's table is estate-tax filers only - the filing threshold
@@ -390,15 +426,21 @@ def _band_mortality() -> dict[str, float]:
     return rates
 
 
-def _mean_family_net_worth_2022_thousands() -> float:
+def _scf_family_net_worth_2022_thousands() -> tuple[float, float]:
+    """(median, mean) family net worth in 2022, SCF Table 4, 'All families'.
+
+    The mean turns the DFA aggregate into a household count.  The median is
+    read only as the external check that says where the piecewise-Pareto fit
+    stops being a tail; nothing downstream multiplies by it.
+    """
     frame = pd.read_excel(
         io.BytesIO(_fetch(SCF_TABLES)), sheet_name="Table 4", header=None
     )
     header = [str(value) for value in frame.iloc[2].tolist()]
-    column = header.index("2022") + 1  # the "Mean" column of the 2022 pair
+    column = header.index("2022")  # the "Median" column; "Mean" is the next one
     for index in range(frame.shape[0]):
         if str(frame.iloc[index, 0]).strip() == "All families":
-            return float(frame.iloc[index, column])
+            return float(frame.iloc[index, column]), float(frame.iloc[index, column + 1])
     raise ValueError("SCF Table 4: 'All families' row not found")
 
 
@@ -412,83 +454,215 @@ def _agm_gain_share(estate_millions: float) -> float:
     return share
 
 
-def _pw_gain_shares(estate_millions: float) -> tuple[float, float]:
-    """Residence and active-business shares of unrealized gain at this estate size."""
-    residence, business = PW2001_TABLE_8_GAIN_SHARES[0][1:]
-    for lower, res, bus in PW2001_TABLE_8_GAIN_SHARES:
-        if estate_millions >= lower:
-            residence, business = res, bus
-        else:
-            break
-    return residence, business
-
-
-def _soi_estate_bequest_shares() -> list[tuple[float, float, float]]:
+def _soi_estate_bequest_shares() -> list[tuple[float, float, float, float, float]]:
     """Charitable and marital bequest shares by size of gross estate.
 
-    Returns ``(lower bound in millions, charitable share, marital share)``.  The
-    charitable denominator is the gross estate **net of bequests to a surviving
-    spouse**, because the base these shares are applied to - Poterba &
-    Weisbenner's flow of unrealized gains at death - already excludes
-    inter-spousal transfers.  The marital share is over the gross estate and is
-    carried only as the magnitude cross-check for what deducting it twice would
-    cost.
+    Returns ``(lower, upper, charitable share, marital share, returns)`` per
+    printed size class, bounds in millions of dollars.  The charitable
+    denominator is the gross estate **net of bequests to a surviving spouse**,
+    because the base these shares are applied to - Poterba & Weisbenner's flow
+    of unrealized gains at death - already excludes inter-spousal transfers.
+    The marital share is over the gross estate and is carried only as the
+    magnitude cross-check for what deducting it twice would cost.  The return
+    count is carried as the external check on the fitted decedent size
+    distribution and is likewise never an input.
     """
     frame = pd.read_excel(io.BytesIO(_fetch(SOI_ESTATE_TABLE_1)), header=None)
     rows = []
-    for lower, index in SOI_ESTATE_ROWS:
+    for lower, upper, index in SOI_ESTATE_ROWS:
         gross = float(frame.iloc[index, SOI_ESTATE_COLUMNS["gross_estate"]])
         spousal = float(frame.iloc[index, SOI_ESTATE_COLUMNS["spousal_bequests"]])
         charitable = float(frame.iloc[index, SOI_ESTATE_COLUMNS["charitable"]])
+        returns = float(frame.iloc[index, SOI_ESTATE_COLUMNS["returns"]])
         non_marital = gross - spousal
         if gross <= 0 or non_marital <= 0:
             raise ValueError(f"SOI estate Table 1 row {index}: non-positive estate")
-        rows.append((lower, charitable / non_marital, spousal / gross))
+        rows.append((lower, upper, charitable / non_marital, spousal / gross, returns))
     return rows
 
 
-def _soi_charitable_share(
-    estate_millions: float, ladder: list[tuple[float, float, float]]
-) -> tuple[float, float]:
-    if estate_millions < SOI_ESTATE_FLOOR_MILLIONS:
-        return 0.0, 0.0
-    charitable, marital = ladder[0][1], ladder[0][2]
-    for lower, share, spousal in ladder:
-        if estate_millions >= lower:
-            charitable, marital = share, spousal
-        else:
-            break
-    return charitable, marital
+def build_carveout_ladders() -> pd.DataFrame:
+    """The carve-out step functions on their own published class boundaries.
 
+    Long format - one row per (source, size class, quantity) - so that nothing
+    is collapsed onto a decedent ladder's group means.  The five-class file this
+    replaced evaluated Poterba & Weisbenner's six published rows at four points,
+    Avery, Grodzicki & Moore's eight at four and SOI's four at three: seven of
+    the eighteen published rows were never read by any scored case, including
+    the whole $1M-$5M band that both Green Book exclusions sit in.
 
-def build_carveout_table(ladder: pd.DataFrame) -> pd.DataFrame:
-    """Shares of decedent unrealized gain each stated carve-out removes."""
-    soi = _soi_estate_bequest_shares()
-    records = []
-    for _, row in ladder.iterrows():
-        mean_millions = float(row["mean_net_worth_millions_usd"])
-        residence, business = _pw_gain_shares(mean_millions)
-        charitable, marital = _soi_charitable_share(mean_millions, soi)
+    ``applied`` is False for the two quantities the base already excludes.  They
+    stay in the file as the record of a double count that would be wrong to
+    make, and the loader must not hand them to the model.
+    """
+    records: list[dict] = []
+    pw = list(PW2001_TABLE_8_GAIN_SHARES)
+    for index, (lower, residence, business) in enumerate(pw):
+        upper = pw[index + 1][0] if index + 1 < len(pw) else float("inf")
+        for quantity, share in (
+            ("residence_gain_share", residence),
+            ("active_business_gain_share", business),
+        ):
+            records.append(
+                {
+                    "source": "poterba_weisbenner_2001_table8",
+                    "size_class_lower_millions_usd": lower,
+                    "size_class_upper_millions_usd": upper,
+                    "quantity": quantity,
+                    "share": share,
+                    "applied": True,
+                }
+            )
+    records.append(
+        {
+            "source": "poterba_weisbenner_2001_table8_note",
+            "size_class_lower_millions_usd": 0.0,
+            "size_class_upper_millions_usd": float("inf"),
+            "quantity": "tangible_personal_property_gain_share",
+            "share": 0.0,
+            "applied": False,
+        }
+    )
+    for lower, upper, charitable, marital, _returns in _soi_estate_bequest_shares():
         records.append(
             {
-                "group": row["group"],
-                "mean_net_worth_millions_usd": mean_millions,
-                "residence_gain_share": residence,
-                "active_business_gain_share": business,
-                "charitable_bequest_share": charitable,
-                # Carried, never applied: see the file header.
-                "marital_bequest_share": marital,
-                "tangible_personal_property_gain_share": 0.0,
+                "source": "irs_soi_estate_table1_fy2024",
+                "size_class_lower_millions_usd": lower,
+                "size_class_upper_millions_usd": upper,
+                "quantity": "charitable_bequest_share",
+                "share": charitable,
+                "applied": True,
+            }
+        )
+        records.append(
+            {
+                "source": "irs_soi_estate_table1_fy2024",
+                "size_class_lower_millions_usd": lower,
+                "size_class_upper_millions_usd": upper,
+                "quantity": "marital_bequest_share",
+                "share": marital,
+                "applied": False,
             }
         )
     return pd.DataFrame.from_records(records)
 
 
-def build_stock_tables() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Accrued-gains stock parameters, the decedent ladder, and the AGM ladder."""
+def _solve_pareto_beta(target: float, ratio: float) -> float:
+    """``beta`` such that ``(ratio**beta - 1) / beta == target``.
+
+    ``beta = 1 - 1/alpha``.  The left-hand side rises monotonically from
+    ``ln(ratio)`` at ``beta -> 0`` to ``ratio - 1`` at ``beta = 1``, so a target
+    below ``ln(ratio)`` returns a negative beta - an index below one, which is
+    what a segment that is not a Pareto tail looks like.
+    """
+    low, high = -0.999, 0.999
+    for _ in range(200):
+        middle = 0.5 * (low + high)
+        value = (
+            math.log(ratio)
+            if abs(middle) < 1e-12
+            else (ratio**middle - 1.0) / middle
+        )
+        if value < target:
+            low = middle
+        else:
+            high = middle
+    return 0.5 * (low + high)
+
+
+def build_size_distribution_table(
+    ladder: pd.DataFrame, households_millions: float, scf_median_thousands: float
+) -> pd.DataFrame:
+    """Piecewise-Pareto size distribution of net worth at death.
+
+    Fitted to the DFA's own percentile-group aggregates and to nothing else.
+    For a Pareto segment anchored at wealth ``x_lo`` at cumulative population
+    share ``s_lo``, the wealth it holds down to ``s_hi`` is
+    ``N * x_lo * s_lo * (r**beta - 1) / beta`` with ``r = s_hi / s_lo``, so each
+    segment has one unknown and one equation: **the group's own aggregate**.
+    ``threshold_millions_usd`` is the fitted wealth at ``percentile_share_upper``
+    - the group's own *lower* wealth bound.
+
+    The open-ended top class takes the index of the class below it, which is the
+    convention ``CapitalGainsBaseline.pareto_tail_index`` already applies to
+    SOI's open-ended top AGI class.  With that closure the top two groups are
+    one Pareto and ``beta = ln(1 + W2/W1) / ln(10)``.
+
+    Below the 90th percentile the fit **refuses**, and the row records both
+    refusals: the index comes back below one, and the median it implies is twice
+    the Survey of Consumer Finances' published 2022 figure.  Those groups keep
+    their group mean, exactly as the five-class ladder did.
+    """
+    households = households_millions * 1e6
+    aggregate = {
+        str(row["group"]): float(row["net_worth_millions_usd"])
+        for _, row in ladder.iterrows()
+    }
+
+    top_group, _, top_edge = DFA_CUMULATIVE_EDGES[0]
+    second_group, _, second_edge = DFA_CUMULATIVE_EDGES[1]
+    beta = math.log1p(aggregate[second_group] / aggregate[top_group]) / math.log(
+        second_edge / top_edge
+    )
+    threshold = beta * aggregate[top_group] / (households * top_edge)
+
+    records: list[dict] = []
+    for group, lower_share, upper_share in DFA_CUMULATIVE_EDGES:
+        if group == top_group:
+            group_beta, group_threshold = beta, threshold
+            note = (
+                "open-ended top class; index taken from the class below it, the "
+                "convention pareto_tail_index already uses for SOI's top AGI class"
+            )
+        else:
+            ratio = upper_share / lower_share
+            group_beta = _solve_pareto_beta(
+                aggregate[group] / (households * lower_share * threshold), ratio
+            )
+            group_threshold = threshold * ratio ** (group_beta - 1.0)
+            note = "fitted so the group's own DFA aggregate is reproduced exactly"
+        alpha = 1.0 / (1.0 - group_beta) if group_beta < 1.0 else float("inf")
+        dispersed = group in DFA_DISPERSED_GROUPS
+        if not dispersed and abs(upper_share - 0.5) < 1e-9:
+            note = (
+                f"NOT integrated: fitted index {alpha:.4f} is below 1, so there "
+                f"is no finite-mean Pareto here, and the 50th-percentile net "
+                f"worth it implies (${group_threshold * 1e3:,.1f}k) is "
+                f"{group_threshold * 1e3 / scf_median_thousands:.2f}x the SCF's "
+                f"published 2022 median of ${scf_median_thousands:,.1f}k. The "
+                f"group keeps its mean"
+            )
+        elif not dispersed:
+            note = (
+                "NOT integrated: below the 90th percentile, where the fit is "
+                "refused - see the group above. beta is at the solver bound and "
+                "the figures on this row are not used by anything"
+            )
+        records.append(
+            {
+                "group": group,
+                "percentile_share_lower": lower_share,
+                "percentile_share_upper": upper_share,
+                "aggregate_net_worth_millions_usd": aggregate[group],
+                "pareto_beta": group_beta,
+                "pareto_alpha": alpha,
+                "threshold_millions_usd": group_threshold,
+                "dispersed": dispersed,
+                "note": note,
+            }
+        )
+        if group != top_group:
+            threshold = group_threshold
+    return pd.DataFrame.from_records(records)
+
+
+def build_stock_tables() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, float]:
+    """Accrued-gains parameters, the decedent ladder, the AGM ladder, the median."""
     age_levels, networth_levels = _dfa_frames()
     mortality = _band_mortality()
-    mean_family_net_worth = _mean_family_net_worth_2022_thousands()
+    median_family_net_worth, mean_family_net_worth = (
+        _scf_family_net_worth_2022_thousands()
+    )
 
     def total_net_worth(quarter: str) -> float:
         rows = networth_levels[networth_levels["Date"] == quarter]
@@ -633,7 +807,47 @@ def build_stock_tables() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
             "value": rate,
             "source": "NCHS United States Life Tables 2022 (NVSR 74-02) Table 1",
         }
-    return parameters, ladder, agm
+    # Rules and checks the decedent size distribution reads.  The floor is a
+    # rule about SOI's coverage; the last three are checks, never inputs.
+    estate_returns = _soi_estate_bequest_shares()
+    parameters.loc[len(parameters)] = {
+        "key": "soi_estate_charitable_floor_millions_usd",
+        "value": SOI_ESTATE_FLOOR_MILLIONS,
+        "source": (
+            "IRS SOI Estate Tax Statistics Table 1 covers estate-tax filers only "
+            "(the threshold for 2023 decedents was $12.92 million), so an estate "
+            "below this size is given no charitable share rather than the filing "
+            "population's propensity"
+        ),
+    }
+    parameters.loc[len(parameters)] = {
+        "key": "scf_2022_median_family_net_worth_thousands",
+        "value": median_family_net_worth,
+        "source": (
+            "Federal Reserve Survey of Consumer Finances 2022, Table 4, All "
+            "families, Median. CHECK ONLY - the size distribution is fitted to "
+            "the DFA aggregates and this is what says where the fit stops"
+        ),
+    }
+    parameters.loc[len(parameters)] = {
+        "key": "soi_fy2024_estate_filing_threshold_millions_usd",
+        "value": 12.92,
+        "source": (
+            "IRC 2010(c)(3) as adjusted, Rev. Proc. 2022-38: the basic exclusion "
+            "amount for decedents dying in 2023, which is SOI Table 1's own "
+            "filing threshold for filing year 2024. CHECK ONLY"
+        ),
+    }
+    parameters.loc[len(parameters)] = {
+        "key": "soi_fy2024_estate_returns_above_filing_threshold",
+        "value": float(sum(row[4] for row in estate_returns)),
+        "source": (
+            "IRS SOI Estate Tax Statistics Table 1, filing year 2024, all "
+            "returns, summed over the printed size classes. CHECK ONLY on the "
+            "fitted decedent size distribution's own count above that threshold"
+        ),
+    }
+    return parameters, ladder, agm, median_family_net_worth
 
 
 HEADERS = {
@@ -711,33 +925,82 @@ HEADERS = {
         "# no rate schedule reaches.",
         "# Regenerate with: python scripts/build_capital_gains_data.py",
     ),
-    "decedent_carveout_shares.csv": (
+    "decedent_carveout_ladders.csv": (
         "# Shares of decedent unrealized capital gain that a realization-at-death",
-        "# proposal's stated carve-outs remove, by the decedent ladder's own",
-        "# estate-size classes.",
+        "# proposal's stated carve-outs remove, by size of estate, on each",
+        "# source's OWN published class boundaries.  Long format: one row per",
+        "# (source, size class, quantity).  size_class_upper_millions_usd is inf",
+        "# for the open-ended top class of each ladder.",
         "#",
-        "# residence_gain_share and active_business_gain_share: Poterba, J. and",
-        "#   S. Weisbenner (2001), 'The Distributional Burden of Taxing Estates and",
-        "#   Unrealized Capital Gains at Death', in Rethinking Estate and Gift",
-        "#   Taxation (Brookings), Table 8, lower panel ('Share of Total Unrealized",
-        "#   Capital Gain'), by insurance-augmented net worth of the decedent.",
-        "#   Matched to a ladder class by that class's mean estate.",
-        "# charitable_bequest_share: IRS Statistics of Income, Estate Tax Statistics,",
-        "#   Table 1, filing year 2024 (https://www.irs.gov/pub/irs-soi/24es01fy.xlsx):",
-        "#   the charitable deduction over the gross estate NET of bequests to a",
-        "#   surviving spouse, by size of gross estate.  Zero for a class whose mean",
-        "#   estate is under $1,000,000, which is far below SOI's filing threshold.",
-        "# marital_bequest_share: the same table's bequests to a surviving spouse",
-        "#   over the gross estate.  CARRIED AND NEVER APPLIED.  Poterba &",
-        "#   Weisbenner's note reads 'It is assumed a decedent transfers his/her full",
-        "#   estate to a surviving spouse.  Such inter-spousal transfers are not",
-        "#   included in the estate totals reported above', so the spousal carve-out",
-        "#   is already absent from the base and deducting it again would be a",
-        "#   double count.  This column records what that double count would cost.",
-        "# tangible_personal_property_gain_share: zero, for the same reason.  The",
-        "#   same note reads 'Bonds, vehicles, and collectibles are assumed to have",
-        "#   no accrued capital gains', and the Green Books exclude collectibles from",
-        "#   their tangible-personal-property exclusion in any case.",
+        "# poterba_weisbenner_2001_table8 -- Poterba, J. and S. Weisbenner (2001),",
+        "#   'The Distributional Burden of Taxing Estates and Unrealized Capital",
+        "#   Gains at Death', in Rethinking Estate and Gift Taxation (Brookings),",
+        "#   Table 8, lower panel ('Share of Total Unrealized Capital Gain', in",
+        "#   percent), by insurance-augmented net worth of the decedent, 1998",
+        "#   Survey of Consumer Finances.  Six published classes, all six carried:",
+        "#   residence_gain_share is what the section 121 exclusion reaches and",
+        "#   active_business_gain_share what the Green Books' family-owned-business",
+        "#   election defers.",
+        "# poterba_weisbenner_2001_table8_note -- the same table's note, which",
+        "#   reads 'Bonds, vehicles, and collectibles are assumed to have no",
+        "#   accrued capital gains'.  CARRIED AND NEVER APPLIED (applied=False):",
+        "#   the tangible-personal-property relief removes nothing this base",
+        "#   contains, and the Green Books exclude collectibles from it anyway.",
+        "# irs_soi_estate_table1_fy2024 -- IRS Statistics of Income, Estate Tax",
+        "#   Statistics, Table 1, filing year 2024 (all returns), workbook",
+        "#   https://www.irs.gov/pub/irs-soi/24es01fy.xlsx, sheet columns 2",
+        "#   (gross estate), 68 (bequests to a surviving spouse) and 70",
+        "#   (charitable deduction), rows 9-12; money amounts as published, in",
+        "#   thousands of dollars.  charitable_bequest_share is the charitable",
+        "#   deduction over the gross estate NET of spousal bequests, which is the",
+        "#   right denominator because the base is Poterba & Weisbenner's flow and",
+        "#   that flow already excludes inter-spousal transfers.  Below",
+        "#   soi_estate_charitable_floor_millions_usd (accrued_gains_parameters.csv)",
+        "#   the share is not applied at all: SOI's table is estate-tax filers only.",
+        "# marital_bequest_share -- the same table's bequests to a surviving spouse",
+        "#   over the gross estate.  CARRIED AND NEVER APPLIED (applied=False).",
+        "#   Poterba & Weisbenner's note reads 'It is assumed a decedent transfers",
+        "#   his/her full estate to a surviving spouse.  Such inter-spousal",
+        "#   transfers are not included in the estate totals reported above', so",
+        "#   deducting the spousal relief again would be a double count.  This",
+        "#   column records what that double count would cost.",
+        "#",
+        "# This file replaced decedent_carveout_shares.csv, which evaluated all",
+        "# three ladders at five decedent-class means and therefore never read",
+        "# seven of their eighteen published rows.",
+        "# Regenerate with: python scripts/build_capital_gains_data.py",
+    ),
+    "decedent_size_distribution.csv": (
+        "# Piecewise-Pareto size distribution of household net worth at death,",
+        "# fitted to the Federal Reserve Distributional Financial Accounts' own",
+        "# percentile-group aggregates (Z.1 companion, dfa-networth-levels.csv,",
+        "# anchor quarter as recorded in accrued_gains_parameters.csv) and to",
+        "# nothing else.  It is what lets a per-decedent exclusion be integrated",
+        "# over a distribution instead of applied to five group means.",
+        "#",
+        "# For a Pareto segment anchored at wealth x_lo at cumulative population",
+        "# share s_lo, the wealth it holds down to s_hi is",
+        "#   N * x_lo * s_lo * (r**beta - 1) / beta,   r = s_hi / s_lo,",
+        "# with beta = 1 - 1/alpha.  One unknown, one equation per segment, and",
+        "# the equation is the group's own published aggregate -- so every",
+        "# aggregate_net_worth_millions_usd below is reproduced exactly.  The",
+        "# open-ended top class takes the index of the class below it, which is",
+        "# the convention CapitalGainsBaseline.pareto_tail_index already applies",
+        "# to SOI's open-ended top AGI class.",
+        "#",
+        "# threshold_millions_usd is the fitted wealth at percentile_share_upper,",
+        "# which is the group's own LOWER wealth bound -- i.e. the 99.9th, 99th,",
+        "# 90th and 50th percentiles of household net worth.",
+        "#",
+        "# dispersed says whether the model integrates over the segment.  Below",
+        "# the 90th percentile it does not, and the note on those rows carries",
+        "# both reasons the fit refuses: the index comes back below one (no",
+        "# finite-mean tail) and the median it implies is twice the Survey of",
+        "# Consumer Finances' published 2022 figure.  Those groups keep the group",
+        "# mean in decedent_estate_ladder.csv, exactly as the five-class ladder",
+        "# did.  On this vintage they hold about 14 percent of gains at death",
+        "# between them, so the two groups the fit refuses are also the two that",
+        "# matter least to it.",
         "# Regenerate with: python scripts/build_capital_gains_data.py",
     ),
 }
@@ -763,11 +1026,22 @@ def main() -> None:
             brackets, OUT_DIR / "taxfoundation_capital_gains_2022_2024.csv"
         ),
     )
-    parameters, ladder, agm = build_stock_tables()
+    parameters, ladder, agm, scf_median = build_stock_tables()
+    households = float(
+        parameters.loc[parameters["key"] == "households_millions", "value"].iloc[0]
+    )
     _write("accrued_gains_parameters.csv", parameters)
     _write("decedent_estate_ladder.csv", ladder)
     _write("agm_unrealized_gain_share_by_estate_size.csv", agm)
-    _write("decedent_carveout_shares.csv", build_carveout_table(ladder))
+    _write("decedent_carveout_ladders.csv", build_carveout_ladders())
+    _write(
+        "decedent_size_distribution.csv",
+        build_size_distribution_table(ladder, households, scf_median),
+    )
+    stale = OUT_DIR / "decedent_carveout_shares.csv"
+    if stale.exists():
+        stale.unlink()
+        print(f"removed {stale.relative_to(REPO_ROOT)}  (five-class collapse retired)")
 
 
 if __name__ == "__main__":
