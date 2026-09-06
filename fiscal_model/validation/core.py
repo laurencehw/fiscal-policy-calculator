@@ -55,6 +55,37 @@ def uses_green_book_death_design(score: CBOScore) -> bool:
     """Whether ``score``'s document states the Green Book's death-channel reliefs."""
     return bool(score.eliminate_step_up) and score.source is ScoreSource.TREASURY
 
+
+#: How a per-filing-status threshold is read off a source that does not name
+#: every status.
+#:
+#: Statutory income-tax boundaries vary by filing status, and IRS SOI Table 1.2
+#: reports four: joint (with surviving spouses), separate, head of household and
+#: single. Some sources print all four - the FY2025 Green Book's top-rate
+#: proposal does. Others print two: CBO's Option 46 states "$20,000 for single
+#: filers and $40,000 for joint filers" and says nothing about the other two.
+#:
+#: This rule was fixed **before** any of these records was scored on a split
+#: base (``planning/lanes/W7_filing_status_split.md`` section 2.2, committed
+#: ahead of the code) so that the reading is a stated convention rather than a
+#: per-row choice. Its support is IRC section 1411(b), the one enacted surtax on
+#: a broad income measure, which sets the joint amount for a joint return, half
+#: of it for married filing separately - the single amount whenever joint is
+#: twice single, as it is in both Option 46 alternatives - and the single amount
+#: "in any other case", i.e. single and head of household together.
+#:
+#: The lane doc records what the two alternative readings would have scored:
+#: they move the affected rows by under 1.5 points, and the shipped reading is
+#: the middle of the three on both. It is not the flattering one.
+FILING_STATUS_THRESHOLD_RULE = (
+    "A record's income_threshold_by_filing_status carries only the amounts its "
+    "own source prints. Every status the source does not name takes "
+    "income_threshold - the source's single/unmarried amount - which for a "
+    "source naming exactly two amounts means joint returns take the joint "
+    "amount and separate, head-of-household and single returns take the single "
+    "amount, the structure of IRC section 1411(b)."
+)
+
 #: Fiscal year the validation window opens on. A record may override it with
 #: ``effective_start_year`` when the *source* states a later effective date.
 DEFAULT_VALIDATION_START_YEAR = 2025
@@ -180,6 +211,18 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
     # -- Phase A out-of-sample promotions (uncalibrated Generic path) --------
     # These are large, documented misses. They are kept in the honest tier
     # rather than tuned away; each note states the structural reason.
+    "biden_high_income_tax": [
+        "Scored on all four of the thresholds the Green Book prints (report p. 78): "
+        "$450,000 joint and surviving spouses, $425,000 head of household, $400,000 "
+        "unmarried, $225,000 married filing separately. This is the one row in the "
+        "battery whose base GREW under the filing-status split - the separate-return "
+        "floor is $175,000 BELOW the unmarried one, so those returns had been "
+        "under-counted, not over-counted - and the row moved 12.0% to 9.2%.",
+        "The thresholds are on taxable income and SOI's classes are on AGI, and "
+        "neither the thresholds (C-CPI-U indexed after 2024 by the proposal's own "
+        "text) nor the base moves across the window. Both push the same way as the "
+        "remaining under-prediction.",
+    ],
     "top_rate_45": [
         "The uncalibrated path applies a single ETI (0.25) with the standard 0.5 factor, "
         "so an 8pp top-rate increase erodes by only ~12.5%; published top-rate estimates "
@@ -310,24 +353,64 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "reproduce.",
     ],
     "cbo_opt45_top4_brackets_2pp": [
-        "'The four highest brackets' is a filing-status-specific boundary that also "
-        "moves in 2026 when the pre-2018 rate schedule returns; the generic path "
-        "carries one fixed threshold (the 2025 single-filer 24% floor), which counts "
-        "joint filers below their own bracket boundary and over-states the base.",
+        "The filing-status boundary is now the option's own: joint returns and "
+        "surviving spouses face the 2025 24%-bracket floor of $206,700 and every "
+        "other status $103,350 (IRS Rev. Proc. 2024-40 section 2.01, tables 1-4). "
+        "That took the row from a 17.9% OVER-prediction to a 12.4% under-prediction "
+        "- it removed 25.7% of the base, which was more than the gap.",
+        "The threshold does not move in 2026, and the option says it should. CBO's "
+        "own text: 'Under both alternatives, the scheduled changes to the underlying "
+        "tax brackets and rates would still take effect in 2026', after which the "
+        "four highest brackets are 28/33/35/39.6 percent and the boundary is the 28% "
+        "floor - higher in real terms than the 24% floor, and not twice the single "
+        "amount for joint returns, because the pre-2018 schedule carried a marriage "
+        "penalty there. Fixing it needs a year-indexed threshold (a third "
+        "isinstance branch in the scoring engine) and a published post-2025 rate "
+        "table, which does not exist. The direction is known: it would take this row "
+        "further under, not closer.",
+        "The floors are statutory boundaries on TAXABLE income and SOI's size "
+        "classes are by AGI, so the base is 'returns whose AGI clears the bracket "
+        "floor' rather than 'taxable income above it'. That predates this lane and "
+        "is unchanged by it.",
     ],
     "cbo_opt46_agi_surtax_1pp_20k": [
-        "A $20,000 single / $40,000 joint threshold sits near the bottom of the "
-        "filing population, where the single-threshold approximation is worst: the "
-        "model applies the $20,000 floor to every return, so joint filers between "
-        "$20,000 and $40,000 of AGI are taxed in the model and exempt in JCT's "
-        "estimate - yet the model still under-predicts, because SOI aggregate AGI "
-        "above the floor understates the surtax base JCT uses.",
+        "The $20,000 single / $40,000 joint threshold is now the option's own, "
+        "applied per filing status against an SOI base split the same four ways "
+        "(Table 1.2, TY2023). It removed the 46.1M joint returns' $20,000 of "
+        "wrongly-taxed income - $839.8B, 9.2% of the base - and the row got WORSE, "
+        "44.7% to 49.8%, because that error was cancelling two larger ones. It is "
+        "kept at the honest number rather than reverted.",
+        "The base is TAXABLE INCOME, not AGI. This is an AGI surtax and SOI "
+        "publishes both columns; on the same split floors the AGI base scores "
+        "-$1,016.1B against -$723.1B, taking the row to 29.4%. Switching it would "
+        "also move medicare_surcharge_2pp, illustrative_top_rate_5pp, "
+        "illustrative_500k_2pp and warren_ultramillionaire_surtax_3pp, none of "
+        "which has a filing-status boundary, so it is a separate change.",
+        "The base is held flat at its tax year across the whole window - a plain "
+        "TaxPolicy scores one number ten times. CBO's own February 2024 baseline "
+        "grows nominal GDP 3.878%/yr, which averages 28.8% above TY2023 over "
+        "FY2025-2034; the option's own published annual row implies 4.756%/yr. On "
+        "the split floors, an AGI base and the baseline's own growth this row "
+        "scores -$1,309.0B, 9.1%. Neither term is in this lane and both are "
+        "measured here rather than asserted.",
         "No behavioural distinction between a broad low-threshold surtax and a "
         "narrow high-income one: both erode by ETI x 0.5.",
     ],
     "cbo_opt46_agi_surtax_2pp_100k": [
-        "Single-filer threshold applied to all returns; the model has no "
-        "filing-status dimension.",
+        "Same three residuals as the 1pp alternative, and this row is where they are "
+        "visible: its 16.1% before the filing-status split was TWO ERRORS CANCELLING "
+        "A THIRD. Starting 11.1M joint returns $100,000 below their own floor added "
+        "34% of base; a taxable-income base rather than AGI and a decade of no "
+        "growth each removed about 22%. Splitting the floors alone therefore takes "
+        "the row 16.1% to 37.4%, and the old number measured the cancellation rather "
+        "than the fit - the same finding fra_2023_discretionary_caps produced when "
+        "spend-out landed.",
+        "On the split floors plus an AGI base the row scores -$824.2B (21.6%); plus "
+        "the CBO February 2024 baseline's own 3.878%/yr nominal growth, -$1,061.8B "
+        "(1.0%). Both terms are out of this lane's scope for the reason given on "
+        "the 1pp row.",
+        "The thresholds are indexed after 2025 by the option's own text and the "
+        "model's are not, which pushes the same way as the flat base.",
     ],
     "cbo_opt47_ltcg_qdiv_2pp": [
         "The realizations base is projected across the window from its IRS SOI "
@@ -718,7 +801,12 @@ def create_policy_from_score(
     ``ordinary_rate``
         :class:`TaxPolicy` from rate + threshold. ``ordinary_income_base``
         defaults to True (exclude preferential LTCG/QDIV); pass False, or set
-        ``score.agi_inclusive_base=True``, for AGI-inclusive surtaxes.
+        ``score.agi_inclusive_base=True``, for AGI-inclusive surtaxes. Where the
+        record's source states its boundary **per filing status**, those amounts
+        are carried through as ``threshold_by_filing_status`` and the SOI base
+        is split the same four ways, so each return faces its own floor rather
+        than the single filer's; statuses the source does not name fall back to
+        ``income_threshold`` under :data:`FILING_STATUS_THRESHOLD_RULE`.
     ``capital_gains``
         :class:`CapitalGainsPolicy` with the **module-default** elasticity set
         (Dowd, McClelland & Muthitacharoen 2015, persistent 0.72 / transitory
@@ -789,6 +877,14 @@ def create_policy_from_score(
             policy_type=PolicyType.INCOME_TAX,
             rate_change=score.rate_change,
             affected_income_threshold=score.income_threshold or 0,
+            # Only the amounts the record's own source prints; every other
+            # status falls back to the line above. See
+            # :data:`FILING_STATUS_THRESHOLD_RULE`.
+            threshold_by_filing_status=(
+                dict(score.income_threshold_by_filing_status)
+                if score.income_threshold_by_filing_status
+                else None
+            ),
             start_year=start_year,
             duration_years=10,
             ordinary_income_base=ordinary_income_base,
@@ -1000,6 +1096,11 @@ def _model_parameters_for(policy: Policy) -> dict:
         "taxpayers_millions": policy.affected_taxpayers_millions,
         "avg_income": policy.avg_taxable_income_in_bracket,
     }
+    resolve_status_thresholds = getattr(policy, "resolved_filing_status_thresholds", None)
+    if getattr(policy, "threshold_by_filing_status", None) and resolve_status_thresholds:
+        # Reported because the single "threshold" above no longer describes the
+        # base once the four statuses face different floors.
+        params["threshold_by_filing_status"] = resolve_status_thresholds()
     if isinstance(policy, CapitalGainsPolicy):
         params.update(
             {
