@@ -16,14 +16,17 @@ Four labels, plus an explicit "we do not know" bucket:
     cost-estimate table, a Green Book revenue line). The strongest kind of
     benchmark: the number and the document that states it are both known.
 ``line_item_differs``
-    The primary document *was* found and its row transcribed, and it states a
-    **different** figure from the target the repository carries. The record
-    keeps its own target — retuning a calibrated module to a newly transcribed
-    number is a modelling decision, not a bookkeeping one — and additionally
-    carries the published figure in
+    The primary document *was* found and its row transcribed, and something
+    about it disagrees with what the repository scores. Usually that is the
+    **figure**: the record keeps its own target — retuning a calibrated module
+    to a newly transcribed number is a modelling decision, not a bookkeeping
+    one — and additionally carries the published figure in
     ``ScorecardEntry.official_10yr_billions_line_item`` so the gap is visible
-    rather than silently resolved. Each of these is an open owner decision and
-    is tabulated in ``docs/VALIDATION.md``.
+    rather than silently resolved. It can instead be the **scope**, where the
+    figure agrees and the reform the document prices is not the one the module
+    builds; :attr:`~.benchmark_sources.BenchmarkSource.scope_differs` names the
+    mechanism in that case, and a row must carry one or the other. Each of
+    these is an open owner decision and is tabulated in ``docs/VALIDATION.md``.
 ``secondhand``
     The target came from a summary, a press description, or a rounded
     headline figure. Usually a round hundred-scale number attributed to an
@@ -73,11 +76,17 @@ TRANSCRIBED_LEVELS: frozenset[str] = frozenset({LINE_ITEM, LINE_ITEM_DIFFERS})
 #: Revenue-scorecard entries the plan (§5.2) names as *not* published
 #: benchmarks. They stay in the scorecard as labelled illustrations but are
 #: excluded from the headline calibrated count.
+#:
+#: ``trump_corporate_15`` left this set on 2026-09-05: the corporate/PTC
+#: provenance lane superseded its model-derived +$1,920B with the published
+#: range [+$595.0B, +$673.1B] (PWBM and Tax Foundation, both FY2025-2034), so
+#: it is now scored against a document and belongs in the headline count. This
+#: set shrinks only that way — by finding a document, never by deciding a
+#: model estimate is good enough.
 NON_PUBLISHED_BENCHMARK_IDS: frozenset[str] = frozenset(
     {
         "tcja_no_salt_cap",  # "~$1.1T added" — no published score for this variant
         "tcja_rates_only",  # illustrative decomposition of the full extension
-        "trump_corporate_15",  # scenario notes: "expected estimate derived from model"
         "eliminate_estate_tax",  # scenario source literally reads "Model estimate"
     }
 )

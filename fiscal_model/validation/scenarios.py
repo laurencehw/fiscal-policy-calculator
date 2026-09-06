@@ -193,12 +193,106 @@ CORPORATE_VALIDATION_SCENARIOS = {
         "policy_factory": create_biden_corporate_rate_only,
         "expected_10yr": -1347.0,
         "notes": "Core rate increase from 21% to 28% only, without international provisions.",
+        "limitations": [
+            "The target is a rate-PLUS-GILTI row scored against a rate-only "
+            "shape, and the figure agrees anyway. Treasury's FY2025 Green Book "
+            "chapter (report p. 2) says 'The effective global intangible "
+            "low-taxed income (GILTI) rate would increase to 14 percent under "
+            "the proposal', and every edition from FY2023 carries that step, "
+            "while `create_biden_corporate_rate_only` sets "
+            "`gilti_rate_change=0.0`. The GILTI leg's size is never printed "
+            "and cannot be recovered by differencing editions, so the 3.7% "
+            "this row reports measures a scope mismatch as well as a fit and "
+            "the two cannot be split. Recorded as `line_item_differs` by the "
+            "2026-09-05 provenance pass; no constant was retuned, and the "
+            "target did not move because there is nothing to move it to. See "
+            "`planning/memos/CORPORATE_PER_POINT_YIELD.md` section 2.",
+            "The only rate-only Green Book row is FY2022's, and it is now "
+            "carried beside this one as `biden_corporate_28_fy2022` — same "
+            "reform, same factory, a per-point yield 36% lower.",
+        ],
+    },
+    # The FY2022 Green Book's corporate row, registered 2026-09-05 as the
+    # module's second published corporate benchmark. It is NOT in
+    # ``KNOWN_SCORES`` deliberately: ``assistant/benchmarks.py`` turns every
+    # corporate record there with a rate change into an interpolation anchor
+    # for the shipped Ask assistant, and a 2021-vintage figure has no business
+    # anchoring a 2026 answer. The scenario registry is where a benchmark that
+    # is a validation target and nothing else belongs — ``trump_corporate_15``
+    # sits here on the same footing.
+    "biden_corporate_28_fy2022": {
+        "description": "Biden Corporate Rate to 28% (FY2022 Green Book)",
+        "score_id": None,
+        "policy_factory": create_biden_corporate_rate_only,
+        "expected_10yr": -857.8,
+        "official_source": "U.S. Treasury, Office of Tax Analysis",
+        "benchmark_date": "2021-05",
+        "benchmark_url": (
+            "https://home.treasury.gov/system/files/131/"
+            "General-Explanations-FY2022.pdf"
+        ),
+        # Nothing in `corporate.py` is fitted to this figure, and nothing may
+        # be: the module's one fitted constant,
+        # BASELINE_TAXABLE_PROFITS_BILLIONS, is fitted to `biden_corporate_28`.
+        # This row is a reconstruction, and its whole value is that a fixed
+        # base cannot reproduce a 36% difference in per-point yield across two
+        # vintages of the same proposal.
+        "calibrated_to_target": False,
+        "notes": (
+            "Treasury FY2022 Green Book, 'Raise the corporate income tax rate "
+            "to 28 percent', $857,817M over FY2022-2031 (report p. 104; PDF "
+            "p. 110). The only rate-only corporate row any Green Book "
+            "prints - the word GILTI does not appear in its two-sentence "
+            "Proposal section, and the global minimum tax is a separate "
+            "$533,503M row - which makes it the one published corporate "
+            "target whose scope matches what this factory builds."
+        ),
+        "limitations": [
+            "WINDOW OFFSET, stated rather than adjusted. The target covers "
+            "FY2022-2031 on a 2021 baseline and this repository carries no "
+            "2021 vintage, so the row is scored on the corporate runner's own "
+            "FY2025-2034 window - the same mismatch `iija_2021_discretionary` "
+            "records in the out-of-sample manifest. In `reported` mode the "
+            "offset costs nothing, because the module's rate channel is a "
+            "flat annual: shifting the window changes which years the same "
+            "number is stamped on and nothing else. That invariance is itself "
+            "the thing this benchmark exists to expose - the module's answer "
+            "to '21% to 28%' is -$1,397.2B whichever decade is asked about, "
+            "where Treasury's two editions differ by 36% per point. Nothing "
+            "here is a claim that the model was run on Treasury's window.",
+            "Not fitted to this target and never to be fitted to it. "
+            "`BASELINE_TAXABLE_PROFITS_BILLIONS` is fitted to "
+            "`biden_corporate_28`; a second constant fitted here would make "
+            "the pair uninformative. The residual is the finding: Treasury's "
+            "FY2022 row implies a marginal base of $1,225.5B per year against "
+            "the module's $1,996.0B, and the FY2025 row $1,928.5B - a 36% "
+            "move across two editions of one proposal that a fixed base "
+            "cannot represent. See "
+            "`planning/memos/CORPORATE_PER_POINT_YIELD.md` sections 4 and 7.",
+            "Scope caveat in the other direction from `biden_corporate_28`'s: "
+            "this row is rate-only and so is the factory, but its baseline is "
+            "a 2021 profit level, before the 2021-22 profits boom that took "
+            "SOI's income subject to tax from $1,780.3B (TY2020) to $2,422.1B "
+            "(TY2021). Part of the residual is that revision, and the memo "
+            "does not separate it from the modelling error.",
+        ],
     },
     "trump_corporate_15": {
         "description": "Trump Corporate Rate to 15%",
         "score_id": None,
         "policy_factory": create_republican_corporate_cut,
-        "expected_10yr": 1920.0,
+        # Superseded 2026-09-05 by the corporate/PTC provenance lane
+        # (``target_revisions.trump_corporate_15.v1`` -> ``.v2``): +$1,920B was
+        # this model's own output, and two houses have scored 21% -> 15% for
+        # all corporations on this repository's own window. The carried figure
+        # is the published range's anchor, Tax Foundation's Table 2
+        # conventional estimate; PWBM's $595B is the range's low bound.
+        "expected_10yr": 673.1,
+        "official_source": (
+            "Tax Foundation / Penn Wharton Budget Model"
+        ),
+        "benchmark_date": "2024-07",
+        "benchmark_url": "https://taxfoundation.org/blog/trump-corporate-tax-cut/",
         # Reclassified 2026-09-05 by the offset-sign sweep
         # (``planning/lanes/SWEEP_offset_sign.md``), on the precedent
         # ``readiness.py`` itself cites and that Wave 2 L1 set for
@@ -216,15 +310,17 @@ CORPORATE_VALIDATION_SCENARIOS = {
         # defect. So the row reports in the unfitted-reconstruction tier, where
         # a documented miss is a finding rather than a calibration regression.
         #
-        # The target is provenance ``model_estimate`` - this repository's own
-        # output recorded as an expectation, "no official score" by the note's
-        # own admission - so the 22.3% is not a distance from a published
-        # figure. Queued for the next provenance pass: retire it, or re-source
-        # it to a published score.
+        # That provenance pass has now happened, and the target is published.
+        # ``calibrated_to_target`` stays False for the original reason: the
+        # module's annual was fitted through the defect, and it was not
+        # retuned to the new figure either.
         "calibrated_to_target": False,
         "notes": (
-            "Trump 2024 proposal to lower corporate rate to 15%. No official score; "
-            "expected estimate derived from model. Includes bonus depreciation extension."
+            "Trump 2024 proposal to lower the corporate rate to 15%, scored "
+            "against the published range [+$595.0B, +$673.1B] (PWBM Table 1; "
+            "Tax Foundation Table 2, the carried anchor), both FY2025-2034 "
+            "conventional. The scenario also extends bonus depreciation, "
+            "which neither published figure includes."
         ),
         "limitations": [
             "Poor, and reclassified rather than retuned: the corporate module's "
@@ -233,10 +329,35 @@ CORPORATE_VALIDATION_SCENARIOS = {
             "an offset, and the fitted annual was compensating for that. The "
             "sign was corrected 2026-09-05 and the row moved 0.1% -> 22.3%; no "
             "constant was moved to close it.",
-            "The +$1,920B target is provenance model_estimate - this model's "
-            "own output recorded as an expectation, not a published score - so "
-            "the residual is not a measurement against a document. Queued for "
-            "the next provenance pass to be retired or re-sourced.",
+            "The target is no longer this model's own output. The 2026-09-05 "
+            "provenance pass superseded +$1,920B - provenance model_estimate, "
+            "'no official score' by the scenario's own admission - with the "
+            "PUBLISHED RANGE [+$595.0B, +$673.1B]: PWBM's 'Lower the corporate "
+            "income tax rate to 15%' (Table 1, 26 August 2024) and Tax "
+            "Foundation's Table 2 conventional estimate (17 July 2024), the "
+            "two conventional scores of the same reform on this repository's "
+            "own FY2025-2034 window, printed side by side in CRFB's "
+            "6 September 2024 post. The anchor is Tax Foundation's, because "
+            "theirs is a standalone analysis of this one reform where PWBM's "
+            "is a stacked row inside a whole-campaign package. No constant was "
+            "retuned to the new figure, so the row moved 22.3% -> 121.6% "
+            "against a published document instead of 22.3% against the "
+            "model's own answer.",
+            "SCOPE, and it is a third of the residual: neither published "
+            "figure includes bonus depreciation, which this scenario extends. "
+            "PWBM prints the business provisions separately at -$623B. The "
+            "module's bonus-depreciation leg is +$294.15B of its +$1,491.8B, "
+            "so the rate leg alone reads +$1,197.6B - +77.9% against the "
+            "anchor rather than +121.6%. Not adjusted away: summing two rows "
+            "of PWBM's table would be constructing a target rather than "
+            "reading one.",
+            "DIRECTION, and it is the rest: Tax Foundation's Options 2.0 is "
+            "the only document pricing both directions in one edition and one "
+            "model, and a point of CUT costs 29% more than a point of "
+            "increase yields ($163.2B against $126.6B). `corporate.py` prices "
+            "both at the same per-point rate, which is why this row misses "
+            "further than `biden_corporate_28` does. See "
+            "`planning/memos/CORPORATE_PER_POINT_YIELD.md` sections 4b and 5b.",
         ],
     },
 }

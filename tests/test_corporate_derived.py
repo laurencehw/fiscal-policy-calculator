@@ -324,40 +324,42 @@ def test_reported_mode_pins(scorer):
     )
 
 
-def test_decision_1_now_ranks_derived_ahead_of_reported(scorer):
+def test_decision_1_ranks_the_two_modes_on_the_registered_targets(scorer):
     """The comparison the app default turns on, as a test rather than a claim.
 
-    **This assertion is the reverse of what it was**, and the reversal is the
-    offset-sign sweep's sharpest side effect. Before the sweep, reported scored
-    1.92% against derived's 9.67% and Decision 1's rule kept the module on
-    reported. Signing the reported offset took reported to **13.02%** — because
-    ``trump_corporate_15`` had been reading 0.1% through the defect — while
-    derived, already signed, did not move. By Decision 1's own words ("reported
-    stays the app default per module until that module's derived error is below
-    its fitted error") the module is now due to flip.
+    **This assertion has now reversed twice, and the second reversal is why it
+    reads its targets off the registry instead of carrying its own.** The
+    offset-sign sweep flipped it the first time: signing the reported offset
+    took reported 1.92% -> 13.02% against derived's unmoved 9.67%, because
+    ``trump_corporate_15`` had been reading 0.1% through the ``abs()`` defect,
+    so Decision 1's rule ("reported stays the app default per module until that
+    module's derived error is below its fitted error") said the module was due
+    to flip. The sweep declined to flip it and said why: the row producing the
+    reversal carried provenance ``model_estimate``, so neither ranking was
+    evidence about the world.
 
-    **The sweep did not flip it**, and this test pins that too. Flipping the
-    mode moves two more shipped presets and is an owner decision, not a
-    sign-fix lane's; and the row that produces the reversal,
-    ``trump_corporate_15``, carries provenance ``model_estimate`` — it is this
-    model's own output recorded as an expectation — so neither ranking is
-    evidence about the world. Carried to the owner in
-    ``planning/lanes/SWEEP_offset_sign.md``.
+    The 2026-09-05 provenance lane settled that. ``trump_corporate_15``'s
+    target is now the published range [+$595.0B, +$673.1B] anchored on Tax
+    Foundation's +$673.1B, and the FY2022 Green Book's rate-only row joined the
+    suite as a second published corporate benchmark. On published targets
+    **reported leads again** — and neither figure is small, which is the honest
+    reading of a module whose implied marginal base is above every published
+    estimator's. The mode is still not flipped, and this test still pins that.
     """
-    targets = {
-        create_biden_corporate_rate_only: -1347.0,
-        create_republican_corporate_cut: 1920.0,
-    }
+    from fiscal_model.validation.scenarios import CORPORATE_VALIDATION_SCENARIOS
+
     means = {}
     for mode in (CORPORATE_MODE_REPORTED, CORPORATE_MODE_DERIVED):
         errors = [
-            abs(_ten_year(scorer, factory(mode=mode)) - target) / abs(target)
-            for factory, target in targets.items()
+            abs(_ten_year(scorer, scenario["policy_factory"](mode=mode)) - target)
+            / abs(target)
+            for scenario in CORPORATE_VALIDATION_SCENARIOS.values()
+            for target in (scenario["expected_10yr"],)
         ]
         means[mode] = sum(errors) / len(errors)
-    assert means[CORPORATE_MODE_DERIVED] < means[CORPORATE_MODE_REPORTED]
-    assert means[CORPORATE_MODE_REPORTED] == pytest.approx(0.1302, abs=0.0002)
-    assert means[CORPORATE_MODE_DERIVED] == pytest.approx(0.0967, abs=0.0002)
+    assert means[CORPORATE_MODE_REPORTED] < means[CORPORATE_MODE_DERIVED]
+    assert means[CORPORATE_MODE_REPORTED] == pytest.approx(0.6275, abs=0.0002)
+    assert means[CORPORATE_MODE_DERIVED] == pytest.approx(0.7648, abs=0.0002)
     assert CORPORATE_APP_MODE == CORPORATE_MODE_REPORTED
 
 
@@ -388,12 +390,16 @@ def test_the_corporate_runner_prints_both_modes():
     means = {}
     for mode in (CORPORATE_MODE_REPORTED, CORPORATE_MODE_DERIVED):
         rows = validate_all_corporate(verbose=False, mode=mode)
-        assert len(rows) == 2
+        # Three since 2026-09-05: the FY2022 Green Book's rate-only row is the
+        # module's second published benchmark and its first reconstruction.
+        assert len(rows) == 3
         means[mode] = sum(abs(row.percent_difference) for row in rows) / len(rows)
 
-    # Reported was 1.92% before the offset-sign sweep signed its offset.
-    assert means[CORPORATE_MODE_REPORTED] == pytest.approx(13.02, abs=0.01)
-    assert means[CORPORATE_MODE_DERIVED] == pytest.approx(9.67, abs=0.01)
+    # Reported was 1.92% before the offset-sign sweep signed its offset and
+    # 13.02% after it; both readings scored `trump_corporate_15` against this
+    # model's own +$1,920B. These are the figures against published targets.
+    assert means[CORPORATE_MODE_REPORTED] == pytest.approx(62.75, abs=0.01)
+    assert means[CORPORATE_MODE_DERIVED] == pytest.approx(76.48, abs=0.01)
 
     default = validate_all_corporate(verbose=False)
     reported = validate_all_corporate(verbose=False, mode=CORPORATE_APP_MODE)

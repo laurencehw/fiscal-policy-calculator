@@ -51,10 +51,19 @@ CBO_SCORE_MAP = {
         "notes": "Increase corporate rate from 21% to 28%",
     },
     "🏢 Trump Corporate 15%": {
-        "official_score": 673.0,  # ~$67.3B/yr based on CRFB estimates
-        "source": "CRFB",
+        # Inside the published range [$595B, $673.1B] the validation ledger
+        # carries for this reform (target_revisions.trump_corporate_15.v2):
+        # PWBM's Table 1 and Tax Foundation's Table 2, both conventional over
+        # FY2025-2034. CRFB's September 2024 post prints the two side by side,
+        # which is how this figure reached the app -- and it is the figure the
+        # scorecard should have been scoring against all along.
+        "official_score": 673.0,
+        "source": "Tax Foundation / PWBM (via CRFB)",
         "source_date": "2024",
-        "notes": "Reduce corporate rate from 21% to 15%",
+        "notes": (
+            "Reduce corporate rate from 21% to 15%. Published conventional "
+            "estimates span $595B (PWBM) to $673B (Tax Foundation)."
+        ),
     },
     # Tax Credits
     "👶 Biden CTC Expansion (CBO: $1.6T)": {
@@ -467,7 +476,16 @@ PRESET_POLICIES = {
     "🏢 Trump Corporate 15%": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Lower corporate rate from 21% to 15%. Estimated cost: ~\\$1.9T over 10 years.",
+        # "~$1.9T" was this model's own output quoted back at the user, and the
+        # 2026-09-05 provenance lane retired it as a validation target: the
+        # published conventional estimates of the rate change are PWBM's $595B
+        # and Tax Foundation's $673B over FY2025-2034. This preset also extends
+        # bonus depreciation, which neither figure includes.
+        "description": (
+            "Lower corporate rate from 21% to 15%, with bonus depreciation "
+            "extended. Published estimates of the rate change alone run "
+            "\\$595B (PWBM) to \\$673B (Tax Foundation) over ten years."
+        ),
         "is_tcja": False,
         "is_corporate": True,
         "corporate_type": "trump_15",

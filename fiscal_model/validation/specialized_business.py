@@ -47,7 +47,11 @@ def validate_corporate_policy(
     expected_10yr = scenario["expected_10yr"]
     scorer = FiscalPolicyScorer(start_year=2025, use_real_data=False)
     result = scorer.score_policy(policy, dynamic=False)
-    official_source = "CBO/Treasury"
+    # "CBO/Treasury" was right when both corporate benchmarks were Treasury
+    # rows. Two of the three are not: `trump_corporate_15`'s target is Tax
+    # Foundation's and PWBM's, and a scenario that names its estimator says
+    # so rather than being labelled by the registry it happens to live in.
+    official_source = scenario.get("official_source") or "CBO/Treasury"
     score = None
     if scenario.get("score_id"):
         score = KNOWN_SCORES.get(scenario["score_id"])
