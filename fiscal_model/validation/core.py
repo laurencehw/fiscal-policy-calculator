@@ -662,6 +662,25 @@ def _resolve_vintage(score: CBOScore) -> BaselineVintage | None:
         return None
 
 
+def _resolve_window_start(score: CBOScore) -> int:
+    """The fiscal year the validation window opens on for this record.
+
+    A record that names ``scoring_window_first_year`` - the first year of the
+    window *its own source* published its total over - is scored on that
+    decade, so the ten fiscal years scored are the ten the target covers.
+    Everything else keeps :data:`DEFAULT_VALIDATION_START_YEAR`.
+
+    A **window** is not a **vintage**. No shape that carries a window today
+    reads a baseline level (``CapitalGainsPolicy.estimate_static_revenue_effect``
+    opens with ``_ = baseline_revenue``), so this needs no historical baseline
+    and does not pretend to supply one: the model still prices those years with
+    today's SOI and Financial Accounts anchors. Which window a case carries is a
+    pre-registered shape input under
+    ``preregistered.FY2022_TARGET_WINDOW_RULE``, never a per-case knob.
+    """
+    return int(score.scoring_window_first_year or DEFAULT_VALIDATION_START_YEAR)
+
+
 def build_scorer_for_vintage(
     vintage: BaselineVintage | None,
     *,
@@ -748,7 +767,10 @@ def create_policy_from_score(
 
     Every shape honours ``score.effective_start_year`` - the year the *source*
     says the policy takes effect - so an option that starts in FY2026 is not
-    credited with a year of effect the official estimate never scored.
+    credited with a year of effect the official estimate never scored. Failing
+    that it takes :func:`_resolve_window_start`, so a case scored on its own
+    published decade starts in that decade's first year rather than being
+    truncated at its head.
 
     Returns ``None`` when the record has no constructible shape.
     """
@@ -756,7 +778,7 @@ def create_policy_from_score(
     if shape is None:
         return None
 
-    start_year = score.effective_start_year or DEFAULT_VALIDATION_START_YEAR
+    start_year = score.effective_start_year or _resolve_window_start(score)
 
     if shape == "ordinary_rate":
         if ordinary_income_base is None:
@@ -1012,7 +1034,9 @@ def validate_policy(
         return None
 
     if scorer is None:
-        scorer = build_scorer_for_vintage(_resolve_vintage(score))
+        scorer = build_scorer_for_vintage(
+            _resolve_vintage(score), start_year=_resolve_window_start(score)
+        )
 
     try:
         result = scorer.score_policy(policy, dynamic=dynamic)
@@ -1062,23 +1086,26 @@ def validate_all(dynamic: bool = False, verbose: bool = True) -> list[Validation
         print(f"\nRunning validation against {len(targets)} policies...")
         print("=" * 70)
 
-    # One scorer per baseline vintage. Records that name no vintage keep the
-    # model's current default baseline (the historical behaviour); records that
-    # name one - the CBO Options battery names the Feb 2024 baseline its targets
-    # were published against - are scored on it, so baseline drift is not folded
-    # into their error.
-    scorers: dict[BaselineVintage | None, FiscalPolicyScorer] = {}
+    # One scorer per (baseline vintage, window). Records that name no vintage
+    # keep the model's current default baseline (the historical behaviour);
+    # records that name one - the CBO Options battery names the Feb 2024
+    # baseline its targets were published against - are scored on it, so
+    # baseline drift is not folded into their error. The window is keyed
+    # alongside it because a record may name the decade its own source
+    # published (:func:`_resolve_window_start`), and a scorer carries its window
+    # in the baseline it was built on.
+    scorers: dict[tuple[BaselineVintage | None, int], FiscalPolicyScorer] = {}
 
     results = []
     for score in targets:
         if verbose:
             print(f"\nValidating: {score.name}...")
 
-        vintage = _resolve_vintage(score)
-        if vintage not in scorers:
-            scorers[vintage] = build_scorer_for_vintage(vintage)
+        key = (_resolve_vintage(score), _resolve_window_start(score))
+        if key not in scorers:
+            scorers[key] = build_scorer_for_vintage(key[0], start_year=key[1])
 
-        result = validate_policy(score, scorer=scorers[vintage], dynamic=dynamic)
+        result = validate_policy(score, scorer=scorers[key], dynamic=dynamic)
         if result:
             results.append(result)
             if verbose:

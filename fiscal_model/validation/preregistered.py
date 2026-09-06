@@ -196,6 +196,36 @@ WAVE4_PROVENANCE_FIRST_SCORED_COMMIT = (
     "22ccdd24182f5e319eebb16caf7128ed8e6537b2"
 )
 
+#: Commit that entered the FY2022 Green Book window row
+#: (``treasury_capgains_39_plus_stepup_elim.v2``) into this manifest. Same
+#: two-commit protocol as Phases B and D and as the IIJA authorization path,
+#: and the same *kind* of change as that one: the shape input moves and the
+#: published target does not. The row is added here and first scored in
+#: :data:`FY2022_WINDOW_FIRST_SCORED_COMMIT`, a *later* commit.
+FY2022_WINDOW_ENTERED_COMMIT = "2353f83206a25f9ef5df524c2b476fcc0823bb95"
+FY2022_WINDOW_ENTERED_DATE = "2026-09-06"
+
+#: Commit in which the FY2022 window was first scored (the commit that lets
+#: ``validation/core.py`` read ``scoring_window_first_year``).
+FY2022_WINDOW_FIRST_SCORED_COMMIT = (
+    "804e5521bd8d69128f78204a047b47cb07dae16b"
+)
+
+#: The rule that sets the scoring window for every case that carries one,
+#: fixed before the model was allowed to read it. Written here rather than only
+#: in the record's notes because a per-case choice of decade would be a knob.
+FY2022_TARGET_WINDOW_RULE = (
+    "scoring_window_first_year = the first fiscal year of the window the "
+    "source's own published total covers, as already transcribed into the "
+    "record's ``budget_window``. It is read for one purpose - to open the "
+    "model's ten-year window in that year, so the ten fiscal years scored are "
+    "the ten the target covers - and it moves the policy's start year with it, "
+    "because moving the window alone truncates the head of the path instead of "
+    "shifting it. A record that states an ``effective_start_year`` keeps it: "
+    "that is the year the source says the policy takes effect, which is a "
+    "different fact. No year is chosen against an error, and no target moves."
+)
+
 #: Baselines the CBO options were built on, from PDF page 2 of publication
 #: 60557 ("Notes About This Report").
 CBO_OPTIONS_REVENUE_BASELINE = (
@@ -424,10 +454,54 @@ PREREGISTERED_CASES: tuple[PreregisteredCase, ...] = (
         entered_commit=TREASURY_CAPGAINS_COMMIT,
         entered_date=TREASURY_CAPGAINS_DATE,
         first_scoring_run_commit=PHASE_A_COMMIT,
+        superseded_by="treasury_capgains_39_plus_stepup_elim.v2",
         note=(
             "Structurally identical to biden_capital_gains_39 (39.6% above $1M plus "
             "step-up elimination) but published against a different baseline and three "
-            "years earlier; the two official targets differ by 42%."
+            "years earlier; the two official targets differ by 42%. "
+            "SUPERSEDED 2026-09-06: this row was scored over FY2025-2034 against a "
+            "target published over FY2022-2031, and both of the shape's channels grow "
+            "at 5.80%/yr, so 28.7 of its 43.3 points were the window rather than the "
+            "model. Its -$461.5B / 43.3% stays on the record here."
+        ),
+    ),
+    # ---- The FY2022 Green Book's own window (entered, then scored) --------
+    PreregisteredCase(
+        case_id="treasury_capgains_39_plus_stepup_elim.v2",
+        policy_id="treasury_capgains_39_plus_stepup_elim",
+        official_10yr_billions=-322.0,
+        source_name="U.S. Treasury",
+        source_url=(
+            "https://home.treasury.gov/system/files/131/General-Explanations-FY2022.pdf"
+        ),
+        source_date="2021-05",
+        source_baseline_vintage="Administration FY2022 Budget baseline (Green Book FY2022)",
+        entered_commit=FY2022_WINDOW_ENTERED_COMMIT,
+        entered_date=FY2022_WINDOW_ENTERED_DATE,
+        first_scoring_run_commit=FY2022_WINDOW_FIRST_SCORED_COMMIT,
+        note=(
+            "**The target does not change.** This row replaces v1's *shape "
+            "input*, not Treasury's $322,485M: the official number, the source, "
+            "the document and the window are all identical, and the window is "
+            "the point. v1 was scored over FY2025-2034 because the runner has "
+            "one window and no case could name its own; the target is the "
+            "FY2022 Green Book's 'Reform the taxation of capital income' row "
+            "over FY2022-2031 (report p. 105; PDF p. 111, transcribed to the "
+            "annual in planning/memos/FY2022_TARGET_WINDOW.md). Both of this "
+            "shape's channels grow with household net worth at 5.80%/yr - the "
+            "rate channel through realizations_projection_factor, the death "
+            "channel through gains_at_death_billions - so a decade three years "
+            "later scores higher mechanically: -$461.5B against -$369.0B on the "
+            "target's own decade, 28.7 of the row's 43.3 points. Scoring it "
+            "there needs no 2021 baseline, because the capital-gains shape "
+            "reads none (estimate_static_revenue_effect opens '_ = "
+            "baseline_revenue'); what was missing was a window, not a vintage. "
+            "The source_url is also filled in, where v1 carried None. What is "
+            "left at 14.6% is a shape disagreement rather than an accounting "
+            "one, and the memo sizes it: Treasury books -$66.0B over FY2022-24 "
+            "where the model books -$6.1B, because the model's enactment year "
+            "is a $59.8B revenue loss from the transitory response against "
+            "Treasury's $7.7B gain. " + FY2022_TARGET_WINDOW_RULE
         ),
     ),
     # ---- Phase A promotions: preset-backed surtax / top-rate targets ------
@@ -1018,6 +1092,8 @@ def summarize_preregistration() -> dict[str, Any]:
         "iija_authorization_path_first_scored_commit": (
             IIJA_AUTHORIZATION_PATH_FIRST_SCORED_COMMIT
         ),
+        "fy2022_window_entered_commit": FY2022_WINDOW_ENTERED_COMMIT,
+        "fy2022_window_first_scored_commit": FY2022_WINDOW_FIRST_SCORED_COMMIT,
         "rows": [
             {
                 "case_id": case.case_id,
@@ -1040,6 +1116,9 @@ def summarize_preregistration() -> dict[str, Any]:
 __all__ = [
     "CBO_OPTIONS_REVENUE_BASELINE",
     "CBO_OPTIONS_SPENDING_BASELINE",
+    "FY2022_TARGET_WINDOW_RULE",
+    "FY2022_WINDOW_ENTERED_COMMIT",
+    "FY2022_WINDOW_FIRST_SCORED_COMMIT",
     "IIJA_AUTHORIZATION_PATH_ENTERED_COMMIT",
     "IIJA_AUTHORIZATION_PATH_FIRST_SCORED_COMMIT",
     "IIJA_AUTHORIZATION_PATH_RULE",
