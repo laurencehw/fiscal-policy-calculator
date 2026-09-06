@@ -17,7 +17,8 @@ left at **62.3%** as a pre-registered regression and which is the largest single
 row in Tier 1. The memo says why it is 62.3% and not 47.1%: W5-B replaced a
 stale fitted base with SOI's published one and kept the module's flat 4%/yr
 aging, so the base now *starts* right and *grows* wrong. Against CBO's own
-February 2024 corporate receipts — which grow at **1.43%/yr** over the window —
+February 2024 corporate receipts — which grow at **1.44%/yr** over FY2026-2034,
+and 1.21%/yr over the full FY2025-2034 —
 a base compounding at 4% reaches **101.6% of the average base the baseline
 implies exists** by FY2034 (memo §4, table 4). No marginal base can exceed the
 average base it is part of. That is an internal inconsistency, independent of
@@ -225,7 +226,7 @@ is scored on". Two things are true and they pull apart:
    what it replaces**, which is a finding this lane records rather than a choice
    it defends. `CBOBaseline.generate().corporate_income_tax` is a base level
    times a growth rule, not CBO's published table: on `CBO_FEB_2024` it grows at
-   **4.88%/yr** against CBO's own 1.43%, and under `use_real_data=True` it
+   **4.88%/yr** against CBO's own 1.4%, and under `use_real_data=True` it
    returns the **same** path for all three vintages (402.1 → 614.3), because
    corporate receipts are derived from an IRS-to-individual-tax ratio that has
    no vintage in it. Reading the object would make the derived score neither

@@ -23,16 +23,29 @@ Owner Decision 1 (``planning/MODELING_IMPROVEMENT.md`` §6.1) gives a calibrated
 module a ``reported`` mode that keeps its fitted constants and a ``derived``
 mode that scores from published structure instead. Here the fitted constant is
 :data:`BASELINE_TAXABLE_PROFITS_BILLIONS`, whose own comment calls it
-calibrated, and the structure is IRS SOI Table 11's *income subject to tax* —
-the base a statutory rate change actually reaches, published rather than tuned.
+calibrated, and the structure is three published series: IRS SOI Table 11's
+*income subject to tax* for the level, Treasury's actual corporate receipts for
+the year that level is measured on, and CBO's own projected corporate receipts
+for the path.
 
-``planning/lanes/W5_corporate_margin.md`` carries the arithmetic. The short
-version is that the module's yield is **$199.6B per percentage point at any
-step**, while CBO 60557's Option 64 says 135.7 and Treasury's FY2025 Green Book
-says 192.8 — the two documents disagree by 42% per point, with the *larger*
-rate change carrying the *larger* per-point yield, which no concave-in-rate
-behavioural model can produce. Correcting the base moves this module toward
-Treasury and away from CBO. That is a fact about the documents, not a repair.
+``planning/lanes/W5_corporate_margin.md`` carries the level's arithmetic. The
+short version is that the module's reported yield is **$199.6B per percentage
+point at any step**, while CBO 60557's Option 64 says 135.7 and Treasury's FY2025
+Green Book says 192.8 — the two documents disagree by 42% per point, with the
+*larger* rate change carrying the *larger* per-point yield, which no
+concave-in-rate behavioural model can produce. Correcting the base moves this
+module toward Treasury and away from CBO. That is a fact about the documents,
+not a repair.
+
+``planning/lanes/W6_corporate_base_projection.md`` carries the path's, and
+``planning/memos/CORPORATE_PER_POINT_YIELD.md`` is the research behind it. W5
+left the base *starting* right and *growing* wrong: SOI's TY2022 level aged at a
+flat 4%/yr against a baseline whose own corporate receipts grow at 1.4%, which
+by FY2034 priced **101.6%** of the average base that baseline implies exists.
+W6 replaced the growth constant with CBO's own receipts path, which takes the
+derived marginal share from 0.60→1.02 across the window to a flat **0.83** —
+Treasury's neighbourhood, above JCT's 0.559, and the residual is a disagreement
+between estimators that this module cannot close.
 """
 
 import csv
@@ -82,31 +95,43 @@ FDII_COST_BILLIONS = 20.0  # FDII deduction costs ~$20B/year
 #: offset. This is what the app has always done and what it still does.
 CORPORATE_MODE_REPORTED = "reported"
 
-#: Ignore the fitted aggregate and score the rate channel from IRS SOI's
-#: published statutory base, its published credit-realization ratio, a
-#: literature-frozen profit-shifting semi-elasticity and IRC section 6655's
-#: estimated-payment timing.
+#: Ignore the fitted aggregate and score the rate channel off CBO's own
+#: projected corporate receipts path, converted to a statutory base by one
+#: ratio measured on completed history (IRS SOI's credit-realized TY2022 base
+#: over Treasury's actual FY2022 receipts), with a literature-frozen
+#: profit-shifting semi-elasticity and IRC section 6655's estimated-payment
+#: timing.
 CORPORATE_MODE_DERIVED = "derived"
 
 CORPORATE_MODES = (CORPORATE_MODE_REPORTED, CORPORATE_MODE_DERIVED)
 
 #: What the shipped app scores. Decision 1 keeps a module on ``reported`` until
-#: its derived error beats its fitted error across the benchmarks it carries,
-#: and here it does not:
+#: its derived error beats its fitted error across the benchmarks it carries.
+#: **Here it now does, and the module has not been flipped** — see below.
 #:
 #: =========================  ===========  ==========  =========  ==========
 #: Benchmark                  Target       Reported    Derived    Winner
 #: =========================  ===========  ==========  =========  ==========
-#: ``biden_corporate_28``     -$1,347.0B   +3.7%       +7.8%      reported
-#: ``trump_corporate_15``     +$1,920.0B   -0.1%       -11.5%     reported
+#: ``biden_corporate_28``     -$1,347.0B   -3.73%      -4.04%     reported
+#: ``trump_corporate_15``     +$1,920.0B   -22.30%     -19.52%    derived
+#: **mean abs**                            **13.02%**  **11.78%** derived
 #: =========================  ===========  ==========  =========  ==========
 #:
-#: Read the second row before treating that as evidence for the fitted path:
+#: Read the second row before treating that mean as evidence:
 #: ``trump_corporate_15``'s target has provenance ``model_estimate`` — it is
-#: this model's own output, recorded as an expectation — so derived loses it by
-#: construction. The first row is the one with a document behind it (Treasury
-#: Green Book FY2025, report p. 239) and reported still wins it, which is an
-#: honest loss for the structural path and is recorded as one.
+#: this model's own output, recorded as an expectation — so *neither* mode's
+#: distance from it measures anything about the world, and it is the row that
+#: decides the mean. The first row is the one with a document behind it
+#: (Treasury Green Book FY2025, report p. 239), and reported still wins it by
+#: three tenths of a percentage point.
+#:
+#: The ranking reversed in PR #119, when signing the reported offset moved
+#: ``trump_corporate_15`` from 0.1% to 22.3%; W6's base projection then moved
+#: derived from 9.67% to 11.78% while improving the published row from 7.81% to
+#: 4.04%. Flipping the default moves two shipped presets and every Tailor
+#: corporate row and owes a Decision 6 caption, and the population it would be
+#: decided on is itself in motion — a second corporate benchmark is being
+#: re-sourced and a third registered. It is the owner's call, not a lane's.
 CORPORATE_APP_MODE = CORPORATE_MODE_REPORTED
 
 #: What the *uncalibrated* validation path scores.
@@ -130,12 +155,42 @@ SOI_TABLE11_PATH = (
     / "soi_table11_corporate_tax_items.csv"
 )
 
+CBO_RECEIPTS_PATH = (
+    Path(__file__).parent / "data_files" / "corporate" / "cbo_corporate_receipts.csv"
+)
+
+MTS_RECEIPTS_PATH = (
+    Path(__file__).parent
+    / "data_files"
+    / "corporate"
+    / "treasury_mts_corporate_receipts.csv"
+)
+
 #: Growth rate ``ScoringEngine`` applies to a :class:`CorporateTaxPolicy`'s
-#: annual static effect (``scoring_engine._growth_tax_policy_handlers``). The
-#: derived path ages SOI's base from its tax year to ``start_year`` at the same
-#: rate, so exactly one growth assumption exists in the module rather than two;
-#: ``tests/test_corporate_derived.py`` pins this constant to the engine's.
+#: annual static effect (``scoring_engine._growth_tax_policy_handlers``).
+#: ``reported`` mode still grows on it, and so do the four non-rate channels in
+#: both modes; ``tests/test_corporate_derived.py`` pins this constant to the
+#: engine's. The derived *rate* channel no longer uses it — see
+#: :func:`projected_statutory_base`, which reads CBO's own projected receipts
+#: path instead, and lane ``planning/lanes/W6_corporate_base_projection.md`` for
+#: why 4%/yr against CBO's own 1.4%/yr was an internal inconsistency rather
+#: than a target problem.
 CORPORATE_BASE_GROWTH = 0.04
+
+#: Which block of :data:`CBO_RECEIPTS_PATH` the derived path reads. The value
+#: matches ``BaselineVintage.CBO_FEB_2024``'s own string: the vintage the CBO
+#: Options battery is scored on, the vintage CBO's December 2024 Options volume
+#: names for its revenue options, and the vintage ``cbo_opt64``'s target is
+#: priced against. It is the only vintage whose *annual* corporate receipts path
+#: could be sourced (cbo.gov 403s; no Wayback snapshot of the January 2025 or
+#: February 2026 workbooks), and the data file's header says so.
+CORPORATE_RECEIPTS_VINTAGE = "cbo_feb_2024"
+
+#: The fiscal/tax year on which the base-to-receipts ratio is measured: the last
+#: completed year covered by both IRS SOI's Table 11 and Treasury's Monthly
+#: Treasury Statement. Measured once, on history, never on a projection year —
+#: the rule ``payroll.COVERED_EARNINGS_TO_WAGES`` follows.
+RECEIPTS_ANCHOR_YEAR = 2022
 
 #: Semi-elasticity of reported pre-tax corporate profits with respect to the
 #: statutory tax rate: a 1 percentage point higher rate reduces the reported
@@ -238,6 +293,141 @@ def section_904_realization_ratio(tax_year: int | None = None) -> float:
     return (1.0 - foreign_share) * (1.0 - non_ftc_credits / domestic_before)
 
 
+def credit_realized_base_billions(tax_year: int | None = None) -> float:
+    """
+    SOI's statutory base after credits: the base that, at 21%, gives receipts.
+
+    ``income subject to tax`` times the share of a pre-credit dollar that
+    reaches receipts. $2,039.92B for TY2022. This is the quantity CBO's own
+    projected corporate receipts divided by the statutory rate is a projection
+    *of*, which is what :data:`BASE_PER_DOLLAR_OF_RECEIPTS` measures.
+    """
+    return statutory_base_billions(tax_year) * credit_realization_ratio(tax_year)
+
+
+@lru_cache(maxsize=1)
+def _load_cbo_receipts() -> tuple[dict[str, str], ...]:
+    """Read the transcribed CBO corporate-receipts projections, comments stripped."""
+    with CBO_RECEIPTS_PATH.open(encoding="utf-8") as handle:
+        body = (line for line in handle if not line.startswith("#"))
+        return tuple(csv.DictReader(body))
+
+
+@lru_cache(maxsize=4)
+def cbo_receipts_by_fiscal_year(
+    vintage: str = CORPORATE_RECEIPTS_VINTAGE,
+) -> tuple[tuple[int, float], ...]:
+    """
+    One vintage's projected corporate receipts path, sorted by fiscal year.
+
+    A vintage with no transcribed block raises rather than falling back to
+    another one's numbers: a score reported as "on the January 2025 baseline"
+    when it was computed on February 2024's would be a false provenance claim,
+    and the caller decides what to do about it.
+    """
+    rows = tuple(
+        (int(row["fiscal_year"]), float(row["corporate_receipts_billions"]))
+        for row in _load_cbo_receipts()
+        if row["vintage"] == vintage
+    )
+    if len(rows) < 2:
+        raise KeyError(
+            f"No corporate-receipts path transcribed for vintage {vintage!r}; "
+            f"{CBO_RECEIPTS_PATH.name} carries "
+            f"{sorted({row['vintage'] for row in _load_cbo_receipts()})}"
+        )
+    return tuple(sorted(rows))
+
+
+def cbo_corporate_receipts(
+    fiscal_year: int, vintage: str = CORPORATE_RECEIPTS_VINTAGE
+) -> float:
+    """
+    CBO's projected corporate income tax receipts for a fiscal year, in billions.
+
+    Outside the tabulated window the nearest observed growth rate is continued,
+    so a caller that asks for a year the vintage does not project gets an
+    extrapolation rather than a silent clamp — the rule
+    :func:`payroll.covered_earnings` uses on CBO's wage path from the same
+    publication.
+    """
+    table = cbo_receipts_by_fiscal_year(vintage)
+    first_year, first_value = table[0]
+    last_year, last_value = table[-1]
+
+    if fiscal_year < first_year:
+        growth = (table[1][1] / first_value) - 1.0
+        return first_value / ((1 + growth) ** (first_year - fiscal_year))
+    if fiscal_year > last_year:
+        growth = (last_value / table[-2][1]) - 1.0
+        return last_value * ((1 + growth) ** (fiscal_year - last_year))
+    return dict(table)[fiscal_year]
+
+
+@lru_cache(maxsize=1)
+def _load_actual_receipts() -> tuple[dict[str, str], ...]:
+    """Read the transcribed Treasury MTS actuals, comments stripped."""
+    with MTS_RECEIPTS_PATH.open(encoding="utf-8") as handle:
+        body = (line for line in handle if not line.startswith("#"))
+        return tuple(csv.DictReader(body))
+
+
+def actual_corporate_receipts(fiscal_year: int) -> float:
+    """Treasury's actual net corporate receipts for a completed fiscal year, $B."""
+    for row in _load_actual_receipts():
+        if int(row["fiscal_year"]) == fiscal_year:
+            return float(row["net_corporate_receipts_dollars"]) / 1e9
+    raise KeyError(
+        f"No Treasury MTS corporate receipts transcribed for FY{fiscal_year}"
+    )
+
+
+@lru_cache(maxsize=1)
+def base_per_dollar_of_receipts() -> float:
+    """
+    Statutory base per dollar of corporate receipts, measured once on history.
+
+    SOI's credit-realized statutory base for :data:`RECEIPTS_ANCHOR_YEAR`
+    divided by Treasury's actual net corporate receipts for the same year:
+    ``2,039.92 / 424.865 = 4.80133``, against ``1 / 0.21 = 4.76190`` — 0.83%
+    apart. Two published series, built from different data by different
+    agencies, measuring the same year's base and landing within one percent of
+    each other. That agreement is what makes projecting the base off CBO's
+    receipts path a change of *vintage* rather than of *concept*, and it is
+    asserted in ``tests/test_corporate_derived.py`` rather than described here.
+
+    It is **not** a marginal-realization share. The total factor that would
+    reproduce CBO Option 64 is 0.5785 and JCT's own steady-state marginal share
+    against this baseline is 0.590; ``planning/memos/CORPORATE_PER_POINT_YIELD.md``
+    §6 names both and forbids picking either, because JCT's 0.59 is its answer
+    read backwards and is not separable from the behavioural term this module
+    already applies. This is ``1.0083 / tau``.
+    """
+    return credit_realized_base_billions(RECEIPTS_ANCHOR_YEAR) / actual_corporate_receipts(
+        RECEIPTS_ANCHOR_YEAR
+    )
+
+
+#: Module-level alias for the ratio above, for callers that want the number.
+BASE_PER_DOLLAR_OF_RECEIPTS = base_per_dollar_of_receipts()
+
+
+def projected_statutory_base(
+    fiscal_year: int, vintage: str = CORPORATE_RECEIPTS_VINTAGE
+) -> float:
+    """
+    The credit-realized statutory base a rate change reaches in a fiscal year.
+
+    CBO's own projected corporate receipts for that year, converted to a base
+    at the ratio measured on the anchor year. The credit-realization ratio is
+    **not** applied on top: it is inside the anchor (SOI's base is credit
+    realized there) and inside the path (receipts are credit realized by
+    definition), and applying it twice was the double count this construction
+    exists to avoid.
+    """
+    return cbo_corporate_receipts(fiscal_year, vintage) * BASE_PER_DOLLAR_OF_RECEIPTS
+
+
 @dataclass
 class CorporateTaxPolicy(TaxPolicy):
     """
@@ -316,6 +506,18 @@ class CorporateTaxPolicy(TaxPolicy):
             )
         super().__post_init__()
 
+    def uses_projected_base(self) -> bool:
+        """
+        Whether the rate channel carries its own year-indexed base path.
+
+        True in ``derived`` mode. The scoring engine reads it to decide whether
+        to ask for the year and whether to apply its own 4%/yr growth: the
+        projected base already carries CBO's growth, so growing it again would
+        double-count. Exactly the question
+        ``PayrollTaxPolicy.uses_covered_earnings_base`` answers.
+        """
+        return self.mode == CORPORATE_MODE_DERIVED
+
     def get_phase_in_factor(self, year: int) -> float:
         """
         Phase-in factor, carrying IRC section 6655 settlement timing in derived mode.
@@ -323,13 +525,18 @@ class CorporateTaxPolicy(TaxPolicy):
         A tax-year liability change is not a fiscal-year receipt change. Three
         of the four estimated instalments fall inside the tax year's own fiscal
         year and one falls in the next, so
-        ``FY_t = 0.75 L_t + 0.25 L_(t-1)``. The engine grows ``L`` at
-        :data:`CORPORATE_BASE_GROWTH`, which makes that convolution a constant
-        multiple of ``L_t`` — ``0.75`` in the first year, when there is no
-        previous year to collect from, and
-        ``0.75 + 0.25 / (1 + g) = 0.99038`` thereafter. Expressing it as a
-        phase factor keeps it out of the engine, and means the behavioural
-        offset (computed on the phased revenue) is timed with it.
+        ``FY_t = 0.75 L_t + 0.25 L_(t-1)``. That convolution used to collapse to
+        a constant — ``0.75 + 0.25 / (1 + g) = 0.99038`` — because ``L`` grew at
+        a constant :data:`CORPORATE_BASE_GROWTH`. On a projected path it does
+        not, so the factor is the convolution itself, ``0.75 + 0.25 B(t-1)/B(t)``,
+        which degenerates to the old closed form under constant growth. It stays
+        expressed as a phase factor so the behavioural offset (computed on the
+        phased revenue) is timed with it.
+
+        The factor **exceeds 1.0** wherever the projected base falls, which is
+        not a bug: a fiscal year that collects a quarter of a larger previous
+        tax year collects more than its own. CBO's February 2024 path falls in
+        FY2026 and FY2027.
 
         ``reported`` mode returns the base class's factor unchanged.
         """
@@ -339,26 +546,31 @@ class CorporateTaxPolicy(TaxPolicy):
         if year <= self.start_year:
             return base * ESTIMATED_PAYMENT_SAME_FY_SHARE
         carry = 1.0 - ESTIMATED_PAYMENT_SAME_FY_SHARE
-        return base * (
-            ESTIMATED_PAYMENT_SAME_FY_SHARE + carry / (1.0 + CORPORATE_BASE_GROWTH)
-        )
+        prior_share = projected_statutory_base(year - 1) / projected_statutory_base(year)
+        return base * (ESTIMATED_PAYMENT_SAME_FY_SHARE + carry * prior_share)
 
-    def _derived_rate_effect(self) -> float:
+    def _derived_rate_effect(self, year: int | None = None) -> float:
         """
-        Rate-channel revenue change in ``start_year``, from published inputs.
+        Rate-channel revenue change in a fiscal year, from published inputs.
 
-        ``delta x (income subject to tax) x (credit realization)``, with the
-        base aged from SOI's tax year to ``start_year`` at the engine's own
-        corporate growth rate. Nothing here reads the baseline, so the derived
-        score is independent of the vintage it is run on — the property
-        ``validation/cbo_options.py`` claims for every uncalibrated shape.
+        ``delta x`` :func:`projected_statutory_base` — CBO's own projected
+        corporate receipts for that year, converted to a statutory base at the
+        ratio measured on the TY2022/FY2022 anchor. ``year=None`` returns
+        ``start_year``'s figure, which is what the component breakdown prints.
+
+        The base used to be SOI's TY2022 level aged at a flat 4%/yr, which grew
+        2.8x faster than the baseline it was scored against and priced more than
+        100% of that baseline's own average base by FY2034. Nothing here reads
+        the baseline *object*, so the derived score is still independent of the
+        vintage it is run on — the property ``validation/cbo_options.py`` claims
+        for every uncalibrated shape. The path is a transcribed CBO table, an
+        input like SOI's, not a level read off the scorer.
         """
         delta = self._get_reform_rate() - self.baseline_rate
         if delta == 0.0:
             return 0.0
-        years = self.start_year - latest_soi_tax_year()
-        base = statutory_base_billions() * (1.0 + CORPORATE_BASE_GROWTH) ** years
-        return delta * base * credit_realization_ratio()
+        fiscal_year = self.start_year if year is None else year
+        return delta * projected_statutory_base(fiscal_year)
 
     def _get_reform_rate(self) -> float:
         """Get the reform corporate tax rate."""
@@ -367,31 +579,44 @@ class CorporateTaxPolicy(TaxPolicy):
         return float(self.baseline_rate + self.rate_change)
 
     def estimate_static_revenue_effect(self, baseline_revenue: float,
-                                       use_real_data: bool = True) -> float:
+                                       use_real_data: bool = True,
+                                       year: int | None = None) -> float:
         """
         Estimate static revenue effect from corporate rate change.
 
         In ``reported`` mode the formula is
             ΔRevenue = ΔRate × Taxable_Profits
-        against the fitted profits aggregate. In ``derived`` mode it is
-            ΔRevenue = ΔRate × (income subject to tax) × (credit realization)
-        against IRS SOI's published statutory base — see
-        :meth:`_derived_rate_effect`.
+        against the fitted profits aggregate, and the engine grows the result at
+        :data:`CORPORATE_BASE_GROWTH`. In ``derived`` mode it is
+            ΔRevenue = ΔRate × (projected statutory base for ``year``)
+        against CBO's own projected corporate receipts path — see
+        :meth:`_derived_rate_effect` — and the engine applies no growth, because
+        the path carries it.
 
         Either way this is the mechanical change before behavioral responses.
-        The international, R&D, depreciation and book-minimum channels below
-        are the same in both modes: this lane re-derived the rate identity and
-        left those constants where it found them.
+        The international, R&D, depreciation and book-minimum channels below are
+        the same constants in both modes and grow at
+        :data:`CORPORATE_BASE_GROWTH` in both. In ``reported`` mode the engine
+        does that growing; in ``derived`` mode the engine's growth is switched
+        off for the whole policy, so the four channels are grown here instead.
+        The alternative — one growth rate for the whole static effect — would
+        have meant either regrowing a path or freezing four annual constants,
+        and neither is what this lane changed.
 
         Args:
             baseline_revenue: Baseline corporate revenue (can use or override)
             use_real_data: Whether to use empirical baseline data
+            year: Fiscal year being scored. Read in ``derived`` mode only;
+                ``None`` means ``start_year``.
 
         Returns:
             Static revenue change in billions (positive = revenue gain)
         """
+        other_growth = 1.0
         if self.mode == CORPORATE_MODE_DERIVED:
-            static_effect = self._derived_rate_effect()
+            static_effect = self._derived_rate_effect(year)
+            if year is not None:
+                other_growth = (1.0 + CORPORATE_BASE_GROWTH) ** (year - self.start_year)
         else:
             # Use stored profits base or estimate from revenue
             profits = self.baseline_profits_billions
@@ -405,19 +630,18 @@ class CorporateTaxPolicy(TaxPolicy):
             rate_change = self._get_reform_rate() - self.baseline_rate
             static_effect = rate_change * profits
 
-        # Add international provision effects
-        static_effect += self._estimate_international_effects()
+        other_effects = (
+            # International provision effects
+            self._estimate_international_effects()
+            # R&D expensing effect
+            + self._estimate_rd_effect()
+            # Bonus depreciation effect
+            + self._estimate_bonus_depreciation_effect()
+            # Book minimum effect
+            + self._estimate_book_minimum_effect()
+        )
 
-        # Add R&D expensing effect
-        static_effect += self._estimate_rd_effect()
-
-        # Add bonus depreciation effect
-        static_effect += self._estimate_bonus_depreciation_effect()
-
-        # Add book minimum effect
-        static_effect += self._estimate_book_minimum_effect()
-
-        return static_effect
+        return static_effect + other_effects * other_growth
 
     def _estimate_international_effects(self) -> float:
         """Estimate revenue from GILTI/FDII changes."""

@@ -377,6 +377,20 @@ class FiscalPolicyScorer:
                     year=year,
                 )
                 growth_rate = 0.0
+            elif isinstance(policy, CorporateTaxPolicy) and policy.uses_projected_base():
+                # The derived rate channel is priced off CBO's own projected
+                # corporate receipts path, which already grows — at 1.4%/yr on
+                # the February 2024 vintage, against the 4%/yr the module used
+                # to age SOI's base at. So the year is asked for and the
+                # module-default growth is switched off rather than compounded
+                # on top. The policy grows its four non-rate constants itself,
+                # since they are annual levels rather than a path.
+                static_annual = policy.estimate_static_revenue_effect(
+                    base_rev,
+                    use_real_data=self.use_real_data,
+                    year=year,
+                )
+                growth_rate = 0.0
             else:
                 static_annual = policy.estimate_static_revenue_effect(
                     base_rev,
