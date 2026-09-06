@@ -110,6 +110,22 @@ WAVE4_PROVENANCE_FIRST_SCORED_COMMIT = (
     "22ccdd24182f5e319eebb16caf7128ed8e6537b2"
 )
 
+#: Commit that entered the corporate/PTC provenance rows — one supersession
+#: (``trump_corporate_15``, a ``model_estimate`` target replaced by a published
+#: range) and one examined-and-left verdict (``repeal_ptc``). The supersession
+#: moves a figure the runner reads, so the two-commit split applies again: the
+#: ledger row lands here and the commit that follows writes the figure into
+#: ``scenarios.py``.
+CORPORATE_PTC_PROVENANCE_ENTERED_COMMIT = (
+    "PENDING (stamped in the commit that follows)"
+)
+CORPORATE_PTC_PROVENANCE_ENTERED_DATE = "2026-09-05"
+
+#: Commit in which the corporate target was first actually scored.
+CORPORATE_PTC_PROVENANCE_FIRST_SCORED_COMMIT = (
+    "PENDING (stamped in the commit that follows)"
+)
+
 
 @dataclass(frozen=True)
 class CalibratedTarget:
@@ -316,6 +332,30 @@ _CRFB_TARIFFS = (
 )
 _CRFB_TARIFFS_URL = (
     "https://www.crfb.org/blogs/how-much-will-trumps-new-tariffs-raise"
+)
+
+_TF_CORPORATE_15 = (
+    "Garrett Watson and Erica York, 'A Lower Corporate Tax Rate Can Be Part "
+    "of Broader Tax Reform', Tax Foundation (17 July 2024, updated "
+    "23 October 2024)"
+)
+_TF_CORPORATE_15_URL = "https://taxfoundation.org/blog/trump-corporate-tax-cut/"
+
+_PWBM_TRUMP_2024 = (
+    "Penn Wharton Budget Model, 'The 2024 Trump Campaign Policy Proposals: "
+    "Budgetary, Economic and Distributional Effects' (26 August 2024)"
+)
+_PWBM_TRUMP_2024_URL = (
+    "https://budgetmodel.wharton.upenn.edu/issues/2024/8/26/"
+    "trump-campaign-policy-proposals-2024"
+)
+
+_CRFB_CORPORATE_15 = (
+    "Committee for a Responsible Federal Budget, 'Donald Trump's Proposal to "
+    "Lower the Corporate Tax Rate to 15%' (6 September 2024)"
+)
+_CRFB_CORPORATE_15_URL = (
+    "https://www.crfb.org/blogs/donald-trumps-proposal-lower-corporate-tax-rate-15"
 )
 
 
@@ -1281,6 +1321,113 @@ CALIBRATED_TARGETS: tuple[CalibratedTarget, ...] = (
             "benchmark scores the policy, not its legal survival."
         ),
     ),
+    # ------------------------------------------------------------------
+    # Trump corporate 15% — the target was this model's own output
+    # ------------------------------------------------------------------
+    CalibratedTarget(
+        revision_id="trump_corporate_15.v1",
+        policy_id="trump_corporate_15",
+        official_10yr_billions=1_920.0,
+        source_name="none (this repository's own model output)",
+        source_date="2024",
+        window="stated as 10-year; not traceable to any published window",
+        entered_commit="unknown (predates the validation manifest)",
+        entered_date="2025-12-08",
+        first_scoring_run_commit="unknown (predates the validation manifest)",
+        superseded_by="trump_corporate_15.v2",
+        reason=(
+            "Not a target at all. The scenario's own note reads 'No official "
+            "score; expected estimate derived from model', and Phase E "
+            "labelled it `model_estimate` on exactly that admission -- so "
+            "every error the row has ever reported was a distance from this "
+            "model's own answer. PR #119 showed how thin even that was: the "
+            "module's annual reproduced +$1,920B only because "
+            "`estimate_behavioral_offset` returned `abs(static)`, adding 12.5% "
+            "of a rate CUT's static effect to the deficit instead of taking it "
+            "off, and signing the offset moved the row 0.1% -> 22.3% with no "
+            "constant touched. Superseded rather than retired because two "
+            "primary published conventional estimates of the same statutory "
+            "rate change exist on this repository's own window; retiring a "
+            "benchmark that has a document is the failure mode this ledger "
+            "exists to prevent."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="trump_corporate_15.v2",
+        policy_id="trump_corporate_15",
+        official_10yr_billions=None,
+        published_low_10yr_billions=595.0,
+        published_high_10yr_billions=673.1,
+        source_name="Tax Foundation (anchor); Penn Wharton Budget Model",
+        source_document=_TF_CORPORATE_15,
+        source_url=_TF_CORPORATE_15_URL,
+        source_date="2024-07",
+        source_table=(
+            "Table 2, 'Revenue Effects of Reducing the Corporate Rate to 15 "
+            "Percent (Billions)'"
+        ),
+        source_row=(
+            "Conventional revenue, 2025-2034: -$673.1B (Tax Foundation); "
+            "PWBM Table 1, 'Lower the corporate income tax rate to 15%', "
+            "-$595B over 2025-2034"
+        ),
+        source_page="Table 2 (the post's only revenue table)",
+        window="FY2025-2034",
+        entered_commit=CORPORATE_PTC_PROVENANCE_ENTERED_COMMIT,
+        entered_date=CORPORATE_PTC_PROVENANCE_ENTERED_DATE,
+        first_scoring_run_commit=CORPORATE_PTC_PROVENANCE_FIRST_SCORED_COMMIT,
+        reason=(
+            "Two houses scored the same reform -- 21% to 15% for all "
+            "corporations -- on this repository's own FY2025-2034 window and "
+            "published conventional figures 13% apart, and CRFB's 6 September "
+            "2024 post prints both side by side. That spread is the honest "
+            "target, so the row takes a range on the mechanism Wave 3 built "
+            "for `pillar_two_adoption` and Wave 4 used for "
+            "`reciprocal_tariffs`. The carried anchor is Tax Foundation's "
+            "$673.1B, on a rule that has nothing to do with the model: "
+            "Tax Foundation's is a STANDALONE analysis of this one reform "
+            "with its own revenue table, while PWBM's is one stacked row "
+            "inside a whole-campaign package and therefore carries "
+            "interaction with the rest of the package. The anchor is a "
+            "published figure from a transcribed table, never a midpoint."
+        ),
+        note=(
+            "Three things a reader needs before quoting this row's error. "
+            "(1) SCOPE. `create_republican_corporate_cut` sets "
+            "`extend_bonus_depreciation=True`, and neither published figure "
+            "includes bonus depreciation -- PWBM prints it separately inside "
+            "'Extend the business tax provisions of TCJA' (-$623B). Measured "
+            "on this branch, the module's bonus-depreciation leg is "
+            "**+$294.15B** of the model's +$1,491.8B in `reported` mode "
+            "(+$287.06B of +$1,698.6B in `derived`), so the rate leg alone "
+            "reads +$1,197.6B, or +77.9% against the anchor rather than "
+            "+121.6%. The scope gap is stated rather than adjusted away: no "
+            "published figure scores rate-plus-bonus-depreciation as one line, "
+            "and summing two rows from PWBM's table would be constructing a "
+            "target rather than reading one. (2) DIRECTION. Tax Foundation's "
+            "Options 2.0 is the only document that prices both directions in "
+            "one edition and one model -- 21%->28% at $126.6B per point and "
+            "21%->15% at $163.2B per point -- so a point of CUT costs 29% more "
+            "than a point of increase yields, and `corporate.py` prices both "
+            "at the same per-point rate. (3) The rest is the level "
+            "`planning/memos/CORPORATE_PER_POINT_YIELD.md` documents: the "
+            "module's implied marginal base is 82-91% of the average base "
+            "against 55-64% for every published estimator. Dynamic figures, "
+            "carried so nobody mistakes the tier: Tax Foundation -$459.5B; "
+            "PWBM publishes no dynamic dollar figure for the line. CRFB's own "
+            "$200B is a DIFFERENT policy -- a revived section 199 deduction "
+            "reaching a 15% effective rate for domestic manufacturers only -- "
+            "and is not a bound of this range. Low bound: "
+            + _PWBM_TRUMP_2024
+            + " ("
+            + _PWBM_TRUMP_2024_URL
+            + "). Both figures printed together in "
+            + _CRFB_CORPORATE_15
+            + " ("
+            + _CRFB_CORPORATE_15_URL
+            + ")."
+        ),
+    ),
 )
 
 
@@ -1378,6 +1525,44 @@ EXAMINED_NOT_REVISED: dict[str, str] = {
         "retiring a case to avoid reporting an unsourced target is the "
         "failure mode this ledger exists to prevent. `searched` on the "
         "`benchmark_sources` row carries the full negative result."
+    ),
+    "repeal_ptc": (
+        "Searched on 2026-09-05 and the carried -$1,100B now has a most "
+        "likely origin, which is exactly why it is not adopted. CBO and JCT's "
+        "June 2024 baseline projections (Health Insurance and Its Federal "
+        "Subsidies, publication 51298, Table 2, read from CBO's own PDF via a "
+        "Wayback mirror because cbo.gov returns HTTP 403 here) print, under "
+        "'Premium tax credits and related spending', outlays of $966B and "
+        "revenue reductions of $176B over FY2025-2034 -- **$1,142B together, "
+        "3.8% from the figure this repository carries**. So the target is a "
+        "BASELINE PROJECTION of what the credit costs, sitting in a column "
+        "captioned as a repeal score. That is the same class of quantity the "
+        "`benchmark_sources` row already refuses for this benchmark "
+        "(JCX-48-24's exchange-subsidy tax expenditure) and the same one "
+        "`repeal_individual_amt` refuses TPC's T25-0049 for: a projection of a "
+        "provision's cost is not a score of repealing it, because it carries "
+        "no coverage response and no interaction with Medicaid, employer "
+        "coverage or taxable wages, all of which every published repeal "
+        "estimate prices. Adopting it would also make the row WORSE, not "
+        "better -- the model's -$896.9B is 18.5% from -$1,100B and 21.5% from "
+        "-$1,142B -- so this is not a case of a lane declining an improvement. "
+        "No scored repeal exists to move to: CBO/JCT publication 61734 "
+        "(18 September 2025), the most recent menu of marketplace policies, "
+        "scores permanently extending the expanded credit (~$350B) and "
+        "repealing five sections of the 2025 reconciliation act ($271.9B "
+        "together) and contains no option eliminating the credit at all; the "
+        "2018, 2020, 2022 and 2025 CBO options volumes carry no such option; "
+        "and the 2017 AHCA/BCRA estimates score ACA subsidy repeal bundled "
+        "with Medicaid, on a pre-enhancement statute and a 2017-2026 window. "
+        "One thing the owner should weigh, since it is a modelling decision a "
+        "provenance lane may not take: `create_repeal_ptc` sets "
+        "`coverage_elasticity=0.0` ('Not modeling coverage offset'), so what "
+        "the module computes IS a baseline cost rather than a repeal score, "
+        "and the mismatch is in the shape as much as in the target. Left in "
+        "place, left `secondhand`, and explicitly not retired -- retiring a "
+        "case to avoid reporting an unsourced target is the failure mode this "
+        "ledger exists to prevent, and this one is a locked "
+        "`holdout.py` id besides."
     ),
     "eliminate_mortgage": (
         "Searched again on 2026-09-02, and no official repeal score exists. "
@@ -1650,6 +1835,9 @@ __all__ = [
     "AMT_INSULIN_PROVENANCE_ENTERED_DATE",
     "AMT_INSULIN_PROVENANCE_FIRST_SCORED_COMMIT",
     "CALIBRATED_TARGETS",
+    "CORPORATE_PTC_PROVENANCE_ENTERED_COMMIT",
+    "CORPORATE_PTC_PROVENANCE_ENTERED_DATE",
+    "CORPORATE_PTC_PROVENANCE_FIRST_SCORED_COMMIT",
     "EXAMINED_NOT_REVISED",
     "REVISED_POLICY_IDS",
     "WAVE3_PROVENANCE_ENTERED_COMMIT",
