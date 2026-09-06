@@ -998,7 +998,9 @@ HEADERS = {
         "# finite-mean tail) and the median it implies is twice the Survey of",
         "# Consumer Finances' published 2022 figure.  Those groups keep the group",
         "# mean in decedent_estate_ladder.csv, exactly as the five-class ladder",
-        "# did, and they hold 13.4 percent of gains at death between them.",
+        "# did.  On this vintage they hold about 14 percent of gains at death",
+        "# between them, so the two groups the fit refuses are also the two that",
+        "# matter least to it.",
         "# Regenerate with: python scripts/build_capital_gains_data.py",
     ),
 }
