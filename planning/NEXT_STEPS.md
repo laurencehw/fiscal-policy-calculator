@@ -18,10 +18,26 @@ phrasing was on this line until 2026-09-01 and was wrong. Live numbers from
 
 | Tier | What it measures | n | Mean | Median |
 |---|---|--:|--:|--:|
-| Out-of-sample, pre-registered | prediction | 26 | **15.2%** | 11.4% |
-| Calibrated, fitted | bookkeeping (low by construction) | 21 | **1.7%** | 0.1% |
-| Unfitted module reconstructions | modules vs targets never fitted to | 34 | **57.6%** | 34.2% |
-| Calibrated, leave-one-out | how much of the calibration is structure | 18 | **29.6%** | 19.1% |
+| Out-of-sample, pre-registered | prediction | 26 | **15.0%** | 10.6% |
+| Calibrated, fitted | bookkeeping (low by construction) | 21 | **1.7%** | 0.0% |
+| Unfitted module reconstructions | modules vs targets never fitted to | 34 | **57.9%** | 34.2% |
+| Calibrated, leave-one-out | how much of the calibration is structure | 18 | **30.1%** | 19.1% |
+
+**Wave 7 moved three of the four rows and every move is stated with its
+mechanism.** The first row fell **15.2% → 15.0%** while **six of its seven moved
+rows got worse**, all pre-registered — and no lane's branch figure is the merged
+one, because PRs #126 and #132 move the same Treasury row in opposite directions
+(#126 alone gave 14.1%, #127 alone 15.9%, #132 alone 15.4%). The third row moved
+**57.6% → 57.9% on accuracy, not composition**: the same 34 rows sit in it either
+side and the whole 0.33pp is `repeal_ptc` going 18.5% → 29.6% when PR #131
+replaced a fitted annual with CBO's own published credit path. The fourth moved
+**29.6% → 30.1%**, also registered: PR #128 gave the expenditure module a
+per-reform offset direction and `Expenditures` went 35.7% → 37.5%, because the
+old −5.1% on the held-out mortgage row was two errors cancelling. The fitted row
+did not move, and `run_validation_dashboard.py` now prints its **held-in-place**
+reading too — **27 at 5.6%** on the six rows a target revision moved out, not the
+37 at 15.5% that folding in all 16 revised rows would give, since 10 of those
+were never declared fitted.
 
 **Wave 5 moved only the first row, which is the one tier where a moving mean
 measures the model, and PR #121 did the same again.** Wave 5's three lanes all
@@ -104,13 +120,21 @@ more, and **15.9% → 15.2%** in PR #121 on exactly one — reached through two 
 because PR #113's payroll correction (54.1% / 55.5% → **7.5% / 8.1%**) was worth
 more than PR #114's corporate regression (47.1% → **62.3%**) and PR #116's two
 Green Book rows (16.7% → **31.4%**, 0.2% → **43.3%**) cost, while PR #116 also
-took CBO Option 47 44.8% → **10.5%**. The CI gate went to `--max-mean-error 20
---min-within-25pct 21` (PR #117), and PRs #119-#122 left it there: on the post-#121
-battery the workflow's own rule still gives ceiling `ceil(15.2 × 1.25) = 19`,
-rounded up to the nearest 5 is 20, and floor `22 − 1 = 21`. PR #121's one row is
-`cbo_opt64_corporate_rate_1pp`, **62.3% → 44.5%**, which also took corporate out of
-first place in the tail: the four largest rows are now the AGI surtax at 44.7%,
-corporate at 44.5%, and the two Green Book capital-gains rows at 43.3% and 31.4%.
+took CBO Option 47 44.8% → **10.5%**. Wave 7 then took it **15.2% → 15.0%**
+while making six of its seven moved rows worse. The CI gate went to
+`--max-mean-error 20 --min-within-25pct 21` (PR #117), and neither PRs #119-#122
+nor Wave 7 moved it: on the post-Wave-7 battery the workflow's own rule
+**re-derives it to itself** — ceiling `ceil(15.0 × 1.25) = 19`, rounded up to the
+nearest 5 is 20, and floor `22 − 1 = 21`. (PR #126's memo stated a floor of 22 on
+its own branch, where within-25 read 23; the merged tree reads 22, so that
+tightening does not apply.) PR #121's one row is `cbo_opt64_corporate_rate_1pp`,
+**62.3% → 44.5%**, which took corporate out of first place; Wave 7 then rewrote
+the tail around it. The largest rows are now `cbo_opt46_agi_surtax_1pp_20k` at
+**49.8%**, corporate at **44.5%**, `cbo_opt46_agi_surtax_2pp_100k` at **37.4%**
+and `biden_capital_gains_39` at **32.8%**, with the FY2022 Treasury row down to
+**18.4%** on its own decade. **Capital gains is no longer the tier's largest
+error mass** — the two AGI-surtax rows are, at 87.2 of 390.7 units (22.3%)
+against capital gains' 82.0 (21.0%).
 
 Wave 4's own five rows, for the record: PR #108's death-channel carve-outs and
 rate response did almost all of it (the two step-up rows 218% → 0.2% and
@@ -154,7 +178,7 @@ composition again. See
 - Feature 3: State-Level Modeling — top 10 states, SALT interaction, combined rate curves
 - Feature 4: Real-Time Bill Tracker — congress.gov pipeline, LLM provision extraction, SQLite storage, Streamlit UI
 
-## Modelling plan: Waves 1-5 complete, plus the sign sweep and the corporate follow-through (2026-09-05)
+## Modelling plan: Waves 1-7 complete, plus the sign sweep and the corporate follow-through (2026-09-06)
 
 [`MODELING_IMPROVEMENT.md`](MODELING_IMPROVEMENT.md) Wave 1 landed 2026-09-01/02
 (PRs #83, #85, #86, #87, #88): the budget-authority-to-outlay spend-out model
@@ -505,6 +529,94 @@ Revisit when a rate-only published 28% score on a carried vintage exists. Neithe
 module whose implied marginal base is above every published estimator's misses both
 published corporate targets in the same direction and misses the third by more.
 
+### Wave 7 landed (2026-09-06, PRs #126-#135)
+
+Seven green/🟡-tier lanes and three blue-tier ones. **Four of the seven were
+pre-registered regressions and landed as regressions**, and the tier figures
+below are the merged tree's, which are not any lane's before/after: PRs #126 and
+#132 move the same Treasury row in opposite directions.
+
+**#126 FY2022 target window** (`planning/memos/FY2022_TARGET_WINDOW.md`) gave
+`CBOScore` a `scoring_window_first_year` and scored
+`treasury_capgains_39_plus_stepup_elim` on **FY2022–2031**, the decade its own
+document covers — target unchanged at −$322.0B, shape input superseded to `.v2`,
+which is `iija_2021_discretionary.v2`'s rule exactly. **The window offset is 28.7
+of the row's 43.3 points, not the "~17" every doc quoted**: the old figure
+discounted only the rate channel, and the death channel both grows and does not
+grow proportionally. The control (`biden_capital_gains_39`, same shape on its own
+window) has an offset of exactly zero. The row reads **18.4%** on merged main
+rather than the memo's 14.6%, because #132 landed in the same wave. **The same
+mechanism would take IIJA 18.2% → 0.3%**, published as an owner `.v3` decision
+rather than taken.
+
+**#127 filing-status split** (`planning/lanes/W7_filing_status_split.md`) closed
+§6.2 item 25, the tier's oldest tail row, by transcribing IRS SOI **Table 1.2**
+and taking only its *composition* onto the Table 1.1 base. `opt46_1pp`
+44.7% → **49.8%**, `opt46_2pp` 16.1% → **37.4%**, `opt45_top4` 17.9% → **12.4%**,
+`biden_high_income` 12.0% → **9.2%**, every figure landing on its pre-registered
+value. **Finding: `opt46_2pp`'s 16.1% was two errors cancelling a third** —
+split + AGI base + baseline growth would take it to **1.0%**, but the latter two
+move rows with no filing-status boundary, so each is its own lane. And the
+single-threshold approximation was **not** uniformly generous: the Green Book
+row's married-filing-separately floor is $175,000 *below* the amount the model
+applied.
+
+**#128 expenditure offset convention**
+(`planning/lanes/W7_expenditure_offset_convention.md`) settled §6.2 item 8 by
+reading nine sources one reform at a time: **magnify** where CBO names the
+channel (Option 56, the charitable rate ceiling, SALT elimination, SALT-cap
+repeal), **erode** otherwise (mortgage on Poterba–Sinai, step-up, retirement,
+like-kind). Only `eliminate_mortgage` moved, −$330.4B → **−$270.3B**,
+10.1% → **9.9%**; **zero presets moved**. Expenditures LOO **35.7% → 37.5%**, a
+pre-registered regression, because the old −5.1% was two errors cancelling. A
+sixth sign defect was fixed in `estimate_expenditure_revenue()`, and
+`CONVENTION_EXCEPTIONS` is now per-policy rather than per-class. **Magnitudes
+remain unsourced** — item 8 is closed on direction, open on magnitude.
+
+**#131 PTC repeal shape** (`planning/lanes/W7_ptc_repeal_shape.md`) replaced a
+fitted $83.0B/yr — which is the carried target run backwards through the engine's
+growth factor — with CBO/JCT publication 51298's own annual credit path times
+(1 − 19.28% of offsets from publication 60437). `repeal_ptc` −$896.9B →
+**−$774.1B**, 18.5% → **29.6%**, a **pre-registered regression** whose whole
+$326B decomposes into three published steps. **The gross June-2024 path scores
+0.09% against $1,142B** — the proof that the target is a baseline projection. The
+Repeal ACA PTC preset moved with a Decision 6 caption.
+
+**#132 decedent ladder** (`planning/lanes/W7_decedent_ladder.md`) replaced the
+five-class ladder with a fitted piecewise-Pareto SOI/DFA estate-size
+distribution: `opt51` 19.3% → **20.3%**, `biden_capgains` 31.4% → **32.8%**,
+Treasury 43.3% → 45.4% on that branch — all pre-registered. **Finding: the
+$1M→$5M exclusion-step gap is the decedent HEADCOUNT, not the ladder.**
+`max(0, gain − E)` is convex, so a sharper schedule makes an exclusion cost
+*more*; the step went 82.26 → **85.02**, the wrong way. The model's decedent
+count is short **7.6×** overall and only **1.6×** at the top, so a uniform
+scaling would overshoot. `.gitignore`'s bare `data/` line makes ruff skip
+`fiscal_model/data/` entirely.
+
+**#130 baseline corporate path + dashboard means**
+(`planning/lanes/FIX_baseline_corporate_path.md`) gave `CBOBaseline` a per-vintage
+corporate receipts line — February 2024 is now CBO publication 59710 Table 1-1 —
+where it had been 18% of individual income tax regardless of vintage, grown
+4.88%/yr against CBO's own 1.21%. **Nothing scored moved**; the Ask baseline's
+ten-year deficit went $30,020.7B → **$29,529.1B** and debt/GDP 104.8% → **103.8%**.
+The dashboard gained a calibrated-tier block and `declared_calibrated_to_target`,
+so the honest held-in-place reading (**27 @ 5.6%**, not 37 @ 15.5%) is computed
+rather than asserted.
+
+**Three blue-tier PRs.** **#129 cold-start measurement**
+(`planning/memos/COLD_START.md`) took first paint **1.59s → 0.02s** by import
+ordering in `app.py` and found the real cost was the footer's scorecard —
+**8.7 of 9.4s** on a cold landing page. Community Cloud sleeps after 12 hours and
+needs a click to wake; no app-side fix touches that. **#135 footer scorecard**
+closed it with a test-pinned artifact: landing first run **8.40s → 0.67s**. A
+registry count cannot be exact, because runners drop rows that fail to score.
+Scored `/explore` is still ~10.6s through `get_validation_badge → _scorecard_index`
+— carry-over. **#133 Plotly dark mode** themed 20 of 21 chart sites, with light
+mode pinned byte-identical and WCAG contrast measured. **#134 Build frozen links**
+closed PR #111's carry-over: `/build?policies=&target=&metric=` plus the shared
+lock, values links freezable, exports still live, and a test comparing frozen and
+open scoreboards bar by bar.
+
 ### Next: the carry-over list, sequenced by the owner
 
 What is left is a single list of open items at
@@ -524,14 +636,33 @@ benchmarks, one of them its own output, so a LOO row would reconstruct the const
 from itself; the substitute that *was* built is a second published, unfitted
 corporate target.
 
-What remains, with the newest first: **`CBOBaseline`'s corporate receipts
-projection** (new, PR #121 finding 1 — it grows at 4.88%/yr against CBO's own
-1.44% and returns an *identical* path for all three vintages under the app's own
-default; nothing scored reads it today, which is why it is a defect and not a bug
-report); **`repeal_ptc`'s shape as much as its target** (new, PR #122 §4 —
-`create_repeal_ptc` sets `coverage_elasticity=0.0`, so what the module computes
-*is* a baseline cost, which is why the row and the only figure anyone can find for
-it are both measuring the same wrong thing); **the corporate module's implied
+**Wave 7 closed seven more**: the FY2022 target window (#126), the filing-status
+threshold row (#127), the expenditure convention's *direction* half (#128), the
+`repeal_ptc` shape (#131), the decedent ladder (#132), `CBOBaseline`'s corporate
+receipts path and the dashboard's blindness to the calibrated tiers (#130). Two
+of those closed by being **disproved rather than fixed** — the decedent ladder
+was not the cause of the exclusion-step gap, and the filing-status split made
+three of its four rows worse — which is why the list below is longer than the
+seven items it lost.
+
+**Wave 7's new items**, each with a lane pointer: the **IIJA `.v3` window
+decision** (owner; #126 publishes 18.2% → 0.3% and declines to take it); **Option
+46's AGI base and baseline-growth terms** (#127 finding 1 measures both, and both
+move rows with no filing-status boundary); the **decedent headcount** (#132 —
+`estate_flow_rate` is a dollar flow used as a headcount rate; the candidate is
+`mortality_weighted_net_worth_share` at 2.65%, and the top of the distribution is
+short by only 1.6× where the total is short by 7.6×); the **expenditure
+elasticity magnitudes** (#128 — all five unsourced, two now with a published
+figure beside them); **`_scorecard_index`'s badge cost on scored routes** (#135 —
+6.6s of a 10.6s scored `/explore`, and it needs per-row figures, so the artifact
+cannot serve it); the **preset-sweep script's window** (#131 finding 5 — it
+scores FY2026–2034 while its own lane docs say FY2026–2035); **`.gitignore`'s
+bare `data/` line** (#132 — ruff silently skips `fiscal_model/data/`); and the
+**stale `known_limitations` text on the Treasury row** (#126 — still says "about
+17 of the row's 43 points" and quotes $405.6B, and the record's `notes` still
+claim the row necessarily gets the same prediction as `biden_capital_gains_39`).
+
+What remains from before, with the newest first: **the corporate module's implied
 marginal base still 80.8% of the vintage average against JCT's 55.9%** (new,
 PR #120 §4b and PR #121's own "what the lane did not do" — the remaining 44 points
 of `cbo_opt64` are credit carryforwards under §38(c)/§904(c), CAMT and the
@@ -542,18 +673,12 @@ was closed unmerged on 2026-09-05 and `reported` kept, revisit trigger recorded 
 §6.2 item 33); **a `retire` state for `target_revisions.py`**
 (new, PR #122 §3 — deliberately *not* built, because a mechanism with no user is
 dead code and the row that would have used it turned out to have a document;
-recorded so the next lane does not re-derive the question); **the
-FY2022 Green Book target's window offset** (W5-C §8.3 finding 5 — worth
-about 17 of that row's 43 points, and a shape input under the manifest's
-supersede rule); **Build packages not freezable and the Data & methodology
-options not pinned** (PR #111); payroll's two flat-share "elasticities" and
+recorded so the next lane does not re-derive the question); **the Data &
+methodology options still not pinned by a frozen link** (PR #111 — *Build
+packages became freezable in PR #134*, so only the options half is left); payroll's two flat-share "elasticities" and
 its unexplained base-growth gap (W5-A findings 4 and 5); and the engine's
 two year-indexed policy classes with no general concept behind them (W5-A
-finding 6). Carried from before: the five-class decedent ladder's lack of
-within-group dispersion (W4 gains-at-death §8, and still the diagnosis behind
-both Green Book rows); the AGI-surtax filing-status threshold row, unchanged at
-**44.7%** through six waves and now the tier's **largest**, corporate having fallen
-past it; the holdout-protocol re-lock;
+finding 6). Carried from before: the holdout-protocol re-lock;
 `repeal_individual_amt`'s unsourced $450B; Option 56's two payroll alternatives
 and its FSA/HRA/HSA base; the expenditure module's behavioural sign convention
 (W4-3a finding 3 and §6.2 item 8 — **the sweep's single remaining exception**,
