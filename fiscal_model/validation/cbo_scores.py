@@ -122,6 +122,17 @@ class CBOScore:
     # ``BaselineVintage`` value (e.g. "cbo_feb_2024"). None keeps the runner's
     # default (the model's current baseline).
     scoring_vintage: str | None = None
+    # The first fiscal year of the ten-year window the *source* published its
+    # total over. None keeps the runner's own window
+    # (``DEFAULT_VALIDATION_START_YEAR``); set, the runner opens its window in
+    # that year, so the model scores the same ten fiscal years the target
+    # covers. A **window** is not a **vintage**: no shape that carries one today
+    # reads a baseline level, so this needs no historical baseline to work.
+    # Transcribed from the source's own table exactly like
+    # ``annual_authority_path_billions`` - a pre-registered shape input, never a
+    # knob turned to close a gap, and moving one goes through the manifest's
+    # supersede rule (see ``preregistered.FY2022_TARGET_WINDOW_RULE``).
+    scoring_window_first_year: int | None = None
     # Capital gains: whether the reform also eliminates step-up basis at death.
     eliminate_step_up: bool = False
     # Capital gains: per-decedent exclusion under a step-up-elimination reform.
@@ -434,6 +445,11 @@ KNOWN_SCORES: dict[str, CBOScore] = {
               "policy shape, it necessarily receives the same prediction even though the two "
               "published targets differ from each other by 42%.",
         eliminate_step_up=True,
+        # The window this row's own document published its total over, and the
+        # decade the model is therefore scored on. Same fiscal years on both
+        # sides; the target is unchanged. See treasury_capgains_39_plus_stepup
+        # _elim.v2 in preregistered.py and planning/memos/FY2022_TARGET_WINDOW.md.
+        scoring_window_first_year=2022,
     ),
 
     # -------------------------------------------------------------------------
