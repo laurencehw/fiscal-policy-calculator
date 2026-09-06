@@ -442,10 +442,20 @@ this lane did not make it** - see 7.6.
 | | before | after |
 |---|--:|--:|
 | **Tier 1 - out-of-sample** | 26 @ 15.9% / 11.4% / 16 / 22 | **unchanged, to the cent on all 26 rows** |
-| **Tier 2 - fitted calibrated** | 23 @ 1.6%, 23/23 within 15% | **23 @ 3.4%, 21/23 within 15%** |
-| **Tier 2 - unfitted reconstructions** | 31 @ 56.6% / 29.9% | **unchanged** |
+| **Tier 2 - fitted calibrated** | 23 @ 1.6%, 23/23 within 15% | **21 @ 1.7%, 21/21 within 15%** |
+| **Tier 2 - unfitted reconstructions** | 31 @ 56.6% / 29.9%, 9 / 12 | **33 @ 54.4% / 28.4%, 9 / 14** |
 | **Tier 2 - leave-one-out** | 18 @ 29.6% / 19.1%, 8 within 15% | **unchanged; `--donor-matrix` byte-identical** |
 | Shipped presets (53) | - | **2 moved** |
+
+**Both Tier 2 counts changed population, and neither move is an improvement -
+quote the constant-population readings beside them.** Held in place, the fitted
+tier reads **23 @ 3.4%, 21/23 within 15%**; on the 31 rows the reconstruction
+tier already held, it reads **56.6% / 29.9%**, exactly what it read on
+`790caff`. The fitted mean *falling* 3.4% -> 1.7% and the reconstruction mean
+*falling* 56.6% -> 54.4% are both **composition, not accuracy**: the two rows
+that left the fitted tier are the two the sweep moved, and they are better than
+the reconstruction tier's average and worse than the fitted tier's. Read the two
+together or neither.
 
 **Two scorecard rows moved, both in the fitted calibrated tier, and neither was
 retuned.**
@@ -475,8 +485,58 @@ published score. What they measure is that the calibrated tier had two rows
 whose agreement was buying part of its 0.1% from a bug, which is the honest
 reading and the reason the fitted mean rose.
 
-The fitted mean moving **1.6% -> 3.4%** is the whole of the tier's change; the
+The fitted mean moving **1.6% -> 3.4%** was the whole of the tier's change; the
 other 21 rows are identical to the cent.
+
+### 7.2.1 And then both rows left the fitted tier
+
+*Added after CI. `python scripts/check_readiness.py --strict` fails on CI
+(exit 2) where it passes on `main`, and this branch is why: a **fitted**
+benchmark rated Poor is strict-blocking, because its parameters exist to
+reproduce that target, and signing the corporate offset made
+`trump_corporate_15` exactly that. It could not be seen locally because Python
+3.14 already fails the runtime check and masks everything after it; CI runs 3.12.*
+
+The owner's decision was **reclassify, do not retune, do not exempt**, on the
+precedent `readiness.py` cites in its own comment and that Wave 2 L1 set for
+`pwbm_39_with_stepup` and Wave 3 L8 for `trump_universal_10` and
+`trump_china_60`: **a constant that reproduced its target only through a defect
+is not a calibration to that target.** Both rows now carry
+`calibrated_to_target: False` in `fiscal_model/validation/scenarios.py`, with the
+finding written into the comment above them and into `known_limitations`, so they
+report in the unfitted-reconstruction tier where a documented miss is a finding
+rather than a calibration regression.
+
+| row | rating | why it was reclassified |
+|---|---|---|
+| `trump_corporate_15` | **Poor (22.3%)** - what trips the gate | the `abs()` offset added 12.5% of a negative static to the deficit; the annual was fitted so that *static x 1.125* hit +$1,920B |
+| `repeal_ptc` | **Acceptable (18.5%)** - does not trip it | the inverted offset added 10% of the saving; the annual was fitted so that *static x 1.10* hit -$1,100B |
+
+`repeal_ptc` is reclassified anyway, and the reason is worth stating: it sits
+**1.5pp from Poor**, and a Poor row in the fitted tier with no
+`known_limitations` is a *hard* readiness failure rather than a warning. The
+classification follows the finding, not the rating - and the finding is
+identical on both rows. Both also now carry a note, which readiness requires
+before a Poor row is a warning at all.
+
+`calibrated_to_target` is threaded through the corporate and PTC runners with a
+default of `True`, so **no other scenario moved**; a test pins the two-row scope
+so the default cannot quietly invert and empty the tier.
+
+Neither target is published, which is the other half of why this is the right
+move: +$1,920B is `model_estimate` (its own note says "No official score") and
+-$1,100B is untraceable `secondhand` ("CBO estimate", no publication, on section
+6.2 item 5's list of twelve). Both are queued for the next provenance pass, to
+be retired or re-sourced - see 7.6 item 3.
+
+Nothing else moved with them. Tier 1 is unchanged at 26 @ 15.9%,
+`run_loo.py --donor-matrix` is still byte-identical to `790caff`, and no shipped
+number changed - the two presets had already moved with the sign fix, and this
+commit changes only which tier reports them. **No test pinned the fitted count
+of 23 or the reconstruction count of 31**, so none had to be restated;
+`tests/test_cold_holdout.py`'s anti-leakage invariant is untouched. Three new
+tests pin what did change: the classification and its notes, the two-row scope,
+and that strict readiness reports no `documented_calibrated_policy_ids`.
 
 ### 7.3 The two presets, and the caption
 
@@ -542,12 +602,12 @@ to a UX bar, not an accuracy one, and neither is gated.
 
 | command | result |
 |---|---|
-| `python -m pytest tests/ -q` | **3,503 passed, 7 skipped in 14m27s** (`790caff` documents 3,415 passed, 1 skipped; the lane adds 94 tests, 6 of them the convention's and capital gains' skips) |
+| `python -m pytest tests/ -q` | **3,506 passed, 7 skipped** (`790caff` documents 3,415 passed, 1 skipped; the lane adds 97 tests, 6 of them the convention's and capital gains' skips) |
 | `python scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 21` | **exit 0** (15.9%, 22/26 - the gate is not approached) |
 | `python scripts/run_loo.py --donor-matrix --max-mean-error 75` | **exit 0** (29.6%) |
 | `python scripts/run_loo.py --donor-matrix` | **byte-identical** to `790caff` |
 | `python scripts/run_validation_dashboard.py` | **exit 1, byte-identical output to `790caff`** |
-| `python scripts/check_readiness.py --strict` | **exit 2, byte-identical output to `790caff`** |
+| `python scripts/check_readiness.py --strict` | **exit 2**, the one remaining strict issue being the Python 3.14 runtime check (see 7.2.1) |
 | `python -m ruff check fiscal_model/ tests/ scripts/` | clean |
 
 The dashboard and the readiness check both fail on `790caff` too, for the two
@@ -557,6 +617,28 @@ neither is touched by this lane. Both were re-run against a clean export of
 `790caff` rather than taken on trust, and both produced **identical bytes**; the
 dashboard does not print the by-construction calibrated tier, which is why the
 two moved rows do not appear in it.
+
+**That equality is exactly what hid the CI failure**, and it is worth writing
+down as a lesson rather than a footnote. The local runtime check fails first on
+Python 3.14, so `check_readiness.py --strict` exits 2 on both trees and a byte
+diff of its output shows nothing - while on CI's 3.12 `main` passes and this
+branch did not, because `trump_corporate_15` had become a Poor row still
+declared fitted. **"Identical to main" is only evidence when the check being
+compared can distinguish them**, and a check that is already failing for another
+reason cannot. The direct query is what settles it:
+
+```
+python -c "from fiscal_model.readiness import build_readiness_report, \
+    strict_readiness_issues; r=build_readiness_report(); \
+    print([(i.name, i.details.get('documented_calibrated_policy_ids')) \
+           for i in strict_readiness_issues(r)])"
+```
+
+which returned `[('runtime', None), ('revenue_scorecard', ['trump_corporate_15'])]`
+before the reclassification and returns **`[('runtime', None)]`** after it -
+`documented_calibrated_policy_ids` empty, and the only remaining strict issue the
+Python 3.14 one that fails on `main` too. A test now asserts that, so the next
+lane does not have to know to run it.
 
 `tests/test_offset_sign_contract.py` is the lane's own gate: parametrised over
 every class in both directions, plus three caption tests and two structural
@@ -574,7 +656,7 @@ minus $100B on every instance, and the reason is written into the test.
 
 ### 7.6 For the owner
 
-Three things this lane found and did not decide.
+Four things this lane found and did not decide.
 
 1. **Decision 1's corporate comparison reverses with the sign, and the module
    is now due to flip.** `CORPORATE_APP_MODE`'s own docstring table records
@@ -588,8 +670,8 @@ Three things this lane found and did not decide.
    shipped corporate presets with them (on the benchmarks' own window,
    `biden_corporate_28` -$1,397.2B -> -$1,452.1B and `trump_corporate_15`
    +$1,491.8B -> +$1,698.6B), so it needs its own caption and its own
-   pre-registration; and the
-   row that produces the reversal, `trump_corporate_15`, has provenance
+   pre-registration; and the row that produces the reversal,
+   `trump_corporate_15`, has provenance
    `model_estimate`, so *neither* ranking is evidence about the world. The
    comparison is pinned as a test
    (`test_decision_1_now_ranks_derived_ahead_of_reported`) so the reversal
@@ -605,7 +687,7 @@ Three things this lane found and did not decide.
    convention is worth **+5.0% of the static effect** on a SALT elimination and
    **+20%** on Option 56, and it moves the fitted rows and the LOO column
    together.
-3. **Two fitted rows are now visibly carrying a target nobody can check.**
+3. **Two rows are now visibly carrying a target nobody can check.**
    `trump_corporate_15` (`model_estimate`, "CBO/Treasury") and `repeal_ptc`
    (`secondhand`, "CBO estimate") both sat at about 0% while a sign bug was
    inflating them. `repeal_ptc` is on section 6.2 item 5's list of twelve
@@ -614,7 +696,19 @@ Three things this lane found and did not decide.
    i.e. this model's own output recorded as an expectation, which is a
    different and weaker thing again. A provenance pass on the two would say
    whether 22.3% and 18.5% are model error or target error; today nobody can
-   tell, and the tier reports them as model error.
+   tell. Since 7.2.1 the tier no longer reports them as *calibration* error -
+   both are reconstructions now - but it still reports them against targets no
+   document backs.
+4. **`biden_corporate_28`'s target is a bundled rate-plus-GILTI row.** Not this
+   lane's finding and not changed here: the corporate memo merged to `main` as
+   `planning/memos/CORPORATE_PER_POINT_YIELD.md` (PR #120) recommends the
+   benchmark become **`line_item_differs`**, because the module scores a rate
+   change alone against a published figure that is not one. It matters to this
+   lane only because `biden_corporate_28` is the *other* half of Decision 1's
+   corporate comparison in item 1 above - so the row that keeps reported ahead
+   on one benchmark and the row that puts derived ahead on the other are both
+   now under provenance question, and the comparison should probably not be
+   re-decided until they are settled. **Noted, not changed.**
 
 ### 7.7 What this lane did not touch
 
