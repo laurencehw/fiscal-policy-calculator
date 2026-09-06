@@ -386,8 +386,221 @@ Each of these is a specific thing that, if it fires, is a finding and goes in
 
 ## 5. Outturn
 
-*Appended after the code, in the last commit.*
+*Appended 2026-09-05, after the code. Numbers from
+`python scripts/cold_holdout.py --json`, `python scripts/run_loo.py
+--donor-matrix`, `python scripts/run_validation_dashboard.py` and
+`validate_all_corporate(mode=...)` on the finished branch.*
+
+### Against the pre-registration
+
+| Row | Predicted | Actual | |
+|---|---|---|---|
+| `cbo_opt64_corporate_rate_1pp` | −196.1 ± 2, 44.5 ± 1.5% | **−196.08, 44.50%** | as registered |
+| Tier 1 mean / median | 15.2% / 11.4% | **15.2% / 11.4%** | as registered |
+| Tier 1 within 15 / 25 | 16 / 22 | **16 / 22** | as registered |
+| `biden_corporate_28` **derived** | −1,292.6 ± 10, 4.0 ± 1.0% | **−1,292.62, +4.04%** | as registered |
+| `trump_corporate_15` **derived** | +1,545.2 ± 15, 19.5 ± 1.5% | **+1,545.24, −19.52%** | as registered |
+| Decision 1 derived mean | 11.8 ± 1.0% | **11.78%** | as registered |
+| `biden_corporate_28` **reported** | unchanged | **−1,397.21, −3.73%** | as registered |
+| `trump_corporate_15` **reported** | unchanged | **+1,491.76, −22.30%** | as registered |
+| Fitted calibrated tier | 21 @ 1.7%, no row moves | **21 @ 1.7%**, 0 of 21 moved | as registered |
+| Unfitted reconstructions | 33 @ 54.4%, no row moves | **33 @ 54.4%**, 0 of 33 moved | as registered |
+| Leave-one-out | byte-identical | **byte-identical** | as registered |
+| Every other Tier 1 row | 25 unchanged | **25 unchanged**, to the decimal | as registered |
+| Shipped presets / Tailor rows | unchanged | **51 + 6 unchanged**, byte-identical sweep | as registered |
+| `CORPORATE_APP_MODE` | `reported` | **`reported`** | as registered |
+| Decision 6 caption | none owed | **none owed** | as registered |
+| CI gate `--max-mean-error 20 --min-within-25pct 21` | passes | **exit 0** | as registered |
+
+**Every registered figure landed, including the ten-row year-by-year build**,
+which the engine reproduced to the third decimal on every line — receipts, base,
+phase, revenue and deficit — from a spreadsheet computed before the module was
+opened. `3,515 tests pass` (7 skipped), 9 of them new. The whole
+`run_validation_dashboard.py` output differs from the branch point by **one
+line**, the Tier 1 mean; it exits 1 before and after, identically, on `runtime`
+(Python 3.14.0 against a supported `>=3.10,<3.14`) and `microdata` (SOI 2023
+coverage 119% returns / 81% AGI), neither of which this module touches, verified
+against a stashed tree at the branch point.
+
+The CI thresholds needed no change and the workflow's own rule says why:
+`ceil(15.2 × 1.25)` rounded up to the nearest 5 is still **20**, and `22 − 1`
+is still **21**. A modelling lane may not edit them either way; this is only the
+note that the rule re-derives to what is already there.
+
+### Reported vs derived, per benchmark — the Decision 1 table
+
+| Benchmark | Target | Reported | Err | Derived | Err |
+|---|--:|--:|--:|--:|--:|
+| `biden_corporate_28` | −$1,347.0B | −$1,397.21B | −3.73% | **−$1,292.62B** | **+4.04%** |
+| `trump_corporate_15` | +$1,920.0B | +$1,491.76B | −22.30% | **+$1,545.24B** | **−19.52%** |
+| **Mean abs** | | | **13.02%** | | **11.78%** |
+
+Derived still ranks ahead of reported, as it has since PR #119, and by less than
+it did. `CORPORATE_APP_MODE` **stays `reported`**: flipping it is the owner's
+call after the concurrent provenance lane lands, and the numbers to decide it on
+are below rather than in a mean.
+
+### What the lane bought, and what it did not
+
+**1. The marginal share stopped drifting.** The share of the vintage's own
+average base the derived path prices, year by year:
+
+| FY | 2025 | 2026 | 2027 | 2028 | 2029 | 2030 | 2031 | 2032 | 2033 | 2034 |
+|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| before | 0.603 | 0.832 | 0.878 | 0.901 | 0.919 | 0.937 | 0.959 | 0.997 | **1.009** | **1.016** |
+| after | 0.623 | 0.832 | 0.834 | 0.828 | 0.827 | 0.827 | 0.828 | 0.831 | 0.825 | 0.824 |
+
+Window average **90.8% → 80.8%**. The impossibility is gone: numerator and
+denominator are now the same series, so what is left is the behavioural factor
+times the anchor wedge, `(1 − 0.8 × 0.22) × 1.0083 = 0.831`, flat by
+construction.
+
+**2. The level did not move much, and that was the point.** The model was above
+every published estimate on this window and is now above every one but Treasury:
+Tax Foundation 55.1%, JCT 55.9%, PWBM 64.4%, Treasury 79.5%, **model 80.8%**.
+Twenty of the row's sixty-two points were a vintage problem. The remaining
+forty-four are the memo's §5(c) residual — credit carryforwards under §38(c) and
+§904(c), CAMT, and the individual-side dividend interaction — and none of them
+is in this module's power to close from a published source.
+
+**3. The derived path crossed its own target.** `biden_corporate_28` derived went
+from **−7.81% (over)** to **+4.04% (under)**, and the sign matters: that target
+is a rate **plus GILTI** row (memo §2, correction 2) scored against a factory
+that sets `gilti_rate_change=0.0`, so under-predicting it is the direction scope
+alone would produce. It over-predicted before, which needed the base error to be
+larger than the scope error.
+
+### Falsification results
+
+All eight were checked and **none fired**.
+
+| # | Test | Result |
+|---|---|---|
+| 1 | Any non-corporate Tier 1 row moves | 25 rows identical to the decimal |
+| 2 | `biden_corporate_28` reported moves | −1,397.21, unchanged |
+| 3 | Any calibrated-tier row moves | 0 of 21 fitted, 0 of 33 reconstructions |
+| 4 | `run_loo.py --donor-matrix` not byte-identical | byte-identical |
+| 5 | Any preset or Tailor row moves | 51 + 6, byte-identical sweep |
+| 6 | `cbo_opt64` outside 40–49% | 44.50% |
+| 7 | Derived score becomes vintage-dependent | `test_derived_reads_no_baseline_level` passes |
+| 8 | Anchor wedge exceeds 2% | 0.83%, pinned by a test |
+
+### Findings
+
+1. **The repository's own baseline object is not the vintage's path, and reading
+   it would have made this worse.** `CBOBaseline.generate().corporate_income_tax`
+   on `CBO_FEB_2024` grows at **4.88%/yr** — *faster* than the 4% constant this
+   lane removed and 3.4× CBO's own 1.44% — because the corporate line is a base
+   level times `real GDP growth + inflation + a corporate profit premium`. Worse,
+   under `use_real_data=True` (the app's default) it returns the **identical**
+   path for all three vintages, 402.1 → 614.3, because `base_corporate_tax` is
+   set from an IRS-to-individual-income-tax ratio that has no vintage in it. So a
+   score reported as "on the February 2024 baseline" has a corporate receipts
+   line that is neither February 2024's nor distinguishable from February 2026's.
+   This is a green-tier defect that no corporate lane can fix and that nothing
+   currently reads for a scored quantity; it is finding 1 because it is the
+   reason this lane reads a transcribed CBO table instead, and it is carry-over 2
+   below.
+2. **A phase factor above 1.0 is right here, and it is the first one.** CBO's
+   projected corporate receipts *fall* in FY2026 and FY2027, so a fiscal year
+   collecting a quarter of the previous, larger tax year collects more than its
+   own: 1.00137 and 1.00377. Every other phase factor in the repository is a
+   fraction, and a reviewer's instinct will be that this is a bug. It is the
+   §6655 convolution behaving correctly on a non-monotone path, and it is pinned
+   by a test that asserts both signs.
+3. **The anchor's 0.83% agreement is not evidence about timing.** SOI's TY2022
+   base is a tax year and Treasury's FY2022 receipts a fiscal year. Applying the
+   module's own §6655 blend to reconcile them — `0.75 L(TY2022) + 0.25 L(TY2021)`
+   — returns **410.60 against the actual 424.87, 3.4% apart**, *worse* than the
+   naive 0.83%. So the two series disagree by more than the timing convention
+   explains, the naive agreement is partly coincidence, and the honest claim is
+   only the one the lane makes: they agree to within the 2% the splice needs. The
+   lane did not tune the anchor to improve either number.
+4. **Decision 1's mean moved the wrong way while its only published row moved the
+   right way.** Derived 9.67% → 11.78%; `biden_corporate_28` 7.81% → 4.04%. The
+   whole of the rise is `trump_corporate_15`, whose target is provenance
+   `model_estimate` — the model's own output written down — so the statistic that
+   decides the app default is decided by a row that measures nothing about the
+   world. The module's `CORPORATE_APP_MODE` docstring now carries the per-row
+   table and says so; the mean is carried beside it rather than instead of it.
+5. **CBO's own rounding is visible in the transcription.** The ten annual values
+   sum to **5,093.9** against the **5,094.0** CBO prints as the total — the same
+   artefact the alternatives CSV shows on Option 64 itself, where Table 1-1 gives
+   136.0 and the alternatives file 135.7. The test asserts the total to a tenth
+   rather than to the cent, and says why.
+6. **The row's `known_limitations` text is now partly stale, and this lane did
+   not touch it** because a concurrent provenance lane owns it. Two sentences to
+   revisit: "the base is IRS SOI Table 11's published income subject to tax …
+   realized at SOI's own after-credits/before-credits ratio (0.7085)" — both
+   quantities are still read, but as the *anchor* rather than as two multipliers,
+   and the ratio no longer multiplies the path; and "that base is 34% larger than
+   the fitted one" — the FY2025 base is now **24.9%** larger ($2,372.3B against
+   $1,900B), because the projection starts three years of 4%/yr lower than the
+   aging did.
+
+### What the lane did not do
+
+- Did not touch any target, `preregistered.py`, `holdout.py`, `loo.py`,
+  `target_revisions.py`, `benchmark_sources.py`, `scenarios.py`,
+  `cbo_scores.py`, `KNOWN_SCORES`, `CBO_SCORE_MAP`, the corporate rows'
+  `known_limitations` text, any yardstick script or any CI threshold.
+- Did not retune `corporate_elasticity`, `PROFIT_SHIFTING_SEMI_ELASTICITY`,
+  `BASELINE_TAXABLE_PROFITS_BILLIONS`, `ESTIMATED_PAYMENT_SAME_FY_SHARE` or any
+  fitted annual. No constant in the module changed value.
+- **Did not assert a marginal-realization ratio.** The factor shipped is
+  `1.0083/τ`, a wedge between two published measurements of one year's base. The
+  number that would land the row — a total factor of 0.5785, against JCT's own
+  steady-state 0.590 — is printed by the reconciliation script and was not
+  approached: the model still prices 80.8% of the average base.
+- Did not flip `CORPORATE_APP_MODE`, so no shipped number moved and no
+  Decision 6 caption is owed. The Tailor corporate rows and both corporate
+  presets are byte-identical.
+- Did not open `reported` mode at all. Its base, its offset and its growth are
+  where PR #119 left them.
+- Did not re-derive the four non-rate channels. `GILTI_REVENUE_BILLIONS`,
+  `FDII_COST_BILLIONS`, the −$12B R&D annual, the −$28B depreciation annual and
+  the $100B book-minimum base are all still unsourced. What changed for them is
+  only bookkeeping: in derived mode the engine's growth is off for the whole
+  policy, so the module grows those four itself at the same
+  `CORPORATE_BASE_GROWTH` it always did, and their contribution is unchanged to
+  the cent.
+- Did not build credit carryforwards, CAMT or the individual-side interaction,
+  which are where the 44 remaining points of `cbo_opt64` live. Each needs a
+  quantity that is not published in a source this module reads, and each would
+  arrive as a constant that landed on CBO by construction.
+- Did not adjust SOI's TY2022 anchor for §174 R&D capitalisation or the
+  bonus-depreciation phase-down. The memo sizes that at 11.1% as an upper bound
+  and shows it takes the row to 46.1% rather than to CBO.
 
 ## 6. Carry-overs this lane opens
 
-*Written with the outturn.*
+Sequencing is the owner's; each names the artefact it lives in.
+
+1. **Transcribe the January 2025 and February 2026 corporate receipts paths.**
+   `fiscal_model/data_files/corporate/cbo_corporate_receipts.csv` has a `vintage`
+   column and one block in it, and `cbo_receipts_by_fiscal_year` raises rather
+   than borrowing another vintage's numbers, so adding them is a data edit.
+   Blocked here: cbo.gov returns HTTP 403 to this environment and the Wayback
+   Machine holds no snapshot of `51118-2025-01-budgetprojections.xlsx` or
+   `51118-2026-02-budgetprojections.xlsx`. The memo's §3 has the 10-year totals
+   (4,766.7 and 4,976.7) but no annual shape. Same blocker as
+   `MODELING_IMPROVEMENT.md` §6.2 item 16.
+2. **`CBOBaseline`'s corporate receipts projection** (finding 1). Not a corporate
+   lane's to fix and not read by any scored quantity today, but a vintage whose
+   corporate line is identical across all three vintages under the app's own
+   default is a live defect in the green tier, and it is the reason the
+   distinction between "the vintage" and "the repository's reconstruction of the
+   vintage" had to be made explicit in this module's docstrings.
+3. **The corporate module still has no leave-one-out row** —
+   `MODELING_IMPROVEMENT.md` §6.2 item 23, unchanged. It now has *three*
+   published series in its derived path and one fitted constant in its reported
+   path, and still nothing cross-validating either.
+4. **Decision 1 for corporate is due a re-measure**, on a population that is
+   moving: a second corporate benchmark is being re-sourced and a third
+   registered by the concurrent provenance lane, and the statistic currently
+   turns on a `model_estimate` row (finding 4).
+5. **The four non-rate constants.** Unsourced, untouched, and `trump_corporate_15`
+   derived is about a fifth bonus depreciation — which is a fifth of the row that
+   decides Decision 1.
+6. **The row's `known_limitations` text** (finding 6), which is the provenance
+   lane's to write.
