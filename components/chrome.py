@@ -61,6 +61,14 @@ APP_SUBTITLE = (
 #
 # ``_DARK_SURFACE``/``_DARK_INK`` match Streamlit's own dark theme tokens, so
 # the overlay and any natively dark surface agree.
+#
+# Plotly charts are the half of the overlay CSS cannot reach — their canvas and
+# text colours live in the figure JSON, not the DOM. ``fiscal_model.ui.charts``
+# is the Python-side twin: ``is_dark_mode()`` reads the same ``dark_mode``
+# session flag this function does, and ``theme_figure`` applies the dark canvas.
+# Keep the three colours below and ``charts.DARK_BACKGROUND`` /
+# ``DARK_SURFACE`` / ``DARK_INK`` in step — ``tests/test_charts_theme.py``
+# fails if they drift.
 _DARK_BG = "#0e1117"
 _DARK_SURFACE = "#262730"
 _DARK_INK = "#fafafa"
@@ -115,6 +123,16 @@ header[data-testid="stHeader"] {{background-color: {_DARK_BG} !important;}}
 .fpc-evidence-card-title {{color: #9aa4b2 !important;}}
 .info-box
     {{background-color: #1e3a5f !important; border-left-color: #4da6ff !important;}}
+
+/* Vega-Lite tooltip (st.line_chart / st.bar_chart). vega-tooltip appends a
+   single element to <body>, outside every Streamlit container, and ships its
+   own white stylesheet — so it is the one surface no container rule reaches. */
+#vg-tooltip-element,
+#vg-tooltip-element.vg-tooltip
+    {{background-color: {_DARK_SURFACE} !important; color: {_DARK_INK} !important;
+      border-color: #3d4048 !important;}}
+#vg-tooltip-element td.key {{color: #c9ccd6 !important;}}
+#vg-tooltip-element td.value {{color: {_DARK_INK} !important;}}
 </style>"""
 
 

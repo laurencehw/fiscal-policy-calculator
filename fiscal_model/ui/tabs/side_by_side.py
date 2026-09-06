@@ -14,6 +14,7 @@ import plotly.graph_objects as go
 
 from fiscal_model.baseline import APP_DEFAULT_START_YEAR
 from fiscal_model.preset_handler import create_policy_from_preset
+from fiscal_model.ui.charts import apply_base_layout, horizontal_legend
 from fiscal_model.ui.helpers import unescape_markdown_dollars
 
 
@@ -190,7 +191,8 @@ def render_side_by_side_tab(
             textposition="outside",
             marker_color=colors[i],
         ))
-    fig_bar.update_layout(
+    apply_base_layout(
+        fig_bar,
         yaxis_title="10-Year Effect (Billions $)",
         showlegend=False,
         height=400,
@@ -214,12 +216,13 @@ def render_side_by_side_tab(
         line=dict(width=3, color="#DC2626"), marker=dict(size=7),
     ))
     fig_line.add_hline(y=0, line_dash="dot", line_color="gray", opacity=0.5)
-    fig_line.update_layout(
+    apply_base_layout(
+        fig_line,
         xaxis_title="Year",
         yaxis_title="Annual Effect (Billions $)",
         hovermode="x unified",
         height=450,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        legend=horizontal_legend(align="right"),
     )
     st_module.plotly_chart(fig_line, width="stretch")
 

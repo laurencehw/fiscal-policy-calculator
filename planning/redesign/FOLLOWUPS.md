@@ -33,8 +33,25 @@ Left for a later lane:
 ## Phase 6b — new / carried forward
 - [x] `$`-rendering guard is now a test: `tests/test_dollar_rendering.py` renders `/`, `/build`, `/tailor` and `/explore` (after a real run) through `AppTest` and asserts no rendered string carries two unescaped currency amounts. It found a **live** bug — the Results "Sensitivity range: `$+4,581.9B to $+4,581.9B`" line rendered as a KaTeX span with the dollar signs eaten — plus the over-cap rate-limit message (NOTES §11.22). Both fixed. Two things learned and encoded in the test: Streamlit's math parser opens a span on `$+`/`$-`, not just `$<digit>`; and a **block-level** HTML string (`<p>…`) is opaque to `remark-math` while an **inline** one (`<small>…`) is not — so the interpretation card is correctly left unescaped and escaping it actually renders a visible backslash.
 - [x] Streamlit 1.56 deprecations cleared: `use_container_width=` → `width="stretch"`/`"content"` across `app_pages/`, `components/`, `fiscal_model/ui/` and `ui/tabs/` (the `a11y.render_accessible_chart` kwarg is kept for callers and translated at the boundary). pyarrow mixed-type warning fixed at `ui/tabs/detailed_results.py` by casting the display-only Policy Details column to `str`.
-- [ ] **Plotly charts are not dark-mode aware** (white canvas on a dark page). Needs a theme-driven Plotly template in `ui/charts.py` passed through `apply_base_layout`, plus the same for the Vega tooltip. Readable today, but it breaks the illusion.
-- [ ] **Dark mode is a CSS overlay, not a theme.** Streamlit exposes no runtime theme API and no CSS custom properties to override, so `_DARK_MODE_CSS` enumerates surfaces by `data-testid`. It is now correct on every surface the app renders, but a future Streamlit that adds a widget type will re-open the same class of bug. Worth revisiting if upstream ships a runtime theme switch.
+- [x] **Plotly charts are not dark-mode aware** — done. `ui/charts.py` grew
+  `is_dark_mode()` (reads the same `dark_mode` session flag chrome does) and
+  `theme_figure()`, applied at the end of `apply_base_layout` and again in
+  `a11y.render_accessible_chart`; 20 of the app's 21 chart sites now route
+  through one of the two. The styling is written at **layout** level, not only
+  into the registered `fpc_dark` template, because `st.plotly_chart(theme=
+  "streamlit")` makes Streamlit's frontend merge its own light layout into
+  `figure.layout.template.layout` before rendering — so a template alone is
+  overwritten, and Plotly resolves `layout` ahead of the template. No `theme=`
+  argument changed at any call site. Light mode is a no-op and
+  `tests/test_charts_theme.py` pins its layout dict. The Vega tooltip
+  (`#vg-tooltip-element`, appended to `<body>` outside every Streamlit
+  container) is repainted in `_DARK_MODE_CSS`. **Carry-over:** the Build
+  waterfall (`ui/tabs/deficit_target.py::_render_waterfall`) is the one site
+  still un-routed — it belongs to the Build lane, and the fix is one call,
+  `apply_base_layout(fig, height=380, …)` in place of its `fig.update_layout`.
+  `tests/test_dark_mode_render.py` pins it as the *only* exception, so that
+  test fails the day it is fixed or the day a second one appears.
+- [ ] **Dark mode is a CSS overlay, not a theme.** Streamlit exposes no runtime theme API and no CSS custom properties to override, so `_DARK_MODE_CSS` enumerates surfaces by `data-testid`. It is now correct on every surface the app renders, but a future Streamlit that adds a widget type will re-open the same class of bug. Worth revisiting if upstream ships a runtime theme switch. The Plotly work above did **not** change this: `st.context.theme` exists in the pinned Streamlit 1.56 but reports the *Streamlit* theme, which this deployment always serves light, so the charts read the app's own `dark_mode` session flag and fall back to `st.context.theme` only for a deployment whose Streamlit config is genuinely dark.
 - [x] Scoring-window drift is visible to users: Explore shows **FY2026–FY2035** for a calibrated preset while Tailor shows **FY2025–FY2034** for a generic run (`FiscalPolicyScorer` defaults `start_year=2025`). Same owner call as the entry below, but note it is now a *within-session* inconsistency, not just a plan mismatch. **Closed with the entry below** — one window, `fiscal_model.baseline.APP_DEFAULT_START_YEAR`; see `tests/test_scoring_window.py`.
 
 ## Owner decisions still open (non-blocking)

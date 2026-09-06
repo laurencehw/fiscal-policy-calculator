@@ -13,6 +13,7 @@ import plotly.graph_objects as go
 
 from fiscal_model.models.base import build_scorer_for_start_year, policy_start_year
 from fiscal_model.preset_handler import create_policy_from_preset
+from fiscal_model.ui.charts import apply_base_layout, horizontal_legend
 from fiscal_model.ui.helpers import unescape_markdown_dollars
 
 STATIC_MODEL = "CBO-Style (Static + ETI)"
@@ -252,7 +253,8 @@ def render_policy_comparison_tab(
                         textposition="outside",
                     )
                 )
-            fig_compare.update_layout(
+            apply_base_layout(
+                fig_compare,
                 xaxis_title="Policy",
                 yaxis_title="10-Year Effect (Billions $)",
                 barmode="group",
@@ -275,12 +277,13 @@ def render_policy_comparison_tab(
                         marker=dict(size=7),
                     )
                 )
-            fig_timeline.update_layout(
+            apply_base_layout(
+                fig_timeline,
                 xaxis_title="Year",
                 yaxis_title="Annual Effect (Billions $)",
                 hovermode="x unified",
                 height=500,
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                legend=horizontal_legend(align="right"),
             )
             st_module.plotly_chart(fig_timeline, width="stretch")
 

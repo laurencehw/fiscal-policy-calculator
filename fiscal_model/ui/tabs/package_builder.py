@@ -12,6 +12,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+from ..charts import apply_base_layout, theme_figure
 from ..helpers import build_scorable_policy_map
 
 
@@ -195,7 +196,8 @@ def render_policy_package_tab(
         )
     )
 
-    fig_waterfall.update_layout(
+    apply_base_layout(
+        fig_waterfall,
         title="Policy Package Components (10-Year Impact)",
         xaxis_title="Budget Impact ($B, CBO Convention: + = Cost, - = Revenue)",
         height=max(300, len(package_results) * 50),
@@ -218,7 +220,7 @@ def render_policy_package_tab(
                 title="Cost Components (Deficit Increases)",
                 color_discrete_sequence=px.colors.sequential.Reds,
             )
-            st_module.plotly_chart(fig_costs, width="stretch")
+            st_module.plotly_chart(theme_figure(fig_costs), width="stretch")
         else:
             st_module.info("No cost components in this package")
 
@@ -231,7 +233,7 @@ def render_policy_package_tab(
                 title="Revenue Components (Deficit Decreases)",
                 color_discrete_sequence=px.colors.sequential.Greens,
             )
-            st_module.plotly_chart(fig_revenues, width="stretch")
+            st_module.plotly_chart(theme_figure(fig_revenues), width="stretch")
         else:
             st_module.info("No revenue components in this package")
 
