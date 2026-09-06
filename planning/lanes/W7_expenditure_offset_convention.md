@@ -337,4 +337,205 @@ Anything that moves outside this list is a finding and gets written into §9.
 
 ## 9. Outturn
 
-*Appended in the lane's last commit.*
+*Appended in the lane's last commit. Every figure below is from a command named
+beside it, run on this branch.*
+
+**Every prediction in §7 landed, to the digit.** One scored row moved, by the
+factor §7.1 computed; no preset moved; Tier 1 is identical to the cent; the
+leave-one-out regression arrived at the size it was pre-registered at. None of
+§7.3's five falsifications fired.
+
+### 9.1 What the module reads now
+
+`python scripts/audit_offset_signs.py`, the same script and cases PR #119 wrote,
+with a second expenditure case added so the class shows both of its kinds:
+
+| class | dir | f(+100) | f(−100) | window static | window behav | window final | erodes | tag |
+|---|---|--:|--:|--:|--:|--:|:-:|---|
+| TaxExpenditurePolicy [SALT] | increase | −5.0 | 5.0 | −952.6 | −47.6 | −1,000.2 | **NO** | |
+| | cut | −5.0 | 5.0 | 740.0 | 37.0 | 777.0 | **NO** | convention |
+| TaxExpenditurePolicy [mortgage] | increase | 10.0 | −10.0 | −286.6 | 28.7 | −257.9 | yes | |
+| | cut | 10.0 | −10.0 | 57.3 | −5.7 | 51.6 | yes | correct |
+
+The audit now reads **14 correct, 1 convention, 1 zero**, where the branch point
+read 13/1/1 and PR #119's own branch point read 6 correct against 7 defects. The
+one remaining `convention` row is a **policy**, not a class: `[SALT]` carries
+the exemption with CBO's sentence attached and `[mortgage]`, built beside it in
+the same class, is held to the contract like everything else.
+
+### 9.2 What moved
+
+| | before | after |
+|---|--:|--:|
+| **Tier 1 — out-of-sample** | 26 @ 15.196% / 11.4% / 16 / 22 | **unchanged, to the cent on all 26 rows** |
+| **Tier 2 — fitted calibrated** | 21 @ **1.733%**, 21/21 within 15% | **21 @ 1.724%**, 21/21 within 15%, median still 0.0% |
+| **Tier 2 — unfitted reconstructions** | 34 @ 57.556% / 34.15% | **unchanged, to the cent on all 34 rows** |
+| **Tier 2 — leave-one-out** | 18 @ **29.6%** / 19.1%, 8/18 within 15% | **18 @ 30.1%** / 19.1%, 8/18 — *worse, by design* |
+| Shipped presets (53) | — | **0 moved**; the sweep diffs byte-identical |
+
+**No row left or joined either calibrated tier**, so unlike PR #119 there is no
+composition effect here and the held-in-place reading *is* the headline reading:
+21 @ 1.724% on the same 21 rows, 34 @ 57.556% on the same 34. The fitted mean
+falling 0.009pp is one row moving 0.2pp closer to its target and nothing else.
+
+**One scorecard row moved, and nothing was retuned:**
+
+| row | tier | target | before | after | error |
+|---|---|--:|--:|--:|---|
+| `eliminate_mortgage` | fitted | −300.0 | −330.4 | **−270.3** | 10.1% → **9.9%** |
+
+It stays Acceptable, so `scenarios.py` was never opened and PR #119's
+reclassify-don't-retune precedent was never invoked. `python -c "from
+fiscal_model.readiness import …"` returns **`[('runtime', None)]`**, the Python
+3.14 issue that fails on `main` too and is not this lane's.
+
+**The leave-one-out is the price, and §7.2 named it in advance:**
+
+| | before | after |
+|---|--:|--:|
+| `eliminate_mortgage` LOO | −315.3, **−5.1%** | **−257.9, +14.0%** |
+| Expenditures module (n=5) | 35.7% | **37.5%** |
+| LOO suite (n=18) | 29.6% | **30.1%** |
+
+Median (19.1%) and within-15% (8/18) are unchanged, because 14.0% is still
+inside the band. The leakage guard is untouched and `eliminate_step_up` is still
+excluded by it with the same message.
+
+### 9.3 Five findings
+
+**1 — The convention was right more often than item 8 assumed, and the row it
+was wrong about is one no scorekeeper has scored.** Item 8 measured the
+convention's size on "SALT elimination" and Option 56 and called it unsourced
+outside the latter. It is not: CBO's extended discussion of Option 49
+(`budget-options/58635`) names the channel for the SALT elimination **by name**,
+in the alternative that is that exact reform, and says it "would… increase their
+tax liability". Both SALT rows and the charitable rate cap join Option 56 on the
+magnify side with documents behind them. The one *scored* reform where the
+convention was wrong is the mortgage-interest deduction — and the source that
+settles it is not a scorekeeper, because there isn't one: the row is already in
+`EXAMINED_NOT_REVISED` precisely because no post-TCJA repeal score exists. It is
+Poterba & Sinai (NBER WP 14253, Table 8), who price repeal at $72.4B with no
+behavioural response and $61.9B once households sell taxable assets to retire
+mortgage debt, "about 85 percent".
+
+**2 — The grain is the whole finding, and the documents force it.** A
+module-wide direction could not have been right, and neither could a
+per-expenditure one. CBO's Option 49 puts four alternatives over the same
+deductions in the same table and gives them **three** different directions
+(§4.1); CBO's charitable option reverses its own verdict between a rate ceiling
+("an effect that would increase tax revenues") and a floor ("smaller than it
+would be otherwise"), because a floor can be bunched over and a rate ceiling
+cannot. `OFFSET_DIRECTIONS` is therefore keyed on `(expenditure, action)` and a
+rule may carry the cap design it was read for; a different design falls back to
+erode rather than inheriting a verdict its document never gave. A test builds
+both charitable caps side by side and asserts they resolve differently.
+
+**3 — The module's own six fitted constants disagree about whether the
+convention exists.** This is the sharpest thing the lane found and it was not
+predicted. Reconstructing each annual against its own growth rate over ten
+years:
+
+| constant | annual | e | static path | static × (1+e) | its target | fitted to |
+|---|--:|--:|--:|--:|--:|---|
+| `cap_employer_health` | 31.2 | 0.20 | 374.6 | **449.5** | −450.0 | static × (1+e), 0.1% off |
+| `cap_charitable` | 12.5 | 0.40 | 143.3 | **200.6** | −200.0 | static × (1+e), 0.3% off |
+| `eliminate_mortgage` | 26.2 | 0.10 | **300.4** | 330.4 | −300.0 | **static**, 0.1% off |
+| `repeal_salt_cap` | −96.0 | 0.05 | **−1,100.5** | −1,155.6 | 1,100.0 (pre-Wave-4) | **static**, 0.0% off |
+| `eliminate_salt` | 104.7 | 0.05 | **1,200.3** | 1,260.3 | −1,200.0 (pre-Wave-4) | **static**, 0.0% off |
+| `eliminate_step_up` | 43.6 | 0.00 | 523.5 | 523.5 | −500.0 | neither; 4.7% off |
+
+**Three were fitted so that the static path hits the target and three so that
+the magnified score does.** That is why this module's fitted rows were never
+uniformly near zero the way the rest of the tier's are: on the three
+static-fitted rows the convention was carried as **pure error** — 10.1% on
+mortgage, 5.0% on the SALT elimination, 5.1% on the cap repeal — while the two
+magnified-fitted rows absorbed it. It also means the fitted tier's near-zero
+entries are not all near-zero for the same reason, which is worth knowing before
+anyone reads a 0.1% as agreement. Nothing was retuned: re-fitting the three
+static-fitted annuals to the score is exactly the move §1.1 of the plan forbids,
+and it would make the row that moved here move again for a second reason.
+
+**4 — The leave-one-out got worse because two errors stopped cancelling.** The
+held-out mortgage annual is the JCT base level, $25.0B, against the fitted
+$26.2B — a static path of −286.6 against the −300.0 target, **4.5% low**. The
+old magnify convention added 10% to that and produced −315.3, **5.1% high**, so
+the row read as one of the module's best. Signing it takes the same 4.5%-low
+static to −257.9, **14.0% low**, which is the base error plus the offset rather
+than the base error netted against it. That is the same shape as the Fiscal
+Responsibility Act's spend-out in Wave 1: a correct mechanism removing one of
+two errors that were cancelling, and the honest reading is that the −5.1% was
+never evidence.
+
+**5 — The direction is now sourced and the magnitude still is not, and the
+distance between those two facts is measurable.** Poterba & Sinai's own figure
+is a **15%** erosion against the module's 10%. It was **not adopted**: reading a
+paper for a direction and then taking its coefficient as well would be fitting
+to a document this lane chose, and it would move `eliminate_mortgage` a second
+time in the same PR. Charitable's 0.4 is worse than unsourced — it has the size
+of a *price elasticity of giving* and is applied to a share of the static
+**revenue** effect, which is a different quantity; the arithmetic of a 28%
+ceiling at a 37% marginal rate implies something nearer 18%. Employer health's
+0.2 is the one W4 finding 5 already flagged as unpublishable from CBO's text.
+All five are named in `BEHAVIORAL_ELASTICITIES`'s own comment now and all five
+are carry-overs.
+
+**One slip in the pre-registration, and it is arithmetic.** §2 says the zeroed
+`behavioral_elasticity` every calibrated factory passes is dead code "on five of
+the eight". It is **six of the eight**: five expenditure *types* are listed in
+`BEHAVIORAL_ELASTICITIES`, but SALT has two factories. The module's own comment
+now names the two exceptions —
+`create_eliminate_step_up_basis` and `create_eliminate_like_kind_exchange` —
+rather than counting. Nothing downstream turned on the count.
+
+### 9.4 Falsification: none of the five fired
+
+1. **Any row other than `eliminate_mortgage` moving** — did not fire. All 26
+   Tier 1 rows, all 20 other fitted rows and all 34 reconstruction rows are
+   identical to the cent, checked row by row rather than on the tier means.
+2. **`eliminate_mortgage` not moving, or moving by other than
+   `(1−e)/(1+e)`** — did not fire. −330.4 × 0.8182 = −270.3, which is what it
+   scores.
+3. **A shipped preset moving** — did not fire. All 53 diff byte-identical.
+4. **Tier 1 moving at all** — did not fire.
+5. **Strict readiness reporting a `documented_calibrated_policy_ids`** — did not
+   fire; it returns `[('runtime', None)]`, which is what `main` returns.
+
+### 9.5 Gates
+
+| command | result |
+|---|---|
+| `python -m pytest tests/ -q` | **3,528 passed, 7 skipped** (`a251b32`: 3,518 passed, 7 skipped — the lane adds 10 tests) |
+| `python scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 21` | **exit 0** (15.2%, 22/26 — the gate is not approached) |
+| `python scripts/run_loo.py --donor-matrix --max-mean-error 75` | **exit 0** (30.1%) |
+| `python scripts/run_validation_dashboard.py` | **exit 1**, as on `a251b32`; the diff is **two lines**, both the Expenditures LOO figure |
+| `python -c "… strict_readiness_issues …"` | **`[('runtime', None)]`**, unchanged from `a251b32` |
+| `python -m ruff check fiscal_model/ tests/ scripts/` | clean |
+
+The dashboard's exit 1 is the pre-existing `runtime [degraded] Python 3.14.0`
+and `microdata [warn] SOI 2023` pair, neither touched here. PR #119's §7.5
+lesson was taken rather than repeated: a byte-diff of an already-failing check
+proves nothing, so strict readiness was queried **directly** for
+`documented_calibrated_policy_ids` rather than compared as text — the query CI's
+Python 3.12 would answer.
+
+### 9.6 What this lane did not do
+
+- **Did not touch a single elasticity.** Finding 5.
+- Did not open `preregistered.py`, `holdout.py`, `loo.py`'s guards,
+  `target_revisions.py`, `KNOWN_SCORES`, `CBO_SCORE_MAP`, any CI threshold,
+  `tests/test_cold_holdout.py`'s anti-leakage invariant, `.github/`, or
+  `planning/MODELING_IMPROVEMENT.md`.
+- **Did not open `scenarios.py` at all.** No row went Poor, so no
+  reclassification was owed and no fitted annual was retuned — including the
+  three finding 3 shows were fitted to a static path rather than to a score.
+- Did not ship a Decision 6 caption, because no shipped number moved. If a
+  future lane re-fits those three constants, it will owe one.
+- Did not build W4's findings 2, 4 and 5 (the health-spending-account base, the
+  payroll leg of Option 56, the plan-switching channel). All still open.
+- Did not touch the shared docs. `docs/VALIDATION.md`'s Option 56 paragraph
+  ("an unsourced behavioural offset whose sign convention is the reverse of
+  `TaxPolicy`'s"), `docs/METHODOLOGY.md` line 198, `CLAUDE.md`'s Tier 1
+  paragraph and `planning/MODELING_IMPROVEMENT.md` §6.2 item 8 are all stale
+  after this lane; a docs pass owns them. Item 8 is **closed** as far as the
+  direction goes and **open** as far as the magnitudes go, and the two halves
+  should be recorded separately.

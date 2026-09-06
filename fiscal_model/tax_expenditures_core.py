@@ -459,9 +459,11 @@ TAX_EXPENDITURE_DATA_KEYS = {
 #:
 #: Note that this table **wins over** ``TaxExpenditurePolicy.behavioral_elasticity``
 #: for any type listed in it, so the ``behavioral_elasticity=0.0`` every
-#: calibrated factory passes is dead code on five of the eight factories. That
-#: is why this module's offset is live on its benchmarks where AMT's, estate's
-#: and PTC's were not (``planning/lanes/SWEEP_offset_sign.md`` section 5.2).
+#: calibrated factory passes is dead code on six of the eight factories -- all
+#: but ``create_eliminate_step_up_basis`` and
+#: ``create_eliminate_like_kind_exchange``, whose types are absent here. That is
+#: why this module's offset is live on its benchmarks where AMT's, estate's and
+#: PTC's were not (``planning/lanes/SWEEP_offset_sign.md`` section 5.2).
 BEHAVIORAL_ELASTICITIES = {
     TaxExpenditureType.CHARITABLE: 0.4,
     TaxExpenditureType.MORTGAGE_INTEREST: 0.1,
