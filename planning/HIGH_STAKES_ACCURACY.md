@@ -177,21 +177,42 @@ Ranked by **stakes × current error × tractability**. Each lane follows the est
 inherits §1's rules: mechanism not tuning, frozen yardstick, pre-register before opening a file,
 regressions count, report movement not attainment.
 
-### H1 — One base rule, four surfaces *(1.5 lane-days)*
+### H1 — One base rule, four surfaces *(2 lane-days)*
 
-**Mechanism.** `ordinary_income_base` becomes a single derived property of the policy shape, not a
-per-surface default: a *bracket-rate* change excludes LTCG/QDIV; a *surtax on income above a
-threshold* does not. Add `agi_inclusive_base: True` to the three shipped surtax presets. Ask's
-constructor takes the same rule. The Tailor checkbox stays, seeded from the rule rather than from
-`True`.
-**Files.** `fiscal_model/app_data.py` (three preset dicts), `fiscal_model/assistant/tools.py`,
+**Mechanism — an attribute, not a heuristic.** The shape alone cannot decide the base, and the battery
+says so. `biden_high_income_tax` is a 39.6% rate *above a \$400,000/\$450,000 threshold* and is
+classified on the **ordinary** base, where it scores **9.2%**; Option 46's surtax above \$20,000 is
+AGI-inclusive. A rule reading "a threshold means AGI-inclusive" would misclassify the first.
+`cold_holdout.py --ordinary-base` is the tell: forcing one treatment on every row worsens the other
+treatment's cases, in both directions — which is what it looks like when a classification is **read
+off the source document** rather than inferred from the form. So:
+
+**(a) The base is an explicit attribute of the policy, never a per-surface default.** One constant,
+one default — `ordinary`, matching the validation manifest's default for bracket changes — read by all
+four constructors. The dataclass, Tailor, the composer and Ask stop each carrying their own answer.
+**(b) The three shipped surtax presets get `agi_inclusive_base=True` from their own sources** — TPC's
+Warren table, Treasury's FY2025 Medicare-surcharge row, and the millionaire surtax's own document.
+That is the fix for §1.3(b), and it is a per-preset transcription, not a rule.
+**(c) Tailor keeps its checkbox, seeded from the shared default**, and Ask's
+`score_hypothetical_policy` gains the same optional flag with the same default — so Tailor and Ask
+agree by construction rather than by coincidence, with a caption on both saying which base was used.
+
+**Files.** `fiscal_model/policies_core.py` (the shared default), `fiscal_model/app_data.py` (three
+preset dicts, plus H6's label fixes folded in — see §4), `fiscal_model/assistant/tools.py`,
 `fiscal_model/ui/policy_input_tax.py`, `fiscal_model/composer/composer.py`.
-**Pre-register.** Warren −134.6 → −283.5 (61.5% → 19.0% vs TPC); Medicare surcharge −166.5 → −314.6
-(46.3% → 1.5% vs Treasury); Progressive Millionaire −354.6 → −648.1. Ask's 1pp-all −1,017.2 → −920.3.
-**Zero Tier 1 rows move** — the validation path already reads `score.agi_inclusive_base`
-(`core.py:905`), so a byte-identical `cold_holdout.py --json` is the falsification test.
-**Falsified if** any scorecard row moves, or the three preset moves miss their computed values.
-**Decision 6** applies: three shipped numbers move by 1.9–2.1×, so the caption lands in the same PR.
+**Pre-register.** Three preset moves, each following from **(b)**: Warren −134.6 → −283.5
+(61.5% → 19.0% vs TPC); Medicare surcharge −166.5 → −314.6 (46.3% → 1.5% vs Treasury); Progressive
+Millionaire −354.6 → −648.1. One Ask move, following from **(a)**: 1pp all brackets
+−1,017.2 → **−920.3**, which is both Tailor's figure and the validated shape.
+**The Tailor "2pp above \$400K" run does not move.** It stays on the ordinary base at −\$166.5B unless
+the user ticks the box, and the caption now says which base produced it. The defect §1.3(a) records is
+that **Ask silently disagreed with Tailor**, not that −\$166.5B is the wrong answer to the question
+Tailor was asked — a custom entry has no source document to read a base off, so the shared default is
+the only honest answer and the caption is what makes it legible.
+**Zero Tier 1 rows move** — the validation path reads `score.agi_inclusive_base` and builds its own
+policies (`core.py:905`), so a byte-identical `cold_holdout.py --json` is the falsification test.
+**Falsified if** any scorecard row moves, or the four moves above miss their computed values.
+**Decision 6** applies: three shipped numbers move by 1.8–2.1×, so the caption lands in the same PR.
 
 ### H2 — Grow the generic base on the scored vintage *(3 lane-days)*
 
@@ -290,12 +311,14 @@ before Wave B**: a rule applied to one row and not the other is worse than a rul
 2. A preset with no scorecard row of any tier may not display a dollar figure in its **label**. Four
    do today (Comprehensive Drug Reform, High-Income Enforcement, Extend IRA Credits, Carbon Tax \$25).
    Either register a row or strike the figure; "Top Rate to 45%" is the model for how to do it right.
+   **The label edits themselves ship in H1's PR**, because both lanes touch `app_data.py` and Wave A
+   must be file-disjoint; H6 owns the **test** that enforces the rule from then on.
 3. `get_confidence_context`'s "High confidence" is keyed to the **tier**, not to membership of
    `CBO_SCORE_MAP`.
-**Files.** `fiscal_model/ui/preset_validation.py`, `fiscal_model/ui/controller_utils.py`,
-`fiscal_model/app_data.py` (labels only), `tests/`.
-**Also fix here:** the `repeal_corporate_amt` label and `CBO_SCORE_MAP` sign, −220.0 against a +220.0
-target. **Falsified if** any scored quantity moves — this lane must move no number.
+**Files.** `fiscal_model/ui/preset_validation.py`, `fiscal_model/ui/controller_utils.py`, `tests/`.
+**Also fix, in H1's PR and for the same reason:** the `repeal_corporate_amt` label and its
+`CBO_SCORE_MAP` sign, −220.0 against a +220.0 target and model.
+**Falsified if** any scored quantity moves — neither lane may move a number.
 
 ### H7 — Tax expenditures: the five magnitudes, and the SALT baselines *(3 lane-days)*
 
@@ -434,10 +457,16 @@ held-out number beside the shipped one — **−\$2,664.0B (1.3%)** and **−\$3
    which is exactly what happened to `medicare_surcharge_2pp` in W7. Add `--max-class-mean-error`,
    applied to §2's eight classes, set at each class's post-wave value × 1.25.
 5. **New: no headline without a row** (H6), enforced by a test.
-6. **Ask smoke-test hygiene.** `scripts/smoke_ask_assistant.py` costs ~\$0.04 per run and needs a live
-   `ANTHROPIC_API_KEY`. A lane that moves a scored number **must** re-run it, because the assistant
-   quotes `get_app_scoring_context` and `score_hypothetical_policy` off the same engine. The key comes
-   from the environment at run time; it is never written into a lane doc, a test fixture, a commit
+6. **`ANTHROPIC_API_KEY` hygiene — the suite first, then the smoke test.** Two rules, and the lanes
+   hit both.
+   **The suite runs with the key unset.** With `ANTHROPIC_API_KEY` exported in the shell, parts of
+   `tests/` make **live Anthropic calls**. CI never sets it, so a green local run with the key present
+   is not the run CI performs — and it bills. Every lane runs
+   `ANTHROPIC_API_KEY= python -m pytest tests/ -q`.
+   **Only the deliberate smoke test uses the key.** `scripts/smoke_ask_assistant.py` costs ~\$0.04 per
+   run, and a lane that moves a scored number **must** re-run it, because the assistant quotes
+   `get_app_scoring_context` and `score_hypothetical_policy` off the same engine. The key comes from
+   the environment at invocation; it is never written into a lane doc, a test fixture, a commit
    message or a PR body, and the run's *output* — not the key — is what gets pasted.
 
 ---
@@ -448,7 +477,7 @@ Files are disjoint within a wave, so lanes run as parallel Opus agents in worktr
 
 | Wave | Lanes (parallel) | Files | Days | Owner decisions needed **before** the wave opens |
 |---|---|---|--:|---|
-| **A** | **H1** base rule · **H6** preset coverage · **H13** payroll caption | `app_data.py` + `tools.py` + `policy_input_tax.py` + `composer.py` / `preset_validation.py` + `controller_utils.py` / docs | 4.5 | ① Three surtax presets move by ~2×: confirm the Decision 6 caption. ② H6 strikes label figures from four presets — confirm strike-vs-register per preset |
+| **A** | **H1** base rule + labels · **H6** badges and tiers · **H13** payroll caption | `policies_core.py` + `app_data.py` + `tools.py` + `policy_input_tax.py` + `composer.py` / `preset_validation.py` + `controller_utils.py` + `tests/` / docs | 5 | ① Three surtax presets move by ~2×: confirm the Decision 6 caption. ② Four label figures with no record — confirm strike-vs-register per preset **before H1 opens**, since H1 now carries the edit |
 | **B** | **H2** base growth · **H3a** corporate range · **H9** provenance | `policies_core.py` + `scoring_engine.py` / `results_summary.py` + `components/results.py` / `validation/*` | 8 | ③ IIJA `.v3` — apply the window rule to the second row, or to neither (§6.2 item 35). ④ Pharma targets: retire, or carry unsourced (H9 needs the answer to build the `retire` state). ⑤ Does a shipped corporate **range** change Decision 33's `reported` default? |
 | **C** | **H4** empirical bands · **H5** capital gains · **H8** tariffs | `credibility.py` + `results_summary.py` / `data/capital_gains.py` + `policies_core.py` (CapitalGainsPolicy) / `trade.py` | 9 | ⑥ `estate_flow_rate` is a level: authorise the swap to `mortality_weighted_net_worth_share` **and** accept `cbo_opt51` moving the wrong way. ⑦ Five tariff presets move — Decision 6 caption |
 | **D** | **H7** expenditures · **H11** PTC · **H12** sectoral demotion | `tax_expenditures_core.py` / `ptc.py` / `app_data.py` + `explore.py` | 6 | ⑧ SALT's two baselines (§6.2 item 3) — a joint call on both rows. ⑨ Do the four pharma presets and Double IRS Enforcement stay on headline surfaces? |
@@ -459,7 +488,11 @@ Wave B — because H2's predicted endpoints (9.1%, 1.0%) are computed *with* H1'
 H4 must follow H2, since the bands are read off the post-H2 Tier 1 distribution. H3a and H3b are split
 across waves deliberately: the presentation is worth shipping before the mechanism, and H3b is the one
 lane whose data acquisition (Form 3800 / Form 1118) may not land at all. H9 and H6 both edit
-`app_data.py` and must not share a wave. **Total: 35.5 lane-days across five waves.**
+`app_data.py` and must not share a wave — and neither may H1 and H6, which is why the four label
+strikes and the `repeal_corporate_amt` sign are folded into **H1's** PR, leaving H6 the badge map, the
+confidence tier and the test that enforces the rule afterwards. Wave A is then disjoint: H1 owns
+`app_data.py` and the generic constructors, H6 owns `preset_validation.py` and `controller_utils.py`,
+H13 owns docs. **Total: 36 lane-days across five waves.**
 
 ---
 
@@ -483,8 +516,9 @@ without a recorded range or scope verdict.
 **Coverage.** Every one of the 52 shipped presets has a scorecard row **or** carries no dollar figure
 in its label. Zero presets display an accuracy claim keyed to `CBO_SCORE_MAP` membership.
 
-**Consistency.** One base rule: Tailor, Ask, Explore and Build return the same number for the same
-policy, and a test asserts it across all four constructors.
+**Consistency.** One base default: Tailor, Ask, Explore and Build return the same number for the same
+policy *specification*, base attribute included, and a test asserts it across all four constructors.
+Where a surface lets the user choose the base, the caption says which one produced the number.
 
 **Uncertainty.** Every headline carries an empirically calibrated band from its own class's Tier 1
 distribution, plus an estimator-disagreement band wherever two official bodies differ.
