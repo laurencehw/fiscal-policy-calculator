@@ -166,6 +166,63 @@ VINTAGE_SOURCING: dict[BaselineVintage, str] = {
     BaselineVintage.CBO_FEB_2026: "sourced",
 }
 
+#: Base-year corporate income tax receipts per vintage, in billions.
+#:
+#: One map, read by **both** the real-data loader and the hardcoded fallback, so
+#: the two cannot disagree about what a vintage projects. Before this existed
+#: they disagreed by 8.6% on February 2026 and 35.5% on January 2025, because
+#: :meth:`CBOBaseline._load_from_data_sources` overrode every vintage's figure
+#: with ``individual income tax x GDP_RATIOS["corporate_tax_to_income_tax"]`` -
+#: 18% of the latest IRS SOI *tax year* on file, a quantity with no vintage in
+#: it. That override is why all three vintages returned one corporate base level
+#: to the cent (386.62) under the app's own default; see
+#: ``planning/lanes/FIX_baseline_corporate_path.md`` section 1.2 and
+#: ``planning/MODELING_IMPROVEMENT.md`` section 6.2 item 30.
+#:
+#: :data:`CORPORATE_RECEIPTS_SOURCING` grades each entry. Two are transcribed
+#: from a CBO table and one is this module's own estimate, and the grade says
+#: which is which rather than leaving a reader to assume.
+_VINTAGE_CORPORATE_BASE_LEVELS: dict[BaselineVintage, float] = {
+    # Base year 2024. Superseded for projection purposes by the published
+    # annual path below, which starts at FY2025; kept because
+    # ``base_corporate_tax`` is part of this class's surface.
+    BaselineVintage.CBO_FEB_2024: 450.0,
+    # Table B-1, "Corporate income taxes", FY2025 - the same transcription
+    # _CBO_JAN_2025_BASE_LEVELS carries, and pinned equal to it by a test.
+    BaselineVintage.CBO_JAN_2025: 524.0,
+    # This module's own base-year figure for the vintage, transcribed from no
+    # table. Graded ``vintage_estimate`` below for exactly that reason.
+    BaselineVintage.CBO_FEB_2026: 420.0,
+}
+
+#: How each vintage's **corporate receipts line** is obtained, which is a
+#: narrower question than :data:`VINTAGE_SOURCING`'s and has a different answer.
+#:
+#: ``published_path``
+#:     Every year of the projection is CBO's own published figure for that
+#:     vintage, read from
+#:     ``data_files/corporate/cbo_corporate_receipts.csv``.
+#: ``published_base_level``
+#:     The base year is CBO's published figure for that vintage; the shape is
+#:     this module's reconstruction (GDP growth + inflation + a 1pp corporate
+#:     profit premium), which on February 2024's assumptions compounds to
+#:     4.88%/yr against CBO's own 1.21%.
+#: ``vintage_estimate``
+#:     Neither the level nor the shape is transcribed. Reportable as "this
+#:     model's estimate for the February 2026 vintage" and **not** as "CBO's
+#:     February 2026 corporate receipts".
+#:
+#: Two vintages are reconstructions because their annual paths cannot be
+#: obtained: cbo.gov returns HTTP 403 to this environment and the Wayback
+#: Machine holds no snapshot of the January 2025 or February 2026 budget
+#: projections workbooks (re-checked 2026-09-06). Adding one is a data edit -
+#: a block in the CSV - not a code change.
+CORPORATE_RECEIPTS_SOURCING: dict[BaselineVintage, str] = {
+    BaselineVintage.CBO_FEB_2024: "published_path",
+    BaselineVintage.CBO_JAN_2025: "published_base_level",
+    BaselineVintage.CBO_FEB_2026: "vintage_estimate",
+}
+
 #: Citation per vintage, so a report can name the document it scored against.
 VINTAGE_SOURCE_DOCUMENT: dict[BaselineVintage, str] = {
     BaselineVintage.CBO_FEB_2024: (
@@ -398,12 +455,25 @@ class CBOBaseline:
         return VINTAGE_SOURCING.get(self.baseline_vintage, "unknown")
 
     @property
+    def corporate_receipts_sourcing(self) -> str:
+        """How this vintage's corporate receipts line was obtained.
+
+        ``published_path`` / ``published_base_level`` / ``vintage_estimate`` -
+        see :data:`CORPORATE_RECEIPTS_SOURCING`. Narrower than
+        :attr:`baseline_vintage_sourcing`, and for two of the three vintages it
+        gives a weaker answer, which is the point: a corporate line this module
+        reconstructed must not be reportable as CBO's.
+        """
+        return CORPORATE_RECEIPTS_SOURCING.get(self.baseline_vintage, "unknown")
+
+    @property
     def metadata(self) -> dict[str, Any]:
         """Return machine-readable metadata about the baseline inputs used."""
         return {
             "vintage": self.baseline_vintage.value,
             "vintage_date": self.baseline_vintage_date,
             "vintage_sourcing": self.baseline_vintage_sourcing,
+            "corporate_receipts_sourcing": self.corporate_receipts_sourcing,
             "vintage_source_document": VINTAGE_SOURCE_DOCUMENT.get(
                 self.baseline_vintage, "unknown"
             ),
@@ -450,8 +520,20 @@ class CBOBaseline:
             self.base_gdp = self.base_individual_income_tax / GDP_RATIOS["income_tax_to_gdp"]
             self.gdp_source = "irs_ratio_proxy"
 
-        # Corporate tax: Historical ratio to individual income tax
-        self.base_corporate_tax = self.base_individual_income_tax * GDP_RATIOS["corporate_tax_to_income_tax"]
+        # Corporate tax: the vintage's own base-year receipts.
+        #
+        # This used to be ``base_individual_income_tax x
+        # GDP_RATIOS["corporate_tax_to_income_tax"]`` - 18% of the latest IRS
+        # SOI tax year on file, a quantity with no vintage in it - which is why
+        # all three vintages returned the identical corporate base under the
+        # app's own default while the fallback path returned three different
+        # ones. The two paths now read one map. Note that the other base levels
+        # below still carry the same defect, deliberately and with a written
+        # carry-over: no vintage-specific published table for them can be
+        # reached from this environment, and replacing one unsourced rule with
+        # another is not an improvement. See
+        # ``planning/lanes/FIX_baseline_corporate_path.md`` sections 1.2-1.3.
+        self.base_corporate_tax = _VINTAGE_CORPORATE_BASE_LEVELS[self.baseline_vintage]
 
         # Payroll tax: Historical average share of GDP
         self.base_payroll_tax = self.base_gdp * GDP_RATIOS["payroll_tax_to_gdp"]
@@ -484,7 +566,9 @@ class CBOBaseline:
             # Base year (2024) values in billions
             self.base_gdp = 28500
             self.base_individual_income_tax = 2500
-            self.base_corporate_tax = 450
+            self.base_corporate_tax = _VINTAGE_CORPORATE_BASE_LEVELS[
+                BaselineVintage.CBO_FEB_2024
+            ]
             self.base_payroll_tax = 1700
             self.base_other_revenue = 400
             self.base_social_security = 1500
@@ -498,7 +582,12 @@ class CBOBaseline:
             # Base year (2026) values in billions - CBO Feb 2026
             self.base_gdp = 30300  # Nominal GDP estimate for 2026
             self.base_individual_income_tax = 2700  # Individual income tax
-            self.base_corporate_tax = 420  # Corporate tax (slightly lower due to tariff effects)
+            # Corporate tax (slightly lower due to tariff effects). Graded
+            # ``vintage_estimate`` in CORPORATE_RECEIPTS_SOURCING: this
+            # module's own figure, not a transcribed CBO row.
+            self.base_corporate_tax = _VINTAGE_CORPORATE_BASE_LEVELS[
+                BaselineVintage.CBO_FEB_2026
+            ]
             self.base_payroll_tax = 1850  # Payroll tax
             self.base_other_revenue = 430  # Estate, excise, customs, etc.
             self.base_social_security = 1600  # Higher due to demographics
@@ -575,8 +664,71 @@ class CBOBaseline:
 
         return revenue
 
+    def _published_corporate_receipts(self) -> np.ndarray | None:
+        """CBO's own projected corporate receipts for this vintage, or ``None``.
+
+        Reads the path PR #121 transcribed into
+        ``data_files/corporate/cbo_corporate_receipts.csv`` through
+        :mod:`fiscal_model.corporate`'s own loader rather than re-parsing the
+        file - one reader, one cache, one place a transcription error could
+        hide. The import is deferred because ``corporate`` imports ``policies``,
+        and a baseline that imported a policy module at module scope would
+        invert this package's dependency direction.
+
+        ``None`` for a vintage with no transcribed block. The loader raises in
+        that case rather than borrowing a neighbouring vintage's numbers, which
+        is the behaviour that keeps a provenance claim honest; the caller falls
+        back to the reconstruction and
+        :data:`CORPORATE_RECEIPTS_SOURCING` says it did.
+        """
+        from fiscal_model.corporate import (
+            cbo_corporate_receipts,
+            cbo_receipts_by_fiscal_year,
+        )
+
+        vintage = self.baseline_vintage.value
+        try:
+            cbo_receipts_by_fiscal_year(vintage)
+        except KeyError:
+            return None
+
+        # Ten fiscal years from start_year, matching every other projection
+        # method in this class, which returns ``np.zeros(10)`` whatever
+        # ``duration`` says. Years past the transcribed window continue the
+        # nearest observed growth rate - the loader's own documented rule, the
+        # one ``payroll.covered_earnings`` uses on CBO's wage path from the
+        # same publication - so the app's FY2026-2035 window is served by a
+        # FY2025-2034 table with FY2035 extrapolated.
+        return np.array(
+            [
+                cbo_corporate_receipts(self.start_year + i, vintage)
+                for i in range(10)
+            ]
+        )
+
     def _project_corporate_tax(self) -> np.ndarray:
-        """Project corporate income tax revenues."""
+        """Project corporate income tax revenues.
+
+        Where the repository carries CBO's own published receipts path for the
+        scored vintage, that path **is** the projection: no base level, no
+        growth rule, no premium. On February 2024 (publication 59710, Table
+        1-1) it grows at 1.21%/yr over FY2025-2034 and *falls* in FY2026 and
+        FY2027, against the 4.88%/yr the rule below produces on the same
+        vintage's assumptions - and a receipts line four times too steep is a
+        defect whether or not anything scored reads it.
+
+        The rule below survives for the two vintages whose annual paths cannot
+        be obtained (see :data:`CORPORATE_RECEIPTS_SOURCING`). It starts from
+        that vintage's own base-year receipts and adds
+        ``BASELINE_GROWTH["corporate_profit_premium"]`` to nominal GDP growth -
+        a flat 1pp that is unsourced and that CBO's own February 2024 narrative
+        contradicts, and which is left at its value here because retuning a
+        constant is a different lane's work.
+        """
+        published = self._published_corporate_receipts()
+        if published is not None:
+            return published
+
         # More volatile, tied to profits
         revenue = np.zeros(10)
         revenue[0] = self.base_corporate_tax * 1.04

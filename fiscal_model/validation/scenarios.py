@@ -631,8 +631,17 @@ PTC_VALIDATION_SCENARIOS_COMPARE = {
         #
         # The -$1,100B target is untraceable ``secondhand`` ("CBO estimate", no
         # publication) and is one of the twelve rows on
-        # ``MODELING_IMPROVEMENT.md`` section 6.2 item 5. Queued for the next
-        # provenance pass: retire or re-source.
+        # ``MODELING_IMPROVEMENT.md`` section 6.2 item 5. PR #122 identified its
+        # most likely origin - CBO/JCT pub. 51298's June 2024 baseline
+        # projection of the credit - and declined to adopt it, because a
+        # projection of what a credit costs is not a score of repealing it.
+        #
+        # Lane W7 (2026-09-06) then closed the *shape* half, which is what
+        # section 6.2 item 31 had been carrying: the module's static effect is
+        # now the vintage's own annual credit path rather than a fitted 83.0,
+        # and its behavioural offset is CBO's own published net-to-gross for a
+        # section 36B change. The row moved 18.5% -> 29.6% and no constant was
+        # retuned - see ``planning/lanes/W7_ptc_repeal_shape.md``.
         "calibrated_to_target": False,
         "notes": "Eliminate all ACA subsidies - major coverage loss",
         "limitations": [
@@ -644,8 +653,36 @@ PTC_VALIDATION_SCENARIOS_COMPARE = {
             "to close it.",
             "The -$1,100B target is an untraceable secondhand figure ('CBO "
             "estimate', no publication) on the section 6.2 item 5 list, so the "
-            "residual is not a measurement against a document. Queued for the "
-            "next provenance pass to be retired or re-sourced.",
+            "residual is not a measurement against a document. The provenance "
+            "pass that was queued here has since run (PR #122) and traced its "
+            "likely origin to CBO/JCT pub. 51298's June 2024 baseline "
+            "projection ($966B outlays + $176B revenue reductions = $1,142B "
+            "over FY2025-2034), then recorded the verdict against adopting it "
+            "in EXAMINED_NOT_REVISED: a baseline projection is not a repeal "
+            "score. The target therefore stays, and stays unsourced.",
+            "VINTAGE AND WINDOW, not model error, are most of what is left. "
+            "Since lane W7 (2026-09-06) the score removes the baseline "
+            "vintage's own credit path, and the app's vintage is CBO's "
+            "February 2026 baseline, in which the ARPA/IRA enhancement has "
+            "already lapsed: the credit's two legs are $959B over FY2026-2035 "
+            "against $1,143B over FY2025-2034 on the June 2024 vintage the "
+            "target came from. Scored on that vintage and window with no "
+            "coverage response the same mechanism returns $1,143B, 0.09% from "
+            "pub. 51298's own figure - which is the demonstration that the "
+            "target is a baseline projection rather than a validation of the "
+            "model.",
+            "The coverage response is TRANSFERRED, not measured. No CBO or JCT "
+            "score of a full repeal exists (searched again by PR #122). The "
+            "19.28% offsetting share is CBO's own net-to-gross for the nearest "
+            "published section 36B change - pub. 60437's $415B gross against "
+            "$335B net - and its composition would differ for a full repeal: "
+            "$101B of that letter's $104B revenue offset is compensation "
+            "shifting to and from employment-based coverage, while a repeal of "
+            "the whole credit reaches a 100-150% FPL population that largely "
+            "has no employer offer and would move to Medicaid or to being "
+            "uninsured. Those two point in opposite directions and neither is "
+            "published. Sensitivity: the same letter's footnote 4 gives $325B "
+            "excluding TCJA interactions, an offsetting share of 21.7%.",
         ],
     },
 }

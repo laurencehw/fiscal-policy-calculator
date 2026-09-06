@@ -1,0 +1,77 @@
+# CBO and JCT's own BASELINE PROJECTIONS of what the ACA premium tax credit
+# costs, by fiscal year, in BOTH of its budgetary legs.
+#
+# Source: Congressional Budget Office and the staff of the Joint Committee on
+#   Taxation, recurring publication 51298, Table 2, "CBO and JCT's Projections
+#   of Net Federal Subsidies for Health Insurance", block "Premium tax credits
+#   and related spending", rows "Outlays for premium tax credits" and "Revenue
+#   reductions from premium tax credits". Units: BILLIONS of dollars, by fiscal
+#   year, exactly as CBO prints them (whole billions).
+#
+#   cbo_jun_2024 - Health Insurance and Its Federal Subsidies: CBO and JCT's
+#     June 2024 Baseline Projections, file 51298-2024-06-healthinsurance.pdf,
+#     Table 2 on REPORT PAGE 3 (PDF page 3 of 3).
+#   cbo_feb_2026 - Federal Subsidies for Health Insurance, February 2026
+#     Baseline Projections, file 51298-2026-02-healthinsurance.pdf, Table 2 on
+#     PAGE 4 of 5.
+#
+#   Read 2026-09-06 from CBO's own PDFs through Wayback mirrors; cbo.gov returns
+#   HTTP 403 to every non-browser client in this environment, as the AMT,
+#   corporate and provenance lanes have each recorded.
+#
+# WHY THIS FILE EXISTS. `create_repeal_ptc` used to remove $83.0B/yr growing at
+# 4%/yr from the baseline. That constant is not a projection of anything: it is
+# 1100 / (1.10 x sum of 1.04^t), the carried -$1,100B target run backwards
+# through the scoring engine's growth factor and the behavioural offset PR #119
+# corrected. Repealing IRC section 36B removes the credit, and the credit's cost
+# is a published annual path - so the path is what the module now reads.
+#
+# WHAT THE TWO VINTAGES SHOW. They are not the same series at two speeds. The
+# ARPA/IRA enhancement lapsed at the end of calendar 2025, and the February 2026
+# table prices that: the same document's Table 1 has subsidized marketplace
+# enrollment at 20.9M (2025), 13.4M (2026) and 10.3M (2027), and the credit's two
+# legs fall from $105B in FY2026 to $74B in FY2028, not regaining their FY2026
+# level until FY2033. The June 2024 vintage, which is where the repository's
+# -$1,100B target came from, still has FY2025 - the last full year of the
+# enhancement - inside its window at $129B, and even on that vintage the credit
+# does not exceed its 2025 level again until FY2034 ($130B), having fallen to
+# $101B in FY2027.
+#
+# ROUNDING. CBO prints whole billions and its own printed window totals differ
+# from the sum of the annual cells by a dollar or two:
+#   cbo_jun_2024, FY2025-2034: outlays sum 966 (CBO prints 966); revenue
+#     reductions sum 177 (CBO prints 176).
+#   cbo_feb_2026, FY2027-2036: outlays sum 880 (CBO prints 878); revenue
+#     reductions sum 102 (CBO prints 103).
+# The model reads the annual cells. tests/test_ptc.py pins both the cells and
+# the printed totals, within CBO's own rounding.
+#
+# WHICH YEARS ARE TRANSCRIBED. Only years in which BOTH legs are printed. The
+# June 2024 table prints outlays from 2023 and revenue reductions from 2024, so
+# the block starts at 2024; its 2023 outlay column (70) and both tables' "a"
+# columns are preliminary actuals rather than projections. The February 2026
+# table prints outlays of 111 for 2025 and "n.a." for that year's revenue
+# reductions, so its block starts at 2026.
+vintage,fiscal_year,outlays_billions,revenue_reductions_billions
+cbo_jun_2024,2024,98,16
+cbo_jun_2024,2025,107,22
+cbo_jun_2024,2026,84,24
+cbo_jun_2024,2027,86,15
+cbo_jun_2024,2028,89,15
+cbo_jun_2024,2029,91,15
+cbo_jun_2024,2030,93,16
+cbo_jun_2024,2031,97,16
+cbo_jun_2024,2032,101,17
+cbo_jun_2024,2033,107,18
+cbo_jun_2024,2034,111,19
+cbo_feb_2026,2026,88,17
+cbo_feb_2026,2027,69,9
+cbo_feb_2026,2028,66,8
+cbo_feb_2026,2029,70,8
+cbo_feb_2026,2030,77,9
+cbo_feb_2026,2031,86,10
+cbo_feb_2026,2032,92,11
+cbo_feb_2026,2033,95,11
+cbo_feb_2026,2034,101,12
+cbo_feb_2026,2035,108,12
+cbo_feb_2026,2036,116,12

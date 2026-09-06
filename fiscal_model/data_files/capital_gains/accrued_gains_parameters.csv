@@ -23,3 +23,7 @@ mortality_rate_ageunder40,0.001088056289981779,NCHS United States Life Tables 20
 mortality_rate_age40to54,0.0039392355957177235,NCHS United States Life Tables 2022 (NVSR 74-02) Table 1
 mortality_rate_age55to69,0.011945646925379865,NCHS United States Life Tables 2022 (NVSR 74-02) Table 1
 mortality_rate_age70plus,0.06525941437448177,NCHS United States Life Tables 2022 (NVSR 74-02) Table 1
+soi_estate_charitable_floor_millions_usd,1.0,"IRS SOI Estate Tax Statistics Table 1 covers estate-tax filers only (the threshold for 2023 decedents was $12.92 million), so an estate below this size is given no charitable share rather than the filing population's propensity"
+scf_2022_median_family_net_worth_thousands,192.7,"Federal Reserve Survey of Consumer Finances 2022, Table 4, All families, Median. CHECK ONLY - the size distribution is fitted to the DFA aggregates and this is what says where the fit stops"
+soi_fy2024_estate_filing_threshold_millions_usd,12.92,"IRC 2010(c)(3) as adjusted, Rev. Proc. 2022-38: the basic exclusion amount for decedents dying in 2023, which is SOI Table 1's own filing threshold for filing year 2024. CHECK ONLY"
+soi_fy2024_estate_returns_above_filing_threshold,7194.0,"IRS SOI Estate Tax Statistics Table 1, filing year 2024, all returns, summed over the printed size classes. CHECK ONLY on the fitted decedent size distribution's own count above that threshold"

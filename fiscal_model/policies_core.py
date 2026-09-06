@@ -144,6 +144,26 @@ class TaxPolicy(Policy):
     # for AGI-inclusive surtaxes. See ``preferential_income_share`` and
     # docs/METHODOLOGY.md (Static Scoring).
     ordinary_income_base: bool = False
+    # Optional per-filing-status thresholds, keyed by
+    # ``fiscal_model.data.irs_soi.FILING_STATUSES``. Statutory income-tax
+    # boundaries are stated per status - CBO's Option 46 surtax at "$20,000 for
+    # single filers and $40,000 for joint filers", the 2025 rate tables' 24%
+    # bracket at $206,700 joint against $103,350 otherwise - and applying one
+    # status's floor to all four is the largest single error in the
+    # out-of-sample battery. A **partial** mapping is the natural shape: any
+    # status not named falls back to ``affected_income_threshold``, so
+    # ``{"joint": 40_000}`` against a $20,000 threshold *is* the option text.
+    # ``None`` (the default) keeps the pooled single-threshold path, byte for
+    # byte. See ``planning/lanes/W7_filing_status_split.md``.
+    threshold_by_filing_status: dict[str, float] | None = None
+    # Cache for the per-status path only. The pooled path re-derives its
+    # marginal income on years 2-10 from ``avg_taxable_income_in_bracket``
+    # minus one threshold, a quantity that does not exist once the four
+    # statuses face different floors, so the first year's answer is carried
+    # instead of silently recomputed the pooled way.
+    _split_annual_revenue_billions: float | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
 
     def __post_init__(self):
         super().__post_init__()
@@ -167,6 +187,26 @@ class TaxPolicy(Policy):
             raise ValueError(
                 f"affected_taxpayers_millions must be >= 0, got {self.affected_taxpayers_millions}"
             )
+
+        if self.threshold_by_filing_status is not None:
+            if not self.threshold_by_filing_status:
+                # An empty mapping declares nothing, so it takes the pooled path
+                # rather than becoming a second way of saying the same thing.
+                self.threshold_by_filing_status = None
+            else:
+                from fiscal_model.data.irs_soi import FILING_STATUSES
+
+                unknown = sorted(set(self.threshold_by_filing_status) - set(FILING_STATUSES))
+                if unknown:
+                    raise ValueError(
+                        f"unknown filing status(es) in threshold_by_filing_status: "
+                        f"{', '.join(unknown)}; expected some of {', '.join(FILING_STATUSES)}"
+                    )
+                for status, value in self.threshold_by_filing_status.items():
+                    if value < 0:
+                        raise ValueError(
+                            f"threshold_by_filing_status['{status}'] must be >= 0, got {value}"
+                        )
 
         if self.affected_income_threshold > 10_000_000:
             logger.warning(
@@ -193,6 +233,15 @@ class TaxPolicy(Policy):
             except Exception as exc:
                 logger.warning(f"Could not use IRS data for auto-population: {exc}")
                 logger.warning("Falling back to manual parameters or heuristics")
+
+        if (
+            self.threshold_by_filing_status is not None
+            and self._split_annual_revenue_billions is not None
+        ):
+            # Years 2-10 of a per-status policy: carry year one's answer. The
+            # branch below cannot reproduce it, because it re-derives the base
+            # from a single threshold.
+            return self._split_annual_revenue_billions
 
         if (
             self.rate_change != 0
@@ -275,6 +324,10 @@ class TaxPolicy(Policy):
 
         year = self.data_year if self.data_year else max(available_years)
         logger.info(f"Auto-populating tax policy parameters from {year} IRS SOI data")
+
+        if self.threshold_by_filing_status is not None:
+            return self._estimate_from_irs_data_by_status(irs_data, year)
+
         bracket_info = irs_data.get_filers_by_bracket(
             year=year,
             threshold=self.affected_income_threshold,
@@ -319,6 +372,69 @@ class TaxPolicy(Policy):
             f"({self.rate_change*100:+.1f}pp rate change)"
         )
 
+        return revenue_change
+
+    def resolved_filing_status_thresholds(self) -> dict[str, float]:
+        """The four per-status floors this policy applies.
+
+        Any status ``threshold_by_filing_status`` does not name falls back to
+        ``affected_income_threshold``, which is what makes a source that states
+        two amounts expressible as the two amounts it states.
+        """
+        from fiscal_model.data.irs_soi import FILING_STATUSES
+
+        declared = self.threshold_by_filing_status or {}
+        return {
+            status: float(declared.get(status, self.affected_income_threshold))
+            for status in FILING_STATUSES
+        }
+
+    def _estimate_from_irs_data_by_status(self, irs_data, year: int) -> float:
+        """Static revenue effect with the SOI base split by filing status."""
+        thresholds = self.resolved_filing_status_thresholds()
+        split = irs_data.get_filers_by_status_thresholds(year=year, thresholds=thresholds)
+        marginal_income = split["marginal_income_dollars"]
+
+        # The preferential-income correction is measured on the POOLED base at
+        # this policy's own ``affected_income_threshold`` and then applied to
+        # the split base. The capital-gains series behind
+        # ``preferential_income_share`` has no filing-status dimension, so
+        # re-deriving the ratio against a split denominator would remove the
+        # same joint returns twice - once from the base, and again as their
+        # gains. See planning/lanes/W7_filing_status_split.md section 2.3.
+        pooled = irs_data.get_filers_by_bracket(
+            year=year,
+            threshold=self.affected_income_threshold,
+        )
+        pooled_avg = pooled["avg_taxable_income"]
+        pooled_marginal_per_return = (
+            pooled_avg
+            if self.affected_income_threshold == 0
+            else max(0.0, pooled_avg - self.affected_income_threshold)
+        )
+        ordinary_share = self._ordinary_income_share(
+            pooled_marginal_per_return * pooled["num_filers"], year=year
+        )
+
+        self.affected_taxpayers_millions = split["num_filers"] / 1e6
+        self.avg_taxable_income_in_bracket = split["avg_taxable_income"]
+
+        revenue_change = self.rate_change * marginal_income * ordinary_share / 1e9
+        self._split_annual_revenue_billions = revenue_change
+
+        logger.info(
+            "  Filing-status split: %s",
+            ", ".join(
+                f"{status} >${thresholds[status]:,.0f}: "
+                f"{split['by_status'][status]['num_filers'] / 1e6:.2f}M filers, "
+                f"${split['by_status'][status]['marginal_income_dollars'] / 1e9:,.1f}B"
+                for status in thresholds
+            ),
+        )
+        logger.info(
+            f"  Estimated revenue change: ${revenue_change:,.1f}B "
+            f"({self.rate_change*100:+.1f}pp rate change, filing-status split)"
+        )
         return revenue_change
 
     def _ordinary_income_share(
@@ -475,6 +591,15 @@ class CapitalGainsPolicy(TaxPolicy):
     (:meth:`death_response_coefficient`) - death cannot be retimed, so the
     transitory term has no place - and the tax induces further charitable
     substitution at the Bakija-Gale-Slemrod price elasticity.
+
+    **Every one of those reliefs is a function of how big the estate is**, and
+    since Wave 7 they are read at the estate's own size rather than at one of
+    five group means: :meth:`CapitalGainsBaseline.decedent_classes` integrates
+    over a piecewise-Pareto size distribution of net worth at death, so a
+    per-donor exclusion bites on a distribution instead of removing a whole
+    class at once.  The level is unchanged - it is still Poterba & Weisbenner's
+    flow - and so is the decedent headcount, which remains the coarsest thing
+    in the channel (``planning/lanes/W7_decedent_ladder.md`` §7).
     """
 
     baseline_capital_gains_rate: float = 0.20
@@ -922,6 +1047,10 @@ class CapitalGainsPolicy(TaxPolicy):
         *"other* unrealized capital gains", meaning what is left after the
         named reliefs.  The caller subtracts it afterwards.
 
+        Each share below is the published step function evaluated at **this
+        slice's own estate size**, which is what changed in Wave 7; before it,
+        five class means read eighteen published rows at eleven of them.
+
         1. **Charity.**  Appreciated property transferred to charity generates
            no taxable gain, and the tax itself induces more of it
            (:meth:`_charitable_share_at_death`).
@@ -980,6 +1109,10 @@ class CapitalGainsPolicy(TaxPolicy):
         priced at the rate the gain would face on a final return.  Indexed to
         household net worth, so the flow grows with the asset stock instead of
         sitting at one constant.
+
+        The sum runs over quantile slices of a fitted size distribution, not
+        over five estate-size classes, so the per-donor exclusion below is
+        subtracted from a spread of gains rather than from a class average.
         """
         if not self.eliminate_step_up or not self.score_gains_at_death:
             return 0.0

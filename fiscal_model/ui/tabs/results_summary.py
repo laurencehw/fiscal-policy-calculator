@@ -41,7 +41,12 @@ from fiscal_model.pharma import (
     part_d_federal_channels,
 )
 from fiscal_model.policies import CapitalGainsPolicy
-from fiscal_model.ptc import PremiumTaxCreditPolicy
+from fiscal_model.ptc import (
+    PTC_BASELINE_VINTAGE_LABELS,
+    PTC_EXTENSION_GROSS_10YR_BILLIONS,
+    PTC_EXTENSION_NET_10YR_BILLIONS,
+    PremiumTaxCreditPolicy,
+)
 from fiscal_model.spending_outlays import IMMEDIATE, account_class_label
 from fiscal_model.trade import TRADE_BASELINE, TariffPolicy
 from fiscal_model.ui.a11y import (
@@ -638,6 +643,14 @@ def gains_at_death_caption(policy: Any, result: Any) -> str:
     those in moved the headline on this form materially, so it ships with its
     explanation rather than in silence.
 
+    Wave 7 added the clause about the distribution. Every one of those reliefs,
+    and the per-donor exclusion itself, is a function of how big the estate is,
+    and the model now integrates over a fitted size distribution of estates at
+    death rather than five class averages. It moved this form's figures by 1-3
+    percent, which is small; the sentence is there because a reader entitled to
+    know that an exclusion applies *per decedent* is also entitled to know that
+    the decedents differ.
+
     Computed by replaying the scorer's own death-channel loop over the same
     window, so it cannot drift from the figure above it. Returns ``""`` for
     anything that is not a step-up-elimination capital-gains policy.
@@ -671,7 +684,8 @@ def gains_at_death_caption(policy: Any, result: Any) -> str:
     )
     per_donor = (
         f" A \\${exclusion:,.0f} per-decedent exclusion then applies to what is "
-        f"left, not to the whole gain."
+        f"left, not to the whole gain, and it is subtracted across a fitted "
+        f"distribution of estate sizes rather than from an average estate."
         if exclusion > 0
         else " This design states no per-decedent exclusion."
     )
@@ -737,6 +751,65 @@ def realizations_projection_caption(policy: Any, result: Any) -> str:
         f"is \\${start:,.0f}B in {first} and \\${end:,.0f}B in {last}. "
         f"Holding it at its {tax_year} level instead would assert a realization "
         f"hazard falling {rate:.1%} a year."
+    )
+
+
+def ptc_repeal_baseline_caption(policy: Any, result: Any) -> str:
+    """One line saying which credit a repeal removes, and what CBO nets out of it.
+
+    Repealing IRC section 36B removes the credit, and the credit's cost is a
+    published annual path rather than a level: CBO/JCT publication 51298's
+    Table 2, outlays plus revenue reductions. It is not a smooth path — the
+    ARPA/IRA enhancement lapsed at the end of calendar 2025, so on the February
+    2026 baseline the two legs fall by a third between FY2026 and FY2028 before
+    recovering. And the gross cost is not the deficit effect of removing it:
+    CBO's own decomposition of the nearest section 36B change (publication
+    60437) nets an offsetting increase in revenues out of it, primarily people
+    returning to employment-based coverage and out of taxable wages.
+
+    Until 2026-09-06 this module removed a fitted $83B/yr growing at 4%/yr, so
+    the shipped preset moved by about 14% and Decision 6 says a moved number
+    ships with its explanation rather than in silence.
+
+    Computed from the scored result, so it cannot drift from the figure above
+    it. Returns ``""`` for any PTC policy that is not on the baseline path.
+    """
+    if not isinstance(policy, PremiumTaxCreditPolicy):
+        return ""
+    if not policy.uses_baseline_credit_path():
+        return ""
+
+    years = getattr(result, "years", None)
+    if years is None or len(years) == 0:
+        return ""
+    static = np.asarray(result.static_revenue_effect, dtype=float)
+    # A scorer whose window opens before ``policy.start_year`` phases those
+    # early years to zero. They are not years of the repeal and must not be
+    # reported as the window or mistaken for the trough.
+    scored = static > 0
+    if not scored.any():
+        return ""
+    gross = float(static.sum())
+    behavioural = float(np.sum(result.behavioral_offset))
+    net = gross - abs(behavioural)
+    share = abs(behavioural) / gross
+    scored_years = [int(year) for year, live in zip(years, scored, strict=False) if live]
+    first, last = scored_years[0], scored_years[-1]
+    peak_low = float(static[scored].min())
+
+    return (
+        f"What a repeal removes: CBO and JCT's own projection of the credit, "
+        rf"both legs — \${gross:,.0f}B of outlays plus revenue reductions over "
+        f"FY{first}-FY{last} on the "
+        f"{PTC_BASELINE_VINTAGE_LABELS.get(policy.baseline_vintage, policy.baseline_vintage)} "
+        rf"baseline (publication 51298, Table 2), dipping to \${peak_low:,.0f}B "
+        f"in the year the ARPA/IRA enhancement has fully lapsed. Of that, "
+        f"{share:.1%} never reaches the deficit: CBO's decomposition of the "
+        rf"nearest section 36B change puts it at \${PTC_EXTENSION_GROSS_10YR_BILLIONS:,.0f}B "
+        rf"gross and \${PTC_EXTENSION_NET_10YR_BILLIONS:,.0f}B net (publication "
+        f"60437), mostly people returning to employment-based coverage and out "
+        rf"of taxable wages. So the score is \${net:,.0f}B. Until 2026-09-06 "
+        rf"this removed a fitted \$83B a year growing at 4%."
     )
 
 
@@ -865,6 +938,9 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     projection_note = realizations_projection_caption(policy, result)
     if projection_note:
         st_module.caption(projection_note)
+    ptc_note = ptc_repeal_baseline_caption(policy, result)
+    if ptc_note:
+        st_module.caption(ptc_note)
     sign_note = behavioural_sign_caption(policy, result)
     if sign_note:
         st_module.caption(sign_note)

@@ -68,17 +68,54 @@ validation-documentation half of that review landed separately in
   so a re-scored catalog cannot recompose an assignment already handed out.
   Carry-over: the frozen link still does not pin the Data & methodology options
   (a spec-hash mismatch is captioned, not refused).
-- [~] **Cold start: ~20s of blank skeleton on Streamlit Cloud.** *Partially done
-  in #82* — option (a) shipped: the chrome and brand line are painted before any
-  data load or heavy import, so the first script run no longer renders nothing
-  recognisable. What remains is the part (a) cannot reach: Streamlit Cloud
-  container sleep itself, which needs (b) a warm container (paid tier or an
-  external pinger) or (c) an explanation in the copy surrounding the link. The
-  measurement that decides between them has not been made, and it is the next
-  step: if most of the remaining wait is import time there is more of (a) to do;
-  if it is cold container scheduling, only (b) helps. Streamlit does not paint
-  until the first script run completes, so no in-app placeholder can cover the
-  scheduling half.
+- [~] **Cold start: ~20s of blank skeleton on Streamlit Cloud.** *Option (a)
+  shipped in #82; **the measurement is now done** and written up in
+  `planning/memos/COLD_START.md`, reproducible via
+  `python scripts/measure_cold_start.py all`. The local half is closed; the
+  Cloud-sleep half is explicitly still open, with a runbook.*
+
+  **The measurement did not return either of the two answers the question
+  offered.** Import time was real but modest; container scheduling is real and
+  invisible from here; and the largest single term was something nobody had
+  looked for.
+
+  - **Network is ruled out.** DNS + TCP + TLS + edge TTFB is **0.55s median**,
+    ~3% of 20s. (`<app>.streamlit.app/` answers `303` to an auth bounce rather
+    than serving the shell, so no scripted client can reach the app's own first
+    byte — the live lane can bound transport and nothing more.)
+  - **Import ordering: fixed.** `app.py` named a `fiscal_model` submodule at
+    module scope, and reaching a submodule executes `fiscal_model/__init__` —
+    every policy module, plus `scipy.stats` and `matplotlib.pyplot`. Deferring
+    it took **time to first paint from 1.593s to 0.022s**, and `import app` from
+    2.296s → 0.672s warm (4.317s → 0.702s with `__pycache__` stripped, which is
+    what a fresh container pays), 1,901 modules → 586. No page renders
+    differently. Pinned by `tests/test_cold_start_ordering.py`, which fails on
+    the pre-change file.
+  - **The real cost is the footer.** `render_page_footer` → `render_footer` →
+    `validated_policy_count()` computes the **entire 81-row validation
+    scorecard** to print one clause. **5.79s idle standalone; 8.68s of the
+    landing page's 9.38s first script run (93%)**, and 11.14s of the scored
+    `/explore` run. It is `lru_cache`d process-wide, so exactly one visitor per
+    container pays it — the first one, which is the cold-start visitor. Not
+    fixed here: the call site is in `fiscal_model/ui/**`, which this lane was
+    scoped out of while five modelling lanes were live. Handed over with the
+    numbers and two candidate fixes in the memo §3 — defer it behind the
+    `allow_compute=False` path that already exists, or make the scorecard fast
+    (~93,000 pandas `iterrows` under the Wave 2 L1 capital-gains path, a
+    green-tier question and the better fix). Two docstrings understate it by
+    2–100× and should be corrected with whichever lands.
+
+  **Still open — the Cloud-sleep half, and no app-side work touches it.**
+  Community Cloud apps sleep after **12 hours** without traffic and do **not**
+  wake by themselves: the visitor gets Streamlit's own page with a *"Yes, get
+  this app back up!"* button and has to click it
+  ([docs](https://docs.streamlit.io/deploy/streamlit-community-cloud/manage-your-app)).
+  For a slept app the first visitor is looking at Streamlit's interstitial, not
+  at the app, so only (b) a warm container — paid tier or a pinger inside the
+  12-hour window — or (c) copy around the link changes anything. A sleep cannot
+  be forced, so the cold measurement needs a >12h wait; the runbook is
+  `COLD_START.md` §4.1. Whether the observed ~20s was a *slept* app or a
+  *cold-but-scheduled* one is still unknown, and §4.1 is how to find out.
 - [x] **The "older snapshots" data banner reads like an outage.** — done in #82.
   The degraded-data banner used to fire on page load, before the visitor had
   scored anything, and its wording made a routine baseline-vintage lag look like

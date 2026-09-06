@@ -84,17 +84,22 @@ from fiscal_model.trade import TariffPolicy
 
 PROBE = 100.0
 
-#: Classes whose offset is opposite-signed **on purpose**, with the source that
-#: says the behavioural response moves revenue the same way in both
-#: directions.  A convention is documented and left alone; it is not this
-#: sweep's to choose module-wide (MODELING_IMPROVEMENT.md §6.2 item 8).
+#: Cases whose offset is opposite-signed **on purpose**, with the source that
+#: says the behavioural response raises revenue for that reform.  Keyed on the
+#: case label rather than the class, because lane W7 settled item 8 by making
+#: the direction a property of the **reform**: ``TaxExpenditurePolicy`` now
+#: magnifies where a document says so and erodes everywhere else, so the class
+#: is no longer a blanket exception and two of its cases appear below carrying
+#: opposite tags.
 CONVENTIONS: dict[str, str] = {
-    "TaxExpenditurePolicy": (
-        "CBO, Options for Reducing the Deficit 2025-2034, Option 56 "
-        "(pub. 60557): both behavioural channels - less generous coverage and "
-        "the shift of compensation back into taxable wages - raise revenue, so "
-        "the offset adds to the static effect there. Unsourced in magnitude on "
-        "every other expenditure benchmark; an owner decision, not a lane's."
+    "TaxExpenditurePolicy [SALT]": (
+        "CBO, extended discussion of Option 49 (budget-options/58635), second "
+        "alternative - this same reform: reduced spending on other deductible "
+        "items 'would further decrease their itemized deductions and increase "
+        "their tax liability'. The expand direction is its mirror, priced by "
+        "Yale Budget Lab: raising the SALT limit brings in new itemizers who "
+        "then deduct mortgage interest too, so the loss exceeds the SALT "
+        "figure alone."
     ),
 }
 
@@ -400,7 +405,7 @@ def build_cases() -> list[Case]:
             note="module-default coverage 0.3 / adverse selection 0.1",
         ),
         Case(
-            "TaxExpenditurePolicy",
+            "TaxExpenditurePolicy [SALT]",
             "tax_expenditures_core.py",
             lambda: TaxExpenditurePolicy(
                 name="Eliminate SALT deduction",
@@ -417,7 +422,27 @@ def build_cases() -> list[Case]:
                 action="expand",
             ),
             static_kwargs={"year": 2026},
-            note="item 8's convention",
+            note="CBO 58635 alt 2: the response raises revenue",
+        ),
+        Case(
+            "TaxExpenditurePolicy [mortgage]",
+            "tax_expenditures_core.py",
+            lambda: TaxExpenditurePolicy(
+                name="Eliminate mortgage interest deduction",
+                description="synthetic increase",
+                policy_type=PolicyType.INCOME_TAX,
+                expenditure_type=TaxExpenditureType.MORTGAGE_INTEREST,
+                action="eliminate",
+            ),
+            lambda: TaxExpenditurePolicy(
+                name="Expand mortgage interest deduction",
+                description="synthetic cut",
+                policy_type=PolicyType.INCOME_TAX,
+                expenditure_type=TaxExpenditureType.MORTGAGE_INTEREST,
+                action="expand",
+            ),
+            static_kwargs={"year": 2026},
+            note="Poterba & Sinai: portfolio adjustment erodes the repeal",
         ),
         Case(
             "TCJAExtensionPolicy",
@@ -490,10 +515,11 @@ def probe(case: Case, scorer: FiscalPolicyScorer) -> dict[str, Any]:
                 row["cross_check"] = (
                     f"increase instance reads {tag}, cut instance reads {cross}"
                 )
-    class_name = case.label.split(" [")[0]
-    if class_name in CONVENTIONS and tag == "inverted":
+    # Keyed on the full label, not the class: since lane W7 a class can hold a
+    # sourced convention on one reform and the plain contract on another.
+    if case.label in CONVENTIONS and tag == "inverted":
         tag = "convention"
-        row["source"] = CONVENTIONS[class_name]
+        row["source"] = CONVENTIONS[case.label]
     row["classification"] = tag
     return row
 

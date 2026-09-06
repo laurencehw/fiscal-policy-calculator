@@ -9,6 +9,7 @@ import pytest
 from fiscal_model.policies import PolicyType
 from fiscal_model.tax_expenditures import (
     JCT_TAX_EXPENDITURES,
+    CapUnit,
     TaxExpenditurePolicy,
     TaxExpenditureType,
     create_cap_charitable_deduction,
@@ -126,27 +127,64 @@ def test_expand_branch_handles_salt_and_generic_expansion():
     assert generic_policy.estimate_static_revenue_effect(0) == pytest.approx(-14.0)
 
 
-def test_behavioral_offset_signs_follow_static_effect_direction():
-    positive_policy = TaxExpenditurePolicy(
-        name="Positive Offset",
-        description="Revenue raiser",
+def test_behavioral_offset_signs_follow_the_reform_not_the_module():
+    """The direction is a property of the reform, and it has two values here.
+
+    This test used to assert the module-wide magnify convention: it built two
+    ``CHARITABLE`` policies at the dataclass defaults and required an
+    opposite-signed offset from both. Lane W7 replaced that convention with a
+    per-reform table read off the sources, and the two policies below are the
+    same class in the same expenditure with **opposite** directions — which is
+    the point, and is why one blanket sign could not have been right.
+
+    * A ceiling on the deduction's **value** magnifies: CBO's extended
+      discussion of Option 49 (``budget-options/58635``), third alternative —
+      taxpayers "spend less than they currently do on deductible items, an
+      effect that would increase tax revenues."
+    * Eliminating the **mortgage interest** deduction erodes: Poterba & Sinai
+      (NBER WP 14253, Table 8) price repeal at $72.4B with no behavioural
+      response and $61.9B once households sell taxable assets to pay down
+      mortgage debt — "about 85 percent".
+    """
+    magnifying = TaxExpenditurePolicy(
+        name="Cap charitable deduction at 28%",
+        description="A benefit-rate ceiling: CBO says the response raises revenue",
         policy_type=PolicyType.TAX_DEDUCTION,
         expenditure_type=TaxExpenditureType.CHARITABLE,
+        action="cap",
+        cap_rate=0.28,
+        cap_unit=CapUnit.BENEFIT_RATE,
     )
-    negative_policy = TaxExpenditurePolicy(
-        name="Negative Offset",
-        description="Revenue loser",
+    eroding = TaxExpenditurePolicy(
+        name="Eliminate mortgage interest deduction",
+        description="Portfolio adjustment leaks part of the mechanical gain away",
         policy_type=PolicyType.TAX_DEDUCTION,
-        expenditure_type=TaxExpenditureType.CHARITABLE,
+        expenditure_type=TaxExpenditureType.MORTGAGE_INTEREST,
+        action="eliminate",
     )
 
-    assert positive_policy.estimate_behavioral_offset(10.0) < 0
-    assert negative_policy.estimate_behavioral_offset(-10.0) > 0
+    # Magnify: opposite sign to static, so the engine's
+    # ``deficit = -revenue + behavioural`` adds to the static effect.
+    assert magnifying.estimate_behavioral_offset(10.0) < 0
+    assert magnifying.estimate_behavioral_offset(-10.0) > 0
+
+    # Erode: same sign as static, the contract every other policy class keeps.
+    assert eroding.estimate_behavioral_offset(10.0) > 0
+    assert eroding.estimate_behavioral_offset(-10.0) < 0
 
 
 def test_estimate_expenditure_revenue_returns_consistent_totals():
-    policy = create_cap_employer_health_exclusion()
-    estimate = estimate_expenditure_revenue(policy)
+    """The helper is revenue-signed, so the offset comes off with a minus.
+
+    The engine works in deficit space — ``deficit = -revenue + behavioural`` —
+    and this dict does not, so adding the offset to the static effect here is
+    the *opposite* of what the engine does with the same number. The assertion
+    used to be ``+``, which agreed with the engine for neither the module's old
+    magnify convention nor its new per-reform one. Both directions are checked
+    below, because a tautology on one policy would pass either way.
+    """
+    magnifying = create_cap_employer_health_exclusion()
+    estimate = estimate_expenditure_revenue(magnifying)
 
     assert set(estimate) == {
         "annual_static",
@@ -155,8 +193,18 @@ def test_estimate_expenditure_revenue_returns_consistent_totals():
         "net_effect",
     }
     assert estimate["net_effect"] == pytest.approx(
-        estimate["ten_year_static"] + estimate["behavioral_offset"]
+        estimate["ten_year_static"] - estimate["behavioral_offset"]
     )
+    # A cap on the exclusion raises revenue, and CBO's two behavioural channels
+    # raise more of it, so the net exceeds the static effect.
+    assert estimate["net_effect"] > estimate["ten_year_static"] > 0
+
+    eroding = estimate_expenditure_revenue(create_eliminate_mortgage_deduction())
+    assert eroding["net_effect"] == pytest.approx(
+        eroding["ten_year_static"] - eroding["behavioral_offset"]
+    )
+    # Repeal raises revenue, and portfolio adjustment leaks part of it away.
+    assert 0 < eroding["net_effect"] < eroding["ten_year_static"]
 
 
 def test_get_all_expenditure_estimates_contains_major_categories():
