@@ -76,29 +76,26 @@ def _render_head_metadata(st_module: Any) -> None:
     try:
         # ``allow_compute=False`` answers only from the scorecard's ``lru_cache``,
         # and a cache inside a module that has not been imported is empty by
-        # construction — so on the first script run the answer is provably 0
-        # and asking costs a 1.1s import of ``fiscal_model`` to be told so.
-        # Skip the question until something else has loaded the module, which
-        # the page footer does a moment later; from the second run on this
-        # branch is taken and the blurb is exactly what it always was.
-        if "fiscal_model.validation.scorecard" not in sys.modules:
-            raise LookupError("scorecard memo cannot be warm yet")
+        # construction — so on the first script run the answer is provably 0,
+        # and asking would cost a 1.1s import of ``fiscal_model`` to be told so.
+        # Don't ask until something else has loaded the module, which the page
+        # footer does a moment later; from the second run on, the count is read
+        # exactly as before and the blurb is byte-identical.
+        if "fiscal_model.validation.scorecard" in sys.modules:
+            from fiscal_model.ui.helpers import validated_policy_count
 
-        from fiscal_model.ui.helpers import validated_policy_count
-
-        # 0 means the scorecard could not be computed *or* has not been
-        # computed yet. Say nothing about coverage rather than print a number
-        # the scorecard cannot back — and never block on computing it here:
-        # this runs before the first pixel of the first script run, and the
-        # scorecard takes ~5.8s cold (measured 2026-09-05), for a ``<meta>``
-        # tag. The page footer computes it a moment later, so every run after
-        # the first has it.
-        if (_n := validated_policy_count(allow_compute=False)) > 0:
-            _blurb = (
-                "Estimate the budgetary impact of tax and spending proposals. "
-                f"{_n} policies benchmarked against published CBO, JCT, "
-                "Treasury and think-tank scores."
-            )
+            # 0 means the scorecard could not be computed *or* has not been
+            # computed yet. Say nothing about coverage rather than print a
+            # number the scorecard cannot back — and never block on computing
+            # it here: this runs before the first pixel of the first script
+            # run, and the scorecard takes ~5.8s cold (measured 2026-09-05),
+            # for a ``<meta>`` tag.
+            if (_n := validated_policy_count(allow_compute=False)) > 0:
+                _blurb = (
+                    "Estimate the budgetary impact of tax and spending proposals. "
+                    f"{_n} policies benchmarked against published CBO, JCT, "
+                    "Treasury and think-tank scores."
+                )
     except Exception:
         pass
     st_module.markdown(
@@ -154,7 +151,12 @@ def _default_deps_builder(*, pd_module):
 
     if pd_module is None:
         # Deliberately here and not at module scope: see the note at the top.
-        import pandas as pd_module
+        # ``main`` defaults ``pd_module`` to ``None`` so that importing pandas
+        # happens after the first paint; callers that pass one (every test)
+        # are unaffected.
+        import pandas
+
+        pd_module = pandas
 
     return build_app_dependencies(pd_module=pd_module)
 
