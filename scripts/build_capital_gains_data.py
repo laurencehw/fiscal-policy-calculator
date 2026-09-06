@@ -191,9 +191,10 @@ PW2001_TABLE_8_GAIN_SHARES: tuple[tuple[float, float, float], ...] = (
 )
 
 #: DFA percentile groups from the top down, as (group, cumulative population
-#: share at the group's LOWER edge).  These are the boundaries the piecewise-
-#: Pareto size distribution is fitted between; they are the DFA's own published
-#: percentile definitions and nothing here chooses them.
+#: share at the group's upper wealth edge, share at its lower one).  These are
+#: the boundaries the piecewise-Pareto size distribution is fitted between; they
+#: are the DFA's own published percentile definitions and nothing here chooses
+#: them.
 DFA_CUMULATIVE_EDGES: tuple[tuple[str, float, float], ...] = (
     ("TopPt1", 0.0, 0.001),
     ("RemainingTop1", 0.001, 0.01),
@@ -441,10 +442,6 @@ def _scf_family_net_worth_2022_thousands() -> tuple[float, float]:
         if str(frame.iloc[index, 0]).strip() == "All families":
             return float(frame.iloc[index, column]), float(frame.iloc[index, column + 1])
     raise ValueError("SCF Table 4: 'All families' row not found")
-
-
-def _mean_family_net_worth_2022_thousands() -> float:
-    return _scf_family_net_worth_2022_thousands()[1]
 
 
 def _agm_gain_share(estate_millions: float) -> float:
