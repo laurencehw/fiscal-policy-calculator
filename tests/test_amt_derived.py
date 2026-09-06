@@ -387,3 +387,53 @@ def test_exemption_schedules_index_off_the_nearest_published_year():
         2034, "mfj"
     )
     assert policy.get_exemption_for_year(2024, "mfj") == 133_300  # published, not 2034
+
+
+# ---------------------------------------------------------------------------
+# The behavioural offset's sign
+# ---------------------------------------------------------------------------
+
+
+def test_offset_is_signed_with_the_static_effect_in_both_directions():
+    """The engine's contract, which this module inverted until 2026-09-05.
+
+    ``scoring_engine`` computes ``deficit = -revenue + behavioural``, so an
+    offset carrying the static effect's sign erodes it and one carrying the
+    opposite sign magnifies it. This module returned the negation under a
+    comment reading "Reduces revenue gain", so an AMT change booked **25% more**
+    than its own static effect in *both* directions - the sum of the module
+    defaults ``timing_elasticity = 0.15`` and ``avoidance_elasticity = 0.10``.
+    ``estate.py`` and ``ptc.py`` carried the identical comment above the
+    identical inversion; see ``planning/lanes/SWEEP_offset_sign.md``.
+    """
+    policy = AMTPolicy(
+        name="probe",
+        description="probe",
+        policy_type=PolicyType.INCOME_TAX,
+        amt_type=AMTType.INDIVIDUAL,
+        annual_revenue_change_billions=100.0,
+        mode=AMT_MODE_REPORTED,
+    )
+    assert policy.timing_elasticity == pytest.approx(0.15)
+    assert policy.avoidance_elasticity == pytest.approx(0.10)
+    assert policy.estimate_behavioral_offset(100.0) == pytest.approx(25.0)
+    assert policy.estimate_behavioral_offset(-100.0) == pytest.approx(-25.0)
+    assert policy.estimate_behavioral_offset(0.0) == 0.0
+
+
+def test_every_amt_factory_still_zeroes_both_elasticities():
+    """Why no AMT benchmark or preset moved when the sign was corrected.
+
+    The correction multiplies a zero everywhere the app and the scorecard look,
+    which is exactly the property that kept the defect invisible to every gate
+    the repository has. If a factory ever stops zeroing them, the sign fix
+    starts moving that factory's number and this test says so first.
+    """
+    for factory in (
+        create_extend_tcja_amt_relief,
+        create_repeal_individual_amt,
+        create_repeal_corporate_amt,
+    ):
+        policy = factory()
+        assert policy.timing_elasticity == 0.0, factory.__name__
+        assert policy.avoidance_elasticity == 0.0, factory.__name__

@@ -21,6 +21,7 @@ References:
 - Natasha Sarin & Larry Summers (2019): Enforcement revenue estimates
 """
 
+import math
 from dataclasses import dataclass
 
 from .policies import PolicyType, TaxPolicy
@@ -123,9 +124,25 @@ class IRSEnforcementPolicy(TaxPolicy):
         return net_revenue  # Positive = net revenue gain
 
     def estimate_behavioral_offset(self, static_effect: float) -> float:
-        """Enforcement has minimal behavioral offset — it's not changing rates."""
+        """Enforcement has minimal behavioral offset — it's not changing rates.
+
+        Signed with ``static_effect``, the convention
+        :meth:`fiscal_model.policies_core.TaxPolicy.estimate_behavioral_offset`
+        documents: the engine computes ``deficit = -revenue + behavioural``, so
+        a same-signed offset erodes and an opposite-signed one magnifies. This
+        returned ``abs(...)`` until 2026-09-05, which is right for the only
+        direction the module can currently express and wrong for the other.
+
+        The clamp is why nothing moved. ``estimate_static_revenue_effect``
+        returns exactly ``0.0`` for a negative
+        ``annual_enforcement_spending_billions``, so a funding *cut* scores
+        nothing at all and the unsigned offset was never reached with a negative
+        static. A clamp is not a contract, and the next caller to lift it would
+        have inherited an offset that made a rescission raise money.
+        """
         # Small offset for increased avoidance in response to higher audit rates
-        return abs(static_effect) * ENFORCEMENT_BASELINE["avoidance_response_rate"]
+        offset = abs(static_effect) * ENFORCEMENT_BASELINE["avoidance_response_rate"]
+        return math.copysign(offset, static_effect) if static_effect else 0.0
 
     def get_roi_summary(self) -> dict:
         """Summary of enforcement ROI."""

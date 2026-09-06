@@ -477,26 +477,32 @@ class CorporateTaxPolicy(TaxPolicy):
         - Corporate profits are less elastic than taxable income
         - Less ability to shift timing (vs individual cap gains)
 
-        ``reported`` mode returns ``|static| × elasticity × 0.5``, a flat
-        12.5% of the static effect whatever the rate step and whatever its
-        sign. **That is unsigned, and the sign matters.** ``policies_core``'s
-        contract is that the offset carries the static effect's sign, so the
-        engine's ``deficit = -static + behavioral`` erodes a gain *and* recovers
-        part of a cut; returning an absolute value instead makes a corporate
-        rate cut cost *more* than its static effect, which is backwards. The
-        ``abs()`` is kept in ``reported`` because ``trump_corporate_15``'s
-        fitted number is scored through it.
+        ``reported`` mode returns ``static × elasticity × 0.5``, a flat 12.5%
+        of the static effect whatever the rate step. It used to return
+        ``|static| × elasticity × 0.5`` — unsigned, and the sign matters.
+        ``policies_core``'s contract is that the offset carries the static
+        effect's sign, so the engine's ``deficit = -static + behavioral`` erodes
+        a gain *and* recovers part of a cut; an absolute value instead made a
+        corporate rate cut cost **more** than its own static effect. Wave 5 B
+        signed the ``derived`` branch and deliberately left the ``abs()`` in
+        ``reported``, because ``trump_corporate_15``'s fitted number scored
+        through it and that lane shipped no caption. **The offset-sign sweep
+        signed it here too** (2026-09-05): the fitted row moves from 0.1% to
+        about 22%, which is a finding rather than a regression — no constant was
+        retuned to put it back, because the constant had been compensating for
+        the sign — and the shipped preset moves with a caption under
+        Decision 6. See `planning/lanes/SWEEP_offset_sign.md`.
 
-        ``derived`` mode returns ``static × β × (τ₀ + Δτ)``, signed as the
-        parent documents. The base falls by ``β`` per unit of statutory rate
+        ``derived`` mode returns ``static × β × (τ₀ + Δτ)``, signed the same
+        way. The base falls by ``β`` per unit of statutory rate
         (:data:`PROFIT_SHIFTING_SEMI_ELASTICITY`), so the revenue lost is that
         contraction valued at the *new* rate — which makes the offset a
         function of the rate level rather than of the step, and the whole
         identity concave in the step.
 
         Returns:
-            Behavioral offset in billions (reported: positive = revenue lost;
-            derived: signed with ``static_effect``)
+            Behavioral offset in billions, signed with ``static_effect`` in
+            both modes
         """
         if self.mode == CORPORATE_MODE_DERIVED:
             base_offset = (
@@ -519,7 +525,8 @@ class CorporateTaxPolicy(TaxPolicy):
             passthrough_shift = self._estimate_passthrough_shift()
             base_offset += passthrough_shift
 
-        return base_offset
+        # Same sign as the static effect, so the offset erodes it.
+        return math.copysign(base_offset, static_effect) if static_effect else 0.0
 
     def _estimate_passthrough_shift(self) -> float:
         """

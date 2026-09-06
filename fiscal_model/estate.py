@@ -56,6 +56,7 @@ from __future__ import annotations
 
 import csv
 import itertools
+import math
 from dataclasses import dataclass
 from enum import Enum
 from functools import cache, lru_cache
@@ -696,8 +697,25 @@ class EstateTaxPolicy(TaxPolicy):
           response, which the previous flat 15%-of-static rule could not say.
         - **Gift shifting** to inter vivos transfers, still a flat share.
 
+        The returned offset carries the **same sign as** ``static_effect``, the
+        convention
+        :meth:`fiscal_model.policies_core.TaxPolicy.estimate_behavioral_offset`
+        documents for the whole repository: the engine computes
+        ``deficit = -revenue + behavioural``, so a same-signed offset erodes the
+        revenue change and an opposite-signed one magnifies it. This module
+        returned the opposite sign until 2026-09-05, under a comment reading
+        "Reduces revenue gain" above arithmetic that did the reverse — an estate
+        rate change booked about 11% *more* than its own static effect in both
+        directions. `amt.py` and `ptc.py` carried the same comment above the
+        same inversion; all three were one misreading of ``behavioral`` as a
+        quantity the engine subtracts. Every calibrated estate factory zeroes
+        both elasticities, so no benchmark and no preset moves; what the
+        correction reaches is ``create_estate_rate_change``,
+        ``create_estate_exemption_change``, Tailor and
+        ``bill_tracker/auto_scorer.py``'s raw ``EstateTaxPolicy``.
+
         Returns:
-            Behavioral offset in billions
+            Behavioral offset in billions, signed with ``static_effect``
         """
         baseline_rate = CURRENT_ESTATE_TAX_RATE
         policy_rate = self.get_rate_for_year(self.start_year)
@@ -711,11 +729,8 @@ class EstateTaxPolicy(TaxPolicy):
 
         total_offset = planning_offset + gift_offset
 
-        # Offset reduces revenue gain or loss
-        if static_effect > 0:
-            return -total_offset  # Reduces revenue gain
-        else:
-            return total_offset  # Reduces revenue loss
+        # Same sign as the static effect, so the offset erodes it.
+        return math.copysign(total_offset, static_effect) if static_effect else 0.0
 
 
 # =============================================================================

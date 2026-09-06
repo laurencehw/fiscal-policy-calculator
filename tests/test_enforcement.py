@@ -110,6 +110,30 @@ class TestBehavioralOffset:
         static = p.estimate_static_revenue_effect(0)
         assert p.estimate_behavioral_offset(static) < 0.1 * abs(static)
 
+    def test_offset_is_signed_in_both_directions(self):
+        """The engine's contract, probed both ways rather than only the one
+        this module can currently reach.
+
+        ``estimate_static_revenue_effect`` clamps a negative funding level to
+        exactly 0.0, so a rescission scores nothing and the module never hands
+        its own offset a negative static. That clamp is why the ``abs(...)``
+        this returned until 2026-09-05 was invisible to every other test here:
+        the wrong direction was unreachable through the constructor, not
+        absent. A clamp is not a contract, so the sign is pinned directly.
+        """
+        p = create_ira_enforcement()
+        rate = ENFORCEMENT_BASELINE["avoidance_response_rate"]
+        assert p.estimate_behavioral_offset(100.0) == pytest.approx(100.0 * rate)
+        assert p.estimate_behavioral_offset(-100.0) == pytest.approx(-100.0 * rate)
+        assert p.estimate_behavioral_offset(0.0) == 0.0
+
+    def test_a_funding_cut_still_scores_zero(self):
+        """The clamp the test above is about, stated so it cannot drift away
+        silently: if this ever starts scoring, the signed offset above is what
+        keeps the rescission from raising money."""
+        cut = _policy(annual_enforcement_spending_billions=-16.0)
+        assert cut.estimate_static_revenue_effect(0) == 0.0
+
 
 class TestROISummary:
     def test_summary_keys_and_consistency(self):

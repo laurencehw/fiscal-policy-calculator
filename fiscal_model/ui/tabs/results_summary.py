@@ -28,6 +28,12 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+from fiscal_model.amt import AMTPolicy
+from fiscal_model.corporate import CORPORATE_MODE_REPORTED, CorporateTaxPolicy
+from fiscal_model.credits_core import CreditType, TaxCreditPolicy
+from fiscal_model.enforcement import IRSEnforcementPolicy
+from fiscal_model.estate import EstateTaxPolicy
+from fiscal_model.international import InternationalTaxPolicy
 from fiscal_model.pharma import (
     PHARMA_BASELINE,
     DrugPricingPolicy,
@@ -35,6 +41,7 @@ from fiscal_model.pharma import (
     part_d_federal_channels,
 )
 from fiscal_model.policies import CapitalGainsPolicy
+from fiscal_model.ptc import PremiumTaxCreditPolicy
 from fiscal_model.spending_outlays import IMMEDIATE, account_class_label
 from fiscal_model.trade import TRADE_BASELINE, TariffPolicy
 from fiscal_model.ui.a11y import (
@@ -733,6 +740,80 @@ def realizations_projection_caption(policy: Any, result: Any) -> str:
     )
 
 
+#: Classes whose behavioural offset returned the **negation** of the contract
+#: before the offset-sign sweep (2026-09-05), in every direction.
+_OFFSET_SIGN_INVERTED = (AMTPolicy, EstateTaxPolicy, PremiumTaxCreditPolicy)
+
+
+def _offset_sign_changed(policy: Any, behavioural: float) -> bool:
+    """True when this policy's score differs from what it was before the sweep.
+
+    Six modules returned an offset the engine's ``deficit = -revenue +
+    behavioural`` magnified rather than eroded. They were wrong in two
+    different ways, and the ways differ in *when* they bite:
+
+    * ``AMTPolicy``, ``EstateTaxPolicy`` and ``PremiumTaxCreditPolicy``
+      returned the negation, so every score through them moved.
+    * ``CorporateTaxPolicy`` in ``reported`` mode, the ``TaxCreditPolicy``
+      fallback branch, ``InternationalTaxPolicy`` and ``IRSEnforcementPolicy``
+      returned ``abs(...)``, which agrees with the contract whenever the static
+      effect is positive. Those moved **only** for a policy that loses revenue,
+      which today is a corporate rate cut.
+
+    So the caption fires on the second family only when the offset is negative
+    — the tell that the static effect was negative too.
+    """
+    if behavioural == 0.0:
+        return False
+    if isinstance(policy, _OFFSET_SIGN_INVERTED):
+        return True
+    if isinstance(policy, CorporateTaxPolicy):
+        return policy.mode == CORPORATE_MODE_REPORTED and behavioural < 0.0
+    if isinstance(policy, TaxCreditPolicy):
+        fallback = (
+            policy.annual_revenue_change_billions is None
+            and policy.credit_type
+            not in (CreditType.CHILD_TAX_CREDIT, CreditType.EARNED_INCOME_CREDIT)
+        )
+        return fallback and behavioural < 0.0
+    if isinstance(policy, (InternationalTaxPolicy, IRSEnforcementPolicy)):
+        return behavioural < 0.0
+    return False
+
+
+def behavioural_sign_caption(policy: Any, result: Any) -> str:
+    """One line saying that the behavioural response now erodes, not magnifies.
+
+    The scoring engine books ``deficit = -revenue + behavioural``, so an offset
+    carrying the static effect's sign shrinks the score in both directions — a
+    tax increase raises less than its static figure, a cut loses less. Six
+    modules returned the opposite sign, or an absolute value, and so *added* to
+    the score instead. Two shipped presets moved when that was corrected —
+    Trump Corporate 15% by about 22% and Repeal ACA Premium Credits by about
+    18% — so the numbers ship with their explanation rather than in silence
+    (Decision 6).
+
+    Computed from the scored result, so it cannot drift from the figure above
+    it. Returns ``""`` for any policy whose number did not move.
+    """
+    behavioural = float(np.sum(result.behavioral_offset))
+    if not _offset_sign_changed(policy, behavioural):
+        return ""
+    static = float(np.sum(result.static_deficit_effect))
+    current = static + behavioural
+    previous = static - behavioural
+    direction = "erodes" if abs(current) < abs(static) else "offsets"
+    return (
+        rf"Behavioural response: \${abs(behavioural):,.1f}B {direction} a "
+        rf"static \${static:+,.1f}B to \${current:+,.1f}B. The response "
+        f"carries the static effect's sign, so a tax increase raises less than "
+        f"its static figure and a cut loses less. This module returned the "
+        f"other sign until 2026-09-05, which added the same amount instead - "
+        rf"the headline above would have read \${previous:+,.1f}B. No "
+        f"elasticity changed; only the direction the response is applied in."
+    )
+
+
 def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, Any]) -> None:
     """Tier badge, headline number, interpretation, sensitivity, provenance."""
     policy = result_data["policy"]
@@ -784,6 +865,9 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     projection_note = realizations_projection_caption(policy, result)
     if projection_note:
         st_module.caption(projection_note)
+    sign_note = behavioural_sign_caption(policy, result)
+    if sign_note:
+        st_module.caption(sign_note)
 
     credibility_html = _build_credibility_html(getattr(scored, "credibility", None))
     if credibility_html:

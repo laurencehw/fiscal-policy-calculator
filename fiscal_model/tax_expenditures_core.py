@@ -691,6 +691,31 @@ class TaxExpenditurePolicy(TaxPolicy):
     def estimate_behavioral_offset(self, static_effect: float) -> float:
         """
         Estimate behavioral response to tax expenditure changes.
+
+        **This module returns the offset with the sign OPPOSITE to
+        ``static_effect``, and that is deliberate — it is the one documented
+        exception to the repository's contract.**
+        :meth:`fiscal_model.policies_core.TaxPolicy.estimate_behavioral_offset`
+        returns a same-signed offset, which the engine's
+        ``deficit = -revenue + behavioural`` turns into a haircut on the static
+        effect. Here the offset *adds* to it, because the behavioural response
+        to limiting an exclusion is a second revenue-raising channel rather
+        than a leak out of the first.
+
+        The source is CBO, *Options for Reducing the Deficit: 2025 to 2034*
+        (pub. 60557), Option 56: capping the employer-health exclusion makes
+        employers offer less generous coverage **and** shifts compensation back
+        into taxable wages, and CBO's text has both channels increasing
+        revenue. On that option the convention is worth about +20% and is
+        directionally right. On every *other* expenditure benchmark it is
+        unsourced in magnitude, and choosing it module-wide moves every fitted
+        expenditure row and the whole leave-one-out column together.
+
+        The offset-sign sweep (`planning/lanes/SWEEP_offset_sign.md`) signed
+        six other modules and **left this one alone** for exactly that reason:
+        it is an owner decision, carried as item 8 of
+        `planning/MODELING_IMPROVEMENT.md` §6.2, and it is the single entry in
+        the contract test's ``CONVENTION_EXCEPTIONS``.
         """
         elasticity = BEHAVIORAL_ELASTICITIES.get(
             self.expenditure_type,

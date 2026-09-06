@@ -66,6 +66,7 @@ References:
 """
 
 import csv
+import math
 from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
@@ -593,12 +594,35 @@ class InternationalTaxPolicy(TaxPolicy):
         return foreign_undertaxed * rate_gap * base["utpr_capture_rate"]
 
     def estimate_behavioral_offset(self, static_effect: float) -> float:
-        """Behavioral response to international tax changes."""
+        """Behavioral response to international tax changes.
+
+        Signed with ``static_effect``, the convention
+        :meth:`fiscal_model.policies_core.TaxPolicy.estimate_behavioral_offset`
+        documents: the engine computes ``deficit = -revenue + behavioural``, so
+        a same-signed offset erodes the revenue change and an opposite-signed
+        one magnifies it. This returned ``abs(...)`` until 2026-09-05.
+
+        No benchmark moved, and the reason is worth stating rather than
+        assuming: every international reform the repository scores — GILTI
+        country-by-country, FDII repeal, Pillar Two, the UTPR and the Biden
+        package — **raises** revenue, so its static is positive and an unsigned
+        offset and a signed one agree to the cent. A reform that *lowers* an
+        international rate (``gilti_new_rate`` below the current 10.5%, an FDII
+        expansion) has a negative static, and the unsigned offset made it cost
+        15% more than its own static effect. That is reachable from Tailor and
+        the composer today; it is simply not in the battery.
+
+        ``get_component_breakdown``'s ``net_effect = static_total - behavioral``
+        was already written for the signed convention and was wrong for a
+        negative static under the old ``abs()``; it is right in both directions
+        now.
+        """
         # International provisions have lower behavioral offset than domestic
         # because they're harder to avoid (anti-avoidance rules)
         # But profit shifting elasticity still matters
         base_offset = abs(static_effect) * self.profit_shifting_elasticity * INTERNATIONAL_BASELINE["behavioral_offset_factor"]
-        return base_offset
+        # Same sign as the static effect, so the offset erodes it.
+        return math.copysign(base_offset, static_effect) if static_effect else 0.0
 
     def get_component_breakdown(self) -> dict:
         """Detailed breakdown of international tax effects."""

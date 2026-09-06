@@ -17,14 +17,17 @@ What these lock down:
 - **The identity is concave in the rate step.** Reported yields the same
   dollars per percentage point at 1pp and 7pp; derived does not, which is the
   whole point of the row.
-- **The offset's sign follows the parent's contract in derived mode**, and
-  deliberately does not in reported mode — that defect is pinned, not fixed,
-  because a fitted benchmark is scored through it.
+- **The offset's sign follows the parent's contract in BOTH modes.** W5 signed
+  ``derived`` and deliberately left ``reported`` unsigned, because
+  ``trump_corporate_15`` was scored through the defect; the offset-sign sweep
+  signed ``reported`` too, which is why the pins below moved.
 - **Derived reads no baseline level**, so the score is the same on every
   vintage, which is the property ``validation/cbo_options.py`` claims for every
   uncalibrated shape.
-- **Reported mode did not move.** Every shipped preset scores what it scored
-  before the lane.
+- **Reported mode moved once, on purpose.** The pins below are the
+  post-sweep figures; ``create_republican_corporate_cut`` fell $426.2B when the
+  ``abs()`` came out, and the Decision 1 ranking flipped with it. See
+  ``planning/lanes/SWEEP_offset_sign.md``.
 """
 
 from __future__ import annotations
@@ -210,14 +213,15 @@ def test_derived_is_concave_in_the_rate_step(scorer):
     assert per_point[0] > per_point[-1] * 1.05
 
 
-def test_derived_erodes_a_rate_cut_instead_of_amplifying_it(scorer):
+def test_both_modes_erode_a_rate_cut_instead_of_amplifying_it(scorer):
     """The signed-offset contract ``policies_core`` documents.
 
     A corporate rate cut's behavioural response recovers some of the revenue,
     so the deficit effect must be *smaller* in magnitude than the static
-    effect. Reported mode gets this backwards and the second half of this test
-    pins that, so that changing it is a decision rather than an accident: the
-    fitted ``trump_corporate_15`` benchmark is scored through it.
+    effect. Reported mode got this backwards until the offset-sign sweep
+    (2026-09-05) — this test used to pin the defect so that changing it would
+    be a decision rather than an accident, and the sweep made that decision
+    with a caption and a moved benchmark row attached.
     """
     cut_derived = CorporateTaxPolicy(
         name="cut",
@@ -243,8 +247,9 @@ def test_derived_erodes_a_rate_cut_instead_of_amplifying_it(scorer):
     )
     static_r = cut_reported.estimate_static_revenue_effect(0.0)
     offset_r = cut_reported.estimate_behavioral_offset(static_r)
-    assert offset_r > 0
-    assert abs(-static_r + offset_r) > abs(static_r)
+    assert static_r < 0
+    assert offset_r < 0  # signed with the static effect here too, since the sweep
+    assert abs(-static_r + offset_r) < abs(static_r)
 
 
 def test_derived_reads_no_baseline_level(scorer):
@@ -302,18 +307,43 @@ def test_the_app_default_is_reported():
     assert default.mode == CORPORATE_MODE_REPORTED
 
 
-def test_reported_mode_scores_exactly_what_it_scored_before_the_lane(scorer):
-    """Regression pins, transcribed from ``1d35f1b`` before any code change."""
+def test_reported_mode_pins(scorer):
+    """Regression pins for reported mode.
+
+    The rate *increase* is unchanged from ``1d35f1b``: its static is positive,
+    so an ``abs()`` offset and a signed one are the same number. The rate *cut*
+    moved **1,917.98 -> 1,491.76** when the offset-sign sweep signed the
+    reported branch, because 12.5% of a negative static had been landing on the
+    wrong side. No constant was retuned to put it back.
+    """
     assert _ten_year(scorer, create_biden_corporate_rate_only()) == pytest.approx(
         -1397.21, abs=0.01
     )
     assert _ten_year(scorer, create_republican_corporate_cut()) == pytest.approx(
-        1917.98, abs=0.01
+        1491.76, abs=0.01
     )
 
 
-def test_derived_mode_loses_decision_1_on_the_carried_benchmarks(scorer):
-    """The comparison the app default turns on, as a test rather than a claim."""
+def test_decision_1_now_ranks_derived_ahead_of_reported(scorer):
+    """The comparison the app default turns on, as a test rather than a claim.
+
+    **This assertion is the reverse of what it was**, and the reversal is the
+    offset-sign sweep's sharpest side effect. Before the sweep, reported scored
+    1.92% against derived's 9.67% and Decision 1's rule kept the module on
+    reported. Signing the reported offset took reported to **13.02%** — because
+    ``trump_corporate_15`` had been reading 0.1% through the defect — while
+    derived, already signed, did not move. By Decision 1's own words ("reported
+    stays the app default per module until that module's derived error is below
+    its fitted error") the module is now due to flip.
+
+    **The sweep did not flip it**, and this test pins that too. Flipping the
+    mode moves two more shipped presets and is an owner decision, not a
+    sign-fix lane's; and the row that produces the reversal,
+    ``trump_corporate_15``, carries provenance ``model_estimate`` — it is this
+    model's own output recorded as an expectation — so neither ranking is
+    evidence about the world. Carried to the owner in
+    ``planning/lanes/SWEEP_offset_sign.md``.
+    """
     targets = {
         create_biden_corporate_rate_only: -1347.0,
         create_republican_corporate_cut: 1920.0,
@@ -325,7 +355,9 @@ def test_derived_mode_loses_decision_1_on_the_carried_benchmarks(scorer):
             for factory, target in targets.items()
         ]
         means[mode] = sum(errors) / len(errors)
-    assert means[CORPORATE_MODE_REPORTED] < means[CORPORATE_MODE_DERIVED]
+    assert means[CORPORATE_MODE_DERIVED] < means[CORPORATE_MODE_REPORTED]
+    assert means[CORPORATE_MODE_REPORTED] == pytest.approx(0.1302, abs=0.0002)
+    assert means[CORPORATE_MODE_DERIVED] == pytest.approx(0.0967, abs=0.0002)
     assert CORPORATE_APP_MODE == CORPORATE_MODE_REPORTED
 
 
@@ -359,7 +391,8 @@ def test_the_corporate_runner_prints_both_modes():
         assert len(rows) == 2
         means[mode] = sum(abs(row.percent_difference) for row in rows) / len(rows)
 
-    assert means[CORPORATE_MODE_REPORTED] == pytest.approx(1.92, abs=0.01)
+    # Reported was 1.92% before the offset-sign sweep signed its offset.
+    assert means[CORPORATE_MODE_REPORTED] == pytest.approx(13.02, abs=0.01)
     assert means[CORPORATE_MODE_DERIVED] == pytest.approx(9.67, abs=0.01)
 
     default = validate_all_corporate(verbose=False)

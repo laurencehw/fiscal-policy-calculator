@@ -321,8 +321,13 @@ def test_planning_response_is_an_elasticity_not_a_flat_haircut():
 
     rate_rise = _probe(new_rate=0.45, gift_shifting_elasticity=0.0)
     offset = rate_rise.estimate_behavioral_offset(100.0)
-    assert offset < 0.0  # a revenue gain is eroded
+    # Same sign as the static effect, which is what erodes it under the
+    # engine's ``deficit = -revenue + behavioural``. This module returned the
+    # negation until the offset-sign sweep (2026-09-05), which magnified the
+    # gain instead; see planning/lanes/SWEEP_offset_sign.md.
+    assert offset > 0.0  # a revenue gain is eroded
     assert 0.0 < abs(offset) < 5.0  # ...but by ~1.4%, not by 15%
+    assert rate_rise.estimate_behavioral_offset(-100.0) == pytest.approx(-offset)
 
 
 def test_rate_change_factory_uses_the_frozen_elasticity():

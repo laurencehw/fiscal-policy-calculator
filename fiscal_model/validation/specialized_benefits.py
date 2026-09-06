@@ -167,6 +167,13 @@ def validate_ptc_policy(
             ),
             "extend_enhanced": getattr(policy, "extend_enhanced", False),
             "repeal_ptc": getattr(policy, "repeal_ptc", False),
+            # Defaults True, so only a scenario that says otherwise moves out
+            # of the fitted tier. ``repeal_ptc`` says otherwise: its fitted
+            # annual reproduced -$1,100B only through the inverted offset the
+            # sweep corrected.
+            "calibrated_to_target": bool(
+                scenario.get("calibrated_to_target", True)
+            ),
         },
         notes=scenario.get("notes", ""),
         benchmark_date=scenario.get("benchmark_date"),

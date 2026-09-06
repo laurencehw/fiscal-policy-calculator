@@ -30,6 +30,7 @@ CBO Estimates:
 - Original ACA baseline: ~$95B/year in credits
 """
 
+import math
 from dataclasses import dataclass, field
 from enum import Enum
 
@@ -386,8 +387,27 @@ class PremiumTaxCreditPolicy(TaxPolicy):
         - Premium spiral effects (adverse selection)
         - Labor supply effects (subsidy cliff)
 
+        The returned offset carries the **same sign as** ``static_effect``, the
+        convention
+        :meth:`fiscal_model.policies_core.TaxPolicy.estimate_behavioral_offset`
+        documents for the whole repository: the engine computes
+        ``deficit = -revenue + behavioural``, so a same-signed offset erodes the
+        revenue change and an opposite-signed one magnifies it. This module
+        returned the opposite sign until 2026-09-05, under comments reading
+        "Reduces savings" and "Reduces cost" above arithmetic that did the
+        reverse — a PTC repeal booked 13% *more* saving than its own static
+        effect, and an extension 3% more cost. `amt.py` and `estate.py` carried
+        the same comment idiom above the same inversion.
+
+        The two directions stay **asymmetric in magnitude**, and that part is
+        deliberate: ``adverse_selection`` fires only when the policy takes
+        subsidies away, because the premium spiral is a consequence of healthy
+        enrollees leaving and has no mirror image when subsidies are extended.
+        The asymmetry is a modelling claim about who drops coverage; the sign
+        was not.
+
         Returns:
-            Behavioral offset in billions
+            Behavioral offset in billions, signed with ``static_effect``
         """
         # Coverage effects affect healthcare costs elsewhere
         coverage_offset = abs(static_effect) * self.coverage_elasticity * 0.1
@@ -400,11 +420,8 @@ class PremiumTaxCreditPolicy(TaxPolicy):
 
         total_offset = coverage_offset + adverse_selection
 
-        # Direction: if saving money (cutting subsidies), costs go up elsewhere
-        if static_effect > 0:
-            return -total_offset  # Reduces savings
-        else:
-            return total_offset  # Reduces cost
+        # Same sign as the static effect, so the offset erodes it.
+        return math.copysign(total_offset, static_effect) if static_effect else 0.0
 
 
 # =============================================================================

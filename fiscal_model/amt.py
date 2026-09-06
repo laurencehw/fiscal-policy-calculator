@@ -50,6 +50,7 @@ path each caller takes and why.
 """
 
 import csv
+import math
 from dataclasses import dataclass, field
 from enum import Enum
 from functools import cache, lru_cache
@@ -1231,8 +1232,26 @@ class AMTPolicy(TaxPolicy):
         - Tax planning (restructure to minimize AMTI)
         - Charitable giving timing
 
+        The returned offset carries the **same sign as** ``static_effect``,
+        which is the convention
+        :meth:`fiscal_model.policies_core.TaxPolicy.estimate_behavioral_offset`
+        documents for the whole repository. The engine computes
+        ``deficit = -revenue + behavioural``, so a same-signed offset erodes
+        the revenue change and an opposite-signed one magnifies it. This module
+        returned the opposite sign until 2026-09-05, under a comment that said
+        "Reduces revenue gain" while the arithmetic did the reverse: an AMT
+        change booked **25% more** than its own static effect in *both*
+        directions, the sum of ``timing_elasticity = 0.15`` and
+        ``avoidance_elasticity = 0.10``. `estate.py` and `ptc.py` carried the
+        identical comment above the identical inversion, and all three were the
+        same misreading of ``behavioral`` as a quantity the engine subtracts.
+        Every calibrated AMT factory sets both elasticities to 0.0, so the
+        correction multiplies a zero on all four AMT benchmarks and on all
+        three shipped AMT presets; what it reaches is Tailor, the composer and
+        any raw ``AMTPolicy``, which carry the module defaults.
+
         Returns:
-            Behavioral offset in billions
+            Behavioral offset in billions, signed with ``static_effect``
         """
         # Timing response
         timing_offset = abs(static_effect) * self.timing_elasticity
@@ -1242,11 +1261,8 @@ class AMTPolicy(TaxPolicy):
 
         total_offset = timing_offset + avoidance_offset
 
-        # Offset reduces revenue gain or loss
-        if static_effect > 0:
-            return -total_offset  # Reduces revenue gain
-        else:
-            return total_offset  # Reduces revenue loss
+        # Same sign as the static effect, so the offset erodes it.
+        return math.copysign(total_offset, static_effect) if static_effect else 0.0
 
 
 # =============================================================================
