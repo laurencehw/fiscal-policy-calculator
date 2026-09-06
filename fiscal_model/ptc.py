@@ -30,9 +30,12 @@ CBO Estimates:
 - Original ACA baseline: ~$95B/year in credits
 """
 
+import csv
 import math
 from dataclasses import dataclass, field
 from enum import Enum
+from functools import lru_cache
+from pathlib import Path
 
 import numpy as np
 
@@ -164,6 +167,165 @@ CBO_PTC_ESTIMATES = {
 }
 
 
+# =============================================================================
+# THE BASELINE COST OF THE CREDIT, AND WHAT A REPEAL OF IT NETS
+# =============================================================================
+#
+# Everything in this block is transcribed from a document. Lane
+# ``planning/lanes/W7_ptc_repeal_shape.md`` is the write-up.
+
+#: CBO and JCT's own baseline projections of the premium tax credit, both legs,
+#: by fiscal year and vintage. Publication 51298, Table 2. The file's header
+#: carries document, table and page for each block.
+PTC_BASELINE_PATH = (
+    Path(__file__).parent
+    / "data_files"
+    / "ptc"
+    / "cbo_premium_tax_credit_baseline.csv"
+)
+
+#: Which block of :data:`PTC_BASELINE_PATH` the repeal path reads by default.
+#: The value matches ``BaselineVintage.CBO_FEB_2026``'s own string, which is
+#: :class:`fiscal_model.baseline.CBOBaseline`'s default vintage and therefore
+#: the one every app surface and the benchmark runner already score on.
+PTC_BASELINE_VINTAGE = "cbo_feb_2026"
+
+#: CBO and JCT's own net-to-gross ratio for a change to IRC section 36B.
+#:
+#: CBO/JCT, letter to Chairmen Arrington and Smith, publication 60437
+#: (24 June 2024), report p. 3, on permanently extending the expanded credit
+#: over FY2025-2034: "making the policy permanent would increase the budget
+#: deficit by $335 billion ... That deficit amount reflects an estimated
+#: $415 billion increase in the cost of the premium tax credit - the result of
+#: a $250 billion increase in outlays and a $164 billion decrease in revenues.
+#: The $335 billion increase in the deficit is net of an offsetting increase in
+#: revenues, primarily attributable to a decline in offers of employment-based
+#: health insurance."
+#:
+#: The same page itemises the $80B: $101B of compensation shifting from
+#: tax-favoured insurance into taxable wages, $3B of employer-mandate penalties,
+#: against $21B of Medicaid and CHIP, $17B of Basic Health Program and section
+#: 1332 waivers and -$13B of other outlay effects.
+#:
+#: The denominator - outlays plus revenue reductions - is exactly the quantity
+#: publication 51298's Table 2 prints, which is why the two documents compose.
+#:
+#: THREE THINGS THIS IS NOT.
+#:
+#: 1. Not fitted. It moves ``repeal_ptc`` AWAY from its carried -$1,100B target
+#:    (18.5% -> 29.6%); a 10% offset would have left the row nearer.
+#: 2. Not a full-repeal estimate. No published one exists - PR #122 searched the
+#:    2018/2020/2022/2025 Options volumes, publication 61734 and the 2017
+#:    AHCA/BCRA estimates and recorded the search. This is a ratio transferred
+#:    from an extension of the *enhancement* to a repeal of the *whole* credit,
+#:    in the opposite direction, and the composition differs: $101B of the $104B
+#:    revenue offset is employment-based coverage, while a full repeal reaches a
+#:    population between 100% and 150% of the FPL that largely has no employer
+#:    offer. Recorded in the benchmark's ``known_limitations``, not modelled.
+#: 3. Not leakage today, and it must not become leakage. The numerator, $335B,
+#:    is ``extend_enhanced_ptc``'s own target. That row does not read this ratio
+#:    - it keeps its fitted annual - and ``repeal_ptc`` is scored against a
+#:    different figure entirely. A later lane that gave the extension a derived
+#:    path off this ratio would be scoring a benchmark against its own target.
+#:
+#: SENSITIVITY. Footnote 4 of the same letter says the $335B "incorporated
+#: interactions associated with extending certain expiring provisions of the
+#: 2017 tax act"; excluding those, the extension would cost $325B, giving a
+#: net-to-gross of 0.7831 and an offsetting share of 21.7% rather than 19.3%.
+#: The headline sentence is what defines the ratio and is what ships.
+PTC_EXTENSION_NET_10YR_BILLIONS = 335.0
+PTC_EXTENSION_GROSS_10YR_BILLIONS = 415.0
+PTC_NET_TO_GROSS = (
+    PTC_EXTENSION_NET_10YR_BILLIONS / PTC_EXTENSION_GROSS_10YR_BILLIONS
+)
+
+#: Share of the gross change in the credit's cost that never reaches the
+#: deficit. ``1 - PTC_NET_TO_GROSS`` = 0.192771.
+CBO_OFFSETTING_SHARE = 1.0 - PTC_NET_TO_GROSS
+
+
+@lru_cache(maxsize=1)
+def _load_ptc_baseline() -> tuple[dict[str, str], ...]:
+    """Read the transcribed CBO premium-tax-credit projections, comments stripped."""
+    with PTC_BASELINE_PATH.open(encoding="utf-8") as handle:
+        body = (line for line in handle if not line.startswith("#"))
+        return tuple(csv.DictReader(body))
+
+
+@lru_cache(maxsize=4)
+def ptc_baseline_by_fiscal_year(
+    vintage: str = PTC_BASELINE_VINTAGE,
+) -> tuple[tuple[int, float, float], ...]:
+    """
+    One vintage's projected credit path, sorted by fiscal year.
+
+    Returns ``(fiscal_year, outlays_billions, revenue_reductions_billions)``.
+
+    A vintage with no transcribed block raises rather than falling back to
+    another one's numbers: a score reported as "on the June 2024 baseline" when
+    it was computed on February 2026's would be a false provenance claim, and
+    the caller decides what to do about it. This is the rule
+    :func:`fiscal_model.corporate.cbo_receipts_by_fiscal_year` set.
+    """
+    rows = tuple(
+        (
+            int(row["fiscal_year"]),
+            float(row["outlays_billions"]),
+            float(row["revenue_reductions_billions"]),
+        )
+        for row in _load_ptc_baseline()
+        if row["vintage"] == vintage
+    )
+    if len(rows) < 2:
+        raise KeyError(
+            f"No premium-tax-credit path transcribed for vintage {vintage!r}; "
+            f"{PTC_BASELINE_PATH.name} carries "
+            f"{sorted({row['vintage'] for row in _load_ptc_baseline()})}"
+        )
+    return tuple(sorted(rows))
+
+
+def baseline_credit_cost(
+    fiscal_year: int, vintage: str = PTC_BASELINE_VINTAGE
+) -> float:
+    """
+    The credit's own cost in a fiscal year: outlays plus revenue reductions.
+
+    This is the quantity a repeal of IRC section 36B removes, before the
+    offsetting effects :data:`CBO_OFFSETTING_SHARE` prices.
+
+    OUTSIDE THE TABULATED YEARS the path holds the first year's level below the
+    block and continues the last observed growth rate above it. The asymmetry is
+    a property of this series rather than a convention: the early years contain
+    a policy cliff - the ARPA/IRA enhancement lapsed at the end of calendar 2025,
+    taking the February 2026 path from $105B in FY2026 to $78B in FY2027 - so
+    extrapolating that -26% backwards would invent a FY2025 credit of $141B
+    where CBO prints $111B of outlays alone. The late years grow smoothly at
+    about 7%/yr, and continuing them is the same extension
+    :func:`fiscal_model.payroll.covered_earnings` and
+    :func:`fiscal_model.corporate.cbo_corporate_receipts` already make.
+    """
+    table = ptc_baseline_by_fiscal_year(vintage)
+    first_year, first_outlays, first_revenue = table[0]
+    last_year, last_outlays, last_revenue = table[-1]
+
+    if fiscal_year <= first_year:
+        return first_outlays + first_revenue
+
+    last_total = last_outlays + last_revenue
+    if fiscal_year <= last_year:
+        for year, outlays, revenue in table:
+            if year == fiscal_year:
+                return outlays + revenue
+        raise KeyError(
+            f"Vintage {vintage!r} has no row for fiscal year {fiscal_year}"
+        )
+
+    prev_total = table[-2][1] + table[-2][2]
+    growth = (last_total / prev_total) - 1.0
+    return last_total * ((1 + growth) ** (fiscal_year - last_year))
+
+
 @dataclass
 class PremiumTaxCreditPolicy(TaxPolicy):
     """
@@ -209,6 +371,17 @@ class PremiumTaxCreditPolicy(TaxPolicy):
     coverage_elasticity: float = 0.3  # Coverage response to subsidy changes
     take_up_rate: float = 0.85  # Eligible population that enrolls
     adverse_selection_factor: float = 0.1  # Premium spiral from losing healthy
+
+    #: Which transcribed CBO vintage the repeal path reads (see
+    #: :data:`PTC_BASELINE_VINTAGE`). Ignored by every other branch.
+    baseline_vintage: str = PTC_BASELINE_VINTAGE
+
+    #: When set, the behavioural offset is this share of the static effect and
+    #: the two unsourced knobs above are bypassed. ``create_repeal_ptc`` sets it
+    #: to :data:`CBO_OFFSETTING_SHARE`, CBO's own published net-to-gross for a
+    #: section 36B change. Left ``None`` everywhere else, so the module's other
+    #: factories and its public API are unaffected.
+    coverage_offset_share: float | None = None
 
     # Healthcare cost growth
     healthcare_growth_rate: float = 0.04  # 4%/year premium growth
@@ -339,10 +512,23 @@ class PremiumTaxCreditPolicy(TaxPolicy):
             "uninsured_change_millions": MARKETPLACE_DATA["coverage_loss_millions"],
         }
 
+    def uses_baseline_credit_path(self) -> bool:
+        """
+        True when the static effect is CBO's own year-indexed credit path.
+
+        The scoring engine asks this so it can pass the year being scored and
+        switch its module-default 4%/yr growth off, rather than compounding it
+        on a path that already carries CBO's own growth — the same guard
+        :class:`fiscal_model.payroll.PayrollTaxPolicy` and
+        :class:`fiscal_model.corporate.CorporateTaxPolicy` carry.
+        """
+        return bool(self.repeal_ptc) and self.annual_revenue_change_billions is None
+
     def estimate_static_revenue_effect(
         self,
         baseline_revenue: float,
         use_real_data: bool = True,
+        year: int | None = None,
     ) -> float:
         """
         Estimate static revenue effect of PTC policy change.
@@ -352,6 +538,9 @@ class PremiumTaxCreditPolicy(TaxPolicy):
         Args:
             baseline_revenue: Baseline revenue (not used)
             use_real_data: Whether to use detailed calculations
+            year: Fiscal year being scored. Required by the repeal branch,
+                which removes CBO's own projection of the credit for that year
+                rather than a level; ignored by every other branch.
 
         Returns:
             Revenue change in billions (negative = cost increase)
@@ -360,8 +549,20 @@ class PremiumTaxCreditPolicy(TaxPolicy):
             return self.annual_revenue_change_billions
 
         if self.repeal_ptc:
-            # Repealing PTCs saves all PTC spending
-            return CBO_PTC_ESTIMATES["baseline_enhanced_annual"]
+            # Repealing section 36B removes the credit, and the credit's cost is
+            # a published annual path: CBO/JCT publication 51298 Table 2's
+            # outlays plus revenue reductions, for the vintage being scored.
+            #
+            # This branch used to return CBO_PTC_ESTIMATES's unsourced
+            # "~$95B/year", and was unreachable besides, because
+            # ``create_repeal_ptc`` pinned an annual of 83.0 - which is
+            # 1100 / (1.10 x sum of 1.04^t), the carried target run backwards
+            # through the engine's growth factor and the behavioural offset
+            # PR #119 corrected. See planning/lanes/W7_ptc_repeal_shape.md.
+            return baseline_credit_cost(
+                year if year is not None else self.start_year,
+                self.baseline_vintage,
+            )
 
         if self.extend_enhanced or self.make_permanent:
             # Cost of extending enhanced PTCs
@@ -409,6 +610,17 @@ class PremiumTaxCreditPolicy(TaxPolicy):
         Returns:
             Behavioral offset in billions, signed with ``static_effect``
         """
+        if self.coverage_offset_share is not None:
+            # CBO's own published net-to-gross for a section 36B subsidy change
+            # (:data:`CBO_OFFSETTING_SHARE`), which supersedes the two unsourced
+            # knobs below on this path. The channels are coverage shifting - back
+            # into employment-based insurance and out of taxable wages, plus
+            # Medicaid, CHIP, the Basic Health Program and employer-mandate
+            # penalties - not a premium spiral, so ``adverse_selection_factor``
+            # is not the right home for it.
+            total_offset = abs(static_effect) * self.coverage_offset_share
+            return math.copysign(total_offset, static_effect) if static_effect else 0.0
+
         # Coverage effects affect healthcare costs elsewhere
         coverage_offset = abs(static_effect) * self.coverage_elasticity * 0.1
 
@@ -496,14 +708,37 @@ def create_let_enhanced_expire() -> PremiumTaxCreditPolicy:
 def create_repeal_ptc(
     start_year: int = 2026,
     duration_years: int = 10,
+    baseline_vintage: str = PTC_BASELINE_VINTAGE,
 ) -> PremiumTaxCreditPolicy:
     """
-    Create policy to repeal PTCs entirely.
+    Create policy to repeal the premium tax credit entirely.
 
-    This would eliminate all ACA premium subsidies, saving ~$95B/year
-    but causing ~19 million to lose subsidized coverage.
+    A repeal of IRC section 36B removes the credit, so the score is CBO and
+    JCT's own projection of what the credit costs — outlays plus revenue
+    reductions, year by year, from publication 51298's Table 2 — net of the
+    offsetting effects CBO prices on any section 36B change
+    (:data:`CBO_OFFSETTING_SHARE`, from publication 60437).
 
-    CBO estimate: Saves ~$1.1T over 10 years but major coverage loss.
+    On the February 2026 vintage over FY2026-2035 the credit's two legs are
+    $959B, of which $107B is the revenue leg, and the score is $774B. On the
+    June 2024 vintage over FY2025-2034 the same computation gives $1,143B gross
+    and $923B net — the gross figure being, to 0.09%, what the repository's
+    carried −$1,100B target turns out to be a rounding of. Both are printed in
+    ``planning/lanes/W7_ptc_repeal_shape.md`` §3.1.
+
+    **There is no CBO or JCT score of a full repeal.** PR #122 searched for one
+    — the 2018/2020/2022/2025 Options volumes, publication 61734 (September
+    2025), the 2017 AHCA/BCRA estimates — and recorded the search in
+    ``validation/benchmark_sources.py``. What ships is therefore CBO's own
+    baseline path times CBO's own net-to-gross ratio for the nearest published
+    section 36B change, and the transfer is stated rather than hidden.
+
+    Args:
+        start_year: First year of the repeal.
+        duration_years: Years scored.
+        baseline_vintage: Which transcribed CBO vintage the credit path is read
+            from. Defaults to :data:`PTC_BASELINE_VINTAGE`, which matches
+            ``CBOBaseline``'s own default.
     """
     return PremiumTaxCreditPolicy(
         name="Repeal Premium Tax Credits",
@@ -511,9 +746,14 @@ def create_repeal_ptc(
         policy_type=PolicyType.TAX_CREDIT,
         scenario=PTCScenario.REPEAL_PTC,
         repeal_ptc=True,
-        coverage_elasticity=0.0,  # Not modeling coverage offset
-        # Calibrated: ~$1.1T savings over 10 years (with growth)
-        annual_revenue_change_billions=83.0,  # Saves money
+        # Both unsourced knobs are switched off: the sourced share below is the
+        # whole behavioural response on this path.
+        coverage_elasticity=0.0,
+        adverse_selection_factor=0.0,
+        coverage_offset_share=CBO_OFFSETTING_SHARE,
+        baseline_vintage=baseline_vintage,
+        # No fitted annual. The static effect is the vintage's own credit path,
+        # asked for year by year.
         start_year=start_year,
         duration_years=duration_years,
     )

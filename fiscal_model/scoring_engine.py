@@ -377,6 +377,23 @@ class FiscalPolicyScorer:
                     year=year,
                 )
                 growth_rate = 0.0
+            elif (
+                isinstance(policy, PremiumTaxCreditPolicy)
+                and policy.uses_baseline_credit_path()
+            ):
+                # Repealing section 36B removes CBO's own projection of the
+                # credit, which is an annual path rather than a level, and it is
+                # not a smooth one: the ARPA/IRA enhancement lapsed at the end of
+                # calendar 2025, so the February 2026 vintage falls from $105B in
+                # FY2026 to $74B in FY2028. So the year is asked for and the
+                # module-default 4%/yr is switched off rather than compounded on
+                # top of a path that already carries CBO's own growth.
+                static_annual = policy.estimate_static_revenue_effect(
+                    base_rev,
+                    use_real_data=self.use_real_data,
+                    year=year,
+                )
+                growth_rate = 0.0
             elif isinstance(policy, CorporateTaxPolicy) and policy.uses_projected_base():
                 # The derived rate channel is priced off CBO's own projected
                 # corporate receipts path, which already grows — at 1.4%/yr on
