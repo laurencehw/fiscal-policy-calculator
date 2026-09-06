@@ -397,4 +397,125 @@ Registered before the code was written. Each is a way this lane is wrong.
 
 ## 8. Outturn
 
-*Appended in this lane's last commit.*
+*Appended in this lane's last commit, measured on the branch tip.*
+
+### 8.1 Against the pre-registration
+
+**Every figure in §4 landed, one of them a tenth of a point off.**
+
+| # (§6) | falsification | outcome |
+|---|---|---|
+| 1 | any `cold_holdout.py --json` row differs | **byte-identical**, whole file |
+| 2 | `run_loo.py --donor-matrix` differs | **byte-identical** |
+| 3 | any of the 53 presets moves | **byte-identical**, 53 × 2 data modes × static/dynamic |
+| 4 | any Tailor row moves | **byte-identical**, all 16 |
+| 5 | three vintages, three corporate paths | **three distinct paths**, both data modes, pinned by a test |
+| 6 | February 2024 ≠ the transcribed CSV | **equal**, all ten values; sum 5,093.9 |
+| 7 | Ask's ten-year deficit outside $29,529.1B ± $1B | **$29,529.1B** |
+| 8 | the dashboard's existing lines or exit code change | **byte-identical** after task 1; purely additive after task 2; exit 1 both times, as on `main` |
+| 9 | a new dashboard line disagrees with `cold_holdout.py --json` | **equal**, asserted by `test_calibrated_tiers_match_cold_holdout` |
+
+The three corporate paths, `use_real_data=True`, FY2026–2035:
+
+| vintage | before | after | CAGR | sum before → after |
+|---|---|---|--:|---|
+| `cbo_feb_2024` | 402.09 → 617.26 | **491.40 → 568.77** | 4.88% → **1.64%** | 5,040.5 → **5,168.6** |
+| `cbo_jan_2025` | 402.09 → 612.98 | **544.96 → 830.79** | 4.80% | 5,012.3 → **6,793.3** |
+| `cbo_feb_2026` | 402.09 → 614.33 | **436.80 → 667.36** | 4.82% | 5,019.3 → **5,452.6** |
+
+On the validation window FY2025–2034, February 2024 is CBO's ten printed values
+to the tenth and sums to 5,093.9.
+
+### 8.2 What moved, exactly
+
+| surface | before | after |
+|---|--:|--:|
+| Ask `get_cbo_baseline`, ten-year deficit | $30,020.7B | **$29,529.1B** (−1.6%) |
+| Ask, FY2026 revenues | $5,146.53B | **$5,181.24B** |
+| Ask, FY2035 revenues | $7,250.16B | **$7,303.19B** |
+| Ask, end-of-window debt/GDP | 104.8% | **103.8%** |
+| Build target strip, mean annual baseline deficit | $3,002.07B | **$2,952.91B** |
+| `composer.gap_to_target_billions(3.0)` | $17,896.31B | **$17,404.65B** |
+| bare corporate `TaxPolicy`, Feb 2024, real data off, +7pp | −$1,996.32B | **−$1,758.75B** |
+
+Nothing else. All 26 out-of-sample rows, all 81 scorecard rows, the leave-one-out
+donor matrix, 53 presets and 16 Tailor combinations are byte-identical, and
+`check_readiness.py --strict` still exits 2 with the single Python 3.14 runtime
+issue it reports on `main`.
+
+**One prediction was a tenth off**: end-of-window debt/GDP was predicted 103.9%
+and came out **103.8%**, because the prediction rounded the end-of-window GDP
+back out of the published ratio instead of reading it.
+
+### 8.3 Findings
+
+1. **W6 finding 1's "identical" was very slightly too strong, and correcting it
+   made the defect *easier* to state, not harder.** The three paths shared one
+   base level and one first year and diverged 0.70% by FY2035 — the growth rule
+   reads the vintage's assumptions, the level does not. Once that is said
+   precisely, the cause is obvious and lives in one line of the loader, where
+   "identical path" had pointed vaguely at the projection.
+2. **The mode with "real data" in its name was the one with no vintage in it.**
+   `use_real_data=True` gave every vintage $386.62B; `use_real_data=False` gave
+   three different, vintage-specific figures. A reader — or a maintainer — would
+   reasonably assume the opposite, and this is the second time this repository
+   has found that the honest-sounding path was the weaker one.
+3. **The defect is not corporate's; corporate was just the one with a table to
+   move to.** `_load_from_data_sources` overrides *every* base level, and
+   `other_revenues` is byte-identical across all three vintages for all ten
+   years — the same defect with no growth-rule variation to hide it. Fixing it
+   needs each vintage's own published tables, which cbo.gov 403s. Carry-over 1.
+4. **A published *level* and a published *path* are different grades and the
+   repository had no way to say so.** January 2025 has a transcribed FY2025
+   corporate figure and no annual path; February 2026 has neither.
+   `CORPORATE_RECEIPTS_SOURCING`'s three states exist because the three vintages
+   genuinely have three, and a two-state flag would have had to lie about one.
+5. **"Held in place" could not be computed from what the scorecard exposed, and
+   the natural guess is wrong by a factor of three.** `calibrated_to_target` is
+   the runner's declaration *and* not superseded, so folding all 16
+   `revised_target_entries` rows back into the fitted tier reads **37 at 15.5%**
+   — but 10 of those are sectoral rows no runner ever declared fitted. The
+   honest reading is **27 at 5.6%**, and it needed a new field
+   (`declared_calibrated_to_target`) to be computable at all. A dashboard line
+   that had guessed would have been worse than the blank it replaced.
+6. **The CI job never parsed the dashboard's text.** `validation-dashboard.yml`
+   branches on the exit code alone, so the block that was missing had also been
+   safe to add for as long as it was missing. What made the omission cost
+   something was a human reading "byte-identical output" as evidence.
+7. **The parity gate on `ScorecardEntryModel` earned its keep.** Adding
+   `declared_calibrated_to_target` to the dataclass failed
+   `test_entry_model_carries_every_scorecard_entry_field` immediately — the test
+   written after `transcribed` had silently vanished from the API. The field went
+   into the Pydantic model in the same commit; without the gate it would have
+   been printed by the dashboard and missing from `/validation/scorecard`.
+
+### 8.4 What this lane did not do
+
+- Did not touch any target, threshold, `preregistered.py`, `holdout.py`,
+  `loo.py`, `target_revisions.py`, `KNOWN_SCORES`, `CBO_SCORE_MAP`,
+  `scripts/cold_holdout.py`, `tests/test_cold_holdout.py`, any workflow, or
+  `fiscal_model/corporate.py` — which it *reads*, through that module's own
+  public loader, and does not edit.
+- Did not retune a constant. `corporate_profit_premium` keeps its unsourced 1pp
+  and still governs two vintages; `GDP_RATIOS["corporate_tax_to_income_tax"]` is
+  left in place with no reader rather than deleted.
+- Did not manufacture an annual path for January 2025 or February 2026, and did
+  not fix the same override on the individual, payroll, other-revenue or
+  spending series.
+- Did not add a Decision 6 caption, on the judgement in §4.3 — which the outturn
+  supports: no preset, Tailor row, scorecard entry or dynamic score moved.
+- Did not change a gate. Both new blocks are informational, like the
+  out-of-sample block beside them.
+
+### 8.5 Gates
+
+| command | result |
+|---|---|
+| `python -m pytest tests/ -q` | **3,539 passed, 7 skipped** (`a251b32`: 3,518 passed, 7 skipped — 21 added) |
+| `python scripts/cold_holdout.py --json` | byte-identical to `a251b32` |
+| `python scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 21` | **exit 0** (15.2%, 22/26) |
+| `python scripts/run_loo.py --donor-matrix` | byte-identical to `a251b32` |
+| `python scripts/run_validation_dashboard.py` | **exit 1**, as on `a251b32`, for the reason it names (Python 3.14 runtime); every pre-existing line unchanged |
+| `python scripts/run_validation_dashboard.py --augment-top-tail --json` | exit 0 |
+| `python scripts/check_readiness.py --strict` | **exit 2**, sole issue `runtime`, as on `a251b32` |
+| `python -m ruff check fiscal_model/ tests/ scripts/` | clean |
