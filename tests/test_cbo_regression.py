@@ -17,7 +17,10 @@ bands elsewhere (see test_cold_holdout.py).
 import pytest
 
 from fiscal_model.amt import create_repeal_corporate_amt
-from fiscal_model.corporate import create_biden_corporate_rate_only
+from fiscal_model.corporate import (
+    CORPORATE_MODE_REPORTED,
+    create_biden_corporate_rate_only,
+)
 from fiscal_model.credits import create_biden_ctc_2021
 from fiscal_model.scoring import FiscalPolicyScorer
 from fiscal_model.tcja import create_tcja_extension
@@ -59,16 +62,38 @@ class TestTCJAExtensionCBORange:
 
 
 class TestBidenCorporateRateCBORange:
-    """Biden corporate rate increase 21->28% (fallback-data regression value ~-$1,397B)."""
+    """Biden corporate rate increase 21->28% (fallback-data regression value ~-$1,293B).
+
+    The band moved once, on 2026-09-05, when Decision 1 flipped
+    ``CORPORATE_APP_MODE`` from ``reported`` to ``derived``
+    (``planning/lanes/DECISION1_corporate_mode.md``). The old band was
+    [-1460, -1330] around ``reported``'s -$1,397.2B; the shipped default now
+    prices the rate change on CBO's own projected corporate receipts and
+    returns -$1,292.6B. No constant was retuned and ``reported`` still scores
+    -$1,397.2B, which the second test below pins so that the two numbers cannot
+    be confused for one drifting.
+    """
 
     def test_biden_corporate_cbo_range(self, scorer):
         policy = create_biden_corporate_rate_only()
         result = scorer.score_policy(policy)
         total = result.total_10_year_cost
         # Revenue raiser: total_10_year_cost should be negative (reduces deficit)
-        assert -1460 <= total <= -1330, (
-            f"Biden corporate {total:.0f}B outside regression band [-1460, -1330]"
+        assert -1355 <= total <= -1230, (
+            f"Biden corporate {total:.0f}B outside regression band [-1355, -1230]"
         )
+
+    def test_the_mode_the_app_left_still_scores_what_it_scored(self, scorer):
+        """The flip changed a default, not a model, and this is the check.
+
+        If a later lane retunes a corporate constant while the app is on
+        ``derived``, the band above moves with it and looks like a decision.
+        This does not: it is the figure ``reported`` produced before the flip,
+        and it is only reachable by naming the mode.
+        """
+        policy = create_biden_corporate_rate_only(mode=CORPORATE_MODE_REPORTED)
+        total = scorer.score_policy(policy).total_10_year_cost
+        assert total == pytest.approx(-1397.21, abs=0.01)
 
     def test_biden_corporate_reduces_deficit(self, scorer):
         """Raising corporate rate should reduce the deficit (negative cost)."""

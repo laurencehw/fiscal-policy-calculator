@@ -189,20 +189,35 @@ def test_every_offset_implementation_is_covered():
 # ---------------------------------------------------------------------------
 
 
-def test_the_caption_fires_on_exactly_the_two_presets_that_moved(scorer):
-    """Two of the 53 shipped presets moved when the offsets were signed.
+def test_the_caption_fires_on_exactly_the_presets_the_sweep_moved(scorer):
+    """Which shipped presets carry the offset-sign note, and which do not.
 
-    ``Trump Corporate 15%`` fell about 22% and ``Repeal ACA Premium Credits``
-    about 18%, and Decision 6 says a moved shipped number ships with its
-    explanation rather than in silence. The other 51 score to the cent what
-    they scored before, so the caption must stay silent on them - a note that
-    appears everywhere explains nothing.
+    Two of the 53 moved when the offsets were signed: ``Trump Corporate 15%``
+    fell about 22% and ``Repeal ACA Premium Credits`` about 18%, and Decision 6
+    says a moved shipped number ships with its explanation rather than in
+    silence. The other 51 score to the cent what they scored before, so the
+    caption must stay silent on them - a note that appears everywhere explains
+    nothing.
+
+    **One of the two dropped off this list on 2026-09-05 and did not lose its
+    explanation.** The corporate Decision 1 flip moved the app default from
+    ``reported`` to ``derived``, and ``derived``'s offset was already signed
+    before the sweep, so "this module returned the other sign until
+    2026-09-05" is not true of the path the Trump preset now scores. The note
+    it carries instead is ``corporate_base_caption``, which explains the larger
+    move the flip itself made - and that is asserted here rather than left to
+    ``test_corporate_derived.py``, because "the caption disappeared" and "the
+    caption was replaced" look identical from this file alone.
     """
     from fiscal_model.app_data import PRESET_POLICIES
     from fiscal_model.preset_handler import create_policy_from_preset
-    from fiscal_model.ui.tabs.results_summary import behavioural_sign_caption
+    from fiscal_model.ui.tabs.results_summary import (
+        behavioural_sign_caption,
+        corporate_base_caption,
+    )
 
     captioned = []
+    corporate_captioned = []
     for label, data in PRESET_POLICIES.items():
         policy = create_policy_from_preset(data)
         if policy is None:
@@ -210,20 +225,32 @@ def test_the_caption_fires_on_exactly_the_two_presets_that_moved(scorer):
         result = scorer.score_policy(policy, dynamic=False, include_uncertainty=False)
         if behavioural_sign_caption(policy, result):
             captioned.append(label)
+        if corporate_base_caption(policy, result):
+            corporate_captioned.append(label)
 
-    assert len(captioned) == 2, captioned
-    assert any("Trump Corporate 15" in label for label in captioned)
-    assert any("Repeal ACA Premium Credits" in label for label in captioned)
+    assert captioned == ["🏥 Repeal ACA Premium Credits (-$1.1T)"], captioned
+    assert len(corporate_captioned) == 2, corporate_captioned
+    assert any("Trump Corporate 15" in label for label in corporate_captioned)
+    assert any("Biden Corporate 28" in label for label in corporate_captioned)
 
 
 def test_the_caption_carries_the_scored_figures_and_the_old_headline(scorer):
-    """Computed from the result, so it cannot drift from the number above it."""
+    """Computed from the result, so it cannot drift from the number above it.
+
+    ``mode=`` is passed explicitly since the 2026-09-05 Decision 1 flip. The
+    defect this caption explains was ``reported``-only, so the test names that
+    mode rather than relying on a module default that has since moved - which
+    would have left it asserting a silence and calling it a pass.
+    """
     import numpy as np
 
-    from fiscal_model.corporate import create_republican_corporate_cut
+    from fiscal_model.corporate import (
+        CORPORATE_MODE_REPORTED,
+        create_republican_corporate_cut,
+    )
     from fiscal_model.ui.tabs.results_summary import behavioural_sign_caption
 
-    policy = create_republican_corporate_cut()
+    policy = create_republican_corporate_cut(mode=CORPORATE_MODE_REPORTED)
     result = scorer.score_policy(policy, dynamic=False, include_uncertainty=False)
     note = behavioural_sign_caption(policy, result)
 
@@ -241,12 +268,18 @@ def test_the_caption_stays_silent_on_a_rate_increase(scorer):
     """An ``abs()`` and the signed rule agree whenever the static is positive.
 
     Corporate's defect only ever bit a rate *cut*, so ``biden_corporate_28``
-    scores exactly what it scored before and has nothing to explain.
+    scores exactly what it scored before and has nothing to explain. Asserted
+    in ``reported`` mode, where the defect lived: under the shipped ``derived``
+    default the caption is silent for a second and different reason, and a test
+    that cannot tell the two apart is not testing this one.
     """
-    from fiscal_model.corporate import create_biden_corporate_rate_only
+    from fiscal_model.corporate import (
+        CORPORATE_MODE_REPORTED,
+        create_biden_corporate_rate_only,
+    )
     from fiscal_model.ui.tabs.results_summary import behavioural_sign_caption
 
-    policy = create_biden_corporate_rate_only()
+    policy = create_biden_corporate_rate_only(mode=CORPORATE_MODE_REPORTED)
     result = scorer.score_policy(policy, dynamic=False, include_uncertainty=False)
     assert behavioural_sign_caption(policy, result) == ""
 

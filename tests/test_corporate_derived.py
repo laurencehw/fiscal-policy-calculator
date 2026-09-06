@@ -33,8 +33,16 @@ What these lock down:
   vintage, which is the property ``validation/cbo_options.py`` claims for every
   uncalibrated shape. A transcribed CBO table is an input like SOI's; the
   scorer's own baseline object is not read.
-- **Reported mode has not moved since the offset-sign sweep**, and W6 did not
-  touch it.
+- **Reported mode has not moved since the offset-sign sweep**, and neither W6
+  nor the Decision 1 flip touched it. Its two pins are the same figures after
+  the flip as before, which is the check that the flip changed a *default* and
+  not a model.
+- **The app default is ``derived`` since 2026-09-05** (Decision 1,
+  ``planning/lanes/DECISION1_corporate_mode.md``), and every corporate surface
+  is pinned to the derived figure so the app and its own scorecard cannot drift
+  apart. The margin that decided it is pinned too — both means, and the fact
+  that derived wins **one** row of three — so no lane can improve the margin
+  quietly.
 """
 
 from __future__ import annotations
@@ -77,6 +85,11 @@ from fiscal_model.policies import PolicyType
 from fiscal_model.scoring import FiscalPolicyScorer
 from fiscal_model.validation.cbo_scores import KNOWN_SCORES
 from fiscal_model.validation.core import build_scorer_for_vintage, create_policy_from_score
+
+#: Last fiscal year the transcribed CBO receipts table carries. The app's
+#: window runs a year past it, which is why the caption distinguishes published
+#: years from continued ones.
+CORPORATE_RECEIPTS_LAST_TABULATED_YEAR = cbo_receipts_by_fiscal_year()[-1][0]
 
 
 @pytest.fixture(scope="module")
@@ -369,9 +382,17 @@ def test_reported_is_exactly_linear_in_the_rate_step(scorer):
     Steps are kept below the 29.6% pass-through kink: above it the
     C-corp-to-pass-through branch fires and adds the module's only other
     curvature, which is not what this test is about.
+
+    ``mode=`` is passed explicitly since the 2026-09-05 Decision 1 flip; before
+    it, the module default was ``reported`` and this test relied on it.
     """
     per_point = [
-        abs(_ten_year(scorer, create_corporate_rate_change(d))) / (d * 100)
+        abs(
+            _ten_year(
+                scorer, create_corporate_rate_change(d, mode=CORPORATE_MODE_REPORTED)
+            )
+        )
+        / (d * 100)
         for d in (0.01, 0.02, 0.05, 0.07)
     ]
     for value in per_point[1:]:
@@ -475,55 +496,140 @@ def test_no_factory_sets_a_per_case_elasticity():
 # ---------------------------------------------------------------------------
 
 
-def test_the_app_default_is_reported():
-    assert CORPORATE_APP_MODE == CORPORATE_MODE_REPORTED
+def test_the_app_default_is_derived():
+    """Flipped 2026-09-05 under Decision 1 — see ``DECISION1_corporate_mode.md``.
+
+    Both halves matter and they are two different things. The constant is what
+    the scorecard runner resolves ``mode=None`` to; the dataclass field default
+    is what every app surface and every factory picks up. A flip that moved one
+    and not the other would put the app and its own scorecard on different
+    identities, which is the failure this asserts against.
+    """
+    assert CORPORATE_APP_MODE == CORPORATE_MODE_DERIVED
     default = CorporateTaxPolicy(
         name="x", description="x", policy_type=PolicyType.CORPORATE_TAX
     )
-    assert default.mode == CORPORATE_MODE_REPORTED
+    assert default.mode == CORPORATE_MODE_DERIVED
+
+    # And the validation pin did not move with it: an out-of-sample prediction
+    # must not start reading whatever the app happens to score.
+    assert CORPORATE_VALIDATION_MODE == CORPORATE_MODE_DERIVED
+
+
+def test_the_scorecard_runner_follows_the_app_default():
+    """Corporate has no ``AMT_SCORECARD_MODE`` twin; one switch drives both.
+
+    ``amt.py`` carries ``AMT_APP_MODE`` and ``AMT_SCORECARD_MODE`` separately.
+    ``corporate.py`` carries one constant and
+    ``validation/specialized_business.py`` defaults to it, so the app default
+    and the by-construction scorecard mode are the same switch. Pinned because
+    the AMT convention makes a reader expect a second constant, and a future
+    lane that adds one should have to change this test to do it.
+    """
+    from fiscal_model.validation.specialized_business import validate_all_corporate
+
+    default = validate_all_corporate(verbose=False)
+    explicit = validate_all_corporate(verbose=False, mode=CORPORATE_APP_MODE)
+    assert [row.model_10yr for row in default] == [row.model_10yr for row in explicit]
+    assert [round(float(row.model_10yr), 2) for row in default] == [
+        -1292.62,
+        -1292.62,
+        1545.24,
+    ]
 
 
 def test_reported_mode_pins(scorer):
-    """Regression pins for reported mode.
+    """Regression pins for reported mode, which nothing shipped scores any more.
 
     The rate *increase* is unchanged from ``1d35f1b``: its static is positive,
     so an ``abs()`` offset and a signed one are the same number. The rate *cut*
     moved **1,917.98 -> 1,491.76** when the offset-sign sweep signed the
     reported branch, because 12.5% of a negative static had been landing on the
-    wrong side. No constant was retuned to put it back.
+    wrong side. No constant was retuned to put it back, and none was retuned
+    when the app left this mode either: these two figures are the same after
+    the 2026-09-05 Decision 1 flip as before it, which is the check that the
+    flip changed a default and not a model.
     """
+    assert _ten_year(
+        scorer, create_biden_corporate_rate_only(mode=CORPORATE_MODE_REPORTED)
+    ) == pytest.approx(-1397.21, abs=0.01)
+    assert _ten_year(
+        scorer, create_republican_corporate_cut(mode=CORPORATE_MODE_REPORTED)
+    ) == pytest.approx(1491.76, abs=0.01)
+
+
+def test_derived_mode_pins(scorer):
+    """What the app scores now, on the benchmarks' own FY2025-2034 window."""
     assert _ten_year(scorer, create_biden_corporate_rate_only()) == pytest.approx(
-        -1397.21, abs=0.01
+        -1292.62, abs=0.01
     )
     assert _ten_year(scorer, create_republican_corporate_cut()) == pytest.approx(
-        1491.76, abs=0.01
+        1545.24, abs=0.01
     )
+
+
+def test_every_corporate_preset_scores_the_derived_figure():
+    """The shipped surfaces, on the app's own FY2026-2035 window.
+
+    Two of the 53 ``PRESET_POLICIES`` entries reach ``CorporateTaxPolicy``, and
+    both moved with the Decision 1 flip: Biden Corporate 28% **-1,397.21 ->
+    -1,310.92** (+6.18%) and Trump Corporate 15% **+1,491.76 -> +1,562.75**
+    (+4.76%). They are not the figures in ``test_derived_mode_pins`` because
+    the app opens its window at ``APP_DEFAULT_START_YEAR`` = 2026 while the
+    benchmarks are quoted on FY2025-2034, and the derived base is read off a
+    published path by *absolute* fiscal year — so a one-year shift moves the
+    number, which is the whole point of projecting the base off a vintage.
+
+    This asserts what a user sees equals what the mode says, so the two cannot
+    drift: a factory whose ``mode=`` default was missed by a future flip would
+    show up here rather than in production.
+    """
+    from fiscal_model.app_data import PRESET_POLICIES
+    from fiscal_model.baseline import APP_DEFAULT_START_YEAR
+    from fiscal_model.preset_handler import create_policy_from_preset
+
+    expected = {
+        "🏢 Biden Corporate 28% (CBO: -$1.35T)": -1310.92,
+        "🏢 Trump Corporate 15%": 1562.75,
+    }
+
+    seen = {}
+    for label, data in PRESET_POLICIES.items():
+        policy = create_policy_from_preset(data)
+        if not isinstance(policy, CorporateTaxPolicy):
+            continue
+        assert policy.mode == CORPORATE_APP_MODE == CORPORATE_MODE_DERIVED, label
+        start = max(int(policy.start_year), APP_DEFAULT_START_YEAR)
+        run = FiscalPolicyScorer(start_year=start, use_real_data=False)
+        seen[label] = float(run.score_policy(policy, dynamic=False).total_10_year_cost)
+
+    assert set(seen) == set(expected), seen
+    for label, target in expected.items():
+        assert seen[label] == pytest.approx(target, abs=0.01), label
 
 
 def test_decision_1_ranks_the_two_modes_on_the_registered_targets(scorer):
     """The comparison the app default turns on, as a test rather than a claim.
 
-    **This assertion has now reversed twice, and the second reversal is why it
-    reads its targets off the registry instead of carrying its own.** The
-    offset-sign sweep flipped it the first time: signing the reported offset
-    took reported 1.92% -> 13.02% against derived's unmoved 9.67%, because
-    ``trump_corporate_15`` had been reading 0.1% through the ``abs()`` defect,
-    so Decision 1's rule ("reported stays the app default per module until that
-    module's derived error is below its fitted error") said the module was due
-    to flip. The sweep declined to flip it and said why: the row producing the
+    **This assertion has reversed three times, which is why it reads its
+    targets off the registry instead of carrying its own copy.** The
+    offset-sign sweep flipped it first: signing the reported offset took
+    reported 1.92% -> 13.02% against derived's unmoved 9.67%, because
+    ``trump_corporate_15`` had been reading 0.1% through the ``abs()`` defect.
+    The sweep declined to act on it and said why — the row producing the
     reversal carried provenance ``model_estimate``, so neither ranking was
-    evidence about the world.
+    evidence about the world. W6's base projection moved derived to 11.78%
+    next. Then the 2026-09-05 provenance lane settled the population:
+    ``trump_corporate_15``'s target became the published range
+    [+$595.0B, +$673.1B] anchored on Tax Foundation's +$673.1B, and the FY2022
+    Green Book's rate-only row joined the suite as a second published corporate
+    benchmark.
 
-    The 2026-09-05 provenance lane settled that. ``trump_corporate_15``'s
-    target is now the published range [+$595.0B, +$673.1B] anchored on Tax
-    Foundation's +$673.1B, and the FY2022 Green Book's rate-only row joined the
-    suite as a second published corporate benchmark. On published targets,
-    measured on the tree where PR #121's base projection and PR #122's targets
-    both apply, **derived leads narrowly** — 61.43% against 62.75% — because
-    it wins the one rate-only published row (FY2022) and loses a little on the
-    other two. Neither figure is small, which is the honest reading of a module
-    whose implied marginal base sits above every published estimator's. The
-    mode is still not flipped here; the owner's re-measure is this number.
+    On three published targets **derived leads narrowly, 61.43% against
+    62.75%**, and the mode was flipped on 2026-09-05 under Decision 1
+    (``planning/lanes/DECISION1_corporate_mode.md``). Read the margin with its
+    composition attached, which the next test pins: derived wins **one** row of
+    three, and neither figure is small.
     """
     from fiscal_model.validation.scenarios import CORPORATE_VALIDATION_SCENARIOS
 
@@ -539,7 +645,166 @@ def test_decision_1_ranks_the_two_modes_on_the_registered_targets(scorer):
     assert means[CORPORATE_MODE_DERIVED] < means[CORPORATE_MODE_REPORTED]
     assert means[CORPORATE_MODE_REPORTED] == pytest.approx(0.6275, abs=0.0002)
     assert means[CORPORATE_MODE_DERIVED] == pytest.approx(0.6143, abs=0.0002)
-    assert CORPORATE_APP_MODE == CORPORATE_MODE_REPORTED
+
+    # The flip. Both means stay pinned above it, so a lane that improved the
+    # margin by retuning a constant would fail here rather than pass quietly.
+    assert CORPORATE_APP_MODE == CORPORATE_MODE_DERIVED
+
+
+def test_the_decision_1_margin_is_one_row(scorer):
+    """What the 1.31pp lead is made of, so the mean cannot be read alone.
+
+    Derived wins ``biden_corporate_28_fy2022`` by 12.19 points and loses the
+    other two — ``trump_corporate_15``, which is a shipped preset, by 7.95 and
+    ``biden_corporate_28``, the row with the strongest document behind it, by
+    0.31. Two of the three read 50-130% in **both** modes, so the statistic
+    that decides the app default is dominated by rows neither mode gets near.
+
+    And the first two rows are the same reform — 21% to 28% — scored by the
+    same factory on the same FY2025-2034 window, because the repository carries
+    no 2021 vintage. So the model returns **one** number for two published
+    targets 57% apart and no mode can win both: derived wins that pair by
+    sitting lower, not by tracking a vintage. Asserted rather than described,
+    because it is the reason the margin is thin.
+    """
+    from fiscal_model.validation.scenarios import CORPORATE_VALIDATION_SCENARIOS
+
+    errors = {}
+    models = {}
+    for mode in (CORPORATE_MODE_REPORTED, CORPORATE_MODE_DERIVED):
+        for name, scenario in CORPORATE_VALIDATION_SCENARIOS.items():
+            model = _ten_year(scorer, scenario["policy_factory"](mode=mode))
+            target = scenario["expected_10yr"]
+            models[(mode, name)] = model
+            errors[(mode, name)] = abs(model - target) / abs(target)
+
+    wins = {
+        name: errors[(CORPORATE_MODE_DERIVED, name)]
+        < errors[(CORPORATE_MODE_REPORTED, name)]
+        for name in CORPORATE_VALIDATION_SCENARIOS
+    }
+    assert sum(wins.values()) == 1
+    assert wins["biden_corporate_28_fy2022"] is True
+
+    # One number, two targets 57% apart, in either mode.
+    for mode in (CORPORATE_MODE_REPORTED, CORPORATE_MODE_DERIVED):
+        assert models[(mode, "biden_corporate_28")] == pytest.approx(
+            models[(mode, "biden_corporate_28_fy2022")]
+        )
+    targets = CORPORATE_VALIDATION_SCENARIOS
+    spread = abs(
+        targets["biden_corporate_28"]["expected_10yr"]
+        / targets["biden_corporate_28_fy2022"]["expected_10yr"]
+        - 1.0
+    )
+    assert spread == pytest.approx(0.57, abs=0.01)
+
+    # Neither mode is close on two of the three rows.
+    for mode in (CORPORATE_MODE_REPORTED, CORPORATE_MODE_DERIVED):
+        far = [n for n in CORPORATE_VALIDATION_SCENARIOS if errors[(mode, n)] > 0.5]
+        assert sorted(far) == ["biden_corporate_28_fy2022", "trump_corporate_15"]
+
+
+# ---------------------------------------------------------------------------
+# Decision 6 - the moved headline ships with its explanation
+# ---------------------------------------------------------------------------
+
+
+def test_the_caption_fires_on_both_corporate_presets_and_carries_the_constants():
+    """Decision 6 for the flip: every corporate headline that moved says why.
+
+    The caption is built from the module's own constants and the scored window
+    rather than from restated figures, so it cannot drift from the headline it
+    sits under. This asserts each of them is actually in the text — a caption
+    that quietly stopped reading the anchor, or the vintage, would still render
+    and would still look right.
+    """
+    from fiscal_model.app_data import PRESET_POLICIES
+    from fiscal_model.baseline import APP_DEFAULT_START_YEAR
+    from fiscal_model.corporate import (
+        BASE_PER_DOLLAR_OF_RECEIPTS,
+        cbo_corporate_receipts,
+        projected_statutory_base,
+    )
+    from fiscal_model.preset_handler import create_policy_from_preset
+    from fiscal_model.ui.tabs.results_summary import corporate_base_caption
+
+    captioned = 0
+    for label, data in PRESET_POLICIES.items():
+        policy = create_policy_from_preset(data)
+        if not isinstance(policy, CorporateTaxPolicy):
+            continue
+        start = max(int(policy.start_year), APP_DEFAULT_START_YEAR)
+        result = FiscalPolicyScorer(
+            start_year=start, use_real_data=False
+        ).score_policy(policy, dynamic=False)
+        note = corporate_base_caption(policy, result)
+        assert note, label
+        captioned += 1
+
+        first, last = int(result.years[0]), int(result.years[-1])
+        # The receipts path, both ends of the scored window.
+        assert f"{cbo_corporate_receipts(first):,.1f}B in {first}" in note
+        assert f"{cbo_corporate_receipts(last):,.1f}B in {last}" in note
+        # The base those receipts imply, at the anchor ratio.
+        assert f"{projected_statutory_base(first):,.0f}B" in note
+        assert f"{BASE_PER_DOLLAR_OF_RECEIPTS:.4f} base-dollars" in note
+        # The fitted aggregate and its aging - what the app scored until the flip.
+        assert f"{BASELINE_TAXABLE_PROFITS_BILLIONS:,.0f}B profits aggregate" in note
+        assert f"{CORPORATE_BASE_GROWTH:.0%} a year" in note
+        # Which mode, and which direction the behavioural response runs in.
+        assert f"`{CORPORATE_APP_MODE}` mode" in note
+        assert "erodes" in note
+        # The app window outruns the transcribed table by a year, and the
+        # caption says which years are published and which are continued.
+        assert f"published through {CORPORATE_RECEIPTS_LAST_TABULATED_YEAR}" in note
+
+    assert captioned == 2
+
+
+def test_the_caption_is_silent_where_it_has_nothing_to_explain(scorer):
+    """A note that appears everywhere explains nothing.
+
+    Three silences, and they are three different reasons. ``reported`` mode did
+    not move, so it has nothing to say. A corporate shape with no rate channel
+    prices no statutory base, so the caption would be describing a factor the
+    score never used. And a non-corporate policy never reaches the module at
+    all.
+    """
+    from fiscal_model.policies import TaxPolicy
+    from fiscal_model.ui.tabs.results_summary import corporate_base_caption
+
+    reported = create_corporate_rate_change(0.01, mode=CORPORATE_MODE_REPORTED)
+    assert (
+        corporate_base_caption(reported, scorer.score_policy(reported, dynamic=False))
+        == ""
+    )
+
+    no_rate = CorporateTaxPolicy(
+        name="g",
+        description="GILTI only",
+        policy_type=PolicyType.CORPORATE_TAX,
+        rate_change=0.0,
+        gilti_rate_change=0.105,
+    )
+    assert (
+        corporate_base_caption(no_rate, scorer.score_policy(no_rate, dynamic=False))
+        == ""
+    )
+
+    individual = TaxPolicy(
+        name="t",
+        description="+1pp at 400K",
+        policy_type=PolicyType.INCOME_TAX,
+        rate_change=0.01,
+        affected_income_threshold=400_000,
+    )
+    assert (
+        corporate_base_caption(
+            individual, scorer.score_policy(individual, dynamic=False)
+        )
+        == ""
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -576,13 +841,10 @@ def test_the_corporate_runner_prints_both_modes():
 
     # Reported was 1.92% before the offset-sign sweep signed its offset and
     # 13.02% after it; both readings scored `trump_corporate_15` against this
-    # model's own +$1,920B. These are the figures against published targets.
+    # model's own +$1,920B. These are the figures against published targets,
+    # and derived's is the one the app has scored since the 2026-09-05 flip.
     assert means[CORPORATE_MODE_REPORTED] == pytest.approx(62.75, abs=0.01)
     assert means[CORPORATE_MODE_DERIVED] == pytest.approx(61.43, abs=0.01)
-
-    default = validate_all_corporate(verbose=False)
-    reported = validate_all_corporate(verbose=False, mode=CORPORATE_APP_MODE)
-    assert [row.model_10yr for row in default] == [row.model_10yr for row in reported]
 
 
 def test_the_corporate_runner_refuses_an_unknown_mode():
