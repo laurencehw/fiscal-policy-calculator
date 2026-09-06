@@ -6,6 +6,8 @@ For a manuscript-focused path to citation-grade quality, see [MANUSCRIPT_95_PLUS
 
 For the ranked plan to close the errors the validation expansion exposed - by modelling the mechanism, never by tuning to the held-out targets - see [MODELING_IMPROVEMENT.md](MODELING_IMPROVEMENT.md).
 
+For the plan that re-ranks that work by *who reads the number* - the preset, Tailor, Ask and Build figures a journalist or Hill staffer would quote - see [HIGH_STAKES_ACCURACY.md](HIGH_STAKES_ACCURACY.md); it supersedes §6.2's sequencing, not its rules.
+
 ---
 
 ## Current state (April 2026)
