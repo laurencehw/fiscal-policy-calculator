@@ -58,8 +58,33 @@ The rule reaches the premium path only. A deduction distribution
 (``DeductionDistribution``) carries SOI class aggregates with no year
 dimension, so indexing a limit against it would shrink the share on one side
 of a comparison whose other side cannot move.
+
+Which way the behavioural offset points
+---------------------------------------
+The engine books ``deficit = -revenue + behavioural``, so an offset carrying
+the same sign as the static revenue effect **erodes** it and one carrying the
+opposite sign **magnifies** it. Until lane W7 this module magnified
+unconditionally, which made it the single entry in the offset-sign contract
+test's ``CONVENTION_EXCEPTIONS``.
+
+The direction is now read per reform from :data:`OFFSET_DIRECTIONS`, and the
+reason it has to be per reform is in the sources rather than in the code. CBO's
+Option 49 puts four alternatives over the same deductions in the same table and
+its 2022 extended discussion gives them three different directions -- removing
+*all* itemised deductions leaves the response with nowhere to land ("not
+sensitive"), removing SALT alone or capping the benefit rate both "increase tax
+revenues", and a 4%-of-AGI limit "would not affect revenues". CBO's charitable
+option reverses its own verdict between a rate ceiling (magnify) and a floor
+(erode), because a floor can be bunched over.
+
+Anything the table does not name **erodes** -- the contract every other policy
+class follows. Absence of a statement is not evidence of magnification. The
+elasticities are a separate and still-unsourced problem; see
+``BEHAVIORAL_ELASTICITIES`` and
+``planning/lanes/W7_expenditure_offset_convention.md``.
 """
 
+import math
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Literal
@@ -421,12 +446,164 @@ TAX_EXPENDITURE_DATA_KEYS = {
 }
 
 
+#: How large the behavioural response is, as a share of the reform's static
+#: revenue effect. **These five numbers are unsourced**, and lane W7
+#: deliberately left them alone while settling the *direction* question below:
+#: a direction can be read off a document, a magnitude cannot be read off the
+#: same sentence. Two of them now have a published figure to be compared
+#: against and neither was moved toward it -- mortgage's 0.10 against Poterba &
+#: Sinai's 15% (NBER WP 14253, Table 8), and charitable's 0.40, which has the
+#: size of a *price elasticity of giving* while being applied to a revenue
+#: effect, which is a different quantity. Both are carry-overs; see
+#: ``planning/lanes/W7_expenditure_offset_convention.md`` section 8.
+#:
+#: Note that this table **wins over** ``TaxExpenditurePolicy.behavioral_elasticity``
+#: for any type listed in it, so the ``behavioral_elasticity=0.0`` every
+#: calibrated factory passes is dead code on five of the eight factories. That
+#: is why this module's offset is live on its benchmarks where AMT's, estate's
+#: and PTC's were not (``planning/lanes/SWEEP_offset_sign.md`` section 5.2).
 BEHAVIORAL_ELASTICITIES = {
     TaxExpenditureType.CHARITABLE: 0.4,
     TaxExpenditureType.MORTGAGE_INTEREST: 0.1,
     TaxExpenditureType.RETIREMENT_CONTRIBUTIONS: 0.3,
     TaxExpenditureType.EMPLOYER_HEALTH: 0.2,
     TaxExpenditureType.SALT: 0.05,
+}
+
+
+class OffsetDirection(Enum):
+    """Which way a reform's behavioural response moves the revenue change.
+
+    ``fiscal_model/scoring_engine.py`` books
+    ``deficit_after = static_deficit + behavioral`` and hands
+    ``estimate_behavioral_offset`` the year's static **revenue** effect, so an
+    offset carrying the *same* sign as static erodes the score and one carrying
+    the *opposite* sign magnifies it.
+
+    ``ERODE``
+        The engine's documented contract and what the other twelve policy
+        classes do: the response leaks part of the mechanical revenue change
+        away. **This is the default**, and a reform stays here unless a source
+        says otherwise.
+    ``MAGNIFY``
+        A second channel rather than a haircut on the first: the source says
+        the behavioural response *increases* revenue, so the offset adds to the
+        static effect. Only ever set with the sentence that says so.
+    """
+
+    ERODE = "erode"
+    MAGNIFY = "magnify"
+
+
+#: What a reform's direction defaults to when no source says otherwise.
+DEFAULT_OFFSET_DIRECTION = OffsetDirection.ERODE
+
+
+@dataclass(frozen=True)
+class OffsetDirectionRule:
+    """One reform's behavioural direction, with the sentence that establishes it.
+
+    ``cap_unit`` is the reason this is a record rather than a bare enum. CBO
+    gives the *same* deduction opposite verdicts under different cap designs --
+    a ceiling on the deduction's **value** raises revenue behaviourally
+    ("an effect that would increase tax revenues", Option 49's third
+    alternative) while a **floor** loses it ("smaller than it would be
+    otherwise", the charitable option), because a floor can be bunched over
+    and a rate ceiling cannot. A rule that did not say which design it read
+    would assert more than the document does, so a rule with a ``cap_unit``
+    applies only to that design and anything else falls back to the default.
+    """
+
+    direction: OffsetDirection
+    source: str
+    cap_unit: CapUnit | None = None
+
+
+#: The direction of the behavioural response, **per reform**, each entry
+#: carrying the source sentence that establishes it.
+#:
+#: Keyed on ``(expenditure type, action)`` rather than on the module or on the
+#: expenditure, and that grain is a finding rather than a convenience. CBO's
+#: Option 49 puts four alternatives over the same deductions in the same table
+#: and its 2022 extended discussion (``cbo.gov/budget-options/58635``) gives
+#: them three different directions: eliminating *all* itemised deductions is
+#: "not sensitive" to the response, eliminating the SALT deduction alone and
+#: capping the benefit rate both "increase tax revenues", and a 4%-of-AGI limit
+#: "would not affect revenues". A module-wide constant cannot express that.
+#:
+#: A reform with no entry here -- or with an entry whose ``cap_unit`` does not
+#: match the policy's -- resolves to :data:`DEFAULT_OFFSET_DIRECTION`. Absence
+#: of a statement is not evidence of magnification.
+#:
+#: See ``planning/lanes/W7_expenditure_offset_convention.md`` section 4 for the
+#: full inventory, including the five reforms that resolve to ``ERODE`` and the
+#: documents behind them (Poterba & Sinai on the mortgage deduction, CBO
+#: ``budget-options/54792`` on gains at death, CBO ``budget-options/2018/54799``
+#: on retirement contribution limits).
+OFFSET_DIRECTIONS: dict[tuple[TaxExpenditureType, str], OffsetDirectionRule] = {
+    (TaxExpenditureType.EMPLOYER_HEALTH, "cap"): OffsetDirectionRule(
+        direction=OffsetDirection.MAGNIFY,
+        source=(
+            "CBO, Options for Reducing the Deficit: 2025 to 2034 (pub. 60557), "
+            "Option 56, report pp. 66-67: 'All three alternatives would reduce "
+            "federal deficits by increasing tax revenues, because some workers "
+            "would enroll in lower-premium plans (which would increase their "
+            "taxable income) and others would remain enrolled in higher-premium "
+            "plans and pay taxes on the portion that remained above the "
+            "threshold. To a lesser extent, revenues would also increase "
+            "because fewer workers would enroll in employment-based coverage.' "
+            "Two behavioural channels, both raising revenue."
+        ),
+    ),
+    (TaxExpenditureType.CHARITABLE, "cap"): OffsetDirectionRule(
+        direction=OffsetDirection.MAGNIFY,
+        source=(
+            "CBO, extended discussion of Option 49 (cbo.gov/budget-options/58635), "
+            "third alternative -- the identical benefit-rate ceiling design, "
+            "priced at 28 percent in the 2016 volume (budget-options/2016/52254) "
+            "and 15 percent in pub. 60557: 'This reduction would cause some of "
+            "those taxpayers to spend less than they currently do on deductible "
+            "items, an effect that would increase tax revenues.' A dollar of "
+            "forgone giving is taxed at the filer's own rate instead of being "
+            "subsidised at the capped one. Deliberately scoped to BENEFIT_RATE: "
+            "CBO's charitable option (budget-options/54790) reaches the opposite "
+            "verdict for a *floor* design -- 'Those responses make the estimated "
+            "increase in revenues under either alternative smaller than it would "
+            "be otherwise' -- because a floor can be bunched over."
+        ),
+        cap_unit=CapUnit.BENEFIT_RATE,
+    ),
+    (TaxExpenditureType.SALT, "eliminate"): OffsetDirectionRule(
+        direction=OffsetDirection.MAGNIFY,
+        source=(
+            "CBO, extended discussion of Option 49 (cbo.gov/budget-options/58635), "
+            "second alternative -- this same reform: 'Other affected taxpayers "
+            "might continue to itemize but would also choose to reduce their "
+            "spending on other deductible items; that response would affect tax "
+            "revenues... That reduction would further decrease their itemized "
+            "deductions and increase their tax liability.' Filers who instead "
+            "drop to the standard deduction are already netted out of the base, "
+            "because JCT counts an itemised deduction as a tax expenditure "
+            "'only to the extent that taxpayer's total amount of itemized "
+            "deductions exceeds the standard deduction' (JCX-48-24, p. 4)."
+        ),
+    ),
+    (TaxExpenditureType.SALT, "expand"): OffsetDirectionRule(
+        direction=OffsetDirection.MAGNIFY,
+        source=(
+            "The mirror of the elimination entry above, corroborated and priced. "
+            "CBO 58635, Economic Effects: 'the deduction for state and local "
+            "taxes encourages state and local governments to raise taxes and "
+            "provide more services than they otherwise would if such taxes were "
+            "not deductible.' Yale Budget Lab, Mortgage Interest Deduction: "
+            "Options for Reform (2025): 'Raising the SALT deduction limit means "
+            "more taxpayers will itemize their deductions... Some of these new "
+            "itemizers will now be able to deduct mortgage interest', taking the "
+            "mortgage-interest expenditure from $323B at a $10,000 limit to "
+            "$497B at $20,000. Restoring the deduction enlarges the revenue loss "
+            "beyond the SALT figure alone."
+        ),
+    ),
 }
 
 
@@ -477,6 +654,13 @@ class TaxExpenditurePolicy(TaxPolicy):
     credit_rate: float = 0.15
     expand_limit: float | None = None
     behavioral_elasticity: float = 0.2
+    #: Which way the behavioural response moves this reform's revenue change.
+    #: ``None`` -- the default -- resolves from :data:`OFFSET_DIRECTIONS` on the
+    #: reform, falling back to :data:`DEFAULT_OFFSET_DIRECTION`. Set it
+    #: explicitly to state a direction a caller knows and the table does not,
+    #: which is what Tailor, the composer and a raw construction need: the
+    #: table is a record of documents read, not a list of reforms allowed.
+    offset_direction: OffsetDirection | None = None
     participation_change: float = 0.0
     annual_revenue_change_billions: float | None = None
 
@@ -688,44 +872,68 @@ class TaxExpenditurePolicy(TaxPolicy):
 
         return 0.0
 
+    def offset_direction_rule(self) -> OffsetDirectionRule | None:
+        """The sourced direction rule for this reform, or ``None`` if there is none.
+
+        A rule scoped to a cap design (``cap_unit``) applies only to a policy
+        written in that design; anything else falls through, because CBO gives
+        the same deduction opposite verdicts under a rate ceiling and a floor
+        and a rule may not assert more than its document does.
+        """
+        rule = OFFSET_DIRECTIONS.get((self.expenditure_type, self.action))
+        if rule is None:
+            return None
+        if rule.cap_unit is not None and rule.cap_unit != self.cap_unit:
+            return None
+        return rule
+
+    def resolved_offset_direction(self) -> OffsetDirection:
+        """Which way this reform's behavioural offset points.
+
+        An explicit ``offset_direction`` wins; otherwise the reform is looked up
+        in :data:`OFFSET_DIRECTIONS`; otherwise :data:`DEFAULT_OFFSET_DIRECTION`.
+        """
+        if self.offset_direction is not None:
+            return self.offset_direction
+        rule = self.offset_direction_rule()
+        if rule is not None:
+            return rule.direction
+        return DEFAULT_OFFSET_DIRECTION
+
     def estimate_behavioral_offset(self, static_effect: float) -> float:
         """
-        Estimate behavioral response to tax expenditure changes.
+        Estimate the behavioural response to a tax-expenditure change.
 
-        **This module returns the offset with the sign OPPOSITE to
-        ``static_effect``, and that is deliberate — it is the one documented
-        exception to the repository's contract.**
-        :meth:`fiscal_model.policies_core.TaxPolicy.estimate_behavioral_offset`
-        returns a same-signed offset, which the engine's
-        ``deficit = -revenue + behavioural`` turns into a haircut on the static
-        effect. Here the offset *adds* to it, because the behavioural response
-        to limiting an exclusion is a second revenue-raising channel rather
-        than a leak out of the first.
+        **The direction is read from the reform, not fixed for the module.**
+        The engine books ``deficit = -revenue + behavioural``, so a same-signed
+        offset erodes the static effect and an opposite-signed one magnifies
+        it. This module used to magnify unconditionally — one direction for
+        every expenditure, every reform and both signs of static — which was
+        right on some of its benchmarks and wrong on others, and lane W7
+        replaced it with :data:`OFFSET_DIRECTIONS`, a per-reform table whose
+        every ``MAGNIFY`` entry carries the source sentence that puts it there.
+        Anything not in the table erodes, which is the contract the other
+        twelve policy classes follow.
 
-        The source is CBO, *Options for Reducing the Deficit: 2025 to 2034*
-        (pub. 60557), Option 56: capping the employer-health exclusion makes
-        employers offer less generous coverage **and** shifts compensation back
-        into taxable wages, and CBO's text has both channels increasing
-        revenue. On that option the convention is worth about +20% and is
-        directionally right. On every *other* expenditure benchmark it is
-        unsourced in magnitude, and choosing it module-wide moves every fitted
-        expenditure row and the whole leave-one-out column together.
+        The grain is a finding rather than a convenience: CBO's Option 49 puts
+        four alternatives over the same deductions in the same table and gives
+        them three different behavioural directions, and CBO's charitable
+        option reverses its own verdict between a rate ceiling and a floor. See
+        ``planning/lanes/W7_expenditure_offset_convention.md`` §4.1.
 
-        The offset-sign sweep (`planning/lanes/SWEEP_offset_sign.md`) signed
-        six other modules and **left this one alone** for exactly that reason:
-        it is an owner decision, carried as item 8 of
-        `planning/MODELING_IMPROVEMENT.md` §6.2, and it is the single entry in
-        the contract test's ``CONVENTION_EXCEPTIONS``.
+        What is *not* read from a source is the size: the elasticity comes from
+        :data:`BEHAVIORAL_ELASTICITIES`, whose five values are unsourced and
+        which W7 deliberately did not touch.
         """
         elasticity = BEHAVIORAL_ELASTICITIES.get(
             self.expenditure_type,
             self.behavioral_elasticity,
         )
+        magnitude = abs(static_effect) * elasticity
 
-        offset = abs(static_effect) * elasticity
-        if static_effect > 0:
-            return -offset
-        return offset
+        if self.resolved_offset_direction() is OffsetDirection.MAGNIFY:
+            return math.copysign(magnitude, -static_effect)
+        return math.copysign(magnitude, static_effect)
 
 
 TAX_EXPENDITURE_VALIDATION_SCENARIOS = {
