@@ -4,17 +4,22 @@ Quantify the target-window offset on the two Green Book capital-gains rows.
 
 ``treasury_capgains_39_plus_stepup_elim`` carries the FY2022 Green Book's
 combined "Reform the taxation of capital income" row, published over
-**FY2022-2031** on a 2021 baseline. Every Tier 1 case is scored over
-**FY2025-2034** (``DEFAULT_VALIDATION_START_YEAR``), and both of this shape's
-channels grow with the same constant - ``household_net_worth_growth_rate`` in
+**FY2022-2031** on a 2021 baseline. Tier 1's default window is **FY2025-2034**
+(``DEFAULT_VALIDATION_START_YEAR``), and both of this shape's channels grow with
+the same constant - ``household_net_worth_growth_rate`` in
 ``fiscal_model/data_files/capital_gains/accrued_gains_parameters.csv`` - so a
 window three years later mechanically scores higher. This script measures how
-much of the row's error that is.
+much of the row's error that is. It is the evidence behind
+``planning/memos/FY2022_TARGET_WINDOW.md`` and behind the manifest row that
+moved this case onto its own decade
+(``treasury_capgains_39_plus_stepup_elim.v2``), so the "default decade" column
+is now the **counterfactual** for that row and the live scorecard reports the
+"own window" one.
 
 ``biden_capital_gains_39`` is the control: same policy shape, same module, same
 elasticities, but its FY2025 Green Book target is published over FY2025-2034,
-which is exactly the window the runner scores. Its offset must be zero, and the
-script prints it so the measurement on the first row is not a claim about the
+which is exactly the default window. Its offset must be zero, and the script
+prints it so the measurement on the first row is not a claim about the
 mechanism in general.
 
 The measurement is a **re-score, not a discount**: the policy is scored again on
@@ -179,11 +184,11 @@ def _print_human(report: dict) -> None:
         print("-" * 74)
         print(
             f"  official {row['official_10yr_billions']:+.1f}B over "
-            f"{row['source_window']}; runner scores FY"
+            f"{row['source_window']}; default decade FY"
             f"{row['scored_first_year']}-{row['scored_first_year'] + 9}"
         )
         for key, label in (
-            ("scored", f"as scored (FY{row['scored_first_year']})"),
+            ("scored", f"on the default decade (FY{row['scored_first_year']})"),
             ("on_source_window", f"on its own window (FY{row['source_first_year']})"),
         ):
             block = row[key]

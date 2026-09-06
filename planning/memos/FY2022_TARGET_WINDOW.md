@@ -3,8 +3,9 @@
 *Written 2026-09-06 against `main` @ `a251b32`. A decision memo with the minimal
 implementation of its recommendation. **No model code changed.** The additions
 are this file, `scripts/window_offset_capgains.py` (which prints every number
-below), one `CBOScore` field, one manifest row and the ten lines of
-`fiscal_model/validation/core.py` that read the field. **The merge is the
+below), one `CBOScore` field, one manifest row, and the one helper in
+`fiscal_model/validation/core.py` that reads the field — a +53/−14 diff there,
+most of it the docstring saying what a window is not. **The merge is the
 owner's decision: this moves a Tier 1 shape input.***
 
 Scope: `planning/MODELING_IMPROVEMENT.md` §6.2 item 24, opened by
@@ -18,7 +19,7 @@ row's `known_limitations` are untouched — the decedent-ladder lane owns that t
 row — 39.6% on gains above $1M **plus** realization at death with a $1M
 per-donor exclusion — at **−$322,485M over FY2022–2031** (Treasury, *General
 Explanations of the FY2022 Revenue Proposals*, Table of Revenue Estimates,
-report p. 105 / PDF p. 111). Every Tier 1 case is scored over **FY2025–2034**
+report p. 105 / PDF p. 111). Tier 1's window is **FY2025–2034**
 (`DEFAULT_VALIDATION_START_YEAR`), and both of this shape's channels grow with
 one constant — `household_net_worth_growth_rate = 0.0580148`, the Financial
 Accounts 1998:Q4→2024:Q4 CAGR in `accrued_gains_parameters.csv`, which the rate
@@ -35,9 +36,12 @@ target's own first year. That is available without a 2021 baseline because
 opens with `_ = baseline_revenue`, and the death channel is priced off Financial
 Accounts net worth.
 
+Every number in §2–§4 is measured on `a251b32`, before §5's implementation; the
+live scorecard now reports the second row of this table.
+
 | | total | rate | death | vs −$322.0B |
 |---|--:|--:|--:|--:|
-| as scored, FY2025–2034 | **−$461.5B** | 359.02 | 102.45 | **43.3%** |
+| on the default decade, FY2025–2034 | **−$461.5B** | 359.02 | 102.45 | **43.3%** |
 | on its own window, FY2022–2031 | **−$369.0B** | 303.14 | 65.81 | **14.6%** |
 | analytic `(1+g)^-3`, both channels | −$389.6B | 303.14 | 86.51 | 21.0% |
 | analytic `(1+g)^-3`, rate channel only | −$405.6B | 303.14 | 102.45 | 26.0% |
@@ -78,20 +82,19 @@ model's FY2022–2031 path beside it (positive = raises revenue):
 Two facts fall out, and both belong in the decision.
 
 **Treasury's first three years are a ramp, and the model's first year is a
-hole.** Over FY2022–2024 Treasury books **−$66.0B** and the model **−$6.1B**;
-over FY2025–2031 Treasury books −$256.5B and the model −$362.9B. The model's
-enactment year is a **+$59.8B revenue loss** — the transitory elasticity (1.20)
-unlocking realizations — where Treasury's is a $7.7B gain on a proposal
-effective from April 2021. So **14.6% is itself a net of two errors**, −$60.0B
-under across three years against +$106.4B over across seven. That is a finding,
+hole.** In the table's revenue convention: over FY2022–2024 Treasury books
+**$66.0B** and the model **$6.1B**; over FY2025–2031 Treasury books $256.5B and
+the model $362.9B. The model's enactment year is a **$59.8B revenue loss** — the
+transitory elasticity (1.20) unlocking realizations — where Treasury's is a
+$7.7B gain on a proposal effective from April 2021. So **14.6% is itself a net of
+two errors**, $60.0B under across three years against $106.4B over seven. A finding,
 not an objection: the window artifact is removed and a *shape* disagreement is
 what is left. It is the honest residual, where 43.3% is a shape disagreement
 plus an accounting error and Wave 4's 0.2% was two errors cancelling.
 
-**Treasury's own answer to this proposal is not stable.** The same row across
-four consecutive volumes: **$322,485M** (FY2022–31, $1M exclusion), **$174,488M**
-(FY2023–32), **$213,855M** (FY2024–33), **$288,583M** (FY2025–34) — non-monotone
-and spanning 85%.
+**Treasury's own answer is not stable.** The same row across four consecutive
+volumes: **$322,485M** (FY2022–31, $1M exclusion), **$174,488M**, **$213,855M**,
+**$288,583M** — non-monotone, spanning 85%.
 
 ## 4. The options
 
@@ -109,9 +112,9 @@ Row error and Tier 1 are measured, not projected. Tier 1 today: n=26, mean
 
 **(b) is the wrong rule.** `top_rate_45` was withdrawn because its −$420B is in
 no publication — an *unsourceable* target, with the search recorded. This one is
-sourced to the page and transcribed to the annual. Retiring it would drop a 43%
-row and improve the tier by 1.1 points, which is exactly the "quietly dropped
-because it scored badly" failure the manifest exists to make visible.
+sourced to the page and transcribed to the annual. Retiring it drops a 43% row
+and improves the tier by 1.1 points: the "quietly dropped because it scored
+badly" failure the manifest exists to make visible.
 
 **(d) buys nothing, and the reason is worth writing down.** Neither FY2022 Tier 1
 row reads a baseline *level*: the capital-gains shape ignores `baseline_revenue`
@@ -145,8 +148,7 @@ cancellation is what this row's history already has too much of.
 ### Pre-registration each option needs
 
 Every option is a **new row**; none is an edit. (c) is the only one whose target
-column is unchanged, which is why it is the only one that needs no ledger
-judgement about a number.
+column is unchanged, and so the only one needing no ledger judgement.
 
 ```
 (b)  .v1 retired=True, retired_reason=<the search>            # no .v2
@@ -185,8 +187,11 @@ What shipped, in the manifest's two-commit order:
 2. **First scoring.** `create_policy_from_score` and `validate_all` read the
    field: the policy starts in that year and the scorer's window opens there.
    The row moves 43.3% → 14.6%.
-3. **Stamping.** Both commit constants replaced with the real shas (a file
-   cannot contain its own hash; commits 1 and 2 carried `0`×40 placeholders).
+3. **Stamping.** Both commit constants replaced with the real shas. A file
+   cannot contain its own hash, so commits 1 and 2 carried two *distinct*
+   forty-hex placeholders — distinct because `test_fy2022_window_change_is_a_new
+   _row_with_the_same_target` asserts the entry precedes the scoring run, and
+   one repeated placeholder would have made that assertion vacuous.
 
 Two design details, both pinned by tests. The field moves the **scorer's window
 and the policy's start together**: moving only the window truncates the head
@@ -195,7 +200,13 @@ instead of shifting it — `warren_ultramillionaire_surtax_3pp` reads −$283.5B
 `effective_start_year` still wins where a record sets one, because that is the
 year the *source* says the policy takes effect, which is a different fact.
 
-### Pre-registered outturn
+### Pre-registered outturn, and what landed
+
+Every "after" figure was computed from §2 *before* the runner could read the
+field, and every one landed — `cold_holdout.py` returns 14.1% / 11.4% / 17 / 23,
+`run_loo.py --donor-matrix` diffs clean against `a251b32`. That is not much of a
+prediction: a re-score reproduces its own arithmetic if the wiring is right.
+What §5 registers is the *choice*, and the honest test of that is §3.
 
 | | before | after |
 |---|--:|--:|
@@ -221,16 +232,19 @@ donor matrix moves, or if the row lands outside 14–15%.
   `iija_2021_discretionary` reads 18.2% because $92.6B of its authority path
   outlays in FY2022–2024, outside the window; on FY2022–2031 it scores
   **+$414.3B against +$415.4B, 0.3%**. That is a second Tier 1 target decision
-  with its own `.v3` row and its own ledger entry, and this lane may not take it
-  by implication. The number is published here so the choice is not silently
-  selective.
+  with its own `.v3` row, and this lane may not take it by implication. The
+  number is published here so the choice is not silently selective.
 - **It does not claim a 2021 information set.** The model prices FY2022–2024
   from an SOI TY2023 base and a 2024:Q4 DFA anchor discounted backwards: a
   2026 backcast against a 2021 forecast. What the change fixes is that the ten
   fiscal years priced are the ten the target covers.
 - **It does not fix the enactment-year hole.** §3 sizes it at $67B in FY2022
-  alone, and it is the same missing receipts lag `W5_preferential_margin.md`
-  §8.7 recorded. A shape residual, and the next thing to look at on this row
-  after the decedent ladder.
-- **It moves no shipped number.** Nothing under `fiscal_model/validation/` is
-  reachable from a preset, and no app surface scores on a validation window.
+  alone — the missing receipts lag `W5_preferential_margin.md` §8.7 recorded,
+  and the next thing to look at on this row after the decedent ladder.
+- **It moves no shipped number, and the reason is narrower than "validation is
+  not shipped".** `KNOWN_SCORES` *is* reachable from a shipped surface:
+  `assistant/benchmarks.py:candidate_anchors` turns records into interpolation
+  anchors for the Ask assistant, filtered on `policy_type` and `rate_change` and
+  read for `ten_year_cost` and `income_threshold`. None of those changed, and the
+  new field is not read there. No app surface scores on a validation window
+  either: `APP_DEFAULT_START_YEAR` is a separate constant and stays at 2026.
