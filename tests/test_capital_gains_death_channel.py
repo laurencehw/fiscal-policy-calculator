@@ -269,7 +269,7 @@ def test_the_dead_published_rows_are_alive_where_the_fit_reaches(baseline):
         for _, row in frame.iterrows()
     }
     agm_lowers = [bound for bound, _ in baseline._agm_ladder]
-    bands |= set(zip(agm_lowers, agm_lowers[1:] + [float("inf")]))
+    bands |= set(zip(agm_lowers, [*agm_lowers[1:], float("inf")]))
 
     dark = sorted(band for band in bands if not covered(*band))
     assert dark == [(0.25, 0.5)], dark
