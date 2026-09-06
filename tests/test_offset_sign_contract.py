@@ -15,6 +15,13 @@ four ``abs()`` ones. This file is what stops the eighth: it is parametrised over
 every class that implements or inherits the offset, in both directions, and a
 new module joins it the moment it is added to
 ``scripts/audit_offset_signs.build_cases``.
+
+The sweep left one blanket exemption behind — the whole of
+``TaxExpenditurePolicy``, which magnified unconditionally — and lane W7 closed
+it by reading the sources reform by reform. ``CONVENTION_EXCEPTIONS`` is now a
+set of **policies**, so an exemption is a claim about one reform with a
+document behind it rather than a module nobody checks. The per-reform table and
+its citations are pinned at the end of this file.
 """
 
 import sys
@@ -30,22 +37,38 @@ if str(PROJECT_ROOT) not in sys.path:
 from fiscal_model.scoring import FiscalPolicyScorer  # noqa: E402
 from scripts.audit_offset_signs import PROBE, build_cases  # noqa: E402
 
-#: Classes allowed to return an **opposite-signed** offset, each with the
-#: source that says the behavioural response moves revenue the same way in both
-#: directions, so the offset is a second channel rather than a haircut on the
-#: first. Adding an entry here is a deliberate act with a citation attached, not
-#: a way to quiet a failure.
+#: Cases allowed to return an **opposite-signed** offset, each with the source
+#: that says the behavioural response *raises revenue* for that reform, so the
+#: offset is a second channel rather than a haircut on the first. Adding an
+#: entry here is a deliberate act with a citation attached, not a way to quiet
+#: a failure.
 #:
-#: ``TaxExpenditurePolicy`` -- CBO, *Options for Reducing the Deficit: 2025 to
-#: 2034* (pub. 60557), Option 56. Capping the employer-health exclusion makes
-#: employers offer less generous coverage **and** shifts compensation back into
-#: taxable wages, and CBO's text has both channels increasing revenue. Worth
-#: about +20% on that option and directionally right there; unsourced in
-#: magnitude on every other expenditure benchmark. Choosing the convention
-#: module-wide moves every fitted expenditure row and the whole leave-one-out
-#: column together, so it is an owner decision, carried as item 8 of
-#: ``planning/MODELING_IMPROVEMENT.md`` section 6.2.
-CONVENTION_EXCEPTIONS: frozenset[str] = frozenset({"TaxExpenditurePolicy"})
+#: **These are policies, not classes.** Until lane W7 the whole of
+#: ``TaxExpenditurePolicy`` sat here, because the module magnified every
+#: offset for every expenditure and every reform. W7 settled
+#: ``planning/MODELING_IMPROVEMENT.md`` section 6.2 item 8 by reading the
+#: sources reform by reform and found the class holds **both** kinds: four of
+#: its nine reforms magnify on a document and five erode, so the class is no
+#: longer exempt and its erode reforms are held to the contract like everything
+#: else. The documents are enumerated in
+#: ``fiscal_model/tax_expenditures_core.OFFSET_DIRECTIONS`` and in
+#: ``planning/lanes/W7_expenditure_offset_convention.md`` section 4.
+#:
+#: ``TaxExpenditurePolicy [SALT]`` -- CBO, extended discussion of Option 49
+#: (``cbo.gov/budget-options/58635``), second alternative, which is this exact
+#: reform: filers who keep itemising "would also choose to reduce their
+#: spending on other deductible items… That reduction would further decrease
+#: their itemized deductions and **increase their tax liability**." The
+#: ``expand`` direction is the mirror, priced by Yale Budget Lab's
+#: *Mortgage Interest Deduction: Options for Reform* -- raising the SALT limit
+#: brings in new itemisers who then deduct mortgage interest too, taking that
+#: expenditure from $323B to $497B, so the loss exceeds the SALT figure alone.
+#:
+#: The employer-health cap and the charitable benefit-rate ceiling are magnify
+#: on their own documents too (CBO 60557 Option 56; CBO 58635's third
+#: alternative), but the audit's SALT case is the only expenditure case built
+#: in a magnify configuration, so it is the only label here.
+CONVENTION_EXCEPTIONS: frozenset[str] = frozenset({"TaxExpenditurePolicy [SALT]"})
 
 
 def _class_name(label: str) -> str:
@@ -100,7 +123,7 @@ def test_offset_carries_the_static_effect_sign(case, direction, probe):
         return  # a module that books no behavioural response keeps no sign
 
     same_sign = (offset > 0.0) == (probe > 0.0)
-    if _class_name(case.label) in CONVENTION_EXCEPTIONS:
+    if case.label in CONVENTION_EXCEPTIONS:
         assert not same_sign, (
             f"{case.label} is registered in CONVENTION_EXCEPTIONS as an "
             "opposite-signed convention but now returns a same-signed offset. "
@@ -131,7 +154,7 @@ def test_final_effect_does_not_exceed_the_static_effect(case, direction, scorer)
     static = float(np.sum(result.static_deficit_effect))
     final = float(np.sum(result.final_deficit_effect))
 
-    if _class_name(case.label) in CONVENTION_EXCEPTIONS:
+    if case.label in CONVENTION_EXCEPTIONS:
         pytest.skip(
             f"{case.label} magnifies by a documented convention; see "
             "CONVENTION_EXCEPTIONS in this file"
@@ -150,8 +173,30 @@ def test_convention_exceptions_are_exactly_the_documented_set():
     The set is the whole reason this file can be trusted: without it, the way
     to make a failing module pass is to add it here, and that has to be a
     visible, cited act rather than a quiet one.
+
+    Since lane W7 it holds a **policy**, not a class. That is the difference
+    between "this module is exempt" and "this reform has a document", and only
+    the second is a claim anyone can check.
     """
-    assert CONVENTION_EXCEPTIONS == frozenset({"TaxExpenditurePolicy"})
+    assert CONVENTION_EXCEPTIONS == frozenset({"TaxExpenditurePolicy [SALT]"})
+
+
+def test_no_whole_class_is_exempt_from_the_contract():
+    """An exception names a case, and every class has at least one case held.
+
+    ``TaxExpenditurePolicy`` was a blanket exception until W7 — every reform it
+    could express magnified, and the contract test could say nothing about any
+    of them. It now has two cases with opposite tags, which is what makes the
+    exemption a statement about one reform instead of about a module.
+    """
+    labels = [case.label for case in build_cases()]
+    for class_name in {_class_name(label) for label in labels}:
+        of_this_class = {label for label in labels if _class_name(label) == class_name}
+        assert of_this_class - CONVENTION_EXCEPTIONS, (
+            f"every case of {class_name} is in CONVENTION_EXCEPTIONS, so the "
+            "contract is checked for none of them. An exception is for a "
+            "reform with a source, not for a module."
+        )
 
 
 def test_every_offset_implementation_is_covered():
@@ -327,3 +372,157 @@ def test_strict_readiness_reports_no_fitted_tier_regression():
     ]
     assert not offenders, offenders
     assert all(issue.name == "runtime" for issue in issues), [i.name for i in issues]
+
+
+# ---------------------------------------------------------------------------
+# Lane W7 — the expenditure module's direction is per reform, and sourced
+# ---------------------------------------------------------------------------
+
+#: Every reform the tax-expenditure module can express through a shipped
+#: factory, with the direction lane W7 read off a document. ``magnify`` means a
+#: source says the behavioural response *raises* revenue for that reform;
+#: ``erode`` is the engine's contract and the default. The inventory and its
+#: quotations are in
+#: ``planning/lanes/W7_expenditure_offset_convention.md`` section 4.
+W7_EXPECTED_DIRECTIONS = (
+    ("create_cap_employer_health_exclusion", "magnify", "CBO 60557 Option 56"),
+    ("create_cap_charitable_deduction", "magnify", "CBO 58635 alt 3"),
+    ("create_eliminate_salt_deduction", "magnify", "CBO 58635 alt 2"),
+    ("create_repeal_salt_cap", "magnify", "the mirror of alt 2; Yale prices it"),
+    ("create_eliminate_mortgage_deduction", "erode", "Poterba & Sinai WP 14253"),
+    ("create_eliminate_step_up_basis", "erode", "CBO budget-options/54792"),
+    ("create_cap_retirement_contributions", "erode", "CBO 2018/54799; default"),
+    ("create_eliminate_like_kind_exchange", "erode", "no source found; default"),
+)
+
+
+@pytest.mark.parametrize(
+    ("factory_name", "expected", "why"),
+    W7_EXPECTED_DIRECTIONS,
+    ids=[row[0] for row in W7_EXPECTED_DIRECTIONS],
+)
+def test_every_shipped_expenditure_reform_has_the_direction_its_source_states(
+    factory_name, expected, why
+):
+    """The inventory, as a test rather than only as a lane doc.
+
+    Four magnify and four erode, which is the whole of W7's finding: the
+    module's old blanket convention was directionally right on some of its own
+    benchmarks and wrong on others, and only reading the reforms one at a time
+    could tell which.
+    """
+    from fiscal_model import tax_expenditures_factory as factories
+
+    policy = getattr(factories, factory_name)()
+    assert policy.resolved_offset_direction().value == expected, why
+
+
+def test_an_unlisted_reform_erodes():
+    """The default is the contract, not the convention.
+
+    Absence of a statement is not evidence that the response raises revenue, so
+    a reform with no entry in the table gets the same treatment as every other
+    policy class in the repository.
+    """
+    from fiscal_model.policies import PolicyType
+    from fiscal_model.tax_expenditures_core import (
+        OFFSET_DIRECTIONS,
+        OffsetDirection,
+        TaxExpenditurePolicy,
+        TaxExpenditureType,
+    )
+
+    policy = TaxExpenditurePolicy(
+        name="Phase out the capital gains preference",
+        description="a reform no document in the table covers",
+        policy_type=PolicyType.TAX_DEDUCTION,
+        expenditure_type=TaxExpenditureType.CAPITAL_GAINS,
+        action="phase_out",
+    )
+    assert (policy.expenditure_type, "phase_out") not in OFFSET_DIRECTIONS
+    assert policy.resolved_offset_direction() is OffsetDirection.ERODE
+    assert policy.estimate_behavioral_offset(100.0) > 0
+    assert policy.estimate_behavioral_offset(-100.0) < 0
+
+
+def test_a_charitable_dollar_cap_does_not_inherit_the_rate_caps_verdict():
+    """CBO gives one deduction two verdicts, and the table has to keep them apart.
+
+    Capping the *value* of the charitable deduction raises revenue
+    behaviourally — "an effect that would increase tax revenues" (CBO 58635,
+    third alternative). Putting a *floor* under it loses revenue — "Those
+    responses make the estimated increase in revenues under either alternative
+    smaller than it would be otherwise" (CBO budget-options/54790) — because a
+    floor can be bunched over and a rate ceiling cannot. So the magnify rule is
+    scoped to ``BENEFIT_RATE`` and any other design falls back to erode rather
+    than inheriting a verdict its document never gave.
+    """
+    from fiscal_model.policies import PolicyType
+    from fiscal_model.tax_expenditures_core import (
+        CapUnit,
+        OffsetDirection,
+        TaxExpenditurePolicy,
+        TaxExpenditureType,
+    )
+
+    rate_cap = TaxExpenditurePolicy(
+        name="Cap charitable deduction at 28%",
+        description="benefit-rate ceiling",
+        policy_type=PolicyType.TAX_DEDUCTION,
+        expenditure_type=TaxExpenditureType.CHARITABLE,
+        action="cap",
+        cap_rate=0.28,
+        cap_unit=CapUnit.BENEFIT_RATE,
+    )
+    dollar_cap = TaxExpenditurePolicy(
+        name="Cap deductible contributions at $10,000",
+        description="a dollar cap on the base, which no document scores this way",
+        policy_type=PolicyType.TAX_DEDUCTION,
+        expenditure_type=TaxExpenditureType.CHARITABLE,
+        action="cap",
+        cap_amount=10_000.0,
+        cap_unit=CapUnit.BASE_DOLLARS,
+    )
+
+    assert rate_cap.resolved_offset_direction() is OffsetDirection.MAGNIFY
+    assert dollar_cap.resolved_offset_direction() is OffsetDirection.ERODE
+
+
+def test_every_magnify_entry_carries_a_source():
+    """A direction that adds to a score has to name the sentence that allows it.
+
+    The same discipline ``CONVENTION_EXCEPTIONS`` enforces one level up: the way
+    to make a reform magnify must be to find a document, never to add a key.
+    """
+    from fiscal_model.tax_expenditures_core import OFFSET_DIRECTIONS, OffsetDirection
+
+    for key, rule in OFFSET_DIRECTIONS.items():
+        if rule.direction is not OffsetDirection.MAGNIFY:
+            continue
+        assert len(rule.source) > 120, key
+        assert any(mark in rule.source for mark in ("CBO", "JCT", "Yale")), key
+
+
+def test_an_explicit_direction_overrides_the_table():
+    """Tailor and the composer are not bound by the table.
+
+    The table records documents that have been read, not reforms that are
+    allowed, so a caller who knows a direction can state it without editing it.
+    """
+    from fiscal_model.policies import PolicyType
+    from fiscal_model.tax_expenditures_core import (
+        OffsetDirection,
+        TaxExpenditurePolicy,
+        TaxExpenditureType,
+    )
+
+    policy = TaxExpenditurePolicy(
+        name="Eliminate mortgage interest deduction",
+        description="stated direction, against the table's default",
+        policy_type=PolicyType.TAX_DEDUCTION,
+        expenditure_type=TaxExpenditureType.MORTGAGE_INTEREST,
+        action="eliminate",
+        offset_direction=OffsetDirection.MAGNIFY,
+    )
+    assert policy.resolved_offset_direction() is OffsetDirection.MAGNIFY
+    assert policy.estimate_behavioral_offset(100.0) < 0
