@@ -621,20 +621,42 @@ def test_untranscribed_line_items_are_a_named_backlog(scorecard):
 
 
 def test_line_item_differs_carries_the_published_figure(scorecard):
-    """The point of the label: the gap has to be *visible*. A row that
-    disagrees with its source but does not say by how much has hidden the one
-    thing the pass was run to surface."""
+    """The point of the label: the disagreement has to be *visible*. A row that
+    disagrees with its source but does not say how has hidden the one thing the
+    pass was run to surface.
+
+    Two kinds of disagreement qualify, and a row must state one of them. The
+    usual kind is a *figure* gap wider than the rounding tolerance. The other
+    is a *scope* gap, where the transcribed figure matches the carried target
+    and the reform the document prices is not the one the module builds --
+    ``biden_corporate_28``, whose Treasury row has carried a GILTI
+    effective-rate step since the FY2023 edition while the factory scored
+    against it sets ``gilti_rate_change=0.0``. Naming that ``line_item`` would
+    assert an agreement the documents do not support; leaving it unqualified
+    would let the label mean "something is wrong here, unspecified".
+    """
     differs = [e for e in scorecard.entries if e.provenance == LINE_ITEM_DIFFERS]
     assert differs, "expected at least one transcription to disagree"
+    figure_gaps = 0
+    scope_gaps = 0
     for entry in differs:
         published = entry.official_10yr_billions_line_item
         assert published is not None
         gap = abs(published - entry.official_10yr_billions) / max(abs(published), 1e-9)
-        assert gap * 100 > CONFIRMATION_TOLERANCE_PCT, (
-            f"{entry.policy_id} is labelled line_item_differs but its published "
-            f"figure {published} is within rounding of the carried target "
-            f"{entry.official_10yr_billions}"
-        )
+        source = source_for(entry.policy_id)
+        scope = (source.scope_differs if source is not None else "").strip()
+        if gap * 100 > CONFIRMATION_TOLERANCE_PCT:
+            figure_gaps += 1
+        else:
+            scope_gaps += 1
+            assert scope, (
+                f"{entry.policy_id} is labelled line_item_differs, its published "
+                f"figure {published} is within rounding of the carried target "
+                f"{entry.official_10yr_billions}, and it names no scope "
+                "difference either"
+            )
+    # Both kinds are live, so neither branch can rot unnoticed.
+    assert figure_gaps and scope_gaps
 
 
 def test_confirmed_line_items_agree_with_their_source(scorecard):

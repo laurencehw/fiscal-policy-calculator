@@ -135,9 +135,29 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
     ],
     "biden_corporate_28": [
         "Corporate base-shifting, pass-through spillovers, and international interactions are simplified relative to Treasury and JCT models.",
+        "The target prices a broader reform than the model builds. Treasury's "
+        "FY2025 Green Book chapter (report p. 2) states 'The effective global "
+        "intangible low-taxed income (GILTI) rate would increase to 14 percent "
+        "under the proposal', and every edition since FY2023 carries that step "
+        "inside the corporate-rate row, while the factory scored against it "
+        "sets gilti_rate_change=0.0. The GILTI leg is never printed separately "
+        "and cannot be differenced across editions, so the reported error "
+        "measures a scope mismatch as well as a fit.",
+    ],
+    "biden_corporate_28_fy2022": [
+        "Scored across a window offset: the target is Treasury's FY2022-2031 "
+        "row on a 2021 baseline and this repository carries no 2021 vintage, "
+        "so the corporate runner's own FY2025-2034 window is used. In reported "
+        "mode the rate channel is a flat annual, so the model returns the same "
+        "figure for either decade - which is the residual this benchmark "
+        "exists to show, not an artefact of the offset.",
     ],
     "trump_corporate_15": [
-        "This scenario is calibrated from model assumptions rather than a public official score.",
+        "The target is a published range rather than a point: PWBM's +$595B "
+        "and Tax Foundation's +$673.1B for 21% to 15% across all "
+        "corporations, both FY2025-2034 conventional, with Tax Foundation's "
+        "carried as the anchor. Until 2026-09-05 the target was this model's "
+        "own +$1,920B.",
     ],
     "tcja_full_extension": [
         "Aggregate calibration is strong, but the extension decomposition is not backed by CPS ASEC return-level microsimulation.",
@@ -383,28 +403,61 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "6655's estimated-payment calendar. That base is 34% larger than the "
         "fitted one, so the derived path over-predicts this row by MORE than the "
         "fitted path did - and it does so while reproducing the 21%->28% "
-        "benchmark to about 8%. The residual is a disagreement between the two "
-        "documents, not a defect the model can close: CBO's option is $135.7B "
-        "per percentage point over the window and Treasury's FY2025 Green Book "
-        "row is $192.8B, a 42% gap in which the LARGER rate change carries the "
-        "LARGER per-point yield.",
-        "Three channels that would push the derived score down are named and "
-        "not built, because each needs a number that is not published. Credit "
-        "CARRYFORWARDS: section 38(c) and section 904(c) limits rise with the "
-        "rate, so the marginal absorption exceeds the average ratio the module "
-        "applies, and Table 11 publishes claimed credits rather than the "
-        "carryforward stock. CAMT: for a book-minimum payer a point of regular "
-        "rate raises nothing until the regular tax clears the minimum, and CAMT "
-        "began in TY2023, after the last SOI year on file. The individual-side "
-        "interaction: a higher corporate rate lowers dividends and share values "
-        "and so lowers individual receipts, which the repository has an "
-        "incidence split for but no revenue feedback from.",
+        "benchmark to about 8%.",
+        "The residual is an ESTIMATOR difference and a SCOPE difference, not "
+        "the 42% document gap an earlier version of this note claimed. Both "
+        "halves are corrected by "
+        "`planning/memos/CORPORATE_PER_POINT_YIELD.md`. (1) This option is a "
+        "JCT estimate that CBO publishes - every corporate-rate option in "
+        "every Options volume carries 'Data source: Staff of the Joint "
+        "Committee on Taxation' - so the comparison with Treasury's Green "
+        "Book row is JCT against Treasury OTA, not CBO against Treasury. "
+        "(2) Treasury's row is not rate-only: since the FY2023 edition it "
+        "carries the GILTI effective rate up with the statutory rate, and its "
+        "own chapter says so. (3) Per-point dollars are not comparable across "
+        "rate levels or scopes anyway; on the implied marginal base "
+        "(|total| / step / 10, as a share of the vintage's own average base) "
+        "the record is four estimators clustered and one high - Tax "
+        "Foundation 55.1%, JCT 55.9%, PWBM 64.4%, Treasury (rate + GILTI) "
+        "79.5% - and this model reads 90.8%, above every published estimate. "
+        "There is also NOTHING in the record supporting a per-point yield "
+        "that rises with the step: where one estimator prices a big step and "
+        "a small one, JCT's 14-point cut from 35% and its 1-point increase "
+        "from 21% imply marginal bases of $963.2B and $963.0B.",
+        "Option 64 carries NO income-and-payroll-tax offset footnote, though "
+        "the facing Option 63 does. An earlier version of this note called "
+        "the individual-side interaction 'the largest single unmodelled "
+        "channel'; JCT does not apply one here either, so that channel is "
+        "refuted as an explanation of this row rather than merely "
+        "unmeasured. Two channels that would push the derived score down are "
+        "still named and not built, because each needs a number nobody "
+        "publishes. Credit CARRYFORWARDS: section 38(c) and section 904(c) "
+        "limits rise with the rate, so marginal absorption exceeds the "
+        "average ratio the module applies - and CBO's 2018 Option 24, the "
+        "only volume with a narrative, names exactly this channel as "
+        "included in JCT's estimate ('An increase in the corporate tax rate "
+        "would increase corporations' ability to use tax credits ... That use "
+        "of credits would reduce revenues'). Table 11 publishes claimed "
+        "credits, not the carryforward stock, which is a data-acquisition "
+        "item. CAMT: for a book-minimum payer a point of regular rate raises "
+        "nothing until the regular tax clears the minimum, and CAMT began in "
+        "TY2023, after the last SOI year on file.",
         "SOI's TY2022 base is inflated by two timing items that reverse - "
         "section 174 R&D capitalisation, which began that year, and the "
-        "bonus-depreciation phase-down. The module anchors on the latest "
-        "published complete report and does not adjust for them; an earlier "
-        "anchor year would score this row better, which is exactly why the year "
-        "is fixed as 'latest published' rather than chosen.",
+        "bonus-depreciation phase-down - and the memo sizes it: SOI's income "
+        "subject to tax averaged 71.8% of NIPA pre-tax corporate profits over "
+        "TY2019-2021 and 79.8% in TY2022, so TY2022's base is 11.1% above "
+        "what the prior ratio implies. That is an upper bound, since it "
+        "charges the whole ratio move to the timing items; deflating by it "
+        "takes this row to about 46%, not to CBO's figure. The module anchors "
+        "on the latest published complete report and does not adjust, and an "
+        "earlier anchor year would score this row better - which is exactly "
+        "why the year is fixed as 'latest published' rather than chosen.",
+        "A fourth, smaller item: the module's section 6655 first-year factor "
+        "is 0.757, where JCT's options run 0.591-0.732 first-to-second-year "
+        "and Treasury's FY2022/FY2023 rows run 0.593/0.601. Treasury's is a "
+        "statutory blend the module has no concept of; JCT's is unexplained, "
+        "because no volume mentions payment timing anywhere.",
     ],
     "cbo_opt37_international_affairs": [
         "Foreign assistance is classified 'grants_and_procurement', a profile fitted "

@@ -1103,7 +1103,14 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         description="Increase the corporate income tax rate by 1 percentage point, "
                     "from 21 percent to 22 percent",
         ten_year_cost=-135.7,
-        source=ScoreSource.CBO,
+        # JCT, not CBO. Every corporate-rate option in every *Options for
+        # Reducing the Deficit* volume carries "Data source: Staff of the
+        # Joint Committee on Taxation" verbatim - CBO publishes them, JCT
+        # estimates them. Corrected 2026-09-05 by the corporate provenance
+        # lane, because "CBO vs Treasury" is the wrong framing for this row's
+        # residual and "JCT vs Treasury OTA" is the right one. Nothing in the
+        # scoring path reads `source`, so no number moved.
+        source=ScoreSource.JCT,
         source_date="2024-12",
         source_url="https://www.cbo.gov/publication/60557",
         rate_change=0.01,
@@ -1112,7 +1119,12 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         budget_window="FY2025-2034",
         effective_start_year=2025,
         scoring_vintage="cbo_feb_2024",
-        notes="CBO Options 2025-2034, option 64 (report p. 75).",
+        notes=(
+            "CBO Options 2025-2034, option 64 (report p. 75; PDF p. 81), "
+            "estimated by the staff of the Joint Committee on Taxation. "
+            "CBO's own Table 1-1 prints 136.0 where the option page and this "
+            "target carry 135.7 - CBO's rounding, not a second estimate."
+        ),
     ),
 
     "cbo_opt37_international_affairs": CBOScore(

@@ -191,9 +191,9 @@ def test_the_summary_counts_the_revisions(scorecard):
 
 
 #: Every revision the ledger carries, pinned as ``policy_id -> (superseded,
-#: live)``. Three are the AMT/insulin and Wave 3 passes; the other twelve are
-#: the Wave 4 provenance lane. A ``None`` live figure is a range row, whose
-#: bounds are pinned separately below.
+#: live)``. Three are the AMT/insulin and Wave 3 passes, twelve are the Wave 4
+#: provenance lane, and one is the 2026-09-05 corporate/PTC lane. A ``None``
+#: live figure is a range row, whose bounds are pinned separately below.
 _LEDGER: dict[str, tuple[float, float | None]] = {
     # AMT / insulin pass
     "extend_tcja_amt": (450.0, 1_357.1),
@@ -213,6 +213,9 @@ _LEDGER: dict[str, tuple[float, float | None]] = {
     "repeal_ev_credits": (-200.0, -182.3),
     "repeal_salt_cap": (1_100.0, 1_169.0),
     "trump_universal_10": (-2_000.0, -2_171.1),
+    # Corporate/PTC lane -- a `model_estimate` target replaced by the two
+    # published conventional scores of the same reform on the same window.
+    "trump_corporate_15": (1_920.0, None),
 }
 
 #: The label each revised benchmark is shown under, since a label embeds the
@@ -232,6 +235,10 @@ _REVISED_LABELS: dict[str, str] = {
     "reciprocal_tariffs": "\U0001f3ed Reciprocal Tariffs (-$1.5T)",
     "repeal_ev_credits": "\U0001f331 Repeal EV Credits ($182B)",
     "repeal_salt_cap": "\U0001f4cb Repeal SALT Cap ($1.17T)",
+    # The one revised preset whose label embeds no figure, so the label had
+    # nothing to move. The figure it shows lives in CBO_SCORE_MAP instead, and
+    # the containment branch below is what checks it.
+    "trump_corporate_15": "\U0001f3e2 Trump Corporate 15%",
     "trump_universal_10": "\U0001f3ed Trump Universal 10% Tariff (-$2.17T)",
     "universal_insulin_cap": "\U0001f48a Universal Insulin Cap ($11B)",
 }
@@ -257,17 +264,18 @@ _STABLE_IDS_FOR_REVISED: dict[str, str] = {
     "reciprocal_tariffs": "tariff-reciprocal",
     "repeal_ev_credits": "ev-credit-repeal",
     "repeal_salt_cap": "salt-cap-repeal",
+    "trump_corporate_15": "corporate-15pct",
     "trump_universal_10": "tariff-universal-10pct",
     "universal_insulin_cap": "insulin-cap-universal",
 }
 
 
 def test_the_ledger_holds_exactly_the_revisions_these_passes_made():
-    """Pin the ledger's contents. A sixteenth revision appearing without a test
-    change means a target moved without anyone deciding to move it."""
+    """Pin the ledger's contents. A seventeenth revision appearing without a
+    test change means a target moved without anyone deciding to move it."""
     assert sorted(REVISED_POLICY_IDS) == sorted(_LEDGER)
     # Two rows per revision: a superseded one and its live replacement.
-    assert len(CALIBRATED_TARGETS) == 2 * len(_LEDGER) == 30
+    assert len(CALIBRATED_TARGETS) == 2 * len(_LEDGER) == 32
 
     for policy_id, (superseded, live_point) in sorted(_LEDGER.items()):
         live = live_target_for(policy_id)
@@ -282,9 +290,9 @@ def test_the_ledger_holds_exactly_the_revisions_these_passes_made():
             assert live.official_10yr_billions == pytest.approx(live_point), policy_id
 
 
-def test_the_two_range_revisions_state_the_bounds_they_were_read_from():
-    """A range is the ledger's strongest claim -- that the agency published no
-    single figure -- so both sets of bounds are pinned rather than derived."""
+def test_the_three_range_revisions_state_the_bounds_they_were_read_from():
+    """A range is the ledger's strongest claim -- that no single published
+    figure exists -- so every set of bounds is pinned rather than derived."""
     pillar = live_target_for("pillar_two_adoption")
     assert (
         pillar.published_low_10yr_billions,
@@ -301,6 +309,16 @@ def test_the_two_range_revisions_state_the_bounds_they_were_read_from():
     # Foundation's *dynamic* score in a column of conventional ones, which is
     # why it falls outside the conventional range entirely.
     assert not reciprocal.contains(-1_200.0)
+    # Corporate/PTC lane: PWBM and Tax Foundation scored 21% -> 15% for all
+    # corporations on this repository's own window and landed 13% apart. The
+    # superseded +$1,920B was not a third estimate -- it was this model's own
+    # output -- and sits far outside both.
+    trump = live_target_for("trump_corporate_15")
+    assert (
+        trump.published_low_10yr_billions,
+        trump.published_high_10yr_billions,
+    ) == (595.0, 673.1)
+    assert not trump.contains(1_920.0)
 
 
 def test_the_app_labels_carry_the_revised_figures():

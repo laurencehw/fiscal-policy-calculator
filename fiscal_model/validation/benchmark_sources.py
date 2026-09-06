@@ -16,11 +16,27 @@ A :class:`BenchmarkSource` with ``provenance="line_item"`` asserts that a human
 and that the figure agrees with the target the repository carries.
 
 ``provenance="line_item_differs"`` asserts the same transcription but records a
-figure that **disagrees** with the repository's target. The target is *not*
-silently moved: retuning a calibrated module to a newly transcribed number
-changes model output and is an owner decision, not a bookkeeping one. The
-disagreement is carried on the scorecard entry as
-``official_10yr_billions_line_item`` and reported in ``docs/VALIDATION.md``.
+**disagreement**. Two kinds of disagreement live under this one label, and a
+row says which:
+
+* the usual kind, a transcribed *figure* that differs from the repository's
+  target. The target is not silently moved: retuning a calibrated module to a
+  newly transcribed number changes model output and is an owner decision, not
+  a bookkeeping one. The disagreement is carried on the scorecard entry as
+  ``official_10yr_billions_line_item`` and reported in ``docs/VALIDATION.md``.
+* the kind ``scope_differs`` names: the figure is right and the *reform it
+  prices* is not the one the module builds. ``biden_corporate_28`` is the
+  case that forced the distinction — Treasury's published $1,349,941M is the
+  figure this repository carries to within rounding, and since the FY2023
+  edition that row has scored a GILTI effective-rate step alongside the
+  statutory rate while the factory scored against it sets
+  ``gilti_rate_change=0.0``. Calling that ``line_item`` would assert an
+  agreement the documents do not support.
+
+A ``line_item_differs`` row must carry at least one of the two: a figure gap
+wider than :data:`CONFIRMATION_TOLERANCE_PCT`, or a filled ``scope_differs``.
+``test_line_item_differs_carries_the_published_figure`` enforces it, so the
+label can never mean "something is wrong here, unspecified".
 
 ``provenance="secondhand"`` after this pass means the search happened and
 failed: ``searched`` records what was looked for, so the next person does not
@@ -96,6 +112,12 @@ class BenchmarkSource:
         note: What the transcription established, including any difference
             between the source's policy definition and the module's.
         searched: For ``secondhand`` rows, what was searched and not found.
+        scope_differs: What the published row prices that the module's shape
+            does not, or the reverse. Set on a ``line_item_differs`` row whose
+            *figure* agrees with the carried target: the disagreement is in
+            the reform, not the number, and without this field such a row
+            would be indistinguishable from a confirmation. One sentence,
+            naming the mechanism.
     """
 
     policy_id: str
@@ -111,6 +133,7 @@ class BenchmarkSource:
     published_10yr_billions: float | None = None
     note: str = ""
     searched: str = ""
+    scope_differs: str = ""
     #: Other published figures for the same policy, kept so a reader can see
     #: the spread rather than only the one this repository happened to pick.
     alternatives: tuple[str, ...] = field(default_factory=tuple)
@@ -143,6 +166,14 @@ class BenchmarkSource:
             raise ValueError(
                 f"{self.policy_id}: a target left secondhand after the Phase E "
                 "pass must record what was searched"
+            )
+        if self.scope_differs and self.provenance != LINE_ITEM_DIFFERS:
+            # A confirmed line item that also declares a scope difference is
+            # confirming something the module does not build, which is the one
+            # thing this registry must never say quietly.
+            raise ValueError(
+                f"{self.policy_id}: scope_differs is only meaningful on a "
+                f"{LINE_ITEM_DIFFERS} row, not on {self.provenance!r}"
             )
 
 
@@ -233,25 +264,93 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
     # ------------------------------------------------------------------
     BenchmarkSource(
         policy_id="biden_corporate_28",
-        provenance=LINE_ITEM,
+        provenance=LINE_ITEM_DIFFERS,
         document=_GREEN_BOOK_FY2025,
         publisher=_TREASURY,
         url=_GREEN_BOOK_FY2025_URL,
         date="2024-03",
         table=_GREEN_BOOK_TABLE,
         row="Raise the corporate income tax rate to 28 percent",
-        page="report p. 239; PDF p. 247",
+        page="report p. 239; PDF p. 247; chapter report p. 2",
         window="FY2025-2034",
         published_10yr_billions=-1_349.9,
+        scope_differs=(
+            "Treasury's row is not a rate-only row and has not been one since "
+            "the FY2023 edition: the chapter states 'The effective global "
+            "intangible low-taxed income (GILTI) rate would increase to 14 "
+            "percent under the proposal' (report p. 2), so the printed "
+            "$1,349,941M prices a statutory-rate increase AND a GILTI "
+            "effective-rate step, while `create_biden_corporate_rate_only` "
+            "sets `gilti_rate_change=0.0` and says 'No international changes "
+            "- just rate'."
+        ),
         note=(
             "Published $1,349,941 million of revenue over FY2025-2034; the "
-            "repository's -$1,347B is that figure rounded (0.2%). Proposal "
-            "text (report p. 2): 21% to 28%, effective for taxable years "
-            "beginning after 31 December 2023 — the shape the module scores."
+            "repository's -$1,347B is that figure rounded (0.2%), so the "
+            "FIGURE agrees and the REFORM does not — see `scope_differs`, and "
+            "`planning/memos/CORPORATE_PER_POINT_YIELD.md`, which established "
+            "this. The GILTI leg's size is never printed and cannot be "
+            "recovered by differencing editions: FY2022 excludes it (the "
+            "global minimum tax is a separate $533,503M row), FY2023 is on a "
+            "Build Back Better baseline with a 20% GILTI rate, and "
+            "FY2024/FY2025 route 21% -> 14% through the corporate row while a "
+            "separate $373,919M international row takes 14% -> 21%. So the "
+            "3.7% this row reports is measuring a scope mismatch as well as a "
+            "fit, and it cannot be split. The row is also an outlier in its "
+            "own literature: on its own window Tax Foundation prices the same "
+            "reform 31% lower and PWBM 19% lower, and the memo's normalised "
+            "metric puts Treasury's implied marginal base at 79.5% of the "
+            "average base against JCT's 55.9%."
         ),
         alternatives=(
-            "FY2024 Green Book, same row: $1,325,759M (FY2024-2033).",
-            "FY2022 Green Book, same row: $857,817M (FY2022-2031).",
+            "FY2024 Green Book, same row: $1,325,759M (FY2024-2033); "
+            "rate + GILTI, like this one.",
+            "FY2022 Green Book, same row: $857,817M (FY2022-2031) — THE ONLY "
+            "RATE-ONLY Green Book row, and since 2026-09-05 a benchmark in "
+            "its own right (`biden_corporate_28_fy2022`).",
+            "Tax Foundation, Biden Budget Tax Proposals (21 June 2024) "
+            "Table 4: -$935.8B conventional, FY2025-2034, rate only.",
+            "PWBM, President Biden's FY2025 Budget Proposal (22 May 2024) "
+            "Table 1: -$1,093B conventional, FY2025-2034, rate only.",
+        ),
+    ),
+    BenchmarkSource(
+        policy_id="biden_corporate_28_fy2022",
+        provenance=LINE_ITEM,
+        document=_GREEN_BOOK_FY2022,
+        publisher=_TREASURY,
+        url=_GREEN_BOOK_FY2022_URL,
+        date="2021-05",
+        table=_GREEN_BOOK_TABLE,
+        row="Raise the corporate income tax rate to 28 percent",
+        page="report p. 104; PDF p. 110; chapter report p. 3 / PDF p. 9",
+        window="FY2022-2031",
+        published_10yr_billions=-857.8,
+        note=(
+            "Published $857,817 million of revenue over FY2022-2031, read "
+            "from Treasury's own PDF; the annual path is 51,127 / 86,182 / "
+            "88,059 / 89,385 / 91,784 / 92,065 / 90,730 / 89,357 / 88,798 / "
+            "90,330 ($M) and the five-year subtotal 405,537. **The only "
+            "rate-only corporate row in any Green Book**: the chapter's "
+            "Proposal section is two sentences and the word GILTI does not "
+            "appear in it — the global minimum tax is a separate $533,503M "
+            "row — where every edition from FY2023 carries the GILTI "
+            "effective rate up with the statutory rate. That is what makes it "
+            "worth registering beside `biden_corporate_28`: the same reform, "
+            "the same factory, a scope that matches the module's shape, and a "
+            "per-point yield 36% lower ($122.55B against $192.85B). The "
+            "module cannot reproduce that difference and is not fitted to "
+            "this row, which is the point — see the scenario's own "
+            "`limitations` for the window offset it is scored across."
+        ),
+        alternatives=(
+            "Tax Foundation, Evaluating Proposals to Increase the Corporate "
+            "Tax Rate (24 February 2021) Table 4: -$886.3B conventional over "
+            "FY2022-2031, rate only.",
+            "PWBM, President Biden's $2.7 Trillion American Jobs Plan "
+            "(7 April 2021) Table 1: -$891.6B conventional over FY2022-2031, "
+            "rate only. The three houses agree to within 4% on this window, "
+            "which they do not on FY2025-2034.",
         ),
     ),
     BenchmarkSource(
@@ -752,7 +851,38 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
             "purchased through health benefit exchanges', $555.1B over "
             "FY2024-2028 — a baseline tax-expenditure projection with no "
             "coverage response, not a scored repeal, so it cannot stand in "
-            "for this target."
+            "for this target. "
+            "SEARCHED AGAIN 2026-09-05, and the carried figure now has a most "
+            "likely origin, which is precisely why it is still not adopted. "
+            "CBO and JCT's June 2024 baseline projections (Health Insurance "
+            "and Its Federal Subsidies, publication 51298, Table 2, read from "
+            "CBO's own PDF through a Wayback mirror) print, under 'Premium "
+            "tax credits and related spending', $966B of outlays plus $176B "
+            "of revenue reductions over FY2025-2034 — $1,142B together, 3.8% "
+            "from the -$1,100B this record carries. That makes the target a "
+            "BASELINE PROJECTION sitting in a repeal-score column, the same "
+            "class of quantity the paragraph above already refuses and the "
+            "same one `repeal_individual_amt` refuses TPC's T25-0049 for. "
+            "Adopting it would make the row worse (18.5% -> 21.5%), so this "
+            "is not a lane declining an improvement. No scored repeal exists "
+            "to move to: CBO/JCT publication 61734 (18 September 2025) scores "
+            "permanently extending the expanded credit and repealing five "
+            "sections of the 2025 reconciliation act, and carries no option "
+            "eliminating the credit; the 2017 AHCA/BCRA estimates bundle "
+            "subsidy repeal with Medicaid on a pre-enhancement statute and a "
+            "2017-2026 window. Recorded in "
+            "`target_revisions.EXAMINED_NOT_REVISED` with the modelling "
+            "handoff: `create_repeal_ptc` sets `coverage_elasticity=0.0`, so "
+            "what the module computes IS a baseline cost, and the mismatch is "
+            "in the shape as much as in the target."
+        ),
+        alternatives=(
+            "CBO/JCT, publication 51298 (June 2024) Table 2: premium tax "
+            "credit outlays $966B + revenue reductions $176B = $1,142B over "
+            "FY2025-2034; the whole 'Premium tax credits and related "
+            "spending' subtotal, which adds 1332 waivers, the Basic Health "
+            "Program and risk adjustment, is $1,316B. Baseline projections, "
+            "not repeal scores.",
         ),
     ),
     BenchmarkSource(
@@ -1739,11 +1869,58 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
     ),
     BenchmarkSource(
         policy_id="trump_corporate_15",
-        provenance=MODEL_ESTIMATE,
-        publisher="none",
+        provenance=LINE_ITEM_DIFFERS,
+        document=(
+            "Garrett Watson and Erica York, 'A Lower Corporate Tax Rate Can "
+            "Be Part of Broader Tax Reform', Tax Foundation (17 July 2024, "
+            "updated 23 October 2024)"
+        ),
+        publisher="Tax Foundation",
+        url="https://taxfoundation.org/blog/trump-corporate-tax-cut/",
+        date="2024-07",
+        table=(
+            "Table 2, 'Revenue Effects of Reducing the Corporate Rate to 15 "
+            "Percent (Billions)'"
+        ),
+        row="Conventional revenue effect, 2025-2034",
+        page="Table 2 (the post's only revenue table)",
+        window="FY2025-2034",
+        published_10yr_billions=595.0,
+        scope_differs=(
+            "Neither published estimate includes bonus depreciation, and "
+            "`create_republican_corporate_cut` sets "
+            "`extend_bonus_depreciation=True` — PWBM prints the business "
+            "provisions separately at -$623B. Measured on this branch the "
+            "module's bonus-depreciation leg is +$294.15B of its +$1,491.8B, "
+            "so the rate leg alone reads +$1,197.6B / +77.9% against the "
+            "anchor rather than +121.6%."
+        ),
         note=(
-            "The scenario's own note reads 'No official score; expected "
-            "estimate derived from model.'"
+            "Until 2026-09-05 this row's target was +$1,920B, provenance "
+            "`model_estimate` — this repository's own output, by the "
+            "scenario's own admission. The ledger "
+            "(`target_revisions.trump_corporate_15.v1` -> `.v2`) superseded it "
+            "with the PUBLISHED RANGE [+$595.0B, +$673.1B], the two "
+            "conventional estimates of 21% -> 15% for all corporations on this "
+            "repository's own window, printed side by side in CRFB's "
+            "6 September 2024 post. The carried anchor is Tax Foundation's "
+            "+$673.1B (this row's `table`), chosen because it is a standalone "
+            "analysis of this one reform where PWBM's is a stacked row inside "
+            "a whole-campaign package; the figure transcribed here is PWBM's "
+            "+$595.0B, the range's other bound, so the spread stays visible. "
+            "The module's constant was NOT retuned to the new figure and the "
+            "row stays `calibrated_to_target=False`, where PR #119 put it."
+        ),
+        alternatives=(
+            "PWBM, 'The 2024 Trump Campaign Policy Proposals' (26 August "
+            "2024) Table 1, 'Lower the corporate income tax rate to 15%': "
+            "-$595B conventional over FY2025-2034.",
+            "Tax Foundation, same Table 2: -$459.5B dynamic. PWBM publishes "
+            "no dynamic dollar figure for the line.",
+            "CRFB (6 September 2024) prices a DIFFERENT policy — a revived "
+            "section 199 domestic-production deduction reaching a 15% "
+            "effective rate for manufacturers only — at about $200B over "
+            "FY2026-2035. Not a bound of the range.",
         ),
     ),
     BenchmarkSource(

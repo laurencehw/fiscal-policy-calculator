@@ -301,7 +301,10 @@ def test_no_other_row_left_the_fitted_tier():
     fitted = [e for e in specialized if e.calibrated_to_target]
     reconstructions = [e for e in specialized if not e.calibrated_to_target]
     assert len(fitted) == 21, [e.policy_id for e in fitted]
-    assert len(reconstructions) == 33, len(reconstructions)
+    # 34 since 2026-09-05: the corporate/PTC provenance lane registered the
+    # FY2022 Green Book's rate-only row as a second published corporate
+    # benchmark, unfitted by construction. Nothing left the fitted tier.
+    assert len(reconstructions) == 34, len(reconstructions)
 
 
 def test_strict_readiness_reports_no_fitted_tier_regression():
