@@ -19,6 +19,8 @@ from typing import Any
 
 import numpy as np
 
+from fiscal_model.ui.charts import apply_base_layout, theme_figure
+
 # ---------------------------------------------------------------------------
 # Confidence disclaimer
 # ---------------------------------------------------------------------------
@@ -268,7 +270,8 @@ def _render_results(st_module: Any, olg_result) -> None:
         line=dict(color="#1f77b4", width=2),
     ))
     fig_trans.add_hline(y=0, line_dash="dash", line_color="gray")
-    fig_trans.update_layout(
+    apply_base_layout(
+        fig_trans,
         title="GDP Change Along Transition Path (% from baseline)",
         xaxis_title="Year",
         yaxis_title="% change from baseline",
@@ -290,7 +293,7 @@ def _render_results(st_module: Any, olg_result) -> None:
         )
         fig_k.update_layout(yaxis=dict(range=[-_K_CLAMP, _K_CLAMP]))
         fig_k.add_hline(y=0, line_dash="dash", line_color="gray")
-        st_module.plotly_chart(fig_k, width="stretch")
+        st_module.plotly_chart(theme_figure(fig_k), width="stretch")
 
     with col_b:
         rate_ppts_raw = (trans.r_path - baseline.r) * 100
@@ -304,7 +307,7 @@ def _render_results(st_module: Any, olg_result) -> None:
         )
         fig_r.update_layout(yaxis=dict(range=[-_R_CLAMP, _R_CLAMP]))
         fig_r.add_hline(y=0, line_dash="dash", line_color="gray")
-        st_module.plotly_chart(fig_r, width="stretch")
+        st_module.plotly_chart(theme_figure(fig_r), width="stretch")
 
     # ── Generational accounts ─────────────────────────────────────────
     if olg_result.gen_accounts is not None:
@@ -376,7 +379,8 @@ def _render_gen_accounts(st_module: Any, gen_accounts) -> None:
         yaxis="y2",
         opacity=0.5,
     ))
-    fig_burden.update_layout(
+    apply_base_layout(
+        fig_burden,
         title="Lifetime Net Tax Burden by Cohort Age",
         xaxis_title="Current age",
         yaxis_title="Remaining lifetime burden (model units)",

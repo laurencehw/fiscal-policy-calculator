@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from fiscal_model.ui.charts import apply_base_layout
+
 
 def render_state_analysis_tab(
     st_module: Any,
@@ -174,7 +176,8 @@ def _render_rate_curves(
             line=dict(color="#2ca02c", width=2, dash="dash"),
         ))
 
-        fig.update_layout(
+        apply_base_layout(
+            fig,
             xaxis_title="AGI ($)",
             yaxis_title="Effective Rate (%)",
             xaxis_type="log",

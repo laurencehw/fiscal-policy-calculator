@@ -26,6 +26,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
 
+from fiscal_model.ui.charts import theme_figure
+
 # ---------------------------------------------------------------------------
 # CSS injected by :func:`inject_a11y_styles`
 # ---------------------------------------------------------------------------
@@ -174,6 +176,13 @@ def render_accessible_chart(
     optional fallback data table so non-visual users get full access.
     """
     _ensure_figure_title(figure, description)
+
+    # Theme last, and after the title: on a dark page the title's colour has to
+    # be written at layout level or Streamlit's frontend repaints it dark ink.
+    # This is also the safety net for figures that never met
+    # ``charts.apply_base_layout`` — the Plotly Express charts, mainly. No-op
+    # on a light page.
+    theme_figure(figure)
 
     # Visible caption (also read by screen readers via normal flow).
     st_module.caption(description.summary)
