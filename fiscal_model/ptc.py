@@ -190,6 +190,12 @@ PTC_BASELINE_PATH = (
 #: the one every app surface and the benchmark runner already score on.
 PTC_BASELINE_VINTAGE = "cbo_feb_2026"
 
+#: How each transcribed block is named in prose, for captions and lane docs.
+PTC_BASELINE_VINTAGE_LABELS = {
+    "cbo_jun_2024": "June 2024",
+    "cbo_feb_2026": "February 2026",
+}
+
 #: CBO and JCT's own net-to-gross ratio for a change to IRC section 36B.
 #:
 #: CBO/JCT, letter to Chairmen Arrington and Smith, publication 60437

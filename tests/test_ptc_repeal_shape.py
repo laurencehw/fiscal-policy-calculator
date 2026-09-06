@@ -225,3 +225,51 @@ def test_the_extension_benchmark_is_untouched_by_this_lane():
     scorer = FiscalPolicyScorer(start_year=2026, use_real_data=False)
     result = scorer.score_policy(policy, dynamic=False)
     assert float(result.total_10_year_cost) == pytest.approx(366.1863, abs=0.01)
+
+
+# ---------------------------------------------------------------------------
+# The Decision 6 caption
+# ---------------------------------------------------------------------------
+
+
+def test_the_caption_carries_the_scored_figures_and_both_documents():
+    """Computed from the result, so it cannot drift from the number above it."""
+    from fiscal_model.ui.tabs.results_summary import ptc_repeal_baseline_caption
+
+    scorer = FiscalPolicyScorer(start_year=2026, use_real_data=False)
+    policy = create_repeal_ptc()
+    result = scorer.score_policy(policy, dynamic=False)
+    note = ptc_repeal_baseline_caption(policy, result)
+
+    assert "959B" in note  # the gross path over the scored window
+    assert "774B" in note  # the score above the caption
+    assert "74B" in note  # the trough, after the enhancement lapses
+    assert "19.3%" in note  # CBO's own offsetting share
+    assert "51298" in note
+    assert "60437" in note
+    assert "FY2026-FY2035" in note
+
+
+def test_the_caption_stays_silent_on_every_other_preset():
+    """A note that appears everywhere explains nothing.
+
+    Exactly one shipped preset moved, so exactly one carries this caption. The
+    extension routes through the untouched factory and scores to the cent what
+    it scored before, so it says nothing.
+    """
+    from fiscal_model.app_data import PRESET_POLICIES
+    from fiscal_model.preset_handler import create_policy_from_preset
+    from fiscal_model.ui.tabs.results_summary import ptc_repeal_baseline_caption
+
+    scorer = FiscalPolicyScorer(use_real_data=False)
+    captioned = []
+    for label, data in PRESET_POLICIES.items():
+        policy = create_policy_from_preset(data)
+        if policy is None:
+            continue
+        result = scorer.score_policy(policy, dynamic=False, include_uncertainty=False)
+        if ptc_repeal_baseline_caption(policy, result):
+            captioned.append(label)
+
+    assert len(captioned) == 1, captioned
+    assert "Repeal ACA Premium Credits" in captioned[0]
