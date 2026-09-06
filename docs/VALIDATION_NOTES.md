@@ -603,10 +603,54 @@ the calibrated annual through the LOO harness reproduces the scorecard value
 exactly, and monkeypatching `loo.official_target` to raise proves no
 derivation ever reads the held-out answer.
 
-**Aggregate: 29.6% mean / 19.1% median over 18 derivable cases, 8/18 within
+**Aggregate: 30.1% mean / 19.1% median over 18 derivable cases, 8/18 within
 15%, plus 4 cases reported as not cross-validatable.** Against the
 by-construction 1.7%. The gap is the size of the claim the by-construction
 number cannot support.
+
+*Wave 7 moved it 29.6% → **30.1%**, and this is the first move here that is a
+**derivation** rather than a target — registered in advance as a regression.*
+PR #128 gave `TaxExpenditurePolicy` a per-reform offset `direction`, read off
+nine published sources one reform at a time, and the single scored reform whose
+direction flipped is the mortgage-interest deduction: Poterba & Sinai (NBER
+WP 14253, §6.1 and Table 8) put repeal at **$72.4B** with no behavioural
+response and **$61.9B** with portfolio adjustment, "about 85 percent", because
+households liquidating taxable assets to retire mortgage debt stop earning
+taxable income on them. `eliminate_mortgage`'s held-out score went
+**−$315.3B (−5.1%) → −$257.9B (+14.0%)** and `Expenditures` **35.7% → 37.5%**;
+the median (19.1%) and within-15 (8/18) did not move, and 14.0% is still inside
+the band. **The old −5.1% was two errors cancelling**, which is why the lane
+registered the move rather than defending the number: the held-out annual is
+JCT's **$25.0B** against the fitted **$26.2B**, a static path **4.5% low**, and
+magnifying it by 10% put the score **5.1% high**. Signing it correctly gives the
+base error *plus* the offset instead of *netted against* it. Same shape as
+Wave 1's Fiscal Responsibility Act spend-out finding. The leakage guard is
+untouched, `eliminate_step_up` is still excluded by it with the same message,
+and **no donor-matrix entry moved**.
+
+*And the expenditure module's six fitted constants turn out to disagree about
+whether the convention exists*, which the lane did not predict and which anyone
+reading a 0.1% row in this module should know. Reconstructing each annual
+against its own growth rate over ten years:
+
+| constant | annual | e | static path | static × (1+e) | its target | fitted to |
+|---|--:|--:|--:|--:|--:|---|
+| `cap_employer_health` | 31.2 | 0.20 | 374.6 | **449.5** | −450.0 | static × (1+e), 0.1% off |
+| `cap_charitable` | 12.5 | 0.40 | 143.3 | **200.6** | −200.0 | static × (1+e), 0.3% off |
+| `eliminate_mortgage` | 26.2 | 0.10 | **300.4** | 330.4 | −300.0 | **static**, 0.1% off |
+| `repeal_salt_cap` | −96.0 | 0.05 | **−1,100.5** | −1,155.6 | 1,100.0 (pre-Wave-4) | **static**, 0.0% off |
+| `eliminate_salt` | 104.7 | 0.05 | **1,200.3** | 1,260.3 | −1,200.0 (pre-Wave-4) | **static**, 0.0% off |
+| `eliminate_step_up` | 43.6 | 0.00 | 523.5 | 523.5 | −500.0 | neither; 4.7% off |
+
+**Three were fitted so the static path hits the target and three so the
+magnified score does.** On the three static-fitted rows the convention was
+carried as pure error — 10.1% on mortgage, 5.0% on the SALT elimination, 5.1% on
+the cap repeal — while the two magnified-fitted rows absorbed it. That is why
+this module's fitted rows were never uniformly near zero the way the rest of the
+tier's are. **Nothing was retuned**: re-fitting those three is what the plan's
+§1.1 forbids, and it would move `eliminate_mortgage` a second time for a second
+reason in one PR. If a future lane does re-fit them, it owes a Decision 6
+caption.
 
 *Wave 5 left this suite **byte-identical** — and named the population it does
 not cover.* All three Wave 5 lanes (#113 payroll, #114 corporate, #116
@@ -661,8 +705,9 @@ of the machinery. `biden_eitc_childless` −38.0% → **−32.1%** (derivation
 unchanged at 110.4), `repeal_salt_cap` −29.4% → **−33.5%** (777.0),
 `eliminate_salt` +10.2% → **+33.5%** (−1,077.9). Per module: **Credits
 20.5% → 18.5%** (n=3) and **Expenditures 30.2% → 35.7%** (5 of 6, 1 not
-cross-validatable); Payroll 3.8%, Estate 10.4%, AMT 73.9% and CapitalGains 39.6%
-are untouched, and no donor-matrix entry moved. `loo.py`'s leakage guard was not
+cross-validatable, and → **37.5%** in Wave 7 for the separate reason above);
+Payroll 3.8%, Estate 10.4%, AMT 73.9% and CapitalGains 39.6% are untouched, and
+no donor-matrix entry moved. `loo.py`'s leakage guard was not
 touched and does not fire on any revised row — the Wave 4 revisions removed the
 last constant that was a target restated, they did not create one.
 
@@ -977,7 +1022,7 @@ case from base data plus the other cases' calibration.
 parameters with no shared fit to hold out, so LOO instead runs the module's own
 reform-action rules against its published base table.
 
-- **Tax expenditures (5 of 6, mean 35.7%).** Base is `JCT_TAX_EXPENDITURES`,
+- **Tax expenditures (5 of 6, mean 37.5% since Wave 7's PR #128; 35.7% before it).** Base is `JCT_TAX_EXPENDITURES`,
   sourced to JCT's *Estimates of Federal Tax Expenditures* (JCX-48-24; curated
   snapshot at `fiscal_model/assistant/knowledge/jct_tax_expenditures.md`), now
   with a **benefit distribution by AGI class** per expenditure, transcribed from
@@ -1143,9 +1188,9 @@ default 75 — derived as the then-observed 59.3% × 1.25, rounded to 5) exists 
 catch a *regression* in the structural machinery — a base table edited without
 re-deriving — not to certify accuracy. Do not quote it as an accuracy claim. It
 is deliberately **not** re-derived from the post-Wave-1 61.7%, the
-post-provenance 58.7%, Wave 2's 32.3%, Wave 3's 28.4% or the current **29.6%**: a ceiling that
-tracks every observation is not a gate, and this one now has a great deal of
-room.
+post-provenance 58.7%, Wave 2's 32.3%, Wave 3's 28.4%, Wave 4's 29.6% or the
+current **30.1%**: a ceiling that tracks every observation is not a gate, and
+this one now has a great deal of room.
 
 ---
 
@@ -1634,9 +1679,13 @@ share)*. Held in place, the sweep's two make it **23 at 7.7%, 21/23** (the sweep
 own lane doc records 3.4%, which was true before PR #122 moved
 `trump_corporate_15`'s target off the model's own output), Wave 4's five on top of
 that make it **28 at 8.0%, 25/28**, and the revised TCJA-AMT row on top of that
-**29 at 10.0%, 25/29** — against **34 reconstructions at 57.6% / 34.2%**, or
+**29 at 10.0%, 25/29** — against **34 reconstructions at 57.9% / 34.2%**. **The
+last step in that figure has no composition reading, because no row entered or
+left**: Wave 7's PR #131 took `repeal_ptc` 18.5% → 29.6% on the same 34 rows, so
+57.6% → 57.9% is like-for-like and is the tier's first accuracy move. Behind it,
 **57.4% on the 33 rows the tier held before PR #122** and **56.6% on the 31 it
-held before PR #119**, which are the like-for-like readings. The whole of the
+held before PR #119** are the like-for-like readings for the two composition
+steps. The whole of the
 56.6% → 57.4% step is `trump_corporate_15` going 22.3% → 121.6%; the remaining
 0.2pp is the FY2022 corporate benchmark arriving at 62.9%. Behind those, Wave 4's
 own constant-population reading still stands: **65.7% on the 26 rows the tier held
@@ -1652,11 +1701,13 @@ L9 lanes plus the two reclassified tariff rows took it to **26 rows at 61.8%**
 (63.6% on the pre-L8 population), Wave 4 took it to **31 rows at 56.6%** —
 a fall that is *entirely* composition, since on the 26 rows it already held the
 tier reads **65.7%**, worse, because PR #109's pharma rebuild moved two rows
-away from their targets while PR #107's five arrivals came in at 9.4% — and
+away from their targets while PR #107's five arrivals came in at 9.4% — 
 PRs #119 and #122 took it to **33 rows at 54.4%** and then **34 at 57.6%**, a fall
 and a rise that are both composition again: the sweep moved in two rows better
 than this tier's average and worse than the fitted tier's, and the provenance pass
-then took one of those from 22.3% to 121.6% by giving it a document. The
+then took one of those from 22.3% to 121.6% by giving it a document; and Wave 7's
+PR #131 took it to **57.9% on the same 34 rows**, which is the first step in this
+sequence that is not composition at all. The
 sectoral subset is unmoved through all of it at **15 rows at 82.6%**, or **88.2%**
 on the 14 it held before Wave 4. The Phase E figures above are kept as the
 outturn of Phase E; **live numbers come from `python scripts/cold_holdout.py`**,
@@ -1832,14 +1883,23 @@ reason not to adopt it. CBO/JCT pub. 51298 (June 2024) Table 2 prints $966B of
 premium-tax-credit outlays plus $176B of revenue reductions over FY2025-2034,
 **$1,142B, 3.8% from the carried figure** — a *baseline projection sitting in a
 repeal-score column*, carrying no coverage response and no interaction with
-Medicaid, employer coverage or taxable wages. Adopting it would make the row
-worse (18.5% → 21.5%), and no scored repeal exists to move to: CBO/JCT pub. 61734
-(Sept 2025), the most recent marketplace menu, contains no option eliminating the
-credit at all, and the 2018/2020/2022/2025 Options volumes carry none either. The
-mismatch is in the **shape** as much as the target — `create_repeal_ptc` sets
-`coverage_elasticity=0.0` under the comment "Not modeling coverage offset", so
-what the module computes *is* a baseline cost — and closing that is an owner
-decision about `ptc.py` that a provenance lane may not make. **Six of the
+Medicaid, employer coverage or taxable wages. Adopting it would have made the row
+worse (18.5% → 21.5% then; 29.6% → 32.2% now), and no scored repeal exists to
+move to: CBO/JCT pub. 61734 (Sept 2025), the most recent marketplace menu,
+contains no option eliminating the credit at all, and the 2018/2020/2022/2025
+Options volumes carry none either. The mismatch was in the **shape** as much as
+the target — and **Wave 7's PR #131 closed the shape half, which turned the
+argument into a demonstration.** The old $83.0B/yr was `1100 / (1.10 × Σ 1.04ᵗ)`:
+the carried target run backwards through the engine's growth factor and the
+inverted offset PR #119 corrected, a fitted number wearing a baseline's clothes.
+The static path is now pub. 51298 Table 2's own annual credit cost (both legs,
+two vintages transcribed, February 2026 the default) net of pub. 60437's
+published **19.28%** offsetting share, and the row reads **29.6%**. **Run on the
+June 2024 vintage and window with no offset, the same mechanism returns
+$1,143.0B against that $1,142B — 0.09%**, which is what a model reading a
+baseline table reproducing a baseline projection looks like, and is therefore
+the sharpest available case for not treating one as a repeal score. The target
+did not move: −$1,100B stands and `repeal_ptc` stays in `EXAMINED_NOT_REVISED`. **Six of the
 thirteen Wave 4 revisions made their row's error worse**, which is the shape a
 correct provenance pass has: if every revision improved its row, the suspicion
 would be that the documents were chosen to fit rather than read.
@@ -2165,6 +2225,104 @@ either tier does.
 Eight of the twelve `line_item` targets are now this block. The 31 secondhand
 targets are untouched: promoting one still requires someone to open the document
 and transcribe the row, exactly as Phase E said.
+
+---
+
+## 9. Wave 7 — four findings that outlive their lanes (2026-09-06)
+
+*Live figures come from `python scripts/cold_holdout.py`,
+`python scripts/run_loo.py --donor-matrix` and
+`python scripts/run_validation_dashboard.py`, never from this section. Tier 1
+reads **26 @ 15.0% / 10.6% median, 17 within 15, 22 within 25**; the fitted tier
+**21 @ 1.7%**; reconstructions **34 @ 57.9% / 34.2%**; leave-one-out **18 @
+30.1% / 19.1%**. **None of those is any single Wave 7 lane's figure**, because
+#126 and #132 move the same Treasury row in opposite directions — the lane docs
+report 14.1%, 15.9% and 15.4% respectively, each measured as if the other two had
+not landed, and each correct on its own branch.*
+
+### 9.1 SOI Table 1.1 and Table 1.2 do not report the same taxable income, and neither table says so
+
+They agree on returns and on AGI, exactly. They disagree on **taxable income by
+$319.2B (2.7%)**, concentrated below $50,000, because Table 1.1's column is
+measured on **taxable returns** ($11,625.3B) and Table 1.2's on **all returns**
+($11,944.4B). A reader checking two columns would conclude they are
+interchangeable, and switching tables wholesale would have moved both Option 46
+rows by ~3.5% before a single threshold changed. PR #127 therefore takes only the
+**composition** from Table 1.2 and keeps Table 1.1's levels, which makes a split
+at a uniform threshold reproduce the pooled score to the cent — the lane's own
+control. The test asserts the $319.2B gap so the next reader inherits the finding
+rather than the trap.
+
+### 9.2 A cancelled error looks like a fit until you remove one of its terms
+
+`cbo_opt46_agi_surtax_2pp_100k` read **16.1%**, the healthiest of the four rows
+the filing-status split touched, and it was **two errors cancelling a third**.
+Adding the per-status floors alone takes it to 37.4%; an AGI base, which is what
+CBO's own option text specifies, to 21.6%; a base grown at CBO's own nominal GDP
+rather than frozen at tax year 2023 to **1.0%**. The 1pp row runs 44.7% → 49.8%
+→ 29.4% → **9.1%** through the same three steps. This is the third time the
+repository has found the pattern — after the Fiscal Responsibility Act's
+spend-out (Wave 1) and the Treasury capital-gains row's 0.2% (Wave 4) — and the
+rule it implies is now explicit: **a mechanism that is necessary is not therefore
+sufficient, and a row that improves when you add one term may have been carrying
+two.** The remaining two terms move rows with no filing-status boundary, so each
+is its own lane with its own pre-registration.
+
+### 9.3 The dispersion hypothesis was testable, was tested, and was wrong
+
+Wave 4 diagnosed the $1M → $5M exclusion step — $82.2B of model death channel
+against $33.4B between Treasury's two published rows — as the **five-class
+decedent ladder having no within-group dispersion**. PR #132 replaced the ladder
+with a fitted piecewise-Pareto size distribution and **the step got bigger, to
+$85.02B**. The direction is not an accident: `max(0, gain − E)` is convex in the
+gain, so a mean-preserving spread *raises* the taxable excess at every exclusion
+level — **a sharper schedule makes an exclusion cost more, not less.** What does
+move it is the **decedent headcount**, and the module already carried the
+measurement: `estate_flow_rate` is Poterba & Weisbenner's *dollar* flow of
+estates over net worth (0.3195%/yr) used as a *headcount* rate, giving 408,532
+decedents against roughly 3.09 million NCHS deaths, while
+`accrued_gains_parameters.csv` carries an unused, independently derived
+`mortality_weighted_net_worth_share` of **2.65%** from NCHS mortality against DFA
+net worth by age. Holding gains at death fixed and varying only the count, about
+**twice** the shipped figure reproduces Treasury's own step to within two
+billion. Two cautions for whoever takes it: the count is short by **1.6x at the
+top** (4,378 implied decedents above $12.92M against SOI's 7,194 estate-tax
+returns) where it is short by 7.6x overall, so a uniform scaling would overshoot
+the top; and **$33.4B was never the right comparator**, since Treasury's two rows
+sit on different windows and the model's own death channel is 0.714x as large on
+FY2022–2031 as on FY2025–2034 for the $1M design.
+
+### 9.4 A window is not a vintage, and the offset was measured wrong for two waves
+
+`treasury_capgains_39_plus_stepup_elim` carried a note saying "about 17 of the
+row's 43 points" are the window, quoting $405.6B. **It is 28.7 of 43.3.** The old
+figure discounted the **rate channel only** — `359.02 x 0.844354 + 102.45 =
+405.6`, which `scripts/window_offset_capgains.py` reproduces to the dollar — and
+missed both that the death channel grows with the same 5.80% net-worth CAGR and
+that it does **not** grow proportionally: a uniform discount gives $86.5B where a
+re-score gives $65.8B, because a fixed nominal per-donor exclusion is a step
+function whose bite moves faster than the stock it is subtracted from. **The
+window offset and the ladder finding are the same defect seen twice.** And the
+blocker both FY2022 rows' notes named was never the binding one: neither reads a
+baseline **level** (`CapitalGainsPolicy.estimate_static_revenue_effect` opens
+with `_ = baseline_revenue`), so what they needed was a **window**, not a
+**vintage** — a distinction that cost this repository two waves of believing the
+question was blocked on data it does not have.
+`CBOScore.scoring_window_first_year` now expresses it, `.v2` rows carry it under
+the manifest's supersede rule, and the same mechanism would take
+`iija_2021_discretionary` **18.2% → 0.3%**, which is published rather than taken
+so that the choice is a visible one.
+
+### 9.5 The stale text that is still in the tree
+
+`fiscal_model/validation/core.py`'s `_KNOWN_LIMITATIONS_BY_POLICY_ID` still
+carries the superseded "about 17 of the row's 43 points" and "$405.6B" on
+`treasury_capgains_39_plus_stepup_elim`, and the record's own `notes` still say
+the row "necessarily receives the same prediction" as `biden_capital_gains_39`
+"being the same policy shape" — which stopped being true in Wave 4, when the two
+rows were given their documents' different per-donor exclusions. Both are `.py`
+edits belonging to the capital-gains lane, not to a docs pass; they are on the
+carry-over list in `planning/MODELING_IMPROVEMENT.md` §6.2.
 
 ---
 
