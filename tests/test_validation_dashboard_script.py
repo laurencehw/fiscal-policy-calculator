@@ -383,3 +383,118 @@ def test_dashboard_json_includes_the_loo_surface(dashboard_module, capsys, monke
         dashboard_module.DEFAULT_MAX_LOO_MEAN_ERROR
     )
     assert "leave_one_out" in payload["gates"]
+
+
+# ── The calibrated tiers ───────────────────────────────────────────────────
+#
+# ``planning/lanes/SWEEP_offset_sign.md`` §7.5: this whole report came back
+# byte-identical across PR #119, a change that moved the fitted tier
+# 1.7% -> 1.8% and the reconstruction tier 57.6% -> 57.4%, because the
+# dashboard printed Tier 1 and leave-one-out and nothing in between. These
+# tests pin the block that closes that, and pin it to ``cold_holdout.py``'s own
+# numbers so the two reports cannot drift apart.
+
+
+def test_calibrated_tiers_match_cold_holdout(dashboard_module):
+    """The dashboard must not compute its own answer for either tier."""
+    from scripts.cold_holdout import build_report
+
+    tiers = dashboard_module.collect_calibrated_tiers()
+    report = build_report()
+
+    assert tiers["fitted"] == report["calibrated_reference"]["summary"]
+    assert tiers["reconstruction"] == report["uncalibrated_reconstruction"]["summary"]
+
+
+def test_held_in_place_puts_back_only_the_revised_fitted_rows(dashboard_module):
+    """Held in place is the fitted tier plus the rows a revision moved out.
+
+    Not plus every ``revised_target_entries`` row: most of them are sectoral
+    benchmarks the runners never declared fitted, so folding those in would
+    report a tier that never existed.
+    """
+    from fiscal_model.validation import cached_default_scorecard
+
+    tiers = dashboard_module.collect_calibrated_tiers()
+    summary = cached_default_scorecard()
+
+    put_back = set(tiers["revised_from_fitted_tier"])
+    assert put_back, "expected at least one revised row that had been fitted"
+    assert len(put_back) <= tiers["revised_target_entries"]
+    assert tiers["fitted_held_in_place"]["n"] == tiers["fitted"]["n"] + len(put_back)
+
+    by_id = {e.policy_id: e for e in summary.entries}
+    for policy_id in put_back:
+        entry = by_id[policy_id]
+        assert entry.target_revision_id is not None
+        assert entry.declared_calibrated_to_target is True
+        assert entry.calibrated_to_target is False
+
+
+def test_reconstruction_sub_populations_partition_the_tier(dashboard_module):
+    """The tier is several populations and is never quoted as one number."""
+    tiers = dashboard_module.collect_calibrated_tiers()
+    subs = tiers["reconstruction_sub_populations"]
+    assert len(subs) > 1
+    assert sum(agg["n"] for agg in subs.values()) == tiers["reconstruction"]["n"]
+
+
+def test_provenance_counts_come_from_the_scorecard_summary(dashboard_module):
+    from fiscal_model.validation import cached_default_scorecard
+
+    tiers = dashboard_module.collect_calibrated_tiers()
+    summary = cached_default_scorecard()
+
+    assert tiers["provenance_breakdown"] == dict(summary.provenance_breakdown)
+    assert tiers["published_entries"] == summary.published_entries
+    assert tiers["transcribed_entries"] == summary.transcribed_entries
+    assert tiers["line_item_differs_entries"] == summary.line_item_differs_entries
+    assert tiers["model_estimate_entries"] == summary.model_estimate_entries
+    assert tiers["revised_target_entries"] == summary.revised_target_entries
+    assert sum(summary.provenance_breakdown.values()) == summary.total_entries
+
+
+def test_print_calibrated_tiers_prints_every_reading(dashboard_module, capsys):
+    tiers = dashboard_module.collect_calibrated_tiers()
+    dashboard_module.print_calibrated_tiers(tiers)
+    out = capsys.readouterr().out
+
+    assert "Calibrated tiers" in out
+    assert f"n={tiers['fitted']['n']}" in out
+    assert f"mean {tiers['fitted']['mean_abs_error']}%" in out
+    assert f"n={tiers['fitted_held_in_place']['n']}" in out
+    assert f"mean {tiers['reconstruction']['mean_abs_error']}%" in out
+    assert f"revised targets:     {tiers['revised_target_entries']}" in out
+    assert "Reconstruction sub-populations" in out
+    for category in tiers["reconstruction_sub_populations"]:
+        assert category in out
+    for label, count in tiers["provenance_breakdown"].items():
+        assert f"{label} {count}" in out
+    assert f"{tiers['published_entries']}/{tiers['total_entries']}" in out
+
+
+def test_print_calibrated_tiers_survives_an_unavailable_scorecard(
+    dashboard_module, capsys
+):
+    """Informational blocks report their own failure; they never raise."""
+    dashboard_module.print_calibrated_tiers({"error": "scorecard exploded"})
+    out = capsys.readouterr().out
+    assert "[ERROR]" in out
+    assert "scorecard exploded" in out
+
+
+def test_dashboard_json_includes_the_calibrated_tiers(
+    dashboard_module, capsys, monkeypatch
+):
+    monkeypatch.setattr(sys, "argv", ["run_validation_dashboard.py", "--json"])
+    assert dashboard_module.main() == 0
+    payload = json.loads(capsys.readouterr().out)
+
+    tiers = payload["calibrated_tiers"]
+    assert tiers["fitted"]["n"] > 0
+    assert tiers["reconstruction"]["n"] > 0
+    assert "fitted_held_in_place" in tiers
+    assert "reconstruction_sub_populations" in tiers
+    assert "provenance_breakdown" in tiers
+    # Informational: it gates nothing.
+    assert "calibrated_tiers" not in payload["gates"]

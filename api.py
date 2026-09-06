@@ -422,6 +422,11 @@ class ScorecardEntryModel(BaseModel):
     # False once a target has been revised: the constant is fitted to the
     # superseded figure, never to the replacement.
     calibrated_to_target: bool = True
+    # What the runner declared, before a revision was applied. The two differ
+    # on exactly the rows a target revision moved out of the fitted tier, which
+    # is what lets a client reconstruct the "held in place" reading without
+    # also folding in the sectoral rows that were never fitted.
+    declared_calibrated_to_target: bool = True
     # Set when this benchmark's target has been *moved* to a published figure
     # through fiscal_model/validation/target_revisions.py. The three fields say
     # which ledger row is in force, what the target used to be, and why it was

@@ -393,6 +393,160 @@ def print_out_of_sample_tier() -> None:
         print("  [OK] Every out-of-sample case has a matching pre-registration row.")
 
 
+# --- The calibrated tiers -------------------------------------------------
+# Informational, like the out-of-sample block above: this changes no gate and
+# no exit code.
+#
+# It exists because the dashboard could not see them. `SWEEP_offset_sign.md`
+# §7.5 records this whole report coming back **byte-identical** across PR #119,
+# a change that moved the fitted tier 1.7% -> 1.8%, the reconstruction tier
+# 57.6% -> 57.4%, and reclassified two rows out of the fitted set - because the
+# dashboard printed Tier 1 and leave-one-out and nothing about the 55 calibrated
+# rows in between. A report that cannot distinguish a change to two-thirds of
+# the benchmark population is not evidence that nothing moved.
+#
+# Every number below is **read** from ``cold_holdout.py``'s ``build_report()``
+# and from the scorecard summary, never recomputed from model output. Only the
+# grouping - held-in-place, and the reconstruction tier's sub-populations - is
+# done here, and it is grouping of rows those objects already carry.
+
+
+def collect_calibrated_tiers() -> dict[str, Any]:
+    """The two calibrated tiers, their composition, and the provenance counts."""
+    try:
+        from fiscal_model.validation import cached_default_scorecard
+        from fiscal_model.validation.scorecard import GENERIC_CATEGORY
+        from scripts.cold_holdout import build_report
+    except Exception as exc:  # pragma: no cover - best-effort diagnostic
+        return {"error": f"calibrated tiers unavailable: {exc}"}
+
+    try:
+        report = build_report()
+        summary = cached_default_scorecard()
+    except Exception as exc:  # pragma: no cover - best-effort diagnostic
+        return {"error": f"calibrated tiers unavailable: {exc}"}
+
+    specialized = [e for e in summary.entries if e.category != GENERIC_CATEGORY]
+    fitted = [e for e in specialized if e.calibrated_to_target]
+    # A row the ledger revised left the fitted tier mechanically, because the
+    # constant reproduces the *superseded* figure. Held in place is that tier
+    # with those rows put back - and only those: a sectoral row the runner
+    # never declared fitted was not in the tier to be moved out of it.
+    revised_from_fitted = [
+        e
+        for e in specialized
+        if e.target_revision_id and e.declared_calibrated_to_target
+    ]
+    reconstruction = [e for e in specialized if not e.calibrated_to_target]
+
+    def _agg(entries: list[Any]) -> dict[str, Any]:
+        errs = sorted(e.abs_percent_difference for e in entries)
+        if not errs:
+            return {"n": 0, "mean_abs_error": 0.0, "median_abs_error": 0.0,
+                    "within_15pct": 0, "within_25pct": 0}
+        mid = len(errs) // 2
+        median = errs[mid] if len(errs) % 2 else (errs[mid - 1] + errs[mid]) / 2
+        return {
+            "n": len(errs),
+            "mean_abs_error": round(sum(errs) / len(errs), 1),
+            "median_abs_error": round(median, 1),
+            "within_15pct": sum(1 for e in errs if e <= 15.0),
+            "within_25pct": sum(1 for e in errs if e <= 25.0),
+        }
+
+    sub_populations: dict[str, dict[str, Any]] = {}
+    for category in sorted({e.category for e in reconstruction}):
+        sub_populations[category] = _agg(
+            [e for e in reconstruction if e.category == category]
+        )
+
+    return {
+        # Straight from build_report(), so the dashboard and cold_holdout.py
+        # cannot disagree about the two headline tiers.
+        "fitted": report["calibrated_reference"]["summary"],
+        "reconstruction": report["uncalibrated_reconstruction"]["summary"],
+        "fitted_held_in_place": _agg(fitted + revised_from_fitted),
+        "revised_target_entries": summary.revised_target_entries,
+        "revised_from_fitted_tier": sorted(
+            e.policy_id for e in revised_from_fitted
+        ),
+        "reconstruction_sub_populations": sub_populations,
+        "provenance_breakdown": dict(summary.provenance_breakdown),
+        "calibrated_provenance_breakdown": dict(
+            summary.calibrated_provenance_breakdown
+        ),
+        "published_entries": summary.published_entries,
+        "model_estimate_entries": summary.model_estimate_entries,
+        "transcribed_entries": summary.transcribed_entries,
+        "line_item_differs_entries": summary.line_item_differs_entries,
+        "total_entries": summary.total_entries,
+    }
+
+
+def print_calibrated_tiers(tiers: dict[str, Any]) -> None:
+    """Print the fitted and unfitted calibrated tiers. Never changes a gate."""
+    print_banner("Calibrated tiers (low error expected by construction)")
+    if "error" in tiers:
+        print(f"  [ERROR] {tiers['error']}")
+        return
+
+    fitted = tiers["fitted"]
+    held = tiers["fitted_held_in_place"]
+    recon = tiers["reconstruction"]
+
+    print(
+        f"  fitted:              n={fitted['n']:<3} mean {fitted['mean_abs_error']}% | "
+        f"median {fitted['median_abs_error']}% | "
+        f"within 15%: {fitted['within_15pct']}/{fitted['n']}"
+    )
+    print(
+        f"  ... held in place:   n={held['n']:<3} mean {held['mean_abs_error']}% | "
+        f"median {held['median_abs_error']}% | "
+        f"within 15%: {held['within_15pct']}/{held['n']}"
+    )
+    print(
+        f"  reconstructions:     n={recon['n']:<3} mean {recon['mean_abs_error']}% | "
+        f"median {recon['median_abs_error']}% | "
+        f"within 15%: {recon['within_15pct']}/{recon['n']}"
+    )
+    print(f"  revised targets:     {tiers['revised_target_entries']}")
+    print(
+        "  Fitted rows reproduce their own targets by construction, so their mean "
+        "is not\n  accuracy. A revised target leaves the fitted tier because the "
+        "constant is fitted\n  to the figure that was superseded; 'held in place' "
+        "puts back only those rows,\n  never a row the runner declared unfitted "
+        "in the first place."
+    )
+
+    subs = tiers["reconstruction_sub_populations"]
+    if subs:
+        print()
+        print("  Reconstruction sub-populations (never quote the tier as one number):")
+        print(f"    {'Category':<16} {'n':>3} {'mean':>8} {'median':>8} {'w/in 15':>8}")
+        print(f"    {'-' * 16} {'-' * 3} {'-' * 8} {'-' * 8} {'-' * 8}")
+        for category, agg in sorted(
+            subs.items(), key=lambda kv: (-kv[1]["n"], kv[0])
+        ):
+            print(
+                f"    {category:<16} {agg['n']:>3} "
+                f"{agg['mean_abs_error']:>7.1f}% {agg['median_abs_error']:>7.1f}% "
+                f"{agg['within_15pct']:>4}/{agg['n']:<3}"
+            )
+
+    prov = tiers["provenance_breakdown"]
+    print()
+    print(
+        "  provenance (both tiers): "
+        + " | ".join(f"{label} {count}" for label, count in sorted(prov.items()))
+    )
+    print(
+        f"  published targets:   {tiers['published_entries']}/{tiers['total_entries']}"
+        f" | transcribed {tiers['transcribed_entries']}"
+        f" | line_item_differs {tiers['line_item_differs_entries']}"
+        f" | model_estimate {tiers['model_estimate_entries']}"
+    )
+
+
 def calibration_gate_ok(calibration: dict[str, Any]) -> bool:
     """Silent equivalent of print_calibration for JSON/reporting paths."""
     return not calibration_gate_issues(calibration)
@@ -712,6 +866,10 @@ def main() -> int:
                 ),
             },
             "distributional_benchmarks": benchmarks_json,
+            # Informational, like the human report's block: gates none of the
+            # exit codes below, and read from build_report() and the scorecard
+            # summary rather than recomputed.
+            "calibrated_tiers": collect_calibrated_tiers(),
         }
         loo_suite = collect_loo()
         payload["leave_one_out"] = (
@@ -755,6 +913,7 @@ def main() -> int:
     calibration_ok = print_calibration(calibration)
     benchmarks_ok = print_benchmarks()
     print_out_of_sample_tier()
+    print_calibrated_tiers(collect_calibrated_tiers())
     loo_suite = collect_loo()
     loo_ok = print_loo(loo_suite, args.max_loo_mean_error)
 
