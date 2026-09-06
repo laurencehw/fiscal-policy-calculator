@@ -19,7 +19,7 @@ from typing import Any
 
 import numpy as np
 
-from fiscal_model.ui.charts import apply_base_layout, horizontal_legend, theme_figure
+from fiscal_model.ui.charts import apply_base_layout, theme_figure
 
 # ---------------------------------------------------------------------------
 # Confidence disclaimer

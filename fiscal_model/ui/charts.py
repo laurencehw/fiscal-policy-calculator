@@ -114,6 +114,23 @@ _UNSET: Any = object()
 # ---------------------------------------------------------------------------
 
 
+def _script_run_context() -> Any:
+    """The active Streamlit script run, or ``None``.
+
+    Checked first so that reading session state outside a script run — every
+    unit test and script that touches a chart — neither raises nor logs
+    Streamlit's "missing ScriptRunContext" warning on every call.
+    """
+    try:
+        from streamlit.runtime.scriptrunner_utils.script_run_context import (
+            get_script_run_ctx,
+        )
+
+        return get_script_run_ctx(suppress_warning=True)
+    except Exception:  # pragma: no cover — Streamlit internals moved
+        return None
+
+
 def is_dark_mode() -> bool:
     """Return whether the current page is being rendered in dark mode.
 
@@ -125,14 +142,7 @@ def is_dark_mode() -> bool:
     Returns ``False`` outside a script run (unit tests, scripts, imports),
     which is the safe default: light mode is the untouched path.
     """
-    try:
-        from streamlit.runtime.scriptrunner_utils.script_run_context import (
-            get_script_run_ctx,
-        )
-
-        if get_script_run_ctx(suppress_warning=True) is None:
-            return False
-    except Exception:  # pragma: no cover — Streamlit internals moved
+    if _script_run_context() is None:
         return False
 
     try:
