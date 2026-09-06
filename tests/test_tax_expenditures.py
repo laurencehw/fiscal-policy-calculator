@@ -174,8 +174,17 @@ def test_behavioral_offset_signs_follow_the_reform_not_the_module():
 
 
 def test_estimate_expenditure_revenue_returns_consistent_totals():
-    policy = create_cap_employer_health_exclusion()
-    estimate = estimate_expenditure_revenue(policy)
+    """The helper is revenue-signed, so the offset comes off with a minus.
+
+    The engine works in deficit space — ``deficit = -revenue + behavioural`` —
+    and this dict does not, so adding the offset to the static effect here is
+    the *opposite* of what the engine does with the same number. The assertion
+    used to be ``+``, which agreed with the engine for neither the module's old
+    magnify convention nor its new per-reform one. Both directions are checked
+    below, because a tautology on one policy would pass either way.
+    """
+    magnifying = create_cap_employer_health_exclusion()
+    estimate = estimate_expenditure_revenue(magnifying)
 
     assert set(estimate) == {
         "annual_static",
@@ -184,8 +193,18 @@ def test_estimate_expenditure_revenue_returns_consistent_totals():
         "net_effect",
     }
     assert estimate["net_effect"] == pytest.approx(
-        estimate["ten_year_static"] + estimate["behavioral_offset"]
+        estimate["ten_year_static"] - estimate["behavioral_offset"]
     )
+    # A cap on the exclusion raises revenue, and CBO's two behavioural channels
+    # raise more of it, so the net exceeds the static effect.
+    assert estimate["net_effect"] > estimate["ten_year_static"] > 0
+
+    eroding = estimate_expenditure_revenue(create_eliminate_mortgage_deduction())
+    assert eroding["net_effect"] == pytest.approx(
+        eroding["ten_year_static"] - eroding["behavioral_offset"]
+    )
+    # Repeal raises revenue, and portfolio adjustment leaks part of it away.
+    assert 0 < eroding["net_effect"] < eroding["ten_year_static"]
 
 
 def test_get_all_expenditure_estimates_contains_major_categories():

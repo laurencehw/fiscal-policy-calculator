@@ -401,7 +401,7 @@ Median (19.1%) and within-15% (8/18) are unchanged, because 14.0% is still
 inside the band. The leakage guard is untouched and `eliminate_step_up` is still
 excluded by it with the same message.
 
-### 9.3 Five findings
+### 9.3 Six findings
 
 **1 — The convention was right more often than item 8 assumed, and the row it
 was wrong about is one no scorekeeper has scored.** Item 8 measured the
@@ -479,6 +479,26 @@ ceiling at a 37% marginal rate implies something nearer 18%. Employer health's
 All five are named in `BEHAVIORAL_ELASTICITIES`'s own comment now and all five
 are carry-overs.
 
+**6 — A sixth defect, found by asking who reads the offset downstream, and it
+is not in the module's scoring path at all.**
+`estimate_expenditure_revenue()` — a public helper the package exports —
+aggregates in **revenue** space and returned `net_effect = ten_year_static +
+ten_year_behavioral`, where the offset it is adding is the engine's
+**deficit**-space quantity. So it disagreed with the engine *before* this lane
+(the module magnified in deficit space while the helper eroded in revenue
+space) and would have disagreed in the opposite direction after it. The fix is
+a minus, and it changes **no scored number**: `cold_holdout.py --json` is
+byte-identical across it on all 81 rows, because nothing shipped reads the
+helper — no preset, no scorecard row, no API surface, only the package's
+`__all__` and one test. That is exactly why it survived: the contract is
+checked at `estimate_behavioral_offset` and again at the engine, and this
+function sits between them where neither looks. The test that covered it
+asserted `net_effect == static + offset`, a **tautology** that would have
+passed under either sign; it now checks the arithmetic *and* the direction, on
+one magnifying policy and one eroding one. The generalisable lesson is PR
+#119's own, one level out: a sign contract enforced at the two ends of a
+pipeline says nothing about the middle of it.
+
 **One slip in the pre-registration, and it is arithmetic.** §2 says the zeroed
 `behavioral_elasticity` every calibrated factory passes is dead code "on five of
 the eight". It is **six of the eight**: five expenditure *types* are listed in
@@ -504,7 +524,7 @@ rather than counting. Nothing downstream turned on the count.
 
 | command | result |
 |---|---|
-| `python -m pytest tests/ -q` | **3,528 passed, 7 skipped** (`a251b32`: 3,518 passed, 7 skipped — the lane adds 10 tests) |
+| `python -m pytest tests/ -q` | **3,537 passed, 7 skipped** (`a251b32`: 3,518 passed, 7 skipped — the lane adds 19, counted by `--collect-only` on the two changed files: 110 → 129) |
 | `python scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 21` | **exit 0** (15.2%, 22/26 — the gate is not approached) |
 | `python scripts/run_loo.py --donor-matrix --max-mean-error 75` | **exit 0** (30.1%) |
 | `python scripts/run_validation_dashboard.py` | **exit 1**, as on `a251b32`; the diff is **two lines**, both the Expenditures LOO figure |
@@ -530,6 +550,11 @@ Python 3.12 would answer.
   three finding 3 shows were fitted to a static path rather than to a score.
 - Did not ship a Decision 6 caption, because no shipped number moved. If a
   future lane re-fits those three constants, it will owe one.
+- Went **one step outside** §6's plan, and says so here rather than in a
+  footnote: `estimate_expenditure_revenue()`'s aggregation sign (finding 6).
+  It is the same contract in the same file, it moves no scored number, and
+  leaving it would have meant shipping a helper that contradicts the engine in
+  the *opposite* direction from the one it contradicted it in before.
 - Did not build W4's findings 2, 4 and 5 (the health-spending-account base, the
   payroll leg of Option 56, the plan-switching channel). All still open.
 - Did not touch the shared docs. `docs/VALIDATION.md`'s Option 56 paragraph

@@ -985,7 +985,24 @@ TAX_EXPENDITURE_VALIDATION_SCENARIOS = {
 
 
 def estimate_expenditure_revenue(policy: TaxExpenditurePolicy) -> dict:
-    """Estimate total revenue effect of a tax expenditure policy."""
+    """Estimate the total **revenue** effect of a tax expenditure policy.
+
+    Every figure here is revenue-signed, which is the one thing about this
+    helper worth stating: the engine works in **deficit** space, where
+    ``deficit = -revenue + behavioural`` and a same-signed offset therefore
+    erodes. In revenue space the same erosion is a **subtraction**, so
+    ``net_effect = ten_year_static - ten_year_behavioral`` and a magnifying
+    reform (whose offset is opposite-signed) adds through the same minus.
+
+    That sign was ``+`` until lane W7, and it disagreed with the engine both
+    before and after the module's direction was fixed — in opposite directions.
+    Nothing shipped reads this helper (no preset, no scorecard row, no API
+    surface), which is why the disagreement survived; the offset-sign contract
+    is checked at ``estimate_behavioral_offset`` and at the engine, and this
+    function sat between them unswept. See
+    ``planning/lanes/W7_expenditure_offset_convention.md`` section 9.3
+    finding 6.
+    """
     annual_static = policy.estimate_static_revenue_effect(0)
     behavioral = policy.estimate_behavioral_offset(annual_static)
     growth_rate = policy.get_expenditure_data().get("growth_rate", 0.03)
@@ -1001,7 +1018,9 @@ def estimate_expenditure_revenue(policy: TaxExpenditurePolicy) -> dict:
         "annual_static": annual_static,
         "ten_year_static": ten_year_static,
         "behavioral_offset": ten_year_behavioral,
-        "net_effect": ten_year_static + ten_year_behavioral,
+        # Minus, because this dict is revenue-signed and the offset is the
+        # engine's deficit-space quantity. See the docstring.
+        "net_effect": ten_year_static - ten_year_behavioral,
     }
 
 
