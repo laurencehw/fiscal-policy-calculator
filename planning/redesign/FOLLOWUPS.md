@@ -98,19 +98,31 @@ validation-documentation half of that review landed separately in
     what a fresh container pays), 1,901 modules → 586. No page renders
     differently. Pinned by `tests/test_cold_start_ordering.py`, which fails on
     the pre-change file.
-  - **The real cost is the footer.** `render_page_footer` → `render_footer` →
-    `validated_policy_count()` computes the **entire 81-row validation
-    scorecard** to print one clause. **5.79s idle standalone; 8.68s of the
-    landing page's 9.38s first script run (93%)**, and 11.14s of the scored
-    `/explore` run. It is `lru_cache`d process-wide, so exactly one visitor per
-    container pays it — the first one, which is the cold-start visitor. Not
-    fixed here: the call site is in `fiscal_model/ui/**`, which this lane was
-    scoped out of while five modelling lanes were live. Handed over with the
-    numbers and two candidate fixes in the memo §3 — defer it behind the
-    `allow_compute=False` path that already exists, or make the scorecard fast
-    (~93,000 pandas `iterrows` under the Wave 2 L1 capital-gains path, a
-    green-tier question and the better fix). Two docstrings understate it by
-    2–100× and should be corrected with whichever lands.
+  - **The real cost was the footer — fixed.** `render_page_footer` →
+    `render_footer` → `validated_policy_count()` computed the **entire 81-row
+    validation scorecard** to print one clause: 5.79s idle standalone, and on
+    the measuring lane's own tree 8.68s of the landing page's 9.38s first
+    script run (93%). `perf/footer-scorecard` closed it on a third option
+    neither candidate in memo §3 offered — the count is a **generated
+    artifact** (`scripts/build_validation_headline.py` →
+    `fiscal_model/data_files/validation/headline_counts.json`), read with
+    stdlib `json` and pinned by `tests/test_validation_headline.py`, which
+    recomputes the scorecard and fails if the two disagree. Measured before and
+    after on one tree under one load, medians of 3 cold processes:
+    **the landing page's first script run went 8.404s → 0.668s (−92%)**, with
+    the scorecard's share of it 7.652s → **0.000s**. The clause prints the same
+    number it always did (75 of 81 rows) and prints it on the *first* run,
+    which deferring would not have done. A cheap registry count was considered
+    and cannot be made exact — `published_entries` counts rows the runners
+    actually returned, so it over-reports by however many benchmarks are
+    currently failing to score. Both understated docstrings are corrected
+    (`scorecard.py` "~50ms" → ~5.8s; `ui/helpers.py` "~2.5s" → the three-source
+    lookup). **Carry-over:** the *scored* route is unchanged at ~10.6s, because
+    its scorecard call is a different caller — `preset_validation._scorecard_index`
+    for the per-preset accuracy badge, 6.555s of it, which needs each row's
+    figures rather than a count. Making the scorecard itself fast (~93,000
+    pandas `iterrows` under the Wave 2 L1 capital-gains path) is still the
+    better fix, is still green-tier, and is what closes that half. Memo §5.
 
   **Still open — the Cloud-sleep half, and no app-side work touches it.**
   Community Cloud apps sleep after **12 hours** without traffic and do **not**

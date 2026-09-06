@@ -50,13 +50,24 @@ class TestValidatedPolicyCount:
     ) -> None:
         """The fallback used to be a hard-coded 25, which claimed validation
         coverage at precisely the moment the thing that measures it failed.
-        Callers drop the clause at 0 instead."""
+        Callers drop the clause at 0 instead.
+
+        Both sources have to fail now. The pinned artifact
+        (``fiscal_model/data_files/validation/headline_counts.json``) is not an
+        invented number — ``tests/test_validation_headline.py`` recomputes the
+        scorecard and fails if it drifts — so a broken *scorecard* alone leaves
+        the clause standing, correctly.
+        """
         import fiscal_model.validation.scorecard as scorecard_mod
+        from fiscal_model.ui import validation_headline as vh
 
         def _boom():
             raise RuntimeError("scorecard unavailable")
 
         monkeypatch.setattr(scorecard_mod, "cached_default_scorecard", _boom)
+        assert validated_policy_count() == vh.pinned_published_entries()
+
+        monkeypatch.setattr(vh, "pinned_published_entries", lambda: None)
         assert validated_policy_count() == 0
 
     def test_ui_clauses_drop_the_count_when_it_is_zero(self, monkeypatch) -> None:

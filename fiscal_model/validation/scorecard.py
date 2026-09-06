@@ -453,11 +453,17 @@ def scorecard_to_dict(summary: ScorecardSummary) -> dict:
 def cached_default_scorecard() -> ScorecardSummary:
     """Memoized default scorecard.
 
-    The full scorecard takes ~50ms because it runs every specialized
-    validator (TCJA, Corporate, Credits, Estate, Payroll, AMT, PTC,
-    CapitalGains, Expenditures) plus the generic fallback. The result
-    is static for the lifetime of the process — the underlying CBO
-    score database, validation runners, and engine all live in code.
+    The full scorecard takes **~5.8s on an idle cold process**, because it
+    runs every specialized validator (TCJA, Corporate, Credits, Estate,
+    Payroll, AMT, PTC, CapitalGains, Expenditures) plus the generic fallback
+    over all 81 rows. This docstring said "~50ms" until 2026-09-06; that was
+    true when written and stopped being true at the Wave 2 L1 capital-gains
+    rebuild, whose ``get_brackets_above_threshold`` / ``realization_hazard`` /
+    ``lock_in_wedge`` path runs pandas ``iterrows`` some 93,000 times across
+    the scorecard (``planning/memos/COLD_START.md`` §1.1). Treat it as seconds
+    when deciding where to call it from. The result is static for the lifetime
+    of the process — the underlying CBO score database, validation runners,
+    and engine all live in code.
 
     Streamlit reruns every tab body on every interaction (clicks,
     sidebar widget changes), and the API endpoint is publicly reachable,

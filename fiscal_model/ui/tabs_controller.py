@@ -52,6 +52,16 @@ def _footer_validation_clause() -> str:
 
     Returns an empty string at a zero count, so the footer simply loses the
     clause rather than showing an empty one.
+
+    This clause is on the **critical path of every first script run** — the
+    footer is rendered by ``components.chrome.render_page_footer`` on every
+    page, and a Streamlit script run must finish before the page is
+    interactive. It used to compute the whole 81-row validation scorecard to
+    get its number: 7.65s of the landing page's 8.40s first run
+    (``planning/memos/COLD_START.md`` §3). ``validated_policy_count`` now reads
+    a pinned artifact instead, and the number is unchanged — see
+    ``fiscal_model/ui/validation_headline.py`` for why that is still an exact
+    count of this tree and not a hand-typed one.
     """
     n = validated_policy_count()
     if not n:
