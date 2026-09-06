@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import os
 import re
+import sys
 from typing import Any
 
 import numpy as np
@@ -40,6 +41,34 @@ def unescape_markdown_dollars(text: str) -> str:
     return _ESCAPED_MARKDOWN_CHAR_RE.sub(r"\1", text)
 
 
+#: Import path of the scorecard module, probed in ``sys.modules`` rather than
+#: imported. Importing it is itself ~1.6s on a cold process
+#: (``planning/memos/COLD_START.md`` §1.1), and a cache inside a module nobody
+#: has imported is empty by construction, so the import can only ever cost.
+_SCORECARD_MODULE = "fiscal_model.validation.scorecard"
+
+
+def _live_published_entries() -> int | None:
+    """``published_entries`` from an *already computed* scorecard, else ``None``.
+
+    Free when it answers: the scorecard is memoized process-wide, so this is a
+    dict lookup and an attribute read. It answers ``None`` — never a number —
+    whenever the scorecard has not been computed in this process, because the
+    only way to get one would be to compute it.
+    """
+    module = sys.modules.get(_SCORECARD_MODULE)
+    if module is None:
+        return None
+    try:
+        cached = module.cached_default_scorecard
+        cache_info = getattr(cached, "cache_info", None)
+        if cache_info is None or cache_info().currsize == 0:
+            return None
+        return int(cached().published_entries)
+    except Exception:
+        return None
+
+
 def validated_policy_count(*, allow_compute: bool = True) -> int:
     """Count of benchmark entries scored against a *published* figure.
 
@@ -53,24 +82,60 @@ def validated_policy_count(*, allow_compute: bool = True) -> int:
     counting those inside a sentence ending "validated against CBO/JCT"
     would make a claim about exactly the rows that have no CBO/JCT number.
 
-    Returns **0** when the scorecard cannot be computed, and callers must drop
-    the whole clause rather than print a zero. The fallback used to be a
-    hard-coded 25, which asserted validation coverage at precisely the moment
-    the thing that measures it had failed.
+    Three sources, in order, and the first two are free:
 
-    ``allow_compute=False`` answers only from the memo: computing the scorecard
-    runs every specialized validator and takes ~2.5s on a cold process. That is
-    fine at the foot of a page that has already painted, and not fine on the
-    critical path of the very first script run — see ``app._render_head_metadata``,
-    which wants the number for a ``<meta>`` tag nobody is waiting to read.
+    1. **A scorecard already computed in this process** — the Validation tab,
+       the preset evidence badge or the API endpoint got there first. Exact by
+       definition, so it wins whenever it is available.
+    2. **The pinned artifact** (:mod:`fiscal_model.ui.validation_headline`),
+       generated from the scorecard by ``scripts/build_validation_headline.py``
+       and gated by ``tests/test_validation_headline.py``, which recomputes the
+       scorecard and fails if the two disagree. This is the path the first
+       script run takes, and it is a stdlib JSON read of five keys.
+    3. **Computing the scorecard**, only when the artifact cannot be read *and*
+       ``allow_compute`` is set. This is the old behaviour and it is expensive:
+       every specialized validator over all 81 rows, **5.8s on an idle cold
+       process** and 7.65s of the landing page's 8.40s first script run before
+       the artifact existed (``planning/memos/COLD_START.md`` §3, §5). The
+       docstring here used to say ~2.5s; that predated the Wave 2 L1
+       capital-gains rebuild.
+
+    Returns **0** only when all three fail, and callers must drop the whole
+    clause rather than print a zero. The fallback used to be a hard-coded 25,
+    which asserted validation coverage at precisely the moment the thing that
+    measures it had failed — and that is also why the artifact is generated
+    rather than typed: a pinned number is a *measurement of this tree*, a typed
+    one is a claim about nothing.
+
+    ``allow_compute=False`` means "never pay for the answer": sources 1 and 2
+    only. ``app._render_head_metadata`` uses it for a ``<meta>`` tag nobody is
+    waiting to read. Note that it still guards the call with its own
+    ``sys.modules`` check and so does not ask at all on the first run — not
+    because the answer would cost anything now, but because *reaching this
+    module* executes ``fiscal_model/__init__`` (~1.1s, every policy module plus
+    scipy and matplotlib) before the first pixel. That guard is
+    ``tests/test_cold_start_ordering.py``'s invariant and belongs to PR #129,
+    not to this one.
     """
+    live = _live_published_entries()
+    if live is not None:
+        return live
+
+    try:
+        from fiscal_model.ui.validation_headline import pinned_published_entries
+
+        pinned = pinned_published_entries()
+    except Exception:
+        pinned = None
+    if pinned is not None:
+        return pinned
+
+    if not allow_compute:
+        return 0
+
     try:
         from fiscal_model.validation.scorecard import cached_default_scorecard
 
-        if not allow_compute:
-            cache_info = getattr(cached_default_scorecard, "cache_info", None)
-            if cache_info is None or cache_info().currsize == 0:
-                return 0
         return int(cached_default_scorecard().published_entries)
     except Exception:
         return 0
