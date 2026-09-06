@@ -82,6 +82,22 @@ different numbers. To make one, open a result surface with `?classroom=1`
 (`/classroom` links there) and copy the **🔒 Assignment link** from Export
 Results.
 
+**Build** freezes the same way, over a *package* rather than one score:
+
+```
+/build?policies=ss-donut-250k,corporate-28pct&target=3.0&metric=pct_gdp
+      &baseline=february2026&engine=frbus_lite&spec=424a0fef5bce
+      &mode=conventional&frozen=1
+```
+
+The checklist, the deficit-target slider, the metric toggle and the search box
+render disabled with the link's package ticked; `spec=` hashes the ids, the
+target and the metric, so a hand-edited `policies=` is reported rather than
+silently scored. The exports still work — a student has to be able to hand
+something in. A `?values=<archetype>` or `?vector=` package can be frozen too,
+because selection is deterministic: the model only ever translates free text
+into values, and a link carries the values, never the text.
+
 ### Additional features
 
 - **💬 Ask assistant** — Citation-grounded Q&A about public finance and this model's outputs. Streams answers from Claude Sonnet 4.6 with tool access to the app's scoring engine, CBO baseline, validation scorecard, and 23 curated authoritative snapshots (CBO, JCT, PWBM, Yale Budget Lab, TPC, PGPF, BEA, BLS, SSA Trustees, FRED). Every substantive claim carries a `[^N]` footnote cross-referenced against the tool-call provenance; unsupported markers are auto-stripped. Hard daily cost cap ($5/day default across all visitors), per-session message cap, cool-down, and kill-switch protect the deployer's API budget. Available as a Streamlit tab, a non-streaming `POST /ask` endpoint, and an SSE `POST /ask/stream` endpoint.

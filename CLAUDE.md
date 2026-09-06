@@ -80,7 +80,7 @@ its own; that is the intended mobile fallback.
 | **Tailor** | `/tailor?type=&rate=&who=&phase=&duration=&dynamic=&run=1` | `who` is an enum (`top400k`) or a bare amount |
 | **Explore** | `/explore?preset=<stable id>&dynamic=&run=1` | |
 | **More ▾** | `/tracker`, `/methodology`, `/classroom` | |
-| **Frozen assignment link** | any `/explore` or `/tailor` URL **+** `baseline=&engine=&spec=&mode=&frozen=1` | the classroom lock (`fiscal_model/ui/frozen_links.py`): applies vintage/engine/dynamic/policy and renders those controls disabled under "🔒 Frozen for this assignment"; **refuses to score** — rather than falling back — when the URL's baseline vintage is not the one this deployment serves. `?classroom=1` on a result surface shows the control that emits one |
+| **Frozen assignment link** | any `/explore`, `/tailor` or `/build` URL **+** `baseline=&engine=&spec=&mode=&frozen=1` | the classroom lock (`fiscal_model/ui/frozen_links.py`): applies vintage/engine/dynamic/policy and renders those controls disabled under "🔒 Frozen for this assignment"; **refuses to score** — rather than falling back — when the URL's baseline vintage is not the one this deployment serves. On `/build` the pinned thing is the **package**: `policies=&target=&metric=` (or `values=`/`vector=`, freezable because the composer is deterministic) are re-applied every rerun, the checklist and the target slider render disabled, `spec=` hashes the package, and the exports keep working. `?classroom=1` on a result surface or on Build shows the control that emits one |
 
 Emitted share links also carry `baseline=<vintage>&spec=<policy hash>&mode=`.
 Every legacy URL (`?analysis=preset&preset=<emoji label>&run=1`, `/ask`,
