@@ -125,6 +125,16 @@ class ScorecardEntry:
     #: calibration regression); False for module reconstructions that have
     #: simply never been compared to the published figure.
     calibrated_to_target: bool = True
+    #: What the *runner* declared, before a target revision was applied.
+    #:
+    #: :attr:`calibrated_to_target` is this ``and not superseded``, so the two
+    #: differ on exactly the rows a revision moved out of the fitted tier - and
+    #: that difference is what makes the "held in place" reading computable.
+    #: Without it, folding every ``revised_target_entries`` row back into the
+    #: fitted tier would also fold in the sectoral rows that were **never**
+    #: fitted, which reads 37 entries at 15.5% where the honest answer is 27 at
+    #: 5.6%. A reading that wrong is worse than none.
+    declared_calibrated_to_target: bool = True
     #: Table/row reference for a transcribed benchmark, e.g.
     #: ``"Option 62, alternative 1 (report p. 73; PDF p. 79)"``.
     benchmark_table: str | None = None
@@ -217,6 +227,9 @@ class ScorecardEntry:
             calibrated_to_target=(
                 bool(params.get("calibrated_to_target", True))
                 and not superseded
+            ),
+            declared_calibrated_to_target=bool(
+                params.get("calibrated_to_target", True)
             ),
             target_revision_id=(
                 live_revision.revision_id if live_revision is not None else None

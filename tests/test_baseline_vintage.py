@@ -17,6 +17,9 @@ import numpy as np
 import pytest
 
 from fiscal_model.baseline import (
+    _CBO_JAN_2025_BASE_LEVELS,
+    _VINTAGE_CORPORATE_BASE_LEVELS,
+    CORPORATE_RECEIPTS_SOURCING,
     VINTAGE_SOURCE_DOCUMENT,
     VINTAGE_SOURCING,
     BaselineVintage,
@@ -157,3 +160,125 @@ def test_vintages_are_distinguishable():
         v: _baseline(v).generate().deficit[0] for v in BaselineVintage
     }
     assert len(set(round(d, 3) for d in deficits.values())) == len(BaselineVintage)
+
+
+# ── The corporate receipts line ────────────────────────────────────────────
+#
+# ``planning/MODELING_IMPROVEMENT.md`` §6.2 item 30: the corporate line used to
+# be a vintage-free level (18% of the latest IRS SOI individual-tax aggregate)
+# grown by a GDP-plus-1pp rule, so under ``use_real_data=True`` - the app's own
+# default - all three vintages started from $386.62B to the cent and grew at
+# 4.80-4.88%/yr against CBO's own published 1.21%. Both halves are pinned here.
+
+
+@pytest.mark.parametrize("vintage", list(BaselineVintage))
+def test_every_vintage_declares_how_its_corporate_line_was_obtained(vintage):
+    assert CORPORATE_RECEIPTS_SOURCING[vintage] in {
+        "published_path",
+        "published_base_level",
+        "vintage_estimate",
+    }
+
+
+@pytest.mark.parametrize("use_real_data", [True, False])
+def test_three_vintages_give_three_corporate_paths(use_real_data):
+    """The defect this replaces: one base level and one path for every vintage.
+
+    Both data modes, because the override that caused it lived in the real-data
+    loader and the symptom was that the two modes disagreed with each other.
+    """
+    paths = {}
+    for vintage in BaselineVintage:
+        baseline = CBOBaseline(
+            start_year=2025, use_real_data=use_real_data, vintage=vintage
+        )
+        paths[vintage] = baseline.generate().corporate_income_tax
+
+    bases = {v: round(float(p[0]), 4) for v, p in paths.items()}
+    assert len(set(bases.values())) == len(BaselineVintage), bases
+    ends = {v: round(float(p[-1]), 4) for v, p in paths.items()}
+    assert len(set(ends.values())) == len(BaselineVintage), ends
+
+
+@pytest.mark.parametrize("use_real_data", [True, False])
+def test_feb_2024_corporate_path_is_cbos_transcribed_table(use_real_data):
+    """February 2024 *is* CBO publication 59710 Table 1-1, not a growth rule.
+
+    Scored on the FY2025-2034 window the table covers, so nothing here is an
+    extrapolation. The sum is 5,093.9 against the 5,094.0 CBO prints as its own
+    total - a tenth of a billion of CBO's rounding, the artefact
+    ``tests/test_corporate_derived.py`` already documents.
+    """
+    published = [
+        494.1, 491.4, 484.1, 490.7, 500.9,
+        510.6, 518.7, 519.2, 533.4, 550.8,
+    ]
+    projection = CBOBaseline(
+        start_year=2025,
+        use_real_data=use_real_data,
+        vintage=BaselineVintage.CBO_FEB_2024,
+    ).generate()
+    assert projection.corporate_income_tax == pytest.approx(published, abs=1e-9)
+    assert float(projection.corporate_income_tax.sum()) == pytest.approx(5093.9, abs=0.05)
+
+
+def test_feb_2024_corporate_growth_is_cbos_not_the_rules():
+    """1.21%/yr over CBO's own window, not the rule's 4.88%."""
+    path = CBOBaseline(
+        start_year=2025,
+        use_real_data=True,
+        vintage=BaselineVintage.CBO_FEB_2024,
+    ).generate().corporate_income_tax
+    cagr = (float(path[-1]) / float(path[0])) ** (1 / 9) - 1
+    assert cagr == pytest.approx(0.0121, abs=0.0005)
+    # And it *falls* in FY2026 and FY2027, which no compounding rule can do.
+    assert path[1] < path[0]
+    assert path[2] < path[1]
+
+
+def test_app_window_extrapolates_the_last_year_at_the_tables_own_rate():
+    """FY2035 is outside CBO's FY2025-2034 block; the loader's rule supplies it.
+
+    The app's window is FY2026-FY2035, so this is the one year of the shipped
+    corporate line that is an extrapolation rather than a transcription.
+    """
+    path = CBOBaseline(
+        start_year=2026,
+        use_real_data=True,
+        vintage=BaselineVintage.CBO_FEB_2024,
+    ).generate().corporate_income_tax
+    assert float(path[0]) == pytest.approx(491.4)
+    assert float(path[-1]) == pytest.approx(550.8 * (550.8 / 533.4), abs=0.01)
+
+
+@pytest.mark.parametrize("vintage", list(BaselineVintage))
+def test_both_data_paths_agree_about_the_corporate_base(vintage):
+    """The real-data loader must not override the vintage's own figure.
+
+    Before this, ``use_real_data=True`` and ``False`` disagreed by 8.6% on
+    February 2026 and 35.5% on January 2025, and the mode with "real data" in
+    its name was the one with no vintage in it.
+    """
+    real = CBOBaseline(start_year=2025, use_real_data=True, vintage=vintage)
+    fallback = CBOBaseline(start_year=2025, use_real_data=False, vintage=vintage)
+    assert real.baseline_data_source == "real_data"
+    assert real.base_corporate_tax == pytest.approx(fallback.base_corporate_tax)
+    assert real.generate().corporate_income_tax == pytest.approx(
+        fallback.generate().corporate_income_tax
+    )
+
+
+def test_jan_2025_corporate_base_matches_its_own_transcribed_table():
+    """One map, and it must agree with the Table B-1 transcription beside it."""
+    assert _VINTAGE_CORPORATE_BASE_LEVELS[
+        BaselineVintage.CBO_JAN_2025
+    ] == pytest.approx(_CBO_JAN_2025_BASE_LEVELS["base_corporate_tax"])
+
+
+def test_metadata_reports_the_corporate_sourcing_grade():
+    """A report must be able to tell CBO's path from this module's estimate."""
+    for vintage, expected in CORPORATE_RECEIPTS_SOURCING.items():
+        meta = CBOBaseline(
+            start_year=2025, use_real_data=False, vintage=vintage
+        ).metadata
+        assert meta["corporate_receipts_sourcing"] == expected
