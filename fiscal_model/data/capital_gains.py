@@ -74,6 +74,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from itertools import pairwise
 from functools import cached_property
 from pathlib import Path
 from typing import Optional
@@ -628,20 +629,16 @@ class CapitalGainsBaseline:
             return cached
 
         ladder = self._ladder.set_index("group")
-        breakpoints = sorted(
-            {
-                bound
-                for rows in self._carveout_ladders.values()
-                for bound, _ in rows
-                if bound > 0
-            }
-            | {bound for bound, _ in self._agm_ladder if bound > 0}
-            | {
-                value
-                for key, value in self._parameters.items()
-                if key == "soi_estate_charitable_floor_millions_usd" and value > 0
-            }
+        published = {
+            bound
+            for rows in self._carveout_ladders.values()
+            for bound, _ in rows
+        }
+        published |= {bound for bound, _ in self._agm_ladder}
+        published.add(
+            self._parameters.get("soi_estate_charitable_floor_millions_usd", 0.0)
         )
+        breakpoints = sorted(bound for bound in published if bound > 0)
 
         slices: list[tuple[float, float, str]] = []
         for _, row in self._size_distribution.iterrows():
@@ -663,7 +660,9 @@ class CapitalGainsBaseline:
             exponent = 1.0 - 1.0 / alpha
             scale = anchor * upper ** (1.0 / alpha)
 
-            def mean_between(a: float, b: float) -> float:
+            def mean_between(
+                a: float, b: float, scale: float = scale, exponent: float = exponent
+            ) -> float:
                 return scale * (b**exponent - a**exponent) / (exponent * (b - a))
 
             if lower <= 0.0:
@@ -682,8 +681,7 @@ class CapitalGainsBaseline:
                 share = upper * (wealth / anchor) ** (-alpha)
                 if lower < share < upper:
                     edges.add(share)
-            ordered = sorted(edges)
-            for a, b in zip(ordered[:-1], ordered[1:]):
+            for a, b in pairwise(sorted(edges)):
                 slices.append((b - a, mean_between(a, b), group))
         self._slice_cache[count] = slices
         return slices
