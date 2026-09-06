@@ -46,6 +46,12 @@ W6 replaced the growth constant with CBO's own receipts path, which takes the
 derived marginal share from 0.60→1.02 across the window to a flat **0.83** —
 Treasury's neighbourhood, above JCT's 0.559, and the residual is a disagreement
 between estimators that this module cannot close.
+
+``planning/lanes/DECISION1_corporate_mode.md`` carries the decision that made
+``derived`` the app default on 2026-09-05, and the reasons not to over-read it:
+the margin is 1.31 percentage points over three benchmarks, derived wins one of
+the three, and the two it loses include the only shipped preset among them. No
+constant moved with the flip.
 """
 
 import csv
@@ -92,9 +98,13 @@ FDII_COST_BILLIONS = 20.0  # FDII deduction costs ~$20B/year
 
 #: Score the rate channel off :data:`BASELINE_TAXABLE_PROFITS_BILLIONS`, the
 #: fitted profits aggregate, with the flat ``|static| x elasticity x 0.5``
-#: offset. This is what the app has always done and what it still does.
+#: offset. This is what the app did until 2026-09-05; since the Decision 1 flip
+#: it is reachable only by passing ``mode=`` explicitly, and nothing shipped
+#: does. Kept scoreable so the comparison that decides the default can be
+#: re-run, which is the whole point of having two modes.
 CORPORATE_MODE_REPORTED = "reported"
 
+#: **What the shipped app scores since 2026-09-05.**
 #: Ignore the fitted aggregate and score the rate channel off CBO's own
 #: projected corporate receipts path, converted to a statutory base by one
 #: ratio measured on completed history (IRS SOI's credit-realized TY2022 base
@@ -107,32 +117,54 @@ CORPORATE_MODES = (CORPORATE_MODE_REPORTED, CORPORATE_MODE_DERIVED)
 
 #: What the shipped app scores. Decision 1 keeps a module on ``reported`` until
 #: its derived error beats its fitted error across the benchmarks it carries.
-#: **Here it now does, and the module has not been flipped** — see below.
+#: **Since 2026-09-05 it does, and the module has been flipped** — read the
+#: table before reading the mean.
 #:
-#: =========================  ===========  ==========  =========  ==========
-#: Benchmark                  Target       Reported    Derived    Winner
-#: =========================  ===========  ==========  =========  ==========
-#: ``biden_corporate_28``     -$1,347.0B   -3.73%      -4.04%     reported
-#: ``trump_corporate_15``     +$1,920.0B   -22.30%     -19.52%    derived
-#: **mean abs**                            **13.02%**  **11.78%** derived
-#: =========================  ===========  ==========  =========  ==========
+#: ==============================  ==========  ==========  ==========  ========
+#: Benchmark                       Target      Reported    Derived     Winner
+#: ==============================  ==========  ==========  ==========  ========
+#: ``biden_corporate_28``          -$1,347.0B  -3.73%      +4.04%      reported
+#: ``biden_corporate_28_fy2022``   -$857.8B    -62.88%     -50.69%     derived
+#: ``trump_corporate_15``          +$673.1B    +121.63%    +129.57%    reported
+#: **mean abs**                                **62.75%**  **61.43%**  derived
+#: ==============================  ==========  ==========  ==========  ========
 #:
-#: Read the second row before treating that mean as evidence:
-#: ``trump_corporate_15``'s target has provenance ``model_estimate`` — it is
-#: this model's own output, recorded as an expectation — so *neither* mode's
-#: distance from it measures anything about the world, and it is the row that
-#: decides the mean. The first row is the one with a document behind it
-#: (Treasury Green Book FY2025, report p. 239), and reported still wins it by
-#: three tenths of a percentage point.
+#: Regenerate it with ``validate_all_corporate(verbose=False, mode=...)``;
+#: ``tests/test_corporate_derived.py`` pins both means so it cannot go stale
+#: again. It was stale in all three columns for ``trump_corporate_15`` until
+#: this flip, because the 2026-09-05 provenance lane (PR #122) moved that
+#: target off this model's own +$1,920.0B and onto the published range
+#: [+$595.0B, +$673.1B], and owned every file but this one.
 #:
-#: The ranking reversed in PR #119, when signing the reported offset moved
-#: ``trump_corporate_15`` from 0.1% to 22.3%; W6's base projection then moved
-#: derived from 9.67% to 11.78% while improving the published row from 7.81% to
-#: 4.04%. Flipping the default moves two shipped presets and every Tailor
-#: corporate row and owes a Decision 6 caption, and the population it would be
-#: decided on is itself in motion — a second corporate benchmark is being
-#: re-sourced and a third registered. It is the owner's call, not a lane's.
-CORPORATE_APP_MODE = CORPORATE_MODE_REPORTED
+#: **Derived leads by 1.31 percentage points and wins one row of three.** The
+#: whole of the lead is ``biden_corporate_28_fy2022``, where derived gains
+#: 12.19 points; 7.95 of those are handed back on ``trump_corporate_15``, which
+#: is a shipped preset, and 0.31 on ``biden_corporate_28``, which is the row
+#: with the strongest document behind it. Two of the three read 50-130% in both
+#: modes, so the mean that decides the app default is dominated by rows neither
+#: mode gets near. Decision 1's rule is a tie-break, not a finding.
+#:
+#: Read rows one and two together: they are the **same reform** — 21% to 28%
+#: — scored by the same factory on the same FY2025-2034 window, because the
+#: repository carries no 2021 vintage to score the FY2022 Green Book row on its
+#: own. So the model returns *one* number for two published targets 57% apart,
+#: and no mode can win both. Derived wins the pair by sitting lower
+#: (-$1,292.62B against -$1,397.21B), not by tracking a vintage.
+#:
+#: The ranking has now reversed three times: PR #119 signed the reported offset
+#: and took reported 1.92% -> 13.02% against derived's 9.67%; PR #121 projected
+#: the derived base off CBO's own receipts path and took derived to 11.78%; PR
+#: #122 replaced ``trump_corporate_15``'s ``model_estimate`` target with a
+#: published range and registered a second published benchmark, which is what
+#: made the comparison decidable at all. See
+#: ``planning/lanes/DECISION1_corporate_mode.md``.
+#:
+#: The corporate module has **no separate scorecard-mode constant**, unlike
+#: ``amt.py``'s ``AMT_SCORECARD_MODE``: ``validation/specialized_business.py``
+#: defaults to this one, so the app default and the by-construction scorecard
+#: mode are a single switch and moved together here. Splitting them would be a
+#: new mechanism and is a carry-over, not a lane's to invent.
+CORPORATE_APP_MODE = CORPORATE_MODE_DERIVED
 
 #: What the *uncalibrated* validation path scores.
 #: ``validation/core.py``'s ``create_policy_from_score`` pins the
@@ -487,8 +519,9 @@ class CorporateTaxPolicy(TaxPolicy):
     book_minimum_rate_change: float = 0.0  # Change in 15% rate
 
     # Scoring mode: "reported" (fitted profits aggregate, flat offset) or
-    # "derived" (SOI statutory base, published credit ratio, semi-elastic
-    # offset, IRC 6655 timing). Decision 1 keeps the app on ``reported``.
+    # "derived" (a base projected off CBO's own receipts path, the SOI/Treasury
+    # anchor ratio, a semi-elastic offset and IRC 6655 timing). Decision 1
+    # moved the app onto ``derived`` on 2026-09-05; see CORPORATE_APP_MODE.
     mode: str = CORPORATE_APP_MODE
 
     # Derived-mode behavioural parameter. Frozen at the module constant; a
