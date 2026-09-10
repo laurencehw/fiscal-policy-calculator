@@ -38,9 +38,18 @@ produces against the memo's own printed table.
 **Purity.** No Streamlit import, no module-scope validation import, no clock and
 no randomness. The only I/O is one cached read of a CSV that ships with the
 package. ``fiscal_model.validation`` is imported lazily inside
-:func:`published_range_for` and :func:`scope_verdict_for` — by the time a result
-renders, ``summarize_result`` has already imported it for the credibility band,
-so the marginal cost is the two submodules and not the package.
+:func:`published_range_for` and :func:`scope_verdict_for`, so nothing here is
+on an import path that does not ask for it.
+
+**That laziness buys nothing where this module actually sits, and the reason is
+worth writing down**: importing *any* module under ``fiscal_model.ui`` runs
+``fiscal_model/ui/__init__.py``, whose eager re-export chain pulls in the whole
+of ``fiscal_model.validation`` — 22 submodules, measured, from
+``fiscal_model.ui.styles`` as readily as from ``fiscal_model.ui.dependencies``.
+So the lazy import is a property of this file and not of its package, and it is
+kept because the file is the piece Wave C's H4 reuses. Fixing the package's
+``__init__`` is a cold-start question of its own (``planning/memos/COLD_START.md``)
+and belongs to whoever owns that file, not to a presentation lane.
 
 Wave C's H4 generalises the display side of this to other policy classes; the
 dataclasses are deliberately free of corporate knowledge, and only
@@ -135,7 +144,13 @@ class PerPointYield:
     ``per_point_billions`` is arithmetic on the printed total
     (``ten_year_billions / rate_change_pp``) and is never a figure the source
     itself prints — the CSV's own header says so, and says why it is not
-    comparable across scopes, rate levels or windows.
+    comparable across scopes, rate levels or windows. It is **computed here**
+    rather than read from the CSV's column of the same name, which is rounded
+    to three decimals: at Treasury's +7.0pp step the rounded column returns
+    -1,349.943 against a printed -1,349.941, and a display that cannot
+    reproduce its own source's figure to the dollar invites the reader to
+    wonder what else was rounded. ``published_per_point_billions`` keeps the
+    column so a test can check the two still agree.
     """
 
     estimator: str
@@ -143,7 +158,11 @@ class PerPointYield:
     scope: str
     published_10yr_billions: float
     published_step_pp: float
-    per_point_billions: float
+    published_per_point_billions: float
+
+    @property
+    def per_point_billions(self) -> float:
+        return self.published_10yr_billions / self.published_step_pp
 
     @property
     def scope_label(self) -> str:
@@ -321,7 +340,7 @@ def corporate_per_point_record() -> tuple[PerPointYield, ...]:
                 scope=row.get("scope", "").strip(),
                 published_10yr_billions=total,
                 published_step_pp=step,
-                per_point_billions=per_point,
+                published_per_point_billions=per_point,
             )
         )
     out.sort(key=lambda y: abs(y.per_point_billions))
