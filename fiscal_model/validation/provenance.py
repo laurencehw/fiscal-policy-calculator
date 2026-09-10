@@ -85,11 +85,22 @@ TRANSCRIBED_LEVELS: frozenset[str] = frozenset({LINE_ITEM, LINE_ITEM_DIFFERS})
 #: model estimate is good enough.
 NON_PUBLISHED_BENCHMARK_IDS: frozenset[str] = frozenset(
     {
+        # The only survivor. CRFB's "Extend except SALT cap" row ($5.1T,
+        # FY2026-2035) is a published single figure and is deliberately not
+        # adopted: it pairs with CRFB's own $3.9T base where this repository
+        # scores the base extension against CBO's $4.6T, so most of the
+        # resulting error would be the base gap rather than the SALT cap. See
+        # ``target_revisions.EXAMINED_NOT_REVISED["tcja_no_salt_cap"]``.
         "tcja_no_salt_cap",  # "~$1.1T added" — no published score for this variant
-        "tcja_rates_only",  # illustrative decomposition of the full extension
-        "eliminate_estate_tax",  # scenario source literally reads "Model estimate"
     }
 )
+# This set shrinks ONLY by finding a document, never by deciding a model
+# estimate is good enough. It went 4 -> 3 in PR #122 (``trump_corporate_15``,
+# superseded to a published range) and 3 -> 1 in lane H9: ``tcja_rates_only``
+# to CRS R48286 Table 1's $2,158.7B — the same table, column and window this
+# repository already reads ``extend_tcja_amt``'s $1,357.1B from — and
+# ``eliminate_estate_tax`` to Tax Foundation *Options 3.0* Option 83's
+# +$407.2B on a post-P.L. 119-21 baseline.
 
 #: The other two §5.2 entries live in ``distributional_validation.py`` and are
 #: keyed by benchmark *name*, not policy id. Listed here so the plan's "six

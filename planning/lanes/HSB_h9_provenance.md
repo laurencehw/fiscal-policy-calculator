@@ -671,10 +671,23 @@ exists.
 | `run_loo.py --donor-matrix` derivations | **identical**; six lines differ and every derived figure in them is unchanged |
 | `cold_holdout.py --json` `out_of_sample` block | **byte-identical** |
 | `target_revision_problems(entries)` | **clean** |
-| `ANTHROPIC_API_KEY= pytest tests/ -q` | see §8.9 |
+| `ANTHROPIC_API_KEY= pytest tests/ -q` | **green**, after the seven consequential updates §8.8.1 lists |
 | `ruff check` over CI's scope | **All checks passed** |
 | `check_readiness.py --strict` | only strict issue is **`runtime`** (Python 3.14), as on `main`; `documented_poor_calibrated_policy_ids` is **empty** — no fitted row is Poor |
 | `build_validation_headline.py --check` | regenerated for 75 → **77** published, then **OK** |
+
+#### 8.8.1 The seven tests the pass moved, and what each of them caught
+
+None of these is a threshold relaxed. Each is an assertion that was pinning a
+number this lane deliberately moved, and three of them found real work.
+
+| Test | What it caught | What was done |
+|---|---|---|
+| `test_api_scorecard.py::test_entry_model_carries_every_scorecard_entry_field` | **A real gap.** The lane's §8.9 claimed `api.py` need not change; this test says otherwise, by design — it pins `ScorecardEntryModel` against `ScorecardEntry` field for field precisely so a new field cannot vanish from the API silently. | `target_retired` and `target_retirement_reason` added to `ScorecardEntryModel`, `retired_target_entries` to `ScorecardResponse`. The carry-over is closed rather than recorded. |
+| `test_validation_runners.py::test_non_published_benchmarks_are_labelled_model_estimate` and `::test_headline_counts_exclude_the_illustrations` | `NON_PUBLISHED_BENCHMARK_IDS` still listed two rows a document had been found for. | The set shrinks **3 → 1**, leaving only `tcja_no_salt_cap`. It shrinks *only* by finding a document — 4 → 3 in PR #122, 3 → 1 here. |
+| `test_loo.py::test_loo_is_materially_worse_than_by_construction` | **A latent defect this lane exposed rather than caused.** The "by construction is bookkeeping" assertion averaged over cases whose targets the ledger had already revised, so `extend_tcja_amt` had been sitting inside it at 66.8% and the mean was 8.45% against a 10% bar. `ss_donut_250k`'s 89.2% took it to 14.40% and the assertion fired. | Revised rows are excluded on the same principle the test already used for CapitalGains — a constant fitted to a superseded figure is not fitted to the live one — and the bar tightens **10% → 1%**, because the honest reading is **9 cases at 0.06%**. |
+| `test_offset_sign_contract.py::test_no_other_row_left_the_fitted_tier` | The tier-size pin doing its job: five rows left the fitted tier. | Counts 21/34 → **16/39**, and the five are now **named** in the test, so "the tier shrank" can never be a diff nobody had to explain. |
+| `test_build_page.py::test_csv_header_contains_the_baseline_vintage` and `::test_totals_update_when_a_policy_is_checked` | Build's totals moving with a list price — the mechanism §8.5 describes, caught in the surface that shows it. | `-2,700` → `-1,427` in the package CSV and `$-270B/yr` → `$-143B/yr` in the scoreboard metric, each with the reason in the test. |
 
 Two rows go Poor by revision (`ss_donut_250k` 89.2%, `tcja_rates_only` 44.3%) and
 each carries a `limitations` entry saying what moved and why the constant was not
@@ -698,9 +711,6 @@ plan §5 says a miss is a finding.
   escalator, and `climate.py` carries a `carbon_tax_25` scenario at an unsourced
   −$1,000B that is **not a scorecard row**. Registering it would change the
   scorecard population, which is a bigger move than targets and verdicts.
-- **Did not touch `api.py`.** `ScorecardEntryModel` ignores extra fields, so
-  `target_retired` is invisible over `/validation/scorecard`. Nothing is retired,
-  so nothing is currently hidden; it must be wired before ④ is answered yes.
 - **Did not perform arithmetic on a published figure.** CRFB's own note that its
   tariff figures "would likely be 15 percent less over the FY 2025-2034 budget
   window" is carried, not applied.
@@ -708,19 +718,29 @@ plan §5 says a miss is a finding.
 ### 8.10 Carry-overs
 
 1. **Five labels to rename** (§8.5) — H1/H6's file, H9's finding.
-2. **`api.py` must expose `target_retired`** before a retirement lands (§8.9).
-3. **`payroll.py`'s stale duplicate and docstrings** (§8.9), and
+2. **`payroll.py`'s stale duplicate and docstrings** (§8.9), and
    `fiscal_model/ui/tabs/methodology.py` line 669, which prints
    `SS Donut Hole $250K | -$2,700B | -$2,700B | 0.0% | Trustees` — every cell of
    which is now wrong. H13 flagged it and could not reach it either.
-4. **`carbon_tax_25` and CBO Option 73** — a published anchor the climate module
+3. **`carbon_tax_25` and CBO Option 73** — a published anchor the climate module
    has and nothing scores against (§8.9).
-5. **Two more retirement candidates**, `carbon_tax_50` and `eliminate_step_up`
+4. **Two more retirement candidates**, `carbon_tax_50` and `eliminate_step_up`
    (§8.7).
-6. **`ss_donut_250k`'s shape**: CBO's annual path for the identical donut ramps
+5. **`ss_donut_250k`'s shape**: CBO's annual path for the identical donut ramps
    $122.0B (2026) → $192.0B (2034) as the taxable maximum grows toward $250,000,
    and `create_ss_donut_hole` stamps a flat annual. That is `create_repeal_ptc`'s
    defect in a second module (H13 §6.4), and it now has a published path to be
    fixed against.
-7. **The `tcja_no_salt_cap` increment**: the repository assumes ~$1.1T where CRFB
+6. **The `tcja_no_salt_cap` increment**: the repository assumes ~$1.1T where CRFB
    and CRS both say ~$1.2T (§8.4 finding 8).
+7. **`fiscal_model/ui/tabs/results_summary.py`'s payroll caption** was repaired
+   by this lane and belongs to another. H13's own drift test
+   (`test_pinned_targets_match_the_loo_suite`) went red the moment the two
+   branches met, because the caption pinned ONE figure for two quantities that
+   had always been the same number and `ss_donut_250k`'s target moving made
+   them differ; without a repair the app would have gone on calling
+   −$2,700.0B "the carried target". `_PAYROLL_FITTED_TARGETS` now pins
+   `by_construction_10yr` and `carried_target_10yr` separately and the caption
+   states the 89.2% miss. It is one dict key, one branch and one docstring, in
+   a function H3a does not touch, and it is flagged for reassignment rather
+   than claimed.

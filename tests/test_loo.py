@@ -51,6 +51,7 @@ from fiscal_model.validation.scenarios import (
     TAX_EXPENDITURE_VALIDATION_SCENARIOS_COMPARE,
 )
 from fiscal_model.validation.specialized_household import validate_payroll_policy
+from fiscal_model.validation.target_revisions import target_was_revised
 
 MODULES_WITH_THREE_PLUS = {
     "Payroll": PAYROLL_TAX_VALIDATION_SCENARIOS,
@@ -306,18 +307,31 @@ def test_loo_is_materially_worse_than_by_construction(suite):
     mean_by_construction = sum(by_construction) / len(by_construction)
     assert suite.mean_abs_percent_error > mean_by_construction
 
-    # The by-construction number measures bookkeeping only where a constant was
-    # actually fitted. Wave 2's L1 deleted the capital-gains tuples, so those
-    # three cases have nothing held out and their "by-construction" score is
-    # their out-of-sample score. Excluding them keeps this assertion measuring
-    # what it was written to measure; it removes no case from any reported
-    # error, and the LOO aggregate above still includes all 18.
+    # The by-construction number measures bookkeeping only where a constant is
+    # actually fitted TO THE FIGURE THE SUITE SCORES AGAINST. Two exclusions,
+    # both of them the repository's own concepts rather than a tolerance:
+    #
+    # * Wave 2's L1 deleted the capital-gains tuples, so those three cases have
+    #   nothing held out and their "by-construction" score IS their
+    #   out-of-sample score.
+    # * A case whose target the ledger has revised is fitted to the SUPERSEDED
+    #   figure, which is exactly what ``calibrated_to_target=False`` asserts
+    #   about it on the scorecard. `extend_tcja_amt` has sat inside this mean
+    #   at 66.8% since its target moved, and H9's `ss_donut_250k` at 89.2%
+    #   is what finally made that visible: the mean went 8.45% -> 14.40% and
+    #   the assertion caught it. Excluding revised rows measures what the
+    #   sentence above says, and it is far sharper -- 9 cases at 0.06%, not
+    #   15 at 8.45%.
+    #
+    # Neither exclusion removes a case from any reported error: the LOO
+    # aggregate above still includes all 18.
     fitted = [
         abs((c.calibrated_10yr - c.official_10yr) / c.official_10yr) * 100
         for c in included
-        if c.module != "CapitalGains"
+        if c.module != "CapitalGains" and not target_was_revised(c.case_id)
     ]
-    assert sum(fitted) / len(fitted) < 10.0
+    assert len(fitted) >= 8, [c.case_id for c in included]
+    assert sum(fitted) / len(fitted) < 1.0
 
 
 # ---------------------------------------------------------------------------
