@@ -221,3 +221,105 @@ The lane is falsified if any of these fails:
    caption contains a single "validated within X%" claim.
 
 ---
+
+## 5. Outturn (appended 2026-09-09, in the lane's last commit)
+
+### 5.1 Nothing scored moved — the three falsification runs are byte-identical
+
+`cmp` clean on all three, before against after:
+
+| run | size | result |
+|---|--:|---|
+| `python scripts/cold_holdout.py --json` | 119,989 bytes | **byte-identical** |
+| `python scripts/run_validation_dashboard.py` | 126 lines | **byte-identical** |
+| 53-preset sweep through `_build_preset_policy` → `_scorer_for` | 53 lines | **byte-identical** |
+
+`python scripts/build_validation_headline.py --check` → `OK: headline_counts.json
+matches the live scorecard (75 published of 81)`. `python scripts/check_readiness.py
+--strict` → `ready_with_warnings`, **6 pass / 4 warn / 0 fail**, exiting 2 on the
+Python 3.14 runtime warning alone, which is the local masking effect
+`SWEEP_offset_sign.md` §7.5 records. Its other three warnings (microdata
+calibration, one documented Poor revenue benchmark, two documented Poor holdout
+entries) are read off the scorecard, and the scorecard is the artefact the
+dashboard just proved unchanged. No readiness input appears in this lane's diff.
+
+### 5.2 The counts landed exactly as registered
+
+| | before | after |
+|---|--:|--:|
+| presets with a badge | 24 | **44** |
+| presets with **no** badge | 28 | **8** |
+| … with a scorecard row and no badge | 20 | **0** |
+| … with no row at all | 8 | **8** |
+| badged set == `official_score` set | no (24 of 44) | **yes (44 of 44)** |
+
+Tier composition of the 44: **20 fitted** (mean 1.3%, max 13.9%), **21 unfitted
+reconstructions** (mean 70.4%, max 701.0%), **3 out-of-sample** (mean 9.9%, max
+19.0%) — pinned by `test_the_tier_composition_is_what_the_lane_registered`.
+
+**Six shipped presets now carry a badge saying they are more than 50% from their
+published target, and five of them said nothing at all before**: International
+Reference Pricing **701.0%**, Trump Corporate 15% 121.6% (already badged), Expand
+Drug Negotiation 93.3%, Double IRS Enforcement 82.3%, AMT: Extend TCJA Relief
+66.8% (already badged), 25% Auto Tariff 52.8%.
+
+### 5.3 What was predicted, and what was not
+
+All six §3 predictions landed; none was wrong. Four things turned up that the
+pre-registration did not name:
+
+1. **`get_confidence_context` has no caller in the tree.** Plan §1.3(d) correctly
+   describes a defect on a function nothing renders (`grep`: one definition, zero
+   call sites). Rule 3 is therefore a rule about a surface that does not exist
+   yet — worth fixing so wiring it later is safe, and worth saying plainly rather
+   than reporting as a shipped improvement.
+2. **The badge caption sink was already lying, for six rows.**
+   `policy_input_tax.py` printed "calibrated to reproduce this benchmark, not an
+   independent test" for *any* badge, and six of the 24 in the map are unfitted
+   reconstructions — `extend_tcja_amt` at 66.8% and `trump_corporate_15` at 121.6%
+   among them. Widening the map without touching that sink would have shipped the
+   same false sentence for 15 more, so the one-hunk edit named in §2 was not
+   optional.
+3. **The plan's own three counts do not sum** (§1.1). The correction is in this
+   doc, and the enumeration is now pinned by a test rather than restated.
+4. **Four of the 44 rows do not score the number the app prints** (§1.3), two of
+   them for a reason no Wave A lane closes: the validation runners build their own
+   policy from the `CBOScore` record and score it on the validation window, while
+   the app scores the preset object on FY2026–2035. A badge reading "9.2% from
+   Treasury's −$246B" beside a printed −$216.5B is 3.1% adrift of its own claim.
+   Declared, measured and decomposed rather than smoothed.
+
+### 5.4 The rule that fails on this branch, and why
+
+`test_a_preset_with_no_row_may_not_print_a_dollar_figure` fails, naming exactly
+four presets:
+
+```
+[('irs-enforcement-high-income', '(-$250B'), ('drug-reform-comprehensive', '(-$600B'),
+ ('carbon-tax-25', '(-$1.0T'), ('ira-clean-energy-extend', '($400B')]
+```
+
+Those are the four label strikes the plan assigns to **H1's** PR, because both
+lanes would otherwise edit `app_data.py` and Wave A is file-disjoint. The other
+four no-row presets already carry no figure. The failure is the pre-registered
+state of §3.4 and resolves on H1's merge with no change to the test.
+
+### 5.5 Carry-overs
+
+1. **`composer._tier_for` and `results_summary._resolve_tier` still key on
+   `PRESET_TO_SCORECARD_ID` membership** and still call six unfitted
+   reconstructions "Calibrated reference". `badge_tier()` is the replacement;
+   moving those two call sites is one line in each, in files this lane does not
+   own (H1's and H13's).
+2. **`validation/credibility.py`'s `ConfidenceBand` is untouched** — "Estate:
+   n=3, 0.0%, Excellent" still appears there. That is **H4**'s lane, which
+   replaces the band itself; this lane fixed the badge's rating semantics only.
+3. **`get_confidence_context` has no caller.** Either wire it into the result
+   surface or delete it; a tier-correct string nothing renders is not a fix.
+4. **`Flat Tax Reform` at +$4,601.5B remains the largest unvalidated number in
+   the app.** Striking a label figure (H1) does not give it a row; only a
+   registered benchmark does, which is **H10**'s battery.
+5. **The app's FY2026 window against the validation runners' FY2025** is what
+   `HEADLINE_ROW_DIVERGENCE`'s two `runner_shape` entries are made of, and it is
+   a repository-wide question (PR #115 moved the app; the runners quote their own
+   documents' windows), not this lane's to decide.
