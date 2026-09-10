@@ -497,7 +497,7 @@ Three more targets were revised without having been in this table — `repeal_sa
 
 #### Revised targets — where the disagreement went
 
-**Fifteen** calibrated targets have been **corrected**, not carried — three before Wave 4 and twelve in it. Errors in this table are
+**Twenty-two** calibrated targets have been **corrected**, not carried — three before Wave 4, twelve in it, one in the corporate/PTC pass and **six in H9** (`planning/lanes/HSB_h9_provenance.md`, the pass over the eighteen calibrated targets that were not `line_item`). Errors in this table are
 **signed** — negative means the model scores below the target — where every other
 table on this page reports absolute percent error. All fifteen went through
 [`fiscal_model/validation/target_revisions.py`](../fiscal_model/validation/target_revisions.py),
@@ -505,8 +505,8 @@ the calibrated tier's mirror of `preregistered.py`'s supersede rule: entered in
 one commit and first scored in the next, so "the target moved before the model
 was allowed to see it" is checkable from `git log`. **No constant was retuned**,
 which is the whole point — a module still fitted to the superseded figure now
-reads as a miss, and that miss is the finding. Six of the fifteen rows left the
-fitted tier as a mechanical consequence.
+reads as a miss, and that miss is the finding. Eleven of the twenty-two rows left the
+fitted tier as a mechanical consequence — six before H9 and five in it.
 
 | Benchmark | Superseded | Live target | Model | Err vs live (signed) | Document |
 |---|--:|--:|--:|--:|---|
@@ -615,28 +615,62 @@ does not yet exist, or an owner decision to re-register `holdout.py`'s locked
 `revenue-scorecard-post-lock-2026-05-02` protocol — which has no
 re-registration path, so adding one would mean editing the gate itself.
 
+#### The range-target rule
+
+Four rows now carry a **published range** rather than a point — `pillar_two_adoption`
+(Wave 3), `reciprocal_tariffs` (Wave 4), `trump_corporate_15` (PR #122) and
+`eliminate_mortgage` (H9) — and each was decided ad hoc before this rule was
+written down. `CalibratedTarget.distance_to_range()` already implements the
+arithmetic; the rule is what stops the fifth re-opening the question.
+
+1. **When a range.** Two or more standing estimators scored the *same* reform on
+   the *same* window and disagree, or one body published several scenarios and no
+   single figure. Then any point the repository carries is an **editorial
+   midpoint**, and a point target would assert something no document contains.
+2. **The error is the distance to the nearest bound**, in dollars, and it is
+   `0.0` when the model's score is inside. Containment is the pass condition:
+   read `within_published_range` and `distance_to_published_range_billions`.
+3. **The percentage against the anchor is not a measurement of accuracy.** It is
+   a distance from one modeller's point. `pillar_two_adoption` reports 23.5%
+   while sitting **inside** its bounds; `reciprocal_tariffs` reports 6.9% while
+   sitting **$3.2B outside**. Neither percentage means what a percentage means on
+   a point row, and every surface that prints one must say so.
+4. **The anchor is chosen on the documents, never on the model.** A standalone
+   analysis of the one reform beats a stacked row inside a package that carries
+   interaction with the rest of it; a publisher this repository already scores
+   its neighbours against beats one it does not; a body's own model beats a
+   transcription of somebody else's that its author declines to call official.
+   Choosing the bound nearer the model is selection and is forbidden — PR #122
+   anchored `trump_corporate_15` on the **farther** bound for exactly this
+   reason, and H9's `eliminate_mortgage` landed on the nearer one from the same
+   rule. The rule is the constant; which bound it picks is not.
+5. **A range row stays `line_item_differs`**, and its `published_10yr_billions`
+   carries the bound the anchor is *not*, so the spread sits on the row rather
+   than only in the ledger. `test_a_range_revision_publishes_its_bounds_and_keeps_the_gap_visible`
+   enforces it.
+6. **A range is not a way to pass.** `trump_corporate_15` sits $818.7B outside its
+   bounds and reports 121.6%. The range did not soften that; the document did.
+
 #### Illustrations (no official score)
 
-**Six** scorecard rows have no published figure behind them at all — PR #122 took `trump_corporate_15` off this list by finding two, and the list shrinks only that way, never by deciding a model estimate is good enough. They are kept — deleting them would hide model behaviour a user can still trigger from the app — but they are **excluded from every count and every accuracy statistic**, they have their own table in the Validation tab, and the delta column there is labelled as self-comparison.
+**Four** scorecard rows have no published figure behind them at all — PR #122 took `trump_corporate_15` off this list by finding two, and H9 took `eliminate_estate_tax` and `tcja_rates_only` off it by finding one each; the list shrinks only that way, never by deciding a model estimate is good enough. They are kept — deleting them would hide model behaviour a user can still trigger from the app — but they are **excluded from every count and every accuracy statistic**, they have their own table in the Validation tab, and the delta column there is labelled as self-comparison.
 
 | Row | "Official" | Model | Δ | What the source string actually says |
 |---|--:|--:|--:|---|
-| TCJA extension, no SALT cap | $5,700B | $6,494B | +13.9% | The repository's own decomposition of the full-extension benchmark. |
-| TCJA rates only | $3,185B | $3,115B | -2.2% | An illustrative slice of the same benchmark. |
-| Eliminate estate tax | $350B | $350B | 0.0% | The source field reads "Model estimate". |
+| TCJA extension, no SALT cap | $5,700B | $6,494B | +13.9% | The repository's own decomposition of the full-extension benchmark. CRFB's "Extend except SALT cap" row ($5.1T, FY2026-2035) is a published single figure and is **not** adopted: it pairs with CRFB's own $3.9T base where this repository scores the base extension against CBO's $4.6T, so most of the resulting error would be the base gap. Both publications agree on the increment actually at issue — CRFB +$1.2T, CRS R48286's itemized-deduction row $1,244.3B — against the ~$1.1T assumed here. |
 | Expand drug negotiation | -$500B | **-$34B** | **+93.3%** | CBO scored the IRA's 20 drugs (-$237B); 50 drugs is an extrapolation, and since Wave 4 the module prices the expansion through a negotiation ladder that bites in only 6 of the 10 years, because an annual *selection cap* has nothing to raise until 2029. |
 | International reference pricing | -$100B | **-$801B** | **-701%** | A RAND price statistic, not a budget score. CBO scored H.R. 3's *narrower* cap — 120% of the average international market price on a limited set of drugs — at about $456B, so a model of capping **all** Medicare drug prices belongs above that figure, not below $200B. |
-| Carbon tax $50/ton | -$1,700B | -$1,715B | -0.9% | `climate.py` documents its behavioural factor as calibrated to yield ~$1.7T; the target restates that. |
+| Carbon tax $50/ton | -$1,700B | -$1,715B | -0.9% | `climate.py` documents its behavioural factor as calibrated to yield ~$1.7T; the target restates that. Nothing published scores $50/ton with a **5% escalator**; the two totals near the design use a **2% real** one (Treasury OTA WP-115's $2,221B over CY2019-2028 at $49/ton, and Rhodium/Columbia SIPA's $1,682-1,781B of 2016 dollars over CY2020-2029 at $50/ton). The carried figure falls inside that second range and **that is not evidence** — different window, different units, different escalator. |
 
 The other two the expansion plan names (§5.2) are distributional: `TPC_CORPORATE_RATE_INCREASE` and `TPC_CAPITAL_GAINS_INCREASE` are reasoned from an incidence assumption plus a concentration statistic, not copied from a TPC table. They now carry `is_published=False` and sit in `ILLUSTRATIVE_DISTRIBUTIONAL_BENCHMARKS`; `PUBLISHED_DISTRIBUTIONAL_BENCHMARKS` is the set anything may count. **The published distributional quintile set is 2, not 4.**
 
 #### What stayed secondhand, and why
 
-Twelve calibrated targets remain searched and not found (fifteen before Wave 4). Each carries a `searched` record naming the documents checked, so nobody repeats the work. The four that matter most:
+**Seven** calibrated targets remain searched and not found (twelve before H9, fifteen before Wave 4). Each carries a `searched` record naming the documents checked, so nobody repeats the work. The survivors are `ss_eliminate_cap`, `cap_charitable`, `cap_employer_health`, `eliminate_step_up`, `repeal_individual_amt`, `repeal_ptc` and `steel_tariff_25`, and **every one of them now carries a written verdict** in `target_revisions.EXAMINED_NOT_REVISED`. The three that matter most:
 
-- **`ss_donut_250k` (-$2.7T) and `ss_eliminate_cap` (-$3.2T)** are credited to the Social Security Trustees. OCACT *does* score both provisions (E2.5 and E2.1) — and **publishes no dollar figures for them at all**, only percent-of-taxable-payroll (+2.50% and +2.55% of payroll) and trust-fund depletion dates. The widely repeated "$2.7 trillion over 10 years" traces to a think-tank explainer with no report year and no run number. CBO's published figures for the same designs are roughly half: $1,222.6B (2018 volume) and $1,426.8B (2024 volume, Option 62). These two are set out in full in [The two OCACT payroll targets, said out loud](#the-two-ocact-payroll-targets-said-out-loud) below — provision text, run numbers, what a published ten-year dollar figure would be, and the held-out scores now printed beside the shipped ones.
-- **`repeal_ira_credits` (-$783B)** cites "CBO, budgetary effects of the energy-related tax provisions of P.L. 117-169 (upward revision)". No CBO publication matching that description was located. JCT's original score is -$205.2B (JCX-18-22, Subtitle D) and its score of the enacted terminations is $499.1B (JCX-35-25). The -$783B most likely comes from CRFB reading CBO's 2024 baseline ("closer to $800 billion" through 2033) — a projection of what the credits will *cost*, which is a different quantity from a scored repeal.
-- **`cap_employer_health` (-$450B)** is described as a "$50K cap". No agency has ever scored a dollar cap on the exclusion: every published option caps at a *percentile of premiums*, which in dollars is far below $50,000 (CBO's 2013 volume: $6,420 individual / $15,620 family). The -$450B sits inside the spread of CBO's four volumes but corresponds to no alternative in any of them.
+- **`ss_eliminate_cap` (-$3.2T)** is credited to the Social Security Trustees. **`ss_donut_250k`'s target moved in H9** — to CBO Option 62 alternative 2's **-$1,426.8B**, 47% below the figure it carried — so it is no longer on this list; the paragraph below is kept because it is the record of *why* it moved. OCACT *does* score both provisions (E2.5 and E2.1) — and **publishes no dollar figures for them at all**, only percent-of-taxable-payroll (+2.50% and +2.55% of payroll) and trust-fund depletion dates. The widely repeated "$2.7 trillion over 10 years" traces to a think-tank explainer with no report year and no run number. CBO's published figures for the same designs are roughly half: $1,222.6B (2018 volume) and $1,426.8B (2024 volume, Option 62). These two are set out in full in [The two OCACT payroll targets, said out loud](#the-two-ocact-payroll-targets-said-out-loud) below — provision text, run numbers, what a published ten-year dollar figure would be, and the held-out scores now printed beside the shipped ones.
+- **`cap_charitable` (-$200B)** is a **charitable-only 28% benefit-rate cap**, and no official score of that design exists in any volume or any year. Every official rate cap covers all itemized deductions (CBO's 2017-2026 Option 8, $171.5B) and every official charitable-only option is a floor or a cash-only rule (Option 50's $347.7B / $324.3B). The one non-official ten-year figure for the exact design — CRFB's 2013 "Impose a 28% limit on the value of the deduction | $75" over 2014-2023 — is **not adopted**, because CRFB prints beneath it that its scores "are rough estimates" "chiefly estimated from a 2011 CBO analysis based on 2006 data".
+- **`cap_employer_health` (-$450B)** is described as a "$50K cap", and H9 found what the figure most likely **is**. CBO's *Budget Options, Volume 1: Health Care* (December 2008), Option 9, p. 24, is the only published option that states the cap in dollars — "$1,440 a month for family coverage or $565 a month for individual coverage" — and JCT scores it at **$452.1B over FY2009-2018**, 0.5% away. But $1,440 a month is $17,280 a year against the $50,000 this benchmark describes, so it is the right number for a cap a third the size, a decade early: `extend_tcja_amt`'s shape, with nothing to move it to. No agency has ever scored a cap set at a chosen dollar level.
 
 Live counts: `python -c "from fiscal_model.validation import compute_scorecard; print(compute_scorecard().calibrated_provenance_breakdown)"`.
 
@@ -660,7 +694,7 @@ That last row is the finding, and it is checkable three ways. OCACT's *Detailed 
 
 **Where the dollars do come from.** The Peter G. Peterson Foundation's explainer *[Social Security Reform: Options to Raise Revenues](https://www.pgpf.org/article/social-security-reform-options-to-raise-revenues/)* (last updated 7 March 2025) writes, of the $250,000 design, "According to the Trustees' projection, that option would raise **$2.7 trillion over 10 years**" — no report year, no run number, and no window. That is the repository's figure exactly. Two things about it are worth recording. First, the same page's cap-elimination sentence reads "**$3.4 trillion** over 10 years (2026 to 2035) — or close 48 percent of the 75-year funding gap", which is neither the repository's -$3.2T nor the 2025-basis E2.1 (67%); so the explainer's numbers are keyed to an older Trustees edition it does not name. Second, both PGPF sentences describe variants that **do** credit the newly taxed earnings toward benefits ("part of benefit calculation"), where E2.1 and E2.5 explicitly do not. The -$3.2T matches nothing OCACT or PGPF prints, and its origin is still unlocated.
 
-**Published ten-year dollar scores for the same two designs do exist**, and neither is registered here. Recorded for H9, not adopted:
+**Published ten-year dollar scores for the same two designs do exist**, and when this section was written neither was registered. **H9 has since adopted the first and refused the second** — see [New in H9](#new-in-h9--the-eighteen-targets-that-were-not-line_item) below; the two bullets are kept as written because they are the record of the hand-off:
 
 - **The $250,000 donut.** CBO, *Options for Reducing the Deficit: 2025 to 2034* (pub. 60557), **Option 62 alternative 2**, "Subject earnings greater than $250,000 to payroll taxes": **$1,426.8B over FY2025-2034**, report p. 73 / PDF p. 79, already transcribed with its annual path to [`cbo_options_2025_2034_alternatives.csv`](../fiscal_model/data_files/validation/cbo_options_2025_2034_alternatives.csv). That is **47% below** the carried -$2.7T, on this repository's own window, for the identical donut. The 2018 volume's $1,222.6B is the same design a decade earlier.
 - **Cap elimination.** Tax Foundation, Alex Durante, *[Uncapping the Payroll Tax Would Be the Largest Tax Increase in Decades](https://taxfoundation.org/blog/save-social-security-payroll-tax-cap-proposal/)* (24 June 2026), scoring the Moreno-Warren proposal — "apply the payroll tax to all earnings above the cap, with no corresponding changes to benefits", which is E2.1's design: "It would raise **$3.2 trillion from 2027 through 2036 on a conventional basis** and $1.5 trillion after accounting for the negative economic effects." **This one is a trap dressed as a confirmation.** It agrees with the carried figure at the one significant figure it is stated to, on a window two years later, from an estimator this repository already names as the publisher of five other benchmark targets — and the repository's own number is a constant chosen to produce -$3.2T, so registering it would manufacture a row that reads about 0% and means nothing. It also post-dates the target by roughly a year, so it cannot be its provenance.
@@ -669,12 +703,58 @@ That last row is the finding, and it is checkable three ways. OCACT's *Detailed 
 
 **What the model does with these targets, and what it returns without them.** `payroll.py`'s `BASELINE_WAGE_DATA` states its own arithmetic in the comments — `wages_above_cap_billions = 2_581.0  # 320 / 0.124` and `wages_250k_plus_billions = 2_177.0  # 270 / 0.124` — and the two factories stamp $320B and $270B a year. The target divided by ten, divided by the statutory rate, is the base; the base times the rate, times ten, is the score. **A `secondhand` target reproduced by a constant fitted to it is bookkeeping, not evidence**, and 0.0% is the arithmetic of that, not a measurement of agreement. The honest figures are the held-out ones, and they are good ones — `run_loo.py` withholds each case's own covered-wage anchor and refits it from the other two anchors' Pareto slope:
 
-| Case | Carried target | By construction | Held out | Error |
+| Case | Carried target | By construction | Held out | Error vs by-construction |
 |---|--:|--:|--:|--:|
-| `ss_donut_250k` | -2,700.0 | -2,700.0 | **-2,664.0** | **1.3%** |
+| `ss_donut_250k` | **-1,426.8** (H9; was -2,700.0) | -2,700.0 | **-2,664.0** | **1.3%** |
 | `ss_eliminate_cap` | -3,200.0 | -3,200.0 | **-3,319.5** | **3.7%** |
 
+The donut's two columns stopped being the same number on 2026-09-09, which is why the caption on the results surface now carries both: `_PAYROLL_FITTED_TARGETS` pins `by_construction_10yr` and `carried_target_10yr` separately, and `test_pinned_targets_match_the_loo_suite` is what caught the divergence rather than letting the app go on calling -$2,700.0B "the carried target".
+
 Those two figures now print on the results surface beside the shipped number (`payroll_fitted_target_caption` in `fiscal_model/ui/tabs/results_summary.py`), pinned rather than recomputed on a page render, with a drift test in `tests/test_payroll_target_caption.py` that fails if either stops matching the suite. They are still not an independent measurement of either reform: two of the three anchors the refit reads are themselves fitted, which is also why `validation/cbo_options.py` excludes CBO Option 62 from the Tier 1 battery for **leakage** rather than for missing machinery.
+
+#### New in H9 — the eighteen targets that were not `line_item`
+
+Lane `planning/lanes/HSB_h9_provenance.md` applied `PROVENANCE_wave4.md`'s per-target judgement to the **12 `secondhand` and 6 `model_estimate`** calibrated rows — the ones a Build package inherits the provenance of, because `deficit_target.build_catalog` quotes `CBO_SCORE_MAP.official_score` as a list price rather than model output. Each ended in exactly one of four states. **Every `model_10yr_billions` in the 81-row scorecard is byte-identical and every leave-one-out derivation is unchanged**; no constant was retuned and nothing was retired.
+
+**Six revised** (five points and one range), **twelve examined-and-left** (nine new verdicts, two restated, and `biden_ctc_2021` **transcribed** without moving):
+
+| Benchmark | Was | Is | Document | Err before → after |
+|---|--:|--:|---|---|
+| `ss_donut_250k` | -$2,700.0B | **-$1,426.8B** | CBO pub. **60557**, Option 62 alternative 2, "Subject earnings greater than $250,000 to payroll taxes", report p. 73 (PDF p. 79) | 0.0% → **89.2%** |
+| `tcja_rates_only` | +$3,185.0B | **+$2,158.7B** | CRS **R48286** Table 1, "Reduced Individual Tax Rates", transcribing CBO 60114's JCT row "10%, 12%, 22%, 24%, 32%, 35%, and 37% income tax rate brackets" | 2.2% → **44.3%** |
+| `eliminate_estate_tax` | +$350.0B | **+$407.2B** | Tax Foundation, *Options for Reforming America's Tax Code 3.0* (July 2026), Option 83, printed p. 105 | 0.0% → **14.0%** |
+| `repeal_ira_credits` | -$783.0B | **-$851.0B** | William McBride, Tax Foundation testimony to the House Committee on Oversight and Government Reform, 20 May 2025 | 0.0% → **8.0%** |
+| `trump_china_60` | -$500.0B | **-$650.0B** | CRFB, *Options to Raise Tariff Revenue* (17 Dec 2024), row "60% Import Tariff on Chinese Goods", conventional | 44.3% → **57.2%** |
+| `eliminate_mortgage` | -$300.0B | **range [-$495.0B, -$367.9B]**, anchor -$367.9B | Tax Foundation *Options 3.0* Option 25 (anchor); CRS **IF13190** Table 2 "Repeal MID $495" (the other bound) | 9.9% → **26.5%** |
+
+**Five of the six make their row worse and one makes it far worse.** That is the shape a correct provenance pass has; if every revision improved its row the suspicion would be that the documents were chosen to fit.
+
+**The Social Security donut is the largest single move the ledger has made, and H13's section above is the record of why.** CBO scores the identical design — *"The second alternative would apply the 12.4 percent payroll tax to earnings over \$250,000 in addition to earnings below the maximum taxable amount under current law… the gap between the two would shrink"*, and *"The current-law taxable maximum would still be used for calculating benefits, so scheduled benefits would not change under this alternative"*, which is OCACT E2.5's "do not provide benefit credit" — at **47% below** the figure the app had been printing. The 0.0% it replaces was `payroll.py`'s own arithmetic in its own comment (`2_177.0  # 270 / 0.124`). Two wedges are stated rather than adjusted: CBO's table note says an income-and-payroll-tax offset has been applied and the module has no such channel, and footnote *a* about added benefit outlays is attached to **alternative 1 only**, so the wedge that separates `ss_cap_90_pct`'s revenue and deficit lines does not exist here.
+
+**`ss_eliminate_cap` was left, and the ledger's own arithmetic is why.** Tax Foundation's June 2026 *Uncapping the Payroll Tax* scores this design — "no corresponding changes to benefits" — at "\$3.2 trillion from 2027 through 2036 on a conventional basis". That is **-\$3,200.0B to the digit the document states**, which is exactly the carried figure, so `target_revision_problems` rejects it: *"superseded without changing the figure; a revision that restates the old target is noise."* Recording it as a **confirmation** instead would assert that a constant documented as the "window-average of Trustees \$3.2T over 10yr" had been validated by a document published eighteen months later, on a window this repository does not use, at one significant figure — the failure `repeal_individual_amt` refuses TPC T25-0049 for.
+
+**One claim this repository had been making needed narrowing.** "OCACT publishes no ten-year dollar amount for any payroll provision" is true of the *provisions* tables and false of the office: OCACT's letter on the Medicare and Social Security Fair Share Act (11 July 2023, to Sen. Whitehouse and Rep. Boyle), Table 1b.n, prints "Total 2023-2032" = **\$3,035.1B in nominal dollars** — for a **\$400,000** donut with no benefit credit and, unlike CBO, no income-tax offset. A different threshold, so a line item for neither payroll row, but the sentence is corrected in `benchmark_sources.py`.
+
+**`eliminate_mortgage` re-opened a Wave 4 verdict, because a document contradicted its premise.** That verdict rested on the two ten-year figures then known coming "from the same simulator and differ[ing] by 2.4×". Tax Foundation's July 2026 guide supplies a third from an independent general-equilibrium model, and the 2.4× resolves as a **baseline** gap: Yale's "close to \$1.2 trillion" is scored against **pre-P.L. 119-21** current law, where TCJA's larger standard deduction lapses and the itemising population roughly doubles, while CRS's \$495B and Tax Foundation's \$367.9B are both post-OBBBA. Two independent models, one baseline, **35% apart** — which is what the range rule above is for.
+
+**Counts.** Provenance across both tiers goes `line_item` 51 → **57**, `line_item_differs` 7 → **8**, `secondhand` 17 → **12**, `model_estimate` 6 → **4**; in the calibrated tier alone, 30 → **36**, 7 → **8**, 12 → **7**, 6 → **4**. Published targets **75 → 77 of 81**, transcribed **36 → 43**, `revised_target_entries` **16 → 22**. `line_item_differs` rising is permitted only with a recorded range or scope verdict, and here it is a recorded **range** verdict.
+
+**Both tiers moved and neither move is accuracy — read all five readings or none.**
+
+| | Before | After |
+|---|---|---|
+| Fitted | 21 @ **1.73%**, 21/21 within 15 | **16 @ 1.51%**, 16/16 |
+| Fitted, ledger rows held in place | 27 @ 5.6% | **27 @ 11.9%**, 22/27 |
+| *The 21 rows the fitted tier held, on the new targets* | 1.73% | **9.82%**, 18/21 |
+| Reconstructions | 34 @ **57.88%** (median 34.18), 9/34 | **39 @ 55.46%** (median 29.94), 11/39 |
+| *The same 34 rows, on the new targets* | 57.88% | **58.26%** |
+| Leave-one-out suite | 30.1% / 19.1%, 8/18 | **35.7% / 29.1%**, 6/18 |
+
+The fitted mean falls because the five rows that left it averaged **2.42%**, above the tier's own mean. The reconstruction mean falls because the five arrivals average **36.42%**; on a constant population the tier gets **worse**, 57.88% → **58.26%**, and the whole 0.38pp is `trump_china_60`. **The one reading that is not composition is the third**: the 21 rows the fitted tier held before this pass, scored on the targets it leaves behind, read **9.82%** rather than 1.73% — that is what five untraceable targets were worth to the tier's headline. Leave-one-out moved for the same reason and no other: six lines of `run_loo.py --donor-matrix` differ and every *derived* figure in them is identical, exactly as PR #107.
+
+**Retirement now exists as a state, and is applied to nothing.** `CalibratedTarget` gained `retired` / `retired_reason` — the third thing, distinct from a supersession (which has a replacement) and an examined-and-left verdict (which keeps the carried figure as a target). It is built so it cannot be used to go green: the row **keeps its scorecard entry and its model figure**, `ScorecardSummary.retired_target_entries` counts it, `check_readiness.py` lists it, and it leaves the reconstruction mean **only alongside a second reading** that folds it back at the error it carried when withdrawn. Both print on adjacent lines. The two pharma illustrations are the recommendation — retiring them would read **39 @ 55.46% → 37 @ 36.99%** with **2 @ 397.17%** retired, 18.5 points of "improvement" bought by withdrawal — and it is an open owner decision, not a lane's.
+
+**Five preset labels now quote a superseded figure and were not renamed**, because labels are `CBO_SCORE_MAP` keys owned by a different lane: `💰 SS Donut Hole $250K (-$2.7T)`, `🏠 Eliminate Estate Tax ($350B)`, `📋 Eliminate Mortgage Deduction (-$300B)`, `🏭 Trump 60% China Tariff (-$500B)`, `🌱 Repeal IRA Clean Energy Credits ($783B)`. They are declared in `tests/test_target_revisions.py::_LABELS_QUOTING_A_SUPERSEDED_FIGURE`, with a test that fails if a sixth joins. The figures themselves moved, so a Build package containing any of them now shows a different total.
 
 #### New in Phase D — P.L. 119-21 provision line items (the first sourced block)
 
