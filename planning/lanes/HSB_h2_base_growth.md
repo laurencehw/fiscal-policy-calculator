@@ -388,10 +388,243 @@ mean fall.
 
 ## 6. Outturn
 
-*(appended after implementation)*
+**Every pre-registered figure landed, and the largest miss on any of them is
+\$0.08B.** The mechanism is exactly what §1.2 describes and the prediction that
+a ten-year total is one annual times the window mean of its own index held on
+all twenty checked quantities.
+
+### 6.1 The ten Tier 1 rows, pre-registered against measured
+
+| Row | pre-registered | measured | Δ | before | after |
+|---|--:|--:|--:|--:|--:|
+| `cbo_opt46_agi_surtax_1pp_20k` | −948.6 | **−948.6** | 0.02 | +49.8% | **+34.1%** |
+| `cbo_opt46_agi_surtax_2pp_100k` | −862.5 | **−862.6** | 0.08 | +37.4% | **+17.9%** |
+| `cbo_opt45_all_rates_1pp` | −1,207.3 | **−1,207.3** | 0.03 | +22.4% | **−1.9%** |
+| `warren_ultramillionaire_surtax_3pp` | −368.2 | **−368.2** | 0.01 | +19.0% | **−5.2%** |
+| `cbo_opt45_top4_brackets_2pp` | −654.2 | **−654.2** | 0.01 | +12.4% | **−14.9%** ⚠ |
+| `biden_high_income_tax` | −290.0 | **−290.0** | 0.02 | +9.2% | **−17.9%** ⚠ |
+| `illustrative_500k_2pp` | +473.3 | **+473.2** | 0.08 | −8.9% | **+18.3%** ⚠ |
+| `illustrative_top_rate_5pp` | −841.8 | **−841.7** | 0.06 | +7.4% | **−20.2%** ⚠ |
+| `illustrative_1pp_all` | −1,195.3 | **−1,195.3** | 0.01 | +4.1% | **−24.5%** ⚠ |
+| `medicare_surcharge_2pp` | −408.6 | **−408.6** | 0.00 | −1.5% | **−31.8%** ⚠ |
+
+Six registered regressions, as §3.2 predicted — the plan named three of them.
+**No row outside these ten moved**, and none of these ten failed to move.
+
+### 6.2 The tier
+
+| | before | after |
+|---|--:|--:|
+| n | 26 | 26 |
+| mean | 15.0% | **15.6%** |
+| median | 10.6% | **14.0%** |
+| within 15% | 17 | **14** |
+| within 25% | 22 | **22** |
+| error mass | 390.7 | **405.4** |
+
+Per class, on the plan's §2 table, measured:
+
+| Class | n | mean before | mean after | median before | median after | mass before | mass after |
+|---|--:|--:|--:|--:|--:|--:|--:|
+| AGI-inclusive surtax | 6 | 20.7% | **21.2%** | 13.9% | **19.2%** | 124.0 | **127.5** |
+| ordinary rate change | 4 | 12.0% | **14.8%** | 10.8% | **16.4%** | 48.1 | **59.3** |
+| capital gains | 4 | 20.5% | 20.5% | 19.4% | 19.4% | 82.0 | 82.0 |
+| corporate | 1 | 44.5% | 44.5% | — | — | 44.5 | 44.5 |
+| enacted-law spending | 3 | 13.4% | 13.4% | 12.2% | 12.2% | 40.2 | 40.2 |
+| discretionary spending | 5 | 4.6% | 4.6% | 2.6% | 2.6% | 23.2 | 23.2 |
+| payroll | 2 | 7.8% | 7.8% | 7.8% | 7.8% | 15.6 | 15.6 |
+| tax expenditure | 1 | 13.1% | 13.1% | — | — | 13.1 | 13.1 |
+
+The eight largest rows are now `cbo_opt64_corporate_rate_1pp` **44.5%**,
+`cbo_opt46_agi_surtax_1pp_20k` **34.1%**, `biden_capital_gains_39` **32.8%**,
+`medicare_surcharge_2pp` **31.8%**, `illustrative_1pp_all` **24.5%**,
+`cbo_opt51_gains_at_death` **20.3%**, `illustrative_top_rate_5pp` **20.2%** and
+`treasury_capgains_39_plus_stepup_elim` **18.4%**. Corporate is the tail now;
+`cbo_opt46_agi_surtax_2pp_100k` left the top eight.
+
+### 6.3 Everything else held
+
+| Falsification test | result |
+|---|---|
+| 1. Ten rows on their pre-registered totals | **pass**, worst Δ \$0.08B |
+| 2. `run_loo.py --donor-matrix` byte-identical | **pass**, `diff` empty |
+| 3. Dashboard's calibrated block and twelve sub-populations identical | **pass** — the whole dashboard diff is **two lines**: the health tripwire `test_score=-8.3 → -9.1` and the Tier 1 summary |
+| 4. No preset outside the seven moves | **pass**, 45 of 52 byte-identical static **and** dynamic |
+| 5. The seven on their pre-registered totals | **pass**, all seven at exactly ×1.355952 |
+| 6. Uniform per-status thresholds byte-identical to pooled | **pass** (test) |
+| 7. A caller-supplied base does not move | **pass** (two tests) |
+| 8. CI gate `--max-mean-error 20 --min-within-25pct 21` | **exit 0** (15.6 < 20; 22 ≥ 21) |
+| 9. Anti-leakage invariant | **pass**, out-of-sample 15.6% against fitted 1.7% |
+
+The health tripwire is allowed to move for the same reason H1 recorded: its own
+comment reserves it against a *window* change, and it is the shipped default
+generic probe, which is exactly what this lane changes. Nothing asserts its
+value.
+
+Presets: the seven generic ones at **+35.60%** static apiece, every figure on
+its pre-registration to four decimals (Flat Tax Reform +4,601.4560 →
+**+6,239.3536**, Middle Class Tax Cut +1,029.4398 → **+1,395.8710**,
+Progressive Millionaire −648.0920 → **−878.7817**, Top Rate to 45% −724.3910 →
+**−982.2394**, Medicare Surcharge −314.6320 → **−426.6260**, Warren −283.4695 →
+**−384.3710**, Biden 2025 −216.4542 → **−293.5015**). Dynamic totals moved
+further, as predicted and not proportionally. Generic shapes on the app's own
+scorer: 1pp all brackets −920.2912 → **−1,247.8707**, 2pp above \$400K
+−166.5032 → **−225.7704**, 3pp above \$2M −134.6126 → **−182.5282**.
+
+### 6.4 Findings the plan did not name
+
+**1 — the plan's endpoints need a third step, and it is a different step from
+the one the plan names.** §3.1 above, established before any file was opened
+and confirmed by the outturn: 49.8% → 34.1% and 37.4% → 17.9%, not 9.1% and
+1.0%. `HIGH_STAKES_ACCURACY.md` §1.3(c) attributes W7's endpoints to "(b) and
+(c)", where (b) is *"no preset carries `agi_inclusive_base`"* — a preset flag
+that cannot move a validation row, and H1's own falsification test was that it
+did not. W7's middle step is SOI's **AGI column** in place of its
+**taxable-income** column, and W7 scoped it as "a lane of its own". Its size is
+measured here: marginal AGI over marginal taxable income is **1.3820** at
+\$20,000 and **1.3094** at \$100,000, and carrying W7's own AGI-base figures
+through this lane's index gives about **7.4%** and **2.9%** on the two rows.
+
+**2 — the tier mean rises, which fires the plan's own falsification condition,
+and the lane reports rather than evades it.** 15.03% → 15.59%. Six rows crossed
+their targets because each was under-predicting by *less* than a decade of the
+baseline's own nominal growth is worth. The plan named three of the six; the two
+it missed are `biden_high_income_tax` and `cbo_opt45_top4_brackets_2pp`. Whether
+that is a reason to hold the change is §7's owner item, not this lane's call —
+what the lane may not do is tune anything to make the mean fall, and it did not.
+
+**3 — four of the six regressions are rows whose targets are rules of thumb,
+and one of them scores the same reform as a row that improved by 20 points.**
+`illustrative_1pp_all` and `cbo_opt45_all_rates_1pp` are both "1pp on every
+ordinary bracket" and the model scores them at −\$1,195.3B and −\$1,207.3B (the
+gap is the vintage). Their targets are **−\$960.0B** and **−\$1,185.3B**, 23.5%
+apart. The first record carries no source URL and the note *"Rule of thumb: 1pp
+≈ \$85-100B/year"*; the second is CBO's own *Options* line item on the
+FY2025-2034 window being scored. The model cannot agree with both, and the
+change swaps which one it agrees with: **+4.1% → −24.5%** on the rule of thumb,
+**+22.4% → −1.9%** on the published option. `illustrative_top_rate_5pp` and
+`illustrative_500k_2pp` are also "Illustrative estimate" with no URL, and
+`warren_ultramillionaire_surtax_3pp` carries a "secondhand provenance" note and
+a bare domain. That is four of the six. It is H9's ledger to act on, not this
+lane's, but "the tier mean rose" reads differently once it is known that most of
+the movement is against figures nobody published.
+
+**4 — `medicare_surcharge_2pp`'s 1.5% was measuring a cancellation.** A row
+cannot be within 1.5% of a published figure on a base held three years stale for
+a ten-year window unless something else is over-stating by about the same
+amount. The model prices 2pp on **all** income above \$400,000 where the Green
+Book's surcharge reaches the NIIT/Medicare base, and the published row is a net
+of interactions the model does not build. The 31.8% is the honest reading of a
+model that now prices the right decade with the wrong base definition; the 1.5%
+was the two errors meeting. This is `fra_2023_discretionary_caps` and the
+Option 46 2pp row again, for the third time in the battery.
+
+**5 — the choice between CBO's wage path and nominal GDP is worth 0.35%, so the
+fork the brief posed does not decide anything.** §1.3: window means 1.30719
+against 1.31182 on the one vintage where both are transcribed. The reason to
+choose is availability and base definition, not fit — which is the answer the
+brief asked for, arrived at by measurement rather than by argument.
+
+**6 — the projection implicitly indexes the threshold, so it is a lower bound.**
+§1.4, named in advance and confirmed by the direction of the two Option 46 rows,
+which stay under. Scaling the aggregate above a fixed nominal floor by `f` is
+identical to indexing that floor by `f`; the real base of an unindexed-threshold
+reform grows faster. Carried over.
+
+**7 — three rows crossed into "Poor" without a `known_limitations` note and
+strict readiness blocks on exactly that.** `illustrative_1pp_all`,
+`illustrative_top_rate_5pp` and `medicare_surcharge_2pp`. The gate's own text
+says a documented Poor entry is a *warning* — "how a documented out-of-sample
+miss (kept, not tuned away) is recorded" — so the fix is the note, not an
+exemption and not a retune. Readiness went `not_ready` (1 fail) →
+`ready_with_warnings` (0 fail). Four rows' notes were also **stale**: two
+Option 46 and two Option 45 bullets described a base "held flat at its tax
+year", which this lane makes false.
+
+**8 — one test was pinning the defect rather than the property.**
+`test_split_policy_is_flat_across_the_window` asserted the path was flat, while
+its own docstring said what it was for: catching a silent revert to the pooled
+formula after year one. It now divides each year's factor back out and asserts
+ten identical annuals remain, which fails the same way and no longer asserts
+that a ten-year score must repeat one year's answer.
+
+### 6.5 Gates
+
+| Gate | Result |
+|---|---|
+| `ANTHROPIC_API_KEY= python -m pytest tests/ -q` | **3776 passed, 7 skipped** (3758 + this lane's 18) |
+| `ruff check fiscal_model/ tests/ app.py app_pages/ components/ classroom_app.py` (CI's own scope) | **All checks passed** |
+| `ruff check .` | 9 pre-existing `api.py` findings, **identical on `origin/main`** and outside CI's linted scope; none introduced here |
+| `scripts/check_readiness.py --strict` | `ready_with_warnings`, **6 pass / 4 warn / 0 fail** (was 1 fail before §6.4 finding 7's notes). Read past the Python 3.14 runtime warning, which fails first locally and is pre-existing |
+| `scripts/build_validation_headline.py --check` | **OK** — 75 published of 81, unchanged |
+| `scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 21` | **exit 0** |
+| `scripts/run_loo.py --donor-matrix` | **byte-identical** to the branch point |
+| `scripts/smoke_ask_assistant.py` | **3/3 PASS**, \$0.0323 |
+
+The smoke test's output, pasted rather than summarised:
+
+```
+  PASS 1. CBO baseline (forces get_cbo_baseline)  (7.6s, tools: ['get_cbo_baseline'])
+  PASS 2. Hypothetical scoring (forces score_hypothetical_policy)  (7.7s, tools: ['score_hypothetical_policy'])
+  PASS 3. Knowledge corpus (forces search_knowledge)  (5.2s, tools: ['search_knowledge'])
+Total cost across 3 call(s): $0.0323
+Session summary: 6 turn(s) · $0.0323 · 26,499 tokens · cache-hit 80%
+```
+
+Its three figures are all unmoved by this lane and that is worth stating rather
+than leaving implied: scenario 1 reads the baseline (\$29.5T cumulative deficit,
+103.8% debt/GDP — PR #130's figures, not this lane's), scenario 2 scores a
+**corporate** rate change, which routes to `CorporateTaxPolicy` and never
+reaches the generic branch, and scenario 3 is the knowledge corpus. **So the
+smoke test does not cover the path this lane changed** — the generic
+`score_hypothetical_policy` income-tax route is covered by §3.5's sweep instead,
+and adding a fourth scenario is a blue-tier carry-over rather than something to
+slip into a green-tier lane's PR.
+
+**One file outside §2 was touched and it is `scripts/smoke_ask_assistant.py`.**
+The script crashed on Windows with `UnicodeEncodeError` printing its own
+`cost ≈ $x` line — *after* the billed API call, so a paid run failed on a
+`print`. `sys.stdout`/`sys.stderr` are now reconfigured to UTF-8 with
+`errors="replace"`. No assistant behaviour changed and the file is nobody's
+lane.
+
+### 6.6 Carry-overs
+
+- **The AGI-column base** (finding 1). Sized here; W7's lane, still unopened.
+- **Real bracket creep above a fixed nominal threshold** (finding 6).
+- **Option 45's 2026 bracket revert.** Rejected by the plan, unchanged by this
+  lane, and now pointing the *opposite* way to finding 6 on the same row.
+- **The four rule-of-thumb targets** (finding 3) — H9.
+- **`medicare_surcharge_2pp`'s base definition** (finding 4): the surcharge's
+  own statutory base against "all income above \$400,000".
+- **The CI gate.** Re-derived by the workflow's rule on 15.6% / 22 the ceiling
+  is `ceil(15.6 × 1.25) = 20 →` nearest 5 `= 20` and the floor `22 − 1 = 21` —
+  the gate it already carries. Nothing to move, and moving it is not a lane's.
 
 ---
 
 ## 7. Owner items
 
-*(appended after implementation)*
+1. **Merge now, or hold for the AGI-column lane?** This lane ships a mechanism
+   that is right on its own terms — a 2023 base was answering a 2026-2035
+   question on Tailor, Ask, Build and seven presets — and it raises the tier
+   mean 15.0% → 15.6% because six rows were under-predicting by less than the
+   growth term is worth. The plan's own falsification condition fires, on a
+   premise (§3.1) that is documented-false. The repository's precedent is to
+   ship (PRs #127, #128, #131 each made rows worse by design), and the CI gate
+   passes either way. **The decision is whether the two steps should land
+   together**, since the AGI-column step moves the same rows the other way and
+   would land the two Option 46 rows near the plan's stated endpoints.
+2. **The four rule-of-thumb targets** (finding 3). `illustrative_1pp_all`,
+   `illustrative_top_rate_5pp`, `illustrative_500k_2pp` and
+   `warren_ultramillionaire_surtax_3pp` are Tier 1 rows whose targets carry no
+   document. H9 is in this wave and owns the ledger; whether these four are
+   revised, examined-and-left or retired is a target decision, and this lane
+   deliberately took none of it.
+3. **Three Tier 1 rows are now documented Poor outliers**, so strict readiness
+   reports `ready_with_warnings` rather than `ready`. That is the gate's
+   intended state for a kept out-of-sample miss, but it is a visible change in
+   the readiness verdict and is flagged rather than absorbed.
+4. **The Ask smoke test does not cover the generic income path** (§6.5). Its
+   scoring scenario is corporate. A fourth scenario would have caught this
+   lane's movement; adding one is a blue-tier change and was not made here.

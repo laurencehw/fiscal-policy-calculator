@@ -31,6 +31,18 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+# The assistant streams whatever it writes - en dashes, arrows, "approximately"
+# - and this script prints a "cost ~ $x" line of its own. On Windows the
+# console encoding is cp1252, so the first non-Latin-1 character raises
+# UnicodeEncodeError *after* the billed API call has already been made, which
+# makes a paid run fail on a print statement. Replace unencodable characters
+# instead; the transcript is for reading, not for round-tripping.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):  # pragma: no cover - non-TextIO stream
+        pass
+
 
 def _build_assistant(model: str | None = None) -> Any:
     from fiscal_model.app_data import CBO_SCORE_MAP, PRESET_POLICIES
