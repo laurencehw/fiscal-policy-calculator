@@ -689,7 +689,7 @@ exists.
 | `run_loo.py --donor-matrix` derivations | **identical**; six lines differ and every derived figure in them is unchanged |
 | `cold_holdout.py --json` `out_of_sample` block | **byte-identical** |
 | `target_revision_problems(entries)` | **clean** |
-| `ANTHROPIC_API_KEY= pytest tests/ -q` | **green**, after the seven consequential updates §8.8.1 lists |
+| `ANTHROPIC_API_KEY= pytest tests/ -q` | **3809 passed, 7 skipped**, after the seven consequential updates §8.8.1 lists |
 | `ruff check` over CI's scope | **All checks passed** |
 | `check_readiness.py --strict` | only strict issue is **`runtime`** (Python 3.14), as on `main`; `documented_poor_calibrated_policy_ids` is **empty** — no fitted row is Poor |
 | `build_validation_headline.py --check` | regenerated for 75 → **77** published, then **OK** |
