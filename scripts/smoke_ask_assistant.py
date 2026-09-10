@@ -19,6 +19,7 @@ with code 0 on success, 1 on any unexpected failure.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import os
 import sys
 import textwrap
@@ -38,10 +39,9 @@ if str(ROOT) not in sys.path:
 # makes a paid run fail on a print statement. Replace unencodable characters
 # instead; the transcript is for reading, not for round-tripping.
 for _stream in (sys.stdout, sys.stderr):
-    try:
+    # Non-TextIO streams (a captured pipe, a test double) have no reconfigure.
+    with contextlib.suppress(AttributeError, ValueError):
         _stream.reconfigure(encoding="utf-8", errors="replace")
-    except (AttributeError, ValueError):  # pragma: no cover - non-TextIO stream
-        pass
 
 
 def _build_assistant(model: str | None = None) -> Any:
