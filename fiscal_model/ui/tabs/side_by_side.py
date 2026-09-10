@@ -13,6 +13,7 @@ import numpy as np
 import plotly.graph_objects as go
 
 from fiscal_model.baseline import APP_DEFAULT_START_YEAR
+from fiscal_model.policies import ordinary_income_base_for_preset
 from fiscal_model.preset_handler import create_policy_from_preset
 from fiscal_model.ui.charts import apply_base_layout, horizontal_legend
 from fiscal_model.ui.helpers import unescape_markdown_dollars
@@ -45,7 +46,7 @@ def _build_policy(
         duration_years=max(1, int(preset.get("duration_years", 10))),
         phase_in_years=max(1, int(preset.get("phase_in_years", 1))),
         taxable_income_elasticity=float(preset.get("eti", 0.25)),
-        ordinary_income_base=not bool(preset.get("agi_inclusive_base", False)),
+        ordinary_income_base=ordinary_income_base_for_preset(preset),
     )
 
 
