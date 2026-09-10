@@ -299,3 +299,75 @@ def test_the_caption_is_silent_where_no_number_moved():
     policy = _policy(annual_revenue_change_billions=-100.0)
     result = _scorer().score_policy(policy, dynamic=False)
     assert income_base_projection_caption(policy, result) == ""
+
+
+def test_the_caption_quotes_the_conventional_score_on_a_dynamic_run():
+    """Both halves are ``static + behavioural``, never ``final``.
+
+    ``final_deficit_effect`` carries ``revenue_feedback`` on a dynamic run, and
+    feedback is a function of the deficit path's *level*: it does not scale with
+    the static projection factor. Dividing it out would reconstruct a "before"
+    figure this policy never printed, and the caption would disagree with the
+    headline above it in both halves rather than one.
+    """
+    from fiscal_model.ui.tabs.results_summary import income_base_projection_caption
+
+    scorer = _scorer(start_year=APP_DEFAULT_START_YEAR)
+    policy = _policy(start_year=APP_DEFAULT_START_YEAR)
+    dynamic = scorer.score_policy(policy, dynamic=True)
+
+    conventional = np.asarray(dynamic.static_deficit_effect, dtype=float) + np.asarray(
+        dynamic.behavioral_offset, dtype=float
+    )
+    # The premise: on a dynamic run the two paths genuinely differ, so this test
+    # can tell them apart.
+    assert not np.allclose(conventional, np.asarray(dynamic.final_deficit_effect))
+
+    caption = income_base_projection_caption(policy, dynamic)
+    assert caption
+
+    baseline = scorer.baseline
+    anchor = baseline.nominal_income_index(SOI_TAX_YEAR)
+    factors = np.array(
+        [baseline.nominal_income_index(int(year)) / anchor for year in dynamic.years]
+    )
+    assert f"{float(conventional.sum()):+,.1f}B" in caption
+    assert f"{float(np.sum(conventional / factors)):+,.1f}B" in caption
+    # And the figure the dynamic run would have produced from the final path is
+    # NOT what the caption says, which is the defect this pins.
+    final = np.asarray(dynamic.final_deficit_effect, dtype=float)
+    assert f"{float(final.sum()):+,.1f}B" not in caption
+
+
+def test_the_caption_says_the_same_thing_static_and_dynamic():
+    """The projection is a property of the base, not of the engine mode."""
+    from fiscal_model.ui.tabs.results_summary import income_base_projection_caption
+
+    scorer = _scorer(start_year=APP_DEFAULT_START_YEAR)
+    static_caption = income_base_projection_caption(
+        (p := _policy(start_year=APP_DEFAULT_START_YEAR)),
+        scorer.score_policy(p, dynamic=False),
+    )
+    dynamic_caption = income_base_projection_caption(
+        (q := _policy(start_year=APP_DEFAULT_START_YEAR)),
+        scorer.score_policy(q, dynamic=True),
+    )
+    assert static_caption == dynamic_caption != ""
+
+
+def test_the_static_caption_is_unchanged_by_the_conventional_path():
+    """On a static run the two arrays are the same, so nothing moved."""
+    from fiscal_model.ui.tabs.results_summary import income_base_projection_caption
+
+    scorer = _scorer(start_year=APP_DEFAULT_START_YEAR)
+    policy = _policy(start_year=APP_DEFAULT_START_YEAR)
+    result = scorer.score_policy(policy, dynamic=False)
+    conventional = np.asarray(result.static_deficit_effect, dtype=float) + np.asarray(
+        result.behavioral_offset, dtype=float
+    )
+    assert conventional == pytest.approx(
+        np.asarray(result.final_deficit_effect, dtype=float)
+    )
+    assert f"{float(result.total_10_year_cost):+,.1f}B" in income_base_projection_caption(
+        policy, result
+    )

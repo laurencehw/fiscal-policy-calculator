@@ -548,17 +548,61 @@ formula after year one. It now divides each year's factor back out and asserts
 ten identical annuals remain, which fails the same way and no longer asserts
 that a ten-year score must repeat one year's answer.
 
+### 6.4b The caption was wrong on dynamic runs, in both halves (review finding)
+
+Copilot's review of PR #144 caught a real defect and the lane had it in the
+**premise**, not the arithmetic. `income_base_projection_caption` read
+`result.final_deficit_effect`, which on a **dynamic** run also carries
+`revenue_feedback` — a function of the deficit path's *level*, not of the static
+base. The projection multiplies the static base and nothing else, so:
+
+- the reconstruction (`Σ path / factor`) divided a quantity the factor is not
+  linear in, and returned a "before" figure the policy never printed; **and**
+- the "now" figure was `final_deficit_effect` while the **headline directly
+  above it** is the conventional score, so the caption disagreed with the
+  number it was explaining.
+
+The second half is the worse one and neither the lane nor its tests caught it,
+because every caption test ran `dynamic=False`, where the two arrays are equal
+to the cent. Measured on two shipped presets:
+
+| Preset (dynamic) | headline above | caption's "now" | caption's "before" | correct "before" |
+|---|--:|--:|--:|--:|
+| Warren Ultra-Millionaire Surtax | −384.37 | −118.91 | −96.42 | **−283.47** |
+| Flat Tax Reform | +6,239.35 | +5,036.39 | +3,714.19 | **+4,601.46** |
+
+So on Warren's dynamic run the caption's own headline figure was **$265.5B out,
+69.1%**. Both halves now read `static_deficit_effect + behavioral_offset`. On a
+static run that array **is** `final_deficit_effect`, so **no static figure moved
+and no scorecard row moved** — the fix is invisible to §6.1–§6.3 and its own
+test asserts that.
+
+Three tests were added and the load-bearing one asserts its own premise first
+(that the two paths genuinely differ on a dynamic run) before asserting the
+caption quotes the conventional pair, and separately that the *final*-path
+figure does **not** appear in the caption. A fourth property falls out and is
+pinned: the caption now reads **identically static and dynamic**, which is
+correct — the projection is a property of the base, not of the engine mode.
+
+The general lesson is the one worth carrying: **a caption that explains a
+headline must be computed from the same quantity as that headline**, and a
+caption tested only on the default engine mode is untested on the other one.
+The corrected "before" is also a free cross-check on the wave — Warren's
+−$283.47B is exactly H1's post-base-rule figure, so the two captions chain
+−134.6 → −283.5 → −384.4.
+
 ### 6.5 Gates
 
 | Gate | Result |
 |---|---|
-| `ANTHROPIC_API_KEY= python -m pytest tests/ -q` | **3776 passed, 7 skipped** (3758 + this lane's 18) |
+| `ANTHROPIC_API_KEY= python -m pytest tests/ -q` | **3779 passed, 7 skipped** (3758 + this lane's 21) |
 | `ruff check fiscal_model/ tests/ app.py app_pages/ components/ classroom_app.py` (CI's own scope) | **All checks passed** |
 | `ruff check .` | 9 pre-existing `api.py` findings, **identical on `origin/main`** and outside CI's linted scope; none introduced here |
 | `scripts/check_readiness.py --strict` | `ready_with_warnings`, **6 pass / 4 warn / 0 fail** (was 1 fail before §6.4 finding 7's notes). Read past the Python 3.14 runtime warning, which fails first locally and is pre-existing |
 | `scripts/build_validation_headline.py --check` | **OK** — 75 published of 81, unchanged |
 | `scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 21` | **exit 0** |
 | `scripts/run_loo.py --donor-matrix` | **byte-identical** to the branch point |
+| `cold_holdout.py --json`, re-run after §6.4b's caption fix | **every numeric and structural field identical** to this lane's own outturn; the only diff is the `known_limitations` prose §6.4 finding 7 added, and no row's `model_10yr_billions` moved |
 | `scripts/smoke_ask_assistant.py` | **3/3 PASS**, \$0.0323 |
 
 The smoke test's output, pasted rather than summarised:

@@ -931,6 +931,16 @@ def income_base_projection_caption(policy: Any, result: Any) -> str:
     reconstructs exactly what this policy used to print. Returns ``""`` for
     every policy whose base did not come from SOI, and for a baseline carrying
     no GDP path.
+
+    **Both figures are the conventional score**, ``static_deficit_effect +
+    behavioral_offset``, not ``final_deficit_effect``. On a static run the two
+    are the same array. On a **dynamic** run ``final_deficit_effect`` also
+    carries ``revenue_feedback``, which is a function of the deficit path's
+    *level* and does not scale with the static projection factor — so dividing
+    it out would reconstruct a "before" figure this policy never printed, and
+    the caption would disagree with the headline above it in both halves. The
+    projection multiplies the static base and nothing else, so the conventional
+    path is the quantity it is linear in.
     """
     if not isinstance(policy, TaxPolicy) or isinstance(policy, CapitalGainsPolicy):
         return ""
@@ -950,7 +960,12 @@ def income_base_projection_caption(policy: Any, result: Any) -> str:
     if anchor <= 0:
         return ""
 
-    path = np.asarray(result.final_deficit_effect, dtype=float)
+    # The conventional path, for the reason in the docstring: it is the one the
+    # projection is linear in, and on a static run it is final_deficit_effect
+    # to the cent.
+    path = np.asarray(result.static_deficit_effect, dtype=float) + np.asarray(
+        result.behavioral_offset, dtype=float
+    )
     factors = np.array([float(index(int(year))) / anchor for year in years])
     if not np.all(factors > 0) or np.allclose(factors, 1.0):
         return ""
