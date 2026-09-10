@@ -11,6 +11,9 @@ Lane doc: ``planning/lanes/HSA_h13_payroll_targets.md``.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
+import numpy as np
 import pytest
 
 from fiscal_model.payroll import (
@@ -21,29 +24,46 @@ from fiscal_model.payroll import (
     create_ss_eliminate_cap,
 )
 from fiscal_model.policies import PolicyType
+from fiscal_model.scoring import FiscalPolicyScorer
 from fiscal_model.ui.tabs.results_summary import (
     _PAYROLL_FITTED_TARGETS,
     payroll_fitted_target_caption,
 )
 from fiscal_model.validation.loo import run_payroll_loo
 
+
+def _result_for(policy):
+    """Score ``policy`` the way the app does, so the caption sees a real run."""
+    return FiscalPolicyScorer().score_policy(policy, dynamic=False)
+
+
+def _stub_result(ten_year: float):
+    """A result whose static + behavioural sums to ``ten_year``."""
+    return SimpleNamespace(
+        static_deficit_effect=np.array([ten_year / 10.0] * 10),
+        behavioral_offset=np.zeros(10),
+    )
+
+
+@pytest.fixture(scope="module")
+def loo_cases():
+    return {case.case_id: case for case in run_payroll_loo().cases}
+
+
 # ---------------------------------------------------------------------------
 # The drift test — the reason a pinned constant is allowed at all
 # ---------------------------------------------------------------------------
 
 
-def test_pinned_held_out_figures_match_the_loo_suite():
+def test_pinned_held_out_figures_match_the_loo_suite(loo_cases):
     """Every pinned ``held_out_10yr`` equals what ``run_payroll_loo`` returns.
 
     The caption reads two module-level constants rather than re-scoring three
     benchmarks on a page render (PR #129's footer defect, PR #135's fix). That
     is only safe while this test holds.
     """
-    report = run_payroll_loo()
-    by_case = {case.case_id: case for case in report.cases}
-
     for case_id, entry in _PAYROLL_FITTED_TARGETS.items():
-        case = by_case.get(case_id)
+        case = loo_cases.get(case_id)
         assert case is not None, f"{case_id} is no longer in the payroll LOO suite"
         assert case.included, f"{case_id} is no longer cross-validatable"
         assert case.loo_10yr == pytest.approx(entry["held_out_10yr"], abs=0.05), (
@@ -52,30 +72,20 @@ def test_pinned_held_out_figures_match_the_loo_suite():
         )
 
 
-def test_pinned_targets_match_the_loo_suite():
+def test_pinned_targets_match_the_loo_suite(loo_cases):
     """The carried target each caption quotes is the one the suite scores."""
-    report = run_payroll_loo()
-    by_case = {case.case_id: case for case in report.cases}
-
     for case_id, entry in _PAYROLL_FITTED_TARGETS.items():
-        assert by_case[case_id].official_10yr == pytest.approx(entry["target_10yr"], abs=0.05)
+        assert loo_cases[case_id].official_10yr == pytest.approx(entry["target_10yr"], abs=0.05)
 
 
-def test_pinned_by_construction_score_is_the_target():
-    """The claim "reproduced to the cent" is checked, not asserted.
-
-    If a future lane ever makes either module path stop reproducing its target,
-    the caption's first sentence becomes false and this test says so.
-    """
-    report = run_payroll_loo()
-    by_case = {case.case_id: case for case in report.cases}
-
+def test_by_construction_score_is_the_target(loo_cases):
+    """The claim "reproduced to the cent" is checked, not asserted."""
     for case_id, entry in _PAYROLL_FITTED_TARGETS.items():
-        assert by_case[case_id].calibrated_10yr == pytest.approx(entry["target_10yr"], abs=0.05)
+        assert loo_cases[case_id].calibrated_10yr == pytest.approx(entry["target_10yr"], abs=0.05)
 
 
 # ---------------------------------------------------------------------------
-# When the caption fires
+# When the caption fires — on a real scored run, not a stub
 # ---------------------------------------------------------------------------
 
 
@@ -87,7 +97,8 @@ def test_pinned_by_construction_score_is_the_target():
     ],
 )
 def test_caption_fires_on_the_two_shipped_presets(factory, provision, target):
-    caption = payroll_fitted_target_caption(factory(), object())
+    policy = factory()
+    caption = payroll_fitted_target_caption(policy, _result_for(policy))
     assert caption
     assert provision in caption
     assert f"{target:+,.1f}B" in caption
@@ -96,7 +107,8 @@ def test_caption_fires_on_the_two_shipped_presets(factory, provision, target):
 
 
 def test_eliminate_cap_caption_quotes_its_held_out_figure():
-    caption = payroll_fitted_target_caption(create_ss_eliminate_cap(), object())
+    policy = create_ss_eliminate_cap()
+    caption = payroll_fitted_target_caption(policy, _result_for(policy))
     assert "-3,319.5B" in caption
     assert "3.7% away" in caption
     assert "2.55% of taxable payroll" in caption
@@ -104,7 +116,8 @@ def test_eliminate_cap_caption_quotes_its_held_out_figure():
 
 
 def test_donut_caption_quotes_its_held_out_figure():
-    caption = payroll_fitted_target_caption(create_ss_donut_hole(), object())
+    policy = create_ss_donut_hole()
+    caption = payroll_fitted_target_caption(policy, _result_for(policy))
     assert "-2,664.0B" in caption
     assert "1.3% away" in caption
     assert "2.50% of taxable payroll" in caption
@@ -114,26 +127,46 @@ def test_donut_caption_quotes_its_held_out_figure():
     assert "1,426.8B" in caption
 
 
+def test_every_dollar_sign_is_escaped():
+    """An unescaped ``$`` in a ``st.caption`` renders as a KaTeX math span."""
+    for factory in (create_ss_eliminate_cap, create_ss_donut_hole):
+        policy = factory()
+        caption = payroll_fitted_target_caption(policy, _result_for(policy))
+        for index, char in enumerate(caption):
+            if char == "$":
+                assert index and caption[index - 1] == "\\", caption[
+                    max(0, index - 40) : index + 10
+                ]
+
+
 # ---------------------------------------------------------------------------
 # When it must not fire — the caption asserts something that must be true
 # ---------------------------------------------------------------------------
 
 
+def test_no_caption_when_the_score_is_not_the_target():
+    """A run that stops reproducing the target silences the caption."""
+    policy = create_ss_eliminate_cap()
+    assert payroll_fitted_target_caption(policy, _stub_result(-3_000.0)) == ""
+
+
 def test_no_caption_for_a_different_donut_threshold():
     """A $400K donut does not print a carried target, so it gets no caption."""
-    assert payroll_fitted_target_caption(create_ss_donut_hole(400_000), object()) == ""
+    policy = create_ss_donut_hole(400_000)
+    assert payroll_fitted_target_caption(policy, _result_for(policy)) == ""
 
 
 def test_no_caption_for_the_other_payroll_benchmarks():
     for factory in (create_ss_cap_90_percent, create_expand_niit):
-        assert payroll_fitted_target_caption(factory(), object()) == ""
+        policy = factory()
+        assert payroll_fitted_target_caption(policy, _result_for(policy)) == ""
 
 
 def test_no_caption_when_the_annual_is_not_the_fitted_one():
     """Same design, a different annual — the target is no longer reproduced."""
     policy = create_ss_eliminate_cap()
     policy.annual_revenue_change_billions = 300.0
-    assert payroll_fitted_target_caption(policy, object()) == ""
+    assert payroll_fitted_target_caption(policy, _stub_result(-3_000.0)) == ""
 
 
 def test_no_caption_when_the_annual_is_unset():
@@ -143,7 +176,7 @@ def test_no_caption_when_the_annual_is_unset():
         policy_type=PolicyType.PAYROLL_TAX,
         ss_eliminate_cap=True,
     )
-    assert payroll_fitted_target_caption(policy, object()) == ""
+    assert payroll_fitted_target_caption(policy, _stub_result(-3_200.0)) == ""
 
 
 def test_no_caption_for_a_non_payroll_policy():
@@ -156,7 +189,7 @@ def test_no_caption_for_a_non_payroll_policy():
         rate_change=0.01,
         affected_income_threshold=400_000,
     )
-    assert payroll_fitted_target_caption(policy, object()) == ""
+    assert payroll_fitted_target_caption(policy, _stub_result(-3_200.0)) == ""
 
 
 # ---------------------------------------------------------------------------

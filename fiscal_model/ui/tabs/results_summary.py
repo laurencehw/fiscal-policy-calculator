@@ -888,6 +888,11 @@ def behavioural_sign_caption(policy: Any, result: Any) -> str:
     )
 
 
+#: How close the scored ten-year figure must sit to the carried target before
+#: the caption is willing to say it reproduces it. Both presets score the target
+#: exactly today; this is a guard, not a rounding allowance.
+_PAYROLL_TARGET_TOLERANCE_BILLIONS = 0.05
+
 #: The two shipped Social Security presets whose ten-year figure reproduces its
 #: carried target to the cent, keyed by scorecard id.
 #:
@@ -982,6 +987,11 @@ def payroll_fitted_target_caption(policy: Any, result: Any) -> str:
     and it is a good one: held out, −$2,664.0B and −$3,319.5B. Printing it beside
     the shipped number is the whole point of this caption.
 
+    The claim "reproduced to the cent" is **checked against this run** before it
+    is printed: the caption asserts something about the number above it, so a
+    score that stops equalling its target silences the caption rather than
+    letting it lie. ``result`` is read for exactly that.
+
     Returns ``""`` for every payroll policy that is not one of those two.
     """
     entry = _payroll_fitted_entry(policy)
@@ -989,6 +999,12 @@ def payroll_fitted_target_caption(policy: Any, result: Any) -> str:
         return ""
 
     target = float(entry["target_10yr"])
+    scored = float(np.sum(result.static_deficit_effect)) + float(
+        np.sum(result.behavioral_offset)
+    )
+    if abs(scored - target) > _PAYROLL_TARGET_TOLERANCE_BILLIONS:
+        return ""
+
     held_out = float(entry["held_out_10yr"])
     gap_pct = abs(held_out - target) / abs(target) * 100.0
 
