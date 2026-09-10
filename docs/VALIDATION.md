@@ -2,13 +2,13 @@
 
 > **Fiscal Policy Calculator — Comparison to Official CBO/JCT Estimates**
 >
-> Last Updated: September 2, 2026 (post-Wave-2: PRs #93 estate distribution, #94 tax-expenditure cap units, #95 capital-gains base/elasticity/lock-in/gains-at-death)
+> Last Updated: September 10, 2026 (post-H9: the provenance pass over the eighteen calibrated targets that were not `line_item` — six revised, twelve examined-and-left, one transcribed, none retired)
 
 ---
 
 ## Executive Summary
 
-The model is benchmarked against **75 published estimates** — from CBO, JCT, Treasury and SSA, plus TPC, PWBM, the Tax Foundation and CRFB where no agency scored the policy — plus 6 *illustrations* with no official score at all, which are labelled and reported separately and never counted (`published_entries` vs `total_entries` on the scorecard). Crucially, those benchmarks fall into **two epistemically different tiers**, and reporting them together overstates predictive power. Both are reproducible live: `python scripts/cold_holdout.py`. Tier 1 is additionally **pre-registered** (`fiscal_model/validation/preregistered.py`) and **CI-gated**.
+The model is benchmarked against **77 published estimates** — from CBO, JCT, Treasury and SSA, plus TPC, PWBM, the Tax Foundation and CRFB where no agency scored the policy — plus 4 *illustrations* with no official score at all, which are labelled and reported separately and never counted (`published_entries` vs `total_entries` on the scorecard). Crucially, those benchmarks fall into **two epistemically different tiers**, and reporting them together overstates predictive power. Both are reproducible live: `python scripts/cold_holdout.py`. Tier 1 is additionally **pre-registered** (`fiscal_model/validation/preregistered.py`) and **CI-gated**.
 
 ### Tier 1 — Out-of-sample predictions (the genuine test)
 
@@ -213,13 +213,13 @@ The specialized modules (TCJA, Corporate, Estate, Credits, AMT, Payroll, PTC, Ca
 
 | Metric | Calibrated reference (fitted) | Module reconstruction (not fitted) |
 |--------|---:|---:|
-| Benchmarks | **21** | **34** |
-| Mean absolute error | **1.7%** | **57.9%** |
-| Median absolute error | 0.1% | 34.2% |
-| Within 15% of official | 21/21 | 9/34 |
-| Within 25% of official | 21/21 | 12/34 |
+| Benchmarks | **16** | **39** |
+| Mean absolute error | **1.5%** | **55.5%** |
+| Median absolute error | 0.1% | 29.9% |
+| Within 15% of official | 16/16 | 11/39 |
+| Within 25% of official | 16/16 | 14/39 |
 
-**Both columns moved in Wave 4 and again in PRs #119 and #122, always for composition reasons and never for an improvement. The constant-population readings are the ones to quote:** the fitted tier is **23 at 7.7%, 21/23 within 15%** with the offset-sign sweep's two reclassified rows held in place, and the reconstruction tier is **57.4% over the 33 rows it held before PR #122** and **56.6% over the 31 it held before PR #119** — the older Wave 4 readings are **28 at 3.0%, 27/28 within 15%** with Wave 4's five revised rows held in place, and the reconstruction tier is **65.7% mean / 40.5% median over the 26 rows it already held** — *worse* than the 61.8% / 38.0% it read before Wave 4, because the pharma rebuild took two rows further from their targets.
+**Both columns moved again in H9, and for the fourth time the movement is composition rather than improvement — read the constant-population readings, not the headline.** H9 revised five fitted rows out (`ss_donut_250k`, `tcja_rates_only`, `eliminate_estate_tax`, `repeal_ira_credits`, `eliminate_mortgage`), so the fitted tier went **21 @ 1.73% → 16 @ 1.51%** *because the five that left averaged 2.42%, above the tier's own mean*, and the reconstruction tier went **34 @ 57.88% → 39 @ 55.46%** *because the five arrivals average 36.42%*. **On the same 34 rows the reconstruction tier gets worse, 57.88% → 58.26%**, and the whole 0.38pp of that is `trump_china_60`. The reading that is not composition at all: **the 21 rows the fitted tier held before H9, scored on the targets it leaves behind, read 9.82%** rather than 1.73%. The pre-H9 constant-population readings still stand behind these: the fitted tier is **23 at 7.7%, 21/23 within 15%** with the offset-sign sweep's two reclassified rows held in place, and the reconstruction tier is **57.4% over the 33 rows it held before PR #122** and **56.6% over the 31 it held before PR #119** — the older Wave 4 readings are **28 at 3.0%, 27/28 within 15%** with Wave 4's five revised rows held in place, and the reconstruction tier is **65.7% mean / 40.5% median over the 26 rows it already held** — *worse* than the 61.8% / 38.0% it read before Wave 4, because the pharma rebuild took two rows further from their targets.
 
 The right-hand column grew from 12 to 20 in Phase D, and its mean fell from
 394.1% to 250.8% — not because anything improved, but because the eight
@@ -422,13 +422,21 @@ The 57.9% on the right is six populations, and they should not be read as one nu
 
 Phase E's first pass labelled every calibrated target by *inspecting the record*: a deep link meant `line_item`, a round hundred meant `secondhand`. That could tell a rounded headline from a citation. It could not tell whether the row being cited exists. The second pass went and looked, and the transcriptions live in [`fiscal_model/validation/benchmark_sources.py`](../fiscal_model/validation/benchmark_sources.py) — document, table, row, page, date, and the figure that was read, in this repository's sign convention.
 
-| Label | Before (46) | After (46) | Pre-Wave-4 (54) | Live (54) | What it means |
-|---|--:|--:|--:|--:|---|
-| `line_item` | 4 | **9** | 19 | **30** | The row was found and it says what the target says (within 1.5%). |
-| `line_item_differs` | — | **15** | 13 | **7** | The row was found and it says something **else** — or names a **broader reform**. |
-| `secondhand` | 31 | **15** | 15 | **12** | Searched, not found — and the search is recorded. |
-| `model_estimate` | 7 | **7** | 7 | **6** | No official score exists. Illustrations, never counted. |
-| `unclassified` | 4 | **0** | 0 | **0** | Nothing is left in the "nobody has looked" bucket. |
+| Label | Before (46) | After (46) | Pre-Wave-4 (54) | Pre-H9 (55) | Live (55) | What it means |
+|---|--:|--:|--:|--:|--:|---|
+| `line_item` | 4 | **9** | 19 | 30 | **36** | The row was found and it says what the target says (within 1.5%). |
+| `line_item_differs` | — | **15** | 13 | 7 | **8** | The row was found and it says something **else** — or names a **broader reform**. |
+| `secondhand` | 31 | **15** | 15 | 12 | **7** | Searched, not found — and the search is recorded. |
+| `model_estimate` | 7 | **7** | 7 | 6 | **4** | No official score exists. Illustrations, never counted. |
+| `unclassified` | 4 | **0** | 0 | 0 | **0** | Nothing is left in the "nobody has looked" bucket. |
+
+H9 moved the last column: six targets onto documents and one transcription
+(`biden_ctc_2021`) that confirmed its target rather than moving it. Across both
+tiers that reads `line_item` 51 → **57**, `line_item_differs` 7 → **8**,
+`secondhand` 17 → **12**, `model_estimate` 6 → **4**; published targets
+**75 → 77 of 81** and transcribed **36 → 43**. `line_item_differs` may rise only
+with a recorded range or scope verdict, and this one is a **range**
+(`eliminate_mortgage.v2`).
 
 *The live column now covers **55** calibrated rows, not 54: PR #122 registered
 `biden_corporate_28_fy2022`. `line_item` is flat at 30 because two moves cancelled —
@@ -436,16 +444,20 @@ Phase E's first pass labelled every calibrated target by *inspecting the record*
 `model_estimate` fell 7 → 6 because `trump_corporate_15`'s target became published, so
 the repository now scores itself against its own output in six places rather than seven,
 and `NON_PUBLISHED_BENCHMARK_IDS` shrank 4 → 3. That set shrinks only by finding a
-document, never by deciding a model estimate is good enough.*
+document, never by deciding a model estimate is good enough — **H9 then took it
+3 → 1**, on CRS R48286 Table 1 for `tcja_rates_only` and Tax Foundation
+*Options 3.0* Option 83 for `eliminate_estate_tax`, leaving only
+`tcja_no_salt_cap`.*
 
-Across both tiers the live breakdown is **51 / 7 / 17 / 6 / 0** over **81** scorecard
-rows (**75** published, of which **49** are calibrated), and the Generic
+Across both tiers the live breakdown is **57 / 8 / 12 / 4 / 0** over **81** scorecard
+rows (**77** published, of which **51** are calibrated) — it read 51 / 7 / 17 / 6 / 0
+with 75 published until H9 — and the Generic
 tier's own `line_item_differs` count is now **zero** — `biden_high_income_tax`
 went through the Tier-1 manifest in Wave 4 rather than the Tier-2 ledger.
 
 So **24 of the 46 calibrated targets the pass covered were read out of a primary document**, against 4 that merely cited one. Of those 24, 15 disagreed with the figure this repository carried. Phase D's eight P.L. 119-21 rows then arrived already transcribed — they *are* their JCT rows, extracted into `pl119_21_jct_line_items.csv` with page references — taking the calibrated tier to **32 `line_item`-family labels across 54 benchmarks, 28 of them actually read** (the remaining 4 cite a document nobody has re-opened and are enumerated in `tests/test_validation_runners.py::CITED_BUT_NOT_TRANSCRIBED`), and the honest calibrated published-target count to **47**. Across both tiers the scorecard then held 80 rows, **73 of them against a published figure**. **PR #122 took those to 81 and 75** (calibrated 55 and **49**), by registering `biden_corporate_28_fy2022` — published from the day it arrived — and by superseding `trump_corporate_15`'s `model_estimate` target with a published range, which moved that row into the published count and took `model_estimate` rows 7 → **6**. `NON_PUBLISHED_BENCHMARK_IDS` shrank 4 → 3, and it shrinks only by finding a document.
 
-Those disagreements have since been resolved by moving the *target* rather than the model, which is why the live column reads **30 / 7** where the transcription pass left **17 / 15**. Two moved in the AMT/insulin pass and one in Wave 3; **Wave 4 (PR #107) moved twelve more and examined four**, and **PR #122 moved a sixteenth, examined a fifth, and added the first disagreement of a new kind**. **Seven calibrated disagreements remain, and none of them is an open question** — every one carries a written verdict, and the Generic tier now has none at all:
+Those disagreements have since been resolved by moving the *target* rather than the model, which is why the live column reads **36 / 8** where the transcription pass left **17 / 15**. Two moved in the AMT/insulin pass and one in Wave 3; **Wave 4 (PR #107) moved twelve more and examined four**, **PR #122 moved a sixteenth, examined a fifth, and added the first disagreement of a new kind**, and **H9 moved six more and examined nine** — taking the ledger to **22 revisions** and `EXAMINED_NOT_REVISED` to **14 entries**. **Seven calibrated disagreements remain, and none of them is an open question** — every one carries a written verdict, and the Generic tier now has none at all:
 
 | Row | Carried | Published | Verdict |
 |---|--:|--:|---|
@@ -499,7 +511,7 @@ Three more targets were revised without having been in this table — `repeal_sa
 
 **Twenty-two** calibrated targets have been **corrected**, not carried — three before Wave 4, twelve in it, one in the corporate/PTC pass and **six in H9** (`planning/lanes/HSB_h9_provenance.md`, the pass over the eighteen calibrated targets that were not `line_item`). Errors in this table are
 **signed** — negative means the model scores below the target — where every other
-table on this page reports absolute percent error. All fifteen went through
+table on this page reports absolute percent error. All twenty-two went through
 [`fiscal_model/validation/target_revisions.py`](../fiscal_model/validation/target_revisions.py),
 the calibrated tier's mirror of `preregistered.py`'s supersede rule: entered in
 one commit and first scored in the next, so "the target moved before the model
@@ -524,6 +536,13 @@ fitted tier as a mechanical consequence — six before H9 and five in it.
 | Extend enhanced PTCs | +$350B | **+$335.0B** | +$366.2B | **+9.3%** | CBO/JCT pub. **60437** (June 2024), letter p. 1. The carried $350B is CBO/JCT's *September 2025* re-estimate on the FY2026-2035 window: the number and its stated vintage were one budget window apart. |
 | Trump universal 10% tariff | -$2,000B | **-$2,171.1B** | -$1,258.5B | **-42.0%** | Tax Foundation **FF861**, Table 3 *"Conventional Revenue Estimates"*, row *"10 Percent Universal Tariff"*, report p. 4. |
 | 25% auto tariff | -$100B | **-$386.2B** | -$182.2B | **-52.8%** | Tax Foundation tariff tracker, **Table 5**, *"Section 232 Autos, Heavy Trucks, Buses, and Parts"*, conventional column, 2026-2035. The carried -$100B traces to a **per-year** claim of 30 March 2025 — *"We're going to raise about $100 billion with the auto tariffs alone"* — carried as a decade figure, wrong by a factor of ten **and in the direction that flattered the model**: it made a module scoring -$182.2B look 82% out when the published conventional estimate is -$386.2B. Superseded by a *point* rather than a range because the second published figure (Yale, $600-650B) scores the tariff *as announced*, before the trade-deal carve-outs the tracker's as-in-force row reflects. |
+| Trump corporate 15% | +$1,920B (point) | **range [+$595.0B, +$673.1B]**, anchor +$673.1B | +$1,491.8B | **$818.7B outside** the nearer bound (121.6% against the anchor) | Tax Foundation, Watson & York, Table 2 (anchor), and PWBM, *"The 2024 Trump Campaign Policy Proposals"* Table 1 (+$595B), printed side by side in CRFB (6 September 2024). The superseded figure was **this model's own output** — the scenario's note read "No official score; expected estimate derived from model". A third of the residual is scope: `create_republican_corporate_cut` sets `extend_bonus_depreciation=True` and neither published figure includes it, so the rate leg alone reads +$1,197.6B (+77.9%). |
+| SS donut hole $250K | -$2,700B | **-$1,426.8B** | -$2,700.0B | **-89.2%** | CBO pub. **60557**, Option 62 alternative 2, *"Subject earnings greater than $250,000 to payroll taxes"*, report p. 73 (PDF p. 79), stub *"Decrease (-) in the deficit"*, FY2025-2034. Same design in CBO's own words, including no benefit credit: *"The current-law taxable maximum would still be used for calculating benefits, so scheduled benefits would not change under this alternative."* The superseded -$2.7T is credited to the Trustees, who publish no dollars for E2.5 at any horizon. |
+| TCJA rates only | +$3,185B | **+$2,158.7B** | +$3,114.7B | **+44.3%** | CRS **R48286** Table 1, *"Reduced Individual Tax Rates"*, FY2025-2034 — the same table, column and window this page already reads `extend_tcja_amt`'s $1,357.1B from, transcribing CBO 60114's JCT row *"10%, 12%, 22%, 24%, 32%, 35%, and 37% income tax rate brackets"*. The superseded figure was the repository's own decomposition; the scenario's note called it "illustrative". |
+| Eliminate estate tax | +$350B | **+$407.2B** | +$350.0B | **-14.0%** | Tax Foundation, *Options for Reforming America's Tax Code 3.0* (July 2026), Option 83 *"Eliminate the Estate and Gift Tax"*, printed p. 105, CY2027-2036, post-P.L. 119-21 baseline. The superseded figure's source field read "Model estimate". JCT's 2017 rows bundle repeal with the exemption doubling and are not candidates. |
+| Repeal IRA clean energy credits | -$783B | **-$851.0B** | -$783.0B | **+8.0%** | William McBride, Tax Foundation testimony to the House Committee on Oversight and Government Reform (20 May 2025): *"full repeal of the credits would reduce deficits by $851 billion over the next decade (2025-2034)"*. The cited CBO publication does not exist. JCT's JCX-7-23 ($515.1B) was declined on scope, not distance: its own footnotes make it revenue-only and exclude all three clean-vehicle credits. |
+| Trump 60% China tariff | -$500B | **-$650.0B** | -$278.4B | **+57.2%** | CRFB, *"Options to Raise Tariff Revenue"* (17 December 2024), row *"60% Import Tariff on Chinese Goods"*, conventional column, FY2026-2035. The adjacent row prices the same tariff on top of a 10% universal baseline at -$575B, which is what makes this row unambiguously the preset's shape. The superseded -$500B was obtainable only as a residual from a Tax Foundation bundle. |
+| Eliminate mortgage deduction | -$300B (point) | **range [-$495.0B, -$367.9B]**, anchor -$367.9B | -$270.3B | **$97.6B outside** the nearer bound (26.5% against the anchor) | Tax Foundation *Options 3.0* Option 25 (anchor, CY2027-2036) and CRS **IF13190** Table 2, *"Repeal MID $495"* (FY2026-2035, on the Yale Budget Lab Tax-Simulator). Wave 4 left this row because its two known figures came "from the same simulator"; a third, independent model resolves the 2.4x as a **baseline** gap — Yale's ~$1.2T is pre-P.L. 119-21, where the standard deduction lapses. |
 | Reciprocal tariffs (~20pp) | -$1,200B (point) | **range [-$1,800B, -$1,400B]**, anchor -$1,500B | -$1,396.8B | **$3.2B outside** the nearer bound (6.9% against the anchor) | CRFB, *"How Much Will Trump's New Tariffs Raise?"*, table *"Ten-Year Scores of Trump's Tariffs, If Made Permanent"*, FY2025-2034: CRFB **$1.8T**, Tax Foundation **$1.5T**, Yale Budget Lab **$1.4T**, all conventional, all the same window, **29% apart**. The superseded -$1,200B is *exactly* Tax Foundation's **dynamic** score, sitting in a scorecard whose every other target is conventional — a **tier** error, not a magnitude error, and one no rescaling would have found. |
 
 **A range revision asserts something a point revision does not, and Wave 3 added
