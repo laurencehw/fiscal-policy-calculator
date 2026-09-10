@@ -41,7 +41,6 @@ from fiscal_model.pharma import (
     part_d_federal_channels,
 )
 from fiscal_model.policies import CapitalGainsPolicy, TaxPolicy
-from fiscal_model.policies_core import preferential_income_share
 from fiscal_model.ptc import (
     PTC_BASELINE_VINTAGE_LABELS,
     PTC_EXTENSION_GROSS_10YR_BILLIONS,
@@ -853,46 +852,50 @@ def agi_inclusive_base_caption(policy: Any, result: Any) -> str:
     same reform reported 19.0%, because validation had been reading the base
     off the record all along.
 
-    Since 2026-09-09 the presets declare it and the surfaces read it. Three
-    numbers roughly doubled, so they ship with their explanation rather than in
-    silence (Decision 6).
+    The presets now declare it and the surfaces read it. Three numbers roughly
+    doubled, so they ship with their explanation rather than in silence
+    (Decision 6).
 
-    The counterfactual is **computed, not stored**: the ordinary-income share
-    multiplies the base and nothing else, so the figure this preset used to
-    print is this run's own total times that share, re-derived from the
-    policy's own post-scoring filer count and average income. Returns ``""``
-    for every policy whose number did not move.
+    Two things this caption must not get wrong, both found in review:
+
+    * **The figure it quotes is the conventional score**, ``static +
+      behavioral``, which is what the headline above it shows. Reading
+      ``final_deficit_effect`` would subtract revenue feedback in a dynamic run
+      and print a number that disagrees with the one it is explaining.
+    * **The share comes from the policy**, not from a fourth hand-written copy
+      of ``(avg − threshold) × filers``. That copy could not see the
+      per-status split path, where four populations face four floors and the
+      identity does not hold — so a preset with ``threshold_by_filing_status``
+      would have had its "before" figure derived from the pooled base while its
+      "now" figure came from the split one.
+
+    The counterfactual is still **computed, not stored**: the ordinary-income
+    share multiplies the base and nothing else, so the figure this preset used
+    to print is this run's own conventional total times that share. Returns
+    ``""`` for every policy whose number did not move.
     """
     if not isinstance(policy, TaxPolicy) or policy.ordinary_income_base:
         return ""
     if not _preset_declares_agi_inclusive(getattr(policy, "name", "")):
         return ""
 
-    total = float(np.sum(result.final_deficit_effect))
+    # The conventional score, matching ``summarize_result``'s headline. Dynamic
+    # scoring never moves that, so this caption does not move with it either.
+    total = float(
+        np.asarray(result.static_deficit_effect).sum()
+        + np.asarray(result.behavioral_offset).sum()
+    )
     if total == 0.0:
         return ""
 
-    threshold = float(policy.affected_income_threshold)
-    avg_income = float(policy.avg_taxable_income_in_bracket)
-    if avg_income <= 0:
-        return ""
-    marginal = avg_income if threshold == 0 else max(0.0, avg_income - threshold)
-    filers = float(policy.affected_taxpayers_millions) * 1e6
-    if marginal <= 0 or filers <= 0:
-        return ""
-
-    # ``preferential_income_share`` is what ``TaxPolicy._ordinary_income_share``
-    # calls once its guards pass — called directly here because those guards
-    # short-circuit to 1.0 on exactly the policies this caption fires for, whose
-    # ``ordinary_income_base`` is False. Same series, same year, same threshold
-    # as the scoring path, so this is the factor that separated the two answers.
-    pref = preferential_income_share(
-        threshold, marginal * filers / 1e9, year=policy.data_year
-    )
-    share = 1.0 - pref
+    # One guard: a zero base, a non-income-tax policy and an unscored policy all
+    # come back as 0.0 from the helper, so the checks they used to need here are
+    # implied by this one.
+    pref = policy.preferential_share_of_base()
     if pref <= 0.0:
         return ""
-    previous = total * share
+    previous = total * (1.0 - pref)
+    threshold = float(policy.affected_income_threshold)
 
     # A preset with a published score has a document that states its base; the
     # millionaire surtax has none, and the caption must not imply otherwise.
@@ -907,40 +910,44 @@ def agi_inclusive_base_caption(policy: Any, result: Any) -> str:
         f"Income base: this preset is scored on the **AGI-inclusive** base "
         f"{provenance} — the rate applies to all income above "
         rf"\${threshold:,.0f}, realized capital gains and qualified dividends "
-        f"included. Until 2026-09-09 it was scored on the ordinary-bracket "
-        f"base, which excludes them: that is {pref:.1%} of the marginal "
-        rf"income here, so the same policy printed \${previous:+,.1f}B where it "
-        rf"now prints \${total:+,.1f}B. Nothing in the model changed — the "
-        f"presets now carry the base attribute the validation records always "
-        f"read, so the app and its own scorecard finally price the same policy."
+        f"included. On the ordinary-bracket base, which excludes them, it "
+        rf"would score \${previous:+,.1f}B rather than the \${total:+,.1f}B "
+        f"above: the preferentially taxed income is {pref:.1%} of the marginal "
+        f"income here. That is where this preset used to be scored. Nothing in "
+        f"the model changed — the presets now carry the base attribute the "
+        f"validation records always read, so the app and its own scorecard "
+        f"price the same policy."
     )
 
 
 def income_base_projection_caption(policy: Any, result: Any) -> str:
-    """One line saying the generic base is now priced in the years being scored.
+    """One line saying the generic base is priced in the years being scored.
 
-    Until 2026-09-09 the generic income-tax path read IRS SOI Table 1.1 for its
-    tax year and stamped that one annual on all ten scored years — ``yr1 ==
-    yr10`` to the cent on every shape — so a FY2026-2035 question was answered
-    with a TY2023 base. It is now projected onto each scored year by the ratio
-    of the **scored baseline's own** nominal income index between the two years,
-    which on the app's February 2026 vintage averages 1.356 across FY2026-2035.
+    The generic income-tax path reads IRS SOI Table 1.1 for its tax year, and a
+    ten-year score prices ten later years. The base is projected onto each
+    scored year by the ratio of the **scored baseline's own** nominal income
+    index between the two years, which on the app's February 2026 vintage
+    averages 1.356 across FY2026-2035. Held flat instead — one annual stamped
+    on all ten years, ``yr1 == yr10`` to the cent — a FY2026-2035 question is
+    answered with a TY2023 base.
 
-    The counterfactual is **computed, not stored**: every year's contribution
-    was multiplied by that year's own factor, so dividing each year back out
-    reconstructs exactly what this policy used to print. Returns ``""`` for
-    every policy whose base did not come from SOI, and for a baseline carrying
-    no GDP path.
+    Two things this caption must not get wrong, one of them found in review:
 
-    **Both figures are the conventional score**, ``static_deficit_effect +
-    behavioral_offset``, not ``final_deficit_effect``. On a static run the two
-    are the same array. On a **dynamic** run ``final_deficit_effect`` also
-    carries ``revenue_feedback``, which is a function of the deficit path's
-    *level* and does not scale with the static projection factor — so dividing
-    it out would reconstruct a "before" figure this policy never printed, and
-    the caption would disagree with the headline above it in both halves. The
-    projection multiplies the static base and nothing else, so the conventional
-    path is the quantity it is linear in.
+    * **The figures it quotes are the conventional score**, ``static +
+      behavioral``, which is what the headline above it shows. On a static run
+      that array *is* ``final_deficit_effect``; on a **dynamic** run the final
+      path also carries ``revenue_feedback``, a function of the deficit path's
+      *level* that does not scale with the static projection factor. Reading it
+      would print a "now" figure disagreeing with the one being explained *and*
+      reconstruct a "before" this policy never printed.
+    * **The counterfactual divides the scored path, it does not rebuild the
+      base.** Every year's contribution was multiplied by that year's own
+      factor, so dividing each year back out is exact — including on the
+      per-status split path, where four populations face four floors and
+      ``(avg − threshold) × filers`` does not hold.
+
+    Returns ``""`` for every policy whose base did not come from SOI, and for a
+    baseline carrying no GDP path.
     """
     if not isinstance(policy, TaxPolicy) or isinstance(policy, CapitalGainsPolicy):
         return ""
@@ -978,14 +985,14 @@ def income_base_projection_caption(policy: Any, result: Any) -> str:
     first, last = int(years[0]), int(years[-1])
     return (
         f"Base year: the filer counts and incomes behind this score are IRS SOI "
-        f"tax year {int(soi_year)}, and they are now projected onto each year "
-        f"being scored — {factors[0]:.3f}× in FY{first} rising to "
-        f"{factors[-1]:.3f}× in FY{last}, {factors.mean():.3f}× on the window average, off "
-        f"this baseline's own nominal path. Until 2026-09-09 the TY{int(soi_year)} "
-        f"figure was stamped on all ten years unchanged, so the same policy "
-        rf"printed \${previous:+,.1f}B where it now prints \${total:+,.1f}B. "
-        f"The index is the baseline's, not a constant, so a run on a different "
-        f"vintage or window projects differently."
+        f"tax year {int(soi_year)}, and they are projected onto each year being "
+        f"scored — {factors[0]:.3f}× in FY{first} rising to {factors[-1]:.3f}× in "
+        f"FY{last}, {factors.mean():.3f}× on the window average, off this "
+        f"baseline's own nominal path. Held at TY{int(soi_year)} across all ten "
+        rf"years, as a flat base, it would score \${previous:+,.1f}B rather than "
+        rf"the \${total:+,.1f}B above. The index is the baseline's, not a "
+        f"constant, so a run on a different vintage or window projects "
+        f"differently."
     )
 
 

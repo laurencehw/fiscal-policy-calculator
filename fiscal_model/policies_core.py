@@ -209,6 +209,21 @@ class TaxPolicy(Policy):
     _split_annual_revenue_billions: float | None = field(
         default=None, init=False, repr=False, compare=False
     )
+    # Total marginal income the last scoring run priced, in dollars. Recorded
+    # by the per-status path only, whose total is a sum over four populations
+    # facing four floors and therefore *cannot* be re-derived from a single
+    # ``avg_taxable_income_in_bracket`` minus a single threshold. See
+    # :meth:`marginal_income_dollars`.
+    _split_marginal_income_dollars: float | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+    # The base ``_ordinary_income_share`` was last measured on, in dollars.
+    # The per-status path measures the preferential share on the **pooled**
+    # base rather than the split one, so this is not always the quantity above.
+    # See :meth:`preferential_share_of_base`.
+    _preferential_base_dollars: float | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
     # The IRS SOI **tax year** the base was actually read from, set only where
     # it was read. It is the anchor a ten-year score projects the base off:
     # SOI reports a dated year and the window prices ten later ones, so the
@@ -494,6 +509,10 @@ class TaxPolicy(Policy):
 
         self.affected_taxpayers_millions = split["num_filers"] / 1e6
         self.avg_taxable_income_in_bracket = split["avg_taxable_income"]
+        # A sum over four populations facing four floors, so it is not
+        # ``(avg - threshold) x filers`` and must be carried rather than
+        # re-derived. See :meth:`marginal_income_dollars`.
+        self._split_marginal_income_dollars = float(marginal_income)
 
         revenue_change = self.rate_change * marginal_income * ordinary_share / 1e9
         self._split_annual_revenue_billions = revenue_change
@@ -513,6 +532,62 @@ class TaxPolicy(Policy):
         )
         return revenue_change
 
+    def marginal_income_dollars(self) -> float:
+        """Total marginal income this rate change is priced on, in dollars.
+
+        The pooled identity is ``(avg_taxable_income_in_bracket − threshold) ×
+        filers``, with the threshold dropping out at zero — the same arithmetic
+        the three scoring branches perform. The **per-status** path cannot be
+        written that way: four populations face four floors, so its total is a
+        sum rather than a difference of averages, and it records that total
+        during scoring for this method to return (see
+        ``planning/lanes/W7_filing_status_split.md``).
+
+        Zero before the policy has been scored, when neither the filer count
+        nor the average income has been auto-populated yet.
+        """
+        if self._split_marginal_income_dollars is not None:
+            return float(self._split_marginal_income_dollars)
+        avg = float(self.avg_taxable_income_in_bracket)
+        threshold = float(self.affected_income_threshold)
+        if avg <= 0:
+            return 0.0
+        per_return = avg if threshold == 0 else max(0.0, avg - threshold)
+        return per_return * float(self.affected_taxpayers_millions) * 1e6
+
+    def preferential_share_of_base(self, *, year: int | None = None) -> float:
+        """Preferentially taxed share of this policy's marginal income.
+
+        The question :meth:`_ordinary_income_share` answers *for scoring*, asked
+        without the ``ordinary_income_base`` flag in the way. That distinction
+        matters to any caller that wants to **compare** the two bases rather
+        than apply one: the scoring helper short-circuits to 1.0 on an
+        AGI-inclusive policy, which is the right answer there and reports "no
+        difference" here.
+
+        Measured on the base the scoring run actually used, which for the
+        per-status path is the **pooled** base at this policy's own threshold —
+        the capital-gains series has no filing-status dimension, so re-deriving
+        the ratio against a split denominator would remove the same joint
+        returns twice. Falls back to :meth:`marginal_income_dollars` for a
+        policy that has not been scored.
+
+        Returns 0.0 when there is no preferential income to remove: a
+        non-income-tax policy, or a base of zero.
+        """
+        if self.policy_type != PolicyType.INCOME_TAX:
+            return 0.0
+        base = self._preferential_base_dollars
+        if base is None:
+            base = self.marginal_income_dollars()
+        if base <= 0:
+            return 0.0
+        return preferential_income_share(
+            self.affected_income_threshold,
+            base / 1e9,
+            year=year if year is not None else self.data_year,
+        )
+
     def _ordinary_income_share(
         self, total_marginal_income_dollars: float, *, year: int | None = None
     ) -> float:
@@ -521,7 +596,13 @@ class TaxPolicy(Policy):
         Returns 1.0 (legacy whole-base behavior) unless ``ordinary_income_base``
         is set and this is an income-tax policy, in which case the preferentially
         taxed (long-term capital gains) share is removed.
+
+        Records the base it was asked about so :meth:`preferential_share_of_base`
+        can answer the same question afterwards without re-deriving it — which
+        is what a fourth hand-written copy of the identity would have to do, and
+        the per-status path cannot be re-derived that way at all.
         """
+        self._preferential_base_dollars = float(total_marginal_income_dollars)
         if not self.ordinary_income_base:
             return 1.0
         if self.policy_type != PolicyType.INCOME_TAX:

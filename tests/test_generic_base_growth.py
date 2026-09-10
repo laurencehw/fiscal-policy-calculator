@@ -355,6 +355,67 @@ def test_the_caption_says_the_same_thing_static_and_dynamic():
     assert static_caption == dynamic_caption != ""
 
 
+def test_the_two_captions_are_a_2x2_and_it_closes():
+    """H1's base caption and this lane's project caption, read together.
+
+    They are **not** a chain: each holds the *other* attribute at today's value,
+    so H1's counterfactual is the ordinary base on a *projected* run and this
+    one's is the AGI base on a *flat* one. The wave's history — the shipped
+    figure before H1, after H1, and after this lane — is the diagonal of the
+    box, and it must close from the shipped number times two quantities the two
+    lanes own separately: the preferential share and the window-mean index.
+
+    Pinned on Warren Ultra-Millionaire Surtax, the preset both captions fire on.
+    """
+    from fiscal_model.app_data import PRESET_POLICIES
+    from fiscal_model.composer.composer import _build_preset_policy, _scorer_for
+    from fiscal_model.ui.tabs.results_summary import (
+        agi_inclusive_base_caption,
+        income_base_projection_caption,
+    )
+
+    label = "Warren Ultra-Millionaire Surtax"
+    policy, use_real = _build_preset_policy(label, PRESET_POLICIES[label])
+    scorer = _scorer_for(policy, use_real)
+    result = scorer.score_policy(policy, dynamic=False)
+
+    shipped = float(
+        np.sum(result.static_deficit_effect) + np.sum(result.behavioral_offset)
+    )
+    pref = policy.preferential_share_of_base()
+    anchor = scorer.baseline.nominal_income_index(int(policy.soi_base_tax_year))
+    factors = np.array(
+        [scorer.baseline.nominal_income_index(int(y)) / anchor for y in result.years]
+    )
+    path = np.asarray(result.static_deficit_effect, dtype=float) + np.asarray(
+        result.behavioral_offset, dtype=float
+    )
+    flat = float(np.sum(path / factors))
+
+    # The four corners.
+    agi_projected = shipped
+    agi_flat = flat
+    ordinary_projected = shipped * (1.0 - pref)
+    ordinary_flat = ordinary_projected * (flat / shipped)
+
+    assert agi_projected == pytest.approx(-384.3710, abs=5e-4)
+    assert agi_flat == pytest.approx(-283.4695, abs=5e-4)
+    assert ordinary_projected == pytest.approx(-182.5282, abs=5e-4)
+    assert ordinary_flat == pytest.approx(-134.6126, abs=5e-4)
+
+    # The flat/projected ratio is exactly this lane's window-mean index inverted.
+    assert shipped / flat == pytest.approx(float(factors.mean()), rel=1e-9)
+
+    # And each caption names its own corner, not the pre-wave figure.
+    base_caption = agi_inclusive_base_caption(policy, result)
+    proj_caption = income_base_projection_caption(policy, result)
+    assert f"{ordinary_projected:+,.1f}B" in base_caption
+    assert f"{agi_flat:+,.1f}B" in proj_caption
+    for caption in (base_caption, proj_caption):
+        assert f"{agi_projected:+,.1f}B" in caption
+        assert f"{ordinary_flat:+,.1f}B" not in caption
+
+
 def test_the_static_caption_is_unchanged_by_the_conventional_path():
     """On a static run the two arrays are the same, so nothing moved."""
     from fiscal_model.ui.tabs.results_summary import income_base_projection_caption

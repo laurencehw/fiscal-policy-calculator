@@ -587,9 +587,33 @@ correct — the projection is a property of the base, not of the engine mode.
 The general lesson is the one worth carrying: **a caption that explains a
 headline must be computed from the same quantity as that headline**, and a
 caption tested only on the default engine mode is untested on the other one.
-The corrected "before" is also a free cross-check on the wave — Warren's
-−$283.47B is exactly H1's post-base-rule figure, so the two captions chain
-−134.6 → −283.5 → −384.4.
+
+### 6.4c The two captions are a 2×2, not a chain — and it closes to the cent
+
+H1's caption fix landed at `3cb84a2` and both now run on the same page. It is
+worth writing down what they say together, because the natural reading of the
+wave — "−134.6 → −283.5 → −384.4" — is the **history**, and neither caption
+prints the first figure. Each holds the *other* attribute at today's value,
+which is what a counterfactual caption should do. On Warren Ultra-Millionaire
+Surtax:
+
+| | flat (TY2023) | projected |
+|---|--:|--:|
+| **ordinary base** | −134.6126 | **−182.5282** ← H1's counterfactual |
+| **AGI-inclusive base** | **−283.4695** ← H2's counterfactual | −384.3710 ← shipped |
+
+The wave's history is the diagonal — **−134.6126 → −283.4695 → −384.3710** —
+and it is reproduced to the cent from the shipped number by two independent
+quantities the two lanes own separately: `preferential_share_of_base()` =
+**52.5125%** and this lane's window-mean index = **1.355952** (the flat/projected
+ratio prints as its exact reciprocal, 0.737489). So H1's caption reads
+**−182.5** and not −134.6, correctly: −134.6 is the pre-wave number, which is
+*two* changes away from what the app prints and is therefore not the
+counterfactual for either caption alone.
+
+Both captions are byte-identical static and dynamic, and both quote the same
+headline (−384.4). That is the property the review finding was about, and it
+now holds on both of them.
 
 ### 6.5 Gates
 

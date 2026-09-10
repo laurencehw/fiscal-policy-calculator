@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import re
 
+import numpy as np
 import pytest
 
 from fiscal_model.app_data import CBO_SCORE_MAP, PRESET_POLICIES
@@ -372,6 +373,40 @@ def test_the_caption_states_the_move_it_explains(label, figures):
     assert f"{before:+,.1f}B" in caption
 
 
+@pytest.mark.parametrize(("label", "figures"), sorted(CAPTION_MOVES.items()))
+def test_the_caption_quotes_the_conventional_score_in_a_dynamic_run(label, figures):
+    """Dynamic scoring never moves the headline, so it must not move this either.
+
+    ``final_deficit_effect`` subtracts revenue feedback in a dynamic run, so a
+    caption reading it would print a figure that disagrees with the
+    conventional headline directly above it — the one the caption exists to
+    explain. It reads ``static_deficit_effect + behavioral_offset`` instead,
+    which is exactly ``summarize_result``'s headline.
+    """
+    from fiscal_model.composer.composer import _build_preset_policy, _scorer_for
+    from fiscal_model.ui.tabs.results_summary import agi_inclusive_base_caption
+
+    before, after = figures
+    policy, use_real = _build_preset_policy(label, PRESET_POLICIES[label])
+    scorer = _scorer_for(policy, use_real)
+
+    static_result = scorer.score_policy(policy, dynamic=False)
+    dynamic_result = scorer.score_policy(policy, dynamic=True)
+
+    # The premise: dynamic really does move ``final_deficit_effect`` here, so
+    # this test would catch the defect rather than pass vacuously.
+    assert float(np.asarray(dynamic_result.final_deficit_effect).sum()) != pytest.approx(
+        after, abs=1e-5
+    )
+
+    static_caption = agi_inclusive_base_caption(policy, static_result)
+    dynamic_caption = agi_inclusive_base_caption(policy, dynamic_result)
+
+    assert dynamic_caption == static_caption
+    assert f"{after:+,.1f}B" in dynamic_caption
+    assert f"{before:+,.1f}B" in dynamic_caption
+
+
 def test_the_caption_is_silent_on_every_preset_that_did_not_move():
     from fiscal_model.composer.composer import _build_preset_policy, _scorer_for
     from fiscal_model.ui.tabs.results_summary import agi_inclusive_base_caption
@@ -448,27 +483,64 @@ def test_repeal_corporate_amt_score_carries_the_sign_its_source_does():
     assert AMT_VALIDATION_SCENARIOS_COMPARE["repeal_corporate_amt"]["expected_10yr"] > 0
 
 
-def test_the_repeal_corporate_amt_label_still_disagrees_with_its_own_score():
-    """A handover, asserted so it cannot be forgotten.
+def test_a_label_figure_never_contradicts_its_own_official_score():
+    """The invariant the CAMT sign defect broke, asserted for every preset.
 
-    The label reads "-$220B" — this app's convention for a $220B deficit
-    *reduction* — beside an ``official_score`` of +220.0. The rename is owed
-    and was not taken here: the label is the key of
-    ``ui/preset_validation.PRESET_TO_SCORECARD_ID``, and that map and its own
-    test must move in the same commit as the rename, which makes it a sibling
-    lane's edit rather than this one's.
+    A label that quotes a figure quotes it in this app's own convention:
+    negative reduces the deficit, positive increases it. "Repeal Corporate AMT
+    (-$220B)" said a $220B saving beside an ``official_score`` of +220.0 — a
+    $220B cost — and the Build page totals the score, not the label.
 
-    When the rename lands this test fails, which is the point: it is a
-    to-do with a failing build attached, not a comment.
+    Written as an invariant rather than as a pin on the current spelling, so
+    it passes both before and after the rename this lane handed over (the
+    label is the key of ``ui/preset_validation.PRESET_TO_SCORECARD_ID``, whose
+    map and test must move in the same commit, which makes it a sibling lane's
+    edit). Either spelling is fine; a *contradiction* is not.
     """
-    label = "⚖️ Repeal Corporate AMT (-$220B)"
-    assert label in PRESET_POLICIES
-    assert CBO_SCORE_MAP[label]["official_score"] == 220.0
-    assert "-$220B" in label, (
-        "the label was renamed. Good — now delete this test, add the old "
-        "spelling to LEGACY_LABEL_ALIASES, and re-key PRESET_TO_SCORECARD_ID "
-        "by stable id in the same commit."
+    #: The one label whose rename this lane handed over rather than took. It is
+    #: named rather than silently skipped, and it *self-clears*: once the label
+    #: is renamed the entry matches nothing and the new spelling is checked by
+    #: the invariant like every other, so the exemption cannot go stale into a
+    #: second defect.
+    handover = {
+        "⚖️ Repeal Corporate AMT (-$220B)",
+        # Found by this invariant on its first run: both are deficit reducers
+        # (official_score < 0) whose labels print a bare figure, which every
+        # other label reads as a cost. Their figures are also being revised by
+        # the H9 provenance lane (PR #145: -$783B -> -$851B), so sign and figure
+        # move together in the label-rename lane that follows it, not twice.
+        "🌱 Repeal IRA Clean Energy Credits ($783B)",
+        "🌱 Repeal EV Credits ($182B)",
+    }
+
+    offenders = []
+    for label, entry in CBO_SCORE_MAP.items():
+        if label in handover:
+            continue
+        score = float(entry.get("official_score", 0.0) or 0.0)
+        if score == 0.0:
+            continue
+        suffix = _TRAILING_PARENS.search(label.replace(BACKSLASH, ""))
+        if not suffix:
+            continue
+        text = suffix.group(1)
+        if not _MONEY.search(text):
+            continue
+        # "(CBO: -$1.35T)" and "(-$374B)" both read as negative; a bare
+        # "($335B)" or "(+$220B)" reads as positive.
+        label_negative = "-" in text or "−" in text
+        if label_negative != (score < 0):
+            offenders.append((label, score))
+    assert not offenders, (
+        "these labels quote a figure whose sign contradicts their own "
+        f"official_score: {offenders!r}"
     )
+
+
+def test_repeal_corporate_amt_is_scored_as_a_cost():
+    """Whatever the label says, the number Build totals must be the cost."""
+    label = next(k for k in CBO_SCORE_MAP if "Repeal Corporate AMT" in k)
+    assert CBO_SCORE_MAP[label]["official_score"] == 220.0
 
 
 # ----------------------------------------------------------- ids and old links
