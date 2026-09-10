@@ -623,10 +623,7 @@ PRESET_POLICIES = {
             "Repeal the 15% corporate book minimum tax (CAMT) enacted by IRA "
             "2022. **Costs** ~\\$220B over 10 years: JCT scored enacting CAMT "
             "as a \\$222.2B revenue raiser (JCX-18-22), so repeal loses that "
-            "revenue. **Note the label**: its \"-\\$220B\" is this app's "
-            "convention for a \\$220B *deficit reduction*, which is the "
-            "opposite of what a repeal does. The official score behind it was "
-            "corrected on 2026-09-09; the label is queued for the same fix."
+            "revenue."
         ),
         "is_tcja": False,
         "is_corporate": False,
@@ -843,13 +840,11 @@ PRESET_POLICIES = {
         "threshold": 0,
         "description": (
             "Targeted enforcement for >\\$400K returns and large partnerships. "
-            "\\$5B/year, high ROI. **No official score**: the \\$250B this "
-            "preset's label used to quote could not be traced to any CBO, JCT "
-            "or Treasury publication and was struck on 2026-09-09. CBO scores "
-            "*untargeted* appropriation increases only — \\$20B of funding for "
+            "\\$5B/year, high ROI. **No official score**: nothing published "
+            "scores a *targeted* high-income enforcement increase. CBO scores "
+            "*untargeted* appropriations only — \\$20B of funding for "
             "−\\$41B of deficit and \\$40B for −\\$63B (publication 59972, "
-            "FY2024-2034) — and nothing published isolates a high-income "
-            "dose. The model's own estimate is the only number shown."
+            "FY2024-2034). The model's own estimate is the only number shown."
         ),
         "is_tcja": False,
         "is_enforcement": True,
@@ -885,12 +880,10 @@ PRESET_POLICIES = {
         "threshold": 0,
         "description": (
             "Expanded negotiation + insulin cap + manufacturer discounts. "
-            "**No official score**: the \\$600B this preset's label used to "
-            "quote could not be traced to any CBO, CMS or CRFB publication "
-            "and was struck on 2026-09-09. Nothing published scores a "
-            "*combined* package of these three; the nearest published figures "
-            "are components an order of magnitude smaller (CBO put the IRA's "
-            "own negotiation at \\$98.5B over FY2022-2031). The model's own "
+            "**No official score**: nothing published scores a *combined* "
+            "package of these three, and the nearest published figures are "
+            "components an order of magnitude smaller (CBO put the IRA's own "
+            "negotiation at \\$98.5B over FY2022-2031). The model's own "
             "estimate is the only number shown, and it is a 🟡 reconstruction "
             "of a channel nobody has scored."
         ),
@@ -961,12 +954,10 @@ PRESET_POLICIES = {
         "threshold": 0,
         "description": (
             "\\$25/ton CO2 starter tax with 5% annual escalator. "
-            "**No official score is quoted**: the \\$1.0T this preset's label "
-            "used to carry matches no published estimate and was struck on "
-            "2026-09-09. A real document does exist at a different figure and "
-            "a different decade — CBO and JCT's *Options for Reducing the "
+            "**No official score is quoted**: a real document does exist, on a "
+            "different decade — CBO and JCT's *Options for Reducing the "
             "Deficit: 2023 to 2032* scores \\$25/tonne rising 5% plus "
-            "inflation at −\\$865B over FY2023-2032 — and this repository has "
+            "inflation at −\\$865B over FY2023-2032 — but this repository has "
             "no scorecard row for it, so the model's own estimate is the only "
             "number shown."
         ),
@@ -987,12 +978,9 @@ PRESET_POLICIES = {
         "threshold": 0,
         "description": (
             "Extend IRA clean energy credits 5 years beyond the 2032 sunset. "
-            "**No official score**: the \\$400B this preset's label used to "
-            "quote could not be traced to any JCT, CBO, Treasury or PWBM "
-            "publication and was struck on 2026-09-09. Every published figure "
-            "scores the credits *as enacted* or their *repeal*, never an "
-            "incremental five-year extension. The model's own estimate is the "
-            "only number shown."
+            "**No official score**: every published figure scores the credits "
+            "*as enacted* or their *repeal*, never an incremental five-year "
+            "extension. The model's own estimate is the only number shown."
         ),
         "is_tcja": False,
         "is_climate": True,
