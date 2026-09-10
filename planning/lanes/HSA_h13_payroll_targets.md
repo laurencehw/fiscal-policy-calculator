@@ -316,4 +316,45 @@ its neighbours' style rather than reformatted under H1's feet.
   is unowned in it, so changing it here would set exactly the precedent the wave's
   conflict notes exist to prevent. H6 is the natural owner (it is already the
   "what a label may claim" lane). The equivalent line in `docs/METHODOLOGY.md`
-  *was* this lane's and is fixed.
+  *was* this lane's and is fixed. **Hand-off accepted: the coordinator routed
+  this cell to H6, which is fixing it now** — so the app surface and this
+  lane's docs will agree without either lane opening the other's file.
+
+---
+
+## 7. Merged with H1, and re-measured against the merged base
+
+H1 (PR #142, `model/hs-a-h1-base-rule`) landed its own Decision 6 caption block
+in `fiscal_model/ui/tabs/results_summary.py`, at the same point in
+`render_headline_block`'s caption list as this lane's. That was the **only**
+conflict in the merge, and it is the shape Wave A's sequencing predicted: two
+additive blocks appended to one list. Resolved by keeping both calls, H1's
+`agi_inclusive_base_caption` first. **The two cannot co-fire** — H1's reads a
+`TaxPolicy`'s base attribute and this one an OASDI `PayrollTaxPolicy` — so the
+order is cosmetic, and each block stays self-contained. Both function bodies
+auto-merged intact; nothing else in the file conflicted.
+
+**§3's falsification test was re-run against the merged base rather than against
+the old branch point**, which matters here because H1 *does* move numbers. The
+baseline is `origin/model/hs-a-h1-base-rule` itself, since this lane's branch
+point `8964cb1` is one of its ancestors. Measured there and again on the merge:
+
+| Artifact | H1 base | merged | |
+|---|---|---|---|
+| `scripts/run_loo.py --donor-matrix` | — | — | **byte-identical** |
+| `scripts/cold_holdout.py --json` | — | — | **byte-identical** |
+| `scripts/run_validation_dashboard.py` | — | — | **byte-identical**, exit 1 on both |
+
+So this lane still adds nothing numeric, now on top of a lane that does. Worth
+recording what H1 moved and this lane did not: against this lane's original
+pre-H1 baseline, H1 leaves `run_loo.py` and `cold_holdout.py` byte-identical too
+— its only movement in these three artifacts is the dashboard's health-check
+line, `test_score=-15.7 → -8.3`, which is the base rule reaching the generic
+probe policy.
+
+Suite on the merged tree, key unset: **3773 passed, 7 skipped**, exit 0 — 3738
+on this lane alone, plus H1's 35. `ruff check`
+over CI's own scope passes; repo-wide `ruff check .` reports 9 findings, **all
+of them in `api.py`**, which is outside CI's lint scope and byte-identical to
+H1's — pre-existing, and not this lane's. On top of H1 this branch changes
+exactly §2's five paths.
