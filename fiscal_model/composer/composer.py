@@ -154,7 +154,7 @@ def _build_preset_policy(preset_name: str, preset_data: dict[str, Any]) -> tuple
         # takes the one shared default rather than this call site's opinion.
         ordinary_income_base=ordinary_income_base_for_preset(preset_data),
         # ...and which SOI column that base is, where its source names one.
-        income_measure=income_measure_for_preset(preset_data),
+        income_measure=income_measure_for_preset(preset_data, preset_name=preset_name),
     )
     return policy, True
 

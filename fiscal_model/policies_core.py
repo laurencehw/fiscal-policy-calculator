@@ -53,8 +53,16 @@ DEFAULT_ORDINARY_INCOME_BASE = True
 #: always answered "taxable income", so an AGI surtax was priced by subtracting
 #: an AGI threshold from an average of taxable income - a unit mismatch worth
 #: 40% of the base at $20,000. See ``planning/lanes/HSB_h2b_agi_column.md``.
+#:
+#: Declared here rather than imported from
+#: :mod:`fiscal_model.data.irs_soi`, which declares the same three: importing
+#: that module at file scope would pull pandas into the app's import graph and
+#: move the cold-start figures ``tests/test_cold_start_ordering.py`` pins, and
+#: this module is on the landing page's path. ``tests/test_agi_income_measure.py``
+#: fails if the two ever disagree, so the pair cannot drift.
 INCOME_MEASURE_TAXABLE_INCOME = "taxable_income"
 INCOME_MEASURE_AGI = "agi"
+INCOME_MEASURES: tuple[str, ...] = (INCOME_MEASURE_TAXABLE_INCOME, INCOME_MEASURE_AGI)
 DEFAULT_INCOME_MEASURE = INCOME_MEASURE_TAXABLE_INCOME
 
 
@@ -79,7 +87,9 @@ def ordinary_income_base_for_preset(preset_data: Mapping[str, object] | None) ->
     return not bool(declared)
 
 
-def income_measure_for_preset(preset_data: Mapping[str, object] | None) -> str:
+def income_measure_for_preset(
+    preset_data: Mapping[str, object] | None, *, preset_name: str | None = None
+) -> str:
     """The IRS SOI income column a catalog preset's own source states.
 
     A preset declares ``income_measure: "agi"`` only where its source says AGI
@@ -96,13 +106,26 @@ def income_measure_for_preset(preset_data: Mapping[str, object] | None) -> str:
     One function rather than a `.get` at each of the six preset-construction
     sites, for the reason :func:`ordinary_income_base_for_preset` exists:
     nothing kept those six answers in step.
+
+    A declared value is validated **here**, where the catalog entry is still in
+    hand. Left to ``TaxPolicy.__post_init__`` a typo would surface as
+    "income_measure must be ..." from six different call sites with no clue
+    which preset carried it, and only on the surfaces that build a policy — the
+    catalog itself would import clean.
     """
     if not preset_data:
         return DEFAULT_INCOME_MEASURE
     declared = preset_data.get("income_measure")
     if declared is None:
         return DEFAULT_INCOME_MEASURE
-    return str(declared)
+    measure = str(declared)
+    if measure not in INCOME_MEASURES:
+        raise ValueError(
+            f"preset {preset_name or '<unnamed>'!r} declares "
+            f"income_measure={declared!r}; expected one of "
+            f"{', '.join(INCOME_MEASURES)}"
+        )
+    return measure
 
 
 def preferential_income_share(

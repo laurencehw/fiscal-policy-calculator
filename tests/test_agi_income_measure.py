@@ -12,6 +12,8 @@ See ``planning/lanes/HSB_h2b_agi_column.md``.
 
 import pytest
 
+from fiscal_model import policies_core
+from fiscal_model.data import irs_soi
 from fiscal_model.data.irs_soi import FILING_STATUSES, INCOME_MEASURES, IRSSOIData
 from fiscal_model.policies import (
     DEFAULT_INCOME_MEASURE,
@@ -81,6 +83,38 @@ def test_an_agi_base_refuses_the_ordinary_correction():
         income_measure=INCOME_MEASURE_TAXABLE_INCOME, ordinary_income_base=False
     )
     assert also_ok.income_measure == INCOME_MEASURE_TAXABLE_INCOME
+
+
+def test_the_two_modules_declare_the_same_measures():
+    """Two declarations, one meaning, and a test so they cannot drift.
+
+    ``policies_core`` must not import ``data.irs_soi`` at file scope - that
+    pulls pandas into the app's import graph and moves the cold-start figures
+    ``tests/test_cold_start_ordering.py`` pins - so each declares the names it
+    needs. This is the gate that makes the duplication safe: adding a third
+    column, or renaming one, in only one of them fails here.
+    """
+    assert policies_core.INCOME_MEASURES == irs_soi.INCOME_MEASURES
+    assert policies_core.DEFAULT_INCOME_MEASURE == irs_soi.DEFAULT_INCOME_MEASURE
+    assert (
+        policies_core.INCOME_MEASURE_TAXABLE_INCOME
+        == irs_soi.INCOME_MEASURE_TAXABLE_INCOME
+    )
+    assert policies_core.INCOME_MEASURE_AGI == irs_soi.INCOME_MEASURE_AGI
+    # And the default is a member of the set, in both.
+    for module in (policies_core, irs_soi):
+        assert module.DEFAULT_INCOME_MEASURE in module.INCOME_MEASURES
+
+
+def test_the_split_readers_default_is_the_named_constant():
+    """Not a repeated literal: the signature default is the shared constant."""
+    import inspect
+
+    default = inspect.signature(
+        IRSSOIData.get_filers_by_status_thresholds
+    ).parameters["income_measure"].default
+    assert default == irs_soi.DEFAULT_INCOME_MEASURE
+    assert default in INCOME_MEASURES
 
 
 # -- the loader ----------------------------------------------------------------
@@ -302,6 +336,33 @@ def test_a_preset_declaring_nothing_takes_the_shared_default():
         DEFAULT_INCOME_MEASURE
     )
     assert income_measure_for_preset({"income_measure": "agi"}) == INCOME_MEASURE_AGI
+
+
+def test_a_preset_typo_is_refused_where_the_catalog_entry_is_still_in_hand():
+    """A bad value must not wait until TaxPolicy construction to be caught.
+
+    Left to ``__post_init__`` it would surface from six different call sites
+    with no clue which preset carried it, and only on the surfaces that build a
+    policy - the catalog itself would import clean.
+    """
+    with pytest.raises(ValueError, match="Warren Ultra-Millionaire Surtax"):
+        income_measure_for_preset(
+            {"income_measure": "AGI"}, preset_name="Warren Ultra-Millionaire Surtax"
+        )
+    with pytest.raises(ValueError, match="expected one of"):
+        income_measure_for_preset({"income_measure": "adjusted_gross_income"})
+    # The name is optional and its absence must not mask the error.
+    with pytest.raises(ValueError, match="<unnamed>"):
+        income_measure_for_preset({"income_measure": "magi"})
+
+
+def test_every_catalog_entry_declares_a_measure_this_model_knows():
+    """Walk the whole catalog by key, so a typo fails with its preset's name."""
+    from fiscal_model.app_data import PRESET_POLICIES
+
+    for name, entry in PRESET_POLICIES.items():
+        measure = income_measure_for_preset(entry, preset_name=name)
+        assert measure in INCOME_MEASURES, name
 
 
 def test_only_the_warren_preset_declares_an_agi_column():

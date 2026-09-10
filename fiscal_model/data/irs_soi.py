@@ -26,7 +26,19 @@ FILING_STATUSES: tuple[str, ...] = ("joint", "separate", "head_of_household", "s
 #: columns, so the choice costs nothing to make correctly and 40% of the base
 #: to make wrongly. See ``fiscal_model.policies_core.TaxPolicy.income_measure``
 #: and ``planning/lanes/HSB_h2b_agi_column.md``.
-INCOME_MEASURES: tuple[str, ...] = ("taxable_income", "agi")
+#:
+#: The two names and the default are declared once here and every reader in
+#: this module takes them from these constants rather than repeating a string
+#: literal, so a third column can be added in one place.
+#: :mod:`fiscal_model.policies_core` declares the same three for its dataclass
+#: defaults - it must not import this module at file scope, which would pull
+#: pandas into the app's import graph and move the cold-start figures
+#: ``tests/test_cold_start_ordering.py`` pins - and
+#: ``tests/test_agi_income_measure.py`` fails if the two ever disagree.
+INCOME_MEASURE_TAXABLE_INCOME = "taxable_income"
+INCOME_MEASURE_AGI = "agi"
+INCOME_MEASURES: tuple[str, ...] = (INCOME_MEASURE_TAXABLE_INCOME, INCOME_MEASURE_AGI)
+DEFAULT_INCOME_MEASURE: str = INCOME_MEASURE_TAXABLE_INCOME
 
 #: Table 1.2's own column-block headings, which is how the loader finds its
 #: columns - the sheet is 63 columns of five repeating 12-column blocks and
@@ -261,7 +273,7 @@ class IRSSOIData:
         year: int,
         thresholds: dict[str, float],
         *,
-        income_measure: str = "taxable_income",
+        income_measure: str = DEFAULT_INCOME_MEASURE,
     ) -> dict:
         """Aggregate filers and incomes above a *per-filing-status* threshold.
 
@@ -316,7 +328,9 @@ class IRSSOIData:
             # Mirrors the pooled path exactly: marginal income is the average
             # above the floor times the count, and a threshold of zero means the
             # whole base rather than "income above zero".
-            avg_measure = avg_agi if income_measure == "agi" else avg_taxable
+            avg_measure = (
+                avg_agi if income_measure == INCOME_MEASURE_AGI else avg_taxable
+            )
             per_return = avg_measure if threshold == 0 else max(0.0, avg_measure - threshold)
             marginal = per_return * filers
 
