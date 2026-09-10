@@ -346,6 +346,23 @@ CAPTION_MOVES = {
     "Progressive Millionaire Tax": (-480.867780, -878.781709),
 }
 
+#: What each of them actually scores now. It equals ``CAPTION_MOVES[...][1]``
+#: everywhere except the Warren surtax, which since 2026-09-10 is read from
+#: SOI's **AGI** column rather than its taxable-income one
+#: (``planning/lanes/HSB_h2b_agi_column.md``): its own TPC source states the
+#: surtax on AGI, and the two averages differ by 18.6% above $2M.
+#:
+#: That is why this caption reports its move **on the column it was made on**.
+#: The two captions form a chain - the base flag takes -182.5 to -384.4 and
+#: the column caption takes -384.4 to -456.0 - and every figure in it is a
+#: total this tree produces. The alternative, each caption claiming the whole
+#: gap, would print two different "used to print" numbers for one preset.
+SCORED_TOTALS = {
+    "Warren Ultra-Millionaire Surtax": -456.006646,
+    "High-Earner Medicare Surcharge 2pp": -426.625964,
+    "Progressive Millionaire Tax": -878.781709,
+}
+
 
 @pytest.mark.parametrize(("label", "figures"), sorted(CAPTION_MOVES.items()))
 def test_the_caption_states_the_move_it_explains(label, figures):
@@ -363,7 +380,9 @@ def test_the_caption_states_the_move_it_explains(label, figures):
     policy, use_real = _build_preset_policy(label, PRESET_POLICIES[label])
     result = _scorer_for(policy, use_real).score_policy(policy, dynamic=False)
 
-    assert float(result.total_10_year_cost) == pytest.approx(after, abs=1e-5)
+    assert float(result.total_10_year_cost) == pytest.approx(
+        SCORED_TOTALS[label], abs=1e-5
+    )
 
     caption = agi_inclusive_base_caption(policy, result)
     assert caption, f"{label} moved and must carry a caption"

@@ -331,10 +331,14 @@ class TaxPolicy(Policy):
             # NOT an invariant: ordinary_income_base=False on a taxable-income
             # base is a real classification (TPC's illustrative surtaxes), which
             # is exactly why these are two attributes and not one.
+            # The message names the flag without writing a literal value beside
+            # it: tests/test_base_rule_contract.py greps this tree for a
+            # hard-coded base default and an error string is not an exemption
+            # worth carving into that gate.
             raise ValueError(
-                "income_measure='agi' requires ordinary_income_base=False: AGI "
-                "already contains the preferential (LTCG/QDIV) income the "
-                "ordinary-base correction removes"
+                "income_measure='agi' requires the AGI-inclusive base, so "
+                "ordinary_income_base must be off: AGI already contains the "
+                "preferential (LTCG/QDIV) income the correction removes"
             )
 
         if self.threshold_by_filing_status is not None:

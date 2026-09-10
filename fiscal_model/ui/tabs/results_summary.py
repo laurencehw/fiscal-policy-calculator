@@ -840,6 +840,34 @@ def _cbo_score_map() -> Any:
         return {}
 
 
+def _agi_marginal_ratio(policy: Any) -> float | None:
+    """Marginal AGI over marginal taxable income for this policy's own SOI read.
+
+    ``None`` unless the policy was scored on the AGI column by the pooled SOI
+    path. Both averages come from the same read over the same filers, so this is
+    exactly the factor that separated the two answers, and it lets each caption
+    below reconstruct *only its own* change: the base-flag caption reports the
+    move on the taxable column, and the column caption picks up where it stops.
+    Without it the two would print two different "used to print" figures for one
+    preset and neither would be a total this tree produces.
+    """
+    if getattr(policy, "income_measure", None) != INCOME_MEASURE_AGI:
+        return None
+    if getattr(policy, "threshold_by_filing_status", None):
+        return None
+    avg_agi = getattr(policy, "_soi_avg_agi_in_bracket", None)
+    avg_taxable = float(getattr(policy, "avg_taxable_income_in_bracket", 0.0) or 0.0)
+    if not avg_agi or avg_taxable <= 0:
+        return None
+    threshold = float(getattr(policy, "affected_income_threshold", 0.0))
+    marginal_agi = float(avg_agi) if threshold == 0 else max(0.0, float(avg_agi) - threshold)
+    marginal_taxable = avg_taxable if threshold == 0 else max(0.0, avg_taxable - threshold)
+    if marginal_agi <= 0 or marginal_taxable <= 0:
+        return None
+    ratio = marginal_agi / marginal_taxable
+    return ratio if ratio > 0 and abs(ratio - 1.0) >= 1e-9 else None
+
+
 def agi_inclusive_base_caption(policy: Any, result: Any) -> str:
     """One line saying the preset's base came from its source, and what moved.
 
@@ -869,6 +897,12 @@ def agi_inclusive_base_caption(policy: Any, result: Any) -> str:
         return ""
 
     total = float(np.sum(result.final_deficit_effect))
+    # On a policy since moved onto SOI's AGI column, report this move on the
+    # column it was made on. The column change is its own caption below, and a
+    # chain of two honest steps beats two captions each claiming the whole gap.
+    column_ratio = _agi_marginal_ratio(policy)
+    if column_ratio:
+        total /= column_ratio
     if total == 0.0:
         return ""
 
@@ -946,25 +980,13 @@ def agi_income_column_caption(policy: Any, result: Any) -> str:
     """
     if not isinstance(policy, TaxPolicy) or isinstance(policy, CapitalGainsPolicy):
         return ""
-    if getattr(policy, "income_measure", None) != INCOME_MEASURE_AGI:
-        return ""
-    if getattr(policy, "threshold_by_filing_status", None):
-        return ""
-
-    avg_agi = getattr(policy, "_soi_avg_agi_in_bracket", None)
-    avg_taxable = float(getattr(policy, "avg_taxable_income_in_bracket", 0.0) or 0.0)
-    if not avg_agi or avg_taxable <= 0:
+    ratio = _agi_marginal_ratio(policy)
+    if ratio is None:
         return ""
 
     threshold = float(policy.affected_income_threshold)
-    marginal_agi = float(avg_agi) if threshold == 0 else max(0.0, float(avg_agi) - threshold)
-    marginal_taxable = avg_taxable if threshold == 0 else max(0.0, avg_taxable - threshold)
-    if marginal_agi <= 0 or marginal_taxable <= 0:
-        return ""
-
-    ratio = marginal_agi / marginal_taxable
     total = float(np.sum(result.final_deficit_effect))
-    if total == 0.0 or ratio <= 0 or abs(ratio - 1.0) < 1e-9:
+    if total == 0.0:
         return ""
     previous = total / ratio
 

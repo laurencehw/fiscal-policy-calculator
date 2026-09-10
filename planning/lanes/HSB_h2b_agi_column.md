@@ -376,3 +376,281 @@ them gets worse.
   downward only.
 - **Any constant.** None is introduced, none is fitted, no data file is added, and no
   SOI column is read that the loader did not already return.
+
+---
+
+## 6. Outturn
+
+**Every pre-registered figure landed to the cent, and exactly three rows and one
+preset moved.** The mechanism is what §1 describes; the largest miss on any
+prediction is **\$0.0004B**, on the Warren preset.
+
+### 6.1 The three Tier 1 rows, pre-registered against measured
+
+| Row | pre-registered | measured | Δ | before | after |
+|---|--:|--:|--:|--:|--:|
+| `cbo_opt46_agi_surtax_1pp_20k` | −1,332.951 | **−1,332.951** | 0.000 | +34.1% | **+7.4%** |
+| `cbo_opt46_agi_surtax_2pp_100k` | −1,081.235 | **−1,081.235** | 0.000 | +17.9% | **−2.9%** |
+| `warren_ultramillionaire_surtax_3pp` | −436.788 | **−436.788** | 0.000 | −5.2% | **−24.8%** ⚠ |
+
+⚠ = the lane's one registered regression, and it is the row that had the second
+best error of the six AGI-inclusive cases. **No row outside these three moved**,
+and none of the three failed to move. The seven other rows on the generic path
+and all sixteen non-generic rows are byte-identical.
+
+### 6.2 The tier
+
+| | before | predicted | **measured** |
+|---|--:|--:|--:|
+| n | 26 | 26 | 26 |
+| mean | 15.6% | 14.7% | **14.7%** |
+| median | 14.0% | 12.7% | **12.6%** |
+| within 15% | 14 | 15 | **15** |
+| within 25% | 22 | 23 | **23** |
+| error mass | 405.4 | 383.3 | **383.3** |
+
+Per class, on the plan's §2 table, measured:
+
+| Class | n | mean before | mean after | median before | median after | mass before | mass after |
+|---|--:|--:|--:|--:|--:|--:|--:|
+| AGI-inclusive surtax | 6 | 21.2% | **17.6%** | 19.2 | 19.2 | 127.5 | **105.4** |
+| ordinary rate change | 4 | 14.8% | 14.8% | 16.4 | 16.4 | 59.3 | 59.3 |
+| capital gains | 4 | 20.5% | 20.5% | 19.4 | 19.4 | 82.0 | 82.0 |
+| corporate | 1 | 44.5% | 44.5% | — | — | 44.5 | 44.5 |
+| enacted-law spending | 3 | 13.4% | 13.4% | 12.2 | 12.2 | 40.2 | 40.2 |
+| discretionary spending | 5 | 4.6% | 4.6% | 2.6 | 2.6 | 23.2 | 23.2 |
+| payroll | 2 | 7.8% | 7.8% | 7.8 | 7.8 | 15.6 | 15.6 |
+| tax expenditure | 1 | 13.1% | 13.1% | — | — | 13.1 | 13.1 |
+
+**The AGI-inclusive class's median did not move at all** (19.2 before and
+after), which is the shape of a lane that moved three of six rows a long way in
+two directions. The plan's §5 target for this class is **≤ 10%** and the
+measured **17.6%** does not reach it; §6.4 finding 2 says what is left and why
+none of it is a missing mechanism.
+
+The eight largest rows are now `cbo_opt64_corporate_rate_1pp` **44.5%**,
+`biden_capital_gains_39` **32.8%**, `medicare_surcharge_2pp` **31.8%**,
+`warren_ultramillionaire_surtax_3pp` **24.8%**, `illustrative_1pp_all` **24.5%**,
+`cbo_opt51_gains_at_death` **20.3%**, `illustrative_top_rate_5pp` **20.2%** and
+`treasury_capgains_39_plus_stepup_elim` **18.4%**. **Both Option 46 rows have
+left the tail** — they were its first and third rows before this lane — and the
+row that replaced one of them is the one this lane moved the other way.
+
+### 6.3 Every falsification test, and what it returned
+
+| Test | result |
+|---|---|
+| 1. Both Option 46 rows within ±3pp of +7.4% / −2.9%; Warren within 3pp of −24.8% | **pass**, all three exact |
+| 2. The three rows on their pre-registered totals within \$0.5B | **pass**, worst Δ \$0.000B |
+| 3. No ordinary-base row moves; no held AGI-inclusive row moves | **pass**, all seven byte-identical |
+| 4. No Tier 1 row outside the generic path moves | **pass**, all sixteen byte-identical |
+| 5. `run_loo.py --donor-matrix` byte-identical; dashboard's calibrated block identical | **pass** — `diff` on the LOO output is **empty**, and the whole dashboard diff is **one line**, the Tier 1 summary |
+| 6. A uniform per-status threshold reproduces the pooled path on the AGI measure | **pass** (test, both measures parametrised) |
+| 7. No preset outside Warren moves; Warren within \$0.05B; the six generic-shape figures unmoved | **pass** — 51 of 52 byte-identical static **and** dynamic, Warren \$0.0004B from prediction, all six shapes identical |
+| 8. CI gate `--max-mean-error 20 --min-within-25pct 21` | **exit 0** (14.7 < 20; 23 ≥ 21) |
+| 9. Anti-leakage invariant | **pass**, out-of-sample 14.7% against fitted 1.7% |
+| 10. The `income_measure` invariant and default | **pass** (three tests) |
+
+**The dashboard's health tripwire did not move**, unlike H2's — its `test_score`
+probe is the shipped default (`ordinary_income_base=True`, therefore taxable
+income), so this lane cannot reach it. That was predicted in §3.6.
+
+**Presets:** `Warren Ultra-Millionaire Surtax` **−384.371018 → −456.006646**
+(+18.64% static), dynamic **−118.913564 → −180.818233**. The other 51 score to
+the cent what they scored before, static and dynamic. Generic shapes on the
+app's own scorer, all six unchanged: 1pp all brackets −1,247.8707 / −1,379.2906,
+2pp above \$400K −225.7704 / −426.6260, 3pp above \$2M −182.5282 / −384.3710.
+
+### 6.4 Findings
+
+**1 — the ordinary-base tell got sharper, and its "corrected" column could not
+have moved.** `cold_holdout.py --ordinary-base` reads **34.6% → 32.3%** on the
+legacy (AGI-inclusive) column and **27.6% → 27.6%** on the corrected one, every
+corrected figure byte-identical. That is structural rather than lucky: forcing
+`ordinary_income_base=True` also forces the taxable column (§2), so the
+diagnostic's corrected branch is the one place this lane provably cannot reach.
+What it now shows is a *wider* gap on the three rows that moved — 8%→43%,
+2%→36% and 25%→50% legacy-to-corrected — which is the tell doing its job: the
+correction removes preferential income from a base that is now, explicitly, AGI.
+
+**2 — the class target is missed by 7.6 points and none of it is a missing
+mechanism.** The plan asks the AGI-inclusive class for ≤ 10% and it reads 17.6%.
+Of the 105.4 points of mass left, **70.3 sit on the three rows §1.2 holds**:
+`medicare_surcharge_2pp` (31.8%), whose statutory base is neither SOI column;
+and `illustrative_top_rate_5pp` (20.2%) and `illustrative_500k_2pp` (18.3%),
+whose targets carry no source URL. The two rows with a published option and a
+transcribed base read **7.4% and 2.9%**. The class figure is now dominated by
+target provenance and by one base definition, and moving the three anyway would
+read **17.8% for the tier** against the measured 14.7% — the number §1.3
+declared in advance.
+
+**3 — the repository contradicted itself about `illustrative_top_rate_5pp`'s
+base, and both statements are unsourced.** `cbo_scores.py` says *"TPC scores
+this on taxable income that includes the preferential (LTCG/QDIV) portion"*;
+`core.py`'s `known_limitations` said, since H2, *"the base is also taxable income
+where the surtax is stated on AGI"*. They cannot both be right, the target has
+no URL, and neither can be checked. The row is left on the taxable column and
+`core.py`'s bullet now records the contradiction instead of asserting one side.
+This is the fourth of H2 finding 3's four rule-of-thumb targets to turn out to
+have a second problem behind the first.
+
+**4 — composing published pooled ratios would have missed both Option 46 rows,
+in opposite directions.** H2 §3.1 sized the step with pooled marginal ratios
+(1.3820 at \$20,000, 1.3094 at \$100,000). Inside the filing-status split the
+same quantities are **1.4052** and **1.2535** — one higher, one lower, because
+the joint floor is twice the single floor and joint returns are a different
+share of the two populations. Applying the pooled ratios would have put the rows
+at about 9.0% and 1.5% instead of 7.4% and 2.9%. Both W7's own
+`known_limitations` arithmetic and this lane are on the split; H2's table is a
+sizing and says so. The general rule is the one W7 finding 3 already stated in a
+different form: a ratio measured on a pooled base is not the ratio that applies
+to a split one.
+
+**5 — three captions on one preset needed a convention, and the file already
+had one implicitly.** The Warren surtax now carries H1's base-flag caption, this
+lane's column caption and H2's projection caption. Each reconstructs **only its
+own change**, so none of the three figures is what the app printed a month ago —
+and that was already true before this lane: H2 set H1's pinned "before" to
+−\$182.5B, a figure the app never printed (it printed −\$134.6B pre-H2). Left
+alone, H1's caption would have computed its counterfactual from an AGI total and
+printed −\$216.5B, a hybrid quantity that is neither. It now divides the column
+ratio out, so the two captions read as a **chain** — −\$182.5B → −\$384.4B (the
+base flag) → −\$456.0B (the column) — and every figure in it is a total this
+tree produces. That cost one shared helper and three lines inside H1's function;
+§6.5 records it as a deviation.
+
+**6 — the defect is a unit mismatch, and naming it that way is what made the
+classification tractable.** The old branch selected returns by their **AGI** (SOI
+publishes size classes on AGI) and then subtracted the threshold from an average
+of **taxable income**. Read as "the base is a bit low" it invites a fudge factor;
+read as "these are two different quantities" it has exactly one fix, and the fix
+is per-source — which is how three of six rows moved and three did not.
+
+**7 — the invariant found nothing, which is the outcome to want.** No shipped
+surface, preset or validation record could construct `income_measure="agi"` with
+`ordinary_income_base=True`. The one caller that comes close is
+`cold_holdout.py --ordinary-base`, which forces the flag on every generic row in
+both directions; `create_policy_from_score` therefore ties the column to the
+*effective* flag rather than to the record alone, and the diagnostic keeps
+working unchanged. Had the invariant been written as a silent normalisation
+instead of a refusal, that interaction would have been invisible.
+
+### 6.5 Gates
+
+| Gate | Result |
+|---|---|
+| `ANTHROPIC_API_KEY= python -m pytest tests/ -q` | **3813 passed, 7 skipped** (3791 + this lane's 22) |
+| `python -m ruff check fiscal_model/ tests/ app.py app_pages/ components/ classroom_app.py` (CI's own scope) | **All checks passed** |
+| `python -m ruff check .` | 9 pre-existing `api.py` findings, the same nine H2 recorded as identical on `origin/main`; none introduced here and none in CI's linted scope |
+| `scripts/check_readiness.py --strict` | `ready_with_warnings`, **5 pass / 5 warn / 0 fail**. Read past the Python 3.14 runtime warning, which fails first locally and is pre-existing; the assistant warn is `ANTHROPIC_API_KEY` unset in this invocation |
+| `scripts/build_validation_headline.py --check` | **OK** — 75 published of 81, unchanged |
+| `scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 21` | **exit 0** |
+| `scripts/run_loo.py --donor-matrix` | **byte-identical** to the branch point |
+| `scripts/smoke_ask_assistant.py` | **3/3 PASS**, output pasted in §6.6 |
+
+**Three tests outside this lane needed updating and none of them was weakened.**
+
+1. `test_base_rule_contract.py::test_no_constructor_carries_its_own_literal_default`
+   is a grep gate over the whole tree for a hard-coded base default, and it
+   fired on the **text of this lane's error message**, which contained
+   `ordinary_income_base=False`. The message was reworded to name the flag
+   without a literal beside it. **The gate was not exempted** — carving an
+   exemption into the one test that would have caught H1's original defect, to
+   accommodate a string, is exactly the wrong trade.
+2. `test_package_integrity.py::test_calculate_tax_policy_result_simple_mapping`
+   failed because the new keyword argument was required. It now defaults to
+   `DEFAULT_INCOME_MEASURE`, so a caller predating the column gets the column
+   every policy used before it existed rather than a `TypeError`.
+3. `test_base_rule_contract.py::test_the_caption_states_the_move_it_explains`
+   pinned the Warren preset's scored total at H1's −\$384.371018B. The pinned
+   *caption* figures are unchanged; a separate `SCORED_TOTALS` map now carries
+   what each preset actually scores, and its comment explains the chain (finding
+   5). Nothing about H1's contract was relaxed: the three constructors still
+   have to agree, and they do.
+
+**One test failure fixed itself and is worth recording.**
+`test_offset_sign_contract.py::test_strict_readiness_reports_no_fitted_tier_regression`
+failed in the first full run and passes now, with no change to it: at 24.8% the
+Warren row crosses into **Poor**, and an *undocumented* Poor row is
+strict-blocking. Adding its `known_limitations` entry — which this lane owed
+anyway — cleared it. The gate behaved exactly as designed: a row may get worse,
+but not silently.
+
+The smoke test's output, pasted rather than summarised:
+
+```
+  PASS 1. CBO baseline (forces get_cbo_baseline)  (8.0s, tools: ['get_cbo_baseline'])
+  PASS 2. Hypothetical scoring (forces score_hypothetical_policy)  (7.0s, tools: ['score_hypothetical_policy'])
+  PASS 3. Knowledge corpus (forces search_knowledge)  (5.4s, tools: ['search_knowledge'])
+Total cost across 3 call(s): $0.0434
+Session summary: 6 turn(s) · $0.0434 · 26,448 tokens · cache-hit 67%
+```
+
+It was run because a shipped preset moved, and its three figures are unmoved by
+this lane, which is worth stating rather than leaving implied: scenario 1 reads
+the baseline, scenario 2 scores a **corporate** rate change and never reaches
+the generic branch, and scenario 3 is the knowledge corpus. **The smoke test
+does not cover the path this lane changed** — H2 recorded the same gap and
+carried a fourth scenario over; the generic and preset paths are covered by
+§6.2's sweep instead.
+
+### 6.6 Deviations from §2
+
+**One file outside §2's list was touched, and one function inside it was edited
+beyond the "one function plus one call line" allowance.**
+
+* `fiscal_model/ui/policy_execution.py`'s new keyword argument was made
+  defaulted rather than required, after a package-integrity test showed the
+  required form breaks a caller that has no opinion about the column.
+* `agi_inclusive_base_caption` (H1's, in `results_summary.py`) gained three
+  lines and shares a new module-level ratio helper with this lane's caption.
+  Finding 5 says why: left alone it would have printed a hybrid figure that is
+  neither of the two totals this tree produces. H3a's corporate-range block is a
+  different function and a different call line; the merge is still an append.
+
+Everything else in §2 was touched as planned, and H9's five validation modules,
+`docs/VALIDATION.md`, `components/results.py`, `CLAUDE.md`, `README.md` and the
+three planning docs were not opened.
+
+### 6.7 Carry-overs
+
+- **`medicare_surcharge_2pp`'s statutory base** (finding 2). Neither SOI column
+  is right for wages plus net investment income, and the AGI column would take
+  it to 68.4%. H2 carried this; it is still open and now sized.
+- **The two TPC illustrative targets** (finding 3), plus the two other
+  rule-of-thumb rows H2 finding 3 named. H9's ledger.
+- **`AGI_BASE_RULE` onto `CBOScore`** (§1.6). A field beside
+  `agi_inclusive_base` with the same three ids, once `cbo_scores.py` is free.
+- **Ask, the API's `ScoreRequest` and Tailor's manual form** cannot express an
+  AGI-stated surtax (§2). A user who types one still gets a taxable-income base.
+- **Real bracket creep** and **Option 45's 2026 bracket revert**, both H2's,
+  both untouched, both still pointing opposite ways on the same row.
+- **The CI gate.** Re-derived by the workflow's rule on 14.7% / 23 the ceiling is
+  `ceil(14.7 × 1.25) = 19 →` nearest 5 `= 20` and the floor `23 − 1 = 22`, so
+  the floor could tighten 21 → 22. That is a separate PR by the workflow's own
+  rule and not a lane's to take.
+
+---
+
+## 7. Owner items
+
+1. **The AGI-inclusive class does not reach the plan's ≤ 10%, and the remaining
+   distance is not modelling.** 70.3 of its 105.4 points sit on three rows this
+   lane holds on their own sources' words: one whose statutory base is neither
+   SOI column, and two whose targets have no document. The two rows with a
+   published option and a transcribed base read 7.4% and 2.9%. Whether the class
+   target is met by finding documents (H9) or by re-scoping it is an owner call.
+2. **`warren_ultramillionaire_surtax_3pp` at 24.8%** is a registered regression
+   against a secondhand TPC-range figure on a FY2021-2030 window scored here on
+   FY2025-2034. It is 0.2pp inside the within-25 band. Its target is one of the
+   four H2 finding 3 named; this lane took no target decision.
+3. **H2 and H2b together, or separately?** H2 raised the tier mean 15.0% → 15.6%
+   and this lane takes it to 14.7% — below where H2 found it — with 15 within 15%
+   and 23 within 25%, both better than either branch point. The plan's H2
+   falsification condition ("the tier mean rises") is satisfied by the pair and
+   not by H2 alone, which is the sequencing question H2's own §7 item 1 put to
+   the owner.
+4. **Three rows would move if a document turned up**, and their figures are
+   published in `core.py`'s `known_limitations` so the decision is legible:
+   68.4%, 41.6% and 39.2%. If any of those documents is found and says AGI, the
+   tier mean rises and the classification was still right.

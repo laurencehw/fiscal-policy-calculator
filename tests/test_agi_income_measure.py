@@ -71,7 +71,7 @@ def test_an_agi_base_refuses_the_ordinary_correction():
     on a taxable-income base is a real classification (TPC's illustrative
     surtaxes), which is why these are two attributes and not one.
     """
-    with pytest.raises(ValueError, match="requires ordinary_income_base=False"):
+    with pytest.raises(ValueError, match="requires the AGI-inclusive base"):
         _policy(income_measure=INCOME_MEASURE_AGI, ordinary_income_base=True)
 
     ok = _policy(income_measure=INCOME_MEASURE_AGI, ordinary_income_base=False)
