@@ -534,6 +534,17 @@ implement, and a new test — `test_the_distribution_engine_does_not_read_the_in
 asserts the divergence **exists**, and fails with instructions when someone closes it. Closing
 it moves who-pays tables and so is a lane of its own. **Carry-over.**
 
+**12. The classroom's tolerance boundary was decided by floating point, and this lane's number
+move exposed it.** `RelativeValidator` documents `|student − model| / |model| <= tolerance` and
+`test_classroom.py::test_relative_validation_tolerance_boundary` asserts that a student exactly
+at the tolerance passes. At the new model answer of −166.503231617789, `model × 1.05` round-trips
+to a `pct_error` of **0.050000000000000086**, and the student was failed by the sixteenth decimal
+place. The old answer happened to round the other way. `classroom/engine.py` now compares against
+`tolerance * (1 + 1e-9)`, so the documented boundary is deterministic instead of lucky; the
+margin is relative, so it cannot meaningfully widen a large tolerance. **This is a grading
+behaviour change in the 🔵 tier, small and deliberate, and it was not pre-registered** — it was
+found by the suite and is recorded here rather than folded into the base-rule story.
+
 **13. The Decision 6 caption was silent on all three presets it exists for, and only rendering
 it found that.** `TaxPolicy._ordinary_income_share` short-circuits to `1.0` when
 `ordinary_income_base` is `False` — which is exactly the state of every policy this caption
@@ -548,17 +559,6 @@ claim "its own source uses" for the millionaire surtax, which has no source. **T
 narrow and general: a caption that is computed rather than stored still needs to be rendered
 once, because "the number moved" and "the sentence about the number appears" are different
 claims.**
-
-**12. The classroom's tolerance boundary was decided by floating point, and this lane's number
-move exposed it.** `RelativeValidator` documents `|student − model| / |model| <= tolerance` and
-`test_classroom.py::test_relative_validation_tolerance_boundary` asserts that a student exactly
-at the tolerance passes. At the new model answer of −166.503231617789, `model × 1.05` round-trips
-to a `pct_error` of **0.050000000000000086**, and the student was failed by the sixteenth decimal
-place. The old answer happened to round the other way. `classroom/engine.py` now compares against
-`tolerance * (1 + 1e-9)`, so the documented boundary is deterministic instead of lucky; the
-margin is relative, so it cannot meaningfully widen a large tolerance. **This is a grading
-behaviour change in the 🔵 tier, small and deliberate, and it was not pre-registered** — it was
-found by the suite and is recorded here rather than folded into the base-rule story.
 
 ## 8. Gates
 
