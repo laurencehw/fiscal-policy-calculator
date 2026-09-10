@@ -243,6 +243,13 @@ calibration, one documented Poor revenue benchmark, two documented Poor holdout
 entries) are read off the scorecard, and the scorecard is the artefact the
 dashboard just proved unchanged. No readiness input appears in this lane's diff.
 
+`ANTHROPIC_API_KEY= python -m pytest tests/ -q` → **1 failed, 3743 passed, 7
+skipped** in 833s. The one failure is §5.4's, and it is the only one:
+`ruff check .` reports nothing on any file this lane touches (its 9 repo-wide
+findings are all pre-existing, in `api.py`). `ruff format --check .` is not a
+gate here — it would reformat **318 of 406** files on `main`, this lane's three
+included, before and after.
+
 ### 5.2 The counts landed exactly as registered
 
 | | before | after |
