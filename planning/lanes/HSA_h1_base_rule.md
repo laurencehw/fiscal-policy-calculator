@@ -564,12 +564,25 @@ claims.**
 
 | Gate | Result |
 |---|---|
-| `ANTHROPIC_API_KEY= python -m pytest tests/ -q -p no:cacheprovider` | §8.1 |
+| `ANTHROPIC_API_KEY= python -m pytest tests/ -q -p no:cacheprovider` | **3758 passed, 7 skipped, 0 failed** (12:33) — §8.1 |
+| `python scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 21` (the Tier 1 CI gate) | **exit 0**, gate unchanged |
+| `python scripts/run_validation_dashboard.py --augment-top-tail --json` | **exit 0** |
+| `python scripts/derive_policy_tags.py --check` | exit 0; the only drift reported is `ctc-expansion-2021` and `ctc-extension` falling `engine:microsim → engine:synthetic`, which the script itself names as memory pressure rather than a catalog change. **None of the five renamed or three re-based presets appears**, so no tag went stale |
 | `python -m ruff check fiscal_model/ tests/ app.py app_pages/ components/ classroom_app.py` (CI's scope) | **All checks passed** |
 | `python -m ruff check .` (repo-wide) | 9 errors, **all pre-existing in `api.py`** (one `F401`, eight `RUF100`), none from this lane, none in CI's scope |
 | `python -m ruff format --check .` | fails repo-wide on `main` too — finding 8 |
 | `python scripts/check_readiness.py --strict` | exit 2; verdict **`ready_with_warnings`, 6 pass / 4 warn / 0 fail** — §8.2 |
 | `python scripts/build_validation_headline.py --check` | **OK**, 75 published of 81 |
+
+### 8.1 The suite
+
+**3758 passed, 7 skipped, 0 failed**, with the key unset. **33 of those are the lane's own
+`tests/test_base_rule_contract.py`**: one shared default (5 tests including a grep gate over
+every constructor), four constructors returning one number (3 specifications), Ask's base
+statement and schema, the three declaring presets, the Decision 6 caption (5), the label rule
+and the AMT sign (3), and ids and old links (4 + a parametrised sweep of the retired labels).
+Six tests in four other files were **updated, not relaxed** — findings 10, 11 and 12 say which
+and why.
 
 ### 8.2 What readiness says past the runtime line
 
