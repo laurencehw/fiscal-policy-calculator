@@ -305,14 +305,17 @@ The lane is falsified if:
 
 ## 8. Outturn
 
-Three commits, in the order the rules require, plus this one:
+The three that carry the rules, in the order the rules require, and what
+followed them:
 
 | Commit | What |
 |---|---|
+| `41d627c` | the pre-registration, committed alone before any file in §2 was opened |
 | `f6d203e` | **the `retire` state** — built, tested on synthetic rows, applied to nothing |
 | `cf9eb53` | **the ledger** — six revisions and nine examined-and-left verdicts entered, scored against by nothing |
 | `63e76b8` | **the scoring** — `scenarios.py`, `CBO_SCORE_MAP` and `benchmark_sources.py` moved onto them |
-| this one | stamps both hashes into `H9_PROVENANCE_*` and writes this section |
+| `52e2a9b` | stamps both hashes into `H9_PROVENANCE_*` and writes this section |
+| then | `origin/main` and PR #141's branch merged; `docs/VALIDATION.md` written last so the two payroll sections coexist; the seven assertions §8.8.1 lists followed |
 
 **No modelling change at all.** All **81** `model_10yr_billions` are
 byte-identical, every leave-one-out **derivation** is unchanged, no constant was
