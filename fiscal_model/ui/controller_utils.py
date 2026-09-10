@@ -130,43 +130,44 @@ def render_input_guardrails(st_module: Any, tax_inputs: dict[str, Any]) -> None:
         )
 
 
+#: Headline per tier. Keyed to which *kind* of benchmark row stands behind the
+#: number, never to membership of ``CBO_SCORE_MAP`` — a fitted 0.0% and a 701%
+#: reconstruction are both "in the score map" and mean opposite things
+#: (``planning/HIGH_STAKES_ACCURACY.md`` §1.3(d)).
+_CONFIDENCE_BY_TIER: dict[str, str] = {
+    "fitted": "Calibrated — agreement by construction",
+    "reconstruction": "Unfitted reconstruction — read the error, not the tier",
+    "out_of_sample": "Out-of-sample prediction",
+    "no_row": "Exploratory — not validated",
+}
+
+
 def get_confidence_context(st_module: Any, policy: Any, result: Any) -> str:
     """
     Generate a markdown string with confidence notes about the result.
 
     Returns:
+    - A confidence headline keyed to the **tier** of the benchmark row behind
+      the policy: fitted (calibrated, bookkeeping), unfitted reconstruction,
+      pre-registered out-of-sample, or no row at all.
     - The ETI used and its academic range
     - Whether dynamic scoring was enabled
     - The baseline vintage
-    - A confidence rating: "High", "Moderate", or "Exploratory"
+    - The badge's own one-line validation note, with the figures
 
-    Checks if the policy matches a known CBO-validated policy.
+    The three tiers are never collapsed into one "validated within X%" claim
+    (CLAUDE.md, "Model maturity"). The lookup shares
+    ``preset_validation._scorecard_index``'s single per-process cache with the
+    preset badge, so it adds no second scorecard computation.
     """
     try:
-        from fiscal_model.app_data import CBO_SCORE_MAP
+        from fiscal_model.ui.preset_validation import TIER_NO_ROW, get_validation_badge
 
-        # Try to infer confidence level from policy name
         policy_name = getattr(policy, "name", "Unknown Policy")
-        is_validated = False
-        confidence = "Exploratory"
+        badge = get_validation_badge(policy_name)
+        tier = badge["tier"] if badge else TIER_NO_ROW
+        confidence = _CONFIDENCE_BY_TIER.get(tier, _CONFIDENCE_BY_TIER["no_row"])
 
-        if policy_name in CBO_SCORE_MAP:
-            is_validated = True
-            confidence = "High confidence"
-
-        # Check result error if available
-        if hasattr(result, "error_pct"):
-            error_pct = abs(result.error_pct)
-            if error_pct < 5:
-                confidence = "High confidence"
-            elif error_pct < 15:
-                confidence = "Moderate confidence"
-            else:
-                confidence = "Exploratory"
-        elif is_validated:
-            confidence = "High confidence"
-
-        # Build confidence context markdown
         eti = getattr(policy, "taxable_income_elasticity", 0.25)
         dynamic_scoring = getattr(result, "is_dynamic", False)
 
@@ -178,16 +179,19 @@ def get_confidence_context(st_module: Any, policy: Any, result: Any) -> str:
 - **Baseline:** CBO Feb 2026 economic assumptions
 """
 
-        if is_validated:
-            context += (
-                "\n- **Validation:** Corresponds to a *calibrated* CBO/JCT reference model "
-                "(parameters tuned to reproduce the official decomposition — not an "
-                "independent out-of-sample prediction)"
-            )
+        if badge:
+            # This return value is rendered as markdown, so the caption's
+            # currency has to be escaped here or Streamlit reads `$…$` as math.
+            from fiscal_model.ui.helpers import escape_markdown_dollars
+
+            caption = escape_markdown_dollars(badge["caption"])
+            context += f"\n- **Validation:** {caption}"
         else:
             context += (
-                "\n- **Validation:** Custom policy scored bottom-up (uncalibrated); treat as "
-                "directional — mean out-of-sample error on such policies is \\~8%"
+                "\n- **Validation:** No published benchmark is scored against this "
+                "policy. It is bottom-up and uncalibrated — directional only. The "
+                "closest measured claim is the pre-registered out-of-sample tier, "
+                "which spans 1.5% to 49.8% across 26 cases."
             )
 
         return context

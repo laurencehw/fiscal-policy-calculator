@@ -174,14 +174,15 @@ def render_tax_policy_inputs(
 
         badge = get_validation_badge(preset_choice)
         if badge:
-            # Every preset in this map runs a calibrated specialized
-            # validator, so a near-zero difference is agreement by
-            # construction — label it that way instead of presenting a
-            # "±0.0% (Excellent)" range that reads like an independent test.
+            # The caption is the badge's own, because the sentence depends on
+            # which *tier* the row sits in: "calibrated to reproduce this
+            # benchmark" is true of a fitted row and false of the unfitted
+            # reconstructions in the same map — one of which is 701% from its
+            # target. Printing one sentence for all of them was the defect.
+            from fiscal_model.ui.helpers import escape_markdown_dollars
+
             st_module.caption(
-                f"{badge['icon']} Matches {badge['source']} within "
-                f"{badge['signed_pct']:+.1f}% — calibrated to reproduce "
-                f"this benchmark, not an independent test."
+                f"{badge['icon']} {escape_markdown_dollars(badge['caption'])}"
             )
 
         from fiscal_model.policy_status import get_policy_status
