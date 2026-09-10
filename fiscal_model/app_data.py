@@ -162,7 +162,7 @@ CBO_SCORE_MAP = {
         "source_date": "2024",
         "notes": "Eliminate individual AMT (post-TCJA sunset baseline)",
     },
-    "⚖️ Repeal Corporate AMT (-$220B)": {
+    "⚖️ Repeal Corporate AMT (+$220B)": {
         # Sign corrected 2026-09-09. This figure read -220.0, where the
         # scorecard target (`scenarios.py`, expected_10yr 220.0), the benchmark
         # source (`benchmark_sources.py`, JCX-18-22 at +$222.2B) and the model
@@ -173,11 +173,12 @@ CBO_SCORE_MAP = {
         # `official_score` and `BuildOption.raises_revenue` is `score < 0`, so
         # a $220B cost was checkable in Build as a $220B saving.
         #
-        # The **label** still reads "-$220B" and is owed the same correction.
-        # It is the key of `ui/preset_validation.PRESET_TO_SCORECARD_ID`, and
-        # that map and its test have to move in the same commit as the rename;
-        # both belong to a sibling lane in this wave, so the rename is handed
-        # over rather than taken here. See planning/lanes/HSA_h1_base_rule.md.
+        # The **label** was renamed to match on the same day, in H6's PR —
+        # "(-$220B)" → "(+$220B)". The stable id `amt-repeal-corporate` did not
+        # move, and the old spelling is in `preset_ids.LEGACY_LABEL_ALIASES`, so
+        # every share link ever pasted still resolves. See
+        # planning/lanes/HSA_h1_base_rule.md §10 and
+        # planning/lanes/HSA_h6_no_headline_without_row.md §6.
         "official_score": 220.0,
         # JCX-18-22 scores CAMT as enacted at \\$222,248M over FY2022-2031. The
         # estimate is JCT's, not CBO's.
@@ -616,17 +617,16 @@ PRESET_POLICIES = {
         "is_amt": True,
         "amt_type": "repeal_individual",
     },
-    "⚖️ Repeal Corporate AMT (-$220B)": {
+    "⚖️ Repeal Corporate AMT (+$220B)": {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
             "Repeal the 15% corporate book minimum tax (CAMT) enacted by IRA "
             "2022. **Costs** ~\\$220B over 10 years: JCT scored enacting CAMT "
             "as a \\$222.2B revenue raiser (JCX-18-22), so repeal loses that "
-            "revenue. **Note the label**: its \"-\\$220B\" is this app's "
-            "convention for a \\$220B *deficit reduction*, which is the "
-            "opposite of what a repeal does. The official score behind it was "
-            "corrected on 2026-09-09; the label is queued for the same fix."
+            "revenue. Both the label and the official score behind it read "
+            "\"-\\$220B\" until 2026-09-09, this app's convention for a "
+            "\\$220B *deficit reduction* — the opposite of what a repeal does."
         ),
         "is_tcja": False,
         "is_corporate": False,

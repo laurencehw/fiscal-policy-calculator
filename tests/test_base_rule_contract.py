@@ -435,32 +435,31 @@ def test_repeal_corporate_amt_score_carries_the_sign_its_source_does():
     """
     from fiscal_model.validation.scenarios import AMT_VALIDATION_SCENARIOS_COMPARE
 
-    label = "⚖️ Repeal Corporate AMT (-$220B)"
+    label = "⚖️ Repeal Corporate AMT (+$220B)"
     assert CBO_SCORE_MAP[label]["official_score"] > 0
     assert AMT_VALIDATION_SCENARIOS_COMPARE["repeal_corporate_amt"]["expected_10yr"] > 0
 
 
-def test_the_repeal_corporate_amt_label_still_disagrees_with_its_own_score():
-    """A handover, asserted so it cannot be forgotten.
+def test_the_repeal_corporate_amt_label_now_agrees_with_its_own_score():
+    """The handover this test used to assert, discharged.
 
-    The label reads "-$220B" — this app's convention for a $220B deficit
-    *reduction* — beside an ``official_score`` of +220.0. The rename is owed
-    and was not taken here: the label is the key of
-    ``ui/preset_validation.PRESET_TO_SCORECARD_ID``, and that map and its own
-    test must move in the same commit as the rename, which makes it a sibling
-    lane's edit rather than this one's.
-
-    When the rename lands this test fails, which is the point: it is a
-    to-do with a failing build attached, not a comment.
+    It read, on purpose, that the label still said "-$220B" — this app's
+    convention for a $220B deficit *reduction* — beside an ``official_score``
+    of +220.0, and it failed the moment the rename landed. H6 took the rename
+    (its badge map was keyed on the label), so the assertion is inverted here
+    rather than deleted: a label that drifts back from its own score should
+    still break the build.
     """
-    label = "⚖️ Repeal Corporate AMT (-$220B)"
+    label = "⚖️ Repeal Corporate AMT (+$220B)"
     assert label in PRESET_POLICIES
+    assert label in PRESET_ID_BY_LABEL
     assert CBO_SCORE_MAP[label]["official_score"] == 220.0
-    assert "-$220B" in label, (
-        "the label was renamed. Good — now delete this test, add the old "
-        "spelling to LEGACY_LABEL_ALIASES, and re-key PRESET_TO_SCORECARD_ID "
-        "by stable id in the same commit."
-    )
+    assert "+$220B" in label
+    assert "⚖️ Repeal Corporate AMT (-$220B)" not in PRESET_POLICIES
+    # The id is frozen and the old spelling still resolves, so no pasted share
+    # link broke; ``test_every_retired_label_still_resolves`` covers the alias.
+    assert PRESET_ID_BY_LABEL[label] == "amt-repeal-corporate"
+    assert "⚖️ Repeal Corporate AMT (-$220B)" in LEGACY_LABEL_ALIASES
 
 
 # ----------------------------------------------------------- ids and old links
