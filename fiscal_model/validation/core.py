@@ -11,6 +11,8 @@ import numpy as np
 
 from ..baseline import BaselineVintage, CBOBaseline
 from ..policies import (
+    INCOME_MEASURE_AGI,
+    INCOME_MEASURE_TAXABLE_INCOME,
     CapitalGainsPolicy,
     Policy,
     PolicyType,
@@ -85,6 +87,65 @@ FILING_STATUS_THRESHOLD_RULE = (
     "amount and separate, head-of-household and single returns take the single "
     "amount, the structure of IRC section 1411(b)."
 )
+
+#: Which IRS SOI income column a record's base is read from.
+#:
+#: ``CBOScore.agi_inclusive_base`` answers a different question - *is the
+#: preferential (LTCG/QDIV) share removed?* - and is ``True`` on six records
+#: that do **not** agree about the column. SOI Table 1.1 publishes both AGI and
+#: taxable income by AGI size class, so a surtax stated on AGI was being priced
+#: by subtracting an AGI threshold from an average of taxable income: at Option
+#: 46's \$20,000 floor that is 40% of the base.
+#:
+#: This rule was fixed **before** any record was scored on the AGI column
+#: (``planning/lanes/HSB_h2b_agi_column.md`` section 1.2, committed ahead of the
+#: code) so the reading is a stated convention rather than a per-row choice. It
+#: is not the flattering one: it takes ``warren_ultramillionaire_surtax_3pp``
+#: from 5.2% to 24.8%, and the three AGI-inclusive rows it leaves alone would
+#: all score *worse* if it moved them (68.4%, 41.6% and 39.2% against 31.8%,
+#: 20.2% and 18.3%). Each is left because of what its own source says, and the
+#: lane doc publishes those would-be figures so the choice can be overturned by
+#: a document rather than by a preference.
+AGI_BASE_RULE = (
+    "A record's base is read from IRS SOI's AGI column only where its own "
+    "source states the reform on AGI in as many words. A source that states "
+    "taxable income, or that states a base which is neither SOI column - wages "
+    "plus net investment income is neither - keeps the taxable-income column, "
+    "and a record with no source document is never reclassified at all."
+)
+
+#: The records :data:`AGI_BASE_RULE` moves, each with the sentence that moved it.
+#:
+#: The honest home for this is a field on ``CBOScore`` beside
+#: ``agi_inclusive_base``; ``cbo_scores.py`` belonged to a concurrent lane when
+#: this was written, so the mapping lives here and the migration is an owner
+#: item. The three ids would be identical either way.
+_AGI_BASE_POLICY_IDS: dict[str, str] = {
+    # CBO, Options for Reducing the Deficit: 2025-2034 (pub. 60557), option 46,
+    # alternative 1, report p. 56.
+    "cbo_opt46_agi_surtax_1pp_20k": (
+        "a surtax of 1 percentage point would be imposed on AGI above $20,000 "
+        "for single filers and $40,000 for joint filers"
+    ),
+    # The same option, alternative 2, same page.
+    "cbo_opt46_agi_surtax_2pp_100k": (
+        "a surtax of 2 percentage points would be imposed on AGI above "
+        "$100,000 for single filers and $200,000 for joint filers"
+    ),
+    # The record's own description and note. Its target is secondhand (a
+    # TPC-range figure behind a bare taxpolicycenter.org URL) and this rule does
+    # not repair that - it is the row this rule makes five times worse.
+    "warren_ultramillionaire_surtax_3pp": (
+        "3 percentage point surtax on AGI above $2 million ... the surtax "
+        "applies to AGI, which contains the preferential LTCG/QDIV portion"
+    ),
+}
+
+
+def agi_base_source_sentence(score: CBOScore) -> str | None:
+    """The sentence that puts this record on the AGI column, or ``None``."""
+    return _AGI_BASE_POLICY_IDS.get(score.policy_id)
+
 
 #: Fiscal year the validation window opens on. A record may override it with
 #: ``effective_start_year`` when the *source* states a later effective date.
@@ -1017,6 +1078,17 @@ def create_policy_from_score(
     if shape == "ordinary_rate":
         if ordinary_income_base is None:
             ordinary_income_base = not score.agi_inclusive_base
+        # The AGI column only where the record's own source states AGI, and only
+        # on the AGI-inclusive base it implies. A caller that FORCES
+        # ``ordinary_income_base=True`` - which is what ``cold_holdout.py
+        # --ordinary-base`` does to every generic row, in both directions - is
+        # asking what the ordinary treatment gives, so it gets the ordinary
+        # column too; the alternative is a contradiction TaxPolicy refuses.
+        income_measure = (
+            INCOME_MEASURE_AGI
+            if (agi_base_source_sentence(score) is not None and not ordinary_income_base)
+            else INCOME_MEASURE_TAXABLE_INCOME
+        )
         return TaxPolicy(
             name=f"Validation: {score.name}",
             description=score.description,
@@ -1034,6 +1106,7 @@ def create_policy_from_score(
             start_year=start_year,
             duration_years=10,
             ordinary_income_base=ordinary_income_base,
+            income_measure=income_measure,
         )
 
     if shape == "capital_gains":

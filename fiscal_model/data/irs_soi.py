@@ -18,6 +18,16 @@ import pandas as pd
 #: spouses"*, the population that uses the IRC section 1(j)(2)(A) rate schedule.
 FILING_STATUSES: tuple[str, ...] = ("joint", "separate", "head_of_household", "single")
 
+#: The two income measures Table 1.1 and Table 1.2 both publish by AGI size
+#: class, and which one a reform is priced on is a fact about its source, not
+#: about its shape. CBO's Option 46 says *"a surtax ... would be imposed on
+#: **AGI** above $20,000"*; the 2025 rate schedule's bracket floors are
+#: statutory boundaries on **taxable** income. The same table carries both
+#: columns, so the choice costs nothing to make correctly and 40% of the base
+#: to make wrongly. See ``fiscal_model.policies_core.TaxPolicy.income_measure``
+#: and ``planning/lanes/HSB_h2b_agi_column.md``.
+INCOME_MEASURES: tuple[str, ...] = ("taxable_income", "agi")
+
 #: Table 1.2's own column-block headings, which is how the loader finds its
 #: columns - the sheet is 63 columns of five repeating 12-column blocks and
 #: hard-coded offsets would break silently if the IRS re-laid it out.
@@ -246,7 +256,13 @@ class IRSSOIData:
         self._status_bracket_cache[year] = split
         return split
 
-    def get_filers_by_status_thresholds(self, year: int, thresholds: dict[str, float]) -> dict:
+    def get_filers_by_status_thresholds(
+        self,
+        year: int,
+        thresholds: dict[str, float],
+        *,
+        income_measure: str = "taxable_income",
+    ) -> dict:
         """Aggregate filers and incomes above a *per-filing-status* threshold.
 
         ``thresholds`` maps each entry of :data:`FILING_STATUSES` to that
@@ -255,7 +271,21 @@ class IRSSOIData:
         ``by_status`` breakdown and ``marginal_income_dollars`` - the quantity a
         rate change applies to, which is *not* recoverable from the aggregate
         average once the statuses face different floors.
+
+        ``income_measure`` selects which of :data:`INCOME_MEASURES` the marginal
+        quantity is measured on. Both columns are returned either way - only
+        ``marginal_income_dollars`` and each status's ``marginal_income_dollars``
+        change - because a caller that wants the other column's average for a
+        caption or a diagnostic should not have to run the aggregation twice.
+        The threshold itself is compared against the AGI size class in both
+        cases, which is what SOI publishes; an AGI-stated reform is the one
+        where the quantity subtracted from it is then measured the same way.
         """
+        if income_measure not in INCOME_MEASURES:
+            raise ValueError(
+                f"unknown income_measure {income_measure!r}; "
+                f"expected one of {', '.join(INCOME_MEASURES)}"
+            )
         missing = [status for status in FILING_STATUSES if status not in thresholds]
         if missing:
             raise ValueError(f"threshold missing for filing status(es): {', '.join(missing)}")
@@ -282,17 +312,19 @@ class IRSSOIData:
                 tax_dollars += bracket.total_tax * 1_000_000_000.0 * share
 
             avg_taxable = taxable_dollars / filers if filers > 0 else 0.0
+            avg_agi = agi_dollars / filers if filers > 0 else 0.0
             # Mirrors the pooled path exactly: marginal income is the average
             # above the floor times the count, and a threshold of zero means the
             # whole base rather than "income above zero".
-            per_return = avg_taxable if threshold == 0 else max(0.0, avg_taxable - threshold)
+            avg_measure = avg_agi if income_measure == "agi" else avg_taxable
+            per_return = avg_measure if threshold == 0 else max(0.0, avg_measure - threshold)
             marginal = per_return * filers
 
             by_status[status] = {
                 "threshold": threshold,
                 "num_filers": filers,
                 "num_filers_millions": filers / 1_000_000.0,
-                "avg_agi": agi_dollars / filers if filers > 0 else 0.0,
+                "avg_agi": avg_agi,
                 "avg_taxable_income": avg_taxable,
                 "total_agi_billions": agi_dollars / 1_000_000_000.0,
                 "total_taxable_income_billions": taxable_dollars / 1_000_000_000.0,
@@ -317,6 +349,9 @@ class IRSSOIData:
             "total_tax_billions": totals["tax"] / 1_000_000_000.0,
             "effective_tax_rate": totals["tax"] / totals["agi"] if totals["agi"] > 0 else 0.0,
             "marginal_income_dollars": totals["marginal"],
+            # Which column ``marginal_income_dollars`` was measured on, so a
+            # caller cannot read a marginal AGI aggregate as a taxable one.
+            "income_measure": income_measure,
             "by_status": by_status,
         }
 

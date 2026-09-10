@@ -7,7 +7,10 @@ The implementation now lives in focused modules:
 """
 
 from .policies_core import (
+    DEFAULT_INCOME_MEASURE,
     DEFAULT_ORDINARY_INCOME_BASE,
+    INCOME_MEASURE_AGI,
+    INCOME_MEASURE_TAXABLE_INCOME,
     CapitalGainsPolicy,
     Policy,
     PolicyPackage,
@@ -15,6 +18,7 @@ from .policies_core import (
     SpendingPolicy,
     TaxPolicy,
     TransferPolicy,
+    income_measure_for_preset,
     ordinary_income_base_for_preset,
 )
 from .policies_factory import (
@@ -24,7 +28,10 @@ from .policies_factory import (
 )
 
 __all__ = [
+    "DEFAULT_INCOME_MEASURE",
     "DEFAULT_ORDINARY_INCOME_BASE",
+    "INCOME_MEASURE_AGI",
+    "INCOME_MEASURE_TAXABLE_INCOME",
     "CapitalGainsPolicy",
     "Policy",
     "PolicyPackage",
@@ -35,5 +42,6 @@ __all__ = [
     "create_income_tax_cut",
     "create_new_tax_credit",
     "create_spending_increase",
+    "income_measure_for_preset",
     "ordinary_income_base_for_preset",
 ]
