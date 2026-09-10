@@ -534,6 +534,21 @@ implement, and a new test — `test_the_distribution_engine_does_not_read_the_in
 asserts the divergence **exists**, and fails with instructions when someone closes it. Closing
 it moves who-pays tables and so is a lane of its own. **Carry-over.**
 
+**13. The Decision 6 caption was silent on all three presets it exists for, and only rendering
+it found that.** `TaxPolicy._ordinary_income_share` short-circuits to `1.0` when
+`ordinary_income_base` is `False` — which is exactly the state of every policy this caption
+fires for — so the counterfactual came back as "the same number", the `share >= 1.0` guard
+tripped and the caption returned `""`. The tests written first did not catch it: they asserted
+the *presets* moved, which they had. Calling the module-level `preferential_income_share`
+directly fixes it, and the caption now reproduces the pre-registered before-figures from the
+scored result alone: **−\$134.6B** at a 52.5% preferential share, **−\$166.5B** at 47.1%,
+**−\$354.6B** at 45.3%. Three tests now pin the caption to both figures of each move, one
+asserts it stays silent on three presets that did not move, and one asserts it does **not**
+claim "its own source uses" for the millionaire surtax, which has no source. **The lesson is
+narrow and general: a caption that is computed rather than stored still needs to be rendered
+once, because "the number moved" and "the sentence about the number appears" are different
+claims.**
+
 **12. The classroom's tolerance boundary was decided by floating point, and this lane's number
 move exposed it.** `RelativeValidator` documents `|student − model| / |model| <= tolerance` and
 `test_classroom.py::test_relative_validation_tolerance_boundary` asserts that a student exactly

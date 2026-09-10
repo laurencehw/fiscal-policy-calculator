@@ -41,6 +41,7 @@ from fiscal_model.pharma import (
     part_d_federal_channels,
 )
 from fiscal_model.policies import CapitalGainsPolicy, TaxPolicy
+from fiscal_model.policies_core import preferential_income_share
 from fiscal_model.ptc import (
     PTC_BASELINE_VINTAGE_LABELS,
     PTC_EXTENSION_GROSS_10YR_BILLIONS,
@@ -829,6 +830,16 @@ def _preset_declares_agi_inclusive(policy_name: str) -> bool:
     return bool(entry and entry.get("agi_inclusive_base"))
 
 
+def _cbo_score_map() -> Any:
+    """``CBO_SCORE_MAP``, or an empty mapping when the catalog will not load."""
+    try:
+        from fiscal_model.app_data import CBO_SCORE_MAP
+
+        return CBO_SCORE_MAP
+    except Exception:  # pragma: no cover — defensive
+        return {}
+
+
 def agi_inclusive_base_caption(policy: Any, result: Any) -> str:
     """One line saying the preset's base came from its source, and what moved.
 
@@ -870,19 +881,34 @@ def agi_inclusive_base_caption(policy: Any, result: Any) -> str:
     if marginal <= 0 or filers <= 0:
         return ""
 
-    # ``_ordinary_income_share`` reads the same capital-gains series the
-    # scoring path did, so this is the factor that separated the two answers.
-    share = policy._ordinary_income_share(marginal * filers, year=policy.data_year)
-    if share >= 1.0:
+    # ``preferential_income_share`` is what ``TaxPolicy._ordinary_income_share``
+    # calls once its guards pass — called directly here because those guards
+    # short-circuit to 1.0 on exactly the policies this caption fires for, whose
+    # ``ordinary_income_base`` is False. Same series, same year, same threshold
+    # as the scoring path, so this is the factor that separated the two answers.
+    pref = preferential_income_share(
+        threshold, marginal * filers / 1e9, year=policy.data_year
+    )
+    share = 1.0 - pref
+    if pref <= 0.0:
         return ""
     previous = total * share
 
+    # A preset with a published score has a document that states its base; the
+    # millionaire surtax has none, and the caption must not imply otherwise.
+    sourced = getattr(policy, "name", "") in _cbo_score_map()
+    provenance = (
+        "its own source uses"
+        if sourced
+        else "this preset declares — a design choice, since no published score of "
+        "this reform exists to read a base off"
+    )
     return (
-        f"Income base: this preset is scored on the **AGI-inclusive** base its "
-        f"own source uses — the rate applies to all income above "
+        f"Income base: this preset is scored on the **AGI-inclusive** base "
+        f"{provenance} — the rate applies to all income above "
         rf"\${threshold:,.0f}, realized capital gains and qualified dividends "
         f"included. Until 2026-09-09 it was scored on the ordinary-bracket "
-        f"base, which excludes them: that is {1 - share:.1%} of the marginal "
+        f"base, which excludes them: that is {pref:.1%} of the marginal "
         rf"income here, so the same policy printed \${previous:+,.1f}B where it "
         rf"now prints \${total:+,.1f}B. Nothing in the model changed — the "
         f"presets now carry the base attribute the validation records always "

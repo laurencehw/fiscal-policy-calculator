@@ -327,6 +327,77 @@ def test_the_millionaire_surtax_says_its_base_is_a_design_choice():
     assert "No official score" in entry["description"]
 
 
+# ------------------------------------------------------- the Decision 6 caption
+
+#: The figures each preset printed before 2026-09-09, and prints now. The
+#: caption recomputes the first from the second and the preferential-income
+#: share, so these pin both the caption and the moves it explains.
+CAPTION_MOVES = {
+    "Warren Ultra-Millionaire Surtax": (-134.612557, -283.469479),
+    "High-Earner Medicare Surcharge 2pp": (-166.503232, -314.632045),
+    "Progressive Millionaire Tax": (-354.634800, -648.092029),
+}
+
+
+@pytest.mark.parametrize(("label", "figures"), sorted(CAPTION_MOVES.items()))
+def test_the_caption_states_the_move_it_explains(label, figures):
+    """Decision 6: a shipped number that moves ships its explanation.
+
+    The old figure is **computed**, never stored — this run's own total times
+    the ordinary-income share — so the caption cannot drift from the number
+    above it. These assertions therefore pin the caption *and* the pre-registered
+    move in one place.
+    """
+    from fiscal_model.composer.composer import _build_preset_policy, _scorer_for
+    from fiscal_model.ui.tabs.results_summary import agi_inclusive_base_caption
+
+    before, after = figures
+    policy, use_real = _build_preset_policy(label, PRESET_POLICIES[label])
+    result = _scorer_for(policy, use_real).score_policy(policy, dynamic=False)
+
+    assert float(result.total_10_year_cost) == pytest.approx(after, abs=1e-5)
+
+    caption = agi_inclusive_base_caption(policy, result)
+    assert caption, f"{label} moved and must carry a caption"
+    assert "AGI-inclusive" in caption
+    assert f"{after:+,.1f}B" in caption
+    assert f"{before:+,.1f}B" in caption
+
+
+def test_the_caption_is_silent_on_every_preset_that_did_not_move():
+    from fiscal_model.composer.composer import _build_preset_policy, _scorer_for
+    from fiscal_model.ui.tabs.results_summary import agi_inclusive_base_caption
+
+    for label in ("Biden 2025 Proposal", "Flat Tax Reform", "Middle Class Tax Cut"):
+        policy, use_real = _build_preset_policy(label, PRESET_POLICIES[label])
+        result = _scorer_for(policy, use_real).score_policy(policy, dynamic=False)
+        assert agi_inclusive_base_caption(policy, result) == "", label
+
+
+def test_the_caption_does_not_claim_a_source_the_preset_does_not_have():
+    """Progressive Millionaire Tax has no published score, and must say so."""
+    from fiscal_model.composer.composer import _build_preset_policy, _scorer_for
+    from fiscal_model.ui.tabs.results_summary import agi_inclusive_base_caption
+
+    label = "Progressive Millionaire Tax"
+    policy, use_real = _build_preset_policy(label, PRESET_POLICIES[label])
+    result = _scorer_for(policy, use_real).score_policy(policy, dynamic=False)
+    caption = agi_inclusive_base_caption(policy, result)
+    assert "design choice" in caption
+    assert "its own source uses" not in caption
+
+    sourced_label = "Warren Ultra-Millionaire Surtax"
+    sourced_policy, sourced_real = _build_preset_policy(
+        sourced_label, PRESET_POLICIES[sourced_label]
+    )
+    sourced_result = _scorer_for(sourced_policy, sourced_real).score_policy(
+        sourced_policy, dynamic=False
+    )
+    sourced_caption = agi_inclusive_base_caption(sourced_policy, sourced_result)
+    assert "its own source uses" in sourced_caption
+    assert "design choice" not in sourced_caption
+
+
 # --------------------------------------------------- no headline without a row
 
 #: A claimed *score* sits in the label's trailing parenthetical by this
