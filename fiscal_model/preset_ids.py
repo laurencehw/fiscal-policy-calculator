@@ -70,7 +70,7 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
     # AMT
     "⚖️ AMT: Extend TCJA Relief ($1.36T)": "amt-extend-tcja-relief",
     "⚖️ Repeal Individual AMT ($450B)": "amt-repeal-individual",
-    "⚖️ Repeal Corporate AMT (-$220B)": "amt-repeal-corporate",
+    "⚖️ Repeal Corporate AMT (+$220B)": "amt-repeal-corporate",
     # ACA premium tax credits
     "🏥 Extend ACA Enhanced PTCs ($335B)": "aca-ptc-extend-enhanced",
     "🏥 Repeal ACA Premium Credits (-$1.1T)": "aca-ptc-repeal",
@@ -95,12 +95,12 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
     # IRS enforcement
     "🔍 IRA Enforcement Funding (-$180B)": "irs-enforcement-ira",
     "🔍 Double IRS Enforcement (-$340B)": "irs-enforcement-double",
-    "🔍 High-Income Enforcement (-$250B)": "irs-enforcement-high-income",
+    "🔍 High-Income Enforcement": "irs-enforcement-high-income",
     # Drug pricing
     "💊 Expand Drug Negotiation (-$500B)": "drug-negotiation-expand",
     "💊 Universal Insulin Cap ($11B)": "insulin-cap-universal",
     "💊 International Reference Pricing (-$100B)": "drug-reference-pricing",
-    "💊 Comprehensive Drug Reform (-$600B)": "drug-reform-comprehensive",
+    "💊 Comprehensive Drug Reform": "drug-reform-comprehensive",
     # Trade / tariffs
     "🏭 Trump Universal 10% Tariff (-$2.17T)": "tariff-universal-10pct",
     "🏭 Trump 60% China Tariff (-$500B)": "tariff-china-60pct",
@@ -110,9 +110,9 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
     # Climate / energy
     "🌱 Repeal IRA Clean Energy Credits ($783B)": "ira-clean-energy-repeal",
     "🌱 Carbon Tax \\$50/ton (-$1.7T)": "carbon-tax-50",
-    "🌱 Carbon Tax \\$25/ton (-$1.0T)": "carbon-tax-25",
+    "🌱 Carbon Tax \\$25/ton": "carbon-tax-25",
     "🌱 Repeal EV Credits ($182B)": "ev-credit-repeal",
-    "🌱 Extend IRA Credits Beyond 2032 ($400B)": "ira-clean-energy-extend",
+    "🌱 Extend IRA Credits Beyond 2032": "ira-clean-energy-extend",
 }
 
 #: Build-local ids for ``CBO_SCORE_MAP`` entries that carry an official score
@@ -141,6 +141,30 @@ SCORE_ONLY_ID_BY_LABEL: dict[str, str] = {
 #: rather than deleted: the mechanism is the right fix if a score map ever
 #: legitimately carries a second spelling.
 SCORE_ONLY_ALIAS_ID_BY_LABEL: dict[str, str] = {}
+
+#: Labels a preset used to carry, mapped to the label it carries now.
+#:
+#: Renaming a *label* is allowed and renaming an *id* is not, but a label that
+#: has already shipped is in share links people pasted, and
+#: :func:`resolve_preset` folds only the **score-suffix-stripped** form of the
+#: current label into its index — never the old suffix itself. So a rename
+#: silently breaks ``?preset=<old emoji label>`` unless the old spelling is
+#: recorded here. Entries are permanent: a link does not expire.
+#:
+#: The five below are from 2026-09-09. Four struck a dollar figure that no
+#: CBO, JCT, Treasury, CMS, CRFB, PWBM or Tax Foundation publication supports
+#: (``planning/lanes/HSA_h1_base_rule.md`` §6.2 records the search for each,
+#: including the one case — the \\$25/ton carbon tax — where a real CBO
+#: document exists at a different figure on a different decade). The fifth
+#: corrected a **sign**: JCT scores enacting the corporate AMT as a revenue
+#: raiser, so repeal costs \\$220B, and the label said it saved \\$220B.
+LEGACY_LABEL_ALIASES: dict[str, str] = {
+    "⚖️ Repeal Corporate AMT (-$220B)": "⚖️ Repeal Corporate AMT (+$220B)",
+    "🔍 High-Income Enforcement (-$250B)": "🔍 High-Income Enforcement",
+    "💊 Comprehensive Drug Reform (-$600B)": "💊 Comprehensive Drug Reform",
+    "🌱 Carbon Tax \\$25/ton (-$1.0T)": "🌱 Carbon Tax \\$25/ton",
+    "🌱 Extend IRA Credits Beyond 2032 ($400B)": "🌱 Extend IRA Credits Beyond 2032",
+}
 
 #: Scorable presets first, then the Build-local score-only ids.
 ALL_ID_BY_LABEL: dict[str, str] = {**PRESET_ID_BY_LABEL, **SCORE_ONLY_ID_BY_LABEL}
@@ -422,7 +446,12 @@ def _build_index(pairs: Mapping[str, str]) -> dict[str, str]:
     """
     candidates: dict[str, set[str]] = {}
     for label, target in pairs.items():
-        for alias in _spellings(label, ALL_ID_BY_LABEL.get(label, target)):
+        # A retired label is not itself in ``ALL_ID_BY_LABEL``; its *target* is
+        # the label that replaced it, so resolve the id through that before
+        # falling back, or ``_spellings`` would generate id-shaped aliases out
+        # of a display string.
+        preset_id = ALL_ID_BY_LABEL.get(label) or ALL_ID_BY_LABEL.get(target, target)
+        for alias in _spellings(label, preset_id):
             key = _normalize(alias)
             if key:
                 candidates.setdefault(key, set()).add(target)
@@ -434,8 +463,17 @@ def _build_index(pairs: Mapping[str, str]) -> dict[str, str]:
 
 
 #: normalised spelling -> canonical *catalog* label.
+#:
+#: Built from every current label **and** every spelling one of them used to
+#: have (:data:`LEGACY_LABEL_ALIASES`), so a share link pasted before a rename
+#: lands on the same preset. A retired label that folds to the same normalised
+#: token as a current one is dropped by ``_build_index``'s ambiguity rule
+#: rather than resolved arbitrarily.
 _ALIAS_INDEX: dict[str, str] = _build_index(
-    {label: label for label in PRESET_ID_BY_LABEL}
+    {
+        **{label: label for label in PRESET_ID_BY_LABEL},
+        **LEGACY_LABEL_ALIASES,
+    }
 )
 
 #: normalised spelling -> stable id, for the score-only Build options. Consulted
@@ -621,6 +659,7 @@ __all__ = [
     "CUSTOM_POLICY_LABEL",
     "EXCLUSIVE_GROUPS",
     "LABEL_BY_PRESET_ID",
+    "LEGACY_LABEL_ALIASES",
     "POLICY_TAGS",
     "PRESET_ID_BY_LABEL",
     "SCORE_ONLY_ALIAS_ID_BY_LABEL",
