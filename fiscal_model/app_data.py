@@ -31,16 +31,43 @@ CBO_SCORE_MAP = {
         "notes": "Extend all individual TCJA provisions beyond 2025 sunset",
     },
     "🏛️ TCJA Extension (No SALT Cap)": {
-        "official_score": 6500.0,  # ~$4.6T + $1.9T SALT
-        "source": "CBO/JCT",
+        # H9 did NOT move this target - it stays `model_estimate` and the
+        # verdict is in `target_revisions.EXAMINED_NOT_REVISED`. What the pass
+        # found is that this entry disagreed with its OWN benchmark: Build
+        # quoted \\$6,500B as a list price while `tcja_no_salt_cap` scored
+        # against \\$5,700B, and the note claimed a \\$1.9T SALT increment where
+        # the scenario assumes ~\\$1.1T. Both published figures for that
+        # increment say about \\$1.2T - CRFB's "Extend except SALT cap" row is
+        # +\\$1.2T beyond full extension, and CRS R48286's itemized-deduction
+        # row is \\$1,244.3B. Aligned to the benchmark's own target so one
+        # number is one number; the target itself is unsourced and stays so.
+        "official_score": 5700.0,
+        "source": "Model estimate (this repository's own decomposition)",
         "source_date": "2024",
-        "notes": "TCJA extension + repeal \\$10K SALT cap (~\\$1.9T additional)",
+        "notes": (
+            "TCJA extension + \\$10K SALT cap lapses (~\\$1.1T additional). "
+            "No agency scores this package as one row."
+        ),
     },
     "🏛️ TCJA Rates Only": {
-        "official_score": 3200.0,
-        "source": "CBO",
-        "source_date": "2024",
-        "notes": "Extend only individual rate bracket cuts",
+        # H9 target revision (tcja_rates_only.v2). The carried \\$3,185B - and
+        # the \\$3,200B rounding that sat here - was the repository's own
+        # decomposition of the fitted \\$4.6T aggregate; the scenario's note
+        # said so: "~\\$3.2T calibrated. This is an illustrative scenario."
+        # A single published row has existed since May 2024, in the same
+        # table, column and window this repository already reads
+        # `extend_tcja_amt`'s \\$1,357.1B from: CRS R48286 Table 1, "Reduced
+        # Individual Tax Rates", \\$2,158.7B over FY2025-2034, transcribing
+        # CBO 60114's JCT row "10%, 12%, 22%, 24%, 32%, 35%, and 37% income
+        # tax rate brackets". No summing required.
+        "official_score": 2158.7,
+        "source": "CRS R48286 Table 1 (transcribing CBO 60114/60271, JCT)",
+        "source_date": "2024-11",
+        "source_url": (
+            "https://www.congress.gov/crs_external_products/R/HTML/"
+            "R48286.web.html"
+        ),
+        "notes": "Extend only individual rate bracket cuts, FY2025-2034",
     },
     # Corporate
     "🏢 Biden Corporate 28% (CBO: -$1.35T)": {
@@ -110,10 +137,27 @@ CBO_SCORE_MAP = {
         "notes": "Return to 2009 parameters: \\$3.5M exemption, 45% rate",
     },
     "🏠 Eliminate Estate Tax ($350B)": {
-        "official_score": 350.0,  # ~$35B/yr
-        "source": "JCT",
-        "source_date": "2024",
-        "notes": "Repeal federal estate tax entirely",
+        # H9 target revision (eliminate_estate_tax.v2). The carried \\$350B was
+        # never a target - the scenario's source field read "Model estimate" -
+        # and the label still quotes it (labels are map keys; H1/H6 own the
+        # label rule). Tax Foundation, *Options for Reforming America's Tax
+        # Code 3.0* (July 2026), Option 83 "Eliminate the Estate and Gift
+        # Tax", table "10-Year Change in the Deficit, 2027-2036", printed
+        # p. 105: +\\$407.2B conventional primary deficit on the post-P.L.
+        # 119-21 baseline. Adopted over JCT's 2017 rows, which bundle repeal
+        # with the exemption doubling, and over CBO/JCT's 2015 Death Tax
+        # Repeal Act score, which prices a \\$5.43M-exemption tax.
+        "official_score": 407.2,
+        "source": "Tax Foundation (Options 3.0, Option 83)",
+        "source_date": "2026-07",
+        "source_url": (
+            "https://taxfoundation.org/tax-reform-guide/option/"
+            "eliminate-the-estate-and-gift-tax/"
+        ),
+        "notes": (
+            "Repeal federal estate tax entirely. The published row repeals "
+            "the estate **and gift** taxes over CY2027-2036."
+        ),
     },
     # Payroll Tax
     "💰 SS Cap to 90% (CBO: -$800B)": {
@@ -123,10 +167,24 @@ CBO_SCORE_MAP = {
         "notes": "Raise SS wage cap from \\$168K to ~\\$305K",
     },
     "💰 SS Donut Hole $250K (-$2.7T)": {
-        "official_score": -2700.0,
-        "source": "SS Trustees",
-        "source_date": "2024",
-        "notes": "Apply payroll tax above \\$250K (donut hole)",
+        # H9 target revision (ss_donut_250k.v2). The credited source publishes
+        # no dollars for this provision at all: SSA's Office of the Chief
+        # Actuary scores E2.5 in percent of taxable payroll (+2.50%) and moves
+        # depletion 2034 -> 2057, and the "\\$2.7 trillion over 10 years"
+        # traces to a think-tank explainer with no report year, run number or
+        # window. CBO, *Options for Reducing the Deficit: 2025 to 2034*
+        # (pub. 60557), Option 62 alternative 2, "Subject earnings greater
+        # than \\$250,000 to payroll taxes", report p. 73 (PDF p. 79):
+        # -\\$1,426.8B over FY2025-2034, on the stub "Decrease (-) in the
+        # deficit". Same design, including no benefit credit -- CBO's text
+        # says "scheduled benefits would not change under this alternative".
+        # The label still quotes -\\$2.7T; labels are map keys and H1/H6 own
+        # the label rule, so this is reported rather than renamed.
+        "official_score": -1426.8,
+        "source": "CBO, Options 2025-2034, Option 62 alternative 2",
+        "source_date": "2024-12",
+        "source_url": "https://www.cbo.gov/publication/60557",
+        "notes": "Apply payroll tax above \\$250K (donut hole), FY2025-2034",
     },
     "💰 Eliminate SS Cap (-$3.2T)": {
         "official_score": -3200.0,
@@ -212,10 +270,28 @@ CBO_SCORE_MAP = {
         "notes": "Cap exclusion at 28% rate or ~\\$25K",
     },
     "📋 Eliminate Mortgage Deduction (-$300B)": {
-        "official_score": -300.0,
-        "source": "JCT",
-        "source_date": "2024",
-        "notes": "Repeal mortgage interest deduction",
+        # H9 target revision (eliminate_mortgage.v2), a **range**
+        # [-\\$495.0B, -\\$367.9B] whose carried anchor is Tax Foundation's
+        # -\\$367.9B (*Options 3.0*, July 2026, Option 25, "10-Year Change in
+        # the Deficit, 2027-2036"). The other bound is CRS IF13190 Table 2's
+        # "Repeal MID \\$495" over FY2026-2035, computed on the Yale Budget
+        # Lab Tax-Simulator. Wave 4 left this row on the premise that the two
+        # then-known figures came from one simulator 2.4x apart; a third,
+        # independent model resolves that as a BASELINE gap - Yale's \\$1.2T
+        # is pre-P.L. 119-21, where the standard deduction lapses and the
+        # itemising population roughly doubles. The label still quotes
+        # -\\$300B; labels are map keys.
+        "official_score": -367.9,
+        "source": "Tax Foundation (Options 3.0, Option 25)",
+        "source_date": "2026-07",
+        "source_url": (
+            "https://taxfoundation.org/tax-reform-guide/option/"
+            "eliminate-the-home-mortgage-interest-deduction/"
+        ),
+        "notes": (
+            "Repeal mortgage interest deduction. Published range "
+            "[-\\$495B, -\\$367.9B]; no agency has scored repeal."
+        ),
     },
     "📋 Repeal SALT Cap ($1.17T)": {
         # Wave 4 target revision (repeal_salt_cap.v2): Penn Wharton Budget
@@ -382,10 +458,23 @@ CBO_SCORE_MAP = {
         "notes": "10% tariff on all imports, ~\\$1,700/household cost",
     },
     "🏭 Trump 60% China Tariff (-$500B)": {
-        "official_score": -500.0,
-        "source": "Tax Foundation",
-        "source_date": "2024",
-        "notes": "60% tariff on Chinese imports",
+        # H9 target revision (trump_china_60.v2). The credited publisher
+        # scores this tariff only inside a bundle, so -\\$500B was obtainable
+        # only as a residual. CRFB, "Options to Raise Tariff Revenue"
+        # (17 December 2024), table "Tariff Scenarios and Their Net Impact on
+        # Revenue", row "60% Import Tariff on Chinese Goods", conventional
+        # column: -\\$650B over FY2026-2035. The adjacent row prices the same
+        # tariff on top of a 10% universal baseline at -\\$575B, which is what
+        # makes the \\$650B row unambiguously this preset's shape. The label
+        # still quotes -\\$500B; labels are map keys.
+        "official_score": -650.0,
+        "source": "CRFB (Options to Raise Tariff Revenue)",
+        "source_date": "2024-12",
+        "source_url": "https://www.crfb.org/blogs/options-raise-tariff-revenue",
+        "notes": (
+            "60% tariff on Chinese imports. CRFB notes savings would run "
+            "about 15% lower on an FY2025-2034 window."
+        ),
     },
     "🏭 25% Auto Tariff (-$386B)": {
         # Wave 4 target revision (auto_tariff_25.v2): Tax Foundation tariff
@@ -420,10 +509,25 @@ CBO_SCORE_MAP = {
     },
     # Climate / Energy
     "🌱 Repeal IRA Clean Energy Credits ($783B)": {
-        "official_score": -783.0,
-        "source": "CBO",
-        "source_date": "March 2024",
-        "notes": "Full repeal of IRA clean energy tax credits",
+        # H9 target revision (repeal_ira_credits.v2). The cited CBO
+        # publication does not exist and -\\$783B appears in no CBO or JCT
+        # document; every figure near it is a projection of what the credits
+        # COST rather than a score of repealing them. William McBride,
+        # "Testimony: The Inflation Reduction Act's Green Energy Tax Credits",
+        # Tax Foundation, to the House Committee on Oversight and Government
+        # Reform, 20 May 2025: "full repeal of the credits would reduce
+        # deficits by \\$851 billion over the next decade (2025-2034)".
+        # Chosen over JCT's JCX-7-23 (\\$515.1B) on scope: that total is
+        # revenue-only and excludes all three clean-vehicle credits, by the
+        # document's own footnotes. The label still quotes \\$783B.
+        "official_score": -851.0,
+        "source": "Tax Foundation (McBride, House Oversight testimony)",
+        "source_date": "2025-05",
+        "source_url": (
+            "https://taxfoundation.org/testimony/"
+            "inflation-reduction-act-ira-green-energy-tax-credits/"
+        ),
+        "notes": "Full repeal of IRA clean energy tax credits, FY2025-2034",
     },
     "🌱 Carbon Tax \\$50/ton (-$1.7T)": {
         "official_score": -1700.0,

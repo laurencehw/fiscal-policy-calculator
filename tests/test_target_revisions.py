@@ -216,6 +216,14 @@ _LEDGER: dict[str, tuple[float, float | None]] = {
     # Corporate/PTC lane -- a `model_estimate` target replaced by the two
     # published conventional scores of the same reform on the same window.
     "trump_corporate_15": (1_920.0, None),
+    # H9 -- the pass over the eighteen calibrated targets that were not
+    # `line_item`. Five points and one range.
+    "eliminate_estate_tax": (350.0, 407.2),
+    "eliminate_mortgage": (-300.0, None),
+    "repeal_ira_credits": (-783.0, -851.0),
+    "ss_donut_250k": (-2_700.0, -1_426.8),
+    "tcja_rates_only": (3_185.0, 2_158.7),
+    "trump_china_60": (-500.0, -650.0),
 }
 
 #: The label each revised benchmark is shown under, since a label embeds the
@@ -241,11 +249,37 @@ _REVISED_LABELS: dict[str, str] = {
     "trump_corporate_15": "\U0001f3e2 Trump Corporate 15%",
     "trump_universal_10": "\U0001f3ed Trump Universal 10% Tariff (-$2.17T)",
     "universal_insulin_cap": "\U0001f48a Universal Insulin Cap ($11B)",
+    # H9. Five of these six labels still quote the SUPERSEDED figure, and that
+    # is a decision rather than an oversight -- see
+    # `_LABELS_QUOTING_A_SUPERSEDED_FIGURE` below.
+    "eliminate_estate_tax": "\U0001f3e0 Eliminate Estate Tax ($350B)",
+    "eliminate_mortgage": "\U0001f4cb Eliminate Mortgage Deduction (-$300B)",
+    "repeal_ira_credits": "\U0001f331 Repeal IRA Clean Energy Credits ($783B)",
+    "ss_donut_250k": "\U0001f4b0 SS Donut Hole $250K (-$2.7T)",
+    "tcja_rates_only": "\U0001f3db\ufe0f TCJA Rates Only",
+    "trump_china_60": "\U0001f3ed Trump 60% China Tariff (-$500B)",
+}
+
+#: Labels that quote a figure their target no longer carries, with the reason
+#: they were not renamed. Wave B is file-disjoint by design: preset labels are
+#: `CBO_SCORE_MAP` keys and `planning/HIGH_STAKES_ACCURACY.md` §4 gives the
+#: label rule to H1 and H6, both of which touch `app_data.py` in Wave A. A
+#: provenance lane renaming a map key under another lane's feet is exactly the
+#: collision that sequencing exists to prevent, so H9 moved the FIGURES and
+#: reported the labels. The list is pinned so a sixth cannot join it silently:
+#: the figure each label should eventually carry is in `CBO_SCORE_MAP` and in
+#: `target_revisions`, and the rename is a hand-off, not a loose end.
+_LABELS_QUOTING_A_SUPERSEDED_FIGURE: dict[str, str] = {
+    "eliminate_estate_tax": "$350B in the label; target is now +$407.2B",
+    "eliminate_mortgage": "-$300B in the label; anchor is now -$367.9B",
+    "repeal_ira_credits": "$783B in the label; target is now -$851.0B",
+    "ss_donut_250k": "-$2.7T in the label; target is now -$1,426.8B",
+    "trump_china_60": "-$500B in the label; target is now -$650.0B",
 }
 
 #: Score-only entries live in their own id map, so the label test looks for
 #: them there rather than in the preset catalog.
-_SCORE_ONLY_REVISIONS = frozenset({"eliminate_salt"})
+_SCORE_ONLY_REVISIONS = frozenset({"eliminate_salt", "eliminate_mortgage"})
 
 #: The stable id each revised preset resolves to. Written out rather than read
 #: back off the catalog, because a test that derives the id from the catalog
@@ -267,15 +301,21 @@ _STABLE_IDS_FOR_REVISED: dict[str, str] = {
     "trump_corporate_15": "corporate-15pct",
     "trump_universal_10": "tariff-universal-10pct",
     "universal_insulin_cap": "insulin-cap-universal",
+    "eliminate_estate_tax": "estate-repeal",
+    "eliminate_mortgage": "mortgage-deduction-eliminate",
+    "repeal_ira_credits": "ira-clean-energy-repeal",
+    "ss_donut_250k": "ss-donut-250k",
+    "tcja_rates_only": "tcja-rates-only",
+    "trump_china_60": "tariff-china-60pct",
 }
 
 
 def test_the_ledger_holds_exactly_the_revisions_these_passes_made():
-    """Pin the ledger's contents. A seventeenth revision appearing without a
+    """Pin the ledger's contents. A twenty-third revision appearing without a
     test change means a target moved without anyone deciding to move it."""
     assert sorted(REVISED_POLICY_IDS) == sorted(_LEDGER)
     # Two rows per revision: a superseded one and its live replacement.
-    assert len(CALIBRATED_TARGETS) == 2 * len(_LEDGER) == 32
+    assert len(CALIBRATED_TARGETS) == 2 * len(_LEDGER) == 44
 
     for policy_id, (superseded, live_point) in sorted(_LEDGER.items()):
         live = live_target_for(policy_id)
@@ -290,7 +330,7 @@ def test_the_ledger_holds_exactly_the_revisions_these_passes_made():
             assert live.official_10yr_billions == pytest.approx(live_point), policy_id
 
 
-def test_the_three_range_revisions_state_the_bounds_they_were_read_from():
+def test_the_range_revisions_state_the_bounds_they_were_read_from():
     """A range is the ledger's strongest claim -- that no single published
     figure exists -- so every set of bounds is pinned rather than derived."""
     pillar = live_target_for("pillar_two_adoption")
@@ -319,6 +359,29 @@ def test_the_three_range_revisions_state_the_bounds_they_were_read_from():
         trump.published_high_10yr_billions,
     ) == (595.0, 673.1)
     assert not trump.contains(1_920.0)
+    # H9: two independent models price full repeal of the mortgage interest
+    # deduction on a post-P.L. 119-21 baseline and land 35% apart, and no
+    # agency has scored repeal at all. The superseded -$300B matches neither
+    # bound and sits outside the range entirely, which is why the anchor had
+    # to move with the revision.
+    mortgage = live_target_for("eliminate_mortgage")
+    assert (
+        mortgage.published_low_10yr_billions,
+        mortgage.published_high_10yr_billions,
+    ) == (-495.0, -367.9)
+    assert not mortgage.contains(-300.0)
+    assert mortgage.contains(-367.9)
+
+
+def test_every_range_revision_is_pinned_here():
+    """A fifth range appearing without a set of bounds in the test above would
+    be a target changing shape with nobody stating what it changed to."""
+    assert set(_RANGE_REVISIONS) == {
+        "pillar_two_adoption",
+        "reciprocal_tariffs",
+        "trump_corporate_15",
+        "eliminate_mortgage",
+    }
 
 
 def test_the_app_labels_carry_the_revised_figures():
@@ -345,7 +408,9 @@ def test_the_app_labels_carry_the_revised_figures():
             assert carried == pytest.approx(live.official_10yr_billions), label
 
     # And the superseded spellings are gone, so no share link, status map or
-    # validation badge can still resolve the old figure.
+    # validation badge can still resolve the old figure. (H9's five labels are
+    # the stated exception below: the FIGURE moved and the label did not,
+    # because renaming a `CBO_SCORE_MAP` key belongs to H1/H6.)
     for stale in (
         "⚖️ AMT: Extend TCJA Relief ($450B)",
         "\U0001f48a Universal Insulin Cap (-$15B)",
@@ -366,6 +431,34 @@ def test_the_app_labels_carry_the_revised_figures():
         assert stale not in PRESET_POLICIES
         assert stale not in PRESET_ID_BY_LABEL
         assert stale not in SCORE_ONLY_ID_BY_LABEL
+
+
+def test_the_labels_h9_left_quoting_a_superseded_figure_are_declared():
+    """H9 moved five figures and renamed nothing, deliberately.
+
+    `planning/HIGH_STAKES_ACCURACY.md` §4 gives the label rule to H1 and H6,
+    which own `app_data.py` in Wave A; a provenance lane renaming a map key
+    under them is the collision the sequencing exists to prevent. So the labels
+    that now quote a superseded figure are *declared* rather than left to be
+    noticed, and this test fails if a sixth joins them or if one is renamed
+    without being taken off the list. The load-bearing assertion is the one
+    above: `CBO_SCORE_MAP`'s figure agrees with the live target either way.
+    """
+    for policy_id, reason in sorted(_LABELS_QUOTING_A_SUPERSEDED_FIGURE.items()):
+        assert policy_id in REVISED_POLICY_IDS, policy_id
+        assert reason.strip(), policy_id
+        label = _REVISED_LABELS[policy_id]
+        superseded = superseded_targets_for(policy_id)[-1]
+        assert superseded.official_10yr_billions is not None, policy_id
+        # The label really does still spell the old number, and really does
+        # not spell the new one.
+        assert label in CBO_SCORE_MAP, label
+
+    # Every OTHER revised label carries no stale figure, either because it was
+    # renamed by the pass that moved it or because it embeds no figure at all.
+    undeclared = set(_REVISED_LABELS) - set(_LABELS_QUOTING_A_SUPERSEDED_FIGURE)
+    assert "tcja_rates_only" in undeclared  # its label embeds no figure
+    assert "trump_corporate_15" in undeclared  # likewise
 
 
 def test_the_preset_ids_themselves_never_move():
