@@ -437,7 +437,16 @@ def collect_calibrated_tiers() -> dict[str, Any]:
         for e in specialized
         if e.target_revision_id and e.declared_calibrated_to_target
     ]
-    reconstruction = [e for e in specialized if not e.calibrated_to_target]
+    # A withdrawn target is neither fitted nor a reconstruction; ``build_report``
+    # splits it out for the same reason. Kept here only to compute the
+    # sub-populations off the same population the tier mean uses.
+    retired = [e for e in specialized if getattr(e, "target_retired", False)]
+    reconstruction = [
+        e
+        for e in specialized
+        if not e.calibrated_to_target
+        and not getattr(e, "target_retired", False)
+    ]
 
     def _agg(entries: list[Any]) -> dict[str, Any]:
         errs = sorted(e.abs_percent_difference for e in entries)
@@ -466,6 +475,13 @@ def collect_calibrated_tiers() -> dict[str, Any]:
         "fitted": report["calibrated_reference"]["summary"],
         "reconstruction": report["uncalibrated_reconstruction"]["summary"],
         "fitted_held_in_place": _agg(fitted + revised_from_fitted),
+        # Straight from build_report() again, so a withdrawal cannot read one
+        # way here and another way in cold_holdout.py.
+        "retired": report["retired_targets"]["summary"],
+        "reconstruction_retired_held_in_place": report[
+            "uncalibrated_reconstruction_retired_held_in_place"
+        ]["summary"],
+        "retired_target_ids": sorted(e.policy_id for e in retired),
         "revised_target_entries": summary.revised_target_entries,
         "revised_from_fitted_tier": sorted(
             e.policy_id for e in revised_from_fitted
@@ -509,6 +525,20 @@ def print_calibrated_tiers(tiers: dict[str, Any]) -> None:
         f"median {recon['median_abs_error']}% | "
         f"within 15%: {recon['within_15pct']}/{recon['n']}"
     )
+    retired = tiers.get("retired", {"n": 0})
+    if retired["n"]:
+        held_recon = tiers["reconstruction_retired_held_in_place"]
+        print(
+            f"  ... retired held in: n={held_recon['n']:<3} mean "
+            f"{held_recon['mean_abs_error']}% | "
+            f"median {held_recon['median_abs_error']}% | "
+            f"within 15%: {held_recon['within_15pct']}/{held_recon['n']}"
+        )
+        print(
+            f"  retired targets:     n={retired['n']:<3} mean "
+            f"{retired['mean_abs_error']}% at withdrawal  "
+            f"({', '.join(tiers['retired_target_ids'])})"
+        )
     print(f"  revised targets:     {tiers['revised_target_entries']}")
     print(
         "  Fitted rows reproduce their own targets by construction, so their mean "
@@ -517,6 +547,15 @@ def print_calibrated_tiers(tiers: dict[str, Any]) -> None:
         "puts back only those rows,\n  never a row the runner declared unfitted "
         "in the first place."
     )
+    if retired["n"]:
+        print(
+            "  A RETIRED target was withdrawn with nothing to replace it, so its "
+            "row has no\n  benchmark and leaves the reconstruction mean. "
+            "'... retired held in' is that\n  tier with those rows put back at "
+            "the error they carried on the day they were\n  withdrawn — a tier "
+            "that improved because a row was withdrawn is not a tier\n  that "
+            "improved."
+        )
 
     subs = tiers["reconstruction_sub_populations"]
     if subs:

@@ -50,6 +50,27 @@ The three consequences a revision has, all of them deliberate
    out — are reported in ``planning/lanes/PROVENANCE_amt_insulin.md``. Neither
    is quoted without the other.
 
+The third state: retirement
+---------------------------
+A supersession says *the target moved here*. An ``EXAMINED_NOT_REVISED`` verdict
+says *somebody opened the document and decided to keep the carried figure*.
+Neither can say the third thing, which is *this figure is not a score of
+anything and no published score of this policy exists to put in its place* —
+so ``retired=True`` does, mirroring :mod:`.preregistered`'s own withdrawal
+state. Three rules keep it from becoming a way to go green:
+
+* the **row stays** in this ledger and the **benchmark keeps its scorecard
+  row**. Nothing is deleted; ``planning/HIGH_STAKES_ACCURACY.md`` §5's *"no
+  removing a case to go green"* binds here as everywhere else.
+* the entry leaves the reconstruction tier's mean, because a withdrawn figure
+  is not a benchmark and an error against it measures nothing — **and** the
+  scorecard counts retired rows and the dashboard prints the same tier with
+  them folded back at the error they carried on the day they were withdrawn.
+  A mean that fell because two rows left is then a visible omission rather
+  than an invisible one.
+* ``retired_reason`` is required, and states what was searched and what would
+  bring the target back.
+
 ``entered_commit`` note: a file cannot contain its own commit hash, so rows
 added in a change are stamped with that change's hash in the immediately
 following commit — the same two-commit protocol ``preregistered.py`` uses, and
@@ -168,6 +189,20 @@ class CalibratedTarget:
         superseded_by: ``revision_id`` of the row that replaced this one. A row
             with a value here is history: it is not checked against the live
             registries and is not the target of anything.
+        retired: ``True`` when the target was **withdrawn and not replaced** —
+            the third state, distinct from both a supersession (which has a
+            replacement) and an ``EXAMINED_NOT_REVISED`` verdict (which keeps
+            the carried figure as a target). It says: *this figure is not a
+            score of anything, and no published score of this policy exists to
+            put in its place.* The row stays in the ledger, because the point
+            is that the withdrawal is visible; it is not live, is not the
+            target of anything, and the benchmark it belongs to keeps its
+            scorecard row. See :meth:`is_retired` and §4 of
+            ``planning/lanes/HSB_h9_provenance.md`` for what it does to the
+            tiers — in particular why a retired row is *counted and reported*
+            rather than quietly dropped from a mean.
+        retired_reason: Why the target was withdrawn, including what was
+            searched and what would bring it back. Required on a retired row.
         reason: Why the row was superseded (on the old row) or why it replaces
             its predecessor (on the new one). Required on both halves of a
             supersession — a target that moves without a stated reason is
@@ -192,13 +227,20 @@ class CalibratedTarget:
     published_low_10yr_billions: float | None = None
     published_high_10yr_billions: float | None = None
     superseded_by: str | None = None
+    retired: bool = False
+    retired_reason: str = ""
     reason: str = ""
     note: str = ""
 
     @property
     def is_live(self) -> bool:
-        """A row still in force: not replaced by a later row."""
-        return self.superseded_by is None
+        """A row still in force: not replaced by a later row, not withdrawn."""
+        return self.superseded_by is None and not self.retired
+
+    @property
+    def is_retired(self) -> bool:
+        """A target withdrawn with nothing to replace it."""
+        return self.retired
 
     @property
     def is_range(self) -> bool:
@@ -1616,8 +1658,31 @@ def live_target_for(policy_id: str) -> CalibratedTarget | None:
 
 
 def superseded_targets_for(policy_id: str) -> tuple[CalibratedTarget, ...]:
-    """Every retired row for one benchmark, oldest first."""
-    return tuple(t for t in revisions_for(policy_id) if not t.is_live)
+    """Every *replaced* row for one benchmark, oldest first.
+
+    Deliberately keyed on ``superseded_by`` rather than on ``not is_live``: a
+    **retired** row is also not live, and the two states mean different things.
+    A supersession says "the target moved here"; a retirement says "the target
+    should not exist and nothing replaces it". Folding the second into the
+    first would let a withdrawal read as a revision on every surface that
+    reports ``superseded_10yr_billions``.
+    """
+    return tuple(
+        t for t in revisions_for(policy_id) if t.superseded_by is not None
+    )
+
+
+def retired_target_for(policy_id: str) -> CalibratedTarget | None:
+    """The withdrawn row for one benchmark, if its target was retired."""
+    for target in revisions_for(policy_id):
+        if target.is_retired:
+            return target
+    return None
+
+
+def retired_targets() -> tuple[CalibratedTarget, ...]:
+    """Every withdrawn target in the ledger, in entry order."""
+    return tuple(t for t in CALIBRATED_TARGETS if t.is_retired)
 
 
 def target_was_revised(policy_id: str) -> bool:
@@ -1630,10 +1695,31 @@ def target_was_revised(policy_id: str) -> bool:
     return bool(superseded_targets_for(policy_id))
 
 
+def target_was_retired(policy_id: str) -> bool:
+    """Whether this benchmark's target has been **withdrawn** by this ledger.
+
+    Read by ``scorecard.py`` for the same reason ``target_was_revised`` is: a
+    constant fitted to a figure the ledger has withdrawn is not fitted to
+    anything live, so the row leaves the fitted tier. It leaves the
+    *reconstruction* tier's mean too — there is no target to be measured
+    against — which is why the scorecard counts retired rows separately and the
+    dashboard prints the reading with them folded back in. Dropping a row from
+    a mean without printing the mean it was in is how a withdrawal becomes an
+    improvement.
+    """
+    return bool(retired_target_for(policy_id))
+
+
 #: Benchmarks whose target this ledger has moved. Frozen at import so a caller
 #: can test membership without rebuilding the index.
 REVISED_POLICY_IDS: frozenset[str] = frozenset(
-    t.policy_id for t in CALIBRATED_TARGETS if not t.is_live
+    t.policy_id for t in CALIBRATED_TARGETS if t.superseded_by is not None
+)
+
+#: Benchmarks whose target this ledger has **withdrawn**. Disjoint from
+#: :data:`REVISED_POLICY_IDS` by ``target_revision_problems``'s own check.
+RETIRED_POLICY_IDS: frozenset[str] = frozenset(
+    t.policy_id for t in CALIBRATED_TARGETS if t.is_retired
 )
 
 
@@ -1652,6 +1738,10 @@ def target_revision_problems(entries: list[object] | None = None) -> list[str]:
       old figure is bookkeeping noise and hides the rows that matter. Replacing
       a point with a range counts as a move: it changes what is being asserted
       about the target even when a bound coincides with the old point;
+    * a **retired** row states a ``retired_reason``, is not also superseded,
+      and is the last word for its benchmark — nothing may be live after a
+      withdrawal, or the ledger would say both "this target does not exist"
+      and "this is the target";
     * both halves of a supersession state a reason;
     * a live row that replaced something cites a document (url, date, table,
       row, page): the whole point of moving a target is that the new one can be
@@ -1705,6 +1795,19 @@ def target_revision_problems(entries: list[object] | None = None) -> list[str]:
                 f"{target.revision_id}: states neither a point target nor a range"
             )
 
+    for target in CALIBRATED_TARGETS:
+        if not target.is_retired:
+            continue
+        if not target.retired_reason.strip():
+            problems.append(
+                f"{target.revision_id}: retired with no retired_reason"
+            )
+        if target.superseded_by is not None:
+            problems.append(
+                f"{target.revision_id}: is both retired and superseded_by "
+                f"{target.superseded_by}; a withdrawal has no replacement"
+            )
+
     for policy_id in sorted(EXAMINED_NOT_REVISED):
         if not EXAMINED_NOT_REVISED[policy_id].strip():
             problems.append(
@@ -1756,6 +1859,19 @@ def target_revision_problems(entries: list[object] | None = None) -> list[str]:
 
     for policy_id, rows in sorted(_by_policy().items()):
         live = [row for row in rows if row.is_live]
+        retired = [row for row in rows if row.is_retired]
+        if retired:
+            # A withdrawal is the last word for its benchmark. Zero live rows
+            # is the correct state here; a live row alongside one would have
+            # the ledger asserting both "this target does not exist" and "this
+            # is the target".
+            if live:
+                problems.append(
+                    f"{policy_id}: has a retired target "
+                    f"({retired[-1].revision_id}) and a live one "
+                    f"({live[0].revision_id}); a withdrawal is final"
+                )
+            continue
         if len(live) != 1:
             problems.append(
                 f"{policy_id}: expected exactly one live target, found "
@@ -1798,6 +1914,18 @@ def target_revision_problems(entries: list[object] | None = None) -> list[str]:
             continue
         live = next((row for row in rows if row.is_live), None)
         if live is None:
+            # Retired: there is no live figure for the entry to agree with, so
+            # the equality check is replaced by the requirement that the row
+            # says so. A withdrawn target that the scorecard still reports as
+            # an ordinary benchmark is exactly the silent deletion the state
+            # exists to prevent.
+            if any(row.is_retired for row in rows) and not getattr(
+                entry, "target_retired", False
+            ):
+                problems.append(
+                    f"{policy_id}: the ledger retired its target but the "
+                    "scorecard entry is not marked retired"
+                )
             continue
         carried = float(getattr(entry, "official_10yr_billions", float("nan")))
         if live.is_range:
@@ -1839,6 +1967,7 @@ __all__ = [
     "CORPORATE_PTC_PROVENANCE_ENTERED_DATE",
     "CORPORATE_PTC_PROVENANCE_FIRST_SCORED_COMMIT",
     "EXAMINED_NOT_REVISED",
+    "RETIRED_POLICY_IDS",
     "REVISED_POLICY_IDS",
     "WAVE3_PROVENANCE_ENTERED_COMMIT",
     "WAVE3_PROVENANCE_ENTERED_DATE",
@@ -1849,8 +1978,11 @@ __all__ = [
     "CalibratedTarget",
     "assert_target_revisions",
     "live_target_for",
+    "retired_target_for",
+    "retired_targets",
     "revisions_for",
     "superseded_targets_for",
     "target_revision_problems",
+    "target_was_retired",
     "target_was_revised",
 ]

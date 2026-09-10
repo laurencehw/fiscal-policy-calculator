@@ -75,6 +75,7 @@ def build_report() -> dict:
             "benchmark_date": e.benchmark_date,
             "provenance": getattr(e, "provenance", "unclassified"),
             "calibrated_to_target": getattr(e, "calibrated_to_target", True),
+            "target_retired": getattr(e, "target_retired", False),
             "known_limitations": list(e.known_limitations),
         }
         case = registered.get(e.policy_id)
@@ -98,7 +99,20 @@ def build_report() -> dict:
     # modules were never fitted to, so folding them into the calibrated mean
     # would misdescribe both tiers.
     cal = [e for e in specialized if getattr(e, "calibrated_to_target", True)]
-    recon = [e for e in specialized if not getattr(e, "calibrated_to_target", True)]
+    # A row whose target the ledger has *withdrawn* is neither fitted nor a
+    # reconstruction: there is no published figure it reconstructs, so its
+    # error measures nothing and belongs in no tier mean. It is not deleted —
+    # it gets its own block below, and ``uncalibrated_reconstruction_retired_
+    # held_in_place`` reports the reconstruction tier with these rows folded
+    # back at the error they carried when they were withdrawn, so a mean that
+    # fell because a row left is readable as such.
+    retired = [e for e in specialized if getattr(e, "target_retired", False)]
+    recon = [
+        e
+        for e in specialized
+        if not getattr(e, "calibrated_to_target", True)
+        and not getattr(e, "target_retired", False)
+    ]
 
     def _agg(entries) -> dict:
         if not entries:
@@ -144,6 +158,21 @@ def build_report() -> dict:
                 _entry_dict(e)
                 for e in sorted(recon, key=lambda x: x.abs_percent_difference)
             ],
+        },
+        # The two blocks that make a withdrawal visible. The first is what was
+        # withdrawn and what error each row carried; the second is the
+        # reconstruction tier with those rows put back, so "the tier improved"
+        # can never be a consequence of retiring rows without the arithmetic
+        # being on the same page.
+        "retired_targets": {
+            "summary": _agg(retired),
+            "entries": [
+                _entry_dict(e)
+                for e in sorted(retired, key=lambda x: x.abs_percent_difference)
+            ],
+        },
+        "uncalibrated_reconstruction_retired_held_in_place": {
+            "summary": _agg(recon + retired),
         },
     }
 
@@ -282,6 +311,39 @@ def _print_human(report: dict) -> None:
                 f"  {r_model_est} of the {r['n']} targets are model estimates rather"
                 " than published\n  scores (provenance = model_estimate)."
             )
+
+    retired = report.get("retired_targets")
+    if retired and retired["summary"]["n"]:
+        rt = retired["summary"]
+        recon_summary = report["uncalibrated_reconstruction"]["summary"]
+        held = report["uncalibrated_reconstruction_retired_held_in_place"][
+            "summary"
+        ]
+        print()
+        print("-" * 72)
+        print("RETIRED TARGETS (withdrawn: not a score of anything, no replacement)")
+        print("-" * 72)
+        print(
+            f"  {rt['n']} row(s), carrying mean abs error {rt['mean_abs_error']}%"
+            " on the day they were withdrawn."
+        )
+        for e in retired["entries"]:
+            print(
+                f"    {e['policy_id']:<34}"
+                f"{e['official_10yr_billions']:>+10.0f}"
+                f"{e['model_10yr_billions']:>+10.0f}"
+                f"{e['abs_percent_error']:>7.0f}%"
+            )
+        print(
+            "  These rows keep their scorecard entry and their model figure; what"
+            " they no\n  longer have is a target, so their error is not in the"
+            " reconstruction mean\n  above. Read the two together:"
+            f" reconstructions {recon_summary['n']}"
+            f" @ {recon_summary['mean_abs_error']}%"
+            f" vs {held['n']} @ {held['mean_abs_error']}%\n  with the retired rows"
+            " held in place. A tier that improved because a row was\n  withdrawn"
+            " is not a tier that improved."
+        )
 
 
 def _print_correction(corr: dict) -> None:

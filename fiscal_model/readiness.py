@@ -436,6 +436,21 @@ def _scorecard_checks(scorecard: Any) -> list[ReadinessCheck]:
             },
         )
 
+    # A withdrawn target must never be silent. It is already exempt from the
+    # strict rating gate by the reconstruction rule above — ``target_retired``
+    # forces ``calibrated_to_target=False``, and blocking on a row that has no
+    # target would make deleting it the cheapest way back to green — so the
+    # only thing left to guarantee is that it is *listed*. ``details`` is a
+    # plain dict on a frozen dataclass, so this annotates whichever branch
+    # fired without duplicating the key five times.
+    retired_entries = [
+        entry for entry in entries if getattr(entry, "target_retired", False)
+    ]
+    if retired_entries:
+        scorecard_check.details["retired_target_policy_ids"] = [
+            getattr(entry, "policy_id", "unknown") for entry in retired_entries
+        ]
+
     holdout_details = summarize_holdout_protocol(entries)
     holdout_failures: list[str] = []
     if holdout_details["missing_policy_ids"]:
