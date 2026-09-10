@@ -154,11 +154,11 @@ CORPORATE_PTC_PROVENANCE_FIRST_SCORED_COMMIT = (
 #: four moves a figure the runners read, so the two-commit split applies: the
 #: ledger rows land here and the commit that follows writes the figures into
 #: ``scenarios.py`` and ``CBO_SCORE_MAP``.
-H9_PROVENANCE_ENTERED_COMMIT = "b60a17e19c22c85a68d8ecb6f5be3c1a58fbd0a3"
+H9_PROVENANCE_ENTERED_COMMIT = "cf9eb539043ec578879466c1ede017e7e4f7c842"
 H9_PROVENANCE_ENTERED_DATE = "2026-09-09"
 
 #: Commit in which the H9 targets were first actually scored.
-H9_PROVENANCE_FIRST_SCORED_COMMIT = "7d4b2b1c4f4a2e0d5f8c3a9b6e1d0c7a4f2b8e35"
+H9_PROVENANCE_FIRST_SCORED_COMMIT = "63e76b8d8b978de6c6be1782ea2e54ba4f6bcd0a"
 
 
 @dataclass(frozen=True)
