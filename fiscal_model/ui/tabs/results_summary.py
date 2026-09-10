@@ -916,6 +916,64 @@ def agi_inclusive_base_caption(policy: Any, result: Any) -> str:
     )
 
 
+def income_base_projection_caption(policy: Any, result: Any) -> str:
+    """One line saying the generic base is now priced in the years being scored.
+
+    Until 2026-09-09 the generic income-tax path read IRS SOI Table 1.1 for its
+    tax year and stamped that one annual on all ten scored years — ``yr1 ==
+    yr10`` to the cent on every shape — so a FY2026-2035 question was answered
+    with a TY2023 base. It is now projected onto each scored year by the ratio
+    of the **scored baseline's own** nominal income index between the two years,
+    which on the app's February 2026 vintage averages 1.356 across FY2026-2035.
+
+    The counterfactual is **computed, not stored**: every year's contribution
+    was multiplied by that year's own factor, so dividing each year back out
+    reconstructs exactly what this policy used to print. Returns ``""`` for
+    every policy whose base did not come from SOI, and for a baseline carrying
+    no GDP path.
+    """
+    if not isinstance(policy, TaxPolicy) or isinstance(policy, CapitalGainsPolicy):
+        return ""
+    soi_year = getattr(policy, "soi_base_tax_year", None)
+    if soi_year is None:
+        return ""
+
+    baseline = getattr(result, "baseline", None)
+    years = getattr(result, "years", None)
+    if baseline is None or years is None or len(years) == 0:
+        return ""
+    index = getattr(baseline, "nominal_income_index", None)
+    if index is None:
+        return ""
+
+    anchor = float(index(int(soi_year)))
+    if anchor <= 0:
+        return ""
+
+    path = np.asarray(result.final_deficit_effect, dtype=float)
+    factors = np.array([float(index(int(year))) / anchor for year in years])
+    if not np.all(factors > 0) or np.allclose(factors, 1.0):
+        return ""
+
+    total = float(path.sum())
+    previous = float(np.sum(path / factors))
+    if total == 0.0 or previous == 0.0:
+        return ""
+
+    first, last = int(years[0]), int(years[-1])
+    return (
+        f"Base year: the filer counts and incomes behind this score are IRS SOI "
+        f"tax year {int(soi_year)}, and they are now projected onto each year "
+        f"being scored — {factors[0]:.3f}× in FY{first} rising to "
+        f"{factors[-1]:.3f}×, {factors.mean():.3f}× on the window average, off "
+        f"this baseline's own nominal path. Until 2026-09-09 the TY{int(soi_year)} "
+        f"figure was stamped on all ten years unchanged, so the same policy "
+        rf"printed \${previous:+,.1f}B where it now prints \${total:+,.1f}B. "
+        f"The index is the baseline's, not a constant, so a run on a different "
+        f"vintage or window projects differently."
+    )
+
+
 #: Classes whose behavioural offset returned the **negation** of the contract
 #: before the offset-sign sweep (2026-09-05), in every direction.
 _OFFSET_SIGN_INVERTED = (AMTPolicy, EstateTaxPolicy, PremiumTaxCreditPolicy)
@@ -1050,6 +1108,9 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     base_note = agi_inclusive_base_caption(policy, result)
     if base_note:
         st_module.caption(base_note)
+    base_year_note = income_base_projection_caption(policy, result)
+    if base_year_note:
+        st_module.caption(base_year_note)
 
     credibility_html = _build_credibility_html(getattr(scored, "credibility", None))
     if credibility_html:
