@@ -310,15 +310,9 @@ page off `official_score`, and `BuildOption.raises_revenue` is `score < 0`. Repe
 corporate AMT is currently checkable in Build as a **\$220B revenue raiser**. It is a
 \$220B cost.
 
-Both halves are corrected: label → `"⚖️ Repeal Corporate AMT (+$220B)"`, `official_score`
-→ `+220.0`.
-
-**Reported to H6, not fixed here:** `preset_validation.PRESET_TO_SCORECARD_ID` is keyed on
-the old string `"⚖️ Repeal Corporate AMT (-$220B)"`. H6's own test passes a string literal
-and so keeps passing, but the *sidebar* passes the canonical label and will therefore stop
-finding the badge until H6 re-keys its map by stable id (`amt-repeal-corporate`). That is
-the one key any rename in this lane breaks; the other four presets have no entry in that
-map.
+Both halves were to be corrected: label → `"⚖️ Repeal Corporate AMT (+$220B)"`,
+`official_score` → `+220.0`. **Only the second was.** See §7 finding 9 for why, and §10 for
+the handover.
 
 ### 6.4 Ids and links
 
@@ -340,3 +334,340 @@ attribute came from a preset that declares `agi_inclusive_base`, so it is silent
 other run and trivially separable from H13's block in the same file.
 
 ---
+
+# Outturn
+
+*Appended 2026-09-09, after implementation. Every "after" figure is from a re-run of the four
+commands in §0 on the finished branch, compared with `cmp` where "byte-identical" is claimed.*
+
+## 6. Pre-registered vs measured
+
+**Every pre-registered figure landed exactly, to six decimal places. Nothing was falsified.**
+
+**One pre-registered *action* was not completed**: the `repeal_corporate_amt` **label** rename
+(§6.3 of the pre-registration) is deferred, because it cannot be made without editing a sibling
+lane's map and test in the same commit. Its `CBO_SCORE_MAP` sign — the load-bearing half — was
+corrected. Finding 9 measures the collision; §10 hands it over.
+
+### 6.1 The three shipped presets
+
+| Preset | before | pre-registered | measured | error vs its own target |
+|---|--:|--:|--:|---|
+| Warren Ultra-Millionaire Surtax | −134.612557 | −283.469479 | **−283.469479** | 61.5% → **19.0%** (TPC −350.0) |
+| High-Earner Medicare Surcharge 2pp | −166.503232 | −314.632045 | **−314.632045** | 46.3% → **1.5%** (Treasury −310.0) |
+| Progressive Millionaire Tax | −354.634800 | −648.092029 | **−648.092029** | no target — §1.3 |
+
+Dynamic totals moved with them: Warren +98.204033 → **−29.009870**, Medicare surcharge
+−0.131447 → **−126.723105**, Progressive Millionaire +52.334960 → **−198.455122**. All three
+were positive or nil on the dynamic view before and are negative now, which is the arithmetic of
+a static effect that roughly doubled against a debt-service term that did not.
+
+### 6.2 Ask's generic path
+
+| Shape | before | pre-registered | measured |
+|---|--:|--:|--:|
+| 1pp all brackets | −1,017.211911 | −920.291193 | **−920.291193** |
+| 2pp above \$400K | −314.632045 | −166.503232 | **−166.503232** |
+| 3pp above \$2M | −283.469479 | −134.612557 | **−134.612557** |
+
+And the prediction recorded in case it was wrong: the capability gate's
+`headline_estimate_billions` — the figure the assistant is instructed to quote — **did not move
+on any of the three** (−960.0, −310.0, −350.0 before and after). The gate interpolates between
+published benchmarks and never reads the engine estimate, so what changed is the
+`raw_engine_estimate_billions` beside it, plus the new `income_base` field.
+
+### 6.3 Tailor did not move, and neither did the composer
+
+`2pp above $400K` through the Tailor constructor is **−166.503232 before and after**, to the
+cent, with the box on its seeded default. So is the composer path, on all three shapes. The
+defect was that Ask silently disagreed with them, and it is Ask that moved.
+
+### 6.4 Zero validation rows moved
+
+| Run | Result |
+|---|---|
+| `cold_holdout.py --json` | **byte-identical** (`cmp` clean, 119,989 bytes) |
+| `run_loo.py --donor-matrix` | **byte-identical** (`cmp` clean) |
+| `run_validation_dashboard.py` | identical **but for one line** — the health tripwire, below |
+| 52 presets × static/dynamic | rename-blind value multiset differs in **exactly the three pairs of §6.1** |
+| `build_validation_headline.py --check` | OK: 75 published of 81, unchanged |
+
+The dashboard's whole diff:
+
+```
+9c9
+<   model      [        ok]   test_score=-15.7
+---
+>   model      [        ok]   test_score=-8.3
+```
+
+Every scorecard, calibrated, leave-one-out and distributional block is character-for-character
+what it was. That is the falsification test §4 named, and it passes.
+
+### 6.5 The collateral, as measured
+
+| Site | pre-registered | measured |
+|---|---|---|
+| `fiscal_model/health.py` tripwire | −15.7 → −8.3 | **−15.7 → −8.3** |
+| `classroom/engine.py` 2.6pp>\$400K | −409.021659 → −216.454201 | **−409.021659 → −216.454201** |
+| `bill_tracker/auto_scorer.py` 2pp>\$400K | −314.632045 → −166.503232 | **−314.632045 → −166.503232** |
+| `api.py` `/score` custom | no change | **no change** — the Pydantic default was already `True` |
+| `api.py` `/score/preset` | moves for §6.1's three only | as expected |
+| `validation/core.py` | must not move | **did not** — `cold_holdout` byte-identical |
+
+## 7. Findings the plan did not name
+
+**1. The specialized modules carry the attribute and never read it — 36 of the 52 presets.**
+Flipping the dataclass default changed `ordinary_income_base` on every preset policy object that
+subclasses `TaxPolicy`, which is 36 of the 52, and **not one of their scores moved**, because
+`AMTPolicy`, `EstateTaxPolicy`, `TariffPolicy`, `DrugPricingPolicy` and the rest override the
+static-revenue path entirely. The lane's own comparison had to be made rename-blind and
+value-based to see this: comparing preset dicts key by key reported 36 "moved" presets whose
+figures were identical to the cent. A field 36 policies carry and none reads will make the next
+default flip look dangerous and be inert — and the reverse trap is the real one: one day it will
+look inert and not be.
+
+**2. `_build_preset_policy`'s rate heuristic cannot express a 1pp preset.** The composer reads
+`raw / 100.0 if abs(raw) > 1 else raw`, so a preset declaring `rate_change: 1.0` — one
+percentage point, in the units every other preset uses — is scored as a **100-point** rate
+change. The lane hit this building its own synthetic comparison, which returned −\$92,029B. No
+shipped preset is affected (`0 < |rate_change| <= 1` matches none of the 52), so nothing is
+broken today; the heuristic is a latent trap for anyone adding a sub-1pp preset, and `api.py`
+carries the identical line. **Carry-over.**
+
+**3. The classroom's Laffer hint was already outside its own tolerance, in both directions.**
+`classroom/assignments/laffer_curve.yaml`'s level-3 hint reads "The model score for a 2pp
+increase on \$400K+ income is roughly −\$250 to −\$280B ... Try entering ~\$260B", graded
+`relative_to_model` on `total_static_cost` at **±2%**. The model's static answer was
+**−359.579** before this lane and is **−190.289** after. A student following the hint failed the
+check before and fails it after; this lane changed which side of the hint the answer sits on and
+did not create the gap. **Not edited**: moving hint prose onto a model number is fitting the
+lesson to the output, and it is a content decision with an owner. **Carry-over, owner item.**
+
+**4. The label rule needed a narrower reading than "no dollar figure in the label".** The first
+version of the test flagged `🌱 Carbon Tax \$25/ton`, whose "$25/ton" is the policy's own *rate*,
+not a claimed score. The rule the plan states is about a claimed ten-year score, which by this
+catalog's convention lives in the label's **trailing parenthetical** — "(CBO: \$4.6T)",
+"(−\$374B)". The shipped test reads only that suffix, and says so, so `25% Auto Tariff` and both
+carbon taxes are not false positives. H6 will want the same narrowing in its own enforcement
+test.
+
+**5. Only one of the four struck figures has a document, and it is not close.** §6.2 of the
+pre-registration records the search. Three have no published estimate at any dose or scope — and
+for High-Income Enforcement the record is sharper than "not found": CBO's *larger* published
+dose (\$40B of funding) yields **−\$63B** of deficit against this label's **−\$250B**, so no
+rescaling of a published row reaches it. The carbon tax's real CBO/JCT option scores −\$865B on
+FY2023–2032 and CRFB's February 2025 re-scoring puts the same design at \$960B on FY2026–2035;
+the label said −\$1.0T on neither window. **Registrable by H9, at a figure the label never quoted.**
+
+**6. `preset_ids` had no mechanism for a retired *catalog* label, and its own docstring had
+noticed.** `SCORE_ONLY_ALIAS_ID_BY_LABEL` was kept as an empty dict against exactly this need,
+but it covers only Build-local score-only ids. `_spellings` folds the score-suffix-**stripped**
+form of the current label into the index, which resolves `?preset=Comprehensive Drug Reform` but
+not `?preset=💊 Comprehensive Drug Reform (-$600B)` — the form an actual old link carries.
+`LEGACY_LABEL_ALIASES` closes it, and `_build_index` now resolves a retired label's id through
+its successor rather than generating id-shaped aliases out of a display string. Ten spellings of
+the five retired labels are asserted to resolve.
+
+**7. `scripts/smoke_ask_assistant.py` crashes on Windows before printing its summary.** Its
+per-scenario token line contains `≈`, which the default `cp1252` console encoding cannot encode,
+so the script dies with `UnicodeEncodeError` after the *first* scenario — exit 1 on a run whose
+scenarios all passed. `PYTHONIOENCODING=utf-8` is the workaround and produced §9's output. Not
+fixed here: `scripts/` belongs to no Wave A lane and the defect is orthogonal. **Carry-over.**
+
+**8. `ruff format --check` fails repo-wide on `main` and is not a CI gate.** 317 files would be
+reformatted at the pinned `ruff==0.15.8`, five of them files this lane touched — and all five
+would have been reformatted **before** this lane touched them (checked with
+`git show HEAD:<path> | ruff format --check`). CI runs `ruff check` only, over
+`fiscal_model/ tests/ app.py app_pages/ components/ classroom_app.py`, which **passes**. No
+formatting was applied, because a 317-file diff is not this lane's to ship. **Carry-over.**
+
+**9. The plan asked for the `repeal_corporate_amt` label rename in this PR, and Wave A's
+file-disjointness makes that impossible. The rename is deferred; the sign fix is not.**
+The plan's §3 H6 says "*Also fix, in H1's PR*: the `repeal_corporate_amt` label and its
+`CBO_SCORE_MAP` sign", and §4 says Wave A lanes must be file-disjoint. For this one preset the
+two requirements contradict, because the label **is** a key of H6's
+`ui/preset_validation.PRESET_TO_SCORECARD_ID`:
+
+- `tests/test_preset_validation.py::test_every_mapped_preset_exists_in_preset_policies` asserts
+  every key of that map is a key of `PRESET_POLICIES`. Renaming the label **fails it**.
+- `tests/test_preset_validation.py::test_badge_lookup_is_cached` passes the *old* string
+  literal and counts cache hits. Re-keying the map to the new label **fails that one instead**.
+
+So the map and its test have to move in the same commit as the rename, and both are H6's. The
+lane's pre-registration had predicted only the second test and predicted it would survive; the
+first was missed, and the full suite is what found it — which is the argument for running the
+suite before believing a file-ownership boundary holds.
+
+**What shipped instead**: `CBO_SCORE_MAP`'s `official_score` −220.0 → **+220.0**, which is the
+load-bearing half (`build_catalog` totals Build packages off it), plus a description saying in
+the app that the label's "−$220B" is this app's convention for a *deficit reduction* and is the
+opposite of what a repeal does. The label still reads `(-$220B)`. That is a visible
+inconsistency for one PR, and it is the better of the two available states: the number people
+add up is now right, where before both the label and the number were wrong.
+`tests/test_base_rule_contract.py::test_the_repeal_corporate_amt_label_still_disagrees_with_its_own_score`
+**asserts the inconsistency**, with a failure message naming the three edits the rename needs —
+a to-do with a failing build attached rather than a comment. §10 owner item 1.
+
+**10. Five tests encoded the old default, and two of them were not about the default at all.**
+`test_cold_holdout.py::test_ordinary_income_base_flag` and two `test_policies.py` arithmetic
+tests asserted the whole-base identity through the *implicit* default, so they now say
+`ordinary_income_base=False` explicitly — which is what they always meant, since an arithmetic
+test should not depend on a live capital-gains data file. A new companion,
+`test_ordinary_income_base_reduces_the_bracket_base`, covers the share they were silently
+folding in. The other two are separate findings, 11 and 12.
+
+**11. `DistributionalEngine` does not read `ordinary_income_base` — the same policy object gives
+a revenue score and a who-pays table on two different bases, about 2.6x apart.**
+`test_distribution.py::test_synthetic_path_tracks_soi_static_for_top_rate` builds one policy and
+feeds it to both the distribution engine and the scorer, asserting they track within 2x. The
+scorer honours the base and the engine ignores it, so at a \$400,000 threshold the synthetic
+table totals \$50.0B/yr against the scorer's \$19.4B/yr — **2.57x**, and the test failed.
+
+Nothing shipped is wrong today: the seven published distributional benchmarks are scored on
+their own registered universes, and the dashboard's distributional block is character-identical
+before and after this lane, which is itself the proof the engine never read the flag. But a user
+reading a revenue score and a who-pays table off one run is reading two bases.
+
+**The band was not widened.** The comparison is now pinned to the base *both* engines
+implement, and a new test — `test_the_distribution_engine_does_not_read_the_income_base` —
+asserts the divergence **exists**, and fails with instructions when someone closes it. Closing
+it moves who-pays tables and so is a lane of its own. **Carry-over.**
+
+**12. The classroom's tolerance boundary was decided by floating point, and this lane's number
+move exposed it.** `RelativeValidator` documents `|student − model| / |model| <= tolerance` and
+`test_classroom.py::test_relative_validation_tolerance_boundary` asserts that a student exactly
+at the tolerance passes. At the new model answer of −166.503231617789, `model × 1.05` round-trips
+to a `pct_error` of **0.050000000000000086**, and the student was failed by the sixteenth decimal
+place. The old answer happened to round the other way. `classroom/engine.py` now compares against
+`tolerance * (1 + 1e-9)`, so the documented boundary is deterministic instead of lucky; the
+margin is relative, so it cannot meaningfully widen a large tolerance. **This is a grading
+behaviour change in the 🔵 tier, small and deliberate, and it was not pre-registered** — it was
+found by the suite and is recorded here rather than folded into the base-rule story.
+
+## 8. Gates
+
+| Gate | Result |
+|---|---|
+| `ANTHROPIC_API_KEY= python -m pytest tests/ -q -p no:cacheprovider` | §8.1 |
+| `python -m ruff check fiscal_model/ tests/ app.py app_pages/ components/ classroom_app.py` (CI's scope) | **All checks passed** |
+| `python -m ruff check .` (repo-wide) | 9 errors, **all pre-existing in `api.py`** (one `F401`, eight `RUF100`), none from this lane, none in CI's scope |
+| `python -m ruff format --check .` | fails repo-wide on `main` too — finding 8 |
+| `python scripts/check_readiness.py --strict` | exit 2; verdict **`ready_with_warnings`, 6 pass / 4 warn / 0 fail** — §8.2 |
+| `python scripts/build_validation_headline.py --check` | **OK**, 75 published of 81 |
+
+### 8.2 What readiness says past the runtime line
+
+Python 3.14 trips `runtime` first and exits 2 locally, which is the trap PR #119 §7.5 recorded.
+Read past it: **zero failures**, and all four warnings are pre-existing —
+`runtime` (3.14.0 outside `>=3.10,<3.14`), `microdata` (SOI 2023 calibration degraded),
+`revenue_scorecard` (a documented Poor outlier) and `holdout_protocol` (`repeal_ptc` and
+`pwbm_39_with_stepup`, documented Poor outliers carried since Wave 7). Because
+`cold_holdout.py --json` is byte-identical, no scorecard state moved, so none of the three
+scorecard-derived warnings can be this lane's.
+
+## 9. The Ask smoke test
+
+A scored number moved and the tool's signature changed, so §3's rule 6 requires re-running
+`scripts/smoke_ask_assistant.py` against the live API. **3 of 3 pass, \$0.0317.** The output,
+never the key:
+
+```
+Model: claude-sonnet-4-6
+Knowledge dir: .../fiscal_model/assistant/knowledge
+Web search: off
+
+==============================================================================
+1. CBO baseline (forces get_cbo_baseline)
+==============================================================================
+A: Under the loaded baseline[^1]:
+
+- **Cumulative 10-year deficit (2025–2034):** \$29.5 trillion
+- **Debt-to-GDP at end of window (2034):** **103.8%**
+
+Both figures reflect the app's CBO baseline before any policy changes are applied.
+Tool calls: ['get_cbo_baseline']
+Stripped citation markers: []
+Tokens: in=1,569 out=157 cache_w=0 cache_r=6,866 | cost ≈ $0.00912 | elapsed 8.6s
+
+==============================================================================
+2. Hypothetical scoring (forces score_hypothetical_policy)
+==============================================================================
+A: Raising the corporate rate from 21% to 25% is estimated to **reduce the deficit by
+\$798.4 billion** over FY2025–2034[^1], per this app's calibrated corporate-tax module.
+The result is benchmarked against JCT/CBO's scored +1 pp option (\$135.7 billion/pp)[^2]
+and interpolated alongside Treasury's 21%→28% score (\$1,347 billion)[^3], with the
+module agreeing within ~8%.
+Tool calls: ['score_hypothetical_policy']
+Stripped citation markers: []
+Tokens: in=1,756 out=323 cache_w=0 cache_r=6,866 | cost ≈ $0.01217 | elapsed 8.2s
+
+==============================================================================
+3. Knowledge corpus (forces search_knowledge)
+==============================================================================
+A: The 2025 SSA Trustees Report projects the **OASI trust fund will be depleted in
+2033**.[^1] At that point, incoming payroll-tax revenues would cover approximately
+**77% of scheduled benefits**.[^1]
+Tool calls: ['search_knowledge']
+Stripped citation markers: []
+Tokens: in=1,871 out=180 cache_w=0 cache_r=6,866 | cost ≈ $0.01037 | elapsed 6.0s
+
+==============================================================================
+SUMMARY
+==============================================================================
+  PASS 1. CBO baseline (forces get_cbo_baseline)  (8.6s, tools: ['get_cbo_baseline'])
+  PASS 2. Hypothetical scoring (forces score_hypothetical_policy)  (8.2s, tools: ['score_hypothetical_policy'])
+  PASS 3. Knowledge corpus (forces search_knowledge)  (6.0s, tools: ['search_knowledge'])
+
+Total cost across 3 call(s): $0.0317
+Session summary: 6 turn(s) · $0.0317 · 26,454 tokens · cache-hit 80%
+```
+
+Scenario 2 is a **corporate** hypothetical, which routes to `CorporateTaxPolicy` and therefore
+carries no income base — the new `income_base` / `income_base_note` fields are added only for
+`policy_type == "income_tax"`, because the corporate module prices profits and a spending path
+has no income base at all. The individual-rate case is covered by
+`tests/test_base_rule_contract.py::test_ask_states_which_base_produced_the_number`, which
+asserts both values of the field and that the two bases do not return one number.
+
+The run also surfaced finding 7: the script needs `PYTHONIOENCODING=utf-8` on Windows or it
+exits 1 partway through a passing run.
+
+## 10. Carry-overs and owner items
+
+**Carry-overs**, none blocking and none this lane's to take:
+
+1. `_build_preset_policy`'s `abs(raw) > 1` rate heuristic cannot express a sub-1pp preset; the
+   identical line is in `api.py`. Finding 2.
+2. `classroom/assignments/laffer_curve.yaml`'s level-3 hint sits outside its own ±2% tolerance,
+   and did before this lane. Finding 3 — **owner item**, it is a content decision.
+3. `scripts/smoke_ask_assistant.py` crashes on Windows on `≈` before its summary. Finding 7.
+4. `ruff format --check` fails on 317 files repo-wide; not a CI gate. Finding 8.
+5. The carbon tax's real CBO/JCT option (−\$865B, FY2023–2032) and CRFB's \$960B re-scoring are
+   **registrable** — H9's ledger, Wave B.
+
+**Owner items:**
+
+1. **The `repeal_corporate_amt` label rename is owed and is a three-file commit no Wave A lane
+   can make alone.** Finding 9. Whoever takes it must, in **one** commit:
+   - `fiscal_model/app_data.py` — rename the key in `CBO_SCORE_MAP` and `PRESET_POLICIES` to
+     `"⚖️ Repeal Corporate AMT (+$220B)"` and drop the "queued for the same fix" clause from the
+     description;
+   - `fiscal_model/preset_ids.py` — rename the `PRESET_ID_BY_LABEL` key (the slug
+     `amt-repeal-corporate` **does not change**) and add the old spelling to
+     `LEGACY_LABEL_ALIASES`;
+   - `fiscal_model/ui/preset_validation.py` **and** `tests/test_preset_validation.py` — re-key
+     `PRESET_TO_SCORECARD_ID` and update the string literal in `test_badge_lookup_is_cached`;
+   - `tests/test_base_rule_contract.py` — delete
+     `test_the_repeal_corporate_amt_label_still_disagrees_with_its_own_score`, which fails on
+     purpose once the rename lands and whose message says all of the above.
+
+   The natural owner is **H6**, since two of the four files are already its own. A deviation
+   from the plan's "in H1's PR" instruction, with the reason measured rather than asserted.
+2. **The Build catalog's Repeal Corporate AMT row flips sign**, from a \$220B revenue raiser to a
+   \$220B cost. It is a correction, not a model movement, and no Decision 6 caption is owed
+   because no *scored* number moved — but it changes what a Build package totals, so the owner
+   should know it rides in this PR.
+3. **A grading rule moved in the 🔵 tier**, unpre-registered: `classroom/engine.py` now honours
+   its own documented "exactly at tolerance passes" boundary instead of leaving it to floating
+   point. Finding 12. Small, but it is a change to how student answers are marked.

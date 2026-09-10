@@ -162,16 +162,22 @@ CBO_SCORE_MAP = {
         "source_date": "2024",
         "notes": "Eliminate individual AMT (post-TCJA sunset baseline)",
     },
-    "⚖️ Repeal Corporate AMT (+$220B)": {
-        # Sign corrected 2026-09-09. Both this figure and the label read
-        # -220.0, where the scorecard target (`scenarios.py`, expected_10yr
-        # 220.0), the benchmark source (`benchmark_sources.py`, JCX-18-22 at
-        # +$222.2B) and the model itself (+$220.1B) all carry **+**220.0. JCT
-        # scores enacting CAMT as a revenue raiser, so repealing it *costs*
-        # the deficit that amount. The number is load-bearing rather than
-        # cosmetic: `deficit_target.build_catalog` drives the Build page off
+    "⚖️ Repeal Corporate AMT (-$220B)": {
+        # Sign corrected 2026-09-09. This figure read -220.0, where the
+        # scorecard target (`scenarios.py`, expected_10yr 220.0), the benchmark
+        # source (`benchmark_sources.py`, JCX-18-22 at +$222.2B) and the model
+        # itself (+$220.1B) all carry **+**220.0. JCT scores enacting CAMT as a
+        # revenue raiser, so repealing it *costs* the deficit that amount. The
+        # number is load-bearing rather than cosmetic:
+        # `deficit_target.build_catalog` drives the Build page off
         # `official_score` and `BuildOption.raises_revenue` is `score < 0`, so
         # a $220B cost was checkable in Build as a $220B saving.
+        #
+        # The **label** still reads "-$220B" and is owed the same correction.
+        # It is the key of `ui/preset_validation.PRESET_TO_SCORECARD_ID`, and
+        # that map and its test have to move in the same commit as the rename;
+        # both belong to a sibling lane in this wave, so the rename is handed
+        # over rather than taken here. See planning/lanes/HSA_h1_base_rule.md.
         "official_score": 220.0,
         # JCX-18-22 scores CAMT as enacted at \\$222,248M over FY2022-2031. The
         # estimate is JCT's, not CBO's.
@@ -610,16 +616,17 @@ PRESET_POLICIES = {
         "is_amt": True,
         "amt_type": "repeal_individual",
     },
-    "⚖️ Repeal Corporate AMT (+$220B)": {
+    "⚖️ Repeal Corporate AMT (-$220B)": {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
             "Repeal the 15% corporate book minimum tax (CAMT) enacted by IRA "
             "2022. **Costs** ~\\$220B over 10 years: JCT scored enacting CAMT "
             "as a \\$222.2B revenue raiser (JCX-18-22), so repeal loses that "
-            "revenue. The label read '-\\$220B' until 2026-09-09, which is "
-            "this app's convention for a \\$220B *deficit reduction* — the "
-            "opposite of what a repeal does."
+            "revenue. **Note the label**: its \"-\\$220B\" is this app's "
+            "convention for a \\$220B *deficit reduction*, which is the "
+            "opposite of what a repeal does. The official score behind it was "
+            "corrected on 2026-09-09; the label is queued for the same fix."
         ),
         "is_tcja": False,
         "is_corporate": False,

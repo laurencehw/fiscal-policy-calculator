@@ -70,7 +70,7 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
     # AMT
     "⚖️ AMT: Extend TCJA Relief ($1.36T)": "amt-extend-tcja-relief",
     "⚖️ Repeal Individual AMT ($450B)": "amt-repeal-individual",
-    "⚖️ Repeal Corporate AMT (+$220B)": "amt-repeal-corporate",
+    "⚖️ Repeal Corporate AMT (-$220B)": "amt-repeal-corporate",
     # ACA premium tax credits
     "🏥 Extend ACA Enhanced PTCs ($335B)": "aca-ptc-extend-enhanced",
     "🏥 Repeal ACA Premium Credits (-$1.1T)": "aca-ptc-repeal",
@@ -151,15 +151,18 @@ SCORE_ONLY_ALIAS_ID_BY_LABEL: dict[str, str] = {}
 #: silently breaks ``?preset=<old emoji label>`` unless the old spelling is
 #: recorded here. Entries are permanent: a link does not expire.
 #:
-#: The five below are from 2026-09-09. Four struck a dollar figure that no
+#: The four below are from 2026-09-09. Each struck a dollar figure that no
 #: CBO, JCT, Treasury, CMS, CRFB, PWBM or Tax Foundation publication supports
 #: (``planning/lanes/HSA_h1_base_rule.md`` §6.2 records the search for each,
 #: including the one case — the \\$25/ton carbon tax — where a real CBO
-#: document exists at a different figure on a different decade). The fifth
-#: corrected a **sign**: JCT scores enacting the corporate AMT as a revenue
-#: raiser, so repeal costs \\$220B, and the label said it saved \\$220B.
+#: document exists at a different figure on a different decade).
+#:
+#: A fifth rename is **owed and not taken**: "Repeal Corporate AMT (-\\$220B)"
+#: reads a saving where the model, the scorecard target and JCT all read a
+#: \\$220B cost. Its ``CBO_SCORE_MAP`` sign is corrected, but the label is the
+#: key of ``ui/preset_validation.PRESET_TO_SCORECARD_ID``, whose map and whose
+#: test must move in the same commit — and both belong to a sibling lane.
 LEGACY_LABEL_ALIASES: dict[str, str] = {
-    "⚖️ Repeal Corporate AMT (-$220B)": "⚖️ Repeal Corporate AMT (+$220B)",
     "🔍 High-Income Enforcement (-$250B)": "🔍 High-Income Enforcement",
     "💊 Comprehensive Drug Reform (-$600B)": "💊 Comprehensive Drug Reform",
     "🌱 Carbon Tax \\$25/ton (-$1.0T)": "🌱 Carbon Tax \\$25/ton",
