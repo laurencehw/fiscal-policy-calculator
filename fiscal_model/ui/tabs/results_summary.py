@@ -965,7 +965,7 @@ def income_base_projection_caption(policy: Any, result: Any) -> str:
         f"Base year: the filer counts and incomes behind this score are IRS SOI "
         f"tax year {int(soi_year)}, and they are now projected onto each year "
         f"being scored — {factors[0]:.3f}× in FY{first} rising to "
-        f"{factors[-1]:.3f}×, {factors.mean():.3f}× on the window average, off "
+        f"{factors[-1]:.3f}× in FY{last}, {factors.mean():.3f}× on the window average, off "
         f"this baseline's own nominal path. Until 2026-09-09 the TY{int(soi_year)} "
         f"figure was stamped on all ten years unchanged, so the same policy "
         rf"printed \${previous:+,.1f}B where it now prints \${total:+,.1f}B. "

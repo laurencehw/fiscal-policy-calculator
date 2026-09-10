@@ -329,13 +329,21 @@ def test_the_millionaire_surtax_says_its_base_is_a_design_choice():
 
 # ------------------------------------------------------- the Decision 6 caption
 
-#: The figures each preset printed before 2026-09-09, and prints now. The
-#: caption recomputes the first from the second and the preferential-income
-#: share, so these pin both the caption and the moves it explains.
+#: What each preset would print on the ordinary base, and what it prints now on
+#: the AGI-inclusive one. The caption recomputes the first from the second and
+#: the preferential-income share, so these pin both the caption and the move it
+#: explains.
+#:
+#: Both halves are **1.355952x** the figures this lane first shipped, because
+#: the base-growth lane (``planning/lanes/HSB_h2_base_growth.md``) then projected
+#: the SOI base onto the years being scored. The ratio between them - the only
+#: thing this caption is about - is untouched: the projection multiplies the
+#: finished annual and the ordinary-income share multiplies the base, so the two
+#: commute.
 CAPTION_MOVES = {
-    "Warren Ultra-Millionaire Surtax": (-134.612557, -283.469479),
-    "High-Earner Medicare Surcharge 2pp": (-166.503232, -314.632045),
-    "Progressive Millionaire Tax": (-354.634800, -648.092029),
+    "Warren Ultra-Millionaire Surtax": (-182.528171, -384.371018),
+    "High-Earner Medicare Surcharge 2pp": (-225.770397, -426.625964),
+    "Progressive Millionaire Tax": (-480.867780, -878.781709),
 }
 
 
