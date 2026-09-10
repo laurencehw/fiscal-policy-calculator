@@ -4,6 +4,7 @@ Core policy parameter definitions.
 
 import logging
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Literal
@@ -16,6 +17,49 @@ logger = logging.getLogger(__name__)
 # is ordinary (wages, interest, non-qualified distributions); this prevents a
 # pathological data point from zeroing out the base.
 _MAX_PREFERENTIAL_SHARE = 0.55
+
+#: The one default for :attr:`TaxPolicy.ordinary_income_base`, read by every
+#: constructor that builds a rate change the user did not classify.
+#:
+#: ``True`` means the **ordinary** base: an ordinary-bracket rate change is
+#: priced on the non-preferential share of marginal income, because it does not
+#: reach long-term capital gains or qualified dividends. ``False`` means the
+#: **AGI-inclusive** base, which a surtax stated on total income above a
+#: threshold does reach.
+#:
+#: Ordinary is the default because it is the *validation manifest's* default:
+#: :func:`fiscal_model.validation.core.create_policy_from_score` sets
+#: ``ordinary_income_base = not score.agi_inclusive_base`` and
+#: :class:`~fiscal_model.validation.cbo_scores.CBOScore` defaults
+#: ``agi_inclusive_base`` to ``False``. Before 2026-09-09 this module's literal
+#: said ``False`` while Tailor and the composer both said ordinary, so the same
+#: specification returned two answers 1.89x apart depending on which surface
+#: the user typed it into. The base is a fact about the policy, read off its
+#: source document and never inferred from its shape - a rate change above a
+#: threshold can be either, and the out-of-sample battery holds one of each.
+#: See ``planning/lanes/HSA_h1_base_rule.md``.
+DEFAULT_ORDINARY_INCOME_BASE = True
+
+
+def ordinary_income_base_for_preset(preset_data: Mapping[str, object] | None) -> bool:
+    """The base a catalog preset declares, or the shared default.
+
+    A preset states ``agi_inclusive_base: True`` when its own source scores the
+    reform on total income above a threshold — TPC's Warren surtax on AGI,
+    Treasury's Medicare surcharge on wage *and* investment income. A preset that
+    declares nothing is an ordinary-bracket rate change and takes
+    :data:`DEFAULT_ORDINARY_INCOME_BASE`.
+
+    One function rather than six copies of ``not preset.get(...)``: the composer,
+    the API's preset route, the Tailor preset seed and the three comparison tabs
+    all asked the same question, and nothing kept their answers in step.
+    """
+    if not preset_data:
+        return DEFAULT_ORDINARY_INCOME_BASE
+    declared = preset_data.get("agi_inclusive_base")
+    if declared is None:
+        return DEFAULT_ORDINARY_INCOME_BASE
+    return not bool(declared)
 
 
 def preferential_income_share(
@@ -139,11 +183,12 @@ class TaxPolicy(Policy):
     # When True, an *ordinary*-rate change is applied only to the non-preferential
     # share of marginal income — long-term capital gains and qualified dividends
     # (taxed at preferential rates) are excluded, since an ordinary-bracket rate
-    # change does not touch them. Dataclass default False preserves legacy callers;
-    # Generic validation, custom UI/API, and preset fallbacks set True. Set False
-    # for AGI-inclusive surtaxes. See ``preferential_income_share`` and
-    # docs/METHODOLOGY.md (Static Scoring).
-    ordinary_income_base: bool = False
+    # change does not touch them. Set False for AGI-inclusive surtaxes, which do
+    # reach that income. The default is the module constant every constructor
+    # reads, so the dataclass, Tailor, the composer, Ask and the API cannot each
+    # carry their own answer. See ``DEFAULT_ORDINARY_INCOME_BASE``,
+    # ``preferential_income_share`` and docs/METHODOLOGY.md (Static Scoring).
+    ordinary_income_base: bool = DEFAULT_ORDINARY_INCOME_BASE
     # Optional per-filing-status thresholds, keyed by
     # ``fiscal_model.data.irs_soi.FILING_STATUSES``. Statutory income-tax
     # boundaries are stated per status - CBO's Option 46 surtax at "$20,000 for

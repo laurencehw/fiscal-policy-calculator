@@ -98,11 +98,18 @@ def test_json_mode_runs(capsys):
 
 
 def test_ordinary_income_base_flag():
-    """The ordinary-income-base correction must (a) be a no-op by default on
-    TaxPolicy, (b) reduce the static base for a high-threshold income-tax rate
-    increase when enabled, and (c) be the default for Generic validation via
-    create_policy_from_score."""
-    from fiscal_model.policies import PolicyType, TaxPolicy
+    """The ordinary-income-base correction must (a) reduce the static base for a
+    high-threshold income-tax rate increase, (b) be the dataclass default since
+    the H1 base rule (2026-09-09), and (c) be the default for Generic validation
+    via create_policy_from_score.
+
+    Point (b) used to read the other way: the dataclass literal was ``False``
+    while Tailor and the composer both said ordinary, so the same specification
+    scored two different numbers depending on the surface. The AGI-inclusive
+    base is now an explicit opt-in, which is what the surtax cases want and
+    what this test spells out at each call.
+    """
+    from fiscal_model.policies import DEFAULT_ORDINARY_INCOME_BASE, PolicyType, TaxPolicy
     from fiscal_model.validation.cbo_scores import KNOWN_SCORES
     from fiscal_model.validation.core import create_policy_from_score
 
@@ -113,13 +120,14 @@ def test_ordinary_income_base_flag():
         )
         return p.estimate_static_revenue_effect(0.0, use_real_data=True)
 
-    legacy = static()
+    legacy = static(ordinary_income_base=False)
     corrected = static(ordinary_income_base=True)
     assert corrected < legacy  # cap gains excluded -> smaller ordinary base
     assert corrected > 0
 
-    # Dataclass default must stay off (explicit opt-in on TaxPolicy itself).
-    assert static(ordinary_income_base=False) == legacy
+    # The dataclass default is the shared constant, and it is the ordinary base.
+    assert DEFAULT_ORDINARY_INCOME_BASE is True
+    assert static() == corrected
 
     # Generic validation path defaults to ordinary-income base.
     score = KNOWN_SCORES["biden_high_income_tax"]

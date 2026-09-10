@@ -40,7 +40,8 @@ from fiscal_model.pharma import (
     current_law_negotiated_molecules,
     part_d_federal_channels,
 )
-from fiscal_model.policies import CapitalGainsPolicy
+from fiscal_model.policies import CapitalGainsPolicy, TaxPolicy
+from fiscal_model.policies_core import preferential_income_share
 from fiscal_model.ptc import (
     PTC_BASELINE_VINTAGE_LABELS,
     PTC_EXTENSION_GROSS_10YR_BILLIONS,
@@ -813,6 +814,108 @@ def ptc_repeal_baseline_caption(policy: Any, result: Any) -> str:
     )
 
 
+def _preset_declares_agi_inclusive(policy_name: str) -> bool:
+    """True when a catalog preset of this name declares an AGI-inclusive base.
+
+    Read off ``PRESET_POLICIES`` rather than a hard-coded list of three names,
+    so a preset that gains or loses the declaration carries or drops the
+    caption with it. Imported lazily: ``app_data`` builds the whole catalog at
+    import time and this module is on the landing page's path.
+    """
+    try:
+        from fiscal_model.app_data import PRESET_POLICIES
+    except Exception:  # pragma: no cover — defensive
+        return False
+    entry = PRESET_POLICIES.get(policy_name)
+    return bool(entry and entry.get("agi_inclusive_base"))
+
+
+def _cbo_score_map() -> Any:
+    """``CBO_SCORE_MAP``, or an empty mapping when the catalog will not load."""
+    try:
+        from fiscal_model.app_data import CBO_SCORE_MAP
+
+        return CBO_SCORE_MAP
+    except Exception:  # pragma: no cover — defensive
+        return {}
+
+
+def agi_inclusive_base_caption(policy: Any, result: Any) -> str:
+    """One line saying the preset's base came from its source, and what moved.
+
+    Three shipped surtax presets are stated by their own sources on **total
+    income above a threshold** — TPC scores the Warren surtax on AGI, and
+    Treasury's FY2025 Green Book row applies the Medicare surcharge to
+    "investment + wage income" — but no preset carried the attribute, so all
+    three were scored on the *ordinary* base, which excludes long-term capital
+    gains and qualified dividends. The app therefore printed −$134.6B beside a
+    label quoting TPC's −$350B, a 61.5% gap, while the scorecard row for the
+    same reform reported 19.0%, because validation had been reading the base
+    off the record all along.
+
+    Since 2026-09-09 the presets declare it and the surfaces read it. Three
+    numbers roughly doubled, so they ship with their explanation rather than in
+    silence (Decision 6).
+
+    The counterfactual is **computed, not stored**: the ordinary-income share
+    multiplies the base and nothing else, so the figure this preset used to
+    print is this run's own total times that share, re-derived from the
+    policy's own post-scoring filer count and average income. Returns ``""``
+    for every policy whose number did not move.
+    """
+    if not isinstance(policy, TaxPolicy) or policy.ordinary_income_base:
+        return ""
+    if not _preset_declares_agi_inclusive(getattr(policy, "name", "")):
+        return ""
+
+    total = float(np.sum(result.final_deficit_effect))
+    if total == 0.0:
+        return ""
+
+    threshold = float(policy.affected_income_threshold)
+    avg_income = float(policy.avg_taxable_income_in_bracket)
+    if avg_income <= 0:
+        return ""
+    marginal = avg_income if threshold == 0 else max(0.0, avg_income - threshold)
+    filers = float(policy.affected_taxpayers_millions) * 1e6
+    if marginal <= 0 or filers <= 0:
+        return ""
+
+    # ``preferential_income_share`` is what ``TaxPolicy._ordinary_income_share``
+    # calls once its guards pass — called directly here because those guards
+    # short-circuit to 1.0 on exactly the policies this caption fires for, whose
+    # ``ordinary_income_base`` is False. Same series, same year, same threshold
+    # as the scoring path, so this is the factor that separated the two answers.
+    pref = preferential_income_share(
+        threshold, marginal * filers / 1e9, year=policy.data_year
+    )
+    share = 1.0 - pref
+    if pref <= 0.0:
+        return ""
+    previous = total * share
+
+    # A preset with a published score has a document that states its base; the
+    # millionaire surtax has none, and the caption must not imply otherwise.
+    sourced = getattr(policy, "name", "") in _cbo_score_map()
+    provenance = (
+        "its own source uses"
+        if sourced
+        else "this preset declares — a design choice, since no published score of "
+        "this reform exists to read a base off"
+    )
+    return (
+        f"Income base: this preset is scored on the **AGI-inclusive** base "
+        f"{provenance} — the rate applies to all income above "
+        rf"\${threshold:,.0f}, realized capital gains and qualified dividends "
+        f"included. Until 2026-09-09 it was scored on the ordinary-bracket "
+        f"base, which excludes them: that is {pref:.1%} of the marginal "
+        rf"income here, so the same policy printed \${previous:+,.1f}B where it "
+        rf"now prints \${total:+,.1f}B. Nothing in the model changed — the "
+        f"presets now carry the base attribute the validation records always "
+        f"read, so the app and its own scorecard finally price the same policy."
+    )
+
+
 #: Classes whose behavioural offset returned the **negation** of the contract
 #: before the offset-sign sweep (2026-09-05), in every direction.
 _OFFSET_SIGN_INVERTED = (AMTPolicy, EstateTaxPolicy, PremiumTaxCreditPolicy)
@@ -944,6 +1047,9 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     sign_note = behavioural_sign_caption(policy, result)
     if sign_note:
         st_module.caption(sign_note)
+    base_note = agi_inclusive_base_caption(policy, result)
+    if base_note:
+        st_module.caption(base_note)
 
     credibility_html = _build_credibility_html(getattr(scored, "credibility", None))
     if credibility_html:

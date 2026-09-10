@@ -6,6 +6,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from fiscal_model.policies import (
+    DEFAULT_ORDINARY_INCOME_BASE,
+    ordinary_income_base_for_preset,
+)
 from fiscal_model.preset_ids import resolve_preset
 
 from .policy_input_presets import (
@@ -219,7 +223,7 @@ def render_tax_policy_inputs(
     manual_taxpayers = 0.0
     manual_avg_income = 0
     eti = 0.25
-    ordinary_income_base = True
+    ordinary_income_base = DEFAULT_ORDINARY_INCOME_BASE
 
     cg_base_year = 2024
     baseline_cg_rate = 0.20
@@ -241,7 +245,7 @@ def render_tax_policy_inputs(
         duration = int(preset_data.get("duration_years", 10) or 10)
         phase_in = int(preset_data.get("phase_in_years", 1) or 1)
         eti = float(preset_data.get("eti", 0.25) or 0.25)
-        ordinary_income_base = not bool(preset_data.get("agi_inclusive_base", False))
+        ordinary_income_base = ordinary_income_base_for_preset(preset_data)
 
     if not use_preset:
         st_module.markdown("---")
@@ -511,14 +515,21 @@ def render_tax_policy_inputs(
                         "Higher = more behavioral response = less revenue."
                     ),
                 )
-                _seed_widget_default(st_module, KEY_TAILOR_TAX_ORDINARY_BASE, True)
+                _seed_widget_default(
+                    st_module,
+                    KEY_TAILOR_TAX_ORDINARY_BASE,
+                    DEFAULT_ORDINARY_INCOME_BASE,
+                )
                 ordinary_income_base = st_module.checkbox(
                     "Ordinary-income base (exclude LTCG/QDIV)",
                     key=KEY_TAILOR_TAX_ORDINARY_BASE,
                     help=(
                         "Ordinary-bracket rate changes do not apply to long-term capital "
                         "gains or qualified dividends. Uncheck for AGI-inclusive surtaxes "
-                        "that tax all income above the threshold."
+                        "that tax all income above the threshold. This box is the same "
+                        "attribute Ask, the composer and the API read, and it starts on "
+                        "the one shared default, so the same specification scores the "
+                        "same number on every surface."
                     ),
                 )
 

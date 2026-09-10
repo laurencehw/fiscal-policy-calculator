@@ -44,9 +44,11 @@ from fiscal_model.exceptions import (
 )
 from fiscal_model.health import check_health
 from fiscal_model.policies import (
+    DEFAULT_ORDINARY_INCOME_BASE,
     PolicyType,
     SpendingPolicy,
     TaxPolicy,
+    ordinary_income_base_for_preset,
 )
 from fiscal_model.preset_handler import create_policy_from_preset
 from fiscal_model.readiness import build_readiness_report
@@ -166,10 +168,12 @@ class ScorePolicyRequest(BaseModel):
         0.25, ge=0, le=2.0, description="Taxable income elasticity"
     )
     ordinary_income_base: bool = Field(
-        True,
+        DEFAULT_ORDINARY_INCOME_BASE,
         description=(
             "If true (default), apply ordinary-bracket rate changes only to "
-            "non-preferential income. Set false for AGI-inclusive surtaxes."
+            "non-preferential income. Set false for AGI-inclusive surtaxes. "
+            "The default is the one the app, Tailor, the composer and Ask all "
+            "read, so the same specification scores the same everywhere."
         ),
     )
     duration_years: int = Field(10, ge=1, le=30, description="Policy duration")
@@ -577,7 +581,7 @@ def _build_preset_policy(preset_name: str) -> tuple[Any, bool]:
         taxable_income_elasticity=0.25,
         start_year=APP_DEFAULT_START_YEAR,
         duration_years=10,
-        ordinary_income_base=not bool(preset.get("agi_inclusive_base", False)),
+        ordinary_income_base=ordinary_income_base_for_preset(preset),
     )
     return policy, True
 

@@ -18,6 +18,7 @@ import logging
 from typing import Any
 
 from ..baseline import APP_DEFAULT_START_YEAR
+from ..policies_core import DEFAULT_ORDINARY_INCOME_BASE
 from .benchmarks import build_capability_gate
 from .sources import SOURCES, allowlisted_domain, web_search_allowed_domains
 
@@ -175,6 +176,22 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
                     "description": (
                         "If true, include dynamic-scoring feedback (GDP, "
                         "employment, revenue feedback). Default false."
+                    ),
+                },
+                "ordinary_income_base": {
+                    "type": "boolean",
+                    "description": (
+                        "Which income base an individual rate change is "
+                        "priced on. True (the default) is the ORDINARY base: "
+                        "an ordinary-bracket rate change does not reach "
+                        "long-term capital gains or qualified dividends. "
+                        "Set false for an AGI-INCLUSIVE surtax stated on "
+                        "total income above a threshold - a Medicare-style "
+                        "surcharge on wage and investment income, or a "
+                        "millionaire surtax on AGI. The two differ by "
+                        "roughly 1.9x at a $400,000 threshold, so read the "
+                        "base off the proposal rather than guessing from its "
+                        "shape, and state which one the answer used."
                     ),
                 },
             },
@@ -479,6 +496,7 @@ class AssistantTools:
         spending_change_billions: float = 0.0,
         duration_years: int = 10,
         dynamic: bool = False,
+        ordinary_income_base: bool = DEFAULT_ORDINARY_INCOME_BASE,
     ) -> dict[str, Any]:
         if self._scorer is None or self._policy_types is None:
             return {"error": "scoring engine not available"}
@@ -533,6 +551,14 @@ class AssistantTools:
                 )
                 calibrated = True
             else:
+                # The base is an attribute of the policy, never this call
+                # site's opinion. Left unpassed it takes the same default
+                # Tailor's checkbox starts on and the composer gives a preset
+                # that declares nothing, so Ask and Tailor agree by
+                # construction rather than by coincidence. Until 2026-09-09
+                # this took the dataclass literal ``False`` while Tailor took
+                # ``True``, and the same question answered here and there
+                # differed by 1.89x.
                 policy = self._tax_policy_cls(
                     name=name,
                     description=f"Assistant hypothetical: {name}",
@@ -541,6 +567,7 @@ class AssistantTools:
                     affected_income_threshold=affected_income_threshold,
                     start_year=start_year,
                     duration_years=duration_years,
+                    ordinary_income_base=bool(ordinary_income_base),
                 )
                 scoring_path = (
                     "uncalibrated generic tax path — directional only "
@@ -591,6 +618,29 @@ class AssistantTools:
                 "state which one this run used."
             ),
         }
+        # Say which income base produced the number, so the assistant can say
+        # it too. Only an individual rate change has one: the corporate module
+        # prices profits and a spending path has no income base at all.
+        base_flag = getattr(policy, "ordinary_income_base", None)
+        if base_flag is not None and policy_type == "income_tax":
+            payload["income_base"] = "ordinary" if base_flag else "agi_inclusive"
+            payload["income_base_note"] = (
+                "Priced on the ORDINARY income base: the rate change is applied "
+                "to marginal income net of long-term capital gains and qualified "
+                "dividends, which an ordinary-bracket rate does not reach. Say so "
+                "when you quote the figure. An AGI-inclusive surtax on total "
+                "income above the same threshold is a different policy and scores "
+                "roughly 1.9x this at $400,000 — re-run with "
+                "ordinary_income_base=false if that is what was asked."
+                if base_flag
+                else "Priced on the AGI-INCLUSIVE base: the rate applies to all "
+                "income above the threshold, capital gains and qualified "
+                "dividends included, which is how a Medicare-style surcharge or "
+                "an AGI surtax is scored. Say so when you quote the figure. An "
+                "ordinary-bracket rate change at the same threshold is a "
+                "different policy and scores roughly half this."
+            )
+
         payload.update(gate)
         return payload
 

@@ -184,7 +184,16 @@ class TestPolicyIsActive:
 
 class TestTaxPolicyStaticRevenue:
     def test_bracket_level_calculation(self, bracket_tax_policy):
-        """With bracket data, revenue = rate_change * marginal_income * taxpayers."""
+        """With bracket data, revenue = rate_change * marginal_income * taxpayers.
+
+        Scored on the AGI-inclusive base, stated explicitly: this test is about
+        the ``rate x marginal income x taxpayers`` identity, and the ordinary
+        base multiplies it by a preferential-income share read from live
+        capital-gains data. That share is tested by
+        ``test_ordinary_income_base_reduces_the_bracket_base`` below; mixing it
+        in here would make an arithmetic test depend on a data file.
+        """
+        bracket_tax_policy.ordinary_income_base = False
         result = bracket_tax_policy.estimate_static_revenue_effect(
             baseline_revenue=2000, use_real_data=False
         )
@@ -192,6 +201,25 @@ class TestTaxPolicyStaticRevenue:
         # revenue = 0.026 * 800_000 * 1.8e6 / 1e9 = 37.44 B
         expected = 0.026 * 800_000 * 1.8e6 / 1e9
         assert result == pytest.approx(expected, rel=1e-6)
+
+    def test_ordinary_income_base_reduces_the_bracket_base(self, bracket_tax_policy):
+        """The default base is ordinary, and it takes a bite out of the identity.
+
+        The bite is the preferentially taxed share of marginal income above the
+        threshold — capital gains and qualified dividends, which an
+        ordinary-bracket rate change does not reach.
+        """
+        from fiscal_model.policies import DEFAULT_ORDINARY_INCOME_BASE
+
+        assert bracket_tax_policy.ordinary_income_base is DEFAULT_ORDINARY_INCOME_BASE
+        ordinary = bracket_tax_policy.estimate_static_revenue_effect(
+            baseline_revenue=2000, use_real_data=False
+        )
+        bracket_tax_policy.ordinary_income_base = False
+        agi_inclusive = bracket_tax_policy.estimate_static_revenue_effect(
+            baseline_revenue=2000, use_real_data=False
+        )
+        assert 0 < ordinary < agi_inclusive
 
     def test_fallback_proportional(self):
         """Without bracket data, uses proportional heuristic."""
@@ -241,7 +269,13 @@ class TestTaxPolicyStaticRevenue:
         assert result == pytest.approx(-30.0)
 
     def test_zero_threshold_uses_full_income(self):
-        """When threshold is 0, marginal_income = full avg_taxable_income."""
+        """When threshold is 0, marginal_income = full avg_taxable_income.
+
+        On the AGI-inclusive base, stated explicitly: the assertion is about
+        *which income* enters the identity at a zero threshold, and the
+        ordinary base would additionally net out preferentially taxed income
+        read from live capital-gains data.
+        """
         policy = TaxPolicy(
             name="AllIncome",
             description="affects all",
@@ -250,6 +284,7 @@ class TestTaxPolicyStaticRevenue:
             affected_income_threshold=0,
             affected_taxpayers_millions=150.0,
             avg_taxable_income_in_bracket=60_000,
+            ordinary_income_base=False,
         )
         result = policy.estimate_static_revenue_effect(
             baseline_revenue=2000, use_real_data=False
