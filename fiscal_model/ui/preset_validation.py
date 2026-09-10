@@ -319,11 +319,21 @@ def is_calibrated_reference(preset: str) -> bool:
 
 
 def _money(billions: float) -> str:
-    """``-1347.0`` -> ``"-$1.35T"``; ``162.6`` -> ``"$163B"``."""
+    """``-1347.0`` -> ``"-$1.35T"``; ``162.6`` -> ``"$163B"``; ``3.2`` -> ``"$3.2B"``.
+
+    Whole billions are the right resolution for a $163B target and the wrong one
+    for a **distance to a published range**, which is the one place this format
+    is asked to print a small number: ``reciprocal_tariffs`` sits $3.2B outside
+    its nearer bound, and rounding that to "$3B" — or a sub-$0.5B distance to
+    "$0B", which reads as *inside* the range — states something the row does not.
+    So one decimal below $10B, whole billions above it.
+    """
     sign = "-" if billions < 0 else ""
     value = abs(float(billions))
     if value >= 1000.0:
         return f"{sign}${value / 1000.0:.2f}T"
+    if value < 10.0:
+        return f"{sign}${value:.1f}B"
     return f"{sign}${value:.0f}B"
 
 

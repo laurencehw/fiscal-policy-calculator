@@ -149,6 +149,32 @@ def test_a_range_target_reports_containment_rather_than_a_percentage():
     assert "outside it" in outside["caption"]
 
 
+def test_small_amounts_keep_a_decimal_so_a_distance_is_not_rounded_away():
+    """``_money`` prints a *distance to a published range* as well as a target,
+    and whole billions are the wrong resolution for one: ``reciprocal_tariffs``
+    sits $3.2B outside its nearer bound, and "$3B" understates it while a
+    sub-$0.5B distance would print "$0B" — which reads as *inside* the range,
+    the one thing the field exists to distinguish."""
+    from fiscal_model.ui.preset_validation import _money
+
+    assert _money(3.2) == "$3.2B"
+    assert _money(-3.2) == "-$3.2B"
+    assert _money(0.4) == "$0.4B"
+    assert _money(0.0) == "$0.0B"
+    # At and above $10B whole billions are right, and the big end is unchanged.
+    assert _money(11.4) == "$11B"
+    assert _money(162.6) == "$163B"
+    assert _money(-1347.0) == "-$1.35T"
+
+
+def test_the_reciprocal_tariff_distance_survives_into_the_caption():
+    """The end-to-end version of the case above, on the row that has it."""
+    badge = get_validation_badge("tariff-reciprocal")
+    assert badge is not None
+    assert badge["within_range"] is False
+    assert "$3.2B" in badge["caption"], badge["caption"]
+
+
 def test_a_model_estimate_target_says_so():
     """Six calibrated rows score the repository against its own output."""
     badge = get_validation_badge("drug-negotiation-expand")

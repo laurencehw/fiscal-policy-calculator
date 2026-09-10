@@ -142,6 +142,31 @@ _CONFIDENCE_BY_TIER: dict[str, str] = {
 }
 
 
+def _tier_size() -> str:
+    """`` (26 cases)`` for the out-of-sample tier, or ``""`` if it cannot be read.
+
+    Read from the generated ``headline_counts.json`` rather than typed, because
+    a battery grows: H2 and H10 both add rows, and a hard-coded "26 cases" goes
+    silently wrong the day one lands. Read from *that* artifact rather than from
+    the scorecard, because this branch is the one a **custom** policy takes —
+    ``get_validation_badge`` returns ``None`` for it without materialising the
+    scorecard, and materialising it here to print a count would put the ~6.5s
+    ``_scorecard_index`` back on a path that costs nothing today
+    (``planning/memos/COLD_START.md``; MODELING_IMPROVEMENT §6.2 item 39).
+
+    The tier's *errors* are deliberately not derived and not printed: they are
+    eight populations spanning a tight core and a long tail, and any single
+    number for them would be the "validated within X%" claim CLAUDE.md forbids.
+    """
+    try:
+        from fiscal_model.ui.validation_headline import pinned_out_of_sample_entries
+
+        count = pinned_out_of_sample_entries()
+    except Exception:
+        return ""
+    return f" ({count} cases)" if count else ""
+
+
 def get_confidence_context(st_module: Any, policy: Any, result: Any) -> str:
     """
     Generate a markdown string with confidence notes about the result.
@@ -190,8 +215,9 @@ def get_confidence_context(st_module: Any, policy: Any, result: Any) -> str:
             context += (
                 "\n- **Validation:** No published benchmark is scored against this "
                 "policy. It is bottom-up and uncalibrated — directional only. The "
-                "closest measured claim is the pre-registered out-of-sample tier, "
-                "which spans 1.5% to 49.8% across 26 cases."
+                f"closest measured claim is the pre-registered out-of-sample tier{_tier_size()}, "
+                "whose error is reported per policy class rather than as one "
+                "number — see the Methodology page."
             )
 
         return context

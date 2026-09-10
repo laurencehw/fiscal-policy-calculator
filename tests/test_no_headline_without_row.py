@@ -273,10 +273,66 @@ def test_confidence_is_keyed_to_the_tier_not_to_score_map_membership():
 
 def test_confidence_no_longer_quotes_a_single_out_of_sample_number():
     """The old text promised "mean out-of-sample error on such policies is ~8%".
-    The tier is 26 rows spanning 1.5% to 49.8% and is not one number."""
+    The tier is eight populations with a tight core and a long tail, not one
+    number."""
     for preset_id in ("ss-donut-250k", "across-the-board-rate-cut-5pp"):
         assert "~8%" not in _context(preset_id)
         assert "\\~8%" not in _context(preset_id)
+
+
+def _validation_line(preset_id: str) -> str:
+    for line in _context(preset_id).splitlines():
+        if line.startswith("- **Validation:**"):
+            return line
+    raise AssertionError(f"no validation line for {preset_id}")
+
+
+def test_the_unvalidated_fallback_carries_no_hard_coded_error_figure():
+    """It used to read "spans 1.5% to 49.8% across 26 cases" — three numbers
+    that go stale the moment the battery moves, and two of them the kind of
+    collapsed claim the tiers exist to prevent. A percentage here is the defect,
+    whatever its value."""
+    line = _validation_line("across-the-board-rate-cut-5pp")
+    assert not re.search(r"\d+(\.\d+)?\s*%", line), line
+    assert "1.5%" not in line and "49.8%" not in line
+
+
+def test_the_fallback_tier_size_is_derived_and_not_typed():
+    """The one number it does carry is the tier's *size*, read from the
+    generated artifact, so a lane that registers a case moves this text too."""
+    from fiscal_model.ui.validation_headline import pinned_out_of_sample_entries
+
+    count = pinned_out_of_sample_entries()
+    assert isinstance(count, int) and count > 0
+    assert f"({count} cases)" in _validation_line("across-the-board-rate-cut-5pp")
+
+
+def test_the_pinned_tier_size_is_the_scorecard_tier_size():
+    """And the artifact is not typed either: it is the count of ``Generic``
+    scorecard rows, which is what ``cold_holdout.py`` reports as Tier 1."""
+    from fiscal_model.ui.validation_headline import (
+        GENERIC_CATEGORY,
+        pinned_out_of_sample_entries,
+    )
+    from fiscal_model.validation import cached_default_scorecard
+
+    live = sum(
+        1
+        for e in cached_default_scorecard().entries
+        if e.category == GENERIC_CATEGORY
+    )
+    assert pinned_out_of_sample_entries() == live
+
+
+def test_the_fallback_survives_a_missing_artifact(monkeypatch):
+    """A missing count drops the parenthetical rather than printing "(0 cases)"
+    or raising: the sentence has to stay true when the file cannot be read."""
+    from fiscal_model.ui import validation_headline as vh
+
+    monkeypatch.setattr(vh, "pinned_out_of_sample_entries", lambda: None)
+    line = _validation_line("across-the-board-rate-cut-5pp")
+    assert "cases)" not in line
+    assert "out-of-sample tier" in line
 
 
 def test_confidence_survives_an_unknown_policy_name():
