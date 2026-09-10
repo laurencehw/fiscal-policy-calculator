@@ -348,6 +348,21 @@ row the suspicion would be that the documents were chosen to fit. The one that
 improves — `repeal_ira_credits`, 0.0% → 8.0% — improves only in the sense that
 0.0% was arithmetic: the module's annual **was** the target.
 
+**And that one row is the place a reviewer should push hardest, so the reasoning
+is stated rather than implied.** An agency figure exists — JCT's JCX-7-23 scores
+Title III of H.R. 2811, captioned "REPEAL MARKET DISTORING GREEN TAX CREDITS"
+[sic], at a NET TOTAL of $515,078M — and adopting it would have put the row at
+**52.0%** instead of 8.0%. It was declined on **scope**, on two things printed
+on the document itself: footnote [1], "Estimates of outlay effects presently
+unavailable", is attached to eleven of its lines, so the total is revenue-only
+and omits the refundable and direct-pay side; and items 11 and 12 read
+"Presently Unavailable", so all three clean-vehicle credits fall outside the
+total. An acknowledged-incomplete total is a **lower bound**, and adopting a
+lower bound as a point target would measure the missing lines rather than the
+module. Its window is FY2023-2033 besides. The figure is recorded in
+`alternatives` with both incompletenesses, so the next pass can reach the
+opposite conclusion with the evidence in front of it rather than by accident.
+
 The seven `line_item_differs` rows were re-read and none was re-opened, except
 `eliminate_mortgage`, whose Wave 4 verdict a document **contradicted** (§8.4).
 
