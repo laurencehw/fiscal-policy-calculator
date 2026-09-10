@@ -458,7 +458,7 @@ standalone modelled option with its own printed table beats a CRS transcription
 of somebody else's simulator that CRS itself labels "not considered official for
 revenue scoring purposes". **Here that rule lands on the bound nearer the
 model** (26.5% against 45.4%), where on `trump_corporate_15` the same rule landed
-on the farther one. The rule is the constant; which bound it picks is not.
+on the farther one. The rule is the constant; which bound it picks is not. The model's -$270.3B sits **$97.6B outside** the nearer bound (`within_published_range` False), so its 26.5% is a distance from one modeller's point, not a measurement of accuracy.
 
 **5 — `cap_employer_health`'s −$450B is most likely a real published figure for
 a cap a third the size, a decade early.** CBO's *Budget Options, Volume 1:
