@@ -40,7 +40,7 @@ from fiscal_model.pharma import (
     current_law_negotiated_molecules,
     part_d_federal_channels,
 )
-from fiscal_model.policies import CapitalGainsPolicy, TaxPolicy
+from fiscal_model.policies import INCOME_MEASURE_AGI, CapitalGainsPolicy, TaxPolicy
 from fiscal_model.policies_core import preferential_income_share
 from fiscal_model.ptc import (
     PTC_BASELINE_VINTAGE_LABELS,
@@ -916,6 +916,72 @@ def agi_inclusive_base_caption(policy: Any, result: Any) -> str:
     )
 
 
+def agi_income_column_caption(policy: Any, result: Any) -> str:
+    """One line saying the base is AGI itself, because the source says AGI.
+
+    IRS SOI Table 1.1's rows are **AGI size classes** and it publishes both an
+    AGI column and a taxable-income column. Until 2026-09-10 the generic path
+    read the taxable one for every policy, so a surtax whose source states it on
+    AGI — TPC scores the Warren surtax on "AGI above \\$2M" — was priced by
+    subtracting an AGI threshold from an average of *taxable* income. Same
+    returns, same floor, two different quantities.
+
+    The counterfactual is **computed, not stored**: the AGI and taxable averages
+    come from the same SOI read over the same filers, so the ratio of the two
+    marginal amounts is exactly the factor that separated the two answers, and
+    dividing this run's own total by it reconstructs what this policy printed on
+    the taxable column.
+
+    It reconstructs **only this change**, which is the convention every caption
+    in this file follows: :func:`agi_inclusive_base_caption` undoes the
+    preferential correction and nothing else, and
+    :func:`income_base_projection_caption` undoes the year projection and
+    nothing else. On a policy that moved under two of them, no single caption's
+    figure is the number the app printed a month ago, and each says which change
+    its own figure isolates.
+
+    Returns ``""`` for every policy scored on the taxable column, for one whose
+    base the caller supplied, and for the per-filing-status path, whose ratio is
+    not recoverable from an aggregate average (no shipped preset uses it).
+    """
+    if not isinstance(policy, TaxPolicy) or isinstance(policy, CapitalGainsPolicy):
+        return ""
+    if getattr(policy, "income_measure", None) != INCOME_MEASURE_AGI:
+        return ""
+    if getattr(policy, "threshold_by_filing_status", None):
+        return ""
+
+    avg_agi = getattr(policy, "_soi_avg_agi_in_bracket", None)
+    avg_taxable = float(getattr(policy, "avg_taxable_income_in_bracket", 0.0) or 0.0)
+    if not avg_agi or avg_taxable <= 0:
+        return ""
+
+    threshold = float(policy.affected_income_threshold)
+    marginal_agi = float(avg_agi) if threshold == 0 else max(0.0, float(avg_agi) - threshold)
+    marginal_taxable = avg_taxable if threshold == 0 else max(0.0, avg_taxable - threshold)
+    if marginal_agi <= 0 or marginal_taxable <= 0:
+        return ""
+
+    ratio = marginal_agi / marginal_taxable
+    total = float(np.sum(result.final_deficit_effect))
+    if total == 0.0 or ratio <= 0 or abs(ratio - 1.0) < 1e-9:
+        return ""
+    previous = total / ratio
+
+    return (
+        f"Income column: the base is **AGI itself**, not taxable income, because "
+        f"this policy's own source states the surtax on AGI. IRS SOI Table 1.1 "
+        f"publishes both columns by AGI size class, and above "
+        rf"\${threshold:,.0f} the AGI average exceeds the taxable-income "
+        f"average by {ratio - 1:.1%}. Until 2026-09-10 the generic path "
+        f"subtracted the AGI threshold from the *taxable* average — the same "
+        f"returns and the same floor, but two different quantities — so this "
+        rf"policy printed \${previous:+,.1f}B where it now prints "
+        rf"\${total:+,.1f}B. Presets whose sources state taxable income, or a "
+        f"base that is neither column, are unchanged."
+    )
+
+
 def income_base_projection_caption(policy: Any, result: Any) -> str:
     """One line saying the generic base is now priced in the years being scored.
 
@@ -1108,6 +1174,9 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     base_note = agi_inclusive_base_caption(policy, result)
     if base_note:
         st_module.caption(base_note)
+    column_note = agi_income_column_caption(policy, result)
+    if column_note:
+        st_module.caption(column_note)
     base_year_note = income_base_projection_caption(policy, result)
     if base_year_note:
         st_module.caption(base_year_note)

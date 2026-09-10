@@ -138,6 +138,7 @@ def calculate_tax_policy_result(
     phase_in: int,
     eti: float,
     ordinary_income_base: bool,
+    income_measure: str,
     manual_taxpayers: float,
     manual_avg_income: float,
     cg_base_year: int,
@@ -246,6 +247,7 @@ def calculate_tax_policy_result(
             phase_in_years=max(1, int(phase_in)),
             taxable_income_elasticity=eti,
             ordinary_income_base=ordinary_income_base,
+            income_measure=income_measure,
         )
 
     # Only the individual-base paths take a taxpayer count / average income;
