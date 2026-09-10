@@ -404,3 +404,23 @@ caption above is what a user sees meanwhile.
 4. **Wave C's H4** should build its estimator-disagreement bands on `published_range_for`, which is
    already policy-agnostic and tested against `pillar_two_adoption` and `reciprocal_tariffs`; the
    per-point conversion is corporate-only and deliberately so.
+
+### 6.6 Review, and one thing it caught that is worth generalising
+
+Copilot's review of PR #143 raised two points on the test file, both correct and both taken.
+
+The second was cosmetic (a docstring opening on four quote characters, so its first character was a
+stray `"`). **The first was not.** `test_ui_package_init_is_the_eager_one` is named for finding §6.3.2
+— that importing anything under `fiscal_model.ui` pulls in the whole validation package — and it
+asserted only the *other* half of its probe's output, that Streamlit stays out. So the test named a
+finding it did not check: had `fiscal_model/ui/__init__.py` been fixed tomorrow, the test would have
+gone on passing and the finding would have rotted silently, which is the precise failure mode it was
+written to prevent. It now asserts both booleans (`"True False"`), so the day the package stops being
+eager the test fails and says so.
+
+The general form is worth carrying past this lane: **a test that records a finding must assert the
+finding, not its neighbourhood.** Two of this repository's own gates exist because of the same
+mistake in different clothes — PR #119's coverage-grep test ("a module nobody swept" is how all four
+previously-found offset defects got in) and PR #130's pinning of the dashboard to
+`cold_holdout.build_report()`. Neither the pre-registration in §4 nor the outturn in §6.1 would have
+caught this one, because both were checking whether numbers moved.

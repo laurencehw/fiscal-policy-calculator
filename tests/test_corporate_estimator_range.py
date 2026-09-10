@@ -167,10 +167,11 @@ def test_trump_15_range_suppresses_the_bundled_share() -> None:
 
 
 def test_share_comparison_is_counted_and_not_asserted() -> None:
-    """"Above every published estimator" is step- and mode-dependent.
+    """The claim of beating every published estimator is step- and mode-dependent.
 
     ``derived`` at +7pp sits at 76.1% of the average base, below Treasury's
-    79.5%. A caption that hard-coded the claim would be wrong there.
+    79.5%. A caption that hard-coded "above every published estimator" would be
+    wrong there, so the caption counts instead.
     """
     below_treasury = corporate_estimator_range(
         rate_change_pp=7.0,
@@ -250,9 +251,12 @@ def test_ui_package_init_is_the_eager_one() -> None:
         cwd=REPO_ROOT,
         check=True,
     ).stdout.strip()
-    # Streamlit stays out either way, which is the half that matters for a
-    # helper Wave C wants to call from a non-Streamlit context.
-    assert out.endswith("False"), out
+    # Both halves, because only the first is this test's subject: validation
+    # comes in whether the helper asks for it or not (the finding), and
+    # Streamlit stays out either way (what a helper Wave C wants to call from a
+    # non-Streamlit context needs). Asserting only the second would have let
+    # the recorded finding rot silently.
+    assert out == "True False", out
 
 
 def test_per_point_is_computed_and_agrees_with_the_published_column() -> None:
