@@ -149,13 +149,13 @@ POLICY_STATUS_MAP: dict[str, PolicyStatus] = {
         "The July 2025 reconciliation law curtailed clean-vehicle credits. "
         "This preset models repeal as scored before that law.",
     ),
-    "🌱 Extend IRA Credits Beyond 2032 ($400B)": PolicyStatus(
+    "🌱 Extend IRA Credits Beyond 2032": PolicyStatus(
         "proposed", "Extension proposal; not enacted."
     ),
     "🌱 Carbon Tax \\$50/ton (-$1.7T)": PolicyStatus(
         "proposed", "Analytic option scored by CBO; never enacted."
     ),
-    "🌱 Carbon Tax \\$25/ton (-$1.0T)": PolicyStatus(
+    "🌱 Carbon Tax \\$25/ton": PolicyStatus(
         "proposed", "Analytic option scored by CBO; never enacted."
     ),
     # ── ACA premium credits ──────────────────────────────────────────────

@@ -555,7 +555,15 @@ class TestMarginalExcessBase:
         """The synthetic path's annual total must track the scorer's own
         SOI-based static revenue for the same policy (it overstated ~8x
         before the marginal-excess fix, and briefly zeroed out when the
-        group-aggregate heuristic met correctly pro-rated groups)."""
+        group-aggregate heuristic met correctly pro-rated groups).
+
+        Both engines are held to the **AGI-inclusive** base here, because that
+        is the only base both of them implement — see
+        ``test_the_distribution_engine_does_not_read_the_income_base`` below,
+        which records the divergence rather than letting this comparison hide
+        it. Left on the shared default this asserts nothing about the
+        marginal-excess fix and everything about a base one engine ignores.
+        """
         from fiscal_model.distribution import DistributionalEngine, IncomeGroupType
         from fiscal_model.policies import PolicyType, TaxPolicy
         from fiscal_model.scoring import FiscalPolicyScorer
@@ -567,6 +575,7 @@ class TestMarginalExcessBase:
             rate_change=0.02,
             affected_income_threshold=400_000,
             data_year=2022,
+            ordinary_income_base=False,
         )
         engine = DistributionalEngine(data_year=2022)
         synth = engine.analyze_policy(
@@ -581,6 +590,53 @@ class TestMarginalExcessBase:
         assert 0.5 < ratio < 2.0, (
             f"synthetic distribution total ${synth.total_tax_change:.1f}B/yr "
             f"vs scorer static ${static_y1:.1f}B/yr ({ratio:.1f}x)"
+        )
+
+    def test_the_distribution_engine_does_not_read_the_income_base(self):
+        """A known divergence, recorded here so it cannot be quietly widened away.
+
+        ``ordinary_income_base`` is an attribute of the policy and the revenue
+        path honours it: an ordinary-bracket rate change is priced net of
+        long-term capital gains and qualified dividends, which it does not
+        reach. ``DistributionalEngine``'s synthetic path does not read the flag
+        at all, so the *same policy object* yields a who-pays table built on
+        the whole base beside a revenue score built on part of it.
+
+        The gap is about 2.6x at a $400,000 threshold. Nothing shipped is wrong
+        today — the seven published distributional benchmarks are scored on
+        their own registered universes and none moved when the base default
+        changed on 2026-09-09 — but a user reading a revenue score and a
+        who-pays table off one run is reading two bases.
+
+        This test asserts the divergence *exists*, so that closing it is a
+        deliberate act with a failing test to notice, rather than a silent
+        widening of the band above. See ``planning/lanes/HSA_h1_base_rule.md``.
+        """
+        from fiscal_model.distribution import DistributionalEngine, IncomeGroupType
+        from fiscal_model.policies import PolicyType, TaxPolicy
+
+        def synthetic_total(ordinary: bool) -> float:
+            policy = TaxPolicy(
+                name="Top rate +2pp",
+                description="d",
+                policy_type=PolicyType.INCOME_TAX,
+                rate_change=0.02,
+                affected_income_threshold=400_000,
+                data_year=2022,
+                ordinary_income_base=ordinary,
+            )
+            engine = DistributionalEngine(data_year=2022)
+            return float(
+                engine.analyze_policy(
+                    policy, group_type=IncomeGroupType.QUINTILE, prefer_microsim=False
+                ).total_tax_change
+            )
+
+        assert synthetic_total(True) == pytest.approx(synthetic_total(False), rel=1e-9), (
+            "DistributionalEngine now reads ordinary_income_base. That is an "
+            "improvement, not a failure - but it moves who-pays tables, so "
+            "re-run the seven published distributional benchmarks and update "
+            "this test deliberately."
         )
 
     def test_synthetic_and_microsim_paths_agree_on_direction(self):
