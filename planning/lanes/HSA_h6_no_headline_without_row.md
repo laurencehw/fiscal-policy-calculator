@@ -330,3 +330,73 @@ state of §3.4 and resolves on H1's merge with no change to the test.
    `HEADLINE_ROW_DIVERGENCE`'s two `runner_shape` entries are made of, and it is
    a repository-wide question (PR #115 moved the app; the runners quote their own
    documents' windows), not this lane's to decide.
+
+---
+
+## 6. Integration with H1, and two hand-offs taken (appended 2026-09-10)
+
+`origin/model/hs-a-h1-base-rule` (PR #142) merged with **no conflicts**, including
+in `policy_input_tax.py`, where H1's edit sits ~340 lines from this lane's badge
+caption — the additive resolution §2 predicted. **§5.4's failing test now passes**:
+H1 struck the four label figures, so `presets_without_a_row()` returns eight
+presets and none of them prints a dollar figure. The rule is live rather than
+pending, and **CI on PR #140 is green on all eight checks**.
+
+### 6.1 The `repeal_corporate_amt` rename, which H1 could not take
+
+H1's §10 owner item 1. `"⚖️ Repeal Corporate AMT (-$220B)"` read a $220B *saving*
+where the model (+$220.1B), the scorecard target and JCT (JCX-18-22, +$222.2B for
+enacting CAMT) all read a $220B **cost**; H1 corrected the `CBO_SCORE_MAP` sign
+and left the label, because it was a key of this lane's map. The new label is
+**`"⚖️ Repeal Corporate AMT (+$220B)"`**, renamed in `CBO_SCORE_MAP`,
+`PRESET_POLICIES` and `PRESET_ID_BY_LABEL` in one commit, with the old spelling in
+`LEGACY_LABEL_ALIASES` so every pasted share link still resolves and the frozen id
+`amt-repeal-corporate` untouched.
+
+**Two of H1's four listed files needed no edit at all, and that is the id-keying
+decision paying for itself.** `PRESET_TO_SCORECARD_ID` is derived from
+`PRESET_ID_TO_SCORECARD_ID` through `label_for_preset_id`, and
+`tests/test_preset_validation.py` addresses presets by id, so neither had a label
+literal to re-key. §1.4's argument for keying by id was made against H1's *four*
+renames; this is the fifth, and it cost nothing.
+
+H1's handover test is **inverted rather than deleted**:
+`test_the_repeal_corporate_amt_label_now_agrees_with_its_own_score` asserts the
+new spelling, the frozen id, the alias and the sign, so a label that drifts back
+from its own score still breaks the build.
+
+### 6.2 H13's hand-off, and one cell it did not name
+
+`ui/tabs/methodology.py`'s calibrated-reference table credited the SS donut
+target to the **Trustees**. SSA's Office of the Chief Actuary scores that design
+— option **E2.5**, 12.4% above $250,000 with no benefit credit — only as a change
+in the long-range actuarial balance in percent of taxable payroll (**+2.50%**),
+with no dollar column at any horizon; the $2,700B is a Peter G. Peterson
+Foundation explainer's sentence and the conversion is one no cited source
+performed (`HSA_h13_payroll_targets.md` §6.2). The cell reads **PGPF†** with a
+footnote saying what OCACT does and does not publish.
+
+**One further cell in the same table, unprompted and in the same defect class**:
+`Repeal Corporate AMT` was credited to **CBO**, where JCX-18-22 is JCT's and H1's
+own `CBO_SCORE_MAP` correction says so in as many words. It now reads
+**JCT (JCX-18-22)**. Recorded here rather than folded in silently, because a lane
+that fixes a cell nobody asked about should say which one.
+
+### 6.3 Falsification, re-run against the merged base
+
+Baseline captured **after** the merge and **before** these edits, so the
+comparison isolates this commit rather than H1's:
+
+| run | result |
+|---|---|
+| `python scripts/cold_holdout.py --json` | **byte-identical** |
+| `python scripts/run_validation_dashboard.py` | **byte-identical** |
+| 53-preset sweep, **keyed by stable preset id** | **byte-identical** |
+
+The sweep is id-keyed for this comparison for a reason worth stating: the
+label-keyed artifact §5.1 used prints the label in column 1, so a rename would
+change it *without any number moving*, and a falsification test that cannot tell
+those two apart is not a test. `ANTHROPIC_API_KEY= python -m pytest tests/ -q`
+→ **3780 passed, 7 skipped, 0 failed** in 833s, against 3743/1-failed/7-skipped
+before the merge. `ruff check .` reports nothing on any file touched here (its 9
+findings are pre-existing, all in `api.py`).
