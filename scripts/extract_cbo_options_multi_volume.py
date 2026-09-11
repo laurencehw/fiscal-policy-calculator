@@ -41,10 +41,14 @@ battery's targets.
 * ``58164-Budget-Options.xlsx`` - sheets ``Volume I`` and ``Volume II,
   Revenues``.
 
-Both are vendored under ``fiscal_model/data_files/validation/sources/`` and
-pinned by SHA-256 of the bytes ``web.archive.org`` serves for the snapshot named
-below, exactly as ``scripts/fetch_cbo_baseline.py`` pins CBO's GitHub files.
-``cbo.gov`` returns HTTP 403 to this environment; the Wayback Machine does not.
+Both are pinned by SHA-256 of the bytes ``web.archive.org`` serves for the
+snapshot named below, exactly as ``scripts/fetch_cbo_baseline.py`` pins CBO's
+GitHub files. ``cbo.gov`` returns HTTP 403 to this environment; the Wayback
+Machine does not. The files are **not committed** - ``.gitignore`` excludes
+``*.xlsx`` repository-wide - so the script fetches them from the pinned snapshot
+unless a local copy is found under ``--source-dir``; either way the digest is
+checked before anything decodes the bytes, which is what makes this
+reproducible.
 
 The **2018** volume has no workbook. Its figures are transcribed by hand from
 the PDF with a report-page reference on every row, and ``--pdf`` re-reads that
@@ -67,12 +71,13 @@ USAGE
 -----
     python scripts/extract_cbo_options_multi_volume.py
     python scripts/extract_cbo_options_multi_volume.py --check
+    python scripts/extract_cbo_options_multi_volume.py --source-dir DIR
     python scripts/extract_cbo_options_multi_volume.py --pdf DIR
 
-``--check`` verifies the vendored workbooks against their pinned digests and
-rebuilds into memory without writing. ``--pdf DIR`` additionally verifies the
-2018 rows against ``54667-budgetoptions.pdf`` in ``DIR`` (not vendored - 4.4 MB
-of scanned-quality PDF is not something to commit).
+``--check`` verifies the workbooks against their pinned digests and rebuilds
+into memory without writing. ``--source-dir DIR`` reads local copies instead of
+fetching. ``--pdf DIR`` additionally verifies the 2018 rows against
+``54667-budgetoptions.pdf`` in ``DIR``.
 
 SIGN CONVENTIONS
 ----------------
@@ -116,7 +121,8 @@ class SourceFile:
     wayback_timestamp: str
     size_bytes: int
     sha256: str
-    vendored: bool
+    #: True for the two machine-readable option workbooks; False for the PDF.
+    is_workbook: bool
 
     @property
     def wayback_url(self) -> str:
@@ -130,7 +136,7 @@ SOURCE_FILES: dict[str, SourceFile] = {
         wayback_timestamp="20201209210918",
         size_bytes=109_199,
         sha256="86ba24ab0bc78fac218b0fbf3cedd9a6b20000f0451753c71706d786b4447af6",
-        vendored=True,
+        is_workbook=True,
     ),
     "2022": SourceFile(
         filename="58164-Budget-Options.xlsx",
@@ -138,7 +144,7 @@ SOURCE_FILES: dict[str, SourceFile] = {
         wayback_timestamp="20230101000000",
         size_bytes=81_679,
         sha256="3a08fb5537cd1d4a839fe674225109a2521d484c24f285128e0caac0fc7a8212",
-        vendored=True,
+        is_workbook=True,
     ),
     "2018": SourceFile(
         filename="54667-budgetoptions.pdf",
@@ -146,7 +152,7 @@ SOURCE_FILES: dict[str, SourceFile] = {
         wayback_timestamp="20190413021132",
         size_bytes=4_432_702,
         sha256="2e8501d6476a52878d15e654e221accb5d41be4f79a4131407b4662849142b70",
-        vendored=False,
+        is_workbook=False,
     ),
 }
 
@@ -637,34 +643,65 @@ ALTERNATIVES: list[Alternative] = [
 # ---------------------------------------------------------------------------
 
 
-def _digest(path: Path) -> tuple[int, str]:
-    raw = path.read_bytes()
+def _digest(raw: bytes) -> tuple[int, str]:
     return len(raw), hashlib.sha256(raw).hexdigest()
 
 
-def verify_sources(*, require_vendored: bool = True) -> list[str]:
-    """Check every vendored source against its pin. Returns problem strings."""
+def read_source(src: SourceFile, source_dir: Path | None = None) -> bytes:
+    """Return the pinned bytes of one publication file, verified by SHA-256.
+
+    A local copy under ``source_dir`` is used when it is there; otherwise the
+    bytes are fetched from the pinned Wayback snapshot. Either way the digest
+    is checked before anything decodes them, so a silently re-tagged file fails
+    loudly instead of rewriting the battery's targets. The files themselves are
+    not committed — ``.gitignore`` excludes ``*.xlsx`` repository-wide and a
+    4.4 MB PDF is not something to vendor — so the pin, not the copy, is what
+    makes this reproducible.
+    """
+    directory = source_dir or SOURCE_DIR
+    path = directory / src.filename
+    if path.exists():
+        raw = path.read_bytes()
+    else:
+        import urllib.request
+
+        request = urllib.request.Request(
+            src.wayback_url, headers={"User-Agent": "Mozilla/5.0"}
+        )
+        with urllib.request.urlopen(request, timeout=300) as response:
+            raw = response.read()
+    size, digest = _digest(raw)
+    if size != src.size_bytes or digest != src.sha256:
+        raise ValueError(
+            f"{src.filename}: {size} bytes / sha256 {digest}; "
+            f"pinned {src.size_bytes} bytes / {src.sha256}"
+        )
+    return raw
+
+
+def verify_sources(source_dir: Path | None = None) -> list[str]:
+    """Check every workbook against its pin. Returns problem strings."""
     problems: list[str] = []
     for key, src in SOURCE_FILES.items():
-        if not src.vendored:
+        if not src.is_workbook:
             continue
-        path = SOURCE_DIR / src.filename
-        if not path.exists():
-            if require_vendored:
-                problems.append(f"{key}: missing vendored source {path}")
-            continue
-        size, digest = _digest(path)
-        if size != src.size_bytes:
-            problems.append(f"{key}: {src.filename} is {size} bytes, pinned {src.size_bytes}")
-        if digest != src.sha256:
-            problems.append(f"{key}: {src.filename} sha256 {digest}, pinned {src.sha256}")
+        try:
+            read_source(src, source_dir)
+        except Exception as exc:  # reported, not raised
+            problems.append(f"{key}: {exc}")
     return problems
 
 
-def _load_workbook_rows(src: SourceFile) -> dict[str, list[tuple]]:
+def _load_workbook_rows(
+    src: SourceFile, source_dir: Path | None = None
+) -> dict[str, list[tuple]]:
+    import io
+
     import openpyxl
 
-    workbook = openpyxl.load_workbook(SOURCE_DIR / src.filename, data_only=True)
+    workbook = openpyxl.load_workbook(
+        io.BytesIO(read_source(src, source_dir)), data_only=True
+    )
     return {
         sheet.title: list(sheet.iter_rows(values_only=True))
         for sheet in workbook.worksheets
@@ -675,7 +712,7 @@ def _numbers(row: tuple) -> list[float]:
     return [float(c) for c in row if isinstance(c, (int, float))]
 
 
-def fill_from_workbooks() -> list[str]:
+def fill_from_workbooks(source_dir: Path | None = None) -> list[str]:
     """Read each workbook-backed alternative's annual path and totals.
 
     Every figure the CSV carries for the 2020 and 2022 volumes comes from here.
@@ -688,7 +725,7 @@ def fill_from_workbooks() -> list[str]:
             continue
         src = SOURCE_FILES[alt.volume]
         if alt.volume not in cache:
-            cache[alt.volume] = _load_workbook_rows(src)
+            cache[alt.volume] = _load_workbook_rows(src, source_dir)
         sheet, rownum = alt.workbook_cell
         rows = cache[alt.volume].get(sheet)
         if rows is None or len(rows) < rownum:
@@ -729,7 +766,7 @@ def verify_2018_against_pdf(pdf_dir: Path) -> list[str]:
     problems: list[str] = []
     if not path.exists():
         return [f"2018: {path} not found"]
-    size, digest = _digest(path)
+    size, digest = _digest(path.read_bytes())
     if digest != src.sha256:
         problems.append(f"2018: {src.filename} sha256 {digest}, pinned {src.sha256} ({size} bytes)")
     doc = fitz.open(path)
@@ -837,11 +874,17 @@ def build_alternative_rows() -> list[dict]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="verify only; do not write")
+    parser.add_argument(
+        "--source-dir",
+        type=Path,
+        default=None,
+        help="directory holding local copies of the pinned workbooks",
+    )
     parser.add_argument("--pdf", type=Path, default=None, help="directory holding 54667-budgetoptions.pdf")
     args = parser.parse_args(argv)
 
-    problems = verify_sources()
-    problems += fill_from_workbooks()
+    problems = verify_sources(args.source_dir)
+    problems += fill_from_workbooks(args.source_dir)
     if args.pdf is not None:
         problems += verify_2018_against_pdf(args.pdf)
 
