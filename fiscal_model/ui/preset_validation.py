@@ -447,6 +447,50 @@ def get_validation_badge(preset_name: str) -> dict | None:
     }
 
 
+# ---------------------------------------------------------------------------
+# The illustrative caption (H12)
+# ---------------------------------------------------------------------------
+#: Figure-free line for a demoted preset, for a surface that must not pay for a
+#: scorecard materialisation to render one row.
+#:
+#: Measured on 2026-09-11: the first ``get_validation_badge`` call in a process
+#: costs **6.187 s** (``_scorecard_index`` runs every specialized validator over
+#: all 81 rows), and Build's checklist does not materialise the scorecard today.
+#: Printing a live figure on every illustrative checkbox would therefore have
+#: put ~6.2 s on Build's first paint — the same defect ``planning/memos/
+#: COLD_START.md`` found in the page footer and PR #135 removed. So Build names
+#: the tier and says where the figure is; Explore, which already calls
+#: ``get_validation_badge`` for its badge caption, prints the figure itself.
+ILLUSTRATIVE_ROW_NOTE_NO_FIGURE = (
+    "↳ Illustrative — an unfitted reconstruction, not a validated score. "
+    "Its distance from the published figure is on Explore and in the "
+    "validation scorecard."
+)
+
+
+def illustrative_note(preset: str) -> str:
+    """One line for a demoted preset, naming the tier its row sits in.
+
+    Deliberately **figure-free**, and it never materialises the scorecard —
+    including the "has this preset a row at all" test, which asks
+    :data:`PRESET_ID_TO_SCORECARD_ID` rather than calling
+    :func:`get_validation_badge`. See
+    :data:`ILLUSTRATIVE_ROW_NOTE_NO_FIGURE` for the measurement behind that.
+
+    A preset with no scorecard row of any tier gets a line saying so, because a
+    silent absence reads like agreement. That is the branch Explore takes: it
+    prints this line exactly where a badge caption would have gone, so the
+    figure comes from the badge wherever there is one and from here where there
+    is not.
+    """
+    preset_id = preset_id_for_token(preset) or preset
+    if preset_id not in PRESET_ID_TO_SCORECARD_ID:
+        from fiscal_model.app_data import ILLUSTRATIVE_NO_ROW_NOTE
+
+        return f"↳ Illustrative — {ILLUSTRATIVE_NO_ROW_NOTE}"
+    return ILLUSTRATIVE_ROW_NOTE_NO_FIGURE
+
+
 def presets_without_a_row() -> tuple[str, ...]:
     """Catalog preset ids with no scorecard row of any tier.
 
@@ -464,6 +508,7 @@ __all__ = [
     "BADGE_SCORECARD_ID_BY_LABEL",
     "HEADLINE_ROW_DIVERGENCE",
     "HEADLINE_ROW_TOLERANCE_PCT",
+    "ILLUSTRATIVE_ROW_NOTE_NO_FIGURE",
     "LEGACY_CALIBRATED_PRESET_IDS",
     "PRESET_ID_TO_SCORECARD_ID",
     "PRESET_TO_SCORECARD_ID",
@@ -475,6 +520,7 @@ __all__ = [
     "TIER_RECONSTRUCTION",
     "badge_tier",
     "get_validation_badge",
+    "illustrative_note",
     "is_calibrated_reference",
     "presets_without_a_row",
     "reset_scorecard_cache",

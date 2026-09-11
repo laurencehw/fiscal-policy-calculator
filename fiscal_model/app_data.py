@@ -586,6 +586,74 @@ CBO_SCORE_MAP = {
 
 
 # =============================================================================
+# HEADLINE SURFACE - which presets a headline surface may quote as a score
+# =============================================================================
+# H12 (planning/lanes/HSD_h12_illustrative_group.md), owner decision 9.
+#
+# A preset carrying ``headline_surface = "illustrative"`` still scores, still
+# resolves from a share link, and still keeps every scorecard row it has --
+# nothing is removed to make a number look better. What the flag changes is
+# where a *surface* puts it: Explore and Build render the flagged presets in
+# their own, last, explicitly labelled group, with each one's distance from its
+# published figure printed beside it.
+#
+# Why these five. Measured on 2026-09-11 from the live scorecard: drug
+# negotiation 93.3% from its target, international reference pricing 701.0%,
+# the universal insulin cap 39.0%, double IRS enforcement 82.3%, and
+# comprehensive drug reform has **no published benchmark at all**. That last
+# one is why this is declared data rather than derived from the badge: a
+# derivation keyed on "the badge is bad" would have silently exempted the one
+# preset in the group with nothing behind its number.
+#
+# The flag carries no figure. Every error a surface prints is read from
+# ``ui/preset_validation.get_validation_badge`` at render time, so a target
+# revision or retirement underneath this flag changes what users see instead of
+# leaving a stale constant behind.
+HEADLINE_SURFACE_ILLUSTRATIVE = "illustrative"
+
+#: Group name for the flagged presets. It names the tier, because the group's
+#: whole job is to say what kind of number these are.
+ILLUSTRATIVE_GROUP_LABEL = "Illustrative - unfitted reconstructions"
+
+#: The one-sentence note a surface prints above the group.
+ILLUSTRATIVE_GROUP_NOTE = (
+    "**Illustrative - unfitted reconstructions, not validated scores.** No "
+    "constant in the model is fitted to these published figures, and the "
+    "distances from them are large. They are here to show the shape of a "
+    "policy, not to be quoted as an estimate of it. Each one's distance from "
+    "its published figure is printed below it."
+)
+
+#: Line for a flagged preset that has no scorecard row of any tier, so no
+#: distance can be printed.
+ILLUSTRATIVE_NO_ROW_NOTE = (
+    "No published benchmark scores this policy, so there is no error to "
+    "report - the model's own estimate is the only number shown."
+)
+
+#: Stable preset ids in the illustrative group. Kept beside the flag so a
+#: reader can see the membership in one place; ``tests/test_illustrative_group``
+#: pins it equal to the set of ``PRESET_POLICIES`` entries carrying the flag,
+#: so the two cannot drift.
+ILLUSTRATIVE_PRESET_IDS: frozenset[str] = frozenset(
+    {
+        "drug-negotiation-expand",
+        "drug-reference-pricing",
+        "drug-reform-comprehensive",
+        "insulin-cap-universal",
+        "irs-enforcement-double",
+    }
+)
+
+
+def is_illustrative(preset: dict | None) -> bool:
+    """True when this ``PRESET_POLICIES`` entry belongs in the demoted group."""
+    if not preset:
+        return False
+    return preset.get("headline_surface") == HEADLINE_SURFACE_ILLUSTRATIVE
+
+
+# =============================================================================
 # PRESET POLICIES - Preset policy configurations for the UI
 # =============================================================================
 PRESET_POLICIES = {
@@ -994,10 +1062,16 @@ PRESET_POLICIES = {
     "🔍 Double IRS Enforcement (-$340B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Double IRS enforcement beyond IRA levels (~\\$16B/year). Raises ~\\$340B with diminishing returns.",
+        "description": (
+            "Double IRS enforcement beyond IRA levels (~\\$16B/year). Raises "
+            "~\\$340B with diminishing returns. **Illustrative**: an unfitted "
+            "reconstruction a long way from its published figure, shown for "
+            "the shape of the policy rather than as an estimate of it."
+        ),
         "is_tcja": False,
         "is_enforcement": True,
         "enforcement_type": "double",
+        "headline_surface": HEADLINE_SURFACE_ILLUSTRATIVE,
     },
     "🔍 High-Income Enforcement": {
         "rate_change": 0.0,
@@ -1018,26 +1092,45 @@ PRESET_POLICIES = {
     "💊 Expand Drug Negotiation (-$500B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Negotiate 50 Medicare drugs (vs IRA's 20), remove exclusivity delays. Saves ~\\$500B.",
+        "description": (
+            "Negotiate 50 Medicare drugs (vs IRA's 20), remove exclusivity "
+            "delays. Saves ~\\$500B. **Illustrative**: an unfitted "
+            "reconstruction a long way from its published figure, shown for "
+            "the shape of the policy rather than as an estimate of it."
+        ),
         "is_tcja": False,
         "is_pharma": True,
         "pharma_type": "expand_negotiation",
+        "headline_surface": HEADLINE_SURFACE_ILLUSTRATIVE,
     },
     "💊 Universal Insulin Cap ($11B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "\\$35/month insulin cap for Medicare and private insurance. A cost-sharing cap shifts liability onto plans, so CBO scores it as adding ~\\$11B to the deficit over 10 years.",
+        "description": (
+            "\\$35/month insulin cap for Medicare and private insurance. A "
+            "cost-sharing cap shifts liability onto plans, so CBO scores it as "
+            "adding ~\\$11B to the deficit over 10 years. **Illustrative**: an "
+            "unfitted reconstruction a long way from its published figure, "
+            "shown for the shape of the policy rather than as an estimate of it."
+        ),
         "is_tcja": False,
         "is_pharma": True,
         "pharma_type": "insulin_cap",
+        "headline_surface": HEADLINE_SURFACE_ILLUSTRATIVE,
     },
     "💊 International Reference Pricing (-$100B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Cap Medicare drug prices at 120% of OECD international average. Saves ~\\$100B.",
+        "description": (
+            "Cap Medicare drug prices at 120% of OECD international average. "
+            "Saves ~\\$100B. **Illustrative**: an unfitted reconstruction a "
+            "long way from its published figure, shown for the shape of the "
+            "policy rather than as an estimate of it."
+        ),
         "is_tcja": False,
         "is_pharma": True,
         "pharma_type": "reference_pricing",
+        "headline_surface": HEADLINE_SURFACE_ILLUSTRATIVE,
     },
     "💊 Comprehensive Drug Reform": {
         "rate_change": 0.0,
@@ -1049,11 +1142,13 @@ PRESET_POLICIES = {
             "components an order of magnitude smaller (CBO put the IRA's own "
             "negotiation at \\$98.5B over FY2022-2031). The model's own "
             "estimate is the only number shown, and it is a 🟡 reconstruction "
-            "of a channel nobody has scored."
+            "of a channel nobody has scored. **Illustrative**: shown for the "
+            "shape of the policy rather than as an estimate of it."
         ),
         "is_tcja": False,
         "is_pharma": True,
         "pharma_type": "comprehensive",
+        "headline_surface": HEADLINE_SURFACE_ILLUSTRATIVE,
     },
     # Trade / Tariff Presets
     "🏭 Trump Universal 10% Tariff (-$2.17T)": {
