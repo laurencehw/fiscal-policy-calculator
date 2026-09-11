@@ -154,11 +154,21 @@ def test_the_offset_still_carries_the_static_effects_sign():
 
 
 def test_no_factory_but_the_repeal_carries_a_coverage_offset_share():
-    """Everything else in the module keeps the paths it had."""
-    assert create_repeal_ptc().coverage_offset_share == pytest.approx(
-        CBO_OFFSETTING_SHARE
-    )
-    assert create_extend_enhanced_ptc().coverage_offset_share is None
+    """Everything else in the module keeps the paths it had.
+
+    Lane HSD/H11 moved the repeal from the transferred ratio to the priced
+    composition, so the explicit override field is now ``None`` on the factory
+    and the share is resolved from the policy's own window.
+    """
+    repeal = create_repeal_ptc()
+    assert repeal.coverage_offset_share is None
+    assert repeal.use_coverage_composition is True
+    assert repeal.resolved_offset_share() == pytest.approx(0.123211, abs=1e-6)
+
+    extension = create_extend_enhanced_ptc()
+    assert extension.coverage_offset_share is None
+    assert extension.use_coverage_composition is False
+    assert extension.resolved_offset_share() is None
 
 
 # ---------------------------------------------------------------------------
@@ -187,13 +197,24 @@ def test_the_engine_asks_for_the_year_and_does_not_regrow_the_path():
     assert sum(expected) == pytest.approx(959.0)
 
 
-def test_the_shipped_repeal_score_is_the_path_times_cbos_net_to_gross():
+def test_the_shipped_repeal_score_is_the_path_net_of_the_priced_channels():
+    """Was ``-959.0 * PTC_NET_TO_GROSS`` until lane HSD/H11.
+
+    The share is no longer transferred: it is the priced offsetting effects of
+    the coverage change this repeal causes, over the credit's own cost on the
+    same window. 12.32% on February 2026 over FY2026-2035, against the
+    transferred 19.28%.
+    """
+    from fiscal_model.ptc import repeal_offsetting_share
+
     scorer = FiscalPolicyScorer(start_year=2026, use_real_data=False)
     result = scorer.score_policy(create_repeal_ptc(), dynamic=False)
 
-    assert float(result.total_10_year_cost) == pytest.approx(-774.13, abs=0.05)
+    share = repeal_offsetting_share(2026, 10, "cbo_feb_2026")
+    assert share == pytest.approx(0.123211, abs=1e-6)
+    assert float(result.total_10_year_cost) == pytest.approx(-840.84, abs=0.05)
     assert float(result.total_10_year_cost) == pytest.approx(
-        -959.0 * PTC_NET_TO_GROSS, abs=0.05
+        -959.0 * (1.0 - share), abs=0.05
     )
 
 
@@ -217,7 +238,16 @@ def test_the_june_2024_vintage_reproduces_what_the_target_is_a_rounding_of():
         create_repeal_ptc(start_year=2025, baseline_vintage="cbo_jun_2024"),
         dynamic=False,
     )
-    assert float(result.total_10_year_cost) == pytest.approx(-922.66, abs=0.05)
+    assert float(result.total_10_year_cost) == pytest.approx(-986.49, abs=0.05)
+
+    # And the falsification test itself: with no coverage response at all, on
+    # the target's own vintage and window, the mechanism returns the $1,143B the
+    # carried -$1,100B is a rounding of. That must not move under any lane that
+    # touches only the coverage response.
+    gross_only = create_repeal_ptc(start_year=2025, baseline_vintage="cbo_jun_2024")
+    gross_only.coverage_offset_share = 0.0
+    demonstration = scorer.score_policy(gross_only, dynamic=False)
+    assert float(demonstration.total_10_year_cost) == pytest.approx(-1143.0, abs=0.01)
 
 
 def test_the_extension_benchmark_is_untouched_by_this_lane():
@@ -248,9 +278,13 @@ def test_the_caption_carries_the_scored_figures_and_both_documents():
     note = ptc_repeal_baseline_caption(policy, result)
 
     assert "959B" in note  # the gross path over the scored window
-    assert "774B" in note  # the score above the caption
+    assert "841B" in note  # the score above the caption
     assert "74B" in note  # the trough, after the enhancement lapses
-    assert "19.3%" in note  # CBO's own offsetting share
+    assert "12.3%" in note  # the share priced from this repeal's own coverage
+    assert "11.1M" in note  # the subsidized enrolment it is priced against
+    assert "2,970" in note  # the employment-based rate
+    assert "4,200" in note  # the Medicaid and CHIP rate
+    assert "19.3%" in note  # what it netted before, named as history
     assert "51298" in note
     assert "60437" in note
     assert "FY2026-FY2035" in note

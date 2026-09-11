@@ -44,6 +44,7 @@ from fiscal_model.pharma import (
 )
 from fiscal_model.policies import INCOME_MEASURE_AGI, CapitalGainsPolicy, TaxPolicy
 from fiscal_model.ptc import (
+    CBO_OFFSETTING_SHARE,
     PTC_BASELINE_VINTAGE_LABELS,
     PTC_EXTENSION_GROSS_10YR_BILLIONS,
     PTC_EXTENSION_NET_10YR_BILLIONS,
@@ -904,7 +905,11 @@ def ptc_repeal_baseline_caption(policy: Any, result: Any) -> str:
 
     Until 2026-09-06 this module removed a fitted $83B/yr growing at 4%/yr, so
     the shipped preset moved by about 14% and Decision 6 says a moved number
-    ships with its explanation rather than in silence.
+    ships with its explanation rather than in silence. Until 2026-09-11 it
+    netted a single **transferred** 19.28% out of that path; lane HSD/H11
+    prices CBO's channels against the coverage change this repeal causes
+    instead, which moved the preset again by about 9% and is why the sentence
+    names the enrolment and the per-person rates rather than a ratio.
 
     Computed from the scored result, so it cannot drift from the figure above
     it. Returns ``""`` for any PTC policy that is not on the baseline path.
@@ -932,6 +937,9 @@ def ptc_repeal_baseline_caption(policy: Any, result: Any) -> str:
     first, last = scored_years[0], scored_years[-1]
     peak_low = float(static[scored].min())
 
+    coverage = policy.coverage_change()
+    enrolment = abs(coverage.marketplace_subsidized)
+
     return (
         f"What a repeal removes: CBO and JCT's own projection of the credit, "
         rf"both legs — \${gross:,.0f}B of outlays plus revenue reductions over "
@@ -939,12 +947,18 @@ def ptc_repeal_baseline_caption(policy: Any, result: Any) -> str:
         f"{PTC_BASELINE_VINTAGE_LABELS.get(policy.baseline_vintage, policy.baseline_vintage)} "
         rf"baseline (publication 51298, Table 2), dipping to \${peak_low:,.0f}B "
         f"in the year the ARPA/IRA enhancement has fully lapsed. Of that, "
-        f"{share:.1%} never reaches the deficit: CBO's decomposition of the "
-        rf"nearest section 36B change puts it at \${PTC_EXTENSION_GROSS_10YR_BILLIONS:,.0f}B "
-        rf"gross and \${PTC_EXTENSION_NET_10YR_BILLIONS:,.0f}B net (publication "
-        f"60437), mostly people returning to employment-based coverage and out "
-        rf"of taxable wages. So the score is \${net:,.0f}B. Until 2026-09-06 "
-        rf"this removed a fitted \$83B a year growing at 4%."
+        f"{share:.1%} never reaches the deficit — priced channel by channel "
+        f"against the {enrolment:,.1f}M subsidized enrollees a year this removes "
+        f"(publication 51298, Table 1), at CBO's own rates for each: about "
+        rf"\$2,970 a person-year of employment-based coverage regained, "
+        rf"\$4,200 a person-year of Medicaid and CHIP, and nothing at all for "
+        f"someone who becomes uninsured (publication 60437, which itemises "
+        rf"\${PTC_EXTENSION_GROSS_10YR_BILLIONS:,.0f}B gross against "
+        rf"\${PTC_EXTENSION_NET_10YR_BILLIONS:,.0f}B net for the nearest scored "
+        rf"section 36B change). So the score is \${net:,.0f}B. Until 2026-09-06 "
+        rf"this removed a fitted \$83B a year growing at 4%; until 2026-09-11 it "
+        f"netted a single transferred {CBO_OFFSETTING_SHARE:.1%} instead of "
+        f"pricing the channels."
     )
 
 

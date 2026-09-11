@@ -1,0 +1,74 @@
+# CBO'S OWN PROJECTIONS OF HEALTH INSURANCE COVERAGE BY SOURCE, the rows a
+# change to IRC section 36B moves. Millions of people, average monthly
+# enrollment, by CALENDAR year, for the Social Security area population.
+#
+# Source: Congressional Budget Office and the staff of the Joint Committee on
+#   Taxation, recurring publication 51298, TABLE 1, "CBO's Projections of Health
+#   Insurance Coverage, by Source".
+#
+#   cbo_jun_2024 - Health Insurance and Its Federal Subsidies: CBO and JCT's
+#     June 2024 Baseline Projections, file 51298-2024-06-healthinsurance.pdf,
+#     Table 1 on REPORT PAGE 2 (PDF page 2 of 3).
+#   cbo_feb_2026 - Federal Subsidies for Health Insurance, February 2026
+#     Baseline Projections, file 51298-2026-02-healthinsurance.pdf, Table 1 on
+#     PAGE 2 of 5.
+#
+#   Read 2026-09-11 from CBO's own PDFs through Wayback mirrors; cbo.gov returns
+#   HTTP 403 to every non-browser client in this environment.
+#
+#   The two vintages are the SAME two the credit-cost table
+#   cbo_premium_tax_credit_baseline.csv carries, so a score and the coverage
+#   figure printed beside it always come from one document.
+#
+# WHY THIS FILE EXISTS. `MARKETPLACE_DATA` told users that repealing the premium
+# tax credit would cost "19 million" people their coverage and that letting the
+# enhancement expire would cost "4 million", both uncited, both rendered on a
+# surface users see. Lane W7 identified this table as the document that would
+# source them and transcribed only Table 2 (the credit's cost), recording Table 1
+# as a carry-over. This is that carry-over. Subsidized marketplace enrollment on
+# the vintage the app serves is 13.4M in 2026 and 11.06M on average over
+# FY2026-2035 - not 19M, which is closer to the 20.9M of calendar 2025, the last
+# year of the ARPA/IRA enhancement.
+#
+# WHAT THE TWO VINTAGES SHOW. The enhancement lapsed at the end of calendar 2025.
+# Subsidized marketplace enrollment runs 20.9 -> 13.4 -> 10.3 across the break on
+# the February 2026 vintage, and the uninsured 26.6 -> 30.0 -> 34.1.
+#
+# DO NOT DIFFERENCE THIS TABLE FOR A POLICY COUNTERFACTUAL. It is a level path
+# under current law, and over the same 2025-2027 break Medicaid and CHIP FALLS
+# (80.5 -> 78.4, the 2025 reconciliation act) while Medicare RISES (62.8 -> 65.6,
+# ageing). The year-over-year change is not the effect of the credit changing.
+# The engine reads the subsidized row as a LEVEL - the population a repeal
+# removes - and takes its destination split from publication 60437 instead.
+#
+# COLUMNS. `subsidized` and `unsubsidized` are the two "Purchased through ACA
+# marketplaces" lines; `nongroup_outside` is "Purchased outside ACA
+# marketplaces"; `medicaid_chip` is the Medicaid-and-CHIP subtotal;
+# `basic_health_program` is the Basic Health Program line. Components may not sum
+# to totals because of CBO's rounding and because some people hold more than one
+# source of coverage, which CBO does not assign to a primary source.
+vintage,calendar_year,subsidized,unsubsidized,nongroup_outside,employment_based,medicaid_chip,uninsured,basic_health_program
+cbo_jun_2024,2023,14.7,1.5,2.9,164.2,92.0,24.3,1.3
+cbo_jun_2024,2024,20.1,1.6,3.1,164.1,78.7,26.4,1.3
+cbo_jun_2024,2025,21.3,1.5,3.2,164.1,77.6,27.3,1.4
+cbo_jun_2024,2026,15.7,3.2,3.7,165.5,78.2,30.3,1.4
+cbo_jun_2024,2027,14.1,2.0,3.9,167.1,78.6,32.1,1.4
+cbo_jun_2024,2028,13.8,2.0,4.0,167.6,78.8,32.4,1.4
+cbo_jun_2024,2029,13.7,2.0,4.0,168.0,79.0,32.5,1.4
+cbo_jun_2024,2030,13.4,2.0,4.2,168.5,79.3,32.3,1.4
+cbo_jun_2024,2031,13.4,2.0,4.2,169.0,79.5,32.1,1.5
+cbo_jun_2024,2032,13.4,2.0,4.3,169.4,79.4,32.3,1.5
+cbo_jun_2024,2033,13.8,2.1,4.3,170.0,79.0,32.2,1.5
+cbo_jun_2024,2034,13.9,2.1,4.3,170.3,79.2,32.4,1.5
+cbo_feb_2026,2025,20.9,1.6,3.0,165.5,80.5,26.6,1.8
+cbo_feb_2026,2026,13.4,3.5,3.1,166.5,80.5,30.0,1.0
+cbo_feb_2026,2027,10.3,2.8,3.8,167.2,78.4,34.1,1.0
+cbo_feb_2026,2028,9.7,2.7,4.0,168.1,76.5,35.3,1.0
+cbo_feb_2026,2029,10.0,2.8,4.1,168.4,74.3,36.6,1.0
+cbo_feb_2026,2030,10.3,2.9,4.2,168.9,72.7,36.8,1.0
+cbo_feb_2026,2031,11.1,3.0,4.3,169.2,71.1,37.2,1.0
+cbo_feb_2026,2032,11.4,3.0,4.3,169.5,70.7,37.2,1.0
+cbo_feb_2026,2033,11.3,3.2,4.5,169.8,70.4,37.2,1.0
+cbo_feb_2026,2034,11.5,3.1,4.4,170.1,69.9,37.3,1.0
+cbo_feb_2026,2035,11.6,3.2,4.5,170.5,69.4,37.4,1.0
+cbo_feb_2026,2036,11.7,3.2,4.6,170.7,69.0,37.4,1.0

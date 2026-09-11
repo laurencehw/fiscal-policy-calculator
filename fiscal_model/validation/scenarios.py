@@ -720,6 +720,11 @@ PTC_VALIDATION_SCENARIOS_COMPARE = {
         # and its behavioural offset is CBO's own published net-to-gross for a
         # section 36B change. The row moved 18.5% -> 29.6% and no constant was
         # retuned - see ``planning/lanes/W7_ptc_repeal_shape.md``.
+        #
+        # Lane HSD/H11 (2026-09-11) then replaced that single transferred ratio
+        # with the composition CBO itemises, priced against this repeal's own
+        # coverage change: 29.6% -> 23.6%, again with no constant retuned. See
+        # ``planning/lanes/HSD_h11_ptc_coverage.md`` and the limitations below.
         "calibrated_to_target": False,
         "notes": "Eliminate all ACA subsidies - major coverage loss",
         "limitations": [
@@ -749,18 +754,51 @@ PTC_VALIDATION_SCENARIOS_COMPARE = {
             "pub. 51298's own figure - which is the demonstration that the "
             "target is a baseline projection rather than a validation of the "
             "model.",
-            "The coverage response is TRANSFERRED, not measured. No CBO or JCT "
-            "score of a full repeal exists (searched again by PR #122). The "
-            "19.28% offsetting share is CBO's own net-to-gross for the nearest "
-            "published section 36B change - pub. 60437's $415B gross against "
-            "$335B net - and its composition would differ for a full repeal: "
-            "$101B of that letter's $104B revenue offset is compensation "
-            "shifting to and from employment-based coverage, while a repeal of "
-            "the whole credit reaches a 100-150% FPL population that largely "
-            "has no employer offer and would move to Medicaid or to being "
-            "uninsured. Those two point in opposite directions and neither is "
-            "published. Sensitivity: the same letter's footnote 4 gives $325B "
-            "excluding TCJA interactions, an offsetting share of 21.7%.",
+            "The coverage response is now PRICED CHANNEL BY CHANNEL rather "
+            "than transferred as one ratio (lane HSD/H11, 2026-09-11, "
+            "`planning/lanes/HSD_h11_ptc_coverage.md`), and the row moved "
+            "29.6% -> 23.6% with no constant retuned. Pub. 60437's own "
+            "itemisation is divided by the coverage movement each line is a "
+            "response to - $2,971.43 per person-year of employment-based "
+            "coverage ($101B of compensation shifting plus $3B of employer "
+            "penalties over a 3.5M decline), $4,200 per Medicaid/CHIP "
+            "person-year, $57.97 per marketplace person-year for the Basic "
+            "Health Program, section 1332 waivers and other outlays, and $0 "
+            "for someone who becomes uninsured - and applied to the scored "
+            "vintage's OWN subsidized marketplace enrolment from pub. 51298 "
+            "Table 1 (11.06M a year over FY2026-2035, against 19.0M of "
+            "uncited constant before). Handed 60437's own coverage vector the "
+            "rates return its own $79B, which is the identity test. The "
+            "resulting share is 12.32%, not 19.28%, and the whole of the "
+            "difference is one line of arithmetic: the offsets scale with "
+            "PEOPLE and the gross with DOLLARS, and a repeal's average "
+            "enrollee holds an $8,671 credit where the extension's marginal "
+            "enrollee holds the $5,370 pub. 60437 Table 3 prints.",
+            "WHAT IS STILL TRANSFERRED is the destination split and the "
+            "channel rates, because no CBO or JCT score of a full repeal "
+            "exists (searched by PR #122, again by lane H9, again here - pub. "
+            "61734 publishes outlays, revenues and the net for the same "
+            "extension on the app's own window and NO channel itemisation, so "
+            "the share cannot even be recomputed on FY2026-2035). Two things "
+            "are known about which way the transfer errs and NEITHER is "
+            "acted on, because both move the row toward the -$1,100B this "
+            "repository refuses as a baseline projection. (1) Pub. 60437 "
+            "Table 3 puts 3.5M of the 6.9M marginal enrollees above 400% FPL "
+            "and the employment-based decline at 3.5M, and report p. 6 says "
+            "that decline affects people with higher incomes - so on a vintage "
+            "where the enhancement has lapsed and eligibility is capped at "
+            "400% FPL, the band CBO's largest channel lives in is absent from "
+            "the population a repeal reaches. Zeroing that channel gives "
+            "-$996.3B, 9.4% from the target. It is not zeroed: 'most' does not "
+            "license a zero and 26 U.S.C. 36B(c)(2)(C) bars only an "
+            "AFFORDABLE offer. (2) A repeal also pushes people INTO Medicaid "
+            "for a reason the extension has no mirror of, which CBO prices "
+            "nowhere. (3) Separately, 42 U.S.C. 18051(d)(3) ties Basic Health "
+            "Program funding to 95% of the credit, so a repeal ZEROES it "
+            "rather than reversing 60437's +$17B - an unpriced additional "
+            "saving. Sensitivity on the aggregate: the letter's footnote 4 "
+            "gives $325B excluding TCJA interactions, an offsetting share of "
+            "21.7% rather than 19.3%.",
         ],
     },
 }
