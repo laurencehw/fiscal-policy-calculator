@@ -1,0 +1,10 @@
+# These files are hashed, not read as text. Their SHA-256 is pinned in
+# scripts/fetch_cbo_baseline.py and published in PROVENANCE.csv, and the pin is
+# the digest of the bytes raw.githubusercontent.com serves.
+#
+# `-text` disables git's end-of-line conversion for them in both directions, so
+# a checkout on a machine with `core.autocrlf=true` -- the Windows default, and
+# the default this repository's own author has set -- cannot rewrite LF to CRLF
+# and break every digest below this line. That is not hypothetical: it is
+# exactly how the six pins these files now verify came to be wrong.
+* -text

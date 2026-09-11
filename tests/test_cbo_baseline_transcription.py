@@ -10,6 +10,11 @@ reading.
 from __future__ import annotations
 
 import csv
+import functools
+import hashlib
+import importlib.util
+import urllib.error
+import urllib.request
 
 import numpy as np
 import pytest
@@ -34,6 +39,24 @@ CBO_FEB_2026_TEN_YEAR_DEFICIT = 23_143.3
 #: number on the landing page, in Build's target strip and in Ask's
 #: ``get_cbo_baseline``.
 RECONSTRUCTED_TEN_YEAR_DEFICIT = 29_529.1
+
+
+@functools.lru_cache(maxsize=1)
+def fetch_script():
+    """``scripts/fetch_cbo_baseline.py`` as a module.
+
+    It lives outside any package, so it is loaded by path rather than imported.
+    The tests below read its pin table directly, because the whole point of a
+    pin is that the file and its generator cannot drift apart without something
+    saying so.
+    """
+    script = cbo_data.DATA_DIR.parents[2] / "scripts" / "fetch_cbo_baseline.py"
+    module_spec = importlib.util.spec_from_file_location(
+        "_fetch_cbo_baseline", script
+    )
+    module = importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(module)
+    return module
 
 
 # ── The headline ───────────────────────────────────────────────────────────
@@ -342,15 +365,7 @@ def test_provenance_quotes_the_publication_the_fetch_script_declares():
     generator declares, so the file and its generator cannot drift again
     without a test saying so.
     """
-    import importlib.util
-
-    script = cbo_data.DATA_DIR.parents[2] / "scripts" / "fetch_cbo_baseline.py"
-    module_spec = importlib.util.spec_from_file_location(
-        "_fetch_cbo_baseline", script
-    )
-    module = importlib.util.module_from_spec(module_spec)
-    module_spec.loader.exec_module(module)
-
+    module = fetch_script()
     declared = {key: entry["publication"] for key, entry in module.VINTAGES.items()}
     assert "publication 61882" in declared["cbo_feb_2026"]
     assert "publication 61172" in declared["cbo_jan_2025"]
@@ -365,4 +380,183 @@ def test_provenance_quotes_the_publication_the_fetch_script_declares():
         assert row["publication"] == declared[row["vintage"]], (
             f"{row['vintage']}/{row['kind']} quotes a publication the fetch "
             "script no longer declares"
+        )
+
+
+# ── The pins reproduce, and they reproduce from the URL ────────────────────
+#
+# PR #163 tried to regenerate PROVENANCE.csv and could not: the pinned SHA-256
+# for cbo_feb_2024/economic did not match what its own URL served, the script's
+# guard refused to write, and the field that needed changing was edited by
+# hand instead. The cause was not that one file. ALL SIX pins were digests of a
+# ``git clone`` working tree on Windows, where ``core.autocrlf=true`` rewrites
+# LF to CRLF on checkout, so not one of them was the digest of anything the
+# pinned URL could serve.
+#
+# These tests are the gate, and they are deliberately in two halves: the
+# offline half proves the pins describe bytes this repository holds, the
+# network half proves those bytes are still what CBO publishes. The old script
+# would have passed a check of the first kind every single time, which is why
+# neither half is sufficient alone.
+
+
+def _vendored(module, key: str):
+    repo, path = key.split("/", 1)
+    return module._local_path(repo, path, module.SOURCE_CACHE)
+
+
+def test_no_vendored_copy_sits_under_a_directory_gitignore_excludes():
+    """The cache is flattened for a reason, and the reason is load-bearing.
+
+    ``.gitignore`` carries a bare ``data/``, which matches a directory of that
+    name at any depth. The first draft of this cache mirrored the upstream
+    layout -- ``cbo-data/data/economic/...`` -- and git committed **one of six
+    files**, leaving five untracked: every check green locally, where the files
+    are on disk, and red in CI, where they are not.
+    """
+    module = fetch_script()
+    for key in module.DIGESTS:
+        cached = _vendored(module, key)
+        relative = cached.relative_to(module.SOURCE_CACHE)
+        assert "data" not in relative.parts[:-1], (
+            f"{key} is cached under a directory named 'data', which "
+            ".gitignore excludes at any depth"
+        )
+
+
+def test_every_pin_is_the_digest_of_the_vendored_source_bytes():
+    """The offline half. No network, so CI verifies this on every run."""
+    module = fetch_script()
+    assert module.DIGESTS, "the fetch script pins nothing"
+    for key, recorded in module.DIGESTS.items():
+        cached = _vendored(module, key)
+        assert cached.exists(), f"{key}: no vendored copy at {cached}"
+        digest = hashlib.sha256(cached.read_bytes()).hexdigest()
+        assert digest == recorded, (
+            f"{key}: vendored bytes hash {digest}, pin says {recorded}"
+        )
+
+
+def test_the_vendored_sources_carry_no_crlf():
+    """The defect itself, asserted rather than remembered.
+
+    CBO commits these files with LF endings -- git's own blob SHA-1 for each
+    one matches the LF form and not the CRLF form, which is how we know LF is
+    what CBO stored rather than merely what the CDN happened to return.
+    ``sources/.gitattributes`` marks them ``-text`` so no checkout converts
+    them; this fails if that guard is ever dropped.
+    """
+    module = fetch_script()
+    for key in module.DIGESTS:
+        raw = _vendored(module, key).read_bytes()
+        assert b"\r\n" not in raw, (
+            f"{key}: the vendored copy carries CRLF, so this checkout converted "
+            "line endings -- check sources/.gitattributes"
+        )
+
+
+def test_the_vendored_sources_are_not_a_second_source_of_record():
+    """``sources/`` is evidence, not data the app reads.
+
+    The loader must keep reading the three generated CSVs, so a stray reader
+    pointed at the raw upstream files would be a second source of record with
+    no identity checks behind it.
+    """
+    module = fetch_script()
+    assert module.SOURCE_CACHE.is_dir()
+    assert module.SOURCE_CACHE.parent == cbo_data.DATA_DIR
+    for name in ("cbo_budget_baseline.csv", "cbo_economic_baseline.csv",
+                 "PROVENANCE.csv"):
+        assert (cbo_data.DATA_DIR / name).exists()
+        assert not (module.SOURCE_CACHE / name).exists()
+
+
+def test_provenance_records_the_digest_the_fetch_script_pins():
+    """PROVENANCE.csv is generated, so the script is the source of truth.
+
+    This is the check that failed on PR #163's branch and was worked around by
+    hand. It now fails loudly instead.
+    """
+    module = fetch_script()
+    path = cbo_data.DATA_DIR / "PROVENANCE.csv"
+    with open(path, encoding="utf-8", newline="") as handle:
+        body = [line for line in handle if not line.startswith("#")]
+    rows = [row for row in csv.DictReader(body) if row["sha256"]]
+    assert rows, "PROVENANCE.csv records no digest at all"
+    for row in rows:
+        key = f"cbo-data/{row['file_path']}"
+        assert key in module.DIGESTS, f"{key} is recorded but not pinned"
+        assert row["sha256"] == module.DIGESTS[key], (
+            f"{row['vintage']}/{row['kind']} records a digest the fetch script "
+            "no longer pins"
+        )
+        assert row["commit_sha"] == module.REPOS["cbo-data"]["commit"]
+
+
+def test_the_whole_transcription_replays_offline_from_the_vendored_sources():
+    """``--offline-check``: pins, the three identities and the BFM cross-check.
+
+    Not just the digests. If the vendored bytes were ever replaced by something
+    that hashed correctly but parsed differently, the identity checks catch it.
+    """
+    assert fetch_script().main(["--offline-check"]) == 0
+
+
+def test_check_refuses_to_answer_the_network_question_from_a_local_tree():
+    """``--check`` means "is the pin still what the URL serves".
+
+    Answering it from a checkout is exactly the mistake that produced the six
+    wrong pins, so the combination is refused rather than quietly honoured.
+    """
+    module = fetch_script()
+    with pytest.raises(SystemExit):
+        module.main(["--check", "--source-dir", str(module.SOURCE_CACHE)])
+
+
+def test_an_unpinned_file_is_an_error_rather_than_a_new_pin():
+    """The mechanism that minted the wrong pins, closed.
+
+    The old ``read_source`` assigned every digest it computed back into the pin
+    table, so running the script against any tree at all produced a table of
+    "pins" describing that tree. An unpinned key must now stop the run.
+    """
+    module = fetch_script()
+    with pytest.raises(SystemExit):
+        module.read_source("cbo-data", "data/not/pinned.csv", module.SOURCE_CACHE)
+
+
+def test_the_mismatch_message_names_the_line_ending_cause():
+    """A bare "digest differs" is what made this take two lanes to find."""
+    module = fetch_script()
+    key = "cbo-data/data/economic/economic_projections/fiscal_2024-02.csv"
+    served = _vendored(module, key).read_bytes()
+    crlf = served.replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+    assert "CRLF rewritten to LF" in module._diagnose(crlf, module.DIGESTS[key])
+
+    # And the historical direction: the digest this repository used to carry
+    # for this file is the CRLF rendering of the bytes it now pins.
+    was_recorded = hashlib.sha256(crlf).hexdigest()
+    assert was_recorded == (
+        "0814e9a029d6e75b8e2d92993f4b297ce6ea49b51ef127e250f99b1115e12126"
+    )
+    assert "core.autocrlf=true" in module._diagnose(served, was_recorded)
+
+
+def test_each_pinned_url_still_serves_the_bytes_the_pin_records():
+    """The network half. Skipped offline; a real failure if upstream re-tags.
+
+    This is the check the offline half cannot make and the version of this
+    script that shipped the wrong pins never made at all.
+    """
+    module = fetch_script()
+    for key, recorded in module.DIGESTS.items():
+        repo, path = key.split("/", 1)
+        url = module._raw_url(repo, path)
+        try:
+            with urllib.request.urlopen(url, timeout=60) as handle:
+                raw = handle.read()
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            pytest.skip(f"no network: {exc}")
+        assert hashlib.sha256(raw).hexdigest() == recorded, (
+            f"{url} no longer serves the bytes this repository pins"
         )
