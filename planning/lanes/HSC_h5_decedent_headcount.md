@@ -462,9 +462,24 @@ half a correction (§8.7 finding 2).
 | The level moving at any slice count | **clean** — exact at 1, 25, 200, 400 |
 | A second constant creeping into the count | **clean** — pinned by `test_the_module_has_one_death_rate_and_not_two` |
 
+Suite: **3,927 passed, 7 skipped, 0 failed** (`ANTHROPIC_API_KEY= python -m
+pytest tests/ -q`), from 3,924 — three new tests, three restated rather than
+weakened (§8.7 finding 7). **One false failure is worth recording because it
+cost a twenty-minute run**: `test_payroll_target_caption.py::test_caption_is_rendered_under_the_headline`
+failed once, and the cause was editing `results_summary.py` *while the suite was
+running* — `inspect.getsource` reads the file by the line numbers the code
+object was compiled with, so a shifted file hands it somebody else's lines. It
+passes on a clean run. **And the first attempt at that run proved nothing**: the
+command ended `| tail -25`, so the exit code reported was `tail`'s, not
+`pytest`'s. That is PR #119's §7.5 lesson in a second costume — *an exit code is
+only evidence when the thing being reported is the thing that can fail.*
+
 `python scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 22` exits
 **0**; the per-class floor exits **0**; `python
 scripts/build_validation_headline.py --check` exits **0**.
+`python scripts/smoke_ask_assistant.py`: **3/3 PASS**, $0.0435 across three live
+calls (CBO baseline, hypothetical scoring, knowledge corpus), no citation markers
+stripped.
 `python scripts/check_readiness.py --strict` exits **2** on this branch **and on
 `2d13e60`**, with byte-identical output — the Python 3.14 runtime warning and the
 standing microdata warning, neither of them this lane's.
