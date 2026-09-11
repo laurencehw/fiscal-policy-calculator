@@ -132,7 +132,8 @@ VINTAGES = {
         "economic": "2026-02",
         "publication": (
             "CBO, The Budget and Economic Outlook: 2026 to 2036 "
-            "(February 2026), publication 51118 data release"
+            "(February 2026), publication 61882; data release 51118 "
+            "(cbo.gov/data/budget-economic-data), mirrored in cbo-data"
         ),
         "budget_note": "",
     },
