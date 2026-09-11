@@ -471,7 +471,19 @@ the first two is **33.3%**, larger than every band the app prints for this class
 this lane nothing on the surface or in the code said which of the three was being answered.
 That is the argument for the enum independently of the schedule.
 
-**8. The schedule contains far more than this lane wired, and the count is the point.**
+**8. The SHA-256 pin was a property of the checkout, not of CBO's file, and it took a
+network round-trip to find out.** The digests were first recorded from the local clone, which
+`git` had checked out with Windows line endings under `core.autocrlf`. `--check --source-dir`
+passed; `--check` over HTTPS **failed on all three files** with a mismatch indistinguishable
+from tampering. The fix is one line — normalise CRLF to LF before hashing, on both paths — and
+the lesson is the general one: *a verification that only ever runs one way has not been
+verified*. Both invocations now agree on the same commit, the recorded digests are the bytes
+`raw.githubusercontent.com` serves, and `test_provenance_digests_match_the_scripts_pins`
+pins the data directory to the script's constants offline so the two cannot drift. The
+vendored parameter CSV was **byte-identical** before and after, which is the evidence that
+nothing read was ever wrong — only what was claimed about it.
+
+**9. The schedule contains far more than this lane wired, and the count is the point.**
 130–150 variables per vintage: AMT exemptions and phase-outs by status (which `amt.py`
 transcribes from eleven Revenue Procedures by hand), sixteen EITC parameters, five CTC
 parameters, SALT limits by status, standard deductions, `tp_ss_max_earnings`, both price
@@ -489,7 +501,7 @@ have made it impossible to say which step moved which row.
 | `cold_holdout.py --max-class-mean-error …` | **exit 0** — `ordinary_rate_change` **13.84 against a ceiling of 15**, 1.16 points of headroom; the other seven unmoved |
 | `check_readiness.py --strict` | **`ready_with_warnings`, 5 pass / 5 warn / 0 fail** — the same three documented Poor outliers as `main` (`repeal_ptc`, `pwbm_39_with_stepup`, `eliminate_mortgage`). 17.86% is *Acceptable*; no row crossed into Poor and no exemption was added |
 | `build_validation_headline.py --check` | **exit 0** — 73 published of 77, unchanged |
-| `fetch_cbo_tax_parameters.py --check` | **exit 0** — three SHA-256s verified, all statutory identities hold |
+| `fetch_cbo_tax_parameters.py --check` | **exit 0** over HTTPS **and** `--source-dir`, which is finding 8 — three SHA-256s verified, all statutory identities hold |
 | `smoke_ask_assistant.py` | see §6.6 |
 
 **No gate value was touched.** The registered regression did not break the per-class ceiling,
@@ -511,7 +523,7 @@ rather than move it.
    preset does not say so. Declaring it is an `app_data.py` edit that moves a shipped number
    with no scorecard row to check it, since `top_rate_45` is retired. Both halves are the
    owner's.
-3. **The other 148 variables** (finding 8). AMT's eleven hand-transcribed Revenue Procedures
+3. **The other 148 variables** (finding 9). AMT's eleven hand-transcribed Revenue Procedures
    are the sharpest candidate — the same statute, published by CBO, on three vintages, in one
    file — but `amt.py`'s benchmarks are calibrated and a rewiring there is a lane with its own
    pre-registration.

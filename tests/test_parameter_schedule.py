@@ -72,6 +72,36 @@ def test_provenance_grades_the_one_substitution():
     assert "no February 2024 edition" in records["cbo_feb_2024"]["note"]
 
 
+def test_provenance_digests_match_the_scripts_pins():
+    """The transcription and the script may not drift apart on what they read.
+
+    Offline, because CI has no network: the check is that ``PROVENANCE.csv``'s
+    recorded SHA-256 is the one ``fetch_cbo_tax_parameters.py`` pins, so a
+    re-run against a different commit cannot leave a stale digest in the data
+    directory.
+
+    These are digests of the file with CRLF normalised to LF, and that is
+    load-bearing rather than tidy: ``git clone`` on Windows rewrites line
+    endings on checkout, so hashing a clone's raw bytes records a property of
+    the checkout and ``--check`` disagrees with ``--check --source-dir`` on an
+    unmodified file - a mismatch indistinguishable from tampering.
+    """
+    import importlib.util
+    from pathlib import Path
+
+    script = Path(__file__).resolve().parent.parent / "scripts" / "fetch_cbo_tax_parameters.py"
+    spec = importlib.util.spec_from_file_location("_fetch_tax_params", script)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    records = tp.provenance()
+    assert set(records) == set(module.VINTAGES)
+    for vintage, record in records.items():
+        assert record["commit_sha"] == module.REPO_COMMIT
+        assert record["sha256"] == module.DIGESTS[record["file_path"]]
+        assert record["match"] == module.VINTAGES[vintage]["match"]
+
+
 def test_bracket_one_is_zero_in_every_year_of_every_vintage():
     """The property both byte-identity rows depend on."""
     for vintage in tp.schedule_vintages():

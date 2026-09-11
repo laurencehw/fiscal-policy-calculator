@@ -75,6 +75,7 @@ import argparse
 import csv
 import hashlib
 import io
+import itertools
 import sys
 import urllib.request
 from datetime import date
@@ -138,13 +139,21 @@ VINTAGES: dict[str, dict[str, str]] = {
 }
 
 #: SHA-256 of each pinned source file, recorded on :data:`FETCH_DATE`.
+#:
+#: Taken over the file with CRLF normalised to LF, which is how
+#: ``raw.githubusercontent.com`` serves it and therefore what the upstream file
+#: *is*. The normalisation is not cosmetic: ``git clone`` on Windows rewrites
+#: line endings on checkout under ``core.autocrlf``, so hashing a local clone's
+#: bytes records a property of the checkout rather than of CBO's file, and
+#: ``--check`` and ``--check --source-dir`` would then disagree on the same
+#: commit. They agree now, and :func:`read_source` normalises on both paths.
 DIGESTS: dict[str, str] = {
     "data/budget/tax_parameters/annual_cy_2024-06.csv":
-        "c2981a8341e617ba1144cf6c9fab739b0931be40985d626e26dfaaabfa67233f",
+        "9d5b924a5e4fa0fc02ad16430b86c2358b05ff2dfa79e2c02d217b8671186082",
     "data/budget/tax_parameters/annual_cy_2025-01.csv":
-        "1fb2479edd7e915765a1af9f26c3c59f12d5df9a866274b2e19ec78359353388",
+        "d6fa116a6eb2210ab1ae2ff2640273c6a4e6037f083b9b448dc3baec0e62c5a5",
     "data/budget/tax_parameters/annual_cy_2026-02.csv":
-        "528f588a15f6aad7f6a31a1619f843ac4805e4301a35bd24abc22bb5a8d43d4d",
+        "5930c55948656b3ea3eaa83c6443937099a99765ef5fa4ef6e08f8c6a968a049",
 }
 
 #: Identities checked on every run, before anything is written. Each is a
@@ -170,12 +179,21 @@ def _raw_url(path: str) -> str:
 
 
 def read_source(path: str, source_dir: Path | None) -> tuple[str, str]:
-    """Return one pinned file's text and its SHA-256, verifying where recorded."""
+    """Return one pinned file's text and its SHA-256, verifying where recorded.
+
+    The digest is taken over the file with CRLF normalised to LF, so that the
+    same commit hashes the same whether it is fetched from
+    ``raw.githubusercontent.com`` or read out of a local clone that ``git``
+    checked out with Windows line endings. Without this the two paths disagree
+    on an unmodified file, which is a mismatch that looks exactly like the
+    tampering the check exists to catch.
+    """
     if source_dir is not None:
         raw = (source_dir / "cbo-data" / path).read_bytes()
     else:
         with urllib.request.urlopen(_raw_url(path), timeout=120) as fh:
             raw = fh.read()
+    raw = raw.replace(b"\r\n", b"\n")
     digest = hashlib.sha256(raw).hexdigest()
     recorded = DIGESTS.get(path)
     if recorded is not None and digest != recorded:
@@ -289,7 +307,7 @@ def check_identities(rows: list[dict]) -> list[str]:
                 ]
                 if any(f is None for f in floors):
                     continue
-                if any(a >= b for a, b in zip(floors, floors[1:])):
+                if any(a >= b for a, b in itertools.pairwise(floors)):
                     problems.append(
                         f"{vintage} CY{year} {status}: bracket floors do not ascend"
                     )
