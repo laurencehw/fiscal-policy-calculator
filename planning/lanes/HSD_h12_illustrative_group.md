@@ -204,3 +204,125 @@ The lane is refuted, and the branch is abandoned rather than patched, if any of:
    this and left it; the illustrative flag does not reach either.
 4. `PRESET_POLICY_PACKAGES`'s `official_total` sums are stale for seven of
    twelve packages (the module says so in its own header). Untouched.
+
+---
+
+## 6. Outturn (appended after the branch landed)
+
+### 6.1 Every zero in §3 is a zero
+
+| artifact | result |
+|---|---|
+| `scripts/cold_holdout.py --json` | **byte-identical** (`cmp`) |
+| `scripts/run_validation_dashboard.py` | **byte-identical**, `Pharma 3 277.8%` and `Enforcement 2 43.5%` unmoved |
+| 52 catalog presets × {static, dynamic}, three figures each to 6 dp | **byte-identical** |
+| 44 badges — `tier`, `abs_pct`, `rating_label`, `caption` | **byte-identical** |
+| `resolve_preset(<id>)` for all 52 catalog ids | **byte-identical** |
+| `build_catalog` insertion order | **byte-identical** |
+| `scripts/build_validation_headline.py --check` | identical output on both trees, exit 0 |
+| `scripts/check_readiness.py --strict` | **identical output** on both trees, exit 2 on both |
+| `scripts/check_streamlit_boot.py` | passes, all 9 routes |
+
+The readiness comparison is run the way PR #119's §7.5 lesson says to run it —
+by restoring `main`'s six files into this tree, capturing the output, restoring
+the branch's, and `cmp`-ing the two — because **exit 2 alone proves nothing
+here**: Python 3.14 fails the runtime check first and masks everything after
+it, so both trees exit 2 whatever else is true. The *output* is identical line
+for line, which is the claim worth making.
+
+### 6.2 What the surfaces now show
+
+**Explore.** The "Policy area" selectbox stays at 14 entries, and the change is
+two areas leaving and one arriving last: **`Drug Pricing` disappears entirely**
+(all four of its members were demoted) and **`IRS Enforcement` goes 3 → 2**
+(`irs-enforcement-ira` and `irs-enforcement-high-income` stay). The new last
+entry is **`Illustrative - unfitted reconstructions`**, holding exactly the five
+in `PRESET_POLICIES` order: Double IRS Enforcement, Expand Drug Negotiation,
+Universal Insulin Cap, International Reference Pricing, Comprehensive Drug
+Reform. Selecting it prints `st.warning(ILLUSTRATIVE_GROUP_NOTE)` above the
+proposal picker; under the picker the existing badge caption prints that
+preset's own distance ("Unfitted reconstruction, 701.0% from -$100B …"), and
+`drug-reform-comprehensive`, which has no row, gets an explicit
+"No published benchmark scores this policy …" line instead of nothing. **No
+other area's membership or order moved**, asserted by a test.
+
+**Build.** `Drug pricing` is gone from both directional sections and
+`IRS enforcement` keeps `irs-enforcement-ira` alone. The illustrative section
+sorts **last** in each: `irs-enforcement-double`, `drug-negotiation-expand`,
+`drug-reference-pricing` under *Revenue raisers*, and `insulin-cap-universal`
+under *Tax cuts & new spending*. It is collapsed by default like every other
+area, opens on a search hit or a checked member, carries the group note inside,
+and each row carries a line under its checkbox. `drug-reform-comprehensive` is
+not in Build's catalog and never was — it has no `CBO_SCORE_MAP` entry.
+
+**Build's line is figure-free, and that is a finding rather than a shortcut.**
+The first `get_validation_badge` call in a process costs **6.187 s** (measured;
+`_scorecard_index` runs every specialized validator over all 81 rows) and
+Build's checklist materialises no scorecard at all today — `preset_validation`
+has exactly two live callers and neither is on this page. Printing a live figure
+on every illustrative checkbox would have put ~6.2 s on Build's first paint,
+which is the defect `planning/memos/COLD_START.md` found in the page footer and
+PR #135 removed. The alternative considered and rejected was a generated
+artifact in `build_validation_headline.py`'s shape: it would go **stale the
+moment the concurrent ledger lane retires the two pharma targets**, failing
+*their* gate for a reason in this lane's file. So `illustrative_note` has two
+variants, Build takes the cheap one, and the figure lives where it is already
+paid for.
+
+### 6.3 Falsification results
+
+Every condition in §4 was tested and none fired.
+
+- **No scored number moved** — §6.1.
+- **No scorecard row changed.** `fiscal_model/validation/` was never opened;
+  all five keep their rows, and a test asserts each of the four with a row
+  still reports `tier == "reconstruction"`.
+- **Nothing became unreachable.** `resolve_preset` is byte-identical for all 52
+  ids. Through the real router (`AppTest` on `app.py` → `/explore`), a
+  `?preset=<id>` link **scores** for `drug-negotiation-expand`,
+  `drug-reform-comprehensive` and `irs-enforcement-double`, and lands on the
+  illustrative area; a **frozen assignment link** (`frozen=1` plus the four
+  provenance stamps) naming `drug-reference-pricing` scores rather than refuses.
+- **No non-demoted preset moved**, on either surface.
+- **The label names the tier.** `Illustrative - unfitted reconstructions`, and
+  a test asserts all three words are in it.
+- **No preset is in two places.** `_preset_category` tests the flag *before*
+  `ui_category` and before the `is_*` ladder, and `build_catalog` before
+  `preset_scoring_category`; a test walks the whole catalog both ways.
+
+23 tests in `tests/test_illustrative_group.py`.
+
+### 6.4 Unpredicted findings
+
+1. **Demoting a group can delete an area, and both surfaces had one.** `Drug
+   Pricing` held exactly the four demoted pharma presets, so Explore's policy
+   area vanishes rather than empties — the selectbox is built from
+   `[c for c in _CATEGORY_ORDER if c in categorized]`, and an area with no
+   members is simply not offered. The count therefore stays at 14 rather than
+   rising to 15 as §3 item 7 predicted. Build's `Drug pricing` goes the same
+   way. §3's prediction was wrong in its arithmetic and right in its substance;
+   the membership assertions are what the tests pin.
+2. **`drug-reform-comprehensive` never had a Build row**, because Build's
+   catalog is driven by `CBO_SCORE_MAP` and it has no entry there. So the group
+   is five presets on Explore and four on Build, and the preset with the
+   weakest number is the one Build never quoted. Worth knowing before anyone
+   reads "the five" as a single population.
+3. **Build has no default or "quick" package to exclude anything from** — the
+   checklist starts empty and `apply_preselection` only ever runs from a link.
+   The §1.2 requirement was vacuous, which is the right outcome to record
+   rather than to satisfy by inventing an exclusion.
+4. **The values composer is the real "default package", and it picks a demoted
+   preset every time.** All five archetypes select `irs-enforcement-double`
+   into their twelve-policy package, and **none** selects any of the four
+   pharma presets — so the one demoted preset that reaches a values-built
+   package is the 82.3% enforcement row, not the 701% pharma one. Measured
+   before any edit, and left alone: `composer.py` is outside this lane's files
+   and excluding the row would move five package totals. Carry-over 1.
+
+### 6.5 Files touched outside the lane's stated list
+
+`fiscal_model/ui/policy_input_presets.py` and `fiscal_model/ui/policy_input_tax.py`
+— declared in advance in §2 and for the reason given there: Explore's preset
+picker does not live in `app_pages/explore.py`, which is a router. No sibling
+lane owns either file. `components/cards.py` was read and **not** edited (the
+Ask home's cards are `tcja`, `biden400k`, `corp28`, `tariff10`).
