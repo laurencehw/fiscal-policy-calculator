@@ -1311,7 +1311,10 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
             "trump-tariffs-trade-war/"
         ),
         "calibrated_to_target": False,
-        "notes": "USMCA share of HS-87 removed from the base before the rate is applied.",
+        "notes": (
+            "Scored on CBO's own Section 232 vehicle and parts article lists "
+            "at HS-10, net of the US content of USMCA-qualifying vehicles."
+        ),
         "limitations": [
             "The target moved in Wave 4 (auto_tariff_25.v1 -> .v2). The old "
             "-$100B was not a scorekeeper estimate: CRFB, its stated source, "
@@ -1327,15 +1330,35 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
             "scores the tariff *as announced* at $600-650B over 2026-35, so "
             "the two published figures differ by 1.7x and the residual should "
             "be read against that spread rather than against a point.",
-            "Census 2024 puts HS-87 (vehicles and parts) imports at $384.9B, "
-            "of which $186.4B — 48.4% — comes from Canada and Mexico. The "
-            "module's carve-out is generous: the March 2025 proclamation "
-            "exempts only the US-content share of USMCA-qualifying vehicles, "
-            "not the whole import value, so the real base is larger than the "
-            "one scored here — and neither publisher applies a USMCA carve-out "
-            "at all, modelling US-content exceptions instead.",
+            "Lane R8 closed the two base defects the previous limitation "
+            "described, and the row crossed its target: 47.2% UNDER -> 49.2% "
+            "OVER, pre-registered to the decimal. The base is now CBO's own "
+            "Section 232 article lists at HS-10 (autos.csv, 62 lines, "
+            "$255.3B; auto_parts.csv, 316 lines, $340.7B) aggregated over "
+            "CBO's own Census file, where it was the whole of HS-87 times a "
+            "flat 51.58%. HS-87 both over-includes - tractors, trailers, "
+            "motorcycles, bicycles, baby carriages - and under-includes, "
+            "because most of the parts list sits in chapters 40, 70, 83, 84, "
+            "85 and 90, outside HS-87 altogether. And the carve-out is now "
+            "CBO's: the March 2025 proclamation exempts the US-CONTENT share "
+            "of a QUALIFYING vehicle, so Canadian and Mexican vehicles are "
+            "taxed on 1 - 0.50 and 1 - 0.35 of their USMCA-utilised share and "
+            "parts in full, which removes $41.0B where the old whole-value "
+            "48.42% removed about $186B. $198.5B -> $555.0B of base.",
             "Not retuned: no TRADE_BASELINE constant was moved to close the "
-            "gap the revised target opened.",
+            "gap the revised target opened, and none was chosen to land this "
+            "row. Every figure above is an aggregation of CBO's shipped "
+            "Census file over CBO's shipped article lists at CBO's shipped "
+            "content shares - see data_files/trade/section232_hts_bases.csv, "
+            "pinned to commit 59ea68fd.",
+            "The residual should still be read against the 1.7x spread "
+            "between the two publishers, and the direction of the crossing is "
+            "informative: at -$576.3B the model now sits within 4% of Yale "
+            "Budget Lab's $600-650B for the tariff as announced, while "
+            "sitting 49% above Tax Foundation's carve-out-reflecting tracker "
+            "row. Neither is adopted as a target - constructing one from "
+            "whichever document the model lands near is the selection the "
+            "revision ledger exists to prevent.",
             "Lane H8 took retaliation out of the score - a conventional estimate does "
             "not net it, and this target is Tax Foundation's conventional column - so "
             "the row improved 52.8% -> 47.2% with no constant moving.",
@@ -1350,28 +1373,59 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
         "benchmark_url": None,
         "calibrated_to_target": False,
         "notes": (
-            "25pp on a $108.4B base - HS 72 plus HS 76 net of the 3.06% they "
-            "collect, plus the HS 73 derivative chapter net of the 5.63% it "
-            "collects. The derivative leg is an upper bound (see limitations)."
+            "25pp on a $219.4B base - CBO's own Section 232 article list at "
+            "HS-10 net of the 4.64% it collects, plus the derivative annex at "
+            "its metal content net of the 3.87% that collects."
         ),
         "limitations": [
-            "The Section 232 netting is now measured, not assumed: Census puts calculated "
-            "duty on HS-72 plus HS-76 at 3.06% of imports for consumption in 2024, far "
+            "The Section 232 netting is measured, not assumed: Census puts calculated "
+            "duty on the article list at 4.64% of imports for consumption in 2024, far "
             "below the 25%/10% statutory rates because Canada, Mexico and Australia were "
             "exempted and the EU, UK, Japan, Brazil and South Korea traded under quotas "
-            "or product exclusions. The proposed 25% is incremental to that 3.06%.",
-            "Lane H8 put the Section 232 derivative chapter into the base and the "
-            "row got worse by design, 11.9% -> 75.3%. HS-73 is $49.5B of imports "
-            "paying 5.63%, so the base goes $58.9B -> $108.4B - 1.84x, not the "
-            "'roughly triple' this repository said in three places - and it enters as "
-            "its own schedule row because it collects a different duty. The whole "
-            "chapter is an UPPER BOUND: the Section 232 annexes list derivative "
-            "articles at HS-10, and Proclamation 10896 taxes them on steel *content* "
-            "rather than customs value, neither of which is transcribed here. The "
-            "floor is one argument away - create_steel_tariff_25(include_derivatives="
-            "False) returns -$59.0B, 1.7% from the carried target - and the honest "
-            "reading is that a target nobody can source sat close to a base missing "
-            "most of what the statute reaches.",
+            "or product exclusions. The proposed 25% is incremental to that 4.64%.",
+            "READ THIS ROW'S MOVEMENT AS PROVENANCE, NOT ACCURACY. Lane R8 "
+            "replaced the HS-chapter base with CBO's own HS-10 Section 232 "
+            "article lists and the row went 75.3% -> 258.1%, pre-registered "
+            "to the decimal. That is a movement against a target that is "
+            "UNTRACEABLE and has been examined-and-left twice (see below), so "
+            "it measures nothing about the score. What it does measure is "
+            "whether the base is the one the statute reaches, and it now is: "
+            "$219.4B against a chapter bracket of $58.2B to $107.6B.",
+            "Lane H8's bracket was wrong at BOTH ends and lane R8 found out "
+            "why. H8 put whole-chapter HS-73 in as a declared UPPER BOUND on "
+            "the derivative base, $58.9B -> $108.4B. CBO's alum_steel.csv "
+            "puts 558 of its 1,180 HS-10 lines in HS-73, so most of that "
+            "chapter is PRIMARY Section 232 scope and the 'floor' of HS-72 + "
+            "HS-76 excluded it; meanwhile the derivative annex lives in "
+            "chapters 82, 83, 84, 85, 86, 87, 94 and 95 (high metal content) "
+            "and 34, 38, 82, 84, 85, 87, 94, 95 (low) - machinery, furniture, "
+            "appliances - which HS-73 does not contain at all, so the "
+            "'ceiling' was 2.5x too SMALL. Measured: primary $96.75B at "
+            "4.64%, derivative content base $122.60B at 3.87% (CBO's own "
+            "0.75/0.25 metal-content shares, which is the quantity "
+            "Proclamation 10896 taxes and the module previously could not "
+            "express). See data_files/trade/section232_hts_bases.csv, pinned "
+            "to CTAM commit 59ea68fd.",
+            "The one external control that exists says the base moved the "
+            "right way and is still short. Tax Foundation's tracker scores "
+            "the 50% Section 232 regime with copper folded in at -$341.4B "
+            "conventional over 2026-2035; run at 50% the module returns "
+            "-$190.95B on this base against -$94.32B on the chapter proxies, "
+            "so the gap halves and does not close. Copper cannot explain the "
+            "rest - CBO's copper list is $15.3B of imports - and what is left "
+            "is the unsourced high-rate elasticity device at trade.py's "
+            "high_tariff_threshold / _multiplier / min_volume_factor, which "
+            "at a 46pp increment leaves a volume factor of 0.379, i.e. a 62% "
+            "year-one import collapse. That is a carry-over, not this row's.",
+            "Declared vintage mismatch: CBO's article lists are the Section "
+            "232 scope as of 15 November 2025 and this preset models the 25% "
+            "Proclamation 10896 rate, in force 12 March to 3 June 2025. The "
+            "BASE moved to the article lists; the RATE was not touched.",
+            "Not retuned, and nothing was chosen to land the row. The floor "
+            "is still one argument away - create_steel_tariff_25("
+            "include_derivatives=False) returns the primary article list "
+            "alone - but it is now a genuine floor rather than one end of a "
+            "bracket built from the wrong chapters.",
             "The target is unsourced and, after a second search, stays that "
             "way — recorded in target_revisions.EXAMINED_NOT_REVISED rather "
             "than moved. CBO_SCORE_MAP and PRESET_POLICIES used to spell this "

@@ -34,6 +34,9 @@ from fiscal_model.trade import (
     create_steel_tariff_25,
     create_trump_china_60,
     create_trump_universal_10,
+    income_payroll_offset_rate,
+    load_income_payroll_offset_path,
+    window_income_payroll_offset_rate,
 )
 from fiscal_model.ui.tabs.results_summary import tariff_net_caption
 
@@ -84,14 +87,28 @@ class TestTranscribedInputs:
     def test_csv_exists_and_parses(self):
         rows = _transcribed_rows()
         assert rows, "tariff_scoring_inputs.csv parsed to nothing"
-        assert {"model_input", "context", "external_check"} >= {
+        assert {"model_input", "context", "external_check", "superseded"} >= {
             row["role"] for row in rows.values()
         }
+
+    def test_a_superseded_row_is_kept_rather_than_deleted(self):
+        """Lane R8 moved seven figures out of the module and none out of the record.
+
+        A figure the module used to read is part of its record. In particular
+        `steel_derivative_imports_billions = 49.5` was shipped as a declared
+        UPPER BOUND on the Section 232 derivative base and turns out to be
+        2.5x too small, which is only legible with the old row beside the new.
+        """
+        rows = _transcribed_rows()
+        superseded = {k for k, v in rows.items() if v["role"] == "superseded"}
+        assert "steel_derivative_imports_billions" in superseded
+        assert "auto_usmca_exempt_share" in superseded
+        assert float(rows["steel_derivative_imports_billions"]["value"]) == 49.5
 
     def test_every_model_input_matches_trade_baseline(self):
         rows = _transcribed_rows()
         inputs = {k: v for k, v in rows.items() if v["role"] == "model_input"}
-        assert len(inputs) >= 15
+        assert len(inputs) >= 14
         for key, row in inputs.items():
             assert key in TRADE_BASELINE, f"{key} is transcribed but not in TRADE_BASELINE"
             assert TRADE_BASELINE[key] == pytest.approx(float(row["value"]), rel=1e-9), (
@@ -313,18 +330,58 @@ class TestNettingChain:
     def test_net_is_the_same_share_of_gross_for_every_preset(self):
         """Since lane H8 the conventional ratio is an identity, not a range.
 
-        `(1 - 0.05) x (1 - 0.25) = 0.7125` of gross duty, for every tariff in
-        either direction, against the 0.738 FF861's own conventional column
-        implies with its 26.2% offset and its noncompliance folded into the
-        base. It used to vary 0.599 to 0.655 across the presets, and the
-        variation was the retaliation term - which a conventional estimate
-        does not carry.
+        `(1 - 0.05) x (1 - offset)` of gross duty, for every tariff in either
+        direction, against the 0.738 FF861's own conventional column implies
+        with its 26.2% offset and its noncompliance folded into the base. It
+        used to vary 0.599 to 0.655 across the presets, and the variation was
+        the retaliation term - which a conventional estimate does not carry.
+
+        Lane R8 made the offset a published year path, so the identity is now
+        stated against each policy's own window rather than against a literal
+        0.25. Every preset opens in the same year, so they still share one
+        ratio; a preset opening in a different year would not, and that is the
+        point of asking the policy rather than the constant.
         """
         for factory in FACTORIES:
-            summary = factory().get_trade_summary()
+            policy = factory()
+            summary = policy.get_trade_summary()
             assert summary["net_to_gross_ratio"] == pytest.approx(
-                0.95 * 0.75, abs=1e-9
+                0.95 * (1 - policy.income_payroll_offset_rate()), abs=1e-9
             ), factory.__name__
+
+    def test_the_offset_is_jcts_published_path_and_not_the_round_quarter(self):
+        """The round 0.25 is what the convention is quoted at, not what JCT publishes.
+
+        CBO's own tariff model ships the percentages at
+        `inputs/offset/2025OffsetPostHR1.csv` and applies them one year at a
+        time. They are deliberately NOT Tax Foundation FF861's 26.2%, which
+        this repository already records as an external check not adopted
+        because it is that estimator's own output for this window.
+        """
+        path = dict(load_income_payroll_offset_path())
+        assert path[2025] == 0.244
+        assert path[2035] == 0.241
+        assert len(path) == 11
+        # The library window and the app window, both means of the same path.
+        assert window_income_payroll_offset_rate(2025, 10) == pytest.approx(0.2442)
+        assert window_income_payroll_offset_rate(2026, 10) == pytest.approx(0.2439)
+        # Clamped, never extrapolated: a published path is a statement about
+        # the years it covers.
+        assert window_income_payroll_offset_rate(2050, 1) == 0.241
+        assert window_income_payroll_offset_rate(2000, 1) == 0.244
+
+    def test_the_window_mean_is_an_identity_for_a_flat_gross(self):
+        """Not an approximation: a tariff's gross is flat across the window.
+
+        `sum_t g(1 - o_t) == n * g * (1 - mean o)`. This is why the module can
+        read a year path through a year-blind engine call and still be exact.
+        """
+        policy = create_trump_universal_10()
+        gross = policy.estimate_static_revenue_effect(0)
+        years = range(policy.start_year, policy.start_year + policy.duration_years)
+        year_by_year = sum(gross * (1 - income_payroll_offset_rate(y)) for y in years)
+        windowed = len(list(years)) * gross * (1 - policy.income_payroll_offset_rate())
+        assert year_by_year == pytest.approx(windowed, rel=1e-12)
 
     def test_the_score_is_the_net_figure(self):
         policy = create_trump_universal_10()
@@ -413,9 +470,12 @@ class TestRetaliationBase:
 
     def test_a_small_tariff_does_not_invite_retaliation_against_all_exports(self):
         policy = create_steel_tariff_25()
+        # 0.10, not 0.05, since lane R8: the Section 232 article base is
+        # $219.4B of the $3,263.9B of goods imports, where the HS-chapter
+        # proxy was $108.4B, so proportional exposure roughly doubled too.
         assert (
             policy.retaliation_export_base_billions
-            < TRADE_BASELINE["total_exports_billions"] * 0.05
+            < TRADE_BASELINE["total_exports_billions"] * 0.10
         )
         assert policy.estimate_retaliation_cost() < policy.import_base_billions
 
@@ -457,23 +517,31 @@ class TestSection232Netting:
     def test_steel_nets_the_duty_actually_collected(self):
         """Each steel base nets the duty *it* pays, not one blended rate.
 
-        Lane H8 added the Section 232 derivative chapter, which collects 5.63%
-        where the primary HS 72 plus HS 76 base collects 3.06%, so the factory
+        Lane H8 added the Section 232 derivative leg and lane R8 took both
+        legs to the article level, where the primary list collects 4.64% and
+        the derivative annex 3.87% on its taxed metal content, so the factory
         carries two schedule rows rather than one averaged rate.
         """
         policy = create_steel_tariff_25()
         rows = {name: rate for name, _, rate in policy.rate_schedule}
         assert set(rows) == {
-            "Steel and aluminium (HS 72, HS 76)",
-            "Derivative articles (HS 73)",
+            "Section 232 steel and aluminium articles",
+            "Section 232 derivative articles (metal content)",
         }
-        assert rows["Steel and aluminium (HS 72, HS 76)"] == pytest.approx(
+        assert rows["Section 232 steel and aluminium articles"] == pytest.approx(
             0.25 - TRADE_BASELINE["steel_aluminum_existing_avg_tariff"]
         )
-        assert rows["Derivative articles (HS 73)"] == pytest.approx(
-            0.25 - TRADE_BASELINE["steel_derivative_existing_avg_tariff"]
-        )
+        assert rows[
+            "Section 232 derivative articles (metal content)"
+        ] == pytest.approx(0.25 - TRADE_BASELINE["steel_derivative_existing_avg_tariff"])
         assert all(rate < 0.25 for rate in rows.values())
+        # The derivative annex collects LESS than the primary list, which is
+        # the reverse of the HS-73 chapter proxy it replaces (5.63% against
+        # 3.06%) and the tell that the two are not the same set of articles.
+        assert (
+            TRADE_BASELINE["steel_derivative_existing_avg_tariff"]
+            < TRADE_BASELINE["steel_aluminum_existing_avg_tariff"]
+        )
 
     def test_auto_nets_the_duty_actually_collected(self):
         policy = create_auto_tariff_25()

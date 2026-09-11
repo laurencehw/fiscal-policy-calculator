@@ -59,7 +59,7 @@ from fiscal_model.tax_expenditures_core import (
     TaxExpenditurePolicy,
     salt_cap_schedule,
 )
-from fiscal_model.trade import TRADE_BASELINE, TariffPolicy
+from fiscal_model.trade import TariffPolicy
 from fiscal_model.ui.a11y import (
     ChartDescription,
     format_currency_rows,
@@ -612,6 +612,15 @@ def tariff_net_caption(policy: Any, result: Any) -> str:
     are named here instead. That is a second user-visible change in the number
     and it ships with its explanation too (Decision 6).
 
+    Lane R8 moved it a third time, on two counts, and both are named below when
+    they apply. The offset stopped being the round 25% the convention is
+    usually *quoted* at and became JCT's own published year path, 0.244 to
+    0.241, worth about +0.8% on every tariff. And the two Section 232 presets
+    stopped taking their base from whole HS chapters and started taking it from
+    CBO's own HS-10 article lists, which roughly doubled the steel base and
+    nearly tripled the auto one — much the larger of the two changes, so the
+    sentence says which base a user is now looking at.
+
     Computed from the scored result, so it cannot drift from the figure above
     it. Returns ``""`` for anything that is not a tariff.
     """
@@ -621,7 +630,10 @@ def tariff_net_caption(policy: Any, result: Any) -> str:
     if gross == 0.0:
         return ""
     net = gross - float(np.sum(result.behavioral_offset))
-    offset_pct = TRADE_BASELINE["income_payroll_offset_rate"]
+    # The policy's own window, not a module constant: the offset is a year path
+    # now, so two policies opening in different years net down by different
+    # amounts and the caption has to say the one that was used.
+    offset_pct = policy.income_payroll_offset_rate()
     years = max(1, len(result.static_revenue_effect))
     gdp_loss = policy.estimate_gdp_feedback_revenue_loss(years)
     retaliation = (
@@ -656,13 +668,26 @@ def tariff_net_caption(policy: Any, result: Any) -> str:
         "does this app - these are the tariff module's own channels, and "
         "neither is the dynamic-scoring engine's feedback."
     )
+    # Section 232 bases are measured at the article level since lane R8, and
+    # for the two presets that use them the base moved far more than the offset
+    # did, so the base is what a user needs told.
+    section232 = ""
+    if getattr(policy, "target_sector", None) in ("steel", "autos"):
+        section232 = (
+            " The base is the Section 232 article list itself - CBO's own "
+            f"HS-10 annex, \\${policy.import_base_billions:,.0f}B of imports - "
+            "rather than the whole HS chapter it used to stand in for."
+        )
     return (
         f"Net of offsets: \\${gross:,.1f}B of gross customs duty becomes "
         f"\\${net:,.1f}B of {conventional_label} - a {net / gross:.2f} "
-        f"net/gross ratio - after duty avoidance and the {offset_pct:.0%} "
+        f"net/gross ratio - after duty avoidance and the {offset_pct:.1%} "
         f"income-and-payroll offset CBO, JCT and Treasury apply to any "
-        f"indirect tax. Import demand responds to the whole tariff "
-        f"(near-complete border pass-through)." + tail
+        f"indirect tax, which is JCT's own published year path rather than "
+        f"the round 25% the convention is usually quoted at. Import demand "
+        f"responds to the whole tariff (near-complete border pass-through)."
+        + section232
+        + tail
     )
 
 
