@@ -243,3 +243,164 @@ not opened at all.
 `ui/estimator_ranges.py` (H4), `data/capital_gains.py` and `policies_core.py` (H5),
 `trade.py` and its data (H8), `CLAUDE.md`, `README.md`, `NEXT_STEPS.md`,
 `MODELING_IMPROVEMENT.md`, `CHANGELOG.md`.
+
+---
+
+# Outturn
+
+*Appended 2026-09-11, after implementation. Every "after" figure is from a
+re-run of the same artifacts on the lane branch and a byte-diff against the
+pre-lane run on `2d13e60`.*
+
+## 6. Zero numbers moved, and the diff is empty in three places
+
+| Artifact | Result |
+|---|---|
+| `scripts/cold_holdout.py --json` | **byte-identical** |
+| `scripts/run_validation_dashboard.py` | **byte-identical** — which covers the Tier 2 leave-one-out block, its six per-module rows and the twelve reconstruction sub-populations, so `run_loo.py --donor-matrix` is proven unmoved without a second baseline |
+| 53-preset sweep, keyed by **stable preset id**, all three columns (`static \| behavioral \| final`) plus each id's `official_score` | **byte-identical** |
+| `scripts/run_loo.py --donor-matrix --max-mean-error 75` | passes |
+
+Falsification criteria 1–4 are therefore all clear. Criterion 5 is covered by
+two parametrised tests (below), 6 by the two now-empty containers, and 7 by
+`test_the_app_labels_carry_the_revised_figures`, which was **not relaxed** — its
+equality-or-containment assertion against the live target passes on the new
+spellings exactly as it did on the old ones, because the only thing that moved
+is the key.
+
+## 7. What shipped
+
+Six labels, as pre-registered in §2 and to the character. No seventh, and no
+figure added to a label that carried none.
+
+`_LABELS_QUOTING_A_SUPERSEDED_FIGURE` **5 → 0**. The `handover` set in
+`test_base_rule_contract.py` **3 → 0**, so
+`test_a_label_figure_never_contradicts_its_own_official_score` now runs against
+**all 40** of the 46 `CBO_SCORE_MAP` labels that carry a parenthesised figure,
+with no exemptions, for the first time since H1 wrote it.
+`LEGACY_LABEL_ALIASES` **5 → 10**; `SCORE_ONLY_ALIAS_ID_BY_LABEL` **0 → 1**.
+
+Both empty containers are **kept rather than deleted**, each with its assertion
+inverted so a non-empty one fails: a future provenance lane that cannot reach a
+label should still declare it, and the declaration should still be a debt.
+
+## 8. Findings
+
+**1. The mortgage rename could not use the mechanism the brief named, and the
+right mechanism was already in the tree waiting.** `eliminate_mortgage` is a
+*score-only* Build option — a `CBO_SCORE_MAP` entry and a stable id with no
+`PRESET_POLICIES` row — and putting its retired spelling in
+`LEGACY_LABEL_ALIASES` would not merely have been untidy, it would have raised
+`KeyError` at runtime: `_ALIAS_INDEX`'s values are *catalog labels*, and
+`preset_id_for_token` finishes a hit there with `PRESET_ID_BY_LABEL[label]`.
+`SCORE_ONLY_ALIAS_ID_BY_LABEL` — kept as an empty dict by the Phase E pass with
+the comment "the mechanism is the right fix if a score map ever legitimately
+carries a second spelling" — is consulted by `_SCORE_ONLY_INDEX` and maps
+straight to the id. This lane is its first user, and
+`test_every_retired_score_only_label_still_resolves` is new because the existing
+parametrised test asserts `new_label in PRESET_ID_BY_LABEL` and would have gone
+red on a score-only row.
+
+**2. One of the two mis-signed labels was not quoting a target at all.**
+`🌱 Repeal EV Credits ($182B)` had the right magnitude and the wrong sign.
+`🌱 Repeal IRA Clean Energy Credits ($783B)` had neither: **−783.0 is
+`model_10yr_billions`**, and the live target is −851.0. The label was printing
+the model's own output, positively signed, in the slot a published score
+occupies — the app quoting itself back at the user in the one place the user
+cannot see it is doing so. That is the same class of defect as
+`trump_corporate_15`'s `model_estimate` target (PR #122) and
+`repeal_corporate_amt`'s inverted sign (PRs #119/#140), in a third mechanism.
+
+**3. The range question did not need a new convention, and the precedent picks
+the anchor.** `🏭 Reciprocal Tariffs (-$1.5T)` is a range row on
+`[−1,800, −1,400]`: the label quotes the anchor unmarked and the *description*
+carries the range ("Published conventional estimates … span \$1.4-1.8T; the
+official score shown anchors on Tax Foundation's \$1.5T"). The mortgage label is
+now built the same way, so the figure did not have to be struck. Worth recording
+because a label reading `(-$368B to -$495B)` would have passed both the label
+rule and the sign invariant and still been the only one of its shape in the app.
+
+**4. The stale strings that mattered most were not the labels.** A label sits
+beside a badge and a scored number; a *knowledge file* is cited by the Ask
+assistant with no such context.
+`assistant/knowledge/ssa_trustees_2025.md` said the \$250K donut was **"scored
+by CBO at −\$2.7T (model: −\$2.4T, error 12%)"** — three errors in one clause.
+CBO scored −\$1,426.8B; the model returns −\$2,700.0B, not −\$2,400B; the live
+row reports **89.2%**, not 12%. And the attribution it *implied* by sitting
+under a Trustees heading is the one H9 spent a search refuting: OCACT scores
+E2.5 only in percent of taxable payroll and publishes no dollars at any horizon.
+
+**5. `methodology.py` listed the row under the wrong *tier*, not just with the
+wrong figures.** H9's carry-over said "every cell of which is now wrong" and
+named four cells; a fifth thing was wrong, which is that the row sat inside the
+table headed **"Calibrated reference models — parameters tuned to reproduce the
+published decomposition. Low error is expected by construction."** A calibrated
+reference stops being one the moment its target moves and its constant does not
+follow — `calibrated_to_target=False` in the registry — and that was not
+reflected on screen. The row now has its own reconstruction table at 89.2% with
+the reason stated, and the PGPF footnote is rewritten to describe the
+*superseded* figure rather than the live one.
+
+**6. Seven of the twelve curated Build packages state a total that no longer
+equals the sum of their members — recorded, not corrected.** Measured on this
+commit and written into `policy_packages.py`'s own docstring:
+
+| Package | Stated | Members sum |
+|---|--:|--:|
+| Progressive Revenue Package | −4,750 | −3,473.8 |
+| Biden Full International Package | −900 | −812.6 |
+| TCJA + No SALT Cap | 6,500 | 5,700.0 |
+| SS Solvency: Raise the Cap | −2,950 | −1,676.8 |
+| Trump Trade Agenda | −2,500 | −2,821.1 |
+| Carbon Tax + IRA Repeal | −917 | −2,551.0 |
+| Drug Pricing + Enforcement | −700 | −680.4 |
+
+Most is H9's pass moving targets underneath hand-kept sums. **The outlier is
+Carbon Tax + IRA Repeal, and it is this lane's own defect in a second place**:
+−917 is −1,700 **+ 783**, i.e. it books repealing the IRA credits as
+*increasing* the deficit — the identical sign error the label carried. Nothing
+was corrected, because `ui/tabs/package_builder.py` is the only reader of
+`official_total` and is dead code, and rewriting twelve list prices is a
+decision about figures that a label lane may not take by implication.
+
+**7. Two `official_source` fields disagree with their own ledger row, and they
+are outside this lane's boundary.** `scenarios.py` credits `trump_china_60` to
+**"Tax Foundation"** where `target_revisions.trump_china_60.v2` reads CRFB, and
+`repeal_ira_credits` to **"CBO, budgetary effects of the energy-related tax
+provisions of P.L. 117-169 (upward revision)"** where the revision reads Tax
+Foundation (McBride) — and the revision's own note records that *"the cited CBO
+publication does not exist"*. Both strings reach the scorecard's
+`official_source` column and the `/validation/scorecard` endpoint, so the app
+attributes two published figures to organisations that did not publish them.
+This lane owns only the `"preset"` label strings in that file.
+
+## 9. Carry-overs
+
+1. **`policy_packages.py`'s seven stale `official_total`s** (finding 6), one of
+   them a sign error. Dead code today; live the moment Package Studio is
+   revived.
+2. **Two wrong `official_source` attributions in `validation/scenarios.py`**
+   (finding 7) — `trump_china_60` → CRFB, `repeal_ira_credits` → Tax Foundation.
+   A provenance edit, not a label one.
+3. **H9's carry-over 5 is untouched and still open**: `create_ss_donut_hole`
+   stamps a flat annual where CBO's own path for the identical donut ramps
+   \$122.0B (2026) → \$192.0B (2034). This lane made the docstring say so and
+   deliberately did not fix it — that is a shape change with a scored number
+   behind it, which belongs to a modelling lane.
+4. `CBO_PAYROLL_ESTIMATES["donut_250k_annual"]` (270.0) and
+   `["donut_250k_10yr"]` (now 1,426.8) no longer satisfy `annual × 10 = 10yr`.
+   That is the 89.2% miss made visible in a dict rather than hidden by it, and
+   the comment says so; a reader who "tidies" the inconsistency by moving the
+   annual would be retuning the constant the ledger forbids retuning.
+
+## 10. Gates
+
+| Gate | Result |
+|---|---|
+| `python -m pytest tests/ -q` | pass |
+| `ruff check fiscal_model/ tests/ app.py app_pages/ components/ classroom_app.py` | pass |
+| `scripts/check_readiness.py --strict` | `ready_with_warnings`, exit 0 — 5 pass / 5 warn / 0 fail, all five warnings pre-existing on `main` (Py3.14 runtime, degraded microdata calibration, no `ANTHROPIC_API_KEY`, the documented Poor revenue outlier, and the three documented holdout outliers `repeal_ptc` / `pwbm_39_with_stepup` / `eliminate_mortgage`) |
+| `scripts/build_validation_headline.py --check` | `OK: headline_counts.json matches the live scorecard (77 published of 81)` |
+| `cold_holdout.py --max-mean-error 20 --min-within-25pct 22` | pass |
+| `cold_holdout.py --max-class-mean-error` (all eight classes, the workflow's values) | pass |
+| `run_loo.py --donor-matrix --max-mean-error 75` | pass |

@@ -1,5 +1,31 @@
 """
 Preset package definitions for the Policy Package Builder tab.
+
+FINDING (2026-09-11, the label-figure lane, recorded and NOT acted on).
+``official_total`` is a hand-kept sum of the members' ``CBO_SCORE_MAP``
+``official_score``. **Seven of the twelve no longer agree with that sum**,
+measured on this commit:
+
+    Progressive Revenue Package     -4,750   vs   -3,473.8
+    Biden Full International Package  -900   vs     -812.6
+    TCJA + No SALT Cap                6,500   vs    5,700.0
+    SS Solvency: Raise the Cap       -2,950   vs   -1,676.8
+    Trump Trade Agenda               -2,500   vs   -2,821.1
+    Carbon Tax + IRA Repeal            -917   vs   -2,551.0
+    Drug Pricing + Enforcement         -700   vs     -680.4
+
+Most of it is H9's provenance pass moving six targets underneath these sums.
+The outlier is **Carbon Tax + IRA Repeal**, and it is a different defect: -917
+is -1,700 + 783, i.e. it books repealing the IRA credits as *increasing* the
+deficit by $783B. That sign error is the same one the 2026-09-11 lane took out
+of the preset's label, and it was sitting here too.
+
+Nothing is corrected, for two reasons. ``ui/tabs/package_builder.py`` is the
+only reader of ``official_total`` and is dead code (Package Studio was folded
+into Build's values panel), so no user sees these numbers; and rewriting twelve
+list prices is a decision about figures, which a label lane may not take by
+implication. The members themselves ARE live -- Build resolves each string --
+so the strings are kept current.
 """
 
 PRESET_POLICY_PACKAGES = {
