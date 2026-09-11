@@ -260,17 +260,33 @@ class TestCBOBaselineInit:
     """Test CBOBaseline initialization."""
 
     def test_init_hardcoded_fallback(self):
-        """CBOBaseline with use_real_data=False should use hardcoded values."""
-        # Default vintage is CBO Feb 2026 with updated GDP
+        """The hardcoded budget levels survive; the GDP anchor is CBO's own.
+
+        ``base_gdp`` was 30,300 -- a round guess at CBO's FY2025 nominal GDP.
+        CBO's own February 2026 table prints 30,330.3, and R1 transcribed it,
+        so the literal is superseded by the figure it was approximating. The
+        budget levels beside it are untouched: CBO publishes those too and
+        ``generate()`` now reads them directly, which is why nothing here needs
+        to guess at them either.
+        """
         gen = CBOBaseline(start_year=2026, use_real_data=False)
-        assert gen.base_gdp == 30300, "Hardcoded GDP should be 30300 (Feb 2026 baseline)"
+        assert gen.base_gdp == pytest.approx(30_330.3), (
+            "base_gdp should be CBO's own FY2025 level, not the 30,300 guess"
+        )
+        assert gen.metadata["gdp_source"] == "cbo_published_table"
         assert gen.base_individual_income_tax == 2700, "Hardcoded income tax should be 2700"
 
     def test_init_hardcoded_fallback_legacy_vintage(self):
-        """CBOBaseline with Feb 2024 vintage should use legacy hardcoded values."""
+        """February 2024's anchor is CBO's FY2024, not the 28,500 literal.
+
+        This vintage is the one the change matters most for: CBO's GitHub
+        publishes its *economic* table and no budget table, so its budget lines
+        are still this module's reconstruction -- and they are now grown off
+        CBO's own 28,176.6 rather than a round number 1.1% above it.
+        """
         from fiscal_model.baseline import BaselineVintage
         gen = CBOBaseline(start_year=2025, use_real_data=False, vintage=BaselineVintage.CBO_FEB_2024)
-        assert gen.base_gdp == 28500, "Legacy GDP should be 28500"
+        assert gen.base_gdp == pytest.approx(28_176.6)
         assert gen.base_individual_income_tax == 2500, "Legacy income tax should be 2500"
 
     def test_init_custom_start_year(self):
@@ -294,7 +310,9 @@ class TestCBOBaselineInit:
         gen = CBOBaseline(start_year=2026, use_real_data=False)
 
         assert gen.metadata["source"] == "hardcoded_fallback"
-        assert gen.metadata["gdp_source"] == "hardcoded"
+        # "hardcoded" only survives for a vintage with no transcribed economic
+        # table; the three this repository ships all have one.
+        assert gen.metadata["gdp_source"] == "cbo_published_table"
         assert gen.metadata["requested_real_data"] is False
 
     def test_real_data_baseline_uses_cached_fred_without_live_api(self, monkeypatch):
@@ -330,9 +348,14 @@ class TestCBOBaselineInit:
 
         gen = CBOBaseline(start_year=2026, use_real_data=True)
 
-        assert gen.base_gdp == 31_000.0
+        # FRED is still consulted and its status still reported -- what has
+        # changed is that its LATEST ACTUAL no longer becomes the base year of
+        # a projection vintage. It was, for all three vintages alike, which is
+        # how February 2024's "base year" came to be today's economy.
         assert gen.metadata["source"] == "real_data"
-        assert gen.metadata["gdp_source"] == "fred_cache"
+        assert gen.metadata["fred"]["source"] == "cache"
+        assert gen.base_gdp == pytest.approx(30_330.3)
+        assert gen.metadata["gdp_source"] == "cbo_published_table"
         assert gen.metadata["irs_data_year"] == 2022
 
     def test_real_data_baseline_uses_bundled_fred_seed(self, monkeypatch):
@@ -368,9 +391,10 @@ class TestCBOBaselineInit:
 
         gen = CBOBaseline(start_year=2026, use_real_data=True)
 
-        assert gen.base_gdp == 31_422.526
         assert gen.metadata["source"] == "real_data"
-        assert gen.metadata["gdp_source"] == "fred_bundled"
+        assert gen.metadata["fred"]["source"] == "bundled"
+        assert gen.base_gdp == pytest.approx(30_330.3)
+        assert gen.metadata["gdp_source"] == "cbo_published_table"
         assert gen.metadata["irs_data_year"] == 2022
 
 # =============================================================================

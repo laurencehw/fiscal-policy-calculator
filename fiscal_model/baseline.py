@@ -799,78 +799,42 @@ class CBOBaseline:
         # Debt: Current debt-to-GDP ratio
         self.base_debt = self.base_gdp * GDP_RATIOS["debt_to_gdp"]
 
-        # Where CBO publishes this vintage's own budget table, every base level
-        # above is superseded by that table's own base-year column. The ratios
-        # are not deleted - they remain the documented rule for a vintage with
-        # no published table, and February 2024 still uses them - but for the
-        # app's default vintage they stop being what a user reads.
-        self._adopt_published_base_levels()
+        # The GDP anchor comes from CBO's own table where one exists. The
+        # ratios above are not deleted - they remain the documented rule for a
+        # vintage with no published budget table, and February 2024 still uses
+        # them - but they now sit on that vintage's own GDP rather than on
+        # whatever nominal GDP FRED last reported.
+        self._adopt_published_gdp_anchor()
 
-    def _adopt_published_base_levels(self) -> None:
-        """Replace the reconstructed base levels with CBO's own base-year column.
+    def _adopt_published_gdp_anchor(self) -> None:
+        """Anchor ``base_gdp`` on CBO's own level for this vintage's base year.
 
         Both loader paths call this, so ``use_real_data=True`` and
-        ``use_real_data=False`` cannot disagree about what a vintage's base year
-        is - the class of defect PR #130 found in the corporate line, where the
-        two paths were 8.6% and 35.5% apart on two vintages.
+        ``use_real_data=False`` cannot disagree about what year a vintage
+        starts from - the class of defect PR #130 found in the corporate line,
+        where the two paths were 8.6% and 35.5% apart on two vintages.
 
-        ``generate()`` does not read these for a transcribed vintage; they are
-        part of this class's public surface and are kept consistent with the
-        path that is scored. No-op for a vintage with no published table.
+        What it replaces is worse than a disagreement. Under
+        ``use_real_data=True`` - the app's default - ``base_gdp`` was **FRED's
+        latest nominal GDP for every vintage alike**, so February 2024's "base
+        year" was today's economy, and the nine ``GDP_RATIOS`` spending and
+        revenue levels were all built off it. Under ``use_real_data=False`` it
+        was a round literal: 30,300 for February 2026 against CBO's own FY2025
+        30,330.3, and 28,500 for February 2024 against CBO's FY2024 28,176.6.
+
+        The **budget** base levels are deliberately left alone. For a vintage
+        with a transcribed budget table ``generate()`` reads that table and
+        never touches them; for one without, they are the documented
+        reconstruction. Overwriting them would also have forced a base-year
+        decision this lane has no reason to take - ``_CBO_JAN_2025_BASE_LEVELS``
+        is FY2025 while ``_project_*`` treats its base as ``start_year - 1`` -
+        and that ambiguity is a carry-over, not something to settle in passing.
         """
-        base_year = self.start_year - 1
         gdp = cbo_data.nominal_gdp_table(_vintage_key(self.baseline_vintage))
-
-        # The GDP anchor moves as soon as the *economic* table exists, whether
-        # or not a budget table does, and this matters most for the vintage
-        # that has only the first. Under ``use_real_data=True`` ``base_gdp`` was
-        # FRED's latest nominal GDP for every vintage alike - so February 2024's
-        # "base year" was today's economy - and the nine ``GDP_RATIOS`` spending
-        # and revenue levels were all built off it. Anchoring on CBO's own
-        # published level for that vintage's base year keeps the reconstructed
-        # lines consistent with the GDP path they sit beside.
-        if gdp:
-            self.base_gdp = float(cbo_data.series(gdp, base_year, 1)[0])
-            self.gdp_source = "cbo_published_table"
-
-        budget = cbo_baseline_budget(self.baseline_vintage)
-        if not budget:
+        if not gdp:
             return
-
-        def level(name: str) -> float | None:
-            table = budget.get(name)
-            if not table:
-                return None
-            return float(cbo_data.series(table, base_year, 1)[0])
-
-        def assign(attr: str, value: float | None) -> None:
-            if value is not None:
-                setattr(self, attr, value)
-
-        assign("base_individual_income_tax", level("individual_income_tax"))
-        assign("base_corporate_tax", level("corporate_income_tax"))
-        assign("base_payroll_tax", level("payroll_taxes"))
-        core, customs = level("other_revenues_core"), level("other_revenues_customs")
-        if core is not None:
-            assign("base_other_revenue", core + (customs or 0.0))
-        ss_gross, ss_off = level("social_security_gross"), level("social_security_offset")
-        if ss_gross is not None:
-            assign("base_social_security", ss_gross + (ss_off or 0.0))
-        mc_gross, mc_off = level("medicare_gross"), level("medicare_offset")
-        if mc_gross is not None:
-            assign("base_medicare", mc_gross + (mc_off or 0.0))
-        assign("base_medicaid", level("medicaid"))
-        assign("base_defense", level("defense_discretionary"))
-        assign("base_nondefense", level("nondefense_discretionary"))
-        assign("base_debt", level("debt_held_by_public"))
-
-        outlays, disc = level("outlays_total"), level("discretionary_total")
-        interest = level("net_interest")
-        if None not in (outlays, disc, interest):
-            named = (
-                self.base_social_security + self.base_medicare + self.base_medicaid
-            )
-            self.base_other_mandatory = outlays - disc - interest - named
+        self.base_gdp = float(cbo_data.series(gdp, self.start_year - 1, 1)[0])
+        self.gdp_source = "cbo_published_table"
 
     def _use_hardcoded_fallback(self):
         """Use hardcoded baseline values (fallback when data unavailable)."""
@@ -919,9 +883,9 @@ class CBOBaseline:
             self.base_debt = 29700  # Debt held by public (~98% of GDP)
 
         # Same call the real-data path makes, so the two cannot disagree about
-        # a vintage's base year. The literals above survive as the fallback for
-        # a vintage CBO's GitHub publishes no budget table for.
-        self._adopt_published_base_levels()
+        # a vintage's base year. The literals above survive for a vintage CBO's
+        # GitHub publishes no economic table for.
+        self._adopt_published_gdp_anchor()
 
     def generate(self) -> BaselineProjection:
         """Generate a 10-year baseline projection."""

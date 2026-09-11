@@ -1239,6 +1239,153 @@ def income_base_projection_caption(policy: Any, result: Any) -> str:
     )
 
 
+def cbo_baseline_transcription_caption(policy: Any, result: Any) -> str:
+    """Decision 6 for R1: the baseline under this score is CBO's own table now.
+
+    Until 2026-09-11 no vintage's budget levels were transcribed at all under
+    the app's default ``use_real_data=True``: they were eleven ``GDP_RATIOS``
+    applied to whatever nominal GDP FRED last reported, grown by hand-entered
+    rates. ``fiscal_model/data_files/cbo_baseline/`` now carries CBO's own
+    published tables, read from ``github.com/US-CBO`` at a pinned commit, and
+    the app's February 2026 vintage reproduces CBO's own FY2026-2035 deficit of
+    $23,143.3B where the reconstruction returned $29,529.1B.
+
+    The generic income-tax base is projected onto each scored year by a ratio
+    of that baseline's nominal path (:func:`income_base_projection_caption`
+    explains the projection itself), so **correcting the path moved eight
+    shipped presets by 2.97% in static mode**. This caption states that move.
+
+    Three things it is careful about, each a trap a previous caption fell into:
+
+    * **The counterfactual is computed, never stored.** The pre-transcription
+      index is rebuilt from ``baseline._HAND_ENTERED_ASSUMPTIONS`` — the same
+      literals the module still keeps as its fallback — so the "would have
+      read" figure cannot drift away from the number above it.
+    * **It quotes the conventional score**, ``static + behavioral``, because
+      that is the quantity the projection is linear in; on a dynamic run the
+      final path also carries revenue feedback, which does not scale with the
+      factor, and reading it would print a figure disagreeing with the
+      headline. PR #144's review found exactly that defect.
+    * **Only ratios of the index are used**, so the FRED level the old rule
+      anchored on cancels and the counterfactual is a pure function of the two
+      growth paths.
+
+    Returns ``""`` for a policy whose base did not come from SOI, for a vintage
+    with no transcribed economic table, and whenever the two paths agree.
+    """
+    from fiscal_model.baseline import (
+        _ASSUMPTION_FIRST_YEAR,
+        _HAND_ENTERED_ASSUMPTIONS,
+    )
+
+    if not isinstance(policy, TaxPolicy) or isinstance(policy, CapitalGainsPolicy):
+        return ""
+    soi_year = getattr(policy, "soi_base_tax_year", None)
+    if soi_year is None:
+        return ""
+
+    baseline = getattr(result, "baseline", None)
+    years = getattr(result, "years", None)
+    if baseline is None or years is None or len(years) == 0:
+        return ""
+    if not getattr(baseline, "published_nominal_gdp", None):
+        return ""
+    index = getattr(baseline, "nominal_income_index", None)
+    if index is None:
+        return ""
+
+    vintage = _result_vintage(result)
+    if vintage is None:
+        return ""
+    assumptions = _HAND_ENTERED_ASSUMPTIONS.get(vintage)
+    if assumptions is None:
+        return ""
+
+    anchor_year = int(soi_year)
+    window_first = _ASSUMPTION_FIRST_YEAR[vintage]
+    growth = np.asarray(assumptions["real_gdp_growth"], dtype=float) + np.asarray(
+        assumptions["inflation"], dtype=float
+    )
+
+    def old_level(year: int) -> float:
+        """The old rule's index, up to a constant that cancels in the ratio."""
+        if year >= window_first:
+            steps = min(int(year) - window_first + 1, len(growth))
+            level = float(np.prod(1.0 + growth[:steps]))
+            if year - window_first + 1 > len(growth):
+                level *= (1.0 + growth[-1]) ** (year - window_first + 1 - len(growth))
+            return level
+        # Before the window the old rule continued the first year's own rate.
+        return (1.0 + growth[0]) ** -(window_first - 1 - int(year))
+
+    old_anchor = old_level(anchor_year)
+    new_anchor = float(index(anchor_year))
+    if old_anchor <= 0 or new_anchor <= 0:
+        return ""
+
+    old_factors = np.array([old_level(int(y)) / old_anchor for y in years])
+    new_factors = np.array([float(index(int(y))) / new_anchor for y in years])
+    if not np.all(old_factors > 0) or np.allclose(old_factors, new_factors, rtol=1e-6):
+        return ""
+
+    path = np.asarray(result.static_deficit_effect, dtype=float) + np.asarray(
+        result.behavioral_offset, dtype=float
+    )
+    total = float(path.sum())
+    previous = float(np.sum(path / new_factors * old_factors))
+    if total == 0.0 or previous == 0.0:
+        return ""
+
+    vintage_label = _VINTAGE_LABELS.get(vintage, "this")
+    shift = (total - previous) / abs(previous) * 100.0
+    return (
+        f"Baseline corrected: the {vintage_label} budget baseline behind this "
+        f"score is now CBO's own published table rather than this model's "
+        f"reconstruction of it, so the base is aged on CBO's nominal path — "
+        f"{new_factors.mean():.4f}× on the window average against the "
+        f"reconstruction's {old_factors.mean():.4f}×. On the old path this "
+        rf"policy scored \${previous:+,.1f}B; it now scores \${total:+,.1f}B, "
+        f"a {shift:+.2f}% move. The same correction takes the vintage's "
+        r"ten-year deficit from \$29,529.1B to CBO's own \$23,143.3B."
+    )
+
+
+#: Human-readable vintage names for the caption above.
+_VINTAGE_LABELS: dict[Any, str] = {}
+
+
+def _result_vintage(result: Any) -> Any:
+    """The :class:`BaselineVintage` a result was scored on, or ``None``."""
+    from fiscal_model.baseline import BaselineVintage
+
+    if not _VINTAGE_LABELS:
+        _VINTAGE_LABELS.update({
+            BaselineVintage.CBO_FEB_2024: "February 2024",
+            BaselineVintage.CBO_JAN_2025: "January 2025",
+            BaselineVintage.CBO_FEB_2026: "February 2026",
+        })
+
+    baseline = getattr(result, "baseline", None)
+    for holder in (baseline, result):
+        value = getattr(holder, "baseline_vintage", None)
+        if isinstance(value, BaselineVintage):
+            return value
+    # ``BaselineProjection`` carries no vintage; infer it from the published
+    # GDP table it was stamped with, which is unique per vintage.
+    published = getattr(baseline, "published_nominal_gdp", None) or {}
+    if not published:
+        return None
+    from fiscal_model import cbo_baseline_data as cbo_data
+
+    for key, table in (cbo_data.economic_tables() or {}).items():
+        if table.get("nominal_gdp") == published:
+            try:
+                return BaselineVintage(key)
+            except ValueError:  # pragma: no cover - unknown id in the CSV
+                return None
+    return None
+
+
 #: Classes whose behavioural offset returned the **negation** of the contract
 #: before the offset-sign sweep (2026-09-05), in every direction.
 _OFFSET_SIGN_INVERTED = (AMTPolicy, EstateTaxPolicy, PremiumTaxCreditPolicy)
@@ -1845,6 +1992,9 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     base_year_note = income_base_projection_caption(policy, result)
     if base_year_note:
         st_module.caption(base_year_note)
+    transcription_note = cbo_baseline_transcription_caption(policy, result)
+    if transcription_note:
+        st_module.caption(transcription_note)
     for corporate_note in corporate_estimator_range_captions(
         policy, result, getattr(scored, "policy_name", "") or ""
     ):

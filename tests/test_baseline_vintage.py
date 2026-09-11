@@ -38,24 +38,61 @@ def _baseline(vintage: BaselineVintage) -> CBOBaseline:
 
 @pytest.mark.parametrize("vintage", list(BaselineVintage))
 def test_every_vintage_declares_its_sourcing(vintage):
-    assert VINTAGE_SOURCING[vintage] in {"sourced", "interpolated"}
+    """The grade is per line, and it is computed rather than declared.
+
+    One string per vintage could not say "economic path transcribed, budget
+    levels reconstructed", which is February 2024's exact state -- so it said
+    ``"sourced"`` for a vintage whose real GDP growth was 0.60pp from CBO's own
+    table. Two fields, each derived from what the transcription contains.
+    """
+    grade = VINTAGE_SOURCING[vintage]
+    assert set(grade) == {"economic", "budget"}
+    assert set(grade.values()) <= {"transcribed", "reconstructed"}
     assert VINTAGE_SOURCE_DOCUMENT[vintage]
 
 
-def test_jan_2025_is_sourced_not_interpolated():
-    """The Phase D deliverable in one assertion.
+def test_jan_2025_is_transcribed_not_interpolated():
+    """The Phase D deliverable, now on CBO's own machine-readable table.
 
-    If this flips back to ``interpolated``, every claim that a P.L. 119-21
-    benchmark was scored on its own published baseline becomes false.
+    If either half flips back to ``reconstructed``, every claim that a
+    P.L. 119-21 benchmark was scored on its own published baseline becomes
+    false.
     """
-    assert VINTAGE_SOURCING[BaselineVintage.CBO_JAN_2025] == "sourced"
-    assert _baseline(BaselineVintage.CBO_JAN_2025).baseline_vintage_sourcing == "sourced"
+    grade = VINTAGE_SOURCING[BaselineVintage.CBO_JAN_2025]
+    assert grade == {"economic": "transcribed", "budget": "transcribed"}
+    assert (
+        _baseline(BaselineVintage.CBO_JAN_2025).baseline_vintage_sourcing
+        == "transcribed"
+    )
     assert "61172" in VINTAGE_SOURCE_DOCUMENT[BaselineVintage.CBO_JAN_2025]
+
+
+def test_feb_2024_cannot_claim_a_budget_table_it_does_not_have():
+    """CBO's GitHub publishes no February 2024 ten-year budget table.
+
+    ``ten_year_budget`` carries 2024-06, 2025-01 and 2026-02, and June 2024 is
+    publication 60039 -- a different document, whose FY2025 deficit is
+    $1,937.9B against the January 2025 edition's $1,865.3B for the same year.
+    The one-word grade must therefore be ``partial``, never ``transcribed``.
+    """
+    b = _baseline(BaselineVintage.CBO_FEB_2024)
+    assert b.vintage_sourcing_detail == {
+        "economic": "transcribed",
+        "budget": "reconstructed",
+    }
+    assert b.baseline_vintage_sourcing == "partial"
+    assert "budget" not in b.vintage_provenance
+    assert b.vintage_provenance["economic"]["sha256"]
 
 
 def test_metadata_exposes_sourcing_and_citation():
     meta = _baseline(BaselineVintage.CBO_JAN_2025).metadata
-    assert meta["vintage_sourcing"] == "sourced"
+    assert meta["vintage_sourcing"] == "transcribed"
+    assert meta["vintage_sourcing_detail"]["budget"] == "transcribed"
+    provenance = meta["vintage_provenance"]["budget"]
+    assert provenance["repository"].endswith("US-CBO/cbo-data")
+    assert len(provenance["commit_sha"]) == 40
+    assert len(provenance["sha256"]) == 64
     assert "January 2025" in meta["vintage_source_document"]
 
 
@@ -75,11 +112,56 @@ def test_sourced_jan_2025_assumptions_differ_from_the_interpolation():
 
 
 def test_interpolation_is_still_available_as_a_documented_fallback():
+    """The fallback is the midpoint of the two HAND-ENTERED blocks.
+
+    ``interpolated_jan_2025_assumptions`` averages ``_CBO_FEB_2024_ASSUMPTIONS``
+    and ``_CBO_FEB_2026_ASSUMPTIONS`` directly, and since R1
+    ``vintage_assumptions`` returns CBO's own transcribed series instead of
+    those literals -- so the two are no longer the same thing, and this test
+    compares the fallback against what it is actually built from.
+    """
+    from fiscal_model.baseline import _HAND_ENTERED_ASSUMPTIONS
+
     fallback = interpolated_jan_2025_assumptions()
-    feb_2024 = vintage_assumptions(BaselineVintage.CBO_FEB_2024)
-    feb_2026 = vintage_assumptions(BaselineVintage.CBO_FEB_2026)
+    feb_2024 = _HAND_ENTERED_ASSUMPTIONS[BaselineVintage.CBO_FEB_2024]
+    feb_2026 = _HAND_ENTERED_ASSUMPTIONS[BaselineVintage.CBO_FEB_2026]
     for key, series in fallback.items():
         assert np.allclose(series, (feb_2024[key] + feb_2026[key]) / 2.0)
+
+
+def test_transcribed_assumptions_replaced_the_hand_entered_ones():
+    """And the two are not close on two of the three vintages.
+
+    If they were, the transcription would be decoration. Measured maxima over
+    the ten-year window: February 2024's real GDP growth is out by 0.60pp and
+    its labour force participation by 1.05pp; February 2026's ten-year note
+    FALLS 4.5% to 3.9% where CBO's own table RISES 4.10% to 4.38%. January
+    2025's residual is at most 0.11pp, which is the calendar/fiscal basis.
+    """
+    from fiscal_model.baseline import _HAND_ENTERED_ASSUMPTIONS
+
+    worst = {}
+    for vintage in BaselineVintage:
+        live = vintage_assumptions(vintage)
+        hand = _HAND_ENTERED_ASSUMPTIONS[vintage]
+        worst[vintage] = max(
+            float(np.max(np.abs(np.asarray(live[key]) - np.asarray(hand[key]))))
+            for key in hand
+        )
+
+    assert worst[BaselineVintage.CBO_FEB_2024] > 0.005
+    assert worst[BaselineVintage.CBO_FEB_2026] > 0.005
+    assert worst[BaselineVintage.CBO_JAN_2025] < 0.002
+
+    # The February 2026 ten-year note runs the wrong way in the literals.
+    hand_rate = np.asarray(
+        _HAND_ENTERED_ASSUMPTIONS[BaselineVintage.CBO_FEB_2026]["interest_rate_10yr"]
+    )
+    live_rate = np.asarray(
+        vintage_assumptions(BaselineVintage.CBO_FEB_2026)["interest_rate_10yr"]
+    )
+    assert hand_rate[-1] < hand_rate[0]
+    assert live_rate[-1] > live_rate[0]
 
 
 def test_unknown_vintage_is_rejected():
@@ -102,7 +184,12 @@ def test_jan_2025_base_levels_match_cbo_table_b1():
     assert b.base_payroll_tax == pytest.approx(1759.0)
     assert b.base_corporate_tax == pytest.approx(524.0)
     assert b.base_other_revenue == pytest.approx(259.0)
-    assert b.base_gdp == pytest.approx(30136.0)
+    # ``base_gdp`` is now CBO's own level for ``start_year - 1`` -- FY2024 here,
+    # since ``_baseline`` opens on 2025 and ``_project_gdp`` compounds the
+    # first window year off it. The FY2025 figure this line used to assert,
+    # 30,136.0, is what CBO's own economic table returns for FY2025, and
+    # ``test_jan_2025_projection_lands_near_cbos_own_deficit`` still pins it.
+    assert b.base_gdp == pytest.approx(28_823.0)
     assert b.base_debt == pytest.approx(30103.0)
     # Revenue components sum to CBO's stated FY2025 total of $5,163B.
     total = (

@@ -387,7 +387,7 @@ def _apportion_discretionary(rows: list[dict], vintage: str) -> None:
             continue
         by_year.setdefault(row["fiscal_year"], {})[row["variable"]] = row
 
-    for year, row in by_year.items():
+    for row in by_year.values():
         total = row.get("discretionary_total")
         dfn, ndf = row.get("defense_share"), row.get("nondefense_share")
         if total is None or dfn is None or ndf is None:
@@ -422,8 +422,8 @@ def check_totals(budget_rows: list[dict]) -> list[str]:
 
     problems = []
     for (vintage, year), row in sorted(by.items()):
-        def g(name):
-            return row.get(name, 0.0)
+        def g(name, _row=row):
+            return _row.get(name, 0.0)
 
         rev = (g("individual_income_tax") + g("corporate_income_tax")
                + g("payroll_taxes") + g("other_revenues_core")
@@ -476,7 +476,7 @@ def cross_check_bfm(budget_rows: list[dict], source_dir: Path | None) -> list[st
     if not rows:
         return ["budgetary-feedback-model/input/budget_baseline.csv is empty"]
 
-    fields = [f for f in (rows[0].keys()) if f]
+    fields = [f for f in rows[0] if f]
     year_field = fields[0]
     bfm: dict[int, dict[str, float]] = {}
     for row in rows:
@@ -594,7 +594,7 @@ def main(argv: list[str] | None = None) -> int:
     problems = check_totals(budget_rows)
     try:
         problems += cross_check_bfm(budget_rows, args.source_dir)
-    except Exception as exc:  # noqa: BLE001 - a cross-check, not a source
+    except Exception as exc:  # a cross-check, not a source of record
         notes.append(f"BFM cross-check unavailable: {exc}")
 
     for note in notes:
