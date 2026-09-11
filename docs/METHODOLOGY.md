@@ -2091,10 +2091,10 @@ mean only by virtue of the bug. Composition, not accuracy.
 | **Biden Corporate 28%** | **−$1,347B** | **−$1,397B** | **3.7%** | calibrated |
 | **Biden CTC 2021** | **$1,600B** | **$1,600B** | **0.0%** | calibrated |
 | **Estate: Biden Reform** | **−$450B** | **−$450B** | **0.0%** | calibrated |
-| **SS Donut Hole $250K** | **−$2,700B** | **−$2,700B** | **0.0%** | calibrated |
+| **SS Donut Hole $250K** | **−$1,427B** | **−$2,700B** | **89.2%** | reconstruction |
 | **Repeal Corporate AMT** | **$220B** | **$220B** | **0.0%** | calibrated |
 | **Cap Employer Health** | **−$450B** | **−$450B** | **0.1%** | calibrated |
-| Eliminate mortgage deduction | −$300B | −$330B | 10.1% | calibrated |
+| Eliminate mortgage deduction | −$368B | −$270B | 26.5% | reconstruction |
 | TCJA extension without the SALT cap | $5,700B | $6,495B | 13.9% | calibrated (worst fitted row) |
 
 *Positive values indicate deficit increase (cost); negative values indicate deficit reduction (savings). All estimates are 10-year totals.*

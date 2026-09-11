@@ -264,7 +264,7 @@ class TestExclusiveGroups:
     def test_exclusive_groups_for_accepts_labels_and_ids(self) -> None:
         by_id = pid.exclusive_groups_for(["ss-cap-90pct", "ss-donut-250k"])
         by_label = pid.exclusive_groups_for(
-            ["💰 SS Cap to 90% (CBO: -$800B)", "💰 SS Donut Hole $250K (-$2.7T)"]
+            ["💰 SS Cap to 90% (CBO: -$800B)", "💰 SS Donut Hole $250K (-$1.43T)"]
         )
         assert by_id == by_label == {
             "ss-wage-cap": ["ss-cap-90pct", "ss-donut-250k"]
@@ -416,7 +416,7 @@ class TestValuesTags:
         assert pid.tags_for("estate-exemption-3-5m")["base"] == "estate"
         assert pid.tags_for("irs-enforcement-ira")["base"] == "enforcement"
         # Accepts a label as well as an id.
-        assert pid.tags_for("💰 SS Donut Hole $250K (-$2.7T)") == pid.tags_for(
+        assert pid.tags_for("💰 SS Donut Hole $250K (-$1.43T)") == pid.tags_for(
             "ss-donut-250k"
         )
         assert pid.tags_for("not-a-policy") == {}

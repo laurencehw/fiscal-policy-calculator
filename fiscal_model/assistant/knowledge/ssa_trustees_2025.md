@@ -48,8 +48,17 @@ options that close part of the actuarial gap:
 - **Lift the payroll tax cap to 90% coverage** (`ss_cap_90_percent`):
   closes roughly half the gap.
 - **Donut hole at \$250K** (`ss_donut_hole`): apply the 12.4% payroll
-  tax to earnings above \$250K, scored by CBO at **−\$2.7T** (model:
-  **−\$2.4T**, error 12%).
+  tax to earnings above \$250K. CBO's *Options for Reducing the
+  Deficit: 2025 to 2034* (pub. 60557), Option 62 alternative 2, report
+  p. 73, scores the same design — no benefit credit above the
+  current-law taxable maximum — at **−\$1,426.8B** over FY2025–2034.
+  The app's model returns **−\$2,700B**, an **89.2%** over-prediction,
+  because its covered-wage band was anchored on a superseded \$2.7T
+  target and was deliberately not refitted when that target moved.
+  The Trustees are **not** a source for a dollar figure here: SSA's
+  Office of the Chief Actuary scores this provision (E2.5) only as a
+  change in the long-range actuarial balance in percent of taxable
+  payroll (+2.50%), with no dollar column at any horizon.
 - **Eliminate the cap entirely** (`ss_eliminate_cap`): closes most of
   the gap; raises top marginal rates substantially.
 

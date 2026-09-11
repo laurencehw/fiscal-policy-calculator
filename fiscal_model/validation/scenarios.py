@@ -1104,7 +1104,7 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
     },
     "trump_china_60": {
         "description": "Trump 60% China tariff",
-        "preset": "\U0001f3ed Trump 60% China Tariff (-$500B)",
+        "preset": "\U0001f3ed Trump 60% China Tariff (-$650B)",
         "policy_factory": create_trump_china_60,
         "official_source": "Tax Foundation",
         "benchmark_date": "2024",
@@ -1447,7 +1447,7 @@ ENFORCEMENT_VALIDATION_SCENARIOS_COMPARE = {
 CLIMATE_VALIDATION_SCENARIOS_COMPARE = {
     "repeal_ira_credits": {
         "description": "Repeal IRA clean-energy tax credits",
-        "preset": "\U0001f331 Repeal IRA Clean Energy Credits ($783B)",
+        "preset": "\U0001f331 Repeal IRA Clean Energy Credits (-$851B)",
         "policy_factory": create_repeal_ira_credits,
         "official_source": (
             "CBO, budgetary effects of the energy-related tax provisions of "
@@ -1487,7 +1487,7 @@ CLIMATE_VALIDATION_SCENARIOS_COMPARE = {
     },
     "repeal_ev_credits": {
         "description": "Repeal the EV purchase tax credits",
-        "preset": "\U0001f331 Repeal EV Credits ($182B)",
+        "preset": "\U0001f331 Repeal EV Credits (-$182B)",
         "policy_factory": create_repeal_ev_credits,
         # Re-attributed in Phase E: the published score of terminating the
         # clean-vehicle credits is JCT's (JCX-35-25), not CBO's.

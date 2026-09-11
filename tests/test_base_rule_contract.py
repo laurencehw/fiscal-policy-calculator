@@ -42,6 +42,8 @@ from fiscal_model.policies import (
 from fiscal_model.preset_ids import (
     LEGACY_LABEL_ALIASES,
     PRESET_ID_BY_LABEL,
+    SCORE_ONLY_ALIAS_ID_BY_LABEL,
+    SCORE_ONLY_ID_BY_LABEL,
     preset_id_for_token,
     resolve_preset,
 )
@@ -533,26 +535,29 @@ def test_a_label_figure_never_contradicts_its_own_official_score():
     $220B cost — and the Build page totals the score, not the label.
 
     Written as an invariant rather than as a pin on the current spelling, so
-    it passes both before and after the rename this lane handed over (the
-    label is the key of ``ui/preset_validation.PRESET_TO_SCORECARD_ID``, whose
-    map and test must move in the same commit, which makes it a sibling lane's
-    edit). Either spelling is fine; a *contradiction* is not.
+    it passes both before and after a rename. Either spelling is fine; a
+    *contradiction* is not.
+
+    Since 2026-09-11 it runs against **every** ``CBO_SCORE_MAP`` label with no
+    exemptions. The three it was opened with are discharged: H6 renamed the
+    CAMT label, and the label-figure lane signed "Repeal IRA Clean Energy
+    Credits" and "Repeal EV Credits" while taking H9's revised figures.
     """
-    #: The one label whose rename this lane handed over rather than took. It is
-    #: named rather than silently skipped, and it *self-clears*: once the label
-    #: is renamed the entry matches nothing and the new spelling is checked by
-    #: the invariant like every other, so the exemption cannot go stale into a
-    #: second defect.
-    handover = {
-        "⚖️ Repeal Corporate AMT (-$220B)",
-        # Found by this invariant on its first run: both are deficit reducers
-        # (official_score < 0) whose labels print a bare figure, which every
-        # other label reads as a cost. Their figures are also being revised by
-        # the H9 provenance lane (PR #145: -$783B -> -$851B), so sign and figure
-        # move together in the label-rename lane that follows it, not twice.
-        "🌱 Repeal IRA Clean Energy Credits ($783B)",
-        "🌱 Repeal EV Credits ($182B)",
-    }
+    #: **Empty, and it must stay empty.** H1 opened this set with three labels
+    #: it had found and could not rename inside its own file boundary: "Repeal
+    #: Corporate AMT (-$220B)", discharged by H6 when it took the rename with
+    #: the badge map keyed on it, and "Repeal IRA Clean Energy Credits ($783B)"
+    #: and "Repeal EV Credits ($182B)", whose sign was wrong *and* whose figure
+    #: H9 was concurrently revising, so both moved together in the 2026-09-11
+    #: label-figure lane rather than twice. The set is kept rather than deleted
+    #: because the next lane that finds a label it cannot reach should declare
+    #: it here instead of skipping it silently -- but an entry is a debt, and
+    #: the test below asserts the debt is nil.
+    handover: set[str] = set()
+    assert not handover, (
+        "every CBO_SCORE_MAP label is now checked; an exemption added here "
+        "must be discharged in the same wave that adds it"
+    )
 
     offenders = []
     for label, entry in CBO_SCORE_MAP.items():
@@ -593,6 +598,29 @@ def test_every_retired_label_still_resolves(old_label, new_label):
     assert new_label in PRESET_ID_BY_LABEL
     assert resolve_preset(old_label) == new_label
     assert preset_id_for_token(old_label) == PRESET_ID_BY_LABEL[new_label]
+
+
+@pytest.mark.parametrize(
+    ("old_label", "preset_id"), sorted(SCORE_ONLY_ALIAS_ID_BY_LABEL.items())
+)
+def test_every_retired_score_only_label_still_resolves(old_label, preset_id):
+    """The score-only half of the same guarantee, and it needs its own test.
+
+    A score-only Build option has a ``CBO_SCORE_MAP`` entry and a stable id but
+    no ``PRESET_POLICIES`` row, so ``resolve_preset`` — whose contract is "a key
+    of ``PRESET_POLICIES``" — cannot answer for it and returns ``None``. Only
+    ``preset_id_for_token`` can, through ``_SCORE_ONLY_INDEX``. That is also why
+    such a label may not be put in ``LEGACY_LABEL_ALIASES``: the values there
+    are catalog labels and ``preset_id_for_token`` finishes an ``_ALIAS_INDEX``
+    hit with ``PRESET_ID_BY_LABEL[label]``, which would raise ``KeyError``.
+    """
+    assert preset_id in SCORE_ONLY_ID_BY_LABEL.values()
+    assert old_label not in SCORE_ONLY_ID_BY_LABEL
+    assert old_label not in PRESET_ID_BY_LABEL
+    assert preset_id_for_token(old_label) == preset_id
+    # The live spelling resolves to the same id, so the rename cost nothing.
+    live = next(k for k, v in SCORE_ONLY_ID_BY_LABEL.items() if v == preset_id)
+    assert preset_id_for_token(live) == preset_id
 
 
 def test_retired_labels_are_not_also_live_labels():

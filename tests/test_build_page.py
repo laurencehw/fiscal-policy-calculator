@@ -180,7 +180,7 @@ def test_build_share_round_trips():
 
 def test_decode_build_share_resolves_legacy_labels():
     decoded = decode_build_share(
-        {"policies": "💰 SS Donut Hole $250K (-$2.7T),Biden 2025 Proposal"}
+        {"policies": "💰 SS Donut Hole $250K (-$1.43T),Biden 2025 Proposal"}
     )
     assert decoded["preset_ids"] == ["ss-donut-250k", "top-rate-39-6"]
 
@@ -296,7 +296,7 @@ def test_apply_preselection_runs_the_conflict_dropping_logic():
 def test_apply_preselection_accepts_labels_and_flags_unknown_ids():
     fake = _FakeStreamlit()
     applied = apply_preselection(
-        ["💰 SS Donut Hole $250K (-$2.7T)", "no-such-policy"], st_module=fake
+        ["💰 SS Donut Hole $250K (-$1.43T)", "no-such-policy"], st_module=fake
     )
     assert applied == ["ss-donut-250k"]
     assert any(

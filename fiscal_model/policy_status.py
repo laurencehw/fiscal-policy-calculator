@@ -118,7 +118,7 @@ POLICY_STATUS_MAP: dict[str, PolicyStatus] = {
     ),
     # ── Social Security solvency options ─────────────────────────────────
     "💰 SS Cap to 90% (CBO: -$800B)": PolicyStatus("proposed", _SS_OPTION_NOTE),
-    "💰 SS Donut Hole $250K (-$2.7T)": PolicyStatus("proposed", _SS_OPTION_NOTE),
+    "💰 SS Donut Hole $250K (-$1.43T)": PolicyStatus("proposed", _SS_OPTION_NOTE),
     "💰 Eliminate SS Cap (-$3.2T)": PolicyStatus("proposed", _SS_OPTION_NOTE),
     # ── Tariffs: executive action moved faster than these presets ────────
     "🏭 Trump Universal 10% Tariff (-$2.17T)": PolicyStatus(
@@ -126,7 +126,7 @@ POLICY_STATUS_MAP: dict[str, PolicyStatus] = {
         "Broad tariff actions were imposed by executive order in 2025; this "
         "preset models a stylized schedule, not the enacted structure.",
     ),
-    "🏭 Trump 60% China Tariff (-$500B)": PolicyStatus(
+    "🏭 Trump 60% China Tariff (-$650B)": PolicyStatus(
         "partially",
         "China-focused tariff actions were imposed by executive order in "
         "2025; this preset models a stylized schedule, not the enacted "
@@ -138,13 +138,13 @@ POLICY_STATUS_MAP: dict[str, PolicyStatus] = {
         "this preset models a stylized schedule, not the enacted structure.",
     ),
     # ── IRA clean-energy credits: curtailed in part by the July 2025 law ─
-    "🌱 Repeal IRA Clean Energy Credits ($783B)": PolicyStatus(
+    "🌱 Repeal IRA Clean Energy Credits (-$851B)": PolicyStatus(
         "partially",
         "The July 2025 reconciliation law curtailed several IRA "
         "clean-energy credits. This preset models full repeal as scored "
         "before that law.",
     ),
-    "🌱 Repeal EV Credits ($182B)": PolicyStatus(
+    "🌱 Repeal EV Credits (-$182B)": PolicyStatus(
         "partially",
         "The July 2025 reconciliation law curtailed clean-vehicle credits. "
         "This preset models repeal as scored before that law.",
