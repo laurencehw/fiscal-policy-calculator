@@ -3,6 +3,13 @@
 Material changes to the Fiscal Policy Calculator. Trivial fixes are captured
 in git history, not here.
 
+## 2026-09-11 — Lane R3: the Tier 1 battery grows 22 → 44 (PR #169)
+
+- 22 pre-registered out-of-sample rows from CBO's 2018, 2020 and 2022 *Options for Reducing the Deficit* volumes, each scored on its own decade; every existing row byte-identical; calibrated tiers and leave-one-out unchanged.
+- Tier 1 reads 44 @ 18.0% / 12.3% median, 26 within 15%, 35 within 25%; seven of eight classes now n ≥ 3.
+- CI gates re-derived upward on the grown battery by the workflow's own rule: pooled 15/19 → 25/34; capital gains and tax expenditure ceilings tightened.
+- `CBOScore.assistant_anchor_eligible` keeps pre-2025-vintage corporate rows out of the Ask assistant's interpolation anchors.
+
 ## 2026 — ongoing
 
 ### Wave F — the corporate default moves to `derived`, the Section 232 base is read at HS-10, and CBO's statutory rate table turns out to exist (2026-09-11)
