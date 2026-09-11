@@ -324,6 +324,41 @@ def test_cbo_prices_one_corporate_reform_four_times_and_gets_four_numbers():
     assert spread == pytest.approx(0.4097, abs=0.001)
 
 
+def test_the_two_earliest_corporate_rows_read_a_back_projected_receipts_path():
+    """The second cause on the corporate rows, asserted rather than described.
+
+    CBO's transcribed receipts path (publication 59710) starts in FY2025 and
+    rises about 1.2%/yr, so extrapolating it *backwards* walks a nearly-flat
+    line into years whose actual receipts were far lower. The 2018 row's base
+    year is more than twice Treasury's own MTS actual for it, which is most of
+    why that row reads 99.7% — and that is a statement about the base this lane
+    reached for, not about the module's marginal share.
+
+    The ordering is what is pinned: the ratio must fall monotonically toward
+    1 as the window approaches the table's own first year. If it ever stops
+    doing that, the projection has changed shape and the ``known_limitations``
+    on those rows are describing something that no longer happens.
+    """
+    from fiscal_model.corporate import actual_corporate_receipts, cbo_corporate_receipts
+
+    ratios = {}
+    for year in (2019, 2021, 2023):
+        projected = cbo_corporate_receipts(year)
+        actual = actual_corporate_receipts(year)
+        ratios[year] = projected / actual
+
+    assert ratios[2019] == pytest.approx(2.218, abs=0.01)
+    assert ratios[2021] == pytest.approx(1.358, abs=0.01)
+    assert ratios[2023] == pytest.approx(1.191, abs=0.01)
+    assert ratios[2019] > ratios[2021] > ratios[2023] > 1.0
+
+    # And the table really does begin after all three, which is the reason the
+    # extrapolation happens at all.
+    from fiscal_model.corporate import cbo_receipts_by_fiscal_year
+
+    assert cbo_receipts_by_fiscal_year("cbo_feb_2024")[0][0] == 2025
+
+
 def test_the_2020_volume_prices_five_repeated_reforms_below_the_2018_volume():
     """The pandemic baseline, asserted from CBO's own figures.
 

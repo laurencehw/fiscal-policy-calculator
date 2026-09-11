@@ -269,15 +269,43 @@ _CORPORATE_MULTI_VOLUME_LIMITATIONS = [
     "decade. See planning/memos/CORPORATE_PER_POINT_YIELD.md and lane R5/H3b.",
 ]
 
-#: The second cause, and it applies only to the two pre-2021 corporate rows.
+#: The second cause, and it dominates the two rows whose decade opens before
+#: the transcribed receipts path does.
+#:
+#: This is larger than the first and it is measured rather than described.
+#: CBO's transcribed corporate receipts path (publication 59710, February 2024)
+#: begins in **FY2025** at $494.1B and rises only to $550.8B by FY2034 — about
+#: 1.2%/yr — so ``cbo_corporate_receipts`` extrapolating backwards at the
+#: nearest observed growth rate walks that nearly-flat line into years whose
+#: *actual* receipts were far lower. Against Treasury's own MTS actuals,
+#: already transcribed in this repository:
+#:
+#: ===========  ===========  =========  =======
+#: fiscal year  projected    actual     ratio
+#: ===========  ===========  =========  =======
+#: FY2019       $510.6B      $230.2B    2.218x
+#: FY2021       $505.0B      $371.8B    1.358x
+#: FY2023       $499.5B      $419.6B    1.191x
+#: ===========  ===========  =========  =======
+#:
+#: Deflating each row's model output by its own ratio — a diagnostic, never the
+#: row's score — gives −$86.7B against CBO's −$96.3B (**10.0%**), −$141.2B
+#: against −$99.3B (**42.2%**) and −$162.0B against −$129.3B (**25.3%**). So the
+#: back-projection is essentially the *whole* of the 2018 row's 99.7% and most
+#: of the 2020 row's 93.1%, and what is left underneath all of them is the
+#: marginal-share level the memo measures.
 _CORPORATE_BACK_PROJECTED_RECEIPTS = [
     "CBO's transcribed corporate receipts path (publication 59710, February "
-    "2024) begins in FY2024, so a window opening in FY2019 or FY2021 is scored "
-    "on cbo_corporate_receipts()'s backward extrapolation at the nearest "
-    "observed growth rate. That is an extrapolation rather than a clamp and it "
-    "is stated rather than hidden, but it means this row's residual mixes the "
-    "module's marginal-share problem with a base projected back past its own "
-    "vintage.",
+    "2024) begins in FY2025 at $494.1B and rises about 1.2%/yr, so a window "
+    "opening in FY2019 or FY2021 is scored on cbo_corporate_receipts()'s "
+    "backward extrapolation of that nearly-flat line. It is an extrapolation "
+    "rather than a clamp and the module says so, but against Treasury's own "
+    "MTS actuals it is 2.218x the FY2019 figure ($510.6B against $230.2B) and "
+    "1.358x the FY2021 one ($505.0B against $371.8B). Deflating this row's "
+    "output by its own ratio - a diagnostic, not a score - leaves 10.0% on the "
+    "2018 row and 42.2% on the 2020 one, so the back-projection is most of "
+    "what separates these two from the 2022 and 2024 editions and the "
+    "marginal-share level is what remains underneath all four.",
 ]
 
 _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {

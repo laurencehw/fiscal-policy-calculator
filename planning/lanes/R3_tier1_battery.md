@@ -343,14 +343,35 @@ sharpest measurement in the lane.
 the four editions. The model's four answers span 2.2%.** PR #122 inferred that
 flatness from one second target on one second decade and called it "exactly what
 a vintage-anchored base could reproduce and a fixed base cannot"; four editions
-of one option measure it directly, and the residual on any one row is therefore
-mostly a **level** — the implied marginal share of the statutory base, 80.8%
-against a published 55.1–79.5% — rather than a decade. Two caveats travel with
-it and are on each row's `known_limitations`: CBO's transcribed receipts path
-begins in FY2024, so the 2018 and 2020 rows are priced on
-`cbo_corporate_receipts()`'s backward extrapolation (an extrapolation, not a
-clamp, and the module says so); and all four rows score `derived` mode, which is
-not the app default.
+of one option measure it directly.
+
+**But the 99.7% and 93.1% are mostly something else, and the lane found it by
+checking rather than by reasoning.** CBO's transcribed receipts path
+(publication 59710) begins in **FY2025** at $494.1B and rises about 1.2%/yr, so
+`cbo_corporate_receipts` extrapolating *backwards* walks that nearly-flat line
+into years whose actual receipts were far lower. Against Treasury's own MTS
+actuals — already in this repository:
+
+| fiscal year | projected | actual | ratio |
+|---|--:|--:|--:|
+| FY2019 | $510.6B | $230.2B | **2.218×** |
+| FY2021 | $505.0B | $371.8B | **1.358×** |
+| FY2023 | $499.5B | $419.6B | **1.191×** |
+
+Deflating each row's output by its own ratio — **a diagnostic, never the row's
+score** — gives −$86.7B against −$96.3B (**10.0%**), −$141.2B against −$99.3B
+(**42.2%**) and −$162.0B against −$129.3B (**25.3%**). So the back-projection is
+essentially the whole of the 2018 row's residual and most of the 2020 row's, and
+what is left underneath all four is the **level** the corporate memo measures —
+an implied marginal share of 80.8% against a published 55.1–79.5%. Both causes
+are on each row's `known_limitations`, and a third caveat travels with them: all
+four rows score `derived` mode, which since Wave F *is* the app default.
+
+**The reason this matters beyond corporate**: a back-extrapolated CBO table is
+not a neutral way to reach an earlier decade, and the two rows that need one are
+the two whose errors look most alarming. Carry-over 6 is the fix — transcribe
+the April 2018 and September 2020 editions' own receipts paths — and it would
+separate the module's problem from the projection's on those two rows.
 
 ### 5.5 The second finding: the 2020 volume prices five repeated reforms *below* the 2018 volume
 
@@ -476,10 +497,14 @@ this environment**, on Python 3.14, degraded microdata calibration and an unset
    only rows in the battery whose boundary is stated as a formula and applied as
    an amount.
 6. **The 2018 and 2020 corporate rows read a receipts path projected back past
-   its own vintage.** CBO publishes corporate receipts in every *Budget and
+   its own vintage, and it is 2.218× and 1.358× Treasury's own actuals for
+   those years** (§5.4). CBO publishes corporate receipts in every *Budget and
    Economic Outlook*; transcribing the April 2018 and September 2020 editions
    would separate the module's marginal-share problem from the back-projection
-   on those two rows.
+   on those two rows, and on the arithmetic above it would take them to roughly
+   10% and 42%. **This is the highest-value carry-over in the list**, because it
+   is the difference between reporting a 99.7% row as a model failure and
+   reporting it as a base a lane reached for and should not have.
 7. **The HI rows' statutory incidence**, §5.5. CBO splits the rate increase
    evenly between employers and employees on four of the eight payroll rows and
    the shape books it entirely on employees. Expressing it is a `payroll.py`
