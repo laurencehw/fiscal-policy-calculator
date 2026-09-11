@@ -242,6 +242,40 @@ IIJA_WINDOW_ENTERED_DATE = "2026-09-11"
 #: ``scoring_window_first_year=2022`` onto the ``KNOWN_SCORES`` record).
 IIJA_WINDOW_FIRST_SCORED_COMMIT = "2cde296698702e0361b13661d152a150aa922c19"
 
+#: Commit that entered lane R2's provenance decisions — the five Tier 1 rows
+#: whose targets carried no source URL (``planning/ROUTE_TO_8_5.md`` §1 R2,
+#: ``planning/lanes/R2_tier1_secondhand_targets.md``). One target moves onto a
+#: published line item (``illustrative_1pp_all``) and four are withdrawn, each
+#: with its search recorded. Same two-commit protocol as every target change
+#: before it: the rows are written here and first scored in
+#: :data:`R2_SECONDHAND_FIRST_SCORED_COMMIT`, a *later* commit, so "the target
+#: was fixed before the model was scored against it" is checkable from the git
+#: history rather than asserted in prose.
+R2_SECONDHAND_ENTERED_COMMIT = "0" * 40  # stamped in the scoring commit
+R2_SECONDHAND_ENTERED_DATE = "2026-09-11"
+
+#: Commit in which R2's decisions were first scored — the commit that writes
+#: -$1,081.3B into ``KNOWN_SCORES`` and flips the four withdrawn records to
+#: ``runnable=False``.
+R2_SECONDHAND_FIRST_SCORED_COMMIT = "0000000000000000000000000000000000000000"
+
+#: The rule R2 bound itself to before it opened a document, written here rather
+#: than only in each record's ``retired_reason`` because "which rows did we
+#: withdraw?" is the question a reader of a shrinking battery asks first.
+R2_RETIREMENT_RULE = (
+    "A Tier 1 row is withdrawn if and only if its target cannot be traced to "
+    "any published document - never because of the size of its error. The two "
+    "are independent, and medicare_surcharge_2pp is the proof: its 2pp model "
+    "output sits 4.6% from the 1.2pp figure Treasury actually prints, so the "
+    "row would have looked accurate on the document it is withdrawn for "
+    "missing. A row whose target exists is kept however badly it scores "
+    "(cbo_opt64_corporate_rate_1pp at 44.5% is the tier's worst and is not at "
+    "risk), and a row whose target does not exist is withdrawn however well it "
+    "scores. Where a document argues for a different *shape*, R2 publishes the "
+    "restated figure and leaves the new row to the owner: a provenance lane "
+    "may not move a model output by implication."
+)
+
 #: Baselines the CBO options were built on, from PDF page 2 of publication
 #: 60557 ("Notes About This Report").
 CBO_OPTIONS_REVENUE_BASELINE = (
@@ -322,7 +356,58 @@ PREREGISTERED_CASES: tuple[PreregisteredCase, ...] = (
         entered_commit=VALIDATION_MODULE_COMMIT,
         entered_date=VALIDATION_MODULE_DATE,
         first_scoring_run_commit=VALIDATION_MODULE_COMMIT,
-        note="Uniform 1pp on all brackets. Ordinary-income base.",
+        superseded_by="illustrative_1pp_all.v2",
+        note=(
+            "Uniform 1pp on all brackets. Ordinary-income base. SUPERSEDED by "
+            "lane R2: -$960B was a rule of thumb ('1pp = $85-100B/year') that "
+            "appears in no JCT document, and the reform it describes is "
+            "published - four times, in four CBO Options volumes, each of them "
+            "a JCT estimate. The volume matching this record's own stated "
+            "source, window and vintage prints -$1,081.3B."
+        ),
+    ),
+    PreregisteredCase(
+        case_id="illustrative_1pp_all.v2",
+        policy_id="illustrative_1pp_all",
+        official_10yr_billions=-1_081.3,
+        source_name="Joint Committee on Taxation",
+        source_url="https://www.cbo.gov/publication/58164",
+        source_date="2022-12",
+        source_baseline_vintage=(
+            "CBO May 2022 baseline, as stated by Options for Reducing the "
+            "Deficit: 2023 to 2032 (FY2023-2032 window)"
+        ),
+        entered_commit=R2_SECONDHAND_ENTERED_COMMIT,
+        entered_date=R2_SECONDHAND_ENTERED_DATE,
+        first_scoring_run_commit=R2_SECONDHAND_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO, Options for Reducing the Deficit: 2023 to 2032, Volume I: "
+            "Larger Reductions (December 2022, publication 58164), Option 13 - "
+            "Revenues, 'Increase Individual Income Tax Rates', first "
+            "alternative: 'Raise all tax rates on ordinary income by "
+            "1 percentage point', -$1,081.3B over FY2023-2032 (report p. 72; "
+            "PDF p. 76). Annual path -72.4 / -106.6 / -111.3 / -102.1 / "
+            "-102.2 / -107.4 / -112.0 / -117.0 / -122.3 / -127.9; five-year "
+            "subtotal -494.6. 'Data source: Staff of the Joint Committee on "
+            "Taxation', which is why this row keeps source_name=JCT rather "
+            "than becoming a CBO row. The volume's own words for the "
+            "alternative - 'in 2023, the top rate of 37 percent would increase "
+            "to 38 percent, and in 2026, the top rate of 39.6 percent would "
+            "increase to 40.6 percent' - are the ordinary-income base this "
+            "record already declares. "
+            ""
+            "TWO THINGS THIS ROW IS NOT. It is not a duplicate of "
+            "cbo_opt45_all_rates_1pp: that row is the same option in the "
+            "*2025-2034* volume at -$1,185.3B, and CBO's own two editions "
+            "differ by $104.0B (9.6%) for one unchanged reform, which is the "
+            "size of a decade. It is not scored on its target's decade either: "
+            "the runner opens its window in FY2025, so about that $104.0B of "
+            "this row's residual is the window rather than the model. "
+            "FY2022_TARGET_WINDOW_RULE exists for exactly this and would set "
+            "scoring_window_first_year=2023 - but applying it moves a model "
+            "output, which R2 may not do, so the figure is published here and "
+            "the .v3 decision is the owner's. " + R2_RETIREMENT_RULE
+        ),
     ),
     PreregisteredCase(
         case_id="illustrative_top_rate_5pp.v1",
@@ -335,6 +420,32 @@ PREREGISTERED_CASES: tuple[PreregisteredCase, ...] = (
         entered_commit=VALIDATION_MODULE_COMMIT,
         entered_date=VALIDATION_MODULE_DATE,
         first_scoring_run_commit=VALIDATION_MODULE_COMMIT,
+        retired=True,
+        retired_reason=(
+            "Lane R2. -$700B for a +5pp top rate above $1,000,000 is in no "
+            "publication. Phase E enumerated TPC's entire sitemap for it - 11 "
+            "sub-sitemaps, ~20,600 URLs, ~6,500 model-estimate pages, none of "
+            "the 82 t23-* tables a top-rate table - and R2 added the other "
+            "half of the search: the individual-rate option of ALL FOUR CBO "
+            "Options volumes (2018 pub. 54667 Option 1; 2020 pub. 56783 Option "
+            "1; 2022 pub. 58164 Option 13; 2024 pub. 60557 Option 45), every "
+            "alternative of which is a uniform change at a *bracket* boundary "
+            "or an AGI surtax at the standard deduction, the fourth-bracket "
+            "floor, $20,000/$40,000 or $100,000/$200,000. No scorekeeper "
+            "prices a rate change at a $1,000,000 threshold at all. The "
+            "record's own name and notes call it 'Illustrative', which is the "
+            "repository describing its own synthetic figure. Withdrawn rather "
+            "than corrected, because there is nothing to correct it to: the "
+            "nearest published quantities are PWBM's new 39.6% bracket above "
+            "$1M at $222.4B (FY2026-2035, a ~2.6pp change on the same "
+            "threshold) and TPC T19-0037 Option 3's 10pp AGI surtax above $2M "
+            "married / $1M other at $633.897B (FY2019-2029), and neither is "
+            "this reform. top_rate_45.v1 is the precedent, and "
+            "docs/VALIDATION.md has listed this row beside it as an open owner "
+            "decision since Phase E; ROUTE_TO_8_5.md §1 R2 is the plan that "
+            "names it, so the decision is now taken rather than deferred. "
+            + R2_RETIREMENT_RULE
+        ),
         note="AGI-inclusive base (target includes the preferential LTCG/QDIV portion).",
     ),
     PreregisteredCase(
@@ -348,6 +459,31 @@ PREREGISTERED_CASES: tuple[PreregisteredCase, ...] = (
         entered_commit=VALIDATION_MODULE_COMMIT,
         entered_date=VALIDATION_MODULE_DATE,
         first_scoring_run_commit=VALIDATION_MODULE_COMMIT,
+        retired=True,
+        retired_reason=(
+            "Lane R2. +$400B for a 2pp rate CUT above $500,000 is in no "
+            "publication, and the search is short for a structural reason "
+            "worth writing down: CBO's Options volumes are deficit-REDUCTION "
+            "menus and contain no rate cut at all, in any of the four editions "
+            "(2018, 2020, 2022, 2024), so three quarters of the natural search "
+            "space cannot contain this row by construction. JCT scores cuts "
+            "only as estimates of enacted or introduced bills, none of which "
+            "is a 2pp cut at a $500,000 floor; Phase E's full TPC sitemap "
+            "enumeration found no table for it either. The record calls itself "
+            "'Illustrative estimate'. "
+            ""
+            "WHAT THE BATTERY LOSES, STATED SO IT IS NOT LOST QUIETLY: this is "
+            "the tier's only rate CUT and the only row with a positive target, "
+            "so after this retirement every Tier 1 revenue row is an increase, "
+            "and the battery no longer tests the model in the direction a user "
+            "of the Tailor page most often asks about. That is a real cost of "
+            "being honest about the target, and the replacement is a scored "
+            "cut with a document - R3's `leg_rev_*` series in CBO's own "
+            "revenue-detail file carry the annual revenue effect of every "
+            "major act since 1981, several of them cuts. Carried over there "
+            "rather than fixed here, because registering a new case is a "
+            "different lane. " + R2_RETIREMENT_RULE
+        ),
         note="AGI-inclusive base. Rate cut, so the target is a cost.",
     ),
     PreregisteredCase(
@@ -532,10 +668,43 @@ PREREGISTERED_CASES: tuple[PreregisteredCase, ...] = (
         entered_commit=PHASE_A_COMMIT,
         entered_date=PHASE_A_DATE,
         first_scoring_run_commit=PHASE_A_COMMIT,
+        retired=True,
+        retired_reason=(
+            "Lane R2. TPC's *AGI Surtax Options* simulation was read in full: "
+            "thirteen tables (T19-0037 through T19-0050), every one of them a "
+            "**10 percent** surtax, and exactly one revenue table among them. "
+            "T19-0037 (23 September 2019, Urban-Brookings Microsimulation "
+            "Model version 0319-1) prices three options over FY2019-2029 - "
+            "$585.325B for 10pp on AGI above $2,000,000 unindexed, $500.635B "
+            "at a $2.5M threshold, $633.897B at $2M married / $1M other. There "
+            "is no 3pp row, here or anywhere: no CBO Options volume prices a "
+            "surtax at a $2M threshold in any of its four editions. Scaling "
+            "$585.325B to 3pp would be CONSTRUCTING a target, which "
+            "PROVENANCE_corporate_ptc.md already refused in as many words "
+            "('summing two rows of PWBM's table would be constructing a target "
+            "rather than reading one'), and the arithmetic would not be linear "
+            "anyway - CBO warns that 'the deficit effects of large rate "
+            "increases or surtaxes might not be proportional to the estimates "
+            "shown here'. "
+            ""
+            "AND THE ROW'S NAME IS WRONG, WHICH IS THE SHARPER FINDING. "
+            "Senator Warren's Ultra-Millionaire Tax Act is a **wealth** tax on "
+            "net worth - 2% above $50 million, 3% above $1 billion - not an "
+            "income surtax. The '3pp' is the billionaire *wealth* rate "
+            "transplanted onto an AGI base and the '$2M' is a threshold from a "
+            "different proposal entirely, so this row's shape corresponds to "
+            "no proposal anybody has scored, which is why no search could have "
+            "found its target. What R2 leaves for the owner: T19-0037 Option 1 "
+            "is the same base and the same threshold at a different rate, so a "
+            "new case scoring a 10pp shape against $585.325B is registrable "
+            "and would be a genuine TPC line item - but it needs a shape "
+            "change, and a provenance lane may not move a model output. "
+            + R2_RETIREMENT_RULE
+        ),
         note=(
             "Shipped as a sidebar preset with an official number but no runner. "
             "Provenance is weak (bare homepage URL, year only) — Phase E should replace "
-            "it with a line item or demote it."
+            "it with a line item or demote it. R2 demoted it."
         ),
     ),
     PreregisteredCase(
@@ -591,6 +760,55 @@ PREREGISTERED_CASES: tuple[PreregisteredCase, ...] = (
         entered_commit=PHASE_A_COMMIT,
         entered_date=PHASE_A_DATE,
         first_scoring_run_commit=PHASE_A_COMMIT,
+        retired=True,
+        retired_reason=(
+            "Lane R2, and this row is the test of R2_RETIREMENT_RULE rather "
+            "than an easy application of it. Treasury's FY2025 Green Book was "
+            "read page by page. The proposal this record names is there, and "
+            "it is a **1.2 percentage point** increase - 'The proposal would "
+            "increase the additional Medicare tax rate by 1.2 percentage "
+            "points for taxpayers with more than $400,000 of earnings... "
+            "bringing the marginal Medicare tax rate up to 5 percent', and the "
+            "same 1.2pp on the NIIT (report pp. 76-77; PDF pp. 84-85). Its "
+            "revenue row, 'Increase the net investment income tax rate and "
+            "additional Medicare tax rate for high-income taxpayers', prints "
+            "**$403,790M** over FY2025-2034 (report p. 242; PDF p. 250; "
+            "FY2025-29 subtotal $178,466M). The FY2024 volume prints "
+            "**$344,371M** over FY2024-2033 for the identical proposal (report "
+            "p. 213-equivalent; PDF p. 221), and the FY2023 volume has no such "
+            "proposal at all. -$310.0B is none of these. The nearest figures "
+            "anywhere in the FY2025 volume are the child-credit expansion at "
+            "**-$310,024M** - 0.008% away, and a *cost*, the opposite sign to "
+            "the raiser this row scores - and the FY2024 pass-through NIIT row "
+            "at $305,944M, which is a base expansion rather than a rate "
+            "change. Neither coincidence is evidence of where the figure came "
+            "from; what they establish is that it is not the proposal's. "
+            ""
+            "WHY THIS ROW PROVES THE RULE RATHER THAN BENDING TO IT. The model "
+            "scores -$408.6B here, which is **1.2% from Treasury's published "
+            "$403,790M**, so adopting that figure would have turned the tier's "
+            "third-worst row into one of its best in a single line of diff. It "
+            "is not adopted, because the model applies **2pp** where the "
+            "document applies **1.2pp** - 1.67x the rate - and a small error "
+            "bought by a rate mismatch is two errors cancelling, which is the "
+            "reading Wave 4 gave treasury_capgains_39_plus_stepup_elim's 0.2% "
+            "and Wave 7 gave cbo_opt46_agi_surtax_2pp_100k's 16.1%. The static "
+            "path is linear in rate_change, so restating the model on the "
+            "document's own rate gives -$408.6 x 0.6 = **-$245.2B against "
+            "-$403.8B, 39.3% under** - which is what this row's accuracy "
+            "actually is, and it is worse than the 31.8% it was reporting. "
+            "PR #144 saw the shadow of this and said so: 'a row cannot sit "
+            "within 1.5% of a published figure on a base held three years "
+            "stale unless something else over-states by about as much.' "
+            ""
+            "WHAT IS LEFT FOR THE OWNER: a .v2 registering -$403.8B with "
+            "rate_change=0.012 is a genuine Treasury line item and would be "
+            "the right row. It moves a model output, so R2 may not take it. "
+            "Note also the base: the statutory base is wages plus net "
+            "investment income, which is neither SOI column (PR #146 finding "
+            "3), so a .v2 inherits an open base question this retirement does "
+            "not close. " + R2_RETIREMENT_RULE
+        ),
         note="AGI-inclusive base: the surcharge applies to wage *and* investment income.",
     ),
 
