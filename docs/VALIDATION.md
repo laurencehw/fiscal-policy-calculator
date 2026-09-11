@@ -126,7 +126,7 @@ non-zero effect, so the model window matches the source's own non-zero window.
 |------|----------------------|------------------------------:|---------:|------:|----:|----------------------|
 | Social Security Fairness Act of 2023 (H.R. 82) | WEP/GPO repeal, direct spending | +$19.67B (FY2026 outlays; FY2025 carries CBO's retroactive catch-up) | +$195.65B | +$214.8B | 10% | **Not a spend-out case, before or after L2.** Benefits are outlaid in the year they are owed, so there is no authority-to-outlay lag; the `mandatory_benefit` profile is 0.977 in year 0 and the row moved 10.1% → 9.8%. The residual is the model's 2%/yr growth against CBO's ~1.1%/yr. A mapping that closed it would be a fitted mapping. |
 | Fiscal Responsibility Act of 2023 (H.R. 3746) | Section 101(a) discretionary caps | -$112.3B (FY2024 budget authority; FY2025 is -$135.9B) | -$1,331.8B | -$1,169.5B | 12% | **Pre-registered to get worse, and it did** (5.8% → 12.2%). The old 5.8% was two errors cancelling: the model over-predicted the early years, because it outlaid authority immediately, and under-predicted the late ones, because CBO's caps compound against a falling funding base to -$159.7B by 2033 while a level grown at 2%/yr reaches only ~-$134B. Spend-out removes the first error and leaves the second, so the total error rises while the path gets more right. What remains is the **level shape**, not the lag. |
-| IIJA 2021 (S.Amdt. 2137 to H.R. 3684) | Discretionary funding and its outlays | CBO's own authorization schedule: $163.0B (FY2022), then $70.1B, $68.5B, $68.1B, $66.2B, then $2.082B/yr, scored on FY2022-2031 | +$415.4B | +$414.3B | 0.3% | **No longer a window miss either, since owner decision ③ registered `.v3` on the decade CBO's own estimate covers.** What is left is two terms that nearly cancel and neither is behavioural: the `construction_and_capital` path outlays $433.2B in total (4.3% high, which is the profile's 0.973 spend-out sum applied to the full authority) against $18.9B of that falling in FY2032 or later, outside even this window. 0.3% is smaller than either term. |
+| IIJA 2021 (S.Amdt. 2137 to H.R. 3684) | Discretionary funding and its outlays | CBO's own authorization schedule: $163.0B (FY2022), then $70.1B, $68.5B, $68.1B, $66.2B, then $2.082B/yr, scored on FY2022-2031 | +$415.4B | +$414.3B | 0.3% | **No longer a window miss either, since owner decision ③ registered `.v3` on the decade CBO's own estimate covers.** What is left is two terms that nearly cancel and neither is behavioural: the `construction_and_capital` path outlays $434.1B in total (4.5% high, which is the profile's 0.9727 spend-out sum applied to the full authority) against $19.8B of that falling in FY2032 or later, outside even this window. 0.3% is smaller than either term. |
 
 **IIJA: three rows, three defects, one unchanged target.** The row that reached 356%
 was `iija_2021_discretionary.v1`, whose shape input was a $163.0B level carried
@@ -175,11 +175,13 @@ where the scorer's window opens does, which is what separates a window from a
 vintage and from an effective date.
 
 **0.3% is not evidence about the spend-out profile, and the note on the row says
-so.** Two terms nearly cancel underneath it: the path outlays $433.2B in total,
-4.3% above CBO's figure, which is simply the profile's 0.973 spend-out sum
-applied to the full $446.3B of authority; and $18.9B of that falls in FY2032 or
+so.** Two terms nearly cancel underneath it: the path outlays $434.1B in total,
+4.5% above CBO's figure, which is simply the profile's 0.9727 spend-out sum
+applied to the full $446.3B of authority; and $19.8B of that falls in FY2032 or
 later, outside even this window. The honest statement is that the authority path
-is CBO's own and the fitted profile reproduces its total to 4.3%. CBO's table is
+is CBO's own and the fitted profile reproduces its total to 4.5%. (Earlier
+revisions of this file said $433.2B and 4.3%, which did not reconcile with the
+0.973 spend-out sum they cited either; the measured total is $434.1B.) CBO's table is
 also headed FY2021-2031, eleven fiscal years, and a ten-year window cannot cover
 eleven — FY2021 is not a gap, because the bill was signed on 15 November 2021,
 inside FY2022, and the record's own `budget_window` has read FY2022-2031 since it

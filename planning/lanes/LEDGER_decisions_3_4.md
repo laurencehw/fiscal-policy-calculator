@@ -20,7 +20,7 @@ Scope: `planning/HIGH_STAKES_ACCURACY.md` §4 decisions ③ and ④. Owned files
 `iija_2021_discretionary.v2` scores CBO's own authorization schedule
 (`annual_authority_path_billions`, $446.3B of budget authority) spent out on the
 `construction_and_capital` profile. Total outlays across every year the policy
-touches are **$433.2B against CBO's $415.4B — 4.3% high**. The row nevertheless
+touches are **$434.1B against CBO's $415.4B — 4.5% high**. The row nevertheless
 reads **18.2%**, because **$92.6B of those outlays fall in FY2022–2024**, before
 the model's FY2025–2034 window opens, so $340.0B is compared against a published
 figure covering FY2021–2031. That is an accounting artefact, not a shape or a
@@ -380,9 +380,9 @@ New: `test_iija_window_change_is_a_third_row_with_the_same_target`.
    says nothing about where the withdrawn figure came from.
 
 2. **IIJA's 0.3% is two terms nearly cancelling, and the row's own note now says
-   so.** The path outlays $433.2B in total against CBO's $415.4B — 4.3% high,
+   so.** The path outlays $434.1B in total against CBO's $415.4B — 4.5% high,
    which is just the `construction_and_capital` profile's 0.973 spend-out sum
-   applied to the full authority — while $18.9B falls in FY2032 or later, outside
+   applied to the full authority — while $19.8B falls in FY2032 or later, outside
    even this window. 0.3% is smaller than either term. Reading it as evidence
    about the spend-out profile would repeat the error
    `treasury_capgains_39_plus_stepup_elim`'s 0.2% and FRA's old 6% both made.
@@ -410,6 +410,19 @@ New: `test_iija_window_change_is_a_third_row_with_the_same_target`.
 6. **`docs/VALIDATION.md` was carrying a stale within-25 count for the
    reconstruction tier** — 13/39 where the live figure is 14/39. Corrected in
    passing; it appears to date from before Wave C's tariff lane moved the tier.
+
+7. **IIJA's total outlay figure was stale in four places and did not reconcile
+   with the spend-out sum quoted beside it.** `known_limitations`,
+   `preregistered.py` and `docs/VALIDATION.md` all said the path outlays
+   **$433.2B in total, 4.3% high, "which is just the profile's 0.973 spend-out
+   sum applied to the full authority"** — but `0.973 × $446.306B = $434.26B`,
+   so the sentence contradicted its own arithmetic. Summed year by year across
+   every year the policy touches (FY2022–FY2038), the measured total is
+   **$434.1B**, the implied spend-out sum **0.9727**, the over-statement
+   **4.5%**, and the tail outside FY2022–2031 **$19.8B** rather than $18.9B.
+   Corrected everywhere, with the old figure named so the change is visible.
+   Nothing scored reads any of these numbers — they are prose about a score —
+   which is exactly why a $0.9B drift survived three waves.
 
 ### 5.8 Carry-overs
 

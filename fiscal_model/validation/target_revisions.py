@@ -2028,8 +2028,8 @@ CALIBRATED_TARGETS: tuple[CalibratedTarget, ...] = (
     # counted by `ScorecardSummary.retired_target_entries`, and the
     # reconstruction tier is reported twice - once without them and once with
     # them folded back at the error they carried when they were withdrawn - so
-    # the 18.4 points the tier "improves" by are never quotable without the
-    # arithmetic on the same page.
+    # the roughly eighteen points the tier "improves" by are never quotable
+    # without the arithmetic on the same page.
     CalibratedTarget(
         revision_id="expand_drug_negotiation.v1",
         policy_id="expand_drug_negotiation",

@@ -996,7 +996,7 @@ PREREGISTERED_CASES: tuple[PreregisteredCase, ...] = (
             "to v1's and v2's. v2 scored the source's own authorization "
             "schedule on the runner's FY2025-2034 decade, and the residual it "
             "left was arithmetic rather than behaviour: the path outlays "
-            "$433.2B in total (4.3% above CBO's figure, which is just the "
+            "$434.1B in total (4.5% above CBO's figure, which is the "
             "construction_and_capital profile's 0.973 spend-out sum applied to "
             "the full authority), but $92.6B of that falls in FY2022-2024, "
             "before the window opens, so $340.0B was compared against a total "
