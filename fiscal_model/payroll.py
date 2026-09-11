@@ -98,8 +98,11 @@ BASELINE_WAGE_DATA = {
     # SSA-aligned: wages above the taxable maximum that reproduce Trustees
     # eliminate-cap window-average revenue ($320B × 10 ≈ $3.2T).
     "wages_above_cap_billions": 2_581.0,  # 320 / 0.124
-    # Wages above $250K that reproduce Trustees donut window-average
-    # ($270B × 10 ≈ $2.7T).
+    # Wages above $250K that reproduce the donut window-average the
+    # repository carried until 2026-09-09 ($270B × 10 ≈ $2.7T). That target is
+    # SUPERSEDED -- CBO 60557 Option 62 alternative 2 scores the same design at
+    # -$1,426.8B -- and the band is deliberately not refitted to it, so the
+    # scorecard reports the 89.2% gap instead of absorbing it.
     "wages_250k_plus_billions": 2_177.0,  # 270 / 0.124
 
     # Number of workers
@@ -291,11 +294,23 @@ CBO_PAYROLL_ESTIMATES = {
     "cap_90_pct_annual": 80.0,
 
     # Apply SS tax to earnings above $250K (donut hole)
-    "donut_250k_10yr": 2_700.0,  # $2.7T over 10 years (Trustees)
-    "donut_250k_annual": 270.0,
+    # 2026-09-11: the target is CBO's, not the Trustees'. OCACT scores this
+    # provision (E2.5) only in percent of taxable payroll and publishes no
+    # dollars at any horizon. CBO, Options for Reducing the Deficit: 2025 to
+    # 2034 (pub. 60557), Option 62 alternative 2, report p. 73: -$1,426.8B
+    # over FY2025-2034.  The `_annual` below is NOT that figure over ten: it
+    # is the SUPERSEDED $2.7T over ten, and it stays, because
+    # validation/scenarios.py records that retuning the covered-wage band to
+    # the new target "would convert a finding back into bookkeeping". The row
+    # reports 89.2% and that 89.2% is the size of the old target's error.
+    "donut_250k_10yr": 1_426.8,  # CBO 60557 Option 62 alt 2, FY2025-2034
+    "donut_250k_annual": 270.0,  # superseded $2,700B / 10 -- see above
 
-    # Eliminate SS cap entirely
-    "eliminate_cap_10yr": 3_200.0,  # $3.2T over 10 years (Trustees)
+    # Eliminate SS cap entirely. The FIGURE is live (ss_eliminate_cap was not
+    # revised); the ATTRIBUTION was wrong the same way. OCACT's E2.1 is also
+    # percent-of-payroll only, so benchmark_sources records this target
+    # `secondhand` with published_10yr_billions=None.
+    "eliminate_cap_10yr": 3_200.0,  # $3.2T over 10 years (untraced)
     "eliminate_cap_annual": 320.0,
 
     # Expand NIIT to pass-through income
@@ -616,7 +631,19 @@ def create_ss_donut_hole(
     "Donut hole" approach: tax wages up to current cap AND above threshold.
     Exempts wages between cap and threshold.
 
-    SS Trustees estimate: ~$2.7T over 10 years for $250K threshold
+    Target: CBO, Options for Reducing the Deficit: 2025 to 2034 (pub. 60557),
+    Option 62 alternative 2, report p. 73 -- -$1,426.8B over FY2025-2034, on
+    CBO's own "Decrease (-) in the deficit" stub, for the same design (no
+    benefit credit above the current-law taxable maximum).
+
+    The 270.0 below is NOT that. It is the SUPERSEDED -$2,700B over ten, a
+    figure that traces to a think-tank explainer with no report year, run
+    number or window; the Trustees this docstring used to credit publish no
+    dollars for the provision at all. It is left alone deliberately --
+    validation/scenarios.py: retuning the covered-wage band to the new target
+    "would convert a finding back into bookkeeping" -- so this factory
+    over-predicts CBO by 89.2%, and that is the reported error, not a defect
+    introduced here.
     """
     return PayrollTaxPolicy(
         name=f"SS Donut Hole Above ${threshold/1000:.0f}K",
@@ -641,7 +668,12 @@ def create_ss_eliminate_cap(
     Create policy to eliminate the Social Security wage cap entirely.
 
     Tax all wages at 12.4% (6.2% employee + 6.2% employer).
-    SS Trustees estimate: ~$3.2T over 10 years
+
+    Carried target: -$3,200B over ten years. The FIGURE is live; the
+    attribution this docstring used to carry is not. OCACT scores the design
+    (provision E2.1, no benefit credit) only in percent of taxable payroll and
+    publishes no dollar column, so benchmark_sources records the target
+    `secondhand` with published_10yr_billions=None and the search written out.
     """
     return PayrollTaxPolicy(
         name="Eliminate SS Cap",
@@ -829,6 +861,12 @@ def create_biden_payroll_proposal() -> PayrollTaxPolicy:
 # VALIDATION SCENARIOS
 # =============================================================================
 
+# NOTE (2026-09-11): this dict is a DEAD DUPLICATE. The validation runners
+# read fiscal_model/validation/scenarios.py, and nothing in fiscal_model/,
+# scripts/ or tests/ reads a row of this one -- only the package `__init__`
+# re-exports the name. It is corrected rather than deleted so that a reader who
+# finds it does not take a superseded target for a live one; the authoritative
+# rows, with their sources and their limitations, are in validation/scenarios.py.
 PAYROLL_VALIDATION_SCENARIOS = {
     "ss_cap_90_pct": {
         "description": "SS cap to cover 90% of wages",
@@ -840,15 +878,20 @@ PAYROLL_VALIDATION_SCENARIOS = {
     "ss_donut_250k": {
         "description": "SS tax on wages above $250K",
         "policy_factory": "create_ss_donut_hole",
-        "expected_10yr": -2700.0,  # $2.7T revenue gain
-        "source": "Social Security Trustees",
+        # Revised 2026-09-11 to match target_revisions.ss_donut_250k.v2. The
+        # model returns -$2,700B against this, an 89.2% miss that is the size
+        # of the superseded target's own error; no constant was retuned.
+        "expected_10yr": -1426.8,  # CBO 60557 Option 62 alt 2, FY2025-2034
+        "source": "CBO, Options 2025-2034, Option 62 alternative 2",
         "notes": "Donut hole: tax current cap + above $250K",
     },
     "ss_eliminate_cap": {
         "description": "Eliminate SS wage cap",
         "policy_factory": "create_ss_eliminate_cap",
-        "expected_10yr": -3200.0,  # $3.2T revenue gain
-        "source": "Social Security Trustees",
+        "expected_10yr": -3200.0,  # $3.2T revenue gain; not revised
+        # Re-attributed 2026-09-11: OCACT scores E2.1 in percent of taxable
+        # payroll only. -$3,200B is carried untraced (`secondhand`).
+        "source": "Untraced (OCACT publishes no dollars for E2.1)",
         "notes": "Tax all wages at 12.4%",
     },
     "expand_niit": {

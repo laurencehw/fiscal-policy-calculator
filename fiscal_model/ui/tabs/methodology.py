@@ -666,16 +666,34 @@ full taxable-income base. Treat uncalibrated custom policies as directional
 | Biden Corporate 28% | -\$1,347B | -\$1,397B | 3.7% | Treasury |
 | Biden CTC 2021 | \$1,600B | \$1,600B | 0.0% | JCT |
 | Estate: Biden Reform | -\$450B | -\$450B | 0.0% | Treasury |
-| SS Donut Hole \$250K | -\$2,700B | -\$2,700B | 0.0% | PGPF† |
 | Repeal Corporate AMT | \$220B | \$220B | 0.0% | JCT (JCX-18-22) |
 | Cap Employer Health | -\$450B | -\$450B | 0.1% | JCT |
 
-†*Not the Trustees, as this table used to say.* SSA's Office of the Chief
-Actuary does score this design — option **E2.5**, 12.4% above \$250,000 with no
-benefit credit — but publishes it **only** as a change in the long-range
-actuarial balance in percent of taxable payroll (+2.50%), with no dollar column
-at any horizon. The \$2,700B is a Peter G. Peterson Foundation explainer's
-sentence, and the conversion to dollars is one no cited source performed.
+*The SS donut row left this table on 2026-09-11, and where it went is the
+point.* It used to read `-\$2,700B | -\$2,700B | 0.0% | Trustees`, and every
+cell of that was wrong. SSA's Office of the Chief Actuary does score the design
+— option **E2.5**, 12.4% above \$250,000 with no benefit credit — but publishes
+it **only** as a change in the long-range actuarial balance in percent of
+taxable payroll (+2.50%), with no dollar column at any horizon; the \$2,700B
+traces to a Peter G. Peterson Foundation explainer, and the conversion to
+dollars is one no cited source performed. The target is now CBO's own
+— *Options for Reducing the Deficit: 2025 to 2034*, Option 62 alternative 2,
+report p. 73: **-\$1,426.8B** over FY2025-2034 — the model still returns
+**-\$2,700B**, and the row therefore reports **89.2%**. That is not a
+calibrated reference model any more, which is why it is listed below rather
+than above.
+""")
+
+    st_module.markdown(
+        "**2b. One row that left the table above.** A calibrated reference "
+        "stops being one the moment its target moves and its constant does "
+        "not follow — which is the *correct* outcome, because retuning the "
+        "constant would convert a finding back into bookkeeping."
+    )
+    st_module.markdown(r"""
+| Policy (reconstruction) | Official | Model | Error | Source |
+|--------|---------:|------:|------:|--------|
+| SS Donut Hole \$250K | -\$1,427B | -\$2,700B | **89.2%** | CBO (Option 62 alt 2) |
 """)
 
     # ── Live distributional benchmark accuracy ────────────────────────────
