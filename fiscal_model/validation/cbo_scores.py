@@ -1426,6 +1426,16 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         baseline_year=2021,
         budget_window="FY2022-2031",
         effective_start_year=2022,
+        # Scored on the ten fiscal years CBO's own estimate covers, which
+        # ``budget_window`` above has stated since this record was entered.
+        # ``iija_2021_discretionary.v3`` in ``preregistered.py``, under
+        # ``FY2022_TARGET_WINDOW_RULE``: the target does not move, only the
+        # decade it is compared on. ``effective_start_year`` already equalled
+        # the window's first year, so the policy's own start does not move
+        # either - the whole change is where the scorer's window opens, and
+        # therefore whether the $92.6B this path outlays in FY2022-2024 is
+        # inside it.
+        scoring_window_first_year=2022,
         annual_amount_billions=162.996,
         # The source's own authorization schedule, FY2022-2031. Five figures
         # are stated in CBO's table ($163.0B, $70.1B, $68.5B, $68.1B, $66.2B);
@@ -1449,7 +1459,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
               "registered as 'iija_2021_discretionary.v2'. The level shape that "
               "read only the first year is 'iija_2021_discretionary.v1', "
               "superseded because the source states a schedule and SpendingPolicy "
-              "can now express one.",
+              "can now express one. Scored on FY2022-2031, the decade this "
+              "estimate's own total covers, as 'iija_2021_discretionary.v3'; "
+              "v2 scored the same schedule on the runner's FY2025-2034 decade "
+              "and left $92.6B of its outlays outside the window.",
     ),
 }
 
