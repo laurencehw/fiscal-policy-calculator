@@ -117,20 +117,28 @@ class TestRevenueCalculation:
         assert 35 < static_revenue < 60
 
     def test_auto_tariff_25_revenue(self):
-        """Test 25% auto tariff revenue calculation."""
+        """Test 25% auto tariff revenue calculation.
+
+        Larger since lane R8 took the base from CBO's own Section 232 vehicle
+        and parts article lists at HS-10 rather than from the whole of HS-87,
+        which both over-included (tractors, trailers, motorcycles) and
+        under-included (parts in chapters 40, 70, 83, 84, 85, 90).
+        """
         policy = create_auto_tariff_25()
         static_revenue = policy.estimate_static_revenue_effect(0)
-        assert 22 < static_revenue < 36
+        assert 70 < static_revenue < 90
 
     def test_steel_tariff_25_revenue(self):
         """Test 25% steel/aluminum tariff revenue calculation.
 
-        Larger since lane H8 put the Section 232 derivative chapter (HS 73)
-        into the base, which it had never reached.
+        Larger again since lane R8 took both legs to the article level: CBO's
+        own Section 232 list is $96.75B and its derivative annex, at CBO's own
+        0.75/0.25 metal-content shares, another $122.60B. H8's HS-chapter
+        bracket was wrong at both ends.
         """
         policy = create_steel_tariff_25()
         static_revenue = policy.estimate_static_revenue_effect(0)
-        assert 12 < static_revenue < 18
+        assert 26 < static_revenue < 34
 
     def test_reciprocal_tariff_revenue(self):
         """Test reciprocal tariff revenue calculation.
@@ -593,4 +601,4 @@ class TestTariffValidationAgainstCBO:
         policy = create_auto_tariff_25()
         summary = policy.get_trade_summary()
         annual_net = summary["net_revenue"]
-        assert 12 < annual_net < 28, f"Annual revenue {annual_net}B outside expected range"
+        assert 48 < annual_net < 68, f"Annual revenue {annual_net}B outside expected range"

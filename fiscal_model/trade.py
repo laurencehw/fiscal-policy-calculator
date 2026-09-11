@@ -16,7 +16,10 @@ The conventional chain, per year::
     gross   = base · V · Δτ/(1 + Δτ)
     avoid   = avoidance_rate · gross
     offset  = income_payroll_offset · (gross − avoid)
-    net     = gross − avoid − offset          → 0.7125 · gross, always
+    net     = gross − avoid − offset          → 0.7180 · gross on the
+                                                app's window; the offset
+                                                is JCT's year path, so
+                                                the ratio depends on it
 
 and the two dynamic channels, reported beside it and never inside it::
 
@@ -35,11 +38,15 @@ Four things about that chain are worth stating plainly, because the module
 used to do none of them:
 
 1. **The income-and-payroll offset.** CBO, JCT and Treasury's Office of Tax
-   Analysis all score an indirect tax net of an offset of about 25%, on the
-   convention that a policy change does not alter total nominal income: duty
-   paid is income not paid to labour and capital, so the income and payroll
-   tax bases shrink. Before this the module returned gross customs revenue and
-   called it a score.
+   Analysis all score an indirect tax net of an offset, on the convention
+   that a policy change does not alter total nominal income: duty paid is
+   income not paid to labour and capital, so the income and payroll tax bases
+   shrink. Before this the module returned gross customs revenue and called it
+   a score. The offset is a **year path**, not the round 25% it is usually
+   quoted at — JCT's own published percentages run 0.244 in 2025 to 0.241 in
+   2035, and ship in CBO's Conventional Tariff Analysis Model at
+   ``inputs/offset/2025OffsetPostHR1.csv``. See
+   :func:`load_income_payroll_offset_path`.
 2. **Pass-through belongs in the demand response.** Amiti, Redding & Weinstein
    (2019) and Fajgelbaum et al. (2020) find the duty-inclusive US import price
    rose approximately one-for-one with the 2018-19 tariffs and foreign export
@@ -61,9 +68,13 @@ used to do none of them:
    three columns; neither is inside the number the scorer books.
 
 Every level in ``TRADE_BASELINE`` is a 2024 Census measurement, transcribed
-with its provenance to ``data_files/trade/tariff_scoring_inputs.csv``; the
-behavioural parameters are one frozen, cited value per mechanism. No constant
-here is keyed to a benchmark. In particular the two coverage constants that
+with its provenance to ``data_files/trade/tariff_scoring_inputs.csv`` and —
+for the Section 232 bases, which are measured at the **article** level rather
+than by HS chapter — ``data_files/trade/section232_hts_bases.csv``; the
+behavioural parameters are one frozen, cited value per mechanism, and the
+income-and-payroll offset is a published year path in
+``data_files/trade/income_payroll_offset_path.csv``. No constant here is keyed
+to a benchmark. In particular the two coverage constants that
 used to be fitted to their own targets are gone: ``universal_coverage_rate`` is
 now 1 minus the Canada-plus-Mexico share of goods imports (the USMCA carve-out
 every universal-tariff proposal carries), and ``china_effective_coverage`` is
@@ -85,6 +96,11 @@ References:
 - Tax Foundation, *How Much Revenue Can Tariffs Really Raise for the Federal
   Government?*, Fiscal Fact 861 (April 2025)
 - U.S. Census Bureau international trade series, 2024
+- U.S. Congressional Budget Office, *Conventional Tariff Analysis Model*,
+  github.com/US-CBO/conventional-tariff-analysis-model @ 59ea68fd (2026-02-17),
+  documented at cbo.gov/publication/61388 — the source of the Section 232
+  HS-10 article lists, their metal-content shares, the USMCA US-content auto
+  carve-out, and JCT's income-and-payroll offset path
 """
 
 import csv
@@ -106,6 +122,10 @@ RECIPROCAL_SCHEDULE_PATH = (
     Path(__file__).parent / "data_files" / "trade" / "reciprocal_schedule.csv"
 )
 
+INCOME_PAYROLL_OFFSET_PATH = (
+    Path(__file__).parent / "data_files" / "trade" / "income_payroll_offset_path.csv"
+)
+
 TRADE_BASELINE = {
     # --- Trade levels: U.S. Census Bureau, 2024 (see the CSV) --------------
     "total_imports_billions": 3263.9,
@@ -119,22 +139,38 @@ TRADE_BASELINE = {
     "china_existing_avg_tariff": 0.1093,   # calculated duty / imports for consumption
     "us_exports_to_china_billions": 143.3,  # China's retaliation base
     "eu_imports_billions": 550.0,
-    "auto_imports_billions": 384.9,         # HS 87
-    "auto_existing_avg_tariff": 0.0199,
-    "auto_usmca_exempt_share": 0.4842,      # Canada + Mexico share of HS 87
-    "steel_aluminum_imports_billions": 58.9,  # HS 72 + HS 76
-    "steel_aluminum_existing_avg_tariff": 0.0306,
-    # Section 232 also reaches derivative articles, which sit in HS 73. These
-    # are a *separate* row rather than folded into the two above, because they
-    # carry their own collected duty (5.63% against 3.06%) and because the
-    # floor — steel and aluminium without derivatives — has to stay readable.
-    # Whole-chapter HS 73 is an **upper bound** on the derivative base: the
-    # Section 232 annexes list articles at HS-10, and Proclamation 10896 taxes
-    # a derivative on its steel *content* rather than its customs value.
-    # Neither the annex nor a content share is transcribed here, so the honest
-    # statement is a bracket, and `create_steel_tariff_25` can score either end.
-    "steel_derivative_imports_billions": 49.5,  # HS 73
-    "steel_derivative_existing_avg_tariff": 0.0563,
+    # --- Section 232 bases, at the article level --------------------------
+    # These five levels are CBO's own HS-10 Section 232 article lists
+    # aggregated over CBO's own Census file, both shipped in the Conventional
+    # Tariff Analysis Model at commit 59ea68fd. See
+    # `data_files/trade/section232_hts_bases.csv`, which carries the path and
+    # line count behind every one of them. They replace four HS-chapter
+    # proxies, and the chapter proxies were wrong in both directions:
+    #
+    #   * `alum_steel.csv` puts 558 of its 1,180 lines in **HS 73**, so most of
+    #     that chapter is *primary* Section 232 scope, not derivative, and the
+    #     old "floor" of HS 72 + HS 76 excluded it;
+    #   * the derivative annex lives in chapters 82-86, 87, 94, 95 (high metal
+    #     content) and 34, 38, 82, 84, 85, 87, 94, 95 (low) — machinery,
+    #     furniture, appliances — which HS 73 does not contain at all, so the
+    #     old "ceiling" of HS 73 was 2.5x too *small*;
+    #   * HS 87 both over-includes (tractors, trailers, motorcycles, bicycles,
+    #     baby carriages) and under-includes (parts in chapters 40, 70, 83, 84,
+    #     85, 90) relative to `autos.csv` + `auto_parts.csv`.
+    #
+    # A derivative is taxed on its metal *content*, which is what Proclamation
+    # 10896 says and what the module previously had no way to express: CBO's
+    # shares are 0.75 of a high-content article's value and 0.25 of a
+    # low-content one (`config/default.yaml:72-73`), so the taxed base is
+    # `0.75 x $108.755B + 0.25 x $164.141B`. The derivatives stay their own
+    # schedule row because they collect a different duty from the primary base.
+    "auto_imports_billions": 214.2811,       # autos.csv, after the US-content carve-out
+    "auto_parts_imports_billions": 340.6701,  # auto_parts.csv
+    "auto_existing_avg_tariff": 0.018363,
+    "steel_aluminum_imports_billions": 96.7516,  # alum_steel.csv, ex auto parts
+    "steel_aluminum_existing_avg_tariff": 0.046416,
+    "steel_derivative_imports_billions": 122.6015,  # content-weighted
+    "steel_derivative_existing_avg_tariff": 0.03872,
 
     # --- Behavioural parameters: one frozen, cited value per mechanism -----
     # Border pass-through into duty-inclusive import prices. Amiti, Redding &
@@ -147,10 +183,20 @@ TRADE_BASELINE = {
     # adopted by Tax Foundation FF861 p. 4.
     "import_price_elasticity": -0.997,
     "retaliation_rate": 0.30,
+    # Still unsourced, and CTAM has nothing to offer: CBO's tariff model
+    # carries no avoidance or noncompliance parameter at all. Its
+    # `exporter_absorption: 5` is a different object — incomplete border
+    # pass-through — and contradicts the 1.00 above, which *is* sourced.
     "tariff_avoidance_rate": 0.05,
-    # CBO/JCT/OTA convention: an indirect tax shrinks the income and payroll
-    # tax bases by about a quarter of its net receipts.
-    "income_payroll_offset_rate": 0.25,
+    # The income-and-payroll offset is a **year path**, not a scalar: JCT's own
+    # published percentages, 0.244 (2025) falling to 0.241 (2035), shipped in
+    # CBO's tariff model at `inputs/offset/2025OffsetPostHR1.csv` and applied
+    # there one year at a time (`code/model/add_offset.py:18`). The path lives
+    # in `data_files/trade/income_payroll_offset_path.csv`; this key is the
+    # mean over the *library* default window, kept so that callers reading
+    # `TRADE_BASELINE` directly still get a number. The scoring chain does not
+    # read it — it reads the path, over each policy's own window.
+    "income_payroll_offset_rate": 0.2442,
     # Federal receipts per dollar of income lost to retaliation — the app's own
     # dynamic-scoring convention, not a new constant.
     "marginal_receipts_rate": MARGINAL_REVENUE_RATE,
@@ -205,6 +251,59 @@ def load_reciprocal_schedule() -> tuple[ScheduleRow, ...]:
             "rebuild it with scripts/build_reciprocal_schedule.py"
         )
     return tuple(rows)
+
+
+@lru_cache(maxsize=1)
+def load_income_payroll_offset_path() -> tuple[tuple[int, float], ...]:
+    """JCT's published income-and-payroll offset, year by year.
+
+    Reads ``data_files/trade/income_payroll_offset_path.csv``, a transcription
+    of ``inputs/offset/2025OffsetPostHR1.csv`` from CBO's Conventional Tariff
+    Analysis Model at commit ``59ea68fd``. CBO applies it multiplicatively, one
+    year at a time, at ``code/model/add_offset.py:18``.
+    """
+    rows: list[tuple[int, float]] = []
+    with INCOME_PAYROLL_OFFSET_PATH.open(encoding="utf-8") as handle:
+        lines = [line for line in handle if not line.startswith("#")]
+    for record in csv.DictReader(lines):
+        rows.append((int(record["year"]), float(record["offset"])))
+    if not rows:
+        raise ValueError(f"{INCOME_PAYROLL_OFFSET_PATH} carries no rows")
+    return tuple(sorted(rows))
+
+
+def income_payroll_offset_rate(year: int) -> float:
+    """The offset JCT publishes for ``year``, clamped to the path's own range.
+
+    Clamped rather than extrapolated: a published path is a statement about
+    the years it covers, and inventing a slope beyond them would turn a
+    transcription back into an assumption.
+    """
+    path = load_income_payroll_offset_path()
+    if year <= path[0][0]:
+        return path[0][1]
+    if year >= path[-1][0]:
+        return path[-1][1]
+    return dict(path)[year]
+
+
+def window_income_payroll_offset_rate(start_year: int, duration_years: int) -> float:
+    """Mean offset over ``[start_year, start_year + duration_years)``.
+
+    **This is an identity, not an approximation, for every tariff the module
+    scores today.** ``scoring_engine`` calls ``estimate_behavioral_offset``
+    once per year with no year argument, and a tariff's gross is flat across
+    the window — :class:`TariffPolicy` is not in the engine's growth handlers
+    and has no ``soi_base_tax_year``, so the income-base projection factor is
+    1.0. With a flat gross ``g``, ``sum_t g(1 - o_t) = n * g * (1 - mean o)``
+    exactly. It would become an approximation for a phased-in tariff, which is
+    why ``planning/lanes/R8_tariff_ctam.md`` carries the year-indexed hand-off
+    as an open item rather than claiming this is general.
+    """
+    if duration_years <= 0:
+        return income_payroll_offset_rate(start_year)
+    years = range(int(start_year), int(start_year) + int(duration_years))
+    return sum(income_payroll_offset_rate(y) for y in years) / len(years)
 
 
 @dataclass
@@ -365,10 +464,12 @@ class TariffPolicy(TaxPolicy):
         :meth:`estimate_retaliation_revenue_loss` — and
         :meth:`get_trade_summary` reports it beside the GDP-feedback channel.
 
-        The ratio this leaves is a constant: ``(1 − 0.05) × (1 − 0.25) =
-        0.7125`` of gross duty, for every tariff in every direction, against
-        FF861's implied 0.738 — the difference being that FF861 books its 8%
-        noncompliance inside the base rather than as a separate line.
+        The ratio this leaves is ``(1 − 0.05) × (1 − offset)`` of gross
+        duty, for every tariff in every direction — 0.7180 on the app's
+        FY2026-2035 window and 0.7178 on the validation window, against
+        FF861's implied 0.738. The remaining difference is that FF861 books
+        its 8% noncompliance inside the base rather than as a separate line.
+        It used to be a flat 0.7125, because the offset used to be a scalar.
 
         **Signed to match ``static_effect``**, the convention
         :meth:`fiscal_model.policies_core.TaxPolicy.estimate_behavioral_offset`
@@ -386,8 +487,29 @@ class TariffPolicy(TaxPolicy):
         if gross == 0.0:
             return 0.0
         avoidance = gross * TRADE_BASELINE["tariff_avoidance_rate"]
-        offset = (gross - avoidance) * TRADE_BASELINE["income_payroll_offset_rate"]
+        offset = (gross - avoidance) * self.income_payroll_offset_rate()
         return math.copysign(avoidance + offset, static_effect)
+
+    def income_payroll_offset_rate(self) -> float:
+        """JCT's offset over this policy's own window.
+
+        The convention used to be the round 0.25 that CBO, JCT and Treasury's
+        Office of Tax Analysis are usually *quoted* at, cited secondhand
+        through Tax Foundation FF861 because jct.gov 403s this environment.
+        The percentages themselves ship in CBO's own tariff model, so this now
+        reads them: 0.244 in 2025 falling to 0.241 in 2035
+        (:func:`load_income_payroll_offset_path`).
+
+        Deliberately **not** FF861's 26.2%, which
+        ``tariff_scoring_inputs.csv`` already records as an external check not
+        adopted — it is Tax Foundation's own model output for this window, and
+        adopting it would move a parameter toward one of this module's own
+        benchmarks. JCT's path is neither.
+        """
+        return window_income_payroll_offset_rate(
+            int(getattr(self, "start_year", 2025) or 2025),
+            int(getattr(self, "duration_years", 10) or 10),
+        )
 
     # -- the channels, separately readable ---------------------------------
 
@@ -399,7 +521,7 @@ class TariffPolicy(TaxPolicy):
         """
         gross = self.estimate_static_revenue_effect(0.0)
         avoidance = gross * TRADE_BASELINE["tariff_avoidance_rate"]
-        return (gross - avoidance) * TRADE_BASELINE["income_payroll_offset_rate"]
+        return (gross - avoidance) * self.income_payroll_offset_rate()
 
     def macro_demand_impulse(self) -> float:
         """Annual real income the tariff's price effect withdraws, in billions.
@@ -605,46 +727,74 @@ def create_trump_china_60() -> TariffPolicy:
 
 
 def create_auto_tariff_25() -> TariffPolicy:
-    """25% on imported vehicles and parts, less the USMCA share of the base."""
+    """25% on the Section 232 vehicle and parts articles, net of US content.
+
+    The base is CBO's own two article lists — ``autos.csv`` (62 HS-10 lines)
+    and ``auto_parts.csv`` (316) — aggregated over CBO's own Census file, not
+    the whole of HS 87. That matters in both directions: HS 87 carries
+    tractors, trailers, motorcycles, bicycles and baby carriages that Section
+    232 does not reach, while most of the parts list sits in chapters 40, 70,
+    83, 84, 85 and 90, outside HS 87 altogether.
+
+    The USMCA carve-out is CBO's too, and much smaller than the one it
+    replaces. The March 2025 proclamation exempts the **US-content share** of a
+    **qualifying** vehicle, not the whole import value, so CBO taxes Canadian
+    and Mexican vehicles on ``1 - 0.50`` and ``1 - 0.35`` of the qualifying
+    share (``code/tariffs.py:186-187``) and parts in full. That is $41.0B of
+    carve-out against the roughly $186B a whole-value 48.42% exemption removed
+    — and ``tariff_scoring_inputs.csv`` had already recorded, in that key's own
+    source note, that the whole-value form over-stated it.
+    """
+    base = (
+        TRADE_BASELINE["auto_imports_billions"]
+        + TRADE_BASELINE["auto_parts_imports_billions"]
+    )
     return TariffPolicy(
         name="25% Auto Tariff",
         description=(
-            "25% tariff on imported vehicles and parts outside the USMCA "
-            "share of the base (~\\$199B of \\$385B)."
+            "25% tariff on the Section 232 vehicle and parts articles, "
+            "incremental over the 1.84% they already collect and net of the "
+            f"US content of USMCA-qualifying vehicles (~\\${base:,.0f}B base)."
         ),
         tariff_rate_change=0.25 - TRADE_BASELINE["auto_existing_avg_tariff"],
         target_sector="autos",
-        import_base_billions=(
-            TRADE_BASELINE["auto_imports_billions"]
-            * (1 - TRADE_BASELINE["auto_usmca_exempt_share"])
-        ),
+        import_base_billions=base,
     )
 
 
 def create_steel_tariff_25(include_derivatives: bool = True) -> TariffPolicy:
-    """25% on steel, aluminium and the Section 232 derivative articles.
+    """25% on the Section 232 steel, aluminium and derivative articles.
 
-    The primary base (HS 72 plus HS 76) pays 3.06% today — far below the
-    25%/10% statutory Section 232 rates, because Canada, Mexico and Australia
-    were exempted and the EU, UK, Japan, Brazil and South Korea traded under
-    quotas or product exclusions. That collected rate, not the statutory one,
-    is what a proposed 25% is incremental to.
+    Both legs are now measured at the **article** level, off CBO's own HS-10
+    Section 232 lists aggregated over CBO's own Census file, where they used to
+    be whole HS chapters. The primary list (1,167 lines after CBO's own
+    exclusion of auto parts) is $96.75B paying **4.64%** — far below the
+    25%/10% statutory rates, because Canada, Mexico and Australia were exempted
+    and the EU, UK, Japan, Brazil and South Korea traded under quotas or
+    product exclusions. That collected rate, not the statutory one, is what a
+    proposed 25% is incremental to.
 
-    Section 232 also reaches **derivative** articles, which sit in HS 73 and
-    pay 5.63%. They were missing from the base entirely, and since they carry
-    their own collected duty they enter as a second schedule row rather than
-    being blended into the first.
+    A **derivative** article is taxed on its metal *content*, which is what
+    Proclamation 10896 says and what the module could not previously express.
+    CBO's content shares are 0.75 of a high-content article and 0.25 of a
+    low-content one, giving a taxed base of $122.60B paying 3.87%. The
+    derivatives stay a separate schedule row because they collect a different
+    duty from the primary base.
 
-    ``include_derivatives`` is a bracket, not an option nobody should use.
-    The whole chapter is an upper bound on what Section 232 reaches: the
-    annexes list articles at HS-10, and Proclamation 10896 taxes a derivative
-    on its steel *content* rather than its customs value. HS 72 + HS 76 alone
-    is the floor. The truth is between, and neither end is transcribed here,
-    so the preset ships the ceiling and the floor stays one argument away.
+    **The chapter bracket this replaces was wrong at both ends.** Most of HS 73
+    turns out to be *primary* Section 232 scope — 558 of the primary list's
+    1,180 lines — so the old "floor" of HS 72 + HS 76 excluded it; and the
+    derivative annex lives in chapters 82 to 95, which HS 73 does not contain,
+    so the old "ceiling" was 2.5x too small. The measured base is 2.04x that
+    ceiling.
+
+    ``include_derivatives=False`` still returns the primary leg alone. It is
+    now a genuine floor — the articles Section 232 reaches directly — rather
+    than one end of a bracket built from the wrong chapters.
     """
     rows: list[ScheduleRow] = [
         (
-            "Steel and aluminium (HS 72, HS 76)",
+            "Section 232 steel and aluminium articles",
             TRADE_BASELINE["steel_aluminum_imports_billions"],
             0.25 - TRADE_BASELINE["steel_aluminum_existing_avg_tariff"],
         )
@@ -652,7 +802,7 @@ def create_steel_tariff_25(include_derivatives: bool = True) -> TariffPolicy:
     if include_derivatives:
         rows.append(
             (
-                "Derivative articles (HS 73)",
+                "Section 232 derivative articles (metal content)",
                 TRADE_BASELINE["steel_derivative_imports_billions"],
                 0.25 - TRADE_BASELINE["steel_derivative_existing_avg_tariff"],
             )
