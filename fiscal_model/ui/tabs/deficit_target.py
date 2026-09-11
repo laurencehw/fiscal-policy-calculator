@@ -50,6 +50,14 @@ from typing import Any
 import pandas as pd
 import plotly.graph_objects as go
 
+from fiscal_model.app_data import (
+    ILLUSTRATIVE_GROUP_LABEL as ILLUSTRATIVE_AREA,
+)
+from fiscal_model.app_data import (
+    ILLUSTRATIVE_GROUP_NOTE,
+    ILLUSTRATIVE_NO_ROW_NOTE,
+    is_illustrative,
+)
 from fiscal_model.baseline import APP_DEFAULT_START_YEAR
 from fiscal_model.preset_ids import (
     EXCLUSIVE_GROUPS,
@@ -70,6 +78,7 @@ from fiscal_model.ui.helpers import (
     escape_markdown_dollars,
     preset_scoring_category,
 )
+from fiscal_model.ui.preset_validation import illustrative_note
 from fiscal_model.ui.session_state import (
     KEY_BUILD_DROPPED_NOTICE,
     KEY_BUILD_METRIC,
@@ -158,6 +167,8 @@ _AREA_ORDER: tuple[str, ...] = (
     "Healthcare",
     "Drug pricing",
     "Other",
+    # H12: last, in whichever directional section its members land in.
+    ILLUSTRATIVE_AREA,
 )
 
 #: Human copy for the "pick one" chip. The *structure* is data (preset_ids);
@@ -201,6 +212,10 @@ class BuildOption:
     exclusive_groups: tuple[str, ...] = ()
     subsumes: tuple[str, ...] = ()
     tags: Mapping[str, str] = field(default_factory=dict)
+    #: H12 — this row sits in the demoted illustrative group. It still scores,
+    #: still exports and still resolves from a share link; the flag only tells
+    #: the renderer to print how far the model is from the published figure.
+    illustrative: bool = False
 
     @property
     def raises_revenue(self) -> bool:
@@ -241,7 +256,14 @@ def build_catalog(cbo_score_map: Mapping[str, Mapping[str, Any]]) -> dict[str, B
             continue
 
         entry = PRESETS_BY_ID.get(build_id) or {}
-        area = extra.get("area") or preset_scoring_category(entry) or "Other"
+        # H12: the demoted group wins over the scoring category, so a flagged
+        # preset renders in the illustrative section and **nowhere else**.
+        # Catalog *insertion order* is untouched — only the area is — so the
+        # exports, the scoreboard and every share link are unaffected.
+        if is_illustrative(entry):
+            area = ILLUSTRATIVE_AREA
+        else:
+            area = extra.get("area") or preset_scoring_category(entry) or "Other"
         catalog[build_id] = BuildOption(
             build_id=build_id,
             label=label,
@@ -254,6 +276,7 @@ def build_catalog(cbo_score_map: Mapping[str, Mapping[str, Any]]) -> dict[str, B
             ),
             subsumes=tuple(entry.get("subsumes") or SUBSUMES.get(build_id, ())),
             tags=dict(entry.get("tags") or {}),
+            illustrative=is_illustrative(entry),
         )
     return catalog
 
@@ -1062,8 +1085,16 @@ def _render_checklist(
             has_selection = any(opt.build_id in selected for opt in area_options)
             with st_module.expander(
                 f"**{area}** ({len(area_options)})",
+                # H12: the illustrative section follows the same rule as every
+                # other area — collapsed by default, opened by a search hit or
+                # by something inside it being checked. Forcing it shut would
+                # make a *selected* illustrative policy invisible while it was
+                # still counted in the totals, which is worse than the defect
+                # this lane is fixing.
                 expanded=bool(needles) or has_selection,
             ):
+                if area == ILLUSTRATIVE_AREA:
+                    st_module.warning(ILLUSTRATIVE_GROUP_NOTE)
                 _render_area(
                     st_module,
                     area_options,
@@ -1157,6 +1188,13 @@ def _render_option(
             f"10-year total"
         ).strip(),
     )
+
+    if option.illustrative:
+        # ``with_figure=False`` on purpose: the first ``get_validation_badge``
+        # call in a process costs 6.187 s (measured 2026-09-11) and Build's
+        # checklist materialises no scorecard today. See
+        # ``preset_validation.ILLUSTRATIVE_ROW_NOTE_NO_FIGURE``.
+        st_module.caption(illustrative_note(option.build_id, with_figure=False))
 
     if blocker is None:
         return

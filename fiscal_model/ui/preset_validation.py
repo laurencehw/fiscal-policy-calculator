@@ -447,6 +447,55 @@ def get_validation_badge(preset_name: str) -> dict | None:
     }
 
 
+# ---------------------------------------------------------------------------
+# The illustrative caption (H12)
+# ---------------------------------------------------------------------------
+#: Figure-free line for a demoted preset, for a surface that must not pay for a
+#: scorecard materialisation to render one row.
+#:
+#: Measured on 2026-09-11: the first ``get_validation_badge`` call in a process
+#: costs **6.187 s** (``_scorecard_index`` runs every specialized validator over
+#: all 81 rows), and Build's checklist does not materialise the scorecard today.
+#: Printing a live figure on every illustrative checkbox would therefore have
+#: put ~6.2 s on Build's first paint — the same defect ``planning/memos/
+#: COLD_START.md`` found in the page footer and PR #135 removed. So Build names
+#: the tier and says where the figure is; Explore, which already calls
+#: ``get_validation_badge`` for its badge caption, prints the figure itself.
+ILLUSTRATIVE_ROW_NOTE_NO_FIGURE = (
+    "↳ Illustrative — an unfitted reconstruction, not a validated score. "
+    "Its distance from the published figure is on Explore and in the "
+    "validation scorecard."
+)
+
+
+def illustrative_note(preset: str, *, with_figure: bool = True) -> str:
+    """One line for a demoted preset, naming the tier and — optionally — the error.
+
+    ``with_figure=False`` is the cheap variant: it names the tier and nothing
+    else, and it **never** touches the scorecard. Use it on any surface that
+    does not already have a badge on screen; see
+    :data:`ILLUSTRATIVE_ROW_NOTE_NO_FIGURE` for the measurement that makes that
+    the default on Build.
+
+    ``with_figure=True`` reads the live badge, so a target revision or
+    retirement underneath this preset changes what the surface prints rather
+    than leaving a stale constant behind. A preset with no scorecard row of any
+    tier gets a line saying so, because a silent absence reads like agreement.
+    """
+    if not with_figure:
+        return ILLUSTRATIVE_ROW_NOTE_NO_FIGURE
+    badge = get_validation_badge(preset)
+    if badge is None:
+        from fiscal_model.app_data import ILLUSTRATIVE_NO_ROW_NOTE
+
+        return f"↳ Illustrative — {ILLUSTRATIVE_NO_ROW_NOTE}"
+    return (
+        f"↳ Illustrative — {badge['tier_label'].lower()}, "
+        f"{badge['abs_pct']:.1f}% from {_money(badge['official'])} "
+        f"({_source(badge)}). Not a validated score."
+    )
+
+
 def presets_without_a_row() -> tuple[str, ...]:
     """Catalog preset ids with no scorecard row of any tier.
 
@@ -464,6 +513,7 @@ __all__ = [
     "BADGE_SCORECARD_ID_BY_LABEL",
     "HEADLINE_ROW_DIVERGENCE",
     "HEADLINE_ROW_TOLERANCE_PCT",
+    "ILLUSTRATIVE_ROW_NOTE_NO_FIGURE",
     "LEGACY_CALIBRATED_PRESET_IDS",
     "PRESET_ID_TO_SCORECARD_ID",
     "PRESET_TO_SCORECARD_ID",
@@ -475,6 +525,7 @@ __all__ = [
     "TIER_RECONSTRUCTION",
     "badge_tier",
     "get_validation_badge",
+    "illustrative_note",
     "is_calibrated_reference",
     "presets_without_a_row",
     "reset_scorecard_cache",

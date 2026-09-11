@@ -6,6 +6,14 @@ from __future__ import annotations
 
 from typing import Any
 
+from fiscal_model.app_data import ILLUSTRATIVE_GROUP_LABEL, is_illustrative
+
+#: The demoted group's own policy area. It is **last** in
+#: :data:`_CATEGORY_ORDER` and its name states the tier, because the whole job
+#: of the group is to say what kind of number these presets carry
+#: (H12, ``planning/lanes/HSD_h12_illustrative_group.md``).
+ILLUSTRATIVE_CATEGORY = ILLUSTRATIVE_GROUP_LABEL
+
 _CATEGORY_ORDER = [
     "TCJA / Individual",
     "Corporate",
@@ -21,10 +29,16 @@ _CATEGORY_ORDER = [
     "Trade / Tariffs",
     "Climate / Energy",
     "Income Tax",
+    ILLUSTRATIVE_CATEGORY,
 ]
 
 
 def _preset_category(preset: dict[str, Any]) -> str:
+    # The demoted group wins over every substantive area: a preset flagged
+    # illustrative must appear there and **nowhere else**, so this test comes
+    # before ``ui_category`` and before the ``is_*`` ladder below.
+    if is_illustrative(preset):
+        return ILLUSTRATIVE_CATEGORY
     if preset.get("ui_category"):
         return preset["ui_category"]
     if preset.get("is_tcja"):
