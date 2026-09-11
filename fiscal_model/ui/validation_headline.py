@@ -45,6 +45,10 @@ HEADLINE_PATH: Path = (
 #: Written into the file so a reader who opens it knows what regenerates it.
 GENERATOR = "scripts/build_validation_headline.py"
 
+#: ``ScorecardEntry.category`` for the pre-registered out-of-sample battery —
+#: the rows ``cold_holdout.py`` reports as Tier 1.
+GENERIC_CATEGORY = "Generic"
+
 _NOTE = (
     "Generated file - do not hand-edit. The footer's benchmark count is a "
     "validation claim, so it is derived from the live scorecard rather than "
@@ -60,6 +64,7 @@ def build_payload(summary: Any) -> dict[str, Any]:
     when a *model* number moves belongs in it.
     """
     provenance = dict(getattr(summary, "provenance_breakdown", {}) or {})
+    entries = tuple(getattr(summary, "entries", ()) or ())
     return {
         "_note": _NOTE,
         "generated_by": GENERATOR,
@@ -67,6 +72,15 @@ def build_payload(summary: Any) -> dict[str, Any]:
         "total_entries": int(summary.total_entries),
         "model_estimate_entries": int(summary.model_estimate_entries),
         "unclassified_entries": int(provenance.get("unclassified", 0)),
+        # How many rows are the pre-registered out-of-sample tier. A **count**,
+        # like the four above it, so it obeys this payload's own rule: it moves
+        # when a case is registered or retired and not when a model number
+        # moves. The tier's *errors* deliberately stay out — those are exactly
+        # what "nothing that moves when a model number moves" excludes, and any
+        # surface wanting them has to compute them.
+        "out_of_sample_entries": sum(
+            1 for e in entries if str(getattr(e, "category", "")) == GENERIC_CATEGORY
+        ),
     }
 
 
@@ -85,15 +99,25 @@ def write_payload(payload: dict[str, Any], path: Path | None = None) -> Path:
 def load_headline() -> dict[str, Any] | None:
     """Read the committed artifact once per process, or ``None`` if unreadable.
 
-    Cheap by construction: stdlib ``json`` over a file of five keys. It must
-    stay that way — the whole point is that the footer's clause costs nothing
-    on the first script run.
+    Cheap by construction: stdlib ``json`` over a file of a handful of keys. It
+    must stay that way — the whole point is that the footer's clause costs
+    nothing on the first script run.
     """
     try:
         data = json.loads(HEADLINE_PATH.read_text(encoding="utf-8"))
     except Exception:
         return None
     return data if isinstance(data, dict) else None
+
+
+def _pinned_count(key: str) -> int | None:
+    data = load_headline()
+    if data is None:
+        return None
+    value = data.get(key)
+    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+        return None
+    return value
 
 
 def pinned_published_entries() -> int | None:
@@ -103,13 +127,17 @@ def pinned_published_entries() -> int | None:
     benchmarks nothing" are different states, and only the caller knows which
     of them warrants dropping the clause.
     """
-    data = load_headline()
-    if data is None:
-        return None
-    value = data.get("published_entries")
-    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
-        return None
-    return value
+    return _pinned_count("published_entries")
+
+
+def pinned_out_of_sample_entries() -> int | None:
+    """How many rows are the pre-registered out-of-sample tier; ``None`` if unread.
+
+    Same contract as :func:`pinned_published_entries`, and the same reason for
+    existing: a surface that names the tier's size must not type the number,
+    and must not pay for the scorecard to learn it.
+    """
+    return _pinned_count("out_of_sample_entries")
 
 
 def reset_cache() -> None:
@@ -121,9 +149,11 @@ def reset_cache() -> None:
 
 __all__ = [
     "GENERATOR",
+    "GENERIC_CATEGORY",
     "HEADLINE_PATH",
     "build_payload",
     "load_headline",
+    "pinned_out_of_sample_entries",
     "pinned_published_entries",
     "reset_cache",
     "write_payload",

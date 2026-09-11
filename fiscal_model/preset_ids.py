@@ -70,7 +70,7 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
     # AMT
     "⚖️ AMT: Extend TCJA Relief ($1.36T)": "amt-extend-tcja-relief",
     "⚖️ Repeal Individual AMT ($450B)": "amt-repeal-individual",
-    "⚖️ Repeal Corporate AMT (-$220B)": "amt-repeal-corporate",
+    "⚖️ Repeal Corporate AMT (+$220B)": "amt-repeal-corporate",
     # ACA premium tax credits
     "🏥 Extend ACA Enhanced PTCs ($335B)": "aca-ptc-extend-enhanced",
     "🏥 Repeal ACA Premium Credits (-$1.1T)": "aca-ptc-repeal",
@@ -157,16 +157,18 @@ SCORE_ONLY_ALIAS_ID_BY_LABEL: dict[str, str] = {}
 #: including the one case — the \\$25/ton carbon tax — where a real CBO
 #: document exists at a different figure on a different decade).
 #:
-#: A fifth rename is **owed and not taken**: "Repeal Corporate AMT (-\\$220B)"
-#: reads a saving where the model, the scorecard target and JCT all read a
-#: \\$220B cost. Its ``CBO_SCORE_MAP`` sign is corrected, but the label is the
-#: key of ``ui/preset_validation.PRESET_TO_SCORECARD_ID``, whose map and whose
-#: test must move in the same commit — and both belong to a sibling lane.
+#: The fifth, from the same day, is a different defect: "Repeal Corporate AMT
+#: (-\\$220B)" read a *saving* where the model, the scorecard target and JCT
+#: (JCX-18-22, +\\$222.2B for enacting CAMT) all read a \\$220B **cost**. Its
+#: ``CBO_SCORE_MAP`` sign was corrected in H1's PR and the label followed in
+#: H6's, which owns the badge map keyed on it. Nothing was struck here — the
+#: figure is real and only its sign was wrong.
 LEGACY_LABEL_ALIASES: dict[str, str] = {
     "🔍 High-Income Enforcement (-$250B)": "🔍 High-Income Enforcement",
     "💊 Comprehensive Drug Reform (-$600B)": "💊 Comprehensive Drug Reform",
     "🌱 Carbon Tax \\$25/ton (-$1.0T)": "🌱 Carbon Tax \\$25/ton",
     "🌱 Extend IRA Credits Beyond 2032 ($400B)": "🌱 Extend IRA Credits Beyond 2032",
+    "⚖️ Repeal Corporate AMT (-$220B)": "⚖️ Repeal Corporate AMT (+$220B)",
 }
 
 #: Scorable presets first, then the Build-local score-only ids.
