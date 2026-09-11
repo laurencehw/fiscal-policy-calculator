@@ -5,6 +5,161 @@ in git history, not here.
 
 ## 2026 — ongoing
 
+### Wave D and the first Wave E lanes — a baseline read off CBO's own tables, four targets withdrawn for want of a document, and two magnitudes that finally have one (2026-09-11)
+
+Ten PRs: three Wave D lanes of
+[`planning/HIGH_STAKES_ACCURACY.md`](../planning/HIGH_STAKES_ACCURACY.md) —
+**#155** PTC coverage composition (H11), **#157** expenditure offset magnitudes
+(H7), **#158** the illustrative preset group (H12); the two owner-decision lanes
+its §4 had left open — **#160** decisions ③ and ④, **#161** the SALT current-law
+baseline (decision ⑧); and the first two lanes of
+[`planning/ROUTE_TO_8_5.md`](../planning/ROUTE_TO_8_5.md) — **#162** R2, Tier 1's
+secondhand targets, and **#159** R1, the baseline transcription. Plus **#153** and
+**#154**, the CBO GitHub survey memos that made R1 possible, and **#156**, the
+roadmap itself. Records in [`planning/lanes/`](../planning/lanes/).
+
+**This is the wave that made the out-of-sample battery smaller, and every
+document here says so before it quotes the mean.** Four rows were withdrawn
+because their targets are in no publication — never because of the size of their
+error — so 26 @ 14.5% → 22 @ 11.6% is mostly a change of denominator. The
+**share** within 25% rose 84.6% → 86.4% while the **count** fell 22 → 19, and only
+one of those two is comparable across a battery that changes size.
+
+| Tier | Before (post-Wave-C) | After (merged) |
+|---|---|---|
+| Out-of-sample, pre-registered | 26 @ 14.5% / 11.5% median / 16 within 15 / 22 within 25 | **22 @ 11.6% / 8.9% / 18 / 19** |
+| … error mass | 376.1 | **255.3** |
+| … `secondhand` targets | 5 | **0** — every row is now a `line_item` |
+| Calibrated, fitted | 16 @ 1.5%, 16/16 | **15 @ 1.6%, 15/15** (`cap_charitable` reclassified) |
+| … held in place | 27 @ 11.9%, 22/27 | **26 @ 12.4% / 2.4%, 21/26** |
+| Unfitted reconstructions, scored | 39 @ 56.7% / 36.9%, 10 within 15 | **38 @ 37.5% / 30.1%, 11 within 15** |
+| … **with the retired rows held in place** | — | **40 @ 55.5% / 33.6%, 11 within 15** |
+| … retired targets | 0 | **2 @ 397.2%** at withdrawal |
+| Leave-one-out | 18 @ 35.7% / 29.1%, 6 within 15 | **18 @ 36.5% / 30.2%, 5 within 15** |
+| Published targets | 77 of 81 | **73 of 77** |
+| Tier 1 CI gate | `20 / 22` | **`15 / 19`** |
+
+**Never quote the reconstruction tier's 37.5% on its own line.** Withdrawing a
+93.3% row and a 701.0% row from a tier averaging 56.5% over 39 buys **18 points of
+"improvement" for nothing**, so `run_validation_dashboard.py` prints the same tier
+with both rows folded back at the error they carried on the day they were
+withdrawn — **55.5% over 40** — on the line beneath. Quoting the smaller figure
+requires skipping a line, which is the point of printing it that way.
+
+**#159 — the baseline is CBO's own table.** `CBOBaseline` stopped reconstructing
+each vintage's levels from eleven `GDP_RATIOS` applied to FRED's latest nominal
+GDP plus hand-entered growth rates, and now reads CBO's published tables,
+transcribed from `US-CBO/cbo-data` @ `284a9566`, pinned by commit and verified by
+SHA-256 per file. `cbo.gov` returns HTTP 403 to this environment;
+`github.com/US-CBO` does not, and publishes the same tables as CSV under a
+public-domain dedication. The February 2026 ten-year deficit went **$29,529.1B →
+$23,143.30B** against CBO's printed $23,143.3B, end-of-window debt/GDP **103.8% →
+118.0%**, and January 2025 **$27,710.6B → $21,758.3B**. `VINTAGE_SOURCING` is now
+computed **per line**, because all three vintages had been graded `sourced` and
+the grade was false for two: February 2026's ten-year Treasury note *fell* 4.5% →
+3.9% where CBO's own table *rises* 4.10% → 4.38%, and
+`real_gdp_growth + inflation` is not nominal GDP growth — the reconstruction added
+a real rate to a *PCE* index. Eleven out-of-sample rows moved, in **both**
+directions, because the defect was a growth rate rather than a level: CBO's own
+FY2023 → FY2025 nominal growth is **10.70%** where the block assumed **8.99%**.
+The two CBO Option 46 rows went **49.8% → 7.9%** and **37.4% → 2.4%**, while
+`biden_high_income_tax` went **9.2% → 21.9%** — a row that improves when the base
+is wrong is a row that was cancelling two errors. An eleventh row moved through a
+channel nobody had listed: `cbo_opt56` **13.1% → 12.8%**, through a baseline
+*assumption* rather than a level. **February 2024 keeps a reconstructed budget
+path** (CBO publishes no `ten_year_budget` file for that edition; June 2024 is
+publication 60039, a different document), so **its debt/GDP is a mixture and must
+not be quoted**. The default February 2026 vintage is publication **61882**, *The
+Budget and Economic Outlook: 2026 to 2036*, through CBO's 51118 data release; it
+reproduces that report's own headlines (FY2026 −$1,852.7B, FY2027–2036
+−$24,406.0B, FY2036 −$3,115.4B), and the app's $23,143.3B is the same table over
+the app's own FY2026–2035 window — **CBO's headline ten-year window is
+FY2027–2036**, so the two are different decades of one table. Eight generic
+presets moved **+2.97%** static and two corporate presets dynamic-only, against a
+registered prediction of zero — the first sweep had scored dicts rather than
+policies and recorded 106 identical errors, which is PR #119 §7.5 in a second
+costume: **a sweep must fail loudly on a row it could not score.**
+
+**#162 — Tier 1's last five unsourced targets.** Nineteen percent of the battery
+carried **33.4% of its error mass**, and it was the 19% whose targets nobody could
+open. `illustrative_1pp_all` was **superseded** onto CBO publication 58164's
+Option 13 alternative 1, **−$1,081.3B** over FY2023–2032 (report p. 72, "Data
+source: Staff of the Joint Committee on Taxation" — which matches the old target's
+claimed attribution), taking the row **24.5% → 14.3%** on the merged tree. Four
+were **retired with the search recorded**: the Warren ultra-millionaire surtax
+(TPC's *AGI Surtax Options* simulation is thirteen tables and every one is a **10
+percent** surtax — and the row's *name* is wrong, since Warren's Ultra-Millionaire
+Tax Act is a **wealth tax on net worth**), the Medicare surcharge, the 5pp top
+rate above $1M, and the 2pp cut above $500K. **The Medicare surcharge proves the
+rule rather than bending to it**: Treasury's FY2025 Green Book prints the proposal
+at **1.2 percentage points** and **$403,790M**, and the model's −$408.6B sits
+**1.2% from it** — but the row applies 2pp, so restated on the document's own rate
+it reads **39.3% under**, worse than the 31.8% it had been reporting. **A
+retirement that raises the honest error is the cleanest demonstration that the
+rule is about documents and not about means.** Two costs are recorded rather than
+absorbed: the withdrawn cut was the battery's only rate cut and only positive
+target, and the AGI-inclusive class is down to n=2.
+
+**#160 — owner decisions ③ and ④.** `iija_2021_discretionary.v3` scores the bill
+on **FY2022–2031**, the ten fiscal years CBO's own estimate covers; the target is
+unchanged at +$415.448B and only the shape input moves, taking the row **18.2% →
+0.28%**. Read that as **two terms nearly cancelling**: the path outlays $434.1B,
+4.5% high, while $19.8B falls outside even this window. And the two pharma
+`model_estimate` targets were **retired — the ledger's first retirements**:
+`expand_drug_negotiation`'s −$500B was this repository's own extrapolation from a
+figure that was never a negotiation score but CBO's total for a whole title, and
+`international_reference_pricing`'s −$100B was derived from a **RAND price
+index**, which is a price statistic and not a budget score. The reconstruction
+tier's `model_estimate` target count went **2 → 0**.
+
+**#161 — a SALT cap path from the statute.** `SaltCapBaseline` carries three named
+cap paths transcribed from IRC §164(b)(6)–(7) as amended by **P.L. 119-21
+sec. 70120** — $40,000 in 2025 indexed at the statute's own 101 percent, reverting
+to **$10,000 in 2030**, with a 30-percent-of-excess phasedown above $500,000 — so
+the app scores current law while each benchmark scores the baseline its own
+document was measured on. **Both validation rows are unchanged**; the shipped
+preset moved **+$1,155.6B → +$740.3B**, because the old figure repealed a cap
+current law does not impose until 2030. An independent check the repository
+already held: JCX-35-25 line 20 scores sec. 70120 at **+$946,209M**, and the new
+mechanism returns **$723.1B, −23.6%** against it.
+
+**#157 — two offset magnitudes that now have a document.** Mortgage repeal
+**0.10 → 0.14502762**, which is `1 − 61.9/72.4` from Poterba & Sinai (NBER WP
+14253); the charitable benefit-rate ceiling **0.40 → 0.22077987**, from CRS
+R40518's central price elasticity of **ε = 0.5** converted through the module's own
+identity, because a price elasticity and a share of a revenue effect are different
+quantities. The shipped 0.40 **inverts to ε = 0.906, above CRS's own published
+high of 0.79**. Both moving rows were **pre-registered regressions**:
+`cap_charitable` 0.3% → 12.5% and `eliminate_mortgage` 26.5% → 30.2%, with the
+leave-one-out suite 35.7% → 36.5%. A **fifth** mechanism for leaving the fitted
+tier turned up with it — `cap_charitable`'s 12.5 annual had been fitted so
+`static × (1 + 0.40)` lands on −$200.0B, so sourcing 0.40 leaves the constant
+fitted to a quantity the module no longer computes. Three magnitudes remain
+unsourced with their searches recorded.
+
+**#155 — the PTC offset is a composition, not a ratio.** A four-channel engine
+priced per coverage person-year from CBO/JCT publication 60437 replaces a single
+transferred **19.28%**, giving a window share of **12.32%** and taking
+`repeal_ptc` **29.6% → 23.6%**. The aggregate had been booking CBO's **+$21B of
+Medicaid and CHIP as a cost rather than a saving** — $31.39B in the wrong
+direction — and its denominator was an *extension's* marginal enrollee at
+**$5,370/yr** where a *repeal* removes the average subsidized enrollee at
+**$8,671/yr**. The correction that would have flattered the row was declared and
+declined.
+
+**#158 — five presets demoted, zero numbers moved.** The pharma and
+double-enforcement presets sit under **`Illustrative - unfitted reconstructions`**
+on Explore and Build, last in order, with each preset's live error. Nothing left
+any registry, so every link still scores, and every scored artifact is
+byte-identical. Two findings: demoting a whole group **deleted** Explore's `Drug
+Pricing` area rather than emptying it; and the values composer, which is the real
+default package, selects `irs-enforcement-double` into **all five** archetypes.
+
+**Presets that moved:** 13 of 53 — `salt-cap-repeal` **+$1,155.6B → +$740.3B**,
+`charitable-deduction-cap` **−$200.6B → −$174.9B**, `aca-ptc-repeal` **−$774.1B →
+−$840.8B**, eight generic presets **+2.97%** static, and two corporate presets in
+dynamic mode only. The other 40 score to the cent in both engine modes.
+
 ### Wave C — a band from the policy's own class, a headcount that matched the module's other death rate, and retaliation out of a conventional score (2026-09-11)
 
 Four PRs, the third wave of
