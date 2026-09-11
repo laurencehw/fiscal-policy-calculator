@@ -172,7 +172,7 @@ H9_PROVENANCE_FIRST_SCORED_COMMIT = "63e76b8d8b978de6c6be1782ea2e54ba4f6bcd0a"
 #: mean they are counted in. There is nothing for a later commit to score, so
 #: ``entered_commit`` and ``first_scoring_run_commit`` are the same commit, as
 #: ``HSB_h9_provenance.md`` §8.7's prepared edit specifies.
-RETIREMENT_DECISION_COMMIT = "ba5d47c0e91f3826ad0c7b1e5f4926d8e3a0c7f5"
+RETIREMENT_DECISION_COMMIT = "6f1c769b06edb9c5e0884ab18043dcc9420af621"
 RETIREMENT_DECISION_DATE = "2026-09-11"
 
 

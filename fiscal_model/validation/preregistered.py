@@ -235,12 +235,12 @@ FY2022_TARGET_WINDOW_RULE = (
 #: change as ``.v2`` was: the shape input moves and the published target does
 #: not. The row is added here and first scored in
 #: :data:`IIJA_WINDOW_FIRST_SCORED_COMMIT`, a *later* commit.
-IIJA_WINDOW_ENTERED_COMMIT = "e1b7ef46eb2cfc17df1a1d8d07af7b02e2c6b2a1"
+IIJA_WINDOW_ENTERED_COMMIT = "97cc6a6f41148b3c887f0660c8e67ebf6fa85063"
 IIJA_WINDOW_ENTERED_DATE = "2026-09-11"
 
 #: Commit in which the IIJA window was first scored (the commit that writes
 #: ``scoring_window_first_year=2022`` onto the ``KNOWN_SCORES`` record).
-IIJA_WINDOW_FIRST_SCORED_COMMIT = "9c0a3d5f24b8e6417a0fd3b5c8e91d26f4a7b083"
+IIJA_WINDOW_FIRST_SCORED_COMMIT = "2cde296698702e0361b13661d152a150aa922c19"
 
 #: Baselines the CBO options were built on, from PDF page 2 of publication
 #: 60557 ("Notes About This Report").
