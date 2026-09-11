@@ -30,7 +30,7 @@ streamlit run app.py
 # Run app locally (classroom mode)
 streamlit run classroom_app.py
 
-# Run unit tests (4000 tests)
+# Run unit tests (4002 tests)
 pytest tests/ -v
 
 # Run specific test file
@@ -330,7 +330,7 @@ print("Cost:", assistant.last_usage.cost_usd)
 
 ## Current Development Priorities
 
-All core features, all four horizon features, the distributional-validation cycle, and the Ask assistant feature are complete (May 2026). **4000 tests passing across the model + Ask stack** (7 skipped; `ANTHROPIC_API_KEY= python -m pytest tests/ -q`). Run the suite with the key **unset**: with `ANTHROPIC_API_KEY` exported, parts of `tests/` make live Anthropic calls, CI never sets it, and a green local run with the key present is not the run CI performs.
+All core features, all four horizon features, the distributional-validation cycle, and the Ask assistant feature are complete (May 2026). **4002 tests passing across the model + Ask stack** (7 skipped; `ANTHROPIC_API_KEY= python -m pytest tests/ -q`). Run the suite with the key **unset**: with `ANTHROPIC_API_KEY` exported, parts of `tests/` make live Anthropic calls, CI never sets it, and a green local run with the key present is not the run CI performs.
 
 Completed:
 1. ✅ 25+ CBO/JCT-validated policies, distributional analysis, dynamic scoring
