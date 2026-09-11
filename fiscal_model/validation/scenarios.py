@@ -46,6 +46,7 @@ from ..pharma import (
 )
 from ..ptc import create_extend_enhanced_ptc, create_repeal_ptc
 from ..tax_expenditures import (
+    SaltCapBaseline,
     create_cap_charitable_deduction,
     create_cap_employer_health_exclusion,
     create_eliminate_mortgage_deduction,
@@ -804,6 +805,59 @@ PTC_VALIDATION_SCENARIOS_COMPARE = {
 }
 
 
+#: Which **baseline SALT cap path** each SALT benchmark's own document was
+#: scored on — the shape input, declared here before anything reads it.
+#:
+#: Why this table exists rather than a ``target_revisions.py`` row. The Tier 1
+#: manifest has a rule for a shape input that moves while the target stands
+#: still: a new row with ``superseded_by`` and the old one kept
+#: (``iija_2021_discretionary.v2``, ``treasury_capgains_39_plus_stepup_elim.v2``).
+#: The Tier 2 ledger has no such place, and its own fifth invariant forbids
+#: borrowing one — ``target_revision_problems()`` fails a supersession that
+#: "restates the old figure", which is exactly what a baseline re-registration
+#: at an unchanged target would be. Neither of these targets moves: PWBM's
+#: +$1,169.0B and CBO's -$1,621.0B are the same figures they were.
+#:
+#: So the two-commit discipline is transposed instead of skipped. This table is
+#: entered inert — nothing reads it — and the commit after it makes it the
+#: scoring input, so "the baseline was declared before the model was allowed to
+#: score on it" stays checkable from the git history rather than asserted.
+#: ``tests/test_salt_cap_path.py`` asserts the declaration and the scenario
+#: kwarg agree, so the two cannot drift.
+#:
+#: The values are ``SaltCapBaseline`` values
+#: (``fiscal_model.tax_expenditures_core``), spelled as the strings the enum
+#: carries.
+#:
+#: See ``planning/lanes/SALT_current_law_baseline.md`` section 1.5.
+SALT_SCORING_BASELINES: dict[str, dict[str, str]] = {
+    "repeal_salt_cap": {
+        "baseline": "permanent_10k",
+        "document": (
+            "Penn Wharton Budget Model, 'Lifting the SALT Cap', Table 3, "
+            "'Conventional budget estimates: Policy Options for the SALT Cap "
+            "Against Extended TCJA FY25-34'. The table's own title states the "
+            "baseline: TCJA extended, so the $10,000 cap is permanent and a "
+            "repeal bites in all ten years. The same paper's Table 1 scores "
+            "the identical reform at -$197B against the law as it then stood, "
+            "a factor of 5.9 apart, which is what makes the baseline part of "
+            "the target rather than context for it."
+        ),
+    },
+    "eliminate_salt": {
+        "baseline": "lapsed_cap",
+        "document": (
+            "CBO, Options for Reducing the Deficit: 2025 to 2034 (pub. 60557), "
+            "Option 49, report p. 59: 'Beginning in 2026, deductions for state "
+            "and local taxes will not be limited.' The option is measured on "
+            "the February/June 2024 baseline, in which IRC 164(b)(6)'s $10,000 "
+            "cap lapses after 2025 and the deduction is uncapped for nine of "
+            "the ten years scored."
+        ),
+    },
+}
+
+
 TAX_EXPENDITURE_VALIDATION_SCENARIOS_COMPARE = {
     "cap_employer_health": {
         "description": "Cap employer health exclusion at $50K",
@@ -859,6 +913,17 @@ TAX_EXPENDITURE_VALIDATION_SCENARIOS_COMPARE = {
         # -$1,169B over FY2025-2034 against an *extended-TCJA* baseline. The
         # superseded $1,100B was PWBM's FY2024-2033 figure rounded, and the
         # rounding hid the baseline the whole magnitude depends on.
+        # The baseline is now a scoring input rather than an assumption buried
+        # in a fitted constant: `salt_baseline` is declared in
+        # SALT_SCORING_BASELINES above (inert in the commit before this one)
+        # and `tests/test_salt_cap_path.py` asserts the two agree. The target
+        # does not move and neither does the score -- -96.0/yr is the answer to
+        # *this* baseline's question, so the factory still hands it over.
+        "kwargs": {
+            "salt_baseline": SaltCapBaseline(
+                SALT_SCORING_BASELINES["repeal_salt_cap"]["baseline"]
+            )
+        },
         "expected_10yr": 1169.0,
         "source": "Penn Wharton Budget Model, Table 3 (Feb 2024)",
         "notes": (
@@ -890,6 +955,15 @@ TAX_EXPENDITURE_VALIDATION_SCENARIOS_COMPARE = {
         # "Eliminate state and local tax deductions", $1,621.0B over
         # FY2025-2034 -- the same option this module's SALT `limitation`
         # block already cites for the cap's lapse date.
+        # As on the twin above: CBO's lapsed-cap baseline is now the declared
+        # scoring input rather than a side effect of the module's `limitation`
+        # block expiring in 2025. 104.7/yr is the uncapped answer, so the
+        # factory still hands it over and the row does not move.
+        "kwargs": {
+            "salt_baseline": SaltCapBaseline(
+                SALT_SCORING_BASELINES["eliminate_salt"]["baseline"]
+            )
+        },
         "expected_10yr": -1621.0,
         "source": "CBO pub. 60557, Option 49 (report p. 59)",
         "notes": "Very controversial",
@@ -907,7 +981,46 @@ TAX_EXPENDITURE_VALIDATION_SCENARIOS_COMPARE = {
         "policy_factory": create_cap_charitable_deduction,
         "expected_10yr": -200.0,
         "source": "Obama/Biden proposal",
+        # Reclassified by lane H7 (2026-09-11) on PR #119's rule, and not
+        # retuned. ``create_cap_charitable_deduction``'s annual of 12.5 was
+        # chosen so that ``static x (1 + 0.40)`` lands on -$200.0B -- lane W7's
+        # finding 3 is the census of which of this module's six constants were
+        # fitted to a static path and which to a magnified score, and this is
+        # one of the three magnified ones. The 0.40 was unsourced; H7 replaced
+        # it with 0.220780, derived from CRS R40518's central price elasticity
+        # of giving (0.5, Appendix A report p. 27) through the module's own SOI
+        # charitable distribution. So the constant is now fitted to a quantity
+        # the module no longer computes, and the row moved 0.3% -> 12.5% with
+        # nothing retuned.
+        #
+        # That is the same shape PR #119 found on ``trump_corporate_15`` and
+        # ``repeal_ptc``: a constant that reproduced its target only through an
+        # unsourced or defective magnitude is not a calibration to that target.
+        # It rates Acceptable rather than Poor, so it is not what trips strict
+        # readiness -- the classification follows the finding, not the rating,
+        # exactly as ``repeal_ptc``'s note above says.
+        #
+        # The proof that it was not retuned is a test rather than a claim:
+        # ``tests/test_loo.py`` undoes the magnitude -- -174.9 x 1.40 / 1.220780
+        # = -200.6 -- and requires that within 1% of the target.
+        "calibrated_to_target": False,
         "notes": "Pease-style limitation",
+        "limitations": [
+            "Reclassified rather than retuned: the module's behavioural "
+            "magnitude for a charitable benefit-rate ceiling was an unsourced "
+            "0.40, and this annual had been chosen so that static x 1.40 lands "
+            "on -$200.0B. Lane H7 derived the magnitude from CRS R40518's "
+            "central price elasticity of giving (0.5) through the deduction's "
+            "own SOI distribution, giving 0.220780, and the row moved 0.3% -> "
+            "12.5%; no constant was moved to close it.",
+            "The -$200B target is itself `secondhand` and sits in "
+            "EXAMINED_NOT_REVISED: the 28% limitation it points at is a real "
+            "Green Book proposal with a real score, but that proposal limits "
+            "the value of ALL itemized deductions plus several exclusions, so "
+            "its $645,538M is not a charitable-only cap. The residual is "
+            "therefore a distance from an unsourced figure rather than a "
+            "measurement against a document.",
+        ],
     },
     "eliminate_step_up": {
         "description": "Eliminate step-up in basis",

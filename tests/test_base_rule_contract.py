@@ -441,26 +441,53 @@ def test_the_caption_is_silent_on_every_preset_that_did_not_move():
         assert agi_inclusive_base_caption(policy, result) == "", label
 
 
-def test_the_caption_does_not_claim_a_source_the_preset_does_not_have():
-    """Progressive Millionaire Tax has no published score, and must say so."""
+def test_the_caption_does_not_claim_a_source_the_preset_does_not_have(monkeypatch):
+    """A preset with no published score must say so — and after lane R2 that is
+    every AGI-inclusive preset in the catalog.
+
+    R2 retired the Warren surtax's and the Medicare surcharge's scorecard rows
+    (no publication prices a 3pp surtax on AGI above $2M, and Treasury's own
+    surcharge is 1.2pp rather than 2pp) and removed both ``CBO_SCORE_MAP``
+    entries with them, so all three declaring presets now take the "design
+    choice" branch. **The caption is more accurate for it, not less**: its
+    sentence is "no published score of *this reform* exists to read a base
+    off", which is precisely what R2 established. The base declarations
+    themselves are unchanged and still rest on documents — TPC states its
+    surtax on AGI, Treasury's surcharge reaches investment and wage income —
+    because a document that defines a base is not the same thing as a
+    published score of the reform.
+
+    The ``sourced`` branch therefore has no live preset, which is why it is
+    exercised here through the map rather than through the catalog: an
+    untested branch would rot before the next preset arrives with a score.
+    """
     from fiscal_model.composer.composer import _build_preset_policy, _scorer_for
+    from fiscal_model.ui.tabs import results_summary
     from fiscal_model.ui.tabs.results_summary import agi_inclusive_base_caption
 
-    label = "Progressive Millionaire Tax"
-    policy, use_real = _build_preset_policy(label, PRESET_POLICIES[label])
-    result = _scorer_for(policy, use_real).score_policy(policy, dynamic=False)
-    caption = agi_inclusive_base_caption(policy, result)
-    assert "design choice" in caption
-    assert "its own source uses" not in caption
+    def _caption(label: str) -> str:
+        policy, use_real = _build_preset_policy(label, PRESET_POLICIES[label])
+        result = _scorer_for(policy, use_real).score_policy(policy, dynamic=False)
+        return agi_inclusive_base_caption(policy, result)
 
-    sourced_label = "Warren Ultra-Millionaire Surtax"
-    sourced_policy, sourced_real = _build_preset_policy(
-        sourced_label, PRESET_POLICIES[sourced_label]
+    declaring = [
+        label
+        for label, entry in PRESET_POLICIES.items()
+        if isinstance(entry, dict) and entry.get("agi_inclusive_base")
+    ]
+    assert len(declaring) == 3
+    for label in declaring:
+        caption = _caption(label)
+        assert "design choice" in caption, label
+        assert "its own source uses" not in caption, label
+
+    # The other branch, driven by the only input that selects it.
+    monkeypatch.setattr(
+        results_summary,
+        "_cbo_score_map",
+        lambda: {label: {"official_score": -1.0} for label in declaring},
     )
-    sourced_result = _scorer_for(sourced_policy, sourced_real).score_policy(
-        sourced_policy, dynamic=False
-    )
-    sourced_caption = agi_inclusive_base_caption(sourced_policy, sourced_result)
+    sourced_caption = _caption("Warren Ultra-Millionaire Surtax")
     assert "its own source uses" in sourced_caption
     assert "design choice" not in sourced_caption
 

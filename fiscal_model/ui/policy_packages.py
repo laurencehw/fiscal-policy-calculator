@@ -155,7 +155,15 @@ PRESET_POLICY_PACKAGES = {
 
     # === Comprehensive Healthcare ===
     "Drug Pricing + Enforcement": {
-        "description": "Expand Medicare negotiation and boost IRS enforcement",
+        # H12: the only package containing a preset the illustrative demotion
+        # covers. Saying so here is the whole edit -- the member string is left
+        # exactly as it was, because Build resolves it.
+        "description": (
+            "Expand Medicare negotiation and boost IRS enforcement. "
+            "Contains one **illustrative** policy (Expand Drug Negotiation): "
+            "an unfitted reconstruction a long way from its published figure, "
+            "so this package's total is not a validated score."
+        ),
         "policies": [
             "💊 Expand Drug Negotiation (-$500B)",
             "🔍 IRA Enforcement Funding (-$180B)",

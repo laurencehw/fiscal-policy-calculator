@@ -60,7 +60,13 @@ def test_catalog_covers_the_whole_scored_score_map(catalog):
 
     scored = [k for k, v in CBO_SCORE_MAP.items() if v.get("official_score", 0)]
     assert len(catalog) == len(scored), "every scored policy must be checkable"
-    assert len(catalog) >= 45, "the wireframe promises '45+ scored policies'"
+    # The card copy in components/cards.py is a claim about this catalog, so
+    # the two move together. Lane R2 withdrew the Warren surtax's and the
+    # Medicare surcharge's official scores -- neither target could be traced to
+    # any publication -- taking the catalog 46 -> 44, so the blurb reads "40+"
+    # and this floor follows it. Raise both when the catalog grows; never let
+    # the copy promise a count the catalog cannot show.
+    assert len(catalog) >= 40, "the card copy promises '40+ scored policies'"
 
 
 def test_every_option_has_a_stable_id_and_an_area(catalog):

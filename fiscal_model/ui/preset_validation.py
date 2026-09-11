@@ -70,11 +70,15 @@ PRESET_ID_TO_SCORECARD_ID: dict[str, str] = {
     "cap-employer-health-exclusion": "cap_employer_health",  # fitted, 0.1%
     "salt-cap-repeal": "repeal_salt_cap",  # reconstruction, 1.1%
     "step-up-basis-eliminate": "eliminate_step_up",  # fitted, 4.7%
-    "charitable-deduction-cap": "cap_charitable",  # fitted, 0.3%
+    "charitable-deduction-cap": "cap_charitable",  # reconstruction, 12.5%
     # ── added by H6: a row existed for every one of these; no badge did ──
     "top-rate-39-6": "biden_high_income_tax",  # out-of-sample, 9.2%
-    "ultra-millionaire-surtax-3pp": "warren_ultramillionaire_surtax_3pp",  # oos, 19.0%
-    "medicare-surcharge-2pp": "medicare_surcharge_2pp",  # out-of-sample, 1.5%
+    # ultra-millionaire-surtax-3pp and medicare-surcharge-2pp sat here
+    # until lane R2 retired both scorecard rows: neither target could be
+    # traced to any published document, so both presets lost their
+    # CBO_SCORE_MAP official_score and a badge with no row would be a
+    # claim with nothing behind it. Both presets still score and still
+    # show the model's own estimate.
     "gilti-reform": "biden_gilti_reform",  # reconstruction, 38.4%
     "fdii-repeal": "fdii_repeal",  # reconstruction, 29.9%
     "pillar-two-adoption": "pillar_two_adoption",  # reconstruction, 23.5% (range)
@@ -142,23 +146,30 @@ LEGACY_CALIBRATED_PRESET_IDS: frozenset[str] = frozenset(
 #: ``tests/test_no_headline_without_row.py`` fails on any *undeclared*
 #: divergence above 1%.
 #:
-#: ``base_rule`` entries close when lane H1 lands its shared
-#: ``ordinary_income_base`` default (its pre-registered moves are exactly these
-#: two figures); delete the entry then. ``runner_shape`` entries are structural
+#: The two ``base_rule`` entries this registry used to carry
+#: (``ultra-millionaire-surtax-3pp`` and ``medicare-surcharge-2pp``) are gone,
+#: and not because lane H1 closed them: lane R2 retired both scorecard rows for
+#: want of a published target, so there is no row left for the app's headline to
+#: diverge from. A future ``base_rule`` entry should still be deleted when the
+#: shared ``ordinary_income_base`` default makes it moot. ``runner_shape`` entries are structural
 #: — the validation runners build their own policy from the ``CBOScore`` record
 #: and score it on the validation window, not the app's FY2026 one — so the test
 #: asserts they *still* diverge, and the registry cannot rot into a blanket
 #: exemption.
+#:
+#: ``baseline`` is the third kind and the sharpest, because it is the one case
+#: where the divergence is the *point* rather than a residue: the app scores
+#: **current law** and the benchmark scores **its own document's**
+#: counterfactual, and for SALT those are worth a factor of six to each other
+#: (Penn Wharton prices repealing the cap at $1,169B against a permanent
+#: $10,000 cap and at $197B against a world where it lapses, in the same
+#: paper). A benchmark that moved onto current law would stop checking its
+#: document, and an app that stayed on the document's baseline would print a
+#: number for a reform that does not exist until 2030. So both are right and
+#: the badge is the thing that cannot say it — which is why
+#: ``results_summary.salt_current_law_caption`` carries the sentence and this
+#: entry carries the measurement. Asserted to persist, like ``runner_shape``.
 HEADLINE_ROW_DIVERGENCE: dict[str, tuple[str, str]] = {
-    "ultra-millionaire-surtax-3pp": (
-        "base_rule",
-        "app -134.6 vs row -283.5 (52.5%): the preset scores on the ordinary "
-        "base, the row AGI-inclusive. H1 closes it.",
-    ),
-    "medicare-surcharge-2pp": (
-        "base_rule",
-        "app -166.5 vs row -314.6 (47.1%): same base rule. H1 closes it.",
-    ),
     "drug-negotiation-expand": (
         "runner_shape",
         "app -41.8 vs row -33.5 (24.8%): -37.6 on the validation window, so "
@@ -175,6 +186,20 @@ HEADLINE_ROW_DIVERGENCE: dict[str, tuple[str, str]] = {
     # FY2026-2035 and the runner on the validation window. It is the *window*
     # term of that 3.1% that shrank, not the runner's policy build, which is
     # untouched.
+    "salt-cap-repeal": (
+        "baseline",
+        "app +740.3 vs row +1,155.6 (35.9%): the app scores current law and "
+        "the row scores PWBM's own baseline. P.L. 119-21 sec. 70120 sets the "
+        "SALT cap at $40,400 in 2026 rising 1%/yr through 2029 and $10,000 "
+        "from 2030, while PWBM's Table 3 prices repeal against a permanent "
+        "$10,000 cap -- and the same paper prices it at $197B against a "
+        "baseline where the cap lapses, so the counterfactual is worth a "
+        "factor of six here and cannot be left implicit. The benchmark stays "
+        "on its document's baseline (validation/scenarios.SALT_SCORING_"
+        "BASELINES) because that is what a benchmark is for; the app scores "
+        "the law. `results_summary.salt_current_law_caption` says so beside "
+        "the headline. See planning/lanes/SALT_current_law_baseline.md.",
+    ),
 }
 
 #: Tolerance, in percent, for "the row scores the headline".
@@ -452,6 +477,50 @@ def get_validation_badge(preset_name: str) -> dict | None:
     }
 
 
+# ---------------------------------------------------------------------------
+# The illustrative caption (H12)
+# ---------------------------------------------------------------------------
+#: Figure-free line for a demoted preset, for a surface that must not pay for a
+#: scorecard materialisation to render one row.
+#:
+#: Measured on 2026-09-11: the first ``get_validation_badge`` call in a process
+#: costs **6.187 s** (``_scorecard_index`` runs every specialized validator over
+#: all 81 rows), and Build's checklist does not materialise the scorecard today.
+#: Printing a live figure on every illustrative checkbox would therefore have
+#: put ~6.2 s on Build's first paint — the same defect ``planning/memos/
+#: COLD_START.md`` found in the page footer and PR #135 removed. So Build names
+#: the tier and says where the figure is; Explore, which already calls
+#: ``get_validation_badge`` for its badge caption, prints the figure itself.
+ILLUSTRATIVE_ROW_NOTE_NO_FIGURE = (
+    "↳ Illustrative — an unfitted reconstruction, not a validated score. "
+    "Its distance from the published figure is on Explore and in the "
+    "validation scorecard."
+)
+
+
+def illustrative_note(preset: str) -> str:
+    """One line for a demoted preset, naming the tier its row sits in.
+
+    Deliberately **figure-free**, and it never materialises the scorecard —
+    including the "has this preset a row at all" test, which asks
+    :data:`PRESET_ID_TO_SCORECARD_ID` rather than calling
+    :func:`get_validation_badge`. See
+    :data:`ILLUSTRATIVE_ROW_NOTE_NO_FIGURE` for the measurement behind that.
+
+    A preset with no scorecard row of any tier gets a line saying so, because a
+    silent absence reads like agreement. That is the branch Explore takes: it
+    prints this line exactly where a badge caption would have gone, so the
+    figure comes from the badge wherever there is one and from here where there
+    is not.
+    """
+    preset_id = preset_id_for_token(preset) or preset
+    if preset_id not in PRESET_ID_TO_SCORECARD_ID:
+        from fiscal_model.app_data import ILLUSTRATIVE_NO_ROW_NOTE
+
+        return f"↳ Illustrative — {ILLUSTRATIVE_NO_ROW_NOTE}"
+    return ILLUSTRATIVE_ROW_NOTE_NO_FIGURE
+
+
 def presets_without_a_row() -> tuple[str, ...]:
     """Catalog preset ids with no scorecard row of any tier.
 
@@ -469,6 +538,7 @@ __all__ = [
     "BADGE_SCORECARD_ID_BY_LABEL",
     "HEADLINE_ROW_DIVERGENCE",
     "HEADLINE_ROW_TOLERANCE_PCT",
+    "ILLUSTRATIVE_ROW_NOTE_NO_FIGURE",
     "LEGACY_CALIBRATED_PRESET_IDS",
     "PRESET_ID_TO_SCORECARD_ID",
     "PRESET_TO_SCORECARD_ID",
@@ -480,6 +550,7 @@ __all__ = [
     "TIER_RECONSTRUCTION",
     "badge_tier",
     "get_validation_badge",
+    "illustrative_note",
     "is_calibrated_reference",
     "presets_without_a_row",
     "reset_scorecard_cache",

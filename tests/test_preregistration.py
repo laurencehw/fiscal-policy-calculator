@@ -15,6 +15,7 @@ import pytest
 
 from fiscal_model.validation.cbo_scores import KNOWN_SCORES
 from fiscal_model.validation.preregistered import (
+    IIJA_AUTHORIZATION_PATH_RULE,
     PHASE_A_COMMIT,
     PREREGISTERED_CASES,
     assert_preregistered,
@@ -125,7 +126,7 @@ def test_retired_row_without_a_reason_is_rejected(monkeypatch):
 
     tampered = tuple(
         replace(case, retired=True, retired_reason="")
-        if case.policy_id == "medicare_surcharge_2pp"
+        if case.policy_id == "biden_high_income_tax" and case.is_live
         else case
         for case in PREREGISTERED_CASES
     )
@@ -146,13 +147,51 @@ def test_iija_shape_change_is_a_new_row_with_the_same_target():
     v2 = rows["iija_2021_discretionary.v2"]
 
     assert v1.superseded_by == "iija_2021_discretionary.v2"
-    assert not v1.is_live and v2.is_live
+    # v2 is itself superseded now (owner decision (3) registered .v3), so
+    # neither is live. What this test pins is the supersession chain and the
+    # target's immobility across it, not which row is in force — and a
+    # superseded row must stay in the file unedited, which is what makes the
+    # chain readable.
+    assert not v1.is_live and not v2.is_live
     assert v1.official_10yr_billions == v2.official_10yr_billions
     assert v1.source_url == v2.source_url
     assert v1.source_date == v2.source_date
     # The entry commit must precede the first scoring run: the shape input is
     # frozen in the history before the mechanism is allowed to read it.
     assert v2.entered_commit != v2.first_scoring_run_commit
+
+
+def test_iija_window_change_is_a_third_row_with_the_same_target():
+    """Owner decision (3): the window is the third shape input this case has
+    carried, and the target has not moved once across all three.
+
+    The interesting assertion is the last one. ``effective_start_year`` was
+    already 2022, so the *policy* does not move at all — only the scorer's
+    window does, which is what separates a window from a vintage and from an
+    effective date.
+    """
+    rows = {c.case_id: c for c in PREREGISTERED_CASES}
+    v2 = rows["iija_2021_discretionary.v2"]
+    v3 = rows["iija_2021_discretionary.v3"]
+
+    assert v2.superseded_by == "iija_2021_discretionary.v3"
+    assert not v2.is_live and v3.is_live
+    assert (
+        rows["iija_2021_discretionary.v1"].official_10yr_billions
+        == v2.official_10yr_billions
+        == v3.official_10yr_billions
+        == 415.448
+    )
+    assert v2.source_url == v3.source_url
+    assert v2.source_date == v3.source_date
+    # The entry commit must precede the first scoring run.
+    assert v3.entered_commit != v3.first_scoring_run_commit
+    # Both rules apply to the live row: the authority path is still CBO's own.
+    assert IIJA_AUTHORIZATION_PATH_RULE in v3.note
+
+    score = KNOWN_SCORES["iija_2021_discretionary"]
+    assert score.scoring_window_first_year == 2022
+    assert score.effective_start_year == 2022
 
 
 def test_fy2022_window_change_is_a_new_row_with_the_same_target():
@@ -185,8 +224,23 @@ def test_the_fy2022_window_rule_is_recorded_not_left_per_case():
     assert "budget_window" in FY2022_TARGET_WINDOW_RULE
     assert "effective_start_year" in FY2022_TARGET_WINDOW_RULE
     rows = {c.case_id: c for c in PREREGISTERED_CASES}
-    v2 = rows["treasury_capgains_39_plus_stepup_elim.v2"]
-    assert FY2022_TARGET_WINDOW_RULE in v2.note
+    # Every live row that carries a window quotes the rule that set it, so the
+    # rule cannot be a preamble one row honours and the next does not.
+    windowed = {
+        policy_id
+        for policy_id, score in KNOWN_SCORES.items()
+        if score.scoring_window_first_year is not None
+    }
+    live = {case.policy_id: case for case in PREREGISTERED_CASES if case.is_live}
+    assert windowed <= set(live)
+    for policy_id in windowed:
+        assert FY2022_TARGET_WINDOW_RULE in live[policy_id].note, (
+            f"{live[policy_id].case_id} carries a window without quoting the "
+            f"rule that sets it"
+        )
+    assert FY2022_TARGET_WINDOW_RULE in rows[
+        "treasury_capgains_39_plus_stepup_elim.v2"
+    ].note
 
 
 def test_the_window_a_case_is_scored_on_is_the_one_its_source_published():
@@ -198,16 +252,33 @@ def test_the_window_a_case_is_scored_on_is_the_one_its_source_published():
     assert score.scoring_window_first_year == 2022
 
 
-def test_only_the_fy2022_row_names_its_own_window():
+def test_only_rows_the_manifest_superseded_name_their_own_window():
     """Every other record keeps the runner's window, so the field cannot be a
-    general lever on the tier: exactly one case carries one, and it is the one
-    the manifest superseded to get it."""
+    general lever on the tier.
+
+    Two cases carry one, and each got it through a manifest supersession whose
+    target did not move: ``treasury_capgains_39_plus_stepup_elim.v2`` (PR #126)
+    and ``iija_2021_discretionary.v3`` (owner decision (3)). The stronger
+    assertion is the second one — a window is not a number a lane may pick, it
+    is the first year of the window the record's own ``budget_window`` states,
+    which is :data:`FY2022_TARGET_WINDOW_RULE` written as a test.
+    """
     named = {
         policy_id
         for policy_id, score in KNOWN_SCORES.items()
         if score.scoring_window_first_year is not None
     }
-    assert named == {"treasury_capgains_39_plus_stepup_elim"}
+    assert named == {
+        "treasury_capgains_39_plus_stepup_elim",
+        "iija_2021_discretionary",
+    }
+    for policy_id in named:
+        score = KNOWN_SCORES[policy_id]
+        stated = int(str(score.budget_window).split("-")[0].removeprefix("FY"))
+        assert score.scoring_window_first_year == stated, (
+            f"{policy_id}: window {score.scoring_window_first_year} is not the "
+            f"first year of its own budget_window {score.budget_window}"
+        )
 
 
 def test_a_named_window_is_the_decade_the_case_is_actually_scored_on():
@@ -320,7 +391,7 @@ def test_edited_manifest_target_is_rejected(monkeypatch):
 
     tampered = tuple(
         replace(case, official_10yr_billions=case.official_10yr_billions * 1.1)
-        if case.policy_id == "medicare_surcharge_2pp"
+        if case.policy_id == "biden_high_income_tax" and case.is_live
         else case
         for case in PREREGISTERED_CASES
     )
@@ -334,9 +405,11 @@ def test_duplicate_live_rows_are_rejected(monkeypatch):
     import fiscal_model.validation.preregistered as prereg
 
     original = next(
-        c for c in PREREGISTERED_CASES if c.policy_id == "medicare_surcharge_2pp"
+        c
+        for c in PREREGISTERED_CASES
+        if c.policy_id == "biden_high_income_tax" and c.is_live
     )
-    duplicate = replace(original, case_id="medicare_surcharge_2pp.v2")
+    duplicate = replace(original, case_id="biden_high_income_tax.v3")
     monkeypatch.setattr(
         prereg, "PREREGISTERED_CASES", (*PREREGISTERED_CASES, duplicate)
     )

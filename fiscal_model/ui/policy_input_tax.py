@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from fiscal_model.app_data import ILLUSTRATIVE_GROUP_NOTE, is_illustrative
 from fiscal_model.policies import (
     DEFAULT_INCOME_MEASURE,
     DEFAULT_ORDINARY_INCOME_BASE,
@@ -16,6 +17,7 @@ from fiscal_model.preset_ids import resolve_preset
 
 from .policy_input_presets import (
     _CATEGORY_ORDER,
+    ILLUSTRATIVE_CATEGORY,
     _extract_cbo_score,
     _preset_category,
     _short_display_name,
@@ -143,6 +145,12 @@ def render_tax_policy_inputs(
             help="Filter proposals by policy area.",
         )
 
+        # The demoted group announces itself *above* the proposal picker, so a
+        # reader knows what kind of number they are about to see before they
+        # pick one (H12).
+        if selected_cat == ILLUSTRATIVE_CATEGORY:
+            st_module.warning(ILLUSTRATIVE_GROUP_NOTE)
+
         cat_presets = categorized.get(selected_cat, [])
         short_names = {_short_display_name(name): name for name in cat_presets}
         default_short = (
@@ -190,6 +198,13 @@ def render_tax_policy_inputs(
             st_module.caption(
                 f"{badge['icon']} {escape_markdown_dollars(badge['caption'])}"
             )
+        elif is_illustrative(preset_data):
+            # One flagged preset — Comprehensive Drug Reform — has no scorecard
+            # row of any tier, so there is no distance to print. Saying that
+            # out loud is the point: a silent absence reads like agreement.
+            from fiscal_model.ui.preset_validation import illustrative_note
+
+            st_module.caption(f"⚪ {illustrative_note(preset_choice)}")
 
         from fiscal_model.policy_status import get_policy_status
 

@@ -80,7 +80,12 @@ def test_the_legacy_map_keeps_the_members_two_other_modules_read():
     the new coverage lives in the id map instead. Pinned so that a later widening
     is a deliberate act with those two call sites moved in the same commit."""
     assert len(PRESET_TO_SCORECARD_ID) == 24
-    assert len(PRESET_ID_TO_SCORECARD_ID) == 44
+    # 44 until lane R2 retired the Warren surtax's and the Medicare
+    # surcharge's Tier 1 rows and removed their CBO_SCORE_MAP official scores
+    # with them. The legacy map is untouched at 24, which is the invariant this
+    # test is really guarding: the id map may shrink or grow, the membership
+    # two other modules read as "calibrated reference" may not drift with it.
+    assert len(PRESET_ID_TO_SCORECARD_ID) == 42
     assert LEGACY_CALIBRATED_PRESET_IDS <= set(PRESET_ID_TO_SCORECARD_ID)
 
 
@@ -130,8 +135,15 @@ def test_a_reconstruction_badge_says_it_is_unfitted_and_prints_its_error():
 def test_a_tier_1_row_is_reported_as_out_of_sample_not_as_fitted():
     """A ``Generic`` row carries ``calibrated_to_target=True`` by default, so a
     tier resolved off the flag alone would report the repository's only
-    out-of-sample predictions as fitted ones."""
-    badge = get_validation_badge("medicare-surcharge-2pp")
+    out-of-sample predictions as fitted ones.
+
+    ``medicare-surcharge-2pp`` was this test's subject until lane R2 retired
+    its row: Treasury's FY2025 Green Book prices a **1.2pp** surcharge at
+    $403,790M and -$310.0B appears in no volume. The subject is now the single
+    badged Tier 1 preset that survives, whose target is a printed Green Book
+    row ($245,924M, report p. 242).
+    """
+    badge = get_validation_badge("top-rate-39-6")
     assert badge is not None
     assert badge["category"] == "Generic"
     assert badge["calibrated_to_target"] is True

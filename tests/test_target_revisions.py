@@ -33,6 +33,7 @@ from fiscal_model.validation.scorecard import (
 from fiscal_model.validation.target_revisions import (
     CALIBRATED_TARGETS,
     EXAMINED_NOT_REVISED,
+    RETIRED_POLICY_IDS,
     REVISED_POLICY_IDS,
     assert_target_revisions,
     live_target_for,
@@ -320,8 +321,17 @@ def test_the_ledger_holds_exactly_the_revisions_these_passes_made():
     """Pin the ledger's contents. A twenty-third revision appearing without a
     test change means a target moved without anyone deciding to move it."""
     assert sorted(REVISED_POLICY_IDS) == sorted(_LEDGER)
-    # Two rows per revision: a superseded one and its live replacement.
-    assert len(CALIBRATED_TARGETS) == 2 * len(_LEDGER) == 44
+    # Two rows per revision: a superseded one and its live replacement, plus
+    # one standalone row per **retirement** — a withdrawal has no replacement
+    # and no predecessor, which is what distinguishes it from a supersession.
+    # Owner decision (4) added the first two; see tests/test_target_retirement.
+    assert len(REVISED_POLICY_IDS) == len(_LEDGER) == 22
+    assert len(RETIRED_POLICY_IDS) == 2
+    assert (
+        len(CALIBRATED_TARGETS)
+        == 2 * len(_LEDGER) + len(RETIRED_POLICY_IDS)
+        == 46
+    )
 
     for policy_id, (superseded, live_point) in sorted(_LEDGER.items()):
         live = live_target_for(policy_id)

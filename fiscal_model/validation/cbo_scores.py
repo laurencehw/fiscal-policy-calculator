@@ -486,15 +486,31 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         name="1pp Rate Increase (All Brackets)",
         description="Illustrative: 1 percentage point income tax increase "
                    "across all brackets.",
-        ten_year_cost=-960.0,  # ~$96B/year × 10 = ~$960B
+        # Lane R2: -$1,081.3B, CBO pub. 58164 Option 13 alternative 1. The
+        # -$960B this replaces was a rule of thumb ("1pp ≈ $85-100B/year") in
+        # no JCT document. See illustrative_1pp_all.v2 in preregistered.py.
+        ten_year_cost=-1_081.3,
         source=ScoreSource.JCT,
-        source_date="2023-01",
+        source_date="2022-12",
+        source_url="https://www.cbo.gov/publication/58164",
         rate_change=0.01,
         income_threshold=0,
         policy_type="income_tax",
-        first_year_cost=-85.0,
-        baseline_year=2023,
-        notes="Rule of thumb: 1pp ≈ $85-100B/year. JCT tax expenditure estimates."
+        first_year_cost=-72.4,
+        baseline_year=2022,
+        budget_window="FY2023-2032",
+        notes=(
+            "CBO, Options for Reducing the Deficit: 2023 to 2032, Volume I: "
+            "Larger Reductions (December 2022, publication 58164), Option 13 - "
+            "Revenues, 'Increase Individual Income Tax Rates', first "
+            "alternative: 'Raise all tax rates on ordinary income by "
+            "1 percentage point', -$1,081.3B over FY2023-2032 (report p. 72; "
+            "PDF p. 76). 'Data source: Staff of the Joint Committee on "
+            "Taxation', which is why the source stays JCT. Ordinary-income "
+            "base, in CBO's own words for the alternative: 'in 2023, the top "
+            "rate of 37 percent would increase to 38 percent, and in 2026, "
+            "the top rate of 39.6 percent would increase to 40.6 percent'."
+        ),
     ),
 
     "illustrative_top_rate_5pp": CBOScore(
@@ -511,13 +527,35 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         first_year_cost=-70.0,
         baseline_year=2023,
         notes=(
-            "Illustrative estimate. Very high earners have most income above threshold. "
-            "AGI-inclusive base: TPC scores this on taxable income that includes the "
-            "preferential (LTCG/QDIV) portion, so the Generic scorer must NOT apply the "
-            "ordinary-income-base correction. Diagnostic: the uniform ordinary-base "
-            "correction worsens this case 7%->30% (the AGI-inclusive tell)."
+            "RETIRED in lane R2. -$700B for a +5pp top rate above $1,000,000 is "
+            "in no publication. Phase E enumerated TPC's whole sitemap and R2 "
+            "added the individual-rate option of all four CBO Options volumes "
+            "(2018 pub. 54667 Option 1, 2020 pub. 56783 Option 1, 2022 "
+            "pub. 58164 Option 13, 2024 pub. 60557 Option 45): every "
+            "alternative in all four is a uniform change at a bracket boundary "
+            "or an AGI surtax at the standard deduction, the fourth-bracket "
+            "floor, $20,000/$40,000 or $100,000/$200,000. No scorekeeper "
+            "prices a rate change at a $1,000,000 threshold. The record called "
+            "itself 'Illustrative estimate', which is this repository "
+            "describing its own synthetic figure, and docs/VALIDATION.md has "
+            "carried it as an open owner decision since Phase E. Withdrawn "
+            "rather than corrected: the nearest published quantities are "
+            "PWBM's new 39.6% bracket above $1M at $222.4B (FY2026-2035) and "
+            "TPC T19-0037 Option 3's 10pp AGI surtax above $2M married / $1M "
+            "other at $633.897B, and neither is this reform. The record is "
+            "kept so the withdrawal is visible and a future line item can "
+            "revive it; see preregistered.py for the full search. "
+            "AGI-inclusive base: the record's own note said TPC scores this on "
+            "taxable income including the preferential (LTCG/QDIV) portion, "
+            "and PR #146 left it on the taxable column for that reason."
         ),
         agi_inclusive_base=True,
+        runnable=False,
+        not_runnable_reason=(
+            "RETIRED (lane R2): the -$700B target is traceable to no published "
+            "document; withdrawn from Tier 1 rather than scored against a "
+            "number nobody published."
+        ),
     ),
 
     "illustrative_500k_2pp": CBOScore(
@@ -534,13 +572,28 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         first_year_cost=40.0,
         baseline_year=2023,
         notes=(
-            "Illustrative estimate. Uses marginal income above threshold. "
-            "AGI-inclusive base: TPC scores this on taxable income that includes the "
-            "preferential (LTCG/QDIV) portion, so the Generic scorer must NOT apply the "
-            "ordinary-income-base correction. Diagnostic: the uniform ordinary-base "
-            "correction worsens this case 9%->30% (the AGI-inclusive tell)."
+            "RETIRED in lane R2. +$400B for a 2pp rate CUT above $500,000 is in "
+            "no publication, and three quarters of the search space cannot "
+            "contain it by construction: CBO's Options volumes are "
+            "deficit-REDUCTION menus and carry no rate cut at all, in any of "
+            "the four editions. JCT scores cuts only as estimates of enacted "
+            "or introduced bills, none of which is a 2pp cut at a $500,000 "
+            "floor, and Phase E's full TPC sitemap enumeration found nothing. "
+            "The record called itself 'Illustrative estimate'. This was the "
+            "battery's only rate cut and its only positive target, so Tier 1 "
+            "now tests increases only - a real cost of the retirement, "
+            "recorded rather than glossed, with the replacement named in "
+            "preregistered.py (R3's leg_rev_* series). AGI-inclusive base on "
+            "the taxable column, which PR #146 left in place because the "
+            "record says taxable income in as many words."
         ),
         agi_inclusive_base=True,
+        runnable=False,
+        not_runnable_reason=(
+            "RETIRED (lane R2): the +$400B target is traceable to no published "
+            "document, and no scorekeeper publishes a ten-year estimate of a "
+            "rate cut at a $500,000 threshold."
+        ),
     ),
 
     # -------------------------------------------------------------------------
@@ -573,14 +626,32 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         baseline_year=2020,
         budget_window="FY2021-2030",
         notes=(
-            "Promoted from CBO_SCORE_MAP ('3pp surtax on AGI >$2M; TPC-range estimate'). "
-            "AGI-inclusive base: the surtax applies to AGI, which contains the "
-            "preferential LTCG/QDIV portion, so the ordinary-income-base correction "
-            "must NOT be applied. Secondhand provenance: the preset carries a "
-            "TPC-range figure and a bare taxpolicycenter.org URL, not a line item "
-            "(Phase E)."
+            "RETIRED in lane R2. TPC's *AGI Surtax Options* simulation is "
+            "thirteen tables (T19-0037 through T19-0050), every one of them a "
+            "10 percent surtax, with exactly one revenue table among them: "
+            "T19-0037 (23 September 2019) prices 10pp on AGI above $2,000,000 "
+            "unindexed at $585.325B over FY2019-2029, $2.5M at $500.635B, and "
+            "$2M married / $1M other at $633.897B. There is no 3pp row, and no "
+            "CBO Options volume prices a surtax at a $2M threshold in any of "
+            "its four editions. Scaling to 3pp would be constructing a target "
+            "rather than reading one, and CBO warns the effects of large "
+            "surtaxes 'might not be proportional to the estimates shown here'. "
+            "The row's NAME is also wrong: Warren's Ultra-Millionaire Tax Act "
+            "is a wealth tax on net worth (2% above $50M, 3% above $1B), so "
+            "the 3pp is a wealth rate on an income base and this shape matches "
+            "no proposal anybody scored. T19-0037 Option 1 is the same base at "
+            "the same threshold on a different rate, so a 10pp case against "
+            "$585.325B is registrable - an owner decision, because it moves a "
+            "model output. AGI-inclusive base confirmed correct by TPC's own "
+            "definition; it is the magnitude that was unsupported."
         ),
         agi_inclusive_base=True,
+        runnable=False,
+        not_runnable_reason=(
+            "RETIRED (lane R2): the -$350B target is traceable to no published "
+            "document - TPC's only AGI-surtax revenue table prices 10pp, not "
+            "3pp - and the reform itself matches no scored proposal."
+        ),
     ),
 
     "top_rate_45": CBOScore(
@@ -634,11 +705,36 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         baseline_year=2024,
         budget_window="FY2025-2034",
         notes=(
-            "Promoted from CBO_SCORE_MAP ('+2pp Medicare surcharge on investment + wage "
-            "income >$400K'). AGI-inclusive base: investment income is explicitly in the "
-            "surcharge base, so the ordinary-income-base correction must NOT be applied."
+            "RETIRED in lane R2, and this is the row that proves the rule "
+            "rather than the easy case for it. Treasury's FY2025 Green Book "
+            "carries the proposal this record names and it is a 1.2 PERCENTAGE "
+            "POINT increase, not 2pp: 'The proposal would increase the "
+            "additional Medicare tax rate by 1.2 percentage points for "
+            "taxpayers with more than $400,000 of earnings' and the same 1.2pp "
+            "on the NIIT, both to 5 percent (report pp. 76-77; PDF pp. 84-85). "
+            "Its revenue row prints $403,790M over FY2025-2034 (report p. 242; "
+            "PDF p. 250); the FY2024 volume prints $344,371M for the identical "
+            "proposal; the FY2023 volume has no such proposal. -$310.0B is "
+            "none of them. The only '310,0xx' in the FY2025 volume is the "
+            "child-credit expansion at -$310,024M, which is a cost and the "
+            "opposite sign. The model's 2pp score sits 1.2% from Treasury's "
+            "1.2pp figure, so adopting it would have turned this row into one "
+            "of the tier's best by pairing 1.67x the rate with too little "
+            "base - two errors cancelling. Restated on the document's own "
+            "rate the model reads -$245.2B against -$403.8B, 39.3% UNDER, "
+            "which is what this row's accuracy is. A .v2 at -$403.8B with "
+            "rate_change=0.012 is the right row and is the owner's to "
+            "register, because it moves a model output. Base note kept: the "
+            "statutory base is wages plus net investment income, which is "
+            "neither SOI column (PR #146)."
         ),
         agi_inclusive_base=True,
+        runnable=False,
+        not_runnable_reason=(
+            "RETIRED (lane R2): -$310B appears in no Green Book row for this "
+            "proposal across three volumes, and Treasury's own figure scores a "
+            "1.2pp change where this record is 2pp."
+        ),
     ),
 
     # -------------------------------------------------------------------------
@@ -1426,6 +1522,16 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         baseline_year=2021,
         budget_window="FY2022-2031",
         effective_start_year=2022,
+        # Scored on the ten fiscal years CBO's own estimate covers, which
+        # ``budget_window`` above has stated since this record was entered.
+        # ``iija_2021_discretionary.v3`` in ``preregistered.py``, under
+        # ``FY2022_TARGET_WINDOW_RULE``: the target does not move, only the
+        # decade it is compared on. ``effective_start_year`` already equalled
+        # the window's first year, so the policy's own start does not move
+        # either - the whole change is where the scorer's window opens, and
+        # therefore whether the $92.6B this path outlays in FY2022-2024 is
+        # inside it.
+        scoring_window_first_year=2022,
         annual_amount_billions=162.996,
         # The source's own authorization schedule, FY2022-2031. Five figures
         # are stated in CBO's table ($163.0B, $70.1B, $68.5B, $68.1B, $66.2B);
@@ -1449,7 +1555,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
               "registered as 'iija_2021_discretionary.v2'. The level shape that "
               "read only the first year is 'iija_2021_discretionary.v1', "
               "superseded because the source states a schedule and SpendingPolicy "
-              "can now express one.",
+              "can now express one. Scored on FY2022-2031, the decade this "
+              "estimate's own total covers, as 'iija_2021_discretionary.v3'; "
+              "v2 scored the same schedule on the runner's FY2025-2034 decade "
+              "and left $92.6B of its outlays outside the window.",
     ),
 }
 

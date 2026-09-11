@@ -82,6 +82,15 @@ PRESET_AREA_TO_SCORECARD_CATEGORY: dict[str, str] = {
     "Drug Pricing": "Generic",
     "Trade / Tariffs": "Generic",
     "Climate / Energy": "Generic",
+    # H12's demoted group (`app_data.ILLUSTRATIVE_GROUP_LABEL`, spelled out
+    # here rather than imported so a validation module keeps no dependency on
+    # the app's preset data; `tests/test_illustrative_group.py` pins the two
+    # equal). "Generic" is what all five members already resolved to through
+    # `Drug Pricing` and `IRS Enforcement`, so the limitations list and the
+    # holdout label they show are unchanged — the entry is here because
+    # `test_mapping_dicts_cover_every_preset_area` requires a new area to be a
+    # decision rather than a silent fallback, which is the right requirement.
+    "Illustrative - unfitted reconstructions": "Generic",
 }
 
 

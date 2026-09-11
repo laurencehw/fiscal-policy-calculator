@@ -309,9 +309,18 @@ CBO_SCORE_MAP = {
         "official_score": 1169.0,
         "source": "Penn Wharton Budget Model",
         "source_date": "2024-02",
+        # The app now scores this against CURRENT LAW (P.L. 119-21 sec. 70120:
+        # \\$40,400 in 2026 rising 1%/yr through 2029, phased down above
+        # \\$500,000 of MAGI, \\$10,000 from 2030), where PWBM's figure prices
+        # the same repeal against a permanent \\$10,000 cap. The target has not
+        # moved -- this is a baseline difference, and the score below it is
+        # about a third smaller for that reason rather than a model error.
+        # See planning/lanes/SALT_current_law_baseline.md.
         "notes": (
-            "Remove \\$10K cap on state/local tax deduction; scored against a "
-            "permanent-cap (extended TCJA) baseline"
+            "Remove the cap on the state/local tax deduction. The \\$1.17T is "
+            "scored against a permanent-\\$10K-cap (extended TCJA) baseline; "
+            "the app scores current law, where P.L. 119-21 already raised the "
+            "cap to \\$40,400 through 2029"
         ),
     },
     "📋 Eliminate SALT Deduction (-$1.62T)": {
@@ -323,7 +332,21 @@ CBO_SCORE_MAP = {
         "official_score": -1621.0,
         "source": "CBO (pub. 60557, Option 49)",
         "source_date": "2024-12",
-        "notes": "Repeal state/local tax deduction entirely",
+        # A SCORE-ONLY entry: there is no PRESET_POLICIES row, so Build quotes
+        # this figure as a list price and the engine never runs it. What the
+        # note has to carry, therefore, is the baseline -- CBO measures Option
+        # 49 on a February 2024 baseline where IRC 164(b)(6)'s cap lapsed
+        # after 2025, and P.L. 119-21 sec. 70120 has since replaced that world
+        # with a \\$40,400 cap through 2029 reverting to \\$10,000. On current
+        # law the module scores the same repeal at about +\\$338B over
+        # FY2026-2035, roughly a fifth of the quoted figure, because most of
+        # the deduction CBO's baseline allows is already denied.
+        "notes": (
+            "Repeal state/local tax deduction entirely. CBO's \\$1.62T is "
+            "measured on a baseline where the \\$10K cap lapsed after 2025; "
+            "under current law (P.L. 119-21) the deduction is capped "
+            "throughout, so a repeal is worth far less"
+        ),
     },
     "📋 Cap Charitable Deduction (-$200B)": {
         "official_score": -200.0,
@@ -347,13 +370,20 @@ CBO_SCORE_MAP = {
         "source_url": "https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf",
         "notes": "Restore 39.6% top rate for income above \\$400K",
     },
-    "Warren Ultra-Millionaire Surtax": {
-        "official_score": -350.0,
-        "source": "TPC",
-        "source_date": "2020",
-        "source_url": "https://www.taxpolicycenter.org/",
-        "notes": "3pp surtax on AGI >\\$2M; TPC-range estimate",
-    },
+    # "Warren Ultra-Millionaire Surtax" used to sit here with an
+    # "official_score" of -$350B attributed to TPC. Lane R2 read TPC's *AGI
+    # Surtax Options* simulation in full: thirteen tables, every one of them a
+    # 10 percent surtax, and one revenue table (T19-0037, 23 September 2019)
+    # whose three options price 10pp above $2M at $585.325B, above $2.5M at
+    # $500.635B, and above $2M married / $1M other at $633.897B. There is no
+    # 3pp figure at TPC or anywhere, and Warren's own Ultra-Millionaire Tax Act
+    # is a *wealth* tax on net worth rather than an income surtax, so this
+    # preset's shape matches no proposal anybody scored. An official score
+    # nobody published should not be quoted in the app, so the entry was
+    # removed; the preset is unchanged and still scoreable, it simply shows the
+    # model's own estimate with no official comparison. See
+    # fiscal_model/validation/preregistered.py
+    # (warren_ultramillionaire_surtax_3pp.v1, retired).
     # "Top Rate to 45%" used to sit here with an "official_score" of -$420B
     # attributed to TPC. The Phase E provenance pass enumerated TPC's entire
     # sitemap and found no table for a 45% ordinary rate at any date, and no
@@ -362,13 +392,21 @@ CBO_SCORE_MAP = {
     # removed; the preset itself is unchanged and still scoreable, it simply
     # shows the model's own estimate with no official comparison. See
     # fiscal_model/validation/preregistered.py (top_rate_45.v1, retired).
-    "High-Earner Medicare Surcharge 2pp": {
-        "official_score": -310.0,
-        "source": "Treasury",
-        "source_date": "2024",
-        "source_url": "https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf",
-        "notes": "+2pp Medicare surcharge on investment + wage income >\\$400K",
-    },
+    # "High-Earner Medicare Surcharge 2pp" used to sit here with an
+    # "official_score" of -$310B attributed to Treasury's FY2025 Green Book.
+    # Lane R2 read three Green Books: the proposal that volume actually carries
+    # is a **1.2 percentage point** increase in each of the additional Medicare
+    # tax and the NIIT above $400,000 (report pp. 76-77), and its revenue row
+    # prints $403,790M over FY2025-2034 (report p. 242); the FY2024 volume
+    # prints $344,371M for the same proposal and the FY2023 volume has no such
+    # proposal. -$310B is none of them - the only "310,0xx" in the FY2025
+    # volume is the child-credit expansion, at -$310,024M, which is a cost.
+    # Quoting Treasury's own $403.8B here instead would put a 1.2pp figure
+    # beside a 2pp preset, so the entry was removed rather than replaced; the
+    # preset is unchanged and still scoreable, it simply shows the model's own
+    # estimate with no official comparison. See
+    # fiscal_model/validation/preregistered.py (medicare_surcharge_2pp.v1,
+    # retired) for the restatement on Treasury's own rate.
     # International Tax
     "🌍 Biden GILTI Reform (-$374B)": {
         # Wave 4 target revision (biden_gilti_reform.v2): Treasury FY2025 Green
@@ -560,6 +598,74 @@ CBO_SCORE_MAP = {
         "notes": "Repeal \\$7,500 EV tax credit",
     },
 }
+
+
+# =============================================================================
+# HEADLINE SURFACE - which presets a headline surface may quote as a score
+# =============================================================================
+# H12 (planning/lanes/HSD_h12_illustrative_group.md), owner decision 9.
+#
+# A preset carrying ``headline_surface = "illustrative"`` still scores, still
+# resolves from a share link, and still keeps every scorecard row it has --
+# nothing is removed to make a number look better. What the flag changes is
+# where a *surface* puts it: Explore and Build render the flagged presets in
+# their own, last, explicitly labelled group, with each one's distance from its
+# published figure printed beside it.
+#
+# Why these five. Measured on 2026-09-11 from the live scorecard: drug
+# negotiation 93.3% from its target, international reference pricing 701.0%,
+# the universal insulin cap 39.0%, double IRS enforcement 82.3%, and
+# comprehensive drug reform has **no published benchmark at all**. That last
+# one is why this is declared data rather than derived from the badge: a
+# derivation keyed on "the badge is bad" would have silently exempted the one
+# preset in the group with nothing behind its number.
+#
+# The flag carries no figure. Every error a surface prints is read from
+# ``ui/preset_validation.get_validation_badge`` at render time, so a target
+# revision or retirement underneath this flag changes what users see instead of
+# leaving a stale constant behind.
+HEADLINE_SURFACE_ILLUSTRATIVE = "illustrative"
+
+#: Group name for the flagged presets. It names the tier, because the group's
+#: whole job is to say what kind of number these are.
+ILLUSTRATIVE_GROUP_LABEL = "Illustrative - unfitted reconstructions"
+
+#: The one-sentence note a surface prints above the group.
+ILLUSTRATIVE_GROUP_NOTE = (
+    "**Illustrative - unfitted reconstructions, not validated scores.** No "
+    "constant in the model is fitted to these published figures, and the "
+    "distances from them are large. They are here to show the shape of a "
+    "policy, not to be quoted as an estimate of it. Each one's distance from "
+    "its published figure is printed below it."
+)
+
+#: Line for a flagged preset that has no scorecard row of any tier, so no
+#: distance can be printed.
+ILLUSTRATIVE_NO_ROW_NOTE = (
+    "No published benchmark scores this policy, so there is no error to "
+    "report - the model's own estimate is the only number shown."
+)
+
+#: Stable preset ids in the illustrative group. Kept beside the flag so a
+#: reader can see the membership in one place; ``tests/test_illustrative_group``
+#: pins it equal to the set of ``PRESET_POLICIES`` entries carrying the flag,
+#: so the two cannot drift.
+ILLUSTRATIVE_PRESET_IDS: frozenset[str] = frozenset(
+    {
+        "drug-negotiation-expand",
+        "drug-reference-pricing",
+        "drug-reform-comprehensive",
+        "insulin-cap-universal",
+        "irs-enforcement-double",
+    }
+)
+
+
+def is_illustrative(preset: dict | None) -> bool:
+    """True when this ``PRESET_POLICIES`` entry belongs in the demoted group."""
+    if not preset:
+        return False
+    return preset.get("headline_surface") == HEADLINE_SURFACE_ILLUSTRATIVE
 
 
 # =============================================================================
@@ -791,7 +897,7 @@ PRESET_POLICIES = {
     "📋 Repeal SALT Cap ($1.17T)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Remove \\$10K cap on state and local tax deduction. Costs ~\\$1.17T over 10 years measured against a permanent-cap baseline (Penn Wharton); ~\\$197B against a baseline where the cap expires.",
+        "description": "Remove the cap on the state and local tax deduction, scored against current law — P.L. 119-21 sec. 70120 sets it at \\$40,400 in 2026 rising 1%/yr through 2029, phased down above \\$500K of income, reverting to \\$10K in 2030. Penn Wharton's ~\\$1.17T prices the same repeal against a permanent \\$10K cap, and ~\\$197B against a baseline where the cap expires.",
         "is_tcja": False,
         "is_corporate": False,
         "is_expenditure": True,
@@ -971,10 +1077,16 @@ PRESET_POLICIES = {
     "🔍 Double IRS Enforcement (-$340B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Double IRS enforcement beyond IRA levels (~\\$16B/year). Raises ~\\$340B with diminishing returns.",
+        "description": (
+            "Double IRS enforcement beyond IRA levels (~\\$16B/year). Raises "
+            "~\\$340B with diminishing returns. **Illustrative**: an unfitted "
+            "reconstruction a long way from its published figure, shown for "
+            "the shape of the policy rather than as an estimate of it."
+        ),
         "is_tcja": False,
         "is_enforcement": True,
         "enforcement_type": "double",
+        "headline_surface": HEADLINE_SURFACE_ILLUSTRATIVE,
     },
     "🔍 High-Income Enforcement": {
         "rate_change": 0.0,
@@ -995,26 +1107,45 @@ PRESET_POLICIES = {
     "💊 Expand Drug Negotiation (-$500B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Negotiate 50 Medicare drugs (vs IRA's 20), remove exclusivity delays. Saves ~\\$500B.",
+        "description": (
+            "Negotiate 50 Medicare drugs (vs IRA's 20), remove exclusivity "
+            "delays. Saves ~\\$500B. **Illustrative**: an unfitted "
+            "reconstruction a long way from its published figure, shown for "
+            "the shape of the policy rather than as an estimate of it."
+        ),
         "is_tcja": False,
         "is_pharma": True,
         "pharma_type": "expand_negotiation",
+        "headline_surface": HEADLINE_SURFACE_ILLUSTRATIVE,
     },
     "💊 Universal Insulin Cap ($11B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "\\$35/month insulin cap for Medicare and private insurance. A cost-sharing cap shifts liability onto plans, so CBO scores it as adding ~\\$11B to the deficit over 10 years.",
+        "description": (
+            "\\$35/month insulin cap for Medicare and private insurance. A "
+            "cost-sharing cap shifts liability onto plans, so CBO scores it as "
+            "adding ~\\$11B to the deficit over 10 years. **Illustrative**: an "
+            "unfitted reconstruction a long way from its published figure, "
+            "shown for the shape of the policy rather than as an estimate of it."
+        ),
         "is_tcja": False,
         "is_pharma": True,
         "pharma_type": "insulin_cap",
+        "headline_surface": HEADLINE_SURFACE_ILLUSTRATIVE,
     },
     "💊 International Reference Pricing (-$100B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Cap Medicare drug prices at 120% of OECD international average. Saves ~\\$100B.",
+        "description": (
+            "Cap Medicare drug prices at 120% of OECD international average. "
+            "Saves ~\\$100B. **Illustrative**: an unfitted reconstruction a "
+            "long way from its published figure, shown for the shape of the "
+            "policy rather than as an estimate of it."
+        ),
         "is_tcja": False,
         "is_pharma": True,
         "pharma_type": "reference_pricing",
+        "headline_surface": HEADLINE_SURFACE_ILLUSTRATIVE,
     },
     "💊 Comprehensive Drug Reform": {
         "rate_change": 0.0,
@@ -1026,11 +1157,13 @@ PRESET_POLICIES = {
             "components an order of magnitude smaller (CBO put the IRA's own "
             "negotiation at \\$98.5B over FY2022-2031). The model's own "
             "estimate is the only number shown, and it is a 🟡 reconstruction "
-            "of a channel nobody has scored."
+            "of a channel nobody has scored. **Illustrative**: shown for the "
+            "shape of the policy rather than as an estimate of it."
         ),
         "is_tcja": False,
         "is_pharma": True,
         "pharma_type": "comprehensive",
+        "headline_surface": HEADLINE_SURFACE_ILLUSTRATIVE,
     },
     # Trade / Tariff Presets
     "🏭 Trump Universal 10% Tariff (-$2.17T)": {

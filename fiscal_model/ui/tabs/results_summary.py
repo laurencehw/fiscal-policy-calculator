@@ -51,6 +51,14 @@ from fiscal_model.ptc import (
     PremiumTaxCreditPolicy,
 )
 from fiscal_model.spending_outlays import IMMEDIATE, account_class_label
+from fiscal_model.tax_expenditures_core import (
+    BEHAVIORAL_ELASTICITIES,
+    SALT_CAP_FLOOR,
+    OffsetMagnitudeKind,
+    SaltCapBaseline,
+    TaxExpenditurePolicy,
+    salt_cap_schedule,
+)
 from fiscal_model.trade import TRADE_BASELINE, TariffPolicy
 from fiscal_model.ui.a11y import (
     ChartDescription,
@@ -962,6 +970,100 @@ def ptc_repeal_baseline_caption(policy: Any, result: Any) -> str:
     )
 
 
+#: The published figure each SALT reform used to report, and the baseline it
+#: was measured on. Keyed by the reform's action, because the two reforms are
+#: scored by different houses against different counterfactuals and a caption
+#: that named only one of them would be wrong for the other half the time.
+_SALT_BASELINE_CONTRAST = {
+    "expand": (
+        r"Penn Wharton's \$1,169B, which this preset used to report, prices "
+        r"the same repeal against a baseline where the \$10,000 cap is "
+        r"permanent; the same paper prices it at \$197B against a baseline "
+        r"where the cap lapses."
+    ),
+    "eliminate": (
+        r"CBO's \$1,621B (Option 49) prices the same repeal against its "
+        r"February 2024 baseline, in which the \$10,000 cap lapsed after 2025 "
+        r"and the deduction is uncapped for nine of the ten years scored."
+    ),
+}
+
+#: The sentence that stops a validation badge from being read as a check on
+#: the figure above it. A benchmark is scored on **its own document's**
+#: baseline, which for both SALT rows is not current law, so the scorecard's
+#: percentage answers a different question from the headline — and a green
+#: badge beside a number a third smaller than the published one would
+#: otherwise read as a contradiction rather than as two baselines.
+_SALT_BENCHMARK_DISCLAIMER = (
+    "This model's validation row is scored on that published baseline rather "
+    "than on this one, so the percentage it reports is a check on the "
+    "benchmark and not on the figure above."
+)
+
+
+def salt_current_law_caption(policy: Any, result: Any) -> str:
+    """One line saying which SALT cap the score is measured against.
+
+    Every SALT score is a difference between two worlds, and the number a user
+    reads is meaningless without the second one: Penn Wharton prices repealing
+    the cap at $1,169B against a permanent $10,000 cap and at $197B against a
+    world where it lapses, in the same paper. Until 2026-09-11 this module
+    scored a fitted $96B/yr, which is the permanent-$10,000-cap answer, on a
+    window in which the cap is $40,400 — so the shipped preset fell by about a
+    third when the baseline became current law, and Decision 6 says a moved
+    number ships with its explanation rather than in silence.
+
+    Computed from the scored result and from ``salt_cap_schedule`` rather than
+    from a stored figure, so the caption cannot drift from the number above it
+    and the years it names come from the window actually scored. Returns ``""``
+    for any expenditure policy that is not a SALT cap difference.
+    """
+    if not isinstance(policy, TaxExpenditurePolicy):
+        return ""
+    if not policy.uses_salt_cap_path():
+        return ""
+    if policy.salt_baseline is not SaltCapBaseline.CURRENT_LAW:
+        return ""
+
+    years = getattr(result, "years", None)
+    if years is None or len(years) == 0:
+        return ""
+    static = np.asarray(result.static_revenue_effect, dtype=float)
+    scored = np.abs(static) > 0
+    if not scored.any():
+        return ""
+    scored_years = [int(year) for year, live in zip(years, scored, strict=False) if live]
+    first, last = scored_years[0], scored_years[-1]
+
+    total = float(np.sum(np.asarray(result.final_deficit_effect, dtype=float)))
+    opening = salt_cap_schedule(first)
+    reversion = next(
+        (
+            year
+            for year in scored_years
+            if salt_cap_schedule(year).limitation_amount == SALT_CAP_FLOOR
+        ),
+        None,
+    )
+    reversion_clause = (
+        f", and back to \\${SALT_CAP_FLOOR:,.0f} in {reversion}"
+        if reversion is not None
+        else ""
+    )
+
+    return (
+        f"Measured against **current law**, not against the baseline this "
+        f"reform's published score uses. P.L. 119-21 sec. 70120 sets the "
+        rf"limitation at \${opening.limitation_amount:,.0f} in {first}, rising "
+        f"1% a year through 2029 and phasing down by 30 cents per dollar of "
+        rf"modified AGI above \${opening.threshold_amount:,.0f}"
+        f"{reversion_clause} — so over FY{first}-FY{last} this scores "
+        rf"\${abs(total):,.0f}B. {_SALT_BASELINE_CONTRAST[policy.action]} The "
+        f"target has not moved — the baseline the app scores on has. "
+        f"{_SALT_BENCHMARK_DISCLAIMER}"
+    )
+
+
 def _preset_declares_agi_inclusive(policy_name: str) -> bool:
     """True when a catalog preset of this name declares an AGI-inclusive base.
 
@@ -1457,6 +1559,82 @@ def behavioural_sign_caption(policy: Any, result: Any) -> str:
         f"other sign until 2026-09-05, which added the same amount instead - "
         rf"the headline above would have read \${previous:+,.1f}B. No "
         f"elasticity changed; only the direction the response is applied in."
+    )
+
+
+def expenditure_offset_magnitude_caption(policy: Any, result: Any) -> str:
+    """One line saying where this reform's behavioural size comes from.
+
+    The tax-expenditure module multiplies a reform's static revenue effect by a
+    share, and until 2026-09-11 all five of those shares were unsourced numbers
+    — lane W7 settled which *direction* each response points and said in terms
+    that a magnitude cannot be read off the same sentence. Lane H7 asked each
+    of the five for a document and two of them have one, so the share is now
+    read from the source rather than assumed:
+
+    * **mortgage repeal** — Poterba & Sinai (NBER WP 14253) price the same
+      repeal twice, at \\$72.4B with no behavioural response and \\$61.9B once
+      households sell taxable assets to retire mortgage debt, so the erosion is
+      their own ratio rather than a round 10%;
+    * **the charitable benefit-rate ceiling** — CRS R40518's central price
+      elasticity of giving (0.5), converted on the reform's own SOI deduction
+      distribution, because a price elasticity and a share of a revenue effect
+      are different quantities and the module needs the second.
+
+    The shipped **Cap Charitable Deduction** preset moved by about 13% when
+    that landed, so the number ships with its explanation rather than in
+    silence (Decision 6).
+
+    Computed from the scored result and from the module's own resolution, so it
+    cannot drift from the figure above it, and it reconstructs the previous
+    headline from ``BEHAVIORAL_ELASTICITIES`` — the table that *was* the answer
+    — rather than from a literal written here. The headline is the conventional
+    score, static plus behavioural, in both engine modes, so this is computed
+    from those two and never from ``final_deficit_effect``, which on a dynamic
+    run also carries revenue feedback.
+
+    Returns ``""`` for any policy whose share is not sourced.
+    """
+    if not isinstance(policy, TaxExpenditurePolicy):
+        return ""
+    rule = policy.offset_magnitude_rule()
+    if rule is None:
+        return ""
+    behavioural = float(np.sum(result.behavioral_offset))
+    if behavioural == 0.0:
+        return ""
+    share = policy.resolved_offset_magnitude()
+    previous_share = BEHAVIORAL_ELASTICITIES.get(policy.expenditure_type)
+    if not share or not previous_share:
+        return ""
+
+    static = float(np.sum(result.static_deficit_effect))
+    current = static + behavioural
+    previous = static + behavioural * (previous_share / share)
+    if rule.kind is OffsetMagnitudeKind.PUBLISHED_SHARE:
+        provenance = (
+            "Poterba and Sinai price this same repeal twice - "
+            r"\$72.4B with no behavioural response and \$61.9B once households "
+            "sell taxable assets to retire mortgage debt, 'about 85 percent' "
+            "(NBER Working Paper 14253, Table 8) - so the erosion is the ratio "
+            "of their two published figures"
+        )
+    else:
+        provenance = (
+            f"a {float(policy.cap_rate or 0.0):.0%} ceiling raises the price of "
+            "a deductible dollar for every filer above it, and CRS R40518 - a "
+            "whole report on this reform - settles the giving response at a "
+            f"central price elasticity of {abs(float(rule.price_elasticity or 0.0)):.1f} "
+            "(Appendix A, report p. 27). Converted on this deduction's own SOI "
+            "distribution, because a price elasticity and a share of a revenue "
+            "effect are different quantities"
+        )
+    return (
+        f"Behavioural response, {share:.1%} of the static effect: {provenance}. "
+        f"This module carried an unsourced {previous_share:.0%} until "
+        rf"2026-09-11, which would have put the headline at \${previous:+,.1f}B "
+        rf"instead of \${current:+,.1f}B. No direction changed and no fitted "
+        f"constant was retuned; only where the size comes from."
     )
 
 
@@ -1980,9 +2158,15 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     ptc_note = ptc_repeal_baseline_caption(policy, result)
     if ptc_note:
         st_module.caption(ptc_note)
+    salt_note = salt_current_law_caption(policy, result)
+    if salt_note:
+        st_module.caption(salt_note)
     sign_note = behavioural_sign_caption(policy, result)
     if sign_note:
         st_module.caption(sign_note)
+    magnitude_note = expenditure_offset_magnitude_caption(policy, result)
+    if magnitude_note:
+        st_module.caption(magnitude_note)
     base_note = agi_inclusive_base_caption(policy, result)
     if base_note:
         st_module.caption(base_note)
