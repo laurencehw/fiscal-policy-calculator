@@ -20,13 +20,84 @@ phrasing was on this line until 2026-09-01 and was wrong. Live numbers from
 
 | Tier | What it measures | n | Mean | Median |
 |---|---|--:|--:|--:|
-| Out-of-sample, pre-registered | prediction | 26 | **15.0%** | 10.6% |
-| Calibrated, fitted | bookkeeping (low by construction) | 21 | **1.7%** | 0.0% |
-| Unfitted module reconstructions | modules vs targets never fitted to | 34 | **57.9%** | 34.2% |
-| Calibrated, leave-one-out | how much of the calibration is structure | 18 | **30.1%** | 19.1% |
+| Out-of-sample, pre-registered | prediction | 26 | **14.7%** | 12.6% |
+| Calibrated, fitted | bookkeeping (low by construction) | 16 | **1.5%** | 0.1% |
+| … fitted, ledger rows held in place | the same tier without the composition move | 27 | **11.9%** | 1.1% |
+| Unfitted module reconstructions | modules vs targets never fitted to | 39 | **55.5%** | 29.9% |
+| Calibrated, leave-one-out | how much of the calibration is structure | 18 | **35.7%** | 29.1% |
 
-**Wave 7 moved three of the four rows and every move is stated with its
-mechanism.** The first row fell **15.2% → 15.0%** while **six of its seven moved
+Out-of-sample is **15/26 within 15%, 23/26 within 25%**, and it is itself **eight
+policy classes**, each now carrying its own CI ceiling:
+
+| Class | n | mean | mass | ceiling | before Wave A |
+|---|--:|--:|--:|--:|--:|
+| AGI-inclusive surtax | 6 | **17.6%** | 105.4 | 22 | 20.7% |
+| capital gains | 4 | 20.5% | 82.0 | 26 | 20.5% |
+| ordinary rate change | 4 | **14.8%** | 59.3 | 19 | 12.0% |
+| corporate | 1 | 44.5% | 44.5 | 56 | 44.5% |
+| enacted-law spending | 3 | 13.4% | 40.2 | 17 | 13.4% |
+| discretionary spending | 5 | 4.6% | 23.2 | 6 | 4.6% |
+| payroll | 2 | 7.8% | 15.6 | 10 | 7.8% |
+| tax expenditure | 1 | 13.1% | 13.1 | 17 | 13.1% |
+
+**Waves A and B of [HIGH_STAKES_ACCURACY.md](HIGH_STAKES_ACCURACY.md) are done**
+(2026-09-10, PRs #140-#146), and they moved all four rows for three different
+reasons that must not be run together.
+
+**Row 1 moved 15.0% → 14.7% by way of 15.6%, and the intermediate figure is the
+honest part.** PR #144 grew the generic base on the scored vintage — a tax-year
+2023 SOI aggregate had been answering an FY2026-2035 question on Tailor, Ask,
+Build and seven presets — and the tier mean **rose**, firing the plan's own
+falsification condition, because six rows had been under-predicting by *less*
+than a decade of the baseline's own nominal growth is worth. The lane reported it
+and tuned nothing. PR #146 then gave the AGI-stated rows SOI's **AGI column**,
+which is where the tier's 14.7% comes from. **The plan's stated endpoints for
+those two rows, 9.1% and 1.0%, were unreachable as written**: §1.3(c) attributed
+them to a *preset* flag that cannot move a validation row, and the missing step
+was the column. The measured chain is 49.8% → 34.1% → **7.4%** and 37.4% →
+17.9% → **-2.9%**. Only two classes moved: AGI-inclusive surtax 20.7% → 17.6%,
+and ordinary rate change 12.0% → **14.8%**, where all four rows crossed from
+under-prediction to over-prediction.
+
+**Rows 2, 3 and 4 all moved on targets, and not one derivation moved with them.**
+PR #145 judged eighteen calibrated benchmarks one at a time, revised six,
+recorded twelve as examined-and-left, and left **all 81 `model_10yr_billions`
+byte-identical**. The fitted tier fell 1.73% → 1.51% *while nothing improved*,
+because the five rows that left it averaged 2.42% — above its own mean; the
+reconstruction tier fell 57.88% → 55.46% *while nothing improved*, because the
+five arrivals average 36.42%, and **on a constant population it got worse,
+57.88% → 58.26%**. The single honest number for what the new targets did to the
+model's measured error is that **0.38pp**, against 2.42pp of composition. And the
+one reading that is not composition at all: **the 21 rows the fitted tier held
+before Wave B, scored on the targets it leaves behind, read 9.82%** rather than
+1.73%. Leave-one-out is the same story again — `run_loo.py --donor-matrix`
+differs in six lines and every *derived* figure in them is unchanged, with
+`Payroll` going 3.8% → **32.3%** and `Expenditures` 37.5% → **40.6%** purely
+because two targets moved underneath them.
+
+**Seven shipped presets moved, and every one moved onto its own source's base or
+decade**: Warren Ultra-Millionaire Surtax -\$134.6B → **-\$456.0B**, High-Earner
+Medicare Surcharge -\$166.5B → **-\$426.6B**, Progressive Millionaire Tax
+-\$354.6B → **-\$878.8B**, and four generic presets by a uniform +35.60% (Flat
+Tax Reform +\$4,601.5B → **+\$6,239.4B**, Middle Class Tax Cut +\$1,029.4B →
+**+\$1,395.9B**, Top Rate to 45% -\$724.4B → **-\$982.2B**, Biden 2025 Proposal
+-\$216.5B → **-\$293.5B**). The other 45 score to the cent what they scored
+before. Build package totals moved for seven *more* presets with no scored
+number moving at all, because Build quotes list prices and a Build package
+inherits the **target's** provenance.
+
+**Two things the waves closed that are not accuracy.** Badges went **24 → 44**,
+so no preset prints an official figure with nothing checking it, and each badge
+names the tier its row sits in (16 fitted / 25 reconstruction / 3 out-of-sample);
+six presets now carry a badge saying they are more than 50% from their published
+target, and five of them said nothing at all before. And the two OCACT payroll
+targets are now described rather than asserted: OCACT publishes E2.1 and E2.5 as
+percent of payroll and **no ten-year dollar amount at any horizon**, -\$2.7T
+traces to a Peter G. Peterson Foundation sentence describing a *different*
+provision, and -\$3.2T matches nothing either body prints.
+
+**Wave 7, the round before, moved three of the four rows and every move is
+stated with its mechanism.** The first row fell **15.2% → 15.0%** while **six of its seven moved
 rows got worse**, all pre-registered — and no lane's branch figure is the merged
 one, because PRs #126 and #132 move the same Treasury row in opposite directions
 (#126 alone gave 14.1%, #127 alone 15.9%, #132 alone 15.4%). The third row moved
@@ -80,8 +151,8 @@ the remaining 0.2pp is the FY2022 corporate benchmark arriving at 62.9%. Leave-o
 did. A mean that moves because the population moved has not improved, and a mean
 that moves because a target moved has not measured the model.
 
-**The fitted tier has lost thirteen rows, and every reason must be quoted with the
-number.** `ScorecardSummary.revised_target_entries` is **16**: a constant fitted
+**The fitted tier has lost eighteen rows, and every reason must be quoted with the
+number.** `ScorecardSummary.revised_target_entries` is **22**: a constant fitted
 to a superseded figure is not fitted to its replacement, so a revised row reports
 among the reconstructions, where a miss is a finding rather than a regression.
 **Wave 4's provenance pass took the tier 28 → 23** that way, moving
