@@ -18,6 +18,7 @@ reproduced here - but the four claims the lane rests on:
 from __future__ import annotations
 
 import math
+from itertools import pairwise
 
 import pytest
 
@@ -206,9 +207,85 @@ def test_the_level_is_not_this_schedules_to_change(baseline):
         assert sum(c.decedents_per_year for c in classes) == pytest.approx(
             baseline._parameters["households_millions"]
             * 1e6
-            * baseline._parameters["estate_flow_rate"],
+            * baseline.death_exit_rate(),
             rel=1e-9,
         )
+
+
+def test_the_module_has_one_death_rate_and_not_two(baseline):
+    """The Wave C defect, pinned so it cannot come back.
+
+    Until Wave C this module carried two death rates 8.3x apart:
+    ``death_exit_rate`` (NCHS life table against DFA net worth by age, 2.65%),
+    which ``policies_core`` uses for the lock-in wedge and the accrued-gains
+    stock's drift, and ``estate_flow_rate`` (Poterba & Weisbenner's flow of
+    estate *dollars* over wealth *dollars*, 0.32%), which was divided into
+    households to get a headcount. The count is now the first of those, and
+    ``estate_flow_rate`` is read by nothing - it survives in the file only as
+    the provenance of the level, which is that rate times
+    ``gain_share_of_estates``.
+    """
+    households = baseline._parameters["households_millions"] * 1e6
+    counted = sum(c.decedents_per_year for c in baseline.decedent_classes(YEAR))
+    assert counted == pytest.approx(households * baseline.death_exit_rate(), rel=1e-9)
+
+    flow = baseline._parameters["estate_flow_rate"]
+    assert counted != pytest.approx(households * flow, rel=1e-3)
+    assert baseline.death_exit_rate() / flow > 8.0
+
+    # The level is still the dollar flow's, and the identity that says so. It
+    # holds to a hundredth of a percent rather than exactly, because
+    # gain_share_of_estates is Poterba & Weisbenner's printed 0.36 while the two
+    # dollar figures give 42.8 / 118.9 = 0.35996.
+    assert baseline._parameters["gains_at_death_share_of_net_worth"] == pytest.approx(
+        flow * baseline._parameters["gain_share_of_estates"], rel=1e-3
+    )
+
+    # It is the same rate the lock-in wedge prices, so the module now answers
+    # "how fast does wealth leave at death?" once.
+    from fiscal_model.data import CapitalGainsBaseline as Loader
+
+    assert Loader().death_exit_rate() == baseline.death_exit_rate()
+
+
+def test_the_count_is_the_right_order_of_magnitude(baseline):
+    """3.4 million a year against roughly 3.09 million NCHS deaths.
+
+    The old count was 408,532 - short by 7.6x, and the comparison that says so
+    is the life table the parameter file already cites. The residual 10% is the
+    household-versus-person unit: the DFA's unit is a household and NCHS counts
+    people, and a household can lose more than one adult over time.
+    """
+    counted = sum(c.decedents_per_year for c in baseline.decedent_classes(YEAR))
+    assert 2.5e6 < counted < 4.0e6
+    assert counted / 3.09e6 == pytest.approx(1.095, abs=0.05)
+
+
+def test_grading_the_death_rate_by_estate_size_is_refused_by_arithmetic(baseline):
+    """Why the count is uniform in wealth, measured rather than assumed.
+
+    ``planning/lanes/HSC_h5_decedent_headcount.md`` SS1.3 was sent to grade the
+    rate by estate size so the implied count at the top would fall toward SOI's
+    own return count. It runs the other way: the wealthy are older, so they die
+    at a *higher* rate, and the rate at the top of the wealth distribution
+    exceeds the net-worth-weighted one. Both figures are emitted by
+    ``scripts/build_capital_gains_data.py`` from the two published tables, both
+    are marked CHECK ONLY, and nothing reads them.
+    """
+    graded = baseline._parameters["size_graded_tail_mortality_rate"]
+    crude = baseline._parameters["crude_adult_mortality_rate"]
+    weighted = baseline.death_exit_rate()
+
+    # Heads < dollars < the top of the distribution. The ordering is the whole
+    # finding: grading raises the top count, it does not lower it.
+    assert crude < weighted < graded
+    assert graded / weighted == pytest.approx(1.073, abs=0.01)
+
+    frame = baseline._read(CapitalGainsBaseline.PARAMETER_FILE)
+    for key in ("size_graded_tail_mortality_rate", "crude_adult_mortality_rate"):
+        row = frame[frame["key"] == key]
+        assert len(row) == 1, key
+        assert "CHECK ONLY" in str(row["source"].iloc[0]), key
 
 
 def test_the_slice_count_is_quadrature_and_not_a_parameter():
@@ -231,16 +308,33 @@ def test_the_exclusion_is_no_longer_a_cliff():
 
     On the five-class ladder, raising the per-donor exclusion knocked out whole
     classes, so the revenue schedule had flats and drops. On a distribution it
-    falls smoothly, and the test for "smoothly" is that no single $250,000 step
-    of the exclusion removes more than a fifth of what is left.
+    falls smoothly.
+
+    The test for "smoothly" is now the exact mathematical property rather than a
+    bound on the size of a step. The marginal revenue an exclusion costs is the
+    number of decedents whose reachable gain still clears it, which is itself
+    decreasing in the exclusion - so on a continuous distribution successive
+    $250,000 steps must remove **strictly less** each time. On point masses the
+    same quantity is a step function: it is constant between two class means and
+    jumps when one is crossed, so consecutive steps are *equal* over long
+    stretches. Flats are what this test forbids.
+
+    Wave C restated it. The old version asserted that no step removed more than
+    a fifth of what was left, and that bound was calibrated on a decedent count
+    8.3x too small: with 408,532 decedents carrying the whole flow, gains per
+    decedent were large enough that a $250,000 exclusion barely reached them. On
+    the corrected count the first $250,000 removes a third of the channel, which
+    is what an exclusion does when the decedents are the number of people who
+    actually die. The strict-decrease property holds at both counts and is the
+    one that discriminates.
     """
-    previous = None
+    revenues = []
     for exclusion in range(0, 6_000_000, 250_000):
-        revenue = _death_channel(_policy(step_up_exemption=float(exclusion)))
-        if previous is not None:
-            assert revenue <= previous + 1e-9
-            assert previous - revenue < 0.20 * previous
-        previous = revenue
+        revenues.append(_death_channel(_policy(step_up_exemption=float(exclusion))))
+    drops = [a - b for a, b in pairwise(revenues)]
+    assert all(drop > 0.0 for drop in drops)
+    for earlier, later in pairwise(drops):
+        assert later < earlier
 
 
 def test_the_dead_published_rows_are_alive_where_the_fit_reaches(baseline):
@@ -337,9 +431,20 @@ def test_the_soi_decedent_count_is_a_check_and_not_an_input(baseline):
 
     SOI Estate Tax Table 1 reports the estates that actually filed above the
     threshold; the fitted distribution says how many decedents it puts there.
-    The two are the same order of magnitude and neither feeds the other - the
-    figure is in the parameters file marked CHECK ONLY, and nothing multiplies
-    by it.
+    Neither feeds the other - the figure is in the parameters file marked CHECK
+    ONLY, and nothing multiplies by it.
+
+    Wave C restated the band, and the reason is a unit rather than a tolerance.
+    SOI counts **individual** decedents whose **gross estate** clears a
+    per-decedent threshold; this model counts **households** whose net worth
+    clears the same number, and a married household at $13 million usually
+    produces two estates of roughly $6.5 million, neither of which files. So the
+    model's count must *exceed* SOI's, and the old two-and-a-half-fold band -
+    written when the headcount rate was a dollar flow that put the count 7.6x
+    too low overall - happened to contain the published figure for the wrong
+    reason. The ratio is now pinned where the corrected count puts it, which is
+    a tighter test than a band, and closing the gap needs SOI's own gross-estate
+    distribution spliced onto the DFA's household one rather than a wider bound.
     """
     threshold = baseline._parameters["soi_fy2024_estate_filing_threshold_millions_usd"]
     published = baseline._parameters["soi_fy2024_estate_returns_above_filing_threshold"]
@@ -348,7 +453,8 @@ def test_the_soi_decedent_count_is_a_check_and_not_an_input(baseline):
         for c in baseline.decedent_classes(YEAR)
         if c.net_worth_millions_usd >= threshold
     )
-    assert 0.4 < implied / published < 2.5
+    assert implied > published
+    assert implied / published == pytest.approx(5.04, abs=0.15)
     # The check is not wired into anything: the whole channel is unchanged when
     # the published count is not read, because it never is.
     frame = baseline._read(CapitalGainsBaseline.PARAMETER_FILE)

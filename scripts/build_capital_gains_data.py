@@ -130,6 +130,11 @@ TABLE_14A_COLUMNS = {
 NIIT_RATE = 0.038
 NIIT_AGI_THRESHOLD = 200_000.0
 
+#: Youngest age a household reference person can be, for the CHECK-ONLY
+#: headcount weighting in ``_band_adult_population_shares``.  Nothing scored
+#: reads it.
+ADULT_AGE_FLOOR = 18
+
 #: DFA age bands, and the NCHS life-table ages they span.
 DFA_AGE_BANDS = {
     "ageunder40": (0, 39),
@@ -404,9 +409,8 @@ def _dfa_frames() -> tuple[pd.DataFrame, pd.DataFrame]:
     return age, networth
 
 
-def _band_mortality() -> dict[str, float]:
-    """Annual deaths per person-year lived, by DFA age band, from the NCHS
-    complete life table: sum of ``dx`` over the band divided by sum of ``Lx``."""
+def _life_table() -> pd.DataFrame:
+    """The NCHS complete life table, one row per single year of age."""
     frame = pd.read_excel(
         io.BytesIO(_fetch(NCHS_LIFE_TABLE)),
         header=None,
@@ -418,12 +422,38 @@ def _band_mortality() -> dict[str, float]:
     for label in frame["age"]:
         text = str(label)
         ages.append(int(text.split(en_dash)[0]) if en_dash in text else 100)
-    frame = frame.assign(x=ages)
+    return frame.assign(x=ages)
+
+
+def _band_mortality() -> dict[str, float]:
+    """Annual deaths per person-year lived, by DFA age band, from the NCHS
+    complete life table: sum of ``dx`` over the band divided by sum of ``Lx``."""
+    frame = _life_table()
     rates = {}
     for band, (low, high) in DFA_AGE_BANDS.items():
         span = frame[(frame["x"] >= low) & (frame["x"] <= high)]
         rates[band] = float(span["dx"].sum() / span["Lx"].sum())
     return rates
+
+
+def _band_adult_population_shares() -> dict[str, float]:
+    """Share of the stationary adult population in each DFA age band.
+
+    ``Lx`` is person-years lived, so it *is* the age distribution of the
+    stationary population the life table describes, and restricting it to ages
+    18 and over gives the age distribution of the population a household
+    reference person can be drawn from.  This is the only headcount weighting in
+    the file, and it is CHECK ONLY: the two rows it produces say what a
+    headcount-weighted and a size-graded death rate would be, and nothing reads
+    them.
+    """
+    frame = _life_table()
+    shares = {}
+    for band, (low, high) in DFA_AGE_BANDS.items():
+        span = frame[(frame["x"] >= max(low, ADULT_AGE_FLOOR)) & (frame["x"] <= high)]
+        shares[band] = float(span["Lx"].sum())
+    total = sum(shares.values())
+    return {band: value / total for band, value in shares.items()}
 
 
 def _scf_family_net_worth_2022_thousands() -> tuple[float, float]:
@@ -690,6 +720,41 @@ def build_stock_tables() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, floa
     ladder_rows = []
     group_rows = networth_levels[networth_levels["Date"] == DFA_ANCHOR_QUARTER]
     group_rows = group_rows.set_index("Category")
+
+    # Two CHECK-ONLY companions to the rate above, both from the same two
+    # published tables and neither read by anything.  The first is the same band
+    # mortality weighted by HEADS rather than by dollars.  The second is what a
+    # decedent count graded by estate size would use at the top of the
+    # distribution, and it is the measurement that refuses the grading: two
+    # Pareto tails with a common index keep a constant relative share above any
+    # threshold, so the age composition there is proportional to
+    # (population share) x (relative mean wealth)**alpha, and alpha is the top
+    # segment's own index under the same closure build_size_distribution_table
+    # applies - the top two groups are one Pareto, beta = ln(1 + W2/W1)/ln(10).
+    adult_shares = _band_adult_population_shares()
+    crude_adult_mortality = sum(
+        adult_shares[band] * rate for band, rate in mortality.items()
+    )
+    total_age_net_worth = float(age_rows["Net worth"].sum())
+    relative_mean = {
+        band: (float(age_rows.loc[band, "Net worth"]) / total_age_net_worth)
+        / adult_shares[band]
+        for band in mortality
+    }
+    top_beta = math.log(
+        1.0
+        + float(group_rows.loc["RemainingTop1", "Net worth"])
+        / float(group_rows.loc["TopPt1", "Net worth"])
+    ) / math.log(10.0)
+    top_alpha = 1.0 / (1.0 - top_beta)
+    tail_weights = {
+        band: adult_shares[band] * relative_mean[band] ** top_alpha
+        for band in mortality
+    }
+    tail_total = sum(tail_weights.values())
+    size_graded_tail_mortality = sum(
+        tail_weights[band] / tail_total * rate for band, rate in mortality.items()
+    )
     for group, household_share in DFA_NETWORTH_GROUPS.items():
         group_net_worth = float(group_rows.loc[group, "Net worth"])  # millions
         group_households = households_millions * household_share  # millions
@@ -745,7 +810,13 @@ def build_stock_tables() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, floa
                 "value": PW2001_EXPECTED_ESTATES_BILLIONS * 1_000.0 / pw_nw,
                 "source": (
                     "Poterba & Weisbenner (2001) Table 8 expected estates $118.9B over "
-                    f"Federal Reserve DFA household net worth, {PW_ANCHOR_QUARTER}"
+                    f"Federal Reserve DFA household net worth, {PW_ANCHOR_QUARTER}. "
+                    "DOLLARS OVER DOLLARS: this is the flow of estate VALUE, and it is "
+                    "read only as the provenance of gains_at_death_share_of_net_worth "
+                    "(that row is this one times gain_share_of_estates). It was also "
+                    "used as a HEADCOUNT rate until Wave C, which gave 408,532 "
+                    "decedents a year against roughly 3.09 million NCHS deaths; the "
+                    "count now uses mortality_weighted_net_worth_share"
                 ),
             },
             {
@@ -767,6 +838,32 @@ def build_stock_tables() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, floa
                 "source": (
                     "NCHS United States Life Tables 2022 (NVSR 74-02) Table 1 against "
                     f"Federal Reserve DFA net worth by age of head, {DFA_ANCHOR_QUARTER}"
+                ),
+            },
+            {
+                "key": "crude_adult_mortality_rate",
+                "value": crude_adult_mortality,
+                "source": (
+                    "NCHS United States Life Tables 2022 (NVSR 74-02) Table 1, the same "
+                    "band rates weighted by the stationary population aged 18+ (Lx) "
+                    "instead of by DFA net worth. CHECK ONLY - it is what the decedent "
+                    "count would be if the wealthy died at the population's own rate, "
+                    "and the gap to mortality_weighted_net_worth_share is the "
+                    "wealth-mortality gradient"
+                ),
+            },
+            {
+                "key": "size_graded_tail_mortality_rate",
+                "value": size_graded_tail_mortality,
+                "source": (
+                    "NCHS band rates at the top of the wealth distribution: age-band "
+                    "shares proportional to (adult population share) x (band mean net "
+                    "worth / average)^alpha, with alpha the fitted Pareto index of the "
+                    "top segment in decedent_size_distribution.csv. CHECK ONLY - it is "
+                    "the measurement that REFUSES a size-graded decedent count, because "
+                    "it exceeds mortality_weighted_net_worth_share: the wealthy are "
+                    "older and so die at a higher rate, so grading raises the top "
+                    "count rather than lowering it"
                 ),
             },
             {
@@ -881,6 +978,14 @@ HEADERS = {
         "# 2022 life table against Federal Reserve DFA net worth by age, and the",
         "# realization elasticities from Dowd, McClelland & Muthitacharoen (2015)",
         "# with the reference rate CRS R48562 states they are adjusted to.",
+        "#",
+        "# mortality_weighted_net_worth_share prices three things: the stock's",
+        "# death exit, the lock-in wedge, and -- since Wave C -- the decedent",
+        "# COUNT, which until then divided households by estate_flow_rate, a",
+        "# flow of estate dollars over wealth dollars.  The two rows after it",
+        "# are CHECK ONLY and are read by nothing: they say what a",
+        "# headcount-weighted rate and a size-graded rate would be, and the",
+        "# second is why the count is not graded by estate size.",
         "# Regenerate with: python scripts/build_capital_gains_data.py",
     ),
     "decedent_estate_ladder.csv": (

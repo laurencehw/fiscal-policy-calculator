@@ -765,6 +765,11 @@ def gains_at_death_caption(policy: Any, result: Any) -> str:
     know that an exclusion applies *per decedent* is also entitled to know that
     the decedents differ.
 
+    Wave C added the clause about how many of them there are, and that one is
+    not small: the count moved from 408,532 a year to 3.4 million when the
+    headcount stopped being a flow of estate dollars, and the figures on this
+    form moved 19-31 percent with it.
+
     Computed by replaying the scorer's own death-channel loop over the same
     window, so it cannot drift from the figure above it. Returns ``""`` for
     anything that is not a step-up-elimination capital-gains policy.
@@ -803,13 +808,29 @@ def gains_at_death_caption(policy: Any, result: Any) -> str:
         if exclusion > 0
         else " This design states no per-decedent exclusion."
     )
+    # Wave C (planning/lanes/HSC_h5_decedent_headcount.md). The count the flow
+    # is divided across moved from 408,532 a year to 3.4 million, so a
+    # per-decedent exclusion now reaches ordinary decedents rather than being
+    # lost inside an average estate eight times too large. It moved this form's
+    # figures by 19-31 percent, which is a Decision 6 move, so the sentence
+    # ships with them.
+    headcount = (
+        " Those decedents are counted at an NCHS life-table death rate - about "
+        "3.4 million a year - rather than at a flow of estate dollars that "
+        "implied 408,532"
+        + (
+            ", so a fixed exclusion reaches far more of the gain than it used to."
+            if exclusion > 0
+            else ", so each one carries a gain of ordinary size."
+        )
+    )
     return (
         f"Gains at death: \\${-death:+,.1f}B of the static score above is "
         f"constructive realization at death - Poterba & Weisbenner's flow of "
         f"unrealized gain transferred by decedents, indexed to household net "
         f"worth. It is not the whole flow: bequests to charity and the "
         f"\\${policy.section_121_exclusion:,.0f} section 121 exclusion on a "
-        f"principal residence come out first.{deferral}{per_donor} "
+        f"principal residence come out first.{deferral}{per_donor}{headcount} "
         f"Inter-spousal transfers and tangible personal property are already "
         f"outside that flow, so neither is deducted twice."
     )
