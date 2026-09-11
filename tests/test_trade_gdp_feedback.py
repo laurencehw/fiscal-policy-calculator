@@ -380,6 +380,63 @@ class TestSteelDerivativeBracket:
         assert 1.8 < ratio < 1.9
 
 
+class TestDecision6Caption:
+    """The caption must not quote a number the headline does not show.
+
+    PR #144's review caught exactly that on the ordinary-base caption: it read
+    `final_deficit_effect`, which on a dynamic run also carries revenue
+    feedback, so it disagreed with the headline directly above it by 69% on
+    one preset. This caption starts from gross rather than restating the
+    headline, but on a dynamic run its conventional figure is *not* the
+    headline either, so it says so.
+    """
+
+    def _caption(self, dynamic: bool):
+        from fiscal_model.ui.tabs.results_summary import tariff_net_caption
+
+        policy = create_trump_universal_10()
+        scorer = FiscalPolicyScorer(start_year=2025, use_real_data=False)
+        result = scorer.score_policy(policy, dynamic=dynamic)
+        return policy, result, tariff_net_caption(policy, result)
+
+    def test_the_caption_renders_and_names_both_dynamic_channels(self):
+        policy, _result, text = self._caption(dynamic=False)
+        assert text
+        summary = policy.get_trade_summary()
+        assert f"{summary['gross_tariff_revenue'] * 10:,.1f}B" in text
+        assert f"{summary['conventional_revenue'] * 10:,.1f}B" in text
+        assert f"{summary['gdp_feedback_revenue_loss_total']:,.1f}B" in text
+        assert "retaliation" in text
+        assert "0.71 net/gross" in text
+
+    def test_the_static_caption_calls_its_figure_the_headline(self):
+        _, result, text = self._caption(dynamic=False)
+        headline = -float(sum(result.final_deficit_effect))
+        assert f"{headline:,.1f}B of conventional receipts" in text
+        assert "before the dynamic feedback" not in text
+
+    def test_the_dynamic_caption_says_its_figure_is_not_the_headline(self):
+        _, result, text = self._caption(dynamic=True)
+        headline = -float(sum(result.final_deficit_effect))
+        conventional = -float(
+            sum(result.static_deficit_effect + result.behavioral_offset)
+        )
+        # The engine's headline and the conventional figure differ, which is
+        # the whole reason the clause exists.
+        assert abs(headline - conventional) > 1.0
+        assert "before the dynamic feedback the headline above applies" in text
+
+    def test_a_no_retaliation_policy_claims_no_retaliation_channel(self):
+        from fiscal_model.ui.tabs.results_summary import tariff_net_caption
+
+        policy = create_trump_universal_10()
+        policy.include_retaliation = False
+        scorer = FiscalPolicyScorer(start_year=2025, use_real_data=False)
+        text = tariff_net_caption(policy, scorer.score_policy(policy))
+        assert "lost to retaliation" not in text
+        assert "receipts lost as output falls" in text
+
+
 def _all_rows():
     with RECIPROCAL_SCHEDULE_PATH.open(encoding="utf-8") as handle:
         lines = [line for line in handle if not line.startswith("#")]

@@ -552,6 +552,19 @@ def tariff_net_caption(policy: Any, result: Any) -> str:
         else 0.0
     )
     dynamic = net - gdp_loss - retaliation
+    # On a dynamic run the headline above is the *engine's* figure, not this
+    # one, and a caption quoting a number the headline does not show is the
+    # defect PR #144's review caught on the ordinary-base caption. So the
+    # conventional figure says what it is relative to the headline, and the
+    # tail says plainly that these two channels are the tariff module's own
+    # rather than the dynamic-scoring engine's feedback.
+    scored_dynamically = getattr(result, "dynamic_effects", None) is not None
+    conventional_label = (
+        "conventional receipts - the figure before the dynamic feedback the "
+        "headline above applies"
+        if scored_dynamically
+        else "conventional receipts"
+    )
     tail = (
         f" A dynamic estimate would take it further: \\${gdp_loss:,.1f}B of "
         f"receipts lost as output falls"
@@ -562,11 +575,12 @@ def tariff_net_caption(policy: Any, result: Any) -> str:
             else f", leaving \\${dynamic:,.1f}B"
         )
         + ". Published estimators report those as separate columns and so "
-        "does this app - neither is in the headline."
+        "does this app - these are the tariff module's own channels, and "
+        "neither is the dynamic-scoring engine's feedback."
     )
     return (
         f"Net of offsets: \\${gross:,.1f}B of gross customs duty becomes "
-        f"\\${net:,.1f}B of conventional receipts - a {net / gross:.2f} "
+        f"\\${net:,.1f}B of {conventional_label} - a {net / gross:.2f} "
         f"net/gross ratio - after duty avoidance and the {offset_pct:.0%} "
         f"income-and-payroll offset CBO, JCT and Treasury apply to any "
         f"indirect tax. Import demand responds to the whole tariff "
