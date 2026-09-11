@@ -193,19 +193,44 @@ class YearlyEffect(BaseModel):
 
 
 class ResultCredibilityModel(BaseModel):
-    """Validation and uncertainty context attached to one score."""
+    """Accuracy context attached to one score.
+
+    Since Wave C's H4 the accuracy figures are the observed error distribution
+    of the policy's own **out-of-sample class** — the 26 pre-registered Tier 1
+    rows, bucketed by the same routing the CI per-class gate uses — and not a
+    mean over a scorecard category that blended fitted bookkeeping with unfitted
+    reconstructions. Every band field is optional, because two thirds of the
+    shipped catalog prices a reform the pre-registered battery does not score;
+    ``no_band_reason`` says which, and the ``own_row_*`` fields carry this
+    policy's own scorecard row and the tier it sits in. The two are separate on
+    purpose: collapsing them is the "validated within X%" claim this repository
+    does not make.
+    """
 
     category: str
     evidence_type: str
-    n_benchmarks: int
-    mean_abs_pct_error: float
-    median_abs_pct_error: float
-    within_15pct: int
-    rating_label: str
-    is_calibrated: bool
-    holdout_status: str
+    policy_class: str | None = None
+    class_label: str | None = None
+    n_tier1_rows: int = 0
+    mean_abs_pct_error: float | None = None
+    median_abs_pct_error: float | None = None
+    max_abs_pct_error: float | None = None
+    rows_inside_mean_band: int | None = None
+    #: Inner band — the class's mean error applied to this figure. Named for
+    #: continuity with every client written before H4.
     uncertainty_low: float | None = None
     uncertainty_high: float | None = None
+    #: Outer band — the class's worst observed row.
+    outer_low: float | None = None
+    outer_high: float | None = None
+    no_band_reason: str = ""
+    own_row_policy_id: str | None = None
+    own_row_tier: str | None = None
+    own_row_tier_label: str | None = None
+    own_row_abs_pct_error: float | None = None
+    own_row_official_billions: float | None = None
+    own_row_caption: str = ""
+    holdout_status: str
     limitations: list[str] = Field(default_factory=list)
     caption: str
 

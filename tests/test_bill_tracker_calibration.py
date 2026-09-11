@@ -45,6 +45,12 @@ def test_dominant_handles_unranked_confidence():
 
 
 def test_render_bill_calibration_band_emits_caption_for_known_type():
+    """The band is the Tier 1 corporate class, not a category mean.
+
+    One pre-registered row scores a corporate statutory-rate change and it is
+    44.5% from its published figure, so that is what a bill whose dominant
+    provision is corporate gets — with ``n=1`` said out loud.
+    """
     reset_confidence_cache()
     st = MagicMock()
     auto_score = {
@@ -56,8 +62,30 @@ def test_render_bill_calibration_band_emits_caption_for_known_type():
 
     assert st.caption.called
     caption_text = st.caption.call_args[0][0]
-    assert "Corporate" in caption_text
-    assert "calibrated run" in caption_text
+    assert "Out-of-sample band" in caption_text
+    assert "corporate" in caption_text
+    assert "n=1" in caption_text
+    assert "demo-grade" in caption_text
+    # The claim that H4 removed must not come back by another route.
+    assert "calibrated run" not in caption_text
+
+
+def test_render_bill_calibration_band_is_silent_for_a_type_with_no_tier1_row():
+    """Most extracted types have no out-of-sample row, and get no band.
+
+    An estate provision used to draw the ``Estate`` category's 4.7% — a mean
+    over three fitted rows whose agreement is bookkeeping. Nothing measures this
+    model's accuracy on an estate reform, so nothing is printed.
+    """
+    reset_confidence_cache()
+    st = MagicMock()
+    auto_score = {
+        "policies_json": json.dumps([
+            {"policy_type": "estate_tax", "confidence": "high"},
+        ]),
+    }
+    _render_bill_calibration_band(st, auto_score, total_billions=-450.0)
+    assert not st.caption.called
 
 
 def test_render_bill_calibration_band_silent_when_no_provisions():
@@ -75,7 +103,7 @@ def test_render_bill_calibration_band_silent_on_compute_failure(monkeypatch):
     def _boom():
         raise RuntimeError("boom")
 
-    monkeypatch.setattr(cb_module, "_category_index", _boom)
+    monkeypatch.setattr(cb_module, "tier1_class_bands", _boom)
     reset_confidence_cache()
 
     st = MagicMock()

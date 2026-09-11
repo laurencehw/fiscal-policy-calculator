@@ -273,4 +273,99 @@ the plan's §2 says the same thing one tier up.
 
 ## 6. Outturn
 
-*Appended after the run; see §7.*
+**Every pre-registered figure landed, and no scored number moved.** The eight bands are exactly the
+§3.1 table, the four headlines are exactly the §3.2 table, and the 18-of-53 / 35-of-53 split is exactly
+§3.3's.
+
+### 6.1 Falsification, condition by condition
+
+| § | Condition | Result |
+|---|---|---|
+| 4.1 | Every class's rows inside its shipped **outer** band | **pass**, 26/26, recomputed from the live scorecard rather than from a constant |
+| 4.1 | Declared **inner** coverage equals measured inner coverage | **pass** on all eight classes (2/6, 3/4, 1/4, 1/1, 2/3, 3/5, 1/2, 1/1) |
+| 4.2 | Band and CI gate share **one** routing function | **pass** — asserted by identity (`cold_holdout.classify_policy is policy_classes.classify_policy`), and `cold_holdout.py --json` is byte-identical |
+| 4.3 | No scored number moves | **pass** — `cold_holdout.py --json`, the 53 × 2 preset sweep with per-year paths, `run_validation_dashboard.py`, `check_readiness.py --strict`, `build_validation_headline.py --check` and **both** CI gate commands all byte-identical |
+| 4.4 | No band where no row | **pass** on all ten named modules, plus a live-object test on the four whose `policy_type` misdescribes them |
+| 4.5 | Every `Policy` subclass routed or excluded with a reason | **pass**, enforced by a walking-subclass test |
+| 4.6 | §3.1 and §3.2 reproduced | **pass**, to the dollar |
+
+### 6.2 What the two old bands actually were — the measurement, not the claim
+
+The plan said the ETI branch "returns nothing for every calibrated preset". **It does not return
+nothing; it falls through, and the thing it falls through to is no better.** Across all 53 presets and
+the three generic shapes, **0 of 56 printed no band**, and both branches returned a fixed proportion
+of the point estimate:
+
+* **13 rows drew a band of exactly 11.43% of the headline** — the closed-form value for any policy
+  whose offset is `−ETI × 0.5 × static`, so Flat Tax Reform (+\$6,239.4B) and the Medicare surcharge
+  (−\$426.6B) drew the identical ribbon. The remaining ETI rows drew one fixed fraction per module:
+  3.8% SALT repeal, 4.2% enforcement, 14.1% international, 19.1% PTC, 22.9% charitable, 42.2–53.6%
+  tariffs.
+* **27 rows drew the engine's uncertainty path**, a second fixed fraction: 38.0% climate and pharma,
+  45.6% estate, credits and payroll, 46.8–47.1% TCJA, AMT, PTC and step-up.
+
+**The defect the plan does not list is the largest.** `get_band_for_result` fell back to `Generic` for
+every unmapped preset area, and `Generic` **is** the Tier 1 tier, so **31 of the 56 rows printed
+"±14.7% across 26 calibrated runs"**. **21 of those 31 now print no band at all**, because the battery
+contains no row scoring what they price. The sharpest single instance was *International Reference
+Pricing*, which drew a ±14.7% band and a −\$918.9B to −\$683.1B range while its own scorecard row is
+**701.0%** from its target.
+
+### 6.3 Findings the lane did not predict
+
+1. **A `policy_type` lookup would have been wrong for four modules, and one of them is a headline.**
+   `AMTPolicy` and `IRSEnforcementPolicy` declare `income_tax`; `InternationalTaxPolicy` declares
+   `corporate_tax`; `TCJAExtensionPolicy` declares `income_tax` for a six-provision bundle. A
+   type-only rule — which is what `POLICY_TYPE_TO_SCORECARD_CATEGORY`, the map this replaced, is —
+   would have handed the four GILTI/FDII/Pillar Two presets the **corporate class's ±44.5%**, measured
+   on a statutory-rate option that prices none of what they price. The route is therefore an allowlist
+   by policy class with "no band" as the default, and every `Policy` subclass is named in it or in
+   `NO_TIER1_CLASS` with a reason.
+2. **`type(policy) is TaxPolicy` is load-bearing, not fastidious.** All 17 `Policy` subclasses in the
+   tree subclass `TaxPolicy` *directly* — there is no intermediate — so an `isinstance` test in the
+   generic branch would have given `TariffPolicy` the ordinary-rate band. A test asserts both halves.
+3. **`SpendingPolicy.policy_type` is not an input.** `__post_init__` derives it from `category` and
+   silently overwrites whatever was passed, so a caller who sets `policy_type=MANDATORY_SPENDING`
+   without setting `category="mandatory"` gets a *discretionary* policy back. It does not change the
+   routing — the two cannot disagree once the object exists — but a test that built the object the way
+   a caller would have got the wrong answer and passed.
+4. **The inner band is not a majority interval for every class, and one class is far from it.**
+   `ordinary rate change` covers **1 of 4**: its mean, 14.8%, sits below a 16.4% median because
+   `illustrative_1pp_all` at 24.5% pulls it. The band declares its own coverage and a test recomputes
+   the count, so the copy can never imply a coverage it has not measured. A second test asserts that
+   *at least one* class is in the minority — if that ever stops being true, the finding has to be
+   restated rather than the caption quietly relaxed.
+5. **The published-range display generalised for free, and reached two presets H3a could not.**
+   `estimator_ranges.published_range_for` was already policy-agnostic, so Pillar Two Adoption
+   (**inside** [−\$102.6B, +\$56.5B]) and Reciprocal Tariffs (**\$3.2B outside** [−\$1,800B,
+   −\$1,400B]) now print their scorekeepers' own disagreement. Reaching them needed one widening:
+   `_scorecard_id_for` consulted the **legacy 24-entry** label view, which H6 deliberately did not
+   widen, and neither preset has ever been in it. The whole badge map is consulted after it, which is
+   strictly additive.
+6. **The tier chip above the headline had to learn `None`.** `accuracy_pct` was
+   `float(... or 0.0)`, so a policy with no measured accuracy would have printed **"± 0.0%"** — which
+   reads as perfect. It is `None` now, and the chip omits the figure.
+
+### 6.4 What a user sees, four headlines
+
+| Run | Before | After |
+|---|---|---|
+| 🏢 **Biden Corporate 28%**, −\$1,397.2B | "±62.8% mean error across 3 calibrated runs (Approximate)"; a −\$1,477.0B to −\$1,317.4B ETI ribbon | **±44.5%** → −\$2,019.0B to −\$775.5B, "the one pre-registered row misses by 44.5% (n=1)", beside **Calibrated reference, 3.7% from −\$1.35T, by construction**. H3a's estimator range and scope verdict unchanged |
+| 🏛️ **TCJA Full Extension**, +\$4,581.9B | "±19.5% across 3 calibrated runs (Acceptable)"; a +\$3,509.7B to +\$5,654.1B ribbon that is a flat 46.8% | **no band**: "no pre-registered row scores a bundle of rates, brackets, the standard deduction, the CTC, the AMT and QBI together", beside **Calibrated reference, 0.4% from \$4,600B** |
+| **Warren Ultra-Millionaire Surtax**, −\$456.0B | "±14.7% across 26 calibrated runs (Limited)"; an 11.43% ribbon | **AGI-inclusive surtax · 6 rows, mean 17.6%, worst 31.8%** → −\$536.3B to −\$375.7B, −\$601.0B to −\$311.0B at the worst, 2 of 6 inside, beside **Out-of-sample prediction, 24.8% from −\$350.0B** |
+| **Tailor, 1pp all brackets**, −\$1,195.3B | the same "±14.7% across 26 calibrated runs" and the same 11.43% ribbon | **ordinary rate change · 4 rows, mean 14.8%, worst 24.5%** (median 16.4%, 1 of 4 inside) → −\$1,372.2B to −\$1,018.4B, −\$1,488.1B to −\$902.4B at the worst; no scorecard row, and it says so |
+
+### 6.5 Carry-overs
+
+* **Eight classes at n = 1, 1, 2, 3, 4, 4, 5, 6 is a thin basis for a band**, and two of them print a
+  single observation. **H10** is the lane that widens the battery; registering a row here to fatten a
+  class would have been selecting a target after seeing what the band needed.
+* **35 of 53 presets have no measured out-of-sample accuracy at all** — every tariff, every pharma
+  row, TCJA, the estate presets, the credits, the AMT presets, international, enforcement, climate.
+  That is the plan's §2 read one tier down, and no presentation lane can close it.
+* **The band is symmetric and the errors are not.** Five of the six AGI-surtax rows over-predict;
+  all four ordinary-rate rows crossed from under- to over-prediction in Wave B. A signed band would
+  say more, and would need a rule for what a two-row class's direction means. Not taken here.
+* **`fiscal_model/ui/__init__.py`'s eager re-export chain** still pulls the whole of
+  `fiscal_model.validation` into any `fiscal_model.ui` import (H3a's §"Purity" note). This lane's
+  lazy imports buy nothing against it, for the same reason H3a's did.

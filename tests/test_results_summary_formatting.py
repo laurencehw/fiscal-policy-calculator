@@ -116,30 +116,121 @@ def test_build_interpretation_html_avoids_markdown_currency_markup():
     assert "<strong>1.4% of GDP annually</strong>" in html
 
 
-def test_build_credibility_html_summarizes_validation_evidence():
+def test_build_credibility_html_keeps_the_band_and_the_row_apart():
+    """Two facts, two places. Collapsing them is the claim CLAUDE.md forbids.
+
+    The card H4 replaced printed one category mean — blended across fitted
+    bookkeeping and unfitted reconstructions — under a single rating word. What
+    prints now is the policy class's out-of-sample distribution *and*, beside
+    it, this policy's own scorecard row with the tier that row sits in.
+    """
     html = _build_credibility_html(
         SimpleNamespace(
             uncertainty_low=-1040.0,
             uncertainty_high=-960.0,
-            evidence_type="specialized_benchmark_comparison",
+            outer_low=-1200.0,
+            outer_high=-800.0,
+            evidence_type="out_of_sample_class_distribution",
             category="Payroll",
-            rating_label="Good",
+            policy_class="payroll",
+            class_label="payroll",
+            n_tier1_rows=2,
+            mean_abs_pct_error=7.8,
+            median_abs_pct_error=7.8,
+            max_abs_pct_error=8.1,
+            rows_inside_mean_band=1,
+            no_band_reason="",
+            own_row_policy_id="ss_donut_250k",
+            own_row_tier="reconstruction",
+            own_row_tier_label="Unfitted reconstruction",
+            own_row_abs_pct_error=89.2,
+            own_row_caption="Unfitted reconstruction, 89.2% from -$1.43T (CBO).",
             holdout_status="post_lock_holdout",
-            caption="Validation evidence in Payroll category.",
-            n_benchmarks=3,
-            mean_abs_pct_error=4.0,
+            caption="Out-of-sample accuracy, payroll: 2 pre-registered rows.",
             limitations=["Known limitation <must escape>"],
         )
     )
 
-    assert "Validation evidence" in html
-    assert "<strong>Good</strong> confidence" in html
-    assert "Category: <strong>Payroll</strong>" in html
-    assert "Range: <strong>$-1,040B to $-960B</strong>" in html
-    assert "specialized benchmark comparison" in html
+    assert "Accuracy evidence" in html
+    assert "Policy class: <strong>payroll</strong>" in html
+    assert "Out-of-sample rows: <strong>2</strong>" in html
+    assert "Mean error: <strong>±7.8%</strong>" in html
+    assert "Typical: <strong>$-1,040B to $-960B</strong>" in html
+    assert "Worst row: <strong>$-1,200B to $-800B</strong>" in html
+    assert "<strong>1 of 2</strong> inside the mean" in html
+    assert "Unfitted reconstruction" in html
+    assert "89.2% from -$1.43T" in html
     assert "not an official CBO/JCT score" in html
     assert "Known limitation &lt;must escape&gt;" in html
     assert "Known limitation <must escape>" not in html
+    # A single blended accuracy word is exactly what this replaced.
+    assert "confidence</span>" not in html
+
+
+def test_build_credibility_html_says_when_there_is_no_band():
+    html = _build_credibility_html(
+        SimpleNamespace(
+            uncertainty_low=None,
+            uncertainty_high=None,
+            outer_low=None,
+            outer_high=None,
+            evidence_type="no_out_of_sample_benchmark",
+            category="TCJA",
+            policy_class=None,
+            class_label=None,
+            n_tier1_rows=0,
+            mean_abs_pct_error=None,
+            median_abs_pct_error=None,
+            max_abs_pct_error=None,
+            rows_inside_mean_band=None,
+            no_band_reason="no pre-registered row scores a bundle",
+            own_row_policy_id="tcja_full_extension",
+            own_row_tier="fitted",
+            own_row_tier_label="Calibrated reference",
+            own_row_abs_pct_error=0.4,
+            own_row_caption="Calibrated to reproduce $4.60T (CBO).",
+            holdout_status="not_applicable_calibrated",
+            caption="No out-of-sample band: no pre-registered row scores a bundle.",
+            limitations=[],
+        )
+    )
+
+    assert "<strong>No out-of-sample band</strong> for this policy class" in html
+    assert "Calibrated reference" in html
+    assert "Calibrated to reproduce $4.60T" in html
+    assert "Mean error" not in html
+
+
+def test_build_credibility_html_says_when_there_is_no_row_either():
+    html = _build_credibility_html(
+        SimpleNamespace(
+            uncertainty_low=-1148.0,
+            uncertainty_high=-852.0,
+            outer_low=-1245.0,
+            outer_high=-755.0,
+            evidence_type="out_of_sample_class_distribution",
+            category="Generic",
+            policy_class="ordinary_rate_change",
+            class_label="ordinary rate change",
+            n_tier1_rows=4,
+            mean_abs_pct_error=14.8,
+            median_abs_pct_error=16.4,
+            max_abs_pct_error=24.5,
+            rows_inside_mean_band=1,
+            no_band_reason="",
+            own_row_policy_id=None,
+            own_row_tier=None,
+            own_row_tier_label=None,
+            own_row_abs_pct_error=None,
+            own_row_caption="",
+            holdout_status="not_applicable_generic",
+            caption="Out-of-sample accuracy, ordinary rate change.",
+            limitations=[],
+        )
+    )
+
+    assert "No scorecard row scores this exact policy." in html
+    assert "Policy class: <strong>ordinary rate change</strong>" in html
 
 
 def test_build_credibility_html_returns_empty_for_missing_metadata():

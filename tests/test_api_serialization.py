@@ -176,8 +176,16 @@ def test_serialized_result_includes_credibility_metadata():
     credibility = payload["credibility"]
     assert credibility is not None
     assert credibility["category"] == "Generic"
-    assert credibility["evidence_type"] == "generic_parameterized_estimate"
+    # Since Wave C's H4 the accuracy claim is the policy's own out-of-sample
+    # class, not a mean over a scorecard category. ``uncertainty_low`` and
+    # ``uncertainty_high`` keep their names and are now the class's mean error
+    # applied to this figure; ``outer_low`` / ``outer_high`` are its worst row.
+    assert credibility["evidence_type"] == "out_of_sample_class_distribution"
+    assert credibility["policy_class"] in {"ordinary_rate_change", "agi_inclusive_surtax"}
+    assert credibility["n_tier1_rows"] >= 1
     assert credibility["holdout_status"] == "not_applicable_generic"
     assert credibility["uncertainty_low"] <= payload["ten_year_deficit_impact"]
     assert credibility["uncertainty_high"] >= payload["ten_year_deficit_impact"]
+    assert credibility["outer_low"] <= credibility["uncertainty_low"]
+    assert credibility["outer_high"] >= credibility["uncertainty_high"]
     assert any("holdout" in item for item in credibility["limitations"])
