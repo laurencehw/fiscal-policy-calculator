@@ -370,10 +370,156 @@ form and is the property the implementation is built around.
 
 ## 6. Outturn
 
-*(written after implementation)*
+**Every pre-registered figure landed, and the two that had to land to the cent did.**
+The hand prototype reproduced the engine exactly in both directions: it matched the *before*
+path to the cent before anything was written, and the engine then reproduced the prototype's
+predicted *after* path to the cent, year by year, across all ten years.
 
----
+### 6.1 The six generic rows, pre-registered against measured
+
+| Row | before | predicted | **measured** | Δ | before err | predicted err | **measured err** |
+|---|--:|--:|--:|--:|--:|--:|--:|
+| `cbo_opt45_top4_brackets_2pp` | −650.97 | −671.2 ± 0.5 | **−671.21** | −20.24 | 14.31% | 17.86 ± 0.1 | **17.86%** |
+| `cbo_opt45_all_rates_1pp` | −1201.24 | to the cent | **−1201.24** | **0.0000** | 1.35% | 1.35% | **1.35%** |
+| `illustrative_1pp_all` | −1235.67 | to the cent | **−1235.67** | **0.0000** | 14.28% | 14.28% | **14.28%** |
+| `cbo_opt46_agi_surtax_1pp_20k` | −1326.31 | unmoved | **−1326.31** | **0.0000** | 7.90% | — | **7.90%** |
+| `cbo_opt46_agi_surtax_2pp_100k` | −1075.85 | unmoved | **−1075.85** | **0.0000** | 2.36% | — | **2.36%** |
+| `biden_high_income_tax` | −299.84 | unmoved | **−299.84** | **0.0000** | 21.94% | — | **21.94%** |
+
+The five retired or non-battery generic records in `KNOWN_SCORES` — `illustrative_500k_2pp`,
+`illustrative_top_rate_5pp`, `medicare_surcharge_2pp`, `top_rate_45`,
+`warren_ultramillionaire_surtax_3pp` — are byte-identical too, checked because a rule that
+swept on numeric proximity would have caught `top_rate_45`'s $609,350 (see §6.4).
+
+### 6.2 The tier
+
+| | before | predicted | **measured** |
+|---|--:|--:|--:|
+| n | 22 | 22 | **22** |
+| mean | 11.6% | 11.8% | **11.8%** |
+| median | 8.9% | 8.9% | **8.9%** |
+| within 15% | 18 | 17 | **17** |
+| within 25% | 19 | 19 | **19** |
+| `ordinary_rate_change` mean | 12.9% | 13.8% | **13.8%** |
+| `ordinary_rate_change` mass | 51.8 | 55.36 | **55.4** |
+
+The other seven classes are byte-identical: `capital_gains` 18.7 (n=4), `agi_inclusive_surtax`
+5.2 (2), `payroll` 7.8 (2), `corporate` 44.5 (1), `discretionary_spending` 4.6 (5),
+`tax_expenditure` 12.8 (1), `enacted_law_spending` 7.4 (3).
+
+### 6.3 Everything else held
+
+* **Presets: 0 of 53 moved**, in either engine mode, across 106 scored runs.
+* **Tailor: 0 of 12 shapes moved**, including the two at bracket-boundary amounts.
+* **Fitted tier: 0 of 15 rows moved.** **Reconstruction tier: 0 of 38 rows moved.**
+* **`run_loo.py --donor-matrix` is byte-identical** — `diff` returns nothing.
+* **`run_validation_dashboard.py` differs in exactly one line**, the Tier 1 summary.
+* **No Decision 6 caption is owed**, because no shipped score moved. The caption function
+  ships dormant and is tested in both engine modes, because the thing it explains is
+  reachable from the model API today and from Tailor the moment §7's item 1 lands.
+
+### 6.4 Findings the pre-registration did not name
+
+**1. The plan's stated direction for the registered regression was backwards, and the reason
+is datable.** `ROUTE_TO_8_5.md` §1 R4 and `HSB_h2_base_growth.md` §5 both say the year-indexed
+threshold takes `cbo_opt45_top4_brackets_2pp` *further under*. It takes it further **over**,
+because H2 shipped the base projection after that direction was written and the row crossed
+its target on that step: 12.4% under became 14.9% over, and this lane takes it to 17.9% over.
+The direction was true of the tree it was written about and false of the tree it was executed
+on — which is an argument for measuring a band in the pre-registration rather than inheriting
+one.
+
+**2. The row moves by the *difference* of two terms the base projection created, and neither
+excuses the other.** Deflating the boundary is worth **−$68.4B** and the CY2026 reversion
+**+$48.1B**; the net is −$20.2B, 3.6 points. H2's §6.6 carry-over said these two point
+opposite ways and that is confirmed to the dollar. What it could not say is which is larger:
+deflation wins, so the schedule makes the row worse even though the reversion alone would have
+improved it.
+
+**3. The arithmetically wrong variant scores 3.61%, four times better than the correct one.**
+Applying a year-`t` nominal floor to a TY2023 income — the unit error — reads 3.61% against
+17.86%. It is written into the row's `known_limitations` and into `TaxPolicy`'s docstring,
+because a repository that keeps finding two-errors-cancelling should record the one it
+declined to introduce, and a future lane looking for three points of improvement on this row
+will find this note before it finds the shortcut.
+
+**4. The CY2025 vintage substitution is worth one cent.** Re-scoring the whole row with CY2025
+forced to the Revenue Procedure's actual floors (206,700/103,350) rather than June 2024's
+projection (207,300/103,650) gives **−671.20 against −671.21**. The `nearest_vintage` grade is
+still carried and still printed, because the grade is about what was read and not about
+whether it mattered.
+
+**5. One shipped preset's threshold *is* a statutory boundary, and it was left alone.**
+`Top Rate to 45%` carries $609,350, which is `tp_bracket_7_single` for CY2024 exactly. It is
+not declared: `fiscal_model/app_data.py` is not this lane's file, declaring it would move a
+shipped number, and its validation row `top_rate_45` was **retired by R2 for want of a
+target**, so the movement could not be scored against anything. §7 carries it.
+
+**6. The trap the rule exists for is real and is now a test.** `$20,000` is
+`tp_bracket_2_hoh` in CY2033 on the February 2024 vintage — the exact threshold of CBO's
+Option 46 alternative 1, the row a proximity rule would have swept onto a schedule its own
+text never mentions. `tests/test_parameter_schedule.py::test_numeric_coincidence_is_not_evidence`
+asserts the coincidence, the record's `None`, and the rule's own sentence together, so the
+three cannot drift apart.
+
+**7. The unnamed default is worth a third of the answer on an ordinary Tailor shape.** A
++2pp rate above \$400,000 on the app's own vintage and window (FY2026–2035, February 2026)
+scores **−\$232.49B** under `"income"`, the default; **−\$309.86B** under `"nominal"`, which is
+what a user typing "\$400,000" most plausibly means; and **−\$266.88B** under `"statutory"` at
+bracket 6, whose joint floor runs \$512,450 → \$617,650 across that window. The gap between
+the first two is **33.3%**, larger than every band the app prints for this class, and until
+this lane nothing on the surface or in the code said which of the three was being answered.
+That is the argument for the enum independently of the schedule.
+
+**8. The schedule contains far more than this lane wired, and the count is the point.**
+130–150 variables per vintage: AMT exemptions and phase-outs by status (which `amt.py`
+transcribes from eleven Revenue Procedures by hand), sixteen EITC parameters, five CTC
+parameters, SALT limits by status, standard deductions, `tp_ss_max_earnings`, both price
+indices, and CBO's own EMTRs on labour and capital. **Two variables out of 150 are read.**
+Each of the others belongs to a module with calibrated benchmarks, and wiring one here would
+have made it impossible to say which step moved which row.
+
+### 6.5 Gates
+
+| Gate | Result |
+|---|---|
+| `pytest tests/ -q` | **4,170 passed, 7 skipped** (4,131 + this lane's 39) |
+| `ruff check fiscal_model/ tests/ app.py app_pages/ components/ classroom_app.py` | **All checks passed** |
+| `cold_holdout.py --max-mean-error 15 --min-within-25pct 19` | **exit 0** (11.8 against 15; 19 against 19) |
+| `cold_holdout.py --max-class-mean-error …` | **exit 0** — `ordinary_rate_change` **13.84 against a ceiling of 15**, 1.16 points of headroom; the other seven unmoved |
+| `check_readiness.py --strict` | **`ready_with_warnings`, 5 pass / 5 warn / 0 fail** — the same three documented Poor outliers as `main` (`repeal_ptc`, `pwbm_39_with_stepup`, `eliminate_mortgage`). 17.86% is *Acceptable*; no row crossed into Poor and no exemption was added |
+| `build_validation_headline.py --check` | **exit 0** — 73 published of 77, unchanged |
+| `fetch_cbo_tax_parameters.py --check` | **exit 0** — three SHA-256s verified, all statutory identities hold |
+| `smoke_ask_assistant.py` | see §6.6 |
+
+**No gate value was touched.** The registered regression did not break the per-class ceiling,
+so there is nothing for the sync lane to re-derive; had it, the instruction was to report it
+rather than move it.
 
 ## 7. Owner items
 
-*(written after implementation)*
+1. **The Tailor control, which is this lane's one declared deviation from its brief.** The
+   brief asked for the option on Tailor; the model-level option ships and the widget does not,
+   because `app_pages/tailor.py` and `fiscal_model/ui/share_links.py` are not among this
+   lane's files and the URL contract's table lives in a file the docs-sync lane owns, in a
+   wave with three parallel model lanes. The shape is: one `st.radio` or `st.selectbox` over
+   `THRESHOLD_INDEXATIONS` defaulting to `"income"`, one `&index=` parameter in
+   `share_links.encode_tailor_params` / `decode_tailor_params`, one row in `CLAUDE.md`'s URL
+   table, and the frozen-link proxy picks it up for free because it renders every input.
+   **Nothing shipped moves until it lands**, so it is additive.
+2. **`Top Rate to 45%`'s threshold** (finding 5). $609,350 is a statutory boundary and the
+   preset does not say so. Declaring it is an `app_data.py` edit that moves a shipped number
+   with no scorecard row to check it, since `top_rate_45` is retired. Both halves are the
+   owner's.
+3. **The other 148 variables** (finding 8). AMT's eleven hand-transcribed Revenue Procedures
+   are the sharpest candidate — the same statute, published by CBO, on three vintages, in one
+   file — but `amt.py`'s benchmarks are calibrated and a rewiring there is a lane with its own
+   pre-registration.
+4. **Converting the five remaining `isinstance` branches** in `_score_growth_tax_policy_year`
+   to `scores_by_year()`. The concept exists with two implementers; the rest is mechanical and
+   needs five modules opened. It changes no number by construction, which makes it a good
+   candidate for a lane that wants a falsification test it can actually fail.
+5. **Real bracket creep as a default** (§1.5). `"nominal"` is built and measured at 10.5% on
+   the one moving row. Making it the default is a defensible reading of what a typed threshold
+   means and would move every generic preset and the whole Tailor surface, so it is a
+   deliberate product decision with a Decision 6 caption attached, not a tidy-up.
