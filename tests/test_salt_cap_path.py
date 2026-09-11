@@ -259,29 +259,21 @@ def test_within_class_agi_dispersion_matters_at_the_phasedown_and_nowhere_else()
     """
     distribution = load_capped_deduction_distribution()
     schedule = salt_cap_schedule(2026)
+
+    def at_class_mean(bracket):
+        """The same SALT dispersion, cap read once at the class's own mean AGI."""
+        flat = schedule.cap_at(bracket.agi_mean)
+        return bracket.deductible_benefit_billions(lambda _magi: flat)
+
     at_slices = distribution.deductible_benefit_billions(schedule.cap_at)
-    # The same SALT dispersion, with the cap read once at each class's own mean
-    # AGI: only the AGI treatment differs.
-    at_means = sum(
-        bracket.deductible_benefit_billions(
-            lambda _magi, cap=schedule.cap_at(bracket.agi_mean): cap
-        )
-        for bracket in distribution.classes
-    )
+    at_means = sum(at_class_mean(b) for b in distribution.classes)
     assert at_slices > at_means
     # And only through the classes the phase-out range runs into: below
-    # $500,000 and above the completion point the two agree exactly.
+    # $500,000 the two agree exactly.
     below = [c for c in distribution.classes if c.agi_lower < 500_000]
     assert sum(
         c.deductible_benefit_billions(schedule.cap_at) for c in below
-    ) == pytest.approx(
-        sum(
-            c.deductible_benefit_billions(
-                lambda _magi, cap=schedule.cap_at(c.agi_mean): cap
-            )
-            for c in below
-        )
-    )
+    ) == pytest.approx(sum(at_class_mean(c) for c in below))
 
 
 # ---------------------------------------------------------------------------

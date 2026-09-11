@@ -381,3 +381,137 @@ after the change:
   benchmark on a second module's base.
 * **`preset_handler.py`, `app_pages/`, `deficit_target.py`, presentation
   flags.** H12's lane.
+
+## 6. Outturn
+
+*Appended 2026-09-11 in the lane's last commit, measured on the branch with
+every change in.*
+
+**Every pre-registered figure landed. One preset moved, one leave-one-out row
+moved by $0.2B, and nothing else in the repository moved at all.**
+
+### 6.1 The pre-registration, row by row
+
+| pre-registered | predicted | actual | |
+|---|--:|--:|---|
+| A. `repeal_salt_cap` scorecard | 1,155.6 (1.1%) | **1,155.6 (1.1%)** | ok |
+| A. `eliminate_salt` scorecard | −1,260.3 (22.3%) | **−1,260.3 (22.3%)** | ok |
+| B. `repeal_salt_cap` LOO | 776.8 (−33.5%) | **776.7 (−33.6%)** | ok |
+| B. `eliminate_salt` LOO | 1,077.9, to the cent | **1,077.9** | ok |
+| B. Expenditures LOO module mean | 43.6% (n=5) | **43.6% (n=5)** | ok |
+| B. LOO aggregate | 36.5% (n=18) | **36.5% (n=18)** | ok |
+| C. `salt-cap-repeal` static | +$738.2B | **+$740.3B** | +0.29% |
+| C. `salt-cap-repeal` dynamic | +$636 ± 20B | **+$646.6B** | ok |
+| C. every other preset | to the cent | **to the cent** | ok |
+| D. current-law `eliminate_salt` | +$339.7B | **+$337.6B** | −0.63% |
+| E. Tier 1 | byte-identical | **byte-identical** | ok |
+| F. composition | unchanged | **unchanged** | ok |
+| G. JCT sec. 70120 anchor | −24 ± 4% | **−23.58%** | ok |
+
+`scripts/cold_holdout.py --json` and `scripts/run_validation_dashboard.py` are
+**byte-identical** to `main`; `scripts/run_loo.py --donor-matrix` differs in
+**one line**; `scripts/check_readiness.py --strict` is byte-identical;
+`build_validation_headline.py --check` passes unregenerated (77 published of
+81); ruff is clean; both cold-holdout gate commands and the leave-one-out
+ceiling pass as the workflow runs them.
+
+**The shipped preset.** 📋 Repeal SALT Cap **+$1,155.56B → +$740.31B** static
+(−35.9%) and **+$996.29B → +$646.62B** dynamic (−35.1%), with the Decision 6
+caption in `results_summary.salt_current_law_caption`. The other 52 presets
+score to the cent in both engine modes.
+
+### 6.2 The one deviation from the pre-registration, and why
+
+§3's figures were computed with within-class **AGI held at its SOI level**
+while the SALT amounts were aged; the implementation ages both. Freezing the
+incomes a phasedown is read against while growing the taxes it limits is not a
+coherent pair — the statute indexes the *threshold* at 1%/yr and indexes
+nothing about incomes, which is the whole mechanism — so the coherent choice
+was taken and the deviation is reported rather than smoothed. It is worth
+**+0.29%** on the repeal leg (738.17 → 740.31) and **−0.63%** on the eliminate
+leg (339.75 → 337.61). No pre-registered band is crossed.
+
+### 6.3 Findings
+
+1. **`salt-deduction-eliminate` is quoted, not scored.** It has no
+   `PRESET_POLICIES` row at all — it is a `SCORE_ONLY_ID_BY_LABEL` entry — so
+   Build prints CBO's −$1,621.0B as a list price and the engine never runs it.
+   "Score the app's two SALT presets on current law" therefore has one scored
+   half and one quoted half, and the quoted half gets a sentence naming the
+   baseline rather than a number. The current-law figure the module *would*
+   return is **+$337.6B**, a fifth of the quoted one.
+2. **The Tier 2 ledger refuses a no-move re-registration, and it is right to.**
+   `target_revision_problems()`'s fifth invariant fails a supersession that
+   restates its own figure. Both targets stand, so the `.v3` rows the decision
+   asked for cannot exist in `target_revisions.py`. **Tier 2 has no
+   shape-input manifest** — Tier 1's `preregistered.py` does, which is how
+   `iija_2021_discretionary.v2` and `treasury_capgains…v2` were done — so the
+   declaration went into `scenarios.SALT_SCORING_BASELINES`, inert in one
+   commit and the scoring input in the next, with a test that fails if the two
+   drift. Whether Tier 2 should grow the same manifest is an owner item.
+3. **The distributional path is now inconsistent with the revenue path, and
+   the test that caught it was the synthetic one.** Forcing the synthetic
+   bracket reference moved the SALT distributional benchmark **0.0pp →
+   24.9pp** until its runner was given JCX-4-24's own January 2024 baseline.
+   The **default** microsim path did not move at all — because
+   `microsim/engine.py` sets `self.salt_cap = 10000` and
+   `distribution_effects.py` reads `getattr(policy, "salt_cap", 10000)`, so
+   the who-pays table prices a $10,000-cap world for the same policy object
+   whose revenue score is now current law. That is a real inconsistency in a
+   green-tier surface and this lane owns neither file. Carry-over.
+4. **JCT has scored this mechanism and the repository already carries the
+   score.** `pl119_21_salt_cap_40k` is JCX-35-25 line 20, **+$946,209M over
+   FY2025-2034** — sec. 70120 measured against a baseline in which the cap
+   lapses, which is this module's repeal quantity with the sign reversed. On
+   that window the new mechanism returns **$723.1B, −23.6%**. Its row's own
+   `known_limitations` say "the app's SALT component represents the flat
+   $10,000 cap only, so this row is scored against a design the module cannot
+   express"; after this lane the module **can** express it, and that benchmark
+   is run by `tcja.py`. Rewiring it changes a benchmark's runner and is an
+   owner decision, not this lane's.
+5. **The −23.6% has a named direction and it is not the elasticity.** SOI tax
+   year 2023 observes the population that itemised under a $10,000 cap and
+   TCJA's larger standard deduction. JCT's JCX-45-25 puts SALT claimants at
+   **11.8M → 17.8M returns** under the $40,000 cap, so the filers the raised
+   cap pulls into itemising are absent from the base at every income — a
+   one-directional omission that makes the model **under**-count exactly as
+   observed. The two smaller omissions run the same way: SALT is assumed
+   independent of AGI within a class when it rises with income, and the base
+   is not aged from TY2023 to the window's first year.
+6. **Fifteen of the 22 AGI classes cannot carry a bounded-Pareto AGI fit**, and
+   the reason is a fact about the published table rather than a defect: a
+   bounded Pareto on $5,000–$10,000 cannot produce a mean above $6,931 and SOI
+   publishes $7,777, so those classes are flatter than Pareto. Every one of
+   the fifteen has an upper bound at or below $200,000, and no published SALT
+   phasedown starts below $250,000, so not one of them is reachable.
+7. **The AGI refinement is small and was taken for its shape, not its size.**
+   Reading the phasedown at the class mean instead of across the class moves
+   the eliminate leg by **2.0%** ($317.2B → $323.6B over ten years on the
+   pre-registration's own arithmetic). It was taken because the class-mean path
+   is a *step function at a published class boundary* — SOI's $500,000–
+   $1,000,000 class has a mean AGI of $680,978, above the 2026 phase-out
+   completion of $606,333, so the whole class drops to $10,000 at once.
+8. **`SOI_BASE_YEAR = 2023` is declared and read by nothing.** The module's own
+   comment says amounts "are grown from this year to a policy's first year";
+   they are not. Aging them would raise the uncapped level 9.3% and move rows
+   in three other reforms, so it is deliberately untouched here.
+
+## 7. Carry-overs and owner items
+
+* **Owner item.** Should Tier 2 grow a shape-input manifest, as
+  `preregistered.py` has for Tier 1? `SALT_SCORING_BASELINES` is this lane's
+  local answer and does not generalise.
+* **Owner item.** `pl119_21_salt_cap_40k` can now be scored by the expenditure
+  module against `SaltCapBaseline.LAPSED_CAP` rather than by `tcja.py`'s flat
+  $10,000 component. Finding 4 gives the figure it would read.
+* **Carry-over.** `microsim/engine.py` and `distribution_effects.py` hard-code
+  a $10,000 SALT cap, so a policy object's revenue score and its distributional
+  table now disagree about what year it is (finding 3).
+* **Carry-over.** Aging the SOI base from TY2023 (finding 8).
+* **Carry-over.** New itemisers under a raised cap (finding 5) — the largest
+  named term in the −23.6%, and the one that would need a base outside SOI
+  Table 2.1's itemiser panel.
+* **Carry-over.** The MFS column of the statutory path is transcribed and
+  unused: SOI Table 2.1's "All returns" panel has no filing-status dimension.
+* **Still open from H7.** The SALT behavioural magnitude of 0.05 is unsourced
+  and was not touched (§5).
