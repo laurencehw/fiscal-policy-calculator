@@ -409,4 +409,275 @@ Anything that moves outside this list is a finding and gets written into §6.
 
 ## 6. Outturn
 
-*Appended in the lane's last commit.*
+*Appended in the lane's last commit. Every figure below is from a command named
+beside it, run on this branch.*
+
+**Every prediction in §3 landed, and all but one of them to the digit.** Two
+scored rows moved, both registered regressions, both by exactly the
+`(1 ± e_new)/(1 ± e_old)` factor §3.1 computed; Tier 1 is identical to the cent
+on all 26 rows; one preset moved and it is the one §3.4 named; no fitted row
+went Poor. None of §4's six falsifications fired. The single figure outside its
+band is the leave-one-out **median**, hedged at "≈29%" and landing at 30.2%,
+which is a reordering of an 18-row list rather than a movement in any
+derivation.
+
+### 6.1 What the module reads now
+
+`python scripts/…` (the lane's own decomposition over all eight factories, both
+modes):
+
+| reform | mode | e before | **e after** | direction |
+|---|---|--:|--:|---|
+| `eliminate_mortgage` | reported / derived | 0.100000 | **0.14502762** | erode |
+| `cap_charitable` (28% ceiling) | reported / derived | 0.400000 | **0.22077987** | magnify |
+| `cap_employer_health` | reported / derived | 0.20 | 0.20 | magnify |
+| `repeal_salt_cap` | reported / derived | 0.05 | 0.05 | magnify |
+| `eliminate_salt` | reported / derived | 0.05 | 0.05 | magnify |
+| `cap_retirement` | reported | 0.30 | 0.30 | erode |
+| `eliminate_step_up` | reported / derived | 0.00 | 0.00 | erode |
+| `eliminate_like_kind` | reported / derived | 0.00 | 0.00 | erode |
+
+Both adopted values are exactly §1's: `1 − 61.9/72.4 = 0.14502762…` and the
+identity's `0.220780` at `ε = 0.5`. No direction changed and no fitted annual
+was opened — `tax_expenditures_factory.py`'s six constants and
+`validation/scenarios.py` are untouched.
+
+### 6.2 What moved
+
+`python scripts/cold_holdout.py --json`, compared row by row rather than on the
+tier means:
+
+| | before | after |
+|---|--:|--:|
+| **Tier 1 — out-of-sample** | 26 @ 14.5% / 11.5% / 16 / 22 | **unchanged, to the cent on all 26 rows** |
+| **Tier 2 — fitted** | 16 @ **1.5%**, median 0.1%, 16/16 within 15% | **16 @ 2.3%**, median 0.1%, **16/16** within 15% |
+| ... held in place | 27 @ 11.9%, median 1.1%, 22/27 | **27 @ 12.4%**, median **3.7%**, 22/27 |
+| **Tier 2 — reconstructions** | 39 @ **56.7%** / 36.9%, 10/39, 13/39 | **39 @ 56.8%** / 36.9%, 10/39, 13/39 |
+| Shipped presets (53) | — | **1 moved**; the other 52 byte-identical in both engine modes |
+
+**Exactly two scorecard rows moved, and they are the two §3.1 named:**
+
+| row | tier | target | before | after | error before → after | **predicted** |
+|---|---|--:|--:|--:|---|---|
+| `cap_charitable` | fitted | −200.0 | −200.6 | **−174.9** | 0.3% → **12.5%** | −174.9, 12.6 ± 0.5 |
+| `eliminate_mortgage` | reconstruction | [−495.0, −367.9] | −270.3 | **−256.8** | 26.5% → **30.2%** | −256.8, 30.2 ± 0.5 |
+
+No row left or joined either calibrated tier, so the headline reading *is* the
+held-in-place reading for this lane's mechanism: 16 @ 2.3% on the same 16 rows,
+39 @ 56.8% on the same 39. The reconstruction tier's `Expenditures`
+sub-population (`repeal_salt_cap`, `eliminate_salt`, `eliminate_mortgage`) goes
+**16.6% → 17.9%**, median unchanged at 22.3%.
+
+**`cap_charitable` rates Acceptable and nothing was reclassified.** Strict
+readiness, queried directly for the field rather than compared as text —
+PR #119's §7.5 lesson — returns `documented_calibrated_policy_ids == []` and
+`strict_readiness_issues` returns `[('runtime', None)]`, the Python 3.14 issue
+that fails on `main` too. `scenarios.py` was never opened.
+
+**The leave-one-out is the price, and §3.3 named it in advance**
+(`python scripts/run_loo.py --donor-matrix`, which differs from `main` in
+**six lines** and in no derivation outside this module):
+
+| | before | after | predicted |
+|---|--:|--:|---|
+| `eliminate_mortgage` LOO | −257.9, **29.9%** | **−245.0, 33.4%** | −245.0, 33.4 ± 1 |
+| `cap_charitable` LOO | −173.8, **13.1%** | **−151.6, 24.2%** | −151.6, 24.2 ± 1 |
+| Expenditures module (n=5) | **40.6%** | **43.6%** | 43.6 ± 1 |
+| LOO suite (n=18) | **35.7%** / 29.1% / 6 within 15% | **36.5%** / **30.2%** / **5** | 36.5 ± 1 / ≈29% / 5 |
+
+The CI ceiling (75%) is not approached, and the capital-gains donor matrix is
+byte-identical.
+
+### 6.3 The preset, and the caption it ships with
+
+One of the 53 moved, on the app's FY2026–2035 window:
+
+| 📋 Cap Charitable Deduction | static | behavioural | **headline (conventional)** | dynamic total |
+|---|--:|--:|--:|--:|
+| before | 126.98882660 | −50.79553064 | **−177.78435723** | −155.98287313 |
+| after | 126.98882660 | **−28.03657689** | **−155.02540348** | −136.01482279 |
+
+— **−12.80%** of the revenue raised, against §3.4's predicted −155.025. Its
+validation badge drops **Excellent → Acceptable** with it, which is the correct
+reading: the green badge was bought by a magnitude no document supports. Its
+label keeps `(-$200B)`, because that is the published target and H9 examined and
+left it.
+
+The Decision 6 caption is one function and one call line in
+`results_summary.py`, computed from `static_deficit_effect + behavioral_offset`
+— the conventional headline, in both engine modes — and reconstructing the
+previous figure from `BEHAVIORAL_ELASTICITIES` rather than from a literal, so it
+cannot drift. A test asserts the static and dynamic renders are the same string,
+because PR #144's review found a caption one wave ago that read
+`final_deficit_effect` and so disagreed with the headline above it by 69% on a
+dynamic run. The caption also reaches `eliminate_mortgage`, which no preset
+ships but Tailor and the API can construct.
+
+### 6.4 Eight findings
+
+**1 — The plan's "nearer 18%" is not reproducible, and the correct figure is
+22.1%.** Registered in §1.2 before any code and confirmed by the identity: at
+CRS's central price elasticity of 0.5 the charitable ceiling's implied share is
+**0.220780**. Eighteen percent would need `ε = 0.405`, which is not a figure CRS
+prints. The plan and `W7…md` finding 5 both carried the 18%; it should be read
+as an estimate made in passing, not a result.
+
+**2 — 0.40 was the right identity at an elasticity above the whole published
+band.** W7 guessed the shipped 0.40 "has the size of a price elasticity of
+giving" and that it was therefore applied to the wrong quantity. Inverting it
+through the identity is sharper and worse: **0.40 corresponds to `ε = 0.906`**,
+against CRS R40518's low 0.1 / central 0.5 / **high 0.79**. So the module was
+not confusing two quantities by a factor — it was assuming a giving response
+above the top of the range CRS's own literature review settles on, by 15%.
+
+**3 — A magnitude is a property of the reform, for a second reason directions
+do not have.** W7 established the *grain* on the documents: CBO gives one
+deduction opposite verdicts under a rate ceiling and a floor. The magnitude
+forces the same grain on arithmetic alone, and the direction is
+counter-intuitive: **tightening the ceiling from 28% to 15% roughly halves the
+behavioural share, 0.2208 → 0.1140**, because the recapture rate *is* the cap
+rate and that dominates the larger price change. A module-wide constant would
+have over-magnified CBO 60557 Option 49's 15% alternative by **94%**, and the
+shipped 0.40 would have over-magnified it by **251%**. Nothing in the
+repository scores that alternative today, which is exactly why a constant would
+have survived unnoticed.
+
+**4 — The one published elasticity in employer health's neighbourhood prices
+the channel CBO calls the lesser one.** W4 finding 5 recorded that CBO publishes
+no elasticity for Option 56; that is true of the option's own text, and the
+search turned up something adjacent — CBO and JCT's employer **offer** price
+elasticities by firm size, −0.07 for 1,000+ employees, −0.15 for 100–999, −0.38
+for 25–99, −1.14 for smaller firms. Those price coverage dropping, which
+Option 56's own sentence ranks *below* plan switching ("To a lesser extent…"),
+and nothing published sizes the plan-switching channel that carries the rest.
+So the finding is not "there is no elasticity" but the sharper "the available
+elasticity is attached to the wrong half of the mechanism" — which is why 0.20
+is left rather than replaced with something that would have had a citation.
+
+**5 — Both movers regress for W7 finding 4's reason, stated in the other
+direction.** The held-out statics are already short of their targets —
+mortgage's JCT base annual of $25.0B gives −286.6 against a −367.9 anchor, and
+charitable's held-out static is 124.1 against −200.0 — so a **larger** erosion
+and a **smaller** magnification both move the score further from the target.
+The magnitudes were chosen on documents and not on rows, and that they cost the
+leave-one-out suite 0.8pp is the price of choosing them that way. The symmetric
+observation is the useful one: if a sourced magnitude had *improved* both rows,
+the suspicion would be that the document had been chosen to fit.
+
+**6 — The plan's H7 bands were unreachable and its baseline was two weeks
+stale.** §0 recorded this before the lane opened a file: `eliminate_mortgage`'s
+LOO baseline of 14.0% predates H9's range revision (it reads 29.9%), the
+Expenditures module reads 40.6% and not 37.5%, and the pre-registered *direction*
+was wrong even against the old −$300.0B point target, because a bigger erosion on
+a static already 4.5% short of it cannot move toward it. `cap_charitable`'s
+20 ± 8 is the one plan band this lane landed inside, at 24.2%. A plan band
+computed off a number a later wave has moved is worth re-deriving rather than
+inheriting.
+
+**7 — There is a fourth way for a fitted constant to stop being a calibration,
+and one gate already knew it. `tests/test_loo.py` found it.** The one gate this
+lane's §3 did not anticipate is
+`test_loo_is_materially_worse_than_by_construction`, which asserts that the
+*fitted* subset's by-construction error is bookkeeping — mean below 1.0% over
+nine cases. It **failed**, at 1.42%, and the whole of the move is
+`cap_charitable` going 0.3% → 12.5%. That is correct and is the finding:
+**`create_cap_charitable_deduction`'s 12.5 was fitted so that `static × (1 +
+0.40)` lands on −$200.0B, so once the 0.40 is sourced the constant is fitted to
+a quantity the module no longer computes.** `CLAUDE.md` counts four live
+mechanisms that move a row out of the fitted tier — a ledger target revision,
+Wave 2's deleted tuples, Wave 3's unfitted trade constants, and PR #119's
+sign-defect reclassification — and this is a fifth. The test's own comment
+already says the by-construction number measures bookkeeping "only where a
+constant is actually fitted **to the figure the suite scores against**"; it just
+enumerated two of the ways that can stop being true and now has to enumerate
+three.
+
+**What was done about it is the narrow thing, and the two wider things are named
+rather than taken.** The row is **not retuned** — that is what §1.1 of the plan
+forbids and what this lane's §5 rules out. It is **not reclassified** to
+`calibrated_to_target=False` either, though PR #119's precedent is the obvious
+reading, because that would move the fitted tier 16 → 15 and the reconstruction
+tier 39 → 40, and H6's badge test pins those counts; it is an owner decision on
+#119's own terms, not a lane's, and it did not become blocking (the row is
+Acceptable and strict readiness names no calibrated row). So the case is
+excluded from that one assertion **and the exclusion is proved rather than
+granted**: a second assertion undoes the magnitude, `−174.9 × 1.40 / 1.220780 =
+−200.6`, and requires that to sit within 1% of −$200.0B. An exemption says "do
+not look at this row"; this says "look at this row, and it is 0.3% from its
+target under the multiplier it was fitted with". A later lane that retunes the
+constant fails it.
+
+**8 — A derived magnitude needs a fallback the static path does not have.**
+`_share_of_benefit_above_cap` *raises* `ExpenditureDistributionMissing` when a
+cap is applied to an expenditure with no transcribed distribution, because there
+a missing distribution changes the score. A derived **magnitude** with no
+distribution returns `None` and falls back to the unsourced table instead, which
+is the right asymmetry: an offset is a haircut on a number that already exists,
+and refusing to score a reform because its *offset* cannot be derived would be a
+harder failure than the defect. No shipped reform reaches that branch today.
+
+### 6.5 Falsification: none of the six fired
+
+1. **A row other than the two moving** — did not fire. All 26 Tier 1 rows, the
+   other 15 fitted rows and the other 38 reconstructions are identical to the
+   cent, checked row by row.
+2. **Tier 1 moving at all** — did not fire. `cbo_opt56_employer_health_income_only`
+   is −605.8 at 13.10%, as it was.
+3. **A mover moving by other than its factor** — did not fire.
+   `−270.3 × (1 − 0.14502762)/(1 − 0.10) = −256.8`;
+   `−200.6 × 1.22077987/1.40 = −174.9`.
+4. **`cap_charitable` rating Poor, or strict readiness naming a calibrated row**
+   — did not fire; `documented_calibrated_policy_ids` is empty.
+5. **A preset other than Cap Charitable Deduction moving** — did not fire. The
+   sweep over all 53 stable ids × static/dynamic differs in two lines, both that
+   preset's.
+6. **The derived shares differing from §1** — did not fire: 0.220780 and
+   0.145028, recomputed after the change by a test that rebuilds the identity
+   rather than asserting the constant.
+
+### 6.6 Gates
+
+| command | result |
+|---|---|
+| `ANTHROPIC_API_KEY= python -m pytest tests/ -q` | **4,024 passed, 7 skipped** (`20e356d`: 4,002 passed, 7 skipped — the lane adds 22). The first full run had **one failure**, `test_loo_is_materially_worse_than_by_construction`, which is finding 7 |
+| `python scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 22` | **exit 0** |
+| `python scripts/cold_holdout.py --max-class-mean-error …` (all eight) | **exit 0** |
+| `python scripts/run_loo.py --donor-matrix --max-mean-error 75` | **exit 0** (36.5%) |
+| `python scripts/build_validation_headline.py --check` | **exit 0** (77 published of 81, unchanged) |
+| `python scripts/run_validation_dashboard.py` | **exit 1**, as on `20e356d`; the diff is **nine lines**, all of them this module's |
+| strict readiness, queried for the field | **`[('runtime', None)]`**, unchanged |
+| `python -m ruff check fiscal_model/ tests/ app.py app_pages/ components/ classroom_app.py` | clean |
+
+The dashboard's exit 1 is the pre-existing `runtime [degraded] Python 3.14.0`
+and `microdata [warn]` pair, neither this lane's.
+
+### 6.7 Carry-overs
+
+* **Three magnitudes are still unsourced** — employer health 0.20, retirement
+  0.30, SALT 0.05 — each with its search in §1 so the next lane does not repeat
+  it. Employer health is the one that matters: it is the only one on a Tier 1
+  row (Option 56, 13.1%), and finding 4 says what would have to be published
+  before it could move.
+* **Option 56's other two residuals are untouched**: the base omission (CBO caps
+  premiums *and* FSA/HRA/HSA contributions; the premium distribution has no
+  account dimension) and the plan-switching channel — W4's findings 2, 4 and 5.
+* **The SALT baseline question** (§6.2 item 3, owner decision ⑧) is where this
+  lane left it, deliberately.
+* **`eliminate_mortgage` is a range row whose model sits outside both bounds**,
+  now by $111.1B rather than $97.6B. H9 recorded the 2.4× as a baseline
+  difference rather than a simulator one; nothing here addresses the level.
+* **Whether `cap_charitable` should be reclassified `calibrated_to_target=False`** is left open by finding 7, with the counts it would move written out there.
+* **Nothing scores a charitable **floor** or CBO Option 49's 15% ceiling**, both
+  of which the module can now express with a per-reform magnitude. Finding 3 is
+  the argument for registering the 15% alternative as a benchmark.
+* **Two shared docs now assert something the code contradicts, and this lane
+  deliberately did not edit them** — the same call W7 made and for the same two
+  reasons (they are narratives *of prior lanes*, and Wave D requires
+  file-disjointness between siblings). `docs/METHODOLOGY.md` line 376 says "**The
+  magnitudes are still unsourced**, all five of them" and repeats the
+  unreproducible 18%; `docs/VALIDATION.md` line 177 says "**The magnitude is
+  still unsourced**, here and on all five entries in `BEHAVIORAL_ELASTICITIES`".
+  Both are true of three entries now and false of two. A docs pass owns them,
+  together with `docs/VALIDATION.md` line 400's older claim that
+  `TaxExpenditurePolicy` "is the single entry in `CONVENTION_EXCEPTIONS`",
+  which PR #128 already falsified.
