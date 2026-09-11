@@ -112,13 +112,19 @@ def test_every_badge_names_its_tier():
 
 
 def test_the_tier_composition_is_what_the_lane_registered():
-    """20 fitted / 21 unfitted reconstructions / 3 out-of-sample. If this moves,
-    a benchmark changed tier and the docs quoting it are stale."""
+    """16 fitted / 25 unfitted reconstructions / 3 out-of-sample. If this moves,
+    a benchmark changed tier and the docs quoting it are stale.
+
+    H6 registered 20 / 21 / 3; H9's provenance pass then moved five fitted
+    targets onto their documents (``ss_donut_250k``, ``tcja_rates_only``,
+    ``eliminate_estate_tax``, ``repeal_ira_credits``, ``eliminate_mortgage``),
+    so a constant fitted to the superseded figure reports as a reconstruction.
+    """
     counts: dict[str, int] = {}
     for preset_id in PRESET_ID_TO_SCORECARD_ID:
         tier = get_validation_badge(preset_id)["tier"]
         counts[tier] = counts.get(tier, 0) + 1
-    assert counts == {"fitted": 20, "reconstruction": 21, "out_of_sample": 3}
+    assert counts == {"fitted": 16, "reconstruction": 25, "out_of_sample": 3}
 
 
 def test_the_three_tiers_are_never_collapsed_into_one_claim():
@@ -250,15 +256,20 @@ def _context(preset_id: str) -> str:
 
 
 def test_confidence_is_keyed_to_the_tier_not_to_score_map_membership():
-    fitted = _context("ss-donut-250k")
+    fitted = _context("ss-cap-eliminate")
     reconstruction = _context("drug-reference-pricing")
     out_of_sample = _context("medicare-surcharge-2pp")
     no_row = _context("across-the-board-rate-cut-5pp")
+    # Fitted when H6 wrote this test; H9 moved its target onto CBO Option 62
+    # alternative 2, so the same preset now reads as a reconstruction 89% off.
+    revised_out = _context("ss-donut-250k")
 
     assert "Calibrated" in fitted
     assert "by construction" in fitted
     assert "Unfitted reconstruction" in reconstruction
     assert "701.0%" in reconstruction
+    assert "Unfitted reconstruction" in revised_out
+    assert "89.2%" in revised_out
     assert "Out-of-sample prediction" in out_of_sample
     assert "Exploratory" in no_row
 

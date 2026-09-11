@@ -102,15 +102,19 @@ def test_get_validation_badge_unknown_preset_returns_none():
 
 def test_a_fitted_badge_says_calibrated_rather_than_excellent():
     """The rating on a fitted row is measuring arithmetic — the constant was set
-    to the target. "Estate: n=3, 0.0%, Excellent" is the failure mode."""
-    badge = get_validation_badge("ss-donut-250k")
+    to the target. "Estate: n=3, 0.0%, Excellent" is the failure mode.
+
+    The example was the SS donut until H9 moved its target onto CBO Option 62
+    alternative 2 and it left the fitted tier; the cap-elimination preset's
+    target was examined and left, so it is still fitted."""
+    badge = get_validation_badge("ss-cap-eliminate")
     assert badge is not None
     assert badge["tier"] == TIER_FITTED
     assert badge["rating"] == "Excellent"  # the underlying figure is unchanged
     assert badge["rating_label"] == "Calibrated"
     assert "Excellent" not in badge["caption"]
     assert "by construction" in badge["caption"]
-    assert is_calibrated_reference("ss-donut-250k")
+    assert is_calibrated_reference("ss-cap-eliminate")
 
 
 def test_a_reconstruction_badge_says_it_is_unfitted_and_prints_its_error():
