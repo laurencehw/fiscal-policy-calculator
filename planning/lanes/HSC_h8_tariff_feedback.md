@@ -558,6 +558,17 @@ provenance kind or a ledger entry:
   partner-specific rates. §2 promised this file would not be touched; leaving a
   shipped provenance note asserting something the previous commit made false
   was the worse of the two.
+- `docs/METHODOLOGY.md` — its tariff section said `reciprocal_coverage_rate =
+  0.50` "is the one shape assumption left", quoted net/gross as 0.599–0.655, and
+  ended "**No GDP-feedback channel** is the single largest remaining piece". All
+  three stopped being true in the same commit. The section now carries the three
+  columns, the denominator warning and the open items.
+
+**Deliberately not touched**: `target_revisions.py`'s Wave 4 revision *reason*
+for `reciprocal_tariffs.v2`, which describes the flat-20pp implementation. That
+is a historical record of why a target moved in September 2026, not a
+description of today's module, and rewriting a ledger entry's reasoning would
+make the ledger unauditable.
 
 ### 6.9 Carry-overs
 

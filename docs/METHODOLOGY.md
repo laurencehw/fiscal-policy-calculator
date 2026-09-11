@@ -1349,28 +1349,73 @@ duties actually collected), exports as `ALL_VAL_YR`.
 | HS-87 imports from Canada + Mexico, share | **48.42%** | `auto_usmca_exempt_share` 0.65 |
 | HS-72 + HS-76 imports | **$58.9B** | 50.0 |
 | Duty collected on HS-72 + HS-76 | **3.06%** | *(new — the Section 232 netting)* |
+| HS-73 derivative articles (lane H8) | **$49.5B** | *(new — Section 232 reaches them)* |
+| Duty collected on HS-73 | **5.63%** | *(new — its own rate, not blended)* |
 | — | — | `china_effective_coverage` 0.50 **deleted** |
+| — | — | `reciprocal_coverage_rate` 0.50 **deleted** (lane H8) |
 
-**No constant in `TRADE_BASELINE` is fitted to a benchmark any more.**
-`china_effective_coverage` was replaced by the incremental-rate identity a 60%
-China tariff actually implies — 60pp *minus the duty already collected*, applied
-to the whole base, not 40pp applied to half of it — and
-`create_trump_china_60`'s per-case `import_elasticity=-0.7` override was deleted
-with it. `reciprocal_coverage_rate = 0.50` is the one shape assumption left that
-is not a measurement, because no published estimate scores a flat 20pp on half of
-goods imports.
+**No constant in `TRADE_BASELINE` is fitted to a benchmark, and since lane H8
+none of them is a shape assumption either.** `china_effective_coverage` was
+replaced by the incremental-rate identity a 60% China tariff actually implies —
+60pp *minus the duty already collected*, applied to the whole base, not 40pp
+applied to half of it — and `create_trump_china_60`'s per-case
+`import_elasticity=-0.7` override was deleted with it. `reciprocal_coverage_rate
+= 0.50` — "a flat 20pp on half of goods imports", which nobody proposed — is now
+a partner-by-partner schedule built from Executive Order 14257's own formula
+(bilateral goods deficit over goods imports from that partner, halved, floored
+at 10%) applied to Census 2024, with the Annex II sectors removed partner by
+partner and the USMCA partners out. It reproduces all sixteen published Annex I
+rates within 0.80pp, and those rates ride in the same CSV marked
+`external_check` where the loader refuses to read them
+(`fiscal_model/data_files/trade/reciprocal_schedule.csv`,
+`scripts/build_reciprocal_schedule.py`).
 
-**What the change is worth, and what it costs.** Net/gross runs **0.599 to
-0.655** across the five presets; the repository's own knowledge snapshot puts a
-*fully* netted tariff score at 40-50% of gross, and that chain includes a GDP
-feedback this module does not carry, so sitting above the band is the right side
-to miss on. Retaliation returns **$111.4B** over ten years for the 10% universal
-tariff against FF861's **$278B** — an export-value loss is not an income loss,
-and the channel carries no multiplier and no supply-chain effect. Every shipped
-tariff preset moved 28-49%, and a caption computed from the scored result ships
-under the headline saying so.
+### The three columns a tariff has
 
-**No GDP-feedback channel** is the single largest remaining piece.
+Published tariff estimates print three figures for one policy, and since lane
+H8 so does this module. Tax Foundation FF861 on a 10% universal tariff:
+**$2,171.1B conventional, $1,721.0B dynamic, $1,443.0B dynamic with
+retaliation**.
+
+* **Conventional — the scored number.** Gross customs duty at the tax-inclusive
+  rate after the import-demand response, less duty avoidance and the 25%
+  income-and-payroll offset, and nothing else. That is exactly `0.95 × 0.75 =
+  **0.7125** of gross` for every tariff in either direction, against the 0.738
+  FF861's own Table 2, Table 3 and p. 4 imply. **Retaliation used to be
+  subtracted here and no longer is**: a conventional estimate does not net
+  foreign retaliation, and every published figure this module is checked
+  against is a conventional one, so netting it made the model a different
+  object from its own benchmark.
+* **GDP feedback — reported, not scored.** The tariff's own price and volume
+  effect, `border_pass_through × Δτ × base × V`, run through
+  `FRBUSAdapterLite`. That impulse is *larger* than the receipts collected —
+  $211.5B/yr against $125.9B/yr for the universal preset — because households
+  pay `Δτ` on every dollar that still arrives while the Treasury collects
+  `Δτ/(1+Δτ)`, and the goods that stop arriving cost surplus and raise no duty.
+  No macro constant lives in `trade.py`; the multiplier, decay, crowding-out and
+  monetary-offset terms are all the adapter's.
+* **Retaliation — reported, not scored.** Unchanged in construction: an
+  export-value loss converted at the app's marginal revenue rate, **$111.4B**
+  over ten years for the 10% universal tariff against FF861's **$278B**. An
+  export-value loss is not an income loss, and the channel carries no multiplier
+  and no supply-chain effect.
+
+`get_trade_summary()` returns all three, and the Decision 6 caption under a
+tariff headline names them.
+
+**A denominator warning.** The knowledge snapshot's "40-50% of gross" divides by
+gross customs revenue *before* the import-demand response; `net_to_gross_ratio`
+divides by gross *after* it. On the snapshot's own denominator the universal
+preset reads **0.589 conventional and 0.485 dynamic-with-retaliation** — inside
+the band, not above it. Comparing the two ratios directly is a category error,
+and it is the reason the repository spent a wave believing the missing channel
+was worth about ten times what it is.
+
+**What is left open**: the Section 232 derivative annex at HS-10 and a
+steel-content share (whole-chapter HS-73 is an upper bound on what the statute
+reaches, and HS-72 + HS-76 the floor); the Annex II exemption list below HS-4;
+the retaliation channel's reduced form; and wiring the tariff impulse into
+`EconomicModel`, which is what `score_policy(dynamic=True)` actually calls.
 
 ---
 
