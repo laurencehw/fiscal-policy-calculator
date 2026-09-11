@@ -22,7 +22,7 @@ this lane opened and cites by page. Nothing is recalled.*
 | median | **8.9%** |
 | within 15% | 17 |
 | within 25% | 19 (86.4%) |
-| error mass | 259.4 |
+| error mass | 258.9 |
 
 Eight classes at n = 1, 1, 2, 2, 3, 4, 4, 5. `corporate` and `tax_expenditure` are **single
 observations**; `agi_inclusive_surtax` and `payroll` are **two**. ROUTE §0 criterion ① asks for
@@ -311,7 +311,7 @@ honest; it is not more accurate, and nothing here made it so.
 | class | n (was) | mean (was) | mass | share | w15 | w25 |
 |---|--:|--:|--:|--:|--:|--:|
 | corporate | **4** (1) | **71.6%** (44.5) | 286.5 | 36.1% | 0 | 0 |
-| ordinary rate change | **11** (4) | **15.3%** (13.8) | 168.8 | 21.3% | 6 | 10 |
+| ordinary rate change | **11** (4) | **15.3%** (13.85) | 168.8 | 21.3% | 6 | 10 |
 | payroll | **8** (2) | **18.6%** (7.8) | 149.0 | 18.8% | 4 | 6 |
 | capital gains | **7** (4) | **14.4%** (18.7) | 101.1 | 12.7% | 4 | 5 |
 | AGI-inclusive surtax | **4** (2) | **7.2%** (5.2) | 28.8 | 3.6% | 3 | 4 |
@@ -358,7 +358,7 @@ CBO's September 2020 baseline is pandemic-depressed, so for five of the six
 options this battery repeats across those two editions the ten-year figure is
 **smaller two years later**: all rates +1pp $905.4B → $884.0B, top four +1pp
 $222.9B → $203.3B, top two +1pp $123.4B → $113.8B, HI +1pp $898.3B → $877.5B,
-HI +2pp $1,786.5B → $1,736.5B. Only capital gains and corporate rise.
+HI +2pp $1,786.5B → $1,736.3B. Only capital gains and corporate rise.
 
 No model whose base grows monotonically with CBO's own nominal path can
 reproduce a baseline that went backwards, and the four rows this hits are four
