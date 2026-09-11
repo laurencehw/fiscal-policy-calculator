@@ -491,6 +491,16 @@ result so it cannot drift from it:
 > Published estimators report those as separate columns and so does this app —
 > neither is in the headline.
 
+**The caption says which of its figures is the headline**, because on a
+dynamic run it is not. PR #144's review caught a caption reading
+`final_deficit_effect` — which on a dynamic run also carries revenue feedback —
+disagreeing with the headline above it by 69% on one preset. This caption never
+restates the headline, but its conventional figure is not the headline on a
+dynamic run either, so it labels itself "the figure before the dynamic feedback
+the headline above applies" and says plainly that its own two channels are the
+tariff module's, not the engine's. Two of the four caption tests run the same
+preset through both engine modes and compare against `final_deficit_effect`.
+
 ### 6.7 Findings
 
 1. **The plan's residual cause for rows 6 and 6b was backwards, and §0 said so
