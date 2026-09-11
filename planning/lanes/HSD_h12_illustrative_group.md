@@ -265,9 +265,21 @@ which is the defect `planning/memos/COLD_START.md` found in the page footer and
 PR #135 removed. The alternative considered and rejected was a generated
 artifact in `build_validation_headline.py`'s shape: it would go **stale the
 moment the concurrent ledger lane retires the two pharma targets**, failing
-*their* gate for a reason in this lane's file. So `illustrative_note` has two
-variants, Build takes the cheap one, and the figure lives where it is already
-paid for.
+*their* gate for a reason in this lane's file. So the figure lives where it is
+already paid for — Explore's badge caption — and `illustrative_note` names the
+tier without one.
+
+**A `with_figure=True` variant was written, shipped in the first commit, and
+then deleted, because self-review found it had no caller.** Explore never
+needed it (the badge caption beside it already prints the figure) and Build may
+not pay for it, so the branch existed only in a test — which is exactly the
+defect H6 recorded on `get_confidence_context`, *"the plan describes a live
+defect on a dead function"*, reproduced here inside a week. The helper now has
+one behaviour per live caller, and the "has this preset a row at all" test asks
+`PRESET_ID_TO_SCORECARD_ID` membership rather than the badge, so **neither
+path materialises the scorecard** — not just Build's. Explore's no-badge branch
+calls it rather than formatting the constant inline, so both branches are
+reachable from the app.
 
 ### 6.3 Falsification results
 
@@ -318,6 +330,16 @@ Every condition in §4 was tested and none fired.
    package is the 82.3% enforcement row, not the 701% pharma one. Measured
    before any edit, and left alone: `composer.py` is outside this lane's files
    and excluding the row would move five package totals. Carry-over 1.
+5. **This lane reproduced H6's own finding inside a week.** The first commit
+   shipped `illustrative_note(preset, *, with_figure=True)` whose figure-
+   composing branch had **no caller in the tree** — Explore did not need it and
+   Build could not afford it, so it existed only in a test. H6 recorded exactly
+   this shape (`get_confidence_context` has no caller; the plan described a
+   live defect on a dead function) and it was written again anyway. The
+   general lesson is narrow and worth carrying: **a helper with a mode
+   parameter should be checked against its callers before it is committed, not
+   after** — if one mode has none, the parameter is describing the author's
+   hesitation rather than the surfaces' needs. §6.2 has the fix.
 
 ### 6.5 Files touched outside the lane's stated list
 
