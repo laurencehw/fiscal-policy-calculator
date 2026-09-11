@@ -70,7 +70,7 @@ PRESET_ID_TO_SCORECARD_ID: dict[str, str] = {
     "cap-employer-health-exclusion": "cap_employer_health",  # fitted, 0.1%
     "salt-cap-repeal": "repeal_salt_cap",  # reconstruction, 1.1%
     "step-up-basis-eliminate": "eliminate_step_up",  # fitted, 4.7%
-    "charitable-deduction-cap": "cap_charitable",  # fitted, 0.3%
+    "charitable-deduction-cap": "cap_charitable",  # reconstruction, 12.5%
     # ── added by H6: a row existed for every one of these; no badge did ──
     "top-rate-39-6": "biden_high_income_tax",  # out-of-sample, 9.2%
     "ultra-millionaire-surtax-3pp": "warren_ultramillionaire_surtax_3pp",  # oos, 19.0%

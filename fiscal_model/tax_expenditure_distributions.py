@@ -253,6 +253,69 @@ class DeductionDistribution:
         )
         return denied / total
 
+    def benefit_rate_ceiling_offset_share(
+        self, cap_rate: float, price_elasticity: float
+    ) -> float:
+        """
+        Behavioural offset of a rate ceiling, as a share of its static effect.
+
+        A benefit-rate ceiling leaves the deduction in place and caps the rate
+        at which it may be valued, so for a filer facing marginal rate ``m``
+        above ``cap_rate`` the **price** of a deductible dollar rises from
+        ``(1 - m)`` to ``(1 - cap_rate)`` -- a proportional increase of
+        ``(m - cap_rate) / (1 - m)``. A price elasticity of the deducted item
+        turns that into a fall in the quantity deducted, and every dollar no
+        longer deducted is a dollar taxed at the filer's own rate instead of
+        being subsidised at the capped one, so revenue rises by ``cap_rate``
+        per dollar. That is CBO's own channel for this design -- "an effect
+        that would increase tax revenues"
+        (``cbo.gov/budget-options/58635``, Option 49's third alternative) --
+        and it is why the reform is ``MAGNIFY`` in
+        :data:`~fiscal_model.tax_expenditures_core.OFFSET_DIRECTIONS`.
+
+        Per AGI class ``b`` with deducted amount ``A_b``::
+
+            static_b = A_b * (m_b - c)
+            offset_b = c * A_b * e * (m_b - c) / (1 - m_b)
+
+        and what this returns is ``sum(offset_b) / sum(static_b)`` -- the
+        weighted average of ``e * c / (1 - m_b)`` over the classes the ceiling
+        bites, which is exactly the ratio
+        :meth:`~fiscal_model.tax_expenditures_core.TaxExpenditurePolicy.estimate_behavioral_offset`
+        multiplies the static effect by.
+
+        The conversion matters because the two quantities are not the same
+        thing: ``price_elasticity`` is ``%change in the item / %change in its
+        price``, while the module's offset parameter is ``behavioural revenue /
+        static revenue``. Lane W7 recorded the confusion and left it; lane H7
+        resolved it here. See ``planning/lanes/HSD_h7_expenditure_magnitudes.md``
+        section 1.2.
+
+        ``price_elasticity`` is taken as a magnitude: a source quoting it as
+        ``-0.5`` and one quoting it as ``0.5`` mean the same response.
+        """
+        elasticity = abs(float(price_elasticity))
+        static = 0.0
+        offset = 0.0
+        for bracket in self.brackets:
+            excess = max(0.0, bracket.marginal_rate - cap_rate)
+            if excess <= 0.0:
+                continue
+            # A 100% marginal rate would make the price of giving zero and the
+            # proportional price change infinite. Not reachable from any
+            # statutory schedule, and not worth a ZeroDivisionError if one
+            # ever is transcribed.
+            net_of_tax = 1.0 - bracket.marginal_rate
+            if net_of_tax <= 0.0:
+                continue
+            static += bracket.amount_billions * excess
+            offset += (
+                cap_rate * bracket.amount_billions * elasticity * excess / net_of_tax
+            )
+        if static <= 0.0:
+            return 0.0
+        return offset / static
+
     def benefit_share_above_amount(self, cap_amount: float) -> float:
         """
         Share of the deduction's value denied by a per-return **dollar** cap.
