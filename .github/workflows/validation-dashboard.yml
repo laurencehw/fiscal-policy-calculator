@@ -131,6 +131,19 @@ jobs:
       # reads, not either branch. Only the floor moves, and it tightens:
       #   ceiling  ceil(14.7 x 1.25) = 19 -> nearest 5 = 20. Unchanged.
       #   floor    23 - 1 = 22. Raised 21 -> 22.
+      # Wave C (PRs #148-#151) took the same 26 cases to mean 14.5%, 22 within
+      # 25%. One lane moved Tier 1 at all -- PR #151's decedent headcount, which
+      # took cbo_opt51_gains_at_death 20.3% -> 35.5% as a registered regression
+      # while taking biden_capital_gains_39 32.8% -> 27.0% and the FY2022
+      # Treasury row 18.4% -> 1.8%. The tier mean fell and the within-25 count
+      # fell with it, so for the first time the rule points the two thresholds in
+      # opposite directions since Phase D, and "downward only" decides it:
+      #   ceiling  ceil(14.5 x 1.25) = 19 -> nearest 5 = 20. Unchanged.
+      #   floor    22 - 1 = 21, which would LOOSEN a gate that passes. LEFT AT
+      #            22. A floor that follows the count down is not a floor: it
+      #            would ratchet open on exactly the regression it exists to
+      #            catch. The live count is 22, so the gate is met with no slack,
+      #            which is the correct state after a wave that spent a case.
       # Re-derive again after the next wave.
       - name: Cold-holdout gate (out-of-sample tier)
         run: |
@@ -154,17 +167,25 @@ jobs:
       # Thresholds use the pooled rule's ceil(value x 1.25) and drop its
       # round-up-to-5, which exists to give the pooled mean headroom for one new
       # hard case; a class of one or two rows does not need five points of it.
-      # Post-Wave-B values (26 cases, the run above):
-      #   AGI-inclusive surtax    6  17.6% -> 22    capital gains   4  20.5% -> 26
+      # Post-Wave-C values (26 cases, the run above). Exactly one class moved in
+      # Wave C -- capital gains, 20.5% -> 18.7%, when PR #151 replaced a headcount
+      # rate that was a dollar ratio with the module's own mortality-weighted one
+      # -- so exactly one ceiling is re-derived, and it tightens:
+      #   AGI-inclusive surtax    6  17.6% -> 22    capital gains   4  18.7% -> 24
       #   ordinary rate change    4  14.8% -> 19    corporate       1  44.5% -> 56
       #   enacted-law spending    3  13.4% -> 17    discretionary   5   4.6% ->  6
       #   payroll                 2   7.8% -> 10    tax expenditure 1  13.1% -> 17
-      # Re-derive with the pooled gate, after every wave, downward only.
+      # Capital gains: ceil(18.7 x 1.25) = 24, lowered 26 -> 24. The other seven
+      # re-derive to themselves. Note that the class mean fell while the class's
+      # WORST row got 15 points worse (cbo_opt51 20.3% -> 35.5%, registered), so
+      # this ceiling is tightening around a wider spread, not a narrower one --
+      # which is the case the per-class gate exists for and the pooled one cannot
+      # see. Re-derive with the pooled gate, after every wave, downward only.
       - name: Cold-holdout per-class floor (out-of-sample tier)
         run: |
           python scripts/cold_holdout.py --max-class-mean-error \
             agi_inclusive_surtax=22 ordinary_rate_change=19 \
-            capital_gains=26 corporate=56 \
+            capital_gains=24 corporate=56 \
             enacted_law_spending=17 discretionary_spending=6 \
             payroll=10 tax_expenditure=17
 

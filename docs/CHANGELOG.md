@@ -5,6 +5,128 @@ in git history, not here.
 
 ## 2026 — ongoing
 
+### Wave C — a band from the policy's own class, a headcount that matched the module's other death rate, and retaliation out of a conventional score (2026-09-11)
+
+Four PRs, the third wave of
+[`planning/HIGH_STAKES_ACCURACY.md`](../planning/HIGH_STAKES_ACCURACY.md):
+**#149** empirical accuracy bands (H4), **#151** the decedent headcount (H5),
+**#150** tariffs (H8), and **#148** the preset label figures that discharged
+§6.2 item 43. Records in [`planning/lanes/`](../planning/lanes/) —
+`HSC_h4_empirical_bands.md`, `HSC_h5_decedent_headcount.md`,
+`HSC_h8_tariff_feedback.md`, `HSC_label_figures.md` — and §5.9 of
+[`planning/MODELING_IMPROVEMENT.md`](../planning/MODELING_IMPROVEMENT.md).
+
+**This wave is the mirror image of Waves A/B.** No target moved and no constant
+was retuned, so the fitted tier, its held-in-place reading, leave-one-out and all
+81 provenance fields are byte-identical. The two tiers that moved both moved on
+**mechanism**, and they moved in opposite directions.
+
+| Tier | Before (post-Wave-B) | After (merged) |
+|---|---|---|
+| Out-of-sample, pre-registered | 26 @ 14.7% / 12.6% median / 15 within 15 / 23 within 25 | **26 @ 14.5% / 11.5% / 16 / 22** |
+| … error mass | 383.3 | **376.1** |
+| Calibrated, fitted | 16 @ 1.5%, 16/16 | **unchanged** |
+| … held in place | 27 @ 11.9%, 22/27 | **unchanged** |
+| Unfitted reconstructions | 39 @ 55.5% / 29.9%, 11 within 15 | **39 @ 56.7% / 36.9%, 10 within 15** |
+| … *the same 39 rows* | 55.5% | **56.7% — accuracy, not composition** |
+| … `Trade` sub-population | 5 @ 34.2% | **5 @ 43.6%** (35.66% on the four with a document) |
+| Leave-one-out | 18 @ 35.7% / 29.1% | **unchanged, donor matrix byte-identical** |
+| Preset badges | 44 | **unchanged** |
+| Tier 1 CI gate | `20 / 22` + eight class ceilings | **`20 / 22`**, capital gains **26 → 24** |
+
+**#151 — the decedent headcount.** `CapitalGainsBaseline._decedent_template`
+divided households by `estate_flow_rate` — Poterba & Weisbenner's **dollar** flow
+of estates over net worth — to get a headcount of **408,532** against roughly
+3.09 million NCHS deaths, while the same module has priced the lock-in wedge and
+the accrued-gains drift off `death_exit_rate()`'s **2.647%/yr** since Wave 2.
+**One module, two death rates 8.3× apart.** The count is now **3,384,194**; the
+$196.2097B level is untouched, so gains at death by group are identical to twelve
+significant figures and the count enters only as a divisor. A fixed per-donor
+exclusion therefore bites 8.3× harder: `cbo_opt51_gains_at_death` **20.3% →
+35.5%** (a registered regression), `biden_capital_gains_39` **32.8% → 27.0%**,
+`treasury_capgains…v2` **18.4% → 1.8%**, `cbo_opt47` unmoved to the cent; the
+capital-gains class **20.5% → 18.7%**. **The 1.8% is not accuracy**: the count and
+the level come from the same ratio, only the count was authorised to move, and the
+level that flow implies is **7.1×** below the module's own death-exit rate.
+**The plan's "apply the rate by size class" was refuted in sign** — the wealthy
+are older, so a size-graded rate is *higher* at the top (2.8400% against 2.6468%)
+and takes the implied top count to 38,908 where the uniform swap takes it to
+36,262, both further from SOI's 7,194. No preset moved; three Tailor shapes did,
+by 19–31%.
+
+**#150 — tariffs, where the plan's residual cause was backwards.** All five
+targets are *conventional* estimates and the model sat **below** every one, so
+adding the GDP-feedback drag the plan prescribed would have moved every row
+further out; the 0.60–0.66 vs 40–50% net/gross comparison was a **denominator
+mismatch** besides (on the knowledge snapshot's own denominator the universal
+preset already read 0.589). The channel is built and **reported beside** the
+score, the column structure Tax Foundation FF861 publishes. What moved the rows is
+that **retaliation left the conventional score** — a category error against every
+target the scorecard carries, and one the repository's own knowledge file had
+already described correctly while all five scenarios and presets ran the other
+way. `estimate_behavioral_offset` is now **0.7125 of gross** in either direction
+against FF861's implied 0.738. `trump_universal_10` **42.03% → 36.91%**,
+`trump_china_60` **57.17% → 49.06%**, `auto_tariff_25` **52.81% → 47.20%**,
+`reciprocal_tariffs` **6.88% → 9.47%** (and `within_published_range` **False →
+True**, distance $3.2B → $0.0B — both readings are correct and the row carries
+both), `steel_tariff_25` **11.89% → 75.28%**, registered. Two cheap fixes landed
+too: `reciprocal_coverage_rate = 0.50` is **deleted** for EO 14257's own
+bilateral-deficit formula on Census 2024 across 230 partners, reproducing **all
+sixteen published Annex I rates within 0.80pp**; and the steel base reaches the
+Section 232 derivative chapter, $58.9B → $108.4B — **1.84×, not the "roughly
+triple" this repository stated in three places** — declared an upper bound. Five
+shipped presets moved with a Decision 6 caption: Trump Universal 10%
+**−$1,258.5B → −$1,369.8B**, Trump 60% China **−$278.4B → −$331.1B**, 25% Auto
+**−$182.2B → −$203.9B**, 25% Steel/Aluminum **−$52.9B → −$105.2B**, Reciprocal
+**−$1,396.8B → −$1,642.0B**. The other 44 score to the cent in both modes.
+
+**#149 — accuracy bands from the policy's own class.** Zero scored numbers move
+and every headline caption changes. The band is now the observed Tier 1 error
+spread of the policy's **own class** — inner half-width the class mean, outer the
+class's worst row — keyed by the same routing the CI per-class gate uses
+(`fiscal_model/validation/policy_classes.py`, which `cold_holdout.py` now imports
+and is byte-identical). **26/26 Tier 1 rows fall inside their class's outer
+band**, and inner coverage is *computed and printed*, not asserted: it is not a
+majority everywhere — `ordinary rate change` covers 1 of 4. **The largest defect
+it removes was not on the plan's list**: `get_band_for_result` fell through to
+`Generic`, which **is** the Tier 1 tier, so **31 of 56 surfaces printed "±14.7%
+across 26 calibrated runs"** for policies with no Tier 1 row — *International
+Reference Pricing* drawing a ±14.7% ribbon beside a scorecard row 701.0% from its
+target. The two replaced branches were both fixed proportions of the point
+estimate. **18 of 53 presets get a band; 35 print no band and say why**, with
+their own row's error and tier beside the absence.
+
+**#148 — six labels onto their row's live target, and one that was quoting the
+model.** Zero numbers move. `💰 SS Donut Hole $250K (-$2.7T)` → **`(-$1.43T)`**,
+`🏠 Eliminate Estate Tax ($350B)` → **`($407B)`**, `📋 Eliminate Mortgage
+Deduction (-$300B)` → **`(-$368B)`**, `🏭 Trump 60% China Tariff (-$500B)` →
+**`(-$650B)`**, `🌱 Repeal IRA Clean Energy Credits ($783B)` → **`(-$851B)`**,
+`🌱 Repeal EV Credits ($182B)` → **`(-$182B)`**. The fifth of those **was not
+quoting a target at all** — −783.0 is `model_10yr_billions`, so the app printed
+its own output, positively signed, in the slot a published score occupies: the
+third mechanism for a class of defect PRs #119 and #122 each found once.
+`_LABELS_QUOTING_A_SUPERSEDED_FIGURE` **5 → 0**, and the label invariant now runs
+against **all 40** figure-carrying labels with no exemptions. The worst stale
+string was **not a label** but `assistant/knowledge/ssa_trustees_2025.md`, which
+told the Ask assistant the donut was "scored by CBO at −$2.7T (model: −$2.4T,
+error 12%)" — three errors in one BM25-indexed clause.
+
+**The CI gate, re-derived by the workflow's own rule and downward only.** Pooled
+ceiling `ceil(14.5 × 1.25) = 19 →` nearest 5 `= 20`, unchanged. The floor derives
+to `22 − 1 = 21`, which would **loosen** the 22 Waves A/B set, so it **stays at
+22** — a rule that tightens on improvement and loosens on regression is not a
+gate. Per class, exactly one ceiling moved: **capital gains 26 → 24**.
+
+**Carry-overs opened:** §6.2 items **55–65** — the *level* half of the
+capital-gains death channel (the 7.1× factor, pointing the other way from #151),
+twelve Build-package totals that no longer equal their member sums, two
+`official_source` fields contradicting their own ledger row, a symmetric band over
+asymmetric errors, 35 presets with no measured out-of-sample accuracy, a stale
+"~5% / ~8%" pair in `about.py` and the assistant's system prompt, the decedent
+universe, `FRBUSAdapterLite`'s crowding-out sign inverting for revenue-raisers,
+`score_policy(dynamic=True)` reading `EconomicModel` rather than the tariff
+impulse, the HS-10 Section 232 annex, and `steel_tariff_25`'s untraceable target.
+
 ### Waves A and B — one base rule, the base's own decade, and five targets that found their documents (2026-09-10)
 
 Seven PRs, the first two waves of

@@ -193,6 +193,89 @@ def test_the_per_class_floor_gates_every_class_the_battery_contains():
         )
 
 
+def _per_class_ceilings(workflow: str) -> dict[str, float]:
+    import re
+
+    from scripts.cold_holdout import POLICY_CLASS_LABELS
+
+    step = workflow.split("--max-class-mean-error", 1)[1].split("\n\n", 1)[0]
+    return {
+        slug: float(value)
+        for slug, value in re.findall(r"\b([a-z_]+)=(\d+(?:\.\d+)?)\b", step)
+        if slug in POLICY_CLASS_LABELS
+    }
+
+
+def test_no_gate_is_looser_than_the_workflow_rule_derives():
+    """``HIGH_STAKES_ACCURACY.md`` process rule 3: re-derive by the workflow's own
+    rule, **downward only**.
+
+    The rule is not "set the gate to whatever the rule says". It is "tighten when
+    the rule says tighter, and leave it alone when the rule says looser" — a gate
+    that follows the battery in both directions ratchets open on exactly the
+    regression it exists to catch. So the invariant is one-sided: **no threshold
+    may be looser than its own derivation**.
+
+    Wave C is the first time this bit. The pooled floor derives to
+    ``within_25 - 1 = 21`` and stays at **22**, because PR #151 spent a case
+    (``cbo_opt51_gains_at_death`` 20.3% -> 35.5%, a registered regression) while
+    lowering the tier mean. The capital-gains ceiling derives to
+    ``ceil(18.7 x 1.25) = 24`` and tightens from 26, in the same wave and from the
+    same row moving.
+    """
+    import math
+    import re
+
+    from scripts.cold_holdout import build_report
+
+    workflow = VALIDATION_DASHBOARD_WORKFLOW_PATH.read_text(encoding="utf-8")
+    pooled, _ = _cold_holdout_gate_lines(workflow)
+    max_mean = float(re.search(r"--max-mean-error\s+([\d.]+)", pooled).group(1))
+    min_within = int(re.search(r"--min-within-25pct\s+(\d+)", pooled).group(1))
+
+    report = build_report()["out_of_sample"]
+    summary = report["summary"]
+
+    # Pooled ceiling: ceil(mean x 1.25) rounded UP to the nearest 5.
+    derived_ceiling = math.ceil(math.ceil(summary["mean_abs_error"] * 1.25) / 5) * 5
+    assert max_mean <= derived_ceiling, (
+        f"pooled ceiling {max_mean} is looser than the rule's {derived_ceiling}"
+    )
+
+    # Pooled floor: the rule derives within_25 - 1; the gate may sit above it
+    # (Wave C leaves it at 22 against a derivation of 21) but never below, and
+    # never above what the battery can actually meet.
+    assert min_within >= summary["within_25pct"] - 1, (
+        f"floor {min_within} is looser than the rule's {summary['within_25pct'] - 1}"
+    )
+    assert min_within <= summary["within_25pct"], (
+        f"floor {min_within} exceeds the live count {summary['within_25pct']}"
+    )
+
+    # Per class: ceil(mean x 1.25), WITHOUT the pooled rule's round-up-to-5.
+    ceilings = _per_class_ceilings(workflow)
+    for slug, stats in report["classes"].items():
+        derived = math.ceil(stats["mean_abs_error"] * 1.25)
+        assert ceilings[slug] <= derived, (
+            f"{slug}'s ceiling {ceilings[slug]} is looser than the rule's {derived} "
+            f"on a live mean of {stats['mean_abs_error']}%"
+        )
+
+
+def test_the_capital_gains_ceiling_records_wave_cs_tightening():
+    """A regression guard for the one ceiling Wave C moved.
+
+    26 was derived from a 20.5% class mean; the class reads 18.7% since PR #151,
+    and 24 is what the rule gives. This is pinned rather than left to the
+    one-sided test above because the class mean fell while its **worst** row got
+    15 points worse — the case the per-class gate exists for and the pooled gate
+    cannot see — so a later wave restoring 26 would be loosening a gate around a
+    spread that widened.
+    """
+    workflow = VALIDATION_DASHBOARD_WORKFLOW_PATH.read_text(encoding="utf-8")
+    assert _per_class_ceilings(workflow)["capital_gains"] == 24
+
+
 def test_fred_seed_refresh_workflow_opens_seed_refresh_pr():
     workflow = FRED_SEED_REFRESH_WORKFLOW_PATH.read_text(encoding="utf-8")
 

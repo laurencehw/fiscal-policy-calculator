@@ -539,7 +539,34 @@ death of $42.8B — **36% of estate value** — on the convention that transfers
 surviving spouse are not realization events. Both are carried as shares of
 household net worth in the same year and grown with the Financial Accounts stock,
 so the flow is indexed to the asset stock rather than frozen at a constant:
-**$196.2B in 2025**, spread over **408,532 decedents**.
+**$196.2B in 2025**, spread over **3,384,194 decedents**.
+
+The count is **not** taken from that same flow, and since Wave C it no longer
+can be. `estate_flow_rate` is a **dollar** ratio — expected estates over
+household net worth — and using it as a *headcount* rate gave 408,532 decedents
+a year against roughly 3.09 million NCHS deaths, while the same module has
+priced the lock-in wedge and the accrued-gains stock's drift off
+`death_exit_rate()` — `mortality_weighted_net_worth_share`, **2.647%/yr**, the
+NCHS 2022 life table against Distributional Financial Accounts net worth by age
+— since Wave 2. One module, two death rates **8.3× apart**. The count is now the
+second of those. It is the right rate on *heads* as well as on dollars because of
+the module's own gains distribution: gains are spread in proportion to
+`households × wealth × gain share`, which asserts that dollars die at a uniform
+rate across the distribution, so within a slice the headcount rate **is** the
+dollar rate. **The level is untouched** — still $196.2097B in 2025 — so the count
+enters only as a divisor, and gains at death by DFA group are identical to twelve
+significant figures before and after.
+
+**Grading the rate by estate size was measured and rejected, and the direction is
+the reason.** The wealthy are older, so they die at a *higher* rate, not a lower
+one: head-weighted **1.6456%**, net-worth-weighted **2.6468%** (the shipped
+parameter), size-graded at the top of the distribution **2.8400%**. Grading takes
+the implied count above $12.92M to 38,908 where the uniform swap takes it to
+36,262 — both further from IRS SOI's 7,194 estate-tax returns above that
+threshold, not nearer. The two rejected rates ship as regenerable **CHECK-ONLY**
+parameters (`crude_adult_mortality_rate`, `size_graded_tail_mortality_rate`) that
+the loader refuses to read, with a test that fails if their ordering ever
+reverses.
 
 #### What such a proposal actually reaches
 
@@ -615,19 +642,41 @@ always had, which holds the death channel down.
 
 #### What is not modelled
 
-- **The decedent headcount is the coarsest thing left in the channel.**
-  `estate_flow_rate` is Poterba & Weisbenner's *dollar* flow of estates over net
-  worth (0.3195%/yr) used as a *headcount* rate, giving 408,532 decedents a year
-  against roughly 3.09 million NCHS deaths;
-  `accrued_gains_parameters.csv` already carries an independently derived
-  `mortality_weighted_net_worth_share` of 2.65% that this channel does not read.
-  Because a fixed per-donor exclusion bites on gains *per decedent*, too few
-  decedents means too much gain each and too little exclusion — about **twice**
-  the shipped count reproduces Treasury's own $1M → $5M step to within two
-  billion. It is a level change to the whole channel and moves CBO Option 51 the
-  wrong way, so it is an owner decision rather than a lane's, and whoever takes
-  it should start at the top, where the implied count is short by only 1.6×
-  against SOI's estate-tax returns while the total is short by 7.6×.
+- **The *level* of the flow is now the coarsest thing left in the channel, and it
+  is half of the ratio Wave C corrected.** The headcount was the other half and
+  is fixed (above). `gains_at_death_share_of_net_worth` is
+  `estate_flow_rate × gain_share_of_estates` — the **same** Poterba & Weisbenner
+  dollar flow — and held against the module's own `death_exit_rate` it implies
+  **0.372% of the accrued-gains stock** where the stock's death exit is priced at
+  **2.647%**, a factor of **7.1**. Some of that gap is real and sourced: PW's
+  flow already excludes inter-spousal transfers, which is the convention every
+  realization-at-death proposal uses and which removes most of a first death.
+  Nobody has measured how much. It matters because it points the **other way**
+  from the headcount fix — CBO Option 51 under-predicts at 35.5%, so a larger
+  level would close what the count opened — and because it is a level nobody may
+  change by implication.
+- **The decedent universe is an open question and two of its three candidates
+  score better than the one in use.** PW's flow measures **non-spousal** estates,
+  a universe *smaller* than all deaths, while the shipped rate puts 3,384,194
+  decedents against roughly 3.09 million NCHS deaths, 9.5% over. The crude adult
+  life-table rate (1.6619%) gives 2,124,898 and the crude all-age rate (1.2910%)
+  gives 1,650,702; they read Option 51 at 32.1% and 28.4% against the shipped
+  35.5%. **They are recorded and deliberately not taken** — picking the best of
+  three would be fitting a parameter to a benchmark. Deciding which universe PW's
+  flow describes needs a document, not a preference.
+- **The $1M → $5M exclusion step now overshoots Treasury's own figure.** It was
+  $82.26B at five class means (Wave 4), $85.02B on the fitted size distribution
+  (Wave 7) and is **$9.40B** on the corrected headcount, against Treasury's
+  **$33.4B**. Wave 7 had predicted that *doubling* the count would land on it;
+  the authorised constant multiplies it by 8.3. Note also that $33.4B was never a
+  like-for-like comparator — Treasury's two published rows sit on different
+  windows on different baselines.
+- **The SOI headcount check needs a unit before it is a check.** SOI Table 1
+  counts **individual** decedents whose **gross estate** clears a threshold; the
+  model counts **households** whose net worth clears the same number, and a
+  married household at $13M usually produces two estates of roughly $6.5M,
+  neither of which files. So a model count above SOI's is the expected sign, and
+  the implied 36,262 above $12.92M against SOI's 7,194 is partly that gap.
 - **Dispersion was not the cause of the exclusion-step gap, and Wave 7 disproved
   the hypothesis it was built to test.** `max(0, gain − E)` is convex in the
   gain, so a mean-preserving spread *raises* the taxable excess: replacing the
@@ -1902,17 +1951,35 @@ piecewise-Pareto size distribution fitted to the Distributional Financial
 Accounts' own group aggregates — and it **disproved the hypothesis it was built
 to test**: `max(0, gain − E)` is convex, so a mean-preserving spread *raises*
 the taxable excess, and the $1M → $5M step went 82.26 → **85.02**, the wrong
-way. What moves that step is the decedent **headcount**, which is Poterba &
+way. What moves that step is the decedent **headcount**, which was Poterba &
 Weisbenner's dollar flow of estates used as a headcount rate: 408,532 decedents
-against roughly 3.09 million NCHS deaths, and about twice the shipped count
-reproduces Treasury's own step to within two billion. What is left of the
-behavioral tail runs **49.8%** and **37.4%** (the two CBO Option 46 AGI
-surtaxes, now the tier's largest group), **44.5%** (corporate margins, down from
-62.3% since PR #121 projected the base off CBO's own receipts path) and
-**32.8%** (the FY2025 Green Book capital-gains row).
+against roughly 3.09 million NCHS deaths. **Wave C (PR #151) took it, and neither
+of Wave 7's two quantitative hand-offs survived.** The count is now
+`death_exit_rate()`'s own 2.647%/yr — **3,384,194** decedents, the level
+untouched — and Option 51 went **20% → 35%** as a registered regression, the
+FY2025 Green Book row **33% → 27%** and the FY2022 row **18% → 2%**. Wave 7 had
+said *about twice* the count would reproduce Treasury's $1M → $5M step of
+$33.4B; 8.3× the count takes that step to **$9.40B**, through Treasury's figure
+and out the other side. And it had said to *start at the top*, where the implied
+count was short by 1.6× against SOI's 7,194; grading the mortality rate by estate
+size runs the **wrong way**, because the wealthy are older and so die at a higher
+rate (2.8400% at the top against the uniform 2.6468%), taking the implied top
+count to 38,908 rather than toward 7,194 — and the SOI comparison needs a unit
+before it is a comparison, since SOI counts individual decedents over a gross
+estate and the model counts households over net worth. **Read the FY2022 row's
+2% as half of a correction**: the count and the level come from the same PW
+ratio, only the count moved, and the level that flow implies is **7.1×** below
+the module's own death-exit rate. What is left of the
+behavioral tail runs **44.5%** (corporate margins, down from 62.3% since PR #121
+projected the base off CBO's own receipts path), **35.5%** (CBO Option 51's gains
+at death), **31.8%** (the Medicare surcharge) and **27.0%** (the FY2025 Green
+Book capital-gains row). The two CBO Option 46 AGI surtaxes, which led this list
+until Wave B, read **7.4%** and **−2.9%** once the generic base grew on the
+scored vintage and the AGI-stated rows started reading SOI's AGI column.
 **Capital gains is no longer the tier's largest error mass** — 4 cases carrying
-82.0 of the tier's **390.7** units (21.0%), against 104.5 of 395.1 (26.4%) after
-Wave 6, 405.6 of 805.8 (50.3%) before Wave 4 and 80.9 of 468.1 (17.3%) after it.
+74.8 of the tier's **376.1** units (19.9%), against 82.0 of 383.3 (21.4%) after
+Wave B, 104.5 of 395.1 (26.4%) after Wave 6, 405.6 of 805.8 (50.3%) before Wave 4
+and 80.9 of 468.1 (17.3%) after it.
 The two AGI-surtax rows lead at **87.2 (22.3%)**, the eight ordinary and
 AGI-inclusive bracket rows carry 84.9 (21.7%), the eight spend-out rows 63.4
 (16.2%), the three module identities at the margin 60.1 (15.4%) — corporate
@@ -2226,6 +2293,15 @@ populations and must never be read as one number:
   82.2% → **52.8%**, reciprocal tariffs 16.4% → **6.9%** against an in-range
   anchor, and EV credits 14.2% → **25.3%**. Six of the thirteen Wave 4 revisions
   made their row worse, which is the shape a correct provenance pass has.
+  **Wave C's PR #150 then moved the five trade rows on the *score* rather than
+  the target, and the family got worse by design**: retaliation left the
+  conventional figure, where it was a category error against five conventional
+  benchmarks, and `Trade` went **34.2% → 43.6%** — universal 42.0% → **36.9%**,
+  China 57.2% → **49.1%**, auto 52.8% → **47.2%**, reciprocal 6.9% → **9.5%**
+  (and *inside* its published range, distance $3.2B → $0.0B), steel 11.9% →
+  **75.3%** on a base that now reaches the Section 232 derivative chapter. On the
+  four rows that have a document the family improves **39.7% → 35.7%**; the fifth
+  has no document and carries the whole of the net.
 - **Eight Phase D P.L. 119-21 line items** (JCT JCX-35-25, transcribed with page
   references to `fiscal_model/data_files/validation/pl119_21_jct_line_items.csv`)
   at **35.8% mean**, 2 of 8 within 15%, scored over JCT's own FY2025–2034 window.
