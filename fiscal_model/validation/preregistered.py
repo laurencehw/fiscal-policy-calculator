@@ -226,6 +226,22 @@ FY2022_TARGET_WINDOW_RULE = (
     "different fact. No year is chosen against an error, and no target moves."
 )
 
+#: Commit that entered the IIJA window row (``iija_2021_discretionary.v3``)
+#: into this manifest. Owner decision (3) of
+#: ``planning/HIGH_STAKES_ACCURACY.md`` section 4, applying
+#: :data:`FY2022_TARGET_WINDOW_RULE` to the second row that carries a window
+#: its own source published and the model does not score on. Same two-commit
+#: protocol as every shape-input change before it, and the same *kind* of
+#: change as ``.v2`` was: the shape input moves and the published target does
+#: not. The row is added here and first scored in
+#: :data:`IIJA_WINDOW_FIRST_SCORED_COMMIT`, a *later* commit.
+IIJA_WINDOW_ENTERED_COMMIT = "e1b7ef46eb2cfc17df1a1d8d07af7b02e2c6b2a1"
+IIJA_WINDOW_ENTERED_DATE = "2026-09-11"
+
+#: Commit in which the IIJA window was first scored (the commit that writes
+#: ``scoring_window_first_year=2022`` onto the ``KNOWN_SCORES`` record).
+IIJA_WINDOW_FIRST_SCORED_COMMIT = "9c0a3d5f24b8e6417a0fd3b5c8e91d26f4a7b083"
+
 #: Baselines the CBO options were built on, from PDF page 2 of publication
 #: 60557 ("Notes About This Report").
 CBO_OPTIONS_REVENUE_BASELINE = (
@@ -949,6 +965,58 @@ PREREGISTERED_CASES: tuple[PreregisteredCase, ...] = (
             "its +$1,894B / 356% and post-spend-out +$1,621B / 290% both on "
             "the record. " + IIJA_AUTHORIZATION_PATH_RULE
         ),
+        superseded_by="iija_2021_discretionary.v3",
+    ),
+    # ---- The IIJA window (entered, then scored) ---------------------------
+    PreregisteredCase(
+        case_id="iija_2021_discretionary.v3",
+        policy_id="iija_2021_discretionary",
+        official_10yr_billions=415.448,
+        source_name="Congressional Budget Office",
+        source_url=(
+            "https://www.cbo.gov/system/files/2021-08/hr3684_infrastructure.pdf"
+        ),
+        source_date="2021-08",
+        source_baseline_vintage=(
+            "CBO July 2021 baseline - the repository's oldest vintage is "
+            "CBO_FEB_2024, so this row is still scored on the model's current "
+            "default baseline. What moves here is the WINDOW, not the "
+            "VINTAGE: a discretionary SpendingPolicy scores its own "
+            "source-stated budget authority and reads no baseline LEVEL, so "
+            "the decade this row is scored on can be the decade its target "
+            "covers without a 2021 baseline existing."
+        ),
+        entered_commit=IIJA_WINDOW_ENTERED_COMMIT,
+        entered_date=IIJA_WINDOW_ENTERED_DATE,
+        first_scoring_run_commit=IIJA_WINDOW_FIRST_SCORED_COMMIT,
+        note=(
+            "**The target does not change.** This row replaces v2's *shape "
+            "input* for the second time, and CBO's $415.448B figure, the "
+            "source, the document and the published window are all identical "
+            "to v1's and v2's. v2 scored the source's own authorization "
+            "schedule on the runner's FY2025-2034 decade, and the residual it "
+            "left was arithmetic rather than behaviour: the path outlays "
+            "$433.2B in total (4.3% above CBO's figure, which is just the "
+            "construction_and_capital profile's 0.973 spend-out sum applied to "
+            "the full authority), but $92.6B of that falls in FY2022-2024, "
+            "before the window opens, so $340.0B was compared against a total "
+            "covering FY2021-2031 and the row read 18.2%. This row scores the "
+            "ten fiscal years the target covers, which the record's own "
+            "budget_window has said are FY2022-2031 since it was entered on "
+            "2026-09-01. v2 stays in this file, unedited, with its +$340.0B / "
+            "18.2% on the record beside v1's +$1,894B / 356% and post-spend-out "
+            "+$1,621B / 290%; between them the three rows separate the three "
+            "defects this case surfaced - the missing spend-out model (L2), "
+            "the missing authorization path (v2) and the window (this row). "
+            "The number was published before the decision was taken: "
+            "planning/memos/FY2022_TARGET_WINDOW.md section 6 computed +$414.3B "
+            "and 0.3% on this window and explicitly left the .v3 decision to "
+            "the owner, precisely so that taking it would be a visible choice "
+            "rather than a lane's correction. "
+            + IIJA_AUTHORIZATION_PATH_RULE
+            + " "
+            + FY2022_TARGET_WINDOW_RULE
+        ),
     ),
 )
 
@@ -1094,6 +1162,8 @@ def summarize_preregistration() -> dict[str, Any]:
         ),
         "fy2022_window_entered_commit": FY2022_WINDOW_ENTERED_COMMIT,
         "fy2022_window_first_scored_commit": FY2022_WINDOW_FIRST_SCORED_COMMIT,
+        "iija_window_entered_commit": IIJA_WINDOW_ENTERED_COMMIT,
+        "iija_window_first_scored_commit": IIJA_WINDOW_FIRST_SCORED_COMMIT,
         "rows": [
             {
                 "case_id": case.case_id,
@@ -1122,6 +1192,8 @@ __all__ = [
     "IIJA_AUTHORIZATION_PATH_ENTERED_COMMIT",
     "IIJA_AUTHORIZATION_PATH_FIRST_SCORED_COMMIT",
     "IIJA_AUTHORIZATION_PATH_RULE",
+    "IIJA_WINDOW_ENTERED_COMMIT",
+    "IIJA_WINDOW_FIRST_SCORED_COMMIT",
     "PHASE_A_COMMIT",
     "PHASE_B_ENTERED_COMMIT",
     "PHASE_B_FIRST_SCORED_COMMIT",
