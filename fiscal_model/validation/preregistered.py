@@ -257,7 +257,7 @@ R2_SECONDHAND_ENTERED_DATE = "2026-09-11"
 #: Commit in which R2's decisions were first scored — the commit that writes
 #: -$1,081.3B into ``KNOWN_SCORES`` and flips the four withdrawn records to
 #: ``runnable=False``.
-R2_SECONDHAND_FIRST_SCORED_COMMIT = "0000000000000000000000000000000000000000"
+R2_SECONDHAND_FIRST_SCORED_COMMIT = "7d5d751de384a50940d4c348dc311bc9b022b9b6"
 
 #: The rule R2 bound itself to before it opened a document, written here rather
 #: than only in each record's ``retired_reason`` because "which rows did we
