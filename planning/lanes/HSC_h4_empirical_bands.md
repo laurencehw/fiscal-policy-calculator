@@ -345,6 +345,18 @@ Pricing*, which drew a ±14.7% band and a −\$918.9B to −\$683.1B range while
 6. **The tier chip above the headline had to learn `None`.** `accuracy_pct` was
    `float(... or 0.0)`, so a policy with no measured accuracy would have printed **"± 0.0%"** — which
    reads as perfect. It is `None` now, and the chip omits the figure.
+7. **Two shipped surfaces already carried a collapsed accuracy claim, and both figures were stale.**
+   The "How is this scored?" panel (`ui/app_controller.py`) forbids collapsing the tiers into one
+   "validated within X%" claim **four lines after doing it twice** — "(\~5% mean error)" for the
+   calibrated tier and "\~8% mean error" for out-of-sample — against live readings of **1.5% over 16**
+   fitted rows and **14.7% over 26** out-of-sample rows spread across eight classes from 4.6% to
+   44.5%. `components/results.py`'s empty state carried the same "\~8%". Neither is replaced with a
+   fresher number: a figure typed into a static string is stale by the next wave and is still one
+   number over eight classes. Both now say what the tiers mean and point at the per-result card. The
+   card's name went with them, "Validation evidence" → "Accuracy evidence", in the two places the app
+   names it. **`app_pages/about.py` and `fiscal_model/assistant/tools.py` carry the identical stale
+   pair and were left alone** — a page with its own voice and an LLM system prompt whose behaviour
+   cannot be tested from here. Carry-over.
 
 ### 6.4 What a user sees, four headlines
 
@@ -369,3 +381,7 @@ Pricing*, which drew a ±14.7% band and a −\$918.9B to −\$683.1B range while
 * **`fiscal_model/ui/__init__.py`'s eager re-export chain** still pulls the whole of
   `fiscal_model.validation` into any `fiscal_model.ui` import (H3a's §"Purity" note). This lane's
   lazy imports buy nothing against it, for the same reason H3a's did.
+* **`app_pages/about.py` and `fiscal_model/assistant/tools.py` still quote "\~5%" and "\~8%"**
+  (finding 7). Both are wrong and both are collapsed; neither is this lane's file. The assistant one
+  matters most — it is in a system prompt, so the model repeats it — and closing it needs a live
+  smoke run.
