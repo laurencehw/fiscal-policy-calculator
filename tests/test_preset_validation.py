@@ -155,10 +155,18 @@ def test_a_range_target_reports_containment_rather_than_a_percentage():
 
 def test_small_amounts_keep_a_decimal_so_a_distance_is_not_rounded_away():
     """``_money`` prints a *distance to a published range* as well as a target,
-    and whole billions are the wrong resolution for one: ``reciprocal_tariffs``
-    sits $3.2B outside its nearer bound, and "$3B" understates it while a
-    sub-$0.5B distance would print "$0B" — which reads as *inside* the range,
-    the one thing the field exists to distinguish."""
+    and whole billions are the wrong resolution for one: a sub-$0.5B distance
+    would print "$0B", which reads as *inside* the range — the one thing the
+    field exists to distinguish.
+
+    This was written against a live row: ``reciprocal_tariffs`` sat $3.2B
+    outside its nearer bound, and "$3B" understated it. **Lane H8 moved that
+    row inside its range** (EO 14257's own partner schedule in place of a flat
+    20pp on half of goods imports), so no benchmark now sits a sub-$10B
+    distance outside one and this unit test is the only guard the resolution
+    has. Do not delete it because the end-to-end case went away; the next
+    range revision can put one back.
+    """
     from fiscal_model.ui.preset_validation import _money
 
     assert _money(3.2) == "$3.2B"
@@ -171,12 +179,41 @@ def test_small_amounts_keep_a_decimal_so_a_distance_is_not_rounded_away():
     assert _money(-1347.0) == "-$1.35T"
 
 
-def test_the_reciprocal_tariff_distance_survives_into_the_caption():
-    """The end-to-end version of the case above, on the row that has it."""
+def test_no_benchmark_sits_a_sub_ten_billion_distance_outside_its_range():
+    """The end-to-end case the test above was written for, and why it is gone.
+
+    Every row with a published range either sits inside it or sits far outside
+    — `trump_corporate_15` is $819B out. If this test ever fails, a row has
+    acquired a small distance again and the end-to-end assertion below it
+    should be restored on that row rather than on `tariff-reciprocal`.
+    """
+    from fiscal_model.validation.scorecard import cached_default_scorecard
+
+    small = {
+        entry.policy_id: entry.distance_to_published_range_billions
+        for entry in cached_default_scorecard().entries
+        if entry.within_published_range is False
+        and entry.distance_to_published_range_billions is not None
+        and 0.0 < abs(entry.distance_to_published_range_billions) < 10.0
+    }
+    assert small == {}, small
+
+
+def test_the_reciprocal_tariff_is_inside_its_published_range():
+    """It was $3.2B outside until lane H8, and the move is worth pinning.
+
+    The row's *point* error against Tax Foundation's $1.5T anchor got worse —
+    6.9% → 9.5% — while its containment got better, because a flat 20pp on
+    half of goods imports was replaced by EO 14257's own partner-specific
+    schedule. Both readings are correct, and the badge must show the
+    containment one rather than the percentage.
+    """
     badge = get_validation_badge("tariff-reciprocal")
     assert badge is not None
-    assert badge["within_range"] is False
-    assert "$3.2B" in badge["caption"], badge["caption"]
+    assert badge["within_range"] is True
+    assert badge["rating_label"] == "Within published range"
+    assert "is inside it" in badge["caption"], badge["caption"]
+    assert "not a measure of accuracy" in badge["caption"], badge["caption"]
 
 
 def test_a_model_estimate_target_says_so():

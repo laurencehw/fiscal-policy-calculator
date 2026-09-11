@@ -501,6 +501,21 @@ the headline above applies" and says plainly that its own two channels are the
 tariff module's, not the engine's. Two of the four caption tests run the same
 preset through both engine modes and compare against `final_deficit_effect`.
 
+**One test broke and it is the interesting kind.**
+`test_the_reciprocal_tariff_distance_survives_into_the_caption` pinned the
+end-to-end path for a *small* distance to a published range, and it used
+`tariff-reciprocal` because that was the only row with one — $3.2B outside its
+nearer bound. Moving the row inside its range removed the repository's only
+instance of the case, so the test could not be repaired, only replaced. It is
+now three: the `_money` unit test keeps its assertions with its prose
+corrected, a new invariant asserts that **no** benchmark sits a sub-$10B
+distance outside a range (and says to restore the end-to-end assertion on
+whichever row acquires one next), and the reciprocal row is pinned on its new
+truth — inside, "Within published range", the caption showing containment
+rather than the percentage. *A test that pins a live example is pinned to that
+example staying live; when the example moves, the invariant behind it has to be
+written down rather than the assertion retargeted.*
+
 ### 6.7 Findings
 
 1. **The plan's residual cause for rows 6 and 6b was backwards, and §0 said so
