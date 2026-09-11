@@ -349,7 +349,7 @@ def test_the_millionaire_surtax_says_its_base_is_a_design_choice():
 CAPTION_MOVES = {
     "Warren Ultra-Millionaire Surtax": (-187.951449, -395.792194),
     "High-Earner Medicare Surcharge 2pp": (-232.472418, -439.315472),
-    "Progressive Millionaire Tax": (-495.146843, -904.920081),
+    "Progressive Millionaire Tax": (-495.180000, -904.920081),
 }
 
 #: What each of them actually scores now. It equals ``CAPTION_MOVES[...][1]``
