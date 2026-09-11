@@ -1269,6 +1269,38 @@ and window are worth $184B; CBO's offset share against the unsourced 10% is
 worth $185B). The **Repeal ACA Premium Credits** preset moves with it, with a
 Decision 6 caption computed from the scored result.
 
+**Wave D's lane H11 (2026-09-11) replaced that single transferred ratio with the
+composition CBO itemises**, and the argument is that a ratio is the wrong
+*object* rather than the wrong size: the effects it aggregates are responses to
+**people** moving between sources of coverage, so they scale with person-years,
+while the gross scales with dollars. Each of 60437's lines is now divided by the
+coverage movement it is a response of — **$2,971.43** per employment-based
+person-year (the $101B of compensation shifting plus $3B of penalties over a
+3.5M decline), **$4,200** per Medicaid/CHIP person-year, **$57.97** per
+marketplace person-year for the Basic Health Program, §1332 waivers and other
+outlays, and **$0** for a person who becomes uninsured — and applied to the
+scored vintage's own subsidized marketplace enrolment from publication **51298
+Table 1**, which also replaces `MARKETPLACE_DATA`'s uncited "19 million lose
+coverage" with CBO's **13.4M in 2026, 11.06M on average over FY2026-2035**.
+Handed 60437's own coverage vector the rates return its own **$79B**, which is
+the identity check and not a fit.
+
+The resulting share is **12.32%**, not 19.28%, and the whole of the difference is
+one line of arithmetic CBO prints both halves of: a repeal's average enrollee
+holds an **$8,671** credit where the extension's marginal enrollee holds the
+**$5,370** of 60437 Table 3. `repeal_ptc` moves −$774.1B → **−$840.8B**,
+29.6% → **23.6%**, with no constant retuned and the target unmoved, and the
+preset moves with it under an extended Decision 6 caption. Two asymmetries are
+**measured and deliberately not shipped**, because both move the row toward the
+−$1,100B this repository refuses as a baseline projection: 60437 Table 3 puts
+3.5M of the 6.9M marginal enrollees above 400% FPL against an employment-based
+decline of 3.5M, so on a vintage where the enhancement has lapsed that channel's
+population is absent (zeroing it gives −$996.3B, 9.4%); and 42 U.S.C.
+§18051(d)(3) ties Basic Health Program funding to 95% of the credit, so a
+repeal zeroes it rather than reversing +$17B. Both are in
+`DestinationSplit`'s docstring and the row's `known_limitations`. See
+`planning/lanes/HSD_h11_ptc_coverage.md`.
+
 ---
 
 ## TCJA Extension
