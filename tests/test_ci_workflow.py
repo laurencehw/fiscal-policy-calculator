@@ -276,6 +276,51 @@ def test_the_capital_gains_ceiling_records_wave_cs_tightening():
     assert _per_class_ceilings(workflow)["capital_gains"] == 24
 
 
+def test_the_ordinary_rate_ceiling_stays_where_lane_r2_put_it():
+    """The one ceiling that is now TIGHTER than its own re-derivation.
+
+    R2 set 15 from a class mean of 11.32%. R1 then moved the class to 12.9%,
+    which re-derives to ``ceil(12.9 x 1.25) = 17`` -- so the rule would now
+    *allow* a looser gate than the one in place. It is not taken: the
+    re-derivation rule is downward only, a ceiling goes to itself or tighter and
+    never back up, and 15 still passes. Pinned so that a later pass reading the
+    one-sided invariant above (which only forbids ``> derived``) cannot raise it
+    to 17 and call that a re-derivation.
+    """
+    workflow = VALIDATION_DASHBOARD_WORKFLOW_PATH.read_text(encoding="utf-8")
+    assert _per_class_ceilings(workflow)["ordinary_rate_change"] == 15
+
+
+def test_the_tax_expenditure_ceiling_records_lane_r1s_tightening():
+    """17 was derived from 13.1%; the class reads 12.8% since lane R1.
+
+    ``cbo_opt56_employer_health_income_only`` is the tier's only tax-expenditure
+    row and it moved through a baseline *assumption* rather than a level -- the
+    cap limit's chained-CPI proxy reads ``vintage_assumptions(...)["inflation"]``
+    -- so the ceiling re-derives to ``ceil(12.8 x 1.25) = 16``.
+    """
+    workflow = VALIDATION_DASHBOARD_WORKFLOW_PATH.read_text(encoding="utf-8")
+    assert _per_class_ceilings(workflow)["tax_expenditure"] == 16
+
+
+def test_the_pooled_gate_records_the_battery_that_shrank():
+    """20 / 22 -> 15 / 19 is a smaller battery, not a relaxed gate.
+
+    Lane R2 withdrew four rows whose targets are in no publication and
+    superseded a fifth onto CBO publication 58164's own option, so the tier went
+    26 rows to 22. The ceiling followed the mean down by the rule. The floor is
+    a *count*, and three of the four withdrawn rows were themselves inside 25%,
+    so the live count fell to 19 and a floor of 22 could not be met at all --
+    while the *share* within 25% rose 84.6% -> 86.4%. The workflow comment has
+    to carry that history, or the pair reads as a relaxation to anyone who finds
+    it later.
+    """
+    workflow = VALIDATION_DASHBOARD_WORKFLOW_PATH.read_text(encoding="utf-8")
+    assert "--max-mean-error 15 --min-within-25pct 19" in workflow
+    assert "86.4%" in workflow, "the within-25 share must be recorded beside the count"
+    assert "shrinking battery" in workflow
+
+
 def test_fred_seed_refresh_workflow_opens_seed_refresh_pr():
     workflow = FRED_SEED_REFRESH_WORKFLOW_PATH.read_text(encoding="utf-8")
 

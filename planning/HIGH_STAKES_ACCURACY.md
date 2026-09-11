@@ -153,6 +153,16 @@ scorecard target and the model carry **+220.0** — the sign is inverted on the 
 
 ## 2. What the evidence supports today, per audience
 
+> **Dated snapshot, 2026-09-06.** Every figure in this section is the reading on the commit this plan
+> was written against, and it is kept as written because §1.2's ranking was computed from it. **The
+> live reading is §5's table**, and three of the numbers below have since moved by **composition**
+> rather than by accuracy: the fitted tier is **15 rows at 1.6%** (PR #157 reclassified
+> `cap_charitable` out of it), the reconstruction tier **38 scored rows at 37.5%** beside **2 retired
+> targets** and a held-in-place reading of **40 at 55.5%** (PR #160), and Tier 1 is **22 rows at
+> 11.6%** after PR #162 retired four targets — three of them from this section's largest class — for
+> want of any publication. Read every one of those movements as a smaller battery, not a better
+> model.
+
 The three tiers mean different things and the app currently blurs them into one badge.
 
 **Fitted ≈ bookkeeping.** 21 rows at **1.7% mean, 21/21 within 15%**. All 21 are flagged `calibrated_to_target=True`:
@@ -196,24 +206,36 @@ Then, per audience:
 
 ## 3. The plan
 
-> **Status, 2026-09-11 — Waves A, B and C are done (PRs #140-#151).** Nine of the
-> thirteen lanes below are closed: **H1**, **H6**, **H13** (Wave A), **H2**,
-> **H2b**, **H3a**, **H9** (Wave B) and **H4**, **H5**, **H8** (Wave C), where
-> H2b was split out of H2 mid-wave for the reason §1.3(c) records below and the
-> preset-label pass shipped beside Wave C as PR #148. Each carries a one-line
-> outturn under its own heading and a full record in `planning/lanes/`. Tier 1
-> went **15.0% → 14.7% → 14.5%**; the CI gate is **20 / 22** with a per-class
-> floor whose capital-gains ceiling Wave C tightened **26 → 24**; badges are 44.
-> **Waves A/B moved three tiers on *targets* and Wave C moved one on *accuracy***
-> — the reconstruction tier **55.5% → 56.7% on the same 39 rows**, all of it the
-> five tariff rows, registered as worse in advance. **Two of Wave C's lanes found
-> the plan's own diagnosis wrong** (§1.2 row 6 and §3 H5's "applied by size
-> class", both corrected in place with attribution). Waves D and E are open, and
-> the owner decisions §4 lists for them are unanswered — **④ (the pharma targets)
-> has its machinery built and its one-commit edit written out**, **⑤ (the
-> corporate default) has a second independent reading from H3a**, and Wave C
-> opened a new one: **the *level* half of the capital-gains death channel**, a
-> 7.1× unmeasured factor that points the opposite way from H5 (§6.2 item 55).
+> **Status, 2026-09-11 — Waves A, B, C and D are done (PRs #140–#151, #155,
+> #157, #158), and the two owner-decision lanes §4 left open have been taken
+> (PRs #160, #161).** Twelve of the thirteen lanes below are closed: **H1**,
+> **H6**, **H13** (Wave A), **H2**, **H2b**, **H3a**, **H9** (Wave B), **H4**,
+> **H5**, **H8** (Wave C) and **H7**, **H11**, **H12** (Wave D), where H2b was
+> split out of H2 mid-wave for the reason §1.3(c) records below and the
+> preset-label pass shipped beside Wave C as PR #148. **H3b is the one lane still
+> open**, owner ⑤ is still unanswered, and `CORPORATE_APP_MODE` is still
+> `reported`. Each closed lane carries a one-line outturn under its own heading
+> and a full record in `planning/lanes/`.
+>
+> **The live tier readings are §5's, and not one of them may be read as
+> attainment.** Tier 1 went **15.0% → 14.7% → 14.5% → 11.6%**, and the last step
+> is a battery that **shrank from 26 rows to 22** when PR #162 retired four
+> targets no publication carries; the CI gate followed it down by the workflow's
+> own rule, **20 / 22 → 15 / 19**, with `agi_inclusive_surtax` **22 → 7** and
+> `ordinary_rate_change` **19 → 15**. **Waves A/B moved three tiers on *targets*,
+> Wave C moved one on *accuracy*, and Wave D moved all three by a mixture of
+> both** — the reconstruction tier **55.5% → 56.7% on the same 39 rows** in
+> Wave C, then to **38 scored rows at 37.5%** once PR #160 withdrew a 93.3% and a
+> 701.0% target, which is why the held-in-place line beneath it (**40 at 55.5%**)
+> is the one to quote. **Two of Wave C's lanes found the plan's own diagnosis
+> wrong** (§1.2 row 6 and §3 H5's "applied by size class", both corrected in
+> place with attribution), and Wave D added a third: **H7's "nearer 18%" for the
+> charitable magnitude is not reproducible, and the module's own identity gives
+> 22.1%**. Owner decisions ③, ④, ⑧ and ⑨ are **taken** (PRs #160, #160, #161,
+> #158); **⑤ is open** and is H3b's gate, as is Wave C's newer one — the *level*
+> half of the capital-gains death channel, a 7.1× unmeasured factor pointing the
+> opposite way from H5 (§6.2 item 55). What follows H3b is scoped in
+> `planning/ROUTE_TO_8_5.md`, which carries this plan's rules forward unchanged.
 
 Ranked by **stakes × current error × tractability**. Each lane follows the established format and
 inherits §1's rules: mechanism not tuning, frozen yardstick, pre-register before opening a file,
@@ -322,7 +344,13 @@ branch — which is the trigger for building `Policy.scores_by_year()` rather th
 > cites; and a bundled run's naive per-point share of **102.5%** of the average base is not a base
 > defect but `extend_bonus_depreciation`, measured at +$294.15B of +$1,491.8B. The review lesson is
 > general: **a test that records a finding must assert the finding, not its neighbourhood.**
-> `planning/lanes/HSB_h3a_corporate_range.md`. **H3b remains open (Wave E).**
+> `planning/lanes/HSB_h3a_corporate_range.md`. **H3b is this plan's one remaining open lane after
+> Waves D and E**, owner ⑤ is still unanswered, and **`CORPORATE_APP_MODE` is still `reported`** —
+> describe the corporate app default that way until a flip merges. `cbo_opt64_corporate_rate_1pp` is
+> now Tier 1's largest single row at **44.5%** and **17.4% of the tier's whole error mass**, up from
+> 11.4% not because corporate moved — it is unmoved to the decimal — but because the battery around
+> it shrank from 26 rows to 22. It is a class of **one**, which is why its CI ceiling is **56**. The
+> lane carries forward as **R5** of `planning/ROUTE_TO_8_5.md`.
 
 Wherever the app quotes a corporate number, quote the **estimator
 range**. The record is transcribed in `CORPORATE_PER_POINT_YIELD.md` §4b: on FY2025–2034, a point of
@@ -488,7 +516,52 @@ before Wave B**: a rule applied to one row and not the other is worse than a rul
 `CBO_SCORE_MAP` sign, −220.0 against a +220.0 target and model.
 **Falsified if** any scored quantity moves — neither lane may move a number.
 
-### H7 — Tax expenditures: the five magnitudes, and the SALT baselines *(3 lane-days)*
+### H7 — Tax expenditures: the five magnitudes, and the SALT baselines *(3 lane-days)* — ✅ **DONE, PR #157** *(magnitudes)* **+ PR #161** *(SALT, owner ⑧)*
+
+> **Outturn — two magnitudes sourced, three left unsourced with their searches recorded, and both
+> moving rows were pre-registered regressions that landed to the decimal.** The parameter is not what
+> its name says: `BEHAVIORAL_ELASTICITIES` entries are **shares of the reform's static revenue
+> effect, not price elasticities**. Mortgage repeal goes **0.10 → 0.14502762**, which is
+> `1 − 61.9/72.4` from Poterba & Sinai (NBER WP 14253 §6.1, Table 8 — the paper's own "about 85
+> percent"); the charitable benefit-rate ceiling goes **0.40 → 0.22077987**, the module's own
+> identity evaluated at `c = 0.28` on the existing SOI Table 2.1 distribution, whose only new
+> constant is **ε = 0.5 from CRS R40518**. Employer health (0.20), retirement (0.30) and SALT (0.05)
+> stay where they are, and `BEHAVIORAL_ELASTICITIES` keeps all five as the documented fallback.
+> `cap_charitable` **0.3% → 12.5%**, `eliminate_mortgage` **26.5% → 30.2%**, Expenditures LOO
+> **40.6% → 43.6%** and the suite 35.7% → **36.5%** — every one a regression, because the held-out
+> statics already sit short of their targets, so a larger erosion and a smaller magnification both
+> move away. Shipped preset **📋 Cap Charitable Deduction −$200.6B → −$174.9B** (−12.80%) with a
+> Decision 6 caption; badge Excellent → Acceptable. **This plan's own "nearer 18%" is not
+> reproducible and the identity gives 22.1%**, and the shipped 0.40 inverts to a price elasticity of
+> **0.906**, above CRS's published high of 0.79. **A further mechanism for leaving the fitted tier
+> turned up**: `create_cap_charitable_deduction`'s annual had been fitted so `static × (1 + 0.40)`
+> lands on −$200.0B, so once 0.40 is sourced the constant is fitted to a quantity the module no
+> longer computes — reclassified `calibrated_to_target=False` under PR #119's rule, **fitted
+> 16 → 15**, with no constant retuned and no scored number moved by the reclassification itself. And
+> a magnitude is a property of the *reform* for the same reason a direction is: tightening the ceiling
+> 28% → 15% roughly halves the share, **0.2208 → 0.1140**, because the recapture rate *is* the cap
+> rate. **The pre-registered bands in the body below could not be used as written, because their
+> baselines had moved underneath them**: this plan quoted `Expenditures` LOO at **37.5%** where the
+> live reading when the lane opened was **40.6%**, and `eliminate_mortgage` LOO at **14.0%** where it
+> was **29.9%** — both moved by H9's target revisions rather than by any derivation — so the lane
+> re-measured every figure in its own §0 and re-registered against that. *A pre-registered band is
+> only a commitment if its baseline is live.* `planning/lanes/HSD_h7_expenditure_magnitudes.md`.
+>
+> **The SALT half became its own lane and its own decision — ⑧, taken in PR #161.** A new
+> `SaltCapBaseline` shape input carries three named cap paths transcribed from IRC §164(b)(6)–(7) as
+> amended by P.L. 119-21 sec. 70120 — `CURRENT_LAW` (the app default: $40,000 in 2025 indexed at the
+> statute's own 101 percent, reverting to **$10,000 in 2030**, with a 30-percent-of-excess phasedown
+> above $500,000), `PERMANENT_10K` and `LAPSED_CAP` — so the app scores current law while **each
+> benchmark scores the baseline its own document was measured on**: `repeal_salt_cap` on PWBM's
+> permanent-$10,000 world, `eliminate_salt` on CBO Option 49's lapsed-cap one. **Both benchmark rows
+> are unchanged, exactly as the lane pre-registered**; the shipped preset **📋 Repeal SALT Cap
+> +$1,155.6B → +$740.3B** (−35.9%) moved with a Decision 6 caption stating the *baseline* change
+> rather than only the number, because the old figure repealed a cap current law does not impose until
+> 2030. An independent published anchor was already in the repository: `pl119_21_salt_cap_40k` is
+> JCX-35-25 line 20 at **+$946,209M**, and the new mechanism returns **$723.1B, −23.6%** against it,
+> the largest named term being new itemisers — JCT counts SALT claimants at **11.8M → 17.8M returns**
+> under the $40,000 cap and SOI's TY2023 panel observes none of them.
+> `planning/lanes/SALT_current_law_baseline.md`.
 
 **Mechanism.** All five `BEHAVIORAL_ELASTICITIES` are unsourced — charitable **0.40**, employer health
 **0.20**, mortgage **0.10**, SALT **0.05**, retirement **0.30** — and PR #128 deliberately settled only
@@ -603,6 +676,14 @@ condition, and the reported percentage against an editorial midpoint is not a me
 
 ### H10 — A Tailor battery: measure the path users type on *(4 lane-days)*
 
+> **Still open, and more urgent than when it was written — it is `ROUTE_TO_8_5.md`'s R3.** Tier 1 is
+> **22 rows**, not the 26 below: PR #162 retired four targets for want of a document, three of them
+> from the AGI-inclusive-surtax class, which is now **n = 2**. So the size condition this lane exists
+> to meet has moved *away* while nothing else changed, and the tier lost something a count does not
+> show — `illustrative_500k_2pp` was its **only rate cut and only positive target**. The roadmap adds
+> a source the four-vintage design did not have: CBO's own `leg_rev_*` series, the annual revenue
+> effect of 42 enacted acts, each carrying the five things `preregistered.py` requires.
+
 **Mechanism.** Tier 1's 26 rows measure the generic path on **CBO Options shapes**. Users type
 different shapes. Register a pre-registered battery of published *rate-change* scores organised by
 **threshold** and **filing status**: JCT bluebook rate tables, Green Book rows across FY2022–FY2025
@@ -615,7 +696,29 @@ the four-vintage design is the cheapest way to distinguish a base error from a v
 **Pre-register.** Target: ≥ 40 Tier 1 rows, ≥ 15 of them at thresholds other than \$0/\$400K/\$1M.
 No target may be selected after seeing the model's answer — `preregistered.py`'s entry-commit rule.
 
-### H11 — PTC: the coverage response *(2 lane-days)*
+### H11 — PTC: the coverage response *(2 lane-days)* — ✅ **DONE, PR #155**
+
+> **Outturn — every pre-registered figure landed to the cent, on the row and on the preset.** PR
+> #131's single transferred **19.28%** aggregate is replaced by a four-channel engine priced **per
+> coverage person-year** — the ESI exclusion plus employer-mandate penalties at **$2,971.43**,
+> Medicaid/CHIP at **$4,200.00**, BHP/§1332 and other outlays at **$57.97**, the uninsured at
+> **$0.00**, all from CBO/JCT publication 60437 — applied to a coverage change computed from the
+> scored vintage's own publication 51298 Table 1. The window share is **12.3211%**, `repeal_ptc`
+> **29.6% → 23.6%** (inside the registered 20 ± 8), and the shipped preset **🏥 Repeal ACA Premium
+> Credits −$774.1B → −$840.8B** (+8.62%) with a Decision 6 caption; `extend_enhanced_ptc` did not
+> move a dollar, so the registered regression risk did not materialise. The reconstruction tier moved
+> **56.669% → 56.514% on the same 39 rows**, which is accuracy and not composition. **The aggregate
+> was booking a Medicaid *saving* as a cost, and only a decomposition could see it**: CBO's $80B
+> contains **+$21B of Medicaid and CHIP**, so scaling every channel together made a repeal inherit it
+> in the eroding direction — $31.39B pointed the wrong way, 3.7% of the score. And the denominator
+> was wrong by 61% with both halves printed by CBO: an *extension's* marginal enrollee costs
+> **$5,370/yr** where the average subsidized enrollee a *repeal* removes costs **$8,671/yr**. **The
+> two corrections that would have flattered the row were declared and declined** — 60437 Table 3 puts
+> 3.5M of the 6.9M marginal enrollees above 400% FPL, and zeroing the ESI channel gives −$996.28B,
+> **9.43%** from the target; "most" does not license a zero, and a test asserts the shipped path is
+> **not** the one nearer the target. The falsification held: the June 2024 gross demonstration still
+> returns **−$1,143.0B, 0.09%** from CBO's own $1,142B, and it is now pinned by a test rather than
+> argued in prose. `planning/lanes/HSD_h11_ptc_coverage.md`.
 
 **Mechanism.** PR #131 put the static path on CBO 51298 Table 2 and transferred a single **19.28%**
 offsetting share from publication 60437. CBO's own itemisation is dominated by **employment-based
@@ -628,7 +731,35 @@ risk. **Falsified if** the module reproduces −\$1,100B — that target was exa
 lane demonstrated why (the same mechanism on the June 2024 vintage returns \$1,143.0B against CBO's own
 \$1,142B, **0.09%**).
 
-### H12 — Sectoral presets: caption or demote *(1 lane-day + an owner decision)*
+### H12 — Sectoral presets: caption or demote *(1 lane-day + an owner decision)* — ✅ **DONE, PR #158** *(owner ⑨ taken)*
+
+> **Outturn — the whole claim is that no number moves, and every artifact is byte-identical.** All
+> five sectoral presets are demoted into a separate, last-ordered group named **`Illustrative -
+> unfitted reconstructions`**, carrying a group note and each preset's live, render-time error:
+> `drug-negotiation-expand` (93.3%), `drug-reference-pricing` (701.0%), `insulin-cap-universal`
+> (39.0%), `drug-reform-comprehensive` (no row) and `irs-enforcement-double` (82.3%). The holdout
+> JSON, the dashboard, 52 presets × two engine modes, 44 badges, `resolve_preset` for all 52 catalog
+> ids and `build_catalog`'s insertion order all compare identical, and **nothing was removed from any
+> registry**, so `?preset=`, `/build?policies=` and frozen assignment links all still score. Three
+> findings the brief did not predict. **Demoting a group can delete an area**: `Drug Pricing` held
+> exactly the four pharma presets, so Explore's selectbox *loses* the entry rather than emptying it
+> and stays at 14. **The group is five presets on Explore and four on Build**, because Build's catalog
+> is driven by `CBO_SCORE_MAP` and the preset with the weakest number never had a Build row — worth
+> knowing before anyone reads "the five" as one population. And **the real default package is the
+> values composer, which picks a demoted preset every time**: all five archetypes select
+> `irs-enforcement-double` and none selects any pharma preset, measured before any edit and left
+> alone, because excluding it would move five package totals. A seventh file surfaced that none of the
+> lane's own instruments could have found, because the defect was in a *declaration* rather than an
+> output — `credibility.py`'s `PRESET_AREA_TO_SCORECARD_CATEGORY` also enumerates preset areas, and a
+> new area should be a decision rather than a fallback.
+> `planning/lanes/HSD_h12_illustrative_group.md`.
+>
+> **The demotion and owner ④ are different instruments and both were used.** This lane moved presets
+> off a *surface*; PR #160 then retired the two pharma `model_estimate` targets outright, so the
+> 701.0% and 93.3% rows report in `retired_targets` rather than in the reconstruction mean — printed
+> immediately above a held-in-place reading of **40 at 55.5%**, so that quoting the smaller **38 at
+> 37.5%** requires skipping a line. Neither instrument deleted a scorecard row, which is §5's
+> "no removing a case to go green" holding in both directions at once.
 
 **Recommendation: demote, do not model.** The four pharma presets carry a 277.8% category mean, two
 `model_estimate` targets, and the reconstruction tier's worst row at **701.0%**. The named residuals —
@@ -715,6 +846,13 @@ held-out number beside the shipped one — **−\$2,664.0B (1.3%)** and **−\$3
    at **14.5%** with **22** within 25%, the ceiling still derives to 20, and the floor derives to
    `22 − 1 = 21` — which would **loosen** the gate. It stays at **22**, and the workflow comment says
    so, because a rule that tightens on improvement and loosens on regression is not a gate.
+   **✅ Re-derived again after Wave E, and both halves moved — one by the rule and one because the
+   battery shrank.** On **22** cases at **11.6%** with **19** within 25%, the ceiling derives to
+   `ceil(11.3 × 1.25) = 15` and the floor to the live count, **19**. The gate is now **15 / 19**, met
+   with no slack. The floor's fall is not a relaxation and the distinction is worth stating: it is
+   the arithmetic of a battery that lost four rows, three of them from inside 25%, and the
+   repository's own meta-test (`min_within <= within_25pct`) failed on it before CI did. **The share
+   within 25% rose 84.6% → 86.4% over the same step**, which is why both are quoted.
 4. **New: a per-class floor.** The pooled gate cannot see a class regressing while the mean improves —
    which is exactly what happened to `medicare_surcharge_2pp` in W7, and again to
    `warren_ultramillionaire_surtax_3pp` in Wave B. Add `--max-class-mean-error`, applied to §2's eight
@@ -728,6 +866,17 @@ held-out number beside the shipped one — **−\$2,664.0B (1.3%)** and **−\$3
    spending split — which reproduces §2's table exactly (6 / 4 / 4 / 1 / 3 / 5 / 2 / 1) and classifies
    a row the moment it is registered. **After Wave C exactly one ceiling moved**, by the same rule:
    capital gains **26 → 24** (`ceil(18.7 × 1.25) = 24`); the other seven re-derive to themselves.
+   **After Wave E four more moved, and every one of them was forced rather than chosen**:
+   `enacted_law_spending` **17 → 10** at a class mean of 7.4% (owner ③, PR #160),
+   `agi_inclusive_surtax` **22 → 7** and `ordinary_rate_change` **19 → 15** (PR #162), and
+   `tax_expenditure` **17 → 16** on R1's eleventh row. The live set is `agi_inclusive_surtax=7
+   ordinary_rate_change=15 capital_gains=24 corporate=56 enacted_law_spending=10
+   discretionary_spending=6 payroll=10 tax_expenditure=16`, and the class counts are now
+   **2 / 4 / 4 / 1 / 3 / 5 / 2 / 1** rather than §2's 6 / 4 / 4 / 1 / 3 / 5 / 2 / 1 — the four
+   missing rows are all `agi_inclusive_surtax`. `ordinary_rate_change` is held at **15** where its own
+   re-derivation on the merged tree would now allow 17, because the rule is downward only. **A
+   per-class ceiling read off a class of two is not a band**, which is the argument for R3 and not an
+   argument for loosening anything.
    **The gate fails three ways**: a class over its ceiling, a class
    the battery contains that was given *no* ceiling, and a ceiling naming a class that does not exist.
    The second matters as much as the first — a gate that ignored an unlisted class would let a row in
@@ -764,8 +913,8 @@ Files are disjoint within a wave, so lanes run as parallel Opus agents in worktr
 | **A** | **H1** base rule + labels · **H6** badges and tiers · **H13** payroll caption | `policies_core.py` + `app_data.py` + `tools.py` + `policy_input_tax.py` + `composer.py` / `preset_validation.py` + `controller_utils.py` + `tests/` / docs | 5 | ① Three surtax presets move by ~2×: confirm the Decision 6 caption. ② Four label figures with no record — confirm strike-vs-register per preset **before H1 opens**, since H1 now carries the edit |
 | **B** | **H2** base growth · **H3a** corporate range · **H9** provenance | `policies_core.py` + `scoring_engine.py` / `results_summary.py` + `components/results.py` / `validation/*` | 8 | ③ IIJA `.v3` — apply the window rule to the second row, or to neither (§6.2 item 35). ④ Pharma targets: retire, or carry unsourced (H9 needs the answer to build the `retire` state). ⑤ Does a shipped corporate **range** change Decision 33's `reported` default? |
 | **C** ✅ | **H4** empirical bands · **H5** capital gains · **H8** tariffs *(+ the label lane, PR #148)* | `credibility.py` + `results_summary.py` / `data/capital_gains.py` / `trade.py` | 9 | ⑥ and ⑦ **both taken.** `policies_core.py` needed **no change at all** for the second wave running, which says the seam between "how many estates, and how big" and "what a proposal does to one" is in the right place |
-| **D** | **H7** expenditures · **H11** PTC · **H12** sectoral demotion | `tax_expenditures_core.py` / `ptc.py` / `app_data.py` + `explore.py` | 6 | ⑧ SALT's two baselines (§6.2 item 3) — a joint call on both rows. ⑨ Do the four pharma presets and Double IRS Enforcement stay on headline surfaces? |
-| **E** | **H3b** corporate mechanism · **H10** Tailor battery | `corporate.py` / `validation/preregistered.py` + `cbo_scores.py` | 8 | ⑩ H10 registers ~15 new Tier 1 rows: confirm the CI gate is re-derived **after** they land, by the workflow's rule, not before |
+| **D** ✅ | **H7** expenditures · **H11** PTC · **H12** sectoral demotion | `tax_expenditures_core.py` / `ptc.py` / `app_data.py` + `explore.py` | 6 | **⑧ taken (PR #161)** — a `SaltCapBaseline` with three named cap paths, so the app scores current law while each benchmark scores its own document's baseline; both rows unchanged, one preset −35.9%. The SALT half became its own lane rather than a joint call inside H7. **⑨ taken (PR #158)** — no: all five move to an explicitly-labelled illustrative group with their live error printed, and nothing leaves a registry |
+| **E** *(re-scoped)* | **H3b** corporate mechanism · **H10** Tailor battery | `corporate.py` / `validation/preregistered.py` + `cbo_scores.py` | 8 | ⑩ H10 registers ~15 new Tier 1 rows: confirm the CI gate is re-derived **after** they land, by the workflow's rule, not before. **Still open.** `planning/ROUTE_TO_8_5.md` re-scoped this wave around its own **R1** (the baseline transcription) and **R2** (Tier 1 provenance) and carries both of these lanes forward — H3b as **R5**, H10 as **R3** — and it **renumbers this decision ⑪**, because its own ⑩ is a different question. See the note below |
 
 **Conflict notes.** H1 and H2 both reach the generic path and must be serial — H1 in Wave A, H2 in
 Wave B — because H2's predicted endpoints (9.1%, 1.0%) are computed *with* H1's base rule in place.
@@ -778,20 +927,83 @@ confidence tier and the test that enforces the rule afterwards. Wave A is then d
 `app_data.py` and the generic constructors, H6 owns `preset_validation.py` and `controller_utils.py`,
 H13 owns docs. **Total: 36 lane-days across five waves.**
 
+**The owner decisions, and one numbering collision worth naming rather than resolving quietly.**
+①–④ and ⑥–⑨ are taken: ① and ② in Wave A, ⑥ and ⑦ in Wave C, **③ and ④ in PR #160**, **⑧ in
+PR #161** and **⑨ in PR #158**. ③ gave `iija_2021_discretionary` a **`.v3`** row scored on
+**FY2022–2031**, the ten fiscal years its own document covers — the target is unchanged at
++$415.448B and only the shape input moves, so the row goes **18.2% → 0.28%** and its class,
+enacted-law spending, **13.4% → 7.4%**; read that 0.28% as two terms nearly cancelling ($434.1B of
+outlays, 4.5% high, against $19.8B falling outside even this window) rather than as a measurement.
+④ retired the two pharma `model_estimate` targets, **the ledger's first retirements**, and the
+anti-gaming arithmetic is printed rather than argued: withdrawing a 93.3% and a 701.0% row from a
+39-row tier averaging 56.5% leaves 37 at 38.1%, so the tier with both folded back at the error they
+carried on the day they were withdrawn prints on the adjacent line. **⑤ is open and is H3b's gate.**
+
+**⑩ is two different decisions in two documents and they must not be conflated.** Here it is H10's
+*"re-derive the CI gate after the rows land"*, which is **still open**. In `ROUTE_TO_8_5.md` §2 it is
+*"does a CBO model-input file count as CBO's own table for `VINTAGE_SOURCING`'s `sourced` grade, or
+only `cbo-data`'s published mirror?"* — **taken in PR #159**: both `US-CBO` repositories count, with
+`cbo-data` preferred. That roadmap renumbers this plan's ⑩ as **⑪**. The collision is recorded rather
+than silently repaired, because a decision numeral that means two things is exactly the failure the
+ledger exists to prevent.
+
 ---
 
 ## 5. What success looks like
 
-**Measurable, per class.** Tier 1 targets after Wave C, stated as movement not attainment:
+**Measurable, per class.** Tier 1 targets after Wave E, stated as movement not attainment — and in
+this round two of the movements are **composition**, which the table labels rather than banks:
 
-| Class | n | At writing | After Waves A/B | **After Wave C** | Target | Which lane |
-|---|--:|--:|--:|--:|--:|---|
-| AGI-inclusive surtax | 6 | 20.7% | 17.6% ⚠ | **17.6%** ⚠ | **≤ 10%** | H1 + H2 + H2b |
-| ordinary rate change | 4 | 12.0% | 14.8% ⚠ | **14.8%** ⚠ | ≤ 12% (hold) | H2 |
-| capital gains | 4 | 20.5% | 20.5% | **18.7%** ✅ | ≤ 18% | H5 |
-| corporate | 1 | 44.5% | 44.5% | **44.5%** | ≤ 32% | H3b (Wave E) |
-| discretionary + enacted spending | 8 | 7.9% | 7.9% | **7.9%** | hold | — |
-| **tier** | 26 → ~40 | 15.0% / 10.6% / 22 within 25 | 14.7% / 12.6% / 23 within 25 | **14.5% / 11.5% / 22 within 25** | **≤ 12% mean, ≥ 30 of 40 within 25%** | all |
+| Class | n | At writing | After Waves A/B | After Wave C | **After Waves D/E** | Target | Which lane |
+|---|--:|--:|--:|--:|--:|--:|---|
+| AGI-inclusive surtax | 6 → **2** | 20.7% | 17.6% ⚠ | 17.6% ⚠ | **5.2%** *(composition — see below)* | **≤ 10%** | H1 + H2 + H2b |
+| ordinary rate change | 4 | 12.0% | 14.8% ⚠ | 14.8% ⚠ | **12.9%** ⚠ | ≤ 12% (hold) | H2 |
+| capital gains | 4 | 20.5% | 20.5% | **18.7%** ✅ | **18.7%** ✅ *(unmoved)* | ≤ 18% | H5 |
+| corporate | 1 | 44.5% | 44.5% | 44.5% | **44.5%** *(unmoved)* | ≤ 32% | H3b → R5 |
+| discretionary + enacted spending | 8 | 7.9% | 7.9% | 7.9% | **5.7%** (4.6 + 7.4) | hold | owner ③ |
+| **tier** | 26 → **22** | 15.0% / 10.6% / 22 within 25 | 14.7% / 12.6% / 23 within 25 | 14.5% / 11.5% / 22 within 25 | **11.6% / 8.9% / 19 within 25 (86.4%)** | **≤ 12% mean, ≥ 30 of 40 within 25%** | all |
+
+> **After Waves D and E the tier's headline number fell, and the reason is not accuracy.** Tier 1 is
+> **22 rows at 11.6% mean / 8.9% median, 18/22 within 15%, 19/22 within 25%**, error mass **255.3**,
+> and **every one of the 22 is a `line_item`** — the tier's `secondhand` count is **0** and its
+> `model_estimate` count is 0, which is the strongest single provenance statement this tier has ever
+> been able to make. But the battery **shrank from 26 rows to 22**: PR #162 retired
+> `warren_ultramillionaire_surtax_3pp`, `medicare_surcharge_2pp`, `illustrative_top_rate_5pp` and
+> `illustrative_500k_2pp` for **absence of a document, never for error**, and superseded
+> `illustrative_1pp_all` onto CBO publication 58164's Option 13 alternative 1 (**−$1,081.3B**, report
+> p. 72), **24.5% → 14.3%** merged. Of the 120.8 units of error mass that left, **94.1 went out with
+> the four retirements** and 17.9 more with owner ③'s IIJA row, so only about **8 units** belong to
+> rows that moved while staying in the battery. **Three of the four withdrawn rows were themselves
+> inside 25%**, which is why the count within 25% fell **22 → 19 while the share rose 84.6% →
+> 86.4%** — quote the share beside the count, because only one of the two is comparable across a
+> battery that changes size. And the rule cuts both ways: `medicare_surcharge_2pp` scored **1.2% from
+> the figure Treasury actually prints** and was withdrawn anyway, because Treasury prints it for a
+> **1.2pp** reform where the row applies 2pp; restated on the document's own rate that row reads
+> **39.3% under**, so the retirement *raised* the tier's honest error while lowering its mean.
+>
+> **AGI-inclusive surtax nominally meets its ≤ 10% target and the reading is close to worthless on
+> its own.** Three of the four retirements sit in that class, so it is **n = 2 at 5.2%** — the two
+> CBO Option 46 rows, which PR #159's baseline transcription then took to **7.9%** and **2.4%** when
+> the generic base stopped growing at 8.99% and started growing at CBO's own **10.70%**. A class of
+> two is a thin thing to gate, and the honest verb is *shrank*, not *improved*. **Ordinary rate
+> change is the one class where the movement is real**: it keeps all four rows at **12.9%**,
+> `illustrative_1pp_all` onto its document and `cbo_opt45_all_rates_1pp` down to **1.3%** on the
+> corrected base, against `biden_high_income_tax` rising 9.2% → **21.9%** on the same step — *a row
+> that improves when the base is wrong is a row that was cancelling two errors*. **Enacted-law
+> spending 13.4% → 7.4%** is owner ③ alone. **Capital gains, corporate, discretionary and payroll did
+> not move at all**, and corporate is now **17.4% of the tier's whole error mass in one row**, up
+> from 11.4% only because the battery around it shrank.
+>
+> **What the tier lost is not only rows.** `illustrative_500k_2pp` was the battery's **only rate cut
+> and only positive target**, so Tier 1 no longer tests the model in the direction a Tailor user most
+> often asks about — a real cost, recorded rather than absorbed. The tier is **22 rows against this
+> plan's own ~40**, and growing it back is `ROUTE_TO_8_5.md`'s **R3**, off CBO's 42 `leg_rev_*`
+> enacted-act series and four *Options* vintages. The CI gate followed the battery down by the
+> workflow's own rule — pooled **20 / 22 → 15 / 19**, `agi_inclusive_surtax` **22 → 7**,
+> `ordinary_rate_change` **19 → 15**, `enacted_law_spending` **17 → 10** (owner ③) and
+> `tax_expenditure` **17 → 16** (PR #159's eleventh and unregistered row) — and **a gate stated as a
+> count cannot survive a shrinking battery**, which `test_no_gate_is_looser_than_the_workflow_rule_derives`
+> knew before CI did.
 
 **Capital gains is the first class to reach its target, it did so by 0.7 points, and the reading is
 not clean.** H5 moved three of the four rows in two directions — `cbo_opt51` **20.3% → 35.5%** as a
@@ -841,6 +1053,19 @@ without a recorded range or scope verdict.
 > targets across both tiers went **75 → 77 of 81**, and **the five rows that left `secondhand` did so
 > by finding a document, never by deciding a model estimate was good enough.**
 
+> **After Wave E: the Tier 1 half of this criterion is met outright, and the calibrated half is
+> exactly where Wave B left it.** Tier 1's `secondhand` count went **5 → 0** and its `model_estimate`
+> count is 0, so all 22 surviving rows are `line_item` — one supersession onto CBO publication 58164
+> and four retirements, each with the search that failed written out (PR #162). The calibrated tier's
+> `secondhand` count, which is what this criterion counts, is **unchanged at 7**; R2 worked on a
+> different population and claims nothing about this one. Across both tiers the split is **58
+> `line_item` / 8 `line_item_differs` / 7 `secondhand` / 4 `model_estimate` / 0 unclassified**, with
+> **73 published targets of 77** and **44 transcribed**. **The published count and its denominator
+> fell by the same four rows**, so the Wave B line above — 75 → 77 **of 81** — becomes 73 **of 77**,
+> which is a battery shedding four unsourced rows and not four documents going missing. A
+> published-target threshold stated on a denominator of 81 has to be restated on 77 before it can be
+> scored again — this plan states none, but `ROUTE_TO_8_5.md`'s criterion ③ says "≥ 79/81".
+
 **Coverage.** Every one of the 52 shipped presets has a scorecard row **or** carries no dollar figure
 in its label. Zero presets display an accuracy claim keyed to `CBO_SCORE_MAP` membership.
 
@@ -854,6 +1079,20 @@ in its label. Zero presets display an accuracy claim keyed to `CBO_SCORE_MAP` me
 > membership (one line each, through `badge_tier()`), and **five preset labels quote a figure the
 > ledger has since superseded** plus two more that are mis-signed — §6.2 item 43, a single-commit
 > rename lane nobody in Waves A/B could take without crossing a file boundary.
+
+> **After Waves D and E: the rule held through three changes that could each have broken it, and was
+> not re-argued.** The badge **tier** composition moved **16 fitted / 25 reconstruction / 3
+> out-of-sample → 15 / 26 / 3** when PR #157 reclassified `cap_charitable`, pinned in three places
+> rather than discovered, so 📋 Cap Charitable Deduction now badges **reconstruction** rather than
+> "Calibrated" — the honest label, since its constant no longer reproduces its target.
+> PR #162's retirements then took the `official_score` off **Warren Ultra-Millionaire Surtax**
+> and **High-Earner Medicare Surcharge 2pp**, so both lost their validation badge — and both
+> still score, and neither prints a dollar figure in its label, which is this criterion working
+> rather than being waived. Build's card copy moved **"45+ scored policies" → "40+"**, because a
+> promise the catalog cannot meet is the defect H6 exists to prevent. PR #158's demotion removed no
+> figure from any registry: the five illustrative presets keep their scorecard rows and print their
+> own live error beside themselves. **The 13-of-44 Build measurement in `ROUTE_TO_8_5.md`'s criterion
+> ④ predates all three changes and needs re-measuring.**
 
 **Consistency.** One base default: Tailor, Ask, Explore and Build return the same number for the same
 policy *specification*, base attribute included, and a test asserts it across all four constructors.
@@ -876,10 +1115,14 @@ distribution, plus an estimator-disagreement band wherever two official bodies d
 - **No tuning to targets.** A lane that adds a constant reproducing a benchmark has failed regardless
   of the error it closes. The corporate landing factor (0.5785) and the AMT repeal target (\$948.9B,
   which is `amt.py`'s own input) are both named here so nobody arrives at them by accident.
-- **The fitted tier's 1.7% is not a target to protect.** It has already lost thirteen rows to three
-  different mechanisms and the mean *fell* each time, because every row that left was one it had been
-  carrying. If H9 moves six more targets and the fitted tier reads 8% over 15 rows, that is the tier
-  becoming honest, not the model regressing. **Read the two tiers together or neither.**
+- **The fitted tier's 1.6% over 15 rows is not a target to protect.** It has now lost rows to a
+  target revision, an unfitted-constant deletion, the offset-sign rule and — in PR #157 —
+  a **reclassification**, `cap_charitable` leaving at **16 → 15** because a constant fitted so
+  `static × (1 + 0.40)` lands on its target is not fitted to that target once 0.40 is sourced. The
+  mean moved with membership every time and never because anything improved: **held in place, the
+  same tier reads 26 at 12.4%**. A fifth mechanism now moves rows out of the *reconstruction* tier —
+  PR #160's retirement — and it is reported beside a held-in-place reading for the same reason.
+  **Read the tiers together or neither.**
 - **No new "validated within X%" claim.** Eight classes, three tiers, seven distributional tables and
   two provenance states do not collapse into one number, and this plan's success criteria are
   deliberately written as five separate figures.

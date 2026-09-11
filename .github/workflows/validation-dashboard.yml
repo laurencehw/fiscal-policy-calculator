@@ -167,6 +167,32 @@ jobs:
       # min_within <= the live within-25 count, so a floor of 22 is a test
       # failure rather than a strict gate. Re-derive again after R3, which is
       # the lane that grows the battery back.
+      #
+      # Lane R1 (the baseline transcription) merged after R2 and moved eleven
+      # rows in BOTH directions, because it replaced a growth RATE rather than a
+      # level: CBO's own FY2023 -> FY2025 nominal growth is 10.70% where the
+      # hand-entered February 2026 block assumed 8.99%. The merged tier reads 22
+      # cases, mean 11.6%, 18 within 15% and 19 within 25%. Neither threshold
+      # moves, and the two reasons are different:
+      #   ceiling  ceil(11.6 x 1.25) = 15 -> nearest 5 = 15. Unchanged, and now
+      #            exactly at the rule rather than under it.
+      #   floor    19 - 1 = 18, which would LOOSEN a gate that passes. LEFT AT
+      #            19, which is the live within-25 count -- met with no slack.
+      #
+      # THE HISTORY, because "20 / 22 -> 15 / 19" reads like a relaxation and is
+      # not one. Both numbers fell because the BATTERY fell, 26 rows to 22:
+      # four targets that are in no publication were withdrawn (lane R2), and a
+      # fifth row was superseded onto CBO publication 58164's own option. The
+      # ceiling followed the mean down by the rule. The floor is a COUNT, and a
+      # count cannot survive a shrinking battery: three of the four withdrawn
+      # rows were themselves inside 25%, so the live count fell to 19 and a
+      # floor of 22 could not be met at all. What the two numbers hide is that
+      # the SHARE within 25% went UP, 22/26 = 84.6% -> 19/22 = 86.4%. Quote the
+      # share beside the count; only one of the two is comparable across a
+      # battery that changes size. No surviving row moved by a cent in R2, and
+      # test_no_gate_is_looser_than_the_workflow_rule_derives already asserted
+      # min_within <= the live within-25 count, so a floor of 22 was a test
+      # failure before it was a CI failure.
       - name: Cold-holdout gate (out-of-sample tier)
         run: |
           python scripts/cold_holdout.py --max-mean-error 15 --min-within-25pct 19
@@ -237,6 +263,28 @@ jobs:
       # themselves. A class of TWO is a thin thing to gate, and the honest
       # reading is that this class shrank rather than improved -- R3 is the
       # lane that puts rows back into it.
+      #
+      # Lane R1 then moved three of the eight, and one ceiling with them:
+      #   tax_expenditure       ceil(12.8 x 1.25) = 16, lowered 17 -> 16. This is
+      #                         R1's own row (cbo_opt56 13.1% -> 12.8%, through a
+      #                         baseline ASSUMPTION rather than a level), and it
+      #                         was applied in the merge commit that brought R1
+      #                         and R2 together.
+      #   agi_inclusive_surtax  17.6% -> 5.2% (the class R2 cut to n=2, then R1's
+      #                         corrected base took both survivors to 7.9% and
+      #                         2.4%). ceil(5.2 x 1.25) = 7. Already 7.
+      #   ordinary_rate_change  11.32% -> 12.9%. ceil(12.9 x 1.25) = 17, so the
+      #                         rule would now ALLOW 17 where the gate says 15.
+      #                         LEFT AT 15. The rule is downward only: a ceiling
+      #                         re-derives to itself or tighter, never looser,
+      #                         and 15 still passes at a class mean of 12.9%.
+      # The other five re-derive to themselves. Ownership of the live set, since
+      # three different passes set it: agi_inclusive_surtax and
+      # ordinary_rate_change are R2's, tax_expenditure is R1's,
+      # enacted_law_spending is owner decision (3)'s, capital_gains is Wave C's,
+      # and corporate / discretionary_spending / payroll are unchanged.
+      # Verified on the merged tree: every ceiling is at or below
+      # ceil(live class mean x 1.25) and none exceeds twice its live mean.
       - name: Cold-holdout per-class floor (out-of-sample tier)
         run: |
           python scripts/cold_holdout.py --max-class-mean-error \

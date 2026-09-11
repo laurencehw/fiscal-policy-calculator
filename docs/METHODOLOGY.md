@@ -61,6 +61,64 @@ The Fiscal Policy Calculator uses a **three-stage approach** consistent with Con
 
 The calculator currently exposes 14 preset policy areas: TCJA / individual tax, general income tax, corporate, international, tax credits, estate tax, payroll / Social Security, AMT, ACA / healthcare, tax expenditures, IRS enforcement, drug pricing, trade / tariffs, and climate / energy.
 
+### The baseline is CBO's own table
+
+Since PR #159 every vintage's **economic** path and two of three **budget** paths
+are transcribed from CBO's own published tables in
+[`US-CBO/cbo-data`](https://github.com/US-CBO/cbo-data) @ `284a9566`, pinned by
+commit and verified by **SHA-256 per file**, cross-checked against
+`US-CBO/budgetary-feedback-model`. The route is recorded rather than assumed:
+`cbo.gov` returns HTTP 403 to this environment and the Wayback Machine holds no
+snapshot of the relevant workbooks, while `github.com/US-CBO` is not blocked and
+publishes the same tables as machine-readable CSV under a public-domain
+dedication. Both CBO repositories count as "CBO's own table" for the `sourced`
+grade, `cbo-data` preferred.
+
+`VINTAGE_SOURCING` is **computed from what the transcription actually contains,
+per line**, rather than asserted for a whole vintage — which matters, because all
+three vintages had previously been graded `sourced` and the grade was **false for
+two of them**. Two errors it was hiding are worth naming. First,
+`real_gdp_growth + inflation` **is not nominal GDP growth and never was**: the
+reconstruction added a real rate to a *PCE* price index, where CBO publishes
+`gdp_pct_change`, the nominal path itself. Second, the February 2026 block's
+ten-year Treasury note **fell** 4.5% → 3.9% where CBO's own table **rises** 4.10%
+→ 4.38%, so a baseline whose interest-rate path pointed the wrong way was pricing
+debt service the wrong way.
+
+| vintage | economic | budget | ten-year deficit |
+|---|---|---|--:|
+| February 2024 | transcribed | **reconstructed** | $29,440.30B |
+| January 2025 | transcribed | transcribed | $21,758.26B |
+| **February 2026** (app default) | transcribed | transcribed | **$23,143.30B** |
+
+**February 2024 keeps a reconstructed budget path** because `cbo-data`'s
+`ten_year_budget` ships `2024-06`, `2025-01` and `2026-02` only, and June 2024 is
+publication **60039**, *An Update to the Budget and Economic Outlook* — a
+different document whose FY2025 deficit is $1,937.9B against the January 2025
+edition's $1,865.3B. Borrowing it would have graded a vintage `transcribed`
+against a document it does not name. **That vintage's debt/GDP ratio is therefore
+a mixture and must not be quoted**: its GDP is CBO's and its debt is this module's
+reconstruction.
+
+The app's default February 2026 vintage is CBO publication **61882**, *The Budget
+and Economic Outlook: 2026 to 2036*, through CBO's 51118 data release. It
+reproduces that report's own printed headlines — **FY2026 −$1,852.7B**,
+**FY2027–2036 −$24,406.0B** and **FY2036 −$3,115.4B** — and every *year*'s deficit
+matches CBO's own `proj_deficit_total` to within $0.05B. The app quotes
+**$23,143.3B** because it sums the same table over its own **FY2026–2035** window;
+**CBO's headline ten-year window is FY2027–2036**, so the two figures are
+different decades of one table rather than a disagreement.
+`tests/test_cbo_baseline_transcription.py` pins all four.
+
+The correction is a **growth rate** rather than a level, which is why it moved
+eleven out-of-sample rows in both directions: CBO's own FY2023 → FY2025 nominal
+growth is **10.70%** where the hand-entered February 2026 block assumed **8.99%**.
+Ten rows moved through `_income_base_projection_factor`; an eleventh,
+`cbo_opt56_employer_health_income_only`, moved through a baseline **assumption**
+rather than a level, because the cap limit's chained-CPI proxy reads
+`vintage_assumptions(vintage)["inflation"]`. **A baseline has two surfaces a score
+can read.**
+
 ---
 
 ## Static Scoring
@@ -373,13 +431,42 @@ all its cases exempted again. The audit reads **14 correct, 1 convention, 1
 zero**, against 13/1/1 at the branch point and 6 correct against 7 defects at
 PR #119's.
 
-**The magnitudes are still unsourced**, all five of them, and two now have a
-published figure beside them: Poterba & Sinai's own **15%** against mortgage's
-0.10, and charitable's 0.40, which carries the size of a *price elasticity of
-giving* applied to a share of a revenue effect — a different quantity, where the
-arithmetic of a 28% ceiling at a 37% marginal rate implies something nearer 18%.
-Neither was adopted: reading a paper for its direction and then taking its
-coefficient too would be fitting to a document the lane chose. **A sixth sign
+**The magnitudes were unsourced on all five entries when this was written, and
+Wave D's PR #157 sourced two of them.** The paragraph is corrected here rather
+than deleted, because its own arithmetic turned out to be wrong. Mortgage repeal
+moved **0.10 → 0.14502762**, which is `1 − 61.9/72.4` from Poterba & Sinai,
+*Income Tax Provisions Affecting Owner-Occupied Housing* (NBER WP 14253, §6.1 and
+Table 8) — the paper's own "about 85 percent", not the 15% quoted above. The
+charitable benefit-rate ceiling moved **0.40 → 0.22077987**, and the route
+matters: CRS R40518 supplies only a central **price elasticity of ε = 0.5**
+(report p. 27; band 0.1 / 0.5 / 0.79), which is converted through the module's own
+identity
+
+```
+e = c · Σ A_b · ε · (m_b − c)⁺ / (1 − m_b)  ÷  Σ A_b · (m_b − c)⁺
+```
+
+evaluated at `c = 0.28` on the existing SOI Table 2.1 charitable distribution,
+**because a price elasticity and a share of a revenue effect are different
+quantities**. The "something nearer 18%" above is **not reproducible**: at a 37%
+marginal rate the factor is `c/(1 − m) = 0.28/0.63 = 0.4444` per unit of ε, so 18%
+would require ε = 0.405, which CRS does not print. Read the 18% as an estimate
+made in passing. Two findings came out of the conversion. The shipped 0.40
+**inverts to ε = 0.906 — above CRS's own published high of 0.79 by 15% and above
+its central 0.5 by 81%**. And **a magnitude is a property of the reform for a
+second reason directions are**: tightening the ceiling 28% → 15% roughly halves
+the share, **0.2208 → 0.1140**, because the recapture rate *is* the cap rate — so
+a module-wide constant would have over-magnified CBO 60557 Option 49's 15%
+alternative by 94%, and the shipped 0.40 by 251%. **Three magnitudes remain
+unsourced with their searches recorded** — employer health 0.20, retirement 0.30,
+SALT 0.05 — and `BEHAVIORAL_ELASTICITIES` keeps all five values as the documented
+fallback. Employer health is the one that matters, since it is the only one of
+the three sitting on an out-of-sample row (CBO Option 56, **12.8%**); the one
+published elasticity near it prices employer *offer* rates by firm size (−0.07 at
+1,000+ employees through −1.14 at the smallest), which is the channel Option 56's
+own text ranks **below** plan switching, so the finding is that the available
+elasticity is attached to the wrong half of the mechanism rather than that none
+exists. **A sixth sign
 defect turned up in the same pass, in a place neither end of the pipeline
 looks.** `estimate_expenditure_revenue()`, a public helper the package exports,
 aggregates in **revenue** space and returned `static + behavioral`, where the
@@ -877,7 +964,7 @@ The calculator returns per-unit estimates of:
 
 - Brackets: 10%, 12%, 22%, 24%, 32%, 35%, 37% (indexed for inflation)
 - Standard deduction: $15,000 single / $30,000 MFJ
-- SALT cap: $10,000
+- SALT cap: $10,000 *(the microsim's own constant; see **SALT Cap** below — current law is $40,400 in 2026 with a phasedown, reverting to $10,000 in 2030, and reconciling the two is an open carry-over)*
 - AMT exemption: $88,100 single / $137,000 MFJ
 - CTC: $2,000 per child, phases out above $200K/$400K at 5 cents per dollar
 - NIIT: 3.8% on net investment income above $200K/$250K
@@ -1160,7 +1247,62 @@ The `TaxExpenditurePolicy` module (`fiscal_model/tax_expenditures.py`) scores ch
 
 ### SALT Cap
 
-The TCJA capped the State and Local Tax (SALT) deduction at $10,000, raising $1.9T/10yr compared to full deductibility. The model scores:
+The TCJA capped the State and Local Tax (SALT) deduction at $10,000. **That is no
+longer current law, and since PR #161 the module says so.** `SaltCapBaseline`
+carries three named cap paths, transcribed from IRC §164(b)(6)–(7) as amended by
+**P.L. 119-21 sec. 70120**:
+
+| taxable year beginning in | limitation | MFS | phase-out threshold | MFS threshold |
+|---|--:|--:|--:|--:|
+| 2025 | $40,000 | $20,000 | $500,000 | $250,000 |
+| 2026 | $40,400 | $20,200 | $505,000 | $252,500 |
+| 2027 | $40,804 | $20,402 | $510,050 | $255,025 |
+| 2028 | $41,212.04 | $20,606.02 | $515,150.50 | $257,575.25 |
+| 2029 | $41,624.16 | $20,812.08 | $520,302.01 | $260,151.00 |
+| 2030 and after | $10,000 | $5,000 | — | — |
+
+2027–2029 are computed from the statute's own **101 percent** rule rather than
+from a Revenue Procedure, because the 2027 adjustment is not yet published. The
+phasedown of §164(b)(7)(B)–(C) reduces the cap by **30 percent of the excess** of
+modified AGI over the threshold, with a floor at $10,000 ($5,000 MFS), and does
+not apply to years beginning after 31 December 2029:
+
+```
+cap(y, magi) = max(10_000, L(y) − 0.30 × max(0, magi − T(y)))
+```
+
+It completes at MAGI of $600,000.00 (2025) rising to $625,715.87 (2029). Two
+mechanism notes follow from the statute with no new constant: cap dollars are
+nominal and indexed at **1%/yr** against SALT payments growing at the expenditure
+record's own **3%/yr**, so the cap's bite widens every year of the window; and the
+deductible amount above the cap is extrapolated by a **lognormal fitted per AGI
+class to two published IRS SOI Table 2.1 columns** (`salt` and `salt_limited`),
+with the phasedown read across a bounded-Pareto AGI distribution inside each
+class. The anchor check is that at `C = $10,000` the fit returns the published
+limited column by construction — **$25.020B** against the base table's own
+`annual_cost = 25.0`.
+
+**`CURRENT_LAW` is the app default; each benchmark scores the baseline its own
+document was measured on.** `repeal_salt_cap` scores `PERMANENT_10K` (PWBM's
++$1,169.0B is priced against a permanent $10,000 cap) and `eliminate_salt` scores
+`LAPSED_CAP` (CBO publication 60557 Option 49's −$1,621.0B is measured where the
+cap lapses after 2025), declared in `scenarios.SALT_SCORING_BASELINES` in the
+commit *before* the one that first scores them. **Neither benchmark moved**; the
+shipped preset did, **+$1,155.6B → +$740.3B**, because the old figure repealed a
+cap current law does not impose until 2030. An independent check the repository
+already held: `pl119_21_salt_cap_40k` is JCX-35-25 line 20 at **+$946,209M**,
+which is sec. 70120 measured against a lapsed cap — the new mechanism returns
+**$723.1B, −23.6%** against it, and the largest named term in that gap is **new
+itemisers**, since JCT puts SALT claimants at **11.8M → 17.8M returns** under the
+$40,000 cap and SOI's TY2023 itemiser panel observes none of them.
+
+*Two surfaces still hard-code the old cap and are a recorded carry-over rather
+than a fix:* `microsim/engine.py` sets `self.salt_cap = 10000` and
+`distribution_effects.py` reads `getattr(policy, "salt_cap", 10000)`, so a policy
+object's revenue score and its distributional table currently disagree about what
+year it is.
+
+The model also scores:
 - Changes in the cap level ($10K → unlimited, or $20K–$25K)
 - Distributional effects (primarily concentrated in high-tax states, top quintiles)
 - SALT cap interaction with AMT (the AMT historically limited SALT for high earners anyway)
@@ -2268,6 +2410,11 @@ composition** — the same 34 rows sit in it either side, so 57.6% → 57.9% is
 like-for-like and the whole 0.33pp is `repeal_ptc` going **18.5% → 29.6%** when
 its fitted $83.0B/yr was replaced by CBO and JCT publication 51298 Table 2's own
 annual credit path net of publication 60437's published 19.28% offsetting share.
+*Wave D's PR #155 then replaced that single aggregate ratio with a four-channel
+composition priced per coverage person-year, taking the window share to
+**12.32%** and the row to **23.6%**; the aggregate had been booking CBO's +$21B
+of Medicaid and CHIP as a cost rather than a saving, worth $31.39B in the wrong
+direction.*
 It is a registered regression, and the within-25 count fell 13 → 12 with it.
 Everything before that moved on population, in Wave 4 and again in PRs #119 and
 #122, so the constant-population comparisons belong beside them: on
@@ -2608,4 +2755,18 @@ figure for this model, and any document that states one is wrong.
 
 | Parameter | Default | Source |
 |-----------|---------|--------|
-| Spending multiplier (Year 1) | 1.4 | FR
+| Spending multiplier (Year 1) | 1.4 | FRB/US-calibrated (`FRBUSAdapterLite`) |
+| Tax multiplier (Year 1) | -0.7 | FRB/US-calibrated (`FRBUSAdapterLite`) |
+| Multiplier decay (per year) | 0.75 | FRB/US-calibrated (`FRBUSAdapterLite`) |
+| Crowding out (share of cumulative deficit) | 0.15 | FRB/US-calibrated (`FRBUSAdapterLite`) |
+| Marginal revenue rate on GDP feedback | 0.25 | `FRBUSAdapterLite`; see **Dynamic Scoring** |
+| Monetary offset / annual retention of the demand effect | 0.65 | FRB/US-calibrated (`FRBUSAdapterLite`) |
+
+*This table was truncated mid-row in the repository for some time — it ended at
+`| Spending multiplier (Year 1) | 1.4 | FR`. The rows above are read back from
+`FRBUSAdapterLite.__init__`'s own defaults in
+`fiscal_model/models/macro_adapter_frbus.py` rather than reconstructed from
+memory. There is **no supply-side channel**; demand-side GDP effects fade over
+roughly five to seven years at the 0.65 retention, and the dynamic surface nets
+debt-service costs against revenue feedback.*
+
