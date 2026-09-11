@@ -434,6 +434,18 @@ Tier 1.** `build_validation_headline.py --check` passes unchanged (77 published
 of 81), and `check_readiness.py --strict` is **byte-identical** to the same
 command run with the transcription disabled.
 
+**Those two calibrated levels are this branch's base, not merged `main`'s, and
+the distinction matters because two lanes landed while this one ran.** PRs #157
+(H7, expenditure magnitudes) and #158 (H12, illustrative group) merged after
+this branch's base `994f528`. H7's own outturn puts the fitted tier at
+**16 @ ≈2.3%**, reconstructions at **39 @ ≈56.8%** and leave-one-out at
+**≈36.5%** — so those are the figures merged `main` carries, and the load-bearing
+claim here is the *count*, which is unaffected: **this lane moves 0 of the 55
+calibrated rows and 0 lines of the donor matrix**, whichever base they are read
+against. Tier 1 is safe to quote across the merge in both directions, because
+H7 records its own Tier 1 as *"26 @ 14.5%, unchanged to the cent on all 26
+rows"*, `cbo_opt56` at 13.10% among them, and H12 moved no score at all.
+
 ### 6.5 Presets — §3.3 was wrong, and the harness was why
 
 **Eighteen of 106 preset × mode rows moved**, against a registered zero. The
