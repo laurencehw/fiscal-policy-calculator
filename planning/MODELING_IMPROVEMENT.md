@@ -2140,7 +2140,8 @@ drawing a ±14.7% ribbon beside a scorecard row 701.0% from its target. The two
 branches it replaced were both **fixed proportions of the point estimate**: 13
 rows drew exactly `0.1 / 0.875` = 11.43% of the headline, the identical ribbon for
 Flat Tax Reform at +$6,239.4B and the Medicare surcharge at −$426.6B; 27 drew one
-of four per-module fractions. What replaces them is the policy's own class's Tier
+of a small set of per-module fractions (38.0% climate and pharma, 45.6%
+estate/credits/payroll, 46.8-47.1% TCJA/AMT/PTC/step-up). What replaces them is the policy's own class's Tier
 1 spread, keyed by the same routing the CI per-class gate uses
 (`fiscal_model/validation/policy_classes.py`, imported by `cold_holdout.py`, which
 is byte-identical). **18 of 53 presets get a band; 35 print no band and say why**,
@@ -2217,9 +2218,10 @@ for the deliberate smoke run.
   5, 6 is a thin basis for a band and two classes print a single observation;
   registering one here would have been selecting a target after seeing what the
   band needed. That is H10, Wave E.
-- **Did not rewrite the twelve `PRESET_POLICY_PACKAGES` totals** whose stated
-  figures no longer equal their member sums (§6.2 item 56), because the only
-  reader is dead code and twelve list prices are a decision about figures.
+- **Did not rewrite the `PRESET_POLICY_PACKAGES` totals** — seven of the twelve
+  curated packages state a figure that no longer equals the sum of their members
+  (§6.2 item 56) — because the only reader is dead code and twelve list prices
+  are a decision about figures, not a label fix.
 
 
 ---

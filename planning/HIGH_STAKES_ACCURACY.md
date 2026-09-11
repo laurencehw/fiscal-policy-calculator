@@ -676,7 +676,7 @@ held-out number beside the shipped one — **−\$2,664.0B (1.3%)** and **−\$3
 > third mechanism for a defect this repository has now found three times**: `🌱 Repeal IRA
 > Clean Energy Credits ($783B)` was not quoting a superseded target — −783.0 is
 > `model_10yr_billions`, so the app printed **its own output, positively signed, in the slot a
-> published score occupies**. Three more: the mortage rename needed
+> published score occupies**. Three more: the mortgage rename needed
 > `SCORE_ONLY_ALIAS_ID_BY_LABEL` rather than `LEGACY_LABEL_ALIASES`, because a score-only Build
 > option has no `PRESET_POLICIES` row and the alias index would have raised `KeyError` at
 > runtime; **the worst stale string was not a label** but `assistant/knowledge/ssa_trustees_2025.md`,
