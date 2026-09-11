@@ -1,0 +1,89 @@
+# CBO's loss-making-firm and nonprofit adjustment to the statutory corporate tax
+# rate, transcribed from CBO's own published source code.
+#
+# Repository: https://github.com/US-CBO/business-investment-model
+# Commit:     6cb4cea63591d82fa6c6cfe7cf5cb05e3c63732d  (pushed 2026-02-25)
+# File:       source_code/Create_Tax_Data.prg
+# Constants:  lines 32-33.  Derivation comment: lines 21-27.  Use: lines 69-70.
+# Read:       2026-09-11 (cbo.gov returns HTTP 403 to this environment;
+#             github.com/US-CBO does not, so this is the primary source, not a
+#             mirror of one).
+# License:    public domain (CBO's stated terms for this repository).
+#
+# WHAT CBO'S COMMENT SAYS, VERBATIM (Create_Tax_Data.prg:21-27):
+#
+#   "An adjustment to the statutory corporate tax rate is necessary because it
+#    is not relevant for loss-making firms or for nonprofits. In 2005, a
+#    mid-cycle year, the ratio of net income on returns of active corporations
+#    ($1,948,655,133 thousand from the SOI) was 87.2% of net income on returns
+#    with positive net income ($2,234,882,109 thousand). Rounding that off, a
+#    factor of 0.85 is applied to the tax rate for nonfinancial corporations.
+#    Nonprofits accounted for a bit more than 6% of total investment in private
+#    fixed nonresidential capital, on average, over the sample (7.1% in 2005).
+#    Combining that with the adjustment for loss-making firms and rounding, a
+#    factor of 0.80 is applied to the statutory tax rate for investment in
+#    private nonresidential capital."
+#
+# and at :69-70 the constants multiply a RATE, not a base:
+#
+#    series rtcorpx   = dmyrevx   * (rtcgfs + rtcgsl * (1 - rtcgfs))
+#    series rtcorpnfc = dmyrevnfc * (rtcgfs + rtcgsl * (1 - rtcgfs))
+#
+# THE SPLIT IS NOT FINANCIAL VERSUS NONFINANCIAL. `planning/ROUTE_TO_8_5.md` SS1
+# R5 and this lane's brief describe the pair that way. CBO's own comment does
+# not: 0.85 is the loss-firm adjustment for NONFINANCIAL CORPORATES, and 0.80 is
+# that same 0.85 further reduced by the nonprofit share of private nonresidential
+# investment (0.85 x 0.94 = 0.799). `grep -rn dmyrev source_code/` returns no
+# third series and no financial-sector variant. There is no sector split here to
+# apply to a base.
+#
+# WHY THIS FILE IS READ BUT NEVER MULTIPLIED INTO A SCORE.
+# `fiscal_model/corporate.py`'s derived path prices a statutory point against
+# `projected_statutory_base` = CBO's projected corporate receipts / 0.21 x
+# 1.0083. Receipts are what loss-making firms' zero tax already produces, so the
+# base nets loss firms before this constant could be applied to it. Three
+# readings, all checkable:
+#
+#   (1) CBO itself divides BY dmyrevx wherever the other factor already carries
+#       the same adjustment, and says why (Create_Tax_Data.prg:172-175):
+#       "Take-up rates for Section 179 and bonus depreciation are less than 1
+#        partly because of the same factors that cause dmyrevx to multiply the
+#        statutory corporate tax rate: some investment is done by nonprofits and
+#        some is done by loss-making firms. To avoid double-counting when
+#        multiplying the effective tax rate by the PDV of depreciation
+#        allowances, the take-up rates estimated from data in Kitchen and Knittel
+#        (2016) are divided by dmyrevx, estimated to equal 0.8."
+#
+#   (2) `scripts/corporate_yield_reconciliation.py`'s own docstring says the
+#       average base every published marginal share in
+#       `planning/memos/CORPORATE_PER_POINT_YIELD.md` SS4b is measured against
+#       "already nets credits, NOLs, shifting and every other reason receipts
+#       fall short of profits times the rate." Haircutting the numerator against
+#       a denominator that carries the same haircut is the double count twice.
+#
+#   (3) The module's own SOI file measures it. `income_subject_to_tax` in
+#       `soi_table11_corporate_tax_items.csv` is net of
+#       `net_operating_loss_deduction`, which runs 8.69-11.58% of the pre-NOL
+#       base across TY2019-2022 (10.25% mean, 11.58% in the anchor year TY2022)
+#       against CBO's 12.8%. Same losses, measured two ways twenty years apart.
+#
+# `corporate.py:loss_firm_haircut_is_redundant()` computes (3) from the data
+# rather than asserting it, `scripts/corporate_marginal_share.py` prints all
+# three, and `tests/test_corporate_loss_firm_haircut.py` fails if any score in
+# the module ever starts reading these constants.
+#
+# WHAT APPLYING IT ANYWAY WOULD HAVE DONE, recorded so that not doing it is
+# visible (derived mode, x0.85):
+#   cbo_opt64_corporate_rate_1pp      -196.08 -> -166.67    44.50% -> 22.82%
+#   trump_corporate_15               +1545.24 -> +1313.45  129.57% -> 95.14%
+#   biden_corporate_28_fy2022        -1292.62 -> -1098.73   50.69% -> 28.09%
+#   biden_corporate_28               -1292.62 -> -1098.73    4.04% -> 18.43%
+# Two of this lane's three pre-registered bands land, and the one row with a
+# clean document behind it is destroyed - which is the hazard `ROUTE_TO_8_5.md`
+# SS1 R5 names ("a haircut moves both corporate rows the same way").
+#
+# Units: `factor` is dimensionless. `soi_2005_*` are THOUSANDS of dollars,
+# exactly as CBO's comment prints them.
+variable,factor,scope,covers_loss_firms,covers_nonprofits,soi_2005_net_income_all_active_returns_thousands,soi_2005_net_income_positive_returns_thousands,implied_ratio,source_line
+dmyrevnfc,0.85,nonfinancial corporate business,yes,no,1948655133,2234882109,0.87193,source_code/Create_Tax_Data.prg:33
+dmyrevx,0.80,all private nonresidential capital,yes,yes,1948655133,2234882109,0.87193,source_code/Create_Tax_Data.prg:32

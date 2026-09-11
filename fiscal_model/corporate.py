@@ -428,6 +428,188 @@ def projected_statutory_base(
     return cbo_corporate_receipts(fiscal_year, vintage) * BASE_PER_DOLLAR_OF_RECEIPTS
 
 
+# =============================================================================
+# CBO'S LOSS-FIRM HAIRCUT — READ, TESTED, AND DELIBERATELY NOT APPLIED
+# =============================================================================
+
+CBO_LOSS_FIRM_HAIRCUT_PATH = (
+    Path(__file__).parent / "data_files" / "corporate" / "cbo_loss_firm_haircut.csv"
+)
+
+#: The commit the two constants were transcribed at, so "CBO's 0.85" can be
+#: checked rather than believed. ``github.com/US-CBO/business-investment-model``;
+#: the constants are ``source_code/Create_Tax_Data.prg:32-33`` and the SOI 2005
+#: derivation is the comment at ``:21-27``.
+CBO_BUSINESS_INVESTMENT_MODEL_COMMIT = "6cb4cea63591d82fa6c6cfe7cf5cb05e3c63732d"
+
+
+@lru_cache(maxsize=1)
+def load_cbo_loss_firm_haircut() -> tuple[dict[str, str], ...]:
+    """Read the transcribed CBO haircut constants, comments stripped."""
+    with CBO_LOSS_FIRM_HAIRCUT_PATH.open(encoding="utf-8") as handle:
+        body = (line for line in handle if not line.startswith("#"))
+        return tuple(csv.DictReader(body))
+
+
+def cbo_loss_firm_haircut(variable: str = "dmyrevnfc") -> float:
+    """
+    CBO's adjustment to the *statutory rate* for loss-making firms (and nonprofits).
+
+    ``dmyrevnfc`` is 0.85, the loss-firm adjustment for nonfinancial corporate
+    business; ``dmyrevx`` is 0.80, that same factor further reduced by the
+    nonprofit share of private nonresidential investment. The pair is **not**
+    financial versus nonfinancial — CBO's own comment says so and there is no
+    third series in the source — which matters because a sector split is the one
+    thing a base-side application of it would have needed.
+
+    Nothing in this module multiplies a score by this number, and
+    :func:`loss_firm_haircut_is_redundant` is why.
+    """
+    for row in load_cbo_loss_firm_haircut():
+        if row["variable"] == variable:
+            return float(row["factor"])
+    raise KeyError(
+        f"No CBO haircut transcribed for {variable!r}; "
+        f"{CBO_LOSS_FIRM_HAIRCUT_PATH.name} carries "
+        f"{sorted(row['variable'] for row in load_cbo_loss_firm_haircut())}"
+    )
+
+
+def loss_firm_haircut_is_redundant(tax_year: int | None = None) -> dict[str, float]:
+    """
+    Measure whether the derived base already nets the losses CBO's factor prices.
+
+    CBO's 0.85 converts an *economy-wide* marginal investment return into the
+    part of it that a taxpaying firm earns: its derivation is net income on all
+    active corporation returns over net income on returns with **positive** net
+    income, 87.2% in SOI 2005. This module's derived path multiplies a *base*
+    which is CBO's projected corporate receipts divided by the statutory rate,
+    and receipts are what loss-making firms' zero tax already produces.
+
+    The check computes the same quantity from the module's own SOI file, which
+    publishes the net operating loss deduction beside the base it has already
+    been subtracted from. Returns the two ratios and their gap in percentage
+    points. They agree closely enough that applying CBO's factor on top would
+    price the same losses twice — so it is not applied, and
+    ``tests/test_corporate_loss_firm_haircut.py`` fails if it ever is.
+
+    The residual gap is not a smaller haircut waiting to be applied. CBO's is a
+    2005 *flow* of current-year losses and SOI's is a post-TCJA *stock* of
+    carryforwards actually used under section 172(a)'s 80% limitation; choosing
+    a number from the difference between two differently-defined ratios two
+    decades apart would be asserting a share, which
+    ``planning/memos/CORPORATE_PER_POINT_YIELD.md`` §7(i) forbids by name.
+    """
+    row = soi_row(tax_year)
+    base = float(row["income_subject_to_tax_thousands"])
+    nol = float(row["net_operating_loss_deduction_thousands"])
+    soi_loss_share = nol / (base + nol)
+
+    cbo_row = next(
+        r for r in load_cbo_loss_firm_haircut() if r["variable"] == "dmyrevnfc"
+    )
+    cbo_loss_share = 1.0 - (
+        float(cbo_row["soi_2005_net_income_all_active_returns_thousands"])
+        / float(cbo_row["soi_2005_net_income_positive_returns_thousands"])
+    )
+    return {
+        "soi_nol_share_of_pre_nol_base": soi_loss_share,
+        "cbo_loss_share_of_positive_net_income": cbo_loss_share,
+        "gap_pp": (cbo_loss_share - soi_loss_share) * 100.0,
+    }
+
+
+# =============================================================================
+# CREDIT CARRYFORWARD STOCKS — ACQUIRED, BOUNDED, AND NOT PRICED
+# =============================================================================
+
+CREDIT_CARRYFORWARD_PATH = (
+    Path(__file__).parent
+    / "data_files"
+    / "corporate"
+    / "credit_carryforward_stocks.csv"
+)
+
+#: IRC section 38(c): the general business credit is limited to net income tax
+#: less the greater of tentative minimum tax or **25%** of net regular tax
+#: liability above $25,000. Post-TCJA corporate TMT is zero for the years these
+#: statistics cover, so the binding cap is ``1 - 0.25 = 0.75`` of regular tax —
+#: and it rises with the statutory rate, which is the whole mechanism CBO's
+#: 2018 Option 24 narrative describes.
+SECTION_38C_ALLOWED_SHARE_OF_REGULAR_TAX = 0.75
+
+
+@lru_cache(maxsize=1)
+def load_credit_carryforward_stocks() -> tuple[dict[str, str], ...]:
+    """Read the transcribed Form 3800 and Form 1118 statistics, comments stripped."""
+    with CREDIT_CARRYFORWARD_PATH.open(encoding="utf-8") as handle:
+        body = (line for line in handle if not line.startswith("#"))
+        return tuple(csv.DictReader(body))
+
+
+def credit_carryforward_item(item: str) -> float:
+    """One transcribed statistic, in billions of dollars."""
+    for row in load_credit_carryforward_stocks():
+        if row["item"] == item:
+            if not row["amount_thousands"]:
+                raise KeyError(f"{item!r} carries a count, not a money amount")
+            return float(row["amount_thousands"]) / 1e6
+    raise KeyError(f"No credit-carryforward statistic transcribed for {item!r}")
+
+
+def credit_absorption_bounds(tax_year: int | None = None) -> dict[str, float]:
+    """
+    Bound the marginal credit absorption a statutory rate increase unlocks.
+
+    The derived path prices a point of rate against a **credit-realized** base,
+    which is the same as assuming the marginal credit absorption equals the
+    average one — ``1 - credit_realization_ratio()``, 29.15% of every extra
+    pre-credit dollar. Whether that substitution is generous or mean is the
+    open question in ``planning/memos/CORPORATE_PER_POINT_YIELD.md`` §7(i), and
+    this function bounds it from the two statutory caps that move with the rate.
+
+    **Section 904.** The limitation is the US tax on foreign-source taxable
+    income, so a rate increase raises it by ``Δτ × FSTI`` — but only an
+    excess-credit taxpayer converts that into extra credit. At the upper bound
+    every claimant is excess-credit, which is exactly what
+    :func:`section_904_realization_ratio` already assumes, and the absorption is
+    the limitation base over the statutory base.
+
+    **Section 38(c).** The cap is 75% of regular tax and rises with the rate, so
+    a carryforward holder absorbs up to
+    :data:`SECTION_38C_ALLOWED_SHARE_OF_REGULAR_TAX` of the extra tax. Its own
+    upper bound is therefore far above the section 904 one; its realized size
+    depends on the share of the base held by taxpayers who are both capped and
+    holding stock, **which is not published for any post-TCJA year** (the SOI
+    excess-position tables stop at TY2010). No point estimate is returned, and
+    nothing in this module multiplies one.
+
+    The reading that matters: the section 904 bound and the average substitution
+    are within a third of a percentage point of each other, so the section 38(c)
+    channel — a stock of 1.7 years of claims — is entirely unbooked, and it
+    points the score toward the published estimators rather than away.
+    """
+    base = statutory_base_billions(tax_year)
+    limitation = credit_carryforward_item("form_1118_col18_limitation")
+    available = credit_carryforward_item("form_1118_col17_taxes_available_for_credit")
+    claimed = credit_carryforward_item("form_1118_col2_ftc_claimed")
+    gbc_stock = credit_carryforward_item(
+        "form_3800_part_i_line_4_carryforward_to_2022"
+    ) + credit_carryforward_item("form_3800_part_ii_line_34_carryforward_to_2022")
+    gbc_claimed = float(soi_row(tax_year)["general_business_credit_thousands"]) / 1e6
+
+    return {
+        "average_substitution_in_use": 1.0 - credit_realization_ratio(tax_year),
+        "section_904_upper_bound": (limitation / CURRENT_CORPORATE_RATE) / base,
+        "section_904_lower_bound": 0.0,
+        "section_904_unclaimed_foreign_taxes_billions": available - claimed,
+        "section_38c_upper_bound": SECTION_38C_ALLOWED_SHARE_OF_REGULAR_TAX,
+        "section_38c_carryforward_stock_billions": gbc_stock,
+        "section_38c_claimed_billions": gbc_claimed,
+        "section_38c_stock_in_years_of_claims": gbc_stock / gbc_claimed,
+    }
+
+
 @dataclass
 class CorporateTaxPolicy(TaxPolicy):
     """
