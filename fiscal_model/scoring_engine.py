@@ -314,6 +314,11 @@ class FiscalPolicyScorer:
                     base_rev,
                     use_real_data=self.use_real_data,
                 )
+                # The generic base is a dated SOI aggregate and the window
+                # prices ten later years, so it is projected onto the year being
+                # scored - the same reason the branches above ask for a year.
+                # 1.0 for every base this policy did not read from SOI.
+                static_annual *= self._income_base_projection_factor(policy, year)
             revenue[idx] = static_annual * phase
 
             if isinstance(policy, CapitalGainsPolicy):
@@ -336,6 +341,48 @@ class FiscalPolicyScorer:
                 behavioral[idx] = policy.estimate_behavioral_offset(revenue[idx])
 
         return revenue, behavioral
+
+    def _income_base_projection_factor(self, policy: TaxPolicy, year: int) -> float:
+        """Growth of the generic income-tax base from its SOI year to ``year``.
+
+        IRS SOI Table 1.1 reports filer counts and average taxable income for a
+        **tax year**; a ten-year score prices ten later years. Held flat, the
+        generic path returned one annual ten times - ``yr1 == yr10`` to the cent
+        on every shape - which answers a FY2026-2035 question with a TY2023
+        base, 35.6% below what this vintage's own nominal path projects across
+        that window on average.
+
+        The factor is the ratio of the **scored baseline's own** nominal income
+        index between the two years
+        (:meth:`fiscal_model.baseline.BaselineProjection.nominal_income_index`),
+        so it is the vintage's, not a constant: the CBO Options battery scores
+        on February 2024 and takes 1.3118 on FY2025-2034, the app scores on
+        February 2026 and takes 1.3560 on FY2026-2035. Nothing fitted is read
+        and no new figure enters - the index is each vintage's own transcribed
+        ``real_gdp_growth + inflation``, and only ratios of it are used, so its
+        level cancels.
+
+        Nominal GDP rather than CBO's wages-and-salaries path for two reasons,
+        both in ``planning/lanes/HSB_h2_base_growth.md`` section 1.3: only GDP
+        is transcribed for all three vintages, and the base being projected is
+        taxable income, of which wages are a shrinking share as the threshold
+        rises. Measured on the one vintage where both exist the choice is worth
+        **0.35%** on the window mean, so the mechanism does not turn on it.
+
+        Returns ``1.0`` - no projection - for every base this policy did not
+        read from SOI, and for a baseline carrying no GDP path at all.
+        """
+        soi_year = getattr(policy, "soi_base_tax_year", None)
+        if soi_year is None:
+            return 1.0
+
+        anchor = self.baseline.nominal_income_index(int(soi_year))
+        if anchor <= 0:
+            return 1.0
+        scored = self.baseline.nominal_income_index(int(year))
+        if scored <= 0:
+            return 1.0
+        return float(scored / anchor)
 
     def _score_growth_tax_policy_year(
         self,

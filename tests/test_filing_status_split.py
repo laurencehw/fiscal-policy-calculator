@@ -14,6 +14,7 @@ See ``planning/lanes/W7_filing_status_split.md``.
 
 from __future__ import annotations
 
+import numpy as np
 import pytest
 
 from fiscal_model.data.irs_soi import FILING_STATUSES, IRSSOIData
@@ -226,20 +227,32 @@ def test_uniform_split_scores_like_the_pooled_policy(scorer):
     assert uniform.total_10_year_cost == pytest.approx(pooled.total_10_year_cost, rel=1e-8)
 
 
-def test_split_policy_is_flat_across_the_window(scorer):
-    """Years 2-10 must equal year 1.
+def test_split_policy_carries_year_ones_answer_across_the_window(scorer):
+    """Years 2-10 must be year 1, projected and nothing else.
 
     The pooled path re-derives its base on later years from
     ``avg_taxable_income_in_bracket`` minus one threshold, which is meaningless
     once the statuses face different floors. If the cache regresses, this test
     catches a policy that silently reverts to the pooled formula after year one.
+
+    Until 2026-09-09 the observable was that the path was **flat**. The base is
+    now projected onto each scored year
+    (``planning/lanes/HSB_h2_base_growth.md``), so the invariant is stated the
+    way it was always meant: divide each year's own factor back out and ten
+    identical annuals must remain. A silent revert to the pooled formula would
+    still break it, because the pooled formula returns a different level.
     """
-    result = scorer.score_policy(
-        _policy(threshold_by_filing_status={"joint": 206_700}), dynamic=False
-    )
-    annual = list(result.final_deficit_effect)
-    assert max(annual) == pytest.approx(min(annual), abs=1e-9)
+    policy = _policy(threshold_by_filing_status={"joint": 206_700})
+    result = scorer.score_policy(policy, dynamic=False)
+    annual = np.asarray(result.final_deficit_effect, dtype=float)
     assert annual[0] != 0.0
+
+    anchor = scorer.baseline.nominal_income_index(int(policy.soi_base_tax_year))
+    factors = np.array(
+        [scorer.baseline.nominal_income_index(int(year)) / anchor for year in result.years]
+    )
+    unprojected = annual / factors
+    assert unprojected.max() == pytest.approx(unprojected.min(), abs=1e-9)
 
 
 def test_raising_the_joint_floor_shrinks_the_base(scorer):

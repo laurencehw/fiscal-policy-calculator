@@ -218,10 +218,67 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "battery whose base GREW under the filing-status split - the separate-return "
         "floor is $175,000 BELOW the unmarried one, so those returns had been "
         "under-counted, not over-counted - and the row moved 12.0% to 9.2%.",
-        "The thresholds are on taxable income and SOI's classes are on AGI, and "
-        "neither the thresholds (C-CPI-U indexed after 2024 by the proposal's own "
-        "text) nor the base moves across the window. Both push the same way as the "
-        "remaining under-prediction.",
+        "The thresholds are on taxable income and SOI's classes are on AGI. The "
+        "thresholds are C-CPI-U indexed after 2024 by the proposal's own text and "
+        "the model's do not move; the base now does, so the two no longer push the "
+        "same way. This is a registered regression of the base-growth lane: the row "
+        "was 9.2% UNDER and is now 18.0% OVER, because it had been under-predicting "
+        "by less than a decade of nominal growth is worth "
+        "(planning/lanes/HSB_h2_base_growth.md section 3.2).",
+    ],
+    # -- The base-growth lane's four registered regressions on rule-of-thumb
+    # targets. Each of these rows under-predicted by LESS than a decade of the
+    # baseline's own nominal growth is worth, so projecting the base onto the
+    # years being scored carried it across its target. None was tuned back and
+    # no target was touched; see planning/lanes/HSB_h2_base_growth.md section
+    # 3.2, and section 3.3 for what these four targets actually are.
+    "illustrative_1pp_all": [
+        "The target is not a published line item. The record carries no source URL "
+        "and its own note reads 'Rule of thumb: 1pp ~ $85-100B/year'. "
+        "cbo_opt45_all_rates_1pp scores the SAME reform - a 1pp increase in every "
+        "ordinary bracket - against CBO's own Options line item at -$1,185.3B, "
+        "23.5% away from this row's -$960.0B, so the model cannot agree with both. "
+        "Before the base-growth lane it scored -$920.3B and agreed with this one; "
+        "it now scores -$1,195.3B and agrees with CBO's. That is a registered "
+        "regression here (4.1% to 24.5%) and a 22.4%-to-1.9% improvement there, "
+        "and the difference between them is provenance, not accuracy.",
+        "Real bracket creep is still not modelled and pushes the other way, so "
+        "part of the over-prediction against this target is a term the model is "
+        "missing rather than one it added.",
+    ],
+    "illustrative_top_rate_5pp": [
+        "Illustrative TPC-range target with no source URL, and internally "
+        "inconsistent with top_rate_45 from the same source (retired in Phase E "
+        "for exactly that reason). Part of this row's error is target error.",
+        "A registered regression of the base-growth lane: 7.4% under to 20.2% "
+        "over, because the row was under-predicting by less than a decade of "
+        "nominal growth is worth. The base is also taxable income where the "
+        "surtax is stated on AGI, which pushes it further over and is a separate "
+        "change (see cbo_opt46_agi_surtax_1pp_20k).",
+        "A single ETI (0.25) with the standard 0.5 factor erodes a 5pp top-rate "
+        "increase by only ~12.5%; published top-rate estimates assume a larger "
+        "response at that rate level, which would take this row back down.",
+    ],
+    "illustrative_500k_2pp": [
+        "Illustrative TPC-range target with no source URL. A registered "
+        "regression of the base-growth lane: 8.9% under to 18.3% over.",
+        "The base is taxable income where the record states an AGI-inclusive "
+        "surtax, and it is a rate CUT, so the two remaining terms point opposite "
+        "ways here relative to the raisers in this family.",
+    ],
+    "medicare_surcharge_2pp": [
+        "The largest registered regression of the base-growth lane: 1.5% to 31.8%. "
+        "The row was within 1.5% of Treasury's figure with a base held at its 2023 "
+        "tax year for a FY2025-2034 window, which means it was carrying an "
+        "offsetting over-statement of about the same size - the model prices 2pp on "
+        "ALL income above $400,000 where the Green Book's surcharge reaches "
+        "investment and wage income through the NIIT/Medicare base, and the "
+        "published row is a net of interactions the model does not build. The 1.5% "
+        "measured the cancellation, not the fit.",
+        "The target is a Green Book row promoted from CBO_SCORE_MAP rather than a "
+        "line item transcribed with a page reference, so part of the gap is "
+        "provenance. Sizing the base difference needs the surcharge's own statutory "
+        "base and is not this lane's.",
     ],
     "top_rate_45": [
         "The uncalibrated path applies a single ETI (0.25) with the standard 0.5 factor, "
@@ -399,10 +456,19 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
     # Out-of-sample battery. Every miss below is kept and explained; none of
     # these cases had a parameter moved to close its gap.
     "cbo_opt45_all_rates_1pp": [
-        "Scored on the SOI ordinary-income base with a single ETI (0.25); JCT's "
-        "estimate rises through the window partly because bracket creep pushes "
-        "income into higher rates, which the flat-base auto-population does not "
-        "reproduce.",
+        "Scored on the SOI ordinary-income base with a single ETI (0.25). The base "
+        "is now projected from its SOI tax year onto each year being scored, on the "
+        "February 2024 vintage's own nominal path (1.0962x in FY2025 to 1.5438x in "
+        "FY2034, 1.3118x on the window average), which took this row from 22.4% "
+        "under to 1.9% over. This is the control for the base-growth lane: it is "
+        "the row whose target is CBO's own published option on the very window "
+        "being scored, and the growth term alone closes it.",
+        "What is left is real bracket creep, which pushes the other way and is not "
+        "modelled: JCT's estimate rises through the window partly because rising "
+        "income moves into higher rates, and a uniform index cannot reproduce that. "
+        "Note also that illustrative_1pp_all scores the SAME reform against a "
+        "different published figure, -$960.0B against -$1,185.3B, 23.5% apart; the "
+        "model cannot agree with both.",
     ],
     "cbo_opt45_top4_brackets_2pp": [
         "The filing-status boundary is now the option's own: joint returns and "
@@ -422,8 +488,14 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "further under, not closer.",
         "The floors are statutory boundaries on TAXABLE income and SOI's size "
         "classes are by AGI, so the base is 'returns whose AGI clears the bracket "
-        "floor' rather than 'taxable income above it'. That predates this lane and "
-        "is unchanged by it.",
+        "floor' rather than 'taxable income above it'. That predates the "
+        "filing-status lane and is unchanged by it.",
+        "The base is now projected onto the years being scored rather than held at "
+        "its SOI tax year, which took the row from 12.4% under to 14.9% over - a "
+        "registered regression, because it was under-predicting by less than a "
+        "decade of nominal growth is worth. The two unmodelled terms above now "
+        "point in opposite directions: the missing 2026 bracket revert would take "
+        "it further over, and the AGI-versus-taxable base would take it back under.",
     ],
     "cbo_opt46_agi_surtax_1pp_20k": [
         "The $20,000 single / $40,000 joint threshold is now the option's own, "
@@ -432,19 +504,24 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "wrongly-taxed income - $839.8B, 9.2% of the base - and the row got WORSE, "
         "44.7% to 49.8%, because that error was cancelling two larger ones. It is "
         "kept at the honest number rather than reverted.",
-        "The base is TAXABLE INCOME, not AGI. This is an AGI surtax and SOI "
-        "publishes both columns; on the same split floors the AGI base scores "
-        "-$1,016.1B against -$723.1B, taking the row to 29.4%. Switching it would "
-        "also move medicare_surcharge_2pp, illustrative_top_rate_5pp, "
+        "The base is now projected from its SOI tax year onto each year being "
+        "scored, on the February 2024 vintage's own nominal path (1.3118x on the "
+        "window average), which took the row 49.8% to 34.1%. It is the largest "
+        "single move this row has had and it is not enough on its own.",
+        "What is left is that the base is TAXABLE INCOME, not AGI. This is an AGI "
+        "surtax and SOI publishes both columns; on the same split floors the AGI "
+        "base scored -$1,016.1B against -$723.1B before the projection, and the "
+        "same index carries that to about -$1,332.9B, roughly 7.4%. Switching it "
+        "would also move medicare_surcharge_2pp, illustrative_top_rate_5pp, "
         "illustrative_500k_2pp and warren_ultramillionaire_surtax_3pp, none of "
-        "which has a filing-status boundary, so it is a separate change.",
-        "The base is held flat at its tax year across the whole window - a plain "
-        "TaxPolicy scores one number ten times. CBO's own February 2024 baseline "
-        "grows nominal GDP 3.878%/yr, which averages 28.8% above TY2023 over "
-        "FY2025-2034; the option's own published annual row implies 4.756%/yr. On "
-        "the split floors, an AGI base and the baseline's own growth this row "
-        "scores -$1,309.0B, 9.1%. Neither term is in this lane and both are "
-        "measured here rather than asserted.",
+        "which has a filing-status boundary, so it is a separate change - and it "
+        "is the missing step behind the '9.1%' that "
+        "planning/HIGH_STAKES_ACCURACY.md section 1.3(c) attributes to the base "
+        "rule and the projection alone.",
+        "The projection indexes the threshold with the base. Scaling the aggregate "
+        "above a fixed nominal floor by a factor f is arithmetically the same as "
+        "indexing that floor by f, so the term is a lower bound on the growth of an "
+        "unindexed-threshold base and this row stays under for that reason too.",
         "No behavioural distinction between a broad low-threshold surtax and a "
         "narrow high-income one: both erode by ETI x 0.5.",
     ],
@@ -457,12 +534,16 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "the row 16.1% to 37.4%, and the old number measured the cancellation rather "
         "than the fit - the same finding fra_2023_discretionary_caps produced when "
         "spend-out landed.",
-        "On the split floors plus an AGI base the row scores -$824.2B (21.6%); plus "
-        "the CBO February 2024 baseline's own 3.878%/yr nominal growth, -$1,061.8B "
-        "(1.0%). Both terms are out of this lane's scope for the reason given on "
-        "the 1pp row.",
+        "The baseline's own growth is now in: the base is projected from its SOI "
+        "tax year onto each scored year at 1.3118x on the window average, taking "
+        "the row 37.4% to 17.9%. The AGI-versus-taxable base is not, and it is the "
+        "remaining term - on the split floors it scored -$824.2B before the "
+        "projection, which the same index carries to about -$1,081.1B, roughly "
+        "2.9% over. It is a separate change for the reason given on the 1pp row.",
         "The thresholds are indexed after 2025 by the option's own text and the "
-        "model's are not, which pushes the same way as the flat base.",
+        "model's are not. The projection indexes them implicitly, at its own rate "
+        "rather than the option's, which is a lower bound on the base of an "
+        "unindexed floor and not a match for an indexed one.",
     ],
     "cbo_opt47_ltcg_qdiv_2pp": [
         "The realizations base is projected across the window from its IRS SOI "
