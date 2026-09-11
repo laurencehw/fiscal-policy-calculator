@@ -264,35 +264,59 @@ def test_the_group_note_names_the_tier_and_says_it_is_not_a_score():
     assert "no constant in the model is fitted" in lowered
 
 
-def test_the_explore_row_note_carries_the_tier_and_the_live_error():
-    """Requirement: the figure is read from the badge, never hard-coded."""
+def test_the_live_error_comes_from_the_badge_caption_not_a_constant():
+    """The figure on Explore is the badge's own, so a target revision moves it.
+
+    The concurrent ledger lane is retiring two of these targets; nothing this
+    lane ships may carry a copy of a number that can move underneath it.
+    """
+    import re
+
     from fiscal_model.ui.preset_validation import get_validation_badge
 
     for preset_id in sorted(THE_FIVE - {NO_ROW_ID}):
         badge = get_validation_badge(preset_id)
-        note = illustrative_note(preset_id)
-        assert note.lower().startswith("↳ illustrative")
-        assert "unfitted reconstruction" in note.lower()
-        assert f"{badge['abs_pct']:.1f}%" in note
-        assert "not a validated score" in note.lower()
+        assert f"{badge['abs_pct']:.1f}%" in badge["caption"]
+        assert "unfitted reconstruction" in badge["caption"].lower()
+
+    # …and none of the strings *this lane* renders carries a percentage, so a
+    # target revision underneath one of these rows cannot leave a stale figure
+    # on a surface. Scoped to those strings rather than to whole modules: the
+    # comments motivating the flag quote the live errors on purpose, and a
+    # preset's own description legitimately states a policy parameter
+    # ("120% of the OECD average").
+    for text in (
+        ILLUSTRATIVE_GROUP_LABEL,
+        ILLUSTRATIVE_GROUP_NOTE,
+        ILLUSTRATIVE_NO_ROW_NOTE,
+        ILLUSTRATIVE_ROW_NOTE_NO_FIGURE,
+        *(illustrative_note(preset_id) for preset_id in sorted(THE_FIVE)),
+    ):
+        assert not re.search(r"\d+(\.\d+)?\s*%", text), text
 
 
 def test_the_member_with_no_row_says_so_rather_than_printing_nothing():
+    """Explore's branch: a silent absence would read like agreement."""
     note = illustrative_note(NO_ROW_ID)
     assert "illustrative" in note.lower()
     assert ILLUSTRATIVE_NO_ROW_NOTE in note
 
 
-def test_the_cheap_variant_names_the_tier_and_touches_no_scorecard():
-    """Build's row note must not force a 6-second scorecard materialisation."""
+def test_the_row_note_names_the_tier_and_touches_no_scorecard():
+    """Build's row note must not force a 6-second scorecard materialisation.
+
+    Both branches are asserted cold, including the "has it a row" test, which
+    reads ``PRESET_ID_TO_SCORECARD_ID`` rather than calling the badge.
+    """
     from fiscal_model.ui import preset_validation
 
     preset_validation.reset_scorecard_cache()
-    note = illustrative_note("drug-reference-pricing", with_figure=False)
+    note = illustrative_note("drug-reference-pricing")
     assert note == ILLUSTRATIVE_ROW_NOTE_NO_FIGURE
     assert "illustrative" in note.lower()
     assert "unfitted reconstruction" in note.lower()
     assert "not a validated score" in note.lower()
+    assert "illustrative" in illustrative_note(NO_ROW_ID).lower()
     # nothing was computed: the lru_cache is still empty
     assert preset_validation._scorecard_index.cache_info().currsize == 0
 

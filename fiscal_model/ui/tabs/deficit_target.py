@@ -1186,11 +1186,11 @@ def _render_option(
     )
 
     if option.illustrative:
-        # ``with_figure=False`` on purpose: the first ``get_validation_badge``
-        # call in a process costs 6.187 s (measured 2026-09-11) and Build's
-        # checklist materialises no scorecard today. See
+        # Figure-free on purpose: the first ``get_validation_badge`` call in a
+        # process costs 6.187 s (measured 2026-09-11) and Build's checklist
+        # materialises no scorecard today. See
         # ``preset_validation.ILLUSTRATIVE_ROW_NOTE_NO_FIGURE``.
-        st_module.caption(illustrative_note(option.build_id, with_figure=False))
+        st_module.caption(illustrative_note(option.build_id))
 
     if blocker is None:
         return

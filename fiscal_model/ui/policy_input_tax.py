@@ -6,11 +6,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fiscal_model.app_data import (
-    ILLUSTRATIVE_GROUP_NOTE,
-    ILLUSTRATIVE_NO_ROW_NOTE,
-    is_illustrative,
-)
+from fiscal_model.app_data import ILLUSTRATIVE_GROUP_NOTE, is_illustrative
 from fiscal_model.policies import (
     DEFAULT_INCOME_MEASURE,
     DEFAULT_ORDINARY_INCOME_BASE,
@@ -206,7 +202,9 @@ def render_tax_policy_inputs(
             # One flagged preset — Comprehensive Drug Reform — has no scorecard
             # row of any tier, so there is no distance to print. Saying that
             # out loud is the point: a silent absence reads like agreement.
-            st_module.caption(f"⚪ {ILLUSTRATIVE_NO_ROW_NOTE}")
+            from fiscal_model.ui.preset_validation import illustrative_note
+
+            st_module.caption(f"⚪ {illustrative_note(preset_choice)}")
 
         from fiscal_model.policy_status import get_policy_status
 

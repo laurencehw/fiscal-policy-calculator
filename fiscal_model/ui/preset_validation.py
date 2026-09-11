@@ -468,32 +468,27 @@ ILLUSTRATIVE_ROW_NOTE_NO_FIGURE = (
 )
 
 
-def illustrative_note(preset: str, *, with_figure: bool = True) -> str:
-    """One line for a demoted preset, naming the tier and — optionally — the error.
+def illustrative_note(preset: str) -> str:
+    """One line for a demoted preset, naming the tier its row sits in.
 
-    ``with_figure=False`` is the cheap variant: it names the tier and nothing
-    else, and it **never** touches the scorecard. Use it on any surface that
-    does not already have a badge on screen; see
-    :data:`ILLUSTRATIVE_ROW_NOTE_NO_FIGURE` for the measurement that makes that
-    the default on Build.
+    Deliberately **figure-free**, and it never materialises the scorecard —
+    including the "has this preset a row at all" test, which asks
+    :data:`PRESET_ID_TO_SCORECARD_ID` rather than calling
+    :func:`get_validation_badge`. See
+    :data:`ILLUSTRATIVE_ROW_NOTE_NO_FIGURE` for the measurement behind that.
 
-    ``with_figure=True`` reads the live badge, so a target revision or
-    retirement underneath this preset changes what the surface prints rather
-    than leaving a stale constant behind. A preset with no scorecard row of any
-    tier gets a line saying so, because a silent absence reads like agreement.
+    A preset with no scorecard row of any tier gets a line saying so, because a
+    silent absence reads like agreement. That is the branch Explore takes: it
+    prints this line exactly where a badge caption would have gone, so the
+    figure comes from the badge wherever there is one and from here where there
+    is not.
     """
-    if not with_figure:
-        return ILLUSTRATIVE_ROW_NOTE_NO_FIGURE
-    badge = get_validation_badge(preset)
-    if badge is None:
+    preset_id = preset_id_for_token(preset) or preset
+    if preset_id not in PRESET_ID_TO_SCORECARD_ID:
         from fiscal_model.app_data import ILLUSTRATIVE_NO_ROW_NOTE
 
         return f"↳ Illustrative — {ILLUSTRATIVE_NO_ROW_NOTE}"
-    return (
-        f"↳ Illustrative — {badge['tier_label'].lower()}, "
-        f"{badge['abs_pct']:.1f}% from {_money(badge['official'])} "
-        f"({_source(badge)}). Not a validated score."
-    )
+    return ILLUSTRATIVE_ROW_NOTE_NO_FIGURE
 
 
 def presets_without_a_row() -> tuple[str, ...]:
