@@ -483,7 +483,42 @@ pins the data directory to the script's constants offline so the two cannot drif
 vendored parameter CSV was **byte-identical** before and after, which is the evidence that
 nothing read was ever wrong — only what was claimed about it.
 
-**9. The schedule contains far more than this lane wired, and the count is the point.**
+**9. `estimate_static_revenue_effect` is an eleven-way override point, and the lane broke six
+of them by adding one keyword-only parameter.** The first implementation carried `year` and
+`threshold_deflator` on the **base** method. Every local gate this lane ran was green and CI
+failed on **all four test jobs**, at the *Type-check gate (blocking) — green-core allowlist*
+step (`mypy $(grep -v '^#' mypy.gate.txt …)`), which no instruction in the lane's brief named
+and which this lane therefore never ran:
+
+```
+fiscal_model/tax_expenditures_core.py:1187  Signature of "estimate_static_revenue_effect"
+fiscal_model/ptc.py:1055                     incompatible with supertype
+fiscal_model/tcja.py:298                     "fiscal_model.policies_core.TaxPolicy"  [override]
+fiscal_model/enforcement.py:91
+fiscal_model/international.py:443
+fiscal_model/policies_core.py:758            Argument 1 to "int": "int | None"  [arg-type]
+```
+
+Five of the six are in modules belonging to other lanes, and all six are inside
+`mypy.gate.txt`'s **blocking** allowlist — so the cheap fix (widen the five overrides) was
+also the one that reaches furthest into other people's files. The base signature is now
+**exactly `main`'s** and the per-year entry point is a separate method beside it,
+`estimate_static_revenue_effect_for_year`, which every subclass inherits and only
+`CapitalGainsPolicy` overrides; both public methods delegate to a private `_estimate_static`,
+so a future parameter can never change a signature anything else has to match. **None of the
+five modules was opened**, and every measured figure in §6.1–§6.3 is byte-identical across
+the refactor — the preset/Tailor/Tier 1 sweep, `cold_holdout --json` and the donor matrix all
+compare equal.
+
+Three tests so it cannot recur: the base signature is pinned parameter by parameter with a
+message saying where to put the next one; **every `TaxPolicy` subclass in the tree is walked
+and its override bound to the engine's own call**, which is PR #119's coverage-grep shape
+applied to signatures rather than to methods; and the per-year method is asserted *inherited*
+where it should be. The lesson generalises past this lane: **a repository whose CI has a
+blocking step no lane brief mentions will keep discovering it the same way**, and the local
+gate list in a lane brief should name `mypy.gate.txt` beside `ruff` and `pytest`.
+
+**10. The schedule contains far more than this lane wired, and the count is the point.**
 130–150 variables per vintage: AMT exemptions and phase-outs by status (which `amt.py`
 transcribes from eleven Revenue Procedures by hand), sixteen EITC parameters, five CTC
 parameters, SALT limits by status, standard deductions, `tp_ss_max_earnings`, both price
@@ -495,13 +530,15 @@ have made it impossible to say which step moved which row.
 
 | Gate | Result |
 |---|---|
-| `pytest tests/ -q` | **4,170 passed, 7 skipped** (4,131 + this lane's 39) |
+| `pytest tests/ -q` | **4,176 passed, 7 skipped** on the merged tree (this lane adds 43) |
 | `ruff check fiscal_model/ tests/ app.py app_pages/ components/ classroom_app.py` | **All checks passed** |
 | `cold_holdout.py --max-mean-error 15 --min-within-25pct 19` | **exit 0** (11.8 against 15; 19 against 19) |
 | `cold_holdout.py --max-class-mean-error …` | **exit 0** — `ordinary_rate_change` **13.84 against a ceiling of 15**, 1.16 points of headroom; the other seven unmoved |
 | `check_readiness.py --strict` | **`ready_with_warnings`, 5 pass / 5 warn / 0 fail** — the same three documented Poor outliers as `main` (`repeal_ptc`, `pwbm_39_with_stepup`, `eliminate_mortgage`). 17.86% is *Acceptable*; no row crossed into Poor and no exemption was added |
 | `build_validation_headline.py --check` | **exit 0** — 73 published of 77, unchanged |
 | `fetch_cbo_tax_parameters.py --check` | **exit 0** over HTTPS **and** `--source-dir`, which is finding 8 — three SHA-256s verified, all statutory identities hold |
+| **`mypy $(grep -v '^#' mypy.gate.txt …)`** (blocking, green-core allowlist) | **`Success: no issues found in 18 source files`** — and it is finding 9: this lane failed it on four CI jobs before the fix, having never run it |
+| `mypy fiscal_model` (non-blocking) | 241 errors in 38 files, **none of them in this lane's files**; 242/39 before, the one that left being this lane's own |
 | `smoke_ask_assistant.py` | see §6.6 |
 
 **No gate value was touched.** The registered regression did not break the per-class ceiling,
@@ -523,7 +560,7 @@ rather than move it.
    preset does not say so. Declaring it is an `app_data.py` edit that moves a shipped number
    with no scorecard row to check it, since `top_rate_45` is retired. Both halves are the
    owner's.
-3. **The other 148 variables** (finding 9). AMT's eleven hand-transcribed Revenue Procedures
+3. **The other 148 variables** (finding 10). AMT's eleven hand-transcribed Revenue Procedures
    are the sharpest candidate — the same statute, published by CBO, on three vintages, in one
    file — but `amt.py`'s benchmarks are calibrated and a rewiring there is a lane with its own
    pre-registration.
