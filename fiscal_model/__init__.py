@@ -119,12 +119,17 @@ from .policies import (
 )
 from .ptc import (
     BASELINE_PTC_COSTS,
+    CBO_OFFSETTING_SHARE,
     CBO_PTC_ESTIMATES,
     ENHANCED_PTC_CAPS,
     FPL_2025,
     MARKETPLACE_DATA,
     ORIGINAL_ACA_CAPS,
     PTC_VALIDATION_SCENARIOS,
+    CoverageChange,
+    CoverageChannelRates,
+    DestinationSplit,
+    OffsettingEffects,
     PremiumTaxCreditPolicy,
     PTCScenario,
     create_expand_ptc_eligibility,
@@ -134,6 +139,9 @@ from .ptc import (
     create_repeal_ptc,
     estimate_ptc_cost,
     get_fpl,
+    offsetting_effects,
+    repeal_offsetting_share,
+    subsidized_enrollment,
 )
 from .reporting import BudgetReport
 from .scoring import FiscalPolicyScorer, ScoringResult
@@ -179,6 +187,7 @@ __all__ = [
     "BASELINE_PTC_COSTS",
     "CBO_AMT_ESTIMATES",
     "CBO_ESTATE_ESTIMATES",
+    "CBO_OFFSETTING_SHARE",
     "CBO_PAYROLL_ESTIMATES",
     "CBO_PTC_ESTIMATES",
     "CORPORATE_AMT",
@@ -216,8 +225,11 @@ __all__ = [
     "CapitalGainsPolicy",
     # Corporate tax
     "CorporateTaxPolicy",
+    "CoverageChange",
+    "CoverageChannelRates",
     "CreditType",
     "DataSourceError",
+    "DestinationSplit",
     "DistributionalAnalysis",
     # Distributional Analysis
     "DistributionalEngine",
@@ -233,6 +245,7 @@ __all__ = [
     "FiscalPolicyScorer",
     "IncomeGroup",
     "IncomeGroupType",
+    "OffsettingEffects",
     "PTCScenario",
     # Payroll tax
     "PayrollTaxPolicy",
@@ -318,5 +331,8 @@ __all__ = [
     "get_all_expenditure_estimates",
     "get_fpl",
     "get_tcja_component_summary",
+    "offsetting_effects",
+    "repeal_offsetting_share",
+    "subsidized_enrollment",
 ]
 

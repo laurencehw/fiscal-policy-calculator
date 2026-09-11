@@ -116,7 +116,18 @@ ORIGINAL_ACA_CAPS = {
 # BASELINE DATA
 # =============================================================================
 
-# Marketplace enrollment data
+# Marketplace enrollment data.
+#
+# UNCITED, AND NO LONGER READ BY ANY SCORED OR RENDERED PATH. Lane
+# ``planning/lanes/HSD_h11_ptc_coverage.md`` moved `estimate_coverage_effect`
+# onto CBO's own tables: subsidized marketplace enrolment now comes from
+# publication 51298 Table 1 (13.4M in 2026, 11.06M on average over FY2026-2035,
+# not the 19.0M below, which is nearer the 20.9M of calendar 2025 — the last
+# year of the ARPA/IRA enhancement) and the extension's coverage effect from
+# publication 61734 Table 2 (3.48M on average, not the 4.0M below). The dict is
+# kept because the FPL distribution and the average-subsidy figures below are
+# read by `calculate_subsidy`'s callers and by tests, and rebuilding those is a
+# separate transcription. Nothing here is a source.
 MARKETPLACE_DATA = {
     # Current enrollment (2025 estimates)
     "total_enrollees_millions": 22.0,  # Total marketplace enrollees
@@ -247,7 +258,434 @@ PTC_NET_TO_GROSS = (
 
 #: Share of the gross change in the credit's cost that never reaches the
 #: deficit. ``1 - PTC_NET_TO_GROSS`` = 0.192771.
+#:
+#: SUPERSEDED AS A SCORING INPUT BY THE COMPOSITION BELOW, and kept because it
+#: is CBO's own printed headline ratio and the identity test measures against
+#: it. ``create_repeal_ptc`` no longer reads it; see
+#: :func:`offsetting_effects` and ``planning/lanes/HSD_h11_ptc_coverage.md``.
 CBO_OFFSETTING_SHARE = 1.0 - PTC_NET_TO_GROSS
+
+
+# =============================================================================
+# THE COMPOSITION OF THE COVERAGE RESPONSE
+# =============================================================================
+#
+# Lane ``planning/lanes/HSD_h11_ptc_coverage.md`` is the write-up. Everything
+# read here is transcribed, with document and page, into
+# ``data_files/ptc/cbo_ptc_offsetting_channels.csv`` and
+# ``data_files/ptc/cbo_marketplace_enrollment.csv``.
+#
+# WHY A RATIO WAS THE WRONG OBJECT. PR #131 netted a single 19.28% out of the
+# repeal's gross credit path. The effects that share aggregates are responses to
+# PEOPLE moving between sources of coverage, so they scale with PERSON-YEARS and
+# not with credit dollars - and CBO prints both sides of that. The extension's
+# marginal enrollee receives $5,370 a year (60437 Table 3); the average
+# subsidized enrollee a repeal removes costs $8,671 a year on the February 2026
+# baseline ($959B over 110.6M person-years). A dollar ratio asserts those are the
+# same, and is therefore wrong by about 44% in its denominator alone before any
+# argument about who the affected population is.
+#
+# AND IT HID A SIGN. CBO's $80B contains a +$21B Medicaid and CHIP COST. Scaling
+# every channel together books that, under a repeal, in the direction that
+# erodes the saving, where the mirror of CBO's own mechanism - employers restore
+# offers, so fewer people land in Medicaid - is a saving. Only a decomposition
+# can see that.
+
+#: CBO and JCT's own itemisation of what a section 36B change does beyond the
+#: credit, and of the coverage movements those effects are responses to.
+#: Publication 60437; the file's header carries the page for every line.
+PTC_CHANNELS_PATH = (
+    Path(__file__).parent
+    / "data_files"
+    / "ptc"
+    / "cbo_ptc_offsetting_channels.csv"
+)
+
+#: CBO's own projections of coverage by source - publication 51298 Table 1, the
+#: table lane W7 identified and left untranscribed. Both vintages the
+#: credit-cost table carries.
+PTC_ENROLLMENT_PATH = (
+    Path(__file__).parent
+    / "data_files"
+    / "ptc"
+    / "cbo_marketplace_enrollment.csv"
+)
+
+
+@lru_cache(maxsize=1)
+def _load_ptc_channels() -> tuple[dict[str, str], ...]:
+    """Read the transcribed publication 60437 itemisation, comments stripped."""
+    with PTC_CHANNELS_PATH.open(encoding="utf-8") as handle:
+        body = (line for line in handle if not line.startswith("#"))
+        return tuple(csv.DictReader(body))
+
+
+@lru_cache(maxsize=1)
+def _channel_values() -> dict[tuple[str, str], float]:
+    """``(block, item) -> value`` over the transcribed itemisation."""
+    return {
+        (row["block"], row["item"]): float(row["value"])
+        for row in _load_ptc_channels()
+    }
+
+
+def cbo_channel(block: str, item: str) -> float:
+    """One transcribed figure from publication 60437, by block and item.
+
+    Raises rather than returning a default: a channel silently reading zero
+    would be an offset the model claims to price and does not.
+    """
+    try:
+        return _channel_values()[(block, item)]
+    except KeyError:
+        raise KeyError(
+            f"No transcribed value for {block!r}/{item!r} in "
+            f"{PTC_CHANNELS_PATH.name}"
+        ) from None
+
+
+@dataclass(frozen=True)
+class CoverageChannelRates:
+    """What one person-year of each coverage movement is worth to the deficit.
+
+    Every rate is **dollars per person-year**, derived by dividing one of
+    publication 60437's budgetary lines by the coverage movement that same
+    letter says it is a response to. Nothing here is free: handed 60437's own
+    coverage vector, these rates return its own offsetting total.
+
+    ``uninsured`` has no field, because it has no channel. A person who leaves
+    the marketplace and becomes uninsured costs these four lines nothing - the
+    uncompensated-care effects that do exist are not in CBO's itemisation, and
+    inventing one here is what §1.7 of the lane declines to do.
+    """
+
+    #: Compensation shifting between tax-favoured insurance and taxable wages
+    #: ($101B) plus employer-mandate penalties ($3B), over the 3.5M average
+    #: annual decline in employment-based coverage. Deficit-REDUCING when
+    #: employment-based coverage shrinks, deficit-increasing when it grows.
+    employment_based: float
+
+    #: Medicaid and CHIP ($21B) over the 0.5M average annual increase.
+    #: Deficit-increasing when Medicaid enrolment grows.
+    medicaid_chip: float
+
+    #: Basic Health Program and §1332 waivers (+$17B) net of other outlay
+    #: effects (−$13B), over the 6.9M average annual marketplace change. CBO
+    #: gives these two no coverage line of their own, so they are priced on the
+    #: marketplace movement they accompany.
+    marketplace_adjacent: float
+
+    @classmethod
+    def from_published(cls) -> "CoverageChannelRates":
+        """Derive the three rates from the transcribed letter. No free parameters."""
+        years = cbo_channel("coverage", "window_years")
+        esi_person_years = abs(cbo_channel("coverage", "employment_based")) * years
+        medicaid_person_years = abs(cbo_channel("coverage", "medicaid_chip")) * years
+        market_person_years = abs(cbo_channel("coverage", "marketplace_net")) * years
+        esi_dollars = cbo_channel(
+            "budget", "employment_based_to_taxable_wages"
+        ) + cbo_channel("budget", "employer_mandate_penalties")
+        adjacent_dollars = cbo_channel(
+            "budget", "basic_health_program_and_1332"
+        ) + cbo_channel("budget", "other_outlay_effects")
+        # Billions over millions is thousands of dollars; x1000 makes the fields
+        # readable as dollars, and :func:`offsetting_effects` divides back.
+        return cls(
+            employment_based=1e3 * esi_dollars / esi_person_years,
+            medicaid_chip=1e3
+            * cbo_channel("budget", "medicaid_chip")
+            / medicaid_person_years,
+            marketplace_adjacent=1e3 * adjacent_dollars / market_person_years,
+        )
+
+
+@dataclass(frozen=True)
+class CoverageChange:
+    """A policy's effect on coverage by source, in **average annual millions**.
+
+    Average annual rather than cumulative, because that is the unit CBO states
+    its own coverage lines in ("in each year, on average, over the 2025-2034
+    period") and the unit a surface should print. :attr:`years` carries how many
+    years the average applies over, which is what turns it into the person-years
+    the channel rates are denominated in.
+
+    Signs are the movement itself: positive means more people in that source.
+    ``uninsured`` is carried for reporting and priced at zero.
+    """
+
+    marketplace_subsidized: float = 0.0
+    marketplace_unsubsidized: float = 0.0
+    employment_based: float = 0.0
+    medicaid_chip: float = 0.0
+    nongroup_outside: float = 0.0
+    uninsured: float = 0.0
+    years: float = 1.0
+
+    @property
+    def marketplace_net(self) -> float:
+        """Both marketplace lines together - the movement CBO prints as the total."""
+        return self.marketplace_subsidized + self.marketplace_unsubsidized
+
+
+@dataclass(frozen=True)
+class OffsettingEffects:
+    """The deficit effect of a coverage change, channel by channel.
+
+    Every figure is in billions and signed **on the deficit**: positive
+    increases it. ``total`` is what a score adds to the gross change in the
+    credit's cost.
+    """
+
+    employment_based: float
+    medicaid_chip: float
+    marketplace_adjacent: float
+    uninsured: float = 0.0
+
+    @property
+    def total(self) -> float:
+        return (
+            self.employment_based
+            + self.medicaid_chip
+            + self.marketplace_adjacent
+            + self.uninsured
+        )
+
+
+def offsetting_effects(
+    coverage: CoverageChange,
+    rates: CoverageChannelRates | None = None,
+) -> OffsettingEffects:
+    """Price a coverage change at CBO's own per-person-year rates.
+
+    The sign of each channel follows the coverage movement, which is what makes
+    this reversible where a single share is not. Under an EXTENSION
+    employment-based coverage shrinks, so the exclusion's revenue arrives and the
+    deficit falls; under a REPEAL it grows, the exclusion is reinstated and the
+    deficit rises. Medicaid runs the other way for the same reason, because
+    CBO's own Medicaid line is driven by employers dropping offers.
+
+    Handed publication 60437's own coverage vector this returns **-$79.0B**
+    against the letter's own itemised $79B and printed $80B - CBO's rounding to
+    the billion, the same gap ``cbo_premium_tax_credit_baseline.csv`` records on
+    its own totals. That identity is a check on the transcription, not a fit.
+    """
+    if rates is None:
+        rates = CoverageChannelRates.from_published()
+    # millions of people x years x dollars per person-year / 1e3 -> billions.
+    scale = coverage.years / 1e3
+    return OffsettingEffects(
+        # ESI growing reinstates the exclusion, which costs revenue.
+        employment_based=coverage.employment_based * rates.employment_based * scale,
+        medicaid_chip=coverage.medicaid_chip * rates.medicaid_chip * scale,
+        marketplace_adjacent=(
+            coverage.marketplace_net * rates.marketplace_adjacent * scale
+        ),
+        uninsured=0.0,
+    )
+
+
+@dataclass(frozen=True)
+class DestinationSplit:
+    """Where people go per unit of subsidized marketplace enrolment lost or gained.
+
+    **This is the one input a repeal has no document for, and it is deliberately
+    a named object rather than a number folded into a ratio.** No CBO or JCT
+    score of a full repeal exists - PR #122 and lane H9 searched, twice - so the
+    shares below are publication 60437's own, measured on an *extension of the
+    enhancement* and transferred to a repeal of the whole credit. The transfer
+    is now visible per channel instead of hidden in an aggregate, which is the
+    lane's claim; it is not a claim that the transfer is right.
+
+    What is known about its direction is recorded and **not** acted on, because
+    both corrections would move the row toward a target this repository has
+    twice refused as a baseline projection:
+
+    * 60437 Table 3 puts **3.5M of the 6.9M** marginal enrollees above 400% FPL
+      and the employment-based decline at **3.5M**, and report p. 6 says the
+      decline "would affect people with higher incomes" while the below-400%
+      half is mostly people "already eligible". On the February 2026 vintage the
+      ARPA/IRA enhancement has lapsed, so §36B eligibility is capped at 400% FPL
+      and the band CBO's ESI channel lives in is **absent** from the population a
+      repeal reaches. That argues the ESI share is too high here. It is not set
+      to zero: "most" does not license a zero, and §36B(c)(2)(C) bars only an
+      *affordable* offer, so a repeal does reach people with an employer.
+    * A repeal also pushes people *into* Medicaid for a reason the extension has
+      no mirror of - losing the credit at 100-138% FPL - which CBO prices
+      nowhere. That argues the Medicaid share is too low here.
+
+    The two point in opposite directions, neither is published, and the lane
+    ships the transfer rather than either guess.
+    """
+
+    employment_based: float
+    medicaid_chip: float
+    uninsured: float
+    nongroup_outside: float
+    marketplace_unsubsidized: float
+
+    @classmethod
+    def from_published(cls) -> "DestinationSplit":
+        """60437 p. 5's coverage lines, normalised on its subsidized marketplace line."""
+        subsidized = cbo_channel("coverage", "marketplace_subsidized")
+        return cls(
+            employment_based=abs(cbo_channel("coverage", "employment_based"))
+            / subsidized,
+            medicaid_chip=cbo_channel("coverage", "medicaid_chip") / subsidized,
+            uninsured=cbo_channel("coverage", "insured") / subsidized,
+            nongroup_outside=abs(cbo_channel("coverage", "nongroup_outside_marketplaces"))
+            / subsidized,
+            marketplace_unsubsidized=abs(
+                cbo_channel("coverage", "marketplace_unsubsidized")
+            )
+            / subsidized,
+        )
+
+    def applied_to(self, subsidized_lost: float, years: float = 1.0) -> CoverageChange:
+        """The coverage change of losing ``subsidized_lost`` million enrollees a year.
+
+        Positive input means enrolment *lost*, so every destination fills. The
+        Medicaid line runs the **other** way, because CBO's own Medicaid
+        increase under the extension is driven by employers dropping offers; a
+        repeal restores them, so fewer people land in Medicaid. That is the
+        mirror of a published mechanism, and the un-mirrored channel — people
+        losing the credit near the Medicaid threshold and enrolling — is named
+        in the class docstring and priced nowhere by CBO.
+        """
+        lost = subsidized_lost
+        return CoverageChange(
+            marketplace_subsidized=-lost,
+            marketplace_unsubsidized=lost * self.marketplace_unsubsidized,
+            employment_based=lost * self.employment_based,
+            medicaid_chip=-lost * self.medicaid_chip,
+            nongroup_outside=lost * self.nongroup_outside,
+            uninsured=lost * self.uninsured,
+            years=years,
+        )
+
+
+def published_extension_coverage() -> CoverageChange:
+    """Publication 60437 p. 5's own coverage lines, as average annual millions.
+
+    This is the letter's own case, and the vector :func:`offsetting_effects`
+    must reproduce the letter's own $79B from.
+    """
+    return CoverageChange(
+        marketplace_subsidized=cbo_channel("coverage", "marketplace_subsidized"),
+        marketplace_unsubsidized=cbo_channel("coverage", "marketplace_unsubsidized"),
+        employment_based=cbo_channel("coverage", "employment_based"),
+        medicaid_chip=cbo_channel("coverage", "medicaid_chip"),
+        nongroup_outside=cbo_channel("coverage", "nongroup_outside_marketplaces"),
+        uninsured=-cbo_channel("coverage", "insured"),
+        years=cbo_channel("coverage", "window_years"),
+    )
+
+
+def published_extension_insured() -> float:
+    """Average annual increase in the insured under a permanent extension, millions.
+
+    CBO/JCT publication 61734 (18 September 2025) Table 2, which scores the same
+    policy as 60437 on the **app's own** FY2026-2035 window: 2.0M in 2026 rising
+    to 3.8M in 2035, averaging **3.48M** against 60437's 3.4M on FY2025-2034.
+    That the two agree is worth having — it says the coverage side of the letter
+    has not been revised out from under the composition priced off it.
+
+    This replaces ``MARKETPLACE_DATA["coverage_loss_millions"]``, an uncited
+    "4 million" rendered on a surface users see.
+    """
+    rows = [
+        float(row["value"])
+        for row in _load_ptc_channels()
+        if row["block"] == "extension_coverage"
+    ]
+    return sum(rows) / len(rows)
+
+
+@lru_cache(maxsize=1)
+def _load_ptc_enrollment() -> tuple[dict[str, str], ...]:
+    """Read the transcribed publication 51298 Table 1 rows, comments stripped."""
+    with PTC_ENROLLMENT_PATH.open(encoding="utf-8") as handle:
+        body = (line for line in handle if not line.startswith("#"))
+        return tuple(csv.DictReader(body))
+
+
+@lru_cache(maxsize=4)
+def subsidized_enrollment_by_year(
+    vintage: str = PTC_BASELINE_VINTAGE,
+) -> dict[int, float]:
+    """One vintage's subsidized marketplace enrolment, millions by calendar year.
+
+    A vintage with no transcribed block raises rather than falling back to
+    another one's numbers, which is the rule
+    :func:`ptc_baseline_by_fiscal_year` set and
+    :func:`fiscal_model.corporate.cbo_receipts_by_fiscal_year` set before it.
+    """
+    rows = {
+        int(row["calendar_year"]): float(row["subsidized"])
+        for row in _load_ptc_enrollment()
+        if row["vintage"] == vintage
+    }
+    if len(rows) < 2:
+        raise KeyError(
+            f"No marketplace enrolment transcribed for vintage {vintage!r}; "
+            f"{PTC_ENROLLMENT_PATH.name} carries "
+            f"{sorted({row['vintage'] for row in _load_ptc_enrollment()})}"
+        )
+    return rows
+
+
+def subsidized_enrollment(
+    year: int, vintage: str = PTC_BASELINE_VINTAGE
+) -> float:
+    """Subsidized marketplace enrolment in a year, millions.
+
+    Outside the tabulated years the first and last observed levels are held.
+    The credit-cost path extrapolates its growth rate above the table; this one
+    does not, because enrolment is a headcount CBO projects flat-ish at the end
+    of its window (11.5, 11.6, 11.7 on February 2026) and compounding a
+    one-year step on it would invent people.
+    """
+    table = subsidized_enrollment_by_year(vintage)
+    years = sorted(table)
+    if year <= years[0]:
+        return table[years[0]]
+    if year >= years[-1]:
+        return table[years[-1]]
+    return table[year]
+
+
+@lru_cache(maxsize=16)
+def repeal_offsetting_share(
+    start_year: int,
+    duration_years: int,
+    vintage: str = PTC_BASELINE_VINTAGE,
+) -> float:
+    """The share of a repeal's gross credit cost that never reaches the deficit.
+
+    A window ratio, in the same shape as CBO's own ``335/415``: the priced
+    offsetting effects of the coverage change a repeal causes over this window,
+    divided by the credit's own cost over the same window. It replaces the
+    transferred 19.28% and is **computed from the scored population** rather
+    than carried over from a different one.
+
+    On February 2026 over FY2026-2035 this is **12.32%** against the
+    transferred 19.28%, and the reason is one line of arithmetic: the offsets
+    scale with people and the gross scales with dollars, and a repeal's average
+    enrollee holds an $8,671 credit where the extension's marginal enrollee
+    holds $5,370. Fewer people per dollar removed, so a smaller share of the
+    dollar comes back.
+    """
+    window = list(range(start_year, start_year + max(int(duration_years), 1)))
+    enrolment = [subsidized_enrollment(year, vintage) for year in window]
+    gross = sum(baseline_credit_cost(year, vintage) for year in window)
+    if gross <= 0:
+        return 0.0
+    coverage = DestinationSplit.from_published().applied_to(
+        sum(enrolment) / len(enrolment), years=float(len(window))
+    )
+    # `total` is signed on the deficit. A repeal's gross effect is a deficit
+    # REDUCTION, so an offset that increases the deficit erodes it, and a
+    # positive share here is the eroding direction the engine's contract wants.
+    return offsetting_effects(coverage).total / gross
 
 
 @lru_cache(maxsize=1)
@@ -383,11 +821,20 @@ class PremiumTaxCreditPolicy(TaxPolicy):
     baseline_vintage: str = PTC_BASELINE_VINTAGE
 
     #: When set, the behavioural offset is this share of the static effect and
-    #: the two unsourced knobs above are bypassed. ``create_repeal_ptc`` sets it
-    #: to :data:`CBO_OFFSETTING_SHARE`, CBO's own published net-to-gross for a
-    #: section 36B change. Left ``None`` everywhere else, so the module's other
-    #: factories and its public API are unaffected.
+    #: the two unsourced knobs above are bypassed. An explicit override: it
+    #: takes precedence over :attr:`use_coverage_composition`, which is how the
+    #: lane's gross counterfactual is run (set it to ``0.0``). Left ``None``
+    #: everywhere else, so the module's other factories and its public API are
+    #: unaffected.
     coverage_offset_share: float | None = None
+
+    #: Price the coverage response channel by channel off CBO's own itemisation
+    #: (:func:`offsetting_effects`) rather than transferring a single ratio.
+    #: ``create_repeal_ptc`` sets it. The resulting share is a **window** ratio
+    #: computed from this policy's own start year, duration and vintage, so it
+    #: follows a policy whose window is moved after construction — which
+    #: ``preset_handler._open_no_earlier_than`` does on every app surface.
+    use_coverage_composition: bool = False
 
     # Healthcare cost growth
     healthcare_growth_rate: float = 0.04  # 4%/year premium growth
@@ -491,32 +938,107 @@ class PremiumTaxCreditPolicy(TaxPolicy):
             "subsidy": subsidy,
         }
 
+    def resolved_offset_share(self) -> float | None:
+        """The share of the static effect the behavioural offset erodes, or ``None``.
+
+        Three states, checked in this order:
+
+        1. :attr:`coverage_offset_share` set — an explicit override, used by the
+           lane's gross counterfactual (``0.0``) and by anyone hand-building a
+           policy against a published ratio.
+        2. :attr:`use_coverage_composition` set — CBO's itemisation priced
+           against *this* policy's own window and vintage
+           (:func:`repeal_offsetting_share`). Asked for on every call rather
+           than frozen at construction, because
+           ``preset_handler._open_no_earlier_than`` moves ``start_year`` after
+           the factory has returned.
+        3. Neither — ``None``, and the module's own two knobs below apply.
+        """
+        if self.coverage_offset_share is not None:
+            return self.coverage_offset_share
+        if self.use_coverage_composition:
+            return repeal_offsetting_share(
+                int(self.start_year),
+                int(self.duration_years),
+                self.baseline_vintage,
+            )
+        return None
+
+    def coverage_change(self) -> CoverageChange:
+        """This policy's effect on coverage by source, in millions of person-years.
+
+        Read off CBO's own tables rather than off ``MARKETPLACE_DATA``'s
+        uncited constants, which is the half of section 6.2 item 31 lane W7
+        left open.
+
+        * **A repeal** removes the scored vintage's own subsidized marketplace
+          enrolment — publication 51298 Table 1, averaged over the policy's
+          window — and distributes it by :class:`DestinationSplit`. On February
+          2026 over FY2026-2035 that is **11.06M** a year, not the 19.0M the
+          module used to print, which is closer to the 20.9M of calendar 2025,
+          the last year of the ARPA/IRA enhancement.
+        * **An extension** returns publication 60437 p. 5's own five lines,
+          which is the same composition read in the other direction. It moves
+          no dollar: ``create_extend_enhanced_ptc`` keeps its fitted annual and
+          a zero offset, because the only published quantity that would drive a
+          derived extension path is CBO's score of that same policy, which is
+          its own target.
+        """
+        if self.repeal_ptc:
+            years = range(
+                int(self.start_year),
+                int(self.start_year) + max(int(self.duration_years), 1),
+            )
+            enrolment = [
+                subsidized_enrollment(year, self.baseline_vintage) for year in years
+            ]
+            average = sum(enrolment) / len(enrolment)
+            return DestinationSplit.from_published().applied_to(
+                average, years=float(len(enrolment))
+            )
+
+        extension = published_extension_coverage()
+        if self.extend_enhanced or self.make_permanent:
+            return extension
+        # Letting the enhancement expire is the extension's mirror image.
+        return CoverageChange(
+            marketplace_subsidized=-extension.marketplace_subsidized,
+            marketplace_unsubsidized=-extension.marketplace_unsubsidized,
+            employment_based=-extension.employment_based,
+            medicaid_chip=-extension.medicaid_chip,
+            nongroup_outside=-extension.nongroup_outside,
+            uninsured=-extension.uninsured,
+        )
+
     def estimate_coverage_effect(self) -> dict:
         """
         Estimate coverage effects of policy change.
 
+        Every figure is now transcribed. ``coverage_change_millions`` is the
+        change in **subsidized marketplace** enrolment and
+        ``uninsured_change_millions`` the change in the uninsured; the two
+        extra keys carry the other three destinations, so a caller can see
+        where the people went rather than only how many moved.
+
+        The extension branch also reports ``insured_change_millions`` from
+        CBO/JCT publication 61734 Table 2, which scores the same policy on the
+        app's own FY2026-2035 window: **3.48M** on average, corroborating
+        60437's 3.4M on the earlier one.
+
         Returns:
             Dict with coverage gains/losses
         """
-        if self.repeal_ptc:
-            # Full repeal loses all subsidized coverage
-            return {
-                "coverage_change_millions": -MARKETPLACE_DATA["receiving_ptc_millions"],
-                "uninsured_change_millions": MARKETPLACE_DATA["receiving_ptc_millions"] * 0.8,
-            }
-
-        if self.extend_enhanced or self.make_permanent:
-            # Extending prevents coverage loss
-            return {
-                "coverage_change_millions": MARKETPLACE_DATA["coverage_loss_millions"],
-                "uninsured_change_millions": -MARKETPLACE_DATA["coverage_loss_millions"],
-            }
-
-        # Letting enhanced expire (current law baseline)
-        return {
-            "coverage_change_millions": -MARKETPLACE_DATA["coverage_loss_millions"],
-            "uninsured_change_millions": MARKETPLACE_DATA["coverage_loss_millions"],
+        coverage = self.coverage_change()
+        effect = {
+            "coverage_change_millions": coverage.marketplace_subsidized,
+            "uninsured_change_millions": coverage.uninsured,
+            "employment_based_change_millions": coverage.employment_based,
+            "medicaid_chip_change_millions": coverage.medicaid_chip,
         }
+        if not self.repeal_ptc:
+            sign = 1.0 if (self.extend_enhanced or self.make_permanent) else -1.0
+            effect["insured_change_millions"] = sign * published_extension_insured()
+        return effect
 
     def uses_baseline_credit_path(self) -> bool:
         """
@@ -616,15 +1138,16 @@ class PremiumTaxCreditPolicy(TaxPolicy):
         Returns:
             Behavioral offset in billions, signed with ``static_effect``
         """
-        if self.coverage_offset_share is not None:
-            # CBO's own published net-to-gross for a section 36B subsidy change
-            # (:data:`CBO_OFFSETTING_SHARE`), which supersedes the two unsourced
-            # knobs below on this path. The channels are coverage shifting - back
-            # into employment-based insurance and out of taxable wages, plus
-            # Medicaid, CHIP, the Basic Health Program and employer-mandate
-            # penalties - not a premium spiral, so ``adverse_selection_factor``
-            # is not the right home for it.
-            total_offset = abs(static_effect) * self.coverage_offset_share
+        share = self.resolved_offset_share()
+        if share is not None:
+            # CBO's own offsetting effects for a section 36B subsidy change,
+            # which supersede the two unsourced knobs below on this path. The
+            # channels are coverage shifting - back into employment-based
+            # insurance and out of taxable wages, plus Medicaid, CHIP, the Basic
+            # Health Program and employer-mandate penalties - not a premium
+            # spiral, so ``adverse_selection_factor`` is not the right home for
+            # it.
+            total_offset = abs(static_effect) * share
             return math.copysign(total_offset, static_effect) if static_effect else 0.0
 
         # Coverage effects affect healthcare costs elsewhere
@@ -722,22 +1245,27 @@ def create_repeal_ptc(
     A repeal of IRC section 36B removes the credit, so the score is CBO and
     JCT's own projection of what the credit costs — outlays plus revenue
     reductions, year by year, from publication 51298's Table 2 — net of the
-    offsetting effects CBO prices on any section 36B change
-    (:data:`CBO_OFFSETTING_SHARE`, from publication 60437).
+    offsetting effects CBO itemises for a section 36B change, **priced channel
+    by channel against the coverage change this repeal causes** rather than
+    transferred as a single ratio (:func:`repeal_offsetting_share`).
 
     On the February 2026 vintage over FY2026-2035 the credit's two legs are
-    $959B, of which $107B is the revenue leg, and the score is $774B. On the
-    June 2024 vintage over FY2025-2034 the same computation gives $1,143B gross
-    and $923B net — the gross figure being, to 0.09%, what the repository's
-    carried −$1,100B target turns out to be a rounding of. Both are printed in
-    ``planning/lanes/W7_ptc_repeal_shape.md`` §3.1.
+    $959B, of which $107B is the revenue leg, the offsetting share is **12.32%**
+    and the score is **$841B**. On the June 2024 vintage over FY2025-2034 the
+    same computation gives $1,143B gross, a 13.69% share and $986B net — the
+    *gross* figure being, to 0.09%, what the repository's carried −$1,100B
+    target turns out to be a rounding of.
 
     **There is no CBO or JCT score of a full repeal.** PR #122 searched for one
     — the 2018/2020/2022/2025 Options volumes, publication 61734 (September
-    2025), the 2017 AHCA/BCRA estimates — and recorded the search in
-    ``validation/benchmark_sources.py``. What ships is therefore CBO's own
-    baseline path times CBO's own net-to-gross ratio for the nearest published
-    section 36B change, and the transfer is stated rather than hidden.
+    2025), the 2017 AHCA/BCRA estimates — lane H9 searched again, and both
+    recorded the search in ``validation/benchmark_sources.py``. So the channel
+    *rates* and the *destination split* are still CBO's own figures for an
+    extension of the enhancement, transferred to a repeal of the whole credit;
+    what changed is that the coverage change they are applied to is now this
+    policy's own, and the transfer is visible per channel instead of folded into
+    one number. :class:`DestinationSplit` carries what is known about which way
+    that transfer errs, and why neither correction is taken.
 
     Args:
         start_year: First year of the repeal.
@@ -752,11 +1280,11 @@ def create_repeal_ptc(
         policy_type=PolicyType.TAX_CREDIT,
         scenario=PTCScenario.REPEAL_PTC,
         repeal_ptc=True,
-        # Both unsourced knobs are switched off: the sourced share below is the
+        # Both unsourced knobs are switched off: the composition below is the
         # whole behavioural response on this path.
         coverage_elasticity=0.0,
         adverse_selection_factor=0.0,
-        coverage_offset_share=CBO_OFFSETTING_SHARE,
+        use_coverage_composition=True,
         baseline_vintage=baseline_vintage,
         # No fitted annual. The static effect is the vintage's own credit path,
         # asked for year by year.

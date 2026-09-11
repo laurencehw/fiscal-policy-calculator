@@ -85,16 +85,24 @@ def test_calculate_subsidy_applies_premium_cap_modifications():
 @pytest.mark.parametrize(
     ("policy", "coverage_change", "uninsured_change"),
     [
-        (create_repeal_ptc(), -19.0, 15.2),
-        (create_extend_enhanced_ptc(), 4.0, -4.0),
+        # Lane HSD/H11 moved these off ``MARKETPLACE_DATA``'s uncited "19
+        # million" and "4 million" and onto CBO's own tables. The repeal removes
+        # publication 51298 Table 1's subsidized marketplace enrolment averaged
+        # over the policy's window — 11.06M on February 2026 over FY2026-2035,
+        # against the 19.0M this test used to pin, which is nearer calendar
+        # 2025's 20.9M, the last year of the ARPA/IRA enhancement — and the
+        # uninsured leg is publication 60437 p. 5's own destination share rather
+        # than an uncited 0.8.
+        (create_repeal_ptc(), -11.06, 11.06 * 3.4 / 7.4),
+        (create_extend_enhanced_ptc(), 7.4, -3.4),
         (
             PremiumTaxCreditPolicy(
                 name="Baseline",
                 description="Baseline",
                 policy_type=PolicyType.TAX_CREDIT,
             ),
-            -4.0,
-            4.0,
+            -7.4,
+            3.4,
         ),
     ],
 )
@@ -156,7 +164,9 @@ def test_estimate_ptc_cost_applies_growth_curve():
     assert cost["ten_year_static"] == pytest.approx(expected_static)
     assert cost["behavioral_offset"] == 0.0
     assert cost["net_effect"] == pytest.approx(expected_static)
-    assert cost["coverage_change_millions"] == 4.0
+    # Publication 60437 p. 5's own subsidized marketplace line, since lane
+    # HSD/H11; it was ``MARKETPLACE_DATA``'s uncited 4.0.
+    assert cost["coverage_change_millions"] == pytest.approx(7.4)
 
 
 def test_repeal_removes_the_vintages_own_credit_path_not_a_level():
