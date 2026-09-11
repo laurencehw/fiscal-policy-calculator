@@ -158,20 +158,21 @@ _DISCRETIONARY_SPENDING_TYPES = frozenset(
 
 #: Every other ``Policy`` subclass in the tree, with the reason the battery
 #: cannot speak for it. A class in neither this map nor :data:`_CLASS_ROUTE`
-#: fails ``tests/test_policy_classes.py``: the point is that adding a module
+#: fails ``tests/test_empirical_bands.py``: the point is that adding a module
 #: cannot silently inherit somebody else's accuracy.
+#:
+#: **These sentences are rendered to users**, so each says what the battery does
+#: not measure and stops there. Four of these classes — ``AMTPolicy``,
+#: ``IRSEnforcementPolicy``, ``InternationalTaxPolicy`` and
+#: ``TCJAExtensionPolicy`` — are also the four whose ``policy_type`` would send
+#: a type-only rule to the wrong band; that is this module's docstring's
+#: business, not the caption's.
 NO_TIER1_CLASS: dict[str, str] = {
-    "AMTPolicy": (
-        "no pre-registered row scores an AMT reform; the module's `income_tax` "
-        "type would otherwise borrow the ordinary-rate band"
-    ),
+    "AMTPolicy": "no pre-registered row scores an AMT reform",
     "ClimateEnergyPolicy": "no pre-registered row scores a carbon price or an energy credit",
     "DrugPricingPolicy": "no pre-registered row scores a drug-pricing reform",
     "EstateTaxPolicy": "no pre-registered row scores an estate-tax reform",
-    "IRSEnforcementPolicy": (
-        "no pre-registered row scores an enforcement appropriation; the module's "
-        "`income_tax` type would otherwise borrow the ordinary-rate band"
-    ),
+    "IRSEnforcementPolicy": "no pre-registered row scores an enforcement appropriation",
     "InternationalTaxPolicy": (
         "the one pre-registered corporate row is a statutory rate change, not a "
         "GILTI, FDII or Pillar Two reform"
