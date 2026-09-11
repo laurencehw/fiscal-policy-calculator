@@ -292,6 +292,22 @@ def test_aggregate_payload_reports_both_counts(suite):
     assert payload["n_not_cross_validatable"] == len(suite.excluded_cases)
 
 
+def _unfitted_case_ids() -> set[str]:
+    """Case ids whose own runner declares no constant fitted to the target.
+
+    Read off the scenario registries the LOO suite itself scores against — the
+    same dicts ``scorecard.py`` turns into ``calibrated_to_target`` — so a row
+    a lane reclassifies is picked up here without a second edit, and a row
+    nobody reclassified cannot be waved through by editing this test.
+    """
+    return {
+        case_id
+        for registry in loo._REGISTRIES.values()
+        for case_id, scenario in registry.items()
+        if not scenario.get("calibrated_to_target", True)
+    }
+
+
 def test_loo_is_materially_worse_than_by_construction(suite):
     """
     The whole point: the held-out error must exceed the by-construction one.
@@ -323,44 +339,48 @@ def test_loo_is_materially_worse_than_by_construction(suite):
     #   sentence above says, and it is far sharper -- 9 cases at 0.06%, not
     #   15 at 8.45%.
     #
-    # * A case whose constant was fitted through a **behavioural magnitude the
-    #   lane that sourced it then changed**. `cap_charitable`'s annual was
-    #   chosen so that `static x (1 + 0.40)` lands on -$200.0B
-    #   (`W7_expenditure_offset_convention.md` finding 3 is the census of which
-    #   of the six constants were fitted which way), and lane H7 replaced that
-    #   unsourced 0.40 with a sourced 0.220780. The constant is therefore fitted
-    #   to a quantity the module no longer computes, and its by-construction
-    #   error is 12.5% rather than bookkeeping. It is **not retuned** and **not
-    #   reclassified**: retuning is what `HIGH_STAKES_ACCURACY.md` section 1.1
-    #   forbids, and reclassifying moves tier counts that other tests pin, which
-    #   is an owner decision on PR #119's precedent rather than a lane's. So it
-    #   is excluded here and the exclusion is *asserted* rather than taken on
-    #   trust, immediately below.
+    # * A case whose constant was fitted through a **behavioural magnitude a
+    #   later lane sourced**, which the runner now records the same way it
+    #   records the first two: `calibrated_to_target=False`.
+    #   `cap_charitable`'s annual was chosen so that `static x (1 + 0.40)` lands
+    #   on -$200.0B (`W7_expenditure_offset_convention.md` finding 3 is the
+    #   census of which of this module's six constants were fitted which way),
+    #   and lane H7 replaced that unsourced 0.40 with a sourced 0.220780. The
+    #   constant is fitted to a quantity the module no longer computes, so it is
+    #   reclassified on PR #119's rule and not retuned.
     #
-    # Neither exclusion removes a case from any reported error: the LOO
-    # aggregate above still includes all 18.
-    magnitude_changed = {"cap_charitable"}
+    # This reads the scorecard's own flag rather than enumerating the three
+    # mechanisms, because `CLAUDE.md` counts *five* live ways a row leaves the
+    # fitted tier and `target_was_revised` is one of them. The CapitalGains
+    # clause stays for the one mechanism the flag cannot see: those three cases
+    # have nothing held out at all, so their by-construction score IS their
+    # out-of-sample score.
+    #
+    # No exclusion removes a case from any reported error: the LOO aggregate
+    # above still includes all 18.
+    unfitted = _unfitted_case_ids()
     fitted = [
         abs((c.calibrated_10yr - c.official_10yr) / c.official_10yr) * 100
         for c in included
         if c.module != "CapitalGains"
         and not target_was_revised(c.case_id)
-        and c.case_id not in magnitude_changed
+        and c.case_id not in unfitted
     ]
     assert len(fitted) >= 8, [c.case_id for c in included]
     assert sum(fitted) / len(fitted) < 1.0
 
-    # The third exclusion, proved rather than asserted: undo the magnitude and
-    # the constant reproduces its target to bookkeeping precision, which is what
-    # "the constant was not retuned" means. If a later lane *does* retune it,
-    # this fails and the exclusion above stops being available.
+    # And the leakage guard the reclassification is worth nothing without: undo
+    # the magnitude H7 sourced and `cap_charitable`'s constant reproduces its
+    # target to bookkeeping precision, which is what "reclassified, not retuned"
+    # means. A later lane that retunes the constant to close the 12.5% fails
+    # here — reclassifying a row must not become a licence to move it.
     from fiscal_model.tax_expenditures_factory import create_cap_charitable_deduction
 
-    policy = create_cap_charitable_deduction()
-    share = policy.resolved_offset_magnitude()
-    for case in included:
-        if case.case_id not in magnitude_changed:
-            continue
+    share = create_cap_charitable_deduction().resolved_offset_magnitude()
+    charitable = [c for c in included if c.case_id == "cap_charitable"]
+    assert charitable, [c.case_id for c in included]
+    for case in charitable:
+        assert case.case_id in unfitted
         as_fitted = case.calibrated_10yr * (1.0 + 0.40) / (1.0 + share)
         assert abs((as_fitted - case.official_10yr) / case.official_10yr) * 100 < 1.0
 

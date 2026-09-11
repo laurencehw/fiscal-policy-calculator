@@ -183,6 +183,16 @@ def validate_expenditure_policy(
                 else "unknown"
             ),
             "action": getattr(policy, "action", "unknown"),
+            # Defaults True, so only a scenario that says otherwise moves out
+            # of the fitted tier -- the same wiring the corporate runner above
+            # carries and for the same rule. ``cap_charitable`` says otherwise:
+            # its fitted annual reproduced -$200.0B only through an unsourced
+            # 0.40 behavioural magnitude, and lane H7 sourced that magnitude at
+            # 0.220780, so the constant is fitted to a quantity the module no
+            # longer computes. Reclassify, do not retune.
+            "calibrated_to_target": bool(
+                scenario.get("calibrated_to_target", True)
+            ),
         },
         notes=scenario.get("notes", ""),
         benchmark_date=scenario.get("benchmark_date"),
