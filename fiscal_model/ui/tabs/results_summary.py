@@ -18,6 +18,7 @@ Two rules this module enforces, stated once and applied everywhere:
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from datetime import date
 from html import escape
 from types import SimpleNamespace
@@ -56,7 +57,10 @@ from fiscal_model.ui.a11y import (
     render_accessible_chart,
 )
 from fiscal_model.ui.charts import apply_base_layout, horizontal_legend
-from fiscal_model.ui.helpers import unescape_markdown_dollars
+from fiscal_model.ui.helpers import (
+    escape_markdown_dollars,
+    unescape_markdown_dollars,
+)
 from fiscal_model.ui.share_links import build_share_url
 
 #: Stated once, rendered under the headline on every result panel.
@@ -1165,6 +1169,241 @@ def behavioural_sign_caption(policy: Any, result: Any) -> str:
     )
 
 
+#: Corporate provisions this module can price that **no** published row in
+#: ``corporate_rate_scores.csv`` prices as part of a statutory-rate score.
+#: Attribute name -> how the caption names it. A run carrying any of these is
+#: not comparable per point with the record, and the caption says so instead of
+#: dividing a bundled total by a rate step.
+_CORPORATE_BUNDLED_FIELDS: tuple[tuple[str, str], ...] = (
+    ("extend_bonus_depreciation", "100% bonus depreciation"),
+    ("gilti_rate_change", "a GILTI rate change"),
+    ("eliminate_fdii", "FDII repeal"),
+    ("fdii_rate_change", "an FDII rate change"),
+    ("restore_rd_expensing", "R&D expensing"),
+    ("adjust_book_minimum", "the book minimum tax"),
+    ("book_minimum_rate_change", "a book-minimum rate change"),
+)
+
+
+def _corporate_bundled_provisions(policy: Any) -> tuple[str, ...]:
+    """Which non-rate corporate channels this run also prices."""
+    return tuple(
+        label
+        for attribute, label in _CORPORATE_BUNDLED_FIELDS
+        if getattr(policy, attribute, None)
+    )
+
+
+def _corporate_rate_change_pp(policy: Any) -> float:
+    """This run's statutory rate step, in percentage points, signed.
+
+    Read through the same ``_get_reform_rate() - baseline_rate`` the scorer
+    itself prices, so a policy that states ``new_rate`` instead of
+    ``rate_change`` is converted on the step it is actually scored at rather
+    than on a field that happens to be zero.
+    """
+    try:
+        return (float(policy._get_reform_rate()) - float(policy.baseline_rate)) * 100.0
+    except Exception:  # pragma: no cover — defensive
+        return float(getattr(policy, "rate_change", 0.0) or 0.0) * 100.0
+
+
+def _scorecard_id_for(policy: Any, policy_name: str) -> str:
+    """Scorecard ``policy_id`` for this run, or ``""``.
+
+    Tried on the preset label first — the key ``PRESET_TO_SCORECARD_ID`` is
+    written in — then on the policy object's own name, because a run reached
+    through a share link or the API may carry only one of the two. A Tailor
+    custom run matches neither, which is correct: no benchmark scores it.
+    """
+    try:
+        from fiscal_model.ui.preset_validation import PRESET_TO_SCORECARD_ID
+    except Exception:  # pragma: no cover — defensive
+        return ""
+    for key in (policy_name, getattr(policy, "name", "")):
+        if key and key in PRESET_TO_SCORECARD_ID:
+            return PRESET_TO_SCORECARD_ID[key]
+    return ""
+
+
+def corporate_estimator_range_captions(
+    policy: Any, result: Any, policy_name: str = ""
+) -> tuple[str, ...]:
+    """What the other houses scored, beside what this run scored.
+
+    A corporate-rate number quoted alone reads as a consensus, and this model's
+    is not one: on CBO's February 2024 baseline over FY2025-2034, a statutory
+    point is worth 55.1% of the vintage's average corporate base to Tax
+    Foundation, 55.9% to JCT, 64.4% to PWBM and 79.5% to Treasury OTA — whose
+    row is the only one of the four that is not rate-only — while this module
+    sits above all four. ``biden_corporate_28``'s 3.7% is agreement with the
+    highest estimator on the record, not with the record
+    (``planning/memos/CORPORATE_PER_POINT_YIELD.md`` section 4b).
+
+    Returns up to three lines: the converted range and where this run sits in
+    it; how the conversion is done and why per-point dollars do not compare
+    across scopes or directions; and, when the run matches a benchmark that
+    carries one, that benchmark's own published range or scope verdict.
+
+    Every figure is computed — from the four rows of the shipped record, from
+    the live target ledger, and from *this run's* own headline — so none of it
+    can drift from the number above it. Returns ``()`` for anything that is not
+    a corporate policy with a statutory rate step, which includes the corporate
+    AMT presets: a policy that moves no rate has no per-point yield to compare.
+    """
+    if not isinstance(policy, CorporateTaxPolicy):
+        return ()
+    rate_change_pp = _corporate_rate_change_pp(policy)
+    if not rate_change_pp:
+        return ()
+
+    from fiscal_model.ui.estimator_ranges import (
+        CORPORATE_RECORD_MEMO,
+        corporate_estimator_range,
+    )
+
+    # The headline's own definition — static + behavioural — rather than
+    # ``final_deficit_effect``, so the range is anchored on the figure printed
+    # directly above it even if the two ever diverge.
+    model_billions = float(np.sum(result.static_deficit_effect)) + float(
+        np.sum(result.behavioral_offset)
+    )
+    bundled = _corporate_bundled_provisions(policy)
+    spread = corporate_estimator_range(
+        rate_change_pp=rate_change_pp,
+        model_billions=model_billions,
+        bundled=bundled,
+    )
+    if spread is None:  # pragma: no cover — record unreadable
+        return ()
+
+    # Listed in the same order as the span above it — ascending signed value —
+    # so the two do not read as contradicting each other on a negative range.
+    named = ", ".join(
+        rf"{est.estimator} \${est.value_billions:+,.1f}B"
+        + (f" ({est.scope_label})" if est.scope_label != "rate only" else "")
+        for est in spread.estimates
+    )
+    position = {
+        "inside": "sits inside that range",
+        "larger": rf"prices it **larger than any of the four**, by \${spread.distance_to_range_billions:,.1f}B",
+        "smaller": rf"prices it **smaller than all four**, by \${spread.distance_to_range_billions:,.1f}B",
+    }[spread.model_position]
+    lines = [
+        f"**Estimator range.** Four houses have scored a corporate statutory-rate "
+        f"change on {spread.window}. Converted to this policy's "
+        f"{rate_change_pp:+.1f}pp step they span "
+        rf"**\${spread.low_billions:+,.1f}B to \${spread.high_billions:+,.1f}B** "
+        rf"— {named}. This run's \${model_billions:+,.1f}B {position}."
+    ]
+
+    shares = ", ".join(
+        f"{est.marginal_share:.1%} {est.estimator}"
+        for est in spread.estimates
+        if est.marginal_share is not None
+    )
+    how = (
+        f"**How that range is built.** {spread.basis.capitalize()} — every row "
+        f"scored on {spread.window} against {spread.baseline_label}, "
+        f"transcribed in `corporate_rate_scores.csv` and read in "
+        f"`{CORPORATE_RECORD_MEMO}`. {spread.caveat}"
+    )
+    if spread.model_marginal_share is not None:
+        beaten = spread.estimates_below_model_share
+        total = len(spread.estimates)
+        comparison = (
+            "above every published estimator on the record"
+            if beaten == total
+            else f"above {beaten} of the {total}"
+            if beaten
+            else f"below all {total}"
+        )
+        how += (
+            f" On the metric that removes the baseline level — the share of the "
+            f"vintage's average corporate base one statutory point reaches — "
+            f"this run sits at **{spread.model_marginal_share:.1%}**, "
+            f"{comparison} ({shares})."
+        )
+    else:
+        how += (
+            f" **And this run is one of those.** It also prices "
+            f"{_join_clauses(bundled)}, so dividing its total by the rate step "
+            f"would report a bundled figure as a property of the rate, and its "
+            f"own share is not quoted here. The four published shares are "
+            f"{shares}."
+        )
+    lines.append(how)
+
+    lines.extend(
+        _corporate_benchmark_captions(
+            policy, policy_name, spread=spread, model_billions=model_billions
+        )
+    )
+    return tuple(lines)
+
+
+def _join_clauses(items: Sequence[str]) -> str:
+    """``"a, b and c"`` — for prose, where ``", ".join`` reads as a list."""
+    items = list(items)
+    if len(items) <= 1:
+        return items[0] if items else ""
+    return f"{', '.join(items[:-1])} and {items[-1]}"
+
+
+def _corporate_benchmark_captions(
+    policy: Any, policy_name: str, *, spread: Any, model_billions: float
+) -> list[str]:
+    """This benchmark's own published range or scope verdict, read from the ledger.
+
+    Two of the repository's corporate rows carry something a single target
+    figure cannot say, and both are read live rather than restated here:
+    ``trump_corporate_15`` has a **published range** because two houses scored
+    21% -> 15% directly and disagree, and ``biden_corporate_28`` has a **scope
+    verdict** because its figures agree with Treasury's to 0.2% while the
+    reforms do not.
+    """
+    from fiscal_model.ui.estimator_ranges import published_range_for, scope_verdict_for
+
+    policy_id = _scorecard_id_for(policy, policy_name)
+    if not policy_id:
+        return []
+
+    published = published_range_for(policy_id)
+    scope = scope_verdict_for(policy_id)
+
+    lines: list[str] = []
+    if published is not None:
+        where = (
+            "inside it"
+            if published.contains(model_billions)
+            else rf"\${published.distance(model_billions):,.1f}B outside it"
+        )
+        line = (
+            f"**This benchmark carries a published range.** Its scorekeepers — "
+            f"{published.source_name} — scored this exact reform and printed "
+            rf"\${published.low_billions:+,.1f}B to "
+            rf"\${published.high_billions:+,.1f}B; this run's "
+            rf"\${model_billions:+,.1f}B is {where}."
+        )
+        overlaps = (
+            published.low_billions <= spread.high_billions
+            and spread.low_billions <= published.high_billions
+        )
+        if not overlaps:
+            line += (
+                " That band and the converted one above do **not** overlap: "
+                "scoring this reform directly and extrapolating a per-point "
+                "yield to it give different answers, which is the "
+                "direction-and-scope asymmetry measured rather than argued. "
+                "Neither is adjusted onto the other."
+            )
+        lines.append(line)
+    if scope:
+        lines.append(
+            f"**Scope: the benchmark and this run price different reforms.** "
+            f"{escape_markdown_dollars(scope)}"
+        )
+    return lines
 #: How close the scored ten-year figure must sit to the carried target before
 #: the caption is willing to say it reproduces it. Both presets score the target
 #: exactly today; this is a guard, not a rounding allowance.
@@ -1366,6 +1605,10 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     base_year_note = income_base_projection_caption(policy, result)
     if base_year_note:
         st_module.caption(base_year_note)
+    for corporate_note in corporate_estimator_range_captions(
+        policy, result, getattr(scored, "policy_name", "") or ""
+    ):
+        st_module.caption(corporate_note)
     payroll_note = payroll_fitted_target_caption(policy, result)
     if payroll_note:
         st_module.caption(payroll_note)
