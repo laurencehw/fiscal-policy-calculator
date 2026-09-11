@@ -564,6 +564,11 @@ provenance kind or a ledger entry:
   three stopped being true in the same commit. The section now carries the three
   columns, the denominator warning and the open items.
 
+- `docs/VALIDATION_NOTES.md` — L8's Wave 3 account is left as written, because
+  it records what that lane did, with a superseding note beside it: two of its
+  three cross-check claims are now known to be wrong and a reader would take
+  them as current.
+
 **Deliberately not touched**: `target_revisions.py`'s Wave 4 revision *reason*
 for `reciprocal_tariffs.v2`, which describes the flat-20pp implementation. That
 is a historical record of why a target moved in September 2026, not a
