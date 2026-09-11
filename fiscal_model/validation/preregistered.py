@@ -276,6 +276,54 @@ R2_RETIREMENT_RULE = (
     "may not move a model output by implication."
 )
 
+#: Commit that entered lane R3's battery — the 22 rows from the three CBO
+#: *Options for Reducing the Deficit* volumes the battery did not contain
+#: (``planning/ROUTE_TO_8_5.md`` §1 R3, ``planning/lanes/R3_tier1_battery.md``).
+#: Same two-commit protocol as Phase B: the rows are written here and into
+#: ``KNOWN_SCORES`` with ``runnable=False`` in this commit, and first scored in
+#: :data:`R3_MULTI_VOLUME_FIRST_SCORED_COMMIT`, a *later* commit, so "the target
+#: was fixed before the model was scored against it" is checkable from the git
+#: history rather than asserted in prose.
+R3_MULTI_VOLUME_ENTERED_COMMIT = "a76d0b4c35ee7c5c4e3d54bd52d4e30b1f0ec1ab"
+R3_MULTI_VOLUME_ENTERED_DATE = "2026-09-11"
+
+#: Commit in which lane R3's battery was first scored — the commit that flips
+#: those 22 records to ``runnable=True`` and admits a window-carrying record to
+#: the Generic dispatch.
+R3_MULTI_VOLUME_FIRST_SCORED_COMMIT = "cfa6d99fc0a0fbfa0ac57dbe31d1c9dbd0f6e1b2"
+
+#: The rule R3 bound itself to **before** it read a figure into a record.
+#:
+#: Written here rather than only in the lane doc because "which options did you
+#: take, and why those?" is the first question a reader of a battery that
+#: doubled in size asks — and because the answer has to be a rule rather than a
+#: list, or the battery is a curated set of flattering shapes. The verdict for
+#: every one of the 100 revenue options in the three volumes is in
+#: ``fiscal_model/data_files/validation/cbo_options_multi_volume.csv``.
+#:
+#: Two consequences worth stating beside it. **Spending options are out of scope
+#: in all three volumes**, and not because of fit: ``discretionary_spending`` is
+#: already at n = 5 and is the battery's most accurate class, so excluding it can
+#: only *raise* the reported mean. And **one reform, one row**: the 2022 volume's
+#: Option 13 alternative 1 is already registered as ``illustrative_1pp_all.v2``
+#: (lane R2 superseded it onto that very line), so it is recorded in the
+#: alternatives CSV as not-registered rather than entered twice.
+R3_SELECTION_RULE = (
+    "From each of the three CBO Options for Reducing the Deficit volumes the "
+    "battery does not already contain - 2018 (pub. 54667, FY2019-2028), 2020 "
+    "(pub. 56783, FY2021-2030) and 2022 (pubs. 58164 and 58163, FY2023-2032) - "
+    "take every REVENUE option whose reform is one of the six shapes "
+    "create_policy_from_score already builds, and every alternative reported "
+    "inside it. The six shapes: an ordinary-income rate change at a stated "
+    "boundary; an AGI-inclusive surtax at a stated boundary; a long-term "
+    "capital gains / qualified dividend rate change; a statutory corporate rate "
+    "change; a flat rate on uncapped covered earnings; and a limit on the "
+    "income-tax exclusion for employment-based health insurance. An option or "
+    "alternative is excluded only where the shape does not exist or where a "
+    "module constant fitted to that same reform sits in the path (leakage) - "
+    "never for its answer."
+)
+
 #: Baselines the CBO options were built on, from PDF page 2 of publication
 #: 60557 ("Notes About This Report").
 CBO_OPTIONS_REVENUE_BASELINE = (
@@ -1234,6 +1282,600 @@ PREREGISTERED_CASES: tuple[PreregisteredCase, ...] = (
             + IIJA_AUTHORIZATION_PATH_RULE
             + " "
             + FY2022_TARGET_WINDOW_RULE
+        ),
+    ),
+    # ---- Lane R3: the 2018, 2020 and 2022 Options volumes ----------------
+    #
+    # Twenty-two rows, selected by R3_SELECTION_RULE below before any of them
+    # was scored, and entered here in a commit that leaves every one of them
+    # ``runnable=False``. The commit that flips them is the one that first
+    # scores them - Phase B's two-commit protocol, unchanged.
+    #
+    # Each row is scored on the decade its own volume published
+    # (``scoring_window_first_year``) and on ``CBO_FEB_2024``, the oldest
+    # baseline vintage this repository carries; the mismatch with the volume's
+    # own baseline is recorded per row below rather than silently absorbed.
+    PreregisteredCase(
+        case_id="cbo2019_opt1_all_rates_1pp.v1",
+        policy_id="cbo2019_opt1_all_rates_1pp",
+        official_10yr_billions=-905.4,
+        source_name="Joint Committee on Taxation",
+        source_url="https://www.cbo.gov/publication/54667",
+        source_date="2018-12",
+        source_baseline_vintage=(
+            "CBO April 2018 baseline, as stated by Options for Reducing the "
+            "Deficit: 2019 to 2028 (pub. 54667, FY2019-2028 window) - VINTAGE "
+            "MISMATCH: the repository carries no April-2018 vintage, so this "
+            "row is scored on CBO_FEB_2024, the oldest it has, on its own "
+            "FY2019-2028 window"
+        ),
+        entered_commit=R3_MULTI_VOLUME_ENTERED_COMMIT,
+        entered_date=R3_MULTI_VOLUME_ENTERED_DATE,
+        first_scoring_run_commit=R3_MULTI_VOLUME_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO Options 2019-2028 (pub. 54667), revenue option 1, first "
+            "alternative (report p. 204): 'Raise all tax rates on ordinary "
+            "income by 1 percentage point', +$905.4B over FY2019-2028. 'Source: "
+            "Staff of the Joint Committee on Taxation.' The option takes effect "
+            "in January 2019. Bracket 1's floor is $0 in every year of every "
+            "vintage, so the schedule path returns the same threshold the "
+            "record is written with."
+            + " " + R3_SELECTION_RULE
+            + " " + FY2022_TARGET_WINDOW_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo2019_opt1_top4_brackets_1pp.v1",
+        policy_id="cbo2019_opt1_top4_brackets_1pp",
+        official_10yr_billions=-222.9,
+        source_name="Joint Committee on Taxation",
+        source_url="https://www.cbo.gov/publication/54667",
+        source_date="2018-12",
+        source_baseline_vintage=(
+            "CBO April 2018 baseline, as stated by Options for Reducing the "
+            "Deficit: 2019 to 2028 (pub. 54667, FY2019-2028 window) - VINTAGE "
+            "MISMATCH: the repository carries no April-2018 vintage, so this "
+            "row is scored on CBO_FEB_2024, the oldest it has, on its own "
+            "FY2019-2028 window"
+        ),
+        entered_commit=R3_MULTI_VOLUME_ENTERED_COMMIT,
+        entered_date=R3_MULTI_VOLUME_ENTERED_DATE,
+        first_scoring_run_commit=R3_MULTI_VOLUME_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO Options 2019-2028 (pub. 54667), revenue option 1, second "
+            "alternative (report p. 204): 'Raise all tax rates on ordinary "
+            "income in the top four brackets (24 percent and over from 2018 "
+            "through 2025, and 28 percent and over after 2025) by 1 percentage "
+            "point', +$222.9B over FY2019-2028."
+            + " " + R3_SELECTION_RULE
+            + " " + FY2022_TARGET_WINDOW_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo2019_opt1_top2_brackets_1pp.v1",
+        policy_id="cbo2019_opt1_top2_brackets_1pp",
+        official_10yr_billions=-123.4,
+        source_name="Joint Committee on Taxation",
+        source_url="https://www.cbo.gov/publication/54667",
+        source_date="2018-12",
+        source_baseline_vintage=(
+            "CBO April 2018 baseline, as stated by Options for Reducing the "
+            "Deficit: 2019 to 2028 (pub. 54667, FY2019-2028 window) - VINTAGE "
+            "MISMATCH: the repository carries no April-2018 vintage, so this "
+            "row is scored on CBO_FEB_2024, the oldest it has, on its own "
+            "FY2019-2028 window"
+        ),
+        entered_commit=R3_MULTI_VOLUME_ENTERED_COMMIT,
+        entered_date=R3_MULTI_VOLUME_ENTERED_DATE,
+        first_scoring_run_commit=R3_MULTI_VOLUME_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO Options 2019-2028 (pub. 54667), revenue option 1, third "
+            "alternative (report p. 204): 'Raise all tax rates on ordinary "
+            "income in the top two brackets (35 percent and over) by 1 "
+            "percentage point', +$123.4B over FY2019-2028. 'The two highest "
+            "brackets' of seven is the floor of bracket 6; the amounts are "
+            "CBO's own CY2021 figures, which the schedule clamp makes the "
+            "amounts actually applied."
+            + " " + R3_SELECTION_RULE
+            + " " + FY2022_TARGET_WINDOW_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo2019_opt2_ltcg_qdiv_2pp.v1",
+        policy_id="cbo2019_opt2_ltcg_qdiv_2pp",
+        official_10yr_billions=-69.6,
+        source_name="Joint Committee on Taxation",
+        source_url="https://www.cbo.gov/publication/54667",
+        source_date="2018-12",
+        source_baseline_vintage=(
+            "CBO April 2018 baseline, as stated by Options for Reducing the "
+            "Deficit: 2019 to 2028 (pub. 54667, FY2019-2028 window) - VINTAGE "
+            "MISMATCH: the repository carries no April-2018 vintage, so this "
+            "row is scored on CBO_FEB_2024, the oldest it has, on its own "
+            "FY2019-2028 window"
+        ),
+        entered_commit=R3_MULTI_VOLUME_ENTERED_COMMIT,
+        entered_date=R3_MULTI_VOLUME_ENTERED_DATE,
+        first_scoring_run_commit=R3_MULTI_VOLUME_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO Options 2019-2028 (pub. 54667), revenue option 2, first "
+            "alternative (report p. 207): 'Raise rates on long-term capital "
+            "gains and dividends by 2 percentage points', +$69.6B over "
+            "FY2019-2028. Applies to every rate bracket, so the threshold is "
+            "zero. The option's other two alternatives ALSO realign the "
+            "preferential-rate brackets with the ordinary brackets, which "
+            "CapitalGainsPolicy cannot express; they are recorded as "
+            "not-registered in the alternatives CSV."
+            + " " + R3_SELECTION_RULE
+            + " " + FY2022_TARGET_WINDOW_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo2019_opt18_hi_payroll_1pp.v1",
+        policy_id="cbo2019_opt18_hi_payroll_1pp",
+        official_10yr_billions=-898.3,
+        source_name="Joint Committee on Taxation",
+        source_url="https://www.cbo.gov/publication/54667",
+        source_date="2018-12",
+        source_baseline_vintage=(
+            "CBO April 2018 baseline, as stated by Options for Reducing the "
+            "Deficit: 2019 to 2028 (pub. 54667, FY2019-2028 window) - VINTAGE "
+            "MISMATCH: the repository carries no April-2018 vintage, so this "
+            "row is scored on CBO_FEB_2024, the oldest it has, on its own "
+            "FY2019-2028 window"
+        ),
+        entered_commit=R3_MULTI_VOLUME_ENTERED_COMMIT,
+        entered_date=R3_MULTI_VOLUME_ENTERED_DATE,
+        first_scoring_run_commit=R3_MULTI_VOLUME_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO Options 2019-2028 (pub. 54667), revenue option 18, first "
+            "alternative (report p. 251): +$898.3B over FY2019-2028. Scored on "
+            "the same shape as CBO 2024 Option 61 because CBO states the same "
+            "base for both: 'Unlike the payroll tax for Social Security, which "
+            "applies to earnings up to an annual maximum, the 2.9 percent HI "
+            "tax is levied on total earnings.' A 1pp increase in the basic HI "
+            "rate on total earnings and a new 1 percent tax on all covered "
+            "earnings are the same base times the same rate; what differs is "
+            "which trust fund receives it, which no revenue estimate turns on."
+            + " " + R3_SELECTION_RULE
+            + " " + FY2022_TARGET_WINDOW_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo2019_opt18_hi_payroll_2pp.v1",
+        policy_id="cbo2019_opt18_hi_payroll_2pp",
+        official_10yr_billions=-1_786.5,
+        source_name="Joint Committee on Taxation",
+        source_url="https://www.cbo.gov/publication/54667",
+        source_date="2018-12",
+        source_baseline_vintage=(
+            "CBO April 2018 baseline, as stated by Options for Reducing the "
+            "Deficit: 2019 to 2028 (pub. 54667, FY2019-2028 window) - VINTAGE "
+            "MISMATCH: the repository carries no April-2018 vintage, so this "
+            "row is scored on CBO_FEB_2024, the oldest it has, on its own "
+            "FY2019-2028 window"
+        ),
+        entered_commit=R3_MULTI_VOLUME_ENTERED_COMMIT,
+        entered_date=R3_MULTI_VOLUME_ENTERED_DATE,
+        first_scoring_run_commit=R3_MULTI_VOLUME_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO Options 2019-2028 (pub. 54667), revenue option 18, second "
+            "alternative (report p. 251): +$1,786.5B over FY2019-2028."
+            + " " + R3_SELECTION_RULE
+            + " " + FY2022_TARGET_WINDOW_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo2019_opt24_corporate_rate_1pp.v1",
+        policy_id="cbo2019_opt24_corporate_rate_1pp",
+        official_10yr_billions=-96.3,
+        source_name="Joint Committee on Taxation",
+        source_url="https://www.cbo.gov/publication/54667",
+        source_date="2018-12",
+        source_baseline_vintage=(
+            "CBO April 2018 baseline, as stated by Options for Reducing the "
+            "Deficit: 2019 to 2028 (pub. 54667, FY2019-2028 window) - VINTAGE "
+            "MISMATCH: the repository carries no April-2018 vintage, so this "
+            "row is scored on CBO_FEB_2024, the oldest it has, on its own "
+            "FY2019-2028 window"
+        ),
+        entered_commit=R3_MULTI_VOLUME_ENTERED_COMMIT,
+        entered_date=R3_MULTI_VOLUME_ENTERED_DATE,
+        first_scoring_run_commit=R3_MULTI_VOLUME_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO Options 2019-2028 (pub. 54667), revenue option 24 (report p. "
+            "266): +$96.3B over FY2019-2028, 'Source: Staff of the Joint "
+            "Committee on Taxation.' The second of four editions of one reform "
+            "- $96.3B (FY2019-2028), $99.3B (FY2021-2030), $129.3B "
+            "(FY2023-2032), $135.7B (FY2025-2034) - which is what gives the "
+            "corporate class more than one observation for the first time."
+            + " " + R3_SELECTION_RULE
+            + " " + FY2022_TARGET_WINDOW_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo2021_opt1_all_rates_1pp.v1",
+        policy_id="cbo2021_opt1_all_rates_1pp",
+        official_10yr_billions=-884.0,
+        source_name="Joint Committee on Taxation",
+        source_url="https://www.cbo.gov/publication/56783",
+        source_date="2020-12",
+        source_baseline_vintage=(
+            "CBO September 2020 baseline, as stated by Options for Reducing the "
+            "Deficit: 2021 to 2030 (pub. 56783, FY2021-2030 window) - VINTAGE "
+            "MISMATCH: the repository carries no September-2020 vintage, so "
+            "this row is scored on CBO_FEB_2024 on its own FY2021-2030 window"
+        ),
+        entered_commit=R3_MULTI_VOLUME_ENTERED_COMMIT,
+        entered_date=R3_MULTI_VOLUME_ENTERED_DATE,
+        first_scoring_run_commit=R3_MULTI_VOLUME_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO Options 2021-2030 (pub. 56783), revenue option 1, first "
+            "alternative (report p. 204): +$884.0B over FY2021-2030, 'Data "
+            "source: Staff of the Joint Committee on Taxation.'"
+            + " " + R3_SELECTION_RULE
+            + " " + FY2022_TARGET_WINDOW_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo2021_opt1_top4_brackets_1pp.v1",
+        policy_id="cbo2021_opt1_top4_brackets_1pp",
+        official_10yr_billions=-203.3,
+        source_name="Joint Committee on Taxation",
+        source_url="https://www.cbo.gov/publication/56783",
+        source_date="2020-12",
+        source_baseline_vintage=(
+            "CBO September 2020 baseline, as stated by Options for Reducing the "
+            "Deficit: 2021 to 2030 (pub. 56783, FY2021-2030 window) - VINTAGE "
+            "MISMATCH: the repository carries no September-2020 vintage, so "
+            "this row is scored on CBO_FEB_2024 on its own FY2021-2030 window"
+        ),
+        entered_commit=R3_MULTI_VOLUME_ENTERED_COMMIT,
+        entered_date=R3_MULTI_VOLUME_ENTERED_DATE,
+        first_scoring_run_commit=R3_MULTI_VOLUME_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO Options 2021-2030 (pub. 56783), revenue option 1, second "
+            "alternative (report p. 204): +$203.3B over FY2021-2030. The "
+            "amounts are CBO's own CY2021 bracket-4 floors from the transcribed "
+            "parameter schedule - the option's own first calendar year."
+            + " " + R3_SELECTION_RULE
+            + " " + FY2022_TARGET_WINDOW_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo2021_opt1_top2_brackets_1pp.v1",
+        policy_id="cbo2021_opt1_top2_brackets_1pp",
+        official_10yr_billions=-113.8,
+        source_name="Joint Committee on Taxation",
+        source_url="https://www.cbo.gov/publication/56783",
+        source_date="2020-12",
+        source_baseline_vintage=(
+            "CBO September 2020 baseline, as stated by Options for Reducing the "
+            "Deficit: 2021 to 2030 (pub. 56783, FY2021-2030 window) - VINTAGE "
+            "MISMATCH: the repository carries no September-2020 vintage, so "
+            "this row is scored on CBO_FEB_2024 on its own FY2021-2030 window"
+        ),
+        entered_commit=R3_MULTI_VOLUME_ENTERED_COMMIT,
+        entered_date=R3_MULTI_VOLUME_ENTERED_DATE,
+        first_scoring_run_commit=R3_MULTI_VOLUME_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO Options 2021-2030 (pub. 56783), revenue option 1, third "
+            "alternative (report p. 204): +$113.8B over FY2021-2030. The "
+            "smallest target in the battery, and the only row that prices the "
+            "top two brackets alone."
+            + " " + R3_SELECTION_RULE
+            + " " + FY2022_TARGET_WINDOW_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo2021_opt2_ltcg_qdiv_2pp.v1",
+        policy_id="cbo2021_opt2_ltcg_qdiv_2pp",
+        official_10yr_billions=-75.2,
+        source_name="Joint Committee on Taxation",
+        source_url="https://www.cbo.gov/publication/56783",
+        source_date="2020-12",
+        source_baseline_vintage=(
+            "CBO September 2020 baseline, as stated by Options for Reducing the "
+            "Deficit: 2021 to 2030 (pub. 56783, FY2021-2030 window) - VINTAGE "
+            "MISMATCH: the repository carries no September-2020 vintage, so "
+            "this row is scored on CBO_FEB_2024 on its own FY2021-2030 window"
+        ),
+        entered_commit=R3_MULTI_VOLUME_ENTERED_COMMIT,
+        entered_date=R3_MULTI_VOLUME_ENTERED_DATE,
+        first_scoring_run_commit=R3_MULTI_VOLUME_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO Options 2021-2030 (pub. 56783), revenue option 2 (report p. "
+            "207): +$75.2B over FY2021-2030. Unlike the 2018 edition, this one "
+            "does not realign the preferential brackets, so the option is the "
+            "rate change alone."
+            + " " + R3_SELECTION_RULE
+            + " " + FY2022_TARGET_WINDOW_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo2021_opt15_hi_payroll_1pp.v1",
+        policy_id="cbo2021_opt15_hi_payroll_1pp",
+        official_10yr_billions=-877.5,
+        source_name="Joint Committee on Taxation",
+        source_url="https://www.cbo.gov/publication/56783",
+        source_date="2020-12",
+        source_baseline_vintage=(
+            "CBO September 2020 baseline, as stated by Options for Reducing the "
+            "Deficit: 2021 to 2030 (pub. 56783, FY2021-2030 window) - VINTAGE "
+            "MISMATCH: the repository carries no September-2020 vintage, so "
+            "this row is scored on CBO_FEB_2024 on its own FY2021-2030 window"
+        ),
+        entered_commit=R3_MULTI_VOLUME_ENTERED_COMMIT,
+        entered_date=R3_MULTI_VOLUME_ENTERED_DATE,
+        first_scoring_run_commit=R3_MULTI_VOLUME_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO Options 2021-2030 (pub. 56783), revenue option 15, first "
+            "alternative (report p. 285): +$877.5B over FY2021-2030. Same base "
+            "as CBO 2024 Option 61 and as the 2018 edition's option 18: the HI "
+            "tax on total earnings, with no taxable maximum."
+            + " " + R3_SELECTION_RULE
+            + " " + FY2022_TARGET_WINDOW_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo2021_opt15_hi_payroll_2pp.v1",
+        policy_id="cbo2021_opt15_hi_payroll_2pp",
+        official_10yr_billions=-1_736.3,
+        source_name="Joint Committee on Taxation",
+        source_url="https://www.cbo.gov/publication/56783",
+        source_date="2020-12",
+        source_baseline_vintage=(
+            "CBO September 2020 baseline, as stated by Options for Reducing the "
+            "Deficit: 2021 to 2030 (pub. 56783, FY2021-2030 window) - VINTAGE "
+            "MISMATCH: the repository carries no September-2020 vintage, so "
+            "this row is scored on CBO_FEB_2024 on its own FY2021-2030 window"
+        ),
+        entered_commit=R3_MULTI_VOLUME_ENTERED_COMMIT,
+        entered_date=R3_MULTI_VOLUME_ENTERED_DATE,
+        first_scoring_run_commit=R3_MULTI_VOLUME_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO Options 2021-2030 (pub. 56783), revenue option 15, second "
+            "alternative (report p. 285): +$1,736.3B over FY2021-2030."
+            + " " + R3_SELECTION_RULE
+            + " " + FY2022_TARGET_WINDOW_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo2021_opt19_corporate_rate_1pp.v1",
+        policy_id="cbo2021_opt19_corporate_rate_1pp",
+        official_10yr_billions=-99.3,
+        source_name="Joint Committee on Taxation",
+        source_url="https://www.cbo.gov/publication/56783",
+        source_date="2020-12",
+        source_baseline_vintage=(
+            "CBO September 2020 baseline, as stated by Options for Reducing the "
+            "Deficit: 2021 to 2030 (pub. 56783, FY2021-2030 window) - VINTAGE "
+            "MISMATCH: the repository carries no September-2020 vintage, so "
+            "this row is scored on CBO_FEB_2024 on its own FY2021-2030 window"
+        ),
+        entered_commit=R3_MULTI_VOLUME_ENTERED_COMMIT,
+        entered_date=R3_MULTI_VOLUME_ENTERED_DATE,
+        first_scoring_run_commit=R3_MULTI_VOLUME_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO Options 2021-2030 (pub. 56783), revenue option 19 (report p. "
+            "293): +$99.3B over FY2021-2030, 'Data source: Staff of the Joint "
+            "Committee on Taxation.'"
+            + " " + R3_SELECTION_RULE
+            + " " + FY2022_TARGET_WINDOW_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo2023_opt13_top4_brackets_2pp.v1",
+        policy_id="cbo2023_opt13_top4_brackets_2pp",
+        official_10yr_billions=-501.9,
+        source_name="Joint Committee on Taxation",
+        source_url="https://www.cbo.gov/publication/58164",
+        source_date="2022-12",
+        source_baseline_vintage=(
+            "CBO May 2022 baseline, as stated by Options for Reducing the "
+            "Deficit: 2023 to 2032 (pubs. 58164 and 58163, FY2023-2032 window) "
+            "- VINTAGE MISMATCH: the repository carries no May-2022 vintage, so "
+            "this row is scored on CBO_FEB_2024 on its own FY2023-2032 window"
+        ),
+        entered_commit=R3_MULTI_VOLUME_ENTERED_COMMIT,
+        entered_date=R3_MULTI_VOLUME_ENTERED_DATE,
+        first_scoring_run_commit=R3_MULTI_VOLUME_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO Options 2023-2032 Volume I (pub. 58164), option 13, second "
+            "alternative (report p. 72): -$501.9B over FY2023-2032. The same "
+            "reform cbo_opt45_top4_brackets_2pp scores on the 2024 volume's "
+            "decade, so the pair measures the model's sensitivity to the decade "
+            "and not two independent predictions. Amounts are CBO's own CY2023 "
+            "bracket-4 floors."
+            + " " + R3_SELECTION_RULE
+            + " " + FY2022_TARGET_WINDOW_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo2023_opt13_agi_surtax_1pp_stdded.v1",
+        policy_id="cbo2023_opt13_agi_surtax_1pp_stdded",
+        official_10yr_billions=-1_329.1,
+        source_name="Joint Committee on Taxation",
+        source_url="https://www.cbo.gov/publication/58164",
+        source_date="2022-12",
+        source_baseline_vintage=(
+            "CBO May 2022 baseline, as stated by Options for Reducing the "
+            "Deficit: 2023 to 2032 (pubs. 58164 and 58163, FY2023-2032 window) "
+            "- VINTAGE MISMATCH: the repository carries no May-2022 vintage, so "
+            "this row is scored on CBO_FEB_2024 on its own FY2023-2032 window"
+        ),
+        entered_commit=R3_MULTI_VOLUME_ENTERED_COMMIT,
+        entered_date=R3_MULTI_VOLUME_ENTERED_DATE,
+        first_scoring_run_commit=R3_MULTI_VOLUME_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO Options 2023-2032 Volume I (pub. 58164), option 13, third "
+            "alternative (report p. 72): -$1,329.1B over FY2023-2032. The "
+            "largest revenue raiser in the individual-rate option of any of the "
+            "four volumes, and the only AGI surtax outside the 2024 edition. "
+            "CBO's own words put it on AGI - 'a surtax of 1 percentage point on "
+            "AGI above the standard deduction and exemption' - which is what "
+            "AGI_BASE_RULE reads."
+            + " " + R3_SELECTION_RULE
+            + " " + FY2022_TARGET_WINDOW_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo2023_opt13_agi_surtax_2pp_bracket4.v1",
+        policy_id="cbo2023_opt13_agi_surtax_2pp_bracket4",
+        official_10yr_billions=-773.8,
+        source_name="Joint Committee on Taxation",
+        source_url="https://www.cbo.gov/publication/58164",
+        source_date="2022-12",
+        source_baseline_vintage=(
+            "CBO May 2022 baseline, as stated by Options for Reducing the "
+            "Deficit: 2023 to 2032 (pubs. 58164 and 58163, FY2023-2032 window) "
+            "- VINTAGE MISMATCH: the repository carries no May-2022 vintage, so "
+            "this row is scored on CBO_FEB_2024 on its own FY2023-2032 window"
+        ),
+        entered_commit=R3_MULTI_VOLUME_ENTERED_COMMIT,
+        entered_date=R3_MULTI_VOLUME_ENTERED_DATE,
+        first_scoring_run_commit=R3_MULTI_VOLUME_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO Options 2023-2032 Volume I (pub. 58164), option 13, fourth "
+            "alternative (report p. 72): -$773.8B over FY2023-2032. This is the "
+            "one published surtax whose boundary is stated as a sum of three "
+            "statutory parameters rather than as a dollar amount, and it is "
+            "registered because all three are parameters CBO itself publishes "
+            "for the option's own first calendar year."
+            + " " + R3_SELECTION_RULE
+            + " " + FY2022_TARGET_WINDOW_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo2023_opt15_new_payroll_1pct.v1",
+        policy_id="cbo2023_opt15_new_payroll_1pct",
+        official_10yr_billions=-1_135.7,
+        source_name="Joint Committee on Taxation",
+        source_url="https://www.cbo.gov/publication/58164",
+        source_date="2022-12",
+        source_baseline_vintage=(
+            "CBO May 2022 baseline, as stated by Options for Reducing the "
+            "Deficit: 2023 to 2032 (pubs. 58164 and 58163, FY2023-2032 window) "
+            "- VINTAGE MISMATCH: the repository carries no May-2022 vintage, so "
+            "this row is scored on CBO_FEB_2024 on its own FY2023-2032 window"
+        ),
+        entered_commit=R3_MULTI_VOLUME_ENTERED_COMMIT,
+        entered_date=R3_MULTI_VOLUME_ENTERED_DATE,
+        first_scoring_run_commit=R3_MULTI_VOLUME_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO Options 2023-2032 Volume I (pub. 58164), option 15, first "
+            "alternative (report p. 76): -$1,135.7B over FY2023-2032. The same "
+            "reform as CBO 2024 Option 61 alternative 1 on the previous decade."
+            + " " + R3_SELECTION_RULE
+            + " " + FY2022_TARGET_WINDOW_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo2023_opt15_new_payroll_2pct.v1",
+        policy_id="cbo2023_opt15_new_payroll_2pct",
+        official_10yr_billions=-2_252.7,
+        source_name="Joint Committee on Taxation",
+        source_url="https://www.cbo.gov/publication/58164",
+        source_date="2022-12",
+        source_baseline_vintage=(
+            "CBO May 2022 baseline, as stated by Options for Reducing the "
+            "Deficit: 2023 to 2032 (pubs. 58164 and 58163, FY2023-2032 window) "
+            "- VINTAGE MISMATCH: the repository carries no May-2022 vintage, so "
+            "this row is scored on CBO_FEB_2024 on its own FY2023-2032 window"
+        ),
+        entered_commit=R3_MULTI_VOLUME_ENTERED_COMMIT,
+        entered_date=R3_MULTI_VOLUME_ENTERED_DATE,
+        first_scoring_run_commit=R3_MULTI_VOLUME_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO Options 2023-2032 Volume I (pub. 58164), option 15, second "
+            "alternative (report p. 76): -$2,252.7B over FY2023-2032."
+            + " " + R3_SELECTION_RULE
+            + " " + FY2022_TARGET_WINDOW_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo2023_opt6_employer_health_income_only.v1",
+        policy_id="cbo2023_opt6_employer_health_income_only",
+        official_10yr_billions=-651.4,
+        source_name="Congressional Budget Office",
+        source_url="https://www.cbo.gov/publication/58164",
+        source_date="2022-12",
+        source_baseline_vintage=(
+            "CBO May 2022 baseline, as stated by Options for Reducing the "
+            "Deficit: 2023 to 2032 (pubs. 58164 and 58163, FY2023-2032 window) "
+            "- VINTAGE MISMATCH: the repository carries no May-2022 vintage, so "
+            "this row is scored on CBO_FEB_2024 on its own FY2023-2032 window"
+        ),
+        entered_commit=R3_MULTI_VOLUME_ENTERED_COMMIT,
+        entered_date=R3_MULTI_VOLUME_ENTERED_DATE,
+        first_scoring_run_commit=R3_MULTI_VOLUME_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO Options 2023-2032 Volume I (pub. 58164), option 6, third "
+            "alternative (report p. 30), 'Decrease (-) in the Deficit' row: "
+            "-$651.4B over FY2023-2032. The cap dollars are CBO's own stated "
+            "design - 'contributions that exceeded $8,900 a year for individual "
+            "coverage and $21,600 a year for family coverage would be included "
+            "in employees' taxable income', the 50th percentile of 2024 "
+            "premiums indexed to 2026 - and the option takes effect in January "
+            "2026, which CBO's zeros for 2023-2025 confirm. As in the 2024 "
+            "edition, this is the only one of the option's three alternatives "
+            "the module can express: the other two limit the payroll-tax "
+            "exclusion as well."
+            + " " + R3_SELECTION_RULE
+            + " " + FY2022_TARGET_WINDOW_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo2023_opt37_ltcg_qdiv_2pp.v1",
+        policy_id="cbo2023_opt37_ltcg_qdiv_2pp",
+        official_10yr_billions=-102.1,
+        source_name="Joint Committee on Taxation",
+        source_url="https://www.cbo.gov/publication/58163",
+        source_date="2022-12",
+        source_baseline_vintage=(
+            "CBO May 2022 baseline, as stated by Options for Reducing the "
+            "Deficit: 2023 to 2032 (pubs. 58164 and 58163, FY2023-2032 window) "
+            "- VINTAGE MISMATCH: the repository carries no May-2022 vintage, so "
+            "this row is scored on CBO_FEB_2024 on its own FY2023-2032 window"
+        ),
+        entered_commit=R3_MULTI_VOLUME_ENTERED_COMMIT,
+        entered_date=R3_MULTI_VOLUME_ENTERED_DATE,
+        first_scoring_run_commit=R3_MULTI_VOLUME_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO Options 2023-2032 Volume II (pub. 58163), revenue option 37 "
+            "(report p. 89): -$102.1B over FY2023-2032. Applies to every rate "
+            "bracket, so the threshold is zero. Its 2024 sibling "
+            "(cbo_opt47_ltcg_qdiv_2pp) carries -$103.3B on the next decade: "
+            "CBO's own two editions differ by 1.2% for one unchanged reform, "
+            "where the individual-rate option's differ by 9.6%."
+            + " " + R3_SELECTION_RULE
+            + " " + FY2022_TARGET_WINDOW_RULE
+        ),
+    ),
+    PreregisteredCase(
+        case_id="cbo2023_opt50_corporate_rate_1pp.v1",
+        policy_id="cbo2023_opt50_corporate_rate_1pp",
+        official_10yr_billions=-129.3,
+        source_name="Joint Committee on Taxation",
+        source_url="https://www.cbo.gov/publication/58163",
+        source_date="2022-12",
+        source_baseline_vintage=(
+            "CBO May 2022 baseline, as stated by Options for Reducing the "
+            "Deficit: 2023 to 2032 (pubs. 58164 and 58163, FY2023-2032 window) "
+            "- VINTAGE MISMATCH: the repository carries no May-2022 vintage, so "
+            "this row is scored on CBO_FEB_2024 on its own FY2023-2032 window"
+        ),
+        entered_commit=R3_MULTI_VOLUME_ENTERED_COMMIT,
+        entered_date=R3_MULTI_VOLUME_ENTERED_DATE,
+        first_scoring_run_commit=R3_MULTI_VOLUME_FIRST_SCORED_COMMIT,
+        note=(
+            "CBO Options 2023-2032 Volume II (pub. 58163), revenue option 50 "
+            "(report p. 115): -$129.3B over FY2023-2032, 'Data source: Staff of "
+            "the Joint Committee on Taxation.' CORPORATE_PER_POINT_YIELD.md "
+            "showed JCT's per-point yield is flat in the rate; these four "
+            "editions show what it does in TIME, which the memo could not."
+            + " " + R3_SELECTION_RULE
+            + " " + FY2022_TARGET_WINDOW_RULE
         ),
     ),
 )

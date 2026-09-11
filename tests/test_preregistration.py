@@ -256,22 +256,40 @@ def test_only_rows_the_manifest_superseded_name_their_own_window():
     """Every other record keeps the runner's window, so the field cannot be a
     general lever on the tier.
 
-    Two cases carry one, and each got it through a manifest supersession whose
-    target did not move: ``treasury_capgains_39_plus_stepup_elim.v2`` (PR #126)
-    and ``iija_2021_discretionary.v3`` (owner decision (3)). The stronger
-    assertion is the second one — a window is not a number a lane may pick, it
-    is the first year of the window the record's own ``budget_window`` states,
-    which is :data:`FY2022_TARGET_WINDOW_RULE` written as a test.
+    Two cases carry one through a manifest **supersession** whose target did
+    not move: ``treasury_capgains_39_plus_stepup_elim.v2`` (PR #126) and
+    ``iija_2021_discretionary.v3`` (owner decision (3)). Lane R3's 22 rows
+    carry one **from registration**, because each is an option CBO published on
+    its own decade and scoring it on a later one would measure nominal growth
+    between decades rather than the model (R2 finding 3). Those are the only
+    two routes in, and this test says so.
+
+    The stronger assertion is the second one — a window is not a number a lane
+    may pick, it is the first year of the window the record's own
+    ``budget_window`` states, which is :data:`FY2022_TARGET_WINDOW_RULE`
+    written as a test, and it holds for all 24.
     """
+    from fiscal_model.validation.preregistered import (
+        PREREGISTERED_CASES,
+        R3_MULTI_VOLUME_ENTERED_COMMIT,
+    )
+
     named = {
         policy_id
         for policy_id, score in KNOWN_SCORES.items()
         if score.scoring_window_first_year is not None
     }
-    assert named == {
+    superseded_in = {
         "treasury_capgains_39_plus_stepup_elim",
         "iija_2021_discretionary",
     }
+    registered_by_r3 = {
+        case.policy_id
+        for case in PREREGISTERED_CASES
+        if case.entered_commit == R3_MULTI_VOLUME_ENTERED_COMMIT and case.is_live
+    }
+    assert len(registered_by_r3) == 22
+    assert named == superseded_in | registered_by_r3
     for policy_id in named:
         score = KNOWN_SCORES[policy_id]
         stated = int(str(score.budget_window).split("-")[0].removeprefix("FY"))

@@ -1463,6 +1463,783 @@ KNOWN_SCORES: dict[str, CBOScore] = {
     ),
 
     # -------------------------------------------------------------------------
+    # LANE R3: THE OTHER THREE *OPTIONS FOR REDUCING THE DEFICIT* VOLUMES
+    # -------------------------------------------------------------------------
+    #
+    # CBO publishes this compendium every two years, and the battery above uses
+    # only the 2024 edition. Three earlier editions price the *same* reforms on
+    # *different* baselines over *different* decades:
+    #
+    #   2018  Options for Reducing the Deficit: 2019 to 2028, pub. 54667,
+    #         FY2019-2028, CBO April 2018 baseline
+    #   2020  Options for Reducing the Deficit: 2021 to 2030, pub. 56783,
+    #         FY2021-2030, CBO September 2020 baseline
+    #   2022  Options for Reducing the Deficit: 2023 to 2032, pub. 58164
+    #         (Volume I) and 58163 (Volume II), FY2023-2032, CBO May 2022
+    #         baseline
+    #
+    # Every figure below is transcribed to
+    # ``fiscal_model/data_files/validation/cbo_options_multi_volume*.csv`` by
+    # ``scripts/extract_cbo_options_multi_volume.py``, which reads CBO's own
+    # workbooks for the 2020 and 2022 volumes (by sheet and row, with the label
+    # cell asserted) and re-verifies every 2018 figure against its stated report
+    # page in the PDF. The selection rule, fixed before any of these records was
+    # written, is :data:`~fiscal_model.validation.preregistered.R3_SELECTION_RULE`,
+    # and the verdict for all 100 revenue options in the three volumes - runnable
+    # or a one-line reason - is in the options CSV beside it.
+    #
+    # TWO THINGS EVERY RECORD BELOW CARRIES, AND WHY.
+    #
+    # ``scoring_window_first_year`` is the first fiscal year of the decade the
+    # option's *own* volume published. Without it these rows would measure
+    # nominal growth between decades rather than the model: lane R2 found CBO
+    # pricing one unchanged 1pp reform at -$884.0B, -$1,081.3B and -$1,185.3B in
+    # three consecutive editions, 9.6% apart per two years, and told this lane to
+    # read the other volumes "the same way before registering them".
+    #
+    # ``scoring_vintage="cbo_feb_2024"`` is a STATED MISMATCH, not a match. The
+    # repository carries no April-2018, September-2020 or May-2022 baseline;
+    # February 2024 is the oldest it has, hence the nearest to all three. The
+    # mismatch is recorded on each manifest row exactly as it is for
+    # ``biden_corporate_28_fy2022`` and for the Options-2024 spending rows.
+    #
+    # A WINDOW IS NOT A VINTAGE. No shape here reads a budget level off the
+    # baseline object, which is what makes scoring an FY2019 decade on a
+    # FY2024-vintage baseline meaningful rather than a category error; the one
+    # thing that *is* year-indexed and vintage-bound is the statutory parameter
+    # schedule, which covers CY2021-CY2034 on this vintage, so the 2018 volume's
+    # two bracket rows have CY2019 and CY2020 clamped to CY2021. That is said out
+    # loud by the loader, recorded in each row's known_limitations, and is why
+    # their written fallback amounts are CBO's own CY2021 figures - the amount
+    # written is the amount actually applied in every year of the window.
+
+    "cbo2019_opt1_all_rates_1pp": CBOScore(
+        policy_id="cbo2019_opt1_all_rates_1pp",
+        name="CBO 2018 Option 1: All Ordinary Rates +1pp",
+        description="Raise all tax rates on ordinary income by 1 percentage point",
+        ten_year_cost=-905.4,
+        source=ScoreSource.JCT,
+        source_date="2018-12",
+        source_url="https://www.cbo.gov/publication/54667",
+        rate_change=0.01,
+        income_threshold=0.0,
+        statutory_bracket_index=1,
+        policy_type="income_tax",
+        baseline_year=2018,
+        budget_window="FY2019-2028",
+        effective_start_year=2019,
+        scoring_window_first_year=2019,
+        scoring_vintage="cbo_feb_2024",
+        runnable=False,
+        not_runnable_reason=(
+            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
+            "first scored in the following commit, per the manifest's "
+            "two-commit rule."
+        ),
+        notes="CBO Options 2019-2028 (pub. 54667), revenue option 1, first "
+              "alternative (report p. 204): 'Raise all tax rates on ordinary "
+              "income by 1 percentage point', +$905.4B over FY2019-2028. "
+              "'Source: Staff of the Joint Committee on Taxation.' The option "
+              "takes effect in January 2019. Bracket 1's floor is $0 in every "
+              "year of every vintage, so the schedule path returns the same "
+              "threshold the record is written with.",
+    ),
+
+    "cbo2019_opt1_top4_brackets_1pp": CBOScore(
+        policy_id="cbo2019_opt1_top4_brackets_1pp",
+        name="CBO 2018 Option 1: Top Four Brackets +1pp",
+        description="Raise ordinary income tax rates in the four highest brackets "
+                    "by 1 percentage point",
+        ten_year_cost=-222.9,
+        source=ScoreSource.JCT,
+        source_date="2018-12",
+        source_url="https://www.cbo.gov/publication/54667",
+        rate_change=0.01,
+        # CBO's own CY2021 bracket-4 floors, from the transcribed parameter
+        # schedule (publication 53724, cbo_feb_2024 vintage). CY2021 rather than
+        # the option's CY2019 because the schedule this repository carries begins
+        # in CY2021 and the loader clamps earlier years to it - so these are the
+        # amounts the run actually applies, in every year of the window.
+        income_threshold=86_375.0,
+        income_threshold_by_filing_status={
+            "joint": 172_750.0,
+            "separate": 86_375.0,
+            "head_of_household": 86_350.0,
+            "single": 86_375.0,
+        },
+        statutory_bracket_index=4,
+        policy_type="income_tax",
+        baseline_year=2018,
+        budget_window="FY2019-2028",
+        effective_start_year=2019,
+        scoring_window_first_year=2019,
+        scoring_vintage="cbo_feb_2024",
+        runnable=False,
+        not_runnable_reason=(
+            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
+            "first scored in the following commit, per the manifest's "
+            "two-commit rule."
+        ),
+        notes="CBO Options 2019-2028 (pub. 54667), revenue option 1, second "
+              "alternative (report p. 204): 'Raise all tax rates on ordinary "
+              "income in the top four brackets (24 percent and over from 2018 "
+              "through 2025, and 28 percent and over after 2025) by 1 "
+              "percentage point', +$222.9B over FY2019-2028.",
+    ),
+
+    "cbo2019_opt1_top2_brackets_1pp": CBOScore(
+        policy_id="cbo2019_opt1_top2_brackets_1pp",
+        name="CBO 2018 Option 1: Top Two Brackets +1pp",
+        description="Raise ordinary income tax rates in the two highest brackets "
+                    "by 1 percentage point",
+        ten_year_cost=-123.4,
+        source=ScoreSource.JCT,
+        source_date="2018-12",
+        source_url="https://www.cbo.gov/publication/54667",
+        rate_change=0.01,
+        income_threshold=209_425.0,
+        income_threshold_by_filing_status={
+            "joint": 418_850.0,
+            "separate": 209_425.0,
+            "head_of_household": 209_400.0,
+            "single": 209_425.0,
+        },
+        statutory_bracket_index=6,
+        policy_type="income_tax",
+        baseline_year=2018,
+        budget_window="FY2019-2028",
+        effective_start_year=2019,
+        scoring_window_first_year=2019,
+        scoring_vintage="cbo_feb_2024",
+        runnable=False,
+        not_runnable_reason=(
+            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
+            "first scored in the following commit, per the manifest's "
+            "two-commit rule."
+        ),
+        notes="CBO Options 2019-2028 (pub. 54667), revenue option 1, third "
+              "alternative (report p. 204): 'Raise all tax rates on ordinary "
+              "income in the top two brackets (35 percent and over) by 1 "
+              "percentage point', +$123.4B over FY2019-2028. 'The two highest "
+              "brackets' of seven is the floor of bracket 6; the amounts are "
+              "CBO's own CY2021 figures, which the schedule clamp makes the "
+              "amounts actually applied.",
+    ),
+
+    "cbo2019_opt2_ltcg_qdiv_2pp": CBOScore(
+        policy_id="cbo2019_opt2_ltcg_qdiv_2pp",
+        name="CBO 2018 Option 2: LTCG and Qualified Dividends +2pp",
+        description="Raise the tax rates on long-term capital gains and qualified "
+                    "dividends by 2 percentage points",
+        ten_year_cost=-69.6,
+        source=ScoreSource.JCT,
+        source_date="2018-12",
+        source_url="https://www.cbo.gov/publication/54667",
+        rate_change=0.02,
+        income_threshold=0.0,
+        policy_type="capital_gains_tax",
+        baseline_year=2018,
+        budget_window="FY2019-2028",
+        effective_start_year=2019,
+        scoring_window_first_year=2019,
+        scoring_vintage="cbo_feb_2024",
+        runnable=False,
+        not_runnable_reason=(
+            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
+            "first scored in the following commit, per the manifest's "
+            "two-commit rule."
+        ),
+        notes="CBO Options 2019-2028 (pub. 54667), revenue option 2, first "
+              "alternative (report p. 207): 'Raise rates on long-term capital "
+              "gains and dividends by 2 percentage points', +$69.6B over "
+              "FY2019-2028. Applies to every rate bracket, so the threshold is "
+              "zero. The option's other two alternatives ALSO realign the "
+              "preferential-rate brackets with the ordinary brackets, which "
+              "CapitalGainsPolicy cannot express; they are recorded as "
+              "not-registered in the alternatives CSV.",
+    ),
+
+    "cbo2019_opt18_hi_payroll_1pp": CBOScore(
+        policy_id="cbo2019_opt18_hi_payroll_1pp",
+        name="CBO 2018 Option 18: Medicare HI Payroll Rate +1pp",
+        description="Increase the basic Hospital Insurance payroll tax on total "
+                    "earnings by 1 percentage point",
+        ten_year_cost=-898.3,
+        source=ScoreSource.JCT,
+        source_date="2018-12",
+        source_url="https://www.cbo.gov/publication/54667",
+        rate_change=0.01,
+        policy_type="payroll_tax",
+        baseline_year=2018,
+        budget_window="FY2019-2028",
+        effective_start_year=2019,
+        scoring_window_first_year=2019,
+        scoring_vintage="cbo_feb_2024",
+        runnable=False,
+        not_runnable_reason=(
+            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
+            "first scored in the following commit, per the manifest's "
+            "two-commit rule."
+        ),
+        notes="CBO Options 2019-2028 (pub. 54667), revenue option 18, first "
+              "alternative (report p. 251): +$898.3B over FY2019-2028. Scored "
+              "on the same shape as CBO 2024 Option 61 because CBO states the "
+              "same base for both: 'Unlike the payroll tax for Social "
+              "Security, which applies to earnings up to an annual maximum, "
+              "the 2.9 percent HI tax is levied on total earnings.' A 1pp "
+              "increase in the basic HI rate on total earnings and a new 1 "
+              "percent tax on all covered earnings are the same base times the "
+              "same rate; what differs is which trust fund receives it, which "
+              "no revenue estimate turns on.",
+    ),
+
+    "cbo2019_opt18_hi_payroll_2pp": CBOScore(
+        policy_id="cbo2019_opt18_hi_payroll_2pp",
+        name="CBO 2018 Option 18: Medicare HI Payroll Rate +2pp",
+        description="Increase the basic Hospital Insurance payroll tax on total "
+                    "earnings by 2 percentage points",
+        ten_year_cost=-1_786.5,
+        source=ScoreSource.JCT,
+        source_date="2018-12",
+        source_url="https://www.cbo.gov/publication/54667",
+        rate_change=0.02,
+        policy_type="payroll_tax",
+        baseline_year=2018,
+        budget_window="FY2019-2028",
+        effective_start_year=2019,
+        scoring_window_first_year=2019,
+        scoring_vintage="cbo_feb_2024",
+        runnable=False,
+        not_runnable_reason=(
+            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
+            "first scored in the following commit, per the manifest's "
+            "two-commit rule."
+        ),
+        notes="CBO Options 2019-2028 (pub. 54667), revenue option 18, second "
+              "alternative (report p. 251): +$1,786.5B over FY2019-2028.",
+    ),
+
+    "cbo2019_opt24_corporate_rate_1pp": CBOScore(
+        policy_id="cbo2019_opt24_corporate_rate_1pp",
+        name="CBO 2018 Option 24: Corporate Rate +1pp",
+        description="Increase the corporate income tax rate by 1 percentage point, "
+                    "from 21 percent to 22 percent",
+        ten_year_cost=-96.3,
+        source=ScoreSource.JCT,
+        source_date="2018-12",
+        source_url="https://www.cbo.gov/publication/54667",
+        rate_change=0.01,
+        policy_type="corporate_tax",
+        baseline_year=2018,
+        budget_window="FY2019-2028",
+        effective_start_year=2019,
+        scoring_window_first_year=2019,
+        scoring_vintage="cbo_feb_2024",
+        runnable=False,
+        not_runnable_reason=(
+            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
+            "first scored in the following commit, per the manifest's "
+            "two-commit rule."
+        ),
+        notes="CBO Options 2019-2028 (pub. 54667), revenue option 24 (report "
+              "p. 266): +$96.3B over FY2019-2028, 'Source: Staff of the Joint "
+              "Committee on Taxation.' The second of four editions of one "
+              "reform - $96.3B (FY2019-2028), $99.3B (FY2021-2030), $129.3B "
+              "(FY2023-2032), $135.7B (FY2025-2034) - which is what gives the "
+              "corporate class more than one observation for the first time.",
+    ),
+
+    "cbo2021_opt1_all_rates_1pp": CBOScore(
+        policy_id="cbo2021_opt1_all_rates_1pp",
+        name="CBO 2020 Option 1: All Ordinary Rates +1pp",
+        description="Raise all tax rates on ordinary income by 1 percentage point",
+        ten_year_cost=-884.0,
+        source=ScoreSource.JCT,
+        source_date="2020-12",
+        source_url="https://www.cbo.gov/publication/56783",
+        rate_change=0.01,
+        income_threshold=0.0,
+        statutory_bracket_index=1,
+        policy_type="income_tax",
+        baseline_year=2020,
+        budget_window="FY2021-2030",
+        effective_start_year=2021,
+        scoring_window_first_year=2021,
+        scoring_vintage="cbo_feb_2024",
+        runnable=False,
+        not_runnable_reason=(
+            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
+            "first scored in the following commit, per the manifest's "
+            "two-commit rule."
+        ),
+        notes="CBO Options 2021-2030 (pub. 56783), revenue option 1, first "
+              "alternative (report p. 204): +$884.0B over FY2021-2030, 'Data "
+              "source: Staff of the Joint Committee on Taxation.'",
+    ),
+
+    "cbo2021_opt1_top4_brackets_1pp": CBOScore(
+        policy_id="cbo2021_opt1_top4_brackets_1pp",
+        name="CBO 2020 Option 1: Top Four Brackets +1pp",
+        description="Raise all tax rates on ordinary income in the top four "
+                    "brackets by 1 percentage point",
+        ten_year_cost=-203.3,
+        source=ScoreSource.JCT,
+        source_date="2020-12",
+        source_url="https://www.cbo.gov/publication/56783",
+        rate_change=0.01,
+        income_threshold=86_375.0,
+        income_threshold_by_filing_status={
+            "joint": 172_750.0,
+            "separate": 86_375.0,
+            "head_of_household": 86_350.0,
+            "single": 86_375.0,
+        },
+        statutory_bracket_index=4,
+        policy_type="income_tax",
+        baseline_year=2020,
+        budget_window="FY2021-2030",
+        effective_start_year=2021,
+        scoring_window_first_year=2021,
+        scoring_vintage="cbo_feb_2024",
+        runnable=False,
+        not_runnable_reason=(
+            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
+            "first scored in the following commit, per the manifest's "
+            "two-commit rule."
+        ),
+        notes="CBO Options 2021-2030 (pub. 56783), revenue option 1, second "
+              "alternative (report p. 204): +$203.3B over FY2021-2030. The "
+              "amounts are CBO's own CY2021 bracket-4 floors from the "
+              "transcribed parameter schedule - the option's own first "
+              "calendar year.",
+    ),
+
+    "cbo2021_opt1_top2_brackets_1pp": CBOScore(
+        policy_id="cbo2021_opt1_top2_brackets_1pp",
+        name="CBO 2020 Option 1: Top Two Brackets +1pp",
+        description="Raise all tax rates on ordinary income in the top two "
+                    "brackets by 1 percentage point",
+        ten_year_cost=-113.8,
+        source=ScoreSource.JCT,
+        source_date="2020-12",
+        source_url="https://www.cbo.gov/publication/56783",
+        rate_change=0.01,
+        income_threshold=209_425.0,
+        income_threshold_by_filing_status={
+            "joint": 418_850.0,
+            "separate": 209_425.0,
+            "head_of_household": 209_400.0,
+            "single": 209_425.0,
+        },
+        statutory_bracket_index=6,
+        policy_type="income_tax",
+        baseline_year=2020,
+        budget_window="FY2021-2030",
+        effective_start_year=2021,
+        scoring_window_first_year=2021,
+        scoring_vintage="cbo_feb_2024",
+        runnable=False,
+        not_runnable_reason=(
+            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
+            "first scored in the following commit, per the manifest's "
+            "two-commit rule."
+        ),
+        notes="CBO Options 2021-2030 (pub. 56783), revenue option 1, third "
+              "alternative (report p. 204): +$113.8B over FY2021-2030. The "
+              "smallest target in the battery, and the only row that prices "
+              "the top two brackets alone.",
+    ),
+
+    "cbo2021_opt2_ltcg_qdiv_2pp": CBOScore(
+        policy_id="cbo2021_opt2_ltcg_qdiv_2pp",
+        name="CBO 2020 Option 2: LTCG and Qualified Dividends +2pp",
+        description="Raise the tax rates on long-term capital gains and qualified "
+                    "dividends by 2 percentage points",
+        ten_year_cost=-75.2,
+        source=ScoreSource.JCT,
+        source_date="2020-12",
+        source_url="https://www.cbo.gov/publication/56783",
+        rate_change=0.02,
+        income_threshold=0.0,
+        policy_type="capital_gains_tax",
+        baseline_year=2020,
+        budget_window="FY2021-2030",
+        effective_start_year=2021,
+        scoring_window_first_year=2021,
+        scoring_vintage="cbo_feb_2024",
+        runnable=False,
+        not_runnable_reason=(
+            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
+            "first scored in the following commit, per the manifest's "
+            "two-commit rule."
+        ),
+        notes="CBO Options 2021-2030 (pub. 56783), revenue option 2 (report "
+              "p. 207): +$75.2B over FY2021-2030. Unlike the 2018 edition, "
+              "this one does not realign the preferential brackets, so the "
+              "option is the rate change alone.",
+    ),
+
+    "cbo2021_opt15_hi_payroll_1pp": CBOScore(
+        policy_id="cbo2021_opt15_hi_payroll_1pp",
+        name="CBO 2020 Option 15: Medicare HI Payroll Rate +1pp",
+        description="Increase the basic Hospital Insurance payroll tax on total "
+                    "earnings by 1 percentage point",
+        ten_year_cost=-877.5,
+        source=ScoreSource.JCT,
+        source_date="2020-12",
+        source_url="https://www.cbo.gov/publication/56783",
+        rate_change=0.01,
+        policy_type="payroll_tax",
+        baseline_year=2020,
+        budget_window="FY2021-2030",
+        effective_start_year=2021,
+        scoring_window_first_year=2021,
+        scoring_vintage="cbo_feb_2024",
+        runnable=False,
+        not_runnable_reason=(
+            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
+            "first scored in the following commit, per the manifest's "
+            "two-commit rule."
+        ),
+        notes="CBO Options 2021-2030 (pub. 56783), revenue option 15, first "
+              "alternative (report p. 285): +$877.5B over FY2021-2030. Same "
+              "base as CBO 2024 Option 61 and as the 2018 edition's option 18: "
+              "the HI tax on total earnings, with no taxable maximum.",
+    ),
+
+    "cbo2021_opt15_hi_payroll_2pp": CBOScore(
+        policy_id="cbo2021_opt15_hi_payroll_2pp",
+        name="CBO 2020 Option 15: Medicare HI Payroll Rate +2pp",
+        description="Increase the basic Hospital Insurance payroll tax on total "
+                    "earnings by 2 percentage points",
+        ten_year_cost=-1_736.3,
+        source=ScoreSource.JCT,
+        source_date="2020-12",
+        source_url="https://www.cbo.gov/publication/56783",
+        rate_change=0.02,
+        policy_type="payroll_tax",
+        baseline_year=2020,
+        budget_window="FY2021-2030",
+        effective_start_year=2021,
+        scoring_window_first_year=2021,
+        scoring_vintage="cbo_feb_2024",
+        runnable=False,
+        not_runnable_reason=(
+            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
+            "first scored in the following commit, per the manifest's "
+            "two-commit rule."
+        ),
+        notes="CBO Options 2021-2030 (pub. 56783), revenue option 15, second "
+              "alternative (report p. 285): +$1,736.3B over FY2021-2030.",
+    ),
+
+    "cbo2021_opt19_corporate_rate_1pp": CBOScore(
+        policy_id="cbo2021_opt19_corporate_rate_1pp",
+        name="CBO 2020 Option 19: Corporate Rate +1pp",
+        description="Increase the corporate income tax rate by 1 percentage point, "
+                    "from 21 percent to 22 percent",
+        ten_year_cost=-99.3,
+        source=ScoreSource.JCT,
+        source_date="2020-12",
+        source_url="https://www.cbo.gov/publication/56783",
+        rate_change=0.01,
+        policy_type="corporate_tax",
+        baseline_year=2020,
+        budget_window="FY2021-2030",
+        effective_start_year=2021,
+        scoring_window_first_year=2021,
+        scoring_vintage="cbo_feb_2024",
+        runnable=False,
+        not_runnable_reason=(
+            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
+            "first scored in the following commit, per the manifest's "
+            "two-commit rule."
+        ),
+        notes="CBO Options 2021-2030 (pub. 56783), revenue option 19 (report "
+              "p. 293): +$99.3B over FY2021-2030, 'Data source: Staff of the "
+              "Joint Committee on Taxation.'",
+    ),
+
+    "cbo2023_opt13_top4_brackets_2pp": CBOScore(
+        policy_id="cbo2023_opt13_top4_brackets_2pp",
+        name="CBO 2022 Option 13: Top Four Brackets +2pp",
+        description="Raise tax rates on ordinary income in the four highest "
+                    "brackets by 2 percentage points",
+        ten_year_cost=-501.9,
+        source=ScoreSource.JCT,
+        source_date="2022-12",
+        source_url="https://www.cbo.gov/publication/58164",
+        rate_change=0.02,
+        income_threshold=95_375.0,
+        income_threshold_by_filing_status={
+            "joint": 190_750.0,
+            "separate": 95_375.0,
+            "head_of_household": 95_350.0,
+            "single": 95_375.0,
+        },
+        statutory_bracket_index=4,
+        policy_type="income_tax",
+        baseline_year=2022,
+        budget_window="FY2023-2032",
+        effective_start_year=2023,
+        scoring_window_first_year=2023,
+        scoring_vintage="cbo_feb_2024",
+        runnable=False,
+        not_runnable_reason=(
+            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
+            "first scored in the following commit, per the manifest's "
+            "two-commit rule."
+        ),
+        notes="CBO Options 2023-2032 Volume I (pub. 58164), option 13, second "
+              "alternative (report p. 72): -$501.9B over FY2023-2032. The same "
+              "reform cbo_opt45_top4_brackets_2pp scores on the 2024 volume's "
+              "decade, so the pair measures the model's sensitivity to the "
+              "decade and not two independent predictions. Amounts are CBO's "
+              "own CY2023 bracket-4 floors.",
+    ),
+
+    "cbo2023_opt13_agi_surtax_1pp_stdded": CBOScore(
+        policy_id="cbo2023_opt13_agi_surtax_1pp_stdded",
+        name="CBO 2022 Option 13: 1pp AGI Surtax Above the Standard Deduction",
+        description="Impose a surtax of 1 percentage point on AGI above the "
+                    "standard deduction and exemption",
+        ten_year_cost=-1_329.1,
+        source=ScoreSource.JCT,
+        source_date="2022-12",
+        source_url="https://www.cbo.gov/publication/58164",
+        rate_change=0.01,
+        # CBO states this boundary as a FORMULA, not as an amount and not as a
+        # bracket index, so STATUTORY_BRACKET_SCHEDULE_RULE does not reach it:
+        # the amounts below are the sum of CBO's own published standard
+        # deduction and personal exemption for CY2023, the option's own first
+        # calendar year, on the vintage this row is scored on. The personal
+        # exemption is $0 in CY2023 (suspended by the 2017 act), so the sum is
+        # the standard deduction. Held fixed across the window, exactly as CBO's
+        # own fixed dollar amounts are in Option 46 - a stated limitation, not a
+        # choice of boundary.
+        income_threshold=13_850.0,
+        income_threshold_by_filing_status={
+            "joint": 27_700.0,
+            "separate": 13_850.0,
+            "head_of_household": 20_800.0,
+            "single": 13_850.0,
+        },
+        policy_type="income_tax",
+        baseline_year=2022,
+        budget_window="FY2023-2032",
+        effective_start_year=2023,
+        scoring_window_first_year=2023,
+        scoring_vintage="cbo_feb_2024",
+        agi_inclusive_base=True,
+        runnable=False,
+        not_runnable_reason=(
+            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
+            "first scored in the following commit, per the manifest's "
+            "two-commit rule."
+        ),
+        notes="CBO Options 2023-2032 Volume I (pub. 58164), option 13, third "
+              "alternative (report p. 72): -$1,329.1B over FY2023-2032. The "
+              "largest revenue raiser in the individual-rate option of any of "
+              "the four volumes, and the only AGI surtax outside the 2024 "
+              "edition. CBO's own words put it on AGI - 'a surtax of 1 "
+              "percentage point on AGI above the standard deduction and "
+              "exemption' - which is what AGI_BASE_RULE reads.",
+    ),
+
+    "cbo2023_opt13_agi_surtax_2pp_bracket4": CBOScore(
+        policy_id="cbo2023_opt13_agi_surtax_2pp_bracket4",
+        name="CBO 2022 Option 13: 2pp AGI Surtax Above the Fourth Bracket",
+        description="Impose a surtax of 2 percentage points on AGI above the sum "
+                    "of the standard deduction, exemptions, and the threshold of "
+                    "the fourth ordinary income tax bracket",
+        ten_year_cost=-773.8,
+        source=ScoreSource.JCT,
+        source_date="2022-12",
+        source_url="https://www.cbo.gov/publication/58164",
+        rate_change=0.02,
+        # CY2023 standard deduction + personal exemption ($0) + bracket-4 floor,
+        # each read from CBO's own transcribed parameter schedule. Read the
+        # comment on the row above for why this is an amount rather than a
+        # bracket index.
+        income_threshold=109_225.0,
+        income_threshold_by_filing_status={
+            "joint": 218_450.0,
+            "separate": 109_225.0,
+            "head_of_household": 116_150.0,
+            "single": 109_225.0,
+        },
+        policy_type="income_tax",
+        baseline_year=2022,
+        budget_window="FY2023-2032",
+        effective_start_year=2023,
+        scoring_window_first_year=2023,
+        scoring_vintage="cbo_feb_2024",
+        agi_inclusive_base=True,
+        runnable=False,
+        not_runnable_reason=(
+            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
+            "first scored in the following commit, per the manifest's "
+            "two-commit rule."
+        ),
+        notes="CBO Options 2023-2032 Volume I (pub. 58164), option 13, fourth "
+              "alternative (report p. 72): -$773.8B over FY2023-2032. This is "
+              "the one published surtax whose boundary is stated as a sum of "
+              "three statutory parameters rather than as a dollar amount, and "
+              "it is registered because all three are parameters CBO itself "
+              "publishes for the option's own first calendar year.",
+    ),
+
+    "cbo2023_opt15_new_payroll_1pct": CBOScore(
+        policy_id="cbo2023_opt15_new_payroll_1pct",
+        name="CBO 2022 Option 15: New 1% Payroll Tax on Earnings",
+        description="Impose a new payroll tax of 1 percent on earnings",
+        ten_year_cost=-1_135.7,
+        source=ScoreSource.JCT,
+        source_date="2022-12",
+        source_url="https://www.cbo.gov/publication/58164",
+        rate_change=0.01,
+        policy_type="payroll_tax",
+        baseline_year=2022,
+        budget_window="FY2023-2032",
+        effective_start_year=2023,
+        scoring_window_first_year=2023,
+        scoring_vintage="cbo_feb_2024",
+        runnable=False,
+        not_runnable_reason=(
+            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
+            "first scored in the following commit, per the manifest's "
+            "two-commit rule."
+        ),
+        notes="CBO Options 2023-2032 Volume I (pub. 58164), option 15, first "
+              "alternative (report p. 76): -$1,135.7B over FY2023-2032. The "
+              "same reform as CBO 2024 Option 61 alternative 1 on the previous "
+              "decade.",
+    ),
+
+    "cbo2023_opt15_new_payroll_2pct": CBOScore(
+        policy_id="cbo2023_opt15_new_payroll_2pct",
+        name="CBO 2022 Option 15: New 2% Payroll Tax on Earnings",
+        description="Impose a new payroll tax of 2 percent on earnings",
+        ten_year_cost=-2_252.7,
+        source=ScoreSource.JCT,
+        source_date="2022-12",
+        source_url="https://www.cbo.gov/publication/58164",
+        rate_change=0.02,
+        policy_type="payroll_tax",
+        baseline_year=2022,
+        budget_window="FY2023-2032",
+        effective_start_year=2023,
+        scoring_window_first_year=2023,
+        scoring_vintage="cbo_feb_2024",
+        runnable=False,
+        not_runnable_reason=(
+            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
+            "first scored in the following commit, per the manifest's "
+            "two-commit rule."
+        ),
+        notes="CBO Options 2023-2032 Volume I (pub. 58164), option 15, second "
+              "alternative (report p. 76): -$2,252.7B over FY2023-2032.",
+    ),
+
+    "cbo2023_opt6_employer_health_income_only": CBOScore(
+        policy_id="cbo2023_opt6_employer_health_income_only",
+        name="CBO 2022 Option 6: Limit the Income-Tax Exclusion for Employer Health Benefits",
+        description="Limit only the income tax exclusion for employment-based "
+                    "health insurance to the 50th percentile of premiums",
+        ten_year_cost=-651.4,
+        source=ScoreSource.CBO,
+        source_date="2022-12",
+        source_url="https://www.cbo.gov/publication/58164",
+        policy_type="tax_expenditure",
+        baseline_year=2022,
+        budget_window="FY2023-2032",
+        effective_start_year=2026,
+        scoring_window_first_year=2023,
+        scoring_vintage="cbo_feb_2024",
+        expenditure_key="employer_health",
+        expenditure_action="cap",
+        expenditure_cap_amount=8_900.0,
+        expenditure_caps_by_tier={"single": 8_900.0, "family": 21_600.0},
+        runnable=False,
+        not_runnable_reason=(
+            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
+            "first scored in the following commit, per the manifest's "
+            "two-commit rule."
+        ),
+        notes="CBO Options 2023-2032 Volume I (pub. 58164), option 6, third "
+              "alternative (report p. 30), 'Decrease (-) in the Deficit' row: "
+              "-$651.4B over FY2023-2032. The cap dollars are CBO's own stated "
+              "design - 'contributions that exceeded $8,900 a year for "
+              "individual coverage and $21,600 a year for family coverage "
+              "would be included in employees' taxable income', the 50th "
+              "percentile of 2024 premiums indexed to 2026 - and the option "
+              "takes effect in January 2026, which CBO's zeros for 2023-2025 "
+              "confirm. As in the 2024 edition, this is the only one of the "
+              "option's three alternatives the module can express: the other "
+              "two limit the payroll-tax exclusion as well.",
+    ),
+
+    "cbo2023_opt37_ltcg_qdiv_2pp": CBOScore(
+        policy_id="cbo2023_opt37_ltcg_qdiv_2pp",
+        name="CBO 2022 Option 37: LTCG and Qualified Dividends +2pp",
+        description="Raise the tax rates on long-term capital gains and qualified "
+                    "dividends by 2 percentage points",
+        ten_year_cost=-102.1,
+        source=ScoreSource.JCT,
+        source_date="2022-12",
+        source_url="https://www.cbo.gov/publication/58163",
+        rate_change=0.02,
+        income_threshold=0.0,
+        policy_type="capital_gains_tax",
+        baseline_year=2022,
+        budget_window="FY2023-2032",
+        effective_start_year=2023,
+        scoring_window_first_year=2023,
+        scoring_vintage="cbo_feb_2024",
+        runnable=False,
+        not_runnable_reason=(
+            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
+            "first scored in the following commit, per the manifest's "
+            "two-commit rule."
+        ),
+        notes="CBO Options 2023-2032 Volume II (pub. 58163), revenue option 37 "
+              "(report p. 89): -$102.1B over FY2023-2032. Applies to every "
+              "rate bracket, so the threshold is zero. Its 2024 sibling "
+              "(cbo_opt47_ltcg_qdiv_2pp) carries -$103.3B on the next decade: "
+              "CBO's own two editions differ by 1.2% for one unchanged reform, "
+              "where the individual-rate option's differ by 9.6%.",
+    ),
+
+    "cbo2023_opt50_corporate_rate_1pp": CBOScore(
+        policy_id="cbo2023_opt50_corporate_rate_1pp",
+        name="CBO 2022 Option 50: Corporate Rate +1pp",
+        description="Increase the corporate income tax rate by 1 percentage point, "
+                    "from 21 percent to 22 percent",
+        ten_year_cost=-129.3,
+        source=ScoreSource.JCT,
+        source_date="2022-12",
+        source_url="https://www.cbo.gov/publication/58163",
+        rate_change=0.01,
+        policy_type="corporate_tax",
+        baseline_year=2022,
+        budget_window="FY2023-2032",
+        effective_start_year=2023,
+        scoring_window_first_year=2023,
+        scoring_vintage="cbo_feb_2024",
+        runnable=False,
+        not_runnable_reason=(
+            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
+            "first scored in the following commit, per the manifest's "
+            "two-commit rule."
+        ),
+        notes="CBO Options 2023-2032 Volume II (pub. 58163), revenue option 50 "
+              "(report p. 115): -$129.3B over FY2023-2032, 'Data source: Staff "
+              "of the Joint Committee on Taxation.' CORPORATE_PER_POINT_YIELD.md "
+              "showed JCT's per-point yield is flat in the rate; these four "
+              "editions show what it does in TIME, which the memo could not.",
+    ),
+
+    # -------------------------------------------------------------------------
     # PHASE D: ENACTED-LAW REPLICATIONS (component-level, out-of-sample)
     # -------------------------------------------------------------------------
     #
