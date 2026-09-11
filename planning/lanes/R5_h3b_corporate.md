@@ -620,7 +620,18 @@ that were not accuracy — here, for once, it is.
    a **second corporate out-of-sample row** so the class stops being n=1 —
    `corporate_rate_scores.csv` carries eighteen published estimates across ten
    vintages, and R3's Tailor battery is where that belongs.
-6. **The window sensitivity finding 6 exposes is now a property worth keeping.**
+6. **`docs/VALIDATION.md` carries four figures the flip made stale, and this
+   lane did not touch them** because the docs-sync lane owns `docs/`. Lines
+   **1367** (`-$1,397B | 3.7%` for the fitted Biden row, now `-$1,293B | 4.0%`),
+   **1368** (the FY2022 row's model column, now `-$1,293B | 50.7%`) and
+   **1400**. The last is the substantive one and not a typo: *"the module's
+   answer to '21% → 28%' is the same −$1,397.2B whichever decade is asked
+   about"* is a true statement about `reported` and a **false** one about the
+   app default, which is §7.3 finding 6. Two shipped strings in the same class
+   *were* fixed here because they are code —
+   `ui/tabs/methodology.py`'s calibrated-reference table (user-facing) and
+   `ui/policy_execution.py`'s routing comment.
+7. **The window sensitivity finding 6 exposes is now a property worth keeping.**
    `derived` gives a different answer for FY2026–2035 than for FY2025–2034 and
    `reported` cannot. That is the right behaviour and it is currently visible
    only as a declared badge divergence; a future lane might surface it.
