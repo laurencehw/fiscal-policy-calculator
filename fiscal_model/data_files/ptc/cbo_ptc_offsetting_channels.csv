@@ -1,0 +1,94 @@
+# CBO AND JCT'S OWN ITEMISATION of what a change to IRC section 36B does to the
+# federal budget beyond the credit itself, and of the coverage movements those
+# effects are responses to.
+#
+# Source: Congressional Budget Office and the staff of the Joint Committee on
+#   Taxation, letter to the Honorable Jodey Arrington (Committee on the Budget)
+#   and the Honorable Jason Smith (Committee on Ways and Means), "The Effects of
+#   Permanently Extending the Expansion of the Premium Tax Credit and the Costs
+#   of that Credit for Deferred Action for Childhood Arrivals Recipients",
+#   publication 60437, 24 June 2024, file
+#   60437-Arrington-Smith-Letter.pdf. Window: FISCAL YEARS 2025-2034 for the
+#   budgetary lines; CALENDAR-year averages over the same period for coverage.
+#
+#   Read 2026-09-11 from CBO's own PDF through a Wayback mirror; cbo.gov returns
+#   HTTP 403 to every non-browser client in this environment, as the AMT,
+#   corporate, provenance and W7 PTC lanes have each recorded.
+#
+# Also transcribed here, for the coverage path on the app's OWN window:
+#   Congressional Budget Office and the staff of the Joint Committee on
+#   Taxation, letter to Leader Schumer and Ranking Members Sanders, Merkley and
+#   Wyden, "The Estimated Effects of Enacting Selected Health Coverage Policies
+#   on the Federal Budget and on the Number of People With Health Insurance",
+#   publication 61734, 18 September 2025, file 61734-Health.pdf, Table 2,
+#   PDF page 14. Same policy, later vintage, FY/CY2026-2035.
+#
+# WHY THIS FILE EXISTS. Lane W7 (PR #131) netted a SINGLE ratio out of the
+# repeal's gross credit path: 335/415, so 19.28% of any section 36B change never
+# reaches the deficit. That ratio is the wrong OBJECT, not merely the wrong
+# size. The effects it aggregates are responses to PEOPLE moving between sources
+# of coverage, so they scale with person-years, not with credit dollars - and a
+# repeal removes an average enrollee holding about $8,671 of credit a year where
+# the extension attracts a marginal enrollee holding $5,370. Applying a dollar
+# ratio asserts those are the same. It also hides a SIGN: CBO's $80B contains a
+# +$21B Medicaid and CHIP COST, which a single scaled share books, under a
+# repeal, in the direction that erodes the saving, when the mirror of CBO's own
+# mechanism (employers restore offers, so fewer people land in Medicaid) is a
+# saving. See planning/lanes/HSD_h11_ptc_coverage.md.
+#
+# HOW THE LETTER'S OWN ARITHMETIC CLOSES, and it does, to the dollar:
+#   direct spending  250 + 21 + 17 - 13 =  275  (CBO prints 275)
+#   revenues        -164 + 101 +  3     =  -60  (CBO prints -60)
+#   deficit          275 + 60           =  335  (Table 2, report p. 9: 335,045)
+#   gross credit     250 + 164          =  414  (CBO prints 415)
+#   offsets          101 + 3 - 21 - 17 + 13 = 79 (CBO prints 80)
+#   coverage         6.9 + 0.5 - 0.5 - 3.5   = 3.4 (CBO prints 3.4)
+# The two one-dollar gaps are CBO's rounding to the billion. The ITEMISED share
+# is 79/415 = 19.036%; the share W7 transferred from the headline sentence is
+# 80/415 = 19.277%. The model reads the itemised cells.
+#
+# SIGN CONVENTION of `deficit_sign` below: +1 means the line INCREASES the
+# deficit under the EXTENSION (the direction the letter scores), -1 that it
+# reduces it. A repeal reverses the coverage movement, and the channel prices
+# follow the movement rather than the sign.
+#
+# A NOTE ON 6.8 vs 6.9. The letter's subsidized (+7.4) and unsubsidized (-0.6)
+# marketplace lines sum to 6.8 against its printed net of 6.9; the five-line
+# coverage identity holds exactly on 6.9. Both are transcribed. The engine
+# normalises destination shares on the SUBSIDIZED line, because subsidized
+# enrollment is what a section 36B repeal removes.
+block,item,value,units,document,page,deficit_sign,note
+budget,credit_outlays,250.0,billions_fy2025_2034,cbo_jct_60437,report p. 3,1,Outlays for the premium tax credit
+budget,credit_revenue_reductions,164.0,billions_fy2025_2034,cbo_jct_60437,report p. 3,1,Revenue forgone because the credit offsets enrollees' tax liabilities
+budget,credit_gross_printed,415.0,billions_fy2025_2034,cbo_jct_60437,report p. 3,1,CBO's printed gross; the two legs sum to 414
+budget,medicaid_chip,21.0,billions_fy2025_2034,cbo_jct_60437,report p. 4,1,Federal spending for Medicaid and CHIP
+budget,basic_health_program_and_1332,17.0,billions_fy2025_2034,cbo_jct_60437,report p. 4,1,Basic Health Program and section 1332 waivers
+budget,other_outlay_effects,-13.0,billions_fy2025_2034,cbo_jct_60437,report p. 4,1,"Reduction in outlays attributable to other effects of the extension"
+budget,employment_based_to_taxable_wages,101.0,billions_fy2025_2034,cbo_jct_60437,report p. 4,-1,"Shift in employees' compensation from tax-favored health insurance to taxable wages"
+budget,employer_mandate_penalties,3.0,billions_fy2025_2034,cbo_jct_60437,report p. 4,-1,Penalties from employers of 50+ FTEs that no longer offer coverage
+budget,net_deficit_printed,335.0,billions_fy2025_2034,cbo_jct_60437,"report p. 3; Table 2, p. 9",1,Table 2 prints 335045 millions
+budget,offsets_printed,80.0,billions_fy2025_2034,cbo_jct_60437,report p. 3,-1,CBO's printed net offset; the itemised lines sum to 79
+budget,debt_service,48.0,billions_fy2025_2034,cbo_jct_60437,report p. 4,1,Excluded by convention and not read by the model
+coverage,insured,3.4,millions_avg_annual,cbo_jct_60437,report p. 5,,More people with health insurance in each year on average
+coverage,marketplace_net,6.9,millions_avg_annual,cbo_jct_60437,report p. 5,,Net increase in marketplace coverage
+coverage,marketplace_subsidized,7.4,millions_avg_annual,cbo_jct_60437,report p. 5,,Increase in subsidized marketplace enrollment
+coverage,marketplace_unsubsidized,-0.6,millions_avg_annual,cbo_jct_60437,report p. 5,,Decline in unsubsidized marketplace enrollment
+coverage,medicaid_chip,0.5,millions_avg_annual,cbo_jct_60437,report p. 5,,Combined increase in Medicaid and CHIP enrollment
+coverage,nongroup_outside_marketplaces,-0.5,millions_avg_annual,cbo_jct_60437,report p. 5,,Decrease in nongroup coverage purchased outside the marketplaces
+coverage,employment_based,-3.5,millions_avg_annual,cbo_jct_60437,report p. 5,,Decrease in enrollment in employment-based coverage
+coverage,window_years,10.0,years,cbo_jct_60437,report p. 3,,FY2025-2034; the denominator for every per-person-year rate
+rate,esi_average_annual_tax_benefit,4350.0,dollars_per_person_year,cbo_jct_60437,report p. 5,,"Average annual tax benefit people who no longer enroll in employment-based coverage would have received; premiums excluded from income and payroll taxes"
+rate,marginal_enrollee_average_credit,5370.0,dollars_per_person_year,cbo_jct_60437,"report p. 6; Table 3, p. 10",,Average annual credit of the 6.9M additional marketplace enrollees
+rate,marginal_enrollee_credit_cost,368.5,billions_fy2025_2034,cbo_jct_60437,"Table 3, p. 10",,"89 percent of the $415B; the balance is a larger credit for people already enrolled"
+fpl,below_400_enrollees,3.4,millions_avg_annual,cbo_jct_60437,"Table 3, p. 10",,50 percent of the additional enrollees
+fpl,above_400_enrollees,3.5,millions_avg_annual,cbo_jct_60437,"Table 3, p. 10",,"400-499 1.4 + 500-599 1.0 + 600-749 0.7 + 750+ 0.4; equals the 3.5M ESI decline, and p. 6 says the ESI decline affects people with higher incomes"
+extension_coverage,2026,2.0,millions,cbo_jct_61734,"Table 2, PDF p. 14",,Increase in the number of people with health insurance under a permanent extension
+extension_coverage,2027,3.5,millions,cbo_jct_61734,"Table 2, PDF p. 14",,
+extension_coverage,2028,3.7,millions,cbo_jct_61734,"Table 2, PDF p. 14",,
+extension_coverage,2029,3.6,millions,cbo_jct_61734,"Table 2, PDF p. 14",,
+extension_coverage,2030,3.6,millions,cbo_jct_61734,"Table 2, PDF p. 14",,
+extension_coverage,2031,3.5,millions,cbo_jct_61734,"Table 2, PDF p. 14",,
+extension_coverage,2032,3.6,millions,cbo_jct_61734,"Table 2, PDF p. 14",,
+extension_coverage,2033,3.7,millions,cbo_jct_61734,"Table 2, PDF p. 14",,
+extension_coverage,2034,3.8,millions,cbo_jct_61734,"Table 2, PDF p. 14",,
+extension_coverage,2035,3.8,millions,cbo_jct_61734,"Table 2, PDF p. 14",,
