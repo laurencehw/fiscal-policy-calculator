@@ -20,7 +20,9 @@ Scope: `planning/HIGH_STAKES_ACCURACY.md` §4 decisions ③ and ④. Owned files
 `iija_2021_discretionary.v2` scores CBO's own authorization schedule
 (`annual_authority_path_billions`, $446.3B of budget authority) spent out on the
 `construction_and_capital` profile. Total outlays across every year the policy
-touches are **$434.1B against CBO's $415.4B — 4.5% high**. The row nevertheless
+touches are **$433.2B against CBO's $415.4B — 4.3% high**
+[† as pre-registered, quoting the figure three files carried; §5.7 finding 7
+measured it at **$434.1B / 4.5%** and corrected them]. The row nevertheless
 reads **18.2%**, because **$92.6B of those outlays fall in FY2022–2024**, before
 the model's FY2025–2034 window opens, so $340.0B is compared against a published
 figure covering FY2021–2031. That is an accounting artefact, not a shape or a
