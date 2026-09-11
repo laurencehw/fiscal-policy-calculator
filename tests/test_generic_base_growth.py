@@ -299,3 +299,150 @@ def test_the_caption_is_silent_where_no_number_moved():
     policy = _policy(annual_revenue_change_billions=-100.0)
     result = _scorer().score_policy(policy, dynamic=False)
     assert income_base_projection_caption(policy, result) == ""
+
+
+def test_the_caption_quotes_the_conventional_score_on_a_dynamic_run():
+    """Both halves are ``static + behavioural``, never ``final``.
+
+    ``final_deficit_effect`` carries ``revenue_feedback`` on a dynamic run, and
+    feedback is a function of the deficit path's *level*: it does not scale with
+    the static projection factor. Dividing it out would reconstruct a "before"
+    figure this policy never printed, and the caption would disagree with the
+    headline above it in both halves rather than one.
+    """
+    from fiscal_model.ui.tabs.results_summary import income_base_projection_caption
+
+    scorer = _scorer(start_year=APP_DEFAULT_START_YEAR)
+    policy = _policy(start_year=APP_DEFAULT_START_YEAR)
+    dynamic = scorer.score_policy(policy, dynamic=True)
+
+    conventional = np.asarray(dynamic.static_deficit_effect, dtype=float) + np.asarray(
+        dynamic.behavioral_offset, dtype=float
+    )
+    # The premise: on a dynamic run the two paths genuinely differ, so this test
+    # can tell them apart.
+    assert not np.allclose(conventional, np.asarray(dynamic.final_deficit_effect))
+
+    caption = income_base_projection_caption(policy, dynamic)
+    assert caption
+
+    baseline = scorer.baseline
+    anchor = baseline.nominal_income_index(SOI_TAX_YEAR)
+    factors = np.array(
+        [baseline.nominal_income_index(int(year)) / anchor for year in dynamic.years]
+    )
+    assert f"{float(conventional.sum()):+,.1f}B" in caption
+    assert f"{float(np.sum(conventional / factors)):+,.1f}B" in caption
+    # And the figure the dynamic run would have produced from the final path is
+    # NOT what the caption says, which is the defect this pins.
+    final = np.asarray(dynamic.final_deficit_effect, dtype=float)
+    assert f"{float(final.sum()):+,.1f}B" not in caption
+
+
+def test_the_caption_says_the_same_thing_static_and_dynamic():
+    """The projection is a property of the base, not of the engine mode."""
+    from fiscal_model.ui.tabs.results_summary import income_base_projection_caption
+
+    scorer = _scorer(start_year=APP_DEFAULT_START_YEAR)
+    static_caption = income_base_projection_caption(
+        (p := _policy(start_year=APP_DEFAULT_START_YEAR)),
+        scorer.score_policy(p, dynamic=False),
+    )
+    dynamic_caption = income_base_projection_caption(
+        (q := _policy(start_year=APP_DEFAULT_START_YEAR)),
+        scorer.score_policy(q, dynamic=True),
+    )
+    assert static_caption == dynamic_caption != ""
+
+
+def test_the_two_captions_are_a_2x2_and_it_closes():
+    """H1's base caption and this lane's project caption, read together.
+
+    They are **not** a chain: each holds the *other* attribute at today's value,
+    so H1's counterfactual is the ordinary base on a *projected* run and this
+    one's is the AGI base on a *flat* one. The wave's history — the shipped
+    figure before H1, after H1, and after this lane — is the diagonal of the
+    box, and it must close from the shipped number times two quantities the two
+    lanes own separately: the preferential share and the window-mean index.
+
+    Pinned on Warren Ultra-Millionaire Surtax, the preset both captions fire on.
+    Since H2b that preset is read from SOI's **AGI** column, a third axis with
+    its own caption. The base caption reports on the taxable column it was made
+    on, the projection caption on the AGI column the score is made on, and the
+    column caption is the step between them — so every figure any of the three
+    prints is a corner of one box.
+    """
+    from fiscal_model.app_data import PRESET_POLICIES
+    from fiscal_model.composer.composer import _build_preset_policy, _scorer_for
+    from fiscal_model.ui.tabs.results_summary import (
+        _agi_marginal_ratio,
+        agi_inclusive_base_caption,
+        agi_income_column_caption,
+        income_base_projection_caption,
+    )
+
+    label = "Warren Ultra-Millionaire Surtax"
+    policy, use_real = _build_preset_policy(label, PRESET_POLICIES[label])
+    scorer = _scorer_for(policy, use_real)
+    result = scorer.score_policy(policy, dynamic=False)
+
+    shipped = float(
+        np.sum(result.static_deficit_effect) + np.sum(result.behavioral_offset)
+    )
+    column_ratio = _agi_marginal_ratio(policy)
+    assert column_ratio is not None and column_ratio > 1.0
+    pref = policy.preferential_share_of_base(base_dollars=policy.marginal_income_dollars())
+    anchor = scorer.baseline.nominal_income_index(int(policy.soi_base_tax_year))
+    factors = np.array(
+        [scorer.baseline.nominal_income_index(int(y)) / anchor for y in result.years]
+    )
+    path = np.asarray(result.static_deficit_effect, dtype=float) + np.asarray(
+        result.behavioral_offset, dtype=float
+    )
+    flat_agi_column = float(np.sum(path / factors))
+
+    # The corners, on the taxable column...
+    agi_projected = shipped / column_ratio
+    agi_flat = flat_agi_column / column_ratio
+    ordinary_projected = agi_projected * (1.0 - pref)
+    ordinary_flat = ordinary_projected * (agi_flat / agi_projected)
+
+    assert shipped == pytest.approx(-456.0066, abs=5e-4)
+    assert agi_projected == pytest.approx(-384.3710, abs=5e-4)
+    assert agi_flat == pytest.approx(-283.4695, abs=5e-4)
+    assert ordinary_projected == pytest.approx(-182.5282, abs=5e-4)
+    assert ordinary_flat == pytest.approx(-134.6126, abs=5e-4)
+
+    # The flat/projected ratio is exactly this lane's window-mean index inverted.
+    assert agi_projected / agi_flat == pytest.approx(float(factors.mean()), rel=1e-9)
+
+    # ...and each caption names its own corner, not the pre-wave figure.
+    base_caption = agi_inclusive_base_caption(policy, result)
+    proj_caption = income_base_projection_caption(policy, result)
+    column_caption = agi_income_column_caption(policy, result)
+    assert f"{ordinary_projected:+,.1f}B" in base_caption
+    assert f"{agi_projected:+,.1f}B" in base_caption
+    assert f"{flat_agi_column:+,.1f}B" in proj_caption
+    assert f"{shipped:+,.1f}B" in proj_caption
+    assert f"{agi_projected:+,.1f}B" in column_caption
+    assert f"{shipped:+,.1f}B" in column_caption
+    for caption in (base_caption, proj_caption, column_caption):
+        assert f"{ordinary_flat:+,.1f}B" not in caption
+
+
+def test_the_static_caption_is_unchanged_by_the_conventional_path():
+    """On a static run the two arrays are the same, so nothing moved."""
+    from fiscal_model.ui.tabs.results_summary import income_base_projection_caption
+
+    scorer = _scorer(start_year=APP_DEFAULT_START_YEAR)
+    policy = _policy(start_year=APP_DEFAULT_START_YEAR)
+    result = scorer.score_policy(policy, dynamic=False)
+    conventional = np.asarray(result.static_deficit_effect, dtype=float) + np.asarray(
+        result.behavioral_offset, dtype=float
+    )
+    assert conventional == pytest.approx(
+        np.asarray(result.final_deficit_effect, dtype=float)
+    )
+    assert f"{float(result.total_10_year_cost):+,.1f}B" in income_base_projection_caption(
+        policy, result
+    )
