@@ -509,6 +509,23 @@ leg (339.75 → 337.61). No pre-registered band is crossed.
    than teaching `preset_validation.py` about baselines, which is a design
    decision with reach well beyond SALT and belongs to whoever owns the badge
    surface. Owner item.
+10. **The Ask assistant's own knowledge corpus still says the SALT cap is
+    $10,000 and still attributes $1.9 trillion to JCT** — the same shape PR
+    #148 found in `ssa_trustees_2025.md`, and worse in one respect, because
+    the repository's own ledger rejects the figure **by name**.
+    `key_definitions.md` ("SALT cap: State and Local Tax deduction cap of
+    \$10K enacted in TCJA; repeal scored at roughly +\$1.9T over 10 years"
+    and "Repeal of the SALT cap adds \$1.9 trillion beyond TCJA extension
+    (JCT 2024)") and `state_local_fiscal.md` ("Federal revenue gain: ~\$1.9
+    trillion over a decade (JCT)") are both BM25-indexed and both reachable
+    by a user asking about SALT. `target_revisions.repeal_salt_cap.v1`'s own
+    reason reads "The JCT attribution is wrong: JCT has never published a
+    standalone score of repealing the $10,000 cap", and H9 corrected the same
+    $1.9T claim in `app_data.py` where the two published figures for the
+    increment "say about $1.2T". Neither correction reached the corpus. P.L.
+    119-21 sec. 70120 does not appear in it at all. This lane does not own
+    `assistant/knowledge/` and edits nothing there; the finding is recorded
+    with the exact strings so the fix is a one-commit job for whoever does.
 
 ## 7. Carry-overs and owner items
 
@@ -525,6 +542,10 @@ leg (339.75 → 337.61). No pre-registered band is crossed.
 * **Carry-over.** `microsim/engine.py` and `distribution_effects.py` hard-code
   a $10,000 SALT cap, so a policy object's revenue score and its distributional
   table now disagree about what year it is (finding 3).
+* **Carry-over.** `assistant/knowledge/key_definitions.md` and
+  `state_local_fiscal.md` still tell the shipped Ask assistant that the SALT
+  cap is $10,000 and that JCT scored repeal at $1.9T (finding 10). Both
+  strings are quoted in full there.
 * **Carry-over.** Aging the SOI base from TY2023 (finding 8).
 * **Carry-over.** New itemisers under a raised cap (finding 5) — the largest
   named term in the −23.6%, and the one that would need a base outside SOI
