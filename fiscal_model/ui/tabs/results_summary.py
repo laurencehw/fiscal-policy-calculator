@@ -34,6 +34,7 @@ from fiscal_model.credits_core import CreditType, TaxCreditPolicy
 from fiscal_model.enforcement import IRSEnforcementPolicy
 from fiscal_model.estate import EstateTaxPolicy
 from fiscal_model.international import InternationalTaxPolicy
+from fiscal_model.payroll import PayrollTaxPolicy
 from fiscal_model.pharma import (
     PHARMA_BASELINE,
     DrugPricingPolicy,
@@ -994,6 +995,141 @@ def behavioural_sign_caption(policy: Any, result: Any) -> str:
     )
 
 
+#: How close the scored ten-year figure must sit to the carried target before
+#: the caption is willing to say it reproduces it. Both presets score the target
+#: exactly today; this is a guard, not a rounding allowance.
+_PAYROLL_TARGET_TOLERANCE_BILLIONS = 0.05
+
+#: The two shipped Social Security presets whose ten-year figure reproduces its
+#: carried target to the cent, keyed by scorecard id.
+#:
+#: Each entry is matched on the *design* (``ss_eliminate_cap`` /
+#: ``ss_donut_hole_start``) **and** on the fitted annual, so a payroll policy
+#: built at another threshold — which does not print a carried target — gets no
+#: caption. ``held_out_10yr`` is the leave-one-out score
+#: ``fiscal_model.validation.loo.run_payroll_loo`` returns when the case's own
+#: covered-wage anchor is withheld and refitted from the other two anchors'
+#: Pareto slope.
+#:
+#: The figures are **pinned rather than computed**: ``run_payroll_loo`` re-scores
+#: three benchmarks through the full runner, and a page render is not the place
+#: for that (PR #129 measured the footer's whole-scorecard call at 8.68s of a
+#: 9.38s first paint; PR #135 replaced it with a generated artifact). The drift
+#: test in ``tests/test_payroll_target_caption.py`` calls the suite and fails if
+#: either constant stops matching.
+_PAYROLL_FITTED_TARGETS: dict[str, dict[str, Any]] = {
+    "ss_eliminate_cap": {
+        "eliminate_cap": True,
+        "donut_start": None,
+        "fitted_annual": 320.0,
+        "target_10yr": -3_200.0,
+        "held_out_10yr": -3_319.5,
+        "provision": "E2.1",
+        "payroll_pct": 2.55,
+        "depletion_year": 2059,
+        "cross_check": (
+            r"Tax Foundation scores the same design — the cap lifted, no "
+            r"benefit credit — at \$3.2 trillion over 2027-2036 on a "
+            r"conventional basis (Durante, 24 June 2026)"
+        ),
+    },
+    "ss_donut_250k": {
+        "eliminate_cap": False,
+        "donut_start": 250_000.0,
+        "fitted_annual": 270.0,
+        "target_10yr": -2_700.0,
+        "held_out_10yr": -2_664.0,
+        "provision": "E2.5",
+        "payroll_pct": 2.50,
+        "depletion_year": 2057,
+        "cross_check": (
+            r"CBO scores the same donut at \$1,426.8B over FY2025-2034 "
+            r"(Options for Reducing the Deficit: 2025 to 2034, Option 62, "
+            r"report p. 73), 47% below the figure above"
+        ),
+    },
+}
+
+
+def _payroll_fitted_entry(policy: Any) -> dict[str, Any] | None:
+    """Return the fitted-target entry this policy *is*, or ``None``.
+
+    Matched on the design and the fitted annual together. A Tailor-built donut
+    at $400,000, or an eliminate-cap policy carrying a different annual, is not
+    one of the two shipped presets and must not be told it reproduces a target.
+    """
+    if not isinstance(policy, PayrollTaxPolicy):
+        return None
+    annual = policy.annual_revenue_change_billions
+    if annual is None:
+        return None
+    for entry in _PAYROLL_FITTED_TARGETS.values():
+        if bool(policy.ss_eliminate_cap) != entry["eliminate_cap"]:
+            continue
+        if policy.ss_donut_hole_start != entry["donut_start"]:
+            continue
+        if annual != entry["fitted_annual"]:
+            continue
+        return entry
+    return None
+
+
+def payroll_fitted_target_caption(policy: Any, result: Any) -> str:
+    """One line saying that this figure is the target, and what the target is.
+
+    ``ss_eliminate_cap`` and ``ss_donut_250k`` are two of the app's six largest
+    headline numbers and both print their carried target to the cent, because
+    ``payroll.py``'s covered-wage base for each *is* that target divided by ten
+    and by the 12.4% OASDI rate (``BASELINE_WAGE_DATA`` states the arithmetic in
+    its own comment: ``320 / 0.124`` and ``270 / 0.124``). A 0.0% validation row
+    on either is measuring arithmetic.
+
+    Both targets are ``secondhand``. SSA's Office of the Chief Actuary does score
+    these two provisions — E2.1 and E2.5 — and publishes them **only** as a
+    change in the long-range actuarial balance in percent of taxable payroll,
+    plus trust-fund dates. There is no OCACT dollar figure at any horizon, so
+    the round ten-year dollar amounts are a conversion nobody published.
+
+    What the module returns without being told the answer is the honest figure,
+    and it is a good one: held out, −$2,664.0B and −$3,319.5B. Printing it beside
+    the shipped number is the whole point of this caption.
+
+    The claim "reproduced to the cent" is **checked against this run** before it
+    is printed: the caption asserts something about the number above it, so a
+    score that stops equalling its target silences the caption rather than
+    letting it lie. ``result`` is read for exactly that.
+
+    Returns ``""`` for every payroll policy that is not one of those two.
+    """
+    entry = _payroll_fitted_entry(policy)
+    if entry is None:
+        return ""
+
+    target = float(entry["target_10yr"])
+    scored = float(np.sum(result.static_deficit_effect)) + float(
+        np.sum(result.behavioral_offset)
+    )
+    if abs(scored - target) > _PAYROLL_TARGET_TOLERANCE_BILLIONS:
+        return ""
+
+    held_out = float(entry["held_out_10yr"])
+    gap_pct = abs(held_out - target) / abs(target) * 100.0
+
+    return (
+        rf"Where this number comes from: \${target:+,.1f}B is the carried "
+        f"target, reproduced to the cent because the covered-wage base behind "
+        f"it is that target divided by ten and by the 12.4% OASDI rate — "
+        f"bookkeeping, not agreement. Held out, with this case's own wage "
+        f"anchor withheld and refitted from the other two, the module returns "
+        rf"\${held_out:+,.1f}B ({gap_pct:.1f}% away). And the target itself is "
+        f"a dollar conversion nobody published: SSA's Office of the Chief "
+        f"Actuary scores this provision as {entry['provision']} and reports "
+        f"{entry['payroll_pct']:.2f}% of taxable payroll and a "
+        f"{entry['depletion_year']} depletion date, with no dollar amount at "
+        f"any horizon. For a published ten-year figure: {entry['cross_check']}."
+    )
+
+
 def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, Any]) -> None:
     """Tier badge, headline number, interpretation, sensitivity, provenance."""
     policy = result_data["policy"]
@@ -1054,6 +1190,9 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     base_note = agi_inclusive_base_caption(policy, result)
     if base_note:
         st_module.caption(base_note)
+    payroll_note = payroll_fitted_target_caption(policy, result)
+    if payroll_note:
+        st_module.caption(payroll_note)
 
     credibility_html = _build_credibility_html(getattr(scored, "credibility", None))
     if credibility_html:
