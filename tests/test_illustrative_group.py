@@ -358,6 +358,11 @@ def test_a_share_link_still_scores_a_demoted_preset(preset_id):
     assert _state(at, SCORED_RESULT_KEY) is not None, f"{preset_id} did not score"
     assert _state(at, "sidebar_policy_area") == ILLUSTRATIVE_CATEGORY
 
+    # "the group is labelled" and "the label renders" are different claims —
+    # H2's review lesson, applied here rather than re-learned.
+    warnings = [str(element.value) for element in at.warning]
+    assert any(ILLUSTRATIVE_GROUP_NOTE in text for text in warnings), warnings
+
 
 def test_a_frozen_assignment_link_still_scores_a_demoted_preset():
     """A frozen link naming a demoted preset must score, not refuse."""
