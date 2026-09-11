@@ -397,7 +397,7 @@ This lane owns only the `"preset"` label strings in that file.
 
 | Gate | Result |
 |---|---|
-| `python -m pytest tests/ -q` | pass |
+| `ANTHROPIC_API_KEY= python -m pytest tests/ -q` | **3931 passed, 7 skipped** (3924 before; +7 is this lane’s own: one new score-only resolution test, one new rename-discharge test, and five new parametrisations of `test_every_retired_label_still_resolves`) |
 | `ruff check fiscal_model/ tests/ app.py app_pages/ components/ classroom_app.py` | pass |
 | `scripts/check_readiness.py --strict` | `ready_with_warnings`, exit 0 — 5 pass / 5 warn / 0 fail, all five warnings pre-existing on `main` (Py3.14 runtime, degraded microdata calibration, no `ANTHROPIC_API_KEY`, the documented Poor revenue outlier, and the three documented holdout outliers `repeal_ptc` / `pwbm_39_with_stepup` / `eliminate_mortgage`) |
 | `scripts/build_validation_headline.py --check` | `OK: headline_counts.json matches the live scorecard (77 published of 81)` |
