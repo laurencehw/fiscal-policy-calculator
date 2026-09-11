@@ -1087,7 +1087,11 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
         # offset. The row's error rose from 1.1% to 37.1% as a result, which is
         # what the old figure was hiding.
         "calibrated_to_target": False,
-        "notes": "10% outside the USMCA carve-out; scored net of offsets.",
+        "notes": (
+            "10% outside the USMCA carve-out; scored conventionally - "
+            "avoidance and the income-and-payroll offset, no retaliation and "
+            "no GDP feedback, which is the column the target comes from."
+        ),
         "limitations": [
             "Poor: the module carves out USMCA-qualifying Canadian and Mexican goods "
             "(1 - 28.03% of 2024 goods imports, Census) because every universal tariff "
@@ -1123,7 +1127,10 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
         # now incremental over the duty Census says China's imports actually
         # pay (10.93% in 2024), applied to the whole base. Error 6.2% -> 44.3%.
         "calibrated_to_target": False,
-        "notes": "60% on Chinese imports, incremental over the 10.9% collected in 2024.",
+        "notes": (
+            "60% on Chinese imports, incremental over the 10.9% collected in "
+            "2024; scored conventionally."
+        ),
         "limitations": [
             "Poor, and against a target that is itself untraceable: -$500B exceeds "
             "CRFB's upper bound by two-thirds and is only obtainable as a residual from "
@@ -1191,7 +1198,11 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
         "benchmark_date": "2024",
         "benchmark_url": None,
         "calibrated_to_target": False,
-        "notes": "25pp net of the 3.06% Section 232 duty collected, on a $58.9B base.",
+        "notes": (
+            "25pp on a $108.4B base - HS 72 plus HS 76 net of the 3.06% they "
+            "collect, plus the HS 73 derivative chapter net of the 5.63% it "
+            "collects. The derivative leg is an upper bound (see limitations)."
+        ),
         "limitations": [
             "The Section 232 netting is now measured, not assumed: Census puts calculated "
             "duty on HS-72 plus HS-76 at 3.06% of imports for consumption in 2024, far "
@@ -1239,7 +1250,11 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
             "https://www.crfb.org/blogs/how-much-will-trumps-new-tariffs-raise"
         ),
         "calibrated_to_target": False,
-        "notes": "Flat 20pp applied to half of all goods imports, scored net of offsets.",
+        "notes": (
+            "EO 14257's own partner-specific schedule on 2024 Census bilateral "
+            "trade: 27.7% covered-weighted across 230 partners on $1,679.2B of "
+            "covered imports, scored conventionally."
+        ),
         "limitations": [
             "Lane H8 deleted the flat-20pp-on-half-of-imports assumption, the last "
             "number in TRADE_BASELINE that was a shape rather than a measurement. The "
