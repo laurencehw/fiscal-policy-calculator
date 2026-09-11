@@ -495,12 +495,30 @@ leg (339.75 → 337.61). No pre-registered band is crossed.
    comment says amounts "are grown from this year to a policy's first year";
    they are not. Aging them would raise the uncapped level 9.3% and move rows
    in three other reforms, so it is deliberately untouched here.
+9. **The validation badge now answers a different question from the headline
+   it sits beside, and this lane caused that.** `get_validation_badge` reads
+   the *scorecard row*, which is unchanged at 1,155.6 against PWBM's 1,169.0,
+   so `salt-cap-repeal` prints a green **"Unfitted reconstruction, 1.1% from
+   $1.17T"** beside a headline of **$740.3B**. Both are correct — the
+   benchmark is scored on PWBM's baseline and the app on current law — and
+   read together without a sentence they look like a contradiction. It is not
+   a case a badge can currently express, because a badge assumes the preset
+   and its benchmark score the same counterfactual, and this is the first
+   preset where they deliberately do not. The Decision 6 caption closes the
+   loop for the reader in one clause (`_SALT_BENCHMARK_DISCLAIMER`) rather
+   than teaching `preset_validation.py` about baselines, which is a design
+   decision with reach well beyond SALT and belongs to whoever owns the badge
+   surface. Owner item.
 
 ## 7. Carry-overs and owner items
 
 * **Owner item.** Should Tier 2 grow a shape-input manifest, as
   `preregistered.py` has for Tier 1? `SALT_SCORING_BASELINES` is this lane's
   local answer and does not generalise.
+* **Owner item.** What should a validation badge say when a preset and its
+  benchmark deliberately score different baselines (finding 9)?
+  `salt-cap-repeal` is the first preset where they do. The caption carries a
+  sentence; the badge itself still reads "1.1%".
 * **Owner item.** `pl119_21_salt_cap_40k` can now be scored by the expenditure
   module against `SaltCapBaseline.LAPSED_CAP` rather than by `tcja.py`'s flat
   $10,000 component. Finding 4 gives the figure it would read.

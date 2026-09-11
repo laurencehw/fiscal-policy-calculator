@@ -988,6 +988,18 @@ _SALT_BASELINE_CONTRAST = {
     ),
 }
 
+#: The sentence that stops a validation badge from being read as a check on
+#: the figure above it. A benchmark is scored on **its own document's**
+#: baseline, which for both SALT rows is not current law, so the scorecard's
+#: percentage answers a different question from the headline — and a green
+#: badge beside a number a third smaller than the published one would
+#: otherwise read as a contradiction rather than as two baselines.
+_SALT_BENCHMARK_DISCLAIMER = (
+    "This model's validation row is scored on that published baseline rather "
+    "than on this one, so the percentage it reports is a check on the "
+    "benchmark and not on the figure above."
+)
+
 
 def salt_current_law_caption(policy: Any, result: Any) -> str:
     """One line saying which SALT cap the score is measured against.
@@ -1047,7 +1059,8 @@ def salt_current_law_caption(policy: Any, result: Any) -> str:
         rf"modified AGI above \${opening.threshold_amount:,.0f}"
         f"{reversion_clause} — so over FY{first}-FY{last} this scores "
         rf"\${abs(total):,.0f}B. {_SALT_BASELINE_CONTRAST[policy.action]} The "
-        f"target has not moved — the baseline the app scores on has."
+        f"target has not moved — the baseline the app scores on has. "
+        f"{_SALT_BENCHMARK_DISCLAIMER}"
     )
 
 
