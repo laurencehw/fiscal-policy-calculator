@@ -1,0 +1,116 @@
+# Section 232 import bases, measured at the article (HS-10) level.
+#
+# WHY THIS FILE EXISTS. `trade.py` used to build its Section 232 bases out of
+# whole HS chapters — HS 72 + HS 76 for steel and aluminium, HS 73 for
+# derivative articles, HS 87 for autos — and said so in its own comments,
+# calling the HS-73 leg an UPPER BOUND "because the Section 232 annexes list
+# articles at HS-10, and Proclamation 10896 taxes a derivative on its steel
+# CONTENT rather than its customs value. Neither the annex nor a content share
+# is transcribed here." Both are transcribed here now.
+#
+# SOURCE, PINNED. US Congressional Budget Office, Conventional Tariff Analysis
+# Model (CTAM), https://github.com/US-CBO/conventional-tariff-analysis-model,
+# commit 59ea68fd6a6f006ca240bc45100b634b3787c2a2 (2026-02-17), public domain.
+# CTAM replicates CBO's Updated Projections of the Budgetary Effects of Tariffs
+# as of November 15, 2025 (cbo.gov/publication/61877); the model is documented
+# at cbo.gov/publication/61388. Cloned read-only 2026-09-11.
+#
+# HOW EACH FIGURE WAS PRODUCED. Every `list_*` row aggregates
+#   inputs/base_imports/all_countries_2024_CY_2025-11-12.csv
+# — Census Bureau imports at HS-10 by country, calendar 2024, pulled by CBO on
+# 2025-11-12 (config/default.yaml `data.pull_date` / `data.year`) — over the
+# HS-10 codes named in the matching inputs/hts_lists/*.csv, taking the
+# CTY_CODE = '-' ("TOTAL FOR ALL COUNTRIES") rows only, because the file also
+# carries per-country rows and summing both would double count.
+#
+# CTAM'S OWN MASKING RULES, REPRODUCED. code/tariffs.py:246-248 removes the
+# auto-parts list from every Section 232 metal mask; this file does the same.
+# A code appearing in both derivative lists (5 of them) is counted once, in the
+# high-content list. Overlap between the primary list and the high-content
+# derivative list is 2 codes, likewise resolved to the primary list.
+#
+# THE CONTENT SHARES ARE CBO'S. config/default.yaml:72-73 sets
+# alum_steel_deriv_high_share = 0.75 and alum_steel_deriv_low_share = 0.25, and
+# code/tariffs.py:256-274 applies them as a RATE BLEND,
+#   new_rate = old_rate * (1 - share) + s232_rate * share.
+# For incremental revenue that is identical to taxing `share` of the article's
+# value at the Section 232 rate and leaving the remainder at its existing duty,
+# which is the (base, incremental rate) shape `TariffPolicy.rate_schedule`
+# already takes. So the derivative base below is 0.75 * high + 0.25 * low.
+#
+# THE AUTO CARVE-OUT IS CBO'S TOO. code/tariffs.py:186-187 taxes
+# USMCA-qualifying Canadian and Mexican VEHICLES on their non-US-content share
+# only — us_content_ca_autos = 0.50, us_content_mx_autos = 0.35
+# (config/default.yaml:77-78) — with the qualifying share read per-HTS from
+# inputs/usmca/usmca_utilization_rates.csv (code/model/create_usmca.py:18-19).
+# Auto PARTS are taxed in full. That removes $41.02B, where `trade.py`'s old
+# whole-value `auto_usmca_exempt_share = 0.4842` removed about $186B —
+# an over-statement `tariff_scoring_inputs.csv` already flagged in its own
+# source note for that key.
+#
+# WHAT THE CHAPTER PROXIES ACTUALLY CAPTURED — the finding, in two lines.
+# `alum_steel.csv`'s 1,180 codes sit in HS-72 (508), HS-73 (558), HS-76 (107)
+# and HS-87 (7): MOST OF HS-73 IS PRIMARY SECTION 232 SCOPE, not derivative, so
+# the old "floor" of HS-72 + HS-76 excluded it. The derivative annex meanwhile
+# sits in chapters 82, 83, 84, 85, 86, 87, 94 and 95 (high content) and 34, 38,
+# 82, 84, 85, 87, 94, 95 (low) — machinery, furniture, appliances — which HS-73
+# does not contain at all. The measured Section 232 base is 2.04x the declared
+# "ceiling" and 3.77x the declared "floor". The bracket was wrong at both ends.
+#
+# WHICH VALUE COLUMN. CON_VAL_YR (imports for consumption), throughout. The
+# chapter figures in tariff_scoring_inputs.csv are GEN_VAL_YR (general imports)
+# while the duty rates beside them divide by CON_VAL_YR, so base and rate stood
+# on different denominators; here they share one. Duty is CAL_DUT_YR.
+#
+# VINTAGE, DECLARED. These lists are the Section 232 scope as of 15 November
+# 2025. `create_steel_tariff_25` models the 25% Proclamation 10896 rate, in
+# force 12 March to 3 June 2025. The BASE moves to CBO's article lists; the
+# preset's RATE is untouched. See planning/lanes/R8_tariff_ctam.md section 3
+# for what the resulting row can and cannot tell — its target is untraceable.
+#
+# CROSS-CHECK. Aggregated the same way, CTAM's Census file returns HS-73 at
+# $49.394B paying 5.614% against the transcription already in
+# tariff_scoring_inputs.csv ("$2.7732B on $49.265B", 5.63%), and all chapters
+# at $76.16B of duty on $3,251.19B, 2.3425%, against that file's
+# current_tariff_revenue_billions = 76.6 and current_avg_tariff_rate = 0.0236.
+# It is the same Census series the repository already carries, one vintage on.
+#
+# Transcribed 2026-09-11 for lane R8 of planning/ROUTE_TO_8_5.md.
+#
+# Columns
+#   key            the TRADE_BASELINE key where role=model_input
+#   value          billions of dollars, or a share/rate as a decimal
+#   units
+#   hs10_lines     HS-10 codes aggregated (blank where not a list aggregate)
+#   role           model_input    = read by trade.py
+#                  context        = published alongside an input, needed to read it
+#                  external_check = compared against, never an input
+#   ctam_path      the file inside the pinned CTAM commit
+#   source
+key,value,units,hs10_lines,role,ctam_path,source
+section232_steel_primary_base_billions,96.7516,billions of dollars,1167,model_input,inputs/hts_lists/alum_steel.csv,"Census CY2024 CON_VAL_YR summed over CBO's primary Section 232 aluminium-and-steel article list, less the auto-parts list per code/tariffs.py:246. Replaces the HS-72 + HS-76 chapter proxy of $58.9B, which excluded the 558 HS-73 lines this list contains"
+section232_steel_primary_existing_avg_tariff,0.046416,share of imports for consumption,1167,model_input,inputs/hts_lists/alum_steel.csv,"Census CY2024 CAL_DUT_YR / CON_VAL_YR on the same 1,167 lines - $4.4908B on $96.7516B. Higher than the 3.06% the old HS-72 + HS-76 proxy paid, because the HS-73 lines the proxy excluded collect more duty"
+section232_deriv_high_imports_billions,108.755,billions of dollars,159,context,inputs/hts_lists/alst_deriv_h.csv,"Census CY2024 CON_VAL_YR over CBO's HIGH-metal-content Section 232 derivative list, less auto parts and less any code already in the primary list. Chapters 82-86, 87, 94, 95 - none of which is HS-73"
+section232_deriv_high_existing_avg_tariff,0.043087,share of imports for consumption,159,context,inputs/hts_lists/alst_deriv_h.csv,"Census CY2024 CAL_DUT_YR / CON_VAL_YR - $4.6859B on $108.755B"
+section232_deriv_low_imports_billions,164.1409,billions of dollars,703,context,inputs/hts_lists/alst_deriv_l.csv,"Census CY2024 CON_VAL_YR over CBO's LOW-metal-content Section 232 derivative list, less auto parts and less any code already in the primary or high-content lists. Chapters 34, 38, 82, 84, 85, 87, 94, 95"
+section232_deriv_low_existing_avg_tariff,0.03004,share of imports for consumption,703,context,inputs/hts_lists/alst_deriv_l.csv,"Census CY2024 CAL_DUT_YR / CON_VAL_YR - $4.9308B on $164.1409B"
+alum_steel_deriv_high_share,0.75,share of a high-content derivative's value subject to the metal tariff,,model_input,config/default.yaml:72,"CBO's own metal-content share for high-content derivative articles, applied at code/tariffs.py:256-266 as a rate blend. This is the quantity Proclamation 10896 taxes: the steel or aluminium CONTENT of a derivative, not its customs value"
+alum_steel_deriv_low_share,0.25,share of a low-content derivative's value subject to the metal tariff,,model_input,config/default.yaml:73,"CBO's own metal-content share for low-content derivative articles, applied at code/tariffs.py:267-277"
+section232_deriv_content_base_billions,122.6015,billions of dollars,862,model_input,derived from the two lists above,"0.75 x $108.755B + 0.25 x $164.1409B. Replaces the whole-chapter HS-73 figure of $49.5B, which trade.py declared an UPPER BOUND and which is in fact 2.5x too SMALL: the derivative annex reaches chapters 82-95, which HS-73 does not contain, while most of HS-73 is primary Section 232 scope and now sits in the primary row above"
+section232_deriv_content_existing_avg_tariff,0.03872,share of imports for consumption,862,model_input,derived from the two lists above,"Content-weighted duty on the taxed slice: (0.75 x $4.6859B + 0.25 x $4.9308B) / $122.6015B. The derivatives keep their own row rather than being blended into the primary base because they collect a different duty - 3.87% against 4.64%"
+section232_steel_total_base_billions,219.3531,billions of dollars,2029,context,derived,"$96.7516B primary + $122.6015B derivative content. Against the module's previous bracket of $58.2B (floor) to $107.6B (ceiling): 2.04x the ceiling"
+section232_auto_imports_billions,255.302,billions of dollars,62,context,inputs/hts_lists/autos.csv,"Census CY2024 CON_VAL_YR over CBO's Section 232 passenger-vehicle article list, before the USMCA US-content carve-out"
+section232_auto_taxed_base_billions,214.2811,billions of dollars,62,model_input,inputs/hts_lists/autos.csv,"The same list after CBO's US-content carve-out: for Canada and Mexico, each HS-10 line's USMCA-qualifying share (usmca_utilization_rates.csv) is taxed on 1 - 0.50 and 1 - 0.35 of its value respectively (code/tariffs.py:186-187), the non-qualifying share in full. The carve-out is $41.0209B"
+section232_auto_parts_imports_billions,340.6701,billions of dollars,316,model_input,inputs/hts_lists/auto_parts.csv,"Census CY2024 CON_VAL_YR over CBO's Section 232 auto-parts article list. Taxed in full - CTAM applies the US-content carve-out to vehicles only. Chapters 40, 70, 73, 83, 84, 85, 87 and 90, so most of this base is OUTSIDE the HS-87 chapter the module used as its auto proxy"
+section232_auto_base_billions,554.9512,billions of dollars,378,model_input,derived,"$214.2811B of vehicles after the carve-out plus $340.6701B of parts. Replaces HS-87 x (1 - 48.42%) = $198.53B, which both over-included (HS-87 carries tractors, trailers, motorcycles, bicycles and baby carriages that Section 232 does not reach) and under-included (parts in chapters 40, 70, 83, 84, 85, 90)"
+section232_auto_existing_avg_tariff,0.018363,share of imports for consumption,378,model_input,derived,"Census CY2024 CAL_DUT_YR / CON_VAL_YR over both lists - ($3.5068B + $7.4369B) on ($255.302B + $340.6701B). Computed on the unadjusted vehicle value, because the duty CBP actually collected was assessed on it"
+autos_usmca_us_content_carveout_billions,41.0209,billions of dollars,62,context,code/tariffs.py:186-187,"What CBO's US-content rule removes from the vehicle base. The module's previous whole-value auto_usmca_exempt_share = 0.4842 removed about $186B - roughly 4.5x as much - which tariff_scoring_inputs.csv already recorded as an over-statement in that key's own source note"
+us_content_ca_autos,0.5,share of a USMCA-qualifying Canadian vehicle's value that is US content,,context,config/default.yaml:77,"CBO's assumption. The March 2025 proclamation exempts the US-content share of a USMCA-qualifying vehicle, not the whole import value"
+us_content_mx_autos,0.35,share of a USMCA-qualifying Mexican vehicle's value that is US content,,context,config/default.yaml:78,CBO's assumption
+ctam_census_all_chapters_con_val_billions,3251.1948,billions of dollars,18700,external_check,inputs/base_imports/all_countries_2024_CY_2025-11-12.csv,"Every CTY_CODE = '-' row in CBO's shipped Census file. Against tariff_scoring_inputs.csv's total_imports_billions = 3263.9, which is GEN_VAL_YR on a February 2025 pull - the two measure different columns on different vintages and agree to 0.4%"
+ctam_census_all_chapters_cal_dut_billions,76.16,billions of dollars,18700,external_check,inputs/base_imports/all_countries_2024_CY_2025-11-12.csv,"Against current_tariff_revenue_billions = 76.6, i.e. 0.6% apart. This is the check that CBO's file is the same Census series the repository already transcribed"
+ctam_census_hs73_con_val_billions,49.3943,billions of dollars,566,external_check,inputs/base_imports/all_countries_2024_CY_2025-11-12.csv,"HS-73 aggregated from CBO's file, against the $49.265B (CON_VAL) already in tariff_scoring_inputs.csv for steel_derivative_imports_billions' duty denominator"
+ctam_census_hs73_existing_avg_tariff,0.056139,share of imports for consumption,566,external_check,inputs/base_imports/all_countries_2024_CY_2025-11-12.csv,"$2.7729B on $49.3943B, against the 0.0563 the repository transcribed independently in February 2025. Agreement to three decimal places"
+ctam_census_hs87_con_val_billions,388.9971,billions of dollars,378,external_check,inputs/base_imports/all_countries_2024_CY_2025-11-12.csv,"HS-87 from CBO's file, against auto_imports_billions = 384.9 (GEN_VAL, Feb 2025 pull) and its duty denominator of $388.3B"
+ctam_copper_list_con_val_billions,15.3241,billions of dollars,118,external_check,inputs/hts_lists/copper.csv,"CBO's Section 232 copper list. Recorded because Tax Foundation's tariff tracker figure for the 50% steel/aluminium regime folds copper in, and this sizes how little of the gap copper can explain"
+tax_foundation_tracker_steel_50pct_billions,-341.4,billions of dollars over FY2026-2035,,external_check,not in CTAM,"Tax Foundation tariff tracker, 50% Section 232 steel and aluminium with copper folded in, conventional. The ONLY published ten-year steel figure this repository has found; the 25% regime that steel_tariff_25 models was in force for ten weeks and nobody scored it. Run at 50%, the module returns -$190.95B on the bases in this file against -$94.32B on the chapter proxies - the gap halves and does not close. Copper is $15.3B of imports, so what is left is the unsourced high-rate elasticity device at trade.py:172-174, which leaves a volume factor of 0.379 at a 46pp increment. See planning/lanes/R8_tariff_ctam.md section 5 carry-over 2"

@@ -52,16 +52,23 @@ PRESETS = (
 
 #: (1 - avoidance) x (1 - income and payroll offset). FF861's own conventional
 #: identity implies 0.738 with its 26.2% offset and its noncompliance folded
-#: into the base instead of taken as a line.
-CONVENTIONAL_RATIO = 0.95 * 0.75
+#: into the base instead of taken as a line. Since lane R8 the offset is JCT's
+#: published year path, so the ratio is a function of the policy's window -
+#: 0.71801 on the library window, 0.718035 on the app's - and every preset
+#: opens in the same year, which is why they still share one.
+CONVENTIONAL_RATIO = 0.95 * (1 - 0.2442)
 
 
 class TestRetaliationIsNotAConventionalChannel:
     @pytest.mark.parametrize("factory", PRESETS, ids=lambda f: f.__name__)
     def test_every_preset_nets_to_the_same_conventional_ratio(self, factory):
-        summary = factory().get_trade_summary()
+        policy = factory()
+        summary = policy.get_trade_summary()
         assert summary["net_to_gross_ratio"] == pytest.approx(
             CONVENTIONAL_RATIO, abs=1e-9
+        )
+        assert summary["net_to_gross_ratio"] == pytest.approx(
+            0.95 * (1 - policy.income_payroll_offset_rate()), abs=1e-9
         )
 
     @pytest.mark.parametrize("factory", PRESETS, ids=lambda f: f.__name__)
@@ -367,17 +374,38 @@ class TestSteelDerivativeBracket:
         ) < create_steel_tariff_25().estimate_static_revenue_effect(0)
 
     def test_the_two_bases_keep_their_own_collected_duty(self):
-        """Not blended: HS 73 pays 5.63% where HS 72 plus HS 76 pay 3.06%."""
+        """Not blended: the derivative annex pays 3.87% against the list's 4.64%."""
         rates = {rate for _, _, rate in create_steel_tariff_25().rate_schedule}
         assert len(rates) == 2
 
-    def test_including_derivatives_does_not_triple_the_base(self):
-        """The repository said "roughly triple" in three places. It is 1.84x."""
+    def test_the_derivative_leg_is_the_larger_of_the_two(self):
+        """Lane R8's headline finding, asserted rather than described.
+
+        Lane H8 shipped whole-chapter HS-73 as a declared UPPER BOUND on the
+        derivative base, $49.5B, because "the Section 232 annexes list
+        articles at HS-10". CBO's annex lists, aggregated over CBO's own
+        Census file at CBO's own 0.75/0.25 metal-content shares, come to
+        $122.60B - 2.5x the declared ceiling, and larger than the primary
+        list. The bracket was wrong at both ends: most of HS-73 is PRIMARY
+        Section 232 scope, and the derivative annex lives in chapters 82-95,
+        which HS-73 does not contain.
+        """
+        assert (
+            TRADE_BASELINE["steel_derivative_imports_billions"]
+            > TRADE_BASELINE["steel_aluminum_imports_billions"]
+        )
+        # 2.5x the old HS-73 ceiling of 49.5, and the primary list is above
+        # the old HS-72 + HS-76 floor of 58.9.
+        assert TRADE_BASELINE["steel_derivative_imports_billions"] > 2.4 * 49.5
+        assert TRADE_BASELINE["steel_aluminum_imports_billions"] > 58.9
+
+    def test_the_article_base_is_about_twice_the_old_chapter_ceiling(self):
+        """$219.4B against H8's declared ceiling of $108.4B - 2.04x."""
         ratio = (
             TRADE_BASELINE["steel_aluminum_imports_billions"]
             + TRADE_BASELINE["steel_derivative_imports_billions"]
-        ) / TRADE_BASELINE["steel_aluminum_imports_billions"]
-        assert 1.8 < ratio < 1.9
+        ) / 108.4
+        assert 2.0 < ratio < 2.1
 
 
 class TestDecision6Caption:
@@ -407,7 +435,11 @@ class TestDecision6Caption:
         assert f"{summary['conventional_revenue'] * 10:,.1f}B" in text
         assert f"{summary['gdp_feedback_revenue_loss_total']:,.1f}B" in text
         assert "retaliation" in text
-        assert "0.71 net/gross" in text
+        assert f"{summary['net_to_gross_ratio']:.2f} net/gross" in text
+        assert "0.72 net/gross" in text
+        # Lane R8: the offset is JCT's published path, so the caption prints
+        # the rate the policy's own window implies rather than a round 25%.
+        assert f"{policy.income_payroll_offset_rate():.1%}" in text
 
     def test_the_static_caption_calls_its_figure_the_headline(self):
         _, result, text = self._caption(dynamic=False)

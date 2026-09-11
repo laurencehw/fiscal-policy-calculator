@@ -1,0 +1,57 @@
+# The income-and-payroll tax offset to a change in excise/customs revenue,
+# as a YEAR PATH rather than a scalar.
+#
+# WHAT THIS IS. CBO, JCT and Treasury's Office of Tax Analysis all score an
+# indirect tax net of an offset: the convention is that a policy change does
+# not alter total nominal income, so duty paid is income not paid to labour and
+# capital, and the income and payroll tax bases shrink accordingly. `trade.py`
+# carried the round 0.25 that this convention is usually quoted at, sourced
+# SECONDHAND through Tax Foundation FF861 p. 3 n. 3 because jct.gov and cbo.gov
+# both return HTTP 403 to this environment.
+#
+# SOURCE, PINNED. The percentages themselves ship inside CBO's Conventional
+# Tariff Analysis Model, https://github.com/US-CBO/conventional-tariff-analysis-model,
+# commit 59ea68fd6a6f006ca240bc45100b634b3787c2a2 (2026-02-17), public domain,
+# at inputs/offset/2025OffsetPostHR1.csv. The file name records its vintage:
+# these are the post-H.R. 1 (P.L. 119-21) offset percentages. CBO applies them
+# multiplicatively, one year at a time, at code/model/add_offset.py:18 -
+#     df[str(year)] *= (1 - offset_value)
+# Cloned read-only 2026-09-11.
+#
+# NOT FF861's 26.2%. tariff_scoring_inputs.csv already carries that figure as
+# an external_check, deliberately NOT adopted, because it is Tax Foundation's
+# own model output for this window and adopting it would move a parameter
+# toward one of this module's benchmarks. JCT's published path is neither a
+# model output of this repository's nor of any estimator it is scored against.
+#
+# HOW trade.py READS IT. `scoring_engine.py` calls
+# `estimate_behavioral_offset(revenue[idx])` once per year with no year
+# argument, and a tariff's gross is flat across the window (TariffPolicy is not
+# in `_growth_tax_policy_handlers` and has no `soi_base_tax_year`, so the
+# income-base projection factor is 1.0). For a flat gross the window mean is an
+# IDENTITY, not an approximation: sum_t g*(1-o_t) = 10*g*(1-mean o). The module
+# therefore carries the whole path and reads the mean over each policy's own
+# [start_year, start_year + duration_years). That is exact today and would be
+# an approximation for a phased tariff - see planning/lanes/R8_tariff_ctam.md
+# section 1(a), which records the year-indexed hand-off as a carry-over.
+#
+#   FY2025-2034 (the validation window): mean 0.2442
+#   FY2026-2035 (the app window):        mean 0.2439
+#
+# CBO also converts calendar to fiscal years in the same function
+# (add_offset.py:24, FY_y = CY_{y-1}*0.2976 + CY_y*0.7024). This module has no
+# CY/FY conversion for tariffs and this lane did not add one; carry-over.
+#
+# Transcribed 2026-09-11 for lane R8 of planning/ROUTE_TO_8_5.md.
+year,offset
+2025,0.244
+2026,0.247
+2027,0.247
+2028,0.247
+2029,0.245
+2030,0.243
+2031,0.243
+2032,0.242
+2033,0.242
+2034,0.242
+2035,0.241
