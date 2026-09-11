@@ -19,8 +19,14 @@ The lane touches `fiscal_model/tax_expenditures_core.py`,
 shipped preset moves — one self-contained caption function in
 `fiscal_model/ui/tabs/results_summary.py`. It edits **no fitted constant**, no
 target, no manifest, `preregistered.py`, `holdout.py`, `loo.py`'s guards,
-`target_revisions.py`, `KNOWN_SCORES`/`CBO_SCORE_MAP`, `scenarios.py`,
-`.github/`, or any shared doc.
+`target_revisions.py`, `KNOWN_SCORES`/`CBO_SCORE_MAP`, `.github/`, or any shared
+doc.
+
+*Amended after the outturn: `scenarios.py` and the expenditure runner **were**
+opened, to set `calibrated_to_target=False` on `cap_charitable` under PR #119's
+standing rule. That is a reclassification and not a retuning — no constant
+moved and no scored number moved — and §6.6a records it in full. §5's ban on
+opening `scenarios.py` to **re-fit** stands and was not breached.*
 
 ## 0. The plan's baseline is stale, and every figure below is re-measured
 
@@ -389,7 +395,11 @@ The lane is falsified — and says so in §6 rather than adjusting — if:
 * **Not re-fit any of the six fitted annuals.** `scenarios.py` and
   `tax_expenditures_factory.py`'s constants are not opened. §3.1 predicts no row
   goes Poor; if one does, the lane **reports it and stops**, the way PR #119
-  did, rather than retuning or exempting.
+  did, rather than retuning or exempting. *(Outturn: no row went Poor.
+  `scenarios.py` was opened after all — for the opposite of a re-fit, to mark
+  `cap_charitable` `calibrated_to_target=False` under PR #119's standing rule.
+  Not one annual moved; §6.6a and the leakage guard in `tests/test_loo.py` are
+  the evidence.)*
 * **Not touch the SALT baselines.** `repeal_salt_cap` is priced against a
   permanent $10,000 cap and `eliminate_salt` against CBO Option 49's lapsed-cap
   world; reconciling them is §6.2 item 3 and owner decision ⑧, explicitly out of
@@ -592,20 +602,14 @@ constant is actually fitted **to the figure the suite scores against**"; it just
 enumerated two of the ways that can stop being true and now has to enumerate
 three.
 
-**What was done about it is the narrow thing, and the two wider things are named
-rather than taken.** The row is **not retuned** — that is what §1.1 of the plan
-forbids and what this lane's §5 rules out. It is **not reclassified** to
-`calibrated_to_target=False` either, though PR #119's precedent is the obvious
-reading, because that would move the fitted tier 16 → 15 and the reconstruction
-tier 39 → 40, and H6's badge test pins those counts; it is an owner decision on
-#119's own terms, not a lane's, and it did not become blocking (the row is
-Acceptable and strict readiness names no calibrated row). So the case is
-excluded from that one assertion **and the exclusion is proved rather than
-granted**: a second assertion undoes the magnitude, `−174.9 × 1.40 / 1.220780 =
-−200.6`, and requires that to sit within 1% of −$200.0B. An exemption says "do
-not look at this row"; this says "look at this row, and it is 0.3% from its
-target under the multiplier it was fitted with". A later lane that retunes the
-constant fails it.
+**The row is not retuned — that is what §1.1 of the plan forbids — and the
+lane's first pass left the reclassification as an owner question.** It was not
+one: PR #119's rule is standing, and §6.6a applies it. `cap_charitable` is
+`calibrated_to_target=False`, the fitted tier goes 16 → 15 and the reconstruction
+tier 39 → 40, and the three places those counts are pinned move with it. The
+leakage guard is the part worth keeping either way: `−174.9 × 1.40 / 1.220780 =
+−200.6`, asserted within 1% of −$200.0B, so "reclassified" cannot become a
+licence to move the constant. A later lane that retunes it fails there.
 
 **8 — A derived magnitude needs a fallback the static path does not have.**
 `_share_of_benefit_above_cap` *raises* `ExpenditureDistributionMissing` when a
@@ -651,6 +655,72 @@ harder failure than the defect. No shipped reform reaches that branch today.
 The dashboard's exit 1 is the pre-existing `runtime [degraded] Python 3.14.0`
 and `microdata [warn]` pair, neither this lane's.
 
+### 6.6a The reclassification — owner item ① answered, and applied
+
+*Appended after the owner's standing answer: PR #119's rule is that a constant
+which reproduced its target **only through an unsourced or defective magnitude
+is not a calibration to that target** — reclassify, do not retune, do not
+exempt. Finding 7 left that open as an owner decision; it was not open.*
+
+`cap_charitable` is now `calibrated_to_target=False`, by the same wiring PR #119
+used for `trump_corporate_15` and `repeal_ptc`: `calibrated_to_target` is
+threaded through the **expenditure** runner
+(`specialized_business.py:validate_expenditure_policy`) with a `True` default,
+so only a scenario that says otherwise moves, and `scenarios.py`'s
+`cap_charitable` entry says otherwise with the reason and two `limitations`
+written in. **No constant was retuned and no scored number moved** — all 81
+`model_10yr_billions` are identical to the reading in §6.2, `cap_charitable`
+still scores −174.9 and `eliminate_mortgage` −256.8.
+
+**The tiers move by composition, and the fitted tier's mean rises rather than
+falls, which is the tell that this is not a tidy-up:**
+
+| | §6.2 (H7 before reclassifying) | **after** |
+|---|--:|--:|
+| Tier 1 — out-of-sample | 26 @ 14.5% / 11.5% / 16 / 22 | **unchanged, to the cent** |
+| Tier 2 — fitted | 16 @ **2.3%**, median 0.1%, 16/16 | **15 @ 1.6%**, median **0.0%**, **15/15** |
+| ... held in place | 27 @ 12.4%, median 3.7%, 22/27 | **26 @ 12.4%**, median **2.4%**, **21/26** |
+| Tier 2 — reconstructions | 39 @ **56.8%** / 36.9%, 10/39, 13/39 | **40 @ 55.7%** / **33.6%**, **11/40**, **14/40** |
+| leave-one-out | 18 @ 36.5% / 30.2% / 5 | **unchanged** |
+
+Read those two means the way `CLAUDE.md` insists: **1.6% is not an improvement
+on 2.3% and 55.7% is not an improvement on 56.8%.** The fitted tier fell because
+the row it lost was carrying 12.5% against a tier of near-zeros, and the
+reconstruction tier fell because a 12.5% row joined a tier averaging 56.8% —
+both moves are arithmetic of membership, and the *fitted* reading against its
+pre-reclassification self is **1.5% → 1.6%**, up. The held-in-place line loses a
+row for the same reason and its within-15 count goes 22/27 → 21/26.
+
+**Badge composition moves with it**, pinned in three places rather than
+discovered: `test_the_tier_composition_is_what_the_lane_registered`
+**16/25/3 → 15/26/3**, `test_no_other_row_left_the_fitted_tier` **16/39 →
+15/40** with `cap_charitable` named in the assertion the way H9's five are, and
+`preset_validation.py`'s inline comment for `charitable-deduction-cap` goes
+`# fitted, 0.3%` → `# reconstruction, 12.5%`. The shipped badge on 📋 Cap
+Charitable Deduction therefore reads **reconstruction**, not "Calibrated" — the
+honest label, since the constant no longer reproduces the target.
+
+**`test_loo.py`'s exclusion is gone and the guard that mattered stayed.** The
+hand-written `{"cap_charitable"}` set is replaced by `_unfitted_case_ids()`,
+which reads the scenario registries the LOO suite itself scores against — the
+same dicts `scorecard.py` turns into `calibrated_to_target` — so the exclusion
+is now a consequence of the reclassification rather than a second, independent
+edit, and a row nobody reclassified cannot be waved through by editing the test.
+The `CapitalGains` clause stays beside it for the one mechanism the flag cannot
+see: those three cases have nothing held out at all. **The leakage guard is kept
+and strengthened**: `−174.9 × 1.40 / 1.220780 = −200.6`, asserted within 1% of
+−$200.0B, plus an assertion that the case really is in the unfitted set. That is
+what stops "reclassified" becoming a licence to move the constant — a later lane
+that retunes it to close the 12.5% fails there.
+
+`build_validation_headline.py --check` passes **unchanged at 77 published of
+81**: reclassification changes a row's *tier*, never whether its target is
+published, so `headline_counts.json` needed no regeneration. Strict readiness
+still returns `[('runtime', None)]` with `documented_calibrated_policy_ids`
+empty — and it would have stayed empty either way, which is finding 7's point
+restated: **the classification follows the finding, not the rating**, exactly as
+`repeal_ptc`'s own note in `scenarios.py` says.
+
 ### 6.7 Carry-overs
 
 * **Three magnitudes are still unsourced** — employer health 0.20, retirement
@@ -666,7 +736,6 @@ and `microdata [warn]` pair, neither this lane's.
 * **`eliminate_mortgage` is a range row whose model sits outside both bounds**,
   now by $111.1B rather than $97.6B. H9 recorded the 2.4× as a baseline
   difference rather than a simulator one; nothing here addresses the level.
-* **Whether `cap_charitable` should be reclassified `calibrated_to_target=False`** is left open by finding 7, with the counts it would move written out there.
 * **Nothing scores a charitable **floor** or CBO Option 49's 15% ceiling**, both
   of which the module can now express with a per-reform magnitude. Finding 3 is
   the argument for registering the 15% alternative as a benchmark.
