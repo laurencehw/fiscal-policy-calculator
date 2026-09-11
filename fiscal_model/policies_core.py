@@ -224,6 +224,21 @@ class TaxPolicy(Policy):
     _preferential_base_dollars: float | None = field(
         default=None, init=False, repr=False, compare=False
     )
+    # The IRS SOI **tax year** the base was actually read from, set only where
+    # it was read. It is the anchor a ten-year score projects the base off:
+    # SOI reports a dated year and the window prices ten later ones, so the
+    # engine grows the annual by the ratio of the scored baseline's own nominal
+    # income index between this year and the year being scored
+    # (:meth:`fiscal_model.baseline.BaselineProjection.nominal_income_index`).
+    # ``None`` for a caller-supplied base - an explicit
+    # ``annual_revenue_change_billions``, or a hand-set
+    # ``affected_taxpayers_millions`` / ``avg_taxable_income_in_bracket`` -
+    # because such an aggregate carries a vintage this class has no field for
+    # and is therefore used exactly as given. Same rule, and the same reason, as
+    # ``CapitalGainsPolicy``'s ``baseline_realizations_billions``.
+    _soi_base_tax_year: int | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
 
     def __post_init__(self):
         super().__post_init__()
@@ -356,6 +371,17 @@ class TaxPolicy(Policy):
 
         return 0.0
 
+    @property
+    def soi_base_tax_year(self) -> int | None:
+        """IRS SOI tax year this policy's base was read from, if it was read.
+
+        ``None`` until :meth:`_estimate_from_irs_data` has run, and ``None``
+        forever for a policy whose base the caller supplied. A caller reading
+        this before the policy has been scored gets ``None``, which is correct:
+        the base has no vintage yet because it has not been read yet.
+        """
+        return self._soi_base_tax_year
+
     def _should_use_irs_data(self) -> bool:
         """Check if we should attempt to auto-populate from IRS SOI data.
 
@@ -384,6 +410,11 @@ class TaxPolicy(Policy):
 
         year = self.data_year if self.data_year else max(available_years)
         logger.info(f"Auto-populating tax policy parameters from {year} IRS SOI data")
+
+        # Record the vintage of the base before it is used, so the engine can
+        # project it onto the years actually being scored. Set on both branches
+        # below, which is why it is set once here.
+        self._soi_base_tax_year = int(year)
 
         if self.threshold_by_filing_status is not None:
             return self._estimate_from_irs_data_by_status(irs_data, year)
