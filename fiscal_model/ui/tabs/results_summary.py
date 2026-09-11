@@ -1366,6 +1366,113 @@ def income_base_projection_caption(policy: Any, result: Any) -> str:
     )
 
 
+def statutory_threshold_caption(policy: Any, result: Any) -> str:
+    """Decision 6 for R4: say when the threshold under this score is the law's.
+
+    A generic rate change is normally priced above a threshold that **rides the
+    nominal-income index**, because the base does and scaling a base by ``g`` is
+    the same as indexing the threshold by ``g``. That is the default and it is
+    unstated on the surface, which is exactly why the two policies that do
+    something else have to say so:
+
+    * ``"statutory"`` reads the four per-filing-status floors of one
+      ordinary-income bracket out of CBO's own published parameter schedule
+      (publication 53724) for every year being scored, so a reform whose
+      boundary the law re-indexes — or reverts — is priced against the boundary
+      the law actually sets in each year.
+    * ``"nominal"`` holds the typed amount fixed in the dollars of each scored
+      year, which is the literal reading of a figure a user types and is *not*
+      what the default does.
+
+    The caption names the schedule's vintage and edition and whether that
+    edition is the scored vintage's own, because one of the three is a
+    ``nearest_vintage`` substitution and a reader should not have to open
+    ``PROVENANCE.csv`` to find out. It prints the floors at both ends of the
+    window rather than a counterfactual total: the score is not linear in the
+    threshold, so a "would have scored" figure would need a second scoring run,
+    and a caption that re-scores is a caption that can disagree with the
+    headline above it.
+
+    Returns ``""`` for every policy whose threshold is income-indexed, which is
+    every policy by default.
+    """
+    if not isinstance(policy, TaxPolicy) or isinstance(policy, CapitalGainsPolicy):
+        return ""
+    if not getattr(policy, "reindexes_threshold", lambda: False)():
+        return ""
+    years = getattr(result, "years", None)
+    if years is None or len(years) == 0:
+        return ""
+
+    first, last = int(years[0]), int(years[-1])
+    try:
+        opening = policy.statutory_thresholds_for_year(first)
+        closing = policy.statutory_thresholds_for_year(last)
+    except Exception:  # pragma: no cover - a missing schedule is not a crash
+        return ""
+
+    if policy.threshold_indexation == "nominal":
+        amounts = " / ".join(
+            rf"\${value:,.0f}" for value in dict.fromkeys(opening.values())
+        )
+        return (
+            f"Threshold: held at {amounts} in the dollars of each year being "
+            f"scored, so it buys less income every year. That is the literal "
+            f"reading of the amount and it is not this app's default — normally "
+            f"the threshold rises with the same nominal-income index the base "
+            f"does, reaching a higher figure by FY{last}."
+        )
+
+    from fiscal_model import cbo_tax_parameters
+
+    vintage = (
+        getattr(policy, "threshold_schedule_vintage", None)
+        or cbo_tax_parameters.DEFAULT_BASELINE_VINTAGE
+    )
+    record = cbo_tax_parameters.provenance().get(vintage, {})
+    edition = record.get("edition", "?")
+    match = record.get("match", "")
+    edition_clause = (
+        f"CBO's {edition} edition"
+        if match == "exact"
+        else f"CBO's {edition} edition, the nearest published to this vintage"
+    )
+
+    # ``__post_init__`` refuses "statutory" without an index, and
+    # ``statutory_thresholds_for_year`` above would already have raised, so this
+    # is a type narrowing rather than a fallback - but a caption may not be the
+    # thing that raises on a rendered page.
+    if policy.threshold_bracket_index is None:
+        return ""
+    bracket = int(policy.threshold_bracket_index)
+    joint_open, joint_close = opening["joint"], closing["joint"]
+    single_open, single_close = opening["single"], closing["single"]
+    reverted = ""
+    try:
+        rate_open = cbo_tax_parameters.ordinary_rate(vintage, bracket, first)
+        rate_close = cbo_tax_parameters.ordinary_rate(vintage, bracket, last)
+        if rate_open != rate_close:
+            reverted = (
+                f" The statutory rate on that bracket also changes inside this "
+                f"window, {rate_open:.1%} to {rate_close:.1%}, because this "
+                f"vintage's current law reverts to the pre-2018 schedule."
+            )
+    except Exception:  # pragma: no cover - rates are optional colour here
+        reverted = ""
+
+    return (
+        f"Threshold: the statutory floor of bracket {bracket}, read per filing "
+        f"status per year from {edition_clause} of its published tax parameters "
+        rf"— joint returns \${joint_open:,.0f} in FY{first} to "
+        rf"\${joint_close:,.0f} in FY{last}, unmarried returns "
+        rf"\${single_open:,.0f} to \${single_close:,.0f}. The four do not move "
+        f"together and need not.{reverted} Each year's floor is converted into "
+        f"the dollars of the SOI base year before the base is measured above "
+        f"it, which is the other half of the base projection rather than a "
+        f"second growth term."
+    )
+
+
 def cbo_baseline_transcription_caption(policy: Any, result: Any) -> str:
     """Decision 6 for R1: the baseline under this score is CBO's own table now.
 
@@ -2300,6 +2407,9 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     base_year_note = income_base_projection_caption(policy, result)
     if base_year_note:
         st_module.caption(base_year_note)
+    threshold_note = statutory_threshold_caption(policy, result)
+    if threshold_note:
+        st_module.caption(threshold_note)
     transcription_note = cbo_baseline_transcription_caption(policy, result)
     if transcription_note:
         st_module.caption(transcription_note)
