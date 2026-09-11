@@ -323,15 +323,46 @@ def test_loo_is_materially_worse_than_by_construction(suite):
     #   sentence above says, and it is far sharper -- 9 cases at 0.06%, not
     #   15 at 8.45%.
     #
+    # * A case whose constant was fitted through a **behavioural magnitude the
+    #   lane that sourced it then changed**. `cap_charitable`'s annual was
+    #   chosen so that `static x (1 + 0.40)` lands on -$200.0B
+    #   (`W7_expenditure_offset_convention.md` finding 3 is the census of which
+    #   of the six constants were fitted which way), and lane H7 replaced that
+    #   unsourced 0.40 with a sourced 0.220780. The constant is therefore fitted
+    #   to a quantity the module no longer computes, and its by-construction
+    #   error is 12.5% rather than bookkeeping. It is **not retuned** and **not
+    #   reclassified**: retuning is what `HIGH_STAKES_ACCURACY.md` section 1.1
+    #   forbids, and reclassifying moves tier counts that other tests pin, which
+    #   is an owner decision on PR #119's precedent rather than a lane's. So it
+    #   is excluded here and the exclusion is *asserted* rather than taken on
+    #   trust, immediately below.
+    #
     # Neither exclusion removes a case from any reported error: the LOO
     # aggregate above still includes all 18.
+    magnitude_changed = {"cap_charitable"}
     fitted = [
         abs((c.calibrated_10yr - c.official_10yr) / c.official_10yr) * 100
         for c in included
-        if c.module != "CapitalGains" and not target_was_revised(c.case_id)
+        if c.module != "CapitalGains"
+        and not target_was_revised(c.case_id)
+        and c.case_id not in magnitude_changed
     ]
     assert len(fitted) >= 8, [c.case_id for c in included]
     assert sum(fitted) / len(fitted) < 1.0
+
+    # The third exclusion, proved rather than asserted: undo the magnitude and
+    # the constant reproduces its target to bookkeeping precision, which is what
+    # "the constant was not retuned" means. If a later lane *does* retune it,
+    # this fails and the exclusion above stops being available.
+    from fiscal_model.tax_expenditures_factory import create_cap_charitable_deduction
+
+    policy = create_cap_charitable_deduction()
+    share = policy.resolved_offset_magnitude()
+    for case in included:
+        if case.case_id not in magnitude_changed:
+            continue
+        as_fitted = case.calibrated_10yr * (1.0 + 0.40) / (1.0 + share)
+        assert abs((as_fitted - case.official_10yr) / case.official_10yr) * 100 < 1.0
 
 
 # ---------------------------------------------------------------------------
