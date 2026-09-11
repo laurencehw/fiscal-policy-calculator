@@ -5,6 +5,138 @@ in git history, not here.
 
 ## 2026 — ongoing
 
+### Wave F — the corporate default moves to `derived`, the Section 232 base is read at HS-10, and CBO's statutory rate table turns out to exist (2026-09-11)
+
+Four PRs: three modelling lanes of
+[`planning/ROUTE_TO_8_5.md`](../planning/ROUTE_TO_8_5.md) — **#164** R8 tariffs
+from CBO's own tariff model, **#166** R5/H3b the corporate mechanism, **#165** R4
+the statutory parameter schedule — plus **#167**, a provenance-pin fix on R1's
+baseline transcription. Records in [`planning/lanes/`](../planning/lanes/).
+
+**Two of the three lanes registered their movement as a regression before taking
+it, and the third refused its own headline mechanism on the merits.** Every
+pre-registered figure landed; R8's five scores landed **to the cent** against a
+reimplementation that does not import `fiscal_model`.
+
+| Tier | Before (post-Wave-E) | After (merged) |
+|---|---|---|
+| Out-of-sample, pre-registered | 22 @ 11.6% / 8.9% median / 18 within 15 / 19 within 25 | **22 @ 11.8% / 8.9% / 17 / 19** |
+| … error mass | 255.3 | **258.9** |
+| … rows that moved | — | **1** (`cbo_opt45_top4_brackets_2pp`, 14.3% → **17.9%**) |
+| Calibrated, fitted | 15 @ 1.6%, 15/15 | **15 @ 1.6%, 15/15** |
+| … held in place | 26 @ 12.4% / 2.4% | **26 @ 12.4% / 2.6%** |
+| Unfitted reconstructions, scored | 38 @ 37.5% / 30.1%, 11 within 15 | **38 @ 42.3% / 30.1%, 11 within 15** |
+| … **with the retired rows held in place** | 40 @ 55.5% / 33.6% | **40 @ 60.0% / 33.3%** |
+| … `Trade` sub-population | 5 @ 43.6% | **5 @ 80.5%** |
+| … `Corporate` sub-population | 2 @ 92.3% | **2 @ 90.1%** |
+| Leave-one-out | 18 @ 36.5% / 30.2% | **byte-identical** |
+| Published targets | 73 of 77 | **73 of 77** |
+| Tier 1 CI gate | `15 / 19` | **`15 / 19`** (re-derived; every threshold re-derives to itself or would loosen) |
+| Full suite | 4,136 passed / 7 skipped | **4,238 passed / 7 skipped** (4,239 with the docs-sync PR's gate test) |
+
+**The reconstruction tier's 4.8pp is accuracy on a constant population** — the
+same 38 rows either side — and **three quarters of it is one row against a target
+nobody published**: `steel_tariff_25` 75.3% → **258.1%**. On the four trade rows
+that *have* a document the block moves **35.66% → 36.16%**, which is the figure to
+quote.
+
+**#166 — `CORPORATE_APP_MODE` is now `derived`.** Owner decision ⑤ was executed on
+a rule fixed *before* the lane implemented anything: **both** metrics had to
+favour `derived`, with no tie-break and no re-weighting. Both did — mean error
+over the three published corporate targets, **61.43% against 62.75%**, and the
++7pp estimator-span position, **inside** the four-house span (−$1,349.9B to
+−$935.8B) against **$47.27B outside and larger than all four**. Three
+qualifications ship in the module docstring beside it: `derived` **wins the mean
+while losing two rows of three** (the row it wins is the only one whose *scope*
+matches what the factory builds); **neither mean is small**; and **nothing was
+retuned**, the fitted constant reading 1900.0 either side. The lane's own headline
+mechanism — CBO's published loss-firm haircut — was **sourced and refused on the
+merits**, because it adjusts a *statutory rate* inside a user-cost expression
+while this module multiplies a base that is CBO receipts ÷ that rate, and CBO
+itself divides the factor back out where the other input carries it, *"to avoid
+double-counting"*. `cbo_opt64_corporate_rate_1pp` is therefore **unmoved at
+44.5%**, three pre-registered bands are reported as missed, and the lane's
+hand-off is that this row's remedy is spent: what the class needs is a **second
+out-of-sample case**, not another mechanism.
+
+- 🏢 **Biden Corporate 28%** −$1,397.21B → **−$1,310.92B** (static), −$736.71B →
+  **−$662.55B** (dynamic)
+- 🏢 **Trump Corporate 15%** +$1,491.76B → **+$1,562.75B** (static), +$885.79B →
+  **+$949.20B** (dynamic)
+
+Both carry a Decision 6 caption computed from the scored result; neither badge
+moved. Both also acquired a declared `runner_shape` divergence at 1.42% and
+1.13%, and the decomposition is **100% window and 0% policy build** — because
+`reported` prices a rate change against a fitted aggregate the engine grows from
+the policy's own start year, so a window shift cancels exactly, while `derived`
+reads a fiscal-year-indexed path and genuinely answers a different decade
+differently ($18.30B). *That property is the right behaviour and only the flip
+revealed it.*
+
+**#164 — the tariff offset is JCT's own year path and the Section 232 base is
+read at HS-10.** The offset goes from a round `0.25` cited secondhand to JCT's
+published **0.244 (2025) → 0.241 (2035)**, read as the window mean over the
+policy's own years; it enters a year-blind engine call *exactly*, because the
+tariff gross is flat and `Σ_t g(1−o_t) = n·g·(1−ō)` is an identity a test asserts.
+The bases move to CBO's own annex lists: steel **$108.4B → $219.4B**, autos
+**$198.5B → $555.0B**. **The declared bracket was wrong at both ends, which is the
+lane's headline finding** — 558 of the 1,180 *primary* article lines are in HS-73,
+which the "floor" excluded, while the derivative annex lives in chapters 82–95,
+which HS-73 does not contain at all; the measured base is **2.04× what had been
+called a ceiling**, and *a bracket built from the wrong dimension is not
+conservative in either direction*. The auto carve-out was **4.5× too large** and
+the repository's own source note had said so for a wave. CTAM's Boehm column is
+**refused on the merits** — it is a time shape on a CES nest, not an
+import-demand elasticity.
+
+- 🏭 **25% Steel/Aluminum Tariff** −$105.17B → **−$214.94B**
+- 🏭 **25% Auto Tariff** −$203.90B → **−$576.56B**
+- 🏭 **Trump Universal 10% Tariff** −$1,369.83B → **−$1,380.97B**
+- 🏭 **Trump 60% China Tariff** −$331.12B → **−$333.81B**
+- 🏭 **Reciprocal Tariffs** −$1,641.98B → **−$1,655.34B** (still **inside** its
+  published range, distance $0.0B)
+
+All five carry a Decision 6 caption; it now prints the offset to one decimal
+(**24.4%**, the policy's own window) and, for the two Section 232 presets, names
+the base.
+
+**#165 — CBO's statutory rate table exists, and reading it makes one row worse.**
+`cbo_opt45_top4_brackets_2pp`'s own limitation said a published post-2025 rate
+table "does not exist"; CBO publication 53724 is 130–150 variables × CY2021–2036
+across three vintages, now transcribed (**5,531 rows**, SHA-256 pinned) and
+carrying the 2026 revert in full — **which is not a uniform shift**, joint floors
+falling 3.5% while head-of-household floors rise **65.5%**, so a scalar threshold
+cannot express it and neither can a scalar plus one joint amount.
+`Policy.scores_by_year()` ships with two implementers, and
+`TaxPolicy.threshold_indexation` names an assumption nobody could read off the
+code (`"income"` default / `"statutory"` / `"nominal"`). The row goes **14.3% →
+17.9%**, and **the plan's stated direction for it was backwards** — corrected in
+place with attribution. **The arithmetically wrong variant scores four times
+better (3.61% against 17.86%) and is written into the row's `known_limitations`
+rather than taken.** **Zero presets, zero Tailor rows, both calibrated tiers and
+the donor matrix are byte-identical.**
+
+**#167 — all six CBO baseline SHA-256 pins were a CRLF checkout.** Every recorded
+digest was the digest of a Windows `git clone` working tree under
+`core.autocrlf`, and not one was the digest of anything the pinned URL could
+serve; each reproduces exactly by rewriting the served bytes LF → CRLF, verified
+three ways. **The defect stayed invisible because the only path that ever
+recomputed a digest read that same converted clone** — *a pin that can only be
+verified against the machine that minted it is not a pin*. Beyond new values,
+`DIGESTS` is a constant reads are never assigned back into, an unpinned key is
+refused before anything is read, a mismatch **names its cause**, `--check`
+refuses `--source-dir`, and a new `--offline-check` replays the whole
+transcription from verbatim vendored copies. Both data CSVs are byte-identical at
+the working-tree *and* blob level; **no scored number moved.**
+
+**CI gates re-derived and none moved.** By the workflow's own rule, downward only:
+the pooled ceiling is `ceil(11.8 × 1.25) = 15 →` nearest 5 `= 15`, re-deriving to
+itself, and the floor `19 − 1 = 18` would **loosen** a gate the battery meets with
+no slack, so it stays at **19**. Per class, `ordinary_rate_change` now derives to
+`ceil(13.85 × 1.25) = 18` and is **held at 15** — tighter than its own
+re-derivation for the second wave running — while the other seven re-derive to
+themselves.
+
 ### Wave D and the first Wave E lanes — a baseline read off CBO's own tables, four targets withdrawn for want of a document, and two magnitudes that finally have one (2026-09-11)
 
 Ten PRs: three Wave D lanes of

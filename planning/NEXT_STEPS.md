@@ -1,6 +1,6 @@
 # Next Steps — Fiscal Policy Calculator
 
-> Roadmap last reviewed April 2026; the validation scorecard below was re-derived 2026-09-11 (post-Wave-D, and after the first two lanes of Wave E). This file tracks roadmap items beyond the current shipped branch.
+> Roadmap last reviewed April 2026; the validation scorecard below was re-derived 2026-09-11 (post-Wave-F). This file tracks roadmap items beyond the current shipped branch.
 
 For a manuscript-focused path to citation-grade quality, see [MANUSCRIPT_95_PLUS.md](MANUSCRIPT_95_PLUS.md). For repo-grounded go/no-go gates on the two biggest upgrades, see [FEASIBILITY_CHECKLISTS.md](FEASIBILITY_CHECKLISTS.md).
 
@@ -8,7 +8,7 @@ For the ranked plan to close the errors the validation expansion exposed - by mo
 
 For the plan that re-ranks that work by *who reads the number* - the preset, Tailor, Ask and Build figures a journalist or Hill staffer would quote - see [HIGH_STAKES_ACCURACY.md](HIGH_STAKES_ACCURACY.md); it supersedes §6.2's sequencing, not its rules.
 
-For the plan that ranks what would have to be true for the model to be *quotable* - five measurable criteria, sixteen lanes, and the wave structure now in force - see [ROUTE_TO_8_5.md](ROUTE_TO_8_5.md). It is the live sequencing document: Wave D is done, Wave E's first two lanes (R1, R2) are done, and **R3 and H3b/R5 are what comes next**.
+For the plan that ranks what would have to be true for the model to be *quotable* - five measurable criteria, sixteen lanes, and the wave structure now in force - see [ROUTE_TO_8_5.md](ROUTE_TO_8_5.md). It is the live sequencing document: Waves D and F are done, Wave E is two lanes of three (R1, R2 done; **R15a** the spend-out confirmation still open), and **Wave G — R3's Tailor battery, R9's SS donut ramp and R13's death-channel level — is what comes next**, gated on owner decisions ⑪ and ⑭. With R5 closed, `HIGH_STAKES_ACCURACY.md` has no open lane.
 
 ---
 
@@ -22,21 +22,26 @@ phrasing was on this line until 2026-09-01 and was wrong. Live numbers from
 
 | Tier | What it measures | n | Mean | Median |
 |---|---|--:|--:|--:|
-| Out-of-sample, pre-registered | prediction | **22** | **11.6%** | 8.9% |
+| Out-of-sample, pre-registered | prediction | **22** | **11.8%** | 8.9% |
 | Calibrated, fitted | bookkeeping (low by construction) | **15** | **1.6%** | 0.0% |
-| … fitted, ledger rows held in place | the same tier without the composition move | **26** | **12.4%** | 2.4% |
-| Unfitted module reconstructions, **scored** | modules vs targets never fitted to | **38** | **37.5%** | 30.1% |
-| … **with the two retired rows held in place** | the same tier without the withdrawal | **40** | **55.5%** | 33.6% |
+| … fitted, ledger rows held in place | the same tier without the composition move | **26** | **12.4%** | 2.6% |
+| Unfitted module reconstructions, **scored** | modules vs targets never fitted to | **38** | **42.3%** | 30.1% |
+| … **with the two retired rows held in place** | the same tier without the withdrawal | **40** | **60.0%** | 33.3% |
 | Calibrated, leave-one-out | how much of the calibration is structure | 18 | **36.5%** | 30.2% |
 
-**Never quote the reconstruction tier's 37.5% without the 55.5% on the line
+**Never quote the reconstruction tier's 42.3% without the 60.0% on the line
 beneath it.** PR #160 withdrew a 93.3% row and a 701.0% row from a tier that
-reads **55.5% with them in it**, which on its own arithmetic buys 18 points for
-nothing; both rows keep their scorecard entries, their model figures and their
-withdrawn targets, and both readings are printed one under the other for that
-reason.
+reads **60.0% with them in it**, which on its own arithmetic buys nearly 18
+points for nothing; both rows keep their scorecard entries, their model figures
+and their withdrawn targets, and both readings are printed one under the other
+for that reason. **Wave F moved this tier 37.5% → 42.3% on a constant 38 rows**,
+so that 4.8pp is accuracy rather than composition — and three quarters of it is
+`steel_tariff_25` going 75.3% → **258.1%** against a target that is untraceable
+and examined-and-left twice, which measures the Section 232 base becoming the
+one the statute reaches and measures nothing about the score. On the four trade
+rows that *have* a document the block moves 35.66% → **36.16%**.
 
-Out-of-sample is **18/22 within 15%, 19/22 within 25%** — and read that fall from
+Out-of-sample is **17/22 within 15%, 19/22 within 25%** — and read that fall from
 26 rows at 14.5% as **a smaller battery, not a better model**. PR #162 withdrew
 four rows for **absence of a document, never for error**, and superseded a fifth
 onto CBO's own printed option. Three of the four withdrawn rows were themselves
@@ -47,18 +52,25 @@ the tier's `secondhand` and `model_estimate` counts are both **0**.
 
 The tier is itself **eight policy classes**, each carrying its own CI ceiling:
 
-| Class | n | mean | mass | ceiling | after Wave C |
+| Class | n | mean | mass | ceiling | after Wave E |
 |---|--:|--:|--:|--:|--:|
-| capital gains | 4 | **18.7%** | 74.8 | 24 | 18.7% / 74.8 |
-| ordinary rate change | 4 | **12.9%** | 51.8 | **15** | 14.8% / 59.3 |
+| capital gains | 4 | 18.7% | 74.8 | 24 | 18.7% / 74.8 |
+| ordinary rate change | 4 | **13.8%** | **55.4** | **15** | 12.9% / 51.8 |
 | corporate | 1 | 44.5% | 44.5 | 56 | 44.5% / 44.5 |
 | discretionary spending | 5 | 4.6% | 23.2 | 6 | 4.6% / 23.2 |
-| enacted-law spending | 3 | **7.4%** | 22.3 | **10** | 13.4% / 40.2 |
+| enacted-law spending | 3 | 7.4% | 22.3 | 10 | 7.4% / 22.3 |
 | payroll | 2 | 7.8% | 15.6 | 10 | 7.8% / 15.6 |
-| tax expenditure | 1 | **12.8%** | 12.8 | **16** | 13.1% / 13.1 |
-| AGI-inclusive surtax | **2** | **5.2%** | 10.3 | **7** | 17.6% / 105.4 |
+| tax expenditure | 1 | 12.8% | 12.8 | 16 | 12.8% / 12.8 |
+| AGI-inclusive surtax | **2** | 5.2% | 10.3 | **7** | 5.2% / 10.3 |
 
-**Four classes moved and not one of the four moved on the model getting better
+**Wave F moved exactly one class**, `ordinary rate change` 12.9% → **13.8%**
+(within-15 3 → 2, median 14.3% → 16.1%), on PR #165's single registered
+regression — every other class is byte-identical against the pre-wave
+`cold_holdout.py --json`. **Its ceiling stays at 15 and is now tighter than its
+own re-derivation for the second wave running**: `ceil(13.85 × 1.25) = 18`,
+which the rule would allow and the rule's "downward only" clause forbids taking.
+
+**Four classes moved in Wave E and not one of the four moved on the model getting better
 at what it already did.** AGI-inclusive surtax 17.6% → 5.2% is **composition**:
 it lost **four of its six rows** to PR #162's retirements, so it shrank rather
 than improved, and a class of two is a thin thing to gate. Enacted-law spending
@@ -68,10 +80,82 @@ one class that kept all four of its rows, and it nets a target moving onto its
 document against R1's corrected base pushing `biden_high_income_tax` the other
 way. Tax expenditure 13.1% → 12.8% is R1's eleventh and unregistered row. And
 **capital gains, corporate, discretionary and payroll did not move at all** —
-capital gains is now the tier's largest error mass, at 29.3%, because everything
-around it shrank. **Four classes now sit at n = 1 or n = 2**, which is criterion
-① of [ROUTE_TO_8_5.md](ROUTE_TO_8_5.md) moving the wrong way; R3 is the only lane
-that moves it back.
+capital gains is still the tier's largest error mass, at 28.9%, because
+everything around it shrank. **Four classes now sit at n = 1 or n = 2**, which is
+criterion ① of [ROUTE_TO_8_5.md](ROUTE_TO_8_5.md) moving the wrong way; R3 is the
+only lane that moves it back.
+
+**Wave F is done** (2026-09-11, PRs #164, #165, #166, #167) — **R8** tariffs,
+**R4** the statutory parameter schedule and **R5** the corporate mechanism, plus
+a provenance-pin fix. §5.11 of
+[MODELING_IMPROVEMENT.md](MODELING_IMPROVEMENT.md) is the outturn. Tier 1 went
+**11.6% → 11.8%** on one row, the reconstruction tier **37.5% → 42.3%** on a
+constant 38, the fitted tier and leave-one-out did not move at all, and **seven
+shipped presets did**. Every pre-registered figure landed, and two of the three
+lanes registered their movement as a regression before taking it.
+
+**The wave's headline is that `CORPORATE_APP_MODE` is now `derived`** (#166),
+which is owner decision ⑤ executed on a rule R5 fixed before it implemented
+anything: **both** metrics had to favour `derived`, and both did — mean error
+over the three published corporate targets, **61.43%** against **62.75%**, and
+the +7pp estimator-span position, **inside** the four-house span against
+**$47.27B outside and larger than all four**. Three qualifications travel with
+it and the module docstring carries all three: `derived` wins the mean while
+**losing two rows of three** (and the row it wins is the only one whose *scope*
+matches what the factory builds); **neither mean is small**, so it is a choice
+between two wrong answers on a rule set in advance; and **nothing was retuned**,
+the fitted constant reading 1900.0 either side. The lane's own headline
+mechanism — CBO's published loss-firm haircut, `dmyrevnfc = 0.85` /
+`dmyrevx = 0.80` — was **sourced and then refused on the merits**, because it
+adjusts a *rate* inside a user-cost expression while this module multiplies a
+base that already nets those losses, and CBO itself divides the factor back out
+where the other input carries it, "to avoid double-counting". The plan's own
+description of that constant was also wrong: 0.85 is loss-making firms alone and
+0.80 is that same factor times the nonprofit share — **there is no
+financial/non-financial split to apply**. `cbo_opt64` is therefore unmoved at
+**44.5%** and the lane reports three missed bands rather than smoothing them.
+Presets: **🏢 Biden Corporate 28% −$1,397.21B → −$1,310.92B**, **🏢 Trump
+Corporate 15% +$1,491.76B → +$1,562.75B**.
+
+**#164 R8 read two things off CBO's own tariff model and refused a third.** The
+income-and-payroll offset is now **JCT's published year path** (0.244 → 0.241)
+rather than a round 0.25 the repository could only cite secondhand, and it
+enters a year-blind engine call *exactly*, because the tariff gross is flat and
+`Σ_t g(1−o_t) = n·g·(1−ō)` is an identity a test asserts. The Section 232 bases
+are read at **HS-10 off CBO's own annex lists**: steel $108.4B → **$219.4B**,
+autos $198.5B → **$555.0B**. **The declared bracket was wrong at both ends** —
+558 of 1,180 primary article lines are in HS-73, which the "floor" excluded,
+while the derivative annex lives in chapters 82-95, which HS-73 does not contain
+— so the measured base is **2.04× what had been called a ceiling**, and *a
+bracket built from the wrong dimension is not conservative in either direction*.
+The auto carve-out was **4.5× too large** and the repository's own source note
+had said so for a wave. Refused: CTAM's Boehm column is a **time shape on a CES
+nest**, not an import-demand elasticity, so it cannot be dropped into
+`import_price_elasticity`'s slot. Five presets moved.
+
+**#165 R4 refuted a written impossibility and then got one row worse for it.**
+`cbo_opt45_top4_brackets_2pp`'s own limitation said a published post-2025 rate
+table "does not exist"; CBO publication 53724 is 130-150 variables × CY2021-2036
+across three vintages, now transcribed (5,531 rows, SHA-256 pinned) and carrying
+the 2026 revert in full — **which is not a uniform shift**, joint floors falling
+3.5% while head-of-household floors rise 65.5%. The row went **14.3% → 17.9%**,
+and **the plan's stated direction was backwards**: it said "further under", and
+H2 shipped the base projection after that sentence was written, so the row had
+already crossed its target. **The arithmetically wrong variant scores four times
+better and is written down rather than taken** (3.61% against 17.86%). Zero
+presets and zero Tailor rows moved; both bracket-1 rows returned today's figure
+to the cent. Its ninth finding is a process one worth the whole lane: it passed
+pytest and ruff locally and **failed CI's blocking mypy gate on all four jobs**,
+because one keyword-only parameter on a base method broke six overrides in five
+modules it never opened — that command is now in `CLAUDE.md`'s Commands section.
+
+**#167 found that all six CBO baseline SHA-256 pins were a CRLF checkout**, not
+the bytes the URL serves, and no scored number moved. The lesson generalises past
+the fix: *a pin that can only be verified against the machine that minted it is
+not a pin*, and the reason it stayed invisible is that the only path that ever
+recomputed a digest read that same converted clone. `--offline-check` now
+verifies all six against vendored verbatim copies and replays the whole
+transcription from them.
 
 **Wave D is done, and so are the first two lanes of Wave E**
 (2026-09-11, PRs #155, #157, #158, #159, #160, #161, #162, plus the two CBO
@@ -750,8 +834,11 @@ branches; distributional unchanged; the CI gate re-derives to the same 20 / 21.
   column, 3.8% away — adopting it would make the row worse). Published targets
   73 → **75**, `model_estimate` rows 7 → **6**.
 
-**`CORPORATE_APP_MODE` stays `reported` on `main` by owner decision, although
-Decision 1's rule now points the other way.** Measured on the merged tree where
+**`CORPORATE_APP_MODE` was `reported` on `main` until PR #166 (Wave F) flipped
+it to `derived` on owner decision ⑤; the paragraph below is the state that
+preceded it, and the reasoning that closed PR #124 unmerged is why the flip when
+it came required a *second* metric rather than the mean alone.** *(As written
+after Wave B:)* Decision 1's rule now points the other way. Measured on the merged tree where
 both the base projection and the moved targets apply, the corporate module reads
 **reported 62.75% against derived 61.43%** on three published targets — derived
 leads, narrowly, by winning the FY2022 rate-only row and losing a little on the
@@ -853,9 +940,16 @@ closed PR #111's carry-over: `/build?policies=&target=&metric=` plus the shared
 lock, values links freezable, exports still live, and a test comparing frozen and
 open scoreboards bar by bar.
 
-### Next: R3, then H3b — and the carry-over list behind them
+### Next: Wave G — R3, R9 and R13 — and the carry-over list behind them
 
-**The next two lanes are named and the reasons are measurable.**
+**H3b/R5 closed in Wave F, so R3 is now the only named lane in front of the
+battery, and Wave G is where it sits** beside **R9** (the SS donut ramp, whose
+row reads 89.2% against a published path that ramps where the module's does not)
+and **R13** (the death channel's *level* half, the 7.1× factor Wave C left
+pointing the other way). Two owner decisions gate it — ⑪, confirming the CI gate
+is re-derived **after** R3's rows land rather than before, and ⑭, the death
+channel's level, which is a level nobody may move by implication. *The next lanes
+are named and the reasons are measurable.*
 
 **R3 — grow the out-of-sample battery back.** It is the only lane that moves
 criterion ① of [ROUTE_TO_8_5.md](ROUTE_TO_8_5.md), and Wave E made the case
@@ -882,18 +976,26 @@ wages plus net investment income is neither SOI column), a TPC case scoring a
 **10pp** surtax on AGI above $2M against T19-0037's **$585.325B**, and an
 `illustrative_1pp_all.v3` on its own FY2023 window.
 
-**H3b / R5 — the corporate lane.** `cbo_opt64_corporate_rate_1pp` at **44.5%** is
-Tier 1's largest single row and now **17.4% of its whole error mass**, up from
-11.8%, because every other class shrank around it; `trump_corporate_15` at
-**121.6%** is the worst headline reconstruction outside the two retired pharma
-rows. **`CORPORATE_APP_MODE` is still `reported`**, although Decision 1's own
-rule has pointed the other way since PR #122 (reported **62.75%** against derived
-**61.43%** on three published targets) and PR #143's shipped estimator range is a
-second, independent reading pointing the same way — `derived` lands *inside* the
-published span at the +7pp step every shipped preset uses and `reported` lands
-outside it at every step. **Owner decision ⑤ has to be answered before the lane
-opens**, and §6.2 item 53 says why: that measurement goes stale, and H3b moves
-`derived` again. The mechanism is published — CBO's own loss-firm haircut, 0.80
+**H3b / R5 — the corporate lane — ✅ DONE, PR #166, and the row did not move.**
+`cbo_opt64_corporate_rate_1pp` is unmoved at **44.5%**, still Tier 1's largest
+single row and **17.2% of its whole error mass**, because every other class
+shrank around it rather than because it moved. **Owner decision ⑤ was taken and
+`CORPORATE_APP_MODE` is now `derived`**, on a rule the lane fixed before it
+implemented anything: *both* metrics had to favour `derived` — the mean over the
+three published corporate targets (**61.43%** against **62.75%**) *and* the +7pp
+estimator-span position (**inside** the four-house span against **$47.27B
+outside**) — with no tie-break and no re-weighting. Both did. `trump_corporate_15`
+is now at **129.6%**, still the worst headline reconstruction outside the two
+retired pharma rows. **The lane's own mechanism was sourced and refused**: CBO's
+loss-firm haircut adjusts a *statutory rate* inside a user-cost expression while
+this module multiplies a base that is CBO receipts ÷ that rate, and CBO itself
+divides the factor back out where the other input carries it. **So this row's
+remedy is spent** — haircut refuted, §38(c)/§904 bounded but unpriceable (SOI's
+excess-position tables exist for TY2010 only), behavioural parameter already the
+only published one — and what the class needs is a **second out-of-sample row**,
+which is R3's (§6.2 items 80 and 81). *(As scoped before the lane ran:)* Owner
+decision ⑤ has to be answered before the lane opens, and §6.2 item 53 says why:
+that measurement goes stale, and H3b moves `derived` again. The mechanism is published — CBO's own loss-firm haircut, 0.80
 and 0.85, derived from SOI in CBO's business-investment model — and so is the
 hazard: `scripts/corporate_yield_reconciliation.py` prints the number that would
 land the row, and **a lane that asserts a share instead of deriving one has
@@ -926,6 +1028,23 @@ answered it `no`, because the module has one fitted constant and had two
 benchmarks, one of them its own output, so a LOO row would reconstruct the constant
 from itself; the substitute that *was* built is a second published, unfitted
 corporate target.
+
+**Wave F closed three and opened ten** (§5.11): item 27, the engine's missing
+year-indexed concept, which closed on its own terms when the third case arrived
+and `Policy.scores_by_year()` was built rather than a fourth `isinstance` branch;
+item 53, H3a's measurement going stale, which was re-run rather than lost and
+settled owner ⑤; and item 64, the HS-73 whole-chapter Section 232 base — which
+**closed by being disproved**, the declared "upper bound" turning out to be
+**2.04× too small** with a floor that excluded most of the primary scope. Item 65
+(`steel_tariff_25`'s untraceable target) is **still open and four times louder**,
+now carrying three quarters of a tier movement against a figure nobody published.
+The new items are **73-82**: the tariff elasticity trio, now sized at a 62%
+year-one import collapse; the CY→FY conversion and the phased-tariff case; two
+CTAM parameters read and deliberately not taken; the five remaining `isinstance`
+branches; the 148 transcribed CBO tax parameters wired to nothing; the Tailor
+`&index=` control; `Top Rate to 45%`'s statutory $609,350; §38(c) carryforward
+absorption and CAMT; a second corporate out-of-sample row; and two traps from the
+pin fix (`.gitignore`'s bare `data/`, and CRLF-vs-LF in a Windows working tree).
 
 **Wave 7 closed seven more**: the FY2022 target window (#126), the filing-status
 threshold row (#127), the expenditure convention's *direction* half (#128), the
