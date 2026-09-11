@@ -10,6 +10,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from fiscal_model.policies import DEFAULT_ORDINARY_INCOME_BASE
+
 from .controller_utils import render_input_guardrails, run_with_spinner_feedback
 from .share_links import apply_share_query_params
 
@@ -336,7 +338,9 @@ def execute_calculation_if_requested(
             duration=tax_inputs["duration"],
             phase_in=tax_inputs["phase_in"],
             eti=tax_inputs["eti"],
-            ordinary_income_base=bool(tax_inputs.get("ordinary_income_base", True)),
+            ordinary_income_base=bool(
+                tax_inputs.get("ordinary_income_base", DEFAULT_ORDINARY_INCOME_BASE)
+            ),
             manual_taxpayers=tax_inputs["manual_taxpayers"],
             manual_avg_income=tax_inputs["manual_avg_income"],
             cg_base_year=tax_inputs["cg_base_year"],

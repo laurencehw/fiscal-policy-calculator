@@ -340,7 +340,14 @@ class RelativeValidator:
             )
 
         pct_error = abs(student_answer - model_answer) / abs(model_answer)
-        correct = pct_error <= spec.tolerance
+        # An answer *exactly* at the tolerance passes -- that is the documented
+        # contract above, and floating point must not be what decides it.
+        # ``model x 1.05`` does not round-trip to a 5.0% error at every
+        # magnitude: at a model answer of -166.503231617789 it comes back as
+        # 0.050000000000000086, and a student on the line was failed by the
+        # sixteenth decimal place. The margin is relative to the tolerance, so
+        # it scales with it and cannot widen a large tolerance meaningfully.
+        correct = pct_error <= spec.tolerance * (1.0 + 1e-9)
 
         if correct:
             msg = (

@@ -40,7 +40,7 @@ from fiscal_model.pharma import (
     current_law_negotiated_molecules,
     part_d_federal_channels,
 )
-from fiscal_model.policies import CapitalGainsPolicy
+from fiscal_model.policies import CapitalGainsPolicy, TaxPolicy
 from fiscal_model.ptc import (
     PTC_BASELINE_VINTAGE_LABELS,
     PTC_EXTENSION_GROSS_10YR_BILLIONS,
@@ -813,6 +813,113 @@ def ptc_repeal_baseline_caption(policy: Any, result: Any) -> str:
     )
 
 
+def _preset_declares_agi_inclusive(policy_name: str) -> bool:
+    """True when a catalog preset of this name declares an AGI-inclusive base.
+
+    Read off ``PRESET_POLICIES`` rather than a hard-coded list of three names,
+    so a preset that gains or loses the declaration carries or drops the
+    caption with it. Imported lazily: ``app_data`` builds the whole catalog at
+    import time and this module is on the landing page's path.
+    """
+    try:
+        from fiscal_model.app_data import PRESET_POLICIES
+    except Exception:  # pragma: no cover — defensive
+        return False
+    entry = PRESET_POLICIES.get(policy_name)
+    return bool(entry and entry.get("agi_inclusive_base"))
+
+
+def _cbo_score_map() -> Any:
+    """``CBO_SCORE_MAP``, or an empty mapping when the catalog will not load."""
+    try:
+        from fiscal_model.app_data import CBO_SCORE_MAP
+
+        return CBO_SCORE_MAP
+    except Exception:  # pragma: no cover — defensive
+        return {}
+
+
+def agi_inclusive_base_caption(policy: Any, result: Any) -> str:
+    """One line saying the preset's base came from its source, and what moved.
+
+    Three shipped surtax presets are stated by their own sources on **total
+    income above a threshold** — TPC scores the Warren surtax on AGI, and
+    Treasury's FY2025 Green Book row applies the Medicare surcharge to
+    "investment + wage income" — but no preset carried the attribute, so all
+    three were scored on the *ordinary* base, which excludes long-term capital
+    gains and qualified dividends. The app therefore printed −$134.6B beside a
+    label quoting TPC's −$350B, a 61.5% gap, while the scorecard row for the
+    same reform reported 19.0%, because validation had been reading the base
+    off the record all along.
+
+    The presets now declare it and the surfaces read it. Three numbers roughly
+    doubled, so they ship with their explanation rather than in silence
+    (Decision 6).
+
+    Two things this caption must not get wrong, both found in review:
+
+    * **The figure it quotes is the conventional score**, ``static +
+      behavioral``, which is what the headline above it shows. Reading
+      ``final_deficit_effect`` would subtract revenue feedback in a dynamic run
+      and print a number that disagrees with the one it is explaining.
+    * **The share comes from the policy**, not from a fourth hand-written copy
+      of ``(avg − threshold) × filers``. That copy could not see the
+      per-status split path, where four populations face four floors and the
+      identity does not hold — so a preset with ``threshold_by_filing_status``
+      would have had its "before" figure derived from the pooled base while its
+      "now" figure came from the split one.
+
+    The counterfactual is still **computed, not stored**: the ordinary-income
+    share multiplies the base and nothing else, so the figure this preset used
+    to print is this run's own conventional total times that share. Returns
+    ``""`` for every policy whose number did not move.
+    """
+    if not isinstance(policy, TaxPolicy) or policy.ordinary_income_base:
+        return ""
+    if not _preset_declares_agi_inclusive(getattr(policy, "name", "")):
+        return ""
+
+    # The conventional score, matching ``summarize_result``'s headline. Dynamic
+    # scoring never moves that, so this caption does not move with it either.
+    total = float(
+        np.asarray(result.static_deficit_effect).sum()
+        + np.asarray(result.behavioral_offset).sum()
+    )
+    if total == 0.0:
+        return ""
+
+    # One guard: a zero base, a non-income-tax policy and an unscored policy all
+    # come back as 0.0 from the helper, so the checks they used to need here are
+    # implied by this one.
+    pref = policy.preferential_share_of_base()
+    if pref <= 0.0:
+        return ""
+    previous = total * (1.0 - pref)
+    threshold = float(policy.affected_income_threshold)
+
+    # A preset with a published score has a document that states its base; the
+    # millionaire surtax has none, and the caption must not imply otherwise.
+    sourced = getattr(policy, "name", "") in _cbo_score_map()
+    provenance = (
+        "its own source uses"
+        if sourced
+        else "this preset declares — a design choice, since no published score of "
+        "this reform exists to read a base off"
+    )
+    return (
+        f"Income base: this preset is scored on the **AGI-inclusive** base "
+        f"{provenance} — the rate applies to all income above "
+        rf"\${threshold:,.0f}, realized capital gains and qualified dividends "
+        f"included. On the ordinary-bracket base, which excludes them, it "
+        rf"would score \${previous:+,.1f}B rather than the \${total:+,.1f}B "
+        f"above: the preferentially taxed income is {pref:.1%} of the marginal "
+        f"income here. That is where this preset used to be scored. Nothing in "
+        f"the model changed — the presets now carry the base attribute the "
+        f"validation records always read, so the app and its own scorecard "
+        f"price the same policy."
+    )
+
+
 #: Classes whose behavioural offset returned the **negation** of the contract
 #: before the offset-sign sweep (2026-09-05), in every direction.
 _OFFSET_SIGN_INVERTED = (AMTPolicy, EstateTaxPolicy, PremiumTaxCreditPolicy)
@@ -944,6 +1051,9 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     sign_note = behavioural_sign_caption(policy, result)
     if sign_note:
         st_module.caption(sign_note)
+    base_note = agi_inclusive_base_caption(policy, result)
+    if base_note:
+        st_module.caption(base_note)
 
     credibility_html = _build_credibility_html(getattr(scored, "credibility", None))
     if credibility_html:

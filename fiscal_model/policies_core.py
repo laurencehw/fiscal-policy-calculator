@@ -4,6 +4,7 @@ Core policy parameter definitions.
 
 import logging
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Literal
@@ -16,6 +17,49 @@ logger = logging.getLogger(__name__)
 # is ordinary (wages, interest, non-qualified distributions); this prevents a
 # pathological data point from zeroing out the base.
 _MAX_PREFERENTIAL_SHARE = 0.55
+
+#: The one default for :attr:`TaxPolicy.ordinary_income_base`, read by every
+#: constructor that builds a rate change the user did not classify.
+#:
+#: ``True`` means the **ordinary** base: an ordinary-bracket rate change is
+#: priced on the non-preferential share of marginal income, because it does not
+#: reach long-term capital gains or qualified dividends. ``False`` means the
+#: **AGI-inclusive** base, which a surtax stated on total income above a
+#: threshold does reach.
+#:
+#: Ordinary is the default because it is the *validation manifest's* default:
+#: :func:`fiscal_model.validation.core.create_policy_from_score` sets
+#: ``ordinary_income_base = not score.agi_inclusive_base`` and
+#: :class:`~fiscal_model.validation.cbo_scores.CBOScore` defaults
+#: ``agi_inclusive_base`` to ``False``. Before 2026-09-09 this module's literal
+#: said ``False`` while Tailor and the composer both said ordinary, so the same
+#: specification returned two answers 1.89x apart depending on which surface
+#: the user typed it into. The base is a fact about the policy, read off its
+#: source document and never inferred from its shape - a rate change above a
+#: threshold can be either, and the out-of-sample battery holds one of each.
+#: See ``planning/lanes/HSA_h1_base_rule.md``.
+DEFAULT_ORDINARY_INCOME_BASE = True
+
+
+def ordinary_income_base_for_preset(preset_data: Mapping[str, object] | None) -> bool:
+    """The base a catalog preset declares, or the shared default.
+
+    A preset states ``agi_inclusive_base: True`` when its own source scores the
+    reform on total income above a threshold — TPC's Warren surtax on AGI,
+    Treasury's Medicare surcharge on wage *and* investment income. A preset that
+    declares nothing is an ordinary-bracket rate change and takes
+    :data:`DEFAULT_ORDINARY_INCOME_BASE`.
+
+    One function rather than six copies of ``not preset.get(...)``: the composer,
+    the API's preset route, the Tailor preset seed and the three comparison tabs
+    all asked the same question, and nothing kept their answers in step.
+    """
+    if not preset_data:
+        return DEFAULT_ORDINARY_INCOME_BASE
+    declared = preset_data.get("agi_inclusive_base")
+    if declared is None:
+        return DEFAULT_ORDINARY_INCOME_BASE
+    return not bool(declared)
 
 
 def preferential_income_share(
@@ -139,11 +183,12 @@ class TaxPolicy(Policy):
     # When True, an *ordinary*-rate change is applied only to the non-preferential
     # share of marginal income — long-term capital gains and qualified dividends
     # (taxed at preferential rates) are excluded, since an ordinary-bracket rate
-    # change does not touch them. Dataclass default False preserves legacy callers;
-    # Generic validation, custom UI/API, and preset fallbacks set True. Set False
-    # for AGI-inclusive surtaxes. See ``preferential_income_share`` and
-    # docs/METHODOLOGY.md (Static Scoring).
-    ordinary_income_base: bool = False
+    # change does not touch them. Set False for AGI-inclusive surtaxes, which do
+    # reach that income. The default is the module constant every constructor
+    # reads, so the dataclass, Tailor, the composer, Ask and the API cannot each
+    # carry their own answer. See ``DEFAULT_ORDINARY_INCOME_BASE``,
+    # ``preferential_income_share`` and docs/METHODOLOGY.md (Static Scoring).
+    ordinary_income_base: bool = DEFAULT_ORDINARY_INCOME_BASE
     # Optional per-filing-status thresholds, keyed by
     # ``fiscal_model.data.irs_soi.FILING_STATUSES``. Statutory income-tax
     # boundaries are stated per status - CBO's Option 46 surtax at "$20,000 for
@@ -162,6 +207,21 @@ class TaxPolicy(Policy):
     # statuses face different floors, so the first year's answer is carried
     # instead of silently recomputed the pooled way.
     _split_annual_revenue_billions: float | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+    # Total marginal income the last scoring run priced, in dollars. Recorded
+    # by the per-status path only, whose total is a sum over four populations
+    # facing four floors and therefore *cannot* be re-derived from a single
+    # ``avg_taxable_income_in_bracket`` minus a single threshold. See
+    # :meth:`marginal_income_dollars`.
+    _split_marginal_income_dollars: float | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+    # The base ``_ordinary_income_share`` was last measured on, in dollars.
+    # The per-status path measures the preferential share on the **pooled**
+    # base rather than the split one, so this is not always the quantity above.
+    # See :meth:`preferential_share_of_base`.
+    _preferential_base_dollars: float | None = field(
         default=None, init=False, repr=False, compare=False
     )
 
@@ -418,6 +478,10 @@ class TaxPolicy(Policy):
 
         self.affected_taxpayers_millions = split["num_filers"] / 1e6
         self.avg_taxable_income_in_bracket = split["avg_taxable_income"]
+        # A sum over four populations facing four floors, so it is not
+        # ``(avg - threshold) x filers`` and must be carried rather than
+        # re-derived. See :meth:`marginal_income_dollars`.
+        self._split_marginal_income_dollars = float(marginal_income)
 
         revenue_change = self.rate_change * marginal_income * ordinary_share / 1e9
         self._split_annual_revenue_billions = revenue_change
@@ -437,6 +501,62 @@ class TaxPolicy(Policy):
         )
         return revenue_change
 
+    def marginal_income_dollars(self) -> float:
+        """Total marginal income this rate change is priced on, in dollars.
+
+        The pooled identity is ``(avg_taxable_income_in_bracket − threshold) ×
+        filers``, with the threshold dropping out at zero — the same arithmetic
+        the three scoring branches perform. The **per-status** path cannot be
+        written that way: four populations face four floors, so its total is a
+        sum rather than a difference of averages, and it records that total
+        during scoring for this method to return (see
+        ``planning/lanes/W7_filing_status_split.md``).
+
+        Zero before the policy has been scored, when neither the filer count
+        nor the average income has been auto-populated yet.
+        """
+        if self._split_marginal_income_dollars is not None:
+            return float(self._split_marginal_income_dollars)
+        avg = float(self.avg_taxable_income_in_bracket)
+        threshold = float(self.affected_income_threshold)
+        if avg <= 0:
+            return 0.0
+        per_return = avg if threshold == 0 else max(0.0, avg - threshold)
+        return per_return * float(self.affected_taxpayers_millions) * 1e6
+
+    def preferential_share_of_base(self, *, year: int | None = None) -> float:
+        """Preferentially taxed share of this policy's marginal income.
+
+        The question :meth:`_ordinary_income_share` answers *for scoring*, asked
+        without the ``ordinary_income_base`` flag in the way. That distinction
+        matters to any caller that wants to **compare** the two bases rather
+        than apply one: the scoring helper short-circuits to 1.0 on an
+        AGI-inclusive policy, which is the right answer there and reports "no
+        difference" here.
+
+        Measured on the base the scoring run actually used, which for the
+        per-status path is the **pooled** base at this policy's own threshold —
+        the capital-gains series has no filing-status dimension, so re-deriving
+        the ratio against a split denominator would remove the same joint
+        returns twice. Falls back to :meth:`marginal_income_dollars` for a
+        policy that has not been scored.
+
+        Returns 0.0 when there is no preferential income to remove: a
+        non-income-tax policy, or a base of zero.
+        """
+        if self.policy_type != PolicyType.INCOME_TAX:
+            return 0.0
+        base = self._preferential_base_dollars
+        if base is None:
+            base = self.marginal_income_dollars()
+        if base <= 0:
+            return 0.0
+        return preferential_income_share(
+            self.affected_income_threshold,
+            base / 1e9,
+            year=year if year is not None else self.data_year,
+        )
+
     def _ordinary_income_share(
         self, total_marginal_income_dollars: float, *, year: int | None = None
     ) -> float:
@@ -445,7 +565,13 @@ class TaxPolicy(Policy):
         Returns 1.0 (legacy whole-base behavior) unless ``ordinary_income_base``
         is set and this is an income-tax policy, in which case the preferentially
         taxed (long-term capital gains) share is removed.
+
+        Records the base it was asked about so :meth:`preferential_share_of_base`
+        can answer the same question afterwards without re-deriving it — which
+        is what a fourth hand-written copy of the identity would have to do, and
+        the per-status path cannot be re-derived that way at all.
         """
+        self._preferential_base_dollars = float(total_marginal_income_dollars)
         if not self.ordinary_income_base:
             return 1.0
         if self.policy_type != PolicyType.INCOME_TAX:

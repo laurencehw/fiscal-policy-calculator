@@ -163,7 +163,22 @@ CBO_SCORE_MAP = {
         "notes": "Eliminate individual AMT (post-TCJA sunset baseline)",
     },
     "⚖️ Repeal Corporate AMT (-$220B)": {
-        "official_score": -220.0,
+        # Sign corrected 2026-09-09. This figure read -220.0, where the
+        # scorecard target (`scenarios.py`, expected_10yr 220.0), the benchmark
+        # source (`benchmark_sources.py`, JCX-18-22 at +$222.2B) and the model
+        # itself (+$220.1B) all carry **+**220.0. JCT scores enacting CAMT as a
+        # revenue raiser, so repealing it *costs* the deficit that amount. The
+        # number is load-bearing rather than cosmetic:
+        # `deficit_target.build_catalog` drives the Build page off
+        # `official_score` and `BuildOption.raises_revenue` is `score < 0`, so
+        # a $220B cost was checkable in Build as a $220B saving.
+        #
+        # The **label** still reads "-$220B" and is owed the same correction.
+        # It is the key of `ui/preset_validation.PRESET_TO_SCORECARD_ID`, and
+        # that map and its test have to move in the same commit as the rename;
+        # both belong to a sibling lane in this wave, so the rename is handed
+        # over rather than taken here. See planning/lanes/HSA_h1_base_rule.md.
+        "official_score": 220.0,
         # JCX-18-22 scores CAMT as enacted at \\$222,248M over FY2022-2031. The
         # estimate is JCT's, not CBO's.
         "source": "JCT (JCX-18-22)",
@@ -604,7 +619,12 @@ PRESET_POLICIES = {
     "⚖️ Repeal Corporate AMT (-$220B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Repeal 15% book minimum tax (CAMT) from IRA 2022. Costs ~\\$220B over 10 years.",
+        "description": (
+            "Repeal the 15% corporate book minimum tax (CAMT) enacted by IRA "
+            "2022. **Costs** ~\\$220B over 10 years: JCT scored enacting CAMT "
+            "as a \\$222.2B revenue raiser (JCX-18-22), so repeal loses that "
+            "revenue."
+        ),
         "is_tcja": False,
         "is_corporate": False,
         "is_amt": True,
@@ -678,7 +698,24 @@ PRESET_POLICIES = {
     "Progressive Millionaire Tax": {
         "rate_change": 5.0,
         "threshold": 1000000,
-        "description": "5pp surtax on millionaires",
+        # No source document exists for this preset: it has no CBO_SCORE_MAP
+        # entry, no scorecard row of any tier, and nothing published scores the
+        # reform. The AGI-inclusive base is therefore a **design choice of the
+        # preset**, by analogy with the two surtaxes that do carry documents —
+        # TPC's Warren surtax on AGI and Treasury's Medicare surcharge on wage
+        # and investment income, both stated on total income above a threshold
+        # with no bracket schedule named. The description says so, so a reader
+        # is not left to assume it was read off a source.
+        "agi_inclusive_base": True,
+        "description": (
+            "5pp surtax on income above \\$1M, scored on the AGI-inclusive "
+            "base — capital gains and qualified dividends included. "
+            "**No official score**: nothing published scores this reform, so "
+            "the model's own estimate is the only number shown, and the "
+            "AGI-inclusive base is a design choice of the preset by analogy "
+            "with the Warren and Medicare surtaxes rather than a reading of a "
+            "source document."
+        ),
         "is_tcja": False,
     },
     "Middle Class Tax Cut": {
@@ -696,9 +733,18 @@ PRESET_POLICIES = {
     "Warren Ultra-Millionaire Surtax": {
         "rate_change": 3.0,
         "threshold": 2_000_000,
+        # AGI-inclusive on its own source: the TPC table this preset's
+        # CBO_SCORE_MAP row cites scores "3pp surtax on AGI >$2M", and AGI
+        # includes realized capital gains and qualified dividends. Scored on
+        # the ordinary base until 2026-09-09, which put the app's -$134.6B
+        # beside a label quoting TPC's -$350B (61.5%) while the scorecard's own
+        # AGI-inclusive row reported 19.0%. A transcription, not a rule.
+        "agi_inclusive_base": True,
         "description": (
-            "3pp surtax on taxable income above \\$2M, Warren-style. Raises "
-            "roughly \\$300-400B over 10 years depending on behavioral response."
+            "3pp surtax on **AGI** above \\$2M, Warren-style, scored on the "
+            "AGI-inclusive base its TPC source uses — realized capital gains "
+            "and qualified dividends included. Raises roughly \\$300-400B over "
+            "10 years depending on behavioral response."
         ),
         "is_tcja": False,
         "ui_category": "Income Tax",
@@ -721,10 +767,20 @@ PRESET_POLICIES = {
     "High-Earner Medicare Surcharge 2pp": {
         "rate_change": 2.0,
         "threshold": 400_000,
+        # AGI-inclusive on its own source: the Treasury FY2025 Green Book row
+        # this preset's CBO_SCORE_MAP entry cites applies the surcharge to
+        # "investment + wage income" above $400K, so it reaches the
+        # preferentially taxed income an ordinary-bracket rate does not.
+        # Scored on the ordinary base until 2026-09-09, which put the app's
+        # -$166.5B beside Treasury's -$310B (46.3%) while the scorecard's own
+        # AGI-inclusive row reported 1.5%. A transcription, not a rule.
+        "agi_inclusive_base": True,
         "description": (
-            "+2pp Medicare surcharge on wage + investment income above \\$400K. "
-            "Extends the NIIT's 3.8% surtax logic to a broader base. Similar in "
-            "structure to the Biden 2025 Medicare surtax proposal."
+            "+2pp Medicare surcharge on wage **and investment** income above "
+            "\\$400K, scored on the AGI-inclusive base Treasury's FY2025 Green "
+            "Book row uses. Extends the NIIT's 3.8% surtax logic to a broader "
+            "base. Similar in structure to the Biden 2025 Medicare surtax "
+            "proposal."
         ),
         "is_tcja": False,
         "ui_category": "Income Tax",
@@ -779,10 +835,17 @@ PRESET_POLICIES = {
         "is_enforcement": True,
         "enforcement_type": "double",
     },
-    "🔍 High-Income Enforcement (-$250B)": {
+    "🔍 High-Income Enforcement": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Targeted enforcement for >\\$400K returns and large partnerships. \\$5B/year, high ROI.",
+        "description": (
+            "Targeted enforcement for >\\$400K returns and large partnerships. "
+            "\\$5B/year, high ROI. **No official score**: nothing published "
+            "scores a *targeted* high-income enforcement increase. CBO scores "
+            "*untargeted* appropriations only — \\$20B of funding for "
+            "−\\$41B of deficit and \\$40B for −\\$63B (publication 59972, "
+            "FY2024-2034). The model's own estimate is the only number shown."
+        ),
         "is_tcja": False,
         "is_enforcement": True,
         "enforcement_type": "high_income",
@@ -812,10 +875,18 @@ PRESET_POLICIES = {
         "is_pharma": True,
         "pharma_type": "reference_pricing",
     },
-    "💊 Comprehensive Drug Reform (-$600B)": {
+    "💊 Comprehensive Drug Reform": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Expanded negotiation + insulin cap + manufacturer discounts. Saves ~\\$600B over 10 years.",
+        "description": (
+            "Expanded negotiation + insulin cap + manufacturer discounts. "
+            "**No official score**: nothing published scores a *combined* "
+            "package of these three, and the nearest published figures are "
+            "components an order of magnitude smaller (CBO put the IRA's own "
+            "negotiation at \\$98.5B over FY2022-2031). The model's own "
+            "estimate is the only number shown, and it is a 🟡 reconstruction "
+            "of a channel nobody has scored."
+        ),
         "is_tcja": False,
         "is_pharma": True,
         "pharma_type": "comprehensive",
@@ -878,10 +949,18 @@ PRESET_POLICIES = {
         "is_climate": True,
         "climate_type": "carbon_50",
     },
-    "🌱 Carbon Tax \\$25/ton (-$1.0T)": {
+    "🌱 Carbon Tax \\$25/ton": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "\\$25/ton CO2 starter tax with 5% annual escalator. Raises ~\\$1.0T over 10 years.",
+        "description": (
+            "\\$25/ton CO2 starter tax with 5% annual escalator. "
+            "**No official score is quoted**: a real document does exist, on a "
+            "different decade — CBO and JCT's *Options for Reducing the "
+            "Deficit: 2023 to 2032* scores \\$25/tonne rising 5% plus "
+            "inflation at −\\$865B over FY2023-2032 — but this repository has "
+            "no scorecard row for it, so the model's own estimate is the only "
+            "number shown."
+        ),
         "is_tcja": False,
         "is_climate": True,
         "climate_type": "carbon_25",
@@ -894,10 +973,15 @@ PRESET_POLICIES = {
         "is_climate": True,
         "climate_type": "repeal_ev",
     },
-    "🌱 Extend IRA Credits Beyond 2032 ($400B)": {
+    "🌱 Extend IRA Credits Beyond 2032": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Extend IRA clean energy credits 5 years beyond 2032 sunset. Costs ~\\$400B additional.",
+        "description": (
+            "Extend IRA clean energy credits 5 years beyond the 2032 sunset. "
+            "**No official score**: every published figure scores the credits "
+            "*as enacted* or their *repeal*, never an incremental five-year "
+            "extension. The model's own estimate is the only number shown."
+        ),
         "is_tcja": False,
         "is_climate": True,
         "climate_type": "extend_ira",

@@ -40,7 +40,11 @@ from fiscal_model.models.base import (
     build_scorer_for_start_year,
     policy_start_year,
 )
-from fiscal_model.policies import PolicyType, TaxPolicy
+from fiscal_model.policies import (
+    PolicyType,
+    TaxPolicy,
+    ordinary_income_base_for_preset,
+)
 from fiscal_model.policies_factory import create_spending_increase
 from fiscal_model.policy_status import get_policy_status
 from fiscal_model.preset_handler import create_policy_from_preset
@@ -145,7 +149,9 @@ def _build_preset_policy(preset_name: str, preset_data: dict[str, Any]) -> tuple
         taxable_income_elasticity=0.25,
         start_year=DEFAULT_SCORER_START_YEAR,
         duration_years=WINDOW_YEARS,
-        ordinary_income_base=not bool(preset_data.get("agi_inclusive_base", False)),
+        # The preset's own source decides the base; absent a declaration it
+        # takes the one shared default rather than this call site's opinion.
+        ordinary_income_base=ordinary_income_base_for_preset(preset_data),
     )
     return policy, True
 
