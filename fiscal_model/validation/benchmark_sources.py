@@ -524,7 +524,20 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
             "figure to 310 anywhere is FY2024's pass-through NIIT row "
             "($305,944M), which is a base expansion, not a rate change. The "
             "record's Green Book URL was therefore promoting an unrelated "
-            "document to a citation; demoted to secondhand."
+            "document to a citation; demoted to secondhand. "
+            "**RETIRED in lane R2.** R2 re-read all three volumes and confirms "
+            "every figure above, adding two: the FY2025 volume's FY2025-29 "
+            "subtotal for the proposal is $178,466M, and the only '310,0xx' "
+            "anywhere in that volume is the child-credit expansion at "
+            "-$310,024M - 0.008% from the carried target and a COST, the "
+            "opposite sign to the raiser this row scored. Neither coincidence "
+            "proves where -$310B came from; what they establish is that it is "
+            "not the proposal's. The row is withdrawn because the reform it "
+            "scores (2pp) is published by nobody, not because of its error: "
+            "the model's 2pp figure sits 1.2% from Treasury's 1.2pp row, so "
+            "adopting the document without re-shaping would have bought one of "
+            "the tier's best rows with a 1.67x rate mismatch. On Treasury's "
+            "own rate the model reads -$245.2B against -$403.8B, 39.3% under."
         ),
     ),
     BenchmarkSource(
@@ -1621,7 +1634,18 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
             "retirement and withdrawing an in-battery case is an owner "
             "decision; flagged in docs/VALIDATION.md. For scale, PWBM scores a "
             "new 39.6% bracket above $1M — a +2.6pp change on the same "
-            "threshold — at $222.4B over FY2026-2035."
+            "threshold — at $222.4B over FY2026-2035. "
+            "**RETIRED in lane R2**, which added the half of the search Phase E "
+            "did not run: the individual-rate option of all four CBO Options "
+            "volumes (2018 pub. 54667 Option 1, 2020 pub. 56783 Option 1, 2022 "
+            "pub. 58164 Option 13, 2024 pub. 60557 Option 45). Every "
+            "alternative in all four is a uniform change at a bracket boundary "
+            "or an AGI surtax at the standard deduction, the fourth-bracket "
+            "floor, $20,000/$40,000 or $100,000/$200,000 - no scorekeeper "
+            "prices a rate change at a $1,000,000 threshold at all. "
+            "ROUTE_TO_8_5.md §1 R2 is the plan that names this row, so the "
+            "owner decision docs/VALIDATION.md has carried since Phase E is "
+            "taken rather than deferred again."
         ),
     ),
     BenchmarkSource(
@@ -1642,7 +1666,20 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
             "version is on the order of $175B — about half the carried target. "
             "The record's ``agi_inclusive_base=True`` flag is confirmed "
             "correct by TPC's definition (the surtax applies to AGI in excess "
-            "of the threshold); the magnitude is what is unsupported."
+            "of the threshold); the magnitude is what is unsupported. "
+            "**RETIRED in lane R2.** R2 read the whole simulation rather than "
+            "the one table: *AGI Surtax Options* is thirteen tables, T19-0037 "
+            "through T19-0050, and every one of them is a 10 percent surtax - "
+            "there is no 3pp table to find, and no CBO Options volume prices a "
+            "surtax at a $2M threshold in any of its four editions. Scaling "
+            "T19-0037 to 3pp would construct a target rather than read one, "
+            "and CBO's own warning that large surtaxes are not proportional "
+            "says the scaling would be wrong as well as inadmissible. The "
+            "sharper finding is that the row's NAME is wrong: Warren's "
+            "Ultra-Millionaire Tax Act is a wealth tax on net worth (2% above "
+            "$50M, 3% above $1B), so the 3pp is a wealth rate on an income "
+            "base and this shape matches no proposal anybody scored - which is "
+            "why no search could have succeeded."
         ),
         alternatives=(
             "TPC T19-0037 Option 1: 10pp surtax on AGI over $2M = $585.3B "
@@ -2184,25 +2221,47 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
     ),
     BenchmarkSource(
         policy_id="illustrative_1pp_all",
-        provenance=SECONDHAND,
-        document="",
-        publisher="Joint Committee on Taxation",
-        date="2023-01",
+        provenance=LINE_ITEM,
+        document=(
+            "Options for Reducing the Deficit: 2023 to 2032, Volume I: "
+            "Larger Reductions"
+        ),
+        publisher="Congressional Budget Office",
+        url="https://www.cbo.gov/publication/58164",
+        date="2022-12",
+        table="Option 13 — Revenues, Increase Individual Income Tax Rates",
+        row="Raise all tax rates on ordinary income by 1 percentage point",
+        page="report p. 72; PDF p. 76",
         window="FY2023-2032",
-        searched=(
-            "The manifest already describes this as a JCT rule-of-thumb with "
-            "no line item, and nothing was found to change that. The published "
-            "figures for the same policy — a uniform +1pp on all ordinary "
-            "rates — are CBO's, and both are larger: $1,081.3B over FY2023-2032 "
-            "(Options 2023-2032 Vol. I) and $1,185.3B over FY2025-2034 "
-            "(Options 2025-2034, Option 45 alternative 1), the latter already "
-            "carried as its own Tier 1 case. Listed here so that no benchmark "
-            "in either tier is left ``unclassified``."
+        published_10yr_billions=-1_081.3,
+        note=(
+            "Lane R2 moved this row off a rule of thumb and onto the option "
+            "its own record already pointed at. Published -$1,081.3B over "
+            "FY2023-2032 with the annual path -72.4 / -106.6 / -111.3 / "
+            "-102.1 / -102.2 / -107.4 / -112.0 / -117.0 / -122.3 / -127.9 and "
+            "a five-year subtotal of -494.6; 'Data source: Staff of the Joint "
+            "Committee on Taxation', which is why the record keeps JCT as its "
+            "source_name. Everything the manifest claimed for -$960B is true "
+            "of this figure instead: the same reform, the same estimator, the "
+            "same FY2023-2032 window, the same vintage. "
+            "**The row is not a duplicate of cbo_opt45_all_rates_1pp and it is "
+            "not scored on its own decade either.** That row is the identical "
+            "option in the 2025-2034 volume at -$1,185.3B, and CBO's two "
+            "editions differ by $104.0B (9.6%) for one unchanged reform - the "
+            "size of a decade of base growth, and the size of most of this "
+            "row's residual, because the runner opens its window in FY2025. "
+            "FY2022_TARGET_WINDOW_RULE would close it and would move a model "
+            "output, so R2 published the number and left the .v3 to the owner. "
+            "Read the pair as one measurement of the model's window "
+            "insensitivity rather than as two independent observations."
         ),
         alternatives=(
-            "CBO Options 2023-2032 Vol. I: $1,081.3B.",
             "CBO Options 2025-2034 Option 45 alternative 1: $1,185.3B "
-            "(carried as cbo_opt45_all_rates_1pp).",
+            "(carried as cbo_opt45_all_rates_1pp, the same reform on the "
+            "model's own scoring window).",
+            "CBO Options 2020 (pub. 56783) Option 1 alternative 1: $884.0B "
+            "over FY2021-2030 — the same reform a third time, and the third "
+            "different figure.",
         ),
     ),
     # ------------------------------------------------------------------

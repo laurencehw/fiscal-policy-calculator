@@ -126,7 +126,7 @@ def test_retired_row_without_a_reason_is_rejected(monkeypatch):
 
     tampered = tuple(
         replace(case, retired=True, retired_reason="")
-        if case.policy_id == "medicare_surcharge_2pp"
+        if case.policy_id == "biden_high_income_tax" and case.is_live
         else case
         for case in PREREGISTERED_CASES
     )
@@ -391,7 +391,7 @@ def test_edited_manifest_target_is_rejected(monkeypatch):
 
     tampered = tuple(
         replace(case, official_10yr_billions=case.official_10yr_billions * 1.1)
-        if case.policy_id == "medicare_surcharge_2pp"
+        if case.policy_id == "biden_high_income_tax" and case.is_live
         else case
         for case in PREREGISTERED_CASES
     )
@@ -405,9 +405,11 @@ def test_duplicate_live_rows_are_rejected(monkeypatch):
     import fiscal_model.validation.preregistered as prereg
 
     original = next(
-        c for c in PREREGISTERED_CASES if c.policy_id == "medicare_surcharge_2pp"
+        c
+        for c in PREREGISTERED_CASES
+        if c.policy_id == "biden_high_income_tax" and c.is_live
     )
-    duplicate = replace(original, case_id="medicare_surcharge_2pp.v2")
+    duplicate = replace(original, case_id="biden_high_income_tax.v3")
     monkeypatch.setattr(
         prereg, "PREREGISTERED_CASES", (*PREREGISTERED_CASES, duplicate)
     )

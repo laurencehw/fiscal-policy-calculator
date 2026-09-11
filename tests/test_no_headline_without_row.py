@@ -93,11 +93,20 @@ def test_no_badge_without_an_official_score():
     )
 
 
-def test_the_two_sets_are_the_same_44_presets():
+def test_the_two_sets_are_the_same_42_presets():
     """Pinned as a count as well as a set, so a preset added without either half
-    is a failure rather than a silent shrink on both sides."""
-    assert len(_presets_with_an_official_score()) == 44
-    assert len(PRESET_ID_TO_SCORECARD_ID) == 44
+    is a failure rather than a silent shrink on both sides.
+
+    44 until lane R2, which retired the Warren surtax's and the Medicare
+    surcharge's Tier 1 rows for want of a published target and removed both
+    ``CBO_SCORE_MAP`` official scores with them. Both presets still ship and
+    still score; they show the model's own estimate with no official
+    comparison, which is the normal case for most of the catalog. The catalog
+    count is unchanged at 52, which is the point of pinning all three: the
+    presets did not go anywhere, only the claims about them did.
+    """
+    assert len(_presets_with_an_official_score()) == 42
+    assert len(PRESET_ID_TO_SCORECARD_ID) == 42
     assert len(_catalog_ids()) == 52
 
 
@@ -123,12 +132,20 @@ def test_the_tier_composition_is_what_the_lane_registered():
     annual reproduced -$200.0B only through an unsourced 0.40 behavioural
     magnitude, and a constant fitted through an unsourced magnitude the lane
     then sourced is not a calibration to that target either.
+
+    Lane R2 then took out-of-sample 3 -> 1 by retiring two of the three badged
+    Tier 1 rows (the Warren surtax and the Medicare surcharge, neither target
+    traceable to any publication). The survivor is ``biden_high_income_tax``,
+    whose target is a printed Green Book row. **A single out-of-sample badge is
+    thin** and the count is pinned here so that reads as a finding rather than
+    as a coincidence: R3 is the lane that widens the battery and should widen
+    this alongside it.
     """
     counts: dict[str, int] = {}
     for preset_id in PRESET_ID_TO_SCORECARD_ID:
         tier = get_validation_badge(preset_id)["tier"]
         counts[tier] = counts.get(tier, 0) + 1
-    assert counts == {"fitted": 15, "reconstruction": 26, "out_of_sample": 3}
+    assert counts == {"fitted": 15, "reconstruction": 26, "out_of_sample": 1}
 
 
 def test_the_three_tiers_are_never_collapsed_into_one_claim():
@@ -164,7 +181,11 @@ def test_a_preset_with_no_row_may_not_print_a_dollar_figure():
     )
 
 
-def test_the_no_row_set_is_the_eight_the_lane_enumerated():
+def test_the_no_row_set_is_the_ten_the_lanes_enumerated():
+    """Eight after H6; ten after lane R2 retired two Tier 1 rows whose targets
+    are in no publication. Both new members keep their preset and lose only the
+    comparison, and neither prints a dollar figure in its label, which is what
+    the rule above actually forbids."""
     assert set(presets_without_a_row()) == {
         "millionaire-surtax-5pp",
         "middle-class-rate-cut-2pp",
@@ -174,6 +195,10 @@ def test_the_no_row_set_is_the_eight_the_lane_enumerated():
         "drug-reform-comprehensive",
         "carbon-tax-25",
         "ira-clean-energy-extend",
+        # Lane R2: TPC prices no 3pp AGI surtax and Treasury's surcharge is
+        # 1.2pp, so neither carried a traceable official score.
+        "ultra-millionaire-surtax-3pp",
+        "medicare-surcharge-2pp",
     }
 
 
@@ -262,7 +287,10 @@ def _context(preset_id: str) -> str:
 def test_confidence_is_keyed_to_the_tier_not_to_score_map_membership():
     fitted = _context("ss-cap-eliminate")
     reconstruction = _context("drug-reference-pricing")
-    out_of_sample = _context("medicare-surcharge-2pp")
+    # Lane R2 retired medicare-surcharge-2pp's row, so the out-of-sample
+    # exemplar is now the one Tier 1 preset whose target is a printed document
+    # row -- Treasury's FY2025 Green Book line for the 39.6% top rate.
+    out_of_sample = _context("top-rate-39-6")
     no_row = _context("across-the-board-rate-cut-5pp")
     # Fitted when H6 wrote this test; H9 moved its target onto CBO Option 62
     # alternative 2, so the same preset now reads as a reconstruction 89% off.

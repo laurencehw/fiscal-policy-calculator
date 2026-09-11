@@ -73,8 +73,12 @@ PRESET_ID_TO_SCORECARD_ID: dict[str, str] = {
     "charitable-deduction-cap": "cap_charitable",  # reconstruction, 12.5%
     # ── added by H6: a row existed for every one of these; no badge did ──
     "top-rate-39-6": "biden_high_income_tax",  # out-of-sample, 9.2%
-    "ultra-millionaire-surtax-3pp": "warren_ultramillionaire_surtax_3pp",  # oos, 19.0%
-    "medicare-surcharge-2pp": "medicare_surcharge_2pp",  # out-of-sample, 1.5%
+    # ultra-millionaire-surtax-3pp and medicare-surcharge-2pp sat here
+    # until lane R2 retired both scorecard rows: neither target could be
+    # traced to any published document, so both presets lost their
+    # CBO_SCORE_MAP official_score and a badge with no row would be a
+    # claim with nothing behind it. Both presets still score and still
+    # show the model's own estimate.
     "gilti-reform": "biden_gilti_reform",  # reconstruction, 38.4%
     "fdii-repeal": "fdii_repeal",  # reconstruction, 29.9%
     "pillar-two-adoption": "pillar_two_adoption",  # reconstruction, 23.5% (range)
@@ -142,23 +146,17 @@ LEGACY_CALIBRATED_PRESET_IDS: frozenset[str] = frozenset(
 #: ``tests/test_no_headline_without_row.py`` fails on any *undeclared*
 #: divergence above 1%.
 #:
-#: ``base_rule`` entries close when lane H1 lands its shared
-#: ``ordinary_income_base`` default (its pre-registered moves are exactly these
-#: two figures); delete the entry then. ``runner_shape`` entries are structural
+#: The two ``base_rule`` entries this registry used to carry
+#: (``ultra-millionaire-surtax-3pp`` and ``medicare-surcharge-2pp``) are gone,
+#: and not because lane H1 closed them: lane R2 retired both scorecard rows for
+#: want of a published target, so there is no row left for the app's headline to
+#: diverge from. A future ``base_rule`` entry should still be deleted when the
+#: shared ``ordinary_income_base`` default makes it moot. ``runner_shape`` entries are structural
 #: — the validation runners build their own policy from the ``CBOScore`` record
 #: and score it on the validation window, not the app's FY2026 one — so the test
 #: asserts they *still* diverge, and the registry cannot rot into a blanket
 #: exemption.
 HEADLINE_ROW_DIVERGENCE: dict[str, tuple[str, str]] = {
-    "ultra-millionaire-surtax-3pp": (
-        "base_rule",
-        "app -134.6 vs row -283.5 (52.5%): the preset scores on the ordinary "
-        "base, the row AGI-inclusive. H1 closes it.",
-    ),
-    "medicare-surcharge-2pp": (
-        "base_rule",
-        "app -166.5 vs row -314.6 (47.1%): same base rule. H1 closes it.",
-    ),
     "drug-negotiation-expand": (
         "runner_shape",
         "app -41.8 vs row -33.5 (24.8%): -37.6 on the validation window, so "

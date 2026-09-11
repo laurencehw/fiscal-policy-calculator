@@ -73,12 +73,26 @@ def test_capital_gains_records_are_no_longer_stranded():
 
 
 def test_promoted_preset_targets_are_registered_as_generic():
+    """Phase A promoted three preset-backed targets into the Generic runner.
+
+    Lane R2 retired two of them -- ``warren_ultramillionaire_surtax_3pp`` (TPC
+    prices no 3pp AGI surtax; its whole simulation is 10 percent) and
+    ``medicare_surcharge_2pp`` (Treasury's proposal is 1.2pp and prints
+    $403,790M) -- so what this asserts now is that the survivor is still
+    dispatched and the two withdrawals are not, which is the same invariant
+    from both sides.
+    """
     generic = {s.policy_id for s in get_validation_targets()}
+    assert "biden_high_income_tax" in generic
     for policy_id in (
         "warren_ultramillionaire_surtax_3pp",
         "medicare_surcharge_2pp",
     ):
-        assert policy_id in generic
+        assert policy_id not in generic
+        record = KNOWN_SCORES[policy_id]
+        assert not record.runnable
+        assert record.not_runnable_reason
+        assert "RETIRED" in record.not_runnable_reason
 
 
 def test_retired_target_is_not_dispatched():

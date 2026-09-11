@@ -41,7 +41,22 @@ def test_tax_preset_is_in_preset_policies(name):
 #: was removed rather than left quoting a number nobody published. The preset
 #: itself still ships and is still scoreable — it simply has no official
 #: comparison, which is the normal case for most of PRESET_POLICIES.
-PRESETS_WITHOUT_AN_OFFICIAL_SCORE = {"Top Rate to 45%"}
+#:
+#: Lane R2 added two more on the same rule. "Warren Ultra-Millionaire Surtax"
+#: quoted TPC's -$350B: TPC's *AGI Surtax Options* simulation is thirteen
+#: tables and every one of them is a 10 percent surtax, so no 3pp figure
+#: exists - and Warren's own Ultra-Millionaire Tax Act is a wealth tax on net
+#: worth, so the preset's shape matches no scored proposal. "High-Earner
+#: Medicare Surcharge 2pp" quoted Treasury's -$310B: the FY2025 Green Book's
+#: proposal is a **1.2pp** increase and prints $403,790M, the FY2024 volume
+#: prints $344,371M, and -$310B is neither. Quoting Treasury's own figure
+#: instead would have put a 1.2pp number beside a 2pp preset, so the entry was
+#: removed rather than replaced.
+PRESETS_WITHOUT_AN_OFFICIAL_SCORE = {
+    "Top Rate to 45%",
+    "Warren Ultra-Millionaire Surtax",
+    "High-Earner Medicare Surcharge 2pp",
+}
 
 
 @pytest.mark.parametrize("name", NEW_TAX_PRESETS)

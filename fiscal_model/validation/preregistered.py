@@ -251,7 +251,7 @@ IIJA_WINDOW_FIRST_SCORED_COMMIT = "2cde296698702e0361b13661d152a150aa922c19"
 #: :data:`R2_SECONDHAND_FIRST_SCORED_COMMIT`, a *later* commit, so "the target
 #: was fixed before the model was scored against it" is checkable from the git
 #: history rather than asserted in prose.
-R2_SECONDHAND_ENTERED_COMMIT = "0" * 40  # stamped in the scoring commit
+R2_SECONDHAND_ENTERED_COMMIT = "1ada9021a5f8690c5cc385a6ee977833509abbc4"
 R2_SECONDHAND_ENTERED_DATE = "2026-09-11"
 
 #: Commit in which R2's decisions were first scored — the commit that writes

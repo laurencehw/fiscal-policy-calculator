@@ -347,13 +347,20 @@ CBO_SCORE_MAP = {
         "source_url": "https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf",
         "notes": "Restore 39.6% top rate for income above \\$400K",
     },
-    "Warren Ultra-Millionaire Surtax": {
-        "official_score": -350.0,
-        "source": "TPC",
-        "source_date": "2020",
-        "source_url": "https://www.taxpolicycenter.org/",
-        "notes": "3pp surtax on AGI >\\$2M; TPC-range estimate",
-    },
+    # "Warren Ultra-Millionaire Surtax" used to sit here with an
+    # "official_score" of -$350B attributed to TPC. Lane R2 read TPC's *AGI
+    # Surtax Options* simulation in full: thirteen tables, every one of them a
+    # 10 percent surtax, and one revenue table (T19-0037, 23 September 2019)
+    # whose three options price 10pp above $2M at $585.325B, above $2.5M at
+    # $500.635B, and above $2M married / $1M other at $633.897B. There is no
+    # 3pp figure at TPC or anywhere, and Warren's own Ultra-Millionaire Tax Act
+    # is a *wealth* tax on net worth rather than an income surtax, so this
+    # preset's shape matches no proposal anybody scored. An official score
+    # nobody published should not be quoted in the app, so the entry was
+    # removed; the preset is unchanged and still scoreable, it simply shows the
+    # model's own estimate with no official comparison. See
+    # fiscal_model/validation/preregistered.py
+    # (warren_ultramillionaire_surtax_3pp.v1, retired).
     # "Top Rate to 45%" used to sit here with an "official_score" of -$420B
     # attributed to TPC. The Phase E provenance pass enumerated TPC's entire
     # sitemap and found no table for a 45% ordinary rate at any date, and no
@@ -362,13 +369,21 @@ CBO_SCORE_MAP = {
     # removed; the preset itself is unchanged and still scoreable, it simply
     # shows the model's own estimate with no official comparison. See
     # fiscal_model/validation/preregistered.py (top_rate_45.v1, retired).
-    "High-Earner Medicare Surcharge 2pp": {
-        "official_score": -310.0,
-        "source": "Treasury",
-        "source_date": "2024",
-        "source_url": "https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf",
-        "notes": "+2pp Medicare surcharge on investment + wage income >\\$400K",
-    },
+    # "High-Earner Medicare Surcharge 2pp" used to sit here with an
+    # "official_score" of -$310B attributed to Treasury's FY2025 Green Book.
+    # Lane R2 read three Green Books: the proposal that volume actually carries
+    # is a **1.2 percentage point** increase in each of the additional Medicare
+    # tax and the NIIT above $400,000 (report pp. 76-77), and its revenue row
+    # prints $403,790M over FY2025-2034 (report p. 242); the FY2024 volume
+    # prints $344,371M for the same proposal and the FY2023 volume has no such
+    # proposal. -$310B is none of them - the only "310,0xx" in the FY2025
+    # volume is the child-credit expansion, at -$310,024M, which is a cost.
+    # Quoting Treasury's own $403.8B here instead would put a 1.2pp figure
+    # beside a 2pp preset, so the entry was removed rather than replaced; the
+    # preset is unchanged and still scoreable, it simply shows the model's own
+    # estimate with no official comparison. See
+    # fiscal_model/validation/preregistered.py (medicare_surcharge_2pp.v1,
+    # retired) for the restatement on Treasury's own rate.
     # International Tax
     "🌍 Biden GILTI Reform (-$374B)": {
         # Wave 4 target revision (biden_gilti_reform.v2): Treasury FY2025 Green

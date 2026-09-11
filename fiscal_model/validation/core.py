@@ -294,20 +294,42 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
     # no target was touched; see planning/lanes/HSB_h2_base_growth.md section
     # 3.2, and section 3.3 for what these four targets actually are.
     "illustrative_1pp_all": [
-        "The target is not a published line item. The record carries no source URL "
-        "and its own note reads 'Rule of thumb: 1pp ~ $85-100B/year'. "
-        "cbo_opt45_all_rates_1pp scores the SAME reform - a 1pp increase in every "
-        "ordinary bracket - against CBO's own Options line item at -$1,185.3B, "
-        "23.5% away from this row's -$960.0B, so the model cannot agree with both. "
-        "Before the base-growth lane it scored -$920.3B and agreed with this one; "
-        "it now scores -$1,195.3B and agrees with CBO's. That is a registered "
-        "regression here (4.1% to 24.5%) and a 22.4%-to-1.9% improvement there, "
-        "and the difference between them is provenance, not accuracy.",
+        "Lane R2 moved this target onto the document its own record already "
+        "described. -$960.0B was a rule of thumb ('1pp ~ $85-100B/year') in no "
+        "JCT publication; the figure is now CBO publication 58164, Options for "
+        "Reducing the Deficit: 2023 to 2032, Volume I, Option 13 alternative 1, "
+        "'Raise all tax rates on ordinary income by 1 percentage point', "
+        "-$1,081.3B over FY2023-2032 (report p. 72), 'Data source: Staff of the "
+        "Joint Committee on Taxation'. The prediction did not move - the model "
+        "scores the same -$1,195.3B it did - so 24.5% to 10.5% is the target "
+        "finding its document and nothing else.",
+        "MOST OF WHAT IS LEFT IS THE WINDOW, and the size is published rather "
+        "than argued. The target covers FY2023-2032 and the runner opens its "
+        "window in FY2025; CBO's own 2022 and 2024 editions price the identical "
+        "reform at -$1,081.3B and -$1,185.3B, $104.0B apart (9.6%) for nothing "
+        "but two years of base. FY2022_TARGET_WINDOW_RULE would close it with "
+        "scoring_window_first_year=2023, which moves a model output and is "
+        "therefore a .v3 the owner registers, not a provenance lane's to take.",
+        "Read this row beside cbo_opt45_all_rates_1pp rather than as an "
+        "independent observation. They are the same reform in two Options "
+        "volumes, scored on one window with one shape, so the pair measures the "
+        "model's insensitivity to the decade (-$1,195.3B here against "
+        "-$1,207.3B there, 1.0% apart, where CBO's two figures are 9.6% apart) "
+        "rather than two separate predictions. A third edition exists and gives "
+        "a third figure: CBO 2020 (pub. 56783) Option 1 alternative 1 prices it "
+        "at -$884.0B over FY2021-2030.",
         "Real bracket creep is still not modelled and pushes the other way, so "
         "part of the over-prediction against this target is a term the model is "
         "missing rather than one it added.",
     ],
     "illustrative_top_rate_5pp": [
+        "RETIRED in lane R2 (no publication prices a +5pp top rate above "
+        "$1,000,000 - not TPC, and not the individual-rate option of any of "
+        "the four CBO Options volumes). The row is no longer scored; the "
+        "reason is the absence of a document, never the size of the error, "
+        "and the searches are in preregistered.py and benchmark_sources.py. "
+        "The notes below are kept so the withdrawal does not erase what the "
+        "row had recorded.",
         "Illustrative TPC-range target with no source URL, and internally "
         "inconsistent with top_rate_45 from the same source (retired in Phase E "
         "for exactly that reason). Part of this row's error is target error.",
@@ -328,6 +350,13 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "response at that rate level, which would take this row back down.",
     ],
     "illustrative_500k_2pp": [
+        "RETIRED in lane R2 (no publication prices a 2pp rate cut above "
+        "$500,000, and CBO's Options volumes are deficit-reduction menus that "
+        "contain no rate cut at all). The row is no longer scored; the reason "
+        "is the absence of a document, never the size of the error, and the "
+        "searches are in preregistered.py and benchmark_sources.py. The notes "
+        "below are kept so the withdrawal does not erase what the row had "
+        "recorded.",
         "Illustrative TPC-range target with no source URL. A registered "
         "regression of the base-growth lane: 8.9% under to 18.3% over.",
         "The base stays TAXABLE INCOME on the record's own words - 'TPC scores "
@@ -338,6 +367,12 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "opposite ways here relative to the raisers in this family.",
     ],
     "medicare_surcharge_2pp": [
+        "RETIRED in lane R2 (Treasury's proposal is 1.2pp and prints "
+        "$403,790M; -$310.0B is in no Green Book row for it). The row is no "
+        "longer scored; the reason is the absence of a document, never the "
+        "size of the error, and the searches are in preregistered.py and "
+        "benchmark_sources.py. The notes below are kept so the withdrawal "
+        "does not erase what the row had recorded.",
         "The largest registered regression of the base-growth lane: 1.5% to 31.8%. "
         "The row was within 1.5% of Treasury's figure with a base held at its 2023 "
         "tax year for a FY2025-2034 window, which means it was carrying an "
@@ -362,6 +397,12 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "wrong for it.",
     ],
     "warren_ultramillionaire_surtax_3pp": [
+        "RETIRED in lane R2 (TPC's AGI-surtax simulation is thirteen tables "
+        "and all of them are 10 percent; Warren's own proposal is a wealth "
+        "tax). The row is no longer scored; the reason is the absence of a "
+        "document, never the size of the error, and the searches are in "
+        "preregistered.py and benchmark_sources.py. The notes below are kept "
+        "so the withdrawal does not erase what the row had recorded.",
         "The base is now AGI, on the record's own description ('3 percentage "
         "point surtax on AGI above $2 million') and its own note ('the surtax "
         "applies to AGI, which contains the preferential LTCG/QDIV portion'). "
