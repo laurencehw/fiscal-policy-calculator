@@ -6,6 +6,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from fiscal_model.app_data import (
+    ILLUSTRATIVE_GROUP_NOTE,
+    ILLUSTRATIVE_NO_ROW_NOTE,
+    is_illustrative,
+)
 from fiscal_model.policies import (
     DEFAULT_INCOME_MEASURE,
     DEFAULT_ORDINARY_INCOME_BASE,
@@ -13,12 +18,6 @@ from fiscal_model.policies import (
     ordinary_income_base_for_preset,
 )
 from fiscal_model.preset_ids import resolve_preset
-
-from fiscal_model.app_data import (
-    ILLUSTRATIVE_GROUP_NOTE,
-    ILLUSTRATIVE_NO_ROW_NOTE,
-    is_illustrative,
-)
 
 from .policy_input_presets import (
     _CATEGORY_ORDER,

@@ -53,11 +53,7 @@ import plotly.graph_objects as go
 from fiscal_model.app_data import (
     ILLUSTRATIVE_GROUP_LABEL as ILLUSTRATIVE_AREA,
 )
-from fiscal_model.app_data import (
-    ILLUSTRATIVE_GROUP_NOTE,
-    ILLUSTRATIVE_NO_ROW_NOTE,
-    is_illustrative,
-)
+from fiscal_model.app_data import ILLUSTRATIVE_GROUP_NOTE, is_illustrative
 from fiscal_model.baseline import APP_DEFAULT_START_YEAR
 from fiscal_model.preset_ids import (
     EXCLUSIVE_GROUPS,
