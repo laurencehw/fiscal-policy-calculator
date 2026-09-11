@@ -330,7 +330,25 @@ Every condition in §4 was tested and none fired.
    package is the 82.3% enforcement row, not the 701% pharma one. Measured
    before any edit, and left alone: `composer.py` is outside this lane's files
    and excluding the row would move five package totals. Carry-over 1.
-5. **This lane reproduced H6's own finding inside a week.** The first commit
+5. **A new preset area has a second home, and only the full suite found it.**
+   `fiscal_model/validation/credibility.py`'s `PRESET_AREA_TO_SCORECARD_CATEGORY`
+   routes an area to the scorecard category whose *limitations list* and
+   *holdout label* a result surface prints, and
+   `test_confidence_band.py::test_mapping_dicts_cover_every_preset_area` fails
+   when `_preset_category` returns an area that map does not carry. **Nothing a
+   user reads had moved**: `_category_for_preset_area` defaults an unmapped
+   area to `"Generic"`, and `"Generic"` is exactly what all five already
+   resolved to through `Drug Pricing` and `IRS Enforcement` — verified by
+   running `category_for_result` over all five before and after. So the
+   demotion worked *silently* and the invariant fired anyway, which is the
+   right requirement and the reason to keep it: a new area should be a decision
+   rather than a fallback. **None of this lane's own instruments could have
+   caught it** — the surface dumps, the preset sweep, the holdout, the
+   dashboard and the badge dump were all byte-identical, because the defect was
+   in a *declaration* rather than in an output. Worth carrying: when a lane
+   adds a member to an enumerated domain, the question is not only "what does
+   this change" but "who else enumerates this domain".
+6. **This lane reproduced H6's own finding inside a week.** The first commit
    shipped `illustrative_note(preset, *, with_figure=True)` whose figure-
    composing branch had **no caller in the tree** — Explore did not need it and
    Build could not afford it, so it existed only in a test. H6 recorded exactly
@@ -348,3 +366,9 @@ Every condition in §4 was tested and none fired.
 picker does not live in `app_pages/explore.py`, which is a router. No sibling
 lane owns either file. `components/cards.py` was read and **not** edited (the
 Ask home's cards are `tcja`, `biden400k`, `corp28`, `tariff10`).
+
+`fiscal_model/validation/credibility.py` — **a seventh file, and the one this
+lane did not foresee**, in the directory the concurrent ledger lane owns. One
+entry added to `PRESET_AREA_TO_SCORECARD_CATEGORY` (§6.4 item 5); no target, no
+registry, no scorecard row touched, and the merge surface is a single dict line
+in a file that lane has no reason to open.
