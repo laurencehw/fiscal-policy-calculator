@@ -925,6 +925,82 @@ def agi_inclusive_base_caption(policy: Any, result: Any) -> str:
     )
 
 
+def income_base_projection_caption(policy: Any, result: Any) -> str:
+    """One line saying the generic base is priced in the years being scored.
+
+    The generic income-tax path reads IRS SOI Table 1.1 for its tax year, and a
+    ten-year score prices ten later years. The base is projected onto each
+    scored year by the ratio of the **scored baseline's own** nominal income
+    index between the two years, which on the app's February 2026 vintage
+    averages 1.356 across FY2026-2035. Held flat instead — one annual stamped
+    on all ten years, ``yr1 == yr10`` to the cent — a FY2026-2035 question is
+    answered with a TY2023 base.
+
+    Two things this caption must not get wrong, one of them found in review:
+
+    * **The figures it quotes are the conventional score**, ``static +
+      behavioral``, which is what the headline above it shows. On a static run
+      that array *is* ``final_deficit_effect``; on a **dynamic** run the final
+      path also carries ``revenue_feedback``, a function of the deficit path's
+      *level* that does not scale with the static projection factor. Reading it
+      would print a "now" figure disagreeing with the one being explained *and*
+      reconstruct a "before" this policy never printed.
+    * **The counterfactual divides the scored path, it does not rebuild the
+      base.** Every year's contribution was multiplied by that year's own
+      factor, so dividing each year back out is exact — including on the
+      per-status split path, where four populations face four floors and
+      ``(avg − threshold) × filers`` does not hold.
+
+    Returns ``""`` for every policy whose base did not come from SOI, and for a
+    baseline carrying no GDP path.
+    """
+    if not isinstance(policy, TaxPolicy) or isinstance(policy, CapitalGainsPolicy):
+        return ""
+    soi_year = getattr(policy, "soi_base_tax_year", None)
+    if soi_year is None:
+        return ""
+
+    baseline = getattr(result, "baseline", None)
+    years = getattr(result, "years", None)
+    if baseline is None or years is None or len(years) == 0:
+        return ""
+    index = getattr(baseline, "nominal_income_index", None)
+    if index is None:
+        return ""
+
+    anchor = float(index(int(soi_year)))
+    if anchor <= 0:
+        return ""
+
+    # The conventional path, for the reason in the docstring: it is the one the
+    # projection is linear in, and on a static run it is final_deficit_effect
+    # to the cent.
+    path = np.asarray(result.static_deficit_effect, dtype=float) + np.asarray(
+        result.behavioral_offset, dtype=float
+    )
+    factors = np.array([float(index(int(year))) / anchor for year in years])
+    if not np.all(factors > 0) or np.allclose(factors, 1.0):
+        return ""
+
+    total = float(path.sum())
+    previous = float(np.sum(path / factors))
+    if total == 0.0 or previous == 0.0:
+        return ""
+
+    first, last = int(years[0]), int(years[-1])
+    return (
+        f"Base year: the filer counts and incomes behind this score are IRS SOI "
+        f"tax year {int(soi_year)}, and they are projected onto each year being "
+        f"scored — {factors[0]:.3f}× in FY{first} rising to {factors[-1]:.3f}× in "
+        f"FY{last}, {factors.mean():.3f}× on the window average, off this "
+        f"baseline's own nominal path. Held at TY{int(soi_year)} across all ten "
+        rf"years, as a flat base, it would score \${previous:+,.1f}B rather than "
+        rf"the \${total:+,.1f}B above. The index is the baseline's, not a "
+        f"constant, so a run on a different vintage or window projects "
+        f"differently."
+    )
+
+
 #: Classes whose behavioural offset returned the **negation** of the contract
 #: before the offset-sign sweep (2026-09-05), in every direction.
 _OFFSET_SIGN_INVERTED = (AMTPolicy, EstateTaxPolicy, PremiumTaxCreditPolicy)
@@ -1429,6 +1505,9 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     base_note = agi_inclusive_base_caption(policy, result)
     if base_note:
         st_module.caption(base_note)
+    base_year_note = income_base_projection_caption(policy, result)
+    if base_year_note:
+        st_module.caption(base_year_note)
     for corporate_note in corporate_estimator_range_captions(
         policy, result, getattr(scored, "policy_name", "") or ""
     ):

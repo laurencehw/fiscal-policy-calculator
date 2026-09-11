@@ -316,6 +316,14 @@ class BaselineProjection:
     # Economic variables
     nominal_gdp: np.ndarray = field(default_factory=lambda: np.zeros(10))
     real_gdp: np.ndarray = field(default_factory=lambda: np.zeros(10))
+    #: Nominal GDP for ``start_year - 1`` - the level this vintage's own
+    #: Table B-1 publishes for the year before the window opens, and the level
+    #: :meth:`CBOBaseline._project_gdp` compounds ``nominal_gdp`` from. Carried
+    #: so :meth:`nominal_income_index` can reach a year *before* the window
+    #: without extrapolating one it already knows. ``0.0`` on a projection
+    #: built by hand rather than by :meth:`CBOBaseline.generate`, which is what
+    #: makes the index degrade to 1.0 rather than guess.
+    base_nominal_gdp: float = 0.0
 
     # Revenue categories
     individual_income_tax: np.ndarray = field(default_factory=lambda: np.zeros(10))
@@ -367,6 +375,63 @@ class BaselineProjection:
     def debt_to_gdp(self) -> np.ndarray:
         """Debt as percentage of GDP."""
         return self.debt_held_by_public / self.nominal_gdp * 100
+
+    def nominal_income_index(self, year: int) -> float:
+        """Nominal-income level for ``year``, in this vintage's own units.
+
+        Read-only. Built entirely from figures this projection already carries,
+        so it introduces no constant and nothing fitted:
+
+        * ``start_year - 1`` is :attr:`base_nominal_gdp`, the level the
+          vintage's own Table B-1 publishes for the year before the window;
+        * ``start_year + i`` is ``nominal_gdp[i]``, that vintage's own projected
+          path, which is its transcribed ``real_gdp_growth + inflation``
+          compounded off the same level;
+        * outside both, the nearest observed growth rate is continued - the rule
+          :func:`fiscal_model.payroll.covered_earnings` and
+          :meth:`CBOBaseline._published_corporate_receipts` already apply at the
+          ends of their own tables.
+
+        Callers use it as a **ratio** between two years, so the level's own
+        anchor cancels and the result is a pure function of the vintage's growth
+        assumptions. Returns ``0.0`` when this projection carries no GDP path at
+        all (a hand-built :class:`BaselineProjection`), which is the signal for
+        a caller to leave its quantity unprojected rather than guess a path.
+        """
+        gdp = np.asarray(self.nominal_gdp, dtype=float)
+        if gdp.size == 0 or not np.any(gdp > 0):
+            return 0.0
+
+        first_year = int(self.start_year)
+        last_year = first_year + int(gdp.size) - 1
+        year = int(year)
+
+        if first_year <= year <= last_year:
+            return float(gdp[year - first_year])
+
+        if year > last_year:
+            if gdp.size < 2 or gdp[-2] <= 0:
+                return float(gdp[-1])
+            growth = float(gdp[-1] / gdp[-2]) - 1.0
+            return float(gdp[-1]) * (1.0 + growth) ** (year - last_year)
+
+        # Before the window. The year immediately before it is published.
+        base = float(self.base_nominal_gdp)
+        if base > 0:
+            if year == first_year - 1:
+                return base
+            growth = float(gdp[0] / base) - 1.0
+        elif gdp.size >= 2 and gdp[0] > 0:
+            growth = float(gdp[1] / gdp[0]) - 1.0
+            base = float(gdp[0]) / (1.0 + growth) if growth > -1.0 else float(gdp[0])
+            if year == first_year - 1:
+                return base
+        else:
+            return float(gdp[0])
+
+        if growth <= -1.0:
+            return base
+        return base / (1.0 + growth) ** (first_year - 1 - year)
 
     def get_year_index(self, year: int) -> int:
         """Get array index for a given year."""
@@ -605,9 +670,13 @@ class CBOBaseline:
             years=self.years.copy()
         )
 
-        # Generate GDP path
+        # Generate GDP path. ``base_gdp`` is the level for ``start_year - 1``,
+        # which ``_project_gdp`` compounds the first window year off; carrying
+        # it lets ``nominal_income_index`` reach a year before the window
+        # without extrapolating one the vintage already publishes.
         proj.nominal_gdp = self._project_gdp()
         proj.real_gdp = self._project_real_gdp()
+        proj.base_nominal_gdp = float(self.base_gdp)
 
         # Generate revenues
         proj.individual_income_tax = self._project_individual_tax()
