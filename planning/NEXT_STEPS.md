@@ -1,6 +1,6 @@
 # Next Steps — Fiscal Policy Calculator
 
-> Roadmap last reviewed April 2026; the validation scorecard below was re-derived 2026-09-05. This file tracks roadmap items beyond the current shipped branch.
+> Roadmap last reviewed April 2026; the validation scorecard below was re-derived 2026-09-11 (post-Wave-C). This file tracks roadmap items beyond the current shipped branch.
 
 For a manuscript-focused path to citation-grade quality, see [MANUSCRIPT_95_PLUS.md](MANUSCRIPT_95_PLUS.md). For repo-grounded go/no-go gates on the two biggest upgrades, see [FEASIBILITY_CHECKLISTS.md](FEASIBILITY_CHECKLISTS.md).
 
@@ -20,25 +20,73 @@ phrasing was on this line until 2026-09-01 and was wrong. Live numbers from
 
 | Tier | What it measures | n | Mean | Median |
 |---|---|--:|--:|--:|
-| Out-of-sample, pre-registered | prediction | 26 | **14.7%** | 12.6% |
+| Out-of-sample, pre-registered | prediction | 26 | **14.5%** | 11.5% |
 | Calibrated, fitted | bookkeeping (low by construction) | 16 | **1.5%** | 0.1% |
 | … fitted, ledger rows held in place | the same tier without the composition move | 27 | **11.9%** | 1.1% |
-| Unfitted module reconstructions | modules vs targets never fitted to | 39 | **55.5%** | 29.9% |
+| Unfitted module reconstructions | modules vs targets never fitted to | 39 | **56.7%** | 36.9% |
 | Calibrated, leave-one-out | how much of the calibration is structure | 18 | **35.7%** | 29.1% |
 
-Out-of-sample is **15/26 within 15%, 23/26 within 25%**, and it is itself **eight
+Out-of-sample is **16/26 within 15%, 22/26 within 25%**, and it is itself **eight
 policy classes**, each now carrying its own CI ceiling:
 
 | Class | n | mean | mass | ceiling | before Wave A |
 |---|--:|--:|--:|--:|--:|
 | AGI-inclusive surtax | 6 | **17.6%** | 105.4 | 22 | 20.7% |
-| capital gains | 4 | 20.5% | 82.0 | 26 | 20.5% |
+| capital gains | 4 | **18.7%** | 74.8 | **24** | 20.5% |
 | ordinary rate change | 4 | **14.8%** | 59.3 | 19 | 12.0% |
 | corporate | 1 | 44.5% | 44.5 | 56 | 44.5% |
 | enacted-law spending | 3 | 13.4% | 40.2 | 17 | 13.4% |
 | discretionary spending | 5 | 4.6% | 23.2 | 6 | 4.6% |
 | payroll | 2 | 7.8% | 15.6 | 10 | 7.8% |
 | tax expenditure | 1 | 13.1% | 13.1 | 17 | 13.1% |
+
+**Wave C of [HIGH_STAKES_ACCURACY.md](HIGH_STAKES_ACCURACY.md) is done**
+(2026-09-11, PRs #148-#151), and it is the mirror image of Waves A/B: **no target
+moved, no constant was retuned, and the two tiers that moved both moved on
+mechanism.** Row 1 fell **14.7% → 14.5%** and row 4 **rose 55.5% → 56.7% on the
+same 39 rows** — accuracy, not composition, and registered as worse in advance.
+The fitted tier, its held-in-place reading and leave-one-out are byte-identical
+across the wave.
+
+**H5 (PR #151) found the module carrying two death rates 8.3× apart.**
+`estate_flow_rate` is Poterba & Weisbenner's *dollar* flow of estates used as a
+*headcount* rate — 408,532 decedents against roughly 3.09 million NCHS deaths —
+while `death_exit_rate()` has priced the lock-in wedge off a **2.647%/yr**
+mortality-weighted rate since Wave 2. The count is now **3,384,194**, the level
+is untouched, and a fixed per-donor exclusion bites 8.3× harder:
+`cbo_opt51_gains_at_death` **20.3% → 35.5%** (registered regression),
+`biden_capital_gains_39` **32.8% → 27.0%**, `treasury_capgains…v2` **18.4% →
+1.8%**, the class **20.5% → 18.7%** — the first class to reach its §5 target.
+**Read the 1.8% as half of a correction, not as accuracy**: the count and the
+level come from the same ratio, only the count was authorised to move, and the
+level that flow implies is **7.1× below** the module's own death-exit rate, which
+points the other way (§6.2 item 55). **The plan's instruction to grade the rate
+by estate size was refuted in sign** — the wealthy are older, so a size-graded
+rate is *higher* at the top (2.84% vs 2.65%) and takes the implied top count
+*further* from SOI's.
+
+**H8 (PR #150) found the plan's residual cause for the whole trade block
+backwards, and said so before opening a file.** All five tariff targets are
+*conventional* estimates and the model sat below every one, so the GDP-feedback
+drag the plan prescribed would have moved every row **further** out; the
+0.60–0.66 vs 40–50% net/gross comparison was a **denominator mismatch** besides.
+The channel is built and **reported beside** the score; what moved the rows is
+that **retaliation left the conventional score**, which the repository's own
+knowledge file had already described as the right convention while every scenario
+and preset ran the other way. `Trade` **34.2% → 43.6%**, registered as worse,
+with `steel_tariff_25` (11.89% → **75.28%**) carrying the whole of the net against
+an untraceable target and the **four documented rows improving 39.72% → 35.66%**.
+Five shipped presets moved with a Decision 6 caption.
+
+**H4 (PR #149) and the label lane (PR #148) moved no scored number.** The
+accuracy band on a result is now its own policy class's Tier 1 spread rather than
+a fixed proportion of the point estimate — **31 of 56 surfaces had been printing
+the whole Tier 1 tier's ±14.7% for policies with no Tier 1 row** — and **35 of 53
+presets now print no band and the reason**, with their own row's error and tier
+beside the absence. Six preset labels moved onto their row's current published
+target, and the invariant runs against all **40** figure-carrying labels with no
+exemptions; one of the six had been printing **the model's own output** where a
+published score belongs.
 
 **Waves A and B of [HIGH_STAKES_ACCURACY.md](HIGH_STAKES_ACCURACY.md) are done**
 (2026-09-10, PRs #140-#146), and they moved all four rows for three different

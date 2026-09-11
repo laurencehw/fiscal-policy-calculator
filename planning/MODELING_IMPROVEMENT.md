@@ -1987,6 +1987,241 @@ to move it to**: no agency has ever scored a cap at a chosen dollar level.
   applied.
 
 
+## 5.9 Wave C of the high-stakes plan (2026-09-11, PRs #148-#151)
+
+Four PRs, the third wave of
+[`HIGH_STAKES_ACCURACY.md`](HIGH_STAKES_ACCURACY.md): **H4** empirical bands
+(`ui/hs-c-h4-bands`, PR #149), **H5** the decedent headcount
+(`model/hs-c-h5-decedent-headcount`, PR #151), **H8** tariffs
+(`model/hs-c-h8-tariff-feedback`, PR #150), plus the label-figure lane
+(`ui/hs-c-label-figures`, PR #148) that discharged §6.2 item 43 and H9's second
+carry-over. Each pre-registered in `planning/lanes/` before touching code and
+appended an outturn; those files are the record and this is the summary.
+**Every figure here is from `scripts/cold_holdout.py --json`,
+`scripts/run_loo.py --donor-matrix`, `scripts/run_validation_dashboard.py`,
+`scripts/build_validation_headline.py --check` and a 53-preset sweep by stable
+id on the merged tree.**
+
+**Two of the four moved no scored number at all**, and the two that did moved
+rows in opposite directions — which is why the wave's two tier movements must be
+reported separately and not netted.
+
+### The tiers, before → after
+
+| tier | before (post-Wave-B) | after (merged) |
+|---|---|---|
+| Out-of-sample (Tier 1) | 26 @ 14.7% / 12.6% median / 15 within 15 / 23 within 25 | **26 @ 14.5% / 11.5% / 16 / 22** |
+| … error mass | 383.3 | **376.1** |
+| Calibrated reference (fitted) | 16 @ 1.5%, 16/16 within 15 | **unchanged** |
+| … fitted, ledger rows held in place | 27 @ 11.9%, 22/27 | **unchanged** |
+| Unfitted reconstructions | 39 @ 55.5% / 29.9%, 11 within 15 | **39 @ 56.7% / 36.9%, 10 within 15** |
+| … *the same 39 rows* | 55.5% | **56.7% — accuracy, not composition** |
+| … `Trade` sub-population | 5 @ 34.2% | **5 @ 43.6%** (35.66% on the four with a document) |
+| Leave-one-out | 18 @ 35.7% / 29.1% | **unchanged, donor matrix byte-identical** |
+| Distributional | 7 @ 0.00-5.86pp | **unchanged** |
+| Scorecard rows | 81, 77 published | **unchanged** |
+| Provenance, both tiers | 57 / 8 / 12 / 4 / 0 | **unchanged** |
+| `revised_target_entries` / `EXAMINED_NOT_REVISED` / retired | 22 / 14 / 0 | **unchanged** |
+| Preset badges | 44 (16 fitted / 25 reconstruction / 3 out-of-sample) | **unchanged** |
+| Tier 1 CI gate | `20 / 22` + eight class ceilings | **`20 / 22`**, capital-gains ceiling **26 → 24** |
+
+**No target moved in this wave and no constant was retuned.** Both calibrated
+tiers and leave-one-out are byte-identical, which each lane registered in advance
+as its own falsification test. That is the clean case Wave 5 established and the
+opposite of Wave B, where three tiers moved on targets and none on mechanism.
+
+### Tier 1: one class moved, and the tier fell because of a row that got worse
+
+**PR #151 is the only lane that touches Tier 1**, and it moves three of the four
+capital-gains rows in two directions at once. `CapitalGainsBaseline._decedent_template`
+divided households by `estate_flow_rate` — Poterba & Weisbenner's **dollar** flow
+of estates over DFA net worth, dollars over dollars — to get a headcount of
+**408,532** against roughly 3.09 million NCHS deaths, while `death_exit_rate()`
+has returned `mortality_weighted_net_worth_share` (**2.647%/yr**, NCHS 2022 life
+table against DFA net worth by age) and priced the lock-in wedge and the
+accrued-gains drift with it since Wave 2. **One module, two death rates, 8.3×
+apart.** The count is now the second of those, **3,384,194**; the level is
+untouched at $196.2097B in 2025, so the count enters only as a divisor and gains
+at death by DFA group are identical to twelve significant figures.
+
+| row | before | after | registered band | verdict |
+|---|--:|--:|---|---|
+| `cbo_opt51_gains_at_death` | 20.3% | **35.5%** | 35.5 ± 2 | registered regression |
+| `biden_capital_gains_39` | 32.8% | **27.0%** | 27.0 ± 2 | in band |
+| `treasury_capgains_39_plus_stepup_elim.v2` | 18.4% | **1.8%** | 1.8 ± 2 | in band |
+| `cbo_opt47_ltcg_qdiv_2pp` | 10.5% | **10.5%** | unmoved | unmoved to the cent |
+
+Capital gains **20.5% → 18.7%**, mass 82.0 → 74.8; every other class is
+byte-identical. Within-25 fell **23 → 22**, which is exactly the CI floor, and
+the lane had registered anything below it as a falsification.
+
+**Read the 1.8% the way the lane does and not as accuracy.** The count and the
+level come from the **same** PW ratio and only the count was authorised to move;
+held against `death_exit_rate`, PW's flow implies **0.372% of the accrued-gains
+stock** where the stock's death exit is priced at **2.647%**, a factor of **7.1**,
+of which the inter-spousal exclusion is some and nobody has measured how much.
+`cbo_opt51` under-predicts, so a larger level would close what this lane opened.
+**This is half of a two-sided correction and the lane says so in its own §7.**
+
+### The reconstruction tier moved on accuracy, in the direction the lane registered
+
+**PR #150 is the only lane that touches it**, and the same 39 rows sit in the
+tier before and after, so **55.5% → 56.7% is like-for-like**. All of it is
+`Trade`, 34.2% → **43.6%**:
+
+| row | target $B | before | after | error | registered |
+|---|---:|---:|---:|---:|---:|
+| `trump_universal_10` | −2,171.1 | −1,258.5 | **−1,369.8** | 42.03% → **36.91%** | 36.90% |
+| `trump_china_60` | −650.0 | −278.4 | **−331.1** | 57.17% → **49.06%** | 49.06% |
+| `auto_tariff_25` | −386.2 | −182.2 | **−203.9** | 52.81% → **47.20%** | 47.20% |
+| `steel_tariff_25` | −60.0 | −52.9 | **−105.2** | 11.89% → **75.28%** | 75.5% |
+| `reciprocal_tariffs` | −1,500.0 | −1,396.8 | **−1,642.0** | 6.88% → **9.47%** | 9.39% |
+
+Four of the five improve; `steel_tariff_25` carries the whole of the net, against
+a target that is untraceable and examined-and-left twice, and **on the four rows
+that have a document the sub-population improves 39.72% → 35.66%**.
+`reciprocal_tariffs` got **worse against its anchor and better against its
+range** — `within_published_range` False → **True**, distance $3.2B → **$0.0B**
+against [−$1,800B, −$1,400B] — and the row carries both readings, because both
+are correct and neither supersedes the other.
+
+### Four findings the wave produced
+
+**1 — The plan's residual cause for the whole trade block was backwards, and the
+lane wrote that down before opening a file.** §1.2 row 6 and §3 H8 blamed
+`trump_universal_10`'s 42.0% on a missing GDP-feedback channel and registered the
+row *improving* to 20 ± 10 once it landed. **Adding a drag moves every trade row
+further from its target**: all five targets are *conventional* estimates and the
+model already sat below every one of them in magnitude. The 0.60–0.66 vs 40–50%
+net/gross comparison was a **denominator mismatch** on top of that — the module
+divides by gross duty *after* the import-demand response and the knowledge
+snapshot's band divides by gross *before* it, on which the universal preset
+already read **0.589**. So the channel is built and **reported beside** the
+score, the column structure Tax Foundation FF861 itself publishes, and what moved
+the rows is a convention correction the plan never named: **retaliation left the
+conventional score**, where it was a category error against every target the
+scorecard carries — and the repository already knew, because
+`tariff_scoring_methodology.md` tells the Ask assistant that
+`include_retaliation=False` "gives a strictly conventional score" while all five
+scenarios and all five presets ran with it `True`. `estimate_behavioral_offset`
+is now avoidance plus the income-and-payroll offset, **0.7125 of gross in either
+direction**, against FF861's implied 0.738.
+
+**2 — "Applied by size class" was refuted in sign, off the two tables the plan
+itself names.** §3 H5 asked for the mortality rate graded by estate size so the
+implied count at the top would fall toward SOI's 7,194. Read off the DFA's net
+worth by age of head and NCHS Table 1's `Lx`, the grading runs the **other way**,
+because the wealthy are older and therefore die at a *higher* rate:
+
+| weighting | rate |
+|---|--:|
+| head-weighted (adult stationary population) | 1.6456% |
+| net-worth-weighted (the shipped parameter) | 2.6468% |
+| size-graded, at the top of the distribution | **2.8400%** |
+
+Grading takes the implied count above $12.92M to **38,908** where the uniform
+swap takes it to **36,262** — both *further* from 7,194, not nearer. Two
+corollaries. The SOI comparison **needs a unit before it is a comparison**: SOI
+counts *individual* decedents over a *gross-estate* threshold and the model counts
+*households* over net worth, so a model count above SOI's is the expected sign and
+W7's "1.6× short at the top against 7.6× overall" asymmetry is at least partly
+that gap. And **W7's arithmetic prediction was wrong by more than 4×** — it said
+about *twice* the count would reproduce Treasury's $1M → $5M exclusion step of
+$33.4B, and 8.3× the count takes the step to **$9.40B**, through Treasury's figure
+and out the other side.
+
+**3 — The shipped accuracy band was worse than the plan's description of it, and
+the largest defect was not on the plan's list.** §3 H4 said the ETI branch
+"returns nothing for every calibrated preset". It does not return nothing; it
+*falls through*, and `get_band_for_result` fell through to `Generic`, which **is**
+the Tier 1 tier — so **31 of 56 surfaces printed "±14.7% across 26 calibrated
+runs"** for policies with no Tier 1 row at all, *International Reference Pricing*
+drawing a ±14.7% ribbon beside a scorecard row 701.0% from its target. The two
+branches it replaced were both **fixed proportions of the point estimate**: 13
+rows drew exactly `0.1 / 0.875` = 11.43% of the headline, the identical ribbon for
+Flat Tax Reform at +$6,239.4B and the Medicare surcharge at −$426.6B; 27 drew one
+of four per-module fractions. What replaces them is the policy's own class's Tier
+1 spread, keyed by the same routing the CI per-class gate uses
+(`fiscal_model/validation/policy_classes.py`, imported by `cold_holdout.py`, which
+is byte-identical). **18 of 53 presets get a band; 35 print no band and say why**,
+with their own row's error and tier printed beside the absence. **Coverage of the
+inner band is computed and printed rather than asserted, and it is not a majority
+everywhere** — `ordinary rate change` covers 1 of 4, because a 14.8% mean sits
+under a 16.4% median.
+
+**4 — A preset label was printing the model's own output in the slot a published
+score occupies.** `🌱 Repeal IRA Clean Energy Credits ($783B)`: −783.0 is
+`model_10yr_billions` and the live target is −851.0, positively signed on top.
+That is `trump_corporate_15`'s `model_estimate` target (#122) and
+`repeal_corporate_amt`'s inverted sign (#119/#140) in a **third** mechanism — the
+app quoting itself back at the user in the one place the user cannot see it doing
+so. Six labels now quote their row's current published target,
+`_LABELS_QUOTING_A_SUPERSEDED_FIGURE` went **5 → 0**, and
+`test_a_label_figure_never_contradicts_its_own_official_score` runs against **all
+40 figure-carrying labels with no exemptions** for the first time. Two smaller
+ones: **the worst stale string was not a label** but
+`assistant/knowledge/ssa_trustees_2025.md`, which told the Ask assistant the
+$250K donut was "scored by CBO at −$2.7T (model: −$2.4T, error 12%)" — three
+errors in one BM25-indexed clause; and **`methodology.py` had that row under the
+wrong *tier***, inside "calibrated reference models" at 0.0%, when a calibrated
+reference stops being one the moment its target moves and its constant does not
+follow.
+
+### Where the pre-registrations were wrong
+
+- **H8's three improvement bands were unreachable by the mechanism the plan
+  named**, and the lane's §0 said so before any file was opened (finding 1). What
+  it registered instead — the four post-retaliation figures and `steel_tariff_25`
+  at 75.5% — landed to two decimal places.
+- **Two of H5's three bands were written against pre-#126 readings.**
+  `biden_capital_gains_39` could not reach **15 ± 8**: its rate channel alone is
+  $359.02B against a $288.6B target, 24.4% over with the death channel set to
+  *zero*. And `treasury_capgains…v2` could not *regress* to **22 ± 6**, because
+  since PR #126 it is scored on its own FY2022–2031 decade where the model is
+  **under** on the rate channel, so shrinking the death channel was always going
+  to improve it. The lane registered its own computed bands beside the plan's and
+  landed on all three.
+- **H4's description of the band it was replacing was wrong in the direction that
+  understated the defect** (finding 3), and the correction is in the lane doc
+  rather than in the plan, because measuring the shipped surface was the first
+  thing the lane did.
+- **`steel_tariff_25`'s floor base would have scored 1.7%**, and the lane declared
+  and refused it: −$59.0B against the −$60.0B target is a base missing most of
+  what Section 232 reaches, and closeness to an untraceable figure is not a reason
+  to keep it.
+
+### A process lesson two lanes hit independently
+
+**A piped pytest reports the pipe's exit code, not pytest's.** PR #151 recorded a
+run that reported exit 0 from `| tail -25` while pytest had failed, and PR #149
+lost a full suite run the same way; PR #119 §7.5 is the same lesson in its first
+costume ("identical to main" is only evidence when the check being compared can
+distinguish them). The rule every lane now follows: **write pytest's output to a
+file and read the file**, and take the exit code from the unpiped command.
+`ANTHROPIC_API_KEY` stays unset for the suite (process rule 6) and is used only
+for the deliberate smoke run.
+
+### What Wave C did not do
+
+- **Did not move a target, retune a constant, or open the ledger.** Both
+  calibrated tiers, leave-one-out and all 81 scorecard provenance fields are
+  byte-identical.
+- **Did not take the level half of the capital-gains death channel** (finding 2's
+  7.1× factor), which is a level nobody may change by implication and is now
+  §6.2 item 55.
+- **Did not decide the decedent universe.** The crude adult rate reads `cbo_opt51`
+  at 32.1% and the class at 17.7%, the all-age rate 28.4% and 16.9% — both
+  *better* than the authorised constant, and both refused, because picking the
+  best of three is fitting a parameter to a benchmark.
+- **Did not register a new Tier 1 row.** Eight classes at n = 1, 1, 2, 3, 4, 4,
+  5, 6 is a thin basis for a band and two classes print a single observation;
+  registering one here would have been selecting a target after seeing what the
+  band needed. That is H10, Wave E.
+- **Did not rewrite the twelve `PRESET_POLICY_PACKAGES` totals** whose stated
+  figures no longer equal their member sums (§6.2 item 56), because the only
+  reader is dead code and twelve list prices are a decision about figures.
+
+
 ---
 
 
@@ -2080,14 +2315,18 @@ that file.
 
 > **Sequencing note (2026-09-06).** [`HIGH_STAKES_ACCURACY.md`](HIGH_STAKES_ACCURACY.md) re-ranks this list by *who reads the number* and supersedes its **sequencing**, not its rules or its contents; items that plan does not schedule stay open here.
 
-**Waves 1–7 of this plan are complete, and Waves A and B of the high-stakes plan
-have run on top of them** (§5.8). PRs #119–#122 closed three of the six items
+**Waves 1–7 of this plan are complete, and Waves A, B and C of the high-stakes
+plan have run on top of them** (§5.8, §5.9). PRs #119–#122 closed three of the six items
 Wave 5 opened plus answered a fourth, and **Wave 7 (PRs #126–#132) closed seven
 more** — items 8 (on direction), 15, 24, 25, 30 and 31, plus the dashboard half
 of the sweep's §7.5 finding. **Waves A/B (PRs #140–#146) then closed item 37 —
 both halves of it, the base growth and the AGI column — and opened items 43–54
 below**, which is the shape of a wave that measured four things it did not
-build. Item 37 is struck where it stands. **Two of those seven closed by being disproved
+build. Item 37 is struck where it stands. **Wave C (PRs #148–#151) closed item 43
+and the headcount half of item 15, and opened items 55–65** — again more than it
+closed, and again for the same reason: three of its four lanes measured a shipped
+surface before changing it, and two of them found the *plan's own diagnosis*
+wrong (§5.9 findings 1 and 2). **Two of those seven closed by being disproved
 rather than fixed**, which is why the list below is longer than the items it
 lost: the decedent ladder was not the cause of the exclusion-step gap, and the
 filing-status split made three of its four rows worse. Wave 7's own new items are
@@ -2644,7 +2883,25 @@ by 2–4×.
     Two things the owner should weigh: the tier mean would fall by another 0.7pp,
     and a rule applied to one row and not the other is worse than a rule applied
     to neither.
-36. **The decedent headcount — what item 15 turned out to be.** *(New, from
+36. ~~**The decedent headcount — what item 15 turned out to be.**~~ — **CLOSED by
+    PR #151** (`planning/lanes/HSC_h5_decedent_headcount.md`), and **two of the
+    three quantitative claims below did not survive it**. The count is now
+    `death_exit_rate()`'s own 2.647%/yr — **3,384,194** decedents against 408,532
+    — with the $196.2097B level untouched; `cbo_opt51_gains_at_death` **20.3% →
+    35.5%** as the registered regression this item predicted,
+    `biden_capital_gains_39` 32.8% → 27.0%, the Treasury row 18.4% → 1.8%, the
+    class 20.5% → **18.7%**. What did **not** survive: **"about twice the shipped
+    count reproduces Treasury's step"** — 8.3× the count takes the $1M → $5M step
+    to **$9.40B** against Treasury's $33.4B, through the figure and out the other
+    side; and **"start at the top", because grading the rate by estate size runs
+    the wrong way** — the wealthy are older, so a size-graded rate is *higher* at
+    the top (2.8400% against 2.6468%) and takes the implied top count to 38,908
+    where the uniform swap takes it to 36,262, both further from SOI's 7,194. The
+    SOI comparison also needs a unit before it is a comparison (individual
+    decedents over a gross estate vs households over net worth). The **level**
+    half is open as item 55 and points the other way; the universe question is
+    item 61. Original text below.
+    <br>*(As written after Wave 7:)* *(New, from
     `planning/lanes/W7_decedent_ladder.md` §8.4 and finding 2.)* The shipped count
     is `households × household_share × estate_flow_rate`, where **`estate_flow_rate`
     is Poterba & Weisbenner's *dollar* flow of estates over net worth (0.3195%/yr)
@@ -2765,8 +3022,20 @@ by 2–4×.
     exclusion is the only thing that separates them"; the calendar year now
     separates them too. All three pass or are inert; none is a scored quantity.
 
-43. **Five preset labels quote a figure the ledger has superseded, and two more
-    were mis-signed.** *(New, from `planning/lanes/HSB_h9_provenance.md` §8.5 and
+43. ~~**Five preset labels quote a figure the ledger has superseded, and two more
+    were mis-signed.**~~ — **CLOSED by PR #148** (`planning/lanes/HSC_label_figures.md`).
+    Six labels were renamed onto their row's current published target and two
+    signs corrected, with **zero numbers moving**;
+    `_LABELS_QUOTING_A_SUPERSEDED_FIGURE` went **5 → 0** and the invariant now
+    runs against all **40** figure-carrying labels with no exemptions. The
+    unpredicted part is worth keeping: `🌱 Repeal IRA Clean Energy Credits
+    ($783B)` was not quoting a *superseded target* at all — −783.0 is
+    `model_10yr_billions`, so the app was printing **its own output** in the slot a
+    published score occupies, a third mechanism for the class of defect #119 and
+    #122 each found once. Two spillovers became items 56 and 57. Original text
+    below.
+    <br>*(As written after Wave B:)* *(New, from
+    `planning/lanes/HSB_h9_provenance.md` §8.5 and
     `planning/lanes/HSA_h1_base_rule.md` finding 5.)* Labels are `CBO_SCORE_MAP`
     keys, so renaming one under a sibling lane is the collision Wave A's
     file-disjointness exists to prevent, and H9 could not take them:
@@ -2908,3 +3177,124 @@ by 2–4×.
     currently moving on **targets** rather than derivations — the ceiling should be
     re-derived once, deliberately, rather than chased down after every provenance
     pass.
+55. **The *level* half of the capital-gains death channel, which points the
+    opposite way from the half Wave C took.** *(New, from
+    `planning/lanes/HSC_h5_decedent_headcount.md` §7 and §8.7 finding 1.)*
+    `gains_at_death_share_of_net_worth` is `estate_flow_rate ×
+    gain_share_of_estates` — the **same** Poterba & Weisbenner dollar flow PR #151
+    removed from the headcount. Held against the module's own `death_exit_rate`,
+    that flow implies **0.372% of the accrued-gains stock** where the stock's
+    death exit is priced at **2.647%**, a factor of **7.1**. Some of the gap is
+    real and sourced — PW's flow already excludes inter-spousal transfers, the
+    convention every realization-at-death proposal uses — and **nobody has
+    measured how much**. It matters because it points the other way from H5:
+    `cbo_opt51_gains_at_death` **under**-predicts at 35.5%, so a larger level
+    would close what the headcount opened. A lane that raises the count without
+    the level has registered exactly half of a two-sided correction, and 35.5% is
+    the price of the half. It is a **level nobody may change by implication** —
+    the same class of decision owner item ⑥ was.
+56. **Seven of twelve curated Build packages state a total that no longer equals
+    the sum of their members.** *(New, from
+    `planning/lanes/HSC_label_figures.md` finding 6.)* Recorded in
+    `policy_packages.py`'s docstring and deliberately **not corrected**. The
+    outlier is *Carbon Tax + IRA Repeal* at **−917** against members summing to
+    **−2,551**: −917 is −1,700 + 783, booking the IRA repeal as *increasing* the
+    deficit — the same sign error that lane found on the `ira-clean-energy-repeal`
+    label, in a second place. Not fixed because `ui/tabs/package_builder.py` is
+    the only reader and is dead code (CLAUDE.md says so), and rewriting twelve
+    list prices is a decision about figures that a label lane may not take by
+    implication. Whoever takes it should decide first whether the packages are
+    revived or deleted.
+57. **Two `official_source` fields contradict their own ledger row, and both
+    reach the scorecard column and the API.** *(New, from
+    `planning/lanes/HSC_label_figures.md` finding 7.)* `scenarios.py` credits
+    `trump_china_60` to the **Tax Foundation** where the Wave B revision reads
+    **CRFB**, and `repeal_ira_credits` to a **CBO publication the revision's own
+    note says does not exist**. Outside the label lane's file boundary, and a
+    one-commit provenance fix with a test — a source string that disagrees with
+    the ledger is the same defect class as a label quoting a superseded figure,
+    one layer down.
+58. **The accuracy band is symmetric and the errors are not.** *(New, from
+    `planning/lanes/HSC_h4_empirical_bands.md`.)* Five of the six AGI-surtax rows
+    over-predict; all four ordinary-rate rows crossed direction in Wave B. A
+    signed band would say more than a symmetric one, and building it needs a rule
+    for what a two-row class's direction means — with n = 1 in two classes, the
+    honest answer may be that it has none. Not a presentation fix: it is a
+    question about what the Tier 1 distribution supports.
+59. **35 of the 53 shipped presets have no measured out-of-sample accuracy at
+    all.** *(New, from `planning/lanes/HSC_h4_empirical_bands.md`.)* PR #149 makes
+    that visible rather than papering it — every tariff, pharma, international,
+    enforcement and climate preset, plus TCJA, the estate presets, the credits and
+    the AMT presets, now prints **no band and the reason**, with its own scorecard
+    row's error and tier beside the absence. **No presentation lane closes it**;
+    widening the routing would only restore the defect PR #149 removed, which was
+    `Generic` — the whole Tier 1 tier — being drawn for policies with no Tier 1
+    row. H10 (Wave E) is the only lane that moves the number.
+60. **`app_pages/about.py` and `fiscal_model/assistant/tools.py` still quote a
+    stale "~5% / ~8%" accuracy pair.** *(New, from
+    `planning/lanes/HSC_h4_empirical_bands.md` finding 8.)* The same two figures
+    PR #149 removed from the result surfaces — "(~5% mean error)" and "~8% mean
+    error" against live readings of **1.5% over 16 fitted rows** and **14.5% over
+    26 out-of-sample rows spread 4.6–44.5%** — survive in a page with its own
+    voice and in an **LLM system prompt**, where the model repeats them. The
+    assistant one matters most and is the one this repository cannot test from
+    here: closing it needs a live `scripts/smoke_ask_assistant.py` run. Neither
+    should be replaced with a fresher number — a figure typed into a static string
+    is stale by the next wave and is still one number over eight classes.
+61. **The decedent universe is an open owner question, and two of its three
+    candidates score better than the authorised one.** *(New, from
+    `planning/lanes/HSC_h5_decedent_headcount.md` §7 and §8.7 finding 3.)* PW's
+    flow measures **non-spousal** estates, a universe *smaller* than all deaths,
+    while the authorised swap puts 3,384,194 decedents against roughly 3.09
+    million NCHS deaths — 9.5% over. Measured and **not taken**: the crude adult
+    life-table rate (1.6619%) gives 2,124,898 and reads `cbo_opt51` at **32.1%**
+    and the class at **17.7%**; the crude all-age rate (1.2910%) gives 1,650,702
+    and reads **28.4%** and **16.9%**. Both are better than the shipped constant
+    and both were refused, because picking the best of three is fitting a
+    parameter to a benchmark. Two measurements travel with the question. The
+    **$1M → $5M exclusion step is now $9.40B against Treasury's own $33.4B**,
+    having gone through Treasury's figure and out the other side (it was 82.26 in
+    Wave 4 and 85.02 in Wave 7). And the **SOI check needs a unit before it is a
+    check**: SOI Table 1 counts *individual* decedents over a *gross-estate*
+    threshold and the model counts *households* over net worth, so the implied
+    36,262 above $12.92M against SOI's 7,194 is partly a unit gap, and making it a
+    real check needs SOI's own gross-estate distribution spliced onto the DFA's
+    household one — recorded as unbuilt in `W7_decedent_ladder.md` §8.8.
+62. **`FRBUSAdapterLite`'s crowding-out term inverts its sign for a
+    revenue-raiser.** *(New, from `planning/lanes/HSC_h8_tariff_feedback.md`
+    finding 1.)* `gdp_change[t] *= (1 - crowding_effect)` with a **negative**
+    cumulative deficit gives a factor **above 1** applied to a negative GDP
+    change, so **lower debt makes the drag larger**. About **12%** of H8's GDP
+    channel. Pre-existing, affects **every** revenue-raiser that reaches the
+    adapter — not tariffs alone — and outside H8's file boundary, so it was
+    carried rather than fixed. It is a sign defect in the same family as PR #119's
+    sweep, in a module that sweep did not cover.
+63. **`score_policy(dynamic=True)` calls `EconomicModel`, not
+    `policy_to_scenario`.** *(New, from `planning/lanes/HSC_h8_tariff_feedback.md`
+    finding 2.)* So the tariff's own price-and-volume impulse — `border_pass_through
+    × Δτ × base × V`, **$211.5B/yr for the universal preset against $125.9B/yr of
+    receipts**, because a tariff withdraws more real income than it collects —
+    reaches the multi-model path and **not the dynamic tab**. The dynamic tab
+    still multiplies net receipts by the generic tax multiplier. Wiring it needs a
+    hook in `economics.py`, which is a green-tier file no presentation lane
+    should open.
+64. **The Section 232 derivative annex is at HS-10 and this repository reads
+    HS-73 whole.** *(New, from `planning/lanes/HSC_h8_tariff_feedback.md`.)* The
+    steel base now reaches the derivative chapter — $58.9B → **$108.4B**, and
+    **1.84×, not the "roughly triple" this repository stated in three places** —
+    but it is declared an **upper bound**: Proclamation 10896 taxes steel
+    *content* and the annexes list articles at ten digits, where the loader has a
+    two-digit chapter. The floor is one argument away and neither bound is
+    sourced at the statute's own granularity. Closing it is a data-acquisition
+    step (the HS-10 annex lists), not a modelling one.
+65. **`steel_tariff_25`'s target is untraceable, has been examined-and-left
+    twice, and now carries the whole of a sub-population's regression.** *(New,
+    from `planning/lanes/HSC_h8_tariff_feedback.md`.)* The 25% Section 232 rate
+    was in force for ten weeks and no scorekeeper published a ten-year estimate of
+    it; `EXAMINED_NOT_REVISED` records the verdict and explicitly **does not
+    retire** the row. After PR #150 it reads **75.28%** and is the entire
+    difference between `Trade` at 43.6% and the 35.66% its four documented rows
+    read. **The floor base would have scored 1.7%** (−$59.0B against −$60.0B) and
+    was declared and refused, because closeness to an untraceable figure is not a
+    reason to keep a base missing most of what the statute reaches. This needs a
+    document or a retirement decision, and neither is a lane's to take.
