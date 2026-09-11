@@ -292,6 +292,79 @@ lower, because the joint floor is twice the single floor and joint returns are
 a different share of the two populations. Sizing the AGI step with the pooled
 ratios would have missed both Option 46 rows in opposite directions.
 
+#### Year-indexed statutory thresholds (`threshold_indexation`)
+
+A statutory bracket boundary is a function of the **year** as well as the filing
+status, and until PR #165 the model held one fixed number. The row's own
+limitation had said so since Phase B — *"the bracket boundary is filing-status
+specific and moves in 2026 when the pre-2018 rate schedule returns; the model
+holds one fixed threshold"* — and the second half stayed open because
+`cbo_scores.py` recorded that the data did not exist: *a published post-2025 rate
+table*. **It exists.** `US-CBO/cbo-data`'s
+`data/budget/tax_parameters/annual_cy_{2024-06,2025-01,2026-02}.csv` (CBO
+publication 53724) is 130–150 variables × CY2021–CY2036 across three vintages,
+transcribed verbatim to
+`fiscal_model/data_files/cbo_tax_parameters/cbo_tax_parameters.csv` (**5,531
+rows**, SHA-256 pinned per file by `scripts/fetch_cbo_tax_parameters.py`) and read
+through `fiscal_model/cbo_tax_parameters.py`.
+
+**The 2026 reversion is not a uniform shift, which is why this needed the
+filing-status split to exist first.** On the June 2024 vintage `tp_rate_2..7` go
+12/22/24/32/35/37 → **15/25/28/33/35/39.6** in CY2026, and the fourth bracket's
+floor moves **−3.5% for joint returns, +15.9% for single and +65.5% for
+head-of-household**, because the pre-TCJA 28% bracket sits differently against
+TCJA's 24% bracket in each status. A scalar cannot express that, and neither can a
+scalar plus one joint amount.
+
+`TaxPolicy.threshold_indexation` is a three-valued enum, and writing it down is
+half the value of the change, because the shipped behaviour had been an unnamed
+assumption:
+
+| value | meaning | who gets it |
+|---|---|---|
+| `"income"` | the threshold rides the nominal-income index — **today's arithmetic, exactly** | **default**: every preset, every Tailor row, every unmoved validation row is byte-identical |
+| `"statutory"` | the boundary is read from CBO's schedule per year per filing status | the rows whose own sources describe a statutory ordinary-income bracket |
+| `"nominal"` | the amount is fixed in year-`t` dollars, i.e. deflated by the index | nobody today; built, measured and reachable |
+
+**The unit conversion is not a choice.** The base projection already scales
+aggregate marginal income above a fixed nominal threshold by an index `g(t)`,
+which is arithmetically identical to indexing the threshold by `g(t)` too. So to
+apply a **statutory** threshold `T(t)`, stated in year-`t` dollars, against a base
+measured in SOI tax-year dollars:
+
+```
+base(t) = g(t) · Σ_status Σ_returns max(0, y_i − T_status(t) / g(t)) · n_i
+```
+
+with `g(t) = nominal_income_index(t) / nominal_income_index(SOI tax year)`, read
+from the **scored vintage's own** transcribed path and applied exactly once.
+
+**The arithmetically wrong variant scores four times better and is recorded rather
+than taken.** Applying `T(t)` directly to SOI-year incomes — a 2031 threshold
+against a 2023 income — takes CBO Option 45's top-four-brackets row to **3.61%**;
+the correct conversion takes it to **17.86%**, worse than the 14.31% a fixed
+threshold gave. A repository that keeps finding two errors cancelling should
+record the one it declined to introduce.
+
+**Which rows get a schedule is fixed by rule, not by proximity.**
+`STATUTORY_BRACKET_SCHEDULE_RULE` (`fiscal_model/validation/core.py`): a record's
+threshold is read from the schedule **if and only if** its own source describes
+the boundary as a statutory ordinary-income bracket; the record declares the
+bracket *index* (1–7) and the schedule supplies the four dollar amounts per year.
+An amount a source states in its own words stays where the source put it, however
+close it sits to a bracket floor — **numeric coincidence is not evidence**, and
+the trap is real: `$20,000` **is** `tp_bracket_2_hoh` in CY2033, and CBO's Option
+46 still means $20,000. A test asserts the coincidence, the record's `None` and
+the rule's own sentence together.
+
+Schedule vintage is matched to the scored baseline vintage, the same discipline
+`build_scorer_for_vintage()` already imposes — `exact` for January 2025 and
+February 2026, **`nearest_vintage`** for the February 2024 Options battery, since
+`cbo-data`'s oldest `tax_parameters` edition is June 2024. That substitution is
+graded in the data rather than hidden, and it was **sized**: re-scoring the one
+moving row with CY2025 forced to Rev. Proc. 2024-40's actual floors gives −671.20
+against −671.21, **one cent**.
+
 ### Data Source: IRS SOI
 
 We use IRS Statistics of Income (SOI) Table 1.1, Table 1.2 and Table 3.3 to obtain:
@@ -995,9 +1068,75 @@ Pass-through income (S-corps, partnerships, sole proprietorships) is partially a
 
 The 15% Corporate Alternative Minimum Tax (IRA 2022) is modeled as a separate tax on adjusted financial statement income for firms with >$1B in profits, with a carve-out for R&D credits.
 
+### Which mode the app serves: `derived` since PR #166
+
+`CorporateTaxPolicy` carries a module-local mode, like `TaxCreditPolicy` and
+`AMTPolicy`. **`CORPORATE_APP_MODE` is `CORPORATE_MODE_DERIVED` since 2026-09-11**,
+which is the first time Decision 1's comparison has moved a corporate default.
+
+- **`reported`** prices a rate change against a **fitted** profits aggregate,
+  `BASELINE_TAXABLE_PROFITS_BILLIONS = 1900.0`, self-documented as fitted and
+  grown by the engine from the *policy's own* start year. A consequence worth
+  knowing: **it returns the same answer whichever decade is asked about**, because
+  shifting the window shifts the policy with it and the totals cancel exactly.
+- **`derived`** prices it against **CBO's February 2024 corporate receipts path**
+  (publication 59710 Table 1-1) times a **4.80133** base-$/receipts-$ ratio
+  anchored on SOI TY2022 ÷ MTS FY2022, with a §6655 convolution for the
+  fiscal-year phase. It is indexed by *fiscal* year, so FY2026–2035 is genuinely a
+  different decade from FY2025–2034 and is worth **$18.30B** on a 21% → 28%
+  reform.
+
+**The flip was taken on a rule fixed in advance**, requiring **both** of these to
+favour `derived`, with no tie-break and no re-weighting:
+
+| Metric | `reported` | `derived` |
+|---|---:|---:|
+| Mean abs error over the three published corporate targets | 62.75% | **61.43%** |
+| Position in the four-house estimator span at **+7pp** (−$1,349.9B to −$935.8B) | −$1,397.21B, **$47.27B outside**, larger than all four | **−$1,292.62B, inside** |
+| Implied marginal share of the vintage's average base, +7pp | 82.29% | **76.13%** |
+
+**Three qualifications belong with the default and the module docstring carries
+all three.** (i) `derived` wins the mean **while losing two rows of three** — it
+takes the FY2022 rate-only Green Book row by 12.19 points and gives up the FY2025
+row by 0.31 and `trump_corporate_15` by 7.94; the row it wins is the only one
+whose *scope* matches what the factory builds, and the row it loses by a whisker
+is one `reported`'s constant is **fitted** to. (ii) **Neither mean is small**:
+61.43% against 62.75% is a choice between two wrong answers taken on a stated
+rule. (iii) **Nothing was retuned** — the fitted constant reads 1900.0 either
+side, asserted by a test.
+
+**CBO's published loss-firm haircut is transcribed and deliberately not applied.**
+`dmyrevnfc = 0.85` and `dmyrevx = 0.80`
+(`US-CBO/business-investment-model` @ `6cb4cea6`,
+`source_code/Create_Tax_Data.prg:32-33`, derivation at `:21-27`) adjust a
+**statutory rate** inside a user-cost-of-capital expression. This module
+multiplies a **base** that is CBO receipts ÷ the statutory rate, and receipts are
+what loss-making firms' zero tax already produces. CBO itself *divides the factor
+back out* at `:172-175` where the other input carries it, **"to avoid
+double-counting"**; the module's own SOI file measures those losses at
+**8.69–11.58%** of the pre-NOL base (10.25% mean) against CBO's 12.81%. Note the
+two constants are **nested, not a financial / non-financial pair**: 0.85 is
+loss-making firms alone and 0.80 is that factor times the nonprofit share of
+nonresidential investment. `fiscal_model/data_files/corporate/cbo_loss_firm_haircut.csv`
+carries them with a computed applicability test so the refusal is checkable.
+
+**Two channels are bounded and unpriced.** The §38(c) general-business-credit
+carryforward stock is **$124.47B** (IRS Publication 5108, TY2022) against $72.17B
+of claims, under a statutory cap of 75% of regular tax that *rises with the rate*
+— the one channel CBO has put a mechanism in writing for (2018 Option 24) and the
+one pointing the score *down*. The §904 foreign-tax-credit carryover is a labelled
+**$78.02B residual**. Neither can be priced: SOI's excess-credit /
+excess-limitation tables exist for **TY2010 only**. CAMT is blocked on a TY2023
+Complete Report that does not exist yet.
+
 ### Calibration
 
-The Biden corporate rate increase from 21% to 28% is calibrated to CBO's −$1.347T/10yr estimate (model: −$1.397T, error 3.7%).
+The Biden corporate rate increase from 21% to 28% is calibrated to Treasury's
+−$1.347T/10yr row (model: **−$1.293T, error 4.0%** in `derived`, the app default;
+−$1.397T and 3.7% in `reported`). Read the 3.7%/4.0% as bookkeeping plus a scope
+gap rather than as accuracy: from the FY2023 Green Book onward that row moves the
+GILTI effective rate with the statutory rate, while the factory scored against it
+sets `gilti_rate_change=0.0`.
 
 ---
 
@@ -1504,14 +1643,32 @@ to a benchmark id.
 | Import-demand elasticity | **−0.997** | Ghodsi, Grübler & Stehrer (2016), the binding US weighted average adopted by Tax Foundation FF861 p. 4; USITC pub. 5405 finds ≈−1 in year one |
 | High-rate elasticity multiplier above 30pp | **2.0** | Boehm, Levchenko & Pandalai-Nayar (2023): −0.76 in year 1 converging to −1.75/−2.25 within 7-10 years |
 | Duty avoidance / evasion | **0.05** | Module default; FF861 uses 8% noncompliance, so this is the conservative end |
-| **Income-and-payroll offset** | **0.25** | The longstanding CBO/JCT/OTA convention: duty paid is income not paid to labour and capital, so the income and payroll bases shrink. FF861 p. 4 nn. 3 and 11 cite JCT **JCX-59-11** and **JCX-9-24**; Tax Foundation's own calculator gives 26.2% over this window, and the round 25% is used rather than 26.2% precisely because 26.2% is an output fitted to one of the benchmarks |
+| **Income-and-payroll offset** | **JCT's published year path, 0.244 (2025) → 0.241 (2035); window mean 0.2442 on the validation window and 0.2439 on the app's** | **CBO's own tariff model** (`US-CBO/conventional-tariff-analysis-model` @ `59ea68fd`, `inputs/offset/2025OffsetPostHR1.csv`), which ships JCT's percentages and applies them multiplicatively once per year at `code/model/add_offset.py:18`. It replaced a round **0.25** cited only secondhand. *(As cited before PR #164:)* The longstanding CBO/JCT/OTA convention: duty paid is income not paid to labour and capital, so the income and payroll bases shrink. FF861 p. 4 nn. 3 and 11 cite JCT **JCX-59-11** and **JCX-9-24**; Tax Foundation's own calculator gives 26.2% over this window, and the round 25% is used rather than 26.2% precisely because 26.2% is an output fitted to one of the benchmarks |
 | Retaliation intensity | **0.30** | Module default |
 | Federal receipts per dollar of lost export income | **0.25** | `constants.MARGINAL_REVENUE_RATE`, the app's own convention |
 
-`jct.gov` and `cbo.gov` both return HTTP 403 to this environment, so the offset
-convention is cited **secondhand** through Tax Foundation FF861 — already this
-repository's transcribed benchmark source for the universal-tariff row — which
-states the convention and names both JCT documents for it.
+*(Before PR #164:)* `jct.gov` and `cbo.gov` both return HTTP 403 to this
+environment, so the offset convention was cited **secondhand** through Tax
+Foundation FF861 — already this repository's transcribed benchmark source for the
+universal-tariff row — which states the convention and names both JCT documents
+for it. **Since PR #164 the primary is in hand**: CBO publishes JCT's own
+percentages inside its conventional tariff-analysis model, so the parameter is a
+published *path* rather than a round number. FF861's own **26.2%** was recorded as
+an `external_check` and deliberately **not** adopted, because it is Tax
+Foundation's model output for this window and adopting it would move a parameter
+toward a benchmark; JCT's path is neither.
+
+**Why a year path can be read exactly through a year-blind call.**
+`scoring_engine.py:341` calls `estimate_behavioral_offset(revenue[idx])` with no
+year, and `TariffPolicy` is in no growth handler and has no `soi_base_tax_year`,
+so **the tariff gross is flat across the window** — and for a flat gross the
+window mean is not an approximation but an identity,
+`Σ_t g·(1−o_t) = n·g·(1−ō)`. The module therefore carries the whole path and reads
+the mean over its own `[start_year, start_year + duration_years)`. A test asserts
+the identity rather than the docstring claiming it. It would become an
+approximation for a **phased** tariff, which is a carry-over rather than a
+silence, as is CBO's own calendar-to-fiscal conversion
+(`FY_y = CY_{y−1}·0.2976 + CY_y·0.7024`), which this module has no concept of.
 
 **Sign convention.** `estimate_behavioral_offset` carries the static effect's
 sign, per this document's own rule for a behavioural offset. It used to return an
@@ -1570,10 +1727,16 @@ duties actually collected), exports as `ALL_VAL_YR`.
 | ⇒ universal-tariff coverage, 1 − USMCA share | **0.7197** | `universal_coverage_rate` 0.70 (**was fitted**) |
 | HS-87 vehicles and parts imports | **$384.9B** | 380.0 |
 | HS-87 imports from Canada + Mexico, share | **48.42%** | `auto_usmca_exempt_share` 0.65 |
-| HS-72 + HS-76 imports | **$58.9B** | 50.0 |
-| Duty collected on HS-72 + HS-76 | **3.06%** | *(new — the Section 232 netting)* |
-| HS-73 derivative articles (lane H8) | **$49.5B** | *(new — Section 232 reaches them)* |
-| Duty collected on HS-73 | **5.63%** | *(new — its own rate, not blended)* |
+| **Section 232 steel base, primary list, ex auto parts (1,167 HS-10 lines)** | **$96.75B** at 4.64% | *(lane R8)* |
+| **Section 232 steel base, derivative annex, content-weighted `0.75·108.755 + 0.25·164.141`** | **$122.60B** at 3.87% | *(lane R8)* |
+| **⇒ Section 232 steel total** | **$219.35B** | HS-72+76 "floor" $58.9B / +HS-73 "ceiling" $107.6B (**both wrong**) |
+| **Section 232 autos, less the USMCA US-content carve-out** | **$214.28B** at 1.37% | *(lane R8)* |
+| **Section 232 auto parts** | **$340.67B** at 2.18% | *(lane R8)* |
+| **⇒ Section 232 auto total** | **$554.95B** at 1.84% | HS-87 × (1 − 48.42%) = $198.5B |
+| *(superseded)* HS-72 + HS-76 imports | *$58.9B* | 50.0 |
+| *(superseded)* Duty collected on HS-72 + HS-76 | *3.06%* | *(the Section 232 netting)* |
+| *(superseded)* HS-73 derivative articles (lane H8) | *$49.5B* | *(lane H8's declared ceiling)* |
+| *(superseded)* Duty collected on HS-73 | *5.63%* | *(its own rate, not blended)* |
 | — | — | `china_effective_coverage` 0.50 **deleted** |
 | — | — | `reciprocal_coverage_rate` 0.50 **deleted** (lane H8) |
 
