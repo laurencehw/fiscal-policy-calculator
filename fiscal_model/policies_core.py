@@ -65,6 +65,43 @@ INCOME_MEASURE_AGI = "agi"
 INCOME_MEASURES: tuple[str, ...] = (INCOME_MEASURE_TAXABLE_INCOME, INCOME_MEASURE_AGI)
 DEFAULT_INCOME_MEASURE = INCOME_MEASURE_TAXABLE_INCOME
 
+#: What happens to :attr:`TaxPolicy.affected_income_threshold` across the ten
+#: years being scored. Three answers, and writing them down is most of the
+#: value, because **the default was an unnamed assumption nobody could read off
+#: the code**.
+#:
+#: ``"income"``
+#:     The threshold rides the nominal-income index, which is what the engine
+#:     has done since ``HSB_h2_base_growth.md`` shipped the base projection.
+#:     Scaling the aggregate marginal income above a fixed nominal threshold by
+#:     an index ``g`` is arithmetically identical to indexing the threshold by
+#:     ``g`` too (that lane's section 1.4), so a user who types "\$400,000" into
+#:     Tailor is answered about a threshold reaching **\$617,000** by FY2035.
+#:     It is the default because it is today's arithmetic to the cent.
+#: ``"statutory"``
+#:     The threshold is a boundary the **law** sets, read per year and per
+#:     filing status from CBO's own published schedule
+#:     (:mod:`fiscal_model.cbo_tax_parameters`). Requires
+#:     :attr:`TaxPolicy.threshold_bracket_index`.
+#: ``"nominal"``
+#:     The amount is fixed in the dollars of each year being scored - the
+#:     literal reading of a typed figure, and the closed form of the
+#:     "real bracket creep above a fixed nominal threshold" term H2 carried
+#:     over. Reachable, measured, and deliberately **not** the default: making
+#:     it one would move every generic preset and the whole Tailor surface on a
+#:     lane whose gain is expressiveness.
+#:
+#: See ``planning/lanes/R4_parameter_schedule.md`` section 1.5.
+THRESHOLD_INDEXATION_INCOME = "income"
+THRESHOLD_INDEXATION_STATUTORY = "statutory"
+THRESHOLD_INDEXATION_NOMINAL = "nominal"
+THRESHOLD_INDEXATIONS: tuple[str, ...] = (
+    THRESHOLD_INDEXATION_INCOME,
+    THRESHOLD_INDEXATION_STATUTORY,
+    THRESHOLD_INDEXATION_NOMINAL,
+)
+DEFAULT_THRESHOLD_INDEXATION = THRESHOLD_INDEXATION_INCOME
+
 
 def ordinary_income_base_for_preset(preset_data: Mapping[str, object] | None) -> bool:
     """The base a catalog preset declares, or the shared default.
@@ -227,6 +264,31 @@ class Policy:
             return False
         return not (self.sunset and year >= self.start_year + self.duration_years)
 
+    def scores_by_year(self) -> bool:
+        """Whether this policy's static annual must be asked for **per year**.
+
+        ``False`` means one annual answers the whole window, and the engine
+        applies its growth and phase factors to that single figure. ``True``
+        means the quantity genuinely differs by year - a base that is a path
+        rather than a level, a cap whose bite moves against what it caps, a
+        statutory boundary the law re-indexes - and the engine passes ``year``
+        into :meth:`estimate_static_revenue_effect`.
+
+        This exists because the engine had **two** year-indexed policy classes
+        and no general concept, each bolted on as six lines of ``isinstance``
+        (``planning/MODELING_IMPROVEMENT.md`` section 6.2 item 27, which names
+        ``Policy.scores_by_year()`` as the remedy the third case should build
+        rather than a third special case). Two classes in this module implement
+        it: :class:`CapitalGainsPolicy`, whose realizations base is a flow off a
+        projected stock, and :class:`TaxPolicy` with a re-indexed threshold.
+        The five ``isinstance`` branches in
+        :meth:`fiscal_model.scoring_engine.FiscalPolicyScorer._score_growth_tax_policy_year`
+        live in five other modules and are a mechanical follow-up, not a
+        different idea - see ``planning/lanes/R4_parameter_schedule.md``
+        section 5.
+        """
+        return False
+
 
 @dataclass
 class TaxPolicy(Policy):
@@ -278,6 +340,34 @@ class TaxPolicy(Policy):
     # ``None`` (the default) keeps the pooled single-threshold path, byte for
     # byte. See ``planning/lanes/W7_filing_status_split.md``.
     threshold_by_filing_status: dict[str, float] | None = None
+    # What happens to the threshold across the ten years being scored. See
+    # ``THRESHOLD_INDEXATIONS`` for the three answers and why the default is the
+    # one it is. ``"income"`` is today's arithmetic to the cent, so every policy
+    # that does not ask for something else is unaffected.
+    threshold_indexation: str = DEFAULT_THRESHOLD_INDEXATION
+    # Which statutory ordinary-income bracket (1-7) this policy's threshold is
+    # the floor of. Required by, and only meaningful with,
+    # ``threshold_indexation="statutory"``. It is the *index* that is declared
+    # and the four dollar amounts per year that are read, because a bracket
+    # boundary is one thing stated in four places and re-indexed annually: at
+    # the CY2026 reversion on the February 2024 vintage, bracket 4's joint floor
+    # falls 3.5% while its head-of-household floor rises 65.5%. Read off the
+    # source's own words - "in the four highest brackets" is bracket 4 of seven
+    # - and never from numeric proximity, which is a trap the data contains:
+    # $20,000 IS ``tp_bracket_2_hoh`` in CY2033 on that vintage, and CBO's
+    # Option 46 still means $20,000. See
+    # ``fiscal_model.validation.core.STATUTORY_BRACKET_SCHEDULE_RULE``.
+    threshold_bracket_index: int | None = None
+    # Which baseline vintage's schedule to read - ``"cbo_feb_2024"``,
+    # ``"cbo_jan_2025"``, ``"cbo_feb_2026"``. ``None`` takes
+    # ``cbo_tax_parameters.DEFAULT_BASELINE_VINTAGE``, which is the vintage
+    # ``CBOBaseline`` itself defaults to, so a policy built by Tailor, Ask,
+    # Build or the API reads the law of the baseline it is scored against.
+    # A vintage is not an option: current law differs between them, and it is
+    # the whole point. February 2024 and January 2025 are pre-OBBBA and revert
+    # to the 10/15/25/28/33/35/39.6 schedule in CY2026; February 2026 is
+    # post-P.L. 119-21 and does not.
+    threshold_schedule_vintage: str | None = None
     # Cache for the per-status path only. The pooled path re-derives its
     # marginal income on years 2-10 from ``avg_taxable_income_in_bracket``
     # minus one threshold, a quantity that does not exist once the four
@@ -379,6 +469,48 @@ class TaxPolicy(Policy):
                 "preferential (LTCG/QDIV) income the correction removes"
             )
 
+        if self.threshold_indexation not in THRESHOLD_INDEXATIONS:
+            raise ValueError(
+                f"threshold_indexation must be one of "
+                f"{', '.join(THRESHOLD_INDEXATIONS)}, got {self.threshold_indexation!r}"
+            )
+        if self.threshold_indexation == THRESHOLD_INDEXATION_STATUTORY:
+            if self.threshold_bracket_index is None:
+                raise ValueError(
+                    "threshold_indexation='statutory' requires "
+                    "threshold_bracket_index: the schedule is read by bracket "
+                    "index, not by matching a dollar amount"
+                )
+        elif self.threshold_bracket_index is not None:
+            # The reverse is not a harmless extra: a declared bracket that is
+            # not read means somebody believes the schedule is in play and it
+            # is not, which is the state a silent wrong answer lives in.
+            raise ValueError(
+                "threshold_bracket_index is only meaningful with "
+                f"threshold_indexation='{THRESHOLD_INDEXATION_STATUTORY}', got "
+                f"{self.threshold_indexation!r}"
+            )
+        if self.threshold_bracket_index is not None and not (
+            1 <= int(self.threshold_bracket_index) <= 7
+        ):
+            raise ValueError(
+                "threshold_bracket_index must be 1-7 (the statute defines seven "
+                f"ordinary-income brackets), got {self.threshold_bracket_index!r}"
+            )
+        if (
+            self.threshold_indexation != THRESHOLD_INDEXATION_INCOME
+            and self.affected_taxpayers_millions > 0
+        ):
+            # A re-indexed threshold re-reads the SOI base every year, because
+            # the floor it is measured above moves. A caller-supplied filer
+            # count was measured above a threshold this class did not choose,
+            # so there is nothing to re-read and the two cannot be combined.
+            raise ValueError(
+                f"threshold_indexation={self.threshold_indexation!r} re-reads the "
+                "IRS SOI base once per scored year, so it cannot be combined "
+                "with a caller-supplied affected_taxpayers_millions"
+            )
+
         if self.threshold_by_filing_status is not None:
             if not self.threshold_by_filing_status:
                 # An empty mapping declares nothing, so it takes the pooled path
@@ -413,14 +545,39 @@ class TaxPolicy(Policy):
         self,
         baseline_revenue: float,
         use_real_data: bool = True,
+        *,
+        year: int | None = None,
+        threshold_deflator: float = 1.0,
     ) -> float:
-        """Estimate static revenue effect before behavioral responses."""
+        """Estimate static revenue effect before behavioral responses.
+
+        ``year`` and ``threshold_deflator`` are passed by the engine only for a
+        policy whose :meth:`scores_by_year` says the answer differs by year -
+        which for this class means a re-indexed threshold. Omitted, the
+        threshold is the one the policy carries and the answer is the same
+        figure for every year, which is every policy's behaviour by default.
+
+        ``threshold_deflator`` converts a threshold stated in the dollars of
+        ``year`` into the dollars of the SOI tax year the base is measured in.
+        It is **not** a second growth factor and must not be read as one: the
+        engine multiplies the returned annual by the same ratio afterwards, so
+        a threshold divided by ``g`` here and a base multiplied by ``g`` there
+        are the two halves of one unit conversion. See
+        ``planning/lanes/R4_parameter_schedule.md`` section 1.2, which records
+        that omitting the deflation scores the one moving benchmark at 3.61%
+        against the correct 17.86% - a number that looks right because two
+        things are wrong.
+        """
         if self.annual_revenue_change_billions is not None:
             return self.annual_revenue_change_billions
 
         if use_real_data and self._should_use_irs_data():
             try:
-                return self._estimate_from_irs_data(baseline_revenue)
+                return self._estimate_from_irs_data(
+                    baseline_revenue,
+                    scored_year=year,
+                    threshold_deflator=threshold_deflator,
+                )
             except Exception as exc:
                 logger.warning(f"Could not use IRS data for auto-population: {exc}")
                 logger.warning("Falling back to manual parameters or heuristics")
@@ -507,21 +664,127 @@ class TaxPolicy(Policy):
         """
         return self._soi_base_tax_year
 
+    def reindexes_threshold(self) -> bool:
+        """Whether the threshold moves across the window on something other than income."""
+        return self.threshold_indexation != THRESHOLD_INDEXATION_INCOME
+
+    def scores_by_year(self) -> bool:
+        """A re-indexed threshold is a per-year quantity; an income-indexed one is not.
+
+        Under ``"income"`` the threshold rides the same index the base does, so
+        one annual times that index answers every year and the engine takes the
+        cheaper path. Under ``"statutory"`` or ``"nominal"`` the floor moves
+        against the base, so the SOI read has to be repeated at a new threshold
+        in each year being scored.
+        """
+        return self.reindexes_threshold()
+
+    def resolve_soi_base_tax_year(self) -> int | None:
+        """The SOI tax year this policy's base will be, or was, read from.
+
+        :attr:`soi_base_tax_year` answers the same question only **after** a
+        scoring run; the engine needs the answer *before* one, because the
+        threshold deflator it passes into the first scored year is a ratio
+        anchored on that year. Returns ``None`` where no SOI read will happen -
+        a caller-supplied base, an explicit annual, or no SOI data on disk - so
+        the caller's projection factor stays 1.0 exactly as it does today.
+        """
+        if self._soi_base_tax_year is not None:
+            return int(self._soi_base_tax_year)
+        if self.annual_revenue_change_billions is not None:
+            return None
+        if not self._should_use_irs_data():
+            return None
+        if self.data_year:
+            return int(self.data_year)
+        from fiscal_model.data import IRSSOIData
+
+        available = IRSSOIData().get_data_years_available()
+        return max(available) if available else None
+
     def _should_use_irs_data(self) -> bool:
         """Check if we should attempt to auto-populate from IRS SOI data.
 
         Threshold of 0 (all brackets) is allowed — that path scores a uniform
         rate change against total SOI taxable income rather than the legacy
         ``baseline × Δrate / 0.18`` heuristic.
+
+        A **re-indexed** threshold keeps returning ``True`` after the first
+        scored year, because the floor the base is measured above moves and the
+        read has to be repeated. ``__post_init__`` refuses that combination with
+        a caller-supplied filer count, so the only way to reach it is a base
+        this class populated itself.
         """
-        return (
-            self.rate_change != 0
-            and self.affected_income_threshold >= 0
-            and self.affected_taxpayers_millions == 0
+        if self.rate_change == 0 or self.affected_income_threshold < 0:
+            return False
+        if self.affected_taxpayers_millions == 0:
+            return True
+        return self.reindexes_threshold() and self._soi_base_tax_year is not None
+
+    def statutory_thresholds_for_year(self, year: int) -> dict[str, float]:
+        """The four per-status floors this policy applies in ``year``, nominal.
+
+        In the dollars of ``year`` itself, before any deflation onto the SOI
+        base year. ``"statutory"`` reads CBO's published schedule at this
+        policy's own :attr:`threshold_bracket_index`; ``"nominal"`` returns the
+        policy's own amounts, which by definition do not move; ``"income"``
+        never reaches here, because its threshold is not a per-year quantity.
+
+        A year outside the edition's published range is **clamped to the
+        nearest published year and logged**, rather than extrapolated: a
+        schedule is law for the years the law is written for, and compounding a
+        price index past the end of the table would be a projection wearing a
+        statute's clothes. No window this repository scores reaches a clamp.
+        """
+        resolved = self.resolved_filing_status_thresholds()
+        if self.threshold_indexation == THRESHOLD_INDEXATION_NOMINAL:
+            return resolved
+
+        from fiscal_model import cbo_tax_parameters
+
+        vintage = self.threshold_schedule_vintage or cbo_tax_parameters.DEFAULT_BASELINE_VINTAGE
+        published = cbo_tax_parameters.years_available(vintage)
+        if not published:
+            raise cbo_tax_parameters.TaxParameterError(
+                f"no tax-parameter schedule transcribed for vintage {vintage!r}"
+            )
+        read_year = min(max(int(year), published[0]), published[-1])
+        if read_year != int(year):
+            logger.warning(
+                "Tax-parameter schedule for %s covers CY%d-CY%d; CY%d clamped to CY%d",
+                vintage, published[0], published[-1], int(year), read_year,
+            )
+        return cbo_tax_parameters.bracket_floors_by_status(
+            vintage, int(self.threshold_bracket_index), read_year
         )
 
-    def _estimate_from_irs_data(self, baseline_revenue: float) -> float:
-        """Auto-populate parameters from IRS SOI data and estimate revenue effect."""
+    def _deflated_thresholds(
+        self, year: int | None, threshold_deflator: float
+    ) -> dict[str, float] | None:
+        """Per-status floors in SOI-base-year dollars, or ``None`` to keep today's path."""
+        if not self.reindexes_threshold() or year is None:
+            return None
+        if threshold_deflator <= 0:
+            # A degraded baseline carries no index. Fall back to the nominal
+            # amounts rather than dividing by zero or silently scoring nothing.
+            threshold_deflator = 1.0
+        nominal = self.statutory_thresholds_for_year(int(year))
+        return {status: value / threshold_deflator for status, value in nominal.items()}
+
+    def _estimate_from_irs_data(
+        self,
+        baseline_revenue: float,
+        *,
+        scored_year: int | None = None,
+        threshold_deflator: float = 1.0,
+    ) -> float:
+        """Auto-populate parameters from IRS SOI data and estimate revenue effect.
+
+        ``year`` below is the IRS SOI **tax year** the base is read from;
+        ``scored_year`` is the fiscal year being scored. The two are years of
+        different things and the distinction is load-bearing, which is why they
+        do not share a name.
+        """
         _ = baseline_revenue
         from fiscal_model.data import IRSSOIData
 
@@ -536,10 +799,26 @@ class TaxPolicy(Policy):
         year = self.data_year if self.data_year else max(available_years)
         logger.info(f"Auto-populating tax policy parameters from {year} IRS SOI data")
 
+        # Whether this is the first scored year, captured before the line below
+        # makes it look otherwise. A re-indexed policy runs this method once per
+        # scored year, and the fields it records describe the policy's base
+        # rather than one year of it, so they are written once.
+        first_read = self._soi_base_tax_year is None
+
         # Record the vintage of the base before it is used, so the engine can
         # project it onto the years actually being scored. Set on both branches
         # below, which is why it is set once here.
         self._soi_base_tax_year = int(year)
+
+        deflated = self._deflated_thresholds(scored_year, threshold_deflator)
+        if deflated is not None:
+            # A re-indexed threshold always takes the per-status path, even
+            # where the four floors are equal: the schedule states four amounts
+            # and PR #127's split is byte-identical to the pooled path when they
+            # agree, so this costs nothing and keeps one code path.
+            return self._estimate_from_irs_data_by_status(
+                irs_data, year, thresholds=deflated, record=first_read
+            )
 
         if self.threshold_by_filing_status is not None:
             return self._estimate_from_irs_data_by_status(irs_data, year)
@@ -617,9 +896,25 @@ class TaxPolicy(Policy):
             for status in FILING_STATUSES
         }
 
-    def _estimate_from_irs_data_by_status(self, irs_data, year: int) -> float:
-        """Static revenue effect with the SOI base split by filing status."""
-        thresholds = self.resolved_filing_status_thresholds()
+    def _estimate_from_irs_data_by_status(
+        self,
+        irs_data,
+        year: int,
+        *,
+        thresholds: dict[str, float] | None = None,
+        record: bool = True,
+    ) -> float:
+        """Static revenue effect with the SOI base split by filing status.
+
+        ``thresholds`` overrides the policy's own floors, and is how a
+        re-indexed threshold enters: the caller has already read the schedule
+        for the year being scored and deflated it into this SOI tax year's
+        dollars. ``record=False`` suppresses the fields that describe *the
+        policy's* base rather than one year of it, so a policy scored ten times
+        reports its first year's filer count instead of its tenth.
+        """
+        if thresholds is None:
+            thresholds = self.resolved_filing_status_thresholds()
         # The income measure is applied INSIDE the split - each status's own
         # marginal AGI above its own floor - not to the pooled aggregate
         # afterwards. The two are not the same number and they do not even move
@@ -652,15 +947,16 @@ class TaxPolicy(Policy):
             pooled_marginal_per_return * pooled["num_filers"], year=year
         )
 
-        self.affected_taxpayers_millions = split["num_filers"] / 1e6
-        self.avg_taxable_income_in_bracket = split["avg_taxable_income"]
-        # A sum over four populations facing four floors, so it is not
-        # ``(avg - threshold) x filers`` and must be carried rather than
-        # re-derived. See :meth:`marginal_income_dollars`.
-        self._split_marginal_income_dollars = float(marginal_income)
-
         revenue_change = self.rate_change * marginal_income * ordinary_share / 1e9
-        self._split_annual_revenue_billions = revenue_change
+
+        if record:
+            self.affected_taxpayers_millions = split["num_filers"] / 1e6
+            self.avg_taxable_income_in_bracket = split["avg_taxable_income"]
+            # A sum over four populations facing four floors, so it is not
+            # ``(avg - threshold) x filers`` and must be carried rather than
+            # re-derived. See :meth:`marginal_income_dollars`.
+            self._split_marginal_income_dollars = float(marginal_income)
+            self._split_annual_revenue_billions = revenue_change
 
         logger.info(
             "  Filing-status split: %s",
@@ -1227,11 +1523,25 @@ class CapitalGainsPolicy(TaxPolicy):
     # Scoring
     # ------------------------------------------------------------------
 
+    def scores_by_year(self) -> bool:
+        """Always: the realizations base is a flow off a projected stock.
+
+        This class was the engine's first year-indexed case and was expressed
+        as ``isinstance(policy, CapitalGainsPolicy)`` in
+        :meth:`~fiscal_model.scoring_engine.FiscalPolicyScorer._score_tax_policy`
+        until the schedule lane needed a second one in the same method. The
+        behaviour is unchanged - the engine asks the same question and gets the
+        same answer - but it now asks it of the policy rather than of the type.
+        """
+        return True
+
     def estimate_static_revenue_effect(
         self,
         baseline_revenue: float,
         use_real_data: bool = True,
         year: int | None = None,
+        *,
+        threshold_deflator: float = 1.0,
     ) -> float:
         """Static effect holding realizations fixed, summed over brackets.
 
@@ -1239,8 +1549,16 @@ class CapitalGainsPolicy(TaxPolicy):
         engine passes it for a capital-gains policy and nothing else.  Omitted,
         the base stays at its SOI level, which is what a caller asking for the
         data-year identity wants.
+
+        ``threshold_deflator`` is accepted and ignored. This class prices a
+        rate change over published bracket rows rather than a base measured
+        above a threshold, so there is no statutory floor to re-index; the
+        parameter is in the signature because the engine now asks every
+        :meth:`scores_by_year` policy the same question and a class that
+        narrowed the signature would fail on the call rather than on a claim.
         """
         _ = baseline_revenue
+        _ = threshold_deflator
         brackets = self.get_brackets(use_real_data=use_real_data)
         factor = self.realizations_projection_factor(year)
         total = 0.0

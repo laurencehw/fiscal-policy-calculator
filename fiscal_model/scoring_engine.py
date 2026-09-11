@@ -299,26 +299,32 @@ class FiscalPolicyScorer:
                 continue
 
             base_rev = self._get_baseline_revenue_for_tax_policy(policy=policy, baseline_index=idx)
-            if isinstance(policy, CapitalGainsPolicy):
-                # The realizations base is a dated flow off the accrued-gains
-                # stock, so it has to be asked for in the year being scored
-                # rather than once - the same reason TaxExpenditurePolicy takes
-                # a year for its cap. No other policy class sees this argument.
+            if policy.scores_by_year():
+                # The answer genuinely differs by year: a realizations base that
+                # is a flow off a projected stock (CapitalGainsPolicy), or a
+                # threshold the law re-indexes against the base it is measured
+                # above (a TaxPolicy with threshold_indexation != "income").
+                # Asked of the policy rather than of its type since the schedule
+                # lane needed a second case here - see Policy.scores_by_year()
+                # and MODELING_IMPROVEMENT.md section 6.2 item 27.
                 static_annual = policy.estimate_static_revenue_effect(
                     base_rev,
                     use_real_data=self.use_real_data,
                     year=year,
+                    threshold_deflator=self._threshold_deflator(policy, year),
                 )
             else:
                 static_annual = policy.estimate_static_revenue_effect(
                     base_rev,
                     use_real_data=self.use_real_data,
                 )
-                # The generic base is a dated SOI aggregate and the window
-                # prices ten later years, so it is projected onto the year being
-                # scored - the same reason the branches above ask for a year.
-                # 1.0 for every base this policy did not read from SOI.
-                static_annual *= self._income_base_projection_factor(policy, year)
+            # The generic base is a dated SOI aggregate and the window prices
+            # ten later years, so it is projected onto the year being scored -
+            # the same reason the branches above ask for a year. 1.0 for every
+            # base this policy did not read from SOI, which includes every
+            # capital-gains policy: that class projects its own base and never
+            # sets ``soi_base_tax_year``.
+            static_annual *= self._income_base_projection_factor(policy, year)
             revenue[idx] = static_annual * phase
 
             if isinstance(policy, CapitalGainsPolicy):
@@ -375,14 +381,44 @@ class FiscalPolicyScorer:
         soi_year = getattr(policy, "soi_base_tax_year", None)
         if soi_year is None:
             return 1.0
+        return self._nominal_income_ratio(int(soi_year), year)
 
-        anchor = self.baseline.nominal_income_index(int(soi_year))
+    def _nominal_income_ratio(self, from_year: int, to_year: int) -> float:
+        """This baseline's own nominal-income index between two years, or 1.0.
+
+        The one place the ratio is formed, so the base projection and the
+        threshold deflator cannot drift apart - they are the two halves of one
+        unit conversion and a discrepancy between them would be silent.
+        """
+        anchor = self.baseline.nominal_income_index(int(from_year))
         if anchor <= 0:
             return 1.0
-        scored = self.baseline.nominal_income_index(int(year))
+        scored = self.baseline.nominal_income_index(int(to_year))
         if scored <= 0:
             return 1.0
         return float(scored / anchor)
+
+    def _threshold_deflator(self, policy: TaxPolicy, year: int) -> float:
+        """Converts a threshold stated in ``year``'s dollars into SOI-year dollars.
+
+        The *same* ratio :meth:`_income_base_projection_factor` multiplies the
+        annual by, which is what makes the pair a unit conversion rather than
+        two growth terms. A threshold ``T`` in year-``t`` dollars against a base
+        measured in SOI-year dollars and then grown by ``g`` is
+        ``g · Σ max(0, y − T/g)``, and dropping the ``/g`` compares a 2031
+        boundary to a 2023 income.
+
+        Returns ``1.0`` - no deflation - for every policy whose threshold is not
+        re-indexed, which is every policy by default, and for a baseline
+        carrying no GDP path at all. Resolved **before** the first SOI read
+        rather than after it, because the first scored year needs the ratio too.
+        """
+        if not policy.reindexes_threshold():
+            return 1.0
+        soi_year = policy.resolve_soi_base_tax_year()
+        if soi_year is None:
+            return 1.0
+        return self._nominal_income_ratio(int(soi_year), year)
 
     def _score_growth_tax_policy_year(
         self,

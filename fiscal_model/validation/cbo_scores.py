@@ -177,6 +177,21 @@ class CBOScore:
     # ``validation/core.py`` for the rule covering statuses a source does not
     # name, and ``planning/lanes/W7_filing_status_split.md`` for the lane.
     income_threshold_by_filing_status: dict[str, float] | None = None
+    # Income tax: which statutory ordinary-income bracket (1-7) this record's
+    # threshold is the *floor of*, where its own source says the boundary is a
+    # bracket rather than an amount the source chose. Set, the runner reads the
+    # four per-status floors from CBO's own published parameter schedule for
+    # each year being scored, on this record's own ``scoring_vintage``; unset,
+    # the threshold above is used as it always has been.
+    #
+    # This is the index and not the dollars, because a bracket boundary is one
+    # thing stated in four places and re-indexed annually - and because the
+    # amounts are CBO's to publish, not this record's to transcribe. It is a
+    # pre-registered shape input like every other entry in this block, read off
+    # the source's own words under ``STATUTORY_BRACKET_SCHEDULE_RULE`` in
+    # ``validation/core.py``, never from a dollar figure that happens to match
+    # one. See ``planning/lanes/R4_parameter_schedule.md``.
+    statutory_bracket_index: int | None = None
 
 
 # =============================================================================
@@ -495,6 +510,13 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         source_url="https://www.cbo.gov/publication/58164",
         rate_change=0.01,
         income_threshold=0,
+        # Same reform and same words as cbo_opt45_all_rates_1pp in a different
+        # Options volume - "Raise all tax rates on ordinary income by 1
+        # percentage point" - so the boundary is bracket 1's $0 floor, and this
+        # row is the schedule path's second byte-identity check. It names no
+        # scoring_vintage, so it reads the schedule of the vintage it is scored
+        # on, which is the module default; bracket 1 is $0 on all three.
+        statutory_bracket_index=1,
         policy_type="income_tax",
         first_year_cost=-72.4,
         baseline_year=2022,
@@ -1083,6 +1105,12 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         source_url="https://www.cbo.gov/publication/60557",
         rate_change=0.01,
         income_threshold=0.0,
+        # "Raise ALL tax rates on ordinary income" - the boundary is the floor
+        # of the lowest statutory bracket, which is $0 in every year of every
+        # vintage. Declared rather than left off, because it takes the schedule
+        # path end to end and must return this record's existing figure to the
+        # cent. See STATUTORY_BRACKET_SCHEDULE_RULE.
+        statutory_bracket_index=1,
         policy_type="income_tax",
         baseline_year=2024,
         budget_window="FY2025-2034",
@@ -1111,6 +1139,14 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         # $103,350, which is why only the joint amount is stated here.
         income_threshold=103_350.0,
         income_threshold_by_filing_status={"joint": 206_700.0},
+        # "in the four highest brackets" - of seven, so the boundary is the
+        # floor of bracket 4, and the two amounts above are its CY2025 values.
+        # With the index declared, those amounts stop being the applied floors
+        # and become the fallback plus the anchor the preferential-income share
+        # is measured at: the floors actually applied are CBO's own, per year
+        # and per status, on this record's cbo_feb_2024 vintage, whose current
+        # law reverts to the 28/33/35/39.6 schedule in CY2026.
+        statutory_bracket_index=4,
         policy_type="income_tax",
         baseline_year=2024,
         budget_window="FY2025-2034",

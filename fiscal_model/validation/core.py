@@ -11,8 +11,10 @@ import numpy as np
 
 from ..baseline import BaselineVintage, CBOBaseline
 from ..policies import (
+    DEFAULT_THRESHOLD_INDEXATION,
     INCOME_MEASURE_AGI,
     INCOME_MEASURE_TAXABLE_INCOME,
+    THRESHOLD_INDEXATION_STATUTORY,
     CapitalGainsPolicy,
     Policy,
     PolicyType,
@@ -86,6 +88,36 @@ FILING_STATUS_THRESHOLD_RULE = (
     "source naming exactly two amounts means joint returns take the joint "
     "amount and separate, head-of-household and single returns take the single "
     "amount, the structure of IRC section 1411(b)."
+)
+
+#: When a record's threshold is read from CBO's own statutory schedule rather
+#: than used as the fixed amount it is written as.
+#:
+#: The schedule exists — CBO publication 53724, three vintages, four filing
+#: statuses, CY2021–CY2036 (:mod:`fiscal_model.cbo_tax_parameters`) — which
+#: refutes the claim ``cbo_opt45_top4_brackets_2pp``'s own
+#: ``known_limitations`` used to carry. What it does not settle is *which*
+#: records may read it, and the answer is not "whichever ones have a threshold
+#: that looks statutory". This rule was fixed **before** any record was edited
+#: (``planning/lanes/R4_parameter_schedule.md`` section 1.3, committed ahead of
+#: the code) and it is deliberately narrow: exactly three of the eleven generic
+#: records qualify, and the two that are bracket 1 must score to the cent what
+#: they scored before.
+#:
+#: The trap it exists to avoid is in the data. ``$20,000`` **is**
+#: ``tp_bracket_2_hoh`` in CY2033 on the February 2024 vintage, so a rule that
+#: matched on dollars would sweep CBO's Option 46 surtax onto a schedule its
+#: own text never mentions.
+STATUTORY_BRACKET_SCHEDULE_RULE = (
+    "A record's threshold is read from CBO's tax-parameter schedule if and "
+    "only if its own source describes the boundary as a statutory "
+    "ordinary-income bracket. The bracket's INDEX (1-7) is what the record "
+    "declares; the four dollar amounts per year are the schedule's, read on "
+    "the record's own scoring_vintage. An amount the source states in its own "
+    "words - an option's '$20,000 for single filers', a Green Book's "
+    "'$400,000' - is the source's own number and stays where the source put "
+    "it, however closely it happens to sit to a bracket floor. Numeric "
+    "coincidence is not evidence."
 )
 
 #: Which IRS SOI income column a record's base is read from.
@@ -640,6 +672,13 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "Note also that illustrative_1pp_all scores the SAME reform against a "
         "different published figure, -$960.0B against -$1,185.3B, 23.5% apart; the "
         "model cannot agree with both.",
+        "This row declares bracket 1 of the statutory schedule and scores to the "
+        "cent what it scored before, because bracket 1's floor is $0 in every year "
+        "of every vintage. That is not filler: the declaration takes the whole "
+        "schedule path end to end - four per-status floors read per year, deflated "
+        "onto the SOI base year, scored through the filing-status split - and a $0 "
+        "floor must come back out the other side unchanged. If this row ever moves "
+        "by a cent, the schedule is perturbing something nobody asked it to touch.",
     ],
     "cbo_opt45_top4_brackets_2pp": [
         "The filing-status boundary is now the option's own: joint returns and "
@@ -647,16 +686,17 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "other status $103,350 (IRS Rev. Proc. 2024-40 section 2.01, tables 1-4). "
         "That took the row from a 17.9% OVER-prediction to a 12.4% under-prediction "
         "- it removed 25.7% of the base, which was more than the gap.",
-        "The threshold does not move in 2026, and the option says it should. CBO's "
+        "The threshold now moves in 2026, which the option says it should. CBO's "
         "own text: 'Under both alternatives, the scheduled changes to the underlying "
         "tax brackets and rates would still take effect in 2026', after which the "
         "four highest brackets are 28/33/35/39.6 percent and the boundary is the 28% "
-        "floor - higher in real terms than the 24% floor, and not twice the single "
-        "amount for joint returns, because the pre-2018 schedule carried a marriage "
-        "penalty there. Fixing it needs a year-indexed threshold (a third "
-        "isinstance branch in the scoring engine) and a published post-2025 rate "
-        "table, which does not exist. The direction is known: it would take this row "
-        "further under, not closer.",
+        "floor. The boundary is read per year and per filing status from CBO's own "
+        "published schedule (publication 53724, June 2024 edition on this record's "
+        "February 2024 vintage) - the table this note used to say does not exist. "
+        "The reversion is not a uniform shift: bracket 4's joint floor falls 3.5% "
+        "in CY2026 while its head-of-household floor rises 65.5% and its single "
+        "floor 15.9%, so a scalar threshold could not have expressed it and neither "
+        "could a scalar plus one joint amount.",
         "The floors are statutory boundaries on TAXABLE income and SOI's size "
         "classes are by AGI, so the base is 'returns whose AGI clears the bracket "
         "floor' rather than 'taxable income above it'. That predates the "
@@ -664,9 +704,20 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "The base is now projected onto the years being scored rather than held at "
         "its SOI tax year, which took the row from 12.4% under to 14.9% over - a "
         "registered regression, because it was under-predicting by less than a "
-        "decade of nominal growth is worth. The two unmodelled terms above now "
-        "point in opposite directions: the missing 2026 bracket revert would take "
-        "it further over, and the AGI-versus-taxable base would take it back under.",
+        "decade of nominal growth is worth.",
+        "Reading the schedule was a second registered regression and the plan's "
+        "stated direction for it was backwards: the row over-predicts, so it went "
+        "FURTHER OVER rather than further under. It decomposes into two terms "
+        "pointing opposite ways, both of which the base projection created and "
+        "neither of which it could resolve. Deflating the boundary into the SOI "
+        "base year's dollars - the unit conversion that projection implies, since "
+        "scaling the base by g is the same as indexing the threshold by g - is "
+        "worth -$68.4B, because the statute indexes on chained CPI and the base "
+        "grows on nominal GDP. The 2026 reversion is worth +$48.1B. The net is "
+        "-$20.2B, 3.6 points of error. Applying the year's nominal boundary to a "
+        "TY2023 income instead - comparing a 2031 threshold to a 2023 return - "
+        "would score this row at 3.6%, and that figure is recorded here because "
+        "it is what two errors cancelling looks like, not because it is available.",
     ],
     "cbo_opt46_agi_surtax_1pp_20k": [
         "The $20,000 single / $40,000 joint threshold is now the option's own, "
@@ -1228,6 +1279,12 @@ def create_policy_from_score(
             if (agi_base_source_sentence(score) is not None and not ordinary_income_base)
             else INCOME_MEASURE_TAXABLE_INCOME
         )
+        # A record whose source calls the boundary a statutory bracket reads
+        # the four per-status floors from CBO's own schedule for each scored
+        # year, on that record's own vintage. Everything else keeps the
+        # threshold it is written with, which is today's behaviour to the cent.
+        # See :data:`STATUTORY_BRACKET_SCHEDULE_RULE`.
+        statutory_bracket = score.statutory_bracket_index
         return TaxPolicy(
             name=f"Validation: {score.name}",
             description=score.description,
@@ -1236,12 +1293,26 @@ def create_policy_from_score(
             affected_income_threshold=score.income_threshold or 0,
             # Only the amounts the record's own source prints; every other
             # status falls back to the line above. See
-            # :data:`FILING_STATUS_THRESHOLD_RULE`.
+            # :data:`FILING_STATUS_THRESHOLD_RULE`. Kept even where the schedule
+            # supplies the floors: it remains the fallback if the transcription
+            # is missing, and ``income_threshold`` stays the anchor the
+            # preferential-income share is measured at.
             threshold_by_filing_status=(
                 dict(score.income_threshold_by_filing_status)
                 if score.income_threshold_by_filing_status
                 else None
             ),
+            threshold_indexation=(
+                THRESHOLD_INDEXATION_STATUTORY
+                if statutory_bracket is not None
+                else DEFAULT_THRESHOLD_INDEXATION
+            ),
+            threshold_bracket_index=statutory_bracket,
+            # The vintage the run is scored on, so the law read is the law of
+            # that baseline. ``None`` where the record names none, which takes
+            # the module's own default - the vintage ``CBOBaseline`` defaults to
+            # and therefore the one this run is scored against.
+            threshold_schedule_vintage=score.scoring_vintage,
             start_year=start_year,
             duration_years=10,
             ordinary_income_base=ordinary_income_base,
