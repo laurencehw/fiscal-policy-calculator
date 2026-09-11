@@ -280,15 +280,47 @@ def test_the_ordinary_rate_ceiling_stays_where_lane_r2_put_it():
     """The one ceiling that is now TIGHTER than its own re-derivation.
 
     R2 set 15 from a class mean of 11.32%. R1 then moved the class to 12.9%,
-    which re-derives to ``ceil(12.9 x 1.25) = 17`` -- so the rule would now
-    *allow* a looser gate than the one in place. It is not taken: the
-    re-derivation rule is downward only, a ceiling goes to itself or tighter and
-    never back up, and 15 still passes. Pinned so that a later pass reading the
-    one-sided invariant above (which only forbids ``> derived``) cannot raise it
-    to 17 and call that a re-derivation.
+    which re-derives to ``ceil(12.9 x 1.25) = 17``, and Wave F's PR #165 moved it
+    again to 13.85% -- ``ceil(13.85 x 1.25) = 18`` -- so the rule would now
+    *allow* a gate three points looser than the one in place, and has allowed a
+    looser one for two waves running. It is not taken: the re-derivation rule is
+    downward only, a ceiling goes to itself or tighter and never back up, and 15
+    still passes. Pinned so that a later pass reading the one-sided invariant
+    above (which only forbids ``> derived``) cannot raise it and call that a
+    re-derivation.
+
+    Read it beside the row rather than as a number. PR #165's movement was a
+    *registered regression* -- ``cbo_opt45_top4_brackets_2pp`` 14.3% -> 17.9%
+    when the row acquired CBO's own year-indexed statutory bracket schedule --
+    and the class's median rose further than its mean (14.3% -> 16.1% against
+    12.9% -> 13.85%), so this is a ceiling held around a distribution that got
+    worse in the middle. That is the case the per-class gate exists for and the
+    pooled gate cannot see.
     """
     workflow = VALIDATION_DASHBOARD_WORKFLOW_PATH.read_text(encoding="utf-8")
     assert _per_class_ceilings(workflow)["ordinary_rate_change"] == 15
+
+
+def test_the_workflow_records_every_gate_re_derivation_including_the_null_ones():
+    """A wave that re-derives a gate and finds it unchanged has to say so.
+
+    The re-derivation is a judgement -- "the rule gives X, the gate says Y, and
+    here is why Y stands" -- and a wave that leaves no trace is indistinguishable
+    from a wave that never ran it. Wave F re-derived all ten thresholds and moved
+    none: the pooled ceiling derived to itself and the pooled floor and the
+    ``ordinary_rate_change`` ceiling would each have *loosened*, which the
+    downward-only clause forbids.
+
+    Pinned on the two figures a later reader needs to check the arithmetic
+    against, rather than on prose that can be reworded.
+    """
+    workflow = VALIDATION_DASHBOARD_WORKFLOW_PATH.read_text(encoding="utf-8")
+    assert "ceil(11.8 x 1.25) = 15" in workflow, (
+        "the pooled ceiling's Wave F re-derivation is not recorded"
+    )
+    assert "ceil(13.85 x 1.25) = 18" in workflow, (
+        "the ordinary_rate_change ceiling's Wave F re-derivation is not recorded"
+    )
 
 
 def test_the_tax_expenditure_ceiling_records_lane_r1s_tightening():

@@ -193,6 +193,25 @@ jobs:
       # test_no_gate_is_looser_than_the_workflow_rule_derives already asserted
       # min_within <= the live within-25 count, so a floor of 22 was a test
       # failure before it was a CI failure.
+      #
+      # Wave F (PRs #164, #165, #166) re-derived both and NEITHER MOVED, on the
+      # same 22-row battery. One row moved in the whole wave:
+      # cbo_opt45_top4_brackets_2pp 14.3% -> 17.9%, a registered regression, when
+      # PR #165 gave it CBO's own year-indexed statutory bracket schedule
+      # (publication 53724). The tier reads 22 cases, mean 11.8%, 17 within 15%
+      # and 19 within 25%:
+      #   ceiling  ceil(11.8 x 1.25) = 15 -> nearest 5 = 15. Unchanged, and still
+      #            exactly at the rule rather than under it -- 3.2 points of
+      #            headroom on the live mean, which is the tightest this gate has
+      #            ever been.
+      #   floor    19 - 1 = 18, which would LOOSEN a gate the battery meets with
+      #            NO SLACK. LEFT AT 19, which is the live within-25 count.
+      # Worth recording what the wave did NOT spend: the row that got worse was
+      # already inside 25% at 14.3% and is still inside it at 17.9%, so it moved
+      # the within-15 count (18 -> 17) and not the count any gate reads. The
+      # other two lanes of the wave moved no Tier 1 row at all -- R5 refused its
+      # own mechanism on the merits and R8 touches no out-of-sample shape -- which
+      # is why the mean moved by 0.2 points and nothing else did.
       - name: Cold-holdout gate (out-of-sample tier)
         run: |
           python scripts/cold_holdout.py --max-mean-error 15 --min-within-25pct 19
@@ -285,6 +304,31 @@ jobs:
       # and corporate / discretionary_spending / payroll are unchanged.
       # Verified on the merged tree: every ceiling is at or below
       # ceil(live class mean x 1.25) and none exceeds twice its live mean.
+      #
+      # Wave F moved exactly one class and NO ceiling. PR #165's registered
+      # regression took ordinary_rate_change 12.9% -> 13.85% (error mass 51.8 ->
+      # 55.4, within-15 3 -> 2, median 14.3% -> 16.1%); every other class is
+      # byte-identical against the pre-wave cold_holdout.py --json, which each of
+      # the wave's three lanes registered as a falsification test and each passed.
+      #   ordinary_rate_change  ceil(13.85 x 1.25) = 18, so the rule would now
+      #                         ALLOW 18 where the gate says 15. LEFT AT 15 --
+      #                         the second wave running in which this ceiling is
+      #                         held below its own re-derivation, since lane R1
+      #                         had already taken it past 15 to a derivation of
+      #                         17. Downward only: a ceiling goes to itself or
+      #                         tighter, never back up, and 15 still passes at a
+      #                         class mean of 13.85%.
+      #   the other seven       re-derive to themselves: agi_inclusive_surtax
+      #                         ceil(5.15 x 1.25) = 7, capital_gains
+      #                         ceil(18.7 x 1.25) = 24, corporate 56,
+      #                         discretionary_spending ceil(4.64 x 1.25) = 6,
+      #                         enacted_law_spending ceil(7.43 x 1.25) = 10,
+      #                         payroll ceil(7.8 x 1.25) = 10, tax_expenditure
+      #                         ceil(12.8 x 1.25) = 16.
+      # Read ordinary_rate_change beside its row rather than as a number: the
+      # class mean rose 0.95 points while its MEDIAN rose 1.8, so this is a
+      # ceiling held around a distribution that got worse in the middle -- the
+      # case the per-class gate exists for and the pooled gate cannot see.
       - name: Cold-holdout per-class floor (out-of-sample tier)
         run: |
           python scripts/cold_holdout.py --max-class-mean-error \

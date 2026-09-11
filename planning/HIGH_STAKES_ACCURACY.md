@@ -212,17 +212,64 @@ Then, per audience:
 > **H6**, **H13** (Wave A), **H2**, **H2b**, **H3a**, **H9** (Wave B), **H4**,
 > **H5**, **H8** (Wave C) and **H7**, **H11**, **H12** (Wave D), where H2b was
 > split out of H2 mid-wave for the reason §1.3(c) records below and the
-> preset-label pass shipped beside Wave C as PR #148. **H3b is the one lane still
-> open**, owner ⑤ is still unanswered, and `CORPORATE_APP_MODE` is still
-> `reported`. Each closed lane carries a one-line outturn under its own heading
+> preset-label pass shipped beside Wave C as PR #148. **H3b closed on 2026-09-11
+> as PR #166 — `planning/lanes/R5_h3b_corporate.md`, run as lane R5 of
+> `ROUTE_TO_8_5.md`'s Wave F — so all thirteen lanes of this plan are now
+> closed.** With it, **owner ⑤ is answered and `CORPORATE_APP_MODE` is
+> `derived`**. Each closed lane carries a one-line outturn under its own heading
 > and a full record in `planning/lanes/`.
 >
+> **H3b closed without its own mechanism, and that is the outturn rather than a
+> shortfall.** The lane's headline move — CBO's published loss-firm haircut,
+> `dmyrevnfc = 0.85` / `dmyrevx = 0.80` — was **sourced and refused on the
+> merits**, because it adjusts a *statutory rate* inside a user-cost expression
+> while this module multiplies a base that is CBO receipts ÷ the statutory rate,
+> which already nets loss firms; CBO itself divides the factor back out where the
+> other input carries it, *"to avoid double-counting"*, and the module's own SOI
+> file measures those losses at 8.69–11.58% of the pre-NOL base. **§3's own
+> description of the source was also wrong and would have sent a lane looking for
+> data that does not exist**: 0.85 is loss-making firms alone and 0.80 is that
+> factor times the nonprofit share (0.85 × 0.94 = 0.799) — there is **no
+> financial/non-financial split**, so "by sector if the receipts detail supports
+> it" cannot be followed as written. Corrected here with attribution. So
+> `cbo_opt64` is **unmoved at 44.5%**, three pre-registered bands are reported as
+> missed rather than smoothed, and **§3's remedy for this row is now spent**: the
+> haircut is refuted, the §38(c) and §904 credit channels are bounded but
+> unpriceable (SOI's excess-position tables exist for **TY2010 only**), and the
+> behavioural parameter is already the only published one. What the row needs is
+> a **second out-of-sample corporate case** so the class stops being n = 1 —
+> `corporate_rate_scores.csv` carries eighteen published estimates across ten
+> vintages — which belongs to R3. §6.2 items 80 and 81.
+>
+> **Owner ⑤ was executed on a rule fixed before the lane implemented anything**,
+> requiring **both** metrics to favour `derived`, with no tie-break and no
+> re-weighting. Both did: mean error over the three published corporate targets,
+> **`derived` 61.43% against `reported` 62.75%**; and H3a's four-house estimator
+> span at the **+7pp** step every shipped corporate preset uses, `derived`
+> −$1,292.62B **inside** −$1,349.9B to −$935.8B against `reported`'s −$1,397.21B
+> **$47.27B outside and larger than all four**. Three qualifications ship in the
+> module docstring beside the default: `derived` **wins the mean while losing two
+> rows of three** (and the row it wins is the only one whose *scope* matches what
+> the factory builds); **neither mean is small**, so this is a choice between two
+> wrong answers on a stated rule; and **nothing was retuned**, the fitted constant
+> reading 1900.0 either side, asserted by a test. Strict readiness returned
+> exactly one issue before the flip and exactly one after — the environmental
+> Python 3.14 warning — and **no exemption was added**. Two shipped presets moved
+> with a Decision 6 caption: **Biden Corporate 28% −$1,397.21B → −$1,310.92B**,
+> **Trump Corporate 15% +$1,491.76B → +$1,562.75B**.
+>
 > **The live tier readings are §5's, and not one of them may be read as
-> attainment.** Tier 1 went **15.0% → 14.7% → 14.5% → 11.6%**, and the last step
-> is a battery that **shrank from 26 rows to 22** when PR #162 retired four
-> targets no publication carries; the CI gate followed it down by the workflow's
-> own rule, **20 / 22 → 15 / 19**, with `agi_inclusive_surtax` **22 → 7** and
-> `ordinary_rate_change` **19 → 15**. **Waves A/B moved three tiers on *targets*,
+> attainment.** Tier 1 went **15.0% → 14.7% → 14.5% → 11.6% → 11.8%**; the fourth
+> step is a battery that **shrank from 26 rows to 22** when PR #162 retired four
+> targets no publication carries, and the fifth is **one registered regression**
+> in Wave F (PR #165 gave `cbo_opt45_top4_brackets_2pp` CBO's own year-indexed
+> statutory bracket schedule, 14.3% → **17.9%**, taking `ordinary_rate_change`
+> 12.9% → **13.8%** and nothing else by a cent). The CI gate followed the fourth
+> step down by the workflow's own rule, **20 / 22 → 15 / 19**, with
+> `agi_inclusive_surtax` **22 → 7** and `ordinary_rate_change` **19 → 15**; after
+> Wave F every pooled and per-class threshold **re-derives to itself or would
+> loosen**, so none moved — `ordinary_rate_change` is now held at **15** where its
+> own re-derivation would allow 18, for the second wave running. **Waves A/B moved three tiers on *targets*,
 > Wave C moved one on *accuracy*, and Wave D moved all three by a mixture of
 > both** — the reconstruction tier **55.5% → 56.7% on the same 39 rows** in
 > Wave C, then to **38 scored rows at 37.5%** once PR #160 withdrew a 93.3% and a
@@ -231,11 +278,13 @@ Then, per audience:
 > wrong** (§1.2 row 6 and §3 H5's "applied by size class", both corrected in
 > place with attribution), and Wave D added a third: **H7's "nearer 18%" for the
 > charitable magnitude is not reproducible, and the module's own identity gives
-> 22.1%**. Owner decisions ③, ④, ⑧ and ⑨ are **taken** (PRs #160, #160, #161,
-> #158); **⑤ is open** and is H3b's gate, as is Wave C's newer one — the *level*
-> half of the capital-gains death channel, a 7.1× unmeasured factor pointing the
-> opposite way from H5 (§6.2 item 55). What follows H3b is scoped in
-> `planning/ROUTE_TO_8_5.md`, which carries this plan's rules forward unchanged.
+> 22.1%**. Owner decisions ③, ④, ⑤, ⑧ and ⑨ are **all taken** (PRs #160, #160,
+> **#166**, #161, #158). **This plan has no open lane and no open decision of its
+> own**; the one still standing beside it is Wave C's — the *level* half of the
+> capital-gains death channel, a 7.1× unmeasured factor pointing the opposite way
+> from H5 (§6.2 item 55), which is `ROUTE_TO_8_5.md`'s R13 and its owner ⑭. What
+> follows is scoped there, and that plan carries this one's rules forward
+> unchanged.
 
 Ranked by **stakes × current error × tractability**. Each lane follows the established format and
 inherits §1's rules: mechanism not tuning, frozen yardstick, pre-register before opening a file,
@@ -344,9 +393,11 @@ branch — which is the trigger for building `Policy.scores_by_year()` rather th
 > cites; and a bundled run's naive per-point share of **102.5%** of the average base is not a base
 > defect but `extend_bonus_depreciation`, measured at +$294.15B of +$1,491.8B. The review lesson is
 > general: **a test that records a finding must assert the finding, not its neighbourhood.**
-> `planning/lanes/HSB_h3a_corporate_range.md`. **H3b is this plan's one remaining open lane after
-> Waves D and E**, owner ⑤ is still unanswered, and **`CORPORATE_APP_MODE` is still `reported`** —
-> describe the corporate app default that way until a flip merges. `cbo_opt64_corporate_rate_1pp` is
+> `planning/lanes/HSB_h3a_corporate_range.md`. **H3b closed as PR #166 in Wave F, owner ⑤ is
+> answered and `CORPORATE_APP_MODE` is `derived`** — the +7pp span position above is one of the two
+> metrics the flip turned on, re-measured on the finished tree rather than inherited. *(As written
+> after Wave E:)* H3b is this plan's one remaining open lane, owner ⑤ is still unanswered, and
+> `CORPORATE_APP_MODE` is still `reported`. `cbo_opt64_corporate_rate_1pp` is
 > now Tier 1's largest single row at **44.5%** and **17.4% of the tier's whole error mass**, up from
 > 11.4% not because corporate moved — it is unmoved to the decimal — but because the battery around
 > it shrank from 26 rows to 22. It is a class of **one**, which is why its CI ceiling is **56**. The
@@ -357,7 +408,37 @@ range**. The record is transcribed in `CORPORATE_PER_POINT_YIELD.md` §4b: on FY
 statutory rate is worth **55.1%** (Tax Foundation), **55.9%** (JCT), **64.4%** (PWBM) and **79.5%**
 (Treasury, rate+GILTI) of the vintage's average base. The model is at **80.8%**. A user told "−\$1.4T"
 with no range is being told the model agrees with everyone, and it agrees with the highest.
-**H3b, mechanism (3 days).** The remaining 44 of `cbo_opt64`'s 62 points are **credit carryforwards**
+**H3b, mechanism (3 days) — ✅ DONE, PR #166, and the mechanism was refused.**
+
+> **Outturn.** Run as lane R5 of `ROUTE_TO_8_5.md`'s Wave F;
+> `planning/lanes/R5_h3b_corporate.md`. **The headline mechanism was sourced and
+> then refused on the merits**, which §3.1 of the lane pre-registered as the
+> expected outcome *before* implementing anything — CBO's haircut adjusts a
+> **rate** inside a user-cost expression while this module multiplies a **base**
+> that is CBO receipts ÷ the statutory rate, and receipts already carry loss
+> firms' zero tax. Three readings agree, one of them CBO's own: it divides the
+> factor back out at `Create_Tax_Data.prg:172-175` *"to avoid double-counting"*.
+> **What applying it would have done was stated in advance so that not doing it
+> is visible**: ×0.85 lands two of three bands and destroys the one row with a
+> clean document behind it. So **all three bands missed by not moving** —
+> `cbo_opt64` **44.5%**, `trump_corporate_15` **129.6%**, marginal share
+> **80.83%** — and the fourth landed only because part (B) changed which mode the
+> scorecard scores, which the lane says rather than claims. **This section's
+> description of the source is wrong and is corrected above with attribution**:
+> 0.80/0.85 is not "financial vs non-financial". The credit channels were
+> **bounded, not priced**: §38(c)'s carryforward stock is **$124.47B** (IRS
+> Publication 5108, TY2022), §904's carryover a labelled **$78.02B residual**,
+> and the share that would price either needs SOI's excess-position tables, which
+> exist for **TY2010 only** — pre-TCJA, pre-participation-exemption, pre-GILTI.
+> CAMT is blocked on a TY2023 Complete Report that does not exist. Two further
+> findings: **`_estimate_passthrough_shift` is inert in every scored case**
+> (it fires only above a hard-coded 29.6% individual effective rate, so it
+> returns 0.0 at +1pp, +7pp and −6pp and for every rate cut by construction), and
+> **`reported` mode gives the same answer for any decade** — a property only the
+> flip could reveal, since `derived` reads a fiscal-year-indexed path and answers
+> $18.30B differently for FY2026–2035. §6.2 items 80 and 81 carry what is left.
+
+*(As scoped:)* The remaining 44 of `cbo_opt64`'s 62 points are **credit carryforwards**
 (§38(c), §904(c)) and **CAMT**, both of which CBO's 2018 Option 24 narrative places *inside* JCT's
 estimate. Each needs a quantity from Form 3800 / Form 1118 statistics — a data-acquisition step.
 **Sourced behavioural offsets, not a marginal-realization ratio.** The lane may add pass-through/C-corp
@@ -371,7 +452,10 @@ it may **not** assert a share. The number that would land the row is printed by
 `trump_corporate_15` 121.6% → 90 ± 20. `biden_corporate_28` is fitted and will move in `derived` only.
 **Owner decision required up front:** does H3a's range display change Decision 33's answer?
 `CORPORATE_APP_MODE` stays `reported` today because the mean cannot discriminate on three targets 57%
-apart — a shipped range is arguably the honest resolution of exactly that.
+apart — a shipped range is arguably the honest resolution of exactly that. **✅ Answered in PR #166:
+yes, and `CORPORATE_APP_MODE` is now `derived`.** The mean still cannot discriminate on its own —
+61.43% against 62.75% is a choice between two wrong answers — which is exactly why the lane's rule
+required the estimator-span position *as well*, and required both to agree.
 
 ### H4 — Empirically calibrated bands, by policy class *(2 lane-days)* — ✅ **DONE, PR #149**
 
@@ -937,7 +1021,14 @@ outlays, 4.5% high, against $19.8B falling outside even this window) rather than
 ④ retired the two pharma `model_estimate` targets, **the ledger's first retirements**, and the
 anti-gaming arithmetic is printed rather than argued: withdrawing a 93.3% and a 701.0% row from a
 39-row tier averaging 56.5% leaves 37 at 38.1%, so the tier with both folded back at the error they
-carried on the day they were withdrawn prints on the adjacent line. **⑤ is open and is H3b's gate.**
+carried on the day they were withdrawn prints on the adjacent line. **⑤ was taken in PR #166 and
+`CORPORATE_APP_MODE` is now `derived`.** Its form is worth keeping as a template: the decision rule
+was written into the lane's §3.2 **before** the lane implemented anything, named **both** metrics,
+required both to favour `derived`, and forbade a tie-break or a re-weighting — so the flip could not
+be argued into existence afterwards. Both metrics favoured it (61.43% against 62.75% on the three
+published corporate targets; inside the four-house span at +7pp against $47.27B outside), strict
+readiness returned the same single environmental issue either side, and no constant was retuned.
+**All five of this plan's own owner decisions are now taken.**
 
 **⑩ is two different decisions in two documents and they must not be conflated.** Here it is H10's
 *"re-derive the CI gate after the rows land"*, which is **still open**. In `ROUTE_TO_8_5.md` §2 it is
@@ -954,16 +1045,26 @@ ledger exists to prevent.
 **Measurable, per class.** Tier 1 targets after Wave E, stated as movement not attainment — and in
 this round two of the movements are **composition**, which the table labels rather than banks:
 
-| Class | n | At writing | After Waves A/B | After Wave C | **After Waves D/E** | Target | Which lane |
-|---|--:|--:|--:|--:|--:|--:|---|
-| AGI-inclusive surtax | 6 → **2** | 20.7% | 17.6% ⚠ | 17.6% ⚠ | **5.2%** *(composition — see below)* | **≤ 10%** | H1 + H2 + H2b |
-| ordinary rate change | 4 | 12.0% | 14.8% ⚠ | 14.8% ⚠ | **12.9%** ⚠ | ≤ 12% (hold) | H2 |
-| capital gains | 4 | 20.5% | 20.5% | **18.7%** ✅ | **18.7%** ✅ *(unmoved)* | ≤ 18% | H5 |
-| corporate | 1 | 44.5% | 44.5% | 44.5% | **44.5%** *(unmoved)* | ≤ 32% | H3b → R5 |
-| discretionary + enacted spending | 8 | 7.9% | 7.9% | 7.9% | **5.7%** (4.6 + 7.4) | hold | owner ③ |
-| **tier** | 26 → **22** | 15.0% / 10.6% / 22 within 25 | 14.7% / 12.6% / 23 within 25 | 14.5% / 11.5% / 22 within 25 | **11.6% / 8.9% / 19 within 25 (86.4%)** | **≤ 12% mean, ≥ 30 of 40 within 25%** | all |
+| Class | n | At writing | After Waves A/B | After Wave C | After Waves D/E | **After Wave F** | Target | Which lane |
+|---|--:|--:|--:|--:|--:|--:|--:|---|
+| AGI-inclusive surtax | 6 → **2** | 20.7% | 17.6% ⚠ | 17.6% ⚠ | 5.2% *(composition — see below)* | **5.2%** *(unmoved)* | **≤ 10%** | H1 + H2 + H2b |
+| ordinary rate change | 4 | 12.0% | 14.8% ⚠ | 14.8% ⚠ | 12.9% ⚠ | **13.8%** ⚠ *(registered regression, R4)* | ≤ 12% (hold) | H2 |
+| capital gains | 4 | 20.5% | 20.5% | **18.7%** ✅ | 18.7% ✅ | **18.7%** ✅ *(unmoved)* | ≤ 18% | H5 |
+| corporate | 1 | 44.5% | 44.5% | 44.5% | 44.5% | **44.5%** *(unmoved — R5 refused its own mechanism; the remedy is spent)* | ≤ 32% | ~~H3b → R5~~ → R3 |
+| discretionary + enacted spending | 8 | 7.9% | 7.9% | 7.9% | 5.7% (4.6 + 7.4) | **5.7%** *(unmoved)* | hold | owner ③ |
+| **tier** | 26 → **22** | 15.0% / 10.6% / 22 within 25 | 14.7% / 12.6% / 23 within 25 | 14.5% / 11.5% / 22 within 25 | 11.6% / 8.9% / 19 within 25 (86.4%) | **11.8% / 8.9% / 19 within 25 (86.4%)** | **≤ 12% mean, ≥ 30 of 40 within 25%** | all |
 
-> **After Waves D and E the tier's headline number fell, and the reason is not accuracy.** Tier 1 is
+> **After Wave F the tier reads 22 rows at 11.8% mean / 8.9% median, 17/22 within 15%, 19/22 within
+> 25%, error mass 258.9** — one row and one class moved, by design: PR #165 gave
+> `cbo_opt45_top4_brackets_2pp` CBO's own year-indexed statutory bracket schedule and it went
+> **14.3% → 17.9%**, taking `ordinary_rate_change` 12.9% → **13.8%** and nothing else by a cent.
+> Note what that costs against this section's own target: the class's "≤ 12% (hold)" now reads 13.8%,
+> and **the right response is not to relax it** — the lane pre-registered the movement, the plan's
+> stated *direction* for it was backwards (it said "further under"; the row had already crossed its
+> target when H2 shipped), and the CI ceiling was held at 15 where the rule would allow 18.
+>
+> *(As written after Waves D and E:)* **the tier's headline number fell, and the reason is not
+> accuracy.** Tier 1 was
 > **22 rows at 11.6% mean / 8.9% median, 18/22 within 15%, 19/22 within 25%**, error mass **255.3**,
 > and **every one of the 22 is a `line_item`** — the tier's `secondhand` count is **0** and its
 > `model_estimate` count is 0, which is the strongest single provenance statement this tier has ever
