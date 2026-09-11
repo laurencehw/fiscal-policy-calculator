@@ -513,6 +513,7 @@ FY2026–2035 one — a different decade of the same table, not a second figure.
 | `cold_holdout.py --max-class-mean-error …` (8 classes) | **pass** |
 | `run_loo.py --donor-matrix --max-mean-error 75` | **pass**, byte-identical |
 | `cold_holdout.py --max-mean-error 20 --min-within-25pct 22` | **FAIL** — mean 15.4 passes, **within-25 is 20 against a floor of 22** |
+| `pytest tests/ -q` | **4,045 passed, 7 skipped, 2 failed** — the two failures are `test_ci_workflow.py`'s gate tests above and nothing else |
 
 The pooled gate's failure was registered in §3.1 before the mechanism existed.
 **The threshold was not touched**, because the workflow's own re-derivation rule
