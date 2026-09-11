@@ -91,11 +91,96 @@ static_revenue = 0.026 × 800,000 × 1,800,000 = $37.4B/year
 
 Only income *above* the threshold is subject to the rate change. A filer earning $500K with a $400K threshold has only $100K of marginal income affected.
 
-#### Ordinary vs. preferential income base (`ordinary_income_base`)
+### The generic income-tax base, in three parts
 
-An *ordinary*-bracket rate change (e.g. restoring the 39.6% top rate) does **not** apply to long-term capital gains or qualified dividends, which are taxed at preferential rates. On the `TaxPolicy` dataclass the flag defaults to `False` for back-compat, but **production Generic scoring, validation (`create_policy_from_score`), custom UI/API income-tax paths, and preset fallbacks default to `True`** — excluding the preferentially-taxed share (sourced from `CapitalGainsBaseline`). That is the correct treatment for ordinary-rate proposals and cuts the Biden 39.6%-above-$400K out-of-sample error from ~62% to ~13%.
+Every generic income-tax score is one base times one rate change, and the base is
+settled by three independent questions that Waves A and B of the high-stakes plan
+answered one at a time. They are independent, so the answers compose, and the
+repository had a different defect in each.
 
-Set the flag `False` (UI: uncheck “Ordinary-income base”; or `CBOScore.agi_inclusive_base=True`) for AGI-inclusive surtaxes that tax capital gains as ordinary income. Reproduce the legacy-vs-corrected comparison with `python scripts/cold_holdout.py --ordinary-base`.
+**(1) Which SOI column — AGI or taxable income? (`income_measure`)**
+
+SOI Table 1.1's rows are **AGI size classes** and its columns include **both**
+total AGI and total taxable income. The generic path selects returns by the class
+boundary — an **AGI** boundary — and then prices the reform as
+`Σ max(0, avg_income(above the floor) − T) × N`. Until Wave B the `avg_income` in
+that expression was always **taxable income**, so a threshold stated on AGI was
+subtracted from an average of a different quantity. On CBO Option 46 alternative
+1 that is `$92,658 − $20,000` where the option says *"a surtax of 1 percentage
+point would be imposed on **AGI** above $20,000 for single filers and $40,000 for
+joint filers"* (publication 60557, report p. 56); the single-filer **AGI** average
+above that floor is `$120,414`. Same returns, same floor, a base **1.4052×**
+larger.
+
+**The defect is a unit mismatch rather than a level**, and naming it that way is
+what made it tractable: read as "the base is a bit low" it invites a fudge factor;
+read as "these are two different quantities" it has exactly one fix, and the fix
+is **per source**. `TaxPolicy.income_measure` is `"taxable"` or `"agi"`, and which
+one a validation row reads is transcribed from that row's own sentence rather than
+chosen. Of the six records carrying `agi_inclusive_base`, **three say AGI** (both
+CBO Option 46 alternatives and the Warren surtax), **two say taxable income** in as
+many words (both TPC illustrative rows), and one —
+`medicare_surcharge_2pp`, whose statutory base is wages plus net investment income —
+states a base that is **neither SOI column**, since AGI also carries proprietors'
+income, pensions and IRA distributions less above-the-line deductions, while
+taxable income is net of the standard or itemised deduction and of the QBI
+deduction. Where a source is ambiguous the row **stays on the taxable column and
+the ambiguity is recorded**; it is not resolved with the nearer-looking column.
+
+**(2) Ordinary or AGI-inclusive? (`ordinary_income_base`)**
+
+An *ordinary*-bracket rate change (e.g. restoring the 39.6% top rate) does **not**
+apply to long-term capital gains or qualified dividends, which are taxed at
+preferential rates, so the preferentially-taxed share (sourced from
+`CapitalGainsBaseline`) comes out of the base. An **AGI-inclusive surtax** reaches
+that income and the share stays in.
+
+**There is now one default and it is shared.** `DEFAULT_ORDINARY_INCOME_BASE`
+(`fiscal_model/policies_core.py`) is what the `TaxPolicy` dataclass, Tailor's
+checkbox, the composer's preset path, the API's `ScoreRequest` and Ask's
+`score_hypothetical_policy` all read; a test greps every constructor in the tree
+and fails if any of them re-acquires a literal of its own. Before Wave A there
+were **three** different defaults across those four surfaces, and the same policy
+specification scored **−$166.5B on Tailor and −$314.6B on Ask** on the same
+commit — 1.89× apart, with the scorecard validating only the second. Set the flag
+`False` (UI: uncheck "Ordinary-income base"; or `CBOScore.agi_inclusive_base=True`)
+for AGI-inclusive surtaxes. Reproduce the legacy-vs-corrected comparison with
+`python scripts/cold_holdout.py --ordinary-base`.
+
+The two flags are **not** the same question and the invariant says so: an
+`income_measure="agi"` base already contains preferential income, so combining it
+with `ordinary_income_base=True` would remove that income from a total defined to
+include it. The constructor **refuses** the combination rather than silently
+normalising it — a refusal, because a silent normalisation would have hidden the
+one caller that comes close (`cold_holdout.py --ordinary-base`, which forces the
+flag on every generic row in both directions as a diagnostic).
+
+**(3) Which year is the base? (the vintage's own nominal path)**
+
+SOI publishes a **tax year**; the app scores a **ten-fiscal-year window**. Until
+Wave B the generic path returned the same tax-year-2023 annual ten times — `yr1 ==
+yr10` to the cent on every shape — across a decade in which the scored baseline's
+own nominal GDP grows **28.8%** (3.878%/yr on CBO's February 2024 vintage). The
+base is now indexed to **the nominal-GDP path of the vintage the run is scored
+on**, so a score on the February 2024 baseline and a score on a later one do not
+silently share a 2023 level. On the app's default FY2026–2035 window the window
+mean of that index is **1.355952**, which is exactly the factor every generic
+shipped preset moved by.
+
+Three things about this are worth stating rather than leaving implied. **Nominal
+GDP, not the wage path**, and the choice does not turn on fit: on the one vintage
+where both are transcribed the two window means are 1.30719 and 1.31182, a **0.35%**
+difference, so availability and base definition decide it. **The projection
+implicitly indexes the threshold**, because scaling an aggregate above a fixed
+nominal floor by `f` is identical to indexing that floor by `f`; the real base of
+an unindexed-threshold reform grows faster, so the projection is a **lower bound**
+and the two Option 46 rows stay under. And **a caller-supplied base is never
+projected** — if the caller states the base, the model uses the base it was given.
+
+**What the three steps are worth, measured.** On CBO Option 46 alternative 1 the
+chain runs 49.8% → 34.1% (growth) → **7.4%** (AGI column); on alternative 2, 37.4%
+→ 17.9% → **−2.9%**. They compose in either order, and neither step alone reaches
+either figure.
 
 #### Filing-status thresholds (`threshold_by_filing_status`)
 
@@ -140,6 +225,14 @@ denominator raises it from 21.6% to 29.1% on the bracket row — joint returns
 between the two floors are removed from the base once and their preferential
 income removed from the remainder again — which is worth eight points of pure
 bookkeeping. The shipped code holds the share at the pooled threshold.
+
+**A third caution, from the AGI column.** A ratio measured on the *pooled*
+base is not the ratio that applies to a split one. Marginal AGI over marginal
+taxable income is **1.3820** at $20,000 and **1.3094** at $100,000 pooled, but
+**1.4052** and **1.2535** inside the filing-status split — one higher and one
+lower, because the joint floor is twice the single floor and joint returns are
+a different share of the two populations. Sizing the AGI step with the pooled
+ratios would have missed both Option 46 rows in opposite directions.
 
 ### Data Source: IRS SOI
 
