@@ -482,7 +482,14 @@ to the cent.
 | Ask's ten-year cumulative deficit | $29,529.09B | **$23,143.30B** |
 | Ask's end-of-window debt/GDP | 103.84% | **117.98%** |
 | Build's mean annual deficit | $2,952.91B | **$2,314.33B** |
-| Build's baseline deficit share of GDP | 7.72% | **6.05%** |
+| Build's baseline deficit share of GDP | 7.31% | **6.05%** |
+| Build's mean window GDP | $40,414.80B | **$38,255.37B** |
+
+`scripts/smoke_ask_assistant.py` passes all three live calls on this branch
+($0.0433). The `get_cbo_baseline` call reports a **$22.1T** ten-year deficit and
+**116.2%** end-of-window debt/GDP, which is the transcribed February 2026 vintage
+read on the smoke harness's own FY2025–2034 window rather than the app's
+FY2026–2035 one — a different decade of the same table, not a second figure.
 
 ### 6.7 Gates
 
