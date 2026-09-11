@@ -223,7 +223,9 @@ def calculate_tax_policy_result(
         # A bare TaxPolicy with policy_type=CORPORATE_TAX runs the individual
         # income-tax base and scores 21%->28% at -$1,855B (37% off Treasury's
         # -$1,347B). CorporateTaxPolicy is driven by the rate alone and lands
-        # at -$1,397B (3.7%), so the Tailor "Corporate" option routes here.
+        # at -$1,293B (4.0%) on the app default, which became `derived` on
+        # 2026-09-11 (it was -$1,397B / 3.7% under `reported`), so the Tailor
+        # "Corporate" option routes here.
         # There is no income threshold on the corporate base, so the
         # "who is affected" control does not apply.
         from fiscal_model.corporate import CorporateTaxPolicy

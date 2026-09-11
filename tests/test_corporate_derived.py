@@ -371,7 +371,13 @@ def test_reported_is_exactly_linear_in_the_rate_step(scorer):
     curvature, which is not what this test is about.
     """
     per_point = [
-        abs(_ten_year(scorer, create_corporate_rate_change(d))) / (d * 100)
+        abs(
+            _ten_year(
+                scorer,
+                create_corporate_rate_change(d, mode=CORPORATE_MODE_REPORTED),
+            )
+        )
+        / (d * 100)
         for d in (0.01, 0.02, 0.05, 0.07)
     ]
     for value in per_point[1:]:
@@ -475,12 +481,20 @@ def test_no_factory_sets_a_per_case_elasticity():
 # ---------------------------------------------------------------------------
 
 
-def test_the_app_default_is_reported():
-    assert CORPORATE_APP_MODE == CORPORATE_MODE_REPORTED
+def test_the_app_default_is_derived():
+    """Flipped on 2026-09-11 by lane ``planning/lanes/R5_h3b_corporate.md``.
+
+    Owner decision (5) held this at ``reported`` until H3b could re-measure
+    Decision 1 once. It did, and ``derived`` won both metrics the repository
+    records - see ``tests/test_corporate_mode_flip.py``, which asserts the
+    rule rather than the outcome. What this test pins is the narrower thing:
+    the dataclass default and the module constant do not drift apart.
+    """
+    assert CORPORATE_APP_MODE == CORPORATE_MODE_DERIVED
     default = CorporateTaxPolicy(
         name="x", description="x", policy_type=PolicyType.CORPORATE_TAX
     )
-    assert default.mode == CORPORATE_MODE_REPORTED
+    assert default.mode == CORPORATE_APP_MODE
 
 
 def test_reported_mode_pins(scorer):
@@ -492,12 +506,12 @@ def test_reported_mode_pins(scorer):
     reported branch, because 12.5% of a negative static had been landing on the
     wrong side. No constant was retuned to put it back.
     """
-    assert _ten_year(scorer, create_biden_corporate_rate_only()) == pytest.approx(
-        -1397.21, abs=0.01
-    )
-    assert _ten_year(scorer, create_republican_corporate_cut()) == pytest.approx(
-        1491.76, abs=0.01
-    )
+    assert _ten_year(
+        scorer, create_biden_corporate_rate_only(mode=CORPORATE_MODE_REPORTED)
+    ) == pytest.approx(-1397.21, abs=0.01)
+    assert _ten_year(
+        scorer, create_republican_corporate_cut(mode=CORPORATE_MODE_REPORTED)
+    ) == pytest.approx(1491.76, abs=0.01)
 
 
 def test_decision_1_ranks_the_two_modes_on_the_registered_targets(scorer):
@@ -522,8 +536,12 @@ def test_decision_1_ranks_the_two_modes_on_the_registered_targets(scorer):
     both apply, **derived leads narrowly** — 61.43% against 62.75% — because
     it wins the one rate-only published row (FY2022) and loses a little on the
     other two. Neither figure is small, which is the honest reading of a module
-    whose implied marginal base sits above every published estimator's. The
-    mode is still not flipped here; the owner's re-measure is this number.
+    whose implied marginal base sits above every published estimator's.
+
+    **That re-measure happened on 2026-09-11** and the mode flipped with it
+    (``planning/lanes/R5_h3b_corporate.md`` §6). The rule it was decided by --
+    both this mean *and* H3a's estimator span, or neither -- is asserted in
+    ``tests/test_corporate_mode_flip.py``; this test keeps the mean itself.
     """
     from fiscal_model.validation.scenarios import CORPORATE_VALIDATION_SCENARIOS
 
@@ -539,7 +557,7 @@ def test_decision_1_ranks_the_two_modes_on_the_registered_targets(scorer):
     assert means[CORPORATE_MODE_DERIVED] < means[CORPORATE_MODE_REPORTED]
     assert means[CORPORATE_MODE_REPORTED] == pytest.approx(0.6275, abs=0.0002)
     assert means[CORPORATE_MODE_DERIVED] == pytest.approx(0.6143, abs=0.0002)
-    assert CORPORATE_APP_MODE == CORPORATE_MODE_REPORTED
+    assert CORPORATE_APP_MODE == CORPORATE_MODE_DERIVED
 
 
 # ---------------------------------------------------------------------------
