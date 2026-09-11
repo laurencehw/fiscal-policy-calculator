@@ -438,7 +438,7 @@ No exemption was added.
 | 5 | derived marginal share, +1pp | 80.83% | falls toward 55–80%, not set inside it | **80.83%** | ❌ unmoved |
 | 6 | Tier 1 mean | 11.6% | moves by `cbo_opt64` alone | **11.6%**, n=22, median 8.9%, 18/22 within 15 | ✅ |
 | 7 | every Tier 1 row but `cbo_opt64` | — | byte-identical | **all 22 byte-identical** | ✅ |
-| 8 | LOO `--donor-matrix` | 36.5% (n=18) | byte-identical | **byte-identical**, every module row unmoved | ✅ |
+| 8 | LOO `--donor-matrix` | 36.5% (n=18) | byte-identical | **aggregate and all six module rows unmoved** — Payroll 32.3, Estate 10.4, AMT 73.9, Credits 18.5, Expenditures 43.6, CapitalGains 39.6 | ✅ |
 | 9 | fitted tier | 15 @ 1.6% | unchanged | **15 @ 1.6%**, 15/15 within 15 | ✅ |
 
 **§3.1 predicted rows 1, 3 and 5 would miss by not moving, and they did.** That
@@ -569,7 +569,7 @@ Badges do not move: `biden_corporate_28` 3.73% → 4.04% stays **Excellent** and
 | held in place | 26 @ 12.4% | 26 @ 12.4% (median 2.4% → 2.6%) |
 | unfitted reconstructions | 38 @ 37.5%, median 30.1% | **38 @ 37.4%**, median 30.1% |
 | retired held in | 40 @ 55.5% | 40 @ 55.4% |
-| leave-one-out | 18 @ 36.5% | **byte-identical** |
+| leave-one-out | 18 @ 36.5% | **18 @ 36.5%**, all six module rows unmoved |
 
 **The reconstruction tier's 0.1pp is accuracy on a constant population**, not
 composition: the same 38 rows sit in it before and after, and the whole of the
