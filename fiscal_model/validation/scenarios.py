@@ -804,6 +804,59 @@ PTC_VALIDATION_SCENARIOS_COMPARE = {
 }
 
 
+#: Which **baseline SALT cap path** each SALT benchmark's own document was
+#: scored on — the shape input, declared here before anything reads it.
+#:
+#: Why this table exists rather than a ``target_revisions.py`` row. The Tier 1
+#: manifest has a rule for a shape input that moves while the target stands
+#: still: a new row with ``superseded_by`` and the old one kept
+#: (``iija_2021_discretionary.v2``, ``treasury_capgains_39_plus_stepup_elim.v2``).
+#: The Tier 2 ledger has no such place, and its own fifth invariant forbids
+#: borrowing one — ``target_revision_problems()`` fails a supersession that
+#: "restates the old figure", which is exactly what a baseline re-registration
+#: at an unchanged target would be. Neither of these targets moves: PWBM's
+#: +$1,169.0B and CBO's -$1,621.0B are the same figures they were.
+#:
+#: So the two-commit discipline is transposed instead of skipped. This table is
+#: entered inert — nothing reads it — and the commit after it makes it the
+#: scoring input, so "the baseline was declared before the model was allowed to
+#: score on it" stays checkable from the git history rather than asserted.
+#: ``tests/test_salt_cap_path.py`` asserts the declaration and the scenario
+#: kwarg agree, so the two cannot drift.
+#:
+#: The values are ``SaltCapBaseline`` values
+#: (``fiscal_model.tax_expenditures_core``), spelled as the strings the enum
+#: carries.
+#:
+#: See ``planning/lanes/SALT_current_law_baseline.md`` section 1.5.
+SALT_SCORING_BASELINES: dict[str, dict[str, str]] = {
+    "repeal_salt_cap": {
+        "baseline": "permanent_10k",
+        "document": (
+            "Penn Wharton Budget Model, 'Lifting the SALT Cap', Table 3, "
+            "'Conventional budget estimates: Policy Options for the SALT Cap "
+            "Against Extended TCJA FY25-34'. The table's own title states the "
+            "baseline: TCJA extended, so the $10,000 cap is permanent and a "
+            "repeal bites in all ten years. The same paper's Table 1 scores "
+            "the identical reform at -$197B against the law as it then stood, "
+            "a factor of 5.9 apart, which is what makes the baseline part of "
+            "the target rather than context for it."
+        ),
+    },
+    "eliminate_salt": {
+        "baseline": "lapsed_cap",
+        "document": (
+            "CBO, Options for Reducing the Deficit: 2025 to 2034 (pub. 60557), "
+            "Option 49, report p. 59: 'Beginning in 2026, deductions for state "
+            "and local taxes will not be limited.' The option is measured on "
+            "the February/June 2024 baseline, in which IRC 164(b)(6)'s $10,000 "
+            "cap lapses after 2025 and the deduction is uncapped for nine of "
+            "the ten years scored."
+        ),
+    },
+}
+
+
 TAX_EXPENDITURE_VALIDATION_SCENARIOS_COMPARE = {
     "cap_employer_health": {
         "description": "Cap employer health exclusion at $50K",
