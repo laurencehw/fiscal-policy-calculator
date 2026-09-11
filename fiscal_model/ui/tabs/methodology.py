@@ -663,7 +663,7 @@ full taxable-income base. Treat uncalibrated custom policies as directional
 | Policy (calibrated) | Official | Model | Error | Source |
 |--------|---------:|------:|------:|--------|
 | TCJA Full Extension | \$4,600B | \$4,582B | 0.4% | CBO |
-| Biden Corporate 28% | -\$1,347B | -\$1,397B | 3.7% | Treasury |
+| Biden Corporate 28% | -\$1,347B | -\$1,293B | 4.0% | Treasury |
 | Biden CTC 2021 | \$1,600B | \$1,600B | 0.0% | JCT |
 | Estate: Biden Reform | -\$450B | -\$450B | 0.0% | Treasury |
 | Repeal Corporate AMT | \$220B | \$220B | 0.0% | JCT (JCX-18-22) |
