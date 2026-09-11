@@ -360,12 +360,272 @@ Grades: `VINTAGE_SOURCING` gains per-line fields; `CORPORATE_RECEIPTS_SOURCING`
 
 ## §6 — Outturn
 
-*(appended after implementation)*
+*Appended after implementation. Every figure below is from a run on this branch.*
+
+### 6.1 The falsification condition, met
+
+`CBOBaseline(start_year=2026, vintage=CBO_FEB_2026, use_real_data=True)` sums its
+FY2026–2035 deficits to **$23,143.303B** against CBO's own printed **$23,143.3B**.
+Each *year* is CBO's own `proj_deficit_total` to within $0.05B, on both
+transcribed vintages and on two different window starts, which is the check that
+the `other_mandatory` residual is doing what it claims rather than absorbing a
+mapping error. `tests/test_cbo_baseline_transcription.py` is that gate: 18 tests,
+all passing.
+
+### 6.2 The vintage tables, before and after
+
+`use_real_data=True`, ten-year window from `start_year=2026`:
+
+| | Feb 2024 | Jan 2025 | Feb 2026 *(app default)* |
+|---|---|---|---|
+| cumulative deficit | 29,707.19 → **29,440.30** | 27,710.57 → **21,758.26** | 29,529.09 → **23,143.30** |
+| end debt | 49,350.15 → **49,165.2** | 48,115.23 → **52,055.9** | 49,362.06 → **53,103.2** |
+| end nominal GDP | 47,900.82 → **43,244.0** | 47,388.52 → **43,936.5** | 47,534.59 → **45,011.5** |
+| end debt/GDP | 103.03% → **113.69%** | 101.53% → **118.48%** | 103.84% → **117.98%** |
+| GDP CAGR | 3.88% → **3.95%** | 3.80% → **3.82%** | 3.82% → **3.90%** |
+| corporate receipts | 491.40 → 568.77 *(unchanged)* | 544.96 → 830.79 ⇒ **495.15 → 517.12** | 436.80 → 667.36 ⇒ **403.98 → 551.91** |
+| corporate CAGR | 1.64% *(unchanged)* | 4.80% → **0.48%** | 4.82% → **3.53%** |
+| `VINTAGE_SOURCING` | `sourced` → **`{economic: transcribed, budget: reconstructed}`** | `sourced` → **`{transcribed, transcribed}`** | `sourced` → **`{transcribed, transcribed}`** |
+| `CORPORATE_RECEIPTS_SOURCING` | `published_path` *(unchanged)* | `published_base_level` → **`published_path`** | `vintage_estimate` → **`published_path`** |
+
+February 2026's corporate CAGR lands on **3.53%**, which is the figure the macro
+survey said CBO's own path compounds at, and the FY2026 individual income tax and
+payroll gaps the survey measured close exactly: 2,248.86 → **2,751.29** (the
+18.3% it was low) and 2,027.13 → **1,825.57** (the 11.0% it was high).
+
+**February 2024 moved more than §3.4 predicted and the reason is a channel the
+pre-registration missed.** §3.4 said its budget lines would be unchanged, on the
+grounds that CBO's GitHub publishes no February 2024 budget table. True — and its
+*economic* table is published, so that vintage's reconstruction is now grown on
+CBO's own rates rather than the rounded ones, and anchored on CBO's own base-year
+GDP rather than FRED's latest. Its cumulative deficit is 29,707.19 → **29,440.30**
+(−0.90%) and its GDP path 47,900.82 → 43,244.0 at the end of the window.
+**Read that vintage's debt/GDP with care and do not quote it**: its GDP is CBO's
+and its debt is this module's reconstruction, so the ratio is a mixture. §8
+carries it.
+
+### 6.3 Tier 1 — eleven rows moved, ten of them exactly as registered
+
+| row | registered | **actual** |
+|---|--:|--:|
+| `medicare_surcharge_2pp` | −$422.5B / 36.3% | **−$422.5B / 36.3%** |
+| `warren_ultramillionaire_surtax_3pp` | −$451.5B / 29.0% | **−$451.5B / 29.0%** |
+| `illustrative_1pp_all` | −$1,235.7B / 28.7% | **−$1,235.7B / 28.7%** |
+| `illustrative_top_rate_5pp` | −$870.2B / 24.3% | **−$870.2B / 24.3%** |
+| `illustrative_500k_2pp` | +$489.2B / 22.3% | **+$489.2B / 22.3%** |
+| `biden_high_income_tax` | −$299.8B / 21.9% | **−$299.8B / 21.9%** |
+| `cbo_opt45_top4_brackets_2pp` | −$651.0B / 14.3% | **−$651.0B / 14.3%** |
+| `cbo_opt46_agi_surtax_1pp_20k` | −$1,326.3B / 7.9% | **−$1,326.3B / 7.9%** |
+| `cbo_opt46_agi_surtax_2pp_100k` | −$1,075.8B / 2.4% | **−$1,075.8B / 2.4%** |
+| `cbo_opt45_all_rates_1pp` | −$1,201.2B / 1.3% | **−$1,201.2B / 1.3%** |
+| `cbo_opt56_employer_health_income_only` | *not registered* | **−$608.1B / 12.8%** (was 13.1%) |
+
+Tier: **14.5% → 15.4%** mean, median **11.5%** unmoved, within-15 **16 → 16**,
+within-25 **22 → 20**. `agi_inclusive_surtax` 17.6% → **20.4%**,
+`ordinary_rate_change` 14.8% → **16.6%**, `tax_expenditure` 13.1% → **12.8%**,
+the other five classes unmoved.
+
+### 6.4 The calibrated tiers and leave-one-out — nothing moved, as registered
+
+Fitted **16 @ 1.5%** and unfitted reconstructions **39 @ 56.5% / 36.9% median,
+10/39 within 15%** are byte-identical in every row. `run_loo.py --donor-matrix`
+is byte-identical. **11 of the 81 scorecard rows moved and all eleven are
+Tier 1.** `build_validation_headline.py --check` passes unchanged (77 published
+of 81), and `check_readiness.py --strict` is **byte-identical** to the same
+command run with the transcription disabled.
+
+### 6.5 Presets — §3.3 was wrong, and the harness was why
+
+**Eighteen of 106 preset × mode rows moved**, against a registered zero. The
+registered zero came from a sweep that scored `PRESET_POLICIES[label]` — a dict,
+not a `Policy` — so all 106 rows raised and were recorded as errors, *identically
+before and after*. A second defect sat behind it: several results carry
+`final_deficit_effect` as a per-year array, so `float()` raises even on a
+correctly built policy. The corrected sweep goes through
+`composer._build_preset_policy` / `_scorer_for`, the path Explore, Build and the
+composer all use, and reduces arrays by summing; it asserts zero errors, so it
+cannot silently measure nothing again.
+
+Eight shipped presets move in **static** mode, every one by **+2.97%** on the
+conventional path:
+
+| preset | static | dynamic |
+|---|--:|--:|
+| Flat Tax Reform | +6,239.35 → **+6,424.94** | +5,036.39 → +5,216.30 |
+| Middle Class Tax Cut | +1,395.87 → **+1,437.39** | +1,064.09 → +1,107.64 |
+| Top Rate to 45% | −982.24 → **−1,011.45** | −280.16 → −335.50 |
+| Progressive Millionaire Tax | −878.78 → **−904.92** | −404.00 → −445.43 |
+| Warren Ultra-Millionaire Surtax | −456.01 → **−469.57** | −180.82 → −203.84 |
+| High-Earner Medicare Surcharge 2pp | −426.63 → **−439.32** | −226.51 → −245.02 |
+| Custom Policy | +306.63 → **+315.76** | +122.82 → +138.23 |
+| Biden 2025 Proposal | −293.50 → **−302.23** | −68.82 → −86.14 |
+
+Two corporate presets move **in dynamic mode only** — Biden Corporate 28%
+−743.97 → −736.71 (+0.98%) and Trump Corporate 15% +892.02 → +885.79 (−0.70%) —
+because the dynamic feedback reads the baseline's own levels. Their **static
+headlines are unchanged to the cent**, which is why the Decision 6 caption does
+not fire for them; the movement is recorded here instead.
+
+**A Decision 6 caption ships**, `cbo_baseline_transcription_caption` in
+`results_summary.py`: one self-contained function and one call line. It computes
+its counterfactual from `_HAND_ENTERED_ASSUMPTIONS` — the literals the module
+still keeps as its fallback — so the "would have read" figure cannot drift from
+the number above it, and it quotes the **conventional** score in both engine
+modes, which is PR #144's review finding applied in advance. It fires on exactly
+the eight presets that moved, in both modes, and its figures reproduce the sweep
+to the cent.
+
+### 6.6 Ask and Build
+
+| figure | before | **after** |
+|---|--:|--:|
+| Ask's ten-year cumulative deficit | $29,529.09B | **$23,143.30B** |
+| Ask's end-of-window debt/GDP | 103.84% | **117.98%** |
+| Build's mean annual deficit | $2,952.91B | **$2,314.33B** |
+| Build's baseline deficit share of GDP | 7.72% | **6.05%** |
+
+### 6.7 Gates
+
+| gate | result |
+|---|---|
+| `ruff check` (CI scope) | **pass** |
+| `check_readiness.py --strict` | `ready_with_warnings`, 5 pass / 5 warn / 0 fail — **byte-identical** to the same tree with the transcription disabled. Exit 2 is the Python 3.14 runtime line, as on `main` |
+| `build_validation_headline.py --check` | **pass**, 77 published of 81, unchanged |
+| `cold_holdout.py --max-class-mean-error …` (8 classes) | **pass** |
+| `run_loo.py --donor-matrix --max-mean-error 75` | **pass**, byte-identical |
+| `cold_holdout.py --max-mean-error 20 --min-within-25pct 22` | **FAIL** — mean 15.4 passes, **within-25 is 20 against a floor of 22** |
+
+The pooled gate's failure was registered in §3.1 before the mechanism existed.
+**The threshold was not touched**, because the workflow's own re-derivation rule
+is downward only and says so in as many words: *"A floor that follows the count
+down is not a floor: it would ratchet open on exactly the regression it exists to
+catch."* `tests/test_ci_workflow.py`'s two gate tests therefore fail on this
+branch, deliberately, and the PR reports it rather than routing around it.
 
 ## §7 — Findings
 
-*(appended after implementation)*
+**1. `VINTAGE_SOURCING` was false for two of three vintages, and the survey's
+interest-rate finding is now an assertion rather than a memory.** The map graded
+all three `"sourced"`, defined as *"every economic assumption and base level was
+transcribed from that vintage's own published tables"*. Against CBO's own
+fiscal-year tables the maximum ten-year deviations are Feb 2024 **0.602pp** on
+real GDP growth and **1.048pp** on labour force participation, Feb 2026
+**0.386pp** and **1.700pp**; January 2025's worst series is **0.114pp**, which is
+the calendar/fiscal basis and not an error. And February 2026's ten-year Treasury
+note **fell 4.5% → 3.9% where CBO's own table rises 4.10% → 4.38%** — a baseline
+whose interest-rate path points the wrong way prices debt service the wrong way.
+`test_the_feb_2026_ten_year_note_rises_where_the_literals_fell` now asserts the
+direction rather than the repository recalling it.
+
+**2. `real_gdp_growth + inflation` is not nominal GDP growth, and never was.**
+The reconstruction added a real rate to a **PCE** price index; CBO publishes
+`gdp_pct_change`, the nominal path itself. Even on January 2025, whose five
+assumption series were genuinely transcribed, the two disagree — 4.31% against
+CBO's own 4.555% in FY2025. So a vintage could be correctly transcribed on every
+published assumption and still produce the wrong nominal path, which is why
+transcribing the *level* matters independently of transcribing the rates.
+
+**3. The tier got worse because the base got right.** CBO's own FY2023 → FY2025
+nominal growth is **10.70%**; the hand-entered February 2026 block implied
+**8.99%**. The rows that worsened were already over-predicting, and adding a
+decade of the baseline's own growth to an over-prediction makes it worse. **The
+two rows that cross 25% are `warren_ultramillionaire_surtax_3pp` and
+`illustrative_1pp_all`, and both are `secondhand`** — two of the five Tier 1
+targets R2 exists to find documents for, and `illustrative_1pp_all` is one of the
+pair that score the same reform against targets 23.5% apart. The gate is failing
+against a figure nobody published.
+
+**4. An eleventh Tier 1 row moved, through a channel nobody had listed.** §3.1
+said "generic income-tax rows read the *index*".
+`cbo_opt56_employer_health_income_only` reads a baseline **assumption**:
+`tax_expenditure_distributions._inflation_path` calls
+`vintage_assumptions(vintage)["inflation"]` as its chained-CPI-U proxy for the
+cap's indexation, so the cap limit now grows on CBO's own PCE path and the row
+improves **13.1% → 12.8%**. Bisected against the data rather than reasoned about:
+disabling only the assumption series restores −605.76 and disabling only the GDP
+levels does not. *A baseline has two surfaces a score can read — levels and
+rates — and a lane that enumerates one of them will miss rows.*
+
+**5. CBO's timing-adjusted components do not sum to its unadjusted totals, and
+the falsification check found it rather than a reviewer.** January 2025 publishes
+the defence/nondefence split of *outlays* only as `*_outlays_timing_adj`, and in
+FY2024, 2028, 2029, 2033 and 2035 — the years 1 October falls on a weekend — the
+pair misses `proj_outlays_discretionary` by $5–7B. The transcription therefore
+takes the split as a **share** and apportions it onto CBO's own unadjusted total,
+PR #127's IRS SOI Table 1.2 rule in a second place; where CBO publishes both
+unadjusted the rescaling is the identity to the cent. This check fired on the
+very first run of the script, which is the argument for writing identity checks
+before looking at any output.
+
+**6. A sweep that reports "0 of 106 moved" may be reporting "0 of 106 measured",
+and this lane shipped that mistake before catching it.** The pre-registered
+preset prediction was produced by a harness that scored a **dict**; every row
+raised and was recorded as an error, identically in both runs, so the diff was
+empty for the same reason an empty file diffs clean against an empty file. This
+is PR #119 §7.5 in a second costume — *"identical to main" is only evidence when
+the check being compared can distinguish them* — and the specific lesson to carry
+is narrower: **a sweep must fail loudly on a row it could not score**, which the
+replacement now does.
+
+**7. The two loader paths now agree, and for the transcribed vintages they agree
+by construction rather than by maintenance.** PR #130 found `use_real_data=True`
+and `=False` 8.6% and 35.5% apart on the corporate line. Where CBO publishes the
+whole budget table both paths read it, so every category matches to the cent —
+asserted, not assumed. And `base_gdp` stops being FRED's latest actual for every
+vintage alike: that rule made February 2024's "base year" today's economy, and
+the literals it replaced were round guesses at quantities CBO prints (30,300
+against CBO's FY2025 **30,330.3**; 28,500 against its FY2024 **28,176.6**).
+
+**8. A shipped divergence closed itself and the registry gave it up.**
+`top-rate-39-6`'s declared 3.1% gap between what the app prints and what its
+scorecard row scores fell to **0.80%**, below the 1% tolerance, so the
+`HEADLINE_ROW_DIVERGENCE` entry was deleted rather than kept as a standing
+exemption. The term that shrank is the **window**, not the runner's own policy
+build; both sides share the projection and both moved when the vintage's nominal
+path became CBO's.
+
+**9. February 2024's `ten_year_budget` file does not exist, and June 2024 is not
+it.** `cbo-data` ships `annual_fy_2024-06.csv`, a complete CBO budget table for
+the same decade — and it is *An Update to the Budget and Economic Outlook*
+(publication 60039), whose FY2025 deficit is **$1,937.9B** against the January
+2025 edition's **$1,865.3B** for the same year. Borrowing it would have graded a
+vintage `transcribed` against a document it does not name. That is why the grade
+grew a second field instead.
 
 ## §8 — Carry-overs
 
-*(appended after implementation)*
+1. **The CI floor, and it is the owner's.** `--min-within-25pct 22` fails at 20.
+   Three options, none of which a lane may take: leave the gate red until R2
+   sources `warren_ultramillionaire_surtax_3pp` and `illustrative_1pp_all`; move
+   the floor, which the workflow's own rule forbids downward-following; or
+   accept the two rows as registered regressions with a written reason. The
+   per-class gate passes, so the pooled floor is the only thing failing.
+2. **February 2024's debt/GDP is a mixture and should not be quoted.** Its GDP is
+   CBO's own and its budget lines are this module's reconstruction. Two honest
+   remedies: register a fourth `BaselineVintage` for June 2024 — the file is
+   there, pinned, and its identity checks pass — or have the surfaces refuse to
+   render a ratio whose numerator and denominator carry different grades. The
+   first ripples into the URL contract, frozen links and the API, so it is a
+   lane of its own.
+3. **`base_*` budget levels are unread for a transcribed vintage.** `generate()`
+   reads the table; `CBOBaseline.base_individual_income_tax` and its nine
+   siblings are still the reconstruction. They were left alone deliberately —
+   overwriting them forces a base-year decision (`_CBO_JAN_2025_BASE_LEVELS` is
+   FY2025 while `_project_*` treats its base as `start_year - 1`) that this lane
+   had no reason to take. Settle the convention, then adopt.
+4. **The calendar/fiscal anchor.** `_income_base_projection_factor` anchors on a
+   **tax** year and this lane reads CBO's **fiscal** table for both ends, exactly
+   as the code it replaced read one series for both. CBO publishes
+   `calendar_<edition>.csv` beside it and the two differ by about 1.4% on a
+   level. That is R7's question — it is about what the base *is*, not about where
+   the baseline comes from — and the size of it is recorded here rather than
+   taken.
+5. **`scoring_engine.py:345-385`'s docstring quotes the old factors** — "February
+   2024 takes 1.3118 on FY2025-2034, the app takes 1.3560 on FY2026-2035". The
+   live figures are **1.3053** and **1.3963**. Not this lane's file.
+6. **Four more CBO datasets are now one `--source-dir` away.** The pinned clone
+   already carries `tax_parameters` (R4), `revenue_detail/annual_cy_iit_*` (R7),
+   `spending_detail` at 21,769 account-rows (R15b) and
+   `budgetary-feedback-model/input/rules_of_thumb.csv` (R12).
+   `scripts/fetch_cbo_baseline.py`'s pinning, digest-checking and identity-check
+   structure is reusable for each.
