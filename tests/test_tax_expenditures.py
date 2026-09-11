@@ -10,6 +10,7 @@ from fiscal_model.policies import PolicyType
 from fiscal_model.tax_expenditures import (
     JCT_TAX_EXPENDITURES,
     CapUnit,
+    SaltCapBaseline,
     TaxExpenditurePolicy,
     TaxExpenditureType,
     create_cap_charitable_deduction,
@@ -106,6 +107,14 @@ def test_expand_branch_handles_salt_and_generic_expansion():
         policy_type=PolicyType.TAX_DEDUCTION,
         expenditure_type=TaxExpenditureType.SALT,
         action="expand",
+        # The identity below is the one that holds against a **permanent
+        # $10,000 cap**, which is what "the limitation's own value" meant
+        # before P.L. 119-21 sec. 70120 made the live cap $40,400 through
+        # 2029. The dataclass default is current law, where the same repeal is
+        # worth about -$49.8B/yr rather than -$64.5B, so the baseline is
+        # stated here rather than assumed.
+        # See planning/lanes/SALT_current_law_baseline.md.
+        salt_baseline=SaltCapBaseline.PERMANENT_10K,
     )
     generic_policy = TaxExpenditurePolicy(
         name="Generic Expansion",
@@ -122,7 +131,10 @@ def test_expand_branch_handles_salt_and_generic_expansion():
     # built from a constant that was the eliminate_salt target restated.
     salt_record = JCT_TAX_EXPENDITURES["salt"]
     assert salt_policy.estimate_static_revenue_effect(0) == pytest.approx(
-        -(salt_record["annual_cost_no_cap"] - salt_record["annual_cost"])
+        -(salt_record["annual_cost_no_cap"] - salt_record["annual_cost"]),
+        # The capped leg is now the SOI `salt_limited` column rather than the
+        # record's rounded 25.0, and the two agree to 0.1% by construction.
+        rel=1e-3,
     )
     assert generic_policy.estimate_static_revenue_effect(0) == pytest.approx(-14.0)
 

@@ -242,6 +242,15 @@ shape-input manifest is a finding and an owner item** (§7).
 
 ## 2. Files
 
+*Amended after the outturn: two files outside the list were opened and both
+are recorded rather than quietly included.* `validation/benchmark_runners.py`
+gains one line, because the SALT distributional benchmark has to be scored on
+its own document's baseline like its revenue twin (finding 3), and
+`ui/preset_validation.py` gains one `HEADLINE_ROW_DIVERGENCE` entry and a third
+divergence kind, because H6's own invariant failed on this lane's preset and
+that registry is the mechanism it provides for declaring one (finding 9).
+Neither is a modelling change and neither moves a number.
+
 Owned: `fiscal_model/tax_expenditures_core.py`,
 `fiscal_model/tax_expenditure_distributions.py`,
 `fiscal_model/tax_expenditures_factory.py`; the two SALT rows in
@@ -496,19 +505,31 @@ leg (339.75 → 337.61). No pre-registered band is crossed.
    they are not. Aging them would raise the uncapped level 9.3% and move rows
    in three other reforms, so it is deliberately untouched here.
 9. **The validation badge now answers a different question from the headline
-   it sits beside, and this lane caused that.** `get_validation_badge` reads
-   the *scorecard row*, which is unchanged at 1,155.6 against PWBM's 1,169.0,
-   so `salt-cap-repeal` prints a green **"Unfitted reconstruction, 1.1% from
-   $1.17T"** beside a headline of **$740.3B**. Both are correct — the
-   benchmark is scored on PWBM's baseline and the app on current law — and
-   read together without a sentence they look like a contradiction. It is not
-   a case a badge can currently express, because a badge assumes the preset
-   and its benchmark score the same counterfactual, and this is the first
-   preset where they deliberately do not. The Decision 6 caption closes the
-   loop for the reader in one clause (`_SALT_BENCHMARK_DISCLAIMER`) rather
-   than teaching `preset_validation.py` about baselines, which is a design
-   decision with reach well beyond SALT and belongs to whoever owns the badge
-   surface. Owner item.
+   it sits beside, and H6's own invariant caught it before this lane did.**
+   `get_validation_badge` reads the *scorecard row*, which is unchanged at
+   1,155.6 against PWBM's 1,169.0, so `salt-cap-repeal` prints a green
+   **"Unfitted reconstruction, 1.1% from $1.17T"** beside a headline of
+   **$740.3B**.
+   `test_no_headline_without_row.py::test_the_row_behind_a_badge_scores_the_headline`
+   failed on the full suite with `[('salt-cap-repeal', 35.9)]` — PR #140 built
+   that test and `HEADLINE_ROW_DIVERGENCE` for exactly this, and **the
+   mechanism worked**: an undeclared divergence above 1% fails, and a declared
+   one carries its cause. The declaration needed a **third kind**, because
+   this is neither `base_rule` (a flag closing when H1 lands) nor
+   `runner_shape` (a runner building its own policy on its own window): it is
+   `baseline`, and it is the one kind where the divergence is *the point*
+   rather than a residue. A benchmark that moved onto current law would stop
+   checking its document; an app that stayed on the document's baseline would
+   print a number for a reform that does not exist until 2030. Both are right;
+   the badge is the thing that cannot say it, so
+   `results_summary.salt_current_law_caption` carries the sentence
+   (`_SALT_BENCHMARK_DISCLAIMER`) and the registry carries the measurement.
+   Teaching the badge itself about baselines is a design decision with reach
+   well beyond SALT and stays an owner item. **The lesson is the one the sweep
+   lane already wrote down**: the divergence was invisible in every targeted
+   run and in every gate, and only the full suite could see it, because the
+   only check that can distinguish "the app moved" from "the app and its
+   badge moved together" is the one that scores both.
 10. **The Ask assistant's own knowledge corpus still says the SALT cap is
     $10,000 and still attributes $1.9 trillion to JCT** — the same shape PR
     #148 found in `ssa_trustees_2025.md`, and worse in one respect, because
@@ -532,10 +553,12 @@ leg (339.75 → 337.61). No pre-registered band is crossed.
 * **Owner item.** Should Tier 2 grow a shape-input manifest, as
   `preregistered.py` has for Tier 1? `SALT_SCORING_BASELINES` is this lane's
   local answer and does not generalise.
-* **Owner item.** What should a validation badge say when a preset and its
-  benchmark deliberately score different baselines (finding 9)?
-  `salt-cap-repeal` is the first preset where they do. The caption carries a
-  sentence; the badge itself still reads "1.1%".
+* **Owner item.** What should a validation *badge* say when a preset and its
+  benchmark deliberately score different baselines (finding 9)? The divergence
+  is declared in `HEADLINE_ROW_DIVERGENCE` under a new `baseline` kind and the
+  caption carries a sentence, but the badge itself still reads "1.1%".
+  `salt-cap-repeal` is the first preset of this kind and will not be the last:
+  every benchmark whose document predates a statute is a candidate.
 * **Owner item.** `pl119_21_salt_cap_40k` can now be scored by the expenditure
   module against `SaltCapBaseline.LAPSED_CAP` rather than by `tcja.py`'s flat
   $10,000 component. Finding 4 gives the figure it would read.
