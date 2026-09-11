@@ -850,7 +850,15 @@ The benefit offset accounts for the fact that higher earnings generate higher So
 
 The "donut hole" exempts wages between the current cap ($168,600) and a higher threshold (e.g., $400,000), then reapplies the payroll tax above that threshold. Revenue is lower than full cap removal because high earners between the two thresholds are exempt.
 
-**Calibration**: SS donut hole at $250K scores $2,700B/10yr vs Trustees $2,700B (~0% — window-average annuals plus SSA-aligned covered-wage bands; see VALIDATION_NOTES §1).
+### The two fitted Social Security targets — read this before quoting either
+
+The $250K donut scores **-$2,700B** against a carried **-$2,700B**, and eliminating the cap scores **-$3,200B** against **-$3,200B**. Neither 0.0% is a measurement. `payroll.py`'s covered-wage bases *are* those targets run backwards through the statutory rate — `BASELINE_WAGE_DATA` says so in its own comments, `wages_above_cap_billions = 2_581.0  # 320 / 0.124` and `wages_250k_plus_billions = 2_177.0  # 270 / 0.124` — so the two rows report arithmetic.
+
+**And the source attribution is wrong.** Both targets are credited to the Social Security Trustees. SSA's Office of the Chief Actuary does score both designs — **E2.1** (eliminate the taxable maximum, no benefit credit) and **E2.5** (12.4% above $250,000, no benefit credit), runs 415 and 418 on the 2025 Trustees Report's intermediate assumptions, dated 6 January 2026 — and publishes them **only** as a change in the long-range actuarial balance in percent of taxable payroll (**+2.55%** and **+2.50%**), a change in the 75th year's annual balance (+2.60% each), and a reserve-depletion date (2034 → **2059** and **2057**). The detailed single-year tables are percent-of-payroll and trust-fund ratio to 2100, with no dollar column. **There is no OCACT ten-year dollar figure for either provision**, so the round trillions are a conversion the cited source never performed. `-$2.7T` is a Peter G. Peterson Foundation explainer's sentence, verbatim; `-$3.2T` matches nothing OCACT or PGPF prints.
+
+Published ten-year dollar scores for the same designs *do* exist and are **not** registered here: CBO's Option 62 alternative 2 puts the donut at **$1,426.8B over FY2025-2034**, 47% below the carried figure, and both CBO's annual path and OCACT's own income-rate path for that design **ramp** across the decade where the module stamps a flat $270B a year.
+
+**The honest figures are the held-out ones**, from `python scripts/run_loo.py` — each case's own covered-wage anchor withheld and refitted from the other two anchors' Pareto slope: the donut returns **-$2,664.0B (1.3%)** and cap elimination **-$3,319.5B (3.7%)**. Both now print on the results surface beside the shipped number. Full provenance, with the provision text and the search: [`docs/VALIDATION.md`](VALIDATION.md#the-two-ocact-payroll-targets-said-out-loud).
 
 ### NIIT Expansion
 

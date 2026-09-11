@@ -666,9 +666,16 @@ full taxable-income base. Treat uncalibrated custom policies as directional
 | Biden Corporate 28% | -\$1,347B | -\$1,397B | 3.7% | Treasury |
 | Biden CTC 2021 | \$1,600B | \$1,600B | 0.0% | JCT |
 | Estate: Biden Reform | -\$450B | -\$450B | 0.0% | Treasury |
-| SS Donut Hole \$250K | -\$2,700B | -\$2,700B | 0.0% | Trustees |
-| Repeal Corporate AMT | \$220B | \$220B | 0.0% | CBO |
+| SS Donut Hole \$250K | -\$2,700B | -\$2,700B | 0.0% | PGPF† |
+| Repeal Corporate AMT | \$220B | \$220B | 0.0% | JCT (JCX-18-22) |
 | Cap Employer Health | -\$450B | -\$450B | 0.1% | JCT |
+
+†*Not the Trustees, as this table used to say.* SSA's Office of the Chief
+Actuary does score this design — option **E2.5**, 12.4% above \$250,000 with no
+benefit credit — but publishes it **only** as a change in the long-range
+actuarial balance in percent of taxable payroll (+2.50%), with no dollar column
+at any horizon. The \$2,700B is a Peter G. Peterson Foundation explainer's
+sentence, and the conversion to dollars is one no cited source performed.
 """)
 
     # ── Live distributional benchmark accuracy ────────────────────────────
