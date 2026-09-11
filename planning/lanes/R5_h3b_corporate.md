@@ -610,8 +610,11 @@ that were not accuracy — here, for once, it is.
 4. **`_estimate_passthrough_shift` is inert** (finding 5). Either source a
    parameter for JCT's entity-choice margin or delete the leg; leaving an
    unsourced branch that never fires is the worst of the three.
-5. **`cbo_opt64` is still Tier 1's largest row at 44.5% and still a class of
-   one.** This lane did not move it and says so. The plan's own remedy is spent:
+5. **`cbo_opt64` is still Tier 1's largest row at 44.5%, still a class of one,
+   and now carries 17.4% of the tier's whole error mass** (44.5 of 255.2 over
+   22 rows — up from 11.8% not because it moved but because the battery around
+   it shrank from 26 rows to 22). This lane did not move it and says so. The
+   plan's own remedy is spent:
    the haircut is refuted, the credit channels are bounded and unpriceable, and
    the behavioural parameter is already the only published one. What is left is
    a **second corporate out-of-sample row** so the class stops being n=1 —
