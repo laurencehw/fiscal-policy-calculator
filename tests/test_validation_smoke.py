@@ -132,7 +132,17 @@ class TestHelperFunctions:
                 )
             else:
                 assert t.rate_change is not None
-            assert t.baseline_year >= 2020
+            # The floor applies to records that take the runner's default
+            # window; a record that states the decade its own source published
+            # is admitted however old its baseline is, because scoring it on
+            # its target's own decade is what the floor exists to guarantee.
+            # See MIN_GENERIC_BASELINE_YEAR.
+            if t.scoring_window_first_year is None:
+                assert t.baseline_year >= 2020
+            else:
+                assert t.scoring_window_first_year == int(
+                    str(t.budget_window).split("-")[0].removeprefix("FY")
+                )
 
 
 # =============================================================================

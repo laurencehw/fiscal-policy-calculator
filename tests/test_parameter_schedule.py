@@ -368,6 +368,17 @@ def test_exactly_three_records_declare_a_bracket_index():
         "cbo_opt45_all_rates_1pp": 1,
         "cbo_opt45_top4_brackets_2pp": 4,
         "illustrative_1pp_all": 1,
+        # Lane R3. Every one is a bracket CBO's own option text names - "all
+        # tax rates on ordinary income" (bracket 1), "the four highest
+        # brackets" (4), "the two highest brackets (35 percent and over)" (6) -
+        # never an amount that happens to sit near a floor.
+        "cbo2019_opt1_all_rates_1pp": 1,
+        "cbo2019_opt1_top4_brackets_1pp": 4,
+        "cbo2019_opt1_top2_brackets_1pp": 6,
+        "cbo2021_opt1_all_rates_1pp": 1,
+        "cbo2021_opt1_top4_brackets_1pp": 4,
+        "cbo2021_opt1_top2_brackets_1pp": 6,
+        "cbo2023_opt13_top4_brackets_2pp": 4,
     }
 
 

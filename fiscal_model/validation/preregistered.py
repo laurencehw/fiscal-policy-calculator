@@ -284,7 +284,7 @@ R2_RETIREMENT_RULE = (
 #: :data:`R3_MULTI_VOLUME_FIRST_SCORED_COMMIT`, a *later* commit, so "the target
 #: was fixed before the model was scored against it" is checkable from the git
 #: history rather than asserted in prose.
-R3_MULTI_VOLUME_ENTERED_COMMIT = "a76d0b4c35ee7c5c4e3d54bd52d4e30b1f0ec1ab"
+R3_MULTI_VOLUME_ENTERED_COMMIT = "3eabb43d8c278205207396094cdfa5fb1030fafc"
 R3_MULTI_VOLUME_ENTERED_DATE = "2026-09-11"
 
 #: Commit in which lane R3's battery was first scored — the commit that flips

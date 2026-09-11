@@ -591,9 +591,182 @@ def describe_option_coverage() -> dict[str, object]:
     }
 
 
+# ---------------------------------------------------------------------------
+# Lane R3: the 2018, 2020 and 2022 volumes
+# ---------------------------------------------------------------------------
+#
+# The same discipline, one file over, for the three editions the battery did
+# not contain until lane R3 (``planning/lanes/R3_tier1_battery.md``). The
+# verdicts live in data rather than in a second copy of
+# :data:`OUT_OF_SCOPE_REASONS`, because 100 revenue options across three volumes
+# is a table, and because the figures beside them have to be transcribed from
+# CBO's own workbooks anyway. ``scripts/extract_cbo_options_multi_volume.py``
+# writes both files from pinned, SHA-256-verified sources; the loaders below are
+# the read side, and ``tests/test_cbo_options_multi_volume.py`` asserts that
+# every option carries a verdict, that every registered alternative has a
+# ``KNOWN_SCORES`` record whose target is CBO's own printed figure, and that no
+# unregistered alternative has one.
+
+MULTI_VOLUME_OPTIONS_CSV = DATA_DIR / "cbo_options_multi_volume.csv"
+MULTI_VOLUME_ALTERNATIVES_CSV = DATA_DIR / "cbo_options_multi_volume_alternatives.csv"
+
+#: Publication metadata per volume, repeated here so callers need not re-read
+#: the CSV header. Each volume's *stated* revenue baseline is a vintage this
+#: repository does not carry, which is why every row scores on
+#: ``CBO_FEB_2024`` with the mismatch recorded on its manifest row.
+MULTI_VOLUME_SOURCES: dict[str, dict[str, str]] = {
+    "2018": {
+        "publication": "54667",
+        "title": "Options for Reducing the Deficit: 2019 to 2028",
+        "date": "2018-12",
+        "url": "https://www.cbo.gov/publication/54667",
+        "window": "FY2019-2028",
+        "stated_revenue_baseline": "CBO April 2018 baseline",
+    },
+    "2020": {
+        "publication": "56783",
+        "title": "Options for Reducing the Deficit: 2021 to 2030",
+        "date": "2020-12",
+        "url": "https://www.cbo.gov/publication/56783",
+        "window": "FY2021-2030",
+        "stated_revenue_baseline": "CBO September 2020 baseline",
+    },
+    "2022": {
+        "publication": "58164/58163",
+        "title": "Options for Reducing the Deficit: 2023 to 2032 (Volumes I and II)",
+        "date": "2022-12",
+        "url": "https://www.cbo.gov/publication/58164",
+        "window": "FY2023-2032",
+        "stated_revenue_baseline": "CBO May 2022 baseline",
+    },
+}
+
+
+@dataclass(frozen=True)
+class MultiVolumeOption:
+    """One revenue option of one earlier volume, with its shape verdict."""
+
+    volume: str
+    publication: str
+    chapter: str
+    option_number: int
+    title: str
+    runnable: bool
+    reason: str
+    window_first_year: int
+    window_last_year: int
+    stated_revenue_baseline: str
+
+
+@dataclass(frozen=True)
+class MultiVolumeAlternative:
+    """One reported alternative inside a runnable option of an earlier volume."""
+
+    volume: str
+    publication: str
+    chapter: str
+    option_number: int
+    alternative_id: str
+    label: str
+    measure: str
+    window_first_year: int
+    savings_5yr_billions: float
+    savings_10yr_billions: float
+    deficit_effect_10yr_billions: float
+    annual_savings_billions: tuple[float, ...]
+    report_page: int
+    registered: bool
+    not_registered_reason: str
+    extracted_by: str
+
+
+def _read_multi_volume_csv(path: Path) -> list[dict[str, str]]:
+    with path.open(encoding="utf-8") as handle:
+        body = (line for line in handle if not line.startswith("#"))
+        return list(csv.DictReader(body))
+
+
+@lru_cache(maxsize=1)
+def load_multi_volume_options() -> tuple[MultiVolumeOption, ...]:
+    """Every revenue option of the 2018, 2020 and 2022 volumes, with a verdict."""
+    return tuple(
+        MultiVolumeOption(
+            volume=row["volume"],
+            publication=row["publication"],
+            chapter=row["chapter"],
+            option_number=int(row["option_number"]),
+            title=row["title"],
+            runnable=row["runnable"] == "true",
+            reason=row["reason"],
+            window_first_year=int(row["window_first_year"]),
+            window_last_year=int(row["window_last_year"]),
+            stated_revenue_baseline=row["stated_revenue_baseline"],
+        )
+        for row in _read_multi_volume_csv(MULTI_VOLUME_OPTIONS_CSV)
+    )
+
+
+@lru_cache(maxsize=1)
+def load_multi_volume_alternatives() -> tuple[MultiVolumeAlternative, ...]:
+    """Every transcribed alternative of a runnable option in those volumes."""
+    out: list[MultiVolumeAlternative] = []
+    for row in _read_multi_volume_csv(MULTI_VOLUME_ALTERNATIVES_CSV):
+        first = int(row["window_first_year"])
+        annual = tuple(
+            float(row[f"savings_{year}_billions"])
+            for year in range(first, first + 10)
+            if row.get(f"savings_{year}_billions", "")
+        )
+        out.append(
+            MultiVolumeAlternative(
+                volume=row["volume"],
+                publication=row["publication"],
+                chapter=row["chapter"],
+                option_number=int(row["option_number"]),
+                alternative_id=row["alternative_id"],
+                label=row["label"],
+                measure=row["measure"],
+                window_first_year=first,
+                savings_5yr_billions=float(row["savings_5yr_billions"]),
+                savings_10yr_billions=float(row["savings_10yr_billions"]),
+                deficit_effect_10yr_billions=float(row["deficit_effect_10yr_billions"]),
+                annual_savings_billions=annual,
+                report_page=int(row["report_page"]),
+                registered=row["registered"] == "true",
+                not_registered_reason=row["not_registered_reason"],
+                extracted_by=row["extracted_by"],
+            )
+        )
+    return tuple(out)
+
+
+def describe_multi_volume_coverage() -> dict[str, object]:
+    """Account for every revenue option in the three earlier volumes."""
+    options = load_multi_volume_options()
+    alternatives = load_multi_volume_alternatives()
+    by_volume: dict[str, dict[str, int]] = {}
+    for option in options:
+        bucket = by_volume.setdefault(
+            option.volume, {"options": 0, "runnable": 0, "out_of_scope": 0}
+        )
+        bucket["options"] += 1
+        bucket["runnable" if option.runnable else "out_of_scope"] += 1
+    return {
+        "volumes": sorted(by_volume),
+        "total_options": len(options),
+        "runnable_options": sum(1 for option in options if option.runnable),
+        "transcribed_alternatives": len(alternatives),
+        "registered_alternatives": sum(1 for alt in alternatives if alt.registered),
+        "by_volume": by_volume,
+    }
+
+
 __all__ = [
     "ALTERNATIVES_CSV",
     "LEVEL_PATH_TOLERANCE",
+    "MULTI_VOLUME_ALTERNATIVES_CSV",
+    "MULTI_VOLUME_OPTIONS_CSV",
+    "MULTI_VOLUME_SOURCES",
     "OPTIONS_CSV",
     "OUT_OF_SCOPE_ALTERNATIVES",
     "OUT_OF_SCOPE_REASONS",
@@ -605,16 +778,21 @@ __all__ = [
     "SOURCE_URL",
     "SPENDING_BASELINE",
     "AlternativeRecord",
+    "MultiVolumeAlternative",
+    "MultiVolumeOption",
     "OptionClassification",
     "OptionRecord",
     "RunnableOption",
     "classify_all",
+    "describe_multi_volume_coverage",
     "describe_option_coverage",
     "first_effective_year",
     "get_alternative",
     "get_option",
     "is_level_budget_authority_path",
     "load_alternatives",
+    "load_multi_volume_alternatives",
+    "load_multi_volume_options",
     "load_options",
     "runnable_score_ids",
 ]

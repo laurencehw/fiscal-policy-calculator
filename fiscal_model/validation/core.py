@@ -164,6 +164,20 @@ _AGI_BASE_POLICY_IDS: dict[str, str] = {
         "a surtax of 2 percentage points would be imposed on AGI above "
         "$100,000 for single filers and $200,000 for joint filers"
     ),
+    # CBO, Options for Reducing the Deficit: 2023 to 2032, Volume I
+    # (pub. 58164), option 13, alternatives 3 and 4, report p. 72. Lane R3.
+    # Both say "AGI" in CBO's own words, which is the whole of the test; that
+    # their boundary is stated as a formula over statutory parameters rather
+    # than as a dollar amount is a different question, answered on each record.
+    "cbo2023_opt13_agi_surtax_1pp_stdded": (
+        "Impose a surtax of 1 percentage point on AGI above the standard "
+        "deduction and exemption"
+    ),
+    "cbo2023_opt13_agi_surtax_2pp_bracket4": (
+        "Impose a surtax of 2 percentage points on AGI above the sum of the "
+        "standard deduction, exemptions, and the threshold of the fourth "
+        "ordinary income tax bracket"
+    ),
     # The record's own description and note. Its target is secondhand (a
     # TPC-range figure behind a bare taxpolicycenter.org URL) and this rule does
     # not repair that - it is the row this rule makes five times worse.
@@ -235,7 +249,116 @@ _SPENDING_OUTLAY_CLASS: dict[str, str] = {
     "iija_2021_discretionary": "construction_and_capital",
 }
 
+#: One structural cause, shared by the four corporate rows of lane R3's
+#: multi-volume battery and the 2024 row that preceded them.
+#:
+#: This is the sharpest thing the four editions measure, and it is worth
+#: stating once rather than four times. CBO's own per-point yield for an
+#: identical reform - 21% to 22% - rises **41.0%** across the four volumes
+#: ($96.3B FY2019-2028, $99.3B FY2021-2030, $129.3B FY2023-2032, $135.7B
+#: FY2025-2034). The model's four answers span **2.2%** (-$192.3B, -$191.8B,
+#: -$192.9B, -$196.1B). PR #122 inferred that flatness from a single second
+#: target on a second decade; four editions of one option measure it directly.
+_CORPORATE_MULTI_VOLUME_LIMITATIONS = [
+    "The module answers a 1pp corporate rate increase with nearly the same "
+    "figure on every decade: -$192.3B, -$191.8B, -$192.9B and -$196.1B across "
+    "the four Options volumes, a 2.2% spread, where CBO's own estimates for "
+    "the identical reform span 41.0% ($96.3B to $135.7B). The residual on any "
+    "one of these rows is therefore mostly a level (the implied marginal share "
+    "of the statutory base, 80.8% against a published 55.1-79.5%), not a "
+    "decade. See planning/memos/CORPORATE_PER_POINT_YIELD.md and lane R5/H3b.",
+]
+
+#: The second cause, and it applies only to the two pre-2021 corporate rows.
+_CORPORATE_BACK_PROJECTED_RECEIPTS = [
+    "CBO's transcribed corporate receipts path (publication 59710, February "
+    "2024) begins in FY2024, so a window opening in FY2019 or FY2021 is scored "
+    "on cbo_corporate_receipts()'s backward extrapolation at the nearest "
+    "observed growth rate. That is an extrapolation rather than a clamp and it "
+    "is stated rather than hidden, but it means this row's residual mixes the "
+    "module's marginal-share problem with a base projected back past its own "
+    "vintage.",
+]
+
 _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
+    # ---- Lane R3: the 2018, 2020 and 2022 Options volumes ----------------
+    "cbo2019_opt24_corporate_rate_1pp": [
+        *_CORPORATE_MULTI_VOLUME_LIMITATIONS,
+        *_CORPORATE_BACK_PROJECTED_RECEIPTS,
+    ],
+    "cbo2021_opt19_corporate_rate_1pp": [
+        *_CORPORATE_MULTI_VOLUME_LIMITATIONS,
+        *_CORPORATE_BACK_PROJECTED_RECEIPTS,
+    ],
+    "cbo2023_opt50_corporate_rate_1pp": list(_CORPORATE_MULTI_VOLUME_LIMITATIONS),
+    "cbo2019_opt1_top4_brackets_1pp": [
+        "CBO's statutory parameter schedule (publication 53724) covers "
+        "CY2021-CY2034 on this record's vintage, so the option's CY2019 and "
+        "CY2020 bracket floors are clamped to CY2021 and the loader says so. "
+        "The record's written amounts are CBO's CY2021 figures for the same "
+        "reason: the amount written is the amount actually applied in every "
+        "year of the window.",
+    ],
+    "cbo2019_opt1_top2_brackets_1pp": [
+        "As the four-bracket alternative: CY2019 and CY2020 are clamped to "
+        "CY2021, the first year CBO's transcribed schedule covers on this "
+        "vintage.",
+    ],
+    "cbo2019_opt18_hi_payroll_1pp": [
+        "CBO's 2018 option raises the *basic HI rate* and says the increase "
+        "'would be evenly split between employers and employees'; the runnable "
+        "payroll shape sets employer_share=0.0, which is CBO Option 61's own "
+        "words for a different design ('the new tax would be paid entirely by "
+        "employees'). The base and the rate are identical; the statutory "
+        "incidence is not, and the compensation-shifting offset is applied to "
+        "the employee side only.",
+        "The model's base is CBO's February 2024 covered-earnings path, so an "
+        "FY2019-2028 window is priced on a wage path projected back past its "
+        "own vintage - the residual grows the further the target's decade is "
+        "from the model's anchor (20.1% here, 33.7% on the 2020 volume, 12.1% "
+        "on the 2022 volume, 7.5% on the 2024 volume).",
+    ],
+    "cbo2019_opt18_hi_payroll_2pp": [
+        "As the 1pp alternative: CBO splits the rate increase evenly between "
+        "employers and employees while the runnable shape books it entirely on "
+        "employees, and the covered-earnings base is projected back past its "
+        "February 2024 vintage.",
+    ],
+    "cbo2023_opt13_top4_brackets_2pp": [
+        "The same reform as cbo_opt45_top4_brackets_2pp on the previous "
+        "decade, and it carries that row's limitation: the option's own text "
+        "says 'the scheduled changes to the underlying tax brackets and rates "
+        "would still take effect in 2026', which a single statutory bracket "
+        "index cannot express. The pair is a measurement of the model's "
+        "sensitivity to the decade (23.8% on FY2023-2032 against 17.9% on "
+        "FY2025-2034), not two independent predictions.",
+    ],
+    "cbo2021_opt15_hi_payroll_1pp": [
+        "The 2020 volume is scored on CBO's September 2020 baseline, whose "
+        "wage path is depressed by the pandemic: CBO prices this reform "
+        "*below* its own 2018 edition ($877.5B against $898.3B) though the "
+        "decade is two years later, and five of the six options this battery "
+        "repeats across those two volumes fall the same way. The model's base "
+        "is CBO's February 2024 wage path times the Trustees' covered-earnings "
+        "ratio and grows monotonically, so it cannot reproduce a baseline that "
+        "went backwards.",
+    ],
+    "cbo2021_opt15_hi_payroll_2pp": [
+        "As the 1pp alternative: the 2020 volume's pandemic-depressed wage "
+        "path is below the 2018 volume's for the same reform two years later, "
+        "and the model's monotonic February 2024 wage path cannot reproduce "
+        "that.",
+    ],
+    "cbo2021_opt1_top4_brackets_1pp": [
+        "Two causes, both stated. CBO's 2020 edition prices this reform "
+        "*below* its 2018 edition ($203.3B against $222.9B) on the "
+        "pandemic-depressed September 2020 baseline, which a base growing "
+        "monotonically with CBO's February 2024 nominal path cannot "
+        "reproduce. And the boundary is read from CBO's own statutory "
+        "schedule, which begins in CY2021 on this vintage, so the option's own "
+        "CY2021 floors are applied for the whole window rather than the "
+        "schedule's later re-indexation being anticipated.",
+    ],
     "biden_ctc_2021": [
         "Credit eligibility and refundability are modeled with synthetic tax units rather than CPS ASEC microdata.",
         "Interactions with SALT, AMT, and filing-status heterogeneity remain approximated in the current household tax module.",

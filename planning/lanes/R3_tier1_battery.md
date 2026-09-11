@@ -233,8 +233,222 @@ ones — a battery whose new rows could be predicted in advance would not be out
 
 ## §5 — Outturn
 
-*Appended after the work.*
+### 5.1 The tier, before and after
+
+| | before | after |
+|---|--:|--:|
+| n | 22 | **44** |
+| distinct reforms | 21 | **25** |
+| mean abs error | 11.8% | **18.0%** |
+| median | 8.9% | **12.3%** |
+| within 15% | 17 | **26** |
+| within 25% | 19 (86.4%) | **35 (79.5%)** |
+| error mass | 258.9 | **793.8** |
+| `secondhand` / `model_estimate` targets | 0 / 0 | **0 / 0** |
+
+**Every one of the 22 existing rows scores to the cent what it scored before**,
+checked row by row on the two `cold_holdout.py --json` runs; all four calibrated
+blocks (`calibrated_reference`, `uncalibrated_reconstruction`,
+`retired_targets`, `uncalibrated_reconstruction_retired_held_in_place`) compare
+`SAME`; and `run_loo.py --donor-matrix` is byte-identical.
+
+**The mean rose 11.8% → 18.0% and §3(3) registered that in advance.** Read it
+with two things beside it: the count within 15% went 17 → **26**, and the
+distinct-reform count went 21 → **25**. The battery is bigger, harder and more
+honest; it is not more accurate, and nothing here made it so.
+
+### 5.2 The 44 rows
+
+| # | row | new? | target ($B) | model ($B) | error |
+|--:|---|:-:|--:|--:|--:|
+| 1 | `cbo2019_opt24_corporate_rate_1pp` | **new** | -96.3 | -192.3 | 99.7% |
+| 2 | `cbo2021_opt19_corporate_rate_1pp` | **new** | -99.3 | -191.8 | 93.1% |
+| 3 | `cbo2023_opt50_corporate_rate_1pp` | **new** | -129.3 | -192.9 | 49.2% |
+| 4 | `cbo_opt64_corporate_rate_1pp` | | -135.7 | -196.1 | 44.5% |
+| 5 | `cbo2021_opt1_top4_brackets_1pp` | **new** | -203.3 | -285.9 | 40.6% |
+| 6 | `cbo_opt51_gains_at_death` | | -536.1 | -345.9 | 35.5% |
+| 7 | `cbo2021_opt15_hi_payroll_2pp` | **new** | -1,736.3 | -2,336.9 | 34.6% |
+| 8 | `cbo2021_opt15_hi_payroll_1pp` | **new** | -877.5 | -1,173.3 | 33.7% |
+| 9 | `biden_capital_gains_39` | | -288.6 | -366.4 | 27.0% |
+| 10 | `cbo2023_opt13_top4_brackets_2pp` | **new** | -501.9 | -621.4 | 23.8% |
+| 11 | `biden_high_income_tax` | | -245.9 | -299.8 | 21.9% |
+| 12 | `cbo2019_opt18_hi_payroll_2pp` | **new** | -1,786.5 | -2,149.2 | 20.3% |
+| 13 | `cbo2019_opt18_hi_payroll_1pp` | **new** | -898.3 | -1,079.0 | 20.1% |
+| 14 | `cbo2021_opt1_top2_brackets_1pp` | **new** | -113.8 | -136.5 | 19.9% |
+| 15 | `cbo2023_opt37_ltcg_qdiv_2pp` | **new** | -102.1 | -82.6 | 19.1% |
+| 16 | `cbo2023_opt13_agi_surtax_2pp_bracket4` | **new** | -773.8 | -914.3 | 18.2% |
+| 17 | `cbo_opt45_top4_brackets_2pp` | | -569.5 | -671.2 | 17.9% |
+| 18 | `cbo2021_opt1_all_rates_1pp` | **new** | -884.0 | -1,016.7 | 15.0% |
+| 19 | `illustrative_1pp_all` | | -1,081.3 | -1,235.7 | 14.3% |
+| 20 | `cbo_opt56_employer_health_income_only` | | -697.0 | -608.1 | 12.8% |
+| 21 | `cbo2023_opt15_new_payroll_2pct` | **new** | -2,252.7 | -2,536.0 | 12.6% |
+| 22 | `cbo2019_opt1_top4_brackets_1pp` | **new** | -222.9 | -250.7 | 12.5% |
+| 23 | `fra_2023_discretionary_caps` | | -1,331.8 | -1,169.5 | 12.2% |
+| 24 | `cbo2023_opt15_new_payroll_1pct` | **new** | -1,135.7 | -1,273.2 | 12.1% |
+| 25 | `cbo_opt43_state_local_grants` | | -66.7 | -73.9 | 10.8% |
+| 26 | `cbo_opt47_ltcg_qdiv_2pp` | | -103.3 | -92.5 | 10.5% |
+| 27 | `ssfa_wep_gpo_repeal_outlays` | | 195.7 | 214.8 | 9.8% |
+| 28 | `cbo_opt39_pell_eligibility` | | -22.1 | -20.3 | 8.1% |
+| 29 | `cbo_opt61_new_payroll_tax_2pct` | | -2,540.0 | -2,745.0 | 8.1% |
+| 30 | `cbo_opt46_agi_surtax_1pp_20k` | | -1,440.1 | -1,326.3 | 7.9% |
+| 31 | `cbo_opt61_new_payroll_tax_1pct` | | -1,281.5 | -1,378.2 | 7.5% |
+| 32 | `cbo2019_opt2_ltcg_qdiv_2pp` | **new** | -69.6 | -65.9 | 5.3% |
+| 33 | `cbo_opt38_national_service` | | -10.3 | -10.6 | 2.6% |
+| 34 | `cbo_opt46_agi_surtax_2pp_100k` | | -1,051.0 | -1,075.8 | 2.4% |
+| 35 | `cbo2021_opt2_ltcg_qdiv_2pp` | **new** | -75.2 | -73.8 | 1.9% |
+| 36 | `treasury_capgains_39_plus_stepup_elim` | | -322.0 | -316.1 | 1.8% |
+| 37 | `cbo_opt42_nondefense_discretionary` | | -339.0 | -333.3 | 1.7% |
+| 38 | `cbo2023_opt6_employer_health_income_only` | **new** | -651.4 | -659.9 | 1.3% |
+| 39 | `cbo_opt45_all_rates_1pp` | | -1,185.3 | -1,201.2 | 1.3% |
+| 40 | `cbo2019_opt1_top2_brackets_1pp` | **new** | -123.4 | -124.4 | 0.8% |
+| 41 | `cbo2019_opt1_all_rates_1pp` | **new** | -905.4 | -912.7 | 0.8% |
+| 42 | `cbo2023_opt13_agi_surtax_1pp_stdded` | **new** | -1,329.1 | -1,325.7 | 0.3% |
+| 43 | `iija_2021_discretionary` | | 415.4 | 414.3 | 0.3% |
+| 44 | `cbo_opt37_international_affairs` | | -187.0 | -186.9 | 0.0% |
+
+### 5.3 By class
+
+| class | n (was) | mean (was) | mass | share | w15 | w25 |
+|---|--:|--:|--:|--:|--:|--:|
+| corporate | **4** (1) | **71.6%** (44.5) | 286.5 | 36.1% | 0 | 0 |
+| ordinary rate change | **11** (4) | **15.3%** (13.8) | 168.8 | 21.3% | 6 | 10 |
+| payroll | **8** (2) | **18.6%** (7.8) | 149.0 | 18.8% | 4 | 6 |
+| capital gains | **7** (4) | **14.4%** (18.7) | 101.1 | 12.7% | 4 | 5 |
+| AGI-inclusive surtax | **4** (2) | **7.2%** (5.2) | 28.8 | 3.6% | 3 | 4 |
+| discretionary spending | 5 (5) | 4.6% (4.6) | 23.2 | 2.9% | 5 | 5 |
+| enacted-law spending | 3 (3) | 7.4% (7.4) | 22.3 | 2.8% | 3 | 3 |
+| tax expenditure | **2** (1) | **7.1%** (12.8) | 14.1 | 1.8% | 2 | 2 |
+
+**Criterion ① is met on three of its five conditions.** n ≥ 40 ✓ (44).
+≥ 30/40 within 25% ✓ (35). Mean ≤ 12% ✗ (18.0%). Every class n ≥ 3 — **7 of 8**;
+`tax_expenditure` stops at **2** and §2.2 says why in the documents: CBO's four
+volumes contain exactly three employment-based-health-insurance options with an
+income-tax-only alternative, and the 2018 one *replaces the ACA excise tax*, so
+its target is net of repealing a levy the module's baseline does not contain. No
+class mean above 25% ✗ (**corporate 71.6%**).
+
+### 5.4 The finding: CBO prices one corporate reform four times and gets four numbers; the model gets one
+
+This is the reason the corporate class was worth quadrupling, and it is the
+sharpest measurement in the lane.
+
+| volume | window | CBO's target | model | error |
+|---|---|--:|--:|--:|
+| 2018 (pub. 54667) | FY2019-2028 | −$96.3B | −$192.3B | 99.7% |
+| 2020 (pub. 56783) | FY2021-2030 | −$99.3B | −$191.8B | 93.1% |
+| 2022 (pub. 58163) | FY2023-2032 | −$129.3B | −$192.9B | 49.2% |
+| 2024 (pub. 60557) | FY2025-2034 | −$135.7B | −$196.1B | 44.5% |
+
+**CBO's own per-point yield for an identical 21%→22% increase rises 41.0% across
+the four editions. The model's four answers span 2.2%.** PR #122 inferred that
+flatness from one second target on one second decade and called it "exactly what
+a vintage-anchored base could reproduce and a fixed base cannot"; four editions
+of one option measure it directly, and the residual on any one row is therefore
+mostly a **level** — the implied marginal share of the statutory base, 80.8%
+against a published 55.1–79.5% — rather than a decade. Two caveats travel with
+it and are on each row's `known_limitations`: CBO's transcribed receipts path
+begins in FY2024, so the 2018 and 2020 rows are priced on
+`cbo_corporate_receipts()`'s backward extrapolation (an extrapolation, not a
+clamp, and the module says so); and all four rows score `derived` mode, which is
+not the app default.
+
+### 5.5 The second finding: the 2020 volume prices five repeated reforms *below* the 2018 volume
+
+CBO's September 2020 baseline is pandemic-depressed, so for five of the six
+options this battery repeats across those two editions the ten-year figure is
+**smaller two years later**: all rates +1pp $905.4B → $884.0B, top four +1pp
+$222.9B → $203.3B, top two +1pp $123.4B → $113.8B, HI +1pp $898.3B → $877.5B,
+HI +2pp $1,786.5B → $1,736.5B. Only capital gains and corporate rise.
+
+No model whose base grows monotonically with CBO's own nominal path can
+reproduce a baseline that went backwards, and the four rows this hits are four
+of the battery's six new Poor ratings (`cbo2021_opt1_top4_brackets_1pp` 40.6%,
+`cbo2021_opt15_hi_payroll_2pp` 34.6%, `cbo2021_opt15_hi_payroll_1pp` 33.7%,
+against the 2018 edition's 12.5%, 20.3% and 20.1% for the same three reforms).
+`tests/test_cbo_options_multi_volume.py` asserts the *documents*, not the model,
+so a transcription that ever flattened this would fail.
+
+**A third finding sits underneath the payroll rows and is not about baselines.**
+CBO's 2018 and 2020 HI options raise the *basic HI rate* and say the increase
+"would be evenly split between employers and employees"; the runnable payroll
+shape sets `employer_share=0.0`, which is CBO Option 61's own words for a
+*different* design ("the new tax would be paid entirely by employees"). Base and
+rate are identical, statutory incidence is not, and the compensation-shifting
+offset is booked on the employee side only. That is why the four HI rows
+(20.1%, 20.3%, 33.7%, 34.6%) sit above the four flat-tax rows (7.5%, 8.1%,
+12.1%, 12.6%) even before the baseline is considered.
+
+### 5.6 What the workflow's own rule now derives — reported, not edited
+
+This lane does not touch `.github/workflows/`. On the grown battery the rule
+derives the following, and **five of the eight live values are now wrong in the
+tightening direction and one in the loosening direction**:
+
+| gate | live | rule derives | verdict |
+|---|--:|--:|---|
+| pooled ceiling `--max-mean-error` | 15 | **25** (`ceil(18.0 × 1.25) = 23` → next 5) | **fails live** |
+| pooled floor `--min-within-25pct` | 19 | **34** (`35 − 1`) | live value is **looser** than the rule; the rule forces a *tightening* |
+| `corporate` | 56 | **90** | **fails live** |
+| `ordinary_rate_change` | 15 | **20** | **fails live** |
+| `payroll` | 10 | **24** | **fails live** |
+| `agi_inclusive_surtax` | 7 | **9** | **fails live** |
+| `capital_gains` | 24 | **18** | passes; rule tightens |
+| `tax_expenditure` | 16 | **9** | passes; rule tightens |
+| `discretionary_spending` | 6 | 6 | passes |
+| `enacted_law_spending` | 10 | 10 | passes |
+
+**Three tests in `tests/test_ci_workflow.py` fail on this branch and are meant
+to**: `test_cold_holdout_gate_thresholds_match_the_live_battery` (18.0 > 15),
+`test_the_per_class_floor_gates_every_class_the_battery_contains`
+(`ordinary_rate_change` 15.3 > 15) and
+`test_no_gate_is_looser_than_the_workflow_rule_derives` (floor 19 is looser than
+34). Those three assertions *are* the re-derivation rule, and editing the
+workflow is the gate lane's move under ROUTE owner ⑪ — H10's own process rule is
+that the gate is re-derived **after** the rows land. Every other gate is green:
+ruff, the mypy allowlist, `check_readiness.py --strict` (0 fail),
+`build_validation_headline.py --check` after regeneration
+(`out_of_sample_entries` 22 → **44**, `published_entries` 73 → **95**,
+`total_entries` 77 → **99**), and the rest of the suite.
+
+### 5.7 What did not move
+
+`run_loo.py --donor-matrix` byte-identical. All 55 calibrated rows
+byte-identical. All 22 pre-existing Tier 1 `model_10yr_billions` byte-identical.
+No preset, no Tailor combination and no app surface moved, because no module was
+opened and no shipped policy object changed — **no Decision 6 caption is owed**.
 
 ## §6 — Carry-overs
 
-*Appended after the work.*
+1. **The gate re-derivation**, §5.6, owner ⑪. Ten values, six of which move.
+2. **Corporate is now a class of four and the largest thing in the tier at 36.1%
+   of its mass.** R5/H3b's pre-registered bands were written against a class of
+   one; the four-edition reading in §5.4 is new evidence for it and the bands
+   should be restated on four rows before that lane opens.
+3. **Spending options in the three earlier volumes are untranscribed**, by the
+   selection rule's own §1.3 decision. Each needs its budget-authority path read
+   and `is_level_budget_authority_path` applied. It would grow the battery's
+   most accurate class, which is why it was not done here.
+4. **`tax_expenditure` cannot reach n = 3 from CBO's *Options* volumes**, §5.3.
+   A third row needs a different publisher or a different expenditure, and the
+   module's cap-unit machinery has to be able to express it.
+5. **The 2022 volume's Option 13 alternatives 3 and 4 carry a threshold this
+   repository holds fixed.** CBO indexes the standard deduction and the
+   bracket-4 floor annually; `TaxPolicy` carries one scalar threshold plus one
+   statutory *bracket index*, and a second indexation source is a module change
+   this lane may not make. Worth **0.3% and 18.2%** on the two rows as they
+   stand, so it is not urgent — but it is the honest reason those two are the
+   only rows in the battery whose boundary is stated as a formula and applied as
+   an amount.
+6. **The 2018 and 2020 corporate rows read a receipts path projected back past
+   its own vintage.** CBO publishes corporate receipts in every *Budget and
+   Economic Outlook*; transcribing the April 2018 and September 2020 editions
+   would separate the module's marginal-share problem from the back-projection
+   on those two rows.
+7. **The HI rows' statutory incidence**, §5.5. CBO splits the rate increase
+   evenly between employers and employees on four of the eight payroll rows and
+   the shape books it entirely on employees. Expressing it is a `payroll.py`
+   change.
+8. **`cbo_options.py` now holds two idioms for the same judgement** — a
+   hand-written `OUT_OF_SCOPE_REASONS` dict for the 2024 volume and a generated
+   CSV for the other three. The CSV is the better one at this size; folding the
+   2024 volume into it is a tidy-up nobody needs today.

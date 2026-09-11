@@ -40,6 +40,20 @@ ValidationShape = Literal[
 #: Generic (out-of-sample) dispatch is limited to records whose published
 #: target sits on a baseline close enough to the model's own that baseline
 #: drift does not dominate the error. Vintage matching is Phase D.
+#:
+#: **A record that states its own window is exempt, and the exemption is
+#: narrower than it looks.** This constant guards against one thing: scoring a
+#: target published for one decade over a different decade, so that what the
+#: error measures is nominal growth between the two. ``scoring_window_first_year``
+#: (PR #126) is the field that removes exactly that, by opening the model's
+#: window in the first year of the decade the target's own document covers. So
+#: the year floor applies to records that take the runner's default window, and
+#: a record that names its own decade is admitted however old its baseline is -
+#: which is a narrowing of the guard's scope to the case it was written for, not
+#: a loosening of its value. Lane R3's 2018-volume rows are the seven this
+#: admits; the vintage mismatch that remains is *stated* on each manifest row
+#: rather than absorbed, as it is for ``biden_corporate_28_fy2022`` and the
+#: Options-2024 spending rows.
 MIN_GENERIC_BASELINE_YEAR = 2020
 
 
@@ -192,6 +206,29 @@ class CBOScore:
     # ``validation/core.py``, never from a dollar figure that happens to match
     # one. See ``planning/lanes/R4_parameter_schedule.md``.
     statutory_bracket_index: int | None = None
+    # Whether this record may serve as an interpolation anchor for the Ask
+    # assistant's capability gate (``assistant/benchmarks.py``).
+    #
+    # **This field exists because PR #122 named the trap and lane R3 walked
+    # into it.** ``candidate_anchors`` turns every ``KNOWN_SCORES`` record with
+    # a matching ``policy_type`` and a non-zero ``rate_change`` into an anchor,
+    # so registering a validation benchmark is also, silently, an edit to a
+    # shipped user-facing answer. PR #122 kept ``biden_corporate_28_fy2022``
+    # out of ``KNOWN_SCORES`` altogether for exactly this reason - "adding it
+    # would have put a 2021-vintage figure into the set a 2026 user's 'what
+    # would +4pp raise?' interpolates across" - but a record that has to be
+    # *scored* cannot be kept out, so the exclusion has to be a field.
+    #
+    # It was not hypothetical: registering lane R3's three older corporate rows
+    # moved the assistant's own acceptance case, a 21% -> 25% corporate rate,
+    # from **-$741.35B to -$542.80B**, because CBO's 2018 and 2020 editions
+    # price a point of rate a third lower than its 2024 one. That is a
+    # user-facing number moving on a lane that opened no module.
+    #
+    # The rule: a benchmark published for a decade this deployment does not
+    # serve is a valid *validation target* and not a valid *anchor for a
+    # question asked today*. Default True, so no pre-existing record changes.
+    assistant_anchor_eligible: bool = True
 
 
 # =============================================================================
@@ -1530,12 +1567,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2019,
         scoring_window_first_year=2019,
         scoring_vintage="cbo_feb_2024",
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
-            "first scored in the following commit, per the manifest's "
-            "two-commit rule."
-        ),
+        # Lane R3: a target published for a decade this deployment does not
+        # serve is not an anchor for a question asked today. See the field's
+        # own comment on CBOScore.
+        assistant_anchor_eligible=False,
         notes="CBO Options 2019-2028 (pub. 54667), revenue option 1, first "
               "alternative (report p. 204): 'Raise all tax rates on ordinary "
               "income by 1 percentage point', +$905.4B over FY2019-2028. "
@@ -1561,11 +1596,12 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         # in CY2021 and the loader clamps earlier years to it - so these are the
         # amounts the run actually applies, in every year of the window.
         income_threshold=86_375.0,
+        # Only the two statuses whose amount differs from the single
+        # floor above; separate and single take it under
+        # FILING_STATUS_THRESHOLD_RULE, which is the same number.
         income_threshold_by_filing_status={
             "joint": 172_750.0,
-            "separate": 86_375.0,
             "head_of_household": 86_350.0,
-            "single": 86_375.0,
         },
         statutory_bracket_index=4,
         policy_type="income_tax",
@@ -1574,12 +1610,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2019,
         scoring_window_first_year=2019,
         scoring_vintage="cbo_feb_2024",
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
-            "first scored in the following commit, per the manifest's "
-            "two-commit rule."
-        ),
+        # Lane R3: a target published for a decade this deployment does not
+        # serve is not an anchor for a question asked today. See the field's
+        # own comment on CBOScore.
+        assistant_anchor_eligible=False,
         notes="CBO Options 2019-2028 (pub. 54667), revenue option 1, second "
               "alternative (report p. 204): 'Raise all tax rates on ordinary "
               "income in the top four brackets (24 percent and over from 2018 "
@@ -1600,9 +1634,7 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         income_threshold=209_425.0,
         income_threshold_by_filing_status={
             "joint": 418_850.0,
-            "separate": 209_425.0,
             "head_of_household": 209_400.0,
-            "single": 209_425.0,
         },
         statutory_bracket_index=6,
         policy_type="income_tax",
@@ -1611,12 +1643,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2019,
         scoring_window_first_year=2019,
         scoring_vintage="cbo_feb_2024",
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
-            "first scored in the following commit, per the manifest's "
-            "two-commit rule."
-        ),
+        # Lane R3: a target published for a decade this deployment does not
+        # serve is not an anchor for a question asked today. See the field's
+        # own comment on CBOScore.
+        assistant_anchor_eligible=False,
         notes="CBO Options 2019-2028 (pub. 54667), revenue option 1, third "
               "alternative (report p. 204): 'Raise all tax rates on ordinary "
               "income in the top two brackets (35 percent and over) by 1 "
@@ -1643,12 +1673,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2019,
         scoring_window_first_year=2019,
         scoring_vintage="cbo_feb_2024",
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
-            "first scored in the following commit, per the manifest's "
-            "two-commit rule."
-        ),
+        # Lane R3: a target published for a decade this deployment does not
+        # serve is not an anchor for a question asked today. See the field's
+        # own comment on CBOScore.
+        assistant_anchor_eligible=False,
         notes="CBO Options 2019-2028 (pub. 54667), revenue option 2, first "
               "alternative (report p. 207): 'Raise rates on long-term capital "
               "gains and dividends by 2 percentage points', +$69.6B over "
@@ -1675,12 +1703,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2019,
         scoring_window_first_year=2019,
         scoring_vintage="cbo_feb_2024",
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
-            "first scored in the following commit, per the manifest's "
-            "two-commit rule."
-        ),
+        # Lane R3: a target published for a decade this deployment does not
+        # serve is not an anchor for a question asked today. See the field's
+        # own comment on CBOScore.
+        assistant_anchor_eligible=False,
         notes="CBO Options 2019-2028 (pub. 54667), revenue option 18, first "
               "alternative (report p. 251): +$898.3B over FY2019-2028. Scored "
               "on the same shape as CBO 2024 Option 61 because CBO states the "
@@ -1709,12 +1735,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2019,
         scoring_window_first_year=2019,
         scoring_vintage="cbo_feb_2024",
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
-            "first scored in the following commit, per the manifest's "
-            "two-commit rule."
-        ),
+        # Lane R3: a target published for a decade this deployment does not
+        # serve is not an anchor for a question asked today. See the field's
+        # own comment on CBOScore.
+        assistant_anchor_eligible=False,
         notes="CBO Options 2019-2028 (pub. 54667), revenue option 18, second "
               "alternative (report p. 251): +$1,786.5B over FY2019-2028.",
     ),
@@ -1735,12 +1759,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2019,
         scoring_window_first_year=2019,
         scoring_vintage="cbo_feb_2024",
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
-            "first scored in the following commit, per the manifest's "
-            "two-commit rule."
-        ),
+        # Lane R3: a target published for a decade this deployment does not
+        # serve is not an anchor for a question asked today. See the field's
+        # own comment on CBOScore.
+        assistant_anchor_eligible=False,
         notes="CBO Options 2019-2028 (pub. 54667), revenue option 24 (report "
               "p. 266): +$96.3B over FY2019-2028, 'Source: Staff of the Joint "
               "Committee on Taxation.' The second of four editions of one "
@@ -1766,12 +1788,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2021,
         scoring_window_first_year=2021,
         scoring_vintage="cbo_feb_2024",
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
-            "first scored in the following commit, per the manifest's "
-            "two-commit rule."
-        ),
+        # Lane R3: a target published for a decade this deployment does not
+        # serve is not an anchor for a question asked today. See the field's
+        # own comment on CBOScore.
+        assistant_anchor_eligible=False,
         notes="CBO Options 2021-2030 (pub. 56783), revenue option 1, first "
               "alternative (report p. 204): +$884.0B over FY2021-2030, 'Data "
               "source: Staff of the Joint Committee on Taxation.'",
@@ -1788,11 +1808,12 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         source_url="https://www.cbo.gov/publication/56783",
         rate_change=0.01,
         income_threshold=86_375.0,
+        # Only the two statuses whose amount differs from the single
+        # floor above; separate and single take it under
+        # FILING_STATUS_THRESHOLD_RULE, which is the same number.
         income_threshold_by_filing_status={
             "joint": 172_750.0,
-            "separate": 86_375.0,
             "head_of_household": 86_350.0,
-            "single": 86_375.0,
         },
         statutory_bracket_index=4,
         policy_type="income_tax",
@@ -1801,12 +1822,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2021,
         scoring_window_first_year=2021,
         scoring_vintage="cbo_feb_2024",
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
-            "first scored in the following commit, per the manifest's "
-            "two-commit rule."
-        ),
+        # Lane R3: a target published for a decade this deployment does not
+        # serve is not an anchor for a question asked today. See the field's
+        # own comment on CBOScore.
+        assistant_anchor_eligible=False,
         notes="CBO Options 2021-2030 (pub. 56783), revenue option 1, second "
               "alternative (report p. 204): +$203.3B over FY2021-2030. The "
               "amounts are CBO's own CY2021 bracket-4 floors from the "
@@ -1827,9 +1846,7 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         income_threshold=209_425.0,
         income_threshold_by_filing_status={
             "joint": 418_850.0,
-            "separate": 209_425.0,
             "head_of_household": 209_400.0,
-            "single": 209_425.0,
         },
         statutory_bracket_index=6,
         policy_type="income_tax",
@@ -1838,12 +1855,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2021,
         scoring_window_first_year=2021,
         scoring_vintage="cbo_feb_2024",
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
-            "first scored in the following commit, per the manifest's "
-            "two-commit rule."
-        ),
+        # Lane R3: a target published for a decade this deployment does not
+        # serve is not an anchor for a question asked today. See the field's
+        # own comment on CBOScore.
+        assistant_anchor_eligible=False,
         notes="CBO Options 2021-2030 (pub. 56783), revenue option 1, third "
               "alternative (report p. 204): +$113.8B over FY2021-2030. The "
               "smallest target in the battery, and the only row that prices "
@@ -1867,12 +1882,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2021,
         scoring_window_first_year=2021,
         scoring_vintage="cbo_feb_2024",
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
-            "first scored in the following commit, per the manifest's "
-            "two-commit rule."
-        ),
+        # Lane R3: a target published for a decade this deployment does not
+        # serve is not an anchor for a question asked today. See the field's
+        # own comment on CBOScore.
+        assistant_anchor_eligible=False,
         notes="CBO Options 2021-2030 (pub. 56783), revenue option 2 (report "
               "p. 207): +$75.2B over FY2021-2030. Unlike the 2018 edition, "
               "this one does not realign the preferential brackets, so the "
@@ -1895,12 +1908,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2021,
         scoring_window_first_year=2021,
         scoring_vintage="cbo_feb_2024",
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
-            "first scored in the following commit, per the manifest's "
-            "two-commit rule."
-        ),
+        # Lane R3: a target published for a decade this deployment does not
+        # serve is not an anchor for a question asked today. See the field's
+        # own comment on CBOScore.
+        assistant_anchor_eligible=False,
         notes="CBO Options 2021-2030 (pub. 56783), revenue option 15, first "
               "alternative (report p. 285): +$877.5B over FY2021-2030. Same "
               "base as CBO 2024 Option 61 and as the 2018 edition's option 18: "
@@ -1923,12 +1934,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2021,
         scoring_window_first_year=2021,
         scoring_vintage="cbo_feb_2024",
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
-            "first scored in the following commit, per the manifest's "
-            "two-commit rule."
-        ),
+        # Lane R3: a target published for a decade this deployment does not
+        # serve is not an anchor for a question asked today. See the field's
+        # own comment on CBOScore.
+        assistant_anchor_eligible=False,
         notes="CBO Options 2021-2030 (pub. 56783), revenue option 15, second "
               "alternative (report p. 285): +$1,736.3B over FY2021-2030.",
     ),
@@ -1949,12 +1958,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2021,
         scoring_window_first_year=2021,
         scoring_vintage="cbo_feb_2024",
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
-            "first scored in the following commit, per the manifest's "
-            "two-commit rule."
-        ),
+        # Lane R3: a target published for a decade this deployment does not
+        # serve is not an anchor for a question asked today. See the field's
+        # own comment on CBOScore.
+        assistant_anchor_eligible=False,
         notes="CBO Options 2021-2030 (pub. 56783), revenue option 19 (report "
               "p. 293): +$99.3B over FY2021-2030, 'Data source: Staff of the "
               "Joint Committee on Taxation.'",
@@ -1973,9 +1980,7 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         income_threshold=95_375.0,
         income_threshold_by_filing_status={
             "joint": 190_750.0,
-            "separate": 95_375.0,
             "head_of_household": 95_350.0,
-            "single": 95_375.0,
         },
         statutory_bracket_index=4,
         policy_type="income_tax",
@@ -1984,12 +1989,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2023,
         scoring_window_first_year=2023,
         scoring_vintage="cbo_feb_2024",
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
-            "first scored in the following commit, per the manifest's "
-            "two-commit rule."
-        ),
+        # Lane R3: a target published for a decade this deployment does not
+        # serve is not an anchor for a question asked today. See the field's
+        # own comment on CBOScore.
+        assistant_anchor_eligible=False,
         notes="CBO Options 2023-2032 Volume I (pub. 58164), option 13, second "
               "alternative (report p. 72): -$501.9B over FY2023-2032. The same "
               "reform cbo_opt45_top4_brackets_2pp scores on the 2024 volume's "
@@ -2020,9 +2023,7 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         income_threshold=13_850.0,
         income_threshold_by_filing_status={
             "joint": 27_700.0,
-            "separate": 13_850.0,
             "head_of_household": 20_800.0,
-            "single": 13_850.0,
         },
         policy_type="income_tax",
         baseline_year=2022,
@@ -2031,12 +2032,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         scoring_window_first_year=2023,
         scoring_vintage="cbo_feb_2024",
         agi_inclusive_base=True,
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
-            "first scored in the following commit, per the manifest's "
-            "two-commit rule."
-        ),
+        # Lane R3: a target published for a decade this deployment does not
+        # serve is not an anchor for a question asked today. See the field's
+        # own comment on CBOScore.
+        assistant_anchor_eligible=False,
         notes="CBO Options 2023-2032 Volume I (pub. 58164), option 13, third "
               "alternative (report p. 72): -$1,329.1B over FY2023-2032. The "
               "largest revenue raiser in the individual-rate option of any of "
@@ -2064,9 +2063,7 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         income_threshold=109_225.0,
         income_threshold_by_filing_status={
             "joint": 218_450.0,
-            "separate": 109_225.0,
             "head_of_household": 116_150.0,
-            "single": 109_225.0,
         },
         policy_type="income_tax",
         baseline_year=2022,
@@ -2075,12 +2072,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         scoring_window_first_year=2023,
         scoring_vintage="cbo_feb_2024",
         agi_inclusive_base=True,
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
-            "first scored in the following commit, per the manifest's "
-            "two-commit rule."
-        ),
+        # Lane R3: a target published for a decade this deployment does not
+        # serve is not an anchor for a question asked today. See the field's
+        # own comment on CBOScore.
+        assistant_anchor_eligible=False,
         notes="CBO Options 2023-2032 Volume I (pub. 58164), option 13, fourth "
               "alternative (report p. 72): -$773.8B over FY2023-2032. This is "
               "the one published surtax whose boundary is stated as a sum of "
@@ -2104,12 +2099,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2023,
         scoring_window_first_year=2023,
         scoring_vintage="cbo_feb_2024",
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
-            "first scored in the following commit, per the manifest's "
-            "two-commit rule."
-        ),
+        # Lane R3: a target published for a decade this deployment does not
+        # serve is not an anchor for a question asked today. See the field's
+        # own comment on CBOScore.
+        assistant_anchor_eligible=False,
         notes="CBO Options 2023-2032 Volume I (pub. 58164), option 15, first "
               "alternative (report p. 76): -$1,135.7B over FY2023-2032. The "
               "same reform as CBO 2024 Option 61 alternative 1 on the previous "
@@ -2131,12 +2124,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2023,
         scoring_window_first_year=2023,
         scoring_vintage="cbo_feb_2024",
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
-            "first scored in the following commit, per the manifest's "
-            "two-commit rule."
-        ),
+        # Lane R3: a target published for a decade this deployment does not
+        # serve is not an anchor for a question asked today. See the field's
+        # own comment on CBOScore.
+        assistant_anchor_eligible=False,
         notes="CBO Options 2023-2032 Volume I (pub. 58164), option 15, second "
               "alternative (report p. 76): -$2,252.7B over FY2023-2032.",
     ),
@@ -2160,12 +2151,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         expenditure_action="cap",
         expenditure_cap_amount=8_900.0,
         expenditure_caps_by_tier={"single": 8_900.0, "family": 21_600.0},
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
-            "first scored in the following commit, per the manifest's "
-            "two-commit rule."
-        ),
+        # Lane R3: a target published for a decade this deployment does not
+        # serve is not an anchor for a question asked today. See the field's
+        # own comment on CBOScore.
+        assistant_anchor_eligible=False,
         notes="CBO Options 2023-2032 Volume I (pub. 58164), option 6, third "
               "alternative (report p. 30), 'Decrease (-) in the Deficit' row: "
               "-$651.4B over FY2023-2032. The cap dollars are CBO's own stated "
@@ -2196,12 +2185,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2023,
         scoring_window_first_year=2023,
         scoring_vintage="cbo_feb_2024",
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
-            "first scored in the following commit, per the manifest's "
-            "two-commit rule."
-        ),
+        # Lane R3: a target published for a decade this deployment does not
+        # serve is not an anchor for a question asked today. See the field's
+        # own comment on CBOScore.
+        assistant_anchor_eligible=False,
         notes="CBO Options 2023-2032 Volume II (pub. 58163), revenue option 37 "
               "(report p. 89): -$102.1B over FY2023-2032. Applies to every "
               "rate bracket, so the threshold is zero. Its 2024 sibling "
@@ -2226,12 +2213,10 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2023,
         scoring_window_first_year=2023,
         scoring_vintage="cbo_feb_2024",
-        runnable=False,
-        not_runnable_reason=(
-            "Pre-registered by lane R3 (planning/lanes/R3_tier1_battery.md); "
-            "first scored in the following commit, per the manifest's "
-            "two-commit rule."
-        ),
+        # Lane R3: a target published for a decade this deployment does not
+        # serve is not an anchor for a question asked today. See the field's
+        # own comment on CBOScore.
+        assistant_anchor_eligible=False,
         notes="CBO Options 2023-2032 Volume II (pub. 58163), revenue option 50 "
               "(report p. 115): -$129.3B over FY2023-2032, 'Data source: Staff "
               "of the Joint Committee on Taxation.' CORPORATE_PER_POINT_YIELD.md "
@@ -2458,15 +2443,20 @@ def get_validation_targets() -> list[CBOScore]:
 
     A record qualifies when it is runnable, has a constructible shape, is not
     already covered by a specialized calibrated runner (which would double
-    count it across both accuracy tiers), and sits on a baseline no older than
-    :data:`MIN_GENERIC_BASELINE_YEAR`.
+    count it across both accuracy tiers), and either sits on a baseline no
+    older than :data:`MIN_GENERIC_BASELINE_YEAR` **or** states the decade its
+    own source published (``scoring_window_first_year``) - see that constant
+    for why the second clause is a narrowing rather than a loosening.
     """
     return [
         s for s in KNOWN_SCORES.values()
         if s.runnable
         and s.specialized_runner is None
         and validation_shape(s) is not None
-        and s.baseline_year >= MIN_GENERIC_BASELINE_YEAR
+        and (
+            s.baseline_year >= MIN_GENERIC_BASELINE_YEAR
+            or s.scoring_window_first_year is not None
+        )
     ]
 
 

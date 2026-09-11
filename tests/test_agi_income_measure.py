@@ -263,6 +263,11 @@ def test_the_rule_names_exactly_three_records_and_each_carries_its_sentence():
         "cbo_opt46_agi_surtax_1pp_20k",
         "cbo_opt46_agi_surtax_2pp_100k",
         "warren_ultramillionaire_surtax_3pp",
+        # Lane R3: CBO's 2022 volume, option 13 alternatives 3 and 4. Both state
+        # the reform on AGI in as many words, which is the whole of
+        # AGI_BASE_RULE's test.
+        "cbo2023_opt13_agi_surtax_1pp_stdded",
+        "cbo2023_opt13_agi_surtax_2pp_bracket4",
     }
     for policy_id, sentence in _AGI_BASE_POLICY_IDS.items():
         assert policy_id in KNOWN_SCORES, policy_id

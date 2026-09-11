@@ -307,6 +307,60 @@ EXPECTED_SHAPE_THRESHOLDS = {
         "head_of_household": 425_000.0,
         "single": 400_000.0,
     },
+    # ---- Lane R3: the 2018, 2020 and 2022 Options volumes ----------------
+    #
+    # The boundaries are CBO's own statutory parameters, read from the
+    # transcribed schedule (publication 53724) at each option's own first
+    # calendar year on the vintage the row is scored on: CY2021 for the 2020
+    # volume, and CY2021 for the 2018 volume too because the schedule this
+    # repository carries begins there and the loader clamps earlier years to
+    # it. ``tests/test_cbo_options_multi_volume.py`` asserts every amount below
+    # against that file, so none of them is a hand-typed number.
+    "cbo2019_opt1_top4_brackets_1pp": {
+        "joint": 172_750.0,
+        "separate": 86_375.0,
+        "head_of_household": 86_350.0,
+        "single": 86_375.0,
+    },
+    "cbo2019_opt1_top2_brackets_1pp": {
+        "joint": 418_850.0,
+        "separate": 209_425.0,
+        "head_of_household": 209_400.0,
+        "single": 209_425.0,
+    },
+    "cbo2021_opt1_top4_brackets_1pp": {
+        "joint": 172_750.0,
+        "separate": 86_375.0,
+        "head_of_household": 86_350.0,
+        "single": 86_375.0,
+    },
+    "cbo2021_opt1_top2_brackets_1pp": {
+        "joint": 418_850.0,
+        "separate": 209_425.0,
+        "head_of_household": 209_400.0,
+        "single": 209_425.0,
+    },
+    "cbo2023_opt13_top4_brackets_2pp": {
+        "joint": 190_750.0,
+        "separate": 95_375.0,
+        "head_of_household": 95_350.0,
+        "single": 95_375.0,
+    },
+    # CBO states these two as a formula over the standard deduction, personal
+    # exemptions and (for the second) the fourth-bracket floor, so they are not
+    # a bracket index and they are held fixed at the option's own CY2023 values.
+    "cbo2023_opt13_agi_surtax_1pp_stdded": {
+        "joint": 27_700.0,
+        "separate": 13_850.0,
+        "head_of_household": 20_800.0,
+        "single": 13_850.0,
+    },
+    "cbo2023_opt13_agi_surtax_2pp_bracket4": {
+        "joint": 218_450.0,
+        "separate": 109_225.0,
+        "head_of_household": 116_150.0,
+        "single": 109_225.0,
+    },
 }
 
 

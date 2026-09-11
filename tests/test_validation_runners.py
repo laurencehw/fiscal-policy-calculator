@@ -14,6 +14,7 @@ Two things are under test here:
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -609,6 +610,12 @@ def test_untranscribed_line_items_are_a_named_backlog(scorecard):
         if e.provenance in (LINE_ITEM, LINE_ITEM_DIFFERS)
         and not e.transcribed
         and not e.policy_id.startswith("cbo_opt")
+        # Lane R3's three earlier volumes, transcribed the same way by
+        # scripts/extract_cbo_options_multi_volume.py: report pages and annual
+        # paths in cbo_options_multi_volume_alternatives.csv, the 2020 and 2022
+        # figures read from CBO's own workbooks by sheet and row, and the 2018
+        # figures re-verified against their stated PDF pages.
+        and not re.match(r"cbo20(19|21|23)_", e.policy_id)
     }
     assert inferred <= CITED_BUT_NOT_TRANSCRIBED, (
         f"new untranscribed line_item entries: {sorted(inferred - CITED_BUT_NOT_TRANSCRIBED)}"
