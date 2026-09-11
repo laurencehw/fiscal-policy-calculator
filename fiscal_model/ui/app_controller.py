@@ -29,16 +29,24 @@ _HOW_SCORED_MARKDOWN = (
     "3. **Dynamic feedback** *(optional)* — GDP and employment effects using "
     "FRB/US-calibrated multipliers\n\n"
     "**How to read the numbers (model maturity):**\n\n"
+    # No two figures here, and that is the point of the sentence four lines
+    # below. This used to read "(\~5% mean error)" and "\~8% mean error" — two
+    # collapsed numbers, both stale, immediately above a line forbidding exactly
+    # that. The out-of-sample tier is eight policy classes running 4.6% to
+    # 44.5%, and every result now prints the band for the class it scored.
     "- **Core (green)** — revenue, distribution, and dynamic scoring. Calibrated "
-    "reference models reproduce official decompositions (\\~5% mean error); "
-    "genuine out-of-sample predictions are \\~8% mean error.\n"
+    "reference models reproduce official decompositions, so their agreement is "
+    "bookkeeping; the out-of-sample tier is the only skill claim, and it is "
+    "eight policy classes with different measured errors, not one number.\n"
     "- **Specialized (yellow)** — TCJA, corporate, credits, payroll, etc. Tuned "
     "reconstructions of published scores — transparent, not independent confirmation.\n"
     "- **Exploratory (blue)** — Ask, Bill Tracker, multi-model pilot. Useful UX; "
     "not validated estimates.\n\n"
     "Data: IRS Statistics of Income, FRED, CBO Baseline Projections. "
-    "Every result shows a validation-evidence card — never collapse calibrated "
-    "and out-of-sample accuracy into one \"validated within X%\" claim.\n\n"
+    "Every result shows an accuracy-evidence card — the measured error of its "
+    "own policy class, beside its own scorecard row and the tier that row sits "
+    "in. Never collapse calibrated and out-of-sample accuracy into one "
+    "\"validated within X%\" claim.\n\n"
     "For background, see "
     f"[Optimal Taxation (Ch 16)]({TEXTBOOK_LINKS['optimal_taxation']}) and "
     f"[The Federal Budget (Ch 22)]({TEXTBOOK_LINKS['federal_budget']}) in the textbook."
@@ -609,7 +617,7 @@ def render_quick_start(st_module: Any, calculating: bool = False) -> None:
             "### Start here\n"
             "1. Pick a question below (or a proposal from the picker)\n"
             "2. Click **Calculate Impact**\n"
-            "3. Read the headline deficit number and the **Validation evidence** card\n\n"
+            "3. Read the headline deficit number and the **Accuracy evidence** card\n\n"
             "Optional depth: Distribution, Economic Effects, and Scoring Models tabs."
         )
     with col2:

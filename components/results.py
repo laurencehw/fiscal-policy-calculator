@@ -603,12 +603,18 @@ def _render_empty_state(st_module: Any, score_label: str) -> None:
     st_module.markdown("### Your result appears here")
     st_module.markdown(
         f"Choose or define a policy, then click **{score_label}** to see the "
-        "10-year budgetary effect, its confidence tier, and a sensitivity band."
+        "10-year budgetary effect, its validation tier, and an accuracy band."
     )
+    # No figure here, deliberately. The out-of-sample tier is eight policy
+    # classes running 4.6% to 44.5%, so any single number typed into an empty
+    # state is either stale or a "validated within X%" claim — this line used to
+    # say "\~8% mean error", which was both. The result's own card computes the
+    # band for the class actually scored (`validation/credibility.py`).
     st_module.caption(
         "Scores use CBO methodology with IRS Statistics of Income data. "
-        "Calibrated presets reproduce official scores by construction; "
-        "custom policies are genuine out-of-sample predictions (\\~8% mean error)."
+        "Calibrated presets reproduce official scores by construction; custom "
+        "policies are genuine out-of-sample predictions, and each result "
+        "carries the measured accuracy of its own policy class."
     )
 
 
