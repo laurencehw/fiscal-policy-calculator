@@ -288,6 +288,7 @@ the plan's §2 says the same thing one tier up.
 | 4.4 | No band where no row | **pass** on all ten named modules, plus a live-object test on the four whose `policy_type` misdescribes them |
 | 4.5 | Every `Policy` subclass routed or excluded with a reason | **pass**, enforced by a walking-subclass test |
 | 4.6 | §3.1 and §3.2 reproduced | **pass**, to the dollar |
+| §5 | No second scorecard materialisation | **pass, measured**: `cached_default_scorecard` costs **5.91 s** cold and reports `hits=2, misses=1`; `tier1_class_bands()` costs **0.0104 s** on top of it and `own_row_for()` **0.147 s**. The band and the row both read the one cache the Validation tab and the API endpoint already share |
 
 ### 6.2 What the two old bands actually were — the measurement, not the claim
 
