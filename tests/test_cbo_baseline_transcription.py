@@ -299,3 +299,70 @@ def test_the_projection_factor_moved_and_the_size_is_the_lanes_own():
     hand = _HAND_ENTERED_ASSUMPTIONS[BaselineVintage.CBO_FEB_2026]
     step = 1.0 + float(hand["real_gdp_growth"][0]) + float(hand["inflation"][0])
     assert step ** 2 - 1.0 == pytest.approx(0.0899, abs=5e-4)
+
+
+# ── The report behind the data release ─────────────────────────────────────
+
+
+def test_the_transcription_reproduces_publication_61882s_own_headlines():
+    """The data release is 51118; the *report* is publication 61882.
+
+    ``The Budget and Economic Outlook: 2026 to 2036`` (February 2026) prints
+    three round figures in its own summary, and the transcribed table has to
+    return all three or the CSV is not that document's. They are pinned here
+    rather than in prose because the app quotes a *fourth* number from the
+    same table -- $23,143.3B over FY2026-2035, the app's own window -- and a
+    reader who meets only that one has no way to tell it apart from a
+    disagreement with CBO. CBO's headline ten-year window is FY2027-2036.
+    """
+    budget = cbo_baseline_budget(BaselineVintage.CBO_FEB_2026)
+    deficits = budget["deficit_total"]
+
+    # "a deficit of $1.9 trillion in 2026"
+    assert deficits[2026] == pytest.approx(-1_852.7, abs=0.05)
+    # "$24.4 trillion over the 2027-2036 period" -- CBO's own ten-year window
+    cbo_window = sum(deficits[year] for year in range(2027, 2037))
+    assert cbo_window == pytest.approx(-24_406.0, abs=0.05)
+    # "$3.1 trillion in 2036"
+    assert deficits[2036] == pytest.approx(-3_115.4, abs=0.05)
+
+    # And the app's own window is a different decade of the same table, not a
+    # second figure: FY2026-2035, which is what every surface prints.
+    app_window = sum(deficits[year] for year in range(2026, 2036))
+    assert app_window == pytest.approx(-CBO_FEB_2026_TEN_YEAR_DEFICIT, abs=0.05)
+    assert abs(cbo_window) > abs(app_window)
+
+
+def test_provenance_quotes_the_publication_the_fetch_script_declares():
+    """``PROVENANCE.csv`` is generated, so the script is the source of truth.
+
+    The February 2026 rows named publication 51118 -- CBO's generic budget and
+    economic data page, which is the *release*, not the report. The report is
+    61882. This pins every vintage's publication string to the one the
+    generator declares, so the file and its generator cannot drift again
+    without a test saying so.
+    """
+    import importlib.util
+
+    script = cbo_data.DATA_DIR.parents[2] / "scripts" / "fetch_cbo_baseline.py"
+    module_spec = importlib.util.spec_from_file_location(
+        "_fetch_cbo_baseline", script
+    )
+    module = importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(module)
+
+    declared = {key: entry["publication"] for key, entry in module.VINTAGES.items()}
+    assert "publication 61882" in declared["cbo_feb_2026"]
+    assert "publication 61172" in declared["cbo_jan_2025"]
+    assert "publication 59710" in declared["cbo_feb_2024"]
+
+    path = cbo_data.DATA_DIR / "PROVENANCE.csv"
+    with open(path, encoding="utf-8", newline="") as handle:
+        body = [line for line in handle if not line.startswith("#")]
+    rows = list(csv.DictReader(body))
+    assert rows, "PROVENANCE.csv carries no rows"
+    for row in rows:
+        assert row["publication"] == declared[row["vintage"]], (
+            f"{row['vintage']}/{row['kind']} quotes a publication the fetch "
+            "script no longer declares"
+        )

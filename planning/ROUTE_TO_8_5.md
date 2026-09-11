@@ -7,6 +7,12 @@ scripts/cold_holdout.py --json`, `scripts/run_validation_dashboard.py`, `scripts
 --donor-matrix`, and a direct `CBOBaseline(start_year=2026, vintage=CBO_FEB_2026).generate()` —
 or from a `file:line`, or from a cited section of one of the two survey memos. Nothing is recalled.*
 
+*Re-measured **2026-09-11** after PRs #155, #157, #158, #159, #160, #161 and #162. **§0's table, §2's
+wave rows, §4's rule 5 and every ✅ outturn box below carry the merged-`main` reading**; the dated
+prose inside each lane's body is left as it was written, because the ranking in §1 was computed from
+it. Where a body figure and an outturn box disagree, the box is live and the body is the motivation
+that produced the lane.*
+
 `HIGH_STAKES_ACCURACY.md` re-ranked the work by **who reads the number** and took the app from 6.5
 to 7.5 across Waves A, B and C. This plan does not supersede it: Waves D and E are still that
 document's, its §1 principles, §4 prohibitions, Decisions 1/3/6, the pre-registration manifest and
@@ -32,13 +38,30 @@ distributional tables and two provenance states do not collapse — applies to i
 to its accuracy claim. A tree that meets four of the five is not at 8.5; it is at 7.5 with four
 things fixed.
 
+> **Re-measured 2026-09-11 on merged `main`, after PRs #155, #157, #158, #159, #160, #161 and
+> #162.** The column below is not a scoreboard anybody may congratulate, and the roadmap owns the
+> reason: **criterion ①'s n fell 26 → 22 by *retirement*.** Four Tier 1 targets turned out to be in
+> no publication and were withdrawn with their searches recorded — three of them from inside 25% —
+> so the tier's mean fell 14.5% → 11.6% while the test it constitutes got **weaker**. **The battery
+> has to GROW through R3 before the class means are quotable again.** Three consequences, stated
+> plainly rather than buried in a cell. The **AGI-inclusive-surtax class is down to n = 2 and reads
+> 5.2%**, which nominally meets this plan's own ≤ 10% target on a battery too small to mean much.
+> **Tier 1 now contains no rate cut and no positive target at all** — `illustrative_500k_2pp` was
+> both — so it does not test the model in the direction a Tailor user most often asks about. And
+> **the share within 25% rose 84.6% → 86.4% while the count fell 22 → 19**: quote the share beside
+> the count, because only one of the two is comparable across a battery that changes size. The rule
+> cuts both ways, which is the cleanest evidence it is about documents and not about means —
+> `medicare_surcharge_2pp` scored **1.2% from the figure Treasury actually prints** and was retired
+> anyway, because Treasury prints it for a **1.2pp** reform where the row applies 2pp; restated on
+> the document's own rate it reads **39.3% under**, worse than the 31.8% it had been reporting.
+
 | # | Criterion | Today, measured on this tree | 8.5 |
 |--:|---|---|---|
-| **1** | **Out-of-sample battery** — size, accuracy, and whether the per-class bands rest on a sample | **n = 26, mean 14.5%, median 11.5%, 16/26 within 15%, 22/26 within 25%.** Eight classes at n = 1, 1, 2, 3, 4, 4, 5, 6 — `corporate` and `tax_expenditure` are **single observations**. Class means: discretionary 4.64, payroll 7.80, tax expenditure 13.10, enacted-law spending 13.40, ordinary rate 14.82, AGI surtax 17.57, capital gains 18.70, corporate 44.50 | **n ≥ 40, mean ≤ 12%, ≥ 30/40 within 25%, and every class n ≥ 3 with no class mean above 25%.** The size condition is not decoration: a band read off one row is not a band |
-| **2** | **Reconstruction tier** — measured on a *constant* population, and what a user can reach | **39 rows at 56.7% mean / 36.9% median, 10/39 within 15%, 13/39 within 25%.** Fifteen sub-populations from `Credits` 9.5% (n=1) to `Pharma` **277.8%** (n=3). Worst rows: `international_reference_pricing` **701.0%**, `trump_corporate_15` 121.6%, `expand_drug_negotiation` 93.3%, `ss_donut_250k` 89.2%, `double_enforcement` 82.3%. All five are reachable from Explore and Build today | **≤ 45% mean on the 39 rows held at Wave D's close, ≥ 15/39 within 15%, and no row above 150% reachable from a headline surface** — reached by moving the row, or by H12 demoting the preset, never by retiring the row. A demoted preset keeps its scorecard entry |
-| **3** | **Provenance** | Calibrated tiers (n=55): `line_item` 36, `line_item_differs` 8, `secondhand` **7**, `model_estimate` **4**. Both tiers: 77/81 published, 43 transcribed. **And the new measurement this plan turns on:** Tier 1's five `secondhand` rows carry a **23.92% mean against the 21 `line_item` rows' 12.21%**, i.e. **19% of the tier holds 31.8% of its error mass** (119.6 of 376.1) | Calibrated `secondhand` ≤ 5, `model_estimate` ≤ 2, **Tier 1 `secondhand` ≤ 2**, published ≥ 79/81; the `retire` state either applied or declined **in writing, per row** — H9 built it and applied it to nothing, which is correct only while ④ is open |
-| **4** | **Consistency and coverage** | 44 of 53 presets badged, the 9 unbadged printing no dollar figure (H6, enforced by test). **Build quotes list prices, not model output** (`fiscal_model/ui/tabs/deficit_target.py:219-232`): 46 options, 44 with a scorecard row, and **13 of those 44 quote a `secondhand` or `model_estimate` target** | Every Build option **either** shows model output beside the list price **or** is labelled a list price on the surface itself; **≤ 6** quoting a `secondhand`/`model_estimate` target. The base-rule contract (H1) holds across all four constructors, and `DistributionalEngine` joins them (§6.2 item 46 — 2.57× apart today) |
-| **5** | **The baseline** | `CBO_FEB_2026` — the app's default — is graded **`"sourced"`** at `fiscal_model/baseline.py:163-168` while its corporate line is graded `"vintage_estimate"` at `:220-224`. Measured: FY2026–2035 cumulative deficit **$29,529.1B against CBO's own $23,143.3B (+27.6%)**; end-FY2035 debt $49,362.1B vs $53,103.2B (−7.0%); corporate receipts 436.8 → 667.4, **4.82%/yr against CBO's 3.53%**; FY2026 individual income tax 18.3% low, payroll 11.0% high (macro survey §1 finding 1) | **All three vintages transcribed from CBO's own table**, `VINTAGE_SOURCING` and `CORPORATE_RECEIPTS_SOURCING` graded from what was actually transcribed, and the vintage's ten-year deficit within 1% of the figure its own document prints |
+| **1** | **Out-of-sample battery** — size, accuracy, and whether the per-class bands rest on a sample | **n = 22, mean 11.6%, median 8.9%, 18/22 within 15%, 19/22 within 25% (86.4%), error mass 255.3** — and **all 22 are `line_item`**, with `secondhand` **0** and `model_estimate` **0** (R2). Eight classes at n = **1, 1, 2, 2, 3, 4, 4, 5** — `corporate` and `tax_expenditure` are still **single observations** and `AGI surtax` has fallen to **two**. Class means: discretionary 4.60, **AGI surtax 5.15**, enacted-law spending 7.40, payroll 7.80, tax expenditure 12.80, ordinary rate 12.90, capital gains 18.70, corporate 44.50. **The mean fell 14.5% → 11.6% and most of it is the denominator**: of 120.8 units of mass that left, **94.1 went out with four retirements** and 17.9 with owner ③'s IIJA row, leaving about 8 for rows that moved while staying in | **n ≥ 40, mean ≤ 12%, ≥ 30/40 within 25%, and every class n ≥ 3 with no class mean above 25%.** The size condition is not decoration: a band read off one row is not a band — and **R3 now owes this tier four rows before it is back where it started**, never mind the eighteen that would meet the criterion |
+| **2** | **Reconstruction tier** — measured on a *constant* population, and what a user can reach | **38 scored rows at 37.5% mean / 30.1% median, 11/38 within 15% — never quotable on its own line.** PR #160 withdrew a **93.3%** and a **701.0%** target, so the tier **with both folded back at the error they carried on the day they were withdrawn reads 40 at 55.5% / 33.6%, 11/40**, printed on the adjacent line; PR #157's reclassification moved `cap_charitable` *in*, 39 → 40. Fifteen sub-populations from `Credits` 9.5% (n=1) to **`Corporate` 92.3%** (n=2) and `Payroll` **89.2%** (n=1); `Pharma` went **3 rows at 277.8% → 1 at 39.0%**. Worst surviving rows: `trump_corporate_15` 121.6%, `ss_donut_250k` 89.2%, `double_enforcement` 82.3%. **The ceiling clause is met on the surface half**: PR #158 moved all five sectoral presets into an explicitly-labelled illustrative group with their live error printed | **≤ 45% mean on the 40 rows held at Wave E's close, ≥ 15/40 within 15%, and no row above 150% reachable from a headline surface** — reached by moving the row, or by H12 demoting the preset, never by retiring the row. Both instruments have now been used and **neither deleted a scorecard entry**: a demoted preset keeps its row, and a retired target keeps its row, its model figure and its withdrawn target, and leaves the mean only beside a held-in-place second reading |
+| **3** | **Provenance** | Calibrated tiers (n=55): `line_item` 36, `line_item_differs` 8, `secondhand` **7**, `model_estimate` **4** — unmoved by Wave E, which worked on the other tier. Both tiers: **73 published of 77**, **44 transcribed**; *both halves fell by the same four retired rows*, so 77/81 → 73/77 is a battery shedding unsourced rows and not documents going missing. **The measurement this plan turned on has been spent**: Tier 1's five `secondhand` rows are gone — one superseded onto CBO pub. 58164 and four retired — so Tier 1 carries **0** `secondhand` and **0** `model_estimate`, and the 31.8%-of-mass concentration no longer exists to be closed. The `retire` state is **applied**, to two pharma targets (PR #160) | Calibrated `secondhand` ≤ 5, `model_estimate` ≤ 2, **Tier 1 `secondhand` ≤ 2 — met, at 0**; published ≥ 79/81, **which needs restating on a denominator of 77 before it can be scored again**; the `retire` state either applied or declined **in writing, per row** — applied twice, with the anti-gaming arithmetic printed rather than argued |
+| **4** | **Consistency and coverage** | 44 of 53 presets badged, the 9 unbadged printing no dollar figure (H6, enforced by test). **Build quotes list prices, not model output** (`fiscal_model/ui/tabs/deficit_target.py:219-232`): 46 options, 44 with a scorecard row, and **13 of those 44 quote a `secondhand` or `model_estimate` target**. **Not re-measured since PR #156, and two things moved under it**: PR #158 demoted four Build options into the illustrative section, and PR #162's retirements took the `official_score` off **Warren Ultra-Millionaire Surtax** and **High-Earner Medicare Surcharge 2pp**, so both lost their badge while still scoring and still printing no dollar figure — the rule held rather than being waived, and Build's card copy moved "45+ scored policies" → **"40+"** | Every Build option **either** shows model output beside the list price **or** is labelled a list price on the surface itself; **≤ 6** quoting a `secondhand`/`model_estimate` target. The base-rule contract (H1) holds across all four constructors, and `DistributionalEngine` joins them (§6.2 item 46 — 2.57× apart today) |
+| **5** | **The baseline** | **Largely met by R1 (PR #159), and the remainder is named.** All three vintages' **economic** paths and **two of three budget** paths are transcribed from `US-CBO/cbo-data` @ `284a9566`, pinned by commit and verified by SHA-256 per file. February 2026's FY2026–2035 cumulative deficit is **$23,143.30B against CBO's own printed $23,143.3B**, end-of-window debt/GDP **103.8% → 118.0%**, January 2025 **$27,710.6B → $21,758.3B**; corporate receipts now compound at **3.53%**, CBO's own figure, where the reconstruction gave 4.82%; the FY2026 individual-income-tax and payroll gaps close exactly. `VINTAGE_SOURCING` is **computed per line rather than asserted** — and it was **false for two of three vintages** while it was asserted. **February 2024 keeps a reconstructed budget path** (`cbo-data` publishes no `ten_year_budget` for that edition, and June 2024 is publication 60039, a different document), so **its debt/GDP is a mixture and must not be quoted** | **All three vintages transcribed from CBO's own table**, `VINTAGE_SOURCING` and `CORPORATE_RECEIPTS_SOURCING` graded from what was actually transcribed, and the vintage's ten-year deficit within 1% of the figure its own document prints. **Two of the three conditions are met and the third is one vintage short**: February 2024's budget path needs either a fourth `BaselineVintage` for June 2024 or a surface that refuses to render a ratio whose numerator and denominator carry different grades |
 
 ### What is explicitly **not** in 8.5
 
@@ -46,9 +69,12 @@ things fixed.
 - **Any accuracy claim for the 🔵 exploratory tier.** Ask, the bill tracker, classroom and the
   multi-model pilots stay on a UX/safety bar. The one exploratory item this plan carries (R16) is a
   *performance* defect on a 🟢-tier path, not an accuracy one.
-- **The fitted tier's 1.5%.** It is bookkeeping and it is not a number to protect. It has already
-  lost rows to four mechanisms and fell each time. If a provenance lane takes it to 8% over 12 rows,
-  that is the tier becoming honest.
+- **The fitted tier's 1.6% over 15 rows.** It is bookkeeping and it is not a number to protect. It
+  has now lost rows to a target revision, an unfitted-constant deletion, the offset-sign rule and a
+  **reclassification** — PR #157 took it 16 → 15 when `cap_charitable`'s constant turned out to be
+  fitted to a quantity the module no longer computes — and the mean moved with membership every
+  time, never because anything improved. **Held in place it reads 26 at 12.4%.** If a provenance lane
+  takes it to 8% over 12 rows, that is the tier becoming honest.
 - **A single "validated within X%" headline.** Forbidden by §4 of the existing plan and by this one.
 
 ### What 9 would require
@@ -68,17 +94,17 @@ instruction to adopt a number**; several lanes are pre-registered regressions an
 
 | Rank | Lane | Stakes | Effort | Moves |
 |--:|---|---|--:|---|
-| **R1** | Transcribe CBO's own February 2026 baseline (and give the other two vintages a real table) | Every dynamic number, Ask's deficit, Build's target strip, debt/GDP | **3** | ⑤ |
-| **R2** | The five Tier 1 rows with no source URL | 31.8% of the tier's error mass | **3** | ①③ |
-| **R3** | H10: a Tailor battery, off CBO's 42 enacted acts and four *Options* vintages | The tier is 26 rows; users type shapes it does not contain | **5** | ① |
+| **R1** ✅ | Transcribe CBO's own February 2026 baseline (and give the other two vintages a real table) | Every dynamic number, Ask's deficit, Build's target strip, debt/GDP | **3** | ⑤ |
+| **R2** ✅ | The five Tier 1 rows with no source URL | 31.8% of the tier's error mass | **3** | ①③ |
+| **R3** | H10: a Tailor battery, off CBO's 42 enacted acts and four *Options* vintages | The tier is **22** rows, four fewer than when this was written; users type shapes it does not contain, and it now contains no rate cut at all | **5** | ① |
 | **R4** | The statutory parameter schedule → year-indexed thresholds | Unblocks the branch H2 declared impossible | **3** | ① |
 | **R5** | H3b: corporate, with CBO's own loss-firm haircut | Largest single Tier 1 row (44.5%); worst headline reconstruction (121.6%) | **4** | ①② |
-| **R6** | H12: demote the sectoral presets (Wave D, open) | The 701% row is on Explore today | **1** + owner | ②④ |
-| **R7** | The generic base on CBO's own AGI and taxable-income path | 18 of 26 Tier 1 rows; every generic surface | **4** | ① |
+| **R6** ✅ | H12: demote the sectoral presets (Wave D) | The 701% row was on Explore; it is now in a named illustrative group, and its target is retired | **1** + owner | ②④ |
+| **R7** | The generic base on CBO's own AGI and taxable-income path | 18 of 26 Tier 1 rows when this was written; the battery is now **22** and all four retirements were generic income-tax rows, so re-count before quoting. Every generic surface, regardless | **4** | ① |
 | **R8** | Tariffs: JCT's offset *path*, the HS-10 steel base, the elasticity ramp | Five presets, `Trade` at 43.6% | **3** | ② |
 | **R9** | The SS donut ramp on CBO's own taxable-payroll path | `ss_donut_250k` at 89.2%, a top-six headline | **2** | ② |
-| **R10** | H7: the five expenditure magnitudes (Wave D, open) | `Expenditures` LOO 40.6% | **3** | ② |
-| **R11** | H11: the PTC coverage response (Wave D, open) | `repeal_ptc` 29.6%, a shipped preset | **2** | ② |
+| **R10** ✅ | H7: the five expenditure magnitudes (Wave D) | `Expenditures` LOO 40.6% → **43.6%**, a registered regression | **3** | ② |
+| **R11** ✅ | H11: the PTC coverage response (Wave D) | `repeal_ptc` 29.6% → **23.6%**, a shipped preset | **2** | ② |
 | **R12** | Decompose `MARGINAL_REVENUE_RATE`; give debt service a rate path | The whole dynamic tab, uncalibrated | **4** | — (⑤-adjacent) |
 | **R13** | The death channel's *level* half, checked against CapTax | §6.2 item 55's 7.1× factor | **2** | ① |
 | **R14** | CBO's own error-measurement discipline for the app's reporting | How every tier is quoted | **2** | ①②③ |
@@ -87,7 +113,57 @@ instruction to adopt a number**; several lanes are pre-registered regressions an
 
 ---
 
-### R1 — Transcribe CBO's February 2026 baseline *(3 lane-days)*
+### R1 — Transcribe CBO's February 2026 baseline *(3 lane-days)* — ✅ **DONE, PR #159**
+
+> **Outturn.** All three vintages' **economic** paths and **two of three budget** paths are now
+> transcribed from `US-CBO/cbo-data` @ `284a9566`, pinned by commit and verified by **SHA-256 per
+> file**, with `US-CBO/budgetary-feedback-model` as an independent second reading; owner **⑩** settled
+> that both CBO repositories count as "CBO's own table", `cbo-data` preferred. February 2026's
+> FY2026–2035 cumulative deficit is **$29,529.1B → $23,143.30B** against CBO's own printed
+> $23,143.3B, end-of-window debt/GDP **103.8% → 118.0%**, January 2025 $27,710.6B → **$21,758.3B**.
+> `VINTAGE_SOURCING` is now **computed from what the transcription actually contains rather than
+> asserted**, which is not a tidy-up: it was **false for two of three vintages**, and February 2026's
+> ten-year Treasury note **fell 4.5% → 3.9% where CBO's table rises 4.10% → 4.38%** — a baseline whose
+> interest-rate path points the wrong way prices debt service the wrong way. **`real_gdp_growth +
+> inflation` is not nominal GDP growth and never was**: the reconstruction added a real rate to a
+> *PCE* index, where CBO publishes the nominal path itself.
+>
+> **Eleven Tier 1 rows moved, ten through the nominal-index channel** — CBO's own FY2023 → FY2025
+> nominal growth is **10.70%** where the app assumed **8.99%** — **and an eleventh through a channel
+> nobody had listed**: `cbo_opt56_employer_health_income_only` reads a baseline *assumption* rather
+> than a level, because the cap's chained-CPI proxy calls `vintage_assumptions(...)["inflation"]`,
+> and it improved 13.1% → **12.8%**. *A baseline has two surfaces a score can read, and a lane that
+> enumerates one of them will miss rows.* **Eight generic presets moved +2.97% static and two
+> corporate presets in dynamic mode only, against a registered prediction of zero** — the first sweep
+> scored `PRESET_POLICIES[label]`, a dict rather than a policy, so all 106 rows raised and were
+> recorded as errors *identically before and after*. That is PR #119 §7.5 in a second costume, with a
+> narrower lesson: **a sweep must fail loudly on a row it could not score.** A Decision 6 caption
+> ships, computing its counterfactual from the module's own retained literals so it cannot drift.
+> **February 2024 keeps a reconstructed budget path** — `cbo-data` publishes no `ten_year_budget` for
+> that edition and June 2024 is publication 60039, a different document whose FY2025 deficit is
+> $1,937.9B against January 2025's $1,865.3B — so **its debt/GDP is a mixture and must not be
+> quoted**. Nothing in the calibrated tiers moved and the leave-one-out donor matrix is
+> byte-identical. `planning/lanes/R1_baseline_transcription.md`.
+>
+> **Six carry-overs, and the first of them is already closed.** (1) **The CI floor** failed at 20
+> against a floor of 22 on this branch, and the lane refused to move it because the workflow's rule is
+> downward-only — **R2 resolved it**: the two rows R1 pushed across 25% were the one R2 retired for
+> want of a document and the one R2 moved onto CBO's own option, and the merged gate is **15 / 19**.
+> (2) **February 2024's debt/GDP is a mixture**; the honest remedies are a fourth `BaselineVintage`
+> for June 2024 or a surface that refuses to render a ratio whose halves carry different grades, and
+> the first ripples into the URL contract, frozen links and the API. (3) **`base_*` budget levels are
+> unread for a transcribed vintage** — `generate()` reads the table, but `base_individual_income_tax`
+> and its nine siblings are still the reconstruction, and adopting them forces a base-year convention
+> this lane had no reason to take. (4) **The calendar/fiscal anchor**: `_income_base_projection_factor`
+> anchors on a *tax* year while this reads CBO's *fiscal* table at both ends, and CBO publishes
+> `calendar_<edition>.csv` beside it — about **1.4% on a level**, and R7's question rather than R1's.
+> (5) **`scoring_engine.py:345-385`'s docstring quotes stale factors** — 1.3118 and 1.3560 where the
+> live figures are **1.3053** and **1.3963**. (6) **Four more CBO datasets are one `--source-dir`
+> away** in the pinned clone: `tax_parameters` (R4), `revenue_detail/annual_cy_iit_*` (R7),
+> `spending_detail` at 21,769 account-rows (R15b) and
+> `budgetary-feedback-model/input/rules_of_thumb.csv` (R12) — and
+> `scripts/fetch_cbo_baseline.py`'s pinning, digest-checking and identity-check structure is reusable
+> for each.
 
 **Stakes.** The highest in this plan and it is not close. The ten-year deficit appears on the
 landing page, in every Build package's target strip, and in the Ask assistant's `get_cbo_baseline`
@@ -132,7 +208,50 @@ failure.
 
 ---
 
-### R2 — The five Tier 1 rows with no source URL *(3 lane-days)*
+### R2 — The five Tier 1 rows with no source URL *(3 lane-days)* — ✅ **DONE, PR #162**
+
+> **Outturn — one supersession, four retirements, and no module opened.** `illustrative_1pp_all`
+> moved to **`.v2`** on CBO publication **58164**, *Options for Reducing the Deficit: 2023 to 2032,
+> Vol. I*, Option 13 alternative 1 — **−$1,081.3B** over FY2023–2032, report p. 72, *"Data source:
+> Staff of the Joint Committee on Taxation"*, which matches the old target's claimed attribution —
+> and the row went **24.5% → 10.5%** on its own tree and **14.3%** merged with R1. The other four were
+> **retired with the search recorded**: `warren_ultramillionaire_surtax_3pp` (TPC's *AGI Surtax
+> Options* is thirteen tables and **every one is a 10 percent surtax**; and the row's *name* is wrong
+> too, since Warren's Ultra-Millionaire Tax Act is a **wealth tax on net worth**, so the reform this
+> row scores has never been proposed by anyone), `medicare_surcharge_2pp`,
+> `illustrative_top_rate_5pp` and `illustrative_500k_2pp` — the battery's **only rate cut and only
+> positive target**, and CBO's *Options* volumes are deficit-**reduction** menus carrying no cut at
+> all, in any of four editions.
+>
+> **Tier 1 went 26 rows → 22, `secondhand` 5 → 0, and the gates re-derived 20/22 → 15/19**, with
+> `agi_inclusive_surtax` **22 → 7** and `ordinary_rate_change` **19 → 15**. None of the gate movement
+> was discretionary: `test_no_gate_is_looser_than_the_workflow_rule_derives` forces the ceiling at
+> `ceil(11.3 × 1.25) = 15` and the floor at the live within-25 count. Every surviving row's
+> `model_10yr_billions` is byte-identical, `run_loo.py --donor-matrix` is byte-identical, and all four
+> calibrated summaries compare `SAME`. **`medicare_surcharge_2pp` proves the rule rather than bending
+> to it**: Treasury's FY2025 Green Book prints the proposal at **1.2 percentage points** and
+> **$403,790M**, and the model's −$408.6B sits **1.2%** from it — so adopting the figure would have
+> turned the tier's third-worst row into one of its best in a line of diff. It was not adopted,
+> because the model applies 2pp where the document applies 1.2pp; restated on Treasury's own rate the
+> model reads **−$245.2B against −$403.8B, 39.3% under**, *worse* than the 31.8% the row had been
+> reporting. **A retirement that raises the honest error is the cleanest demonstration that the rule
+> is about documents and not about means.** Unpredicted: **CBO prices the same 1pp reform three times
+> and gets three numbers** — −$884.0B (2020), −$1,081.3B (2022), −$1,185.3B (2024) — where the model
+> gives two of them **1.0% apart** against CBO's own **9.6%**, so the pair `illustrative_1pp_all` /
+> `cbo_opt45_all_rates_1pp` measures the model's **insensitivity to the decade** rather than two
+> independent predictions. Two shipped presets lost their `official_score` and badge and neither
+> prints a dollar figure in its label; no app number moved.
+> `planning/lanes/R2_tier1_secondhand_targets.md`.
+>
+> **Five carry-overs, and four of them are R3's.** (1) A **`medicare_surcharge_2pp.v2`** at
+> **−$403.8B** on a `rate_change=0.012` shape — and its base question comes with it, because wages
+> plus net investment income is **neither SOI column**. (2) A **new TPC case** scoring a **10pp**
+> surtax on AGI above $2M against **T19-0037's $585.325B**: the withdrawn row's own base and threshold
+> at a rate somebody actually priced. (3) An **`illustrative_1pp_all.v3`** with
+> `scoring_window_first_year=2023`, worth most of that row's remaining error. (4) **Tier 1 contains no
+> rate cut and no positive target**, and R3's `leg_rev_*` series is where a scored cut with a document
+> comes from. (5) **Tier 1 is 22 rows against criterion ①'s 40, and `agi_inclusive_surtax` is down to
+> n = 2** — R3 owes this tier **four rows before the per-class bands mean anything again**.
 
 **Stakes and error, measured together.** Split Tier 1 by provenance on this tree:
 
@@ -199,8 +318,35 @@ design), `.github/workflows/validation-dashboard.yml`.
 **Pre-registrable expectation.** ≥ 40 rows, ≥ 15 at thresholds other than $0/$400K/$1M, enacted-law
 spending **3 → 8+**, every class n ≥ 3. **The tier mean will rise**, and the lane registers that in
 advance: a battery selected for expressibility rather than for fit is the *only* honest way to grow
-it, and the existing gate at `--max-mean-error 20` has 5.5 points of headroom. The gate is
-re-derived **after** the rows land, by the workflow's rule, downward only (owner ⑪).
+it. **The headroom this paragraph assumed is gone.** R2 took the pooled gate from
+`--max-mean-error 20` to **15** against a live 11.6%, so there is about 3.4 points rather than 5.5,
+and the floor is **19**, met with no slack. The gate is re-derived **after** the rows land, by the
+workflow's rule, downward only (owner ⑪ — which is this plan's renumbering of
+`HIGH_STAKES_ACCURACY.md`'s ⑩; see §2).
+
+**What R2 hands this lane, and it is now four rows in debt rather than fourteen.** The battery is
+**22 rows, not 26**, and `agi_inclusive_surtax` is **n = 2**, so R3 owes Tier 1 **four rows before
+the per-class bands mean anything again** and eighteen before criterion ① is met. Four specific rows
+come with verdicts already written and none of them may be registered without the manifest's
+entry-commit rule:
+
+1. **`medicare_surcharge_2pp.v2`** at **−$403.8B**, Treasury's FY2025 Green Book figure, on a
+   `rate_change=0.012` shape — the document's own rate, not the 2pp the retired row applied. **Its
+   base question travels with it**: the statutory base is wages plus net investment income, which is
+   **neither SOI column**, so the honest outcome may still be a scope verdict rather than a row.
+2. **A new TPC case** scoring a **10pp** surtax on AGI above $2M against **T19-0037's $585.325B** —
+   the withdrawn Warren row's base and threshold at a rate somebody actually priced. The withdrawn
+   row's *name* was wrong as well as its number, so this is a new case and not a `.v2`.
+3. **`illustrative_1pp_all.v3`** with `scoring_window_first_year=2023`, worth most of that row's
+   remaining 14.3% — and read beside R2's own finding that the pair `illustrative_1pp_all` /
+   `cbo_opt45_all_rates_1pp` measures **insensitivity to the decade** rather than two independent
+   predictions, which is the reason to read CBO's other two vintages of the same option before
+   registering them.
+4. **A rate cut.** Tier 1 contains **no rate cut and no positive target** since
+   `illustrative_500k_2pp` was retired, so the tier does not test the model in the direction a Tailor
+   user most often asks about. The `leg_rev_*` series above is where a scored cut with a document
+   comes from — `leg_rev_tcja`, `leg_rev_egtrra_01`, `leg_rev_econ_recovery_81` — and that is a
+   stronger reason to run this lane than the size condition is.
 
 ---
 
@@ -235,7 +381,8 @@ under*. The lane predicts a band for that row and reports the movement, not the 
 ### R5 — H3b: corporate, with CBO's own loss-firm haircut *(4 lane-days)*
 
 **Stakes and error.** `cbo_opt64_corporate_rate_1pp` at **44.5%** is Tier 1's largest single row and
-**11.8% of its mass**, and it is a class of one, so the CI ceiling for `corporate` is **56**.
+**11.8% of its mass** — **17.4% since Wave E**, not because it moved but because the battery around it
+shrank from 26 rows to 22 — and it is a class of one, so the CI ceiling for `corporate` is **56**.
 `trump_corporate_15` at **121.6%** is the worst headline reconstruction outside pharma and sits on
 Explore and Build.
 
@@ -253,6 +400,11 @@ it cannot fix both if they miss in the same direction, which §6.2 item 53 says 
 
 **Files.** `fiscal_model/corporate.py` (derived branch, `:151-217`; the fitted constant at `:78` is
 self-documented as fitted at `:71-77`).
+**Unchanged by Waves D and E, and it is now the largest thing in the tier.** `CORPORATE_APP_MODE` is
+still **`reported`** — describe the corporate app default that way until a flip merges — and
+`cbo_opt64_corporate_rate_1pp` is unmoved at **44.5%** while everything around it shrank, so it now
+carries **17.4% of Tier 1's whole error mass** in a class of **one**, up from 11.8%. H3b is the only
+open lane of `HIGH_STAKES_ACCURACY.md`.
 
 **Pre-registrable expectation.** H3b's existing bands, unchanged: `cbo_opt64` 44.5% → **30 ± 8**;
 `biden_corporate_28_fy2022` −62.9% → **−45 ± 10**; `trump_corporate_15` 121.6% → **90 ± 20**.
@@ -263,7 +415,23 @@ preset uses and outside it at +1pp — is a second independent reading pointing 
 
 ---
 
-### R6 — H12: demote the sectoral presets *(1 lane-day + owner ⑨)*
+### R6 — H12: demote the sectoral presets *(1 lane-day + owner ⑨)* — ✅ **DONE, PR #158**, *with owner ④ in PR #160*
+
+> **Outturn — both instruments were used and neither deleted a row.** Owner ⑨ was taken: all five
+> sectoral presets sit in a last-ordered group named **`Illustrative - unfitted reconstructions`**,
+> with a group note and each preset's live, render-time error, and **every scored artifact is
+> byte-identical** — the holdout JSON, the dashboard, 52 presets × two engine modes, 44 badges and
+> `build_catalog`'s insertion order. Nothing left a registry, so `?preset=`, `/build?policies=` and
+> frozen links still score. Owner ④ was then taken separately in PR #160, retiring the two pharma
+> `model_estimate` targets — so `Pharma` went **3 rows at 277.8% → 1 at 39.0%** and the reconstruction
+> tier's `model_estimate` count **2 → 0**, while the anti-gaming arithmetic prints on the adjacent
+> line: **40 at 55.5%** with both withdrawn rows folded back at the error they carried on the day they
+> were withdrawn, above which the smaller **38 at 37.5%** cannot be quoted without skipping a line.
+> Two findings: **demoting a group can delete an area** (Explore's `Drug Pricing` vanishes rather than
+> empties, so the selectbox stays at 14), and **the real default package is the values composer,
+> which selects `irs-enforcement-double` into all five archetypes** — measured and left alone, because
+> excluding it would move five package totals. That last one is a live carry-over.
+> `planning/lanes/HSD_h12_illustrative_group.md`, `planning/lanes/LEDGER_decisions_3_4.md`.
 
 Criterion ② has a ceiling clause and this is how it is met without deleting anything.
 `international_reference_pricing` reads **701.0%**, `expand_drug_negotiation` 93.3%,
@@ -281,9 +449,14 @@ held-in-place second reading. H9 built that machinery and applied it to nothing.
 
 ### R7 — The generic base on CBO's own projected path *(4 lane-days)*
 
-**Stakes.** 18 of 26 Tier 1 rows and every generic surface. The AGI-inclusive class is **17.57%
-against a plan target of ≤ 10%**, and after R2 removes the target disputes this is the only
-remaining *mechanism* named for it.
+**Stakes.** 18 of 26 Tier 1 rows and every generic surface. **Re-read after Wave E**: the battery is
+22 rows, and the AGI-inclusive class reads **5.15% on n = 2** rather than 17.57% on n = 6 — R2 did not
+remove the target disputes so much as remove the rows carrying them, and R1's transcribed nominal path
+then took the two survivors to 7.9% and 2.4%. **That is not this lane's stakes falling.** A class of
+two cannot discriminate between a base defect and a lucky pair, the generic base is read by every
+surface a user touches whether or not a benchmark scores it, and the rows R3 registers will be scored
+on whatever base this lane leaves in place. Run it for the surfaces and for the rows that do not exist
+yet, not for the class mean.
 
 **Mechanism.** H2 grew a TY2023 SOI aggregate by nominal GDP and **its own falsification condition
 fired** — the tier rose 15.0% → 15.6% before H2b's AGI column brought it to 14.7%. CBO publishes the
@@ -347,7 +520,35 @@ closing table. Decision 6 caption owed.
 
 ---
 
-### R10 / R11 — H7 and H11, expected residuals *(Wave D, running)*
+### R10 / R11 — H7 and H11, expected residuals *(Wave D)* — ✅ **DONE, PRs #157 and #155**
+
+> **Outturn — R10 was a regression and R11 was not, and both were registered in advance.**
+> **H7 (PR #157)** sourced two of the five magnitudes through a new per-reform `OFFSET_MAGNITUDES`
+> table and left three unsourced with their searches recorded: mortgage **0.10 → 0.14502762**, which
+> is `1 − 61.9/72.4` from Poterba & Sinai's own "about 85 percent" (NBER WP 14253), and the
+> charitable benefit-rate ceiling **0.40 → 0.22077987**, the module's own identity at `c = 0.28` with
+> **ε = 0.5 from CRS R40518** as its only new constant. The parameter is **a share of the reform's
+> static revenue effect, not a price elasticity** — the plan's own "nearer 18%" is not reproducible
+> and the identity gives 22.1%, while the shipped 0.40 inverts to a price elasticity of **0.906**,
+> above CRS's published high of 0.79. `cap_charitable` **0.3% → 12.5%**, `eliminate_mortgage`
+> **26.5% → 30.2%**, `Expenditures` LOO **40.6% → 43.6%** and the suite **36.5%**; the hazard this
+> entry named held, because **no fitted constant was retuned**. Instead a fifth exit from the fitted
+> tier appeared: `create_cap_charitable_deduction`'s annual had been fitted so `static × (1 + 0.40)`
+> lands on the target, so once 0.40 is sourced it is fitted to a quantity the module no longer
+> computes — reclassified under PR #119's rule, **fitted 16 → 15**. Shipped preset **📋 Cap
+> Charitable Deduction −$200.6B → −$174.9B** (−12.80%), badge Excellent → Acceptable.
+> **H11 (PR #155)** replaced the transferred **19.28%** with four channels priced per coverage
+> person-year from CBO/JCT 60437 — ESI plus mandate penalties **$2,971.43**, Medicaid/CHIP
+> **$4,200.00**, BHP/§1332 and other **$57.97**, uninsured **$0.00** — against a coverage change from
+> the scored vintage's own 51298 Table 1. The window share is **12.3211%**, `repeal_ptc`
+> **29.6% → 23.6%**, inside the registered band, and the shipped preset **🏥 Repeal ACA Premium
+> Credits −$774.1B → −$840.8B**. **The aggregate had been booking a Medicaid *saving* as a cost** —
+> CBO's $80B contains **+$21B of Medicaid and CHIP** — and the denominator was 61% wrong with both
+> halves printed by CBO, an extension's marginal enrollee at **$5,370/yr** against the average
+> subsidized enrollee a repeal removes at **$8,671/yr**. **Both flattering corrections were declared
+> and declined**, and the falsification held: the June 2024 gross demonstration still returns
+> **−$1,143.0B, 0.09%** from CBO's own $1,142B, now pinned by a test.
+> `planning/lanes/HSD_h7_expenditure_magnitudes.md`, `planning/lanes/HSD_h11_ptc_coverage.md`.
 
 **H7 (expenditures, 3 days).** All five `BEHAVIORAL_ELASTICITIES` are unsourced
 (`tax_expenditures_core.py:467-473`, the block comment at `:449-466` saying so). Two now have a
@@ -391,7 +592,11 @@ sentence the memo earned and this lane should carry: CBO's own marginal rate on 
 feedback rate vs a scoring convention) and the lane must not swap one for the other — but a shipped
 trade score whose offset is twice CBO's marginal rate on the same revenue line deserves the sentence.
 
-**Depends on R1**: the debt-service path is applied to a deficit path that is 27.6% too large today.
+**Depended on R1, and R1 has landed (PR #159)**: the debt-service path was being applied to a deficit
+path **27.6% too large**, and it now reads CBO's own transcribed table at **$23,143.30B**. Two of this
+lane's own inputs came with it — `budgetary-feedback-model/input/rules_of_thumb.csv` is in the pinned
+clone, one `--source-dir` away — and one caveat travels too: February 2024's budget lines are still a
+reconstruction, so a debt-service path priced on that vintage is priced on a mixture.
 
 ---
 
@@ -491,26 +696,35 @@ The surveys tempt several things the rules forbid. Recording them so nobody re-d
 
 ## §2 — Waves
 
-Files are disjoint within a wave, so lanes run as parallel agents in worktrees. Waves A–C are done;
-**D is open and running** (H7, H11, H12) and is carried here unchanged; E was scoped by the existing
-plan and is re-scoped below because R1 outranks both of its lanes.
+Files are disjoint within a wave, so lanes run as parallel agents in worktrees. **Waves A–D are done
+and Wave E is two lanes of three.** D closed as PRs #155, #157 and #158, with its two owner decisions
+taken separately (#160, #161); E's re-scoping around **R1** and **R2** was the right call and both
+landed (#159, #162), leaving **R15a** — the spend-out confirmation — as the wave's one open lane. Five
+lanes of sixteen are therefore closed: **R1**, **R2**, **R6**, **R10**, **R11**. Owner decisions ③,
+④, ⑧, ⑨ and this plan's ⑩ are taken; **⑤ is still open and gates R5**, which is also
+`HIGH_STAKES_ACCURACY.md`'s last open lane.
 
 | Wave | Lanes (parallel) | Files | Days | Owner decisions needed **before** the wave opens |
 |---|---|---|--:|---|
-| **D** *(running)* | **H7** expenditures · **H11** PTC · **H12** sectoral demotion | `tax_expenditures_core.py` / `ptc.py` / `app_data.py` + `explore.py` | 6 | ⑧ SALT's two baselines — a joint call on both rows (§6.2 item 3). ⑨ Do the four pharma presets and Double IRS Enforcement stay on headline surfaces? |
-| **E** | **R1** baseline transcription · **R2** Tier 1 provenance · **R15a** spend-out confirmation | `baseline.py` + `constants.py` + data block / `validation/preregistered.py` + `cbo_scores.py` / `data_files/spending/` + docs | **7** | ③ IIJA `.v3` — apply the window rule to the second row or to neither (§6.2 item 35); **R2 cannot open with this unsettled**, because it is a Tier 1 target decision. ⑩ **New:** does a CBO *model input* file (`budgetary-feedback-model`) count as "CBO's own table" for `VINTAGE_SOURCING`'s `"sourced"` grade, or only `cbo-data`'s published mirror? |
+| **D** ✅ | **H7** expenditures · **H11** PTC · **H12** sectoral demotion | `tax_expenditures_core.py` / `ptc.py` / `app_data.py` + `explore.py` | 6 | **⑧ taken (PR #161)** — a `SaltCapBaseline` with three named cap paths from IRC §164(b)(6)–(7) as amended by P.L. 119-21 sec. 70120, so the app scores current law while each benchmark scores its own document's baseline; **both rows unchanged**, the shipped preset **+$1,155.6B → +$740.3B**. It became its own lane rather than a joint call inside H7. **⑨ taken (PR #158)** — no; all five move to a named illustrative group with their live error printed, and nothing leaves a registry |
+| **E** ◑ | **R1** baseline transcription ✅ · **R2** Tier 1 provenance ✅ · **R15a** spend-out confirmation *(open)* | `baseline.py` + `constants.py` + data block / `validation/preregistered.py` + `cbo_scores.py` / `data_files/spending/` + docs | **7** | **③ taken (PR #160)** — the window rule is applied to the second row: `iija_2021_discretionary.v3` on FY2022–2031, target unchanged, **18.2% → 0.28%** and its class 13.4% → **7.4%**; read that residual as two terms nearly cancelling rather than as a measurement. **⑩ taken (PR #159)** — **both** `US-CBO` repositories count as "CBO's own table", with `cbo-data` preferred, and `VINTAGE_SOURCING` is computed per line rather than asserted. **R15a is the wave's one open lane.** *Note: this ⑩ is not `HIGH_STAKES_ACCURACY.md`'s ⑩, which is H10's gate re-derivation and is still open — this plan renumbers that one **⑪** (Wave G below), and the collision is recorded in both documents rather than quietly resolved* |
 | **F** | **R4** parameter schedule · **R5** corporate mechanism · **R8** tariffs | `policies_core.py` + `amt.py` + `credits.py` / `corporate.py` / `trade.py` | **10** | ⑤ Does H3a's shipped range change Decision 33's `reported` default? **Answer before R5 opens**; §6.2 item 53 says the measurement goes stale |
 | **G** | **R3** Tailor battery · **R9** SS donut ramp · **R13** death-channel level | `validation/preregistered.py` + `cbo_scores.py` + `policy_classes.py` / `payroll.py` / `data/capital_gains.py` | **9** | ⑪ **New:** R3 registers ~15 rows; confirm the CI gate is re-derived **after** they land, by the workflow's rule, not before. ⑭ **New:** the death-channel *level* (§6.2 item 55) — a level nobody may change by implication, the same class as ⑥ |
 | **H** | **R7** generic base · **R12** dynamic constants · **R14** reporting shape | `policies_core.py` + `scoring_engine.py` / `constants.py` + `macro_adapter_frbus.py` / `cold_holdout.py` + `credibility.py` | **10** | ⑫ **New:** Decision 3 — is the capital-gains elasticity at large steps re-openable now that a second agency publishes a reference rate? (R13's measurement is the input; it is the single largest remaining capital-gains term.) ⑬ **New:** does a Build option show model output **beside** the list price, or carry a label saying it is one? Criterion ④ is met either way and the choice is the owner's |
 | **I** *(deferred)* | **R15b** spend-out refit · **R16** scorecard performance | `scripts/fit_outlay_rates.py` / `preset_validation.py` + `data/capital_gains.py` | **5** | — |
 
-**Total: 41 lane-days beyond Wave D's 6.**
+**Total: 41 lane-days beyond Wave D's 6 — of which R1's 3 and R2's 3 are spent**, leaving **35**,
+one of which is R15a and the remainder of Wave E. Wave D's own 6 are spent in full.
 
 ### Serial constraints, stated
 
-1. **R1 before anything that reads a level.** R12's debt-service path is applied to a deficit path
-   that is +27.6% today; R9's window and Build's target strip both read the baseline. R1 is in Wave E
-   for that reason and not because it is cheap.
+1. **R1 before anything that reads a level. ✅ Satisfied (PR #159).** R12's debt-service path was
+   being applied to a deficit path **+27.6% too large**; it now reads CBO's own transcribed table,
+   **$23,143.30B against CBO's printed $23,143.3B**. R9's window and Build's target strip both read
+   the baseline and both moved. **Two residues travel to the lanes downstream**: February 2024 keeps
+   a *reconstructed* budget path, so that vintage's debt/GDP is a mixture and must not be quoted; and
+   `base_*` budget levels are still the reconstruction even for a transcribed vintage, which is a
+   base-year convention nobody has settled.
 2. **R4 before R3 registers any year-indexed row.** A battery that registers a row the engine cannot
    express produces an error measuring inexpressibility. R3 may register only shapes expressible at
    the time it registers them, and the year-indexed subset waits.
@@ -518,9 +732,12 @@ plan and is re-scoped below because R1 outranks both of its lanes.
    are the precedent for what happens when two base changes land together: the endpoints stopped
    being attributable and the plan's own §1.3(c) had to be corrected in place. One base change per
    wave.
-4. **R2 before R3.** Growing the battery while five of its existing rows have untraceable targets
-   dilutes the provenance criterion instead of meeting it — and R2's verdicts set the standard R3's
-   40 rows are held to.
+4. **R2 before R3. ✅ Satisfied (PR #162), and it cost more than the ordering implied.** All five
+   untraceable targets are resolved — one superseded, four retired — so `secondhand` is **0** in
+   Tier 1 and every surviving row is a `line_item`. But the battery is **22 rows, not 26**, so R3 now
+   starts four rows further back than this plan assumed, and R2's verdicts are the standard its rows
+   are held to in both directions: a target that cannot be opened does not get registered, and a
+   figure that lands the row is not a reason to adopt it.
 5. **R13 is a measurement in Wave G and a change only if ⑭ is answered.** Half of a two-sided
    correction was already registered in Wave C and 35.5% is the price of the half.
 6. **R5 and R13 both want H3a-style presentation shipped first.** It is (PR #143); do not re-open it.
@@ -585,7 +802,11 @@ baseline is a data edit. A microsim core changes what the model *is*: it stops r
 scores and starts producing them. That is a different claim, it costs roughly as much as this whole
 plan, and it should not be started until the five coordinates above are met — because a
 microsimulation calibrated against a baseline that is 27.6% off, and validated against a battery with
-five untraceable targets, would inherit both.
+five untraceable targets, would inherit both. **Wave E closed both of those particular objections and
+opened a third**: the baseline is now CBO's own table and the battery's five untraceable targets are
+gone, but the battery itself is **22 rows**, and calibrating a microsimulation against a validation
+tier that lost 15% of its cases — including its only rate cut — would inherit *that*. R3 is the
+prerequisite this paragraph should now name.
 
 ---
 
@@ -615,16 +836,24 @@ Unchanged from `HIGH_STAKES_ACCURACY.md` §3's six rules, plus four the surveys 
    files repo-wide on `main` and is not a gate. Running the formatter produces a diff that buries the
    lane. Note also that `.gitignore`'s bare `data/` line makes ruff skip `fiscal_model/data/`
    entirely (§6.2 item 41) — a repo-wide gate change needing its own PR, not a lane's.
-5. **The per-class gate is a floor, not a summary.** `cold_holdout.py --max-class-mean-error` is
-   wired at `validation-dashboard.yml:186-191` with eight ceilings —
-   `agi_inclusive_surtax=22 ordinary_rate_change=19 capital_gains=24 corporate=56
-   enacted_law_spending=17 discretionary_spending=6 payroll=10 tax_expenditure=17` — beside the
-   pooled `--max-mean-error 20 --min-within-25pct 22` and the LOO `--max-mean-error 75`. It fails
+5. **The per-class gate is a floor, not a summary — and Wave E moved six of the ten thresholds, none
+   of them by choice.** `cold_holdout.py --max-class-mean-error` is wired at
+   `validation-dashboard.yml` with eight ceilings, which now read
+   `agi_inclusive_surtax=7 ordinary_rate_change=15 capital_gains=24 corporate=56
+   enacted_law_spending=10 discretionary_spending=6 payroll=10 tax_expenditure=16` — beside the
+   pooled **`--max-mean-error 15 --min-within-25pct 19`** and the LOO `--max-mean-error 75`. It fails
    three ways: a class over its ceiling, a class the battery contains with **no** ceiling, and a
-   ceiling naming a class that does not exist. R3 adds rows to existing classes and may add a class;
-   **either way the gate is re-derived after the rows land, downward only.** Note the LOO ceiling is
-   now **2.1× its live mean** (75 against 35.7%) — §6.2 item 54, and it should be re-derived in the
-   same pass.
+   ceiling naming a class that does not exist. **Ownership, because a threshold with no owner drifts**:
+   `agi_inclusive_surtax=7` and `ordinary_rate_change=15` are R2's (PR #162), `tax_expenditure=16` is
+   R1's, `enacted_law_spending=10` is owner ③'s (PR #160), `capital_gains=24` is Wave C's, and the
+   other three are unchanged. `ordinary_rate_change=15` is **tighter than its own re-derivation of 17**
+   and stays, because the rule is downward only. **The pooled floor fell 22 → 19 because the battery
+   shrank, not because anything regressed** — the repository's own meta-test
+   (`min_within <= within_25pct`) failed on it before CI did — and it is met with **no slack**, so R3
+   adds rows against a gate with about 3.4 points of ceiling headroom rather than 5.5. R3 adds rows to
+   existing classes and may add a class; **either way the gate is re-derived after the rows land,
+   downward only.** The LOO ceiling is still **75 against a live 36.5%**, roughly 2× — §6.2 item 54,
+   and it should be re-derived in the same pass.
 6. **What the docs sync after each wave must carry.** PR #152's shape is the template — ten files:
    `CLAUDE.md`, `README.md` ("Model maturity" and the validation tables), `docs/CHANGELOG.md`,
    `docs/METHODOLOGY.md`, `docs/VALIDATION.md`, `planning/HIGH_STAKES_ACCURACY.md` (outturn boxes in
@@ -642,5 +871,8 @@ Unchanged from `HIGH_STAKES_ACCURACY.md` §3's six rules, plus four the surveys 
 *Measurement provenance for §0 and §1: `ANTHROPIC_API_KEY= python scripts/cold_holdout.py --json`,
 `python scripts/run_validation_dashboard.py`, `python scripts/run_loo.py --donor-matrix` and a direct
 `CBOBaseline(start_year=2026, vintage=BaselineVintage.CBO_FEB_2026).generate()`, all run on this
-branch. Health reports `degraded` on `runtime` only — Python 3.14.0 against a supported
+branch — and re-run on merged `main` on 2026-09-11 for §0's table, §2's wave rows, §4's rule 5 and the
+outturn boxes. The 2026-09-11 baseline figures are CBO's own transcribed table rather than the
+module's reconstruction, so `CBOBaseline(...).generate()` is now reading a document rather than
+rebuilding one. Health reports `degraded` on `runtime` only — Python 3.14.0 against a supported
 `>=3.10,<3.14` — which is a local-environment state, not a tree state.*
