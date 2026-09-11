@@ -75,12 +75,25 @@ final figure — about **40-50% of gross**.
 
 ## How this maps to the app
 
-- The app's `trade.py` scores a tariff **net**: gross customs duty at the
-  tax-inclusive rate, less the import-demand response, duty avoidance, the
-  **25% income-and-payroll offset**, and the federal receipts lost to
-  retaliation. Net lands at roughly **60-65% of gross** across the five
-  shipped presets — above the 40-50% quoted above, because the app carries
-  no GDP-feedback channel in the conventional score.
+- The app's `trade.py` scores a tariff **conventionally**, which is the
+  column every published tariff estimate leads with: gross customs duty at the
+  tax-inclusive rate, less the import-demand response, duty avoidance and the
+  **25% income-and-payroll offset**, and nothing else. That is exactly
+  **71.25% of gross** for every preset, against the 73.8% Tax Foundation's own
+  FF861 implies.
+- **Retaliation and GDP feedback are reported beside the score, not inside
+  it.** FF861 prints three columns for a 10% universal tariff — \$2,171.1B
+  conventional, \$1,721.0B dynamic, \$1,443.0B dynamic with retaliation — and
+  `get_trade_summary()` now prints the same three. The GDP channel runs the
+  tariff's own price-and-volume impulse through `FRBUSAdapterLite`; for the
+  universal preset it is \$223.5B over ten years, 16.3% of the conventional
+  score against FF861's own 20.7%.
+- **The 40-50% band above uses a different denominator** from the app's
+  `net_to_gross_ratio`. The chain in "Putting it together" divides by gross
+  customs revenue *before* the import-demand response; `get_trade_summary()`
+  divides by gross *after* it. On the band's own denominator the universal
+  preset reads **0.589 conventional and 0.485 dynamic-with-retaliation** —
+  inside the band, not above it.
 - Import demand responds to the **border** pass-through (frozen at ~1.0, the
   near-complete pass-through the 2018-19 evidence supports), not to the
   smaller retail pass-through the household-cost figure uses.
@@ -96,4 +109,5 @@ final figure — about **40-50% of gross**.
 
 > Cite Yale Budget Lab for distributional/household-cost numbers; cite
 > CBO/USITC for revenue and macro feedback; cite this app's `trade.py`
-> for the integrated net score, and say that it excludes GDP feedback.
+> for the conventional score, and say that its GDP-feedback and retaliation
+> channels are reported separately rather than netted into that figure.

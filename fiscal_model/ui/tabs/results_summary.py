@@ -527,6 +527,13 @@ def tariff_net_caption(policy: Any, result: Any) -> str:
     user-visible change in the number, and it ships with its explanation rather
     than in silence.
 
+    Lane H8 then moved the headline again, and in the other direction: a
+    conventional revenue estimate does not net foreign retaliation — Tax
+    Foundation prints it in a third column beside its conventional and dynamic
+    ones — so retaliation came out of the score and the two dynamic channels
+    are named here instead. That is a second user-visible change in the number
+    and it ships with its explanation too (Decision 6).
+
     Computed from the scored result, so it cannot drift from the figure above
     it. Returns ``""`` for anything that is not a tariff.
     """
@@ -537,14 +544,33 @@ def tariff_net_caption(policy: Any, result: Any) -> str:
         return ""
     net = gross - float(np.sum(result.behavioral_offset))
     offset_pct = TRADE_BASELINE["income_payroll_offset_rate"]
-    retaliation = " and the receipts lost to retaliation" if policy.include_retaliation else ""
+    years = max(1, len(result.static_revenue_effect))
+    gdp_loss = policy.estimate_gdp_feedback_revenue_loss(years)
+    retaliation = (
+        float(policy.estimate_retaliation_revenue_loss()) * years
+        if policy.include_retaliation
+        else 0.0
+    )
+    dynamic = net - gdp_loss - retaliation
+    tail = (
+        f" A dynamic estimate would take it further: \\${gdp_loss:,.1f}B of "
+        f"receipts lost as output falls"
+        + (
+            f" and \\${retaliation:,.1f}B lost to retaliation, "
+            f"leaving \\${dynamic:,.1f}B"
+            if retaliation
+            else f", leaving \\${dynamic:,.1f}B"
+        )
+        + ". Published estimators report those as separate columns and so "
+        "does this app - neither is in the headline."
+    )
     return (
         f"Net of offsets: \\${gross:,.1f}B of gross customs duty becomes "
-        f"\\${net:,.1f}B of net receipts - a {net / gross:.2f} net/gross "
-        f"ratio - after duty avoidance, the {offset_pct:.0%} income-and-payroll "
-        f"offset CBO, JCT and Treasury apply to any indirect tax{retaliation}. "
-        f"Import demand responds to the whole tariff (near-complete border "
-        f"pass-through). GDP feedback is not in this number."
+        f"\\${net:,.1f}B of conventional receipts - a {net / gross:.2f} "
+        f"net/gross ratio - after duty avoidance and the {offset_pct:.0%} "
+        f"income-and-payroll offset CBO, JCT and Treasury apply to any "
+        f"indirect tax. Import demand responds to the whole tariff "
+        f"(near-complete border pass-through)." + tail
     )
 
 

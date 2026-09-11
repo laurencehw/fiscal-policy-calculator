@@ -2,11 +2,12 @@
 Trade and Tariff Policy Module
 
 Scores a tariff the way a conventional revenue estimate scores an indirect
-tax: gross customs duty, net of the import-demand response, duty avoidance,
-the income-and-payroll offset, and the federal receipts lost when trading
-partners retaliate against US exports.
+tax: gross customs duty, net of the import-demand response, duty avoidance and
+the income-and-payroll offset — and then reports the two channels a
+*conventional* estimate deliberately excludes, GDP feedback and retaliation,
+as the separate figures every published tariff estimator prints them as.
 
-The chain, per year::
+The conventional chain, per year::
 
     Δτ      = stated rate − the duty the base already collects
     p       = border_pass_through × Δτ
@@ -15,16 +16,22 @@ The chain, per year::
     gross   = base · V · Δτ/(1 + Δτ)
     avoid   = avoidance_rate · gross
     offset  = income_payroll_offset · (gross − avoid)
+    net     = gross − avoid − offset          → 0.7125 · gross, always
+
+and the two dynamic channels, reported beside it and never inside it::
+
+    impulse = border_pass_through · Δτ · (base · V)      the real income the
+                                                        price effect withdraws
+    gdp_fb  = FRBUSAdapterLite(impulse).cumulative_revenue_feedback
     retal   = marginal_receipts_rate · [retaliation_rate · Δτ · export_base]
-    net     = gross − avoid − offset − retal
 
 ``estimate_static_revenue_effect`` returns ``gross``;
-``estimate_behavioral_offset`` returns ``avoid + offset + retal`` **signed to
-match ``gross``**, so the scorer's ``final_deficit_effect`` is the net figure,
-both halves stay separately readable — which is what the app's tariff caption
-renders — and a tariff *cut* has its cost eroded rather than amplified.
+``estimate_behavioral_offset`` returns ``avoid + offset`` **signed to match
+``gross``**, so the scorer's ``final_deficit_effect`` is the conventional
+figure, both halves stay separately readable — which is what the app's tariff
+caption renders — and a tariff *cut* has its cost eroded rather than amplified.
 
-Three things about that chain are worth stating plainly, because the module
+Four things about that chain are worth stating plainly, because the module
 used to do none of them:
 
 1. **The income-and-payroll offset.** CBO, JCT and Treasury's Office of Tax
@@ -44,6 +51,14 @@ used to do none of them:
    fixed, so the same nominal spending buys a duty-inclusive bundle: the duty
    is ``base × τ/(1+τ)``, not ``base × τ`` (Tax Foundation FF861 p. 4 n. 10,
    citing JCT JCX-58-23).
+4. **Retaliation and GDP feedback are not conventional-score channels.** Tax
+   Foundation FF861 prints three columns for the same policy — conventional
+   $2,171.1B, dynamic $1,721.0B, dynamic with retaliation $1,443.0B — and
+   every target in this repository's trade block is a *conventional* figure.
+   The module used to subtract retaliation inside the score, which made it a
+   different object from the thing it was measured against. Both channels are
+   still computed, and :meth:`TariffPolicy.get_trade_summary` reports all
+   three columns; neither is inside the number the scorer books.
 
 Every level in ``TRADE_BASELINE`` is a 2024 Census measurement, transcribed
 with its provenance to ``data_files/trade/tariff_scoring_inputs.csv``; the
@@ -72,11 +87,24 @@ References:
 - U.S. Census Bureau international trade series, 2024
 """
 
+import csv
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from functools import lru_cache
+from pathlib import Path
+
+import numpy as np
 
 from .constants import MARGINAL_REVENUE_RATE
 from .policies import PolicyType, TaxPolicy
+
+#: One partner of a multi-rate tariff: display name, import base in billions,
+#: and the incremental ad valorem rate that partner faces.
+ScheduleRow = tuple[str, float, float]
+
+RECIPROCAL_SCHEDULE_PATH = (
+    Path(__file__).parent / "data_files" / "trade" / "reciprocal_schedule.csv"
+)
 
 TRADE_BASELINE = {
     # --- Trade levels: U.S. Census Bureau, 2024 (see the CSV) --------------
@@ -96,6 +124,17 @@ TRADE_BASELINE = {
     "auto_usmca_exempt_share": 0.4842,      # Canada + Mexico share of HS 87
     "steel_aluminum_imports_billions": 58.9,  # HS 72 + HS 76
     "steel_aluminum_existing_avg_tariff": 0.0306,
+    # Section 232 also reaches derivative articles, which sit in HS 73. These
+    # are a *separate* row rather than folded into the two above, because they
+    # carry their own collected duty (5.63% against 3.06%) and because the
+    # floor — steel and aluminium without derivatives — has to stay readable.
+    # Whole-chapter HS 73 is an **upper bound** on the derivative base: the
+    # Section 232 annexes list articles at HS-10, and Proclamation 10896 taxes
+    # a derivative on its steel *content* rather than its customs value.
+    # Neither the annex nor a content share is transcribed here, so the honest
+    # statement is a bracket, and `create_steel_tariff_25` can score either end.
+    "steel_derivative_imports_billions": 49.5,  # HS 73
+    "steel_derivative_existing_avg_tariff": 0.0563,
 
     # --- Behavioural parameters: one frozen, cited value per mechanism -----
     # Border pass-through into duty-inclusive import prices. Amiti, Redding &
@@ -120,10 +159,12 @@ TRADE_BASELINE = {
     # share of goods imports, i.e. the USMCA carve-out every universal-tariff
     # proposal has carried. Derived, not fitted.
     "universal_coverage_rate": 0.7197,
-    # Half of goods imports, the share the reciprocal-tariff preset applies a
-    # flat 20pp to. Moved out of the factory so it is visible and testable; it
-    # is a shape assumption about that preset, not a measurement.
-    "reciprocal_coverage_rate": 0.50,
+    # `reciprocal_coverage_rate = 0.50` is gone. It was the last number in this
+    # dict that was a shape assumption rather than a measurement — "a flat 20pp
+    # on half of goods imports", which is not a policy anyone proposed. The
+    # reciprocal preset now reads a partner-by-partner schedule built from
+    # Executive Order 14257's own formula applied to 2024 Census bilateral
+    # trade: see `reciprocal_schedule.csv` and `load_reciprocal_schedule`.
 
     # Non-linear tariff response. Elasticities roughly double over the medium
     # run (Boehm, Levchenko & Pandalai-Nayar 2023; USITC pub. 5405), which
@@ -132,6 +173,38 @@ TRADE_BASELINE = {
     "high_tariff_elasticity_multiplier": 2.0,
     "min_volume_factor": 0.20,  # Floor: imports never fall below 20% of base
 }
+
+
+@lru_cache(maxsize=1)
+def load_reciprocal_schedule() -> tuple[ScheduleRow, ...]:
+    """Partner-by-partner covered base and rate for the reciprocal tariff.
+
+    Reads ``data_files/trade/reciprocal_schedule.csv``, which
+    ``scripts/build_reciprocal_schedule.py`` writes from 2024 Census bilateral
+    trade by applying Executive Order 14257's own formula — bilateral goods
+    deficit over goods imports, halved, floored at 10% — and removing the
+    Annex II sectors partner by partner.
+
+    ``role=external_check`` rows are the published Annex I rates. They exist so
+    a reconstruction that drifts from the document is visible, and this loader
+    skips them: nothing the module scores may read them.
+    """
+    rows: list[ScheduleRow] = []
+    with RECIPROCAL_SCHEDULE_PATH.open(encoding="utf-8") as handle:
+        lines = [line for line in handle if not line.startswith("#")]
+    for record in csv.DictReader(lines):
+        if record.get("role") != "model_input":
+            continue
+        base = float(record["covered_imports_billions"])
+        if base <= 0:
+            continue
+        rows.append((record["partner"], base, float(record["reciprocal_rate"])))
+    if not rows:
+        raise ValueError(
+            f"{RECIPROCAL_SCHEDULE_PATH} carries no model_input rows; "
+            "rebuild it with scripts/build_reciprocal_schedule.py"
+        )
+    return tuple(rows)
 
 
 @dataclass
@@ -159,11 +232,37 @@ class TariffPolicy(TaxPolicy):
     #: A country-targeted factory overrides it with exports to that country.
     retaliation_export_base_billions: float = 0.0
     include_consumer_cost: bool = True
+    #: Whether the *reported* dynamic-with-retaliation figure carries the
+    #: retaliation channel. Since lane H8 this no longer touches the scored
+    #: number: retaliation is not in a conventional estimate, and every target
+    #: this module is measured against is a conventional estimate.
     include_retaliation: bool = True
+    #: Optional partner- or segment-specific rates, ``(name, base, rate)``.
+    #: When set, every step of the chain sums over the rows instead of
+    #: evaluating once at an average rate. That matters because the volume
+    #: response is **convex** in the rate — the elasticity doubles above a 30pp
+    #: price change — so an average understates the loss on the rows above the
+    #: threshold and overstates it on the rows below.
+    rate_schedule: tuple[ScheduleRow, ...] = field(default_factory=tuple)
 
     def __post_init__(self):
         self.policy_type = PolicyType.EXCISE_TAX
         super().__post_init__()
+        if self.rate_schedule:
+            self.rate_schedule = tuple(
+                (str(name), float(base), float(rate))
+                for name, base, rate in self.rate_schedule
+            )
+            self.import_base_billions = sum(row[1] for row in self.rate_schedule)
+            # The scalar rate becomes the base-weighted average, so every
+            # caller that reads `tariff_rate_change` — the consumer-cost
+            # display, the retaliation channel, the zero guards — keeps
+            # working. The *score* never reads it when a schedule is set.
+            if self.import_base_billions:
+                self.tariff_rate_change = (
+                    sum(base * rate for _, base, rate in self.rate_schedule)
+                    / self.import_base_billions
+                )
         if self.import_base_billions <= 0 and self.tariff_rate_change != 0:
             self.import_base_billions = TRADE_BASELINE["total_imports_billions"]
         if self.retaliation_export_base_billions <= 0:
@@ -191,9 +290,9 @@ class TariffPolicy(TaxPolicy):
         """
         return self.border_pass_through_rate * self.tariff_rate_change
 
-    def import_volume_factor(self) -> float:
-        """Share of the pre-tariff import base that still arrives."""
-        price_change = self.import_price_change()
+    def _volume_factor_at(self, rate: float) -> float:
+        """Share of a base facing ``rate`` that still arrives."""
+        price_change = self.border_pass_through_rate * rate
         threshold = TRADE_BASELINE["high_tariff_threshold"]
         hi_mult = TRADE_BASELINE["high_tariff_elasticity_multiplier"]
         floor = TRADE_BASELINE["min_volume_factor"]
@@ -207,6 +306,23 @@ class TariffPolicy(TaxPolicy):
             factor = 1 + self.import_elasticity * price_change
         return max(floor, factor)
 
+    def import_volume_factor(self) -> float:
+        """Share of the pre-tariff import base that still arrives.
+
+        With a ``rate_schedule`` this is the base-weighted average of the
+        per-row factors, which is a *report* rather than an input: the score
+        evaluates the factor row by row, because the response is convex.
+        """
+        if self.rate_schedule and self.import_base_billions:
+            return (
+                sum(
+                    base * self._volume_factor_at(rate)
+                    for _, base, rate in self.rate_schedule
+                )
+                / self.import_base_billions
+            )
+        return self._volume_factor_at(self.tariff_rate_change)
+
     def estimate_static_revenue_effect(
         self, baseline_revenue: float, use_real_data: bool = True
     ) -> float:
@@ -219,6 +335,11 @@ class TariffPolicy(TaxPolicy):
         that stands between this and the score is in
         :meth:`estimate_behavioral_offset`.
         """
+        if self.rate_schedule:
+            return sum(
+                base * self._volume_factor_at(rate) * rate / (1 + rate)
+                for _, base, rate in self.rate_schedule
+            )
         if self.tariff_rate_change == 0:
             return 0.0
         rate = self.tariff_rate_change
@@ -226,19 +347,28 @@ class TariffPolicy(TaxPolicy):
         return adjusted_base * rate / (1 + rate)
 
     def estimate_behavioral_offset(self, static_effect: float) -> float:
-        """Everything between gross customs duty and the budget effect.
+        """Everything between gross customs duty and the conventional score.
 
-        Three channels:
+        Two channels, and since lane H8 only two:
 
         * **Avoidance and evasion** — a flat share of gross duty.
         * **The income-and-payroll offset** — the CBO/JCT/OTA convention that
           an indirect tax shrinks the income and payroll tax bases by about a
           quarter of its net receipts.
-        * **Retaliation** — the federal receipts lost when partners tax US
-          exports back, converted at the app's own marginal revenue rate. Zero
-          for a tariff *cut*, which invites none, and suppressed when
-          ``include_retaliation`` is off, which is what a strictly conventional
-          (no-retaliation) score wants.
+
+        **Retaliation is not here any more.** A conventional revenue estimate
+        does not net foreign retaliation: Tax Foundation FF861 prints
+        retaliation in a third column beside its conventional and dynamic ones,
+        and every target this module is scored against is a conventional
+        figure. Subtracting it inside the score made the model a different
+        object from the thing it was measured against. It is still computed —
+        :meth:`estimate_retaliation_revenue_loss` — and
+        :meth:`get_trade_summary` reports it beside the GDP-feedback channel.
+
+        The ratio this leaves is a constant: ``(1 − 0.05) × (1 − 0.25) =
+        0.7125`` of gross duty, for every tariff in every direction, against
+        FF861's implied 0.738 — the difference being that FF861 books its 8%
+        noncompliance inside the base rather than as a separate line.
 
         **Signed to match ``static_effect``**, the convention
         :meth:`fiscal_model.policies_core.TaxPolicy.estimate_behavioral_offset`
@@ -257,12 +387,7 @@ class TariffPolicy(TaxPolicy):
             return 0.0
         avoidance = gross * TRADE_BASELINE["tariff_avoidance_rate"]
         offset = (gross - avoidance) * TRADE_BASELINE["income_payroll_offset_rate"]
-        retaliation = 0.0
-        if self.include_retaliation:
-            full = abs(self.estimate_static_revenue_effect(0.0))
-            phase = gross / full if full else 0.0
-            retaliation = abs(self.estimate_retaliation_revenue_loss()) * phase
-        return math.copysign(avoidance + offset + retaliation, static_effect)
+        return math.copysign(avoidance + offset, static_effect)
 
     # -- the channels, separately readable ---------------------------------
 
@@ -276,10 +401,92 @@ class TariffPolicy(TaxPolicy):
         avoidance = gross * TRADE_BASELINE["tariff_avoidance_rate"]
         return (gross - avoidance) * TRADE_BASELINE["income_payroll_offset_rate"]
 
+    def macro_demand_impulse(self) -> float:
+        """Annual real income the tariff's price effect withdraws, in billions.
+
+        The impulse a macro model should see is **not** the tariff's net
+        receipts, which is what the generic dynamic path uses today. A tariff
+        withdraws more real income than it collects, for two reasons already in
+        this module:
+
+        * the duty-inclusive price rises by the *whole* tariff (border
+          pass-through frozen at 1.00 on Amiti–Redding–Weinstein and Fajgelbaum
+          et al.), so households pay ``Δτ`` on every dollar that still arrives
+          while the Treasury collects ``Δτ/(1+Δτ)``; and
+        * the goods that stop arriving — ``1 − V(p)`` of the base — cost
+          surplus and raise no duty at all.
+
+        So the impulse is the tariff's own price *and* volume effect,
+        ``border_pass_through · Δτ · base · V``, which is the gross duty
+        grossed back up by ``(1 + Δτ)``. For the universal preset that is
+        $211.5B/yr against net receipts of $125.9B/yr, and that gap is the
+        channel.
+
+        Signed like the duty: a tariff cut returns a negative impulse.
+        """
+        if self.rate_schedule:
+            return sum(
+                self.border_pass_through_rate * rate * base * self._volume_factor_at(rate)
+                for _, base, rate in self.rate_schedule
+            )
+        return (
+            self.border_pass_through_rate
+            * self.tariff_rate_change
+            * self.import_base_billions
+            * self.import_volume_factor()
+        )
+
+    def estimate_gdp_feedback_revenue_loss(self, horizon_years: int = 10) -> float:
+        """Federal receipts lost over the window because output falls.
+
+        Routed through :class:`~fiscal_model.models.FRBUSAdapterLite`, the
+        adapter the repository already uses for dynamic scoring, rather than
+        through a reduced form of this module's own. Every parameter in the
+        channel — the −0.7 tax multiplier, the 0.75 decay, the 0.15
+        crowding-out term, the 0.65 monetary offset and the 0.25 marginal
+        revenue rate — is the adapter's. This method supplies the one thing the
+        adapter does not have, which is :meth:`macro_demand_impulse`.
+
+        **Not in the score.** Published tariff estimates put GDP feedback in a
+        *dynamic* column and the targets in this repository's trade block are
+        conventional; folding it into the score would measure one against the
+        other. :meth:`get_trade_summary` reports it beside the conventional
+        figure, the way FF861 prints its three columns.
+
+        Returned as a **loss signed like the duty**, so a tariff increase gives
+        a positive number that is subtracted from a positive conventional
+        score, and a tariff cut gives a negative one.
+        """
+        impulse = self.macro_demand_impulse()
+        if impulse == 0.0 or horizon_years <= 0:
+            return 0.0
+        # Local import: fiscal_model.models pulls in the whole adapter family,
+        # and importing it at module scope would put a macro dependency on the
+        # import path of every policy module.
+        from .models import FRBUSAdapterLite, MacroScenario
+
+        scenario = MacroScenario(
+            name=f"{self.name} — tariff price and volume effect",
+            description=(
+                "Real income withdrawn by the tariff's duty-inclusive price "
+                "rise on the imports that still arrive"
+            ),
+            start_year=int(getattr(self, "start_year", 2025) or 2025),
+            horizon_years=horizon_years,
+            receipts_change=np.full(horizon_years, impulse, dtype=float),
+        )
+        return -float(FRBUSAdapterLite().run(scenario).cumulative_revenue_feedback)
+
     def estimate_consumer_cost(self) -> float:
         """Annual cost to consumers from higher retail prices."""
         if self.tariff_rate_change <= 0:
             return 0.0
+        if self.rate_schedule:
+            return sum(
+                self.pass_through_rate * rate * base
+                for _, base, rate in self.rate_schedule
+                if rate > 0
+            )
         return self.pass_through_rate * self.tariff_rate_change * self.import_base_billions
 
     def estimate_retaliation_cost(self) -> float:
@@ -308,7 +515,22 @@ class TariffPolicy(TaxPolicy):
         """Annual cost per household."""
         return self.estimate_consumer_cost() * 1e9 / TRADE_BASELINE["us_households"]
 
-    def get_trade_summary(self) -> dict:
+    def get_trade_summary(self, horizon_years: int = 10) -> dict:
+        """Annual figures for all three of the columns a tariff has.
+
+        ``net_revenue`` is the **conventional** figure and is always what the
+        scorer books, so the summary and the score cannot disagree. The GDP and
+        retaliation channels are reported beside it — ``dynamic_revenue`` and
+        ``dynamic_with_retaliation_revenue`` — which is the column structure
+        Tax Foundation FF861 publishes for the same policy ($2,171.1B /
+        $1,721.0B / $1,443.0B for the 10% universal tariff).
+
+        The GDP channel is a path over ``horizon_years`` rather than a flat
+        annual, so it appears twice: ``gdp_feedback_revenue_loss`` is the
+        annualised figure, for arithmetic with the other annual rows, and
+        ``gdp_feedback_revenue_loss_total`` is the window total the adapter
+        actually returns.
+        """
         gross = self.estimate_static_revenue_effect(0)
         avoidance = gross * TRADE_BASELINE["tariff_avoidance_rate"]
         offset = self.estimate_income_payroll_offset()
@@ -316,7 +538,10 @@ class TariffPolicy(TaxPolicy):
         retaliation_revenue = (
             self.estimate_retaliation_revenue_loss() if self.include_retaliation else 0.0
         )
-        net = gross - avoidance - offset - retaliation_revenue
+        conventional = gross - avoidance - offset
+        gdp_total = self.estimate_gdp_feedback_revenue_loss(horizon_years)
+        gdp_annual = gdp_total / horizon_years if horizon_years else 0.0
+        dynamic = conventional - gdp_annual
         return {
             "gross_tariff_revenue": gross,
             # Retained key: several callers and tests read "tariff_revenue" as
@@ -325,8 +550,14 @@ class TariffPolicy(TaxPolicy):
             "behavioral_offset": avoidance,
             "income_payroll_offset": offset,
             "retaliation_revenue_loss": retaliation_revenue,
-            "net_revenue": net,
-            "net_to_gross_ratio": net / gross if gross else 0.0,
+            "conventional_revenue": conventional,
+            "net_revenue": conventional,
+            "net_to_gross_ratio": conventional / gross if gross else 0.0,
+            "macro_demand_impulse": self.macro_demand_impulse(),
+            "gdp_feedback_revenue_loss": gdp_annual,
+            "gdp_feedback_revenue_loss_total": gdp_total,
+            "dynamic_revenue": dynamic,
+            "dynamic_with_retaliation_revenue": dynamic - retaliation_revenue,
             "consumer_cost": self.estimate_consumer_cost(),
             "retaliation_cost": retaliation_exports,
             "household_cost": self.get_household_impact(),
@@ -390,38 +621,84 @@ def create_auto_tariff_25() -> TariffPolicy:
     )
 
 
-def create_steel_tariff_25() -> TariffPolicy:
-    """25% on steel and aluminium, net of the Section 232 duty in force.
+def create_steel_tariff_25(include_derivatives: bool = True) -> TariffPolicy:
+    """25% on steel, aluminium and the Section 232 derivative articles.
 
-    The base pays 3.06% today — far below the 25%/10% statutory Section 232
-    rates, because Canada, Mexico and Australia were exempted and the EU, UK,
-    Japan, Brazil and South Korea traded under quotas or product exclusions.
-    That collected rate, not the statutory one, is what a proposed 25% is
-    incremental to.
+    The primary base (HS 72 plus HS 76) pays 3.06% today — far below the
+    25%/10% statutory Section 232 rates, because Canada, Mexico and Australia
+    were exempted and the EU, UK, Japan, Brazil and South Korea traded under
+    quotas or product exclusions. That collected rate, not the statutory one,
+    is what a proposed 25% is incremental to.
+
+    Section 232 also reaches **derivative** articles, which sit in HS 73 and
+    pay 5.63%. They were missing from the base entirely, and since they carry
+    their own collected duty they enter as a second schedule row rather than
+    being blended into the first.
+
+    ``include_derivatives`` is a bracket, not an option nobody should use.
+    The whole chapter is an upper bound on what Section 232 reaches: the
+    annexes list articles at HS-10, and Proclamation 10896 taxes a derivative
+    on its steel *content* rather than its customs value. HS 72 + HS 76 alone
+    is the floor. The truth is between, and neither end is transcribed here,
+    so the preset ships the ceiling and the floor stays one argument away.
     """
+    rows: list[ScheduleRow] = [
+        (
+            "Steel and aluminium (HS 72, HS 76)",
+            TRADE_BASELINE["steel_aluminum_imports_billions"],
+            0.25 - TRADE_BASELINE["steel_aluminum_existing_avg_tariff"],
+        )
+    ]
+    if include_derivatives:
+        rows.append(
+            (
+                "Derivative articles (HS 73)",
+                TRADE_BASELINE["steel_derivative_imports_billions"],
+                0.25 - TRADE_BASELINE["steel_derivative_existing_avg_tariff"],
+            )
+        )
+    base = sum(row[1] for row in rows)
     return TariffPolicy(
         name="25% Steel/Aluminum Tariff",
         description=(
-            "25% tariff on steel and aluminium imports, incremental over the "
-            "~3.1% Section 232 duty already collected (~\\$59B base)."
+            "25% tariff on steel, aluminium and the Section 232 derivative "
+            f"articles, incremental over the duty each base already collects "
+            f"(~\\${base:,.0f}B base)."
         ),
         tariff_rate_change=0.25 - TRADE_BASELINE["steel_aluminum_existing_avg_tariff"],
         target_sector="steel",
-        import_base_billions=TRADE_BASELINE["steel_aluminum_imports_billions"],
+        import_base_billions=base,
+        rate_schedule=tuple(rows),
     )
 
 
 def create_reciprocal_tariffs() -> TariffPolicy:
-    coverage = TRADE_BASELINE["reciprocal_coverage_rate"]
+    """Executive Order 14257's schedule, partner by partner.
+
+    The rate each partner faces is the EO's own formula — 2024 bilateral goods
+    deficit over goods imports from that partner, halved, floored at 10% —
+    applied to Census 2024 and with the Annex II sectors removed partner by
+    partner. The reconstruction reproduces sixteen published Annex I rates to
+    within about a point; see ``reciprocal_schedule.csv``.
+
+    What this replaces is ``reciprocal_coverage_rate = 0.50``: a flat 20pp on
+    half of goods imports, which no publisher scored and nobody proposed.
+    """
+    schedule = load_reciprocal_schedule()
+    base = sum(row[1] for row in schedule)
+    weighted = sum(b * r for _, b, r in schedule) / base if base else 0.0
     return TariffPolicy(
         name="Reciprocal Tariffs",
         description=(
-            "Match trading partners' tariff rates (~20pp average increase on "
-            "half of goods imports)."
+            "Partner-specific reciprocal rates (EO 14257's own formula on "
+            f"2024 Census bilateral trade: {weighted:.0%} average on "
+            f"~\\${base:,.0f}B of covered imports, Annex II sectors and the "
+            "USMCA partners excluded)."
         ),
-        tariff_rate_change=0.20,
-        import_base_billions=TRADE_BASELINE["total_imports_billions"] * coverage,
+        target_country="reciprocal_schedule",
+        rate_schedule=schedule,
         retaliation_export_base_billions=(
-            TRADE_BASELINE["total_exports_billions"] * coverage
+            TRADE_BASELINE["total_exports_billions"] * base
+            / TRADE_BASELINE["total_imports_billions"]
         ),
     )
