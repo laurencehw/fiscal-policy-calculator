@@ -248,21 +248,29 @@ The specialized modules (TCJA, Corporate, Estate, Credits, AMT, Payroll, PTC, Ca
 
 | Metric | Calibrated reference (fitted) | Module reconstruction (not fitted) | Retired target (withdrawn) |
 |--------|---:|---:|---:|
-| Benchmarks | **16** | **37** | **2** |
-| Mean absolute error | **1.5%** | **38.1%** | **397.2%** |
-| Median absolute error | 0.1% | 29.9% | 397.2% |
-| Within 15% of official | 16/16 | 10/37 | 0/2 |
-| Within 25% of official | 16/16 | 14/37 | 0/2 |
+| Benchmarks | **15** | **38** | **2** |
+| Mean absolute error | **1.6%** | **37.5%** | **397.2%** |
+| Median absolute error | 0.0% | 30.1% | 397.2% |
+| Within 15% of official | 15/15 | 11/38 | 0/2 |
+| Within 25% of official | 15/15 | 15/38 | 0/2 |
 
-**The reconstruction column reads 38.1% only alongside 56.5%, and that is not a
+**The reconstruction column reads 37.5% only alongside 55.5%, and that is not a
 presentational nicety.** Owner decision ④ withdrew two targets (below); on the
-**39 rows the tier held before it**, at the errors those two carried on the day
-they were withdrawn, it reads **56.5%, median 36.9%, 10/39 within 15%**. The
-18.4-point fall is a *composition* move produced by a withdrawal, not an
+**40 rows the tier would otherwise hold**, at the errors those two carried on the
+day they were withdrawn, it reads **55.5%, median 33.6%, 11/40 within 15%**. The
+18-point fall is a *composition* move produced by a withdrawal, not an
 improvement in any model. `cold_holdout.py` and `run_validation_dashboard.py`
 print both readings on adjacent lines
 (`uncalibrated_reconstruction_retired_held_in_place`), so quoting the smaller one
 alone requires skipping a line.
+
+**These are merged-tree readings and they are not either lane's branch figure**,
+because two passes landed in the same window and both move this tier's
+*composition*: the retirement took reconstructions 39 → 37 on its own branch
+(56.5% → 38.1%, held-in-place 39 @ 56.5%), and PR #157 separately reclassified
+`cap_charitable` out of the fitted tier, taking fitted 16 → 15 and putting a row
+back into the reconstruction count. Neither branch reading is wrong and neither
+is the live one; take the live numbers from `run_validation_dashboard.py`.
 
 **Wave C moved the right-hand column on *accuracy*, which is the opposite of the four moves above, and the constant-population reading says so.** The **same 39 rows** sit in the reconstruction tier before and after PR #150, so **55.46% → 56.7% is like-for-like**, and all of it is the `Trade` sub-population going **34.2% → 43.6%**. The lane registered that as worse in advance: the five tariff targets are *conventional* estimates and the module had been netting **retaliation** inside a score measured against them — a category error the repository's own knowledge file already described correctly, while all five scenarios and all five presets ran with `include_retaliation=True`. Four of the five rows improve; `steel_tariff_25` (11.89% → **75.28%**) carries the whole of the net against a target that is untraceable and has been examined-and-left twice, and **on the four trade rows that have a document the sub-population improves 39.72% → 35.66%**. The left-hand column, its held-in-place reading and leave-one-out are **byte-identical across Wave C** — no target moved and no constant was retuned — which each of the wave's four lanes registered in advance as its own falsification test.
 
@@ -775,15 +783,15 @@ target back** — a published post-IRA score of a negotiation expansion, or a
 ten-year federal score of a Medicare-wide international reference price.
 
 **The two readings, and why there are two.** Withdrawing 93.3% and 701.0% from a
-39-row tier averaging 56.5% leaves 37 rows at **38.1%** — *18.4 points of
+40-row tier averaging 55.5% leaves 38 rows at **37.5%** — *18 points of
 "improvement" bought by withdrawing two rows*, which is precisely what
 `planning/HIGH_STAKES_ACCURACY.md` §5's **"no removing a case to go green"**
 forbids. So the tier is reported twice, on adjacent lines:
 
 ```
-  reconstructions:     n=37  mean 38.1% | median 29.9% | within 15%: 10/37
-  retired targets:     n=2   mean 397.2%   expand_drug_negotiation, international_reference_pricing
-  ... retired held in: n=39  mean 56.5% | median 36.9% | within 15%: 10/39
+  reconstructions:     n=38  mean 37.5% | median 30.1% | within 15%: 11/38
+  ... retired held in: n=40  mean 55.5% | median 33.6% | within 15%: 11/40
+  retired targets:     n=2   mean 397.2% at withdrawal  (expand_drug_negotiation, international_reference_pricing)
 ```
 
 Neither figure is the tier on its own. Nothing about provenance changed:
@@ -877,7 +885,7 @@ Lane `planning/lanes/HSB_h9_provenance.md` applied `PROVENANCE_wave4.md`'s per-t
 
 The fitted mean falls because the five rows that left it averaged **2.42%**, above the tier's own mean. The reconstruction mean falls because the five arrivals average **36.42%**; on a constant population the tier gets **worse**, 57.88% → **58.26%**, and the whole 0.38pp is `trump_china_60`. **The one reading that is not composition is the third**: the 21 rows the fitted tier held before this pass, scored on the targets it leaves behind, read **9.82%** rather than 1.73% — that is what five untraceable targets were worth to the tier's headline. Leave-one-out moved for the same reason and no other: six lines of `run_loo.py --donor-matrix` differ and every *derived* figure in them is identical, exactly as PR #107.
 
-**Retirement now exists as a state, and owner decision ④ has since applied it to exactly the two rows this pass recommended** (see [Retired targets](#retired-targets--the-first-two-withdrawals-and-the-second-reading-they-come-with)). `CalibratedTarget` gained `retired` / `retired_reason` — the third thing, distinct from a supersession (which has a replacement) and an examined-and-left verdict (which keeps the carried figure as a target). It is built so it cannot be used to go green: the row **keeps its scorecard entry and its model figure**, `ScorecardSummary.retired_target_entries` counts it, `check_readiness.py` lists it, and it leaves the reconstruction mean **only alongside a second reading** that folds it back at the error it carried when withdrawn. Both print on adjacent lines. The two pharma illustrations were the recommendation, and the arithmetic this pass predicted is what landed: **39 @ 56.5% → 37 @ 38.1%** with **2 @ 397.2%** retired, 18.4 points of "improvement" bought by withdrawal. (The figures quoted here while the decision was open were 39 @ 55.46% → 37 @ 36.99% on the pre-Wave-C tier; PR #150's tariff rows moved the tier underneath them.) The decision was the owner's, not a lane's.
+**Retirement now exists as a state, and owner decision ④ has since applied it to exactly the two rows this pass recommended** (see [Retired targets](#retired-targets--the-first-two-withdrawals-and-the-second-reading-they-come-with)). `CalibratedTarget` gained `retired` / `retired_reason` — the third thing, distinct from a supersession (which has a replacement) and an examined-and-left verdict (which keeps the carried figure as a target). It is built so it cannot be used to go green: the row **keeps its scorecard entry and its model figure**, `ScorecardSummary.retired_target_entries` counts it, `check_readiness.py` lists it, and it leaves the reconstruction mean **only alongside a second reading** that folds it back at the error it carried when withdrawn. Both print on adjacent lines. The two pharma illustrations were the recommendation, and the arithmetic this pass predicted is what landed: on the retirement's own branch **39 @ 56.5% → 37 @ 38.1%** with **2 @ 397.2%** retired, and **40 @ 55.5% → 38 @ 37.5%** on the merged tree, where PR #157 moved `cap_charitable` into the count in the same window — 18 points of "improvement" bought by withdrawal. (The figures quoted here while the decision was open were 39 @ 55.46% → 37 @ 36.99% on the pre-Wave-C tier; PR #150's tariff rows moved the tier underneath them.) The decision was the owner's, not a lane's.
 
 **Five preset labels quoted a superseded figure and were not renamed by this pass**, because labels are `CBO_SCORE_MAP` keys owned by a different lane. **The 2026-09-11 label-figure lane renamed all five**, reading each figure from the ledger: `💰 SS Donut Hole $250K (-$2.7T)` → **(-$1.43T)**, `🏠 Eliminate Estate Tax ($350B)` → **($407B)**, `📋 Eliminate Mortgage Deduction (-$300B)` → **(-$368B)** (the range's anchor, on the convention `🏭 Reciprocal Tariffs (-$1.5T)` already sets), `🏭 Trump 60% China Tariff (-$500B)` → **(-$650B)**, `🌱 Repeal IRA Clean Energy Credits ($783B)` → **(-$851B)**. The last of those was quoting `model_10yr_billions` rather than any target, and with the wrong sign. `_LABELS_QUOTING_A_SUPERSEDED_FIGURE` is now empty and the test asserts the emptiness; stable ids did not move and every old spelling still resolves. The figures themselves moved with H9, so a Build package containing any of them already showed a different total before the rename.
 
