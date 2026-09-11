@@ -706,10 +706,14 @@ def gains_at_death_caption(policy: Any, result: Any) -> str:
     # figures by 19-31 percent, which is a Decision 6 move, so the sentence
     # ships with them.
     headcount = (
-        " Those decedents are now counted at an NCHS life-table death rate - "
-        "about 3.4 million a year - rather than at a flow of estate dollars "
-        "that implied 408,532, so a fixed exclusion removes far more of the "
-        "gain than it used to."
+        " Those decedents are counted at an NCHS life-table death rate - about "
+        "3.4 million a year - rather than at a flow of estate dollars that "
+        "implied 408,532"
+        + (
+            ", so a fixed exclusion reaches far more of the gain than it used to."
+            if exclusion > 0
+            else ", so each one carries a gain of ordinary size."
+        )
     )
     return (
         f"Gains at death: \\${-death:+,.1f}B of the static score above is "
