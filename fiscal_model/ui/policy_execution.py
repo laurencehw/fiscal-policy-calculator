@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from fiscal_model.baseline import APP_DEFAULT_START_YEAR
+from fiscal_model.policies_core import DEFAULT_INCOME_MEASURE
 
 logger = logging.getLogger(__name__)
 
@@ -138,6 +139,10 @@ def calculate_tax_policy_result(
     phase_in: int,
     eti: float,
     ordinary_income_base: bool,
+    # Defaulted, unlike the flag above: a caller that predates the income
+    # column gets the column every policy used before it existed, rather
+    # than a TypeError.
+    income_measure: str = DEFAULT_INCOME_MEASURE,
     manual_taxpayers: float,
     manual_avg_income: float,
     cg_base_year: int,
@@ -246,6 +251,7 @@ def calculate_tax_policy_result(
             phase_in_years=max(1, int(phase_in)),
             taxable_income_elasticity=eti,
             ordinary_income_base=ordinary_income_base,
+            income_measure=income_measure,
         )
 
     # Only the individual-base paths take a taxpayer count / average income;

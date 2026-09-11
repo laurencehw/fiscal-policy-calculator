@@ -40,6 +40,31 @@ _MAX_PREFERENTIAL_SHARE = 0.55
 #: See ``planning/lanes/HSA_h1_base_rule.md``.
 DEFAULT_ORDINARY_INCOME_BASE = True
 
+#: The two IRS SOI income columns a generic rate change can be priced on, and
+#: the default, which is every policy's behaviour before 2026-09-10.
+#:
+#: This is **orthogonal** to :data:`DEFAULT_ORDINARY_INCOME_BASE`. That flag
+#: answers "is the preferential (LTCG/QDIV) share removed from the base?"; this
+#: one answers "which column *is* the base?". Both facts are read off the
+#: source document and neither is inferred from the other: CBO's Option 46
+#: states its surtax on **AGI**, and TPC's illustrative top-rate rows state
+#: theirs on **taxable income that includes** the preferential portion. Before
+#: this constant existed, one boolean carried both questions and the second one
+#: always answered "taxable income", so an AGI surtax was priced by subtracting
+#: an AGI threshold from an average of taxable income - a unit mismatch worth
+#: 40% of the base at $20,000. See ``planning/lanes/HSB_h2b_agi_column.md``.
+#:
+#: Declared here rather than imported from
+#: :mod:`fiscal_model.data.irs_soi`, which declares the same three: importing
+#: that module at file scope would pull pandas into the app's import graph and
+#: move the cold-start figures ``tests/test_cold_start_ordering.py`` pins, and
+#: this module is on the landing page's path. ``tests/test_agi_income_measure.py``
+#: fails if the two ever disagree, so the pair cannot drift.
+INCOME_MEASURE_TAXABLE_INCOME = "taxable_income"
+INCOME_MEASURE_AGI = "agi"
+INCOME_MEASURES: tuple[str, ...] = (INCOME_MEASURE_TAXABLE_INCOME, INCOME_MEASURE_AGI)
+DEFAULT_INCOME_MEASURE = INCOME_MEASURE_TAXABLE_INCOME
+
 
 def ordinary_income_base_for_preset(preset_data: Mapping[str, object] | None) -> bool:
     """The base a catalog preset declares, or the shared default.
@@ -60,6 +85,47 @@ def ordinary_income_base_for_preset(preset_data: Mapping[str, object] | None) ->
     if declared is None:
         return DEFAULT_ORDINARY_INCOME_BASE
     return not bool(declared)
+
+
+def income_measure_for_preset(
+    preset_data: Mapping[str, object] | None, *, preset_name: str | None = None
+) -> str:
+    """The IRS SOI income column a catalog preset's own source states.
+
+    A preset declares ``income_measure: "agi"`` only where its source says AGI
+    in as many words - TPC scores the Warren surtax on "AGI above $2 million".
+    A preset that declares nothing takes :data:`DEFAULT_INCOME_MEASURE`, which
+    is what every preset scored on before 2026-09-10.
+
+    Declaring nothing is the right answer for two of the three surtax presets
+    and for different reasons, both recorded in the catalog: Treasury's Medicare
+    surcharge is stated on "investment + wage income", which is neither SOI
+    column, and the millionaire surtax has no source document at all. A base
+    that cannot be transcribed is not guessed at.
+
+    One function rather than a `.get` at each of the six preset-construction
+    sites, for the reason :func:`ordinary_income_base_for_preset` exists:
+    nothing kept those six answers in step.
+
+    A declared value is validated **here**, where the catalog entry is still in
+    hand. Left to ``TaxPolicy.__post_init__`` a typo would surface as
+    "income_measure must be ..." from six different call sites with no clue
+    which preset carried it, and only on the surfaces that build a policy — the
+    catalog itself would import clean.
+    """
+    if not preset_data:
+        return DEFAULT_INCOME_MEASURE
+    declared = preset_data.get("income_measure")
+    if declared is None:
+        return DEFAULT_INCOME_MEASURE
+    measure = str(declared)
+    if measure not in INCOME_MEASURES:
+        raise ValueError(
+            f"preset {preset_name or '<unnamed>'!r} declares "
+            f"income_measure={declared!r}; expected one of "
+            f"{', '.join(INCOME_MEASURES)}"
+        )
+    return measure
 
 
 def preferential_income_share(
@@ -189,6 +255,17 @@ class TaxPolicy(Policy):
     # carry their own answer. See ``DEFAULT_ORDINARY_INCOME_BASE``,
     # ``preferential_income_share`` and docs/METHODOLOGY.md (Static Scoring).
     ordinary_income_base: bool = DEFAULT_ORDINARY_INCOME_BASE
+    # Which IRS SOI column supplies the base: ``"taxable_income"`` (the default,
+    # and every policy's behaviour before 2026-09-10) or ``"agi"``. SOI Table
+    # 1.1 rows are AGI size classes and publish BOTH columns, so a surtax whose
+    # source states it on AGI - CBO Option 46's "a surtax of 1 percentage point
+    # would be imposed on AGI above $20,000" - was being priced by subtracting
+    # an AGI threshold from an average of taxable income. Read off the source
+    # document, never inferred from the policy's shape, and orthogonal to
+    # ``ordinary_income_base``: a rate change stated on taxable income can still
+    # reach the preferential portion, which is what TPC's illustrative rows are.
+    # See ``DEFAULT_INCOME_MEASURE`` and planning/lanes/HSB_h2b_agi_column.md.
+    income_measure: str = DEFAULT_INCOME_MEASURE
     # Optional per-filing-status thresholds, keyed by
     # ``fiscal_model.data.irs_soi.FILING_STATUSES``. Statutory income-tax
     # boundaries are stated per status - CBO's Option 46 surtax at "$20,000 for
@@ -207,6 +284,23 @@ class TaxPolicy(Policy):
     # statuses face different floors, so the first year's answer is carried
     # instead of silently recomputed the pooled way.
     _split_annual_revenue_billions: float | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+    # Same cache, same reason, for the *pooled* AGI path. Years 2-10 of any SOI
+    # policy fall out of ``_should_use_irs_data`` (year one populates
+    # ``affected_taxpayers_millions``) and into the fallback branch, which
+    # re-derives marginal income from ``avg_taxable_income_in_bracket`` - a
+    # taxable-income quantity. Overwriting that field with an AGI average would
+    # make the fallback right and every other reader of it wrong, including the
+    # shipped caption that reconstructs what a preset used to print, so the
+    # field keeps meaning taxable income and the AGI annual is carried instead.
+    _agi_annual_revenue_billions: float | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+    # Average AGI above the threshold, from the same SOI read, set only on the
+    # pooled AGI path. It is the base actually priced there, and nothing else
+    # records it: ``avg_taxable_income_in_bracket`` deliberately does not.
+    _soi_avg_agi_in_bracket: float | None = field(
         default=None, init=False, repr=False, compare=False
     )
     # Total marginal income the last scoring run priced, in dollars. Recorded
@@ -263,6 +357,28 @@ class TaxPolicy(Policy):
                 f"affected_taxpayers_millions must be >= 0, got {self.affected_taxpayers_millions}"
             )
 
+        if self.income_measure not in (INCOME_MEASURE_TAXABLE_INCOME, INCOME_MEASURE_AGI):
+            raise ValueError(
+                f"income_measure must be {INCOME_MEASURE_TAXABLE_INCOME!r} or "
+                f"{INCOME_MEASURE_AGI!r}, got {self.income_measure!r}"
+            )
+        if self.income_measure == INCOME_MEASURE_AGI and self.ordinary_income_base:
+            # AGI contains realized capital gains and qualified dividends by
+            # construction, so removing the preferential share from an AGI base
+            # subtracts income the surtax demonstrably reaches. The reverse is
+            # NOT an invariant: ordinary_income_base=False on a taxable-income
+            # base is a real classification (TPC's illustrative surtaxes), which
+            # is exactly why these are two attributes and not one.
+            # The message names the flag without writing a literal value beside
+            # it: tests/test_base_rule_contract.py greps this tree for a
+            # hard-coded base default and an error string is not an exemption
+            # worth carving into that gate.
+            raise ValueError(
+                "income_measure='agi' requires the AGI-inclusive base, so "
+                "ordinary_income_base must be off: AGI already contains the "
+                "preferential (LTCG/QDIV) income the correction removes"
+            )
+
         if self.threshold_by_filing_status is not None:
             if not self.threshold_by_filing_status:
                 # An empty mapping declares nothing, so it takes the pooled path
@@ -317,6 +433,15 @@ class TaxPolicy(Policy):
             # branch below cannot reproduce it, because it re-derives the base
             # from a single threshold.
             return self._split_annual_revenue_billions
+
+        if (
+            self.income_measure == INCOME_MEASURE_AGI
+            and self._agi_annual_revenue_billions is not None
+        ):
+            # Years 2-10 of a pooled AGI policy, for the same reason: the branch
+            # below re-derives marginal income from
+            # ``avg_taxable_income_in_bracket``, which is the other column.
+            return self._agi_annual_revenue_billions
 
         if (
             self.rate_change != 0
@@ -433,15 +558,24 @@ class TaxPolicy(Policy):
         self.affected_taxpayers_millions = bracket_info["num_filers"] / 1e6
         self.avg_taxable_income_in_bracket = bracket_info["avg_taxable_income"]
 
-        marginal_income = max(
-            0,
-            bracket_info["avg_taxable_income"] - self.affected_income_threshold,
-        )
+        # SOI Table 1.1's rows are AGI size classes and it publishes both
+        # columns, so a return is selected by its AGI on either path; what the
+        # source decides is which quantity is measured *above* the floor. An
+        # AGI-stated surtax subtracts an AGI threshold from an AGI average
+        # rather than from an average of taxable income, which is the unit
+        # mismatch this branch used to carry.
+        if self.income_measure == INCOME_MEASURE_AGI:
+            self._soi_avg_agi_in_bracket = bracket_info["avg_agi"]
+            avg_income = bracket_info["avg_agi"]
+        else:
+            avg_income = bracket_info["avg_taxable_income"]
+
+        marginal_income = max(0, avg_income - self.affected_income_threshold)
 
         if self.affected_income_threshold == 0:
-            marginal_income = bracket_info["avg_taxable_income"]
+            marginal_income = avg_income
 
-        logger.info(f"  Avg total income: ${bracket_info['avg_taxable_income']:,.0f}")
+        logger.info(f"  Avg total income ({self.income_measure}): ${avg_income:,.0f}")
         logger.info(
             f"  Marginal income above ${self.affected_income_threshold:,.0f}: ${marginal_income:,.0f}"
         )
@@ -457,6 +591,9 @@ class TaxPolicy(Policy):
         revenue_change = (
             self.rate_change * marginal_income * ordinary_share * bracket_info["num_filers"]
         ) / 1e9
+
+        if self.income_measure == INCOME_MEASURE_AGI:
+            self._agi_annual_revenue_billions = revenue_change
 
         logger.info(
             f"  Estimated revenue change: ${revenue_change:,.1f}B "
@@ -483,7 +620,15 @@ class TaxPolicy(Policy):
     def _estimate_from_irs_data_by_status(self, irs_data, year: int) -> float:
         """Static revenue effect with the SOI base split by filing status."""
         thresholds = self.resolved_filing_status_thresholds()
-        split = irs_data.get_filers_by_status_thresholds(year=year, thresholds=thresholds)
+        # The income measure is applied INSIDE the split - each status's own
+        # marginal AGI above its own floor - not to the pooled aggregate
+        # afterwards. The two are not the same number and they do not even move
+        # the same way: at Option 46's floors the split AGI ratio is 1.4052
+        # where the pooled one is 1.3820, and at the 2pp alternative's it is
+        # 1.2535 where the pooled one is 1.3094.
+        split = irs_data.get_filers_by_status_thresholds(
+            year=year, thresholds=thresholds, income_measure=self.income_measure
+        )
         marginal_income = split["marginal_income_dollars"]
 
         # The preferential-income correction is measured on the POOLED base at
@@ -555,7 +700,9 @@ class TaxPolicy(Policy):
         per_return = avg if threshold == 0 else max(0.0, avg - threshold)
         return per_return * float(self.affected_taxpayers_millions) * 1e6
 
-    def preferential_share_of_base(self, *, year: int | None = None) -> float:
+    def preferential_share_of_base(
+        self, *, year: int | None = None, base_dollars: float | None = None
+    ) -> float:
         """Preferentially taxed share of this policy's marginal income.
 
         The question :meth:`_ordinary_income_share` answers *for scoring*, asked
@@ -572,12 +719,18 @@ class TaxPolicy(Policy):
         returns twice. Falls back to :meth:`marginal_income_dollars` for a
         policy that has not been scored.
 
+        ``base_dollars`` overrides the recorded base. A policy scored on SOI's
+        **AGI** column records that base, but a caption reporting the
+        base-flag move *on the taxable column it was made on* needs the share
+        of the taxable-column base — :meth:`marginal_income_dollars`, which
+        keeps meaning taxable income on every path — and passes it here.
+
         Returns 0.0 when there is no preferential income to remove: a
         non-income-tax policy, or a base of zero.
         """
         if self.policy_type != PolicyType.INCOME_TAX:
             return 0.0
-        base = self._preferential_base_dollars
+        base = base_dollars if base_dollars is not None else self._preferential_base_dollars
         if base is None:
             base = self.marginal_income_dollars()
         if base <= 0:

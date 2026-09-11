@@ -43,6 +43,7 @@ from fiscal_model.models.base import (
 from fiscal_model.policies import (
     PolicyType,
     TaxPolicy,
+    income_measure_for_preset,
     ordinary_income_base_for_preset,
 )
 from fiscal_model.policies_factory import create_spending_increase
@@ -152,6 +153,8 @@ def _build_preset_policy(preset_name: str, preset_data: dict[str, Any]) -> tuple
         # The preset's own source decides the base; absent a declaration it
         # takes the one shared default rather than this call site's opinion.
         ordinary_income_base=ordinary_income_base_for_preset(preset_data),
+        # ...and which SOI column that base is, where its source names one.
+        income_measure=income_measure_for_preset(preset_data, preset_name=preset_name),
     )
     return policy, True
 

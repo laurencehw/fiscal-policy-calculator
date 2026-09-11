@@ -741,6 +741,16 @@ PRESET_POLICIES = {
         # beside a label quoting TPC's -$350B (61.5%) while the scorecard's own
         # AGI-inclusive row reported 19.0%. A transcription, not a rule.
         "agi_inclusive_base": True,
+        # And the base is AGI itself, not taxable income: the same TPC row says
+        # "surtax on AGI >$2M", and IRS SOI Table 1.1 publishes both columns by
+        # AGI size class. Until 2026-09-10 this preset subtracted a $2,000,000
+        # AGI floor from an average of TAXABLE income, a unit mismatch worth
+        # 18.6% of the base here. The other two presets declaring an
+        # AGI-inclusive base deliberately do NOT declare a measure: Treasury's
+        # Medicare surcharge reaches "investment + wage income", which is
+        # neither SOI column, and the millionaire surtax has no source document
+        # to read one off. See planning/lanes/HSB_h2b_agi_column.md.
+        "income_measure": "agi",
         "description": (
             "3pp surtax on **AGI** above \\$2M, Warren-style, scored on the "
             "AGI-inclusive base its TPC source uses — realized capital gains "

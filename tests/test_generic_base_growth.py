@@ -366,11 +366,18 @@ def test_the_two_captions_are_a_2x2_and_it_closes():
     lanes own separately: the preferential share and the window-mean index.
 
     Pinned on Warren Ultra-Millionaire Surtax, the preset both captions fire on.
+    Since H2b that preset is read from SOI's **AGI** column, a third axis with
+    its own caption. The base caption reports on the taxable column it was made
+    on, the projection caption on the AGI column the score is made on, and the
+    column caption is the step between them — so every figure any of the three
+    prints is a corner of one box.
     """
     from fiscal_model.app_data import PRESET_POLICIES
     from fiscal_model.composer.composer import _build_preset_policy, _scorer_for
     from fiscal_model.ui.tabs.results_summary import (
+        _agi_marginal_ratio,
         agi_inclusive_base_caption,
+        agi_income_column_caption,
         income_base_projection_caption,
     )
 
@@ -382,7 +389,9 @@ def test_the_two_captions_are_a_2x2_and_it_closes():
     shipped = float(
         np.sum(result.static_deficit_effect) + np.sum(result.behavioral_offset)
     )
-    pref = policy.preferential_share_of_base()
+    column_ratio = _agi_marginal_ratio(policy)
+    assert column_ratio is not None and column_ratio > 1.0
+    pref = policy.preferential_share_of_base(base_dollars=policy.marginal_income_dollars())
     anchor = scorer.baseline.nominal_income_index(int(policy.soi_base_tax_year))
     factors = np.array(
         [scorer.baseline.nominal_income_index(int(y)) / anchor for y in result.years]
@@ -390,29 +399,34 @@ def test_the_two_captions_are_a_2x2_and_it_closes():
     path = np.asarray(result.static_deficit_effect, dtype=float) + np.asarray(
         result.behavioral_offset, dtype=float
     )
-    flat = float(np.sum(path / factors))
+    flat_agi_column = float(np.sum(path / factors))
 
-    # The four corners.
-    agi_projected = shipped
-    agi_flat = flat
-    ordinary_projected = shipped * (1.0 - pref)
-    ordinary_flat = ordinary_projected * (flat / shipped)
+    # The corners, on the taxable column...
+    agi_projected = shipped / column_ratio
+    agi_flat = flat_agi_column / column_ratio
+    ordinary_projected = agi_projected * (1.0 - pref)
+    ordinary_flat = ordinary_projected * (agi_flat / agi_projected)
 
+    assert shipped == pytest.approx(-456.0066, abs=5e-4)
     assert agi_projected == pytest.approx(-384.3710, abs=5e-4)
     assert agi_flat == pytest.approx(-283.4695, abs=5e-4)
     assert ordinary_projected == pytest.approx(-182.5282, abs=5e-4)
     assert ordinary_flat == pytest.approx(-134.6126, abs=5e-4)
 
     # The flat/projected ratio is exactly this lane's window-mean index inverted.
-    assert shipped / flat == pytest.approx(float(factors.mean()), rel=1e-9)
+    assert agi_projected / agi_flat == pytest.approx(float(factors.mean()), rel=1e-9)
 
-    # And each caption names its own corner, not the pre-wave figure.
+    # ...and each caption names its own corner, not the pre-wave figure.
     base_caption = agi_inclusive_base_caption(policy, result)
     proj_caption = income_base_projection_caption(policy, result)
+    column_caption = agi_income_column_caption(policy, result)
     assert f"{ordinary_projected:+,.1f}B" in base_caption
-    assert f"{agi_flat:+,.1f}B" in proj_caption
-    for caption in (base_caption, proj_caption):
-        assert f"{agi_projected:+,.1f}B" in caption
+    assert f"{agi_projected:+,.1f}B" in base_caption
+    assert f"{flat_agi_column:+,.1f}B" in proj_caption
+    assert f"{shipped:+,.1f}B" in proj_caption
+    assert f"{agi_projected:+,.1f}B" in column_caption
+    assert f"{shipped:+,.1f}B" in column_caption
+    for caption in (base_caption, proj_caption, column_caption):
         assert f"{ordinary_flat:+,.1f}B" not in caption
 
 

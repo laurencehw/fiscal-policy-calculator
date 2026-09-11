@@ -7,7 +7,9 @@ from __future__ import annotations
 from typing import Any
 
 from fiscal_model.policies import (
+    DEFAULT_INCOME_MEASURE,
     DEFAULT_ORDINARY_INCOME_BASE,
+    income_measure_for_preset,
     ordinary_income_base_for_preset,
 )
 from fiscal_model.preset_ids import resolve_preset
@@ -224,6 +226,7 @@ def render_tax_policy_inputs(
     manual_avg_income = 0
     eti = 0.25
     ordinary_income_base = DEFAULT_ORDINARY_INCOME_BASE
+    income_measure = DEFAULT_INCOME_MEASURE
 
     cg_base_year = 2024
     baseline_cg_rate = 0.20
@@ -246,6 +249,10 @@ def render_tax_policy_inputs(
         phase_in = int(preset_data.get("phase_in_years", 1) or 1)
         eti = float(preset_data.get("eti", 0.25) or 0.25)
         ordinary_income_base = ordinary_income_base_for_preset(preset_data)
+        # A preset's source can also name the SOI column its base is read
+        # from. The manual form below has no source and keeps the default,
+        # which is why this is seeded here and not beside the base checkbox.
+        income_measure = income_measure_for_preset(preset_data)
 
     if not use_preset:
         st_module.markdown("---")
@@ -546,6 +553,7 @@ def render_tax_policy_inputs(
         "manual_avg_income": manual_avg_income,
         "eti": eti,
         "ordinary_income_base": ordinary_income_base,
+        "income_measure": income_measure,
         "cg_base_year": cg_base_year,
         "cg_rate_source": "IRS SOI Table 3.5 income taxed at each rate, plus NIIT",
         "baseline_cg_rate": baseline_cg_rate,

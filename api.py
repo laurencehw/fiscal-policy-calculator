@@ -48,6 +48,7 @@ from fiscal_model.policies import (
     PolicyType,
     SpendingPolicy,
     TaxPolicy,
+    income_measure_for_preset,
     ordinary_income_base_for_preset,
 )
 from fiscal_model.preset_handler import create_policy_from_preset
@@ -582,6 +583,7 @@ def _build_preset_policy(preset_name: str) -> tuple[Any, bool]:
         start_year=APP_DEFAULT_START_YEAR,
         duration_years=10,
         ordinary_income_base=ordinary_income_base_for_preset(preset),
+        income_measure=income_measure_for_preset(preset),
     )
     return policy, True
 

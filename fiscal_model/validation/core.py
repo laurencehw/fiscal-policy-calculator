@@ -11,6 +11,8 @@ import numpy as np
 
 from ..baseline import BaselineVintage, CBOBaseline
 from ..policies import (
+    INCOME_MEASURE_AGI,
+    INCOME_MEASURE_TAXABLE_INCOME,
     CapitalGainsPolicy,
     Policy,
     PolicyType,
@@ -85,6 +87,65 @@ FILING_STATUS_THRESHOLD_RULE = (
     "amount and separate, head-of-household and single returns take the single "
     "amount, the structure of IRC section 1411(b)."
 )
+
+#: Which IRS SOI income column a record's base is read from.
+#:
+#: ``CBOScore.agi_inclusive_base`` answers a different question - *is the
+#: preferential (LTCG/QDIV) share removed?* - and is ``True`` on six records
+#: that do **not** agree about the column. SOI Table 1.1 publishes both AGI and
+#: taxable income by AGI size class, so a surtax stated on AGI was being priced
+#: by subtracting an AGI threshold from an average of taxable income: at Option
+#: 46's \$20,000 floor that is 40% of the base.
+#:
+#: This rule was fixed **before** any record was scored on the AGI column
+#: (``planning/lanes/HSB_h2b_agi_column.md`` section 1.2, committed ahead of the
+#: code) so the reading is a stated convention rather than a per-row choice. It
+#: is not the flattering one: it takes ``warren_ultramillionaire_surtax_3pp``
+#: from 5.2% to 24.8%, and the three AGI-inclusive rows it leaves alone would
+#: all score *worse* if it moved them (68.4%, 41.6% and 39.2% against 31.8%,
+#: 20.2% and 18.3%). Each is left because of what its own source says, and the
+#: lane doc publishes those would-be figures so the choice can be overturned by
+#: a document rather than by a preference.
+AGI_BASE_RULE = (
+    "A record's base is read from IRS SOI's AGI column only where its own "
+    "source states the reform on AGI in as many words. A source that states "
+    "taxable income, or that states a base which is neither SOI column - wages "
+    "plus net investment income is neither - keeps the taxable-income column, "
+    "and a record with no source document is never reclassified at all."
+)
+
+#: The records :data:`AGI_BASE_RULE` moves, each with the sentence that moved it.
+#:
+#: The honest home for this is a field on ``CBOScore`` beside
+#: ``agi_inclusive_base``; ``cbo_scores.py`` belonged to a concurrent lane when
+#: this was written, so the mapping lives here and the migration is an owner
+#: item. The three ids would be identical either way.
+_AGI_BASE_POLICY_IDS: dict[str, str] = {
+    # CBO, Options for Reducing the Deficit: 2025-2034 (pub. 60557), option 46,
+    # alternative 1, report p. 56.
+    "cbo_opt46_agi_surtax_1pp_20k": (
+        "a surtax of 1 percentage point would be imposed on AGI above $20,000 "
+        "for single filers and $40,000 for joint filers"
+    ),
+    # The same option, alternative 2, same page.
+    "cbo_opt46_agi_surtax_2pp_100k": (
+        "a surtax of 2 percentage points would be imposed on AGI above "
+        "$100,000 for single filers and $200,000 for joint filers"
+    ),
+    # The record's own description and note. Its target is secondhand (a
+    # TPC-range figure behind a bare taxpolicycenter.org URL) and this rule does
+    # not repair that - it is the row this rule makes five times worse.
+    "warren_ultramillionaire_surtax_3pp": (
+        "3 percentage point surtax on AGI above $2 million ... the surtax "
+        "applies to AGI, which contains the preferential LTCG/QDIV portion"
+    ),
+}
+
+
+def agi_base_source_sentence(score: CBOScore) -> str | None:
+    """The sentence that puts this record on the AGI column, or ``None``."""
+    return _AGI_BASE_POLICY_IDS.get(score.policy_id)
+
 
 #: Fiscal year the validation window opens on. A record may override it with
 #: ``effective_start_year`` when the *source* states a later effective date.
@@ -252,9 +313,16 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "for exactly that reason). Part of this row's error is target error.",
         "A registered regression of the base-growth lane: 7.4% under to 20.2% "
         "over, because the row was under-predicting by less than a decade of "
-        "nominal growth is worth. The base is also taxable income where the "
-        "surtax is stated on AGI, which pushes it further over and is a separate "
-        "change (see cbo_opt46_agi_surtax_1pp_20k).",
+        "nominal growth is worth.",
+        "The record contradicts itself about its own base, and the row is left "
+        "where it is because of that. cbo_scores.py says 'TPC scores this on "
+        "taxable income that includes the preferential (LTCG/QDIV) portion'; an "
+        "earlier version of this note said the surtax is stated on AGI. Neither "
+        "can be checked, because the target carries no source URL. AGI_BASE_RULE "
+        "moves a row only where its own source says AGI in as many words, so this "
+        "one keeps the taxable-income column - and the figure is published rather "
+        "than buried: on the AGI column it would score -$991.2B, or 41.6%. A page "
+        "reference either way moves it.",
         "A single ETI (0.25) with the standard 0.5 factor erodes a 5pp top-rate "
         "increase by only ~12.5%; published top-rate estimates assume a larger "
         "response at that rate level, which would take this row back down.",
@@ -262,9 +330,12 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
     "illustrative_500k_2pp": [
         "Illustrative TPC-range target with no source URL. A registered "
         "regression of the base-growth lane: 8.9% under to 18.3% over.",
-        "The base is taxable income where the record states an AGI-inclusive "
-        "surtax, and it is a rate CUT, so the two remaining terms point opposite "
-        "ways here relative to the raisers in this family.",
+        "The base stays TAXABLE INCOME on the record's own words - 'TPC scores "
+        "this on taxable income that includes the preferential (LTCG/QDIV) "
+        "portion' - which is a different statement from agi_inclusive_base=True, "
+        "and is why AGI_BASE_RULE leaves it. On the AGI column it would score "
+        "+$556.6B, or 39.2%. It is also a rate CUT, so the remaining terms point "
+        "opposite ways here relative to the raisers in this family.",
     ],
     "medicare_surcharge_2pp": [
         "The largest registered regression of the base-growth lane: 1.5% to 31.8%. "
@@ -279,6 +350,39 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "line item transcribed with a page reference, so part of the gap is "
         "provenance. Sizing the base difference needs the surcharge's own statutory "
         "base and is not this lane's.",
+        "AGI_BASE_RULE deliberately does NOT move this row to SOI's AGI column, "
+        "because its source states a base that is neither SOI column: wages plus "
+        "net investment income is not AGI (which also carries proprietors' "
+        "income, pensions and IRA distributions, less above-the-line deductions) "
+        "and is not taxable income (which is net of the standard or itemised "
+        "deduction and of QBI). On the AGI column it would score -$522.2B, or "
+        "68.4%, so leaving it is ALSO the lower number, which is why the decision "
+        "is recorded here rather than left implicit. What this row needs is the "
+        "surcharge's own base, not a choice between two columns that are both "
+        "wrong for it.",
+    ],
+    "warren_ultramillionaire_surtax_3pp": [
+        "The base is now AGI, on the record's own description ('3 percentage "
+        "point surtax on AGI above $2 million') and its own note ('the surtax "
+        "applies to AGI, which contains the preferential LTCG/QDIV portion'). "
+        "SOI publishes both columns and above $2,000,000 the AGI average exceeds "
+        "the taxable-income average by 18.6%, so this is a REGISTERED REGRESSION "
+        "and the largest single deterioration AGI_BASE_RULE produces: 5.2% to "
+        "24.8% over. It is kept at the honest number, because a rule that moved "
+        "a row only when the move improved it would not be a reading of the "
+        "sources.",
+        "Most of what is left is target error. The figure is secondhand - a "
+        "TPC-range estimate behind a bare taxpolicycenter.org URL, promoted from "
+        "CBO_SCORE_MAP, with no table and no page reference - on a FY2021-2030 "
+        "window scored here on FY2025-2034. It is one of the four rule-of-thumb "
+        "targets in this tier (planning/lanes/HSB_h2_base_growth.md finding 3), "
+        "and whether it is revised, examined-and-left or retired is a target "
+        "decision that belongs to the provenance ledger, not to a modelling "
+        "lane.",
+        "A single ETI (0.25) with the standard 0.5 factor erodes a 3pp surtax at "
+        "the very top by 12.5%, and published estimates of a broad-base surtax on "
+        "AGI above $2M assume a larger response at that income level, which would "
+        "take this row back down. Nothing here was tuned to it.",
     ],
     "top_rate_45": [
         "The uncalibrated path applies a single ETI (0.25) with the standard 0.5 factor, "
@@ -508,16 +612,23 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "scored, on the February 2024 vintage's own nominal path (1.3118x on the "
         "window average), which took the row 49.8% to 34.1%. It is the largest "
         "single move this row has had and it is not enough on its own.",
-        "What is left is that the base is TAXABLE INCOME, not AGI. This is an AGI "
-        "surtax and SOI publishes both columns; on the same split floors the AGI "
-        "base scored -$1,016.1B against -$723.1B before the projection, and the "
-        "same index carries that to about -$1,332.9B, roughly 7.4%. Switching it "
-        "would also move medicare_surcharge_2pp, illustrative_top_rate_5pp, "
-        "illustrative_500k_2pp and warren_ultramillionaire_surtax_3pp, none of "
-        "which has a filing-status boundary, so it is a separate change - and it "
-        "is the missing step behind the '9.1%' that "
-        "planning/HIGH_STAKES_ACCURACY.md section 1.3(c) attributes to the base "
-        "rule and the projection alone.",
+        "The base is now AGI, which is what the option says: 'a surtax of 1 "
+        "percentage point would be imposed on AGI above $20,000 for single "
+        "filers and $40,000 for joint filers'. SOI Table 1.1's rows are AGI size "
+        "classes and it publishes both columns, so this branch had been "
+        "subtracting an AGI threshold from an average of TAXABLE income - "
+        "$92,658 minus $20,000, where the single-filer AGI average above that "
+        "floor is $120,414. Reading the column the option states took the row "
+        "34.1% to 7.4% (AGI_BASE_RULE). It is applied INSIDE the filing-status "
+        "split rather than to the pooled aggregate: the split ratio here is "
+        "1.4052 where the pooled one is 1.3820, and on the 2pp alternative the "
+        "two move opposite ways.",
+        "That was the third of the three terms W7 finding 1 measured, and the "
+        "three together land at 7.4% rather than the '9.1%' "
+        "planning/HIGH_STAKES_ACCURACY.md section 1.3(c) quotes. W7 computed its "
+        "endpoints by hand on a pre-projection tree; both the growth term and "
+        "the AGI term were rebuilt as mechanisms afterwards, and a mechanism "
+        "does not have to reproduce a hand calculation to be right.",
         "The projection indexes the threshold with the base. Scaling the aggregate "
         "above a fixed nominal floor by a factor f is arithmetically the same as "
         "indexing that floor by f, so the term is a lower bound on the growth of an "
@@ -534,12 +645,18 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "the row 16.1% to 37.4%, and the old number measured the cancellation rather "
         "than the fit - the same finding fra_2023_discretionary_caps produced when "
         "spend-out landed.",
-        "The baseline's own growth is now in: the base is projected from its SOI "
-        "tax year onto each scored year at 1.3118x on the window average, taking "
-        "the row 37.4% to 17.9%. The AGI-versus-taxable base is not, and it is the "
-        "remaining term - on the split floors it scored -$824.2B before the "
-        "projection, which the same index carries to about -$1,081.1B, roughly "
-        "2.9% over. It is a separate change for the reason given on the 1pp row.",
+        "Both remaining terms are now in. The base is projected from its SOI tax "
+        "year onto each scored year at 1.3118x on the window average (37.4% to "
+        "17.9%), and it is then read from SOI's AGI column, which is what the "
+        "option says (17.9% to 2.9% OVER, crossing the target). All three terms "
+        "were measured before any of them was built and each landed where it was "
+        "pre-registered, so the 16.1% this row showed before the filing-status "
+        "split is now decomposed rather than argued about.",
+        "At 2.9% this row is the closest non-spending case in the out-of-sample "
+        "tier, and that is not evidence the AGI-inclusive family is solved: three "
+        "of the six rows carrying agi_inclusive_base keep the taxable-income "
+        "column because their own sources state it, or state a base that is "
+        "neither SOI column, and they sit at 31.8%, 20.2% and 18.3%.",
         "The thresholds are indexed after 2025 by the option's own text and the "
         "model's are not. The projection indexes them implicitly, at its own rate "
         "rather than the option's, which is a lower bound on the base of an "
@@ -1017,6 +1134,17 @@ def create_policy_from_score(
     if shape == "ordinary_rate":
         if ordinary_income_base is None:
             ordinary_income_base = not score.agi_inclusive_base
+        # The AGI column only where the record's own source states AGI, and only
+        # on the AGI-inclusive base it implies. A caller that FORCES
+        # ``ordinary_income_base=True`` - which is what ``cold_holdout.py
+        # --ordinary-base`` does to every generic row, in both directions - is
+        # asking what the ordinary treatment gives, so it gets the ordinary
+        # column too; the alternative is a contradiction TaxPolicy refuses.
+        income_measure = (
+            INCOME_MEASURE_AGI
+            if (agi_base_source_sentence(score) is not None and not ordinary_income_base)
+            else INCOME_MEASURE_TAXABLE_INCOME
+        )
         return TaxPolicy(
             name=f"Validation: {score.name}",
             description=score.description,
@@ -1034,6 +1162,7 @@ def create_policy_from_score(
             start_year=start_year,
             duration_years=10,
             ordinary_income_base=ordinary_income_base,
+            income_measure=income_measure,
         )
 
     if shape == "capital_gains":
