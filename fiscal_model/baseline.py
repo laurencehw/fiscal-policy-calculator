@@ -12,6 +12,7 @@ from typing import Any
 
 import numpy as np
 
+from . import cbo_baseline_data as cbo_data
 from .constants import BASELINE_GROWTH, GDP_RATIOS
 
 logger = logging.getLogger(__name__)
@@ -154,16 +155,61 @@ _CBO_JAN_2025_BASE_LEVELS = {
     'base_debt': 30_103.0,                  # Table B-1, "Debt held by the public"
 }
 
-#: How each vintage's numbers were obtained. ``"sourced"`` means every economic
-#: assumption and base level was transcribed from that vintage's own published
-#: tables; ``"interpolated"`` means they were manufactured from neighbouring
-#: vintages. Reporting a benchmark as "scored on the January 2025 baseline" is
-#: only honest when this says ``sourced``, so the distinction is data rather
-#: than prose and ``tests/test_baseline_vintage.py`` pins it.
-VINTAGE_SOURCING: dict[BaselineVintage, str] = {
-    BaselineVintage.CBO_FEB_2024: "sourced",
-    BaselineVintage.CBO_JAN_2025: "sourced",
-    BaselineVintage.CBO_FEB_2026: "sourced",
+def _vintage_key(vintage: BaselineVintage) -> str:
+    """The id ``fiscal_model.cbo_baseline_data`` keys a vintage by.
+
+    The enum's own ``value``, which is also the ``vintage`` column of the
+    transcription CSVs, so the two cannot drift apart silently.
+    """
+    return vintage.value
+
+
+#: How each vintage's numbers were obtained, **per line**.
+#:
+#: ``"transcribed"``
+#:     Read from that vintage's own published CBO table, through
+#:     ``fiscal_model/data_files/cbo_baseline/``. ``PROVENANCE.csv`` names the
+#:     repository, file, commit SHA and SHA-256 behind it.
+#: ``"reconstructed"``
+#:     This module's own rule. Reportable as "this model's estimate for the
+#:     <date> vintage" and **not** as "CBO's <date> figures".
+#:
+#: Computed from what the transcription actually contains rather than asserted
+#: by a literal, because the literal was wrong. Before this lane the map held
+#: one string per vintage and said ``"sourced"`` for all three, defined as
+#: "every economic assumption and base level was transcribed from that
+#: vintage's own published tables" - while February 2024's real GDP growth sits
+#: **0.60 percentage points** from CBO's own fiscal 2024-02 table, February
+#: 2026's ten-year note **falls 4.5% to 3.9% where CBO's rises 4.10% to 4.38%**,
+#: and no vintage's budget levels were transcribed at all under the app's own
+#: ``use_real_data=True`` default, which built them from eleven ``GDP_RATIOS``
+#: applied to whatever nominal GDP FRED last reported.
+#:
+#: February 2024 is ``economic: transcribed`` / ``budget: reconstructed``, and
+#: that combination is why the grade had to grow a second field:
+#: ``cbo-data``'s ``ten_year_budget`` carries 2024-06, 2025-01 and 2026-02, and
+#: June 2024 is *An Update to the Budget and Economic Outlook* (publication
+#: 60039), a different document - its FY2025 deficit is $1,937.9B against the
+#: January 2025 edition's $1,865.3B for the same year.
+def vintage_sourcing(vintage: BaselineVintage) -> dict[str, str]:
+    """``{"economic": ..., "budget": ...}`` for one vintage, computed not declared."""
+    key = _vintage_key(vintage)
+    return {
+        "economic": (
+            "transcribed" if cbo_data.has_economic_table(key) else "reconstructed"
+        ),
+        "budget": (
+            "transcribed" if cbo_data.has_budget_table(key) else "reconstructed"
+        ),
+    }
+
+
+#: Mapping surface kept for existing callers, which index it by
+#: :class:`BaselineVintage`. Each value is now the two-field record above
+#: rather than one string, so a report cannot call a vintage "sourced" when
+#: only half of it is.
+VINTAGE_SOURCING: dict[BaselineVintage, dict[str, str]] = {
+    vintage: vintage_sourcing(vintage) for vintage in BaselineVintage
 }
 
 #: Base-year corporate income tax receipts per vintage, in billions.
@@ -212,15 +258,33 @@ _VINTAGE_CORPORATE_BASE_LEVELS: dict[BaselineVintage, float] = {
 #:     model's estimate for the February 2026 vintage" and **not** as "CBO's
 #:     February 2026 corporate receipts".
 #:
-#: Two vintages are reconstructions because their annual paths cannot be
-#: obtained: cbo.gov returns HTTP 403 to this environment and the Wayback
-#: Machine holds no snapshot of the January 2025 or February 2026 budget
-#: projections workbooks (re-checked 2026-09-06). Adding one is a data edit -
-#: a block in the CSV - not a code change.
+#: All three are now ``published_path``. The note this map used to carry -
+#: *"cbo.gov returns HTTP 403 to this environment and the Wayback Machine holds
+#: no snapshot of the January 2025 or February 2026 budget projections
+#: workbooks… Adding one is a data edit - a block in the CSV - not a code
+#: change"* - was right about the remedy and wrong about the obstacle.
+#: ``github.com/US-CBO`` is not blocked, and
+#: ``cbo-data/data/budget/ten_year_budget/annual_fy_{2025-01,2026-02}.csv``
+#: carries ``proj_rev_corporate_income`` for both missing vintages. That is the
+#: data edit, and it lives in ``data_files/cbo_baseline/`` (owner decision (10)).
+#:
+#: February 2024 keeps reading ``data_files/corporate/cbo_corporate_receipts.csv``
+#: - PR #121's transcription of publication 59710 Table 1-1 - because CBO's
+#: GitHub publishes no February 2024 budget table and June 2024 is a different
+#: document. Two files, one grade, and the grade is computed below.
+def corporate_receipts_sourcing(vintage: BaselineVintage) -> str:
+    """``published_path`` when some CBO table supplies every year, else weaker."""
+    key = _vintage_key(vintage)
+    if cbo_data.has_budget_table(key):
+        return "published_path"
+    if vintage == BaselineVintage.CBO_FEB_2024:
+        # Publication 59710 Table 1-1, via fiscal_model.corporate's own loader.
+        return "published_path"
+    return "vintage_estimate"
+
+
 CORPORATE_RECEIPTS_SOURCING: dict[BaselineVintage, str] = {
-    BaselineVintage.CBO_FEB_2024: "published_path",
-    BaselineVintage.CBO_JAN_2025: "published_base_level",
-    BaselineVintage.CBO_FEB_2026: "vintage_estimate",
+    vintage: corporate_receipts_sourcing(vintage) for vintage in BaselineVintage
 }
 
 #: Citation per vintage, so a report can name the document it scored against.
@@ -240,6 +304,17 @@ VINTAGE_SOURCE_DOCUMENT: dict[BaselineVintage, str] = {
 }
 
 
+def cbo_baseline_budget(
+    vintage: BaselineVintage,
+) -> dict[str, dict[int, float]] | None:
+    """CBO's own transcribed ten-year budget table for a vintage, or ``None``.
+
+    ``None`` where CBO's GitHub publishes no budget table for that edition -
+    February 2024 today - rather than substituting a neighbouring one.
+    """
+    return cbo_data.budget_tables().get(_vintage_key(vintage)) or None
+
+
 def interpolated_jan_2025_assumptions() -> dict:
     """Pre-Phase-D fallback: interpolate Jan 2025 from its neighbouring vintages.
 
@@ -254,15 +329,55 @@ def interpolated_jan_2025_assumptions() -> dict:
     }
 
 
-def vintage_assumptions(vintage: BaselineVintage) -> dict:
-    """Economic assumptions for a vintage, transcribed from its own tables."""
-    if vintage == BaselineVintage.CBO_FEB_2024:
-        return _CBO_FEB_2024_ASSUMPTIONS
-    if vintage == BaselineVintage.CBO_JAN_2025:
-        return _CBO_JAN_2025_ASSUMPTIONS
-    if vintage == BaselineVintage.CBO_FEB_2026:
-        return _CBO_FEB_2026_ASSUMPTIONS
-    raise ValueError(f"Unknown vintage: {vintage}")
+#: First window year each vintage's hand-entered assumption block above was
+#: written for, so a transcribed replacement is read on the same years.
+#: February 2024 and January 2025 open on FY2025; February 2026 on FY2026.
+_ASSUMPTION_FIRST_YEAR: dict[BaselineVintage, int] = {
+    BaselineVintage.CBO_FEB_2024: 2025,
+    BaselineVintage.CBO_JAN_2025: 2025,
+    BaselineVintage.CBO_FEB_2026: 2026,
+}
+
+_HAND_ENTERED_ASSUMPTIONS: dict[BaselineVintage, dict] = {
+    BaselineVintage.CBO_FEB_2024: _CBO_FEB_2024_ASSUMPTIONS,
+    BaselineVintage.CBO_JAN_2025: _CBO_JAN_2025_ASSUMPTIONS,
+    BaselineVintage.CBO_FEB_2026: _CBO_FEB_2026_ASSUMPTIONS,
+}
+
+
+def vintage_assumptions(
+    vintage: BaselineVintage, first_year: int | None = None
+) -> dict:
+    """Economic assumptions for a vintage, from its own published CBO table.
+
+    Reads ``fiscal_model/data_files/cbo_baseline/cbo_economic_baseline.csv``,
+    which is CBO's **fiscal-year** forecast for this vintage's own edition -
+    ``real_gdp_pct_change``, ``pce_price_index_pct_change``,
+    ``unemployment_rate``, ``treasury_note_rate_10yr`` and ``lfpr_16yo``,
+    stored as fractions. The hand-entered blocks above are the documented
+    fallback for a vintage with no transcribed block, and
+    :func:`vintage_sourcing` says which path was taken.
+
+    The blocks the transcription replaces were not close on two of the three
+    vintages. Measured over the ten-year window, February 2024's real GDP
+    growth was out by up to **0.60pp** and its labour force participation by
+    **1.05pp**; February 2026's ten-year Treasury note **fell 4.5% to 3.9%
+    where CBO's own table rises 4.10% to 4.38%**. January 2025's residual is
+    at most 0.11pp and is the calendar/fiscal basis: PR #118 transcribed it off
+    CBO's *calendar* sheet and this file reads the fiscal one, because every
+    budget quantity in this module is fiscal-year.
+    """
+    if vintage not in _HAND_ENTERED_ASSUMPTIONS:
+        raise ValueError(f"Unknown vintage: {vintage}")
+
+    start = first_year if first_year is not None else _ASSUMPTION_FIRST_YEAR[vintage]
+    try:
+        transcribed = cbo_data.assumption_arrays(_vintage_key(vintage), start)
+    except KeyError:
+        return _HAND_ENTERED_ASSUMPTIONS[vintage]
+
+    fallback = _HAND_ENTERED_ASSUMPTIONS[vintage]
+    return {key: transcribed.get(key, fallback[key]) for key in fallback}
 
 
 #: Backwards-compatible alias. The name is now a misnomer - only the fallback
@@ -324,6 +439,15 @@ class BaselineProjection:
     #: built by hand rather than by :meth:`CBOBaseline.generate`, which is what
     #: makes the index degrade to 1.0 rather than guess.
     base_nominal_gdp: float = 0.0
+    #: This vintage's own published fiscal-year nominal GDP levels, keyed by
+    #: fiscal year, where CBO publishes them. Read by
+    #: :meth:`nominal_income_index` for a year outside the scoring window - the
+    #: SOI anchor is a tax year several years back - so a level CBO prints is
+    #: read rather than back-extrapolated from the window's first growth rate.
+    #: Empty on a hand-built projection and on a vintage with no transcribed
+    #: economic table, in which case the extrapolation rule below applies
+    #: unchanged.
+    published_nominal_gdp: dict[int, float] = field(default_factory=dict)
 
     # Revenue categories
     individual_income_tax: np.ndarray = field(default_factory=lambda: np.zeros(10))
@@ -382,13 +506,19 @@ class BaselineProjection:
         Read-only. Built entirely from figures this projection already carries,
         so it introduces no constant and nothing fitted:
 
+        * ``start_year + i`` is ``nominal_gdp[i]``, that vintage's own path -
+          CBO's published fiscal-year nominal GDP where it exists, and its
+          transcribed ``real_gdp_growth + inflation`` compounded off
+          :attr:`base_nominal_gdp` where it does not;
+        * any other year CBO publishes is read from
+          :attr:`published_nominal_gdp` - this extends the rule below to every
+          published pre-window year rather than only to ``start_year - 1``, and
+          it matters because the SOI anchor is a tax year several years before
+          the window;
         * ``start_year - 1`` is :attr:`base_nominal_gdp`, the level the
-          vintage's own Table B-1 publishes for the year before the window;
-        * ``start_year + i`` is ``nominal_gdp[i]``, that vintage's own projected
-          path, which is its transcribed ``real_gdp_growth + inflation``
-          compounded off the same level;
-        * outside both, the nearest observed growth rate is continued - the rule
-          :func:`fiscal_model.payroll.covered_earnings` and
+          vintage's own table publishes for the year before the window;
+        * outside all of those, the nearest observed growth rate is continued -
+          the rule :func:`fiscal_model.payroll.covered_earnings` and
           :meth:`CBOBaseline._published_corporate_receipts` already apply at the
           ends of their own tables.
 
@@ -408,6 +538,10 @@ class BaselineProjection:
 
         if first_year <= year <= last_year:
             return float(gdp[year - first_year])
+
+        published = self.published_nominal_gdp
+        if published and year in published:
+            return float(published[year])
 
         if year > last_year:
             if gdp.size < 2 or gdp[-2] <= 0:
@@ -481,7 +615,7 @@ class CBOBaseline:
             self.baseline_vintage = vintage
 
         # Load appropriate assumptions for this vintage
-        assumptions_dict = _interpolate_assumptions(self.baseline_vintage)
+        assumptions_dict = vintage_assumptions(self.baseline_vintage)
         self.assumptions = EconomicAssumptions(
             real_gdp_growth=assumptions_dict['real_gdp_growth'],
             inflation=assumptions_dict['inflation'],
@@ -516,8 +650,54 @@ class CBOBaseline:
 
     @property
     def baseline_vintage_sourcing(self) -> str:
-        """``"sourced"`` or ``"interpolated"`` for this vintage's own figures."""
-        return VINTAGE_SOURCING.get(self.baseline_vintage, "unknown")
+        """One word for this vintage's figures, the weaker of its two lines.
+
+        ``"transcribed"`` only when **both** the economic path and the budget
+        levels come from CBO's own published table for this edition;
+        ``"partial"`` when one does and the other does not — February 2024,
+        whose economic forecast CBO's GitHub publishes and whose budget table
+        it does not; ``"reconstructed"`` when neither does.
+
+        Deliberately the weaker of the two, so a one-word report cannot read as
+        a claim about the half that is not transcribed. Callers that need to
+        know which half should read :attr:`vintage_sourcing_detail`.
+        """
+        detail = self.vintage_sourcing_detail
+        grades = {detail.get("economic"), detail.get("budget")}
+        if grades == {"transcribed"}:
+            return "transcribed"
+        if "transcribed" in grades:
+            return "partial"
+        return "reconstructed"
+
+    @property
+    def vintage_sourcing_detail(self) -> dict[str, str]:
+        """``{"economic": ..., "budget": ...}`` — see :func:`vintage_sourcing`."""
+        return vintage_sourcing(self.baseline_vintage)
+
+    @property
+    def vintage_provenance(self) -> dict[str, dict[str, str]]:
+        """Repository, file, commit, digest and fetch date, per transcribed line.
+
+        Empty for a line CBO's GitHub publishes nothing for, which is what
+        makes the grade above checkable against the data rather than against a
+        constant.
+        """
+        key = _vintage_key(self.baseline_vintage)
+        out: dict[str, dict[str, str]] = {}
+        for kind in ("economic", "budget"):
+            record = cbo_data.provenance().get((key, kind))
+            if record is None or not record.transcribed:
+                continue
+            out[kind] = {
+                "repository": record.repository,
+                "file_path": record.file_path,
+                "commit_sha": record.commit_sha,
+                "sha256": record.sha256,
+                "fetch_date": record.fetch_date,
+                "publication": record.publication,
+            }
+        return out
 
     @property
     def corporate_receipts_sourcing(self) -> str:
@@ -538,6 +718,8 @@ class CBOBaseline:
             "vintage": self.baseline_vintage.value,
             "vintage_date": self.baseline_vintage_date,
             "vintage_sourcing": self.baseline_vintage_sourcing,
+            "vintage_sourcing_detail": self.vintage_sourcing_detail,
+            "vintage_provenance": self.vintage_provenance,
             "corporate_receipts_sourcing": self.corporate_receipts_sourcing,
             "vintage_source_document": VINTAGE_SOURCE_DOCUMENT.get(
                 self.baseline_vintage, "unknown"
@@ -593,11 +775,11 @@ class CBOBaseline:
         # all three vintages returned the identical corporate base under the
         # app's own default while the fallback path returned three different
         # ones. The two paths now read one map. Note that the other base levels
-        # below still carry the same defect, deliberately and with a written
-        # carry-over: no vintage-specific published table for them can be
-        # reached from this environment, and replacing one unsourced rule with
-        # another is not an improvement. See
-        # ``planning/lanes/FIX_baseline_corporate_path.md`` sections 1.2-1.3.
+        # below still carry the same defect for a vintage with no transcribed
+        # budget table - February 2024 - and for the two that have one they are
+        # overwritten a few lines down, because ``generate()`` never reads them:
+        # where CBO publishes the annual path, that path IS the projection.
+        # See ``planning/lanes/R1_baseline_transcription.md`` section 1.3.
         self.base_corporate_tax = _VINTAGE_CORPORATE_BASE_LEVELS[self.baseline_vintage]
 
         # Payroll tax: Historical average share of GDP
@@ -616,6 +798,43 @@ class CBOBaseline:
 
         # Debt: Current debt-to-GDP ratio
         self.base_debt = self.base_gdp * GDP_RATIOS["debt_to_gdp"]
+
+        # The GDP anchor comes from CBO's own table where one exists. The
+        # ratios above are not deleted - they remain the documented rule for a
+        # vintage with no published budget table, and February 2024 still uses
+        # them - but they now sit on that vintage's own GDP rather than on
+        # whatever nominal GDP FRED last reported.
+        self._adopt_published_gdp_anchor()
+
+    def _adopt_published_gdp_anchor(self) -> None:
+        """Anchor ``base_gdp`` on CBO's own level for this vintage's base year.
+
+        Both loader paths call this, so ``use_real_data=True`` and
+        ``use_real_data=False`` cannot disagree about what year a vintage
+        starts from - the class of defect PR #130 found in the corporate line,
+        where the two paths were 8.6% and 35.5% apart on two vintages.
+
+        What it replaces is worse than a disagreement. Under
+        ``use_real_data=True`` - the app's default - ``base_gdp`` was **FRED's
+        latest nominal GDP for every vintage alike**, so February 2024's "base
+        year" was today's economy, and the nine ``GDP_RATIOS`` spending and
+        revenue levels were all built off it. Under ``use_real_data=False`` it
+        was a round literal: 30,300 for February 2026 against CBO's own FY2025
+        30,330.3, and 28,500 for February 2024 against CBO's FY2024 28,176.6.
+
+        The **budget** base levels are deliberately left alone. For a vintage
+        with a transcribed budget table ``generate()`` reads that table and
+        never touches them; for one without, they are the documented
+        reconstruction. Overwriting them would also have forced a base-year
+        decision this lane has no reason to take - ``_CBO_JAN_2025_BASE_LEVELS``
+        is FY2025 while ``_project_*`` treats its base as ``start_year - 1`` -
+        and that ambiguity is a carry-over, not something to settle in passing.
+        """
+        gdp = cbo_data.nominal_gdp_table(_vintage_key(self.baseline_vintage))
+        if not gdp:
+            return
+        self.base_gdp = float(cbo_data.series(gdp, self.start_year - 1, 1)[0])
+        self.gdp_source = "cbo_published_table"
 
     def _use_hardcoded_fallback(self):
         """Use hardcoded baseline values (fallback when data unavailable)."""
@@ -663,6 +882,11 @@ class CBOBaseline:
             self.base_nondefense = 780  # Nondefense discretionary
             self.base_debt = 29700  # Debt held by public (~98% of GDP)
 
+        # Same call the real-data path makes, so the two cannot disagree about
+        # a vintage's base year. The literals above survive for a vintage CBO's
+        # GitHub publishes no economic table for.
+        self._adopt_published_gdp_anchor()
+
     def generate(self) -> BaselineProjection:
         """Generate a 10-year baseline projection."""
         proj = BaselineProjection(
@@ -670,13 +894,32 @@ class CBOBaseline:
             years=self.years.copy()
         )
 
-        # Generate GDP path. ``base_gdp`` is the level for ``start_year - 1``,
-        # which ``_project_gdp`` compounds the first window year off; carrying
-        # it lets ``nominal_income_index`` reach a year before the window
-        # without extrapolating one the vintage already publishes.
-        proj.nominal_gdp = self._project_gdp()
+        # Generate GDP path. Where CBO publishes this vintage's own fiscal-year
+        # nominal GDP, that path **is** the projection and ``base_gdp`` plays no
+        # part in it; ``base_nominal_gdp`` then becomes CBO's own level for
+        # ``start_year - 1`` rather than whatever nominal GDP FRED last
+        # reported, which is what the reconstruction used for every vintage
+        # alike. ``published_gdp`` is also handed to the projection so
+        # ``nominal_income_index`` can read a published pre-window year instead
+        # of back-extrapolating one.
+        published_gdp = cbo_data.nominal_gdp_table(_vintage_key(self.baseline_vintage))
+        if published_gdp:
+            proj.nominal_gdp = cbo_data.series(published_gdp, self.start_year, 10)
+            proj.base_nominal_gdp = float(
+                cbo_data.series(published_gdp, self.start_year - 1, 1)[0]
+            )
+            proj.published_nominal_gdp = dict(published_gdp)
+        else:
+            # ``base_gdp`` is the level for ``start_year - 1``, which
+            # ``_project_gdp`` compounds the first window year off.
+            proj.nominal_gdp = self._project_gdp()
+            proj.base_nominal_gdp = float(self.base_gdp)
         proj.real_gdp = self._project_real_gdp()
-        proj.base_nominal_gdp = float(self.base_gdp)
+
+        budget = self._published_budget_path()
+        if budget is not None:
+            self._apply_published_budget(proj, budget)
+            return proj
 
         # Generate revenues
         proj.individual_income_tax = self._project_individual_tax()
@@ -697,6 +940,77 @@ class CBOBaseline:
         proj.net_interest = self._project_interest(proj)
 
         return proj
+
+    def _published_budget_path(self) -> dict[str, dict[int, float]] | None:
+        """CBO's own ten-year budget table for this vintage, or ``None``.
+
+        ``None`` for a vintage CBO's GitHub publishes no budget table for -
+        February 2024 today - rather than borrowing a neighbouring edition's
+        numbers, which is the behaviour that keeps a provenance claim honest.
+        The caller falls back to the reconstruction and
+        :func:`vintage_sourcing` says it did.
+        """
+        return cbo_baseline_budget(self.baseline_vintage)
+
+    def _apply_published_budget(
+        self, proj: BaselineProjection, budget: dict[str, dict[int, float]]
+    ) -> None:
+        """Stamp CBO's own budget path onto ``proj``.
+
+        Where CBO publishes the annual path, that path **is** the projection:
+        no base level, no growth rule, no premium. That is exactly the shape
+        :meth:`_project_corporate_tax` has carried since PR #130, generalised
+        from one line to all of them.
+
+        Two mappings are not one-to-one and both are documented at the
+        transcription rather than invented here (see
+        ``scripts/fetch_cbo_baseline.py``):
+
+        * **Net programme levels.** CBO prints Social Security and Medicare
+          gross and puts their offsetting receipts on separate, negative lines;
+          this class's categories are net, so the two are added.
+        * **``other_mandatory`` is a residual** against CBO's own
+          ``proj_outlays_total``. That makes :attr:`~BaselineProjection.deficit`
+          reproduce CBO's printed figure to the rounding of the source whatever
+          basis a component was published on - the February 2026 vintage's
+          FY2026-2035 deficits sum to **$23,143.30B** against CBO's own
+          $23,143.3B - and it is the only line whose definition is this
+          module's rather than CBO's.
+        """
+        start, count = self.start_year, 10
+
+        def line(name: str) -> np.ndarray:
+            table = budget.get(name)
+            if not table:
+                return np.zeros(count)
+            return cbo_data.series(table, start, count)
+
+        proj.individual_income_tax = line("individual_income_tax")
+        proj.corporate_income_tax = line("corporate_income_tax")
+        proj.payroll_taxes = line("payroll_taxes")
+        # February 2026 splits customs duties out of "other"; earlier editions
+        # do not, and the absent line contributes zero.
+        proj.other_revenues = line("other_revenues_core") + line("other_revenues_customs")
+
+        social_security = line("social_security_gross") + line("social_security_offset")
+        medicare = line("medicare_gross") + line("medicare_offset")
+        medicaid = line("medicaid")
+        proj.social_security = social_security
+        proj.medicare = medicare
+        proj.medicaid = medicaid
+
+        proj.defense_discretionary = line("defense_discretionary")
+        proj.nondefense_discretionary = line("nondefense_discretionary")
+        proj.net_interest = line("net_interest")
+        proj.other_mandatory = (
+            line("outlays_total")
+            - line("discretionary_total")
+            - line("net_interest")
+            - social_security
+            - medicare
+            - medicaid
+        )
+        proj.debt_held_by_public = line("debt_held_by_public")
 
     def _project_gdp(self) -> np.ndarray:
         """Project nominal GDP."""
@@ -951,6 +1265,8 @@ class CBOBaseline:
             nondefense_discretionary=baseline.nondefense_discretionary.copy(),
             net_interest=baseline.net_interest.copy(),
             debt_held_by_public=baseline.debt_held_by_public.copy(),
+            base_nominal_gdp=baseline.base_nominal_gdp,
+            published_nominal_gdp=dict(baseline.published_nominal_gdp),
         )
 
         # Apply changes

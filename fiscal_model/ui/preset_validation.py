@@ -176,11 +176,16 @@ HEADLINE_ROW_DIVERGENCE: dict[str, tuple[str, str]] = {
         "+4.2 is the app's FY2026 window (PR #115) and 12.3% the runner's own "
         "policy build.",
     ),
-    "top-rate-39-6": (
-        "runner_shape",
-        "app -216.5 vs row -223.3 (3.1%): -194.8 on the validation window, so "
-        "+21.6 is the window and 12.7% the runner's own policy build.",
-    ),
+    # ``top-rate-39-6`` was here at 3.1%, "+21.6 is the window and 12.7% the
+    # runner's own policy build". R1
+    # (``planning/lanes/R1_baseline_transcription.md``) closed it to **0.80%**,
+    # below the 1% tolerance, so the entry is deleted rather than kept as a
+    # standing exemption. Read the convergence for what it is: both sides moved
+    # when the vintage's nominal path became CBO's own, and they moved by
+    # nearly the same proportion because they share the projection - the app on
+    # FY2026-2035 and the runner on the validation window. It is the *window*
+    # term of that 3.1% that shrank, not the runner's policy build, which is
+    # untouched.
     "salt-cap-repeal": (
         "baseline",
         "app +740.3 vs row +1,155.6 (35.9%): the app scores current law and "

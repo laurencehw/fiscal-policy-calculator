@@ -243,7 +243,7 @@ jobs:
             agi_inclusive_surtax=7 ordinary_rate_change=15 \
             capital_gains=24 corporate=56 \
             enacted_law_spending=10 discretionary_spending=6 \
-            payroll=10 tax_expenditure=17
+            payroll=10 tax_expenditure=16
 
       # Tier 2 (leave-one-out). Holds out one calibrated benchmark at a time and
       # asks whether the module's structural machinery — calibrated on the others

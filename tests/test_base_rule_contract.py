@@ -339,14 +339,17 @@ def test_the_millionaire_surtax_says_its_base_is_a_design_choice():
 #:
 #: Both halves are **1.355952x** the figures this lane first shipped, because
 #: the base-growth lane (``planning/lanes/HSB_h2_base_growth.md``) then projected
-#: the SOI base onto the years being scored. The ratio between them - the only
-#: thing this caption is about - is untouched: the projection multiplies the
-#: finished annual and the ordinary-income share multiplies the base, so the two
-#: commute.
+#: the SOI base onto the years being scored, and **1.029683x** those again since
+#: ``planning/lanes/R1_baseline_transcription.md`` replaced the reconstructed
+#: February 2026 GDP path with CBO's own published one, which ages the base
+#: 1.3963x across FY2026-2035 rather than 1.3560x. The ratio between the two
+#: halves - the only thing this caption is about - is untouched by either: the
+#: projection multiplies the finished annual and the ordinary-income share
+#: multiplies the base, so the two commute.
 CAPTION_MOVES = {
-    "Warren Ultra-Millionaire Surtax": (-182.528171, -384.371018),
-    "High-Earner Medicare Surcharge 2pp": (-225.770397, -426.625964),
-    "Progressive Millionaire Tax": (-480.867780, -878.781709),
+    "Warren Ultra-Millionaire Surtax": (-187.951449, -395.792194),
+    "High-Earner Medicare Surcharge 2pp": (-232.472418, -439.315472),
+    "Progressive Millionaire Tax": (-495.180000, -904.920081),
 }
 
 #: What each of them actually scores now. It equals ``CAPTION_MOVES[...][1]``
@@ -361,9 +364,9 @@ CAPTION_MOVES = {
 #: total this tree produces. The alternative, each caption claiming the whole
 #: gap, would print two different "used to print" numbers for one preset.
 SCORED_TOTALS = {
-    "Warren Ultra-Millionaire Surtax": -456.006646,
-    "High-Earner Medicare Surcharge 2pp": -426.625964,
-    "Progressive Millionaire Tax": -878.781709,
+    "Warren Ultra-Millionaire Surtax": -469.570050,
+    "High-Earner Medicare Surcharge 2pp": -439.315472,
+    "Progressive Millionaire Tax": -904.920081,
 }
 
 

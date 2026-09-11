@@ -13,12 +13,12 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from fiscal_model import cbo_baseline_data as cbo_data
 from fiscal_model.baseline import (
     APP_DEFAULT_START_YEAR,
     BaselineProjection,
     BaselineVintage,
     CBOBaseline,
-    vintage_assumptions,
 )
 from fiscal_model.policies import PolicyType, TaxPolicy
 from fiscal_model.scoring import FiscalPolicyScorer
@@ -73,31 +73,53 @@ def test_index_at_the_year_before_the_window_is_the_published_base_level():
     assert proj.nominal_income_index(2025) == pytest.approx(proj.base_nominal_gdp)
 
 
-def test_index_ratios_are_the_vintages_growth_assumptions_and_nothing_else():
-    """The level cancels, so the index carries no FRED anchor into a score."""
+def test_index_ratios_are_cbos_own_published_nominal_growth():
+    """The level cancels, so the index carries no FRED anchor into a score.
+
+    Since ``planning/lanes/R1_baseline_transcription.md`` the path is CBO's own
+    fiscal-year nominal GDP rather than this module's ``real_gdp_growth +
+    inflation``, and the two are **not** the same series: the second adds a
+    real rate to a **PCE** price index, where CBO's ``gdp_pct_change`` is the
+    nominal path itself. On the February 2024 vintage's FY2026 step the
+    reconstruction gave 4.392% against CBO's own 4.263%.
+
+    So the assertion is stronger than it was: the index's year-on-year ratio is
+    CBO's published growth rate, to twelve digits.
+    """
     for vintage in BaselineVintage:
-        assumptions = vintage_assumptions(vintage)
-        nominal = np.asarray(assumptions["real_gdp_growth"]) + np.asarray(
-            assumptions["inflation"]
-        )
+        published = cbo_data.nominal_gdp_table(vintage.value)
+        assert published, vintage
         proj = CBOBaseline(
             start_year=2025, use_real_data=True, vintage=vintage
         ).generate()
-        for offset in range(1, 10):
-            ratio = proj.nominal_income_index(2025 + offset) / proj.nominal_income_index(
-                2024 + offset
+        for year in range(2026, 2034):
+            if year not in published or year - 1 not in published:
+                continue
+            ratio = proj.nominal_income_index(year) / proj.nominal_income_index(
+                year - 1
             )
-            assert ratio == pytest.approx(1.0 + nominal[offset], rel=1e-12)
+            assert ratio == pytest.approx(
+                published[year] / published[year - 1], rel=1e-12
+            ), (vintage, year)
 
 
-def test_index_extrapolates_at_both_ends_at_the_nearest_observed_rate():
+def test_index_reads_a_published_pre_window_year_rather_than_extrapolating():
+    """R1's one extension to the rule, and the rule where CBO stops.
+
+    A year CBO publishes is read. Outside the published table the nearest
+    observed growth rate is still continued, which is the behaviour
+    ``payroll.covered_earnings`` and ``corporate.cbo_corporate_receipts`` share.
+    """
     proj = CBOBaseline(
         start_year=2025, use_real_data=True, vintage=BaselineVintage.CBO_FEB_2024
     ).generate()
-    first_growth = proj.nominal_gdp[0] / proj.base_nominal_gdp - 1.0
-    assert proj.nominal_income_index(2023) == pytest.approx(
-        proj.base_nominal_gdp / (1.0 + first_growth)
-    )
+    published = cbo_data.nominal_gdp_table("cbo_feb_2024")
+
+    # Published: read, not rebuilt.
+    assert proj.nominal_income_index(2023) == pytest.approx(published[2023])
+    assert proj.nominal_income_index(2021) == pytest.approx(published[2021])
+
+    # Past the end of CBO's table (February 2024 stops at FY2034): extrapolated.
     last_growth = proj.nominal_gdp[-1] / proj.nominal_gdp[-2] - 1.0
     assert proj.nominal_income_index(2035) == pytest.approx(
         proj.nominal_gdp[-1] * (1.0 + last_growth)
@@ -407,10 +429,10 @@ def test_the_two_captions_are_a_2x2_and_it_closes():
     ordinary_projected = agi_projected * (1.0 - pref)
     ordinary_flat = ordinary_projected * (agi_flat / agi_projected)
 
-    assert shipped == pytest.approx(-456.0066, abs=5e-4)
-    assert agi_projected == pytest.approx(-384.3710, abs=5e-4)
+    assert shipped == pytest.approx(-469.5700, abs=5e-4)
+    assert agi_projected == pytest.approx(-395.80370, abs=5e-4)
     assert agi_flat == pytest.approx(-283.4695, abs=5e-4)
-    assert ordinary_projected == pytest.approx(-182.5282, abs=5e-4)
+    assert ordinary_projected == pytest.approx(-187.95727, abs=5e-4)
     assert ordinary_flat == pytest.approx(-134.6126, abs=5e-4)
 
     # The flat/projected ratio is exactly this lane's window-mean index inverted.
