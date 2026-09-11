@@ -47,16 +47,44 @@ transcribed; its budget levels stay the reconstruction they were, and
 :data:`fiscal_model.baseline.VINTAGE_SOURCING` says so per line rather than
 claiming one grade for the vintage as a whole.
 
+WHAT A PIN IS A PIN OF
+----------------------
+Every SHA-256 recorded below is the digest of **the bytes
+``raw.githubusercontent.com`` serves for that commit**, read in binary and
+hashed before anything decodes them.
+
+That sentence is the whole of this section, and it is here because the first
+version of this script got it wrong. Its six digests were taken from a ``git
+clone``'s *working tree* on Windows, where ``core.autocrlf=true`` -- the
+platform default -- rewrites every LF to CRLF on checkout. All six therefore
+failed to reproduce from their own pinned URLs, each by exactly one byte per
+line, and the defect stayed invisible because the only path that ever
+recomputed a digest read that same converted clone. A pin that can only be
+verified against the machine that minted it is not a pin.
+
+Two things keep it fixed. ``--offline-check`` hashes the vendored copies under
+``sources/`` against the table below with no network at all, so CI verifies the
+pin on every run; and ``sources/.gitattributes`` marks those copies ``-text``,
+so no checkout can convert them again.
+
 USAGE
 -----
-    python scripts/fetch_cbo_baseline.py                 # verify, rewrite
-    python scripts/fetch_cbo_baseline.py --check         # verify only, no write
-    python scripts/fetch_cbo_baseline.py --source-dir D  # read clones under D
+    python scripts/fetch_cbo_baseline.py                  # fetch, verify, rewrite
+    python scripts/fetch_cbo_baseline.py --check          # fetch and verify only
+    python scripts/fetch_cbo_baseline.py --offline-check  # verify pins, no network
+    python scripts/fetch_cbo_baseline.py --save-sources   # rewrite, refresh sources/
+    python scripts/fetch_cbo_baseline.py --source-dir D   # read clones under D
 
-With no ``--source-dir`` the script fetches each pinned file over HTTPS from
-``raw.githubusercontent.com``. Every fetch is checked against the SHA-256
-recorded below, so a silently re-tagged file fails loudly instead of rewriting
-the repository's baseline.
+By default the script fetches each pinned file over HTTPS. Every fetch is
+checked against the recorded SHA-256, so a silently re-tagged file fails loudly
+instead of rewriting the repository's baseline. ``--source-dir`` reads a local
+tree instead -- ``sources/`` is one, so
+``--source-dir fiscal_model/data_files/cbo_baseline/sources`` transcribes the
+whole thing offline -- but the pin it is checked against is still the served
+bytes' digest, so a clone whose checkout converted line endings fails here
+rather than minting a new pin. That is the point. (``sources/`` stores each
+file under one flattened name rather than mirroring the upstream layout; see
+:func:`_local_path` for the reason, which is not cosmetic.)
 """
 
 from __future__ import annotations
@@ -72,6 +100,11 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = PROJECT_ROOT / "fiscal_model" / "data_files" / "cbo_baseline"
+
+#: Verbatim copies of the pinned files. Written by ``--save-sources`` in binary
+#: and marked ``-text`` in ``sources/.gitattributes``, so what is committed is
+#: byte for byte what the URL served.
+SOURCE_CACHE = OUT_DIR / "sources"
 
 #: Date the pinned commits below were fetched and their digests recorded.
 FETCH_DATE = "2026-09-11"
@@ -139,21 +172,45 @@ VINTAGES = {
     },
 }
 
-#: SHA-256 of each pinned source file, recorded on ``FETCH_DATE``.
+#: SHA-256 of the bytes each pinned URL serves, recorded on ``FETCH_DATE``.
+#:
+#: Not the digest of a checkout: see "WHAT A PIN IS A PIN OF" above. The six
+#: values this table shipped with until this commit were digests of a Windows
+#: working tree, and every one of them was the digest of *these* bytes with LF
+#: rewritten to CRLF -- a transformation ``_diagnose`` below can still name, so
+#: that the next person to hit this reads the cause instead of guessing it.
+#: Each was cross-checked against ``gh api repos/US-CBO/<repo>/contents/<path>
+#: ?ref=<sha>``, which returned identical bytes, and against git's own blob
+#: SHA-1 for the file, which matches the LF form and not the CRLF one -- so LF
+#: is what CBO committed, and CRLF was only ever this machine's rendering of it.
 DIGESTS = {
     "cbo-data/data/budget/ten_year_budget/annual_fy_2025-01.csv":
-        "076faf484f8c7ebeb59042323ecef5875d8e4830f85336958b3112a5fc7e6c69",
+        "183d904b2c562ba565a9a679735549877bfa26e042f18656dbd0f1103d889843",
     "cbo-data/data/budget/ten_year_budget/annual_fy_2026-02.csv":
-        "c1c3f7f62d481aba1d26f0e30b673796b82a76beda3ae40a5a807ec17b550b31",
+        "6a2d727e70fb53512e45afdcc8d145f7dc952b2d4e87ca03591cb4e5bd63f0db",
     "cbo-data/data/economic/economic_projections/fiscal_2024-02.csv":
-        "0814e9a029d6e75b8e2d92993f4b297ce6ea49b51ef127e250f99b1115e12126",
+        "6781e433f38a0e2db09fbc66ca63ae046a3de9e7b9577f1f8dcdbf1f60a7936b",
     "cbo-data/data/economic/economic_projections/fiscal_2025-01.csv":
-        "4324a5989c0b52c473a70f8e407e395b746c93c0e50ddf88c77559edcc6acdc1",
+        "2776f4abe4de5582ba1baf626f0ac6efa2ad897967a1009b465d732fa1a5d391",
     "cbo-data/data/economic/economic_projections/fiscal_2026-02.csv":
-        "b5b2412a84434711a485bfb6fe4056e14139064c3c9fce731e49e33153cfd016",
+        "b157c22a34225d153c4182e701163db837bc5129850b4375b2b01015a1833d87",
     "budgetary-feedback-model/input/budget_baseline.csv":
-        "6d646f4cbfe770a6ba35c397458fb338c8b046579bb1e6019024f5e5fa173a7a",
+        "dbe41765ae567e513d9c4d78033106165098208bc6fc81e6f32a657ec1b74f2d",
 }
+
+#: What the current run actually read, keyed as ``DIGESTS`` is.
+#:
+#: ``DIGESTS`` is a constant and is never assigned to at runtime. The old code
+#: wrote each read digest back into it, which is precisely how a wrong pin gets
+#: minted: run the script once against whatever happens to be on disk, read the
+#: digests off its own output, paste them in, and the table now records the
+#: machine rather than the source.
+READ_DIGESTS: dict[str, str] = {}
+
+#: Set by ``--save-sources``. Refreshing the vendored copies is deliberate, not
+#: a side effect of every run, or a run against a re-tagged upstream would
+#: quietly replace the evidence the pin is checked against.
+_SAVE_SOURCES = False
 
 # ----------------------------------------------------------------- variables
 
@@ -241,24 +298,114 @@ def _raw_url(repo: str, path: str) -> str:
     return f"https://raw.githubusercontent.com/US-CBO/{repo}/{commit}/{path}"
 
 
+def _local_path(repo: str, path: str, source_dir: Path) -> Path:
+    """Where one pinned file sits under ``source_dir``.
+
+    A ``--source-dir`` is a tree of clones and mirrors the upstream layout.
+    ``SOURCE_CACHE`` deliberately does not: it stores each file under a single
+    flattened name, because the upstream path contains a directory literally
+    called ``data`` and this repository's ``.gitignore`` excludes ``data/`` at
+    any depth. A mirrored cache committed **one of six files** and left the
+    other five untracked -- every check passing locally, where the files are on
+    disk, and failing in CI, where they are not. The offline pin test is what
+    catches that now, and the flattening is what stops it happening.
+    """
+    if source_dir == SOURCE_CACHE:
+        return source_dir / repo / path.replace("/", "__")
+    return source_dir / repo / path
+
+
+def _diagnose(raw: bytes, recorded: str) -> str:
+    """Name the transformation that turns what was read into the recorded pin.
+
+    A bare "digest differs" leaves the reader unable to tell a re-tagged
+    upstream file -- which must fail -- from a local rendering of the right
+    one, which is a machine problem. Each candidate below is a rendering, so a
+    hit means the *bytes* are right and the way they were obtained is not.
+    """
+    lf = raw.replace(b"\r\n", b"\n")
+    candidates = (
+        ("the same bytes with LF rewritten to CRLF: the file was read from a "
+         "checkout on a machine with core.autocrlf=true, not from the URL",
+         lf.replace(b"\n", b"\r\n")),
+        ("the same bytes with CRLF rewritten to LF", lf),
+        ("the same bytes with a UTF-8 BOM prepended", b"\xef\xbb\xbf" + raw),
+        ("the same bytes without their final newline", raw.rstrip(b"\r\n")),
+    )
+    for description, candidate in candidates:
+        if hashlib.sha256(candidate).hexdigest() == recorded:
+            return f"\n  The recorded digest is that of {description}."
+    return ""
+
+
 def read_source(repo: str, path: str, source_dir: Path | None) -> str:
-    """Return one pinned file's text, verifying its SHA-256 where recorded."""
+    """Return one pinned file's text, verifying its SHA-256 against the pin.
+
+    The bytes are read in binary and hashed before anything decodes them, so
+    the digest is of the file as published rather than of some local rendering
+    of it. There is no text-mode read anywhere on this path, and there must not
+    be: ``open(..., "r")`` on Windows collapses CRLF to LF, which is how a
+    digest can silently describe a file nobody can fetch.
+    """
     key = f"{repo}/{path}"
-    if source_dir is not None:
-        raw = (source_dir / repo / path).read_bytes()
-    else:
-        with urllib.request.urlopen(_raw_url(repo, path), timeout=120) as fh:
-            raw = fh.read()
-    digest = hashlib.sha256(raw).hexdigest()
+    # Asked before anything is read, not after: an unpinned file is refused
+    # rather than fetched and then judged.
     recorded = DIGESTS.get(key)
-    if recorded is not None and digest != recorded:
+    if recorded is None:
         raise SystemExit(
-            f"SHA-256 mismatch for {key}\n  recorded {recorded}\n  read     {digest}\n"
-            "The pinned commit's file changed, or the wrong file was read. "
+            f"{key} is not pinned.\n"
+            "Add its digest to DIGESTS deliberately, from a network fetch. A "
+            "digest the script mints from whatever it was handed is not a pin. "
             "Nothing was written."
         )
-    DIGESTS[key] = digest
+    if source_dir is not None:
+        origin = _local_path(repo, path, source_dir)
+        raw = origin.read_bytes()
+    else:
+        origin = _raw_url(repo, path)
+        with urllib.request.urlopen(origin, timeout=120) as fh:
+            raw = fh.read()
+    digest = hashlib.sha256(raw).hexdigest()
+    if digest != recorded:
+        raise SystemExit(
+            f"SHA-256 mismatch for {key}\n  read from {origin}\n"
+            f"  recorded {recorded}\n  read     {digest}"
+            f"{_diagnose(raw, recorded)}\n"
+            "The pinned commit's file changed, or the wrong bytes were read. "
+            "Nothing was written."
+        )
+    READ_DIGESTS[key] = digest
+    if _SAVE_SOURCES:
+        cached = _local_path(repo, path, SOURCE_CACHE)
+        cached.parent.mkdir(parents=True, exist_ok=True)
+        cached.write_bytes(raw)
     return raw.decode("utf-8-sig")
+
+
+def offline_check() -> list[str]:
+    """Verify every pin against the vendored copies, with no network.
+
+    This is what CI runs. It proves the recorded digests are the digests of
+    bytes this repository actually holds; the network test in
+    ``tests/test_cbo_baseline_transcription.py`` proves those bytes are still
+    the ones the pinned URLs serve. Neither alone is enough -- the first
+    version of this script passed the equivalent of the first check every time.
+    """
+    problems = []
+    for key, recorded in DIGESTS.items():
+        repo, path = key.split("/", 1)
+        cached = _local_path(repo, path, SOURCE_CACHE)
+        if not cached.exists():
+            problems.append(f"{key}: no vendored copy at {cached}")
+            continue
+        raw = cached.read_bytes()
+        digest = hashlib.sha256(raw).hexdigest()
+        if digest != recorded:
+            problems.append(
+                f"{key}: vendored copy hashes {digest}, pin says {recorded}"
+                f"{_diagnose(raw, recorded)}"
+            )
+    return problems
 
 
 def _long_rows(text: str) -> dict[str, dict[int, float]]:
@@ -317,7 +464,7 @@ def transcribe(source_dir: Path | None) -> tuple[list[dict], list[dict], list[di
             "repository": REPOS["cbo-data"]["url"],
             "file_path": econ_path,
             "commit_sha": REPOS["cbo-data"]["commit"],
-            "sha256": DIGESTS[f"cbo-data/{econ_path}"],
+            "sha256": READ_DIGESTS[f"cbo-data/{econ_path}"],
             "fetch_date": FETCH_DATE,
             "publication": spec["publication"],
             "note": "; ".join(used_econ),
@@ -364,7 +511,7 @@ def transcribe(source_dir: Path | None) -> tuple[list[dict], list[dict], list[di
             "repository": REPOS["cbo-data"]["url"],
             "file_path": bud_path,
             "commit_sha": REPOS["cbo-data"]["commit"],
-            "sha256": DIGESTS[f"cbo-data/{bud_path}"],
+            "sha256": READ_DIGESTS[f"cbo-data/{bud_path}"],
             "fetch_date": FETCH_DATE,
             "publication": spec["publication"],
             "note": "; ".join(used_bud),
@@ -585,10 +732,54 @@ def write_csv(path: Path, header: str, rows: list[dict], fields: list[str]) -> N
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true",
-                        help="verify sources and identities; write nothing")
+                        help="fetch, verify sources and identities; write nothing")
+    parser.add_argument("--offline-check", action="store_true",
+                        help="verify the pins against sources/; no network, no write")
+    parser.add_argument("--save-sources", action="store_true",
+                        help="also rewrite the verbatim copies under sources/")
     parser.add_argument("--source-dir", type=Path, default=None,
                         help="read clones from this directory instead of fetching")
     args = parser.parse_args(argv)
+
+    if args.offline_check:
+        problems = offline_check()
+        for problem in problems:
+            print(f"  PROBLEM: {problem}")
+        if problems:
+            print(f"\n{len(problems)} pin problem(s); the identity checks were "
+                  "not reached.")
+            return 1
+        for key, recorded in DIGESTS.items():
+            print(f"  {recorded[:12]}  {key}")
+        # The pins hold, so the vendored bytes are the published ones and the
+        # whole transcription can be replayed from them with no network at all.
+        budget_rows, _, _, _ = transcribe(SOURCE_CACHE)
+        problems = check_totals(budget_rows)
+        problems += cross_check_bfm(budget_rows, SOURCE_CACHE)
+        for problem in problems:
+            print(f"  PROBLEM: {problem}")
+        if problems:
+            print(f"\n{len(problems)} identity problem(s).")
+            return 1
+        print(f"\n--offline-check: {len(DIGESTS)} pins and every identity "
+              f"verified against "
+              f"{SOURCE_CACHE.relative_to(PROJECT_ROOT).as_posix()}, no network.")
+        return 0
+
+    # ``--check`` means "is the pin still what the URL serves", so it may not be
+    # answered from a local tree: that is the question the first version of this
+    # script answered locally and got wrong. ``--offline-check`` above is the
+    # other question -- "are the pins the digests of bytes we hold" -- and it is
+    # deliberately a different flag so that neither can be mistaken for the
+    # other in a CI log.
+    if args.check and args.source_dir is not None:
+        parser.error("--check verifies against the network; drop --source-dir "
+                     "(or use --offline-check, which verifies against sources/)")
+    if args.save_sources and args.source_dir is not None:
+        parser.error("--save-sources copies what the URL served; drop --source-dir")
+
+    global _SAVE_SOURCES
+    _SAVE_SOURCES = args.save_sources
 
     budget_rows, econ_rows, provenance, notes = transcribe(args.source_dir)
 
