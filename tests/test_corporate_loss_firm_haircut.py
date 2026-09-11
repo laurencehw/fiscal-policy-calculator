@@ -39,7 +39,6 @@ from fiscal_model.corporate import (
 )
 from fiscal_model.policies import PolicyType
 
-
 # ---------------------------------------------------------------------------
 # The transcription is what CBO published
 # ---------------------------------------------------------------------------

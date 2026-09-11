@@ -235,13 +235,24 @@ def test_every_offset_implementation_is_covered():
 
 
 def test_the_caption_fires_on_exactly_the_two_presets_that_moved(scorer):
-    """Two of the 53 shipped presets moved when the offsets were signed.
+    """One shipped preset still carries this caption; the other changed hands.
 
-    ``Trump Corporate 15%`` fell about 22% and ``Repeal ACA Premium Credits``
-    about 18%, and Decision 6 says a moved shipped number ships with its
-    explanation rather than in silence. The other 51 score to the cent what
-    they scored before, so the caption must stay silent on them - a note that
-    appears everywhere explains nothing.
+    Two of the 53 presets moved when the offsets were signed: ``Trump Corporate
+    15%`` fell about 22% and ``Repeal ACA Premium Credits`` about 18%, and
+    Decision 6 says a moved shipped number ships with its explanation rather
+    than in silence.
+
+    **``Trump Corporate 15%`` left this caption on 2026-09-11 and the reason is
+    not that its explanation was dropped.** ``_offset_sign_changed`` fires for a
+    ``CorporateTaxPolicy`` only in ``reported`` mode, because the ``abs()``
+    defect PR #119 corrected lived in that branch alone - Wave 5 B had already
+    signed ``derived``. Lane R5 flipped ``CORPORATE_APP_MODE`` to ``derived``,
+    so the app no longer serves the number that defect produced, and there is no
+    sign correction left to explain on that path. What the preset carries
+    instead is ``corporate_mode_flip_caption``, asserted below, which names the
+    figure the old default would have printed. The other 51 score to the cent
+    what they scored before, so this caption must stay silent on them - a note
+    that appears everywhere explains nothing.
     """
     from fiscal_model.app_data import PRESET_POLICIES
     from fiscal_model.preset_handler import create_policy_from_preset
@@ -256,19 +267,34 @@ def test_the_caption_fires_on_exactly_the_two_presets_that_moved(scorer):
         if behavioural_sign_caption(policy, result):
             captioned.append(label)
 
-    assert len(captioned) == 2, captioned
-    assert any("Trump Corporate 15" in label for label in captioned)
+    assert len(captioned) == 1, captioned
     assert any("Repeal ACA Premium Credits" in label for label in captioned)
+    assert not any("Trump Corporate 15" in label for label in captioned)
+
+    # ...and the preset that left is covered by the caption that replaced it,
+    # so no shipped figure moved twice and went unexplained once.
+    from fiscal_model.ui.tabs.results_summary import corporate_mode_flip_caption
+
+    label = next(lbl for lbl in PRESET_POLICIES if "Trump Corporate 15" in lbl)
+    policy = create_policy_from_preset(PRESET_POLICIES[label])
+    result = scorer.score_policy(policy, dynamic=False, include_uncertainty=False)
+    assert corporate_mode_flip_caption(policy, result)
 
 
 def test_the_caption_carries_the_scored_figures_and_the_old_headline(scorer):
     """Computed from the result, so it cannot drift from the number above it."""
     import numpy as np
 
-    from fiscal_model.corporate import create_republican_corporate_cut
+    from fiscal_model.corporate import (
+        CORPORATE_MODE_REPORTED,
+        create_republican_corporate_cut,
+    )
     from fiscal_model.ui.tabs.results_summary import behavioural_sign_caption
 
-    policy = create_republican_corporate_cut()
+    # Explicitly ``reported``: this caption is about that branch's defect, and
+    # since 2026-09-11 the factory's default is ``derived``, where it never
+    # applied.
+    policy = create_republican_corporate_cut(mode=CORPORATE_MODE_REPORTED)
     result = scorer.score_policy(policy, dynamic=False, include_uncertainty=False)
     note = behavioural_sign_caption(policy, result)
 

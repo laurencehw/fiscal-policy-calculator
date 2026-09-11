@@ -186,6 +186,31 @@ HEADLINE_ROW_DIVERGENCE: dict[str, tuple[str, str]] = {
     # FY2026-2035 and the runner on the validation window. It is the *window*
     # term of that 3.1% that shrank, not the runner's policy build, which is
     # untouched.
+    "corporate-28pct": (
+        "runner_shape",
+        "app -1,310.9 vs row -1,292.6 (1.42%): the whole of it is the window "
+        "and none of it is the runner's policy build -- the runner's own "
+        "policy re-scored on the app's FY2026-2035 window returns -1,310.92, "
+        "the app's figure to the cent. It appeared on 2026-09-11 when "
+        "CORPORATE_APP_MODE flipped to `derived`, and its appearance is the "
+        "flip working rather than failing: `reported` prices a rate change "
+        "against a fitted profits aggregate the engine grows from the "
+        "policy's own start year, so the same reform scores -1,397.21 "
+        "whichever decade is asked about and a one-year window shift cancels "
+        "exactly. `derived` prices it against CBO's projected corporate "
+        "receipts path indexed by fiscal year, so FY2026-2035 is a different "
+        "decade from FY2025-2034 and is worth -18.30. The row stays on its "
+        "target's window because that is what a benchmark is for. See "
+        "planning/lanes/R5_h3b_corporate.md.",
+    ),
+    "corporate-15pct": (
+        "runner_shape",
+        "app +1,562.8 vs row +1,545.2 (1.13%): the same mechanism as "
+        "corporate-28pct and the same decomposition -- the runner's policy on "
+        "the app's window returns +1,562.75 to the cent, so +17.51 is the "
+        "window and nothing is the policy build. Opposite sign because this "
+        "is a rate cut.",
+    ),
     "salt-cap-repeal": (
         "baseline",
         "app +740.3 vs row +1,155.6 (35.9%): the app scores current law and "

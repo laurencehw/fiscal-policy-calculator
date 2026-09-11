@@ -107,32 +107,50 @@ CORPORATE_MODES = (CORPORATE_MODE_REPORTED, CORPORATE_MODE_DERIVED)
 
 #: What the shipped app scores. Decision 1 keeps a module on ``reported`` until
 #: its derived error beats its fitted error across the benchmarks it carries.
-#: **Here it now does, and the module has not been flipped** — see below.
+#: Owner decision ⑤ held this at ``reported`` until H3b could re-measure once;
+#: lane ``planning/lanes/R5_h3b_corporate.md`` did, on the finished tree, and
+#: **``derived`` wins both of the two metrics this repository records**, so the
+#: default moved on 2026-09-11.
 #:
-#: =========================  ===========  ==========  =========  ==========
-#: Benchmark                  Target       Reported    Derived    Winner
-#: =========================  ===========  ==========  =========  ==========
-#: ``biden_corporate_28``     -$1,347.0B   -3.73%      -4.04%     reported
-#: ``trump_corporate_15``     +$1,920.0B   -22.30%     -19.52%    derived
-#: **mean abs**                            **13.02%**  **11.78%** derived
-#: =========================  ===========  ==========  =========  ==========
+#: ================================  ==========  ==========  =========  ========
+#: Benchmark                         Target      Reported    Derived    Winner
+#: ================================  ==========  ==========  =========  ========
+#: ``biden_corporate_28``            -$1,347.0B  3.73%       4.04%      reported
+#: ``biden_corporate_28_fy2022``     -$857.8B    62.88%      50.69%     derived
+#: ``trump_corporate_15``            +$673.1B    121.63%     129.57%    reported
+#: **mean abs**                                  **62.75%**  **61.43%** derived
+#: ================================  ==========  ==========  =========  ========
 #:
-#: Read the second row before treating that mean as evidence:
-#: ``trump_corporate_15``'s target has provenance ``model_estimate`` — it is
-#: this model's own output, recorded as an expectation — so *neither* mode's
-#: distance from it measures anything about the world, and it is the row that
-#: decides the mean. The first row is the one with a document behind it
-#: (Treasury Green Book FY2025, report p. 239), and reported still wins it by
-#: three tenths of a percentage point.
+#: **Read that as the narrow, two-of-three-rows-lost result it is.** ``derived``
+#: wins the mean by 1.32 points while losing two rows head to head, and the row
+#: it wins is the only one whose *scope* matches what the factory builds:
+#: ``biden_corporate_28_fy2022`` is the FY2022 Green Book's rate-only row, the
+#: one corporate row in any Green Book whose Proposal section does not mention
+#: GILTI. ``biden_corporate_28``, which ``reported`` wins by three tenths of a
+#: point, is a row ``reported``'s own constant is **fitted** to, so its 3.73% is
+#: partly arithmetic; and ``trump_corporate_15`` is a bundled run whose
+#: bonus-depreciation leg (+$294.15B of +$1,491.8B) neither mode prices from a
+#: published figure. Neither mode was retuned to win this comparison and
+#: :data:`BASELINE_TAXABLE_PROFITS_BILLIONS` is untouched.
 #:
-#: The ranking reversed in PR #119, when signing the reported offset moved
-#: ``trump_corporate_15`` from 0.1% to 22.3%; W6's base projection then moved
-#: derived from 9.67% to 11.78% while improving the published row from 7.81% to
-#: 4.04%. Flipping the default moves two shipped presets and every Tailor
-#: corporate row and owes a Decision 6 caption, and the population it would be
-#: decided on is itself in motion — a second corporate benchmark is being
-#: re-sourced and a third registered. It is the owner's call, not a lane's.
-CORPORATE_APP_MODE = CORPORATE_MODE_REPORTED
+#: The second metric is independent of any target and points the same way more
+#: sharply (``planning/lanes/HSB_h3a_corporate_range.md`` §6.3 finding 4). Four
+#: houses have scored a corporate statutory-rate change on CBO's February 2024
+#: baseline over FY2025-2034; converted to the **+7pp step every shipped
+#: corporate preset uses**, they span -$1,349.9B to -$935.8B. ``derived`` scores
+#: -$1,292.62B, **inside**; ``reported`` scores -$1,397.21B, $47.27B outside and
+#: larger than all four. On the marginal-share metric ``derived`` reads 76.1%
+#: against a published 55.1-79.5% and ``reported`` 82.3%, above all of it.
+#:
+#: What this is **not** is an accuracy claim. Both means are above 60%, and the
+#: honest summary is the one PR #122 wrote: a module whose implied marginal base
+#: is at or above every published estimator's misses two published corporate
+#: targets in the same direction and misses the third by more. The flip changes
+#: which of two wrong answers the app serves, on the rule the repository set in
+#: advance. Two shipped presets moved with a Decision 6 caption
+#: (``ui/tabs/results_summary.corporate_mode_flip_caption``); the other 43 score
+#: to three decimals what they scored before.
+CORPORATE_APP_MODE = CORPORATE_MODE_DERIVED
 
 #: What the *uncalibrated* validation path scores.
 #: ``validation/core.py``'s ``create_policy_from_score`` pins the

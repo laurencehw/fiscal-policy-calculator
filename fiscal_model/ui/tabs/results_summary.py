@@ -1868,6 +1868,99 @@ def corporate_estimator_range_captions(
     return tuple(lines)
 
 
+def reported_mode_total_billions(policy: Any, window_years: int) -> float:
+    """What this corporate policy would have scored under the old app default.
+
+    ``CORPORATE_APP_MODE`` was ``reported`` until 2026-09-11, so every corporate
+    figure the app served was priced against
+    :data:`~fiscal_model.corporate.BASELINE_TAXABLE_PROFITS_BILLIONS` — a
+    constant whose own comment calls it calibrated — grown at 4%/yr, with a flat
+    ``static x elasticity x 0.5`` offset. This reproduces that number from the
+    policy's own parameters, in revenue space, using the four lines
+    ``ScoringEngine._score_growth_tax_policy`` uses for a ``reported`` corporate
+    policy: the static effect asked for once, the engine's growth factor, the
+    base-class phase, and the offset computed on the phased revenue.
+
+    It is a reconstruction rather than a re-score because constructing a second
+    :class:`~fiscal_model.scoring.FiscalPolicyScorer` costs ~300ms on a path PR
+    #129 spent a lane making fast. ``tests/test_corporate_mode_flip.py`` scores
+    both shipped presets through the real engine and asserts this returns the
+    engine's own ``reported`` figure to the cent, so the shortcut cannot drift.
+
+    Returned in **deficit** space, like ``result.static_deficit_effect``, so it
+    is comparable with the headline it sits under: the engine books
+    ``deficit = -revenue + behavioural``, which is why the offset erodes rather
+    than adds.
+    """
+    from dataclasses import replace
+
+    from fiscal_model.corporate import CORPORATE_BASE_GROWTH, CORPORATE_MODE_REPORTED
+
+    previous = replace(policy, mode=CORPORATE_MODE_REPORTED)
+    static_annual = previous.estimate_static_revenue_effect(0.0, use_real_data=True)
+    total = 0.0
+    for offset_years in range(window_years):
+        year = previous.start_year + offset_years
+        phase = previous.get_phase_in_factor(year)
+        revenue = static_annual * (1 + CORPORATE_BASE_GROWTH) ** offset_years * phase
+        total += previous.estimate_behavioral_offset(revenue) - revenue
+    return total
+
+
+def corporate_mode_flip_caption(policy: Any, result: Any) -> str:
+    """One line saying the corporate default moved, and what it moved from.
+
+    Owner decision ⑤ held ``CORPORATE_APP_MODE`` at ``reported`` until lane R5
+    could re-measure Decision 1 once, and on the finished tree ``derived`` won
+    both metrics the repository records: the mean absolute error over the three
+    published corporate targets (**61.43% against 62.75%**), and H3a's
+    four-house estimator span, where at the +7pp step every shipped corporate
+    preset uses ``derived`` lands **inside** the published range and
+    ``reported`` lands $47.3B outside it. So the app now scores the corporate
+    rate channel against CBO's own projected receipts path rather than against a
+    fitted profits aggregate, two shipped presets moved, and the numbers ship
+    with their explanation rather than in silence (Decision 6).
+
+    Neither mode was retuned to win: ``BASELINE_TAXABLE_PROFITS_BILLIONS`` is
+    untouched and still the constant ``reported`` reads. And the flip is not an
+    accuracy claim — ``derived`` is nearer on the mean while *losing* two of the
+    three rows head to head, winning the one whose scope matches what the
+    factory builds.
+
+    Computed from the scored result and the policy's own parameters, so it
+    cannot drift from the figure above it. Returns ``""`` for any policy whose
+    number did not move.
+    """
+    from fiscal_model.corporate import CORPORATE_MODE_DERIVED
+
+    if not isinstance(policy, CorporateTaxPolicy):
+        return ""
+    if policy.mode != CORPORATE_MODE_DERIVED:
+        return ""
+    if not _corporate_rate_change_pp(policy):
+        return ""
+
+    static = np.asarray(result.static_deficit_effect, dtype=float)
+    current = float(np.sum(static)) + float(np.sum(result.behavioral_offset))
+    previous = reported_mode_total_billions(policy, len(static))
+    if previous == 0.0 or abs(current - previous) < 0.05:
+        return ""
+
+    change = (current - previous) / abs(previous) * 100.0
+    return (
+        rf"Scoring mode: this run prices the rate change at \${current:+,.1f}B. "
+        rf"Until 2026-09-11 the app's corporate default was `reported`, which "
+        rf"would have read \${previous:+,.1f}B ({change:+.1f}%). The default is "
+        f"now `derived`: the base is CBO's own projected corporate receipts "
+        f"path converted at one ratio measured on completed history, instead of "
+        f"a profits aggregate the module's own comment calls calibrated. It was "
+        f"changed because `derived` is nearer on the three published corporate "
+        f"targets (61.4% against 62.8% mean absolute error) **and** lands inside "
+        f"the four-house estimator range at this step where `reported` lands "
+        f"outside it. No constant was retuned in either mode."
+    )
+
+
 def _join_clauses(items: Sequence[str]) -> str:
     """``"a, b and c"`` — for prose, where ``", ".join`` reads as a list."""
     items = list(items)
@@ -2179,6 +2272,9 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     transcription_note = cbo_baseline_transcription_caption(policy, result)
     if transcription_note:
         st_module.caption(transcription_note)
+    mode_note = corporate_mode_flip_caption(policy, result)
+    if mode_note:
+        st_module.caption(mode_note)
     for corporate_note in corporate_estimator_range_captions(
         policy, result, getattr(scored, "policy_name", "") or ""
     ):

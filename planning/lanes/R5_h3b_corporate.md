@@ -375,13 +375,249 @@ The lane has failed, and must say so in its outturn, if any of these is true.
 
 ---
 
-## §6 — Owner decision ⑤: the re-measurement
+## §6 — Owner decision ⑤: the re-measurement, and the flip
 
-*Written after §1 lands, on the finished tree, against §3.2's rule. Left empty
-until then.*
+Measured on the finished tree, against §3.2's rule, which was fixed before §1
+was implemented.
+
+**Metric 1 — the three published corporate targets.** Unchanged from §0.1,
+because §1 shipped no mechanism: **`reported` 62.75%, `derived` 61.43%**.
+`derived` is strictly lower. ✅
+
+**Metric 2 — H3a's four-house estimator span at +7pp**, the step every shipped
+corporate preset uses: `derived` −$1,292.62B, **inside** the −$1,349.9B to
+−$935.8B span; `reported` −$1,397.21B, **larger than all four and $47.27B
+outside**. ✅
+
+Both metrics favour `derived`, so **`CORPORATE_APP_MODE` is now
+`CORPORATE_MODE_DERIVED`** (`fiscal_model/corporate.py`), in its own commit,
+with a Decision 6 caption
+(`ui/tabs/results_summary.corporate_mode_flip_caption`) on every corporate rate
+figure that moved.
+
+**Three qualifications belong next to that, and the module docstring carries
+all three.**
+
+1. **`derived` wins the mean while losing two rows of three.** It takes
+   `biden_corporate_28_fy2022` by 12.19 points and gives up `biden_corporate_28`
+   by 0.31 and `trump_corporate_15` by 7.94. The row it wins is the only one
+   whose *scope* matches what the factory builds — the FY2022 Green Book's
+   rate-only row, the one corporate row in any Green Book whose Proposal
+   section does not mention GILTI. The row it loses by a whisker is one
+   `reported`'s constant is **fitted** to, so 3.73% there is partly arithmetic.
+2. **Neither mean is small.** 61.43% against 62.75% is a choice between two
+   wrong answers, taken on a rule the repository set in advance. PR #122's
+   summary stands unaltered: a module whose implied marginal base is at or above
+   every published estimator's misses two published corporate targets in the
+   same direction and misses the third by more.
+3. **Nothing was retuned to produce it.** `BASELINE_TAXABLE_PROFITS_BILLIONS` is
+   1900.0 before and after, asserted by
+   `tests/test_corporate_mode_flip.py::test_neither_mode_was_retuned_to_win`.
+
+**Strict readiness does not block it, and the check was run in the form that can
+distinguish.** PR #119's §7.5 lesson is that Python 3.14 fails the runtime
+component *first* and masks everything after it, so a bare exit code proves
+nothing here. `strict_readiness_issues()` returns **exactly one issue before the
+flip and exactly one after it**, and in both cases it is the environmental
+runtime warning. No fitted row went Poor: `biden_corporate_28` moves 3.73% →
+4.04% and stays **Excellent**, and `repeal_corporate_amt` does not move at all.
+No exemption was added.
 
 ---
 
 ## §7 — Outturn
 
-*Written after §1 and §6. Left empty until then.*
+### 7.1 Against the pre-registration
+
+| # | Quantity | Before | Pre-registered | **Outturn** | |
+|--:|---|--:|---|--:|---|
+| 1 | `cbo_opt64_corporate_rate_1pp` | 44.50% | 30 ± 8 | **44.50%** | ❌ missed — unmoved |
+| 2 | `biden_corporate_28_fy2022` | 62.88% | −45 ± 10 | **50.69%** | ✅ inside — *but see below* |
+| 3 | `trump_corporate_15` | 121.63% | 90 ± 20 | **129.57%** | ❌ missed — worse |
+| 4 | `biden_corporate_28` | 3.73% | moves in `derived` only | **4.04%** served; `reported` branch byte-identical | ✅ |
+| 5 | derived marginal share, +1pp | 80.83% | falls toward 55–80%, not set inside it | **80.83%** | ❌ unmoved |
+| 6 | Tier 1 mean | 11.6% | moves by `cbo_opt64` alone | **11.6%**, n=22, median 8.9%, 18/22 within 15 | ✅ |
+| 7 | every Tier 1 row but `cbo_opt64` | — | byte-identical | **all 22 byte-identical** | ✅ |
+| 8 | LOO `--donor-matrix` | 36.5% (n=18) | byte-identical | **byte-identical**, every module row unmoved | ✅ |
+| 9 | fitted tier | 15 @ 1.6% | unchanged | **15 @ 1.6%**, 15/15 within 15 | ✅ |
+
+**§3.1 predicted rows 1, 3 and 5 would miss by not moving, and they did.** That
+prediction was written before §1 was implemented and after §0.5 had run the
+applicability test, which is the sequence the protocol asks for and the reason
+the misses are reportable rather than embarrassing.
+
+**Row 2 landed its band and should not be credited to §1.** The band was a
+prediction about the *mechanism*; the mechanism was refused, and the row moved
+because part (B) changed which mode the scorecard scores. Had the flip not
+shipped, row 2 would read 62.88% and miss like the others. Two of three bands
+would have been landed by applying the haircut — which is exactly why §4.2 made
+that a falsification condition rather than a goal.
+
+### 7.2 What was sourced, and what was not obtainable
+
+| Item | Outcome |
+|---|---|
+| **Loss-firm haircut** (§1.1) | **Sourced and refused.** `dmyrevnfc = 0.85`, `dmyrevx = 0.80`, verified at `business-investment-model` @ `6cb4cea…`, `Create_Tax_Data.prg:32-33`, derivation `:21-27`, use `:69-70` |
+| **§38(c) general business credit carryforward** (§1.2) | **Obtained.** IRS Publication 5108 (TY2022, Rev. 9-2025), PDF pp. 164 and 166 — $91.16B (Part I line 4) + $33.31B (Part II line 34) = **$124.47B**, against $72.17B of claims. Downloaded and read page-by-page here, not taken on report |
+| **§904(c) foreign tax credit carryover** (§1.2) | **Partly.** SOI's Corporate Foreign Tax Credit Table 1 (`22it01fi.xlsx`) publishes the limitation ($174.44B), taxes available ($203.70B) and the claim ($112.16B), but footnote [2] says in as many words that *"carryover of foreign taxes and applicable reductions are not shown separately"*. The carryover is a **$78.02B residual**, labelled as one |
+| **The share that would price either channel** | **Not obtainable.** SOI's excess-credit / excess-limitation tables (1.1 and 1.2) exist for **TY2010 only**; `22it11mi.xlsx`, `22it12mi.xlsx` and `21it11mi.xlsx` all 404 and the series was discontinued. TY2010 is pre-TCJA, before the participation exemption, GILTI and the §904 basket rewrite |
+| **SOI Complete Report TY2023** | **Not published.** TY2022 is the frontier; `23co11ccr.xlsx` 404s and the landing page lists TY2014–2022 |
+| **CAMT base** (§1.2) | **Not published.** No source gives the taxable income of CAMT-liable corporations. Treasury JY2574: ~100 payers, ~$250B over 2025–2034, 2.6% counterfactual effective rate. JCT's 2022 letter to Chairman Wyden: 175–200 corporations averaging $8.2B of book income in 2019. The two populations differ by a factor of two and neither is a base. Recorded as `published_context` |
+| **Behavioural offsets** (§1.3) | **Null, already established.** `CORPORATE_PER_POINT_YIELD.md` §5(c): JCT publishes five corporate margins and no parameter, PWBM defers to unstated JCT staff estimates, Treasury publishes nothing, and the one house that states a parameter uses Heckemeyer & Overesch's 0.8 — which is `PROFIT_SHIFTING_SEMI_ELASTICITY` already |
+| **Direction asymmetry** (§1.4) | **Documented, not modelled.** Tax Foundation *Options 2.0* prices a cut 28.9% dearer per point; `derived` produces **+13.4%**, `reported` **exactly 0.0%** |
+
+### 7.3 Findings
+
+**1. CBO's haircut is a rate adjustment, and this repository's own files say so
+three times.** It multiplies a statutory rate inside a user-cost expression, and
+the derived path multiplies a base that is CBO receipts ÷ the statutory rate.
+CBO itself *divides by* the same factor at `Create_Tax_Data.prg:172-175` where
+the other input already carries it, **"to avoid double-counting"**.
+`scripts/corporate_yield_reconciliation.py`'s docstring already said the
+denominator every published marginal share is measured against "already nets
+credits, **NOLs**, shifting". And the module's own SOI file measures it: income
+subject to tax is net of an NOL deduction running **8.69–11.58%** of the pre-NOL
+base (10.25% mean, 11.58% at the TY2022 anchor) against CBO's **12.81%** — a gap
+of **1.23pp**, and not a smaller haircut waiting to be applied, because CBO's is
+a 2005 *flow* of current-year losses and SOI's a post-TCJA *stock* of
+carryforwards used under §172(a)'s 80% limitation.
+
+**2. The plan's own description of the source is wrong, and it would have sent a
+lane looking for data that does not exist.** `ROUTE_TO_8_5.md` §1 R5 and this
+lane's brief both call 0.80/0.85 "financial / non-financial" and the brief asks
+for the haircut "by sector if the receipts detail supports it". CBO's comment
+says **0.85 is loss-making firms alone (nonfinancial corporates)** and **0.80 is
+that same factor further reduced by the nonprofit share of nonresidential
+investment** (0.85 × 0.94 = 0.799); `grep -rn dmyrev source_code/` returns no
+third series. There is no sector split to apply.
+
+**3. The module's average-credit substitution sits almost exactly on the §904
+channel's own upper bound, which is why §38(c) is the live carry-over.** The
+derived path books `1 − 0.7085 = 29.147%` of marginal credit absorption by
+substituting the average ratio for the marginal one. The §904 channel at *its*
+upper bound — every claimant in an excess-credit position, which
+`section_904_realization_ratio` already assumes — is **28.851%**, 0.30pp away. So
+the §38(c) channel is **entirely unbooked**: $124.47B of stock, 1.72 years of
+claims, under a statutory cap of 75% of regular tax that **rises with the
+rate**. It is the one named channel that points the score *down*, toward the
+published estimators, and it is the only one with a mechanism CBO has ever put
+in writing (2018 Option 24).
+
+**4. The direction this lane would have preferred is not the direction the data
+points.** Building a *bottom-up* marginal credit share risks coming in **below**
+29.147% — most general business credits are fixed dollar amounts whose
+*usability*, not size, responds to the rate — which would move the score **up**
+and the row **worse**. §1.2 pre-registered that in advance so it could not later
+be presented as a surprise.
+
+**5. The entity-choice leg is dead code in every scored case.**
+`_estimate_passthrough_shift` fires only when the corporate rate exceeds a
+hard-coded 29.6% individual effective rate. At +1pp (22%), +7pp (28%) and −6pp
+(15%) it does not, so the leg returns **exactly 0.0 for every corporate
+benchmark in the repository and for every rate cut by construction**. JCT names
+entity choice as one of its five corporate behavioural margins (JCX-46-11 p. 10)
+and publishes no parameter for it, so this lane measured the leg rather than
+replacing it.
+
+**6. `reported` mode's answer does not depend on which decade you ask about, and
+the flip is what revealed it.** `tests/test_no_headline_without_row.py` went red
+on the two corporate presets at 1.42% and 1.13%, and the decomposition is clean:
+the runner's own policy re-scored on the app's FY2026–2035 window returns
+**−1,310.92** and **+1,562.75**, the app's headlines *to the cent*, so **100% of
+the divergence is the window and 0% is the policy build**. Under `reported` the
+gap was zero — not because the two agreed, but because that mode prices a rate
+change against a fitted aggregate the engine grows from the *policy's own* start
+year, so shifting the window shifts the policy with it and the totals cancel
+exactly. `derived` reads a path indexed by *fiscal year*, so FY2026–2035 is
+genuinely a different decade and is worth $18.30B / $17.51B. Declared as two
+`runner_shape` entries in `HEADLINE_ROW_DIVERGENCE` with that measurement.
+
+**7. A shipped caption changed hands rather than disappearing, and the test that
+caught it was right to.** `behavioural_sign_caption` fires for a
+`CorporateTaxPolicy` only in `reported` mode, because PR #119's `abs()` defect
+lived in that branch alone — Wave 5 B had already signed `derived`. So Trump
+Corporate 15% stops carrying the sign caption at the same moment its number
+moves again. `corporate_mode_flip_caption` covers it, and
+`test_the_caption_fires_on_exactly_the_two_presets_that_moved` now asserts both
+halves: one preset keeps the old caption, the other has acquired the new one.
+The failure mode this avoids is a shipped figure moving twice and being
+explained once.
+
+### 7.4 Presets moved
+
+Swept through `create_policy_from_preset` on the app's own FY2026–2035 window,
+45 scoreable presets × {static, dynamic}. **Exactly two presets moved, and both
+carry the Decision 6 caption; the other 43 score to three decimals what they
+scored before, in both engine modes.**
+
+| Preset | Before | After | Δ |
+|---|--:|--:|--:|
+| 🏢 Biden Corporate 28%, static | −$1,397.21B | **−$1,310.92B** | +6.2% |
+| 🏢 Biden Corporate 28%, dynamic | −$736.71B | **−$662.55B** | +10.1% |
+| 🏢 Trump Corporate 15%, static | +$1,491.76B | **+$1,562.75B** | +4.8% |
+| 🏢 Trump Corporate 15%, dynamic | +$885.79B | **+$949.20B** | +7.2% |
+
+Badges do not move: `biden_corporate_28` 3.73% → 4.04% stays **Excellent** and
+`trump_corporate_15` 121.63% → 129.57% stays **Poor**, both as §3.3 predicted.
+
+### 7.5 Tier movements
+
+| Tier | Before | After |
+|---|--:|--:|
+| Tier 1 (out-of-sample) | 22 @ 11.6%, median 8.9%, 18/22 within 15 | **identical**, zero rows moved |
+| fitted | 15 @ 1.6%, 15/15 within 15 | **15 @ 1.6%** |
+| held in place | 26 @ 12.4% | 26 @ 12.4% (median 2.4% → 2.6%) |
+| unfitted reconstructions | 38 @ 37.5%, median 30.1% | **38 @ 37.4%**, median 30.1% |
+| retired held in | 40 @ 55.5% | 40 @ 55.4% |
+| leave-one-out | 18 @ 36.5% | **byte-identical** |
+
+**The reconstruction tier's 0.1pp is accuracy on a constant population**, not
+composition: the same 38 rows sit in it before and after, and the whole of the
+move is `biden_corporate_28_fy2022` −12.19pp against `trump_corporate_15`
++7.94pp, which over 38 rows is −0.11pp. Worth stating plainly because this
+repository has three times had to explain that a tier mean moved for reasons
+that were not accuracy — here, for once, it is.
+
+### 7.6 Deviations from §2
+
+- **`fiscal_model/ui/preset_validation.py` was opened**, which §2 did not list.
+  The flip put two corporate presets over `HEADLINE_ROW_TOLERANCE_PCT`, and the
+  registry that exists for exactly that has to carry them or the suite stays
+  red. The change is two data entries scoped to the corporate presets, each with
+  the measured decomposition in §7.3 finding 6; no mechanism in that module was
+  touched.
+- **Four test files outside the lane's own were updated** —
+  `test_corporate_derived.py`, `test_cbo_regression.py`,
+  `test_offset_sign_contract.py`, `test_no_headline_without_row.py` (through the
+  registry). Every one of them pinned the old app default; none had its
+  *assertion* weakened, and two gained a stronger one (the sign caption now
+  asserts where the explanation went, and the mode-flip test asserts the
+  decision rule rather than the outcome).
+
+### 7.7 Carry-overs
+
+1. **§38(c) carryforward absorption.** The stock is now transcribed and the
+   channel bounded; what is missing is the share of the base held by taxpayers
+   both §38(c)-capped and holding carryforward. SOI's excess-position tables
+   stopped after TY2010. A lane that wants this needs either a reinstated SOI
+   table, a Treasury OTA tabulation, or microdata — **not** a chosen share.
+   Finding 3 says why it is the channel worth wanting.
+2. **CAMT.** Blocked on TY2023 SOI, which does not exist yet. Worth re-checking
+   when the TY2023 Complete Report publishes, because CAMT will be in it.
+3. **The §6655 first-year factor**, 0.757 against JCT's unexplained 0.591–0.732
+   — untouched, and untouchable without a source, since no *Options* volume
+   mentions payment timing.
+4. **`_estimate_passthrough_shift` is inert** (finding 5). Either source a
+   parameter for JCT's entity-choice margin or delete the leg; leaving an
+   unsourced branch that never fires is the worst of the three.
+5. **`cbo_opt64` is still Tier 1's largest row at 44.5% and still a class of
+   one.** This lane did not move it and says so. The plan's own remedy is spent:
+   the haircut is refuted, the credit channels are bounded and unpriceable, and
+   the behavioural parameter is already the only published one. What is left is
+   a **second corporate out-of-sample row** so the class stops being n=1 —
+   `corporate_rate_scores.csv` carries eighteen published estimates across ten
+   vintages, and R3's Tailor battery is where that belongs.
+6. **The window sensitivity finding 6 exposes is now a property worth keeping.**
+   `derived` gives a different answer for FY2026–2035 than for FY2025–2034 and
+   `reported` cannot. That is the right behaviour and it is currently visible
+   only as a declared badge divergence; a future lane might surface it.

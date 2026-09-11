@@ -310,7 +310,7 @@ def _fmt(report: dict) -> str:
     lines.append(f"  VERDICT: {haircut['verdict']}")
     lines.append("")
     lines.append("  What applying it anyway would have returned at +1pp:")
-    for name, vals in haircut["counterfactual"].items():
+    for _name, vals in haircut["counterfactual"].items():
         lines.append(
             f"    x{vals['factor']}  ->  {vals['derived_1pp_total_billions']:,.2f} $B"
         )
