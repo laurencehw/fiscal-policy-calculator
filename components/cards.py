@@ -105,7 +105,7 @@ def render_doorway_cards(st_module: Any) -> None:
             "label": "Open Build",
             "heading": "Build a package",
             "blurb": (
-                "Pick from 45+ scored policies and close the gap to a deficit "
+                "Pick from 40+ scored policies and close the gap to a deficit "
                 "target. Live totals as you check options."
             ),
         },

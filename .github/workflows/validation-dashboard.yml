@@ -145,9 +145,31 @@ jobs:
       #            catch. The live count is 22, so the gate is met with no slack,
       #            which is the correct state after a wave that spent a case.
       # Re-derive again after the next wave.
+      #
+      # Lane R2 (ROUTE_TO_8_5.md section 1) is the first pass to make the
+      # battery SMALLER, and that is a case the "downward only" rule above does
+      # not cover, so it is spelled out. Four rows whose targets are in no
+      # publication were withdrawn (warren_ultramillionaire_surtax_3pp,
+      # medicare_surcharge_2pp, illustrative_top_rate_5pp,
+      # illustrative_500k_2pp) and one moved onto CBO publication 58164's own
+      # option. The tier reads 22 cases, mean 11.3%, 18 within 15% and 19
+      # within 25%:
+      #   ceiling  ceil(11.3 x 1.25) = 15 -> nearest 5 = 15. Lowered 20 -> 15.
+      #   floor    the live count is 19, so 22 is now ABOVE what the battery
+      #            can meet and the gate cannot pass at all. Lowered 22 -> 19.
+      # That is a smaller NUMBER and a tighter STANDARD: the count fell because
+      # the denominator fell, and the share within 25% rose 22/26 = 84.6% ->
+      # 19/22 = 86.4%. Three of the four withdrawn rows were themselves inside
+      # 25%, so the drop is not a regression being papered over -- no surviving
+      # row moved by a cent, which the lane's outturn records row by row. The
+      # move is also not discretionary: test_no_gate_is_looser_than_the_
+      # workflow_rule_derives in tests/test_ci_workflow.py already asserts
+      # min_within <= the live within-25 count, so a floor of 22 is a test
+      # failure rather than a strict gate. Re-derive again after R3, which is
+      # the lane that grows the battery back.
       - name: Cold-holdout gate (out-of-sample tier)
         run: |
-          python scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 22
+          python scripts/cold_holdout.py --max-mean-error 15 --min-within-25pct 19
 
       # --- Per-class floor (HIGH_STAKES_ACCURACY.md section 3, rule 4) -------
       # The pooled gate above cannot see one policy class regressing while the
@@ -199,10 +221,26 @@ jobs:
       # points: iija was already INSIDE 25% at 18.2%, so the count it moves is
       # within-15, 16 -> 17, a figure no gate reads. The pooled floor is met at
       # 22 with no slack, exactly as Wave C left it.
+      #
+      # Lane R2's withdrawals move two of the eight and both tighten. The
+      # AGI-inclusive surtax class loses four of its six rows -- three of the
+      # four withdrawn targets sit in it -- and what is left is the two CBO
+      # Option 46 rows, the two with a published option and a transcribed
+      # base: the class mean goes 17.6% -> 5.15%. The ordinary rate-change
+      # class keeps all four rows and one of them moves onto its document,
+      # 24.5% -> 10.5%, taking the class 14.8% -> 11.32%.
+      #   agi_inclusive_surtax  ceil(5.15 x 1.25) = 7, lowered 22 -> 7.
+      #   ordinary_rate_change  ceil(11.32 x 1.25) = 15, lowered 19 -> 15.
+      # Neither is discretionary: at a class mean of 5.15% a ceiling of 22
+      # fails both one-sided invariants in tests/test_ci_workflow.py, and 19
+      # fails the first of them at 11.32%. The other six re-derive to
+      # themselves. A class of TWO is a thin thing to gate, and the honest
+      # reading is that this class shrank rather than improved -- R3 is the
+      # lane that puts rows back into it.
       - name: Cold-holdout per-class floor (out-of-sample tier)
         run: |
           python scripts/cold_holdout.py --max-class-mean-error \
-            agi_inclusive_surtax=22 ordinary_rate_change=19 \
+            agi_inclusive_surtax=7 ordinary_rate_change=15 \
             capital_gains=24 corporate=56 \
             enacted_law_spending=10 discretionary_spending=6 \
             payroll=10 tax_expenditure=17

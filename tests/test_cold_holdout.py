@@ -60,12 +60,22 @@ def test_out_of_sample_battery_is_wide_enough_to_be_informative():
     ``top_rate_45`` used to be asserted here. Phase E retired it — its -$420B
     target appears in no TPC, CBO or JCT publication — so the assertion is
     inverted: a retired case must stay *out* of the battery, and the tier must
-    still be wide enough to be informative without it."""
+    still be wide enough to be informative without it. Lane R2 retired four
+    more on the same rule, ``medicare_surcharge_2pp`` among them, which is why
+    the surviving pair asserted below is a capital-gains row and an AGI surtax
+    that each carry a published option."""
     report = build_report()
     ids = {e["policy_id"] for e in report["out_of_sample"]["entries"]}
     assert len(ids) >= 20
-    assert {"biden_capital_gains_39", "medicare_surcharge_2pp"} <= ids
-    assert "top_rate_45" not in ids
+    assert {"biden_capital_gains_39", "cbo_opt46_agi_surtax_1pp_20k"} <= ids
+    for retired in (
+        "top_rate_45",
+        "medicare_surcharge_2pp",
+        "warren_ultramillionaire_surtax_3pp",
+        "illustrative_top_rate_5pp",
+        "illustrative_500k_2pp",
+    ):
+        assert retired not in ids
 
 
 def test_poor_out_of_sample_cases_carry_a_documented_reason():
@@ -214,7 +224,13 @@ def test_the_class_block_reproduces_the_plans_eight_populations():
     """
     classes = build_report()["out_of_sample"]["classes"]
     assert set(classes) == _class_slugs()
-    assert classes["agi_inclusive_surtax"]["n"] == 6
+    # Lane R2 retired four rows whose targets were in no publication and
+    # three of them were AGI-inclusive surtaxes, so this class is down to the
+    # two CBO Option 46 rows — the two with a published option and a
+    # transcribed base. A class of two is a thin thing to gate and R3 is the
+    # lane that refills it; the count is pinned here so the shrink cannot
+    # happen again without somebody editing this line.
+    assert classes["agi_inclusive_surtax"]["n"] == 2
     assert classes["capital_gains"]["n"] == 4
     assert classes["ordinary_rate_change"]["n"] == 4
     assert classes["corporate"]["n"] == 1
