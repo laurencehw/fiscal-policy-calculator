@@ -89,7 +89,7 @@ a trillion; `($1.36T)` for 1,357.1, `(-$1.62T)` for −1,621.0, `($1.17T)` for
 
 ### 2.1 Descriptions, which the same revisions falsified
 
-Seven `PRESET_POLICIES` descriptions and one knowledge file quote a superseded
+Five `PRESET_POLICIES` descriptions and one knowledge file quote a superseded
 figure in prose. They are corrected in the same commits, from the same ledger
 rows, because "Raises ~\$2.7T over 10 years" beside a label reading −\$1.43T is
 the defect this lane exists to remove, one layer down.
