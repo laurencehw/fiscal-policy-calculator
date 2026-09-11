@@ -280,9 +280,13 @@ Per class, one of eight moves: **enacted-law spending 13.4% → 7.4%** (12.2 / 0
 reading.** PR #157 (H7, expenditure offset magnitudes) landed while this lane was
 open and moved the same tier's *composition* from the other side, reclassifying
 `cap_charitable` out of the fitted tier. Merged, the tiers read **fitted 15 @
-1.6%** (median 0.0, 15/15 within 15%), **reconstructions 38 @ 37.5%** (median
-30.1, 11/38), **retired 2 @ 397.2%**, **retired held in place 40 @ 55.5%** (median
-33.6, 11/40). **Tier 1 is identical on both trees** — 26 @ 13.8%, median 10.6,
+1.6%** (median 0.0, 15/15 within 15%), **fitted held in place 26 @ 12.4%**
+(median 2.4, 21/26), **reconstructions 38 @ 37.5%** (median 30.1, 11/38),
+**retired 2 @ 397.2%**, **retired held in place 40 @ 55.5%** (median 33.6,
+11/40). Note that the *fitted* held-in-place reading falls 27 → 26 rather than
+rising: it folds back only rows a **target revision** moved out, and
+`cap_charitable` left the fitted tier by **reclassification**, which is a
+different mechanism and is deliberately not folded back. **Tier 1 is identical on both trees** — 26 @ 13.8%, median 10.6,
 17/26 and 22/26, and all eight class means to the decimal — so nothing this lane
 claims about the out-of-sample tier depends on which tree it is read on. Quote the
 merged figures; neither branch's is the live one.
