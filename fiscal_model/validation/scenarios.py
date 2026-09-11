@@ -180,8 +180,31 @@ TCJA_VALIDATION_SCENARIOS = {
         "extend_estate": False,
         "extend_amt": False,
         "keep_salt_cap": False,
-        "expected_10yr": 3185.0,
-        "notes": "Rate cuts only: ~$3.2T calibrated. This is an illustrative scenario.",
+        # H9 target revision (tcja_rates_only.v1 -> .v2). The scenario's own
+        # note called $3,185B illustrative and Phase E labelled it
+        # `model_estimate`; a single published row for exactly this provision
+        # has existed since May 2024. CRS R48286 Table 1, "Reduced Individual
+        # Tax Rates", $2,158.7B over FY2025-2034 ($821.8B over FY2025-2029),
+        # transcribing CBO 60114's JCT row "10%, 12%, 22%, 24%, 32%, 35%, and
+        # 37% income tax rate brackets" -- the same table, column and window
+        # this repository already reads `extend_tcja_amt` out of. No summing.
+        "expected_10yr": 2158.7,
+        "notes": (
+            "Rate cuts only, against CRS R48286 Table 1's published row. "
+            "The module's single factor is fitted to CBO's $4.6T aggregate, "
+            "not to this row."
+        ),
+        "limitations": [
+            "Target revised (target_revisions.tcja_rates_only.v2) from the "
+            "repository's own $3,185B decomposition to CRS R48286 Table 1's "
+            "$2,158.7B. The row went 2.2% -> 44.3% and nothing in the module "
+            "moved: the old error measured a decomposition of a fitted "
+            "aggregate reproducing itself.",
+            "JCT's JCX-35-25 p. 1 row 1, 'Extension and limited enhancement "
+            "of reduced rates', gives -$2,193.4B over the same window (1.6% "
+            "from the adopted figure) but prices P.L. 119-21's enhancement "
+            "rather than TCJA's rate structure, so it is not this target.",
+        ],
     },
 }
 
@@ -493,9 +516,31 @@ ESTATE_TAX_VALIDATION_SCENARIOS = {
     "eliminate_estate_tax": {
         "description": "Eliminate estate tax",
         "policy_factory": create_eliminate_estate_tax,
-        "expected_10yr": 350.0,
-        "source": "Model estimate",
-        "notes": "Repeal federal estate tax entirely",
+        # H9 target revision (eliminate_estate_tax.v1 -> .v2). "Model
+        # estimate" was the scenario's own admission. Tax Foundation,
+        # *Options for Reforming America's Tax Code 3.0* (July 2026), Option
+        # 83 "Eliminate the Estate and Gift Tax", printed p. 105:
+        # +$407.2B conventional primary deficit over CY2027-2036, on the
+        # post-P.L. 119-21 baseline ($15M/$30M exemption).
+        "expected_10yr": 407.2,
+        "source": "Tax Foundation, Options 3.0, Option 83",
+        "notes": (
+            "Repeal federal estate tax entirely. The published row repeals "
+            "the estate and gift taxes; CRS R48183 p. 16 puts the estate "
+            "share at about 90% of the two."
+        ),
+        "limitations": [
+            "Target revised (target_revisions.eliminate_estate_tax.v2) from "
+            "a model estimate to a published figure; no constant moved. The "
+            "two agency figures were examined and not adopted: JCT's 2017 "
+            "rows bundle repeal with the exemption doubling and the 35% gift "
+            "rate (-$171.5B / -$150.7B), and CBO/JCT's 2015 Death Tax Repeal "
+            "Act score ($269B) prices repeal of a tax with a $5.43M "
+            "exemption.",
+            "Window stated rather than adjusted: CY2027-2036 against the "
+            "runner's FY2025-2034, on `biden_corporate_28_fy2022`'s "
+            "precedent.",
+        ],
     },
 }
 
@@ -511,9 +556,42 @@ PAYROLL_TAX_VALIDATION_SCENARIOS = {
     "ss_donut_250k": {
         "description": "SS tax on wages above $250K",
         "policy_factory": create_ss_donut_hole,
-        "expected_10yr": -2700.0,
-        "source": "Social Security Trustees",
-        "notes": "Donut hole: tax current cap + above $250K",
+        # H9 target revision (ss_donut_250k.v1 -> .v2). The credited source
+        # publishes no dollars: OCACT scores provision E2.5 in percent of
+        # taxable payroll only, and the "$2.7 trillion over 10 years" traces
+        # to a think-tank explainer with no report year, run number or window.
+        # CBO, Options for Reducing the Deficit: 2025 to 2034 (pub. 60557),
+        # Option 62 alternative 2, "Subject earnings greater than $250,000 to
+        # payroll taxes", report p. 73 (PDF p. 79): -$1,426.8B over
+        # FY2025-2034, on the stub "Decrease (-) in the deficit". Same design
+        # -- CBO's own text says "The current-law taxable maximum would still
+        # be used for calculating benefits, so scheduled benefits would not
+        # change under this alternative", which is E2.5's "do not provide
+        # benefit credit". No constant was retuned.
+        "expected_10yr": -1426.8,
+        "source": "CBO, Options 2025-2034, Option 62 alternative 2",
+        "notes": (
+            "Donut hole: tax current cap + above $250K. Target revised "
+            "2026-09-09; the module's annual is still fitted to the "
+            "superseded -$2.7T, which is why the row now reads 89%."
+        ),
+        "limitations": [
+            "Target revised (target_revisions.ss_donut_250k.v2) from an "
+            "untraceable -$2,700B to CBO Option 62 alternative 2's "
+            "-$1,426.8B, 47% below it. The module's covered-wage band is "
+            "still `2_177.0  # 270 / 0.124` -- the superseded target divided "
+            "by ten and by the statutory rate -- so the 89% this row now "
+            "reports is the size of the old target's error, not a new "
+            "modelling defect. Retuning the band to the new figure is "
+            "forbidden: it would convert a finding back into bookkeeping.",
+            "Two wedges between CBO's figure and this module's, both stated "
+            "rather than adjusted. CBO's table note reads 'An offset to "
+            "reflect reduced income and payroll taxes has been applied to the "
+            "estimates in this table' and the payroll module has no "
+            "income-tax offset channel; and CBO's annual path ramps $122.0B "
+            "(2026) to $192.0B (2034) as the taxable maximum grows toward "
+            "$250,000, where `create_ss_donut_hole` stamps a flat annual.",
+        ],
     },
     "ss_eliminate_cap": {
         "description": "Eliminate SS wage cap",
@@ -699,18 +777,33 @@ TAX_EXPENDITURE_VALIDATION_SCENARIOS_COMPARE = {
     "eliminate_mortgage": {
         "description": "Eliminate mortgage interest deduction",
         "policy_factory": create_eliminate_mortgage_deduction,
-        "expected_10yr": -300.0,
-        "source": "CBO",
+        # H9 range revision (eliminate_mortgage.v1 -> .v2), which re-opened
+        # Wave 4's verdict because a document contradicted its premise. That
+        # verdict rested on the two known figures coming from one simulator
+        # 2.4x apart; Tax Foundation's July 2026 guide adds a third from an
+        # independent model and the 2.4x resolves as a BASELINE gap. Published
+        # range [-$495.0B, -$367.9B]; the carried anchor is Tax Foundation's
+        # -$367.9B (*Options 3.0* Option 25, CY2027-2036), chosen because it
+        # is a standalone modelled option with its own printed table where
+        # CRS's -$495B is CRS transcribing the Yale simulator and labelling it
+        # not official.
+        "expected_10yr": -367.9,
+        "source": "Tax Foundation, Options 3.0, Option 25 (range anchor)",
         "notes": "From current TCJA levels (~$25B/year)",
         "limitations": [
-            "Examined and deliberately not moved in Wave 4 "
-            "(target_revisions.EXAMINED_NOT_REVISED): no official repeal score "
-            "exists. CBO has published no post-TCJA budget option repealing "
-            "the deduction, JCT publishes the tax expenditure rather than a "
-            "repeal estimate, and the only two ten-year repeal figures — CRS "
-            "IF13190's $495B and Yale's 'close to $1.2 trillion' — come from "
-            "the same simulator and differ by 2.4x, with CRS labelling its own "
-            "'not considered official for revenue scoring purposes'.",
+            "Target revised (target_revisions.eliminate_mortgage.v2) to a "
+            "published RANGE [-$495.0B, -$367.9B] with Tax Foundation's "
+            "-$367.9B as the carried anchor. The percentage this row reports "
+            "is a distance from one modeller's point, not a measurement of "
+            "accuracy; read `within_published_range` and "
+            "`distance_to_published_range_billions` instead. No agency has "
+            "scored repeal: CBO has published no post-TCJA option, JCT "
+            "publishes the tax expenditure, and there is no FY2027 Green "
+            "Book.",
+            "Yale's own 'close to $1.2 trillion' is not a bound: it is "
+            "scored against pre-P.L. 119-21 current law, where TCJA's larger "
+            "standard deduction lapses and the itemising population roughly "
+            "doubles.",
             "The record's annual_cost = 25.0 is a pre-P.L.119-21 level. JCT's "
             "JCX-45-25 puts the capped expenditure at $45.5B in FY2025 rising "
             "to $54.9B in FY2029, because raising the SALT cap to $40,000 took "

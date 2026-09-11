@@ -240,7 +240,12 @@ def test_csv_header_contains_the_baseline_vintage(catalog):
     header, _, table = csv_text.partition("Policy ID,")
     assert "Feb 2026" in header
     assert "ss-donut-250k,corporate-28pct" in header
-    assert "ss-donut-250k" in table and "-2,700" in table
+    # -1,427 since 2026-09-09, not -2,700: Build quotes CBO_SCORE_MAP's
+    # official_score as a LIST PRICE, and lane H9 moved ss_donut_250k's target
+    # from an untraceable -$2.7T to CBO Option 62 alternative 2's -$1,426.8B.
+    # No scored number moved anywhere; a Build package total did, which is what
+    # plan §1.1 means by a package inheriting the TARGET's provenance.
+    assert "ss-donut-250k" in table and "-1,427" in table
 
 
 def test_short_vintage_and_window_label_are_derived_not_hardcoded():
@@ -384,8 +389,10 @@ def test_totals_update_when_a_policy_is_checked(plain_build, checked_build):
     after = package_metric(checked_build)
     assert "0 policies" in before.label and before.value == "$0B/yr"
     assert "1 policy" in after.label
-    assert after.value == "$-270B/yr"
-    assert "-2,700B over 10 years" in after.delta
+    # -143/yr and -1,427 over ten since 2026-09-09; see
+    # test_csv_header_contains_the_baseline_vintage for why.
+    assert after.value == "$-143B/yr"
+    assert "-1,427B over 10 years" in after.delta
 
 
 def test_scoreboard_reports_baseline_and_adjusted_deficit(checked_build):

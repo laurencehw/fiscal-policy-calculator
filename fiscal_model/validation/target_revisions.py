@@ -50,6 +50,27 @@ The three consequences a revision has, all of them deliberate
    out — are reported in ``planning/lanes/PROVENANCE_amt_insulin.md``. Neither
    is quoted without the other.
 
+The third state: retirement
+---------------------------
+A supersession says *the target moved here*. An ``EXAMINED_NOT_REVISED`` verdict
+says *somebody opened the document and decided to keep the carried figure*.
+Neither can say the third thing, which is *this figure is not a score of
+anything and no published score of this policy exists to put in its place* —
+so ``retired=True`` does, mirroring :mod:`.preregistered`'s own withdrawal
+state. Three rules keep it from becoming a way to go green:
+
+* the **row stays** in this ledger and the **benchmark keeps its scorecard
+  row**. Nothing is deleted; ``planning/HIGH_STAKES_ACCURACY.md`` §5's *"no
+  removing a case to go green"* binds here as everywhere else.
+* the entry leaves the reconstruction tier's mean, because a withdrawn figure
+  is not a benchmark and an error against it measures nothing — **and** the
+  scorecard counts retired rows and the dashboard prints the same tier with
+  them folded back at the error they carried on the day they were withdrawn.
+  A mean that fell because two rows left is then a visible omission rather
+  than an invisible one.
+* ``retired_reason`` is required, and states what was searched and what would
+  bring the target back.
+
 ``entered_commit`` note: a file cannot contain its own commit hash, so rows
 added in a change are stamped with that change's hash in the immediately
 following commit — the same two-commit protocol ``preregistered.py`` uses, and
@@ -126,6 +147,19 @@ CORPORATE_PTC_PROVENANCE_FIRST_SCORED_COMMIT = (
     "fba838021c26089c9e624abbcf56ecfc778a5aad"
 )
 
+#: Commit that entered the H9 rows — lane
+#: ``planning/lanes/HSB_h9_provenance.md``, the pass over the eighteen
+#: calibrated targets that were not ``line_item``. Four revisions (three points
+#: and one range) plus five new examined-and-left verdicts. Every one of the
+#: four moves a figure the runners read, so the two-commit split applies: the
+#: ledger rows land here and the commit that follows writes the figures into
+#: ``scenarios.py`` and ``CBO_SCORE_MAP``.
+H9_PROVENANCE_ENTERED_COMMIT = "cf9eb539043ec578879466c1ede017e7e4f7c842"
+H9_PROVENANCE_ENTERED_DATE = "2026-09-09"
+
+#: Commit in which the H9 targets were first actually scored.
+H9_PROVENANCE_FIRST_SCORED_COMMIT = "63e76b8d8b978de6c6be1782ea2e54ba4f6bcd0a"
+
 
 @dataclass(frozen=True)
 class CalibratedTarget:
@@ -168,6 +202,20 @@ class CalibratedTarget:
         superseded_by: ``revision_id`` of the row that replaced this one. A row
             with a value here is history: it is not checked against the live
             registries and is not the target of anything.
+        retired: ``True`` when the target was **withdrawn and not replaced** —
+            the third state, distinct from both a supersession (which has a
+            replacement) and an ``EXAMINED_NOT_REVISED`` verdict (which keeps
+            the carried figure as a target). It says: *this figure is not a
+            score of anything, and no published score of this policy exists to
+            put in its place.* The row stays in the ledger, because the point
+            is that the withdrawal is visible; it is not live, is not the
+            target of anything, and the benchmark it belongs to keeps its
+            scorecard row. See :meth:`is_retired` and §4 of
+            ``planning/lanes/HSB_h9_provenance.md`` for what it does to the
+            tiers — in particular why a retired row is *counted and reported*
+            rather than quietly dropped from a mean.
+        retired_reason: Why the target was withdrawn, including what was
+            searched and what would bring it back. Required on a retired row.
         reason: Why the row was superseded (on the old row) or why it replaces
             its predecessor (on the new one). Required on both halves of a
             supersession — a target that moves without a stated reason is
@@ -192,13 +240,20 @@ class CalibratedTarget:
     published_low_10yr_billions: float | None = None
     published_high_10yr_billions: float | None = None
     superseded_by: str | None = None
+    retired: bool = False
+    retired_reason: str = ""
     reason: str = ""
     note: str = ""
 
     @property
     def is_live(self) -> bool:
-        """A row still in force: not replaced by a later row."""
-        return self.superseded_by is None
+        """A row still in force: not replaced by a later row, not withdrawn."""
+        return self.superseded_by is None and not self.retired
+
+    @property
+    def is_retired(self) -> bool:
+        """A target withdrawn with nothing to replace it."""
+        return self.retired
 
     @property
     def is_range(self) -> bool:
@@ -357,6 +412,22 @@ _CRFB_CORPORATE_15 = (
 _CRFB_CORPORATE_15_URL = (
     "https://www.crfb.org/blogs/donald-trumps-proposal-lower-corporate-tax-rate-15"
 )
+
+_TF_OPTIONS_3 = (
+    "Tax Foundation, 'Options for Reforming America's Tax Code 3.0: A "
+    "Policymaker's Guide to Tax Reform Trade-Offs' (July 2026). Every option "
+    "is scored on a post-P.L. 119-21 baseline over calendar years 2027-2036, "
+    "on the Tax Foundation General Equilibrium Model."
+)
+_TF_OPTIONS_3_URL = (
+    "https://taxfoundation.org/wp-content/uploads/2026/07/Options3_book_7-22.pdf"
+)
+
+_CRS_IF13190 = (
+    "Congressional Research Service, IF13190, 'The Mortgage Interest "
+    "Deduction' (23 March 2026)"
+)
+_CRS_IF13190_URL = "https://www.congress.gov/crs-product/IF13190"
 
 
 CALIBRATED_TARGETS: tuple[CalibratedTarget, ...] = (
@@ -1428,6 +1499,508 @@ CALIBRATED_TARGETS: tuple[CalibratedTarget, ...] = (
             + ")."
         ),
     ),
+    # ------------------------------------------------------------------
+    # H9 — the Social Security donut hole: a think-tank explainer's figure
+    # standing in for a printed CBO row on this repository's own window
+    # ------------------------------------------------------------------
+    CalibratedTarget(
+        revision_id="ss_donut_250k.v1",
+        policy_id="ss_donut_250k",
+        official_10yr_billions=-2_700.0,
+        source_name="Social Security Trustees (as credited by the record)",
+        source_date="2024",
+        window="stated as 10-year; not traceable to any published window",
+        entered_commit="unknown (predates the validation manifest)",
+        entered_date="2025-12-08",
+        first_scoring_run_commit="unknown (predates the validation manifest)",
+        superseded_by="ss_donut_250k.v2",
+        reason=(
+            "The credited source does not publish it. SSA's Office of the "
+            "Chief Actuary does score this provision -- E2.5, 'Apply 12.4 "
+            "percent payroll tax rate on earnings above $250,000 starting in "
+            "2026... Do not provide benefit credit' -- and its run 418 tables "
+            "report only percent of taxable payroll (+2.50%) and a depletion "
+            "date moving 2034 to 2057. Lane HSA_h13 verified that the words "
+            "'billion' and 'trillion' do not appear once in the whole "
+            "six-page provisions category summary. The '$2.7 trillion over 10 "
+            "years' traces to a Peter G. Peterson Foundation explainer with "
+            "no report year, no run number and no window. Superseded rather "
+            "than left, because a published ten-year dollar score of the SAME "
+            "design exists on this repository's own window -- and it is 47% "
+            "below. `payroll.py` documents its own arithmetic ('2_177.0  # "
+            "270 / 0.124'), so the 0.0% this row reported was the target "
+            "divided by ten, divided by the statutory rate, times the rate, "
+            "times ten. No constant was retuned."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="ss_donut_250k.v2",
+        policy_id="ss_donut_250k",
+        official_10yr_billions=-1_426.8,
+        source_name="Congressional Budget Office (data source: JCT and CBO)",
+        source_document=_CBO_60557,
+        source_url=_CBO_60557_URL,
+        source_date="2024-12",
+        source_table=(
+            "Option 62, 'Increase the Maximum Taxable Earnings for the Social "
+            "Security Payroll Tax', table stub 'Decrease (-) in the deficit', "
+            "column 2025-2034"
+        ),
+        source_row="Subject earnings greater than $250,000 to payroll taxes",
+        source_page="report p. 73 (PDF p. 79)",
+        window="FY2025-2034",
+        entered_commit=H9_PROVENANCE_ENTERED_COMMIT,
+        entered_date=H9_PROVENANCE_ENTERED_DATE,
+        first_scoring_run_commit=H9_PROVENANCE_FIRST_SCORED_COMMIT,
+        reason=(
+            "Same design, this repository's own window, and CBO is already "
+            "the publisher the sibling alternative in the same option is "
+            "scored against (`ss_cap_90_pct`). CBO's own text matches the "
+            "module's shape twice over: 'The second alternative would apply "
+            "the 12.4 percent payroll tax to earnings over $250,000 in "
+            "addition to earnings below the maximum taxable amount under "
+            "current law... The taxable maximum would continue to grow with "
+            "average wages, but the $250,000 threshold would not change, so "
+            "the gap between the two would shrink', and 'The current-law "
+            "taxable maximum would still be used for calculating benefits, so "
+            "scheduled benefits would not change under this alternative' -- "
+            "which is OCACT E2.5's 'do not provide benefit credit'. Adopted "
+            "although it makes the row far worse (0.0% -> 89.2%): the "
+            "document is the reason, not the distance."
+        ),
+        note=(
+            "BASIS. The 2024 volume prints one stub for both alternatives, "
+            "'Decrease (-) in the deficit', where the 2018 and 2020 volumes "
+            "printed 'Change in Revenues' separately; so $1,426.8B is a "
+            "deficit figure and the payroll module scores a deficit effect "
+            "too. Two wedges, both stated rather than adjusted. (1) CBO's "
+            "table note reads 'An offset to reflect reduced income and "
+            "payroll taxes has been applied to the estimates in this table', "
+            "and the module has no income-tax offset channel, so the model's "
+            "figure sits above CBO's for a reason independent of the base. "
+            "(2) Footnote 'a' -- 'Estimates include increased outlays for "
+            "additional payments of Social Security benefits' -- is attached "
+            "to alternative 1 ONLY, because this alternative changes no "
+            "scheduled benefit. So the benefit-outlay wedge that makes "
+            "`ss_cap_90_pct`'s revenue and deficit lines differ does not "
+            "exist here. VINTAGES: the same alternative reads $1,222.6B "
+            "(2018 volume, revenue, FY2019-2028), $1,024.0B (2020 volume, "
+            "revenue, FY2021-2030) and $1,203.9B (2022 volume, deficit, "
+            "FY2023-2032). Four windows, not four estimators, so this is a "
+            "point revision and not a range. cbo.gov returns HTTP 403 to "
+            "scripted clients; the figure is independently in this "
+            "repository already, transcribed with its annual path by "
+            "`scripts/extract_cbo_options.py` to "
+            "`data_files/validation/cbo_options_2025_2034_alternatives.csv` "
+            "(row 62.2)."
+        ),
+    ),
+    # ------------------------------------------------------------------
+    # H9 — TCJA rates only: a single published row existed all along
+    # ------------------------------------------------------------------
+    CalibratedTarget(
+        revision_id="tcja_rates_only.v1",
+        policy_id="tcja_rates_only",
+        official_10yr_billions=3_185.0,
+        source_name="none (this repository's own decomposition)",
+        source_date="2024",
+        window="stated as 10-year; not traceable to any published window",
+        entered_commit="unknown (predates the validation manifest)",
+        entered_date="2025-12-08",
+        first_scoring_run_commit="unknown (predates the validation manifest)",
+        superseded_by="tcja_rates_only.v2",
+        reason=(
+            "The scenario's own note says what it is: 'Rate cuts only: ~$3.2T "
+            "calibrated. This is an illustrative scenario.' Phase E labelled "
+            "it `model_estimate` on that admission. What the sourcing pass "
+            "found is that a single published row for exactly this provision "
+            "has existed since May 2024, in the same table, the same column "
+            "and the same window this repository already reads "
+            "`extend_tcja_amt`'s $1,357.1B out of -- and it is a third "
+            "smaller. No summing was required, so PR #122's rule against "
+            "constructing a target by adding rows never came into play."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="tcja_rates_only.v2",
+        policy_id="tcja_rates_only",
+        official_10yr_billions=2_158.7,
+        source_name="Congressional Research Service (transcribing CBO/JCT)",
+        source_document=_CRS_R48286,
+        source_url=_CRS_R48286_URL,
+        source_date="2024-11",
+        source_table=_CRS_R48286_TABLE,
+        source_row="Reduced Individual Tax Rates",
+        source_page="Table 1 (FY2025-FY2034 column)",
+        window="FY2025-2034",
+        entered_commit=H9_PROVENANCE_ENTERED_COMMIT,
+        entered_date=H9_PROVENANCE_ENTERED_DATE,
+        first_scoring_run_commit=H9_PROVENANCE_FIRST_SCORED_COMMIT,
+        reason=(
+            "$2,158.7B over FY2025-2034 ($821.8B over FY2025-2029), read from "
+            "the row CRS labels 'Reduced Individual Tax Rates' and CBO's own "
+            "supplemental workbook labels '10%, 12%, 22%, 24%, 32%, 35%, and "
+            "37% income tax rate brackets' (estimator: JCT, effective tyba "
+            "12/31/25). Adopted because it is the same document, table, "
+            "column and window as the AMT row this repository already scores "
+            "`extend_tcja_amt` against, and because the scenario it replaces "
+            "was declared illustrative by its own author. It makes the row "
+            "much worse (2.2% -> 44.3%), which is the point: a decomposition "
+            "of a fitted aggregate reproducing itself was never evidence."
+        ),
+        note=(
+            "The standard deduction ($1,251.0B), personal-exemption repeal "
+            "(-$1,717.5B), child credit, QBI and AMT are separate rows in the "
+            "same table, so this is the rate structure alone -- which is the "
+            "scenario's own design (`extend_all=False`, `extend_rates=True`, "
+            "everything else False). CRS's table note is carried with it: "
+            "'The revenue cost depends on the order of estimation due to "
+            "interactions between the provisions.' Corroborated from the "
+            "other side by JCT's JCX-35-25 p. 1 row 1, 'Extension and limited "
+            "enhancement of reduced rates', -$2,193.4B over the same window "
+            "-- 1.6% away, and not adopted because the 'limited enhancement' "
+            "is P.L. 119-21's, not TCJA's."
+        ),
+    ),
+    # ------------------------------------------------------------------
+    # H9 — estate tax repeal: a `model_estimate` with a published score
+    # ------------------------------------------------------------------
+    CalibratedTarget(
+        revision_id="eliminate_estate_tax.v1",
+        policy_id="eliminate_estate_tax",
+        official_10yr_billions=350.0,
+        source_name="none (this repository's own model output)",
+        source_date="2024",
+        window="stated as 10-year; not traceable to any published window",
+        entered_commit="unknown (predates the validation manifest)",
+        entered_date="2025-12-08",
+        first_scoring_run_commit="unknown (predates the validation manifest)",
+        superseded_by="eliminate_estate_tax.v2",
+        reason=(
+            "Never a target: the scenario's source field literally reads "
+            "'Model estimate', and the module reproduced it to the cent. A "
+            "published ten-year score of estate-tax repeal on a CURRENT-LAW "
+            "baseline now exists, which is what was missing before -- JCT's "
+            "only repeal-era figures are bundled with the exemption doubling "
+            "and the 35% gift rate (JCX-46-17 row H, -$171.5B; JCX-54-17 row "
+            "G, -$150.7B; the conference agreement dropped repeal entirely), "
+            "and CBO/JCT's standalone score of the Death Tax Repeal Act of "
+            "2015 ($269B, FY2015-2025) prices repeal of a tax with a $5.43M "
+            "exemption, a materially different instrument."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="eliminate_estate_tax.v2",
+        policy_id="eliminate_estate_tax",
+        official_10yr_billions=407.2,
+        source_name="Tax Foundation",
+        source_document=_TF_OPTIONS_3,
+        source_url=(
+            "https://taxfoundation.org/tax-reform-guide/option/"
+            "eliminate-the-estate-and-gift-tax/"
+        ),
+        source_date="2026-07",
+        source_table="Option 83, table '10-Year Change in the Deficit, 2027-2036'",
+        source_row="Conventional Primary Deficit Change",
+        source_page="printed p. 105",
+        window="CY2027-2036",
+        entered_commit=H9_PROVENANCE_ENTERED_COMMIT,
+        entered_date=H9_PROVENANCE_ENTERED_DATE,
+        first_scoring_run_commit=H9_PROVENANCE_FIRST_SCORED_COMMIT,
+        reason=(
+            "'This option repeals the estate and gift taxes', scored on the "
+            "post-P.L. 119-21 baseline this repository's own scoring assumes "
+            "($15M individual / $30M joint exemption, 40% top rate): "
+            "+$407.2B conventional primary deficit, +$489.4B total. It is "
+            "adopted where the two agency figures are not, because both of "
+            "those price a different instrument -- a bundle in 2017, and a "
+            "$5.43M-exemption tax in 2015. Tax Foundation is already the "
+            "publisher four benchmarks here are anchored on, and this is a "
+            "standalone option with its own printed table."
+        ),
+        note=(
+            "SCOPE: the option repeals the estate tax AND the gift tax, where "
+            "`create_eliminate_estate_tax` constructs estate repeal; CRS "
+            "R48183 (p. 16) puts the estate share at about 90% of estate and "
+            "gift receipts, so the published figure is the broader of the "
+            "two and this row's error is a slight over-statement. WINDOW is "
+            "stated rather than adjusted, on `biden_corporate_28_fy2022`'s "
+            "precedent: CY2027-2036 against the runner's FY2025-2034. NOT a "
+            "target, and refused for the same reason `repeal_ptc` refuses "
+            "publication 51298: CBO's February 2026 baseline (pub. 61882) "
+            "Table 4-1 projects estate and gift receipts of $403B over "
+            "FY2027-2036, which is a projection of what the tax raises, not "
+            "a score of repealing it -- its closeness to $407.2B is not "
+            "corroboration, it is what a repeal score of a small tax with "
+            "little behaviour looks like."
+        ),
+    ),
+    # ------------------------------------------------------------------
+    # H9 — IRA credit repeal: a repeal score, not a cost projection
+    # ------------------------------------------------------------------
+    CalibratedTarget(
+        revision_id="repeal_ira_credits.v1",
+        policy_id="repeal_ira_credits",
+        official_10yr_billions=-783.0,
+        source_name="CBO (as credited by the record)",
+        source_date="2024-03",
+        window="stated as FY2025-2034; not traceable to any published window",
+        entered_commit="unknown (predates the validation manifest)",
+        entered_date="2025-12-08",
+        first_scoring_run_commit="unknown (predates the validation manifest)",
+        superseded_by="repeal_ira_credits.v2",
+        reason=(
+            "The cited publication -- 'CBO, budgetary effects of the "
+            "energy-related tax provisions of P.L. 117-169 (upward "
+            "revision)' -- does not exist, and -$783B appears in no CBO or "
+            "JCT document. Every figure in its neighbourhood is a BASELINE "
+            "PROJECTION of what the credits cost rather than a scored "
+            "repeal: JCT's $663B (2023-2033), CRFB reading CBO's 2024 "
+            "baseline at 'closer to $800 billion', Treasury and JCT's "
+            "tax-expenditure estimates at about $1.2T (2025-2034). A repeal "
+            "score prices the behavioural response; a tax expenditure does "
+            "not, and Tax Foundation states the distinction in the document "
+            "that replaces this row. `climate.py`'s annual is this figure "
+            "restated, so the 0.0% was never evidence."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="repeal_ira_credits.v2",
+        policy_id="repeal_ira_credits",
+        official_10yr_billions=-851.0,
+        source_name="Tax Foundation",
+        source_document=(
+            "William McBride, 'Testimony: The Inflation Reduction Act's Green "
+            "Energy Tax Credits', Tax Foundation, submitted to the U.S. House "
+            "Committee on Oversight and Government Reform, 20 May 2025"
+        ),
+        source_url=(
+            "https://taxfoundation.org/testimony/"
+            "inflation-reduction-act-ira-green-energy-tax-credits/"
+        ),
+        source_date="2025-05",
+        source_table="Testimony text (the document states the figure in prose)",
+        source_row=(
+            "'We have estimated that full repeal of the credits would reduce "
+            "deficits by $851 billion over the next decade (2025-2034).'"
+        ),
+        source_page="testimony body",
+        window="FY2025-2034",
+        entered_commit=H9_PROVENANCE_ENTERED_COMMIT,
+        entered_date=H9_PROVENANCE_ENTERED_DATE,
+        first_scoring_run_commit=H9_PROVENANCE_FIRST_SCORED_COMMIT,
+        reason=(
+            "A scored FULL repeal, on this repository's own window, from a "
+            "document that itself draws the line this benchmark had been on "
+            "the wrong side of: 'The latest tax expenditure estimates from "
+            "the Treasury Department and JCT indicate the cost of the credits "
+            "has grown to about $1.2 trillion over the next decade "
+            "(2025-2034)' -- a cost, against $851B of deficit reduction from "
+            "eliminating them. Chosen over JCT's own repeal score on scope, "
+            "not on distance (see note)."
+        ),
+        note=(
+            "WHY NOT JCT. JCX-7-23 (26 April 2023) scores Title III of "
+            "H.R. 2811, captioned 'REPEAL MARKET DISTORING GREEN TAX "
+            "CREDITS' [sic], at a NET TOTAL of $515,078M over FY2023-2033 -- "
+            "an actual scorekeeper scoring actual bill text, and the first "
+            "instinct is to prefer it. Two things printed on the document "
+            "itself stop that. Footnote [1], 'Estimates of outlay effects "
+            "presently unavailable', is attached to eleven of its lines, so "
+            "the total is revenue-only and omits the refundable and "
+            "direct-pay side; and items 11 and 12 -- the clean-vehicle and "
+            "previously-owned-clean-vehicle credits -- read 'Presently "
+            "Unavailable', so all three vehicle credits are out of the total "
+            "(item 13 is folded into 11). An acknowledged-incomplete total is "
+            "a lower bound, and adopting a lower bound as a point target "
+            "would measure the missing lines. Its window is FY2023-2033 "
+            "besides. Recorded here so the next pass does not re-find it and "
+            "reach the opposite conclusion silently."
+        ),
+    ),
+    # ------------------------------------------------------------------
+    # H9 — the 60% China tariff: a standalone estimate did exist
+    # ------------------------------------------------------------------
+    CalibratedTarget(
+        revision_id="trump_china_60.v1",
+        policy_id="trump_china_60",
+        official_10yr_billions=-500.0,
+        source_name="Tax Foundation (as credited by the record)",
+        source_date="2024",
+        window="stated as FY2025-2034; not traceable to any published window",
+        entered_commit="unknown (predates the validation manifest)",
+        entered_date="2025-12-08",
+        first_scoring_run_commit="unknown (predates the validation manifest)",
+        superseded_by="trump_china_60.v2",
+        reason=(
+            "The credited publisher scores a 60% China tariff only inside a "
+            "bundle ('Universal 20% Tariff on All Imports Plus Additional 50% "
+            "Tariff on Imports from China', $3,823.9B conventional over "
+            "2025-2034), and its standalone China post gives '$200 billion' "
+            "as an ANNUAL static figure with no window. So -$500B was only "
+            "ever obtainable as a residual from someone else's bundle. What "
+            "the H9 pass found is that a standalone conventional ten-year "
+            "estimate of exactly this policy does exist and had not been "
+            "located: it is CRFB's, not Tax Foundation's, and it is 30% "
+            "larger."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="trump_china_60.v2",
+        policy_id="trump_china_60",
+        official_10yr_billions=-650.0,
+        source_name="Committee for a Responsible Federal Budget",
+        source_document=(
+            "Committee for a Responsible Federal Budget, 'Options to Raise "
+            "Tariff Revenue' (17 December 2024)"
+        ),
+        source_url="https://www.crfb.org/blogs/options-raise-tariff-revenue",
+        source_date="2024-12",
+        source_table=(
+            "'Tariff Scenarios and Their Net Impact on Revenue', section "
+            "'Chinese Tariffs', column 'Conventional Impact (2026-2035)'"
+        ),
+        source_row="60% Import Tariff on Chinese Goods",
+        source_page="the post's only revenue table",
+        window="FY2026-2035",
+        entered_commit=H9_PROVENANCE_ENTERED_COMMIT,
+        entered_date=H9_PROVENANCE_ENTERED_DATE,
+        first_scoring_run_commit=H9_PROVENANCE_FIRST_SCORED_COMMIT,
+        reason=(
+            "The only located standalone ten-year conventional estimate of a "
+            "60% tariff on Chinese goods with no other tariff alongside it. "
+            "The adjacent row prices the same tariff on top of a 10% "
+            "universal baseline at $575B, which is the discipline that makes "
+            "the $650B row unambiguously the module's shape "
+            "(`create_trump_china_60` applies no universal tariff). CRFB is "
+            "already the transcribed source behind `reciprocal_tariffs`' "
+            "range. It takes the row 44.3% -> 57.2%, which is the shape a "
+            "provenance pass has."
+        ),
+        note=(
+            "Four caveats printed on the table, carried rather than adjusted "
+            "away. (1) WINDOW: 'these options are based on the FY 2026-2035 "
+            "budget window; savings would likely be 15 percent less over the "
+            "FY 2025-2034 budget window' -- CRFB's own sizing of the offset "
+            "the runner's window would introduce; the figure is taken as "
+            "printed. (2) 'Numbers are rough and rounded' -- to the nearest "
+            "$5B, which is 0.8% here. (3) DEFINITION: 'Conventional estimates "
+            "reflect the average of scenarios where lost trade is and isn't "
+            "diverted to other trading partners', and they 'assume... that "
+            "all gained tariff revenue would be subject to income and payroll "
+            "tax revenue offsets'. (4) CURRENCY: the post now carries an "
+            "update banner saying the December 2024 estimates predate the "
+            "2025 tariffs and 'may no longer be applicable' -- which is about "
+            "what has since been enacted, not about the hypothetical this "
+            "benchmark scores. Everyone else bundles: Yale Budget Lab's "
+            "twelve scenarios all pair 60% China with a 10% or 20% broad "
+            "tariff (Table 2, p. 6), TPC's T24-0050 and T24-0079 are both "
+            "'60 Percent ... and 10/20 Percent ... All Other Countries', and "
+            "PIIE's Clausing & Lovely figure is annual."
+        ),
+    ),
+    # ------------------------------------------------------------------
+    # H9 — mortgage interest: the 2.4x was the standard deduction, and a
+    # third, independent estimator has since published
+    # ------------------------------------------------------------------
+    CalibratedTarget(
+        revision_id="eliminate_mortgage.v1",
+        policy_id="eliminate_mortgage",
+        official_10yr_billions=-300.0,
+        source_name="CBO (as credited by the record)",
+        source_date="2024",
+        window="stated as FY2025-2034; not traceable to any published window",
+        entered_commit="unknown (predates the validation manifest)",
+        entered_date="2025-12-08",
+        first_scoring_run_commit="unknown (predates the validation manifest)",
+        superseded_by="eliminate_mortgage.v2",
+        reason=(
+            "Wave 4 examined this row and left it, on a premise a document "
+            "published since has contradicted. That verdict read: 'the only "
+            "two ten-year repeal figures -- CRS IF13190's $495B and Yale's "
+            "close to $1.2 trillion -- come from the SAME SIMULATOR and "
+            "differ by 2.4x, [which] is itself the argument against adopting "
+            "either.' Tax Foundation's July 2026 guide supplies a third "
+            "figure from an independent general-equilibrium model, and with "
+            "it the 2.4x resolves: Yale's $1.2T is scored against **pre-"
+            "P.L. 119-21** current law, where TCJA's larger standard "
+            "deduction lapses and itemisers roughly double, while CRS's "
+            "$495B and Tax Foundation's $367.9B are both post-OBBBA. The gap "
+            "was a BASELINE gap, not a simulator disagreement, and -$300B "
+            "matches none of the three."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="eliminate_mortgage.v2",
+        policy_id="eliminate_mortgage",
+        official_10yr_billions=None,
+        published_low_10yr_billions=-495.0,
+        published_high_10yr_billions=-367.9,
+        source_name=(
+            "Tax Foundation (anchor); Congressional Research Service, "
+            "computing on the Yale Budget Lab Tax-Simulator"
+        ),
+        source_document=_TF_OPTIONS_3,
+        source_url=(
+            "https://taxfoundation.org/tax-reform-guide/option/"
+            "eliminate-the-home-mortgage-interest-deduction/"
+        ),
+        source_date="2026-07",
+        source_table="Option 25, table '10-Year Change in the Deficit, 2027-2036'",
+        source_row=(
+            "Conventional Primary Deficit Change -$367.9B (anchor); "
+            + _CRS_IF13190
+            + " Table 2, 'Repeal MID $495' over FY2026-2035 ("
+            + _CRS_IF13190_URL
+            + ")"
+        ),
+        source_page=(
+            "Option 25 (Individual Taxes), the guide's per-option topline "
+            "table; CRS IF13190 Table 2"
+        ),
+        window="CY2027-2036 (anchor); FY2026-2035 (the other bound)",
+        entered_commit=H9_PROVENANCE_ENTERED_COMMIT,
+        entered_date=H9_PROVENANCE_ENTERED_DATE,
+        first_scoring_run_commit=H9_PROVENANCE_FIRST_SCORED_COMMIT,
+        reason=(
+            "Two independent models now price full repeal of the mortgage "
+            "interest deduction on a post-P.L. 119-21 baseline over ten "
+            "years and disagree by 35%: Tax Foundation's general-equilibrium "
+            "model at -$367.9B conventional (CY2027-2036) and the Yale Budget "
+            "Lab Tax-Simulator, transcribed by CRS, at -$495B (FY2026-2035). "
+            "No agency has scored repeal at all -- CBO has published no "
+            "post-TCJA option, JCT publishes the tax expenditure, and there "
+            "is no FY2027 Green Book. So no point is publishable and the row "
+            "takes a range on the mechanism Wave 3 built for "
+            "`pillar_two_adoption`. The anchor is Tax Foundation's, chosen on "
+            "the documents: it is a standalone modelled option with its own "
+            "printed deficit table, where CRS's figure is CRS transcribing "
+            "somebody else's simulator and labelling it 'not considered "
+            "official for revenue scoring purposes'. State plainly what that "
+            "rule delivered here: the better-standing bound is also the one "
+            "NEARER the model (-$367.9B puts the row at 26.5%, -$495B would "
+            "put it at 45.4%), which is the opposite of `trump_corporate_15`, "
+            "where the same rule anchored on the FARTHER bound. The rule is "
+            "the constant; which bound it lands on is not, and both bounds "
+            "ride on this row so a reader can apply either."
+        ),
+        note=(
+            "Yale's own June 2025 'close to $1.2 trillion' is NOT a bound: it "
+            "is scored 'relative to current law' as that stood before "
+            "P.L. 119-21, i.e. with TCJA's standard deduction lapsing, which "
+            "roughly doubles the itemising population a repeal would reach. "
+            "Tax Foundation states the baseline it uses: 'The One Big "
+            "Beautiful Bill Act made the temporary $750,000 cap permanent "
+            "instead of allowing the cap to rise back to $1 million at the "
+            "end of 2025.' JCT's tax expenditures (JCX-48-24 $382.2B "
+            "FY2024-2028; JCX-45-25 $261.1B FY2025-2029) are not repeal "
+            "scores and are not bounds. The two modelling hand-offs Wave 4 "
+            "recorded are unchanged and still not this lane's: the record's "
+            "`annual_cost = 25.0` is a pre-P.L.119-21 level, and "
+            "`annual_cost_no_limit = 100.0` is a pre-TCJA-LAW level whose "
+            "name misdescribes it."
+        ),
+    ),
 )
 
 
@@ -1524,7 +2097,11 @@ EXAMINED_NOT_REVISED: dict[str, str] = {
         "replaced by a 50%-plus-copper figure, and it is not retired, because "
         "retiring a case to avoid reporting an unsourced target is the "
         "failure mode this ledger exists to prevent. `searched` on the "
-        "`benchmark_sources` row carries the full negative result."
+        "`benchmark_sources` row carries the full negative result. "
+        "RE-SEARCHED 2026-09-09 by lane H9: still nothing. Tax Foundation's "
+        "*Options 3.0* (July 2026) adds 86 modelled options and none of them "
+        "is a Section 232 steel rate; the ten-week 25% regime remains the one "
+        "tariff in this repository that no scorekeeper ever priced."
     ),
     "repeal_ptc": (
         "Searched on 2026-09-05 and the carried -$1,100B now has a most "
@@ -1562,35 +2139,299 @@ EXAMINED_NOT_REVISED: dict[str, str] = {
         "place, left `secondhand`, and explicitly not retired -- retiring a "
         "case to avoid reporting an unsourced target is the failure mode this "
         "ledger exists to prevent, and this one is a locked "
-        "`holdout.py` id besides."
+        "`holdout.py` id besides. RE-SEARCHED 2026-09-09 by lane H9 and "
+        "nothing has been published since: CBO/JCT publication 61734 was read "
+        "in full and scores three policies, all of them EXTENSIONS or repeals "
+        "of the 2025 act's restrictions (permanently expanding the ARPA "
+        "structure, $350B; nullifying a June 2025 HHS rule, $40B; repealing "
+        "title VII subtitle B of the reconciliation act, $272B) and none of "
+        "them elimination of the credit; CBO's cost estimates through "
+        "September 2026 contain none (the nearest, H.R. 6703 of 16 December "
+        "2025, is association health plans and PBM standards at -$35.6B); no "
+        "2025 or 2026 JCX scores repeal of section 36B; and the phrase "
+        "'premium tax credit' does not appear anywhere in Tax Foundation's "
+        "86-option *Options 3.0* guide."
     ),
-    "eliminate_mortgage": (
-        "Searched again on 2026-09-02, and no official repeal score exists. "
-        "CBO has published no budget option repealing the mortgage interest "
-        "deduction since TCJA; JCT publishes the *tax expenditure* rather "
-        "than a repeal estimate (JCX-48-24 Table 1, $382.2B over FY2024-2028; "
-        "JCX-45-25 Table 1, $261.1B over FY2025-2029), and a tax expenditure "
-        "is not a repeal score because it omits the behavioural and "
-        "itemisation response. The only located ten-year repeal figure "
-        "remains CRS In Focus IF13190 (23 March 2026) Table 2, 'Repeal MID "
-        "$495' over FY2026-2035, which CRS itself labels an estimate from the "
-        "Yale Budget Lab Tax-Simulator and 'not considered official for "
-        "revenue scoring purposes'; Yale's own June 2025 options paper puts "
-        "full repeal against current law at 'close to $1.2 trillion', a "
-        "figure that differs from CRS's by 2.4x on the same simulator, which "
-        "is itself the argument against adopting either. The carried -$300B "
-        "matches none of them and stays where it is. Two things a reader "
-        "should know, both handed off rather than acted on because they are "
-        "modelling changes: the record's `annual_cost = 25.0` is a "
-        "pre-P.L.119-21 level -- JCT's JCX-45-25 puts the capped expenditure "
-        "at $45.5B in FY2025 rising to $54.9B in FY2029, because raising the "
-        "SALT cap to $40,000 took itemising claimants from 11.8M to 17.8M "
-        "returns -- and Treasury's FY2027 edition gives $23.9B falling to "
-        "$14.1B on the *same* statute, a 2-4x disagreement driven by "
-        "Treasury's comprehensive-income baseline against JCT's normal-tax "
-        "one. Whichever is adopted is an owner decision with a visible "
-        "consequence for `eliminate_mortgage`, and a provenance lane may not "
-        "make it."
+    # ----- H9 (2026-09-09) -------------------------------------------------
+    "ss_eliminate_cap": (
+        "Searched on 2026-09-09 and the only published ten-year dollar score "
+        "of this design cannot be adopted, for a reason the ledger states "
+        "mechanically. No CBO Options volume scores cap ELIMINATION at all: "
+        "all four (2018 Option 20, 2020 Option 17, 2022 Option 9, 2024 Option "
+        "62) offer the same two alternatives, a 90% taxable share and the "
+        "$250,000 donut. OCACT scores provision E2.1 ('Eliminate the taxable "
+        "maximum... Do not provide benefit credit', run 415) in percent of "
+        "payroll only. What does exist is Tax Foundation, Alex Durante, "
+        "'Uncapping the Payroll Tax Would Be the Largest Tax Increase in "
+        "Decades' (24 June 2026, updated 25 June): 'It would raise $3.2 "
+        "trillion from 2027 through 2036 on a conventional basis and $1.5 "
+        "trillion after accounting for the negative economic effects', on a "
+        "proposal that applies the tax to all earnings above the cap 'with no "
+        "corresponding changes to benefits' -- the same design. THE LEDGER "
+        "ITSELF REFUSES IT. $3.2 trillion is -$3,200.0B to the digit the "
+        "document states, which is exactly the figure this repository "
+        "carries, and `target_revision_problems` fails any supersession that "
+        "'restates the old target'. So it cannot be recorded as a revision; "
+        "and recording it as a confirmation would assert that a constant "
+        "chosen to produce -$3.2T ('320.0  # window-average of Trustees $3.2T "
+        "over 10yr' in `payroll.py`) had been validated by a document "
+        "published a year and a half later, on a window this repository does "
+        "not use, at one significant figure. That is the failure "
+        "`repeal_individual_amt` refuses TPC T25-0049 for. Two further "
+        "published figures, neither this design: the Peter G. Peterson "
+        "Foundation's '$3.4 trillion over 10 years (2026 to 2035)' is "
+        "explicitly the variant 'while providing benefit credit for those "
+        "earnings'; and SSA OACT's letter on the Medicare and Social Security "
+        "Fair Share Act (11 July 2023, Table 1b.n, 'Total 2023-2032' = "
+        "$3,035.1B nominal) scores a $400,000 DONUT with no benefit credit "
+        "and no income-tax offset. That last one corrects a claim this "
+        "repository has been making: OCACT's *provisions* tables publish no "
+        "dollars, but OCACT's bill-specific solvency letters do, so 'OCACT "
+        "publishes no ten-year dollar amount for any payroll provision' is "
+        "true of the category summary and false of the office. Left in place, "
+        "left `secondhand`, and named in `HSB_h9_provenance.md` as a "
+        "retirement candidate for the owner alongside the pharma pair."
+    ),
+    "cap_charitable": (
+        "Searched on 2026-09-09. No official score of a charitable-ONLY rate "
+        "limitation exists, in any volume or any year. Every official rate cap "
+        "applies to all itemized deductions (CBO's 2017-2026 volume Option 8, "
+        "'Limit the tax benefits of itemized deductions to 28 percent of their "
+        "total value', $171.5B FY2017-2026, JCT; the Green Book's 'Reduce the "
+        "value of certain tax expenditures', $645,538M FY2017-2026, which also "
+        "reaches five exclusions), and every official charitable-only option is "
+        "a floor or a cash-only rule (CBO's 2013 volume $212B; 2019-2028 "
+        "$175.6B floor / $145.7B cash-only; 2025-2034 Option 50 $347.7B / "
+        "$324.3B). CBO's own 'Options for Changing the Tax Treatment of "
+        "Charitable Giving' (May 2011) has eleven options, none a rate cap, "
+        "and its results are stated 'for tax year 2006' rather than as "
+        "ten-year scores. One non-official ten-year figure for the exact "
+        "design was located and is NOT adopted: CRFB, 'The Tax Break-Down: "
+        "Charitable Deduction' (16 December 2013), table 'Revenue Impact from "
+        "Reforming the Charitable Deduction (Billions, 2014-2023)', row "
+        "'Impose a 28% limit on the value of the deduction | $75', with the "
+        "caveat printed beneath it -- 'All scores are rough estimates and may "
+        "not match official CBO scores. Scores were chiefly estimated from a "
+        "2011 CBO analysis based on 2006 data.' A rough estimate derived from "
+        "tax-year-2006 microdata, on a window that closed in 2023, is not a "
+        "target; adopting it would move the row from 0.3% to 167% on the "
+        "strength of a figure its own publisher declines to stand behind. "
+        "Recorded so the next pass does not re-find it and decide otherwise. "
+        "Adjacent and also not adopted: Tax Foundation *Options 3.0* (July "
+        "2026) Option 24 tightens the OBBBA limitation 'to 28 cents on the "
+        "dollar' at -$169.0B over 2027-2036 -- all itemized deductions again."
+    ),
+    "cap_employer_health": (
+        "Searched on 2026-09-09 and the carried -$450B now has a most likely "
+        "origin, which is the reason not to adopt it. CBO's *Budget Options, "
+        "Volume 1: Health Care* (December 2008), Option 9, p. 24, is the only "
+        "published option that states the cap in DOLLARS: it would tax "
+        "employer and employee contributions 'that together exceeded $1,440 a "
+        "month for family coverage or $565 a month for individual coverage', "
+        "and JCT scores it at revenues of $452.1B over FY2009-2018 -- **0.5% "
+        "from the figure this repository carries**. But CBO derives those "
+        "dollars from the 75th percentile of 2010 premiums, and $1,440 a "
+        "month is $17,280 a year against the $50,000 cap this benchmark's own "
+        "description states: the same class of quantity at a third of the "
+        "level, on a window that closed in 2018. So the target is most likely "
+        "a figure for a far tighter cap, a decade earlier, sitting in this "
+        "column -- the same shape as `extend_tcja_amt`'s five-year cost in a "
+        "ten-year column, and there is nothing to move it TO. No agency has "
+        "ever scored a cap set at a chosen dollar level: CBO's 2016 volume "
+        "gives -$429B (50th percentile) and -$174B (75th), FY2017-2026; its "
+        "2019-2028 volume $670B / $270B revenues; its 2022 volume -$893.2B / "
+        "-$499.8B / -$651.4B; its 2024 volume Option 56 $965.0B / $521.0B / "
+        "$697.0B. The Senate Finance Committee's May 2009 options paper "
+        "discusses capping and publishes no estimate; JCT's companion "
+        "background paper says the exclusion 'could be reduced by capping the "
+        "dollar amount' and prints no table. Non-agency and also not a dollar "
+        "cap: Urban (May 2013) 75th percentile, $264.0B over 2014-2023; Tax "
+        "Foundation *Options 3.0* Option 30, 80th percentile ($14,816 single "
+        "/ $38,185 family), -$318.5B over 2027-2036. The $50,000 design is "
+        "the module's, and no scorekeeper has priced it."
+    ),
+    "eliminate_step_up": (
+        "Searched on 2026-09-09. No published estimate scores realization at "
+        "death WITH an exclusion as a standalone provision, and the carried "
+        "-$500B is above every standalone figure that does exist by about "
+        "2.4x -- in the direction that cannot be explained by the design, "
+        "because an exclusion makes a repeal NARROWER. Standalone, all "
+        "without an exclusion: PWBM, 'The Biden Tax Plan' (23 January 2020) "
+        "Table 1, row 'Eliminate stepped-up basis', $204B over FY2021-2030; "
+        "CBO's 2021-2030 volume Option 6, 'Change the Tax Treatment of "
+        "Capital Gains From Sales of Inherited Assets', $110.3B (carryover "
+        "basis, JCT); Tax Foundation *Options 3.0* Option 15, -$206.4B over "
+        "2027-2036 (carryover again). Bundled, with an exclusion: JCT's "
+        "JCX-15-16 item XI.B, 'Reform the Taxation of Capital Income', "
+        "$248,739M FY2016-2026, which is Obama's 28% rate AND gains at death "
+        "with a $100,000 exclusion in one line; PWBM's American Families Plan "
+        "row, $376B FY2022-2031, which is three provisions in one line; and "
+        "Treasury's combined 'Reform the taxation of capital income' row in "
+        "every Green Book. The STEP Act was searched specifically and JCT has "
+        "not scored it -- Senator Van Hollen's own one-pager describes the $1 "
+        "million exclusion this benchmark models and cites only a JCT TAX "
+        "EXPENDITURE, '$41.9 billion in 2021 alone'. CBO's Option 51 "
+        "alternative 2 ($536.1B, FY2025-2034) remains out for the reason "
+        "Phase E gave: no exemption, a materially broader policy, and already "
+        "carried here as the Tier 1 case `cbo_opt51_gains_at_death`. So the "
+        "target stays, the incoherence is on the record -- a fitted constant "
+        "reproducing a figure 2.4x every published score of a BROADER version "
+        "of the same reform -- and `HSB_h9_provenance.md` names it as a "
+        "retirement candidate for the owner."
+    ),
+    "repeal_individual_amt": (
+        "Searched a third time on 2026-09-09, and the verdict the AMT/insulin "
+        "lane and Wave 4 reached is unchanged: $450B is traceable to nothing "
+        "and there is nothing to move it to. One document is new and it does "
+        "not qualify. Tax Foundation *Options 3.0* (July 2026) Option 38, "
+        "'Eliminate the Individual Alternative Minimum Tax', prints +$271.1B "
+        "conventional over 2027-2036 -- but it is scored against POST-"
+        "P.L. 119-21 law, where TCJA's enlarged exemption is permanent, and "
+        "this benchmark's stated design is repeal against a baseline in which "
+        "that exemption has LAPSED. The two baselines are opposites and "
+        "repeal costs far more under the second, so adopting it would score "
+        "one policy against another's figure. JCT's standalone repeal line "
+        "was re-read and is where Phase E left it: JCX-46-17 p. 3 row G and "
+        "JCX-54-17 p. 3 row H, 'Repeal of Alternative Minimum Tax on "
+        "Individuals', -$695.5B over FY2018-2027 -- a pre-TCJA baseline and a "
+        "different decade. TPC's T25-0049 stays refused for the two reasons "
+        "on the `benchmark_sources` row: it is a baseline projection of what "
+        "the AMT raises rather than a scored repeal, and it is `amt.py`'s own "
+        "input. Nothing in JCT's or CBO's 2025-2026 output scores repeal. One "
+        "new observation for the owner: P.L. 119-21 made the enlarged "
+        "exemption permanent, so the lapsed-exemption baseline this benchmark "
+        "is defined on is now a counterfactual rather than current law -- "
+        "which is a modelling question for `amt.py`, not a provenance one. "
+        "The row is also a locked id in `holdout.py`'s "
+        "revenue-scorecard-post-lock-2026-05-02 protocol, which has no "
+        "re-registration path."
+    ),
+    "carbon_tax_50": (
+        "Searched on 2026-09-09. NO published ten-year estimate of a carbon "
+        "tax starting at $50 per metric ton with a 5% annual escalator "
+        "exists, and the carried -$1,700B is `climate.py`'s own calibration "
+        "target by the module's own admission ('Calibrated so $50/ton yields "
+        "~$170B/yr avg -> ~$1.7T/10yr'). Two published totals sit near the "
+        "design and both use a 2% REAL escalator, not 5%. Treasury's Office "
+        "of Tax Analysis Working Paper 115 (January 2017), 'Methodology for "
+        "Analyzing a Carbon Tax', p. 10: a tax starting at '$49 per metric "
+        "ton CO2-e on January 1, 2019 and rising at roughly a 2 percent real "
+        "rate' raises '$2,221 billion in net revenue over the 10-year window "
+        "from 2019 through 2028' ($1,846B if confined to energy-related CO2; "
+        "gross $2,962B before the 25% excise offset). And Rhodium Group for "
+        "Columbia SIPA's Center on Global Energy Policy (July 2018), Table 2, "
+        "report p. 50: a '$50/ton' scenario 'rises at an approximately 2 "
+        "percent real rate annually' raising $1,682-1,781 billion of 2016 "
+        "dollars over 2020-2029. THE CARRIED FIGURE FALLS INSIDE THAT RANGE, "
+        "AND THAT IS NOT EVIDENCE: the window is six years earlier, the units "
+        "are 2016 dollars, and the escalator is not the module's, so the "
+        "coincidence is two offsetting differences rather than agreement -- "
+        "which is exactly why it is not adopted as a range revision. CRS "
+        "R45625 Table 1 (report p. 23) reports annual 2020 figures only and "
+        "its one $50/5% line is a single-year 2040 range ('approximately $250 "
+        "billion to $475 billion'). No JCT score of any carbon-fee bill "
+        "exists -- congress.gov records zero CBO cost estimates for S.1128 "
+        "(116th) -- and the '$2.1 / $2.3 trillion' figures in Whitehouse "
+        "press releases carry no window and no JCX number. CBO's own Option "
+        "73 alternative 1 is the one figure on this repository's window with "
+        "the module's exact escalator, $919.3B FY2025-2034 for $25/ton rising "
+        "5% -- and doubling it would be constructing a target. Left in place "
+        "and named in `HSB_h9_provenance.md` as a retirement candidate: a "
+        "target that restates the model's own calibration is not a benchmark."
+    ),
+    "tcja_no_salt_cap": (
+        "Searched on 2026-09-09. No agency has scored 'extend the TCJA and "
+        "let the SALT cap lapse' as a single row, and the two rows that would "
+        "have to be added carry CBO's own warning against adding them. CBO's "
+        "supplemental workbook for publication 60114 prints the block total "
+        "$3,255,900M and, separately, the itemized-deduction row at "
+        "-$1,244,276M over FY2025-2034, under the note 'the estimate of "
+        "extending any single provision may differ from that reported here "
+        "because of interactions with other estimates... they do not include "
+        "all potential interaction effects of permanently extending the "
+        "provisions together'. Summing two rows to make a target is what "
+        "PR #122 declined for `trump_corporate_15`'s bonus-depreciation leg. "
+        "One published single row does exist and is NOT adopted: CRFB, 'SALT "
+        "Cap Expiration Could Be Costly Mistake' (28 August 2024), table "
+        "'Fiscal Impact of Various TCJA Extension Scenarios', row 'Extend "
+        "except SALT cap' = $5.1 trillion over FY2026-2035, from CRFB's own "
+        "Build Your Own Tax Extensions tool. It pairs with that table's OTHER "
+        "row -- 'Extend all individual and estate provisions | $3.9 trillion' "
+        "-- and this repository scores the base extension against CBO's "
+        "$4.6T. Adopting $5.1T while `tcja_extension` keeps $4,600B would mix "
+        "two publishers' bases in one decomposition, and most of the "
+        "resulting error would be the CRFB-versus-CBO base gap rather than "
+        "anything about the SALT cap. Worth recording that the two "
+        "publications AGREE on the increment that is actually at issue: CRFB "
+        "puts it at +$1.2 trillion and CRS R48286's itemized-deduction row at "
+        "$1,244.3B, against the ~$1.1T this repository's own decomposition "
+        "assumes. Left as `model_estimate`, and see `HSB_h9_provenance.md` "
+        "for the $6,500B-versus-$5,700B inconsistency this search exposed "
+        "between `CBO_SCORE_MAP` and the benchmark's own target."
+    ),
+    "expand_drug_negotiation": (
+        "Searched on 2026-09-09 and no published score of EXPANDING the "
+        "negotiation program exists. CBO's December 2024 Options volume "
+        "contains no drug-negotiation option at all (searched in full for "
+        "'negotiat', 'drug price', 'prescription drug'). The nearest "
+        "published quantities are neither this policy: CBO's score of the "
+        "IRA's existing program, publication PL117-169 (7 September 2022) "
+        "Table 1 p. 5, sec. 11001 'Providing for Lower Prices for Certain "
+        "High-Priced Single Source Drugs', -$98,521M over FY2022-2031 -- "
+        "which is the CURRENT program, not an expansion; and the FY2025 "
+        "Budget's Table S-6 (report p. 143), -$200,000M over FY2025-2034 for "
+        "'Expand Medicare drug negotiation, extend inflation rebates and "
+        "out-of-pocket cost caps to the commercial market, and other steps to "
+        "build on the Inflation Reduction Act (IRA) drug provisions' -- a "
+        "bundle in which the negotiation expansion is not separable from two "
+        "commercial-market reforms `pharma.py` does not model. Worth "
+        "recording precisely: the phrase 'at least 50 drugs' appears NOWHERE "
+        "in the FY2025 Budget; it comes from the March 2024 State of the "
+        "Union, and no scored document uses it. H.R. 4895 / H.R. 6166, which "
+        "would raise the cohort from 20 to 50, have no CBO estimate. So "
+        "-$500B is the repository's own extrapolation from $237B, a figure "
+        "`W4_pharma_part_d.md` finding 2 established was never a negotiation "
+        "score at all but CBO's total for the whole drug-pricing title. THE "
+        "RECOMMENDATION IS RETIREMENT and it is NOT applied here: owner "
+        "decision (4) of `planning/HIGH_STAKES_ACCURACY.md` is open, and "
+        "`HSB_h9_provenance.md` carries the verdict and the exact one-commit "
+        "edit that would apply it. Left in place meanwhile, because removing "
+        "a 93.3% row is precisely what a `retire` state must not be used for "
+        "without the owner saying so."
+    ),
+    "international_reference_pricing": (
+        "Searched on 2026-09-09. A published score of international reference "
+        "pricing does exist and it prices a materially narrower instrument, "
+        "on a baseline this repository cannot use. CBO's letter to Chairman "
+        "Frank Pallone of 10 December 2019 (publication 55936) scores Title I "
+        "of H.R. 3, the Elijah E. Cummings Lower Drug Costs Now Act -- prices "
+        "for SELECTED drugs negotiated so they 'did not exceed 120 percent of "
+        "the average in a reference group of six foreign countries' -- at "
+        "'about $456 billion over the 2020-2029 period' of direct-spending "
+        "reduction (Table 1: -455,927 million) plus $45B of revenues. Three "
+        "things stop it being this row's target. (1) SCOPE: H.R. 3 caps a "
+        "selected cohort; the module prices a cap across Medicare drug "
+        "spending, so the published figure is a floor on a narrower policy. "
+        "(2) BASELINE: it is scored against a PRE-IRA world in which Medicare "
+        "had no negotiation authority, and the IRA has since enacted a "
+        "program CBO scores at -$98.5B, so a large part of H.R. 3's savings "
+        "is now law -- adopting the figure would double-count it. (3) WINDOW: "
+        "FY2020-2029, and this repository carries no 2019 vintage. The other "
+        "published quantities are further away: CMS's Most Favored Nation "
+        "interim final rule (85 FR 76180, 27 November 2020) estimates $85.5B "
+        "of net Part B savings over a SEVEN-year model period and was "
+        "rescinded effective 28 February 2022; and the Council of Economic "
+        "Advisers' May 2026 MFN paper's '$529B in domestic savings in the "
+        "next 10 years across all markets' is economy-wide across all payers, "
+        "not a federal budget effect -- its only federal-scoped figure is "
+        "$36.6B of Medicaid savings. So -$100B stands sourced to nothing but "
+        "a RAND price index, and it is contradicted in both directions: it is "
+        "a fifth of CBO's figure for a NARROWER policy and an eighth of the "
+        "module's own answer. THE RECOMMENDATION IS RETIREMENT and it is NOT "
+        "applied here, for the same reason as `expand_drug_negotiation`: "
+        "owner decision (4) is open, and this is the tier's single largest "
+        "error, so withdrawing it is exactly the move that needs the owner's "
+        "signature rather than a lane's."
     ),
 }
 
@@ -1616,8 +2457,31 @@ def live_target_for(policy_id: str) -> CalibratedTarget | None:
 
 
 def superseded_targets_for(policy_id: str) -> tuple[CalibratedTarget, ...]:
-    """Every retired row for one benchmark, oldest first."""
-    return tuple(t for t in revisions_for(policy_id) if not t.is_live)
+    """Every *replaced* row for one benchmark, oldest first.
+
+    Deliberately keyed on ``superseded_by`` rather than on ``not is_live``: a
+    **retired** row is also not live, and the two states mean different things.
+    A supersession says "the target moved here"; a retirement says "the target
+    should not exist and nothing replaces it". Folding the second into the
+    first would let a withdrawal read as a revision on every surface that
+    reports ``superseded_10yr_billions``.
+    """
+    return tuple(
+        t for t in revisions_for(policy_id) if t.superseded_by is not None
+    )
+
+
+def retired_target_for(policy_id: str) -> CalibratedTarget | None:
+    """The withdrawn row for one benchmark, if its target was retired."""
+    for target in revisions_for(policy_id):
+        if target.is_retired:
+            return target
+    return None
+
+
+def retired_targets() -> tuple[CalibratedTarget, ...]:
+    """Every withdrawn target in the ledger, in entry order."""
+    return tuple(t for t in CALIBRATED_TARGETS if t.is_retired)
 
 
 def target_was_revised(policy_id: str) -> bool:
@@ -1630,10 +2494,31 @@ def target_was_revised(policy_id: str) -> bool:
     return bool(superseded_targets_for(policy_id))
 
 
+def target_was_retired(policy_id: str) -> bool:
+    """Whether this benchmark's target has been **withdrawn** by this ledger.
+
+    Read by ``scorecard.py`` for the same reason ``target_was_revised`` is: a
+    constant fitted to a figure the ledger has withdrawn is not fitted to
+    anything live, so the row leaves the fitted tier. It leaves the
+    *reconstruction* tier's mean too — there is no target to be measured
+    against — which is why the scorecard counts retired rows separately and the
+    dashboard prints the reading with them folded back in. Dropping a row from
+    a mean without printing the mean it was in is how a withdrawal becomes an
+    improvement.
+    """
+    return bool(retired_target_for(policy_id))
+
+
 #: Benchmarks whose target this ledger has moved. Frozen at import so a caller
 #: can test membership without rebuilding the index.
 REVISED_POLICY_IDS: frozenset[str] = frozenset(
-    t.policy_id for t in CALIBRATED_TARGETS if not t.is_live
+    t.policy_id for t in CALIBRATED_TARGETS if t.superseded_by is not None
+)
+
+#: Benchmarks whose target this ledger has **withdrawn**. Disjoint from
+#: :data:`REVISED_POLICY_IDS` by ``target_revision_problems``'s own check.
+RETIRED_POLICY_IDS: frozenset[str] = frozenset(
+    t.policy_id for t in CALIBRATED_TARGETS if t.is_retired
 )
 
 
@@ -1652,6 +2537,10 @@ def target_revision_problems(entries: list[object] | None = None) -> list[str]:
       old figure is bookkeeping noise and hides the rows that matter. Replacing
       a point with a range counts as a move: it changes what is being asserted
       about the target even when a bound coincides with the old point;
+    * a **retired** row states a ``retired_reason``, is not also superseded,
+      and is the last word for its benchmark — nothing may be live after a
+      withdrawal, or the ledger would say both "this target does not exist"
+      and "this is the target";
     * both halves of a supersession state a reason;
     * a live row that replaced something cites a document (url, date, table,
       row, page): the whole point of moving a target is that the new one can be
@@ -1705,6 +2594,19 @@ def target_revision_problems(entries: list[object] | None = None) -> list[str]:
                 f"{target.revision_id}: states neither a point target nor a range"
             )
 
+    for target in CALIBRATED_TARGETS:
+        if not target.is_retired:
+            continue
+        if not target.retired_reason.strip():
+            problems.append(
+                f"{target.revision_id}: retired with no retired_reason"
+            )
+        if target.superseded_by is not None:
+            problems.append(
+                f"{target.revision_id}: is both retired and superseded_by "
+                f"{target.superseded_by}; a withdrawal has no replacement"
+            )
+
     for policy_id in sorted(EXAMINED_NOT_REVISED):
         if not EXAMINED_NOT_REVISED[policy_id].strip():
             problems.append(
@@ -1756,6 +2658,19 @@ def target_revision_problems(entries: list[object] | None = None) -> list[str]:
 
     for policy_id, rows in sorted(_by_policy().items()):
         live = [row for row in rows if row.is_live]
+        retired = [row for row in rows if row.is_retired]
+        if retired:
+            # A withdrawal is the last word for its benchmark. Zero live rows
+            # is the correct state here; a live row alongside one would have
+            # the ledger asserting both "this target does not exist" and "this
+            # is the target".
+            if live:
+                problems.append(
+                    f"{policy_id}: has a retired target "
+                    f"({retired[-1].revision_id}) and a live one "
+                    f"({live[0].revision_id}); a withdrawal is final"
+                )
+            continue
         if len(live) != 1:
             problems.append(
                 f"{policy_id}: expected exactly one live target, found "
@@ -1798,6 +2713,18 @@ def target_revision_problems(entries: list[object] | None = None) -> list[str]:
             continue
         live = next((row for row in rows if row.is_live), None)
         if live is None:
+            # Retired: there is no live figure for the entry to agree with, so
+            # the equality check is replaced by the requirement that the row
+            # says so. A withdrawn target that the scorecard still reports as
+            # an ordinary benchmark is exactly the silent deletion the state
+            # exists to prevent.
+            if any(row.is_retired for row in rows) and not getattr(
+                entry, "target_retired", False
+            ):
+                problems.append(
+                    f"{policy_id}: the ledger retired its target but the "
+                    "scorecard entry is not marked retired"
+                )
             continue
         carried = float(getattr(entry, "official_10yr_billions", float("nan")))
         if live.is_range:
@@ -1839,6 +2766,10 @@ __all__ = [
     "CORPORATE_PTC_PROVENANCE_ENTERED_DATE",
     "CORPORATE_PTC_PROVENANCE_FIRST_SCORED_COMMIT",
     "EXAMINED_NOT_REVISED",
+    "H9_PROVENANCE_ENTERED_COMMIT",
+    "H9_PROVENANCE_ENTERED_DATE",
+    "H9_PROVENANCE_FIRST_SCORED_COMMIT",
+    "RETIRED_POLICY_IDS",
     "REVISED_POLICY_IDS",
     "WAVE3_PROVENANCE_ENTERED_COMMIT",
     "WAVE3_PROVENANCE_ENTERED_DATE",
@@ -1849,8 +2780,11 @@ __all__ = [
     "CalibratedTarget",
     "assert_target_revisions",
     "live_target_for",
+    "retired_target_for",
+    "retired_targets",
     "revisions_for",
     "superseded_targets_for",
     "target_revision_problems",
+    "target_was_retired",
     "target_was_revised",
 ]

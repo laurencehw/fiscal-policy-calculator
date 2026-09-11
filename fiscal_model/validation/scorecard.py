@@ -47,7 +47,11 @@ from .specialized import (
     validate_all_trade,
 )
 from .specialized_pl119_21 import validate_all_pl119_21
-from .target_revisions import live_target_for, superseded_targets_for
+from .target_revisions import (
+    live_target_for,
+    retired_target_for,
+    superseded_targets_for,
+)
 
 #: The out-of-sample tier's category name. Everything else is the calibrated
 #: tier — the split the readiness gate and the API summary both key on.
@@ -157,6 +161,17 @@ class ScorecardEntry:
     superseded_10yr_billions: float | None = None
     #: Why the old target was retired, quoted from the ledger's superseded row.
     target_revision_reason: str = ""
+    #: True when :mod:`.target_revisions` has **withdrawn** this benchmark's
+    #: target with nothing to replace it. Distinct from a revision: there is no
+    #: live figure, so :attr:`official_10yr_billions` is the *withdrawn* one,
+    #: kept only so the row still prints. Its error measures nothing, which is
+    #: why a retired row leaves the reconstruction tier's mean — and why the
+    #: summary counts these rows and the dashboard prints the tier with them
+    #: folded back at that error. A mean that fell because rows were withdrawn
+    #: must be readable as such.
+    target_retired: bool = False
+    #: Why the target was withdrawn, quoted from the ledger's retired row.
+    target_retirement_reason: str = ""
     #: Bounds of the **published range** when the live ledger row records one
     #: instead of a point — the case where the publishing agency scored the
     #: policy under several scenarios and published no single figure, so any
@@ -196,6 +211,12 @@ class ScorecardEntry:
         # the revised rows so the move is never silent.
         superseded = superseded_targets_for(r.policy_id)
         live_revision = live_target_for(r.policy_id) if superseded else None
+        # A withdrawn target is the third state (see ``target_revisions``): the
+        # figure the entry carries is not a benchmark, so the constant cannot
+        # be fitted to it either. Same consequence as a revision for
+        # ``calibrated_to_target``; a different consequence for the tier means,
+        # which is why the flag is separate.
+        retired_revision = retired_target_for(r.policy_id)
         return cls(
             category=category,
             policy_id=r.policy_id,
@@ -227,6 +248,7 @@ class ScorecardEntry:
             calibrated_to_target=(
                 bool(params.get("calibrated_to_target", True))
                 and not superseded
+                and retired_revision is None
             ),
             declared_calibrated_to_target=bool(
                 params.get("calibrated_to_target", True)
@@ -239,6 +261,12 @@ class ScorecardEntry:
             ),
             target_revision_reason=(
                 superseded[-1].reason if superseded else ""
+            ),
+            target_retired=retired_revision is not None,
+            target_retirement_reason=(
+                retired_revision.retired_reason
+                if retired_revision is not None
+                else ""
             ),
             published_range_low_billions=(
                 live_revision.published_low_10yr_billions
@@ -330,6 +358,16 @@ class ScorecardSummary:
     #: the reconstruction tier and the fitted mean is computed over a smaller
     #: set. Quoting the fitted mean without this count hides that.
     revised_target_entries: int = 0
+    #: Entries whose target this repository has **withdrawn** through
+    #: :mod:`.target_revisions` — the figure is not a score of anything and no
+    #: published score exists to replace it. Counted here, and never merely
+    #: dropped: the rows leave the reconstruction tier's mean because an error
+    #: against a withdrawn figure measures nothing, and the dashboard prints
+    #: that tier *with them folded back* on the adjacent line. Quoting the
+    #: smaller mean alone is then a visible omission. Retiring the two pharma
+    #: illustrations, for instance, would take 93.3% and 701.0% out of a
+    #: 34-row tier averaging 57.9% and leave 32 rows at about 36.7%.
+    retired_target_entries: int = 0
     entries: list[ScorecardEntry] = field(default_factory=list)
 
 
@@ -438,6 +476,7 @@ def compute_scorecard(
         revised_target_entries=sum(
             1 for e in entries if e.target_revision_id is not None
         ),
+        retired_target_entries=sum(1 for e in entries if e.target_retired),
         entries=entries,
     )
 

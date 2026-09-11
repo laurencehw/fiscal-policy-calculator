@@ -73,15 +73,48 @@ def test_pinned_held_out_figures_match_the_loo_suite(loo_cases):
 
 
 def test_pinned_targets_match_the_loo_suite(loo_cases):
-    """The carried target each caption quotes is the one the suite scores."""
+    """The carried target each caption quotes is the one the suite scores.
+
+    This test earned its keep on 2026-09-09: lane H9 moved ``ss_donut_250k``'s
+    target to CBO Option 62 alternative 2 and this assertion went red, which is
+    the only reason the caption did not go on calling -$2,700.0B "the carried
+    target" after it stopped being one.
+    """
     for case_id, entry in _PAYROLL_FITTED_TARGETS.items():
-        assert loo_cases[case_id].official_10yr == pytest.approx(entry["target_10yr"], abs=0.05)
+        assert loo_cases[case_id].official_10yr == pytest.approx(
+            entry["carried_target_10yr"], abs=0.05
+        )
 
 
 def test_by_construction_score_is_the_target(loo_cases):
     """The claim "reproduced to the cent" is checked, not asserted."""
     for case_id, entry in _PAYROLL_FITTED_TARGETS.items():
-        assert loo_cases[case_id].calibrated_10yr == pytest.approx(entry["target_10yr"], abs=0.05)
+        assert loo_cases[case_id].calibrated_10yr == pytest.approx(
+            entry["by_construction_10yr"], abs=0.05
+        )
+
+
+def test_the_caption_says_when_the_target_has_moved_away_from_the_figure():
+    """Two rows, two sentences, because the two rows now differ.
+
+    ``ss_eliminate_cap`` still reproduces its carried target, so its caption
+    keeps H13's original wording. ``ss_donut_250k`` does not, and its caption
+    has to say so rather than assert an agreement the ledger has withdrawn.
+    """
+    cap = payroll_fitted_target_caption(
+        create_ss_eliminate_cap(), _result_for(create_ss_eliminate_cap())
+    )
+    assert "is the carried target, reproduced to the cent" in cap
+    assert "no longer the carried target" not in cap
+
+    donut = payroll_fitted_target_caption(
+        create_ss_donut_hole(), _result_for(create_ss_donut_hole())
+    )
+    assert "is what the module returns" in donut
+    assert "It is no longer the carried target" in donut
+    assert "-1,426.8B" in donut
+    # -2,700.0 against -1,426.8 is 89.2% high.
+    assert "misses by 89.2%" in donut
 
 
 # ---------------------------------------------------------------------------

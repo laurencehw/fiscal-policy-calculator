@@ -765,16 +765,50 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
     ),
     BenchmarkSource(
         policy_id="biden_ctc_2021",
-        provenance=SECONDHAND,
+        provenance=LINE_ITEM,
         document=(
             "CBO, Budgetary Effects of Making Specified Policies in the Build "
             "Back Better Act Permanent (letter to Sen. Graham and Rep. Smith), "
             "publication 57673"
         ),
         publisher="Congressional Budget Office",
-        url="https://www.cbo.gov/publication/57673",
+        url=(
+            "https://www.cbo.gov/system/files/2021-12/"
+            "57673-BBBA-GrahamSmith-Letter.pdf"
+        ),
         date="2021-12",
+        table=(
+            "Table 1, 'Analysis of Potential Modifications to Selected "
+            "Sections of H.R. 5376', column group 'Net Increase or "
+            "Decrease (-) in the Deficit, 2022-2031', column 'With "
+            "Modifications'"
+        ),
+        row=(
+            "XIII. 137102 | Child tax credit | Make permanent rather than "
+            "ending after 2022"
+        ),
+        page="p. 3 of 5",
         window="FY2022-2031",
+        published_10yr_billions=1597.0,
+        note=(
+            "Transcribed 2026-09-09, and the target is NOT moved: $1,600B is "
+            "$1,597B rounded, 0.19% apart and well inside "
+            "CONFIRMATION_TOLERANCE_PCT, which is the same verdict "
+            "biden_corporate_28 gets at 0.2%. The row is the child credit "
+            "ALONE -- the earned income tax credit ($135B) and child care and "
+            "preschool ($752B) are separate rows of the same table. What "
+            "blocked every earlier attempt was a filename, not only the bot "
+            "wall: the letter is `57673-BBBA-GrahamSmith-Letter.pdf`, not "
+            "`57673-Graham-Smith-Letter.pdf`, and the latter returns CBO's "
+            "own 'Page not Found'. cbo.gov serves DataDome to scripted "
+            "clients, so Table 1 was read from the rendered PDF in a browser "
+            "and the figure checked twice. ONE THING LEFT TO READ: footnote "
+            "(a) on the column header was not captured, so whether $1,597B is "
+            "stated net of the letter's interest and enforcement components "
+            "is unconfirmed from the footnote itself; the three-component "
+            "split is described for the $3.0T headline rather than for the "
+            "individual rows."
+        ),
         searched=(
             "The document that states this figure is identified but could not "
             "be read: cbo.gov returns HTTP 403 to every non-browser client "
@@ -891,7 +925,19 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
             "mechanism returns that $1,143B - 0.09% from the figure below, "
             "which is how completely a model can reproduce a baseline "
             "projection when asked to, and the sharpest available argument for "
-            "not adopting one as a repeal score."
+            "not adopting one as a repeal score. "
+            "RE-SEARCHED 2026-09-09 (lane H9) and nothing has been published "
+            "since. CBO/JCT publication 61734 was read in full: it scores "
+            "three policies -- permanently expanding the ARPA structure "
+            "($350B), nullifying a June 2025 HHS rule ($40B), and repealing "
+            "title VII subtitle B of the 2025 reconciliation act ($272B) -- "
+            "every one an extension or a repeal of the act's RESTRICTIONS, "
+            "none an elimination of the credit. CBO's cost estimates through "
+            "September 2026 contain none (the nearest, H.R. 6703 of "
+            "16 December 2025, is association health plans and PBM standards "
+            "at -$35.6B); no 2025 or 2026 JCX scores repeal of section 36B; "
+            "and the phrase 'premium tax credit' does not appear anywhere in "
+            "Tax Foundation's 86-option *Options 3.0*."
         ),
         alternatives=(
             "CBO/JCT, publication 51298 (June 2024) Table 2: premium tax "
@@ -946,7 +992,29 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
             "revenue-scorecard-post-lock-2026-05-02 protocol, which has no "
             "re-registration path, and moving a locked target to an "
             "unpublished figure would fail a release gate on the strength of a "
-            "number no document states."
+            "number no document states. "
+            "SEARCHED A THIRD TIME 2026-09-09 (lane H9) and the verdict "
+            "stands. One document is new and does not qualify: Tax "
+            "Foundation's *Options 3.0* (July 2026) Option 38, 'Eliminate the "
+            "Individual Alternative Minimum Tax', prints +$271.1B "
+            "conventional over 2027-2036 -- but it is scored against "
+            "POST-P.L. 119-21 law, where TCJA's enlarged exemption is "
+            "permanent, and this benchmark's stated design is repeal against "
+            "a baseline in which that exemption has LAPSED. The two baselines "
+            "are opposites and repeal costs far more under the second, so "
+            "adopting it would score one policy against another's figure. "
+            "JCT's standalone line is where Phase E left it (JCX-46-17 p. 3 "
+            "row G and JCX-54-17 p. 3 row H, -$695.5B over FY2018-2027, a "
+            "pre-TCJA baseline). One observation for the owner, which is a "
+            "modelling question rather than a provenance one: P.L. 119-21 "
+            "made the enlarged exemption permanent, so the lapsed-exemption "
+            "baseline this benchmark is DEFINED on is now a counterfactual "
+            "rather than current law."
+        ),
+        alternatives=(
+            "Tax Foundation *Options 3.0* Option 38: +$271.1B conventional "
+            "over 2027-2036, on a post-P.L. 119-21 baseline -- the opposite "
+            "baseline to this benchmark's design.",
         ),
     ),
     # ------------------------------------------------------------------
@@ -1046,11 +1114,49 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
     ),
     BenchmarkSource(
         policy_id="trump_china_60",
-        provenance=SECONDHAND,
-        document="",
-        publisher="Tax Foundation",
-        date="2024",
-        window="FY2025-2034",
+        provenance=LINE_ITEM,
+        document=(
+            "Committee for a Responsible Federal Budget, 'Options to Raise "
+            "Tariff Revenue' (17 December 2024)"
+        ),
+        publisher="Committee for a Responsible Federal Budget",
+        url="https://www.crfb.org/blogs/options-raise-tariff-revenue",
+        date="2024-12",
+        table=(
+            "'Tariff Scenarios and Their Net Impact on Revenue', section "
+            "'Chinese Tariffs', column 'Conventional Impact (2026-2035)'"
+        ),
+        row="60% Import Tariff on Chinese Goods",
+        page="the post's only revenue table",
+        published_10yr_billions=-650.0,
+        note=(
+            "Target revised 2026-09-09 (target_revisions.trump_china_60.v2) "
+            "from a -$500B that was only ever a residual from somebody else's "
+            "bundle. This is the only located STANDALONE ten-year "
+            "conventional estimate of a 60% tariff on Chinese goods with no "
+            "other tariff alongside it, and the adjacent row -- '60% Import "
+            "Tariff (Assuming 10% Universal Baseline Tariff) | $575 billion' "
+            "-- is what makes the $650B row unambiguously this preset's "
+            "shape. Four caveats printed on the table, carried rather than "
+            "adjusted: 'these options are based on the FY 2026-2035 budget "
+            "window; savings would likely be 15 percent less over the FY "
+            "2025-2034 budget window'; 'Numbers are rough and rounded' (to "
+            "$5B, 0.8% here); 'Conventional estimates reflect the average of "
+            "scenarios where lost trade is and isn't diverted to other "
+            "trading partners' and 'assume... that all gained tariff revenue "
+            "would be subject to income and payroll tax revenue offsets'; and "
+            "an update banner noting the December 2024 estimates predate the "
+            "2025 tariffs -- which is about what has since been enacted, not "
+            "about the hypothetical this benchmark scores."
+        ),
+        alternatives=(
+            "Same table, '60% Import Tariff (Assuming 10% Universal Baseline "
+            "Tariff)': $575B conventional.",
+            "Same table, dynamic with retaliation: $550B.",
+            "Yale Budget Lab (October 2024) Table 2 p. 6: all twelve "
+            "scenarios pair 60% China with a 10% or 20% broad tariff, so none "
+            "is China-only.",
+        ),
         searched=(
             "No standalone published 10-year figure for a 60% China tariff was "
             "located. Tax Foundation scores it only bundled ('Universal 20% "
@@ -1147,7 +1253,12 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
             "published figure includes derivative products and none separates "
             "with from without, so the distinction cannot be sourced either. "
             "Left in place and left unsourced rather than retired — see "
-            "``target_revisions.EXAMINED_NOT_REVISED``."
+            "``target_revisions.EXAMINED_NOT_REVISED``. "
+            "RE-SEARCHED 2026-09-09 (lane H9): still nothing. Tax "
+            "Foundation's *Options 3.0* (July 2026) adds 86 modelled options "
+            "and none is a Section 232 steel rate, so the ten-week 25% regime "
+            "remains the one tariff in this repository that no scorekeeper "
+            "ever priced."
         ),
         alternatives=(
             "Tax Foundation tariff tracker, Section 232 steel + aluminium + "
@@ -1346,11 +1457,57 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
     # ------------------------------------------------------------------
     BenchmarkSource(
         policy_id="repeal_ira_credits",
-        provenance=SECONDHAND,
-        document="",
-        publisher="Congressional Budget Office",
-        date="2024-03",
-        window="FY2025-2034",
+        provenance=LINE_ITEM,
+        document=(
+            "William McBride, 'Testimony: The Inflation Reduction Act's Green "
+            "Energy Tax Credits', Tax Foundation, submitted to the U.S. House "
+            "Committee on Oversight and Government Reform"
+        ),
+        publisher="Tax Foundation",
+        url=(
+            "https://taxfoundation.org/testimony/"
+            "inflation-reduction-act-ira-green-energy-tax-credits/"
+        ),
+        date="2025-05",
+        table="Testimony text (the document states the figure in prose)",
+        row=(
+            "'We have estimated that full repeal of the credits would reduce "
+            "deficits by $851 billion over the next decade (2025-2034).'"
+        ),
+        page="testimony body",
+        published_10yr_billions=-851.0,
+        note=(
+            "Target revised 2026-09-09 "
+            "(target_revisions.repeal_ira_credits.v2) from an untraceable "
+            "-$783B. The document draws the line this benchmark had been on "
+            "the wrong side of, in its own words: 'The latest tax expenditure "
+            "estimates from the Treasury Department and JCT indicate the cost "
+            "of the credits has grown to about $1.2 trillion over the next "
+            "decade (2025-2034)' -- a cost, against $851B of deficit "
+            "reduction from eliminating them. WHY NOT JCT: JCX-7-23 (26 April "
+            "2023) scores Title III of H.R. 2811, captioned 'REPEAL MARKET "
+            "DISTORING GREEN TAX CREDITS' [sic], at a NET TOTAL of $515,078M "
+            "over FY2023-2033 -- an actual scorekeeper on actual bill text, "
+            "and the first instinct is to prefer it. Two things printed on "
+            "the document stop that: footnote [1], 'Estimates of outlay "
+            "effects presently unavailable', is attached to eleven of its "
+            "lines, so the total is revenue-only; and items 11 and 12 read "
+            "'Presently Unavailable', so all three clean-vehicle credits are "
+            "outside the total. An acknowledged-incomplete total is a lower "
+            "bound, and adopting a lower bound as a point target would "
+            "measure the missing lines."
+        ),
+        alternatives=(
+            "JCT JCX-7-23, H.R. 2811 Title III NET TOTAL: $515.078B over "
+            "FY2023-2033 (revenue-only; clean-vehicle credits excluded).",
+            "CRFB's summary of CBO pub. 59102 lists 'Repeal energy tax "
+            "credits and spending' at $540B over FY2024-2033 -- a different "
+            "scope (credits plus spending) and a different window.",
+            "Tax Foundation's March 2025 blog states the same estimate the "
+            "adopted testimony does: repealing all the IRA green-energy "
+            "credits raises about $851B over 2025-2034 on a conventional "
+            "basis.",
+        ),
         searched=(
             "The record cites 'CBO, budgetary effects of the energy-related "
             "tax provisions of P.L. 117-169 (upward revision)'. No CBO "
@@ -1367,10 +1524,6 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
             "quantity. The climate module's annual constant is this target "
             "restated, so the 0.0% error was never evidence of anything; now "
             "the target is not evidence either."
-        ),
-        alternatives=(
-            "Tax Foundation (October 2024): repealing the IRA green-energy "
-            "credits raises about $921B over ten years.",
         ),
     ),
     BenchmarkSource(
@@ -1528,13 +1681,59 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
     ),
     BenchmarkSource(
         policy_id="ss_donut_250k",
-        provenance=SECONDHAND,
-        document="",
-        publisher="Social Security Administration, Office of the Chief Actuary",
-        date="2025",
-        window="unstated",
+        provenance=LINE_ITEM,
+        document=(
+            "CBO, Options for Reducing the Deficit: 2025 to 2034, "
+            "publication 60557, Option 62, 'Increase the Maximum Taxable "
+            "Earnings for the Social Security Payroll Tax'"
+        ),
+        publisher="Congressional Budget Office",
+        url="https://www.cbo.gov/publication/60557",
+        date="2024-12",
+        table=(
+            "Option 62 table, stub 'Decrease (-) in the deficit', column "
+            "2025-2034"
+        ),
+        row="Subject earnings greater than $250,000 to payroll taxes",
+        page="report p. 73 (PDF p. 79)",
+        window="FY2025-2034",
+        published_10yr_billions=-1426.8,
+        note=(
+            "Target revised 2026-09-09 (target_revisions.ss_donut_250k.v2) "
+            "from an untraceable -$2,700B. CBO's own text matches the "
+            "module's design twice: 'The second alternative would apply the "
+            "12.4 percent payroll tax to earnings over $250,000 in addition "
+            "to earnings below the maximum taxable amount under current "
+            "law... The taxable maximum would continue to grow with average "
+            "wages, but the $250,000 threshold would not change, so the gap "
+            "between the two would shrink', and 'The current-law taxable "
+            "maximum would still be used for calculating benefits, so "
+            "scheduled benefits would not change under this alternative' -- "
+            "which is OCACT E2.5's 'do not provide benefit credit'. Two "
+            "wedges stated rather than adjusted: CBO's table note reads 'An "
+            "offset to reflect reduced income and payroll taxes has been "
+            "applied to the estimates in this table' and the payroll module "
+            "has no such channel; and footnote 'a', 'Estimates include "
+            "increased outlays for additional payments of Social Security "
+            "benefits', is attached to alternative 1 ONLY, because this "
+            "alternative changes no scheduled benefit. cbo.gov returns HTTP "
+            "403 to scripted clients; the figure is independently in this "
+            "repository, transcribed with its annual path by "
+            "scripts/extract_cbo_options.py to "
+            "data_files/validation/cbo_options_2025_2034_alternatives.csv "
+            "(row 62.2)."
+        ),
+        alternatives=(
+            "Same alternative, 2018 volume (Option 20), revenue line: "
+            "$1,222.6B over FY2019-2028.",
+            "Same alternative, 2020 volume (Option 17), revenue line: "
+            "$1,024.0B over FY2021-2030.",
+            "Same alternative, 2022 volume (Option 9), deficit line: "
+            "$1,203.9B over FY2023-2032.",
+        ),
         searched=(
-            "The record credits the Social Security Trustees, and OCACT does "
+            "Kept as the record of why the target moved on 2026-09-09. "
+            "The record credited the Social Security Trustees, and OCACT does "
             "score this provision — E2.5, 'Apply 12.4 percent payroll tax rate "
             "on earnings above $250,000 starting in 2026...' — but **publishes "
             "no dollar figures for it at all**. Its detailed table (run 418) "
@@ -1548,10 +1747,6 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
             "figures for the same design are roughly half that: CBO (13 "
             "December 2018) $1,222.6B over FY2019-2028, and CBO's 2024 volume "
             "$1,426.8B over FY2025-2034 (Option 62 alternative 2)."
-        ),
-        alternatives=(
-            "CBO, Options 2019-2028: $1,222.6B.",
-            "CBO, Options 2025-2034, Option 62 alternative 2: $1,426.8B.",
         ),
     ),
     BenchmarkSource(
@@ -1569,7 +1764,45 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
             "percent-of-taxable-payroll terms: run 415 gives +2.55% of payroll "
             "and moves depletion from 2034 to 2059. OCACT publishes no "
             "ten-year dollar amount for any payroll provision, so no Trustees "
-            "document can be the source of -$3.2T."
+            "document can be the source of -$3.2T. "
+            "RE-SEARCHED 2026-09-09 (lane H9), with one correction and one "
+            "trap. THE CORRECTION: the claim above is true of OCACT's "
+            "PROVISIONS tables and false of the office. OCACT's letter on the "
+            "Medicare and Social Security Fair Share Act (11 July 2023, to "
+            "Sen. Whitehouse and Rep. Boyle) Table 1b.n prints 'Total "
+            "2023-2032' = $3,035.1B in nominal dollars -- for a $400,000 "
+            "DONUT with no benefit credit and, unlike CBO, no income-tax "
+            "offset. Different threshold, so not this row's line item, but "
+            "the blanket claim needed narrowing. THE TRAP: Tax Foundation, "
+            "Alex Durante, 'Uncapping the Payroll Tax Would Be the Largest "
+            "Tax Increase in Decades' (24 June 2026), scores the "
+            "Moreno-Warren proposal -- 'apply the payroll tax to all "
+            "earnings above the cap, with no corresponding changes to "
+            "benefits', which IS this design -- at '$3.2 trillion from 2027 "
+            "through 2036 on a conventional basis and $1.5 trillion after "
+            "accounting for the negative economic effects'. $3.2 trillion "
+            "equals the carried figure to the digit the document states, so "
+            "`target_revision_problems` would reject it as a supersession "
+            "that restates its target, and adopting it as a CONFIRMATION "
+            "would assert that a constant chosen to produce -$3.2T "
+            "('320.0  # window-average of Trustees $3.2T over 10yr') had "
+            "been validated by a document published eighteen months later on "
+            "a window this repository does not use. No CBO volume scores "
+            "elimination at all: 2018 Option 20, 2020 Option 17, 2022 Option "
+            "9 and 2024 Option 62 all offer the same two alternatives, a 90% "
+            "taxable share and the $250,000 donut. PGPF's '$3.4 trillion "
+            "over 10 years (2026 to 2035)' is explicitly the variant 'while "
+            "providing benefit credit for those earnings'. See "
+            "target_revisions.EXAMINED_NOT_REVISED."
+        ),
+        alternatives=(
+            "Tax Foundation (24 June 2026): $3.2T conventional / $1.5T "
+            "dynamic, 2027-2036, no benefit credit.",
+            "SSA OACT, Medicare and Social Security Fair Share Act letter "
+            "(11 July 2023) Table 1b.n: $3,035.1B nominal over 2023-2032 -- "
+            "a $400,000 donut, not elimination.",
+            "PGPF: '$3.4 trillion over 10 years (2026 to 2035)' -- with "
+            "benefit credit.",
         ),
     ),
     BenchmarkSource(
@@ -1668,7 +1901,29 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
             "volume (Option 56) gives $965.0B / $521.0B / $697.0B "
             "(FY2025-2034). The repository's -$450B sits inside that spread "
             "but corresponds to no alternative in any volume, so nothing here "
-            "can be adopted as its line item."
+            "can be adopted as its line item. "
+            "RE-SEARCHED 2026-09-09 (lane H9), and the carried figure now has "
+            "a most likely origin -- which is the reason not to adopt it. "
+            "CBO's *Budget Options, Volume 1: Health Care* (December 2008), "
+            "Option 9, p. 24, is the ONLY published option that states the "
+            "cap in dollars: it would tax contributions 'that together "
+            "exceeded $1,440 a month for family coverage or $565 a month for "
+            "individual coverage', and JCT scores it at revenues of $452.1B "
+            "over FY2009-2018 -- 0.5% from the figure this repository "
+            "carries. But CBO derives those dollars from the 75th percentile "
+            "of 2010 premiums, and $1,440 a month is $17,280 a year against "
+            "the $50,000 cap this benchmark's own description states. So the "
+            "target is most likely the right number for a far tighter cap, a "
+            "decade early, sitting in this column -- extend_tcja_amt's "
+            "five-year-cost-in-a-ten-year-column shape, with nothing to move "
+            "it to. Also searched and rejected: the Senate Finance "
+            "Committee's May 2009 options paper (discusses capping, publishes "
+            "no estimate) and JCT's companion background paper (says the "
+            "exclusion 'could be reduced by capping the dollar amount', "
+            "prints no table); Urban (May 2013) 75th percentile, $264.0B over "
+            "2014-2023; Tax Foundation *Options 3.0* Option 30, 80th "
+            "percentile ($14,816 single / $38,185 family), -$318.5B over "
+            "2027-2036. See target_revisions.EXAMINED_NOT_REVISED."
         ),
         alternatives=(
             "Nearest single figure: CBO Options 2017-2026, 50th-percentile "
@@ -1678,11 +1933,45 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
     ),
     BenchmarkSource(
         policy_id="eliminate_mortgage",
-        provenance=SECONDHAND,
-        document="",
-        publisher="Congressional Budget Office",
-        date="2024",
-        window="FY2025-2034",
+        provenance=LINE_ITEM_DIFFERS,
+        document=(
+            "Tax Foundation, 'Options for Reforming America's Tax Code 3.0: "
+            "A Policymaker's Guide to Tax Reform Trade-Offs' (July 2026), "
+            "Option 25, 'Eliminate the Home Mortgage Interest Deduction'"
+        ),
+        publisher="Tax Foundation",
+        url=(
+            "https://taxfoundation.org/tax-reform-guide/option/"
+            "eliminate-the-home-mortgage-interest-deduction/"
+        ),
+        date="2026-07",
+        table="Option 25, '10-Year Change in the Deficit, 2027-2036'",
+        row="Conventional Primary Deficit Change",
+        page="the option's topline table",
+        published_10yr_billions=-495.0,
+        note=(
+            "Target revised 2026-09-09 to a published RANGE "
+            "(target_revisions.eliminate_mortgage.v2): [-$495.0B, -$367.9B], "
+            "carried anchor -$367.9B, which is this record's `document` -- "
+            "Tax Foundation's Option 25, 'On a conventional basis, this "
+            "option would decrease the primary deficit by $367.9 billion over "
+            "the budget window', scored on the post-OBBBA baseline it names "
+            "('The One Big Beautiful Bill Act made the temporary $750,000 cap "
+            "permanent'). `published_10yr_billions` carries the OTHER bound, "
+            "CRS IF13190 (23 March 2026) Table 2's 'Repeal MID $495' over "
+            "FY2026-2035, so the 35% spread stays visible rather than an "
+            "anchor looking like a consensus. Wave 4 left this row on the "
+            "premise that the two figures then known 'come from the same "
+            "simulator and differ by 2.4x'; the third, independent model "
+            "resolves that as a BASELINE gap -- Yale's 'close to $1.2 "
+            "trillion' is scored against pre-P.L. 119-21 current law, where "
+            "TCJA's standard deduction lapses and the itemising population "
+            "roughly doubles. No agency has scored repeal: CBO has published "
+            "no post-TCJA option, JCT publishes the tax expenditure "
+            "(JCX-48-24 $382.2B FY2024-2028; JCX-45-25 $261.1B FY2025-2029), "
+            "and Treasury published no FY2027 Green Book."
+        ),
+        window="CY2027-2036 (anchor); FY2026-2035 (the other bound)",
         searched=(
             "No CBO budget option scores outright repeal of the mortgage "
             "interest deduction post-TCJA; the 2016 volume's nearest option "
@@ -1807,7 +2096,35 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
             "against a figure three times larger and mostly driven by other "
             "provisions would be worse than leaving it unsourced. CBO's Option "
             "50 caps charitable giving specifically, but by a 2%-of-AGI floor "
-            "($347.7B) or cash-only rule ($324.3B), not a rate limitation."
+            "($347.7B) or cash-only rule ($324.3B), not a rate limitation. "
+            "RE-SEARCHED 2026-09-09 (lane H9) across CBO's 2011, 2013, 2016, "
+            "2018, 2020, 2022 and 2024 volumes, its May 2011 study 'Options "
+            "for Changing the Tax Treatment of Charitable Giving' (eleven "
+            "options, none a rate cap, and its results stated 'for tax year "
+            "2006'), JCT, CRS R45922, TPC and Tax Foundation's *Options 3.0*. "
+            "Still nothing charitable-only. One non-official ten-year figure "
+            "for the exact design exists and is NOT adopted: CRFB, 'The Tax "
+            "Break-Down: Charitable Deduction' (16 December 2013), table "
+            "'Revenue Impact from Reforming the Charitable Deduction "
+            "(Billions, 2014-2023)', row 'Impose a 28% limit on the value of "
+            "the deduction | $75', beneath which CRFB prints 'All scores are "
+            "rough estimates and may not match official CBO scores. Scores "
+            "were chiefly estimated from a 2011 CBO analysis based on 2006 "
+            "data.' A rough estimate off tax-year-2006 microdata on a window "
+            "that closed in 2023 is not a target; adopting it would move this "
+            "row from 0.3% to 167% on a figure its own publisher declines to "
+            "stand behind. Recorded so the next pass does not re-find it and "
+            "decide otherwise. See target_revisions.EXAMINED_NOT_REVISED."
+        ),
+        alternatives=(
+            "CRFB (16 December 2013): $75B over 2014-2023 for a 28% limit -- "
+            "self-labelled a rough estimate.",
+            "CBO 2017-2026 volume, Option 8, 'Limit the tax benefits of "
+            "itemized deductions to 28 percent of their total value': "
+            "$171.5B, JCT -- all itemized deductions.",
+            "Tax Foundation *Options 3.0* Option 24, tightening the OBBBA "
+            "limitation 'to 28 cents on the dollar': -$169.0B over "
+            "2027-2036 -- all itemized deductions.",
         ),
     ),
     BenchmarkSource(
@@ -1829,11 +2146,36 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
             "this benchmark models the Biden design's $1M exclusion, so it "
             "scores a materially broader policy and is not this row's line "
             "item. It is already carried separately as the Tier 1 case "
-            "cbo_opt51_gains_at_death."
+            "cbo_opt51_gains_at_death. "
+            "RE-SEARCHED 2026-09-09 (lane H9): no published estimate scores "
+            "realization at death WITH an exclusion as a standalone "
+            "provision, and the carried -$500B is about 2.4x every standalone "
+            "figure that exists -- in the direction the design cannot "
+            "explain, because an exclusion makes a repeal NARROWER, so the "
+            "no-exclusion figures are an upper bound this target sits above. "
+            "The STEP Act was searched specifically and JCT has not scored "
+            "it: Senator Van Hollen's own one-pager describes the $1 million "
+            "exclusion this benchmark models and cites only a JCT TAX "
+            "EXPENDITURE, '$41.9 billion in 2021 alone'. Every estimate that "
+            "does carry an exclusion is bundled: JCT's JCX-15-16 item XI.B, "
+            "'Reform the Taxation of Capital Income', $248,739M FY2016-2026, "
+            "is Obama's 28% rate AND gains at death with a $100,000 exclusion "
+            "in one line; PWBM's American Families Plan row, $376B "
+            "FY2022-2031, is three provisions in one line. See "
+            "target_revisions.EXAMINED_NOT_REVISED, which also names this row "
+            "as a retirement candidate for the owner."
         ),
         alternatives=(
             "CBO Option 51 alternative 1, carryover basis instead of deemed "
             "realization: $196.9B.",
+            "PWBM, 'The Biden Tax Plan' (23 January 2020) Table 1, "
+            "'Eliminate stepped-up basis': $204B over FY2021-2030, no "
+            "exclusion.",
+            "CBO Options 2021-2030, Option 6, 'Change the Tax Treatment of "
+            "Capital Gains From Sales of Inherited Assets': $110.3B, JCT, "
+            "carryover basis.",
+            "Tax Foundation *Options 3.0* Option 15: -$206.4B over "
+            "2027-2036, carryover basis, no exclusion.",
         ),
     ),
     BenchmarkSource(
@@ -1874,14 +2216,83 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
             "as a package; the '~$1.1T added' is the repository's own "
             "decomposition of the full-extension benchmark."
         ),
+        searched=(
+            "Searched 2026-09-09 (lane H9). CBO's supplemental workbook for "
+            "publication 60114 prints the extension block total $3,255,900M "
+            "and, separately, the itemized-deduction row at -$1,244,276M over "
+            "FY2025-2034 -- two rows that would have to be added, under CBO's "
+            "own warning that the estimates 'do not include all potential "
+            "interaction effects of permanently extending the provisions "
+            "together'. Summing rows to make a target is what PR #122 "
+            "declined for trump_corporate_15's bonus-depreciation leg. ONE "
+            "published single row exists and is NOT adopted: CRFB, 'SALT Cap "
+            "Expiration Could Be Costly Mistake' (28 August 2024), table "
+            "'Fiscal Impact of Various TCJA Extension Scenarios', row 'Extend "
+            "except SALT cap' = $5.1 trillion over FY2026-2035, from CRFB's "
+            "own Build Your Own Tax Extensions tool. It pairs with that "
+            "table's other row, 'Extend all individual and estate provisions "
+            "| $3.9 trillion', and this repository scores the base extension "
+            "against CBO's $4.6T -- so adopting $5.1T would mix two "
+            "publishers' bases inside one decomposition, and most of the "
+            "resulting error would be the CRFB-versus-CBO base gap rather "
+            "than anything about the SALT cap. The two publications AGREE on "
+            "the increment actually at issue: CRFB puts it at +$1.2T and CRS "
+            "R48286's itemized-deduction row at $1,244.3B, against the ~$1.1T "
+            "this repository assumes. Separately, this search found "
+            "CBO_SCORE_MAP quoting $6,500B as Build's list price for this "
+            "preset while the benchmark scored against $5,700B; the list "
+            "price is now aligned to the benchmark and the target itself "
+            "stays unsourced. Also searched: JCT (no JCX scores the "
+            "package), Tax Foundation's 2025 TCJA options, PWBM."
+        ),
     ),
     BenchmarkSource(
         policy_id="tcja_rates_only",
-        provenance=MODEL_ESTIMATE,
-        publisher="none",
+        provenance=LINE_ITEM,
+        document=(
+            "Congressional Research Service, R48286, 'Expiring Provisions of "
+            "P.L. 115-97 (the Tax Cuts and Jobs Act): Economic Issues', "
+            "transcribing CBO, Budgetary Outcomes Under Alternative "
+            "Assumptions About Spending and Revenues (8 May 2024, publication "
+            "60114/60271)"
+        ),
+        publisher="Congressional Research Service (transcribing CBO/JCT)",
+        url=(
+            "https://www.congress.gov/crs_external_products/R/HTML/"
+            "R48286.web.html"
+        ),
+        date="2024-11",
+        table=(
+            "Table 1, 'Revenue Costs of Extending the TCJA: Major Provisions "
+            "(Billions of Dollars)', FY2025-FY2034 column"
+        ),
+        row="Reduced Individual Tax Rates",
+        page="Table 1",
+        window="FY2025-2034",
+        published_10yr_billions=2158.7,
         note=(
-            "An illustrative slice of the full extension, not a published "
-            "score. The scenario's own note says so."
+            "Target revised 2026-09-09 "
+            "(target_revisions.tcja_rates_only.v2) from +$3,185B, which the "
+            "scenario's own note called illustrative ('~$3.2T calibrated'). "
+            "$2,158.7B over FY2025-2034 and $821.8B over FY2025-2029; CBO's "
+            "own supplemental workbook labels the row '10%, 12%, 22%, 24%, "
+            "32%, 35%, and 37% income tax rate brackets', estimator JCT, "
+            "effective tyba 12/31/25. This is the SAME table, column and "
+            "window this repository already reads extend_tcja_amt's "
+            "$1,357.1B out of, so no new document was needed and no summing "
+            "was involved -- PR #122's rule against constructing a target by "
+            "adding rows never came into play. The standard deduction "
+            "($1,251.0B), personal-exemption repeal (-$1,717.5B), child "
+            "credit, QBI and AMT are separate rows, which is the scenario's "
+            "own design. CRS's table note travels with the figure: 'The "
+            "revenue cost depends on the order of estimation due to "
+            "interactions between the provisions.'"
+        ),
+        alternatives=(
+            "JCT JCX-35-25 p. 1 row 1, 'Extension and limited enhancement of "
+            "reduced rates', -$2,193.4B over FY2025-2034 -- 1.6% away, and "
+            "not adopted because the 'limited enhancement' is P.L. 119-21's "
+            "rather than TCJA's rate structure.",
         ),
     ),
     BenchmarkSource(
@@ -1942,9 +2353,51 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
     ),
     BenchmarkSource(
         policy_id="eliminate_estate_tax",
-        provenance=MODEL_ESTIMATE,
-        publisher="none",
-        note="The scenario's source field literally reads 'Model estimate'.",
+        provenance=LINE_ITEM,
+        document=(
+            "Tax Foundation, 'Options for Reforming America's Tax Code 3.0: "
+            "A Policymaker's Guide to Tax Reform Trade-Offs' (July 2026), "
+            "Option 83, 'Eliminate the Estate and Gift Tax'"
+        ),
+        publisher="Tax Foundation",
+        url=(
+            "https://taxfoundation.org/tax-reform-guide/option/"
+            "eliminate-the-estate-and-gift-tax/"
+        ),
+        date="2026-07",
+        table="Option 83, '10-Year Change in the Deficit, 2027-2036'",
+        row="Conventional Primary Deficit Change",
+        page="printed p. 105",
+        window="CY2027-2036",
+        published_10yr_billions=407.2,
+        note=(
+            "Target revised 2026-09-09 "
+            "(target_revisions.eliminate_estate_tax.v2) from +$350B, which "
+            "the scenario's own source field admitted was a 'Model "
+            "estimate'. 'This option repeals the estate and gift taxes', "
+            "scored on the post-P.L. 119-21 baseline ($15M individual / $30M "
+            "joint exemption, 40% top rate): +$407.2B conventional primary "
+            "deficit, +$489.4B total. SCOPE: the option repeals the gift tax "
+            "too, where `create_eliminate_estate_tax` constructs estate "
+            "repeal; CRS R48183 p. 16 puts the estate share at about 90% of "
+            "the two, so the published figure is the broader. WINDOW stated "
+            "rather than adjusted, on biden_corporate_28_fy2022's precedent. "
+            "NOT a target and refused for the reason repeal_ptc refuses "
+            "publication 51298: CBO's February 2026 baseline (pub. 61882) "
+            "Table 4-1 projects estate and gift receipts of $403B over "
+            "FY2027-2036, which is a projection of what the tax raises, not "
+            "a score of repealing it."
+        ),
+        alternatives=(
+            "CBO/JCT cost estimate for H.R. 1105, Death Tax Repeal Act of "
+            "2015 (2 April 2015): 'reduce revenues... by about $269 billion "
+            "over the 2015-2025 period' -- a $5.43M-exemption tax, a "
+            "materially different instrument.",
+            "JCT JCX-46-17 p. 3 row H, -$171.5B, and JCX-54-17 p. 3 row G, "
+            "-$150.7B, both FY2018-2027: repeal BUNDLED with the exemption "
+            "doubling and a 35% gift rate. The conference agreement "
+            "(JCX-67-17) dropped repeal entirely.",
+        ),
     ),
     BenchmarkSource(
         policy_id="expand_drug_negotiation",
@@ -1955,6 +2408,32 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
             "own note); extending that to 50 drugs is the repository's "
             "extrapolation, and -$500B is not a CBO score of anything."
         ),
+        searched=(
+            "Searched 2026-09-09 (lane H9). No published score of EXPANDING "
+            "the negotiation program exists. CBO's December 2024 Options "
+            "volume contains no drug-negotiation option at all (searched in "
+            "full for 'negotiat', 'drug price', 'prescription drug'). The two "
+            "nearest published quantities are neither this policy: CBO's "
+            "score of the IRA's EXISTING program -- publication PL117-169 "
+            "(7 September 2022), Table 1 p. 5, sec. 11001, 'Providing for "
+            "Lower Prices for Certain High-Priced Single Source Drugs', "
+            "-$98,521M over FY2022-2031, which already absorbs secs. 11002 "
+            "and 11003; and the FY2025 Budget's Table S-6 (report p. 143), "
+            "-$200,000M over FY2025-2034 for 'Expand Medicare drug "
+            "negotiation, extend inflation rebates and out-of-pocket cost "
+            "caps to the commercial market, and other steps', a bundle whose "
+            "negotiation leg is not separable from two commercial-market "
+            "reforms the module does not build. Worth recording precisely: "
+            "the phrase 'at least 50 drugs' appears NOWHERE in the FY2025 "
+            "Budget -- it comes from the March 2024 State of the Union -- and "
+            "H.R. 4895 / H.R. 6166, which would raise the cohort from 20 to "
+            "50, have no CBO estimate. So -$500B is an extrapolation from "
+            "$237B, which W4_pharma_part_d.md finding 2 established was never "
+            "a negotiation score but CBO's total for the whole drug-pricing "
+            "title. RETIREMENT IS RECOMMENDED AND NOT APPLIED: owner decision "
+            "(4) of planning/HIGH_STAKES_ACCURACY.md is open and "
+            "planning/lanes/HSB_h9_provenance.md carries the one-commit edit."
+        ),
     ),
     BenchmarkSource(
         policy_id="international_reference_pricing",
@@ -1963,6 +2442,40 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
         note=(
             "A RAND price-comparison study is a price statistic, not a budget "
             "score; -$100B is the repository's derivation from it."
+        ),
+        searched=(
+            "Searched 2026-09-09 (lane H9). A published score of "
+            "international reference pricing DOES exist and prices a "
+            "materially narrower instrument on a baseline this repository "
+            "cannot use. CBO's letter to Chairman Frank Pallone of 10 "
+            "December 2019 (publication 55936) scores Title I of H.R. 3, the "
+            "Elijah E. Cummings Lower Drug Costs Now Act -- prices for "
+            "SELECTED drugs negotiated so they 'did not exceed 120 percent of "
+            "the average in a reference group of six foreign countries' -- at "
+            "'about $456 billion over the 2020-2029 period' of direct-"
+            "spending reduction (Table 1: -455,927 million) plus $45B of "
+            "revenues. Three things stop it being this row's target. SCOPE: "
+            "H.R. 3 caps a selected cohort where the module prices a cap "
+            "across Medicare drug spending, so the published figure is a "
+            "floor on a narrower policy. BASELINE: it is scored against a "
+            "PRE-IRA world with no Medicare negotiation authority at all, and "
+            "the IRA has since enacted a program CBO scores at -$98.5B, so "
+            "adopting the figure would double-count it. WINDOW: FY2020-2029, "
+            "and this repository carries no 2019 vintage. The other published "
+            "quantities are further away: CMS's Most Favored Nation interim "
+            "final rule (85 FR 76180, 27 November 2020) estimates $85.5B of "
+            "net Part B savings over a SEVEN-year model period and was "
+            "rescinded effective 28 February 2022; and the Council of "
+            "Economic Advisers' May 2026 MFN paper's '$529B in domestic "
+            "savings in the next 10 years across all markets' is economy-wide "
+            "across all payers rather than a federal budget effect (its only "
+            "federal-scoped figure is $36.6B of Medicaid savings). So -$100B "
+            "is contradicted in both directions: a fifth of CBO's figure for "
+            "a NARROWER policy and an eighth of the module's own answer. "
+            "RETIREMENT IS RECOMMENDED AND NOT APPLIED: owner decision (4) is "
+            "open, and this is the reconstruction tier's single largest "
+            "error, so withdrawing it is exactly the move that needs the "
+            "owner's signature rather than a lane's."
         ),
     ),
     BenchmarkSource(
@@ -1973,6 +2486,40 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
             "climate.py documents carbon_tax_behavioral_factor as calibrated "
             "so that $50/ton yields ~$1.7T, and the target restates that. "
             "Scoring against it measures internal consistency only."
+        ),
+        searched=(
+            "Searched 2026-09-09 (lane H9). NO published ten-year estimate of "
+            "a carbon tax starting at $50 per metric ton with a 5% annual "
+            "escalator exists. Two totals sit near the design and both use a "
+            "2% REAL escalator: Treasury's Office of Tax Analysis Working "
+            "Paper 115 (January 2017), 'Methodology for Analyzing a Carbon "
+            "Tax', p. 10 -- a tax starting at '$49 per metric ton CO2-e on "
+            "January 1, 2019 and rising at roughly a 2 percent real rate' "
+            "raises '$2,221 billion in net revenue over the 10-year window "
+            "from 2019 through 2028' ($1,846B energy-CO2 only; gross $2,962B "
+            "before the standard 25% excise offset); and Rhodium Group for "
+            "Columbia SIPA's Center on Global Energy Policy (July 2018), "
+            "Table 2, report p. 50 -- a '$50/ton' scenario rising 'at an "
+            "approximately 2 percent real rate annually' raising "
+            "$1,682-1,781 billion of 2016 dollars over 2020-2029. THE "
+            "CARRIED -$1,700B FALLS INSIDE THAT RANGE AND THAT IS NOT "
+            "EVIDENCE: the window is six years earlier, the units are 2016 "
+            "dollars and the escalator is not the module's, so the "
+            "coincidence is two offsetting differences rather than "
+            "agreement -- which is why it is not adopted even as a range. CRS "
+            "R45625 Table 1 (report p. 23) reports annual 2020 figures only, "
+            "and its one $50/5% line is a single-year 2040 range "
+            "('approximately $250 billion to $475 billion'). No JCT score of "
+            "any carbon-fee bill exists: congress.gov records zero CBO cost "
+            "estimates for S.1128 (116th), and the '$2.1 / $2.3 trillion' "
+            "figures in sponsor press releases carry no window and no JCX "
+            "number. CBO's own Option 73 alternative 1 is the one figure on "
+            "this repository's window with the module's exact escalator -- "
+            "$919.3B over FY2025-2034 for $25/ton rising 5% -- and doubling "
+            "it would be constructing a target. Named in "
+            "target_revisions.EXAMINED_NOT_REVISED as a retirement candidate: "
+            "a target that restates the model's own calibration is not a "
+            "benchmark."
         ),
     ),
     # ------------------------------------------------------------------

@@ -1425,13 +1425,25 @@ _PAYROLL_TARGET_TOLERANCE_BILLIONS = 0.05
 #: for that (PR #129 measured the footer's whole-scorecard call at 8.68s of a
 #: 9.38s first paint; PR #135 replaced it with a generated artifact). The drift
 #: test in ``tests/test_payroll_target_caption.py`` calls the suite and fails if
-#: either constant stops matching.
+#: either constant stops matching — and it did its job on 2026-09-09, when lane
+#: H9 moved ``ss_donut_250k``'s target to CBO Option 62 alternative 2. That is
+#: why two figures are pinned per row rather than one:
+#:
+#: * ``by_construction_10yr`` — what the module *returns*, because its
+#:   covered-wage base is this figure divided by ten and by 12.4%. The caption's
+#:   guard compares the scored run to this one, so a change to the scoring path
+#:   still silences the caption rather than letting it lie.
+#: * ``carried_target_10yr`` — what the scorecard *scores against*. The two were
+#:   the same number until H9, and conflating them is what would have had the
+#:   app call -$2,700.0B "the carried target" after the ledger moved that target
+#:   to -$1,426.8B.
 _PAYROLL_FITTED_TARGETS: dict[str, dict[str, Any]] = {
     "ss_eliminate_cap": {
         "eliminate_cap": True,
         "donut_start": None,
         "fitted_annual": 320.0,
-        "target_10yr": -3_200.0,
+        "by_construction_10yr": -3_200.0,
+        "carried_target_10yr": -3_200.0,
         "held_out_10yr": -3_319.5,
         "provision": "E2.1",
         "payroll_pct": 2.55,
@@ -1446,15 +1458,17 @@ _PAYROLL_FITTED_TARGETS: dict[str, dict[str, Any]] = {
         "eliminate_cap": False,
         "donut_start": 250_000.0,
         "fitted_annual": 270.0,
-        "target_10yr": -2_700.0,
+        "by_construction_10yr": -2_700.0,
+        # Moved 2026-09-09 by lane H9 (target_revisions.ss_donut_250k.v2).
+        "carried_target_10yr": -1_426.8,
         "held_out_10yr": -2_664.0,
         "provision": "E2.5",
         "payroll_pct": 2.50,
         "depletion_year": 2057,
         "cross_check": (
-            r"CBO scores the same donut at \$1,426.8B over FY2025-2034 "
-            r"(Options for Reducing the Deficit: 2025 to 2034, Option 62, "
-            r"report p. 73), 47% below the figure above"
+            r"that is now the carried target — CBO, Options for Reducing the "
+            r"Deficit: 2025 to 2034, Option 62 alternative 2, report p. 73, "
+            r"\$1,426.8B over FY2025-2034 for the identical donut"
         ),
     },
 }
@@ -1505,8 +1519,15 @@ def payroll_fitted_target_caption(policy: Any, result: Any) -> str:
 
     The claim "reproduced to the cent" is **checked against this run** before it
     is printed: the caption asserts something about the number above it, so a
-    score that stops equalling its target silences the caption rather than
+    score that stops equalling its figure silences the caption rather than
     letting it lie. ``result`` is read for exactly that.
+
+    Since 2026-09-09 the two rows differ in a way the caption has to carry.
+    ``ss_eliminate_cap``'s target is still the round -$3.2T nobody published,
+    so its sentence is unchanged. ``ss_donut_250k``'s target has moved to CBO's
+    -$1,426.8B (``target_revisions.ss_donut_250k.v2``) while the module still
+    returns -$2,700.0B, so calling the figure above "the carried target" would
+    now be false. The caption says the true thing instead, and states the miss.
 
     Returns ``""`` for every payroll policy that is not one of those two.
     """
@@ -1514,23 +1535,41 @@ def payroll_fitted_target_caption(policy: Any, result: Any) -> str:
     if entry is None:
         return ""
 
-    target = float(entry["target_10yr"])
+    by_construction = float(entry["by_construction_10yr"])
+    carried = float(entry["carried_target_10yr"])
     scored = float(np.sum(result.static_deficit_effect)) + float(
         np.sum(result.behavioral_offset)
     )
-    if abs(scored - target) > _PAYROLL_TARGET_TOLERANCE_BILLIONS:
+    if abs(scored - by_construction) > _PAYROLL_TARGET_TOLERANCE_BILLIONS:
         return ""
 
     held_out = float(entry["held_out_10yr"])
-    gap_pct = abs(held_out - target) / abs(target) * 100.0
+    gap_pct = abs(held_out - by_construction) / abs(by_construction) * 100.0
+
+    target_moved = abs(carried - by_construction) > _PAYROLL_TARGET_TOLERANCE_BILLIONS
+    if target_moved:
+        miss_pct = abs(by_construction - carried) / abs(carried) * 100.0
+        opening = (
+            rf"Where this number comes from: \${by_construction:+,.1f}B is what "
+            f"the module returns, because the covered-wage base behind it is "
+            f"that figure divided by ten and by the 12.4% OASDI rate — "
+            f"bookkeeping, not agreement. It is no longer the carried target: "
+            rf"that moved to \${carried:+,.1f}B on 2026-09-09, which this "
+            f"figure misses by {miss_pct:.1f}%. "
+        )
+    else:
+        opening = (
+            rf"Where this number comes from: \${by_construction:+,.1f}B is the "
+            f"carried target, reproduced to the cent because the covered-wage "
+            f"base behind it is that target divided by ten and by the 12.4% "
+            f"OASDI rate — bookkeeping, not agreement. "
+        )
 
     return (
-        rf"Where this number comes from: \${target:+,.1f}B is the carried "
-        f"target, reproduced to the cent because the covered-wage base behind "
-        f"it is that target divided by ten and by the 12.4% OASDI rate — "
-        f"bookkeeping, not agreement. Held out, with this case's own wage "
+        opening
+        + f"Held out, with this case's own wage "
         f"anchor withheld and refitted from the other two, the module returns "
-        rf"\${held_out:+,.1f}B ({gap_pct:.1f}% away). And the target itself is "
+        rf"\${held_out:+,.1f}B ({gap_pct:.1f}% away). And the round figure is "
         f"a dollar conversion nobody published: SSA's Office of the Chief "
         f"Actuary scores this provision as {entry['provision']} and reports "
         f"{entry['payroll_pct']:.2f}% of taxable payroll and a "

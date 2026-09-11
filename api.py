@@ -439,6 +439,16 @@ class ScorecardEntryModel(BaseModel):
     target_revision_id: str | None = None
     superseded_10yr_billions: float | None = None
     target_revision_reason: str = ""
+    # Set when the ledger has WITHDRAWN this benchmark's target with nothing to
+    # replace it - the third state, distinct from a revision. The figure the
+    # entry then carries is the withdrawn one, kept only so the row still
+    # prints, and its percent_difference measures nothing. A retired row leaves
+    # the reconstruction tier's mean; retired_target_entries counts it, and
+    # cold_holdout.py reports that tier a second time with the retired rows
+    # folded back at the error they carried, so a mean that fell because a row
+    # was withdrawn is readable as such.
+    target_retired: bool = False
+    target_retirement_reason: str = ""
     # Set when the live ledger row records a published *range* rather than a
     # point — the case where the agency scored the policy under several
     # scenarios and published no single figure. When these are set,
@@ -522,6 +532,9 @@ class ScorecardResponse(BaseModel):
     # leaves the fitted-calibrated tier, so a client computing a fitted mean
     # needs this count to know the denominator moved.
     revised_target_entries: int = 0
+    # Entries whose target the ledger has withdrawn. Never merely dropped:
+    # see ScorecardEntryModel.target_retired.
+    retired_target_entries: int = 0
     by_category: dict[str, ScorecardCategorySummary]
     entries: list[ScorecardEntryModel]
     issues: list[ScorecardIssueModel] = Field(default_factory=list)
@@ -991,6 +1004,7 @@ def validation_scorecard():
         transcribed_entries=summary.transcribed_entries,
         line_item_differs_entries=summary.line_item_differs_entries,
         revised_target_entries=summary.revised_target_entries,
+        retired_target_entries=summary.retired_target_entries,
         by_category={
             cat: ScorecardCategorySummary(**sub) for cat, sub in summary.by_category.items()
         },
