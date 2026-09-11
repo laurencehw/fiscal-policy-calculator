@@ -226,8 +226,8 @@ def test_the_row_behind_a_badge_scores_the_headline():
     # lands its shared base default, and the entry should be deleted then.
     for preset_id, (kind, _note) in HEADLINE_ROW_DIVERGENCE.items():
         assert preset_id in PRESET_ID_TO_SCORECARD_ID, preset_id
-        assert kind in {"base_rule", "runner_shape"}, preset_id
-        if kind == "runner_shape":
+        assert kind in {"base_rule", "runner_shape", "baseline"}, preset_id
+        if kind in {"runner_shape", "baseline"}:
             assert measured[preset_id] > HEADLINE_ROW_TOLERANCE_PCT, (
                 f"{preset_id} no longer diverges — delete its "
                 "HEADLINE_ROW_DIVERGENCE entry"

@@ -149,6 +149,19 @@ LEGACY_CALIBRATED_PRESET_IDS: frozenset[str] = frozenset(
 #: and score it on the validation window, not the app's FY2026 one — so the test
 #: asserts they *still* diverge, and the registry cannot rot into a blanket
 #: exemption.
+#:
+#: ``baseline`` is the third kind and the sharpest, because it is the one case
+#: where the divergence is the *point* rather than a residue: the app scores
+#: **current law** and the benchmark scores **its own document's**
+#: counterfactual, and for SALT those are worth a factor of six to each other
+#: (Penn Wharton prices repealing the cap at $1,169B against a permanent
+#: $10,000 cap and at $197B against a world where it lapses, in the same
+#: paper). A benchmark that moved onto current law would stop checking its
+#: document, and an app that stayed on the document's baseline would print a
+#: number for a reform that does not exist until 2030. So both are right and
+#: the badge is the thing that cannot say it — which is why
+#: ``results_summary.salt_current_law_caption`` carries the sentence and this
+#: entry carries the measurement. Asserted to persist, like ``runner_shape``.
 HEADLINE_ROW_DIVERGENCE: dict[str, tuple[str, str]] = {
     "ultra-millionaire-surtax-3pp": (
         "base_rule",
@@ -169,6 +182,20 @@ HEADLINE_ROW_DIVERGENCE: dict[str, tuple[str, str]] = {
         "runner_shape",
         "app -216.5 vs row -223.3 (3.1%): -194.8 on the validation window, so "
         "+21.6 is the window and 12.7% the runner's own policy build.",
+    ),
+    "salt-cap-repeal": (
+        "baseline",
+        "app +740.3 vs row +1,155.6 (35.9%): the app scores current law and "
+        "the row scores PWBM's own baseline. P.L. 119-21 sec. 70120 sets the "
+        "SALT cap at $40,400 in 2026 rising 1%/yr through 2029 and $10,000 "
+        "from 2030, while PWBM's Table 3 prices repeal against a permanent "
+        "$10,000 cap -- and the same paper prices it at $197B against a "
+        "baseline where the cap lapses, so the counterfactual is worth a "
+        "factor of six here and cannot be left implicit. The benchmark stays "
+        "on its document's baseline (validation/scenarios.SALT_SCORING_"
+        "BASELINES) because that is what a benchmark is for; the app scores "
+        "the law. `results_summary.salt_current_law_caption` says so beside "
+        "the headline. See planning/lanes/SALT_current_law_baseline.md.",
     ),
 }
 

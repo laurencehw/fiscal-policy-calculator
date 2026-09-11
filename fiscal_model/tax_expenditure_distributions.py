@@ -64,6 +64,7 @@ from __future__ import annotations
 
 import csv
 import math
+from collections.abc import Callable
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -456,3 +457,273 @@ def load_premium_distribution() -> PremiumDistribution:
 def implied_sigma(p50: float, p75: float) -> float:
     """Lognormal shape parameter implied by two percentiles."""
     return (math.log(p75) - math.log(p50)) / _Z75
+
+
+# ---------------------------------------------------------------------------
+# A deduction under a cap that is neither zero nor infinite
+# ---------------------------------------------------------------------------
+#
+# Every other reform in this module asks "how much of the base sits above a
+# limit" once. SALT has to ask it of a **path** of limits -- P.L. 119-21
+# sec. 70120 sets a different cap in every year from 2025 to 2030 and phases it
+# down against the filer's own income -- and the class averages
+# :meth:`DeductionDistribution.benefit_share_above_amount` compares against
+# cannot answer that, because they discard the within-class dispersion a cap
+# between the class minimum and the class maximum lives in.
+#
+# What makes an answer possible without a new assumption is that SOI Table 2.1
+# publishes the **same deduction twice**: ``salt`` is state and local taxes
+# before IRC 164(b)(6) and ``salt_limited`` is the amount deductible with it in
+# force. That is a second moment per AGI class, observed rather than assumed,
+# and two moments identify a two-parameter distribution.
+
+#: Number of equal-probability AGI slices each class is cut into when a cap
+#: phases down against income. The phase-out range of the published SALT design
+#: is narrower than SOI's $500,000-$1,000,000 class, so evaluating the phasedown
+#: at the class *mean* would make it a step function at a published class
+#: boundary rather than a measurement. Forty slices puts the quadrature error
+#: orders of magnitude below the mechanism it measures.
+AGI_SLICES_PER_CLASS = 40
+
+#: Where the open-ended top AGI class is truncated for its Pareto fit, as a
+#: multiple of its lower bound. Immaterial to every SALT design: the top class
+#: begins at $10,000,000, far above any published phase-out range, so every
+#: slice of it receives the same cap.
+OPEN_CLASS_UPPER_MULTIPLE = 400.0
+
+
+def _lognormal_mean_min(mean: float, sigma: float | None, cap: float) -> float:
+    """``E[min(X, cap)]`` for a lognormal with this mean and shape."""
+    if cap <= 0:
+        return 0.0
+    if math.isinf(cap):
+        # No cap at all -- the baseline CBO's own Option 49 is measured on.
+        return mean
+    if sigma is None or sigma <= 0:
+        return min(mean, cap)
+    mu = math.log(mean) - sigma * sigma / 2.0
+    z = (math.log(cap) - mu) / sigma
+    excess = mean * _normal_cdf(sigma - z) - cap * _normal_cdf(-z)
+    return mean - excess
+
+
+def _sigma_from_capped_mean(
+    mean: float, capped_mean: float, cap: float
+) -> float | None:
+    """
+    Dispersion of a lognormal with this mean whose ``E[min(X, cap)]`` is
+    ``capped_mean``.
+
+    ``None`` when the pair identifies none, which happens only if the published
+    capped column is at or above ``min(mean, cap)`` -- the class then shows no
+    dispersion across the limit at all, and the caller treats it as a point
+    mass at its mean, which is what every other cap rule in this module does
+    everywhere.
+
+    ``E[min(X, cap)]`` falls monotonically in sigma at a fixed mean, so a
+    bisection is exact to machine precision and needs no derivative.
+    """
+    ceiling = min(mean, cap)
+    if capped_mean >= ceiling - 1e-9 or capped_mean <= 0.0:
+        return None
+    low, high = 1e-6, 12.0
+    for _ in range(200):
+        mid = 0.5 * (low + high)
+        if _lognormal_mean_min(mean, mid, cap) > capped_mean:
+            low = mid
+        else:
+            high = mid
+    return 0.5 * (low + high)
+
+
+def _bounded_pareto_alpha(
+    lower: float, upper: float | None, mean: float
+) -> float | None:
+    """
+    Tail index of a Pareto on ``[lower, upper]`` with this mean.
+
+    ``None`` when the class cannot carry one -- a zero lower bound, or a
+    published mean outside the range a bounded Pareto on those bounds can
+    produce. The caller then falls back to the class mean.
+    """
+    if lower <= 0 or mean <= 0:
+        return None
+    if upper is None:
+        if mean <= lower:
+            return None
+        return mean / (mean - lower)
+
+    ratio = lower / upper
+
+    def class_mean(alpha: float) -> float:
+        return (
+            (alpha / (alpha - 1.0))
+            * lower
+            * (1.0 - ratio ** (alpha - 1.0))
+            / (1.0 - ratio**alpha)
+        )
+
+    low, high = 1.0001, 60.0
+    if not class_mean(high) < mean < class_mean(low):
+        return None
+    for _ in range(200):
+        mid = 0.5 * (low + high)
+        if class_mean(mid) > mean:
+            low = mid
+        else:
+            high = mid
+    return 0.5 * (low + high)
+
+
+@dataclass(frozen=True)
+class CappedDeductionClass:
+    """One AGI class of a deduction whose statutory cap is itself observed."""
+
+    agi_lower: float
+    agi_upper: float | None
+    agi_mean: float
+    """Mean AGI (less deficit) of *all* returns in the class, from SOI."""
+    claimants: float
+    mean_deduction: float
+    """Mean amount claimed before the cap, in dollars per claiming return."""
+    mean_deduction_capped: float
+    """Mean amount deductible **with the observed cap in force**, in dollars."""
+    observed_cap: float
+    """The cap the published capped column was measured under, in dollars."""
+    marginal_rate: float
+
+    @property
+    def sigma(self) -> float | None:
+        """Within-class dispersion, identified by the two published columns."""
+        return _sigma_from_capped_mean(
+            self.mean_deduction, self.mean_deduction_capped, self.observed_cap
+        )
+
+    @property
+    def agi_alpha(self) -> float | None:
+        """Within-class AGI tail index, identified by the published class mean."""
+        return _bounded_pareto_alpha(self.agi_lower, self.agi_upper, self.agi_mean)
+
+    def agi_slices(self) -> tuple[tuple[float, float], ...]:
+        """``(weight, agi)`` pairs spanning the class, equal probability each."""
+        alpha = self.agi_alpha
+        if alpha is None:
+            return ((1.0, self.agi_mean),)
+        lower = self.agi_lower
+        upper = (
+            self.agi_upper
+            if self.agi_upper is not None
+            else lower * OPEN_CLASS_UPPER_MULTIPLE
+        )
+        span = 1.0 - (lower / upper) ** alpha
+        weight = 1.0 / AGI_SLICES_PER_CLASS
+
+        def quantile(u: float) -> float:
+            return lower * (1.0 - u * span) ** (-1.0 / alpha)
+
+        return tuple(
+            (weight, 0.5 * (quantile(i * weight) + quantile((i + 1) * weight)))
+            for i in range(AGI_SLICES_PER_CLASS)
+        )
+
+    def deductible_benefit_billions(
+        self,
+        cap_at_agi: Callable[[float], float],
+        growth_factor: float = 1.0,
+    ) -> float:
+        """
+        What this class may deduct under ``cap_at_agi``, valued in $B.
+
+        ``growth_factor`` scales the *claimed amounts* and the AGI the cap is
+        read at, and never the cap itself. That asymmetry is the mechanism
+        rather than a detail: a statutory cap is a nominal figure indexed at
+        whatever rate its own statute states (1%/yr for 2027-2029 under IRC
+        164(b)(7)(A)) while the taxes it limits grow with incomes, so the same
+        cap denies a widening slice of the base every year.
+        """
+        mean = self.mean_deduction * growth_factor
+        sigma = self.sigma
+        deductible = 0.0
+        for weight, agi in self.agi_slices():
+            deductible += weight * _lognormal_mean_min(
+                mean, sigma, cap_at_agi(agi * growth_factor)
+            )
+        return self.claimants * deductible / 1e9 * self.marginal_rate
+
+    def uncapped_benefit_billions(self, growth_factor: float = 1.0) -> float:
+        """What this class would deduct with no cap at all, valued in $B."""
+        return (
+            self.claimants
+            * self.mean_deduction
+            * growth_factor
+            / 1e9
+            * self.marginal_rate
+        )
+
+
+@dataclass(frozen=True)
+class CappedDeductionDistribution:
+    """A deduction whose uncapped and capped columns are both published."""
+
+    name: str
+    classes: tuple[CappedDeductionClass, ...]
+
+    def deductible_benefit_billions(
+        self,
+        cap_at_agi: Callable[[float], float],
+        growth_factor: float = 1.0,
+    ) -> float:
+        """Value of the deduction actually claimable under a cap rule, in $B."""
+        return sum(
+            c.deductible_benefit_billions(cap_at_agi, growth_factor)
+            for c in self.classes
+        )
+
+    def uncapped_benefit_billions(self, growth_factor: float = 1.0) -> float:
+        """Value of the deduction with no cap at all, in $B."""
+        return sum(c.uncapped_benefit_billions(growth_factor) for c in self.classes)
+
+
+@lru_cache(maxsize=4)
+def load_capped_deduction_distribution(
+    column: str = "salt",
+    capped_column: str = "salt_limited",
+    observed_cap: float = 10_000.0,
+) -> CappedDeductionDistribution:
+    """
+    Build a :class:`CappedDeductionDistribution` from two SOI Table 2.1 columns.
+
+    ``column`` is the deduction before its statutory limit, ``capped_column``
+    the amount deductible with the limit in force, and ``observed_cap`` the
+    limit that capped column was measured under -- $10,000 for tax year 2023,
+    under IRC 164(b)(6) as enacted by P.L. 115-97 and before P.L. 119-21
+    sec. 70120 replaced it.
+
+    The anchor is what makes the extrapolation checkable rather than invented:
+    evaluated *at* ``observed_cap`` this distribution returns the published
+    capped column to machine precision, and ``tests/test_salt_cap_path.py``
+    pins that against ``JCT_TAX_EXPENDITURES["salt"]["annual_cost"]``, a
+    constant with no common ancestor.
+    """
+    classes = []
+    for row in _soi_rows():
+        claimants = float(row[f"{column}_returns"])
+        if claimants <= 0:
+            continue
+        upper = row["agi_upper"].strip()
+        agi_lower = float(row["agi_lower"])
+        classes.append(
+            CappedDeductionClass(
+                agi_lower=agi_lower,
+                agi_upper=float(upper) if upper else None,
+                agi_mean=float(row["agi_less_deficit"]) * 1e3 / float(row["returns"]),
+                claimants=claimants,
+                mean_deduction=float(row[f"{column}_amount"]) * 1e3 / claimants,
+                mean_deduction_capped=(
+                    float(row[f"{capped_column}_amount"]) * 1e3 / claimants
+                ),
+                observed_cap=observed_cap,
+                marginal_rate=statutory_marginal_rate(agi_lower),
+            )
+        )
+    return CappedDeductionDistribution(name=column, classes=tuple(classes))

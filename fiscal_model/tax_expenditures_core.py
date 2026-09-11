@@ -59,6 +59,32 @@ The rule reaches the premium path only. A deduction distribution
 dimension, so indexing a limit against it would shrink the share on one side
 of a comparison whose other side cannot move.
 
+Which baseline a SALT reform is priced against
+----------------------------------------------
+Every SALT score is a difference between two worlds, and until lane
+``SALT_current_law_baseline`` this module named only one of them. That is not a
+small omission: PWBM prices repealing the cap at **$1,169B** against a
+permanent $10,000 cap and at **$197B** against a world where it lapses, in the
+same paper, and this repository's two SALT benchmarks carry one of each.
+
+``SaltCapBaseline`` makes the other world an input. ``CURRENT_LAW`` is IRC
+164(b)(6)-(7) as amended by P.L. 119-21 sec. 70120 -- a cap of $40,000 in 2025
+rising 1%/yr through 2029, phased down by 30% of modified AGI above $500,000
+but never below $10,000, and $10,000 flat from 2030 -- and it is the default,
+so a caller who does not know about baselines gets the law. ``PERMANENT_10K``
+and ``LAPSED_CAP`` are the two published counterfactuals, each attached to the
+benchmark whose document uses it.
+
+Two constants become a path, and the *shape* is the point: a window average of
+``annual_cost`` and ``annual_cost_no_cap`` can say how much of a window a
+limitation covers but not that the limitation is $40,404 in 2026 and $10,000 in
+2030. The level under a cap comes from the two SOI Table 2.1 columns that
+publish the same deduction with and without the cap in force
+(``load_capped_deduction_distribution``), which identify the within-class
+dispersion a cap between the class minimum and maximum lives in -- and which
+return the published capped figure when evaluated at the cap they were measured
+under, so the extrapolation to $40,000 is anchored rather than invented.
+
 Which way the behavioural offset points
 ---------------------------------------
 The engine books ``deficit = -revenue + behavioural``, so an offset carrying
@@ -105,6 +131,7 @@ import numpy as np
 from .policies import PolicyType, TaxPolicy
 from .tax_expenditure_distributions import (
     CAP_INDEXATION_SERIES_NOTE,
+    load_capped_deduction_distribution,
     load_deduction_distribution,
     load_premium_distribution,
     price_index_factor,
@@ -199,6 +226,208 @@ EXPENDITURE_APP_MODE = EXPENDITURE_MODE_REPORTED
 #: leave-one-out number measures the base table plus the reform rules rather
 #: than a scalar re-derivation of the fitted constant.
 EXPENDITURE_HELD_OUT_MODE = EXPENDITURE_MODE_DERIVED
+
+
+class SaltCapBaseline(Enum):
+    """Which SALT cap path a reform is priced **against**.
+
+    Every SALT score is a difference between two worlds and the repository used
+    to name only one of them. Its two SALT benchmarks disagree about the other,
+    and both are right: PWBM's Table 3 prices repeal against a **permanent
+    $10,000 cap** (TCJA extended) while CBO's Option 49 prices elimination
+    against a world where the cap **lapsed after 2025**. The same repeal is
+    worth $1,169B on the first and $197B on the second -- PWBM prints both --
+    so a SALT reform with no baseline attached is ambiguous by a factor of six.
+
+    ``CURRENT_LAW``
+        IRC 164(b)(6)-(7) as amended by P.L. 119-21 sec. 70120: $40,000 in
+        2025, $40,400 in 2026, 101 percent of the preceding year through 2029,
+        phased down by 30 percent of modified AGI above the threshold amount
+        but never below $10,000, and $10,000 flat from 2030. The app's default,
+        and the only one of the three that is the law.
+    ``PERMANENT_10K``
+        $10,000 every year, never indexed, no phasedown -- TCJA made
+        permanent. The baseline PWBM's Table 3 states in its own title.
+    ``LAPSED_CAP``
+        $10,000 through 2025 and **no limit at all** afterwards: CBO's
+        February/June 2024 baseline, which Option 49 states as "Beginning in
+        2026, deductions for state and local taxes will not be limited."
+    """
+
+    CURRENT_LAW = "current_law"
+    PERMANENT_10K = "permanent_10k"
+    LAPSED_CAP = "lapsed_cap"
+
+
+#: The floor the phasedown may not reduce the limitation below, and the amount
+#: in force outside 2025-2029. IRC 164(b)(7)(A)(i), (C).
+SALT_CAP_FLOOR = 10_000.0
+
+#: Married filing separately takes half of every figure in this block:
+#: "half the applicable limitation amount in the case of a married individual
+#: filing a separate return" (IRC 164(b)(6)).
+SALT_MFS_FRACTION = 0.5
+
+#: "reduced by 30 percent of the excess (if any) of the taxpayer's modified
+#: adjusted gross income over the threshold amount" -- IRC 164(b)(7)(B).
+SALT_PHASEDOWN_RATE = 0.30
+
+#: "101 percent of the dollar amount in effect under this subparagraph for
+#: taxable years beginning in the preceding calendar year" -- IRC
+#: 164(b)(7)(A)(i)(III), applying to both the limitation and the threshold for
+#: taxable years beginning after 2026 and before 2030.
+SALT_CAP_INDEXATION = 0.01
+
+#: First taxable year the raised cap applies to, and the first year it does
+#: not: "in the case of a taxable year beginning in 2025" through 2029,
+#: reverting to $10,000 "in the case of any taxable year beginning after
+#: December 31, 2029".
+SALT_RAISED_CAP_FIRST_YEAR = 2025
+SALT_RAISED_CAP_LAST_YEAR = 2029
+
+#: The statute's own two stated years, from which 2027-2029 are computed by the
+#: 101 percent rule rather than transcribed: the 2027 adjustment is not yet
+#: published and the rule is arithmetic, not an indexed measurement.
+SALT_STATED_LIMITATION: dict[int, float] = {2025: 40_000.0, 2026: 40_400.0}
+SALT_STATED_THRESHOLD: dict[int, float] = {2025: 500_000.0, 2026: 505_000.0}
+
+#: Where the statute was read, and when.
+SALT_CAP_SOURCE = (
+    "IRC 164(b)(6)-(7) as amended by P.L. 119-21 sec. 70120 (One Big "
+    "Beautiful Bill Act, enacted 2026-07-04), read 2026-09-11 at "
+    "https://www.law.cornell.edu/uscode/text/26/164. Paragraph (6) caps the "
+    "aggregate of subsection (a)(1)-(3) and (b)(5) taxes at the applicable "
+    "limitation amount, 'half the applicable limitation amount in the case of "
+    "a married individual filing a separate return'. Paragraph (7)(A) sets "
+    "that amount at $40,000 for a taxable year beginning in 2025, $40,400 for "
+    "2026, '101 percent of the dollar amount in effect under this "
+    "subparagraph for taxable years beginning in the preceding calendar year' "
+    "thereafter, and $10,000 for any taxable year beginning after 31 December "
+    "2029. Paragraph (7)(B) reduces it by '30 percent of the excess (if any)' "
+    "of modified adjusted gross income over the threshold amount -- $500,000 "
+    "for 2025, $505,000 for 2026, 101 percent of the preceding year "
+    "thereafter -- and (7)(C) holds it at not below $10,000. Modified AGI is "
+    "AGI increased by amounts excluded under sections 911, 931 and 933."
+)
+
+
+@dataclass(frozen=True)
+class SaltCapYear:
+    """One taxable year of the statutory SALT limitation, by filing status.
+
+    Both columns are carried because the statute states both, even though the
+    base this module prices against -- IRS SOI Table 2.1's "All returns" panel
+    -- has no filing-status dimension and so can only be scored on the non-MFS
+    column. Transcribing a statute half-way and then discovering later which
+    half was needed is how the module's original unit errors got in.
+    """
+
+    year: int
+    limitation_amount: float
+    threshold_amount: float | None
+    """``None`` in a year the phasedown does not apply to (2030 onward)."""
+
+    @property
+    def limitation_amount_mfs(self) -> float:
+        return self.limitation_amount * SALT_MFS_FRACTION
+
+    @property
+    def threshold_amount_mfs(self) -> float | None:
+        if self.threshold_amount is None:
+            return None
+        return self.threshold_amount * SALT_MFS_FRACTION
+
+    @property
+    def floor(self) -> float:
+        return SALT_CAP_FLOOR
+
+    @property
+    def phasedown_complete_at(self) -> float | None:
+        """MAGI at which the phasedown has taken the cap all the way down."""
+        if self.threshold_amount is None:
+            return None
+        return self.threshold_amount + (
+            self.limitation_amount - SALT_CAP_FLOOR
+        ) / SALT_PHASEDOWN_RATE
+
+    def cap_at(self, magi: float, married_filing_separately: bool = False) -> float:
+        """The applicable limitation amount for a filer with this MAGI."""
+        fraction = SALT_MFS_FRACTION if married_filing_separately else 1.0
+        limitation = self.limitation_amount * fraction
+        floor = SALT_CAP_FLOOR * fraction
+        if self.threshold_amount is None:
+            return limitation
+        excess = max(0.0, magi - self.threshold_amount * fraction)
+        return max(floor, limitation - SALT_PHASEDOWN_RATE * excess)
+
+
+def salt_cap_schedule(year: int) -> SaltCapYear:
+    """The statutory SALT limitation in ``year`` under **current law**.
+
+    Outside 2025-2029 this is the flat $10,000 of IRC 164(b)(7)(A)(i) with no
+    phasedown -- which is both the pre-2025 law and the post-2029 reversion,
+    because sec. 70120 wrote the reversion as a return to the same figure.
+    """
+    if year < SALT_RAISED_CAP_FIRST_YEAR or year > SALT_RAISED_CAP_LAST_YEAR:
+        return SaltCapYear(year=year, limitation_amount=SALT_CAP_FLOOR, threshold_amount=None)
+    if year in SALT_STATED_LIMITATION:
+        return SaltCapYear(
+            year=year,
+            limitation_amount=SALT_STATED_LIMITATION[year],
+            threshold_amount=SALT_STATED_THRESHOLD[year],
+        )
+    steps = year - max(SALT_STATED_LIMITATION)
+    growth = (1.0 + SALT_CAP_INDEXATION) ** steps
+    return SaltCapYear(
+        year=year,
+        limitation_amount=SALT_STATED_LIMITATION[max(SALT_STATED_LIMITATION)] * growth,
+        threshold_amount=SALT_STATED_THRESHOLD[max(SALT_STATED_THRESHOLD)] * growth,
+    )
+
+
+def salt_cap_at(
+    baseline: SaltCapBaseline,
+    year: int,
+    magi: float,
+    married_filing_separately: bool = False,
+) -> float:
+    """The SALT limitation a filer faces in ``year`` under ``baseline``.
+
+    ``math.inf`` means no limitation, which is a real state of the world rather
+    than a missing value: it is what CBO's Option 49 baseline says about every
+    year after 2025.
+    """
+    fraction = SALT_MFS_FRACTION if married_filing_separately else 1.0
+    if baseline is SaltCapBaseline.PERMANENT_10K:
+        return SALT_CAP_FLOOR * fraction
+    if baseline is SaltCapBaseline.LAPSED_CAP:
+        if year <= 2025:
+            return SALT_CAP_FLOOR * fraction
+        return math.inf
+    return salt_cap_schedule(year).cap_at(magi, married_filing_separately)
+
+
+def salt_expenditure_billions(
+    baseline: SaltCapBaseline, year: int, growth_factor: float = 1.0
+) -> float:
+    """The SALT deduction's value in ``year`` under ``baseline``, in $B.
+
+    ``growth_factor`` ages the SOI base -- both the taxes claimed and the
+    incomes the phasedown is read against -- while the statutory cap stays on
+    its own schedule. The two grow at different rates by construction (1%/yr
+    for the limitation against the expenditure record's 3%/yr for the base),
+    so the cap's bite widens across a window without any new constant.
+    """
+    distribution = load_capped_deduction_distribution()
+    return distribution.deductible_benefit_billions(
+        lambda magi: salt_cap_at(baseline, year, magi),
+        growth_factor=growth_factor,
+    )
+
+
+def salt_uncapped_expenditure_billions(growth_factor: float = 1.0) -> float:
+    """The SALT deduction's value with no limitation at all, in $B."""
+    return load_capped_deduction_distribution().uncapped_benefit_billions(growth_factor)
 
 
 def uncapped_salt_expenditure_billions() -> float:
@@ -338,6 +567,14 @@ JCT_TAX_EXPENDITURES: dict[str, dict[str, Any]] = {
         "growth_rate": 0.03,
         "base_distribution": {"kind": "deduction", "column": "salt_limited"},
         "unlimited_base_distribution": {"kind": "deduction", "column": "salt"},
+        # This block records the **pre-P.L. 119-21** statutory state, which is
+        # not an anachronism: it is exactly the baseline CBO's Option 49 is
+        # measured on, and `SaltCapBaseline.LAPSED_CAP` is the name this
+        # module now gives it. Current law is a *path* rather than an amount
+        # and a lapse date -- $40,000 in 2025 rising 1%/yr to 2029, phased
+        # down above $500,000 of MAGI, $10,000 from 2030 -- so it lives in
+        # `salt_cap_schedule` where a year can be asked about, and the SALT
+        # `eliminate` and `expand` rules read that instead of this.
         "limitation": {
             "name": "$10,000 cap on the state-and-local-tax deduction",
             "statute": "IRC 164(b)(6), added by P.L. 115-97 sec. 11042",
@@ -345,6 +582,10 @@ JCT_TAX_EXPENDITURES: dict[str, dict[str, Any]] = {
             "amount": 10_000.0,
             "expires_after": 2025,
             "unlimited_cost_key": "annual_cost_no_cap",
+            "superseded_by": (
+                "P.L. 119-21 sec. 70120; see SALT_CAP_SOURCE and "
+                "salt_cap_schedule() for the path that replaced the lapse"
+            ),
             "source": (
                 "CBO, Options for Reducing the Deficit: 2025 to 2034 "
                 "(pub. 60557, Dec 2024), Option 49, report p. 59: 'Beginning "
@@ -791,6 +1032,11 @@ class TaxExpenditurePolicy(TaxPolicy):
     convert_to_credit: bool = False
     credit_rate: float = 0.15
     expand_limit: float | None = None
+    #: Which SALT cap path this reform is priced **against**. Read only by the
+    #: SALT ``eliminate`` and ``expand`` rules; inert on every other
+    #: expenditure. Defaults to current law, so a caller that does not know
+    #: about baselines gets the law rather than a lapsed or a hypothetical one.
+    salt_baseline: SaltCapBaseline = SaltCapBaseline.CURRENT_LAW
     behavioral_elasticity: float = 0.2
     #: Which way the behavioural response moves this reform's revenue change.
     #: ``None`` -- the default -- resolves from :data:`OFFSET_DIRECTIONS` on the
@@ -976,6 +1222,9 @@ class TaxExpenditurePolicy(TaxPolicy):
         data = self.get_expenditure_data()
         baseline_cost = data.get("annual_cost", 50.0)
 
+        if self.uses_salt_cap_path():
+            return self._salt_static_revenue_effect(data, year)
+
         if self.action == "eliminate":
             # Repealing the provision raises what the provision costs under
             # the baseline in force over this policy's window, which is not
@@ -1009,6 +1258,52 @@ class TaxExpenditurePolicy(TaxPolicy):
             return -baseline_cost * 0.20
 
         return 0.0
+
+    def uses_salt_cap_path(self) -> bool:
+        """Whether this reform is priced against a statutory SALT cap path.
+
+        Repealing the SALT deduction and repealing its cap are both differences
+        between two cap paths, and until this lane the module expressed them as
+        differences between two *constants* -- ``annual_cost`` and
+        ``annual_cost_no_cap`` -- which can only describe a cap that is either
+        $10,000 or absent. P.L. 119-21 sec. 70120 made the live cap neither.
+
+        Scoped to the two actions that are cap differences. A SALT ``cap``
+        reform is a reform on top of the baseline rather than a statement about
+        it, and the module ships none.
+        """
+        return self.expenditure_type is TaxExpenditureType.SALT and self.action in (
+            "eliminate",
+            "expand",
+        )
+
+    def _salt_static_revenue_effect(self, data: dict, year: int | None) -> float:
+        """
+        The SALT reform's annual revenue effect, priced against its baseline.
+
+        ``eliminate`` raises what the deduction is actually worth under the cap
+        path in force; ``expand`` -- repealing the cap -- costs the difference
+        between the uncapped deduction and that same figure. Both are read in
+        the year being scored, because under current law the cap changes in six
+        of them.
+
+        The figure returned is denominated in the policy's own ``start_year``,
+        because ``scoring_engine`` multiplies whatever this returns by the
+        expenditure's growth rate compounded from ``start_year``. Dividing the
+        aged figure back out is what lets the *share* move across the window
+        while the engine keeps owning the *level*, which is the same division
+        of labour the ``cap`` rule has had since Wave 4.
+        """
+        year = self.start_year if year is None else int(year)
+        growth_rate = float(data.get("growth_rate", 0.03))
+        aging = (1.0 + growth_rate) ** (year - self.start_year)
+
+        capped = salt_expenditure_billions(self.salt_baseline, year, aging)
+        if self.action == "eliminate":
+            effect = capped
+        else:
+            effect = -(salt_uncapped_expenditure_billions(aging) - capped)
+        return effect / aging if aging else effect
 
     def offset_direction_rule(self) -> OffsetDirectionRule | None:
         """The sourced direction rule for this reform, or ``None`` if there is none.

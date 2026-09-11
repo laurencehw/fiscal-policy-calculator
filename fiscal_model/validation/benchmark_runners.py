@@ -162,9 +162,20 @@ def _policy_factory(benchmark_id: str) -> Any | None:
 
             return create_biden_corporate_rate_only()
         if factory_name == "create_repeal_salt_cap":
-            from fiscal_model.tax_expenditures import create_repeal_salt_cap
+            from fiscal_model.tax_expenditures import (
+                SaltCapBaseline,
+                create_repeal_salt_cap,
+            )
 
-            return create_repeal_salt_cap()
+            # JCX-4-24 is a January 2024 table: its baseline is IRC
+            # 164(b)(6)'s $10,000 cap, six months before P.L. 119-21
+            # sec. 70120 replaced it. A distributional benchmark is scored on
+            # the baseline its own document used, exactly as its revenue twin
+            # is (`scenarios.SALT_SCORING_BASELINES`); the app's default is
+            # current law and that is a different question.
+            return create_repeal_salt_cap(
+                salt_baseline=SaltCapBaseline.PERMANENT_10K
+            )
     except Exception:
         logger.exception("Failed to construct policy for %s", benchmark_id)
         return None

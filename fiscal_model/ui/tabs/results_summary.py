@@ -53,8 +53,11 @@ from fiscal_model.ptc import (
 from fiscal_model.spending_outlays import IMMEDIATE, account_class_label
 from fiscal_model.tax_expenditures_core import (
     BEHAVIORAL_ELASTICITIES,
+    SALT_CAP_FLOOR,
     OffsetMagnitudeKind,
+    SaltCapBaseline,
     TaxExpenditurePolicy,
+    salt_cap_schedule,
 )
 from fiscal_model.trade import TRADE_BASELINE, TariffPolicy
 from fiscal_model.ui.a11y import (
@@ -964,6 +967,100 @@ def ptc_repeal_baseline_caption(policy: Any, result: Any) -> str:
         rf"this removed a fitted \$83B a year growing at 4%; until 2026-09-11 it "
         f"netted a single transferred {CBO_OFFSETTING_SHARE:.1%} instead of "
         f"pricing the channels."
+    )
+
+
+#: The published figure each SALT reform used to report, and the baseline it
+#: was measured on. Keyed by the reform's action, because the two reforms are
+#: scored by different houses against different counterfactuals and a caption
+#: that named only one of them would be wrong for the other half the time.
+_SALT_BASELINE_CONTRAST = {
+    "expand": (
+        r"Penn Wharton's \$1,169B, which this preset used to report, prices "
+        r"the same repeal against a baseline where the \$10,000 cap is "
+        r"permanent; the same paper prices it at \$197B against a baseline "
+        r"where the cap lapses."
+    ),
+    "eliminate": (
+        r"CBO's \$1,621B (Option 49) prices the same repeal against its "
+        r"February 2024 baseline, in which the \$10,000 cap lapsed after 2025 "
+        r"and the deduction is uncapped for nine of the ten years scored."
+    ),
+}
+
+#: The sentence that stops a validation badge from being read as a check on
+#: the figure above it. A benchmark is scored on **its own document's**
+#: baseline, which for both SALT rows is not current law, so the scorecard's
+#: percentage answers a different question from the headline — and a green
+#: badge beside a number a third smaller than the published one would
+#: otherwise read as a contradiction rather than as two baselines.
+_SALT_BENCHMARK_DISCLAIMER = (
+    "This model's validation row is scored on that published baseline rather "
+    "than on this one, so the percentage it reports is a check on the "
+    "benchmark and not on the figure above."
+)
+
+
+def salt_current_law_caption(policy: Any, result: Any) -> str:
+    """One line saying which SALT cap the score is measured against.
+
+    Every SALT score is a difference between two worlds, and the number a user
+    reads is meaningless without the second one: Penn Wharton prices repealing
+    the cap at $1,169B against a permanent $10,000 cap and at $197B against a
+    world where it lapses, in the same paper. Until 2026-09-11 this module
+    scored a fitted $96B/yr, which is the permanent-$10,000-cap answer, on a
+    window in which the cap is $40,400 — so the shipped preset fell by about a
+    third when the baseline became current law, and Decision 6 says a moved
+    number ships with its explanation rather than in silence.
+
+    Computed from the scored result and from ``salt_cap_schedule`` rather than
+    from a stored figure, so the caption cannot drift from the number above it
+    and the years it names come from the window actually scored. Returns ``""``
+    for any expenditure policy that is not a SALT cap difference.
+    """
+    if not isinstance(policy, TaxExpenditurePolicy):
+        return ""
+    if not policy.uses_salt_cap_path():
+        return ""
+    if policy.salt_baseline is not SaltCapBaseline.CURRENT_LAW:
+        return ""
+
+    years = getattr(result, "years", None)
+    if years is None or len(years) == 0:
+        return ""
+    static = np.asarray(result.static_revenue_effect, dtype=float)
+    scored = np.abs(static) > 0
+    if not scored.any():
+        return ""
+    scored_years = [int(year) for year, live in zip(years, scored, strict=False) if live]
+    first, last = scored_years[0], scored_years[-1]
+
+    total = float(np.sum(np.asarray(result.final_deficit_effect, dtype=float)))
+    opening = salt_cap_schedule(first)
+    reversion = next(
+        (
+            year
+            for year in scored_years
+            if salt_cap_schedule(year).limitation_amount == SALT_CAP_FLOOR
+        ),
+        None,
+    )
+    reversion_clause = (
+        f", and back to \\${SALT_CAP_FLOOR:,.0f} in {reversion}"
+        if reversion is not None
+        else ""
+    )
+
+    return (
+        f"Measured against **current law**, not against the baseline this "
+        f"reform's published score uses. P.L. 119-21 sec. 70120 sets the "
+        rf"limitation at \${opening.limitation_amount:,.0f} in {first}, rising "
+        f"1% a year through 2029 and phasing down by 30 cents per dollar of "
+        rf"modified AGI above \${opening.threshold_amount:,.0f}"
+        f"{reversion_clause} — so over FY{first}-FY{last} this scores "
+        rf"\${abs(total):,.0f}B. {_SALT_BASELINE_CONTRAST[policy.action]} The "
+        f"target has not moved — the baseline the app scores on has. "
+        f"{_SALT_BENCHMARK_DISCLAIMER}"
     )
 
 
@@ -1914,6 +2011,9 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     ptc_note = ptc_repeal_baseline_caption(policy, result)
     if ptc_note:
         st_module.caption(ptc_note)
+    salt_note = salt_current_law_caption(policy, result)
+    if salt_note:
+        st_module.caption(salt_note)
     sign_note = behavioural_sign_caption(policy, result)
     if sign_note:
         st_module.caption(sign_note)

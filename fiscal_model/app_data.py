@@ -309,9 +309,18 @@ CBO_SCORE_MAP = {
         "official_score": 1169.0,
         "source": "Penn Wharton Budget Model",
         "source_date": "2024-02",
+        # The app now scores this against CURRENT LAW (P.L. 119-21 sec. 70120:
+        # \\$40,400 in 2026 rising 1%/yr through 2029, phased down above
+        # \\$500,000 of MAGI, \\$10,000 from 2030), where PWBM's figure prices
+        # the same repeal against a permanent \\$10,000 cap. The target has not
+        # moved -- this is a baseline difference, and the score below it is
+        # about a third smaller for that reason rather than a model error.
+        # See planning/lanes/SALT_current_law_baseline.md.
         "notes": (
-            "Remove \\$10K cap on state/local tax deduction; scored against a "
-            "permanent-cap (extended TCJA) baseline"
+            "Remove the cap on the state/local tax deduction. The \\$1.17T is "
+            "scored against a permanent-\\$10K-cap (extended TCJA) baseline; "
+            "the app scores current law, where P.L. 119-21 already raised the "
+            "cap to \\$40,400 through 2029"
         ),
     },
     "📋 Eliminate SALT Deduction (-$1.62T)": {
@@ -323,7 +332,21 @@ CBO_SCORE_MAP = {
         "official_score": -1621.0,
         "source": "CBO (pub. 60557, Option 49)",
         "source_date": "2024-12",
-        "notes": "Repeal state/local tax deduction entirely",
+        # A SCORE-ONLY entry: there is no PRESET_POLICIES row, so Build quotes
+        # this figure as a list price and the engine never runs it. What the
+        # note has to carry, therefore, is the baseline -- CBO measures Option
+        # 49 on a February 2024 baseline where IRC 164(b)(6)'s cap lapsed
+        # after 2025, and P.L. 119-21 sec. 70120 has since replaced that world
+        # with a \\$40,400 cap through 2029 reverting to \\$10,000. On current
+        # law the module scores the same repeal at about +\\$338B over
+        # FY2026-2035, roughly a fifth of the quoted figure, because most of
+        # the deduction CBO's baseline allows is already denied.
+        "notes": (
+            "Repeal state/local tax deduction entirely. CBO's \\$1.62T is "
+            "measured on a baseline where the \\$10K cap lapsed after 2025; "
+            "under current law (P.L. 119-21) the deduction is capped "
+            "throughout, so a repeal is worth far less"
+        ),
     },
     "📋 Cap Charitable Deduction (-$200B)": {
         "official_score": -200.0,
@@ -859,7 +882,7 @@ PRESET_POLICIES = {
     "📋 Repeal SALT Cap ($1.17T)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Remove \\$10K cap on state and local tax deduction. Costs ~\\$1.17T over 10 years measured against a permanent-cap baseline (Penn Wharton); ~\\$197B against a baseline where the cap expires.",
+        "description": "Remove the cap on the state and local tax deduction, scored against current law — P.L. 119-21 sec. 70120 sets it at \\$40,400 in 2026 rising 1%/yr through 2029, phased down above \\$500K of income, reverting to \\$10K in 2030. Penn Wharton's ~\\$1.17T prices the same repeal against a permanent \\$10K cap, and ~\\$197B against a baseline where the cap expires.",
         "is_tcja": False,
         "is_corporate": False,
         "is_expenditure": True,
