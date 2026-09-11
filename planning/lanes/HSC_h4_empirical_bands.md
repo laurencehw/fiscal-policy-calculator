@@ -288,6 +288,7 @@ the plan's §2 says the same thing one tier up.
 | 4.4 | No band where no row | **pass** on all ten named modules, plus a live-object test on the four whose `policy_type` misdescribes them |
 | 4.5 | Every `Policy` subclass routed or excluded with a reason | **pass**, enforced by a walking-subclass test |
 | 4.6 | §3.1 and §3.2 reproduced | **pass**, to the dollar |
+| — | Full suite | **3952 passed, 7 skipped** (`ANTHROPIC_API_KEY= python -m pytest tests/ -q`), from 3924 + 7 on `main`; `ruff check` on CI's scope clean; `check_streamlit_boot.py` passes |
 | §5 | No second scorecard materialisation | **pass, measured**: `cached_default_scorecard` costs **5.91 s** cold and reports `hits=2, misses=1`; `tier1_class_bands()` costs **0.0104 s** on top of it and `own_row_for()` **0.147 s**. The band and the row both read the one cache the Validation tab and the API endpoint already share |
 
 ### 6.2 What the two old bands actually were — the measurement, not the claim
@@ -346,7 +347,16 @@ Pricing*, which drew a ±14.7% band and a −\$918.9B to −\$683.1B range while
 6. **The tier chip above the headline had to learn `None`.** `accuracy_pct` was
    `float(... or 0.0)`, so a policy with no measured accuracy would have printed **"± 0.0%"** — which
    reads as perfect. It is `None` now, and the chip omits the figure.
-7. **Two shipped surfaces already carried a collapsed accuracy claim, and both figures were stale.**
+7. **A FastAPI response model is a second schema, and it fails as a 400 on a live endpoint.**
+   `ResultCredibility` is a dataclass, serialised by `asdict` — so changing its fields is a Python
+   change nothing type-checks. But `api.py` declares `ResultCredibilityModel` as the response model
+   for `/score`, and Pydantic rejected the new dict: **12 tests failed, every one of them
+   `assert 400 == 200`** on `/score` and the API-security suite, and none of them mentioned
+   credibility. A suite run after the dataclass change and before the schema change is the only
+   reason it was caught here rather than in production. The same is true one level down —
+   `ask_assistant` read `n_benchmarks` off the object and would have quietly reported `None` into the
+   assistant's own context, with no test failing at all.
+8. **Two shipped surfaces already carried a collapsed accuracy claim, and both figures were stale.**
    The "How is this scored?" panel (`ui/app_controller.py`) forbids collapsing the tiers into one
    "validated within X%" claim **four lines after doing it twice** — "(\~5% mean error)" for the
    calibrated tier and "\~8% mean error" for out-of-sample — against live readings of **1.5% over 16**
