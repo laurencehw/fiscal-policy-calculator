@@ -337,3 +337,229 @@ reduced form, which returns 2.5× less than FF861's estimate; wiring the tariff
 impulse into `EconomicModel` so `score_policy(dynamic=True)` reads it (that
 needs a hook in `economics.py`, outside this lane's files); and the Annex II
 exemption list below HS-4.
+
+---
+
+## 6. Outturn
+
+Measured on `3187d49`, against `2d13e60`. Every figure below is a re-run, not a
+restatement of §3.
+
+### 6.1 The five rows
+
+| Row | Target $B | Before | After | Error before → after | Registered |
+|---|---:|---:|---:|---:|---:|
+| `trump_universal_10` | −2,171.1 | −1,258.5 | **−1,369.8** | 42.03% → **36.91%** | 36.90% |
+| `trump_china_60` | −650.0 | −278.4 | **−331.1** | 57.17% → **49.06%** | 49.06% |
+| `auto_tariff_25` | −386.2 | −182.2 | **−203.9** | 52.81% → **47.20%** | 47.20% |
+| `steel_tariff_25` | −60.0 | −52.9 | **−105.2** | 11.89% → **75.28%** | 75.5% |
+| `reciprocal_tariffs` | −1,500.0 | −1,396.8 | **−1,642.0** | 6.88% → **9.47%** | 9.39% |
+
+**The hand arithmetic held on all five.** Three rows land to the second
+decimal, because the retaliation term is the only thing that moved them and it
+was already measured. `steel_tariff_25` lands 0.2 points below its registration
+(the CSV carries HS 73 at $49.5B and 5.63% where Census reads $49.529B and
+5.629%); `reciprocal_tariffs` 0.08 points above, because §3.3's hand sum used
+all 230 partners where the shipped CSV folds 134 of them — $5.5B, 0.33% of the
+covered base — into one remainder row at their own weighted rate.
+
+### 6.2 Decomposition, per year
+
+| Row | base | Δτ | V | gross | avoid | offset | **conventional** | n/g |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| universal | 2,349.0 | 0.1000 | 0.9003 | 192.26 | 9.61 | 45.66 | **136.98** | 0.7125 |
+| china | 440.3 | 0.4907 | 0.3206 | 46.47 | 2.32 | 11.04 | **33.11** | 0.7125 |
+| auto | 198.5 | 0.2301 | 0.7706 | 28.62 | 1.43 | 6.80 | **20.39** | 0.7125 |
+| steel | 108.4 | 0.2077\* | 0.7930\* | 14.76 | 0.74 | 3.51 | **10.52** | 0.7125 |
+| reciprocal | 1,679.2 | 0.2767\* | 0.6939\* | 230.45 | 11.52 | 54.73 | **164.20** | 0.7125 |
+
+\* base-weighted averages across a schedule; the score sums row by row.
+
+The identity is the point: **0.7125 for every tariff, in either direction**,
+where it used to run 0.599 to 0.655 and the variation *was* the retaliation
+term. Against FF861's implied 0.738 the gap is the module's 5% avoidance
+haircut, which FF861 books inside its base as an 8% noncompliance rate.
+
+### 6.3 The channels that are reported and not scored, over ten years
+
+| Row | pre-response gross | conventional | GDP feedback | retaliation | dynamic | dyn + retal | drag as % of conventional |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| universal | 2,135.5 | 1,369.8 | **223.5** | 111.4 | 1,146.4 | **1,035.0** | 16.3% |
+| china | 1,449.4 | 331.1 | 68.2 | 52.7 | 262.9 | 210.2 | 20.6% |
+| auto | 371.4 | 203.9 | 34.1 | 21.7 | 169.8 | 148.2 | 16.7% |
+| steel | 186.3 | 105.2 | 17.1 | 10.7 | 88.1 | 77.4 | 16.3% |
+| reciprocal | 3,546.2 | 1,642.0 | 327.4 | 220.3 | 1,314.6 | 1,094.3 | 19.9% |
+
+**The cross-checks, none of them fitted to.**
+
+| Check | Published | This module | Source |
+|---|---:|---:|---|
+| Conventional net/gross, post-demand-response | 0.738 | **0.7125** | FF861 Table 2, Table 3, p. 4 |
+| GDP drag as a share of the conventional score | 20.7% | **16.3%** | FF861 $2,171.1B → $1,721.0B |
+| Retaliation revenue loss, 10% universal | $278B | **$111.4B** | FF861 p. 2 |
+| Dyn-with-retaliation ÷ **pre-response** gross | 0.40–0.50 | **0.485** | `tariff_scoring_methodology.md` |
+
+The last row is the plan's own cross-check and it lands inside the band, on the
+denominator the snapshot actually uses. **Only the universal row is comparable
+to it** and the table says why: the band is quoted for a 10% universal tariff,
+and the other four sit below it (0.145 to 0.415) because a 21-to-49pp rate
+destroys far more of the pre-response base. Reporting the universal row's 0.485
+as though it were the module's number would be the mistake the denominator
+finding is about.
+
+### 6.4 The tiers — §4's falsification test, passed
+
+| Aggregate | Before | After |
+|---|---|---|
+| **Out-of-sample (Tier 1)** | 26 @ 14.7%, 15/26 ≤15%, 23/26 ≤25% | **byte-identical** |
+| **Leave-one-out `--donor-matrix`** | 18 @ 35.7% | **byte-identical, 0 diff lines** |
+| **Fitted calibrated** | 16 @ 1.5%, median 0.1% | **identical, entry for entry** |
+| Reconstruction tier | 39 @ 55.5%, median 29.9%, 11/39 ≤15% | **39 @ 56.7%, median 36.9%, 10/39** |
+| **Trade sub-population** | 5 @ 34.2%, median 42.0%, 2/5 | **5 @ 43.6%, median 47.2%, 1/5** |
+| Distributional | 7 @ 0.00–5.86pp | unchanged |
+
+`diff` on the whole validation dashboard is **two lines** — the reconstruction
+summary and the Trade row — and `cold_holdout.py --json` differs only in the
+five trade entries and the reconstruction summary they roll up into. Both CI
+gates pass unchanged (`--max-mean-error 20 --min-within-25pct 22`, and the
+eight-class floor), `build_validation_headline.py --check` passes, and
+`check_readiness.py --strict` reports **0 fail** with the same five warnings
+`main` carries, none of them a trade row: `steel_tariff_25` crossing into Poor
+is not strict-blocking because it is `calibrated_to_target=False`, and it
+carries the `known_limitations` note the gate requires.
+
+**The Trade mean is registered as worse and it is worse.** On the **four rows
+that have a document** it improves **39.72% → 35.66%** (registered 35.64%);
+`steel_tariff_25` alone carries 11.89% → 75.28%, against a target that is
+untraceable and has been examined-and-left twice. Quoting 43.6% without that
+split hides the only thing the lane did to the rows.
+
+**`reciprocal_tariffs` moved into its published range while its point error
+grew**, exactly as registered. `within_published_range` **False → True** and
+`distance_to_published_range_billions` **3.2 → 0.0** against
+[−$1,800B, −$1,400B]; the 9.47% is a distance from Tax Foundation's $1.5T
+anchor, one of three conventional estimates 29% apart. Both readings are
+correct and the row now carries both.
+
+### 6.5 The reciprocal reconstruction against Annex I
+
+The load-bearing check, run before the schedule was used for anything. Sixteen
+published rates, sixteen reconstructions, **maximum miss 0.80pp**, and every
+residual the same sign because Annex I rounds up:
+
+| Partner | Published | Reconstructed | Δ | Partner | Published | Reconstructed | Δ |
+|---|---:|---:|---:|---|---:|---:|---:|
+| China | 0.34 | 0.3373 | −0.0027 | Malaysia | 0.24 | 0.2347 | −0.0053 |
+| Vietnam | 0.46 | 0.4521 | −0.0079 | Indonesia | 0.32 | 0.3175 | −0.0025 |
+| Taiwan | 0.32 | 0.3173 | −0.0027 | Cambodia | 0.49 | 0.4874 | −0.0026 |
+| Japan | 0.24 | 0.2320 | −0.0080 | Bangladesh | 0.37 | 0.3641 | −0.0059 |
+| Korea | 0.25 | 0.2498 | −0.0002 | Philippines | 0.17 | 0.1734 | +0.0034 |
+| India | 0.26 | 0.2618 | +0.0018 | United Kingdom | 0.10 | 0.1000 | 0 |
+| Thailand | 0.36 | 0.3578 | −0.0022 | Brazil | 0.10 | 0.1000 | 0 |
+| Switzerland | 0.31 | 0.3035 | −0.0065 | Australia | 0.10 | 0.1000 | 0 |
+
+The EU as a bloc reads **0.1951** against a published 0.20. And the schedule's
+own consistency check: its 230 partners' goods imports sum to **$2,349.0B**,
+the non-USMCA base `create_trump_universal_10` already used — two measurements
+read from the same Census series two different ways, agreeing to the decimal.
+
+### 6.6 Presets moved — Decision 6
+
+| Preset (stable id) | Official (unchanged) | Before | After | Move |
+|---|---:|---:|---:|---:|
+| `tariff-universal-10pct` | −$2,171.1B | −$1,258.5B | **−$1,369.8B** | +8.9% |
+| `tariff-china-60pct` | −$650.0B | −$278.4B | **−$331.1B** | +18.9% |
+| `tariff-auto-25pct` | −$386.2B | −$182.2B | **−$203.9B** | +11.9% |
+| `tariff-steel-aluminum-25pct` | −$60.0B | −$52.9B | **−$105.2B** | +98.9% |
+| `tariff-reciprocal` | −$1,500.0B | −$1,396.8B | **−$1,642.0B** | +17.6% |
+
+**The other 44 presets score to the cent what they scored before**, in both
+static and dynamic modes — 10 of 98 preset × mode rows moved and all 10 are
+these five. No preset label and no `CBO_SCORE_MAP` figure changed.
+
+The caption is `tariff_net_caption` in `results_summary.py`, L8's own function
+from PR #99, edited in place rather than added beside — one function, no new
+call line, and H4's band code untouched. It now reads, computed from the scored
+result so it cannot drift from it:
+
+> Net of offsets: \$1,922.6B of gross customs duty becomes \$1,369.8B of
+> conventional receipts — a 0.71 net/gross ratio — after duty avoidance and the
+> 25% income-and-payroll offset CBO, JCT and Treasury apply to any indirect
+> tax. Import demand responds to the whole tariff (near-complete border
+> pass-through). A dynamic estimate would take it further: \$223.5B of receipts
+> lost as output falls and \$111.4B lost to retaliation, leaving \$1,035.0B.
+> Published estimators report those as separate columns and so does this app —
+> neither is in the headline.
+
+### 6.7 Findings
+
+1. **The plan's residual cause for rows 6 and 6b was backwards, and §0 said so
+   before a file was opened.** A GDP-feedback drag moves every trade row
+   further from a conventional target. The mechanism that moved them toward
+   their targets is a *convention* correction the plan did not name.
+2. **The 0.60–0.66 against 40–50% comparison was a denominator mismatch.** The
+   module divides by gross after the demand response; the knowledge snapshot
+   divides by gross before it. On the snapshot's denominator the module already
+   read 0.589 rather than 0.65, and the missing channel was worth about a tenth
+   of what the gap implied.
+3. **The repository already knew retaliation was not a conventional channel and
+   scored with it on anyway.** `tariff_scoring_methodology.md` tells the Ask
+   assistant that `include_retaliation=False` "gives a strictly conventional
+   (no-retaliation) score", and the five validation scenarios and five presets
+   all ran with it `True` against conventional targets.
+4. **"Including HS 73 would roughly triple the base" is wrong in three places.**
+   $58.9B → $108.4B is **1.84×**. The claim sits in `scenarios.py`, the
+   transcription CSV and §1.2 row 6b of the plan; the first two are corrected
+   here.
+5. **`steel_tariff_25`'s 11.9% was a base missing most of what the statute
+   reaches, meeting a target nobody can source.** The floor base returns
+   −$59.0B and 1.7%; the ceiling returns −$105.2B and 75.3%. Neither end is the
+   policy, and the row cannot be read as accuracy in either direction.
+6. **The reciprocal row got worse against its anchor and better against its
+   range**, and only the second of those is a statement about the model:
+   −$1,396.8B was $3.2B outside [−$1,800B, −$1,400B] and −$1,642.0B is inside
+   it.
+7. **A crowding-out sign infelicity in `FRBUSAdapterLite`, found by feeding it a
+   revenue-raiser.** `gdp_change[t] *= (1 - crowding_effect)` with a
+   deficit-*reducing* policy gives a factor above 1 applied to a negative GDP
+   change, so lower debt makes the drag **larger** rather than smaller. It
+   magnifies this lane's universal-tariff GDP channel by about 12% over the
+   window. Pre-existing, affects every revenue-raiser run through the adapter,
+   and outside this lane's files — carried over rather than fixed, because a
+   fix would move the dynamic tab for policies this lane never looked at.
+8. **The generic dynamic path feeds the adapter the wrong shock for a tariff**
+   and still does on `score_policy(dynamic=True)`. `policy_to_scenario` now
+   reads `macro_demand_impulse()`, but `EconomicModel` — which is what
+   `dynamic=True` actually calls — reads `deficit_after_behavioral`, 68%
+   smaller. Wiring it needs a hook in `economics.py`, outside this lane's files.
+
+### 6.8 Deviations from §2
+
+Two files outside the declared list were touched, both for prose that had
+become false in the commit before, neither carrying a target, a range, a
+provenance kind or a ledger entry:
+
+- `fiscal_model/assistant/knowledge/tariff_scoring_methodology.md` and
+  `yale_budget_lab_tariffs.md` — the "How this maps to the app" sections said
+  the module nets retaliation into the score and lands at "60-65% of gross".
+- `fiscal_model/validation/benchmark_sources.py` — **one sentence** of the
+  reciprocal row's `sourcing_note`, which asserted that the module applies a
+  flat ~20pp to half of goods imports where the publishers apply
+  partner-specific rates. §2 promised this file would not be touched; leaving a
+  shipped provenance note asserting something the previous commit made false
+  was the worse of the two.
+
+### 6.9 Carry-overs
+
+- The crowding-out sign in `FRBUSAdapterLite` (finding 7).
+- `EconomicModel` reading the tariff impulse (finding 8).
+- The Section 232 derivative annex at HS-10, and a steel-content share, which
+  would replace the bracket in §1.4 with a number.
+- The Annex II exemption list below HS-4 — semiconductors and bullion are
+  resolved at HS-4 here, critical minerals are not resolved at all.
+- The retaliation channel is still a reduced form returning 2.5× less than
+  FF861's own estimate for the same policy.
+- `min_volume_factor = 0.20` is still an unsourced constant, and the reciprocal
+  schedule's top rates (48.7%) come closer to it than any shipped case did.
+- The auto, steel and reciprocal targets remain untraceable or a range;
+  provenance work, and H9 has just been over this block.
