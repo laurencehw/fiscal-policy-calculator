@@ -68,6 +68,26 @@ percentile: below it the index comes back below one and the median it implies is
 twice the Survey of Consumer Finances' published figure, so those two groups
 keep the group mean they always had.  The **level** is untouched - it is still
 Poterba & Weisbenner's flow - and only the shape changes.
+
+**How many decedents there are.**  Until Wave C the count was
+``households x estate_flow_rate``, and ``estate_flow_rate`` is dollars over
+dollars: Poterba & Weisbenner's $118.9 billion of expected estates over DFA
+household net worth.  Used as a headcount rate it gave 408,532 decedents a year
+against roughly 3.09 million NCHS deaths - and, more sharply, it meant this
+module carried **two death rates 8.3x apart**, because
+:meth:`CapitalGainsBaseline.death_exit_rate` already returns the NCHS-weighted
+2.65 percent and ``policies_core`` already prices the lock-in wedge and the
+accrued-gains stock's drift with it.  The count is now that same rate.  It is a
+rate on *wealth*, and the reason it is also the right rate on *heads* is the
+module's own gains distribution: :meth:`_decedent_template` spreads gains at
+death in proportion to ``households x wealth x gain share``, which asserts that
+dollars die at a uniform rate across the wealth distribution, and given that
+assertion the headcount rate in a slice is the dollar rate.  Grading the rate by
+estate size was measured and refused: the wealthy are older and so die at a
+*higher* rate, so a size-graded rate raises the top rather than lowering it
+(``size_graded_tail_mortality_rate``, 2.84 percent, against
+``crude_adult_mortality_rate``, 1.65 percent).  See
+``planning/lanes/HSC_h5_decedent_headcount.md`` SS1.3.
 """
 
 from __future__ import annotations
@@ -576,6 +596,15 @@ class CapitalGainsBaseline:
         net worth by age of reference person - not the crude death rate.  The
         accrued-gain share cancels between numerator and denominator, so the
         same figure prices the stock's death exit and the wealth's.
+
+        Since Wave C it also prices the **decedent count** in
+        :meth:`_decedent_template`, which is what makes this module's two death
+        rates one death rate.  The parameter file carries two CHECK-ONLY
+        companions that say what the alternatives would be and are read by
+        nothing: ``crude_adult_mortality_rate`` (the same life table weighted by
+        heads rather than dollars) and ``size_graded_tail_mortality_rate`` (the
+        rate at the top of the wealth distribution once the age bands' own mean
+        wealth is taken into account).
         """
         return self._parameters["mortality_weighted_net_worth_share"]
 
@@ -701,11 +730,17 @@ class CapitalGainsBaseline:
         Weisbenner's and SOI's step functions are read at each slice's own estate
         size instead of at five group means.
 
-        Decedent counts still apply one uniform death rate across the wealth
-        distribution - Poterba & Weisbenner's *dollar* flow of estates over net
-        worth, used as a headcount rate.  That is the coarsest thing left in the
-        channel and it is not this method's to fix: see
-        ``planning/lanes/W7_decedent_ladder.md`` §7.
+        What changed in Wave C is the **count**.  Decedents are
+        ``households x population share x`` :meth:`death_exit_rate`, an NCHS
+        life-table rate, rather than Poterba & Weisbenner's dollar flow of
+        estates used as a headcount rate; 3.38 million a year against roughly
+        3.09 million NCHS deaths, where the old figure was 408,532.  The rate is
+        still uniform across the wealth distribution, and that is now a
+        *measured* choice rather than an unexamined one: a rate graded by estate
+        size runs the other way from the correction it was expected to make.
+        The **level** is still untouched - the count enters only as a divisor of
+        the same flow, so the sum over slices is
+        :meth:`gains_at_death_billions` whatever the count is.
         """
         total_gains = self.gains_at_death_billions(year)
         count = int(slices_per_region or self.DECEDENT_SLICES_PER_REGION)
@@ -747,7 +782,9 @@ class CapitalGainsBaseline:
             return cached
 
         households = self._parameters["households_millions"] * 1e6
-        flow_rate = self._parameters["estate_flow_rate"]
+        # An NCHS life-table death rate, not Poterba & Weisbenner's dollar flow
+        # of estates.  See death_exit_rate and the module docstring.
+        death_rate = self.death_exit_rate()
         schedule = self.decedent_size_slices(count)
         weights = [
             share * households * mean * self.unrealized_gain_share_at(mean)
@@ -761,7 +798,7 @@ class CapitalGainsBaseline:
             template.append(
                 (
                     group,
-                    households * share * flow_rate,
+                    households * share * death_rate,
                     weight / total_weight if total_weight > 0 else 0.0,
                     shares.get("residence_gain_share", 0.0),
                     shares.get("active_business_gain_share", 0.0),

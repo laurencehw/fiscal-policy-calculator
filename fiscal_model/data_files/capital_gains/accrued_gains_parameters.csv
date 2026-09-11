@@ -5,16 +5,26 @@
 # 2022 life table against Federal Reserve DFA net worth by age, and the
 # realization elasticities from Dowd, McClelland & Muthitacharoen (2015)
 # with the reference rate CRS R48562 states they are adjusted to.
+#
+# mortality_weighted_net_worth_share prices three things: the stock's
+# death exit, the lock-in wedge, and -- since Wave C -- the decedent
+# COUNT, which until then divided households by estate_flow_rate, a
+# flow of estate dollars over wealth dollars.  The two rows after it
+# are CHECK ONLY and are read by nothing: they say what a
+# headcount-weighted rate and a size-graded rate would be, and the
+# second is why the count is not graded by estate size.
 # Regenerate with: python scripts/build_capital_gains_data.py
 key,value,source
 household_net_worth_anchor_millions_usd,161238775.0,"Federal Reserve DFA (Z.1), 2024:Q4"
 household_net_worth_anchor_year,2024.0,"Federal Reserve DFA (Z.1), 2024:Q4"
 household_net_worth_growth_rate,0.05801476904492042,"Federal Reserve DFA (Z.1), compound annual growth 1998:Q4 to 2024:Q4"
 households_millions,127.8583027362738,Federal Reserve DFA (Z.1) 2022:Q4 aggregate divided by SCF 2022 Table 4 mean family net worth
-estate_flow_rate,0.003195194856902567,"Poterba & Weisbenner (2001) Table 8 expected estates $118.9B over Federal Reserve DFA household net worth, 1998:Q4"
+estate_flow_rate,0.003195194856902567,"Poterba & Weisbenner (2001) Table 8 expected estates $118.9B over Federal Reserve DFA household net worth, 1998:Q4. DOLLARS OVER DOLLARS: this is the flow of estate VALUE, and it is read only as the provenance of gains_at_death_share_of_net_worth (that row is this one times gain_share_of_estates). It was also used as a HEADCOUNT rate until Wave C, which gave 408,532 decedents a year against roughly 3.09 million NCHS deaths; the count now uses mortality_weighted_net_worth_share"
 gains_at_death_share_of_net_worth,0.001150162656647854,"Poterba & Weisbenner (2001) Table 8 expected unrealized gains at death $42.8B over DFA household net worth, 1998:Q4"
 gain_share_of_estates,0.36,Poterba & Weisbenner (2001) Table 8
 mortality_weighted_net_worth_share,0.02646831735981903,"NCHS United States Life Tables 2022 (NVSR 74-02) Table 1 against Federal Reserve DFA net worth by age of head, 2024:Q4"
+crude_adult_mortality_rate,0.01645579795805917,"NCHS United States Life Tables 2022 (NVSR 74-02) Table 1, the same band rates weighted by the stationary population aged 18+ (Lx) instead of by DFA net worth. CHECK ONLY - it is what the decedent count would be if the wealthy died at the population's own rate, and the gap to mortality_weighted_net_worth_share is the wealth-mortality gradient"
+size_graded_tail_mortality_rate,0.028399775327831316,"NCHS band rates at the top of the wealth distribution: age-band shares proportional to (adult population share) x (band mean net worth / average)^alpha, with alpha the fitted Pareto index of the top segment in decedent_size_distribution.csv. CHECK ONLY - it is the measurement that REFUSES a size-graded decedent count, because it exceeds mortality_weighted_net_worth_share: the wealthy are older and so die at a higher rate, so grading raises the top count rather than lowering it"
 accrued_gain_share_of_net_worth,0.3093238650132389,"Avery, Grodzicki & Moore (FEDS 2013-28) Figure 1 evaluated on Federal Reserve DFA net worth by percentile group, 2024:Q4"
 persistent_elasticity,0.72,"Dowd, McClelland & Muthitacharoen (2015), NTJ 68(3)"
 transitory_elasticity,1.2,"Dowd, McClelland & Muthitacharoen (2015), NTJ 68(3)"
