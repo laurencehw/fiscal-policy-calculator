@@ -191,6 +191,29 @@ def test_the_caption_is_silent_where_nothing_moved():
     assert corporate_mode_flip_caption(policy, result) == ""
 
 
+def test_the_caption_is_silent_rather_than_guessing_without_a_profits_base():
+    """``reported`` falls back to ``baseline_revenue / rate`` when the profits
+    aggregate is zero, and that level lives on the scorer this caption does not
+    hold. A caption carrying a figure it guessed is worse than no caption.
+    """
+    from fiscal_model.corporate import CorporateTaxPolicy
+    from fiscal_model.policies import PolicyType
+
+    scorer = FiscalPolicyScorer(start_year=2026, use_real_data=True)
+    policy = CorporateTaxPolicy(
+        name="no profits base",
+        description="+7pp with the aggregate zeroed",
+        policy_type=PolicyType.CORPORATE_TAX,
+        rate_change=0.07,
+        baseline_profits_billions=0.0,
+        mode=CORPORATE_MODE_DERIVED,
+        start_year=2026,
+    )
+    result = scorer.score_policy(policy, dynamic=False)
+    assert reported_mode_total_billions(policy, 10) == 0.0
+    assert corporate_mode_flip_caption(policy, result) == ""
+
+
 def test_the_caption_is_silent_for_a_reported_run():
     """Someone comparing modes deliberately is not being told the default moved."""
     scorer = FiscalPolicyScorer(start_year=2026, use_real_data=True)

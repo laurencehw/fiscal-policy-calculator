@@ -614,7 +614,17 @@ def credit_absorption_bounds(tax_year: int | None = None) -> dict[str, float]:
     gbc_stock = credit_carryforward_item(
         "form_3800_part_i_line_4_carryforward_to_2022"
     ) + credit_carryforward_item("form_3800_part_ii_line_34_carryforward_to_2022")
-    gbc_claimed = float(soi_row(tax_year)["general_business_credit_thousands"]) / 1e6
+    # SOI suppresses this cell in some years (TY2021 is blank on the transcribed
+    # file), and a blank must raise rather than become a zero that silently makes
+    # the stock look infinitely large in years-of-claims.
+    claimed_cell = soi_row(tax_year)["general_business_credit_thousands"]
+    if not claimed_cell:
+        raise KeyError(
+            "SOI Table 11 publishes no general business credit for tax year "
+            f"{latest_soi_tax_year() if tax_year is None else tax_year}; "
+            "the section 38(c) bound cannot be measured on it"
+        )
+    gbc_claimed = float(claimed_cell) / 1e6
 
     return {
         "average_substitution_in_use": 1.0 - credit_realization_ratio(tax_year),

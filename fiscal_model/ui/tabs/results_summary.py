@@ -1897,6 +1897,12 @@ def reported_mode_total_billions(policy: Any, window_years: int) -> float:
     from fiscal_model.corporate import CORPORATE_BASE_GROWTH, CORPORATE_MODE_REPORTED
 
     previous = replace(policy, mode=CORPORATE_MODE_REPORTED)
+    if previous.baseline_profits_billions <= 0:
+        # ``reported`` would fall back to ``baseline_revenue / rate``, which is a
+        # level off the scorer this function does not have. Rather than
+        # reconstruct it from a zero, return 0.0 and let the caption stay silent:
+        # a caption carrying a figure it guessed is worse than no caption.
+        return 0.0
     static_annual = previous.estimate_static_revenue_effect(0.0, use_real_data=True)
     total = 0.0
     for offset_years in range(window_years):

@@ -289,6 +289,17 @@ def test_the_residual_is_labelled_a_residual():
     )
 
 
+def test_a_suppressed_credit_cell_raises_rather_than_reading_as_zero():
+    """SOI leaves TY2021's general business credit blank.
+
+    A blank that became 0.0 would make ``section_38c_stock_in_years_of_claims``
+    infinite and the bound meaningless — the kind of defect that reads as a
+    finding right up until someone checks the input.
+    """
+    with pytest.raises(KeyError, match="no general business credit"):
+        credit_absorption_bounds(2021)
+
+
 def test_the_statutory_base_is_unchanged_by_this_lane():
     """Nothing here may move the quantity every corporate score reads."""
     assert statutory_base_billions(2022) == pytest.approx(2879.100959, abs=1e-4)
