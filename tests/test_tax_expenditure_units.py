@@ -34,6 +34,7 @@ from fiscal_model.tax_expenditures import (
     EXPENDITURE_MODE_REPORTED,
     JCT_TAX_EXPENDITURES,
     CapUnit,
+    SaltCapBaseline,
     ExpenditureDistributionMissing,
     TaxExpenditurePolicy,
     TaxExpenditureType,
@@ -244,16 +245,21 @@ def test_cap_without_a_base_distribution_raises_instead_of_guessing():
 
 def test_eliminate_prices_the_level_in_force_over_the_window():
     """
-    The `eliminate_salt` half of the lane.
+    The `eliminate_salt` half of the lane, on the baseline it is asked about.
 
-    The $10,000 cap expires after 2025 (IRC 164(b)(6)), so a window beginning
-    in 2026 prices the unlimited deduction. A window beginning in 2021 -- ten
-    years, all of them capped -- prices the limited one.
+    Superseded in part by ``planning/lanes/SALT_current_law_baseline.md``: the
+    SALT reforms now read a statutory cap **path** rather than a window-average
+    of two constants, so the level in force is a question about a year and a
+    baseline rather than about how much of the window a limitation covers. On
+    CBO Option 49's own lapsed-cap baseline the answer is unchanged -- the
+    uncapped deduction -- which is why that benchmark did not move.
     """
     record = JCT_TAX_EXPENDITURES["salt"]
 
     uncapped_window = create_eliminate_salt_deduction(
-        start_year=2026, mode=EXPENDITURE_MODE_DERIVED
+        start_year=2026,
+        mode=EXPENDITURE_MODE_DERIVED,
+        salt_baseline=SaltCapBaseline.LAPSED_CAP,
     )
     uncapped_window.annual_revenue_change_billions = None
     assert uncapped_window.estimate_static_revenue_effect(0.0) == pytest.approx(
@@ -261,23 +267,35 @@ def test_eliminate_prices_the_level_in_force_over_the_window():
     )
 
     capped_window = create_eliminate_salt_deduction(
-        start_year=2021, duration_years=5, mode=EXPENDITURE_MODE_DERIVED
+        start_year=2021,
+        duration_years=5,
+        mode=EXPENDITURE_MODE_DERIVED,
+        salt_baseline=SaltCapBaseline.LAPSED_CAP,
     )
     capped_window.annual_revenue_change_billions = None
     assert capped_window.estimate_static_revenue_effect(0.0) == pytest.approx(
-        record["annual_cost"]
+        record["annual_cost"], rel=2e-3
     )
 
 
-def test_a_window_straddling_the_expiry_is_averaged():
-    """Four capped years then six uncapped, weighted by year count."""
+def test_the_window_average_rule_still_answers_for_a_limitation_record():
+    """
+    The rule lane L6 built is kept and still tested, because it is general.
+
+    SALT no longer routes through it -- a cap path answers year by year, which
+    is what P.L. 119-21 sec. 70120 needs and a window average cannot express --
+    but ``benefit_level_billions`` is the rule for *any* expenditure carrying a
+    statutory limitation with an expiry, and deleting it because its only
+    current caller stopped using it would throw away the general case to tidy
+    up the specific one.
+    """
     policy = create_eliminate_salt_deduction(
         start_year=2022, duration_years=10, mode=EXPENDITURE_MODE_DERIVED
     )
-    policy.annual_revenue_change_billions = None
     record = JCT_TAX_EXPENDITURES["salt"]
     expected = 0.4 * record["annual_cost"] + 0.6 * record["annual_cost_no_cap"]
-    assert policy.estimate_static_revenue_effect(0.0) == pytest.approx(expected)
+    assert policy.benefit_level_billions(record) == pytest.approx(expected)
+    assert policy.limitation_years_in_window(record) == 4
 
 
 def test_eliminate_without_a_limitation_is_unchanged():
@@ -302,11 +320,16 @@ def test_repealing_a_limitation_costs_the_limitations_own_value():
     `expand` is driven by the limitation record, not by an expenditure-type
     special case as it was before.
     """
-    policy = create_repeal_salt_cap(mode=EXPENDITURE_MODE_DERIVED)
+    policy = create_repeal_salt_cap(
+        mode=EXPENDITURE_MODE_DERIVED, salt_baseline=SaltCapBaseline.PERMANENT_10K
+    )
     policy.annual_revenue_change_billions = None
     record = JCT_TAX_EXPENDITURES["salt"]
+    # The capped leg is now the SOI column the record's own constant agrees
+    # with to 0.1% rather than the constant itself, so the tolerance is that
+    # documented agreement and not a slack one.
     assert policy.estimate_static_revenue_effect(0.0) == pytest.approx(
-        -(record["annual_cost_no_cap"] - record["annual_cost"])
+        -(record["annual_cost_no_cap"] - record["annual_cost"]), rel=1e-3
     )
 
 
@@ -332,18 +355,34 @@ def test_app_mode_is_reported_so_no_shipped_number_moves():
 
 
 @pytest.mark.parametrize(
-    ("factory", "fitted"),
+    ("factory", "fitted", "kwargs"),
     [
-        (create_cap_employer_health_exclusion, 31.2),
-        (create_eliminate_mortgage_deduction, 26.2),
-        (create_repeal_salt_cap, -96.0),
-        (create_eliminate_salt_deduction, 104.7),
-        (create_cap_charitable_deduction, 12.5),
-        (create_cap_retirement_contributions, 13.1),
+        (create_cap_employer_health_exclusion, 31.2, {}),
+        (create_eliminate_mortgage_deduction, 26.2, {}),
+        (
+            create_repeal_salt_cap,
+            -96.0,
+            {"salt_baseline": SaltCapBaseline.PERMANENT_10K},
+        ),
+        (
+            create_eliminate_salt_deduction,
+            104.7,
+            {"salt_baseline": SaltCapBaseline.LAPSED_CAP},
+        ),
+        (create_cap_charitable_deduction, 12.5, {}),
+        (create_cap_retirement_contributions, 13.1, {}),
     ],
 )
-def test_reported_mode_returns_the_fitted_constant(factory, fitted):
-    assert factory().estimate_static_revenue_effect(0.0) == pytest.approx(fitted)
+def test_reported_mode_returns_the_fitted_constant(factory, fitted, kwargs):
+    """A fitted constant short-circuits `reported` -- on the baseline it fits.
+
+    The two SALT factories carry the baseline explicitly, because -96.0/yr is
+    the cost of repealing a *permanent* $10,000 cap and 104.7/yr the value of
+    an *uncapped* deduction. Asking either of them the current-law question
+    returns the structural path instead, which is the next test.
+    """
+    policy = factory(**kwargs)
+    assert policy.estimate_static_revenue_effect(0.0) == pytest.approx(fitted)
 
 
 def test_derived_mode_ignores_the_fitted_constant():

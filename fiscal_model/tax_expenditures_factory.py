@@ -13,6 +13,7 @@ from .policies import PolicyType
 from .tax_expenditures_core import (
     EXPENDITURE_APP_MODE,
     CapUnit,
+    SaltCapBaseline,
     TaxExpenditurePolicy,
     TaxExpenditureType,
 )
@@ -71,20 +72,58 @@ def create_eliminate_mortgage_deduction(
     )
 
 
+#: The baseline each SALT factory's fitted annual was fitted **on**.
+#:
+#: A fitted constant is an answer to a question, and a SALT question is not
+#: complete without a baseline: -96.0/yr is the cost of repealing a *permanent*
+#: $10,000 cap (PWBM's extended-TCJA baseline) and 104.7/yr is the value of an
+#: *uncapped* deduction (CBO Option 49's lapsed-cap baseline). Neither is the
+#: current-law answer to its own reform, because under P.L. 119-21 sec. 70120
+#: the live cap is $40,404 in 2026 and $10,000 only from 2030.
+#:
+#: So a factory hands its constant over only when the caller asks for the
+#: baseline it was fitted on. On any other baseline it passes ``None`` and the
+#: existing ``reported`` branch falls through to the structural cap path -- no
+#: new mode, no second constant, and nothing retuned.
+SALT_FITTED_BASELINES: dict[str, SaltCapBaseline] = {
+    "repeal_salt_cap": SaltCapBaseline.PERMANENT_10K,
+    "eliminate_salt": SaltCapBaseline.LAPSED_CAP,
+}
+
+
+def _fitted_annual_on(
+    reform: str, salt_baseline: SaltCapBaseline, annual: float
+) -> float | None:
+    """``annual`` if this is the baseline it was fitted on, else ``None``."""
+    return annual if SALT_FITTED_BASELINES[reform] is salt_baseline else None
+
+
 def create_repeal_salt_cap(
     start_year: int = 2026,
     duration_years: int = 10,
     mode: str = EXPENDITURE_APP_MODE,
+    salt_baseline: SaltCapBaseline = SaltCapBaseline.CURRENT_LAW,
 ) -> TaxExpenditurePolicy:
-    """Create policy to repeal the SALT deduction cap."""
+    """
+    Create policy to repeal the SALT deduction cap.
+
+    Priced against ``salt_baseline``, which defaults to **current law**: under
+    P.L. 119-21 sec. 70120 the cap is $40,400 in 2026 rising 1%/yr through
+    2029 and $10,000 only from 2030, so repeal is worth far less than it is
+    against the permanent $10,000 cap PWBM's Table 3 scores it on. The fitted
+    -96.0/yr is that permanent-cap answer and travels only with that baseline.
+    """
     return TaxExpenditurePolicy(
         name="Repeal SALT Cap",
-        description="Remove $10,000 cap on state and local tax deduction",
+        description="Remove the cap on the state and local tax deduction",
         policy_type=PolicyType.TAX_DEDUCTION,
         expenditure_type=TaxExpenditureType.SALT,
         action="expand",
         behavioral_elasticity=0.0,
-        annual_revenue_change_billions=-96.0,
+        annual_revenue_change_billions=_fitted_annual_on(
+            "repeal_salt_cap", salt_baseline, -96.0
+        ),
+        salt_baseline=salt_baseline,
         start_year=start_year,
         duration_years=duration_years,
         mode=mode,
@@ -95,13 +134,18 @@ def create_eliminate_salt_deduction(
     start_year: int = 2026,
     duration_years: int = 10,
     mode: str = EXPENDITURE_APP_MODE,
+    salt_baseline: SaltCapBaseline = SaltCapBaseline.CURRENT_LAW,
 ) -> TaxExpenditurePolicy:
     """
     Create policy to eliminate the SALT deduction entirely.
 
-    Scored over a window beginning in ``start_year``. The $10,000 cap expires
-    after 2025 (IRC 164(b)(6)), so a 2026 window prices the *unlimited*
-    deduction -- which is the baseline CBO's own Option 49 alternative uses.
+    Repeal is worth the deduction that is actually claimed under
+    ``salt_baseline``, which defaults to **current law**. On CBO Option 49's
+    own baseline the $10,000 cap lapsed after 2025 and a 2026 window prices the
+    *unlimited* deduction; under P.L. 119-21 sec. 70120 it prices a deduction
+    capped at $40,400 rising 1%/yr to 2029 and $10,000 thereafter, which is
+    about a third as much. The fitted 104.7/yr is the uncapped answer and
+    travels only with ``LAPSED_CAP``.
     """
     return TaxExpenditurePolicy(
         name="Eliminate SALT Deduction",
@@ -110,7 +154,10 @@ def create_eliminate_salt_deduction(
         expenditure_type=TaxExpenditureType.SALT,
         action="eliminate",
         behavioral_elasticity=0.0,
-        annual_revenue_change_billions=104.7,
+        annual_revenue_change_billions=_fitted_annual_on(
+            "eliminate_salt", salt_baseline, 104.7
+        ),
+        salt_baseline=salt_baseline,
         start_year=start_year,
         duration_years=duration_years,
         mode=mode,

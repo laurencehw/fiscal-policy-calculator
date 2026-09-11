@@ -46,6 +46,7 @@ from ..pharma import (
 )
 from ..ptc import create_extend_enhanced_ptc, create_repeal_ptc
 from ..tax_expenditures import (
+    SaltCapBaseline,
     create_cap_charitable_deduction,
     create_cap_employer_health_exclusion,
     create_eliminate_mortgage_deduction,
@@ -912,6 +913,17 @@ TAX_EXPENDITURE_VALIDATION_SCENARIOS_COMPARE = {
         # -$1,169B over FY2025-2034 against an *extended-TCJA* baseline. The
         # superseded $1,100B was PWBM's FY2024-2033 figure rounded, and the
         # rounding hid the baseline the whole magnitude depends on.
+        # The baseline is now a scoring input rather than an assumption buried
+        # in a fitted constant: `salt_baseline` is declared in
+        # SALT_SCORING_BASELINES above (inert in the commit before this one)
+        # and `tests/test_salt_cap_path.py` asserts the two agree. The target
+        # does not move and neither does the score -- -96.0/yr is the answer to
+        # *this* baseline's question, so the factory still hands it over.
+        "kwargs": {
+            "salt_baseline": SaltCapBaseline(
+                SALT_SCORING_BASELINES["repeal_salt_cap"]["baseline"]
+            )
+        },
         "expected_10yr": 1169.0,
         "source": "Penn Wharton Budget Model, Table 3 (Feb 2024)",
         "notes": (
@@ -943,6 +955,15 @@ TAX_EXPENDITURE_VALIDATION_SCENARIOS_COMPARE = {
         # "Eliminate state and local tax deductions", $1,621.0B over
         # FY2025-2034 -- the same option this module's SALT `limitation`
         # block already cites for the cap's lapse date.
+        # As on the twin above: CBO's lapsed-cap baseline is now the declared
+        # scoring input rather than a side effect of the module's `limitation`
+        # block expiring in 2025. 104.7/yr is the uncapped answer, so the
+        # factory still hands it over and the row does not move.
+        "kwargs": {
+            "salt_baseline": SaltCapBaseline(
+                SALT_SCORING_BASELINES["eliminate_salt"]["baseline"]
+            )
+        },
         "expected_10yr": -1621.0,
         "source": "CBO pub. 60557, Option 49 (report p. 59)",
         "notes": "Very controversial",
