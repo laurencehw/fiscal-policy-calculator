@@ -242,23 +242,28 @@ def test_benchmark_obj_round_trips_the_dict():
     assert benchmark.as_dict() == scored.benchmark
 
 
-def test_sensitivity_band_brackets_the_headline_for_an_eti_policy():
+def test_the_band_brackets_the_headline_for_a_class_with_a_tier1_row():
     scored = _build(_generic_result_data())
     assert scored.sensitivity is not None
     low, high = scored.sensitivity
     assert low <= scored.headline <= high
-    assert high - low >= MIN_BAND_WIDTH, "an ETI band must have width, not just brackets"
-    assert "ETI" in scored.sensitivity_note
+    assert high - low >= MIN_BAND_WIDTH, "an accuracy band must have width"
+    # The band names the class and its count, never an elasticity sweep.
+    assert "pre-registered" in scored.sensitivity_note
+    assert "ETI" not in scored.sensitivity_note
 
 
 # ---------------------------------------------------------------------------
-# Sensitivity band width (external UI review, 2026-09-01)
+# What the band is, after Wave C's H4
 # ---------------------------------------------------------------------------
 #
-# Explore printed "Sensitivity range: $+4,581.9B to $+4,581.9B (ETI
-# 0.15-0.35)" for every calibrated preset whose module zeroes the behavioural
-# *offset* while leaving TaxPolicy's default 0.25 elasticity in place: flexing
-# an elasticity that multiplies zero moves neither end of the band.
+# It used to be an ETI +-0.1 sweep falling through to the engine's own
+# uncertainty arrays. Both branches returned a *fixed fraction of the point
+# estimate* -- 11.43% for every plain TaxPolicy, closed-form, and 38.0% / 45.6%
+# / 46.8-47.1% per module on the fallback -- so the width said nothing about how
+# far out the number was likely to be. It is now the observed error
+# distribution of the policy's own out-of-sample class, and a policy whose class
+# has no pre-registered row gets no band and a sentence saying so.
 
 
 @pytest.mark.parametrize(
@@ -274,7 +279,7 @@ def test_sensitivity_band_brackets_the_headline_for_an_eti_policy():
         if name is not None
     ],
 )
-def test_calibrated_presets_never_report_a_zero_width_band(preset_name):
+def test_a_preset_either_draws_a_real_band_or_says_why_it_has_none(preset_name):
     policy = create_policy_from_preset(PRESET_POLICIES[preset_name])
     scorer = FiscalPolicyScorer(
         start_year=getattr(policy, "start_year", 2025), use_real_data=False
@@ -289,34 +294,31 @@ def test_calibrated_presets_never_report_a_zero_width_band(preset_name):
         }
     )
     if scored.sensitivity is None:
-        # Acceptable, but only when the surface says why instead of drawing a
-        # range with no width.
-        assert "No sensitivity range" in scored.sensitivity_note
+        assert "No out-of-sample band" in scored.sensitivity_note
         return
     low, high = scored.sensitivity
     assert high - low >= MIN_BAND_WIDTH, (
-        f"{preset_name} reports a degenerate band {low:+,.1f} to {high:+,.1f}; "
-        "a calibrated preset has no ETI channel to flex, so it must fall "
-        "through to the engine's uncertainty band or say it has no range"
+        f"{preset_name} reports a degenerate band {low:+,.1f} to {high:+,.1f}"
     )
+    assert "pre-registered" in scored.sensitivity_note
     assert "ETI" not in scored.sensitivity_note, (
-        "a calibrated preset's behavioural response is inside its "
-        "calibration; the band must not be labelled as an ETI sweep"
+        "the band is an out-of-sample error distribution, not an elasticity sweep"
     )
 
 
-def test_a_zero_behavioral_offset_never_takes_the_eti_branch():
-    """The precise condition, unit-tested away from any particular preset."""
+def test_a_class_with_no_pre_registered_row_draws_no_band():
+    """The precise condition, unit-tested away from any particular preset.
+
+    ``TCJAExtensionPolicy`` declares ``policy_type=INCOME_TAX``, so a
+    ``policy_type`` lookup would hand it the ordinary-rate class's +-14.8%. No
+    pre-registered row scores a six-provision bundle, so it gets nothing and
+    says which tier is missing.
+    """
+    from fiscal_model.tcja import create_tcja_extension
     from fiscal_model.ui.tabs.results_summary import _sensitivity_band
 
-    policy = TaxPolicy(
-        name="Calibrated stand-in",
-        description="behavioural response already inside the calibration",
-        policy_type=PolicyType.INCOME_TAX,
-        rate_change=0.02,
-        affected_income_threshold=400_000,
-    )
-    assert policy.taxable_income_elasticity > 0  # inherited default, the trap
+    policy = create_tcja_extension(extend_all=True)
+    assert policy.policy_type.value == "income_tax"
 
     class _Result:
         low_estimate = [90.0] * 10
@@ -325,38 +327,70 @@ def test_a_zero_behavioral_offset_never_takes_the_eti_branch():
     band, note = _sensitivity_band(
         _Result(),
         policy,
-        static_total=1000.0,
+        static_total=4581.9,
         behavioral_total=0.0,
         is_spending=False,
     )
-    assert band == (900.0, 1100.0)
-    assert note == "model uncertainty band"
+    assert band is None
+    assert "No out-of-sample band" in note
+    assert "bundle" in note
 
 
-def test_no_band_at_all_is_reported_as_a_reason_not_a_range():
+def test_the_band_no_longer_reads_the_engine_uncertainty_arrays():
+    """A zero behavioural offset does not change the band, because nothing does.
+
+    The old fallback made the width a property of ``low_estimate`` /
+    ``high_estimate``; two runs with wildly different uncertainty arrays now
+    return the same band, because the band is a property of the policy's class.
+    """
     from fiscal_model.ui.tabs.results_summary import _sensitivity_band
 
     policy = TaxPolicy(
-        name="Calibrated stand-in",
-        description="no uncertainty path either",
+        name="probe",
+        description="probe",
+        policy_type=PolicyType.INCOME_TAX,
+        rate_change=0.02,
+        affected_income_threshold=400_000,
+    )
+
+    class _Narrow:
+        low_estimate = [99.9] * 10
+        high_estimate = [100.1] * 10
+
+    class _Wide:
+        low_estimate = [10.0] * 10
+        high_estimate = [190.0] * 10
+
+    narrow, narrow_note = _sensitivity_band(
+        _Narrow(), policy, static_total=1000.0, behavioral_total=0.0, is_spending=False
+    )
+    wide, wide_note = _sensitivity_band(
+        _Wide(), policy, static_total=1000.0, behavioral_total=0.0, is_spending=False
+    )
+    assert narrow == wide is not None
+    assert narrow_note == wide_note
+
+
+def test_a_near_zero_headline_reports_a_reason_not_a_degenerate_range():
+    from fiscal_model.ui.tabs.results_summary import _sensitivity_band
+
+    policy = TaxPolicy(
+        name="probe",
+        description="probe",
         policy_type=PolicyType.INCOME_TAX,
         rate_change=0.02,
         affected_income_threshold=400_000,
     )
 
     class _Result:
-        low_estimate = [100.0] * 10
-        high_estimate = [100.0] * 10
+        low_estimate = [0.0] * 10
+        high_estimate = [0.0] * 10
 
     band, note = _sensitivity_band(
-        _Result(),
-        policy,
-        static_total=1000.0,
-        behavioral_total=0.0,
-        is_spending=False,
+        _Result(), policy, static_total=0.0, behavioral_total=0.0, is_spending=False
     )
     assert band is None
-    assert "No sensitivity range" in note
+    assert "No out-of-sample band" in note
 
 
 def test_spending_policy_is_flagged_and_scored_on_the_outlay_path():

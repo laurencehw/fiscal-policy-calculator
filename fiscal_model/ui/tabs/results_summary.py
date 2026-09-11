@@ -159,17 +159,6 @@ def _nearest_benchmark(
 #: point estimate printed twice.
 _MIN_BAND_WIDTH_BILLIONS = 0.1
 
-#: Shown in place of the range when no honest one exists. Deliberately says
-#: only what is true on every path that reaches it — the behavioural channel is
-#: zero *and* the engine's uncertainty path is flat. It must not assert that
-#: the score is a calibrated reference: spending runs, custom policies and any
-#: near-zero score land here too (Cursor review, 2026-09-01).
-_NO_BAND_REASON = (
-    "No sensitivity range: nothing in this score varies independently of the "
-    "point estimate — the behavioural channel is zero and the model's "
-    "uncertainty path is flat — so a range would print the same number twice."
-)
-
 
 def _sensitivity_band(
     result: Any,
@@ -179,47 +168,71 @@ def _sensitivity_band(
     behavioral_total: float,
     is_spending: bool,
 ) -> tuple[tuple[float, float] | None, str]:
-    """ETI ±0.1 band around the conventional score, or the engine's own band.
+    """The headline's accuracy band: this policy class's own Tier 1 error spread.
 
-    Reported for generic runs where the behavioral parameter is the dominant
-    uncertainty. Calibrated presets embed their behavioral response in the
-    calibration, so their band comes from the engine's uncertainty path.
+    **What this replaced, and why (Wave C, H4).** Until 2026-09-11 this returned
+    an ETI ±0.1 sweep, falling through to the engine's ``low_estimate`` /
+    ``high_estimate`` path when the behavioural channel was zero. Both branches
+    were measured across all 53 shipped presets and the three generic shapes,
+    and **neither carried any information about accuracy**: for a plain
+    ``TaxPolicy`` the headline is ``0.875 × static`` and the ETI sweep's width
+    is ``0.8 × 0.125 × static``, so the band was ``0.1 / 0.875 = 11.43%`` of the
+    headline for *every* policy, rate and threshold — Flat Tax Reform at
+    +$6,239.4B and the Medicare surcharge at −$426.6B drew the identical ribbon
+    — and the engine's fallback was a second fixed fraction, 38.0% for climate
+    and pharma, 45.6% for estate, credits and payroll, 46.8–47.1% for TCJA, AMT
+    and PTC. A restatement of a parameter is not a statement about error.
 
-    That second sentence described the intent but not the code until
-    2026-09-01. The ETI branch was entered on ``taxable_income_elasticity``
-    alone — which every ``TaxPolicy`` subclass inherits at 0.25 — while the
-    calibrated module factories zero the *offset* rather than the elasticity
-    (``tcja.estimate_behavioral_offset`` returns 0.0 outright; estate, payroll,
-    AMT and PTC set their own elasticities to 0.0). Flexing an elasticity that
-    multiplies a zero offset moves nothing, so both ends landed on the point
-    estimate and Explore printed ``Sensitivity range: $+4,581.9B to
-    $+4,581.9B (ETI 0.15–0.35)`` — a band of zero width, presented as a range
-    (external UI review, 2026-09-01). Credits presets were the tell: they
-    escape it only because their factory zeroes the elasticity itself.
+    What is drawn instead is the **observed out-of-sample error distribution of
+    the policy's own class** — the class's mean as the typical miss, its worst
+    row as the outer bound, both read off the 26 pre-registered Tier 1 rows and
+    nothing else. ``fiscal_model/validation/credibility.py`` holds the band and
+    ``validation/policy_classes.py`` the routing, which is the same routing the
+    CI per-class gate uses.
 
-    The ETI branch now requires a behavioral channel that actually responds.
-    Returns ``(None, reason)`` when no honest band can be drawn, so the caller
-    can say why rather than print a width that is not there.
+    Returns ``(None, reason)`` when the pre-registered battery contains no row
+    scoring a policy of this class — which is two thirds of the shipped catalog
+    — so the caller says why rather than drawing a width that measures nothing.
+
+    ``result``, ``static_total`` and ``is_spending`` are no longer read. They
+    stay in the signature because ``summarize_result`` is the one caller and the
+    engine's uncertainty arrays are exactly what this stopped reporting; keeping
+    the shape makes that visible in the diff rather than hiding it in a rename.
     """
-    base_eti = getattr(policy, "taxable_income_elasticity", None)
-    if base_eti and not is_spending and base_eti > 0 and behavioral_total:
-        eti_low = max(0.05, base_eti - 0.1)
-        eti_high = base_eti + 0.1
-        low = static_total + behavioral_total * (eti_low / base_eti)
-        high = static_total + behavioral_total * (eti_high / base_eti)
-        if abs(high - low) >= _MIN_BAND_WIDTH_BILLIONS:
-            note = f"ETI {eti_low:.2f}–{eti_high:.2f}"
-            return (min(low, high), max(low, high)), note
-    try:
-        low = float(np.asarray(result.low_estimate).sum())
-        high = float(np.asarray(result.high_estimate).sum())
-    except Exception:
-        # The arrays could not be read, so nothing is known about the width.
-        # Say nothing rather than explain an absence we cannot account for.
-        return None, ""
+    from fiscal_model.validation.credibility import band_for_policy
+    from fiscal_model.validation.policy_classes import no_tier1_class_reason
+
+    headline = static_total + behavioral_total
+    band = band_for_policy(policy)
+    if band is None:
+        return None, (
+            f"No out-of-sample band: {no_tier1_class_reason(policy)}. The 26 "
+            "pre-registered rows are the only tier that measures this model's "
+            "accuracy against published scores."
+        )
+
+    low, high = band.inner_dollars(headline)
     if abs(high - low) < _MIN_BAND_WIDTH_BILLIONS:
-        return None, _NO_BAND_REASON
-    return (min(low, high), max(low, high)), "model uncertainty band"
+        # A near-zero headline, or a class with a 0.0% row. Either way a range
+        # here would print the same number twice.
+        return None, (
+            f"No out-of-sample band: this figure is too small for the "
+            f"{band.class_label} class's ±{band.mean_abs_pct_error:.1f}% to "
+            "separate from it."
+        )
+
+    if band.is_single_row:
+        note = (
+            f"{band.class_label} · the one pre-registered row misses by "
+            f"{band.mean_abs_pct_error:.1f}% (n=1)"
+        )
+    else:
+        note = (
+            f"{band.class_label} · {band.n} pre-registered rows, mean "
+            f"{band.mean_abs_pct_error:.1f}%, worst "
+            f"{band.max_abs_pct_error:.1f}%"
+        )
+    return (min(low, high), max(low, high)), note
 
 
 def summarize_result(
@@ -299,7 +312,12 @@ def summarize_result(
             policy=policy,
         )
         if credibility is not None:
-            accuracy_pct = float(getattr(credibility, "mean_abs_pct_error", 0.0) or 0.0)
+            # ``None`` where the policy's class has no out-of-sample row, and it
+            # must stay ``None``: ``or 0.0`` would put "± 0.0%" on the tier chip
+            # above the headline, which reads as perfect accuracy where the
+            # truth is that nothing has been measured.
+            raw_accuracy = getattr(credibility, "mean_abs_pct_error", None)
+            accuracy_pct = None if raw_accuracy is None else float(raw_accuracy)
     except Exception:
         credibility = None
 
@@ -397,24 +415,75 @@ def _build_interpretation_html(
 
 
 def _build_credibility_html(credibility: Any) -> str:
-    """Build a compact validation-evidence card for a result."""
+    """Build a compact accuracy-evidence card for a result.
+
+    Two facts, kept apart on purpose. The **band** is what the out-of-sample
+    tier says about policies of this class; the **row** is what this particular
+    policy's own scorecard entry says, with the tier it sits in. Collapsing
+    them is exactly the "validated within X%" claim CLAUDE.md forbids, and the
+    card the H4 lane replaced did collapse them — it printed one category mean
+    blended across fitted bookkeeping and unfitted reconstructions, under a
+    single rating word.
+    """
     if credibility is None:
         return ""
 
+    class_label = getattr(credibility, "class_label", None)
+    n_rows = int(getattr(credibility, "n_tier1_rows", 0) or 0)
+    mean_error = getattr(credibility, "mean_abs_pct_error", None)
+    median_error = getattr(credibility, "median_abs_pct_error", None)
+    max_error = getattr(credibility, "max_abs_pct_error", None)
+    inside = getattr(credibility, "rows_inside_mean_band", None)
     low = getattr(credibility, "uncertainty_low", None)
     high = getattr(credibility, "uncertainty_high", None)
-    if low is not None and high is not None:
-        range_text = f"${low:+,.0f}B to ${high:+,.0f}B"
-    else:
-        range_text = "Not available"
+    outer_low = getattr(credibility, "outer_low", None)
+    outer_high = getattr(credibility, "outer_high", None)
 
-    evidence = escape(str(getattr(credibility, "evidence_type", "unknown")).replace("_", " "))
-    category = escape(str(getattr(credibility, "category", "Unknown")))
-    rating = escape(str(getattr(credibility, "rating_label", "Unknown")))
-    holdout = escape(str(getattr(credibility, "holdout_status", "unknown")).replace("_", " "))
+    chips: list[str] = []
+    if class_label and mean_error is not None:
+        chips.append(f"Policy class: <strong>{escape(str(class_label))}</strong>")
+        chips.append(
+            f"Out-of-sample rows: <strong>{n_rows}</strong>"
+            + (" (one observation, not a distribution)" if n_rows <= 1 else "")
+        )
+        chips.append(f"Mean error: <strong>±{float(mean_error):.1f}%</strong>")
+        if n_rows > 1 and median_error is not None and max_error is not None:
+            chips.append(
+                f"Median <strong>{float(median_error):.1f}%</strong> · worst "
+                f"<strong>{float(max_error):.1f}%</strong>"
+            )
+        if low is not None and high is not None:
+            chips.append(f"Typical: <strong>${low:+,.0f}B to ${high:+,.0f}B</strong>")
+        if (
+            outer_low is not None
+            and outer_high is not None
+            and max_error is not None
+            and float(max_error) > float(mean_error)
+        ):
+            chips.append(
+                f"Worst row: <strong>${outer_low:+,.0f}B to ${outer_high:+,.0f}B</strong>"
+            )
+        if inside is not None and n_rows > 1:
+            chips.append(f"<strong>{inside} of {n_rows}</strong> inside the mean")
+    else:
+        chips.append("<strong>No out-of-sample band</strong> for this policy class")
+
+    row_tier_label = getattr(credibility, "own_row_tier_label", None)
+    row_caption = str(getattr(credibility, "own_row_caption", "") or "")
+    if row_tier_label:
+        row_html = (
+            f'<p style="margin:0.35rem 0 0 0; color:#3d4654;">'
+            f"<strong>This policy&#39;s own scorecard row</strong> "
+            f"({escape(str(row_tier_label))}): {escape(row_caption)}</p>"
+        )
+    else:
+        row_html = (
+            '<p style="margin:0.35rem 0 0 0; color:#526071;">'
+            "No scorecard row scores this exact policy.</p>"
+        )
+
     caption = escape(str(getattr(credibility, "caption", "")))
-    n_benchmarks = int(getattr(credibility, "n_benchmarks", 0) or 0)
-    mean_error = float(getattr(credibility, "mean_abs_pct_error", 0.0) or 0.0)
+    holdout = escape(str(getattr(credibility, "holdout_status", "unknown")).replace("_", " "))
     limitations = [
         escape(str(item))
         for item in list(getattr(credibility, "limitations", []) or [])[:3]
@@ -423,26 +492,26 @@ def _build_credibility_html(credibility: Any) -> str:
     if not limitation_items:
         limitation_items = "<li>No category-specific limitations are recorded.</li>"
 
+    chip_html = "".join(f"<span>{chip}</span>" for chip in chips)
+
     return f"""
     <div class="fpc-evidence-card">
         <div class="fpc-evidence-card-title">
-            Validation evidence
+            Accuracy evidence
         </div>
         <div style="display:flex; flex-wrap:wrap; gap:0.75rem; margin-top:0.45rem;">
-            <span><strong>{rating}</strong> confidence</span>
-            <span>Category: <strong>{category}</strong></span>
-            <span>Benchmarks: <strong>{n_benchmarks}</strong></span>
-            <span>Mean error: <strong>±{mean_error:.1f}%</strong></span>
-            <span>Range: <strong>{range_text}</strong></span>
+            {chip_html}
         </div>
         <p style="margin:0.55rem 0 0.35rem 0; color:#3d4654;">
             {caption}
         </p>
+        {row_html}
         <p style="margin:0.25rem 0; color:#526071;">
-            Evidence type: <strong>{evidence}</strong> · Holdout status: <strong>{holdout}</strong>.
-            This is a model-validation range, not an official CBO/JCT score.
-            Calibrated reconstructions (~5% mean) and out-of-sample predictions (~8% mean)
-            are different tiers — do not collapse them into one accuracy claim.
+            Holdout status: <strong>{holdout}</strong>. This is a model-accuracy
+            band, not an official CBO/JCT score. Fitted reference models, unfitted
+            reconstructions and out-of-sample predictions are three different
+            tiers — only the third is a skill claim, and they never collapse into
+            one accuracy number.
         </p>
         <details style="margin-top:0.45rem;">
             <summary style="cursor:pointer; color:#334155; font-weight:600;">Known caveats</summary>
@@ -1215,15 +1284,72 @@ def _scorecard_id_for(policy: Any, policy_name: str) -> str:
     written in — then on the policy object's own name, because a run reached
     through a share link or the API may carry only one of the two. A Tailor
     custom run matches neither, which is correct: no benchmark scores it.
+
+    The legacy 24-entry view is consulted first and the **whole** badge map
+    after it. That widening is strictly additive — every label the legacy view
+    resolved resolves to the same id — and it is what lets the published-range
+    caption reach ``pillar_two_adoption`` and ``reciprocal_tariffs``, which H6
+    added to the badge map and which the legacy view has never held.
     """
     try:
-        from fiscal_model.ui.preset_validation import PRESET_TO_SCORECARD_ID
+        from fiscal_model.ui.preset_validation import (
+            BADGE_SCORECARD_ID_BY_LABEL,
+            PRESET_TO_SCORECARD_ID,
+        )
     except Exception:  # pragma: no cover — defensive
         return ""
-    for key in (policy_name, getattr(policy, "name", "")):
-        if key and key in PRESET_TO_SCORECARD_ID:
-            return PRESET_TO_SCORECARD_ID[key]
+    for view in (PRESET_TO_SCORECARD_ID, BADGE_SCORECARD_ID_BY_LABEL):
+        for key in (policy_name, getattr(policy, "name", "")):
+            if key and key in view:
+                return view[key]
     return ""
+
+
+def published_range_caption(
+    policy: Any, result: Any, policy_name: str = ""
+) -> str:
+    """This benchmark's published range, wherever its scorekeepers disagree.
+
+    Four calibrated targets are ranges rather than points, because two or more
+    houses scored the same reform and printed figures an editorial midpoint
+    would hide. H3a shipped the display for corporate runs; this is the same
+    object rendered for every other policy that carries one, which today means
+    **Pillar Two Adoption** ([−$102.6B, +$56.5B], JCT JCX-22-23 Table 2) and
+    **Reciprocal Tariffs** ([−$1,800B, −$1,400B], CRFB / Tax Foundation / Yale
+    on one announced schedule, 29% apart).
+
+    Yields to ``corporate_estimator_range_captions`` on a corporate rate run so
+    no benchmark prints its range twice. Everything is read live from the target
+    ledger, so a revision reaches the app without a second edit.
+    """
+    if isinstance(policy, CorporateTaxPolicy) and _corporate_rate_change_pp(policy):
+        return ""
+    policy_id = _scorecard_id_for(policy, policy_name)
+    if not policy_id:
+        return ""
+
+    from fiscal_model.ui.estimator_ranges import published_range_for
+
+    published = published_range_for(policy_id)
+    if published is None:
+        return ""
+
+    model_billions = float(np.sum(result.static_deficit_effect)) + float(
+        np.sum(result.behavioral_offset)
+    )
+    if published.contains(model_billions):
+        where = "**inside** it"
+    else:
+        where = rf"\${published.distance(model_billions):,.1f}B **outside** it"
+    return (
+        f"**This benchmark carries a published range.** Its scorekeepers — "
+        f"{published.source_name} — scored this reform and printed "
+        rf"\${published.low_billions:+,.1f}B to "
+        rf"\${published.high_billions:+,.1f}B; this run's "
+        rf"\${model_billions:+,.1f}B is {where}. The percentage the scorecard "
+        f"reports for this row is a distance from one house's point inside "
+        f"that range, not a measurement of accuracy against all of them."
+    )
 
 
 def corporate_estimator_range_captions(
@@ -1648,6 +1774,11 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
         policy, result, getattr(scored, "policy_name", "") or ""
     ):
         st_module.caption(corporate_note)
+    range_note = published_range_caption(
+        policy, result, getattr(scored, "policy_name", "") or ""
+    )
+    if range_note:
+        st_module.caption(range_note)
     payroll_note = payroll_fitted_target_caption(policy, result)
     if payroll_note:
         st_module.caption(payroll_note)
@@ -1666,13 +1797,31 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
         # card. KaTeX therefore does parse it, and unescaped
         # ``$+4,581.9B to $`` rendered as an italic math span with the dollar
         # signs eaten (caught in a browser, Phase 6). Escape the currency.
-        st_module.markdown(
-            f"<small><b>Sensitivity range:</b> \\${band[0]:+,.1f}B "
+        line = (
+            f"<small><b>Accuracy band:</b> \\${band[0]:+,.1f}B "
             f"to \\${band[1]:+,.1f}B"
             + (f" ({escape(note)})" if note else "")
-            + "</small>",
-            unsafe_allow_html=True,
         )
+        credibility = getattr(scored, "credibility", None)
+        outer_low = getattr(credibility, "outer_low", None)
+        outer_high = getattr(credibility, "outer_high", None)
+        mean_pct = getattr(credibility, "mean_abs_pct_error", None)
+        max_pct = getattr(credibility, "max_abs_pct_error", None)
+        # A class of one has a worst row equal to its mean; printing the same
+        # interval twice under two labels would read as two findings.
+        if (
+            outer_low is not None
+            and outer_high is not None
+            and mean_pct is not None
+            and max_pct is not None
+            and max_pct > mean_pct
+        ):
+            line += (
+                f"; \\${min(outer_low, outer_high):+,.1f}B to "
+                f"\\${max(outer_low, outer_high):+,.1f}B at that class's worst "
+                "observed row"
+            )
+        st_module.markdown(line + "</small>", unsafe_allow_html=True)
     elif note:
         # Belt and braces: a degenerate pair is truthy, and "X to X" reads as
         # a broken widget rather than as the absence of a range. Say which it
@@ -2201,11 +2350,11 @@ def build_text_summary(scored: Any, result_data: dict[str, Any], share_url: str 
     band = getattr(scored, "sensitivity", None)
     if band and abs(band[1] - band[0]) >= _MIN_BAND_WIDTH_BILLIONS:
         text += (
-            f"  Sensitivity: ${band[0]:+,.1f}B to ${band[1]:+,.1f}B "
+            f"  Accuracy band: ${band[0]:+,.1f}B to ${band[1]:+,.1f}B "
             f"({scored.sensitivity_note})\n"
         )
     elif getattr(scored, "sensitivity_note", ""):
-        text += f"  Sensitivity: {scored.sensitivity_note}\n"
+        text += f"  Accuracy band: {scored.sensitivity_note}\n"
 
     benchmark = getattr(scored, "benchmark", None)
     if benchmark:

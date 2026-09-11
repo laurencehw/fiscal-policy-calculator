@@ -47,8 +47,11 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from fiscal_model.validation.cbo_options import runnable_score_ids  # noqa: E402
-from fiscal_model.validation.cbo_scores import KNOWN_SCORES  # noqa: E402
+from fiscal_model.validation.policy_classes import (  # noqa: E402, F401
+    POLICY_CLASS_LABELS,
+    UNCLASSIFIED_CLASS,  # re-exported: tests/test_cold_holdout.py imports it here
+    classify_policy,
+)
 from fiscal_model.validation.preregistered import live_cases  # noqa: E402
 from fiscal_model.validation.scorecard import (  # noqa: E402
     GENERIC_CATEGORY,
@@ -70,62 +73,20 @@ UNCALIBRATED_CATEGORY = GENERIC_CATEGORY
 # per-class floor in CI, so the classification has to live in the tree rather
 # than in a lane's spreadsheet.
 #
-# It is **derived from each case's own ``CBOScore`` record**, never from a
+# It lives in ``fiscal_model/validation/policy_classes.py`` rather than here,
+# because Wave C's H4 puts the same eight classes behind the accuracy band the
+# app prints and a Streamlit surface may not import a script to ask a routing
+# question. The rules are unchanged and the module documents them: the class is
+# **derived from each case's own ``CBOScore`` record**, never from a
 # hand-maintained list of policy ids, so a row registered tomorrow is classified
-# the moment it is registered and cannot quietly escape the gate. The rules,
-# which reproduce §2's table exactly (6 / 4 / 4 / 1 / 3 / 5 / 2 / 1 on the
-# post-Wave-B battery):
+# the moment it is registered and cannot quietly escape the gate. That module
+# also carries ``classify_policy_object``, the same vocabulary for a live policy,
+# which is deliberately *not* a ``policy_type`` lookup -- see its docstring for
+# the four modules whose ``policy_type`` does not describe the reform they price.
 #
-#   * ``policy_type`` alone settles corporate, payroll, tax-expenditure and
-#     capital-gains rows;
-#   * an ``income_tax`` row splits on ``agi_inclusive_base`` -- the flag each
-#     record already carries, set from how its own source states the base;
-#   * a ``spending`` row splits on whether it is one of CBO's own *Options*
-#     alternatives (``cbo_options.runnable_score_ids()``, i.e. a budget-authority
-#     path CBO published) or a Phase D enacted-law component.
-#
-# Display labels are §2's; the slugs are what the CLI and the workflow speak.
-POLICY_CLASS_LABELS: dict[str, str] = {
-    "agi_inclusive_surtax": "AGI-inclusive surtax",
-    "ordinary_rate_change": "ordinary rate change",
-    "capital_gains": "capital gains",
-    "corporate": "corporate",
-    "enacted_law_spending": "enacted-law spending",
-    "discretionary_spending": "discretionary spending",
-    "payroll": "payroll",
-    "tax_expenditure": "tax expenditure",
-}
-
-#: Returned when a record's shape matches none of the rules above. It is never
-#: silently dropped: ``--max-class-mean-error`` fails on it, because "a class
-#: nobody gated" is how PR #119's four offset-sign defects got in.
-UNCLASSIFIED_CLASS = "unclassified"
-
-
-def classify_policy(policy_id: str) -> str:
-    """Return the §2 policy-class slug for one out-of-sample ``policy_id``."""
-    score = KNOWN_SCORES.get(policy_id)
-    if score is None:
-        return UNCLASSIFIED_CLASS
-
-    policy_type = getattr(score.policy_type, "value", str(score.policy_type))
-    if policy_type == "corporate_tax":
-        return "corporate"
-    if policy_type == "payroll_tax":
-        return "payroll"
-    if policy_type == "tax_expenditure":
-        return "tax_expenditure"
-    if policy_type == "capital_gains_tax":
-        return "capital_gains"
-    if policy_type == "income_tax":
-        if getattr(score, "agi_inclusive_base", False):
-            return "agi_inclusive_surtax"
-        return "ordinary_rate_change"
-    if policy_type == "spending":
-        if policy_id in runnable_score_ids():
-            return "discretionary_spending"
-        return "enacted_law_spending"
-    return UNCLASSIFIED_CLASS
+# Re-exported here so ``scripts.cold_holdout.classify_policy`` keeps working for
+# ``tests/test_cold_holdout.py`` and for anyone reading the CLI's own namespace.
+__all_class_names__ = ("POLICY_CLASS_LABELS", "UNCLASSIFIED_CLASS", "classify_policy")
 
 
 def build_report() -> dict:

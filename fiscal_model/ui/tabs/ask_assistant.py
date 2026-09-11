@@ -833,10 +833,18 @@ def _scoring_context(scoring_result: Any) -> dict[str, Any] | None:
                 getattr(engine, "revenue_feedback_10yr", 0.0)
             ),
             "is_dynamic": bool(getattr(engine, "is_dynamic", False)),
+            # Since Wave C's H4 these are the policy's own out-of-sample class,
+            # not a category mean over the calibrated tiers, and every figure
+            # can be ``None`` — two thirds of the catalog prices a reform the
+            # pre-registered battery does not score. ``no_band_reason`` is
+            # carried so the assistant can say that rather than infer a number.
             "credibility": {
                 "evidence_type": getattr(cred, "evidence_type", None),
-                "n_benchmarks": getattr(cred, "n_benchmarks", None),
+                "policy_class": getattr(cred, "class_label", None),
+                "n_out_of_sample_rows": getattr(cred, "n_tier1_rows", None),
                 "mean_abs_pct_error": getattr(cred, "mean_abs_pct_error", None),
+                "max_abs_pct_error": getattr(cred, "max_abs_pct_error", None),
+                "no_band_reason": getattr(cred, "no_band_reason", "") or None,
             }
             if cred
             else None,
