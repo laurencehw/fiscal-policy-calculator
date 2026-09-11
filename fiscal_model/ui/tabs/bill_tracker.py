@@ -613,32 +613,44 @@ def _render_bill_calibration_band(
     auto_score: dict,
     total_billions: float,
 ) -> None:
-    """Surface the validation-scorecard accuracy for a bill's dominant
-    provision type. Falls back silently when the scorecard fails or no
-    provisions are available — never breaks the bill card."""
+    """Surface the out-of-sample accuracy band for a bill's dominant provision.
+
+    The band is the observed error distribution of that policy **class** across
+    the 26 pre-registered Tier 1 rows, not a mean over the calibrated tiers —
+    see ``fiscal_model/validation/credibility.py`` for why the category band it
+    replaces carried no information about accuracy. Most extracted provision
+    types have no Tier 1 class at all (a tariff, a drug-pricing change, an
+    estate reform), and those now get **no band** rather than a borrowed one.
+    Falls back silently when the scorecard fails or no provisions are
+    available — never breaks the bill card.
+    """
     try:
-        from fiscal_model.ui.confidence_band import (
-            estimate_uncertainty_dollars,
-            get_band_for_policy_type,
-        )
+        from fiscal_model.ui.confidence_band import band_for_policy_type
     except Exception:
         return
 
     policy_type = _dominant_provision_policy_type(auto_score)
     if policy_type is None:
-        # Without a parsed provision, defaulting to "Generic" would
-        # surface a misleading ±29% band. Skip silently.
+        # Without a parsed provision there is nothing to route on, and falling
+        # back to the whole tier would attach a 26-row mean to a bill nobody
+        # has classified. Skip silently.
         return
-    band = get_band_for_policy_type(policy_type)
+    band = band_for_policy_type(policy_type)
     if band is None:
         return
 
-    half = estimate_uncertainty_dollars(total_billions, band)
+    half = abs(total_billions) * (band.mean_abs_pct_error / 100.0)
+    if band.is_single_row:
+        detail = f"the one pre-registered {band.class_label} row (n=1)"
+    else:
+        detail = (
+            f"{band.n} pre-registered {band.class_label} rows, "
+            f"worst {band.max_abs_pct_error:.1f}%"
+        )
     st_module.caption(
-        f"Calibration band: ±{band.mean_abs_pct_error:.1f}% mean error in "
-        f"{band.category} category ({band.n_calibrated} calibrated run"
-        f"{'s' if band.n_calibrated != 1 else ''}, {band.rating_label}) "
-        f"— implies ±{_format_cost(half)} on this $-amount."
+        f"Out-of-sample band: ±{band.mean_abs_pct_error:.1f}% mean error across "
+        f"{detail} — implies ±{_format_cost(half)} on this $-amount. "
+        "It describes the model, not the extraction, which is demo-grade."
     )
 
 
