@@ -138,13 +138,20 @@ class TestNoFittedConstants:
                 f"{policy.name} carries a per-case import elasticity"
             )
 
-    def test_reciprocal_coverage_is_not_a_literal_in_the_factory(self):
+    def test_the_reciprocal_coverage_constant_is_gone_entirely(self):
+        """Lane H8 deleted it rather than moving it.
+
+        `reciprocal_coverage_rate = 0.50` was the last number in
+        `TRADE_BASELINE` that was a shape assumption rather than a
+        measurement - "a flat 20pp on half of goods imports", which nobody
+        proposed and no publisher scored. The base is now the sum of a
+        partner-by-partner schedule built from EO 14257's own formula.
+        """
+        assert "reciprocal_coverage_rate" not in TRADE_BASELINE
         policy = create_reciprocal_tariffs()
-        expected = (
-            TRADE_BASELINE["total_imports_billions"]
-            * TRADE_BASELINE["reciprocal_coverage_rate"]
+        assert policy.import_base_billions == pytest.approx(
+            sum(base for _, base, _ in policy.rate_schedule)
         )
-        assert policy.import_base_billions == pytest.approx(expected)
 
     def test_dead_shadow_copies_of_the_targets_are_gone(self):
         import fiscal_model.trade as trade
@@ -227,15 +234,18 @@ class TestNettingChain:
         gross = base * volume * rate / (1 + rate)
         avoidance = gross * TRADE_BASELINE["tariff_avoidance_rate"]
         offset = (gross - avoidance) * TRADE_BASELINE["income_payroll_offset_rate"]
-        retaliation = (
+        assert policy.estimate_static_revenue_effect(0) == pytest.approx(gross)
+        # Since lane H8 the conventional offset stops here. Retaliation is
+        # priced the same way it always was and reported beside the score
+        # rather than inside it.
+        assert policy.estimate_behavioral_offset(gross) == pytest.approx(
+            avoidance + offset
+        )
+        assert policy.estimate_retaliation_revenue_loss() == pytest.approx(
             TRADE_BASELINE["marginal_receipts_rate"]
             * TRADE_BASELINE["retaliation_rate"]
             * rate
             * policy.retaliation_export_base_billions
-        )
-        assert policy.estimate_static_revenue_effect(0) == pytest.approx(gross)
-        assert policy.estimate_behavioral_offset(gross) == pytest.approx(
-            avoidance + offset + retaliation
         )
 
     def test_the_offset_applies_to_gross_net_of_avoidance_only_once(self):
@@ -264,7 +274,13 @@ class TestNettingChain:
         exclusive = 1000.0 * policy.import_volume_factor() * 0.25
         assert policy.estimate_static_revenue_effect(0) == pytest.approx(exclusive / 1.25)
 
-    def test_retaliation_can_be_switched_off_without_touching_the_rest(self):
+    def test_the_retaliation_flag_no_longer_touches_the_conventional_score(self):
+        """It became a reporting switch when retaliation left the score.
+
+        Before lane H8 the same policy scored two different numbers depending
+        on this flag, and one of them was being compared against a
+        conventional target that nets no retaliation at all.
+        """
         kwargs = dict(
             name="Test",
             description="Test",
@@ -275,14 +291,14 @@ class TestNettingChain:
         without = TariffPolicy(**kwargs, include_retaliation=False)
         gross = with_retaliation.estimate_static_revenue_effect(0)
         assert without.estimate_static_revenue_effect(0) == pytest.approx(gross)
-        delta = (
-            with_retaliation.estimate_behavioral_offset(gross)
-            - without.estimate_behavioral_offset(gross)
+        assert with_retaliation.estimate_behavioral_offset(gross) == pytest.approx(
+            without.estimate_behavioral_offset(gross)
         )
-        assert delta == pytest.approx(with_retaliation.estimate_retaliation_revenue_loss())
+        assert without.get_trade_summary()["retaliation_revenue_loss"] == 0.0
+        assert with_retaliation.get_trade_summary()["retaliation_revenue_loss"] > 0
 
     def test_offset_scales_with_a_phased_in_gross(self):
-        """Half the gross duty nets down by half, retaliation included."""
+        """Half the gross duty nets down by half."""
         policy = TariffPolicy(
             name="Test",
             description="Test",
@@ -294,15 +310,21 @@ class TestNettingChain:
             policy.estimate_behavioral_offset(gross) / 2
         )
 
-    def test_net_is_a_stable_share_of_gross_across_the_presets(self):
-        """A netted score sits above the 40-50% band the knowledge base quotes.
+    def test_net_is_the_same_share_of_gross_for_every_preset(self):
+        """Since lane H8 the conventional ratio is an identity, not a range.
 
-        The band includes a GDP-feedback drag this module does not carry, so
-        landing inside or below it would mean something is being counted twice.
+        `(1 - 0.05) x (1 - 0.25) = 0.7125` of gross duty, for every tariff in
+        either direction, against the 0.738 FF861's own conventional column
+        implies with its 26.2% offset and its noncompliance folded into the
+        base. It used to vary 0.599 to 0.655 across the presets, and the
+        variation was the retaliation term - which a conventional estimate
+        does not carry.
         """
         for factory in FACTORIES:
             summary = factory().get_trade_summary()
-            assert 0.50 < summary["net_to_gross_ratio"] < 0.75, factory.__name__
+            assert summary["net_to_gross_ratio"] == pytest.approx(
+                0.95 * 0.75, abs=1e-9
+            ), factory.__name__
 
     def test_the_score_is_the_net_figure(self):
         policy = create_trump_universal_10()
@@ -433,11 +455,25 @@ class TestSection232Netting:
     """A proposed rate is incremental to the duty the base already pays."""
 
     def test_steel_nets_the_duty_actually_collected(self):
+        """Each steel base nets the duty *it* pays, not one blended rate.
+
+        Lane H8 added the Section 232 derivative chapter, which collects 5.63%
+        where the primary HS 72 plus HS 76 base collects 3.06%, so the factory
+        carries two schedule rows rather than one averaged rate.
+        """
         policy = create_steel_tariff_25()
-        assert policy.tariff_rate_change == pytest.approx(
+        rows = {name: rate for name, _, rate in policy.rate_schedule}
+        assert set(rows) == {
+            "Steel and aluminium (HS 72, HS 76)",
+            "Derivative articles (HS 73)",
+        }
+        assert rows["Steel and aluminium (HS 72, HS 76)"] == pytest.approx(
             0.25 - TRADE_BASELINE["steel_aluminum_existing_avg_tariff"]
         )
-        assert policy.tariff_rate_change < 0.25
+        assert rows["Derivative articles (HS 73)"] == pytest.approx(
+            0.25 - TRADE_BASELINE["steel_derivative_existing_avg_tariff"]
+        )
+        assert all(rate < 0.25 for rate in rows.values())
 
     def test_auto_nets_the_duty_actually_collected(self):
         policy = create_auto_tariff_25()

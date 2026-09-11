@@ -47,12 +47,16 @@ feedback** (GDP, jobs) in a single integrated estimate.
 
 ## How this maps to the app
 
-- The app has a `trade.py` tariff scoring module with 5 presets and the
-  same conceptual channels except one: it nets the import-demand response,
-  duty avoidance, the income-and-payroll offset and retaliation, but carries
-  **no GDP-feedback channel** in the conventional score, so its figures sit
-  above a fully dynamic estimate. None of its constants is fitted to a
-  published tariff score; the trade levels are 2024 Census measurements.
+- The app has a `trade.py` tariff scoring module with 5 presets and the same
+  conceptual channels. Its headline is the **conventional** score — the
+  import-demand response, duty avoidance and the income-and-payroll offset —
+  and the two channels Yale folds into one integrated estimate, GDP feedback
+  and retaliation, are computed and reported *beside* it rather than netted
+  into it, because every published figure the app is checked against is a
+  conventional one. None of its constants is fitted to a published tariff
+  score; the trade levels are 2024 Census measurements, and the reciprocal
+  schedule is Executive Order 14257's own formula applied to Census bilateral
+  trade, checked against sixteen published Annex I rates.
 - For a specific Yale Budget Lab tariff number on a specific scenario
   ("Trump 10% universal + 60% on China"), the assistant should
   `web_search` `budgetlab.yale.edu` or `fetch_url` the specific

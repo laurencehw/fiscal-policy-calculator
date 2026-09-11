@@ -1427,6 +1427,22 @@ Foundation FF861's **$278B** — 2.5× smaller, and the gap is the channel's sta
 limitation: an export-value loss is not an income loss, and nothing here carries
 a multiplier or a supply-chain effect.
 
+> **Superseded by lane H8** (`planning/lanes/HSC_h8_tariff_feedback.md`) on two
+> of the three claims in the paragraph above, and the correction is worth
+> reading before the paragraph is quoted. **The 0.599–0.655 against 40–50%
+> comparison was a denominator mismatch**: `net_to_gross_ratio` divides by gross
+> duty *after* the import-demand response and the knowledge snapshot's band
+> divides by gross *before* it, so "above the band" was never a like-for-like
+> reading — on the snapshot's own denominator the universal preset read 0.589,
+> and with the GDP channel H8 built it reads **0.485, inside the band**. And
+> **retaliation should never have been inside the score**: every target in this
+> block is a *conventional* estimate and a conventional estimate nets no foreign
+> retaliation, so H8 moved it out beside the GDP channel. The conventional ratio
+> is now a flat **0.7125** for every tariff in either direction — the variation
+> L8 reported *was* the retaliation term — and the four rows with a document
+> improved 39.72% → 35.66% on that move alone. The retaliation figure itself is
+> unchanged at $111.4B and so is its 2.5× gap.
+
 **A sign defect the lane found in its own diff.**
 `estimate_behavioral_offset` returned an **unsigned positive** number, which the
 scorer adds to `-static_revenue`. That is right for a tariff increase and exactly

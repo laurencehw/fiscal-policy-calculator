@@ -123,16 +123,24 @@ class TestRevenueCalculation:
         assert 22 < static_revenue < 36
 
     def test_steel_tariff_25_revenue(self):
-        """Test 25% steel/aluminum tariff revenue calculation."""
+        """Test 25% steel/aluminum tariff revenue calculation.
+
+        Larger since lane H8 put the Section 232 derivative chapter (HS 73)
+        into the base, which it had never reached.
+        """
         policy = create_steel_tariff_25()
         static_revenue = policy.estimate_static_revenue_effect(0)
-        assert 6 < static_revenue < 12
+        assert 12 < static_revenue < 18
 
     def test_reciprocal_tariff_revenue(self):
-        """Test reciprocal tariff revenue calculation."""
+        """Test reciprocal tariff revenue calculation.
+
+        Larger since lane H8 replaced "a flat 20pp on half of goods imports"
+        with EO 14257's own partner-specific schedule.
+        """
         policy = create_reciprocal_tariffs()
         static_revenue = policy.estimate_static_revenue_effect(0)
-        assert 195 < static_revenue < 245
+        assert 205 < static_revenue < 255
 
 
 class TestConsumerImpact:
@@ -297,7 +305,8 @@ class TestBehavioralOffset:
     """Test everything standing between gross duty and the budget effect."""
 
     def test_behavioral_offset_basic(self):
-        """The offset is avoidance plus the JCT offset plus retaliation."""
+        """The offset is avoidance plus the JCT offset, and since lane H8 that
+        is all: retaliation is not a conventional-score channel."""
         policy = TariffPolicy(
             name="Test",
             description="Test",
@@ -310,8 +319,7 @@ class TestBehavioralOffset:
         income_payroll = (
             (static - avoidance) * TRADE_BASELINE["income_payroll_offset_rate"]
         )
-        retaliation = policy.estimate_retaliation_revenue_loss()
-        assert abs(offset - (avoidance + income_payroll + retaliation)) < 0.01
+        assert abs(offset - (avoidance + income_payroll)) < 0.01
         assert offset > avoidance
 
     def test_behavioral_offset_zero_static(self):
@@ -467,8 +475,14 @@ class TestGetTradeSummary:
             "behavioral_offset",
             "income_payroll_offset",
             "retaliation_revenue_loss",
+            "conventional_revenue",
             "net_revenue",
             "net_to_gross_ratio",
+            "macro_demand_impulse",
+            "gdp_feedback_revenue_loss",
+            "gdp_feedback_revenue_loss_total",
+            "dynamic_revenue",
+            "dynamic_with_retaliation_revenue",
             "consumer_cost",
             "retaliation_cost",
             "household_cost",
@@ -479,12 +493,23 @@ class TestGetTradeSummary:
         """Test that summary values have correct relationships."""
         policy = create_trump_universal_10()
         summary = policy.get_trade_summary()
+        # Since lane H8 the summary's "net" is the *conventional* figure -
+        # gross less avoidance and the income-and-payroll offset, and nothing
+        # else - because that is what the scorer books and what every target
+        # in the trade block is.
         assert abs(
             summary["net_revenue"]
             - (
                 summary["gross_tariff_revenue"]
                 - summary["behavioral_offset"]
                 - summary["income_payroll_offset"]
+            )
+        ) < 0.01
+        assert summary["net_revenue"] == summary["conventional_revenue"]
+        assert abs(
+            summary["dynamic_with_retaliation_revenue"]
+            - (
+                summary["dynamic_revenue"]
                 - summary["retaliation_revenue_loss"]
             )
         ) < 0.01
@@ -539,8 +564,11 @@ class TestFactoryFunctions:
         """Test reciprocal_tariffs factory function."""
         policy = create_reciprocal_tariffs()
         assert isinstance(policy, TariffPolicy)
-        assert policy.tariff_rate_change == 0.20
         assert "Reciprocal" in policy.name
+        # The scalar rate is now the base-weighted average of EO 14257's
+        # partner schedule, not a hand-set 20pp.
+        assert policy.rate_schedule
+        assert 0.20 < policy.tariff_rate_change < 0.35
 
 
 class TestTariffValidationAgainstCBO:

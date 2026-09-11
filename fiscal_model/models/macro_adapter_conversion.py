@@ -37,7 +37,21 @@ def policy_to_scenario(
     # Split into receipts and outlays based on policy type
     policy_type = getattr(policy, "policy_type", None)
 
-    if policy_type and "SPENDING" in str(policy_type.name):
+    impulse_fn = getattr(policy, "macro_demand_impulse", None)
+    if callable(impulse_fn):
+        # A policy that knows its own demand impulse supplies it, because for
+        # some instruments the impulse is not the budget effect. A tariff is
+        # the case that motivated this (lane H8): the duty-inclusive price
+        # rises by the whole tariff while the Treasury collects only
+        # `tau/(1+tau)` of it, and the imports that stop arriving cost surplus
+        # and raise no duty at all, so the real income withdrawn exceeds the
+        # receipts booked -- by 68% for the 10% universal preset. Every other
+        # policy family defines no such method and takes the branch below
+        # unchanged.
+        impulse = float(impulse_fn())
+        receipts_change = np.full(len(deficit_effect), impulse, dtype=float)
+        outlays_change = np.zeros_like(receipts_change)
+    elif policy_type and "SPENDING" in str(policy_type.name):
         # Spending policy - affects outlays
         outlays_change = deficit_effect  # Higher deficit = more spending
         receipts_change = np.zeros_like(deficit_effect)

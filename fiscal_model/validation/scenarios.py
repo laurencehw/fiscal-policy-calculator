@@ -1087,16 +1087,30 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
         # offset. The row's error rose from 1.1% to 37.1% as a result, which is
         # what the old figure was hiding.
         "calibrated_to_target": False,
-        "notes": "10% outside the USMCA carve-out; scored net of offsets.",
+        "notes": (
+            "10% outside the USMCA carve-out; scored conventionally - "
+            "avoidance and the income-and-payroll offset, no retaliation and "
+            "no GDP feedback, which is the column the target comes from."
+        ),
         "limitations": [
             "Poor: the module carves out USMCA-qualifying Canadian and Mexican goods "
             "(1 - 28.03% of 2024 goods imports, Census) because every universal tariff "
             "actually proposed or imposed has done so. FF861 applies no carve-out - its "
             "Table 2 base is the whole $3,353.7B of goods imports - so the two are not "
             "scoring the same policy, and roughly two-fifths of the gap is that.",
-            "The target is FF861's *conventional* column. The model's net figure sits "
-            "between FF861's dynamic ($1,721B) and dynamic-with-retaliation ($1,443B) "
-            "estimates, because it nets retaliation but carries no GDP feedback.",
+            "The target is FF861's *conventional* column, and since lane H8 the "
+            "model scores the same object: gross duty after the demand response, less "
+            "avoidance and the income-and-payroll offset, and nothing else. "
+            "Retaliation used to be netted inside the score, which made the model a "
+            "different column from its own target; it is now reported beside it with "
+            "the GDP-feedback channel. Conventional net/gross is 0.7125 against the "
+            "0.738 FF861's own Table 2, Table 3 and p. 4 imply.",
+            "GDP feedback exists and is not in this figure. Routed through "
+            "FRBUSAdapterLite on the tariff's own price-and-volume impulse it is "
+            "$223.5B over ten years - 16.3% of the conventional score against FF861's "
+            "own 20.7% - and with retaliation the module's dynamic figure is 48.5% of "
+            "gross customs revenue *before* the demand response, inside the 40-50% "
+            "band the repository's knowledge snapshot quotes on that denominator.",
             "The retaliation channel is a reduced form: an export-value loss converted "
             "at the app's marginal revenue rate, with no multiplier and no supply-chain "
             "effect. It returns about $111B over ten years against FF861 p. 2's $278B.",
@@ -1113,7 +1127,10 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
         # now incremental over the duty Census says China's imports actually
         # pay (10.93% in 2024), applied to the whole base. Error 6.2% -> 44.3%.
         "calibrated_to_target": False,
-        "notes": "60% on Chinese imports, incremental over the 10.9% collected in 2024.",
+        "notes": (
+            "60% on Chinese imports, incremental over the 10.9% collected in "
+            "2024; scored conventionally."
+        ),
         "limitations": [
             "Poor, and against a target that is itself untraceable: -$500B exceeds "
             "CRFB's upper bound by two-thirds and is only obtainable as a residual from "
@@ -1125,6 +1142,11 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
             "Trade diversion through third countries — the dominant response in the "
             "2018-2019 episode — is captured only through a single elasticity, and "
             "diverted goods pay no US duty at all in this model.",
+            "Lane H8 took retaliation out of the score, which is why the row improved "
+            "57.2% -> 49.1% with no constant moving: a conventional estimate does not "
+            "net foreign retaliation, and every target in this block is a conventional "
+            "estimate. The channel is still priced and now reports beside the score "
+            "with GDP feedback.",
         ],
     },
     "auto_tariff_25": {
@@ -1163,6 +1185,9 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
             "at all, modelling US-content exceptions instead.",
             "Not retuned: no TRADE_BASELINE constant was moved to close the "
             "gap the revised target opened.",
+            "Lane H8 took retaliation out of the score - a conventional estimate does "
+            "not net it, and this target is Tax Foundation's conventional column - so "
+            "the row improved 52.8% -> 47.2% with no constant moving.",
         ],
     },
     "steel_tariff_25": {
@@ -1173,16 +1198,29 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
         "benchmark_date": "2024",
         "benchmark_url": None,
         "calibrated_to_target": False,
-        "notes": "25pp net of the 3.06% Section 232 duty collected, on a $58.9B base.",
+        "notes": (
+            "25pp on a $108.4B base - HS 72 plus HS 76 net of the 3.06% they "
+            "collect, plus the HS 73 derivative chapter net of the 5.63% it "
+            "collects. The derivative leg is an upper bound (see limitations)."
+        ),
         "limitations": [
             "The Section 232 netting is now measured, not assumed: Census puts calculated "
             "duty on HS-72 plus HS-76 at 3.06% of imports for consumption in 2024, far "
             "below the 25%/10% statutory rates because Canada, Mexico and Australia were "
             "exempted and the EU, UK, Japan, Brazil and South Korea traded under quotas "
             "or product exclusions. The proposed 25% is incremental to that 3.06%.",
-            "HS-72 plus HS-76 is a proxy for 'steel and aluminium'. Section 232 also "
-            "reaches derivative products in HS-73 ($49.6B of imports at 5.63% collected), "
-            "which are excluded here; including them would roughly triple the base.",
+            "Lane H8 put the Section 232 derivative chapter into the base and the "
+            "row got worse by design, 11.9% -> 75.3%. HS-73 is $49.5B of imports "
+            "paying 5.63%, so the base goes $58.9B -> $108.4B - 1.84x, not the "
+            "'roughly triple' this repository said in three places - and it enters as "
+            "its own schedule row because it collects a different duty. The whole "
+            "chapter is an UPPER BOUND: the Section 232 annexes list derivative "
+            "articles at HS-10, and Proclamation 10896 taxes them on steel *content* "
+            "rather than customs value, neither of which is transcribed here. The "
+            "floor is one argument away - create_steel_tariff_25(include_derivatives="
+            "False) returns -$59.0B, 1.7% from the carried target - and the honest "
+            "reading is that a target nobody can source sat close to a base missing "
+            "most of what the statute reaches.",
             "The target is unsourced and, after a second search, stays that "
             "way — recorded in target_revisions.EXAMINED_NOT_REVISED rather "
             "than moved. CBO_SCORE_MAP and PRESET_POLICIES used to spell this "
@@ -1212,18 +1250,38 @@ TRADE_VALIDATION_SCENARIOS_COMPARE = {
             "https://www.crfb.org/blogs/how-much-will-trumps-new-tariffs-raise"
         ),
         "calibrated_to_target": False,
-        "notes": "Flat 20pp applied to half of all goods imports, scored net of offsets.",
+        "notes": (
+            "EO 14257's own partner-specific schedule on 2024 Census bilateral "
+            "trade: 27.7% covered-weighted across 230 partners on $1,679.2B of "
+            "covered imports, scored conventionally."
+        ),
         "limitations": [
-            "'Reciprocal' is implemented as a flat 20pp on 50% of imports — the one "
-            "shape assumption left in the trade module that is not a measurement. The "
-            "published estimates apply partner-specific rates to partner-specific "
-            "bases (a 10% floor rising to 50%, exempting steel, aluminium, autos and "
-            "parts, copper, pharmaceuticals, semiconductors and lumber) and assume "
-            "substantially larger trade diversion.",
-            "The score is now net of avoidance, the income-and-payroll offset and "
-            "retaliation, which is most of the distance between a gross customs figure "
-            "and a published net score. GDP feedback is still absent, so the model's "
-            "-$1,397B sits above where a fully dynamic estimate would land.",
+            "Lane H8 deleted the flat-20pp-on-half-of-imports assumption, the last "
+            "number in TRADE_BASELINE that was a shape rather than a measurement. The "
+            "schedule is now Executive Order 14257's own formula - 2024 bilateral "
+            "goods deficit over goods imports from that partner, halved, floored at "
+            "10% - applied to Census 2024 across 230 partners, with the Annex II "
+            "sectors removed partner by partner and the USMCA partners out. Checked "
+            "against sixteen published Annex I rates the module never reads, the "
+            "reconstruction reproduces every one within 0.8pp (China 0.3373 against "
+            "0.34, Vietnam 0.4521 against 0.46, the EU bloc 0.1951 against 0.20), "
+            "every residual the same sign because Annex I rounds up.",
+            "The row got worse against its anchor and better against its range, and "
+            "both readings are correct. Its old 6.9% was a $1,632B base two-thirds "
+            "the right size meeting a rate nobody proposed; the schedule gives "
+            "$1,679.2B of covered imports at a 27.7% covered-weighted rate and the "
+            "score moves -$1,396.8B -> -$1,642.0B, 6.9% -> 9.5% against Tax "
+            "Foundation's $1.5T anchor. The published range is [-$1,800B, -$1,400B] "
+            "and the model was $3.2B *outside* it before this lane and is inside it "
+            "now.",
+            "Trade diversion is still a single elasticity, and the convexity that "
+            "matters is now priced: rates run from the 10% floor to 48.7%, the "
+            "elasticity doubles above a 30pp price change, and evaluating the "
+            "schedule row by row is not the same object as evaluating once at its "
+            "base-weighted average.",
+            "The score is conventional - avoidance and the income-and-payroll offset, "
+            "and nothing else - which is the column CRFB, Tax Foundation and Yale all "
+            "publish. GDP feedback and retaliation are reported beside it.",
             "The target moved in Wave 4 (reciprocal_tariffs.v1 -> .v2), and it "
             "moved to a *range* rather than to another point. The superseded "
             "-$1.2T was exactly Tax Foundation's *dynamic* score sitting in a "
