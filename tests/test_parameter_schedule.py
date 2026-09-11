@@ -222,6 +222,88 @@ def test_an_unknown_indexation_is_refused():
         )
 
 
+def test_the_base_static_signature_is_frozen():
+    """`estimate_static_revenue_effect` is an eleven-way override point.
+
+    This lane first carried the per-year arguments on the base method itself,
+    which made **six** overrides incompatible with their supertype - all of them
+    inside ``mypy.gate.txt``'s blocking allowlist - and failed CI on four jobs at
+    a step no local gate ran. The per-year entry point is a *separate* method
+    instead, so a subclass that does not need it inherits it and nothing has to
+    change.
+
+    If this test fails you are about to repeat that. Add the parameter to
+    :meth:`TaxPolicy.estimate_static_revenue_effect_for_year`, or to a new
+    method, not here.
+    """
+    import inspect
+
+    params = list(inspect.signature(TaxPolicy.estimate_static_revenue_effect).parameters)
+    assert params == ["self", "baseline_revenue", "use_real_data"]
+
+
+def test_every_override_still_answers_the_base_call():
+    """The runtime half of what mypy's [override] check asserts statically.
+
+    Walks every ``TaxPolicy`` subclass in the tree - the same walking-subclass
+    shape PR #119's coverage grep uses, because "a class nobody swept" is how
+    the incompatibility got in - and asserts each override can be *bound* to the
+    call the engine makes for a policy that does not score by year.
+    """
+    import importlib
+    import inspect
+    import pkgutil
+
+    import fiscal_model
+
+    for module in pkgutil.walk_packages(fiscal_model.__path__, "fiscal_model."):
+        if ".ui" in module.name or ".assistant" in module.name:
+            continue
+        try:
+            importlib.import_module(module.name)
+        except Exception:  # pragma: no cover - optional deps are not this test's business
+            continue
+
+    seen: set[type] = set()
+    stack = [TaxPolicy]
+    while stack:
+        cls = stack.pop()
+        if cls in seen:
+            continue
+        seen.add(cls)
+        stack.extend(cls.__subclasses__())
+        if "estimate_static_revenue_effect" not in cls.__dict__:
+            continue
+        signature = inspect.signature(cls.estimate_static_revenue_effect)
+        # The engine's call for a policy whose scores_by_year() is False.
+        signature.bind(object(), 0.0, use_real_data=True)
+
+    assert len(seen) > 10, f"only {len(seen)} TaxPolicy subclasses walked; imports failed"
+
+
+def test_the_per_year_entry_point_is_inherited_not_overridden_everywhere():
+    """Exactly the classes that need it override it, and the rest inherit.
+
+    The default returns the year-agnostic answer, which is why adding the
+    concept broke no override - the property this asserts rather than assumes.
+    """
+    assert "estimate_static_revenue_effect_for_year" in TaxPolicy.__dict__
+    assert "estimate_static_revenue_effect_for_year" in CapitalGainsPolicy.__dict__
+
+    from fiscal_model.tax_expenditures_core import TaxExpenditurePolicy
+
+    assert "estimate_static_revenue_effect_for_year" not in TaxExpenditurePolicy.__dict__
+    # Inherited, and reachable: a class that never scores by year still has the
+    # method, which is why adding the concept needed no edit in its module.
+    assert hasattr(TaxExpenditurePolicy, "estimate_static_revenue_effect_for_year")
+    # It inherits TaxPolicy's scores_by_year - not Policy's, since it is a
+    # TaxPolicy - and that one reads threshold_indexation, which defaults to
+    # "income". So it answers False without the module declaring anything.
+    assert "scores_by_year" not in TaxExpenditurePolicy.__dict__
+    assert TaxExpenditurePolicy.scores_by_year is TaxPolicy.scores_by_year
+    assert TaxExpenditurePolicy.threshold_indexation == THRESHOLD_INDEXATION_INCOME
+
+
 def test_scores_by_year_has_two_implementers_in_this_module():
     """Item 27 asked for the concept, not a third special case."""
     assert Policy.scores_by_year(

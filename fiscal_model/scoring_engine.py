@@ -307,7 +307,7 @@ class FiscalPolicyScorer:
                 # Asked of the policy rather than of its type since the schedule
                 # lane needed a second case here - see Policy.scores_by_year()
                 # and MODELING_IMPROVEMENT.md section 6.2 item 27.
-                static_annual = policy.estimate_static_revenue_effect(
+                static_annual = policy.estimate_static_revenue_effect_for_year(
                     base_rev,
                     use_real_data=self.use_real_data,
                     year=year,

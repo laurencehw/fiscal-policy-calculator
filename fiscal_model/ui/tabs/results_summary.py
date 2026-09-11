@@ -1413,6 +1413,12 @@ def statutory_threshold_caption(policy: Any, result: Any) -> str:
         else f"CBO's {edition} edition, the nearest published to this vintage"
     )
 
+    # ``__post_init__`` refuses "statutory" without an index, and
+    # ``statutory_thresholds_for_year`` above would already have raised, so this
+    # is a type narrowing rather than a fallback - but a caption may not be the
+    # thing that raises on a rendered page.
+    if policy.threshold_bracket_index is None:
+        return ""
     bracket = int(policy.threshold_bracket_index)
     joint_open, joint_close = opening["joint"], closing["joint"]
     single_open, single_close = opening["single"], closing["single"]

@@ -545,17 +545,38 @@ class TaxPolicy(Policy):
         self,
         baseline_revenue: float,
         use_real_data: bool = True,
-        *,
-        year: int | None = None,
-        threshold_deflator: float = 1.0,
     ) -> float:
         """Estimate static revenue effect before behavioral responses.
 
-        ``year`` and ``threshold_deflator`` are passed by the engine only for a
-        policy whose :meth:`scores_by_year` says the answer differs by year -
-        which for this class means a re-indexed threshold. Omitted, the
-        threshold is the one the policy carries and the answer is the same
-        figure for every year, which is every policy's behaviour by default.
+        **This signature is deliberately unchanged and must stay that way.**
+        Eleven classes across nine modules override it, several of them adding a
+        ``year`` parameter of their own, and a keyword-only parameter added here
+        makes every one of those overrides incompatible with its supertype - six
+        of them inside ``mypy.gate.txt``'s blocking allowlist. The per-year entry
+        point is :meth:`estimate_static_revenue_effect_for_year` instead, which
+        is additive: a subclass that does not need it inherits it and nothing
+        else has to change.
+        """
+        return self._estimate_static(
+            baseline_revenue, use_real_data, scored_year=None, threshold_deflator=1.0
+        )
+
+    def estimate_static_revenue_effect_for_year(
+        self,
+        baseline_revenue: float,
+        *,
+        use_real_data: bool = True,
+        year: int | None = None,
+        threshold_deflator: float = 1.0,
+    ) -> float:
+        """Static revenue effect for one scored year, for a :meth:`scores_by_year` policy.
+
+        The engine calls this instead of :meth:`estimate_static_revenue_effect`
+        where the policy says the answer genuinely differs by year. On this
+        class that means a re-indexed threshold; ``CapitalGainsPolicy``
+        overrides it to forward ``year`` into its own realizations projection.
+        Every other subclass inherits the default, which is the year-agnostic
+        answer, so adding the concept broke no override.
 
         ``threshold_deflator`` converts a threshold stated in the dollars of
         ``year`` into the dollars of the SOI tax year the base is measured in.
@@ -568,6 +589,27 @@ class TaxPolicy(Policy):
         against the correct 17.86% - a number that looks right because two
         things are wrong.
         """
+        return self._estimate_static(
+            baseline_revenue,
+            use_real_data,
+            scored_year=year,
+            threshold_deflator=threshold_deflator,
+        )
+
+    def _estimate_static(
+        self,
+        baseline_revenue: float,
+        use_real_data: bool,
+        *,
+        scored_year: int | None,
+        threshold_deflator: float,
+    ) -> float:
+        """The body both public entry points share.
+
+        Private, so a subclass overriding the public method keeps overriding the
+        thing callers reach, and so adding a parameter here can never change a
+        signature anything else has to match.
+        """
         if self.annual_revenue_change_billions is not None:
             return self.annual_revenue_change_billions
 
@@ -575,7 +617,7 @@ class TaxPolicy(Policy):
             try:
                 return self._estimate_from_irs_data(
                     baseline_revenue,
-                    scored_year=year,
+                    scored_year=scored_year,
                     threshold_deflator=threshold_deflator,
                 )
             except Exception as exc:
@@ -739,6 +781,17 @@ class TaxPolicy(Policy):
         resolved = self.resolved_filing_status_thresholds()
         if self.threshold_indexation == THRESHOLD_INDEXATION_NOMINAL:
             return resolved
+
+        if self.threshold_bracket_index is None:
+            # ``__post_init__`` makes this unreachable - "statutory" without an
+            # index is refused at construction - but the type says it is
+            # possible and a silent ``int(None)`` here would be a TypeError
+            # swallowed by the caller's ``except Exception`` and reported as a
+            # fallback to the rate-of-thumb heuristic. Say what is wrong.
+            raise ValueError(
+                "threshold_indexation='statutory' requires threshold_bracket_index; "
+                f"policy {self.name!r} has none"
+            )
 
         from fiscal_model import cbo_tax_parameters
 
@@ -1535,30 +1588,43 @@ class CapitalGainsPolicy(TaxPolicy):
         """
         return True
 
+    def estimate_static_revenue_effect_for_year(
+        self,
+        baseline_revenue: float,
+        *,
+        use_real_data: bool = True,
+        year: int | None = None,
+        threshold_deflator: float = 1.0,
+    ) -> float:
+        """Forward the scored year into this class's own realizations projection.
+
+        ``threshold_deflator`` is accepted and ignored: this class prices a rate
+        change over published bracket rows rather than a base measured above a
+        threshold, so there is no statutory floor to re-index. It is in the
+        signature because the engine asks every :meth:`scores_by_year` policy
+        the same question, and a class that narrowed the signature would fail
+        on the call rather than on a claim.
+        """
+        _ = threshold_deflator
+        return self.estimate_static_revenue_effect(
+            baseline_revenue, use_real_data=use_real_data, year=year
+        )
+
     def estimate_static_revenue_effect(
         self,
         baseline_revenue: float,
         use_real_data: bool = True,
         year: int | None = None,
-        *,
-        threshold_deflator: float = 1.0,
     ) -> float:
         """Static effect holding realizations fixed, summed over brackets.
 
         ``year`` is the year being scored, which the base is projected to; the
-        engine passes it for a capital-gains policy and nothing else.  Omitted,
-        the base stays at its SOI level, which is what a caller asking for the
-        data-year identity wants.
-
-        ``threshold_deflator`` is accepted and ignored. This class prices a
-        rate change over published bracket rows rather than a base measured
-        above a threshold, so there is no statutory floor to re-index; the
-        parameter is in the signature because the engine now asks every
-        :meth:`scores_by_year` policy the same question and a class that
-        narrowed the signature would fail on the call rather than on a claim.
+        engine reaches it through
+        :meth:`estimate_static_revenue_effect_for_year`.  Omitted, the base
+        stays at its SOI level, which is what a caller asking for the data-year
+        identity wants.
         """
         _ = baseline_revenue
-        _ = threshold_deflator
         brackets = self.get_brackets(use_real_data=use_real_data)
         factor = self.realizations_projection_factor(year)
         total = 0.0
