@@ -907,7 +907,46 @@ TAX_EXPENDITURE_VALIDATION_SCENARIOS_COMPARE = {
         "policy_factory": create_cap_charitable_deduction,
         "expected_10yr": -200.0,
         "source": "Obama/Biden proposal",
+        # Reclassified by lane H7 (2026-09-11) on PR #119's rule, and not
+        # retuned. ``create_cap_charitable_deduction``'s annual of 12.5 was
+        # chosen so that ``static x (1 + 0.40)`` lands on -$200.0B -- lane W7's
+        # finding 3 is the census of which of this module's six constants were
+        # fitted to a static path and which to a magnified score, and this is
+        # one of the three magnified ones. The 0.40 was unsourced; H7 replaced
+        # it with 0.220780, derived from CRS R40518's central price elasticity
+        # of giving (0.5, Appendix A report p. 27) through the module's own SOI
+        # charitable distribution. So the constant is now fitted to a quantity
+        # the module no longer computes, and the row moved 0.3% -> 12.5% with
+        # nothing retuned.
+        #
+        # That is the same shape PR #119 found on ``trump_corporate_15`` and
+        # ``repeal_ptc``: a constant that reproduced its target only through an
+        # unsourced or defective magnitude is not a calibration to that target.
+        # It rates Acceptable rather than Poor, so it is not what trips strict
+        # readiness -- the classification follows the finding, not the rating,
+        # exactly as ``repeal_ptc``'s note above says.
+        #
+        # The proof that it was not retuned is a test rather than a claim:
+        # ``tests/test_loo.py`` undoes the magnitude -- -174.9 x 1.40 / 1.220780
+        # = -200.6 -- and requires that within 1% of the target.
+        "calibrated_to_target": False,
         "notes": "Pease-style limitation",
+        "limitations": [
+            "Reclassified rather than retuned: the module's behavioural "
+            "magnitude for a charitable benefit-rate ceiling was an unsourced "
+            "0.40, and this annual had been chosen so that static x 1.40 lands "
+            "on -$200.0B. Lane H7 derived the magnitude from CRS R40518's "
+            "central price elasticity of giving (0.5) through the deduction's "
+            "own SOI distribution, giving 0.220780, and the row moved 0.3% -> "
+            "12.5%; no constant was moved to close it.",
+            "The -$200B target is itself `secondhand` and sits in "
+            "EXAMINED_NOT_REVISED: the 28% limitation it points at is a real "
+            "Green Book proposal with a real score, but that proposal limits "
+            "the value of ALL itemized deductions plus several exclusions, so "
+            "its $645,538M is not a charitable-only cap. The residual is "
+            "therefore a distance from an unsourced figure rather than a "
+            "measurement against a document.",
+        ],
     },
     "eliminate_step_up": {
         "description": "Eliminate step-up in basis",

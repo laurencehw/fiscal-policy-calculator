@@ -78,10 +78,21 @@ option reverses its own verdict between a rate ceiling (magnify) and a floor
 (erode), because a floor can be bunched over.
 
 Anything the table does not name **erodes** -- the contract every other policy
-class follows. Absence of a statement is not evidence of magnification. The
-elasticities are a separate and still-unsourced problem; see
-``BEHAVIORAL_ELASTICITIES`` and
-``planning/lanes/W7_expenditure_offset_convention.md``.
+class follows. Absence of a statement is not evidence of magnification.
+
+How large the behavioural offset is
+-----------------------------------
+Lane W7 settled the direction and said in terms that it would not touch a
+magnitude: a direction can be read off a document, a magnitude cannot be read
+off the same sentence. Lane H7 asked the same question of the five magnitudes
+one at a time, and **two of the five have a document**. Those two are in
+:data:`OFFSET_MAGNITUDES`, keyed on the reform exactly as the directions are:
+mortgage repeal on Poterba & Sinai's own pair of published figures, and the
+charitable benefit-rate ceiling on an identity whose only input is a published
+price elasticity of giving. The other three -- employer health, retirement and
+SALT -- are still unsourced, stay in :data:`BEHAVIORAL_ELASTICITIES`, and carry
+the searches that failed in ``planning/lanes/HSD_h7_expenditure_magnitudes.md``
+section 1.
 """
 
 import math
@@ -447,15 +458,35 @@ TAX_EXPENDITURE_DATA_KEYS = {
 
 
 #: How large the behavioural response is, as a share of the reform's static
-#: revenue effect. **These five numbers are unsourced**, and lane W7
-#: deliberately left them alone while settling the *direction* question below:
-#: a direction can be read off a document, a magnitude cannot be read off the
-#: same sentence. Two of them now have a published figure to be compared
-#: against and neither was moved toward it -- mortgage's 0.10 against Poterba &
-#: Sinai's 15% (NBER WP 14253, Table 8), and charitable's 0.40, which has the
-#: size of a *price elasticity of giving* while being applied to a revenue
-#: effect, which is a different quantity. Both are carry-overs; see
-#: ``planning/lanes/W7_expenditure_offset_convention.md`` section 8.
+#: revenue effect -- the **unsourced fallback**, consulted only where
+#: :data:`OFFSET_MAGNITUDES` has no rule for the reform being scored.
+#:
+#: Lane W7 left all five of these alone while settling the direction question,
+#: and lane H7 asked each of them for a document. **Two found one and left this
+#: table's reach**: ``MORTGAGE_INTEREST`` under ``eliminate`` and ``CHARITABLE``
+#: under a benefit-rate ``cap`` now resolve through :data:`OFFSET_MAGNITUDES`,
+#: so the 0.10 and 0.40 below are no longer read by any reform this module
+#: ships. They stay because deleting them would send a *different* charitable
+#: or mortgage reform -- a floor, a dollar cap -- through to the factories'
+#: ``behavioral_elasticity=0.0`` and score it with no behavioural response at
+#: all, and absence of a sourced magnitude is not evidence that the magnitude
+#: is zero. That is the same standard W7 applied to directions.
+#:
+#: **Three are still unsourced and are still live**, each with the search that
+#: failed recorded in ``planning/lanes/HSD_h7_expenditure_magnitudes.md``
+#: section 1:
+#:
+#: * ``EMPLOYER_HEALTH`` 0.20 -- CBO 60557 Option 56 names two channels, ranks
+#:   plan switching above coverage dropping, and quantifies neither. The offer
+#:   elasticities CBO and JCT publish (-0.07 to -1.14 by firm size) price the
+#:   channel CBO calls the lesser one, so they would attach a citation to the
+#:   wrong half of the mechanism.
+#: * ``RETIREMENT_CONTRIBUTIONS`` 0.30 -- CBO ``budget-options/2018/54799``
+#:   quantifies exactly one leg ("The constraints on Roth conversions would
+#:   reduce revenues by $6 billion over that period") and says the net reverses
+#:   *outside* the window. Nothing scored reads this entry.
+#: * ``SALT`` 0.05 -- CBO 58635 names the channel and prices nothing; Yale
+#:   Budget Lab prices a different dose of a different expenditure.
 #:
 #: Note that this table **wins over** ``TaxExpenditurePolicy.behavioral_elasticity``
 #: for any type listed in it, so the ``behavioral_elasticity=0.0`` every
@@ -604,6 +635,111 @@ OFFSET_DIRECTIONS: dict[tuple[TaxExpenditureType, str], OffsetDirectionRule] = {
             "mortgage-interest expenditure from $323B at a $10,000 limit to "
             "$497B at $20,000. Restoring the deduction enlarges the revenue loss "
             "beyond the SALT figure alone."
+        ),
+    ),
+}
+
+
+#: How a sourced magnitude is arrived at.
+#:
+#: ``PUBLISHED_SHARE``
+#:     The source prints two revenue figures for the *same* reform, one with
+#:     the behavioural response and one without, so their ratio **is** the
+#:     quantity this module multiplies by and nothing has to be converted.
+#: ``PRICE_ELASTICITY_ON_BENEFIT_RATE_CEILING``
+#:     The source prints a *price elasticity of the deducted item*, which is a
+#:     different quantity, and the identity in
+#:     :meth:`~fiscal_model.tax_expenditure_distributions.DeductionDistribution.benefit_rate_ceiling_offset_share`
+#:     converts it on the reform's own base distribution.
+class OffsetMagnitudeKind(Enum):
+    PUBLISHED_SHARE = "published_share"
+    PRICE_ELASTICITY_ON_BENEFIT_RATE_CEILING = "price_elasticity_on_benefit_rate_ceiling"
+
+
+@dataclass(frozen=True)
+class OffsetMagnitudeRule:
+    """One reform's behavioural magnitude, with the document that sizes it.
+
+    The shape mirrors :class:`OffsetDirectionRule` deliberately, ``cap_unit``
+    included and for the same reason: a magnitude derived for a rate ceiling
+    says nothing about a floor or a dollar cap, and a rule that did not name
+    the design it was read for would assert more than its document does.
+
+    Exactly one of ``share`` and ``price_elasticity`` is set, according to
+    ``kind``.
+    """
+
+    kind: OffsetMagnitudeKind
+    source: str
+    share: float | None = None
+    price_elasticity: float | None = None
+    cap_unit: CapUnit | None = None
+
+    def __post_init__(self) -> None:
+        if self.kind is OffsetMagnitudeKind.PUBLISHED_SHARE:
+            if self.share is None or self.price_elasticity is not None:
+                raise ValueError(
+                    "a PUBLISHED_SHARE rule carries a share and no price elasticity"
+                )
+        elif self.price_elasticity is None or self.share is not None:
+            raise ValueError(
+                "a derived rule carries a price elasticity and no share"
+            )
+
+
+#: The **size** of the behavioural response, per reform, each entry carrying
+#: the document that sizes it -- the magnitude half of what
+#: :data:`OFFSET_DIRECTIONS` does for the sign.
+#:
+#: Keyed and scoped identically, and consulted first: a reform with no entry
+#: here, or with an entry whose ``cap_unit`` does not match the policy's, falls
+#: back to :data:`BEHAVIORAL_ELASTICITIES` and then to the policy's own
+#: ``behavioral_elasticity``. Two of the module's five magnitudes are in here;
+#: the other three are unsourced and say so.
+#:
+#: See ``planning/lanes/HSD_h7_expenditure_magnitudes.md`` section 1 for the
+#: full inventory, including the three searches that failed.
+OFFSET_MAGNITUDES: dict[tuple[TaxExpenditureType, str], OffsetMagnitudeRule] = {
+    (TaxExpenditureType.MORTGAGE_INTEREST, "eliminate"): OffsetMagnitudeRule(
+        kind=OffsetMagnitudeKind.PUBLISHED_SHARE,
+        share=1.0 - 61.9 / 72.4,
+        source=(
+            "Poterba and Sinai, Income Tax Provisions Affecting Owner-Occupied "
+            "Housing: Revenue Costs and Incentive Effects, NBER Working Paper "
+            "14253 (August 2008), section 6.1 and Table 8 -- the same document "
+            "OFFSET_DIRECTIONS' companion reading takes this reform's ERODE "
+            "direction from. 'We estimate that in the absence of any "
+            "behavioral response, eliminating the mortgage interest deduction "
+            "would raise $72.4 billion'; allowing households to liquidate "
+            "taxable financial assets to retire mortgage debt the same repeal "
+            "raises $61.9 billion, 'about 85 percent of the tax increase when "
+            "we do not consider portfolio substitution'. Both figures are "
+            "revenue effects of the same repeal, so 1 - 61.9/72.4 is this "
+            "module's parameter with no conversion. The ratio of the two "
+            "published figures is used rather than the paper's rounded 'about "
+            "85 percent', because the rounding is its presentation and the "
+            "figures are its estimate. Scoped to repeal: nothing in the paper "
+            "sizes the portfolio response to a cap."
+        ),
+    ),
+    (TaxExpenditureType.CHARITABLE, "cap"): OffsetMagnitudeRule(
+        kind=OffsetMagnitudeKind.PRICE_ELASTICITY_ON_BENEFIT_RATE_CEILING,
+        price_elasticity=0.5,
+        cap_unit=CapUnit.BENEFIT_RATE,
+        source=(
+            "Congressional Research Service, R40518, Charitable Contributions: "
+            "The Itemized Deduction Cap and Other FY2011 Budget Options -- a "
+            "whole report on this reform, a 28 percent ceiling on the value of "
+            "itemised deductions. Appendix A reviews the panel literature study "
+            "by study and concludes, report p. 27: 'Ultimately a center "
+            "elasticity of 0.5 is used.' Table 3 (report p. 9) carries the band "
+            "it was chosen from -- low 0.1, central 0.5, high 0.79. This is a "
+            "PRICE elasticity of giving, not a share of a revenue effect; "
+            "DeductionDistribution.benefit_rate_ceiling_offset_share converts "
+            "it on the reform's own SOI base. At a 28 percent ceiling that "
+            "gives 0.2208, against the 0.40 this module carried unsourced -- "
+            "which inverts to a price elasticity of about 0.91, above the whole "
+            "of CRS's band."
         ),
     ),
 }
@@ -902,6 +1038,63 @@ class TaxExpenditurePolicy(TaxPolicy):
             return rule.direction
         return DEFAULT_OFFSET_DIRECTION
 
+    def offset_magnitude_rule(self) -> OffsetMagnitudeRule | None:
+        """The sourced magnitude rule for this reform, or ``None`` if there is none.
+
+        Scoped exactly as :meth:`offset_direction_rule` is: a rule naming a cap
+        design applies only to a policy written in that design, because a
+        magnitude derived for a rate ceiling says nothing about a floor.
+        """
+        rule = OFFSET_MAGNITUDES.get((self.expenditure_type, self.action))
+        if rule is None:
+            return None
+        if rule.cap_unit is not None and rule.cap_unit != self.cap_unit:
+            return None
+        return rule
+
+    def resolved_offset_magnitude(self) -> float:
+        """How large this reform's behavioural offset is, as a share of static.
+
+        Resolution order, most specific first:
+
+        1. a sourced :data:`OFFSET_MAGNITUDES` rule for this reform;
+        2. :data:`BEHAVIORAL_ELASTICITIES` for this expenditure type -- the
+           unsourced fallback, three of whose five entries are still live;
+        3. the policy's own ``behavioral_elasticity``, which every calibrated
+           factory sets to ``0.0``.
+
+        A derived rule is evaluated against this policy's own base
+        distribution, so the answer moves with the cap rate rather than being
+        a constant that happens to have been computed at 28 percent. An
+        expenditure with no transcribed distribution cannot carry a derived
+        rule and falls back to (2) rather than raising -- the static path is
+        where a missing distribution is a hard error, because there it changes
+        the score rather than a haircut on it.
+        """
+        rule = self.offset_magnitude_rule()
+        if rule is not None:
+            if rule.kind is OffsetMagnitudeKind.PUBLISHED_SHARE:
+                return float(rule.share or 0.0)
+            derived = self._derived_offset_magnitude(rule)
+            if derived is not None:
+                return derived
+        return BEHAVIORAL_ELASTICITIES.get(
+            self.expenditure_type,
+            self.behavioral_elasticity,
+        )
+
+    def _derived_offset_magnitude(self, rule: OffsetMagnitudeRule) -> float | None:
+        """Evaluate a derived magnitude rule, or ``None`` if it cannot be."""
+        if self.cap_rate is None:
+            return None
+        spec = self._base_distribution_spec(self.get_expenditure_data())
+        if spec is None or spec.get("kind") != "deduction":
+            return None
+        return load_deduction_distribution(spec["column"]).benefit_rate_ceiling_offset_share(
+            float(self.cap_rate),
+            float(rule.price_elasticity or 0.0),
+        )
+
     def estimate_behavioral_offset(self, static_effect: float) -> float:
         """
         Estimate the behavioural response to a tax-expenditure change.
@@ -923,14 +1116,14 @@ class TaxExpenditurePolicy(TaxPolicy):
         option reverses its own verdict between a rate ceiling and a floor. See
         ``planning/lanes/W7_expenditure_offset_convention.md`` §4.1.
 
-        What is *not* read from a source is the size: the elasticity comes from
-        :data:`BEHAVIORAL_ELASTICITIES`, whose five values are unsourced and
-        which W7 deliberately did not touch.
+        **The size is now read from a source on two of the five magnitudes**,
+        through :data:`OFFSET_MAGNITUDES` and
+        :meth:`resolved_offset_magnitude`. The other three are still the
+        unsourced :data:`BEHAVIORAL_ELASTICITIES` values W7 left alone, and
+        that table's own comment records the search that failed for each. See
+        ``planning/lanes/HSD_h7_expenditure_magnitudes.md`` section 1.
         """
-        elasticity = BEHAVIORAL_ELASTICITIES.get(
-            self.expenditure_type,
-            self.behavioral_elasticity,
-        )
+        elasticity = self.resolved_offset_magnitude()
         magnitude = abs(static_effect) * elasticity
 
         if self.resolved_offset_direction() is OffsetDirection.MAGNIFY:

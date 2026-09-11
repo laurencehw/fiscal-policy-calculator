@@ -112,19 +112,23 @@ def test_every_badge_names_its_tier():
 
 
 def test_the_tier_composition_is_what_the_lane_registered():
-    """16 fitted / 25 unfitted reconstructions / 3 out-of-sample. If this moves,
+    """15 fitted / 26 unfitted reconstructions / 3 out-of-sample. If this moves,
     a benchmark changed tier and the docs quoting it are stale.
 
     H6 registered 20 / 21 / 3; H9's provenance pass then moved five fitted
     targets onto their documents (``ss_donut_250k``, ``tcja_rates_only``,
     ``eliminate_estate_tax``, ``repeal_ira_credits``, ``eliminate_mortgage``),
     so a constant fitted to the superseded figure reports as a reconstruction.
+    H7 then moved a sixth on PR #119's *other* rule: ``cap_charitable``'s
+    annual reproduced -$200.0B only through an unsourced 0.40 behavioural
+    magnitude, and a constant fitted through an unsourced magnitude the lane
+    then sourced is not a calibration to that target either.
     """
     counts: dict[str, int] = {}
     for preset_id in PRESET_ID_TO_SCORECARD_ID:
         tier = get_validation_badge(preset_id)["tier"]
         counts[tier] = counts.get(tier, 0) + 1
-    assert counts == {"fitted": 16, "reconstruction": 25, "out_of_sample": 3}
+    assert counts == {"fitted": 15, "reconstruction": 26, "out_of_sample": 3}
 
 
 def test_the_three_tiers_are_never_collapsed_into_one_claim():
