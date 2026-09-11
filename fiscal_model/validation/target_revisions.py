@@ -160,6 +160,21 @@ H9_PROVENANCE_ENTERED_DATE = "2026-09-09"
 #: Commit in which the H9 targets were first actually scored.
 H9_PROVENANCE_FIRST_SCORED_COMMIT = "63e76b8d8b978de6c6be1782ea2e54ba4f6bcd0a"
 
+#: Commit of owner decision (4) — ``planning/HIGH_STAKES_ACCURACY.md`` §4 —
+#: which withdraws the two pharma targets H9 searched and recommended
+#: retiring. These are the ledger's **first two retirements**.
+#:
+#: The two-commit split does not apply and the reason is worth stating rather
+#: than inferring: a supersession moves a figure a runner reads, so the target
+#: must be frozen in the history before the model is scored against it. A
+#: retirement moves no figure at all — both rows keep their model output, their
+#: withdrawn target and their scorecard entry, and what changes is which tier's
+#: mean they are counted in. There is nothing for a later commit to score, so
+#: ``entered_commit`` and ``first_scoring_run_commit`` are the same commit, as
+#: ``HSB_h9_provenance.md`` §8.7's prepared edit specifies.
+RETIREMENT_DECISION_COMMIT = "ba5d47c0e91f3826ad0c7b1e5f4926d8e3a0c7f5"
+RETIREMENT_DECISION_DATE = "2026-09-11"
+
 
 @dataclass(frozen=True)
 class CalibratedTarget:
@@ -2001,6 +2016,114 @@ CALIBRATED_TARGETS: tuple[CalibratedTarget, ...] = (
             "name misdescribes it."
         ),
     ),
+    # ------------------------------------------------------------------
+    # Owner decision (4): the two pharma targets are withdrawn
+    # ------------------------------------------------------------------
+    # The ledger's first two retirements. Neither figure is a score of
+    # anything, and each is contradicted by every published quantity in its
+    # neighbourhood. H9 (PR #153) searched both in full, wrote the verdicts,
+    # built the `retire` state and applied it to nothing, because the decision
+    # is the owner's; this is that decision. Both rows keep their scorecard
+    # entries, their model figures and their withdrawn targets, both are
+    # counted by `ScorecardSummary.retired_target_entries`, and the
+    # reconstruction tier is reported twice - once without them and once with
+    # them folded back at the error they carried when they were withdrawn - so
+    # the 18.4 points the tier "improves" by are never quotable without the
+    # arithmetic on the same page.
+    CalibratedTarget(
+        revision_id="expand_drug_negotiation.v1",
+        policy_id="expand_drug_negotiation",
+        official_10yr_billions=-500.0,
+        source_name="none (this repository's own extrapolation)",
+        source_date="2024",
+        window="stated as 10-year; not traceable to any published window",
+        entered_commit=RETIREMENT_DECISION_COMMIT,
+        entered_date=RETIREMENT_DECISION_DATE,
+        first_scoring_run_commit=RETIREMENT_DECISION_COMMIT,
+        retired=True,
+        retired_reason=(
+            "Searched on 2026-09-09 (lane HSB_h9_provenance) and no published "
+            "score of EXPANDING the negotiation program exists. CBO's December "
+            "2024 Options volume contains no drug-negotiation option at all "
+            "(searched in full for 'negotiat', 'drug price', 'prescription "
+            "drug'). The nearest published quantities are neither this policy: "
+            "CBO's score of the IRA's existing program, publication PL117-169 "
+            "(7 September 2022) Table 1 p. 5, sec. 11001 'Providing for Lower "
+            "Prices for Certain High-Priced Single Source Drugs', -$98,521M "
+            "over FY2022-2031 -- which is the CURRENT program, not an "
+            "expansion; and the FY2025 Budget's Table S-6 (report p. 143), "
+            "-$200,000M over FY2025-2034 for 'Expand Medicare drug "
+            "negotiation, extend inflation rebates and out-of-pocket cost caps "
+            "to the commercial market, and other steps to build on the "
+            "Inflation Reduction Act (IRA) drug provisions' -- a bundle in "
+            "which the negotiation expansion is not separable from two "
+            "commercial-market reforms `pharma.py` does not model. Worth "
+            "recording precisely: the phrase 'at least 50 drugs' appears "
+            "NOWHERE in the FY2025 Budget; it comes from the March 2024 State "
+            "of the Union, and no scored document uses it. H.R. 4895 / "
+            "H.R. 6166, which would raise the cohort from 20 to 50, have no "
+            "CBO estimate. So -$500B is the repository's own extrapolation "
+            "from $237B, a figure `W4_pharma_part_d.md` finding 2 established "
+            "was never a negotiation score at all but CBO's total for the "
+            "whole drug-pricing title. WHAT WOULD BRING IT BACK: a published "
+            "ten-year score of an expansion of the negotiation program on a "
+            "post-IRA baseline -- a CBO estimate of H.R. 4895 or H.R. 6166, or "
+            "a drug-negotiation option in a future Options volume. A separable "
+            "negotiation leg of the FY2025 Budget's bundle would also do it. "
+            "Until then the benchmark keeps its scorecard row and its model "
+            "figure and is reported as retired, never deleted."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="international_reference_pricing.v1",
+        policy_id="international_reference_pricing",
+        official_10yr_billions=-100.0,
+        source_name="none (derived from a RAND price index)",
+        source_date="2024",
+        window="stated as 10-year; not traceable to any published window",
+        entered_commit=RETIREMENT_DECISION_COMMIT,
+        entered_date=RETIREMENT_DECISION_DATE,
+        first_scoring_run_commit=RETIREMENT_DECISION_COMMIT,
+        retired=True,
+        retired_reason=(
+            "Searched on 2026-09-09 (lane HSB_h9_provenance). A published "
+            "score of international reference pricing does exist and it prices "
+            "a materially narrower instrument, on a baseline this repository "
+            "cannot use. CBO's letter to Chairman Frank Pallone of 10 December "
+            "2019 (publication 55936) scores Title I of H.R. 3, the Elijah E. "
+            "Cummings Lower Drug Costs Now Act -- prices for SELECTED drugs "
+            "negotiated so they 'did not exceed 120 percent of the average in "
+            "a reference group of six foreign countries' -- at 'about $456 "
+            "billion over the 2020-2029 period' of direct-spending reduction "
+            "(Table 1: -455,927 million) plus $45B of revenues. Three things "
+            "stop it being this row's target. (1) SCOPE: H.R. 3 caps a "
+            "selected cohort; the module prices a cap across Medicare drug "
+            "spending, so the published figure is a floor on a narrower "
+            "policy. (2) BASELINE: it is scored against a PRE-IRA world in "
+            "which Medicare had no negotiation authority, and the IRA has "
+            "since enacted a program CBO scores at -$98.5B, so a large part of "
+            "H.R. 3's savings is now law -- adopting the figure would "
+            "double-count it. (3) WINDOW: FY2020-2029, and this repository "
+            "carries no 2019 vintage. The other published quantities are "
+            "further away: CMS's Most Favored Nation interim final rule "
+            "(85 FR 76180, 27 November 2020) estimates $85.5B of net Part B "
+            "savings over a SEVEN-year model period and was rescinded "
+            "effective 28 February 2022; and the Council of Economic "
+            "Advisers' May 2026 MFN paper's '$529B in domestic savings in the "
+            "next 10 years across all markets' is economy-wide across all "
+            "payers, not a federal budget effect -- its only federal-scoped "
+            "figure is $36.6B of Medicaid savings. So -$100B stands sourced to "
+            "nothing but a RAND price index, which is a price statistic and "
+            "not a budget score, and it is contradicted in both directions: a "
+            "fifth of CBO's figure for a NARROWER policy and an eighth of the "
+            "module's own answer. WHAT WOULD BRING IT BACK: a ten-year federal "
+            "budget score of a Medicare-wide international reference price on "
+            "a post-IRA baseline. This row is the reconstruction tier's single "
+            "largest error at 701.0%, which is exactly why withdrawing it "
+            "needed the owner's signature; it keeps its scorecard row and its "
+            "model figure and is reported as retired, never deleted."
+        ),
+    ),
 )
 
 
@@ -2368,70 +2491,6 @@ EXAMINED_NOT_REVISED: dict[str, str] = {
         "assumes. Left as `model_estimate`, and see `HSB_h9_provenance.md` "
         "for the $6,500B-versus-$5,700B inconsistency this search exposed "
         "between `CBO_SCORE_MAP` and the benchmark's own target."
-    ),
-    "expand_drug_negotiation": (
-        "Searched on 2026-09-09 and no published score of EXPANDING the "
-        "negotiation program exists. CBO's December 2024 Options volume "
-        "contains no drug-negotiation option at all (searched in full for "
-        "'negotiat', 'drug price', 'prescription drug'). The nearest "
-        "published quantities are neither this policy: CBO's score of the "
-        "IRA's existing program, publication PL117-169 (7 September 2022) "
-        "Table 1 p. 5, sec. 11001 'Providing for Lower Prices for Certain "
-        "High-Priced Single Source Drugs', -$98,521M over FY2022-2031 -- "
-        "which is the CURRENT program, not an expansion; and the FY2025 "
-        "Budget's Table S-6 (report p. 143), -$200,000M over FY2025-2034 for "
-        "'Expand Medicare drug negotiation, extend inflation rebates and "
-        "out-of-pocket cost caps to the commercial market, and other steps to "
-        "build on the Inflation Reduction Act (IRA) drug provisions' -- a "
-        "bundle in which the negotiation expansion is not separable from two "
-        "commercial-market reforms `pharma.py` does not model. Worth "
-        "recording precisely: the phrase 'at least 50 drugs' appears NOWHERE "
-        "in the FY2025 Budget; it comes from the March 2024 State of the "
-        "Union, and no scored document uses it. H.R. 4895 / H.R. 6166, which "
-        "would raise the cohort from 20 to 50, have no CBO estimate. So "
-        "-$500B is the repository's own extrapolation from $237B, a figure "
-        "`W4_pharma_part_d.md` finding 2 established was never a negotiation "
-        "score at all but CBO's total for the whole drug-pricing title. THE "
-        "RECOMMENDATION IS RETIREMENT and it is NOT applied here: owner "
-        "decision (4) of `planning/HIGH_STAKES_ACCURACY.md` is open, and "
-        "`HSB_h9_provenance.md` carries the verdict and the exact one-commit "
-        "edit that would apply it. Left in place meanwhile, because removing "
-        "a 93.3% row is precisely what a `retire` state must not be used for "
-        "without the owner saying so."
-    ),
-    "international_reference_pricing": (
-        "Searched on 2026-09-09. A published score of international reference "
-        "pricing does exist and it prices a materially narrower instrument, "
-        "on a baseline this repository cannot use. CBO's letter to Chairman "
-        "Frank Pallone of 10 December 2019 (publication 55936) scores Title I "
-        "of H.R. 3, the Elijah E. Cummings Lower Drug Costs Now Act -- prices "
-        "for SELECTED drugs negotiated so they 'did not exceed 120 percent of "
-        "the average in a reference group of six foreign countries' -- at "
-        "'about $456 billion over the 2020-2029 period' of direct-spending "
-        "reduction (Table 1: -455,927 million) plus $45B of revenues. Three "
-        "things stop it being this row's target. (1) SCOPE: H.R. 3 caps a "
-        "selected cohort; the module prices a cap across Medicare drug "
-        "spending, so the published figure is a floor on a narrower policy. "
-        "(2) BASELINE: it is scored against a PRE-IRA world in which Medicare "
-        "had no negotiation authority, and the IRA has since enacted a "
-        "program CBO scores at -$98.5B, so a large part of H.R. 3's savings "
-        "is now law -- adopting the figure would double-count it. (3) WINDOW: "
-        "FY2020-2029, and this repository carries no 2019 vintage. The other "
-        "published quantities are further away: CMS's Most Favored Nation "
-        "interim final rule (85 FR 76180, 27 November 2020) estimates $85.5B "
-        "of net Part B savings over a SEVEN-year model period and was "
-        "rescinded effective 28 February 2022; and the Council of Economic "
-        "Advisers' May 2026 MFN paper's '$529B in domestic savings in the "
-        "next 10 years across all markets' is economy-wide across all payers, "
-        "not a federal budget effect -- its only federal-scoped figure is "
-        "$36.6B of Medicaid savings. So -$100B stands sourced to nothing but "
-        "a RAND price index, and it is contradicted in both directions: it is "
-        "a fifth of CBO's figure for a NARROWER policy and an eighth of the "
-        "module's own answer. THE RECOMMENDATION IS RETIREMENT and it is NOT "
-        "applied here, for the same reason as `expand_drug_negotiation`: "
-        "owner decision (4) is open, and this is the tier's single largest "
-        "error, so withdrawing it is exactly the move that needs the owner's "
-        "signature rather than a lane's."
     ),
 }
 
