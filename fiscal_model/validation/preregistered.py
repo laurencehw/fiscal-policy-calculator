@@ -290,7 +290,7 @@ R3_MULTI_VOLUME_ENTERED_DATE = "2026-09-11"
 #: Commit in which lane R3's battery was first scored — the commit that flips
 #: those 22 records to ``runnable=True`` and admits a window-carrying record to
 #: the Generic dispatch.
-R3_MULTI_VOLUME_FIRST_SCORED_COMMIT = "cfa6d99fc0a0fbfa0ac57dbe31d1c9dbd0f6e1b2"
+R3_MULTI_VOLUME_FIRST_SCORED_COMMIT = "7dd9573397aaac0f820b5a877ec6951f86846e68"
 
 #: The rule R3 bound itself to **before** it read a figure into a record.
 #:

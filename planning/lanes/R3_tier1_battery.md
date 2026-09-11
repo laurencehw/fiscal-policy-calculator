@@ -410,12 +410,48 @@ ruff, the mypy allowlist, `check_readiness.py --strict` (0 fail),
 (`out_of_sample_entries` 22 → **44**, `published_entries` 73 → **95**,
 `total_entries` 77 → **99**), and the rest of the suite.
 
+### 5.6a A user-facing number moved, and the trap PR #122 named is why
+
+**This is the finding a reader should be most interested in, because it is the
+one the lane did not predict.** `assistant/benchmarks.py:candidate_anchors`
+turns every `KNOWN_SCORES` record with a matching policy family and a non-zero
+`rate_change` into an interpolation anchor for the Ask assistant's capability
+gate. Registering a validation benchmark is therefore, silently, an edit to a
+shipped answer — and registering three older corporate rows moved the
+assistant's *own acceptance case*, a 21% → 25% corporate rate, from
+**−$741.35B to −$542.80B**, because CBO's 2018 and 2020 editions price a point
+of rate about a third lower than its 2024 one.
+
+PR #122 saw this coming and avoided it by keeping `biden_corporate_28_fy2022`
+out of `KNOWN_SCORES` altogether: *"adding it would have put a 2021-vintage
+figure into the set a 2026 user's 'what would +4pp raise?' interpolates
+across."* A record that has to be **scored** cannot be kept out, so the
+exclusion has to become a field. `CBOScore.assistant_anchor_eligible` defaults
+to `True` — no pre-existing record changes — and the 22 new rows set it
+`False`, on one stated rule: **a benchmark published for a decade this
+deployment does not serve is a valid validation target and not a valid anchor
+for a question asked today.** The acceptance case is back at −$741.35B and
+`tests/test_capability_gate.py` passes unchanged.
+
+The general lesson is worth more than the fix: **the set of files a lane
+"opens" is not the set of files it changes the behaviour of.** This lane opened
+no module and moved a shipped number anyway, through a registry two hops away.
+
 ### 5.7 What did not move
 
-`run_loo.py --donor-matrix` byte-identical. All 55 calibrated rows
-byte-identical. All 22 pre-existing Tier 1 `model_10yr_billions` byte-identical.
-No preset, no Tailor combination and no app surface moved, because no module was
-opened and no shipped policy object changed — **no Decision 6 caption is owed**.
+`run_loo.py --donor-matrix` byte-identical — verified by running it on
+`main`'s own `fiscal_model/validation` and `assistant/benchmarks.py` in this
+tree and diffing, not asserted. All 55 calibrated rows byte-identical. All 22
+pre-existing Tier 1 `model_10yr_billions` byte-identical. The Ask assistant's
+corporate anchors are byte-identical after §5.6a's fix. No preset, no Tailor
+combination and no app surface moved, because no module was opened and no
+shipped policy object changed — **no Decision 6 caption is owed**.
+
+`run_validation_dashboard.py` prints the grown tier (`44 out-of-sample cases |
+mean abs error 18.0% | within 15%: 26/44 | within 25%: 35/44`) and exits 1 on
+`[FAIL] One or more health components degraded` — **which `main` also does in
+this environment**, on Python 3.14, degraded microdata calibration and an unset
+`ANTHROPIC_API_KEY`. Checked by running the same script on `main`'s own files.
 
 ## §6 — Carry-overs
 
@@ -448,7 +484,14 @@ opened and no shipped policy object changed — **no Decision 6 caption is owed*
    evenly between employers and employees on four of the eight payroll rows and
    the shape books it entirely on employees. Expressing it is a `payroll.py`
    change.
-8. **`cbo_options.py` now holds two idioms for the same judgement** — a
+8. **`assistant_anchor_eligible` is a flag on 22 rows and should probably be a
+   rule.** §5.6a's guard is correct and minimal, but "does this benchmark's
+   decade overlap the one the app serves?" is derivable from
+   `scoring_window_first_year` and `budget_window` rather than declared. The
+   field is the safe version; deriving it is a follow-up, and anyone doing it
+   should first check what it would do to `treasury_capgains_39_plus_stepup_elim`
+   and `tcja_2017_corporate`, both of which are anchors today.
+9. **`cbo_options.py` now holds two idioms for the same judgement** — a
    hand-written `OUT_OF_SCOPE_REASONS` dict for the 2024 volume and a generated
    CSV for the other three. The CSV is the better one at this size; folding the
    2024 volume into it is a tidy-up nobody needs today.
