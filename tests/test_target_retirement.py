@@ -96,16 +96,48 @@ def _with_rows(monkeypatch, *rows):
 # ---------------------------------------------------------------------------
 
 
-def test_nothing_is_retired_yet():
-    """Owner decision (4) is open, so the state is built and applied to nothing.
+def test_exactly_the_two_targets_the_owner_withdrew_are_retired():
+    """Owner decision (4), applied: the pharma pair and nothing else.
 
-    This is the falsification test for the lane that built it: a retirement
-    that slips in without the owner's answer is exactly the "removing a case to
-    go green" move the state is designed to make visible.
+    This test was ``test_nothing_is_retired_yet`` while the decision was open,
+    and inverting it is the whole point of it — the set is pinned in both
+    states, so a third retirement cannot arrive without somebody editing this
+    line and saying why in a PR. Each row also has to state a reason and keep
+    the withdrawn figure, because a retirement that carried neither would be a
+    deletion wearing the state's name.
     """
-    assert RETIRED_POLICY_IDS == frozenset()
-    assert retired_targets() == ()
-    assert cached_default_scorecard().retired_target_entries == 0
+    assert RETIRED_POLICY_IDS == frozenset(
+        {"expand_drug_negotiation", "international_reference_pricing"}
+    )
+    rows = {row.policy_id: row for row in retired_targets()}
+    assert set(rows) == RETIRED_POLICY_IDS
+    assert rows["expand_drug_negotiation"].official_10yr_billions == -500.0
+    assert rows["international_reference_pricing"].official_10yr_billions == -100.0
+    for row in rows.values():
+        # The search, and what would bring the target back. Both verdicts name
+        # the CBO document that scores the nearest published quantity.
+        assert "Searched on 2026-09-09" in row.retired_reason
+        assert "WHAT WOULD BRING IT BACK" in row.retired_reason
+        assert not row.is_live and row.superseded_by is None
+
+    scorecard = cached_default_scorecard()
+    assert scorecard.retired_target_entries == 2
+    withdrawn = [e for e in scorecard.entries if e.target_retired]
+    assert {e.policy_id for e in withdrawn} == RETIRED_POLICY_IDS
+    for entry in withdrawn:
+        # Kept, not deleted: the row still prints its model figure and the
+        # figure that was withdrawn, and it leaves the fitted tier the way a
+        # revision does.
+        assert entry.model_10yr_billions != 0.0
+        assert entry.calibrated_to_target is False
+        assert entry.target_retirement_reason
+
+
+def test_a_retired_benchmark_is_not_also_examined_and_left():
+    """The two states contradict each other and the ledger enforces it, so the
+    keys the owner withdrew must have left ``EXAMINED_NOT_REVISED`` with them.
+    """
+    assert RETIRED_POLICY_IDS.isdisjoint(EXAMINED_NOT_REVISED)
 
 
 def test_retired_and_revised_are_different_states():

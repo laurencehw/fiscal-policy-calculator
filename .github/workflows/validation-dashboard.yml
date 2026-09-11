@@ -181,12 +181,30 @@ jobs:
       # this ceiling is tightening around a wider spread, not a narrower one --
       # which is the case the per-class gate exists for and the pooled one cannot
       # see. Re-derive with the pooled gate, after every wave, downward only.
+      #
+      # Owner decision (3) (iija_2021_discretionary.v3, scored on the FY2022-2031
+      # decade CBO's own estimate covers) took that row 18.2% -> 0.3% and its
+      # class, enacted-law spending, 13.4% -> 7.4% (12.2 / 0.3 / 9.8). Exactly
+      # one ceiling re-derives and it tightens:
+      #   enacted_law_spending  ceil(7.4 x 1.25) = 10, lowered 17 -> 10.
+      # This one is not discretionary. Both meta-tests in
+      # tests/test_ci_workflow.py are one-sided invariants -- a ceiling may
+      # never be looser than ceil(mean x 1.25), nor more than ~2x the live mean
+      # -- and 17 fails both at a class mean of 7.4%.
+      # The pooled pair is untouched and neither derivation moves. The tier
+      # reads 26 cases, mean 13.8%, 17 within 15% and 22 within 25%:
+      #   ceiling  ceil(13.8 x 1.25) = 18 -> nearest 5 = 20. Unchanged.
+      #   floor    22 - 1 = 21, which would LOOSEN. LEFT AT 22.
+      # Worth recording why the floor did not move on a row that improved by 18
+      # points: iija was already INSIDE 25% at 18.2%, so the count it moves is
+      # within-15, 16 -> 17, a figure no gate reads. The pooled floor is met at
+      # 22 with no slack, exactly as Wave C left it.
       - name: Cold-holdout per-class floor (out-of-sample tier)
         run: |
           python scripts/cold_holdout.py --max-class-mean-error \
             agi_inclusive_surtax=22 ordinary_rate_change=19 \
             capital_gains=24 corporate=56 \
-            enacted_law_spending=17 discretionary_spending=6 \
+            enacted_law_spending=10 discretionary_spending=6 \
             payroll=10 tax_expenditure=17
 
       # Tier 2 (leave-one-out). Holds out one calibrated benchmark at a time and

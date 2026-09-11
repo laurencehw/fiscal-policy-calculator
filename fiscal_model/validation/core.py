@@ -536,36 +536,51 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "resumption, an IRS rescission and debt service.",
     ],
     "iija_2021_discretionary": [
-        "Now a WINDOW miss, and no longer either a spend-out or a level-shape miss. "
-        "The shape is the source's own authorization schedule "
-        "(iija_2021_discretionary.v2: $163.0B of budget authority in FY2022, then "
-        "$70.1B, $68.5B, $68.1B, $66.2B and $2.08B/yr, summing to CBO's stated "
-        "$446.3B), spent out on the construction_and_capital profile. Total "
-        "outlays across every year the policy touches are $433.2B against CBO's "
-        "$415.4B - 4.3% high, which is just the profile's 0.973 spend-out sum "
-        "applied to the full authority.",
-        "The residual is arithmetic, not behaviour: $92.6B of those outlays fall in "
-        "FY2022-2024, before the model's FY2025-2034 window opens, so $340.0B is "
-        "in-window against a published figure that covers FY2021-2031, and the "
-        "row reads 18.2%.",
-        "What this row needs is a WINDOW, not a VINTAGE, and an earlier version "
-        "of this note named the wrong blocker. A discretionary SpendingPolicy "
-        "scores its own source-stated authority and reads no baseline LEVEL, so "
-        "the CBOScore.scoring_window_first_year mechanism PR #126 built for "
-        "treasury_capgains_39_plus_stepup_elim would score this bill on "
-        "FY2022-2031 with no 2021 vintage: it returns +$414.3B against "
-        "+$415.4B, 0.3% (planning/memos/FY2022_TARGET_WINDOW.md section 6). That "
-        "is an OPEN .v3 decision, not a correction applied here. The memo "
-        "published the number precisely so that not taking it is a visible "
-        "choice: it is a second Tier 1 target decision, it needs its own "
-        "manifest row under the supersede rule, and it belongs to the owner. "
-        "Until then the case is scored on the model's window and reports the "
-        "gap.",
-        "The superseded v1 row (a level carried forward at 2%/yr) is kept in "
-        "preregistered.py at its +$1,894B / 356% and post-spend-out +$1,621B / "
-        "290%. Between them the two rows separate the two defects this case "
-        "surfaced: the missing spend-out model (L2) and the missing authorization "
-        "path (this row).",
+        "Neither a spend-out, a level-shape nor a window miss since "
+        "iija_2021_discretionary.v3. The shape is the source's own authorization "
+        "schedule ($163.0B of budget authority in FY2022, then $70.1B, $68.5B, "
+        "$68.1B, $66.2B and $2.08B/yr, summing to CBO's stated $446.3B), spent "
+        "out on the construction_and_capital profile, and scored on FY2022-2031 "
+        "- the decade CBO's own estimate covers and the record's budget_window "
+        "has stated since it was entered. It returns +$414.3B against +$415.4B, "
+        "0.3%.",
+        "What is left is a 4.5% over-statement of the TOTAL netting against the "
+        "tail the window still clips, and neither term is behavioural. Outlays "
+        "across every year the policy touches are $434.1B, which is the "
+        "profile's 0.9727 spend-out sum applied to the full $446.3B of "
+        "authority; $19.8B of them fall in FY2032 or later, outside even this "
+        "window. The two nearly cancel, so 0.3% is smaller than either term and "
+        "should not be read as evidence about the spend-out profile. The honest "
+        "statement is that the authority path is CBO's own and the profile "
+        "reproduces its total to 4.5%. (Earlier revisions of this note said "
+        "$433.2B and 4.3%; the measured total is $434.1B.)",
+        "CBO's own table is headed FY2021-2031, eleven fiscal years, and a "
+        "ten-year window cannot cover eleven. FY2021 is not a gap: the bill was "
+        "signed on 15 November 2021, inside FY2022, and the record's own "
+        "budget_window has read FY2022-2031 since it was entered - which is "
+        "what FY2022_TARGET_WINDOW_RULE reads, so the window is not a per-case "
+        "judgement about which eleventh year to drop.",
+        "It needed a WINDOW, not a VINTAGE, and an earlier version of this note "
+        "named the wrong blocker. A discretionary SpendingPolicy scores its own "
+        "source-stated authority and reads no baseline LEVEL, so the "
+        "CBOScore.scoring_window_first_year mechanism PR #126 built for "
+        "treasury_capgains_39_plus_stepup_elim scores this bill on FY2022-2031 "
+        "with no 2021 vintage in the repository. On the runner's FY2025-2034 "
+        "decade v2 read 18.2%, because $92.6B of the path's outlays fall in "
+        "FY2022-2024 before that window opens. The number was published in "
+        "planning/memos/FY2022_TARGET_WINDOW.md section 6 before the decision "
+        "was taken, so that taking it would be a visible choice.",
+        "This row does NOT claim a 2021 information set. The outlay profile is "
+        "the one fitted on CBO's own donor options (lane L2), and the years "
+        "FY2022-2024 are priced with it today rather than forecast in 2021. "
+        "What the window fixes is that the ten fiscal years scored are the ten "
+        "the target covers.",
+        "The superseded rows are kept in preregistered.py: v1 (a level carried "
+        "forward at 2%/yr) at +$1,894B / 356% and post-spend-out +$1,621B / "
+        "290%, and v2 (the authorization path on the runner's window) at "
+        "+$340.0B / 18.2%. Between them the three rows separate the three "
+        "defects this case surfaced - the missing spend-out model (L2), the "
+        "missing authorization path (v2) and the window (v3).",
     ],
     # -- Phase B: CBO Options for Reducing the Deficit, 2025-2034 -----------
     # Out-of-sample battery. Every miss below is kept and explained; none of
