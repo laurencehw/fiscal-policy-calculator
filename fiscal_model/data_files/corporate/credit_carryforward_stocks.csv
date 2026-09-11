@@ -1,0 +1,140 @@
+# Corporate tax-credit carryforward stocks, tax year 2022 — the data-acquisition
+# step `planning/memos/CORPORATE_PER_POINT_YIELD.md` SS7(i) named and did not take.
+#
+# WHY IT WAS WANTED. CBO's 2018 Budget Options, Option 24, is the only corporate
+# rate option in any volume with a narrative, and it names one behavioural
+# channel as INCLUDED in the estimate:
+#
+#   "An increase in the corporate tax rate would increase corporations' ability
+#    to use tax credits, rather than carrying them forward to a future year ...
+#    That use of credits would reduce revenues."
+#
+# Section 38(c) caps the general business credit at net income tax less the
+# greater of tentative minimum tax or 25% of net regular tax liability above
+# $25,000, and section 904 caps the foreign tax credit at the US tax on
+# foreign-source taxable income. BOTH CAPS RISE WITH THE STATUTORY RATE, so a
+# rate increase unlocks carried-forward credits and the MARGINAL credit
+# absorption exceeds the AVERAGE ratio `corporate.py` applies. The memo said the
+# stock is in the Form 3800 and Form 1118 statistics and called it a data
+# acquisition rather than a constant. Lane R5 did the acquisition. What it found
+# is below; what it did NOT find is in the last block, and is the reason no
+# constant here is multiplied into a score.
+#
+# ---------------------------------------------------------------------------
+# SOURCE 1 — GENERAL BUSINESS CREDIT (section 38(c)), Form 3800.
+#   IRS Publication 5108, "Line Item Estimates", Rev. 9-2025, TY2022 edition.
+#   https://www.irs.gov/pub/irs-pdf/p5108.pdf   (read 2026-09-11; 238 PDF pages)
+#   "Corporation 2022 Line Item Money Amounts (Estimated from SOI Sample) [3]"
+#   Form 3800 Part I  -> PDF page 164 (money amounts; counts on PDF page 163)
+#   Form 3800 Part II -> PDF page 166 (money amounts; counts on PDF page 165)
+#   Money amounts in THOUSANDS of dollars, as printed.
+#
+#   The Complete Report — the workbook `soi_table11_corporate_tax_items.csv` is
+#   transcribed from — has NO credit-carryforward table; its only credit-specific
+#   table is Table 14 (Form 6765 research credit). Publication 5108 is the only
+#   IRS product that transcribes Form 3800 line by line, which is why the memo's
+#   pointer to "the Form 3800 statistics" needed a different publication to land.
+#
+#   Part I footing check, which is how the line mapping was confirmed:
+#     48,031,205 (line 1) + 91,157,543 (line 4) + 309,504 (lines 3+5, each
+#     suppressed 'd' individually) = 139,498,252 (line 6), exactly.
+#
+#   Part II does NOT foot and SOI says why: each line is weighted independently
+#   from the sample, so lines are not forced to sum. 30 + 33 + 34 = 65,896,661
+#   against a printed line 36 of 65,798,029 (0.15% apart). Every figure here is a
+#   sample estimate; Publication 5108 pp. 9-10 carry the confidence intervals.
+#
+# SOURCE 2 — FOREIGN TAX CREDIT (section 904(c)), Form 1118.
+#   IRS SOI, Corporate Foreign Tax Credit Statistics, TY2022.
+#   https://www.irs.gov/statistics/soi-tax-stats-corporate-foreign-tax-credit-statistics
+#   Table 1, "All industries" row: https://www.irs.gov/pub/irs-soi/22it01fi.xlsx
+#   (read 2026-09-11; source line in the file: "IRS, Statistics of Income
+#   Division, Corporate Foreign Tax Credit, October 2025"). Columns numbered as
+#   the workbook numbers them. Money amounts in THOUSANDS.
+#
+#   THE CARRYOVER IS NOT PUBLISHED AND SOI SAYS SO, in Table 1 footnote [2]:
+#     "Total taxes available for credit is the sum of total taxes paid or
+#      accrued (column 20), taxes deemed paid (column 27) and carryover of
+#      foreign taxes from prior years, less any applicable reductions.
+#      Carryover of foreign taxes and applicable reductions are not shown
+#      separately."
+#   So `ftc_carryover_residual` below is a RESIDUAL, 203,702,172 - 49,574,960 -
+#   76,104,927, and it nets two terms SOI declines to split. It is a lower bound
+#   on gross carryover, and it is labelled `derived_residual`, not `published`.
+#
+#   The corroboration that makes this table the same universe as the module's
+#   own: column 2, foreign tax credit claimed, is 112,161,586 — byte-identical
+#   to `foreign_tax_credit_thousands` for TY2022 in
+#   `soi_table11_corporate_tax_items.csv`, which is a different SOI product.
+#
+#   And the section 904 identity is visible in the published columns: the
+#   limitation (col 18) is 174,437,877, which is 20.71% of foreign taxable
+#   income after adjustments (col 16, 842,410,989) — i.e. essentially tau times
+#   foreign-source taxable income, 1.4% from the statutory 21%. That is the
+#   mechanism confirmed on the data rather than assumed.
+#
+# ---------------------------------------------------------------------------
+# WHAT IS **NOT** PUBLISHED, AND WHY NOTHING HERE IS MULTIPLIED INTO A SCORE.
+#
+# Turning a carryforward STOCK into a marginal absorption RATE needs the share
+# of the marginal pre-credit tax dollar accruing to taxpayers who are in the
+# constrained position — excess-credit for section 904, section 38(c)-capped and
+# holding carryforward for the GBC. That share is not published for TY2022:
+#
+#   * SOI Tables 1.1 ("Returns with Income in Excess Credit Position") and 1.2
+#     ("...Excess Limitation Position") are exactly the split required, and they
+#     were published for **TY2010 only** — `/pub/irs-soi/10it11mi.xls` and
+#     `10it12mi.xls`. `22it11mi.xlsx`, `22it12mi.xlsx` and `21it11mi.xlsx` all
+#     return 404; the series was discontinued. A TY2010 share is pre-TCJA, from
+#     before the participation exemption, GILTI and the section 904 basket
+#     rewrite, so it is not a vintage substitution this lane is willing to make.
+#   * The aggregate columns do not identify the split. Writing L, A and C for
+#     limitation, available and claimed, col 19 is exactly L - C by construction
+#     (for an excess-credit taxpayer the limitation IS the claim), so it carries
+#     no information about how much of L belongs to excess-credit taxpayers.
+#   * Publication 5108 does not cover Form 1118 at all, and Form 3800 carries no
+#     taxpayer-level constraint indicator.
+#
+# CAMT is the third channel and is worse: it begins in TY2023, after every SOI
+# year any of these files reaches, and **no source publishes the taxable income
+# of CAMT-liable corporations**. Treasury's press release JY2574 (2024-09-12)
+# gives ~100 payers, ~$250B over 2025-2034 and a 2.6% counterfactual effective
+# rate; JCT's letter to Chairman Wyden (2022-08-04) gives 175-200 corporations
+# with book income under a 15% cash-tax ratio averaging $8.2B each in 2019.
+# Neither is a taxable-income base, and the two populations differ by a factor
+# of two. Recorded in `camt_*` rows below as `published_context`, never as an
+# input.
+#
+# THE BOUND THIS FILE DOES SUPPORT is computed in
+# `corporate.py:credit_absorption_bounds()` and printed by
+# `scripts/corporate_marginal_share.py` section 2. Its finding: the section 904
+# channel at its own upper bound — every FTC claimant in an excess-credit
+# position, which is what `section_904_realization_ratio` already assumes —
+# absorbs 28.85% of a marginal pre-credit dollar, against the 29.15% the derived
+# path already books by substituting the average credit ratio for the marginal
+# one. So the module's substitution sits essentially ON the section 904 bound,
+# and the section 38(c) channel — $124.5B of stock against $72.2B of annual
+# claims, under a cap that is 75% of regular tax and rises with the rate — is
+# **entirely unbooked**. It points the score DOWN, toward the published
+# estimators. Its size is not identified by anything published.
+#
+# Units: `amount_thousands` in THOUSANDS of dollars. `returns` is a count.
+provision,item,amount_thousands,returns,tax_year,status,source,locator
+sec38c,form_3800_part_i_line_1_current_year_gbc,48031205,25008,2022,published,IRS Publication 5108 Rev. 9-2025,PDF p.164 (Form 3800 Part I line 1)
+sec38c,form_3800_part_i_line_4_carryforward_to_2022,91157543,28649,2022,published,IRS Publication 5108 Rev. 9-2025,PDF p.164 (Form 3800 Part I line 4)
+sec38c,form_3800_part_i_line_6_total,139498252,41089,2022,published,IRS Publication 5108 Rev. 9-2025,PDF p.164 (Form 3800 Part I line 6)
+sec38c,form_3800_part_ii_line_30_current_year_gbc,31630144,32128,2022,published,IRS Publication 5108 Rev. 9-2025,PDF p.166 (Form 3800 Part II line 30)
+sec38c,form_3800_part_ii_line_33_passive_allowed,957547,191,2022,published,IRS Publication 5108 Rev. 9-2025,PDF p.166 (Form 3800 Part II line 33)
+sec38c,form_3800_part_ii_line_34_carryforward_to_2022,33308970,34762,2022,published,IRS Publication 5108 Rev. 9-2025,PDF p.166 (Form 3800 Part II line 34)
+sec38c,form_3800_part_ii_line_36_total,65798029,51102,2022,published,IRS Publication 5108 Rev. 9-2025,PDF p.166 (Form 3800 Part II line 36)
+sec38c,form_3800_part_ii_line_38_credit_allowed_current_year,75297868,30261,2022,published,IRS Publication 5108 Rev. 9-2025,PDF p.166 (Form 3800 Part II line 38)
+sec904,form_1118_col2_ftc_claimed,112161586,9370,2022,published,IRS SOI Corporate Foreign Tax Credit TY2022 Table 1,22it01fi.xlsx col 2 (all industries)
+sec904,form_1118_col16_foreign_taxable_income_after_adjustments,842410989,9370,2022,published,IRS SOI Corporate Foreign Tax Credit TY2022 Table 1,22it01fi.xlsx col 16 (all industries)
+sec904,form_1118_col17_taxes_available_for_credit,203702172,9370,2022,published,IRS SOI Corporate Foreign Tax Credit TY2022 Table 1,22it01fi.xlsx col 17 (all industries)
+sec904,form_1118_col18_limitation,174437877,9370,2022,published,IRS SOI Corporate Foreign Tax Credit TY2022 Table 1,22it01fi.xlsx col 18 (all industries)
+sec904,form_1118_col19_difference_limitation_less_ftc,62276105,9370,2022,published,IRS SOI Corporate Foreign Tax Credit TY2022 Table 1,22it01fi.xlsx col 19 (all industries)
+sec904,form_1118_col20_taxes_paid_or_accrued,49574960,9370,2022,published,IRS SOI Corporate Foreign Tax Credit TY2022 Table 1,22it01fi.xlsx col 20 (all industries)
+sec904,form_1118_col27_taxes_deemed_paid,76104927,9370,2022,published,IRS SOI Corporate Foreign Tax Credit TY2022 Table 1,22it01fi.xlsx col 27 (all industries)
+sec904,ftc_carryover_residual_col17_less_col20_less_col27,78022285,9370,2022,derived_residual,IRS SOI Corporate Foreign Tax Credit TY2022 Table 1 footnote [2],22it01fi.xlsx cols 17-20-27
+camt,treasury_jy2574_annual_payer_count,,100,2023,published_context,Treasury press release JY2574 2024-09-12,home.treasury.gov/news/press-releases/jy2574
+camt,jct_wyden_letter_2019_corporations_under_15pct_book_ratio,,188,2019,published_context,JCT letter to Chairman Wyden 2022-08-04 (midpoint of the stated 175-200),finance.senate.gov 8422-jct-effective-tax-rate

@@ -59,15 +59,26 @@ class TestTCJAExtensionCBORange:
 
 
 class TestBidenCorporateRateCBORange:
-    """Biden corporate rate increase 21->28% (fallback-data regression value ~-$1,397B)."""
+    """Biden corporate rate increase 21->28% on the app default.
+
+    The band moved on 2026-09-11 when ``CORPORATE_APP_MODE`` flipped
+    ``reported`` -> ``derived`` (``planning/lanes/R5_h3b_corporate.md``): the
+    factory's default mode now prices the rate change against CBO's own
+    projected corporate receipts path rather than the fitted profits aggregate,
+    so the fallback-data regression value went **-$1,397B -> -$1,293B**. The
+    band keeps its old relative width around the new centre, and the ``reported``
+    figure is pinned separately in
+    ``tests/test_corporate_derived.py::test_reported_mode_pins`` so that both
+    remain checkable.
+    """
 
     def test_biden_corporate_cbo_range(self, scorer):
         policy = create_biden_corporate_rate_only()
         result = scorer.score_policy(policy)
         total = result.total_10_year_cost
         # Revenue raiser: total_10_year_cost should be negative (reduces deficit)
-        assert -1460 <= total <= -1330, (
-            f"Biden corporate {total:.0f}B outside regression band [-1460, -1330]"
+        assert -1355 <= total <= -1230, (
+            f"Biden corporate {total:.0f}B outside regression band [-1355, -1230]"
         )
 
     def test_biden_corporate_reduces_deficit(self, scorer):
