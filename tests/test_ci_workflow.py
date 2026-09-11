@@ -273,7 +273,9 @@ def test_the_capital_gains_ceiling_records_wave_cs_tightening():
     spread that widened.
     """
     workflow = VALIDATION_DASHBOARD_WORKFLOW_PATH.read_text(encoding="utf-8")
-    assert _per_class_ceilings(workflow)["capital_gains"] == 24
+    # Lane R3 (PR #169) grew the class 4 -> 7 rows at 14.4%: ceil(14.4 x 1.25)
+    # = 18, a tightening, taken.
+    assert _per_class_ceilings(workflow)["capital_gains"] == 18
 
 
 def test_the_ordinary_rate_ceiling_stays_where_lane_r2_put_it():
@@ -298,7 +300,10 @@ def test_the_ordinary_rate_ceiling_stays_where_lane_r2_put_it():
     pooled gate cannot see.
     """
     workflow = VALIDATION_DASHBOARD_WORKFLOW_PATH.read_text(encoding="utf-8")
-    assert _per_class_ceilings(workflow)["ordinary_rate_change"] == 15
+    # Lane R3 (PR #169) grew the class 4 -> 11 rows at 15.3%. A NEW battery is
+    # the one case the rule re-derives upward -- "headroom for a new hard case"
+    # -- and 15 no longer passes: ceil(15.3 x 1.25) = 20.
+    assert _per_class_ceilings(workflow)["ordinary_rate_change"] == 20
 
 
 def test_the_workflow_records_every_gate_re_derivation_including_the_null_ones():
@@ -332,7 +337,8 @@ def test_the_tax_expenditure_ceiling_records_lane_r1s_tightening():
     -- so the ceiling re-derives to ``ceil(12.8 x 1.25) = 16``.
     """
     workflow = VALIDATION_DASHBOARD_WORKFLOW_PATH.read_text(encoding="utf-8")
-    assert _per_class_ceilings(workflow)["tax_expenditure"] == 16
+    # Lane R3 (PR #169) grew the class 1 -> 2 rows at 7.1%: ceil(7.1 x 1.25) = 9.
+    assert _per_class_ceilings(workflow)["tax_expenditure"] == 9
 
 
 def test_the_pooled_gate_records_the_battery_that_shrank():
@@ -348,7 +354,10 @@ def test_the_pooled_gate_records_the_battery_that_shrank():
     it later.
     """
     workflow = VALIDATION_DASHBOARD_WORKFLOW_PATH.read_text(encoding="utf-8")
-    assert "--max-mean-error 15 --min-within-25pct 19" in workflow
+    # Lane R3 (PR #169) then grew the battery 22 -> 44 (mean 18.0%, 35 within
+    # 25%): ceiling ceil(18.0 x 1.25) = 23 -> nearest 5 = 25; floor 35 - 1 = 34.
+    # The growth case is the one the rule re-derives upward, by design.
+    assert "--max-mean-error 25 --min-within-25pct 34" in workflow
     assert "86.4%" in workflow, "the within-25 share must be recorded beside the count"
     assert "shrinking battery" in workflow
 

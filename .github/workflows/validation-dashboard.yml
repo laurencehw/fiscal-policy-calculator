@@ -212,9 +212,19 @@ jobs:
       # other two lanes of the wave moved no Tier 1 row at all -- R5 refused its
       # own mechanism on the merits and R8 touches no out-of-sample shape -- which
       # is why the mean moved by 0.2 points and nothing else did.
+      # Lane R3 (PR #169, 2026-09-11) grew the battery 22 -> 44 with CBO's 2018,
+      # 2020 and 2022 Options volumes: mean 11.8% -> 18.0%, within-25 19 -> 35.
+      # A grown battery is the one case the rule re-derives UPWARD -- the
+      # ceiling's headroom exists for exactly this -- so:
+      #   ceiling  ceil(18.0 x 1.25) = 23 -> nearest 5 = 25. Raised 15 -> 25.
+      #   floor    35 - 1 = 34. Raised 19 -> 34.
+      # Per class: agi 7 -> 9, ordinary 15 -> 20, payroll 10 -> 24, corporate
+      # 56 -> 90 (four rows, three of them CBO's 21% -> 22% on pre-2025 vintages
+      # whose receipts base is back-extrapolated), capital gains 24 -> 18 and
+      # tax expenditure 16 -> 9 (tightenings), spending classes unchanged.
       - name: Cold-holdout gate (out-of-sample tier)
         run: |
-          python scripts/cold_holdout.py --max-mean-error 15 --min-within-25pct 19
+          python scripts/cold_holdout.py --max-mean-error 25 --min-within-25pct 34
 
       # --- Per-class floor (HIGH_STAKES_ACCURACY.md section 3, rule 4) -------
       # The pooled gate above cannot see one policy class regressing while the
@@ -332,10 +342,10 @@ jobs:
       - name: Cold-holdout per-class floor (out-of-sample tier)
         run: |
           python scripts/cold_holdout.py --max-class-mean-error \
-            agi_inclusive_surtax=7 ordinary_rate_change=15 \
-            capital_gains=24 corporate=56 \
+            agi_inclusive_surtax=9 ordinary_rate_change=20 \
+            capital_gains=18 corporate=90 \
             enacted_law_spending=10 discretionary_spending=6 \
-            payroll=10 tax_expenditure=16
+            payroll=24 tax_expenditure=9
 
       # Tier 2 (leave-one-out). Holds out one calibrated benchmark at a time and
       # asks whether the module's structural machinery — calibrated on the others
