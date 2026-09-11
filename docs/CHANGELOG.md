@@ -5,6 +5,121 @@ in git history, not here.
 
 ## 2026 — ongoing
 
+### Waves A and B — one base rule, the base's own decade, and five targets that found their documents (2026-09-10)
+
+Seven PRs, the first two waves of
+[`planning/HIGH_STAKES_ACCURACY.md`](../planning/HIGH_STAKES_ACCURACY.md), which
+re-ranks the modelling work by **who reads the number** rather than by error
+mass. Wave A: **#142** one base rule across four surfaces, **#140** badges and
+tiers, **#141** the two OCACT payroll targets. Wave B: **#144** base growth,
+**#146** the AGI column, **#143** the corporate estimator range, **#145**
+provenance. Records in
+[`planning/lanes/`](../planning/lanes/) — `HSA_h1_base_rule.md`,
+`HSA_h6_no_headline_without_row.md`, `HSA_h13_payroll_targets.md`,
+`HSB_h2_base_growth.md`, `HSB_h2b_agi_column.md`, `HSB_h3a_corporate_range.md`,
+`HSB_h9_provenance.md` — and §5.8 of
+[`planning/MODELING_IMPROVEMENT.md`](../planning/MODELING_IMPROVEMENT.md).
+
+**Three different things moved and they must not be run together.** Tier 1 moved
+on **mechanism**; both calibrated tiers and leave-one-out moved on **targets**,
+with not one derivation changing; badges and provenance moved on **coverage**.
+Only the first is a statement about the model.
+
+| Tier | Before (post-Wave-7) | After (merged) |
+|---|---|---|
+| Out-of-sample, pre-registered | 26 @ 15.0% / 10.6% median / 17 within 15 / 22 within 25 | **26 @ 14.7% / 12.6% / 15 / 23** |
+| Calibrated, fitted | 21 @ 1.73%, 21/21 within 15 | **16 @ 1.51%, 16/16** |
+| … held in place (ledger rows folded back) | 27 @ 5.6%, 25/27 | **27 @ 11.9%, 22/27** |
+| Unfitted reconstructions | 34 @ 57.88% / 34.2% | **39 @ 55.46% / 29.9%** |
+| … *the same 34, on the new targets* | 57.88% | **58.26%** |
+| Leave-one-out | 18 @ 30.1% / 19.1% | **18 @ 35.7% / 29.1%** |
+| Published targets | 75 of 81 | **77 of 81** |
+| Preset badges | 24 | **44** (16 fitted / 25 reconstruction / 3 out-of-sample) |
+| Tier 1 CI gate | `20 / 21` | **`20 / 22`** + a per-class floor |
+
+**#142 — one base rule.** `ordinary_income_base` had three different defaults, so
+a 2pp surtax above \$400,000 scored **−\$166.5B on Tailor and −\$314.6B on Ask**,
+on the same commit, with the scorecard validating only the second. One shared
+default now serves all four constructors, with a grep gate against re-acquiring a
+literal. Three surtax presets declare `agi_inclusive_base` and move onto the base
+their sources state. **Zero validation rows moved.** Two findings nobody asked
+for: 36 of the 52 presets carry the attribute and **none of them reads it**, and
+`DistributionalEngine` ignores it, so one policy object yields a revenue score
+and a who-pays table **2.57× apart** (a test now asserts the divergence exists).
+
+**#140 — no headline without a row.** Badges **24 → 44**: the badged set is now
+exactly the set of presets carrying an official figure, and each badge names its
+**tier** rather than rating a fitted 0.0% and a 701% reconstruction in one
+vocabulary. **Six presets now carry a badge saying they are more than 50% from
+their published target, and five said nothing at all before.** The map is keyed
+by stable preset id, which is what let five renames and five superseded figures
+land without losing entries. `get_confidence_context` has **no caller in the
+tree** — a live defect on a dead function, fixed so wiring it later is safe and
+reported as such.
+
+**#141 — the two OCACT payroll targets.** No model change, zero numbers moved.
+OCACT scores E2.1 and E2.5 as **+2.55% and +2.50% of taxable payroll** and
+publishes **no ten-year dollar amount at any horizon** — verified three ways,
+including that "billion" and "trillion" do not appear once across the whole
+category summary. −\$2.7T traces to a Peter G. Peterson Foundation sentence about
+a *benefit-crediting* variant; **−\$3.2T matches nothing either body prints**.
+Unpredicted: both published paths **ramp** (\$122.0B → \$192.0B) and the module
+stamps a flat \$270B.
+
+**#144 — grow the generic base on the scored vintage, and the tier mean rose.**
+Every generic run had returned the same tax-year-2023 annual ten times. The base
+now carries the scored vintage's own nominal-GDP index; ten Tier 1 rows moved,
+every pre-registered figure landed with a worst miss of \$0.08B, and the tier went
+**15.0% → 15.6%** — the plan's own falsification condition, reported rather than
+tuned away. **The plan's 9.1% / 1.0% endpoints embedded a step nobody had
+built**, attributed to a preset flag that cannot move a validation row.
+
+**#146 — the AGI-stated rows read SOI's AGI column.** A **unit mismatch**:
+returns were selected by an AGI class boundary and then priced against an average
+of *taxable* income. Three of six rows moved and three did not, each on its own
+source's sentence. Tier **15.6% → 14.7%**, so the plan's H2 condition is
+satisfied **by the pair and not by H2 alone**. The two Option 46 rows went
+49.8% → 34.1% → **7.4%** and 37.4% → 17.9% → **−2.9%**. The rule is not the
+flattering one and the lane declared it: the class's best row went **5.2% →
+24.8%**, and moving the three held rows would read 17.8% for the tier.
+
+**#143 — the corporate estimator range.** Presentation only; every artifact
+byte-identical. A headline corporate run now prints all four published scores
+converted to its own rate step and says where it sits among them. **In `derived`
+mode the model lands inside the published span at the +7pp step every shipped
+preset uses and outside it at +1pp**, where `reported` is outside at every step —
+a second, independent reading for the open `CORPORATE_APP_MODE` decision.
+
+**#145 — provenance.** Eighteen benchmarks judged one at a time: six revised,
+twelve examined-and-left, one transcribed-and-confirmed, **no modelling change at
+all**. Five of the six revisions make their row worse, which is the shape a
+correct provenance pass has — the \$250,000 donut to CBO's **−\$1,426.8B**
+(0.0% → **89.2%**), TCJA rates-only to CRS's **\$2,158.7B** (2.2% → **44.3%**),
+and four others. **The sharpest result is a refusal the mechanism made rather
+than the author**: a Tax Foundation cap-elimination figure is −\$3,200.0B to the
+digit the carried target states, so the ledger rejected it as noise. `secondhand`
+**12 → 7**, `model_estimate` **6 → 4**. A `retire` state is built, tested, and
+**applied to nothing**, because withdrawing the two pharma rows would buy 18.5
+points of "improvement" by deletion.
+
+**Seven shipped presets moved**, each onto its own source's base or decade:
+Warren Ultra-Millionaire Surtax −\$134.6B → **−\$456.0B**, High-Earner Medicare
+Surcharge −\$166.5B → **−\$426.6B**, Progressive Millionaire Tax −\$354.6B →
+**−\$878.8B**, and four generic presets by a uniform **+35.60%** (Flat Tax Reform,
+Middle Class Tax Cut, Top Rate to 45%, Biden 2025 Proposal). The other 45 score to
+the cent what they scored before. Build package totals moved for seven *more*
+presets with no scored number moving at all, because Build quotes list prices.
+
+**The Tier 1 CI gate was re-derived by the workflow's own rule and downward
+only**: ceiling `ceil(14.7 × 1.25) = 19` → nearest 5 `= 20`, unchanged; floor
+`23 − 1 = 22`, tightened from 21. **A per-class floor now runs beside it**
+(`cold_holdout.py --max-class-mean-error`), one ceiling for each of the plan's
+eight policy classes, because a pooled mean cannot see one class regressing while
+the others carry it — which is what happened to `medicare_surcharge_2pp` in
+Wave 7 and to `warren_ultramillionaire_surtax_3pp` in Wave B. Classes are derived
+from each benchmark's own record, and the gate **fails if the battery contains a
+class nobody gated**.
+
 ### Wave 7 — four measured mechanisms, four registered regressions, and a cold start (2026-09-06)
 
 Ten PRs. Seven touch a model or a baseline: a **target-window memo with its own

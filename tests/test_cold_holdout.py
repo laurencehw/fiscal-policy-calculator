@@ -167,3 +167,118 @@ def test_correction_report_runs():
     biden = next((r for r in corr["entries"] if "Biden" in r["policy_name"]), None)
     assert biden is not None
     assert biden["err_corrected"] < biden["err_legacy"]
+
+
+# ---------------------------------------------------------------------------
+# Per-class gate (HIGH_STAKES_ACCURACY.md section 3, process rule 4)
+# ---------------------------------------------------------------------------
+
+
+def _class_slugs() -> set[str]:
+    from scripts.cold_holdout import POLICY_CLASS_LABELS
+
+    return set(POLICY_CLASS_LABELS)
+
+
+def test_every_out_of_sample_case_lands_in_a_named_class():
+    """No row may fall through to ``unclassified``.
+
+    The classification is derived from each case's own ``CBOScore`` record, so a
+    row registered tomorrow is classified the moment it is registered. This is
+    the coverage half of that promise: if a future record carries a
+    ``policy_type`` the rules do not name, the per-class gate would silently
+    stop covering it, which is the failure mode PR #119's coverage-grep test
+    exists to prevent.
+    """
+    from scripts.cold_holdout import UNCLASSIFIED_CLASS, classify_policy
+
+    report = build_report()
+    unclassified = [
+        e["policy_id"]
+        for e in report["out_of_sample"]["entries"]
+        if classify_policy(e["policy_id"]) == UNCLASSIFIED_CLASS
+    ]
+    assert not unclassified, f"out-of-sample rows with no policy class: {unclassified}"
+
+    classes = report["out_of_sample"]["classes"]
+    assert set(classes) <= _class_slugs()
+    assert sum(c["n"] for c in classes.values()) == report["out_of_sample"]["summary"]["n"]
+
+
+def test_the_class_block_reproduces_the_plans_eight_populations():
+    """Section 2's table is eight classes; the shapes are pinned, the errors are not.
+
+    Pinning *counts* rather than error figures is deliberate: a lane that moves
+    a row's error should not have to edit this test, but a lane that silently
+    re-partitions the tier should.
+    """
+    classes = build_report()["out_of_sample"]["classes"]
+    assert set(classes) == _class_slugs()
+    assert classes["agi_inclusive_surtax"]["n"] == 6
+    assert classes["capital_gains"]["n"] == 4
+    assert classes["ordinary_rate_change"]["n"] == 4
+    assert classes["corporate"]["n"] == 1
+    assert classes["enacted_law_spending"]["n"] == 3
+    assert classes["discretionary_spending"]["n"] == 5
+    assert classes["payroll"]["n"] == 2
+    assert classes["tax_expenditure"]["n"] == 1
+
+    # The two Option 46 rows are AGI-stated (H2b read the column off CBO's own
+    # sentence); the two Option 45 rows are ordinary-rate. If those ever swap,
+    # the classification has stopped following the records.
+    assert "cbo_opt46_agi_surtax_1pp_20k" in classes["agi_inclusive_surtax"]["policy_ids"]
+    assert "cbo_opt45_all_rates_1pp" in classes["ordinary_rate_change"]["policy_ids"]
+    # CBO's own Options alternatives are "discretionary"; the Phase D
+    # enacted-law components are not, and the split is read off
+    # ``cbo_options.runnable_score_ids()`` rather than a policy-id prefix.
+    assert "iija_2021_discretionary" in classes["enacted_law_spending"]["policy_ids"]
+    assert "cbo_opt42_nondefense_discretionary" in classes["discretionary_spending"]["policy_ids"]
+
+
+def test_class_error_mass_sums_to_the_tier_mass():
+    """Mass is summed on each row's *reported* (one-decimal) error.
+
+    That is the convention every lane doc and CLAUDE.md quotes, and this keeps
+    the block from drifting a tenth of a point away from the published record.
+    """
+    report = build_report()
+    classes = report["out_of_sample"]["classes"]
+    entry_mass = round(sum(e["abs_percent_error"] for e in report["out_of_sample"]["entries"]), 1)
+    class_mass = round(sum(c["error_mass"] for c in classes.values()), 1)
+    assert abs(class_mass - entry_mass) <= 0.05
+
+
+def test_per_class_gate_passes_at_the_workflows_own_ceilings():
+    """The per-class floor the workflow runs must exit 0 on this tree."""
+    import re
+
+    workflow = (PROJECT_ROOT / ".github" / "workflows" / "validation-dashboard.yml").read_text(
+        encoding="utf-8"
+    )
+    slugs = _class_slugs()
+    pairs = re.findall(r"\b([a-z_]+)=(\d+(?:\.\d+)?)\b", workflow)
+    ceilings = [f"{slug}={value}" for slug, value in pairs if slug in slugs]
+    assert len(ceilings) == 8, f"expected eight per-class ceilings in the workflow, got {ceilings}"
+    assert main(["--max-class-mean-error", *ceilings]) == 0
+
+
+def test_per_class_gate_fails_a_class_over_its_ceiling():
+    assert main(["--max-class-mean-error", "corporate=0.1"]) == 1
+
+
+def test_per_class_gate_fails_when_a_class_is_left_ungated():
+    """A ceiling list covering only part of the battery must not pass.
+
+    Otherwise a newly-registered row in an unlisted class escapes the floor and
+    the gate quietly stops meaning what it says.
+    """
+    assert main(["--max-class-mean-error", "corporate=99"]) == 1
+
+
+def test_per_class_gate_fails_on_a_class_that_does_not_exist():
+    assert main(["--max-class-mean-error", "not_a_class=99"]) == 1
+
+
+def test_per_class_gate_rejects_malformed_pairs():
+    assert main(["--max-class-mean-error", "corporate"]) == 1
+    assert main(["--max-class-mean-error", "corporate=lots"]) == 1

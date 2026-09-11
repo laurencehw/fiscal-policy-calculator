@@ -33,6 +33,7 @@ Usage:
     python scripts/cold_holdout.py
     python scripts/cold_holdout.py --json
     python scripts/cold_holdout.py --max-mean-error 60 --min-within-25pct 5  # CI gate
+    python scripts/cold_holdout.py --max-class-mean-error corporate=56 ...   # per-class floor
 """
 
 from __future__ import annotations
@@ -46,6 +47,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from fiscal_model.validation.cbo_options import runnable_score_ids  # noqa: E402
+from fiscal_model.validation.cbo_scores import KNOWN_SCORES  # noqa: E402
 from fiscal_model.validation.preregistered import live_cases  # noqa: E402
 from fiscal_model.validation.scorecard import (  # noqa: E402
     GENERIC_CATEGORY,
@@ -55,6 +58,74 @@ from fiscal_model.validation.scorecard import (  # noqa: E402
 #: The scorecard's own name for the out-of-sample tier. Aliased rather than
 #: re-spelled so a rename of the tier cannot silently split this report in two.
 UNCALIBRATED_CATEGORY = GENERIC_CATEGORY
+
+# --------------------------------------------------------------------------
+# Policy classes
+# --------------------------------------------------------------------------
+# ``planning/HIGH_STAKES_ACCURACY.md`` §2 reports Tier 1 as eight populations
+# rather than one, because the pooled mean cannot see a class regressing while
+# the mean improves -- which is exactly what happened to
+# ``medicare_surcharge_2pp`` in Wave 7, and again to
+# ``warren_ultramillionaire_surtax_3pp`` in Wave B. §3 process rule 4 asks for a
+# per-class floor in CI, so the classification has to live in the tree rather
+# than in a lane's spreadsheet.
+#
+# It is **derived from each case's own ``CBOScore`` record**, never from a
+# hand-maintained list of policy ids, so a row registered tomorrow is classified
+# the moment it is registered and cannot quietly escape the gate. The rules,
+# which reproduce §2's table exactly (6 / 4 / 4 / 1 / 3 / 5 / 2 / 1 on the
+# post-Wave-B battery):
+#
+#   * ``policy_type`` alone settles corporate, payroll, tax-expenditure and
+#     capital-gains rows;
+#   * an ``income_tax`` row splits on ``agi_inclusive_base`` -- the flag each
+#     record already carries, set from how its own source states the base;
+#   * a ``spending`` row splits on whether it is one of CBO's own *Options*
+#     alternatives (``cbo_options.runnable_score_ids()``, i.e. a budget-authority
+#     path CBO published) or a Phase D enacted-law component.
+#
+# Display labels are §2's; the slugs are what the CLI and the workflow speak.
+POLICY_CLASS_LABELS: dict[str, str] = {
+    "agi_inclusive_surtax": "AGI-inclusive surtax",
+    "ordinary_rate_change": "ordinary rate change",
+    "capital_gains": "capital gains",
+    "corporate": "corporate",
+    "enacted_law_spending": "enacted-law spending",
+    "discretionary_spending": "discretionary spending",
+    "payroll": "payroll",
+    "tax_expenditure": "tax expenditure",
+}
+
+#: Returned when a record's shape matches none of the rules above. It is never
+#: silently dropped: ``--max-class-mean-error`` fails on it, because "a class
+#: nobody gated" is how PR #119's four offset-sign defects got in.
+UNCLASSIFIED_CLASS = "unclassified"
+
+
+def classify_policy(policy_id: str) -> str:
+    """Return the §2 policy-class slug for one out-of-sample ``policy_id``."""
+    score = KNOWN_SCORES.get(policy_id)
+    if score is None:
+        return UNCLASSIFIED_CLASS
+
+    policy_type = getattr(score.policy_type, "value", str(score.policy_type))
+    if policy_type == "corporate_tax":
+        return "corporate"
+    if policy_type == "payroll_tax":
+        return "payroll"
+    if policy_type == "tax_expenditure":
+        return "tax_expenditure"
+    if policy_type == "capital_gains_tax":
+        return "capital_gains"
+    if policy_type == "income_tax":
+        if getattr(score, "agi_inclusive_base", False):
+            return "agi_inclusive_surtax"
+        return "ordinary_rate_change"
+    if policy_type == "spending":
+        if policy_id in runnable_score_ids():
+            return "discretionary_spending"
+        return "enacted_law_spending"
+    return UNCLASSIFIED_CLASS
 
 
 def build_report() -> dict:
@@ -143,9 +214,42 @@ def build_report() -> dict:
             ),
         }
 
+    def _classes(entries) -> dict:
+        """Tier 1 by ``planning/HIGH_STAKES_ACCURACY.md`` §2's eight classes.
+
+        Reported alongside the pooled summary, never instead of it: the tier is
+        eight populations and the pooled mean cannot see one of them regressing
+        while the others carry it.
+        """
+        buckets: dict[str, list] = {}
+        for entry in entries:
+            buckets.setdefault(classify_policy(entry.policy_id), []).append(entry)
+        out = {}
+        for slug, rows in buckets.items():
+            # Aggregated on each row's error **as reported** -- rounded to one
+            # decimal, the figure ``entries`` above carries and the figure every
+            # lane doc and CLAUDE.md quotes. Summing the unrounded errors instead
+            # would put this block a tenth of a point away from the published
+            # record on every class, for no gain in accuracy.
+            errs = sorted(round(e.abs_percent_difference, 1) for e in rows)
+            mid = len(errs) // 2
+            median = errs[mid] if len(errs) % 2 else (errs[mid - 1] + errs[mid]) / 2
+            out[slug] = {
+                "label": POLICY_CLASS_LABELS.get(slug, slug),
+                "n": len(errs),
+                "mean_abs_error": round(sum(errs) / len(errs), 1),
+                "median_abs_error": round(median, 1),
+                "error_mass": round(sum(errs), 1),
+                "within_15pct": sum(1 for e in errs if e <= 15.0),
+                "within_25pct": sum(1 for e in errs if e <= 25.0),
+                "policy_ids": sorted(e.policy_id for e in rows),
+            }
+        return out
+
     return {
         "out_of_sample": {
             "summary": _agg(uncal),
+            "classes": _classes(uncal),
             "entries": [_entry_dict(e) for e in sorted(uncal, key=lambda x: x.abs_percent_difference)],
         },
         "calibrated_reference": {
@@ -263,6 +367,24 @@ def _print_human(report: dict) -> None:
             f"{e['model_10yr_billions']:>+10.0f}"
             f"{e['abs_percent_error']:>6.0f}%  {e['official_source']}"
         )
+
+    classes = oos.get("classes") or {}
+    if classes:
+        print()
+        print("  By policy class (HIGH_STAKES_ACCURACY.md section 2) - the tier is")
+        print("  eight populations, and the pooled mean above cannot see one of")
+        print("  them regressing while the others carry it:")
+        print()
+        print(f"  {'Class':<24}{'n':>4}{'mean':>8}{'median':>8}{'mass':>8}{'w/in 15':>9}")
+        print("  " + "-" * 60)
+        for slug in sorted(classes, key=lambda k: -classes[k]["error_mass"]):
+            c = classes[slug]
+            print(
+                f"  {c['label'][:23]:<24}{c['n']:>4}{c['mean_abs_error']:>7.1f}%"
+                f"{c['median_abs_error']:>7.1f}%{c['error_mass']:>8.1f}"
+                f"{str(c['within_15pct']) + '/' + str(c['n']):>9}"
+            )
+
     print()
     print("-" * 72)
     print("CALIBRATED REFERENCE MODELS (low error expected by construction)")
@@ -396,6 +518,19 @@ def main(argv: list[str] | None = None) -> int:
         help="Exit non-zero if fewer than this many out-of-sample cases land within "
         "25%% of their official target (CI guardrail).",
     )
+    parser.add_argument(
+        "--max-class-mean-error",
+        nargs="+",
+        metavar="CLASS=PERCENT",
+        default=None,
+        help="Per-class ceilings, as SLUG=PERCENT pairs over the eight policy "
+        "classes of planning/HIGH_STAKES_ACCURACY.md section 2 (CI guardrail). The "
+        "pooled mean cannot see one class regressing while the others carry "
+        "it. Every class the battery contains must be given a ceiling and "
+        "every ceiling must name a class that exists, so a newly-registered "
+        "row cannot escape the gate by landing in a class nobody listed. "
+        "Slugs: " + ", ".join(sorted(POLICY_CLASS_LABELS)) + ".",
+    )
     args = parser.parse_args(argv)
 
     report = build_report()
@@ -432,7 +567,80 @@ def main(argv: list[str] | None = None) -> int:
             )
             failed = True
 
+    if args.max_class_mean_error is not None:
+        if _check_class_ceilings(
+            report["out_of_sample"].get("classes", {}), args.max_class_mean_error
+        ):
+            failed = True
+
     return 1 if failed else 0
+
+
+def _check_class_ceilings(classes: dict, pairs: list[str]) -> bool:
+    """Apply ``--max-class-mean-error``. Returns True if the gate failed.
+
+    Three ways to fail, and the last two matter as much as the first: a class
+    over its ceiling; a class in the battery that was given **no** ceiling; and
+    a ceiling naming a class that does not exist. A gate that silently ignores
+    an unlisted class is the failure mode PR #119's coverage-grep test exists
+    to prevent -- a new pre-registered row in a ninth class would sail past it.
+    """
+    ceilings: dict[str, float] = {}
+    failed = False
+    for pair in pairs:
+        slug, _, raw = pair.partition("=")
+        slug = slug.strip()
+        if not _:
+            print(
+                f"\nFAIL: --max-class-mean-error expects SLUG=PERCENT, got {pair!r}",
+                file=sys.stderr,
+            )
+            return True
+        try:
+            ceilings[slug] = float(raw)
+        except ValueError:
+            print(
+                f"\nFAIL: --max-class-mean-error ceiling for {slug!r} is not a "
+                f"number: {raw!r}",
+                file=sys.stderr,
+            )
+            return True
+
+    unknown = sorted(set(ceilings) - set(POLICY_CLASS_LABELS))
+    if unknown:
+        print(
+            f"\nFAIL: --max-class-mean-error names class(es) that do not exist: "
+            f"{', '.join(unknown)}. Known slugs: "
+            f"{', '.join(sorted(POLICY_CLASS_LABELS))}",
+            file=sys.stderr,
+        )
+        failed = True
+
+    ungated = sorted(set(classes) - set(ceilings))
+    if ungated:
+        print(
+            "\nFAIL: out-of-sample class(es) with no ceiling: "
+            f"{', '.join(ungated)}. Every class the battery contains must be "
+            "gated, or a newly-registered row lands in an ungated class and the "
+            "per-class floor stops meaning anything.",
+            file=sys.stderr,
+        )
+        failed = True
+
+    for slug in sorted(classes):
+        if slug not in ceilings:
+            continue
+        mean_err = classes[slug]["mean_abs_error"]
+        if mean_err > ceilings[slug]:
+            print(
+                f"\nFAIL: class {classes[slug]['label']!r} mean abs error "
+                f"{mean_err}% over {classes[slug]['n']} case(s) exceeds its "
+                f"ceiling {ceilings[slug]}%",
+                file=sys.stderr,
+            )
+            failed = True
+
+    return failed
 
 
 if __name__ == "__main__":

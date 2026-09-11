@@ -122,10 +122,51 @@ jobs:
       # tighten by the rule, and tightening needs no reason:
       #   ceiling  ceil(15.9 x 1.25) = 20 -> nearest 5 = 20. Lowered 25 -> 20.
       #   floor    22 - 1 = 21. Raised 20 -> 21.
+      # Wave 7 (PRs #126-#132) left the same 26 cases at mean 15.0%, 22 within
+      # 25%, and the rule re-derived the gate to itself: 20 / 21, unchanged.
+      # Waves A and B of planning/HIGH_STAKES_ACCURACY.md (PRs #140-#146) took
+      # the same 26 cases to mean 14.7%, 23 within 25%. H2 raised the mean
+      # 15.0% -> 15.6% (six registered regressions on the generic path) and H2b
+      # took it to 14.7%, below where H2 found it; the pair is what the rule
+      # reads, not either branch. Only the floor moves, and it tightens:
+      #   ceiling  ceil(14.7 x 1.25) = 19 -> nearest 5 = 20. Unchanged.
+      #   floor    23 - 1 = 22. Raised 21 -> 22.
       # Re-derive again after the next wave.
       - name: Cold-holdout gate (out-of-sample tier)
         run: |
-          python scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 21
+          python scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 22
+
+      # --- Per-class floor (HIGH_STAKES_ACCURACY.md section 3, rule 4) -------
+      # The pooled gate above cannot see one policy class regressing while the
+      # others carry the mean -- which is what happened to
+      # medicare_surcharge_2pp in Wave 7 (1.5% -> 31.8% while the tier fell)
+      # and again to warren_ultramillionaire_surtax_3pp in Wave B. So each of
+      # the eight classes the plan reports (section 2) carries its own ceiling.
+      #
+      # Classes are derived from each case's own CBOScore record in
+      # scripts/cold_holdout.py -- policy_type, plus agi_inclusive_base for the
+      # income-tax split and cbo_options.runnable_score_ids() for the spending
+      # split -- never from a hand-kept list of policy ids, so a row registered
+      # tomorrow is classified the moment it is registered. The gate fails if a
+      # class the battery contains is given no ceiling, so a ninth class cannot
+      # arrive un-gated.
+      #
+      # Thresholds use the pooled rule's ceil(value x 1.25) and drop its
+      # round-up-to-5, which exists to give the pooled mean headroom for one new
+      # hard case; a class of one or two rows does not need five points of it.
+      # Post-Wave-B values (26 cases, the run above):
+      #   AGI-inclusive surtax    6  17.6% -> 22    capital gains   4  20.5% -> 26
+      #   ordinary rate change    4  14.8% -> 19    corporate       1  44.5% -> 56
+      #   enacted-law spending    3  13.4% -> 17    discretionary   5   4.6% ->  6
+      #   payroll                 2   7.8% -> 10    tax expenditure 1  13.1% -> 17
+      # Re-derive with the pooled gate, after every wave, downward only.
+      - name: Cold-holdout per-class floor (out-of-sample tier)
+        run: |
+          python scripts/cold_holdout.py --max-class-mean-error \
+            agi_inclusive_surtax=22 ordinary_rate_change=19 \
+            capital_gains=26 corporate=56 \
+            enacted_law_spending=17 discretionary_spending=6 \
+            payroll=10 tax_expenditure=17
 
       # Tier 2 (leave-one-out). Holds out one calibrated benchmark at a time and
       # asks whether the module's structural machinery — calibrated on the others

@@ -96,9 +96,20 @@ scored on the ordinary base while their own validation rows are scored AGI-inclu
 
 **(c) The generic base is flat for ten years.** Every generic run returns the same annual ten times —
 `yr1 == yr10` to the cent on all five shapes tested. CBO's own February 2024 baseline grows nominal
-GDP **3.878%/yr**, averaging **28.8%** above TY2023 across FY2025–2034. W7 measured the joint effect
-of (b) and (c) on the two Option 46 rows: **49.8% → 9.1%** and **37.4% → 1.0%**
-(`W7_filing_status_split.md` finding 1, restated as §6.2 item 37).
+GDP **3.878%/yr**, averaging **28.8%** above TY2023 across FY2025–2034.
+
+> **Corrected 2026-09-10 (`HSB_h2_base_growth.md` §3.1, written before any file was opened, and
+> confirmed by the outturn).** This paragraph used to attribute W7's **49.8% → 9.1%** and
+> **37.4% → 1.0%** to "the joint effect of (b) and (c)". **That does not survive reading W7's own
+> finding 1**, whose decomposition is *three* steps: the filing-status split, then an **AGI base**
+> where the option says AGI, then growth. The middle step is **not** (b). (b) is a **preset** flag,
+> and a preset flag cannot move a validation row — H1's own falsification test was that zero
+> scorecard rows moved, and `cold_holdout.py --json` was byte-identical across PR #142. W7's middle
+> step is SOI's **AGI column** in place of its **taxable-income column**, which W7 explicitly scoped
+> as "a lane of its own". So the endpoints stated here **embedded a step nobody had built**, and
+> H2 was measured against a target it could not reach alone: growth alone gives **34.1%** and
+> **17.9%**. The column was then built as **H2b** (PR #146) and the rows landed at **7.4%** and
+> **−2.9%**. Both measured chains are in §5's table.
 
 **(d) `controller_utils.get_confidence_context` labels any policy whose *name* is in `CBO_SCORE_MAP`
 "High confidence"** (`controller_utils.py:146-166`), with no reference to which tier the row sits in.
@@ -173,11 +184,34 @@ Then, per audience:
 
 ## 3. The plan
 
+> **Status, 2026-09-10 — Waves A and B are done (PRs #140-#146).** Six of the
+> thirteen lanes below are closed: **H1**, **H6**, **H13** (Wave A) and **H2**,
+> **H2b**, **H3a**, **H9** (Wave B), where H2b was split out of H2 mid-wave for
+> the reason §1.3(c) records below. Each carries a one-line outturn under its
+> own heading and a full record in `planning/lanes/`. Tier 1 went **15.0% →
+> 14.7%** by way of 15.6%; both calibrated tiers and leave-one-out moved on
+> **targets** with no derivation changing; badges went 24 → 44; the CI gate was
+> re-derived to **20 / 22** and gained a per-class floor (process rule 4, built).
+> Waves C, D and E are open, and the owner decisions §4 lists for them are
+> unanswered — **④ (the pharma targets) now has its machinery built and its
+> one-commit edit written out**, and **⑤ (the corporate default) has a second
+> independent reading from H3a**.
+
 Ranked by **stakes × current error × tractability**. Each lane follows the established format and
 inherits §1's rules: mechanism not tuning, frozen yardstick, pre-register before opening a file,
 regressions count, report movement not attainment.
 
-### H1 — One base rule, four surfaces *(2 lane-days)*
+### H1 — One base rule, four surfaces *(2 lane-days)* — ✅ **DONE, PR #142**
+
+> **Outturn.** Every pre-registered figure landed to six decimal places and **zero validation rows
+> moved**. Three surtax presets moved onto their sources' base (Warren 61.5% → **19.0%**, Medicare
+> surcharge 46.3% → **1.5%**); Ask's three generic shapes came onto Tailor's answers. Findings the
+> plan did not name: **36 of the 52 presets carry `ordinary_income_base` and none reads it**;
+> `DistributionalEngine` **ignores it**, so one policy yields a revenue score and a who-pays table
+> **2.57× apart** (§6.2 item 46); and the Decision 6 caption was **silent on all three presets it
+> exists for** until someone rendered it. The `repeal_corporate_amt` rename could not be made here —
+> the label is a *key* of H6's map — so H1 shipped the `CBO_SCORE_MAP` sign plus a test asserting
+> the remaining inconsistency, and H6 took the rename. `planning/lanes/HSA_h1_base_rule.md`.
 
 **Mechanism — an attribute, not a heuristic.** The shape alone cannot decide the base, and the battery
 says so. `biden_high_income_tax` is a 39.6% rate *above a \$400,000/\$450,000 threshold* and is
@@ -214,7 +248,26 @@ policies (`core.py:905`), so a byte-identical `cold_holdout.py --json` is the fa
 **Falsified if** any scorecard row moves, or the four moves above miss their computed values.
 **Decision 6** applies: three shipped numbers move by 1.8–2.1×, so the caption lands in the same PR.
 
-### H2 — Grow the generic base on the scored vintage *(3 lane-days)*
+### H2 — Grow the generic base on the scored vintage *(3 lane-days)* — ✅ **DONE, PRs #144 + #146**
+
+> **Outturn.** Ten Tier 1 rows moved and every pre-registered figure landed, worst miss **$0.08B**.
+> **This lane's own falsification condition fired**: the tier mean **rose 15.0% → 15.6%**, because six
+> rows had been under-predicting by *less* than a decade of the baseline's growth is worth. The lane
+> reported it and tuned nothing. **H2b** (PR #146) then gave the AGI-stated rows SOI's AGI column —
+> the step §1.3(c) had misattributed — and the tier read **14.7%**, below where H2 found it, with
+> 15/26 within 15% and 23/26 within 25%, both better than either branch point. **So the condition is
+> satisfied by the pair and not by H2 alone.** The two Option 46 rows ran 49.8% → 34.1% → **7.4%**
+> and 37.4% → 17.9% → **−2.9%**; the endpoints below (~9.1%, ~1.0%) were never reachable, see
+> §1.3(c). All three registered regressions landed, plus two the plan did not name
+> (`biden_high_income_tax` and `cbo_opt45_top4_brackets_2pp`). H2b's own registered regression is
+> `warren_ultramillionaire_surtax_3pp` **5.2% → 24.8%**, the class's best-scoring row made five times
+> worse by a rule read off its own source. Seven shipped presets moved. Findings: **four Tier 1
+> targets are rules of thumb with no source URL** and two of them score the same reform against
+> targets 23.5% apart (§6.2 item 45); **`medicare_surcharge_2pp`'s 1.5% was measuring a
+> cancellation**; the wage-path-vs-nominal-GDP fork is worth **0.35%** and decides nothing; and a
+> review caught the Decision 6 caption reading `final_deficit_effect` on dynamic runs, disagreeing
+> with the headline above it by 69.1% on Warren. `planning/lanes/HSB_h2_base_growth.md`,
+> `planning/lanes/HSB_h2b_agi_column.md`.
 
 **Mechanism.** The generic path holds the SOI aggregate at its tax year for ten years. Project it on
 the *scored vintage's own* nominal path — the precedent is W5-A's payroll base ("CBO's own February
@@ -237,7 +290,23 @@ branch — which is the trigger for building `Policy.scores_by_year()` rather th
 
 ### H3 — Corporate: show the range, then narrow the base *(4 lane-days, two commits)*
 
-**H3a, presentation (1 day).** Wherever the app quotes a corporate number, quote the **estimator
+**H3a, presentation (1 day) — ✅ DONE, PR #143.**
+
+> **Outturn.** Every prediction held and **every artifact is byte-identical** — `corporate.py` was
+> not opened. A headline corporate run now prints the four published scores converted to its own
+> rate step (**−$1,349.9B to −$935.8B** at +7.0pp) and says where it sits among them. **"Above every
+> published estimator" could not be hard-coded, and the measurement is the finding**: `reported` is
+> above all four at every step, but **`derived` lands *inside* the published span at the +7pp step
+> every shipped preset uses** (76.1% marginal share against a published 55.1–79.5%) and outside it
+> at +1pp — a second, independent reading for owner question ⑤, pointing the same way as PR #122's
+> Decision 1 reversal (§6.2 item 53). Two further findings: the two corporate bands **do not
+> overlap** and the direction asymmetry runs *opposite* to the one `trump_corporate_15`'s ledger note
+> cites; and a bundled run's naive per-point share of **102.5%** of the average base is not a base
+> defect but `extend_bonus_depreciation`, measured at +$294.15B of +$1,491.8B. The review lesson is
+> general: **a test that records a finding must assert the finding, not its neighbourhood.**
+> `planning/lanes/HSB_h3a_corporate_range.md`. **H3b remains open (Wave E).**
+
+Wherever the app quotes a corporate number, quote the **estimator
 range**. The record is transcribed in `CORPORATE_PER_POINT_YIELD.md` §4b: on FY2025–2034, a point of
 statutory rate is worth **55.1%** (Tax Foundation), **55.9%** (JCT), **64.4%** (PWBM) and **79.5%**
 (Treasury, rate+GILTI) of the vintage's average base. The model is at **80.8%**. A user told "−\$1.4T"
@@ -303,7 +372,23 @@ FY2022–2031 decade it scores **+\$414.3B against +\$415.4B, 0.3%**. `CBOScore.
 exists and PR #126 set the supersede precedent, so this is a `.v3` row and nothing else. **Decide
 before Wave B**: a rule applied to one row and not the other is worse than a rule applied to neither.
 
-### H6 — No headline without a row *(2 lane-days)*
+### H6 — No headline without a row *(2 lane-days)* — ✅ **DONE, PR #140**
+
+> **Outturn.** Badges **24 → 44**, unbadged 28 → 8, and the badged set is now exactly the set of
+> presets carrying a `CBO_SCORE_MAP` `official_score`. Each badge names its **tier**: after Wave B's
+> revisions the 44 are **16 fitted / 25 unfitted reconstructions / 3 out-of-sample**, pinned by test.
+> **Six presets now carry a badge saying they are more than 50% from their published target and five
+> said nothing at all before** (reference pricing 701.0%, Trump corporate 121.6%, drug negotiation
+> 93.3%, double enforcement 82.3%, TCJA AMT relief 66.8%, auto tariff 52.8%). The map is keyed by
+> **stable preset id**, which is what let H1's four renames and H9's five superseded figures land
+> without silently losing entries. Findings: **`get_confidence_context` has no caller in the tree**,
+> so §1.3(d) describes a live defect on a dead function (§6.2 item 48); the badge caption sink **was
+> already lying for six rows**; the plan's own three counts in §1.4 **do not sum** (corrected and now
+> pinned by test); and **four of the 44 rows do not score the number the app prints**, two of them
+> because the runners score their own policy on the validation window while the app scores
+> FY2026–2035 — declared and decomposed rather than smoothed. It also took H1's
+> `repeal_corporate_amt` rename and H13's methodology-table source cell.
+> `planning/lanes/HSA_h6_no_headline_without_row.md`.
 
 **Mechanism.** Three rules, enforced by a test, not by review.
 1. Every preset with a `CBO_SCORE_MAP` `official_score` gets a `PRESET_TO_SCORECARD_ID` entry — the 28
@@ -357,7 +442,25 @@ base, and `reciprocal_tariffs` 6.9% → worse on a partner-specific coverage rat
 low *because* the base is too small, which is two errors cancelling.
 **Decision 6** applies — five shipped presets move — and the caption pattern is L8's own.
 
-### H9 — Provenance: 18 targets without a document *(4 lane-days)*
+### H9 — Provenance: 18 targets without a document *(4 lane-days)* — ✅ **DONE, PR #145**
+
+> **Outturn.** Eighteen judged one at a time: **six revised, twelve examined-and-left, one
+> transcribed-and-confirmed, and no modelling change at all** — all 81 `model_10yr_billions`
+> byte-identical, every leave-one-out *derivation* unchanged, Tier 1 untouched to the byte.
+> **Five of the six revisions make their row worse and one makes it far worse**, which is the shape a
+> correct provenance pass has: `ss_donut_250k` → CBO's **−$1,426.8B** (0.0% → **89.2%**),
+> `tcja_rates_only` → CRS's **+$2,158.7B** (2.2% → **44.3%**), plus `trump_china_60`,
+> `eliminate_estate_tax`, `eliminate_mortgage` (a range) and `repeal_ira_credits`. Against §5:
+> `model_estimate` **6 → 4** (target ≤ 4, **met**), `secondhand` **12 → 7** (target ≤ 6, one short,
+> and the seventh is a locked-holdout id with nothing to move to), `line_item_differs` 7 → 8 with a
+> recorded **range** verdict, every survivor carrying a written verdict, and the `retire` state
+> **exists**. **The sharpest result is a refusal the mechanism made rather than the author**: H13's
+> Tax Foundation cap-elimination figure is −$3,200.0B *to the digit the carried target states*, so
+> `target_revision_problems` rejected it as noise. **The `retire` state is built, tested on synthetic
+> rows, and applied to nothing** — retiring the two pharma rows would buy **18.5 points of
+> "improvement" by deletion**, which §5 forbids, so a retired row keeps its entry and reports only
+> beside a held-in-place second reading. **Owner decision ④ is open with its exact one-commit edit
+> written out.** `planning/lanes/HSB_h9_provenance.md`.
 
 **Mechanism.** The calibrated tiers hold **55** rows: 30 `line_item`, 12 `secondhand`, 7
 `line_item_differs`, 6 `model_estimate`. Apply `PROVENANCE_wave4.md`'s per-target judgement to the 18
@@ -420,7 +523,20 @@ group, with the reconstruction error printed. **Owner decision required up front
 figures from Explore and Build. The alternative, modelling them, is §6.2 item 12 and costs ~8 lane-days
 for rows nobody cites.
 
-### H13 — Payroll: say what the two OCACT targets are *(1 lane-day)*
+### H13 — Payroll: say what the two OCACT targets are *(1 lane-day)* — ✅ **DONE, PR #141**
+
+> **Outturn.** No model change and **zero numbers moved** — all three artifacts byte-identical, which
+> is the lane's own falsification test. OCACT scores E2.1 and E2.5 at **+2.55%** and **+2.50% of
+> taxable payroll** and publishes **no ten-year dollar amount at any horizon**, verified three ways
+> (including that "billion" and "trillion" do not appear once across the whole six-page category
+> summary). **−$2.7T traces to a Peter G. Peterson Foundation sentence** with no report year, run
+> number or window, describing a *benefit-crediting* variant where E2.5 says "do not provide benefit
+> credit"; **−$3.2T matches nothing PGPF or OCACT prints and its origin is still unlocated**. Two
+> published ten-year scores were handed to H9 rather than banked, and **one is a trap dressed as a
+> confirmation** — H9's ledger then refused it by its own arithmetic. Unpredicted: **both published
+> paths ramp and the module's does not** ($122.0B → $192.0B against a flat $270B, 17.0% high in
+> FY2026 and 25.7% low in FY2034), which is `create_repeal_ptc`'s defect in a second module and is
+> now §6.2 item 47. `planning/lanes/HSA_h13_payroll_targets.md`.
 
 **Mechanism.** No model change. `ss_donut_250k` and `ss_eliminate_cap` are two of the app's six largest
 headline figures, both print the target exactly, and both targets are `secondhand`: OCACT
@@ -450,12 +566,27 @@ held-out number beside the shipped one — **−\$2,664.0B (1.3%)** and **−\$3
 2. **Decision 1 and Decision 6, unchanged.** `reported` stays the app default per module until that
    module's derived error beats its fitted error; a shipped number that moves ships its caption in the
    same PR.
-3. **CI gate re-derived by the workflow's own rule only** (`validation-dashboard.yml:64-67`), downward
-   only. On 931037c the rule re-derives the current gate to itself: ceiling
-   `ceil(15.0 × 1.25) = 19 → 20`, floor `22 − 1 = 21`.
+3. **CI gate re-derived by the workflow's own rule only** (`validation-dashboard.yml`), downward
+   only. On 931037c the rule re-derived the then-current gate to itself: ceiling
+   `ceil(15.0 × 1.25) = 19 → 20`, floor `22 − 1 = 21`. **✅ Applied after Waves A/B**: on 26 cases at
+   **14.7%** with **23** within 25%, the ceiling re-derives to itself again (`ceil(14.7 × 1.25) = 19 →`
+   nearest 5 `= 20`) and the floor tightens `23 − 1 = 22`. The gate is now **20 / 22**.
 4. **New: a per-class floor.** The pooled gate cannot see a class regressing while the mean improves —
-   which is exactly what happened to `medicare_surcharge_2pp` in W7. Add `--max-class-mean-error`,
-   applied to §2's eight classes, set at each class's post-wave value × 1.25.
+   which is exactly what happened to `medicare_surcharge_2pp` in W7, and again to
+   `warren_ultramillionaire_surtax_3pp` in Wave B. Add `--max-class-mean-error`, applied to §2's eight
+   classes, set at each class's post-wave value × 1.25. **✅ Built and wired.** Ceilings use the pooled
+   rule's `ceil(value × 1.25)` **without** its round-up-to-5, which exists to give a 26-row mean
+   headroom for one new hard case and is not what a class of one or two rows needs: AGI-inclusive
+   surtax **22**, ordinary rate change **19**, capital gains **26**, corporate **56**, enacted-law
+   spending **17**, discretionary spending **6**, payroll **10**, tax expenditure **17**. The tree had
+   no class routing, so one is **derived from each case's own `CBOScore` record** — `policy_type`,
+   plus `agi_inclusive_base` for the income-tax split and `cbo_options.runnable_score_ids()` for the
+   spending split — which reproduces §2's table exactly (6 / 4 / 4 / 1 / 3 / 5 / 2 / 1) and classifies
+   a row the moment it is registered. **The gate fails three ways**: a class over its ceiling, a class
+   the battery contains that was given *no* ceiling, and a ceiling naming a class that does not exist.
+   The second matters as much as the first — a gate that ignored an unlisted class would let a row in
+   a ninth class sail past it, which is the failure mode PR #119's coverage-grep test exists to
+   prevent.
 5. **New: no headline without a row** (H6), enforced by a test.
 6. **`ANTHROPIC_API_KEY` hygiene — the suite first, then the smoke test.** Two rules, and the lanes
    hit both.
@@ -500,25 +631,79 @@ H13 owns docs. **Total: 36 lane-days across five waves.**
 
 **Measurable, per class.** Tier 1 targets after Wave C, stated as movement not attainment:
 
-| Class | n | Now | Target | Which lane |
-|---|--:|--:|--:|---|
-| AGI-inclusive surtax | 6 | 20.7% | **≤ 10%** | H1 + H2 |
-| ordinary rate change | 4 | 12.0% | ≤ 12% (hold) | H2 |
-| capital gains | 4 | 20.5% | ≤ 18% | H5 |
-| corporate | 1 | 44.5% | ≤ 32% | H3b (Wave E) |
-| discretionary + enacted spending | 8 | 7.9% | hold | — |
-| **tier** | 26 → ~40 | **15.0% / 10.6% / 22 within 25** | **≤ 12% mean, ≥ 30 of 40 within 25%** | all |
+| Class | n | At writing | **After Waves A/B** | Target | Which lane |
+|---|--:|--:|--:|--:|---|
+| AGI-inclusive surtax | 6 | 20.7% | **17.6%** ⚠ | **≤ 10%** | H1 + H2 + H2b |
+| ordinary rate change | 4 | 12.0% | **14.8%** ⚠ | ≤ 12% (hold) | H2 |
+| capital gains | 4 | 20.5% | 20.5% | ≤ 18% | H5 |
+| corporate | 1 | 44.5% | 44.5% | ≤ 32% | H3b (Wave E) |
+| discretionary + enacted spending | 8 | 7.9% | 7.9% | hold | — |
+| **tier** | 26 → ~40 | 15.0% / 10.6% / 22 within 25 | **14.7% / 12.6% / 23 within 25** | **≤ 12% mean, ≥ 30 of 40 within 25%** | all |
+
+⚠ **Two classes missed their mark and both misses are informative.**
+
+**AGI-inclusive surtax is 7.6 points short of ≤ 10%, and none of the distance is a missing
+mechanism.** Of its remaining 105.4 points of mass, **70.3 sit on three rows H2b holds on their own
+sources' words**: `medicare_surcharge_2pp` (31.8%), whose statutory base — wages plus net investment
+income — is **neither SOI column**; and `illustrative_top_rate_5pp` (20.2%) and `illustrative_500k_2pp`
+(18.3%), whose targets carry **no source URL**. The two rows with a published option and a transcribed
+base read **7.4%** and **2.9%**. So the class figure is now dominated by **target provenance and one
+base definition**, and whether the target is met by finding documents or by re-scoping it is an owner
+call. Moving the three anyway would put the *tier* at 17.8% against the measured 14.7% — which is
+stated here because holding them is also the lower number, and the reason should be overturnable by a
+document rather than by a preference.
+
+**Ordinary rate change was asked to hold at ≤ 12% and reads 14.8%**, with **all four of its rows
+crossing from under- to over-prediction** when the base stopped being frozen at tax year 2023. Two of
+the four are rule-of-thumb targets, and one of those — `illustrative_1pp_all` — **scores the same
+reform as `cbo_opt45_all_rates_1pp`** against a target 23.5% away, so the model cannot agree with both
+and this change swapped which one it agrees with (+4.1% → −24.5% on the rule of thumb, +22.4% →
+**−1.9%** on CBO's printed option). The class cannot be read without that, and §6.2 item 45 is the
+target decision it needs.
+
+**The per-class floor of process rule 4 is built** (`cold_holdout.py --max-class-mean-error`, wired
+into `validation-dashboard.yml`), at `ceil(class mean × 1.25)` per class, with classes derived from
+each case's own benchmark record and a failure mode for any class left un-gated.
 
 **Provenance.** `secondhand` 12 → **≤ 6**, `model_estimate` 6 → **≤ 4** with a written verdict on every
 survivor and a `retire` state that exists. `line_item_differs` stays at 7 or falls; it may not rise
 without a recorded range or scope verdict.
 
+> **After Wave B (PR #145): one met, one one row short, the rest satisfied.** `model_estimate` **6 → 4**
+> (met). `secondhand` **12 → 7** — one short, and the seventh is `repeal_individual_amt`, a
+> locked-holdout id with **nothing to move to**. Every survivor carries a written verdict, and the
+> `retire` state **exists, is tested, and is applied to nothing**, which is the correct state while
+> owner decision ④ is open. `line_item_differs` rose 7 → **8**, which this criterion permits only with
+> a recorded range or scope verdict, and it is a recorded **range**: `eliminate_mortgage.v2`. Published
+> targets across both tiers went **75 → 77 of 81**, and **the five rows that left `secondhand` did so
+> by finding a document, never by deciding a model estimate was good enough.**
+
 **Coverage.** Every one of the 52 shipped presets has a scorecard row **or** carries no dollar figure
 in its label. Zero presets display an accuracy claim keyed to `CBO_SCORE_MAP` membership.
+
+> **After Wave A (PRs #140 and #142): met, and enforced by a test.** Badges **24 → 44**, unbadged
+> 28 → 8, the badged set is exactly the set carrying an official figure, and the eight remaining
+> no-row presets print no dollar figure — `test_a_preset_with_no_row_may_not_print_a_dollar_figure` was
+> pre-registered to fail until H1 struck the four label figures and now passes. Each badge names its
+> tier (**16 fitted / 25 reconstruction / 3 out-of-sample**), so a fitted 0.0% and a 701%
+> reconstruction no longer share a rating vocabulary. **Two coverage gaps remain and both are
+> recorded**: `composer._tier_for` and `results_summary._resolve_tier` still key on legacy map
+> membership (one line each, through `badge_tier()`), and **five preset labels quote a figure the
+> ledger has since superseded** plus two more that are mis-signed — §6.2 item 43, a single-commit
+> rename lane nobody in Waves A/B could take without crossing a file boundary.
 
 **Consistency.** One base default: Tailor, Ask, Explore and Build return the same number for the same
 policy *specification*, base attribute included, and a test asserts it across all four constructors.
 Where a surface lets the user choose the base, the caption says which one produced the number.
+
+> **After Wave A (PR #142): met.** `DEFAULT_ORDINARY_INCOME_BASE` is read by the dataclass, Tailor,
+> the composer, the API and Ask, and `tests/test_base_rule_contract.py` asserts one number across all
+> four constructors for three specifications — plus a **grep gate over the whole tree** that fails if
+> any constructor re-acquires a literal default of its own. The gate has already earned its keep: it
+> fired on H2b's *error message* and the message was reworded rather than the gate exempted. **One
+> consistency gap is measured and open**: `DistributionalEngine` does not read the base, so a revenue
+> score and a who-pays table off one policy object sit **2.57× apart** (§6.2 item 46), asserted by a
+> test that fails with instructions when someone closes it.
 
 **Uncertainty.** Every headline carries an empirically calibrated band from its own class's Tier 1
 distribution, plus an estimator-disagreement band wherever two official bodies differ.

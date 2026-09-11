@@ -1750,6 +1750,245 @@ metric by metric and the waterfall bar by bar.
 
 ---
 
+## 5.8 Waves A and B of the high-stakes plan (2026-09-10, PRs #140-#146)
+
+Seven PRs, and they are not this document's sequencing at all:
+[`HIGH_STAKES_ACCURACY.md`](HIGH_STAKES_ACCURACY.md) re-ranks the work by **who
+reads the number** and supersedes §6.2's *sequencing*, not its rules. Wave A is
+**H1** the base rule (`model/hs-a-h1-base-rule`, PR #142), **H6** badges and
+tiers (`ui/hs-a-h6-badges-tiers`, PR #140) and **H13** the payroll captions
+(`docs/hs-a-h13-payroll-caption`, PR #141). Wave B is **H2** base growth
+(`model/hs-b-h2-base-growth`, PR #144), its follow-on **H2b** the AGI column
+(`model/hs-b-h2b-agi-column`, PR #146), **H3a** the corporate range
+(`ui/hs-b-h3a-corporate-range`, PR #143) and **H9** provenance
+(`provenance/hs-b-h9-targets`, PR #145).
+
+Each lane pre-registered in `planning/lanes/` before touching code and appended
+an outturn; those files are the record and this is the summary. **Every figure
+here is from `scripts/cold_holdout.py`, `scripts/run_loo.py --donor-matrix`,
+`scripts/run_validation_dashboard.py` and a 52-preset sweep on the merged tree.**
+As in Wave 7 that is not any single lane's before/after — **H2 and H2b move the
+same rows in opposite directions**, so H2's own Tier 1 figure is 15.6% and none
+of the seven lane docs reads 14.7%.
+
+### The tiers, before → after
+
+| tier | before (post-Wave-7) | after (merged) |
+|---|---|---|
+| Out-of-sample (Tier 1) | 26 @ 15.0% / 10.6% median / 17 within 15 / 22 within 25 | **26 @ 14.7% / 12.6% / 15 / 23** |
+| Calibrated reference (fitted) | 21 @ 1.73%, 21/21 within 15 | **16 @ 1.51%, 16/16** |
+| … fitted, ledger rows held in place | 27 @ 5.6%, 25/27 | **27 @ 11.9%, 22/27** |
+| Unfitted reconstructions | 34 @ 57.88% / 34.2% median, 9 within 15 | **39 @ 55.46% / 29.9%, 11 within 15** |
+| … *the same 34 rows, on the new targets* | 57.88% | **58.26%** |
+| Leave-one-out | 18 derivable @ 30.1% / 19.1%, 8 within 15 | **18 @ 35.7% / 29.1%, 6 within 15** |
+| Distributional | 7 @ 0.00-5.86pp | **unchanged** |
+| Scorecard rows | 81, 75 published | **81, 77 published** |
+| Provenance, both tiers | 51 / 7 / 17 / 6 / 0 | **57 / 8 / 12 / 4 / 0** |
+| Provenance, calibrated (55) | 30 / 7 / 12 / 6 / 0 | **36 / 8 / 7 / 4** |
+| `revised_target_entries` | 16 | **22** |
+| `EXAMINED_NOT_REVISED` | 6 | **14** |
+| `retired_target_entries` | 0 | **0** (the state exists; the decision is open) |
+| Preset badges | 24 | **44** (16 fitted / 25 reconstruction / 3 out-of-sample) |
+| Tier 1 CI gate | `20 / 21` | **`20 / 22`**, plus a new per-class floor |
+
+**Three different things moved those rows and they must not be run together.**
+Tier 1 moved on **mechanism**; both calibrated tiers and leave-one-out moved on
+**targets**, with not one derivation changing; and the badge and provenance
+counts moved on **coverage**. Only the first is a statement about the model.
+
+### Tier 1: the mechanism moved, and the intermediate figure is the honest part
+
+**PR #144 raised the tier mean and the lane reported it.** Every generic run had
+returned the same annual ten times — a tax-year-2023 SOI aggregate answering an
+FY2026-2035 question on Tailor, Ask, Build and seven presets — and the base now
+carries the scored vintage's own nominal-GDP index, window mean **1.355952**.
+Ten rows moved, every pre-registered figure landed with a worst miss of **$0.08B**,
+and the tier went **15.0% → 15.6%**, which is the plan's own stated
+falsification condition. Nothing was tuned to make it fall. **PR #146 then took
+it to 14.7%**, below where #144 found it, with 15 within 15% and 23 within 25% —
+both better than either branch point — so the plan's H2 condition is satisfied
+**by the pair and not by H2 alone**.
+
+**The plan's endpoints for the two Option 46 rows were unreachable as written,
+and the reason was measured before either file was opened.** §1.3(c) attributed
+W7's 9.1% / 1.0% to "(b) and (c)", where (b) is *"no preset carries
+`agi_inclusive_base`"* — a **preset** flag that cannot move a validation row, and
+H1's own falsification test was that it did not (`cold_holdout.py --json`
+byte-identical across PR #142). W7's middle step is SOI's **AGI column** in place
+of its **taxable-income column**, which W7 itself scoped as "a lane of its own".
+The measured chain is:
+
+| row | before | +growth (#144) | +AGI column (#146) |
+|---|--:|--:|--:|
+| `cbo_opt46_agi_surtax_1pp_20k` | +49.8% | +34.1% | **+7.4%** |
+| `cbo_opt46_agi_surtax_2pp_100k` | +37.4% | +17.9% | **−2.9%** |
+
+**Only two of the eight classes moved.** AGI-inclusive surtax **20.7% → 17.6%**
+and ordinary rate change **12.0% → 14.8%**, where **all four rows crossed from
+under-prediction to over-prediction**. Everything else — capital gains 20.5%,
+corporate 44.5%, enacted-law spending 13.4%, discretionary 4.6%, payroll 7.8%,
+tax expenditure 13.1% — is byte-identical to Wave 7. The tier's mass fell
+**390.7 → 383.3**.
+
+**The tail re-ordered and the top of it changed hands**: `cbo_opt64_corporate_rate_1pp`
+**44.5%**, `biden_capital_gains_39` 32.8%, `medicare_surcharge_2pp` 31.8%,
+`warren_ultramillionaire_surtax_3pp` 24.8%, `illustrative_1pp_all` 24.5%,
+`cbo_opt51_gains_at_death` 20.3%, `illustrative_top_rate_5pp` 20.2%,
+`treasury_capgains_39_plus_stepup_elim.v2` 18.4%. Corporate is now the tail on
+its own, and **four of the rows that replaced the two Option 46 rows carry
+targets nobody published**.
+
+### Tier 2 and leave-one-out: the targets moved and no derivation did
+
+PR #145 judged eighteen calibrated benchmarks one at a time. **Six revised,
+twelve examined-and-left, one transcribed-and-confirmed, and all 81
+`model_10yr_billions` byte-identical.** Five of the six revisions make their row
+worse:
+
+| benchmark | was | is | document | error |
+|---|--:|--:|---|---|
+| `ss_donut_250k` | −2,700.0 | **−1,426.8** | CBO 60557 Option 62 alt 2, report p. 73 | 0.0% → **89.2%** |
+| `tcja_rates_only` | +3,185.0 | **+2,158.7** | CRS R48286 Table 1 | 2.2% → **44.3%** |
+| `trump_china_60` | −500.0 | **−650.0** | CRFB, 17 Dec 2024 | 44.3% → 57.2% |
+| `eliminate_estate_tax` | +350.0 | **+407.2** | TF *Options 3.0* Option 83 | 0.0% → 14.0% |
+| `eliminate_mortgage` | −300.0 | **[−495.0, −367.9]** | TF *Options 3.0* Option 25 (anchor); CRS IF13190 | 9.9% → 26.5% |
+| `repeal_ira_credits` | −783.0 | **−851.0** | TF, House Oversight testimony | 0.0% → 8.0% |
+
+**Read the five tier readings together or none of them.** Fitted 1.73% → 1.51%
+*while nothing improved*, because the five rows that left averaged **2.42%**,
+above the tier's own mean. Reconstructions 57.88% → 55.46% *while nothing
+improved*, because the five arrivals average **36.42%** — and on a constant
+population the tier gets **worse**, 57.88% → **58.26%**, all 0.38pp of it
+`trump_china_60`. **The single honest number for what the new targets did to the
+model's measured error is that 0.38pp, against 2.42pp of composition.** The one
+reading that is not composition at all: **the 21 rows the fitted tier held before
+this wave, scored on the targets it leaves behind, read 9.82%, 18/21 within 15%**
+— what five untraceable targets had been worth to the tier's headline.
+
+Leave-one-out is the same mechanism a third time: `run_loo.py --donor-matrix`
+differs in **six lines** and every *derived* figure in them is identical
+(`ss_donut_250k` still −2,664.0, `eliminate_mortgage` still −257.9). `Payroll`
+**3.8% → 32.3%**, `Expenditures` **37.5% → 40.6%**, suite **30.1% → 35.7%**.
+Wave 4's PR #107 did exactly this in a different module; *a mean that moves
+because a target moved has not measured the model.*
+
+### Five findings the waves produced
+
+**1 — Three defaults for one flag, and the surfaces silently disagreed.**
+`ordinary_income_base` was `False` on the dataclass, `True` on Tailor's checkbox,
+computed `True` by the composer, and unset (so `False`) from Ask, which is why a
+2pp surtax above $400,000 scored **−$166.5B on Tailor and −$314.6B on Ask, on the
+same commit**, with the scorecard validating only the second. Two further things
+fell out that nobody had asked about. **36 of the 52 presets carry the attribute
+and not one of them reads it**, because the specialized modules override the
+static path entirely — a field 36 policies carry and none reads will make the
+next default flip look dangerous and be inert, *and the reverse trap is the real
+one*. And **`DistributionalEngine` does not read the flag at all**, so one policy
+object yields a revenue score and a who-pays table on two bases **2.57× apart**;
+a test now asserts the divergence exists and fails with instructions when someone
+closes it.
+
+**2 — The defect in the AGI rows was a unit mismatch, and naming it that way is
+what made it tractable.** `_estimate_from_irs_data` selected returns by an **AGI**
+class boundary (SOI publishes size classes on AGI) and then computed
+`max(0, avg_TAXABLE_income − T)`, subtracting a threshold from an average of a
+different quantity. Read as "the base is a bit low" it invites a fudge factor;
+read as "these are two different quantities" it has exactly one fix, and the fix
+is **per-source** — which is how three of six rows moved and three did not.
+**Composing published pooled ratios would have missed both Option 46 rows in
+opposite directions**: marginal AGI over marginal taxable income is 1.3820 and
+1.3094 pooled but **1.4052 and 1.2535** inside the filing-status split, because
+the joint floor is twice the single floor and joint returns are a different share
+of the two populations. W7 finding 3's rule again in a new form: *a ratio measured
+on a pooled base is not the ratio that applies to a split one.*
+
+**3 — The classification is not the flattering one, and both lanes declared that
+before applying it.** PR #146's rule takes the AGI class's best-scoring row **five
+times worse** (Warren 5.2% → 24.8%), and the three rows it *holds* would all get
+worse if moved — `medicare_surcharge_2pp` to 68.4%, `illustrative_top_rate_5pp`
+to 41.6%, `illustrative_500k_2pp` to 39.2%. Moving all six would read **17.8%**
+for the tier against the measured 14.7%. Holding them is therefore also the lower
+number, and the lane published the conflict of interest so the *reason* is
+visible and can be overturned by a document rather than by a preference.
+
+**4 — Four Tier 1 targets are rules of thumb, and two of them score the same
+reform.** `illustrative_1pp_all` and `cbo_opt45_all_rates_1pp` are both "1pp on
+every ordinary bracket"; the model scores them at −$1,195.3B and −$1,207.3B (the
+gap is the vintage) against targets of **−$960.0B** and **−$1,185.3B**, 23.5%
+apart. The first carries no source URL and the note *"Rule of thumb: 1pp ≈
+$85-100B/year"*; the second is CBO's own *Options* line item on the window being
+scored. **The model cannot agree with both, and Wave B swapped which one it
+agrees with**: +4.1% → −24.5% on the rule of thumb, +22.4% → **−1.9%** on the
+published option. `illustrative_top_rate_5pp`, `illustrative_500k_2pp` and
+`warren_ultramillionaire_surtax_3pp` are the other three. It is the ledger's to
+act on and PR #145 deliberately took none of it — but "the tier mean rose" reads
+differently once it is known that much of the movement is against figures nobody
+published.
+
+**5 — Two claims this repository had been making turned out to be too strong, and
+one target is very likely a real figure for the wrong quantity.** *"OCACT
+publishes no ten-year dollar amount for any payroll provision"* is true of the
+provisions tables and **false of the office**: its 11 July 2023 letter on the
+Medicare and Social Security Fair Share Act prints **$3,035.1B** — for a $400,000
+donut, so not a line item for either row, but the claim needed narrowing.
+*"`eliminate_mortgage`'s two figures come from the same simulator and differ by
+2.4×, which is itself the argument against adopting either"* was wrong about the
+cause: the gap is a **baseline**, since Yale's $1.2T is scored pre-P.L. 119-21
+where the itemising population roughly doubles, and two *independent* models on
+one baseline are 35% apart, which is what a range is for. And
+**`cap_employer_health`'s −$450B is most likely CBO's 2008 *Budget Options*
+Option 9**, JCT-scored at $452.1B — 0.5% away — for a **$17,280/yr** cap against
+this benchmark's stated $50,000. That is `extend_tcja_amt`'s shape exactly, the
+right number for the wrong quantity, with the difference that **there is nothing
+to move it to**: no agency has ever scored a cap at a chosen dollar level.
+
+### Where the pre-registrations were wrong
+
+- **The plan's §1.3(c) endpoints** (9.1% / 1.0%) embedded a step nobody had
+  built, and attributed it to a preset flag that cannot move a validation row.
+  Corrected in `HSB_h2_base_growth.md` §3.1 **before** any file was opened, and
+  the correction held to the decimal. §1.3(c) is amended in place.
+- **H1 pre-registered the `repeal_corporate_amt` label rename and could not make
+  it**, because the label is a *key* of H6's map and Wave A is file-disjoint: two
+  of the wave's own requirements contradicted for that one preset. H1 shipped the
+  load-bearing half (the `CBO_SCORE_MAP` sign) plus **a test that asserts the
+  remaining inconsistency**, and H6 took the rename with its own handover test
+  inverted rather than deleted. The lane's pre-registration had predicted one of
+  the two failing tests and missed the other; the full suite found it, *which is
+  the argument for running the suite before believing a file-ownership boundary
+  holds.*
+- **H1's Decision 6 caption was silent on all three presets it exists for**, and
+  only rendering it found that: `_ordinary_income_share` short-circuits to 1.0 in
+  exactly the state the caption fires for, so the counterfactual came back as "the
+  same number" and the guard returned `""`. The tests written first asserted the
+  presets moved, which they had. *"The number moved" and "the sentence about the
+  number appears" are different claims.*
+- **H2's caption was wrong on dynamic runs, in both halves**, and neither the
+  lane nor its tests caught it because every caption test ran `dynamic=False`. It
+  read `final_deficit_effect`, which on a dynamic run also carries revenue
+  feedback, so it both reconstructed a "before" figure the policy never printed
+  and disagreed with **the headline directly above it** — by $265.5B, 69.1%, on
+  Warren's dynamic run. *A caption that explains a headline must be computed from
+  the same quantity as that headline.*
+
+### What these waves did not do
+
+- **Did not retire anything.** The `retire` state is built and tested on
+  synthetic rows; owner decision ④ on the two pharma targets is open, with the
+  exact one-commit edit written out in `HSB_h9_provenance.md` §8.7.
+- **Did not open `corporate.py`.** H3a is presentation; H3b is Wave E.
+- **Did not take the four rule-of-thumb Tier 1 targets** (finding 4), which are
+  a target decision H9 was not scoped to make.
+- **Did not rename the five preset labels quoting superseded figures** (§6.2
+  item 43) — labels are `CBO_SCORE_MAP` keys and the wave's own file-disjointness
+  forbids it.
+- **Did not perform arithmetic on a published figure.** CRFB's own note that its
+  tariff figures "would likely be 15 percent less" on this window is carried, not
+  applied.
+
+
+---
+
 
 ## 6. Open owner decisions
 
@@ -1841,10 +2080,14 @@ that file.
 
 > **Sequencing note (2026-09-06).** [`HIGH_STAKES_ACCURACY.md`](HIGH_STAKES_ACCURACY.md) re-ranks this list by *who reads the number* and supersedes its **sequencing**, not its rules or its contents; items that plan does not schedule stay open here.
 
-**Waves 1–7 of this plan are complete.** PRs #119–#122 closed three of the six
-items Wave 5 opened plus answered a fourth, and **Wave 7 (PRs #126–#132) closed
-seven more** — items 8 (on direction), 15, 24, 25, 30 and 31, plus the dashboard
-half of the sweep's §7.5 finding. **Two of those seven closed by being disproved
+**Waves 1–7 of this plan are complete, and Waves A and B of the high-stakes plan
+have run on top of them** (§5.8). PRs #119–#122 closed three of the six items
+Wave 5 opened plus answered a fourth, and **Wave 7 (PRs #126–#132) closed seven
+more** — items 8 (on direction), 15, 24, 25, 30 and 31, plus the dashboard half
+of the sweep's §7.5 finding. **Waves A/B (PRs #140–#146) then closed item 37 —
+both halves of it, the base growth and the AGI column — and opened items 43–54
+below**, which is the shape of a wave that measured four things it did not
+build. Item 37 is struck where it stands. **Two of those seven closed by being disproved
 rather than fixed**, which is why the list below is longer than the items it
 lost: the decedent ladder was not the cause of the exclusion-step gap, and the
 filing-status split made three of its four rows worse. Wave 7's own new items are
@@ -2424,8 +2667,19 @@ by 2–4×.
     windows on different baselines and the model's own death channel is 0.714× as
     large on FY2022–2031 as on FY2025–2034 for the $1M design, so any
     common-window restatement makes the published step larger.
-37. **Option 46's AGI base and the generic base's growth rate — what item 25
-    turned out to be.** *(New, from `planning/lanes/W7_filing_status_split.md`
+37. ~~**Option 46's AGI base and the generic base's growth rate — what item 25
+    turned out to be.**~~ — **CLOSED, both halves, by Waves A/B (PRs #144 and
+    #146; see §5.8).** The two Option 46 rows read **7.4%** and **−2.9%**. Both
+    of the lane's own predictions were right about *direction* and wrong about
+    *size*, and the record below is left standing because the arithmetic that
+    corrects it is worth keeping beside it: the AGI step is worth **1.4052** and
+    **1.2535** inside the filing-status split rather than the pooled 1.3820 and
+    1.3094 this item sized it with, and the growth step alone gave 34.1% and
+    17.9% rather than the 9.1% and 1.0% (b) predicted — because those figures
+    embedded (a) as well. The five-rows-for-one-reason worry in (a) was right and
+    was answered per source: **three of the six moved and three did not**, and
+    `medicare_surcharge_2pp`'s base turned out to be **neither SOI column**. The
+    original text: *(New, from `planning/lanes/W7_filing_status_split.md`
     finding 1.)* With the filing-status split built, the two Option 46 rows read
     **49.8%** and **37.4%**, and the lane measured the whole of what is left in
     two terms it declined to take. **(a) The AGI base.** Both rows carry
@@ -2510,3 +2764,147 @@ by 2–4×.
     `test_the_two_green_book_rows_carry_their_own_documents_exclusions` says "the
     exclusion is the only thing that separates them"; the calendar year now
     separates them too. All three pass or are inert; none is a scored quantity.
+
+43. **Five preset labels quote a figure the ledger has superseded, and two more
+    were mis-signed.** *(New, from `planning/lanes/HSB_h9_provenance.md` §8.5 and
+    `planning/lanes/HSA_h1_base_rule.md` finding 5.)* Labels are `CBO_SCORE_MAP`
+    keys, so renaming one under a sibling lane is the collision Wave A's
+    file-disjointness exists to prevent, and H9 could not take them:
+    `💰 SS Donut Hole $250K (-$2.7T)` now scores against **−$1,426.8B**,
+    `🏠 Eliminate Estate Tax ($350B)` against **+$407.2B**,
+    `📋 Eliminate Mortgage Deduction (-$300B)` against **[−$495.0B, −$367.9B]**,
+    `🏭 Trump 60% China Tariff (-$500B)` against **−$650.0B**, and
+    `🌱 Repeal IRA Clean Energy Credits ($783B)` against **−$851.0B**. They are
+    declared in `tests/test_target_revisions.py::_LABELS_QUOTING_A_SUPERSEDED_FIGURE`
+    with a test that fails if a sixth joins. **Two more are a different defect
+    H1's own label invariant found**: `🌱 Repeal IRA Clean Energy Credits ($783B)`
+    and `⚡ Repeal EV Credits ($182B)` print a **positive** figure for policies
+    whose `CBO_SCORE_MAP` `official_score` and model output are both negative —
+    the same class of error as the `repeal_corporate_amt` sign H6 fixed, which
+    read a $220B *saving* where JCT, the target and the model all read a $220B
+    cost. A rename lane owns `app_data.py`, `preset_ids.py` (adding
+    `LEGACY_LABEL_ALIASES` so pasted share links resolve, ids untouched),
+    `ui/preset_validation.py` and four tests, in **one** commit.
+44. **`AGI_BASE_RULE` belongs on `CBOScore`, not beside it.** *(New, from
+    `planning/lanes/HSB_h2b_agi_column.md` §1.6 and §6.7.)* Which SOI column a
+    record reads is transcribed from its own source's sentence and currently
+    lives in a module-level mapping keyed by the same three policy ids the record
+    already carries `agi_inclusive_base` for. It belongs as a field beside that
+    flag, so a new record cannot be registered without stating its column — but
+    `cbo_scores.py` was H9's file in the same wave, and moving a record's schema
+    under a provenance pass is the collision the sequencing prevents. One field,
+    one migration, one invariant.
+45. **Four Tier 1 targets are rules of thumb with no source URL, and two of them
+    score the same reform.** *(New, from `planning/lanes/HSB_h2_base_growth.md`
+    finding 3 and §7 owner item 2.)* `illustrative_1pp_all` (−$960.0B, note:
+    *"Rule of thumb: 1pp ≈ $85-100B/year"*), `illustrative_top_rate_5pp`,
+    `illustrative_500k_2pp` (both "Illustrative estimate") and
+    `warren_ultramillionaire_surtax_3pp` (a bare `taxpolicycenter.org` domain).
+    `illustrative_1pp_all` and `cbo_opt45_all_rates_1pp` are **the same reform**
+    against targets **23.5% apart**, so the model cannot agree with both and Wave
+    B swapped which one it agrees with (+4.1% → −24.5% on the rule of thumb,
+    +22.4% → **−1.9%** on CBO's printed option). Three of the four are now in the
+    tier's top eight. This is a **target** decision — revise, examine-and-leave,
+    or retire — with `preregistered.py`'s supersede rule and the retired-row
+    protocol both already built for it. H9 was in the same wave and deliberately
+    took none of it.
+46. **`DistributionalEngine` ignores `ordinary_income_base`, so one policy object
+    yields a revenue score and a who-pays table about 2.57× apart.** *(New, from
+    `planning/lanes/HSA_h1_base_rule.md` finding 11.)* At a $400,000 threshold
+    the synthetic table totals $50.0B/yr against the scorer's $19.4B/yr. Nothing
+    shipped is wrong today — the seven published distributional benchmarks are
+    scored on their own registered universes and the dashboard's distributional
+    block is character-identical across H1 — but a user reading a score and a
+    table off one run is reading two bases.
+    `test_the_distribution_engine_does_not_read_the_income_base` **asserts the
+    divergence exists** and fails with instructions when someone closes it.
+    Closing it moves who-pays tables, so it is a lane with its own
+    pre-registration.
+47. **The payroll module stamps a flat annual where both published paths ramp.**
+    *(New, from `planning/lanes/HSA_h13_payroll_targets.md` §6.4, and now with a
+    document to be fixed against.)* CBO's annual path for the $250,000 donut runs
+    **$122.0B in 2026 → $192.0B in 2034** as the taxable maximum grows toward the
+    threshold and the hole closes; OCACT's own E2.5 income-rate change ramps the
+    same way, 1.85% → 2.50% of payroll. `create_ss_donut_hole` stamps a flat
+    **$270B/yr**. Held to CBO's own ten-year total, a flat annual is **17.0% high
+    in FY2026 and 25.7% low in FY2034**. That is `create_repeal_ptc`'s defect
+    (PR #131) in a second module, and since PR #145 the row has a published path
+    to be fixed against. E2.1's path *is* nearly flat, so this belongs to the
+    donut alone. It moves a shipped headline and owes a Decision 6 caption.
+48. **`get_confidence_context` has no caller in the tree.** *(New, from
+    `planning/lanes/HSA_h6_no_headline_without_row.md` §5.3 finding 1.)* The
+    plan's §1.3(d) correctly describes a defect on a function nothing renders —
+    one definition, zero call sites. H6 keyed it to the tier so wiring it later is
+    safe, and says plainly that this is not a shipped improvement. Either wire it
+    into the result surface or delete it; a tier-correct string nothing renders is
+    not a fix.
+49. **Owner decision ④: the two pharma targets.** *(Carried forward from
+    `planning/lanes/HSB_h9_provenance.md` §8.7, now with the machinery built.)*
+    `expand_drug_negotiation`'s −$500B is this repository's own extrapolation from
+    a figure `W4_pharma_part_d.md` finding 2 established was never a negotiation
+    score, and `international_reference_pricing`'s −$100B is a **RAND price index**
+    used as a score. The lane recommends retiring both, and writes out the exact
+    one-commit edit. **The reason it is an owner call rather than a lane's**:
+    retiring them takes 93.3% and 701.0% out of the reconstruction tier and leaves
+    it at about **36.7%** — 18.5 points of "improvement" bought by deletion, which
+    §5 of the high-stakes plan forbids — so the state is built to keep the rows
+    visible and print a held-in-place second reading. Two further candidates are
+    named and not acted on, `carbon_tax_50` and `eliminate_step_up`.
+    `tests/test_target_retirement.py::test_nothing_is_retired_yet` is the guard.
+50. **`carbon_tax_25` and CBO Option 73 are an unregistered pair.** *(New, from
+    `planning/lanes/HSB_h9_provenance.md` §8.9 and
+    `planning/lanes/HSA_h1_base_rule.md` finding 5.)* CBO's Option 73 alternative
+    1 scores **$919.3B for $25/ton rising 5%** on this repository's own window,
+    with the climate module's exact escalator, and `climate.py` carries a
+    `carbon_tax_25` scenario at an unsourced −$1,000B that **is not a scorecard
+    row at all**. Registering it changes the scorecard population, which is a
+    bigger move than a target or a verdict. The shipped preset's struck label had
+    claimed −$1.0T on a window neither CBO's −$865B (FY2023-2032) nor CRFB's $960B
+    (FY2026-2035) supports.
+51. **`fiscal_model/ui/__init__.py` imports the whole validation package,
+    eagerly.** *(New, from `planning/lanes/HSB_h3a_corporate_range.md` finding 2.)*
+    Importing *anything* under `fiscal_model.ui` — `styles` as readily as
+    `dependencies` — puts all **22** `fiscal_model.validation.*` submodules in
+    `sys.modules` through the package `__init__`'s re-export chain, so a module's
+    own lazy import is a property of the file and not of its package. Adjacent to
+    `planning/memos/COLD_START.md` and item 39, and a different owner from either.
+    `test_ui_package_init_is_the_eager_one` records the fact so the AST-level
+    purity test cannot be quietly satisfied by the package doing the import
+    instead.
+52. **Build and Ask produce corporate numbers with no estimator range beside
+    them.** *(New, from `planning/lanes/HSB_h3a_corporate_range.md` §6.5.)*
+    PR #143 ships the four-house range on every headline corporate run, and two
+    surfaces do not get it. `deficit_target.build_catalog` is driven by
+    `CBO_SCORE_MAP`'s `official_score`, so a Build package quotes a **list
+    price** — `trump_corporate_15`'s own published range [+595.0, +673.1] most
+    obviously — and needs a differently-worded sentence, because the surface shows
+    a target rather than a score. `assistant/tools.py`'s
+    `score_hypothetical_policy` and `benchmarks.candidate_anchors` produce
+    corporate answers with no range at all, and `candidate_anchors` in particular
+    **interpolates across `KNOWN_SCORES` corporate-rate records**, which is
+    exactly where a per-point yield belongs.
+53. **H3a's measurement is an input to owner decision ⑤ and should not go stale.**
+    *(New, from `planning/lanes/HSB_h3a_corporate_range.md` §6.3 finding 4 and
+    §6.4.)* Run through the engine in both modes, **at the +7pp step every shipped
+    preset uses `derived` lands *inside* the published span (76.1% marginal share
+    against a published 55.1-79.5%) and `reported` lands outside it** (82.3%,
+    above all four houses at every step). That is a second, independent metric
+    pointing the same way as PR #122's Decision 1 reversal (reported 62.75%
+    against derived 61.43%). A shipped range therefore makes the `reported`
+    default *more* visibly the outlier, not less: the caption reads "larger than
+    any of the four" on every corporate run the app serves for as long as the
+    default stands. Neither the lane nor this list decides it —
+    `CORPORATE_APP_MODE` is the owner's explicit override — but the question
+    should be taken **with both readings side by side**, and H3b (Wave E) moves
+    `derived` again.
+54. **The leave-one-out CI ceiling is now 2.1× its live mean.**
+    *(New, from this docs sync.)* `validation-dashboard.yml` runs
+    `run_loo.py --donor-matrix --max-mean-error 75`, and its comment derives 75
+    from "the observed aggregate mean (~59%) × 1.25". The live aggregate is
+    **35.7%**, so by the same rule the ceiling derives to `ceil(35.7 × 1.25) = 45`
+    → nearest 5 `= 45`. Tightening needs no reason under the workflow's own rule.
+    It was left alone here because this sync's brief scoped the re-derivation to
+    the Tier 1 gate and the new per-class floor, and because the suite's mean is
+    currently moving on **targets** rather than derivations — the ceiling should be
+    re-derived once, deliberately, rather than chased down after every provenance
+    pass.
