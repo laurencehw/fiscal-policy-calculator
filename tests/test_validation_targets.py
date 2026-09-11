@@ -61,8 +61,21 @@ def test_generic_and_specialized_targets_are_disjoint():
 
 
 def test_generic_targets_respect_the_baseline_vintage_floor():
+    """The floor, and the one exemption from it.
+
+    ``MIN_GENERIC_BASELINE_YEAR`` guards against scoring a target published for
+    one decade over a *different* decade. ``scoring_window_first_year`` is the
+    field that removes exactly that, so a record naming its own decade is
+    admitted however old its baseline is — and the assertion for those rows is
+    the stronger one: the window must be the first year of the window the
+    record's own ``budget_window`` states.
+    """
     for score in get_validation_targets():
-        assert score.baseline_year >= MIN_GENERIC_BASELINE_YEAR
+        if score.scoring_window_first_year is None:
+            assert score.baseline_year >= MIN_GENERIC_BASELINE_YEAR, score.policy_id
+            continue
+        stated = int(str(score.budget_window).split("-")[0].removeprefix("FY"))
+        assert score.scoring_window_first_year == stated, score.policy_id
 
 
 def test_capital_gains_records_are_no_longer_stranded():

@@ -97,10 +97,22 @@ def candidate_anchors(
     if family is None or not rate_change:
         return []
 
+    # ``assistant_anchor_eligible`` is the one filter here that is not about the
+    # request. Registering a validation benchmark is otherwise, silently, an
+    # edit to this shipped answer: every ``KNOWN_SCORES`` record with a matching
+    # family and a non-zero rate change becomes an anchor the moment it is
+    # written. PR #122 declined to register a 2021-vintage corporate target for
+    # that reason and lane R3 measured what happens when one is - a 21% -> 25%
+    # request moved -$741.35B -> -$542.80B on three added rows. A benchmark
+    # published for a decade this deployment does not serve is a validation
+    # target, not an anchor for a question asked today. Default True, so no
+    # pre-existing record is affected.
     candidates = [
         score
         for score in KNOWN_SCORES.values()
-        if score.policy_type == family and score.rate_change
+        if score.policy_type == family
+        and score.rate_change
+        and getattr(score, "assistant_anchor_eligible", True)
     ]
     if not candidates:
         return []

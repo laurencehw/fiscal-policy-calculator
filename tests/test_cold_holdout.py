@@ -224,20 +224,26 @@ def test_the_class_block_reproduces_the_plans_eight_populations():
     """
     classes = build_report()["out_of_sample"]["classes"]
     assert set(classes) == _class_slugs()
-    # Lane R2 retired four rows whose targets were in no publication and
-    # three of them were AGI-inclusive surtaxes, so this class is down to the
-    # two CBO Option 46 rows — the two with a published option and a
-    # transcribed base. A class of two is a thin thing to gate and R3 is the
-    # lane that refills it; the count is pinned here so the shrink cannot
-    # happen again without somebody editing this line.
-    assert classes["agi_inclusive_surtax"]["n"] == 2
-    assert classes["capital_gains"]["n"] == 4
-    assert classes["ordinary_rate_change"]["n"] == 4
-    assert classes["corporate"]["n"] == 1
+    # Lane R2 retired four rows whose targets were in no publication and three
+    # of them were AGI-inclusive surtaxes, taking that class to two. Lane R3
+    # refilled the tier from CBO's other three *Options* volumes: 22 rows, and
+    # seven of the eight classes now reach n >= 3.
+    #
+    # ``tax_expenditure`` is the eighth and it stops at **two**, which is a
+    # finding rather than an omission: CBO's four volumes contain exactly three
+    # employment-based-health-insurance options with an income-tax-only
+    # alternative, and the 2018 one *replaces the ACA excise tax*, so its target
+    # is net of repealing a levy the expenditure module's baseline does not
+    # contain. See planning/lanes/R3_tier1_battery.md section 2.2.
+    assert classes["agi_inclusive_surtax"]["n"] == 4
+    assert classes["capital_gains"]["n"] == 7
+    assert classes["ordinary_rate_change"]["n"] == 11
+    assert classes["corporate"]["n"] == 4
     assert classes["enacted_law_spending"]["n"] == 3
     assert classes["discretionary_spending"]["n"] == 5
-    assert classes["payroll"]["n"] == 2
-    assert classes["tax_expenditure"]["n"] == 1
+    assert classes["payroll"]["n"] == 8
+    assert classes["tax_expenditure"]["n"] == 2
+    assert sum(c["n"] for c in classes.values()) == 44
 
     # The two Option 46 rows are AGI-stated (H2b read the column off CBO's own
     # sentence); the two Option 45 rows are ordinary-rate. If those ever swap,

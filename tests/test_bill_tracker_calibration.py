@@ -47,9 +47,11 @@ def test_dominant_handles_unranked_confidence():
 def test_render_bill_calibration_band_emits_caption_for_known_type():
     """The band is the Tier 1 corporate class, not a category mean.
 
-    One pre-registered row scores a corporate statutory-rate change and it is
-    44.5% from its published figure, so that is what a bill whose dominant
-    provision is corporate gets — with ``n=1`` said out loud.
+    Lane R3 took that class from one row to four — CBO prices an identical
+    21%-to-22% increase in all four *Options* volumes — so the band is now the
+    mean and worst of four pre-registered rows, with the count said out loud. The
+    assertion that matters is unchanged: the band names its own sample size, so
+    a reader can see how thin it is.
     """
     reset_confidence_cache()
     st = MagicMock()
@@ -64,7 +66,7 @@ def test_render_bill_calibration_band_emits_caption_for_known_type():
     caption_text = st.caption.call_args[0][0]
     assert "Out-of-sample band" in caption_text
     assert "corporate" in caption_text
-    assert "n=1" in caption_text
+    assert "4 pre-registered corporate rows" in caption_text
     assert "demo-grade" in caption_text
     # The claim that H4 removed must not come back by another route.
     assert "calibrated run" not in caption_text

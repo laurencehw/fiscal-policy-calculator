@@ -2,8 +2,8 @@
   "_note": "Generated file - do not hand-edit. The footer's benchmark count is a validation claim, so it is derived from the live scorecard rather than typed. Regenerate with: python scripts/build_validation_headline.py",
   "generated_by": "scripts/build_validation_headline.py",
   "model_estimate_entries": 4,
-  "out_of_sample_entries": 22,
-  "published_entries": 73,
-  "total_entries": 77,
+  "out_of_sample_entries": 44,
+  "published_entries": 95,
+  "total_entries": 99,
   "unclassified_entries": 0
 }
