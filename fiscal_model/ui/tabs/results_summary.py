@@ -50,6 +50,11 @@ from fiscal_model.ptc import (
     PremiumTaxCreditPolicy,
 )
 from fiscal_model.spending_outlays import IMMEDIATE, account_class_label
+from fiscal_model.tax_expenditures_core import (
+    BEHAVIORAL_ELASTICITIES,
+    OffsetMagnitudeKind,
+    TaxExpenditurePolicy,
+)
 from fiscal_model.trade import TRADE_BASELINE, TariffPolicy
 from fiscal_model.ui.a11y import (
     ChartDescription,
@@ -1299,6 +1304,82 @@ def behavioural_sign_caption(policy: Any, result: Any) -> str:
     )
 
 
+def expenditure_offset_magnitude_caption(policy: Any, result: Any) -> str:
+    """One line saying where this reform's behavioural size comes from.
+
+    The tax-expenditure module multiplies a reform's static revenue effect by a
+    share, and until 2026-09-11 all five of those shares were unsourced numbers
+    — lane W7 settled which *direction* each response points and said in terms
+    that a magnitude cannot be read off the same sentence. Lane H7 asked each
+    of the five for a document and two of them have one, so the share is now
+    read from the source rather than assumed:
+
+    * **mortgage repeal** — Poterba & Sinai (NBER WP 14253) price the same
+      repeal twice, at \\$72.4B with no behavioural response and \\$61.9B once
+      households sell taxable assets to retire mortgage debt, so the erosion is
+      their own ratio rather than a round 10%;
+    * **the charitable benefit-rate ceiling** — CRS R40518's central price
+      elasticity of giving (0.5), converted on the reform's own SOI deduction
+      distribution, because a price elasticity and a share of a revenue effect
+      are different quantities and the module needs the second.
+
+    The shipped **Cap Charitable Deduction** preset moved by about 13% when
+    that landed, so the number ships with its explanation rather than in
+    silence (Decision 6).
+
+    Computed from the scored result and from the module's own resolution, so it
+    cannot drift from the figure above it, and it reconstructs the previous
+    headline from ``BEHAVIORAL_ELASTICITIES`` — the table that *was* the answer
+    — rather than from a literal written here. The headline is the conventional
+    score, static plus behavioural, in both engine modes, so this is computed
+    from those two and never from ``final_deficit_effect``, which on a dynamic
+    run also carries revenue feedback.
+
+    Returns ``""`` for any policy whose share is not sourced.
+    """
+    if not isinstance(policy, TaxExpenditurePolicy):
+        return ""
+    rule = policy.offset_magnitude_rule()
+    if rule is None:
+        return ""
+    behavioural = float(np.sum(result.behavioral_offset))
+    if behavioural == 0.0:
+        return ""
+    share = policy.resolved_offset_magnitude()
+    previous_share = BEHAVIORAL_ELASTICITIES.get(policy.expenditure_type)
+    if not share or not previous_share:
+        return ""
+
+    static = float(np.sum(result.static_deficit_effect))
+    current = static + behavioural
+    previous = static + behavioural * (previous_share / share)
+    if rule.kind is OffsetMagnitudeKind.PUBLISHED_SHARE:
+        provenance = (
+            "Poterba and Sinai price this same repeal twice - "
+            r"\$72.4B with no behavioural response and \$61.9B once households "
+            "sell taxable assets to retire mortgage debt, 'about 85 percent' "
+            "(NBER Working Paper 14253, Table 8) - so the erosion is the ratio "
+            "of their two published figures"
+        )
+    else:
+        provenance = (
+            f"a {float(policy.cap_rate or 0.0):.0%} ceiling raises the price of "
+            "a deductible dollar for every filer above it, and CRS R40518 - a "
+            "whole report on this reform - settles the giving response at a "
+            f"central price elasticity of {abs(float(rule.price_elasticity or 0.0)):.1f} "
+            "(Appendix A, report p. 27). Converted on this deduction's own SOI "
+            "distribution, because a price elasticity and a share of a revenue "
+            "effect are different quantities"
+        )
+    return (
+        f"Behavioural response, {share:.1%} of the static effect: {provenance}. "
+        f"This module carried an unsourced {previous_share:.0%} until "
+        rf"2026-09-11, which would have put the headline at \${previous:+,.1f}B "
+        rf"instead of \${current:+,.1f}B. No direction changed and no fitted "
+        f"constant was retuned; only where the size comes from."
+    )
+
+
 #: Corporate provisions this module can price that **no** published row in
 #: ``corporate_rate_scores.csv`` prices as part of a statutory-rate score.
 #: Attribute name -> how the caption names it. A run carrying any of these is
@@ -1822,6 +1903,9 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     sign_note = behavioural_sign_caption(policy, result)
     if sign_note:
         st_module.caption(sign_note)
+    magnitude_note = expenditure_offset_magnitude_caption(policy, result)
+    if magnitude_note:
+        st_module.caption(magnitude_note)
     base_note = agi_inclusive_base_caption(policy, result)
     if base_note:
         st_module.caption(base_note)
