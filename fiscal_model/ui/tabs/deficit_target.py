@@ -209,8 +209,8 @@ class BuildOption:
     subsumes: tuple[str, ...] = ()
     tags: Mapping[str, str] = field(default_factory=dict)
     #: H12 — this row sits in the demoted illustrative group. It still scores,
-    #: still exports and still resolves from a share link; the flag only tells
-    #: the renderer to print how far the model is from the published figure.
+    #: still exports and still resolves from a share link; the flag only moves
+    #: which section it renders in and adds a line naming the tier.
     illustrative: bool = False
 
     @property
