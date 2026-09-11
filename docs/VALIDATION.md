@@ -776,8 +776,9 @@ benchmarks:**
 **What "retired" means here, precisely.** The row is **not deleted and never
 will be**. It keeps its scorecard entry, its model figure and the withdrawn
 figure in `official_10yr_billions`, so it still prints; `calibrated_to_target` is
-forced `False`, exactly as a revision does; `ScorecardSummary.retired_target_
-entries` counts it; `check_readiness.py` **lists** it by id
+forced `False`, exactly as a revision does;
+`ScorecardSummary.retired_target_entries` counts it; `check_readiness.py`
+**lists** it by id
 (`retired_target_policy_ids`) rather than blocking on its rating, because
 blocking on a row that has no target would make deleting it the cheapest route
 back to green. Both verdicts state what was searched **and what would bring the
