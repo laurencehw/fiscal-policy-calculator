@@ -115,7 +115,7 @@ SIGN_CONVENTION = (
 # score in the app). The labels were reconciled in the Phase E provenance
 # pass, so those two now resolve through the normal catalog path.
 _SCORE_ONLY_ENTRIES: dict[str, dict[str, str]] = {
-    "📋 Eliminate Mortgage Deduction (-$300B)": {
+    "📋 Eliminate Mortgage Deduction (-$368B)": {
         "build_id": "mortgage-deduction-eliminate",
         "area": "Tax Expenditures",
     },

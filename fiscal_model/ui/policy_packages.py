@@ -18,7 +18,7 @@ PRESET_POLICY_PACKAGES = {
         "description": "Raise revenue from high earners and corporations",
         "policies": [
             "🏢 Biden Corporate 28% (CBO: -$1.35T)",
-            "💰 SS Donut Hole $250K (-$2.7T)",
+            "💰 SS Donut Hole $250K (-$1.43T)",
             "📋 Eliminate Step-Up Basis (-$500B)",
             "📋 Cap Charitable Deduction (-$200B)",
         ],
@@ -70,7 +70,7 @@ PRESET_POLICY_PACKAGES = {
             "The SS trust fund is projected to be depleted by \\~2033. These reforms extend solvency."
         ),
         "policies": [
-            "💰 SS Donut Hole $250K (-$2.7T)",
+            "💰 SS Donut Hole $250K (-$1.43T)",
             "💰 Expand NIIT (JCT: -$250B)",
         ],
         "official_total": -2950,
@@ -107,7 +107,7 @@ PRESET_POLICY_PACKAGES = {
         ),
         "policies": [
             "🏭 Trump Universal 10% Tariff (-$2.17T)",
-            "🏭 Trump 60% China Tariff (-$500B)",
+            "🏭 Trump 60% China Tariff (-$650B)",
         ],
         "official_total": -2500,
         "source": "Tax Foundation / Yale Budget Lab",
@@ -121,7 +121,7 @@ PRESET_POLICY_PACKAGES = {
         ),
         "policies": [
             "🌱 Carbon Tax \\$50/ton (-$1.7T)",
-            "🌱 Repeal IRA Clean Energy Credits ($783B)",
+            "🌱 Repeal IRA Clean Energy Credits (-$851B)",
         ],
         "official_total": -917,
         "source": "CBO-style estimate",

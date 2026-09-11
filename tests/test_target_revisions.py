@@ -15,7 +15,11 @@ import dataclasses
 import pytest
 
 from fiscal_model.app_data import CBO_SCORE_MAP, PRESET_POLICIES
-from fiscal_model.preset_ids import PRESET_ID_BY_LABEL, SCORE_ONLY_ID_BY_LABEL
+from fiscal_model.preset_ids import (
+    PRESET_ID_BY_LABEL,
+    SCORE_ONLY_ID_BY_LABEL,
+    preset_id_for_token,
+)
 from fiscal_model.validation.benchmark_sources import (
     CONFIRMATION_TOLERANCE_PCT,
     source_for,
@@ -241,7 +245,7 @@ _REVISED_LABELS: dict[str, str] = {
     "ira_enforcement": "\U0001f50d IRA Enforcement Funding (-$180B)",
     "pillar_two_adoption": "\U0001f30d Pillar Two Adoption (-$80B)",
     "reciprocal_tariffs": "\U0001f3ed Reciprocal Tariffs (-$1.5T)",
-    "repeal_ev_credits": "\U0001f331 Repeal EV Credits ($182B)",
+    "repeal_ev_credits": "\U0001f331 Repeal EV Credits (-$182B)",
     "repeal_salt_cap": "\U0001f4cb Repeal SALT Cap ($1.17T)",
     # The one revised preset whose label embeds no figure, so the label had
     # nothing to move. The figure it shows lives in CBO_SCORE_MAP instead, and
@@ -249,33 +253,35 @@ _REVISED_LABELS: dict[str, str] = {
     "trump_corporate_15": "\U0001f3e2 Trump Corporate 15%",
     "trump_universal_10": "\U0001f3ed Trump Universal 10% Tariff (-$2.17T)",
     "universal_insulin_cap": "\U0001f48a Universal Insulin Cap ($11B)",
-    # H9. Five of these six labels still quote the SUPERSEDED figure, and that
-    # is a decision rather than an oversight -- see
-    # `_LABELS_QUOTING_A_SUPERSEDED_FIGURE` below.
-    "eliminate_estate_tax": "\U0001f3e0 Eliminate Estate Tax ($350B)",
-    "eliminate_mortgage": "\U0001f4cb Eliminate Mortgage Deduction (-$300B)",
-    "repeal_ira_credits": "\U0001f331 Repeal IRA Clean Energy Credits ($783B)",
-    "ss_donut_250k": "\U0001f4b0 SS Donut Hole $250K (-$2.7T)",
+    # H9 moved these six targets and renamed nothing; the 2026-09-11
+    # label-figure lane took the five whose labels embedded a figure. See
+    # `_LABELS_QUOTING_A_SUPERSEDED_FIGURE` below, now empty.
+    "eliminate_estate_tax": "\U0001f3e0 Eliminate Estate Tax ($407B)",
+    "eliminate_mortgage": "\U0001f4cb Eliminate Mortgage Deduction (-$368B)",
+    "repeal_ira_credits": "\U0001f331 Repeal IRA Clean Energy Credits (-$851B)",
+    "ss_donut_250k": "\U0001f4b0 SS Donut Hole $250K (-$1.43T)",
     "tcja_rates_only": "\U0001f3db\ufe0f TCJA Rates Only",
-    "trump_china_60": "\U0001f3ed Trump 60% China Tariff (-$500B)",
+    "trump_china_60": "\U0001f3ed Trump 60% China Tariff (-$650B)",
 }
 
 #: Labels that quote a figure their target no longer carries, with the reason
-#: they were not renamed. Wave B is file-disjoint by design: preset labels are
-#: `CBO_SCORE_MAP` keys and `planning/HIGH_STAKES_ACCURACY.md` §4 gives the
-#: label rule to H1 and H6, both of which touch `app_data.py` in Wave A. A
-#: provenance lane renaming a map key under another lane's feet is exactly the
-#: collision that sequencing exists to prevent, so H9 moved the FIGURES and
-#: reported the labels. The list is pinned so a sixth cannot join it silently:
-#: the figure each label should eventually carry is in `CBO_SCORE_MAP` and in
-#: `target_revisions`, and the rename is a hand-off, not a loose end.
-_LABELS_QUOTING_A_SUPERSEDED_FIGURE: dict[str, str] = {
-    "eliminate_estate_tax": "$350B in the label; target is now +$407.2B",
-    "eliminate_mortgage": "-$300B in the label; anchor is now -$367.9B",
-    "repeal_ira_credits": "$783B in the label; target is now -$851.0B",
-    "ss_donut_250k": "-$2.7T in the label; target is now -$1,426.8B",
-    "trump_china_60": "-$500B in the label; target is now -$650.0B",
-}
+#: they were not renamed.
+#:
+#: **Empty since 2026-09-11, and the emptiness is the assertion.** Wave B is
+#: file-disjoint by design: preset labels are `CBO_SCORE_MAP` keys and
+#: `planning/HIGH_STAKES_ACCURACY.md` §4 gives the label rule to H1 and H6, both
+#: of which touch `app_data.py` in Wave A, so H9 moved the FIGURES and declared
+#: the five labels here rather than renaming a map key under another lane's
+#: feet. The label-figure lane that followed took all five --
+#: `_REVISED_LABELS` above now carries the new spellings, and each old one
+#: resolves through `preset_ids.LEGACY_LABEL_ALIASES` (or, for the score-only
+#: mortgage row, `SCORE_ONLY_ALIAS_ID_BY_LABEL`).
+#:
+#: The dict is kept rather than deleted because the next provenance pass will
+#: need it again: a lane that cannot reach a label should declare it here, and
+#: `test_the_labels_h9_left_quoting_a_superseded_figure_are_declared` will then
+#: fail until someone discharges it.
+_LABELS_QUOTING_A_SUPERSEDED_FIGURE: dict[str, str] = {}
 
 #: Score-only entries live in their own id map, so the label test looks for
 #: them there rather than in the preset catalog.
@@ -426,6 +432,15 @@ def test_the_app_labels_carry_the_revised_figures():
         "\U0001f331 Repeal EV Credits ($200B)",
         "\U0001f4cb Repeal SALT Cap ($1.1T)",
         "\U0001f3ed Trump Universal 10% Tariff (-$2T)",
+        # H9's five, renamed by the 2026-09-11 label-figure lane. The old
+        # spellings still RESOLVE -- see
+        # `test_h9s_five_labels_were_renamed_and_the_old_spellings_still_resolve`
+        # below; what must be gone is their presence as *live* keys.
+        "\U0001f3e0 Eliminate Estate Tax ($350B)",
+        "\U0001f4cb Eliminate Mortgage Deduction (-$300B)",
+        "\U0001f331 Repeal IRA Clean Energy Credits ($783B)",
+        "\U0001f4b0 SS Donut Hole $250K (-$2.7T)",
+        "\U0001f3ed Trump 60% China Tariff (-$500B)",
     ):
         assert stale not in CBO_SCORE_MAP
         assert stale not in PRESET_POLICIES
@@ -434,15 +449,18 @@ def test_the_app_labels_carry_the_revised_figures():
 
 
 def test_the_labels_h9_left_quoting_a_superseded_figure_are_declared():
-    """H9 moved five figures and renamed nothing, deliberately.
+    """H9 moved five figures and renamed nothing; the debt is now discharged.
 
     `planning/HIGH_STAKES_ACCURACY.md` §4 gives the label rule to H1 and H6,
     which own `app_data.py` in Wave A; a provenance lane renaming a map key
     under them is the collision the sequencing exists to prevent. So the labels
-    that now quote a superseded figure are *declared* rather than left to be
-    noticed, and this test fails if a sixth joins them or if one is renamed
-    without being taken off the list. The load-bearing assertion is the one
-    above: `CBO_SCORE_MAP`'s figure agrees with the live target either way.
+    that quoted a superseded figure were *declared* rather than left to be
+    noticed, and the 2026-09-11 label-figure lane renamed all five.
+
+    The test now runs in the other direction. It still accepts a declaration —
+    the next provenance pass may need one — but it insists that a declared
+    label genuinely still spells the old number, so an entry cannot be left
+    behind after its rename lands.
     """
     for policy_id, reason in sorted(_LABELS_QUOTING_A_SUPERSEDED_FIGURE.items()):
         assert policy_id in REVISED_POLICY_IDS, policy_id
@@ -450,15 +468,57 @@ def test_the_labels_h9_left_quoting_a_superseded_figure_are_declared():
         label = _REVISED_LABELS[policy_id]
         superseded = superseded_targets_for(policy_id)[-1]
         assert superseded.official_10yr_billions is not None, policy_id
-        # The label really does still spell the old number, and really does
-        # not spell the new one.
         assert label in CBO_SCORE_MAP, label
 
-    # Every OTHER revised label carries no stale figure, either because it was
-    # renamed by the pass that moved it or because it embeds no figure at all.
+    # Every revised label now carries its live figure or embeds none at all.
     undeclared = set(_REVISED_LABELS) - set(_LABELS_QUOTING_A_SUPERSEDED_FIGURE)
+    assert undeclared == set(_REVISED_LABELS)
     assert "tcja_rates_only" in undeclared  # its label embeds no figure
     assert "trump_corporate_15" in undeclared  # likewise
+
+
+def test_h9s_five_labels_were_renamed_and_the_old_spellings_still_resolve():
+    """The discharge, asserted rather than described.
+
+    Each of H9's five labels now spells its live figure, the old spelling is
+    gone from every map, and a share link carrying the old spelling still lands
+    on the same stable id. The sixth of H9's revisions, `tcja_rates_only`,
+    embeds no figure in its label and so had nothing to rename.
+    """
+    renamed = {
+        "eliminate_estate_tax": (
+            "\U0001f3e0 Eliminate Estate Tax ($350B)",
+            "\U0001f3e0 Eliminate Estate Tax ($407B)",
+        ),
+        "eliminate_mortgage": (
+            "\U0001f4cb Eliminate Mortgage Deduction (-$300B)",
+            "\U0001f4cb Eliminate Mortgage Deduction (-$368B)",
+        ),
+        "repeal_ira_credits": (
+            "\U0001f331 Repeal IRA Clean Energy Credits ($783B)",
+            "\U0001f331 Repeal IRA Clean Energy Credits (-$851B)",
+        ),
+        "ss_donut_250k": (
+            "\U0001f4b0 SS Donut Hole $250K (-$2.7T)",
+            "\U0001f4b0 SS Donut Hole $250K (-$1.43T)",
+        ),
+        "trump_china_60": (
+            "\U0001f3ed Trump 60% China Tariff (-$500B)",
+            "\U0001f3ed Trump 60% China Tariff (-$650B)",
+        ),
+    }
+    for policy_id, (old, new) in sorted(renamed.items()):
+        assert _REVISED_LABELS[policy_id] == new, policy_id
+        assert old not in CBO_SCORE_MAP, old
+        assert old not in PRESET_POLICIES, old
+        assert old not in PRESET_ID_BY_LABEL, old
+        assert old not in SCORE_ONLY_ID_BY_LABEL, old
+        assert new in CBO_SCORE_MAP, new
+        assert preset_id_for_token(old) == _STABLE_IDS_FOR_REVISED[policy_id], old
+        assert preset_id_for_token(new) == _STABLE_IDS_FOR_REVISED[policy_id], new
+
+    # `tcja_rates_only`'s label never carried a figure, so it is not here.
+    assert _REVISED_LABELS["tcja_rates_only"] == "\U0001f3db\ufe0f TCJA Rates Only"
 
 
 def test_the_preset_ids_themselves_never_move():

@@ -61,10 +61,10 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
     # Estate
     "🏠 Estate Tax: Extend TCJA (CBO: $167B)": "estate-extend-tcja",
     "🏠 Biden Estate Reform (-$450B)": "estate-exemption-3-5m",
-    "🏠 Eliminate Estate Tax ($350B)": "estate-repeal",
+    "🏠 Eliminate Estate Tax ($407B)": "estate-repeal",
     # Payroll / SS
     "💰 SS Cap to 90% (CBO: -$800B)": "ss-cap-90pct",
-    "💰 SS Donut Hole $250K (-$2.7T)": "ss-donut-250k",
+    "💰 SS Donut Hole $250K (-$1.43T)": "ss-donut-250k",
     "💰 Eliminate SS Cap (-$3.2T)": "ss-cap-eliminate",
     "💰 Expand NIIT (JCT: -$250B)": "niit-expand",
     # AMT
@@ -103,15 +103,15 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
     "💊 Comprehensive Drug Reform": "drug-reform-comprehensive",
     # Trade / tariffs
     "🏭 Trump Universal 10% Tariff (-$2.17T)": "tariff-universal-10pct",
-    "🏭 Trump 60% China Tariff (-$500B)": "tariff-china-60pct",
+    "🏭 Trump 60% China Tariff (-$650B)": "tariff-china-60pct",
     "🏭 25% Auto Tariff (-$386B)": "tariff-auto-25pct",
     "🏭 25% Steel/Aluminum Tariff (-$60B)": "tariff-steel-aluminum-25pct",
     "🏭 Reciprocal Tariffs (-$1.5T)": "tariff-reciprocal",
     # Climate / energy
-    "🌱 Repeal IRA Clean Energy Credits ($783B)": "ira-clean-energy-repeal",
+    "🌱 Repeal IRA Clean Energy Credits (-$851B)": "ira-clean-energy-repeal",
     "🌱 Carbon Tax \\$50/ton (-$1.7T)": "carbon-tax-50",
     "🌱 Carbon Tax \\$25/ton": "carbon-tax-25",
-    "🌱 Repeal EV Credits ($182B)": "ev-credit-repeal",
+    "🌱 Repeal EV Credits (-$182B)": "ev-credit-repeal",
     "🌱 Extend IRA Credits Beyond 2032": "ira-clean-energy-extend",
 }
 
@@ -122,7 +122,7 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
 #: promoted here in Phase 5 so they resolve in share links and can join an
 #: exclusive group. Same rule as the catalog ids: **frozen once shipped**.
 SCORE_ONLY_ID_BY_LABEL: dict[str, str] = {
-    "📋 Eliminate Mortgage Deduction (-$300B)": "mortgage-deduction-eliminate",
+    "📋 Eliminate Mortgage Deduction (-$368B)": "mortgage-deduction-eliminate",
     "📋 Eliminate SALT Deduction (-$1.62T)": "salt-deduction-eliminate",
 }
 
@@ -130,17 +130,30 @@ SCORE_ONLY_ID_BY_LABEL: dict[str, str] = {
 #: already has a slug: they reuse it rather than mint a second id, so a link
 #: carrying either spelling lands on the same option.
 #:
-#: Empty since the Phase E provenance pass. It held exactly two entries, both
-#: tariff labels that ``CBO_SCORE_MAP`` spelled differently from
-#: ``PRESET_POLICIES`` ("25% Steel & Aluminum Tariff (-$60B)" vs "25%
-#: Steel/Aluminum Tariff (-$15B)"; "Reciprocal Tariffs (~20pp) (-$1.2T)" vs
-#: "Reciprocal Tariffs (-$1.2T)"). The alias made *share links* resolve, but
-#: the two dictionaries still never joined on the label, so both presets showed
-#: **no official score at all** in the app. The labels are now identical in
-#: both dictionaries and the aliases are unnecessary. Kept as an empty dict
-#: rather than deleted: the mechanism is the right fix if a score map ever
-#: legitimately carries a second spelling.
-SCORE_ONLY_ALIAS_ID_BY_LABEL: dict[str, str] = {}
+#: It held two entries until the Phase E provenance pass, both tariff labels
+#: that ``CBO_SCORE_MAP`` spelled differently from ``PRESET_POLICIES`` ("25%
+#: Steel & Aluminum Tariff (-$60B)" vs "25% Steel/Aluminum Tariff (-$15B)";
+#: "Reciprocal Tariffs (~20pp) (-$1.2T)" vs "Reciprocal Tariffs (-$1.2T)"). The
+#: alias made *share links* resolve, but the two dictionaries still never joined
+#: on the label, so both presets showed **no official score at all** in the app.
+#: The labels were reconciled and the dict was kept empty rather than deleted,
+#: "the right fix if a score map ever legitimately carries a second spelling".
+#:
+#: The 2026-09-11 label-figure lane is its first user, and for a reason worth
+#: writing down: a **score-only** label cannot go in
+#: :data:`LEGACY_LABEL_ALIASES`. That map feeds ``_ALIAS_INDEX``, whose values
+#: are *catalog* labels, and :func:`preset_id_for_token` finishes a hit there
+#: with ``PRESET_ID_BY_LABEL[label]`` — which raises ``KeyError`` for a label
+#: with no ``PRESET_POLICIES`` row. This dict is consulted by
+#: ``_SCORE_ONLY_INDEX`` instead and maps straight to the id, which is what a
+#: retired score-only spelling needs.
+SCORE_ONLY_ALIAS_ID_BY_LABEL: dict[str, str] = {
+    # 2026-09-11: H9's provenance pass moved this row's target from an
+    # untraceable -$300B to a published range [-$495.0B, -$367.9B] anchored on
+    # Tax Foundation's -$367.9B (target_revisions.eliminate_mortgage.v2), and
+    # the label followed the figure. The slug does not change.
+    "📋 Eliminate Mortgage Deduction (-$300B)": "mortgage-deduction-eliminate",
+}
 
 #: Labels a preset used to carry, mapped to the label it carries now.
 #:
@@ -163,12 +176,31 @@ SCORE_ONLY_ALIAS_ID_BY_LABEL: dict[str, str] = {}
 #: ``CBO_SCORE_MAP`` sign was corrected in H1's PR and the label followed in
 #: H6's, which owns the badge map keyed on it. Nothing was struck here — the
 #: figure is real and only its sign was wrong.
+#:
+#: The five from 2026-09-11 are the label-figure lane's. Four quote a target
+#: H9's provenance pass superseded (``planning/lanes/HSB_h9_provenance.md``
+#: §8.5, which declared them rather than renaming them, because Wave A's
+#: file-disjointness gave ``app_data.py`` to another lane); the fifth, "Repeal
+#: EV Credits (\\$182B)", quoted the right magnitude with the wrong **sign** —
+#: a bare positive figure beside an ``official_score`` of −182.3 — and was one
+#: of the three rows ``test_a_label_figure_never_contradicts_its_own_official_score``
+#: carried in its ``handover`` set. "Repeal IRA Clean Energy Credits" was both
+#: at once: its \\$783B was **the model's own output**, positive, beside a
+#: target of −851.0. A score-only label cannot live here; see
+#: :data:`SCORE_ONLY_ALIAS_ID_BY_LABEL`.
 LEGACY_LABEL_ALIASES: dict[str, str] = {
     "🔍 High-Income Enforcement (-$250B)": "🔍 High-Income Enforcement",
     "💊 Comprehensive Drug Reform (-$600B)": "💊 Comprehensive Drug Reform",
     "🌱 Carbon Tax \\$25/ton (-$1.0T)": "🌱 Carbon Tax \\$25/ton",
     "🌱 Extend IRA Credits Beyond 2032 ($400B)": "🌱 Extend IRA Credits Beyond 2032",
     "⚖️ Repeal Corporate AMT (-$220B)": "⚖️ Repeal Corporate AMT (+$220B)",
+    "💰 SS Donut Hole $250K (-$2.7T)": "💰 SS Donut Hole $250K (-$1.43T)",
+    "🏠 Eliminate Estate Tax ($350B)": "🏠 Eliminate Estate Tax ($407B)",
+    "🏭 Trump 60% China Tariff (-$500B)": "🏭 Trump 60% China Tariff (-$650B)",
+    "🌱 Repeal IRA Clean Energy Credits ($783B)": (
+        "🌱 Repeal IRA Clean Energy Credits (-$851B)"
+    ),
+    "🌱 Repeal EV Credits ($182B)": "🌱 Repeal EV Credits (-$182B)",
 }
 
 #: Scorable presets first, then the Build-local score-only ids.
