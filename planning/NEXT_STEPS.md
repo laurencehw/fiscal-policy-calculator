@@ -1074,7 +1074,14 @@ bare `data/` line** (#132 — ruff silently skips `fiscal_model/data/`); and the
 17 of the row's 43 points" and quotes $405.6B, and the record's `notes` still
 claim the row necessarily gets the same prediction as `biden_capital_gains_39`).
 
-What remains from before, with the newest first: **the corporate module's implied
+What remains from before, with the newest first: **the four-edition corporate
+class is 71.6% / 36.1% of Tier 1 mass, and most of the 2018/2020 blow-up is a
+receipts path that was transcribed and never wired**
+(`planning/lanes/CORP_class_accuracy.md` — installing the Apr 2018 / Sep 2020 /
+May 2022 Outlook annuals already in `corporate_yield_reconciliation.BASELINES`
+takes the class to 40.3%, mass −125, after which every leftover is the 80.8% vs
+JCT-share gap; R3 carry-over 6's "roughly 10% and 42%" was the first-year MTS
+diagnostic, not the install); **the corporate module's implied
 marginal base still 80.8% of the vintage average against JCT's 55.9%** (new,
 PR #120 §4b and PR #121's own "what the lane did not do" — the remaining 44 points
 of `cbo_opt64` are credit carryforwards under §38(c)/§904(c), CAMT and the
