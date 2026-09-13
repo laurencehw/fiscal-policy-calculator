@@ -22,14 +22,14 @@ phrasing was on this line until 2026-09-01 and was wrong. Live numbers from
 
 | Tier | What it measures | n | Mean | Median |
 |---|---|--:|--:|--:|
-| Out-of-sample, pre-registered | prediction | **44** | **18.0%** | 12.3% |
+| Out-of-sample, pre-registered | prediction | **44** | **15.2%** | 12.3% |
 | Calibrated, fitted | bookkeeping (low by construction) | **15** | **1.6%** | 0.0% |
 | … fitted, ledger rows held in place | the same tier without the composition move | **26** | **12.4%** | 2.6% |
 | Unfitted module reconstructions, **scored** | modules vs targets never fitted to | **38** | **42.3%** | 30.1% |
 | … **with the two retired rows held in place** | the same tier without the withdrawal | **40** | **60.0%** | 33.3% |
 | Calibrated, leave-one-out | how much of the calibration is structure | 18 | **36.5%** | 30.2% |
 
-*Lane R3 (PR #169, 2026-09-11) grew the out-of-sample tier 22 → 44 rows from CBO's 2018/2020/2022 Options volumes with every existing row byte-identical; the tier mean rose 11.8% → 18.0% because the yardstick grew, not because the model moved. CI gates re-derived by the workflow's rule to 25/34 pooled. See CLAUDE.md "Lane R3".*
+*Lane R3 (PR #169, 2026-09-11) grew the out-of-sample tier 22 → 44 rows from CBO's 2018/2020/2022 Options volumes with every existing row byte-identical; the tier mean rose 11.8% → 18.0% because the yardstick grew, not because the model moved. CI gates re-derived by the workflow's rule to 25/34 pooled. See CLAUDE.md "Lane R3". PR #173 then gave the three older corporate rows their own Outlook receipts paths: corporate class 71.6% → 40.3%, Tier 1 18.0% → 15.2% on the same 44 rows, gates 20/35 pooled and corporate 51 — see CLAUDE.md "corporate Outlook-vintage lane".*
 
 **Never quote the reconstruction tier's 42.3% without the 60.0% on the line
 beneath it.** PR #160 withdrew a 93.3% row and a 701.0% row from a tier that
