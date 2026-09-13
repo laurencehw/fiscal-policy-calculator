@@ -29,18 +29,76 @@
 # exactly what stands between a rate and a dollar. A pre-tax profits path would
 # need each of them re-applied on top, with its own assumption.
 #
-# WHICH VINTAGE, AND WHY ONLY ONE. `vintage` matches BaselineVintage's own
-# value strings, so a later lane adds a block rather than editing code. Only the
-# February 2024 block is here: cbo.gov returns HTTP 403 to this environment on
-# every URL, and the Wayback Machine holds no snapshot of
-# 51118-2025-01-budgetprojections.xlsx or 51118-2026-02-budgetprojections.xlsx
-# (checked 2026-09-05, `archived_snapshots: {}`). The memo's section 3 carries
-# 10-year totals for those two vintages (4,766.7 and 4,976.7) but no annual
-# path, and manufacturing a shape for them is exactly what the modelling plan's
-# section 1.1 forbids. February 2024 is in any case the vintage the CBO Options
-# battery is scored on (CBO_OPTIONS_REVENUE_BASELINE), the vintage CBO's
-# December 2024 Options volume names for its revenue options, and the vintage
-# cbo_opt64's own target is priced against.
+# WHICH VINTAGES ARE HERE. `vintage` is a free-standing key, NOT a
+# BaselineVintage: the February 2024 block happens to share that enum's value
+# string because it is also a budget vintage this deployment serves, and the
+# other three are Outlook editions no BaselineVintage member names. A block in
+# this file selects a RECEIPTS PATH; a BaselineVintage selects a BUDGET
+# BASELINE. Keeping them separate is what lets a 2018-vintage receipts path be
+# scored without inventing a 2018 budget baseline nothing else could serve.
+#
+# Four blocks, one per CBO *Options* volume the Tier 1 corporate +1pp battery
+# scores (lane planning/lanes/CORP_outlook_vintages.md). Each *Options* volume
+# names the Outlook its revenue options were priced against, and that name is
+# already recorded in data_files/validation/corporate_rate_scores.csv's
+# `baseline_vintage` column:
+#
+#   cbo_apr_2018  FY2019-2028  CBO, The Budget and Economic Outlook: 2018 to
+#                 2028 (April 2018), publication 53651, Table 4-1. The revenue
+#                 baseline for CBO's December 2018 Options volume (pub. 54667),
+#                 whose option 24 is cbo2019_opt24_corporate_rate_1pp.
+#   cbo_sep_2020  FY2021-2030  CBO, An Update to the Budget Outlook: 2020 to
+#                 2030 (September 2020), publication 56517, Table 1. The
+#                 revenue baseline for CBO's December 2020 Options volume
+#                 (pub. 56783), option 19. A COVID OUTLIER: FY2021 is projected
+#                 at $122.8B against a Treasury MTS actual of $371.8B, so any
+#                 marginal share computed against it is far too large. It is
+#                 still the right path for that row, because it is the path
+#                 JCT's estimate was priced on.
+#   cbo_may_2022  FY2023-2032  CBO, The Budget and Economic Outlook: 2022 to
+#                 2032 (May 2022), publication 57950, Table 1-1. The revenue
+#                 baseline for CBO's December 2022 Options volume (pub.
+#                 58163/58164), option 50.
+#   cbo_feb_2024  FY2025-2034  CBO, The Budget and Economic Outlook: 2024 to
+#                 2034 (February 2024), publication 59710, Table 1-1. The
+#                 revenue baseline CBO's December 2024 Options volume names for
+#                 its revenue options (CBO_OPTIONS_REVENUE_BASELINE), the
+#                 vintage cbo_opt64's own target is priced against, and
+#                 BaselineVintage.CBO_FEB_2024.
+#
+# The reference recorded per block is the TABLE, which is what
+# scripts/corporate_yield_reconciliation.py's BASELINES carries and what the
+# yield memo transcribed. It is not a report PAGE number: cbo.gov returns HTTP
+# 403 to this environment on every URL, so re-opening each Outlook to add one is
+# not available, and inventing one would be worse than naming the table.
+# Delivery was Wayback mirrors of cbo.gov - primary documents, mirrored
+# delivery, the standard CORPORATE_PER_POINT_YIELD.md used for all eighteen
+# published scores.
+#
+# WHY NOT FROM US-CBO/cbo-data. Checked at the pinned commit 284a9566 rather
+# than assumed: data/budget/ten_year_budget holds annual_fy_{2024-06, 2025-01,
+# 2026-02}.csv and nothing older, data/economic/economic_projections starts at
+# 2024-02, and data/budget/revenue_detail starts at 2024-06. CBO's GitHub
+# publishes no 2018, 2020 or 2022 budget table, so the transcription already in
+# this repository is the record. A later lane that finds a CBO GitHub CSV for
+# one of these editions should take it.
+#
+# WHICH VINTAGES ARE **NOT** HERE, AND WHY. cbo_mar_2016 (FY2017-2026) and
+# cbo_jun_2017 (FY2018-2027) are transcribed in BASELINES and are deliberately
+# left there. Both are PRE-TCJA, at a 35 percent statutory rate, and
+# BASE_PER_DOLLAR_OF_RECEIPTS is 1.0083/tau measured at tau = 21 percent, so
+# multiplying a 35 percent-era receipts path by it would price a base that does
+# not exist. This file is the set of blocks a SCORE may read; those two may not,
+# and keeping them out is the guard rail rather than an omission.
+# cbo_jul_2021, cbo_feb_2023, cbo_jan_2025 and cbo_feb_2026 are not here either:
+# BASELINES carries a 10-year total for each and NO annual path, and
+# manufacturing a shape is exactly what the modelling plan's section 1.1
+# forbids. cbo.gov returns HTTP 403 to this environment on every URL and the
+# Wayback Machine holds no snapshot of 51118-2025-01-budgetprojections.xlsx or
+# 51118-2026-02-budgetprojections.xlsx (checked 2026-09-05,
+# `archived_snapshots: {}`); the two later vintages reach CBOBaseline through
+# data_files/cbo_baseline/ instead, which is a different file and a different
+# reader.
 #
 # OUTSIDE THE WINDOW the module continues the nearest observed growth rate,
 # exactly as fiscal_model/payroll.py's covered_earnings() does with CBO's wage
@@ -48,10 +106,25 @@
 # reaches - is therefore an extrapolation at the FY2033->FY2034 rate, and is
 # reached by nothing shipped, because the app scores `reported`.
 #
-# CHECK. The ten values sum to 5,093.9 against the 5,094.0 CBO prints as the
-# total - a tenth of a billion of CBO's own rounding, the same artefact the
-# alternatives CSV shows on Option 64 itself (Table 1-1 gives 136.0 where the
-# alternatives file gives 135.7). tests/test_corporate_derived.py asserts it.
+# CHECK, per block: the annuals against the ten-year total CBO prints.
+#
+#   block         sum of annuals   CBO's printed total   difference
+#   cbo_apr_2018         3,846.6               3,846.6         0.0
+#   cbo_sep_2020         3,152.6               3,152.4        +0.2
+#   cbo_may_2022         4,754.9               4,754.9         0.0
+#   cbo_feb_2024         5,093.9               5,094.0        -0.1
+#
+# Two reproduce CBO's own total to the cent and two differ by CBO's rounding -
+# the same artefact the alternatives CSV shows on Option 64 itself (Table 1-1
+# gives 136.0 where the alternatives file gives 135.7).
+# tests/test_corporate_derived.py asserts all four at a 0.15 tolerance.
+#
+# GRADING. Every block here is `published_path` in
+# fiscal_model/baseline.CORPORATE_RECEIPTS_SOURCING's own vocabulary: every year
+# is CBO's own published figure for that vintage, read from a CBO table. The
+# grade rides on corporate.CORPORATE_RECEIPTS_BLOCK_SOURCING, and
+# projected_statutory_base refuses a block graded anything weaker rather than
+# letting a reconstruction be reported as CBO's.
 vintage,fiscal_year,corporate_receipts_billions
 cbo_feb_2024,2025,494.1
 cbo_feb_2024,2026,491.4
@@ -63,3 +136,33 @@ cbo_feb_2024,2031,518.7
 cbo_feb_2024,2032,519.2
 cbo_feb_2024,2033,533.4
 cbo_feb_2024,2034,550.8
+cbo_apr_2018,2019,276.3
+cbo_apr_2018,2020,307.4
+cbo_apr_2018,2021,326.7
+cbo_apr_2018,2022,352.8
+cbo_apr_2018,2023,388.1
+cbo_apr_2018,2024,420.6
+cbo_apr_2018,2025,446.5
+cbo_apr_2018,2026,449.0
+cbo_apr_2018,2027,431.4
+cbo_apr_2018,2028,447.8
+cbo_sep_2020,2021,122.8
+cbo_sep_2020,2022,234.1
+cbo_sep_2020,2023,289.3
+cbo_sep_2020,2024,318.9
+cbo_sep_2020,2025,347.3
+cbo_sep_2020,2026,352.3
+cbo_sep_2020,2027,355.6
+cbo_sep_2020,2028,368.1
+cbo_sep_2020,2029,377.6
+cbo_sep_2020,2030,386.6
+cbo_may_2022,2023,456.1
+cbo_may_2022,2024,478.0
+cbo_may_2022,2025,483.2
+cbo_may_2022,2026,473.0
+cbo_may_2022,2027,456.9
+cbo_may_2022,2028,461.0
+cbo_may_2022,2029,470.4
+cbo_may_2022,2030,480.1
+cbo_may_2022,2031,491.0
+cbo_may_2022,2032,505.2

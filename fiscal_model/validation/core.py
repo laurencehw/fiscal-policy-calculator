@@ -269,56 +269,89 @@ _CORPORATE_MULTI_VOLUME_LIMITATIONS = [
     "decade. See planning/memos/CORPORATE_PER_POINT_YIELD.md and lane R5/H3b.",
 ]
 
-#: The second cause, and it dominates the two rows whose decade opens before
-#: the transcribed receipts path does.
+#: The second cause, which used to dominate the two rows whose decade opens
+#: before February 2024's receipts path does — and which is now **closed**.
 #:
-#: This is larger than the first and it is measured rather than described.
+#: It was larger than the first and it was measured rather than described.
 #: CBO's transcribed corporate receipts path (publication 59710, February 2024)
 #: begins in **FY2025** at $494.1B and rises only to $550.8B by FY2034 — about
 #: 1.2%/yr — so ``cbo_corporate_receipts`` extrapolating backwards at the
-#: nearest observed growth rate walks that nearly-flat line into years whose
-#: *actual* receipts were far lower. Against Treasury's own MTS actuals,
-#: already transcribed in this repository:
+#: nearest observed growth rate walked that nearly-flat line into years whose
+#: *actual* receipts were far lower. Closed since
+#: ``planning/lanes/CORP_outlook_vintages.md``: each corporate row now names the
+#: CBO Outlook its own *Options* volume was priced against
+#: (``CBOScore.corporate_receipts_vintage``) and
+#: ``cbo_corporate_receipts.csv`` carries a block for each — April 2018
+#: (pub. 53651 Table 4-1), September 2020 (56517 Table 1), May 2022 (57950
+#: Table 1-1) and February 2024 (59710 Table 1-1).
 #:
-#: ===========  ===========  =========  =======
-#: fiscal year  projected    actual     ratio
-#: ===========  ===========  =========  =======
-#: FY2019       $510.6B      $230.2B    2.218x
-#: FY2021       $505.0B      $371.8B    1.358x
-#: FY2023       $499.5B      $419.6B    1.191x
-#: ===========  ===========  =========  =======
+#: What the back-projection had been worth, kept because a limitation that is
+#: removed should leave its size on the record rather than disappearing:
 #:
-#: Deflating each row's model output by its own ratio — a diagnostic, never the
-#: row's score — gives −$86.7B against CBO's −$96.3B (**10.0%**), −$141.2B
-#: against −$99.3B (**42.2%**) and −$162.0B against −$129.3B (**25.3%**). So the
-#: back-projection is essentially the *whole* of the 2018 row's 99.7% and most
-#: of the 2020 row's 93.1%, and what is left underneath all of them is the
-#: marginal-share level the memo measures.
-_CORPORATE_BACK_PROJECTED_RECEIPTS = [
-    "CBO's transcribed corporate receipts path (publication 59710, February "
-    "2024) begins in FY2025 at $494.1B and rises about 1.2%/yr, so a window "
-    "opening in FY2019 or FY2021 is scored on cbo_corporate_receipts()'s "
-    "backward extrapolation of that nearly-flat line. It is an extrapolation "
-    "rather than a clamp and the module says so, but against Treasury's own "
-    "MTS actuals it is 2.218x the FY2019 figure ($510.6B against $230.2B) and "
-    "1.358x the FY2021 one ($505.0B against $371.8B). Deflating this row's "
-    "output by its own ratio - a diagnostic, not a score - leaves 10.0% on the "
-    "2018 row and 42.2% on the 2020 one, so the back-projection is most of "
-    "what separates these two from the 2022 and 2024 editions and the "
-    "marginal-share level is what remains underneath all four.",
+#: ==========  ===========  ===========  ========  ========  ========
+#: row         shipped 10y  own Outlook  ratio     was       now
+#: ==========  ===========  ===========  ========  ========  ========
+#: 2018        $4,982.4B    $3,846.6B    1.295x    99.7%     53.4%
+#: 2020        $4,975.5B    $3,152.6B    1.578x    93.1%     21.8%
+#: 2022        $5,006.1B    $4,754.9B    1.053x    49.2%     41.6%
+#: 2024        $5,093.9B    $5,093.9B    1.000x    44.5%     44.5%
+#: ==========  ===========  ===========  ========  ========  ========
+#:
+#: The first-year Treasury MTS ratios R3 published (2.218x for FY2019, 1.358x
+#: for FY2021, 1.191x for FY2023) were a *diagnostic* and are not the install:
+#: deflating a ten-year score by a first-year ratio over-deflates the years
+#: already on the February 2024 block, and it deflates toward *actuals* where
+#: JCT scored a *projection*. They stay printed by
+#: ``scripts/corporate_options_vintage_gap.py`` so they cannot be quoted as the
+#: install's outturn.
+#:
+#: What survives on all four rows is the **marginal-share level**, which is one
+#: quantity read four times rather than four findings.
+_CORPORATE_MARGINAL_SHARE_LEVEL = [
+    "The residual on every edition of this reform is one number, not an "
+    "edition-specific mechanism. The derived path reaches about 80.8% of the "
+    "credit-realized statutory base its receipts path implies (CBO receipts x "
+    "4.80133, after the 17.6% profit-shifting offset and the IRC section 6655 "
+    "phase), where JCT's own implied marginal share is 52.6% on the April 2018 "
+    "baseline, 57.1% on May 2022 and 55.9% on February 2024 - and 66.1% on the "
+    "COVID-depressed September 2020 one. `0.808 / share - 1` reproduces each "
+    "row's error to within a tenth of a point, which is what makes the four "
+    "residuals four readings of one gap. The channel that points it downward "
+    "and is entirely unbooked is IRC section 38(c): a general-business-credit "
+    "carryforward stock of $124.47B against $72.17B of claims, under a "
+    "statutory cap that RISES with the rate. The share of the base held by "
+    "taxpayers who are both capped and holding stock is published for no "
+    "post-2010 year (SOI's excess-position tables stop at TY2010), so nothing "
+    "here multiplies one. See planning/memos/CORPORATE_PER_POINT_YIELD.md and "
+    "planning/lanes/CORP_class_accuracy.md section 2.2.",
+]
+
+_CORPORATE_COVID_DENOMINATOR = [
+    "This row's receipts path is CBO's September 2020 Outlook (publication "
+    "56517, Table 1), which is the baseline JCT's estimate was priced against "
+    "and is also a COVID outlier: it projects FY2021 corporate receipts at "
+    "$122.8B against a Treasury MTS actual of $371.8B. So this row's error is "
+    "the module's usual marginal-share level measured against a depressed "
+    "denominator, not a more accurate score, and it must not be quoted without "
+    "that clause. The correct path is still this one - JCT scored a "
+    "projection, not realized receipts.",
 ]
 
 _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
     # ---- Lane R3: the 2018, 2020 and 2022 Options volumes ----------------
     "cbo2019_opt24_corporate_rate_1pp": [
         *_CORPORATE_MULTI_VOLUME_LIMITATIONS,
-        *_CORPORATE_BACK_PROJECTED_RECEIPTS,
+        *_CORPORATE_MARGINAL_SHARE_LEVEL,
     ],
     "cbo2021_opt19_corporate_rate_1pp": [
         *_CORPORATE_MULTI_VOLUME_LIMITATIONS,
-        *_CORPORATE_BACK_PROJECTED_RECEIPTS,
+        *_CORPORATE_MARGINAL_SHARE_LEVEL,
+        *_CORPORATE_COVID_DENOMINATOR,
     ],
-    "cbo2023_opt50_corporate_rate_1pp": list(_CORPORATE_MULTI_VOLUME_LIMITATIONS),
+    "cbo2023_opt50_corporate_rate_1pp": [
+        *_CORPORATE_MULTI_VOLUME_LIMITATIONS,
+        *_CORPORATE_MARGINAL_SHARE_LEVEL,
+    ],
     "cbo2019_opt1_top4_brackets_1pp": [
         "CBO's statutory parameter schedule (publication 53724) covers "
         "CY2021-CY2034 on this record's vintage, so the option's CY2019 and "
@@ -1526,7 +1559,11 @@ def create_policy_from_score(
         )
 
     if shape == "corporate_rate":
-        from ..corporate import CORPORATE_VALIDATION_MODE, CorporateTaxPolicy
+        from ..corporate import (
+            CORPORATE_RECEIPTS_VINTAGE,
+            CORPORATE_VALIDATION_MODE,
+            CorporateTaxPolicy,
+        )
 
         return CorporateTaxPolicy(
             name=f"Validation: {score.name}",
@@ -1541,6 +1578,14 @@ def create_policy_from_score(
             # SOI's published statutory base instead. Same reasoning, and the
             # same pinning, as the ``tax_expenditure`` shape below.
             mode=CORPORATE_VALIDATION_MODE,
+            # The CBO Outlook this record's own *Options* volume was priced
+            # against, transcribed onto the record. ``None`` keeps the module
+            # default, so a corporate record that names no edition scores
+            # against February 2024 exactly as before.
+            # ``planning/lanes/CORP_outlook_vintages.md``.
+            receipts_vintage=(
+                score.corporate_receipts_vintage or CORPORATE_RECEIPTS_VINTAGE
+            ),
         )
 
     if shape == "payroll_rate":

@@ -195,14 +195,65 @@ MTS_RECEIPTS_PATH = (
 #: than a target problem.
 CORPORATE_BASE_GROWTH = 0.04
 
-#: Which block of :data:`CBO_RECEIPTS_PATH` the derived path reads. The value
-#: matches ``BaselineVintage.CBO_FEB_2024``'s own string: the vintage the CBO
-#: Options battery is scored on, the vintage CBO's December 2024 Options volume
-#: names for its revenue options, and the vintage ``cbo_opt64``'s target is
-#: priced against. It is the only vintage whose *annual* corporate receipts path
-#: could be sourced (cbo.gov 403s; no Wayback snapshot of the January 2025 or
-#: February 2026 workbooks), and the data file's header says so.
+#: The **default** block of :data:`CBO_RECEIPTS_PATH` the derived path reads.
+#: The value matches ``BaselineVintage.CBO_FEB_2024``'s own string: the vintage
+#: the CBO Options battery is scored on, the vintage CBO's December 2024 Options
+#: volume names for its revenue options, and the vintage ``cbo_opt64``'s target
+#: is priced against.
+#:
+#: It is a *default*, not the only block, since
+#: ``planning/lanes/CORP_outlook_vintages.md``. A caller that knows which CBO
+#: Outlook its score was priced against names it —
+#: :attr:`CorporateTaxPolicy.receipts_vintage`, set from
+#: ``CBOScore.corporate_receipts_vintage`` on the four Tier 1 corporate rows —
+#: and everything else keeps this one. Every factory, every preset and every app
+#: surface is on this default, which is why wiring the three older Outlooks
+#: moved no shipped number.
 CORPORATE_RECEIPTS_VINTAGE = "cbo_feb_2024"
+
+#: How each receipts block in :data:`CBO_RECEIPTS_PATH` is obtained, on
+#: ``baseline.CORPORATE_RECEIPTS_SOURCING``'s own vocabulary.
+#:
+#: ``published_path``
+#:     Every year of the projection is CBO's own published figure for that
+#:     vintage, read from a CBO table.
+#: ``published_base_level`` / ``vintage_estimate``
+#:     Weaker grades that file does not currently contain.
+#:     :func:`projected_statutory_base` **refuses** a block graded anything but
+#:     ``published_path`` rather than letting a reconstruction be scored and
+#:     reported as CBO's own path.
+#:
+#: A block with no entry here is refused for the same reason: the grade is the
+#: claim, and an ungraded block is an unmade claim rather than a safe one.
+CORPORATE_RECEIPTS_BLOCK_SOURCING: dict[str, str] = {
+    "cbo_apr_2018": "published_path",
+    "cbo_sep_2020": "published_path",
+    "cbo_may_2022": "published_path",
+    "cbo_feb_2024": "published_path",
+}
+
+#: The document each receipts block is transcribed from, so a report can name
+#: it. The reference is the **table**; it is not a report page number, because
+#: cbo.gov returns HTTP 403 to this environment and inventing one would be worse
+#: than naming the table. The data file's own header carries the full note.
+CORPORATE_RECEIPTS_BLOCK_DOCUMENT: dict[str, str] = {
+    "cbo_apr_2018": (
+        "CBO, The Budget and Economic Outlook: 2018 to 2028 (April 2018), "
+        "publication 53651, Table 4-1"
+    ),
+    "cbo_sep_2020": (
+        "CBO, An Update to the Budget Outlook: 2020 to 2030 (September 2020), "
+        "publication 56517, Table 1"
+    ),
+    "cbo_may_2022": (
+        "CBO, The Budget and Economic Outlook: 2022 to 2032 (May 2022), "
+        "publication 57950, Table 1-1"
+    ),
+    "cbo_feb_2024": (
+        "CBO, The Budget and Economic Outlook: 2024 to 2034 (February 2024), "
+        "publication 59710, Table 1-1"
+    ),
+}
 
 #: The fiscal/tax year on which the base-to-receipts ratio is measured: the last
 #: completed year covered by both IRS SOI's Table 11 and Treasury's Monthly
@@ -357,6 +408,23 @@ def cbo_receipts_by_fiscal_year(
     return tuple(sorted(rows))
 
 
+def corporate_receipts_sourcing(vintage: str) -> str:
+    """The grade of one receipts block, or ``"ungraded"`` if it has none."""
+    return CORPORATE_RECEIPTS_BLOCK_SOURCING.get(vintage, "ungraded")
+
+
+def corporate_receipts_document(vintage: str) -> str:
+    """The CBO table one receipts block is transcribed from."""
+    try:
+        return CORPORATE_RECEIPTS_BLOCK_DOCUMENT[vintage]
+    except KeyError:
+        raise KeyError(
+            f"No document recorded for corporate-receipts block {vintage!r}; "
+            f"{CBO_RECEIPTS_PATH.name} carries "
+            f"{sorted(CORPORATE_RECEIPTS_BLOCK_DOCUMENT)}"
+        ) from None
+
+
 def cbo_corporate_receipts(
     fiscal_year: int, vintage: str = CORPORATE_RECEIPTS_VINTAGE
 ) -> float:
@@ -442,7 +510,38 @@ def projected_statutory_base(
     realized there) and inside the path (receipts are credit realized by
     definition), and applying it twice was the double count this construction
     exists to avoid.
+
+    ``vintage`` names which CBO Outlook's receipts path to read. The default is
+    February 2024, which every factory, preset and app surface uses; the four
+    Tier 1 corporate ``+1pp`` rows name the edition their own *Options* volume
+    was priced against, so a target published on the April 2018 baseline is
+    scored against April 2018's receipts rather than against February 2024's
+    walked backwards six years.
+
+    **One ratio, four paths.** :data:`BASE_PER_DOLLAR_OF_RECEIPTS` is not
+    re-anchored per vintage and must not be. It is ``1.0083 / tau`` — a wedge
+    between two published measurements of *one completed year's* base, measured
+    at a 21 percent statutory rate. April 2018's own completed history is FY2017
+    (35 percent) and FY2018 (the IRC section 15 blended-rate transition, whose
+    receipts are $204.7B against FY2017's $297.0B), and September 2020's is
+    FY2019 and a pandemic FY2020; none is a year the ratio the identity needs
+    could be measured on, and all four rows price a 21 percent -> 22 percent
+    change. Four ratios chosen against four targets would also be a fitted
+    degree of freedom per row, which ``MODELING_IMPROVEMENT.md`` section 4
+    forbids. See ``planning/lanes/CORP_outlook_vintages.md`` section 1.4.
+
+    A block this module has not graded ``published_path`` raises rather than
+    being scored: the grade is a provenance claim, and a reconstruction
+    reported as CBO's own path is the failure
+    ``baseline.CORPORATE_RECEIPTS_SOURCING`` exists to prevent.
     """
+    grade = corporate_receipts_sourcing(vintage)
+    if grade != "published_path":
+        raise ValueError(
+            f"Corporate receipts block {vintage!r} is graded {grade!r}, not "
+            "'published_path'; a rate change may only be priced against a path "
+            "every year of which is CBO's own published figure"
+        )
     return cbo_corporate_receipts(fiscal_year, vintage) * BASE_PER_DOLLAR_OF_RECEIPTS
 
 
@@ -706,6 +805,14 @@ class CorporateTaxPolicy(TaxPolicy):
     # forbids, and no factory or validation shape sets it.
     profit_shifting_semi_elasticity: float = PROFIT_SHIFTING_SEMI_ELASTICITY
 
+    # Which CBO Outlook's corporate receipts path the derived rate channel
+    # prices against. A SHAPE INPUT, not a parameter: it names the document the
+    # score is being compared with, and the validation runner sets it from each
+    # CBOScore's own `corporate_receipts_vintage`. The default is the module
+    # constant, so every factory, preset and app surface reads February 2024
+    # exactly as before. Inert in `reported` mode, which reads no receipts path.
+    receipts_vintage: str = CORPORATE_RECEIPTS_VINTAGE
+
     def __post_init__(self):
         """Set policy type to corporate."""
         self.policy_type = PolicyType.CORPORATE_TAX
@@ -756,7 +863,9 @@ class CorporateTaxPolicy(TaxPolicy):
         if year <= self.start_year:
             return base * ESTIMATED_PAYMENT_SAME_FY_SHARE
         carry = 1.0 - ESTIMATED_PAYMENT_SAME_FY_SHARE
-        prior_share = projected_statutory_base(year - 1) / projected_statutory_base(year)
+        prior_share = projected_statutory_base(
+            year - 1, self.receipts_vintage
+        ) / projected_statutory_base(year, self.receipts_vintage)
         return base * (ESTIMATED_PAYMENT_SAME_FY_SHARE + carry * prior_share)
 
     def _derived_rate_effect(self, year: int | None = None) -> float:
@@ -780,7 +889,7 @@ class CorporateTaxPolicy(TaxPolicy):
         if delta == 0.0:
             return 0.0
         fiscal_year = self.start_year if year is None else year
-        return delta * projected_statutory_base(fiscal_year)
+        return delta * projected_statutory_base(fiscal_year, self.receipts_vintage)
 
     def _get_reform_rate(self) -> float:
         """Get the reform corporate tax rate."""

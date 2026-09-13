@@ -324,22 +324,31 @@ def test_cbo_prices_one_corporate_reform_four_times_and_gets_four_numbers():
     assert spread == pytest.approx(0.4097, abs=0.001)
 
 
-def test_the_two_earliest_corporate_rows_read_a_back_projected_receipts_path():
-    """The second cause on the corporate rows, asserted rather than described.
+def test_the_back_projected_receipts_path_is_no_longer_what_a_corporate_row_reads():
+    """The second cause on the corporate rows — **closed**, and sized.
 
-    CBO's transcribed receipts path (publication 59710) starts in FY2025 and
-    rises about 1.2%/yr, so extrapolating it *backwards* walks a nearly-flat
-    line into years whose actual receipts were far lower. The 2018 row's base
-    year is more than twice Treasury's own MTS actual for it, which is most of
-    why that row reads 99.7% — and that is a statement about the base this lane
-    reached for, not about the module's marginal share.
+    R3 registered the three older corporate rows on the February 2024 receipts
+    path (publication 59710), which starts in FY2025 and rises about 1.2%/yr, so
+    extrapolating it *backwards* walked a nearly-flat line into years whose
+    actual receipts were far lower — the 2018 row's base year was more than
+    twice Treasury's own MTS actual. ``CORP_outlook_vintages.md`` gave each row
+    the Outlook its own *Options* volume was priced against, so the rows read
+    April 2018, September 2020 and May 2022 respectively and the 99.7% / 93.1% /
+    49.2% those three carried became 53.4% / 21.8% / 41.6%.
 
-    The ordering is what is pinned: the ratio must fall monotonically toward
-    1 as the window approaches the table's own first year. If it ever stops
-    doing that, the projection has changed shape and the ``known_limitations``
-    on those rows are describing something that no longer happens.
+    Both halves are pinned. The February 2024 block still begins in FY2025 and
+    still back-extrapolates, with the same ratios against Treasury's actuals —
+    that behaviour is the module's documented rule and is unchanged, and the
+    ordering says so. What has changed is that **no corporate row reaches it**:
+    each of the four names its own block, and the base each one prices against
+    is that block's, not the default's.
     """
-    from fiscal_model.corporate import actual_corporate_receipts, cbo_corporate_receipts
+    from fiscal_model.corporate import (
+        actual_corporate_receipts,
+        cbo_corporate_receipts,
+        cbo_receipts_by_fiscal_year,
+        projected_statutory_base,
+    )
 
     ratios = {}
     for year in (2019, 2021, 2023):
@@ -353,10 +362,27 @@ def test_the_two_earliest_corporate_rows_read_a_back_projected_receipts_path():
     assert ratios[2019] > ratios[2021] > ratios[2023] > 1.0
 
     # And the table really does begin after all three, which is the reason the
-    # extrapolation happens at all.
-    from fiscal_model.corporate import cbo_receipts_by_fiscal_year
-
+    # extrapolation used to happen at all.
     assert cbo_receipts_by_fiscal_year("cbo_feb_2024")[0][0] == 2025
+
+    # The rows no longer reach it. Each names a block that *covers* its own
+    # first year, so nothing corporate is scored on an extrapolation.
+    for policy_id, first_year in (
+        ("cbo2019_opt24_corporate_rate_1pp", 2019),
+        ("cbo2021_opt19_corporate_rate_1pp", 2021),
+        ("cbo2023_opt50_corporate_rate_1pp", 2023),
+        ("cbo_opt64_corporate_rate_1pp", 2025),
+    ):
+        vintage = KNOWN_SCORES[policy_id].corporate_receipts_vintage
+        assert vintage, f"{policy_id} names no receipts vintage"
+        table = cbo_receipts_by_fiscal_year(vintage)
+        assert table[0][0] == first_year
+        assert table[-1][0] == first_year + 9
+        # And the base it prices against is that block's, not the default's.
+        own = projected_statutory_base(first_year, vintage)
+        default = projected_statutory_base(first_year)
+        if vintage != "cbo_feb_2024":
+            assert own < default
 
 
 def test_the_2020_volume_prices_five_repeated_reforms_below_the_2018_volume():
