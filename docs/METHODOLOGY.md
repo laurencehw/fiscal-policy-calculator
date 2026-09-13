@@ -2234,9 +2234,11 @@ commit that lands *before* the commit that first scores it.
 | Corporate rate +1pp | −$136B | −$196B | 45% | CBO Options 2025–2034 #64 (a **JCT** estimate) |
 | CBO Option 46 alternative 1 (AGI surtax +1pp, $20K) | −$1,440B | −$723B | 50% | CBO Options 2025–2034 #46 |
 
-**26 pre-registered cases, mean absolute error 15.0% (median 10.6%); 17 of 26
-within 15%, 22 of 26 within 25%** (`scripts/cold_holdout.py`; full table in
-[VALIDATION.md](VALIDATION.md)). Do **not** collapse this into one tolerance.
+**44 pre-registered cases, mean absolute error 18.0% (median 12.3%); 26 of 44
+within 15%, 35 of 44 within 25%** (`scripts/cold_holdout.py`; full table in
+[VALIDATION.md](VALIDATION.md)). The selected rows above are a sample and some
+are a pre-R3 snapshot; do **not** quote them as the live battery, and do **not**
+collapse the tier into one tolerance. The pre-R3 reading was 22 @ 11.8%.
 Ordinary-bracket and AGI-inclusive rate changes at conventional thresholds land
 at **1.5–22.4%**; discretionary funding changes, now scored through the
 budget-authority-to-outlay spend-out model described above, land at **0–11%**

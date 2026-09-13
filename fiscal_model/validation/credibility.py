@@ -289,7 +289,7 @@ def format_band_caption(
             base += f": {reason}"
         return (
             base
-            + ". The 26 pre-registered Tier 1 rows are the only tier that "
+            + ". The 44 pre-registered Tier 1 rows are the only tier that "
             "measures this model's accuracy, and none of them scores a policy "
             "of this kind."
         )

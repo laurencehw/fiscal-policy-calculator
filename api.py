@@ -196,7 +196,7 @@ class ResultCredibilityModel(BaseModel):
     """Accuracy context attached to one score.
 
     Since Wave C's H4 the accuracy figures are the observed error distribution
-    of the policy's own **out-of-sample class** — the 26 pre-registered Tier 1
+    of the policy's own **out-of-sample class** — the 44 pre-registered Tier 1
     rows, bucketed by the same routing the CI per-class gate uses — and not a
     mean over a scorecard category that blended fitted bookkeeping with unfitted
     reconstructions. Every band field is optional, because two thirds of the

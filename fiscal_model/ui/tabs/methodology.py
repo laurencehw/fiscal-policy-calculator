@@ -645,15 +645,16 @@ def render_methodology_tab(st_module: Any) -> None:
     st_module.markdown(r"""
 | Policy (uncalibrated) | Official | Model | Error | Source |
 |--------|---------:|------:|------:|--------|
-| 1pp all brackets | -\$960B | -\$935B | 3% | JCT |
-| Biden top rate 39.6% (\$400K+) | -\$252B | -\$284B | 13% | Treasury |
-| 5pp top rate (\$1M+) | -\$700B | -\$648B | 7% | TPC |
-| 2pp rate cut (\$500K+) | +\$400B | +\$364B | 9% | TPC |
+| All ordinary rates +1pp | -\$1,185B | -\$1,201B | 1% | CBO Options #45 |
+| AGI surtax 2pp (>\$100K) | -\$1,051B | -\$1,076B | 2% | CBO Options #46 |
+| Biden top rate 39.6% (\$400K+) | -\$246B | -\$300B | 22% | Treasury FY2025 |
+| Corporate rate +1pp (21%→22%) | -\$136B | -\$196B | 44% | CBO Options #64 |
 
-*Mean abs error \~8%; 4/4 within 15%. Ordinary-bracket cases score on the
-ordinary-income base; AGI-inclusive top-rate cases (\$1M+/\$500K+) score on the
-full taxable-income base. Treat uncalibrated custom policies as directional
-(\~±15%).*
+*44 out-of-sample cases, mean abs error 18.0% / median 12.3%; 26/44 within 15%,
+35/44 within 25% (`python scripts/cold_holdout.py`). The four rows above are a
+sample of the live battery, not the battery. Fitted calibrated reconstructions
+(1.6% over 15) are a different tier and are not mixed in. Treat uncalibrated
+custom policies as directional.*
 """)
 
     st_module.markdown("**2. Calibrated reference models** — parameters tuned to reproduce "

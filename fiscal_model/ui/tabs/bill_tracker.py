@@ -616,7 +616,7 @@ def _render_bill_calibration_band(
     """Surface the out-of-sample accuracy band for a bill's dominant provision.
 
     The band is the observed error distribution of that policy **class** across
-    the 26 pre-registered Tier 1 rows, not a mean over the calibrated tiers —
+    the 44 pre-registered Tier 1 rows, not a mean over the calibrated tiers —
     see ``fiscal_model/validation/credibility.py`` for why the category band it
     replaces carried no information about accuracy. Most extracted provision
     types have no Tier 1 class at all (a tariff, a drug-pricing change, an

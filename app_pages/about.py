@@ -8,8 +8,8 @@ Two repo-wide Markdown guards apply to every string below
 (``tests/test_tilde_rendering.py``, ``tests/test_dollar_rendering.py``): a
 ``~`` before a number must reach Streamlit as ``\\~`` or it opens a
 strikethrough span, and two unescaped ``$`` in one string can be parsed as
-inline math. The accuracy figures here are written ``\\~5%`` / ``\\~8%`` for
-that reason; the page carries no currency at all.
+inline math. The accuracy figures here are exact percents with no leading
+tilde; the page carries no currency at all.
 """
 
 from __future__ import annotations
@@ -53,14 +53,15 @@ the positions of any employer. Also by me: [SA Policy Space]({SA_POLICY_SPACE_UR
 a tracker of policy ideas in the South African parliament, and the
 [Public Economics]({TEXTBOOK_HOME}) textbook this app accompanies."""
 
-# ``\~5%`` / ``\~8%``: see the module docstring — an unescaped tilde before a
-# number pairs with the next one and strikes the paragraph through.
+# Exact percents, no leading tilde: an unescaped ``~`` before a number pairs
+# with the next one and strikes the paragraph through.
 _HOW_TO_READ = r"""### How to read the numbers
 
 Two tiers, never collapsed into one accuracy claim: *calibrated reference
-models* reproduce official decompositions (\~5% mean error, low by
-construction) and *out-of-sample predictions* are the honest test (\~8% mean
-error). The **Methodology** page documents parameters, elasticities and
+models* reproduce official decompositions (1.6% mean over 15 fitted
+benchmarks, low by construction) and *out-of-sample predictions* are the
+honest test (18.0% mean / 12.3% median over 44 cases; 26/44 within 15%,
+35/44 within 25%). The **Methodology** page documents parameters, elasticities and
 validation; the data-status pill at the top of every page shows the CBO and
 IRS vintages behind the current session. Treat every figure as an estimate
 with a stated source, not a score."""

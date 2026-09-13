@@ -125,7 +125,7 @@ def test_about_page_renders_no_latex_spans(about_page):
 
 
 def test_accuracy_tildes_are_escaped():
-    """``~5%`` … ``~8%`` in one block strikes the paragraph through."""
+    """An unescaped ``~`` before a number in one block strikes the paragraph through."""
     from tests.test_tilde_rendering import UNESCAPED
 
     for block in about.SECTIONS:
