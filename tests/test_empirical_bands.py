@@ -453,7 +453,7 @@ def test_the_no_band_caption_says_which_tier_is_missing_and_why():
     caption = format_band_caption(None, reason="no pre-registered row scores a tariff")
     assert "No out-of-sample band" in caption
     assert "no pre-registered row scores a tariff" in caption
-    assert "26 pre-registered" in caption
+    assert "44 pre-registered" in caption
 
 
 # ---------------------------------------------------------------------------

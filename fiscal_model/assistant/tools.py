@@ -571,7 +571,7 @@ class AssistantTools:
                 )
                 scoring_path = (
                     "uncalibrated generic tax path — directional only "
-                    "(~8% mean out-of-sample error); quote the nearest "
+                    "(18.0% mean out-of-sample error over 44 cases); quote the nearest "
                     "validated preset when one exists"
                 )
                 calibrated = False
@@ -613,8 +613,8 @@ class AssistantTools:
             "scoring_path": scoring_path,
             "source": (
                 f"Run of FiscalPolicyScorer (this app) via the {scoring_path}. "
-                "Calibrated reference models (~5% mean error) and uncalibrated "
-                "out-of-sample paths (~8%) are different accuracy tiers — "
+                "Calibrated reference models (1.6% mean over 15 fitted benchmarks) and uncalibrated "
+                "out-of-sample paths (18.0% mean over 44 cases) are different accuracy tiers — "
                 "state which one this run used."
             ),
         }

@@ -215,7 +215,7 @@ def _sensitivity_band(
     band = band_for_policy(policy)
     if band is None:
         return None, (
-            f"No out-of-sample band: {no_tier1_class_reason(policy)}. The 26 "
+            f"No out-of-sample band: {no_tier1_class_reason(policy)}. The 44 "
             "pre-registered rows are the only tier that measures this model's "
             "accuracy against published scores."
         )

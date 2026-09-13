@@ -33,7 +33,7 @@ _HOW_SCORED_MARKDOWN = (
     # below. This used to read "(\~5% mean error)" and "\~8% mean error" — two
     # collapsed numbers, both stale, immediately above a line forbidding exactly
     # that. The out-of-sample tier is eight policy classes running 4.6% to
-    # 44.5%, and every result now prints the band for the class it scored.
+    # 71.6%, and every result now prints the band for the class it scored.
     "- **Core (green)** — revenue, distribution, and dynamic scoring. Calibrated "
     "reference models reproduce official decompositions, so their agreement is "
     "bookkeeping; the out-of-sample tier is the only skill claim, and it is "
