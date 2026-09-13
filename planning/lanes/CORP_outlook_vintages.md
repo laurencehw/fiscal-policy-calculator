@@ -350,4 +350,201 @@ absorbed:
 
 ## 6. Outturn
 
-*(Appended after implementation.)*
+*Appended after implementation. Every figure is measured on this branch against
+the pre-lane `main` @ `850832d` artifacts, not asserted.*
+
+**Every pre-registered figure landed, and the three that moved landed to the
+fourth decimal rather than inside their ±0.15pp band.** No constant was
+retuned, no elasticity invented, no target moved, no preset moved, and the one
+row that had to stay still stayed still to the cent.
+
+### 6.1 The four rows
+
+| row | §3.1 predicted | outturn | model $B |
+|---|--:|--:|--:|
+| `cbo2019_opt24_corporate_rate_1pp` | 53.4% | **53.4307%** | −147.753779 |
+| `cbo2021_opt19_corporate_rate_1pp` | 21.8% | **21.7547%** | −120.902403 |
+| `cbo2023_opt50_corporate_rate_1pp` | 41.6% | **41.6250%** | −183.121080 |
+| `cbo_opt64_corporate_rate_1pp` | 44.5%, unmoved | **44.4966%**, unmoved | −196.081903 |
+
+The identity reconstruction in `corporate_options_vintage_gap.py` now matches
+the **live** scores to **2.0 × 10⁻¹³ of a billion** — summation order, not
+arithmetic — so the script checks the engine rather than a copy of the engine's
+input.
+
+**The 21.8% must be quoted with its clause or not at all.** CBO's September
+2020 Outlook projects FY2021 corporate receipts at $122.8B against a Treasury
+MTS actual of $371.8B, so that row is the module's usual marginal-share level
+measured against a COVID-depressed denominator. It is still the right path,
+because JCT scored a projection. The clause is now in three places that a
+reader reaches before the number: the row's own `known_limitations`
+(`_CORPORATE_COVID_DENOMINATOR`), its `CBOScore` comment, and the script's
+rendered footer.
+
+### 6.2 The class and the tier
+
+| | before | after |
+|---|--:|--:|
+| corporate class mean | 71.6% | **40.3%** |
+| corporate error mass | 286.5 | **161.3** |
+| corporate median | 71.2% | **43.0%** |
+| corporate within-25 | 0/4 | **1/4** |
+| Tier 1 mean | 18.0% | **15.2%** |
+| Tier 1 error mass | 793.8 | **668.6** |
+| Tier 1 median | 12.3% | **12.3%** |
+| Tier 1 within-15 | 26/44 | **26/44** |
+| Tier 1 within-25 | 35/44 | **36/44** |
+
+n is **44 before and after** — no row registered, superseded, retired or
+reclassified — so this is accuracy on a fixed yardstick and not composition.
+The corporate median moved 71.2% → 43.0% where §3.2 predicted 43.1%, which is
+`(41.6 + 44.5) / 2` rounded by the runner rather than by hand; the only figure
+in the lane that missed, and by a rounding rule.
+
+### 6.3 What did not move, verified rather than claimed
+
+- **41 of the 44 out-of-sample rows** are byte-identical — every non-corporate
+  row and `cbo_opt64`. Diffed entry by entry against the pre-lane
+  `cold_holdout.py --json`.
+- **Seven of the eight classes** byte-identical; only `corporate` moved.
+- **Both calibrated tiers and the retirement blocks** byte-identical, as whole
+  JSON objects: `calibrated_reference` (15 @ 1.6%),
+  `uncalibrated_reconstruction` (38 @ 42.3%),
+  `uncalibrated_reconstruction_retired_held_in_place` (40 @ 60.0%),
+  `retired_targets`.
+- **`run_loo.py --donor-matrix`** byte-identical, `diff` clean.
+- **All 208 preset-sweep rows** byte-identical — 52 presets × `reported` /
+  `derived` × static / dynamic, keyed by stable id, comparing the **full
+  ten-year path** rather than the total. Zero build or score failures, both
+  runs (R1's rule: a sweep must fail loudly on a row it could not score, and
+  this one did — the first draft raised on 208 of 208 because it read a dict
+  where a policy was wanted, and was fixed before either measurement).
+- **`run_validation_dashboard.py`** differs in **exactly one line**, the
+  out-of-sample summary. Exit code 1 before and after, on the same pre-existing
+  degraded health component.
+- **No Decision 6 caption is owed**: no shipped preset moved.
+
+### 6.4 Gates, re-derived by the workflow's own rule
+
+| gate | before | rule | after |
+|---|--:|---|--:|
+| pooled ceiling | 25 | `ceil(15.2 × 1.25) = 19` → nearest 5 | **20** |
+| pooled floor | 34 | `36 − 1` | **35** |
+| class `corporate` | 90 | `ceil(40.33 × 1.25)` | **51** |
+
+All three are tightenings, and **none of them is discretionary**:
+`test_no_gate_is_looser_than_the_workflow_rule_derives` fails on this tree at
+25, at 34 and at 90, and the corporate 90 also fails the
+"no more than twice the live mean" invariant. The other seven class ceilings
+re-derive to themselves or would loosen and are held, with their null
+derivations recorded in the workflow and pinned by a test.
+
+**Read 25/34 → 20/35 as a battery that did not change size.** Both moves are
+tightenings on 44 rows, and the share within 25% rose 79.5% → 81.8%. That is
+the opposite shape from lane R2's 20/22 → 15/19, which was a battery shrinking.
+
+### 6.5 A caption moved, and it is not a Decision 6 caption
+
+`credibility.tier1_class_bands()` reads the live battery, so the corporate
+presets' empirical band moved with the class: inner half-width **±71.6% →
+±40.3%**, outer **±99.7% → ±53.4%**, `rows_inside_mean_band` 1 of 4 either way.
+That is the band reporting a smaller observed error distribution because the
+distribution is smaller. Declared in §3.6 before it was measured.
+
+### 6.6 Findings
+
+1. **The transcription had two homes and now has one.** The four post-TCJA
+   annual paths were literals in `corporate_yield_reconciliation.BASELINES`
+   *and* — for February 2024 — rows in `cbo_corporate_receipts.csv`, with
+   nothing pinning them together. `BASELINES` now fills those four from the
+   data file and a test fails if anyone re-literalises them. The memo table and
+   the scoring input are one transcription.
+
+2. **Two of the four blocks do not sum to CBO's own printed total, and the
+   discrepancies differ by a factor of two.** April 2018 and May 2022 reproduce
+   their totals to the cent; September 2020's annuals sum **0.2 above** its
+   printed 3,152.4 and February 2024's **0.1 below** its printed 5,094.0. The
+   test asserts each block's difference individually rather than under one
+   blanket tolerance — the 0.15 the repository already used would have **failed
+   on September 2020**, and widening it to 0.25 would have hidden the fact that
+   one edition's rounding is twice another's. A tolerance that hides the thing
+   it was widened for is not a check. **This is the lane's one deviation from
+   its own pre-registration**: §1.2 said a test would assert all four blocks at
+   the existing ±0.15, and it cannot, because September 2020's own transcription
+   is 0.2 from CBO's printed total. The deviation is in the *check*, not in any
+   figure — the three blocks were transcribed before the test was written and
+   not one digit of them moved.
+
+3. **The pre-TCJA Outlooks are a guard rail, not an omission, and the guard
+   rail had to be built.** `cbo_mar_2016` and `cbo_jun_2017` are transcribed at
+   a **35 percent** statutory rate, and `BASE_PER_DOLLAR_OF_RECEIPTS` is
+   `1.0083 / τ` measured at 21 percent. Nothing previously stopped a caller
+   asking `projected_statutory_base` for a block it should not price, because
+   there was only ever one block. `projected_statutory_base` now **refuses a
+   block it has not graded `published_path`**, and an ungraded block is refused
+   for the same reason a weakly-graded one is: the grade is the provenance
+   claim, and an ungraded block is an unmade claim rather than a safe one.
+
+4. **A per-edition anchor has no sourced anchor year, and the arithmetic says
+   so.** §1.4 argued it; the outturn measures it. Treasury's own MTS actuals
+   fall from **$297.0B (FY2017) to $204.7B (FY2018)** across the IRC §15
+   blended-rate transition — a 31% drop with no change in the economy — so
+   April 2018's only completed years are a 35 percent year and a year that is
+   neither rate. There is nothing to anchor on, which is why one ratio serves
+   four paths and why four ratios would have been four fitted degrees of
+   freedom. The test asserts the FY2018/FY2017 collapse rather than describing
+   it.
+
+5. **R3's first-year MTS diagnostic had to be re-pointed, and the bug is
+   instructive.** The script computed it as `live ÷ first-year ratio`, which was
+   R3's quantity only while `live` *was* the pre-install figure. Left alone it
+   would have silently started printing 30.8% / 10.4% / 19.0% — a third
+   quantity nobody has published — under a column labelled with R3's numbers.
+   It now reads the pre-install figure explicitly, and the test pins 10.0% /
+   42.2% / 25.3%. *A diagnostic kept as history has to be re-pointed at the
+   history when the live column moves out from under it.*
+
+6. **The `known_limitations` on these rows were describing a defect the lane
+   removed, and deleting them would have lost its size.** `core.py`'s
+   `_CORPORATE_BACK_PROJECTED_RECEIPTS` is replaced by
+   `_CORPORATE_MARGINAL_SHARE_LEVEL`, which names what actually survives, plus
+   a COVID-denominator note on the one row that needs it. The old text's
+   measurements — 1.295× / 1.578× / 1.053× over the windows, 2.218× / 1.358× /
+   1.191× in the first years — are kept in the module docstring as the size of
+   what was closed, because a limitation that disappears without leaving its
+   size behind reads as if it had never been there.
+
+7. **What the lane did not close, said plainly.** 40.3% is **one quantity read
+   four times**: the derived path reaches about **80.8%** of the credit-realized
+   statutory base its receipts path implies, where JCT's own implied marginal
+   share is 52.6% (April 2018), 57.1% (May 2022) and 55.9% (February 2024) —
+   and 66.1% on the COVID-depressed September 2020 baseline. `0.808 / share − 1`
+   reproduces each row's error to within a tenth of a point. Nothing here moved
+   that by a decimal, and a later reader must not take 71.6% → 40.3% as an
+   accuracy claim about the module's marginal share. A test asserts the class
+   stays above 35% so the claim cannot quietly be made by a passing suite.
+
+### 6.7 Carry-overs
+
+1. **§38(c) constrained-base share** — `CORP_class_accuracy.md` §4.2, unchanged
+   and now the whole of the remaining class error together with the level it
+   sits in. The stock is transcribed ($124.47B of general-business-credit
+   carryforward against $72.17B of claims, 1.72 years); the share that would
+   price it is published for no post-2010 year. It is the only named channel
+   pointing the score **down** and it is entirely unbooked.
+2. **CAMT**, blocked on a TY2023 SOI Complete Report that does not exist — and
+   §2.2's argument that it cannot be the separator between these editions is
+   *strengthened* by this outturn, since after the vintage is right the 2022
+   and 2024 leftovers agree to three points across a window that is mostly
+   pre-CAMT on one side and post on the other.
+3. **A CBO GitHub source for the 2018 / 2020 / 2022 editions.** Checked at the
+   pinned commit `284a9566` and confirmed absent — `ten_year_budget` holds
+   2024-06 / 2025-01 / 2026-02, `economic_projections` starts at 2024-02,
+   `revenue_detail` at 2024-06. If CBO ever publishes an older edition there, a
+   later lane should take it over the Wayback transcription, and should not wait
+   for one.
+4. **`cbo_jan_2025` and `cbo_feb_2026` have no receipts *block*** — they reach
+   `CBOBaseline` through `data_files/cbo_baseline/`, a different file and a
+   different reader, and `projected_statutory_base` refuses them. Nothing scored
+   asks for one today. If a corporate row is ever registered on one of those
+   decades, that gap becomes load-bearing.

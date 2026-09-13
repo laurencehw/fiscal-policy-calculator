@@ -222,9 +222,31 @@ jobs:
       # 56 -> 90 (four rows, three of them CBO's 21% -> 22% on pre-2025 vintages
       # whose receipts base is back-extrapolated), capital gains 24 -> 18 and
       # tax expenditure 16 -> 9 (tightenings), spending classes unchanged.
+      #
+      # The corporate Outlook-vintage lane (planning/lanes/
+      # CORP_outlook_vintages.md) closed the back-extrapolation R3's own
+      # corporate ceiling was set around. Each of the four corporate rows now
+      # names the CBO Outlook its own Options volume was priced against and
+      # cbo_corporate_receipts.csv carries a block for each, so 99.7% / 93.1% /
+      # 49.2% became 53.4% / 21.8% / 41.6% and the 2024 row is byte-identical at
+      # 44.5%. THREE rows moved and nothing else did: the same 44-row battery
+      # reads mean 18.0% -> 15.2%, median 12.3% unchanged, within-15 26
+      # unchanged, within-25 35 -> 36, error mass 793.8 -> 668.6. Both pooled
+      # thresholds re-derive and both TIGHTEN, so the downward-only clause does
+      # not bite:
+      #   ceiling  ceil(15.2 x 1.25) = 19 -> nearest 5 = 20. Lowered 25 -> 20.
+      #   floor    36 - 1 = 35. Raised 34 -> 35.
+      # Neither is discretionary. test_no_gate_is_looser_than_the_workflow_rule_
+      # derives fails on this tree at 25 (looser than the rule's 20) and at 34
+      # (looser than the rule's 35), so these are the values that pass rather
+      # than a judgement call. Read the pair as a battery that did NOT change
+      # size: 44 rows before and after, no row registered, superseded, retired
+      # or reclassified, and the share within 25% rose 35/44 = 79.5% -> 36/44 =
+      # 81.8%. What moved is that three rows stopped being scored against a
+      # receipts path their targets were never priced on.
       - name: Cold-holdout gate (out-of-sample tier)
         run: |
-          python scripts/cold_holdout.py --max-mean-error 25 --min-within-25pct 34
+          python scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 35
 
       # --- Per-class floor (HIGH_STAKES_ACCURACY.md section 3, rule 4) -------
       # The pooled gate above cannot see one policy class regressing while the
@@ -339,11 +361,32 @@ jobs:
       # class mean rose 0.95 points while its MEDIAN rose 1.8, so this is a
       # ceiling held around a distribution that got worse in the middle -- the
       # case the per-class gate exists for and the pooled gate cannot see.
+      #
+      # The corporate Outlook-vintage lane moved exactly ONE class, which is the
+      # one its own ceiling was set around. R3 set 90 from a class mean of 71.6%
+      # and wrote the reason into this file: "three of them CBO's 21% -> 22% on
+      # pre-2025 vintages whose receipts base is back-extrapolated". That is now
+      # closed -- each row reads the Outlook its own volume names -- and the
+      # class reads 40.3% (mass 286.5 -> 161.3, median 71.2% -> 43.0%,
+      # within-25 0 -> 1, within-15 0 unchanged):
+      #   corporate  ceil(40.33 x 1.25) = 51, lowered 90 -> 51.
+      # Not discretionary: 90 fails BOTH one-sided invariants in
+      # tests/test_ci_workflow.py at a class mean of 40.33% -- looser than the
+      # rule's 51, and more than twice the live mean. The other seven re-derive
+      # to themselves or would LOOSEN and are held: agi_inclusive_surtax
+      # ceil(7.2 x 1.25) = 9, capital_gains ceil(14.4 x 1.25) = 18,
+      # discretionary_spending ceil(4.64 x 1.25) = 6, enacted_law_spending
+      # ceil(7.43 x 1.25) = 10, ordinary_rate_change ceil(15.3 x 1.25) = 20,
+      # payroll ceil(18.6 x 1.25) = 24, tax_expenditure ceil(7.1 x 1.25) = 9.
+      # 51 is still a wide gate and it is meant to read that way: what is left
+      # under it is one quantity read four times -- the module reaches about
+      # 80.8% of the statutory base its receipts path implies where JCT reaches
+      # 53-57% -- and no vintage fix touches it.
       - name: Cold-holdout per-class floor (out-of-sample tier)
         run: |
           python scripts/cold_holdout.py --max-class-mean-error \
             agi_inclusive_surtax=9 ordinary_rate_change=20 \
-            capital_gains=18 corporate=90 \
+            capital_gains=18 corporate=51 \
             enacted_law_spending=10 discretionary_spending=6 \
             payroll=24 tax_expenditure=9
 

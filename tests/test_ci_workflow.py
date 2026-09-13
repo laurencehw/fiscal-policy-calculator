@@ -326,6 +326,52 @@ def test_the_workflow_records_every_gate_re_derivation_including_the_null_ones()
     assert "ceil(13.85 x 1.25) = 18" in workflow, (
         "the ordinary_rate_change ceiling's Wave F re-derivation is not recorded"
     )
+    # The corporate Outlook-vintage lane re-derived all ten and moved three:
+    # the pooled ceiling and floor and the corporate class ceiling. The seven it
+    # held have their null re-derivations recorded in the same step comment.
+    assert "ceil(15.2 x 1.25) = 19" in workflow, (
+        "the pooled ceiling's Outlook-vintage re-derivation is not recorded"
+    )
+    for null_derivation in (
+        "ceil(7.2 x 1.25) = 9",
+        "ceil(14.4 x 1.25) = 18",
+        "ceil(4.64 x 1.25) = 6",
+        "ceil(7.43 x 1.25) = 10",
+        "ceil(15.3 x 1.25) = 20",
+        "ceil(18.6 x 1.25) = 24",
+        "ceil(7.1 x 1.25) = 9",
+    ):
+        assert null_derivation in workflow, (
+            f"a null re-derivation is unrecorded: {null_derivation}"
+        )
+
+
+def test_the_corporate_ceiling_records_the_outlook_vintage_tightening():
+    """90 was derived from 71.6%, and this file said why in as many words.
+
+    R3 set the corporate ceiling at ``ceil(71.6 x 1.25) = 90`` and wrote the
+    cause into the workflow: *"three of them CBO's 21% -> 22% on pre-2025
+    vintages whose receipts base is back-extrapolated"*. The corporate
+    Outlook-vintage lane closed exactly that -- each of the four rows now names
+    the CBO Outlook its own *Options* volume was priced against -- so the class
+    reads 40.3% and ``ceil(40.33 x 1.25) = 51``.
+
+    Pinned rather than left to the one-sided invariant above because a ceiling
+    set around a *named* cause must move when that cause is removed. 90 fails
+    both invariants at a class mean of 40.33%: looser than the rule's 51, and
+    more than twice the live mean.
+
+    51 is still wide, and deliberately so. What is left under it is one
+    quantity read four times -- the module reaches about 80.8% of the statutory
+    base its receipts path implies where JCT reaches 53-57% -- and no vintage
+    fix touches it, so a later pass must not read 90 -> 51 as the marginal-share
+    gap closing.
+    """
+    workflow = VALIDATION_DASHBOARD_WORKFLOW_PATH.read_text(encoding="utf-8")
+    assert _per_class_ceilings(workflow)["corporate"] == 51
+    assert "ceil(40.33 x 1.25) = 51" in workflow, (
+        "the corporate ceiling's re-derivation arithmetic is not recorded"
+    )
 
 
 def test_the_tax_expenditure_ceiling_records_lane_r1s_tightening():
@@ -357,7 +403,14 @@ def test_the_pooled_gate_records_the_battery_that_shrank():
     # Lane R3 (PR #169) then grew the battery 22 -> 44 (mean 18.0%, 35 within
     # 25%): ceiling ceil(18.0 x 1.25) = 23 -> nearest 5 = 25; floor 35 - 1 = 34.
     # The growth case is the one the rule re-derives upward, by design.
-    assert "--max-mean-error 25 --min-within-25pct 34" in workflow
+    #
+    # The corporate Outlook-vintage lane then tightened BOTH on the SAME 44-row
+    # battery -- no row registered, superseded, retired or reclassified -- by
+    # giving three corporate rows the receipts path their own targets were
+    # priced on: mean 18.0% -> 15.2%, within-25 35 -> 36.
+    #   ceiling  ceil(15.2 x 1.25) = 19 -> nearest 5 = 20. Lowered 25 -> 20.
+    #   floor    36 - 1 = 35. Raised 34 -> 35.
+    assert "--max-mean-error 20 --min-within-25pct 35" in workflow
     assert "86.4%" in workflow, "the within-25 share must be recorded beside the count"
     assert "shrinking battery" in workflow
 

@@ -608,3 +608,236 @@ def test_the_corporate_runner_refuses_an_unknown_mode():
 
     with pytest.raises(ValueError, match="mode must be one of"):
         validate_corporate_policy("biden_corporate_28", verbose=False, mode="fitted")
+
+
+# -- The Outlook-vintage install (planning/lanes/CORP_outlook_vintages.md) ----
+#
+# Four editions of one reform (21% -> 22%), each priced by JCT against the CBO
+# Outlook its own *Options* volume names. Before this install every window read
+# the February 2024 block and the three older ones walked it backwards into
+# years it does not cover; the block a row reads is now a transcribed shape
+# input on the record.
+
+
+def test_every_transcribed_block_totals_what_cbo_publishes():
+    """The ten annuals against CBO's own printed ten-year total, per block.
+
+    Two reproduce it to the cent and two differ by CBO's own rounding - the same
+    artefact the alternatives CSV shows on Option 64 itself (Table 1-1 gives
+    136.0 where the alternatives file gives 135.7).
+    """
+    from fiscal_model.corporate import CORPORATE_RECEIPTS_BLOCK_SOURCING
+
+    # first year, CBO's printed ten-year total, and the rounding difference the
+    # annuals carry against it. The difference is asserted per block rather than
+    # under one blanket tolerance: September 2020's is 0.2, twice February
+    # 2024's 0.1, and a blanket 0.15 would have hidden that rather than
+    # recorded it.
+    expected = {
+        "cbo_apr_2018": (2019, 3846.6, 0.0),
+        "cbo_sep_2020": (2021, 3152.4, +0.2),
+        "cbo_may_2022": (2023, 4754.9, 0.0),
+        "cbo_feb_2024": (2025, 5094.0, -0.1),
+    }
+    assert set(CORPORATE_RECEIPTS_BLOCK_SOURCING) == set(expected)
+
+    for vintage, (first_year, printed_total, rounding) in expected.items():
+        table = cbo_receipts_by_fiscal_year(vintage)
+        assert [year for year, _ in table] == list(range(first_year, first_year + 10))
+        assert sum(value for _, value in table) == pytest.approx(
+            printed_total + rounding, abs=0.05
+        )
+        # No block is more than a quarter of a billion from CBO's own total,
+        # which is the check that these are transcriptions and not estimates.
+        assert abs(rounding) <= 0.25
+
+
+def test_every_block_a_score_may_read_is_graded_a_published_path():
+    """The grade is the provenance claim, and an ungraded block is refused.
+
+    ``baseline.CORPORATE_RECEIPTS_SOURCING``'s own vocabulary: a reconstruction
+    reported as CBO's own path is exactly what that grading exists to prevent,
+    so ``projected_statutory_base`` raises rather than pricing one.
+    """
+    from fiscal_model.corporate import (
+        CORPORATE_RECEIPTS_BLOCK_DOCUMENT,
+        CORPORATE_RECEIPTS_BLOCK_SOURCING,
+        corporate_receipts_document,
+        corporate_receipts_sourcing,
+    )
+
+    assert set(CORPORATE_RECEIPTS_BLOCK_DOCUMENT) == set(
+        CORPORATE_RECEIPTS_BLOCK_SOURCING
+    )
+    for vintage, grade in CORPORATE_RECEIPTS_BLOCK_SOURCING.items():
+        assert grade == "published_path"
+        assert corporate_receipts_sourcing(vintage) == "published_path"
+        assert "CBO," in corporate_receipts_document(vintage)
+        assert "publication" in corporate_receipts_document(vintage)
+
+    publications = {
+        corporate_receipts_document(v).split("publication ")[1]
+        for v in CORPORATE_RECEIPTS_BLOCK_SOURCING
+    }
+    assert len(publications) == 4
+
+    assert corporate_receipts_sourcing("cbo_jan_2025") == "ungraded"
+    with pytest.raises(ValueError, match="not 'published_path'"):
+        projected_statutory_base(2030, "cbo_jan_2025")
+
+
+def test_the_two_pre_tcja_outlooks_are_deliberately_not_scorable():
+    """The anchor is ``1.0083 / tau`` at tau = 21%; a 35% path would misprice.
+
+    ``corporate_yield_reconciliation.BASELINES`` transcribes March 2016 and
+    June 2017 for the yield memo, and neither is in the data file a score
+    reads. That is the guard rail rather than an omission, asserted in both
+    directions.
+    """
+    from fiscal_model.corporate import CORPORATE_RECEIPTS_BLOCK_SOURCING
+    from scripts.corporate_yield_reconciliation import BASELINES
+
+    for key in ("cbo_mar_2016", "cbo_jun_2017"):
+        assert BASELINES[key]["statutory_rate"] == 0.35
+        assert BASELINES[key]["annual"], f"{key} lost its transcribed path"
+        with pytest.raises(KeyError):
+            cbo_receipts_by_fiscal_year(key)
+
+    for key in CORPORATE_RECEIPTS_BLOCK_SOURCING:
+        assert BASELINES[key]["statutory_rate"] == CURRENT_CORPORATE_RATE
+
+
+def test_the_analysis_table_and_the_data_file_are_one_transcription():
+    """Two copies of one CBO table is how a transcription drifts.
+
+    ``BASELINES`` fills the four scored blocks' annuals from
+    ``cbo_corporate_receipts.csv``. This fails if someone re-literalises them.
+    """
+    from fiscal_model.corporate import CORPORATE_RECEIPTS_BLOCK_SOURCING
+    from scripts.corporate_yield_reconciliation import BASELINES
+
+    for key in CORPORATE_RECEIPTS_BLOCK_SOURCING:
+        table = cbo_receipts_by_fiscal_year(key)
+        assert BASELINES[key]["annual"] == [value for _, value in table]
+        assert BASELINES[key]["start_year"] == table[0][0]
+
+
+def test_the_four_corporate_rows_name_their_own_outlook_edition():
+    """A transcribed shape input, not a knob: each volume names its baseline."""
+    from fiscal_model.corporate import CORPORATE_RECEIPTS_BLOCK_SOURCING
+
+    expected = {
+        "cbo2019_opt24_corporate_rate_1pp": "cbo_apr_2018",
+        "cbo2021_opt19_corporate_rate_1pp": "cbo_sep_2020",
+        "cbo2023_opt50_corporate_rate_1pp": "cbo_may_2022",
+        "cbo_opt64_corporate_rate_1pp": "cbo_feb_2024",
+    }
+    for policy_id, vintage in expected.items():
+        score = KNOWN_SCORES[policy_id]
+        assert score.corporate_receipts_vintage == vintage
+        assert vintage in CORPORATE_RECEIPTS_BLOCK_SOURCING
+        # A receipts block is NOT a BaselineVintage: all four rows keep the one
+        # budget baseline this deployment serves for the battery.
+        assert score.scoring_vintage == "cbo_feb_2024"
+        policy = create_policy_from_score(score)
+        assert policy.receipts_vintage == vintage
+
+    named = {
+        policy_id
+        for policy_id, score in KNOWN_SCORES.items()
+        if score.corporate_receipts_vintage
+    }
+    assert named == set(expected)
+
+
+def test_a_record_that_names_no_edition_keeps_the_module_default():
+    """The default is what makes every preset and app surface byte-identical."""
+    # ``biden_corporate_28`` and ``tcja_2017_corporate`` are the corporate
+    # records that name no edition; ``trump_corporate_15`` and
+    # ``biden_corporate_28_fy2022`` live in the calibrated registry and are
+    # built by factories that set no ``receipts_vintage`` at all.
+    for policy_id in ("biden_corporate_28", "tcja_2017_corporate"):
+        assert KNOWN_SCORES[policy_id].corporate_receipts_vintage is None
+
+    for factory in (create_biden_corporate_rate_only, create_republican_corporate_cut):
+        assert factory().receipts_vintage == CORPORATE_RECEIPTS_VINTAGE
+
+    policy = CorporateTaxPolicy(
+        name="default",
+        description="",
+        policy_type=PolicyType.CORPORATE_TAX,
+        rate_change=0.01,
+        mode=CORPORATE_MODE_DERIVED,
+    )
+    assert policy.receipts_vintage == CORPORATE_RECEIPTS_VINTAGE == "cbo_feb_2024"
+
+
+def test_the_anchor_is_one_ratio_for_four_paths_and_nothing_was_retuned():
+    """Section 1.4: a per-edition anchor would be a fitted degree of freedom.
+
+    April 2018's own completed history is FY2017 (35%) and FY2018 (the IRC
+    section 15 blended-rate transition), and September 2020's is FY2019 and a
+    pandemic FY2020 - so there is no 21%-era year a per-edition anchor could be
+    measured on, and all four rows price a 21% -> 22% change. The constants are
+    pinned so the install cannot have been bought by moving one.
+    """
+    from fiscal_model.corporate import BASE_PER_DOLLAR_OF_RECEIPTS as ANCHOR
+    from fiscal_model.corporate import (
+        BASELINE_TAXABLE_PROFITS_BILLIONS,
+        CORPORATE_RECEIPTS_BLOCK_SOURCING,
+    )
+    from fiscal_model.corporate import CORPORATE_BASE_GROWTH as GROWTH
+
+    assert ANCHOR == pytest.approx(4.80133, abs=1e-5)
+    assert RECEIPTS_ANCHOR_YEAR == 2022
+    assert PROFIT_SHIFTING_SEMI_ELASTICITY == 0.8
+    assert BASELINE_TAXABLE_PROFITS_BILLIONS == 1900.0
+    assert ESTIMATED_PAYMENT_SAME_FY_SHARE == 0.75
+    assert GROWTH == 0.04
+
+    for vintage in CORPORATE_RECEIPTS_BLOCK_SOURCING:
+        for year, receipts in cbo_receipts_by_fiscal_year(vintage):
+            assert projected_statutory_base(year, vintage) == pytest.approx(
+                receipts * ANCHOR, rel=1e-12
+            )
+
+    # FY2018 is why a per-edition anchor has nothing to stand on: Treasury's own
+    # actuals fall by a third across the section 15 transition.
+    assert actual_corporate_receipts(2018) < 0.75 * actual_corporate_receipts(2017)
+
+
+def test_the_phase_factor_reads_the_rows_own_block_not_the_default():
+    """Section 6655 convolution on the path being scored, not on the default.
+
+    April 2018's path *rises* where February 2024's *falls*, so reading the
+    wrong block shows up here even where the level happened to agree.
+    """
+    policy = CorporateTaxPolicy(
+        name="2018 edition",
+        description="",
+        policy_type=PolicyType.CORPORATE_TAX,
+        rate_change=0.01,
+        mode=CORPORATE_MODE_DERIVED,
+        start_year=2019,
+        receipts_vintage="cbo_apr_2018",
+    )
+    carry = 1.0 - ESTIMATED_PAYMENT_SAME_FY_SHARE
+    for year in range(2020, 2029):
+        expected = ESTIMATED_PAYMENT_SAME_FY_SHARE + carry * (
+            projected_statutory_base(year - 1, "cbo_apr_2018")
+            / projected_statutory_base(year, "cbo_apr_2018")
+        )
+        assert policy.get_phase_in_factor(year) == pytest.approx(expected, rel=1e-12)
+
+    # Below 1.0 on a rising path, above it on a falling one - the property the
+    # closed form under constant growth cannot express.
+    assert policy.get_phase_in_factor(2020) < 1.0
+    default = CorporateTaxPolicy(
+        name="feb 2024",
+        description="",
+        policy_type=PolicyType.CORPORATE_TAX,
+        rate_change=0.01,
+        mode=CORPORATE_MODE_DERIVED,
+        start_year=2025,
+    )
+    assert default.get_phase_in_factor(2026) > 1.0

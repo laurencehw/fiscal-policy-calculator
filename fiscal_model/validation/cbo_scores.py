@@ -147,6 +147,26 @@ class CBOScore:
     # knob turned to close a gap, and moving one goes through the manifest's
     # supersede rule (see ``preregistered.FY2022_TARGET_WINDOW_RULE``).
     scoring_window_first_year: int | None = None
+    # Which CBO *Outlook* edition's corporate-receipts path the derived
+    # corporate rate channel should price this record against, as a key of
+    # ``data_files/corporate/cbo_corporate_receipts.csv`` (e.g. "cbo_apr_2018").
+    # None keeps the module default, February 2024.
+    #
+    # A RECEIPTS BLOCK IS NOT A ``BaselineVintage``. ``scoring_vintage`` above
+    # selects the *budget baseline* a run is scored on and this deployment
+    # serves three of those; this field selects a *receipts path*, and the three
+    # older Outlooks are not budget baselines anything here can build. Keeping
+    # them separate is what lets a 2018-vintage receipts path be scored without
+    # inventing a 2018 budget baseline - and it is why all four corporate rows
+    # keep ``scoring_vintage="cbo_feb_2024"``.
+    #
+    # Transcribed from the source exactly like ``scoring_window_first_year``:
+    # each *Options* volume names the Outlook its revenue options were priced
+    # against, and that name is already recorded in
+    # ``data_files/validation/corporate_rate_scores.csv``'s ``baseline_vintage``
+    # column. A pre-registered shape input, never a knob turned to close a gap.
+    # See ``planning/lanes/CORP_outlook_vintages.md``.
+    corporate_receipts_vintage: str | None = None
     # Capital gains: whether the reform also eliminates step-up basis at death.
     eliminate_step_up: bool = False
     # Capital gains: per-decedent exclusion under a step-up-elimination reform.
@@ -1349,6 +1369,13 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         budget_window="FY2025-2034",
         effective_start_year=2025,
         scoring_vintage="cbo_feb_2024",
+        # Publication 59710, Table 1-1, FY2025-2034 - the block this row has
+        # always read, named rather than left to the module default so that all
+        # four editions state their own. Naming it moved nothing, which is
+        # CORP_outlook_vintages.md's cheapest falsification test: a lane that
+        # installs three older paths and moves the row that already had its own
+        # has changed something else.
+        corporate_receipts_vintage="cbo_feb_2024",
         notes=(
             "CBO Options 2025-2034, option 64 (report p. 75; PDF p. 81), "
             "estimated by the staff of the Joint Committee on Taxation. "
@@ -1759,6 +1786,13 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2019,
         scoring_window_first_year=2019,
         scoring_vintage="cbo_feb_2024",
+        # The Outlook CBO's December 2018 Options volume names for its revenue
+        # options: publication 53651, Table 4-1, FY2019-2028. Wired by
+        # planning/lanes/CORP_outlook_vintages.md, which took this row from
+        # 99.7% to 53.4% by scoring it against the receipts its own target was
+        # priced on rather than against February 2024's walked back six years
+        # (1.295x over the window; 2.218x in FY2019 alone).
+        corporate_receipts_vintage="cbo_apr_2018",
         # Lane R3: a target published for a decade this deployment does not
         # serve is not an anchor for a question asked today. See the field's
         # own comment on CBOScore.
@@ -1958,6 +1992,15 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2021,
         scoring_window_first_year=2021,
         scoring_vintage="cbo_feb_2024",
+        # Publication 56517, Table 1, FY2021-2030 - the Outlook CBO's December
+        # 2020 Options volume names. It is a COVID outlier and the row's error
+        # must be quoted with that clause: CBO projected FY2021 corporate
+        # receipts at $122.8B against a Treasury actual of $371.8B, so the
+        # 21.8% this row reads since CORP_outlook_vintages.md is the module's
+        # usual level measured against a depressed denominator, not a more
+        # accurate score. It is still the right path, because it is the path
+        # JCT's estimate was priced on.
+        corporate_receipts_vintage="cbo_sep_2020",
         # Lane R3: a target published for a decade this deployment does not
         # serve is not an anchor for a question asked today. See the field's
         # own comment on CBOScore.
@@ -2213,6 +2256,12 @@ KNOWN_SCORES: dict[str, CBOScore] = {
         effective_start_year=2023,
         scoring_window_first_year=2023,
         scoring_vintage="cbo_feb_2024",
+        # Publication 57950, Table 1-1, FY2023-2032. The smallest of the three
+        # vintage corrections and worth recording as such: FY2023-2024 are the
+        # only years of this window before February 2024's table begins, so the
+        # shipped path over-stated the receipts by 1.053x rather than the 1.295x
+        # and 1.578x the two older rows carried.
+        corporate_receipts_vintage="cbo_may_2022",
         # Lane R3: a target published for a decade this deployment does not
         # serve is not an anchor for a question asked today. See the field's
         # own comment on CBOScore.

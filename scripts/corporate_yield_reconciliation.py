@@ -101,7 +101,8 @@ BASELINES: dict[str, dict] = {
         "start_year": 2019,
         "statutory_rate": 0.21,
         "receipts_10yr": 3846.6,
-        "annual": [276.3, 307.4, 326.7, 352.8, 388.1, 420.6, 446.5, 449.0, 431.4, 447.8],
+        # Scored. Filled from cbo_corporate_receipts.csv below.
+        "annual": None,
         "note": "First post-TCJA vintage; the revenue baseline for CBO's Dec 2018 Options volume.",
     },
     "cbo_sep_2020": {
@@ -110,7 +111,9 @@ BASELINES: dict[str, dict] = {
         "start_year": 2021,
         "statutory_rate": 0.21,
         "receipts_10yr": 3152.4,
-        "annual": [122.8, 234.1, 289.3, 318.9, 347.3, 352.3, 355.6, 368.1, 377.6, 386.6],
+        # Scored. Filled from cbo_corporate_receipts.csv below; the annuals sum
+        # to 3,152.6 against the 3,152.4 CBO prints, CBO's own rounding.
+        "annual": None,
         "note": (
             "A COVID outlier: FY2021 was projected at $122.8B against an actual "
             "of $371.8B. Its denominator is far too small, so any marginal share "
@@ -138,7 +141,8 @@ BASELINES: dict[str, dict] = {
         "start_year": 2023,
         "statutory_rate": 0.21,
         "receipts_10yr": 4754.9,
-        "annual": [456.1, 478.0, 483.2, 473.0, 456.9, 461.0, 470.4, 480.1, 491.0, 505.2],
+        # Scored. Filled from cbo_corporate_receipts.csv below.
+        "annual": None,
         "note": "Revenue baseline for CBO's Dec 2022 Options volume; proxy baseline for the FY2023 Green Book.",
     },
     "cbo_feb_2023": {
@@ -156,7 +160,9 @@ BASELINES: dict[str, dict] = {
         "start_year": 2025,
         "statutory_rate": 0.21,
         "receipts_10yr": 5094.0,
-        "annual": [494.1, 491.4, 484.1, 490.7, 500.9, 510.6, 518.7, 519.2, 533.4, 550.8],
+        # Scored. Filled from cbo_corporate_receipts.csv below; the annuals sum
+        # to 5,093.9 against the 5,094.0 CBO prints, CBO's own rounding.
+        "annual": None,
         "note": (
             "The revenue baseline CBO's December 2024 Options volume names for "
             "its revenue options, and the repository's BaselineVintage.CBO_FEB_2024. "
@@ -190,6 +196,41 @@ BASELINES: dict[str, dict] = {
         ),
     },
 }
+
+
+def _fill_scored_annual_paths() -> None:
+    """Take the four scored blocks' annuals from the data file, not from here.
+
+    ``fiscal_model/data_files/corporate/cbo_corporate_receipts.csv`` is the
+    transcription a **score** reads, and this table is the analysis beside it.
+    Two copies of one CBO table is how a transcription drifts, so the four
+    blocks that file carries are filled from it and the ones it does not are
+    left as literals here with their own reason.
+
+    ``cbo_mar_2016`` and ``cbo_jun_2017`` keep their literals **deliberately**:
+    both are pre-TCJA, at a 35 percent statutory rate, and
+    ``BASE_PER_DOLLAR_OF_RECEIPTS`` is ``1.0083 / tau`` measured at 21 percent,
+    so multiplying either path by it would price a base that does not exist.
+    The data file is the set of blocks a score may read and those two may not.
+    ``cbo_jul_2021``, ``cbo_feb_2023``, ``cbo_jan_2025`` and ``cbo_feb_2026``
+    have a published ten-year total here and no annual path anywhere, which is
+    why they are ``None`` in both places.
+    """
+    from fiscal_model.corporate import cbo_receipts_by_fiscal_year
+
+    for key, block in BASELINES.items():
+        try:
+            table = cbo_receipts_by_fiscal_year(key)
+        except KeyError:
+            continue
+        assert table[0][0] == block["start_year"], (
+            f"{key}: data file starts at FY{table[0][0]}, BASELINES says "
+            f"FY{block['start_year']}"
+        )
+        block["annual"] = [value for _, value in table]
+
+
+_fill_scored_annual_paths()
 
 #: Which baseline each published score is normalised against. Where the source
 #: names its own baseline this is that baseline; where it does not - every
