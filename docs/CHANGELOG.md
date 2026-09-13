@@ -3,6 +3,13 @@
 Material changes to the Fiscal Policy Calculator. Trivial fixes are captured
 in git history, not here.
 
+## 2026-09-13 — Corporate Outlook vintages (PR #173, diagnosed in #172)
+
+- `cbo_corporate_receipts.csv` carries the April 2018, September 2020 and May 2022 Outlook corporate receipts paths; each CBO Options corporate row reads the edition it was priced on.
+- Out-of-sample corporate +1pp rows: 99.7% → 53.4%, 93.1% → 21.8%, 49.2% → 41.6%, 2024 row byte-identical; class 71.6% → 40.3%; Tier 1 18.0% → 15.2% on the same 44 rows. No preset moved.
+- Gates re-derived by rule: pooled 25/34 → 20/35, corporate class 90 → 51.
+- PRs #171 (public headlines synced to the 44-row tier) and #172 (the diagnosis memo and check-only script) landed the day before.
+
 ## 2026-09-11 — Lane R3: the Tier 1 battery grows 22 → 44 (PR #169)
 
 - 22 pre-registered out-of-sample rows from CBO's 2018, 2020 and 2022 *Options for Reducing the Deficit* volumes, each scored on its own decade; every existing row byte-identical; calibrated tiers and leave-one-out unchanged.
