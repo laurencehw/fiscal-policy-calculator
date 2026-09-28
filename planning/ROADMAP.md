@@ -2,83 +2,102 @@
 
 > An open-source platform for transparent fiscal policy scoring using CBO methodology, real IRS data, and FRB/US-calibrated dynamic analysis.
 
+*Last reviewed 2026-09-28 against `main` @ `0fd8537`. The previous version of this file described
+the April 2026 tree; it is in git history. Live accuracy figures come from the commands named below,
+never from this page — a figure typed here is a figure that goes stale.*
+
 ---
 
-## Current state (April 2026)
+## Which document to read
+
+The planning directory grew one document per round of work. They are not competing plans: each
+answers a different question, and exactly one of them is the active plan.
+
+| Document | What it is | Status |
+|---|---|---|
+| [ROUTE_TO_9.md](ROUTE_TO_9.md) | The 2026-09-22 assessment (7.5/10) and six ranked priorities | **Active plan** |
+| [ROUTE_TO_8_5.md](ROUTE_TO_8_5.md) | Sixteen measurable lanes toward "quotable" | Lane sequencing; nine lanes closed, Wave G under way |
+| [HIGH_STAKES_ACCURACY.md](HIGH_STAKES_ACCURACY.md) | The numbers a journalist or Hill staffer would quote | Complete — no open lane |
+| [MODELING_IMPROVEMENT.md](MODELING_IMPROVEMENT.md) | Waves 1–7: modelling the mechanism, never tuning to held-out targets | Record; §6 is the carry-over list |
+| [NEXT_STEPS.md](NEXT_STEPS.md) | The four-tier scorecard and its history | Record; scorecard table is live as of 2026-09-13 |
+| [VALIDATION_EXPANSION.md](VALIDATION_EXPANSION.md) | How the out-of-sample tier was built | Record |
+| [FEASIBILITY_CHECKLISTS.md](FEASIBILITY_CHECKLISTS.md), [MANUSCRIPT_95_PLUS.md](MANUSCRIPT_95_PLUS.md), [LAUNCH_READINESS.md](LAUNCH_READINESS.md) | Go/no-go gates, the citation-grade path, the April QA pass | Reference |
+| [`lanes/`](lanes/), [`memos/`](memos/) | One pre-registration and outturn per lane; one memo per question | Evidence — never edited after the fact |
+
+The rules every one of them binds itself to still apply: pre-register before opening a file, never
+retune a constant to a held-out target, report a regression as a regression, and never collapse the
+accuracy tiers into one number.
+
+---
+
+## Current state (September 2026)
 
 ### What's built
 
-- **49 pre-built policy proposals** across 14 policy areas, plus custom tax, spending, and tariff scoring paths
-- **CBO-style three-stage scoring**: static + behavioral (ETI) + optional dynamic feedback (FRB/US-calibrated)
-- **Distributional analysis**: bracket-aggregate distribution tables by quintile, decile, and dollar brackets
-- **Tariff scoring**: 5 presets with consumer price impact by quintile
-- **Synthetic microsimulation engine**: MFJ brackets, SALT, AMT, EITC, NIIT, but not yet CPS ASEC-backed
-- **FastAPI endpoints**: `/health`, `/presets`, `/score`, `/score/preset`, `/score/tariff`
-- **OLG model**: 30-period Auerbach-Kotlikoff-style for SS/Medicare reform and generational accounting
-- **Classroom Mode**: 7 assignments (intro → advanced), PDF export, 80 tests
-- **State-Level Modeling**: top 10 states, SALT interaction, combined rate curves
-- **Real-Time Bill Tracker**: congress.gov pipeline, LLM extraction, SQLite storage
-- **Interactive Streamlit app** with methodology documentation, sensitivity analysis, comparison tools, CSV export
-- **25+ policies validated** against CBO/JCT/Treasury within 15%
-- **Large automated test suite** with an 85% enforced coverage gate, ruff linting, and GitHub Actions CI
-- **Real data integration**: IRS Statistics of Income, FRED, CBO Baseline
+- **52 pre-built proposals** across 13 policy areas, plus a separately named group of 5
+  *illustrative, unfitted reconstructions*, and custom tax, spending and tariff scoring paths.
+- **CBO-style three-stage scoring**: static + behavioural (ETI) + optional dynamic feedback
+  (FRB/US-calibrated), with 14 specialized policy modules.
+- **Distributional analysis** on a return-level CPS ASEC microsimulation by default, with CBO's
+  household universe where the source ranks households.
+- **Baseline** transcribed from CBO's own tables (`US-CBO/cbo-data`, pinned by commit and SHA-256);
+  the app's default vintage is February 2026 (publication 61882).
+- **IRS SOI** Tables 1.1 and 3.3 for tax years 2021–2023 and Table 1.2 by filing status for 2023.
+- **A verb-first multipage app** (Ask · Build · Tailor · Explore · More), frozen classroom
+  assignment links, OLG, state modelling (top 10), a bill tracker, and a citation-grounded Ask
+  assistant with a hard daily cost cap.
+- **A FastAPI service**: `/health`, `/readiness`, `/summary`, `/benchmarks`,
+  `/validation/scorecard`, `/presets`, `/score`, `/score/preset`, `/score/tariff`, `/ask`,
+  `/ask/stream`.
+- **CI**: tests on Python 3.10–3.13 with an 85% coverage gate, ruff, a blocking mypy gate, a strict
+  readiness gate, and two blocking accuracy gates on the out-of-sample tier (pooled and per class).
 
-### Policy modules
+### How accurate it is — and how to read that
 
-| Module | Policies | Validation |
-|--------|----------|------------|
-| `tcja.py` | Full extension, rates only, no SALT cap | 0.4% error |
-| `corporate.py` | Biden 28%, Trump 15%, book minimum, R&D | 3.7% error |
-| `international.py` | GILTI, FDII, Pillar Two, UTPR | 3.2% error |
-| `credits.py` | CTC, EITC expansions | ~0% (window-average annuals) |
-| `estate.py` | TCJA extension, Biden reform, repeal | ~0% (window-average + two-regime tail) |
-| `payroll.py` | SS cap, donut hole, NIIT | ~0% (window-average + SSA wage bands) |
-| `amt.py` | Individual/corporate AMT | 0.0% error |
-| `ptc.py` | ACA premium tax credits | Validated |
-| `tax_expenditures.py` | SALT, employer health, step-up, charitable | 0.1% error |
-| `enforcement.py` | IRS funding ROI with diminishing returns | Calibrated |
-| `pharma.py` | Drug negotiation, insulin cap, reference pricing | Calibrated |
+Four tiers, reported separately and never collapsed into one "validated within X%" claim:
+
+| Tier | What it measures | Where the live figure comes from |
+|---|---|---|
+| Out-of-sample, pre-registered (44 rows) | Prediction — the only skill claim | `python scripts/cold_holdout.py` |
+| Calibrated, fitted | Bookkeeping; low by construction | `python scripts/run_validation_dashboard.py` |
+| Unfitted module reconstructions | Modules against targets nothing was fitted to | the same dashboard, with the retired rows held in place on the line beneath |
+| Leave-one-out | How much of the calibration is structure | `python scripts/run_loo.py` |
+
+On 2026-09-28 the out-of-sample tier read **15.2% mean / 12.3% median over 44 rows, 36 within 25%**,
+and it is eight policy classes running **4.6% (discretionary spending) to 40.3% (corporate)**.
+Accuracy varies by policy family, and a pooled number must always travel with the class results.
+
+### Known gaps, measured
+
+- **Microdata coverage.** Against IRS SOI 2023 the default microdata carries 119% of returns but 81%
+  of AGI, and none of the AGI above $10M; the top-tail augmentation that closes most of it is
+  opt-in and diagnostic.
+- **Distributional universe.** Three of the seven published distributional tables rank households
+  but are scored on tax units, because those policies have no microsim mapping.
+- **Packages are additive.** Build sums published list prices and says so; the engine sums
+  individual scores with one interaction factor. Neither is a joint liability calculation.
+- **Corporate** is the worst out-of-sample class: the module reaches about 80.8% of the statutory
+  base its receipts path implies, where JCT reaches 53–57%.
 
 ---
 
 ## Next priorities
 
-### Feasibility gates before full buildout
+The ranked list is [ROUTE_TO_9.md](ROUTE_TO_9.md) §"Prioritized implementation plan":
 
-The repo should not jump directly from the current branch to full CPS microsimulation or a full CBO/TPC/PWBM comparison UI. The immediate next step is the staged assessment in [FEASIBILITY_CHECKLISTS.md](FEASIBILITY_CHECKLISTS.md):
+1. **Repair correctness and security** — package uncertainty that depended on policy order; API
+   keys that became log labels.
+2. **Make current evidence authoritative** — headline metrics generated from one versioned report,
+   so the README, the pages, the API and the validation reports cannot disagree.
+3. **Improve the shared modelling core** — calibrate filing populations and upper incomes; one
+   tax-unit engine for revenue and distribution.
+4. **Score policy interactions explicitly** — ordinary rates, SALT, AMT and credits first.
+5. **Demonstrate stronger predictive performance** — fresh locked benchmarks across families, rate
+   cuts, vintages and packages; independent methodological review.
+6. **Verify the real user experience** — browser journeys against accessibility and latency budgets.
 
-- CPS ASEC microsimulation feasibility sprint
-- Multi-model comparison feasibility sprint
-- short go/no-go memo tying both together
-
-These are the fastest way to tell whether the existing `microsim/` and `models/` foundations can be hardened into publication-grade features.
-
-### Multi-model comparison platform
-Run the same policy through independent CBO-style, TPC-style (microsim), and FRB/US/PWBM-inspired engines side by side. Show divergences and explain why. This is still the highest-impact remaining architectural feature.
-
-### CPS microsimulation
-Replace IRS bracket-level data and synthetic tax units with CPS ASEC microdata for distributional analysis. This is the highest-leverage methodological upgrade for complex provision interactions (AMT + SALT + CTC phase-outs).
-
-### Additional policy modules
-- **Climate/energy** — IRA clean energy credits, carbon pricing, EV incentives
-- **Immigration** — Workforce effects on payroll tax base, GDP growth
-- **Housing** — Mortgage deduction reform, first-time buyer credits, LIHTC
-- **Wealth tax** — Unrealized gains, mark-to-market proposals
-
----
-
-## Technical roadmap
-
-### Production hardening
-- Docker containerization
-- `requirements-lock.txt` with `pip-compile`-managed pinned runtime versions
-- Security scanning (bandit)
-- Structured logging throughout
-- Data freshness monitoring
-
-### Data updates
-- IRS SOI 2023 data (filed 2024, published ~2025)
-- CBO baseline auto-loader from `cbo.gov`
+The open modelling lanes from [ROUTE_TO_8_5.md](ROUTE_TO_8_5.md) (R7, R9, R12–R16) sit under
+priorities 3–5 and keep their own pre-registration rules.
 
 ---
 
@@ -108,14 +127,15 @@ Replace IRS bracket-level data and synthetic tax units with CPS ASEC microdata f
      └─────────────────────────────────────────────┘
 ```
 
+The multi-model platform (`models/cbo`, `models/jct`, `models/tpc`, `models/pwbm`, `models/yale`)
+is the next major architectural milestone; the CBO-style, TPC-microsim and PWBM-OLG pilots are wired
+into the app today and are held to a UX bar, not an accuracy bar. See
+[`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md).
+
 ---
 
 ## Contributing
 
-See the [README](../README.md) for setup instructions. The most impactful contributions:
-
-1. **Feasibility gates** — CPS and multi-model checklists in [FEASIBILITY_CHECKLISTS.md](FEASIBILITY_CHECKLISTS.md)
-2. **Multi-model comparison** — CBO-style, TPC microsim, dynamic side-by-side
-3. **CPS microsimulation** — Individual-level tax calculation using CPS ASEC
-4. **New policy modules** — Climate, immigration, housing, wealth tax
-5. **Data updates** — IRS SOI 2023, CBO auto-loader
+See the [README](../README.md) for setup and [CONTRIBUTING.md](../CONTRIBUTING.md) for the gates a
+change must pass (the full test suite with `ANTHROPIC_API_KEY` unset, ruff, the blocking mypy gate
+and both accuracy gates). The most useful contributions follow the priorities above, in order.

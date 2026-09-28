@@ -728,46 +728,47 @@ class MicrodataPipeline:
 ### Python API
 
 ```python
-from fiscal_model import TaxPolicy, PolicyType, quick_score
+from fiscal_model import PolicyType, TaxPolicy
+from fiscal_model.scoring import quick_score
 
-# Simple API
+# Simple API — `description` and `policy_type` are required
 policy = TaxPolicy(
     name="High Income Rate Increase",
+    description="+2.6pp on income above $400K",
     rate_change=0.026,
     affected_income_threshold=400_000,
-    policy_type=PolicyType.INCOME_TAX
+    policy_type=PolicyType.INCOME_TAX,
 )
 
 result = quick_score(policy, dynamic=True)
 print(f"10-year cost: ${result.total_10_year_cost:.1f}B")
 ```
 
-### REST API (Future)
+### REST API
+
+Shipped in `api.py` (FastAPI; `uvicorn api:app`). The endpoints are `/health`, `/readiness`,
+`/summary`, `/benchmarks`, `/validation/scorecard`, `/presets`, `POST /score`,
+`POST /score/preset`, `POST /score/tariff`, `POST /ask` and `POST /ask/stream`; the schemas are
+served at `/docs`. `rate_change` is a decimal fraction (`0.026` is +2.6 percentage points), and
+`ten_year_deficit_impact` uses the deficit sign convention (negative reduces the deficit):
 
 ```
-POST /api/v1/score
-{
-    "policy": {
-        "type": "income_tax",
-        "rate_change": 0.026,
-        "threshold": 400000
-    },
-    "options": {
-        "model": "cbo",
-        "dynamic": true
-    }
-}
+POST /score
+{"rate_change": 0.026, "income_threshold": 400000, "dynamic": false}
 
-Response:
+200 OK (abridged)
 {
-    "ten_year_cost": -252.0,
-    "annual_effects": [-22.0, -24.0, ...],
-    "uncertainty": {
-        "low": -280.0,
-        "high": -220.0
-    }
+    "budget_window": "FY2026-2035",
+    "ten_year_deficit_impact": -302.2,
+    "static_revenue_effect": 345.4,
+    "behavioral_offset": 43.2,
+    "year_by_year": [{"year": 2026, "final_effect": -25.2, ...}, ...],
+    "credibility": {"class_label": "ordinary rate change", "n_tier1_rows": 11, ...}
 }
 ```
+
+The `credibility` block is the observed out-of-sample error of the policy's own class, not a
+confidence interval; see `ResultCredibilityModel` in `api.py`.
 
 ---
 

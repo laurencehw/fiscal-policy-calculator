@@ -160,7 +160,13 @@ class ScorePolicyRequest(BaseModel):
     name: str = Field("Custom Policy", description="Policy name")
     description: str = Field("User-defined policy", description="Policy description")
     rate_change: float = Field(
-        ..., ge=-1.0, le=1.0, description="Rate change in percentage points"
+        ...,
+        ge=-1.0,
+        le=1.0,
+        description=(
+            "Rate change as a decimal fraction: 0.026 is +2.6 percentage "
+            "points, -0.01 is a one-point cut"
+        ),
     )
     income_threshold: float = Field(
         0, ge=0, description="Income threshold for affected taxpayers"

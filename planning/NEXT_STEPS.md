@@ -1,6 +1,6 @@
 # Next Steps — Fiscal Policy Calculator
 
-> Roadmap last reviewed April 2026; the validation scorecard below was re-derived 2026-09-11 (post-Wave-F). This file tracks roadmap items beyond the current shipped branch.
+> The scorecard table below was re-derived 2026-09-13 (after PR #173); the platform sections further down were last reviewed in April 2026 and are marked where they have since landed. **The active plan is [ROUTE_TO_9.md](ROUTE_TO_9.md) (2026-09-22)**, and [ROADMAP.md](ROADMAP.md) says which planning document answers which question. This file tracks the scorecard and its history.
 
 For a manuscript-focused path to citation-grade quality, see [MANUSCRIPT_95_PLUS.md](MANUSCRIPT_95_PLUS.md). For repo-grounded go/no-go gates on the two biggest upgrades, see [FEASIBILITY_CHECKLISTS.md](FEASIBILITY_CHECKLISTS.md).
 
@@ -12,7 +12,7 @@ For the plan that ranks what would have to be true for the model to be *quotable
 
 ---
 
-## Current state (April 2026)
+## Current state (scorecard as of 2026-09-13)
 
 **Large automated test suite, 85% enforced coverage gate, and a four-tier
 validation scorecard.** There is no single "validated within 15%" figure — that
@@ -944,6 +944,11 @@ open scoreboards bar by bar.
 
 ### Next: Wave G — R3, R9 and R13 — and the carry-over list behind them
 
+> *Status, 2026-09-28:* **R3 has since closed** as PR #169 (22 → 44 rows from CBO's 2018, 2020 and
+> 2022 *Options* volumes; gates re-derived after the rows landed, PR #170), and its corporate
+> follow-up (PRs #172, #173) took the corporate class 71.6% → 40.3% on the same rows. **R9** and
+> **R13** are still open, and so is owner decision ⑭. The paragraph below is as written before R3.
+
 **H3b/R5 closed in Wave F, so R3 is now the only named lane in front of the
 battery, and Wave G is where it sits** beside **R9** (the SS donut ramp, whose
 row reads 89.2% against a published path that ramps where the module's does not)
@@ -1168,7 +1173,11 @@ Replace IRS bracket-level aggregates and synthetic tax units with CPS ASEC micro
 - ~~IRS SOI 2023 data~~ — **done.** Tables 1.1 and 3.3 for tax years 2021, 2022
   and 2023 ship in `fiscal_model/data_files/irs_soi/`, and auto-population takes
   the latest available year, so production scoring runs on **tax year 2023**.
-- CBO baseline auto-loader from `cbo.gov` instead of hardcoded values
+- ~~CBO baseline auto-loader from `cbo.gov`~~ — **done differently** (PR #159, pins fixed in
+  PR #167): `cbo.gov` refuses this environment, so every vintage's economic path and two of three
+  budget paths are transcribed from CBO's own `US-CBO/cbo-data` repository by
+  `scripts/fetch_cbo_baseline.py`, pinned by commit and SHA-256 and verifiable offline with
+  `--offline-check`.
 
 ### Production hardening
 - Docker containerization
