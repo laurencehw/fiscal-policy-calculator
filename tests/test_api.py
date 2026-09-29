@@ -488,3 +488,8 @@ def test_score_tariff_contract():
     assert payload["policy_name"] == "10% universal tariff"
     assert "trade_summary" in payload
     assert "uncertainty_range" in payload
+    # A tariff reduces the deficit, which is exactly the case whose bounds the
+    # engine used to invert (low above central, high below it).
+    band = payload["uncertainty_range"]
+    assert band["central"] < 0
+    assert band["low"] <= band["central"] <= band["high"]

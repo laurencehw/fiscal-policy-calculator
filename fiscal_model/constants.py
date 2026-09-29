@@ -139,8 +139,11 @@ UNCERTAINTY_GROWTH_PER_YEAR = 0.02   # Additional uncertainty per year out
 TAX_UNCERTAINTY_FACTOR = 1.2         # Tax revenue more uncertain than spending
 SPENDING_UNCERTAINTY_FACTOR = 0.8    # Spending more predictable
 DYNAMIC_UNCERTAINTY_FACTOR = 1.5     # Dynamic scoring adds uncertainty
-ASYMMETRY_LOW = 0.9                  # Low estimate factor (costs tend higher)
-ASYMMETRY_HIGH = 1.1                 # High estimate factor
+# Both apply to the estimate's magnitude, so low <= high for costs and savings
+# alike; the wider (HIGH) side is always the one where the deficit comes in
+# higher than estimated — "costs tend higher", and savings tend smaller.
+ASYMMETRY_LOW = 0.9                  # Spread below the estimate (smaller deficit)
+ASYMMETRY_HIGH = 1.1                 # Spread above the estimate (larger deficit)
 
 # =============================================================================
 # Corporate Tax Parameters — CBO/JCT
