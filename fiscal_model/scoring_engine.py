@@ -628,9 +628,9 @@ class FiscalPolicyScorer:
         with the total unchanged (``planning/ROUTE_TO_9.md``, defect 1).
 
         Summing treats the components' errors as moving together. That is the
-        conservative choice and the only one that does not depend on how a
-        package is cut into pieces: under root-sum-of-squares, entering a 1pp
-        rate increase as two 0.5pp policies would narrow its band by √2. It also
+        conservative choice, and unlike root-sum-of-squares it does not depend
+        on how a package is cut into pieces: under RSS, entering a 1pp rate
+        increase as two 0.5pp policies would narrow its band by √2. It also
         means offsetting components no longer shrink the band — a tax increase
         that pays for a spending increase leaves a small net total, not a small
         error — and it reduces exactly to the single-policy band whenever every
