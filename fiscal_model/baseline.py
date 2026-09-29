@@ -467,6 +467,14 @@ class BaselineProjection:
     # Debt
     debt_held_by_public: np.ndarray = field(default_factory=lambda: np.zeros(10))
 
+    #: The CBO vintage this projection was generated from (``"February 2026"``),
+    #: the label the health check and the app's Data Status pill report. Empty
+    #: on a hand-built projection, which has no vintage. The API serializer
+    #: reads it from ``ScoringResult.baseline``; before this field existed that
+    #: object carried no vintage at all, so every real ``/score`` response
+    #: said ``"baseline_vintage": "unknown"``.
+    baseline_vintage_date: str = ""
+
     @property
     def total_revenues(self) -> np.ndarray:
         """Total federal revenues."""
@@ -891,7 +899,8 @@ class CBOBaseline:
         """Generate a 10-year baseline projection."""
         proj = BaselineProjection(
             start_year=self.start_year,
-            years=self.years.copy()
+            years=self.years.copy(),
+            baseline_vintage_date=self.baseline_vintage_date,
         )
 
         # Generate GDP path. Where CBO publishes this vintage's own fiscal-year
@@ -1267,6 +1276,7 @@ class CBOBaseline:
             debt_held_by_public=baseline.debt_held_by_public.copy(),
             base_nominal_gdp=baseline.base_nominal_gdp,
             published_nominal_gdp=dict(baseline.published_nominal_gdp),
+            baseline_vintage_date=baseline.baseline_vintage_date,
         )
 
         # Apply changes

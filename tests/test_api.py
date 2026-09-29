@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 
 import api as api_module
 from fiscal_model.app_data import PRESET_POLICIES
+from fiscal_model.baseline import BaselineVintage, CBOBaseline
 from fiscal_model.readiness import (
     ReadinessCheck,
     ReadinessReport,
@@ -493,3 +494,63 @@ def test_score_tariff_contract():
     band = payload["uncertainty_range"]
     assert band["central"] < 0
     assert band["low"] <= band["central"] <= band["high"]
+
+
+# ---------------------------------------------------------------------------
+# The vintage a real score reports
+# ---------------------------------------------------------------------------
+# Every test above that checks a payload feeds the serializer a fake result
+# whose baseline carries ``baseline_vintage_date``. The real one is a
+# ``BaselineProjection``, which carried no vintage at all, so every real
+# ``/score`` and ``/score/preset`` response said ``"baseline_vintage":
+# "unknown"`` while ``/health`` and the app's Data Status pill named the
+# vintage. These use the real scorer on purpose.
+
+
+def test_a_real_score_reports_the_vintage_it_was_scored_on():
+    response = _client().post(
+        "/score",
+        json={"rate_change": 0.01, "income_threshold": 400_000, "dynamic": False},
+    )
+    assert response.status_code == 200
+    vintage = response.json()["baseline_vintage"]
+    assert vintage != "unknown"
+    assert vintage == CBOBaseline(use_real_data=False).baseline_vintage_date
+
+
+def test_a_real_preset_score_reports_the_vintage_too():
+    response = _client().post(
+        "/score/preset", json={"preset_name": "Biden 2025 Proposal", "dynamic": False}
+    )
+    assert response.status_code == 200
+    assert response.json()["baseline_vintage"] not in {"", "unknown"}
+
+
+@pytest.mark.parametrize("vintage", list(BaselineVintage), ids=lambda v: v.value)
+def test_every_generated_projection_carries_its_vintage(vintage):
+    baseline = CBOBaseline(use_real_data=False, vintage=vintage)
+    projection = baseline.generate()
+    assert projection.baseline_vintage_date == baseline.baseline_vintage_date
+    adjusted = baseline.adjust_for_policy(projection, "medicare", np.ones(10))
+    assert adjusted.baseline_vintage_date == baseline.baseline_vintage_date
+
+
+def test_a_hand_built_projection_claims_no_vintage():
+    from fiscal_model.api_serialization import serialize_scoring_result
+    from fiscal_model.baseline import BaselineProjection
+
+    assert BaselineProjection().baseline_vintage_date == ""
+
+    class _Result:
+        years = np.arange(2026, 2036)
+        static_revenue_effect = np.zeros(10)
+        behavioral_offset = np.zeros(10)
+        final_deficit_effect = np.zeros(10)
+        baseline = BaselineProjection()
+        dynamic_effects = None
+        policy = None
+
+    payload = serialize_scoring_result(
+        _Result(), policy_name="x", policy_description="y", dynamic_scoring_enabled=False
+    )
+    assert payload["baseline_vintage"] == "unknown"
