@@ -411,8 +411,13 @@ def print_out_of_sample_tier() -> None:
 # done here, and it is grouping of rows those objects already carry.
 
 
-def collect_calibrated_tiers() -> dict[str, Any]:
-    """The two calibrated tiers, their composition, and the provenance counts."""
+def collect_calibrated_tiers(report: dict[str, Any] | None = None) -> dict[str, Any]:
+    """The two calibrated tiers, their composition, and the provenance counts.
+
+    ``report`` is ``cold_holdout.build_report()`` when the caller already has
+    it (``scripts/build_current_evidence.py`` does), so the scorecard is not
+    scored a second time.
+    """
     try:
         from fiscal_model.validation import cached_default_scorecard
         from fiscal_model.validation.scorecard import GENERIC_CATEGORY
@@ -421,7 +426,7 @@ def collect_calibrated_tiers() -> dict[str, Any]:
         return {"error": f"calibrated tiers unavailable: {exc}"}
 
     try:
-        report = build_report()
+        report = report if report is not None else build_report()
         summary = cached_default_scorecard()
     except Exception as exc:  # pragma: no cover - best-effort diagnostic
         return {"error": f"calibrated tiers unavailable: {exc}"}

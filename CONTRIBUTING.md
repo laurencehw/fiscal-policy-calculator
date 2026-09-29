@@ -69,6 +69,11 @@ The ranked list is [`planning/ROUTE_TO_9.md`](planning/ROUTE_TO_9.md); [`plannin
    # thresholds from .github/workflows/validation-dashboard.yml, never from memory.
    python scripts/cold_holdout.py --max-mean-error <ceiling> --min-within-25pct <floor>
    python scripts/cold_holdout.py --max-class-mean-error <class=ceiling ...>
+
+   # If the change moves a validation tier: regenerate the figures the pages,
+   # the Ask assistant and the docs quote, then update the live headline
+   # sentences tests/test_current_evidence.py names.
+   python scripts/build_current_evidence.py
    ```
 5. **Refresh the runtime lockfile** with `uv` as described above if you changed dependencies
 6. **Submit a pull request** with a clear description of what changed and why

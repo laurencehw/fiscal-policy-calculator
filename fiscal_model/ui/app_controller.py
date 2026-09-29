@@ -32,8 +32,9 @@ _HOW_SCORED_MARKDOWN = (
     # No two figures here, and that is the point of the sentence four lines
     # below. This used to read "(\~5% mean error)" and "\~8% mean error" — two
     # collapsed numbers, both stale, immediately above a line forbidding exactly
-    # that. The out-of-sample tier is eight policy classes running 4.6% to
-    # 71.6%, and every result now prints the band for the class it scored.
+    # that. The out-of-sample tier is eight policy classes with different
+    # measured errors (live figures: data_files/validation/current_evidence.json),
+    # and every result now prints the band for the class it scored.
     "- **Core (green)** — revenue, distribution, and dynamic scoring. Calibrated "
     "reference models reproduce official decompositions, so their agreement is "
     "bookkeeping; the out-of-sample tier is the only skill claim, and it is "

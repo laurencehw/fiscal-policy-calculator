@@ -7,9 +7,88 @@ from __future__ import annotations
 from typing import Any
 
 from fiscal_model.ui.helpers import TEXTBOOK_LINKS
+from fiscal_model.validation import current_evidence
 
 #: Plain-English names for the two distributional universes.
 _UNIVERSE_LABELS = {"household": "households", "tax_unit": "tax units"}
+
+#: The validation tables' rows: (policy id, label, source). The figures in each
+#: row come from the generated evidence report, never from this file — they
+#: were typed here once, and the headline sentence under the first table kept
+#: printing 18.0% after PR #173 had moved the tier to 15.2%.
+_OUT_OF_SAMPLE_SAMPLE_ROWS: tuple[tuple[str, str, str], ...] = (
+    ("cbo_opt45_all_rates_1pp", "All ordinary rates +1pp", "CBO Options #45"),
+    ("cbo_opt46_agi_surtax_2pp_100k", "AGI surtax 2pp (>\\$100K)", "CBO Options #46"),
+    ("biden_high_income_tax", "Biden top rate 39.6% (\\$400K+)", "Treasury FY2025"),
+    ("cbo_opt64_corporate_rate_1pp", "Corporate rate +1pp (21%→22%)", "CBO Options #64"),
+)
+_CALIBRATED_SAMPLE_ROWS: tuple[tuple[str, str, str], ...] = (
+    ("tcja_full_extension", "TCJA Full Extension", "CBO"),
+    ("biden_corporate_28", "Biden Corporate 28%", "Treasury"),
+    ("biden_ctc_2021", "Biden CTC 2021", "JCT"),
+    ("biden_estate_reform", "Estate: Biden Reform", "Treasury"),
+    ("repeal_corporate_amt", "Repeal Corporate AMT", "JCT (JCX-18-22)"),
+    ("cap_employer_health", "Cap Employer Health", "JCT"),
+)
+_RECONSTRUCTION_SAMPLE_ROWS: tuple[tuple[str, str, str], ...] = (
+    ("ss_donut_250k", "SS Donut Hole \\$250K", "CBO (Option 62 alt 2)"),
+)
+
+
+def _billions(value: float) -> str:
+    """``-\\$1,185B`` — escaped, because two bare ``$`` in a string render as math."""
+    sign = "-" if value < 0 else ""
+    return f"{sign}\\${abs(value):,.0f}B"
+
+
+def _evidence_table(
+    header: str,
+    rows: tuple[tuple[str, str, str], ...],
+    *,
+    bold_error: bool = False,
+) -> str:
+    """A validation table from the evidence report; rows it lacks are left out."""
+    lines = [
+        f"| {header} | Official | Model | Error | Source |",
+        "|--------|---------:|------:|------:|--------|",
+    ]
+    for policy_id, label, source in rows:
+        row = current_evidence.quoted_row(policy_id)
+        if row is None:
+            continue
+        error = f"{row['abs_percent_error']:.1f}%"
+        if bold_error:
+            error = f"**{error}**"
+        lines.append(
+            f"| {label} | {_billions(row['official_10yr_billions'])} | "
+            f"{_billions(row['model_10yr_billions'])} | {error} | {source} |"
+        )
+    return "\n".join(lines) + "\n"
+
+
+def _out_of_sample_note() -> str:
+    """The sentence under the out-of-sample table, from the evidence report."""
+    oos = current_evidence.out_of_sample()
+    fitted = current_evidence.calibrated("fitted")
+    span = current_evidence.class_mean_range()
+    if not (oos and fitted and span):
+        return (
+            "*The live battery is printed by `python scripts/cold_holdout.py`. "
+            "Treat uncalibrated custom policies as directional.*\n"
+        )
+    lowest, highest = span
+    n = oos["n"]
+    return (
+        f"*{n} out-of-sample cases, mean abs error {oos['mean_abs_error']}% / "
+        f"median {oos['median_abs_error']}%; {oos['within_15pct']}/{n} within 15%, "
+        f"{oos['within_25pct']}/{n} within 25% (`python scripts/cold_holdout.py`), "
+        f"and eight policy classes running {lowest['mean_abs_error']}% "
+        f"({lowest['label']}) to {highest['mean_abs_error']}% ({highest['label']}). "
+        "The rows above are a sample of the live battery, not the battery. Fitted "
+        f"calibrated reconstructions ({fitted['mean_abs_error']}% over "
+        f"{fitted['n']}) are a different tier and are not mixed in. Treat "
+        "uncalibrated custom policies as directional.*\n"
+    )
 
 
 def _universe_cell(registered: str, scored: str | None) -> str:
@@ -621,8 +700,13 @@ def render_methodology_tab(st_module: Any) -> None:
             "**Adjustments:**\n"
             "- Tax policy: 1.2x (revenue more uncertain than spending)\n"
             "- Dynamic scoring: 1.5x (macro models diverge significantly)\n\n"
-            "**Asymmetric ranges:** Costs tend to exceed estimates, so the "
-            "high estimate uses a 1.1x factor vs 0.9x for the low estimate.\n\n"
+            "**Asymmetric ranges:** Costs tend to exceed estimates and savings "
+            "to fall short of them, so the side where the deficit comes in "
+            "higher uses a 1.1x factor vs 0.9x for the other side — for a "
+            "revenue raiser as well as a cost.\n\n"
+            "**Packages:** a package's range is the sum of its components' "
+            "ranges, so it does not depend on the order the policies are "
+            "listed in, and offsetting policies do not shrink it.\n\n"
             "**Sources of uncertainty:**\n"
             "1. Baseline projections (economy may differ from CBO forecast)\n"
             "2. Behavioral response (ETI estimates range 0.15 to 0.50)\n"
@@ -642,34 +726,19 @@ def render_methodology_tab(st_module: Any) -> None:
 
     st_module.markdown("**1. Out-of-sample predictions** — scored bottom-up from IRS SOI "
                        "with *no fitting to the official target*. This is the genuine test.")
-    st_module.markdown(r"""
-| Policy (uncalibrated) | Official | Model | Error | Source |
-|--------|---------:|------:|------:|--------|
-| All ordinary rates +1pp | -\$1,185B | -\$1,201B | 1% | CBO Options #45 |
-| AGI surtax 2pp (>\$100K) | -\$1,051B | -\$1,076B | 2% | CBO Options #46 |
-| Biden top rate 39.6% (\$400K+) | -\$246B | -\$300B | 22% | Treasury FY2025 |
-| Corporate rate +1pp (21%→22%) | -\$136B | -\$196B | 44% | CBO Options #64 |
-
-*44 out-of-sample cases, mean abs error 18.0% / median 12.3%; 26/44 within 15%,
-35/44 within 25% (`python scripts/cold_holdout.py`). The four rows above are a
-sample of the live battery, not the battery. Fitted calibrated reconstructions
-(1.6% over 15) are a different tier and are not mixed in. Treat uncalibrated
-custom policies as directional.*
-""")
+    st_module.markdown(
+        _evidence_table("Policy (uncalibrated)", _OUT_OF_SAMPLE_SAMPLE_ROWS)
+        + "\n"
+        + _out_of_sample_note()
+    )
 
     st_module.markdown("**2. Calibrated reference models** — parameters tuned to reproduce "
                        "the published decomposition. Low error is *expected by construction*; "
                        "these are transparent reconstructions, not independent confirmations.")
+    st_module.markdown(
+        _evidence_table("Policy (calibrated)", _CALIBRATED_SAMPLE_ROWS)
+    )
     st_module.markdown(r"""
-| Policy (calibrated) | Official | Model | Error | Source |
-|--------|---------:|------:|------:|--------|
-| TCJA Full Extension | \$4,600B | \$4,582B | 0.4% | CBO |
-| Biden Corporate 28% | -\$1,347B | -\$1,293B | 4.0% | Treasury |
-| Biden CTC 2021 | \$1,600B | \$1,600B | 0.0% | JCT |
-| Estate: Biden Reform | -\$450B | -\$450B | 0.0% | Treasury |
-| Repeal Corporate AMT | \$220B | \$220B | 0.0% | JCT (JCX-18-22) |
-| Cap Employer Health | -\$450B | -\$450B | 0.1% | JCT |
-
 *The SS donut row left this table on 2026-09-11, and where it went is the
 point.* It used to read `-\$2,700B | -\$2,700B | 0.0% | Trustees`, and every
 cell of that was wrong. SSA's Office of the Chief Actuary does score the design
@@ -691,11 +760,11 @@ than above.
         "not follow — which is the *correct* outcome, because retuning the "
         "constant would convert a finding back into bookkeeping."
     )
-    st_module.markdown(r"""
-| Policy (reconstruction) | Official | Model | Error | Source |
-|--------|---------:|------:|------:|--------|
-| SS Donut Hole \$250K | -\$1,427B | -\$2,700B | **89.2%** | CBO (Option 62 alt 2) |
-""")
+    st_module.markdown(
+        _evidence_table(
+            "Policy (reconstruction)", _RECONSTRUCTION_SAMPLE_ROWS, bold_error=True
+        )
+    )
 
     # ── Live distributional benchmark accuracy ────────────────────────────
     st_module.markdown("#### Live distributional accuracy (CBO/JCT)")

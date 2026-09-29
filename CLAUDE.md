@@ -53,6 +53,12 @@ python scripts/cold_holdout.py --max-class-mean-error \
   enacted_law_spending=10 discretionary_spending=6 payroll=24 tax_expenditure=9
 python scripts/run_loo.py --donor-matrix --max-mean-error 75
 
+# Regenerate the validation figures every surface quotes -- the About page, the
+# Methodology page, the Ask assistant -- and that tests/test_current_evidence.py
+# pins the live headline sentences in README, CLAUDE.md and docs/ to. Run it
+# whenever a change moves a validation tier, then fix the sentences the test names.
+python scripts/build_current_evidence.py
+
 # Run the per-module validation suite against published scores
 python -c "from fiscal_model.validation import run_validation_suite; run_validation_suite()"
 
@@ -138,6 +144,7 @@ Every legacy URL (`?analysis=preset&preset=<emoji label>&run=1`, `/ask`,
 | `fiscal_model/validation/cbo_scores.py` | Database of known CBO/JCT scores for validation |
 | `fiscal_model/validation/compare.py` | Comparison framework (model vs official) |
 | `fiscal_model/validation/distributional_validation.py` | TPC distributional benchmark validation |
+| `fiscal_model/validation/current_evidence.py` | Reader for the one generated report of current validation figures (`data_files/validation/current_evidence.json`, built by `scripts/build_current_evidence.py`). The About and Methodology pages and the Ask assistant read it instead of typing figures, and `tests/test_current_evidence.py` recomputes it and pins the docs' live headline sentences to it. Counts-only claims stay in `ui/validation_headline.py`'s artifact, which by rule never moves when a model number does |
 | `fiscal_model/assistant/` | Ask assistant — `FiscalAssistant` orchestrator, `AssistantTools` dispatcher, BM25 knowledge search, citation post-processor, cost meter, sqlite rate limiter, admin queries, share-link encoding |
 | `fiscal_model/assistant/knowledge/` | 23 hand-curated Markdown files — 22 topic snapshots plus the corpus README, all of them BM25-indexed, which is the count `check_readiness.py` reports. Topics: CBO baseline, CBO long-term outlook, SSA Trustees, TCJA overview, PWBM TCJA dynamic, TPC TCJA distribution, capital gains, international tax, retirement accounts, IRA clean energy, tariff scoring, Yale Budget Lab tariffs, JCT tax expenditures, JCT distributional methodology, fiscal multipliers, dynamic-scoring concepts, ETI literature, debt sustainability, state/local, Medicare/Medicaid drivers, key definitions, common-confusion FAQ. Frontmatter carries the canonical source URL for citations |
 | `fiscal_model/ui/tabs/ask_assistant.py` | Streamlit chat UI — streaming, dollar-sign safety, follow-up chips, share button, rate-limit and unavailable-key UX |

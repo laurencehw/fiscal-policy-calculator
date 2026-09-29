@@ -1,0 +1,211 @@
+{
+  "_note": "Generated file - do not hand-edit. These are the validation figures the app, the Ask assistant and the docs quote; they move whenever a model number that moves a tier moves. Regenerate with: python scripts/build_current_evidence.py",
+  "calibrated": {
+    "fitted": {
+      "mean_abs_error": 1.6,
+      "median_abs_error": 0.0,
+      "n": 15,
+      "within_15pct": 15,
+      "within_25pct": 15
+    },
+    "fitted_held_in_place": {
+      "mean_abs_error": 12.4,
+      "median_abs_error": 2.6,
+      "n": 26,
+      "within_15pct": 21,
+      "within_25pct": 22
+    },
+    "reconstruction": {
+      "mean_abs_error": 42.3,
+      "median_abs_error": 30.1,
+      "n": 38,
+      "within_15pct": 11,
+      "within_25pct": 15
+    },
+    "reconstruction_retired_held_in_place": {
+      "mean_abs_error": 60.0,
+      "median_abs_error": 33.3,
+      "n": 40,
+      "within_15pct": 11,
+      "within_25pct": 15
+    },
+    "retired_targets": {
+      "n": 2,
+      "policy_ids": [
+        "expand_drug_negotiation",
+        "international_reference_pricing"
+      ]
+    }
+  },
+  "data_vintages": {
+    "cbo_baseline_vintage": "February 2026",
+    "cbo_baseline_vintage_key": "cbo_feb_2026",
+    "irs_soi_latest_tax_year": 2023,
+    "irs_soi_tax_years": [
+      2021,
+      2022,
+      2023
+    ],
+    "microdata_agi_coverage_pct": 81.0,
+    "microdata_calibration_year": 2023,
+    "microdata_returns_coverage_pct": 119.0
+  },
+  "generated_by": "scripts/build_current_evidence.py",
+  "leave_one_out": {
+    "mean_abs_error": 36.5,
+    "median_abs_error": 30.2,
+    "n": 18,
+    "not_cross_validatable": 4,
+    "within_15pct": 5
+  },
+  "out_of_sample": {
+    "error_mass": 668.6,
+    "mean_abs_error": 15.2,
+    "median_abs_error": 12.3,
+    "n": 44,
+    "within_15pct": 26,
+    "within_25pct": 36
+  },
+  "out_of_sample_classes": {
+    "agi_inclusive_surtax": {
+      "error_mass": 28.8,
+      "label": "AGI-inclusive surtax",
+      "mean_abs_error": 7.2,
+      "median_abs_error": 5.2,
+      "n": 4,
+      "within_15pct": 3,
+      "within_25pct": 4
+    },
+    "capital_gains": {
+      "error_mass": 101.1,
+      "label": "capital gains",
+      "mean_abs_error": 14.4,
+      "median_abs_error": 10.5,
+      "n": 7,
+      "within_15pct": 4,
+      "within_25pct": 5
+    },
+    "corporate": {
+      "error_mass": 161.3,
+      "label": "corporate",
+      "mean_abs_error": 40.3,
+      "median_abs_error": 43.0,
+      "n": 4,
+      "within_15pct": 0,
+      "within_25pct": 1
+    },
+    "discretionary_spending": {
+      "error_mass": 23.2,
+      "label": "discretionary spending",
+      "mean_abs_error": 4.6,
+      "median_abs_error": 2.6,
+      "n": 5,
+      "within_15pct": 5,
+      "within_25pct": 5
+    },
+    "enacted_law_spending": {
+      "error_mass": 22.3,
+      "label": "enacted-law spending",
+      "mean_abs_error": 7.4,
+      "median_abs_error": 9.8,
+      "n": 3,
+      "within_15pct": 3,
+      "within_25pct": 3
+    },
+    "ordinary_rate_change": {
+      "error_mass": 168.8,
+      "label": "ordinary rate change",
+      "mean_abs_error": 15.3,
+      "median_abs_error": 15.0,
+      "n": 11,
+      "within_15pct": 6,
+      "within_25pct": 10
+    },
+    "payroll": {
+      "error_mass": 149.0,
+      "label": "payroll",
+      "mean_abs_error": 18.6,
+      "median_abs_error": 16.4,
+      "n": 8,
+      "within_15pct": 4,
+      "within_25pct": 6
+    },
+    "tax_expenditure": {
+      "error_mass": 14.1,
+      "label": "tax expenditure",
+      "mean_abs_error": 7.1,
+      "median_abs_error": 7.1,
+      "n": 2,
+      "within_15pct": 2,
+      "within_25pct": 2
+    }
+  },
+  "quoted_rows": {
+    "biden_corporate_28": {
+      "abs_percent_error": 4.0,
+      "model_10yr_billions": -1292.6,
+      "official_10yr_billions": -1347.0,
+      "tier": "fitted"
+    },
+    "biden_ctc_2021": {
+      "abs_percent_error": 0.0,
+      "model_10yr_billions": 1600.0,
+      "official_10yr_billions": 1600.0,
+      "tier": "fitted"
+    },
+    "biden_estate_reform": {
+      "abs_percent_error": 0.0,
+      "model_10yr_billions": -450.0,
+      "official_10yr_billions": -450.0,
+      "tier": "fitted"
+    },
+    "biden_high_income_tax": {
+      "abs_percent_error": 21.9,
+      "model_10yr_billions": -299.8,
+      "official_10yr_billions": -245.9,
+      "tier": "out_of_sample"
+    },
+    "cap_employer_health": {
+      "abs_percent_error": 0.1,
+      "model_10yr_billions": -449.5,
+      "official_10yr_billions": -450.0,
+      "tier": "fitted"
+    },
+    "cbo_opt45_all_rates_1pp": {
+      "abs_percent_error": 1.3,
+      "model_10yr_billions": -1201.2,
+      "official_10yr_billions": -1185.3,
+      "tier": "out_of_sample"
+    },
+    "cbo_opt46_agi_surtax_2pp_100k": {
+      "abs_percent_error": 2.4,
+      "model_10yr_billions": -1075.8,
+      "official_10yr_billions": -1051.0,
+      "tier": "out_of_sample"
+    },
+    "cbo_opt64_corporate_rate_1pp": {
+      "abs_percent_error": 44.5,
+      "model_10yr_billions": -196.1,
+      "official_10yr_billions": -135.7,
+      "tier": "out_of_sample"
+    },
+    "repeal_corporate_amt": {
+      "abs_percent_error": 0.0,
+      "model_10yr_billions": 220.1,
+      "official_10yr_billions": 220.0,
+      "tier": "fitted"
+    },
+    "ss_donut_250k": {
+      "abs_percent_error": 89.2,
+      "model_10yr_billions": -2700.0,
+      "official_10yr_billions": -1426.8,
+      "tier": "reconstruction"
+    },
+    "tcja_full_extension": {
+      "abs_percent_error": 0.4,
+      "model_10yr_billions": 4581.9,
+      "official_10yr_billions": 4600.0,
+      "tier": "fitted"
+    }
+  }
+}
