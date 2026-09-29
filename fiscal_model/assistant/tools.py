@@ -19,10 +19,137 @@ from typing import Any
 
 from ..baseline import APP_DEFAULT_START_YEAR
 from ..policies_core import DEFAULT_ORDINARY_INCOME_BASE
+from ..validation import current_evidence
 from .benchmarks import build_capability_gate
 from .sources import SOURCES, allowlisted_domain, web_search_allowed_domains
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Accuracy wording for scored hypotheticals
+# ---------------------------------------------------------------------------
+# These figures used to be typed into the strings below and went stale when
+# PR #173 moved the out-of-sample tier (the model kept being told "18.0% mean
+# over 44 cases" after the tier read 15.2%). They are read from the generated
+# evidence report instead, and each helper degrades to a sentence with no
+# figure rather than a wrong one if the report cannot be read.
+
+
+def _generic_path_note(policy: Any) -> str:
+    """The generic path's accuracy, as its own class's miss — never the pooled
+    mean alone, because the tier is eight classes that differ by a factor of 9."""
+    from fiscal_model.validation.policy_classes import classify_policy_object
+
+    oos = current_evidence.out_of_sample()
+    cls = current_evidence.policy_class(classify_policy_object(policy))
+    if cls and oos:
+        return (
+            f"out of sample, its policy class ({cls['label']}) misses published "
+            f"scores by {cls['mean_abs_error']}% on average over {cls['n']} "
+            f"pre-registered rows; the whole {oos['n']}-row tier by "
+            f"{oos['mean_abs_error']}%"
+        )
+    if oos:
+        return (
+            "no out-of-sample class covers this shape; the "
+            f"{oos['n']}-row tier as a whole misses by {oos['mean_abs_error']}% "
+            "on average"
+        )
+    return "its out-of-sample error is reported by scripts/cold_holdout.py"
+
+
+def _corporate_path_note() -> str:
+    """What the corporate module's two readings are, and what each one is.
+
+    It used to say "benchmarked vs CBO 21%→28% score within ~4%": that row is
+    Treasury's FY2025 Green Book figure, whose scope also moves GILTI, and the
+    module's out-of-sample class misses by an order of magnitude more.
+    """
+    row = current_evidence.quoted_row("biden_corporate_28")
+    cls = current_evidence.policy_class("corporate")
+    parts = []
+    if row:
+        parts.append(
+            f"{row['abs_percent_error']}% from Treasury's FY2025 Green Book "
+            "21%→28% row, whose scope also changes GILTI"
+        )
+    if cls:
+        parts.append(
+            f"out of sample its {cls['n']} pre-registered +1pp rows miss by "
+            f"{cls['mean_abs_error']}% on average"
+        )
+    return "; ".join(parts) if parts else "see scripts/cold_holdout.py for its accuracy"
+
+
+def _tier_contrast() -> str:
+    """The two tiers the assistant must not collapse, with their live figures."""
+    fitted = current_evidence.calibrated("fitted")
+    oos = current_evidence.out_of_sample()
+    if fitted and oos:
+        return (
+            f"Calibrated reference models ({fitted['mean_abs_error']}% mean over "
+            f"{fitted['n']} fitted benchmarks) and uncalibrated out-of-sample "
+            f"paths ({oos['mean_abs_error']}% mean over {oos['n']} cases, varying "
+            "by policy class) are different accuracy tiers — state which one "
+            "this run used."
+        )
+    return (
+        "Calibrated reference models and uncalibrated out-of-sample paths are "
+        "different accuracy tiers — state which one this run used."
+    )
+
+
+#: The tool's spending ``policy_type`` values and the ``SpendingPolicy``
+#: category each one is. The dataclass derives ``policy_type`` from
+#: ``category``, so passing the type alone would score every request as
+#: nondefense.
+_SPENDING_CATEGORY_BY_TYPE: dict[str, str] = {
+    "discretionary_nondefense": "nondefense",
+    "discretionary_defense": "defense",
+    "mandatory_spending": "mandatory",
+}
+
+
+def _dynamic_view_payload(policy: Any, result: Any, *, is_spending: bool) -> dict[str, Any]:
+    """The app's dynamic view of a conventional run, for a tool payload.
+
+    One run of the macro adapter the app's Dynamic view uses (FRB/US-Lite),
+    through the same function. Before 2026-09-29 this tool returned the
+    scoring engine's ``EconomicModel`` feedback instead, which for +2.6pp above
+    $400,000 cut the deficit reduction to $86.1B where the app's view showed
+    $338.9B.
+    """
+    from fiscal_model.dynamic_view import run_dynamic_view
+
+    view, macro = run_dynamic_view(policy, result, is_spending=is_spending)
+    if view is None or macro is None:
+        return {
+            "dynamic_view_error": (
+                "The macro model did not run on this policy, so only the "
+                "conventional score is available. Say so rather than "
+                "estimating feedback."
+            ),
+        }
+    return {
+        "is_dynamic": True,
+        "dynamic_model": view.model_name,
+        "revenue_feedback_10yr_billions": view.feedback,
+        "debt_service_10yr_billions": view.debt_service,
+        "dynamic_total_10yr_billions": view.dynamic_total,
+        "gdp_effect_percent_years": float(macro.cumulative_gdp_effect),
+        "dynamic_note": (
+            f"Dynamic view from {view.model_name}, the model and arithmetic "
+            "the app's Dynamic view shows: dynamic_total_10yr_billions = "
+            "raw_engine_estimate_billions - revenue_feedback_10yr_billions + "
+            "debt_service_10yr_billions, positive = adds to the deficit. It is "
+            "computed on this engine run, not on a benchmark-anchored "
+            "headline. Quote it as a labelled dynamic view beside the "
+            "conventional figure, never as the headline. The model is "
+            "demand-side only: GDP effects fade as the Fed responds, and there "
+            "is no supply-side channel."
+        ),
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -111,7 +238,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         "description": (
             "Run the app's real scoring engine on a hypothetical tax or "
             "spending policy. Returns the 10-year deficit impact, year-by-"
-            "year effects, and (optionally) dynamic feedback. Use this for "
+            "year effects, and (optionally) the app's dynamic view. Use this for "
             "requests like 'score a 25% corporate rate' or 'what if the top "
             "marginal rate were 45%'. "
             "IMPORTANT: the result passes through a capability gate. Quote "
@@ -174,8 +301,12 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
                 "dynamic": {
                     "type": "boolean",
                     "description": (
-                        "If true, include dynamic-scoring feedback (GDP, "
-                        "employment, revenue feedback). Default false."
+                        "If true, add the app's dynamic view: revenue "
+                        "feedback and debt service from FRB/US-Lite, the "
+                        "macro model the app's Dynamic view runs, and a "
+                        "dynamic total = conventional - feedback + debt "
+                        "service. The headline stays the conventional score. "
+                        "Default false."
                     ),
                 },
                 "ordinary_income_base": {
@@ -506,11 +637,7 @@ class AssistantTools:
         except ValueError:
             return {"error": f"unknown policy_type {policy_type!r}"}
 
-        is_spending = policy_type in {
-            "discretionary_nondefense",
-            "discretionary_defense",
-            "mandatory_spending",
-        }
+        is_spending = policy_type in _SPENDING_CATEGORY_BY_TYPE
 
         # Open the hypothetical on the same year the scorer's window does.
         # Left to the dataclass default it would start a year before the
@@ -520,11 +647,18 @@ class AssistantTools:
 
         try:
             if is_spending:
+                # ``SpendingPolicy`` names the amount
+                # ``annual_spending_change_billions`` and re-derives
+                # ``policy_type`` from ``category``. Until 2026-09-29 this
+                # passed ``spending_change_billions``, which the dataclass
+                # rejects, so every spending hypothetical came back as "could
+                # not construct policy".
                 policy = self._spending_policy_cls(
                     name=name,
                     description=f"Assistant hypothetical: {name}",
                     policy_type=pt,
-                    spending_change_billions=spending_change_billions,
+                    annual_spending_change_billions=spending_change_billions,
+                    category=_SPENDING_CATEGORY_BY_TYPE[policy_type],
                     start_year=start_year,
                     duration_years=duration_years,
                 )
@@ -545,10 +679,7 @@ class AssistantTools:
                     start_year=start_year,
                     duration_years=duration_years,
                 )
-                scoring_path = (
-                    "calibrated corporate-tax module (benchmarked vs CBO "
-                    "21%→28% score within ~4%)"
-                )
+                scoring_path = f"corporate-tax module ({_corporate_path_note()})"
                 calibrated = True
             else:
                 # The base is an attribute of the policy, never this call
@@ -571,7 +702,7 @@ class AssistantTools:
                 )
                 scoring_path = (
                     "uncalibrated generic tax path — directional only "
-                    "(18.0% mean out-of-sample error over 44 cases); quote the nearest "
+                    f"({_generic_path_note(policy)}); quote the nearest "
                     "validated preset when one exists"
                 )
                 calibrated = False
@@ -579,7 +710,11 @@ class AssistantTools:
             return {"error": f"could not construct policy: {exc}"}
 
         try:
-            result = self._scorer.score_policy(policy, dynamic=dynamic)
+            # Always a conventional run. A dynamic request adds the app's own
+            # dynamic view below; ``score_policy(dynamic=True)`` would run
+            # ``EconomicModel``, whose supply channel disagrees with the app by
+            # up to a factor of four.
+            result = self._scorer.score_policy(policy, dynamic=False)
         except Exception as exc:
             return {"error": f"scoring failed: {exc}"}
 
@@ -606,16 +741,14 @@ class AssistantTools:
             "ten_year_deficit_impact_billions": gate["headline_estimate_billions"],
             "raw_engine_estimate_billions": engine_estimate,
             "static_deficit_total_billions": float(getattr(result, "total_static_cost", 0.0)),
-            "revenue_feedback_10yr_billions": float(getattr(result, "revenue_feedback_10yr", 0.0)),
-            "is_dynamic": bool(getattr(result, "is_dynamic", False)),
+            "revenue_feedback_10yr_billions": 0.0,
+            "is_dynamic": False,
             "years": getattr(result, "years", None),
             "final_deficit_by_year": getattr(result, "final_deficit_effect", None),
             "scoring_path": scoring_path,
             "source": (
                 f"Run of FiscalPolicyScorer (this app) via the {scoring_path}. "
-                "Calibrated reference models (1.6% mean over 15 fitted benchmarks) and uncalibrated "
-                "out-of-sample paths (18.0% mean over 44 cases) are different accuracy tiers — "
-                "state which one this run used."
+                f"{_tier_contrast()}"
             ),
         }
         # Say which income base produced the number, so the assistant can say
@@ -639,6 +772,11 @@ class AssistantTools:
                 "an AGI surtax is scored. Say so when you quote the figure. An "
                 "ordinary-bracket rate change at the same threshold is a "
                 "different policy and scores roughly half this."
+            )
+
+        if dynamic:
+            payload.update(
+                _dynamic_view_payload(policy, result, is_spending=is_spending)
             )
 
         payload.update(gate)

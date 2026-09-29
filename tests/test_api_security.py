@@ -45,6 +45,17 @@ def _reset_security(monkeypatch):
     api_security.configure(keys=None)
     api_security.reset_limiter()
     yield
+    # This teardown runs *before* ``monkeypatch`` restores the environment, so
+    # re-reading it here would pick up any FISCAL_API_KEYS a test had set and
+    # leave auth switched on for every later test in the worker — which it did,
+    # the first time this module's last test was one that set it (eight Ask API
+    # tests then got 401). Clear the variables first, whatever the test order.
+    for name in (
+        "FISCAL_API_KEYS",
+        "FISCAL_API_RATE_LIMIT_PER_MINUTE",
+        "FISCAL_API_RATE_LIMIT_BURST",
+    ):
+        monkeypatch.delenv(name, raising=False)
     api_security.configure(keys=None)
     api_security.reset_limiter()
 
@@ -265,3 +276,115 @@ class TestRequestLogging:
             and isinstance(rec["duration_ms"], (int, float))
             for rec in records
         )
+
+
+# ---------------------------------------------------------------------------
+# A secret never reaches the log (planning/ROUTE_TO_9.md, defect 2)
+# ---------------------------------------------------------------------------
+#
+# ``_parse_keys`` used the secret itself as the label for an entry with no
+# colon and for one with an empty label, and the middleware logs the label in
+# two fields of every request line — so the supported configuration wrote the
+# key to the log in the clear. Labels are now positional for any entry without
+# a safe one.
+
+_DUMMY_SECRETS = ("dummy-secret-7f3a9c", "second-dummy-2b8e", "same-9d1e")
+
+
+def _configure_from_env(monkeypatch, raw: str) -> None:
+    monkeypatch.setenv("FISCAL_API_KEYS", raw)
+    api_security.configure()
+
+
+def _labels() -> dict[str, str]:
+    return {secret: info.label for secret, info in api_security._state.keys.items()}
+
+
+class TestSecretsNeverReachTheLog:
+    def test_an_unlabelled_key_gets_a_positional_label(self, monkeypatch):
+        _configure_from_env(monkeypatch, "dummy-secret-7f3a9c")
+        assert _labels() == {"dummy-secret-7f3a9c": "unlabelled-key-1"}
+
+    def test_an_empty_label_is_treated_as_unlabelled(self, monkeypatch):
+        _configure_from_env(monkeypatch, ":second-dummy-2b8e")
+        assert _labels() == {"second-dummy-2b8e": "unlabelled-key-1"}
+
+    def test_a_label_identical_to_its_secret_is_not_used(self, monkeypatch):
+        """Same leak, written out by hand rather than created by the parser."""
+        _configure_from_env(monkeypatch, "same-9d1e:same-9d1e")
+        assert _labels() == {"same-9d1e": "unlabelled-key-1"}
+
+    def test_positions_count_keys_not_commas_and_explicit_labels_survive(self, monkeypatch):
+        _configure_from_env(
+            monkeypatch, "dummy-secret-7f3a9c,, research:r-123 ,:second-dummy-2b8e"
+        )
+        assert _labels() == {
+            "dummy-secret-7f3a9c": "unlabelled-key-1",
+            "r-123": "research",
+            "second-dummy-2b8e": "unlabelled-key-3",
+        }
+
+    def test_the_startup_warning_names_the_position_never_the_secret(
+        self, monkeypatch, caplog
+    ):
+        with caplog.at_level(logging.WARNING, logger="fiscal_model.api_security"):
+            _configure_from_env(monkeypatch, "dummy-secret-7f3a9c,:second-dummy-2b8e")
+        assert "unlabelled-key-1" in caplog.text
+        assert "unlabelled-key-2" in caplog.text
+        for secret in _DUMMY_SECRETS:
+            assert secret not in caplog.text
+
+    def test_no_request_log_line_contains_a_secret(self, monkeypatch, caplog):
+        monkeypatch.setattr(api_module, "FiscalPolicyScorer", _DummyScorer)
+        _configure_from_env(
+            monkeypatch, "dummy-secret-7f3a9c,:second-dummy-2b8e,same-9d1e:same-9d1e"
+        )
+        client = _client()
+        with caplog.at_level(logging.INFO, logger="fiscal_model.api_security"):
+            for secret in _DUMMY_SECRETS:
+                response = client.post(
+                    "/score",
+                    headers={"X-API-Key": secret},
+                    json={"name": "Logged", "rate_change": 0.01, "dynamic": False},
+                )
+                assert response.status_code == 200
+
+        records = [
+            json.loads(record.message)
+            for record in caplog.records
+            if record.name == "fiscal_model.api_security"
+            and record.message.startswith("{")
+        ]
+        assert [rec["key_label"] for rec in records] == [
+            "unlabelled-key-1",
+            "unlabelled-key-2",
+            "unlabelled-key-3",
+        ]
+        # Every field, not just the two known to have carried it.
+        for secret in _DUMMY_SECRETS:
+            assert secret not in caplog.text
+
+    def test_unlabelled_keys_keep_separate_rate_limit_buckets(self, monkeypatch):
+        """Distinct labels, so one unlabelled caller cannot exhaust another."""
+        monkeypatch.setattr(api_module, "FiscalPolicyScorer", _DummyScorer)
+        monkeypatch.setenv("FISCAL_API_KEYS", "dummy-secret-7f3a9c,second-dummy-2b8e")
+        api_security.configure(per_minute=1, burst=0)
+        client = _client()
+        payload = {"name": "t", "rate_change": 0.01, "dynamic": False}
+
+        first = {"X-API-Key": "dummy-secret-7f3a9c"}
+        second = {"X-API-Key": "second-dummy-2b8e"}
+        assert client.post("/score", headers=first, json=payload).status_code == 200
+        assert client.post("/score", headers=first, json=payload).status_code == 429
+        assert client.post("/score", headers=second, json=payload).status_code == 200
+
+    def test_a_rejected_key_is_not_logged_either(self, monkeypatch, caplog):
+        _configure_from_env(monkeypatch, "research:r-123")
+        with caplog.at_level(logging.INFO, logger="fiscal_model.api_security"):
+            response = _client().post(
+                "/score",
+                headers={"X-API-Key": "wrong-guess-4e6d"},
+                json={"name": "t", "rate_change": 0.01, "dynamic": False},
+            )
+        assert response.status_code == 401
+        assert "wrong-guess-4e6d" not in caplog.text

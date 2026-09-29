@@ -37,6 +37,7 @@ from fiscal_model.app_data import CBO_SCORE_MAP, PRESET_POLICIES
 from fiscal_model.assistant import FiscalAssistant
 from fiscal_model.assistant.rate_limit import RateLimiter, new_session_id
 from fiscal_model.baseline import APP_DEFAULT_START_YEAR
+from fiscal_model.dynamic_view import run_dynamic_view
 from fiscal_model.exceptions import (
     FiscalModelError,
     PolicyValidationError,
@@ -84,6 +85,7 @@ def _validate_serialized_result(
         "gdp_effect",
         "employment_effect",
         "revenue_feedback",
+        "debt_service",
         "dynamic_adjusted_impact",
     )
     for key in scalar_keys:
@@ -110,7 +112,14 @@ def _validate_serialized_result(
         )
 
     for entry in payload.get("year_by_year") or []:
-        for field_name in ("revenue_effect", "behavioral_offset", "dynamic_feedback", "final_effect"):
+        for field_name in (
+            "revenue_effect",
+            "behavioral_offset",
+            "dynamic_feedback",
+            "final_effect",
+            "debt_service",
+            "dynamic_effect",
+        ):
             value = entry.get(field_name)
             if value is None:
                 continue
@@ -160,7 +169,13 @@ class ScorePolicyRequest(BaseModel):
     name: str = Field("Custom Policy", description="Policy name")
     description: str = Field("User-defined policy", description="Policy description")
     rate_change: float = Field(
-        ..., ge=-1.0, le=1.0, description="Rate change in percentage points"
+        ...,
+        ge=-1.0,
+        le=1.0,
+        description=(
+            "Rate change as a decimal fraction: 0.026 is +2.6 percentage "
+            "points, -0.01 is a one-point cut"
+        ),
     )
     income_threshold: float = Field(
         0, ge=0, description="Income threshold for affected taxpayers"
@@ -178,18 +193,35 @@ class ScorePolicyRequest(BaseModel):
         ),
     )
     duration_years: int = Field(10, ge=1, le=30, description="Policy duration")
-    dynamic: bool = Field(False, description="Enable dynamic scoring")
+    dynamic: bool = Field(
+        False,
+        description=(
+            "Add the app's dynamic view (FRB/US-Lite revenue feedback, debt "
+            "service and a dynamic total). The conventional headline does not move."
+        ),
+    )
     policy_type: str = Field("income_tax", description="Type of tax policy")
 
 
 class YearlyEffect(BaseModel):
-    """Year-by-year revenue effect."""
+    """Year-by-year effects, in billions.
+
+    ``final_effect`` is the conventional deficit effect (static + behavioral,
+    positive = increases the deficit) in every mode. With dynamic scoring on,
+    ``dynamic_feedback`` is that year's revenue feedback from the app's macro
+    adapter (positive = extra revenue), ``debt_service`` its interest cost
+    (positive = adds to the deficit), and ``dynamic_effect`` is
+    ``final_effect - dynamic_feedback + debt_service``. The years sum to the
+    response's ten-year fields.
+    """
 
     year: int
     revenue_effect: float  # Billions
     behavioral_offset: float  # Billions
-    dynamic_feedback: float  # Billions
-    final_effect: float  # Billions
+    dynamic_feedback: float  # Billions; 0.0 unless dynamic scoring is on
+    final_effect: float  # Billions; conventional in every mode
+    debt_service: float | None = None  # Billions; dynamic scoring only
+    dynamic_effect: float | None = None  # Billions; dynamic scoring only
 
 
 class ResultCredibilityModel(BaseModel):
@@ -249,11 +281,18 @@ class ScorePolicyResponse(BaseModel):
     behavioral_offset: float  # Billions
     final_static_effect: float  # Billions
 
-    # Dynamic effects (if enabled)
-    gdp_effect: float | None = None  # Percentage points (cumulative)
-    employment_effect: float | None = None  # Thousands of jobs
-    revenue_feedback: float | None = None  # Billions
-    dynamic_adjusted_impact: float | None = None  # Billions
+    # Dynamic effects (if enabled). Since 2026-09-29 these are the app's
+    # dynamic view: one run of the macro adapter the app defaults to
+    # (FRB/US-Lite), named in ``dynamic_model``. ``ten_year_deficit_impact``
+    # stays the conventional score either way, and
+    # dynamic_adjusted_impact = ten_year_deficit_impact - revenue_feedback
+    #                           + debt_service.
+    gdp_effect: float | None = None  # Percent-years (sum of annual GDP level effects)
+    employment_effect: float | None = None  # Thousands of jobs, window average
+    revenue_feedback: float | None = None  # Billions; positive = extra revenue
+    debt_service: float | None = None  # Billions; positive = adds to the deficit
+    dynamic_adjusted_impact: float | None = None  # Billions; deficit convention
+    dynamic_model: str | None = None
 
     # Year-by-year breakdown
     year_by_year: list[YearlyEffect]
@@ -268,7 +307,13 @@ class ScorePresetRequest(BaseModel):
     """Request to score a named preset policy."""
 
     preset_name: str = Field(..., description="Exact name from /presets endpoint")
-    dynamic: bool = Field(False, description="Enable dynamic scoring")
+    dynamic: bool = Field(
+        False,
+        description=(
+            "Add the app's dynamic view (FRB/US-Lite revenue feedback, debt "
+            "service and a dynamic total). The conventional headline does not move."
+        ),
+    )
 
 
 class PresetPolicyInfo(BaseModel):
@@ -1064,6 +1109,38 @@ def list_presets():
     return PresetsResponse(presets=presets, count=len(presets))
 
 
+def _score_and_serialize(
+    scorer: Any,
+    policy: Any,
+    *,
+    policy_name: str,
+    policy_description: str,
+    dynamic: bool,
+) -> dict[str, Any]:
+    """Score ``policy`` the way the app does and serialize it.
+
+    The engine always runs conventionally. A dynamic request then runs the
+    app's own dynamic view (:func:`fiscal_model.dynamic_view.run_dynamic_view`,
+    FRB/US-Lite, the app's default model) on that conventional path, so the
+    API returns the dynamic figures the app displays for the same policy.
+    ``EconomicModel``, which ``score_policy(dynamic=True)`` would run, is not
+    consulted. A macro-model failure degrades the dynamic fields to null with
+    an ``error_message``; it never fails the conventional score.
+    """
+    result = scorer.score_policy(policy, dynamic=False)
+    dynamic_view = macro_result = None
+    if dynamic:
+        dynamic_view, macro_result = run_dynamic_view(policy, result)
+    return serialize_scoring_result(
+        result,
+        policy_name=policy_name,
+        policy_description=policy_description,
+        dynamic_scoring_enabled=dynamic,
+        dynamic_view=dynamic_view,
+        macro_result=macro_result,
+    )
+
+
 @app.post("/score", response_model=ScorePolicyResponse)
 def score_policy(
     request: ScorePolicyRequest,
@@ -1072,8 +1149,10 @@ def score_policy(
     """
     Score a custom tax policy.
 
-    Scores static and behavioral effects of a user-defined tax policy,
-    with optional dynamic feedback.
+    Scores static and behavioral effects of a user-defined tax policy. With
+    ``"dynamic": true`` it adds the app's dynamic view (FRB/US-Lite revenue
+    feedback, debt service and a dynamic total); the headline
+    ``ten_year_deficit_impact`` stays the conventional score either way.
     """
     try:
         # Validate inputs
@@ -1098,13 +1177,12 @@ def score_policy(
         scorer = FiscalPolicyScorer(
             start_year=APP_DEFAULT_START_YEAR, use_real_data=True
         )
-        result = scorer.score_policy(policy, dynamic=request.dynamic)
-
-        payload = serialize_scoring_result(
-            result,
+        payload = _score_and_serialize(
+            scorer,
+            policy,
             policy_name=request.name,
             policy_description=request.description,
-            dynamic_scoring_enabled=request.dynamic,
+            dynamic=request.dynamic,
         )
         _validate_serialized_result(payload, policy_name=request.name)
         return ScorePolicyResponse(**payload)
@@ -1142,7 +1220,8 @@ def score_preset(
     """
     Score a named preset policy.
 
-    Scores a policy from the preset library, with optional dynamic feedback.
+    Scores a policy from the preset library. ``"dynamic": true`` adds the
+    app's dynamic view, exactly as ``/score`` does.
     """
     try:
         # Look up preset
@@ -1162,13 +1241,12 @@ def score_preset(
             ),
             use_real_data=use_real_data,
         )
-        result = scorer.score_policy(policy, dynamic=request.dynamic)
-
-        payload = serialize_scoring_result(
-            result,
+        payload = _score_and_serialize(
+            scorer,
+            policy,
             policy_name=request.preset_name,
             policy_description=preset.get("description", ""),
-            dynamic_scoring_enabled=request.dynamic,
+            dynamic=request.dynamic,
         )
         _validate_serialized_result(payload, policy_name=request.preset_name)
         return ScorePolicyResponse(**payload)

@@ -103,7 +103,7 @@ instruction to adopt a number**; several lanes are pre-registered regressions an
 |--:|---|---|--:|---|
 | **R1** ✅ | Transcribe CBO's own February 2026 baseline (and give the other two vintages a real table) | Every dynamic number, Ask's deficit, Build's target strip, debt/GDP | **3** | ⑤ |
 | **R2** ✅ | The five Tier 1 rows with no source URL | 31.8% of the tier's error mass | **3** | ①③ |
-| **R3** | H10: a Tailor battery, off CBO's 42 enacted acts and four *Options* vintages | The tier is **22** rows, four fewer than when this was written; users type shapes it does not contain, and it now contains no rate cut at all | **5** | ① |
+| **R3** ✅ | H10: a Tailor battery, off CBO's 42 enacted acts and four *Options* vintages *(done as four Options vintages, PR #169: 22 → 44 rows; gates re-derived after the rows landed, PR #170)* | The tier is **22** rows, four fewer than when this was written; users type shapes it does not contain, and it now contains no rate cut at all | **5** | ① |
 | **R4** ✅ | The statutory parameter schedule → year-indexed thresholds | Unblocked the branch H2 declared impossible; one row **14.3% → 17.9%**, registered | **3** | ① |
 | **R5** ✅ | H3b: corporate — the haircut **refused on the merits**, owner ⑤ executed | Row unmoved at 44.5%; `CORPORATE_APP_MODE` → **`derived`**; two presets moved | **4** | ①② |
 | **R6** ✅ | H12: demote the sectoral presets (Wave D) | The 701% row was on Explore; it is now in a named illustrative group, and its target is retired | **1** + owner | ②④ |
@@ -295,7 +295,15 @@ improve a mean.
 
 ---
 
-### R3 — H10's Tailor battery, with a source *(5 lane-days)*
+### R3 — H10's Tailor battery, with a source *(5 lane-days)* — ✅ **DONE, PR #169**
+
+> *Status note, 2026-09-28.* R3 registered 22 rows from CBO's 2018, 2020 and 2022 *Options*
+> volumes (`planning/lanes/R3_tier1_battery.md`), taking Tier 1 **22 → 44** rows at 18.0%, and
+> the gates were re-derived **after** the rows landed (PR #170), which is the condition ⑪ set.
+> PR #173 then put the three pre-2024 corporate rows on the Outlook their own editions name, so
+> the live tier is **44 @ 15.2%, 36/44 within 25%** (`python scripts/cold_holdout.py`). The
+> enacted-acts half of the original scope was not registered. The text below is the
+> pre-registration and is kept as written.
 
 **Stakes.** Criterion ① is a size condition and only this lane satisfies it. Two classes are single
 observations and H4's bands are read off those observations; Wave C's own "what it did not do"
@@ -840,10 +848,10 @@ are done and Wave E is two lanes of three.** D closed as PRs #155, #157 and #158
 decisions taken separately (#160, #161); E's re-scoping around **R1** and **R2** was the right call
 and both landed (#159, #162), leaving **R15a** — the spend-out confirmation — as the wave's one open
 lane; **F closed as PRs #164, #165 and #166**, with a provenance-pin fix on R1 (#167) beside it.
-**Eight lanes of sixteen are therefore closed**: **R1**, **R2**, **R4**, **R5**, **R6**, **R8**,
+**Nine lanes of sixteen are closed as of 2026-09-28** — R3 closed as PR #169 after this paragraph was written, and its corporate follow-up (PRs #172, #173) moved the corporate class 71.6% → 40.3% on the same rows: **R1**, **R2**, **R3**, **R4**, **R5**, **R6**, **R8**,
 **R10**, **R11**. Owner decisions ③, ④, **⑤**, ⑧, ⑨ and this plan's ⑩ are taken — ⑤ in
 PR #166, which also closes `HIGH_STAKES_ACCURACY.md`'s last open lane, so **that plan now has none**.
-**Wave G is next**, and its two decisions (⑪ and ⑭) are still open.
+**Wave G is under way**: R3 is closed, **R9** and **R13** are open, ⑪'s condition (re-derive the gate after the rows land) was met by PR #170, and **⑭ is still open**.
 
 **Wave F's own lesson about wave structure is worth carrying to G.** Its three lanes were disjoint in
 files as designed, and **two of the three moved nothing the third touched** — R4 moved one Tier 1 row

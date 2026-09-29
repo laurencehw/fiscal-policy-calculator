@@ -177,6 +177,7 @@ def _render_side_by_side_section(
         data_year=settings["data_year"],
         use_real_data=settings["use_real_data"],
         dynamic_scoring=settings["dynamic_scoring"],
+        macro_model_name=settings.get("macro_model"),
     )
 
 
@@ -432,6 +433,7 @@ def render_result_tabs(
                 data_year=settings["data_year"],
                 use_real_data=settings["use_real_data"],
                 dynamic_scoring=settings["dynamic_scoring"],
+                macro_model_name=settings.get("macro_model"),
             )
 
             st_module.markdown("---")

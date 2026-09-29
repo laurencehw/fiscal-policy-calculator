@@ -18,6 +18,7 @@ from typing import Any
 
 from components.chrome import page_link, render_chrome, render_page_footer
 from fiscal_model.ui.helpers import TEXTBOOK_HOME
+from fiscal_model.validation import current_evidence
 
 PAGE_TITLE = "About"
 URL_PATH = "about"
@@ -53,18 +54,48 @@ the positions of any employer. Also by me: [SA Policy Space]({SA_POLICY_SPACE_UR
 a tracker of policy ideas in the South African parliament, and the
 [Public Economics]({TEXTBOOK_HOME}) textbook this app accompanies."""
 
-# Exact percents, no leading tilde: an unescaped ``~`` before a number pairs
-# with the next one and strikes the paragraph through.
-_HOW_TO_READ = r"""### How to read the numbers
+def _how_to_read() -> str:
+    """The accuracy section, with figures read from the generated evidence report.
+
+    The figures used to be typed here and went stale when PR #173 moved the
+    out-of-sample tier (this page kept printing 18.0% and "35/44" after the tier
+    read 15.2% and 36/44). They now come from
+    ``fiscal_model/data_files/validation/current_evidence.json``, which a test
+    recomputes; if it cannot be read the section says less rather than guess.
+
+    Exact percents, no leading tilde: an unescaped ``~`` before a number pairs
+    with the next one and strikes the paragraph through.
+    """
+    oos = current_evidence.out_of_sample()
+    fitted = current_evidence.calibrated("fitted")
+    span = current_evidence.class_mean_range()
+    if oos and fitted and span:
+        lowest, highest = span
+        fitted_clause = (
+            f"({fitted['mean_abs_error']}% mean over {fitted['n']} fitted "
+            "benchmarks, low by construction)"
+        )
+        oos_clause = (
+            f"({oos['mean_abs_error']}% mean / {oos['median_abs_error']}% median "
+            f"over {oos['n']} cases; {oos['within_15pct']}/{oos['n']} within 15%, "
+            f"{oos['within_25pct']}/{oos['n']} within 25%; and by policy class "
+            f"from {lowest['mean_abs_error']}% for {lowest['label']} to "
+            f"{highest['mean_abs_error']}% for {highest['label']})"
+        )
+    else:
+        fitted_clause = "(low by construction)"
+        oos_clause = "(its error varies by policy class; the Methodology page lists it)"
+    return f"""### How to read the numbers
 
 Two tiers, never collapsed into one accuracy claim: *calibrated reference
-models* reproduce official decompositions (1.6% mean over 15 fitted
-benchmarks, low by construction) and *out-of-sample predictions* are the
-honest test (18.0% mean / 12.3% median over 44 cases; 26/44 within 15%,
-35/44 within 25%). The **Methodology** page documents parameters, elasticities and
-validation; the data-status pill at the top of every page shows the CBO and
-IRS vintages behind the current session. Treat every figure as an estimate
-with a stated source, not a score."""
+models* reproduce official decompositions {fitted_clause} and *out-of-sample
+predictions* are the honest test {oos_clause}. The **Methodology** page
+documents parameters, elasticities and validation; the data-status pill at the
+top of every page shows the CBO and IRS vintages behind the current session.
+Treat every figure as an estimate with a stated source, not a score."""
+
+
+_HOW_TO_READ = _how_to_read()
 
 _CONTACT_AND_LINKS = f"""### Contact and links
 
@@ -98,7 +129,9 @@ def render(st_module: Any, deps: Any, app_root: Any = None) -> None:
 
     st_module.markdown(_ABOUT_THIS_CALCULATOR)
     st_module.markdown(_WHO_MADE_IT)
-    st_module.markdown(_HOW_TO_READ)
+    # Built per render rather than read from the import-time constant, so the
+    # figures are whatever the evidence report says now (the read is cached).
+    st_module.markdown(_how_to_read())
     page_link(st_module, "methodology", label="Methodology")
     st_module.markdown(_CONTACT_AND_LINKS)
     st_module.markdown(_LICENSE)

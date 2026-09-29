@@ -8,8 +8,8 @@ Thanks for your interest in contributing! This project aims to make fiscal polic
 git clone https://github.com/laurencehw/fiscal-policy-calculator.git
 cd fiscal-policy-calculator
 pip install -r requirements.txt
-pip install pytest pytest-cov ruff
-python -m pytest tests/ -v
+pip install pytest pytest-cov 'ruff==0.15.8' mypy
+ANTHROPIC_API_KEY= python -m pytest tests/ -q
 streamlit run app.py      # Launch the app locally
 ```
 
@@ -40,30 +40,42 @@ The 3.12 `smoke` job installs from `requirements-lock.txt`, so production-style 
 
 ## High-impact areas
 
-These are the areas where contributions would be most valuable:
+The ranked list is [`planning/ROUTE_TO_9.md`](planning/ROUTE_TO_9.md); [`planning/ROADMAP.md`](planning/ROADMAP.md) says which planning document answers which question. In short:
 
-- **Multi-model comparison platform** — Planned CBO/TPC/PWBM-style side-by-side scoring
-- **CPS microsimulation upgrade** — Planned move from synthetic tax units to CPS ASEC data
-- **New policy modules** — Climate/energy, immigration, housing, wealth tax
-- **Data updates** — IRS SOI 2023 tables, CBO baseline auto-loader
+- **Correctness and security** of the shared scoring core and the API
+- **One authoritative source for current evidence**, so the README, the pages and the API cannot disagree
+- **The shared modelling core** — filing populations, upper incomes, and one tax-unit engine for revenue and distribution
+- **Explicit policy interactions** — ordinary rates, SALT, AMT and credits scored jointly rather than summed
+- **Fresh, locked benchmarks** across policy families, rate cuts and vintages
 
 ## How to contribute
 
 1. **Open an issue first** to discuss significant changes before starting work
 2. **Fork the repo** and create a feature branch from `main`
 3. **Write tests** for new functionality — the project enforces an 85% coverage floor in `pyproject.toml`
-4. **Run the full suite** before submitting:
+4. **Run every blocking CI step** before submitting — each of these has failed a PR that skipped it:
    ```bash
-   python -m pytest tests/ -v
-   python -m pytest tests/ --cov=fiscal_model
-   ruff check fiscal_model/ tests/
+   # With the Anthropic key UNSET: CI never sets it, and with it exported parts of
+   # tests/ make live API calls, so a green run with the key present is not CI's run.
+   ANTHROPIC_API_KEY= python -m pytest tests/ --cov=fiscal_model
+
+   # Lint scope matches CI, including the Streamlit surface outside fiscal_model/
+   ruff check fiscal_model/ tests/ app.py app_pages/ components/ classroom_app.py
+
+   # The blocking type-check gate, exactly as CI runs it
+   mypy $(grep -v '^#' mypy.gate.txt | grep -v '^[[:space:]]*$')
+
+   # If the change touches scoring: the two out-of-sample accuracy gates. Take the
+   # thresholds from .github/workflows/validation-dashboard.yml, never from memory.
+   python scripts/cold_holdout.py --max-mean-error <ceiling> --min-within-25pct <floor>
+   python scripts/cold_holdout.py --max-class-mean-error <class=ceiling ...>
+
+   # If the change moves a validation tier: regenerate the figures the pages,
+   # the Ask assistant and the docs quote, then update the live headline
+   # sentences tests/test_current_evidence.py names.
+   python scripts/build_current_evidence.py
    ```
-5. **Refresh the runtime lockfile** if you changed dependencies:
-   ```bash
-   python3.12 -m venv .lockvenv
-   .lockvenv/bin/pip install pip-tools
-   .lockvenv/bin/pip-compile --strip-extras --output-file=requirements-lock.txt requirements.txt
-   ```
+5. **Refresh the runtime lockfile** with `uv` as described above if you changed dependencies
 6. **Submit a pull request** with a clear description of what changed and why
 
 For Streamlit controller or session-state changes, also run:
@@ -81,13 +93,16 @@ python -m pytest tests/test_app_entrypoints.py tests/test_ui_controller_smoke.py
 
 ## Validation
 
-If your change affects scoring logic, verify against CBO/JCT benchmarks:
+If your change affects scoring logic, run the validation reports and read the tiers separately — never collapse them into one "validated within X%" figure:
 
 ```bash
+python scripts/cold_holdout.py              # out-of-sample tier, the only skill claim
+python scripts/run_validation_dashboard.py  # health, calibration, calibrated tiers
+python scripts/run_loo.py                   # leave-one-out on the calibrated modules
 python -c "from fiscal_model.validation import run_validation_suite; run_validation_suite()"
 ```
 
-New policy modules should include at least one validation case from an official source (CBO, JCT, Treasury, TPC, or PWBM).
+New policy modules should include at least one validation case from a published source (CBO, JCT, Treasury, SSA, TPC, PWBM, the Tax Foundation, CRFB or RAND), with the page it was read from. A new out-of-sample case is pre-registered in `fiscal_model/validation/preregistered.py` in a commit **before** the one that first scores it, and no constant may be tuned toward a held-out target.
 
 ## Questions?
 

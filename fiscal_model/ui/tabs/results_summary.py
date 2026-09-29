@@ -32,6 +32,12 @@ import plotly.graph_objects as go
 from fiscal_model.amt import AMTPolicy
 from fiscal_model.corporate import CORPORATE_MODE_REPORTED, CorporateTaxPolicy
 from fiscal_model.credits_core import CreditType, TaxCreditPolicy
+from fiscal_model.dynamic_view import (
+    conventional_path,
+    conventional_total,
+    macro_setting_for_label,
+    run_dynamic_view,
+)
 from fiscal_model.enforcement import IRSEnforcementPolicy
 from fiscal_model.estate import EstateTaxPolicy
 from fiscal_model.international import InternationalTaxPolicy
@@ -642,19 +648,13 @@ def tariff_net_caption(policy: Any, result: Any) -> str:
         else 0.0
     )
     dynamic = net - gdp_loss - retaliation
-    # On a dynamic run the headline above is the *engine's* figure, not this
-    # one, and a caption quoting a number the headline does not show is the
-    # defect PR #144's review caught on the ordinary-base caption. So the
-    # conventional figure says what it is relative to the headline, and the
-    # tail says plainly that these two channels are the tariff module's own
-    # rather than the dynamic-scoring engine's feedback.
-    scored_dynamically = getattr(result, "dynamic_effects", None) is not None
-    conventional_label = (
-        "conventional receipts - the figure before the dynamic feedback the "
-        "headline above applies"
-        if scored_dynamically
-        else "conventional receipts"
-    )
+    # The headline above is the conventional score in every mode, so the
+    # conventional figure here is the headline on a dynamic run too. (A clause
+    # used to say the headline applied dynamic feedback on such a run, which
+    # stopped being true when Phase 4 fixed the headline to the conventional
+    # score.) The tail says plainly that these two channels are the tariff
+    # module's own rather than the feedback in the app's dynamic view.
+    conventional_label = "conventional receipts"
     tail = (
         f" A dynamic estimate would take it further: \\${gdp_loss:,.1f}B of "
         f"receipts lost as output falls"
@@ -666,7 +666,7 @@ def tariff_net_caption(policy: Any, result: Any) -> str:
         )
         + ". Published estimators report those as separate columns and so "
         "does this app - these are the tariff module's own channels, and "
-        "neither is the dynamic-scoring engine's feedback."
+        "neither is the feedback in the app's dynamic view."
     )
     # Section 232 bases are measured at the article level since lane R8, and
     # for the two presets that use them the base moved far more than the offset
@@ -1060,7 +1060,9 @@ def salt_current_law_caption(policy: Any, result: Any) -> str:
     scored_years = [int(year) for year, live in zip(years, scored, strict=False) if live]
     first, last = scored_years[0], scored_years[-1]
 
-    total = float(np.sum(np.asarray(result.final_deficit_effect, dtype=float)))
+    # The conventional score, the headline above in every mode.
+    # ``final_deficit_effect`` would carry EconomicModel feedback on a dynamic run.
+    total = conventional_total(result)
     opening = salt_cap_schedule(first)
     reversion = next(
         (
@@ -1271,7 +1273,9 @@ def agi_income_column_caption(policy: Any, result: Any) -> str:
         return ""
 
     threshold = float(policy.affected_income_threshold)
-    total = float(np.sum(result.final_deficit_effect))
+    # The conventional score, the headline above in every mode.
+    # ``final_deficit_effect`` would carry EconomicModel feedback on a dynamic run.
+    total = conventional_total(result)
     if total == 0.0:
         return ""
     previous = total / ratio
@@ -2785,10 +2789,11 @@ def render_charts_block(st_module: Any, scored: Any, result_data: dict[str, Any]
 
     with c_chart2:
         st_module.subheader("Cumulative Deficit Impact")
+        band_low, band_high = conventional_bounds(result)
         df_timeline = df_timeline.assign(
             Cumulative=df_timeline["Deficit Impact"].cumsum(),
-            Cum_Low=np.asarray(result.low_estimate).cumsum(),
-            Cum_High=np.asarray(result.high_estimate).cumsum(),
+            Cum_Low=band_low.cumsum(),
+            Cum_High=band_high.cumsum(),
         )
 
         fig_cum = go.Figure()
@@ -2916,10 +2921,61 @@ def _export_metadata_lines(scored: Any, share_url: str | None) -> list[tuple[str
     return lines
 
 
+def conventional_bounds(result: Any) -> tuple[np.ndarray, np.ndarray]:
+    """The engine's uncertainty band around the conventional path.
+
+    On a static run this is the engine's own ``low_estimate`` and
+    ``high_estimate``. On a dynamic run the engine centres those on
+    ``final_deficit_effect``, which carries EconomicModel feedback the app
+    does not display, so the band drew away from the conventional line it
+    surrounds. It is recomputed on that line with the engine's own rule.
+    """
+    if getattr(result, "dynamic_effects", None) is None:
+        return (
+            np.asarray(result.low_estimate, dtype=float),
+            np.asarray(result.high_estimate, dtype=float),
+        )
+    from fiscal_model.scoring_engine import uncertainty_bounds
+
+    return uncertainty_bounds(getattr(result, "policy", None), conventional_path(result))
+
+
+def _dynamic_view_columns(scored: Any, result_data: dict[str, Any]) -> dict[str, Any]:
+    """Per-year columns of this run's dynamic view, for the CSV export.
+
+    Re-runs the adapter the run's own dynamic view used; the adapters are
+    deterministic, so the columns sum to the feedback, debt service and
+    dynamic total the header prints. They used to be ``EconomicModel``'s GDP
+    and employment paths, under a header naming FRB/US-Lite.
+    """
+    if str(scored.mode) != "dynamic":
+        return {}
+    _view, macro = run_dynamic_view(
+        result_data["policy"],
+        result_data["result"],
+        is_spending=bool(result_data.get("is_spending", False)),
+        macro_model_name=macro_setting_for_label(scored.macro_model),
+    )
+    if macro is None:
+        return {}
+    conventional = np.asarray(scored.per_year, dtype=float)
+    feedback = np.asarray(macro.revenue_feedback_billions, dtype=float)
+    debt_service = np.asarray(macro.interest_cost_billions, dtype=float)
+    return {
+        "Revenue Feedback ($B)": feedback,
+        "Debt Service ($B)": debt_service,
+        "Dynamic Deficit Effect ($B)": conventional - feedback + debt_service,
+        "GDP Effect (%)": np.asarray(macro.gdp_level_pct, dtype=float),
+        "Employment (thousands)": np.asarray(macro.employment_change_millions, dtype=float)
+        * 1000.0,
+    }
+
+
 def build_csv_export(scored: Any, result_data: dict[str, Any], share_url: str | None = None) -> str:
     """CSV with a commented provenance header and the per-year decomposition."""
     result = result_data["result"]
     years = result.baseline.years
+    band_low, band_high = conventional_bounds(result)
     export_data = {
         "Year": years,
         "Static Revenue Effect ($B)": result.static_revenue_effect,
@@ -2927,13 +2983,10 @@ def build_csv_export(scored: Any, result_data: dict[str, Any], share_url: str | 
         "Static Deficit Effect ($B)": result.static_deficit_effect,
         "Behavioral Offset ($B)": result.behavioral_offset,
         "Conventional Deficit Effect ($B)": list(scored.per_year),
-        "Low Estimate ($B)": result.low_estimate,
-        "High Estimate ($B)": result.high_estimate,
+        "Low Estimate ($B)": band_low,
+        "High Estimate ($B)": band_high,
     }
-    if getattr(result, "dynamic_effects", None) is not None:
-        export_data["GDP Effect ($B)"] = result.dynamic_effects.gdp_level_change
-        export_data["GDP Effect (%)"] = result.dynamic_effects.gdp_percent_change
-        export_data["Employment (thousands)"] = result.dynamic_effects.employment_change
+    export_data.update(_dynamic_view_columns(scored, result_data))
 
     header = "".join(
         f"# {label}: {value}\n" for label, value in _export_metadata_lines(scored, share_url)

@@ -209,7 +209,11 @@ def dark_template() -> Any:
         shapedefaults=go.layout.Shape(line=go.layout.shape.Line(color=DARK_GRID)),
     )
     pio.templates[DARK_TEMPLATE_NAME] = template
-    return template
+    # Plotly validates — and so copies — on registration. Returning the local
+    # object made the first call's template a different object from every later
+    # call's, which ``test_the_template_registers_once`` caught whenever it
+    # happened to be the first caller in a worker.
+    return pio.templates[DARK_TEMPLATE_NAME]
 
 
 def _dark_axis_kwargs(*, showgrid: bool | None = None) -> dict[str, Any]:

@@ -4,18 +4,17 @@ Tests for fiscal_model.api_serialization helper functions.
 
 from __future__ import annotations
 
-from types import SimpleNamespace
-
 import numpy as np
 
 from fiscal_model import FiscalPolicyScorer, TaxPolicy
 from fiscal_model.api_serialization import (
+    DYNAMIC_VIEW_UNAVAILABLE_MESSAGE,
     _as_float_array,
-    _extract_dynamic_series,
     _sum_float,
     _value_at,
     serialize_scoring_result,
 )
+from fiscal_model.dynamic_view import FRBUS_LITE_MODEL_LABEL, run_dynamic_view
 from fiscal_model.policies import PolicyType
 
 
@@ -34,20 +33,6 @@ def test_sum_float_and_value_at_handle_empty_inputs():
     assert _sum_float(None) == 0.0
     assert _value_at(np.array([]), 0) == 0.0
     assert _value_at(np.array([1.5]), 3) == 1.5
-
-
-def test_extract_dynamic_series_supports_legacy_result_shape():
-    legacy_result = SimpleNamespace(
-        revenue_feedback=[0.5, 0.75],
-        gdp_effect=[0.1, 0.2],
-        employment_effect=[100.0, 120.0],
-    )
-
-    dynamic = _extract_dynamic_series(legacy_result)
-
-    assert np.allclose(dynamic["revenue_feedback"], [0.5, 0.75])
-    assert np.allclose(dynamic["gdp_percent_change"], [0.1, 0.2])
-    assert np.allclose(dynamic["employment_change"], [100.0, 120.0])
 
 
 def _score_simple_tax_increase(*, dynamic: bool):
@@ -90,59 +75,121 @@ def test_final_static_effect_is_revenue_net_of_behavior_static():
     )
 
 
-def test_final_static_effect_excludes_dynamic_feedback():
-    """final_static_effect must report the pre-dynamic revenue impact.
-
-    Even when dynamic scoring is enabled, this field captures only the
-    static + behavioral revenue effect; revenue_feedback is reported
-    separately. So for any dynamic run:
-        final_static_effect = static_revenue - behavioral
-                            = -ten_year_deficit_impact - revenue_feedback
-    """
-    policy, result = _score_simple_tax_increase(dynamic=True)
+def _serialize_dynamic(policy, result):
+    view, macro = run_dynamic_view(policy, result)
+    assert view is not None and macro is not None
     payload = serialize_scoring_result(
         result,
         policy_name=policy.name,
         policy_description=policy.description,
         dynamic_scoring_enabled=True,
+        dynamic_view=view,
+        macro_result=macro,
     )
-
-    expected_from_components = (
-        payload["static_revenue_effect"] - payload["behavioral_offset"]
-    )
-    expected_from_deficit = (
-        -payload["ten_year_deficit_impact"] - payload["revenue_feedback"]
-    )
-    assert np.isclose(payload["final_static_effect"], expected_from_components)
-    assert np.isclose(payload["final_static_effect"], expected_from_deficit)
+    return payload, view, macro
 
 
-def test_final_static_effect_ignores_display_flag_for_derivation():
-    """Derived math must use the actual feedback in the result, not the
-    display flag. If a caller serializes a dynamically-scored result with
-    dynamic_scoring_enabled=False (rare but allowed by the contract), the
-    static-impact scalar must still be the pre-dynamic revenue effect, not
-    a stale ten_year minus zero."""
-    policy, result = _score_simple_tax_increase(dynamic=True)
+def test_dynamic_headline_stays_conventional():
+    """The headline is static + behavioral in every mode, as in the app.
 
-    shown = serialize_scoring_result(
-        result,
+    Before 2026-09-29 a dynamic request moved ``ten_year_deficit_impact`` by
+    the engine's EconomicModel feedback and repeated it as
+    ``dynamic_adjusted_impact``.
+    """
+    policy, static_result = _score_simple_tax_increase(dynamic=False)
+    static_payload = serialize_scoring_result(
+        static_result,
         policy_name=policy.name,
         policy_description=policy.description,
-        dynamic_scoring_enabled=True,
+        dynamic_scoring_enabled=False,
     )
+    dynamic_payload, view, _macro = _serialize_dynamic(policy, static_result)
+
+    assert np.isclose(
+        dynamic_payload["ten_year_deficit_impact"], static_payload["ten_year_deficit_impact"]
+    )
+    assert np.isclose(dynamic_payload["ten_year_deficit_impact"], view.conventional)
+    assert np.isclose(
+        dynamic_payload["final_static_effect"],
+        dynamic_payload["static_revenue_effect"] - dynamic_payload["behavioral_offset"],
+    )
+    assert np.isclose(
+        dynamic_payload["dynamic_adjusted_impact"],
+        dynamic_payload["ten_year_deficit_impact"]
+        - dynamic_payload["revenue_feedback"]
+        + dynamic_payload["debt_service"],
+    )
+    assert dynamic_payload["dynamic_model"] == FRBUS_LITE_MODEL_LABEL
+
+
+def test_an_economic_model_run_is_never_reported():
+    """Serializing a ``dynamic=True`` engine run reports the app's view.
+
+    The engine subtracts EconomicModel feedback from ``final_deficit_effect``
+    on such a run; the serializer reads the conventional path instead, and the
+    dynamic fields come only from the view it is handed.
+    """
+    policy, engine_dynamic = _score_simple_tax_increase(dynamic=True)
+    _, engine_static = _score_simple_tax_increase(dynamic=False)
+    assert engine_dynamic.dynamic_effects is not None
+    economic_model_feedback = float(np.sum(engine_dynamic.dynamic_effects.revenue_feedback))
+
+    payload, view, _macro = _serialize_dynamic(policy, engine_dynamic)
+    static_view, _ = run_dynamic_view(policy, engine_static)
+
+    assert np.isclose(payload["ten_year_deficit_impact"], float(np.sum(engine_static.final_deficit_effect)))
+    assert not np.isclose(payload["ten_year_deficit_impact"], engine_dynamic.total_10_year_cost)
+    assert not np.isclose(payload["revenue_feedback"], economic_model_feedback)
+    # The view needs only the conventional path, so how the engine was run
+    # does not move it.
+    assert static_view is not None
+    assert np.isclose(view.dynamic_total, static_view.dynamic_total)
+    assert np.isclose(payload["dynamic_adjusted_impact"], static_view.dynamic_total)
+
+
+def test_display_flag_hides_a_view_and_a_missing_view_is_reported():
+    policy, result = _score_simple_tax_increase(dynamic=False)
+    view, macro = run_dynamic_view(policy, result)
+
     hidden = serialize_scoring_result(
         result,
         policy_name=policy.name,
         policy_description=policy.description,
         dynamic_scoring_enabled=False,
+        dynamic_view=view,
+        macro_result=macro,
     )
-
-    # The displayed revenue_feedback honors the flag.
-    assert shown["revenue_feedback"] != 0.0
     assert hidden["revenue_feedback"] == 0.0
-    # But the underlying static-impact derivation must not.
-    assert np.isclose(hidden["final_static_effect"], shown["final_static_effect"])
+    assert hidden["dynamic_adjusted_impact"] is None
+    assert hidden["error_message"] is None
+    assert all(entry["dynamic_feedback"] == 0.0 for entry in hidden["year_by_year"])
+
+    missing = serialize_scoring_result(
+        result,
+        policy_name=policy.name,
+        policy_description=policy.description,
+        dynamic_scoring_enabled=True,
+    )
+    assert missing["error_message"] == DYNAMIC_VIEW_UNAVAILABLE_MESSAGE
+    assert missing["revenue_feedback"] is None
+    assert missing["dynamic_adjusted_impact"] is None
+    assert np.isclose(missing["ten_year_deficit_impact"], hidden["ten_year_deficit_impact"])
+
+
+def test_dynamic_year_by_year_reconciles_with_the_ten_year_fields():
+    policy, result = _score_simple_tax_increase(dynamic=False)
+    payload, view, macro = _serialize_dynamic(policy, result)
+    years = payload["year_by_year"]
+
+    assert np.isclose(sum(e["final_effect"] for e in years), view.conventional)
+    assert np.isclose(sum(e["dynamic_feedback"] for e in years), view.feedback)
+    assert np.isclose(sum(e["debt_service"] for e in years), view.debt_service)
+    assert np.isclose(sum(e["dynamic_effect"] for e in years), view.dynamic_total)
+    assert np.isclose(payload["gdp_effect"], macro.cumulative_gdp_effect)
+    # The adapters report millions of jobs; the API field is thousands.
+    assert np.isclose(
+        payload["employment_effect"], float(np.mean(macro.employment_change_millions)) * 1000.0
+    )
 
 
 def test_final_static_effect_matches_year_by_year_sum():

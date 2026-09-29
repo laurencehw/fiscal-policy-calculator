@@ -241,11 +241,9 @@ class FiscalPolicyScorer:
             combined_dynamic = None
             final_deficit = deficit_after_behavioral
 
-        low, high = self._calculate_uncertainty(
-            package.policies[0],
-            final_deficit,
-            combined_dynamic,
-        )
+        low_spread, high_spread = self._package_uncertainty_spread(package, results)
+        low = final_deficit - low_spread
+        high = final_deficit + high_spread
 
         synthetic = Policy(
             name=package.name,
@@ -613,30 +611,97 @@ class FiscalPolicyScorer:
             revenue_feedback=revenue_fb,
         )
 
+    def _package_uncertainty_spread(
+        self,
+        package: PolicyPackage,
+        results: list[ScoringResult],
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Downward and upward spread of a package's band, from its composition.
+
+        Each component contributes the band its own policy type would carry,
+        taken around that component's share of the package's central estimate
+        (static effect scaled by the package's ``interaction_factor``, as the
+        package total is), and the spreads are **summed**. The package's order
+        therefore cannot matter, which it used to: the band was the *first*
+        policy's factor applied to the net total, so listing a tax increase
+        before or after a spending increase changed the band's width by 50%
+        with the total unchanged (``planning/ROUTE_TO_9.md``, defect 1).
+
+        Summing treats the components' errors as moving together. That is the
+        conservative choice, and unlike root-sum-of-squares it does not depend
+        on how a package is cut into pieces: under RSS, entering a 1pp rate
+        increase as two 0.5pp policies would narrow its band by √2. It also
+        means offsetting components no longer shrink the band — a tax increase
+        that pays for a spending increase leaves a small net total, not a small
+        error — and it reduces exactly to the single-policy band whenever every
+        component has the same type and sign.
+        """
+        n_years = len(self.baseline.years)
+        low_spread = np.zeros(n_years)
+        high_spread = np.zeros(n_years)
+        for policy, result in zip(package.policies, results):
+            central = (
+                package.interaction_factor * result.static_deficit_effect
+                + result.behavioral_offset
+            )
+            if result.dynamic_effects is not None:
+                central = central - result.dynamic_effects.revenue_feedback
+            low, high = self._calculate_uncertainty(policy, central, result.dynamic_effects)
+            low_spread += central - low
+            high_spread += high - central
+        return low_spread, high_spread
+
     def _calculate_uncertainty(
         self,
         policy: Policy,
         central: np.ndarray,
         dynamic: DynamicEffects | None,
     ) -> tuple[np.ndarray, np.ndarray]:
-        """Calculate uncertainty ranges."""
-        n_years = len(central)
-        base_uncertainty = np.array(
-            [BASE_UNCERTAINTY + UNCERTAINTY_GROWTH_PER_YEAR * idx for idx in range(n_years)]
-        )
+        """Uncertainty bounds around a deficit-effect path, ``low <= high`` every year.
 
-        if isinstance(policy, TaxPolicy):
-            policy_factor = TAX_UNCERTAINTY_FACTOR
-        elif isinstance(policy, SpendingPolicy):
-            policy_factor = SPENDING_UNCERTAINTY_FACTOR
-        else:
-            policy_factor = 1.0
+        The spread is a fraction of the estimate's **magnitude**, so a
+        deficit-reducing estimate gets correctly ordered bounds too. It used to
+        multiply the signed estimate, which for a negative (revenue-raising)
+        path put ``low`` *above* ``high`` and gave the wider side to the
+        favourable outcome. ``ASYMMETRY_HIGH`` now always widens the side where
+        the deficit comes in higher than estimated, which is what the constant
+        documents ("costs tend higher") and what it did for positive estimates.
+        """
+        return uncertainty_bounds(policy, central, dynamic=dynamic is not None)
 
-        dynamic_factor = DYNAMIC_UNCERTAINTY_FACTOR if dynamic is not None else 1.0
-        total_uncertainty = base_uncertainty * policy_factor * dynamic_factor
-        low = central * (1 - total_uncertainty * ASYMMETRY_LOW)
-        high = central * (1 + total_uncertainty * ASYMMETRY_HIGH)
-        return low, high
+
+def uncertainty_bounds(
+    policy: Policy,
+    central: np.ndarray,
+    *,
+    dynamic: bool = False,
+) -> tuple[np.ndarray, np.ndarray]:
+    """The engine's uncertainty rule, applied to any deficit-effect path.
+
+    ``FiscalPolicyScorer`` applies it to ``final_deficit_effect``, which on a
+    ``dynamic=True`` run carries ``EconomicModel`` feedback. The app draws its
+    band around the conventional path instead, the headline in every mode, so
+    it calls this on that path directly.
+    """
+    central = np.asarray(central, dtype=float)
+    n_years = len(central)
+    base_uncertainty = np.array(
+        [BASE_UNCERTAINTY + UNCERTAINTY_GROWTH_PER_YEAR * idx for idx in range(n_years)]
+    )
+
+    if isinstance(policy, TaxPolicy):
+        policy_factor = TAX_UNCERTAINTY_FACTOR
+    elif isinstance(policy, SpendingPolicy):
+        policy_factor = SPENDING_UNCERTAINTY_FACTOR
+    else:
+        policy_factor = 1.0
+
+    dynamic_factor = DYNAMIC_UNCERTAINTY_FACTOR if dynamic else 1.0
+    total_uncertainty = base_uncertainty * policy_factor * dynamic_factor
+    spread = np.abs(central) * total_uncertainty
+    low = central - spread * ASYMMETRY_LOW
+    high = central + spread * ASYMMETRY_HIGH
+    return low, high
 
 
 def quick_score(policy: Policy, dynamic: bool = False) -> ScoringResult:

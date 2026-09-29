@@ -414,9 +414,10 @@ class TestDecision6Caption:
     PR #144's review caught exactly that on the ordinary-base caption: it read
     `final_deficit_effect`, which on a dynamic run also carries revenue
     feedback, so it disagreed with the headline directly above it by 69% on
-    one preset. This caption starts from gross rather than restating the
-    headline, but on a dynamic run its conventional figure is *not* the
-    headline either, so it says so.
+    one preset. The headline is the conventional score in every mode, so this
+    caption's conventional figure is the headline on a dynamic run too. It
+    used to say the headline applied dynamic feedback on such a run, which
+    was false.
     """
 
     def _caption(self, dynamic: bool):
@@ -447,16 +448,19 @@ class TestDecision6Caption:
         assert f"{headline:,.1f}B of conventional receipts" in text
         assert "before the dynamic feedback" not in text
 
-    def test_the_dynamic_caption_says_its_figure_is_not_the_headline(self):
+    def test_the_dynamic_caption_quotes_the_conventional_headline(self):
         _, result, text = self._caption(dynamic=True)
-        headline = -float(sum(result.final_deficit_effect))
+        engine_final = -float(sum(result.final_deficit_effect))
         conventional = -float(
             sum(result.static_deficit_effect + result.behavioral_offset)
         )
-        # The engine's headline and the conventional figure differ, which is
-        # the whole reason the clause exists.
-        assert abs(headline - conventional) > 1.0
-        assert "before the dynamic feedback the headline above applies" in text
+        # The premise: EconomicModel moves ``final_deficit_effect`` on this
+        # run, so a caption reading it would disagree with the headline.
+        assert abs(engine_final - conventional) > 1.0
+        assert f"{conventional:,.1f}B of conventional receipts" in text
+        assert "before the dynamic feedback" not in text
+        _, _, static_text = self._caption(dynamic=False)
+        assert text == static_text
 
     def test_a_no_retaliation_policy_claims_no_retaliation_channel(self):
         from fiscal_model.ui.tabs.results_summary import tariff_net_caption

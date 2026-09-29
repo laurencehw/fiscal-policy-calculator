@@ -57,8 +57,9 @@ CBO publishes high/low scenarios around three key variables:
   (`fiscal_model/long_run/`) extend reasoning past the 10-year window
   for specific policies, but they are not a substitute for the CBO
   long-term framework.
-- The app does report `revenue_feedback_10yr` from dynamic scoring
-  but does not produce a 30-year fiscal gap number.
+- The app does report ten-year revenue feedback and debt service from
+  its dynamic view (FRB/US-Lite) but does not produce a 30-year fiscal
+  gap number.
 
 > Cite the CBO Long-Term Outlook when the question is about debt
 > sustainability, the fiscal gap, or scenarios beyond 10 years.
