@@ -27,8 +27,12 @@ and discovery endpoints stay open. The FastAPI app installs a single
 Env vars
 --------
 - ``FISCAL_API_KEYS``: comma-separated list of ``label:secret`` pairs, e.g.
-  ``classroom:abc123,research:def456``. If a value has no colon, the key
-  itself is used as the label. Blank or unset disables auth.
+  ``classroom:abc123,research:def456``. Labels are written to the request log,
+  so a secret is **never** used as one: an entry with no colon, an empty label
+  (``:secret``) or a label identical to its secret is logged as
+  ``unlabelled-key-<n>``, its 1-based position among the configured keys, and
+  a warning naming that position (never the secret) is emitted at startup.
+  Blank or unset disables auth.
 - ``FISCAL_API_RATE_LIMIT_PER_MINUTE``: requests per minute per-key (or
   per-IP if auth is disabled). Default 60.
 - ``FISCAL_API_RATE_LIMIT_BURST``: additional bucket size. Default 20.
@@ -56,6 +60,11 @@ _api_key_scheme = APIKeyHeader(name=API_KEY_HEADER, auto_error=False)
 _ANON_KEY_LABEL = "anonymous"
 _DISABLED_KEY_LABEL = "auth_disabled"
 
+#: Label given to a key configured without a safe one. Positional rather than
+#: derived from the secret: even a short hash of a low-entropy key is a
+#: verifier an attacker holding the logs could brute-force.
+UNLABELLED_KEY_PREFIX = "unlabelled-key-"
+
 
 # ---------------------------------------------------------------------------
 # Key registry
@@ -69,23 +78,39 @@ class _KeyInfo:
 
 
 def _parse_keys(raw: str | None) -> dict[str, _KeyInfo]:
-    """Parse ``FISCAL_API_KEYS`` into a ``{secret: KeyInfo}`` map."""
+    """Parse ``FISCAL_API_KEYS`` into a ``{secret: KeyInfo}`` map.
+
+    The label is what the request log records, so it must never be the secret.
+    It used to be, for an entry with no colon and for one with an empty label,
+    which put the key in every log line twice (``caller`` and ``key_label``);
+    see ``planning/ROUTE_TO_9.md``, defect 2.
+    """
     if not raw or not raw.strip():
         return {}
     keys: dict[str, _KeyInfo] = {}
+    position = 0
     for token in raw.split(","):
         token = token.strip()
         if not token:
             continue
         if ":" in token:
             label, _, secret = token.partition(":")
-            label = label.strip() or secret.strip()
+            label = label.strip()
             secret = secret.strip()
         else:
-            label = token
+            label = ""
             secret = token
         if not secret:
             continue
+        position += 1
+        if not label or label == secret:
+            label = f"{UNLABELLED_KEY_PREFIX}{position}"
+            logger.warning(
+                "FISCAL_API_KEYS entry %d has no safe label; it is logged as %r. "
+                "Configure it as label:secret.",
+                position,
+                label,
+            )
         keys[secret] = _KeyInfo(label=label, secret=secret)
     return keys
 
@@ -357,6 +382,7 @@ def _log_request(
 __all__ = [
     "API_KEY_HEADER",
     "OPEN_PATHS",
+    "UNLABELLED_KEY_PREFIX",
     "SlidingWindowLimiter",
     "configure",
     "is_auth_enabled",
