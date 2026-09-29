@@ -770,6 +770,32 @@ POST /score
 The `credibility` block is the observed out-of-sample error of the policy's own class, not a
 confidence interval; see `ResultCredibilityModel` in `api.py`.
 
+With `"dynamic": true` the headline does not move. The response adds the app's dynamic view,
+computed by `fiscal_model/dynamic_view.py` with the app's default macro model (FRB/US-Lite).
+That is the same function the result page's Dynamic view, Copy Summary and CSV export use:
+
+```
+POST /score
+{"rate_change": 0.026, "income_threshold": 400000, "dynamic": true}
+
+200 OK (abridged)
+{
+    "ten_year_deficit_impact": -302.2,
+    "revenue_feedback": -26.0,
+    "debt_service": -62.7,
+    "dynamic_adjusted_impact": -338.9,
+    "dynamic_model": "FRB/US-Lite (Federal Reserve calibrated)",
+    "gdp_effect": -0.37,
+    "year_by_year": [{"year": 2026, "final_effect": -25.2, "dynamic_feedback": ...,
+                      "debt_service": ..., "dynamic_effect": ...}, ...]
+}
+```
+
+`dynamic_adjusted_impact = ten_year_deficit_impact - revenue_feedback + debt_service`, and the
+per-year fields sum to the ten-year ones. Until 2026-09-29 these fields were the library
+`EconomicModel`'s, which put the same request at -$86.1B; the engine is now asked only for a
+conventional run.
+
 ---
 
 ## Ask Assistant Architecture

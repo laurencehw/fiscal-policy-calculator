@@ -191,3 +191,52 @@ through the adapter the app already uses (a contract change for API clients).
 `docs/METHODOLOGY.md` previously described `EconomicModel` as the app's default
 dynamic engine; it now says which surface reads which.
 
+**The owner chose routing, the same day** (`4726e68`). The finding above stands
+as the record of what was measured; this is what was done about it.
+`fiscal_model/dynamic_view.py` is the app's dynamic view with no UI attached:
+the conventional path, the macro scenario built from it, the adapter the model
+setting names (FRB/US-Lite by default), and the `DynamicView` decomposition. The
+app delegates to it, and its own dynamic figures are byte-identical across 45
+presets x both macro models. `POST /score` and `/score/preset`, Ask's
+`score_hypothetical_policy` and the Ask page's scoring context now call it too.
+The engine is asked only for a conventional run, so `EconomicModel` never runs
+for the API or Ask, and a test that makes it raise proves so.
+
+- **The API's contract changed for dynamic requests, and only for them.**
+  `ten_year_deficit_impact` stays the conventional score. It used to move by
+  `EconomicModel`'s feedback and be repeated as `dynamic_adjusted_impact`, which
+  is now conventional - feedback + debt service. `debt_service`,
+  `dynamic_model` and per-year `debt_service` and `dynamic_effect` are new, and
+  a macro-model failure nulls the dynamic fields with an `error_message` rather
+  than failing the score. The reference policy's dynamic answer went
+  **-$86.1B -> -$338.9B**, the app's figure. Every one of the 53 presets'
+  dynamic answers moved. `EconomicModel`'s feedback had been a median 1.53x the
+  adapter's in magnitude. TCJA's full extension went +$3,951.4B -> +$5,238.8B:
+  its feedback fell from +$630.6B to +$305.3B, and +$962.2B of debt service,
+  which the old figure never netted, now counts. No static response moved: all
+  53 are identical apart from the new null fields, and `final_static_effect`
+  moved in none.
+- **The in-app readers went with it.** The Scoring Methods tab's
+  "FRB/US-Lite (Dynamic)" column ran `EconomicModel`. So did the side-by-side
+  compare's totals, the state tab and the SALT and AGI-column captions, on a
+  dynamic run. The cumulative chart's band and the CSV's Low/High columns were
+  centred on `EconomicModel`'s path while the line they surround is the
+  conventional one, and the CSV's GDP and employment columns were
+  `EconomicModel`'s under a header naming FRB/US-Lite. The tariff caption stopped
+  claiming a dynamic run's headline applies feedback, which has not been true
+  since Phase 4 fixed the headline to the conventional score. The Methodology
+  page's dynamic-scoring notes named FRB/US-Lite and then printed
+  `EconomicModel`'s state-dependent multiplier table; they now describe the
+  model the view runs (`4461459`).
+- **Ask's spending hypotheticals had never worked.** The tool passed
+  `spending_change_billions`, which `SpendingPolicy` rejects, so every spending
+  question came back "could not construct policy". Had it constructed, the
+  dataclass would have re-derived `policy_type` from its default `nondefense`
+  category. Both are fixed.
+
+`cold_holdout.py --json`, `run_validation_dashboard.py`, `run_loo.py
+--donor-matrix` and strict readiness are byte-identical. `EconomicModel` is
+unchanged: weighting its supply channel by a sourced affected share is still the
+pre-registered modelling lane under priority 3, and until it lands no surface
+reports it.
+

@@ -78,10 +78,11 @@ Accuracy varies by policy family, and a pooled number must always travel with th
   individual scores with one interaction factor. Neither is a joint liability calculation.
 - **Corporate** is the worst out-of-sample class: the module reaches about 80.8% of the statutory
   base its receipts path implies, where JCT reaches 53–57%.
-- **Two dynamic engines disagree.** The app's dynamic view runs FRB/US-Lite; the API's and Ask's
-  dynamic answers run `EconomicModel`, whose supply channel applies a rate change to all of GDP.
-  For +2.6 points above $400,000 the two read -$338.9B and -$86.1B. Which to fix is an owner
-  decision recorded in ROUTE_TO_9 "Status".
+- **`EconomicModel`'s supply channel is unweighted.** It applies a rate change to all of GDP, so
+  for +2.6 points above $400,000 it reads -$86.1B dynamically where the app's FRB/US-Lite view
+  reads -$338.9B. Since 2026-09-29 no surface reports it: the app, the API and Ask all return the
+  FRB/US-Lite view (ROUTE_TO_9 "Status"). Weighting the channel is a pre-registered modelling lane
+  under priority 3; until it lands, `score_policy(dynamic=True)` is a library path only.
 
 ---
 

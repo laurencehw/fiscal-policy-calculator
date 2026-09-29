@@ -255,7 +255,7 @@ uvicorn api:app --reload
 Key routes:
 
 - `GET /presets` lists the full preset library with official-score metadata where available.
-- `POST /score` supports generic `income_tax`, `corporate_tax`, and `payroll_tax` custom policies.
+- `POST /score` supports generic `income_tax`, `corporate_tax`, and `payroll_tax` custom policies. With `"dynamic": true` it and `/score/preset` add the app's dynamic view: `revenue_feedback`, `debt_service`, `dynamic_adjusted_impact` (conventional − feedback + debt service) and `dynamic_model`, plus per-year `debt_service` and `dynamic_effect`. `ten_year_deficit_impact` stays the conventional score either way.
 - `POST /score/preset` routes preset scoring through the same preset factory used by the Streamlit UI, including specialized policy modules such as TCJA, credits, payroll, PTC, trade, and climate presets.
 - `POST /score/tariff` uses the tariff policy model instead of a standalone rough formula.
 - `POST /ask` poses a public-finance question to the Ask assistant and returns the full citation-grounded answer plus tool-call provenance, usage, and session id. Honors the same `X-API-Key` auth, daily-cost cap, and per-session limits as the Streamlit tab — they share one sqlite ledger.
@@ -284,11 +284,20 @@ policy = TaxPolicy(
 )
 
 scorer = FiscalPolicyScorer()
-result = scorer.score_policy(policy, dynamic=True)
+result = scorer.score_policy(policy)
 
 print(f"10-year cost: ${result.total_10_year_cost:,.0f}B")
-print(f"Revenue feedback: ${result.revenue_feedback_10yr:,.0f}B")
+
+# The dynamic view the app, the API and Ask report (FRB/US-Lite), beside the
+# conventional score rather than in place of it.
+from fiscal_model.dynamic_view import run_dynamic_view
+
+view, _macro = run_dynamic_view(policy, result)
+print(f"Revenue feedback: ${view.feedback:,.0f}B, debt service: ${view.debt_service:,.0f}B")
+print(f"Dynamic total: ${view.dynamic_total:,.0f}B")
 ```
+
+`score_policy(dynamic=True)` still runs the library's `EconomicModel`, whose supply channel applies a rate change to all of GDP; no surface reports it (see [Dynamic Scoring](docs/METHODOLOGY.md#two-dynamic-engines-and-which-surface-reads-which)).
 
 ```python
 # Score a pre-built proposal
@@ -420,15 +429,15 @@ The full methodology is documented in the app's **Methodology** tab and in [`doc
 | Parameter | Default | Source |
 |-----------|---------|--------|
 | Elasticity of Taxable Income | 0.25 | Saez, Slemrod & Giertz (2012) |
-| Capital gains elasticity | 0.8 short / 0.4 long | CBO (2012), Dowd et al. (2015) |
-| Spending multiplier (normal times) | 1.0 | CBO-conventional; Auerbach & Gorodnichenko (2012) |
-| Tax multiplier (normal times) | 0.5 | CBO-conventional |
-| Multiplier decay | 0.7/year | Multiplier-decay literature |
+| Capital gains elasticity | 0.72 persistent / 1.20 transitory, semi-log on the tax rate at a 22% reference | Dowd, McClelland & Muthitacharoen (2015); CRS R48562 |
+| Dynamic view: spending / tax multiplier | 1.4 / 0.7 in year 1, decay 0.75/year | FRB/US simulations (`FRBUSAdapterLite`) |
+| Library `EconomicModel`: spending / tax multiplier (normal times) | 1.0 / 0.5 | CBO-conventional; Auerbach & Gorodnichenko (2012) |
+| Library `EconomicModel`: multiplier decay | 0.7/year | Multiplier-decay literature |
 | Okun's Law coefficient | 0.5 | Ball, Leigh & Loungani (2017) |
 | Marginal revenue rate | 0.25 | CBO |
 | Corporate tax incidence | 75% capital / 25% labor | CBO/TPC |
 
-The default dynamic-scoring engine is the state-dependent `EconomicModel`, which uses CBO-conventional normal-times multipliers (spending 1.0, tax 0.5) and raises them in recessions / at the zero lower bound (see [Spending Multipliers](docs/METHODOLOGY.md#spending-multipliers)). A separate FRB/US-calibrated reduced-form model (`FRBUSAdapterLite`, spending 1.4 / tax 0.7, decay 0.75) is offered as a *comparison engine* in the multi-model **Scoring Models** tab — it is not what the default "Dynamic scoring" toggle uses.
+The app's dynamic view runs the FRB/US-calibrated reduced-form model (`FRBUSAdapterLite`) by default, with a simple Keynesian multiplier as the ⚙ alternative, and nets the debt service on the changed deficit against revenue feedback. The headline stays the conventional score; the dynamic total is reported beside it. Since 2026-09-29 the API's and the Ask assistant's dynamic answers run the same code (`fiscal_model/dynamic_view.py`). The library's state-dependent `EconomicModel`, which `score_policy(dynamic=True)` runs, uses CBO-conventional normal-times multipliers and raises them in recessions / at the zero lower bound (see [Spending Multipliers](docs/METHODOLOGY.md#spending-multipliers)). Its supply channel applies a rate change to all of GDP and can disagree with the app's view by a factor of four, so no surface reports it until a pre-registered lane weights it.
 
 The **Multi-Model Comparison** pilot (Scoring Models tab) runs the same preset through **CBO-Style** and **TPC-Microsim** when the policy maps to microsim reforms (income-tax rates, CTC, EITC, SALT, AMT exemption). Specialized families such as corporate, OASDI payroll, and estate still score on CBO-Style; TPC reports **not representable** instead of inventing agreement. See `fiscal_model.models.capabilities`.
 

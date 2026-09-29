@@ -3,6 +3,16 @@
 Material changes to the Fiscal Policy Calculator. Trivial fixes are captured
 in git history, not here.
 
+## 2026-09-29 — The API and Ask report the app's dynamic view (`4726e68`)
+
+The owner chose to route rather than wait for the `EconomicModel` lane. Record: `planning/ROUTE_TO_9.md`, "Status, 2026-09-29".
+
+- **One dynamic computation.** `fiscal_model/dynamic_view.py` is the app's dynamic view with no UI attached, and the app, `POST /score` and `/score/preset`, Ask's scored hypotheticals and the Ask page's context all call it. The engine runs conventionally for the API and Ask, so `EconomicModel` is never consulted.
+- **API contract change, dynamic requests only.** `ten_year_deficit_impact` is the conventional score in every mode. `dynamic_adjusted_impact` = conventional − `revenue_feedback` + `debt_service`. New: `debt_service`, `dynamic_model`, and per-year `debt_service` and `dynamic_effect`. A macro failure nulls the dynamic fields with an `error_message`. +2.6pp above $400K: −$86.1B → −$338.9B, the app's figure. All 53 presets' dynamic answers moved; no static response did, beyond the new null fields.
+- **In-app:** the Scoring Methods tab's "FRB/US-Lite" column, the side-by-side totals, the state tab, the SALT and AGI-column captions, the cumulative chart's band and the CSV's Low/High and GDP columns no longer read `EconomicModel` on a dynamic run. The tariff caption no longer says a dynamic headline applies feedback, and the Methodology page's dynamic-scoring notes describe FRB/US-Lite rather than printing `EconomicModel`'s multiplier table (`4461459`).
+- **Fixed:** Ask's spending hypotheticals, which had never constructed.
+- **Unchanged:** the app's own dynamic figures (byte-identical, 45 presets × both models), every validation output, and `EconomicModel`, whose supply-channel weighting remains a pre-registered lane.
+
 ## 2026-09-29 — ROUTE_TO_9 first fixes: package uncertainty, key redaction, generated evidence
 
 No scored number moved: `cold_holdout.py --json` and `run_validation_dashboard.py` are byte-identical before and after. Record: `planning/ROUTE_TO_9.md`, "Status, 2026-09-29".
@@ -13,7 +23,7 @@ No scored number moved: `cold_holdout.py --json` and `run_validation_dashboard.p
 - **One generated report for the figures every surface quotes.** `scripts/build_current_evidence.py` writes `data_files/validation/current_evidence.json`; About, Methodology and the Ask assistant read it, and `tests/test_current_evidence.py` recomputes it and pins the docs' live headline sentences to it. Ask now quotes a policy's own class error, and its corporate path names its real benchmark.
 - **`/score` reports its baseline vintage** ("February 2026") instead of "unknown".
 - **Docs synced** to the live tier (44 @ 15.2%, 36 within 25%, gates 20/35 and corporate 51), two dead documented commands fixed, the README catalog and IRS vintage corrected, CONTRIBUTING's blocking steps completed, and `planning/ROADMAP.md` rewritten as an index naming ROUTE_TO_9 as the active plan.
-- **Recorded, not fixed:** `EconomicModel`'s unweighted supply channel makes the API's dynamic score of +2.6pp above $400K −$86.1B where the app's is −$338.9B. An owner decision.
+- **Recorded, not fixed:** `EconomicModel`'s unweighted supply channel makes the API's dynamic score of +2.6pp above $400K −$86.1B where the app's is −$338.9B. An owner decision — taken the same day; see the entry above.
 
 ## 2026-09-13 — Corporate Outlook vintages (PR #173, diagnosed in #172)
 
