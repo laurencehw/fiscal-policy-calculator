@@ -21,6 +21,7 @@ Streamlit pitfalls handled here:
 from __future__ import annotations
 
 import contextlib
+import math
 import os
 import re
 import time
@@ -34,7 +35,9 @@ from fiscal_model.assistant.citations import (
 )
 from fiscal_model.assistant.rate_limit import RateLimiter, new_session_id
 from fiscal_model.assistant.share import build_share_url, decode_share_payload
+from fiscal_model.dynamic_view import conventional_total
 from fiscal_model.ui.helpers import PUBLIC_APP_URL, escape_markdown_dollars
+from fiscal_model.ui.session_state import KEY_SCORED_RESULT
 
 
 def _safe_dollar_markdown(text: str) -> str:
@@ -483,7 +486,9 @@ def _render_body(
 
     # --- stream the assistant turn ---------------------------------------
     history_for_api = _history_for_api(state[_HISTORY_KEY])
-    scoring_context = _scoring_context(scoring_result)
+    scoring_context = _scoring_context(
+        scoring_result, scored=_current_scored_result(st_module)
+    )
     turn_start = time.time()
     error_msg: str | None = None
     with st_module.chat_message("assistant"):
@@ -804,8 +809,53 @@ def _render_unavailable(st_module: Any, diag: dict[str, Any] | None = None) -> N
             )
 
 
-def _scoring_context(scoring_result: Any) -> dict[str, Any] | None:
-    """Distill the current run into a small dict for prompt injection."""
+def _current_scored_result(st_module: Any) -> Any:
+    """The result page's ``ScoredResult`` for the current run, or ``None``."""
+    session = getattr(st_module, "session_state", None)
+    if session is None:
+        return None
+    try:
+        return session.get(KEY_SCORED_RESULT)
+    except Exception:  # pragma: no cover — exotic session stand-ins
+        return getattr(session, KEY_SCORED_RESULT, None)
+
+
+def _dynamic_context(scored: Any, headline: float) -> dict[str, Any]:
+    """The page's dynamic view of this run, or an explicit "none".
+
+    Read off the ``ScoredResult`` the page renders, which carries the one
+    macro-adapter run the Key Metrics, the Economic Effects tab and the exports
+    all print. It is used only when it is the same run: in dynamic mode and
+    with the same conventional headline as the engine result Ask was handed.
+    """
+    same_run = (
+        scored is not None
+        and getattr(scored, "mode", None) == "dynamic"
+        and math.isclose(
+            float(getattr(scored, "headline", math.nan)), headline, rel_tol=0.0, abs_tol=1e-6
+        )
+    )
+    if not same_run:
+        return {"is_dynamic": False, "revenue_feedback_10yr_billions": 0.0}
+    return {
+        "is_dynamic": True,
+        "dynamic_model": getattr(scored, "macro_model", None),
+        "revenue_feedback_10yr_billions": float(scored.feedback),
+        "debt_service_10yr_billions": float(scored.debt_service),
+        "dynamic_total_10yr_billions": float(scored.dynamic_total),
+    }
+
+
+def _scoring_context(scoring_result: Any, scored: Any = None) -> dict[str, Any] | None:
+    """Distill the current run into a small dict for prompt injection.
+
+    The figures are the ones the result page shows. The ten-year impact is the
+    conventional headline (static + behavioral) in every mode, and the dynamic
+    figures are the page's own dynamic view, read off its ``ScoredResult``
+    (``scored``). Until 2026-09-29 this sent the engine's
+    ``total_10_year_cost`` and ``revenue_feedback_10yr``, which on a dynamic
+    run are ``EconomicModel`` figures the page never displays.
+    """
     if scoring_result is None:
         return None
     try:
@@ -816,6 +866,7 @@ def _scoring_context(scoring_result: Any) -> dict[str, Any] | None:
         cred = getattr(engine, "credibility", None) or getattr(
             scoring_result, "credibility", None
         )
+        headline = conventional_total(engine)
         return {
             "policy_name": _current_policy_name(scoring_result),
             "policy_type": (
@@ -823,16 +874,11 @@ def _scoring_context(scoring_result: Any) -> dict[str, Any] | None:
                 if policy
                 else None
             ),
-            "ten_year_deficit_impact_billions": float(
-                getattr(engine, "total_10_year_cost", 0.0)
-            ),
+            "ten_year_deficit_impact_billions": headline,
             "static_total_billions": float(
                 getattr(engine, "total_static_cost", 0.0)
             ),
-            "revenue_feedback_10yr_billions": float(
-                getattr(engine, "revenue_feedback_10yr", 0.0)
-            ),
-            "is_dynamic": bool(getattr(engine, "is_dynamic", False)),
+            **_dynamic_context(scored, headline),
             # Since Wave C's H4 these are the policy's own out-of-sample class,
             # not a category mean over the calibrated tiers, and every figure
             # can be ``None`` — two thirds of the catalog prices a reform the
@@ -855,8 +901,10 @@ def _scoring_context(scoring_result: Any) -> dict[str, Any] | None:
 
 def _scoring_summary(scoring_result: Any) -> str:
     name = _current_policy_name(scoring_result) or "current policy"
-    impact = getattr(_engine_result(scoring_result), "total_10_year_cost", None)
-    if impact is None:
+    engine = _engine_result(scoring_result)
+    try:
+        impact = conventional_total(engine)
+    except Exception:
         return name
     sign = "+" if impact >= 0 else "−"
     return f"{name} ({sign}\\${abs(float(impact)):,.0f}B / 10y)"

@@ -75,9 +75,10 @@ balk at further debt issuance. Empirically:
 
 - The app reports `debt_held_by_public` and `nominal_gdp` per year,
   so debt/GDP paths under any scored policy are computable.
-- The app's `EconomicModel` uses a **15% crowding-out coefficient**
-  on cumulative deficits — implicitly assuming a modest r-response to
-  debt issuance.
+- The app's dynamic view runs FRB/US-Lite (`FRBUSAdapterLite`) by
+  default, and the API and this assistant report the same model. It
+  uses a **15% crowding-out coefficient** on cumulative deficits —
+  implicitly assuming a modest r-response to debt issuance.
 - The app does NOT directly model the snowball / r-g dynamic in the
   10-year baseline window (rates are taken as exogenous from CBO).
   For r-g sensitivity analysis, prefer CBO's **long-term outlook** or

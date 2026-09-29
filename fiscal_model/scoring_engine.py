@@ -667,24 +667,41 @@ class FiscalPolicyScorer:
         the deficit comes in higher than estimated, which is what the constant
         documents ("costs tend higher") and what it did for positive estimates.
         """
-        n_years = len(central)
-        base_uncertainty = np.array(
-            [BASE_UNCERTAINTY + UNCERTAINTY_GROWTH_PER_YEAR * idx for idx in range(n_years)]
-        )
+        return uncertainty_bounds(policy, central, dynamic=dynamic is not None)
 
-        if isinstance(policy, TaxPolicy):
-            policy_factor = TAX_UNCERTAINTY_FACTOR
-        elif isinstance(policy, SpendingPolicy):
-            policy_factor = SPENDING_UNCERTAINTY_FACTOR
-        else:
-            policy_factor = 1.0
 
-        dynamic_factor = DYNAMIC_UNCERTAINTY_FACTOR if dynamic is not None else 1.0
-        total_uncertainty = base_uncertainty * policy_factor * dynamic_factor
-        spread = np.abs(central) * total_uncertainty
-        low = central - spread * ASYMMETRY_LOW
-        high = central + spread * ASYMMETRY_HIGH
-        return low, high
+def uncertainty_bounds(
+    policy: Policy,
+    central: np.ndarray,
+    *,
+    dynamic: bool = False,
+) -> tuple[np.ndarray, np.ndarray]:
+    """The engine's uncertainty rule, applied to any deficit-effect path.
+
+    ``FiscalPolicyScorer`` applies it to ``final_deficit_effect``, which on a
+    ``dynamic=True`` run carries ``EconomicModel`` feedback. The app draws its
+    band around the conventional path instead, the headline in every mode, so
+    it calls this on that path directly.
+    """
+    central = np.asarray(central, dtype=float)
+    n_years = len(central)
+    base_uncertainty = np.array(
+        [BASE_UNCERTAINTY + UNCERTAINTY_GROWTH_PER_YEAR * idx for idx in range(n_years)]
+    )
+
+    if isinstance(policy, TaxPolicy):
+        policy_factor = TAX_UNCERTAINTY_FACTOR
+    elif isinstance(policy, SpendingPolicy):
+        policy_factor = SPENDING_UNCERTAINTY_FACTOR
+    else:
+        policy_factor = 1.0
+
+    dynamic_factor = DYNAMIC_UNCERTAINTY_FACTOR if dynamic else 1.0
+    total_uncertainty = base_uncertainty * policy_factor * dynamic_factor
+    spread = np.abs(central) * total_uncertainty
+    low = central - spread * ASYMMETRY_LOW
+    high = central + spread * ASYMMETRY_HIGH
+    return low, high
 
 
 def quick_score(policy: Policy, dynamic: bool = False) -> ScoringResult:

@@ -21,12 +21,22 @@ from fiscal_model.readiness import (
 
 
 class _DummyScoringResult:
+    """A conventional run: static -$5B a year, behavioral +$1B, final -$4B.
+
+    It also carries ``dynamic_effects``, as a ``score_policy(dynamic=True)``
+    run would, with sentinel values: the engine's ``EconomicModel`` figures,
+    which the API must never report.
+    """
+
     def __init__(self) -> None:
         self.years = np.arange(2026, 2036)
         self.static_revenue_effect = np.full(10, 5.0)
-        self.behavioral_offset = np.full(10, -1.0)
+        self.static_deficit_effect = np.full(10, -5.0)
+        self.behavioral_offset = np.full(10, 1.0)
         self.final_deficit_effect = np.full(10, -4.0)
-        self.baseline = SimpleNamespace(baseline_vintage_date="Feb 2026")
+        self.baseline = SimpleNamespace(
+            baseline_vintage_date="Feb 2026", years=np.arange(2026, 2036)
+        )
         self.dynamic_effects = SimpleNamespace(
             revenue_feedback=np.full(10, 0.5),
             gdp_percent_change=np.full(10, 0.02),
@@ -45,9 +55,11 @@ class _DummyScorer:
 
 class _RecordingScorer(_DummyScorer):
     last_policy = None
+    last_dynamic = None
 
     def score_policy(self, policy, dynamic=False):
         type(self).last_policy = policy
+        type(self).last_dynamic = dynamic
         return super().score_policy(policy, dynamic=dynamic)
 
 
@@ -320,7 +332,16 @@ def test_summary_benchmark_issues_flatten_needs_improvement():
 
 
 def test_score_endpoint_success(monkeypatch):
-    monkeypatch.setattr(api_module, "FiscalPolicyScorer", _DummyScorer)
+    """A dynamic request returns the app's dynamic view, not EconomicModel's.
+
+    The engine is asked for a conventional run only, and every dynamic field
+    is the FRB/US-Lite view the app computes on that run's conventional path.
+    The dummy result's ``dynamic_effects`` sentinels (feedback $5.0B, GDP
+    0.2, employment 120) are what the API returned before 2026-09-29.
+    """
+    from fiscal_model.dynamic_view import FRBUS_LITE_MODEL_LABEL, run_dynamic_view
+
+    monkeypatch.setattr(api_module, "FiscalPolicyScorer", _RecordingScorer)
 
     response = _client().post(
         "/score",
@@ -338,11 +359,93 @@ def test_score_endpoint_success(monkeypatch):
     assert payload["error_message"] is None
     assert payload["dynamic_scoring_enabled"] is True
     assert len(payload["year_by_year"]) == 10
-    assert payload["revenue_feedback"] == pytest.approx(5.0)
-    assert payload["gdp_effect"] == pytest.approx(0.2)
-    assert payload["employment_effect"] == pytest.approx(120.0)
-    assert payload["dynamic_adjusted_impact"] == pytest.approx(-40.0)
-    assert payload["year_by_year"][0]["dynamic_feedback"] == pytest.approx(0.5)
+    # EconomicModel never runs for the API.
+    assert _RecordingScorer.last_dynamic is False
+
+    view, macro = run_dynamic_view(_RecordingScorer.last_policy, _DummyScoringResult())
+    assert view is not None and macro is not None
+    # The headline is the conventional score in every mode.
+    assert payload["ten_year_deficit_impact"] == pytest.approx(-40.0)
+    assert payload["ten_year_deficit_impact"] == pytest.approx(view.conventional)
+    assert payload["final_static_effect"] == pytest.approx(40.0)
+    assert payload["revenue_feedback"] == pytest.approx(view.feedback)
+    assert payload["debt_service"] == pytest.approx(view.debt_service)
+    assert payload["dynamic_adjusted_impact"] == pytest.approx(view.dynamic_total)
+    assert payload["dynamic_model"] == FRBUS_LITE_MODEL_LABEL
+    assert payload["gdp_effect"] == pytest.approx(macro.cumulative_gdp_effect)
+    assert payload["employment_effect"] == pytest.approx(
+        float(np.mean(macro.employment_change_millions)) * 1000.0
+    )
+    assert payload["dynamic_adjusted_impact"] != pytest.approx(payload["ten_year_deficit_impact"])
+    for field, sentinel in (
+        ("revenue_feedback", 5.0),
+        ("gdp_effect", 0.2),
+        ("employment_effect", 120.0),
+    ):
+        assert payload[field] != pytest.approx(sentinel), field
+
+    years = payload["year_by_year"]
+    assert years[0]["dynamic_feedback"] == pytest.approx(macro.revenue_feedback_billions[0])
+    assert years[0]["dynamic_feedback"] != pytest.approx(0.5)
+    assert sum(y["final_effect"] for y in years) == pytest.approx(payload["ten_year_deficit_impact"])
+    assert sum(y["dynamic_feedback"] for y in years) == pytest.approx(payload["revenue_feedback"])
+    assert sum(y["debt_service"] for y in years) == pytest.approx(payload["debt_service"])
+    assert sum(y["dynamic_effect"] for y in years) == pytest.approx(
+        payload["dynamic_adjusted_impact"]
+    )
+
+
+def test_score_endpoint_static_request_carries_no_dynamic_view(monkeypatch):
+    monkeypatch.setattr(api_module, "FiscalPolicyScorer", _RecordingScorer)
+
+    response = _client().post(
+        "/score",
+        json={"rate_change": 0.01, "income_threshold": 400000, "dynamic": False},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert _RecordingScorer.last_dynamic is False
+    assert payload["dynamic_scoring_enabled"] is False
+    assert payload["ten_year_deficit_impact"] == pytest.approx(-40.0)
+    assert payload["revenue_feedback"] == 0.0
+    for field in ("gdp_effect", "employment_effect", "debt_service", "dynamic_adjusted_impact", "dynamic_model"):
+        assert payload[field] is None, field
+    assert payload["error_message"] is None
+    first_year = payload["year_by_year"][0]
+    assert first_year["dynamic_feedback"] == 0.0
+    assert first_year["debt_service"] is None
+    assert first_year["dynamic_effect"] is None
+
+
+def test_score_endpoint_degrades_when_the_macro_model_fails(monkeypatch):
+    """A broken macro model nulls the dynamic fields; the score still returns."""
+    from fiscal_model.api_serialization import DYNAMIC_VIEW_UNAVAILABLE_MESSAGE
+    from fiscal_model.models.macro_adapter import FRBUSAdapterLite
+
+    def _boom(self, scenario):
+        raise RuntimeError("macro model down")
+
+    monkeypatch.setattr(api_module, "FiscalPolicyScorer", _DummyScorer)
+    monkeypatch.setattr(FRBUSAdapterLite, "run", _boom)
+
+    response = _client().post(
+        "/score",
+        json={"rate_change": 0.01, "income_threshold": 400000, "dynamic": True},
+    )
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["dynamic_scoring_enabled"] is True
+    assert payload["ten_year_deficit_impact"] == pytest.approx(-40.0)
+    assert payload["error_message"] == DYNAMIC_VIEW_UNAVAILABLE_MESSAGE
+    for field in (
+        "revenue_feedback",
+        "gdp_effect",
+        "employment_effect",
+        "debt_service",
+        "dynamic_adjusted_impact",
+        "dynamic_model",
+    ):
+        assert payload[field] is None, field
 
 
 def test_score_endpoint_validation_error():

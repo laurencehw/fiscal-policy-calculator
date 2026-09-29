@@ -13,6 +13,7 @@ import numpy as np
 import plotly.graph_objects as go
 
 from fiscal_model.baseline import APP_DEFAULT_START_YEAR
+from fiscal_model.dynamic_view import run_dynamic_view
 from fiscal_model.policies import (
     income_measure_for_preset,
     ordinary_income_base_for_preset,
@@ -54,9 +55,20 @@ def _build_policy(
     )
 
 
-def _score(policy: Any, scorer: Any, dynamic: bool) -> dict[str, Any]:
-    """Score a policy and return summary dict."""
-    result = scorer.score_policy(policy, dynamic=dynamic)
+def _score(
+    policy: Any,
+    scorer: Any,
+    dynamic: bool,
+    macro_model_name: str | None = None,
+) -> dict[str, Any]:
+    """Score a policy and return summary dict.
+
+    The totals are the conventional score, the headline in every mode. With
+    dynamic scoring on, the app's dynamic view is added beside them rather than
+    folded in. Until 2026-09-29 a dynamic run replaced the totals with
+    ``EconomicModel``'s, which no other surface of the app displays.
+    """
+    result = scorer.score_policy(policy, dynamic=False)
 
     for attr in ("final_deficit_effect", "static_deficit_effect", "static_revenue_effect"):
         effects = getattr(result, attr, None)
@@ -73,11 +85,14 @@ def _score(policy: Any, scorer: Any, dynamic: bool) -> dict[str, Any]:
         start = int(getattr(policy, "start_year", 2025))
         years = np.arange(start, start + len(annual))
 
+    view = run_dynamic_view(policy, result, macro_model_name=macro_model_name)[0] if dynamic else None
     return {
         "annual": annual,
         "years": years,
         "ten_year": float(annual.sum()),
         "result": result,
+        "dynamic_total": None if view is None else view.dynamic_total,
+        "dynamic_model": None if view is None else view.model_name,
     }
 
 
@@ -99,6 +114,7 @@ def render_side_by_side_tab(
     data_year: int,
     use_real_data: bool,
     dynamic_scoring: bool,
+    macro_model_name: str | None = None,
 ) -> None:
     """Render interactive side-by-side policy comparison."""
 
@@ -164,11 +180,11 @@ def render_side_by_side_tab(
             tax_policy_cls, policy_type_income_tax, data_year,
         )
 
-        result_a = _score(policy_a, scorer, dynamic_scoring)
-        result_b = _score(policy_b, scorer, dynamic_scoring)
+        result_a = _score(policy_a, scorer, dynamic_scoring, macro_model_name)
+        result_b = _score(policy_b, scorer, dynamic_scoring, macro_model_name)
 
     # ── Headline metrics ─────────────────────────────────────────────
-    st_module.subheader("10-Year Totals")
+    st_module.subheader("10-Year Totals (conventional)")
 
     m1, m2, m3 = st_module.columns(3)
     with m1:
@@ -180,6 +196,22 @@ def render_side_by_side_tab(
     with m3:
         diff = result_b["ten_year"] - result_a["ten_year"]
         st_module.metric("Difference (B − A)", _fmt(diff))
+
+    if result_a["dynamic_total"] is not None and result_b["dynamic_total"] is not None:
+        st_module.caption(
+            f"Dynamic view ({result_a['dynamic_model']}), not the headline: "
+            "conventional - revenue feedback + debt service."
+        )
+        d1, d2, d3 = st_module.columns(3)
+        with d1:
+            st_module.metric("Policy A, dynamic", _fmt(result_a["dynamic_total"]))
+        with d2:
+            st_module.metric("Policy B, dynamic", _fmt(result_b["dynamic_total"]))
+        with d3:
+            st_module.metric(
+                "Difference (B − A)",
+                _fmt(result_b["dynamic_total"] - result_a["dynamic_total"]),
+            )
 
     # ── Bar chart comparison ─────────────────────────────────────────
     st_module.markdown("---")

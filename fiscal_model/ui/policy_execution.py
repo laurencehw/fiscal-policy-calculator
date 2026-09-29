@@ -9,14 +9,11 @@ export cannot disagree (``planning/redesign/NOTES.md`` §4.4).
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 from typing import Any
 
 from fiscal_model.baseline import APP_DEFAULT_START_YEAR
 from fiscal_model.policies_core import DEFAULT_INCOME_MEASURE
-
-logger = logging.getLogger(__name__)
 
 
 def run_dynamic_view(
@@ -38,26 +35,25 @@ def run_dynamic_view(
     and the exports all read identical numbers from one adapter run rather than
     each estimating feedback their own way.
 
+    A thin wrapper over :func:`fiscal_model.dynamic_view.run_dynamic_view`, the
+    runner the API and the Ask assistant call, with the app's dependency
+    container supplying the classes.
+
     Returns ``(None, None)`` if the adapter fails — a broken macro model must
     degrade the dynamic view, never the conventional score.
     """
-    from .tabs.dynamic_scoring import compute_dynamic_view, resolve_macro_adapter
+    from fiscal_model.dynamic_view import run_dynamic_view as _run_dynamic_view
 
-    try:
-        scenario = build_macro_scenario_fn(
-            policy=policy,
-            result=result,
-            is_spending_policy=is_spending,
-            macro_scenario_cls=macro_scenario_cls,
-        )
-        adapter, model_name = resolve_macro_adapter(
-            macro_model_name, frbus_adapter_lite_cls, simple_multiplier_adapter_cls
-        )
-        macro_result = adapter.run(scenario)
-        return compute_dynamic_view(result, macro_result, model_name), macro_result
-    except Exception:  # pragma: no cover — defensive; adapters are unit-tested
-        logger.exception("Dynamic view computation failed for %r", getattr(policy, "name", "?"))
-        return None, None
+    return _run_dynamic_view(
+        policy,
+        result,
+        is_spending=is_spending,
+        macro_model_name=macro_model_name,
+        macro_scenario_cls=macro_scenario_cls,
+        frbus_adapter_lite_cls=frbus_adapter_lite_cls,
+        simple_multiplier_adapter_cls=simple_multiplier_adapter_cls,
+        build_macro_scenario_fn=build_macro_scenario_fn,
+    )
 
 
 def run_microsim_calculation(

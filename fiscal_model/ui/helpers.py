@@ -9,7 +9,10 @@ import re
 import sys
 from typing import Any
 
-import numpy as np
+# Moved to the UI-free :mod:`fiscal_model.dynamic_view` so the API and the Ask
+# assistant build the app's macro scenario rather than one of their own; still
+# importable from here, where the app's dependency container and tests find it.
+from fiscal_model.dynamic_view import build_macro_scenario as build_macro_scenario
 
 # Streamlit markdown renders `$...$` as LaTeX math, so any string carrying two
 # currency amounts turns into math salad ("−18,642(−4.42…"). Escape unescaped
@@ -162,38 +165,6 @@ PUBLIC_APP_URL = os.getenv(
     "FISCAL_POLICY_APP_URL",
     "https://fiscal-policy-calculator.streamlit.app",
 ).rstrip("/")
-
-
-def build_macro_scenario(policy: Any, result: Any, is_spending_policy: bool, macro_scenario_cls: Any) -> Any:
-    """
-    Build a MacroScenario from a scored policy result.
-
-    Spending policy impacts map to outlays, while tax policies map to receipts.
-    """
-    # behavioral_offset is deficit convention (positive = adds to deficit),
-    # so the conventional deficit path is static_deficit + behavioral — the
-    # same sum the scorer uses for deficit_after_behavioral. Deriving receipts
-    # from static_revenue + behavioral mixed conventions (double-counting the
-    # offset), and spending policies produced an all-zero scenario because
-    # their impulse lives in static_spending_effect, not static_revenue_effect.
-    net_deficit = result.static_deficit_effect + result.behavioral_offset
-    horizon = len(net_deficit)
-
-    if is_spending_policy:
-        receipts_change = np.zeros(horizon)
-        outlays_change = np.array(net_deficit)
-    else:
-        receipts_change = np.array(-net_deficit)
-        outlays_change = np.zeros(horizon)
-
-    return macro_scenario_cls(
-        name=policy.name,
-        description=f"Dynamic scoring for {policy.name}",
-        start_year=int(result.baseline.years[0]),
-        horizon_years=horizon,
-        receipts_change=receipts_change,
-        outlays_change=outlays_change,
-    )
 
 
 # ── Preset categorisation ───────────────────────────────────────────────

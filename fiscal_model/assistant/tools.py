@@ -100,6 +100,58 @@ def _tier_contrast() -> str:
     )
 
 
+#: The tool's spending ``policy_type`` values and the ``SpendingPolicy``
+#: category each one is. The dataclass derives ``policy_type`` from
+#: ``category``, so passing the type alone would score every request as
+#: nondefense.
+_SPENDING_CATEGORY_BY_TYPE: dict[str, str] = {
+    "discretionary_nondefense": "nondefense",
+    "discretionary_defense": "defense",
+    "mandatory_spending": "mandatory",
+}
+
+
+def _dynamic_view_payload(policy: Any, result: Any, *, is_spending: bool) -> dict[str, Any]:
+    """The app's dynamic view of a conventional run, for a tool payload.
+
+    One run of the macro adapter the app's Dynamic view uses (FRB/US-Lite),
+    through the same function. Before 2026-09-29 this tool returned the
+    scoring engine's ``EconomicModel`` feedback instead, which for +2.6pp above
+    $400,000 cut the deficit reduction to $86.1B where the app's view showed
+    $338.9B.
+    """
+    from fiscal_model.dynamic_view import run_dynamic_view
+
+    view, macro = run_dynamic_view(policy, result, is_spending=is_spending)
+    if view is None or macro is None:
+        return {
+            "dynamic_view_error": (
+                "The macro model did not run on this policy, so only the "
+                "conventional score is available. Say so rather than "
+                "estimating feedback."
+            ),
+        }
+    return {
+        "is_dynamic": True,
+        "dynamic_model": view.model_name,
+        "revenue_feedback_10yr_billions": view.feedback,
+        "debt_service_10yr_billions": view.debt_service,
+        "dynamic_total_10yr_billions": view.dynamic_total,
+        "gdp_effect_percent_years": float(macro.cumulative_gdp_effect),
+        "dynamic_note": (
+            f"Dynamic view from {view.model_name}, the model and arithmetic "
+            "the app's Dynamic view shows: dynamic_total_10yr_billions = "
+            "raw_engine_estimate_billions - revenue_feedback_10yr_billions + "
+            "debt_service_10yr_billions, positive = adds to the deficit. It is "
+            "computed on this engine run, not on a benchmark-anchored "
+            "headline. Quote it as a labelled dynamic view beside the "
+            "conventional figure, never as the headline. The model is "
+            "demand-side only: GDP effects fade as the Fed responds, and there "
+            "is no supply-side channel."
+        ),
+    }
+
+
 # ---------------------------------------------------------------------------
 # Anthropic tool schemas
 # ---------------------------------------------------------------------------
@@ -186,7 +238,7 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
         "description": (
             "Run the app's real scoring engine on a hypothetical tax or "
             "spending policy. Returns the 10-year deficit impact, year-by-"
-            "year effects, and (optionally) dynamic feedback. Use this for "
+            "year effects, and (optionally) the app's dynamic view. Use this for "
             "requests like 'score a 25% corporate rate' or 'what if the top "
             "marginal rate were 45%'. "
             "IMPORTANT: the result passes through a capability gate. Quote "
@@ -249,8 +301,12 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
                 "dynamic": {
                     "type": "boolean",
                     "description": (
-                        "If true, include dynamic-scoring feedback (GDP, "
-                        "employment, revenue feedback). Default false."
+                        "If true, add the app's dynamic view: revenue "
+                        "feedback and debt service from FRB/US-Lite, the "
+                        "macro model the app's Dynamic view runs, and a "
+                        "dynamic total = conventional - feedback + debt "
+                        "service. The headline stays the conventional score. "
+                        "Default false."
                     ),
                 },
                 "ordinary_income_base": {
@@ -581,11 +637,7 @@ class AssistantTools:
         except ValueError:
             return {"error": f"unknown policy_type {policy_type!r}"}
 
-        is_spending = policy_type in {
-            "discretionary_nondefense",
-            "discretionary_defense",
-            "mandatory_spending",
-        }
+        is_spending = policy_type in _SPENDING_CATEGORY_BY_TYPE
 
         # Open the hypothetical on the same year the scorer's window does.
         # Left to the dataclass default it would start a year before the
@@ -595,11 +647,18 @@ class AssistantTools:
 
         try:
             if is_spending:
+                # ``SpendingPolicy`` names the amount
+                # ``annual_spending_change_billions`` and re-derives
+                # ``policy_type`` from ``category``. Until 2026-09-29 this
+                # passed ``spending_change_billions``, which the dataclass
+                # rejects, so every spending hypothetical came back as "could
+                # not construct policy".
                 policy = self._spending_policy_cls(
                     name=name,
                     description=f"Assistant hypothetical: {name}",
                     policy_type=pt,
-                    spending_change_billions=spending_change_billions,
+                    annual_spending_change_billions=spending_change_billions,
+                    category=_SPENDING_CATEGORY_BY_TYPE[policy_type],
                     start_year=start_year,
                     duration_years=duration_years,
                 )
@@ -651,7 +710,11 @@ class AssistantTools:
             return {"error": f"could not construct policy: {exc}"}
 
         try:
-            result = self._scorer.score_policy(policy, dynamic=dynamic)
+            # Always a conventional run. A dynamic request adds the app's own
+            # dynamic view below; ``score_policy(dynamic=True)`` would run
+            # ``EconomicModel``, whose supply channel disagrees with the app by
+            # up to a factor of four.
+            result = self._scorer.score_policy(policy, dynamic=False)
         except Exception as exc:
             return {"error": f"scoring failed: {exc}"}
 
@@ -678,8 +741,8 @@ class AssistantTools:
             "ten_year_deficit_impact_billions": gate["headline_estimate_billions"],
             "raw_engine_estimate_billions": engine_estimate,
             "static_deficit_total_billions": float(getattr(result, "total_static_cost", 0.0)),
-            "revenue_feedback_10yr_billions": float(getattr(result, "revenue_feedback_10yr", 0.0)),
-            "is_dynamic": bool(getattr(result, "is_dynamic", False)),
+            "revenue_feedback_10yr_billions": 0.0,
+            "is_dynamic": False,
             "years": getattr(result, "years", None),
             "final_deficit_by_year": getattr(result, "final_deficit_effect", None),
             "scoring_path": scoring_path,
@@ -709,6 +772,11 @@ class AssistantTools:
                 "an AGI surtax is scored. Say so when you quote the figure. An "
                 "ordinary-bracket rate change at the same threshold is a "
                 "different policy and scores roughly half this."
+            )
+
+        if dynamic:
+            payload.update(
+                _dynamic_view_payload(policy, result, is_spending=is_spending)
             )
 
         payload.update(gate)

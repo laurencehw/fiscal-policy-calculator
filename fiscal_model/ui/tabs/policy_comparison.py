@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
+from fiscal_model.dynamic_view import SIMPLE_MULTIPLIER_SETTING, run_dynamic_view
 from fiscal_model.models.base import build_scorer_for_start_year, policy_start_year
 from fiscal_model.policies import (
     income_measure_for_preset,
@@ -22,6 +23,14 @@ from fiscal_model.ui.helpers import unescape_markdown_dollars
 
 STATIC_MODEL = "CBO-Style (Static + ETI)"
 DYNAMIC_MODEL = "FRB/US-Lite (Dynamic)"
+SIMPLE_DYNAMIC_MODEL = "Simple Multiplier (Dynamic)"
+
+
+def dynamic_model_label(macro_model_name: str | None) -> str:
+    """The dynamic column's name, for the macro model the settings select."""
+    if macro_model_name == SIMPLE_MULTIPLIER_SETTING:
+        return SIMPLE_DYNAMIC_MODEL
+    return DYNAMIC_MODEL
 
 
 def _build_policy_for_comparison(
@@ -78,9 +87,27 @@ def _score_model(
     policy: Any,
     scorer: Any,
     dynamic: bool,
+    macro_model_name: str | None = None,
 ) -> dict[str, Any]:
-    result = scorer.score_policy(policy, dynamic=dynamic)
+    """Score one policy under one column's model.
+
+    The engine always runs conventionally. The dynamic column adds the app's
+    dynamic view to that path, year by year (conventional - revenue feedback
+    + debt service), so its total is the dynamic total the result page shows.
+    Until 2026-09-29 this column ran ``score_policy(dynamic=True)``, which is
+    ``EconomicModel``, under an "FRB/US-Lite" label.
+    """
+    result = scorer.score_policy(policy, dynamic=False)
     annual_effects = _extract_annual_effects(result, policy)
+    if dynamic:
+        _view, macro = run_dynamic_view(policy, result, macro_model_name=macro_model_name)
+        if macro is None:
+            raise RuntimeError(f"the macro model did not run on {policy_name}")
+        annual_effects = (
+            annual_effects
+            - np.asarray(macro.revenue_feedback_billions, dtype=float)
+            + np.asarray(macro.interest_cost_billions, dtype=float)
+        )
     years = _extract_years(result, policy, annual_effects)
 
     return {
@@ -108,10 +135,12 @@ def render_policy_comparison_tab(
     data_year: int,
     use_real_data: bool,
     dynamic_scoring: bool,
+    macro_model_name: str | None = None,
 ) -> None:
     """
     Render multi-model comparison tab content.
     """
+    dynamic_label = dynamic_model_label(macro_model_name)
     st_module.header("⚖️ Scoring Methods")
     st_module.markdown(
         "This tab compares the project's current **conventional** and **dynamic** scoring paths. "
@@ -119,8 +148,9 @@ def render_policy_comparison_tab(
         "yet the full CBO/TPC/PWBM-style multi-model platform described in the roadmap.\n\n"
         "Select policies below and compare how **CBO-style static scoring** "
         "(rate change × tax base, adjusted for behavioral response) differs from "
-        "**FRB/US dynamic scoring** (which adds GDP feedback, employment effects, "
-        "and crowding out)."
+        "the app's **dynamic view** (revenue feedback from the macro model's GDP "
+        "effects, net of the interest cost of the changed deficit) — the same "
+        "figures the result page's Dynamic view shows."
     )
 
     if is_spending or not preset_policies:
@@ -142,8 +172,8 @@ def render_policy_comparison_tab(
     model_options = [STATIC_MODEL]
     default_models = [STATIC_MODEL]
     if dynamic_scoring:
-        model_options.append(DYNAMIC_MODEL)
-        default_models.append(DYNAMIC_MODEL)
+        model_options.append(dynamic_label)
+        default_models.append(dynamic_label)
     else:
         st_module.caption("Enable dynamic scoring in Model settings to compare against FRB/US-Lite.")
     selected_models = st_module.multiselect(
@@ -191,7 +221,8 @@ def render_policy_comparison_tab(
                             model_name=model_name,
                             policy=policy,
                             scorer=comparison_scorer,
-                            dynamic=(model_name == DYNAMIC_MODEL),
+                            dynamic=(model_name == dynamic_label),
+                            macro_model_name=macro_model_name,
                         )
                     )
 
@@ -300,9 +331,9 @@ def render_policy_comparison_tab(
                     insight_lines.append(
                         f"- `{row['Policy']}` differs by {_format_billions(float(row['Range']))} across the selected models."
                     )
-            if DYNAMIC_MODEL in selected_models and STATIC_MODEL in selected_models:
+            if dynamic_label in selected_models and STATIC_MODEL in selected_models:
                 insight_lines.append(
-                    "- The dynamic model includes macroeconomic feedback, so it can moderate or amplify the static estimate depending on GDP and revenue feedback."
+                    "- The dynamic view adds revenue feedback from GDP effects and the interest cost of the changed deficit, so it can moderate or amplify the static estimate."
                 )
             if not insight_lines:
                 insight_lines.append("- Select at least two models for the same policy to see divergence analysis.")

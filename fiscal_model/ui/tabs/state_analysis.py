@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from fiscal_model.dynamic_view import conventional_path
 from fiscal_model.ui.charts import apply_base_layout
 
 
@@ -204,10 +205,19 @@ def _render_policy_impact(
     # 0 and rendered "$0.0B/yr" for every state and policy).
     result = result_data.get("result")
     annual_effects = None
-    for attr in ("final_deficit_effect", "static_deficit_effect", "static_revenue_effect"):
-        annual_effects = getattr(result, attr, None)
-        if annual_effects is not None:
-            break
+    # The conventional path first: it is the headline in every mode, where
+    # ``final_deficit_effect`` on a dynamic run carries EconomicModel feedback
+    # that no other surface of the app displays.
+    if (
+        getattr(result, "static_deficit_effect", None) is not None
+        and getattr(result, "behavioral_offset", None) is not None
+    ):
+        annual_effects = conventional_path(result)
+    else:
+        for attr in ("final_deficit_effect", "static_deficit_effect", "static_revenue_effect"):
+            annual_effects = getattr(result, attr, None)
+            if annual_effects is not None:
+                break
 
     try:
         values = [float(v) for v in annual_effects] if annual_effects is not None else []
