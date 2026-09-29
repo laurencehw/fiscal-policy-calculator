@@ -3,6 +3,18 @@
 Material changes to the Fiscal Policy Calculator. Trivial fixes are captured
 in git history, not here.
 
+## 2026-09-29 — ROUTE_TO_9 first fixes: package uncertainty, key redaction, generated evidence
+
+No scored number moved: `cold_holdout.py --json` and `run_validation_dashboard.py` are byte-identical before and after. Record: `planning/ROUTE_TO_9.md`, "Status, 2026-09-29".
+
+- **Package uncertainty is order-free.** `score_package` applied the first policy's factor to the net total, so reversing a tax rise and a spending rise changed the band 1.5× at the same −$1,038.83B. A package's band is now the sum of its components' bands.
+- **Bounds are ordered for savings.** The spread multiplied the signed estimate, so every deficit-reducing estimate had `low` above `high` — including `/score/tariff`, which returned `low > central > high` for every tariff. The wider side is now always the higher-deficit side, as `ASYMMETRY_HIGH` documents.
+- **API keys are never logged.** An unlabelled or empty-label `FISCAL_API_KEYS` entry is logged as `unlabelled-key-<n>` instead of as the secret.
+- **One generated report for the figures every surface quotes.** `scripts/build_current_evidence.py` writes `data_files/validation/current_evidence.json`; About, Methodology and the Ask assistant read it, and `tests/test_current_evidence.py` recomputes it and pins the docs' live headline sentences to it. Ask now quotes a policy's own class error, and its corporate path names its real benchmark.
+- **`/score` reports its baseline vintage** ("February 2026") instead of "unknown".
+- **Docs synced** to the live tier (44 @ 15.2%, 36 within 25%, gates 20/35 and corporate 51), two dead documented commands fixed, the README catalog and IRS vintage corrected, CONTRIBUTING's blocking steps completed, and `planning/ROADMAP.md` rewritten as an index naming ROUTE_TO_9 as the active plan.
+- **Recorded, not fixed:** `EconomicModel`'s unweighted supply channel makes the API's dynamic score of +2.6pp above $400K −$86.1B where the app's is −$338.9B. An owner decision.
+
 ## 2026-09-13 — Corporate Outlook vintages (PR #173, diagnosed in #172)
 
 - `cbo_corporate_receipts.csv` carries the April 2018, September 2020 and May 2022 Outlook corporate receipts paths; each CBO Options corporate row reads the edition it was priced on.

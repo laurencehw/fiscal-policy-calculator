@@ -864,14 +864,16 @@ always had, which holds the death channel down.
 
 CBO provides dynamic scores for major legislation (>0.25% of GDP) and at Congressional request. The calculator offers dynamic scoring as an option for all policies.
 
-### Default engine vs. FRB/US comparison engine
+### Two dynamic engines, and which surface reads which
 
-The app ships **two** dynamic engines, and it matters which one the default "Dynamic scoring" toggle uses:
+The repository ships **two** dynamic engines, and they are not interchangeable — for the same policy they can differ by a factor of four:
 
-- **Default — `EconomicModel` (state-dependent, CBO-conventional).** The `dynamic=True` path on `FiscalPolicyScorer.score_policy` runs this engine. It uses normal-times multipliers of **1.0 (spending)** and **0.5 (tax)**, decomposes demand vs. supply effects, adds capital/labor channels, and raises the multipliers in recessions / at the zero lower bound (see [Spending Multipliers](#spending-multipliers)). All of its parameters are sourced from `constants.py`.
-- **Comparison only — `FRBUSAdapterLite` (reduced-form FRB/US).** A separate reduced-form adapter implementing multiplier effects consistent with the Federal Reserve's FRB/US model (also used by the Yale Budget Lab), with **1.4 (spending)** and **0.7 (tax)** first-year multipliers and 0.75 annual decay. It is surfaced in the multi-model **Scoring Models** tab as a cross-check; it is *not* the default toggle.
+- **`FRBUSAdapterLite` (reduced-form FRB/US) — what the app shows.** The app's dynamic view (Key Metrics, the Economic Effects tab, the dynamic headline) runs the macro adapter the ⚙ setting names, and its default is **"FRB/US-Lite (recommended)"**; the only alternative is the simple multiplier. It implements multiplier effects consistent with the Federal Reserve's FRB/US model (also used by the Yale Budget Lab), with **1.4 (spending)** and **0.7 (tax)** first-year multipliers, and nets debt-service costs against revenue feedback.
+- **`EconomicModel` (state-dependent, CBO-conventional) — what `score_policy(dynamic=True)` runs.** The library path, and therefore `POST /score` and `/score/preset` with `"dynamic": true`, the Ask assistant's scored hypotheticals, `quick_score(dynamic=True)`, the comparison tabs and the CSV export's GDP columns, which read `ScoringResult.dynamic_effects`. It uses normal-times multipliers of **1.0 (spending)** and **0.5 (tax)**, decomposes demand vs. supply effects, adds capital/labor channels, and raises the multipliers in recessions / at the zero lower bound (see [Spending Multipliers](#spending-multipliers)).
 
-The remainder of this section describes the FRB/US comparison engine; the default engine's parameters are detailed under [Spending Multipliers](#spending-multipliers) and [Uncertainty Analysis](#uncertainty-analysis).
+**Read the second engine's supply channel with care** (measured 2026-09-29, recorded in [`planning/ROUTE_TO_9.md`](../planning/ROUTE_TO_9.md)). It multiplies *all* of nominal GDP by `-rate_change × labor_supply_elasticity`, with no weighting by the share of labour income the rate change reaches, so a 2.6-point increase on income above \$400,000 is treated as a 2.6-point marginal-rate increase on every worker. On the app's FY2026–2035 window that policy scores **-\$302.2B** conventionally, **-\$338.9B** in the app's FRB/US-Lite view (feedback -\$26.0B, debt service -\$62.7B) and **-\$86.1B** through `EconomicModel`, whose feedback of -\$216.1B erases 72% of the static score. Until that channel is weighted, quote the app's dynamic view, not the API's.
+
+The remainder of this section describes the FRB/US-Lite engine; `EconomicModel`'s parameters are detailed under [Spending Multipliers](#spending-multipliers) and [Uncertainty Analysis](#uncertainty-analysis).
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐

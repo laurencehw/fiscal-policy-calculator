@@ -2,7 +2,7 @@
 
 > An open-source platform for transparent fiscal policy scoring using CBO methodology, real IRS data, and FRB/US-calibrated dynamic analysis.
 
-*Last reviewed 2026-09-28 against `main` @ `0fd8537`. The previous version of this file described
+*Last reviewed 2026-09-29 (written against `main` @ `0fd8537`). The previous version of this file described
 the April 2026 tree; it is in git history. Live accuracy figures come from the commands named below,
 never from this page — a figure typed here is a figure that goes stale.*
 
@@ -78,6 +78,10 @@ Accuracy varies by policy family, and a pooled number must always travel with th
   individual scores with one interaction factor. Neither is a joint liability calculation.
 - **Corporate** is the worst out-of-sample class: the module reaches about 80.8% of the statutory
   base its receipts path implies, where JCT reaches 53–57%.
+- **Two dynamic engines disagree.** The app's dynamic view runs FRB/US-Lite; the API's and Ask's
+  dynamic answers run `EconomicModel`, whose supply channel applies a rate change to all of GDP.
+  For +2.6 points above $400,000 the two read -$338.9B and -$86.1B. Which to fix is an owner
+  decision recorded in ROUTE_TO_9 "Status".
 
 ---
 
@@ -86,9 +90,10 @@ Accuracy varies by policy family, and a pooled number must always travel with th
 The ranked list is [ROUTE_TO_9.md](ROUTE_TO_9.md) §"Prioritized implementation plan":
 
 1. **Repair correctness and security** — package uncertainty that depended on policy order; API
-   keys that became log labels.
+   keys that became log labels. *Done 2026-09-29, with the API's "unknown" baseline vintage.*
 2. **Make current evidence authoritative** — headline metrics generated from one versioned report,
-   so the README, the pages, the API and the validation reports cannot disagree.
+   so the README, the pages, the API and the validation reports cannot disagree. *The report and
+   its doc pins landed 2026-09-29 (`scripts/build_current_evidence.py`); see ROUTE_TO_9 "Status".*
 3. **Improve the shared modelling core** — calibrate filing populations and upper incomes; one
    tax-unit engine for revenue and distribution.
 4. **Score policy interactions explicitly** — ordinary rates, SALT, AMT and credits first.

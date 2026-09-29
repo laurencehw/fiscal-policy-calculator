@@ -110,15 +110,84 @@ proceed alongside the modeling work.
 
 ## First three pull requests
 
-- [ ] **Package uncertainty:** remove dependence on the first policy and verify
+- [x] **Package uncertainty:** remove dependence on the first policy and verify
   order independence and correctly ordered bounds for positive and negative
   deficit effects.
-- [ ] **API log redaction:** generate a non-secret identifier or require a safe
+- [x] **API log redaction:** generate a non-secret identifier or require a safe
   label; cover unlabelled keys and empty-label configurations in log tests.
-- [ ] **Generated validation summaries:** establish one versioned source for
+- [x] **Generated validation summaries:** establish one versioned source for
   current metrics and vintages, update consuming surfaces, and distinguish
   current status from historical roadmap prose.
 
 After these repairs, concentrate development on the shared scoring population
 and policy interactions. Those changes offer the clearest improvement in what
 users can trust.
+
+## Status, 2026-09-29
+
+The three pull requests above landed on branch `ccr-7b92b7f8-aet71q`, with a
+documentation sync in front of them. This section records outcomes; the
+assessment above is left as written.
+
+- **Package uncertainty** (`606691c`). Reproduced as described: -$1,038.83B in
+  either order, band width 1.5x apart. A package's band is now the sum of its
+  components' own bands, so it is order-free, reduces to the single-policy band
+  for one policy or for same-type, same-sign components, and cannot be narrowed
+  by splitting a policy into pieces. The reproduction's width goes 496/331 ->
+  919. The same run showed the bounds were **inverted for every
+  deficit-reducing estimate** (low above high); the spread now scales the
+  magnitude. That reached the `/score/tariff` API, which had returned
+  `low > central > high` for every tariff, the comparison table, the CSV export
+  and the cumulative chart. No scored number moved.
+- **API log redaction** (`0692de5`). Reproduced with dummy keys: both an
+  unlabelled entry and an empty label (`:secret`) put the secret into two
+  fields of every request log line. Keys without a safe label, including one
+  whose label equals its secret, are now logged as `unlabelled-key-<n>`; the
+  startup warning names the position, never the secret.
+- **Generated validation summaries** (`c155ccc`).
+  `fiscal_model/data_files/validation/current_evidence.json`, built by
+  `scripts/build_current_evidence.py` from the computations the validation
+  reports run, now supplies the figures the About page, the Methodology page and
+  the Ask assistant print. `tests/test_current_evidence.py` recomputes it and
+  pins the live headline sentences in the README, `CLAUDE.md` and `docs/` to
+  it; 13 of those pins fail on the docs as they stood before this work. The
+  Ask assistant now quotes a policy's own class error beside the pooled tier,
+  and its corporate path names its real benchmark (Treasury's Green Book row,
+  4.0%) alongside the class's 40.3%, where it used to say "benchmarked vs CBO
+  within ~4%".
+- **Documentation drift** (`3c38515`). Besides the IRS 2022 -> 2023 correction:
+  headline figures and CI gates still quoting the pre-PR-#173 tier, two
+  documented commands that did not run (`compare_to_cbo` exists nowhere; the
+  ARCHITECTURE example imported `quick_score` from the wrong module and omitted
+  a required argument), a README preset table 3 presets and one area out of
+  date, a distributional row rated "good" at 5.86pp, and a CONTRIBUTING guide
+  missing three of CI's blocking steps. `ROADMAP.md` is now an index naming this
+  file as the active plan.
+
+Two further defects surfaced along the way and were fixed:
+
+- **The API reported `"baseline_vintage": "unknown"` for every real score**
+  (`6036848`). The projection the serializer reads carried no vintage; the API
+  tests only ever used a fake baseline that did.
+- **Two order-dependent tests.** The API-security fixture re-read the
+  environment before `monkeypatch` restored it, which left auth switched on for
+  later tests in the same worker once the module's last test set a key; and
+  `dark_template()` returned a different object on its first call than on every
+  later one, because Plotly copies on registration.
+
+**One finding is recorded, not fixed, because it moves numbers and needs its
+own lane.** `score_policy(dynamic=True)` runs `EconomicModel`, whose supply
+channel multiplies *all* of nominal GDP by `-rate_change x
+labor_supply_elasticity`, with no weighting by the share of labour income the
+change reaches. For +2.6 points on income above $400,000 over FY2026-2035:
+conventional **-$302.2B**; the app's dynamic view (FRB/US-Lite) **-$338.9B**;
+`EconomicModel` **-$86.1B**, its -$216.1B of feedback erasing 72% of the static
+score. The app's pages use FRB/US-Lite, but `POST /score` and `/score/preset`
+with `dynamic: true`, the Ask assistant's scored hypotheticals, the comparison
+tabs and the CSV export's GDP columns read `EconomicModel`. Two options, which
+are an owner decision: weight the channel by a sourced affected share (a
+pre-registered modelling lane under priority 3), or route those surfaces
+through the adapter the app already uses (a contract change for API clients).
+`docs/METHODOLOGY.md` previously described `EconomicModel` as the app's default
+dynamic engine; it now says which surface reads which.
+
