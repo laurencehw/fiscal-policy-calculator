@@ -497,7 +497,7 @@ def render_dynamic_scoring_tab(
                             |-----------|-------|
                             | Spending Multiplier | 1.0 |
                             | Tax Multiplier | -0.5 |
-                            | Multiplier Decay | 0.9/year |
+                            | Multiplier Decay | 0.7/year |
                             | Marginal Tax Rate | 25% |
 
                             This is a simplified model. For more accurate results, use FRB/US-Lite.
