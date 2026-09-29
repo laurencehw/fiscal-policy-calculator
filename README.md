@@ -36,7 +36,7 @@ The calculator scores fiscal policy proposals through a three-stage pipeline:
 | Tax Expenditures | SALT cap, employer health, step-up basis, charitable | 4 |
 | IRS Enforcement | IRA funding, high-income targeting | 2 |
 | Trade / Tariffs | Universal 10%, China 60%, autos 25%, steel and aluminium 25%, reciprocal tariffs | 5 |
-| Climate / Energy | IRA repeal, carbon tax paths, methane fee repeal | 5 |
+| Climate / Energy | IRA clean-energy credit repeal, carbon tax (\$25 and \$50/ton), EV credit repeal, IRA credit extension | 5 |
 | *Illustrative — unfitted reconstructions* | Expanded drug negotiation, universal insulin cap, international reference pricing, comprehensive drug reform, double IRS enforcement | 5 |
 
 The last group is listed last on Explore and Build and says what it is: unfitted reconstructions, not validated scores. No constant is fitted to their published figures, the distances from them are large, and each preset's own distance from its published figure — or the absence of one — is printed beneath it on the page. Nothing was removed from any registry, so their share links and frozen assignment links still score. Plus fully custom policy design with adjustable parameters.
