@@ -45,6 +45,17 @@ def _reset_security(monkeypatch):
     api_security.configure(keys=None)
     api_security.reset_limiter()
     yield
+    # This teardown runs *before* ``monkeypatch`` restores the environment, so
+    # re-reading it here would pick up any FISCAL_API_KEYS a test had set and
+    # leave auth switched on for every later test in the worker — which it did,
+    # the first time this module's last test was one that set it (eight Ask API
+    # tests then got 401). Clear the variables first, whatever the test order.
+    for name in (
+        "FISCAL_API_KEYS",
+        "FISCAL_API_RATE_LIMIT_PER_MINUTE",
+        "FISCAL_API_RATE_LIMIT_BURST",
+    ):
+        monkeypatch.delenv(name, raising=False)
     api_security.configure(keys=None)
     api_security.reset_limiter()
 
