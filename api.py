@@ -40,6 +40,16 @@ from fiscal_model.api_security import (
 from fiscal_model.api_serialization import serialize_scoring_result
 from fiscal_model.app_data import CBO_SCORE_MAP, PRESET_POLICIES
 from fiscal_model.assistant import FiscalAssistant
+
+try:  # raised when the upstream Anthropic call fails mid-turn
+    from fiscal_model.assistant import AssistantUpstreamError
+except ImportError:  # pragma: no cover - older assistant package
+
+    class AssistantUpstreamError(RuntimeError):  # type: ignore[no-redef]
+        """Placeholder: the assistant package predates upstream-error typing."""
+
+        status_code: int | None = None
+        usage: Any = None
 from fiscal_model.assistant.rate_limit import RateLimiter, new_session_id
 from fiscal_model.baseline import APP_DEFAULT_START_YEAR
 from fiscal_model.dynamic_view import run_dynamic_view
@@ -1726,6 +1736,93 @@ def _get_ask_limiter() -> RateLimiter:
     return _ASK_LIMITER
 
 
+def _spawn_request_assistant(
+    base: FiscalAssistant, *, enable_web_search: bool
+) -> FiscalAssistant:
+    """The assistant one request should use.
+
+    A ``FiscalAssistant`` holds per-turn state (``last_usage``,
+    ``last_full_text``, its tools' provenance and scoring context,
+    ``_enable_web_search``), so two concurrent requests on the shared instance
+    overwrite each other's: one request's usage was billed to another's
+    session and one caller's scoring context reached another's prompt. Each
+    request therefore gets its own copy, sharing the client, scorer and
+    knowledge index, and the per-request web-search toggle is set on that copy
+    only — never on the singleton.
+
+    Falls back to the shared instance, and leaves its toggle alone, when the
+    assistant package offers no per-request copy.
+    """
+    for name in ("spawn", "clone_for_request"):
+        factory = getattr(base, name, None)
+        if not callable(factory):
+            continue
+        try:
+            return factory(enable_web_search=enable_web_search)
+        except TypeError:
+            clone = factory()
+            if clone is not base:
+                clone._enable_web_search = bool(enable_web_search)
+            return clone
+    return base
+
+
+_USAGE_FIELDS = (
+    "input_tokens",
+    "output_tokens",
+    "cache_creation_tokens",
+    "cache_read_tokens",
+    "cost_usd",
+)
+
+
+def _upstream_detail(exc: BaseException) -> str:
+    """Client-safe text for an upstream failure (no raw SDK message)."""
+    status = getattr(exc, "status_code", None)
+    suffix = f" (upstream HTTP {status})" if status else ""
+    return f"The assistant's upstream model call failed{suffix}. Try again shortly."
+
+
+def _record_ask_turn(
+    limiter: RateLimiter,
+    *,
+    session_id: str,
+    assistant: FiscalAssistant,
+    question: str,
+    elapsed_s: float,
+    error: str | None,
+    exc: BaseException | None = None,
+    answer: str | None = None,
+) -> dict[str, Any]:
+    """Write one ledger row for a turn, successful or not, and return its usage.
+
+    Usage of calls that completed before a failure was still paid for, so it is
+    recorded with the error rather than dropped. The upstream error carries it
+    when the assistant package attaches one; the assistant's own ``last_usage``
+    is the fallback.
+    """
+    usage = getattr(exc, "usage", None) or assistant.last_usage
+    usage_dict = usage.to_dict() if usage else {}
+    final_text = answer if answer is not None else (assistant.last_full_text or "")
+    tools_used = [p.get("tool", "") for p in (assistant.last_provenance or [])]
+    try:
+        limiter.record_turn(
+            session_id=session_id,
+            role="assistant",
+            model=assistant._model,
+            usage_dict=usage_dict,
+            elapsed_s=elapsed_s,
+            tools_used=tools_used,
+            stripped_markers=len(assistant.last_stripped_markers or []),
+            error=error,
+            question_chars=len(question),
+            answer_chars=len(final_text),
+        )
+    except Exception:  # a ledger failure must not turn a good answer into a 500
+        logger.exception("Could not record the Ask turn in the usage ledger")
+    return usage_dict
+
+
 @app.post("/ask", response_model=AskResponse)
 def ask(
     request: AskRequest,
@@ -1749,10 +1846,10 @@ def ask(
     """
     import time
 
-    assistant = _get_ask_assistant()
+    shared = _get_ask_assistant()
     limiter = _get_ask_limiter()
 
-    if not assistant.is_available():
+    if not shared.is_available():
         raise HTTPException(
             status_code=503,
             detail=(
@@ -1772,15 +1869,17 @@ def ask(
     if not decision.allowed:
         raise HTTPException(status_code=429, detail=decision.reason)
 
-    # Toggle web_search per request.
-    assistant._enable_web_search = bool(request.enable_web_search)
+    # This request's own assistant: per-turn state and the web_search toggle
+    # live on the copy, never on the shared instance.
+    assistant = _spawn_request_assistant(
+        shared, enable_web_search=request.enable_web_search
+    )
 
     history_for_api = [
         {"role": m.role, "content": m.content} for m in request.history
     ]
 
     start = time.time()
-    error_msg: str | None = None
     try:
         chunks = list(
             assistant.stream_response(
@@ -1789,30 +1888,48 @@ def ask(
                 scoring_context=request.scoring_context,
             )
         )
+    except AssistantUpstreamError as exc:
+        # The upstream call failed: that is a 502, not a 200 carrying an
+        # error string, and the ledger row says so.
+        logger.warning("Ask upstream failure: %s", exc)
+        _record_ask_turn(
+            limiter,
+            session_id=session_id,
+            assistant=assistant,
+            question=request.question,
+            elapsed_s=time.time() - start,
+            error=f"{type(exc).__name__}: {exc}",
+            exc=exc,
+            answer=getattr(exc, "partial_text", "") or "",
+        )
+        raise HTTPException(status_code=502, detail=_upstream_detail(exc)) from exc
     except Exception as exc:
         logger.exception("Ask endpoint failed")
-        error_msg = f"{type(exc).__name__}: {exc}"
-        raise HTTPException(status_code=502, detail=error_msg) from exc
+        _record_ask_turn(
+            limiter,
+            session_id=session_id,
+            assistant=assistant,
+            question=request.question,
+            elapsed_s=time.time() - start,
+            error=f"{type(exc).__name__}: {exc}",
+        )
+        if type(exc).__module__.startswith("anthropic"):
+            # An SDK error that escaped the assistant's own wrapping is still
+            # the upstream's failure, not ours.
+            raise HTTPException(status_code=502, detail=_upstream_detail(exc)) from exc
+        raise HTTPException(status_code=500, detail="Internal assistant error") from exc
     elapsed = time.time() - start
     final_text = assistant.last_full_text or "".join(chunks)
 
-    usage_dict = (
-        assistant.last_usage.to_dict() if assistant.last_usage else {}
-    )
-    tools_used = [p.get("tool", "") for p in assistant.last_provenance]
-
     # Persist for telemetry + daily cap accounting.
-    limiter.record_turn(
+    usage_dict = _record_ask_turn(
+        limiter,
         session_id=session_id,
-        role="assistant",
-        model=assistant._model,
-        usage_dict=usage_dict,
+        assistant=assistant,
+        question=request.question,
         elapsed_s=elapsed,
-        tools_used=tools_used,
-        stripped_markers=len(assistant.last_stripped_markers or []),
-        error=error_msg,
-        question_chars=len(request.question),
-        answer_chars=len(final_text),
+        error=None,
+        answer=final_text,
     )
 
     return AskResponse(
@@ -1827,13 +1944,7 @@ def ask(
             for p in assistant.last_provenance
         ],
         stripped_citation_markers=list(assistant.last_stripped_markers or []),
-        usage=AskUsage(**{k: usage_dict.get(k, 0) for k in (
-            "input_tokens",
-            "output_tokens",
-            "cache_creation_tokens",
-            "cache_read_tokens",
-            "cost_usd",
-        )}),
+        usage=AskUsage(**{k: usage_dict.get(k, 0) for k in _USAGE_FIELDS}),
         session_id=session_id,
         elapsed_s=round(elapsed, 3),
     )
@@ -1872,10 +1983,10 @@ def ask_stream(
     import json as _json
     import time as _time
 
-    assistant = _get_ask_assistant()
+    shared = _get_ask_assistant()
     limiter = _get_ask_limiter()
 
-    if not assistant.is_available():
+    if not shared.is_available():
         raise HTTPException(
             status_code=503,
             detail=(
@@ -1895,7 +2006,11 @@ def ask_stream(
     if not decision.allowed:
         raise HTTPException(status_code=429, detail=decision.reason)
 
-    assistant._enable_web_search = bool(request.enable_web_search)
+    # Per-request copy: state and the web_search toggle never touch the
+    # shared instance (see _spawn_request_assistant).
+    assistant = _spawn_request_assistant(
+        shared, enable_web_search=request.enable_web_search
+    )
 
     history_for_api = [
         {"role": m.role, "content": m.content} for m in request.history
@@ -1910,12 +2025,33 @@ def ask_stream(
     def _generate() -> Any:
         start = _time.time()
         accumulated: list[str] = []
+        recorded = False
+        stream = assistant.stream_response(
+            user_message=request.question,
+            history=history_for_api,
+            scoring_context=request.scoring_context,
+        )
+
+        def _record(error: str | None, exc: BaseException | None = None) -> dict[str, Any]:
+            nonlocal recorded
+            recorded = True
+            return _record_ask_turn(
+                limiter,
+                session_id=session_id,
+                assistant=assistant,
+                question=request.question,
+                elapsed_s=_time.time() - start,
+                error=error,
+                exc=exc,
+                answer=(
+                    "".join(accumulated)
+                    if error is not None
+                    else assistant.last_full_text or "".join(accumulated)
+                ),
+            )
+
         try:
-            for chunk in assistant.stream_response(
-                user_message=request.question,
-                history=history_for_api,
-                scoring_context=request.scoring_context,
-            ):
+            for chunk in stream:
                 accumulated.append(chunk)
                 # SSE clients render tokens as they arrive. Empty chunks
                 # would still be valid frames; skip them to reduce noise.
@@ -1923,25 +2059,8 @@ def ask_stream(
                     yield _sse("token", chunk)
 
             elapsed = _time.time() - start
-            final_text = assistant.last_full_text or "".join(accumulated)
-            usage_dict = (
-                assistant.last_usage.to_dict() if assistant.last_usage else {}
-            )
-            tools_used = [p.get("tool", "") for p in assistant.last_provenance]
-
             # Persist to the same ledger as the non-streaming path.
-            limiter.record_turn(
-                session_id=session_id,
-                role="assistant",
-                model=assistant._model,
-                usage_dict=usage_dict,
-                elapsed_s=elapsed,
-                tools_used=tools_used,
-                stripped_markers=len(assistant.last_stripped_markers or []),
-                error=None,
-                question_chars=len(request.question),
-                answer_chars=len(final_text),
-            )
+            usage_dict = _record(None)
 
             done_payload = {
                 "model": assistant._model,
@@ -1956,27 +2075,39 @@ def ask_stream(
                 "stripped_citation_markers": list(
                     assistant.last_stripped_markers or []
                 ),
-                "usage": {
-                    k: usage_dict.get(k, 0)
-                    for k in (
-                        "input_tokens",
-                        "output_tokens",
-                        "cache_creation_tokens",
-                        "cache_read_tokens",
-                        "cost_usd",
-                    )
-                },
+                "usage": {k: usage_dict.get(k, 0) for k in _USAGE_FIELDS},
                 "session_id": session_id,
                 "elapsed_s": round(elapsed, 3),
             }
             yield _sse("done", _json.dumps(done_payload))
-        except Exception as exc:
-            logger.exception("Ask stream failed")
-            # Best-effort error frame; clients should treat any 'error' event
-            # as terminal regardless of position in the stream.
+        except AssistantUpstreamError as exc:
+            logger.warning("Ask stream upstream failure: %s", exc)
+            _record(f"{type(exc).__name__}: {exc}", exc)
+            # Clients should treat any 'error' event as terminal regardless
+            # of position in the stream.
             yield _sse(
                 "error",
-                _json.dumps({"detail": f"{type(exc).__name__}: {exc}"}),
+                _json.dumps(
+                    {
+                        "detail": _upstream_detail(exc),
+                        "status": 502,
+                        "upstream_status": getattr(exc, "status_code", None),
+                    }
+                ),
+            )
+        except GeneratorExit:
+            # The client went away. The paid call may already have finished,
+            # so the turn is still written to the ledger.
+            stream.close()
+            if not recorded:
+                _record("client_disconnected")
+            raise
+        except Exception as exc:
+            logger.exception("Ask stream failed")
+            _record(f"{type(exc).__name__}: {exc}")
+            yield _sse(
+                "error",
+                _json.dumps({"detail": "Internal assistant error", "status": 500}),
             )
 
     return StreamingResponse(

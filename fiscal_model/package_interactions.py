@@ -51,8 +51,9 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
-from functools import lru_cache
+from functools import cache, lru_cache
 from itertools import combinations
+from pathlib import Path
 from typing import Any
 
 # ── Statuses ─────────────────────────────────────────────────────────────
@@ -299,8 +300,6 @@ def _population() -> Any:
     from fiscal_model.microsim.salt_imputation import impute_salt_and_itemized
     from fiscal_model.microsim.top_tail import augment_top_tail
 
-    from pathlib import Path
-
     path = Path(__file__).resolve().parents[1] / DEFAULT_MICRODATA_RELATIVE_PATH
     raw = pd.read_csv(path)
     augmented, _report = augment_top_tail(raw, year=2023)
@@ -377,7 +376,7 @@ def _share(interaction: float, standalone: float) -> float | None:
     return interaction / abs(standalone)
 
 
-@lru_cache(maxsize=None)
+@cache
 def microsim_reform(build_id: str) -> tuple[tuple[str, Any], ...]:
     """The member's ``policy_to_microsim_reforms`` dict as a hashable tuple.
 

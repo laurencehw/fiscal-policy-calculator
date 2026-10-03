@@ -911,9 +911,17 @@ def _scoring_summary(scoring_result: Any) -> str:
 
 
 def _history_for_api(history: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Strip per-turn metadata before passing history to the API."""
+    """Strip per-turn metadata before passing history to the API.
+
+    Turns that came from a ``?ask_share=`` link are dropped: the token is
+    unsigned, so anyone can craft one, and an "assistant" turn the model
+    never produced must not be replayed to it as its own prior answer.
+    The recipient still *sees* the shared Q+A; it just is not model context.
+    """
     out: list[dict[str, Any]] = []
     for turn in history:
+        if turn.get("_from_shared_link"):
+            continue
         out.append({"role": turn["role"], "content": turn["content"]})
     return out
 
@@ -1007,7 +1015,13 @@ def _maybe_apply_shared_link(st_module: Any, state: Any) -> None:
     # Replace any existing (empty) history with the shared Q+A pair so the
     # share recipient sees the exact thing on first render.
     history = state.get(_HISTORY_KEY) or []
-    history.append({"role": "user", "content": payload["question"]})
+    history.append(
+        {
+            "role": "user",
+            "content": payload["question"],
+            "_from_shared_link": True,
+        }
+    )
     history.append(
         {
             "role": "assistant",
@@ -1026,9 +1040,10 @@ def _maybe_apply_shared_link(st_module: Any, state: Any) -> None:
     state[_SHARED_TOKEN_APPLIED_KEY] = token
 
     st_module.info(
-        "💬 You're viewing a shared answer. Ask another question below to "
-        "continue the conversation in your own session — or clear it to "
-        "start fresh."
+        "💬 You're viewing a shared answer. Share links are unsigned, so "
+        "treat it as unverified: it is shown to you but is not sent to the "
+        "assistant as context. Ask a question below to get a fresh, "
+        "cited answer — or clear this to start fresh."
     )
 
 
