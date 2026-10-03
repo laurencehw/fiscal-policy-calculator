@@ -498,3 +498,75 @@ def test_dashboard_json_includes_the_calibrated_tiers(
     assert "provenance_breakdown" in tiers
     # Informational: it gates nothing.
     assert "calibrated_tiers" not in payload["gates"]
+
+
+# ---------------------------------------------------------------------------
+# --calibrate-cells: opt-in, additive (planning/lanes/R6_microdata_cell_calibration.md)
+# ---------------------------------------------------------------------------
+
+
+def test_collect_microdata_default_has_no_cell_calibration(dashboard_module):
+    """Without the flag the collected frame, its report and its keys are untouched."""
+    first = dashboard_module.collect_microdata(2023)
+    second = dashboard_module.collect_microdata(2023, calibrate_cells_flag=False)
+    assert "cell_calibration" not in first
+    assert set(first) == {"descriptor", "report", "augmentation", "filter"}
+    assert first["report"].summary() == second["report"].summary()
+    assert first["augmentation"] is None and first["filter"] is None
+
+
+def test_calibrate_cells_flag_changes_only_the_flagged_run(dashboard_module):
+    default = dashboard_module.collect_microdata(2023)
+    flagged = dashboard_module.collect_microdata(2023, calibrate_cells_flag=True)
+
+    block = flagged["cell_calibration"]
+    assert block["raw_summary"] == default["report"].summary()
+    diag = block["diagnostics"]
+    assert diag.cells_empty == 0
+    assert diag.returns_coverage_after_pct == pytest.approx(100.0, abs=1e-3)
+    assert flagged["report"].summary()["returns_coverage_pct"] == pytest.approx(100.0, abs=1e-3)
+    assert default["report"].summary()["returns_coverage_pct"] > 110.0
+    assert flagged["augmentation"].synthetic_records == 800
+    assert flagged["filter"] is None  # no non-filer filter on this path
+
+    # A later default call is unaffected by the flagged one having run.
+    again = dashboard_module.collect_microdata(2023)
+    assert again["report"].summary() == default["report"].summary()
+
+
+def test_json_mode_records_cell_calibration(dashboard_module, capsys, monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["dashboard", "--json", "--calibrate-cells"])
+    dashboard_module.main()
+    payload = json.loads(capsys.readouterr().out)
+    cells = payload["calibration"]["cell_calibration"]
+    assert cells["cells"] == 53
+    assert cells["cells_hit"] + cells["cells_count_only"] == 53
+    assert cells["raw_summary"]["returns_coverage_pct"] > 110.0
+    assert cells["returns_coverage_after_pct"] == pytest.approx(100.0, abs=1e-3)
+    assert len(cells["cell_detail"]) == 53
+    assert payload["calibration"]["augmentation"]["synthetic_records"] == 800
+
+
+def test_json_mode_default_has_no_cell_calibration_key(dashboard_module, capsys, monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["dashboard", "--json"])
+    dashboard_module.main()
+    payload = json.loads(capsys.readouterr().out)
+    assert "cell_calibration" not in payload["calibration"]
+
+
+def test_text_mode_prints_the_cell_block_only_when_asked(dashboard_module, capsys, monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["dashboard", "--calibrate-cells"])
+    dashboard_module.main()
+    flagged = capsys.readouterr().out
+    assert "SOI cell calibration" in flagged
+    assert "returns coverage" in flagged
+
+    monkeypatch.setattr(sys, "argv", ["dashboard"])
+    dashboard_module.main()
+    assert "SOI cell calibration" not in capsys.readouterr().out
+
+
+def test_calibrate_cells_refuses_to_combine_with_the_filter(dashboard_module, monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["dashboard", "--calibrate-cells", "--filter-to-filers"])
+    with pytest.raises(SystemExit):
+        dashboard_module.main()

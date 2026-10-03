@@ -107,7 +107,7 @@ jobs:
           # ask-first redesign moved the Streamlit surface into app.py, the
           # st.navigation router pages (app_pages/) and the shared widgets
           # (components/), which the old fiscal_model/ tests/ scope never linted.
-          ruff check fiscal_model/ tests/ app.py app_pages/ components/ classroom_app.py --output-format=github
+          ruff check fiscal_model/ tests/ app.py api.py app_pages/ components/ classroom_app.py --output-format=github
 
       - name: Type-check gate (blocking) — green-core allowlist
         run: |
@@ -234,3 +234,37 @@ jobs:
             echo "  git add requirements-lock.txt && git commit"
             exit 1
           fi
+
+  e2e:
+    # Real-browser journeys (tests/e2e): boots `streamlit run app.py`, drives it in Chromium.
+    # A separate job on purpose — the main `test` job runs `pytest tests/`, which excludes
+    # the `e2e` marker (pyproject.toml addopts) and so never needs a browser. Under CI a
+    # missing browser or a server that does not start FAILS (tests/e2e/conftest.py) rather
+    # than skipping, so this job cannot go green by testing nothing.
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    continue-on-error: false
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install playwright pytest
+
+      - name: Install Chromium
+        run: |
+          playwright install --with-deps chromium
+
+      - name: Run browser journeys
+        env:
+          ANTHROPIC_API_KEY: ""
+        run: |
+          pytest -m e2e tests/e2e -v

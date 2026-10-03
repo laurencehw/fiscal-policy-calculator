@@ -14,6 +14,7 @@ appending a key here; no other file changes are required.
 
 from __future__ import annotations
 
+import re
 from urllib.parse import urlparse
 
 SOURCES: dict[str, dict[str, object]] = {
@@ -153,22 +154,89 @@ _ALLOWED_DOMAINS: frozenset[str] = frozenset(
 )
 
 
-def allowlisted_domain(url: str) -> str | None:
-    """Return the matching allowlisted domain for ``url``, or ``None``.
+# Anything that lets two URL parsers disagree about the host: ASCII control
+# characters, whitespace, DEL, backslash (WHATWG treats it as "/", RFC 3986
+# parsers do not) and every non-ASCII character (IDN homoglyphs).
+_UNSAFE_URL_CHARS = re.compile(r"[\x00-\x20\x7f\\]|[^\x00-\x7f]")
+_MAX_URL_LENGTH = 2048
+_ALLOWED_SCHEMES = frozenset({"http", "https"})
+_ALLOWED_PORTS = frozenset({None, 80, 443})
 
-    A URL matches if its hostname equals an allowlisted domain or is a
-    subdomain thereof (e.g., ``www.cbo.gov`` and ``apps.bea.gov`` match).
+
+def _on_label_boundary(host: str) -> str | None:
+    """The allowlisted domain ``host`` equals or is a subdomain of, else ``None``.
+
+    Matching is on a DNS label boundary: ``www.cbo.gov`` matches ``cbo.gov``;
+    ``evilcbo.gov`` and ``cbo.gov.evil.com`` do not.
     """
-    try:
-        host = (urlparse(url).hostname or "").lower()
-    except Exception:
-        return None
-    if not host:
-        return None
     for domain in _ALLOWED_DOMAINS:
         if host == domain or host.endswith("." + domain):
             return domain
     return None
+
+
+def fetch_target_host(url: str) -> str | None:
+    """The host a client would actually connect to for ``url``, or ``None``.
+
+    ``urlparse(url).hostname`` and the host ``requests`` connects to disagree
+    on inputs such as ``http://127.0.0.1:8000\\@cbo.gov/`` (urlparse: the
+    userinfo is ``127.0.0.1:8000\\``, host ``cbo.gov``; requests: host
+    ``127.0.0.1``). A check made on one parser's answer and a request made
+    with the other's is a server-side request forgery, so this derives the
+    host from the URL ``requests`` will really send and refuses anything the
+    two parsers (or the stricter rules below) do not agree on:
+
+    * only ``http`` / ``https``, and only the default ports;
+    * no userinfo, no whitespace / control characters / backslashes, no
+      non-ASCII characters;
+    * a trailing root dot is tolerated (``cbo.gov.``) and stripped.
+    """
+    if not isinstance(url, str) or not url or len(url) > _MAX_URL_LENGTH:
+        return None
+    if _UNSAFE_URL_CHARS.search(url):
+        return None
+    try:
+        import requests
+        from urllib3.util import parse_url
+
+        prepared = requests.Request("GET", url).prepare().url
+        if not prepared:
+            return None
+        target = parse_url(prepared)
+        stdlib = urlparse(url)
+        stdlib_prepared = urlparse(prepared)
+    except Exception:
+        return None
+    if (target.scheme or "").lower() not in _ALLOWED_SCHEMES:
+        return None
+    if target.auth or "@" in stdlib.netloc or "@" in stdlib_prepared.netloc:
+        return None
+    if target.port not in _ALLOWED_PORTS:
+        return None
+    host = (target.host or "").lower().rstrip(".")
+    if not host:
+        return None
+    # Both parsers, over both the URL as given and the URL as sent, must name
+    # the same host; any disagreement is a parser-differential and is refused.
+    for other in (stdlib.hostname, stdlib_prepared.hostname):
+        if (other or "").lower().rstrip(".") != host:
+            return None
+    return host
+
+
+def allowlisted_domain(url: str) -> str | None:
+    """Return the matching allowlisted domain for ``url``, or ``None``.
+
+    A URL matches if the host a client would connect to (see
+    :func:`fetch_target_host`) equals an allowlisted domain or is a subdomain
+    thereof on a label boundary (``www.cbo.gov`` and ``apps.bea.gov`` match;
+    ``evilcbo.gov`` and ``cbo.gov.evil.com`` do not). Non-http(s) schemes,
+    userinfo, backslashes and whitespace never match.
+    """
+    host = fetch_target_host(url)
+    if host is None:
+        return None
+    return _on_label_boundary(host)
 
 
 def web_search_allowed_domains() -> list[str]:
@@ -179,5 +247,6 @@ def web_search_allowed_domains() -> list[str]:
 __all__ = [
     "SOURCES",
     "allowlisted_domain",
+    "fetch_target_host",
     "web_search_allowed_domains",
 ]

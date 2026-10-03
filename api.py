@@ -20,12 +20,17 @@ https://fastapi.tiangolo.com/async/#path-operation-functions
 
 import logging
 import math
+import posixpath
+import re
+import threading
+import time
+from pathlib import Path
 from typing import Any
 
 import numpy as np
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from fiscal_model.api_security import (
     is_auth_enabled,
@@ -35,6 +40,16 @@ from fiscal_model.api_security import (
 from fiscal_model.api_serialization import serialize_scoring_result
 from fiscal_model.app_data import CBO_SCORE_MAP, PRESET_POLICIES
 from fiscal_model.assistant import FiscalAssistant
+
+try:  # raised when the upstream Anthropic call fails mid-turn
+    from fiscal_model.assistant import AssistantUpstreamError
+except ImportError:  # pragma: no cover - older assistant package
+
+    class AssistantUpstreamError(RuntimeError):  # type: ignore[no-redef]
+        """Placeholder: the assistant package predates upstream-error typing."""
+
+        status_code: int | None = None
+        usage: Any = None
 from fiscal_model.assistant.rate_limit import RateLimiter, new_session_id
 from fiscal_model.baseline import APP_DEFAULT_START_YEAR
 from fiscal_model.dynamic_view import run_dynamic_view
@@ -53,6 +68,7 @@ from fiscal_model.policies import (
     ordinary_income_base_for_preset,
 )
 from fiscal_model.preset_handler import create_policy_from_preset
+from fiscal_model.preset_ids import CUSTOM_POLICY_LABEL
 from fiscal_model.readiness import build_readiness_report
 from fiscal_model.scoring import FiscalPolicyScorer
 from fiscal_model.trade import TariffPolicy
@@ -145,6 +161,93 @@ def _validate_serialized_result(
                     f"±${_MAX_ANNUAL_EFFECT_BILLIONS:.0f}B"
                 )
 
+# =============================================================================
+# PUBLIC-OUTPUT HYGIENE
+# =============================================================================
+# /health, /summary and /readiness are unauthenticated. The component payloads
+# they wrap were written for an operator's terminal and carry the server's
+# absolute file paths, the Python executable, the usage-database path and
+# whether an Anthropic key is configured. None of that is the public's business
+# (the first three map the host; the last tells an attacker which of the
+# assistant's cost controls to aim at), so it is stripped here, at the API
+# boundary, and the CLI (scripts/check_readiness.py) keeps the full detail.
+
+_REPO_ROOT = Path(__file__).resolve().parent
+
+#: Keys dropped wherever they appear in a public payload.
+_PUBLIC_REDACTED_KEYS = frozenset(
+    {"executable", "python_executable", "api_key_configured", "usage_db_path"}
+)
+
+_ABSOLUTE_PATH = re.compile(
+    r"(?<![\w:/.])/(?:home|usr|root|tmp|var|opt|app|Users|mnt|srv|etc|workspace)"
+    r"/[^\s\"',;)]*"
+    r"|(?<![\w])[A-Za-z]:\\[^\s\"',;)]*"
+)
+
+
+def _scrub_path_text(text: str) -> str:
+    """Reduce any absolute path inside ``text`` to repo-relative or a basename."""
+    root = str(_REPO_ROOT)
+    text = text.replace(root + "/", "").replace(root, ".")
+    return _ABSOLUTE_PATH.sub(
+        lambda match: posixpath.basename(match.group(0).replace("\\", "/")) or "<path>",
+        text,
+    )
+
+
+def _public(value: Any) -> Any:
+    """Return ``value`` with host-identifying fields removed or shortened."""
+    if isinstance(value, dict):
+        return {
+            key: _public(item)
+            for key, item in value.items()
+            if key not in _PUBLIC_REDACTED_KEYS
+        }
+    if isinstance(value, (list, tuple)):
+        return [_public(item) for item in value]
+    if isinstance(value, str):
+        return _scrub_path_text(value)
+    return value
+
+
+#: /readiness runs the whole release gate (every health check, the benchmarks
+#: and the scorecard) in ~2s warm and ~8s cold, on an unauthenticated route.
+#: One report is shared for this many seconds; it is keyed on the builder so a
+#: replaced builder never sees another's report.
+READINESS_CACHE_SECONDS = 60.0
+_readiness_lock = threading.Lock()
+_readiness_cache: tuple[Any, float, Any] | None = None  # (builder, monotonic ts, report)
+
+
+def _now() -> float:
+    """Monotonic clock for the readiness cache (a seam for tests)."""
+    return time.monotonic()
+
+
+def _cached_readiness_report() -> Any:
+    global _readiness_cache
+    builder = build_readiness_report
+    with _readiness_lock:
+        now = _now()
+        cached = _readiness_cache
+        if (
+            cached is not None
+            and cached[0] is builder
+            and now - cached[1] < READINESS_CACHE_SECONDS
+        ):
+            return cached[2]
+        report = builder()
+        _readiness_cache = (builder, _now(), report)
+        return report
+
+
+def _clear_readiness_cache() -> None:
+    global _readiness_cache
+    with _readiness_lock:
+        _readiness_cache = None
+
+
 app = FastAPI(
     title="Fiscal Policy Calculator API",
     description="Programmatic access to CBO-style fiscal policy scoring with dynamic effects",
@@ -200,7 +303,16 @@ class ScorePolicyRequest(BaseModel):
             "service and a dynamic total). The conventional headline does not move."
         ),
     )
-    policy_type: str = Field("income_tax", description="Type of tax policy")
+    policy_type: str = Field(
+        "income_tax",
+        description=(
+            "'income_tax' (individual rate change above ``income_threshold``) "
+            "or 'corporate_tax' (a statutory corporate rate change, scored by "
+            "the corporate module; ``income_threshold`` must be 0). "
+            "'payroll_tax' is rejected: a payroll change is a cap, donut or "
+            "program-rate design with no single rate-and-threshold mapping."
+        ),
+    )
 
 
 class YearlyEffect(BaseModel):
@@ -333,19 +445,70 @@ class PresetsResponse(BaseModel):
     count: int
 
 
+#: Total US goods imports are ~$3.2T; a base ten times that is a typo, and an
+#: unbounded one scored as an overflow (``1e308``) rather than a client error.
+_MAX_IMPORT_BASE_BILLIONS = 20_000.0
+
+#: What ``/score/tariff``'s headline is, and which request flags do not move it.
+TARIFF_HEADLINE_BASIS = "conventional"
+TARIFF_HEADLINE_NOTE = (
+    "ten_year_deficit_impact is the conventional net customs score: gross duty "
+    "less the import-demand response, avoidance and the income-and-payroll "
+    "offset. include_consumer_cost and include_retaliation only decide whether "
+    "those columns are reported in trade_summary; neither moves the headline "
+    "or uncertainty_range, because retaliation and consumer cost are not part "
+    "of a conventional estimate."
+)
+
+
 class ScoreTariffRequest(BaseModel):
     """Request to score a tariff policy."""
 
     name: str = Field("Custom Tariff", description="Tariff name")
     tariff_rate: float = Field(..., ge=0, le=1.0, description="Tariff rate (0-1)")
     import_base_billions: float = Field(
-        3200.0, gt=0, description="Import base (billions)"
+        3200.0,
+        gt=0,
+        le=_MAX_IMPORT_BASE_BILLIONS,
+        description=(
+            "Import base the tariff applies to (billions of dollars a year). "
+            "Total US goods imports are about $3,200B; values above "
+            f"${_MAX_IMPORT_BASE_BILLIONS:,.0f}B are rejected."
+        ),
     )
-    target_country: str | None = Field(None, description="Target country code")
-    include_consumer_cost: bool = Field(True, description="Include consumer impact")
+    target_country: str | None = Field(
+        None,
+        description=(
+            "Not supported: the scorer prices the import base you supply and "
+            "has no per-country data behind this field. Send the country's "
+            "import base as import_base_billions. A non-null value is "
+            "rejected with 422 rather than accepted and ignored."
+        ),
+    )
+    include_consumer_cost: bool = Field(
+        True,
+        description=(
+            "Report consumer cost in trade_summary. Does not move "
+            "ten_year_deficit_impact (see headline_basis)."
+        ),
+    )
     include_retaliation: bool = Field(
-        True, description="Include retaliation effects"
+        True,
+        description=(
+            "Report retaliation cost in trade_summary. Does not move "
+            "ten_year_deficit_impact (see headline_basis)."
+        ),
     )
+
+    @field_validator("target_country")
+    @classmethod
+    def _target_country_unsupported(cls, value: str | None) -> str | None:
+        if value is not None:
+            raise ValueError(
+                "target_country is not supported: it was accepted and unused. "
+                "Send the target country's import base as import_base_billions."
+            )
+        return value
 
 
 class TradeSummary(BaseModel):
@@ -364,6 +527,10 @@ class ScoreTariffResponse(BaseModel):
     ten_year_deficit_impact: float  # Billions
     trade_summary: TradeSummary
     uncertainty_range: dict[str, float] | None = None
+    #: Which estimate the headline is. Always "conventional": the request's
+    #: include_* flags change only what trade_summary reports.
+    headline_basis: str = TARIFF_HEADLINE_BASIS
+    headline_note: str = TARIFF_HEADLINE_NOTE
 
 
 class StatusIssueModel(BaseModel):
@@ -610,10 +777,28 @@ class ScorecardResponse(BaseModel):
     issues: list[ScorecardIssueModel] = Field(default_factory=list)
 
 
+#: Types ``/score`` can score honestly from a rate and a threshold. Corporate
+#: goes through ``CorporateTaxPolicy`` (profits base, the corporate module's
+#: own calibration); a plain ``TaxPolicy`` labelled corporate would be priced on
+#: the individual income-tax base — -$1,420.3B for +1pp against the corporate
+#: module's -$198.9B — which is why it is built separately below.
 SUPPORTED_CUSTOM_POLICY_TYPES = {
     PolicyType.INCOME_TAX,
     PolicyType.CORPORATE_TAX,
-    PolicyType.PAYROLL_TAX,
+}
+
+#: Known types ``/score`` refuses, with the reason. A payroll change is a wage
+#: cap, a donut hole, a program rate or a new flat tax; "rate_change at
+#: income_threshold" names none of them, and the only way to price it was to
+#: score it on the individual income-tax base, which is the wrong base.
+UNSUPPORTED_CUSTOM_POLICY_REASONS = {
+    PolicyType.PAYROLL_TAX: (
+        "policy_type 'payroll_tax' is not supported by /score: a payroll-tax "
+        "change is a wage-cap, donut-hole or program-rate design that a single "
+        "rate_change and income_threshold cannot express, and scoring it as an "
+        "income-tax rate change would price it on the wrong base. Use /score/preset "
+        "with a payroll preset, or the app's payroll module."
+    ),
 }
 
 
@@ -631,6 +816,12 @@ def _resolve_custom_policy_type(raw_policy_type: str) -> PolicyType:
             ),
         ) from exc
 
+    if policy_type in UNSUPPORTED_CUSTOM_POLICY_REASONS:
+        raise HTTPException(
+            status_code=400,
+            detail=UNSUPPORTED_CUSTOM_POLICY_REASONS[policy_type],
+        )
+
     if policy_type not in SUPPORTED_CUSTOM_POLICY_TYPES:
         supported = ", ".join(sorted(policy.value for policy in SUPPORTED_CUSTOM_POLICY_TYPES))
         raise HTTPException(
@@ -641,6 +832,51 @@ def _resolve_custom_policy_type(raw_policy_type: str) -> PolicyType:
             ),
         )
     return policy_type
+
+
+#: The budget window every API score is reported over.
+_SCORING_WINDOW_YEARS = 10
+
+
+def _build_custom_policy(request: ScorePolicyRequest, policy_type: PolicyType) -> Any:
+    """Build the policy ``/score`` scores, on the base its type names.
+
+    ``duration_years`` is honoured by the policy classes only when ``sunset`` is
+    set, so it is set whenever the duration is shorter than the window — left
+    off, every duration scored identically.
+    """
+    sunset = request.duration_years < _SCORING_WINDOW_YEARS
+    if policy_type == PolicyType.CORPORATE_TAX:
+        if request.income_threshold:
+            raise PolicyValidationError(
+                "income_threshold does not apply to policy_type 'corporate_tax': "
+                "a corporate rate change is priced on the profits base. Send "
+                "income_threshold 0."
+            )
+        from fiscal_model.corporate import CorporateTaxPolicy
+
+        return CorporateTaxPolicy(
+            name=request.name,
+            description=request.description,
+            policy_type=policy_type,
+            rate_change=request.rate_change,
+            corporate_elasticity=request.elasticity,
+            start_year=APP_DEFAULT_START_YEAR,
+            duration_years=request.duration_years,
+            sunset=sunset,
+        )
+    return TaxPolicy(
+        name=request.name,
+        description=request.description,
+        policy_type=policy_type,
+        rate_change=request.rate_change,
+        affected_income_threshold=request.income_threshold,
+        taxable_income_elasticity=request.elasticity,
+        start_year=APP_DEFAULT_START_YEAR,
+        duration_years=request.duration_years,
+        sunset=sunset,
+        ordinary_income_base=request.ordinary_income_base,
+    )
 
 
 def _build_preset_policy(preset_name: str) -> tuple[Any, bool]:
@@ -831,7 +1067,7 @@ def health_check():
 
     Returns status of all data sources and models.
     """
-    health_data = check_health()
+    health_data = _public(check_health())
     components = {
         k: v
         for k, v in health_data.items()
@@ -858,7 +1094,7 @@ def summary():
         compare_distribution,
     )
 
-    health_data = check_health()
+    health_data = _public(check_health())
     overall_health = health_data.get("overall", "unknown")
     microdata = health_data.get("microdata", {})
 
@@ -923,7 +1159,7 @@ def readiness():
     and revenue scorecard status into one verdict:
     ``ready``, ``ready_with_warnings``, or ``not_ready``.
     """
-    report = build_readiness_report()
+    report = _cached_readiness_report()
     return ReadinessResponse(
         verdict=report.verdict,
         generated_at=report.generated_at,
@@ -935,8 +1171,8 @@ def readiness():
                 name=check.name,
                 status=check.status,
                 required=check.required,
-                summary=check.summary,
-                details=check.details,
+                summary=_scrub_path_text(check.summary),
+                details=_public(check.details),
             )
             for check in report.checks
         ],
@@ -945,8 +1181,8 @@ def readiness():
                 name=issue.name,
                 severity=issue.severity,
                 required=issue.required,
-                summary=issue.summary,
-                details=issue.details,
+                summary=_scrub_path_text(issue.summary),
+                details=_public(issue.details),
             )
             for issue in report.issues
         ],
@@ -1094,6 +1330,11 @@ def list_presets():
     presets = []
 
     for preset_name, preset_data in PRESET_POLICIES.items():
+        # The UI's "Custom Policy" is a placeholder for the user's own inputs,
+        # not a proposal; listing it would invite scoring a -2pp-at-$500K
+        # stand-in as if somebody had proposed it.
+        if preset_name == CUSTOM_POLICY_LABEL:
+            continue
         # Look up CBO score if available
         cbo_info = CBO_SCORE_MAP.get(preset_name, {})
 
@@ -1160,18 +1401,7 @@ def score_policy(
             raise PolicyValidationError("duration_years must be at least 1")
         policy_type = _resolve_custom_policy_type(request.policy_type)
 
-        # Create policy
-        policy = TaxPolicy(
-            name=request.name,
-            description=request.description,
-            policy_type=policy_type,
-            rate_change=request.rate_change,
-            affected_income_threshold=request.income_threshold,
-            taxable_income_elasticity=request.elasticity,
-            start_year=APP_DEFAULT_START_YEAR,
-            duration_years=request.duration_years,
-            ordinary_income_base=request.ordinary_income_base,
-        )
+        policy = _build_custom_policy(request, policy_type)
 
         # Score policy
         scorer = FiscalPolicyScorer(
@@ -1224,6 +1454,15 @@ def score_preset(
     app's dynamic view, exactly as ``/score`` does.
     """
     try:
+        if request.preset_name == CUSTOM_POLICY_LABEL:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"'{CUSTOM_POLICY_LABEL}' is the app's placeholder for a "
+                    "user's own inputs, not a preset. Use POST /score to score "
+                    "a custom policy, or /presets for the scorable presets."
+                ),
+            )
         # Look up preset
         if request.preset_name not in PRESET_POLICIES:
             raise ValueError(
@@ -1251,6 +1490,8 @@ def score_preset(
         _validate_serialized_result(payload, policy_name=request.preset_name)
         return ScorePolicyResponse(**payload)
 
+    except HTTPException:
+        raise
     except PolicyValidationError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     except ValueError as e:
@@ -1313,6 +1554,26 @@ def score_tariff(
             net_deficit_impact=net_impact,
         )
 
+        # The same sanity check /score runs on its payload: non-finite or
+        # implausibly large figures are an error, never a 200.
+        _validate_serialized_result(
+            {
+                "ten_year_deficit_impact": net_impact,
+                "year_by_year": [
+                    {"year": int(year), "final_effect": float(value)}
+                    for year, value in zip(
+                        result.years, result.final_deficit_effect, strict=False
+                    )
+                ],
+            },
+            policy_name=request.name,
+        )
+        for field_name, value in trade_summary.model_dump().items():
+            if not math.isfinite(value):
+                raise ScoringBoundsError(
+                    f"Policy '{request.name}': non-finite trade_summary.{field_name}"
+                )
+
         return ScoreTariffResponse(
             policy_name=request.name,
             ten_year_deficit_impact=net_impact,
@@ -1324,8 +1585,17 @@ def score_tariff(
             },
         )
 
-    except Exception as e:
+    except HTTPException:
+        raise
+    except (PolicyValidationError, ValueError) as e:
+        logger.info("Tariff '%s' invalid input: %s", request.name, e)
         raise HTTPException(status_code=400, detail=str(e)) from e
+    except FiscalModelError as e:
+        logger.warning("Tariff '%s' scoring error: %s", request.name, e)
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    except Exception as e:
+        logger.exception("Unexpected error scoring tariff '%s'", request.name)
+        raise HTTPException(status_code=500, detail="Internal scoring error") from e
 
 
 # =============================================================================
@@ -1466,6 +1736,93 @@ def _get_ask_limiter() -> RateLimiter:
     return _ASK_LIMITER
 
 
+def _spawn_request_assistant(
+    base: FiscalAssistant, *, enable_web_search: bool
+) -> FiscalAssistant:
+    """The assistant one request should use.
+
+    A ``FiscalAssistant`` holds per-turn state (``last_usage``,
+    ``last_full_text``, its tools' provenance and scoring context,
+    ``_enable_web_search``), so two concurrent requests on the shared instance
+    overwrite each other's: one request's usage was billed to another's
+    session and one caller's scoring context reached another's prompt. Each
+    request therefore gets its own copy, sharing the client, scorer and
+    knowledge index, and the per-request web-search toggle is set on that copy
+    only — never on the singleton.
+
+    Falls back to the shared instance, and leaves its toggle alone, when the
+    assistant package offers no per-request copy.
+    """
+    for name in ("spawn", "clone_for_request"):
+        factory = getattr(base, name, None)
+        if not callable(factory):
+            continue
+        try:
+            return factory(enable_web_search=enable_web_search)
+        except TypeError:
+            clone = factory()
+            if clone is not base:
+                clone._enable_web_search = bool(enable_web_search)
+            return clone
+    return base
+
+
+_USAGE_FIELDS = (
+    "input_tokens",
+    "output_tokens",
+    "cache_creation_tokens",
+    "cache_read_tokens",
+    "cost_usd",
+)
+
+
+def _upstream_detail(exc: BaseException) -> str:
+    """Client-safe text for an upstream failure (no raw SDK message)."""
+    status = getattr(exc, "status_code", None)
+    suffix = f" (upstream HTTP {status})" if status else ""
+    return f"The assistant's upstream model call failed{suffix}. Try again shortly."
+
+
+def _record_ask_turn(
+    limiter: RateLimiter,
+    *,
+    session_id: str,
+    assistant: FiscalAssistant,
+    question: str,
+    elapsed_s: float,
+    error: str | None,
+    exc: BaseException | None = None,
+    answer: str | None = None,
+) -> dict[str, Any]:
+    """Write one ledger row for a turn, successful or not, and return its usage.
+
+    Usage of calls that completed before a failure was still paid for, so it is
+    recorded with the error rather than dropped. The upstream error carries it
+    when the assistant package attaches one; the assistant's own ``last_usage``
+    is the fallback.
+    """
+    usage = getattr(exc, "usage", None) or assistant.last_usage
+    usage_dict = usage.to_dict() if usage else {}
+    final_text = answer if answer is not None else (assistant.last_full_text or "")
+    tools_used = [p.get("tool", "") for p in (assistant.last_provenance or [])]
+    try:
+        limiter.record_turn(
+            session_id=session_id,
+            role="assistant",
+            model=assistant._model,
+            usage_dict=usage_dict,
+            elapsed_s=elapsed_s,
+            tools_used=tools_used,
+            stripped_markers=len(assistant.last_stripped_markers or []),
+            error=error,
+            question_chars=len(question),
+            answer_chars=len(final_text),
+        )
+    except Exception:  # a ledger failure must not turn a good answer into a 500
+        logger.exception("Could not record the Ask turn in the usage ledger")
+    return usage_dict
+
+
 @app.post("/ask", response_model=AskResponse)
 def ask(
     request: AskRequest,
@@ -1489,10 +1846,10 @@ def ask(
     """
     import time
 
-    assistant = _get_ask_assistant()
+    shared = _get_ask_assistant()
     limiter = _get_ask_limiter()
 
-    if not assistant.is_available():
+    if not shared.is_available():
         raise HTTPException(
             status_code=503,
             detail=(
@@ -1512,15 +1869,17 @@ def ask(
     if not decision.allowed:
         raise HTTPException(status_code=429, detail=decision.reason)
 
-    # Toggle web_search per request.
-    assistant._enable_web_search = bool(request.enable_web_search)  # noqa: SLF001
+    # This request's own assistant: per-turn state and the web_search toggle
+    # live on the copy, never on the shared instance.
+    assistant = _spawn_request_assistant(
+        shared, enable_web_search=request.enable_web_search
+    )
 
     history_for_api = [
         {"role": m.role, "content": m.content} for m in request.history
     ]
 
     start = time.time()
-    error_msg: str | None = None
     try:
         chunks = list(
             assistant.stream_response(
@@ -1529,35 +1888,53 @@ def ask(
                 scoring_context=request.scoring_context,
             )
         )
-    except Exception as exc:  # noqa: BLE001
+    except AssistantUpstreamError as exc:
+        # The upstream call failed: that is a 502, not a 200 carrying an
+        # error string, and the ledger row says so.
+        logger.warning("Ask upstream failure: %s", exc)
+        _record_ask_turn(
+            limiter,
+            session_id=session_id,
+            assistant=assistant,
+            question=request.question,
+            elapsed_s=time.time() - start,
+            error=f"{type(exc).__name__}: {exc}",
+            exc=exc,
+            answer=getattr(exc, "partial_text", "") or "",
+        )
+        raise HTTPException(status_code=502, detail=_upstream_detail(exc)) from exc
+    except Exception as exc:
         logger.exception("Ask endpoint failed")
-        error_msg = f"{type(exc).__name__}: {exc}"
-        raise HTTPException(status_code=502, detail=error_msg) from exc
+        _record_ask_turn(
+            limiter,
+            session_id=session_id,
+            assistant=assistant,
+            question=request.question,
+            elapsed_s=time.time() - start,
+            error=f"{type(exc).__name__}: {exc}",
+        )
+        if type(exc).__module__.startswith("anthropic"):
+            # An SDK error that escaped the assistant's own wrapping is still
+            # the upstream's failure, not ours.
+            raise HTTPException(status_code=502, detail=_upstream_detail(exc)) from exc
+        raise HTTPException(status_code=500, detail="Internal assistant error") from exc
     elapsed = time.time() - start
     final_text = assistant.last_full_text or "".join(chunks)
 
-    usage_dict = (
-        assistant.last_usage.to_dict() if assistant.last_usage else {}
-    )
-    tools_used = [p.get("tool", "") for p in assistant.last_provenance]
-
     # Persist for telemetry + daily cap accounting.
-    limiter.record_turn(
+    usage_dict = _record_ask_turn(
+        limiter,
         session_id=session_id,
-        role="assistant",
-        model=assistant._model,  # noqa: SLF001
-        usage_dict=usage_dict,
+        assistant=assistant,
+        question=request.question,
         elapsed_s=elapsed,
-        tools_used=tools_used,
-        stripped_markers=len(assistant.last_stripped_markers or []),
-        error=error_msg,
-        question_chars=len(request.question),
-        answer_chars=len(final_text),
+        error=None,
+        answer=final_text,
     )
 
     return AskResponse(
         answer=final_text,
-        model=assistant._model,  # noqa: SLF001
+        model=assistant._model,
         tool_calls=[
             AskToolCall(
                 tool=p.get("tool", ""),
@@ -1567,13 +1944,7 @@ def ask(
             for p in assistant.last_provenance
         ],
         stripped_citation_markers=list(assistant.last_stripped_markers or []),
-        usage=AskUsage(**{k: usage_dict.get(k, 0) for k in (
-            "input_tokens",
-            "output_tokens",
-            "cache_creation_tokens",
-            "cache_read_tokens",
-            "cost_usd",
-        )}),
+        usage=AskUsage(**{k: usage_dict.get(k, 0) for k in _USAGE_FIELDS}),
         session_id=session_id,
         elapsed_s=round(elapsed, 3),
     )
@@ -1612,10 +1983,10 @@ def ask_stream(
     import json as _json
     import time as _time
 
-    assistant = _get_ask_assistant()
+    shared = _get_ask_assistant()
     limiter = _get_ask_limiter()
 
-    if not assistant.is_available():
+    if not shared.is_available():
         raise HTTPException(
             status_code=503,
             detail=(
@@ -1635,7 +2006,11 @@ def ask_stream(
     if not decision.allowed:
         raise HTTPException(status_code=429, detail=decision.reason)
 
-    assistant._enable_web_search = bool(request.enable_web_search)  # noqa: SLF001
+    # Per-request copy: state and the web_search toggle never touch the
+    # shared instance (see _spawn_request_assistant).
+    assistant = _spawn_request_assistant(
+        shared, enable_web_search=request.enable_web_search
+    )
 
     history_for_api = [
         {"role": m.role, "content": m.content} for m in request.history
@@ -1650,12 +2025,33 @@ def ask_stream(
     def _generate() -> Any:
         start = _time.time()
         accumulated: list[str] = []
+        recorded = False
+        stream = assistant.stream_response(
+            user_message=request.question,
+            history=history_for_api,
+            scoring_context=request.scoring_context,
+        )
+
+        def _record(error: str | None, exc: BaseException | None = None) -> dict[str, Any]:
+            nonlocal recorded
+            recorded = True
+            return _record_ask_turn(
+                limiter,
+                session_id=session_id,
+                assistant=assistant,
+                question=request.question,
+                elapsed_s=_time.time() - start,
+                error=error,
+                exc=exc,
+                answer=(
+                    "".join(accumulated)
+                    if error is not None
+                    else assistant.last_full_text or "".join(accumulated)
+                ),
+            )
+
         try:
-            for chunk in assistant.stream_response(
-                user_message=request.question,
-                history=history_for_api,
-                scoring_context=request.scoring_context,
-            ):
+            for chunk in stream:
                 accumulated.append(chunk)
                 # SSE clients render tokens as they arrive. Empty chunks
                 # would still be valid frames; skip them to reduce noise.
@@ -1663,28 +2059,11 @@ def ask_stream(
                     yield _sse("token", chunk)
 
             elapsed = _time.time() - start
-            final_text = assistant.last_full_text or "".join(accumulated)
-            usage_dict = (
-                assistant.last_usage.to_dict() if assistant.last_usage else {}
-            )
-            tools_used = [p.get("tool", "") for p in assistant.last_provenance]
-
             # Persist to the same ledger as the non-streaming path.
-            limiter.record_turn(
-                session_id=session_id,
-                role="assistant",
-                model=assistant._model,  # noqa: SLF001
-                usage_dict=usage_dict,
-                elapsed_s=elapsed,
-                tools_used=tools_used,
-                stripped_markers=len(assistant.last_stripped_markers or []),
-                error=None,
-                question_chars=len(request.question),
-                answer_chars=len(final_text),
-            )
+            usage_dict = _record(None)
 
             done_payload = {
-                "model": assistant._model,  # noqa: SLF001
+                "model": assistant._model,
                 "tool_calls": [
                     {
                         "tool": p.get("tool", ""),
@@ -1696,27 +2075,39 @@ def ask_stream(
                 "stripped_citation_markers": list(
                     assistant.last_stripped_markers or []
                 ),
-                "usage": {
-                    k: usage_dict.get(k, 0)
-                    for k in (
-                        "input_tokens",
-                        "output_tokens",
-                        "cache_creation_tokens",
-                        "cache_read_tokens",
-                        "cost_usd",
-                    )
-                },
+                "usage": {k: usage_dict.get(k, 0) for k in _USAGE_FIELDS},
                 "session_id": session_id,
                 "elapsed_s": round(elapsed, 3),
             }
             yield _sse("done", _json.dumps(done_payload))
-        except Exception as exc:  # noqa: BLE001
-            logger.exception("Ask stream failed")
-            # Best-effort error frame; clients should treat any 'error' event
-            # as terminal regardless of position in the stream.
+        except AssistantUpstreamError as exc:
+            logger.warning("Ask stream upstream failure: %s", exc)
+            _record(f"{type(exc).__name__}: {exc}", exc)
+            # Clients should treat any 'error' event as terminal regardless
+            # of position in the stream.
             yield _sse(
                 "error",
-                _json.dumps({"detail": f"{type(exc).__name__}: {exc}"}),
+                _json.dumps(
+                    {
+                        "detail": _upstream_detail(exc),
+                        "status": 502,
+                        "upstream_status": getattr(exc, "status_code", None),
+                    }
+                ),
+            )
+        except GeneratorExit:
+            # The client went away. The paid call may already have finished,
+            # so the turn is still written to the ledger.
+            stream.close()
+            if not recorded:
+                _record("client_disconnected")
+            raise
+        except Exception as exc:
+            logger.exception("Ask stream failed")
+            _record(f"{type(exc).__name__}: {exc}")
+            yield _sse(
+                "error",
+                _json.dumps({"detail": "Internal assistant error", "status": 500}),
             )
 
     return StreamingResponse(

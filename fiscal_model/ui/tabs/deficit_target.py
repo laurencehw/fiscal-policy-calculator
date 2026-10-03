@@ -55,6 +55,13 @@ from fiscal_model.app_data import (
 )
 from fiscal_model.app_data import ILLUSTRATIVE_GROUP_NOTE, is_illustrative
 from fiscal_model.baseline import APP_DEFAULT_START_YEAR
+from fiscal_model.package_interactions import (
+    InteractionMeasurement,
+    PackageInteractionReport,
+    classify_package,
+    describe_measurement,
+    measure_package,
+)
 from fiscal_model.preset_ids import (
     EXCLUSIVE_GROUPS,
     SUBSUMES,
@@ -585,7 +592,9 @@ def apply_build_target(st_module: Any, target: float | None, metric: str) -> Non
     """
     session = _session(st_module)
     session[KEY_BUILD_METRIC] = METRIC_LABELS.get(metric, METRIC_PCT_LABEL)
-    if target is None:
+    # ``None`` and NaN/±inf (``?target=nan``, ``1e999``) leave the default: the
+    # snaps below do ``round(x)``, which raises on a non-finite float.
+    if target is None or not -1e300 < float(target) < 1e300:
         return
     if metric == BUILD_METRIC_USD_B:
         session[KEY_BUILD_TARGET_USD] = int(
@@ -634,16 +643,32 @@ def export_header_lines(
     selection: Sequence[str],
     target_label: str,
     comment_prefix: str = "# ",
+    catalog: Mapping[str, BuildOption] | None = None,
+    interaction_report: PackageInteractionReport | None = None,
 ) -> list[str]:
-    """Provenance header shared by the CSV and the copy-summary export."""
+    """Provenance header shared by the CSV and the copy-summary export.
+
+    The interaction line is the package's own classification
+    (:mod:`fiscal_model.package_interactions`) rather than a blanket sentence,
+    and any pair the user has already measured is stated beside it, labelled
+    approximate. The totals the export carries are the list-price sums either way.
+    """
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    report = interaction_report or classify_package(selection, catalog)
     lines = [
         "Fiscal Policy Impact Calculator — Build package",
         f"Baseline: CBO {vintage_label}",
         f"Window: {window_label}",
         f"Deficit target: {target_label}",
         "Sign convention: + increases the deficit, - reduces it",
-        "Scores are official list prices; interaction effects are not modeled",
+        f"Scores are official {report.label}",
+    ]
+    lines += [
+        f"Measured interaction: {describe_measurement(report, finding)}"
+        for finding in report.measurable
+        if finding.measurement is not None
+    ]
+    lines += [
         f"Policy ids: {','.join(selection) if selection else '(none selected)'}",
         f"Exported: {stamp}",
     ]
@@ -658,6 +683,7 @@ def build_package_csv(
     vintage_label: str,
     window_label: str,
     target_label: str,
+    interaction_report: PackageInteractionReport | None = None,
 ) -> str:
     """CSV export: a commented provenance header, then the package table."""
     header = export_header_lines(
@@ -665,6 +691,8 @@ def build_package_csv(
         window_label=window_label,
         selection=selection,
         target_label=target_label,
+        catalog=catalog,
+        interaction_report=interaction_report,
     )
     rows = package_rows(selection, catalog, n_years)
     table = pd.DataFrame(rows) if rows else pd.DataFrame(columns=["Policy ID", "Policy"])
@@ -684,6 +712,7 @@ def build_copy_summary(
     total_impact: float,
     remaining: float,
     share_url: str,
+    interaction_report: PackageInteractionReport | None = None,
 ) -> str:
     """Plain-text package summary, carrying the same provenance as the CSV."""
     lines = export_header_lines(
@@ -692,6 +721,8 @@ def build_copy_summary(
         selection=selection,
         target_label=target_label,
         comment_prefix="",
+        catalog=catalog,
+        interaction_report=interaction_report,
     )
     count = len(selection)
     lines += [
@@ -785,6 +816,42 @@ def _matches_search(option: BuildOption, needles: Sequence[str]) -> bool:
 
 
 # ── The page ─────────────────────────────────────────────────────────────
+def package_interaction_report(
+    selection: Sequence[str],
+    catalog: Mapping[str, BuildOption],
+) -> PackageInteractionReport:
+    """The package's interaction classification, with measurements where cheap.
+
+    Classification is pure and instant. A *measurement* is a CPS-microsim run
+    (about half a second the first time in a process, a fraction of that per
+    pair after, and cached), and is attempted only when the selection holds a
+    pair the microsim can price and is known to interact -- today that is an
+    ordinary-rate change with the SALT cap repeal. Any failure (missing
+    microdata, an engine change) degrades to the unmeasured classification
+    rather than to an error: the disclosure is the point, not the number.
+
+    Nothing here touches ``total_impact``. It is the sum of list prices before
+    this function runs and after.
+    """
+    report = classify_package(selection, catalog)
+    if not report.has_unmeasured_measurable:
+        return report
+    try:
+        measurements: dict[tuple[str, str], InteractionMeasurement] = measure_package(
+            selection
+        )
+    except Exception:  # pragma: no cover — environment without the microdata
+        return report
+    return classify_package(selection, catalog, measurements=measurements)
+
+
+def _interaction_sentence(report: PackageInteractionReport) -> str:
+    """The report's label as one sentence of markdown-safe prose."""
+    return escape_markdown_dollars(
+        report.label.replace("list prices", "**list prices**", 1)
+    )
+
+
 def render_deficit_target_tab(
     st_module: Any,
     cbo_score_map: dict[str, dict[str, Any]],
@@ -816,6 +883,7 @@ def render_deficit_target_tab(
     _record_drops(st_module, dropped)
     _write_selection(st_module, selection, catalog)
     blockers = selection_blockers(selection, catalog)
+    interaction = package_interaction_report(selection, catalog)
 
     # ---- 2. Baseline ------------------------------------------------------
     scorer = fiscal_policy_scorer_cls(
@@ -837,8 +905,7 @@ def render_deficit_target_tab(
     st_module.subheader("Build a package")
     st_module.markdown(
         "Check policies to include; totals update as you go. Scores are "
-        "official **list prices** — interactions between policies are not "
-        "modeled. " + SIGN_CONVENTION
+        f"official {_interaction_sentence(interaction)}. " + SIGN_CONVENTION
     )
 
     strip_metric, strip_target, strip_search = st_module.columns([2, 3, 3])
@@ -940,6 +1007,7 @@ def render_deficit_target_tab(
             target_value=target_value,
             vintage=vintage,
             window=window,
+            interaction=interaction,
         )
 
     with st_module.expander("Why a deficit target?", expanded=False):
@@ -1220,9 +1288,12 @@ def _render_scoreboard(
     target_value: float,
     vintage: str,
     window: str,
+    interaction: PackageInteractionReport | None = None,
 ) -> None:
     """The sticky right-hand panel: totals, progress, waterfall, exports."""
     count = len(selection)
+    if interaction is None:
+        interaction = classify_package(selection, catalog)
     annual_impact = total_impact / n_years
 
     st_module.markdown("##### Your package")
@@ -1293,12 +1364,71 @@ def _render_scoreboard(
         adjusted_annual=adjusted_annual,
         total_impact=total_impact,
         remaining=remaining,
+        interaction=interaction,
     )
 
+    _render_interactions(st_module, interaction)
+
     st_module.caption(
-        f"Scored against CBO {vintage} baseline · list prices, no interaction "
-        "effects · overlapping options are mutually exclusive"
+        f"Scored against CBO {vintage} baseline · "
+        f"{_interaction_sentence(interaction)} · overlapping options are "
+        "mutually exclusive"
     )
+
+
+def _render_interactions(
+    st_module: Any,
+    report: PackageInteractionReport,
+) -> None:
+    """Name the overlapping pairs, and state any measured size as approximate.
+
+    Shown only when there is something to say about a *pair* (two or more
+    policies). It adds a disclosure beside the package total and never edits
+    the total: the number above is still the sum of list prices.
+    """
+    if len(report.selection) < 2:
+        return
+    with st_module.expander("How these policies overlap", expanded=False):
+        st_module.caption(
+            "The package total is the sum of the official list prices. This "
+            "says where that sum is, and is not, a joint score."
+        )
+        measured = [f for f in report.measurable if f.measurement is not None]
+        for finding in measured:
+            st_module.markdown(
+                "- **Measured** — "
+                + escape_markdown_dollars(describe_measurement(report, finding))
+            )
+        sections = (
+            ("interacting", "Overlap and interact (not measured here)"),
+            ("inconsistent_list_price", "List prices not mutually consistent"),
+            ("unmodelled", "Overlap, not modeled"),
+            ("structurally_additive", "Additive by construction (not a measurement)"),
+        )
+        for kind, heading in sections:
+            findings = [
+                f
+                for f in report.of_kind(kind)
+                if not (kind == "interacting" and f.measurement is not None)
+                and (kind != "unmodelled" or f.shared_channels)
+            ]
+            if not findings:
+                continue
+            st_module.markdown(f"**{heading}**")
+            for finding in findings:
+                st_module.markdown(
+                    escape_markdown_dollars(
+                        f"- {report.pair_name(finding)} — {finding.reason}"
+                    )
+                )
+        unmodelled_only = [
+            f for f in report.of_kind("unmodelled") if not f.shared_channels
+        ]
+        if unmodelled_only:
+            st_module.caption(
+                f"{len(unmodelled_only)} other pair(s) share no channel the "
+                "repository can identify; no joint model exists for them."
+            )
 
 
 def _render_waterfall(
@@ -1390,6 +1520,7 @@ def _render_exports(
     adjusted_annual: float,
     total_impact: float,
     remaining: float,
+    interaction: PackageInteractionReport | None = None,
 ) -> None:
     """Share link · CSV · copy summary, all carrying the same provenance."""
     share_url = encode_build_share(list(selection), target_value, metric_key)
@@ -1400,6 +1531,7 @@ def _render_exports(
         vintage_label=vintage,
         window_label=window,
         target_label=target_label,
+        interaction_report=interaction,
     )
     summary = build_copy_summary(
         selection,
@@ -1413,6 +1545,7 @@ def _render_exports(
         total_impact=total_impact,
         remaining=remaining,
         share_url=share_url,
+        interaction_report=interaction,
     )
 
     share_col, csv_col, copy_col = st_module.columns(3)

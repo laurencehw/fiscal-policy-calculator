@@ -15,6 +15,12 @@ After the generator completes, the caller can read:
 * ``assistant.last_usage``      — :class:`TurnUsage`
 * ``assistant.last_full_text``  — the raw full answer (post-citation-cleanup)
 * ``assistant.last_message``    — appended to history for next turn
+* ``assistant.last_error``      — ``None``, or the message of the upstream
+  failure that ended the turn (see :class:`AssistantUpstreamError`)
+
+Concurrency: those ``last_*`` attributes are per-turn state, so one
+``FiscalAssistant`` serves one turn at a time. A server handling concurrent
+requests must call :meth:`FiscalAssistant.spawn` per request.
 
 The agentic loop is capped at :attr:`MAX_TOOL_ITERATIONS` to prevent infinite
 loops in pathological cases.
@@ -22,10 +28,13 @@ loops in pathological cases.
 
 from __future__ import annotations
 
+import copy
 import json
 import logging
 import os
-from collections.abc import Iterator
+import threading
+import time
+from collections.abc import Callable, Iterator
 from typing import Any
 
 from .citations import annotate_unsupported
@@ -50,6 +59,47 @@ MAX_TOOL_ITERATIONS = 4
 DEFAULT_MAX_TOKENS = 1600
 # Hard ceiling on the override so a stray env var cannot blow the daily cap.
 MAX_MAX_TOKENS = 4000
+
+
+class AssistantUpstreamError(RuntimeError):
+    """The Anthropic API failed mid-turn.
+
+    Raised from :meth:`FiscalAssistant.stream_response` instead of splicing an
+    ``*Error from Anthropic API: ...*`` string into the answer, which the HTTP
+    layer then returned as a normal 200 and the rate limiter recorded as a
+    successful, error-free turn. ``api.py`` maps it to HTTP 502.
+
+    Attributes
+    ----------
+    status_code:
+        The upstream HTTP status when the SDK exposed one, else ``None``.
+    partial_text:
+        Text produced before the failure (may be empty).
+    usage:
+        :class:`TurnUsage` for the calls that *did* complete earlier in the
+        same turn (paid for, so still to be recorded), or ``None``.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        status_code: int | None = None,
+        partial_text: str = "",
+        usage: TurnUsage | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+        self.partial_text = partial_text
+        self.usage = usage
+
+
+#: Signature of the optional per-turn callback: it receives one dict with
+#: ``usage`` (dict), ``tools_used``, ``stripped_markers``, ``elapsed_s``,
+#: ``answer_chars``, ``error`` (``str | None``) and ``disconnected`` (``bool``).
+TurnEndCallback = Callable[[dict[str, Any]], None]
+
+_client_init_lock = threading.Lock()
 
 
 def resolve_max_tokens() -> int:
@@ -87,8 +137,10 @@ class FiscalAssistant:
         anthropic_client: Any = None,
         model: str = DEFAULT_MODEL,
         enable_web_search: bool = True,
+        on_turn_end: TurnEndCallback | None = None,
     ) -> None:
         self._client = anthropic_client
+        self._on_turn_end = on_turn_end
         self._model = model
         self._enable_web_search = enable_web_search
 
@@ -125,7 +177,53 @@ class FiscalAssistant:
         # of leaving an answer that stops mid-table.
         self.last_stop_reason: str | None = None
         self.last_truncated: bool = False
+        # Back-compat for callers that used to find upstream failures spliced
+        # into the answer text: they can now test this instead.
+        self.last_error: str | None = None
+        self._turn_text: str = ""
         self._cache_prewarmed: bool = False
+
+    # ---- per-request instances -------------------------------------------
+
+    def spawn(self, *, enable_web_search: bool | None = None) -> FiscalAssistant:
+        """Return a cheap per-request copy that shares everything immutable.
+
+        A ``FiscalAssistant`` carries per-turn state: ``last_usage``,
+        ``last_full_text``, ``last_provenance``, the tools' provenance trail
+        and scoring context, and the ``_enable_web_search`` toggle. Two
+        requests on one instance overwrite each other's (one request's usage
+        was billed to another's session and one user's scoring context leaked
+        into another's prompt). A server must therefore call ``spawn()`` once
+        per request and use the copy for that request only.
+
+        The copy shares the Anthropic client (created here if need be, once),
+        the scorer, baseline, presets and the BM25 knowledge index; it gets a
+        fresh :class:`AssistantTools` (empty provenance, no scoring context),
+        a fresh :class:`ConversationCost` and cleared ``last_*`` fields.
+        ``enable_web_search`` overrides the toggle for the copy only.
+        """
+        if self._client is None and self.is_available():
+            with _client_init_lock:
+                _ = self.client  # initialise once, share with every copy
+        clone = copy.copy(self)
+        clone._tools = self._tools.spawn()
+        clone.cost = ConversationCost()
+        clone._reset_turn_state()
+        if enable_web_search is not None:
+            clone._enable_web_search = bool(enable_web_search)
+        return clone
+
+    def _reset_turn_state(self) -> None:
+        self.last_provenance = []
+        self.last_usage = None
+        self.last_full_text = ""
+        self.last_message = None
+        self.last_stripped_markers = []
+        self.last_web_citations = []
+        self.last_stop_reason = None
+        self.last_truncated = False
+        self.last_error = None
+        self._turn_text = ""
 
     # ---- lazy client -----------------------------------------------------
 
@@ -257,8 +355,27 @@ class FiscalAssistant:
         user_message: str,
         history: list[dict[str, Any]],
         scoring_context: dict[str, Any] | None = None,
+        *,
+        on_turn_end: TurnEndCallback | None = None,
     ) -> Iterator[str]:
         """Yield chunks of the assistant's response as it streams.
+
+        Raises
+        ------
+        AssistantUpstreamError
+            If the Anthropic API fails. Nothing is appended to the answer;
+            ``last_error`` is set and the turn-end callback still fires with
+            ``error=...`` and the usage of any calls that did complete.
+
+        The paid model call finishes before its text is yielded, so usage is
+        recorded the moment each call returns and the turn-end callback runs
+        in a ``finally`` — a client that disconnects mid-stream (the
+        generator is closed with ``GeneratorExit``) is still billed against
+        the daily cap. ``on_turn_end`` (or the constructor's) receives one
+        dict: ``usage``, ``tools_used``, ``stripped_markers``, ``elapsed_s``,
+        ``answer_chars``, ``error`` and ``disconnected``; callers should record
+        the turn from it rather than from code after the ``for`` loop, which a
+        disconnect never reaches. The callback fires exactly once per turn.
 
         Parameters
         ----------
@@ -273,19 +390,59 @@ class FiscalAssistant:
             Current scoring result snapshot (optional). Injected into the
             system prompt for grounding.
         """
-        # ------------------------------------------------------------------
-        # Reset per-turn state.
-        # ------------------------------------------------------------------
         self._tools.reset_provenance()
         self._tools.set_scoring_context(scoring_context)
-        self.last_provenance = []
-        self.last_usage = None
-        self.last_full_text = ""
-        self.last_message = None
-        self.last_stripped_markers = []
-        self.last_web_citations = []
-        self.last_stop_reason = None
-        self.last_truncated = False
+        self._reset_turn_state()
+        callback = on_turn_end or self._on_turn_end
+        started = time.time()
+        error: str | None = None
+        disconnected = False
+        try:
+            yield from self._stream_turn(user_message, history, scoring_context)
+        except GeneratorExit:
+            disconnected = True
+            raise
+        except BaseException as exc:
+            error = f"{type(exc).__name__}: {exc}"
+            self.last_error = error
+            raise
+        finally:
+            self._finish_turn(callback, started, error, disconnected)
+
+    def _finish_turn(
+        self,
+        callback: TurnEndCallback | None,
+        started: float,
+        error: str | None,
+        disconnected: bool,
+    ) -> None:
+        """Settle per-turn state and fire the turn-end callback, once."""
+        if not self.last_provenance:
+            self.last_provenance = list(self._tools.provenance)
+        answer = self.last_full_text or self._turn_text
+        if callback is None:
+            return
+        info = {
+            "usage": self.last_usage.to_dict() if self.last_usage else {},
+            "tools_used": [p.get("tool", "") for p in self.last_provenance],
+            "stripped_markers": len(self.last_stripped_markers or []),
+            "elapsed_s": time.time() - started,
+            "answer_chars": len(answer),
+            "error": error,
+            "disconnected": disconnected,
+        }
+        try:
+            callback(info)
+        except Exception:
+            logger.exception("turn-end callback failed")
+
+    def _stream_turn(
+        self,
+        user_message: str,
+        history: list[dict[str, Any]],
+        scoring_context: dict[str, Any] | None,
+    ) -> Iterator[str]:
+        """The tool-use loop behind :meth:`stream_response` (state is reset there)."""
 
         # ------------------------------------------------------------------
         # Build system blocks. We split into a cache-stable prefix and a
@@ -330,14 +487,17 @@ class FiscalAssistant:
                 messages=messages,
                 tools=tools_param,
             )
+            # The call is paid for as soon as it returns: book it *before*
+            # yielding, so a client that disconnects while we yield cannot
+            # leave a completed, billed call off the ledger.
+            self._record_usage(stream_result.get("usage"))
+            final_message = stream_result["final_message"]
             iter_text = ""
             for chunk in stream_result["text_chunks"]:
                 iter_text += chunk
+                self._turn_text += chunk
                 yield chunk
             accumulated_text += iter_text
-
-            final_message = stream_result["final_message"]
-            self._record_usage(stream_result.get("usage"))
 
             # Capture any web_search citations from the model's output for
             # later citation cross-referencing.
@@ -434,11 +594,12 @@ class FiscalAssistant:
                 messages=messages,
                 tools=[],  # no tools → model must answer or end_turn
             )
+            self._record_usage(forced.get("usage"))
+            final_message = forced["final_message"]
             for chunk in forced["text_chunks"]:
                 accumulated_text += chunk
+                self._turn_text += chunk
                 yield chunk
-            final_message = forced["final_message"]
-            self._record_usage(forced.get("usage"))
 
         # ------------------------------------------------------------------
         # If the final call ran out of output budget, say so rather than
@@ -453,6 +614,7 @@ class FiscalAssistant:
                 "follow-up.*"
             )
             accumulated_text += truncation_note
+            self._turn_text += truncation_note
             yield truncation_note
 
         # ------------------------------------------------------------------
@@ -519,7 +681,12 @@ class FiscalAssistant:
                 usage = getattr(final_message, "usage", None)
         except Exception as exc:
             logger.exception("Anthropic stream failed")
-            text_chunks.append(f"\n\n*Error from Anthropic API: {exc}*")
+            raise AssistantUpstreamError(
+                f"Anthropic API error: {exc}",
+                status_code=getattr(exc, "status_code", None),
+                partial_text="".join(text_chunks),
+                usage=self.last_usage,
+            ) from exc
 
         return {
             "text_chunks": text_chunks,
@@ -538,6 +705,9 @@ class FiscalAssistant:
                 cache_creation_tokens=self.last_usage.cache_creation_tokens + turn.cache_creation_tokens,
                 cache_read_tokens=self.last_usage.cache_read_tokens + turn.cache_read_tokens,
                 cost_usd=self.last_usage.cost_usd + turn.cost_usd,
+                web_search_requests=(
+                    self.last_usage.web_search_requests + turn.web_search_requests
+                ),
             )
 
 
@@ -653,6 +823,8 @@ __all__ = [
     "DEFAULT_MODEL",
     "MAX_TOOL_ITERATIONS",
     "OPUS_MODEL",
+    "AssistantUpstreamError",
     "FiscalAssistant",
+    "TurnEndCallback",
     "resolve_max_tokens",
 ]

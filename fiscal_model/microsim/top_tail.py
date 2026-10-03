@@ -58,6 +58,19 @@ SYNTHETIC_SOURCE_LABEL = "soi_pareto_augmented"
 DEFAULT_AUGMENTATION_FLOOR = 2_000_000
 DEFAULT_RECORDS_PER_BRACKET = 200
 
+# Opt-in ``by_status`` path (see ``augment_top_tail``).
+DEFAULT_RECORDS_PER_CELL = 100
+# A class counts as "not covered by the survey" when it holds fewer unweighted
+# CPS rows than this; the data-derived floor is the lowest class from which
+# every higher class is that thin.
+DEFAULT_MIN_CPS_ROWS = 20
+# Household ids for synthetic rows start here, far above any CPS household id,
+# so the household layer never merges a synthetic record into a CPS household.
+SYNTHETIC_HOUSEHOLD_ID_BASE = 10_000_000
+# California, as the prototype used; the SALT rate it imputes is the highest in
+# the state table, which is a known bias recorded in the R6 outturn.
+SYNTHETIC_STATE_FIPS = 6
+
 # SOI Table 1.4-derived income-composition shares at \\$10M+ AGI.
 # (Wages, capital_gains, dividends, pass-through/interest).
 _TOP_TAIL_COMPOSITION = {
@@ -136,14 +149,135 @@ def _row_from_agi(agi: float, weight: float, record_id: int) -> dict:
     }
 
 
+def derive_top_tail_floor(
+    microdata: pd.DataFrame,
+    brackets: list[TaxBracketData],
+    *,
+    min_cps_rows: int = DEFAULT_MIN_CPS_ROWS,
+) -> float:
+    """Data-derived augmentation floor: the AGI floor of the lowest SOI class
+    from which *every* class has fewer than ``min_cps_rows`` unweighted CPS rows.
+
+    Returns ``inf`` when even the top class is populated (nothing to add).
+    """
+    floors = np.array([b.agi_floor for b in brackets], dtype=float)
+    agi = microdata["agi"].to_numpy(dtype=float)
+    cls = np.maximum(np.searchsorted(floors, agi, side="right") - 1, 0)
+    counts = np.bincount(cls, minlength=len(brackets))
+    floor_idx = len(brackets)
+    for i in range(len(brackets) - 1, -1, -1):
+        if counts[i] < min_cps_rows:
+            floor_idx = i
+        else:
+            break
+    return float(floors[floor_idx]) if floor_idx < len(brackets) else float("inf")
+
+
+def _augment_by_status(
+    microdata: pd.DataFrame,
+    year: int,
+    brackets: list[TaxBracketData],
+    loader: IRSSOIData,
+    *,
+    floor: float | None,
+    records_per_cell: int,
+    min_cps_rows: int,
+    seed: int,
+) -> tuple[pd.DataFrame, AugmentationReport]:
+    """Status-aware augmentation: one synthetic block per (class, married or
+    unmarried) cell of SOI Table 1.2, replacing the CPS rows in those classes."""
+    rng = np.random.default_rng(seed)
+    if "source" in microdata.columns:
+        base = microdata.loc[microdata["source"] != SYNTHETIC_SOURCE_LABEL].copy()
+    else:
+        base = microdata.copy()
+        base["source"] = "cps"
+
+    if floor is None:
+        floor = derive_top_tail_floor(base, brackets, min_cps_rows=min_cps_rows)
+    by_status = loader.get_bracket_distribution_by_status(year)
+    floors = np.array([b.agi_floor for b in brackets], dtype=float)
+    target_idx = [i for i, b in enumerate(brackets) if b.agi_floor >= floor]
+    if not target_idx:
+        return base, AugmentationReport(
+            year=year, floor=floor, brackets_used=0, synthetic_records=0,
+            synthetic_weight=0.0, synthetic_agi_billions=0.0,
+        )
+
+    # The synthetic cells replace whatever CPS rows sit in those classes.
+    base_cls = np.maximum(np.searchsorted(floors, base["agi"].to_numpy(dtype=float), side="right") - 1, 0)
+    base = base.loc[base_cls < target_idx[0]].copy()
+
+    next_id = int(base["id"].max()) + 1 if not base.empty else 0
+    rows: list[dict] = []
+    for i in target_idx:
+        bracket = brackets[i]
+        joint, sep = by_status["joint"][i], by_status["separate"][i]
+        hoh, single = by_status["head_of_household"][i], by_status["single"][i]
+        cells = (
+            (1, joint.num_returns + sep.num_returns, joint.total_agi + sep.total_agi),
+            (0, hoh.num_returns + single.num_returns, hoh.total_agi + single.total_agi),
+        )
+        for married, n_returns, total_agi in cells:
+            if n_returns <= 0:
+                continue
+            cell_bracket = TaxBracketData(
+                year=year,
+                agi_floor=bracket.agi_floor,
+                agi_ceiling=bracket.agi_ceiling,
+                num_returns=n_returns,
+                total_agi=total_agi,
+                taxable_income=0.0,
+                total_tax=0.0,
+            )
+            weight = n_returns / records_per_cell
+            for agi in _bracket_pareto_sample(cell_bracket, records_per_cell, rng):
+                row = _row_from_agi(float(agi), weight, next_id)
+                row.update(
+                    {
+                        "household_id": SYNTHETIC_HOUSEHOLD_ID_BASE + next_id,
+                        "household_weight": weight,
+                        "household_persons": 2 if married else 1,
+                        "member_count": 2 if married else 1,
+                        "investment_income": row["interest_income"]
+                        + row["dividend_income"]
+                        + row["capital_gains"],
+                        "dependent_count": 0,
+                        "married": married,
+                        "state_fips": SYNTHETIC_STATE_FIPS,
+                        "source": SYNTHETIC_SOURCE_LABEL,
+                    }
+                )
+                rows.append(row)
+                next_id += 1
+
+    synthetic = pd.DataFrame(rows)
+    for col in base.columns:
+        if col not in synthetic.columns:
+            synthetic[col] = 0
+    synthetic = synthetic[base.columns]
+    combined = pd.concat([base, synthetic], ignore_index=True)
+    return combined, AugmentationReport(
+        year=year,
+        floor=float(floor),
+        brackets_used=len(target_idx),
+        synthetic_records=len(synthetic),
+        synthetic_weight=float(synthetic["weight"].sum()),
+        synthetic_agi_billions=float((synthetic["weight"] * synthetic["agi"]).sum() / 1e9),
+    )
+
+
 def augment_top_tail(
     microdata: pd.DataFrame,
     year: int,
     *,
-    floor: float = DEFAULT_AUGMENTATION_FLOOR,
+    floor: float | None = None,
     records_per_bracket: int = DEFAULT_RECORDS_PER_BRACKET,
     soi_loader: IRSSOIData | None = None,
     seed: int = 42,
+    by_status: bool = False,
+    records_per_cell: int = DEFAULT_RECORDS_PER_CELL,
+    min_cps_rows: int = DEFAULT_MIN_CPS_ROWS,
 ) -> tuple[pd.DataFrame, AugmentationReport]:
     """
     Append SOI-derived synthetic high-income records to ``microdata``.
@@ -152,10 +286,22 @@ def augment_top_tail(
         microdata: CPS-derived tax-unit frame (schema per
             :mod:`fiscal_model.data.cps_asec`).
         year: SOI year to pull bracket aggregates from.
-        floor: AGI threshold below which SOI brackets are ignored.
+        floor: AGI threshold below which SOI brackets are ignored. ``None``
+            means :data:`DEFAULT_AUGMENTATION_FLOOR` — or, with
+            ``by_status=True``, a floor derived from the data (see
+            :func:`derive_top_tail_floor`).
         records_per_bracket: Synthetic records to draw per SOI bracket.
         soi_loader: Injected for tests.
         seed: RNG seed; fixed so augmentation is reproducible.
+        by_status: **Opt-in.** Draw one synthetic block per (AGI class,
+            married / unmarried) cell of SOI Table 1.2 instead of one per
+            class, drop the CPS rows in the augmented classes (the cells
+            replace them), and give every synthetic record its own
+            ``household_id`` and a nonzero ``household_weight`` so the
+            household layer keeps it. The default path is unchanged and still
+            emits married-only records with household id and weight 0.
+        records_per_cell: Synthetic records per cell on the ``by_status`` path.
+        min_cps_rows: Threshold for the data-derived floor.
 
     Returns:
         Tuple of ``(augmented_frame, report)``. The augmented frame has
@@ -168,6 +314,20 @@ def augment_top_tail(
         raise RuntimeError(
             f"Cannot augment top tail: IRS SOI {year} unavailable ({exc})."
         ) from exc
+
+    if by_status:
+        return _augment_by_status(
+            microdata,
+            year,
+            brackets,
+            loader,
+            floor=floor,
+            records_per_cell=records_per_cell,
+            min_cps_rows=min_cps_rows,
+            seed=seed,
+        )
+    if floor is None:
+        floor = DEFAULT_AUGMENTATION_FLOOR
 
     rng = np.random.default_rng(seed)
 
@@ -236,9 +396,14 @@ def filter_source(
 
 __all__ = [
     "DEFAULT_AUGMENTATION_FLOOR",
+    "DEFAULT_MIN_CPS_ROWS",
     "DEFAULT_RECORDS_PER_BRACKET",
+    "DEFAULT_RECORDS_PER_CELL",
+    "SYNTHETIC_HOUSEHOLD_ID_BASE",
     "SYNTHETIC_SOURCE_LABEL",
+    "SYNTHETIC_STATE_FIPS",
     "AugmentationReport",
     "augment_top_tail",
+    "derive_top_tail_floor",
     "filter_source",
 ]

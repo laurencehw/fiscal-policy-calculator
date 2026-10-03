@@ -213,7 +213,16 @@ class FiscalPolicyScorer:
         return result
 
     def score_package(self, package: PolicyPackage, dynamic: bool = False) -> ScoringResult:
-        """Score a package of policies together."""
+        """Score a package of policies together.
+
+        ``interaction_factor`` scales every policy's static effect **and** its
+        behavioral offset, which is a response to that same static effect: a
+        factor of 0.5 gives half the conventional score, not half the static
+        score plus a full-size offset (-$49.8B against the expected -$58.1B for
+        a single 1pp-above-$400K policy).
+        """
+        if not package.policies:
+            raise ValueError("empty package: score_package needs at least one policy")
         logger.info("Scoring package with %d policies", len(package.policies))
         results = [self.score_policy(policy, dynamic=dynamic) for policy in package.policies]
         n_years = len(self.baseline.years)
@@ -231,6 +240,7 @@ class FiscalPolicyScorer:
         total_static_revenue *= package.interaction_factor
         total_static_spending *= package.interaction_factor
         total_budget_authority *= package.interaction_factor
+        total_behavioral *= package.interaction_factor
         static_deficit = total_static_spending - total_static_revenue
         deficit_after_behavioral = static_deficit + total_behavioral
 
@@ -640,9 +650,8 @@ class FiscalPolicyScorer:
         low_spread = np.zeros(n_years)
         high_spread = np.zeros(n_years)
         for policy, result in zip(package.policies, results):
-            central = (
-                package.interaction_factor * result.static_deficit_effect
-                + result.behavioral_offset
+            central = package.interaction_factor * (
+                result.static_deficit_effect + result.behavioral_offset
             )
             if result.dynamic_effects is not None:
                 central = central - result.dynamic_effects.revenue_feedback

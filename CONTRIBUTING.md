@@ -60,7 +60,7 @@ The ranked list is [`planning/ROUTE_TO_9.md`](planning/ROUTE_TO_9.md); [`plannin
    ANTHROPIC_API_KEY= python -m pytest tests/ --cov=fiscal_model
 
    # Lint scope matches CI, including the Streamlit surface outside fiscal_model/
-   ruff check fiscal_model/ tests/ app.py app_pages/ components/ classroom_app.py
+   ruff check fiscal_model/ tests/ app.py api.py app_pages/ components/ classroom_app.py
 
    # The blocking type-check gate, exactly as CI runs it
    mypy $(grep -v '^#' mypy.gate.txt | grep -v '^[[:space:]]*$')
@@ -83,6 +83,24 @@ For Streamlit controller or session-state changes, also run:
 ```bash
 python -m pytest tests/test_app_entrypoints.py tests/test_ui_controller_smoke.py -q
 ```
+
+### Browser journeys (opt-in)
+
+`tests/e2e/` drives the real app in Chromium (deep links, share-link round trips, CSV export,
+keyboard focus, mobile nav, latency budgets). The default `pytest tests/` run **excludes** them
+(`-m "not e2e"` in `pyproject.toml`), so the main CI job never needs a browser; CI runs them in
+its own `e2e` job. Locally:
+
+```bash
+pip install playwright          # then `playwright install chromium`, or point at a binary:
+export E2E_CHROMIUM=/path/to/chrome   # optional
+ANTHROPIC_API_KEY= python -m pytest -m e2e tests/e2e -q
+```
+
+They skip cleanly without Playwright or a browser (and fail under `CI`, so the job cannot pass
+by skipping). `E2E_BASE_URL` tests an already-running app instead of booting one, and
+`E2E_LATENCY_SCALE=3` loosens every latency budget for a remote or loaded machine. A run prints
+measured latency against budget at the end.
 
 ## Code style
 

@@ -255,16 +255,16 @@ uvicorn api:app --reload
 Key routes:
 
 - `GET /presets` lists the full preset library with official-score metadata where available.
-- `POST /score` supports generic `income_tax`, `corporate_tax`, and `payroll_tax` custom policies. With `"dynamic": true` it and `/score/preset` add the app's dynamic view: `revenue_feedback`, `debt_service`, `dynamic_adjusted_impact` (conventional − feedback + debt service) and `dynamic_model`, plus per-year `debt_service` and `dynamic_effect`. `ten_year_deficit_impact` stays the conventional score either way.
+- `POST /score` supports generic `income_tax` and `corporate_tax` custom policies; `corporate_tax` is scored by the corporate module (not the individual-income base) and rejects a non-zero `income_threshold`. `payroll_tax` returns 400 because it cannot be expressed as a rate and threshold — use `/score/preset`. `duration_years` below the 10-year window now takes effect. With `"dynamic": true` it and `/score/preset` add the app's dynamic view: `revenue_feedback`, `debt_service`, `dynamic_adjusted_impact` (conventional − feedback + debt service) and `dynamic_model`, plus per-year `debt_service` and `dynamic_effect`. `ten_year_deficit_impact` stays the conventional score either way.
 - `POST /score/preset` routes preset scoring through the same preset factory used by the Streamlit UI, including specialized policy modules such as TCJA, credits, payroll, PTC, trade, and climate presets.
-- `POST /score/tariff` uses the tariff policy model instead of a standalone rough formula.
+- `POST /score/tariff` uses the tariff policy model instead of a standalone rough formula. `import_base_billions` is capped at 20,000, a non-null `target_country` is rejected (422; it was never used), and the response carries `headline_basis: "conventional"` — `include_retaliation` and `include_consumer_cost` change only what `trade_summary` reports, never the headline.
 - `POST /ask` poses a public-finance question to the Ask assistant and returns the full citation-grounded answer plus tool-call provenance, usage, and session id. Honors the same `X-API-Key` auth, daily-cost cap, and per-session limits as the Streamlit tab — they share one sqlite ledger.
 - `POST /ask/stream` streams the same response as Server-Sent Events: `event: token` frames carry the answer chunks and a terminal `event: done` frame carries the metadata payload.
 - Score responses include a `credibility` block with benchmark category, calibrated-vs-generic evidence type, implied uncertainty range, known limitations, and a `holdout_status` field backed by the locked post-change holdout protocol.
 - `GET /validation/scorecard` exposes the consolidated revenue benchmark table, calibrated/generic/holdout counts, and a flattened `issues` list for material revenue benchmark problems.
 - `GET /benchmarks` lists distributional benchmark accuracy and includes a flattened `issues` list if any benchmark needs improvement.
 - `GET /summary` combines health, distributional benchmarks, microdata coverage, auth status, and a flattened `issues` list for dashboards.
-- `GET /readiness` combines runtime, health, distribution benchmark, and revenue scorecard checks into one machine-readable verdict: `ready`, `ready_with_warnings`, or `not_ready`.
+- `GET /readiness` (cached for 60 seconds; public output carries repo-relative paths only, never the server's absolute paths or interpreter) combines runtime, health, distribution benchmark, and revenue scorecard checks into one machine-readable verdict: `ready`, `ready_with_warnings`, or `not_ready`.
 - `GET /health` exposes Python runtime compatibility, baseline vintage, IRS/FRED freshness, microdata coverage, fallback status, and a flattened health `issues` list.
 
 Status-oriented endpoints use the same issue shape so dashboards can consume them without endpoint-specific parsing: `surface`, `severity`, `name`, `message`, and `details`.

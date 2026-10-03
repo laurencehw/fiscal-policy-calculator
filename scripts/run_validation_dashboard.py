@@ -36,7 +36,10 @@ if str(PROJECT_ROOT) not in sys.path:
 from fiscal_model.data.cps_asec import describe_microdata, load_tax_microdata  # noqa: E402
 from fiscal_model.health import check_health  # noqa: E402
 from fiscal_model.microsim.filing_threshold import filter_to_filers  # noqa: E402
-from fiscal_model.microsim.soi_calibration import calibrate_to_soi  # noqa: E402
+from fiscal_model.microsim.soi_calibration import (  # noqa: E402
+    calibrate_cells_to_soi,
+    calibrate_to_soi,
+)
 from fiscal_model.microsim.top_tail import augment_top_tail  # noqa: E402
 from fiscal_model.validation.benchmark_runners import default_model_runner  # noqa: E402
 from fiscal_model.validation.cbo_distributions import (  # noqa: E402
@@ -80,6 +83,7 @@ def collect_microdata(
     *,
     augment_top_tail_flag: bool = False,
     filter_to_filers_flag: bool = False,
+    calibrate_cells_flag: bool = False,
 ) -> dict[str, Any]:
     descriptor = describe_microdata()
     if descriptor.get("status") not in {"synthetic", "real"}:
@@ -96,13 +100,32 @@ def collect_microdata(
     filter_report = None
     if filter_to_filers_flag:
         df, filter_report = filter_to_filers(df, year=calibration_year)
+    cell_calibration = None
+    if calibrate_cells_flag:
+        # Opt-in cell calibration (planning/lanes/R6_microdata_cell_calibration.md).
+        # No non-filer filter, per that lane's recommendation: the filter is
+        # what costs the ARP distributional row and buys nothing the cell
+        # targets do not already pin. Raw coverage is recorded first so the
+        # before/after is against the shipped, uncalibrated microdata.
+        raw_summary = calibrate_to_soi(df, year=calibration_year).summary()
+        df, augmentation_report = augment_top_tail(
+            df, year=calibration_year, by_status=True
+        )
+        df, diagnostics = calibrate_cells_to_soi(df, year=calibration_year)
+        cell_calibration = {
+            "raw_summary": raw_summary,
+            "diagnostics": diagnostics,
+        }
     report = calibrate_to_soi(df, year=calibration_year)
-    return {
+    result = {
         "descriptor": descriptor,
         "report": report,
         "augmentation": augmentation_report,
         "filter": filter_report,
     }
+    if cell_calibration is not None:
+        result["cell_calibration"] = cell_calibration
+    return result
 
 
 def _serialize_operation_report(report: Any) -> dict[str, Any] | None:
@@ -115,6 +138,53 @@ def _serialize_operation_report(report: Any) -> dict[str, Any] | None:
     if hasattr(report, "weighted_removed"):
         data["weighted_removed"] = report.weighted_removed
     return data
+
+
+def _serialize_cell_calibration(block: dict[str, Any] | None) -> dict[str, Any] | None:
+    """JSON form of the opt-in cell-calibration block (None when not requested)."""
+    if block is None:
+        return None
+    return {
+        "raw_summary": block["raw_summary"],
+        **block["diagnostics"].to_dict(),
+    }
+
+
+def print_cell_calibration(block: dict[str, Any]) -> None:
+    """Before/after coverage and cell diagnostics for ``--calibrate-cells``."""
+    diag = block["diagnostics"]
+    raw = block["raw_summary"]
+    print_banner("SOI cell calibration (opt-in, AGI class x filing status)")
+    print("  Targets: IRS SOI Table 1.2 only. Nothing is fitted to a benchmark.")
+    print(f"  {'':<28} {'raw CPS':>10} {'augmented':>10} {'calibrated':>11}")
+    print(
+        f"  {'returns coverage':<28} {_fmt_pct(raw['returns_coverage_pct']):>10} "
+        f"{_fmt_pct(diag.returns_coverage_before_pct):>10} "
+        f"{_fmt_pct(diag.returns_coverage_after_pct):>11}"
+    )
+    print(
+        f"  {'AGI coverage':<28} {_fmt_pct(raw['agi_coverage_pct']):>10} "
+        f"{_fmt_pct(diag.agi_coverage_before_pct):>10} "
+        f"{_fmt_pct(diag.agi_coverage_after_pct):>11}"
+    )
+    print(
+        f"  cells: {len(diag.cells)} total, {diag.cells_hit} hit on returns and AGI, "
+        f"{diag.cells_count_only} count-only fallback, {diag.cells_empty} empty"
+    )
+    print(
+        f"  effective sample size: {diag.effective_sample_size_before / 1e3:.0f}k -> "
+        f"{diag.effective_sample_size_after / 1e3:.0f}k; weight ratio "
+        f"{diag.min_weight_ratio:.3f}..{diag.max_weight_ratio:.2f}"
+    )
+    for cell in diag.count_only_cells + diag.empty_cells:
+        print(
+            f"    {cell.mode:<10} class {cell.agi_class:>2} (${cell.agi_floor:>12,.0f}+) "
+            f"{cell.status:<8} rows={cell.rows:>5} SOI returns={cell.target_returns:>12,.0f}"
+        )
+    print(
+        "  Remaining AGI gap above 100% is SOI's no-AGI class, whose negative total "
+        "no non-negative record can represent."
+    )
 
 
 def print_banner(title: str) -> None:
@@ -835,6 +905,18 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--calibrate-cells",
+        action="store_true",
+        help=(
+            "Opt-in: status-aware top-tail augmentation plus cell calibration "
+            "to IRS SOI Table 1.2 (AGI class x filing status, returns and AGI) "
+            "before reporting coverage. No non-filer filter. Adds a cell "
+            "calibration block with before/after coverage and diagnostics. "
+            "Cannot be combined with --augment-top-tail or --filter-to-filers. "
+            "Default output is unchanged."
+        ),
+    )
+    parser.add_argument(
         "--max-loo-mean-error",
         type=float,
         default=DEFAULT_MAX_LOO_MEAN_ERROR,
@@ -844,6 +926,12 @@ def main() -> int:
         ),
     )
     args = parser.parse_args()
+    if args.calibrate_cells and (args.augment_top_tail or args.filter_to_filers):
+        parser.error(
+            "--calibrate-cells does its own status-aware augmentation and runs "
+            "without the non-filer filter; do not combine it with "
+            "--augment-top-tail or --filter-to-filers"
+        )
 
     health = collect_health()
     calibration_year = (
@@ -855,6 +943,7 @@ def main() -> int:
         calibration_year,
         augment_top_tail_flag=args.augment_top_tail,
         filter_to_filers_flag=args.filter_to_filers,
+        calibrate_cells_flag=args.calibrate_cells,
     )
 
     if args.json:
@@ -881,7 +970,7 @@ def main() -> int:
         except Exception as exc:  # pragma: no cover - best-effort diagnostic
             benchmarks_json = [{"error": str(exc)}]
 
-        payload = {
+        payload: dict[str, Any] = {
             "health": {
                 k: v
                 for k, v in health.items()
@@ -944,6 +1033,10 @@ def main() -> int:
             overall = "warn"
         else:
             overall = "ok"
+        if calibration.get("cell_calibration") is not None:
+            payload["calibration"]["cell_calibration"] = _serialize_cell_calibration(
+                calibration["cell_calibration"]
+            )
         payload.update({
             "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
             "overall": overall,
@@ -955,6 +1048,8 @@ def main() -> int:
 
     health_ok = print_health(health)
     calibration_ok = print_calibration(calibration)
+    if calibration.get("cell_calibration") is not None:
+        print_cell_calibration(calibration["cell_calibration"])
     benchmarks_ok = print_benchmarks()
     print_out_of_sample_tier()
     print_calibrated_tiers(collect_calibrated_tiers())

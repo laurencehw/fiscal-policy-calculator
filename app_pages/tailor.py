@@ -63,7 +63,15 @@ from fiscal_model.ui.session_state import (
     shadow_key,
 )
 from fiscal_model.ui.settings_controller import claim_inline_dynamic_toggle
-from fiscal_model.ui.share_links import decode_tailor_query
+from fiscal_model.ui.share_links import (
+    TAILOR_DURATION_MAX,
+    TAILOR_DURATION_MIN,
+    TAILOR_PHASE_MAX,
+    TAILOR_PHASE_MIN,
+    TAILOR_RATE_MAX_PP,
+    TAILOR_RATE_MIN_PP,
+    decode_tailor_query,
+)
 
 PAGE_TITLE = "Tailor"
 URL_PATH = "tailor"
@@ -155,11 +163,23 @@ def _seed_form_from_preset(st_module: Any, preset_name: str, preset_data: dict[s
     rate_pct = float(preset_data.get("rate_change", 0.0) or 0.0)
     threshold = int(preset_data.get("threshold", 0) or 0)
     seed_widget_default(st_module, KEY_TAILOR_TAX_POLICY_NAME, preset_name, force=True)
-    seed_widget_default(st_module, KEY_TAILOR_TAX_RATE_CHANGE_PCT, rate_pct, force=True)
+    # Seeded values are put inside the widget's own bounds: a preset past the
+    # slider's range must not crash the form either. Presets are clamped but
+    # not snapped to the 0.5pp grid -- unlike a link, a catalog preset's rate is
+    # the published reform, and snapping it would change what gets scored.
+    seed_widget_default(
+        st_module,
+        KEY_TAILOR_TAX_RATE_CHANGE_PCT,
+        max(TAILOR_RATE_MIN_PP, min(TAILOR_RATE_MAX_PP, rate_pct)),
+        force=True,
+    )
     seed_widget_default(
         st_module,
         KEY_TAILOR_TAX_DURATION,
-        int(preset_data.get("duration_years", 10) or 10),
+        max(
+            TAILOR_DURATION_MIN,
+            min(TAILOR_DURATION_MAX, int(preset_data.get("duration_years", 10) or 10)),
+        ),
         force=True,
     )
     # Engine contract: phase_in_years >= 1 (chip ⑨). A preset that stores 0
@@ -167,7 +187,9 @@ def _seed_form_from_preset(st_module: Any, preset_name: str, preset_data: dict[s
     seed_widget_default(
         st_module,
         KEY_TAILOR_TAX_PHASE_IN,
-        max(1, int(preset_data.get("phase_in_years", 1) or 1)),
+        max(
+            TAILOR_PHASE_MIN, min(TAILOR_PHASE_MAX, int(preset_data.get("phase_in_years", 1) or 1))
+        ),
         force=True,
     )
     seed_widget_default(
@@ -261,6 +283,8 @@ def _apply_query_params(st_module: Any) -> None:
     than the "cannot be modified after instantiation" error.
     """
     query_params = getattr(st_module, "query_params", None) or {}
+    # ``decode_tailor_query`` decodes each parameter on its own, so a malformed
+    # one drops only itself; this guard is the last resort, not the mechanism.
     try:
         request = decode_tailor_query(query_params)
     except Exception:  # pragma: no cover — a bad link must not break the page

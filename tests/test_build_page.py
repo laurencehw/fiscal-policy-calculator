@@ -37,6 +37,7 @@ from fiscal_model.ui.tabs.deficit_target import (
     resolve_selection,
     selection_blockers,
     short_vintage,
+    signed_billions,
     window_label,
 )
 
@@ -422,9 +423,61 @@ def test_footer_sentence_carries_the_live_baseline_vintage(plain_build):
     footer = next(
         c.value for c in plain_build.caption if c.value.startswith("Scored against CBO")
     )
-    assert "list prices, no interaction effects" in footer
+    # The blanket "no interaction effects" sentence is gone: the footer now
+    # carries the package's own classification (fiscal_model.package_interactions).
+    # Nothing is selected here, so there is no pair to classify.
+    assert "**list prices**; fewer than two policies" in footer
+    assert "no interaction effects" not in footer
     assert "overlapping options are mutually exclusive" in footer
     assert "unknown vintage" not in footer
+
+
+@pytest.fixture(scope="module")
+def interacting_build():
+    """A package holding the one pair the CPS microsim can measure."""
+    return _run_build(
+        query_params={"policies": "top-rate-39-6,salt-cap-repeal", "target": "3.0"}
+    )
+
+
+def _footer(at):
+    return next(c.value for c in at.caption if c.value.startswith("Scored against CBO"))
+
+
+def test_footer_names_an_unmodelled_package_honestly(shared_build):
+    footer = _footer(shared_build)
+    assert "list prices" in footer and "summed" in footer
+    assert "interactions between these policies are not modeled" in footer
+
+
+def test_footer_states_a_measured_interaction_as_approximate(interacting_build):
+    assert not interacting_build.exception
+    footer = _footer(interacting_build)
+    assert "measured to interact" in footer
+    text = " ".join(m.value for m in interacting_build.markdown)
+    assert "Measured" in text and "approximate" in text
+    assert "a share and not a dollar figure" in text
+
+
+def test_the_package_total_is_still_the_sum_of_list_prices(interacting_build, catalog):
+    # HARD CONSTRAINT: the disclosure never edits the total.
+    expected = catalog["top-rate-39-6"].score + catalog["salt-cap-repeal"].score
+    package = next(m for m in interacting_build.metric if m.label.startswith("Your package"))
+    assert package.value == f"{signed_billions(expected / 10)}/yr"
+    assert f"{signed_billions(expected)} over 10 years" in package.delta
+
+
+def test_csv_header_carries_the_package_classification(catalog):
+    csv_text = build_package_csv(
+        ["ss-donut-250k", "corporate-28pct"],
+        catalog,
+        10,
+        vintage_label="Feb 2026",
+        window_label="FY2026-2035",
+        target_label="3.0% of GDP",
+    )
+    assert "interaction effects are not modeled" not in csv_text
+    assert "# Scores are official list prices summed; interactions between" in csv_text
 
 
 def test_sign_convention_is_stated_once(plain_build):

@@ -27,6 +27,7 @@ from fiscal_model.ui.frozen_links import (
     clear_frozen_assignment,
     decode_frozen_assignment,
     frozen_refusal,
+    md_literal,
     render_frozen_refusal,
 )
 from fiscal_model.ui.settings_controller import claim_inline_dynamic_toggle
@@ -86,8 +87,8 @@ def render(st_module: Any, deps: Any, app_root: Any = None) -> None:
 
     if unresolved_preset:
         st_module.info(
-            f'No proposal matches **{unresolved_preset}** — it may have been '
-            "renamed since that link was made. Pick one below; every other "
+            f"No proposal matches {md_literal(unresolved_preset)} — it may have "
+            "been renamed since that link was made. Pick one below; every other "
             "part of the link still applied."
         )
 

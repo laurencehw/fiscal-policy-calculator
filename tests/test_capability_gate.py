@@ -81,7 +81,10 @@ class TestAnchorSelection:
     def test_income_anchor_prefers_the_nearest_threshold(self):
         top_rate = candidate_anchors("income_tax", 0.05, 1_000_000)
         all_filers = candidate_anchors("income_tax", 0.01, 0)
-        assert top_rate[0].income_threshold == 1_000_000
+        # The $1M row this used to land on (illustrative_top_rate_5pp) was
+        # retired by PR #162 and can no longer be an anchor; the nearest live
+        # threshold is Biden's $400K.
+        assert top_rate[0].income_threshold == 400_000
         assert all_filers[0].income_threshold == 0
 
     def test_unparameterised_family_has_no_anchor(self):

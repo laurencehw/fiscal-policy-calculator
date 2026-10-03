@@ -48,6 +48,16 @@ from .session_state import (
     restore_widget_value,
     seed_widget_default,
 )
+from .share_links import (
+    TAILOR_DURATION_MAX,
+    TAILOR_DURATION_MIN,
+    TAILOR_PHASE_MAX,
+    TAILOR_PHASE_MIN,
+    TAILOR_RATE_MAX_PP,
+    TAILOR_RATE_MIN_PP,
+    TAILOR_RATE_STEP_PP,
+    TAILOR_THRESHOLD_MAX,
+)
 
 # Preset pickers above keep their historic ``sidebar_*`` keys (share links and
 # tests/test_share_links.py depend on the literals); the custom-policy form
@@ -300,9 +310,9 @@ def render_tax_policy_inputs(
         _seed_widget_default(st_module, KEY_TAILOR_TAX_RATE_CHANGE_PCT, -2.0)
         rate_change_pct = st_module.slider(
             "Rate change (percentage points)",
-            min_value=-10.0,
-            max_value=10.0,
-            step=0.5,
+            min_value=TAILOR_RATE_MIN_PP,
+            max_value=TAILOR_RATE_MAX_PP,
+            step=TAILOR_RATE_STEP_PP,
             key=KEY_TAILOR_TAX_RATE_CHANGE_PCT,
             help=(
                 "How much to change the tax rate. "
@@ -347,7 +357,7 @@ def render_tax_policy_inputs(
             threshold = st_module.number_input(
                 "Custom income threshold ($)",
                 min_value=0,
-                max_value=10_000_000,
+                max_value=TAILOR_THRESHOLD_MAX,
                 step=50_000,
                 format="%d",
                 key=KEY_TAILOR_TAX_CUSTOM_THRESHOLD,
@@ -359,16 +369,16 @@ def render_tax_policy_inputs(
             _seed_widget_default(st_module, KEY_TAILOR_TAX_DURATION, 10)
             duration = st_module.slider(
                 "Duration (years)",
-                min_value=1,
-                max_value=10,
+                min_value=TAILOR_DURATION_MIN,
+                max_value=TAILOR_DURATION_MAX,
                 key=KEY_TAILOR_TAX_DURATION,
                 help="Standard CBO budget window is 10 years.",
             )
             _seed_widget_default(st_module, KEY_TAILOR_TAX_PHASE_IN, 1)
             phase_in = st_module.slider(
                 "Phase-in period (years)",
-                min_value=1,
-                max_value=5,
+                min_value=TAILOR_PHASE_MIN,
+                max_value=TAILOR_PHASE_MAX,
                 key=KEY_TAILOR_TAX_PHASE_IN,
                 help=(
                     "Years to gradually ramp up to the full rate change. "

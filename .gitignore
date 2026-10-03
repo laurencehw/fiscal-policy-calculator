@@ -101,3 +101,4 @@ tax_microdata_2024.csv
 
 # CBO Budget Options source PDF (2.1MB; rebuild inputs, not app data)
 fiscal_model/data_files/validation/*.pdf
+*.whl
