@@ -33,7 +33,7 @@ import pytest
 
 pytest.importorskip("playwright.sync_api", reason="playwright not installed")
 
-from .support import (  # noqa: E402  (after the importorskip on purpose)
+from .support import (
     contrast,
     go,
     headline,

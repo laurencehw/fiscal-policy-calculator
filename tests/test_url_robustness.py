@@ -36,10 +36,8 @@ from fiscal_model.ui.frozen_links import (
 from fiscal_model.ui.share_links import (
     TAILOR_RATE_MAX_PP,
     TAILOR_RATE_MIN_PP,
-    TAILOR_RATE_STEP_PP,
     decode_build_share,
     decode_tailor_query,
-    snap_to_step,
 )
 
 logging.getLogger("fiscal_model").setLevel(logging.WARNING)
@@ -101,25 +99,27 @@ def test_one_decoder_that_raises_cannot_take_the_others_down(monkeypatch):
         ("50", 10.0),
         ("-12", -10.0),
         ("1e308", 10.0),
-        ("2.6", 2.5),
-        ("0.026", 0.0),
-        ("2.75", 3.0),
-        ("-0.3", -0.5),
+        ("2.6", 2.6),
+        ("0.026", 0.026),
+        ("2.75", 2.75),
+        ("-0.3", -0.3),
         ("2.5", 2.5),
         ("-10", -10.0),
         ("10", 10.0),
     ],
 )
-def test_rate_is_clamped_into_the_slider_and_snapped_to_its_step(raw, expected):
+def test_rate_is_clamped_into_the_slider_but_never_rounded(raw, expected):
+    """A link's rate scores as written: only out-of-range values move."""
     assert decode_tailor_query({"rate": raw})["rate"] == expected
 
 
-def test_every_decoded_rate_is_a_value_the_slider_can_hold():
+def test_every_decoded_rate_is_inside_the_slider_and_off_grid_values_survive():
     for tenths in range(-1500, 1501, 7):
-        rate = decode_tailor_query({"rate": f"{tenths / 10}"})["rate"]
+        raw = tenths / 10
+        rate = decode_tailor_query({"rate": f"{raw}"})["rate"]
         assert TAILOR_RATE_MIN_PP <= rate <= TAILOR_RATE_MAX_PP
-        steps = (rate - TAILOR_RATE_MIN_PP) / TAILOR_RATE_STEP_PP
-        assert steps == pytest.approx(round(steps), abs=1e-9), rate
+        if TAILOR_RATE_MIN_PP <= raw <= TAILOR_RATE_MAX_PP:
+            assert rate == raw
 
 
 def test_phase_and_duration_stay_inside_their_sliders():
@@ -127,11 +127,6 @@ def test_phase_and_duration_stay_inside_their_sliders():
     assert decoded["phase"] == 5 and decoded["duration"] == 1
     decoded = decode_tailor_query({"phase": "0", "duration": "99"})
     assert decoded["phase"] == 1 and decoded["duration"] == 10
-
-
-def test_snap_to_step_never_raises_on_a_non_finite_value():
-    assert snap_to_step(float("nan"), -10.0, 10.0, 0.5) == -10.0
-    assert snap_to_step(float("inf"), -10.0, 10.0, 0.5) == -10.0
 
 
 # ---------------------------------------------------------------------------
@@ -240,24 +235,25 @@ def test_tailor_rate_outside_the_slider_does_not_crash(rate):
     assert TAILOR_RATE_MIN_PP <= value <= TAILOR_RATE_MAX_PP
 
 
-def test_tailor_rate_off_the_grid_seeds_the_slider_on_the_grid():
-    """The slider and the scored value are one number, and it is on the step."""
+def test_tailor_rate_off_the_grid_is_kept_as_written():
+    """+2.6pp is the repository's reference reproduction (-$302.2B); a link
+    that says 2.6 must seed 2.6, not a rounded 2.5 that scores differently."""
     at = _run(_tailor_page, {"type": "income", "rate": "2.6"})
     assert not at.exception
-    assert _slider(at, "Rate change").value == 2.5
+    assert _slider(at, "Rate change").value == 2.6
     at = _run(_tailor_page, {"type": "income", "rate": "0.026"})
-    assert _slider(at, "Rate change").value == 0.0
+    assert not at.exception
+    assert _slider(at, "Rate change").value == 0.026
 
 
-def test_tailor_capital_gains_top1m_link_seeds_only_on_grid_sliders():
+def test_tailor_capital_gains_top1m_link_seeds_in_range_sliders():
     at = _run(
         _tailor_page,
         {"type": "capital_gains", "who": "top1m", "rate": "2.6", "phase": "3", "duration": "7"},
     )
     assert not at.exception
     for slider in at.slider:
-        steps = (slider.value - slider.min) / slider.step
-        assert steps == pytest.approx(round(steps), abs=1e-9), (slider.label, slider.value)
+        assert slider.min <= slider.value <= slider.max, (slider.label, slider.value)
     assert _slider(at, "Phase-in").value == 3
     assert _slider(at, "Duration").value == 7
 

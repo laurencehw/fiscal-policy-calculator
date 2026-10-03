@@ -399,9 +399,9 @@ def parse_tailor_who(value: Any) -> int | None:
 #: The Tailor form's slider bounds. ``ui/policy_input_tax.py`` builds its
 #: widgets from these same constants, so a link can only ever seed a value the
 #: widget would have accepted: Streamlit raises ``StreamlitValueAboveMaxError``
-#: for a seeded value past ``max_value`` (``/tailor?rate=12``) and the browser
-#: logs a "values property is in conflict with the current step" warning for one
-#: off the step grid (``rate=0.026``).
+#: for a seeded value past ``max_value`` (``/tailor?rate=12``). A value off the
+#: step grid (``rate=2.6``) is kept as written: it only logs a browser warning,
+#: and rounding it would change what the link scores.
 TAILOR_RATE_MIN_PP = -10.0
 TAILOR_RATE_MAX_PP = 10.0
 TAILOR_RATE_STEP_PP = 0.5
@@ -410,21 +410,6 @@ TAILOR_DURATION_MAX = 10
 TAILOR_PHASE_MIN = 1
 TAILOR_PHASE_MAX = 5
 TAILOR_THRESHOLD_MAX = 10_000_000
-
-
-def snap_to_step(value: float, low: float, high: float, step: float) -> float:
-    """Clamp ``value`` into ``[low, high]`` and put it on the ``step`` grid.
-
-    The grid starts at ``low``, which is how Streamlit lays a slider out. A
-    non-finite value has no sensible position on a slider, so it comes back as
-    ``low`` rather than raising; callers that would rather drop the parameter
-    check :func:`math.isfinite` first (``_query_number`` does).
-    """
-    if not math.isfinite(value):
-        return low
-    clamped = max(low, min(high, float(value)))
-    steps = math.floor((clamped - low) / step + 0.5)
-    return round(max(low, min(high, low + steps * step)), 10)
 
 
 def _query_number(query_params: Mapping[str, Any], key: str) -> float | None:
@@ -479,9 +464,11 @@ def decode_tailor_query(query_params: Mapping[str, Any]) -> dict[str, Any]:
         rate = _query_number(query_params, "rate")
         if rate is None:
             return None
-        return snap_to_step(
-            rate, TAILOR_RATE_MIN_PP, TAILOR_RATE_MAX_PP, TAILOR_RATE_STEP_PP
-        )
+        # Clamp into the slider's range, but do NOT round to its step: a link
+        # that says rate=2.6 scores 2.6. Rounding would silently change what an
+        # already-shared (or frozen, spec-hashed) link scores. An off-step value
+        # only costs a browser console warning; an out-of-range one crashed.
+        return max(TAILOR_RATE_MIN_PP, min(TAILOR_RATE_MAX_PP, rate))
 
     # Engine contract: phase_in_years >= 1 (chip ⑨).
     return {

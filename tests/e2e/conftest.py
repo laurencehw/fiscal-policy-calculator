@@ -69,7 +69,8 @@ def base_url():
     port = sock.getsockname()[1]
     sock.close()
     env = {**os.environ, "ANTHROPIC_API_KEY": ""}  # CI never sets it
-    log = tempfile.NamedTemporaryFile("w+", prefix="e2e-streamlit-", suffix=".log", delete=False)
+    log = tempfile.NamedTemporaryFile(  # noqa: SIM115 -- closed in the finally below
+        "w+", prefix="e2e-streamlit-", suffix=".log", delete=False)
     proc = subprocess.Popen(
         [sys.executable, "-m", "streamlit", "run", "app.py", "--server.headless", "true",
          "--server.port", str(port), "--browser.gatherUsageStats", "false"],
