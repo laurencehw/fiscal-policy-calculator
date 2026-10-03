@@ -23,7 +23,7 @@ import math
 from typing import Any
 
 import numpy as np
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -1513,7 +1513,7 @@ def ask(
         raise HTTPException(status_code=429, detail=decision.reason)
 
     # Toggle web_search per request.
-    assistant._enable_web_search = bool(request.enable_web_search)  # noqa: SLF001
+    assistant._enable_web_search = bool(request.enable_web_search)
 
     history_for_api = [
         {"role": m.role, "content": m.content} for m in request.history
@@ -1529,7 +1529,7 @@ def ask(
                 scoring_context=request.scoring_context,
             )
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         logger.exception("Ask endpoint failed")
         error_msg = f"{type(exc).__name__}: {exc}"
         raise HTTPException(status_code=502, detail=error_msg) from exc
@@ -1545,7 +1545,7 @@ def ask(
     limiter.record_turn(
         session_id=session_id,
         role="assistant",
-        model=assistant._model,  # noqa: SLF001
+        model=assistant._model,
         usage_dict=usage_dict,
         elapsed_s=elapsed,
         tools_used=tools_used,
@@ -1557,7 +1557,7 @@ def ask(
 
     return AskResponse(
         answer=final_text,
-        model=assistant._model,  # noqa: SLF001
+        model=assistant._model,
         tool_calls=[
             AskToolCall(
                 tool=p.get("tool", ""),
@@ -1635,7 +1635,7 @@ def ask_stream(
     if not decision.allowed:
         raise HTTPException(status_code=429, detail=decision.reason)
 
-    assistant._enable_web_search = bool(request.enable_web_search)  # noqa: SLF001
+    assistant._enable_web_search = bool(request.enable_web_search)
 
     history_for_api = [
         {"role": m.role, "content": m.content} for m in request.history
@@ -1673,7 +1673,7 @@ def ask_stream(
             limiter.record_turn(
                 session_id=session_id,
                 role="assistant",
-                model=assistant._model,  # noqa: SLF001
+                model=assistant._model,
                 usage_dict=usage_dict,
                 elapsed_s=elapsed,
                 tools_used=tools_used,
@@ -1684,7 +1684,7 @@ def ask_stream(
             )
 
             done_payload = {
-                "model": assistant._model,  # noqa: SLF001
+                "model": assistant._model,
                 "tool_calls": [
                     {
                         "tool": p.get("tool", ""),
@@ -1710,7 +1710,7 @@ def ask_stream(
                 "elapsed_s": round(elapsed, 3),
             }
             yield _sse("done", _json.dumps(done_payload))
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.exception("Ask stream failed")
             # Best-effort error frame; clients should treat any 'error' event
             # as terminal regardless of position in the stream.

@@ -107,7 +107,7 @@ jobs:
           # ask-first redesign moved the Streamlit surface into app.py, the
           # st.navigation router pages (app_pages/) and the shared widgets
           # (components/), which the old fiscal_model/ tests/ scope never linted.
-          ruff check fiscal_model/ tests/ app.py app_pages/ components/ classroom_app.py --output-format=github
+          ruff check fiscal_model/ tests/ app.py api.py app_pages/ components/ classroom_app.py --output-format=github
 
       - name: Type-check gate (blocking) — green-core allowlist
         run: |

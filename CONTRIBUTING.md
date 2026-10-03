@@ -60,7 +60,7 @@ The ranked list is [`planning/ROUTE_TO_9.md`](planning/ROUTE_TO_9.md); [`plannin
    ANTHROPIC_API_KEY= python -m pytest tests/ --cov=fiscal_model
 
    # Lint scope matches CI, including the Streamlit surface outside fiscal_model/
-   ruff check fiscal_model/ tests/ app.py app_pages/ components/ classroom_app.py
+   ruff check fiscal_model/ tests/ app.py api.py app_pages/ components/ classroom_app.py
 
    # The blocking type-check gate, exactly as CI runs it
    mypy $(grep -v '^#' mypy.gate.txt | grep -v '^[[:space:]]*$')
