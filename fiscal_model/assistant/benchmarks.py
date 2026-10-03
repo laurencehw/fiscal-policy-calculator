@@ -40,6 +40,7 @@ the origin to -\\$770B.)
 from __future__ import annotations
 
 import math
+from functools import lru_cache
 from typing import Any
 
 from fiscal_model.validation.cbo_scores import KNOWN_SCORES
@@ -61,6 +62,29 @@ _THRESHOLD_SENSITIVE = {"income_tax", "capital_gains_tax"}
 # Beyond this ratio the engine and the official anchors are telling different
 # stories; the acceptance criterion is "within ~2x, never 5x".
 DIVERGENCE_LIMIT = 2.0
+
+
+@lru_cache(maxsize=1)
+def retired_policy_ids() -> frozenset[str]:
+    """``KNOWN_SCORES`` ids whose pre-registered target has been withdrawn.
+
+    Derived from the pre-registration manifest (``retired_cases()``), never
+    from a hand-kept list, so retiring a row in a later lane takes it out of
+    the assistant's anchor set with no edit here. A policy id that also has a
+    *live* manifest row (a retirement that was later replaced) is not retired.
+
+    A retired target is one nobody could trace to a document. Anchoring a
+    user-facing headline on it would present an unsourced figure as an
+    "official benchmark" - the exact thing the retirement exists to stop (a
+    2pp rate *cut* request was headlined at $600B off the retired
+    ``illustrative_500k_2pp`` while the engine said $3,855B).
+    """
+    from fiscal_model.validation.preregistered import live_cases, retired_cases
+
+    live = set(live_cases())
+    return frozenset(
+        case.policy_id for case in retired_cases() if case.policy_id not in live
+    )
 
 
 def _log_threshold(value: float | None) -> float:
@@ -107,12 +131,16 @@ def candidate_anchors(
     # published for a decade this deployment does not serve is a validation
     # target, not an anchor for a question asked today. Default True, so no
     # pre-existing record is affected.
+    # A second, independent exclusion: a row the pre-registration manifest has
+    # retired (no document behind its target) is never an anchor.
+    retired = retired_policy_ids()
     candidates = [
         score
         for score in KNOWN_SCORES.values()
         if score.policy_type == family
         and score.rate_change
         and getattr(score, "assistant_anchor_eligible", True)
+        and score.policy_id not in retired
     ]
     if not candidates:
         return []
@@ -280,4 +308,5 @@ __all__ = [
     "build_capability_gate",
     "candidate_anchors",
     "interpolate_from_anchors",
+    "retired_policy_ids",
 ]

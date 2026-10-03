@@ -45,6 +45,44 @@ APP_SUBTITLE = (
     f"Companion to the [Public Economics textbook]({TEXTBOOK_HOME})."
 )
 
+# ── Keyboard focus ───────────────────────────────────────────────────────
+#
+# Browser verification (2026-10-03, ``tests/e2e``) found that the doorway
+# links (``st.page_link``) and the top-nav links paint *no* focus indicator at
+# all: computed ``outline-style: none`` and no ``box-shadow``, so a keyboard
+# user tabbing through the Ask home could not see where they were (WCAG 2.4.7,
+# and 2.4.11 in 2.2). Streamlit's own buttons keep a 3px ring at 50% alpha,
+# which is too faint to count as 3:1 against the page (1.4.11).
+#
+# One rule, one variable. ``--fpc-focus-ring`` is a solid colour chosen for
+# >= 3:1 against both the light page (#ffffff, #f0f2f6 surfaces) and — via the
+# override in ``_DARK_MODE_CSS`` — the dark overlay (#0e1117, #262730). The
+# measured ratios are pinned in ``tests/test_focus_ring_contrast.py``. Only
+# ``:focus-visible`` is styled, so a mouse click leaves no ring behind.
+#
+# Selectors address ``data-testid`` hooks like the dark overlay does: stable
+# across minor upgrades, and a missed selector degrades to Streamlit's own
+# (weaker) indicator rather than breaking layout.
+_FOCUS_RING_LIGHT = "#0b57d0"
+_FOCUS_RING_DARK = "#ffbf47"
+
+_FOCUS_CSS = f"""<style>
+:root {{--fpc-focus-ring: {_FOCUS_RING_LIGHT};}}
+[data-testid="stPageLink-NavLink"]:focus-visible,
+[data-testid="stTopNavLink"]:focus-visible,
+[data-testid="stTopNavDropdownLink"]:focus-visible,
+[data-testid="stTopNavSection"]:focus-visible,
+[data-testid="stSidebarNavLink"]:focus-visible,
+[data-testid="stPopoverButton"]:focus-visible,
+[data-testid="stBaseButton-secondary"]:focus-visible,
+[data-testid="stBaseButton-primary"]:focus-visible,
+[data-testid="stBaseButton-segmented_control"]:focus-visible,
+[data-testid="stBaseButton-segmented_controlActive"]:focus-visible,
+[data-testid="stExpander"] summary:focus-visible
+    {{outline: 3px solid var(--fpc-focus-ring) !important;
+      outline-offset: 2px !important; border-radius: 0.5rem;}}
+</style>"""
+
 # ── Dark mode ────────────────────────────────────────────────────────────
 #
 # Streamlit has no runtime theme-switch API, so dark mode is a CSS overlay.
@@ -74,6 +112,7 @@ _DARK_SURFACE = "#262730"
 _DARK_INK = "#fafafa"
 
 _DARK_MODE_CSS = f"""<style>
+:root {{--fpc-focus-ring: {_FOCUS_RING_DARK};}}
 body, .stApp {{background-color: {_DARK_BG} !important; color: {_DARK_INK} !important;}}
 section[data-testid="stSidebar"], section[data-testid="stSidebar"] > div
     {{background-color: {_DARK_SURFACE} !important;}}
@@ -303,7 +342,7 @@ def render_chrome(
     # an external reviewer saw as a grey skeleton (2026-09-01). Nothing above
     # depends on the payload, so the title, subtitle and column frame can paint
     # while the probe runs.
-    brand_col, status_col, settings_col = st_module.columns([6, 3, 1])
+    brand_col, status_col, settings_col = st_module.columns([4, 3, 2])
 
     with brand_col:
         if show_brand:
@@ -335,7 +374,17 @@ def render_chrome(
             st_module=st_module,
             settings_tab=_disclosure(
                 st_module,
-                "🔒" if frozen is not None else "⚙",
+                # A real word, not a bare glyph: an icon-only trigger has the
+                # accessible name "gear expand_more". Streamlit's own chevron
+                # is a Material-icon *ligature* rendered as text
+                # (``<span data-testid="stIconMaterial">expand_more</span>``,
+                # no ``aria-hidden``) and the popover button ships
+                # ``aria-label=""``, so the ligature word still reaches the
+                # accessible name of every popover and expander. That leak is
+                # in Streamlit's frontend and cannot be removed from app code
+                # without re-skinning its icon — the label is the one lever
+                # (``tests/e2e`` pins it).
+                "🔒 Frozen" if frozen is not None else "⚙ Settings",
                 help_text=(
                     "Frozen for this assignment — model settings are set by the link."
                     if frozen is not None
@@ -345,6 +394,9 @@ def render_chrome(
             frozen=frozen,
         )
 
+    # Always, and *before* the dark overlay: both set ``--fpc-focus-ring`` at
+    # the same specificity, so the later (dark) declaration wins when it is on.
+    st_module.markdown(_FOCUS_CSS, unsafe_allow_html=True)
     if settings.get("dark_mode", False):
         st_module.markdown(_DARK_MODE_CSS, unsafe_allow_html=True)
 

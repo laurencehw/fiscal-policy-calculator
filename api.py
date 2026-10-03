@@ -20,12 +20,17 @@ https://fastapi.tiangolo.com/async/#path-operation-functions
 
 import logging
 import math
+import posixpath
+import re
+import threading
+import time
+from pathlib import Path
 from typing import Any
 
 import numpy as np
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from fiscal_model.api_security import (
     is_auth_enabled,
@@ -53,6 +58,7 @@ from fiscal_model.policies import (
     ordinary_income_base_for_preset,
 )
 from fiscal_model.preset_handler import create_policy_from_preset
+from fiscal_model.preset_ids import CUSTOM_POLICY_LABEL
 from fiscal_model.readiness import build_readiness_report
 from fiscal_model.scoring import FiscalPolicyScorer
 from fiscal_model.trade import TariffPolicy
@@ -145,6 +151,93 @@ def _validate_serialized_result(
                     f"±${_MAX_ANNUAL_EFFECT_BILLIONS:.0f}B"
                 )
 
+# =============================================================================
+# PUBLIC-OUTPUT HYGIENE
+# =============================================================================
+# /health, /summary and /readiness are unauthenticated. The component payloads
+# they wrap were written for an operator's terminal and carry the server's
+# absolute file paths, the Python executable, the usage-database path and
+# whether an Anthropic key is configured. None of that is the public's business
+# (the first three map the host; the last tells an attacker which of the
+# assistant's cost controls to aim at), so it is stripped here, at the API
+# boundary, and the CLI (scripts/check_readiness.py) keeps the full detail.
+
+_REPO_ROOT = Path(__file__).resolve().parent
+
+#: Keys dropped wherever they appear in a public payload.
+_PUBLIC_REDACTED_KEYS = frozenset(
+    {"executable", "python_executable", "api_key_configured", "usage_db_path"}
+)
+
+_ABSOLUTE_PATH = re.compile(
+    r"(?<![\w:/.])/(?:home|usr|root|tmp|var|opt|app|Users|mnt|srv|etc|workspace)"
+    r"/[^\s\"',;)]*"
+    r"|(?<![\w])[A-Za-z]:\\[^\s\"',;)]*"
+)
+
+
+def _scrub_path_text(text: str) -> str:
+    """Reduce any absolute path inside ``text`` to repo-relative or a basename."""
+    root = str(_REPO_ROOT)
+    text = text.replace(root + "/", "").replace(root, ".")
+    return _ABSOLUTE_PATH.sub(
+        lambda match: posixpath.basename(match.group(0).replace("\\", "/")) or "<path>",
+        text,
+    )
+
+
+def _public(value: Any) -> Any:
+    """Return ``value`` with host-identifying fields removed or shortened."""
+    if isinstance(value, dict):
+        return {
+            key: _public(item)
+            for key, item in value.items()
+            if key not in _PUBLIC_REDACTED_KEYS
+        }
+    if isinstance(value, (list, tuple)):
+        return [_public(item) for item in value]
+    if isinstance(value, str):
+        return _scrub_path_text(value)
+    return value
+
+
+#: /readiness runs the whole release gate (every health check, the benchmarks
+#: and the scorecard) in ~2s warm and ~8s cold, on an unauthenticated route.
+#: One report is shared for this many seconds; it is keyed on the builder so a
+#: replaced builder never sees another's report.
+READINESS_CACHE_SECONDS = 60.0
+_readiness_lock = threading.Lock()
+_readiness_cache: tuple[Any, float, Any] | None = None  # (builder, monotonic ts, report)
+
+
+def _now() -> float:
+    """Monotonic clock for the readiness cache (a seam for tests)."""
+    return time.monotonic()
+
+
+def _cached_readiness_report() -> Any:
+    global _readiness_cache
+    builder = build_readiness_report
+    with _readiness_lock:
+        now = _now()
+        cached = _readiness_cache
+        if (
+            cached is not None
+            and cached[0] is builder
+            and now - cached[1] < READINESS_CACHE_SECONDS
+        ):
+            return cached[2]
+        report = builder()
+        _readiness_cache = (builder, _now(), report)
+        return report
+
+
+def _clear_readiness_cache() -> None:
+    global _readiness_cache
+    with _readiness_lock:
+        _readiness_cache = None
+
+
 app = FastAPI(
     title="Fiscal Policy Calculator API",
     description="Programmatic access to CBO-style fiscal policy scoring with dynamic effects",
@@ -200,7 +293,16 @@ class ScorePolicyRequest(BaseModel):
             "service and a dynamic total). The conventional headline does not move."
         ),
     )
-    policy_type: str = Field("income_tax", description="Type of tax policy")
+    policy_type: str = Field(
+        "income_tax",
+        description=(
+            "'income_tax' (individual rate change above ``income_threshold``) "
+            "or 'corporate_tax' (a statutory corporate rate change, scored by "
+            "the corporate module; ``income_threshold`` must be 0). "
+            "'payroll_tax' is rejected: a payroll change is a cap, donut or "
+            "program-rate design with no single rate-and-threshold mapping."
+        ),
+    )
 
 
 class YearlyEffect(BaseModel):
@@ -333,19 +435,70 @@ class PresetsResponse(BaseModel):
     count: int
 
 
+#: Total US goods imports are ~$3.2T; a base ten times that is a typo, and an
+#: unbounded one scored as an overflow (``1e308``) rather than a client error.
+_MAX_IMPORT_BASE_BILLIONS = 20_000.0
+
+#: What ``/score/tariff``'s headline is, and which request flags do not move it.
+TARIFF_HEADLINE_BASIS = "conventional"
+TARIFF_HEADLINE_NOTE = (
+    "ten_year_deficit_impact is the conventional net customs score: gross duty "
+    "less the import-demand response, avoidance and the income-and-payroll "
+    "offset. include_consumer_cost and include_retaliation only decide whether "
+    "those columns are reported in trade_summary; neither moves the headline "
+    "or uncertainty_range, because retaliation and consumer cost are not part "
+    "of a conventional estimate."
+)
+
+
 class ScoreTariffRequest(BaseModel):
     """Request to score a tariff policy."""
 
     name: str = Field("Custom Tariff", description="Tariff name")
     tariff_rate: float = Field(..., ge=0, le=1.0, description="Tariff rate (0-1)")
     import_base_billions: float = Field(
-        3200.0, gt=0, description="Import base (billions)"
+        3200.0,
+        gt=0,
+        le=_MAX_IMPORT_BASE_BILLIONS,
+        description=(
+            "Import base the tariff applies to (billions of dollars a year). "
+            "Total US goods imports are about $3,200B; values above "
+            f"${_MAX_IMPORT_BASE_BILLIONS:,.0f}B are rejected."
+        ),
     )
-    target_country: str | None = Field(None, description="Target country code")
-    include_consumer_cost: bool = Field(True, description="Include consumer impact")
+    target_country: str | None = Field(
+        None,
+        description=(
+            "Not supported: the scorer prices the import base you supply and "
+            "has no per-country data behind this field. Send the country's "
+            "import base as import_base_billions. A non-null value is "
+            "rejected with 422 rather than accepted and ignored."
+        ),
+    )
+    include_consumer_cost: bool = Field(
+        True,
+        description=(
+            "Report consumer cost in trade_summary. Does not move "
+            "ten_year_deficit_impact (see headline_basis)."
+        ),
+    )
     include_retaliation: bool = Field(
-        True, description="Include retaliation effects"
+        True,
+        description=(
+            "Report retaliation cost in trade_summary. Does not move "
+            "ten_year_deficit_impact (see headline_basis)."
+        ),
     )
+
+    @field_validator("target_country")
+    @classmethod
+    def _target_country_unsupported(cls, value: str | None) -> str | None:
+        if value is not None:
+            raise ValueError(
+                "target_country is not supported: it was accepted and unused. "
+                "Send the target country's import base as import_base_billions."
+            )
+        return value
 
 
 class TradeSummary(BaseModel):
@@ -364,6 +517,10 @@ class ScoreTariffResponse(BaseModel):
     ten_year_deficit_impact: float  # Billions
     trade_summary: TradeSummary
     uncertainty_range: dict[str, float] | None = None
+    #: Which estimate the headline is. Always "conventional": the request's
+    #: include_* flags change only what trade_summary reports.
+    headline_basis: str = TARIFF_HEADLINE_BASIS
+    headline_note: str = TARIFF_HEADLINE_NOTE
 
 
 class StatusIssueModel(BaseModel):
@@ -610,10 +767,28 @@ class ScorecardResponse(BaseModel):
     issues: list[ScorecardIssueModel] = Field(default_factory=list)
 
 
+#: Types ``/score`` can score honestly from a rate and a threshold. Corporate
+#: goes through ``CorporateTaxPolicy`` (profits base, the corporate module's
+#: own calibration); a plain ``TaxPolicy`` labelled corporate would be priced on
+#: the individual income-tax base — -$1,420.3B for +1pp against the corporate
+#: module's -$198.9B — which is why it is built separately below.
 SUPPORTED_CUSTOM_POLICY_TYPES = {
     PolicyType.INCOME_TAX,
     PolicyType.CORPORATE_TAX,
-    PolicyType.PAYROLL_TAX,
+}
+
+#: Known types ``/score`` refuses, with the reason. A payroll change is a wage
+#: cap, a donut hole, a program rate or a new flat tax; "rate_change at
+#: income_threshold" names none of them, and the only way to price it was to
+#: score it on the individual income-tax base, which is the wrong base.
+UNSUPPORTED_CUSTOM_POLICY_REASONS = {
+    PolicyType.PAYROLL_TAX: (
+        "policy_type 'payroll_tax' is not supported by /score: a payroll-tax "
+        "change is a wage-cap, donut-hole or program-rate design that a single "
+        "rate_change and income_threshold cannot express, and scoring it as an "
+        "income-tax rate change would price it on the wrong base. Use /score/preset "
+        "with a payroll preset, or the app's payroll module."
+    ),
 }
 
 
@@ -631,6 +806,12 @@ def _resolve_custom_policy_type(raw_policy_type: str) -> PolicyType:
             ),
         ) from exc
 
+    if policy_type in UNSUPPORTED_CUSTOM_POLICY_REASONS:
+        raise HTTPException(
+            status_code=400,
+            detail=UNSUPPORTED_CUSTOM_POLICY_REASONS[policy_type],
+        )
+
     if policy_type not in SUPPORTED_CUSTOM_POLICY_TYPES:
         supported = ", ".join(sorted(policy.value for policy in SUPPORTED_CUSTOM_POLICY_TYPES))
         raise HTTPException(
@@ -641,6 +822,51 @@ def _resolve_custom_policy_type(raw_policy_type: str) -> PolicyType:
             ),
         )
     return policy_type
+
+
+#: The budget window every API score is reported over.
+_SCORING_WINDOW_YEARS = 10
+
+
+def _build_custom_policy(request: ScorePolicyRequest, policy_type: PolicyType) -> Any:
+    """Build the policy ``/score`` scores, on the base its type names.
+
+    ``duration_years`` is honoured by the policy classes only when ``sunset`` is
+    set, so it is set whenever the duration is shorter than the window — left
+    off, every duration scored identically.
+    """
+    sunset = request.duration_years < _SCORING_WINDOW_YEARS
+    if policy_type == PolicyType.CORPORATE_TAX:
+        if request.income_threshold:
+            raise PolicyValidationError(
+                "income_threshold does not apply to policy_type 'corporate_tax': "
+                "a corporate rate change is priced on the profits base. Send "
+                "income_threshold 0."
+            )
+        from fiscal_model.corporate import CorporateTaxPolicy
+
+        return CorporateTaxPolicy(
+            name=request.name,
+            description=request.description,
+            policy_type=policy_type,
+            rate_change=request.rate_change,
+            corporate_elasticity=request.elasticity,
+            start_year=APP_DEFAULT_START_YEAR,
+            duration_years=request.duration_years,
+            sunset=sunset,
+        )
+    return TaxPolicy(
+        name=request.name,
+        description=request.description,
+        policy_type=policy_type,
+        rate_change=request.rate_change,
+        affected_income_threshold=request.income_threshold,
+        taxable_income_elasticity=request.elasticity,
+        start_year=APP_DEFAULT_START_YEAR,
+        duration_years=request.duration_years,
+        sunset=sunset,
+        ordinary_income_base=request.ordinary_income_base,
+    )
 
 
 def _build_preset_policy(preset_name: str) -> tuple[Any, bool]:
@@ -831,7 +1057,7 @@ def health_check():
 
     Returns status of all data sources and models.
     """
-    health_data = check_health()
+    health_data = _public(check_health())
     components = {
         k: v
         for k, v in health_data.items()
@@ -858,7 +1084,7 @@ def summary():
         compare_distribution,
     )
 
-    health_data = check_health()
+    health_data = _public(check_health())
     overall_health = health_data.get("overall", "unknown")
     microdata = health_data.get("microdata", {})
 
@@ -923,7 +1149,7 @@ def readiness():
     and revenue scorecard status into one verdict:
     ``ready``, ``ready_with_warnings``, or ``not_ready``.
     """
-    report = build_readiness_report()
+    report = _cached_readiness_report()
     return ReadinessResponse(
         verdict=report.verdict,
         generated_at=report.generated_at,
@@ -935,8 +1161,8 @@ def readiness():
                 name=check.name,
                 status=check.status,
                 required=check.required,
-                summary=check.summary,
-                details=check.details,
+                summary=_scrub_path_text(check.summary),
+                details=_public(check.details),
             )
             for check in report.checks
         ],
@@ -945,8 +1171,8 @@ def readiness():
                 name=issue.name,
                 severity=issue.severity,
                 required=issue.required,
-                summary=issue.summary,
-                details=issue.details,
+                summary=_scrub_path_text(issue.summary),
+                details=_public(issue.details),
             )
             for issue in report.issues
         ],
@@ -1094,6 +1320,11 @@ def list_presets():
     presets = []
 
     for preset_name, preset_data in PRESET_POLICIES.items():
+        # The UI's "Custom Policy" is a placeholder for the user's own inputs,
+        # not a proposal; listing it would invite scoring a -2pp-at-$500K
+        # stand-in as if somebody had proposed it.
+        if preset_name == CUSTOM_POLICY_LABEL:
+            continue
         # Look up CBO score if available
         cbo_info = CBO_SCORE_MAP.get(preset_name, {})
 
@@ -1160,18 +1391,7 @@ def score_policy(
             raise PolicyValidationError("duration_years must be at least 1")
         policy_type = _resolve_custom_policy_type(request.policy_type)
 
-        # Create policy
-        policy = TaxPolicy(
-            name=request.name,
-            description=request.description,
-            policy_type=policy_type,
-            rate_change=request.rate_change,
-            affected_income_threshold=request.income_threshold,
-            taxable_income_elasticity=request.elasticity,
-            start_year=APP_DEFAULT_START_YEAR,
-            duration_years=request.duration_years,
-            ordinary_income_base=request.ordinary_income_base,
-        )
+        policy = _build_custom_policy(request, policy_type)
 
         # Score policy
         scorer = FiscalPolicyScorer(
@@ -1224,6 +1444,15 @@ def score_preset(
     app's dynamic view, exactly as ``/score`` does.
     """
     try:
+        if request.preset_name == CUSTOM_POLICY_LABEL:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"'{CUSTOM_POLICY_LABEL}' is the app's placeholder for a "
+                    "user's own inputs, not a preset. Use POST /score to score "
+                    "a custom policy, or /presets for the scorable presets."
+                ),
+            )
         # Look up preset
         if request.preset_name not in PRESET_POLICIES:
             raise ValueError(
@@ -1251,6 +1480,8 @@ def score_preset(
         _validate_serialized_result(payload, policy_name=request.preset_name)
         return ScorePolicyResponse(**payload)
 
+    except HTTPException:
+        raise
     except PolicyValidationError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     except ValueError as e:
@@ -1313,6 +1544,26 @@ def score_tariff(
             net_deficit_impact=net_impact,
         )
 
+        # The same sanity check /score runs on its payload: non-finite or
+        # implausibly large figures are an error, never a 200.
+        _validate_serialized_result(
+            {
+                "ten_year_deficit_impact": net_impact,
+                "year_by_year": [
+                    {"year": int(year), "final_effect": float(value)}
+                    for year, value in zip(
+                        result.years, result.final_deficit_effect, strict=False
+                    )
+                ],
+            },
+            policy_name=request.name,
+        )
+        for field_name, value in trade_summary.model_dump().items():
+            if not math.isfinite(value):
+                raise ScoringBoundsError(
+                    f"Policy '{request.name}': non-finite trade_summary.{field_name}"
+                )
+
         return ScoreTariffResponse(
             policy_name=request.name,
             ten_year_deficit_impact=net_impact,
@@ -1324,8 +1575,17 @@ def score_tariff(
             },
         )
 
-    except Exception as e:
+    except HTTPException:
+        raise
+    except (PolicyValidationError, ValueError) as e:
+        logger.info("Tariff '%s' invalid input: %s", request.name, e)
         raise HTTPException(status_code=400, detail=str(e)) from e
+    except FiscalModelError as e:
+        logger.warning("Tariff '%s' scoring error: %s", request.name, e)
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    except Exception as e:
+        logger.exception("Unexpected error scoring tariff '%s'", request.name)
+        raise HTTPException(status_code=500, detail="Internal scoring error") from e
 
 
 # =============================================================================

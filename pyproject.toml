@@ -37,7 +37,12 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v --tb=short"
+# Browser journeys (tests/e2e) need Chromium and a booted app, so the default run leaves
+# them out. Opt in with `pytest -m e2e tests/e2e` (a command-line -m overrides this one).
+addopts = "-v --tb=short -m 'not e2e'"
+markers = [
+    "e2e: real-browser journeys against a running Streamlit app (needs playwright + Chromium); opt in with -m e2e",
+]
 cache_dir = "test_output/.pytest_cache"
 
 [tool.ruff]

@@ -25,6 +25,7 @@ import base64
 import gzip
 import json
 import logging
+import zlib
 from typing import Any
 from urllib.parse import urlencode
 
@@ -63,8 +64,34 @@ def encode_share_payload(
     return base64.urlsafe_b64encode(compressed).rstrip(b"=").decode("ascii")
 
 
+def _bounded_gunzip(compressed: bytes, limit: int) -> bytes | None:
+    """Decompress a gzip stream, refusing to materialise more than ``limit`` bytes.
+
+    ``gzip.decompress`` inflates the whole stream before any size check, so a
+    ~50 KB token (a few hundred KB of base64 would do) could expand to
+    gigabytes. ``decompressobj(...).decompress(data, max_length)`` stops at the
+    cap, and any input left over means the payload is over the limit.
+    """
+    d = zlib.decompressobj(wbits=zlib.MAX_WBITS | 16)  # gzip container
+    out = d.decompress(compressed, limit + 1)
+    if len(out) > limit or d.unconsumed_tail:
+        return None
+    if not d.eof:  # truncated stream
+        return None
+    return out
+
+
 def decode_share_payload(token: str) -> dict[str, Any] | None:
-    """Reverse of :func:`encode_share_payload`. Returns ``None`` on failure."""
+    """Reverse of :func:`encode_share_payload`. Returns ``None`` on failure.
+
+    **The payload is unsigned, so the result is untrusted input.** Anyone can
+    mint a token whose "answer" says anything, and the Ask tab appends a
+    decoded payload to the conversation as an assistant turn. The returned
+    dict therefore always carries ``"untrusted": True`` (and the provenance is
+    rebuilt from validated primitives, never passed through), so the UI can
+    label it as a shared, unverified answer and keep it out of the model's
+    own history / citation provenance.
+    """
     if not token or len(token) > 50_000:
         return None
     try:
@@ -73,25 +100,45 @@ def decode_share_payload(token: str) -> dict[str, Any] | None:
         compressed = base64.urlsafe_b64decode(padded.encode("ascii"))
         if len(compressed) > MAX_DECODED_BYTES:
             return None
-        raw = gzip.decompress(compressed)
-        if len(raw) > MAX_DECODED_BYTES:
+        raw = _bounded_gunzip(compressed, MAX_DECODED_BYTES)
+        if raw is None:
             return None
         payload = json.loads(raw.decode("utf-8"))
+        if not isinstance(payload, dict):
+            return None
+        version = int(payload.get("v", 0))
     except Exception:
         logger.info("decode_share_payload: rejected malformed token", exc_info=True)
         return None
-    if not isinstance(payload, dict):
-        return None
-    if int(payload.get("v", 0)) > SHARE_SCHEMA_VERSION:
+    if version > SHARE_SCHEMA_VERSION:
         # Future schema we don't know how to render.
         return None
     return {
-        "version": int(payload.get("v", 0)),
-        "question": str(payload.get("q") or ""),
-        "answer": str(payload.get("a") or ""),
-        "provenance": payload.get("p") or [],
-        "model": payload.get("m"),
+        "version": version,
+        "question": str(payload.get("q") or "")[:4000],
+        "answer": str(payload.get("a") or "")[:12_000],
+        "provenance": _clean_provenance(payload.get("p")),
+        "model": str(payload["m"])[:100] if payload.get("m") else None,
+        "untrusted": True,
     }
+
+
+def _clean_provenance(prov: Any) -> list[dict[str, Any]]:
+    """Rebuild provenance as ``[{"t": str, "a": {str: str}}]``, size-bounded."""
+    out: list[dict[str, Any]] = []
+    if not isinstance(prov, list):
+        return out
+    for entry in prov[:8]:
+        if not isinstance(entry, dict):
+            continue
+        args = entry.get("a")
+        small = (
+            {str(k)[:60]: str(v)[:120] for k, v in list(args.items())[:10]}
+            if isinstance(args, dict)
+            else {}
+        )
+        out.append({"t": str(entry.get("t") or "")[:60], "a": small})
+    return out
 
 
 def build_share_url(

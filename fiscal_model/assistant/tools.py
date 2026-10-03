@@ -21,7 +21,12 @@ from ..baseline import APP_DEFAULT_START_YEAR
 from ..policies_core import DEFAULT_ORDINARY_INCOME_BASE
 from ..validation import current_evidence
 from .benchmarks import build_capability_gate
-from .sources import SOURCES, allowlisted_domain, web_search_allowed_domains
+from .sources import (
+    SOURCES,
+    allowlisted_domain,
+    fetch_target_host,
+    web_search_allowed_domains,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +104,9 @@ def _tier_contrast() -> str:
         "different accuracy tiers — state which one this run used."
     )
 
+
+#: Years in the scoring window; a hypothetical shorter than this sunsets.
+SCORING_WINDOW_YEARS = 10
 
 #: The tool's spending ``policy_type`` values and the ``SpendingPolicy``
 #: category each one is. The dataclass derives ``policy_type`` from
@@ -490,6 +498,15 @@ class AssistantTools:
         # Provenance trail of every successful tool call this turn.
         self.provenance: list[dict[str, Any]] = []
 
+    def spawn(self) -> AssistantTools:
+        """A copy for one request: same scorer/baseline/knowledge, fresh turn state."""
+        import copy
+
+        clone = copy.copy(self)
+        clone._scoring_context = None
+        clone.provenance = []
+        return clone
+
     # ---- per-turn hooks --------------------------------------------------
 
     def set_scoring_context(self, ctx: dict[str, Any] | None) -> None:
@@ -645,6 +662,16 @@ class AssistantTools:
         # growth path than the window it is reported over.
         start_year = int(getattr(self._scorer, "start_year", APP_DEFAULT_START_YEAR))
 
+        # ``Policy`` only honours ``duration_years`` when ``sunset=True``;
+        # without it a "3-year" policy is scored as a ten-year one and the
+        # argument is a silent no-op. A duration that covers the whole window
+        # needs no sunset (and keeps every full-window score byte-identical).
+        try:
+            duration_years = int(duration_years)
+        except (TypeError, ValueError):
+            return {"error": f"duration_years must be an integer, got {duration_years!r}"}
+        sunset = duration_years < SCORING_WINDOW_YEARS
+
         try:
             if is_spending:
                 # ``SpendingPolicy`` names the amount
@@ -661,6 +688,7 @@ class AssistantTools:
                     category=_SPENDING_CATEGORY_BY_TYPE[policy_type],
                     start_year=start_year,
                     duration_years=duration_years,
+                    sunset=sunset,
                 )
                 scoring_path = "spending path (standard multipliers)"
                 calibrated = False
@@ -678,6 +706,7 @@ class AssistantTools:
                     rate_change=rate_change,
                     start_year=start_year,
                     duration_years=duration_years,
+                    sunset=sunset,
                 )
                 scoring_path = f"corporate-tax module ({_corporate_path_note()})"
                 calibrated = True
@@ -698,6 +727,7 @@ class AssistantTools:
                     affected_income_threshold=affected_income_threshold,
                     start_year=start_year,
                     duration_years=duration_years,
+                    sunset=sunset,
                     ordinary_income_base=bool(ordinary_income_base),
                 )
                 scoring_path = (
@@ -856,8 +886,9 @@ class AssistantTools:
             "Accept": "text/html,application/xhtml+xml,application/pdf",
         }
         try:
-            resp = requests.get(url, timeout=15, headers=headers)
-            resp.raise_for_status()
+            resp, body, final_url = _safe_get(requests, url, headers)
+        except FetchRefused as exc:
+            return {"error": f"fetch refused: {exc}"}
         except Exception as exc:
             return {
                 "error": (
@@ -868,14 +899,22 @@ class AssistantTools:
             }
 
         content_type = resp.headers.get("Content-Type", "").lower()
-        is_pdf = url.lower().endswith(".pdf") or "application/pdf" in content_type
+        is_pdf = (
+            final_url.lower().split("?", 1)[0].endswith(".pdf")
+            or "application/pdf" in content_type
+        )
 
         text: str
         if is_pdf:
-            text = _extract_pdf_text(resp.content) or ""
+            text = _extract_pdf_text(body) or ""
             kind = "pdf"
         else:
-            text = _extract_html_text(resp.text)
+            encoding = getattr(resp, "encoding", None) or "utf-8"
+            try:
+                html = body.decode(encoding, errors="replace")
+            except LookupError:
+                html = body.decode("utf-8", errors="replace")
+            text = _extract_html_text(html)
             kind = "html"
 
         if not text:
@@ -889,6 +928,92 @@ class AssistantTools:
             "text": text[:max_chars],
             "truncated": len(text) > max_chars,
         }
+
+
+# ---------------------------------------------------------------------------
+# SSRF-safe fetching
+# ---------------------------------------------------------------------------
+
+#: Redirect hops ``fetch_url`` will follow, each re-validated on its own.
+MAX_FETCH_REDIRECTS = 3
+#: Hard cap on bytes read from one response.
+MAX_FETCH_BYTES = 5 * 1024 * 1024
+
+
+class FetchRefused(Exception):
+    """A fetch (or one of its redirect hops) failed the safety checks."""
+
+
+def _refuse_non_public_host(host: str) -> None:
+    """Raise :class:`FetchRefused` if ``host`` resolves to a non-public address.
+
+    A name that does not resolve here is left for the request itself to fail
+    on (behind an egress proxy the proxy may be the one resolving). Note this
+    is a pre-flight check, not a pin: it narrows, and does not close, DNS
+    rebinding between this lookup and the connection.
+    """
+    import ipaddress
+    import socket
+
+    try:
+        infos = socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)
+    except OSError:
+        return
+    for info in infos:
+        addr = str(info[4][0]).split("%", 1)[0]
+        try:
+            ip = ipaddress.ip_address(addr)
+        except ValueError:
+            continue
+        if not ip.is_global:
+            raise FetchRefused(f"{host} resolves to a non-public address ({ip})")
+
+
+def _safe_get(requests_mod: Any, url: str, headers: dict[str, str]) -> tuple[Any, bytes, str]:
+    """GET ``url`` following at most :data:`MAX_FETCH_REDIRECTS` validated hops.
+
+    Every hop's host is derived from the URL that will really be sent and must
+    be on the allowlist; redirects are never followed by ``requests`` itself,
+    so a 302 from cbo.gov to ``http://127.0.0.1/`` is refused rather than
+    followed. The body is read with a byte cap. Returns
+    ``(response, body_bytes, final_url)``.
+    """
+    from urllib.parse import urljoin
+
+    current = url
+    for _hop in range(MAX_FETCH_REDIRECTS + 1):
+        host = fetch_target_host(current)
+        if host is None or allowlisted_domain(current) is None:
+            raise FetchRefused("URL is not an allowlisted http(s) address")
+        _refuse_non_public_host(host)
+        resp = requests_mod.get(
+            current, timeout=15, headers=headers, allow_redirects=False, stream=True
+        )
+        try:
+            status = int(getattr(resp, "status_code", 200))
+            if 300 <= status < 400 and status != 304:
+                location = resp.headers.get("Location")
+                if not location:
+                    raise FetchRefused(f"HTTP {status} redirect with no Location")
+                current = urljoin(current, location)
+                continue
+            resp.raise_for_status()
+            declared = resp.headers.get("Content-Length")
+            if declared and declared.isdigit() and int(declared) > MAX_FETCH_BYTES:
+                raise FetchRefused(f"response larger than {MAX_FETCH_BYTES} bytes")
+            chunks: list[bytes] = []
+            total = 0
+            for chunk in resp.iter_content(chunk_size=65_536):
+                total += len(chunk)
+                if total > MAX_FETCH_BYTES:
+                    raise FetchRefused(f"response larger than {MAX_FETCH_BYTES} bytes")
+                chunks.append(chunk)
+            return resp, b"".join(chunks), current
+        finally:
+            close = getattr(resp, "close", None)
+            if callable(close):
+                close()
+    raise FetchRefused(f"more than {MAX_FETCH_REDIRECTS} redirects")
 
 
 # ---------------------------------------------------------------------------

@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from collections.abc import Mapping, Sequence
 from typing import Any
@@ -390,19 +391,69 @@ def parse_tailor_who(value: Any) -> int | None:
     if match is None:
         return None
     amount = float(match.group(1)) * _WHO_MULTIPLIER[match.group(2)]
-    if not 0 <= amount <= 10_000_000:
+    if not 0 <= amount <= TAILOR_THRESHOLD_MAX:
         return None
     return int(amount)
 
 
+#: The Tailor form's slider bounds. ``ui/policy_input_tax.py`` builds its
+#: widgets from these same constants, so a link can only ever seed a value the
+#: widget would have accepted: Streamlit raises ``StreamlitValueAboveMaxError``
+#: for a seeded value past ``max_value`` (``/tailor?rate=12``) and the browser
+#: logs a "values property is in conflict with the current step" warning for one
+#: off the step grid (``rate=0.026``).
+TAILOR_RATE_MIN_PP = -10.0
+TAILOR_RATE_MAX_PP = 10.0
+TAILOR_RATE_STEP_PP = 0.5
+TAILOR_DURATION_MIN = 1
+TAILOR_DURATION_MAX = 10
+TAILOR_PHASE_MIN = 1
+TAILOR_PHASE_MAX = 5
+TAILOR_THRESHOLD_MAX = 10_000_000
+
+
+def snap_to_step(value: float, low: float, high: float, step: float) -> float:
+    """Clamp ``value`` into ``[low, high]`` and put it on the ``step`` grid.
+
+    The grid starts at ``low``, which is how Streamlit lays a slider out. A
+    non-finite value has no sensible position on a slider, so it comes back as
+    ``low`` rather than raising; callers that would rather drop the parameter
+    check :func:`math.isfinite` first (``_query_number`` does).
+    """
+    if not math.isfinite(value):
+        return low
+    clamped = max(low, min(high, float(value)))
+    steps = math.floor((clamped - low) / step + 0.5)
+    return round(max(low, min(high, low + steps * step)), 10)
+
+
 def _query_number(query_params: Mapping[str, Any], key: str) -> float | None:
+    """A finite number from ``key``, or ``None``.
+
+    ``float()`` happily parses ``nan``, ``inf`` and ``1e999``; none of them is a
+    value any control can hold, and ``int(float("nan"))`` raises, so a single
+    such parameter used to discard the whole link. They read as absent.
+    """
     raw = _normalize_query_value(query_params.get(key))
     if raw is None:
         return None
     try:
-        return float(raw.replace("%", "").replace("pp", "").replace(",", "").strip())
+        number = float(raw.replace("%", "").replace("pp", "").replace(",", "").strip())
     except ValueError:
         return None
+    return number if math.isfinite(number) else None
+
+
+def _decode_part(decoder: Any, *args: Any) -> Any:
+    """Run one parameter's decoder; a failure drops that parameter only."""
+    try:
+        return decoder(*args)
+    except Exception:  # one bad parameter must not sink the link
+        return None
+
+
+def _int_in_range(value: float | None, low: int, high: int) -> int | None:
+    return None if value is None else max(low, min(high, int(value)))
 
 
 def decode_tailor_query(query_params: Mapping[str, Any]) -> dict[str, Any]:
@@ -411,23 +462,44 @@ def decode_tailor_query(query_params: Mapping[str, Any]) -> dict[str, Any]:
     Returned keys: ``kind`` (a ``POLICY_KINDS`` member), ``rate`` (percentage
     points), ``threshold`` (dollars), ``phase`` and ``duration`` (years), and
     ``run`` / ``dynamic`` flags.
+
+    Every numeric value is returned already inside its widget's bounds and on
+    its step grid (see the ``TAILOR_*`` constants), so what is seeded, what the
+    slider shows and what is scored are one number. Each parameter decodes on
+    its own: a malformed one reads as absent and the rest of the link applies.
     """
-    kind = None
-    raw_type = _normalize_query_value(query_params.get("type"))
-    if raw_type:
-        kind = TAILOR_TYPES.get(raw_type.strip().lower().replace(" ", "_"))
 
-    phase = _query_number(query_params, "phase")
-    duration = _query_number(query_params, "duration")
-    rate = _query_number(query_params, "rate")
+    def _kind() -> str | None:
+        raw_type = _normalize_query_value(query_params.get("type"))
+        if not raw_type:
+            return None
+        return TAILOR_TYPES.get(raw_type.strip().lower().replace(" ", "_"))
 
+    def _rate() -> float | None:
+        rate = _query_number(query_params, "rate")
+        if rate is None:
+            return None
+        return snap_to_step(
+            rate, TAILOR_RATE_MIN_PP, TAILOR_RATE_MAX_PP, TAILOR_RATE_STEP_PP
+        )
+
+    # Engine contract: phase_in_years >= 1 (chip ⑨).
     return {
-        "kind": kind,
-        "rate": rate,
-        "threshold": parse_tailor_who(query_params.get("who")),
-        # Engine contract: phase_in_years >= 1 (chip ⑨).
-        "phase": None if phase is None else max(1, min(5, int(phase))),
-        "duration": None if duration is None else max(1, min(10, int(duration))),
+        "kind": _decode_part(_kind),
+        "rate": _decode_part(_rate),
+        "threshold": _decode_part(parse_tailor_who, query_params.get("who")),
+        "phase": _decode_part(
+            lambda: _int_in_range(
+                _query_number(query_params, "phase"), TAILOR_PHASE_MIN, TAILOR_PHASE_MAX
+            )
+        ),
+        "duration": _decode_part(
+            lambda: _int_in_range(
+                _query_number(query_params, "duration"),
+                TAILOR_DURATION_MIN,
+                TAILOR_DURATION_MAX,
+            )
+        ),
         "dynamic": _query_flag(query_params, "dynamic"),
         # Absent is not the same as ``dynamic=0``: a link that says nothing
         # about scoring mode must not silently switch the toggle off.
@@ -724,6 +796,10 @@ def decode_build_share(query_params: Mapping[str, Any]) -> dict[str, Any]:
         try:
             target = float(raw_target.replace("%", "").replace(",", "").strip())
         except ValueError:
+            target = None
+        # ``nan``/``inf``/``1e999`` parse as floats and then crash the slider
+        # snap (``round(nan)``); they are not a target, so the default stands.
+        if target is not None and not math.isfinite(target):
             target = None
 
     return {"preset_ids": preset_ids, "target": target, "metric": metric}

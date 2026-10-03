@@ -229,8 +229,8 @@ def frozen_refusal(
     if frozen.engine and frozen.engine_label is None:
         return (
             f"This assignment link pins a scoring engine this deployment does "
-            f"not have (`{frozen.engine}`). Ask for a link rebuilt on this "
-            "version of the app."
+            f"not have ({md_literal(frozen.engine)}). Ask for a link rebuilt on "
+            "this version of the app."
         )
 
     return None
@@ -243,6 +243,42 @@ def _live_vintage_name() -> str:
         return resolve_baseline_vintage()
     except Exception:  # pragma: no cover — defensive
         return "an unknown vintage"
+
+
+#: What a *legitimate* ``baseline=`` / ``spec=`` / ``engine=`` looks like. A
+#: value outside these shapes was not minted by this app; it is still named in
+#: the refusal (a student should be able to read what the link said) but only
+#: ever as an inline code span -- see :func:`md_literal`.
+_BASELINE_TOKEN_RE = re.compile(r"^[a-z]+[0-9]{4}$")
+_SPEC_TOKEN_RE = re.compile(r"^[0-9a-f]{6,64}$")
+_ENGINE_TOKEN_RE = re.compile(r"^[a-z0-9_]{1,32}$")
+
+#: Longest URL-supplied string any banner will echo back.
+_MAX_ECHO = 60
+
+
+def md_literal(value: Any, *, max_len: int = _MAX_ECHO) -> str:
+    """``value`` as one inline code span that no input can break out of.
+
+    Every ``?baseline=``, ``?engine=``, ``?spec=``, ``?preset=`` and ``?values=``
+    reaches a *trusted* banner (``st.error`` / ``st.info`` / ``st.caption``,
+    which all render Markdown). Interpolated raw, ``[Click to re-verify](https://
+    evil.example/login)`` becomes a clickable link inside the app's own refusal,
+    and a backtick closes the code span the old code put around ``engine=``.
+    Inside a code span, Markdown does nothing -- no links, no autolinks, no
+    emphasis, no ``:color[...]`` directives -- so the one thing left to get
+    right is the fence: it is made longer than any backtick run in the value,
+    and control characters and newlines are flattened to spaces first.
+    """
+    text = "".join(ch if ch.isprintable() else " " for ch in str(value))
+    text = " ".join(text.split())
+    if len(text) > max_len:
+        text = text[: max_len - 1] + "\u2026"
+    if not text:
+        text = " "
+    longest = max((len(run) for run in re.findall(r"`+", text)), default=0)
+    fence = "`" * (longest + 1)
+    return f"{fence} {text} {fence}"
 
 
 #: ``february2026`` -> ``February``, ``2026``. The token is
@@ -259,7 +295,9 @@ def _vintage_name(token: str) -> str:
     match = _VINTAGE_NAME_RE.match(text.lower())
     if match:
         return f"CBO {match.group(1).capitalize()} {match.group(2)}"
-    return f"CBO {text}"
+    # Not a token this app mints: say what the link said, but only as a code
+    # span (this string is interpolated into bold and caption Markdown).
+    return f"CBO {md_literal(text)}"
 
 
 def apply_frozen_assignment(st_module: Any, frozen: FrozenAssignment) -> None:
@@ -339,8 +377,8 @@ def render_frozen_provenance(
         # setting in a later release would otherwise retire every assignment
         # link ever issued. Report it where it can be read and acted on.
         st_module.caption(
-            f"⚠️ This run's spec hash is `{spec_hash}`; the link records "
-            f"`{frozen.spec}`. Something outside the frozen controls differs — "
+            f"⚠️ This run's spec hash is {md_literal(spec_hash)}; the link records "
+            f"{md_literal(frozen.spec)}. Something outside the frozen controls differs — "
             "check the Data & methodology options in ⚙."
         )
 
@@ -633,7 +671,7 @@ def frozen_build_unresolved_refusal(
     if package.from_values:
         return (
             "This assignment link is frozen on a starting philosophy this "
-            f"deployment does not have (`{package.values_slug or 'unnamed'}`), "
+            f"deployment does not have ({md_literal(package.values_slug or 'unnamed')}), "
             "so the package it names cannot be rebuilt here. Ask for a link "
             "made from this version of the app."
         )
@@ -836,8 +874,8 @@ def render_frozen_build_provenance(
     spec_hash = build_package_spec_hash(applied_ids, target, metric)
     if frozen.spec and frozen.spec != spec_hash:
         st_module.caption(
-            f"⚠️ This package's spec hash is `{spec_hash}`; the link records "
-            f"`{frozen.spec}`. The policies or the deficit target in this URL "
+            f"⚠️ This package's spec hash is {md_literal(spec_hash)}; the link "
+            f"records {md_literal(frozen.spec)}. The policies or the deficit target in this URL "
             "are not the ones that were frozen — check `policies=` and "
             "`target=` against the link your instructor sent."
         )
