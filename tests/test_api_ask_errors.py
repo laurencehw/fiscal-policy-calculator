@@ -61,7 +61,7 @@ class _OkStream:
 
 
 class _OkClient:
-    class messages:  # noqa: N801
+    class messages:
         @staticmethod
         def stream(**kwargs: Any) -> _OkStream:
             return _OkStream()

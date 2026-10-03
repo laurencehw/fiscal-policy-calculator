@@ -970,7 +970,7 @@ def main() -> int:
         except Exception as exc:  # pragma: no cover - best-effort diagnostic
             benchmarks_json = [{"error": str(exc)}]
 
-        payload = {
+        payload: dict[str, Any] = {
             "health": {
                 k: v
                 for k, v in health.items()

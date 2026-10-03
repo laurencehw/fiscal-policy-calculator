@@ -20,7 +20,6 @@ from fiscal_model.data.cps_asec import load_tax_microdata
 from fiscal_model.data.irs_soi import IRSSOIData
 from fiscal_model.microsim.soi_calibration import (
     CELL_MODE_COUNT_ONLY,
-    CELL_MODE_EMPTY,
     CELL_MODE_HIT,
     calibrate_cells_to_soi,
     calibrate_to_soi,
@@ -82,7 +81,7 @@ class TestCellTargets:
 
     def test_agi_gap_is_the_unrepresentable_negative_class(self, calibrated):
         """Just above 100%: SOI's no-AGI class totals negative and no record can be negative."""
-        out, diag = calibrated
+        _, diag = calibrated
         soi = IRSSOIData().get_bracket_distribution(YEAR)
         assert soi[0].total_agi < 0
         gap_b = (diag.agi_coverage_after_pct / 100.0 - 1.0) * sum(b.total_agi for b in soi)
