@@ -240,3 +240,145 @@ unchanged: weighting its supply channel by a sourced affected share is still the
 pre-registered modelling lane under priority 3, and until it lands no surface
 reports it.
 
+
+## Status, 2026-10-03: re-review and the second round
+
+This section records a fresh review of revision `e663cc0` and what was done
+about it. The assessment above and the two status sections before this one are
+left as written.
+
+### Re-score: 7.0 before, 8.0 after, not 9
+
+**Before: about 7/10**, half a point *below* the 7.5 on file, because a defect
+hunt that went looking for what the first review did not (security, API
+contracts, URL handling, the Ask tool loop) found things that had been missed.
+**After: about 8/10.** Nine would need the plan's priority 5 — no more than 10%
+pooled out-of-sample error with no supported class above 20% — and nothing
+changed in this round moves it: the tier is still **15.2% over 44**, corporate
+still **40.3%**. Reaching it without retuning or dropping hard cases is a
+modelling programme, not a session, and the plan's own anti-gaming rules forbid
+the shortcuts. The honest reading of this round is that **everything that could
+be verified and repaired without touching a validation number was**, and the
+half-point it did not buy is the half-point those rules reserve.
+
+**Verified on the merged tree rather than lane by lane:** the full suite is
+**4,653 passed, 7 skipped, 23 deselected** (the browser journeys, opt-in); ruff
+at CI's pinned 0.15.8 and the blocking mypy gate are clean; and
+`cold_holdout.py --json`, `run_validation_dashboard.py` and
+`run_loo.py --donor-matrix` are **byte-identical** to the pre-round tree. No
+scored number moved.
+
+### Defects found and fixed (each reproduced first; each test fails on the old code)
+
+1. **SSRF in the Ask `fetch_url` tool.** `http://127.0.0.1:PORT\@cbo.gov/`
+   passed the domain allowlist (`urlparse` host `cbo.gov`) while `requests`
+   connected to `127.0.0.1`; a local server returned its body through the tool.
+   The host is now taken from the URL that will actually be fetched and must
+   agree with `urlparse`; userinfo, backslashes, control characters, non-http(s)
+   schemes and odd ports are refused; redirects are followed by hand (at most 3
+   hops, each re-validated); non-global addresses are refused; the response is
+   capped at 5 MB. The DNS check is a pre-flight, so rebinding is narrowed, not
+   closed.
+2. **Ask headlines were anchored on retired targets.** The four rows PR #162
+   withdrew for want of a document were still handed to the model as
+   "official" anchors, so a 3pp cut headlined **$600B against an engine run of
+   $3,855B**. Retirement is now derived from the pre-registered ledger, so no
+   retired id can anchor.
+3. **`POST /score` priced `corporate_tax` and `payroll_tax` on the
+   individual-income base** — 1pp scored −$1,420.3B for both against the
+   corporate module's −$198.9B. Corporate now routes to `CorporateTaxPolicy`;
+   payroll returns 400 rather than a wrong number.
+4. **`duration_years` was a no-op** for tax policies on the API and in Ask
+   (1, 3 and 10 years scored identically). It now takes effect.
+5. **Ask accounting.** Usage is booked after each model call, so a client that
+   drops the stream is still counted; an upstream failure is a 502 (and an SSE
+   `error` event), not a 200 carrying error text; web-search fees are priced;
+   an unknown model id is priced at the dearest tier, not Sonnet's.
+6. **Cross-request state.** `/ask` shared one `FiscalAssistant`, so two
+   concurrent requests overwrote each other's usage (reproduced: Bob's tokens
+   counted twice against the cap). Each request now gets its own copy.
+7. **Share links.** `?rate=12` crashed Tailor; `?target=nan|inf` crashed Build;
+   one non-finite parameter silently discarded a whole Tailor link. Values are
+   clamped or dropped individually. A first version also rounded `rate` to the
+   slider's step, which would have silently changed what an existing link scores
+   (`2.6` → `2.5`, and the −$302.2B reference reproduction with it) and broken
+   frozen, spec-hashed links; that was caught in review and reverted, so a link
+   scores what it says.
+8. **Markdown injection into trusted banners.** URL-supplied `baseline=`,
+   `engine=`, `spec=` and `?preset=` values were interpolated into
+   `st.error`/`st.info`, producing a clickable attacker link inside the app's
+   own "frozen assignment" refusal. They render as inert code spans now.
+9. **Forged Ask share tokens.** The token is unsigned and its "assistant" turn
+   was replayed to the model as history; the share decoder also inflated before
+   checking size (a 39 KB token expanded to 30 MB). Shared turns are display-only
+   and the decoder is bounded.
+10. **Public `/health`, `/summary`, `/readiness` leaked absolute server paths,
+    the interpreter and the usage-db path**, and `/readiness` cost ~8s per
+    unauthenticated call. Paths are now repo-relative and `/readiness` is cached
+    for 60 seconds.
+11. **Smaller:** `/score/tariff` accepted `import_base_billions=1e12` (a −$587T
+    answer) and an unused `target_country`; `/score/preset "Custom Policy"`
+    scored a UI placeholder; `score_package` ignored `interaction_factor` for the
+    behavioural offset and raised on an empty package; nine ruff findings sat in
+    `api.py`, which CI never linted (it does now).
+
+### Priorities 3, 4 and 6 of the plan
+
+- **Priority 6, browser verification — landed.** `tests/e2e/` drives the real
+  app in Chromium: 22 journeys pass (scoring, edit, share round-trip, CSV
+  export, mobile overflow, keyboard), each asserting a latency budget, no
+  exception block, no stray console error and no page-level horizontal scroll;
+  it is excluded from the default run and has its own CI job that *fails*
+  rather than skips if the browser is missing. It found real defects: doorway
+  cards had **no keyboard focus indicator** (fixed, contrast-pinned in both
+  themes) and the ⚙ control had no usable name (now "⚙ Settings").
+  **Not fixable from app code and recorded as such:** Streamlit's own chevron
+  text leaks into popover/expander names; the skip link sits eighth in tab order
+  (`ui/a11y.py` emits it in the body); and on a narrow *desktop* user agent the
+  nav drawer stays open after a tap (it closes on a real mobile UA — the first
+  report of this was a test-harness artefact). Production latency was **not**
+  measured; the local budgets are ~2.5× observed.
+- **Priority 4, interactions — partly landed.** The Build page used to say only
+  "no interaction effects". It now classifies the package, names the overlapping
+  pairs, flags list prices that cannot all be true at once (TCJA's full
+  extension plus AMT *repeal* — the repeal's $450B is below the $1,357B the
+  extension's own AMT relief is worth), and for the pairs the microsim can
+  express shows a **measured interaction as a share, not a dollar figure** — a
+  +2.6pp top-rate rise alongside SALT-cap repeal yields **13.7% less than the
+  two sum to**; a $1M surtax alongside it **20.2% less, and the sign flips**.
+  Rate × AMT, rate × credits and CTC × EITC are **structurally additive** in
+  `MicroTaxCalculator` and are labelled so, never as a measured zero. **The
+  package total is still the sum of list prices**; nothing is jointly scored in a
+  headline number, and corporate, estate, payroll, tariffs and the TCJA
+  composite remain additive-only.
+- **Priority 3, shared population — measured and offered, not made the
+  default.** The default CPS run holds **119.0% of SOI returns and 81.0% of
+  AGI** because *no calibration is applied on any default path* (`reweight_to_soi`
+  has no caller outside its tests) and the AGI definition omits pensions,
+  self-employment and rents. `--calibrate-cells` (library:
+  `calibrate_cells_to_soi`) post-stratifies on 19 AGI classes × filing status to
+  IRS SOI Table 1.2 and takes the run to **100.0% / 100.9%**, with held-out
+  taxable income at 106.2% and income tax at 102.7% of SOI. **It is opt-in
+  because it moves scored numbers:** the SALT-repeal distributional row goes
+  **5.86 → 11.01pp worse** (the 5.86 was a cancellation, now exposed — recorded
+  as a registered regression, not retuned) and three credits rows move
+  (`biden_ctc_2021` −1,528.5 → −1,440.5, `ctc_extension` −714.2 → −799.6,
+  `biden_eitc_childless` −110.4 → −176.8 against −162.6). Making it the default
+  needs pre-registration and an owner decision; see
+  `planning/lanes/R6_microdata_cell_calibration.md`.
+
+### Carry-overs, in order of what they would buy
+
+1. **Priority 5** — the only thing between 8 and 9, and not available by edit.
+2. Decide whether `--calibrate-cells` becomes the default (moves three credits
+   rows and the SALT distributional row; the synthetic top tail is stamped
+   California, a suspected contributor to the SALT regression, unmeasured).
+3. Joint scoring inside the package headline for the supported pairs.
+4. Ask's `suggest_followups` and cache pre-warm calls are not in the cost
+   ledger, so that spend never reaches the daily cap.
+5. Money renders as `$+4,581.9B` / `$-302.2B` (sign after the dollar) at about
+   93 sites; one shared formatter and a test sweep is the fix.
+6. The skip link, the Ask page's key-help expander name, and a measurement of
+   the *production* app's latency (`E2E_BASE_URL=… E2E_LATENCY_SCALE=3`).
+7. The Ask page prints a "Pilot quality blocker" alert on routine presets, which
+   the browser run flagged and nobody has yet decided is intended.
