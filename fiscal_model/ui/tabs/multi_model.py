@@ -41,7 +41,7 @@ from fiscal_model.policies import (
     ordinary_income_base_for_preset,
 )
 from fiscal_model.preset_handler import create_policy_from_preset
-from fiscal_model.ui.helpers import unescape_markdown_dollars
+from fiscal_model.ui.helpers import escape_markdown_dollars, unescape_markdown_dollars
 
 
 def _build_policy(
@@ -269,13 +269,17 @@ def render_multi_model_tab(
         )
     else:
         assessment = assess_model_pilot_comparison(bundle)
-        if not assessment.ready_for_spike:
+        # Only a genuine quality failure is a blocker. A bundle with one
+        # result (TPC honestly reporting "not representable") has no gap;
+        # it gets the "Only one default pilot" note below instead.
+        if assessment.blockers:
+            first, *rest = assessment.blockers
             st_module.warning(
-                "Pilot quality blocker: this multi-model comparison has "
-                "implausible gaps and should not be treated as decision-grade."
+                "Pilot quality blocker — not decision-grade: "
+                + escape_markdown_dollars(first)
             )
-            for blocker in assessment.blockers:
-                st_module.markdown(f"- {blocker}")
+            for blocker in rest:
+                st_module.markdown(f"- {escape_markdown_dollars(blocker)}")
         elif assessment.warnings:
             for warning in assessment.warnings:
                 st_module.caption(f"Pilot model warning: {warning}")
@@ -340,8 +344,12 @@ def render_multi_model_tab(
 
     if bundle.errors:
         st_module.subheader("Backends that did not run")
+        error_kinds = getattr(bundle, "error_kinds", {}) or {}
         for model_name, reason in bundle.errors.items():
-            kind = _classify_skip_reason(reason)
+            if error_kinds.get(model_name) == "not_representable":
+                kind = "Not representable in this pilot"
+            else:
+                kind = _classify_skip_reason(reason)
             st_module.markdown(f"- **{model_name}** ({kind}): {reason}")
 
     with st_module.expander("What am I looking at?"):

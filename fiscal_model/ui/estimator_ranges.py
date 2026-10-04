@@ -65,6 +65,8 @@ from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 
+from fiscal_model.ui.formatting import format_money
+
 __all__ = [
     "CORPORATE_AVERAGE_BASE_BILLIONS_PER_YEAR",
     "CORPORATE_BASELINE_LABEL",
@@ -406,7 +408,7 @@ def corporate_estimator_range(
                     scope_label=yield_.scope_label,
                     value_billions=yield_.per_point_billions * rate_change_pp,
                     derivation=(
-                        f"${yield_.published_10yr_billions:+,.1f}B at "
+                        f"{format_money(yield_.published_10yr_billions)} at "
                         f"{yield_.published_step_pp:+.1f}pp"
                     ),
                     marginal_share=yield_.marginal_share,

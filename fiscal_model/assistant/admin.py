@@ -8,6 +8,13 @@ return plain dicts / pandas frames suitable for Streamlit charts.
 The dashboard itself is **token-gated** — only visible when the URL has
 ``?admin=<token>`` matching ``ASSISTANT_ADMIN_TOKEN`` in the env/secrets.
 This module assumes the caller has already cleared that gate.
+
+The table holds one row per *paid call*: user-facing answers
+(``role = EVENT_ROLE_TURN``) plus the auxiliary follow-up and pre-warm calls.
+Spend figures sum every row (that is what the daily cap counts); "turn"
+counts, error rate, latency, cache-hit ratio and sessions read answer rows
+only, so the auxiliary calls do not inflate them. :func:`spend_by_kind`
+splits the spend.
 """
 
 from __future__ import annotations
@@ -21,7 +28,7 @@ from typing import Any
 
 import pandas as pd
 
-from .rate_limit import RateLimiter
+from .rate_limit import EVENT_ROLE_TURN, RateLimiter
 
 logger = logging.getLogger(__name__)
 
@@ -94,38 +101,49 @@ def snapshot(limiter: RateLimiter) -> AdminSnapshot:
             """
             SELECT
                 COUNT(*) AS n,
-                COALESCE(SUM(cost_usd), 0) AS total_cost,
-                COALESCE(AVG(cost_usd), 0) AS avg_cost,
                 COALESCE(SUM(cache_read_tokens), 0) AS cache_r,
                 COALESCE(SUM(input_tokens + cache_read_tokens + cache_creation_tokens), 0) AS total_in,
                 COALESCE(SUM(CASE WHEN error IS NOT NULL AND error != '' THEN 1 ELSE 0 END), 0) AS errors,
                 COALESCE(AVG(elapsed_s), 0) AS avg_elapsed
             FROM assistant_events
+            WHERE role = ?
+            """,
+            (EVENT_ROLE_TURN,),
+        ).fetchone()
+
+        cost_row = conn.execute(
             """
+            SELECT
+                COALESCE(SUM(cost_usd), 0) AS total_cost,
+                COALESCE(SUM(CASE WHEN day_utc = ? THEN cost_usd ELSE 0 END), 0) AS today_cost
+            FROM assistant_events
+            """,
+            (today_iso,),
         ).fetchone()
 
         today_row = conn.execute(
             """
-            SELECT COUNT(*) AS n, COALESCE(SUM(cost_usd), 0) AS cost
+            SELECT COUNT(*) AS n
             FROM assistant_events
-            WHERE day_utc = ?
+            WHERE day_utc = ? AND role = ?
             """,
-            (today_iso,),
+            (today_iso, EVENT_ROLE_TURN),
         ).fetchone()
 
         sessions_row = conn.execute(
             """
             SELECT COUNT(DISTINCT session_id) AS n
             FROM assistant_events
-            WHERE day_utc >= ?
+            WHERE day_utc >= ? AND role = ?
             """,
-            (thirty_days_ago,),
+            (thirty_days_ago, EVENT_ROLE_TURN),
         ).fetchone()
     finally:
         if limiter.db_path != ":memory:":
             conn.close()
 
     total = int(all_rows["n"] or 0)
+    total_cost = float(cost_row["total_cost"] or 0.0)
     cache_r = int(all_rows["cache_r"] or 0)
     total_in = int(all_rows["total_in"] or 0)
     cache_hit_ratio = (cache_r / total_in) if total_in > 0 else 0.0
@@ -133,11 +151,12 @@ def snapshot(limiter: RateLimiter) -> AdminSnapshot:
 
     return AdminSnapshot(
         total_turns=total,
-        total_cost_usd=float(all_rows["total_cost"] or 0.0),
+        total_cost_usd=total_cost,
         today_turns=int(today_row["n"] or 0),
-        today_cost_usd=float(today_row["cost"] or 0.0),
+        today_cost_usd=float(cost_row["today_cost"] or 0.0),
         daily_cap_usd=float(limiter.config.daily_cost_cap_usd),
-        avg_cost_per_turn_usd=float(all_rows["avg_cost"] or 0.0),
+        # Fully loaded: all spend (incl. follow-ups and pre-warm) per answer.
+        avg_cost_per_turn_usd=(total_cost / total) if total > 0 else 0.0,
         cache_hit_ratio=float(cache_hit_ratio),
         error_rate_pct=float(error_rate_pct),
         avg_elapsed_s=float(all_rows["avg_elapsed"] or 0.0),
@@ -153,13 +172,14 @@ def daily_spend_series(limiter: RateLimiter, days: int = 30) -> pd.DataFrame:
     try:
         rows = conn.execute(
             """
-            SELECT day_utc, SUM(cost_usd) AS cost, COUNT(*) AS turns
+            SELECT day_utc, SUM(cost_usd) AS cost,
+                   SUM(CASE WHEN role = ? THEN 1 ELSE 0 END) AS turns
             FROM assistant_events
             WHERE day_utc >= ?
             GROUP BY day_utc
             ORDER BY day_utc
             """,
-            (start.isoformat(),),
+            (EVENT_ROLE_TURN, start.isoformat()),
         ).fetchall()
     finally:
         if limiter.db_path != ":memory:":
@@ -212,7 +232,7 @@ def recent_turns(limiter: RateLimiter, limit: int = 20) -> pd.DataFrame:
     try:
         rows = conn.execute(
             """
-            SELECT ts_utc, session_id, model, cost_usd, elapsed_s, tools,
+            SELECT ts_utc, session_id, role, model, cost_usd, elapsed_s, tools,
                    stripped_markers, error, question_chars, answer_chars
             FROM assistant_events
             ORDER BY id DESC
@@ -230,6 +250,7 @@ def recent_turns(limiter: RateLimiter, limit: int = 20) -> pd.DataFrame:
             {
                 "ts_utc": r["ts_utc"],
                 "session": (r["session_id"] or "")[:8],
+                "kind": r["role"],
                 "model": r["model"],
                 "cost_usd": round(float(r["cost_usd"] or 0.0), 5),
                 "elapsed_s": round(float(r["elapsed_s"] or 0.0), 2),
@@ -241,6 +262,39 @@ def recent_turns(limiter: RateLimiter, limit: int = 20) -> pd.DataFrame:
             }
             for r in rows
         ]
+    )
+
+
+def spend_by_kind(limiter: RateLimiter, days: int = 30) -> pd.DataFrame:
+    """Spend and call count per event kind (``role``) over the last ``days``.
+
+    Separates answers from the auxiliary follow-up and pre-warm calls, all of
+    which count against the daily cap. Most expensive kind first.
+    """
+    cutoff = (
+        datetime.now(timezone.utc).date() - timedelta(days=days - 1)
+    ).isoformat()
+    conn = _connect_readonly(limiter)
+    try:
+        rows = conn.execute(
+            """
+            SELECT role, COALESCE(SUM(cost_usd), 0) AS cost, COUNT(*) AS calls
+            FROM assistant_events
+            WHERE day_utc >= ?
+            GROUP BY role
+            ORDER BY cost DESC
+            """,
+            (cutoff,),
+        ).fetchall()
+    finally:
+        if limiter.db_path != ":memory:":
+            conn.close()
+    return pd.DataFrame(
+        [
+            {"kind": r["role"], "cost_usd": float(r["cost"]), "calls": int(r["calls"])}
+            for r in rows
+        ],
+        columns=["kind", "cost_usd", "calls"],
     )
 
 
@@ -270,5 +324,6 @@ __all__ = [
     "is_admin_request",
     "recent_turns",
     "snapshot",
+    "spend_by_kind",
     "tool_usage_counts",
 ]

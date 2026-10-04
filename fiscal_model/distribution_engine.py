@@ -290,34 +290,61 @@ class DistributionalEngine:
                     etr_change=0.0,
                 )
             else:
-                weights = group_data.get("weight", pd.Series(1.0, index=group_data.index)).values
+                # Every statistic is weighted by the tax unit's ``weight`` —
+                # the dollar change, the after-tax-income denominator, the
+                # share with an increase or a cut, and the ETRs — exactly as
+                # ``_analyze_households`` weights by ``household_weight``. Until
+                # R7 only the dollar change was weighted and the rest counted
+                # rows (planning/lanes/R7_weighted_group_totals.md).
+                weights = (
+                    group_data["weight"].to_numpy(dtype=float)
+                    if "weight" in group_data.columns
+                    else np.ones(len(group_data), dtype=float)
+                )
                 total_weight = weights.sum()
-                tax_changes = group_data["tax_change"].values
-                weighted_tax_change_total = (tax_changes * weights).sum() / 1e9
+                tax_changes = group_data["tax_change"].to_numpy(dtype=float)
+                weighted_change = float((tax_changes * weights).sum())
+                weighted_tax_change_total = weighted_change / 1e9
                 weighted_tax_change_avg = (
-                    (tax_changes * weights).sum() / total_weight if total_weight > 0 else 0
+                    weighted_change / total_weight if total_weight > 0 else 0
                 )
 
-                aftertax_income = group_data["agi"].values - group_data["final_tax"].values
-                aftertax_income = np.maximum(aftertax_income, 1)
+                baseline_agi = group_data["agi"].to_numpy(dtype=float)
+                baseline_tax = group_data["final_tax"].to_numpy(dtype=float)
+                aftertax_income = np.maximum(baseline_agi - baseline_tax, 1)
+                aftertax_avg = (
+                    float((aftertax_income * weights).sum() / total_weight)
+                    if total_weight > 0
+                    else 0.0
+                )
                 tax_change_pct_income = (
-                    (weighted_tax_change_avg / aftertax_income.mean()) * 100
-                    if aftertax_income.mean() > 0
+                    (weighted_tax_change_avg / aftertax_avg) * 100
+                    if aftertax_avg > 0
                     else 0
                 )
 
-                num_increase = (tax_changes > 0.01).sum()
-                num_decrease = (tax_changes < -0.01).sum()
-                num_unchanged = len(tax_changes) - num_increase - num_decrease
-                pct_with_increase = (num_increase / len(tax_changes) * 100) if len(tax_changes) > 0 else 0
-                pct_with_decrease = (num_decrease / len(tax_changes) * 100) if len(tax_changes) > 0 else 0
-                pct_unchanged = (num_unchanged / len(tax_changes) * 100) if len(tax_changes) > 0 else 100
+                weight_increase = float(weights[tax_changes > 0.01].sum())
+                weight_decrease = float(weights[tax_changes < -0.01].sum())
+                if total_weight > 0:
+                    pct_with_increase = weight_increase / total_weight * 100
+                    pct_with_decrease = weight_decrease / total_weight * 100
+                    pct_unchanged = (
+                        (total_weight - weight_increase - weight_decrease)
+                        / total_weight
+                        * 100
+                    )
+                else:
+                    pct_with_increase = 0.0
+                    pct_with_decrease = 0.0
+                    pct_unchanged = 100.0
 
-                baseline_tax = group_data["final_tax"].values
-                baseline_agi = group_data["agi"].values
-                baseline_etr = (baseline_tax.sum() / baseline_agi.sum()) if baseline_agi.sum() > 0 else 0
-                reform_tax = group_data["reform_tax"].values
-                new_etr = (reform_tax.sum() / baseline_agi.sum()) if baseline_agi.sum() > 0 else 0
+                weighted_agi = float((baseline_agi * weights).sum())
+                weighted_baseline_tax = float((baseline_tax * weights).sum())
+                weighted_reform_tax = float(
+                    (group_data["reform_tax"].to_numpy(dtype=float) * weights).sum()
+                )
+                baseline_etr = weighted_baseline_tax / weighted_agi if weighted_agi > 0 else 0
+                new_etr = weighted_reform_tax / weighted_agi if weighted_agi > 0 else 0
 
                 result = DistributionalResult(
                     income_group=group,

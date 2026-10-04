@@ -31,9 +31,11 @@ import pytest
 from fiscal_model.ui import cache as ui_cache
 
 #: An unescaped ``$`` starting an amount. Deliberately wider than the digit-only
-#: lookahead in ``escape_markdown_dollars``: signed amounts (``$+4,581.9B``) are
-#: how the result panel prints deficit effects, and Streamlit's math parser
-#: happily opened a span on one. Two of these in a string is the bug.
+#: lookahead in ``escape_markdown_dollars``: until 2026-10-04 the result panel
+#: printed signed amounts as ``$+4,581.9B``, and Streamlit's math parser happily
+#: opened a span on one. The sign now goes first (``+$4,581.9B``,
+#: ``fiscal_model.ui.formatting.format_money``), but the detector stays wide so
+#: it still catches the old shape. Two of these in a string is the bug.
 UNESCAPED_CURRENCY = re.compile(r"(?<!\\)\$(?=[\d+\-−.])")
 
 #: Inline code and fenced blocks are not math-rendered, so strip them first.
@@ -199,6 +201,36 @@ def test_explore_run_actually_rendered_currency():
     assert not at.exception, [e.message for e in at.exception]
     joined = " ".join(text for _, text in _rendered_text(at))
     assert "$" in joined, "no currency rendered — the auto-run did not score"
+
+
+#: The old sign position — ``$+4,581.9B`` / ``$-302.2B`` (or ``\\$-``).
+SIGN_AFTER_DOLLAR = re.compile(r"\$[+\-−]\d")
+
+
+def test_rendered_money_puts_the_sign_before_the_dollar():
+    """The headline, metrics and captions of a real run read ``+$``/``-$``.
+
+    ``tests/test_money_sign_position.py`` greps the sources; this reads the
+    page back, because the strings are assembled at render time.
+    """
+    at = _run("app_pages/explore.py", query=EXPLORE_RUN)
+    assert not at.exception, [e.message for e in at.exception]
+
+    texts = [text for _, text in _rendered_text(at)]
+    for element in getattr(at, "metric", []):
+        for attr in ("value", "delta"):
+            value = getattr(element, attr, None)
+            if isinstance(value, str):
+                texts.append(value)
+    offenders = [t[:160] for t in texts if SIGN_AFTER_DOLLAR.search(t)]
+    assert not offenders, (
+        f"{len(offenders)} rendered string(s) print the sign after the $; use "
+        "fiscal_model.ui.formatting.format_money. First: " + repr(offenders[0])
+    )
+    joined = " ".join(texts)
+    assert "+$4,581.9B" in joined or re.search(r"[+-]\$[\d,]+\.\dB", joined), (
+        "no signed headline rendered — the guard would pass vacuously"
+    )
 
 
 # ── The detector itself ──────────────────────────────────────────────────

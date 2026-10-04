@@ -18,6 +18,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from fiscal_model.ui.formatting import format_dollars
+
 from .results_summary import _file_stem, ensure_summary
 
 
@@ -88,9 +90,9 @@ def render_detailed_results_tab(
     detailed_df = pd.DataFrame(
         {
             "Year": years,
-            "Static Deficit Effect ($B)": [f"${value:+,.2f}" for value in static_deficit],
-            "Behavioral Offset ($B)": [f"${value:+,.2f}" for value in behavioral],
-            "Conventional Deficit Effect ($B)": [f"${value:+,.2f}" for value in conventional],
+            "Static Deficit Effect ($B)": [format_dollars(value, decimals=2) for value in static_deficit],
+            "Behavioral Offset ($B)": [format_dollars(value, decimals=2) for value in behavioral],
+            "Conventional Deficit Effect ($B)": [format_dollars(value, decimals=2) for value in conventional],
         }
     )
     try:

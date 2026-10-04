@@ -43,6 +43,14 @@ _ENV_NAMES = {
     "db_path": "ASSISTANT_USAGE_DB",
 }
 
+#: ``assistant_events.role`` values. Every paid Anthropic call writes one row
+#: so :meth:`RateLimiter.today_spend_usd` — the daily cap — sees all spend.
+#: A user-facing answer is a *turn*; the two auxiliary calls are labelled
+#: separately so the admin dashboard can count turns and still sum all spend.
+EVENT_ROLE_TURN = "assistant"
+EVENT_ROLE_FOLLOWUPS = "followups"
+EVENT_ROLE_PREWARM = "prewarm"
+
 _DEFAULT_DAILY_CAP_USD = 5.00
 _DEFAULT_SESSION_MESSAGE_CAP = 20
 _DEFAULT_COOLDOWN_SECONDS = 3.0
@@ -259,6 +267,28 @@ class RateLimiter:
 
         return decision
 
+    def check_budget(self) -> RateLimitDecision:
+        """The money gate alone: kill switch and daily spend cap.
+
+        For the auxiliary paid calls (follow-up chips, prompt-cache
+        pre-warm), which are not user turns and so are not subject to the
+        per-session message cap or cool-down, but must never spend once the
+        operator has disabled Ask or the day's budget is gone.
+        """
+        today_spend = self.today_spend_usd()
+        decision = RateLimitDecision(
+            allowed=True,
+            today_spend_usd=today_spend,
+            daily_cap_usd=self.config.daily_cost_cap_usd,
+        )
+        if self.config.disabled:
+            decision.allowed = False
+            decision.reason = "disabled"
+        elif today_spend >= self.config.daily_cost_cap_usd:
+            decision.allowed = False
+            decision.reason = "daily cost cap reached"
+        return decision
+
     def today_spend_usd(self) -> float:
         """Total cost recorded today (UTC) across all sessions."""
         today = datetime.now(timezone.utc).date().isoformat()
@@ -340,6 +370,9 @@ def new_session_id() -> str:
 
 
 __all__ = [
+    "EVENT_ROLE_FOLLOWUPS",
+    "EVENT_ROLE_PREWARM",
+    "EVENT_ROLE_TURN",
     "RateLimitConfig",
     "RateLimitDecision",
     "RateLimiter",

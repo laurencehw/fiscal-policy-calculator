@@ -70,6 +70,7 @@ from fiscal_model.preset_ids import (
     preset_id_for_token,
 )
 from fiscal_model.ui.charts import apply_base_layout
+from fiscal_model.ui.formatting import format_money
 from fiscal_model.ui.frozen_links import (
     frozen_input_module,
     is_classroom_request,
@@ -727,11 +728,11 @@ def build_copy_summary(
     count = len(selection)
     lines += [
         "",
-        f"Baseline deficit: ${baseline_annual:,.0f}B/yr",
+        f"Baseline deficit: {format_money(baseline_annual, decimals=0, signed=False)}/yr",
         f"Package ({count} polic{'y' if count == 1 else 'ies'}): "
-        f"${total_impact:+,.0f}B over {n_years} years "
-        f"(${total_impact / n_years:+,.0f}B/yr)",
-        f"Adjusted deficit: ${adjusted_annual:,.0f}B/yr",
+        f"{format_money(total_impact, decimals=0)} over {n_years} years "
+        f"({format_money(total_impact / n_years, decimals=0)}/yr)",
+        f"Adjusted deficit: {format_money(adjusted_annual, decimals=0, signed=False)}/yr",
         (
             f"Target met with ${abs(remaining):,.0f}B/yr to spare"
             if remaining <= 0
@@ -746,7 +747,7 @@ def build_copy_summary(
             continue
         lines.append(
             f"  - {short_name(option.label)} ({option.build_id}): "
-            f"${option.score:+,.0f}B / {n_years}yr"
+            f"{format_money(option.score, decimals=0)} / {n_years}yr"
             + (f" [{option.source}]" if option.source else "")
         )
     if not selection:
@@ -792,8 +793,8 @@ def baseline_vintage(baseline: Any) -> str:
 
 
 def signed_billions(value: float) -> str:
-    """``$+800B`` / ``$-2,700B`` / a plain ``$0B`` at exactly zero."""
-    return f"${value:,.0f}B" if round(value) == 0 else f"${value:+,.0f}B"
+    """``+$800B`` / ``-$2,700B`` / an unsigned ``$0B`` when it rounds to zero."""
+    return format_money(value, decimals=0, signed=round(value) != 0)
 
 
 def window_label(years: Sequence[int]) -> str:
@@ -1299,7 +1300,7 @@ def _render_scoreboard(
     st_module.markdown("##### Your package")
     st_module.metric(
         "Baseline deficit",
-        f"${baseline_annual:,.0f}B/yr",
+        f"{format_money(baseline_annual, decimals=0, signed=False)}/yr",
         delta=f"{baseline_pct:.1f}% of GDP",
         delta_color="off",
     )
@@ -1311,7 +1312,7 @@ def _render_scoreboard(
     )
     st_module.metric(
         "Adjusted deficit",
-        f"${adjusted_annual:,.0f}B/yr",
+        f"{format_money(adjusted_annual, decimals=0, signed=False)}/yr",
         delta=f"{adjusted_pct:.1f}% of GDP",
         delta_color="off",
     )
@@ -1470,7 +1471,7 @@ def _render_waterfall(
             x=labels,
             y=values,
             text=[
-                f"${value:+,.0f}B" if measure == "relative" else f"${value:,.0f}B"
+                format_money(value, decimals=0, signed=measure == "relative")
                 for value, measure in zip(values, measures)
             ],
             textposition="outside",

@@ -55,7 +55,7 @@ def test_explore_preset_renders_result(desktop, base_url):
     v = go(desktop, base_url, "/explore?preset=tcja-full-extension&run=1", "explore")
     assert "Calculation complete!" in v.text
     # pinned loosely: the model figure may move with the baseline
-    assert "$+4,581.9B" in v.text or headline(v.text)
+    assert "+$4,581.9B" in v.text or headline(v.text)
     assert "Share URL:" in v.text
 
 

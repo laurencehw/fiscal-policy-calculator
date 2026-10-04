@@ -41,6 +41,11 @@ class ComparisonBundle:
     policy_name: str
     results: list[ModelResult] = field(default_factory=list)
     errors: dict[str, str] = field(default_factory=dict)
+    # Why each entry in ``errors`` did not run: ``"not_representable"`` for an
+    # honest capability skip (``UnsupportedModelPolicyError``), ``"error"`` for
+    # a backend that tried and failed.  The two mean different things to the
+    # pilot assessment: a skip shrinks coverage, a failure is a defect.
+    error_kinds: dict[str, str] = field(default_factory=dict)
 
     @property
     def max_gap(self) -> float | None:
@@ -91,6 +96,7 @@ class ComparisonBundle:
                 for result in self.results
             ],
             "errors": dict(self.errors),
+            "error_kinds": dict(self.error_kinds),
             "max_gap": self.max_gap,
         }
 
@@ -194,6 +200,14 @@ class TPCMicrosimModel(BaseScoringModel):
         population, population_source, augmentation_report, notes = self._load_population(
             year=data_year
         )
+        if "salt_cap" in reforms and "itemized_deductions" not in population.columns:
+            # Without itemized deductions the microsim's SALT cap has nothing
+            # to act on, so any SALT reform would score exactly $0 -- a fake
+            # score that reads as total disagreement with CBO-Style.
+            raise UnsupportedModelPolicyError(
+                "SALT cap reforms need itemized-deduction / state-and-local-tax "
+                "columns that the pilot microdata does not carry."
+            )
         calc = MicroTaxCalculator(year=year)
         baseline = calc.calculate(population)
         reform = calc.apply_reform(population, reforms)
@@ -346,6 +360,12 @@ def compare_policy_models(
         except Exception as exc:
             if not continue_on_error:
                 raise
-            bundle.errors[getattr(model, "name", type(model).__name__)] = str(exc)
+            model_name = getattr(model, "name", type(model).__name__)
+            bundle.errors[model_name] = str(exc)
+            bundle.error_kinds[model_name] = (
+                "not_representable"
+                if isinstance(exc, UnsupportedModelPolicyError)
+                else "error"
+            )
     return bundle
 

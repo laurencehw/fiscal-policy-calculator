@@ -13,6 +13,7 @@ import plotly.graph_objects as go
 
 from fiscal_model.ui.a11y import ChartDescription, render_accessible_chart
 from fiscal_model.ui.charts import apply_base_layout
+from fiscal_model.ui.formatting import format_dollars, format_money
 
 _CALIBRATION_SESSION_KEY = "_dist_tab_calibration_cache"
 
@@ -216,7 +217,7 @@ def render_distribution_tab(
         with col1:
             st_module.metric(
                 "Total Tax Change (Year 1)",
-                f"${dist_analysis.total_tax_change:.1f}B",
+                format_money(dist_analysis.total_tax_change, signed=False, thousands=False),
                 delta="Tax increase" if dist_analysis.total_tax_change > 0 else "Tax cut",
             )
         with col2:
@@ -245,7 +246,7 @@ def render_distribution_tab(
             df_dist.style.format(
                 {
                     "Returns (M)": "{:.1f}",
-                    "Avg Tax Change ($)": "${:,.0f}",
+                    "Avg Tax Change ($)": lambda v: format_dollars(v, signed=False),
                     "% of Income": "{:.2f}%",
                     "Share of Total": "{:.1f}%",
                     "% Tax Increase": "{:.0f}%",
@@ -283,7 +284,7 @@ def render_distribution_tab(
                 x=groups,
                 y=changes,
                 marker_color=colors,
-                text=[f"${c:,.0f}" for c in changes],
+                text=[format_dollars(c, signed=False) for c in changes],
                 textposition="outside",
             )
         )
@@ -295,7 +296,7 @@ def render_distribution_tab(
             showlegend=False,
         )
         dist_rows = [
-            (group, f"${change:+,.0f}")
+            (group, format_dollars(change))
             for group, change in zip(groups, changes)
         ]
         render_accessible_chart(
@@ -362,7 +363,9 @@ def render_distribution_tab(
             if summary["biggest_winners"]:
                 st_module.markdown("**Largest tax cuts:**")
                 for item in summary["biggest_winners"][:3]:
-                    st_module.markdown(f"- {item['group']}: ${item['avg_change']:,.0f} avg")
+                    st_module.markdown(
+                        f"- {item['group']}: {format_dollars(item['avg_change'], signed=False)} avg"
+                    )
 
             if not summary["biggest_losers"] and not summary["biggest_winners"]:
                 st_module.info("No significant tax changes")
@@ -389,7 +392,7 @@ def render_distribution_tab(
                     {
                         "Income Group": r.income_group.name,
                         "Returns (M)": f"{r.income_group.num_returns/1e6:.2f}",
-                        "Avg Tax Change": f"${r.tax_change_avg:,.0f}",
+                        "Avg Tax Change": format_dollars(r.tax_change_avg, signed=False),
                         "Share of Total": f"{r.share_of_total_change*100:.1f}%",
                     }
                 )

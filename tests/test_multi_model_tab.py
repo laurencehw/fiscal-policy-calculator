@@ -280,3 +280,74 @@ def test_tab_skips_empty_preset_dict(stub_deps):
         use_real_data=False,
     )
     assert any(call[0] == "info" for call in st.calls)
+
+
+def _render(stub_deps, monkeypatch, bundle):
+    monkeypatch.setattr(stub_deps, "compare_policy_models", lambda *a, **k: bundle)
+    st = _StubStreamlit()
+    stub_deps.render_multi_model_tab(
+        st,
+        is_spending=False,
+        preset_policies={"Demo Top Rate": {"rate_change": 2.6}},
+        tax_policy_cls=lambda **kwargs: SimpleNamespace(name=kwargs["name"]),
+        policy_type_income_tax="income_tax",
+        fiscal_policy_scorer_cls=lambda **kwargs: None,
+        data_year=2022,
+        use_real_data=False,
+    )
+    return st
+
+
+def test_single_engine_bundle_does_not_claim_implausible_gaps(stub_deps, monkeypatch):
+    """A CBO-only preset (TPC honestly skips) has no gap to call implausible."""
+    bundle = ComparisonBundle(policy_name="TCJA Full Extension")
+    bundle.results.append(
+        ModelResult(
+            model_name="CBO-Style",
+            policy_name="TCJA Full Extension",
+            ten_year_cost=4581.9,
+            annual_effects=[458.19] * 10,
+            metadata={"methodology": "Static + ETI"},
+        )
+    )
+    bundle.errors["TPC-Microsim Pilot"] = (
+        "Full TCJA packages are multi-provision; the pilot maps only simple "
+        "rate / credit / SALT reforms, not the full composite."
+    )
+    bundle.error_kinds["TPC-Microsim Pilot"] = "not_representable"
+
+    st = _render(stub_deps, monkeypatch, bundle)
+
+    texts = [str(call[1]) for call in st.calls if len(call) > 1]
+    assert not any("Pilot quality blocker" in t for t in texts)
+    assert not any("implausible" in t for t in texts)
+    assert any(
+        call[0] == "info" and "Only one default pilot" in call[1] for call in st.calls
+    )
+
+
+def test_quality_blocker_copy_states_what_disagrees_and_by_how_much(stub_deps, monkeypatch):
+    st = _render(stub_deps, monkeypatch, _make_blocked_bundle())
+
+    warnings = [call[1] for call in st.calls if call[0] == "warning" and "Pilot quality blocker" in call[1]]
+    assert len(warnings) == 1
+    headline = warnings[0]
+    assert "implausible gaps" not in headline
+    # The numbers come from the assessment, in the headline itself.
+    assert "PWBM-OLG Pilot" in headline
+    assert "357,435.3B" in headline
+
+
+def test_skip_list_labels_a_capability_skip_from_its_kind_not_its_wording(stub_deps, monkeypatch):
+    bundle = _make_bundle()
+    bundle.errors["TPC-Microsim Pilot"] = "Some new honest reason nobody added a marker for."
+    bundle.error_kinds["TPC-Microsim Pilot"] = "not_representable"
+
+    st = _render(stub_deps, monkeypatch, bundle)
+
+    assert any(
+        call[0] == "markdown"
+        and "TPC-Microsim Pilot" in call[1]
+        and "Not representable in this pilot" in call[1]
+        for call in st.calls
+    )

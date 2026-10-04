@@ -11,6 +11,7 @@ from typing import Any
 
 from fiscal_model.dynamic_view import conventional_path
 from fiscal_model.ui.charts import apply_base_layout
+from fiscal_model.ui.formatting import format_money
 
 
 def render_state_analysis_tab(
@@ -235,10 +236,12 @@ def _render_policy_impact(
 
     col1, col2, col3 = st_module.columns(3)
     with col1:
-        sign = "+" if state_federal_impact > 0 else ""
         st_module.metric(
             f"Federal Impact on {state} Taxpayers",
-            f"{sign}${state_federal_impact:.1f}B / yr",
+            format_money(
+                state_federal_impact, signed=state_federal_impact > 0, thousands=False
+            )
+            + " / yr",
             help=f"\\~{state_share * 100:.0f}% of national impact (state's share of federal income tax)",
         )
     with col2:
@@ -298,7 +301,7 @@ def _render_salt_section(
             st_module.markdown(
                 f"- Affected filers: \\~{result_lift.affected_filers:.1f}M\n"
                 f"- Avg deduction increase: \\${result_lift.avg_deduction_change:,.0f}\n"
-                f"- Federal revenue cost: \\${result_lift.federal_revenue_change_billions:.1f}B / yr\n"
+                f"- Federal revenue cost: {format_money(result_lift.federal_revenue_change_billions, signed=False, escape=True, thousands=False)} / yr\n"
                 f"- Effective state rate change: {result_lift.effective_rate_change * 100:+.2f}pp"
             )
     except Exception:

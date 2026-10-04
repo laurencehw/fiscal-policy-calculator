@@ -154,7 +154,7 @@ def test_chart_description_hidden_description_includes_data():
 
 def test_format_currency_rows_produces_signed_billions():
     rows = format_currency_rows([("2026", 12.5), ("2027", -3.25)])
-    assert rows == [("2026", "$+12.5B"), ("2027", "$-3.2B")]
+    assert rows == [("2026", "+$12.5B"), ("2027", "-$3.2B")]
 
 
 def test_render_accessible_chart_escapes_html_in_description():

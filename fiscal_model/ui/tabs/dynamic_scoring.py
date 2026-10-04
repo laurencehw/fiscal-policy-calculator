@@ -54,6 +54,7 @@ from fiscal_model.ui.a11y import (
     render_accessible_chart,
 )
 from fiscal_model.ui.charts import apply_base_layout, horizontal_legend
+from fiscal_model.ui.formatting import format_money
 
 __all__ = [
     "FRBUS_LITE_MODEL_LABEL",
@@ -165,7 +166,7 @@ def render_dynamic_scoring_tab(
             revenue_fb = macro_result.cumulative_revenue_feedback
             st_module.metric(
                 "Revenue Feedback",
-                f"${revenue_fb:.0f}B",
+                format_money(revenue_fb, decimals=0, signed=False, thousands=False),
                 delta="Additional revenue" if revenue_fb > 0 else "Revenue loss",
                 delta_color="normal" if revenue_fb > 0 else "inverse",
             )
@@ -182,7 +183,7 @@ def render_dynamic_scoring_tab(
             net_budget = macro_result.net_budget_effect
             st_module.metric(
                 "Net Budget Effect",
-                f"${net_budget:.0f}B",
+                format_money(net_budget, decimals=0, signed=False, thousands=False),
                 help="Revenue feedback minus interest costs",
             )
 
@@ -208,7 +209,7 @@ def render_dynamic_scoring_tab(
         with col1:
             st_module.metric(
                 "Conventional Score",
-                f"${conventional_score:+.0f}B",
+                format_money(conventional_score, decimals=0, thousands=False),
                 help=(
                     "Static + behavioral, before macro feedback "
                     "(positive = increases the deficit — this is the Results "
@@ -219,7 +220,7 @@ def render_dynamic_scoring_tab(
         with col2:
             st_module.metric(
                 "Revenue Feedback",
-                f"${feedback_total:+.0f}B",
+                format_money(feedback_total, decimals=0, thousands=False),
                 help=(
                     "Additional revenue from (temporary) demand-side GDP "
                     "effects. Positive feedback reduces the deficit impact."
@@ -229,7 +230,7 @@ def render_dynamic_scoring_tab(
         with col3:
             st_module.metric(
                 "Debt Service",
-                f"${interest_total:+.0f}B",
+                format_money(interest_total, decimals=0, thousands=False),
                 help=(
                     "Interest cost of the added deficit (positive = adds to "
                     "the deficit) — nets against feedback."
@@ -240,7 +241,7 @@ def render_dynamic_scoring_tab(
             net_dynamic_delta = interest_total - feedback_total
             st_module.metric(
                 "Dynamic Score",
-                f"${dynamic_total:+.0f}B",
+                format_money(dynamic_total, decimals=0, thousands=False),
                 delta=(
                     f"{(net_dynamic_delta / abs(conventional_score) * 100):+.1f}% vs conventional"
                     if conventional_score != 0

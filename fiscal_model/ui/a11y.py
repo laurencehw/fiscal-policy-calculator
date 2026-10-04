@@ -226,8 +226,14 @@ def render_accessible_chart(
 
 
 def format_currency_rows(pairs: Iterable[tuple[str, float]]) -> list[tuple[str, str]]:
-    """Format ``(label, billions)`` pairs as display rows for a data table."""
-    return [(label, f"${value:+,.1f}B") for label, value in pairs]
+    """Format ``(label, billions)`` pairs as display rows for a data table.
+
+    ``+$12.5B`` / ``-$3.2B``: sign before the ``$``, ASCII hyphen-minus, which
+    screen readers announce as "minus" (see :mod:`fiscal_model.ui.formatting`).
+    """
+    from fiscal_model.ui.formatting import format_money
+
+    return [(label, format_money(value)) for label, value in pairs]
 
 
 def landmark(st_module: Any, tag: str, html: str) -> None:

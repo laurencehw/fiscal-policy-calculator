@@ -125,7 +125,13 @@ def _render_ask_tab(**kwargs: Any) -> Any:
 
 
 def _prewarm_assistant_async(assistant: Any) -> None:
-    """Fire prompt-cache pre-warming on a daemon thread; never block boot."""
+    """Fire prompt-cache pre-warming on a daemon thread; never block boot.
+
+    ``prewarm_cache`` is a paid call. With no ``limiter`` it books its cost in
+    the default ``RateLimiter`` ledger — the same sqlite db the Ask page and
+    the API read for the daily cap — and skips the call when Ask is disabled
+    or today's cap is already spent.
+    """
     import contextlib
     import threading
 

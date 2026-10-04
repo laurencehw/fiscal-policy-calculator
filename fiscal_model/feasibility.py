@@ -105,19 +105,37 @@ class ModelPilotAssessment:
     min_required_models: int = DEFAULT_MODEL_PILOT_MIN_MODELS
     max_gap_limit_billions: float = DEFAULT_MODEL_PILOT_MAX_GAP_BILLIONS
     max_abs_cost_limit_billions: float = DEFAULT_MODEL_PILOT_MAX_ABS_COST_BILLIONS
+    # The two engines that set ``max_gap`` (highest estimate, lowest estimate).
+    max_gap_models: tuple[str, str] | None = None
+    # Quality failures: an estimate outside the sanity bound, a gap outside it,
+    # or a backend that tried to run and failed.  Never "too few engines".
     blockers: list[str] = field(default_factory=list)
+    # Why there is less to compare: fewer than ``min_required_models`` results,
+    # and each engine that honestly reported the policy as not representable.
+    # A bundle with fewer than two results has no gap, so none of this is a
+    # claim about disagreement.
+    coverage_notes: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
     @property
+    def comparable(self) -> bool:
+        return self.result_count >= self.min_required_models
+
+    @property
     def ready_for_spike(self) -> bool:
-        return not self.blockers
+        return self.comparable and not self.blockers
 
     @property
     def status(self) -> str:
-        return "ready" if self.ready_for_spike else "blocked"
+        if self.blockers:
+            return "blocked"
+        if not self.comparable:
+            return "insufficient_engines"
+        return "ready"
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
+        payload["comparable"] = self.comparable
         payload["ready_for_spike"] = self.ready_for_spike
         payload["status"] = self.status
         return payload
@@ -247,6 +265,9 @@ def assess_model_pilot_comparison(
 
     results = list(getattr(comparison_bundle, "results", []) or [])
     errors = dict(getattr(comparison_bundle, "errors", {}) or {})
+    # Bundles built before ``error_kinds`` existed carry no kinds; treat their
+    # errors as failures rather than silently relabelling them as skips.
+    error_kinds = dict(getattr(comparison_bundle, "error_kinds", {}) or {})
     max_gap = getattr(comparison_bundle, "max_gap", None)
     costs: list[tuple[str, float]] = []
 
@@ -256,6 +277,8 @@ def assess_model_pilot_comparison(
         costs.append((model_name, ten_year_cost))
 
     max_abs_cost = max((abs(cost) for _, cost in costs), default=None)
+    high = max(costs, key=lambda item: item[1]) if len(costs) >= 2 else None
+    low = min(costs, key=lambda item: item[1]) if len(costs) >= 2 else None
     assessment = ModelPilotAssessment(
         result_count=len(results),
         error_count=len(errors),
@@ -264,20 +287,24 @@ def assess_model_pilot_comparison(
         min_required_models=min_required_models,
         max_gap_limit_billions=float(max_gap_limit_billions),
         max_abs_cost_limit_billions=float(max_abs_cost_limit_billions),
+        max_gap_models=(high[0], low[0]) if high and low else None,
     )
 
-    if len(results) < min_required_models:
-        assessment.blockers.append(
+    if not assessment.comparable:
+        assessment.coverage_notes.append(
             f"Only {len(results)} model result(s) returned; need at least "
-            f"{min_required_models} comparable engines."
+            f"{min_required_models} comparable engines to measure a gap."
         )
 
     for model_name, error in errors.items():
-        message = f"{model_name} did not run: {error}"
-        if len(results) < min_required_models:
-            assessment.blockers.append(message)
+        if error_kinds.get(model_name) == "not_representable":
+            assessment.coverage_notes.append(
+                f"{model_name} does not represent this policy: {error}"
+            )
+        elif not assessment.comparable:
+            assessment.blockers.append(f"{model_name} failed: {error}")
         else:
-            assessment.warnings.append(message)
+            assessment.warnings.append(f"{model_name} did not run: {error}")
 
     for model_name, cost in costs:
         if abs(cost) > max_abs_cost_limit_billions:
@@ -286,9 +313,15 @@ def assess_model_pilot_comparison(
                 f"+/-{max_abs_cost_limit_billions:,.0f}B pilot sanity bound."
             )
 
-    if max_gap is not None and abs(float(max_gap)) > max_gap_limit_billions:
+    if (
+        max_gap is not None
+        and high is not None
+        and low is not None
+        and abs(float(max_gap)) > max_gap_limit_billions
+    ):
         assessment.blockers.append(
-            f"Max model gap is {float(max_gap):,.1f}B, above the "
+            f"Max model gap is {float(max_gap):,.1f}B: {high[0]} ({high[1]:,.1f}B) "
+            f"vs {low[0]} ({low[1]:,.1f}B), above the "
             f"{max_gap_limit_billions:,.0f}B pilot sanity bound."
         )
 

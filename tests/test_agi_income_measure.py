@@ -23,6 +23,7 @@ from fiscal_model.policies import (
     TaxPolicy,
     income_measure_for_preset,
 )
+from fiscal_model.ui.formatting import format_money
 from fiscal_model.validation.cbo_scores import KNOWN_SCORES
 from fiscal_model.validation.core import (
     _AGI_BASE_POLICY_IDS,
@@ -470,5 +471,5 @@ def test_the_caption_reconstructs_the_taxable_column_figure():
 
     result = _scorer_for(agi_policy, use_real).score_policy(agi_policy, dynamic=False)
     caption = agi_income_column_caption(agi_policy, result)
-    assert f"\\${taxable_total:+,.1f}B" in caption
-    assert f"\\${agi_total:+,.1f}B" in caption
+    assert format_money(taxable_total, escape=True) in caption
+    assert format_money(agi_total, escape=True) in caption

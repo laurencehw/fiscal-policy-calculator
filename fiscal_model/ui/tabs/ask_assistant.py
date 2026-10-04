@@ -124,6 +124,30 @@ CONTINUE_PROMPT = (
 )
 
 
+#: Env flag that shows the keyless page's setup help and key diagnostic to
+#: *every* visitor — for a local or private deployment with no admin token.
+#: Otherwise they render only for ``?admin=<token>`` (see
+#: :func:`_deployer_view_allowed`).
+SHOW_SETUP_ENV = "ASSISTANT_SHOW_SETUP"
+
+
+def _deployer_view_allowed(st_module: Any) -> bool:
+    """Whether this viewer may see deployer-only setup detail.
+
+    Same terms as the admin dashboard (``?admin=<token>`` matching
+    ``ASSISTANT_ADMIN_TOKEN``, via :func:`fiscal_model.assistant.admin.is_admin_request`)
+    or the :data:`SHOW_SETUP_ENV` flag. Fails closed.
+    """
+    if os.environ.get(SHOW_SETUP_ENV, "").strip() in {"1", "true", "TRUE", "yes"}:
+        return True
+    try:
+        from fiscal_model.assistant.admin import is_admin_request
+
+        return bool(is_admin_request(getattr(st_module, "query_params", {}) or {}))
+    except Exception:
+        return False
+
+
 def _promote_secret_to_env(st_module: Any) -> dict[str, Any]:
     """Promote ``st.secrets["ANTHROPIC_API_KEY"]`` to ``os.environ`` if set.
 
@@ -374,7 +398,9 @@ def _render_body(
     if not fiscal_assistant.is_available():
         if show_hero:
             _render_hero(st_module)
-        _render_unavailable(st_module, diag)
+        _render_unavailable(
+            st_module, diag, deployer_view=_deployer_view_allowed(st_module)
+        )
         return
 
     # --- ensure session state -------------------------------------------
@@ -733,12 +759,30 @@ def _edit_distance(a: str, b: str) -> int:
     return prev[-1]
 
 
-def _render_unavailable(st_module: Any, diag: dict[str, Any] | None = None) -> None:
-    """Show a friendly admin-facing message when no API key is configured.
+def _render_unavailable(
+    st_module: Any,
+    diag: dict[str, Any] | None = None,
+    *,
+    deployer_view: bool = False,
+) -> None:
+    """Show the keyless-deployment message.
 
-    Includes a "What we looked for" diagnostic so the deployer can tell
-    exactly what failed: env var? secrets file? wrong key name?
+    The public sees one friendly sentence and nothing else: the diagnostic
+    lists the *names of the deployment's secrets* and how ``st.secrets``
+    behaved, which is operator information, not visitor information.
+
+    With ``deployer_view`` (admin token or :data:`SHOW_SETUP_ENV`) it adds
+    the setup instructions and a "what was checked" diagnostic so the
+    deployer can tell exactly what failed: env var? secrets file? wrong key
+    name?
     """
+    if not deployer_view:
+        st_module.info(
+            "💬 Ask is not configured on this deployment, so it can't answer "
+            "questions right now. The rest of the calculator works as usual."
+        )
+        return
+
     st_module.info(
         "💬 The Ask assistant is not configured for this deployment.\n\n"
         "*If you're the deployer:* set `ANTHROPIC_API_KEY` either as a "
@@ -746,6 +790,12 @@ def _render_unavailable(st_module: Any, diag: dict[str, Any] | None = None) -> N
         "below for what was checked."
     )
 
+    # Deployer-facing, so it sits behind the same gate as the diagnostic: a
+    # visitor cannot set the deployment's key, and the instructions name
+    # the secret the deployment reads. (Its accessible name also carries
+    # Streamlit's icon ligature, "keyboard_arrow_right How to set the key";
+    # that is Streamlit's markup and not fixable here, but behind the gate
+    # no public visitor meets it.)
     with st_module.expander("How to set the key", expanded=False):
         st_module.markdown(
             "**Streamlit Cloud** — Settings → Secrets, add:\n\n"
@@ -1069,10 +1119,14 @@ def _maybe_generate_and_render_followups(
     if not seed:
         return
     try:
+        # A paid call: gated on, and booked in, the same ledger the daily
+        # cap reads (see ``FiscalAssistant.suggest_followups``).
         suggestions = fiscal_assistant.suggest_followups(
             last_question=seed["question"],
             last_answer=seed["answer"],
             max_suggestions=3,
+            limiter=_get_rate_limiter(state),
+            session_id=state.get(_SESSION_ID_KEY, "unknown"),
         )
     except Exception:
         suggestions = []

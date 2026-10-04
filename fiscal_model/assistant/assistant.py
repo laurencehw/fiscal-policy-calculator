@@ -39,6 +39,11 @@ from typing import Any
 
 from .citations import annotate_unsupported
 from .cost import ConversationCost, TurnUsage
+from .rate_limit import (
+    EVENT_ROLE_FOLLOWUPS,
+    EVENT_ROLE_PREWARM,
+    RateLimiter,
+)
 from .system_prompt import build_system_prompt, stable_prompt_prefix
 from .tools import TOOL_SCHEMAS, AssistantTools, web_search_tool_definition
 
@@ -46,6 +51,8 @@ logger = logging.getLogger(__name__)
 
 
 DEFAULT_MODEL = "claude-sonnet-4-6"
+#: The cheap model the follow-up chips are generated with.
+FOLLOWUP_MODEL = "claude-haiku-4-5-20251001"
 OPUS_MODEL = "claude-opus-4-7"
 MAX_TOOL_ITERATIONS = 4
 # Tighter than the SDK default — most public-finance answers are 200-400
@@ -251,7 +258,61 @@ class FiscalAssistant:
 
     # ---- cache warming --------------------------------------------------
 
-    def prewarm_cache(self) -> bool:
+    # ---- auxiliary paid calls and the cap ledger ------------------------
+
+    @staticmethod
+    def _aux_ledger(limiter: RateLimiter | None) -> RateLimiter:
+        """The ledger the daily cap reads; the default one when none is given.
+
+        There is deliberately no way to make an auxiliary paid call *without*
+        a ledger: omitting ``limiter`` uses the same default sqlite db the Ask
+        page and the API construct, so the spend still counts.
+        """
+        return limiter if limiter is not None else RateLimiter()
+
+    @staticmethod
+    def _aux_budget_allows(ledger: RateLimiter) -> bool:
+        """Kill switch + daily cap, checked before spending. Fails closed."""
+        try:
+            return bool(ledger.check_budget().allowed)
+        except Exception:
+            logger.warning("Budget check failed; skipping auxiliary call", exc_info=True)
+            return False
+
+    @staticmethod
+    def _record_aux_usage(
+        ledger: RateLimiter,
+        *,
+        role: str,
+        model: str,
+        usage: Any,
+        session_id: str,
+        elapsed_s: float,
+    ) -> None:
+        """Book one auxiliary call's cost in ``assistant_events``.
+
+        Priced with the same table as a turn but kept out of ``self.cost``
+        (the per-session meter counts answers, and a pre-warm belongs to no
+        session).
+        """
+        try:
+            turn = ConversationCost().record(usage, model)
+            ledger.record_turn(
+                session_id=session_id,
+                role=role,
+                model=model,
+                usage_dict=turn.to_dict(),
+                elapsed_s=elapsed_s,
+            )
+        except Exception:
+            logger.warning("Failed to record %s usage", role, exc_info=True)
+
+    def prewarm_cache(
+        self,
+        *,
+        limiter: RateLimiter | None = None,
+        session_id: str = "prewarm",
+    ) -> bool:
         """Issue a tiny request to seed Anthropic's prompt cache.
 
         The cached system block is large (~3 KB); paying its creation cost
@@ -261,13 +322,22 @@ class FiscalAssistant:
         Idempotent across the cache TTL (≈5 min). Failures are swallowed
         — pre-warming is opportunistic, not load-bearing.
         Returns True on success.
+
+        It is a paid call (it *writes* the cache, at 1.25x input price), so it
+        is skipped when the kill switch is on or today's cap is spent, and
+        its cost is booked in ``limiter``'s ledger as an
+        :data:`~.rate_limit.EVENT_ROLE_PREWARM` row.
         """
         if not self.is_available() or self._cache_prewarmed:
             return False
+        ledger = self._aux_ledger(limiter)
+        if not self._aux_budget_allows(ledger):
+            return False
+        started = time.time()
         try:
             stable = stable_prompt_prefix()
             client = self.client
-            client.messages.create(
+            msg = client.messages.create(
                 model=self._model,
                 max_tokens=8,  # smallest plausible; we discard the output
                 system=[
@@ -280,10 +350,18 @@ class FiscalAssistant:
                 messages=[{"role": "user", "content": "OK"}],
             )
             self._cache_prewarmed = True
-            return True
         except Exception:
             logger.info("Cache pre-warm failed (non-fatal)", exc_info=True)
             return False
+        self._record_aux_usage(
+            ledger,
+            role=EVENT_ROLE_PREWARM,
+            model=self._model,
+            usage=getattr(msg, "usage", None),
+            session_id=session_id,
+            elapsed_s=time.time() - started,
+        )
+        return True
 
     # ---- follow-up generation -------------------------------------------
 
@@ -292,14 +370,25 @@ class FiscalAssistant:
         last_question: str,
         last_answer: str,
         max_suggestions: int = 3,
+        *,
+        limiter: RateLimiter | None = None,
+        session_id: str = "unknown",
     ) -> list[str]:
         """Ask the model for 2–3 short follow-up questions a reader might want.
 
         Issues a cheap separate API call with no tools and small max_tokens
         so it doesn't double the cost of the main turn. Returns an empty
         list on any failure — follow-ups are a nicety, not load-bearing.
+
+        Still a paid call: it is skipped (empty list) when the kill switch is
+        on or today's cap is spent, and its cost is booked in ``limiter``'s
+        ledger as an :data:`~.rate_limit.EVENT_ROLE_FOLLOWUPS` row under
+        ``session_id``.
         """
         if not self.is_available():
+            return []
+        ledger = self._aux_ledger(limiter)
+        if not self._aux_budget_allows(ledger):
             return []
         prompt = (
             "You just answered this user question:\n\n"
@@ -312,15 +401,24 @@ class FiscalAssistant:
             "comparison, one mechanism, one policy angle. Do not preface "
             "with anything; output ONLY the questions, one per line."
         )
+        started = time.time()
         try:
             msg = self.client.messages.create(
-                model="claude-haiku-4-5-20251001",  # cheap; Haiku is fine
+                model=FOLLOWUP_MODEL,  # cheap; Haiku is fine
                 max_tokens=300,
                 messages=[{"role": "user", "content": prompt}],
             )
         except Exception:
             logger.warning("Followup suggestion call failed", exc_info=True)
             return []
+        self._record_aux_usage(
+            ledger,
+            role=EVENT_ROLE_FOLLOWUPS,
+            model=FOLLOWUP_MODEL,
+            usage=getattr(msg, "usage", None),
+            session_id=session_id,
+            elapsed_s=time.time() - started,
+        )
 
         # Extract plain text.
         text_parts: list[str] = []

@@ -155,8 +155,8 @@ def test_build_credibility_html_keeps_the_band_and_the_row_apart():
     assert "Policy class: <strong>payroll</strong>" in html
     assert "Out-of-sample rows: <strong>2</strong>" in html
     assert "Mean error: <strong>±7.8%</strong>" in html
-    assert "Typical: <strong>$-1,040B to $-960B</strong>" in html
-    assert "Worst row: <strong>$-1,200B to $-800B</strong>" in html
+    assert "Typical: <strong>-$1,040B to -$960B</strong>" in html
+    assert "Worst row: <strong>-$1,200B to -$800B</strong>" in html
     assert "<strong>1 of 2</strong> inside the mean" in html
     assert "Unfitted reconstruction" in html
     assert "89.2% from -$1.43T" in html
