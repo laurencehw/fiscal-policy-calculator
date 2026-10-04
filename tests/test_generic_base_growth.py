@@ -22,6 +22,7 @@ from fiscal_model.baseline import (
 )
 from fiscal_model.policies import PolicyType, TaxPolicy
 from fiscal_model.scoring import FiscalPolicyScorer
+from fiscal_model.ui.formatting import format_money
 
 SOI_TAX_YEAR = 2023
 
@@ -311,8 +312,8 @@ def test_the_caption_reconstructs_the_figure_the_app_used_to_print():
     previous = float(
         np.sum(np.asarray(result.final_deficit_effect, dtype=float) / factors)
     )
-    assert f"{previous:+,.1f}B" in caption
-    assert f"{result.total_10_year_cost:+,.1f}B" in caption
+    assert format_money(previous, escape=True) in caption
+    assert format_money(result.total_10_year_cost, escape=True) in caption
 
 
 def test_the_caption_is_silent_where_no_number_moved():
@@ -353,12 +354,12 @@ def test_the_caption_quotes_the_conventional_score_on_a_dynamic_run():
     factors = np.array(
         [baseline.nominal_income_index(int(year)) / anchor for year in dynamic.years]
     )
-    assert f"{float(conventional.sum()):+,.1f}B" in caption
-    assert f"{float(np.sum(conventional / factors)):+,.1f}B" in caption
+    assert format_money(float(conventional.sum()), escape=True) in caption
+    assert format_money(float(np.sum(conventional / factors)), escape=True) in caption
     # And the figure the dynamic run would have produced from the final path is
     # NOT what the caption says, which is the defect this pins.
     final = np.asarray(dynamic.final_deficit_effect, dtype=float)
-    assert f"{float(final.sum()):+,.1f}B" not in caption
+    assert format_money(float(final.sum()), escape=True) not in caption
 
 
 def test_the_caption_says_the_same_thing_static_and_dynamic():
@@ -442,14 +443,14 @@ def test_the_two_captions_are_a_2x2_and_it_closes():
     base_caption = agi_inclusive_base_caption(policy, result)
     proj_caption = income_base_projection_caption(policy, result)
     column_caption = agi_income_column_caption(policy, result)
-    assert f"{ordinary_projected:+,.1f}B" in base_caption
-    assert f"{agi_projected:+,.1f}B" in base_caption
-    assert f"{flat_agi_column:+,.1f}B" in proj_caption
-    assert f"{shipped:+,.1f}B" in proj_caption
-    assert f"{agi_projected:+,.1f}B" in column_caption
-    assert f"{shipped:+,.1f}B" in column_caption
+    assert format_money(ordinary_projected, escape=True) in base_caption
+    assert format_money(agi_projected, escape=True) in base_caption
+    assert format_money(flat_agi_column, escape=True) in proj_caption
+    assert format_money(shipped, escape=True) in proj_caption
+    assert format_money(agi_projected, escape=True) in column_caption
+    assert format_money(shipped, escape=True) in column_caption
     for caption in (base_caption, proj_caption, column_caption):
-        assert f"{ordinary_flat:+,.1f}B" not in caption
+        assert format_money(ordinary_flat, escape=True) not in caption
 
 
 def test_the_static_caption_is_unchanged_by_the_conventional_path():
@@ -465,6 +466,6 @@ def test_the_static_caption_is_unchanged_by_the_conventional_path():
     assert conventional == pytest.approx(
         np.asarray(result.final_deficit_effect, dtype=float)
     )
-    assert f"{float(result.total_10_year_cost):+,.1f}B" in income_base_projection_caption(
+    assert format_money(float(result.total_10_year_cost), escape=True) in income_base_projection_caption(
         policy, result
     )

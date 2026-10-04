@@ -303,3 +303,78 @@ def test_cbo_style_model_tcja_ten_year_cost_matches_aligned_scorer():
     annual = np.asarray(result.annual_effects, dtype=float)
     assert len(annual) == 10
     assert (annual != 0).all()
+
+
+def test_compare_policy_models_labels_capability_skips_apart_from_failures():
+    from fiscal_model.models.comparison import UnsupportedModelPolicyError
+
+    class _Unsupported:
+        name = "Skip"
+
+        def score(self, policy):
+            raise UnsupportedModelPolicyError("not representable here")
+
+    class _Broken:
+        name = "Broken"
+
+        def score(self, policy):
+            raise RuntimeError("boom")
+
+    bundle = compare_policy_models(
+        SimpleNamespace(name="p"), [_Unsupported(), _Broken()], continue_on_error=True
+    )
+
+    assert bundle.errors == {"Skip": "not representable here", "Broken": "boom"}
+    assert bundle.error_kinds == {"Skip": "not_representable", "Broken": "error"}
+    assert bundle.to_dict()["error_kinds"] == bundle.error_kinds
+
+
+def _population_without_itemized_columns() -> pd.DataFrame:
+    # The shipped CPS file has no ``itemized_deductions`` /
+    # ``state_and_local_taxes`` columns, so the microsim's SALT cap has
+    # nothing to bite on.
+    return pd.DataFrame(
+        [
+            {
+                "id": 1, "weight": 1.0, "wages": 400_000, "interest_income": 0.0,
+                "dividend_income": 0.0, "capital_gains": 0.0, "social_security": 0.0,
+                "unemployment": 0.0, "children": 0, "married": 1, "age_head": 50,
+                "agi": 400_000,
+            }
+        ]
+    )
+
+
+def test_tpc_refuses_a_salt_reform_its_microdata_cannot_see():
+    """Repeal SALT Cap scored exactly $0.0B on TPC: a fake score, not a skip.
+
+    CBO-Style priced the same preset at +$740.3B, so the tab reported a
+    ~100% "disagreement" that was really the microdata lacking the lever.
+    """
+    from fiscal_model.models.comparison import UnsupportedModelPolicyError
+    from fiscal_model.tax_expenditures import create_repeal_salt_cap
+
+    model = TPCMicrosimModel(population=_population_without_itemized_columns())
+
+    with pytest.raises(UnsupportedModelPolicyError, match="itemized"):
+        model.score(create_repeal_salt_cap())
+
+
+def test_tpc_notes_describe_a_threshold_zero_rate_change_as_every_bracket():
+    """A threshold-0 rate change maps to the every-bracket adder, not the top rate."""
+    population = _population_without_itemized_columns()
+    policy = TaxPolicy(
+        name="+1pp all brackets",
+        description="+1pp on every ordinary bracket",
+        policy_type=PolicyType.INCOME_TAX,
+        rate_change=0.01,
+        affected_income_threshold=0,
+        duration_years=3,
+    )
+
+    result = TPCMicrosimModel(population=population).score(policy)
+
+    notes = " ".join(result.metadata["notes"])
+    assert result.metadata["reforms"]["income_rate_change_threshold"] == 0.0
+    assert "top-rate" not in notes
+    assert "every ordinary bracket" in notes

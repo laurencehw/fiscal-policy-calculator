@@ -69,9 +69,12 @@ _NO_TOOL = object()
 
 
 @pytest.fixture(autouse=True)
-def _no_ambient_key(monkeypatch):
+def _no_ambient_key(monkeypatch, tmp_path):
     """A stray key in the developer's environment must not change behaviour."""
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    # Translation books its cost in the shared ledger; keep it off the repo's.
+    monkeypatch.setenv("ASSISTANT_USAGE_DB", str(tmp_path / "usage.db"))
+    monkeypatch.delenv("ASSISTANT_DISABLED", raising=False)
 
 
 # ---------------------------------------------------------------------------

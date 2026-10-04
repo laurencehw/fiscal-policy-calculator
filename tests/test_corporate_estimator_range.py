@@ -508,7 +508,7 @@ def test_trump_15_caption_shows_the_published_range_and_the_non_overlap() -> Non
     )
     joined = " ".join(captions)
     assert "carries a published range" in joined
-    assert "+595.0B" in joined and "+673.1B" in joined
+    assert "+\\$595.0B" in joined and "+\\$673.1B" in joined
     assert "do **not** overlap" in joined
     # The bundled run does not quote a model share.
     assert "share of the vintage's average corporate base" not in joined

@@ -452,6 +452,7 @@ def render_result_tabs(
                 fiscal_policy_scorer_cls=deps.FiscalPolicyScorer,
                 data_year=settings["data_year"],
                 use_real_data=settings["use_real_data"],
+                default_preset=getattr(scored, "policy_name", None),
             )
 
             st_module.markdown("---")

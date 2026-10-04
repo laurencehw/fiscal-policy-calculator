@@ -55,10 +55,13 @@ def _mock_client(*blocks: Any) -> MagicMock:
 
 
 @pytest.fixture(autouse=True)
-def _no_ambient_key(monkeypatch: pytest.MonkeyPatch) -> None:
+def _no_ambient_key(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
     """Never let a developer's real key leak into these tests."""
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     monkeypatch.delenv(MODEL_ENV_VAR, raising=False)
+    # Translation books its cost in the shared ledger; keep it off the repo's.
+    monkeypatch.setenv("ASSISTANT_USAGE_DB", str(tmp_path / "usage.db"))
+    monkeypatch.delenv("ASSISTANT_DISABLED", raising=False)
 
 
 class TestHappyPath:

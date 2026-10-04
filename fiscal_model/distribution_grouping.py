@@ -2,6 +2,7 @@
 Grouping helpers for distributional analysis.
 """
 
+import numpy as np
 import pandas as pd
 
 from .data.irs_soi import TaxBracketData
@@ -222,27 +223,44 @@ def aggregate_top_income_groups(
     return groups
 
 
+def _microdata_weights(microdata: pd.DataFrame) -> np.ndarray:
+    """Return the record weights, or ones when the frame carries no ``weight``."""
+    if "weight" in microdata.columns:
+        return microdata["weight"].to_numpy(dtype=float)
+    return np.ones(len(microdata), dtype=float)
+
+
 def create_groups_from_microdata(
     microdata: pd.DataFrame,
     group_type: IncomeGroupType,
 ) -> list[IncomeGroup]:
-    """Create income groups from microdata by aggregating by AGI."""
+    """Create income groups from microdata by aggregating by AGI.
+
+    Every total is **weighted**. ``num_returns`` is the weighted return count,
+    and ``total_agi`` / ``total_taxable_income`` / ``baseline_tax`` are
+    ``sum(weight * column)`` in billions, so ``avg_agi`` and
+    ``effective_tax_rate`` are population quantities. Until R7
+    (``planning/lanes/R7_weighted_group_totals.md``) the count was weighted and
+    the money was not, which put the top quintile's average AGI at about $132
+    on the shipped CPS file instead of about $310,000. A frame with no
+    ``weight`` column is treated as weight 1.
+    """
     thresholds = get_group_thresholds(group_type)
     groups = []
-    weights = microdata.get("weight", pd.Series(1.0, index=microdata.index)).values
+    weights = _microdata_weights(microdata)
     total_weight = weights.sum()
+    agi = microdata["agi"].to_numpy(dtype=float)
+
+    def weighted_total(column: str, mask: np.ndarray) -> float:
+        if column not in microdata.columns:
+            return 0.0
+        values = microdata[column].to_numpy(dtype=float)[mask]
+        return float((values * weights[mask]).sum() / 1e9)
 
     for name, floor, ceiling in thresholds:
-        in_group = (microdata["agi"] >= floor) & (
-            (microdata["agi"] < ceiling) if ceiling else (microdata["agi"] >= floor)
-        )
-        group_data = microdata[in_group]
-
-        if len(group_data) > 0:
-            group_weights = group_data.get("weight", pd.Series(1.0, index=group_data.index)).values
-            num_returns = int(group_weights.sum())
-        else:
-            num_returns = 0
+        in_group = (agi >= floor) & ((agi < ceiling) if ceiling else (agi >= floor))
+        has_rows = bool(in_group.any())
+        num_returns = int(weights[in_group].sum()) if has_rows else 0
 
         groups.append(
             IncomeGroup(
@@ -250,9 +268,11 @@ def create_groups_from_microdata(
                 floor=floor,
                 ceiling=ceiling,
                 num_returns=num_returns,
-                total_agi=group_data["agi"].sum() / 1e9 if len(group_data) > 0 else 0.0,
-                total_taxable_income=group_data["taxable_income"].sum() / 1e9 if len(group_data) > 0 else 0.0,
-                baseline_tax=group_data["final_tax"].sum() / 1e9 if len(group_data) > 0 else 0.0,
+                total_agi=weighted_total("agi", in_group) if has_rows else 0.0,
+                total_taxable_income=(
+                    weighted_total("taxable_income", in_group) if has_rows else 0.0
+                ),
+                baseline_tax=weighted_total("final_tax", in_group) if has_rows else 0.0,
                 population_share=num_returns / total_weight if total_weight > 0 else 0,
             )
         )

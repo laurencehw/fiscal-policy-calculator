@@ -522,7 +522,9 @@ def test_the_state_tab_prices_the_conventional_path():
     share = _state_revenue_share("CA")
     expected = conventional_total(result) / len(result.years) * share
     engine = float(np.sum(result.final_deficit_effect)) / len(result.years) * share
-    assert metrics[0][1] == f"${expected:.1f}B / yr"
+    # Sign before the ``$``; ``+`` only on an increase (``format_money``).
+    sign = "+" if expected > 0 else ("-" if expected < 0 else "")
+    assert metrics[0][1] == f"{sign}${abs(expected):.1f}B / yr"
     assert f"{engine:.1f}" != f"{expected:.1f}"
 
 

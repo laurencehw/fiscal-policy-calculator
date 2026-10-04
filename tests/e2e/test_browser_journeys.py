@@ -55,7 +55,7 @@ def test_explore_preset_renders_result(desktop, base_url):
     v = go(desktop, base_url, "/explore?preset=tcja-full-extension&run=1", "explore")
     assert "Calculation complete!" in v.text
     # pinned loosely: the model figure may move with the baseline
-    assert "$+4,581.9B" in v.text or headline(v.text)
+    assert "+$4,581.9B" in v.text or headline(v.text)
     assert "Share URL:" in v.text
 
 
@@ -180,6 +180,7 @@ def test_mobile_no_page_level_overflow(mobile, base_url, path):
 
 def test_keyboard_tab_order_reaches_content_and_activates(desktop, base_url):
     page = go(desktop, base_url, "/", "ask").page
+    page.wait_for_selector("a.skip-nav", state="attached")
     stops = []
     for _ in range(25):
         page.keyboard.press("Tab")
@@ -187,8 +188,8 @@ def test_keyboard_tab_order_reaches_content_and_activates(desktop, base_url):
             "(document.activeElement.innerText"
             "||document.activeElement.getAttribute('aria-label')||'').trim().slice(0,30)"
         ))
-    assert stops[:4] == ["Ask", "Build", "Tailor", "Explore"]
-    assert any("Skip to main content" in s for s in stops)  # exists; see the xfail below
+    assert stops[0] == "Skip to main content"  # see test_skip_link_is_first_tab_stop_...
+    assert stops[1:5] == ["Ask", "Build", "Tailor", "Explore"]
     assert any("Open Build" in s for s in stops)
     assert any("Ask this" in s for s in stops)
     # Enter on a doorway card navigates
@@ -258,12 +259,27 @@ def test_chrome_popovers_have_real_accessible_names(desktop, base_url):
     assert bare.count() == 0, "settings trigger has no word in its accessible name"
 
 
-@pytest.mark.xfail(
-    reason="Skip link is the 8th tab stop: fiscal_model/ui/a11y.py emits it inside the page body, "
-    "after Streamlit's own header (top nav, Deploy, menu), which no app-side markup can reorder",
-    strict=False,
-)
-def test_skip_link_is_first_tab_stop(desktop, base_url):
+def test_skip_link_is_first_tab_stop_and_skips_the_nav(desktop, base_url):
+    """The skip link is the first Tab stop, and Enter on it jumps past the top nav.
+
+    Streamlit renders its header (top nav, Deploy, menu) as a DOM sibling *before*
+    ``stMain``, and every ``st.markdown`` -- even one emitted before ``st.navigation`` --
+    lands inside ``stMain``, so no app-side ordering can put the link first in the DOM.
+    ``tabindex="1"`` on the one skip link (``fiscal_model/ui/a11y.py``) puts it first in
+    the *sequential focus order* instead; every other element keeps the default order.
+    """
     page = go(desktop, base_url, "/", "ask").page
+    active = (
+        "(()=>{const e=document.activeElement;"
+        "return (e.id?'#'+e.id+' ':'')+(e.innerText||'').trim().slice(0,30)})()"
+    )
+    page.wait_for_selector("a.skip-nav", state="attached")
     page.keyboard.press("Tab")
-    assert "Skip to main content" in page.evaluate("(document.activeElement.innerText||'').trim()")
+    assert "Skip to main content" in page.evaluate(active)
+    page.keyboard.press("Enter")
+    page.wait_for_function("document.activeElement && document.activeElement.id === 'main-content'")
+    after = []
+    for _ in range(3):
+        page.keyboard.press("Tab")
+        after.append(page.evaluate(active))
+    assert not {"Ask", "Build", "Tailor", "Explore", "More"} & {s.strip() for s in after}, after

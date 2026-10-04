@@ -41,7 +41,7 @@ from fiscal_model.policies import (
     ordinary_income_base_for_preset,
 )
 from fiscal_model.preset_handler import create_policy_from_preset
-from fiscal_model.ui.helpers import unescape_markdown_dollars
+from fiscal_model.ui.helpers import escape_markdown_dollars, unescape_markdown_dollars
 
 
 def _build_policy(
@@ -152,9 +152,14 @@ def render_multi_model_tab(
     fiscal_policy_scorer_cls: Any,
     data_year: int,
     use_real_data: bool,
+    default_preset: str | None = None,
 ) -> None:
     """
     Render the multi-backend comparison tab.
+
+    ``default_preset`` is the preset the page is showing; the selector opens on
+    it when it is one of the comparable presets, so the tab compares the policy
+    the reader just scored rather than always the first preset in the list.
 
     Parameters mirror the existing ``render_policy_comparison_tab`` so the
     tabs controller can inject them through the same dependency shim.
@@ -219,10 +224,18 @@ def render_multi_model_tab(
         '"not representable" instead of inventing a score.'
     )
 
+    default_index = next(
+        (
+            i
+            for i, label in enumerate(labeled_options)
+            if label_to_name[label] == default_preset
+        ),
+        0,
+    )
     selected_label = st_module.selectbox(
         "Policy",
         options=labeled_options,
-        index=0,
+        index=default_index,
         # Display only: the value stays the label that keys ``label_to_name``.
         # A selectbox option is plain text, so a preset key carrying the
         # markdown ``\$`` escape read "Carbon Tax \$50/ton" in the dropdown.
@@ -269,13 +282,17 @@ def render_multi_model_tab(
         )
     else:
         assessment = assess_model_pilot_comparison(bundle)
-        if not assessment.ready_for_spike:
+        # Only a genuine quality failure is a blocker. A bundle with one
+        # result (TPC honestly reporting "not representable") has no gap;
+        # it gets the "Only one default pilot" note below instead.
+        if assessment.blockers:
+            first, *rest = assessment.blockers
             st_module.warning(
-                "Pilot quality blocker: this multi-model comparison has "
-                "implausible gaps and should not be treated as decision-grade."
+                "Pilot quality blocker — not decision-grade: "
+                + escape_markdown_dollars(first)
             )
-            for blocker in assessment.blockers:
-                st_module.markdown(f"- {blocker}")
+            for blocker in rest:
+                st_module.markdown(f"- {escape_markdown_dollars(blocker)}")
         elif assessment.warnings:
             for warning in assessment.warnings:
                 st_module.caption(f"Pilot model warning: {warning}")
@@ -340,8 +357,12 @@ def render_multi_model_tab(
 
     if bundle.errors:
         st_module.subheader("Backends that did not run")
+        error_kinds = getattr(bundle, "error_kinds", {}) or {}
         for model_name, reason in bundle.errors.items():
-            kind = _classify_skip_reason(reason)
+            if error_kinds.get(model_name) == "not_representable":
+                kind = "Not representable in this pilot"
+            else:
+                kind = _classify_skip_reason(reason)
             st_module.markdown(f"- **{model_name}** ({kind}): {reason}")
 
     with st_module.expander("What am I looking at?"):

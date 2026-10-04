@@ -382,3 +382,93 @@ scored number moved.
    the *production* app's latency (`E2E_BASE_URL=… E2E_LATENCY_SCALE=3`).
 7. The Ask page prints a "Pilot quality blocker" alert on routine presets, which
    the browser run flagged and nobody has yet decided is intended.
+
+## Status, 2026-10-04: carry-overs from the re-review
+
+The 2026-10-03 section's carry-overs, worked in four parallel lanes plus
+follow-ups. **No scored validation number moved**: `cold_holdout.py --json`,
+`run_loo.py --donor-matrix` and the full `run_validation_dashboard.py` text are
+byte-identical to the pre-round tree, and so are all seven distributional
+benchmarks. The score stays **about 8/10**: this round made the 8 sturdier
+(one green-core distributional defect, one wrong price table, one live
+uncapped spend path, a misleading pilot alarm) and did not touch priority 5,
+which is still what stands between 8 and 9.
+
+### Fixed (each reproduced first; each test fails on the old code)
+
+1. **Distribution tables summed group money unweighted** (`R7_weighted_group_totals.md`).
+   `create_groups_from_microdata` weighted the return counts and not the AGI,
+   taxable income or baseline tax, so the CPS top quintile showed an average AGI
+   of **$132 instead of $309,920**, and the tax-unit branch's `pct_with_*`, ETR
+   and %-of-income columns were unweighted too. Pre-registered by a scratch
+   sweep of 45 tables before the fix; the outturn was byte-identical to the
+   prediction. Shares, totals and every headline progressive/regressive call
+   are unchanged (they were already weighted); the seven benchmarks are
+   bit-identical because they score only already-weighted fields.
+2. **An all-bracket rate change reached only the top bracket in distribution
+   tables** (R7 §7). A threshold-0 `TaxPolicy` mapped to
+   `new_top_rate = 0.37 + Δ`, so Flat Tax Reform's distribution table summed to
+   **−$9.37B against a −$612B revenue score** (0.34% of returns affected). It now
+   uses the same post-tax adder as every other threshold: −$461.15B, 59.8%
+   affected. Top-bracket-only presets are pinned byte-identical. The adder
+   ignores the AMT for every rate change, which is now named as an engine
+   follow-up.
+3. **The public Build page's "Translate to a package" made uncapped Sonnet
+   calls**, as did Ask's follow-up suggestions and cache pre-warm: none
+   checked the daily cap or wrote a ledger row. All now check
+   `budget_allows` first and record via `record_paid_call`, under their own
+   event labels so the admin view can tell spend apart.
+4. **The Ask price table was wrong.** Haiku 4.5 at $0.80/$4 (it is $1/$5), Opus
+   4.7 at $15/$75 (it is $5/$25), and no Fable 5.1 — so the "price an unknown
+   model at the dearest tier" fallback was not the dearest model. Snapshot ids
+   now match the *longest* known prefix (`claude-opus-5-5-…` also starts with
+   `claude-opus-5-`).
+5. **The keyless Ask page showed the public the names of the deployment's
+   secrets** (`st.secrets accessible: True`, every top-level key). The public
+   now sees one line; setup help needs the admin token or
+   `ASSISTANT_SHOW_SETUP=1`.
+6. **"Pilot quality blocker: implausible gaps" was a false alarm on every
+   preset.** 43 of 52 presets have one engine that can score them; the
+   assessment counted "only one result" as a quality failure and the tab
+   printed a gap claim with no gap (`max_gap` was `None` on all 43). One-engine
+   presets now get a coverage note; a blocker names the two engines and their
+   estimates. The real large gaps (Warren surtax 72%, Progressive Millionaire
+   64%, EITC childless 46%) still show as disagreement. The SALT pilot had been
+   scoring exactly $0 because the CPS file has no SALT columns; it now refuses.
+   The pilot tab also opens on the preset the reader scored, not the first one.
+7. **Money printed the sign after the dollar** (`$+4,581.9B`) at 99 UI call
+   sites. One formatter now prints `+$4,581.9B`; digits are Python's own,
+   only the sign moved; a guard test greps the UI tree and a rendered Explore
+   check fails on the old pattern.
+8. **The skip link was the 8th Tab stop.** It is now the first (`tabindex="1"`
+   on that one element; Streamlit's header precedes `stMain` in the DOM, so
+   reordering from app code cannot work). The e2e xfail is a hard test.
+
+### Corrected claims
+
+- `distributional_validation.py`'s **105.9% is relative share error** on a
+  single TPC 2018 TCJA table, not a failing gate: the same comparison in the
+  dashboard's metric is **6.94pp**. It is the only independent check of the
+  calibrated TCJA tier table (the dashboard's two TCJA rows are circular); the
+  script now prints both metrics.
+- The distribution tab claimed "benchmarked against CBO/JCT tables within
+  ≤3pp"; the tables span 0.00–5.86pp and only two exercise that path.
+- R6's guess that California-stamped synthetic rows drove the SALT regression
+  under `--calibrate-cells` was wrong: the row is unchanged to 1e-15 under any
+  state draw, because all 800 synthetic rows are AMT-bound.
+
+### Decision now open to the owner
+
+`planning/lanes/R6b_make_calibration_default_preregistration.md` pre-registers
+making SOI cell calibration the default. It would **turn the dashboard red**
+(the SALT distributional row 5.86 → 11.01pp crosses a gate) until the SALT
+mechanism — flat-rate imputation and AMT-bound synthetic rows — is fixed, and
+would move leave-one-out credits 18.5% → 17.3% and the health check to `ok`.
+It is not flipped.
+
+### Still open
+
+Priority 5; joint scoring in the package headline; production latency (the
+environment's network policy denies the deployed host); the AMT-blind rate
+adder; `bill_tracker/provision_mapper.py`'s offline LLM call is uncapped by
+design.

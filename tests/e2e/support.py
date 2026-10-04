@@ -94,7 +94,7 @@ def go(ctx: Any, base: str, path: str, budget_key: str) -> Visit:
 
 
 def headline(text: str) -> list[str]:
-    return re.findall(r"\$[+\-−]?[\d,]+\.\d[BT]", text)[:3]
+    return re.findall(r"[+\-−]?\$[\d,]+\.\d[BT]", text)[:3]
 
 
 # -- WCAG contrast -------------------------------------------------------------------------

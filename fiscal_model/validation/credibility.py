@@ -272,6 +272,19 @@ def band_for_policy(policy: Any) -> EmpiricalBand | None:
     return band_for_policy_class(classify_policy_object(policy))
 
 
+def _signed_billions(value: float) -> str:
+    """``-$348.5B`` / ``+$12.0B``: the sign before the dollar, as the UI prints it.
+
+    Plain text on purpose — the API and the Ask assistant return this sentence
+    verbatim, so it carries no markdown escape. The UI renders it inside an HTML
+    block, which the math parser does not tokenize. Digits are Python's own
+    ``{:+,.1f}`` with only the sign moved (``fiscal_model.ui.formatting``'s rule,
+    restated here so the validation layer does not import the UI).
+    """
+    text = f"{value:+,.1f}"
+    return f"{text[0]}${text[1:]}B"
+
+
 def format_band_caption(
     band: EmpiricalBand | None,
     *,
@@ -315,11 +328,14 @@ def format_band_caption(
     if point_estimate is not None:
         low, high = band.inner_dollars(point_estimate)
         outer_low, outer_high = band.outer_dollars(point_estimate)
-        head += f" On this figure that is ${low:+,.1f}B to ${high:+,.1f}B"
+        head += (
+            f" On this figure that is {_signed_billions(low)} to "
+            f"{_signed_billions(high)}"
+        )
         if band.max_abs_pct_error > band.mean_abs_pct_error:
             head += (
-                f" typical, ${outer_low:+,.1f}B to ${outer_high:+,.1f}B at the "
-                f"worst row."
+                f" typical, {_signed_billions(outer_low)} to "
+                f"{_signed_billions(outer_high)} at the worst row."
             )
         else:
             # One row, or a class whose worst row *is* its mean. Printing the

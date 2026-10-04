@@ -43,6 +43,16 @@ _ENV_NAMES = {
     "db_path": "ASSISTANT_USAGE_DB",
 }
 
+#: ``assistant_events.role`` values. Every paid Anthropic call writes one row
+#: so :meth:`RateLimiter.today_spend_usd` — the daily cap — sees all spend.
+#: A user-facing answer is a *turn*; the two auxiliary calls are labelled
+#: separately so the admin dashboard can count turns and still sum all spend.
+EVENT_ROLE_TURN = "assistant"
+EVENT_ROLE_FOLLOWUPS = "followups"
+EVENT_ROLE_PREWARM = "prewarm"
+#: Build's free-text → values/goal translation (``composer/translate.py``).
+EVENT_ROLE_TRANSLATE = "translate"
+
 _DEFAULT_DAILY_CAP_USD = 5.00
 _DEFAULT_SESSION_MESSAGE_CAP = 20
 _DEFAULT_COOLDOWN_SECONDS = 3.0
@@ -259,8 +269,36 @@ class RateLimiter:
 
         return decision
 
-    def today_spend_usd(self) -> float:
-        """Total cost recorded today (UTC) across all sessions."""
+    def check_budget(self) -> RateLimitDecision:
+        """The money gate alone: kill switch and daily spend cap.
+
+        For the auxiliary paid calls (follow-up chips, prompt-cache
+        pre-warm), which are not user turns and so are not subject to the
+        per-session message cap or cool-down, but must never spend once the
+        operator has disabled Ask or the day's budget is gone.
+        """
+        # Strict read: an unreadable ledger raises here instead of reading as
+        # $0 spent, so ``budget_allows`` fails closed rather than spending blind.
+        today_spend = self.today_spend_usd(strict=True)
+        decision = RateLimitDecision(
+            allowed=True,
+            today_spend_usd=today_spend,
+            daily_cap_usd=self.config.daily_cost_cap_usd,
+        )
+        if self.config.disabled:
+            decision.allowed = False
+            decision.reason = "disabled"
+        elif today_spend >= self.config.daily_cost_cap_usd:
+            decision.allowed = False
+            decision.reason = "daily cost cap reached"
+        return decision
+
+    def today_spend_usd(self, *, strict: bool = False) -> float:
+        """Total cost recorded today (UTC) across all sessions.
+
+        A read failure returns ``0.0`` for display callers; ``strict=True``
+        re-raises it, for gates that must not mistake "unreadable" for "unspent".
+        """
         today = datetime.now(timezone.utc).date().isoformat()
         try:
             conn = self._connect()
@@ -274,6 +312,8 @@ class RateLimiter:
                 if self.db_path != ":memory:":
                     conn.close()
         except sqlite3.Error:
+            if strict:
+                raise
             logger.exception("Failed to read today's assistant spend")
             return 0.0
 
@@ -334,14 +374,61 @@ class RateLimiter:
             logger.exception("Failed to log assistant turn")
 
 
+def budget_allows(ledger: RateLimiter) -> bool:
+    """Kill switch + daily cap, for a paid call that is not a user turn.
+
+    Checked *before* spending. Fails closed: if the ledger cannot be read,
+    the call is skipped rather than made blind.
+    """
+    try:
+        return bool(ledger.check_budget().allowed)
+    except Exception:
+        logger.warning("Budget check failed; skipping paid call", exc_info=True)
+        return False
+
+
+def record_paid_call(
+    ledger: RateLimiter,
+    *,
+    role: str,
+    model: str,
+    usage: Any,
+    session_id: str,
+    elapsed_s: float = 0.0,
+) -> None:
+    """Book one paid call's cost in ``assistant_events`` under ``role``.
+
+    Priced with the same table as an Ask turn (:mod:`.cost`). Never raises.
+    """
+    try:
+        from .cost import ConversationCost
+
+        turn = ConversationCost().record(usage, model)
+        ledger.record_turn(
+            session_id=session_id,
+            role=role,
+            model=model,
+            usage_dict=turn.to_dict(),
+            elapsed_s=elapsed_s,
+        )
+    except Exception:
+        logger.warning("Failed to record %s usage", role, exc_info=True)
+
+
 def new_session_id() -> str:
     """A short, opaque session identifier for telemetry / per-session caps."""
     return uuid.uuid4().hex[:16]
 
 
 __all__ = [
+    "EVENT_ROLE_FOLLOWUPS",
+    "EVENT_ROLE_PREWARM",
+    "EVENT_ROLE_TRANSLATE",
+    "EVENT_ROLE_TURN",
     "RateLimitConfig",
     "RateLimitDecision",
     "RateLimiter",
+    "budget_allows",
     "new_session_id",
+    "record_paid_call",
 ]

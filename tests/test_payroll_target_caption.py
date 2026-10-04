@@ -25,6 +25,7 @@ from fiscal_model.payroll import (
 )
 from fiscal_model.policies import PolicyType
 from fiscal_model.scoring import FiscalPolicyScorer
+from fiscal_model.ui.formatting import format_money
 from fiscal_model.ui.tabs.results_summary import (
     _PAYROLL_FITTED_TARGETS,
     payroll_fitted_target_caption,
@@ -112,7 +113,7 @@ def test_the_caption_says_when_the_target_has_moved_away_from_the_figure():
     )
     assert "is what the module returns" in donut
     assert "It is no longer the carried target" in donut
-    assert "-1,426.8B" in donut
+    assert "-\\$1,426.8B" in donut
     # -2,700.0 against -1,426.8 is 89.2% high.
     assert "misses by 89.2%" in donut
 
@@ -134,7 +135,7 @@ def test_caption_fires_on_the_two_shipped_presets(factory, provision, target):
     caption = payroll_fitted_target_caption(policy, _result_for(policy))
     assert caption
     assert provision in caption
-    assert f"{target:+,.1f}B" in caption
+    assert format_money(target, escape=True) in caption
     assert "Office of the Chief Actuary" in caption
     assert "bookkeeping, not agreement" in caption
 
@@ -142,7 +143,7 @@ def test_caption_fires_on_the_two_shipped_presets(factory, provision, target):
 def test_eliminate_cap_caption_quotes_its_held_out_figure():
     policy = create_ss_eliminate_cap()
     caption = payroll_fitted_target_caption(policy, _result_for(policy))
-    assert "-3,319.5B" in caption
+    assert "-\\$3,319.5B" in caption
     assert "3.7% away" in caption
     assert "2.55% of taxable payroll" in caption
     assert "2059 depletion date" in caption
@@ -151,7 +152,7 @@ def test_eliminate_cap_caption_quotes_its_held_out_figure():
 def test_donut_caption_quotes_its_held_out_figure():
     policy = create_ss_donut_hole()
     caption = payroll_fitted_target_caption(policy, _result_for(policy))
-    assert "-2,664.0B" in caption
+    assert "-\\$2,664.0B" in caption
     assert "1.3% away" in caption
     assert "2.50% of taxable payroll" in caption
     assert "2057 depletion date" in caption

@@ -18,16 +18,24 @@ from fiscal_model.policies import PolicyType, TaxPolicy
 from fiscal_model.tax_expenditures import create_repeal_salt_cap
 
 
-def test_tax_policy_with_rate_change_produces_top_rate_reform():
+def test_tax_policy_with_no_threshold_changes_every_bracket():
+    """R7b: threshold 0 is the ordinary-rate adder from $0, not a top-rate swap.
+
+    It used to emit ``new_top_rate = 0.37 + 0.026``, which changed only the
+    37% bracket while the revenue path priced every bracket.
+    """
     policy = TaxPolicy(
-        name="Top rate +2.6pp",
+        name="All brackets +2.6pp",
         description="",
         policy_type=PolicyType.INCOME_TAX,
         rate_change=0.026,
     )
     reforms = policy_to_microsim_reforms(policy)
-    assert "new_top_rate" in reforms
-    assert reforms["new_top_rate"] == pytest.approx(0.37 + 0.026)
+    assert "new_top_rate" not in reforms
+    assert reforms == {
+        "income_rate_change": pytest.approx(0.026),
+        "income_rate_change_threshold": 0.0,
+    }
 
 
 def test_tax_policy_with_threshold_maps_to_threshold_rate_adjustment():

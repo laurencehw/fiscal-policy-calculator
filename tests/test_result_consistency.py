@@ -35,6 +35,7 @@ from fiscal_model.models.macro_adapter import (
 from fiscal_model.policies import PolicyType, TaxPolicy
 from fiscal_model.preset_handler import create_policy_from_preset
 from fiscal_model.scoring import FiscalPolicyScorer
+from fiscal_model.ui.formatting import format_money
 from fiscal_model.ui.helpers import build_macro_scenario
 from fiscal_model.ui.policy_execution import run_dynamic_view
 from fiscal_model.ui.tabs.dynamic_scoring import render_dynamic_scoring_tab
@@ -138,10 +139,10 @@ class _RecordingStreamlit:
 
 
 def _dollars(text: str) -> float:
-    """Parse ``$+4,581.9B`` / ``$-305B`` into a float."""
-    match = re.search(r"\$\s*([+-]?[\d,]+(?:\.\d+)?)", text)
+    """Parse ``+$4,581.9B`` / ``-$305B`` into a float (sign before the ``$``)."""
+    match = re.search(r"([+-]?)\$\s*([\d,]+(?:\.\d+)?)", text)
     assert match, f"no dollar figure in {text!r}"
-    return float(match.group(1).replace(",", ""))
+    return float(match.group(1) + match.group(2).replace(",", ""))
 
 
 def _score(policy, *, dynamic: bool, policy_name: str, start_year: int = 2025):
@@ -267,8 +268,8 @@ def test_headline_key_metrics_and_copy_summary_agree(runs, case):
     assert _dollars(text.splitlines()[
         next(i for i, line in enumerate(text.splitlines()) if "Deficit Impact (conventional)" in line)
     ]) == pytest.approx(scored.headline, abs=0.15)
-    assert f"Static Deficit Effect: ${scored.static:+,.1f}B" in text
-    assert f"Behavioral Offset: ${scored.behavioral:+,.1f}B" in text
+    assert f"Static Deficit Effect: {format_money(scored.static)}" in text
+    assert f"Behavioral Offset: {format_money(scored.behavioral)}" in text
 
 
 @pytest.mark.parametrize("case", sorted(CASES))

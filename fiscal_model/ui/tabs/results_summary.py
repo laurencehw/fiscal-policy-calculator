@@ -72,6 +72,7 @@ from fiscal_model.ui.a11y import (
     render_accessible_chart,
 )
 from fiscal_model.ui.charts import apply_base_layout, horizontal_legend
+from fiscal_model.ui.formatting import format_dollars, format_money
 from fiscal_model.ui.helpers import (
     escape_markdown_dollars,
     unescape_markdown_dollars,
@@ -468,7 +469,7 @@ def _build_credibility_html(credibility: Any) -> str:
                 f"<strong>{float(max_error):.1f}%</strong>"
             )
         if low is not None and high is not None:
-            chips.append(f"Typical: <strong>${low:+,.0f}B to ${high:+,.0f}B</strong>")
+            chips.append(f"Typical: <strong>{format_money(low, decimals=0)} to {format_money(high, decimals=0)}</strong>")
         if (
             outer_low is not None
             and outer_high is not None
@@ -476,7 +477,7 @@ def _build_credibility_html(credibility: Any) -> str:
             and float(max_error) > float(mean_error)
         ):
             chips.append(
-                f"Worst row: <strong>${outer_low:+,.0f}B to ${outer_high:+,.0f}B</strong>"
+                f"Worst row: <strong>{format_money(outer_low, decimals=0)} to {format_money(outer_high, decimals=0)}</strong>"
             )
         if inside is not None and n_rows > 1:
             chips.append(f"<strong>{inside} of {n_rows}</strong> inside the mean")
@@ -593,8 +594,8 @@ def spend_out_caption(policy: Any, result: Any) -> str:
     ratio = outlays / authority
     return (
         f"Spend-out: outlays follow the **{account_class_label(account_class)}** "
-        f"profile, so \\${authority:+,.1f}B of budget authority becomes "
-        f"\\${outlays:+,.1f}B of outlays inside the window - a "
+        f"profile, so {format_money(authority, escape=True)} of budget authority becomes "
+        f"{format_money(outlays, escape=True)} of outlays inside the window - a "
         f"{ratio:.2f} 10-year outlay/authority ratio. Profiles are fitted on "
         f"CBO options the validation battery does not score."
     )
@@ -859,7 +860,7 @@ def gains_at_death_caption(policy: Any, result: Any) -> str:
         )
     )
     return (
-        f"Gains at death: \\${-death:+,.1f}B of the static score above is "
+        f"Gains at death: {format_money(-death, escape=True)} of the static score above is "
         f"constructive realization at death - Poterba & Weisbenner's flow of "
         f"unrealized gain transferred by decedents, indexed to household net "
         f"worth. It is not the whole flow: bequests to charity and the "
@@ -1229,7 +1230,7 @@ def agi_inclusive_base_caption(policy: Any, result: Any) -> str:
         f"{provenance} — the rate applies to all income above "
         rf"\${threshold:,.0f}, realized capital gains and qualified dividends "
         f"included. On the ordinary-bracket base, which excludes them, it "
-        rf"would score \${previous:+,.1f}B rather than the \${total:+,.1f}B "
+        rf"would score {format_money(previous, escape=True)} rather than the {format_money(total, escape=True)} "
         f"above: the preferentially taxed income is {pref:.1%} of the marginal "
         f"income here. That is where this preset used to be scored. Nothing in "
         f"the model changed — the presets now carry the base attribute the "
@@ -1288,8 +1289,8 @@ def agi_income_column_caption(policy: Any, result: Any) -> str:
         f"average by {ratio - 1:.1%}. Until 2026-09-10 the generic path "
         f"subtracted the AGI threshold from the *taxable* average — the same "
         f"returns and the same floor, but two different quantities — so this "
-        rf"policy printed \${previous:+,.1f}B where it now prints "
-        rf"\${total:+,.1f}B. Presets whose sources state taxable income, or a "
+        rf"policy printed {format_money(previous, escape=True)} where it now prints "
+        rf"{format_money(total, escape=True)}. Presets whose sources state taxable income, or a "
         f"base that is neither column, are unchanged."
     )
 
@@ -1363,8 +1364,8 @@ def income_base_projection_caption(policy: Any, result: Any) -> str:
         f"scored — {factors[0]:.3f}× in FY{first} rising to {factors[-1]:.3f}× in "
         f"FY{last}, {factors.mean():.3f}× on the window average, off this "
         f"baseline's own nominal path. Held at TY{int(soi_year)} across all ten "
-        rf"years, as a flat base, it would score \${previous:+,.1f}B rather than "
-        rf"the \${total:+,.1f}B above. The index is the baseline's, not a "
+        rf"years, as a flat base, it would score {format_money(previous, escape=True)} rather than "
+        rf"the {format_money(total, escape=True)} above. The index is the baseline's, not a "
         f"constant, so a run on a different vintage or window projects "
         f"differently."
     )
@@ -1582,7 +1583,7 @@ def cbo_baseline_transcription_caption(policy: Any, result: Any) -> str:
         f"reconstruction of it, so the base is aged on CBO's nominal path — "
         f"{new_factors.mean():.4f}× on the window average against the "
         f"reconstruction's {old_factors.mean():.4f}×. On the old path this "
-        rf"policy scored \${previous:+,.1f}B; it now scores \${total:+,.1f}B, "
+        rf"policy scored {format_money(previous, escape=True)}; it now scores {format_money(total, escape=True)}, "
         f"a {shift:+.2f}% move. The same correction takes the vintage's "
         r"ten-year deficit from \$29,529.1B to CBO's own \$23,143.3B."
     )
@@ -1689,11 +1690,11 @@ def behavioural_sign_caption(policy: Any, result: Any) -> str:
     direction = "erodes" if abs(current) < abs(static) else "offsets"
     return (
         rf"Behavioural response: \${abs(behavioural):,.1f}B {direction} a "
-        rf"static \${static:+,.1f}B to \${current:+,.1f}B. The response "
+        rf"static {format_money(static, escape=True)} to {format_money(current, escape=True)}. The response "
         f"carries the static effect's sign, so a tax increase raises less than "
         f"its static figure and a cut loses less. This module returned the "
         f"other sign until 2026-09-05, which added the same amount instead - "
-        rf"the headline above would have read \${previous:+,.1f}B. No "
+        rf"the headline above would have read {format_money(previous, escape=True)}. No "
         f"elasticity changed; only the direction the response is applied in."
     )
 
@@ -1768,8 +1769,8 @@ def expenditure_offset_magnitude_caption(policy: Any, result: Any) -> str:
     return (
         f"Behavioural response, {share:.1%} of the static effect: {provenance}. "
         f"This module carried an unsourced {previous_share:.0%} until "
-        rf"2026-09-11, which would have put the headline at \${previous:+,.1f}B "
-        rf"instead of \${current:+,.1f}B. No direction changed and no fitted "
+        rf"2026-09-11, which would have put the headline at {format_money(previous, escape=True)} "
+        rf"instead of {format_money(current, escape=True)}. No direction changed and no fitted "
         f"constant was retuned; only where the size comes from."
     )
 
@@ -1880,9 +1881,9 @@ def published_range_caption(
     return (
         f"**This benchmark carries a published range.** Its scorekeepers — "
         f"{published.source_name} — scored this reform and printed "
-        rf"\${published.low_billions:+,.1f}B to "
-        rf"\${published.high_billions:+,.1f}B; this run's "
-        rf"\${model_billions:+,.1f}B is {where}. The percentage the scorecard "
+        rf"{format_money(published.low_billions, escape=True)} to "
+        rf"{format_money(published.high_billions, escape=True)}; this run's "
+        rf"{format_money(model_billions, escape=True)} is {where}. The percentage the scorecard "
         f"reports for this row is a distance from one house's point inside "
         f"that range, not a measurement of accuracy against all of them."
     )
@@ -1942,7 +1943,7 @@ def corporate_estimator_range_captions(
     # Listed in the same order as the span above it — ascending signed value —
     # so the two do not read as contradicting each other on a negative range.
     named = ", ".join(
-        rf"{est.estimator} \${est.value_billions:+,.1f}B"
+        rf"{est.estimator} {format_money(est.value_billions, escape=True)}"
         + (f" ({est.scope_label})" if est.scope_label != "rate only" else "")
         for est in spread.estimates
     )
@@ -1955,8 +1956,8 @@ def corporate_estimator_range_captions(
         f"**Estimator range.** Four houses have scored a corporate statutory-rate "
         f"change on {spread.window}. Converted to this policy's "
         f"{rate_change_pp:+.1f}pp step they span "
-        rf"**\${spread.low_billions:+,.1f}B to \${spread.high_billions:+,.1f}B** "
-        rf"— {named}. This run's \${model_billions:+,.1f}B {position}."
+        rf"**{format_money(spread.low_billions, escape=True)} to {format_money(spread.high_billions, escape=True)}** "
+        rf"— {named}. This run's {format_money(model_billions, escape=True)} {position}."
     ]
 
     shares = ", ".join(
@@ -2090,9 +2091,9 @@ def corporate_mode_flip_caption(policy: Any, result: Any) -> str:
 
     change = (current - previous) / abs(previous) * 100.0
     return (
-        rf"Scoring mode: this run prices the rate change at \${current:+,.1f}B. "
+        rf"Scoring mode: this run prices the rate change at {format_money(current, escape=True)}. "
         rf"Until 2026-09-11 the app's corporate default was `reported`, which "
-        rf"would have read \${previous:+,.1f}B ({change:+.1f}%). The default is "
+        rf"would have read {format_money(previous, escape=True)} ({change:+.1f}%). The default is "
         f"now `derived`: the base is CBO's own projected corporate receipts "
         f"path converted at one ratio measured on completed history, instead of "
         f"a profits aggregate the module's own comment calls calibrated. It was "
@@ -2142,9 +2143,9 @@ def _corporate_benchmark_captions(
         line = (
             f"**This benchmark carries a published range.** Its scorekeepers — "
             f"{published.source_name} — scored this exact reform and printed "
-            rf"\${published.low_billions:+,.1f}B to "
-            rf"\${published.high_billions:+,.1f}B; this run's "
-            rf"\${model_billions:+,.1f}B is {where}."
+            rf"{format_money(published.low_billions, escape=True)} to "
+            rf"{format_money(published.high_billions, escape=True)}; this run's "
+            rf"{format_money(model_billions, escape=True)} is {where}."
         )
         overlaps = (
             published.low_billions <= spread.high_billions
@@ -2311,16 +2312,16 @@ def payroll_fitted_target_caption(policy: Any, result: Any) -> str:
     if target_moved:
         miss_pct = abs(by_construction - carried) / abs(carried) * 100.0
         opening = (
-            rf"Where this number comes from: \${by_construction:+,.1f}B is what "
+            rf"Where this number comes from: {format_money(by_construction, escape=True)} is what "
             f"the module returns, because the covered-wage base behind it is "
             f"that figure divided by ten and by the 12.4% OASDI rate — "
             f"bookkeeping, not agreement. It is no longer the carried target: "
-            rf"that moved to \${carried:+,.1f}B on 2026-09-09, which this "
+            rf"that moved to {format_money(carried, escape=True)} on 2026-09-09, which this "
             f"figure misses by {miss_pct:.1f}%. "
         )
     else:
         opening = (
-            rf"Where this number comes from: \${by_construction:+,.1f}B is the "
+            rf"Where this number comes from: {format_money(by_construction, escape=True)} is the "
             f"carried target, reproduced to the cent because the covered-wage "
             f"base behind it is that target divided by ten and by the 12.4% "
             f"OASDI rate — bookkeeping, not agreement. "
@@ -2330,7 +2331,7 @@ def payroll_fitted_target_caption(policy: Any, result: Any) -> str:
         opening
         + f"Held out, with this case's own wage "
         f"anchor withheld and refitted from the other two, the module returns "
-        rf"\${held_out:+,.1f}B ({gap_pct:.1f}% away). And the round figure is "
+        rf"{format_money(held_out, escape=True)} ({gap_pct:.1f}% away). And the round figure is "
         f"a dollar conversion nobody published: SSA's Office of the Chief "
         f"Actuary scores this provision as {entry['provision']} and reports "
         f"{entry['payroll_pct']:.2f}% of taxable payroll and a "
@@ -2362,7 +2363,7 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
         <div class="fpc-result-card">
             <h3 class="fpc-result-card-title">{escape(scored.window)} Deficit Impact (conventional)</h3>
             <h1 class="fpc-impact {impact_class}">
-                ${headline:+,.1f}B
+                {format_money(headline)}
             </h1>
             <p class="fpc-result-card-note">
                 {impact_label}{' (Spending Policy)' if scored.is_spending else ''}
@@ -2448,8 +2449,8 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
         # ``$+4,581.9B to $`` rendered as an italic math span with the dollar
         # signs eaten (caught in a browser, Phase 6). Escape the currency.
         line = (
-            f"<small><b>Accuracy band:</b> \\${band[0]:+,.1f}B "
-            f"to \\${band[1]:+,.1f}B"
+            f"<small><b>Accuracy band:</b> {format_money(band[0], escape=True)} "
+            f"to {format_money(band[1], escape=True)}"
             + (f" ({escape(note)})" if note else "")
         )
         credibility = getattr(scored, "credibility", None)
@@ -2467,8 +2468,8 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
             and max_pct > mean_pct
         ):
             line += (
-                f"; \\${min(outer_low, outer_high):+,.1f}B to "
-                f"\\${max(outer_low, outer_high):+,.1f}B at that class's worst "
+                f"; {format_money(min(outer_low, outer_high), escape=True)} to "
+                f"{format_money(max(outer_low, outer_high), escape=True)} at that class's worst "
                 "observed row"
             )
         st_module.markdown(line + "</small>", unsafe_allow_html=True)
@@ -2484,14 +2485,14 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
         error_pct = ((headline - official) / abs(official) * 100) if official else 0.0
         st_module.markdown(
             f"<p><small>📌 <b>{escape(benchmark['source'])} estimate:</b> "
-            f"${official:+,.0f}B &nbsp;·&nbsp; <b>Model:</b> ${headline:+,.0f}B "
+            f"{format_money(official, decimals=0)} &nbsp;·&nbsp; <b>Model:</b> {format_money(headline, decimals=0)} "
             f"&nbsp;·&nbsp; <b>Difference:</b> {error_pct:+.1f}%</small></p>",
             unsafe_allow_html=True,
         )
     elif benchmark:
         st_module.caption(
             "No official score exists for this exact policy — nearest validated "
-            f"benchmark: {benchmark['name']} , ${benchmark['official_billions']:+,.0f}B "
+            f"benchmark: {benchmark['name']} , {format_money(benchmark['official_billions'], decimals=0)} "
             f"({benchmark['source']}, {benchmark['source_date']})."
         )
 
@@ -2542,19 +2543,19 @@ def render_dynamic_view_block(st_module: Any, scored: Any) -> None:
     with d1:
         st_module.metric(
             "Revenue Feedback (10Y)",
-            f"${scored.feedback:+,.1f}B",
+            format_money(scored.feedback),
             help="Additional revenue from macro feedback. Subtracted from the conventional score.",
         )
     with d2:
         st_module.metric(
             "Debt Service (10Y)",
-            f"${scored.debt_service:+,.1f}B",
+            format_money(scored.debt_service),
             help="Interest cost of the added deficit (positive = adds to the deficit).",
         )
     with d3:
         st_module.metric(
             "Dynamic Total (10Y)",
-            f"${scored.dynamic_total:+,.1f}B",
+            format_money(scored.dynamic_total),
             help="Conventional − feedback + debt service. Not the headline.",
         )
 
@@ -2572,7 +2573,7 @@ def render_metrics_block(st_module: Any, scored: Any, result_data: dict[str, Any
     with m1:
         st_module.metric(
             "Static Deficit Effect (10Y)",
-            f"${static_total:+.1f}B",
+            format_money(static_total, thousands=False),
             help="Static effect on the deficit before behavioral and macro feedback (positive = deficit increase).",
         )
     with m2:
@@ -2581,7 +2582,7 @@ def render_metrics_block(st_module: Any, scored: Any, result_data: dict[str, Any
         )
         st_module.metric(
             "Behavioral Response (10Y)",
-            f"${behavioral_total:+.1f}B",
+            format_money(behavioral_total, thousands=False),
             delta=f"{behavioral_pct:.0f}% of static",
             delta_color="off",
             help="Micro behavioral response (e.g., ETI / realizations). Positive increases deficit vs static.",
@@ -2595,7 +2596,7 @@ def render_metrics_block(st_module: Any, scored: Any, result_data: dict[str, Any
         if str(getattr(scored, "mode", "conventional")) == "dynamic":
             st_module.metric(
                 "Revenue Feedback (10Y)",
-                f"${scored.feedback:+.1f}B",
+                format_money(scored.feedback, thousands=False),
                 help=(
                     f"From {scored.macro_model or 'the macro adapter'} — the same "
                     "number the Economic Effects tab shows. Shown separately "
@@ -2614,7 +2615,7 @@ def render_metrics_block(st_module: Any, scored: Any, result_data: dict[str, Any
     with m4:
         st_module.metric(
             "Year 1 Deficit Impact",
-            f"${year1:+.1f}B",
+            format_money(year1, thousands=False),
             help="Conventional deficit impact in the first budget year.",
         )
 
@@ -2650,7 +2651,7 @@ def render_metrics_block(st_module: Any, scored: Any, result_data: dict[str, Any
             measure=steps_measure,
             x=steps_x,
             y=steps_y,
-            text=[f"${v:+.0f}B" for v in steps_y],
+            text=[format_money(v, decimals=0, thousands=False) for v in steps_y],
             textposition="outside",
             increasing={"marker": {"color": "#dc3545"}},
             decreasing={"marker": {"color": "#28a745"}},
@@ -2711,7 +2712,7 @@ def render_context_block(
         with c1:
             st_module.metric(
                 f"Official ({benchmark['source']})",
-                f"${official:+,.0f}B",
+                format_money(official, decimals=0),
                 delta=f"{error_pct:+.1f}% error",
                 delta_color="off",
             )
@@ -2895,7 +2896,7 @@ def build_headline_copy(scored: Any) -> str:
     """
     direction = "Deficit Reduction" if scored.headline < 0 else "Deficit Increase"
     return unescape_markdown_dollars(
-        f"{scored.display_name}: ${scored.headline:+,.1f}B over {scored.window} "
+        f"{scored.display_name}: {format_money(scored.headline)} over {scored.window} "
         f"({direction}, conventional score) — {scored.tier_label}, "
         f"{scored.baseline_vintage} baseline — Fiscal Policy Calculator, "
         f"{date.today().strftime('%Y-%m-%d')}"
@@ -3016,9 +3017,9 @@ def build_text_summary(scored: Any, result_data: dict[str, Any], share_url: str 
     if str(scored.mode) == "dynamic":
         feedback_lines = (
             f"\nDynamic view ({scored.macro_model}) — not the headline:\n"
-            f"  Revenue Feedback: ${scored.feedback:+,.1f}B\n"
-            f"  Debt Service: ${scored.debt_service:+,.1f}B\n"
-            f"  Dynamic Total: ${scored.dynamic_total:+,.1f}B\n"
+            f"  Revenue Feedback: {format_money(scored.feedback)}\n"
+            f"  Debt Service: {format_money(scored.debt_service)}\n"
+            f"  Dynamic Total: {format_money(scored.dynamic_total)}\n"
         )
     else:
         feedback_lines = "\n  Revenue Feedback: not included (conventional score)\n"
@@ -3027,17 +3028,17 @@ def build_text_summary(scored: Any, result_data: dict[str, Any], share_url: str 
         "FISCAL POLICY IMPACT ANALYSIS\n"
         f"{meta}"
         "\nSign convention: positive = increases the deficit.\n"
-        f"\n{scored.window} Deficit Impact (conventional): ${scored.headline:+,.1f}B\n"
+        f"\n{scored.window} Deficit Impact (conventional): {format_money(scored.headline)}\n"
         # The static term here is the static *deficit* effect. It used to be
         # labeled "Static Revenue Effect", which is the opposite sign of what
         # was printed (NOTES §4.4 item 5 / §11 item 20).
-        f"  Static Deficit Effect: ${scored.static:+,.1f}B\n"
-        f"  Behavioral Offset: ${scored.behavioral:+,.1f}B\n"
+        f"  Static Deficit Effect: {format_money(scored.static)}\n"
+        f"  Behavioral Offset: {format_money(scored.behavioral)}\n"
         f"{feedback_lines}"
         "\nYear-by-Year Breakdown (conventional):\n"
     )
     for year, impact in zip(result.years, scored.per_year):
-        text += f"  {year}: ${impact:+,.1f}B\n"
+        text += f"  {year}: {format_money(impact)}\n"
 
     text += "\nAssumptions:\n"
     if hasattr(policy, "taxable_income_elasticity"):
@@ -3049,7 +3050,7 @@ def build_text_summary(scored: Any, result_data: dict[str, Any], share_url: str 
     band = getattr(scored, "sensitivity", None)
     if band and abs(band[1] - band[0]) >= _MIN_BAND_WIDTH_BILLIONS:
         text += (
-            f"  Accuracy band: ${band[0]:+,.1f}B to ${band[1]:+,.1f}B "
+            f"  Accuracy band: {format_money(band[0])} to {format_money(band[1])} "
             f"({scored.sensitivity_note})\n"
         )
     elif getattr(scored, "sensitivity_note", ""):
@@ -3059,7 +3060,7 @@ def build_text_summary(scored: Any, result_data: dict[str, Any], share_url: str 
     if benchmark:
         kind = "Official benchmark" if benchmark["is_exact"] else "Nearest validated benchmark"
         text += (
-            f"\n{kind}: {benchmark['name']} = ${benchmark['official_billions']:+,.0f}B "
+            f"\n{kind}: {benchmark['name']} = {format_money(benchmark['official_billions'], decimals=0)} "
             f"({benchmark['source']}, {benchmark['source_date']})\n"
         )
 
@@ -3199,12 +3200,12 @@ def render_compare_block(
     c1, c2, c3 = st_module.columns(3)
     with c1:
         st_module.markdown("**Current policy**")
-        st_module.metric(scored.display_name, f"${headline:+,.0f}B")
+        st_module.metric(scored.display_name, format_money(headline, decimals=0))
     with c2:
         st_module.markdown("**Comparison**")
         st_module.metric(
             compare_choice,
-            f"${compare_official:+,.0f}B",
+            format_money(compare_official, decimals=0),
             help=f"Official {compare_data['source']} estimate",
         )
     with c3:
@@ -3212,7 +3213,7 @@ def render_compare_block(
         st_module.markdown("**Difference**")
         st_module.metric(
             "Net difference",
-            f"${delta:+,.0f}B",
+            format_money(delta, decimals=0),
             delta="More costly" if delta > 0 else "Less costly",
             delta_color="inverse" if delta > 0 else "normal",
         )
@@ -3251,7 +3252,7 @@ def render_sensitivity_block(st_module: Any, scored: Any, result_data: dict[str,
                 {
                     "ETI": eti_val,
                     "10-Year Impact ($B)": round(adjusted, 1),
-                    "vs. Central": f"${adjusted - float(scored.headline):+,.0f}B",
+                    "vs. Central": format_money(adjusted - float(scored.headline), decimals=0),
                 }
             )
         _dataframe(st_module, pd.DataFrame(rows), hide_index=True)
@@ -3297,7 +3298,7 @@ def render_microsim_summary(st_module: Any, result_data: dict[str, Any]) -> None
     with col1:
         st_module.metric(
             "Revenue Change (Year 1)",
-            f"${rev_change:+.1f}B",
+            format_money(rev_change, thousands=False),
             delta="Revenue Gain" if rev_change > 0 else "Revenue Loss",
             delta_color="normal" if rev_change > 0 else "inverse",
         )
@@ -3331,7 +3332,7 @@ def render_microsim_summary(st_module: Any, result_data: dict[str, Any]) -> None
                 "(negative values indicate a tax cut)."
             ),
             data_rows=[
-                (f"{int(row['children'])} children", f"${row['avg_tax_change']:+,.0f}")
+                (f"{int(row['children'])} children", format_dollars(row['avg_tax_change']))
                 for _, row in dist_kids.iterrows()
             ],
         ),

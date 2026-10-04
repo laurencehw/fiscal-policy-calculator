@@ -8,6 +8,7 @@ from typing import Any
 
 from ..baseline import APP_DEFAULT_START_YEAR
 from ..spending_outlays import ACCOUNT_CLASS_LABELS, IMMEDIATE
+from .formatting import format_money
 from .session_state import (
     KEY_TAILOR_SPEND_ANNUAL,
     KEY_TAILOR_SPEND_CATEGORY,
@@ -485,7 +486,7 @@ def calculate_spending_policy_result(
     policy = spending_policy_cls(
         name=spending_inputs["program_name"],
         description=(
-            f"${spending_inputs['annual_spending']:+.1f}B annual spending for "
+            f"{format_money(spending_inputs['annual_spending'], thousands=False)} annual spending for "
             f"{spending_inputs['spending_category']}"
         ),
         policy_type=policy_type_discretionary_nondefense,

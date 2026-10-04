@@ -76,6 +76,17 @@ def test_a11y_styles_and_skip_html_are_self_contained():
     assert "main-content" in SKIP_NAV_HTML
 
 
+def test_skip_link_is_the_only_positive_tabindex_and_comes_first():
+    """Streamlit's header precedes ``stMain`` in the DOM, so the link needs
+    ``tabindex="1"`` to be the first Tab stop (tests/e2e pins the browser side).
+    Exactly one positive tabindex: any second one would reorder the page."""
+    import re
+
+    assert re.findall(r'tabindex="(\d+)"', SKIP_NAV_HTML) == ["1"]
+    assert SKIP_NAV_HTML.index('class="skip-nav"') < SKIP_NAV_HTML.index('tabindex="1"')
+    assert SKIP_NAV_HTML.index('tabindex="1"') < SKIP_NAV_HTML.index('id="main-content"')
+
+
 def test_render_accessible_chart_adds_caption_and_sr_only():
     st = _FakeStreamlit()
     fig = _simple_figure()
@@ -154,7 +165,7 @@ def test_chart_description_hidden_description_includes_data():
 
 def test_format_currency_rows_produces_signed_billions():
     rows = format_currency_rows([("2026", 12.5), ("2027", -3.25)])
-    assert rows == [("2026", "$+12.5B"), ("2027", "$-3.2B")]
+    assert rows == [("2026", "+$12.5B"), ("2027", "-$3.2B")]
 
 
 def test_render_accessible_chart_escapes_html_in_description():

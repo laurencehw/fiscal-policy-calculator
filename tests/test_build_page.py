@@ -398,8 +398,8 @@ def test_totals_update_when_a_policy_is_checked(plain_build, checked_build):
     assert "1 policy" in after.label
     # -143/yr and -1,427 over ten since 2026-09-09; see
     # test_csv_header_contains_the_baseline_vintage for why.
-    assert after.value == "$-143B/yr"
-    assert "-1,427B over 10 years" in after.delta
+    assert after.value == "-$143B/yr"
+    assert "-$1,427B over 10 years" in after.delta
 
 
 def test_scoreboard_reports_baseline_and_adjusted_deficit(checked_build):

@@ -153,6 +153,15 @@ here** and is the first thing to test. No constant was retuned and no benchmark 
 `tests/test_soi_cell_calibration_benchmarks.py` records the numbers as a documented regression
 and asserts nothing about improvement.
 
+> **Correction (2026-10-04, `R6b_make_calibration_default_preregistration.md`).** Two sentences
+> above are wrong. California's imputed SALT rate (6.03%) is **not** the highest in the table — New
+> York's is 11.38%. And the California stamp is **not** a contributor: re-drawing the synthetic
+> rows' state from the high-income CPS mix (three reference cut-offs, five seeds, all-NY and all-TX
+> stamps) leaves the row at **11.0133pp to 1e-15**, because all 800 synthetic rows pay AMT both
+> before and after the repeal. The regression is the calibration *replacing the 17 CPS rows at
+> $1.5M+, which did receive a SALT benefit, with AMT-bound synthetic rows* — mechanism (ii) above.
+> The stamp itself was fixed in the opt-in path because it is an invented attribute.
+
 ## 3. Why it is not the default
 
 1. It makes one benchmark worse and moves three credits rows (below), one of them away from its
@@ -187,7 +196,14 @@ every derived-mode consumer of `credits_microdata._base_population`.
 Plus the SALT distributional row above (5.86 -> 11.01pp, rating change), and the dashboard's
 SOI-calibration block, whose headline coverage would read 100.0% / 100.9% rather than 119.0% /
 81.0%. **Not** moved: Tier 1, the fitted tier, the reconstruction tier, leave-one-out, and 6 of 7
-distributional rows. The adoption itself would touch `load_tax_microdata` and
+distributional rows.
+
+> **Correction (2026-10-04).** "Not moved: … leave-one-out" is true of this lane (the flag is
+> opt-in) and **false of an actual flip**: routing every microdata read to the calibrated frame moves
+> the leave-one-out credits module 18.5% → 17.3% and the suite 36.5% → 36.3%, and it would turn the
+> dashboard red (the SALT row's rating crosses a gate). The flip is also wider than this section
+> says — `distribution_engine.py` and `package_interactions.py` read the CSV directly. See
+> `R6b_make_calibration_default_preregistration.md`. The adoption itself would touch `load_tax_microdata` and
 `credits_microdata.py`, which this lane did not open.
 
 ## 5. Confirmations
@@ -206,8 +222,7 @@ distributional rows. The adoption itself would touch `load_tax_microdata` and
 
 ## 6. Carry-overs
 
-- **Test the California assumption**: draw synthetic `state_fips` from the weighted CPS
-  distribution at $500K+ and re-run the SALT row. Not done here.
+- ~~**Test the California assumption**~~ — done 2026-10-04 (R6b): no effect, see the correction in §2.
 - **`household_weight`** is untouched by calibration, so on the household universe a calibrated
   synthetic row's household weight is its pre-calibration weight. ARP 2021 does not move, but a
   future household-universe benchmark at the top should be checked before relying on it.

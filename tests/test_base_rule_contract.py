@@ -47,6 +47,7 @@ from fiscal_model.preset_ids import (
     preset_id_for_token,
     resolve_preset,
 )
+from fiscal_model.ui.formatting import format_money
 
 BACKSLASH = chr(92)
 
@@ -393,8 +394,8 @@ def test_the_caption_states_the_move_it_explains(label, figures):
     caption = agi_inclusive_base_caption(policy, result)
     assert caption, f"{label} moved and must carry a caption"
     assert "AGI-inclusive" in caption
-    assert f"{after:+,.1f}B" in caption
-    assert f"{before:+,.1f}B" in caption
+    assert format_money(after, escape=True) in caption
+    assert format_money(before, escape=True) in caption
 
 
 @pytest.mark.parametrize(("label", "figures"), sorted(CAPTION_MOVES.items()))
@@ -427,8 +428,8 @@ def test_the_caption_quotes_the_conventional_score_in_a_dynamic_run(label, figur
     dynamic_caption = agi_inclusive_base_caption(policy, dynamic_result)
 
     assert dynamic_caption == static_caption
-    assert f"{after:+,.1f}B" in dynamic_caption
-    assert f"{before:+,.1f}B" in dynamic_caption
+    assert format_money(after, escape=True) in dynamic_caption
+    assert format_money(before, escape=True) in dynamic_caption
 
 
 def test_the_caption_is_silent_on_every_preset_that_did_not_move():

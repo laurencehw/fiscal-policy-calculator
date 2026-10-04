@@ -67,9 +67,16 @@ DEFAULT_MIN_CPS_ROWS = 20
 # Household ids for synthetic rows start here, far above any CPS household id,
 # so the household layer never merges a synthetic record into a CPS household.
 SYNTHETIC_HOUSEHOLD_ID_BASE = 10_000_000
-# California, as the prototype used; the SALT rate it imputes is the highest in
-# the state table, which is a known bias recorded in the R6 outturn.
+# Fallback state for synthetic rows on the ``by_status`` path, used only when the
+# frame has no CPS rows at or above ``SYNTHETIC_STATE_REFERENCE_AGI`` to draw a
+# state from (or no ``state_fips`` column). California, as R6's prototype used.
 SYNTHETIC_STATE_FIPS = 6
+# Synthetic rows on the ``by_status`` path draw ``state_fips`` from the weighted
+# state distribution of the CPS rows at or above this AGI -- the reference R6's
+# carry-over named before it was measured
+# (planning/lanes/R6_microdata_cell_calibration.md section 6). Until R6b every
+# synthetic record was stamped California.
+SYNTHETIC_STATE_REFERENCE_AGI = 500_000
 
 # SOI Table 1.4-derived income-composition shares at \\$10M+ AGI.
 # (Wages, capital_gains, dividends, pass-through/interest).
@@ -208,6 +215,15 @@ def _augment_by_status(
     base_cls = np.maximum(np.searchsorted(floors, base["agi"].to_numpy(dtype=float), side="right") - 1, 0)
     base = base.loc[base_cls < target_idx[0]].copy()
 
+    # Reference rows for synthetic state_fips: the CPS rows at or above the
+    # reference AGI that the synthetic cells do NOT replace. Taking them after
+    # the drop keeps augmentation idempotent (a second call sees the same rows).
+    state_reference = (
+        base.loc[base["agi"].to_numpy(dtype=float) >= SYNTHETIC_STATE_REFERENCE_AGI]
+        if "state_fips" in base.columns and "weight" in base.columns
+        else base.iloc[0:0]
+    )
+
     next_id = int(base["id"].max()) + 1 if not base.empty else 0
     rows: list[dict] = []
     for i in target_idx:
@@ -252,6 +268,24 @@ def _augment_by_status(
                 next_id += 1
 
     synthetic = pd.DataFrame(rows)
+    # Draw states only after every AGI draw, from the same generator, so the
+    # AGI sample (and therefore every calibrated weight) is unchanged.
+    reference_weight = (
+        state_reference["weight"].to_numpy(dtype=float)
+        if not state_reference.empty
+        else np.zeros(0)
+    )
+    if len(synthetic) and reference_weight.sum() > 0:
+        by_state = (
+            pd.Series(reference_weight, index=state_reference["state_fips"].to_numpy())
+            .groupby(level=0)
+            .sum()
+        )
+        synthetic["state_fips"] = rng.choice(
+            by_state.index.to_numpy(),
+            size=len(synthetic),
+            p=(by_state / by_state.sum()).to_numpy(),
+        )
     for col in base.columns:
         if col not in synthetic.columns:
             synthetic[col] = 0
@@ -402,6 +436,7 @@ __all__ = [
     "SYNTHETIC_HOUSEHOLD_ID_BASE",
     "SYNTHETIC_SOURCE_LABEL",
     "SYNTHETIC_STATE_FIPS",
+    "SYNTHETIC_STATE_REFERENCE_AGI",
     "AugmentationReport",
     "augment_top_tail",
     "derive_top_tail_floor",

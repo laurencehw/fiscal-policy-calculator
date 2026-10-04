@@ -783,8 +783,8 @@ def policy_to_microsim_reforms(policy: Policy, year: int = 2025) -> dict:
     Coverage grows organically as policy classes gain microsim-relevant
     attributes. Today:
 
-    - ``rate_change`` on income-tax policies → threshold rate adjustment, or
-      top-rate reform when no threshold is supplied
+    - ``rate_change`` on income-tax policies → the engine's ordinary-rate
+      adder above the policy's threshold; with no threshold, every bracket
     - CTC and EITC policies → the policy's **own** reform schedule
       (``TaxCreditPolicy.credit_schedules``), which is the same object the
       revenue path scores. One definition, so a distributional table and a
@@ -817,12 +817,17 @@ def policy_to_microsim_reforms(policy: Policy, year: int = 2025) -> dict:
     ):
         rate_change = getattr(policy, "rate_change", 0.0)
         if rate_change:
-            threshold = float(getattr(policy, "affected_income_threshold", 0.0) or 0.0)
-            if threshold > 0:
-                reforms["income_rate_change"] = float(rate_change)
-                reforms["income_rate_change_threshold"] = threshold
-            else:
-                reforms["new_top_rate"] = 0.37 + rate_change
+            # One mapping at every threshold: the engine's ordinary-rate adder,
+            # Δ × max(0, ordinary taxable income − threshold). At threshold 0
+            # that is every bracket, which is what the revenue path prices. It
+            # used to map to ``new_top_rate = 0.37 + Δ``, so a "+1pp on every
+            # bracket" distribution table changed only the 37% bracket
+            # (planning/lanes/R7_weighted_group_totals.md §7).
+            threshold = max(
+                0.0, float(getattr(policy, "affected_income_threshold", 0.0) or 0.0)
+            )
+            reforms["income_rate_change"] = float(rate_change)
+            reforms["income_rate_change_threshold"] = threshold
 
     # Tax credits: hand over the policy's own reform schedule. This used to be
     # two ad-hoc translations — ``ctc_amount = 2000 + credit_change`` and, for

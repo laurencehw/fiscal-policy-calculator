@@ -14,6 +14,7 @@ References:
 """
 
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 
@@ -175,6 +176,22 @@ ILLUSTRATIVE_DISTRIBUTIONAL_BENCHMARKS: dict[str, DistributionalBenchmark] = {
 }
 
 
+def rating_from_share_error_pp(mean_error_pp: float) -> str:
+    """Rate a mean absolute share error in percentage points.
+
+    The same bands ``cbo_distributions.compare_distribution`` applies to the
+    seven CBO/JCT tables the dashboard reports (<2 excellent, <5 good, <10
+    acceptable), so a figure printed here is comparable with those.
+    """
+    if mean_error_pp < 2.0:
+        return "excellent"
+    if mean_error_pp < 5.0:
+        return "good"
+    if mean_error_pp < 10.0:
+        return "acceptable"
+    return "needs_improvement"
+
+
 def validate_distribution(
     model_results,
     benchmark: DistributionalBenchmark,
@@ -196,7 +213,7 @@ def validate_distribution(
     Returns:
         Dictionary with per-quintile comparison and an overall share-error score.
     """
-    results = {
+    results: dict[str, Any] = {
         "benchmark": benchmark.name,
         "benchmark_year": benchmark.year,
         "model_year": getattr(model_results, "year", None),
@@ -216,8 +233,13 @@ def validate_distribution(
             model_avg = r.tax_change_avg
             model_share = abs(r.share_of_total_change)
 
-            # Share error (most important)
+            # Share error, RELATIVE to the benchmark share (the legacy metric:
+            # a 2.9pp miss on a 1% share reads 290%). Kept for history.
             share_error = abs(model_share - tpc_share) / max(tpc_share, 0.001)
+            # Share error in PERCENTAGE POINTS -- the metric every CBO/JCT
+            # distributional benchmark in the dashboard reports
+            # (``cbo_distributions.compare_distribution``).
+            share_error_pp = abs(model_share - tpc_share) * 100
 
             # Dollar error (adjusted for inflation)
             dollar_error = abs(model_avg - tpc_avg_adj) / max(abs(tpc_avg_adj), 1)
@@ -230,7 +252,14 @@ def validate_distribution(
                 "model_share": model_share,
                 "tpc_share": tpc_share,
                 "share_error_pct": share_error * 100,
+                "share_error_pp": share_error_pp,
                 "dollar_error_pct": dollar_error * 100,
+                # Fraction of the model's returns in this group. The engine's
+                # "quintiles" are fixed AGI cut-offs, not fifths of the
+                # population, so this is usually far from 0.20.
+                "model_population_share": getattr(
+                    r.income_group, "population_share", None
+                ),
             })
 
     # Calculate overall score (weighted by share importance)
@@ -238,9 +267,17 @@ def validate_distribution(
     if not share_errors:
         # No overlapping quintiles between model and benchmark.
         results["overall_share_error"] = float("nan")
+        results["overall_share_error_pp"] = float("nan")
         results["overall_score"] = "NO OVERLAP"
+        results["overall_rating_pp"] = "no_overlap"
         return results
     results["overall_share_error"] = float(np.mean(share_errors))
+    results["overall_share_error_pp"] = float(
+        np.mean([q["share_error_pp"] for q in results["quintile_comparison"]])
+    )
+    results["overall_rating_pp"] = rating_from_share_error_pp(
+        results["overall_share_error_pp"]
+    )
 
     # Distributional share accuracy is the key metric
     if results["overall_share_error"] < 20:
@@ -266,7 +303,15 @@ def validate_tcja_distribution(model_results) -> dict:
 
 
 def print_validation_report(validation_results: dict):
-    """Print a formatted validation report."""
+    """Print a formatted validation report.
+
+    Two share-error metrics are printed. The **relative** error
+    (``|model - TPC| / TPC``) is the legacy headline and is kept so earlier
+    output stays comparable; it divides by the benchmark share, so a small
+    miss on a small group dominates it (2.9pp on a 1% share is 290%). The
+    **percentage-point** error is the metric the seven CBO/JCT benchmarks in
+    ``scripts/run_validation_dashboard.py`` report, rated on the same bands.
+    """
     print(f"\n{'='*70}")
     print("DISTRIBUTIONAL VALIDATION REPORT")
     print(f"{'='*70}")
@@ -274,20 +319,39 @@ def print_validation_report(validation_results: dict):
     print(f"Benchmark Year: {validation_results['benchmark_year']}")
     print(f"Model Year: {validation_results['model_year']}")
     print(f"\nOverall Score: {validation_results['overall_score']}")
-    print(f"Average Share Error: {validation_results['overall_share_error']:.1f}%")
+    print(f"Average Share Error: {validation_results['overall_share_error']:.1f}%"
+          " (relative to the benchmark share; legacy metric)")
+    if "overall_share_error_pp" in validation_results:
+        print(
+            "Mean Absolute Share Error: "
+            f"{validation_results['overall_share_error_pp']:.2f} pp "
+            f"({validation_results.get('overall_rating_pp', 'unrated')}; "
+            "the dashboard's metric and bands)"
+        )
     print()
 
-    print(f"{'Quintile':<22} {'Model Share':>12} {'TPC Share':>10} {'Error':>10}")
-    print("-" * 55)
+    print(f"{'Quintile':<22} {'Model Share':>12} {'TPC Share':>10} {'Error':>10}"
+          f" {'Err (pp)':>9} {'Pop share':>10}")
+    print("-" * 77)
 
     for q in validation_results["quintile_comparison"]:
+        pp = q.get("share_error_pp")
+        pop = q.get("model_population_share")
+        pp_txt = f"{pp:>9.2f}" if pp is not None else f"{'':>9}"
+        pop_txt = f"{pop*100:>9.1f}%" if pop is not None else f"{'':>10}"
         print(f"{q['quintile']:<22} {q['model_share']*100:>10.1f}% "
-              f"{q['tpc_share']*100:>8.1f}% {q['share_error_pct']:>8.1f}%")
+              f"{q['tpc_share']*100:>8.1f}% {q['share_error_pct']:>8.1f}% "
+              f"{pp_txt} {pop_txt}")
 
     print()
     print("Note: Dollar amounts differ due to inflation (2017 vs 2024 dollars)")
     print("      and policy timing (TCJA 2018 vs extension 2025+).")
     print("      Distributional shares are the key validation metric.")
+    print("      The model's 'quintiles' are fixed AGI cut-offs ($35K/$65K/$105K/")
+    print("      $170K) over IRS filers, so they hold the 'Pop share' printed above,")
+    print("      not 20% each; TPC's are fifths of all tax units by expanded cash")
+    print("      income. This comparison is not one of the seven CBO/JCT tables the")
+    print("      validation dashboard gates (scripts/run_validation_dashboard.py).")
 
 
 def run_full_validation():

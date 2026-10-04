@@ -106,7 +106,7 @@ class StubAssistant:
         yield self._answer[:midpoint]
         yield self._answer[midpoint:]
 
-    def suggest_followups(self, last_question, last_answer, max_suggestions=3):
+    def suggest_followups(self, last_question, last_answer, max_suggestions=3, **kwargs):
         return []
 
 

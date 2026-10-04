@@ -89,8 +89,15 @@ A11Y_STYLES = """
 """
 
 
+# ``tabindex="1"`` is deliberate and must stay the only positive tabindex in the
+# app. Streamlit renders its header (top nav, Deploy, menu) as a DOM sibling
+# *before* ``stMain``, and every ``st.markdown`` -- even one emitted before
+# ``st.navigation`` -- lands inside ``stMain``, so in DOM order the link was the
+# 8th Tab stop. A positive tabindex puts it first in the sequential focus order
+# without moving anything else; Enter focuses ``#main-content`` (tabindex -1),
+# so the next Tab continues in the page body, past the nav.
 SKIP_NAV_HTML = (
-    '<a class="skip-nav" href="#main-content">Skip to main content</a>'
+    '<a class="skip-nav" href="#main-content" tabindex="1">Skip to main content</a>'
     '<a id="main-content" tabindex="-1"></a>'
 )
 
@@ -226,8 +233,14 @@ def render_accessible_chart(
 
 
 def format_currency_rows(pairs: Iterable[tuple[str, float]]) -> list[tuple[str, str]]:
-    """Format ``(label, billions)`` pairs as display rows for a data table."""
-    return [(label, f"${value:+,.1f}B") for label, value in pairs]
+    """Format ``(label, billions)`` pairs as display rows for a data table.
+
+    ``+$12.5B`` / ``-$3.2B``: sign before the ``$``, ASCII hyphen-minus, which
+    screen readers announce as "minus" (see :mod:`fiscal_model.ui.formatting`).
+    """
+    from fiscal_model.ui.formatting import format_money
+
+    return [(label, format_money(value)) for label, value in pairs]
 
 
 def landmark(st_module: Any, tag: str, html: str) -> None:
