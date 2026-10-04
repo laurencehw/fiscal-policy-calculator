@@ -14,6 +14,7 @@ References:
 """
 
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 
@@ -212,7 +213,7 @@ def validate_distribution(
     Returns:
         Dictionary with per-quintile comparison and an overall share-error score.
     """
-    results = {
+    results: dict[str, Any] = {
         "benchmark": benchmark.name,
         "benchmark_year": benchmark.year,
         "model_year": getattr(model_results, "year", None),

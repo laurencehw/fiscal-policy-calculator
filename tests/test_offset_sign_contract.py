@@ -30,6 +30,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from fiscal_model.ui.formatting import format_money
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
@@ -301,10 +303,10 @@ def test_the_caption_carries_the_scored_figures_and_the_old_headline(scorer):
     static = float(np.sum(result.static_deficit_effect))
     behavioural = float(np.sum(result.behavioral_offset))
     assert f"{abs(behavioural):,.1f}B" in note
-    assert f"{static:+,.1f}B" in note
-    assert f"{static + behavioural:+,.1f}B" in note
+    assert format_money(static, escape=True) in note
+    assert format_money(static + behavioural, escape=True) in note
     # The figure the headline would have carried before the sweep.
-    assert f"{static - behavioural:+,.1f}B" in note
+    assert format_money(static - behavioural, escape=True) in note
     assert "No elasticity changed" in note
 
 

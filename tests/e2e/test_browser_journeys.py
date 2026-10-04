@@ -180,6 +180,7 @@ def test_mobile_no_page_level_overflow(mobile, base_url, path):
 
 def test_keyboard_tab_order_reaches_content_and_activates(desktop, base_url):
     page = go(desktop, base_url, "/", "ask").page
+    page.wait_for_selector("a.skip-nav", state="attached")
     stops = []
     for _ in range(25):
         page.keyboard.press("Tab")
@@ -272,6 +273,7 @@ def test_skip_link_is_first_tab_stop_and_skips_the_nav(desktop, base_url):
         "(()=>{const e=document.activeElement;"
         "return (e.id?'#'+e.id+' ':'')+(e.innerText||'').trim().slice(0,30)})()"
     )
+    page.wait_for_selector("a.skip-nav", state="attached")
     page.keyboard.press("Tab")
     assert "Skip to main content" in page.evaluate(active)
     page.keyboard.press("Enter")

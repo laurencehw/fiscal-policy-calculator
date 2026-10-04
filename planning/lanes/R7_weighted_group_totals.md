@@ -161,4 +161,89 @@ any figure in §3.3 landing elsewhere than stated.
 
 ## 5. Outturn
 
-*(appended after implementation — see below)*
+**Every prediction landed exactly.** `r7_sweep.py current` on the edited tree, with no patches,
+produced a JSON file **byte-identical** (`cmp`) to the `predicted` run written before the edit:
+all 45 tables, all 401 group rows, every field, and the seven benchmark comparisons.
+
+| Check | Result |
+|---|---|
+| 7 distributional benchmarks | identical to the last bit (§3.1 table holds as written) |
+| §3.2 cell counts | as predicted; 0 cells moved in `num_returns`, `tax_change_total`, `tax_change_avg`, `share_of_total_change`, totals, affected returns, headline direction |
+| §3.3 figures | as predicted to the printed digit |
+| `cold_holdout.py --json` sha256 | **69f52cf3…a37a9dd**, equal to `base2` |
+| `run_loo.py --donor-matrix` | `diff` empty against `base2` |
+| `run_validation_dashboard.py` | text `diff` empty; `--json` equal to `base2` after dropping `generated_at` |
+| Composer progressivity / policy tags | unaffected (read `tax_change_total` only, 0 cells moved) |
+
+**Shipped.** `create_groups_from_microdata` sums `weight × column` for AGI, taxable income and
+tax (missing `weight` = 1, so unweighted frames reproduce the old arithmetic exactly); the
+tax-unit branch of `analyze_policy_microsim` weights the after-tax-income denominator, the
+increase / decrease / unchanged shares and both ETRs. Tests:
+`tests/test_weighted_group_totals.py` (9): the two-row weights-1-and-1,000 frame for totals,
+`avg_agi`, ETR, share with an increase, % of income and the winners/losers summary; the
+no-weight frame; and the invariant that group totals sum to the weighted population total over
+AGI ≥ 0, on random frames at all three groupings and on the shipped CPS file. **Eight of the nine
+fail on the pre-R7 code** (the no-weight test is the one that must pass on both).
+
+**No benchmark got worse, and none could have:** the seven tables score shares, and shares were
+already weighted. What was wrong was every *other* column of the tax-unit microsim table, on the
+one tab where the app calls it "the validated distributional tier": `% Tax Increase` and
+`% Tax Decrease` were shares of CPS *rows*, `ETR Change` and the ETRs were row-sum ratios, and the
+multi-model pilot's `Avg AGI` was off by roughly the mean weight (top quintile $132). The
+headline progressive/regressive sentence did not flip in any of the 45 tables.
+
+**Found while sweeping, not this lane's to fix** (`distribution_effects.py` is not owned): a
+generic `TaxPolicy` with `affected_income_threshold=0` is mapped by
+`policy_to_microsim_reforms` to `{"new_top_rate": 0.37 + rate_change}`, so a Tailor "+1pp on
+every bracket" run's distribution table shows a top-bracket-only change ($1.87B in year one,
+0.34% of returns affected) while its revenue score prices every bracket. The table and the
+headline describe different reforms.
+
+## 6. The `distributional_validation.py` "105.9%"
+
+CLAUDE.md's command `python fiscal_model/validation/distributional_validation.py` prints
+"Overall Score: NEEDS IMPROVEMENT / Average Share Error: 105.9%" while the dashboard reports the
+seven CBO/JCT tables at 0.00–5.86pp. They measure different things:
+
+| | `distributional_validation.py` | dashboard (`cbo_distributions.compare_distribution`) |
+|---|---|---|
+| Benchmark | TPC, *TCJA conference agreement, 2018* (Dec 2017) — not one of the seven | 7 CBO/JCT tables |
+| Model policy | `create_tcja_extension(extend_all=True)`, analysis year 2026 | per benchmark |
+| Path | synthetic bracket path (TCJA has no microsim reform): `calculate_tcja_effect`'s **tier table, calibrated to CBO's own decile tables** | same tier table for the three TCJA rows |
+| Groups | engine "quintiles" = fixed AGI cut-offs $35K/65K/105K/170K over IRS filers, holding **38.9 / 22.0 / 16.1 / 10.4 / 12.6%** of returns | each benchmark's own grouping |
+| Metric | **relative** error of the share, `|m − b| / b`, averaged | **absolute** error in percentage points, averaged |
+
+**It is mostly a units issue, partly a definitional mismatch, and a little a real finding — not
+stale code.** The path is live and current. In the dashboard's own metric the same comparison is
+**6.94pp ("acceptable" on the dashboard's bands)**: 2.90, 5.81, 4.29, 4.35 and 17.35pp by group.
+The 105.9% is dominated by dividing by small benchmark shares — the lowest group's 2.9pp miss on
+a 1.0% share is "290%", the second's 5.8pp on 4.0% is "145%"; the top group's 17.35pp miss, the
+one that matters, is only "25.5%". The remaining gap has two causes the script cannot separate:
+the model's "Top Quintile" is the top **12.6%** of filers, not 20% of all tax units by expanded
+cash income, and the policy is the 2026 individual extension, not the 2018 conference agreement
+(which includes the corporate cut whose incidence lifts TPC's top quintile to 68%). What is real:
+this is the **only independent check of the TCJA tier table** in the repository — the dashboard's
+`cbo_tcja_2018` 0.00pp and `cbo_tcja_extension_2026` 0.74pp are that table read back against the
+tables it was calibrated to (two of the "circular" rows) — and against TPC it misses the top by
+17pp.
+
+**Changed** (history kept): `validate_distribution` now also returns per-group `share_error_pp`,
+`model_population_share`, `overall_share_error_pp` and `overall_rating_pp` (the dashboard's
+<2 / <5 / <10pp bands, `rating_from_share_error_pp`). `print_validation_report` prints the legacy
+line labelled as relative, the pp line beneath it, a pp column and a population-share column, and
+a note that the "quintiles" are not fifths and that this comparison is not one of the seven
+gated tables. `overall_score` and `overall_share_error` are unchanged. Tests in
+`tests/test_distributional_validation.py` (`TestPercentagePointMetric`, 9 cases).
+
+**Doc sentences that need changing** (not edited by this lane):
+
+- `CLAUDE.md`, Commands: `# Run distributional validation` above
+  `python fiscal_model/validation/distributional_validation.py` — should say it is a single TPC
+  2018 TCJA comparison against the CBO-calibrated TCJA tier table, not the seven gated tables,
+  and that its headline 105.9% is relative error (6.94pp in the dashboard's metric).
+- `CLAUDE.md`, Module Structure: "`fiscal_model/validation/distributional_validation.py` | TPC
+  distributional benchmark validation" — same qualification.
+- `fiscal_model/ui/tabs/distribution_analysis.py`'s caption "the validated distributional tier,
+  benchmarked against CBO/JCT tables within ≤3pp" (owned by the UI lane): the seven tables span
+  0.00–5.86pp, five of them score the synthetic path rather than the microsim, and only one
+  (`jct_salt_repeal_2024`, 5.86pp) scores the tax-unit microsim table the caption sits above.
