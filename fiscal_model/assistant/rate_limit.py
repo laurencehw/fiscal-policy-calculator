@@ -277,7 +277,9 @@ class RateLimiter:
         per-session message cap or cool-down, but must never spend once the
         operator has disabled Ask or the day's budget is gone.
         """
-        today_spend = self.today_spend_usd()
+        # Strict read: an unreadable ledger raises here instead of reading as
+        # $0 spent, so ``budget_allows`` fails closed rather than spending blind.
+        today_spend = self.today_spend_usd(strict=True)
         decision = RateLimitDecision(
             allowed=True,
             today_spend_usd=today_spend,
@@ -291,8 +293,12 @@ class RateLimiter:
             decision.reason = "daily cost cap reached"
         return decision
 
-    def today_spend_usd(self) -> float:
-        """Total cost recorded today (UTC) across all sessions."""
+    def today_spend_usd(self, *, strict: bool = False) -> float:
+        """Total cost recorded today (UTC) across all sessions.
+
+        A read failure returns ``0.0`` for display callers; ``strict=True``
+        re-raises it, for gates that must not mistake "unreadable" for "unspent".
+        """
         today = datetime.now(timezone.utc).date().isoformat()
         try:
             conn = self._connect()
@@ -306,6 +312,8 @@ class RateLimiter:
                 if self.db_path != ":memory:":
                     conn.close()
         except sqlite3.Error:
+            if strict:
+                raise
             logger.exception("Failed to read today's assistant spend")
             return 0.0
 

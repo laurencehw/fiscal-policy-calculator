@@ -278,3 +278,20 @@ def test_ask_page_passes_its_ledger_and_session_to_followups(tmp_path) -> None:
     page._maybe_generate_and_render_followups(None, state, _Fake(), turn)
     assert seen["limiter"] is limiter
     assert seen["session_id"] == "sess-9"
+
+
+def test_budget_check_fails_closed_when_the_ledger_cannot_be_read(tmp_path, monkeypatch):
+    """``today_spend_usd`` reads an unreadable ledger as $0 spent; the money
+    gate for auxiliary paid calls must not inherit that and allow the call."""
+    import sqlite3
+
+    from fiscal_model.assistant.rate_limit import RateLimiter, budget_allows
+
+    limiter = RateLimiter(db_path=str(tmp_path / "ledger.db"))
+
+    def _broken_connect(*_a, **_k):
+        raise sqlite3.OperationalError("disk I/O error")
+
+    monkeypatch.setattr(limiter, "_connect", _broken_connect)
+    assert limiter.today_spend_usd() == 0.0  # display path stays lenient
+    assert budget_allows(limiter) is False
