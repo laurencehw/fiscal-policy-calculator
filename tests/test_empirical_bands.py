@@ -564,3 +564,10 @@ def test_a_scorecard_failure_yields_no_band_rather_than_an_exception(monkeypatch
 
     monkeypatch.setattr(module, "tier1_class_bands", _boom)
     assert band_for_policy_class("corporate") is None
+
+
+def test_the_band_caption_prints_the_sign_before_the_dollar():
+    """Every UI surface moved to ``-$302.2B``; this shared sentence had not."""
+    caption = format_band_caption(_band(), point_estimate=-1000.0)
+    assert "On this figure that is -$" in caption
+    assert "$-" not in caption and "$+" not in caption

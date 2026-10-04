@@ -220,12 +220,23 @@ class TPCMicrosimModel(BaseScoringModel):
 
         notes.append(support.reason)
         if "income_rate_change" in reforms:
-            notes.append(
-                "Income-tax rate changes are applied to taxable income above "
-                "the policy threshold in the pilot microsim."
-            )
+            threshold = float(reforms.get("income_rate_change_threshold", 0.0) or 0.0)
+            if threshold > 0:
+                notes.append(
+                    "Income-tax rate changes are applied to ordinary taxable "
+                    f"income above the policy threshold (${threshold:,.0f}) in "
+                    "the pilot microsim."
+                )
+            else:
+                notes.append(
+                    "Income-tax rate changes are applied to every ordinary "
+                    "bracket (threshold $0) in the pilot microsim."
+                )
         elif getattr(policy, "rate_change", 0.0) != 0:
-            notes.append("Generic rate-change policies are approximated as top-rate reforms in the pilot microsim.")
+            notes.append(
+                "This policy's rate change does not map to a microsim reform; "
+                "only the mapped reforms listed above are scored."
+            )
 
         distributional = None
         try:

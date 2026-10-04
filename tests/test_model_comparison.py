@@ -358,3 +358,23 @@ def test_tpc_refuses_a_salt_reform_its_microdata_cannot_see():
 
     with pytest.raises(UnsupportedModelPolicyError, match="itemized"):
         model.score(create_repeal_salt_cap())
+
+
+def test_tpc_notes_describe_a_threshold_zero_rate_change_as_every_bracket():
+    """A threshold-0 rate change maps to the every-bracket adder, not the top rate."""
+    population = _population_without_itemized_columns()
+    policy = TaxPolicy(
+        name="+1pp all brackets",
+        description="+1pp on every ordinary bracket",
+        policy_type=PolicyType.INCOME_TAX,
+        rate_change=0.01,
+        affected_income_threshold=0,
+        duration_years=3,
+    )
+
+    result = TPCMicrosimModel(population=population).score(policy)
+
+    notes = " ".join(result.metadata["notes"])
+    assert result.metadata["reforms"]["income_rate_change_threshold"] == 0.0
+    assert "top-rate" not in notes
+    assert "every ordinary bracket" in notes

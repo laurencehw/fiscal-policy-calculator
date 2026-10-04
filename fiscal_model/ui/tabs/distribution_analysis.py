@@ -176,8 +176,11 @@ def render_distribution_tab(
                 st_module.info(
                     "🟢 Return-level microsimulation "
                     "(ordinary/preferential rates, SALT, refundable credits) — "
-                    "the validated distributional tier, benchmarked against "
-                    "CBO/JCT tables within ≤3pp."
+                    "the validated distributional tier. Of the seven published "
+                    "CBO/JCT tables in the validation suite, two exercise this "
+                    "return-level path (SALT-cap repeal, and ARP 2021 on "
+                    "households); the other five score the bracket path. Their "
+                    "errors are on the Methodology page."
                 )
             else:
                 st_module.caption(

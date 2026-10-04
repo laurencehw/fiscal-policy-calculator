@@ -65,7 +65,9 @@ python scripts/build_current_evidence.py
 # Run the per-module validation suite against published scores
 python -c "from fiscal_model.validation import run_validation_suite; run_validation_suite()"
 
-# Run distributional validation
+# One legacy distributional check: TPC's 2018 TCJA table against the calibrated
+# tier table (NOT the seven gated tables, which the dashboard reports). Its headline
+# is relative share error (105.9%); it also prints the dashboard's pp metric (6.94pp)
 python fiscal_model/validation/distributional_validation.py
 
 # Unified validation dashboard (health + calibration + CBO/JCT benchmarks)
@@ -148,7 +150,7 @@ Every legacy URL (`?analysis=preset&preset=<emoji label>&run=1`, `/ask`,
 | `fiscal_model/models/macro_adapter.py` | `MacroModelAdapter` — FRB/US and simple multiplier for dynamic scoring |
 | `fiscal_model/validation/cbo_scores.py` | Database of known CBO/JCT scores for validation |
 | `fiscal_model/validation/compare.py` | Comparison framework (model vs official) |
-| `fiscal_model/validation/distributional_validation.py` | TPC distributional benchmark validation |
+| `fiscal_model/validation/distributional_validation.py` | One legacy check — TPC's 2018 TCJA quintile table against the synthetic tier table, the only independent check of that table (the dashboard's two TCJA rows are circular). Headline is *relative* share error; it also prints the pp metric the seven gated tables use |
 | `fiscal_model/validation/current_evidence.py` | Reader for the one generated report of current validation figures (`data_files/validation/current_evidence.json`, built by `scripts/build_current_evidence.py`). The About and Methodology pages and the Ask assistant read it instead of typing figures, and `tests/test_current_evidence.py` recomputes it and pins the docs' live headline sentences to it. Counts-only claims stay in `ui/validation_headline.py`'s artifact, which by rule never moves when a model number does |
 | `fiscal_model/assistant/` | Ask assistant — `FiscalAssistant` orchestrator, `AssistantTools` dispatcher, BM25 knowledge search, citation post-processor, cost meter, sqlite rate limiter, admin queries, share-link encoding |
 | `fiscal_model/assistant/knowledge/` | 23 hand-curated Markdown files — 22 topic snapshots plus the corpus README, all of them BM25-indexed, which is the count `check_readiness.py` reports. Topics: CBO baseline, CBO long-term outlook, SSA Trustees, TCJA overview, PWBM TCJA dynamic, TPC TCJA distribution, capital gains, international tax, retirement accounts, IRA clean energy, tariff scoring, Yale Budget Lab tariffs, JCT tax expenditures, JCT distributional methodology, fiscal multipliers, dynamic-scoring concepts, ETI literature, debt sustainability, state/local, Medicare/Medicaid drivers, key definitions, common-confusion FAQ. Frontmatter carries the canonical source URL for citations |
