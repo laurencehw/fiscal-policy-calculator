@@ -21,14 +21,30 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-# Approximate list-price per million tokens (USD), as of 2026.
-# Update when Anthropic publishes new pricing or new models. Cache writes
-# are billed at 1.25x base input; cache reads at 0.1x base input.
+# List price per million tokens (USD), Anthropic first-party API rates as
+# published for current models (checked 2026-10). Update when Anthropic
+# publishes new pricing or new models. Cache writes are billed at 1.25x base
+# input; cache reads at 0.1x base input.
+#
+# Keep every current model here, including ones the app does not call: an id
+# missing from this table is priced at the dearest tier listed, so the table
+# must contain the dearest model for that fallback to be conservative.
 _MODEL_PRICES: dict[str, tuple[float, float]] = {
     # model_id: (input_per_million, output_per_million)
+    "claude-fable-5-1": (10.0, 50.0),
+    "claude-fable-5": (10.0, 50.0),
+    "claude-opus-5-5": (4.0, 20.0),
+    "claude-opus-5": (5.0, 25.0),
+    "claude-opus-4-8": (5.0, 25.0),
+    "claude-opus-4-7": (5.0, 25.0),
+    "claude-opus-4-6": (5.0, 25.0),
+    "claude-sonnet-5-5": (2.0, 10.0),
+    "claude-sonnet-5": (2.0, 10.0),
     "claude-sonnet-4-6": (3.0, 15.0),
-    "claude-opus-4-7": (15.0, 75.0),
-    "claude-haiku-4-5-20251001": (0.80, 4.0),
+    "claude-haiku-4-5-20251001": (1.0, 5.0),
+    # The undated alias Build's free-text translation uses by default
+    # (``composer/translate.py``); without it the call priced as the fallback.
+    "claude-haiku-4-5": (1.0, 5.0),
 }
 
 # Anthropic's published price for the server-side web search tool: $10 per
@@ -51,10 +67,11 @@ def _prices_for(model: str) -> tuple[float, float]:
     if model in _MODEL_PRICES:
         return _MODEL_PRICES[model]
     # A dated snapshot of a model we do know (``claude-sonnet-4-6-20260301``)
-    # prices as that model.
-    for known, price in _MODEL_PRICES.items():
-        if model.startswith(known + "-"):
-            return price
+    # prices as that model. Take the LONGEST matching id: ``claude-opus-5-5-…``
+    # also starts with ``claude-opus-5-``, and the two are priced differently.
+    matches = [known for known in _MODEL_PRICES if model.startswith(known + "-")]
+    if matches:
+        return _MODEL_PRICES[max(matches, key=len)]
     fallback = max(_MODEL_PRICES.values(), key=lambda p: (p[1], p[0]))
     with _warned_lock:
         first = model not in _warned_models

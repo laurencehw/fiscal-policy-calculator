@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from typing import Any
 
 from .goal_spec import (
@@ -58,6 +59,18 @@ MAX_TOKENS = 500
 # Greedy decoding. The composer downstream is deterministic; sampling here
 # would make "the same description" a weaker guarantee than "the same vector".
 TEMPERATURE = 0.0
+
+# The translation is a paid call on a public button, so it shares the Ask
+# assistant's daily cost cap and kill switch: checked before spending, and
+# booked afterwards as an ``EVENT_ROLE_TRANSLATE`` row in the same
+# ``assistant_events`` ledger (``fiscal_model/assistant/rate_limit.py``).
+#: Ledger session id when the caller names none.
+DEFAULT_LEDGER_SESSION = "translate"
+_BUDGET_REFUSAL = (
+    "Free-text translation is paused: today's budget for AI features is "
+    "spent (it resets at UTC midnight), or the site operator has switched "
+    "them off."
+)
 # Guard against someone pasting a whole bill into the box.
 MAX_INPUT_CHARS = 2_000
 # Keep the composer's search space bounded regardless of what comes back.
@@ -158,6 +171,8 @@ def translate_goal_text(
     *,
     client: Any = None,
     model: str | None = None,
+    limiter: Any = None,
+    session_id: str = DEFAULT_LEDGER_SESSION,
 ) -> tuple[GoalSpec | None, str]:
     """Turn a free-text fiscal philosophy into a :class:`GoalSpec`.
 
@@ -171,6 +186,10 @@ def translate_goal_text(
     model:
         Optional model id override; defaults to ``$PACKAGE_STUDIO_MODEL`` or
         :data:`DEFAULT_MODEL`.
+    limiter, session_id:
+        The cost ledger (a ``RateLimiter``; the shared default when omitted)
+        and the session the call is booked under. Over the daily cap or with
+        Ask disabled, no call is made and ``(None, reason)`` is returned.
 
     Returns
     -------
@@ -194,9 +213,15 @@ def translate_goal_text(
             logger.warning("Anthropic client init failed", exc_info=True)
             return None, f"Could not initialize the Anthropic client: {exc}"
 
+    ledger = _budgeted_ledger(limiter)
+    if ledger is None:
+        return None, f"{_BUDGET_REFUSAL} Pick a canned philosophy instead."
+
+    model_id = model or _model_id()
+    started = time.time()
     try:
         message = client.messages.create(
-            model=model or _model_id(),
+            model=model_id,
             max_tokens=MAX_TOKENS,
             # Extraction into a fixed schema wants the mode, not a sample.
             # Without this the same sentence could yield two different specs
@@ -211,6 +236,7 @@ def translate_goal_text(
     except Exception as exc:
         logger.warning("Goal translation call failed", exc_info=True)
         return None, f"Translation call failed: {exc}"
+    _record_translation(ledger, message, model_id, session_id, started)
 
     payload = _extract_tool_input(message)
     if payload is None:
@@ -256,6 +282,44 @@ def _build_client() -> Any:
             "Install it: pip install anthropic"
         ) from err
     return anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+
+
+def _budgeted_ledger(limiter: Any) -> Any:
+    """The cost ledger if today's budget allows a paid call, else ``None``.
+
+    Imported lazily so the assistant package stays off Build's import path
+    until a translation is actually about to spend. Fails closed.
+    """
+    try:
+        from fiscal_model.assistant.rate_limit import RateLimiter, budget_allows
+
+        ledger = limiter if limiter is not None else RateLimiter()
+        return ledger if budget_allows(ledger) else None
+    except Exception:
+        logger.warning("Cost ledger unavailable; skipping translation", exc_info=True)
+        return None
+
+
+def _record_translation(
+    ledger: Any, message: Any, model_id: str, session_id: str, started: float
+) -> None:
+    """Book a completed (paid) translation call. Never raises."""
+    try:
+        from fiscal_model.assistant.rate_limit import (
+            EVENT_ROLE_TRANSLATE,
+            record_paid_call,
+        )
+
+        record_paid_call(
+            ledger,
+            role=EVENT_ROLE_TRANSLATE,
+            model=model_id,
+            usage=getattr(message, "usage", None),
+            session_id=session_id,
+            elapsed_s=time.time() - started,
+        )
+    except Exception:
+        logger.warning("Failed to record translation usage", exc_info=True)
 
 
 # ---------------------------------------------------------------------------
@@ -514,6 +578,8 @@ def translate_values_text(
     client: Any = None,
     model: str | None = None,
     default_target_pct_gdp: float = 3.0,
+    limiter: Any = None,
+    session_id: str = DEFAULT_LEDGER_SESSION,
 ) -> tuple[ValuesVector | None, str, str]:
     """Turn free text into ``(vector, reading, reason)``.
 
@@ -525,6 +591,10 @@ def translate_values_text(
 
     ``default_target_pct_gdp`` is the target already on the Build slider, so a
     description that names no target leaves the reader's own setting alone.
+
+    ``limiter`` / ``session_id`` are as for :func:`translate_goal_text`: the
+    call is refused (no spend) over the daily cap or with Ask disabled, and
+    booked in the shared ledger otherwise.
     """
     cleaned = (text or "").strip()
     if not cleaned:
@@ -542,9 +612,15 @@ def translate_values_text(
             logger.warning("Anthropic client init failed", exc_info=True)
             return None, "", f"Could not initialize the Anthropic client: {exc}"
 
+    ledger = _budgeted_ledger(limiter)
+    if ledger is None:
+        return None, "", f"{_BUDGET_REFUSAL} Pick a starting philosophy instead."
+
+    model_id = model or _model_id()
+    started = time.time()
     try:
         message = client.messages.create(
-            model=model or _model_id(),
+            model=model_id,
             max_tokens=MAX_TOKENS,
             temperature=TEMPERATURE,
             system=VALUES_SYSTEM_PROMPT,
@@ -555,6 +631,7 @@ def translate_values_text(
     except Exception as exc:
         logger.warning("Values translation call failed", exc_info=True)
         return None, "", f"Translation call failed: {exc}"
+    _record_translation(ledger, message, model_id, session_id, started)
 
     payload = _extract_tool_input(message, tool_name=VALUES_TOOL_NAME)
     if payload is None:

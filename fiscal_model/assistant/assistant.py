@@ -43,6 +43,8 @@ from .rate_limit import (
     EVENT_ROLE_FOLLOWUPS,
     EVENT_ROLE_PREWARM,
     RateLimiter,
+    budget_allows,
+    record_paid_call,
 )
 from .system_prompt import build_system_prompt, stable_prompt_prefix
 from .tools import TOOL_SCHEMAS, AssistantTools, web_search_tool_definition
@@ -273,11 +275,7 @@ class FiscalAssistant:
     @staticmethod
     def _aux_budget_allows(ledger: RateLimiter) -> bool:
         """Kill switch + daily cap, checked before spending. Fails closed."""
-        try:
-            return bool(ledger.check_budget().allowed)
-        except Exception:
-            logger.warning("Budget check failed; skipping auxiliary call", exc_info=True)
-            return False
+        return budget_allows(ledger)
 
     @staticmethod
     def _record_aux_usage(
@@ -295,17 +293,14 @@ class FiscalAssistant:
         (the per-session meter counts answers, and a pre-warm belongs to no
         session).
         """
-        try:
-            turn = ConversationCost().record(usage, model)
-            ledger.record_turn(
-                session_id=session_id,
-                role=role,
-                model=model,
-                usage_dict=turn.to_dict(),
-                elapsed_s=elapsed_s,
-            )
-        except Exception:
-            logger.warning("Failed to record %s usage", role, exc_info=True)
+        record_paid_call(
+            ledger,
+            role=role,
+            model=model,
+            usage=usage,
+            session_id=session_id,
+            elapsed_s=elapsed_s,
+        )
 
     def prewarm_cache(
         self,

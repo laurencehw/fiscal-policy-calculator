@@ -146,3 +146,51 @@ class TestGenericValidator:
         assert via_wrapper["overall_share_error"] == pytest.approx(
             via_generic["overall_share_error"]
         )
+
+
+class TestPercentagePointMetric:
+    """R7 §6: the script also reports the dashboard's pp metric beside the legacy one."""
+
+    def test_pp_error_is_reported_beside_the_relative_error(self):
+        # A 2.9pp miss on a 1% share: 290% relative, 2.9pp absolute.
+        model = SimpleNamespace(
+            year=2026,
+            results=[
+                _make_result(name, 0.0, share)
+                for name, share in (
+                    ("Lowest Quintile", 0.039),
+                    ("Second Quintile", 0.098),
+                    ("Middle Quintile", 0.143),
+                    ("Fourth Quintile", 0.214),
+                    ("Top Quintile", 0.506),
+                )
+            ],
+        )
+        validation = validate_tcja_distribution(model)
+        lowest = validation["quintile_comparison"][0]
+        assert lowest["share_error_pct"] == pytest.approx(290.0)
+        assert lowest["share_error_pp"] == pytest.approx(2.9)
+        assert validation["overall_share_error"] > 100  # legacy headline unchanged
+        assert validation["overall_share_error_pp"] == pytest.approx(
+            (2.9 + 5.8 + 4.3 + 4.4 + 17.4) / 5
+        )
+        assert validation["overall_rating_pp"] == "acceptable"
+
+    @pytest.mark.parametrize(
+        ("pp", "rating"),
+        [(0.0, "excellent"), (1.99, "excellent"), (2.0, "good"), (4.99, "good"),
+         (5.0, "acceptable"), (9.99, "acceptable"), (10.0, "needs_improvement")],
+    )
+    def test_pp_bands_match_the_dashboard(self, pp, rating):
+        from fiscal_model.validation.distributional_validation import (
+            rating_from_share_error_pp,
+        )
+
+        assert rating_from_share_error_pp(pp) == rating
+
+    def test_report_prints_both_metrics(self, capsys):
+        model = _model_from_benchmark(TPC_TCJA_2018, inflation_adj=1.25)
+        print_validation_report(validate_tcja_distribution(model))
+        out = capsys.readouterr().out
+        assert "Average Share Error" in out
+        assert "Mean Absolute Share Error: 0.00 pp" in out

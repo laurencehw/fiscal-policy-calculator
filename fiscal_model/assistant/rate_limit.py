@@ -50,6 +50,8 @@ _ENV_NAMES = {
 EVENT_ROLE_TURN = "assistant"
 EVENT_ROLE_FOLLOWUPS = "followups"
 EVENT_ROLE_PREWARM = "prewarm"
+#: Build's free-text → values/goal translation (``composer/translate.py``).
+EVENT_ROLE_TRANSLATE = "translate"
 
 _DEFAULT_DAILY_CAP_USD = 5.00
 _DEFAULT_SESSION_MESSAGE_CAP = 20
@@ -364,6 +366,47 @@ class RateLimiter:
             logger.exception("Failed to log assistant turn")
 
 
+def budget_allows(ledger: RateLimiter) -> bool:
+    """Kill switch + daily cap, for a paid call that is not a user turn.
+
+    Checked *before* spending. Fails closed: if the ledger cannot be read,
+    the call is skipped rather than made blind.
+    """
+    try:
+        return bool(ledger.check_budget().allowed)
+    except Exception:
+        logger.warning("Budget check failed; skipping paid call", exc_info=True)
+        return False
+
+
+def record_paid_call(
+    ledger: RateLimiter,
+    *,
+    role: str,
+    model: str,
+    usage: Any,
+    session_id: str,
+    elapsed_s: float = 0.0,
+) -> None:
+    """Book one paid call's cost in ``assistant_events`` under ``role``.
+
+    Priced with the same table as an Ask turn (:mod:`.cost`). Never raises.
+    """
+    try:
+        from .cost import ConversationCost
+
+        turn = ConversationCost().record(usage, model)
+        ledger.record_turn(
+            session_id=session_id,
+            role=role,
+            model=model,
+            usage_dict=turn.to_dict(),
+            elapsed_s=elapsed_s,
+        )
+    except Exception:
+        logger.warning("Failed to record %s usage", role, exc_info=True)
+
+
 def new_session_id() -> str:
     """A short, opaque session identifier for telemetry / per-session caps."""
     return uuid.uuid4().hex[:16]
@@ -372,9 +415,12 @@ def new_session_id() -> str:
 __all__ = [
     "EVENT_ROLE_FOLLOWUPS",
     "EVENT_ROLE_PREWARM",
+    "EVENT_ROLE_TRANSLATE",
     "EVENT_ROLE_TURN",
     "RateLimitConfig",
     "RateLimitDecision",
     "RateLimiter",
+    "budget_allows",
     "new_session_id",
+    "record_paid_call",
 ]

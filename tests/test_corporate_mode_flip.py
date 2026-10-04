@@ -26,6 +26,7 @@ from fiscal_model.corporate import (
 )
 from fiscal_model.scoring import FiscalPolicyScorer
 from fiscal_model.ui.estimator_ranges import corporate_estimator_range
+from fiscal_model.ui.formatting import format_money
 from fiscal_model.ui.tabs.results_summary import (
     corporate_mode_flip_caption,
     reported_mode_total_billions,
@@ -167,8 +168,8 @@ def test_the_caption_fires_on_a_corporate_rate_run_and_names_both_figures():
         sum(result.behavioral_offset)
     )
     previous = reported_mode_total_billions(policy, len(result.static_deficit_effect))
-    assert f"{current:+,.1f}" in caption
-    assert f"{previous:+,.1f}" in caption
+    assert format_money(current, escape=True) in caption
+    assert format_money(previous, escape=True) in caption
 
 
 def test_the_caption_is_silent_where_nothing_moved():
