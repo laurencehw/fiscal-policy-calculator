@@ -152,9 +152,14 @@ def render_multi_model_tab(
     fiscal_policy_scorer_cls: Any,
     data_year: int,
     use_real_data: bool,
+    default_preset: str | None = None,
 ) -> None:
     """
     Render the multi-backend comparison tab.
+
+    ``default_preset`` is the preset the page is showing; the selector opens on
+    it when it is one of the comparable presets, so the tab compares the policy
+    the reader just scored rather than always the first preset in the list.
 
     Parameters mirror the existing ``render_policy_comparison_tab`` so the
     tabs controller can inject them through the same dependency shim.
@@ -219,10 +224,18 @@ def render_multi_model_tab(
         '"not representable" instead of inventing a score.'
     )
 
+    default_index = next(
+        (
+            i
+            for i, label in enumerate(labeled_options)
+            if label_to_name[label] == default_preset
+        ),
+        0,
+    )
     selected_label = st_module.selectbox(
         "Policy",
         options=labeled_options,
-        index=0,
+        index=default_index,
         # Display only: the value stays the label that keys ``label_to_name``.
         # A selectbox option is plain text, so a preset key carrying the
         # markdown ``\$`` escape read "Carbon Tax \$50/ton" in the dropdown.

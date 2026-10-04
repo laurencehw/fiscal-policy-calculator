@@ -351,3 +351,39 @@ def test_skip_list_labels_a_capability_skip_from_its_kind_not_its_wording(stub_d
         and "Not representable in this pilot" in call[1]
         for call in st.calls
     )
+
+
+class _IndexRecordingStreamlit(_StubStreamlit):
+    def selectbox(self, label, options, **kwargs):
+        del label
+        self.selected_index = kwargs.get("index", 0)
+        return options[self.selected_index]
+
+
+@pytest.mark.parametrize(
+    ("default_preset", "expected_index"),
+    [("Second Preset", 1), (None, 0), ("Not A Preset", 0)],
+)
+def test_tab_opens_on_the_preset_the_page_is_showing(
+    stub_deps, monkeypatch, default_preset, expected_index
+):
+    """It used to open on the first preset whatever the reader had scored."""
+    monkeypatch.setattr(
+        stub_deps, "compare_policy_models", lambda *a, **k: _make_bundle()
+    )
+    st = _IndexRecordingStreamlit()
+    stub_deps.render_multi_model_tab(
+        st,
+        is_spending=False,
+        preset_policies={
+            "First Preset": {"rate_change": 1.0},
+            "Second Preset": {"rate_change": 2.6},
+        },
+        tax_policy_cls=lambda **kwargs: SimpleNamespace(name=kwargs["name"]),
+        policy_type_income_tax="income_tax",
+        fiscal_policy_scorer_cls=lambda **kwargs: None,
+        data_year=2022,
+        use_real_data=False,
+        default_preset=default_preset,
+    )
+    assert st.selected_index == expected_index
