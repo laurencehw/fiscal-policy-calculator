@@ -247,3 +247,115 @@ gated tables. `overall_score` and `overall_share_error` are unchanged. Tests in
   benchmarked against CBO/JCT tables within ≤3pp" (owned by the UI lane): the seven tables span
   0.00–5.86pp, five of them score the synthetic path rather than the microsim, and only one
   (`jct_salt_repeal_2024`, 5.86pp) scores the tax-unit microsim table the caption sits above.
+
+---
+
+## 7. R7b — An all-bracket rate change was mapped to the top bracket (pre-registration)
+
+*Written before `distribution_effects.py` was edited. Predictions from
+`scratchpad/r7b_patch.py`, which wraps `policy_to_microsim_reforms` with the proposed mapping, run
+through the same `r7_sweep.py` (45 tables) and a Build interaction sweep (`r7b_build.py`, all 36
+pairs of the nine microsim presets).*
+
+### 7.1 Trace
+
+`policy_to_microsim_reforms` (plain income-tax `TaxPolicy`, non-zero `rate_change`):
+
+| `affected_income_threshold` | Reform emitted | What `MicroTaxCalculator.apply_reform` does |
+|---|---|---|
+| > 0 (mid or top: $50K, $400K, $609,350, $1M, $2M) | `income_rate_change=Δ`, `income_rate_change_threshold=T` | after `calculate`, adds `Δ × max(0, ordinary taxable income − T)` (`engine.py:763-788`) |
+| **0** | **`new_top_rate = 0.37 + Δ`** | overwrites only `rates_single[-1]` / `rates_mfj[-1]` — the 37% bracket |
+
+The revenue path prices a threshold-0 `TaxPolicy` against the whole base, so the distribution
+table and the score describe different reforms: Tailor "+1pp, everyone" scores **+$122.5B** of
+static revenue in year one and its distribution table shows **+$1.87B**, every dollar in the top
+quintile, 0.34% of returns affected. The engine can already express the right reform: the same
+adder with threshold 0 applies to all ordinary taxable income. `0.37` is also a hard-coded copy
+of the engine's top rate.
+
+### 7.2 Mechanism chosen, and the alternative measured
+
+Map threshold 0 to `income_rate_change=Δ, income_rate_change_threshold=0.0`, exactly as every
+threshold > 0 change is already mapped. One reform per policy, no change to `engine.py`.
+
+The alternative — setting every bracket's rate through `rate_changes` / `rate_changes_mfj` — runs
+the change through the regular-tax computation, so it sees the AMT. Measured on the shipped CPS
+file, year 2026, year-one $B:
+
+| Policy | Revenue score (static) | top-rate (now) | **adder at 0 (chosen)** | all brackets |
+|---|---:|---:|---:|---:|
+| +1pp all | +122.5 | +1.87 | **+92.23** | +90.72 |
+| −1pp all | −122.5 | −1.87 | **−92.23** | −90.08 |
+| −5pp all (Flat Tax Reform) | −612.3 | −9.37 | **−461.15** | −392.66 (top quintile −164.6 vs −232.3) |
+
+The two agree within 2% at ±1pp; at −5pp the bracket route is 15% smaller because a large regular
+rate cut pushes high earners into the AMT. Chosen anyway, for consistency: every other ordinary
+rate change on every surface is the post-calculation adder, and `package_interactions.py`'s
+`_STRUCTURALLY_ADDITIVE` table states as fact that "an ordinary-rate change is added after
+`calculate`". The bracket route would make that statement false for one preset in a file this
+lane does not own. **Carry-over:** the adder ignores AMT for *every* rate change, threshold or
+not; that is a separate engine lane.
+
+### 7.3 Predicted movements
+
+- **7 distributional benchmarks: byte-identical.** None uses a plain threshold-0 `TaxPolicy`.
+- **Revenue scores, `cold_holdout.py --json`, `run_loo.py`, dashboard text: byte-identical.**
+  Neither scorer reads this mapping; the dashboard's distributional block scores the seven tables
+  only.
+- **Distribution tables:** exactly one preset — **Flat Tax Reform** (`across-the-board-rate-cut-5pp`,
+  −5pp, threshold 0) — and threshold-0 Tailor runs. 9 of 45 swept tables move; every other
+  preset's table byte-identical. Headline direction flips: 0 of 45. Group totals, ETR baselines and
+  return counts: 0 cells move.
+
+| Table (quintile view, year one) | Total now → predicted | % affected now → predicted |
+|---|---|---|
+| Flat Tax Reform | −$9.37B → **−$461.15B**; quintiles $0 / 0 / 0 / 0 / −9.37 → **−10.25 / −48.50 / −72.17 / −97.93 / −232.30** | 0.34% → **59.81%** |
+| Tailor +1pp all | +$1.87B → **+$92.23B**; top-quintile share 100% → **50.4%** | 0.34% → **59.76%** |
+| Tailor −1pp all | −$1.87B → **−$92.23B** | 0.34% → **59.76%** |
+
+- **Build:** Build's catalog can measure only `top-rate-39-6`, `salt-cap-repeal` and
+  `eitc-childless-expansion` (`MICROSIM_MEASURABLE_IDS`), none of them threshold-0, so **no Build
+  surface moves**. Through `measured_interaction_share` directly (outside Build's catalog), 8 of
+  36 pairs change and all involve `across-the-board-rate-cut-5pp`: its standalone microsim level
+  −$9.37B → **−$500.62B** (2025, top-tail-augmented population); interaction with
+  `salt-cap-repeal` +$1.90B → **+$9.82B** (share of SALT 7.5% → **38.6%**); the other seven pairs
+  stay at zero (some switch the sign of zero).
+- **Multi-model pilot** (`models/comparison.py`, not owned): its TPC-Microsim revenue for a
+  threshold-0 rate policy moves by the same mechanism, and its note "Generic rate-change policies
+  are approximated as top-rate reforms in the pilot microsim" becomes stale.
+- **Tests:** `tests/test_policy_to_microsim_reforms.py::test_tax_policy_with_rate_change_produces_top_rate_reform`
+  pins the defect (`new_top_rate == 0.37 + 0.026`) and is rewritten to the new mapping.
+
+**Falsification:** any benchmark, revenue score, holdout hash or LOO line moving; any table other
+than the threshold-0 ones moving; any figure above landing elsewhere.
+
+### 7.4 Outturn
+
+**Every prediction landed exactly.** On the edited tree, with no patches, `r7_sweep.py` and
+`r7b_build.py` produced JSON **byte-identical** (`cmp`) to the predictions in §7.3: 9 of 45
+tables moved (Flat Tax Reform and the two threshold-0 Tailor runs, each at three groupings),
+0 headline flips, 0 group-total cells, all seven benchmarks bit-identical, Build's three
+catalog-measurable pairs unchanged, and 8 off-catalog pairs moved as stated.
+
+| Check | Result |
+|---|---|
+| `cold_holdout.py --json` sha256 | **69f52cf3…a37a9dd**, equal to `base2` |
+| `run_loo.py --donor-matrix` | `diff` empty against `base2` |
+| `run_validation_dashboard.py` text | `diff` empty against `base2` (exit 2, as before) |
+| `pytest -k "distribution or microsim or package_interactions or tailor or build"` | 518 passed |
+| pilot / capability tests (`test_model_comparison`, `test_model_capabilities`, `test_multi_model*`, `test_microsim`) | 77 passed |
+
+**Shipped.** `policy_to_microsim_reforms` emits `income_rate_change` /
+`income_rate_change_threshold` at every threshold, threshold 0 included; the hard-coded `0.37`
+is gone. One existing test pinned the defect and was rewritten
+(`test_tax_policy_with_no_threshold_changes_every_bracket`). New
+`tests/test_all_bracket_distribution.py` (5): ±1pp all-bracket changes move every quintile in the
+policy's direction with a non-zero affected share; the +1pp table total ($92.2B) agrees in sign
+and order with the year-one static revenue score ($122.5B, ratio 0.75, was 0.015); one mapping
+rule at five thresholds; and Top Rate to 45% (threshold $609,350) is pinned to its pre-R7b table
+to the last bit. `package_interactions.py`'s tests all pass unchanged.
+
+**Left for others.** `models/comparison.py`'s note "Generic rate-change policies are approximated
+as top-rate reforms in the pilot microsim" is now false (that file is not this lane's). The AMT
+blind spot of the post-calculation adder (§7.2: −$232.3B vs −$164.6B in the top quintile at −5pp)
+applies to every ordinary-rate change and is an engine carry-over.
