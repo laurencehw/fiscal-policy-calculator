@@ -7,8 +7,10 @@ and freshness indicators. Connects to SQLite bill database.
 
 from __future__ import annotations
 
+import copy
 import json
 import logging
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -232,6 +234,7 @@ def _render_status_bar(st_module: Any, db: Any) -> None:
     with col3:
         if st_module.button("🔄 Refresh", key="bt_refresh"):
             st_module.cache_data.clear()
+            clear_bill_read_cache()
             st_module.rerun()
 
 
@@ -771,13 +774,68 @@ class _DemoBillDatabase:
         return impacts
 
 
+# Every Streamlit rerun of this page used to re-query bills.db several times
+# (counts, two 500-row scans and the fiscal-impact map). Reads are memoized per
+# process, keyed on the file's mtime and size, so a nightly update or the
+# Refresh button is still picked up on the next rerun.
+_CACHED_READ_METHODS = frozenset(
+    {
+        "count_bills",
+        "count_bills_with_cbo",
+        "get_all_bills",
+        "get_fiscal_impact_map",
+        "get_last_update",
+        "get_cbo_score",
+        "get_auto_score",
+    }
+)
+_READ_CACHE: dict[tuple, Any] = {}
+
+
+def clear_bill_read_cache() -> None:
+    _READ_CACHE.clear()
+
+
+class _CachedBillReads:
+    """Wrap a ``BillDatabase`` so its read methods are memoized across reruns."""
+
+    def __init__(self, db: Any, path: str) -> None:
+        self._db = db
+        self._path = path
+
+    def _file_stamp(self) -> tuple[int, int] | None:
+        try:
+            stat = os.stat(self._path)
+        except OSError:
+            return None
+        return stat.st_mtime_ns, stat.st_size
+
+    def __getattr__(self, name: str) -> Any:
+        attr = getattr(self._db, name)
+        if name not in _CACHED_READ_METHODS or not callable(attr):
+            return attr
+
+        def cached(*args: Any, **kwargs: Any) -> Any:
+            stamp = self._file_stamp()
+            if stamp is None:
+                return attr(*args, **kwargs)
+            key = (self._path, stamp, name, args, tuple(sorted(kwargs.items())))
+            if key not in _READ_CACHE:
+                _READ_CACHE[key] = attr(*args, **kwargs)
+            # Callers may annotate the rows they get back; hand out a copy so
+            # one rerun's edits never leak into the next one's cached result.
+            return copy.deepcopy(_READ_CACHE[key])
+
+        return cached
+
+
 def _get_database(db_path: str | None) -> tuple[Any | None, bool]:
     """Load live database; fall back to demo data when unavailable or corrupt."""
     try:
         from bill_tracker.database import BillDatabase
         # Prefer populated DB if it exists and is healthy; fall back to default
         path = db_path or str(POPULATED_DB_PATH if POPULATED_DB_PATH.exists() else DEFAULT_DB_PATH)
-        db = BillDatabase(path)
+        db = _CachedBillReads(BillDatabase(path), path)
         # Smoke-test: if DB is corrupt, this raises sqlite3.DatabaseError
         db.count_bills()
         return db, False

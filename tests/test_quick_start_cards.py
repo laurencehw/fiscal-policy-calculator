@@ -84,3 +84,18 @@ def test_render_quick_start_draws_featured_and_example_rows():
 
     # dismiss [20,1] + featured(1) + examples(3) + expander more(2)
     assert st.columns.call_count == 4
+
+
+def test_render_quick_start_hidden_but_not_dismissed_while_calculating():
+    """The calculating run hides the card without dismissing it for good.
+
+    If that first calculation fails there are no results, and the guide has
+    to come back on the next rerun rather than vanish with the error.
+    """
+    from unittest.mock import MagicMock
+
+    st = MagicMock()
+    st.session_state = _SessionState()
+    render_quick_start(st, calculating=True)
+    assert not st.columns.called
+    assert st.session_state.quick_start_dismissed is False

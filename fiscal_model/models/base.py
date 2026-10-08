@@ -6,6 +6,7 @@ See docs/ARCHITECTURE.md for the full vision.
 
 from __future__ import annotations
 
+import inspect
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any
@@ -76,13 +77,26 @@ def build_scorer_for_start_year(
     window.
     """
     if start_year not in cache:
-        try:
+        # Ask the signature rather than catching TypeError: a TypeError raised
+        # *inside* the scorer's __init__ is a bug, not a missing parameter, and
+        # catching it would silently hand back the default-window scorer.
+        if _accepts_start_year(scorer_cls):
             cache[start_year] = scorer_cls(start_year=start_year, use_real_data=use_real_data)
-        except TypeError:
+        else:
             cache[start_year] = cache.get(DEFAULT_SCORER_START_YEAR) or scorer_cls(
                 use_real_data=use_real_data
             )
     return cache[start_year]
+
+
+def _accepts_start_year(scorer_cls: Any) -> bool:
+    try:
+        params = inspect.signature(scorer_cls).parameters
+    except (TypeError, ValueError):
+        return False
+    return "start_year" in params or any(
+        p.kind is inspect.Parameter.VAR_KEYWORD for p in params.values()
+    )
 
 
 def policy_start_year(policy: Any) -> int:

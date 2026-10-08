@@ -554,6 +554,7 @@ def _is_environmental_data_warning(issue: ReadinessIssue) -> bool:
             details.get("status") == "degraded"
             and bool(details.get("coverage_overcount"))
             and not details.get("coverage_undercount")
+            and not details.get("is_synthetic")
         )
 
     if issue.name != "baseline":

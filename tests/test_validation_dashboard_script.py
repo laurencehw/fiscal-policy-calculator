@@ -570,3 +570,25 @@ def test_calibrate_cells_refuses_to_combine_with_the_filter(dashboard_module, mo
     monkeypatch.setattr(sys, "argv", ["dashboard", "--calibrate-cells", "--filter-to-filers"])
     with pytest.raises(SystemExit):
         dashboard_module.main()
+
+
+def test_synthetic_microdata_overcount_still_fails_gate(dashboard_module):
+    """The overcount warning is for real bundled data only; synthetic fails."""
+    health = {
+        "runtime": {"status": "ok"},
+        "baseline": {"status": "ok"},
+        "fred": {"status": "ok", "source": "live"},
+        "irs_soi": {"status": "ok"},
+        "model": {"status": "ok"},
+        "microdata": {
+            "status": "degraded",
+            "returns_coverage_pct": 119.0,
+            "agi_coverage_pct": 81.0,
+            "coverage_overcount": True,
+            "coverage_undercount": False,
+            "is_synthetic": True,
+        },
+    }
+    issues = dashboard_module.health_gate_issues(health)
+    assert [i["severity"] for i in issues] == ["fail"]
+    assert dashboard_module.health_gate_ok(health) is False
