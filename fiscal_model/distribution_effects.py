@@ -653,36 +653,123 @@ def calculate_corporate_effect(policy: Policy, group: IncomeGroup, total_returns
     )
 
 
-def calculate_payroll_effect(policy: Policy, group: IncomeGroup) -> DistributionalResult:
-    """Calculate distributional effect for payroll tax changes."""
-    current_cap = getattr(policy, "current_ss_cap", 168_600)
-    new_cap = getattr(policy, "new_ss_cap", None)
-    rate_change = getattr(policy, "rate_change", 0)
-    group_ceiling = group.ceiling if group.ceiling else float("inf")
+#: Wages as a share of AGI, the convention this bracket path has always used
+#: for payroll. It overstates wages at the very top, where AGI is mostly
+#: capital income, which is one reason this tier is labelled approximate.
+_PAYROLL_WAGE_SHARE_OF_AGI = 0.7
 
-    if new_cap and new_cap > current_cap:
-        if group.floor >= new_cap:
-            affected_fraction = 1.0
-            income_affected = min(new_cap - current_cap, group.avg_agi - current_cap)
-        elif group.floor >= current_cap:
-            affected_fraction = min(1.0, (group_ceiling - current_cap) / (new_cap - current_cap))
-            income_affected = (new_cap - current_cap) * affected_fraction
+
+def _payroll_exposure_per_return(policy: Any, avg_wages: float, year: int) -> float:
+    """Newly taxed dollars per return, times the rate applied to them.
+
+    Reads the fields ``PayrollTaxPolicy`` actually defines. The old version
+    read ``current_ss_cap`` / ``new_ss_cap``, which no policy carries, so every
+    cap preset (donut, eliminate, 90% coverage) scored an all-zero table and
+    the tab printed "not available".
+    """
+    from .payroll import MEDICARE_PARAMS, NIIT_PARAMS, SOCIAL_SECURITY_PARAMS
+
+    ss_rate = SOCIAL_SECURITY_PARAMS["rate_combined"]
+    growth = SOCIAL_SECURITY_PARAMS["cap_growth_rate"]
+    current_cap = SOCIAL_SECURITY_PARAMS["cap_2025"] * (1 + growth) ** (year - 2025)
+
+    tax = 0.0
+    donut_start = getattr(policy, "ss_donut_hole_start", None)
+    if donut_start:
+        # Wages above the donut threshold become taxable; the gap stays exempt.
+        tax += max(0.0, avg_wages - max(float(donut_start), current_cap)) * ss_rate
+    elif (
+        getattr(policy, "ss_eliminate_cap", False)
+        or getattr(policy, "ss_new_cap", None) is not None
+        or getattr(policy, "ss_cover_90_pct", False)
+        or getattr(policy, "ss_cap_change", 0.0)
+    ):
+        new_cap = policy.get_effective_ss_cap(year)
+        upper = float("inf") if new_cap is None else float(new_cap)
+        tax += max(0.0, min(avg_wages, upper) - current_cap) * ss_rate
+
+    ss_rate_change = getattr(policy, "ss_rate_change", 0.0) or 0.0
+    if ss_rate_change:
+        tax += min(avg_wages, current_cap) * ss_rate_change
+
+    medicare_rate_change = getattr(policy, "medicare_rate_change", 0.0) or 0.0
+    if medicare_rate_change:
+        tax += avg_wages * medicare_rate_change
+
+    new_rate = getattr(policy, "new_payroll_tax_rate", 0.0) or 0.0
+    if new_rate:
+        tax += avg_wages * new_rate
+
+    if getattr(policy, "expand_niit_to_passthrough", False):
+        # Pass-through income has no column here; the slice of AGI above the
+        # NIIT threshold that is not wages stands in for it.
+        avg_agi = avg_wages / _PAYROLL_WAGE_SHARE_OF_AGI
+        above = max(0.0, avg_agi - NIIT_PARAMS["threshold_married"])
+        tax += above * (1 - _PAYROLL_WAGE_SHARE_OF_AGI) * NIIT_PARAMS["rate"]
+
+    add_medicare_rate = getattr(policy, "additional_medicare_rate_change", 0.0) or 0.0
+    if add_medicare_rate:
+        threshold = MEDICARE_PARAMS["threshold_married"]
+        tax += max(0.0, avg_wages - threshold) * add_medicare_rate
+
+    return tax
+
+
+def _bracket_slices(
+    brackets: list | None, group_floor: float, group_ceiling: float
+) -> list[tuple[float, float]]:
+    """``(returns, average AGI $)`` for each SOI bracket slice inside a group.
+
+    Uniform within a bracket, as ``_marginal_excess_from_brackets`` assumes; an
+    open-ended bracket belongs whole to the group holding its floor.
+    """
+    slices: list[tuple[float, float]] = []
+    for bracket in brackets or []:
+        floor = float(bracket.agi_floor)
+        ceiling = float(bracket.agi_ceiling) if bracket.agi_ceiling else float("inf")
+        if bracket.num_returns <= 0:
+            continue
+        if ceiling == float("inf"):
+            if not (group_floor <= floor < group_ceiling):
+                continue
+            fraction = 1.0
         else:
-            affected_fraction = 0.0
-            income_affected = 0.0
-        tax_change_total = income_affected * 0.124 * group.num_returns / 1e9
-    elif rate_change != 0:
-        if group.floor >= current_cap:
-            affected_fraction = 0.0
-        elif group_ceiling <= current_cap:
-            affected_fraction = 1.0
-        else:
-            affected_fraction = (current_cap - group.floor) / (group_ceiling - group.floor)
-        taxable_wages = group.total_agi * affected_fraction * 0.7
-        tax_change_total = taxable_wages * rate_change
-    else:
-        tax_change_total = 0.0
-        affected_fraction = 0.0
+            lo, hi = max(floor, group_floor), min(ceiling, group_ceiling)
+            if lo >= hi:
+                continue
+            fraction = (hi - lo) / (ceiling - floor)
+        avg_agi = float(bracket.total_agi) * 1e9 / float(bracket.num_returns)
+        slices.append((float(bracket.num_returns) * fraction, avg_agi))
+    return slices
+
+
+def calculate_payroll_effect(
+    policy: Policy, group: IncomeGroup, brackets: list | None = None
+) -> DistributionalResult:
+    """Calculate distributional effect for payroll tax changes.
+
+    Bracket-path approximation: each SOI bracket slice in the group is
+    represented by its average return, whose wages are taken as a fixed share
+    of AGI, so a cap or donut threshold above a quintile's *average* still
+    reaches the high-wage brackets inside it. The table is a shape, not a
+    reconciliation to the revenue score.
+    """
+    year = int(getattr(policy, "start_year", 2025) or 2025)
+    group_ceiling = group.ceiling if group.ceiling else float("inf")
+    slices = _bracket_slices(brackets, group.floor, group_ceiling) or [
+        (float(group.num_returns), group.avg_agi)
+    ]
+    tax_change_dollars = 0.0
+    affected = 0.0
+    for returns, avg_agi in slices:
+        per_return = _payroll_exposure_per_return(
+            policy, avg_agi * _PAYROLL_WAGE_SHARE_OF_AGI, year
+        )
+        tax_change_dollars += per_return * returns
+        if per_return != 0:
+            affected += returns
+    tax_change_total = tax_change_dollars / 1e9
+    affected_fraction = min(1.0, affected / group.num_returns) if group.num_returns else 0.0
 
     affected_returns = int(group.num_returns * affected_fraction)
     tax_change_avg = (tax_change_total * 1e9) / affected_returns if affected_returns > 0 else 0.0
@@ -729,7 +816,7 @@ def dispatch_distributional_effect(
     if isinstance(policy, CorporateTaxPolicy):
         return calculate_corporate_effect(policy, group, total_returns)
     if isinstance(policy, PayrollTaxPolicy):
-        return calculate_payroll_effect(policy, group)
+        return calculate_payroll_effect(policy, group, brackets=brackets)
     if isinstance(policy, TaxExpenditurePolicy):
         return calculate_tax_expenditure_effect(policy, group, total_returns)
     return calculate_group_effect(policy, group, brackets=brackets)
