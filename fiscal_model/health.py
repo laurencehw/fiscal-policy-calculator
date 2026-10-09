@@ -269,10 +269,13 @@ def check_health() -> dict[str, Any]:
             # data-quality warning rather than a hard failure.
             coverage_undercount = agi_coverage < 70 or returns_coverage < 70
             coverage_overcount = agi_coverage > 110 or returns_coverage > 110
+            # "status" is overwritten below, so the synthetic marker is kept in
+            # its own field for the gates' overcount-only exemptions to read.
+            is_synthetic = descriptor.get("status") == "synthetic"
             if (
                 coverage_undercount
                 or coverage_overcount
-                or descriptor.get("status") == "synthetic"
+                or is_synthetic
             ):
                 calibration_status = "degraded"
             else:
@@ -286,6 +289,7 @@ def check_health() -> dict[str, Any]:
                     "agi_coverage_pct": round(agi_coverage, 1),
                     "coverage_undercount": coverage_undercount,
                     "coverage_overcount": coverage_overcount,
+                    "is_synthetic": is_synthetic,
                 }
             )
         results["microdata"] = microdata_entry

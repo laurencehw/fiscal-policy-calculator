@@ -508,3 +508,28 @@ def test_strict_readiness_issues_blocks_microdata_undercount():
     )
 
     assert [issue.name for issue in strict_readiness_issues(report)] == ["microdata"]
+
+
+def test_strict_readiness_issues_blocks_synthetic_microdata_even_when_overcount():
+    """Synthetic microdata must block even when it also overcounts.
+
+    ``check_health`` overwrites the descriptor's ``status: "synthetic"`` with
+    ``degraded``, so the overcount-only exemption has to read the separate
+    ``is_synthetic`` marker or a synthetic file at 119% coverage would pass.
+    """
+    health = _healthy_payload()
+    health["microdata"] = {
+        "status": "degraded",
+        "coverage_overcount": True,
+        "coverage_undercount": False,
+        "is_synthetic": True,
+        "returns_coverage_pct": 119.0,
+    }
+
+    report = build_readiness_report(
+        health=health,
+        distribution_comparisons=[_comparison()],
+        scorecard=_scorecard(),
+    )
+
+    assert [issue.name for issue in strict_readiness_issues(report)] == ["microdata"]

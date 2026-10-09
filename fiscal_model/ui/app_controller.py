@@ -602,14 +602,15 @@ def render_quick_start(st_module: Any, calculating: bool = False) -> None:
     if "quick_start_dismissed" not in st_module.session_state:
         st_module.session_state.quick_start_dismissed = False
 
-    # Auto-dismiss once results have been calculated — including the run the
-    # calculation happens on (this renders before the calculation executes,
-    # so waiting for `results` alone leaves the full-height card pushing the
-    # fresh results ~1,000px below the fold on the first Calculate click).
-    if calculating or st_module.session_state.get("results"):
+    # Auto-dismiss once results exist. On the run the calculation happens on
+    # the card is only *hidden* (this renders before the calculation executes,
+    # so showing it would push the fresh results ~1,000px below the fold):
+    # dismissing it for good there would also lose it when that first
+    # calculation fails and leaves no results behind.
+    if st_module.session_state.get("results"):
         st_module.session_state.quick_start_dismissed = True
 
-    if st_module.session_state.quick_start_dismissed:
+    if st_module.session_state.quick_start_dismissed or calculating:
         return
 
     col1, col2 = st_module.columns([20, 1])

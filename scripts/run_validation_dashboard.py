@@ -247,7 +247,7 @@ def _is_coverage_overcount_warning(component: str, info: dict[str, Any]) -> bool
     """
     if component != "microdata" or info.get("status") != "degraded":
         return False
-    if info.get("coverage_undercount"):
+    if info.get("coverage_undercount") or info.get("is_synthetic"):
         return False
     return bool(info.get("coverage_overcount"))
 

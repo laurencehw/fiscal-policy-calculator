@@ -169,32 +169,35 @@ def render_distribution_tab(
                     group_type=group_type,
                     prefer_microsim=use_microsim,
                 )
-            engine_label = getattr(dist_analysis, "engine", None) or (
-                "microsim" if use_microsim else "synthetic"
-            )
-            if str(engine_label).lower().startswith("micro"):
-                st_module.info(
-                    "🟢 Return-level microsimulation "
-                    "(ordinary/preferential rates, SALT, refundable credits) — "
-                    "the validated distributional tier. Of the seven published "
-                    "CBO/JCT tables in the validation suite, two exercise this "
-                    "return-level path (SALT-cap repeal, and ARP 2021 on "
-                    "households); the other five score the bracket path. Their "
-                    "errors are on the Methodology page."
-                )
-            else:
-                st_module.caption(
-                    "🟡 Approximate bracket-heuristic path (policy not "
-                    "microsim-representable, or microsim disabled) — read the "
-                    "shape as directional, not a validated distributional "
-                    "estimate."
-                )
-            st_module.caption(
-                "Income concept: adjusted gross income (AGI) per return; "
-                "groups are ranked by AGI."
-            )
             if cache_key:
                 st_module.session_state[cache_key] = dist_analysis
+
+        # Tier captions render on every run, including a cached rerun, so the
+        # table never appears without the sentence saying which engine made it.
+        engine_label = getattr(dist_analysis, "engine", None) or (
+            "microsim" if use_microsim else "synthetic"
+        )
+        if str(engine_label).lower().startswith("micro"):
+            st_module.info(
+                "🟢 Return-level microsimulation "
+                "(ordinary/preferential rates, SALT, refundable credits) — "
+                "the validated distributional tier. Of the seven published "
+                "CBO/JCT tables in the validation suite, two exercise this "
+                "return-level path (SALT-cap repeal, and ARP 2021 on "
+                "households); the other five score the bracket path. Their "
+                "errors are on the Methodology page."
+            )
+        else:
+            st_module.caption(
+                "🟡 Approximate bracket-heuristic path (policy not "
+                "microsim-representable, or microsim disabled) — read the "
+                "shape as directional, not a validated distributional "
+                "estimate."
+            )
+        st_module.caption(
+            "Income concept: adjusted gross income (AGI) per return; "
+            "groups are ranked by AGI."
+        )
 
         if _distribution_not_representable(policy, dist_analysis):
             st_module.info(
