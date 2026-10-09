@@ -177,15 +177,15 @@ class IRSSOIData:
         total_tax_dollars = 0.0
 
         for bracket in brackets:
-            share = self._share_above_threshold(bracket, threshold)
+            share, income_share = self._shares_above_threshold(bracket, threshold)
             if share <= 0.0:
                 continue
 
             filers = bracket.num_returns * share
             total_filers += filers
-            total_agi_dollars += bracket.total_agi * 1_000_000_000.0 * share
-            total_taxable_dollars += bracket.taxable_income * 1_000_000_000.0 * share
-            total_tax_dollars += bracket.total_tax * 1_000_000_000.0 * share
+            total_agi_dollars += bracket.total_agi * 1_000_000_000.0 * income_share
+            total_taxable_dollars += bracket.taxable_income * 1_000_000_000.0 * income_share
+            total_tax_dollars += bracket.total_tax * 1_000_000_000.0 * income_share
 
         avg_agi = total_agi_dollars / total_filers if total_filers > 0 else 0.0
         avg_taxable_income = (
@@ -315,13 +315,13 @@ class IRSSOIData:
             tax_dollars = 0.0
 
             for bracket in split[status]:
-                share = self._share_above_threshold(bracket, threshold)
+                share, income_share = self._shares_above_threshold(bracket, threshold)
                 if share <= 0.0:
                     continue
                 filers += bracket.num_returns * share
-                agi_dollars += bracket.total_agi * 1_000_000_000.0 * share
-                taxable_dollars += bracket.taxable_income * 1_000_000_000.0 * share
-                tax_dollars += bracket.total_tax * 1_000_000_000.0 * share
+                agi_dollars += bracket.total_agi * 1_000_000_000.0 * income_share
+                taxable_dollars += bracket.taxable_income * 1_000_000_000.0 * income_share
+                tax_dollars += bracket.total_tax * 1_000_000_000.0 * income_share
 
             avg_taxable = taxable_dollars / filers if filers > 0 else 0.0
             avg_agi = agi_dollars / filers if filers > 0 else 0.0
@@ -523,22 +523,40 @@ class IRSSOIData:
 
     @staticmethod
     def _share_above_threshold(bracket: TaxBracketData, threshold: float) -> float:
+        """Share of a bracket's *returns* above ``threshold``."""
+        return IRSSOIData._shares_above_threshold(bracket, threshold)[0]
+
+    @staticmethod
+    def _shares_above_threshold(
+        bracket: TaxBracketData, threshold: float
+    ) -> tuple[float, float]:
+        """``(returns share, income share)`` of a bracket above ``threshold``.
+
+        A closed bracket is uniform within its range, so both shares are the
+        same linear proration. The open-ended top bracket ($10M or more) has no
+        range: it is read as a Pareto tail whose index comes from the bracket's
+        own floor and mean (``alpha = mean / (mean - floor)``), with no new
+        constant. Above the floor the returns share is ``(t/floor)^-alpha`` and
+        the income share ``(t/floor)^(1-alpha)``, so the average income of the
+        filers kept rises with the threshold. The old linear rule held that
+        average at the bracket mean and ran the count to zero at it, so any
+        threshold above about $30M scored exactly nothing.
+        """
         if threshold <= bracket.agi_floor:
-            return 1.0
+            return 1.0, 1.0
 
         if bracket.agi_ceiling is not None:
             if threshold >= bracket.agi_ceiling:
-                return 0.0
+                return 0.0, 0.0
             width = max(bracket.agi_ceiling - bracket.agi_floor, 1.0)
-            return max(0.0, min(1.0, (bracket.agi_ceiling - threshold) / width))
+            share = max(0.0, min(1.0, (bracket.agi_ceiling - threshold) / width))
+            return share, share
 
-        # Top open-ended bracket: use average AGI to avoid assuming full inclusion.
-        avg_agi = (
-            (bracket.total_agi * 1_000_000_000.0) / bracket.num_returns
-            if bracket.num_returns > 0
-            else bracket.agi_floor
-        )
-        if avg_agi <= threshold:
-            return 0.0
-        denom = max(avg_agi - bracket.agi_floor, 1.0)
-        return max(0.0, min(1.0, (avg_agi - threshold) / denom))
+        if bracket.num_returns <= 0 or bracket.agi_floor <= 0:
+            return 0.0, 0.0
+        mean = (bracket.total_agi * 1_000_000_000.0) / bracket.num_returns
+        if mean <= bracket.agi_floor:
+            return 0.0, 0.0
+        alpha = mean / (mean - bracket.agi_floor)
+        ratio = threshold / bracket.agi_floor
+        return ratio ** (-alpha), ratio ** (1.0 - alpha)
