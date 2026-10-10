@@ -238,7 +238,10 @@ for the API or Ask, and a test that makes it raise proves so.
 --donor-matrix` and strict readiness are byte-identical. `EconomicModel` is
 unchanged: weighting its supply channel by a sourced affected share is still the
 pre-registered modelling lane under priority 3, and until it lands no surface
-reports it.
+reports it. *(R9, 2026-10-10, landed it: the labour effect is weighted by the IRS
+SOI share of AGI above the policy's threshold, and the reference policy reads
+-$206.4B through `EconomicModel`; see
+`planning/lanes/R9_economic_model_supply_weighting.md`.)*
 
 
 ## Status, 2026-10-03: re-review and the second round

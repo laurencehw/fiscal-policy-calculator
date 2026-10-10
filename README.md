@@ -297,7 +297,7 @@ print(f"Revenue feedback: ${view.feedback:,.0f}B, debt service: ${view.debt_serv
 print(f"Dynamic total: ${view.dynamic_total:,.0f}B")
 ```
 
-`score_policy(dynamic=True)` still runs the library's `EconomicModel`, whose supply channel applies a rate change to all of GDP; no surface reports it (see [Dynamic Scoring](docs/METHODOLOGY.md#two-dynamic-engines-and-which-surface-reads-which)).
+`score_policy(dynamic=True)` still runs the library's `EconomicModel`, whose supply channel has been weighted by the SOI share of AGI the rate change reaches since R9 (it used to apply the change to all of GDP); no surface reports it (see [Dynamic Scoring](docs/METHODOLOGY.md#two-dynamic-engines-and-which-surface-reads-which)).
 
 ```python
 # Score a pre-built proposal

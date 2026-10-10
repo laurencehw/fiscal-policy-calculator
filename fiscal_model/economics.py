@@ -7,6 +7,7 @@ including GDP, employment, and interest rate impacts.
 
 import logging
 from dataclasses import dataclass
+from functools import lru_cache
 
 import numpy as np
 
@@ -72,6 +73,60 @@ class DynamicEffects:
     def average_employment_effect(self) -> float:
         """Average employment change over the window."""
         return np.mean(self.employment_change)
+
+
+#: IRS SOI tax year the labour-supply affected share is read from (the latest
+#: year ``IRSSOIData`` loads, and the base year the generic scorer reads).
+AFFECTED_SHARE_SOI_YEAR = 2023
+
+#: Policy types whose rate reaches no individual's marginal rate on labour
+#: income. A corporate, capital-gains or estate rate works through the return
+#: to capital, which this model's capital block prices (and does not pass to
+#: GDP); it has no labour-supply margin.
+_NO_LABOR_MARGIN = frozenset(
+    {PolicyType.CORPORATE_TAX, PolicyType.CAPITAL_GAINS_TAX, PolicyType.ESTATE_TAX}
+)
+
+#: Policy types whose rate is a marginal rate on labour income, so the
+#: affected share is the income of the filers the threshold reaches.
+_LABOR_MARGIN = frozenset({PolicyType.INCOME_TAX, PolicyType.PAYROLL_TAX})
+
+
+def labor_supply_affected_share(policy: TaxPolicy) -> float:
+    """Share of income whose marginal tax rate ``policy.rate_change`` moves.
+
+    R9 (``planning/lanes/R9_economic_model_supply_weighting.md``). The labour
+    supply channel used to multiply *all* of nominal GDP by ``-rate_change x
+    elasticity``, so +2.6 points above $400,000 moved everyone's hours. The
+    weight is the AGI of returns above ``affected_income_threshold`` over all
+    AGI, read off IRS SOI Table 1.1 (``AFFECTED_SHARE_SOI_YEAR``) with
+    :meth:`IRSSOIData.get_filers_by_bracket`, the same reader the generic
+    scorer uses, so no new constant enters. A zero threshold is 1.0.
+
+    Corporate, capital-gains and estate rates have no labour margin (0.0).
+    Any other type keeps the old economy-wide weight of 1.0.
+    """
+    policy_type = getattr(policy, "policy_type", None)
+    if policy_type in _NO_LABOR_MARGIN:
+        return 0.0
+    if policy_type not in _LABOR_MARGIN:
+        return 1.0
+    threshold = float(getattr(policy, "affected_income_threshold", 0.0) or 0.0)
+    if threshold <= 0.0:
+        return 1.0
+    return _soi_agi_share_above(threshold)
+
+
+@lru_cache(maxsize=256)
+def _soi_agi_share_above(threshold: float) -> float:
+    from .data.irs_soi import IRSSOIData
+
+    soi = IRSSOIData()
+    total = soi.get_filers_by_bracket(AFFECTED_SHARE_SOI_YEAR, 0.0)["total_agi_billions"]
+    above = soi.get_filers_by_bracket(AFFECTED_SHARE_SOI_YEAR, threshold)["total_agi_billions"]
+    if total <= 0.0:
+        return 1.0
+    return max(0.0, min(1.0, above / total))
 
 
 class EconomicConditions:
@@ -324,11 +379,14 @@ class EconomicModel:
         # Labor supply effects (supply-side)
         labor_effect = np.zeros(n_years)
         if policy.rate_change != 0:
-            # Marginal rate change affects labor supply
+            # Marginal rate change affects labor supply of the filers whose
+            # marginal rate it moves, so the economy-wide effect is weighted
+            # by their share of income (``labor_supply_affected_share``).
             # Uncompensated elasticity is small/negative, compensated is positive
             marginal_rate_change = policy.rate_change
             labor_effect = (-marginal_rate_change *
                            self.params['labor_supply_elasticity'] *
+                           labor_supply_affected_share(policy) *
                            np.ones(n_years))
 
         # Demand effects (short-run) — symmetric: cuts stimulate, increases

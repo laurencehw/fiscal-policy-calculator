@@ -98,6 +98,13 @@ def _distribution_not_representable(policy: Any, dist_analysis: Any) -> bool:
     if abs(float(getattr(dist_analysis, "total_tax_change", 0.0) or 0.0)) >= 0.05:
         return False
 
+    # A non-zero rate change cannot leave every group exactly unchanged unless
+    # the population holds nobody above its threshold (e.g. +2pp above $50M on
+    # a microdata file whose top record is below that). That is a coverage gap,
+    # not a flat result.
+    if abs(float(getattr(policy, "rate_change", 0.0) or 0.0)) > 0:
+        return True
+
     # Zero output everywhere: only representable families may claim "flat".
     try:
         from fiscal_model.distribution_effects import policy_to_microsim_reforms
