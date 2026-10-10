@@ -356,21 +356,22 @@ def render_data_status(
 
 def _render_augmentation_preview(st_module: Any, microdata: dict) -> None:
     """
-    Show a diagnostic preview of what top-tail augmentation would do to
-    the microdata's SOI coverage. Enable via a checkbox in the Data
-    details expander; disabled by default because augmentation is an
-    opt-in operation that changes distributional results when plumbed
-    through the engine.
+    Show how the default population's SOI calibration changes coverage.
+
+    Since R6c the microsim reads the SOI-calibrated default population
+    (:mod:`fiscal_model.microsim.population`): the raw CPS file plus an SOI
+    top tail, with weights raked to SOI cells. This diagnostic compares the
+    raw file's coverage with the default's; it changes nothing it shows.
     """
     st_module.markdown("---")
     show = st_module.checkbox(
-        "Preview top-tail augmentation",
+        "Show raw vs calibrated microdata coverage",
         value=False,
         key="augmentation_preview_toggle",
         help=(
-            "Shows how SOI-based top-tail augmentation would change "
-            "microdata coverage at \\$1M+. Diagnostic only — does not "
-            "affect the policy scoring above."
+            "The distribution tables read CPS tax units calibrated to IRS SOI "
+            "returns and AGI. This compares that population with the raw CPS "
+            "file. Diagnostic only."
         ),
     )
     if not show:
@@ -378,26 +379,26 @@ def _render_augmentation_preview(st_module: Any, microdata: dict) -> None:
 
     try:
         from fiscal_model.data.cps_asec import load_tax_microdata
+        from fiscal_model.microsim.population import (
+            DEFAULT_CALIBRATION_YEAR,
+            load_default_population,
+        )
         from fiscal_model.microsim.soi_calibration import calibrate_to_soi
-        from fiscal_model.microsim.top_tail import augment_top_tail
     except Exception as exc:
-        st_module.caption(f"Augmentation modules unavailable: {exc}")
+        st_module.caption(f"Calibration modules unavailable: {exc}")
         return
 
     try:
-        calibration_year = int(microdata.get("calibration_year") or 2022)
-        base_df, _ = load_tax_microdata()
-        augmented_df, report = augment_top_tail(base_df, year=calibration_year)
-        before = calibrate_to_soi(base_df, year=calibration_year).summary()
-        after = calibrate_to_soi(augmented_df, year=calibration_year).summary()
+        year = DEFAULT_CALIBRATION_YEAR
+        raw_df, _ = load_tax_microdata()
+        before = calibrate_to_soi(raw_df, year=year).summary()
+        after = calibrate_to_soi(load_default_population(), year=year).summary()
     except Exception as exc:
-        st_module.caption(f"Could not compute augmentation preview: {exc}")
+        st_module.caption(f"Could not compute the coverage comparison: {exc}")
         return
 
     st_module.markdown(
-        "**Augmentation preview** (SOI "
-        f"{calibration_year}, floor \\$2M, "
-        f"{report.synthetic_records:,} synthetic records):"
+        f"**Coverage against SOI {year}** (raw CPS file → calibrated default):"
     )
     st_module.markdown(
         f"- Returns coverage: "
@@ -405,15 +406,13 @@ def _render_augmentation_preview(st_module: Any, microdata: dict) -> None:
         f"**{after['returns_coverage_pct']:.0f}%**\n"
         f"- AGI coverage: "
         f"{before['agi_coverage_pct']:.0f}% → "
-        f"**{after['agi_coverage_pct']:.0f}%**\n"
-        f"- Synthetic top-tail AGI added: "
-        f"\\${report.synthetic_agi_billions:,.1f}B"
+        f"**{after['agi_coverage_pct']:.0f}%**"
     )
     st_module.caption(
-        "Augmentation is a *coverage* fix, not a *representation* fix. "
-        "Synthetic records carry SOI-aggregate income composition but "
-        "don't model individual-level behaviour. The project's validation "
-        "notes on GitHub carry the full caveat."
+        "Calibration fixes *coverage*, not *representation*: the top-tail "
+        "records carry SOI-aggregate income composition and do not model "
+        "individual behaviour. The project's validation notes on GitHub carry "
+        "the full caveat."
     )
 
 

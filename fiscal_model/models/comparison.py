@@ -155,6 +155,7 @@ class TPCMicrosimModel(BaseScoringModel):
         *,
         year: int,
     ) -> tuple[pd.DataFrame, str, dict[str, Any] | None, list[str]]:
+        soi_calibrated = False
         if self._population is not None:
             population = self._population.copy(deep=True)
             population_source = "in_memory"
@@ -162,13 +163,27 @@ class TPCMicrosimModel(BaseScoringModel):
             raise FileNotFoundError(
                 f"Microsim pilot requires built microdata at {self._microdata_path}."
             )
+        elif self._microdata_path == _default_microdata_path():
+            # The bundled file: read the SOI-calibrated default population
+            # every microsim surface reads (R6c). It already carries the SOI
+            # top tail, so the pilot's own augmentation is not applied again.
+            from fiscal_model.microsim.population import load_default_population
+
+            population = load_default_population()
+            population_source = f"{self._microdata_path} (SOI-calibrated default)"
+            soi_calibrated = True
         else:
             population = pd.read_csv(self._microdata_path)
             population_source = str(self._microdata_path)
 
         augmentation_report = None
         notes: list[str] = []
-        if self._augment_top_tail_enabled:
+        if soi_calibrated:
+            notes.append(
+                "Default microdata is already SOI-calibrated (top tail included); "
+                "no separate top-tail augmentation applied."
+            )
+        elif self._augment_top_tail_enabled:
             augmentation_year = self._augmentation_year or year
             try:
                 population, report = self._top_tail_augmenter(

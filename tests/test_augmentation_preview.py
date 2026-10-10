@@ -51,12 +51,13 @@ def test_preview_shows_coverage_change_when_toggle_is_on():
     microdata = {"status": "ok", "calibration_year": 2023}
     _render_augmentation_preview(st, microdata)
     rendered = "\n".join(st.markdowns)
-    # The preview should name the calibration year, show returns/AGI
-    # coverage lines, and mention synthetic-record counts.
+    # The preview names the calibration year and shows returns/AGI coverage,
+    # raw CPS file -> the SOI-calibrated default population (R6c).
     assert "2023" in rendered
+    assert "calibrated default" in rendered
     assert "Returns coverage" in rendered
     assert "AGI coverage" in rendered
-    assert "Synthetic top-tail AGI added" in rendered
+    assert "**100%**" in rendered
     # Caption explains the coverage-vs-representation caveat.
     assert any("coverage" in c.lower() for c in st.captions)
 

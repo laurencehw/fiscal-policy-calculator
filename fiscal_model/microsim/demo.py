@@ -20,7 +20,9 @@ def demo_microsim():
     real_data_path = Path(__file__).parent / "tax_microdata_2024.csv"
     if real_data_path.exists():
         print(f"1. Loading REAL CPS ASEC Data from {real_data_path.name}...")
-        population = pd.read_csv(real_data_path)
+        from fiscal_model.microsim.population import load_default_population
+
+        population = load_default_population(real_data_path)
     else:
         print("1. Generating synthetic population (100,000 households)...")
         pop_gen = SyntheticPopulation(size=100_000)

@@ -53,7 +53,6 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from functools import cache, lru_cache
 from itertools import combinations
-from pathlib import Path
 from typing import Any
 
 # ── Statuses ─────────────────────────────────────────────────────────────
@@ -293,17 +292,11 @@ def merge_reforms(
 # ── The microsim (lazy; everything below is only reached on demand) ──────
 @lru_cache(maxsize=1)
 def _population() -> Any:
-    """CPS tax units + SOI top tail + imputed SALT, built once per process."""
-    import pandas as pd
-
-    from fiscal_model.feasibility import DEFAULT_MICRODATA_RELATIVE_PATH
+    """The default (SOI-calibrated) population + imputed SALT, once per process."""
+    from fiscal_model.microsim.population import load_default_population
     from fiscal_model.microsim.salt_imputation import impute_salt_and_itemized
-    from fiscal_model.microsim.top_tail import augment_top_tail
 
-    path = Path(__file__).resolve().parents[1] / DEFAULT_MICRODATA_RELATIVE_PATH
-    raw = pd.read_csv(path)
-    augmented, _report = augment_top_tail(raw, year=2023)
-    return impute_salt_and_itemized(augmented).copy()
+    return impute_salt_and_itemized(load_default_population()).copy()
 
 
 @lru_cache(maxsize=1)

@@ -68,8 +68,10 @@ def run_microsim_calculation(
     """
     data_path = base_dir / "fiscal_model" / "microsim" / "tax_microdata_2024.csv"
     if data_path.exists():
-        population = pd_module.read_csv(data_path)
-        source_msg = "Using **Real CPS ASEC 2024** Microdata"
+        from fiscal_model.microsim.population import load_default_population
+
+        population = load_default_population(data_path)
+        source_msg = "Using **Real CPS ASEC 2024** Microdata (calibrated to IRS SOI)"
     else:
         pop_gen = synthetic_population_cls(size=100_000)
         population = pop_gen.generate()

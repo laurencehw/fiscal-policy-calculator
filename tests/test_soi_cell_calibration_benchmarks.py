@@ -1,10 +1,12 @@
 """
-What the opt-in cell calibration moves downstream, recorded as measurements.
+What cell calibration moves downstream, recorded as measurements.
 
-This file does **not** assert that calibration improves anything. It records,
-as a documented regression where it is one, what happens to the distributional
-benchmarks and the three derived credits rows when the microdata is swapped for
-the cell-calibrated frame (``planning/lanes/R6_microdata_cell_calibration.md``).
+Cell calibration is the default population since R6c
+(``planning/lanes/R6c_salt_mechanism_and_calibration_default.md``); before that
+it was opt-in (``planning/lanes/R6_microdata_cell_calibration.md``). This file
+records, raw CPS file against the calibrated default, what the swap does to the
+distributional benchmarks and the three derived credits rows. It does **not**
+assert that calibration improves anything.
 
 If a number here moves, an upstream module changed; update the record with the
 new measurement and say why, never retune the calibration to restore a figure.
@@ -25,8 +27,6 @@ from fiscal_model.credits_factory import (
 )
 from fiscal_model.data.cps_asec import load_tax_microdata
 from fiscal_model.distribution_engine import DistributionalEngine
-from fiscal_model.microsim.soi_calibration import calibrate_cells_to_soi
-from fiscal_model.microsim.top_tail import augment_top_tail
 from fiscal_model.validation.benchmark_runners import default_model_runner
 from fiscal_model.validation.cbo_distributions import run_full_cbo_jct_validation
 
@@ -37,13 +37,6 @@ YEAR = 2023
 def raw() -> pd.DataFrame:
     df, _ = load_tax_microdata()
     return df
-
-
-@pytest.fixture(scope="module")
-def calibrated(raw: pd.DataFrame) -> pd.DataFrame:
-    aug, _ = augment_top_tail(raw, YEAR, by_status=True)
-    out, _ = calibrate_cells_to_soi(aug, YEAR)
-    return out
 
 
 def _benchmark_errors(
@@ -67,37 +60,38 @@ def _benchmark_errors(
 
 
 class TestDistributionalBenchmarks:
-    def test_recorded_movement_and_the_salt_regression(self, monkeypatch, calibrated):
-        """Six of seven rows do not move; the SALT row gets WORSE, 5.86 -> 11.01pp.
+    def test_recorded_movement_and_the_salt_row(self, monkeypatch, raw):
+        """Five of seven rows do not move; the SALT row goes 14.91 -> 5.65pp.
 
-        This is a documented regression, not an expectation of improvement.
-        Cause (see the lane doc): the 5.86pp was a cancellation. SALT is imputed
-        as a flat state rate on AGI, the AMT binds on every synthetic $2M+ row,
-        and JCT ranks by expanded income where the model ranks by AGI. Giving
-        the top tail its true weight exposes that; it is not a reason to retune.
+        R6 recorded the opposite direction (5.86 -> 11.01pp) under the old
+        engine: an AMT that taxed gains at 28% and bound on every $1.5M+ row,
+        and a flat SALT rate on AGI. With the statutory AMT and SOI Table 2.1
+        SALT ratios (R6c) the raw file is the one that misses, because it has
+        almost no top tail. ARP 2021 (household universe) moves in the 4th
+        decimal.
         """
-        before = _benchmark_errors(monkeypatch, None)
+        before = _benchmark_errors(monkeypatch, raw)
         monkeypatch.undo()
-        after = _benchmark_errors(monkeypatch, calibrated)
+        after = _benchmark_errors(monkeypatch, None)
 
+        moved = {"jct_salt_repeal_2024", "cbo_arp_2021"}
         unmoved = [
             pid
             for pid in before
-            if pid != "jct_salt_repeal_2024" and after[pid] == pytest.approx(before[pid], abs=0.005)
+            if pid not in moved and after[pid] == pytest.approx(before[pid], abs=0.005)
         ]
         assert len(before) == 7
-        assert len(unmoved) == 6  # every row but the SALT one: the other six do not move
+        assert len(unmoved) == 5
 
-        assert before["jct_salt_repeal_2024"] == pytest.approx(5.86, abs=0.01)
-        assert after["jct_salt_repeal_2024"] == pytest.approx(11.01, abs=0.01)
-        assert after["jct_salt_repeal_2024"] > before["jct_salt_repeal_2024"]
-        # ARP 2021 is on the household universe and stays at 3.72pp.
-        assert after["cbo_arp_2021"] == pytest.approx(3.72, abs=0.01)
+        assert before["jct_salt_repeal_2024"] == pytest.approx(14.9090, abs=5e-4)
+        assert after["jct_salt_repeal_2024"] == pytest.approx(5.6541, abs=5e-4)
+        assert before["cbo_arp_2021"] == pytest.approx(3.7203, abs=5e-4)
+        assert after["cbo_arp_2021"] == pytest.approx(3.7204, abs=5e-4)
 
 
 class TestCreditsRows:
     @pytest.mark.parametrize(
-        ("factory", "default_10yr", "calibrated_10yr"),
+        ("factory", "raw_10yr", "calibrated_10yr"),
         [
             (create_biden_ctc_2021, -1528.5, -1440.5),
             (create_ctc_permanent_extension, -714.2, -799.6),
@@ -105,11 +99,15 @@ class TestCreditsRows:
         ],
     )
     def test_derived_credits_score_on_the_two_populations(
-        self, monkeypatch, calibrated, factory, default_10yr, calibrated_10yr
+        self, monkeypatch, raw, factory, raw_10yr, calibrated_10yr
     ):
-        """Recorded movement of the derived (not fitted) credits rows, $B over ten years."""
+        """Recorded movement of the derived (not fitted) credits rows, $B over ten years.
+
+        The default population is the calibrated one (R6c); the raw CPS file is
+        swapped in to record what it gave.
+        """
         original = credits_microdata._base_population
-        keep = [c for c in original().columns if c in calibrated.columns]
+        keep = [c for c in original().columns if c in raw.columns]
 
         def score() -> float:
             policy = factory()
@@ -118,6 +116,6 @@ class TestCreditsRows:
             assert annual is not None
             return round(annual * 10, 1)
 
-        assert score() == pytest.approx(default_10yr, abs=0.1)
-        monkeypatch.setattr(credits_microdata, "_base_population", lambda: calibrated[keep].copy())
         assert score() == pytest.approx(calibrated_10yr, abs=0.1)
+        monkeypatch.setattr(credits_microdata, "_base_population", lambda: raw[keep].copy())
+        assert score() == pytest.approx(raw_10yr, abs=0.1)

@@ -515,17 +515,21 @@ def test_collect_microdata_default_has_no_cell_calibration(dashboard_module):
     assert first["augmentation"] is None and first["filter"] is None
 
 
-def test_calibrate_cells_flag_changes_only_the_flagged_run(dashboard_module):
+def test_calibrate_cells_flag_adds_only_the_before_after_block(dashboard_module):
+    """Cell calibration is the default population since R6c, so the flag no
+    longer changes the report; it adds the raw file's coverage and the
+    calibration's diagnostics beside it."""
     default = dashboard_module.collect_microdata(2023)
     flagged = dashboard_module.collect_microdata(2023, calibrate_cells_flag=True)
 
     block = flagged["cell_calibration"]
-    assert block["raw_summary"] == default["report"].summary()
+    assert block["raw_summary"]["returns_coverage_pct"] > 110.0
     diag = block["diagnostics"]
     assert diag.cells_empty == 0
     assert diag.returns_coverage_after_pct == pytest.approx(100.0, abs=1e-3)
-    assert flagged["report"].summary()["returns_coverage_pct"] == pytest.approx(100.0, abs=1e-3)
-    assert default["report"].summary()["returns_coverage_pct"] > 110.0
+    assert flagged["report"].summary() == default["report"].summary()
+    assert default["report"].summary()["returns_coverage_pct"] == pytest.approx(100.0, abs=1e-3)
+    assert "cell_calibration" not in default
     assert flagged["augmentation"].synthetic_records == 800
     assert flagged["filter"] is None  # no non-filer filter on this path
 
