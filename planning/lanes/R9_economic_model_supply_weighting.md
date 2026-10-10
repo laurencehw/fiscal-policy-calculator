@@ -104,3 +104,35 @@ The lane has failed if any of: a row outside §3's ten moves; any §3 figure
 misses by more than $0.1B; any §4 artefact changes; a test needs an
 `EconomicModel` value it did not pin before re-pinned for a reason other than
 this weight.
+
+## 6. Outturn (2026-10-10)
+
+**Every §3 figure landed to the cent and every §4 artefact is byte-identical.**
+The implementation sweep reproduces the prototype exactly: 10 of 54 rows move,
+44 are identical in static, feedback, final and GDP. Checked by hash, before
+and after on the same tree: `cold_holdout.py --json` (sha256 `69f52cf3…a37a9dd`),
+`run_validation_dashboard.py` (exit 2 on both, as on `main`, identical text),
+`run_loo.py --donor-matrix`, and 159 dynamic-view and static rows (53 presets ×
+FRB/US-Lite, simple multiplier, static). None of the falsification conditions
+fired.
+
+One existing test needed a premise threshold changed, for the reason §5
+allows: `test_the_ask_page_reports_the_figures_the_result_page_shows` asserted
+that the engine's `EconomicModel` figures sit more than $100B from the Ask
+page's figures. They now sit $95.9B apart, which is this weight. The assertion
+is now $50B, with the reason in a comment; the test's claim (Ask reports the
+app's view, not the engine's) is unchanged.
+
+Suite: 4,959 passed, 8 skipped. Ruff and the mypy gate are clean.
+
+Findings, recorded rather than fixed:
+
+1. **The corporate presets now have demand effects only.** Their labour weight
+   is 0.0, and `capital_stock_change` / `investment_change` are computed but
+   never reach `gdp_level`. A capital channel into GDP would be its own lane.
+2. **The channel's functional form is unchanged**: `−Δτ × ε` rather than
+   `ε × Δln(1−τ)`, and no labour share on the GDP it moves. Both would shrink the
+   remaining supply effect further.
+3. **AGI is an upper bound on the labour share reached**, so the −$95.9B of
+   feedback on the reference policy is an upper bound too. A wage column (SOI
+   Table 1.4) would tighten it.

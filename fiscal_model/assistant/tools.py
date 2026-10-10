@@ -742,8 +742,7 @@ class AssistantTools:
         try:
             # Always a conventional run. A dynamic request adds the app's own
             # dynamic view below; ``score_policy(dynamic=True)`` would run
-            # ``EconomicModel``, whose supply channel disagrees with the app by
-            # up to a factor of four.
+            # ``EconomicModel``, a different model from the app's view.
             result = self._scorer.score_policy(policy, dynamic=False)
         except Exception as exc:
             return {"error": f"scoring failed: {exc}"}
