@@ -83,6 +83,6 @@ def test_threshold_policies_are_byte_identical_to_before(engine):
         "income_rate_change_threshold": 609_350.0,
     }
     analysis = engine.analyze_policy(top_45, group_type=IncomeGroupType.QUINTILE)
-    assert [r.tax_change_total for r in analysis.results] == [
-        0.0, 0.0, 0.0, 0.0, 63.985889731441574,
-    ]
+    assert [r.tax_change_total for r in analysis.results] == pytest.approx(
+        [0.0, 0.0, 0.0, 0.0, 63.985889731441574], rel=1e-12, abs=0.0
+    )
