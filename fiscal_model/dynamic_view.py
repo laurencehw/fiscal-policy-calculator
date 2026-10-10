@@ -25,8 +25,9 @@ and Ask reported the scoring engine's internal ``EconomicModel`` feedback
 applies a rate change to all of nominal GDP, and it scored +2.6pp above
 $400,000 at -$86.1B dynamically where the app scored -$338.9B.
 ``EconomicModel`` is unchanged and still runs under
-``score_policy(dynamic=True)``. Weighting its supply channel is a separate,
-pre-registered modelling lane (``planning/ROUTE_TO_9.md``, "Status").
+``score_policy(dynamic=True)``. R9 weighted its supply channel by the share of
+AGI a rate change reaches (``planning/lanes/R9_economic_model_supply_weighting.md``),
+taking that policy to -$206.4B; it is still a different model from this view.
 """
 
 from __future__ import annotations

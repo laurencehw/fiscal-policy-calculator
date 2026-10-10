@@ -402,8 +402,11 @@ def test_the_ask_page_reports_the_figures_the_result_page_shows(app_deps):
     assert ctx["debt_service_10yr_billions"] == pytest.approx(scored.debt_service)
     assert ctx["dynamic_total_10yr_billions"] == pytest.approx(scored.dynamic_total)
     # Not the engine's EconomicModel figures, which this run also carries.
-    assert abs(ctx["ten_year_deficit_impact_billions"] - float(engine.total_10_year_cost)) > 100.0
-    assert abs(ctx["revenue_feedback_10yr_billions"] - float(engine.revenue_feedback_10yr)) > 100.0
+    # (R9 weighted EconomicModel's supply channel, so its feedback here fell
+    # from $216.1B to $95.9B; $50B still separates the two by far more than
+    # approx's tolerance.)
+    assert abs(ctx["ten_year_deficit_impact_billions"] - float(engine.total_10_year_cost)) > 50.0
+    assert abs(ctx["revenue_feedback_10yr_billions"] - float(engine.revenue_feedback_10yr)) > 50.0
     assert f"{abs(scored.headline):,.0f}B" in _scoring_summary(result_data)
 
     # Without the page's object, or with one from another run, Ask reports no
