@@ -345,8 +345,10 @@ class TestPreferentialAndSaltImputation:
         out = impute_salt_and_itemized(df)
         assert 'state_and_local_taxes' in out.columns
         assert 'itemized_deductions' in out.columns
-        # SALT scales with AGI; the high earner's SALT is far larger.
-        assert out.loc[1, 'state_and_local_taxes'] > out.loc[0, 'state_and_local_taxes'] * 15
+        # SALT scales with AGI; the high earner's SALT is far larger, though by
+        # less than the 20x AGI ratio: SOI Table 2.1's SALT share of AGI falls
+        # from 11.7% at $50K to 7.0% at $1M (R6c).
+        assert out.loc[1, 'state_and_local_taxes'] > out.loc[0, 'state_and_local_taxes'] * 10
 
 
 class TestAMT:
