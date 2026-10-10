@@ -2140,14 +2140,14 @@ JCT is the official congressional scorer for tax legislation, using IRS SOI micr
 
 **Distributional validation** is benchmarked against **seven published CBO/JCT
 tables**, not against TPC alone. Mean absolute share errors span **0.00pp to
-5.86pp** (`python scripts/run_validation_dashboard.py`; full table in
+5.65pp** (`python scripts/run_validation_dashboard.py`; full table in
 [VALIDATION.md](VALIDATION.md)). Two of the seven are **circular** and must not be
 counted as skill: `distribution_effects.calculate_tcja_effect` builds its decile
 tiers *out of* CBO 54796 and CBO 60007, so the 0.00pp against the first and the
 0.74pp against the second are bookkeeping — and since Wave 4 the suite also
 records that those two rows are scored on a population CBO does not use, because
 `TCJAExtensionPolicy` has no microsim path and falls back `household→tax_unit`.
-The five non-circular tables run 2.10pp (JCT JCX-68-17) to 5.86pp (JCT JCX-4-24,
+The five non-circular tables run 2.10pp (JCT JCX-68-17) to 5.65pp (JCT JCX-4-24,
 SALT-cap repeal). **The ARP row rose 4.76pp → 7.77pp in Wave 3 and then fell to
 3.72pp in Wave 4, and both moves are the honest number.** Wave 3 put the
 Recovery Rebate on return-level data alongside the CTC and EITC, and the old
@@ -2839,7 +2839,7 @@ module now has two published benchmarks and one fitted constant and still nothin
 cross-validating either — a smaller hole, honestly stated, not a closed one.
 
 Distributional accuracy is a fifth, separate number: **seven published CBO/JCT
-tables at 0.00–5.86pp** mean absolute share error, **two of which are circular**
+tables at 0.00–5.65pp** mean absolute share error, **two of which are circular**
 (see [above](#vs-tpc-tax-policy-center)) — and since Wave 4 the suite also reports
 the universe each row was **scored** on, so those two circular rows are visibly
 scored on a population CBO does not use. There is no single “validated within X%”
