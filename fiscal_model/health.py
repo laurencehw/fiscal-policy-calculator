@@ -242,14 +242,15 @@ def check_health() -> dict[str, Any]:
     # coverage ratios are reported here; the full bracket report lives
     # in calibrate_to_soi for callers that want it.
     try:
-        from fiscal_model.data.cps_asec import describe_microdata, load_tax_microdata
+        from fiscal_model.data.cps_asec import describe_microdata
+        from fiscal_model.microsim.population import load_default_population
         from fiscal_model.microsim.soi_calibration import calibrate_to_soi
 
         descriptor = describe_microdata()
         microdata_entry: dict[str, Any] = {"status": "unknown", **descriptor}
 
         if descriptor.get("status") in {"synthetic", "real"}:
-            df, _ = load_tax_microdata()
+            df = load_default_population()
             calibration_year = (
                 results.get("irs_soi", {}).get("latest_year") or 2022
             )

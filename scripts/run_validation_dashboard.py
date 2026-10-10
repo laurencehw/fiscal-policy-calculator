@@ -36,6 +36,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from fiscal_model.data.cps_asec import describe_microdata, load_tax_microdata  # noqa: E402
 from fiscal_model.health import check_health  # noqa: E402
 from fiscal_model.microsim.filing_threshold import filter_to_filers  # noqa: E402
+from fiscal_model.microsim.population import load_default_population  # noqa: E402
 from fiscal_model.microsim.soi_calibration import (  # noqa: E402
     calibrate_cells_to_soi,
     calibrate_to_soi,
@@ -93,29 +94,34 @@ def collect_microdata(
             "augmentation": None,
             "filter": None,
         }
-    df, _ = load_tax_microdata()
     augmentation_report = None
-    if augment_top_tail_flag:
-        df, augmentation_report = augment_top_tail(df, year=calibration_year)
     filter_report = None
-    if filter_to_filers_flag:
-        df, filter_report = filter_to_filers(df, year=calibration_year)
     cell_calibration = None
-    if calibrate_cells_flag:
-        # Opt-in cell calibration (planning/lanes/R6_microdata_cell_calibration.md).
-        # No non-filer filter, per that lane's recommendation: the filter is
-        # what costs the ARP distributional row and buys nothing the cell
-        # targets do not already pin. Raw coverage is recorded first so the
-        # before/after is against the shipped, uncalibrated microdata.
-        raw_summary = calibrate_to_soi(df, year=calibration_year).summary()
-        df, augmentation_report = augment_top_tail(
-            df, year=calibration_year, by_status=True
-        )
-        df, diagnostics = calibrate_cells_to_soi(df, year=calibration_year)
-        cell_calibration = {
-            "raw_summary": raw_summary,
-            "diagnostics": diagnostics,
-        }
+    if augment_top_tail_flag or filter_to_filers_flag:
+        # Legacy opt-in experiments start from the raw CPS file, as they always
+        # have; they are not the default population.
+        df, _ = load_tax_microdata()
+        if augment_top_tail_flag:
+            df, augmentation_report = augment_top_tail(df, year=calibration_year)
+        if filter_to_filers_flag:
+            df, filter_report = filter_to_filers(df, year=calibration_year)
+    else:
+        # The default population is SOI-cell calibrated since R6c
+        # (planning/lanes/R6c_salt_mechanism_and_calibration_default.md).
+        df = load_default_population()
+        if calibrate_cells_flag:
+            # Kept for the before/after: raw coverage, and the cell
+            # calibration's own diagnostics at this year.
+            raw, _ = load_tax_microdata()
+            raw_summary = calibrate_to_soi(raw, year=calibration_year).summary()
+            augmented, augmentation_report = augment_top_tail(
+                raw, year=calibration_year, by_status=True
+            )
+            _, diagnostics = calibrate_cells_to_soi(augmented, year=calibration_year)
+            cell_calibration = {
+                "raw_summary": raw_summary,
+                "diagnostics": diagnostics,
+            }
     report = calibrate_to_soi(df, year=calibration_year)
     result = {
         "descriptor": descriptor,

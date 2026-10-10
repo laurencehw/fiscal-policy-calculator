@@ -206,13 +206,14 @@ def no_rebate_schedule() -> CreditSchedule:
 
 @lru_cache(maxsize=1)
 def _base_population() -> pd.DataFrame:
-    """Load the CPS tax-unit file once per process."""
-    from .data.cps_asec import load_tax_microdata
+    """Load the default (SOI-calibrated) tax-unit population once per process."""
+    from .data.cps_asec import DEPENDENT_COLUMNS
+    from .microsim.population import load_default_population
 
-    df, source = load_tax_microdata()
-    if not source.has_dependent_ages:
+    df = load_default_population()
+    if not all(column in df.columns for column in DEPENDENT_COLUMNS):
         raise CreditMicrodataUnavailable(
-            f"{source.path} carries no dependent age bands. Rebuild it with "
+            "The bundled microdata carries no dependent age bands. Rebuild it with "
             "`python -m fiscal_model.microsim.data_builder --fetch`."
         )
     keep = [

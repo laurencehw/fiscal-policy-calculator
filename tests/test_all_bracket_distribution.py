@@ -74,13 +74,15 @@ def test_mapping_is_one_rule_at_every_threshold():
 
 def test_threshold_policies_are_byte_identical_to_before(engine):
     """A policy above a threshold is untouched: same reform dict as the old
-    branch, same table to the last bit as recorded before R7b."""
+    branch, same table to the last bit. Re-recorded in R6c, when the default
+    population became SOI-calibrated (21.06 -> 63.99, pre-registered in
+    planning/lanes/R6c_salt_mechanism_and_calibration_default.md §3.4)."""
     top_45 = _policy(0.08, 609_350.0)
     assert policy_to_microsim_reforms(top_45) == {
         "income_rate_change": 0.08,
         "income_rate_change_threshold": 609_350.0,
     }
     analysis = engine.analyze_policy(top_45, group_type=IncomeGroupType.QUINTILE)
-    assert [r.tax_change_total for r in analysis.results] == [
-        0.0, 0.0, 0.0, 0.0, 21.06182331932978,
-    ]
+    assert [r.tax_change_total for r in analysis.results] == pytest.approx(
+        [0.0, 0.0, 0.0, 0.0, 63.985889731441574], rel=1e-12, abs=0.0
+    )

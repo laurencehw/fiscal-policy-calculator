@@ -340,15 +340,18 @@ class TestDerivedScores:
 
     Bands are wide enough to survive a CPS revision but narrow enough to catch
     a structural regression; the point estimates are in
-    ``planning/lanes/L3_credits.md`` §4.
+    ``planning/lanes/L3_credits.md`` §4. Re-centred in R6c, when the credits
+    population became the SOI-calibrated default (window averages -144.05,
+    -79.96 and -17.68; pre-registered in
+    ``planning/lanes/R6c_salt_mechanism_and_calibration_default.md`` §3.2).
     """
 
     @pytest.mark.parametrize(
         ("factory", "low", "high"),
         [
-            (create_biden_ctc_2021, -170.0, -135.0),
-            (create_ctc_permanent_extension, -80.0, -62.0),
-            (create_biden_eitc_childless, -14.0, -8.0),
+            (create_biden_ctc_2021, -170.0, -125.0),
+            (create_ctc_permanent_extension, -90.0, -70.0),
+            (create_biden_eitc_childless, -21.0, -14.0),
         ],
     )
     def test_derived_window_average_is_in_band(self, factory, low, high):

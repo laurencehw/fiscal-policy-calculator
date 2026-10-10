@@ -46,17 +46,17 @@
       2022,
       2023
     ],
-    "microdata_agi_coverage_pct": 81.0,
+    "microdata_agi_coverage_pct": 100.9,
     "microdata_calibration_year": 2023,
-    "microdata_returns_coverage_pct": 119.0
+    "microdata_returns_coverage_pct": 100.0
   },
   "generated_by": "scripts/build_current_evidence.py",
   "leave_one_out": {
-    "mean_abs_error": 36.5,
-    "median_abs_error": 30.2,
+    "mean_abs_error": 36.3,
+    "median_abs_error": 30.8,
     "n": 18,
     "not_cross_validatable": 4,
-    "within_15pct": 5
+    "within_15pct": 6
   },
   "out_of_sample": {
     "error_mass": 668.6,

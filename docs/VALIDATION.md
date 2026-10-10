@@ -1634,12 +1634,12 @@ distributional tables, all mapped through
 | TCJA, calendar 2018 | CBO 54796 | decile | household → **tax_unit** | 0.00pp | excellent |
 | TCJA conference agreement, 2019 | JCT JCX-68-17 | AGI class | tax_unit | 2.10pp | good |
 | ARP refundable credits, 2021 | CBO 56952 | quintile | **household** | **3.72pp** | good |
-| SALT cap repeal, 2024 | JCT JCX-4-24 | AGI class | tax_unit | 5.86pp | good |
+| SALT cap repeal, 2024 | JCT JCX-4-24 | AGI class | tax_unit | **5.65pp** | acceptable |
 | Corporate 21% → 28%, 2022 | JCT JCX-32-21 | AGI class | tax_unit | 2.51pp | good |
 | TCJA extension, 2026 | CBO 60007 | decile | household → **tax_unit** | 0.74pp | excellent |
 | **P.L. 119-21, 2026-2034 average** | **CBO 61367** | **decile** | household → **tax_unit** | **3.96pp** | **good** |
 
-The seven tables span **0.00-5.86pp**, from 0.00-7.77pp before Wave 4.
+The seven tables span **0.00-5.65pp**, from 0.00-7.77pp before Wave 4. The SALT row read 5.86pp until R6c (`planning/lanes/R6c_salt_mechanism_and_calibration_default.md`), which gave the microsim the statutory AMT and SOI Table 2.1 SALT ratios and made the SOI-calibrated population the default: either change alone would have taken the row over 10pp (14.91 and 11.01), because 5.86 was an AMT that zeroed the top tail's benefit on a file with almost no top tail.
 
 **Read the first and sixth rows with care.**
 `distribution_effects.calculate_tcja_effect` builds its decile tiers *out of*

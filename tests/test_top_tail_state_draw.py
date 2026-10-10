@@ -7,7 +7,6 @@ elsewhere (``tests/test_soi_cell_calibration.py``).
 
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -63,10 +62,12 @@ def test_frame_without_state_column_still_augments(raw):
     assert report.synthetic_records > 0
 
 
-def test_state_is_inert_for_the_salt_repeal_because_amt_binds(augmented):
-    """Why the measured movement of jct_salt_repeal_2024 is exactly 0.00pp: every
-    synthetic row pays AMT before and after the repeal, so its state's SALT rate
-    never reaches its tax. If this ever fails, re-measure the SALT row."""
+def test_the_salt_repeal_reaches_the_synthetic_top_tail(augmented):
+    """R6b found every synthetic row paying AMT, so the repeal moved none of them
+    and the state stamp was inert. R6c gave the engine the statutory AMT
+    (§55(b)(3) gains rates, §55(d)(2) phase-out), after which the AMT binds on
+    almost none of them and the repeal cuts their tax. If this ever fails, the
+    AMT is binding at the top again: re-measure the SALT row."""
     from fiscal_model.distribution_effects import policy_to_microsim_reforms
     from fiscal_model.microsim.engine import MicroTaxCalculator
     from fiscal_model.microsim.salt_imputation import impute_salt_and_itemized
@@ -80,5 +81,10 @@ def test_state_is_inert_for_the_salt_repeal_because_amt_binds(augmented):
     reform = MicroTaxCalculator(year=year).apply_reform(
         pop, policy_to_microsim_reforms(policy, year)
     )
-    assert (base["amt_tax"] > 0).all()
-    assert np.allclose(reform["final_tax"].to_numpy(), base["final_tax"].to_numpy())
+    amt_binds = base["amt_tax"] > base["income_tax_before_credits"]
+    # Measured 7.6% of synthetic rows, all at $1.74M-$2.04M AGI: the band just
+    # above where the §55(d)(2) phase-out completes for joint filers.
+    assert amt_binds.mean() < 0.10
+    assert base.loc[amt_binds, "agi"].max() < 2_500_000
+    cut = reform["final_tax"].to_numpy() < base["final_tax"].to_numpy() - 1.0
+    assert cut.mean() > 0.90

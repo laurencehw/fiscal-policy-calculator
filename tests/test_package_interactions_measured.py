@@ -84,18 +84,29 @@ def test_a_surtax_above_one_million_loses_about_a_fifth_to_salt_repeal():
     m = measure_reforms("a-surtax", SURTAX_1M, "b-salt", SALT_REPEAL)
     assert m is not None
     assert m.share is not None and -0.35 < m.share < -0.10
-    # The sum of the parts and the joint score have opposite signs here.
-    parts = m.standalone_a + m.standalone_b
-    assert parts > 0 > m.joint
+    # Before R6c the sum of the parts and the joint score had opposite signs;
+    # that rested on a SALT repeal worth only -$25B a year, because the old AMT
+    # absorbed the top tail's benefit. On the calibrated population with the
+    # statutory AMT the repeal is -$111B and both are negative.
+    assert m.joint < 0
 
 
 @pytest.mark.parametrize(
     "pair",
-    [(SALT_REPEAL, AMT_PLUS), (SALT_REPEAL, STD_PLUS), (STD_PLUS, AMT_PLUS)],
+    [(SALT_REPEAL, AMT_PLUS), (SALT_REPEAL, STD_PLUS)],
 )
 def test_deduction_and_amt_exemption_changes_do_not_add(pair):
     m = measure_reforms("a", pair[0], "b", pair[1])
     assert m is not None and abs(m.interaction) > 0.1
+
+
+def test_standard_deduction_and_amt_exemption_now_barely_interact():
+    """Under the statutory AMT (R6c) the minimum tax binds only for returns
+    near the end of the §55(d)(2) phase-out, all of which itemize, so a larger
+    standard deduction cannot move anyone across the AMT margin. Before R6c the
+    old AMT bound on every $1.5M+ return and these two interacted."""
+    m = measure_reforms("a", STD_PLUS, "b", AMT_PLUS)
+    assert m is not None and abs(m.interaction) < 0.01
 
 
 # ---------------------------------------------------------------------------

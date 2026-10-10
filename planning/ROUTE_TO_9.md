@@ -469,6 +469,13 @@ mechanism — flat-rate imputation and AMT-bound synthetic rows — is fixed, an
 would move leave-one-out credits 18.5% → 17.3% and the health check to `ok`.
 It is not flipped.
 
+**Taken 2026-10-10, together with the SALT mechanism fix**
+(`planning/lanes/R6c_salt_mechanism_and_calibration_default.md`). The AMT was
+the cause: it taxed gains at 28% with no exemption phase-out, so it bound on
+every $1.5M+ return. With a statutory AMT and SOI Table 2.1 SALT ratios, the
+calibrated default reads 5.65pp and the dashboard exits 0. Every
+pre-registered number reproduced exactly; no revenue score moved.
+
 ### Still open
 
 Priority 5; joint scoring in the package headline; production latency (the

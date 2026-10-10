@@ -3,7 +3,6 @@ Distributional analysis engine orchestration.
 """
 
 import logging
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -238,13 +237,11 @@ class DistributionalEngine:
         unit = self._resolve_unit(unit)
 
         if microdata is None:
-            microdata_path = Path(__file__).parent / "microsim" / "tax_microdata_2024.csv"
-            if not microdata_path.exists():
-                raise FileNotFoundError(
-                    f"Microdata not found at {microdata_path}. "
-                    "Please provide microdata or run fiscal_model/microsim/data_builder.py"
-                )
-            microdata = pd.read_csv(microdata_path)
+            # The SOI-calibrated default population (R6c), the one every
+            # microsim surface reads.
+            from fiscal_model.microsim.population import load_default_population
+
+            microdata = load_default_population()
 
         # The CPS file lacks deduction detail; impute SALT + itemized so the
         # engine can model SALT-cap policies (no-op if already present).

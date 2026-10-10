@@ -115,12 +115,20 @@ class MicroTaxCalculator:
         # SALT Cap (TCJA, 2017+)
         self.salt_cap = 10000  # None = no cap
 
-        # AMT Parameters (2025)
+        # AMT parameters (2025, IRC §55 as amended by TCJA). Exemption, phase-out
+        # threshold and phase-out rate are Rev. Proc. 2024-40 sec. 3.11, as
+        # transcribed in data_files/amt/statutory_amt_parameters.csv; the 26%/28%
+        # breakpoint is CBO publication 53724's ``tp_amt_bracket_2_*`` for
+        # CY2025, the same for single and joint filers. A test pins every value
+        # here to those two tables (planning/lanes/R6c_...).
         self.amt_exemption_single = 88100
         self.amt_exemption_married = 137000
-        self.amt_rate_1 = 0.26  # 26% on first $232,600 (MFJ)
+        self.amt_phaseout_threshold_single = 626350
+        self.amt_phaseout_threshold_married = 1252700
+        self.amt_phaseout_rate = 0.25
+        self.amt_rate_1 = 0.26  # 26% up to amt_threshold
         self.amt_rate_2 = 0.28  # 28% above
-        self.amt_threshold = 232600
+        self.amt_threshold = 239100
 
         # EITC parameters, from EITC_CURRENT_LAW — the statutory schedule of
         # Rev. Proc. 2023-34 sec. 2.06 (tax year 2024). Every value below was
@@ -550,30 +558,54 @@ class MicroTaxCalculator:
         return self.rebate_per_person * self.household_persons(df) * remaining
 
     def _calculate_amt(self, df: pd.DataFrame) -> np.ndarray:
-        """Calculate Alternative Minimum Tax (simplified)."""
-        agi = df['agi'].values
-        married = df['married'].values
+        """Tentative minimum tax under IRC §55 (2025 parameters).
 
-        # AMT exemption
-        amt_exemption = np.where(
-            married == 1,
-            self.amt_exemption_married,
-            self.amt_exemption_single
+        - AMTI (§56(b)(1)): AGI less the itemized deductions the AMT allows,
+          i.e. every itemized deduction except state and local taxes, for a
+          return that itemizes. SALT and the standard deduction are added back.
+        - Exemption (§55(d)): phased out at 25% of AMTI above the threshold.
+        - Rates (§55(b)(1)): 26% up to ``amt_threshold``, 28% above.
+        - §55(b)(3): net capital gain and qualified dividends are taxed at the
+          capital-gains rates inside the AMT, and the result may not exceed the
+          flat 26/28% schedule on the whole base.
+
+        Before R6c this was 26/28% on AGI minus an unphased exemption, which
+        taxed gains at 28% and so bound on every return above $1.5M in the
+        cell-calibrated microdata, zeroing their SALT-cap benefit.
+        """
+        agi = df['agi'].values.astype(float)
+        married = df['married'].values == 1
+
+        amti = np.maximum(0.0, agi)
+        if 'itemized_after_salt_cap' in df.columns:
+            itemizing = df['itemized_after_salt_cap'].values > df['std_deduction'].values
+            salt = (
+                df['state_and_local_taxes'].values
+                if 'state_and_local_taxes' in df.columns
+                else np.zeros(len(df))
+            )
+            allowed = np.maximum(0.0, df['itemized_after_salt_cap'].values - salt)
+            amti = np.maximum(0.0, agi - np.where(itemizing, allowed, 0.0))
+
+        exemption = np.where(married, self.amt_exemption_married, self.amt_exemption_single)
+        phaseout_start = np.where(
+            married, self.amt_phaseout_threshold_married, self.amt_phaseout_threshold_single
         )
+        exemption = np.maximum(
+            0.0, exemption - self.amt_phaseout_rate * np.maximum(0.0, amti - phaseout_start)
+        )
+        base = np.maximum(0.0, amti - exemption)
 
-        # Simplified AMT base = AGI - exemption
-        # (In real world, includes preferences/adjustments, but AGI is proxy)
-        amt_base = np.maximum(0, agi - amt_exemption)
+        def flat(x: np.ndarray) -> np.ndarray:
+            return (
+                np.minimum(x, self.amt_threshold) * self.amt_rate_1
+                + np.maximum(0.0, x - self.amt_threshold) * self.amt_rate_2
+            )
 
-        # Two-rate system: 26% on first $232.6K, 28% above
-        amt_tax = np.zeros(len(df))
-        threshold = self.amt_threshold if married.any() else self.amt_threshold / 2
-
-        # For simplicity, apply 26% up to threshold, 28% above
-        amt_tax = np.minimum(amt_base, threshold) * self.amt_rate_1 + \
-                  np.maximum(0, amt_base - threshold) * self.amt_rate_2
-
-        return amt_tax
+        pref = np.minimum(self.preferential_income(df), base)
+        ordinary = base - pref
+        with_pref_rates = flat(ordinary) + self._ltcg_tax(ordinary, pref, married)
+        return np.asarray(np.minimum(flat(base), with_pref_rates))
 
     def _calculate_niit(self, df: pd.DataFrame) -> np.ndarray:
         """Calculate Net Investment Income Tax (3.8% surtax)."""

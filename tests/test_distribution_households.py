@@ -289,9 +289,11 @@ class TestEngineUniverseSelection:
         )
         assert result.unit == HOUSEHOLD
         assert result.engine == "microsim"
-        # 132.4M households, not 191.1M tax units.
+        # 132.8M households, not 160.6M tax units. (132.4M on the raw CPS
+        # file; the calibrated default replaces the CPS top tail with SOI cells
+        # whose household weights are not raked -- R6b section 5 item 3.)
         assert sum(r.income_group.num_returns for r in result.results) == pytest.approx(
-            132_391_925, rel=1e-6
+            132_778_906, rel=1e-6
         )
 
     def test_household_request_on_a_synthetic_policy_reports_tax_units(self):
@@ -360,7 +362,9 @@ class TestBenchmarkOutcomes:
         """The control: the other microsim benchmark, on the other universe."""
         result = default_model_runner(JCT_SALT_REPEAL_2024)
         comparison = compare_distribution(result, JCT_SALT_REPEAL_2024)
-        assert comparison.mean_absolute_share_error_pp == pytest.approx(5.86, abs=0.005)
+        # 5.86 before R6c; 5.65 on the calibrated default with the statutory
+        # AMT (planning/lanes/R6c_salt_mechanism_and_calibration_default.md).
+        assert comparison.mean_absolute_share_error_pp == pytest.approx(5.6541, abs=5e-5)
 
 
 class TestCompositeMergeAverages:
