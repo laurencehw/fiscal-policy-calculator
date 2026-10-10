@@ -99,20 +99,24 @@ def _marginal_excess_from_brackets(
             continue
 
         if bracket_ceiling == float("inf"):
-            # An open-ended bracket has no width to slice; it belongs to
-            # the group containing its floor, and counts only when the
-            # whole bracket is above the threshold (SOI's top bracket
-            # floor is far above realistic thresholds).
+            # An open-ended bracket has no width to slice; it belongs to the
+            # group containing its floor. A threshold inside it reads the
+            # same Pareto tail the revenue score uses
+            # (``IRSSOIData._shares_above_threshold``), so the table and the
+            # score agree above $10M; it used to skip the bracket and report
+            # exactly $0 for any threshold above the floor.
             if not (group_floor <= bracket_floor < group_ceiling):
                 continue
-            if threshold > bracket_floor:
-                continue
-            fraction = 1.0
-        else:
-            fraction = (hi - lo) / (bracket_ceiling - bracket_floor)
+            from fiscal_model.data.irs_soi import IRSSOIData
 
-        n = bracket.num_returns * fraction
-        t = bracket.taxable_income * fraction
+            returns_share, income_share = IRSSOIData._shares_above_threshold(
+                bracket, threshold
+            )
+        else:
+            returns_share = income_share = (hi - lo) / (bracket_ceiling - bracket_floor)
+
+        n = bracket.num_returns * returns_share
+        t = bracket.taxable_income * income_share
         affected_returns += n
         affected_taxable += t
         # Threshold is in dollars, taxable totals in $B — 1e9 bridges units.
