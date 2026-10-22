@@ -173,7 +173,7 @@ def _render_chart(st_module: Any, plan: Projection, baseline: Projection) -> Non
         margin={"l": 10, "r": 10, "t": 60, "b": 10},
         legend=horizontal_legend(align="right"),
     )
-    st_module.plotly_chart(theme_figure(fig), use_container_width=True)
+    st_module.plotly_chart(theme_figure(fig), width="stretch")
 
 
 def _render_selection_table(st_module: Any, plan: Projection) -> None:
@@ -199,7 +199,7 @@ def _render_selection_table(st_module: Any, plan: Projection) -> None:
     st_module.dataframe(
         pd.DataFrame(rows),
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
         column_config={
             "Change in actuarial balance": st_module.column_config.NumberColumn(format="%+.2f"),
             "Share of shortfall": st_module.column_config.NumberColumn(format="percent"),
@@ -234,7 +234,7 @@ def _render_crfb_comparison(st_module: Any) -> None:
     st_module.dataframe(
         pd.DataFrame(rows),
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
         column_config={"Source": st_module.column_config.LinkColumn(display_text="CRFB")},
     )
 
