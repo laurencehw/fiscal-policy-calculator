@@ -28,6 +28,7 @@ EXPECTED_PAGES: dict[str, str] = {
     "tailor": "tailor",
     "explore": "explore",
     "tracker": "tracker",
+    "social-security": "social_security",
     "methodology": "methodology",
     "classroom": "classroom",
     "about": "about",
@@ -154,6 +155,7 @@ def test_router_groups_secondary_surfaces_under_more():
     assert set(sections) == {"", "More"}
     assert {page.url_path for page in sections["More"]} == {
         "tracker",
+        "social-security",
         "methodology",
         "classroom",
         "about",

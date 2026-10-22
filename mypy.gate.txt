@@ -27,3 +27,5 @@ fiscal_model/ui/charts.py
 fiscal_model/validation/current_evidence.py
 fiscal_model/dynamic_view.py
 fiscal_model/api_serialization.py
+fiscal_model/social_security/trust_fund.py
+fiscal_model/social_security/crfb_benchmark.py

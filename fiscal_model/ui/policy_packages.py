@@ -93,7 +93,10 @@ PRESET_POLICY_PACKAGES = {
     "SS Solvency: Raise the Cap": {
         "description": (
             "Address the Social Security shortfall by raising the taxable earnings cap. "
-            "The SS trust fund is projected to be depleted by \\~2033. These reforms extend solvency."
+            "The 2026 Trustees project the combined trust funds to be depleted in 2034 "
+            "(the retirement fund alone in 2032). The donut hole extends solvency to 2057 "
+            "(SSA actuaries). The NIIT expansion is general revenue: it reduces the deficit "
+            "but does not reach the Social Security trust funds."
         ),
         "policies": [
             "💰 SS Donut Hole $250K (-$1.43T)",
@@ -105,7 +108,8 @@ PRESET_POLICY_PACKAGES = {
     "SS Solvency: Eliminate the Cap": {
         "description": (
             "Eliminate the Social Security wage cap entirely — all earnings subject to SS tax. "
-            "Closes most of the 75-year shortfall."
+            "Closes more than half of the 75-year shortfall and delays depletion to 2058 "
+            "if the newly taxed wages earn no benefit credit (SSA actuaries, 2026 Trustees basis)."
         ),
         "policies": [
             "💰 Eliminate SS Cap (-$3.2T)",
@@ -116,7 +120,8 @@ PRESET_POLICY_PACKAGES = {
     "SS Solvency: Moderate Reform": {
         "description": (
             "Raise the cap to cover 90% of wages (the original intent of the 1983 reforms). "
-            "Closes about 1/3 of the 75-year shortfall."
+            "Closes about a fifth to a quarter of the 75-year shortfall, depending on whether "
+            "the newly taxed wages earn benefit credit (SSA actuaries, 2026 Trustees basis)."
         ),
         "policies": [
             "💰 SS Cap to 90% (CBO: -$800B)",
