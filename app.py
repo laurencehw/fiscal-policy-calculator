@@ -11,6 +11,7 @@ URL routing:
   /tailor          — Tailor your own policy
   /explore         — Explore scored proposals
   /tracker         — Bill Tracker            (More)
+  /social-security — Social Security trust fund (More)
   /methodology     — Methodology             (More)
   /classroom       — Classroom Mode          (More)
   /about           — About the project       (More)
@@ -382,8 +383,8 @@ def _is_admin_request(st_module: Any) -> bool:
 def build_navigation(st_module: Any, deps: Any, app_root: Path | None) -> Any:
     """Register every page and return the selected ``StreamlitPage``.
 
-    Ask is the default page, so it answers ``/``. Tracker, Methodology,
-    Classroom and About sit under a "More" section; Admin is only registered
+    Ask is the default page, so it answers ``/``. Tracker, Social Security,
+    Methodology, Classroom and About sit under a "More" section; Admin is only registered
     when the request carries a matching ``?admin=`` token.
     """
     from app_pages import (
@@ -394,6 +395,7 @@ def build_navigation(st_module: Any, deps: Any, app_root: Path | None) -> Any:
         classroom,
         explore,
         methodology,
+        social_security,
         tailor,
         tracker,
     )
@@ -418,6 +420,7 @@ def build_navigation(st_module: Any, deps: Any, app_root: Path | None) -> Any:
     ]
     more = [
         _page(tracker),
+        _page(social_security),
         _page(methodology),
         _page(classroom),
         _page(about),

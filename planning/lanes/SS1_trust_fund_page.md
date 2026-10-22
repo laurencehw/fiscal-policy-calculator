@@ -115,4 +115,61 @@ ten-year budget window (the existing payroll presets keep doing that).
 
 ## 8. Outturn
 
-*(appended after implementation)*
+Recorded 2026-10-22, after implementation. Data: 33 OCACT provisions (2026 Trustees basis)
+transcribed into `fiscal_model/data_files/social_security/`; ledger in
+`fiscal_model/social_security/trust_fund.py`; page `/social-security` under More.
+
+**Ledger convention.** Section 3 wrote the mid-year flow factor as `(1 + i_t/2)`. The
+implementation uses the VI.G1 factors directly: year-end factor `E_t = sqrt(F_t · F_{t+1})`,
+reserves carried at `E_t / E_{t−1}`, flows credited at `E_t / F_t`, and present values
+discounted by `F_t` (the 2101 target by `E_2100`). The two agree to first order; the factor
+form is what reproduces OCACT's own actuarial-balance arithmetic (L6). Reserves at the start
+are not discounted.
+
+| # | check | bar | outturn | verdict |
+|---|---|---|---|---|
+| L1 | baseline depletion year | 2034 | 2034 | pass |
+| L2 | baseline actuarial balance | −4.42 ± 0.03 | −4.44 | pass |
+| L3 | reserves 2026–2033 vs VI.G2 | within 2% each year | 0.1% (2026) rising to 0.9% (2031), **2.0% (2032), 7.7% (2033)** | **miss** in 2032–2033 |
+| L4 | payable at depletion | 83% ± 1 | 83.5% | pass |
+| L5 | proposal − change = baseline | 0.015pp every year | all 33 options, every year, and the 2101 cost (20.01) | pass (one keying error, H9 2086, caught by the check and fixed before commit) |
+| L6 | ΔAB vs OCACT summary | 0.03pp | every option within 0.01 | pass |
+| L7 | depletion year vs OCACT | ≥90% exact, all ±1 | 32 of 33 exact (97%); E3.2 2036 vs 2037 | pass |
+
+**L3 miss.** The ledger runs low by $1.8B at the end of 2026, and the gap grows steadily to
+$14.1B by 2033. The relative gap jumps at the end only because reserves fall toward zero.
+A level gap from the first year points at the timing of flows within the year (the Trustees
+credit interest on actual monthly balances) rather than at the rates. The test pins 2% through
+2031 and 8% for 2032–2033, so a change to the mechanics shows up. No constant was adjusted to
+close the gap. The depletion year and the actuarial balance are unaffected.
+
+**L7 miss.** E3.2's OCACT table prints a trust fund ratio of 0 on 1 January 2037, so its
+reserves run out at the turn of the year; the ledger's small low bias (L3) tips it into 2036.
+
+**Headline convention.** The page shows the Trustees' published −4.42 plus the ledger's
+computed change, so the 0.02-point baseline residual cancels; "shortfall closed" is that change
+divided by 4.42.
+
+**CRFB comparison (section 5), as measured.**
+
+| CRFB item | CRFB | ours | note |
+|---|---|---|---|
+| Current law, OASI depletion / cut | 2032 / 22% | 2032 / 22% (Trustees, transcribed) | the definitional framing section 5 expected |
+| Current law, combined OASDI | "about eight years" (2034) | 2034 | match |
+| Eliminate the cap: share closed / insolvency | 65% / 2055 | E2.1 58% / 2058 (E2.2 45% / 2055) | CRFB does not say whether there is benefit credit; earlier baseline |
+| Progressive price indexing (30th pct): share / insolvency | 50% / 2034 | B1.2 38% / 2034 | OCACT's B1.2 starts with the 2033 cohort |
+| Both | 110% / never | 96% / 2074 | both effects compound |
+
+Every share gap has the sign section 5 predicted. The 2026 deficit is larger, so CRFB's
+earlier-vintage shares come out higher. Nothing was tuned.
+
+**Side effects (section 6).** `_PAYROLL_FITTED_TARGETS` no longer types the OCACT figures;
+the caption reads them from the provision table. E2.1: 2.55% (unchanged), depletion
+**2059 → 2058**, as predicted. E2.5: **2.50 → 2.52%**, depletion 2057 unchanged.
+`policy_packages.py`: "Raise the Cap" now says 2034 combined / 2032 OASI and that NIIT is
+general revenue. While there, "Eliminate the Cap" ("closes most") and "Moderate Reform"
+("about 1/3", against OCACT's 19–24% for E3.1/E3.2) were corrected to the 2026 OCACT
+figures. Package totals are untouched.
+
+**Not done.** The assistant's Trustees knowledge file is still a vintage behind; that is a
+separate change.

@@ -1,0 +1,27 @@
+# Figures CRFB has published for its Social Security Reformer and related
+# analysis, used as an external benchmark for the trust fund page
+# (planning/lanes/SS1_trust_fund_page.md section 5). CRFB's tool is a JavaScript
+# application whose option-level numbers are not published as a table, so these
+# rows come from CRFB's prose. Fetched 2026-10-22.
+#
+# crfb_value: the published number. Depletion years are calendar years, blank
+#   with crfb_text "never" when CRFB says the plan never goes insolvent.
+#   Shares are percent of the 75-year shortfall closed; CRFB rounds them to
+#   the nearest 5 percent.
+# framing: "oasi" = the retirement fund alone; "oasdi" = combined OASI + DI,
+#   which is what this repository's ledger models.
+# our_provisions: the OCACT provision ids (semicolon-separated) the ledger runs
+#   for the comparison; blank for a current-law row.
+# crfb_baseline: the Trustees vintage CRFB's figure rests on.
+# note: why the two sides may differ, stated before the comparison was run.
+# Nothing in the ledger is tuned to these rows.
+benchmark_id,crfb_item,metric,framing,crfb_value,crfb_text,our_provisions,crfb_baseline,source_url,source_date,note
+current_law_oasi_year,Current law,depletion_year,oasi,2032,,,2026 Trustees Report,https://www.crfb.org/blogs/use-social-security-reformer-prevent-insolvency,2026,"Retirement fund alone. The ledger models combined OASDI, so our side is the Trustees' own OASI figure, transcribed, not computed."
+current_law_oasi_cut,Current law,cut_at_depletion_pct,oasi,22,,,2026 Trustees Report,https://www.crfb.org/blogs/use-social-security-reformer-prevent-insolvency,2026,"Retirement fund alone; our side is 100 minus the Trustees' 78% payable, transcribed."
+current_law_oasdi_year,Current law,depletion_year,oasdi,2034,"""about eight years"" if the funds were combined",,2026 Trustees Report,https://www.crfb.org/blogs/use-social-security-reformer-prevent-insolvency,2026,CRFB gives the combined date only approximately; 2026 + 8 = 2034.
+eliminate_cap_share,Eliminate the taxable maximum (enacted 2026),shortfall_closed_pct,oasdi,65,,E2.1,"2025 Trustees Report, adjusted for the 2025 reconciliation act",https://www.crfb.org/blogs/waiting-rescue-social-security-has-weakened-our-options,2026-04-24,"CRFB does not say whether newly taxed wages earn benefit credit; E2.1 gives none (E2.2, with credit, closes less). CRFB's baseline deficit is an earlier, smaller vintage, so the same dollars close a larger share."
+eliminate_cap_year,Eliminate the taxable maximum (enacted 2026),depletion_year,oasdi,2055,,E2.1,"2025 Trustees Report, adjusted for the 2025 reconciliation act",https://www.crfb.org/blogs/waiting-rescue-social-security-has-weakened-our-options,2026-04-24,"Same mapping as above; E2.2 (with benefit credit) is depleted in 2055 on OCACT's own table."
+ppi_share,Progressive price indexing above the 30th percentile (enacted 2026),shortfall_closed_pct,oasdi,50,,B1.2,"2025 Trustees Report, adjusted for the 2025 reconciliation act",https://www.crfb.org/blogs/waiting-rescue-social-security-has-weakened-our-options,2026-04-24,"OCACT's B1.2 starts with those newly eligible in 2033; CRFB's version is enacted in 2026 and its start date is not stated. A later start closes less."
+ppi_year,Progressive price indexing above the 30th percentile (enacted 2026),depletion_year,oasdi,2034,,B1.2,"2025 Trustees Report, adjusted for the 2025 reconciliation act",https://www.crfb.org/blogs/waiting-rescue-social-security-has-weakened-our-options,2026-04-24,CRFB says insolvency moves by about one week.
+both_share,Eliminate the taxable maximum and progressive price indexing,shortfall_closed_pct,oasdi,110,,E2.1;B1.2,"2025 Trustees Report, adjusted for the 2025 reconciliation act",https://www.crfb.org/blogs/waiting-rescue-social-security-has-weakened-our-options,2026-04-24,Both reasons above compound; our side adds the two OCACT estimates without interactions.
+both_year,Eliminate the taxable maximum and progressive price indexing,depletion_year,oasdi,,never,E2.1;B1.2,"2025 Trustees Report, adjusted for the 2025 reconciliation act",https://www.crfb.org/blogs/waiting-rescue-social-security-has-weakened-our-options,2026-04-24,"Both reasons above compound; CRFB's ""never"" is measured on its own, earlier baseline."

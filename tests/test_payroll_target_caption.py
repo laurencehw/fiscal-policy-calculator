@@ -146,7 +146,8 @@ def test_eliminate_cap_caption_quotes_its_held_out_figure():
     assert "-\\$3,319.5B" in caption
     assert "3.7% away" in caption
     assert "2.55% of taxable payroll" in caption
-    assert "2059 depletion date" in caption
+    # 2026 Trustees basis (OCACT table_run137); 2059 was the 2025 figure.
+    assert "2058 depletion date" in caption
 
 
 def test_donut_caption_quotes_its_held_out_figure():
@@ -154,7 +155,8 @@ def test_donut_caption_quotes_its_held_out_figure():
     caption = payroll_fitted_target_caption(policy, _result_for(policy))
     assert "-\\$2,664.0B" in caption
     assert "1.3% away" in caption
-    assert "2.50% of taxable payroll" in caption
+    # 2026 Trustees basis (OCACT table_run214); 2.50 was the 2025 figure.
+    assert "2.52% of taxable payroll" in caption
     assert "2057 depletion date" in caption
     # CBO's own ten-year dollar figure for the same donut, from the volume this
     # repository already transcribes.

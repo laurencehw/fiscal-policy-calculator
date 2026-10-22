@@ -1,0 +1,49 @@
+# SSA Office of the Chief Actuary (OCACT) solvency provisions, 2026 Trustees
+# Report basis, intermediate assumptions. One row per provision.
+#
+# Transcribed from the "Summarized Estimates" row of each provision's single-year
+# table, https://www.ssa.gov/oact/solvency/provisions/tables/table_run<ocact_run>.html
+# (index: https://www.ssa.gov/oact/solvency/provisions/index.html), fetched
+# 2026-10-22. ocact_* columns are OCACT's own figures for 2026-2100, in percent
+# of taxable payroll; ocact_depletion_year is the year OCACT reports reserves
+# run out with the provision alone.
+#
+# label, category and exclusive_group are this repository's: a short name for the
+# page, a grouping that mirrors CRFB's Reformer menu, and the set of provisions
+# that are alternative settings of one lever (pick at most one per group; OCACT
+# scores each provision alone and the page adds them without interactions).
+# description is a paraphrase of OCACT's provision text, not a quotation.
+provision_id,ocact_run,category,exclusive_group,label,description,ocact_summarized_cost_rate,ocact_summarized_income_rate,ocact_actuarial_balance,ocact_depletion_year,ocact_change_cost_rate,ocact_change_income_rate,ocact_change_actuarial_balance
+A2,114,cola,cola,Reduce the annual COLA by 0.5 percentage point,"Starting December 2027, reduce the annual COLA by 0.5 percentage point",16.98,13.62,-3.37,2035,-1.12,-0.06,1.06
+A3,115,cola,cola,Use the chained CPI-W for the COLA,"Starting December 2027, compute the COLA using a chained version of the CPI-W (about 0.3 percentage point lower on average)",17.42,13.64,-3.78,2034,-0.68,-0.04,0.65
+A6,116,cola,cola,Use the CPI-E (elderly) for the COLA,"Starting December 2028, compute the COLA using the CPI for the Elderly (CPI-E)",18.45,13.70,-4.75,2034,0.35,0.02,-0.33
+B1.2,153,benefit_formula,initial_benefits,Progressive price indexing above the 30th percentile,"Progressive price indexing of PIA factors above the 30th-percentile AIME, for those newly eligible in 2033 and later",16.31,13.58,-2.72,2034,-1.80,-0.09,1.70
+B1.4,155,benefit_formula,initial_benefits,Progressive price indexing above the 50th percentile,"Progressive price indexing of PIA factors above the 50th-percentile AIME, for those newly eligible in 2033 and later",16.82,13.61,-3.21,2034,-1.28,-0.07,1.22
+B2.1,120,benefit_formula,initial_benefits,Index initial benefits to life expectancy,"For those newly eligible for OASI in 2036 and later, scale PIA factors by the ratio of life expectancy at 67 (longevity indexing of initial benefits)",17.48,13.64,-3.84,2034,-0.62,-0.03,0.59
+B4.2,183,benefit_formula,,Base benefits on 40 years of earnings instead of 35,"Increase the number of computation years for retired workers and survivors from 35 to 40, phased in over 2027-2035",17.60,13.65,-3.95,2034,-0.50,-0.03,0.47
+B7.2,209,benefit_formula,across_the_board,Cut benefits 5% for new beneficiaries from 2027,Reduce benefits by 5 percent for those newly eligible for benefits in 2027 and later,17.42,13.64,-3.77,2034,-0.69,-0.04,0.65
+B7.5,210,benefit_formula,across_the_board,Raise benefits 5% for all beneficiaries from 2027,Increase benefits by 5 percent for all beneficiaries as of the beginning of 2027 and for those newly eligible thereafter,18.99,13.72,-5.27,2032,0.89,0.05,-0.84
+B5.2,196,benefit_formula,,Enhanced minimum benefit at 125% of poverty,"Reconfigure the special minimum benefit for those newly eligible in 2027 and later: PIA for 30 years of coverage set at 125 percent of the monthly poverty level, wage-indexed for later cohorts",18.22,13.68,-4.54,2034,0.12,0.01,-0.11
+B6.1,130,benefit_formula,,Raise benefits 5% at age 85,"Increase benefits by 5 percent for beneficiaries age 85 or older, starting in 2027",18.25,13.69,-4.57,2034,0.15,0.01,-0.14
+C1.1,098,retirement_age,retirement_age,Raise the retirement age to 68 by 1 month every 2 years,"Starting with those age 62 in 2027, raise the normal retirement age 1 month every 2 years until it reaches 68",17.61,13.66,-3.96,2034,-0.49,-0.02,0.47
+C1.2,099,retirement_age,retirement_age,Raise the retirement age to 68 by 2 months a year,"Raise the normal retirement age 2 months per year for those age 62 in 2027 through 2032, reaching 68",17.51,13.65,-3.86,2034,-0.59,-0.03,0.57
+C1.3,100,retirement_age,retirement_age,Index the retirement age to longevity,"Starting with those age 62 in 2027, index the normal retirement age to keep expected retirement years a constant share of potential work years (roughly 1 month every 2 years)",17.35,13.65,-3.71,2034,-0.75,-0.03,0.72
+C1.4,101,retirement_age,retirement_age,"Raise the retirement age to 69, then index it","Raise the normal retirement age 2 months per year for those age 62 in 2027 through 2038 (reaching 69), then 1 month every 2 years",16.62,13.62,-3.00,2034,-1.48,-0.06,1.42
+E1.8,199,payroll_rate,payroll_rate,Raise the payroll tax rate to 13.0% (2029-2034),"Raise the payroll tax rate 0.1 percentage point per year from 2029 through 2034, reaching 13.0 percent",18.08,14.20,-3.88,2035,-0.02,0.52,0.55
+E1.10,201,payroll_rate,payroll_rate,Raise the payroll tax rate to 13.4% (2028-2037),"Raise the payroll tax rate 0.1 percentage point per year from 2028 through 2037, reaching 13.4 percent",18.06,14.53,-3.53,2035,-0.04,0.85,0.89
+E1.4,195,payroll_rate,payroll_rate,Raise the payroll tax rate to 14.4% (2032-2051),"Raise the payroll tax rate 0.1 percentage point per year from 2032 through 2051, reaching 14.4 percent",18.04,15.09,-2.95,2034,-0.06,1.41,1.47
+E2.1,137,taxable_maximum,taxable_maximum,Eliminate the taxable maximum (no benefit credit),"Eliminate the taxable maximum in years 2027 and later, and apply full 12.4 percent payroll tax rate to all earnings (no benefit credit for earnings above the current-law taxable maximum)",18.03,16.16,-1.87,2058,-0.07,2.48,2.55
+E2.2,149,taxable_maximum,taxable_maximum,Eliminate the taxable maximum (with benefit credit),"Eliminate the taxable maximum in 2027 and later, apply 12.4 percent to all earnings, and give benefit credit for earnings above the current-law taxable maximum",18.68,16.23,-2.45,2055,0.58,2.56,1.98
+E2.5,214,taxable_maximum,taxable_maximum,"Tax earnings above $250,000 (no benefit credit)","Apply the 12.4 percent payroll tax rate to earnings above $250,000 starting in 2027 (all earnings once the taxable maximum exceeds $250,000), with no benefit credit for the additional earnings taxed",18.03,16.12,-1.91,2057,-0.07,2.45,2.52
+E2.17,220,taxable_maximum,taxable_maximum,"Tax earnings above $400,000 (no benefit credit)","Apply the 12.4 percent payroll tax rate to earnings above $400,000 starting in 2027 (all earnings once the taxable maximum exceeds $400,000), with no benefit credit for the additional earnings taxed",18.04,15.95,-2.09,2047,-0.06,2.27,2.33
+E3.1,180,taxable_maximum,taxable_maximum,Cover 90% of earnings (with benefit credit),"Raise the taxable maximum so that 90 percent of earnings are taxable, phased in 2027-2036, with benefit credit for earnings up to the new maximum",18.34,14.74,-3.60,2036,0.24,1.07,0.82
+E3.2,179,taxable_maximum,taxable_maximum,Cover 90% of earnings (no benefit credit),"Raise the taxable maximum so that 90 percent of earnings are taxable, phased in 2027-2036, with no benefit credit for the additional earnings taxed",18.07,14.71,-3.36,2037,-0.03,1.03,1.06
+F1,158,other_revenue,,Cover newly hired state and local workers,"Starting in 2027, cover newly hired State and local government employees",18.36,14.06,-4.29,2034,0.26,0.39,0.13
+F3,254,other_revenue,,Phase out the payroll tax exclusion for employer health premiums,"Starting in 2030, phase out the OASDI payroll tax exclusion for employer-sponsored group health insurance premiums, reaching full taxation in 2040",18.73,15.33,-3.40,2035,0.63,1.65,1.02
+F4,255,other_revenue,,Apply payroll tax to cafeteria-plan contributions,"Starting in 2027, subject contributions to voluntary salary reduction plans (cafeteria plans, flexible spending accounts) to the OASDI payroll tax, as 401(k) contributions are today",18.32,14.21,-4.11,2035,0.21,0.53,0.32
+F7,266,other_revenue,,Dedicate a 2009-level estate tax to the trust funds,"For deaths and gifts after 2026, restore the estate, gift and GST taxes to 2009 parameters ($3.5 million exemption, 45 percent top rate, unindexed) and credit all proceeds to the OASDI trust funds",18.10,14.29,-3.81,2035,-0.00,0.62,0.62
+F9,258,other_revenue,,"12.4% tax on investment income above $200,000 / $250,000","Starting in 2028, a separate 12.4 percent tax on ACA-defined investment income above unindexed $200,000 (single) / $250,000 (joint) thresholds, credited to the OASDI trust funds with no benefit credit",18.10,15.00,-3.10,2039,-0.00,1.32,1.32
+H2,089,benefit_taxation,benefit_taxation,Tax benefits like private pensions,"Starting in 2027, tax Social Security benefits like private pension income, phasing out the lower-income thresholds over 2027-2046",18.10,13.83,-4.27,2034,-0.00,0.15,0.15
+H5,091,benefit_taxation,benefit_taxation,"Tax 100% of benefits above $250,000 / $500,000","Starting in 2033, make up to 100 percent of benefits taxable (the remaining 15 percent) for filers with MAGI of $250,000 or more ($500,000 joint), thresholds wage-indexed, revenue to the OASDI trust funds",18.10,13.70,-4.40,2034,-0.00,0.02,0.02
+H6,092,benefit_taxation,benefit_taxation,Phase out income tax on benefits (2045-2054),Phase out income taxation of OASDI benefits credited to the trust funds over 2045-2053 and eliminate it from 2054 (HI revenue unchanged),18.10,13.10,-5.00,2034,0.00,-0.57,-0.58
+H9,094,benefit_taxation,benefit_taxation,"Tax all benefits above $100,000 / $125,000","Starting in 2029, tax all Social Security benefits for beneficiaries with income above $100,000 ($125,000 joint), thresholds CPI-indexed, revenue to the OASDI trust funds",18.10,13.83,-4.27,2034,-0.00,0.15,0.16

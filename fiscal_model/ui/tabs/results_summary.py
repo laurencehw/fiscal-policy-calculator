@@ -2199,6 +2199,10 @@ _PAYROLL_TARGET_TOLERANCE_BILLIONS = 0.05
 #:   the same number until H9, and conflating them is what would have had the
 #:   app call -$2,700.0B "the carried target" after the ledger moved that target
 #:   to -$1,426.8B.
+#:
+#: ``provision`` is the OCACT provision id. Its percent-of-payroll effect and
+#: depletion year are read from ``data_files/social_security/`` (lane SS1) at
+#: caption time, not typed here.
 _PAYROLL_FITTED_TARGETS: dict[str, dict[str, Any]] = {
     "ss_eliminate_cap": {
         "eliminate_cap": True,
@@ -2208,8 +2212,6 @@ _PAYROLL_FITTED_TARGETS: dict[str, dict[str, Any]] = {
         "carried_target_10yr": -3_200.0,
         "held_out_10yr": -3_319.5,
         "provision": "E2.1",
-        "payroll_pct": 2.55,
-        "depletion_year": 2059,
         "cross_check": (
             r"Tax Foundation scores the same design — the cap lifted, no "
             r"benefit credit — at \$3.2 trillion over 2027-2036 on a "
@@ -2225,8 +2227,6 @@ _PAYROLL_FITTED_TARGETS: dict[str, dict[str, Any]] = {
         "carried_target_10yr": -1_426.8,
         "held_out_10yr": -2_664.0,
         "provision": "E2.5",
-        "payroll_pct": 2.50,
-        "depletion_year": 2057,
         "cross_check": (
             r"that is now the carried target — CBO, Options for Reducing the "
             r"Deficit: 2025 to 2034, Option 62 alternative 2, report p. 73, "
@@ -2327,6 +2327,11 @@ def payroll_fitted_target_caption(policy: Any, result: Any) -> str:
             f"OASDI rate — bookkeeping, not agreement. "
         )
 
+    # OCACT's own figures for the provision, read from the transcribed table
+    # (lane SS1) rather than typed here, so a Trustees vintage moves them.
+    from fiscal_model.social_security import provisions_by_id
+
+    ocact = provisions_by_id()[entry["provision"]]
     return (
         opening
         + f"Held out, with this case's own wage "
@@ -2334,8 +2339,8 @@ def payroll_fitted_target_caption(policy: Any, result: Any) -> str:
         rf"{format_money(held_out, escape=True)} ({gap_pct:.1f}% away). And the round figure is "
         f"a dollar conversion nobody published: SSA's Office of the Chief "
         f"Actuary scores this provision as {entry['provision']} and reports "
-        f"{entry['payroll_pct']:.2f}% of taxable payroll and a "
-        f"{entry['depletion_year']} depletion date, with no dollar amount at "
+        f"{ocact.ocact_change_actuarial_balance:.2f}% of taxable payroll and a "
+        f"{ocact.ocact_depletion_year} depletion date, with no dollar amount at "
         f"any horizon. For a published ten-year figure: {entry['cross_check']}."
     )
 

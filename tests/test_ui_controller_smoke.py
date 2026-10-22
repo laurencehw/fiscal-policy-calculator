@@ -471,6 +471,7 @@ def test_router_registers_the_redesigned_page_set():
     ]
     assert [page.title for page in st_module.nav.sections["More"]] == [
         "Bill Tracker",
+        "Social Security",
         "Methodology",
         "Classroom",
         "About",
