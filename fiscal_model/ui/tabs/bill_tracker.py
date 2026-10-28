@@ -50,7 +50,7 @@ def render_bill_tracker_tab(st_module: Any, db_path: str | None = None) -> None:
             "Showing sample bills for demonstration. Live congress.gov data "
             "has not been loaded on this deployment."
         )
-    elif POPULATED_DB_PATH.exists():
+    else:
         try:
             bill_count = db.count_bills()
             cbo_count = db.count_bills_with_cbo()
@@ -829,12 +829,41 @@ class _CachedBillReads:
         return cached
 
 
+def _last_update_of(path: Path) -> datetime | None:
+    """The pipeline's last_update stamp in a bill database, or None if unreadable."""
+    try:
+        from bill_tracker.database import BillDatabase
+
+        return BillDatabase(str(path)).get_last_update()
+    except Exception:
+        return None
+
+
+def _choose_db_path(
+    nightly: Path = DEFAULT_DB_PATH, snapshot: Path = POPULATED_DB_PATH
+) -> Path:
+    """The nightly database, unless it is missing or the snapshot is strictly newer.
+
+    The nightly job (update-bills.yml) writes ``bills.db``. ``bills_populated.db`` is an
+    April 2026 snapshot; reading it whenever it existed kept the live tracker on 1 April.
+    """
+    if not nightly.exists():
+        return snapshot if snapshot.exists() else nightly
+    if not snapshot.exists():
+        return nightly
+    fresh, old = _last_update_of(nightly), _last_update_of(snapshot)
+    if fresh is None and old is not None:
+        return snapshot
+    if fresh is not None and old is not None and old > fresh:
+        return snapshot
+    return nightly
+
+
 def _get_database(db_path: str | None) -> tuple[Any | None, bool]:
     """Load live database; fall back to demo data when unavailable or corrupt."""
     try:
         from bill_tracker.database import BillDatabase
-        # Prefer populated DB if it exists and is healthy; fall back to default
-        path = db_path or str(POPULATED_DB_PATH if POPULATED_DB_PATH.exists() else DEFAULT_DB_PATH)
+        path = db_path or str(_choose_db_path())
         db = _CachedBillReads(BillDatabase(path), path)
         # Smoke-test: if DB is corrupt, this raises sqlite3.DatabaseError
         db.count_bills()
