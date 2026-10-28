@@ -68,7 +68,7 @@ from fiscal_model.policies import (
     ordinary_income_base_for_preset,
 )
 from fiscal_model.preset_handler import create_policy_from_preset
-from fiscal_model.preset_ids import CUSTOM_POLICY_LABEL
+from fiscal_model.preset_ids import CUSTOM_POLICY_LABEL, PRESET_ID_BY_LABEL, resolve_preset
 from fiscal_model.readiness import build_readiness_report
 from fiscal_model.scoring import FiscalPolicyScorer
 from fiscal_model.trade import TariffPolicy
@@ -418,7 +418,13 @@ class ScorePolicyResponse(BaseModel):
 class ScorePresetRequest(BaseModel):
     """Request to score a named preset policy."""
 
-    preset_name: str = Field(..., description="Exact name from /presets endpoint")
+    preset_name: str = Field(
+        ...,
+        description=(
+            "A preset's stable id from /presets (e.g. 'tcja-full-extension'). Display "
+            "names and their older spellings are still accepted."
+        ),
+    )
     dynamic: bool = Field(
         False,
         description=(
@@ -431,6 +437,7 @@ class ScorePresetRequest(BaseModel):
 class PresetPolicyInfo(BaseModel):
     """Information about a preset policy."""
 
+    id: str  # Stable; never changes once shipped. Prefer it to ``name`` in requests.
     name: str
     description: str
     cbo_score: float | None = None  # Billions (if available)
@@ -1339,6 +1346,7 @@ def list_presets():
         cbo_info = CBO_SCORE_MAP.get(preset_name, {})
 
         preset_info = PresetPolicyInfo(
+            id=PRESET_ID_BY_LABEL[preset_name],
             name=preset_name,
             description=preset_data.get("description", ""),
             cbo_score=cbo_info.get("official_score"),
@@ -1454,7 +1462,9 @@ def score_preset(
     app's dynamic view, exactly as ``/score`` does.
     """
     try:
-        if request.preset_name == CUSTOM_POLICY_LABEL:
+        # A stable id or any legacy spelling resolves to the catalog label.
+        label = resolve_preset(request.preset_name) or request.preset_name
+        if label == CUSTOM_POLICY_LABEL:
             raise HTTPException(
                 status_code=422,
                 detail=(
@@ -1463,15 +1473,14 @@ def score_preset(
                     "a custom policy, or /presets for the scorable presets."
                 ),
             )
-        # Look up preset
-        if request.preset_name not in PRESET_POLICIES:
+        if label not in PRESET_POLICIES:
             raise ValueError(
                 f"Unknown preset: {request.preset_name}. "
                 f"Use /presets to see available presets."
             )
 
-        preset = PRESET_POLICIES[request.preset_name]
-        policy, use_real_data = _build_preset_policy(request.preset_name)
+        preset = PRESET_POLICIES[label]
+        policy, use_real_data = _build_preset_policy(label)
 
         scorer = FiscalPolicyScorer(
             start_year=max(
@@ -1483,11 +1492,11 @@ def score_preset(
         payload = _score_and_serialize(
             scorer,
             policy,
-            policy_name=request.preset_name,
+            policy_name=label,
             policy_description=preset.get("description", ""),
             dynamic=request.dynamic,
         )
-        _validate_serialized_result(payload, policy_name=request.preset_name)
+        _validate_serialized_result(payload, policy_name=label)
         return ScorePolicyResponse(**payload)
 
     except HTTPException:
