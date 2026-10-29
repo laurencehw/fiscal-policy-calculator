@@ -12,7 +12,8 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
             Fiscal Policy Calculator
           </Link>
           <span className="navlinks">
-            <a href={`${REPO_URL}/blob/main/docs/METHODOLOGY.md`}>Methods</a>
+            <NavLink href="/methods">Methods</NavLink>
+            <NavLink href="/about">About</NavLink>
           </span>
         </div>
         <span className="sectionlinks">

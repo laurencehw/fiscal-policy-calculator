@@ -2,7 +2,7 @@
 // build time, so the site never waits for the engine to show a preset.
 import fs from "node:fs";
 import path from "node:path";
-import type { BuildRow, Manifest, PresetFile, PresetInfo, ScoreResult, TrackerIndex, TrackerRow, YearlyEffect } from "./types";
+import type { BuildRow, Evidence, Manifest, ScorecardEntry, PresetFile, PresetInfo, ScoreResult, TrackerIndex, TrackerRow, YearlyEffect } from "./types";
 
 export const DATA_DIR = path.join(process.cwd(), "..", "site_data");
 
@@ -27,6 +27,27 @@ export function preset(id: string): PresetFile | null {
 
 export function buildCatalog(): BuildRow[] {
   return read<BuildRow[]>("build-catalog.json");
+}
+
+export function evidence(): Evidence {
+  return read<Evidence>("validation", "evidence.json");
+}
+
+export function scorecardEntries(): ScorecardEntry[] {
+  return read<{ entries: ScorecardEntry[] }>("validation", "scorecard.json").entries;
+}
+
+export type Tier = "out_of_sample" | "fitted" | "reconstruction" | "retired";
+
+/**
+ * The tier each benchmark reports in, as the validation scripts split them:
+ * out-of-sample predictions, fitted references, unfitted reconstructions, and
+ * targets withdrawn for want of a document. Never pooled.
+ */
+export function tierOf(entry: ScorecardEntry): Tier {
+  if (entry.holdout_status === "generic_reference") return "out_of_sample";
+  if (entry.target_retired) return "retired";
+  return entry.calibrated_to_target ? "fitted" : "reconstruction";
 }
 
 export function scoreSchema(): { properties: Record<string, unknown>; $defs: Record<string, { properties: Record<string, unknown> }> } {

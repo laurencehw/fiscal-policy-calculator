@@ -113,3 +113,54 @@ export type TrackerIndex = {
   sign_convention: string;
   rows: TrackerRow[];
 };
+
+/** One tier's error summary in the generated evidence report. */
+export type EvidenceSummary = {
+  n: number;
+  mean_abs_error: number;
+  median_abs_error: number;
+  within_15pct: number;
+  within_25pct?: number;
+  error_mass?: number;
+};
+
+/** site_data/validation/evidence.json: the validation figures every page quotes. */
+export type Evidence = {
+  out_of_sample: EvidenceSummary;
+  out_of_sample_classes: Record<string, EvidenceSummary & { label: string }>;
+  calibrated: {
+    fitted: EvidenceSummary;
+    fitted_held_in_place: EvidenceSummary;
+    reconstruction: EvidenceSummary;
+    reconstruction_retired_held_in_place: EvidenceSummary;
+    retired_targets: { n: number; policy_ids: string[] };
+  };
+  leave_one_out: EvidenceSummary & { not_cross_validatable: number };
+  data_vintages: {
+    cbo_baseline_vintage: string;
+    irs_soi_tax_years: number[];
+    irs_soi_latest_tax_year: number;
+    microdata_calibration_year: number;
+    microdata_returns_coverage_pct: number;
+    microdata_agi_coverage_pct: number;
+  };
+};
+
+/** One row of site_data/validation/scorecard.json. */
+export type ScorecardEntry = {
+  category: string;
+  policy_id: string;
+  policy_name: string;
+  official_10yr_billions: number;
+  official_source: string;
+  benchmark_url: string | null;
+  benchmark_date: string | null;
+  model_10yr_billions: number;
+  abs_percent_difference: number;
+  calibrated_to_target: boolean;
+  target_retired: boolean;
+  holdout_status: string;
+  published_range_low_billions: number | null;
+  published_range_high_billions: number | null;
+  within_published_range: boolean | null;
+};

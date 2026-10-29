@@ -117,3 +117,11 @@ def test_the_tracker_export_matches_the_nightly_database(exported: Path):
         if r["cbo_ten_year_billions"] is not None or r["auto_ten_year_billions"] is not None
     }
     assert set(scored) == has_estimate
+
+
+def test_the_evidence_export_is_the_generated_report(exported: Path):
+    from fiscal_model.validation import current_evidence
+
+    assert _read(exported / "validation" / "evidence.json") == json.loads(
+        current_evidence.EVIDENCE_PATH.read_text(encoding="utf-8")
+    )

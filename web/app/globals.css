@@ -163,3 +163,9 @@ details > summary { cursor: pointer; margin-top: 16px; font-family: var(--label)
 .tailorresult { display: grid; gap: 20px; min-width: 0; }
 .tailorresult > * { min-width: 0; }
 .tailorresult > h2 { margin: 0; }
+
+/* Methods: a table of words, and benchmark rows whose names wrap. */
+table.sheet.words th, table.sheet.words td { white-space: normal; text-align: left; vertical-align: top; }
+table.sheet.bench td:first-child { white-space: normal; min-width: 24ch; }
+table.sheet.bench .cite { font-size: 13px; font-family: var(--label); }
+.stage p { margin: 0; }
