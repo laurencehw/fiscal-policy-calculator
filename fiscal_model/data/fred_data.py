@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import tempfile
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -53,7 +54,15 @@ class FREDData:
         default_cache_dir = Path(__file__).resolve().parent.parent / "data_files" / "cache"
         default_seed_path = Path(__file__).resolve().parent.parent / "data_files" / "fred_seed.json"
         self.cache_dir = Path(cache_dir) if cache_dir else default_cache_dir
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            # A read-only deployment (a serverless function bundle) can still
+            # write to the temporary directory.
+            if cache_dir is not None:
+                raise
+            self.cache_dir = Path(tempfile.gettempdir()) / "fiscal-policy-calculator-fred-cache"
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
         if bundled_seed_path is not None:
             self.bundled_seed_path: Path | None = Path(bundled_seed_path)
         elif cache_dir is None:
