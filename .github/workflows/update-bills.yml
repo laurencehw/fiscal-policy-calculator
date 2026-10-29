@@ -5,6 +5,13 @@ on:
     - cron: '0 6 * * *'
   workflow_dispatch:
 
+# Queue a manual dispatch behind the scheduled run (and vice versa) instead of
+# letting two jobs generate bills.db and race on the same push. Do not cancel
+# an in-flight run: it has already spent congress.gov / Anthropic quota.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -47,13 +54,14 @@ jobs:
         run: python scripts/export_static.py
 
       - name: Commit updated bills.db and site_data if changed
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add fiscal_model/data_files/bills.db site_data
-          if git diff --cached --quiet; then
-            echo "No changes to bills.db or site_data, skipping commit."
-          else
-            git commit -m "chore: nightly bill tracker update and static export $(date -u +%Y-%m-%d)"
-            git push origin main
-          fi
+        env:
+          NIGHTLY_ARTIFACT_DIR: ${{ runner.temp }}/nightly-data
+        run: bash .github/scripts/commit-and-push-nightly-data.sh
+
+      - name: Keep generated data if the push never landed
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: nightly-bill-tracker-${{ github.run_id }}
+          path: ${{ runner.temp }}/nightly-data
+          if-no-files-found: ignore
