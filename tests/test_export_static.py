@@ -125,3 +125,38 @@ def test_the_evidence_export_is_the_generated_report(exported: Path):
     assert _read(exported / "validation" / "evidence.json") == json.loads(
         current_evidence.EVIDENCE_PATH.read_text(encoding="utf-8")
     )
+
+
+def test_the_values_export_is_the_composer(exported: Path):
+    from fiscal_model.composer.archetypes import load_archetypes, rationale_template_for
+    from fiscal_model.composer.composer import compose_values_package
+
+    written = _read(exported / "values.json")["archetypes"]
+    archetypes = load_archetypes()
+    assert [a["id"] for a in written] == list(archetypes)
+    assert _read(exported / "manifest.json")["values_archetypes"] == len(written)
+    catalog = {row["build_id"] for row in _read(exported / "build-catalog.json")}
+    for entry in written:
+        package = compose_values_package(
+            archetypes[entry["id"]].vector, rationale_template=rationale_template_for(entry["id"])
+        )
+        assert [p["policy_id"] for p in entry["picks"]] == [p.policy_id for p in package.picks]
+        assert entry["total_billions"] == pytest.approx(package.total_billions)
+        assert {p["policy_id"] for p in entry["picks"]} <= catalog
+
+
+def test_the_social_security_export_is_the_ledger(exported: Path):
+    from fiscal_model.social_security import trust_fund as tf
+
+    data = _read(exported / "social-security.json")
+    assert _read(exported / "manifest.json")["social_security_options"] == len(tf.load_catalog())
+    assert [p["provision_id"] for p in data["provisions"]] == [p.provision_id for p in tf.load_catalog()]
+    span = tf.LAST_YEAR + 2 - tf.FIRST_YEAR
+    assert all(len(p["change_cost_rate"]) == span for p in data["provisions"])
+    law = data["checks"][0]
+    assert law["provision_ids"] == []
+    assert law["depletion_year"] == tf.TRUSTEES_OASDI_DEPLETION_YEAR
+    for check in data["checks"]:
+        expected = tf.project(check["provision_ids"])
+        assert check["depletion_year"] == expected.depletion_year
+        assert check["change_in_actuarial_balance"] == expected.change_in_actuarial_balance

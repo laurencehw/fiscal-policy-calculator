@@ -11,5 +11,7 @@
   "scorecard_entries": 99,
   "tracker_bills": 11229,
   "tracker_last_update": "2026-10-28T11:48:21Z",
+  "values_archetypes": 5,
+  "social_security_options": 33,
   "sign_convention": "Billions of dollars over the budget window; positive increases the deficit, negative reduces it."
 }

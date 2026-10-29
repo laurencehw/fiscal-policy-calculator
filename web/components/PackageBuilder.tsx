@@ -4,19 +4,42 @@
 import { useEffect, useMemo, useState } from "react";
 import { cleanLabel, money } from "@/lib/format";
 import { choose, covered, fromQuery, total } from "@/lib/package";
-import type { BuildRow } from "@/lib/types";
+import type { BuildRow, ValuesArchetype } from "@/lib/types";
 
-export function PackageBuilder({ rows, scored }: { rows: BuildRow[]; scored: string[] }) {
+export function PackageBuilder({
+  rows,
+  scored,
+  archetypes = [],
+}: {
+  rows: BuildRow[];
+  scored: string[];
+  archetypes?: ValuesArchetype[];
+}) {
   const [selected, setSelected] = useState<string[]>([]);
+  const [philosophy, setPhilosophy] = useState<ValuesArchetype | null>(null);
   const scoredIds = useMemo(() => new Set(scored), [scored]);
 
+  function usePhilosophy(a: ValuesArchetype) {
+    setPhilosophy(a);
+    setSelected(fromQuery(rows, a.picks.map((p) => p.policy_id).join(",")));
+  }
+
   useEffect(() => {
-    setSelected(fromQuery(rows, new URLSearchParams(window.location.search).get("policies")));
-  }, [rows]);
+    const params = new URLSearchParams(window.location.search);
+    // ?values=<id> is the app's share link for a philosophy; it resolves to its package.
+    const a = archetypes.find((x) => x.id === params.get("values"));
+    if (a && !params.get("policies")) {
+      setPhilosophy(a);
+      setSelected(fromQuery(rows, a.picks.map((p) => p.policy_id).join(",")));
+    } else {
+      setSelected(fromQuery(rows, params.get("policies")));
+    }
+  }, [rows, archetypes]);
 
   useEffect(() => {
     const url = new URL(window.location.href);
     url.searchParams.delete("policies");
+    url.searchParams.delete("values");
     const rest = url.searchParams.toString();
     // Ids are [a-z0-9-], so the list needs no encoding; keep the commas readable.
     const query = [rest, selected.length ? `policies=${selected.join(",")}` : ""].filter(Boolean).join("&");
@@ -32,7 +55,59 @@ export function PackageBuilder({ rows, scored }: { rows: BuildRow[]; scored: str
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : choose(rows, s, id)));
   }
 
+  const edited =
+    philosophy !== null &&
+    [...philosophy.picks.map((p) => p.policy_id)].sort().join(",") !== [...selected].sort().join(",");
+
   return (
+    <>
+    {archetypes.length ? (
+      <section className="values">
+        <h2>Start from your values</h2>
+        <p className="note">
+          Pick a starting philosophy and the calculator chooses a package for it. The choice is mechanical: each policy
+          carries tags for who pays, the size of government, the growth cost and the generations it falls on, and the
+          same values always give the same package. It is a starting point, not a verdict; everything stays editable
+          in the list below.
+        </p>
+        <div className="cards">
+          {archetypes.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              className={`card${philosophy?.id === a.id ? " on" : ""}`}
+              aria-pressed={philosophy?.id === a.id}
+              onClick={() => usePhilosophy(a)}
+            >
+              <b>{a.name}</b>
+              <span>{a.one_line}</span>
+              <small>{a.chips.join(" · ")}</small>
+            </button>
+          ))}
+        </div>
+        {philosophy ? (
+          <div className="whys" aria-live="polite">
+            <p>
+              <b>{philosophy.name}:</b> {philosophy.summary}. The package scores {money(philosophy.total_billions)}{" "}
+              against a gap of {money(philosophy.gap_billions).replace("+", "")} to a deficit of{" "}
+              {philosophy.target_pct_gdp.toFixed(1)}% of GDP.
+              {philosophy.protected.length ? ` Protected: ${philosophy.protected.join(", ").toLowerCase()}.` : ""}
+              {edited ? " You have since edited the list below." : ""}
+            </p>
+            <ol>
+              {philosophy.picks.map((p) => (
+                <li key={p.policy_id}>
+                  <span className="whyname">
+                    {cleanLabel(p.label)} <span className={`fig ${p.score > 0 ? "adds" : "reduces"}`}>{money(p.score)}</span>
+                  </span>
+                  <small>{p.why}</small>
+                </li>
+              ))}
+            </ol>
+          </div>
+        ) : null}
+      </section>
+    ) : null}
     <div className="builder">
       <div className="buildlist">
         {areas.map((area) => (
@@ -93,5 +168,6 @@ export function PackageBuilder({ rows, scored }: { rows: BuildRow[]; scored: str
         ) : null}
       </aside>
     </div>
+    </>
   );
 }
