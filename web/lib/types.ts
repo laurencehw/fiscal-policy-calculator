@@ -84,3 +84,30 @@ export type Manifest = {
   tracker_last_update: string | null;
   sign_convention: string;
 };
+
+export type TrackerRow = {
+  id: string;
+  congress: number;
+  chamber: string;
+  type: string;
+  number: string;
+  title: string;
+  sponsor: string;
+  introduced: string | null;
+  latest_action: string | null;
+  latest_action_date: string | null;
+  status: string;
+  url: string | null;
+  cbo_ten_year_billions: number | null;
+  auto_ten_year_billions: number | null;
+  auto_confidence: string | null;
+};
+
+export type TrackerIndex = {
+  last_update: string | null;
+  bills: number;
+  with_cbo_estimate: number;
+  with_auto_score: number;
+  sign_convention: string;
+  rows: TrackerRow[];
+};
