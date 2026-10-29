@@ -2,7 +2,7 @@
 // build time, so the site never waits for the engine to show a preset.
 import fs from "node:fs";
 import path from "node:path";
-import type { BuildRow, Manifest, PresetFile, PresetInfo, ScoreResult, YearlyEffect } from "./types";
+import type { BuildRow, Manifest, PresetFile, PresetInfo, ScoreResult, TrackerIndex, TrackerRow, YearlyEffect } from "./types";
 
 export const DATA_DIR = path.join(process.cwd(), "..", "site_data");
 
@@ -46,6 +46,33 @@ export function presetsByArea(): { area: string; presets: PresetInfo[] }[] {
   const areas = [...new Set(buildCatalog().map((row) => row.area))];
   const order = [...areas.filter((a) => !illustrative.has(a)), "Other", ...areas.filter((a) => illustrative.has(a))];
   return order.filter((area) => groups.has(area)).map((area) => ({ area, presets: groups.get(area)! }));
+}
+
+export function trackerIndex(): TrackerIndex {
+  return read<TrackerIndex>("tracker", "index.json");
+}
+
+/**
+ * The tracker's bills with a fiscal estimate (decision F4, option b), largest first.
+ * CBO's own estimates; then the calculator's reading of the bill text, which is
+ * demo-grade, so low-confidence readings are kept apart from the rest.
+ */
+export function trackerGroups(index: TrackerIndex = trackerIndex()): {
+  cbo: TrackerRow[];
+  auto: TrackerRow[];
+  autoLow: TrackerRow[];
+} {
+  const size = (v: number | null) => Math.abs(v ?? 0);
+  const bySize = (key: "cbo_ten_year_billions" | "auto_ten_year_billions") => (a: TrackerRow, b: TrackerRow) =>
+    size(b[key]) - size(a[key]) || a.id.localeCompare(b.id);
+  const cbo = index.rows.filter((r) => r.cbo_ten_year_billions !== null).sort(bySize("cbo_ten_year_billions"));
+  const autoOnly = index.rows.filter((r) => r.cbo_ten_year_billions === null && r.auto_ten_year_billions !== null);
+  const confident = (r: TrackerRow) => r.auto_confidence === "high" || r.auto_confidence === "medium";
+  return {
+    cbo,
+    auto: autoOnly.filter(confident).sort(bySize("auto_ten_year_billions")),
+    autoLow: autoOnly.filter((r) => !confident(r)).sort(bySize("auto_ten_year_billions")),
+  };
 }
 
 const CSV_COLUMNS: (keyof YearlyEffect)[] = [

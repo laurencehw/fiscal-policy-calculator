@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildCatalog, manifest, preset, presets, presetsByArea, scoreSchema, yearCsv } from "./data";
+import { buildCatalog, manifest, preset, presets, presetsByArea, scoreSchema, trackerGroups, trackerIndex, yearCsv } from "./data";
 
 test("every listed preset has its file, in both modes", () => {
   const list = presets();
@@ -48,4 +48,20 @@ test("the CSV has a row per year and sums to the headline", () => {
   const header = csv.find((line) => line.startsWith("year,"))!.split(",");
   const total = rows.reduce((sum, line) => sum + Number(line.split(",")[header.indexOf("final_effect")]), 0);
   assert.ok(Math.abs(total - file.conventional.ten_year_deficit_impact) < 0.01);
+});
+
+test("the tracker groups hold every bill with an estimate, once", () => {
+  const index = trackerIndex();
+  assert.equal(index.rows.length, index.bills);
+  assert.equal(index.bills, manifest().tracker_bills);
+  const { cbo, auto, autoLow } = trackerGroups(index);
+  assert.equal(cbo.length, index.with_cbo_estimate);
+  const ids = [...cbo, ...auto, ...autoLow].map((r) => r.id);
+  assert.equal(new Set(ids).size, ids.length);
+  const expected = index.rows.filter((r) => r.cbo_ten_year_billions !== null || r.auto_ten_year_billions !== null);
+  assert.equal(ids.length, expected.length);
+  assert.ok(auto.every((r) => r.auto_confidence === "high" || r.auto_confidence === "medium"));
+  for (let i = 1; i < cbo.length; i++) {
+    assert.ok(Math.abs(cbo[i - 1].cbo_ten_year_billions!) >= Math.abs(cbo[i].cbo_ten_year_billions!));
+  }
 });

@@ -129,3 +129,10 @@ code { font-family: var(--code); font-size: 0.85em; }
 .presetlist .fig { font-family: var(--data); font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .checked { border-left: 2px solid var(--rule); padding-left: 12px; display: grid; gap: 6px; max-width: 70ch; }
 .checked p { margin: 0; }
+
+/* Bill tracker. */
+.tablescroll { overflow-x: auto; margin-top: 12px; }
+table.bills td.billtitle { white-space: normal; min-width: 18ch; max-width: 60ch; }
+table.bills td.billtitle span { color: var(--muted); }
+section + section { margin-top: 40px; }
+details > summary { cursor: pointer; margin-top: 16px; font-family: var(--label); color: var(--muted); }
