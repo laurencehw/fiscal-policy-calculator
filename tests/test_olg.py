@@ -726,3 +726,41 @@ class TestPWBMModel:
         assert "Year" in df.columns
         assert "GDP ($T)" in df.columns
         assert len(df) == 10
+
+
+# ---------------------------------------------------------------------------
+# Transition path ends at the steady state
+# ---------------------------------------------------------------------------
+
+
+def test_unreformed_transition_stays_at_the_baseline():
+    """With no reform the path must sit on its own steady state.
+
+    Debt used to grow at g each period (the closure targets a detrended
+    B·(r − g) surplus while the path accumulated undetrended debt), so even
+    an unreformed economy drifted to a 70% labour tax and lost 40% of K.
+    """
+    from fiscal_model.models.olg import OLGParameters
+    from fiscal_model.models.olg.solver import OLGSolver
+
+    solver = OLGSolver(OLGParameters())
+    baseline = solver.solve_steady_state()
+    path = solver.compute_transition_path(baseline, lambda t: {})
+    assert np.allclose(path.K_path, baseline.K, rtol=1e-6)
+    assert np.allclose(path.debt_path, baseline.debt, rtol=1e-6)
+    assert np.allclose(path.tau_l_path, baseline.tau_l, rtol=1e-6)
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [{"tau_k": 0.35}, {"tau_k": 0.25}, {"ss_replacement_rate": 0.5}, {"tau_ss": 0.10, "ss_replacement_rate": 0.3}],
+)
+def test_reform_transition_ends_at_the_reform_steady_state(overrides):
+    """The closure must see the reform's own tax rates, and the path must land where the long run says."""
+    from fiscal_model.models.olg import OLGModel, OLGParameters
+
+    result = OLGModel(OLGParameters()).analyze_policy(
+        reform_overrides=overrides, policy_name="t", compute_gen_accounts=False, compute_transition=True
+    )
+    assert result.transition.K_path[-1] == pytest.approx(result.reform.K, rel=1e-3)
+    assert result.gdp_transition_pct_change()[-1] == pytest.approx(result.long_run_gdp_pct_change, abs=0.05)

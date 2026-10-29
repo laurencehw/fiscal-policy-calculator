@@ -201,9 +201,14 @@ def compute_closure_tax_rate(
     K: float,
     debt: float,
     ss_outlays: float,
+    tau_k: float | None = None,
+    tau_ss: float | None = None,
 ) -> float:
     """
     Compute the endogenous labour tax rate consistent with fiscal closure.
+
+    ``tau_k`` and ``tau_ss`` default to ``params``; a transition passes the
+    period's own (reformed) rates so the closure sees the revenue they raise.
 
     Under 'labor_tax' closure, τ_l is set so that the primary surplus
     stabilises debt/GDP at or below debt_target_gdp.
@@ -230,8 +235,8 @@ def compute_closure_tax_rate(
             L=L,
             r=r,
             K=K,
-            tau_k=params.capital_tax_rate,
-            tau_ss=params.ss_payroll_rate,
+            tau_k=params.capital_tax_rate if tau_k is None else tau_k,
+            tau_ss=params.ss_payroll_rate if tau_ss is None else tau_ss,
             gov_spending=G,
             ss_outlays=ss_outlays,
             debt=debt,

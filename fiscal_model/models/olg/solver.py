@@ -559,7 +559,9 @@ class OLGSolver:
             if tau_l_ov is not None:
                 tau_l = tau_l_ov
             elif p.fiscal_closure == "labor_tax":
-                tau_l = compute_closure_tax_rate(p, Y, w, L, r, K, debt, ss_out)
+                tau_l = compute_closure_tax_rate(
+                    p, Y, w, L, r, K, debt, ss_out, tau_k=tau_k, tau_ss=tau_ss
+                )
             else:
                 tau_l = p.labor_tax_rate
 
@@ -570,7 +572,13 @@ class OLGSolver:
             # Debt dynamics
             from .government import compute_debt_next_period, compute_tax_revenues
             total_rev = compute_tax_revenues(w, L, r, K, tau_l, tau_k, tau_ss)
-            debt_new = compute_debt_next_period(debt, r, G, ss_out, total_rev)
+            # Aggregates are per effective worker (the steady state is
+            # stationary), so debt is detrended by growth. Without it the
+            # closure's B·(r − g) surplus lets debt grow at g every period,
+            # and even an unreformed path drifts away from its steady state.
+            debt_new = compute_debt_next_period(debt, r, G, ss_out, total_rev) / (
+                1.0 + p.pop_growth + p.tfp_growth
+            )
 
             K_path[t] = K
             L_path[t] = L
