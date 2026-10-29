@@ -19,6 +19,10 @@ once a night, and written as JSON under ``site_data/``:
   annual path, and the provisions the auto-scorer mapped.
 - ``values.json``: Build's five starting philosophies and the package the
   deterministic composer picks for each, with the "why" line for every pick.
+- ``social-security.json``: the Social Security page's inputs (Trustees
+  baseline rates, OCACT options and their annual paths, the CRFB comparison)
+  plus the ledger's own answers for current law and each option alone, which
+  the site's TypeScript ledger is tested against.
 
 The script calls the API's own endpoint functions, so an exported preset is the
 API's answer by construction; ``tests/test_export_static.py`` checks it anyway.
@@ -247,6 +251,62 @@ def values_payload() -> dict[str, Any]:
     return {"archetypes": archetypes}
 
 
+def social_security_payload() -> dict[str, Any]:
+    """Everything the Social Security page needs; the site runs the ledger itself."""
+    from fiscal_model.social_security import trust_fund as tf
+    from fiscal_model.social_security.crfb_benchmark import METRIC_LABELS, crfb_comparison
+
+    years = list(range(tf.FIRST_YEAR, tf.LAST_YEAR + 2))
+    paths = tf.load_provision_paths()
+
+    def checked(projection: tf.Projection) -> dict[str, Any]:
+        return {
+            "provision_ids": list(projection.provision_ids),
+            "depletion_year": projection.depletion_year,
+            "payable_at_depletion": projection.payable_at_depletion,
+            "change_in_actuarial_balance": projection.change_in_actuarial_balance,
+            "computed_actuarial_balance": projection.computed_actuarial_balance,
+            "trust_fund_ratio": list(projection.trust_fund_ratio),
+        }
+
+    catalog = tf.load_catalog()
+    return {
+        "first_year": tf.FIRST_YEAR,
+        "last_year": tf.LAST_YEAR,
+        "reserves_end_2025": tf.RESERVES_END_2025,
+        "baseline_cost_rate_2101": tf.BASELINE_COST_RATE_2101,
+        "trustees": {
+            "actuarial_balance": tf.TRUSTEES_ACTUARIAL_BALANCE,
+            "oasdi_depletion_year": tf.TRUSTEES_OASDI_DEPLETION_YEAR,
+            "oasdi_payable_pct": tf.TRUSTEES_OASDI_PAYABLE_PCT,
+            "oasi_depletion": tf.TRUSTEES_OASI_DEPLETION,
+            "oasi_payable_pct": tf.TRUSTEES_OASI_PAYABLE_PCT,
+        },
+        "baseline": [asdict(row) for row in tf.load_baseline() if row.year >= tf.FIRST_YEAR - 1],
+        "categories": tf.CATEGORY_LABELS,
+        "provisions": [
+            {**asdict(p), "source_url": p.source_url,
+             "change_cost_rate": [paths[p.provision_id].change_cost_rate[y] for y in years],
+             "change_income_rate": [paths[p.provision_id].change_income_rate[y] for y in years]}
+            for p in catalog
+        ],
+        "crfb": [
+            {
+                "crfb_item": r.crfb_item,
+                "measure": METRIC_LABELS[r.metric] + (" (OASI)" if r.framing == "oasi" else ""),
+                "crfb": r.display(r.crfb_value, ours=False),
+                "ours": r.display(r.our_value, ours=True),
+                "our_basis": r.our_basis,
+                "note": r.note,
+                "source_url": r.source_url,
+            }
+            for r in crfb_comparison()
+        ],
+        "checks": [checked(tf.project(()))]
+        + [checked(tf.project((p.provision_id,))) for p in catalog],
+    }
+
+
 def export(out: Path) -> dict[str, Any]:
     """Write the whole export to ``out`` (replacing it) and return the manifest."""
     import api
@@ -279,6 +339,8 @@ def export(out: Path) -> dict[str, Any]:
     _write(out / "tracker" / "scored.json", tracker_scored, compact=True)
     values = values_payload()
     _write(out / "values.json", values)
+    social_security = social_security_payload()
+    _write(out / "social-security.json", social_security, compact=True)
     _write(
         out / "schema" / f"score-result.v{SCHEMA_VERSION}.json",
         api.ScorePolicyResponse.model_json_schema(),
@@ -296,6 +358,7 @@ def export(out: Path) -> dict[str, Any]:
         "tracker_bills": tracker_index["bills"],
         "tracker_last_update": tracker_index["last_update"],
         "values_archetypes": len(values["archetypes"]),
+        "social_security_options": len(social_security["provisions"]),
         "sign_convention": (
             "Billions of dollars over the budget window; positive increases "
             "the deficit, negative reduces it."

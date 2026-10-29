@@ -100,6 +100,7 @@ export type Manifest = {
   tracker_bills: number;
   tracker_last_update: string | null;
   values_archetypes: number;
+  social_security_options: number;
   sign_convention: string;
 };
 

@@ -178,3 +178,21 @@ section.values { display: grid; gap: 12px; }
 .whys ol { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
 .whys li small { display: block; color: var(--muted); font-size: 14px; line-height: 1.4; max-width: 70ch; }
 .whys .fig { font-family: var(--data); font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Social Security */
+.ssgrid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 40px; align-items: start; }
+@media (max-width: 860px) { .ssgrid { grid-template-columns: minmax(0, 1fr); } .ssresult { order: -1; } }
+@media (min-width: 861px) { .ssresult { position: sticky; top: 16px; } }
+.ssresult { display: grid; gap: 16px; min-width: 0; background: var(--paper); }
+.ssresult .cycle.four { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ssresult .cycle.four .stage:nth-child(2n) { border-right: 0; }
+.ssresult .cycle.four .stage:nth-child(n + 3) { border-top: 1px solid var(--rule); }
+.ssresult .cycle.four .stage:nth-child(2n + 1) { padding-left: 0; }
+.ssmenu { display: grid; gap: 4px; min-width: 0; }
+.ssmenu details { border-top: 1px solid var(--rule); padding: 4px 0 8px; }
+.ssmenu details > summary { margin-top: 4px; color: var(--ink); font-family: var(--display); font-size: 18px; }
+.ssmenu fieldset { border: 0; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+.ssmenu legend { font-family: var(--label); font-variant-caps: all-small-caps; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; padding: 0; margin-bottom: 2px; }
+.ssmenu label { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: baseline; font-size: 16px; cursor: pointer; }
+.ssmenu label.single { margin-top: 8px; }
+.ssmenu button { justify-self: start; margin-top: 8px; font: inherit; font-size: 14px; background: none; border: 1px solid var(--rule); padding: 4px 12px; cursor: pointer; color: inherit; }
