@@ -266,15 +266,29 @@ export type StateProfile = {
   median_household_income: number;
   notes: string;
   rate_curve: { agi: number; federal_rate: number; state_rate: number; combined_rate: number }[];
-  salt_cap_lift: {
-    affected_filers_millions: number;
-    avg_deduction_change: number;
-    federal_revenue_change_billions: number;
-    effective_rate_change_ppts: number;
-  };
+  /** Removing the cap against current law in `year`. */
+  salt_cap_lift: SaltCapLift;
+  /** Removing the cap once it has returned to $10,000 (2030), at the same incomes. */
+  salt_cap_lift_reverted: SaltCapLift;
 };
 
-export type StatesData = { year: number; salt_cap_baseline: number; states: StateProfile[] };
+export type SaltCapLift = {
+  affected_filers_millions: number;
+  avg_deduction_change: number;
+  federal_revenue_change_billions: number;
+  effective_rate_change_ppts: number;
+};
+
+export type StatesData = {
+  year: number;
+  /** Current-law SALT limitation in `year`, before the phasedown. */
+  salt_cap_baseline: number;
+  /** Income above which the limitation phases down; null once it is flat. */
+  salt_cap_phasedown_threshold: number | null;
+  salt_cap_reversion_year: number;
+  salt_cap_reverted: number;
+  states: StateProfile[];
+};
 
 export type OlgCohort = { age: number; baseline: number; reform: number; change: number };
 

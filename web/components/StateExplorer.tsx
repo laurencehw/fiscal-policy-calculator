@@ -109,6 +109,13 @@ export function StateExplorer({ data }: { data: StatesData }) {
           <h2>Lifting the SALT cap, state by state</h2>
           <span className="tag">per year</span>
         </div>
+        <p className="note">
+          The cap is ${data.salt_cap_baseline.toLocaleString("en-US")} in {data.year}, cut back toward $
+          {data.salt_cap_reverted.toLocaleString("en-US")} for incomes above $
+          {(data.salt_cap_phasedown_threshold ?? 0).toLocaleString("en-US")}. It returns to $
+          {data.salt_cap_reverted.toLocaleString("en-US")} for everyone in {data.salt_cap_reversion_year}. The last column
+          prices removing it then, at the same incomes.
+        </p>
         <div className="tablewrap">
           <table className="sheet">
             <thead>
@@ -116,9 +123,10 @@ export function StateExplorer({ data }: { data: StatesData }) {
                 <th>State</th>
                 <th>Itemizers</th>
                 <th>Combined state and local rate</th>
-                <th>Filers affected</th>
+                <th>Filers above the cap</th>
                 <th>Average deduction gain</th>
-                <th>Federal deficit effect</th>
+                <th>Federal deficit effect, {data.year}</th>
+                <th>From {data.salt_cap_reversion_year}</th>
               </tr>
             </thead>
             <tbody>
@@ -127,9 +135,10 @@ export function StateExplorer({ data }: { data: StatesData }) {
                   <td>{x.name}</td>
                   <td>{pct(x.pct_itemizers * 100)}</td>
                   <td>{pct(x.effective_salt_rate * 100)}</td>
-                  <td>{x.salt_cap_lift.affected_filers_millions.toFixed(1)}M</td>
+                  <td>{filers(x.salt_cap_lift.affected_filers_millions)}</td>
                   <td>{usd(x.salt_cap_lift.avg_deduction_change)}</td>
                   <td>{money(-x.salt_cap_lift.federal_revenue_change_billions)}</td>
+                  <td>{money(-x.salt_cap_lift_reverted.federal_revenue_change_billions)}</td>
                 </tr>
               ))}
             </tbody>
@@ -138,4 +147,10 @@ export function StateExplorer({ data }: { data: StatesData }) {
       </section>
     </>
   );
+}
+
+/** Filer counts: thousands below a million, so small states do not print 0.0M. */
+function filers(millions: number): string {
+  if (millions >= 1) return `${millions.toFixed(1)}M`;
+  return `${Math.round(millions * 1000).toLocaleString("en-US")}K`;
 }

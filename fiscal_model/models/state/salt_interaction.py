@@ -3,7 +3,14 @@ SALT (State and Local Tax) deduction interaction model.
 
 The federal SALT deduction allows itemizing taxpayers to deduct state and local
 taxes from federal taxable income, creating an implicit federal subsidy to
-state-level taxation.  TCJA (2017) capped this deduction at $10,000.
+state-level taxation.  TCJA (2017) capped this deduction at $10,000; P.L. 119-21
+sec. 70120 raised the cap to $40,000 for 2025-2029, phased down for incomes above
+$500,000, before it returns to $10,000 in 2030.
+
+``compute_salt_lift`` prices lifting the cap against that current-law path,
+filer by filer through IRS SOI Table 2.1's SALT distribution.
+``compute_salt_interaction`` is the older representative-itemizer method and
+takes both caps as arguments.
 
 Key calculations:
 - For itemizing filers: federal_taxable_income -= min(actual_salt, salt_cap)
@@ -13,11 +20,16 @@ Key calculations:
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
 from .database import StateTaxDatabase
+
+if TYPE_CHECKING:
+    from fiscal_model.tax_expenditures_core import SaltCapBaseline
 
 
 @dataclass
@@ -185,6 +197,99 @@ def compute_salt_across_states(
     df = pd.DataFrame(records)
     df = df.sort_values("Federal Revenue Change ($B)")
     return df
+
+
+def compute_salt_lift(
+    state: str,
+    year: int = 2025,
+    baseline: SaltCapBaseline | None = None,
+    db: StateTaxDatabase | None = None,
+) -> SALTInteractionResult:
+    """
+    Federal cost of removing the SALT cap in one state, against ``baseline``.
+
+    The baseline defaults to current law (``SaltCapBaseline.CURRENT_LAW``):
+    $40,000 in 2025, indexed at 1% a year through 2029 and phased down by 30%
+    of income above $500,000 (never below $10,000), then $10,000 from 2030.
+
+    A representative itemizer cannot see that cap: the state averages here are
+    all below $40,000, so ``compute_salt_interaction`` would report no effect
+    at all, while the cap binds on the high-SALT tail and on every filer the
+    phasedown reaches. This method keeps the tail. Each state's itemizers take
+    the national SOI Table 2.1 SALT distribution -- its AGI classes, the
+    within-class lognormal dispersion and the class marginal rates -- with
+    claimed amounts and incomes scaled by the state's average SALT relative to
+    the national average. The national distribution is what
+    ``tax_expenditures_core.salt_expenditure_billions`` prices the SALT presets
+    with, so the states and the national score read the same data.
+
+    Returns a :class:`SALTInteractionResult` with ``reform_cap=None`` and
+    ``baseline_cap`` set to the limitation amount before any phasedown.
+    """
+    from fiscal_model.tax_expenditure_distributions import (
+        _lognormal_mean_min,
+        _normal_cdf,
+        load_capped_deduction_distribution,
+    )
+    from fiscal_model.tax_expenditures_core import (
+        SaltCapBaseline,
+        salt_cap_at,
+        salt_cap_schedule,
+    )
+
+    if baseline is None:
+        baseline = SaltCapBaseline.CURRENT_LAW
+    if db is None:
+        db = StateTaxDatabase(year)
+    profile = db.get_state(state)
+
+    distribution = load_capped_deduction_distribution()
+    national_claimants = sum(c.claimants for c in distribution.classes)
+    national_mean = (
+        sum(c.claimants * c.mean_deduction for c in distribution.classes)
+        / national_claimants
+    )
+    scale = profile.avg_salt_deduction_itemizers / national_mean
+    itemizers = _approx_filers_millions(state) * 1e6 * profile.pct_itemizers
+
+    claimed = deduction_gain = revenue_cost = affected = 0.0
+    for c in distribution.classes:
+        mean = c.mean_deduction * scale
+        sigma = c.sigma
+        for weight, agi in c.agi_slices():
+            filers = itemizers * (c.claimants / national_claimants) * weight
+            cap = salt_cap_at(baseline, year, agi * scale)
+            gain = mean - _lognormal_mean_min(mean, sigma, cap)
+            claimed += filers * mean
+            deduction_gain += filers * gain
+            revenue_cost += filers * gain * c.marginal_rate
+            if math.isinf(cap):
+                continue
+            if sigma:
+                mu = math.log(mean) - sigma * sigma / 2.0
+                affected += filers * (1.0 - _normal_cdf((math.log(cap) - mu) / sigma))
+            elif mean > cap:
+                affected += filers
+
+    if baseline is SaltCapBaseline.CURRENT_LAW:
+        baseline_cap: float | None = salt_cap_schedule(year).limitation_amount
+    else:
+        baseline_cap = salt_cap_at(baseline, year, 0.0)
+        if math.isinf(baseline_cap):
+            baseline_cap = None
+
+    average_rate = revenue_cost / deduction_gain if deduction_gain > 0 else 0.0
+    share_denied = deduction_gain / claimed if claimed > 0 else 0.0
+    return SALTInteractionResult(
+        state=state,
+        baseline_cap=baseline_cap,
+        reform_cap=None,
+        affected_filers=affected / 1e6,
+        avg_deduction_change=deduction_gain / affected if affected > 0 else 0.0,
+        total_deduction_change_billions=deduction_gain / 1e9,
+        federal_revenue_change_billions=-revenue_cost / 1e9,
+        effective_rate_change=-profile.effective_salt_rate * average_rate * share_denied,
+    )
 
 
 def _approx_filers_millions(state: str) -> float:

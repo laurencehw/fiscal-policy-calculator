@@ -141,20 +141,42 @@ def models_view(policy: Any, models: Any) -> dict[str, Any]:
 
 
 def states_view(year: int = 2025) -> dict[str, Any]:
-    """The app's State tab for the ten modelled states: parameters, rate curves, SALT cap lift."""
+    """The app's State tab for the ten modelled states: parameters, rate curves, SALT cap lift.
+
+    The SALT columns price removing the cap against current law twice: in
+    ``year`` (the raised cap, with its phasedown above $500,000) and in 2030,
+    when the cap returns to $10,000. Both read the same incomes, so the
+    difference between them is the statute alone.
+    """
     from fiscal_model.models.state import (
         FederalStateCalculator,
         StateTaxDatabase,
-        compute_salt_interaction,
+        compute_salt_lift,
     )
     from fiscal_model.models.state.database import STATE_NAMES, SUPPORTED_STATES
+    from fiscal_model.tax_expenditures_core import (
+        SALT_CAP_FLOOR,
+        SALT_RAISED_CAP_LAST_YEAR,
+        salt_cap_schedule,
+    )
+
+    reversion_year = SALT_RAISED_CAP_LAST_YEAR + 1
+
+    def lift_view(result: Any) -> dict[str, float]:
+        return {
+            "affected_filers_millions": float(result.affected_filers),
+            "avg_deduction_change": float(result.avg_deduction_change),
+            "federal_revenue_change_billions": float(result.federal_revenue_change_billions),
+            "effective_rate_change_ppts": float(result.effective_rate_change) * 100,
+        }
 
     db = StateTaxDatabase(year)
     states = []
     for code in SUPPORTED_STATES:
         p = db.get_state(code)
         curve = FederalStateCalculator(code, year).effective_rate_curve()
-        lift = compute_salt_interaction(state=code, baseline_cap=10_000, reform_cap=None, db=db)
+        lift = compute_salt_lift(code, year, db=db)
+        lift_reverted = compute_salt_lift(code, reversion_year, db=db)
         states.append(
             {
                 "code": code,
@@ -177,15 +199,21 @@ def states_view(year: int = 2025) -> dict[str, Any]:
                     }
                     for _, row in curve.iterrows()
                 ],
-                "salt_cap_lift": {
-                    "affected_filers_millions": float(lift.affected_filers),
-                    "avg_deduction_change": float(lift.avg_deduction_change),
-                    "federal_revenue_change_billions": float(lift.federal_revenue_change_billions),
-                    "effective_rate_change_ppts": float(lift.effective_rate_change) * 100,
-                },
+                "salt_cap_lift": lift_view(lift),
+                "salt_cap_lift_reverted": lift_view(lift_reverted),
             }
         )
-    return {"year": year, "salt_cap_baseline": 10_000, "states": states}
+    schedule = salt_cap_schedule(year)
+    return {
+        "year": year,
+        "salt_cap_baseline": float(schedule.limitation_amount),
+        "salt_cap_phasedown_threshold": (
+            None if schedule.threshold_amount is None else float(schedule.threshold_amount)
+        ),
+        "salt_cap_reversion_year": reversion_year,
+        "salt_cap_reverted": float(SALT_CAP_FLOOR),
+        "states": states,
+    }
 
 
 def olg_view(capital_tax_rate: float, payroll_tax_rate: float, replacement_rate: float) -> dict[str, Any]:
