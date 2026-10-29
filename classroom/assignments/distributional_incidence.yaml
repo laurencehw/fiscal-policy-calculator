@@ -65,6 +65,7 @@ exercises:
           so some of the top quintile (those with $100K-$400K) are unaffected.
           The top 1-5% (above $400K) bears nearly all of the burden.
     validation:
+      answer_unit: "%"
       method: range_check
       min_acceptable: 85.0
       max_acceptable: 100.0

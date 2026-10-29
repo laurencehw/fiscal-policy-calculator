@@ -1,0 +1,130 @@
+[
+  {
+    "id": "deficit_financing",
+    "title": "Deficit Financing: Crowding Out, Multipliers, and Sustainability",
+    "description": "Explore how government borrowing affects the economy. Compare deficit-financed spending with tax-financed spending, examine crowding out of private investment, and assess long-run debt sustainability using the primary balance rule.",
+    "levels": [
+      "undergraduate",
+      "graduate",
+      "advanced"
+    ],
+    "minutes": 55,
+    "exercises": {
+      "undergraduate": 2,
+      "graduate": 1,
+      "advanced": 1
+    }
+  },
+  {
+    "id": "distributional_incidence",
+    "title": "Tax Incidence: Who Bears the Burden?",
+    "description": "Analyze the distributional effects of different fiscal policies. Examine how tax burdens and spending benefits are distributed across the income spectrum — from quintile analysis to understanding who really bears the economic burden of corporate taxes.",
+    "levels": [
+      "undergraduate",
+      "graduate",
+      "advanced"
+    ],
+    "minutes": 55,
+    "exercises": {
+      "undergraduate": 2,
+      "graduate": 1,
+      "advanced": 1
+    }
+  },
+  {
+    "id": "laffer_curve",
+    "title": "The Laffer Curve: Revenue and Incentives",
+    "description": "Explore how income tax rate changes affect both government revenue and taxpayer behavior. You will map out the relationship between rates and revenue for high earners, estimate behavioral responses using the Elasticity of Taxable Income (ETI), and identify when higher rates actually collect less revenue.",
+    "levels": [
+      "undergraduate",
+      "graduate",
+      "advanced"
+    ],
+    "minutes": 50,
+    "exercises": {
+      "undergraduate": 2,
+      "graduate": 1,
+      "advanced": 1
+    }
+  },
+  {
+    "id": "olg_generational",
+    "title": "Generational Burden: Who Pays for Today's Deficits?",
+    "description": "Use the Overlapping Generations (OLG) model to analyze how today's fiscal choices affect future generations. Explore how deficit financing crowds out capital, reduces wages, and shifts the tax burden to workers who have not yet been born. Evaluate Social Security reform through a generational lens.",
+    "levels": [
+      "undergraduate",
+      "graduate",
+      "advanced"
+    ],
+    "minutes": 60,
+    "exercises": {
+      "undergraduate": 2,
+      "graduate": 1,
+      "advanced": 1
+    }
+  },
+  {
+    "id": "progressive_vs_flat",
+    "title": "Progressive vs. Flat Tax: Trade-offs in Tax Design",
+    "description": "Compare a progressive income tax structure with a flat tax proposal. Analyze the revenue, distributional, and efficiency implications of each system, and evaluate common arguments for and against tax simplification.",
+    "levels": [
+      "undergraduate",
+      "graduate",
+      "advanced"
+    ],
+    "minutes": 50,
+    "exercises": {
+      "undergraduate": 2,
+      "graduate": 1,
+      "advanced": 1
+    }
+  },
+  {
+    "id": "tcja_analysis",
+    "title": "The 2017 Tax Cuts and Jobs Act: Revenue and Distributional Effects",
+    "description": "Analyze the Tax Cuts and Jobs Act of 2017, the largest US tax overhaul in three decades. Estimate the 10-year revenue cost of TCJA extension, break down effects by provision, and examine the distributional implications for different income groups.",
+    "levels": [
+      "undergraduate",
+      "graduate",
+      "advanced"
+    ],
+    "minutes": 60,
+    "exercises": {
+      "undergraduate": 2,
+      "graduate": 1,
+      "advanced": 1
+    }
+  },
+  {
+    "id": "trade_tariff",
+    "title": "Tariffs and Trade Policy: Revenue, Prices, and Retaliation",
+    "description": "Analyze the economic effects of tariff policy. Estimate tariff revenue, consumer price impacts, retaliation costs, and distributional effects. Compare the 2025 tariff package to historical US tariff policy.",
+    "levels": [
+      "undergraduate",
+      "graduate",
+      "advanced"
+    ],
+    "minutes": 50,
+    "exercises": {
+      "undergraduate": 2,
+      "graduate": 1,
+      "advanced": 1
+    }
+  },
+  {
+    "id": "values_to_budget",
+    "title": "Build a Budget From Your Philosophy, Then Defend It",
+    "description": "The normative-to-positive mapping, as an exercise. Start from a stated fiscal philosophy on Build's \"Start from your values\" panel, watch a deterministic selector turn it into a package of scored policies, then defend the package — including the parts you did not choose and would not have chosen. Uses the values links directly: open /build?values=<archetype_id> and the panel restores that philosophy, its dials, and its package.",
+    "levels": [
+      "undergraduate",
+      "graduate",
+      "advanced"
+    ],
+    "minutes": 50,
+    "exercises": {
+      "undergraduate": 2,
+      "graduate": 1,
+      "advanced": 1
+    }
+  }
+]

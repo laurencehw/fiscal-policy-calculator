@@ -35,16 +35,19 @@ sys.path.insert(0, {engine!r})
 import index
 from fastapi.testclient import TestClient
 
-response = TestClient(index.app).post(
-    "/score/preset", json={{"preset_name": "tcja-full-extension"}}
+client = TestClient(index.app)
+response = client.post("/score/preset", json={{"preset_name": "tcja-full-extension"}})
+classroom = client.post(
+    "/classroom/check",
+    json={{"assignment_id": "laffer_curve", "exercise_id": "laffer_ug_ex1", "answer": -266}},
 )
 stdlib = set(sys.stdlib_module_names)
 third_party = sorted(
     {{m.split(".")[0] for m in sys.modules}}
     - stdlib
-    - {{"api", "index", "fiscal_model", "__main__"}}
+    - {{"api", "index", "fiscal_model", "classroom", "__main__"}}
 )
-print(json.dumps({{"status": response.status_code, "modules": third_party}}))
+print(json.dumps({{"status": response.status_code, "classroom": classroom.status_code, "modules": third_party}}))
 """
 
 
@@ -77,6 +80,7 @@ def test_the_api_scores_with_the_ui_stack_blocked():
     assert result.returncode == 0, result.stderr[-3000:]
     report = json.loads(result.stdout.strip().splitlines()[-1])
     assert report["status"] == 200
+    assert report["classroom"] == 200
     # Every top-level package the API pulled in is either declared or a
     # dependency of a declared one (pydantic, starlette, etc. come with fastapi).
     imported = {DISTRIBUTIONS.get(m, m).lower().replace("_", "-") for m in report["modules"]}
@@ -94,5 +98,6 @@ def test_the_build_step_copies_the_engine(tmp_path: Path):
     build.main(tmp_path)
     assert (tmp_path / "api.py").read_bytes() == (ROOT / "api.py").read_bytes()
     assert (tmp_path / "fiscal_model" / "scoring.py").exists()
+    assert (tmp_path / "classroom" / "assignments" / "laffer_curve.yaml").exists()
     assert not list((tmp_path / "fiscal_model").rglob("bills*.db"))
     assert not list((tmp_path / "fiscal_model").rglob("__pycache__"))

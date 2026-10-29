@@ -6,12 +6,13 @@ import { NavLink } from "./NavLink";
 export function SiteChrome({ children }: { children: React.ReactNode }) {
   return (
     <div className="wrap">
-      <nav className="site" aria-label="Site">
+      <nav className="site noprint" aria-label="Site">
         <div className="siterow">
           <Link href="/" className="wordmark">
             Fiscal Policy Calculator
           </Link>
           <span className="navlinks">
+            <NavLink href="/classroom">Classroom</NavLink>
             <NavLink href="/methods">Methods</NavLink>
             <NavLink href="/about">About</NavLink>
           </span>
@@ -27,7 +28,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
         </span>
       </nav>
       {children}
-      <footer>
+      <footer className="noprint">
         <p>
           Every figure is a ten-year estimate from the calculator&apos;s Python engine, computed nightly. Where an
           agency or research group has published a score for the same policy, the page shows it and how far apart

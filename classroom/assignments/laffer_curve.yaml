@@ -65,8 +65,8 @@ exercises:
           The model uses real IRS data, so your answer may differ slightly.
       - level: 3
         text: >
-          The model score for a 2pp increase on $400K+ income is roughly −$250 to −$280B
-          (negative convention = revenue gain = deficit reduction). Try entering ~$260B.
+          The model's static score for a 2pp increase on $400K+ income is about −$266B
+          (negative = revenue gain = deficit reduction), so enter roughly −266.
     validation:
       method: relative_to_model
       policy_type: income_tax
@@ -122,9 +122,9 @@ exercises:
     hints:
       - level: 1
         text: >
-          If the static effect is −$288B, the behavioral offset is:
-          −0.25 × 0.5 × −$288B = +$36B (partially offsets the revenue gain).
-          Net = −$288B + $36B = −$252B.
+          The model's static effect is about −$266B, so the behavioral offset is:
+          −0.25 × 0.5 × −$266B = +$33B (partially offsets the revenue gain).
+          Net = −$266B + $33B ≈ −$232B.
       - level: 2
         text: >
           The ETI = 0.25 means each 1% increase in (1−t) reduces taxable income

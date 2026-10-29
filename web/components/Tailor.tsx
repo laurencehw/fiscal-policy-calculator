@@ -5,6 +5,7 @@ import { ResultSections } from "@/components/ResultSections";
 import { Checked, YearTable } from "@/components/ScoreParts";
 import { YearChart } from "@/components/YearChart";
 import { direction, money } from "@/lib/format";
+import { frozenFrom, frozenQuery, frozenRefusal, type Frozen } from "@/lib/frozen";
 import { DEFAULT_INPUT, RATE_MAX, RATE_MIN, WHO_CHOICES, describe, fromQuery, toQuery, type TailorInput } from "@/lib/tailor";
 import type { ScoreResult, Views } from "@/lib/types";
 
@@ -16,15 +17,21 @@ export function Tailor() {
   const [input, setInput] = useState<TailorInput>(DEFAULT_INPUT);
   const [state, setState] = useState<State>({ status: "idle" });
   const [views, setViews] = useState<ViewsState>({ status: "idle" });
+  // A frozen assignment link locks every input; ?classroom=1 shows the control that makes one.
+  const [frozen, setFrozen] = useState<Frozen>({ frozen: false });
+  const [instructor, setInstructor] = useState(false);
   const started = useRef(false);
   // Only the latest run may write results; an older answer arriving late is dropped.
   const latest = useRef(0);
 
-  async function score(next: TailorInput) {
+  async function score(next: TailorInput, lock: Frozen = frozen, teaching = instructor) {
     const id = ++latest.current;
     setState({ status: "scoring" });
     setViews({ status: "idle" });
-    window.history.replaceState(null, "", `${window.location.pathname}?${toQuery(next)}`);
+    // A frozen link keeps its own address; the student's copy must stay the assignment.
+    if (!lock.frozen) {
+      window.history.replaceState(null, "", `${window.location.pathname}?${toQuery(next)}${teaching ? "&classroom=1" : ""}`);
+    }
     try {
       const response = await fetch("/api/score", {
         method: "POST",
@@ -37,7 +44,13 @@ export function Tailor() {
         setState({ status: "error", message: data?.error ?? "Scoring failed. Try again in a moment." });
         return;
       }
-      setState({ status: "done", result: data as ScoreResult, input: next });
+      const result = data as ScoreResult;
+      const refusal = frozenRefusal(lock, result.baseline_vintage);
+      if (refusal) {
+        setState({ status: "error", message: refusal });
+        return;
+      }
+      setState({ status: "done", result, input: next });
       void loadViews(next, id);
     } catch {
       if (id !== latest.current) return;
@@ -71,9 +84,14 @@ export function Tailor() {
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    const { input: fromLink, run } = fromQuery(new URLSearchParams(window.location.search));
+    const params = new URLSearchParams(window.location.search);
+    const { input: fromLink, run } = fromQuery(params);
+    const lock = frozenFrom(params);
+    const teaching = params.get("classroom") === "1";
     setInput(fromLink);
-    if (run) void score(fromLink);
+    setFrozen(lock);
+    setInstructor(teaching);
+    if (run || lock.frozen) void score(fromLink, lock, teaching);
   }, []);
 
   const set = (patch: Partial<TailorInput>) =>
@@ -86,6 +104,14 @@ export function Tailor() {
 
   return (
     <>
+      {frozen.frozen ? (
+        <div className="frozen" role="note">
+          <p>
+            <b>Frozen for this assignment.</b> The policy and the baseline are fixed by your instructor&apos;s link, so everyone in
+            the class gets the same numbers.
+          </p>
+        </div>
+      ) : null}
       <form
         className="tailorform"
         onSubmit={(e) => {
@@ -93,16 +119,17 @@ export function Tailor() {
           if (input.rate !== 0) void score(input);
         }}
       >
-        <fieldset>
-          <legend>Tax</legend>
-          <label>
-            <input type="radio" name="kind" checked={input.kind === "income"} onChange={() => set({ kind: "income" })} />{" "}
-            Individual income tax
-          </label>
-          <label>
-            <input type="radio" name="kind" checked={input.kind === "corporate"} onChange={() => set({ kind: "corporate" })} />{" "}
-            Corporate income tax
-          </label>
+        <fieldset className="lockable" disabled={frozen.frozen}>
+          <fieldset>
+            <legend>Tax</legend>
+            <label>
+              <input type="radio" name="kind" checked={input.kind === "income"} onChange={() => set({ kind: "income" })} />{" "}
+              Individual income tax
+            </label>
+            <label>
+              <input type="radio" name="kind" checked={input.kind === "corporate"} onChange={() => set({ kind: "corporate" })} />{" "}
+              Corporate income tax
+            </label>
         </fieldset>
         <label className="field">
           <span>Rate change, percentage points</span>
@@ -145,7 +172,11 @@ export function Tailor() {
         <button type="submit" disabled={state.status === "scoring" || input.rate === 0}>
           {state.status === "scoring" ? "Scoring…" : "Score it"}
         </button>
+        </fieldset>
       </form>
+      {instructor && !frozen.frozen && state.status === "done" ? (
+        <AssignmentLink query={toQuery(state.input)} vintage={state.result.baseline_vintage} />
+      ) : null}
 
       <div aria-live="polite">
         {state.status === "scoring" ? (
@@ -204,5 +235,44 @@ function Result({ result, input }: { result: ScoreResult; input: TailorInput }) 
         current app.
       </p>
     </section>
+  );
+}
+
+function AssignmentLink({ query, vintage }: { query: string; vintage: string }) {
+  const [link, setLink] = useState("");
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="frozen">
+      <p>
+        <b>For instructors.</b> A frozen link opens this policy with every input locked, scored on the {vintage} baseline. If the site
+        later moves to a new baseline, the link refuses to score rather than show different numbers.
+      </p>
+      <div className="tailorform buttons">
+        <button
+          type="button"
+          onClick={() => {
+            setLink(`${window.location.origin}${window.location.pathname}?${frozenQuery(query, vintage)}`);
+            setCopied(false);
+          }}
+        >
+          Make an assignment link
+        </button>
+        {link ? (
+          <button
+            type="button"
+            className="quiet"
+            onClick={() => {
+              navigator.clipboard?.writeText(link).then(
+                () => setCopied(true),
+                () => setCopied(false),
+              );
+            }}
+          >
+            {copied ? "Copied" : "Copy"}
+          </button>
+        ) : null}
+      </div>
+      {link ? <input className="linkbox" type="text" readOnly value={link} aria-label="Assignment link" onFocus={(e) => e.currentTarget.select()} /> : null}
+    </div>
   );
 }

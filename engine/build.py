@@ -1,8 +1,8 @@
 """Copy the engine into this folder before Vercel bundles it.
 
 Vercel builds the ``engine`` folder as its own project, so the API module and
-the ``fiscal_model`` package are copied in from the repository root. The copies
-are ignored by git. Files the API never reads (the bill tracker's databases,
+the ``fiscal_model`` and ``classroom`` packages are copied in from the
+repository root. The copies are ignored by git. Files the API never reads (the bill tracker's databases,
 caches) are left out.
 """
 
@@ -25,7 +25,12 @@ def main(dest: Path = HERE) -> None:
     if target.exists():
         shutil.rmtree(target)
     shutil.copytree(ROOT / "fiscal_model", target, ignore=SKIP)
-    print(f"copied api.py and fiscal_model/ into {dest}")
+    # Classroom answer checking (POST /classroom/check) reads the assignments.
+    classroom = dest / "classroom"
+    if classroom.exists():
+        shutil.rmtree(classroom)
+    shutil.copytree(ROOT / "classroom", classroom, ignore=SKIP)
+    print(f"copied api.py, fiscal_model/ and classroom/ into {dest}")
 
 
 if __name__ == "__main__":

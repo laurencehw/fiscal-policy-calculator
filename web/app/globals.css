@@ -212,3 +212,33 @@ section.values { display: grid; gap: 12px; }
 .seg button[aria-pressed="true"] { color: var(--paper); background: var(--ink); border-color: var(--ink); }
 table.sheet.words td.num { text-align: right; white-space: nowrap; }
 table.sheet.words td .cite { display: block; margin-top: 4px; font-size: 13px; }
+
+/* Classroom */
+.classbar { display: grid; gap: 16px; min-width: 0; }
+.classbar > *, .classnames .field, .tailorform input[type="text"] { min-width: 0; }
+.classnames { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); max-width: 40rem; margin-bottom: 0; }
+.tailorform input[type="text"], .tailorform textarea { font: inherit; font-size: 16px; padding: 6px 8px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); width: 100%; box-sizing: border-box; }
+.tailorform textarea { max-width: 40rem; resize: vertical; }
+.classmeta { display: block; color: var(--muted); font-size: 13px; font-family: var(--label); }
+.exercises { display: grid; gap: 40px; }
+.exercise .prompt { white-space: pre-line; margin: 0; max-width: 70ch; }
+.exercise .tailorform { margin-bottom: 0; }
+.hints { display: grid; gap: 8px; border-left: 2px solid var(--rule); padding-left: 12px; max-width: 70ch; }
+.hint { margin: 0; font-size: 16px; }
+.feedback p { margin: 0; max-width: 70ch; white-space: pre-line; }
+.submission .subitem h3 { font-size: 17px; margin: 8px 0 2px; }
+.submission .subitem h3 small { font-family: var(--label); font-size: 13px; color: var(--muted); font-weight: 400; margin-left: 8px; }
+.submission .subitem p { margin: 0; font-size: 15px; max-width: 70ch; }
+.submission .writeup { white-space: pre-wrap; border-left: 2px solid var(--rule); padding-left: 12px; }
+.frozen { border: 1px solid var(--rule); border-left: 3px solid var(--ink); padding: 8px 12px; display: grid; gap: 4px; max-width: 40rem; }
+.frozen p { margin: 0; font-size: 15px; }
+@media print {
+  :root { --paper: #fff; --surface: #fff; --ink: #000; --muted: #444; --rule: #bbb; }
+  .noprint { display: none !important; }
+  body { background: #fff; color: #000; font-size: 12pt; }
+  .wrap { padding: 0; gap: 16px; max-width: none; }
+  .submission { border-top: 0; }
+}
+.tailorform fieldset.lockable { gap: 16px; }
+.frozen .linkbox { font-family: var(--data); font-size: 13px; padding: 6px 8px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); width: 100%; box-sizing: border-box; }
+.frozen .tailorform { margin-bottom: 0; }

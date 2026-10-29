@@ -83,6 +83,18 @@ class ValidationSpec:
     # For range_check
     min_acceptable: float = float("-inf")
     max_acceptable: float = float("inf")
+    # What the answer is measured in: "$B" (the default), "%", "pp", or a word
+    answer_unit: str = "$B"
+
+
+def format_answer(value: float, unit: str = "$B") -> str:
+    """One answer in its own unit: ``-$266.0B``, ``15.8%``, ``3.5 pp``, ``11 policies``."""
+    if unit == "$B":
+        sign = "-" if value < 0 else ""
+        return f"{sign}${abs(value):,.1f}B"
+    if unit == "%":
+        return f"{value:,.1f}%"
+    return f"{value:,.1f} {unit}" if value != round(value) else f"{value:,.0f} {unit}"
 
 
 @dataclass
@@ -93,6 +105,7 @@ class ValidationResult:
     tolerance: float
     message: str
     pct_error: float | None = None  # |student - model| / |model|
+    unit: str = "$B"
 
 
 @dataclass
@@ -249,6 +262,7 @@ class AssignmentLoader:
             expected_sign=data.get("expected_sign", ""),
             min_acceptable=float(data.get("min_acceptable", float("-inf"))),
             max_acceptable=float(data.get("max_acceptable", float("inf"))),
+            answer_unit=str(data.get("answer_unit", "$B")),
         )
 
 
@@ -319,6 +333,7 @@ class RelativeValidator:
                 model_answer=None,
                 tolerance=spec.tolerance,
                 message=f"Could not compute model answer: {exc}",
+                unit=spec.answer_unit,
             )
 
         if model_answer is None or model_answer == 0:
@@ -331,12 +346,13 @@ class RelativeValidator:
                 model_answer=model_answer,
                 tolerance=spec.tolerance,
                 message=(
-                    "Your answer is within $1B of the model estimate."
+                    "Your answer is within 1 unit of the model estimate."
                     if correct else
-                    f"Model estimate: ${model_answer:.1f}B. "
-                    f"Your answer: ${student_answer:.1f}B."
+                    f"Model estimate: {format_answer(model_answer or 0.0, spec.answer_unit)}. "
+                    f"Your answer: {format_answer(student_answer, spec.answer_unit)}."
                 ),
                 pct_error=None,
+                unit=spec.answer_unit,
             )
 
         pct_error = abs(student_answer - model_answer) / abs(model_answer)
@@ -351,14 +367,14 @@ class RelativeValidator:
 
         if correct:
             msg = (
-                f"Correct! Your answer (${student_answer:.1f}B) is within "
+                f"Correct! Your answer ({format_answer(student_answer, spec.answer_unit)}) is within "
                 f"{spec.tolerance*100:.0f}% of the model estimate "
-                f"(${model_answer:.1f}B)."
+                f"({format_answer(model_answer, spec.answer_unit)})."
             )
         else:
             msg = (
-                f"Not quite. Model estimate: ${model_answer:.1f}B. "
-                f"Your answer: ${student_answer:.1f}B "
+                f"Not quite. Model estimate: {format_answer(model_answer, spec.answer_unit)}. "
+                f"Your answer: {format_answer(student_answer, spec.answer_unit)} "
                 f"({pct_error*100:.1f}% off, tolerance {spec.tolerance*100:.0f}%)."
             )
         return ValidationResult(
@@ -368,6 +384,7 @@ class RelativeValidator:
             tolerance=spec.tolerance,
             message=msg,
             pct_error=pct_error,
+            unit=spec.answer_unit,
         )
 
     def _validate_qualitative(
@@ -403,11 +420,12 @@ class RelativeValidator:
     ) -> ValidationResult:
         correct = spec.min_acceptable <= student_answer <= spec.max_acceptable
         if correct:
-            msg = f"Answer ${student_answer:.1f}B is in the expected range."
+            msg = f"Answer {format_answer(student_answer, spec.answer_unit)} is in the expected range."
         else:
             msg = (
-                f"Answer ${student_answer:.1f}B is outside expected range "
-                f"[${spec.min_acceptable:.0f}B, ${spec.max_acceptable:.0f}B]."
+                f"Answer {format_answer(student_answer, spec.answer_unit)} is outside the expected range "
+                f"[{format_answer(spec.min_acceptable, spec.answer_unit)}, "
+                f"{format_answer(spec.max_acceptable, spec.answer_unit)}]."
             )
         return ValidationResult(
             correct=correct,
@@ -415,6 +433,7 @@ class RelativeValidator:
             model_answer=None,
             tolerance=0,
             message=msg,
+            unit=spec.answer_unit,
         )
 
     # ------------------------------------------------------------------
@@ -525,7 +544,7 @@ class RelativeValidator:
             name=str(params.get("name", "Spending Policy")),
             description=str(params.get("description", "")),
             policy_type=PolicyType.DISCRETIONARY_NONDEFENSE,
-            annual_change_billions=float(params["annual_change_billions"]),
+            annual_spending_change_billions=float(params["annual_change_billions"]),
             start_year=APP_DEFAULT_START_YEAR,
         )
         scorer = FiscalPolicyScorer(
@@ -537,13 +556,18 @@ class RelativeValidator:
     def _run_trade(self, params: dict, target_field: str) -> float:
         from fiscal_model.baseline import APP_DEFAULT_START_YEAR
         from fiscal_model.scoring import FiscalPolicyScorer
-        from fiscal_model.trade import TariffPolicy
+        from fiscal_model.trade import TRADE_BASELINE, TariffPolicy
 
+        # The exercise's import base is total goods imports; the tariff reaches
+        # the share outside the USMCA carve-out, as the universal preset does.
+        coverage = TRADE_BASELINE["universal_coverage_rate"]
+        imports = float(params.get("import_base_billions", TRADE_BASELINE["total_imports_billions"]))
         policy = TariffPolicy(
             name=str(params.get("name", "Tariff Policy")),
             description=str(params.get("description", "")),
-            tariff_rate=float(params["tariff_rate"]),
-            import_base_billions=float(params.get("import_base_billions", 3200.0)),
+            tariff_rate_change=float(params["tariff_rate"]),
+            import_base_billions=imports * coverage,
+            retaliation_export_base_billions=TRADE_BASELINE["total_exports_billions"] * coverage,
             start_year=APP_DEFAULT_START_YEAR,
         )
         scorer = FiscalPolicyScorer(
