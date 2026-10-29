@@ -12,8 +12,16 @@ enforcing four limits on every turn:
    same session. Default: 3s.
 4. **Kill switch** — env var ``ASSISTANT_DISABLED=1`` blocks every
    request immediately.
+5. **Per-session daily cap** — answers to one session id per UTC day,
+   counted by the ledger rather than by the caller's own history, so a
+   caller that sends a stable id per visitor (the website does) caps each
+   visitor. Default: 30.
 
-All four are configurable via env vars (see :data:`_ENV_NAMES`).
+All five are configurable via env vars (see :data:`_ENV_NAMES`).
+
+On a serverless host every instance has its own sqlite file, so the daily
+spend and the per-session daily count are also kept in a shared store when
+one is configured (:mod:`.shared_ledger`); the caps then read that store.
 
 The same sqlite table doubles as the telemetry log for the assistant
 (see ``AssistantEventLog`` / step #11 in the rollout plan). One write
@@ -32,6 +40,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .shared_ledger import SharedLedger
+
 logger = logging.getLogger(__name__)
 
 
@@ -40,6 +50,7 @@ _ENV_NAMES = {
     "session_message_cap": "ASSISTANT_SESSION_MESSAGE_CAP",
     "cooldown_seconds": "ASSISTANT_COOLDOWN_SECONDS",
     "disabled": "ASSISTANT_DISABLED",
+    "session_daily_cap": "ASSISTANT_SESSION_DAILY_CAP",
     "db_path": "ASSISTANT_USAGE_DB",
 }
 
@@ -56,6 +67,7 @@ EVENT_ROLE_TRANSLATE = "translate"
 _DEFAULT_DAILY_CAP_USD = 5.00
 _DEFAULT_SESSION_MESSAGE_CAP = 20
 _DEFAULT_COOLDOWN_SECONDS = 3.0
+_DEFAULT_SESSION_DAILY_CAP = 30
 
 
 SCHEMA_SQL = """
@@ -89,6 +101,7 @@ class RateLimitConfig:
     daily_cost_cap_usd: float = _DEFAULT_DAILY_CAP_USD
     session_message_cap: int = _DEFAULT_SESSION_MESSAGE_CAP
     cooldown_seconds: float = _DEFAULT_COOLDOWN_SECONDS
+    session_daily_cap: int = _DEFAULT_SESSION_DAILY_CAP
     disabled: bool = False
     db_path: str = ""
 
@@ -110,6 +123,7 @@ class RateLimitConfig:
             daily_cost_cap_usd=_float("daily_cost_cap_usd", _DEFAULT_DAILY_CAP_USD),
             session_message_cap=_int("session_message_cap", _DEFAULT_SESSION_MESSAGE_CAP),
             cooldown_seconds=_float("cooldown_seconds", _DEFAULT_COOLDOWN_SECONDS),
+            session_daily_cap=_int("session_daily_cap", _DEFAULT_SESSION_DAILY_CAP),
             disabled=os.environ.get(_ENV_NAMES["disabled"], "").strip()
             in {"1", "true", "TRUE", "yes"},
             db_path=os.environ.get(_ENV_NAMES["db_path"], "").strip(),
@@ -165,8 +179,16 @@ class RateLimiter:
     Streamlit reruns don't trip the "thread X is not in thread Y" check.
     """
 
-    def __init__(self, config: RateLimitConfig | None = None, db_path: Path | None = None):
+    def __init__(
+        self,
+        config: RateLimitConfig | None = None,
+        db_path: Path | None = None,
+        shared: SharedLedger | bool | None = True,
+    ):
+        """``shared=True`` reads the shared store from the environment; pass a
+        ledger to use that one, or ``None`` for sqlite alone."""
         self.config = config or RateLimitConfig.from_env()
+        self.shared: SharedLedger | None = SharedLedger.from_env() if shared is True else (shared or None)
         if db_path is not None:
             path: Path = Path(db_path)
         elif self.config.db_path:
@@ -217,7 +239,14 @@ class RateLimiter:
         Returns a :class:`RateLimitDecision`. If ``allowed`` is False,
         ``reason`` is a user-facing string explaining why.
         """
-        today_spend = self.today_spend_usd()
+        unreadable = False
+        try:
+            # The shared store is read strictly: an unreachable store must not
+            # read as nothing spent across a fleet of instances.
+            today_spend = self.today_spend_usd(strict=self.shared is not None)
+        except Exception:
+            logger.warning("Shared spend ledger unreadable; refusing the turn", exc_info=True)
+            today_spend, unreadable = 0.0, True
         decision = RateLimitDecision(
             allowed=True,
             today_spend_usd=today_spend,
@@ -231,6 +260,14 @@ class RateLimiter:
             decision.reason = (
                 "The Ask assistant is temporarily disabled by the site "
                 "operator. Please try again later."
+            )
+            return decision
+
+        if unreadable:
+            decision.allowed = False
+            decision.reason = (
+                "The assistant cannot check today's budget just now, so it is "
+                "not answering. Please try again in a few minutes."
             )
             return decision
 
@@ -253,6 +290,14 @@ class RateLimiter:
             decision.reason = (
                 f"This conversation has reached {self.config.session_message_cap} "
                 "turns. Please clear it to start a new one."
+            )
+            return decision
+
+        if self.session_turns_today(session_id) >= self.config.session_daily_cap:
+            decision.allowed = False
+            decision.reason = (
+                f"You have asked {self.config.session_daily_cap} questions today, "
+                "the daily limit per visitor. The limit resets at UTC midnight."
             )
             return decision
 
@@ -300,6 +345,14 @@ class RateLimiter:
         re-raises it, for gates that must not mistake "unreadable" for "unspent".
         """
         today = datetime.now(timezone.utc).date().isoformat()
+        if self.shared is not None:
+            try:
+                return self.shared.spend_usd(today)
+            except Exception:
+                if strict:
+                    raise
+                logger.warning("Failed to read today's shared assistant spend", exc_info=True)
+                return 0.0
         try:
             conn = self._connect()
             try:
@@ -316,6 +369,34 @@ class RateLimiter:
                 raise
             logger.exception("Failed to read today's assistant spend")
             return 0.0
+
+    def session_turns_today(self, session_id: str) -> int:
+        """Answers recorded today (UTC) for one session id.
+
+        An unreadable count is treated as zero: the spend cap, read strictly,
+        is what protects the budget; this cap only spreads it across visitors.
+        """
+        today = datetime.now(timezone.utc).date().isoformat()
+        if self.shared is not None:
+            try:
+                return self.shared.session_turns(today, session_id)
+            except Exception:
+                logger.warning("Failed to read the shared session count", exc_info=True)
+                return 0
+        try:
+            conn = self._connect()
+            try:
+                row = conn.execute(
+                    "SELECT COUNT(*) FROM assistant_events WHERE day_utc = ? AND session_id = ? AND role = ?",
+                    (today, session_id, EVENT_ROLE_TURN),
+                ).fetchone()
+                return int(row[0] or 0) if row else 0
+            finally:
+                if self.db_path != ":memory:":
+                    conn.close()
+        except sqlite3.Error:
+            logger.exception("Failed to count today's session turns")
+            return 0
 
     def record_turn(
         self,
@@ -372,6 +453,15 @@ class RateLimiter:
                     conn.close()
         except sqlite3.Error:
             logger.exception("Failed to log assistant turn")
+        if self.shared is not None:
+            try:
+                cost = float(usage.get("cost_usd", 0.0) or 0.0)
+                if cost > 0:
+                    self.shared.add_spend(now.date().isoformat(), cost)
+                if role == EVENT_ROLE_TURN:
+                    self.shared.add_turn(now.date().isoformat(), session_id)
+            except Exception:
+                logger.warning("Failed to record the turn in the shared ledger", exc_info=True)
 
 
 def budget_allows(ledger: RateLimiter) -> bool:

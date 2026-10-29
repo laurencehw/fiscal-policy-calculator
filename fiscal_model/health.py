@@ -446,6 +446,8 @@ def _check_assistant() -> dict[str, Any]:
         # Verify the usage db can be initialized (creates schema, writes nothing).
         usage_db_ok = False
         usage_db_path: str | None = None
+        # "none" (sqlite alone), "ok" or "unreachable": the shared daily cap.
+        shared_ledger = "none"
         try:
             from fiscal_model.assistant.rate_limit import RateLimiter
 
@@ -454,13 +456,19 @@ def _check_assistant() -> dict[str, Any]:
             # Touch a read to confirm schema is queryable.
             rl.today_spend_usd()
             usage_db_ok = True
+            if rl.shared is not None:
+                try:
+                    rl.today_spend_usd(strict=True)
+                    shared_ledger = "ok"
+                except Exception:
+                    shared_ledger = "unreachable"
         except Exception as exc:
             logger.info("Assistant usage db check failed: %s", exc)
             usage_db_ok = False
 
         status = (
             "ok"
-            if api_key_set and knowledge_count > 0 and usage_db_ok
+            if api_key_set and knowledge_count > 0 and usage_db_ok and shared_ledger != "unreachable"
             else "degraded"
         )
         return {
@@ -469,6 +477,7 @@ def _check_assistant() -> dict[str, Any]:
             "knowledge_corpus_files": knowledge_count,
             "usage_db_writable": usage_db_ok,
             "usage_db_path": usage_db_path,
+            "shared_ledger": shared_ledger,
             "note": (
                 "Soft component — degradation here doesn't prevent the rest "
                 "of the app from working. To configure, set "
