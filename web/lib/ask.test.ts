@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { clientAddress, parseAnswer, readFrames, safeHref, validateAsk } from "./ask";
+import { clientAddress, parseAnswer, readFrames, safeHref, validateAsk, unescapeDollars } from "./ask";
 
 test("a question is checked and history is held to roles and length", () => {
   assert.deepEqual(validateAsk({ question: "  What is the deficit? " }), { question: "What is the deficit?", history: [] });
@@ -57,4 +57,23 @@ test("only web links are linked", () => {
   const a = parseAnswer("[click](javascript:alert(1)) and [ok](https://bls.gov)");
   const p = a.blocks[0];
   assert.ok(p.t === "p" && !p.v.some((x) => x.t === "link" && x.href.startsWith("javascript")));
+});
+
+test("escaped dollars read as dollars, display math as plain text", () => {
+  const { blocks } = parseAnswer(
+    "Medicare cost \\$1.0 trillion.\n\n$$\\Delta(\\text{debt/GDP}) = \\frac{\\text{primary deficit}}{\\text{GDP}} + (r - g) \\times \\frac{\\text{debt}}{\\text{GDP}}$$\n\nwhen *r* exceeds *g*\n\n---\n\nEnd.",
+  );
+  assert.deepEqual(blocks[0], { t: "p", v: [{ t: "text", v: "Medicare cost $1.0 trillion." }] });
+  assert.deepEqual(blocks[1], { t: "math", v: "Δ(debt/GDP) = (primary deficit) / GDP + (r - g) × debt / GDP" });
+  assert.deepEqual(blocks[2], {
+    t: "p",
+    v: [{ t: "text", v: "when " }, { t: "i", v: "r" }, { t: "text", v: " exceeds " }, { t: "i", v: "g" }],
+  });
+  assert.deepEqual(blocks[3], { t: "hr" });
+  assert.equal(unescapeDollars("cap (\\$5.00 of \\$5.00)"), "cap ($5.00 of $5.00)");
+});
+
+test("a lone asterisk is not italics", () => {
+  const { blocks } = parseAnswer("3 * 4 = 12 and 5 * 6 = 30");
+  assert.deepEqual(blocks[0], { t: "p", v: [{ t: "text", v: "3 * 4 = 12 and 5 * 6 = 30" }] });
 });

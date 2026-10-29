@@ -1,7 +1,7 @@
 "use client";
 // Ask: a conversation with the citation-grounded assistant, streamed from the engine.
 import { Fragment, useEffect, useRef, useState } from "react";
-import { QUESTION_MAX, parseAnswer, readFrames, type Inline, type Turn } from "@/lib/ask";
+import { QUESTION_MAX, parseAnswer, readFrames, unescapeDollars, type Inline, type Turn } from "@/lib/ask";
 
 const STARTERS = [
   "What does CBO project for the 10-year deficit, and what's driving it?",
@@ -85,7 +85,7 @@ export function Ask() {
       setTurns((cur) => cur.slice(0, -1));
       setQuestion(q);
       setPending("");
-      setStatus({ status: "error", message: e instanceof Error ? e.message : "Something went wrong." });
+      setStatus({ status: "error", message: unescapeDollars(e instanceof Error ? e.message : "Something went wrong.") });
     } finally {
       abort.current = null;
     }
@@ -190,6 +190,7 @@ function Inlines({ parts }: { parts: Inline[] }) {
       {parts.map((p, i) => {
         if (p.t === "text") return <Fragment key={i}>{p.v}</Fragment>;
         if (p.t === "b") return <b key={i}>{p.v}</b>;
+        if (p.t === "i") return <i key={i}>{p.v}</i>;
         if (p.t === "code") return <code key={i}>{p.v}</code>;
         if (p.t === "link")
           return (
@@ -228,6 +229,13 @@ function AnswerView({ text, final }: { text: string; final: boolean }) {
           return (
             <p key={i}>
               <Inlines parts={b.v} />
+            </p>
+          );
+        if (b.t === "hr") return <hr key={i} />;
+        if (b.t === "math")
+          return (
+            <p key={i} className="math">
+              {b.v}
             </p>
           );
         if (b.t === "quote")
