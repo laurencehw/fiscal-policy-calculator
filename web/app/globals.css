@@ -1,0 +1,131 @@
+/* Balance of Power's look (decision F3), written as tokens so a shared portfolio kit can
+   replace them later. One reading column; results are rules and type, not cards. */
+:root {
+  /* Near-white with a faint warm tint, and warm-neutral greys to match. */
+  --paper: #fbfaf6;
+  --surface: #ffffff;
+  --ink: #1b1b1a;
+  --muted: #5f5c55;
+  --rule: #dcd9d0;
+  --grid: #ebe8e1;
+  --accent: #1f5e7a;
+  --good: #2c7a4b;
+  --warn: #9a6a12;
+  --s1: #1f5e7a; --s2: #c0562f; --s3: #7a5aa6; --s4: #2c8a7a; --s5: #a8821a; --s6: #6b7684;
+  /* Deficit convention: adds to the deficit vs reduces it. Neutral, not red/green. */
+  --adds: var(--s2); --reduces: var(--s1);
+  /* Newsreader for headings and reading; Libre Franklin for labels, numbers and chart text. */
+  --display: "Newsreader", Georgia, "Times New Roman", serif;
+  --body: "Newsreader", Georgia, "Times New Roman", serif;
+  --data: "Libre Franklin", "Franklin Gothic Book", "Helvetica Neue", Arial, sans-serif;
+  /* Chart text: ticks, legend, line-end labels, tooltips and the source line. */
+  --label: var(--data);
+  --code: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #131413; --surface: #1b1c1b; --ink: #e8e6e0; --muted: #a3a097; --rule: #34342f; --grid: #242522;
+  --accent: #6fb3d2; --good: #6cc492; --warn: #e0b452;
+  --s1: #6fb3d2; --s2: #ef8a62; --s3: #a98fe0; --s4: #5fc4b0; --s5: #e0c15a; --s6: #9aa7b5;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --paper: #131413; --surface: #1b1c1b; --ink: #e8e6e0; --muted: #a3a097; --rule: #34342f; --grid: #242522;
+  --accent: #6fb3d2; --good: #6cc492; --warn: #e0b452;
+  --s1: #6fb3d2; --s2: #ef8a62; --s3: #a98fe0; --s4: #5fc4b0; --s5: #e0c15a; --s6: #9aa7b5;
+  color-scheme: dark; }
+
+body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 18px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+/* minmax(0, 1fr) stops a wide child (a chart sized from its container, a nowrap table) from
+   widening the track past the viewport on a phone. */
+.wrap { max-width: 920px; margin: 0 auto; padding-block: 28px 64px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 40px; }
+.preview { font-family: var(--data); font-size: 12px; color: var(--muted); border: 1px dashed var(--rule); padding: 8px 12px; }
+header { display: grid; gap: 8px; }
+h1 { font-family: var(--display); font-weight: 500; font-size: clamp(40px, 7vw, 64px); letter-spacing: -0.02em; line-height: 1; margin: 0; text-wrap: balance; }
+.lede { font-size: 20px; max-width: 60ch; margin: 0; color: var(--ink); }
+.sentence { font-size: 18px; max-width: 62ch; margin: 8px 0 16px; }
+.lede em { font-style: normal; color: var(--accent); font-weight: 600; }
+h2 { font-family: var(--display); font-weight: 500; font-size: 27px; margin: 0; line-height: 1.15; text-wrap: balance; }
+/* Labels are small capitals in the label face, not spaced uppercase. */
+.eyebrow { font-family: var(--label); font-size: 15px; letter-spacing: 0.05em; font-variant-caps: all-small-caps; color: var(--muted); }
+
+.cycle { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-top: 2px solid var(--ink); }
+.cycle.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.cycle.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.stage { padding: 12px 12px 14px 0; border-right: 1px solid var(--rule); display: grid; gap: 4px; align-content: start; min-width: 0; color: inherit; text-decoration: none; }
+a.stage:hover .v { color: var(--accent); }
+.stage + .stage { padding-left: 12px; }
+.stage:last-child { border-right: 0; }
+.stage .q { font-size: 14px; color: var(--muted); line-height: 1.35; }
+.stage .v { font-family: var(--data); font-size: 24px; font-variant-numeric: tabular-nums lining-nums; }
+.stage .v small { font-size: 12px; color: var(--muted); }
+.stage .pending { font-family: var(--data); font-size: 12px; color: var(--muted); }
+.cyclenote { font-size: 14px; color: var(--muted); margin: 8px 0 0; }
+@media (max-width: 720px) { .cycle, .cycle.four, .cycle.three { grid-template-columns: 1fr; } .stage { border-right: 0; border-bottom: 1px solid var(--rule); padding-left: 0 !important; } }
+
+.charts { display: grid; gap: 28px; }
+.family { display: grid; gap: 16px; padding-left: 16px; border-left: 2px solid var(--ink); }
+/* Charts are separated by a rule, not boxed: the data, not a card, carries the page. */
+section.chart { border-top: 1px solid var(--ink); padding: 14px 0 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-width: 0; scroll-margin-top: 16px; }
+.head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; }
+.tag { font-family: var(--label); font-size: 15px; letter-spacing: 0.06em; font-variant-caps: all-small-caps; color: var(--muted); }
+.units { margin: -8px 0 0; font-size: 15px; color: var(--muted); }
+.big { font-family: var(--data); font-size: 15px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.big b { font-size: 28px; color: var(--ink); font-weight: 500; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-family: var(--label); font-size: 13px; color: var(--muted); }
+section.chart:has(.plot[data-direct]) .legend { display: none; }
+.legend span::before { content: ""; display: inline-block; width: 14px; height: 3px; margin-right: 6px; vertical-align: middle; background: var(--c); }
+.plot { position: relative; width: 100%; min-width: 0; }
+.plot:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.shield { position: absolute; inset: 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.foot { display: flex; flex-wrap: wrap; gap: 6px 16px; font-family: var(--label); font-size: 12px; color: var(--muted); }
+.foot .nextrelease { flex-basis: 100%; }
+.check { color: var(--good); }
+.check.no { color: var(--warn); }
+.note { font-size: 15px; color: var(--muted); margin: 0; max-width: 70ch; }
+.readout { font-family: var(--data); font-size: 12px; color: var(--ink); min-height: 1.4em; font-variant-numeric: tabular-nums; }
+footer { font-size: 14px; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 16px; display: grid; gap: 8px; }
+footer p { margin: 0; }
+a { color: inherit; text-decoration-color: var(--rule); text-underline-offset: 3px; }
+a:hover { text-decoration-color: var(--accent); }
+/* Header: wordmark and reference pages on one row, the three sections under a rule. */
+.site { display: grid; gap: 10px; font-family: var(--label); }
+.siterow { display: flex; justify-content: space-between; align-items: baseline; gap: 8px 16px; flex-wrap: wrap; }
+.wordmark { text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 21px; }
+.navlinks { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; }
+.navlinks a { font-size: 14px; text-decoration: none; color: var(--muted); }
+.navlinks a:hover, .navlinks a[aria-current="page"] { color: var(--ink); }
+.sectionlinks { display: flex; flex-wrap: wrap; gap: 6px 28px; border-top: 1px solid var(--rule); padding-top: 8px; }
+.sectionlinks a { font-family: var(--display); font-size: 19px; text-decoration: none; }
+.sectionlinks a[aria-current="page"] { text-decoration: underline; text-decoration-color: var(--ink); text-decoration-thickness: 1px; text-underline-offset: 5px; }
+.sectionlinks a:hover { text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 5px; }
+.footlinks { display: flex; flex-wrap: wrap; gap: 6px 20px; }
+
+.tip { background: var(--surface); border: 1px solid var(--rule); padding: 8px 10px; font-family: var(--label); font-size: 12px; color: var(--ink); }
+.tablewrap { overflow-x: auto; }
+table.sheet { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; font-family: var(--data); }
+table.sheet th, table.sheet td { border-bottom: 1px solid var(--rule); text-align: right; padding: 6px 0 6px 12px; white-space: nowrap; }
+table.sheet th:first-child, table.sheet td:first-child { text-align: left; padding-left: 0; }
+table.sheet th { font-family: var(--label); font-size: 14px; letter-spacing: 0.05em; font-variant-caps: all-small-caps; color: var(--muted); font-weight: 600; }
+.cite { display: grid; gap: 4px; margin: 0; max-width: 70ch; color: var(--muted); font-size: 15px; }
+.marked { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-width: 70ch; color: var(--muted); font-size: 15px; }
+code { font-family: var(--code); font-size: 0.85em; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* Fiscal: headline figures and the preset list. */
+.headline { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 2px solid var(--ink); }
+.headline .stage:last-child { border-right: 0; }
+@media (max-width: 720px) { .headline { grid-template-columns: 1fr; } }
+.adds { color: var(--adds); }
+.reduces { color: var(--reduces); }
+.presetgroups { display: grid; gap: 28px; }
+.presetgroup { display: grid; gap: 4px; }
+.presetlist { list-style: none; margin: 0; padding: 0; }
+.presetlist li { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; padding: 8px 0; border-top: 1px solid var(--rule); }
+.presetlist a { text-decoration: none; }
+.presetlist a:hover { text-decoration: underline; text-decoration-color: var(--accent); }
+.presetlist .fig { font-family: var(--data); font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.checked { border-left: 2px solid var(--rule); padding-left: 12px; display: grid; gap: 6px; max-width: 70ch; }
+.checked p { margin: 0; }
