@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildCatalog, evidence, scorecardEntries, tierOf, manifest, preset, presets, presetsByArea, scoreSchema, trackerGroups, trackerIndex, yearCsv } from "./data";
+import { buildCatalog, evidence, scorecardEntries, tierOf, manifest, preset, presets, presetsByArea, scoreSchema, trackerGroups, trackerIndex, views, yearCsv } from "./data";
 
 test("every listed preset has its file, in both modes", () => {
   const list = presets();
@@ -93,4 +93,22 @@ test("every philosophy's package loads whole into the Build list", async () => {
     assert.ok(ids.length > 0, a.id);
     assert.deepEqual([...fromQuery(rows, ids.join(","))].sort(), [...ids].sort(), a.id);
   }
+});
+
+test("every preset has who-pays and economic views", () => {
+  let tables = 0;
+  for (const info of presets()) {
+    const v = views(info.id);
+    assert.ok(v, info.id);
+    if (v.distribution.available) {
+      tables += 1;
+      const q = v.distribution.groupings.quintile;
+      assert.ok(q && q.groups.length === 5, info.id);
+    }
+    if (v.economic.available) {
+      const d = preset(info.id)!.dynamic;
+      assert.ok(Math.abs(v.economic.dynamic_total_billions - (d.dynamic_adjusted_impact ?? NaN)) < 0.01, info.id);
+    }
+  }
+  assert.ok(tables > 10);
 });

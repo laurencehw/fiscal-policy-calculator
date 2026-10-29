@@ -36,3 +36,10 @@ export function cleanLabel(label: string): string {
 export function shortLabel(label: string): string {
   return cleanLabel(label).replace(/\s*\([^)]*\$[^)]*\)\s*$/, "").trim();
 }
+
+/** Whole dollars with a sign, for per-return amounts: "+$28,273", "-$1,274", "$0". */
+export function dollars(value: number): string {
+  const rounded = Math.round(value);
+  const sign = rounded > 0 ? "+" : rounded < 0 ? "-" : "";
+  return `${sign}$${Math.abs(rounded).toLocaleString("en-US")}`;
+}

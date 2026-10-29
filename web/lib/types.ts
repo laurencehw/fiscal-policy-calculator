@@ -181,3 +181,55 @@ export type ScorecardEntry = {
   published_range_high_billions: number | null;
   within_published_range: boolean | null;
 };
+
+/** site_data/views/<id>.json: who pays and economic effects for one preset. */
+export type DistGroup = {
+  name: string;
+  floor: number;
+  ceiling: number | null;
+  returns_millions: number;
+  avg_tax_change: number;
+  pct_of_income: number;
+  share_of_total: number;
+  pct_with_increase: number;
+  pct_with_decrease: number;
+  baseline_etr: number;
+  new_etr: number;
+};
+
+export type DistGrouping = {
+  engine: "microsim" | "synthetic";
+  unit: string;
+  year: number;
+  total_tax_change_billions: number;
+  pct_with_increase: number;
+  pct_with_decrease: number;
+  groups: DistGroup[];
+};
+
+export type Distribution = {
+  available: boolean;
+  reason: "not_a_tax_policy" | "not_representable" | null;
+  groupings: Partial<Record<"quintile" | "decile" | "jct_dollar", DistGrouping>>;
+};
+
+export type Economic =
+  | { available: false }
+  | {
+      available: true;
+      model: string;
+      conventional_billions: number;
+      revenue_feedback_billions: number;
+      debt_service_billions: number;
+      dynamic_total_billions: number;
+      gdp_percent_years: number;
+      years: number[];
+      gdp_level_pct: number[];
+      employment_millions: number[];
+      unemployment_rate_ppts: number[];
+      long_rate_ppts: number[];
+      revenue_feedback_by_year: number[];
+      debt_service_by_year: number[];
+    };
+
+export type ResultViews = { id: string; distribution: Distribution; economic: Economic };

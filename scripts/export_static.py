@@ -95,6 +95,26 @@ def score_preset_payload(preset_id: str, *, dynamic: bool) -> dict[str, Any]:
     return response.model_dump(mode="json")
 
 
+def preset_views_payload(preset_id: str) -> dict[str, Any]:
+    """Who pays and economic effects for ``preset_id``, scored as ``/score/preset`` scores it."""
+    import api
+    from fiscal_model.preset_ids import resolve_preset
+    from fiscal_model.result_views import distribution_view, economic_view
+
+    label = resolve_preset(preset_id) or preset_id
+    policy, use_real_data = api._build_preset_policy(label)
+    scorer = api.FiscalPolicyScorer(
+        start_year=max(int(getattr(policy, "start_year", api.APP_DEFAULT_START_YEAR)), api.APP_DEFAULT_START_YEAR),
+        use_real_data=use_real_data,
+    )
+    result = scorer.score_policy(policy, dynamic=False)
+    return {
+        "id": preset_id,
+        "distribution": distribution_view(policy),
+        "economic": economic_view(policy, result),
+    }
+
+
 def preset_index_payload() -> dict[str, Any]:
     import api
 
@@ -337,6 +357,7 @@ def export(out: Path) -> dict[str, Any]:
             out / "presets" / f"{preset['id']}.json",
             {"id": preset["id"], "conventional": conventional, "dynamic": dynamic},
         )
+        _write(out / "views" / f"{preset['id']}.json", preset_views_payload(preset["id"]))
 
     catalog = build_catalog_payload()
     _write(out / "build-catalog.json", catalog)
