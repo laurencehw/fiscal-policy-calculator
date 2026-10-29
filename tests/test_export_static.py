@@ -43,7 +43,8 @@ def _read(path: Path):
 
 def test_every_preset_equals_the_api_in_both_modes(exported: Path, client: TestClient):
     presets = client.get("/presets").json()["presets"]
-    assert _read(exported / "presets" / "index.json")["presets"] == presets
+    index = _read(exported / "presets" / "index.json")["presets"]
+    assert [{k: v for k, v in p.items() if k != "cbo_published"} for p in index] == presets
     for preset in presets:
         data = _read(exported / "presets" / f"{preset['id']}.json")
         for mode, dynamic in (("conventional", False), ("dynamic", True)):
@@ -76,6 +77,24 @@ def test_the_export_is_deterministic(exported: Path, tmp_path: Path):
     first = {p.relative_to(exported): p.read_bytes() for p in exported.rglob("*.json")}
     second = {p.relative_to(tmp_path): p.read_bytes() for p in tmp_path.rglob("*.json")}
     assert first == second
+
+
+def test_only_published_scores_are_flagged_published(exported: Path):
+    """The site prints a ``cbo_score`` as "published" only when the flag is set.
+
+    The four below carry a figure in ``CBO_SCORE_MAP`` that is not a published
+    score: this repository's own decomposition, two retired targets, and a
+    "CBO-style" estimate. Every other figure has a document behind it.
+    """
+    index = _read(exported / "presets" / "index.json")["presets"]
+    unpublished = {p["id"] for p in index if p["cbo_score"] is not None and not p["cbo_published"]}
+    assert unpublished == {
+        "tcja-extension-no-salt-cap",
+        "drug-negotiation-expand",
+        "drug-reference-pricing",
+        "carbon-tax-50",
+    }
+    assert all(not p["cbo_published"] for p in index if p["cbo_score"] is None)
 
 
 def test_the_committed_export_has_the_current_shape(exported: Path):

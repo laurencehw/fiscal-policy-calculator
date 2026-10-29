@@ -61,6 +61,8 @@ export type PresetInfo = {
   cbo_score: number | null;
   cbo_source: string | null;
   cbo_date: string | null;
+  /** False when cbo_score is this repository's own estimate or a retired target. */
+  cbo_published: boolean;
 };
 
 export type BuildRow = {

@@ -7,7 +7,11 @@ once a night, and written as JSON under ``site_data/``:
 - ``manifest.json``: schema version, baseline vintage, budget window, counts.
 - ``schema/score-result.v1.json``: the JSON Schema of one score, the API's own
   ``ScorePolicyResponse``. The site generates its TypeScript types from it.
-- ``presets/index.json``: the API's ``/presets`` answer.
+- ``presets/index.json``: the API's ``/presets`` answer, plus ``cbo_published``
+  per preset: whether its ``cbo_score`` is a published figure. It is false when
+  the scorecard row behind it is this repository's own estimate
+  (``model_estimate`` provenance) or a retired target, so the site never labels
+  either one "published".
 - ``presets/<id>.json``: one preset, ``{"conventional": …, "dynamic": …}``,
   each the API's ``/score/preset`` answer for that id.
 - ``build-catalog.json``: the Build page's checkable rows, in catalog order.
@@ -125,8 +129,24 @@ def preset_views_payload(preset_id: str, comparison_models: dict[bool, Any] | No
 
 def preset_index_payload() -> dict[str, Any]:
     import api
+    from fiscal_model.ui.preset_validation import (
+        PRESET_ID_TO_SCORECARD_ID,
+        get_validation_badge,
+    )
+    from fiscal_model.validation.provenance import MODEL_ESTIMATE
+    from fiscal_model.validation.target_revisions import RETIRED_POLICY_IDS
 
-    return api.list_presets().model_dump(mode="json")
+    payload = api.list_presets().model_dump(mode="json")
+    for info in payload["presets"]:
+        published = info["cbo_score"] is not None
+        if published and PRESET_ID_TO_SCORECARD_ID.get(info["id"]) in RETIRED_POLICY_IDS:
+            published = False
+        if published:
+            badge = get_validation_badge(info["id"])
+            if badge is not None and badge.get("provenance") == MODEL_ESTIMATE:
+                published = False
+        info["cbo_published"] = published
+    return payload
 
 
 def build_catalog_payload() -> list[dict[str, Any]]:
