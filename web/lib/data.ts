@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { SSData } from "./socialSecurity";
-import type { BuildRow, Manifest, PresetFile, PresetInfo, ScoreResult, TrackerIndex, TrackerRow, YearlyEffect } from "./types";
+import type { BuildRow, Manifest, PresetFile, PresetInfo, ScoreResult, TrackerIndex, TrackerRow, ValuesArchetype, YearlyEffect } from "./types";
 
 export const DATA_DIR = path.join(process.cwd(), "..", "site_data");
 
@@ -47,6 +47,10 @@ export function presetsByArea(): { area: string; presets: PresetInfo[] }[] {
   const areas = [...new Set(buildCatalog().map((row) => row.area))];
   const order = [...areas.filter((a) => !illustrative.has(a)), "Other", ...areas.filter((a) => illustrative.has(a))];
   return order.filter((area) => groups.has(area)).map((area) => ({ area, presets: groups.get(area)! }));
+}
+
+export function valuesArchetypes(): ValuesArchetype[] {
+  return read<{ archetypes: ValuesArchetype[] }>("values.json").archetypes;
 }
 
 export function socialSecurity(): SSData {

@@ -1,0 +1,778 @@
+{
+  "archetypes": [
+    {
+      "id": "deficit-hawk",
+      "name": "Deficit hawk, protect the vulnerable",
+      "one_line": "Get to 3% of GDP, but the adjustment shouldn't fall on the bottom of the distribution.",
+      "chips": [
+        "progressive raisers",
+        "protects transfers",
+        "target 3.0%"
+      ],
+      "target_pct_gdp": 3.0,
+      "protected": [
+        "Middle-class rates",
+        "Safety-net transfers"
+      ],
+      "summary": "12 policies, 74% of target",
+      "gap_billions": 11666.692000000001,
+      "total_billions": -8596.099999999999,
+      "picks": [
+        {
+          "policy_id": "ss-cap-eliminate",
+          "label": "Eliminate SS Cap",
+          "score": -3200.0,
+          "why": "Eliminate SS Cap closes 27% of the gap on its own, rather than Trump Universal 10% Tariff, which is off the table because you protected middle-class rates — it moves the number more than most of what is available.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "payroll",
+            "generational": "future"
+          }
+        },
+        {
+          "policy_id": "niit-expand",
+          "label": "Expand NIIT",
+          "score": -250.0,
+          "why": "Expand NIIT closes 2% of the gap on its own — its burden lands where you weighted it.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "payroll",
+            "generational": "future"
+          }
+        },
+        {
+          "policy_id": "estate-exemption-3-5m",
+          "label": "Biden Estate Reform",
+          "score": -450.0,
+          "why": "Biden Estate Reform closes 4% of the gap on its own — its burden lands where you weighted it.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "estate",
+            "generational": "mixed"
+          }
+        },
+        {
+          "policy_id": "ira-clean-energy-repeal",
+          "label": "Repeal IRA Clean Energy Credits",
+          "score": -851.0,
+          "why": "Repeal IRA Clean Energy Credits closes 7% of the gap on its own — it moves the number more than most of what is available.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "progressive",
+            "govt_size": "shrink",
+            "base": "corporate",
+            "generational": "future"
+          }
+        },
+        {
+          "policy_id": "step-up-basis-eliminate",
+          "label": "Eliminate Step-Up Basis",
+          "score": -500.0,
+          "why": "Eliminate Step-Up Basis closes 4% of the gap on its own — its burden lands where you weighted it.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "individual",
+            "generational": "current"
+          }
+        },
+        {
+          "policy_id": "corporate-28pct",
+          "label": "Biden Corporate 28%",
+          "score": -1347.0,
+          "why": "Biden Corporate 28% closes 12% of the gap on its own — it moves the number more than most of what is available.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "progressive",
+            "govt_size": "grow",
+            "base": "corporate",
+            "generational": "mixed"
+          }
+        },
+        {
+          "policy_id": "irs-enforcement-double",
+          "label": "Double IRS Enforcement",
+          "score": -340.0,
+          "why": "Double IRS Enforcement closes 3% of the gap on its own — its burden lands where you weighted it.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "enforcement",
+            "generational": "current"
+          }
+        },
+        {
+          "policy_id": "charitable-deduction-cap",
+          "label": "Cap Charitable Deduction",
+          "score": -200.0,
+          "why": "Cap Charitable Deduction closes 2% of the gap on its own — its burden lands where you weighted it.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "individual",
+            "generational": "current"
+          }
+        },
+        {
+          "policy_id": "top-rate-39-6",
+          "label": "Biden 2025 Proposal",
+          "score": -245.9,
+          "why": "Biden 2025 Proposal closes 2% of the gap on its own — its burden lands where you weighted it.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "individual",
+            "generational": "current"
+          }
+        },
+        {
+          "policy_id": "international-package",
+          "label": "Biden International Package",
+          "score": -632.2,
+          "why": "Biden International Package closes 5% of the gap on its own — its burden lands where you weighted it.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "progressive",
+            "govt_size": "grow",
+            "base": "corporate",
+            "generational": "mixed"
+          }
+        },
+        {
+          "policy_id": "pillar-two-adoption",
+          "label": "Pillar Two Adoption",
+          "score": -80.0,
+          "why": "Pillar Two Adoption closes <1% of the gap on its own — its burden lands where you weighted it.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "progressive",
+            "govt_size": "grow",
+            "base": "corporate",
+            "generational": "mixed"
+          }
+        },
+        {
+          "policy_id": "drug-negotiation-expand",
+          "label": "Expand Drug Negotiation",
+          "score": -500.0,
+          "why": "Expand Drug Negotiation (-$500B) carries no distributional tag in this catalog, so it was held back until nothing else could close the gap; it covers 4% of it.",
+          "tags": {
+            "direction": "cut_spending",
+            "progressivity": "not_modeled",
+            "govt_size": "shrink",
+            "base": "transfer",
+            "generational": "current"
+          }
+        }
+      ]
+    },
+    {
+      "id": "small-government",
+      "name": "Small government",
+      "one_line": "Close the gap on the spending side; leave rates where they are or lower.",
+      "chips": [
+        "spending cuts first",
+        "no new taxes",
+        "shrinks state"
+      ],
+      "target_pct_gdp": 3.0,
+      "protected": [
+        "Defense spending"
+      ],
+      "summary": "9 policies, 102% of target",
+      "gap_billions": 11666.692000000001,
+      "total_billions": -11855.300000000001,
+      "picks": [
+        {
+          "policy_id": "aca-ptc-repeal",
+          "label": "Repeal ACA Premium Credits",
+          "score": -1100.0,
+          "why": "Repeal ACA Premium Credits takes 9% of the gap out of the size of the state — it moves the size of the state in the direction you asked for.",
+          "tags": {
+            "direction": "cut_spending",
+            "progressivity": "regressive",
+            "govt_size": "shrink",
+            "base": "transfer",
+            "generational": "current"
+          }
+        },
+        {
+          "policy_id": "ira-clean-energy-repeal",
+          "label": "Repeal IRA Clean Energy Credits",
+          "score": -851.0,
+          "why": "Repeal IRA Clean Energy Credits takes 7% of the gap out of the size of the state — it moves the size of the state in the direction you asked for.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "progressive",
+            "govt_size": "shrink",
+            "base": "corporate",
+            "generational": "future"
+          }
+        },
+        {
+          "policy_id": "carbon-tax-50",
+          "label": "Carbon Tax $50/ton",
+          "score": -1700.0,
+          "why": "Carbon Tax $50/ton takes 15% of the gap out of the size of the state — it moves the number more than most of what is available.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "regressive",
+            "govt_size": "grow",
+            "base": "consumption",
+            "generational": "future"
+          }
+        },
+        {
+          "policy_id": "tariff-universal-10pct",
+          "label": "Trump Universal 10% Tariff",
+          "score": -2171.1,
+          "why": "Trump Universal 10% Tariff (-$2,171B) is here for the arithmetic, not for your values: nothing in your dials argues for it, and 19% of the gap had to come from somewhere.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "regressive",
+            "govt_size": "grow",
+            "base": "consumption",
+            "generational": "current"
+          }
+        },
+        {
+          "policy_id": "ss-cap-eliminate",
+          "label": "Eliminate SS Cap",
+          "score": -3200.0,
+          "why": "Eliminate SS Cap (-$3,200B) is here for the arithmetic, not for your values: nothing in your dials argues for it, and 27% of the gap had to come from somewhere.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "payroll",
+            "generational": "future"
+          }
+        },
+        {
+          "policy_id": "corporate-28pct",
+          "label": "Biden Corporate 28%",
+          "score": -1347.0,
+          "why": "Biden Corporate 28% (-$1,347B) is here for the arithmetic, not for your values: nothing in your dials argues for it, and 12% of the gap had to come from somewhere.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "progressive",
+            "govt_size": "grow",
+            "base": "corporate",
+            "generational": "mixed"
+          }
+        },
+        {
+          "policy_id": "cap-employer-health-exclusion",
+          "label": "Cap Employer Health Exclusion",
+          "score": -450.0,
+          "why": "Cap Employer Health Exclusion (-$450B) is here for the arithmetic, not for your values: nothing in your dials argues for it, and 4% of the gap had to come from somewhere.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "neutral",
+            "govt_size": "grow",
+            "base": "individual",
+            "generational": "current"
+          }
+        },
+        {
+          "policy_id": "tariff-china-60pct",
+          "label": "Trump 60% China Tariff",
+          "score": -650.0,
+          "why": "Trump 60% China Tariff (-$650B) is here for the arithmetic, not for your values: nothing in your dials argues for it, and 6% of the gap had to come from somewhere.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "regressive",
+            "govt_size": "grow",
+            "base": "consumption",
+            "generational": "current"
+          }
+        },
+        {
+          "policy_id": "tariff-auto-25pct",
+          "label": "25% Auto Tariff",
+          "score": -386.2,
+          "why": "25% Auto Tariff (-$386B) is here for the arithmetic, not for your values: nothing in your dials argues for it, and 3% of the gap had to come from somewhere.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "regressive",
+            "govt_size": "grow",
+            "base": "consumption",
+            "generational": "current"
+          }
+        }
+      ]
+    },
+    {
+      "id": "growth-first",
+      "name": "Growth-first",
+      "one_line": "Broaden bases rather than raise marginal rates; keep investment incentives intact.",
+      "chips": [
+        "base-broadening",
+        "low marginal rates",
+        "investment-friendly"
+      ],
+      "target_pct_gdp": 4.0,
+      "protected": [
+        "Investment incentives"
+      ],
+      "summary": "7 policies, 104% of target",
+      "gap_billions": 7841.154999999999,
+      "total_billions": -8130.4,
+      "picks": [
+        {
+          "policy_id": "corporate-15pct",
+          "label": "Trump Corporate 15%",
+          "score": 673.0,
+          "why": "Trump Corporate 15% raises 9% of the gap at a low growth cost, rather than Biden Corporate 28%, which is off the table because you protected investment incentives — it is one of the cheaper instruments in growth terms.",
+          "tags": {
+            "direction": "cut_revenue",
+            "progressivity": "regressive",
+            "govt_size": "shrink",
+            "base": "corporate",
+            "generational": "mixed"
+          }
+        },
+        {
+          "policy_id": "aca-ptc-repeal",
+          "label": "Repeal ACA Premium Credits",
+          "score": -1100.0,
+          "why": "Repeal ACA Premium Credits raises 14% of the gap at a low growth cost — it moves the size of the state in the direction you asked for.",
+          "tags": {
+            "direction": "cut_spending",
+            "progressivity": "regressive",
+            "govt_size": "shrink",
+            "base": "transfer",
+            "generational": "current"
+          }
+        },
+        {
+          "policy_id": "carbon-tax-50",
+          "label": "Carbon Tax $50/ton",
+          "score": -1700.0,
+          "why": "Carbon Tax $50/ton raises 22% of the gap at a low growth cost — it moves the number more than most of what is available.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "regressive",
+            "govt_size": "grow",
+            "base": "consumption",
+            "generational": "future"
+          }
+        },
+        {
+          "policy_id": "ev-credit-repeal",
+          "label": "Repeal EV Credits",
+          "score": -182.3,
+          "why": "Repeal EV Credits raises 2% of the gap at a low growth cost — it moves the size of the state in the direction you asked for.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "progressive",
+            "govt_size": "shrink",
+            "base": "individual",
+            "generational": "future"
+          }
+        },
+        {
+          "policy_id": "ss-cap-eliminate",
+          "label": "Eliminate SS Cap",
+          "score": -3200.0,
+          "why": "Eliminate SS Cap (-$3,200B) is here for the arithmetic, not for your values: nothing in your dials argues for it, and 41% of the gap had to come from somewhere.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "payroll",
+            "generational": "future"
+          }
+        },
+        {
+          "policy_id": "cap-employer-health-exclusion",
+          "label": "Cap Employer Health Exclusion",
+          "score": -450.0,
+          "why": "Cap Employer Health Exclusion (-$450B) is here for the arithmetic, not for your values: nothing in your dials argues for it, and 6% of the gap had to come from somewhere.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "neutral",
+            "govt_size": "grow",
+            "base": "individual",
+            "generational": "current"
+          }
+        },
+        {
+          "policy_id": "tariff-universal-10pct",
+          "label": "Trump Universal 10% Tariff",
+          "score": -2171.1,
+          "why": "Trump Universal 10% Tariff (-$2,171B) is here for the arithmetic, not for your values: nothing in your dials argues for it, and 28% of the gap had to come from somewhere.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "regressive",
+            "govt_size": "grow",
+            "base": "consumption",
+            "generational": "current"
+          }
+        }
+      ]
+    },
+    {
+      "id": "egalitarian",
+      "name": "Egalitarian",
+      "one_line": "Judge the budget by what it does for the worst-off — raise at the top, spend at the bottom.",
+      "chips": [
+        "raises at top",
+        "expands credits",
+        "mixed package"
+      ],
+      "target_pct_gdp": 4.5,
+      "protected": [
+        "Middle-class rates",
+        "Medicare and health coverage",
+        "Safety-net transfers"
+      ],
+      "summary": "12 policies, 110% of target",
+      "gap_billions": 5928.386499999999,
+      "total_billions": -6496.099999999999,
+      "picks": [
+        {
+          "policy_id": "ctc-expansion-2021",
+          "label": "Biden CTC Expansion",
+          "score": 1600.0,
+          "why": "Biden CTC Expansion moves 27% of the gap and lands where you said it should land, rather than Trump Universal 10% Tariff, which is off the table because you protected middle-class rates — its burden lands where you weighted it.",
+          "tags": {
+            "direction": "add_spending",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "transfer",
+            "generational": "mixed"
+          }
+        },
+        {
+          "policy_id": "ss-cap-eliminate",
+          "label": "Eliminate SS Cap",
+          "score": -3200.0,
+          "why": "Eliminate SS Cap moves 54% of the gap and lands where you said it should land — its burden lands where you weighted it.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "payroll",
+            "generational": "future"
+          }
+        },
+        {
+          "policy_id": "niit-expand",
+          "label": "Expand NIIT",
+          "score": -250.0,
+          "why": "Expand NIIT moves 4% of the gap and lands where you said it should land — its burden lands where you weighted it.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "payroll",
+            "generational": "future"
+          }
+        },
+        {
+          "policy_id": "estate-exemption-3-5m",
+          "label": "Biden Estate Reform",
+          "score": -450.0,
+          "why": "Biden Estate Reform moves 8% of the gap and lands where you said it should land — its burden lands where you weighted it.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "estate",
+            "generational": "mixed"
+          }
+        },
+        {
+          "policy_id": "irs-enforcement-double",
+          "label": "Double IRS Enforcement",
+          "score": -340.0,
+          "why": "Double IRS Enforcement moves 6% of the gap and lands where you said it should land — its burden lands where you weighted it.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "enforcement",
+            "generational": "current"
+          }
+        },
+        {
+          "policy_id": "step-up-basis-eliminate",
+          "label": "Eliminate Step-Up Basis",
+          "score": -500.0,
+          "why": "Eliminate Step-Up Basis moves 8% of the gap and lands where you said it should land — its burden lands where you weighted it.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "individual",
+            "generational": "current"
+          }
+        },
+        {
+          "policy_id": "charitable-deduction-cap",
+          "label": "Cap Charitable Deduction",
+          "score": -200.0,
+          "why": "Cap Charitable Deduction moves 3% of the gap and lands where you said it should land — its burden lands where you weighted it.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "individual",
+            "generational": "current"
+          }
+        },
+        {
+          "policy_id": "top-rate-39-6",
+          "label": "Biden 2025 Proposal",
+          "score": -245.9,
+          "why": "Biden 2025 Proposal moves 4% of the gap and lands where you said it should land — its burden lands where you weighted it.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "individual",
+            "generational": "current"
+          }
+        },
+        {
+          "policy_id": "corporate-28pct",
+          "label": "Biden Corporate 28%",
+          "score": -1347.0,
+          "why": "Biden Corporate 28% moves 23% of the gap and lands where you said it should land — it moves the size of the state in the direction you asked for.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "progressive",
+            "govt_size": "grow",
+            "base": "corporate",
+            "generational": "mixed"
+          }
+        },
+        {
+          "policy_id": "international-package",
+          "label": "Biden International Package",
+          "score": -632.2,
+          "why": "Biden International Package moves 11% of the gap and lands where you said it should land — it moves the size of the state in the direction you asked for.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "progressive",
+            "govt_size": "grow",
+            "base": "corporate",
+            "generational": "mixed"
+          }
+        },
+        {
+          "policy_id": "pillar-two-adoption",
+          "label": "Pillar Two Adoption",
+          "score": -80.0,
+          "why": "Pillar Two Adoption moves 1% of the gap and lands where you said it should land — it moves the size of the state in the direction you asked for.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "progressive",
+            "govt_size": "grow",
+            "base": "corporate",
+            "generational": "mixed"
+          }
+        },
+        {
+          "policy_id": "ira-clean-energy-repeal",
+          "label": "Repeal IRA Clean Energy Credits",
+          "score": -851.0,
+          "why": "Repeal IRA Clean Energy Credits moves 14% of the gap and lands where you said it should land — its burden lands where you weighted it.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "progressive",
+            "govt_size": "shrink",
+            "base": "corporate",
+            "generational": "future"
+          }
+        }
+      ]
+    },
+    {
+      "id": "generational-steward",
+      "name": "Generational steward",
+      "one_line": "Weigh future cohorts equally; stabilize debt without loading costs onto the young.",
+      "chips": [
+        "long-run balance",
+        "OLG-informed",
+        "phased reforms"
+      ],
+      "target_pct_gdp": 3.0,
+      "protected": [
+        "Clean-energy incentives"
+      ],
+      "summary": "12 policies, 98% of target",
+      "gap_billions": 11666.692000000001,
+      "total_billions": -11486.2,
+      "picks": [
+        {
+          "policy_id": "ss-cap-eliminate",
+          "label": "Eliminate SS Cap",
+          "score": -3200.0,
+          "why": "Eliminate SS Cap carries 27% of the gap over the window, rather than Repeal IRA Clean Energy Credits, which is off the table because you protected clean-energy incentives — it moves the number more than most of what is available.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "payroll",
+            "generational": "future"
+          }
+        },
+        {
+          "policy_id": "carbon-tax-50",
+          "label": "Carbon Tax $50/ton",
+          "score": -1700.0,
+          "why": "Carbon Tax $50/ton carries 15% of the gap over the window — it moves the number more than most of what is available.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "regressive",
+            "govt_size": "grow",
+            "base": "consumption",
+            "generational": "future"
+          }
+        },
+        {
+          "policy_id": "niit-expand",
+          "label": "Expand NIIT",
+          "score": -250.0,
+          "why": "Expand NIIT carries 2% of the gap over the window — it is scored on the future side of the ledger.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "payroll",
+            "generational": "future"
+          }
+        },
+        {
+          "policy_id": "corporate-28pct",
+          "label": "Biden Corporate 28%",
+          "score": -1347.0,
+          "why": "Biden Corporate 28% carries 12% of the gap over the window — it moves the number more than most of what is available.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "progressive",
+            "govt_size": "grow",
+            "base": "corporate",
+            "generational": "mixed"
+          }
+        },
+        {
+          "policy_id": "estate-exemption-3-5m",
+          "label": "Biden Estate Reform",
+          "score": -450.0,
+          "why": "Biden Estate Reform carries 4% of the gap over the window — its burden lands where you weighted it.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "estate",
+            "generational": "mixed"
+          }
+        },
+        {
+          "policy_id": "step-up-basis-eliminate",
+          "label": "Eliminate Step-Up Basis",
+          "score": -500.0,
+          "why": "Eliminate Step-Up Basis carries 4% of the gap over the window — its burden lands where you weighted it.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "individual",
+            "generational": "current"
+          }
+        },
+        {
+          "policy_id": "irs-enforcement-double",
+          "label": "Double IRS Enforcement",
+          "score": -340.0,
+          "why": "Double IRS Enforcement carries 3% of the gap over the window — its burden lands where you weighted it.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "enforcement",
+            "generational": "current"
+          }
+        },
+        {
+          "policy_id": "charitable-deduction-cap",
+          "label": "Cap Charitable Deduction",
+          "score": -200.0,
+          "why": "Cap Charitable Deduction carries 2% of the gap over the window — its burden lands where you weighted it.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "individual",
+            "generational": "current"
+          }
+        },
+        {
+          "policy_id": "tariff-universal-10pct",
+          "label": "Trump Universal 10% Tariff",
+          "score": -2171.1,
+          "why": "Trump Universal 10% Tariff carries 19% of the gap over the window — it moves the number more than most of what is available.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "regressive",
+            "govt_size": "grow",
+            "base": "consumption",
+            "generational": "current"
+          }
+        },
+        {
+          "policy_id": "international-package",
+          "label": "Biden International Package",
+          "score": -632.2,
+          "why": "Biden International Package carries 5% of the gap over the window — it moves the number more than most of what is available.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "progressive",
+            "govt_size": "grow",
+            "base": "corporate",
+            "generational": "mixed"
+          }
+        },
+        {
+          "policy_id": "top-rate-39-6",
+          "label": "Biden 2025 Proposal",
+          "score": -245.9,
+          "why": "Biden 2025 Proposal carries 2% of the gap over the window — its burden lands where you weighted it.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "strong_progressive",
+            "govt_size": "grow",
+            "base": "individual",
+            "generational": "current"
+          }
+        },
+        {
+          "policy_id": "cap-employer-health-exclusion",
+          "label": "Cap Employer Health Exclusion",
+          "score": -450.0,
+          "why": "Cap Employer Health Exclusion carries 4% of the gap over the window — it moves the number more than most of what is available.",
+          "tags": {
+            "direction": "raise_revenue",
+            "progressivity": "neutral",
+            "govt_size": "grow",
+            "base": "individual",
+            "generational": "current"
+          }
+        }
+      ]
+    }
+  ]
+}

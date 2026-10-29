@@ -17,6 +17,8 @@ once a night, and written as JSON under ``site_data/``:
   the site can list all bills or only those with a fiscal estimate (decision F4).
 - ``tracker/scored.json``: the detail for bills with an estimate: summary,
   annual path, and the provisions the auto-scorer mapped.
+- ``values.json``: Build's five starting philosophies and the package the
+  deterministic composer picks for each, with the "why" line for every pick.
 - ``social-security.json``: the Social Security page's inputs (Trustees
   baseline rates, OCACT options and their annual paths, the CRFB comparison)
   plus the ledger's own answers for current law and each option alone, which
@@ -211,6 +213,44 @@ def tracker_payloads(db_path: Path = BILLS_DB) -> tuple[dict[str, Any], dict[str
     return index, scored
 
 
+def values_payload() -> dict[str, Any]:
+    """Build's "Start from your values": each archetype and its composed package."""
+    from fiscal_model.composer.archetypes import load_archetypes, rationale_template_for
+    from fiscal_model.composer.composer import compose_values_package
+    from fiscal_model.composer.values_schema import PROTECTED_LABELS
+
+    archetypes = []
+    for archetype in load_archetypes().values():
+        package = compose_values_package(
+            archetype.vector, rationale_template=rationale_template_for(archetype.id)
+        )
+        vector = package.vector
+        archetypes.append(
+            {
+                "id": archetype.id,
+                "name": archetype.name,
+                "one_line": archetype.one_line,
+                "chips": list(archetype.chips),
+                "target_pct_gdp": float(vector.target_pct_gdp),
+                "protected": [PROTECTED_LABELS[key] for key in vector.protected],
+                "summary": package.summary(),
+                "gap_billions": package.gap_billions,
+                "total_billions": package.total_billions,
+                "picks": [
+                    {
+                        "policy_id": pick.policy_id,
+                        "label": pick.label,
+                        "score": pick.score,
+                        "why": pick.why,
+                        "tags": dict(pick.tags),
+                    }
+                    for pick in package.picks
+                ],
+            }
+        )
+    return {"archetypes": archetypes}
+
+
 def social_security_payload() -> dict[str, Any]:
     """Everything the Social Security page needs; the site runs the ledger itself."""
     from fiscal_model.social_security import trust_fund as tf
@@ -297,6 +337,8 @@ def export(out: Path) -> dict[str, Any]:
     # 11,000 bills: indentation alone would double the size.
     _write(out / "tracker" / "index.json", tracker_index, compact=True)
     _write(out / "tracker" / "scored.json", tracker_scored, compact=True)
+    values = values_payload()
+    _write(out / "values.json", values)
     social_security = social_security_payload()
     _write(out / "social-security.json", social_security, compact=True)
     _write(
@@ -315,6 +357,7 @@ def export(out: Path) -> dict[str, Any]:
         "scorecard_entries": scorecard["total_entries"],
         "tracker_bills": tracker_index["bills"],
         "tracker_last_update": tracker_index["last_update"],
+        "values_archetypes": len(values["archetypes"]),
         "social_security_options": len(social_security["provisions"]),
         "sign_convention": (
             "Billions of dollars over the budget window; positive increases "
