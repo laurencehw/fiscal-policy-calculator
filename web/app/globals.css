@@ -253,6 +253,8 @@ table.sheet.words td .cite { display: block; margin-top: 4px; font-size: 13px; }
 .answer h3 { font-size: 18px; margin: 6px 0 0; }
 .answer sup.fn { font-family: var(--data); font-size: 11px; margin-left: 1px; }
 .answer sup.fn a { text-decoration: none; color: var(--accent); }
+.answer p.math { font-style: italic; text-align: center; padding: 4px 0; }
+.answer hr { border: 0; border-top: 1px solid var(--rule); margin: 4px 0; width: 100%; }
 .sources { border-top: 1px solid var(--rule); padding-top: 8px; display: grid; gap: 4px; }
 .sources ol { margin: 0; padding-left: 24px; font-size: 14px; color: var(--muted); display: grid; gap: 4px; }
 .askform { max-width: 40rem; margin-bottom: 0; }

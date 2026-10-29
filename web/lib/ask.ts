@@ -61,6 +61,7 @@ export function readFrames(buffer: string): { frames: SseFrame[]; rest: string }
 export type Inline =
   | { t: "text"; v: string }
   | { t: "b"; v: string }
+  | { t: "i"; v: string }
   | { t: "code"; v: string }
   | { t: "link"; v: string; href: string }
   | { t: "cite"; n: number; href?: string };
@@ -69,6 +70,8 @@ export type Block =
   | { t: "h"; v: Inline[] }
   | { t: "p"; v: Inline[] }
   | { t: "quote"; v: Inline[] }
+  | { t: "math"; v: string }
+  | { t: "hr" }
   | { t: "ul" | "ol"; items: Inline[][] };
 
 export type Source = { n: number; text: string; href?: string };
@@ -88,9 +91,37 @@ export function safeHref(url: string): string | undefined {
   }
 }
 
+/** The engine escapes every dollar sign (a backslash before it) so Streamlit won't read it as math. */
+export function unescapeDollars(text: string): string {
+  return text.replace(/\\\$/g, "$");
+}
+
+const SYMBOLS: Record<string, string> = {
+  Delta: "Δ", delta: "δ", times: "×", cdot: "·", approx: "≈", le: "≤", leq: "≤", ge: "≥", geq: "≥",
+  ne: "≠", neq: "≠", pm: "±", alpha: "α", beta: "β", gamma: "γ", sigma: "σ", tau: "τ", pi: "π",
+  rho: "ρ", epsilon: "ε", varepsilon: "ε", eta: "η", theta: "θ", lambda: "λ", mu: "μ", sum: "Σ",
+  to: "→", rightarrow: "→", infty: "∞", left: "", right: "", quad: " ", qquad: " ",
+};
+
+/** LaTeX from a ``$$...$$`` block as readable plain text: fractions as a / b, Greek letters as symbols. */
+export function plainMath(tex: string): string {
+  let s = tex.trim();
+  const group = (v: string) => (/^[\w.ΔΣ]+$/u.test(v.trim()) ? v.trim() : `(${v.trim()})`);
+  for (let i = 0; i < 10; i++) {
+    const before = s;
+    s = s.replace(/\\(?:text|mathrm|mathit|textbf|operatorname)\{([^{}]*)\}/g, "$1");
+    s = s.replace(/\\[dt]?frac\{([^{}]*)\}\{([^{}]*)\}/g, (_m, a: string, b: string) => `${group(a)} / ${group(b)}`);
+    if (s === before) break;
+  }
+  s = s.replace(/\\([A-Za-z]+)/g, (_m, name: string) => (name in SYMBOLS ? SYMBOLS[name] : name));
+  s = s.replace(/\\([%$&#_,;!])/g, (_m, c: string) => (c === "," || c === ";" || c === "!" ? " " : c));
+  s = s.replace(/[{}]/g, "").replace(/\s+/g, " ");
+  return s.trim();
+}
+
 function inline(text: string, sources: Map<number, Source>, final: boolean): Inline[] {
   const out: Inline[] = [];
-  const pattern = /\[\^(\d+)\]|\*\*([^*]+)\*\*|`([^`]+)`|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s)\]}>"']+)/g;
+  const pattern = /\[\^(\d+)\]|\*\*([^*]+)\*\*|`([^`]+)`|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s)\]}>"']+)|(?<![*\w])\*(?![\s*])([^*\n]+?)(?<!\s)\*(?![*\w])/g;
   let last = 0;
   for (const m of text.matchAll(pattern)) {
     const at = m.index ?? 0;
@@ -109,14 +140,22 @@ function inline(text: string, sources: Map<number, Source>, final: boolean): Inl
     } else if (m[6]) {
       const href = safeHref(m[6]);
       out.push(href ? { t: "link", v: m[6], href } : { t: "text", v: m[6] });
-    }
+    } else if (m[7]) out.push({ t: "i", v: m[7] });
   }
   if (last < text.length) out.push({ t: "text", v: text.slice(last) });
   return out;
 }
 
 /** Parse an answer, streaming (``final`` false) or complete. */
-export function parseAnswer(text: string, final = true): Answer {
+export function parseAnswer(raw: string, final = true): Answer {
+  // Display math first: once the escapes are gone, a currency sign and a math delimiter look alike.
+  const maths: string[] = [];
+  const text = unescapeDollars(
+    raw.replace(/(?<!\\)\$\$([\s\S]+?)(?<!\\)\$\$/g, (_m, tex: string) => {
+      maths.push(plainMath(tex));
+      return `\n\n\u0000MATH${maths.length - 1}\u0000\n\n`;
+    }),
+  );
   const heading = SOURCES_HEADING.exec(text);
   const body = heading ? text.slice(0, heading.index) : text;
   const tail = heading ? text.slice(heading.index + heading[0].length) : "";
@@ -149,8 +188,15 @@ export function parseAnswer(text: string, final = true): Answer {
     const numbered = /^\s*\d+[.)]\s+(.*)$/.exec(line);
     const head = /^\s*#{1,6}\s+(.*)$/.exec(line);
     const quote = /^\s*>\s?(.*)$/.exec(line);
+    const math = /^\s*\u0000MATH(\d+)\u0000\s*$/.exec(line);
     if (!line.trim()) flush();
-    else if (head) {
+    else if (math) {
+      flush();
+      blocks.push({ t: "math", v: maths[Number(math[1])] });
+    } else if (/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
+      flush();
+      blocks.push({ t: "hr" });
+    } else if (head) {
       flush();
       blocks.push({ t: "h", v: inline(head[1], sources, final) });
     } else if (quote) {
