@@ -117,3 +117,21 @@ def test_the_tracker_export_matches_the_nightly_database(exported: Path):
         if r["cbo_ten_year_billions"] is not None or r["auto_ten_year_billions"] is not None
     }
     assert set(scored) == has_estimate
+
+
+def test_the_values_export_is_the_composer(exported: Path):
+    from fiscal_model.composer.archetypes import load_archetypes, rationale_template_for
+    from fiscal_model.composer.composer import compose_values_package
+
+    written = _read(exported / "values.json")["archetypes"]
+    archetypes = load_archetypes()
+    assert [a["id"] for a in written] == list(archetypes)
+    assert _read(exported / "manifest.json")["values_archetypes"] == len(written)
+    catalog = {row["build_id"] for row in _read(exported / "build-catalog.json")}
+    for entry in written:
+        package = compose_values_package(
+            archetypes[entry["id"]].vector, rationale_template=rationale_template_for(entry["id"])
+        )
+        assert [p["policy_id"] for p in entry["picks"]] == [p.policy_id for p in package.picks]
+        assert entry["total_billions"] == pytest.approx(package.total_billions)
+        assert {p["policy_id"] for p in entry["picks"]} <= catalog

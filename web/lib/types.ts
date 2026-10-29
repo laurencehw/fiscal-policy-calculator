@@ -75,6 +75,21 @@ export type BuildRow = {
   illustrative: boolean;
 };
 
+export type ValuesPick = { policy_id: string; label: string; score: number; why: string; tags: Record<string, string> };
+
+export type ValuesArchetype = {
+  id: string;
+  name: string;
+  one_line: string;
+  chips: string[];
+  target_pct_gdp: number;
+  protected: string[];
+  summary: string;
+  gap_billions: number;
+  total_billions: number;
+  picks: ValuesPick[];
+};
+
 export type Manifest = {
   schema_version: number;
   baseline_vintages: string[];
@@ -84,6 +99,7 @@ export type Manifest = {
   scorecard_entries: number;
   tracker_bills: number;
   tracker_last_update: string | null;
+  values_archetypes: number;
   sign_convention: string;
 };
 

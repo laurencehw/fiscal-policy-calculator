@@ -65,3 +65,16 @@ test("the tracker groups hold every bill with an estimate, once", () => {
     assert.ok(Math.abs(cbo[i - 1].cbo_ten_year_billions!) >= Math.abs(cbo[i].cbo_ten_year_billions!));
   }
 });
+
+test("every philosophy's package loads whole into the Build list", async () => {
+  const { valuesArchetypes } = await import("./data");
+  const { fromQuery } = await import("./package");
+  const rows = buildCatalog();
+  const archetypes = valuesArchetypes();
+  assert.equal(archetypes.length, manifest().values_archetypes);
+  for (const a of archetypes) {
+    const ids = a.picks.map((p) => p.policy_id);
+    assert.ok(ids.length > 0, a.id);
+    assert.deepEqual([...fromQuery(rows, ids.join(","))].sort(), [...ids].sort(), a.id);
+  }
+});
