@@ -11,7 +11,7 @@
   --accent: #1f5e7a;
   --good: #2c7a4b;
   --warn: #9a6a12;
-  --s1: #1f5e7a; --s2: #c0562f; --s3: #7a5aa6; --s4: #2c8a7a; --s5: #a8821a; --s6: #6b7684;
+  --s1: #1f5e7a; --s2: #b14c28; --s3: #7a5aa6; --s4: #2c8a7a; --s5: #a8821a; --s6: #6b7684;
   /* Deficit convention: adds to the deficit vs reduces it. Neutral, not red/green. */
   --adds: var(--s2); --reduces: var(--s1);
   /* Newsreader for headings and reading; Libre Franklin for labels, numbers and chart text. */
@@ -96,6 +96,10 @@ a:hover { text-decoration-color: var(--accent); }
 .navlinks a { font-size: 14px; text-decoration: none; color: var(--muted); }
 .navlinks a:hover, .navlinks a[aria-current="page"] { color: var(--ink); }
 .sectionlinks { display: flex; flex-wrap: wrap; gap: 6px 28px; border-top: 1px solid var(--rule); padding-top: 8px; }
+@media (max-width: 720px) {
+  .sectionlinks { flex-wrap: nowrap; overflow-x: auto; gap: 6px 20px; scrollbar-width: thin; }
+  .sectionlinks a { white-space: nowrap; }
+}
 .sectionlinks a { font-family: var(--display); font-size: 19px; text-decoration: none; }
 .sectionlinks a[aria-current="page"] { text-decoration: underline; text-decoration-color: var(--ink); text-decoration-thickness: 1px; text-underline-offset: 5px; }
 .sectionlinks a:hover { text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 5px; }
@@ -126,7 +130,14 @@ code { font-family: var(--code); font-size: 0.85em; }
 .presetlist li { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; padding: 8px 0; border-top: 1px solid var(--rule); }
 .presetlist a { text-decoration: none; }
 .presetlist a:hover { text-decoration: underline; text-decoration-color: var(--accent); }
+.presetlist .figs { display: flex; gap: 14px; align-items: baseline; }
 .presetlist .fig { font-family: var(--data); font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.presetlist .fig.published { color: var(--muted); }
+.presetlist .figlabel { display: block; font-family: var(--label); font-size: 11px; letter-spacing: 0.04em; color: var(--muted); font-weight: 500; }
+@media (max-width: 720px) { .presetlist .figs { flex-direction: column; align-items: flex-end; gap: 2px; } }
+.reading { display: grid; gap: 12px; }
+.reading p, .reading li { margin: 0; max-width: 70ch; }
+.reading ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
 .checked { border-left: 2px solid var(--rule); padding-left: 12px; display: grid; gap: 6px; max-width: 70ch; }
 .checked p { margin: 0; }
 

@@ -15,8 +15,9 @@ export default function Explore() {
         <span className="eyebrow">Explore</span>
         <h1>Proposals</h1>
         <p className="sentence">
-          Ten-year conventional deficit effects, {m.budget_windows.join(", ")}. A positive figure adds to the
-          deficit; a negative one reduces it.
+          Ten-year conventional deficit effects, {m.budget_windows.join(", ")}. The colored figure is this
+          calculator&apos;s conventional score. Where a published score exists, it is the muted figure beside it. A
+          positive figure adds to the deficit; a negative one reduces it.
         </p>
       </header>
       <div className="presetgroups">

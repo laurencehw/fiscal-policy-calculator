@@ -3,6 +3,9 @@ const FALLBACK_SITE_URL = "https://fiscal.lwilsesamson.com";
 /** The author's site. Linked from the footer. */
 export const AUTHOR_URL = "https://lwilsesamson.com/";
 
+/** The address already printed on About. No street address is published. */
+export const CONTACT_EMAIL = "lw3387@nyu.edu";
+
 /** The repository: methods, code and every published figure the model is checked against. */
 export const REPO_URL = "https://github.com/laurencehw/fiscal-policy-calculator";
 
