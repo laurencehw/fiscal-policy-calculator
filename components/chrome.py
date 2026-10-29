@@ -313,6 +313,10 @@ def _render_degradation_banner(st_module: Any, health: dict[str, Any]) -> None:
         st_module.caption(reason_lines)
 
 
+#: The site that replaced this app (Next.js front end on the same engine).
+NEW_SITE_URL = "https://fiscal.lwilsesamson.com"
+
+
 def render_chrome(
     st_module: Any,
     deps: Any,
@@ -400,6 +404,10 @@ def render_chrome(
     if settings.get("dark_mode", False):
         st_module.markdown(_DARK_MODE_CSS, unsafe_allow_html=True)
 
+    st_module.markdown(
+        f"📢 This calculator has moved to **[{NEW_SITE_URL.removeprefix('https://')}]({NEW_SITE_URL})**, "
+        "a faster site with the same model. This Streamlit version stays up for now but is no longer updated."
+    )
     _render_degradation_banner(st_module, health)
     st_module.markdown("---")
 

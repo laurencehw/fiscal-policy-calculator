@@ -2,13 +2,12 @@
 
 [![Tests](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml/badge.svg)](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml)
 [![Coverage Gate](https://img.shields.io/badge/coverage_gate-85%25-brightgreen)](https://github.com/laurencehw/fiscal-policy-calculator/actions/workflows/tests.yml)
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://fiscal-policy-calculator.streamlit.app)
 ![Python 3.10-3.13](https://img.shields.io/badge/Python-3.10--3.13-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 Estimate the 10-year budgetary and economic effects of U.S. tax and spending proposals using CBO methodology, IRS data, and FRB/US-calibrated dynamic scoring.
 
-**[Launch the app](https://fiscal-policy-calculator.streamlit.app)**
+**[Launch the app](https://fiscal.lwilsesamson.com)** (the original Streamlit version is still at [fiscal-policy-calculator.streamlit.app](https://fiscal-policy-calculator.streamlit.app) but is no longer updated)
 
 ---
 
@@ -232,7 +231,7 @@ The default distributional engine is now the **return-level microsimulation** (c
 
 ### Use the web app
 
-Visit **[fiscal-policy-calculator.streamlit.app](https://fiscal-policy-calculator.streamlit.app)** — no installation needed.
+Visit **[fiscal.lwilsesamson.com](https://fiscal.lwilsesamson.com)** — no installation needed. The site is a Next.js front end (`web/`) on the same Python engine, served from Vercel (`engine/`).
 
 ### Run locally
 

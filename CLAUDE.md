@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Fiscal Policy Impact Calculator — a web app that estimates budgetary and economic effects of tax and spending proposals. Live at: https://fiscal-policy-calculator.streamlit.app
+Fiscal Policy Impact Calculator — a web app that estimates budgetary and economic effects of tax and spending proposals. Live at: https://fiscal.lwilsesamson.com (Next.js site in `web/` on the Vercel engine in `engine/`); the original Streamlit app at https://fiscal-policy-calculator.streamlit.app still runs from `app.py` but shows a "moved" banner and is no longer updated
 
 See `planning/ROADMAP.md` for the full roadmap and next priorities.
 
