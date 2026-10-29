@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/register-alias.mjs --test lib/format.test.ts lib/data.test.ts lib/package.test.ts lib/tailor.test.ts lib/socialSecurity.test.ts lib/olg.test.ts lib/classroom.test.ts lib/frozen.test.ts lib/ask.test.ts lib/home.test.ts lib/contrast.test.ts"
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/register-alias.mjs --test lib/format.test.ts lib/data.test.ts lib/package.test.ts lib/tailor.test.ts lib/socialSecurity.test.ts lib/olg.test.ts lib/classroom.test.ts lib/frozen.test.ts lib/ask.test.ts lib/home.test.ts lib/contrast.test.ts lib/nav.test.ts"
   },
   "dependencies": {
     "next": "16.3.3",
