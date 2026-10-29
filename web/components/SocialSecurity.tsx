@@ -3,7 +3,7 @@
 // shortfall closed, the depletion year and the trust fund ratio path. State lives
 // in ?options=, so a plan can be shared.
 import { useEffect, useMemo, useState } from "react";
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { CartesianGrid, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { orderIds, project, selectOption, type SSData, type SSProvision } from "@/lib/socialSecurity";
 
 const NO_CHANGE = "none";
@@ -173,7 +173,29 @@ export function SocialSecurityMenu({ data }: { data: SSData }) {
                     }
                   />
                   <Legend wrapperStyle={{ fontSize: 13, color: "var(--muted)" }} />
-                  <Line type="monotone" dataKey="law" name="Current law" stroke="var(--muted)" strokeDasharray="4 4" dot={false} isAnimationActive={false} />
+                  {baseline.depletionYear ? (
+                    <ReferenceLine
+                      x={baseline.depletionYear}
+                      stroke="var(--warn)"
+                      strokeDasharray="2 3"
+                      label={{
+                        value: `Current law runs out ${baseline.depletionYear}`,
+                        position: "insideTopLeft",
+                        fill: "var(--warn)",
+                        fontSize: 12,
+                        fontFamily: "var(--data)",
+                      }}
+                    />
+                  ) : null}
+                  {selected.length && plan.depletionYear && plan.depletionYear !== baseline.depletionYear ? (
+                    <ReferenceLine
+                      x={plan.depletionYear}
+                      stroke="var(--accent)"
+                      strokeDasharray="2 3"
+                      label={{ value: `Plan runs out ${plan.depletionYear}`, position: "insideTopRight", fill: "var(--accent)", fontSize: 12, fontFamily: "var(--data)" }}
+                    />
+                  ) : null}
+                  <Line type="monotone" dataKey="law" name="Current law" stroke="var(--ink)" strokeWidth={1.5} strokeDasharray={selected.length ? "4 4" : undefined} dot={false} isAnimationActive={false} />
                   {selected.length ? (
                     <Line type="monotone" dataKey="plan" name="Your plan" stroke="var(--accent)" strokeWidth={2} dot={false} isAnimationActive={false} />
                   ) : null}

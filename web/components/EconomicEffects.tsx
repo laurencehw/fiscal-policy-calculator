@@ -38,7 +38,7 @@ export function EconomicEffects({ econ }: { econ: Economic }) {
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
             <CartesianGrid stroke="var(--grid)" vertical={false} />
-            <XAxis dataKey="year" tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} axisLine={{ stroke: "var(--rule)" }} />
+            <XAxis dataKey="year" tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} axisLine={{ stroke: "var(--rule)" }} interval="preserveStartEnd" minTickGap={8} />
             <YAxis tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} axisLine={false} width={56} tickFormatter={(v: number) => `${v.toFixed(2)}%`} />
             <ReferenceLine y={0} stroke="var(--ink)" />
             <Tooltip
