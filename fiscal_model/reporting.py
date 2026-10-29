@@ -2,16 +2,21 @@
 Reporting and Visualization Module
 
 Generates formatted reports and visualizations for fiscal policy analysis.
+Matplotlib is imported only by the plotting methods, so the scoring engine
+(``import fiscal_model``) runs without it, as the engine-only API does.
 """
 
+from __future__ import annotations
 
 import warnings
+from typing import TYPE_CHECKING
 
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
 import numpy as np
 
 from .scoring import ScoringResult
+
+if TYPE_CHECKING:
+    import matplotlib.pyplot as plt
 
 _NON_INTERACTIVE_SHOW_WARNING = "FigureCanvasAgg is non-interactive, and thus cannot be shown"
 
@@ -23,6 +28,8 @@ def _show_plot(show: bool) -> None:
 
     with warnings.catch_warnings():
         warnings.filterwarnings("ignore", message=_NON_INTERACTIVE_SHOW_WARNING)
+        import matplotlib.pyplot as plt
+
         plt.show()
 
 
@@ -130,6 +137,9 @@ class BudgetReport:
         """
         Create visualization of budget effects over time.
         """
+        import matplotlib.pyplot as plt
+        import matplotlib.ticker as mticker
+
         fig, axes = plt.subplots(2, 2, figsize=(14, 10))
         fig.suptitle(f"Budget Effects: {self.result.policy.name}",
                     fontsize=14, fontweight='bold')
@@ -243,6 +253,9 @@ class BudgetReport:
         """
         Compare multiple policy scoring results.
         """
+        import matplotlib.pyplot as plt
+        import matplotlib.ticker as mticker
+
         all_results = [self.result, *other_results]
         n_policies = len(all_results)
 
