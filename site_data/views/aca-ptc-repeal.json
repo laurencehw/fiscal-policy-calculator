@@ -97,5 +97,39 @@
       -29.4250294915671,
       -33.63361535448492
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": -840.840383862123,
+        "annual_billions": [
+          -92.06281575132734,
+          -68.38952027241459,
+          -64.88236538664974,
+          -68.38952027241459,
+          -75.4038300439443,
+          -84.17171725835642,
+          -90.30923830844492,
+          -92.93960447276855,
+          -99.07712552285705,
+          -105.21464657294553
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "ACA premium tax credits need marketplace enrollment data the pilot microdata does not carry."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }

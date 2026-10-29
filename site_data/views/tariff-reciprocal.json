@@ -97,5 +97,39 @@
       -59.59222564471581,
       -66.21358404968423
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": -1655.3396012421058,
+        "annual_billions": [
+          -165.53396012421058,
+          -165.53396012421058,
+          -165.53396012421058,
+          -165.53396012421058,
+          -165.53396012421058,
+          -165.53396012421058,
+          -165.53396012421058,
+          -165.53396012421058,
+          -165.53396012421058,
+          -165.53396012421058
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "Reciprocal Tariffs (TariffPolicy) does not map onto current microsim pilot reforms (income-tax rates, CTC, EITC, SALT, std deduction, AMT exemption)."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }

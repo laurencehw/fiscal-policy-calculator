@@ -1,0 +1,936 @@
+{
+  "year": 2025,
+  "salt_cap_baseline": 10000,
+  "states": [
+    {
+      "code": "CA",
+      "name": "California",
+      "has_income_tax": true,
+      "flat_rate": null,
+      "top_rate": 0.133,
+      "std_ded_single": 5202.0,
+      "effective_salt_rate": 0.0884,
+      "pct_itemizers": 0.191,
+      "avg_salt_deduction_itemizers": 18200.0,
+      "median_household_income": 81575.0,
+      "notes": "Top rate includes 1% mental health surcharge on income above $1M",
+      "rate_curve": [
+        {
+          "agi": 10000.0,
+          "federal_rate": 0.0,
+          "state_rate": 0.004798,
+          "combined_rate": 0.004798
+        },
+        {
+          "agi": 20000.0,
+          "federal_rate": 0.025,
+          "state_rate": 0.009592,
+          "combined_rate": 0.034592
+        },
+        {
+          "agi": 30000.0,
+          "federal_rate": 0.05205,
+          "state_rate": 0.013137333333333334,
+          "combined_rate": 0.06518733333333333
+        },
+        {
+          "agi": 50000.0,
+          "federal_rate": 0.07923,
+          "state_rate": 0.026217999999999998,
+          "combined_rate": 0.10544799999999999
+        },
+        {
+          "agi": 75000.0,
+          "federal_rate": 0.10818666666666667,
+          "state_rate": 0.04192085333333333,
+          "combined_rate": 0.15010752
+        },
+        {
+          "agi": 100000.0,
+          "federal_rate": 0.13614,
+          "state_rate": 0.05469063999999999,
+          "combined_rate": 0.19083064
+        },
+        {
+          "agi": 150000.0,
+          "federal_rate": 0.16831333333333334,
+          "state_rate": 0.06746042666666666,
+          "combined_rate": 0.23577376
+        },
+        {
+          "agi": 200000.0,
+          "federal_rate": 0.186235,
+          "state_rate": 0.07384532,
+          "combined_rate": 0.26008032000000003
+        },
+        {
+          "agi": 300000.0,
+          "federal_rate": 0.23099083333333334,
+          "state_rate": 0.08023021333333333,
+          "combined_rate": 0.31122104666666667
+        },
+        {
+          "agi": 500000.0,
+          "federal_rate": 0.2785945,
+          "state_rate": 0.08976808800000001,
+          "combined_rate": 0.36836258800000005
+        },
+        {
+          "agi": 750000.0,
+          "federal_rate": 0.3052936666666667,
+          "state_rate": 0.09813241866666667,
+          "combined_rate": 0.40342608533333335
+        },
+        {
+          "agi": 1000000.0,
+          "federal_rate": 0.32147025,
+          "state_rate": 0.104349314,
+          "combined_rate": 0.425819564
+        }
+      ],
+      "salt_cap_lift": {
+        "affected_filers_millions": 3.4762,
+        "avg_deduction_change": 8200.0,
+        "federal_revenue_change_billions": -6.8411616,
+        "effective_rate_change_ppts": -0.9558857142857143
+      }
+    },
+    {
+      "code": "TX",
+      "name": "Texas",
+      "has_income_tax": false,
+      "flat_rate": null,
+      "top_rate": 0.0,
+      "std_ded_single": 0.0,
+      "effective_salt_rate": 0.0623,
+      "pct_itemizers": 0.097,
+      "avg_salt_deduction_itemizers": 9800.0,
+      "median_household_income": 67321.0,
+      "notes": "No state income tax",
+      "rate_curve": [
+        {
+          "agi": 10000.0,
+          "federal_rate": 0.0,
+          "state_rate": 0.0,
+          "combined_rate": 0.0
+        },
+        {
+          "agi": 20000.0,
+          "federal_rate": 0.025,
+          "state_rate": 0.0,
+          "combined_rate": 0.025
+        },
+        {
+          "agi": 30000.0,
+          "federal_rate": 0.05205,
+          "state_rate": 0.0,
+          "combined_rate": 0.05205
+        },
+        {
+          "agi": 50000.0,
+          "federal_rate": 0.07923,
+          "state_rate": 0.0,
+          "combined_rate": 0.07923
+        },
+        {
+          "agi": 75000.0,
+          "federal_rate": 0.10818666666666667,
+          "state_rate": 0.0,
+          "combined_rate": 0.10818666666666667
+        },
+        {
+          "agi": 100000.0,
+          "federal_rate": 0.13614,
+          "state_rate": 0.0,
+          "combined_rate": 0.13614
+        },
+        {
+          "agi": 150000.0,
+          "federal_rate": 0.16831333333333334,
+          "state_rate": 0.0,
+          "combined_rate": 0.16831333333333334
+        },
+        {
+          "agi": 200000.0,
+          "federal_rate": 0.186235,
+          "state_rate": 0.0,
+          "combined_rate": 0.186235
+        },
+        {
+          "agi": 300000.0,
+          "federal_rate": 0.23099083333333334,
+          "state_rate": 0.0,
+          "combined_rate": 0.23099083333333334
+        },
+        {
+          "agi": 500000.0,
+          "federal_rate": 0.2785945,
+          "state_rate": 0.0,
+          "combined_rate": 0.2785945
+        },
+        {
+          "agi": 750000.0,
+          "federal_rate": 0.3052936666666667,
+          "state_rate": 0.0,
+          "combined_rate": 0.3052936666666667
+        },
+        {
+          "agi": 1000000.0,
+          "federal_rate": 0.32147025,
+          "state_rate": 0.0,
+          "combined_rate": 0.32147025
+        }
+      ],
+      "salt_cap_lift": {
+        "affected_filers_millions": 0.8279726000000001,
+        "avg_deduction_change": 0.0,
+        "federal_revenue_change_billions": -0.0,
+        "effective_rate_change_ppts": -0.0
+      }
+    },
+    {
+      "code": "FL",
+      "name": "Florida",
+      "has_income_tax": false,
+      "flat_rate": null,
+      "top_rate": 0.0,
+      "std_ded_single": 0.0,
+      "effective_salt_rate": 0.0534,
+      "pct_itemizers": 0.082,
+      "avg_salt_deduction_itemizers": 8900.0,
+      "median_household_income": 59227.0,
+      "notes": "No state income tax",
+      "rate_curve": [
+        {
+          "agi": 10000.0,
+          "federal_rate": 0.0,
+          "state_rate": 0.0,
+          "combined_rate": 0.0
+        },
+        {
+          "agi": 20000.0,
+          "federal_rate": 0.025,
+          "state_rate": 0.0,
+          "combined_rate": 0.025
+        },
+        {
+          "agi": 30000.0,
+          "federal_rate": 0.05205,
+          "state_rate": 0.0,
+          "combined_rate": 0.05205
+        },
+        {
+          "agi": 50000.0,
+          "federal_rate": 0.07923,
+          "state_rate": 0.0,
+          "combined_rate": 0.07923
+        },
+        {
+          "agi": 75000.0,
+          "federal_rate": 0.10818666666666667,
+          "state_rate": 0.0,
+          "combined_rate": 0.10818666666666667
+        },
+        {
+          "agi": 100000.0,
+          "federal_rate": 0.13614,
+          "state_rate": 0.0,
+          "combined_rate": 0.13614
+        },
+        {
+          "agi": 150000.0,
+          "federal_rate": 0.16831333333333334,
+          "state_rate": 0.0,
+          "combined_rate": 0.16831333333333334
+        },
+        {
+          "agi": 200000.0,
+          "federal_rate": 0.186235,
+          "state_rate": 0.0,
+          "combined_rate": 0.186235
+        },
+        {
+          "agi": 300000.0,
+          "federal_rate": 0.23099083333333334,
+          "state_rate": 0.0,
+          "combined_rate": 0.23099083333333334
+        },
+        {
+          "agi": 500000.0,
+          "federal_rate": 0.2785945,
+          "state_rate": 0.0,
+          "combined_rate": 0.2785945
+        },
+        {
+          "agi": 750000.0,
+          "federal_rate": 0.3052936666666667,
+          "state_rate": 0.0,
+          "combined_rate": 0.3052936666666667
+        },
+        {
+          "agi": 1000000.0,
+          "federal_rate": 0.32147025,
+          "state_rate": 0.0,
+          "combined_rate": 0.32147025
+        }
+      ],
+      "salt_cap_lift": {
+        "affected_filers_millions": 0.5170633,
+        "avg_deduction_change": 0.0,
+        "federal_revenue_change_billions": -0.0,
+        "effective_rate_change_ppts": -0.0
+      }
+    },
+    {
+      "code": "NY",
+      "name": "New York",
+      "has_income_tax": true,
+      "flat_rate": null,
+      "top_rate": 0.109,
+      "std_ded_single": 8000.0,
+      "effective_salt_rate": 0.1218,
+      "pct_itemizers": 0.215,
+      "avg_salt_deduction_itemizers": 24100.0,
+      "median_household_income": 72108.0,
+      "notes": "NYC local tax not included",
+      "rate_curve": [
+        {
+          "agi": 10000.0,
+          "federal_rate": 0.0,
+          "state_rate": 0.008,
+          "combined_rate": 0.008
+        },
+        {
+          "agi": 20000.0,
+          "federal_rate": 0.025,
+          "state_rate": 0.0249875,
+          "combined_rate": 0.049987500000000004
+        },
+        {
+          "agi": 30000.0,
+          "federal_rate": 0.05205,
+          "state_rate": 0.03585833333333333,
+          "combined_rate": 0.08790833333333334
+        },
+        {
+          "agi": 50000.0,
+          "federal_rate": 0.07923,
+          "state_rate": 0.046515,
+          "combined_rate": 0.125745
+        },
+        {
+          "agi": 75000.0,
+          "federal_rate": 0.10818666666666667,
+          "state_rate": 0.05184333333333333,
+          "combined_rate": 0.16003
+        },
+        {
+          "agi": 100000.0,
+          "federal_rate": 0.13614,
+          "state_rate": 0.0551885,
+          "combined_rate": 0.1913285
+        },
+        {
+          "agi": 150000.0,
+          "federal_rate": 0.16831333333333334,
+          "state_rate": 0.05962566666666667,
+          "combined_rate": 0.227939
+        },
+        {
+          "agi": 200000.0,
+          "federal_rate": 0.186235,
+          "state_rate": 0.06184425,
+          "combined_rate": 0.24807925000000003
+        },
+        {
+          "agi": 300000.0,
+          "federal_rate": 0.23099083333333334,
+          "state_rate": 0.07121216666666667,
+          "combined_rate": 0.302203
+        },
+        {
+          "agi": 500000.0,
+          "federal_rate": 0.2785945,
+          "state_rate": 0.0813273,
+          "combined_rate": 0.3599218
+        },
+        {
+          "agi": 750000.0,
+          "federal_rate": 0.3052936666666667,
+          "state_rate": 0.08638486666666667,
+          "combined_rate": 0.39167853333333336
+        },
+        {
+          "agi": 1000000.0,
+          "federal_rate": 0.32147025,
+          "state_rate": 0.08891365000000001,
+          "combined_rate": 0.4103839
+        }
+      ],
+      "salt_cap_lift": {
+        "affected_filers_millions": 2.107,
+        "avg_deduction_change": 14100.0,
+        "federal_revenue_change_billions": -7.130088000000001,
+        "effective_rate_change_ppts": -1.7102539419087137
+      }
+    },
+    {
+      "code": "PA",
+      "name": "Pennsylvania",
+      "has_income_tax": true,
+      "flat_rate": 0.0307,
+      "top_rate": 0.0307,
+      "std_ded_single": 0.0,
+      "effective_salt_rate": 0.0891,
+      "pct_itemizers": 0.123,
+      "avg_salt_deduction_itemizers": 12400.0,
+      "median_household_income": 63463.0,
+      "notes": "Flat rate state; no standard deduction",
+      "rate_curve": [
+        {
+          "agi": 10000.0,
+          "federal_rate": 0.0,
+          "state_rate": 0.0307,
+          "combined_rate": 0.0307
+        },
+        {
+          "agi": 20000.0,
+          "federal_rate": 0.025,
+          "state_rate": 0.0307,
+          "combined_rate": 0.0557
+        },
+        {
+          "agi": 30000.0,
+          "federal_rate": 0.05205,
+          "state_rate": 0.0307,
+          "combined_rate": 0.08275
+        },
+        {
+          "agi": 50000.0,
+          "federal_rate": 0.07923,
+          "state_rate": 0.0307,
+          "combined_rate": 0.10993
+        },
+        {
+          "agi": 75000.0,
+          "federal_rate": 0.10818666666666667,
+          "state_rate": 0.0307,
+          "combined_rate": 0.13888666666666666
+        },
+        {
+          "agi": 100000.0,
+          "federal_rate": 0.13614,
+          "state_rate": 0.0307,
+          "combined_rate": 0.16684000000000002
+        },
+        {
+          "agi": 150000.0,
+          "federal_rate": 0.16831333333333334,
+          "state_rate": 0.0307,
+          "combined_rate": 0.19901333333333335
+        },
+        {
+          "agi": 200000.0,
+          "federal_rate": 0.186235,
+          "state_rate": 0.0307,
+          "combined_rate": 0.21693500000000002
+        },
+        {
+          "agi": 300000.0,
+          "federal_rate": 0.23099083333333334,
+          "state_rate": 0.0307,
+          "combined_rate": 0.2616908333333333
+        },
+        {
+          "agi": 500000.0,
+          "federal_rate": 0.2785945,
+          "state_rate": 0.0307,
+          "combined_rate": 0.3092945
+        },
+        {
+          "agi": 750000.0,
+          "federal_rate": 0.3052936666666667,
+          "state_rate": 0.0307,
+          "combined_rate": 0.3359936666666667
+        },
+        {
+          "agi": 1000000.0,
+          "federal_rate": 0.32147025,
+          "state_rate": 0.0307,
+          "combined_rate": 0.35217025
+        }
+      ],
+      "salt_cap_lift": {
+        "affected_filers_millions": 0.6245693999999999,
+        "avg_deduction_change": 2400.0,
+        "federal_revenue_change_billions": -0.3597519743999999,
+        "effective_rate_change_ppts": -0.413883870967742
+      }
+    },
+    {
+      "code": "IL",
+      "name": "Illinois",
+      "has_income_tax": true,
+      "flat_rate": 0.0495,
+      "top_rate": 0.0495,
+      "std_ded_single": 0.0,
+      "effective_salt_rate": 0.0978,
+      "pct_itemizers": 0.134,
+      "avg_salt_deduction_itemizers": 14600.0,
+      "median_household_income": 72205.0,
+      "notes": "Flat rate; personal exemption per filer",
+      "rate_curve": [
+        {
+          "agi": 10000.0,
+          "federal_rate": 0.0,
+          "state_rate": 0.03749625,
+          "combined_rate": 0.03749625
+        },
+        {
+          "agi": 20000.0,
+          "federal_rate": 0.025,
+          "state_rate": 0.043498125000000006,
+          "combined_rate": 0.068498125
+        },
+        {
+          "agi": 30000.0,
+          "federal_rate": 0.05205,
+          "state_rate": 0.045498750000000004,
+          "combined_rate": 0.09754875
+        },
+        {
+          "agi": 50000.0,
+          "federal_rate": 0.07923,
+          "state_rate": 0.04709925,
+          "combined_rate": 0.12632925
+        },
+        {
+          "agi": 75000.0,
+          "federal_rate": 0.10818666666666667,
+          "state_rate": 0.047899500000000005,
+          "combined_rate": 0.15608616666666666
+        },
+        {
+          "agi": 100000.0,
+          "federal_rate": 0.13614,
+          "state_rate": 0.048299625000000006,
+          "combined_rate": 0.18443962500000002
+        },
+        {
+          "agi": 150000.0,
+          "federal_rate": 0.16831333333333334,
+          "state_rate": 0.04869975000000001,
+          "combined_rate": 0.21701308333333336
+        },
+        {
+          "agi": 200000.0,
+          "federal_rate": 0.186235,
+          "state_rate": 0.0488998125,
+          "combined_rate": 0.2351348125
+        },
+        {
+          "agi": 300000.0,
+          "federal_rate": 0.23099083333333334,
+          "state_rate": 0.04909987500000001,
+          "combined_rate": 0.2800907083333333
+        },
+        {
+          "agi": 500000.0,
+          "federal_rate": 0.2785945,
+          "state_rate": 0.049259925,
+          "combined_rate": 0.327854425
+        },
+        {
+          "agi": 750000.0,
+          "federal_rate": 0.3052936666666667,
+          "state_rate": 0.04933995,
+          "combined_rate": 0.3546336166666667
+        },
+        {
+          "agi": 1000000.0,
+          "federal_rate": 0.32147025,
+          "state_rate": 0.0493799625,
+          "combined_rate": 0.3708502125
+        }
+      ],
+      "salt_cap_lift": {
+        "affected_filers_millions": 0.7757126,
+        "avg_deduction_change": 4600.0,
+        "federal_revenue_change_billions": -0.8563867104,
+        "effective_rate_change_ppts": -0.7395287671232879
+      }
+    },
+    {
+      "code": "OH",
+      "name": "Ohio",
+      "has_income_tax": true,
+      "flat_rate": null,
+      "top_rate": 0.035,
+      "std_ded_single": 0.0,
+      "effective_salt_rate": 0.0812,
+      "pct_itemizers": 0.108,
+      "avg_salt_deduction_itemizers": 10200.0,
+      "median_household_income": 60568.0,
+      "notes": "0% on first $26050; local municipal taxes not included",
+      "rate_curve": [
+        {
+          "agi": 10000.0,
+          "federal_rate": 0.0,
+          "state_rate": 0.0,
+          "combined_rate": 0.0
+        },
+        {
+          "agi": 20000.0,
+          "federal_rate": 0.025,
+          "state_rate": 0.0,
+          "combined_rate": 0.025
+        },
+        {
+          "agi": 30000.0,
+          "federal_rate": 0.05205,
+          "state_rate": 0.0014285833333333334,
+          "combined_rate": 0.05347858333333333
+        },
+        {
+          "agi": 50000.0,
+          "federal_rate": 0.07923,
+          "state_rate": 0.011917150000000001,
+          "combined_rate": 0.09114715
+        },
+        {
+          "agi": 75000.0,
+          "federal_rate": 0.10818666666666667,
+          "state_rate": 0.017161433333333333,
+          "combined_rate": 0.1253481
+        },
+        {
+          "agi": 100000.0,
+          "federal_rate": 0.13614,
+          "state_rate": 0.019783575,
+          "combined_rate": 0.155923575
+        },
+        {
+          "agi": 150000.0,
+          "federal_rate": 0.16831333333333334,
+          "state_rate": 0.024738116666666667,
+          "combined_rate": 0.19305145
+        },
+        {
+          "agi": 200000.0,
+          "federal_rate": 0.186235,
+          "state_rate": 0.027303587500000004,
+          "combined_rate": 0.21353858750000002
+        },
+        {
+          "agi": 300000.0,
+          "federal_rate": 0.23099083333333334,
+          "state_rate": 0.029869058333333337,
+          "combined_rate": 0.2608598916666667
+        },
+        {
+          "agi": 500000.0,
+          "federal_rate": 0.2785945,
+          "state_rate": 0.031921435000000005,
+          "combined_rate": 0.310515935
+        },
+        {
+          "agi": 750000.0,
+          "federal_rate": 0.3052936666666667,
+          "state_rate": 0.032947623333333335,
+          "combined_rate": 0.33824129000000003
+        },
+        {
+          "agi": 1000000.0,
+          "federal_rate": 0.32147025,
+          "state_rate": 0.03346071750000001,
+          "combined_rate": 0.3549309675
+        }
+      ],
+      "salt_cap_lift": {
+        "affected_filers_millions": 0.4153032,
+        "avg_deduction_change": 200.0,
+        "federal_revenue_change_billions": -0.0199345536,
+        "effective_rate_change_ppts": -0.038211764705882445
+      }
+    },
+    {
+      "code": "GA",
+      "name": "Georgia",
+      "has_income_tax": true,
+      "flat_rate": 0.0549,
+      "top_rate": 0.0549,
+      "std_ded_single": 5400.0,
+      "effective_salt_rate": 0.0691,
+      "pct_itemizers": 0.108,
+      "avg_salt_deduction_itemizers": 10800.0,
+      "median_household_income": 65030.0,
+      "notes": "Flat rate as of 2024; scheduled to drop to 4.99% by 2029",
+      "rate_curve": [
+        {
+          "agi": 10000.0,
+          "federal_rate": 0.0,
+          "state_rate": 0.025254,
+          "combined_rate": 0.025254
+        },
+        {
+          "agi": 20000.0,
+          "federal_rate": 0.025,
+          "state_rate": 0.040077,
+          "combined_rate": 0.065077
+        },
+        {
+          "agi": 30000.0,
+          "federal_rate": 0.05205,
+          "state_rate": 0.045017999999999996,
+          "combined_rate": 0.09706799999999999
+        },
+        {
+          "agi": 50000.0,
+          "federal_rate": 0.07923,
+          "state_rate": 0.0489708,
+          "combined_rate": 0.1282008
+        },
+        {
+          "agi": 75000.0,
+          "federal_rate": 0.10818666666666667,
+          "state_rate": 0.0509472,
+          "combined_rate": 0.15913386666666668
+        },
+        {
+          "agi": 100000.0,
+          "federal_rate": 0.13614,
+          "state_rate": 0.0519354,
+          "combined_rate": 0.1880754
+        },
+        {
+          "agi": 150000.0,
+          "federal_rate": 0.16831333333333334,
+          "state_rate": 0.0529236,
+          "combined_rate": 0.22123693333333333
+        },
+        {
+          "agi": 200000.0,
+          "federal_rate": 0.186235,
+          "state_rate": 0.0534177,
+          "combined_rate": 0.2396527
+        },
+        {
+          "agi": 300000.0,
+          "federal_rate": 0.23099083333333334,
+          "state_rate": 0.053911799999999996,
+          "combined_rate": 0.2849026333333333
+        },
+        {
+          "agi": 500000.0,
+          "federal_rate": 0.2785945,
+          "state_rate": 0.054307079999999994,
+          "combined_rate": 0.33290158000000003
+        },
+        {
+          "agi": 750000.0,
+          "federal_rate": 0.3052936666666667,
+          "state_rate": 0.05450472,
+          "combined_rate": 0.3597983866666667
+        },
+        {
+          "agi": 1000000.0,
+          "federal_rate": 0.32147025,
+          "state_rate": 0.05460354,
+          "combined_rate": 0.37607379
+        }
+      ],
+      "salt_cap_lift": {
+        "affected_filers_millions": 0.3790800000000001,
+        "avg_deduction_change": 800.0,
+        "federal_revenue_change_billions": -0.07278336,
+        "effective_rate_change_ppts": -0.12284444444444434
+      }
+    },
+    {
+      "code": "NC",
+      "name": "North Carolina",
+      "has_income_tax": true,
+      "flat_rate": 0.045,
+      "top_rate": 0.045,
+      "std_ded_single": 10750.0,
+      "effective_salt_rate": 0.0642,
+      "pct_itemizers": 0.097,
+      "avg_salt_deduction_itemizers": 9600.0,
+      "median_household_income": 62891.0,
+      "notes": "Flat rate for 2025",
+      "rate_curve": [
+        {
+          "agi": 10000.0,
+          "federal_rate": 0.0,
+          "state_rate": 0.0,
+          "combined_rate": 0.0
+        },
+        {
+          "agi": 20000.0,
+          "federal_rate": 0.025,
+          "state_rate": 0.0208125,
+          "combined_rate": 0.045812500000000006
+        },
+        {
+          "agi": 30000.0,
+          "federal_rate": 0.05205,
+          "state_rate": 0.028875,
+          "combined_rate": 0.080925
+        },
+        {
+          "agi": 50000.0,
+          "federal_rate": 0.07923,
+          "state_rate": 0.035325,
+          "combined_rate": 0.11455499999999999
+        },
+        {
+          "agi": 75000.0,
+          "federal_rate": 0.10818666666666667,
+          "state_rate": 0.03855,
+          "combined_rate": 0.14673666666666668
+        },
+        {
+          "agi": 100000.0,
+          "federal_rate": 0.13614,
+          "state_rate": 0.0401625,
+          "combined_rate": 0.1763025
+        },
+        {
+          "agi": 150000.0,
+          "federal_rate": 0.16831333333333334,
+          "state_rate": 0.041775,
+          "combined_rate": 0.21008833333333335
+        },
+        {
+          "agi": 200000.0,
+          "federal_rate": 0.186235,
+          "state_rate": 0.04258125,
+          "combined_rate": 0.22881625
+        },
+        {
+          "agi": 300000.0,
+          "federal_rate": 0.23099083333333334,
+          "state_rate": 0.0433875,
+          "combined_rate": 0.27437833333333334
+        },
+        {
+          "agi": 500000.0,
+          "federal_rate": 0.2785945,
+          "state_rate": 0.0440325,
+          "combined_rate": 0.322627
+        },
+        {
+          "agi": 750000.0,
+          "federal_rate": 0.3052936666666667,
+          "state_rate": 0.044355,
+          "combined_rate": 0.34964866666666666
+        },
+        {
+          "agi": 1000000.0,
+          "federal_rate": 0.32147025,
+          "state_rate": 0.04451625,
+          "combined_rate": 0.3659865
+        }
+      ],
+      "salt_cap_lift": {
+        "affected_filers_millions": 0.30263999999999996,
+        "avg_deduction_change": 0.0,
+        "federal_revenue_change_billions": -0.0,
+        "effective_rate_change_ppts": -0.0
+      }
+    },
+    {
+      "code": "MI",
+      "name": "Michigan",
+      "has_income_tax": true,
+      "flat_rate": 0.0405,
+      "top_rate": 0.0405,
+      "std_ded_single": 0.0,
+      "effective_salt_rate": 0.0712,
+      "pct_itemizers": 0.104,
+      "avg_salt_deduction_itemizers": 10100.0,
+      "median_household_income": 61295.0,
+      "notes": "Flat rate; personal exemption per filer",
+      "rate_curve": [
+        {
+          "agi": 10000.0,
+          "federal_rate": 0.0,
+          "state_rate": 0.017820000000000003,
+          "combined_rate": 0.017820000000000003
+        },
+        {
+          "agi": 20000.0,
+          "federal_rate": 0.025,
+          "state_rate": 0.029160000000000002,
+          "combined_rate": 0.05416
+        },
+        {
+          "agi": 30000.0,
+          "federal_rate": 0.05205,
+          "state_rate": 0.032940000000000004,
+          "combined_rate": 0.08499000000000001
+        },
+        {
+          "agi": 50000.0,
+          "federal_rate": 0.07923,
+          "state_rate": 0.035964,
+          "combined_rate": 0.11519399999999999
+        },
+        {
+          "agi": 75000.0,
+          "federal_rate": 0.10818666666666667,
+          "state_rate": 0.037476,
+          "combined_rate": 0.14566266666666666
+        },
+        {
+          "agi": 100000.0,
+          "federal_rate": 0.13614,
+          "state_rate": 0.038232,
+          "combined_rate": 0.17437200000000003
+        },
+        {
+          "agi": 150000.0,
+          "federal_rate": 0.16831333333333334,
+          "state_rate": 0.038988,
+          "combined_rate": 0.20730133333333334
+        },
+        {
+          "agi": 200000.0,
+          "federal_rate": 0.186235,
+          "state_rate": 0.039366,
+          "combined_rate": 0.225601
+        },
+        {
+          "agi": 300000.0,
+          "federal_rate": 0.23099083333333334,
+          "state_rate": 0.039744,
+          "combined_rate": 0.27073483333333337
+        },
+        {
+          "agi": 500000.0,
+          "federal_rate": 0.2785945,
+          "state_rate": 0.0400464,
+          "combined_rate": 0.3186409
+        },
+        {
+          "agi": 750000.0,
+          "federal_rate": 0.3052936666666667,
+          "state_rate": 0.0401976,
+          "combined_rate": 0.3454912666666667
+        },
+        {
+          "agi": 1000000.0,
+          "federal_rate": 0.32147025,
+          "state_rate": 0.0402732,
+          "combined_rate": 0.36174345
+        }
+      ],
+      "salt_cap_lift": {
+        "affected_filers_millions": 0.32772480000000004,
+        "avg_deduction_change": 100.0,
+        "federal_revenue_change_billions": -0.0078653952,
+        "effective_rate_change_ppts": -0.016918811881188114
+      }
+    }
+  ]
+}

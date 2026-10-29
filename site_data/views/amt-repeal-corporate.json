@@ -97,5 +97,39 @@
       7.802193506028662,
       8.80425931120952
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": 220.10648278023805,
+        "annual_billions": [
+          19.2,
+          19.776,
+          20.36928,
+          20.9803584,
+          21.609769152000002,
+          22.25806222656,
+          22.925804093356803,
+          23.613578216157507,
+          24.321985562642233,
+          25.0516451295215
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "Repeal Corporate AMT (AMTPolicy) does not map onto current microsim pilot reforms (income-tax rates, CTC, EITC, SALT, std deduction, AMT exemption)."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }

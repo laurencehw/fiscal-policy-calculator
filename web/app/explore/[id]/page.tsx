@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { YearChart } from "@/components/YearChart";
 import { preset, presets, views } from "@/lib/data";
 import { EconomicEffects } from "@/components/EconomicEffects";
+import { ScoringModels } from "@/components/ScoringModels";
 import { WhoPays } from "@/components/WhoPays";
 import { Checked, YearTable } from "@/components/ScoreParts";
 import { cleanLabel, direction, money, shortLabel } from "@/lib/format";
@@ -93,6 +94,13 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
               <span className="tag">difference from the CBO baseline</span>
             </div>
             <EconomicEffects econ={v.economic} />
+          </section>
+          <section className="chart" id="models">
+            <div className="head">
+              <h2>Other scoring models</h2>
+              <span className="tag">exploratory</span>
+            </div>
+            <ScoringModels view={v.models} />
           </section>
         </>
       ) : null}

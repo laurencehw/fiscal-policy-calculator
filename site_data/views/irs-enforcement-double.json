@@ -97,5 +97,39 @@
       -2.1725917833193975,
       -2.413990870354886
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": -60.349771758872166,
+        "annual_billions": [
+          -6.034977175887216,
+          -6.034977175887216,
+          -6.034977175887216,
+          -6.034977175887216,
+          -6.034977175887216,
+          -6.034977175887216,
+          -6.034977175887216,
+          -6.034977175887216,
+          -6.034977175887216,
+          -6.034977175887216
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "Double IRS Enforcement (IRSEnforcementPolicy) does not map onto current microsim pilot reforms (income-tax rates, CTC, EITC, SALT, std deduction, AMT exemption)."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }

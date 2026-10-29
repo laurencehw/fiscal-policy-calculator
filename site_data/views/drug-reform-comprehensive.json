@@ -97,5 +97,39 @@
       -5.718880665683105,
       -6.3543118507590055
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": -158.85779626897514,
+        "annual_billions": [
+          -15.885779626897515,
+          -15.885779626897515,
+          -15.885779626897515,
+          -15.885779626897515,
+          -15.885779626897515,
+          -15.885779626897515,
+          -15.885779626897515,
+          -15.885779626897515,
+          -15.885779626897515,
+          -15.885779626897515
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "Comprehensive Drug Pricing Reform (DrugPricingPolicy) does not map onto current microsim pilot reforms (income-tax rates, CTC, EITC, SALT, std deduction, AMT exemption)."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }

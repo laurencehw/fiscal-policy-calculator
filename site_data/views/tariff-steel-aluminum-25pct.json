@@ -97,5 +97,39 @@
       -7.737925923920267,
       -8.597695471022519
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": -214.94238677556297,
+        "annual_billions": [
+          -21.494238677556297,
+          -21.494238677556297,
+          -21.494238677556297,
+          -21.494238677556297,
+          -21.494238677556297,
+          -21.494238677556297,
+          -21.494238677556297,
+          -21.494238677556297,
+          -21.494238677556297,
+          -21.494238677556297
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "25% Steel/Aluminum Tariff (TariffPolicy) does not map onto current microsim pilot reforms (income-tax rates, CTC, EITC, SALT, std deduction, AMT exemption)."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }

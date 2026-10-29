@@ -466,5 +466,39 @@
       -6.201016139256434,
       -6.997436559452646
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": -174.93591398631614,
+        "annual_billions": [
+          -15.25974840046298,
+          -15.71754085247687,
+          -16.189067078051174,
+          -16.674739090392713,
+          -17.174981263104495,
+          -17.690230700997628,
+          -18.22093762202756,
+          -18.767565750688384,
+          -19.330592723209037,
+          -19.91051050490531
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "Cap Charitable Deduction at 28% (TaxExpenditurePolicy) does not map onto current microsim pilot reforms (income-tax rates, CTC, EITC, SALT, std deduction, AMT exemption)."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }

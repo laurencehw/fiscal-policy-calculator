@@ -97,5 +97,39 @@
       -20.756034662796022,
       -23.062260736440027
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": -576.5565184110008,
+        "annual_billions": [
+          -57.65565184110008,
+          -57.65565184110008,
+          -57.65565184110008,
+          -57.65565184110008,
+          -57.65565184110008,
+          -57.65565184110008,
+          -57.65565184110008,
+          -57.65565184110008,
+          -57.65565184110008,
+          -57.65565184110008
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "25% Auto Tariff (TariffPolicy) does not map onto current microsim pilot reforms (income-tax rates, CTC, EITC, SALT, std deduction, AMT exemption)."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }

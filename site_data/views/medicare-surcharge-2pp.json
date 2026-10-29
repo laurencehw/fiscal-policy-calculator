@@ -466,5 +466,54 @@
       -15.505013911490792,
       -17.572618891481643
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": -439.31547228704113,
+        "annual_billions": [
+          -36.635489859073864,
+          -38.258374764999616,
+          -39.80937133586242,
+          -41.3530183005846,
+          -42.93858098782751,
+          -44.57168643979256,
+          -46.252564331671636,
+          -47.9974067644933,
+          -49.80885500296434,
+          -51.69012449977128
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      },
+      {
+        "model": "TPC-Microsim Pilot",
+        "ten_year_billions": -273.5241432001372,
+        "annual_billions": [
+          -27.352414320013718,
+          -27.352414320013718,
+          -27.352414320013718,
+          -27.352414320013718,
+          -27.352414320013718,
+          -27.352414320013718,
+          -27.352414320013718,
+          -27.352414320013718,
+          -27.352414320013718,
+          -27.352414320013718
+        ],
+        "methodology": "Single-year CPS-style microsimulation with flat-horizon annualization and quintile distribution output.",
+        "confidence": "pilot",
+        "notes": [
+          "Default microdata is already SOI-calibrated (top tail included); no separate top-tail augmentation applied.",
+          "Maps to microsim reforms: income_rate_change, income_rate_change_threshold.",
+          "Income-tax rate changes are applied to ordinary taxable income above the policy threshold ($400,000) in the pilot microsim."
+        ]
+      }
+    ],
+    "skipped": [],
+    "blockers": [],
+    "warnings": []
   }
 }

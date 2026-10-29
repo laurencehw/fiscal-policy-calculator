@@ -466,5 +466,39 @@
       -15.848794257060382,
       -17.980346027342797
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": -449.50865068356995,
+        "annual_billions": [
+          -37.44,
+          -38.9376,
+          -40.495104000000005,
+          -42.114908160000006,
+          -43.799504486400004,
+          -45.551484665856,
+          -47.373544052490246,
+          -49.26848581458986,
+          -51.23922524717345,
+          -53.288794257060395
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "Cap Employer Health Exclusion at $50K (TaxExpenditurePolicy) does not map onto current microsim pilot reforms (income-tax rates, CTC, EITC, SALT, std deduction, AMT exemption)."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }

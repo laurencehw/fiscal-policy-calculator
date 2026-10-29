@@ -97,5 +97,39 @@
       -28.188,
       -31.319999999999997
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": -783.0,
+        "annual_billions": [
+          -78.3,
+          -78.3,
+          -78.3,
+          -78.3,
+          -78.3,
+          -78.3,
+          -78.3,
+          -78.3,
+          -78.3,
+          -78.3
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "Repeal IRA Clean Energy Credits (ClimateEnergyPolicy) does not map onto current microsim pilot reforms (income-tax rates, CTC, EITC, SALT, std deduction, AMT exemption)."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }
