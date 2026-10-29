@@ -7,7 +7,7 @@
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": 740.3092628941015,
     "static_revenue_effect": -705.0564408515253,
-    "behavioral_offset": 35.25282204257626,
+    "behavioral_offset": 35.25282204257627,
     "final_static_effect": -740.3092628941015,
     "gdp_effect": null,
     "employment_effect": null,
@@ -18,10 +18,10 @@
     "year_by_year": [
       {
         "year": 2026,
-        "revenue_effect": -49.62926795215105,
-        "behavioral_offset": 2.4814633976075524,
+        "revenue_effect": -49.629267952151054,
+        "behavioral_offset": 2.481463397607553,
         "dynamic_feedback": 0.0,
-        "final_effect": 52.1107313497586,
+        "final_effect": 52.11073134975861,
         "debt_service": null,
         "dynamic_effect": null
       },
@@ -152,7 +152,7 @@
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": 740.3092628941015,
     "static_revenue_effect": -705.0564408515253,
-    "behavioral_offset": 35.25282204257626,
+    "behavioral_offset": 35.25282204257627,
     "final_static_effect": -740.3092628941015,
     "gdp_effect": 0.7669661345897812,
     "employment_effect": 49.08583261374599,
@@ -163,12 +163,12 @@
     "year_by_year": [
       {
         "year": 2026,
-        "revenue_effect": -49.62926795215105,
-        "behavioral_offset": 2.4814633976075524,
+        "revenue_effect": -49.629267952151054,
+        "behavioral_offset": 2.481463397607553,
         "dynamic_feedback": 9.048095367760329,
-        "final_effect": 52.1107313497586,
-        "debt_service": 2.084429253990344,
-        "dynamic_effect": 45.14706523598861
+        "final_effect": 52.11073134975861,
+        "debt_service": 2.0844292539903444,
+        "dynamic_effect": 45.14706523598863
       },
       {
         "year": 2027,
@@ -176,7 +176,7 @@
         "behavioral_offset": 2.5783508904552033,
         "dynamic_feedback": 10.435709830895496,
         "final_effect": 54.14536869955927,
-        "debt_service": 4.250244001972715,
+        "debt_service": 4.250244001972716,
         "dynamic_effect": 47.95990287063649
       },
       {

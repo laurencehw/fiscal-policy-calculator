@@ -43,7 +43,7 @@
   "by_category": {
     "TCJA": {
       "n": 3,
-      "mean_abs_percent_difference": 19.53888452810086,
+      "mean_abs_percent_difference": 19.538884528100862,
       "within_15pct": 2,
       "ratings": {
         "Excellent": 1,
@@ -199,10 +199,10 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2024-05",
       "benchmark_url": "https://www.cbo.gov/publication/60271",
-      "model_10yr_billions": 4581.937589425783,
-      "difference_billions": -18.06241057421721,
-      "percent_difference": -0.3926610994395046,
-      "abs_percent_difference": 0.3926610994395046,
+      "model_10yr_billions": 4581.937589425782,
+      "difference_billions": -18.06241057421812,
+      "percent_difference": -0.3926610994395244,
+      "abs_percent_difference": 0.3926610994395244,
       "rating": "Excellent",
       "direction_match": true,
       "known_limitations": [
@@ -3837,10 +3837,10 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2022-12",
       "benchmark_url": "https://www.cbo.gov/publication/58164",
-      "model_10yr_billions": -659.8906777842396,
-      "difference_billions": -8.490677784239665,
-      "percent_difference": -1.303450688400317,
-      "abs_percent_difference": 1.303450688400317,
+      "model_10yr_billions": -659.8906777842398,
+      "difference_billions": -8.490677784239779,
+      "percent_difference": -1.3034506884003345,
+      "abs_percent_difference": 1.3034506884003345,
       "rating": "Excellent",
       "direction_match": true,
       "known_limitations": [],

@@ -8,7 +8,7 @@
         "engine": "microsim",
         "unit": "tax_unit",
         "year": 2026,
-        "total_tax_change_billions": 9.88625802956649,
+        "total_tax_change_billions": 9.886258029566488,
         "pct_with_increase": 0.04959088040275206,
         "pct_with_decrease": 0.0,
         "groups": [
@@ -35,8 +35,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.03476535974953495,
-            "new_etr": 0.03476535974953495
+            "baseline_etr": 0.034765359749534964,
+            "new_etr": 0.034765359749534964
           },
           {
             "name": "Middle Quintile",
@@ -61,21 +61,21 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.09863288962190418,
-            "new_etr": 0.09863288962190418
+            "baseline_etr": 0.09863288962190417,
+            "new_etr": 0.09863288962190417
           },
           {
             "name": "Top Quintile",
             "floor": 170000.0,
             "ceiling": null,
             "returns_millions": 18.346013,
-            "avg_tax_change": 538.8777287501085,
-            "pct_of_income": 0.15962021622299188,
+            "avg_tax_change": 538.8777287501084,
+            "pct_of_income": 0.15962021622299186,
             "share_of_total": 1.0,
             "pct_with_increase": 0.4341215626019728,
             "pct_with_decrease": 0.0,
             "baseline_etr": 0.20325767188944574,
-            "new_etr": 0.20452943371631593
+            "new_etr": 0.20452943371631588
           }
         ]
       },
@@ -83,7 +83,7 @@
         "engine": "microsim",
         "unit": "tax_unit",
         "year": 2026,
-        "total_tax_change_billions": 9.88625802956649,
+        "total_tax_change_billions": 9.886258029566486,
         "pct_with_increase": 0.04959087779041329,
         "pct_with_decrease": 0.0,
         "groups": [
@@ -123,8 +123,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.0005939159222174334,
-            "new_etr": 0.0005939159222174334
+            "baseline_etr": 0.0005939159222174335,
+            "new_etr": 0.0005939159222174335
           },
           {
             "name": "4th Decile",
@@ -209,8 +209,8 @@
             "floor": 220000.0,
             "ceiling": null,
             "returns_millions": 11.276004,
-            "avg_tax_change": 876.7518327555297,
-            "pct_of_income": 0.1971415988062841,
+            "avg_tax_change": 876.7518327555293,
+            "pct_of_income": 0.197141598806284,
             "share_of_total": 1.0,
             "pct_with_increase": 0.7063139843110419,
             "pct_with_decrease": 0.0,
@@ -223,8 +223,8 @@
         "engine": "microsim",
         "unit": "tax_unit",
         "year": 2026,
-        "total_tax_change_billions": 9.88625802956649,
-        "pct_with_increase": 0.04959088084938889,
+        "total_tax_change_billions": 9.886258029566486,
+        "pct_with_increase": 0.0495908808493889,
         "pct_with_decrease": 0.0,
         "groups": [
           {
@@ -263,8 +263,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": -0.026891968140422964,
-            "new_etr": -0.026891968140422964
+            "baseline_etr": -0.02689196814042297,
+            "new_etr": -0.02689196814042297
           },
           {
             "name": "$30K-$40K",
@@ -276,8 +276,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.00145417563098377,
-            "new_etr": 0.00145417563098377
+            "baseline_etr": 0.001454175630983771,
+            "new_etr": 0.001454175630983771
           },
           {
             "name": "$40K-$50K",
@@ -289,8 +289,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.030809883358346567,
-            "new_etr": 0.030809883358346567
+            "baseline_etr": 0.030809883358346574,
+            "new_etr": 0.030809883358346574
           },
           {
             "name": "$50K-$75K",
@@ -328,8 +328,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.10296852608261944,
-            "new_etr": 0.10296852608261944
+            "baseline_etr": 0.10296852608261947,
+            "new_etr": 0.10296852608261947
           },
           {
             "name": "$200K-$500K",
@@ -362,13 +362,13 @@
             "floor": 1000000.0,
             "ceiling": null,
             "returns_millions": 0.799094,
-            "avg_tax_change": 12371.833638113649,
-            "pct_of_income": 0.5307462689400838,
+            "avg_tax_change": 12371.833638113645,
+            "pct_of_income": 0.5307462689400837,
             "share_of_total": 1.0,
-            "pct_with_increase": 9.966787389204132,
+            "pct_with_increase": 9.966787389204134,
             "pct_with_decrease": 0.0,
             "baseline_etr": 0.26738292189547,
-            "new_etr": 0.2712712597031277
+            "new_etr": 0.27127125970312765
           }
         ]
       }
@@ -490,18 +490,18 @@
       },
       {
         "model": "TPC-Microsim Pilot",
-        "ten_year_billions": -119.53112268465543,
+        "ten_year_billions": -119.53112268465534,
         "annual_billions": [
-          -11.953112268465542,
-          -11.953112268465542,
-          -11.953112268465542,
-          -11.953112268465542,
-          -11.953112268465542,
-          -11.953112268465542,
-          -11.953112268465542,
-          -11.953112268465542,
-          -11.953112268465542,
-          -11.953112268465542
+          -11.953112268465535,
+          -11.953112268465535,
+          -11.953112268465535,
+          -11.953112268465535,
+          -11.953112268465535,
+          -11.953112268465535,
+          -11.953112268465535,
+          -11.953112268465535,
+          -11.953112268465535,
+          -11.953112268465535
         ],
         "methodology": "Single-year CPS-style microsimulation with flat-horizon annualization and quintile distribution output.",
         "confidence": "pilot",
