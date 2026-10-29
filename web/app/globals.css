@@ -150,3 +150,16 @@ details > summary { cursor: pointer; margin-top: 16px; font-family: var(--label)
 .buildtotal { border-top: 2px solid var(--ink); padding-top: 12px; display: grid; gap: 10px; background: var(--paper); }
 .buildtotal .big { font-size: 34px; margin: 0; }
 .buildtotal button { justify-self: start; font: inherit; font-size: 14px; background: none; border: 1px solid var(--rule); padding: 4px 12px; cursor: pointer; color: inherit; }
+
+/* Tailor. */
+.tailorform { display: grid; gap: 16px; max-width: 34rem; margin-bottom: 32px; }
+.tailorform fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 6px; }
+.tailorform legend, .tailorform .field span { font-family: var(--label); font-variant-caps: all-small-caps; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; padding: 0; margin-bottom: 4px; }
+.tailorform .field { display: grid; gap: 4px; }
+.tailorform input[type="number"], .tailorform select { font: inherit; font-family: var(--data); padding: 6px 8px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); max-width: 16rem; }
+.tailorform button { justify-self: start; font: inherit; font-family: var(--label); padding: 8px 18px; border: 1px solid var(--ink); background: var(--ink); color: var(--paper); cursor: pointer; }
+.tailorform button:disabled { opacity: 0.6; cursor: default; }
+.note.warn { color: var(--warn); }
+.tailorresult { display: grid; gap: 20px; min-width: 0; }
+.tailorresult > * { min-width: 0; }
+.tailorresult > h2 { margin: 0; }

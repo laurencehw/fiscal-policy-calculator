@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { YearChart } from "@/components/YearChart";
 import { preset, presets } from "@/lib/data";
-import { cleanLabel, direction, money, pct, shortLabel } from "@/lib/format";
+import { Checked, YearTable } from "@/components/ScoreParts";
+import { cleanLabel, direction, money, shortLabel } from "@/lib/format";
 import { siteUrl } from "@/lib/site";
-import type { Credibility, ScoreResult } from "@/lib/types";
 
 export const dynamicParams = false;
 
@@ -22,65 +22,6 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     description: `${money(c.ten_year_deficit_impact)} over ${c.budget_window}: ${direction(c.ten_year_deficit_impact)}. ${cleanLabel(c.policy_description)}`.slice(0, 199),
     alternates: { canonical: `/explore/${id}` },
   };
-}
-
-function Checked({ cred }: { cred: Credibility | null }) {
-  if (!cred) return null;
-  return (
-    <section className="checked" aria-label="Checked against">
-      <span className="tag">Checked against</span>
-      {cred.own_row_official_billions === null ? (
-        <p>No published score for this exact policy is on file.</p>
-      ) : (
-        <p>
-          Published score {money(cred.own_row_official_billions)}
-          {cred.own_row_abs_pct_error === null ? "" : `; this estimate is ${pct(cred.own_row_abs_pct_error)} away`}
-          {cred.own_row_tier_label ? ` (${cred.own_row_tier_label.toLowerCase()})` : ""}. {cred.own_row_caption}
-        </p>
-      )}
-      {cred.uncertainty_low !== null && cred.uncertainty_high !== null ? (
-        <p>
-          Typical error for this kind of policy: {money(cred.uncertainty_low)} to {money(cred.uncertainty_high)}
-          {cred.class_label ? `, from ${cred.n_tier1_rows} out-of-sample ${cred.class_label} cases` : ""}.
-        </p>
-      ) : null}
-      <p className="note">{cred.caption}</p>
-    </section>
-  );
-}
-
-function Table({ c, d }: { c: ScoreResult; d: ScoreResult }) {
-  return (
-    <div className="tablewrap">
-      <table className="sheet">
-        <thead>
-          <tr>
-            <th>Fiscal year</th>
-            <th>Revenue</th>
-            <th>Deficit, conventional</th>
-            <th>Macro feedback</th>
-            <th>Debt service</th>
-            <th>Deficit, dynamic</th>
-          </tr>
-        </thead>
-        <tbody>
-          {c.year_by_year.map((row, i) => {
-            const dyn = d.year_by_year[i];
-            return (
-              <tr key={row.year}>
-                <td>{row.year}</td>
-                <td>{money(row.revenue_effect)}</td>
-                <td>{money(row.final_effect)}</td>
-                <td>{money(dyn?.dynamic_feedback ?? 0)}</td>
-                <td>{dyn?.debt_service == null ? "" : money(dyn.debt_service)}</td>
-                <td>{dyn?.dynamic_effect == null ? "" : money(dyn.dynamic_effect)}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
 }
 
 export default async function PresetPage({ params }: { params: Promise<{ id: string }> }) {
@@ -126,7 +67,7 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
           rows={c.year_by_year.map((row) => ({ year: row.year, value: row.final_effect }))}
           label={`Annual deficit effect of ${name}, ${c.budget_window}`}
         />
-        <Table c={c} d={d} />
+        <YearTable c={c} d={d} />
         <p className="foot">
           <a href={`/explore/${id}/csv`} download>
             Download CSV

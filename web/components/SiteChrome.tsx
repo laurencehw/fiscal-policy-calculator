@@ -18,6 +18,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
         <span className="sectionlinks">
           <NavLink href="/explore">Explore</NavLink>
           <NavLink href="/build">Build</NavLink>
+          <NavLink href="/tailor">Tailor</NavLink>
           <NavLink href="/tracker">Bill tracker</NavLink>
         </span>
       </nav>
