@@ -205,3 +205,5 @@ section.values { display: grid; gap: 12px; }
 .seg { display: flex; flex-wrap: wrap; gap: 0; }
 .seg button { font: inherit; font-family: var(--label); font-size: 14px; background: none; border: 1px solid var(--rule); padding: 4px 12px; cursor: pointer; color: var(--muted); margin-right: -1px; }
 .seg button[aria-pressed="true"] { color: var(--paper); background: var(--ink); border-color: var(--ink); }
+table.sheet.words td.num { text-align: right; white-space: nowrap; }
+table.sheet.words td .cite { display: block; margin-top: 4px; font-size: 13px; }

@@ -466,5 +466,39 @@
       57.6,
       64.0
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": 1600.0,
+        "annual_billions": [
+          160.0,
+          160.0,
+          160.0,
+          160.0,
+          160.0,
+          160.0,
+          160.0,
+          160.0,
+          160.0,
+          160.0
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "Biden CTC 2021 (ARP-style) (TaxCreditPolicy) does not map onto current microsim pilot reforms (income-tax rates, CTC, EITC, SALT, std deduction, AMT exemption)."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }

@@ -95,11 +95,12 @@ def score_preset_payload(preset_id: str, *, dynamic: bool) -> dict[str, Any]:
     return response.model_dump(mode="json")
 
 
-def preset_views_payload(preset_id: str) -> dict[str, Any]:
-    """Who pays and economic effects for ``preset_id``, scored as ``/score/preset`` scores it."""
+def preset_views_payload(preset_id: str, comparison_models: dict[bool, Any] | None = None) -> dict[str, Any]:
+    """Who pays, economic effects and other models for ``preset_id``, scored as ``/score/preset`` scores it."""
     import api
+    from fiscal_model.models.comparison import build_default_comparison_models
     from fiscal_model.preset_ids import resolve_preset
-    from fiscal_model.result_views import distribution_view, economic_view
+    from fiscal_model.result_views import distribution_view, economic_view, models_view
 
     label = resolve_preset(preset_id) or preset_id
     policy, use_real_data = api._build_preset_policy(label)
@@ -108,10 +109,14 @@ def preset_views_payload(preset_id: str) -> dict[str, Any]:
         use_real_data=use_real_data,
     )
     result = scorer.score_policy(policy, dynamic=False)
+    cache = comparison_models if comparison_models is not None else {}
+    if use_real_data not in cache:
+        cache[use_real_data] = build_default_comparison_models(api.FiscalPolicyScorer, use_real_data=use_real_data)
     return {
         "id": preset_id,
         "distribution": distribution_view(policy),
         "economic": economic_view(policy, result),
+        "models": models_view(policy, cache[use_real_data]),
     }
 
 
@@ -347,6 +352,7 @@ def export(out: Path) -> dict[str, Any]:
     _write(out / "presets" / "index.json", index)
 
     vintages: set[str] = set()
+    comparison_models: dict[bool, Any] = {}
     windows: set[str] = set()
     for preset in index["presets"]:
         conventional = score_preset_payload(preset["id"], dynamic=False)
@@ -357,7 +363,7 @@ def export(out: Path) -> dict[str, Any]:
             out / "presets" / f"{preset['id']}.json",
             {"id": preset["id"], "conventional": conventional, "dynamic": dynamic},
         )
-        _write(out / "views" / f"{preset['id']}.json", preset_views_payload(preset["id"]))
+        _write(out / "views" / f"{preset['id']}.json", preset_views_payload(preset["id"], comparison_models))
 
     catalog = build_catalog_payload()
     _write(out / "build-catalog.json", catalog)
@@ -370,6 +376,10 @@ def export(out: Path) -> dict[str, Any]:
     _write(out / "tracker" / "scored.json", tracker_scored, compact=True)
     values = values_payload()
     _write(out / "values.json", values)
+    from fiscal_model.result_views import states_view
+
+    states = states_view()
+    _write(out / "states.json", states)
     social_security = social_security_payload()
     _write(out / "social-security.json", social_security, compact=True)
     _write(
@@ -390,6 +400,7 @@ def export(out: Path) -> dict[str, Any]:
         "tracker_last_update": tracker_index["last_update"],
         "values_archetypes": len(values["archetypes"]),
         "social_security_options": len(social_security["provisions"]),
+        "states": len(states["states"]),
         "sign_convention": (
             "Billions of dollars over the budget window; positive increases "
             "the deficit, negative reduces it."

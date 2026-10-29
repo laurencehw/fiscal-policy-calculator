@@ -466,5 +466,39 @@
       -97.2,
       -108.0
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": -2700.0,
+        "annual_billions": [
+          -270.0,
+          -270.0,
+          -270.0,
+          -270.0,
+          -270.0,
+          -270.0,
+          -270.0,
+          -270.0,
+          -270.0,
+          -270.0
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "OASDI wage-cap / donut-hole reforms are not in the microsim tax calculator (NIIT-only payroll edges may map in a later sprint)."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildCatalog, evidence, scorecardEntries, tierOf, manifest, preset, presets, presetsByArea, scoreSchema, trackerGroups, trackerIndex, views, yearCsv } from "./data";
+import { buildCatalog, evidence, scorecardEntries, tierOf, manifest, preset, presets, presetsByArea, scoreSchema, trackerGroups, trackerIndex, statesData, views, yearCsv } from "./data";
 
 test("every listed preset has its file, in both modes", () => {
   const list = presets();
@@ -111,4 +111,18 @@ test("every preset has who-pays and economic views", () => {
     }
   }
   assert.ok(tables > 10);
+});
+
+test("every views file carries the model comparison, led by the headline model", () => {
+  for (const info of presets()) {
+    const m = views(info.id)!.models;
+    assert.equal(m.results[0]?.model, "CBO-Style", info.id);
+    assert.ok(Math.abs(m.results[0].ten_year_billions - preset(info.id)!.conventional.ten_year_deficit_impact) < 0.01, info.id);
+  }
+});
+
+test("the states file covers the ten modelled states", () => {
+  const s = statesData();
+  assert.equal(s.states.length, 10);
+  assert.ok(s.states.every((x) => x.rate_curve.length > 0));
 });

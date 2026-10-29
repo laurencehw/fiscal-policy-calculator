@@ -97,5 +97,39 @@
       0.2505198461538462,
       0.27835538461538467
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": 6.958884615384616,
+        "annual_billions": [
+          0.6958884615384615,
+          0.6958884615384615,
+          0.6958884615384615,
+          0.6958884615384615,
+          0.6958884615384615,
+          0.6958884615384615,
+          0.6958884615384615,
+          0.6958884615384615,
+          0.6958884615384615,
+          0.6958884615384615
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "Universal Insulin Cap ($35) (DrugPricingPolicy) does not map onto current microsim pilot reforms (income-tax rates, CTC, EITC, SALT, std deduction, AMT exemption)."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }

@@ -97,5 +97,39 @@
       -28.83770240852037,
       -32.04189156502263
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": -801.047289125566,
+        "annual_billions": [
+          -80.1047289125566,
+          -80.1047289125566,
+          -80.1047289125566,
+          -80.1047289125566,
+          -80.1047289125566,
+          -80.1047289125566,
+          -80.1047289125566,
+          -80.1047289125566,
+          -80.1047289125566,
+          -80.1047289125566
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "International Reference Pricing (DrugPricingPolicy) does not map onto current microsim pilot reforms (income-tax rates, CTC, EITC, SALT, std deduction, AMT exemption)."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }

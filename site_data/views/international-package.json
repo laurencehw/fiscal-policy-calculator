@@ -97,5 +97,39 @@
       -12.733577999999998,
       -14.148419999999996
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": -353.71049999999997,
+        "annual_billions": [
+          -35.37105,
+          -35.37105,
+          -35.37105,
+          -35.37105,
+          -35.37105,
+          -35.37105,
+          -35.37105,
+          -35.37105,
+          -35.37105,
+          -35.37105
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "GILTI / FDII / Pillar Two are firm-level international provisions."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }

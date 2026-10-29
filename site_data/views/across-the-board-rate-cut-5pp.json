@@ -466,5 +466,54 @@
       226.7589705551496,
       256.99744563513406
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": 6424.936140878351,
+        "annual_billions": [
+          535.7896493127662,
+          559.5241465984786,
+          582.2072855979716,
+          604.7829374883302,
+          627.9716017979702,
+          651.8555733448226,
+          676.4382111010477,
+          701.9563226039571,
+          728.448536033396,
+          755.9618769996105
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      },
+      {
+        "model": "TPC-Microsim Pilot",
+        "ten_year_billions": 5413.359897592558,
+        "annual_billions": [
+          541.3359897592558,
+          541.3359897592558,
+          541.3359897592558,
+          541.3359897592558,
+          541.3359897592558,
+          541.3359897592558,
+          541.3359897592558,
+          541.3359897592558,
+          541.3359897592558,
+          541.3359897592558
+        ],
+        "methodology": "Single-year CPS-style microsimulation with flat-horizon annualization and quintile distribution output.",
+        "confidence": "pilot",
+        "notes": [
+          "Default microdata is already SOI-calibrated (top tail included); no separate top-tail augmentation applied.",
+          "Maps to microsim reforms: income_rate_change, income_rate_change_threshold.",
+          "Income-tax rate changes are applied to every ordinary bracket (threshold $0) in the pilot microsim."
+        ]
+      }
+    ],
+    "skipped": [],
+    "blockers": [],
+    "warnings": []
   }
 }

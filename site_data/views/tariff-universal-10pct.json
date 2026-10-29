@@ -97,5 +97,39 @@
       -49.7150929897985,
       -55.23899221088722
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": -1380.9748052721804,
+        "annual_billions": [
+          -138.09748052721804,
+          -138.09748052721804,
+          -138.09748052721804,
+          -138.09748052721804,
+          -138.09748052721804,
+          -138.09748052721804,
+          -138.09748052721804,
+          -138.09748052721804,
+          -138.09748052721804,
+          -138.09748052721804
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "Trump Universal 10% Tariff (TariffPolicy) does not map onto current microsim pilot reforms (income-tax rates, CTC, EITC, SALT, std deduction, AMT exemption)."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }

@@ -466,5 +466,39 @@
       229.77424426025064,
       259.7804181645235
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": 6494.510454113088,
+        "annual_billions": [
+          557.55,
+          576.135,
+          595.3664924999999,
+          615.2677286625001,
+          635.8628192394374,
+          657.1767671415703,
+          679.2355012712053,
+          702.0659116684391,
+          725.6958860231141,
+          750.1543476068214
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "Full TCJA packages are multi-provision; the pilot maps only simple rate / credit / SALT reforms, not the full composite."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }

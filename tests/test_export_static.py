@@ -186,3 +186,28 @@ def test_the_views_export_agrees_with_the_scores(exported: Path):
         else:
             assert dist["groupings"] == {} and dist["reason"]
     assert shown > 0
+
+
+def test_the_models_view_leads_with_the_headline(exported: Path):
+    """CBO-Style in the comparison is the same scorer as the headline; other pilots may differ."""
+    paired = 0
+    for preset in _read(exported / "presets" / "index.json")["presets"]:
+        models = _read(exported / "views" / f"{preset['id']}.json")["models"]
+        headline = _read(exported / "presets" / f"{preset['id']}.json")["conventional"]
+        cbo = [r for r in models["results"] if r["model"] == "CBO-Style"]
+        assert cbo and cbo[0]["ten_year_billions"] == pytest.approx(headline["ten_year_deficit_impact"])
+        assert all(s["reason"] for s in models["skipped"])
+        paired += len(models["results"]) > 1
+    assert paired > 0
+
+
+def test_the_states_export_is_the_state_module(exported: Path):
+    from fiscal_model.models.state.database import SUPPORTED_STATES
+
+    states = _read(exported / "states.json")
+    assert [s["code"] for s in states["states"]] == list(SUPPORTED_STATES)
+    assert _read(exported / "manifest.json")["states"] == len(SUPPORTED_STATES)
+    for s in states["states"]:
+        assert s["rate_curve"] and all(
+            r["combined_rate"] == pytest.approx(r["federal_rate"] + r["state_rate"]) for r in s["rate_curve"]
+        )

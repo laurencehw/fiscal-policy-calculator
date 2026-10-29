@@ -97,5 +97,39 @@
       -8.223005886411354,
       -9.136673207123726
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": -228.41683017809316,
+        "annual_billions": [
+          -22.841683017809316,
+          -22.841683017809316,
+          -22.841683017809316,
+          -22.841683017809316,
+          -22.841683017809316,
+          -22.841683017809316,
+          -22.841683017809316,
+          -22.841683017809316,
+          -22.841683017809316,
+          -22.841683017809316
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "Repeal EV Tax Credits (ClimateEnergyPolicy) does not map onto current microsim pilot reforms (income-tax rates, CTC, EITC, SALT, std deduction, AMT exemption)."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }

@@ -97,5 +97,39 @@
       15.970114832652417,
       18.021218277631988
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": 450.5304569407997,
+        "annual_billions": [
+          39.3,
+          40.479,
+          41.693369999999994,
+          42.9441711,
+          44.232496233,
+          45.55947111999,
+          46.9262552535897,
+          48.33404291119739,
+          49.78406419853332,
+          51.27758612448932
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "Extend TCJA AMT Relief (AMTPolicy) does not map onto current microsim pilot reforms (income-tax rates, CTC, EITC, SALT, std deduction, AMT exemption)."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }

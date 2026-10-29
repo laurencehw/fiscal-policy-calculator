@@ -466,5 +466,39 @@
       -18.45639502157673,
       -20.9386508224398
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": -523.466270560995,
+        "annual_billions": [
+          -43.6,
+          -45.344,
+          -47.15776,
+          -49.0440704,
+          -51.00583321600001,
+          -53.046066544640006,
+          -55.167909206425605,
+          -57.37462557468264,
+          -59.669610597669944,
+          -62.05639502157675
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "Eliminate Step-Up Basis (TaxExpenditurePolicy) does not map onto current microsim pilot reforms (income-tax rates, CTC, EITC, SALT, std deduction, AMT exemption)."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }

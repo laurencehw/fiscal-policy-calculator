@@ -97,5 +97,39 @@
       -12.017198216107197,
       -13.35244246234133
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": -333.8110615585332,
+        "annual_billions": [
+          -33.38110615585332,
+          -33.38110615585332,
+          -33.38110615585332,
+          -33.38110615585332,
+          -33.38110615585332,
+          -33.38110615585332,
+          -33.38110615585332,
+          -33.38110615585332,
+          -33.38110615585332,
+          -33.38110615585332
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "Trump 60% China Tariff (TariffPolicy) does not map onto current microsim pilot reforms (income-tax rates, CTC, EITC, SALT, std deduction, AMT exemption)."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }

@@ -97,5 +97,39 @@
       6.012,
       6.679999999999999
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": 167.0,
+        "annual_billions": [
+          16.7,
+          16.7,
+          16.7,
+          16.7,
+          16.7,
+          16.7,
+          16.7,
+          16.7,
+          16.7,
+          16.7
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "Estate and gift tax are outside the individual income microsim."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }

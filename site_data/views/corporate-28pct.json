@@ -466,5 +466,39 @@
       -46.55009055841665,
       -52.43679974832548
     ]
+  },
+  "models": {
+    "results": [
+      {
+        "model": "CBO-Style",
+        "ten_year_billions": -1310.9199937081369,
+        "annual_billions": [
+          -96.12086167558132,
+          -126.7332240122286,
+          -127.54824963354508,
+          -129.97376588258297,
+          -132.53620643600203,
+          -134.75307612598286,
+          -135.37901580315392,
+          -138.18922414545318,
+          -142.51864024588633,
+          -147.1677297477206
+        ],
+        "methodology": "Static + ETI behavioral response + optional FRB/US dynamic feedback",
+        "confidence": null,
+        "notes": []
+      }
+    ],
+    "skipped": [
+      {
+        "model": "TPC-Microsim Pilot",
+        "kind": "not_representable",
+        "reason": "Corporate rate / international base changes are firm-level; the return-level microsim pilot has no corporate tax module."
+      }
+    ],
+    "blockers": [],
+    "warnings": [
+      "No pilot model returned distributional output; the comparison is aggregate-only."
+    ]
   }
 }

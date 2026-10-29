@@ -232,4 +232,44 @@ export type Economic =
       debt_service_by_year: number[];
     };
 
-export type ResultViews = { id: string; distribution: Distribution; economic: Economic };
+export type ModelRun = {
+  model: string;
+  ten_year_billions: number;
+  annual_billions: number[];
+  methodology: string;
+  confidence: string | null;
+  notes: string[];
+};
+
+export type ModelsView = {
+  results: ModelRun[];
+  skipped: { model: string; kind: string; reason: string }[];
+  blockers: string[];
+  warnings: string[];
+};
+
+export type ResultViews = { id: string; distribution: Distribution; economic: Economic; models: ModelsView };
+
+/** site_data/states.json: the ten modelled states. */
+export type StateProfile = {
+  code: string;
+  name: string;
+  has_income_tax: boolean;
+  flat_rate: number | null;
+  top_rate: number;
+  std_ded_single: number;
+  effective_salt_rate: number;
+  pct_itemizers: number;
+  avg_salt_deduction_itemizers: number;
+  median_household_income: number;
+  notes: string;
+  rate_curve: { agi: number; federal_rate: number; state_rate: number; combined_rate: number }[];
+  salt_cap_lift: {
+    affected_filers_millions: number;
+    avg_deduction_change: number;
+    federal_revenue_change_billions: number;
+    effective_rate_change_ppts: number;
+  };
+};
+
+export type StatesData = { year: number; salt_cap_baseline: number; states: StateProfile[] };
