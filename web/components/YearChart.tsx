@@ -18,7 +18,7 @@ export function YearChart({ rows, label }: { rows: Row[]; label: string }) {
             tickLine={false}
             axisLine={false}
             width={64}
-            tickFormatter={(v: number) => `$${v.toLocaleString("en-US")}B`}
+            tickFormatter={(v: number) => `${v < 0 ? "-" : ""}$${Math.abs(v).toLocaleString("en-US")}B`}
           />
           <ReferenceLine y={0} stroke="var(--ink)" />
           <Tooltip
