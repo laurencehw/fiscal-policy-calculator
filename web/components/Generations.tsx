@@ -103,17 +103,21 @@ export function Generations() {
 function Result({ r }: { r: OlgResult }) {
   const [path, setPath] = useState<(typeof PATHS)[number][0]>("gdp_path_pct");
   if (!r.changed || !r.long_run || !r.years) return <p className="note">These are the baseline rates, so nothing changes.</p>;
+  if (!r.converged) {
+    // An unsolved steady state is not an answer (it can read as GDP falling 99%), so nothing is shown.
+    return (
+      <p className="note warn">
+        The model could not find a long-run equilibrium for these settings ({r.solver_status?.replace("_", " ")}), so no results are
+        shown. Combinations that leave the government needing a negative tax on wages are the usual cause; try a smaller change.
+      </p>
+    );
+  }
   const lr = r.long_run;
   const meta = PATHS.find((p) => p[0] === path) ?? PATHS[0];
   const series = r[path] ?? [];
   const rows = r.years.map((year, i) => ({ year, value: series[i] ?? null }));
   return (
     <>
-      {!r.converged ? (
-        <p className="note warn">
-          The solver did not fully converge ({r.solver_status}). Read the transition path as directional only.
-        </p>
-      ) : null}
       <section className="chart">
         <div className="head">
           <h2>Long run</h2>
@@ -176,6 +180,11 @@ function Result({ r }: { r: OlgResult }) {
             </LineChart>
           </ResponsiveContainer>
         </div>
+        <p className="note">
+          The path assumes households re-plan each year at that year&rsquo;s prices, so the economy reaches its new long run within a few
+          years. With forward-looking households and capital built up cohort by cohort, the adjustment would take decades; read the path
+          as the direction of travel, not its speed.
+        </p>
       </section>
       ) : (
         <section className="chart">

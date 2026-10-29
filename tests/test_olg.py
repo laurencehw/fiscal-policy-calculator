@@ -764,3 +764,24 @@ def test_reform_transition_ends_at_the_reform_steady_state(overrides):
     )
     assert result.transition.K_path[-1] == pytest.approx(result.reform.K, rel=1e-3)
     assert result.gdp_transition_pct_change()[-1] == pytest.approx(result.long_run_gdp_pct_change, abs=0.05)
+
+
+def test_every_generations_slider_corner_finds_a_steady_state():
+    """The site's sliders span capital 5-60%, payroll 0-20%, replacement 0-80%.
+
+    Broyden's method used to start from a Jacobian of +1 (the true slope is
+    near -1), so its first step sent K to 1e-6 and a capital-tax cut to 5%
+    "converged" to GDP -99.85%.
+    """
+    import itertools
+
+    from fiscal_model.result_views import olg_view
+
+    for tau_k, tau_ss, rep in itertools.product([0.05, 0.3, 0.6], [0.0, 0.124, 0.2], [0.0, 0.4, 0.8]):
+        view = olg_view(tau_k, tau_ss, rep)
+        if not view["changed"]:
+            continue
+        assert view["converged"], (tau_k, tau_ss, rep, view["solver_status"])
+        assert view["long_run"]["gdp_pct"] > -50, (tau_k, tau_ss, rep)
+    # A capital-tax cut raises long-run output.
+    assert olg_view(0.05, 0.124, 0.4)["long_run"]["gdp_pct"] > 0

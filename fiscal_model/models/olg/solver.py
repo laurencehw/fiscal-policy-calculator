@@ -341,11 +341,18 @@ class BroydenSolver:
         x = np.array([K_init], dtype=float)
         F_old = self._F(x, debt, override_tau_l)
 
-        # Initial approximate Jacobian inverse (scalar: dK/dF ≈ 1)
-        J_inv = np.eye(1)
+        # Initial Jacobian inverse from a finite difference. It used to start
+        # at +1, but F(K) = K_supply(K) − K has dF/dK near −1, so the first
+        # step went the wrong way, to K = 1e-6, and never recovered.
+        h = 1e-4 * max(abs(x[0]), 1e-3)
+        dF = float(self._F(x + h, debt, override_tau_l)[0] - F_old[0]) / h
+        J_inv = np.eye(1) / dF if abs(dF) > 1e-8 else -np.eye(1)
 
         for it in range(p.max_iter_broyden):
             dx = -J_inv @ F_old
+            # Keep each step within half of K: a full Newton step from a poor
+            # Jacobian can land on K ≤ 0, where prices are meaningless.
+            dx[0] = float(np.clip(dx[0], -0.5 * x[0], 0.5 * x[0]))
             x_new = x + dx
             x_new[0] = max(x_new[0], 1e-6)  # K must be positive
 
@@ -473,7 +480,12 @@ class OLGSolver:
         if force_broyden:
             ss, status = self._broyden.solve(K_init, L, debt, override_tau_l)
             logger.info("Broyden (forced): status=%s, K=%.4f, iter=%d", status, ss.K, ss.iterations)
-            return ss
+            if status == SolverStatus.CONVERGED:
+                return ss
+            # Fall back to Gauss-Seidel rather than return an unsolved state.
+            ss_gs, status_gs = self._gs.solve(K_init, L, debt, override_tau_l)
+            logger.info("GS (after Broyden): status=%s, K=%.4f", status_gs, ss_gs.K)
+            return ss_gs if status_gs == SolverStatus.CONVERGED else ss
 
         # Try Gauss-Seidel first
         ss_gs, status_gs = self._gs.solve(K_init, L, debt, override_tau_l)
