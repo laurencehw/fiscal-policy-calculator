@@ -117,3 +117,20 @@ def test_the_tracker_export_matches_the_nightly_database(exported: Path):
         if r["cbo_ten_year_billions"] is not None or r["auto_ten_year_billions"] is not None
     }
     assert set(scored) == has_estimate
+
+
+def test_the_social_security_export_is_the_ledger(exported: Path):
+    from fiscal_model.social_security import trust_fund as tf
+
+    data = _read(exported / "social-security.json")
+    assert _read(exported / "manifest.json")["social_security_options"] == len(tf.load_catalog())
+    assert [p["provision_id"] for p in data["provisions"]] == [p.provision_id for p in tf.load_catalog()]
+    span = tf.LAST_YEAR + 2 - tf.FIRST_YEAR
+    assert all(len(p["change_cost_rate"]) == span for p in data["provisions"])
+    law = data["checks"][0]
+    assert law["provision_ids"] == []
+    assert law["depletion_year"] == tf.TRUSTEES_OASDI_DEPLETION_YEAR
+    for check in data["checks"]:
+        expected = tf.project(check["provision_ids"])
+        assert check["depletion_year"] == expected.depletion_year
+        assert check["change_in_actuarial_balance"] == expected.change_in_actuarial_balance

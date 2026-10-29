@@ -84,6 +84,7 @@ export type Manifest = {
   scorecard_entries: number;
   tracker_bills: number;
   tracker_last_update: string | null;
+  social_security_options: number;
   sign_convention: string;
 };
 
