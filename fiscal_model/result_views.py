@@ -188,4 +188,96 @@ def states_view(year: int = 2025) -> dict[str, Any]:
     return {"year": year, "salt_cap_baseline": 10_000, "states": states}
 
 
-__all__ = ["GROUPINGS", "distribution_view", "economic_view", "models_view", "states_view"]
+def olg_view(capital_tax_rate: float, payroll_tax_rate: float, replacement_rate: float) -> dict[str, Any]:
+    """The app's Generational tab: a long-run OLG reform against the model's own baseline.
+
+    The three rates are the tab's sliders, as fractions. The OLG model is
+    separate from the scorer; its results are labelled wide-uncertainty.
+    """
+    from fiscal_model.models.olg import OLGModel, OLGParameters
+
+    params = OLGParameters()
+    baseline_rates = {
+        "tau_k": params.capital_tax_rate,
+        "tau_ss": params.ss_payroll_rate,
+        "ss_replacement_rate": params.ss_replacement_rate,
+    }
+    asked = {"tau_k": capital_tax_rate, "tau_ss": payroll_tax_rate, "ss_replacement_rate": replacement_rate}
+    overrides = {k: v for k, v in asked.items() if abs(v - baseline_rates[k]) > 0.001}
+    common = {
+        "baseline_rates": {
+            "capital_tax_rate": params.capital_tax_rate,
+            "payroll_tax_rate": params.ss_payroll_rate,
+            "replacement_rate": params.ss_replacement_rate,
+        },
+        "rates": {
+            "capital_tax_rate": capital_tax_rate,
+            "payroll_tax_rate": payroll_tax_rate,
+            "replacement_rate": replacement_rate,
+        },
+    }
+    if not overrides:
+        return {**common, "changed": False}
+    r = OLGModel(params).analyze_policy(
+        reform_overrides=overrides,
+        policy_name="OLG reform",
+        compute_gen_accounts=True,
+        compute_transition=True,
+        start_year=2026,
+    )
+    import math
+
+    def finite(values: Any) -> list[float | None]:
+        # JSON has no NaN; an unsolved year is a gap in the chart, not a zero.
+        return [float(v) if math.isfinite(float(v)) else None for v in values]
+
+    t, base = r.transition, r.baseline
+    gdp_path = r.gdp_transition_pct_change()
+    # The transition should settle at the reform's steady state. When it does
+    # not, the path is the solver's and not the model's answer, so say so.
+    path_end = float(gdp_path[-1]) if len(gdp_path) else float("nan")
+    settles = math.isfinite(path_end) and abs(path_end - float(r.long_run_gdp_pct_change)) <= 1.0
+    ga = r.gen_accounts
+    accounts = None
+    if ga is not None:
+        frame = ga.to_dataframe()
+        accounts = {
+            "newborn_burden_change": float(ga.newborn_burden_change),
+            "weighted_burden_change": float(ga.weighted_burden_change()),
+            "generational_imbalance": float(ga.generational_imbalance),
+            "by_age": [
+                {
+                    "age": int(row["age"]),
+                    "baseline": float(row["baseline_burden"]),
+                    "reform": float(row["reform_burden"]),
+                    "change": float(row["burden_change"]),
+                }
+                for _, row in frame.iterrows()
+            ],
+        }
+    return {
+        **common,
+        "changed": True,
+        "converged": r.reform.status.value == "converged",
+        "solver_status": r.reform.status.value,
+        "confidence_label": r.confidence_label,
+        "long_run": {
+            "gdp_pct": float(r.long_run_gdp_pct_change),
+            "capital_pct": float(r.long_run_capital_pct_change),
+            "wage_pct": float(r.long_run_wage_pct_change),
+            "interest_rate_ppts": float(r.long_run_interest_rate_change),
+            "capital_output_baseline": float(r.baseline.capital_output_ratio),
+            "capital_output_reform": float(r.reform.capital_output_ratio),
+        },
+        "year_30_gdp_pct": float(r.year_30_gdp_effect()),
+        "years": [int(y) for y in t.years],
+        "gdp_path_pct": finite(gdp_path),
+        "path_settles": settles,
+        "path_end_gdp_pct": path_end if math.isfinite(path_end) else None,
+        "capital_path_pct": finite((t.K_path - base.K) / max(base.K, 1e-10) * 100.0),
+        "interest_path_ppts": finite((t.r_path - base.r) * 100.0),
+        "accounts": accounts,
+    }
+
+
+__all__ = ["GROUPINGS", "distribution_view", "economic_view", "models_view", "olg_view", "states_view"]

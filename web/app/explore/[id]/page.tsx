@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { YearChart } from "@/components/YearChart";
 import { preset, presets, views } from "@/lib/data";
-import { EconomicEffects } from "@/components/EconomicEffects";
-import { ScoringModels } from "@/components/ScoringModels";
-import { WhoPays } from "@/components/WhoPays";
+import { ResultSections } from "@/components/ResultSections";
 import { Checked, YearTable } from "@/components/ScoreParts";
 import { cleanLabel, direction, money, shortLabel } from "@/lib/format";
 import { siteUrl } from "@/lib/site";
@@ -79,31 +77,7 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
         </p>
       </section>
 
-      {v ? (
-        <>
-          <section className="chart" id="who-pays">
-            <div className="head">
-              <h2>Who pays</h2>
-              <span className="tag">first year, by income group</span>
-            </div>
-            <WhoPays dist={v.distribution} />
-          </section>
-          <section className="chart" id="economy">
-            <div className="head">
-              <h2>Economic effects</h2>
-              <span className="tag">difference from the CBO baseline</span>
-            </div>
-            <EconomicEffects econ={v.economic} />
-          </section>
-          <section className="chart" id="models">
-            <div className="head">
-              <h2>Other scoring models</h2>
-              <span className="tag">exploratory</span>
-            </div>
-            <ScoringModels view={v.models} />
-          </section>
-        </>
-      ) : null}
+      {v ? <ResultSections views={v} /> : null}
 
       {c.credibility?.limitations.length ? (
         <details className="latest">

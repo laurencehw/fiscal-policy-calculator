@@ -159,6 +159,11 @@ details > summary { cursor: pointer; margin-top: 16px; font-family: var(--label)
 .tailorform input[type="number"], .tailorform select { font: inherit; font-family: var(--data); padding: 6px 8px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); max-width: 16rem; }
 .tailorform button { justify-self: start; font: inherit; font-family: var(--label); padding: 8px 18px; border: 1px solid var(--ink); background: var(--ink); color: var(--paper); cursor: pointer; }
 .tailorform button:disabled { opacity: 0.6; cursor: default; }
+.tailorform input[type="range"] { width: 100%; max-width: 28rem; accent-color: var(--accent); }
+.tailorform .field b { font-family: var(--data); color: var(--ink); font-variant-caps: normal; }
+.tailorform small.q { color: var(--muted); font-size: 14px; }
+.tailorform .buttons { display: flex; flex-wrap: wrap; gap: 12px; }
+.tailorform button.quiet { background: none; color: var(--ink); border-color: var(--rule); }
 .note.warn { color: var(--warn); }
 .tailorresult { display: grid; gap: 20px; min-width: 0; }
 .tailorresult > * { min-width: 0; }

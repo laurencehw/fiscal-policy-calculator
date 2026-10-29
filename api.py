@@ -1450,6 +1450,77 @@ def score_policy(
         raise HTTPException(status_code=500, detail="Internal scoring error") from e
 
 
+_VIEW_MODELS: dict[bool, Any] = {}
+
+
+@app.post("/score/views")
+def score_views(
+    request: ScorePolicyRequest,
+    _api_key_label: str = Depends(require_api_key),
+) -> dict[str, Any]:
+    """
+    The result views behind a custom score: who pays, economic effects and
+    the other scoring models, as ``/score`` builds and scores the policy.
+
+    The site's Tailor page reads this after the headline; the nightly export
+    writes the same payload for each preset.
+    """
+    from fiscal_model.models.comparison import build_default_comparison_models
+    from fiscal_model.result_views import distribution_view, economic_view, models_view
+
+    try:
+        if request.duration_years < 1:
+            raise PolicyValidationError("duration_years must be at least 1")
+        policy = _build_custom_policy(request, _resolve_custom_policy_type(request.policy_type))
+        scorer = FiscalPolicyScorer(start_year=APP_DEFAULT_START_YEAR, use_real_data=True)
+        result = scorer.score_policy(policy, dynamic=False)
+        if True not in _VIEW_MODELS:
+            _VIEW_MODELS[True] = build_default_comparison_models(FiscalPolicyScorer, use_real_data=True)
+        return {
+            "distribution": distribution_view(policy),
+            "economic": economic_view(policy, result),
+            "models": models_view(policy, _VIEW_MODELS[True]),
+        }
+    except HTTPException:
+        raise
+    except (PolicyValidationError, ValueError) as e:
+        logger.info("Policy '%s' views invalid input: %s", request.name, e)
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except FiscalModelError as e:
+        logger.warning("Policy '%s' views error: %s", request.name, e)
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    except Exception as e:
+        logger.exception("Unexpected error building views for '%s'", request.name)
+        raise HTTPException(status_code=500, detail="Internal scoring error") from e
+
+
+class OLGRequest(BaseModel):
+    """A long-run reform for the overlapping-generations model, as fractions."""
+
+    capital_tax_rate: float = Field(0.30, ge=0.05, le=0.60, description="Tax rate on capital income")
+    payroll_tax_rate: float = Field(0.124, ge=0.0, le=0.20, description="Social Security payroll tax rate")
+    replacement_rate: float = Field(0.40, ge=0.0, le=0.80, description="Social Security replacement rate")
+
+
+@app.post("/olg")
+def olg_reform(
+    request: OLGRequest,
+    _api_key_label: str = Depends(require_api_key),
+) -> dict[str, Any]:
+    """
+    The app's Generational tab: a 30-period Auerbach-Kotlikoff model run
+    against its own baseline. Long-run results carry wide uncertainty; the
+    model is separate from the ten-year scorer.
+    """
+    from fiscal_model.result_views import olg_view
+
+    try:
+        return olg_view(request.capital_tax_rate, request.payroll_tax_rate, request.replacement_rate)
+    except Exception as e:
+        logger.exception("Unexpected error in OLG reform")
+        raise HTTPException(status_code=500, detail="Internal model error") from e
+
+
 @app.post("/score/preset", response_model=ScorePolicyResponse)
 def score_preset(
     request: ScorePresetRequest,
@@ -2156,6 +2227,8 @@ def root():
             "summary": "GET /summary",
             "presets": "GET /presets",
             "score_custom": "POST /score",
+            "score_views": "POST /score/views",
+            "olg": "POST /olg",
             "score_preset": "POST /score/preset",
             "score_tariff": "POST /score/tariff",
             "ask": "POST /ask",
