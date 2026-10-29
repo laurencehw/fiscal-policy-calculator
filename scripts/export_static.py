@@ -12,6 +12,8 @@ once a night, and written as JSON under ``site_data/``:
   each the API's ``/score/preset`` answer for that id.
 - ``build-catalog.json``: the Build page's checkable rows, in catalog order.
 - ``validation/scorecard.json``: the API's ``/validation/scorecard`` answer.
+- ``validation/evidence.json``: the generated validation figures the app's About
+  and Methodology pages quote (``current_evidence.json``), copied as is.
 - ``tracker/index.json``: every bill the nightly job has ingested, one line each,
   with its latest CBO estimate and calculator auto-score where it has them, so
   the site can list all bills or only those with a fiscal estimate (decision F4).
@@ -111,6 +113,13 @@ def build_catalog_payload() -> list[dict[str, Any]]:
         row["tags"] = dict(option.tags)
         rows.append(row)
     return rows
+
+
+def evidence_payload() -> dict[str, Any]:
+    """The generated validation figures, as ``current_evidence`` reads them."""
+    from fiscal_model.validation import current_evidence
+
+    return json.loads(current_evidence.EVIDENCE_PATH.read_text(encoding="utf-8"))
 
 
 def scorecard_payload() -> dict[str, Any]:
@@ -333,6 +342,7 @@ def export(out: Path) -> dict[str, Any]:
     _write(out / "build-catalog.json", catalog)
     scorecard = scorecard_payload()
     _write(out / "validation" / "scorecard.json", scorecard)
+    _write(out / "validation" / "evidence.json", evidence_payload())
     tracker_index, tracker_scored = tracker_payloads()
     # 11,000 bills: indentation alone would double the size.
     _write(out / "tracker" / "index.json", tracker_index, compact=True)

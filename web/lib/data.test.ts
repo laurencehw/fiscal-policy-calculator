@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildCatalog, manifest, preset, presets, presetsByArea, scoreSchema, trackerGroups, trackerIndex, yearCsv } from "./data";
+import { buildCatalog, evidence, scorecardEntries, tierOf, manifest, preset, presets, presetsByArea, scoreSchema, trackerGroups, trackerIndex, yearCsv } from "./data";
 
 test("every listed preset has its file, in both modes", () => {
   const list = presets();
@@ -64,6 +64,22 @@ test("the tracker groups hold every bill with an estimate, once", () => {
   for (let i = 1; i < cbo.length; i++) {
     assert.ok(Math.abs(cbo[i - 1].cbo_ten_year_billions!) >= Math.abs(cbo[i].cbo_ten_year_billions!));
   }
+});
+
+test("the scorecard splits into the tiers the evidence report counts", () => {
+  const ev = evidence();
+  const count = (tier: string) => scorecardEntries().filter((e) => tierOf(e) === tier).length;
+  assert.equal(count("out_of_sample"), ev.out_of_sample.n);
+  assert.equal(count("fitted"), ev.calibrated.fitted.n);
+  assert.equal(count("reconstruction"), ev.calibrated.reconstruction.n);
+  assert.equal(count("retired"), ev.calibrated.retired_targets.n);
+  const mean = (tier: string) => {
+    const rows = scorecardEntries().filter((e) => tierOf(e) === tier);
+    return rows.reduce((s, e) => s + e.abs_percent_difference, 0) / rows.length;
+  };
+  assert.ok(Math.abs(mean("out_of_sample") - ev.out_of_sample.mean_abs_error) < 0.05);
+  assert.ok(Math.abs(mean("fitted") - ev.calibrated.fitted.mean_abs_error) < 0.05);
+  assert.ok(Math.abs(mean("reconstruction") - ev.calibrated.reconstruction.mean_abs_error) < 0.05);
 });
 
 test("every philosophy's package loads whole into the Build list", async () => {

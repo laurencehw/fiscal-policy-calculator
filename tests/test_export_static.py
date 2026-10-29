@@ -119,6 +119,14 @@ def test_the_tracker_export_matches_the_nightly_database(exported: Path):
     assert set(scored) == has_estimate
 
 
+def test_the_evidence_export_is_the_generated_report(exported: Path):
+    from fiscal_model.validation import current_evidence
+
+    assert _read(exported / "validation" / "evidence.json") == json.loads(
+        current_evidence.EVIDENCE_PATH.read_text(encoding="utf-8")
+    )
+
+
 def test_the_values_export_is_the_composer(exported: Path):
     from fiscal_model.composer.archetypes import load_archetypes, rationale_template_for
     from fiscal_model.composer.composer import compose_values_package
