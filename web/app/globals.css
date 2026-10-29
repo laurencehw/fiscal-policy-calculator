@@ -136,3 +136,17 @@ table.bills td.billtitle { white-space: normal; min-width: 18ch; max-width: 60ch
 table.bills td.billtitle span { color: var(--muted); }
 section + section { margin-top: 40px; }
 details > summary { cursor: pointer; margin-top: 16px; font-family: var(--label); color: var(--muted); }
+
+/* Build. */
+.builder { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 40px; align-items: start; }
+@media (max-width: 860px) { .builder { grid-template-columns: 1fr; } .buildtotal { order: -1; } }
+@media (min-width: 861px) { .buildtotal { position: sticky; top: 16px; } }
+.buildlist fieldset { border: 0; margin: 0 0 28px; padding: 0; }
+.buildlist legend { font-family: var(--label); font-variant-caps: all-small-caps; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; padding: 0; margin-bottom: 4px; }
+.buildlist label { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: baseline; padding: 8px 0; border-top: 1px solid var(--rule); cursor: pointer; }
+.buildlist label.covered { color: var(--muted); cursor: default; }
+.buildname small { display: block; color: var(--muted); font-size: 13px; }
+.buildlist .fig, .buildtotal .fig { font-family: var(--data); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.buildtotal { border-top: 2px solid var(--ink); padding-top: 12px; display: grid; gap: 10px; background: var(--paper); }
+.buildtotal .big { font-size: 34px; margin: 0; }
+.buildtotal button { justify-self: start; font: inherit; font-size: 14px; background: none; border: 1px solid var(--rule); padding: 4px 12px; cursor: pointer; color: inherit; }

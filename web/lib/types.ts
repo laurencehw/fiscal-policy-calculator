@@ -70,6 +70,8 @@ export type BuildRow = {
   area: string;
   source: string;
   source_date: string;
+  exclusive_groups: string[];
+  subsumes: string[];
   illustrative: boolean;
 };
 
