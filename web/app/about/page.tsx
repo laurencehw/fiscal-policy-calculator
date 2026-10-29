@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { evidence } from "@/lib/data";
-import { AUTHOR_URL, REPO_URL, siteUrl } from "@/lib/site";
+import { AUTHOR_URL, CONTACT_EMAIL, REPO_URL, siteUrl } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "About",
@@ -9,7 +9,6 @@ export const metadata: Metadata = {
 };
 
 const TEXTBOOK_URL = "https://laurence-wilse-samson.gitbook.io/textbooks";
-const CONTACT_EMAIL = "lw3387@nyu.edu";
 
 export default function About() {
   const oos = evidence().out_of_sample;

@@ -40,7 +40,10 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
           <a href={AUTHOR_URL} rel="author">
             Laurence Wilse-Samson
           </a>
-          , not affiliated with any employer. Code and methods: <a href={REPO_URL}>GitHub</a>.
+          , not affiliated with any employer. Code and methods: <a href={REPO_URL}>GitHub</a>.{" "}
+          <Link href="/contact">Contact</Link>
+          {" · "}
+          <Link href="/privacy">Privacy</Link>.
         </p>
       </footer>
     </div>
