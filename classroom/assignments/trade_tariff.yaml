@@ -67,8 +67,10 @@ exercises:
           Step 5: 10-year = ~$2,170B (before behavioral decay).
       - level: 2
         text: >
-          The model scores a universal 10% tariff at ~$1,800-2,000B over 10 years.
-          The $200B range reflects uncertainty in import elasticity and avoidance.
+          The model scores a universal 10% tariff at about −$1,350B over 10 years
+          (negative = revenue gain). It is below the arithmetic above because some duty
+          is avoided and the tariff shrinks the income and payroll tax base (the
+          standard offset of about 24% of gross duty).
           The CBO February 2026 baseline incorporates enacted tariffs at ~$270B/year.
     validation:
       method: relative_to_model

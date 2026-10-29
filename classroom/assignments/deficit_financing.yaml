@@ -64,9 +64,10 @@ exercises:
           Revenue feedback = 25% of GDP boost ≈ $140B over 10 years.
       - level: 2
         text: >
-          Net deficit effect: $1,000B spending (10yr) − $140B revenue feedback = $860B
-          net increase in deficit. The 10-year spending cost is only partially offset
-          by economic growth effects.
+          The answer checked here is the conventional score: the spending itself, with
+          the $100B growing 2% a year, so about $1,095B over 10 years. Growth feedback
+          (about $140B by the rough arithmetic above) is reported separately and would
+          bring the dynamic cost down toward $950B.
     validation:
       method: relative_to_model
       policy_type: spending
@@ -188,6 +189,7 @@ exercises:
           To close the gap: need to cut spending or raise taxes by 3.5% of GDP
           = ~$1.05T/year.
     validation:
+      answer_unit: "pp of GDP"
       method: range_check
       min_acceptable: 2.5
       max_acceptable: 5.0

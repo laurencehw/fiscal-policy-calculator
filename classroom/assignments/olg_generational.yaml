@@ -64,6 +64,7 @@ exercises:
           result = model.run(); mask = (result.birth_years >= 1980) & (result.birth_years <= 2010)
           print(result.net_tax_rate[mask].mean())
     validation:
+      answer_unit: "%"
       method: relative_to_model
       policy_type: olg
       policy_params:
@@ -110,6 +111,7 @@ exercises:
           Run model.run(debt_shock_pct_gdp=2.0) and compare net_tax_rate for
           birth_years 2025-2060 to the baseline.
     validation:
+      answer_unit: "pp"
       method: relative_to_model
       policy_type: olg
       policy_params:

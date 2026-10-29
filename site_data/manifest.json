@@ -14,5 +14,6 @@
   "values_archetypes": 5,
   "social_security_options": 33,
   "states": 10,
+  "classroom_assignments": 8,
   "sign_convention": "Billions of dollars over the budget window; positive increases the deficit, negative reduces it."
 }

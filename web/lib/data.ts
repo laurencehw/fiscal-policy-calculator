@@ -2,6 +2,7 @@
 // build time, so the site never waits for the engine to show a preset.
 import fs from "node:fs";
 import path from "node:path";
+import type { ClassroomAssignment, ClassroomIndexRow } from "./classroom";
 import type { SSData } from "./socialSecurity";
 import type { BuildRow, Evidence, Manifest, ScorecardEntry, PresetFile, PresetInfo, ResultViews, ScoreResult, StatesData, TrackerIndex, TrackerRow, ValuesArchetype, YearlyEffect } from "./types";
 
@@ -31,6 +32,17 @@ export function views(id: string): ResultViews | null {
   const file = path.join(DATA_DIR, "views", `${id}.json`);
   if (!fs.existsSync(file)) return null;
   return read<ResultViews>("views", `${id}.json`);
+}
+
+export function classroomIndex(): ClassroomIndexRow[] {
+  return read<ClassroomIndexRow[]>("classroom", "index.json");
+}
+
+export function classroomAssignment(id: string): ClassroomAssignment | null {
+  if (!/^[a-z0-9_]+$/.test(id)) return null;
+  const file = path.join(DATA_DIR, "classroom", `${id}.json`);
+  if (!fs.existsSync(file)) return null;
+  return read<ClassroomAssignment>("classroom", `${id}.json`);
 }
 
 export function statesData(): StatesData {

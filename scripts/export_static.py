@@ -21,6 +21,9 @@ once a night, and written as JSON under ``site_data/``:
   annual path, and the provisions the auto-scorer mapped.
 - ``values.json``: Build's five starting philosophies and the package the
   deterministic composer picks for each, with the "why" line for every pick.
+- ``classroom/index.json`` and ``classroom/<id>.json``: the Classroom
+  assignments as a student sees them, without instructor notes or the numbers
+  an answer is checked against; the engine's ``/classroom/check`` holds those.
 - ``social-security.json``: the Social Security page's inputs (Trustees
   baseline rates, OCACT options and their annual paths, the CRFB comparison)
   plus the ledger's own answers for current law and each option alone, which
@@ -341,6 +344,18 @@ def social_security_payload() -> dict[str, Any]:
     }
 
 
+def classroom_payloads() -> dict[str, Any]:
+    """Classroom assignments as students see them: no instructor notes, no answers."""
+    from classroom.engine import AssignmentLoader
+    from classroom.web import assignment_payload, index_payload
+
+    loader = AssignmentLoader()
+    return {
+        "index": index_payload(loader),
+        "assignments": [assignment_payload(loader.load(i)) for i in loader.list_assignments()],
+    }
+
+
 def export(out: Path) -> dict[str, Any]:
     """Write the whole export to ``out`` (replacing it) and return the manifest."""
     import api
@@ -382,6 +397,10 @@ def export(out: Path) -> dict[str, Any]:
     _write(out / "states.json", states)
     social_security = social_security_payload()
     _write(out / "social-security.json", social_security, compact=True)
+    classroom = classroom_payloads()
+    _write(out / "classroom" / "index.json", classroom["index"])
+    for assignment in classroom["assignments"]:
+        _write(out / "classroom" / f"{assignment['id']}.json", assignment)
     _write(
         out / "schema" / f"score-result.v{SCHEMA_VERSION}.json",
         api.ScorePolicyResponse.model_json_schema(),
@@ -401,6 +420,7 @@ def export(out: Path) -> dict[str, Any]:
         "values_archetypes": len(values["archetypes"]),
         "social_security_options": len(social_security["provisions"]),
         "states": len(states["states"]),
+        "classroom_assignments": len(classroom["index"]),
         "sign_convention": (
             "Billions of dollars over the budget window; positive increases "
             "the deficit, negative reduces it."

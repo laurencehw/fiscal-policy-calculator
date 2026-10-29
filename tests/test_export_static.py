@@ -211,3 +211,15 @@ def test_the_states_export_is_the_state_module(exported: Path):
         assert s["rate_curve"] and all(
             r["combined_rate"] == pytest.approx(r["federal_rate"] + r["state_rate"]) for r in s["rate_curve"]
         )
+
+
+def test_the_classroom_export_is_the_assignments_without_answers(exported: Path):
+    from classroom.engine import AssignmentLoader
+
+    ids = AssignmentLoader().list_assignments()
+    index = _read(exported / "classroom" / "index.json")
+    assert [row["id"] for row in index] == ids
+    assert _read(exported / "manifest.json")["classroom_assignments"] == len(ids)
+    for assignment_id in ids:
+        text = (exported / "classroom" / f"{assignment_id}.json").read_text(encoding="utf-8")
+        assert "min_acceptable" not in text and "policy_params" not in text

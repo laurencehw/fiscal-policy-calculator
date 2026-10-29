@@ -71,6 +71,7 @@ exercises:
           egalitarian at 4.5%. Comparing coverage across them without
           comparing targets is a category error.
     validation:
+      answer_unit: "policies"
       method: range_check
       min_acceptable: 10.0
       max_acceptable: 12.0
@@ -118,6 +119,7 @@ exercises:
           newly-eligible raisers to a ~$17.9T gap is worth on the order of 10-20
           percentage points, depending on what they displace at the 12-policy cap.
     validation:
+      answer_unit: "pp"
       method: range_check
       min_acceptable: 3.0
       max_acceptable: 40.0

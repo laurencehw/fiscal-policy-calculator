@@ -1521,6 +1521,49 @@ def olg_reform(
         raise HTTPException(status_code=500, detail="Internal model error") from e
 
 
+class ClassroomCheckRequest(BaseModel):
+    """One student answer to one Classroom exercise."""
+
+    assignment_id: str = Field(..., min_length=1, max_length=64)
+    exercise_id: str = Field(..., min_length=1, max_length=64)
+    params: dict[str, float] = Field(default_factory=dict, description="Slider values by parameter name")
+    answer: float = Field(..., allow_inf_nan=False, description="The student's answer, in the exercise's unit")
+    hints_used: int = Field(0, ge=0, le=10)
+
+    @field_validator("params")
+    @classmethod
+    def _few_params(cls, value: dict[str, float]) -> dict[str, float]:
+        if len(value) > 20:
+            raise ValueError("Too many parameters")
+        return value
+
+
+@app.post("/classroom/check")
+def classroom_check(
+    request: ClassroomCheckRequest,
+    _api_key_label: str = Depends(require_api_key),
+) -> dict[str, Any]:
+    """
+    Check a Classroom answer. Model-relative exercises re-run the model at the
+    student's own slider values, so answers stay right when the baseline moves.
+    """
+    from classroom.web import UnknownExercise, check_exercise
+
+    try:
+        return check_exercise(
+            request.assignment_id,
+            request.exercise_id,
+            request.params,
+            request.answer,
+            request.hints_used,
+        )
+    except UnknownExercise as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except Exception as e:
+        logger.exception("Unexpected error in classroom check")
+        raise HTTPException(status_code=500, detail="Internal model error") from e
+
+
 @app.post("/score/preset", response_model=ScorePolicyResponse)
 def score_preset(
     request: ScorePresetRequest,
@@ -2229,6 +2272,7 @@ def root():
             "score_custom": "POST /score",
             "score_views": "POST /score/views",
             "olg": "POST /olg",
+            "classroom_check": "POST /classroom/check",
             "score_preset": "POST /score/preset",
             "score_tariff": "POST /score/tariff",
             "ask": "POST /ask",

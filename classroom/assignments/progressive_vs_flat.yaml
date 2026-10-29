@@ -113,6 +113,7 @@ exercises:
           (Steve Forbes 17%, Hall-Rabushka 19%) often broaden the base by
           eliminating deductions, allowing a lower rate.
     validation:
+      answer_unit: "%"
       method: range_check
       min_acceptable: 18.0
       max_acceptable: 28.0

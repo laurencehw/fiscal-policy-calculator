@@ -8,7 +8,7 @@ how close their answer was to the model estimate.
 
 from __future__ import annotations
 
-from .engine import ComplexityLevel, Exercise, ValidationResult
+from .engine import ComplexityLevel, Exercise, ValidationResult, format_answer
 
 
 class FeedbackEngine:
@@ -65,7 +65,7 @@ class FeedbackEngine:
         if result.pct_error is not None:
             base += (
                 f"Your estimate was {result.pct_error*100:.1f}% off the model's "
-                f"${abs(result.model_answer):.1f}B score. "
+                f"{format_answer(result.model_answer, result.unit)}. "
             )
 
         # Add the expected insight if available
@@ -93,12 +93,14 @@ class FeedbackEngine:
         hints_used: int,
         complexity: ComplexityLevel,
     ) -> str:
+        if result.pct_error is None or result.model_answer is None:
+            return result.message
         close_thresh = self.CLOSE_THRESHOLDS[complexity]
         is_close = (result.pct_error is not None and result.pct_error <= close_thresh)
 
         if is_close:
             msg = (
-                f"Close! Your estimate (${result.student_answer:.1f}B) is "
+                f"Close! Your estimate ({format_answer(result.student_answer, result.unit)}) is "
                 f"{result.pct_error*100:.1f}% off — just outside the "
                 f"{result.tolerance*100:.0f}% acceptance window. "
             )
@@ -112,17 +114,17 @@ class FeedbackEngine:
                 msg += "Review your parameter assumptions and try again."
         else:
             msg = (
-                f"Not quite. The model gives ${abs(result.model_answer):.1f}B; "
-                f"your answer was ${result.student_answer:.1f}B "
+                f"Not quite. The model gives {format_answer(result.model_answer, result.unit)}; "
+                f"your answer was {format_answer(result.student_answer, result.unit)} "
                 f"({result.pct_error*100:.0f}% off). "
             )
             if hints_used == 0:
                 msg += "Try using the first hint to orient yourself."
             else:
+                msg += "Check each step of your working against the prompt's formula"
                 msg += (
-                    "Check that you are using the right base (taxable income "
-                    "× number of affected filers × rate change), then apply "
-                    "the behavioral offset."
+                    ", and the sign convention (negative = revenue gain)."
+                    if result.unit == "$B" else "."
                 )
 
         return msg
