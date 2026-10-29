@@ -1,0 +1,297 @@
+{
+  "id": "ctc-expansion-2021",
+  "conventional": {
+    "policy_name": "👶 Biden CTC Expansion (CBO: $1.6T)",
+    "policy_description": "Expand CTC to \\$3,600/\\$3,000 per child, fully refundable. Based on 2021 ARP expansion.",
+    "baseline_vintage": "February 2026",
+    "budget_window": "FY2026-2035",
+    "ten_year_deficit_impact": 1600.0,
+    "static_revenue_effect": -1600.0,
+    "behavioral_offset": 0.0,
+    "final_static_effect": -1600.0,
+    "gdp_effect": null,
+    "employment_effect": null,
+    "revenue_feedback": 0.0,
+    "debt_service": null,
+    "dynamic_adjusted_impact": null,
+    "dynamic_model": null,
+    "year_by_year": [
+      {
+        "year": 2026,
+        "revenue_effect": -160.0,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 160.0,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2027,
+        "revenue_effect": -160.0,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 160.0,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2028,
+        "revenue_effect": -160.0,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 160.0,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2029,
+        "revenue_effect": -160.0,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 160.0,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2030,
+        "revenue_effect": -160.0,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 160.0,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2031,
+        "revenue_effect": -160.0,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 160.0,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2032,
+        "revenue_effect": -160.0,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 160.0,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2033,
+        "revenue_effect": -160.0,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 160.0,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2034,
+        "revenue_effect": -160.0,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 160.0,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2035,
+        "revenue_effect": -160.0,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 160.0,
+        "debt_service": null,
+        "dynamic_effect": null
+      }
+    ],
+    "dynamic_scoring_enabled": false,
+    "credibility": {
+      "category": "Credits",
+      "evidence_type": "no_out_of_sample_benchmark",
+      "policy_class": null,
+      "class_label": null,
+      "n_tier1_rows": 0,
+      "mean_abs_pct_error": null,
+      "median_abs_pct_error": null,
+      "max_abs_pct_error": null,
+      "rows_inside_mean_band": null,
+      "uncertainty_low": null,
+      "uncertainty_high": null,
+      "outer_low": null,
+      "outer_high": null,
+      "no_band_reason": "no pre-registered row scores a refundable credit",
+      "own_row_policy_id": "biden_ctc_2021",
+      "own_row_tier": "fitted",
+      "own_row_tier_label": "Calibrated reference",
+      "own_row_abs_pct_error": 0.0,
+      "own_row_official_billions": 1600.0,
+      "own_row_caption": "Calibrated to reproduce $1.60T (CBO/JCT 2021) — agreement is by construction, not an independent test.",
+      "holdout_status": "post_lock_holdout_available",
+      "limitations": [
+        "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
+        "No pre-registered out-of-sample row scores a policy of this class, so this model's accuracy on one has not been measured.",
+        "Credit eligibility and refundability are modeled with synthetic tax units rather than CPS ASEC microdata.",
+        "Interactions with SALT, AMT, and filing-status heterogeneity remain approximated in the current household tax module.",
+        "TAUTOLOGICAL FITTED ROW (owner Decision 5). The module's annual for this benchmark is -$160.0B, the carried $1,600B target divided by exactly ten, so the by-construction error tests x/10 x 10 == x and nothing else. Read the leave-one-out row instead: run_loo.py derives this case per unit from the CPS microdata and never touches the annual. The row is kept rather than deleted so the tautology stays visible - deleting a benchmark to improve a tier mean is the failure mode pre-registration exists to forbid.",
+        "The $1,600B is a rounded secondhand figure attributed to 'CBO/JCT 2021' with no transcribed table row behind it, so the residual on the derived side is measured against a target of unknown precision.",
+        "The current credit module extrapolates from bracket-level aggregates rather than return-level household data.",
+        "TAUTOLOGICAL FITTED ROW (owner Decision 5). The module's annual for this benchmark is -$60.0B, the carried $600B target divided by exactly ten, so the by-construction error tests x/10 x 10 == x and nothing else. Read the leave-one-out row instead: run_loo.py derives this case per unit from the CPS microdata and never touches the annual. The row is kept rather than deleted so the tautology stays visible - deleting a benchmark to improve a tier mean is the failure mode pre-registration exists to forbid.",
+        "Examined and deliberately not moved in Wave 4 (target_revisions.EXAMINED_NOT_REVISED). Two published figures score a child-credit extension and neither replaces $600B. JCT's JCX-35-25 scores P.L. 119-21's child credit at +$816.8B over FY2025-2034, but that is a $2,200 indexed credit against this benchmark's $2,000 flat one and it is already carried here as the `pl119_21_child_tax_credit` benchmark, so adopting it would score one JCT row as two benchmarks. CRS R48286 Table 1, transcribing CBO, prints $735.3B for 'Increase and Modification of Child and Dependent Credit', which CRS itself says includes the credit for other dependents that this module does not score. Both sit *above* the module's design rather than bracketing it, so a range would assert a containment neither publisher supports.",
+        "NO LONGER A TAUTOLOGICAL FITTED ROW. The module's annual for this benchmark is -$17.8B, which is the *superseded* $178B target divided by exactly ten; the target is now Treasury's published $162.6B, so the reported error is a real 9.5% rather than the by-construction 0.0% it used to be, and no constant was retuned to close it. The leave-one-out row is still the better read: run_loo.py derives this case per unit from the CPS microdata and never touches the annual.",
+        "The derived side under-predicts this row for two reasons in the survey file rather than the rules: CPS ASEC carries no self-employment earnings, which the EITC counts, and the tax-unit builder folds 19-to-23-year-olds with a parent pointer into the parent's unit - which is most of the population an age expansion from 25 to 19 is about."
+      ],
+      "caption": "No out-of-sample band: no pre-registered row scores a refundable credit. The 44 pre-registered Tier 1 rows are the only tier that measures this model's accuracy, and none of them scores a policy of this kind."
+    },
+    "error_message": null
+  },
+  "dynamic": {
+    "policy_name": "👶 Biden CTC Expansion (CBO: $1.6T)",
+    "policy_description": "Expand CTC to \\$3,600/\\$3,000 per child, fully refundable. Based on 2021 ARP expansion.",
+    "baseline_vintage": "February 2026",
+    "budget_window": "FY2026-2035",
+    "ten_year_deficit_impact": 1600.0,
+    "static_revenue_effect": -1600.0,
+    "behavioral_offset": 0.0,
+    "final_static_effect": -1600.0,
+    "gdp_effect": 1.984857509226932,
+    "employment_effect": 127.03088059052364,
+    "revenue_feedback": 138.94002564588524,
+    "debt_service": 352.0,
+    "dynamic_adjusted_impact": 1813.0599743541147,
+    "dynamic_model": "FRB/US-Lite (Federal Reserve calibrated)",
+    "year_by_year": [
+      {
+        "year": 2026,
+        "revenue_effect": -160.0,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 27.328,
+        "final_effect": 160.0,
+        "debt_service": 6.4,
+        "dynamic_effect": 139.072
+      },
+      {
+        "year": 2027,
+        "revenue_effect": -160.0,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 30.321199999999997,
+        "final_effect": 160.0,
+        "debt_service": 12.8,
+        "dynamic_effect": 142.4788
+      },
+      {
+        "year": 2028,
+        "revenue_effect": -160.0,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 25.387180000000004,
+        "final_effect": 160.0,
+        "debt_service": 19.2,
+        "dynamic_effect": 153.81282
+      },
+      {
+        "year": 2029,
+        "revenue_effect": -160.0,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 19.0074828125,
+        "final_effect": 160.0,
+        "debt_service": 25.6,
+        "dynamic_effect": 166.5925171875
+      },
+      {
+        "year": 2030,
+        "revenue_effect": -160.0,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 13.418537945312503,
+        "final_effect": 160.0,
+        "debt_service": 32.0,
+        "dynamic_effect": 178.5814620546875
+      },
+      {
+        "year": 2031,
+        "revenue_effect": -160.0,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 9.144116257021485,
+        "final_effect": 160.0,
+        "debt_service": 38.4,
+        "dynamic_effect": 189.2558837429785
+      },
+      {
+        "year": 2032,
+        "revenue_effect": -160.0,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 6.089731319280274,
+        "final_effect": 160.0,
+        "debt_service": 44.800000000000004,
+        "dynamic_effect": 198.71026868071974
+      },
+      {
+        "year": 2033,
+        "revenue_effect": -160.0,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 3.9921872094467563,
+        "final_effect": 160.0,
+        "debt_service": 51.2,
+        "dynamic_effect": 207.20781279055325
+      },
+      {
+        "year": 2034,
+        "revenue_effect": -160.0,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 2.587872696537884,
+        "final_effect": 160.0,
+        "debt_service": 57.6,
+        "dynamic_effect": 215.0121273034621
+      },
+      {
+        "year": 2035,
+        "revenue_effect": -160.0,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 1.6637174057863406,
+        "final_effect": 160.0,
+        "debt_service": 64.0,
+        "dynamic_effect": 222.33628259421366
+      }
+    ],
+    "dynamic_scoring_enabled": true,
+    "credibility": {
+      "category": "Credits",
+      "evidence_type": "no_out_of_sample_benchmark",
+      "policy_class": null,
+      "class_label": null,
+      "n_tier1_rows": 0,
+      "mean_abs_pct_error": null,
+      "median_abs_pct_error": null,
+      "max_abs_pct_error": null,
+      "rows_inside_mean_band": null,
+      "uncertainty_low": null,
+      "uncertainty_high": null,
+      "outer_low": null,
+      "outer_high": null,
+      "no_band_reason": "no pre-registered row scores a refundable credit",
+      "own_row_policy_id": "biden_ctc_2021",
+      "own_row_tier": "fitted",
+      "own_row_tier_label": "Calibrated reference",
+      "own_row_abs_pct_error": 0.0,
+      "own_row_official_billions": 1600.0,
+      "own_row_caption": "Calibrated to reproduce $1.60T (CBO/JCT 2021) — agreement is by construction, not an independent test.",
+      "holdout_status": "post_lock_holdout_available",
+      "limitations": [
+        "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
+        "No pre-registered out-of-sample row scores a policy of this class, so this model's accuracy on one has not been measured.",
+        "Credit eligibility and refundability are modeled with synthetic tax units rather than CPS ASEC microdata.",
+        "Interactions with SALT, AMT, and filing-status heterogeneity remain approximated in the current household tax module.",
+        "TAUTOLOGICAL FITTED ROW (owner Decision 5). The module's annual for this benchmark is -$160.0B, the carried $1,600B target divided by exactly ten, so the by-construction error tests x/10 x 10 == x and nothing else. Read the leave-one-out row instead: run_loo.py derives this case per unit from the CPS microdata and never touches the annual. The row is kept rather than deleted so the tautology stays visible - deleting a benchmark to improve a tier mean is the failure mode pre-registration exists to forbid.",
+        "The $1,600B is a rounded secondhand figure attributed to 'CBO/JCT 2021' with no transcribed table row behind it, so the residual on the derived side is measured against a target of unknown precision.",
+        "The current credit module extrapolates from bracket-level aggregates rather than return-level household data.",
+        "TAUTOLOGICAL FITTED ROW (owner Decision 5). The module's annual for this benchmark is -$60.0B, the carried $600B target divided by exactly ten, so the by-construction error tests x/10 x 10 == x and nothing else. Read the leave-one-out row instead: run_loo.py derives this case per unit from the CPS microdata and never touches the annual. The row is kept rather than deleted so the tautology stays visible - deleting a benchmark to improve a tier mean is the failure mode pre-registration exists to forbid.",
+        "Examined and deliberately not moved in Wave 4 (target_revisions.EXAMINED_NOT_REVISED). Two published figures score a child-credit extension and neither replaces $600B. JCT's JCX-35-25 scores P.L. 119-21's child credit at +$816.8B over FY2025-2034, but that is a $2,200 indexed credit against this benchmark's $2,000 flat one and it is already carried here as the `pl119_21_child_tax_credit` benchmark, so adopting it would score one JCT row as two benchmarks. CRS R48286 Table 1, transcribing CBO, prints $735.3B for 'Increase and Modification of Child and Dependent Credit', which CRS itself says includes the credit for other dependents that this module does not score. Both sit *above* the module's design rather than bracketing it, so a range would assert a containment neither publisher supports.",
+        "NO LONGER A TAUTOLOGICAL FITTED ROW. The module's annual for this benchmark is -$17.8B, which is the *superseded* $178B target divided by exactly ten; the target is now Treasury's published $162.6B, so the reported error is a real 9.5% rather than the by-construction 0.0% it used to be, and no constant was retuned to close it. The leave-one-out row is still the better read: run_loo.py derives this case per unit from the CPS microdata and never touches the annual.",
+        "The derived side under-predicts this row for two reasons in the survey file rather than the rules: CPS ASEC carries no self-employment earnings, which the EITC counts, and the tax-unit builder folds 19-to-23-year-olds with a parent pointer into the parent's unit - which is most of the population an age expansion from 25 to 19 is about."
+      ],
+      "caption": "No out-of-sample band: no pre-registered row scores a refundable credit. The 44 pre-registered Tier 1 rows are the only tier that measures this model's accuracy, and none of them scores a policy of this kind."
+    },
+    "error_message": null
+  }
+}

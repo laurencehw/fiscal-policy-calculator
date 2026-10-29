@@ -1,0 +1,855 @@
+[
+  {
+    "build_id": "tcja-full-extension",
+    "label": "🏛️ TCJA Full Extension (CBO: $4.6T)",
+    "score": 4600.0,
+    "area": "TCJA / Individual",
+    "source": "CBO",
+    "source_date": "May 2024",
+    "exclusive_groups": [
+      "tcja-extension"
+    ],
+    "subsumes": [
+      "ctc-extension",
+      "amt-extend-tcja-relief",
+      "estate-extend-tcja"
+    ],
+    "tags": {
+      "direction": "cut_revenue",
+      "progressivity": "regressive",
+      "govt_size": "shrink",
+      "base": "individual",
+      "generational": "current"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "tcja-extension-no-salt-cap",
+    "label": "🏛️ TCJA Extension (No SALT Cap)",
+    "score": 5700.0,
+    "area": "TCJA / Individual",
+    "source": "Model estimate (this repository's own decomposition)",
+    "source_date": "2024",
+    "exclusive_groups": [
+      "tcja-extension",
+      "salt-cap"
+    ],
+    "subsumes": [
+      "ctc-extension",
+      "amt-extend-tcja-relief",
+      "estate-extend-tcja"
+    ],
+    "tags": {
+      "direction": "cut_revenue",
+      "progressivity": "regressive",
+      "govt_size": "shrink",
+      "base": "individual",
+      "generational": "current"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "tcja-rates-only",
+    "label": "🏛️ TCJA Rates Only",
+    "score": 2158.7,
+    "area": "TCJA / Individual",
+    "source": "CRS R48286 Table 1 (transcribing CBO 60114/60271, JCT)",
+    "source_date": "2024-11",
+    "exclusive_groups": [
+      "tcja-extension"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "cut_revenue",
+      "progressivity": "regressive",
+      "govt_size": "shrink",
+      "base": "individual",
+      "generational": "current"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "corporate-28pct",
+    "label": "🏢 Biden Corporate 28% (CBO: -$1.35T)",
+    "score": -1347.0,
+    "area": "Corporate",
+    "source": "Treasury",
+    "source_date": "March 2024",
+    "exclusive_groups": [
+      "corporate-rate"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "progressive",
+      "govt_size": "grow",
+      "base": "corporate",
+      "generational": "mixed"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "corporate-15pct",
+    "label": "🏢 Trump Corporate 15%",
+    "score": 673.0,
+    "area": "Corporate",
+    "source": "Tax Foundation / PWBM (via CRFB)",
+    "source_date": "2024",
+    "exclusive_groups": [
+      "corporate-rate"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "cut_revenue",
+      "progressivity": "regressive",
+      "govt_size": "shrink",
+      "base": "corporate",
+      "generational": "mixed"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "ctc-expansion-2021",
+    "label": "👶 Biden CTC Expansion (CBO: $1.6T)",
+    "score": 1600.0,
+    "area": "Tax credits",
+    "source": "JCT",
+    "source_date": "2021",
+    "exclusive_groups": [
+      "child-tax-credit"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "add_spending",
+      "progressivity": "strong_progressive",
+      "govt_size": "grow",
+      "base": "transfer",
+      "generational": "mixed"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "ctc-extension",
+    "label": "👶 CTC Extension (CBO: $600B)",
+    "score": 600.0,
+    "area": "Tax credits",
+    "source": "CBO",
+    "source_date": "2024",
+    "exclusive_groups": [
+      "child-tax-credit"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "add_spending",
+      "progressivity": "progressive",
+      "govt_size": "grow",
+      "base": "transfer",
+      "generational": "mixed"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "eitc-childless-expansion",
+    "label": "💼 EITC Childless Expansion (Treasury: $163B)",
+    "score": 162.6,
+    "area": "Tax credits",
+    "source": "Treasury (FY2025 Green Book)",
+    "source_date": "2024-03",
+    "exclusive_groups": [],
+    "subsumes": [],
+    "tags": {
+      "direction": "add_spending",
+      "progressivity": "strong_progressive",
+      "govt_size": "grow",
+      "base": "transfer",
+      "generational": "current"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "estate-extend-tcja",
+    "label": "🏠 Estate Tax: Extend TCJA (CBO: $167B)",
+    "score": 167.0,
+    "area": "Estate",
+    "source": "CBO",
+    "source_date": "2024",
+    "exclusive_groups": [
+      "estate-regime"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "cut_revenue",
+      "progressivity": "regressive",
+      "govt_size": "shrink",
+      "base": "estate",
+      "generational": "mixed"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "estate-exemption-3-5m",
+    "label": "🏠 Biden Estate Reform (-$450B)",
+    "score": -450.0,
+    "area": "Estate",
+    "source": "JCT (For the 99.5 Percent Act)",
+    "source_date": "March 2021",
+    "exclusive_groups": [
+      "estate-regime"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "strong_progressive",
+      "govt_size": "grow",
+      "base": "estate",
+      "generational": "mixed"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "estate-repeal",
+    "label": "🏠 Eliminate Estate Tax ($407B)",
+    "score": 407.2,
+    "area": "Estate",
+    "source": "Tax Foundation (Options 3.0, Option 83)",
+    "source_date": "2026-07",
+    "exclusive_groups": [
+      "estate-regime"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "cut_revenue",
+      "progressivity": "regressive",
+      "govt_size": "shrink",
+      "base": "estate",
+      "generational": "mixed"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "ss-cap-90pct",
+    "label": "💰 SS Cap to 90% (CBO: -$800B)",
+    "score": -800.0,
+    "area": "Payroll / Social Security",
+    "source": "CBO",
+    "source_date": "2024",
+    "exclusive_groups": [
+      "ss-wage-cap"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "strong_progressive",
+      "govt_size": "grow",
+      "base": "payroll",
+      "generational": "future"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "ss-donut-250k",
+    "label": "💰 SS Donut Hole $250K (-$1.43T)",
+    "score": -1426.8,
+    "area": "Payroll / Social Security",
+    "source": "CBO, Options 2025-2034, Option 62 alternative 2",
+    "source_date": "2024-12",
+    "exclusive_groups": [
+      "ss-wage-cap"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "strong_progressive",
+      "govt_size": "grow",
+      "base": "payroll",
+      "generational": "future"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "ss-cap-eliminate",
+    "label": "💰 Eliminate SS Cap (-$3.2T)",
+    "score": -3200.0,
+    "area": "Payroll / Social Security",
+    "source": "SS Trustees",
+    "source_date": "2024",
+    "exclusive_groups": [
+      "ss-wage-cap"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "strong_progressive",
+      "govt_size": "grow",
+      "base": "payroll",
+      "generational": "future"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "niit-expand",
+    "label": "💰 Expand NIIT (JCT: -$250B)",
+    "score": -250.0,
+    "area": "Payroll / Social Security",
+    "source": "JCT",
+    "source_date": "2024",
+    "exclusive_groups": [],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "strong_progressive",
+      "govt_size": "grow",
+      "base": "payroll",
+      "generational": "future"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "amt-extend-tcja-relief",
+    "label": "⚖️ AMT: Extend TCJA Relief ($1.36T)",
+    "score": 1357.1,
+    "area": "AMT",
+    "source": "CRS R48286 Table 1 (transcribing CBO 60114/60271)",
+    "source_date": "November 2024",
+    "exclusive_groups": [
+      "individual-amt"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "cut_revenue",
+      "progressivity": "not_modeled",
+      "govt_size": "shrink",
+      "base": "individual",
+      "generational": "current"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "amt-repeal-individual",
+    "label": "⚖️ Repeal Individual AMT ($450B)",
+    "score": 450.0,
+    "area": "AMT",
+    "source": "CBO",
+    "source_date": "2024",
+    "exclusive_groups": [
+      "individual-amt"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "cut_revenue",
+      "progressivity": "not_modeled",
+      "govt_size": "shrink",
+      "base": "individual",
+      "generational": "current"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "amt-repeal-corporate",
+    "label": "⚖️ Repeal Corporate AMT (+$220B)",
+    "score": 220.0,
+    "area": "AMT",
+    "source": "JCT (JCX-18-22)",
+    "source_date": "August 2022",
+    "exclusive_groups": [],
+    "subsumes": [],
+    "tags": {
+      "direction": "cut_revenue",
+      "progressivity": "regressive",
+      "govt_size": "shrink",
+      "base": "corporate",
+      "generational": "mixed"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "aca-ptc-extend-enhanced",
+    "label": "🏥 Extend ACA Enhanced PTCs ($335B)",
+    "score": 335.0,
+    "area": "Healthcare",
+    "source": "CBO/JCT (pub. 60437)",
+    "source_date": "2024-06",
+    "exclusive_groups": [
+      "aca-premium-credits"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "add_spending",
+      "progressivity": "strong_progressive",
+      "govt_size": "grow",
+      "base": "transfer",
+      "generational": "current"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "aca-ptc-repeal",
+    "label": "🏥 Repeal ACA Premium Credits (-$1.1T)",
+    "score": -1100.0,
+    "area": "Healthcare",
+    "source": "CBO",
+    "source_date": "2024",
+    "exclusive_groups": [
+      "aca-premium-credits"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "cut_spending",
+      "progressivity": "regressive",
+      "govt_size": "shrink",
+      "base": "transfer",
+      "generational": "current"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "cap-employer-health-exclusion",
+    "label": "📋 Cap Employer Health Exclusion (-$450B)",
+    "score": -450.0,
+    "area": "Tax expenditures",
+    "source": "JCT",
+    "source_date": "2024",
+    "exclusive_groups": [],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "neutral",
+      "govt_size": "grow",
+      "base": "individual",
+      "generational": "current"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "mortgage-deduction-eliminate",
+    "label": "📋 Eliminate Mortgage Deduction (-$368B)",
+    "score": -367.9,
+    "area": "Tax expenditures",
+    "source": "Tax Foundation (Options 3.0, Option 25)",
+    "source_date": "2026-07",
+    "exclusive_groups": [],
+    "subsumes": [],
+    "tags": {},
+    "illustrative": false
+  },
+  {
+    "build_id": "salt-cap-repeal",
+    "label": "📋 Repeal SALT Cap ($1.17T)",
+    "score": 1169.0,
+    "area": "Tax expenditures",
+    "source": "Penn Wharton Budget Model",
+    "source_date": "2024-02",
+    "exclusive_groups": [
+      "salt-cap"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "cut_revenue",
+      "progressivity": "regressive",
+      "govt_size": "shrink",
+      "base": "individual",
+      "generational": "current"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "salt-deduction-eliminate",
+    "label": "📋 Eliminate SALT Deduction (-$1.62T)",
+    "score": -1621.0,
+    "area": "Tax expenditures",
+    "source": "CBO (pub. 60557, Option 49)",
+    "source_date": "2024-12",
+    "exclusive_groups": [
+      "salt-cap"
+    ],
+    "subsumes": [],
+    "tags": {},
+    "illustrative": false
+  },
+  {
+    "build_id": "charitable-deduction-cap",
+    "label": "📋 Cap Charitable Deduction (-$200B)",
+    "score": -200.0,
+    "area": "Tax expenditures",
+    "source": "Treasury",
+    "source_date": "2024",
+    "exclusive_groups": [],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "strong_progressive",
+      "govt_size": "grow",
+      "base": "individual",
+      "generational": "current"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "step-up-basis-eliminate",
+    "label": "📋 Eliminate Step-Up Basis (-$500B)",
+    "score": -500.0,
+    "area": "Tax expenditures",
+    "source": "Treasury",
+    "source_date": "2024",
+    "exclusive_groups": [],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "strong_progressive",
+      "govt_size": "grow",
+      "base": "individual",
+      "generational": "current"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "top-rate-39-6",
+    "label": "Biden 2025 Proposal",
+    "score": -245.9,
+    "area": "Individual rates",
+    "source": "Treasury",
+    "source_date": "March 2024",
+    "exclusive_groups": [
+      "top-marginal-rate"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "strong_progressive",
+      "govt_size": "grow",
+      "base": "individual",
+      "generational": "current"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "gilti-reform",
+    "label": "🌍 Biden GILTI Reform (-$374B)",
+    "score": -373.9,
+    "area": "International",
+    "source": "Treasury (FY2025 Green Book)",
+    "source_date": "2024-03",
+    "exclusive_groups": [
+      "international-package"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "progressive",
+      "govt_size": "grow",
+      "base": "corporate",
+      "generational": "mixed"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "fdii-repeal",
+    "label": "🌍 Repeal FDII (-$158B)",
+    "score": -158.0,
+    "area": "International",
+    "source": "Treasury (FY2025 Green Book)",
+    "source_date": "2024-03",
+    "exclusive_groups": [
+      "international-package"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "progressive",
+      "govt_size": "grow",
+      "base": "corporate",
+      "generational": "mixed"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "pillar-two-adoption",
+    "label": "🌍 Pillar Two Adoption (-$80B)",
+    "score": -80.0,
+    "area": "International",
+    "source": "JCT",
+    "source_date": "2023",
+    "exclusive_groups": [],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "progressive",
+      "govt_size": "grow",
+      "base": "corporate",
+      "generational": "mixed"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "international-package",
+    "label": "🌍 Biden International Package (-$632B)",
+    "score": -632.2,
+    "area": "International",
+    "source": "Treasury (FY2025 Green Book)",
+    "source_date": "2024-03",
+    "exclusive_groups": [
+      "international-package"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "progressive",
+      "govt_size": "grow",
+      "base": "corporate",
+      "generational": "mixed"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "irs-enforcement-ira",
+    "label": "🔍 IRA Enforcement Funding (-$180B)",
+    "score": -180.4,
+    "area": "IRS enforcement",
+    "source": "CBO (pub. 58390)",
+    "source_date": "2022-08",
+    "exclusive_groups": [
+      "irs-enforcement"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "strong_progressive",
+      "govt_size": "grow",
+      "base": "enforcement",
+      "generational": "current"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "irs-enforcement-double",
+    "label": "🔍 Double IRS Enforcement (-$340B)",
+    "score": -340.0,
+    "area": "Illustrative - unfitted reconstructions",
+    "source": "Treasury/Sarin-Summers",
+    "source_date": "2021",
+    "exclusive_groups": [
+      "irs-enforcement"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "strong_progressive",
+      "govt_size": "grow",
+      "base": "enforcement",
+      "generational": "current"
+    },
+    "illustrative": true
+  },
+  {
+    "build_id": "drug-negotiation-expand",
+    "label": "💊 Expand Drug Negotiation (-$500B)",
+    "score": -500.0,
+    "area": "Illustrative - unfitted reconstructions",
+    "source": "CBO/Estimate",
+    "source_date": "2023",
+    "exclusive_groups": [
+      "drug-pricing"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "cut_spending",
+      "progressivity": "not_modeled",
+      "govt_size": "shrink",
+      "base": "transfer",
+      "generational": "current"
+    },
+    "illustrative": true
+  },
+  {
+    "build_id": "insulin-cap-universal",
+    "label": "💊 Universal Insulin Cap ($11B)",
+    "score": 11.4,
+    "area": "Illustrative - unfitted reconstructions",
+    "source": "CBO (publication 57957, H.R. 6833)",
+    "source_date": "March 2022",
+    "exclusive_groups": [],
+    "subsumes": [],
+    "tags": {
+      "direction": "cut_spending",
+      "progressivity": "not_modeled",
+      "govt_size": "shrink",
+      "base": "transfer",
+      "generational": "current"
+    },
+    "illustrative": true
+  },
+  {
+    "build_id": "drug-reference-pricing",
+    "label": "💊 International Reference Pricing (-$100B)",
+    "score": -100.0,
+    "area": "Illustrative - unfitted reconstructions",
+    "source": "RAND/Estimate",
+    "source_date": "2021",
+    "exclusive_groups": [
+      "drug-pricing"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "cut_spending",
+      "progressivity": "not_modeled",
+      "govt_size": "shrink",
+      "base": "transfer",
+      "generational": "current"
+    },
+    "illustrative": true
+  },
+  {
+    "build_id": "tariff-universal-10pct",
+    "label": "🏭 Trump Universal 10% Tariff (-$2.17T)",
+    "score": -2171.1,
+    "area": "Trade / tariffs",
+    "source": "Tax Foundation (FF861)",
+    "source_date": "2025-04",
+    "exclusive_groups": [
+      "tariff-regime"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "regressive",
+      "govt_size": "grow",
+      "base": "consumption",
+      "generational": "current"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "tariff-china-60pct",
+    "label": "🏭 Trump 60% China Tariff (-$650B)",
+    "score": -650.0,
+    "area": "Trade / tariffs",
+    "source": "CRFB (Options to Raise Tariff Revenue)",
+    "source_date": "2024-12",
+    "exclusive_groups": [],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "regressive",
+      "govt_size": "grow",
+      "base": "consumption",
+      "generational": "current"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "tariff-auto-25pct",
+    "label": "🏭 25% Auto Tariff (-$386B)",
+    "score": -386.2,
+    "area": "Trade / tariffs",
+    "source": "Tax Foundation (tariff tracker)",
+    "source_date": "2026-08",
+    "exclusive_groups": [],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "regressive",
+      "govt_size": "grow",
+      "base": "consumption",
+      "generational": "current"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "tariff-steel-aluminum-25pct",
+    "label": "🏭 25% Steel/Aluminum Tariff (-$60B)",
+    "score": -60.0,
+    "area": "Trade / tariffs",
+    "source": "Tax Foundation",
+    "source_date": "2024",
+    "exclusive_groups": [],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "regressive",
+      "govt_size": "grow",
+      "base": "consumption",
+      "generational": "current"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "tariff-reciprocal",
+    "label": "🏭 Reciprocal Tariffs (-$1.5T)",
+    "score": -1500.0,
+    "area": "Trade / tariffs",
+    "source": "CRFB / Tax Foundation / Yale Budget Lab",
+    "source_date": "2025-04",
+    "exclusive_groups": [
+      "tariff-regime"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "regressive",
+      "govt_size": "grow",
+      "base": "consumption",
+      "generational": "current"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "ira-clean-energy-repeal",
+    "label": "🌱 Repeal IRA Clean Energy Credits (-$851B)",
+    "score": -851.0,
+    "area": "Climate / energy",
+    "source": "Tax Foundation (McBride, House Oversight testimony)",
+    "source_date": "2025-05",
+    "exclusive_groups": [
+      "ira-clean-energy"
+    ],
+    "subsumes": [
+      "ev-credit-repeal"
+    ],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "progressive",
+      "govt_size": "shrink",
+      "base": "corporate",
+      "generational": "future"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "carbon-tax-50",
+    "label": "🌱 Carbon Tax \\$50/ton (-$1.7T)",
+    "score": -1700.0,
+    "area": "Climate / energy",
+    "source": "CBO-style estimate",
+    "source_date": "2024",
+    "exclusive_groups": [
+      "carbon-tax"
+    ],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "regressive",
+      "govt_size": "grow",
+      "base": "consumption",
+      "generational": "future"
+    },
+    "illustrative": false
+  },
+  {
+    "build_id": "ev-credit-repeal",
+    "label": "🌱 Repeal EV Credits (-$182B)",
+    "score": -182.3,
+    "area": "Climate / energy",
+    "source": "JCT (JCX-35-25)",
+    "source_date": "July 2025",
+    "exclusive_groups": [],
+    "subsumes": [],
+    "tags": {
+      "direction": "raise_revenue",
+      "progressivity": "progressive",
+      "govt_size": "shrink",
+      "base": "individual",
+      "generational": "future"
+    },
+    "illustrative": false
+  }
+]

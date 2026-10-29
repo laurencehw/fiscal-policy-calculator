@@ -1,0 +1,287 @@
+{
+  "id": "tcja-rates-only",
+  "conventional": {
+    "policy_name": "🏛️ TCJA Rates Only",
+    "policy_description": "Extend only the individual rate bracket cuts, not other TCJA provisions. CRS R48286 Table 1, \"Reduced Individual Tax Rates\": \\$2,159B over FY2025-2034.",
+    "baseline_vintage": "February 2026",
+    "budget_window": "FY2026-2035",
+    "ten_year_deficit_impact": 3114.684884140226,
+    "static_revenue_effect": -3114.684884140226,
+    "behavioral_offset": 0.0,
+    "final_static_effect": -3114.684884140226,
+    "gdp_effect": null,
+    "employment_effect": null,
+    "revenue_feedback": 0.0,
+    "debt_service": null,
+    "dynamic_adjusted_impact": null,
+    "dynamic_model": null,
+    "year_by_year": [
+      {
+        "year": 2026,
+        "revenue_effect": -265.5,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 265.5,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2027,
+        "revenue_effect": -274.7925,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 274.7925,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2028,
+        "revenue_effect": -284.41023749999994,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 284.41023749999994,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2029,
+        "revenue_effect": -294.36459581249994,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 294.36459581249994,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2030,
+        "revenue_effect": -304.66735666593746,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 304.66735666593746,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2031,
+        "revenue_effect": -315.3307141492452,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 315.3307141492452,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2032,
+        "revenue_effect": -326.36728914446877,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 326.36728914446877,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2033,
+        "revenue_effect": -337.7901442645251,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 337.7901442645251,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2034,
+        "revenue_effect": -349.6127993137835,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 349.6127993137835,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2035,
+        "revenue_effect": -361.8492472897659,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 361.8492472897659,
+        "debt_service": null,
+        "dynamic_effect": null
+      }
+    ],
+    "dynamic_scoring_enabled": false,
+    "credibility": {
+      "category": "TCJA",
+      "evidence_type": "no_out_of_sample_benchmark",
+      "policy_class": null,
+      "class_label": null,
+      "n_tier1_rows": 0,
+      "mean_abs_pct_error": null,
+      "median_abs_pct_error": null,
+      "max_abs_pct_error": null,
+      "rows_inside_mean_band": null,
+      "uncertainty_low": null,
+      "uncertainty_high": null,
+      "outer_low": null,
+      "outer_high": null,
+      "no_band_reason": "no pre-registered row scores a bundle of rates, brackets, the standard deduction, the CTC, the AMT and QBI together",
+      "own_row_policy_id": "tcja_rates_only",
+      "own_row_tier": "reconstruction",
+      "own_row_tier_label": "Unfitted reconstruction",
+      "own_row_abs_pct_error": 44.28521258814223,
+      "own_row_official_billions": 2158.7,
+      "own_row_caption": "Unfitted reconstruction, 44.3% from $2.16T (CBO) — no constant is fitted to this figure.",
+      "holdout_status": "calibration_reference_only",
+      "limitations": [
+        "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
+        "No pre-registered out-of-sample row scores a policy of this class, so this model's accuracy on one has not been measured.",
+        "Aggregate calibration is strong, but the extension decomposition is not backed by CPS ASEC return-level microsimulation.",
+        "This scenario is illustrative rather than matched to a single official score.",
+        "Target revised (target_revisions.tcja_rates_only.v2) from the repository's own $3,185B decomposition to CRS R48286 Table 1's $2,158.7B. The row went 2.2% -> 44.3% and nothing in the module moved: the old error measured a decomposition of a fitted aggregate reproducing itself.",
+        "JCT's JCX-35-25 p. 1 row 1, 'Extension and limited enhancement of reduced rates', gives -$2,193.4B over the same window (1.6% from the adopted figure) but prices P.L. 119-21's enhancement rather than TCJA's rate structure, so it is not this target."
+      ],
+      "caption": "No out-of-sample band: no pre-registered row scores a bundle of rates, brackets, the standard deduction, the CTC, the AMT and QBI together. The 44 pre-registered Tier 1 rows are the only tier that measures this model's accuracy, and none of them scores a policy of this kind."
+    },
+    "error_message": null
+  },
+  "dynamic": {
+    "policy_name": "🏛️ TCJA Rates Only",
+    "policy_description": "Extend only the individual rate bracket cuts, not other TCJA provisions. CRS R48286 Table 1, \"Reduced Individual Tax Rates\": \\$2,159B over FY2025-2034.",
+    "baseline_vintage": "February 2026",
+    "budget_window": "FY2026-2035",
+    "ten_year_deficit_impact": 3114.684884140226,
+    "static_revenue_effect": -3114.684884140226,
+    "behavioral_offset": 0.0,
+    "final_static_effect": -3114.684884140226,
+    "gdp_effect": 3.2180998131554075,
+    "employment_effect": 205.95838804194605,
+    "revenue_feedback": 225.2669869208785,
+    "debt_service": 649.9415486687254,
+    "dynamic_adjusted_impact": 3539.359445888073,
+    "dynamic_model": "FRB/US-Lite (Federal Reserve calibrated)",
+    "year_by_year": [
+      {
+        "year": 2026,
+        "revenue_effect": -265.5,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 44.6121309375,
+        "final_effect": 265.5,
+        "debt_service": 10.620000000000001,
+        "dynamic_effect": 231.5078690625
+      },
+      {
+        "year": 2027,
+        "revenue_effect": -274.7925,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 49.539193040801955,
+        "final_effect": 274.7925,
+        "debt_service": 21.611700000000003,
+        "dynamic_effect": 246.86500695919807
+      },
+      {
+        "year": 2028,
+        "revenue_effect": -284.41023749999994,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 41.456435219231125,
+        "final_effect": 284.41023749999994,
+        "debt_service": 32.9881095,
+        "dynamic_effect": 275.9419117807688
+      },
+      {
+        "year": 2029,
+        "revenue_effect": -294.36459581249994,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 30.963936325737958,
+        "final_effect": 294.36459581249994,
+        "debt_service": 44.76269333250001,
+        "dynamic_effect": 308.163352819262
+      },
+      {
+        "year": 2030,
+        "revenue_effect": -304.66735666593746,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 21.7507707291761,
+        "final_effect": 304.66735666593746,
+        "debt_service": 56.9493875991375,
+        "dynamic_effect": 339.86597353589883
+      },
+      {
+        "year": 2031,
+        "revenue_effect": -315.3307141492452,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 14.698343714432475,
+        "final_effect": 315.3307141492452,
+        "debt_service": 69.5626161651073,
+        "dynamic_effect": 370.19498659991996
+      },
+      {
+        "year": 2032,
+        "revenue_effect": -326.36728914446877,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 9.663826536155328,
+        "final_effect": 326.36728914446877,
+        "debt_service": 82.61730773088605,
+        "dynamic_effect": 399.3207703391995
+      },
+      {
+        "year": 2033,
+        "revenue_effect": -337.7901442645251,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 6.218492845082167,
+        "final_effect": 337.7901442645251,
+        "debt_service": 96.12891350146707,
+        "dynamic_effect": 427.70056492091004
+      },
+      {
+        "year": 2034,
+        "revenue_effect": -349.6127993137835,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 3.927449332043614,
+        "final_effect": 349.6127993137835,
+        "debt_service": 110.11342547401841,
+        "dynamic_effect": 455.7987754557583
+      },
+      {
+        "year": 2035,
+        "revenue_effect": -361.8492472897659,
+        "behavioral_offset": 0.0,
+        "dynamic_feedback": 2.436408240717786,
+        "final_effect": 361.8492472897659,
+        "debt_service": 124.58739536560905,
+        "dynamic_effect": 484.00023441465714
+      }
+    ],
+    "dynamic_scoring_enabled": true,
+    "credibility": {
+      "category": "TCJA",
+      "evidence_type": "no_out_of_sample_benchmark",
+      "policy_class": null,
+      "class_label": null,
+      "n_tier1_rows": 0,
+      "mean_abs_pct_error": null,
+      "median_abs_pct_error": null,
+      "max_abs_pct_error": null,
+      "rows_inside_mean_band": null,
+      "uncertainty_low": null,
+      "uncertainty_high": null,
+      "outer_low": null,
+      "outer_high": null,
+      "no_band_reason": "no pre-registered row scores a bundle of rates, brackets, the standard deduction, the CTC, the AMT and QBI together",
+      "own_row_policy_id": "tcja_rates_only",
+      "own_row_tier": "reconstruction",
+      "own_row_tier_label": "Unfitted reconstruction",
+      "own_row_abs_pct_error": 44.28521258814223,
+      "own_row_official_billions": 2158.7,
+      "own_row_caption": "Unfitted reconstruction, 44.3% from $2.16T (CBO) — no constant is fitted to this figure.",
+      "holdout_status": "calibration_reference_only",
+      "limitations": [
+        "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
+        "No pre-registered out-of-sample row scores a policy of this class, so this model's accuracy on one has not been measured.",
+        "Aggregate calibration is strong, but the extension decomposition is not backed by CPS ASEC return-level microsimulation.",
+        "This scenario is illustrative rather than matched to a single official score.",
+        "Target revised (target_revisions.tcja_rates_only.v2) from the repository's own $3,185B decomposition to CRS R48286 Table 1's $2,158.7B. The row went 2.2% -> 44.3% and nothing in the module moved: the old error measured a decomposition of a fitted aggregate reproducing itself.",
+        "JCT's JCX-35-25 p. 1 row 1, 'Extension and limited enhancement of reduced rates', gives -$2,193.4B over the same window (1.6% from the adopted figure) but prices P.L. 119-21's enhancement rather than TCJA's rate structure, so it is not this target."
+      ],
+      "caption": "No out-of-sample band: no pre-registered row scores a bundle of rates, brackets, the standard deduction, the CTC, the AMT and QBI together. The 44 pre-registered Tier 1 rows are the only tier that measures this model's accuracy, and none of them scores a policy of this kind."
+    },
+    "error_message": null
+  }
+}

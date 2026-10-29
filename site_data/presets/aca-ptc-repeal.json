@@ -1,0 +1,291 @@
+{
+  "id": "aca-ptc-repeal",
+  "conventional": {
+    "policy_name": "🏥 Repeal ACA Premium Credits (-$1.1T)",
+    "policy_description": "Repeal all ACA premium subsidies. Saves ~\\$1.1T but ~19M lose subsidized coverage.",
+    "baseline_vintage": "February 2026",
+    "budget_window": "FY2026-2035",
+    "ten_year_deficit_impact": -840.840383862123,
+    "static_revenue_effect": 959.0,
+    "behavioral_offset": 118.15961613787698,
+    "final_static_effect": 840.840383862123,
+    "gdp_effect": null,
+    "employment_effect": null,
+    "revenue_feedback": 0.0,
+    "debt_service": null,
+    "dynamic_adjusted_impact": null,
+    "dynamic_model": null,
+    "year_by_year": [
+      {
+        "year": 2026,
+        "revenue_effect": 105.0,
+        "behavioral_offset": 12.937184248672663,
+        "dynamic_feedback": 0.0,
+        "final_effect": -92.06281575132734,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2027,
+        "revenue_effect": 78.0,
+        "behavioral_offset": 9.610479727585407,
+        "dynamic_feedback": 0.0,
+        "final_effect": -68.38952027241459,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2028,
+        "revenue_effect": 74.0,
+        "behavioral_offset": 9.117634613350257,
+        "dynamic_feedback": 0.0,
+        "final_effect": -64.88236538664974,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2029,
+        "revenue_effect": 78.0,
+        "behavioral_offset": 9.610479727585407,
+        "dynamic_feedback": 0.0,
+        "final_effect": -68.38952027241459,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2030,
+        "revenue_effect": 86.0,
+        "behavioral_offset": 10.596169956055704,
+        "dynamic_feedback": 0.0,
+        "final_effect": -75.4038300439443,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2031,
+        "revenue_effect": 96.0,
+        "behavioral_offset": 11.828282741643577,
+        "dynamic_feedback": 0.0,
+        "final_effect": -84.17171725835642,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2032,
+        "revenue_effect": 103.0,
+        "behavioral_offset": 12.690761691555087,
+        "dynamic_feedback": 0.0,
+        "final_effect": -90.30923830844492,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2033,
+        "revenue_effect": 106.0,
+        "behavioral_offset": 13.06039552723145,
+        "dynamic_feedback": 0.0,
+        "final_effect": -92.93960447276855,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2034,
+        "revenue_effect": 113.0,
+        "behavioral_offset": 13.92287447714296,
+        "dynamic_feedback": 0.0,
+        "final_effect": -99.07712552285705,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2035,
+        "revenue_effect": 120.0,
+        "behavioral_offset": 14.78535342705447,
+        "dynamic_feedback": 0.0,
+        "final_effect": -105.21464657294553,
+        "debt_service": null,
+        "dynamic_effect": null
+      }
+    ],
+    "dynamic_scoring_enabled": false,
+    "credibility": {
+      "category": "PTC",
+      "evidence_type": "no_out_of_sample_benchmark",
+      "policy_class": null,
+      "class_label": null,
+      "n_tier1_rows": 0,
+      "mean_abs_pct_error": null,
+      "median_abs_pct_error": null,
+      "max_abs_pct_error": null,
+      "rows_inside_mean_band": null,
+      "uncertainty_low": null,
+      "uncertainty_high": null,
+      "outer_low": null,
+      "outer_high": null,
+      "no_band_reason": "no pre-registered row scores a premium-tax-credit reform",
+      "own_row_policy_id": "repeal_ptc",
+      "own_row_tier": "reconstruction",
+      "own_row_tier_label": "Unfitted reconstruction",
+      "own_row_abs_pct_error": 23.559965103443368,
+      "own_row_official_billions": -1100.0,
+      "own_row_caption": "Unfitted reconstruction, 23.6% from -$1.10T (CBO estimate) — no constant is fitted to this figure.",
+      "holdout_status": "post_lock_holdout_available",
+      "limitations": [
+        "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
+        "No pre-registered out-of-sample row scores a policy of this class, so this model's accuracy on one has not been measured.",
+        "The module's annual is fitted to the superseded $350B, so the residual against the revised target is a measurement rather than bookkeeping. Nothing was retuned to close it.",
+        "Reclassified rather than retuned: the PTC module's behavioural offset carried the opposite sign to the static effect, so this repeal booked 10% more saving than it statically raises, and the fitted annual was compensating for that. The sign was corrected 2026-09-05 and the row moved 0.3% -> 18.5%; no constant was moved to close it.",
+        "The -$1,100B target is an untraceable secondhand figure ('CBO estimate', no publication) on the section 6.2 item 5 list, so the residual is not a measurement against a document. The provenance pass that was queued here has since run (PR #122) and traced its likely origin to CBO/JCT pub. 51298's June 2024 baseline projection ($966B outlays + $176B revenue reductions = $1,142B over FY2025-2034), then recorded the verdict against adopting it in EXAMINED_NOT_REVISED: a baseline projection is not a repeal score. The target therefore stays, and stays unsourced.",
+        "VINTAGE AND WINDOW, not model error, are most of what is left. Since lane W7 (2026-09-06) the score removes the baseline vintage's own credit path, and the app's vintage is CBO's February 2026 baseline, in which the ARPA/IRA enhancement has already lapsed: the credit's two legs are $959B over FY2026-2035 against $1,143B over FY2025-2034 on the June 2024 vintage the target came from. Scored on that vintage and window with no coverage response the same mechanism returns $1,143B, 0.09% from pub. 51298's own figure - which is the demonstration that the target is a baseline projection rather than a validation of the model.",
+        "The coverage response is now PRICED CHANNEL BY CHANNEL rather than transferred as one ratio (lane HSD/H11, 2026-09-11, `planning/lanes/HSD_h11_ptc_coverage.md`), and the row moved 29.6% -> 23.6% with no constant retuned. Pub. 60437's own itemisation is divided by the coverage movement each line is a response to - $2,971.43 per person-year of employment-based coverage ($101B of compensation shifting plus $3B of employer penalties over a 3.5M decline), $4,200 per Medicaid/CHIP person-year, $57.97 per marketplace person-year for the Basic Health Program, section 1332 waivers and other outlays, and $0 for someone who becomes uninsured - and applied to the scored vintage's OWN subsidized marketplace enrolment from pub. 51298 Table 1 (11.06M a year over FY2026-2035, against 19.0M of uncited constant before). Handed 60437's own coverage vector the rates return its own $79B, which is the identity test. The resulting share is 12.32%, not 19.28%, and the whole of the difference is one line of arithmetic: the offsets scale with PEOPLE and the gross with DOLLARS, and a repeal's average enrollee holds an $8,671 credit where the extension's marginal enrollee holds the $5,370 pub. 60437 Table 3 prints.",
+        "WHAT IS STILL TRANSFERRED is the destination split and the channel rates, because no CBO or JCT score of a full repeal exists (searched by PR #122, again by lane H9, again here - pub. 61734 publishes outlays, revenues and the net for the same extension on the app's own window and NO channel itemisation, so the share cannot even be recomputed on FY2026-2035). Two things are known about which way the transfer errs and NEITHER is acted on, because both move the row toward the -$1,100B this repository refuses as a baseline projection. (1) Pub. 60437 Table 3 puts 3.5M of the 6.9M marginal enrollees above 400% FPL and the employment-based decline at 3.5M, and report p. 6 says that decline affects people with higher incomes - so on a vintage where the enhancement has lapsed and eligibility is capped at 400% FPL, the band CBO's largest channel lives in is absent from the population a repeal reaches. Zeroing that channel gives -$996.3B, 9.4% from the target. It is not zeroed: 'most' does not license a zero and 26 U.S.C. 36B(c)(2)(C) bars only an AFFORDABLE offer. (2) A repeal also pushes people INTO Medicaid for a reason the extension has no mirror of, which CBO prices nowhere. (3) Separately, 42 U.S.C. 18051(d)(3) ties Basic Health Program funding to 95% of the credit, so a repeal ZEROES it rather than reversing 60437's +$17B - an unpriced additional saving. Sensitivity on the aggregate: the letter's footnote 4 gives $325B excluding TCJA interactions, an offsetting share of 21.7% rather than 19.3%."
+      ],
+      "caption": "No out-of-sample band: no pre-registered row scores a premium-tax-credit reform. The 44 pre-registered Tier 1 rows are the only tier that measures this model's accuracy, and none of them scores a policy of this kind."
+    },
+    "error_message": null
+  },
+  "dynamic": {
+    "policy_name": "🏥 Repeal ACA Premium Credits (-$1.1T)",
+    "policy_description": "Repeal all ACA premium subsidies. Saves ~\\$1.1T but ~19M lose subsidized coverage.",
+    "baseline_vintage": "February 2026",
+    "budget_window": "FY2026-2035",
+    "ten_year_deficit_impact": -840.840383862123,
+    "static_revenue_effect": 959.0,
+    "behavioral_offset": 118.15961613787698,
+    "final_static_effect": 840.840383862123,
+    "gdp_effect": -1.112619251295571,
+    "employment_effect": -71.20763208291656,
+    "revenue_feedback": -77.88334759068997,
+    "debt_service": -174.0250254316519,
+    "dynamic_adjusted_impact": -936.9820617030849,
+    "dynamic_model": "FRB/US-Lite (Federal Reserve calibrated)",
+    "year_by_year": [
+      {
+        "year": 2026,
+        "revenue_effect": 105.0,
+        "behavioral_offset": 12.937184248672663,
+        "dynamic_feedback": -16.33347626013893,
+        "final_effect": -92.06281575132734,
+        "debt_service": -3.6825126300530933,
+        "dynamic_effect": -79.4118521212415
+      },
+      {
+        "year": 2027,
+        "revenue_effect": 78.0,
+        "behavioral_offset": 9.610479727585407,
+        "dynamic_feedback": -16.009679639012496,
+        "final_effect": -68.38952027241459,
+        "debt_service": -6.418093440949677,
+        "dynamic_effect": -58.797934074351765
+      },
+      {
+        "year": 2028,
+        "revenue_effect": 74.0,
+        "behavioral_offset": 9.117634613350257,
+        "dynamic_feedback": -12.838279513114633,
+        "final_effect": -64.88236538664974,
+        "debt_service": -9.013388056415666,
+        "dynamic_effect": -61.05747392995077
+      },
+      {
+        "year": 2029,
+        "revenue_effect": 78.0,
+        "behavioral_offset": 9.610479727585407,
+        "dynamic_feedback": -9.752333780092671,
+        "final_effect": -68.38952027241459,
+        "debt_service": -11.748968867312248,
+        "dynamic_effect": -70.38615535963416
+      },
+      {
+        "year": 2030,
+        "revenue_effect": 86.0,
+        "behavioral_offset": 10.596169956055704,
+        "dynamic_feedback": -7.291699269354149,
+        "final_effect": -75.4038300439443,
+        "debt_service": -14.76512206907002,
+        "dynamic_effect": -82.87725284366016
+      },
+      {
+        "year": 2031,
+        "revenue_effect": 96.0,
+        "behavioral_offset": 11.828282741643577,
+        "dynamic_feedback": -5.422554672545196,
+        "final_effect": -84.17171725835642,
+        "debt_service": -18.131990759404278,
+        "dynamic_effect": -96.88115334521551
+      },
+      {
+        "year": 2032,
+        "revenue_effect": 103.0,
+        "behavioral_offset": 12.690761691555087,
+        "dynamic_feedback": -3.9661457901594774,
+        "final_effect": -90.30923830844492,
+        "debt_service": -21.744360291742073,
+        "dynamic_effect": -108.08745281002751
+      },
+      {
+        "year": 2033,
+        "revenue_effect": 106.0,
+        "behavioral_offset": 13.06039552723145,
+        "dynamic_feedback": -2.831867961013943,
+        "final_effect": -92.93960447276855,
+        "debt_service": -25.461944470652817,
+        "dynamic_effect": -115.56968098240742
+      },
+      {
+        "year": 2034,
+        "revenue_effect": 113.0,
+        "behavioral_offset": 13.92287447714296,
+        "dynamic_feedback": -2.012709532420619,
+        "final_effect": -99.07712552285705,
+        "debt_service": -29.4250294915671,
+        "dynamic_effect": -126.48944548200353
+      },
+      {
+        "year": 2035,
+        "revenue_effect": 120.0,
+        "behavioral_offset": 14.78535342705447,
+        "dynamic_feedback": -1.4246011728378505,
+        "final_effect": -105.21464657294553,
+        "debt_service": -33.63361535448492,
+        "dynamic_effect": -137.4236607545926
+      }
+    ],
+    "dynamic_scoring_enabled": true,
+    "credibility": {
+      "category": "PTC",
+      "evidence_type": "no_out_of_sample_benchmark",
+      "policy_class": null,
+      "class_label": null,
+      "n_tier1_rows": 0,
+      "mean_abs_pct_error": null,
+      "median_abs_pct_error": null,
+      "max_abs_pct_error": null,
+      "rows_inside_mean_band": null,
+      "uncertainty_low": null,
+      "uncertainty_high": null,
+      "outer_low": null,
+      "outer_high": null,
+      "no_band_reason": "no pre-registered row scores a premium-tax-credit reform",
+      "own_row_policy_id": "repeal_ptc",
+      "own_row_tier": "reconstruction",
+      "own_row_tier_label": "Unfitted reconstruction",
+      "own_row_abs_pct_error": 23.559965103443368,
+      "own_row_official_billions": -1100.0,
+      "own_row_caption": "Unfitted reconstruction, 23.6% from -$1.10T (CBO estimate) — no constant is fitted to this figure.",
+      "holdout_status": "post_lock_holdout_available",
+      "limitations": [
+        "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
+        "No pre-registered out-of-sample row scores a policy of this class, so this model's accuracy on one has not been measured.",
+        "The module's annual is fitted to the superseded $350B, so the residual against the revised target is a measurement rather than bookkeeping. Nothing was retuned to close it.",
+        "Reclassified rather than retuned: the PTC module's behavioural offset carried the opposite sign to the static effect, so this repeal booked 10% more saving than it statically raises, and the fitted annual was compensating for that. The sign was corrected 2026-09-05 and the row moved 0.3% -> 18.5%; no constant was moved to close it.",
+        "The -$1,100B target is an untraceable secondhand figure ('CBO estimate', no publication) on the section 6.2 item 5 list, so the residual is not a measurement against a document. The provenance pass that was queued here has since run (PR #122) and traced its likely origin to CBO/JCT pub. 51298's June 2024 baseline projection ($966B outlays + $176B revenue reductions = $1,142B over FY2025-2034), then recorded the verdict against adopting it in EXAMINED_NOT_REVISED: a baseline projection is not a repeal score. The target therefore stays, and stays unsourced.",
+        "VINTAGE AND WINDOW, not model error, are most of what is left. Since lane W7 (2026-09-06) the score removes the baseline vintage's own credit path, and the app's vintage is CBO's February 2026 baseline, in which the ARPA/IRA enhancement has already lapsed: the credit's two legs are $959B over FY2026-2035 against $1,143B over FY2025-2034 on the June 2024 vintage the target came from. Scored on that vintage and window with no coverage response the same mechanism returns $1,143B, 0.09% from pub. 51298's own figure - which is the demonstration that the target is a baseline projection rather than a validation of the model.",
+        "The coverage response is now PRICED CHANNEL BY CHANNEL rather than transferred as one ratio (lane HSD/H11, 2026-09-11, `planning/lanes/HSD_h11_ptc_coverage.md`), and the row moved 29.6% -> 23.6% with no constant retuned. Pub. 60437's own itemisation is divided by the coverage movement each line is a response to - $2,971.43 per person-year of employment-based coverage ($101B of compensation shifting plus $3B of employer penalties over a 3.5M decline), $4,200 per Medicaid/CHIP person-year, $57.97 per marketplace person-year for the Basic Health Program, section 1332 waivers and other outlays, and $0 for someone who becomes uninsured - and applied to the scored vintage's OWN subsidized marketplace enrolment from pub. 51298 Table 1 (11.06M a year over FY2026-2035, against 19.0M of uncited constant before). Handed 60437's own coverage vector the rates return its own $79B, which is the identity test. The resulting share is 12.32%, not 19.28%, and the whole of the difference is one line of arithmetic: the offsets scale with PEOPLE and the gross with DOLLARS, and a repeal's average enrollee holds an $8,671 credit where the extension's marginal enrollee holds the $5,370 pub. 60437 Table 3 prints.",
+        "WHAT IS STILL TRANSFERRED is the destination split and the channel rates, because no CBO or JCT score of a full repeal exists (searched by PR #122, again by lane H9, again here - pub. 61734 publishes outlays, revenues and the net for the same extension on the app's own window and NO channel itemisation, so the share cannot even be recomputed on FY2026-2035). Two things are known about which way the transfer errs and NEITHER is acted on, because both move the row toward the -$1,100B this repository refuses as a baseline projection. (1) Pub. 60437 Table 3 puts 3.5M of the 6.9M marginal enrollees above 400% FPL and the employment-based decline at 3.5M, and report p. 6 says that decline affects people with higher incomes - so on a vintage where the enhancement has lapsed and eligibility is capped at 400% FPL, the band CBO's largest channel lives in is absent from the population a repeal reaches. Zeroing that channel gives -$996.3B, 9.4% from the target. It is not zeroed: 'most' does not license a zero and 26 U.S.C. 36B(c)(2)(C) bars only an AFFORDABLE offer. (2) A repeal also pushes people INTO Medicaid for a reason the extension has no mirror of, which CBO prices nowhere. (3) Separately, 42 U.S.C. 18051(d)(3) ties Basic Health Program funding to 95% of the credit, so a repeal ZEROES it rather than reversing 60437's +$17B - an unpriced additional saving. Sensitivity on the aggregate: the letter's footnote 4 gives $325B excluding TCJA interactions, an offsetting share of 21.7% rather than 19.3%."
+      ],
+      "caption": "No out-of-sample band: no pre-registered row scores a premium-tax-credit reform. The 44 pre-registered Tier 1 rows are the only tier that measures this model's accuracy, and none of them scores a policy of this kind."
+    },
+    "error_message": null
+  }
+}

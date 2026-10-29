@@ -1,0 +1,285 @@
+{
+  "id": "amt-extend-tcja-relief",
+  "conventional": {
+    "policy_name": "⚖️ AMT: Extend TCJA Relief ($1.36T)",
+    "policy_description": "Extend TCJA's higher AMT exemptions (\\$88K single, \\$137K MFJ) past 2025. CRS/CBO put the 10-year cost at ~\\$1.36T.",
+    "baseline_vintage": "February 2026",
+    "budget_window": "FY2026-2035",
+    "ten_year_deficit_impact": 450.5304569407997,
+    "static_revenue_effect": -450.5304569407997,
+    "behavioral_offset": 0.0,
+    "final_static_effect": -450.5304569407997,
+    "gdp_effect": null,
+    "employment_effect": null,
+    "revenue_feedback": 0.0,
+    "debt_service": null,
+    "dynamic_adjusted_impact": null,
+    "dynamic_model": null,
+    "year_by_year": [
+      {
+        "year": 2026,
+        "revenue_effect": -39.3,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 39.3,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2027,
+        "revenue_effect": -40.479,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 40.479,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2028,
+        "revenue_effect": -41.693369999999994,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 41.693369999999994,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2029,
+        "revenue_effect": -42.9441711,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 42.9441711,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2030,
+        "revenue_effect": -44.232496233,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 44.232496233,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2031,
+        "revenue_effect": -45.55947111999,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 45.55947111999,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2032,
+        "revenue_effect": -46.9262552535897,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 46.9262552535897,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2033,
+        "revenue_effect": -48.33404291119739,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 48.33404291119739,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2034,
+        "revenue_effect": -49.78406419853332,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 49.78406419853332,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2035,
+        "revenue_effect": -51.27758612448932,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 51.27758612448932,
+        "debt_service": null,
+        "dynamic_effect": null
+      }
+    ],
+    "dynamic_scoring_enabled": false,
+    "credibility": {
+      "category": "AMT",
+      "evidence_type": "no_out_of_sample_benchmark",
+      "policy_class": null,
+      "class_label": null,
+      "n_tier1_rows": 0,
+      "mean_abs_pct_error": null,
+      "median_abs_pct_error": null,
+      "max_abs_pct_error": null,
+      "rows_inside_mean_band": null,
+      "uncertainty_low": null,
+      "uncertainty_high": null,
+      "outer_low": null,
+      "outer_high": null,
+      "no_band_reason": "no pre-registered row scores an AMT reform",
+      "own_row_policy_id": "extend_tcja_amt",
+      "own_row_tier": "reconstruction",
+      "own_row_tier_label": "Unfitted reconstruction",
+      "own_row_abs_pct_error": 66.80197060343382,
+      "own_row_official_billions": 1357.1,
+      "own_row_caption": "Unfitted reconstruction, 66.8% from $1.36T (CRS R48286 Table 1 (transcribing CBO 60114/…) — no constant is fitted to this figure.",
+      "holdout_status": "post_lock_holdout_available",
+      "limitations": [
+        "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
+        "No pre-registered out-of-sample row scores a policy of this class, so this model's accuracy on one has not been measured.",
+        "Poor against the corrected target by construction, and the gap is the point of correcting it: the fitted annual scores $450.5B against a published $1,357.1B (-66.8%). Retuning the constant to close that is forbidden — it would re-fit the module to the number it is being tested on.",
+        "The module's structural (derived) path scores $855.3B, -37.0% against the same row, so the unfitted machinery is about 1.8x closer to the document than the fitted constant. See planning/lanes/PROVENANCE_amt_insulin.md.",
+        "Definitional gap, not split: CRS/CBO score the AMT provision inside a full TCJA-extension package, where extended rate cuts push more filers into AMT than a standalone AMT extension would. TPC's T25-0049 reconstructs the standalone counterfactual and implies roughly $855B; both are published and they answer different questions."
+      ],
+      "caption": "No out-of-sample band: no pre-registered row scores an AMT reform. The 44 pre-registered Tier 1 rows are the only tier that measures this model's accuracy, and none of them scores a policy of this kind."
+    },
+    "error_message": null
+  },
+  "dynamic": {
+    "policy_name": "⚖️ AMT: Extend TCJA Relief ($1.36T)",
+    "policy_description": "Extend TCJA's higher AMT exemptions (\\$88K single, \\$137K MFJ) past 2025. CRS/CBO put the 10-year cost at ~\\$1.36T.",
+    "baseline_vintage": "February 2026",
+    "budget_window": "FY2026-2035",
+    "ten_year_deficit_impact": 450.5304569407997,
+    "static_revenue_effect": -450.5304569407997,
+    "behavioral_offset": 0.0,
+    "final_static_effect": -450.5304569407997,
+    "gdp_effect": 0.5477784545853961,
+    "employment_effect": 35.05782109346535,
+    "revenue_feedback": 38.344491820977716,
+    "debt_service": 94.72849419869827,
+    "dynamic_adjusted_impact": 506.91445931852024,
+    "dynamic_model": "FRB/US-Lite (Federal Reserve calibrated)",
+    "year_by_year": [
+      {
+        "year": 2026,
+        "revenue_effect": -39.3,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 6.8369571375,
+        "final_effect": 39.3,
+        "debt_service": 1.5719999999999998,
+        "dynamic_effect": 34.0350428625
+      },
+      {
+        "year": 2027,
+        "revenue_effect": -40.479,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 7.862044073417626,
+        "final_effect": 40.479,
+        "debt_service": 3.19116,
+        "dynamic_effect": 35.808115926582374
+      },
+      {
+        "year": 2028,
+        "revenue_effect": -41.693369999999994,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 6.835020196913585,
+        "final_effect": 41.693369999999994,
+        "debt_service": 4.8588948,
+        "dynamic_effect": 39.717244603086414
+      },
+      {
+        "year": 2029,
+        "revenue_effect": -42.9441711,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 5.3231799006024705,
+        "final_effect": 42.9441711,
+        "debt_service": 6.576661644,
+        "dynamic_effect": 44.19765284339753
+      },
+      {
+        "year": 2030,
+        "revenue_effect": -44.232496233,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 3.915912513105918,
+        "final_effect": 44.232496233,
+        "debt_service": 8.34596149332,
+        "dynamic_effect": 48.66254521321409
+      },
+      {
+        "year": 2031,
+        "revenue_effect": -45.55947111999,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 2.7853540011835065,
+        "final_effect": 45.55947111999,
+        "debt_service": 10.1683403381196,
+        "dynamic_effect": 52.94245745692609
+      },
+      {
+        "year": 2032,
+        "revenue_effect": -46.9262552535897,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 1.9392943092383879,
+        "final_effect": 46.9262552535897,
+        "debt_service": 12.045390548263187,
+        "dynamic_effect": 57.0323514926145
+      },
+      {
+        "year": 2033,
+        "revenue_effect": -48.33404291119739,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 1.3311440520906168,
+        "final_effect": 48.33404291119739,
+        "debt_service": 13.978752264711083,
+        "dynamic_effect": 60.98165112381786
+      },
+      {
+        "year": 2034,
+        "revenue_effect": -49.78406419853332,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.9048032665811553,
+        "final_effect": 49.78406419853332,
+        "debt_service": 15.970114832652417,
+        "dynamic_effect": 64.84937576460459
+      },
+      {
+        "year": 2035,
+        "revenue_effect": -51.27758612448932,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.610782370344455,
+        "final_effect": 51.27758612448932,
+        "debt_service": 18.021218277631988,
+        "dynamic_effect": 68.68802203177685
+      }
+    ],
+    "dynamic_scoring_enabled": true,
+    "credibility": {
+      "category": "AMT",
+      "evidence_type": "no_out_of_sample_benchmark",
+      "policy_class": null,
+      "class_label": null,
+      "n_tier1_rows": 0,
+      "mean_abs_pct_error": null,
+      "median_abs_pct_error": null,
+      "max_abs_pct_error": null,
+      "rows_inside_mean_band": null,
+      "uncertainty_low": null,
+      "uncertainty_high": null,
+      "outer_low": null,
+      "outer_high": null,
+      "no_band_reason": "no pre-registered row scores an AMT reform",
+      "own_row_policy_id": "extend_tcja_amt",
+      "own_row_tier": "reconstruction",
+      "own_row_tier_label": "Unfitted reconstruction",
+      "own_row_abs_pct_error": 66.80197060343382,
+      "own_row_official_billions": 1357.1,
+      "own_row_caption": "Unfitted reconstruction, 66.8% from $1.36T (CRS R48286 Table 1 (transcribing CBO 60114/…) — no constant is fitted to this figure.",
+      "holdout_status": "post_lock_holdout_available",
+      "limitations": [
+        "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
+        "No pre-registered out-of-sample row scores a policy of this class, so this model's accuracy on one has not been measured.",
+        "Poor against the corrected target by construction, and the gap is the point of correcting it: the fitted annual scores $450.5B against a published $1,357.1B (-66.8%). Retuning the constant to close that is forbidden — it would re-fit the module to the number it is being tested on.",
+        "The module's structural (derived) path scores $855.3B, -37.0% against the same row, so the unfitted machinery is about 1.8x closer to the document than the fitted constant. See planning/lanes/PROVENANCE_amt_insulin.md.",
+        "Definitional gap, not split: CRS/CBO score the AMT provision inside a full TCJA-extension package, where extended rate cuts push more filers into AMT than a standalone AMT extension would. TPC's T25-0049 reconstructs the standalone counterfactual and implies roughly $855B; both are published and they answer different questions."
+      ],
+      "caption": "No out-of-sample band: no pre-registered row scores an AMT reform. The 44 pre-registered Tier 1 rows are the only tier that measures this model's accuracy, and none of them scores a policy of this kind."
+    },
+    "error_message": null
+  }
+}
