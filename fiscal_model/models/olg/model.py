@@ -276,6 +276,7 @@ class OLGModel:
         compute_gen_accounts: bool = True,
         compute_transition: bool = True,
         start_year: int = 2026,
+        expectations: str = "perfect_foresight",
     ) -> OLGPolicyResult:
         """
         Full OLG policy analysis: baseline + reform steady states,
@@ -295,6 +296,11 @@ class OLGModel:
             for T=75 path).
         start_year : int
             Calendar year for the transition path.
+        expectations : str
+            ``"perfect_foresight"`` (default) solves the path cohort by
+            cohort with households that see future prices, and reports
+            welfare by generation.  ``"myopic"`` is the older forward
+            shooting, which reaches the new steady state within a few years.
 
         Returns
         -------
@@ -322,11 +328,21 @@ class OLGModel:
                 # Policy takes effect immediately at t=0
                 return reform_overrides
 
-            transition = self.solver.compute_transition_path(
-                baseline_ss=baseline,
-                reform_policy_fn=_policy_fn,
-                start_year=start_year,
-            )
+            if expectations == "myopic":
+                transition = self.solver.compute_transition_path(
+                    baseline_ss=baseline,
+                    reform_policy_fn=_policy_fn,
+                    start_year=start_year,
+                )
+            elif expectations == "perfect_foresight":
+                transition = self.solver.compute_transition_path_foresight(
+                    baseline_ss=baseline,
+                    reform_policy_fn=_policy_fn,
+                    start_year=start_year,
+                    reform_ss=reform,
+                )
+            else:
+                raise ValueError(f"Unknown expectations: {expectations!r}")
 
         if transition is None:
             # Dummy flat transition (baseline forever)

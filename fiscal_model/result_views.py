@@ -276,6 +276,17 @@ def olg_view(capital_tax_rate: float, payroll_tax_rate: float, replacement_rate:
         "path_end_gdp_pct": path_end if math.isfinite(path_end) else None,
         "capital_path_pct": finite((t.K_path - base.K) / max(base.K, 1e-10) * 100.0),
         "interest_path_ppts": finite((t.r_path - base.r) * 100.0),
+        "expectations": t.expectations,
+        "path_converged": bool(t.converged),
+        "welfare_by_birth_year": (
+            None
+            if t.cohort_birth_years is None or t.cohort_welfare_pct is None
+            else [
+                {"born": int(year), "pct": float(pct)}
+                for year, pct in zip(t.cohort_birth_years, t.cohort_welfare_pct, strict=True)
+                if math.isfinite(float(pct))
+            ]
+        ),
         "accounts": accounts,
     }
 

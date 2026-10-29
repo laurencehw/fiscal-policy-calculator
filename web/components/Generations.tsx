@@ -181,9 +181,9 @@ function Result({ r }: { r: OlgResult }) {
           </ResponsiveContainer>
         </div>
         <p className="note">
-          The path assumes households re-plan each year at that year&rsquo;s prices, so the economy reaches its new long run within a few
-          years. With forward-looking households and capital built up cohort by cohort, the adjustment would take decades; read the path
-          as the direction of travel, not its speed.
+          Every generation alive at the start re-plans the rest of its life from the savings it already has, and every later generation
+          plans its whole life. All of them see the future wages and interest rates the reform brings. Capital builds up as successive
+          generations save, so the economy takes decades to reach its new long run.
         </p>
       </section>
       ) : (
@@ -200,8 +200,78 @@ function Result({ r }: { r: OlgResult }) {
           </p>
         </section>
       )}
+      {r.path_settles && r.welfare_by_birth_year?.length ? <Welfare rows={r.welfare_by_birth_year} start={r.years[0]} /> : null}
       {r.accounts ? <Accounts a={r.accounts} /> : null}
     </>
+  );
+}
+
+function Welfare({ rows, start }: { rows: { born: number; pct: number }[]; start: number }) {
+  const living = rows.filter((x) => x.born <= start - 21);
+  const future = rows.filter((x) => x.born > start - 21);
+  const worst = rows.reduce((a, b) => (b.pct < a.pct ? b : a));
+  const best = rows.reduce((a, b) => (b.pct > a.pct ? b : a));
+  const last = future.length ? future[future.length - 1] : rows[rows.length - 1];
+  return (
+    <section className="chart">
+      <div className="head">
+        <h2>Who gains and who loses</h2>
+        <span className="tag">welfare by year of birth</span>
+      </div>
+      <div className="cycle three">
+        <div className="stage">
+          <span className="q">Hit hardest</span>
+          <span className="v">{signed(worst.pct, 2)}%</span>
+          <span className="q">born {worst.born}</span>
+        </div>
+        <div className="stage">
+          <span className="q">Gain most</span>
+          <span className="v">{signed(best.pct, 2)}%</span>
+          <span className="q">born {best.born}</span>
+        </div>
+        <div className="stage">
+          <span className="q">Generations to come</span>
+          <span className="v">{signed(last.pct, 2)}%</span>
+          <span className="q">born {last.born}</span>
+        </div>
+      </div>
+      <div className="plot" role="img" aria-label="Welfare change by year of birth">
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
+            <CartesianGrid stroke="var(--grid)" vertical={false} />
+            <XAxis dataKey="born" tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} axisLine={{ stroke: "var(--rule)" }} minTickGap={24} />
+            <YAxis tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} axisLine={false} width={56} tickFormatter={(v: number) => `${v.toFixed(1)}%`} />
+            <ReferenceLine y={0} stroke="var(--ink)" />
+            <ReferenceLine x={start - 21} stroke="var(--muted)" strokeDasharray="3 3" />
+            <Tooltip
+              cursor={{ fill: "var(--grid)" }}
+              content={({ active, payload }) =>
+                active && payload?.length ? (
+                  <div className="tip">
+                    Born {(payload[0].payload as { born: number }).born}: {signed(Number(payload[0].value ?? 0), 2)}%
+                  </div>
+                ) : null
+              }
+            />
+            <Bar
+              dataKey="pct"
+              isAnimationActive={false}
+              shape={(props: { x?: number; y?: number; width?: number; height?: number; payload?: { pct: number } }) => {
+                const { x = 0, y = 0, width = 0, height = 0, payload } = props;
+                const fill = (payload?.pct ?? 0) >= 0 ? "var(--reduces)" : "var(--adds)";
+                return <rect x={x} y={height < 0 ? y + height : y} width={width} height={Math.abs(height)} fill={fill} />;
+              }}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <p className="note">
+        Each bar is the percentage change in consumption, every year for the rest of that generation&rsquo;s life, that would leave it as
+        well off as the reform does. Positive means the generation gains. Bars left of the dashed line ({living.length} generations) were
+        already adults at the start; the {future.length} to the right are born later. Wages and taxes adjust to keep the budget in balance,
+        so a gain for one generation is often paid for by another.
+      </p>
+    </section>
   );
 }
 
