@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { YearChart } from "@/components/YearChart";
-import { preset, presets } from "@/lib/data";
+import { preset, presets, views } from "@/lib/data";
+import { EconomicEffects } from "@/components/EconomicEffects";
+import { WhoPays } from "@/components/WhoPays";
 import { Checked, YearTable } from "@/components/ScoreParts";
 import { cleanLabel, direction, money, shortLabel } from "@/lib/format";
 import { siteUrl } from "@/lib/site";
@@ -33,6 +35,7 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
   const name = shortLabel(c.policy_name);
   const headline = c.ten_year_deficit_impact;
   const dyn = d.dynamic_adjusted_impact;
+  const v = views(id);
   return (
     <>
       <header>
@@ -74,6 +77,25 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
           </a>
         </p>
       </section>
+
+      {v ? (
+        <>
+          <section className="chart" id="who-pays">
+            <div className="head">
+              <h2>Who pays</h2>
+              <span className="tag">first year, by income group</span>
+            </div>
+            <WhoPays dist={v.distribution} />
+          </section>
+          <section className="chart" id="economy">
+            <div className="head">
+              <h2>Economic effects</h2>
+              <span className="tag">difference from the CBO baseline</span>
+            </div>
+            <EconomicEffects econ={v.economic} />
+          </section>
+        </>
+      ) : null}
 
       {c.credibility?.limitations.length ? (
         <details className="latest">

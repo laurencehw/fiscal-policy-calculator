@@ -160,3 +160,29 @@ def test_the_social_security_export_is_the_ledger(exported: Path):
         expected = tf.project(check["provision_ids"])
         assert check["depletion_year"] == expected.depletion_year
         assert check["change_in_actuarial_balance"] == expected.change_in_actuarial_balance
+
+
+def test_the_views_export_agrees_with_the_scores(exported: Path):
+    """Economic effects reproduce the dynamic score; every preset has a views file."""
+    presets = _read(exported / "presets" / "index.json")["presets"]
+    assert {p.name for p in (exported / "views").glob("*.json")} == {
+        f"{p['id']}.json" for p in presets
+    }
+    shown = 0
+    for preset in presets:
+        views = _read(exported / "views" / f"{preset['id']}.json")
+        dynamic = _read(exported / "presets" / f"{preset['id']}.json")["dynamic"]
+        econ = views["economic"]
+        if econ["available"]:
+            assert econ["dynamic_total_billions"] == pytest.approx(dynamic["dynamic_adjusted_impact"])
+            assert econ["gdp_percent_years"] == pytest.approx(dynamic["gdp_effect"])
+            assert len(econ["years"]) == len(econ["gdp_level_pct"]) == len(econ["employment_millions"])
+        dist = views["distribution"]
+        if dist["available"]:
+            shown += 1
+            for grouping in dist["groupings"].values():
+                total = sum(g["share_of_total"] for g in grouping["groups"])
+                assert (grouping["groups"] and abs(total - 1.0) < 0.02) or grouping["total_tax_change_billions"] == 0
+        else:
+            assert dist["groupings"] == {} and dist["reason"]
+    assert shown > 0

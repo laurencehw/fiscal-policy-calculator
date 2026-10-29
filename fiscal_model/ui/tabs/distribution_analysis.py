@@ -11,6 +11,9 @@ from typing import Any
 import pandas as pd
 import plotly.graph_objects as go
 
+from fiscal_model.distribution_reporting import (
+    distribution_not_representable as _distribution_not_representable,
+)
 from fiscal_model.ui.a11y import ChartDescription, render_accessible_chart
 from fiscal_model.ui.charts import apply_base_layout
 from fiscal_model.ui.formatting import format_dollars, format_money
@@ -79,40 +82,6 @@ def _render_calibration_warning(st_module: Any, policy: Any) -> None:
         f"systematically underweighted — the project's validation notes "
         f"on GitHub carry the root-cause analysis."
     )
-
-
-def _distribution_not_representable(policy: Any, dist_analysis: Any) -> bool:
-    """True when the engine produced no distributional signal for a policy it
-    cannot represent (e.g. OASDI payroll caps, estate provisions).
-
-    Those runs used to render an all-zero table narrated as "roughly flat" /
-    "does not significantly affect top income groups" — confidently wrong
-    statements. An all-zero output is trusted only for policy families the
-    engine explicitly maps; otherwise we say "not available" instead.
-    """
-    results = list(getattr(dist_analysis, "results", []))
-    if not results:
-        return True
-    if any(abs(float(getattr(r, "tax_change_avg", 0.0) or 0.0)) >= 0.5 for r in results):
-        return False
-    if abs(float(getattr(dist_analysis, "total_tax_change", 0.0) or 0.0)) >= 0.05:
-        return False
-
-    # A non-zero rate change cannot leave every group exactly unchanged unless
-    # the population holds nobody above its threshold (e.g. +2pp above $50M on
-    # a microdata file whose top record is below that). That is a coverage gap,
-    # not a flat result.
-    if abs(float(getattr(policy, "rate_change", 0.0) or 0.0)) > 0:
-        return True
-
-    # Zero output everywhere: only representable families may claim "flat".
-    try:
-        from fiscal_model.distribution_effects import policy_to_microsim_reforms
-
-        year = int(getattr(policy, "start_year", 2025) or 2025)
-        return not policy_to_microsim_reforms(policy, year=year)
-    except Exception:
-        return True
 
 
 def render_distribution_tab(

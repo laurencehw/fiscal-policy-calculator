@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { SSData } from "./socialSecurity";
-import type { BuildRow, Evidence, Manifest, ScorecardEntry, PresetFile, PresetInfo, ScoreResult, TrackerIndex, TrackerRow, ValuesArchetype, YearlyEffect } from "./types";
+import type { BuildRow, Evidence, Manifest, ScorecardEntry, PresetFile, PresetInfo, ResultViews, ScoreResult, TrackerIndex, TrackerRow, ValuesArchetype, YearlyEffect } from "./types";
 
 export const DATA_DIR = path.join(process.cwd(), "..", "site_data");
 
@@ -24,6 +24,13 @@ export function preset(id: string): PresetFile | null {
   const file = path.join(DATA_DIR, "presets", `${id}.json`);
   if (!fs.existsSync(file)) return null;
   return read<PresetFile>("presets", `${id}.json`);
+}
+
+export function views(id: string): ResultViews | null {
+  if (!/^[a-z0-9-]+$/.test(id)) return null;
+  const file = path.join(DATA_DIR, "views", `${id}.json`);
+  if (!fs.existsSync(file)) return null;
+  return read<ResultViews>("views", `${id}.json`);
 }
 
 export function buildCatalog(): BuildRow[] {
