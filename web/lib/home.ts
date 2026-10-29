@@ -18,7 +18,7 @@ export function workedRows(): WorkedRow[] {
   return WORKED_PRESET_IDS.map((id) => {
     const info = byId.get(id);
     const file = preset(id);
-    if (!info || !file || info.cbo_score === null) {
+    if (!info || !file || info.cbo_score === null || !info.cbo_published) {
       throw new Error(`worked preset ${id} is missing a conventional score or a published score`);
     }
     return {

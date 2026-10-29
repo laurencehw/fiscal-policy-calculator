@@ -19,7 +19,7 @@ export function PresetList({ items }: { items: PresetInfo[] }) {
                   <span className="figlabel">conventional</span>
                 </span>
               )}
-              {info.cbo_score === null ? null : (
+              {info.cbo_score === null || !info.cbo_published ? null : (
                 <span className="fig published">
                   {money(info.cbo_score)}
                   <span className="figlabel">published</span>

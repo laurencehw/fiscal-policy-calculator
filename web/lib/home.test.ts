@@ -39,3 +39,18 @@ test("contact and privacy are real pages, with no street address", () => {
   assert.match(privacyText(), /not stored/);
   assert.doesNotMatch(`${contactText()} ${privacyText()}`, /streetAddress|PostalAddress|\d{5}(?:-\d{4})?/);
 });
+
+test("Explore labels a figure published only when the export says it is", () => {
+  const unpublished = presets()
+    .filter((row) => row.cbo_score !== null && !row.cbo_published)
+    .map((row) => row.id)
+    .sort();
+  assert.deepEqual(unpublished, [
+    "carbon-tax-50",
+    "drug-negotiation-expand",
+    "drug-reference-pricing",
+    "tcja-extension-no-salt-cap",
+  ]);
+  const source = fs.readFileSync(new URL("../components/PresetList.tsx", import.meta.url), "utf8");
+  assert.match(source, /cbo_published/);
+});
