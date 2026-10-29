@@ -248,7 +248,9 @@ export type ModelsView = {
   warnings: string[];
 };
 
-export type ResultViews = { id: string; distribution: Distribution; economic: Economic; models: ModelsView };
+export type Views = { distribution: Distribution; economic: Economic; models: ModelsView };
+
+export type ResultViews = Views & { id: string };
 
 /** site_data/states.json: the ten modelled states. */
 export type StateProfile = {
@@ -273,3 +275,35 @@ export type StateProfile = {
 };
 
 export type StatesData = { year: number; salt_cap_baseline: number; states: StateProfile[] };
+
+export type OlgCohort = { age: number; baseline: number; reform: number; change: number };
+
+export type OlgResult = {
+  baseline_rates: { capital_tax_rate: number; payroll_tax_rate: number; replacement_rate: number };
+  rates: { capital_tax_rate: number; payroll_tax_rate: number; replacement_rate: number };
+  changed: boolean;
+  converged?: boolean;
+  solver_status?: string;
+  confidence_label?: string;
+  long_run?: {
+    gdp_pct: number;
+    capital_pct: number;
+    wage_pct: number;
+    interest_rate_ppts: number;
+    capital_output_baseline: number;
+    capital_output_reform: number;
+  };
+  year_30_gdp_pct?: number;
+  years?: number[];
+  gdp_path_pct?: (number | null)[];
+  path_settles?: boolean;
+  path_end_gdp_pct?: number | null;
+  capital_path_pct?: (number | null)[];
+  interest_path_ppts?: (number | null)[];
+  accounts?: {
+    newborn_burden_change: number;
+    weighted_burden_change: number;
+    generational_imbalance: number;
+    by_age: OlgCohort[];
+  } | null;
+};

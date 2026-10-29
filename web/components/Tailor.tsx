@@ -1,21 +1,29 @@
 "use client";
 // Tailor: describe a rate change, score it on the engine, share the link.
 import { useEffect, useRef, useState } from "react";
+import { ResultSections } from "@/components/ResultSections";
 import { Checked, YearTable } from "@/components/ScoreParts";
 import { YearChart } from "@/components/YearChart";
 import { direction, money } from "@/lib/format";
 import { DEFAULT_INPUT, RATE_MAX, RATE_MIN, WHO_CHOICES, describe, fromQuery, toQuery, type TailorInput } from "@/lib/tailor";
-import type { ScoreResult } from "@/lib/types";
+import type { ScoreResult, Views } from "@/lib/types";
+
+type ViewsState = { status: "idle" | "loading" } | { status: "done"; views: Views } | { status: "error"; message: string };
 
 type State = { status: "idle" } | { status: "scoring" } | { status: "done"; result: ScoreResult; input: TailorInput } | { status: "error"; message: string };
 
 export function Tailor() {
   const [input, setInput] = useState<TailorInput>(DEFAULT_INPUT);
   const [state, setState] = useState<State>({ status: "idle" });
+  const [views, setViews] = useState<ViewsState>({ status: "idle" });
   const started = useRef(false);
+  // Only the latest run may write results; an older answer arriving late is dropped.
+  const latest = useRef(0);
 
   async function score(next: TailorInput) {
+    const id = ++latest.current;
     setState({ status: "scoring" });
+    setViews({ status: "idle" });
     window.history.replaceState(null, "", `${window.location.pathname}?${toQuery(next)}`);
     try {
       const response = await fetch("/api/score", {
@@ -24,13 +32,39 @@ export function Tailor() {
         body: JSON.stringify(next),
       });
       const data = await response.json().catch(() => null);
+      if (id !== latest.current) return;
       if (!response.ok) {
         setState({ status: "error", message: data?.error ?? "Scoring failed. Try again in a moment." });
         return;
       }
       setState({ status: "done", result: data as ScoreResult, input: next });
+      void loadViews(next, id);
     } catch {
+      if (id !== latest.current) return;
       setState({ status: "error", message: "Could not reach the site. Check your connection and try again." });
+    }
+  }
+
+  // The detail sections take a few seconds more (the distribution runs on every
+  // tax return in the sample), so they load after the headline is on screen.
+  async function loadViews(next: TailorInput, id: number) {
+    setViews({ status: "loading" });
+    try {
+      const response = await fetch("/api/views", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(next),
+      });
+      const data = await response.json().catch(() => null);
+      if (id !== latest.current) return;
+      if (!response.ok) {
+        setViews({ status: "error", message: data?.error ?? "The detail views did not load." });
+        return;
+      }
+      setViews({ status: "done", views: data as Views });
+    } catch {
+      if (id !== latest.current) return;
+      setViews({ status: "error", message: "The detail views did not load. Check your connection." });
     }
   }
 
@@ -120,6 +154,13 @@ export function Tailor() {
         {state.status === "error" ? <p className="note warn">{state.message}</p> : null}
         {state.status === "done" ? <Result result={state.result} input={state.input} /> : null}
       </div>
+      {state.status === "done" ? (
+        <div aria-live="polite">
+          {views.status === "loading" ? <p className="note">Loading who pays, economic effects and other models…</p> : null}
+          {views.status === "error" ? <p className="note warn">{views.message}</p> : null}
+          {views.status === "done" ? <ResultSections views={views.views} /> : null}
+        </div>
+      ) : null}
     </>
   );
 }
