@@ -269,3 +269,38 @@ table.sheet.words td .cite { display: block; margin-top: 4px; font-size: 13px; }
 .sources { border-top: 1px solid var(--rule); padding-top: 8px; display: grid; gap: 4px; }
 .sources ol { margin: 0; padding-left: 24px; font-size: 14px; color: var(--muted); display: grid; gap: 4px; }
 .askform { max-width: 40rem; margin-bottom: 0; }
+
+/* Explore: filter and order controls, two figure columns, and bars on one shared scale. */
+.explore { display: grid; gap: 12px; }
+.explore > .note { margin-bottom: 8px; }
+.exploretools { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.exploretools .search { flex: 1 1 280px; max-width: 30rem; }
+.exploretools input[type="search"], .exploretools select { font: inherit; font-family: var(--data); font-size: 15px; padding: 7px 10px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); width: 100%; box-sizing: border-box; }
+.exploretools select { width: auto; }
+.explorelist li { display: grid; grid-template-columns: minmax(0, 1fr) 150px 150px; gap: 4px 20px; align-items: baseline; }
+.explorelist .explorehead { border-top: 0; padding: 0 0 2px; }
+.explorelist .explorehead .figlabel { text-align: right; display: block; font-family: var(--label); font-size: 12px; letter-spacing: 0.05em; font-variant-caps: all-small-caps; color: var(--muted); }
+.figcell { display: grid; gap: 3px; justify-items: end; }
+.figcell .fig { font-family: var(--data); font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fig.published { color: var(--muted); }
+.fig.none { font-size: 13px; }
+.bartrack { width: 100%; height: 4px; background: var(--grid); display: flex; justify-content: flex-end; }
+.bar { height: 100%; }
+.bar.adds { background: var(--adds); }
+.bar.reduces { background: var(--reduces); }
+.bar.published { background: var(--muted); opacity: 0.55; }
+@media (max-width: 560px) {
+  .explorelist li { grid-template-columns: minmax(0, 1fr) 96px 96px; gap: 4px 10px; }
+  .figcell .fig { font-size: 13px; }
+  .explorelist li > a { font-size: 16px; }
+}
+/* Bill tracker: paging under each table. */
+.more { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 10px; }
+.more button { font: inherit; font-family: var(--label); font-size: 14px; background: none; border: 1px solid var(--rule); padding: 4px 12px; cursor: pointer; color: inherit; }
+.more button:hover { border-color: var(--ink); }
+/* Build on a phone: the package total stays in view at the bottom of the screen. */
+@media (max-width: 860px) {
+  .buildtotal { position: sticky; bottom: 0; z-index: 5; order: 1; padding: 10px 0 12px; gap: 4px; box-shadow: 0 -8px 16px -12px rgba(0, 0, 0, 0.35); }
+  .buildtotal .big { font-size: 26px; }
+  .buildtotal .note + .note { display: none; }
+}
