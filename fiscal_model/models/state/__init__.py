@@ -11,6 +11,7 @@ Key classes:
 - SALTInteractionResult  — result from SALT deduction cap analysis
 - compute_salt_interaction — compute SALT interaction for one state
 - compute_salt_across_states — compute SALT interaction for all states
+- compute_salt_lift — cost of lifting the current-law SALT cap in one state
 - TAXSIMClient       — NBER TAXSIM35 API client for validation
 """
 
@@ -20,6 +21,7 @@ from .salt_interaction import (
     SALTInteractionResult,
     compute_salt_across_states,
     compute_salt_interaction,
+    compute_salt_lift,
 )
 from .validation import TAXSIMClient, ValidationReport
 
@@ -34,4 +36,5 @@ __all__ = [
     "ValidationReport",
     "compute_salt_across_states",
     "compute_salt_interaction",
+    "compute_salt_lift",
 ]
