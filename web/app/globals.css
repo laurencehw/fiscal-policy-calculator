@@ -242,3 +242,17 @@ table.sheet.words td .cite { display: block; margin-top: 4px; font-size: 13px; }
 .tailorform fieldset.lockable { gap: 16px; }
 .frozen .linkbox { font-family: var(--data); font-size: 13px; padding: 6px 8px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); width: 100%; box-sizing: border-box; }
 .frozen .tailorform { margin-bottom: 0; }
+
+/* Ask */
+.ask { display: grid; gap: 24px; min-width: 0; }
+.starters { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.conversation { display: grid; gap: 20px; min-width: 0; }
+.asked { margin: 0; justify-self: start; max-width: 60ch; background: var(--surface); border: 1px solid var(--rule); border-left: 3px solid var(--ink); padding: 8px 12px; white-space: pre-wrap; }
+.answer { display: grid; gap: 10px; max-width: 70ch; min-width: 0; overflow-wrap: anywhere; }
+.answer p, .answer ul, .answer ol { margin: 0; }
+.answer h3 { font-size: 18px; margin: 6px 0 0; }
+.answer sup.fn { font-family: var(--data); font-size: 11px; margin-left: 1px; }
+.answer sup.fn a { text-decoration: none; color: var(--accent); }
+.sources { border-top: 1px solid var(--rule); padding-top: 8px; display: grid; gap: 4px; }
+.sources ol { margin: 0; padding-left: 24px; font-size: 14px; color: var(--muted); display: grid; gap: 4px; }
+.askform { max-width: 40rem; margin-bottom: 0; }

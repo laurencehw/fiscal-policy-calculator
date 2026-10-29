@@ -248,6 +248,8 @@ def _health_checks(health: dict[str, Any]) -> list[ReadinessCheck]:
             reasons.append("knowledge corpus empty")
         if not assistant.get("usage_db_writable"):
             reasons.append("usage db not writable")
+        if assistant.get("shared_ledger") == "unreachable":
+            reasons.append("shared spend ledger unreachable")
         msg = (
             "Ask assistant degraded: " + ", ".join(reasons)
             if reasons
