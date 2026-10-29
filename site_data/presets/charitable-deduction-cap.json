@@ -1,0 +1,293 @@
+{
+  "id": "charitable-deduction-cap",
+  "conventional": {
+    "policy_name": "📋 Cap Charitable Deduction (-$200B)",
+    "policy_description": "Limit charitable deduction value to 28% rate. Raises ~\\$200B over 10 years.",
+    "baseline_vintage": "February 2026",
+    "budget_window": "FY2026-2035",
+    "ten_year_deficit_impact": -174.93591398631614,
+    "static_revenue_effect": 143.29849139338415,
+    "behavioral_offset": -31.637422592931998,
+    "final_static_effect": 174.93591398631614,
+    "gdp_effect": null,
+    "employment_effect": null,
+    "revenue_feedback": 0.0,
+    "debt_service": null,
+    "dynamic_adjusted_impact": null,
+    "dynamic_model": null,
+    "year_by_year": [
+      {
+        "year": 2026,
+        "revenue_effect": 12.5,
+        "behavioral_offset": -2.7597484004629798,
+        "dynamic_feedback": 0.0,
+        "final_effect": -15.25974840046298,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2027,
+        "revenue_effect": 12.875,
+        "behavioral_offset": -2.842540852476869,
+        "dynamic_feedback": 0.0,
+        "final_effect": -15.71754085247687,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2028,
+        "revenue_effect": 13.261249999999999,
+        "behavioral_offset": -2.927817078051175,
+        "dynamic_feedback": 0.0,
+        "final_effect": -16.189067078051174,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2029,
+        "revenue_effect": 13.6590875,
+        "behavioral_offset": -3.015651590392711,
+        "dynamic_feedback": 0.0,
+        "final_effect": -16.674739090392713,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2030,
+        "revenue_effect": 14.068860125000002,
+        "behavioral_offset": -3.106121138104492,
+        "dynamic_feedback": 0.0,
+        "final_effect": -17.174981263104495,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2031,
+        "revenue_effect": 14.49092592875,
+        "behavioral_offset": -3.199304772247627,
+        "dynamic_feedback": 0.0,
+        "final_effect": -17.690230700997628,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2032,
+        "revenue_effect": 14.925653706612502,
+        "behavioral_offset": -3.295283915415056,
+        "dynamic_feedback": 0.0,
+        "final_effect": -18.22093762202756,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2033,
+        "revenue_effect": 15.373423317810877,
+        "behavioral_offset": -3.3941424328775076,
+        "dynamic_feedback": 0.0,
+        "final_effect": -18.767565750688384,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2034,
+        "revenue_effect": 15.834626017345204,
+        "behavioral_offset": -3.495966705863833,
+        "dynamic_feedback": 0.0,
+        "final_effect": -19.330592723209037,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2035,
+        "revenue_effect": 16.309664797865562,
+        "behavioral_offset": -3.600845707039748,
+        "dynamic_feedback": 0.0,
+        "final_effect": -19.91051050490531,
+        "debt_service": null,
+        "dynamic_effect": null
+      }
+    ],
+    "dynamic_scoring_enabled": false,
+    "credibility": {
+      "category": "Expenditures",
+      "evidence_type": "out_of_sample_class_distribution",
+      "policy_class": "tax_expenditure",
+      "class_label": "tax expenditure",
+      "n_tier1_rows": 2,
+      "mean_abs_pct_error": 7.1,
+      "median_abs_pct_error": 7.1,
+      "max_abs_pct_error": 12.8,
+      "rows_inside_mean_band": 1,
+      "uncertainty_low": -187.35636387934457,
+      "uncertainty_high": -162.5154640932877,
+      "outer_low": -197.32771097656462,
+      "outer_high": -152.54411699606766,
+      "no_band_reason": "",
+      "own_row_policy_id": "cap_charitable",
+      "own_row_tier": "reconstruction",
+      "own_row_tier_label": "Unfitted reconstruction",
+      "own_row_abs_pct_error": 12.532043006841931,
+      "own_row_official_billions": -200.0,
+      "own_row_caption": "Unfitted reconstruction, 12.5% from -$200B (Obama/Biden proposal) — no constant is fitted to this figure.",
+      "holdout_status": "post_lock_holdout_available",
+      "limitations": [
+        "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
+        "Target revised (target_revisions.eliminate_mortgage.v2) to a published RANGE [-$495.0B, -$367.9B] with Tax Foundation's -$367.9B as the carried anchor. The percentage this row reports is a distance from one modeller's point, not a measurement of accuracy; read `within_published_range` and `distance_to_published_range_billions` instead. No agency has scored repeal: CBO has published no post-TCJA option, JCT publishes the tax expenditure, and there is no FY2027 Green Book.",
+        "Yale's own 'close to $1.2 trillion' is not a bound: it is scored against pre-P.L. 119-21 current law, where TCJA's larger standard deduction lapses and the itemising population roughly doubles.",
+        "The record's annual_cost = 25.0 is a pre-P.L.119-21 level. JCT's JCX-45-25 puts the capped expenditure at $45.5B in FY2025 rising to $54.9B in FY2029, because raising the SALT cap to $40,000 took itemising claimants from 11.8M to 17.8M returns; Treasury's FY2027 edition gives $23.9B falling to $14.1B on the same statute. Choosing between them is an owner decision with a visible consequence for this row, not a provenance lane's.",
+        "The target and this benchmark's twin `eliminate_salt` state opposite baselines: repeal is priced against a permanent $10,000 cap and elimination against CBO's world where the cap has lapsed. Both are now stated rather than hidden; reconciling them needs a baseline-vintage concept the expenditure module does not have.",
+        "P.L. 119-21 sec. 70120 replaced the $10,000 cap with $40,000 for 2025-2029 (indexed 1%/yr, phased down above $500,000 of MAGI, never below $10,000) reverting permanently to $10,000 in 2030, so 'repeal the $10,000 cap' describes no live reform for most of the window. JCT's own row for that provision is +$946.2B over FY2025-2034 and is already carried as `pl119_21_salt_cap_40k`.",
+        "CBO measures the option on a baseline where the $10,000 cap lapses after 2025. P.L. 119-21 has since replaced that world with a $40,000 cap through 2029 reverting to $10,000 in 2030, so the target's baseline is no longer current law -- a model gap, not a target one, and one that needs a baseline-vintage concept the module does not have.",
+        "Reclassified rather than retuned: the module's behavioural magnitude for a charitable benefit-rate ceiling was an unsourced 0.40, and this annual had been chosen so that static x 1.40 lands on -$200.0B. Lane H7 derived the magnitude from CRS R40518's central price elasticity of giving (0.5) through the deduction's own SOI distribution, giving 0.220780, and the row moved 0.3% -> 12.5%; no constant was moved to close it.",
+        "The -$200B target is itself `secondhand` and sits in EXAMINED_NOT_REVISED: the 28% limitation it points at is a real Green Book proposal with a real score, but that proposal limits the value of ALL itemized deductions plus several exclusions, so its $645,538M is not a charitable-only cap. The residual is therefore a distance from an unsourced figure rather than a measurement against a document."
+      ],
+      "caption": "Out-of-sample accuracy, tax expenditure: 2 pre-registered rows miss their published scores by 7.1% on average (median 7.1%), worst 12.8% — 1 of the 2 falls inside the average. On this figure that is -$187.4B to -$162.5B typical, -$197.3B to -$152.5B at the worst row. Read off the out-of-sample tier only — not the calibrated tiers, whose agreement is by construction. It is the observed spread of this model against published scores for this class of policy, not a confidence interval."
+    },
+    "error_message": null
+  },
+  "dynamic": {
+    "policy_name": "📋 Cap Charitable Deduction (-$200B)",
+    "policy_description": "Limit charitable deduction value to 28% rate. Raises ~\\$200B over 10 years.",
+    "baseline_vintage": "February 2026",
+    "budget_window": "FY2026-2035",
+    "ten_year_deficit_impact": -174.93591398631614,
+    "static_revenue_effect": 143.29849139338415,
+    "behavioral_offset": -31.637422592931998,
+    "final_static_effect": 174.93591398631614,
+    "gdp_effect": -0.21963807934591828,
+    "employment_effect": -14.056837078138765,
+    "revenue_feedback": -15.374665554214278,
+    "debt_service": -36.78200986836776,
+    "dynamic_adjusted_impact": -196.3432583004696,
+    "dynamic_model": "FRB/US-Lite (Federal Reserve calibrated)",
+    "year_by_year": [
+      {
+        "year": 2026,
+        "revenue_effect": 12.5,
+        "behavioral_offset": -2.7597484004629798,
+        "dynamic_feedback": -2.676568543013714,
+        "final_effect": -15.25974840046298,
+        "debt_service": -0.6103899360185192,
+        "dynamic_effect": -13.193569793467786
+      },
+      {
+        "year": 2027,
+        "revenue_effect": 12.875,
+        "behavioral_offset": -2.842540852476869,
+        "dynamic_feedback": -3.1040742185564856,
+        "final_effect": -15.71754085247687,
+        "debt_service": -1.239091570117594,
+        "dynamic_effect": -13.852558204037978
+      },
+      {
+        "year": 2028,
+        "revenue_effect": 13.261249999999999,
+        "behavioral_offset": -2.927817078051175,
+        "dynamic_feedback": -2.722341586900686,
+        "final_effect": -16.189067078051174,
+        "debt_service": -1.8866542532396409,
+        "dynamic_effect": -15.353379744390129
+      },
+      {
+        "year": 2029,
+        "revenue_effect": 13.6590875,
+        "behavioral_offset": -3.015651590392711,
+        "dynamic_feedback": -2.1394893263304855,
+        "final_effect": -16.674739090392713,
+        "debt_service": -2.5536438168553492,
+        "dynamic_effect": -17.088893580917578
+      },
+      {
+        "year": 2030,
+        "revenue_effect": 14.068860125000002,
+        "behavioral_offset": -3.106121138104492,
+        "dynamic_feedback": -1.5887048893998283,
+        "final_effect": -17.174981263104495,
+        "debt_service": -3.240643067379529,
+        "dynamic_effect": -18.826919441084197
+      },
+      {
+        "year": 2031,
+        "revenue_effect": 14.49092592875,
+        "behavioral_offset": -3.199304772247627,
+        "dynamic_feedback": -1.1410440791053618,
+        "final_effect": -17.690230700997628,
+        "debt_service": -3.9482522954194343,
+        "dynamic_effect": -20.497438917311698
+      },
+      {
+        "year": 2032,
+        "revenue_effect": 14.925653706612502,
+        "behavioral_offset": -3.295283915415056,
+        "dynamic_feedback": -0.8024605450122153,
+        "final_effect": -18.22093762202756,
+        "debt_service": -4.677089800300537,
+        "dynamic_effect": -22.09556687731588
+      },
+      {
+        "year": 2033,
+        "revenue_effect": 15.373423317810877,
+        "behavioral_offset": -3.3941424328775076,
+        "dynamic_feedback": -0.5565639924648634,
+        "final_effect": -18.767565750688384,
+        "debt_service": -5.427792430328073,
+        "dynamic_effect": -23.638794188551593
+      },
+      {
+        "year": 2034,
+        "revenue_effect": 15.834626017345204,
+        "behavioral_offset": -3.495966705863833,
+        "dynamic_feedback": -0.38239545773860106,
+        "final_effect": -19.330592723209037,
+        "debt_service": -6.201016139256434,
+        "dynamic_effect": -25.149213404726872
+      },
+      {
+        "year": 2035,
+        "revenue_effect": 16.309664797865562,
+        "behavioral_offset": -3.600845707039748,
+        "dynamic_feedback": -0.26102291569203706,
+        "final_effect": -19.91051050490531,
+        "debt_service": -6.997436559452646,
+        "dynamic_effect": -26.646924148665917
+      }
+    ],
+    "dynamic_scoring_enabled": true,
+    "credibility": {
+      "category": "Expenditures",
+      "evidence_type": "out_of_sample_class_distribution",
+      "policy_class": "tax_expenditure",
+      "class_label": "tax expenditure",
+      "n_tier1_rows": 2,
+      "mean_abs_pct_error": 7.1,
+      "median_abs_pct_error": 7.1,
+      "max_abs_pct_error": 12.8,
+      "rows_inside_mean_band": 1,
+      "uncertainty_low": -187.35636387934457,
+      "uncertainty_high": -162.5154640932877,
+      "outer_low": -197.32771097656462,
+      "outer_high": -152.54411699606766,
+      "no_band_reason": "",
+      "own_row_policy_id": "cap_charitable",
+      "own_row_tier": "reconstruction",
+      "own_row_tier_label": "Unfitted reconstruction",
+      "own_row_abs_pct_error": 12.532043006841931,
+      "own_row_official_billions": -200.0,
+      "own_row_caption": "Unfitted reconstruction, 12.5% from -$200B (Obama/Biden proposal) — no constant is fitted to this figure.",
+      "holdout_status": "post_lock_holdout_available",
+      "limitations": [
+        "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
+        "Target revised (target_revisions.eliminate_mortgage.v2) to a published RANGE [-$495.0B, -$367.9B] with Tax Foundation's -$367.9B as the carried anchor. The percentage this row reports is a distance from one modeller's point, not a measurement of accuracy; read `within_published_range` and `distance_to_published_range_billions` instead. No agency has scored repeal: CBO has published no post-TCJA option, JCT publishes the tax expenditure, and there is no FY2027 Green Book.",
+        "Yale's own 'close to $1.2 trillion' is not a bound: it is scored against pre-P.L. 119-21 current law, where TCJA's larger standard deduction lapses and the itemising population roughly doubles.",
+        "The record's annual_cost = 25.0 is a pre-P.L.119-21 level. JCT's JCX-45-25 puts the capped expenditure at $45.5B in FY2025 rising to $54.9B in FY2029, because raising the SALT cap to $40,000 took itemising claimants from 11.8M to 17.8M returns; Treasury's FY2027 edition gives $23.9B falling to $14.1B on the same statute. Choosing between them is an owner decision with a visible consequence for this row, not a provenance lane's.",
+        "The target and this benchmark's twin `eliminate_salt` state opposite baselines: repeal is priced against a permanent $10,000 cap and elimination against CBO's world where the cap has lapsed. Both are now stated rather than hidden; reconciling them needs a baseline-vintage concept the expenditure module does not have.",
+        "P.L. 119-21 sec. 70120 replaced the $10,000 cap with $40,000 for 2025-2029 (indexed 1%/yr, phased down above $500,000 of MAGI, never below $10,000) reverting permanently to $10,000 in 2030, so 'repeal the $10,000 cap' describes no live reform for most of the window. JCT's own row for that provision is +$946.2B over FY2025-2034 and is already carried as `pl119_21_salt_cap_40k`.",
+        "CBO measures the option on a baseline where the $10,000 cap lapses after 2025. P.L. 119-21 has since replaced that world with a $40,000 cap through 2029 reverting to $10,000 in 2030, so the target's baseline is no longer current law -- a model gap, not a target one, and one that needs a baseline-vintage concept the module does not have.",
+        "Reclassified rather than retuned: the module's behavioural magnitude for a charitable benefit-rate ceiling was an unsourced 0.40, and this annual had been chosen so that static x 1.40 lands on -$200.0B. Lane H7 derived the magnitude from CRS R40518's central price elasticity of giving (0.5) through the deduction's own SOI distribution, giving 0.220780, and the row moved 0.3% -> 12.5%; no constant was moved to close it.",
+        "The -$200B target is itself `secondhand` and sits in EXAMINED_NOT_REVISED: the 28% limitation it points at is a real Green Book proposal with a real score, but that proposal limits the value of ALL itemized deductions plus several exclusions, so its $645,538M is not a charitable-only cap. The residual is therefore a distance from an unsourced figure rather than a measurement against a document."
+      ],
+      "caption": "Out-of-sample accuracy, tax expenditure: 2 pre-registered rows miss their published scores by 7.1% on average (median 7.1%), worst 12.8% — 1 of the 2 falls inside the average. On this figure that is -$187.4B to -$162.5B typical, -$197.3B to -$152.5B at the worst row. Read off the out-of-sample tier only — not the calibrated tiers, whose agreement is by construction. It is the observed spread of this model against published scores for this class of policy, not a confidence interval."
+    },
+    "error_message": null
+  }
+}

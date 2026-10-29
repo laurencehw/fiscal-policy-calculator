@@ -1,0 +1,275 @@
+#!/usr/bin/env python3
+"""Write the static export the new site reads (tools plan FPC-5 and FPC-6).
+
+Everything a visitor can see without scoring something new is computed here,
+once a night, and written as JSON under ``site_data/``:
+
+- ``manifest.json``: schema version, baseline vintage, budget window, counts.
+- ``schema/score-result.v1.json``: the JSON Schema of one score, the API's own
+  ``ScorePolicyResponse``. The site generates its TypeScript types from it.
+- ``presets/index.json``: the API's ``/presets`` answer.
+- ``presets/<id>.json``: one preset, ``{"conventional": …, "dynamic": …}``,
+  each the API's ``/score/preset`` answer for that id.
+- ``build-catalog.json``: the Build page's checkable rows, in catalog order.
+- ``validation/scorecard.json``: the API's ``/validation/scorecard`` answer.
+- ``tracker/index.json``: every bill the nightly job has ingested, one line each,
+  with its latest CBO estimate and calculator auto-score where it has them, so
+  the site can list all bills or only those with a fiscal estimate (decision F4).
+- ``tracker/scored.json``: the detail for bills with an estimate: summary,
+  annual path, and the provisions the auto-scorer mapped.
+
+The script calls the API's own endpoint functions, so an exported preset is the
+API's answer by construction; ``tests/test_export_static.py`` checks it anyway.
+The output carries no timestamps, so a night with no model change writes
+identical files and the nightly job has nothing to commit.
+
+Usage:
+    python scripts/export_static.py                 # writes site_data/
+    python scripts/export_static.py --out /tmp/x    # writes elsewhere
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import shutil
+import sys
+from dataclasses import asdict
+from pathlib import Path
+from typing import Any
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+#: Bump when a field is removed or changes meaning; adding a field does not.
+SCHEMA_VERSION = 1
+DEFAULT_OUT = ROOT / "site_data"
+BILLS_DB = ROOT / "fiscal_model" / "data_files" / "bills.db"
+
+
+def _write(path: Path, payload: Any, *, compact: bool = False) -> None:
+    """Indented JSON, or for large files one top-level entry per line.
+
+    The compact layout keeps the file small and still gives git a line per bill,
+    so a nightly diff shows which bills changed.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not compact:
+        text = json.dumps(payload, indent=2, ensure_ascii=False, allow_nan=False)
+    else:
+
+        def line(value: Any) -> str:
+            return json.dumps(value, ensure_ascii=False, allow_nan=False, separators=(",", ":"))
+
+        if isinstance(payload, list):
+            text = "[\n" + ",\n".join(line(v) for v in payload) + "\n]"
+        else:
+            items = []
+            for key, value in payload.items():
+                if isinstance(value, list):
+                    inner = ",\n".join(line(v) for v in value)
+                    items.append(f"{line(key)}:[\n{inner}\n]")
+                else:
+                    items.append(f"{line(key)}:{line(value)}")
+            text = "{\n" + ",\n".join(items) + "\n}"
+    path.write_text(text + "\n", encoding="utf-8")
+
+
+def score_preset_payload(preset_id: str, *, dynamic: bool) -> dict[str, Any]:
+    """The API's ``/score/preset`` answer for ``preset_id``, as JSON-ready data."""
+    import api
+
+    response = api.score_preset(
+        api.ScorePresetRequest(preset_name=preset_id, dynamic=dynamic),
+        _api_key_label="static-export",
+    )
+    return response.model_dump(mode="json")
+
+
+def preset_index_payload() -> dict[str, Any]:
+    import api
+
+    return api.list_presets().model_dump(mode="json")
+
+
+def build_catalog_payload() -> list[dict[str, Any]]:
+    from fiscal_model.app_data import CBO_SCORE_MAP
+    from fiscal_model.ui.tabs.deficit_target import build_catalog
+
+    rows = []
+    for option in build_catalog(CBO_SCORE_MAP).values():
+        row = asdict(option)
+        row["exclusive_groups"] = list(option.exclusive_groups)
+        row["subsumes"] = list(option.subsumes)
+        row["tags"] = dict(option.tags)
+        rows.append(row)
+    return rows
+
+
+def scorecard_payload() -> dict[str, Any]:
+    import api
+
+    return api.validation_scorecard().model_dump(mode="json")
+
+
+def _json_or(text: str | None, default: Any) -> Any:
+    try:
+        return json.loads(text) if text else default
+    except ValueError:
+        return default
+
+
+def tracker_payloads(db_path: Path = BILLS_DB) -> tuple[dict[str, Any], dict[str, Any]]:
+    """``(index, scored)`` for the tracker, read from the nightly database."""
+    import sqlite3
+
+    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+    conn.row_factory = sqlite3.Row
+    try:
+        # Newest row per bill wins, as in BillDatabase.get_fiscal_impact_map.
+        cbo = {
+            r["bill_id"]: dict(r)
+            for r in conn.execute("SELECT * FROM cbo_estimates ORDER BY estimate_date, id")
+        }
+        auto = {
+            r["bill_id"]: dict(r)
+            for r in conn.execute("SELECT * FROM auto_scores ORDER BY scored_at, id")
+        }
+        state = conn.execute(
+            "SELECT value FROM pipeline_state WHERE key = 'last_update'"
+        ).fetchone()
+        bills = [
+            dict(r)
+            for r in conn.execute(
+                "SELECT * FROM bills ORDER BY introduced_date DESC, bill_id"
+            )
+        ]
+    finally:
+        conn.close()
+
+    rows = []
+    scored = {}
+    for bill in bills:
+        bill_id = bill["bill_id"]
+        estimate = cbo.get(bill_id)
+        score = auto.get(bill_id)
+        rows.append(
+            {
+                "id": bill_id,
+                "congress": bill["congress"],
+                "chamber": bill["chamber"],
+                "type": bill["bill_type"],
+                "number": bill["number"],
+                "title": bill["title"],
+                "sponsor": bill["sponsor"],
+                "introduced": bill["introduced_date"],
+                "latest_action": bill["latest_action"],
+                "latest_action_date": bill["latest_action_date"],
+                "status": bill["status"],
+                "url": bill["url"],
+                "cbo_ten_year_billions": estimate["ten_year_cost_billions"] if estimate else None,
+                "auto_ten_year_billions": score["ten_year_cost_billions"] if score else None,
+                "auto_confidence": score["confidence"] if score else None,
+            }
+        )
+        if estimate or score:
+            scored[bill_id] = {
+                "summary": bill["summary"],
+                "subjects": _json_or(bill["crs_subjects"], []),
+                "cbo": None
+                if not estimate
+                else {
+                    "date": estimate["estimate_date"],
+                    "ten_year_billions": estimate["ten_year_cost_billions"],
+                    "annual_billions": _json_or(estimate["annual_costs"], []),
+                    "dynamic_billions": estimate["dynamic_estimate"],
+                    "url": estimate["cbo_url"] or estimate["pdf_url"],
+                },
+                "auto": None
+                if not score
+                else {
+                    "scored_at": score["scored_at"],
+                    "ten_year_billions": score["ten_year_cost_billions"],
+                    "annual_billions": _json_or(score["annual_effects"], []),
+                    "confidence": score["confidence"],
+                    "provisions": _json_or(score["policies_json"], []),
+                },
+            }
+    index = {
+        "last_update": state["value"] if state else None,
+        "bills": len(rows),
+        "with_cbo_estimate": sum(r["cbo_ten_year_billions"] is not None for r in rows),
+        "with_auto_score": sum(r["auto_ten_year_billions"] is not None for r in rows),
+        "sign_convention": "Billions over ten years; positive increases the deficit.",
+        "rows": rows,
+    }
+    return index, scored
+
+
+def export(out: Path) -> dict[str, Any]:
+    """Write the whole export to ``out`` (replacing it) and return the manifest."""
+    import api
+
+    if out.exists():
+        shutil.rmtree(out)
+
+    index = preset_index_payload()
+    _write(out / "presets" / "index.json", index)
+
+    vintages: set[str] = set()
+    windows: set[str] = set()
+    for preset in index["presets"]:
+        conventional = score_preset_payload(preset["id"], dynamic=False)
+        dynamic = score_preset_payload(preset["id"], dynamic=True)
+        vintages.add(conventional["baseline_vintage"])
+        windows.add(conventional["budget_window"])
+        _write(
+            out / "presets" / f"{preset['id']}.json",
+            {"id": preset["id"], "conventional": conventional, "dynamic": dynamic},
+        )
+
+    catalog = build_catalog_payload()
+    _write(out / "build-catalog.json", catalog)
+    scorecard = scorecard_payload()
+    _write(out / "validation" / "scorecard.json", scorecard)
+    tracker_index, tracker_scored = tracker_payloads()
+    # 11,000 bills: indentation alone would double the size.
+    _write(out / "tracker" / "index.json", tracker_index, compact=True)
+    _write(out / "tracker" / "scored.json", tracker_scored, compact=True)
+    _write(
+        out / "schema" / f"score-result.v{SCHEMA_VERSION}.json",
+        api.ScorePolicyResponse.model_json_schema(),
+    )
+
+    manifest = {
+        "schema_version": SCHEMA_VERSION,
+        # Presets that start later than the app window score their own window,
+        # so these are lists; the site shows each result's own fields.
+        "baseline_vintages": sorted(vintages),
+        "budget_windows": sorted(windows),
+        "presets": index["count"],
+        "build_catalog_rows": len(catalog),
+        "scorecard_entries": scorecard["total_entries"],
+        "tracker_bills": tracker_index["bills"],
+        "tracker_last_update": tracker_index["last_update"],
+        "sign_convention": (
+            "Billions of dollars over the budget window; positive increases "
+            "the deficit, negative reduces it."
+        ),
+    }
+    _write(out / "manifest.json", manifest)
+    return manifest
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    args = parser.parse_args(argv)
+    manifest = export(args.out)
+    print(json.dumps(manifest, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -41,14 +41,19 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: python scripts/update_bills.py --verbose --cbo-fallback-file bill_tracker/cbo_manual_scores.json
 
-      - name: Commit updated bills.db if changed
+      - name: Refresh the static export the new site reads
+        env:
+          ANTHROPIC_API_KEY: ""
+        run: python scripts/export_static.py
+
+      - name: Commit updated bills.db and site_data if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet fiscal_model/data_files/bills.db; then
-            echo "No changes to bills.db, skipping commit."
+          git add fiscal_model/data_files/bills.db site_data
+          if git diff --cached --quiet; then
+            echo "No changes to bills.db or site_data, skipping commit."
           else
-            git add fiscal_model/data_files/bills.db
-            git commit -m "chore: nightly bill tracker update $(date -u +%Y-%m-%d)"
+            git commit -m "chore: nightly bill tracker update and static export $(date -u +%Y-%m-%d)"
             git push origin main
           fi

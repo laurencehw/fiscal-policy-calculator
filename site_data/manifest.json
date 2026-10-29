@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "baseline_vintages": [
+    "February 2026"
+  ],
+  "budget_windows": [
+    "FY2026-2035"
+  ],
+  "presets": 52,
+  "build_catalog_rows": 44,
+  "scorecard_entries": 99,
+  "tracker_bills": 11229,
+  "tracker_last_update": "2026-10-28T11:48:21Z",
+  "sign_convention": "Billions of dollars over the budget window; positive increases the deficit, negative reduces it."
+}

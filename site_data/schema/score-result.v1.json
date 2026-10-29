@@ -1,0 +1,448 @@
+{
+  "$defs": {
+    "ResultCredibilityModel": {
+      "description": "Accuracy context attached to one score.\n\nSince Wave C's H4 the accuracy figures are the observed error distribution\nof the policy's own **out-of-sample class** — the 44 pre-registered Tier 1\nrows, bucketed by the same routing the CI per-class gate uses — and not a\nmean over a scorecard category that blended fitted bookkeeping with unfitted\nreconstructions. Every band field is optional, because two thirds of the\nshipped catalog prices a reform the pre-registered battery does not score;\n``no_band_reason`` says which, and the ``own_row_*`` fields carry this\npolicy's own scorecard row and the tier it sits in. The two are separate on\npurpose: collapsing them is the \"validated within X%\" claim this repository\ndoes not make.",
+      "properties": {
+        "category": {
+          "title": "Category",
+          "type": "string"
+        },
+        "evidence_type": {
+          "title": "Evidence Type",
+          "type": "string"
+        },
+        "policy_class": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Policy Class"
+        },
+        "class_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Class Label"
+        },
+        "n_tier1_rows": {
+          "default": 0,
+          "title": "N Tier1 Rows",
+          "type": "integer"
+        },
+        "mean_abs_pct_error": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mean Abs Pct Error"
+        },
+        "median_abs_pct_error": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Median Abs Pct Error"
+        },
+        "max_abs_pct_error": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Abs Pct Error"
+        },
+        "rows_inside_mean_band": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rows Inside Mean Band"
+        },
+        "uncertainty_low": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uncertainty Low"
+        },
+        "uncertainty_high": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uncertainty High"
+        },
+        "outer_low": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Outer Low"
+        },
+        "outer_high": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Outer High"
+        },
+        "no_band_reason": {
+          "default": "",
+          "title": "No Band Reason",
+          "type": "string"
+        },
+        "own_row_policy_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Own Row Policy Id"
+        },
+        "own_row_tier": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Own Row Tier"
+        },
+        "own_row_tier_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Own Row Tier Label"
+        },
+        "own_row_abs_pct_error": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Own Row Abs Pct Error"
+        },
+        "own_row_official_billions": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Own Row Official Billions"
+        },
+        "own_row_caption": {
+          "default": "",
+          "title": "Own Row Caption",
+          "type": "string"
+        },
+        "holdout_status": {
+          "title": "Holdout Status",
+          "type": "string"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "caption": {
+          "title": "Caption",
+          "type": "string"
+        }
+      },
+      "required": [
+        "category",
+        "evidence_type",
+        "holdout_status",
+        "caption"
+      ],
+      "title": "ResultCredibilityModel",
+      "type": "object"
+    },
+    "YearlyEffect": {
+      "description": "Year-by-year effects, in billions.\n\n``final_effect`` is the conventional deficit effect (static + behavioral,\npositive = increases the deficit) in every mode. With dynamic scoring on,\n``dynamic_feedback`` is that year's revenue feedback from the app's macro\nadapter (positive = extra revenue), ``debt_service`` its interest cost\n(positive = adds to the deficit), and ``dynamic_effect`` is\n``final_effect - dynamic_feedback + debt_service``. The years sum to the\nresponse's ten-year fields.",
+      "properties": {
+        "year": {
+          "title": "Year",
+          "type": "integer"
+        },
+        "revenue_effect": {
+          "title": "Revenue Effect",
+          "type": "number"
+        },
+        "behavioral_offset": {
+          "title": "Behavioral Offset",
+          "type": "number"
+        },
+        "dynamic_feedback": {
+          "title": "Dynamic Feedback",
+          "type": "number"
+        },
+        "final_effect": {
+          "title": "Final Effect",
+          "type": "number"
+        },
+        "debt_service": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Debt Service"
+        },
+        "dynamic_effect": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dynamic Effect"
+        }
+      },
+      "required": [
+        "year",
+        "revenue_effect",
+        "behavioral_offset",
+        "dynamic_feedback",
+        "final_effect"
+      ],
+      "title": "YearlyEffect",
+      "type": "object"
+    }
+  },
+  "description": "Response from scoring a policy.",
+  "properties": {
+    "policy_name": {
+      "title": "Policy Name",
+      "type": "string"
+    },
+    "policy_description": {
+      "title": "Policy Description",
+      "type": "string"
+    },
+    "baseline_vintage": {
+      "title": "Baseline Vintage",
+      "type": "string"
+    },
+    "budget_window": {
+      "title": "Budget Window",
+      "type": "string"
+    },
+    "ten_year_deficit_impact": {
+      "title": "Ten Year Deficit Impact",
+      "type": "number"
+    },
+    "static_revenue_effect": {
+      "title": "Static Revenue Effect",
+      "type": "number"
+    },
+    "behavioral_offset": {
+      "title": "Behavioral Offset",
+      "type": "number"
+    },
+    "final_static_effect": {
+      "title": "Final Static Effect",
+      "type": "number"
+    },
+    "gdp_effect": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Gdp Effect"
+    },
+    "employment_effect": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Employment Effect"
+    },
+    "revenue_feedback": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Revenue Feedback"
+    },
+    "debt_service": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Debt Service"
+    },
+    "dynamic_adjusted_impact": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Dynamic Adjusted Impact"
+    },
+    "dynamic_model": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Dynamic Model"
+    },
+    "year_by_year": {
+      "items": {
+        "$ref": "#/$defs/YearlyEffect"
+      },
+      "title": "Year By Year",
+      "type": "array"
+    },
+    "dynamic_scoring_enabled": {
+      "title": "Dynamic Scoring Enabled",
+      "type": "boolean"
+    },
+    "credibility": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ResultCredibilityModel"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "error_message": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error Message"
+    }
+  },
+  "required": [
+    "policy_name",
+    "policy_description",
+    "baseline_vintage",
+    "budget_window",
+    "ten_year_deficit_impact",
+    "static_revenue_effect",
+    "behavioral_offset",
+    "final_static_effect",
+    "year_by_year",
+    "dynamic_scoring_enabled"
+  ],
+  "title": "ScorePolicyResponse",
+  "type": "object"
+}

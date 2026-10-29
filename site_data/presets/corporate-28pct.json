@@ -1,0 +1,303 @@
+{
+  "id": "corporate-28pct",
+  "conventional": {
+    "policy_name": "🏢 Biden Corporate 28% (CBO: -$1.35T)",
+    "policy_description": "Raise corporate rate from 21% to 28%. CBO estimate: raises ~\\$1.35T over 10 years.",
+    "baseline_vintage": "February 2026",
+    "budget_window": "FY2026-2035",
+    "ten_year_deficit_impact": -1310.9199937081369,
+    "static_revenue_effect": 1689.3298887991457,
+    "behavioral_offset": 378.40989509100865,
+    "final_static_effect": 1310.9199937081369,
+    "gdp_effect": null,
+    "employment_effect": null,
+    "revenue_feedback": 0.0,
+    "debt_service": null,
+    "dynamic_adjusted_impact": null,
+    "dynamic_model": null,
+    "year_by_year": [
+      {
+        "year": 2026,
+        "revenue_effect": 123.86708978812027,
+        "behavioral_offset": 27.746228112538944,
+        "dynamic_feedback": 0.0,
+        "final_effect": -96.12086167558132,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2027,
+        "revenue_effect": 163.31601032503687,
+        "behavioral_offset": 36.58278631280827,
+        "dynamic_feedback": 0.0,
+        "final_effect": -126.7332240122286,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2028,
+        "revenue_effect": 164.36630107415604,
+        "behavioral_offset": 36.81805144061096,
+        "dynamic_feedback": 0.0,
+        "final_effect": -127.54824963354508,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2029,
+        "revenue_effect": 167.49196634353476,
+        "behavioral_offset": 37.518200460951796,
+        "dynamic_feedback": 0.0,
+        "final_effect": -129.97376588258297,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2030,
+        "revenue_effect": 170.7940804587655,
+        "behavioral_offset": 38.25787402276348,
+        "dynamic_feedback": 0.0,
+        "final_effect": -132.53620643600203,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2031,
+        "revenue_effect": 173.65087129636967,
+        "behavioral_offset": 38.897795170386814,
+        "dynamic_feedback": 0.0,
+        "final_effect": -134.75307612598286,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2032,
+        "revenue_effect": 174.4574945916932,
+        "behavioral_offset": 39.07847878853928,
+        "dynamic_feedback": 0.0,
+        "final_effect": -135.37901580315392,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2033,
+        "revenue_effect": 178.07889709465616,
+        "behavioral_offset": 39.88967294920298,
+        "dynamic_feedback": 0.0,
+        "final_effect": -138.18922414545318,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2034,
+        "revenue_effect": 183.65804155397723,
+        "behavioral_offset": 41.1394013080909,
+        "dynamic_feedback": 0.0,
+        "final_effect": -142.51864024588633,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2035,
+        "revenue_effect": 189.64913627283585,
+        "behavioral_offset": 42.48140652511524,
+        "dynamic_feedback": 0.0,
+        "final_effect": -147.1677297477206,
+        "debt_service": null,
+        "dynamic_effect": null
+      }
+    ],
+    "dynamic_scoring_enabled": false,
+    "credibility": {
+      "category": "Corporate",
+      "evidence_type": "out_of_sample_class_distribution",
+      "policy_class": "corporate",
+      "class_label": "corporate",
+      "n_tier1_rows": 4,
+      "mean_abs_pct_error": 40.3,
+      "median_abs_pct_error": 43.0,
+      "max_abs_pct_error": 53.4,
+      "rows_inside_mean_band": 1,
+      "uncertainty_low": -1839.220751172516,
+      "uncertainty_high": -782.6192362437578,
+      "outer_low": -2010.951270348282,
+      "outer_high": -610.8887170679917,
+      "no_band_reason": "",
+      "own_row_policy_id": "biden_corporate_28",
+      "own_row_tier": "fitted",
+      "own_row_tier_label": "Calibrated reference",
+      "own_row_abs_pct_error": 4.03729806993253,
+      "own_row_official_billions": -1347.0,
+      "own_row_caption": "Calibrated to reproduce -$1.35T (U.S. Treasury) — agreement is by construction, not an independent test.",
+      "holdout_status": "calibration_reference_only",
+      "limitations": [
+        "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
+        "Corporate base-shifting, pass-through spillovers, and international interactions are simplified relative to Treasury and JCT models.",
+        "The target prices a broader reform than the model builds. Treasury's FY2025 Green Book chapter (report p. 2) states 'The effective global intangible low-taxed income (GILTI) rate would increase to 14 percent under the proposal', and every edition since FY2023 carries that step inside the corporate-rate row, while the factory scored against it sets gilti_rate_change=0.0. The GILTI leg is never printed separately and cannot be differenced across editions, so the reported error measures a scope mismatch as well as a fit.",
+        "The target is a rate-PLUS-GILTI row scored against a rate-only shape, and the figure agrees anyway. Treasury's FY2025 Green Book chapter (report p. 2) says 'The effective global intangible low-taxed income (GILTI) rate would increase to 14 percent under the proposal', and every edition from FY2023 carries that step, while `create_biden_corporate_rate_only` sets `gilti_rate_change=0.0`. The GILTI leg's size is never printed and cannot be recovered by differencing editions, so the 3.7% this row reports measures a scope mismatch as well as a fit and the two cannot be split. Recorded as `line_item_differs` by the 2026-09-05 provenance pass; no constant was retuned, and the target did not move because there is nothing to move it to. See `planning/memos/CORPORATE_PER_POINT_YIELD.md` section 2.",
+        "The only rate-only Green Book row is FY2022's, and it is now carried beside this one as `biden_corporate_28_fy2022` — same reform, same factory, a per-point yield 36% lower.",
+        "Scored across a window offset: the target is Treasury's FY2022-2031 row on a 2021 baseline and this repository carries no 2021 vintage, so the corporate runner's own FY2025-2034 window is used. In reported mode the rate channel is a flat annual, so the model returns the same figure for either decade - which is the residual this benchmark exists to show, not an artefact of the offset.",
+        "WINDOW OFFSET, stated rather than adjusted. The target covers FY2022-2031 on a 2021 baseline and this repository carries no 2021 vintage, so the row is scored on the corporate runner's own FY2025-2034 window - the same mismatch `iija_2021_discretionary` records in the out-of-sample manifest. In `reported` mode the offset costs nothing, because the module's rate channel is a flat annual: shifting the window changes which years the same number is stamped on and nothing else. That invariance is itself the thing this benchmark exists to expose - the module's answer to '21% to 28%' is -$1,397.2B whichever decade is asked about, where Treasury's two editions differ by 36% per point. Nothing here is a claim that the model was run on Treasury's window.",
+        "Not fitted to this target and never to be fitted to it. `BASELINE_TAXABLE_PROFITS_BILLIONS` is fitted to `biden_corporate_28`; a second constant fitted here would make the pair uninformative. The residual is the finding: Treasury's FY2022 row implies a marginal base of $1,225.5B per year against the module's $1,996.0B, and the FY2025 row $1,928.5B - a 36% move across two editions of one proposal that a fixed base cannot represent. See `planning/memos/CORPORATE_PER_POINT_YIELD.md` sections 4 and 7.",
+        "Scope caveat in the other direction from `biden_corporate_28`'s: this row is rate-only and so is the factory, but its baseline is a 2021 profit level, before the 2021-22 profits boom that took SOI's income subject to tax from $1,780.3B (TY2020) to $2,422.1B (TY2021). Part of the residual is that revision, and the memo does not separate it from the modelling error.",
+        "The target is a published range rather than a point: PWBM's +$595B and Tax Foundation's +$673.1B for 21% to 15% across all corporations, both FY2025-2034 conventional, with Tax Foundation's carried as the anchor. Until 2026-09-05 the target was this model's own +$1,920B.",
+        "Poor, and reclassified rather than retuned: the corporate module's behavioural offset returned an absolute value, so this rate cut booked 12.5% of its static effect as extra deficit rather than as an offset, and the fitted annual was compensating for that. The sign was corrected 2026-09-05 and the row moved 0.1% -> 22.3%; no constant was moved to close it.",
+        "The target is no longer this model's own output. The 2026-09-05 provenance pass superseded +$1,920B - provenance model_estimate, 'no official score' by the scenario's own admission - with the PUBLISHED RANGE [+$595.0B, +$673.1B]: PWBM's 'Lower the corporate income tax rate to 15%' (Table 1, 26 August 2024) and Tax Foundation's Table 2 conventional estimate (17 July 2024), the two conventional scores of the same reform on this repository's own FY2025-2034 window, printed side by side in CRFB's 6 September 2024 post. The anchor is Tax Foundation's, because theirs is a standalone analysis of this one reform where PWBM's is a stacked row inside a whole-campaign package. No constant was retuned to the new figure, so the row moved 22.3% -> 121.6% against a published document instead of 22.3% against the model's own answer.",
+        "SCOPE, and it is a third of the residual: neither published figure includes bonus depreciation, which this scenario extends. PWBM prints the business provisions separately at -$623B. The module's bonus-depreciation leg is +$294.15B of its +$1,491.8B, so the rate leg alone reads +$1,197.6B - +77.9% against the anchor rather than +121.6%. Not adjusted away: summing two rows of PWBM's table would be constructing a target rather than reading one.",
+        "DIRECTION, and it is the rest: Tax Foundation's Options 2.0 is the only document pricing both directions in one edition and one model, and a point of CUT costs 29% more than a point of increase yields ($163.2B against $126.6B). `corporate.py` prices both at the same per-point rate, which is why this row misses further than `biden_corporate_28` does. See `planning/memos/CORPORATE_PER_POINT_YIELD.md` sections 4b and 5b."
+      ],
+      "caption": "Out-of-sample accuracy, corporate: 4 pre-registered rows miss their published scores by 40.3% on average (median 43.0%), worst 53.4% — 1 of the 4 falls inside the average. On this figure that is -$1,839.2B to -$782.6B typical, -$2,011.0B to -$610.9B at the worst row. Read off the out-of-sample tier only — not the calibrated tiers, whose agreement is by construction. It is the observed spread of this model against published scores for this class of policy, not a confidence interval."
+    },
+    "error_message": null
+  },
+  "dynamic": {
+    "policy_name": "🏢 Biden Corporate 28% (CBO: -$1.35T)",
+    "policy_description": "Raise corporate rate from 21% to 28%. CBO estimate: raises ~\\$1.35T over 10 years.",
+    "baseline_vintage": "February 2026",
+    "budget_window": "FY2026-2035",
+    "ten_year_deficit_impact": -1310.9199937081369,
+    "static_revenue_effect": 1689.3298887991457,
+    "behavioral_offset": 378.40989509100865,
+    "final_static_effect": 1310.9199937081369,
+    "gdp_effect": -1.7020281097221255,
+    "employment_effect": -108.92979902221603,
+    "revenue_feedback": -119.14196768054877,
+    "debt_service": -275.5712542498683,
+    "dynamic_adjusted_impact": -1467.3492802774563,
+    "dynamic_model": "FRB/US-Lite (Federal Reserve calibrated)",
+    "year_by_year": [
+      {
+        "year": 2026,
+        "revenue_effect": 123.86708978812027,
+        "behavioral_offset": 27.746228112538944,
+        "dynamic_feedback": -17.063680319519708,
+        "final_effect": -96.12086167558132,
+        "debt_service": -3.844834467023253,
+        "dynamic_effect": -82.90201582308487
+      },
+      {
+        "year": 2027,
+        "revenue_effect": 163.31601032503687,
+        "behavioral_offset": 36.58278631280827,
+        "dynamic_feedback": -23.37223263854663,
+        "final_effect": -126.7332240122286,
+        "debt_service": -8.914163427512397,
+        "dynamic_effect": -112.27515480119436
+      },
+      {
+        "year": 2028,
+        "revenue_effect": 164.36630107415604,
+        "behavioral_offset": 36.81805144061096,
+        "dynamic_feedback": -21.531178355215786,
+        "final_effect": -127.54824963354508,
+        "debt_service": -14.0160934128542,
+        "dynamic_effect": -120.0331646911835
+      },
+      {
+        "year": 2029,
+        "revenue_effect": 167.49196634353476,
+        "behavioral_offset": 37.518200460951796,
+        "dynamic_feedback": -17.38742541307999,
+        "final_effect": -129.97376588258297,
+        "debt_service": -19.21504404815752,
+        "dynamic_effect": -131.8013845176605
+      },
+      {
+        "year": 2030,
+        "revenue_effect": 170.7940804587655,
+        "behavioral_offset": 38.25787402276348,
+        "dynamic_feedback": -13.154443157206957,
+        "final_effect": -132.53620643600203,
+        "debt_service": -24.516492305597605,
+        "dynamic_effect": -143.89825558439267
+      },
+      {
+        "year": 2031,
+        "revenue_effect": 173.65087129636967,
+        "behavioral_offset": 38.897795170386814,
+        "dynamic_feedback": -9.574532952826626,
+        "final_effect": -134.75307612598286,
+        "debt_service": -29.906615350636915,
+        "dynamic_effect": -155.08515852379315
+      },
+      {
+        "year": 2032,
+        "revenue_effect": 174.4574945916932,
+        "behavioral_offset": 39.07847878853928,
+        "dynamic_feedback": -6.776254431482328,
+        "final_effect": -135.37901580315392,
+        "debt_service": -35.32177598276308,
+        "dynamic_effect": -163.92453735443468
+      },
+      {
+        "year": 2033,
+        "revenue_effect": 178.07889709465616,
+        "behavioral_offset": 39.88967294920298,
+        "dynamic_feedback": -4.731003589488543,
+        "final_effect": -138.18922414545318,
+        "debt_service": -40.849344948581205,
+        "dynamic_effect": -174.30756550454583
+      },
+      {
+        "year": 2034,
+        "revenue_effect": 183.65804155397723,
+        "behavioral_offset": 41.1394013080909,
+        "dynamic_feedback": -3.2825735350869882,
+        "final_effect": -142.51864024588633,
+        "debt_service": -46.55009055841665,
+        "dynamic_effect": -185.786157269216
+      },
+      {
+        "year": 2035,
+        "revenue_effect": 189.64913627283585,
+        "behavioral_offset": 42.48140652511524,
+        "dynamic_feedback": -2.268643288095229,
+        "final_effect": -147.1677297477206,
+        "debt_service": -52.43679974832548,
+        "dynamic_effect": -197.33588620795086
+      }
+    ],
+    "dynamic_scoring_enabled": true,
+    "credibility": {
+      "category": "Corporate",
+      "evidence_type": "out_of_sample_class_distribution",
+      "policy_class": "corporate",
+      "class_label": "corporate",
+      "n_tier1_rows": 4,
+      "mean_abs_pct_error": 40.3,
+      "median_abs_pct_error": 43.0,
+      "max_abs_pct_error": 53.4,
+      "rows_inside_mean_band": 1,
+      "uncertainty_low": -1839.220751172516,
+      "uncertainty_high": -782.6192362437578,
+      "outer_low": -2010.951270348282,
+      "outer_high": -610.8887170679917,
+      "no_band_reason": "",
+      "own_row_policy_id": "biden_corporate_28",
+      "own_row_tier": "fitted",
+      "own_row_tier_label": "Calibrated reference",
+      "own_row_abs_pct_error": 4.03729806993253,
+      "own_row_official_billions": -1347.0,
+      "own_row_caption": "Calibrated to reproduce -$1.35T (U.S. Treasury) — agreement is by construction, not an independent test.",
+      "holdout_status": "calibration_reference_only",
+      "limitations": [
+        "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
+        "Corporate base-shifting, pass-through spillovers, and international interactions are simplified relative to Treasury and JCT models.",
+        "The target prices a broader reform than the model builds. Treasury's FY2025 Green Book chapter (report p. 2) states 'The effective global intangible low-taxed income (GILTI) rate would increase to 14 percent under the proposal', and every edition since FY2023 carries that step inside the corporate-rate row, while the factory scored against it sets gilti_rate_change=0.0. The GILTI leg is never printed separately and cannot be differenced across editions, so the reported error measures a scope mismatch as well as a fit.",
+        "The target is a rate-PLUS-GILTI row scored against a rate-only shape, and the figure agrees anyway. Treasury's FY2025 Green Book chapter (report p. 2) says 'The effective global intangible low-taxed income (GILTI) rate would increase to 14 percent under the proposal', and every edition from FY2023 carries that step, while `create_biden_corporate_rate_only` sets `gilti_rate_change=0.0`. The GILTI leg's size is never printed and cannot be recovered by differencing editions, so the 3.7% this row reports measures a scope mismatch as well as a fit and the two cannot be split. Recorded as `line_item_differs` by the 2026-09-05 provenance pass; no constant was retuned, and the target did not move because there is nothing to move it to. See `planning/memos/CORPORATE_PER_POINT_YIELD.md` section 2.",
+        "The only rate-only Green Book row is FY2022's, and it is now carried beside this one as `biden_corporate_28_fy2022` — same reform, same factory, a per-point yield 36% lower.",
+        "Scored across a window offset: the target is Treasury's FY2022-2031 row on a 2021 baseline and this repository carries no 2021 vintage, so the corporate runner's own FY2025-2034 window is used. In reported mode the rate channel is a flat annual, so the model returns the same figure for either decade - which is the residual this benchmark exists to show, not an artefact of the offset.",
+        "WINDOW OFFSET, stated rather than adjusted. The target covers FY2022-2031 on a 2021 baseline and this repository carries no 2021 vintage, so the row is scored on the corporate runner's own FY2025-2034 window - the same mismatch `iija_2021_discretionary` records in the out-of-sample manifest. In `reported` mode the offset costs nothing, because the module's rate channel is a flat annual: shifting the window changes which years the same number is stamped on and nothing else. That invariance is itself the thing this benchmark exists to expose - the module's answer to '21% to 28%' is -$1,397.2B whichever decade is asked about, where Treasury's two editions differ by 36% per point. Nothing here is a claim that the model was run on Treasury's window.",
+        "Not fitted to this target and never to be fitted to it. `BASELINE_TAXABLE_PROFITS_BILLIONS` is fitted to `biden_corporate_28`; a second constant fitted here would make the pair uninformative. The residual is the finding: Treasury's FY2022 row implies a marginal base of $1,225.5B per year against the module's $1,996.0B, and the FY2025 row $1,928.5B - a 36% move across two editions of one proposal that a fixed base cannot represent. See `planning/memos/CORPORATE_PER_POINT_YIELD.md` sections 4 and 7.",
+        "Scope caveat in the other direction from `biden_corporate_28`'s: this row is rate-only and so is the factory, but its baseline is a 2021 profit level, before the 2021-22 profits boom that took SOI's income subject to tax from $1,780.3B (TY2020) to $2,422.1B (TY2021). Part of the residual is that revision, and the memo does not separate it from the modelling error.",
+        "The target is a published range rather than a point: PWBM's +$595B and Tax Foundation's +$673.1B for 21% to 15% across all corporations, both FY2025-2034 conventional, with Tax Foundation's carried as the anchor. Until 2026-09-05 the target was this model's own +$1,920B.",
+        "Poor, and reclassified rather than retuned: the corporate module's behavioural offset returned an absolute value, so this rate cut booked 12.5% of its static effect as extra deficit rather than as an offset, and the fitted annual was compensating for that. The sign was corrected 2026-09-05 and the row moved 0.1% -> 22.3%; no constant was moved to close it.",
+        "The target is no longer this model's own output. The 2026-09-05 provenance pass superseded +$1,920B - provenance model_estimate, 'no official score' by the scenario's own admission - with the PUBLISHED RANGE [+$595.0B, +$673.1B]: PWBM's 'Lower the corporate income tax rate to 15%' (Table 1, 26 August 2024) and Tax Foundation's Table 2 conventional estimate (17 July 2024), the two conventional scores of the same reform on this repository's own FY2025-2034 window, printed side by side in CRFB's 6 September 2024 post. The anchor is Tax Foundation's, because theirs is a standalone analysis of this one reform where PWBM's is a stacked row inside a whole-campaign package. No constant was retuned to the new figure, so the row moved 22.3% -> 121.6% against a published document instead of 22.3% against the model's own answer.",
+        "SCOPE, and it is a third of the residual: neither published figure includes bonus depreciation, which this scenario extends. PWBM prints the business provisions separately at -$623B. The module's bonus-depreciation leg is +$294.15B of its +$1,491.8B, so the rate leg alone reads +$1,197.6B - +77.9% against the anchor rather than +121.6%. Not adjusted away: summing two rows of PWBM's table would be constructing a target rather than reading one.",
+        "DIRECTION, and it is the rest: Tax Foundation's Options 2.0 is the only document pricing both directions in one edition and one model, and a point of CUT costs 29% more than a point of increase yields ($163.2B against $126.6B). `corporate.py` prices both at the same per-point rate, which is why this row misses further than `biden_corporate_28` does. See `planning/memos/CORPORATE_PER_POINT_YIELD.md` sections 4b and 5b."
+      ],
+      "caption": "Out-of-sample accuracy, corporate: 4 pre-registered rows miss their published scores by 40.3% on average (median 43.0%), worst 53.4% — 1 of the 4 falls inside the average. On this figure that is -$1,839.2B to -$782.6B typical, -$2,011.0B to -$610.9B at the worst row. Read off the out-of-sample tier only — not the calibrated tiers, whose agreement is by construction. It is the observed spread of this model against published scores for this class of policy, not a confidence interval."
+    },
+    "error_message": null
+  }
+}

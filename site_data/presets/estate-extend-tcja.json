@@ -1,0 +1,283 @@
+{
+  "id": "estate-extend-tcja",
+  "conventional": {
+    "policy_name": "🏠 Estate Tax: Extend TCJA (CBO: $167B)",
+    "policy_description": "Keep ~\\$14M exemption (vs \\$6.4M if TCJA expires). Costs ~\\$167B over 10 years.",
+    "baseline_vintage": "February 2026",
+    "budget_window": "FY2026-2035",
+    "ten_year_deficit_impact": 166.99999999999997,
+    "static_revenue_effect": -166.99999999999997,
+    "behavioral_offset": 0.0,
+    "final_static_effect": -166.99999999999997,
+    "gdp_effect": null,
+    "employment_effect": null,
+    "revenue_feedback": 0.0,
+    "debt_service": null,
+    "dynamic_adjusted_impact": null,
+    "dynamic_model": null,
+    "year_by_year": [
+      {
+        "year": 2026,
+        "revenue_effect": -16.7,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 16.7,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2027,
+        "revenue_effect": -16.7,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 16.7,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2028,
+        "revenue_effect": -16.7,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 16.7,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2029,
+        "revenue_effect": -16.7,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 16.7,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2030,
+        "revenue_effect": -16.7,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 16.7,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2031,
+        "revenue_effect": -16.7,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 16.7,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2032,
+        "revenue_effect": -16.7,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 16.7,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2033,
+        "revenue_effect": -16.7,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 16.7,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2034,
+        "revenue_effect": -16.7,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 16.7,
+        "debt_service": null,
+        "dynamic_effect": null
+      },
+      {
+        "year": 2035,
+        "revenue_effect": -16.7,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.0,
+        "final_effect": 16.7,
+        "debt_service": null,
+        "dynamic_effect": null
+      }
+    ],
+    "dynamic_scoring_enabled": false,
+    "credibility": {
+      "category": "Estate",
+      "evidence_type": "no_out_of_sample_benchmark",
+      "policy_class": null,
+      "class_label": null,
+      "n_tier1_rows": 0,
+      "mean_abs_pct_error": null,
+      "median_abs_pct_error": null,
+      "max_abs_pct_error": null,
+      "rows_inside_mean_band": null,
+      "uncertainty_low": null,
+      "uncertainty_high": null,
+      "outer_low": null,
+      "outer_high": null,
+      "no_band_reason": "no pre-registered row scores an estate-tax reform",
+      "own_row_policy_id": "extend_tcja_exemption",
+      "own_row_tier": "fitted",
+      "own_row_tier_label": "Calibrated reference",
+      "own_row_abs_pct_error": 1.7018987682876653e-14,
+      "own_row_official_billions": 167.0,
+      "own_row_caption": "Calibrated to reproduce $167B (CBO) — agreement is by construction, not an independent test.",
+      "holdout_status": "post_lock_holdout_available",
+      "limitations": [
+        "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
+        "No pre-registered out-of-sample row scores a policy of this class, so this model's accuracy on one has not been measured.",
+        "Target revised (target_revisions.eliminate_estate_tax.v2) from a model estimate to a published figure; no constant moved. The two agency figures were examined and not adopted: JCT's 2017 rows bundle repeal with the exemption doubling and the 35% gift rate (-$171.5B / -$150.7B), and CBO/JCT's 2015 Death Tax Repeal Act score ($269B) prices repeal of a tax with a $5.43M exemption.",
+        "Window stated rather than adjusted: CY2027-2036 against the runner's FY2025-2034, on `biden_corporate_28_fy2022`'s precedent."
+      ],
+      "caption": "No out-of-sample band: no pre-registered row scores an estate-tax reform. The 44 pre-registered Tier 1 rows are the only tier that measures this model's accuracy, and none of them scores a policy of this kind."
+    },
+    "error_message": null
+  },
+  "dynamic": {
+    "policy_name": "🏠 Estate Tax: Extend TCJA (CBO: $167B)",
+    "policy_description": "Keep ~\\$14M exemption (vs \\$6.4M if TCJA expires). Costs ~\\$167B over 10 years.",
+    "baseline_vintage": "February 2026",
+    "budget_window": "FY2026-2035",
+    "ten_year_deficit_impact": 166.99999999999997,
+    "static_revenue_effect": -166.99999999999997,
+    "behavioral_offset": 0.0,
+    "final_static_effect": -166.99999999999997,
+    "gdp_effect": 0.22449513487626568,
+    "employment_effect": 14.367688632081007,
+    "revenue_feedback": 15.714659441338599,
+    "debt_service": 36.739999999999995,
+    "dynamic_adjusted_impact": 188.02534055866136,
+    "dynamic_model": "FRB/US-Lite (Federal Reserve calibrated)",
+    "year_by_year": [
+      {
+        "year": 2026,
+        "revenue_effect": -16.7,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 2.9151791375,
+        "final_effect": 16.7,
+        "debt_service": 0.668,
+        "dynamic_effect": 14.452820862499998
+      },
+      {
+        "year": 2027,
+        "revenue_effect": -16.7,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 3.3076887878125,
+        "final_effect": 16.7,
+        "debt_service": 1.336,
+        "dynamic_effect": 14.7283112121875
+      },
+      {
+        "year": 2028,
+        "revenue_effect": -16.7,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 2.8339156938066403,
+        "final_effect": 16.7,
+        "debt_service": 2.004,
+        "dynamic_effect": 15.870084306193359
+      },
+      {
+        "year": 2029,
+        "revenue_effect": -16.7,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 2.172596548947754,
+        "final_effect": 16.7,
+        "debt_service": 2.672,
+        "dynamic_effect": 17.199403451052245
+      },
+      {
+        "year": 2030,
+        "revenue_effect": -16.7,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 1.5716112333170642,
+        "final_effect": 16.7,
+        "debt_service": 3.34,
+        "dynamic_effect": 18.468388766682935
+      },
+      {
+        "year": 2031,
+        "revenue_effect": -16.7,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 1.098215239249636,
+        "final_effect": 16.7,
+        "debt_service": 4.008,
+        "dynamic_effect": 19.60978476075036
+      },
+      {
+        "year": 2032,
+        "revenue_effect": -16.7,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.7505651262467308,
+        "final_effect": 16.7,
+        "debt_service": 4.676,
+        "dynamic_effect": 20.62543487375327
+      },
+      {
+        "year": 2033,
+        "revenue_effect": -16.7,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.5053640863919376,
+        "final_effect": 16.7,
+        "debt_service": 5.344,
+        "dynamic_effect": 21.53863591360806
+      },
+      {
+        "year": 2034,
+        "revenue_effect": -16.7,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.3367596945163193,
+        "final_effect": 16.7,
+        "debt_service": 6.012,
+        "dynamic_effect": 22.37524030548368
+      },
+      {
+        "year": 2035,
+        "revenue_effect": -16.7,
+        "behavioral_offset": -0.0,
+        "dynamic_feedback": 0.22276389355001855,
+        "final_effect": 16.7,
+        "debt_service": 6.679999999999999,
+        "dynamic_effect": 23.15723610644998
+      }
+    ],
+    "dynamic_scoring_enabled": true,
+    "credibility": {
+      "category": "Estate",
+      "evidence_type": "no_out_of_sample_benchmark",
+      "policy_class": null,
+      "class_label": null,
+      "n_tier1_rows": 0,
+      "mean_abs_pct_error": null,
+      "median_abs_pct_error": null,
+      "max_abs_pct_error": null,
+      "rows_inside_mean_band": null,
+      "uncertainty_low": null,
+      "uncertainty_high": null,
+      "outer_low": null,
+      "outer_high": null,
+      "no_band_reason": "no pre-registered row scores an estate-tax reform",
+      "own_row_policy_id": "extend_tcja_exemption",
+      "own_row_tier": "fitted",
+      "own_row_tier_label": "Calibrated reference",
+      "own_row_abs_pct_error": 1.7018987682876653e-14,
+      "own_row_official_billions": 167.0,
+      "own_row_caption": "Calibrated to reproduce $167B (CBO) — agreement is by construction, not an independent test.",
+      "holdout_status": "post_lock_holdout_available",
+      "limitations": [
+        "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
+        "No pre-registered out-of-sample row scores a policy of this class, so this model's accuracy on one has not been measured.",
+        "Target revised (target_revisions.eliminate_estate_tax.v2) from a model estimate to a published figure; no constant moved. The two agency figures were examined and not adopted: JCT's 2017 rows bundle repeal with the exemption doubling and the 35% gift rate (-$171.5B / -$150.7B), and CBO/JCT's 2015 Death Tax Repeal Act score ($269B) prices repeal of a tax with a $5.43M exemption.",
+        "Window stated rather than adjusted: CY2027-2036 against the runner's FY2025-2034, on `biden_corporate_28_fy2022`'s precedent."
+      ],
+      "caption": "No out-of-sample band: no pre-registered row scores an estate-tax reform. The 44 pre-registered Tier 1 rows are the only tier that measures this model's accuracy, and none of them scores a policy of this kind."
+    },
+    "error_message": null
+  }
+}
