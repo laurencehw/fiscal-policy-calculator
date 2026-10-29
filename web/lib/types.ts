@@ -314,6 +314,11 @@ export type OlgResult = {
   path_end_gdp_pct?: number | null;
   capital_path_pct?: (number | null)[];
   interest_path_ppts?: (number | null)[];
+  /** "perfect_foresight" (cohort-by-cohort, the default) or "myopic". */
+  expectations?: string;
+  path_converged?: boolean;
+  /** Consumption-equivalent welfare change over the rest of each generation's life, by year of birth. */
+  welfare_by_birth_year?: { born: number; pct: number }[] | null;
   accounts?: {
     newborn_burden_change: number;
     weighted_burden_change: number;

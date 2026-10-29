@@ -762,7 +762,9 @@ def test_reform_transition_ends_at_the_reform_steady_state(overrides):
     result = OLGModel(OLGParameters()).analyze_policy(
         reform_overrides=overrides, policy_name="t", compute_gen_accounts=False, compute_transition=True
     )
-    assert result.transition.K_path[-1] == pytest.approx(result.reform.K, rel=1e-3)
+    # The default path is perfect foresight, which approaches the new steady
+    # state asymptotically: after 75 years it is within a fraction of a percent.
+    assert result.transition.K_path[-1] == pytest.approx(result.reform.K, rel=5e-3)
     assert result.gdp_transition_pct_change()[-1] == pytest.approx(result.long_run_gdp_pct_change, abs=0.05)
 
 

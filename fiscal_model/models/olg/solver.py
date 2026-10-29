@@ -36,10 +36,15 @@ Broyden's is used:
 
 Transition path
 ---------------
-The transition path is computed via myopic forward shooting:
-households see current-period prices and form static expectations.
-This is a first-order approximation; the steady states themselves
-are exact.
+Two methods.  ``compute_transition_path_foresight`` (the default) solves the
+perfect-foresight path cohort by cohort: every generation alive at the
+reform re-plans the rest of its life from the assets it holds, every later
+generation plans its whole life, all of them see the whole future price
+path, and the capital path is iterated until the savings it implies
+reproduce it (time-path iteration).  ``compute_transition_path`` is the
+older myopic forward shooting, where households see only current prices; it
+reaches the new steady state within a few years and is kept for comparison.
+The steady states themselves are exact under both.
 """
 
 from __future__ import annotations
@@ -58,7 +63,11 @@ from .government import (
     compute_ss_benefit,
     compute_ss_outlays,
 )
-from .household import aggregate_household_results
+from .household import (
+    aggregate_household_results,
+    consumption_equivalent,
+    solve_remaining_life,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +144,14 @@ class TransitionPath:
     tau_l_path: np.ndarray          # Labour tax rate
     debt_path: np.ndarray           # Government debt
     consumption_paths: list[np.ndarray] = field(default_factory=list)  # Per-period cohort consumption
+    expectations: str = "myopic"    # "myopic" or "perfect_foresight"
+    iterations: int = 0             # Time-path iterations (perfect foresight only)
+    converged: bool = True          # Whether the capital path met its tolerance
+    # Welfare by generation (perfect foresight only): the uniform percentage
+    # change in a generation's baseline consumption over the rest of its life
+    # that is worth as much as the reform.  Keyed by year of birth.
+    cohort_birth_years: np.ndarray | None = None
+    cohort_welfare_pct: np.ndarray | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -638,6 +655,175 @@ class OLGSolver:
             w_path=w_path,
             tau_l_path=tau_l_path,
             debt_path=debt_path,
+        )
+
+
+    def compute_transition_path_foresight(
+        self,
+        baseline_ss: SteadyState,
+        reform_policy_fn: Callable[[int], dict],
+        start_year: int = 2026,
+        reform_ss: SteadyState | None = None,
+        tol: float = 1e-7,
+        max_iter: int = 500,
+        damping: float = 0.4,
+    ) -> TransitionPath:
+        """
+        Perfect-foresight transition, solved cohort by cohort.
+
+        The economy starts in ``baseline_ss`` with its capital stock and every
+        generation's assets already in place.  The reform is announced and
+        takes effect in period 0.  Given a guess of the capital path, factor
+        prices, the fiscal closure and debt follow period by period; each
+        generation alive in period 0 re-plans the rest of its life from the
+        assets it holds, and each later generation plans its whole life, all
+        against the whole future price path.  Their savings give a new capital
+        path, and the guess is updated (damped) until the two agree.
+
+        The window is ``transition_years`` long; prices are computed for a
+        further ``n_cohorts`` years so the last generations in the window can
+        plan, and held at their final values beyond that.
+
+        Welfare is reported for every generation alive in period 0 and every
+        generation that enters in the window, as a consumption equivalent of
+        the rest of its life.
+        """
+        from .government import compute_debt_next_period, compute_tax_revenues
+
+        p = self.params
+        T = p.transition_years
+        N = p.n_cohorts
+        R_ret = p.retirement_age_cohort
+        H = T + N
+        n = p.cohort_sizes
+        eps = p.earnings_profile
+        L = baseline_ss.L
+        growth = 1.0 + p.pop_growth + p.tfp_growth
+
+        policies = [reform_policy_fn(t) for t in range(H)]
+        tau_k = np.array([q.get("tau_k", p.capital_tax_rate) for q in policies], dtype=float)
+        tau_ss = np.array([q.get("tau_ss", p.ss_payroll_rate) for q in policies], dtype=float)
+        rep = np.array(
+            [q.get("ss_replacement_rate", p.ss_replacement_rate) for q in policies], dtype=float
+        )
+        tau_l_fixed = [q.get("tau_l") for q in policies]
+
+        # Initial guess: a straight line to the reform steady state over half
+        # the window, flat after.  Period-0 capital is predetermined.
+        K_end = reform_ss.K if reform_ss is not None else baseline_ss.K
+        ramp = min(T // 2, H - 1) or 1
+        K = np.full(H, K_end, dtype=float)
+        K[: ramp + 1] = np.linspace(baseline_ss.K, K_end, ramp + 1)
+        K[0] = baseline_ss.K
+
+        def prices(K_path: np.ndarray) -> dict[str, np.ndarray]:
+            r = np.empty(H)
+            w = np.empty(H)
+            Y = np.empty(H)
+            tau_l = np.empty(H)
+            debt = np.empty(H)
+            B = baseline_ss.debt
+            for t in range(H):
+                r[t], w[t] = factor_prices(K_path[t], L, p.alpha, p.delta, p.tfp)
+                Y[t] = output(K_path[t], L, p.alpha, p.tfp)
+                ss_out = compute_ss_outlays(rep[t] * w[t], n, R_ret)
+                G = compute_gov_spending(p.gov_spending_gdp, Y[t])
+                if tau_l_fixed[t] is not None:
+                    tau_l[t] = tau_l_fixed[t]
+                elif p.fiscal_closure == "labor_tax":
+                    tau_l[t] = compute_closure_tax_rate(
+                        p, Y[t], w[t], L, r[t], K_path[t], B, ss_out,
+                        tau_k=tau_k[t], tau_ss=tau_ss[t],
+                    )
+                else:
+                    tau_l[t] = p.labor_tax_rate
+                debt[t] = B
+                revenue = compute_tax_revenues(
+                    w[t], L, r[t], K_path[t], tau_l[t], tau_k[t], tau_ss[t]
+                )
+                B = compute_debt_next_period(B, r[t], G, ss_out, revenue) / growth
+            return {"r": r, "w": w, "Y": Y, "tau_l": tau_l, "debt": debt}
+
+        def plan(px: dict[str, np.ndarray], t0: int, j0: int, a0: float):
+            """Generation at stage j0 in period t0: its plan for stages j0..N-1."""
+            times = np.minimum(np.arange(t0, t0 + N - j0), H - 1)
+            stages = np.arange(j0, N)
+            gross = 1.0 + px["r"][times] * (1.0 - tau_k[times])
+            income = np.where(
+                stages < R_ret,
+                px["w"][times]
+                * (1.0 - px["tau_l"][times] - tau_ss[times])
+                * eps[np.minimum(stages, R_ret - 1)],
+                rep[times] * px["w"][times],
+            )
+            return solve_remaining_life(p.sigma, p.beta, gross, income, a0)
+
+        def generations():
+            # (period of first decision, stage then, assets then)
+            for j0 in range(N):
+                yield 0, j0, float(baseline_ss.assets_path[j0])
+            for t0 in range(1, H):
+                yield t0, 0, 0.0
+
+        iterations = 0
+        converged = False
+        for iterations in range(1, max_iter + 1):
+            px = prices(K)
+            savings = np.zeros(H)
+            for t0, j0, a0 in generations():
+                _c, a = plan(px, t0, j0, a0)
+                span = min(N - j0, H - t0)
+                savings[t0 : t0 + span] += n[j0 : j0 + span] * a[1 : span + 1]
+            K_new = np.empty(H)
+            K_new[0] = baseline_ss.K
+            K_new[1:] = savings[:-1]
+            # Converge on the reported window; the tail only lets the last
+            # generations in it plan.
+            gap = float(np.max(np.abs(K_new[:T] - K[:T]) / np.maximum(K[:T], 1e-10)))
+            if not np.all(np.isfinite(K_new)):
+                logger.warning("Foresight transition: non-finite capital at iteration %d", iterations)
+                break
+            if gap < tol:
+                K = K_new
+                converged = True
+                break
+            K = (1.0 - damping) * K + damping * K_new
+            K[0] = baseline_ss.K
+
+        px = prices(K)
+        if not converged:
+            logger.warning(
+                "Foresight transition did not converge in %d iterations", iterations
+            )
+
+        # Welfare by generation, over the rest of each generation's life.
+        birth_years = []
+        welfare = []
+        base_c = baseline_ss.consumption_path
+        for t0, j0, a0 in generations():
+            if t0 >= T:
+                break
+            c, _a = plan(px, t0, j0, a0)
+            birth_years.append(start_year + t0 - j0 - 21)
+            welfare.append(
+                100.0 * consumption_equivalent(c, base_c[j0:], p.sigma, p.beta)
+            )
+        order = np.argsort(birth_years)
+
+        return TransitionPath(
+            years=np.arange(start_year, start_year + T),
+            K_path=K[:T].copy(),
+            L_path=np.full(T, L),
+            Y_path=px["Y"][:T].copy(),
+            r_path=px["r"][:T].copy(),
+            w_path=px["w"][:T].copy(),
+            tau_l_path=px["tau_l"][:T].copy(),
+            debt_path=px["debt"][:T].copy(),
+            expectations="perfect_foresight",
+            iterations=iterations,
+            converged=converged,
+            cohort_birth_years=np.asarray(birth_years, dtype=int)[order],
+            cohort_welfare_pct=np.asarray(welfare, dtype=float)[order],
         )
 
 

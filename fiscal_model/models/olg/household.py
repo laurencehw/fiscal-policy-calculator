@@ -110,6 +110,79 @@ def solve_household(
     return consumption, assets
 
 
+def solve_remaining_life(
+    sigma: float,
+    beta: float,
+    gross_returns: np.ndarray,
+    income: np.ndarray,
+    initial_assets: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    One cohort's plan for the rest of its life when prices change over time.
+
+    Stage k of the remaining life (k = 0..M−1) has its own after-tax gross
+    return ``R_k`` and income ``y_k``.  The budget is
+    ``a_{k+1} = R_k·a_k + y_k − c_k`` with ``a_M = 0``, and the Euler equation
+    is ``c_{k+1} = (β·R_{k+1})^{1/σ}·c_k``: savings made in stage k earn the
+    next stage's return.
+
+    Discounting by ``D_k = 1 / Π_{s≤k} R_s``, the budget sums to
+
+        Σ_k c_k·D_k = a_0 + Σ_k y_k·D_k
+
+    which fixes c_0.  With constant prices this is the steady-state plan of
+    :func:`solve_household`, so a cohort that re-plans mid-life under
+    unchanged prices keeps its old path (the plan is time-consistent).
+
+    Returns ``(consumption, assets)`` of lengths M and M+1.
+    """
+    R = np.maximum(np.asarray(gross_returns, dtype=float), 1e-8)
+    y = np.asarray(income, dtype=float)
+    M = len(y)
+    discount = 1.0 / np.cumprod(R)
+    growth = np.ones(M)
+    if M > 1:
+        growth[1:] = np.cumprod((beta * R[1:]) ** (1.0 / sigma))
+    wealth = initial_assets + float(np.dot(y, discount))
+    c0 = max(wealth / max(float(np.dot(growth, discount)), 1e-15), 1e-12)
+    consumption = growth * c0
+    assets = np.empty(M + 1)
+    assets[0] = initial_assets
+    for k in range(M):
+        assets[k + 1] = R[k] * assets[k] + y[k] - consumption[k]
+    return consumption, assets
+
+
+def lifetime_utility(consumption: np.ndarray, sigma: float, beta: float) -> float:
+    """Discounted CRRA utility of a consumption stream, from its first stage."""
+    c = np.maximum(np.asarray(consumption, dtype=float), 1e-12)
+    weights = beta ** np.arange(len(c), dtype=float)
+    if abs(sigma - 1.0) < 1e-12:
+        return float(np.dot(weights, np.log(c)))
+    return float(np.dot(weights, c ** (1.0 - sigma) / (1.0 - sigma)))
+
+
+def consumption_equivalent(
+    reform_consumption: np.ndarray,
+    baseline_consumption: np.ndarray,
+    sigma: float,
+    beta: float,
+) -> float:
+    """
+    Welfare change as the uniform percentage change in baseline consumption
+    that gives the reform's lifetime utility: ``U((1+λ)·c_base) = U(c_reform)``.
+
+    Returned as λ (0.01 = one percent).  CRRA utility is homogeneous, so
+    ``U((1+λ)c) = (1+λ)^{1−σ}·U(c)`` and λ has a closed form.
+    """
+    u_reform = lifetime_utility(reform_consumption, sigma, beta)
+    u_base = lifetime_utility(baseline_consumption, sigma, beta)
+    if abs(sigma - 1.0) < 1e-12:
+        weight = float(np.sum(beta ** np.arange(len(baseline_consumption), dtype=float)))
+        return float(np.exp((u_reform - u_base) / weight) - 1.0)
+    return float((u_reform / u_base) ** (1.0 / (1.0 - sigma)) - 1.0)
+
+
 # ---------------------------------------------------------------------------
 # Steady-state aggregation
 # ---------------------------------------------------------------------------
