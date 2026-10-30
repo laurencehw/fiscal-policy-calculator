@@ -1,4 +1,4 @@
-import { manifest, preset, presets } from "./data";
+import { evidence, manifest, preset, presets, trackerIndex } from "./data";
 import { money, shortLabel } from "./format";
 
 /** The three rows the homepage shows. Dollars are read from the nightly export. */
@@ -49,4 +49,30 @@ export function homeRowLine(row: WorkedRow): string {
 export function homeSectionText(): string {
   const rows = workedRows().map(homeRowLine);
   return ["How to read a figure", ...homeSectionParagraphs(), ...rows].join(" ");
+}
+
+export type HomeStat = { figure: string; label: string; href: string };
+
+/** The strip under the title. Every figure is read from the nightly export. */
+export function homeStats(): HomeStat[] {
+  const m = manifest();
+  const oos = evidence().out_of_sample;
+  const tracker = trackerIndex();
+  const updated = tracker.last_update
+    ? new Date(tracker.last_update).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
+    : null;
+  return [
+    { figure: String(presets().length), label: "proposals scored on CBO's baseline", href: "/explore" },
+    {
+      figure: `${oos.within_25pct ?? 0} of ${oos.n}`,
+      label: `blind predictions within 25% of the published score (median miss ${oos.median_abs_error.toFixed(1)}%)`,
+      href: "/methods",
+    },
+    {
+      figure: tracker.bills.toLocaleString("en-US"),
+      label: updated ? `bills in Congress tracked, updated ${updated}` : "bills in Congress tracked",
+      href: "/tracker",
+    },
+    { figure: String(m.social_security_options), label: "Social Security options and their trust fund effects", href: "/social-security" },
+  ];
 }

@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { homeRowLine, homeSectionText, WORKED_PRESET_IDS, workedRows } from "./home";
+import { homeRowLine, homeSectionText, homeStats, WORKED_PRESET_IDS, workedRows } from "./home";
 import { money } from "./format";
-import { preset, presets } from "./data";
+import { evidence, manifest, preset, presets, trackerIndex } from "./data";
 import { contactText, privacyText } from "./legal";
 
 test("the homepage section names both figures and reads them from the export", () => {
@@ -53,4 +53,17 @@ test("Explore labels a figure published only when the export says it is", () => 
   ]);
   const source = fs.readFileSync(new URL("../app/explore/page.tsx", import.meta.url), "utf8");
   assert.match(source, /cbo_published/);
+});
+
+test("the headline strip reads its figures from the export and names the tier", () => {
+  const stats = homeStats();
+  const oos = evidence().out_of_sample;
+  assert.equal(stats.length, 4);
+  assert.equal(stats[0].figure, String(presets().length));
+  assert.equal(stats[1].figure, `${oos.within_25pct} of ${oos.n}`);
+  assert.match(stats[1].label, /blind predictions/);
+  assert.ok(stats[1].label.includes(oos.median_abs_error.toFixed(1)));
+  assert.equal(stats[2].figure, trackerIndex().bills.toLocaleString("en-US"));
+  assert.equal(stats[3].figure, String(manifest().social_security_options));
+  for (const stat of stats) assert.match(stat.href, /^\/[a-z-]+$/);
 });
