@@ -1,23 +1,23 @@
 "use client";
 // Build: tick policies, see the package's ten-year list-price total. State lives
 // in ?policies=, the same parameter the Streamlit app's share links use.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { cleanLabel, money, shortLabel } from "@/lib/format";
-import { choose, covered, fromQuery, total } from "@/lib/package";
+import { calculatorGap, choose, covered, fromQuery, total } from "@/lib/package";
 import type { BuildRow, ValuesArchetype } from "@/lib/types";
 
 export function PackageBuilder({
   rows,
-  scored,
+  calculator,
   archetypes = [],
 }: {
   rows: BuildRow[];
-  scored: string[];
+  /** The calculator's ten-year conventional score by build id, where it scores the policy. */
+  calculator: Record<string, number>;
   archetypes?: ValuesArchetype[];
 }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [philosophy, setPhilosophy] = useState<ValuesArchetype | null>(null);
-  const scoredIds = useMemo(() => new Set(scored), [scored]);
 
   function usePhilosophy(a: ValuesArchetype) {
     setPhilosophy(a);
@@ -130,12 +130,7 @@ export function PackageBuilder({
                       <small>
                         {r.source}, {r.source_date}
                         {by ? ` · included in ${label(by)}` : ""}
-                        {scoredIds.has(r.build_id) ? (
-                          <>
-                            {" · "}
-                            <a href={`/explore/${r.build_id}`}>calculator&apos;s score</a>
-                          </>
-                        ) : null}
+                        {r.build_id in calculator ? <CalculatorNote id={r.build_id} published={r.score} calc={calculator[r.build_id]} /> : null}
                       </small>
                     </span>
                     <span className={`fig ${r.score > 0 ? "adds" : "reduces"}`}>{money(r.score)}</span>
@@ -168,6 +163,25 @@ export function PackageBuilder({
         ) : null}
       </aside>
     </div>
+    </>
+  );
+}
+
+function CalculatorNote({ id, published, calc }: { id: string; published: number; calc: number }) {
+  const { share, differs } = calculatorGap(published, calc);
+  return (
+    <>
+      {" · "}
+      <a href={`/explore/${id}`} className={differs ? "differs" : undefined}>
+        calculator {money(calc)}
+      </a>
+      {differs ? (
+        <span className="differs">
+          {Number.isFinite(share) && Math.sign(calc) === Math.sign(published)
+            ? `, ${Math.round(share * 100)}% ${Math.abs(calc) > Math.abs(published) ? "larger" : "smaller"}`
+            : ", opposite sign"}
+        </span>
+      ) : null}
     </>
   );
 }

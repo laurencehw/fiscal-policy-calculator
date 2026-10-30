@@ -42,3 +42,17 @@ export function fromQuery(rows: BuildRow[], value: string | null): string[] {
   }
   return selected;
 }
+
+/** How far the calculator's own score sits from a row's published list price, before Build calls it out. */
+export const DIFFERS_AT = 0.25;
+
+/**
+ * The calculator's score beside a published one: its share apart, and whether the
+ * gap is wide enough (or the sign opposite) that a reader should be told.
+ */
+export function calculatorGap(published: number, calculator: number): { share: number; differs: boolean } {
+  if (published === 0) return { share: calculator === 0 ? 0 : Infinity, differs: calculator !== 0 };
+  const share = Math.abs(calculator - published) / Math.abs(published);
+  const flipped = Math.sign(calculator) !== Math.sign(published) && calculator !== 0;
+  return { share, differs: flipped || share >= DIFFERS_AT };
+}

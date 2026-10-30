@@ -359,3 +359,6 @@ table.sheet th.text, table.sheet td.text { text-align: left; }
 .tailorempty { border: 1px dashed var(--rule); padding: 28px 20px; min-height: 140px; display: grid; align-content: center; color: var(--muted); }
 .tailorempty p { margin: 0; max-width: 36rem; }
 .tailorform.buttons { margin-bottom: 0; align-items: center; }
+/* Build: the calculator's own score under a row, flagged where it is far from the published price. */
+.buildname small a { white-space: nowrap; }
+.buildname small .differs { color: var(--ink); font-weight: 600; }
