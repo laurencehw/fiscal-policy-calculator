@@ -362,3 +362,11 @@ table.sheet th.text, table.sheet td.text { text-align: left; }
 /* Build: the calculator's own score under a row, flagged where it is far from the published price. */
 .buildname small a { white-space: nowrap; }
 .buildname small .differs { color: var(--ink); font-weight: 600; }
+
+/* Home: headline figures under the title */
+.homestats { list-style: none; margin: 0 0 36px; padding: 16px 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.homestats a { display: grid; gap: 4px; text-decoration: none; color: inherit; }
+.homestats b { font-family: var(--data); font-weight: 600; font-size: 28px; line-height: 1.1; color: var(--accent); font-variant-numeric: tabular-nums; }
+.homestats span { font-family: var(--data); font-size: 13px; line-height: 1.35; color: var(--muted); }
+.homestats a:hover span, .homestats a:focus-visible span { color: var(--ink); text-decoration: underline; }
+@media (max-width: 720px) { .homestats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 20px; } .homestats b { font-size: 24px; } }

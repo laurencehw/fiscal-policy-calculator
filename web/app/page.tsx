@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { manifest, presets } from "@/lib/data";
 import { NAV_GROUPS } from "@/lib/nav";
-import { homeRowLine, homeSectionParagraphs, workedRows } from "@/lib/home";
+import { homeRowLine, homeSectionParagraphs, homeStats, workedRows } from "@/lib/home";
 
 export default function Home() {
   const m = manifest();
@@ -16,6 +16,16 @@ export default function Home() {
           conventional score and, where one exists, the published score beside it.
         </p>
       </header>
+      <ul className="homestats" aria-label="At a glance">
+        {homeStats().map((stat) => (
+          <li key={stat.href}>
+            <Link href={stat.href}>
+              <b>{stat.figure}</b>
+              <span>{stat.label}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
       <section className="doors" aria-label="Sections">
         {NAV_GROUPS.map((group) => (
           <div key={group.name} className="doorgroup">
