@@ -1,39 +1,53 @@
 // Site nav and footer, in Balance of Power's layout.
 import Link from "next/link";
 import { AUTHOR_URL, REPO_URL } from "@/lib/site";
+import { NAV_GROUPS } from "@/lib/nav";
+import { MobileMenu } from "./MobileMenu";
 import { NavLink } from "./NavLink";
+
+const [SCORE, TOPICS, LEARN] = NAV_GROUPS;
 
 export function SiteChrome({ children }: { children: React.ReactNode }) {
   return (
     <div className="wrap">
+      <a className="skip" href="#main">
+        Skip to content
+      </a>
       <nav className="site noprint" aria-label="Site">
         <div className="siterow">
           <Link href="/" className="wordmark">
             Fiscal Policy Calculator
           </Link>
           <span className="navlinks">
-            <NavLink href="/classroom">Classroom</NavLink>
-            <NavLink href="/methods">Methods</NavLink>
-            <NavLink href="/about">About</NavLink>
+            {LEARN.items.map((item) => (
+              <NavLink key={item.href} href={item.href}>
+                {item.label}
+              </NavLink>
+            ))}
           </span>
         </div>
         <span className="sectionlinks">
-          <NavLink href="/ask">Ask</NavLink>
-          <NavLink href="/explore">Explore</NavLink>
-          <NavLink href="/build">Build</NavLink>
-          <NavLink href="/tailor">Tailor</NavLink>
-          <NavLink href="/social-security">Social Security</NavLink>
-          <NavLink href="/states">States</NavLink>
-          <NavLink href="/generations">Generations</NavLink>
-          <NavLink href="/tracker">Bill tracker</NavLink>
+          {[SCORE, TOPICS].map((group) => (
+            <span key={group.name} className="navgroup" aria-label={group.name}>
+              {group.items.map((item) => (
+                <NavLink key={item.href} href={item.href}>
+                  {item.label}
+                </NavLink>
+              ))}
+            </span>
+          ))}
         </span>
+        <MobileMenu />
       </nav>
-      {children}
+      <main id="main" className="main">
+        {children}
+      </main>
       <footer className="noprint">
         <p>
-          Every figure is a ten-year estimate from the calculator&apos;s Python engine, computed nightly. Where an
-          agency or research group has published a score for the same policy, the page shows it and how far apart
-          the two are. Agreement on a calibrated policy is by construction, and the page says so.
+          Budget figures are ten-year estimates from the calculator&apos;s Python engine, computed nightly, unless a
+          page says otherwise (Social Security and Generations look further ahead). Where an agency or research
+          group has published a score for the same policy, the page shows it and how far apart the two are.
+          Agreement on a calibrated policy is by construction, and the page says so.
         </p>
         <p>
           A personal, non-commercial project by{" "}

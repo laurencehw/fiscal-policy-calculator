@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { manifest, presets } from "@/lib/data";
+import { NAV_GROUPS } from "@/lib/nav";
 import { homeRowLine, homeSectionParagraphs, workedRows } from "@/lib/home";
 
 export default function Home() {
@@ -15,6 +16,21 @@ export default function Home() {
           conventional score and, where one exists, the published score beside it.
         </p>
       </header>
+      <section className="doors" aria-label="Sections">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.name} className="doorgroup">
+            <h2>{group.name}</h2>
+            <div className="doorgrid">
+              {group.items.map((item) => (
+                <Link key={item.href} href={item.href} className="door">
+                  <b>{item.label}</b>
+                  <span>{item.blurb}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        ))}
+      </section>
       <section className="reading">
         <h2>How to read a figure</h2>
         {homeSectionParagraphs().map((text) => (

@@ -15,9 +15,9 @@
   /* Deficit convention: adds to the deficit vs reduces it. Neutral, not red/green. */
   --adds: var(--s2); --reduces: var(--s1);
   /* Newsreader for headings and reading; Libre Franklin for labels, numbers and chart text. */
-  --display: "Newsreader", Georgia, "Times New Roman", serif;
-  --body: "Newsreader", Georgia, "Times New Roman", serif;
-  --data: "Libre Franklin", "Franklin Gothic Book", "Helvetica Neue", Arial, sans-serif;
+  --display: var(--font-newsreader), "Newsreader", Georgia, "Times New Roman", serif;
+  --body: var(--font-newsreader), "Newsreader", Georgia, "Times New Roman", serif;
+  --data: var(--font-franklin), "Libre Franklin", "Franklin Gothic Book", "Helvetica Neue", Arial, sans-serif;
   /* Chart text: ticks, legend, line-end labels, tooltips and the source line. */
   --label: var(--data);
   --code: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
@@ -95,11 +95,41 @@ a:hover { text-decoration-color: var(--accent); }
 .navlinks { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; }
 .navlinks a { font-size: 14px; text-decoration: none; color: var(--muted); }
 .navlinks a:hover, .navlinks a[aria-current="page"] { color: var(--ink); }
-.sectionlinks { display: flex; flex-wrap: wrap; gap: 6px 28px; border-top: 1px solid var(--rule); padding-top: 8px; }
+.sectionlinks { display: flex; flex-wrap: wrap; gap: 6px 0; border-top: 1px solid var(--rule); padding-top: 8px; }
+/* Two groups (score a policy; topics), split by a hairline rather than a heading. */
+.navgroup { display: flex; flex-wrap: wrap; gap: 6px 26px; align-items: baseline; }
+.navgroup + .navgroup { margin-left: 26px; padding-left: 26px; border-left: 1px solid var(--rule); }
+.main { display: grid; grid-template-columns: minmax(0, 1fr); gap: 40px; min-width: 0; }
+.skip { position: absolute; left: -9999px; top: 8px; z-index: 10; background: var(--surface); border: 1px solid var(--ink); padding: 6px 12px; font-family: var(--label); font-size: 14px; }
+.skip:focus { left: 16px; }
+/* Phone menu: hidden on wide screens, replaces both link rows on narrow ones. */
+.mobilemenu { display: none; border-top: 1px solid var(--rule); }
+.mobilemenu summary { list-style: none; display: flex; justify-content: space-between; align-items: baseline; padding: 10px 0 4px; cursor: pointer; }
+.mobilemenu summary::-webkit-details-marker { display: none; }
+.mobilemenu .current { font-family: var(--display); font-size: 19px; }
+.mobilemenu .menulabel { font-family: var(--label); font-size: 14px; color: var(--muted); border: 1px solid var(--rule); padding: 2px 10px; }
+.mobilemenu[open] .menulabel { color: var(--paper); background: var(--ink); border-color: var(--ink); }
+.mobilemenu .menulabel::after { content: " \25BE"; }
+.mobilemenu[open] .menulabel::after { content: " \25B4"; }
+.menugroups { display: grid; gap: 14px; padding: 10px 0 6px; }
+.menugroup { display: grid; gap: 2px; }
+.menugroup a { font-family: var(--display); font-size: 19px; text-decoration: none; padding: 4px 0; }
+.menugroup a[aria-current="page"] { text-decoration: underline; text-underline-offset: 5px; }
 @media (max-width: 720px) {
-  .sectionlinks { flex-wrap: nowrap; overflow-x: auto; gap: 6px 20px; scrollbar-width: thin; }
-  .sectionlinks a { white-space: nowrap; }
+  .sectionlinks, .navlinks { display: none; }
+  .mobilemenu { display: block; }
 }
+/* Home: one door per section, grouped as in the header. */
+.doors { display: grid; gap: 28px; }
+.doorgroup { display: grid; gap: 10px; }
+.doorgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 0 24px; border-top: 2px solid var(--ink); }
+.door { display: grid; gap: 2px; padding: 12px 0 14px; border-bottom: 1px solid var(--rule); text-decoration: none; color: inherit; }
+.door b { font-family: var(--display); font-weight: 500; font-size: 21px; }
+.door span { font-size: 15px; color: var(--muted); line-height: 1.4; }
+.door:hover b { text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 4px; }
+/* Form controls take the site's accent instead of the browser's blue, and every control shows a focus ring. */
+:root { accent-color: var(--accent); }
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .sectionlinks a { font-family: var(--display); font-size: 19px; text-decoration: none; }
 .sectionlinks a[aria-current="page"] { text-decoration: underline; text-decoration-color: var(--ink); text-decoration-thickness: 1px; text-underline-offset: 5px; }
 .sectionlinks a:hover { text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 5px; }
@@ -279,3 +309,38 @@ table.sheet.words td .cite { display: block; margin-top: 4px; font-size: 13px; }
     radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, 0.16), transparent) right / 12px 100% no-repeat scroll;
 }
 table.sheet th.text, table.sheet td.text { text-align: left; }
+
+/* Explore: filter and order controls, two figure columns, and bars on one shared scale. */
+.explore { display: grid; gap: 12px; }
+.explore > .note { margin-bottom: 8px; }
+.exploretools { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.exploretools .search { flex: 1 1 280px; max-width: 30rem; }
+.exploretools input[type="search"], .exploretools select { font: inherit; font-family: var(--data); font-size: 15px; padding: 7px 10px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); width: 100%; box-sizing: border-box; }
+.exploretools select { width: auto; }
+.explorelist li { display: grid; grid-template-columns: minmax(0, 1fr) 150px 150px; gap: 4px 20px; align-items: baseline; }
+.explorelist .explorehead { border-top: 0; padding: 0 0 2px; }
+.explorelist .explorehead .figlabel { text-align: right; display: block; font-family: var(--label); font-size: 12px; letter-spacing: 0.05em; font-variant-caps: all-small-caps; color: var(--muted); }
+.figcell { display: grid; gap: 3px; justify-items: end; }
+.figcell .fig { font-family: var(--data); font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fig.published { color: var(--muted); }
+.fig.none { font-size: 13px; }
+.bartrack { width: 100%; height: 4px; background: var(--grid); display: flex; justify-content: flex-end; }
+.bar { height: 100%; }
+.bar.adds { background: var(--adds); }
+.bar.reduces { background: var(--reduces); }
+.bar.published { background: var(--muted); opacity: 0.55; }
+@media (max-width: 560px) {
+  .explorelist li { grid-template-columns: minmax(0, 1fr) 96px 96px; gap: 4px 10px; }
+  .figcell .fig { font-size: 13px; }
+  .explorelist li > a { font-size: 16px; }
+}
+/* Bill tracker: paging under each table. */
+.more { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 10px; }
+.more button { font: inherit; font-family: var(--label); font-size: 14px; background: none; border: 1px solid var(--rule); padding: 4px 12px; cursor: pointer; color: inherit; }
+.more button:hover { border-color: var(--ink); }
+/* Build on a phone: the package total stays in view at the bottom of the screen. */
+@media (max-width: 860px) {
+  .buildtotal { position: sticky; bottom: 0; z-index: 5; order: 1; padding: 10px 0 12px; gap: 4px; box-shadow: 0 -8px 16px -12px rgba(0, 0, 0, 0.35); }
+  .buildtotal .big { font-size: 26px; }
+  .buildtotal .note + .note { display: none; }
+}

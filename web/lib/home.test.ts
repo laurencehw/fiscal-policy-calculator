@@ -51,6 +51,6 @@ test("Explore labels a figure published only when the export says it is", () => 
     "drug-reference-pricing",
     "tcja-extension-no-salt-cap",
   ]);
-  const source = fs.readFileSync(new URL("../components/PresetList.tsx", import.meta.url), "utf8");
+  const source = fs.readFileSync(new URL("../app/explore/page.tsx", import.meta.url), "utf8");
   assert.match(source, /cbo_published/);
 });
