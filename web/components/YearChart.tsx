@@ -1,12 +1,13 @@
 "use client";
 
 import { Bar, BarChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { zeroAxis } from "@/lib/chartaxis";
 import { money } from "@/lib/format";
 
 type Row = { year: number; value: number };
 
-/** Annual deficit effect, one bar per fiscal year; colour says which way it moves the deficit. */
 export function YearChart({ rows, label }: { rows: Row[]; label: string }) {
+  const axis = zeroAxis(rows.map((r) => r.value));
   return (
     <div className="plot" role="img" aria-label={label}>
       <ResponsiveContainer width="100%" height={260}>
@@ -18,6 +19,10 @@ export function YearChart({ rows, label }: { rows: Row[]; label: string }) {
             tickLine={false}
             axisLine={false}
             width={64}
+            // Bars are lengths from zero, so the axis must always include it; an axis that starts at the
+            // smallest bar would make a flat path look like a steep one.
+            domain={[axis.ticks[0], axis.ticks[axis.ticks.length - 1]]}
+            ticks={axis.ticks}
             tickFormatter={(v: number) => `${v < 0 ? "-" : ""}$${Math.abs(v).toLocaleString("en-US")}B`}
           />
           <ReferenceLine y={0} stroke="var(--ink)" />

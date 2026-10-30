@@ -9,6 +9,9 @@ import { frozenFrom, frozenQuery, frozenRefusal, type Frozen } from "@/lib/froze
 import { DEFAULT_INPUT, RATE_MAX, RATE_MIN, WHO_CHOICES, describe, fromQuery, toQuery, type TailorInput } from "@/lib/tailor";
 import type { ScoreResult, Views } from "@/lib/types";
 
+/** One-tap rate changes, in percentage points. */
+const RATE_PICKS = [-2, -1, 1, 2, 5];
+
 type ViewsState = { status: "idle" | "loading" } | { status: "done"; views: Views } | { status: "error"; message: string };
 
 type State = { status: "idle" } | { status: "scoring" } | { status: "done"; result: ScoreResult; input: TailorInput } | { status: "error"; message: string };
@@ -23,6 +26,18 @@ export function Tailor() {
   const started = useRef(false);
   // Only the latest run may write results; an older answer arriving late is dropped.
   const latest = useRef(0);
+  // After a press of Score it, bring the result into view if it landed below the fold (phones).
+  const scrollToResult = useRef(false);
+  const resultRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (state.status !== "done" || !scrollToResult.current) return;
+    scrollToResult.current = false;
+    const box = resultRef.current;
+    if (box && box.getBoundingClientRect().top > window.innerHeight * 0.6) {
+      box.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [state]);
 
   async function score(next: TailorInput, lock: Frozen = frozen, teaching = instructor) {
     const id = ++latest.current;
@@ -113,74 +128,108 @@ export function Tailor() {
         </div>
       ) : null}
       <form
-        className="tailorform"
+        className="tailorform wide"
         onSubmit={(e) => {
           e.preventDefault();
-          if (input.rate !== 0) void score(input);
+          if (input.rate === 0) return;
+          scrollToResult.current = true;
+          void score(input);
         }}
       >
         <fieldset className="lockable" disabled={frozen.frozen}>
-          <fieldset>
-            <legend>Tax</legend>
-            <label>
-              <input type="radio" name="kind" checked={input.kind === "income"} onChange={() => set({ kind: "income" })} />{" "}
-              Individual income tax
+          <div className="tailorfields">
+            <fieldset>
+              <legend>Tax</legend>
+              <label>
+                <input type="radio" name="kind" checked={input.kind === "income"} onChange={() => set({ kind: "income" })} />{" "}
+                Individual income tax
+              </label>
+              <label>
+                <input type="radio" name="kind" checked={input.kind === "corporate"} onChange={() => set({ kind: "corporate" })} />{" "}
+                Corporate income tax
+              </label>
+            </fieldset>
+            <div className="field">
+              <label className="field">
+                <span>Rate change, points</span>
+                <input
+                  type="number"
+                  min={RATE_MIN}
+                  max={RATE_MAX}
+                  step={0.1}
+                  value={input.rate}
+                  onChange={(e) => set({ rate: Number(e.target.value) })}
+                  required
+                />
+              </label>
+              <div className="chips" role="group" aria-label="Common rate changes">
+                {RATE_PICKS.map((r) => (
+                  <button key={r} type="button" aria-pressed={input.rate === r} onClick={() => set({ rate: r })}>
+                    {r > 0 ? `+${r}` : r}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {input.kind === "income" ? (
+              <label className="field">
+                <span>Who pays it</span>
+                <select value={input.who} onChange={(e) => set({ who: Number(e.target.value) })}>
+                  {WHO_CHOICES.map((c) => (
+                    <option key={c.token} value={c.dollars}>
+                      {c.label}
+                    </option>
+                  ))}
+                  {WHO_CHOICES.some((c) => c.dollars === input.who) ? null : (
+                    <option value={input.who}>Above ${input.who.toLocaleString("en-US")}</option>
+                  )}
+                </select>
+              </label>
+            ) : null}
+            <label className="field">
+              <span>Years in effect</span>
+              <input
+                type="number"
+                min={1}
+                max={10}
+                step={1}
+                value={input.duration}
+                onChange={(e) => set({ duration: Math.max(1, Math.min(10, Math.trunc(Number(e.target.value) || 1))) })}
+              />
             </label>
-            <label>
-              <input type="radio" name="kind" checked={input.kind === "corporate"} onChange={() => set({ kind: "corporate" })} />{" "}
-              Corporate income tax
-            </label>
-        </fieldset>
-        <label className="field">
-          <span>Rate change, percentage points</span>
-          <input
-            type="number"
-            min={RATE_MIN}
-            max={RATE_MAX}
-            step={0.1}
-            value={input.rate}
-            onChange={(e) => set({ rate: Number(e.target.value) })}
-            required
-          />
-        </label>
-        {input.kind === "income" ? (
-          <label className="field">
-            <span>Who pays it</span>
-            <select value={input.who} onChange={(e) => set({ who: Number(e.target.value) })}>
-              {WHO_CHOICES.map((c) => (
-                <option key={c.token} value={c.dollars}>
-                  {c.label}
-                </option>
-              ))}
-              {WHO_CHOICES.some((c) => c.dollars === input.who) ? null : (
-                <option value={input.who}>Above ${input.who.toLocaleString("en-US")}</option>
+          </div>
+          <div className="tailorgo">
+            <button type="submit" disabled={state.status === "scoring" || input.rate === 0}>
+              {state.status === "scoring" ? "Scoring…" : "Score it"}
+            </button>
+            <p className="note">
+              {input.rate === 0 ? (
+                "Choose a rate change other than zero."
+              ) : (
+                <>
+                  Scores <b>{describe(input)}</b>, for {input.duration} year{input.duration === 1 ? "" : "s"}.
+                </>
               )}
-            </select>
-          </label>
-        ) : null}
-        <label className="field">
-          <span>Years in effect</span>
-          <input
-            type="number"
-            min={1}
-            max={10}
-            step={1}
-            value={input.duration}
-            onChange={(e) => set({ duration: Math.max(1, Math.min(10, Math.trunc(Number(e.target.value) || 1))) })}
-          />
-        </label>
-        <button type="submit" disabled={state.status === "scoring" || input.rate === 0}>
-          {state.status === "scoring" ? "Scoring…" : "Score it"}
-        </button>
+            </p>
+          </div>
         </fieldset>
       </form>
       {instructor && !frozen.frozen && state.status === "done" ? (
         <AssignmentLink query={toQuery(state.input)} vintage={state.result.baseline_vintage} />
       ) : null}
 
-      <div aria-live="polite">
+      <div aria-live="polite" ref={resultRef} className="tailorout">
+        {state.status === "idle" ? (
+          <div className="tailorempty">
+            <p>
+              Your result appears here: the ten-year deficit effect, a year-by-year chart, who pays, and the economic
+              effects.
+            </p>
+          </div>
+        ) : null}
         {state.status === "scoring" ? (
-          <p className="note">Scoring on the engine. The first request after a quiet spell takes up to ten seconds.</p>
+          <div className="tailorempty">
+            <p>Scoring on the engine. The first request after a quiet spell takes up to ten seconds.</p>
+          </div>
         ) : null}
         {state.status === "error" ? <p className="note warn">{state.message}</p> : null}
         {state.status === "done" ? <Result result={state.result} input={state.input} /> : null}
@@ -200,6 +249,7 @@ function Result({ result, input }: { result: ScoreResult; input: TailorInput }) 
   const headline = result.ten_year_deficit_impact;
   const dyn = result.dynamic_adjusted_impact;
   const name = describe(input);
+  const years = result.year_by_year.length;
   return (
     <section className="tailorresult">
       <span className="eyebrow">
@@ -210,7 +260,10 @@ function Result({ result, input }: { result: ScoreResult; input: TailorInput }) 
         <div className="stage">
           <span className="q">Ten-year deficit effect, conventional</span>
           <span className={`v ${headline > 0 ? "adds" : "reduces"}`}>{money(headline)}</span>
-          <span className="q">{direction(headline)}</span>
+          <span className="q">
+            {direction(headline)}
+            {years > 1 ? `, about ${perYear(headline, years)} a year` : ""}
+          </span>
         </div>
         <div className="stage">
           <span className="q">With macroeconomic feedback and debt service</span>
@@ -230,11 +283,37 @@ function Result({ result, input }: { result: ScoreResult; input: TailorInput }) 
         />
         <YearTable c={result} d={result} />
       </section>
-      <p className="note">
-        <a href={`/tailor?${toQuery(input)}`}>Link to this result</a>. It opens the same run here and in the
-        current app.
-      </p>
+      <ShareLink query={toQuery(input)} />
     </section>
+  );
+}
+
+/** Average annual size of a ten-year total, unsigned: the headline already says which way it goes. */
+function perYear(total: number, years: number): string {
+  return money(Math.abs(total) / years).replace("+", "");
+}
+
+function ShareLink({ query }: { query: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="tailorform buttons">
+      <button
+        type="button"
+        className="quiet"
+        onClick={() => {
+          const link = `${window.location.origin}/tailor?${query}`;
+          navigator.clipboard?.writeText(link).then(
+            () => setCopied(true),
+            () => setCopied(false),
+          );
+        }}
+      >
+        {copied ? "Link copied" : "Copy a link to this result"}
+      </button>
+      <a className="note" href={`/tailor?${query}`}>
+        Permanent link
+      </a>
+    </div>
   );
 }
 
