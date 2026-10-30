@@ -2,7 +2,7 @@
 // Build: tick policies, see the package's ten-year list-price total. State lives
 // in ?policies=, the same parameter the Streamlit app's share links use.
 import { useEffect, useMemo, useState } from "react";
-import { cleanLabel, money } from "@/lib/format";
+import { cleanLabel, money, shortLabel } from "@/lib/format";
 import { choose, covered, fromQuery, total } from "@/lib/package";
 import type { BuildRow, ValuesArchetype } from "@/lib/types";
 
@@ -126,7 +126,7 @@ export function PackageBuilder({
                       onChange={() => toggle(r.build_id)}
                     />
                     <span className="buildname">
-                      {cleanLabel(r.label)}
+                      {shortLabel(r.label)}
                       <small>
                         {r.source}, {r.source_date}
                         {by ? ` · included in ${label(by)}` : ""}
