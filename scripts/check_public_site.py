@@ -18,6 +18,7 @@ import os
 import sys
 import time
 from datetime import datetime, timezone
+from typing import Any
 
 import requests
 
@@ -32,7 +33,7 @@ PAGES = (
     ("/explore", "Explore"),
     ("/explore/tcja-full-extension", "TCJA Full Extension"),
 )
-SCORE_REQUEST = {"kind": "income", "rate": 1, "who": 400_000, "duration": 10, "dynamic": False}
+SCORE_REQUEST: dict[str, Any] = {"kind": "income", "rate": 1, "who": 400_000, "duration": 10, "dynamic": False}
 
 
 def _timed(fn):
