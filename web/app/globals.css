@@ -300,6 +300,16 @@ table.sheet.words td .cite { display: block; margin-top: 4px; font-size: 13px; }
 .sources ol { margin: 0; padding-left: 24px; font-size: 14px; color: var(--muted); display: grid; gap: 4px; }
 .askform { max-width: 40rem; margin-bottom: 0; }
 
+/* Wide tables on a phone: a soft shadow at whichever edge has more to scroll to. */
+.tablewrap, .tablescroll {
+  background:
+    linear-gradient(to right, var(--paper) 30%, transparent) left / 32px 100% no-repeat local,
+    linear-gradient(to left, var(--paper) 30%, transparent) right / 32px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, 0.16), transparent) left / 12px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, 0.16), transparent) right / 12px 100% no-repeat scroll;
+}
+table.sheet th.text, table.sheet td.text { text-align: left; }
+
 /* Explore: filter and order controls, two figure columns, and bars on one shared scale. */
 .explore { display: grid; gap: 12px; }
 .explore > .note { margin-bottom: 8px; }

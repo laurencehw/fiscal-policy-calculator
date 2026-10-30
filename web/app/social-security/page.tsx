@@ -52,7 +52,7 @@ export default function SocialSecurity() {
             <thead>
               <tr>
                 <th>CRFB item</th>
-                <th>Measure</th>
+                <th className="text">Measure</th>
                 <th>CRFB</th>
                 <th>This page</th>
                 <th>Source</th>
@@ -62,7 +62,7 @@ export default function SocialSecurity() {
               {data.crfb.map((r, i) => (
                 <tr key={i} title={`${r.our_basis}. ${r.note}`}>
                   <td className="billtitle">{r.crfb_item}</td>
-                  <td>{r.measure}</td>
+                  <td className="text">{r.measure}</td>
                   <td>{r.crfb}</td>
                   <td>{r.ours}</td>
                   <td>
