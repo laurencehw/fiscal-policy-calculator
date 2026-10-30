@@ -108,3 +108,4 @@ fiscal_model/data_files/validation/*.pdf
 web/node_modules/
 web/.next/
 web/tsconfig.tsbuildinfo
+web/layout-shots/

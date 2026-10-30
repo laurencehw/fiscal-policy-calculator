@@ -288,3 +288,22 @@ jobs:
       - run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: "1"
+      # Render every page at desktop and phone width and fail on a page that
+      # will not load, has no title, scrolls sideways or throws a script error.
+      # The engine is not running here, so /api/* calls are expected to fail.
+      - run: npx playwright install --with-deps chromium
+      - name: Layout check
+        run: |
+          npx next start -p 3000 &
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://localhost:3000 && break; sleep 1; done
+          npm run layout -- http://localhost:3000 layout-shots
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          FISCAL_ENGINE_URL: http://127.0.0.1:9
+      - name: Upload page screenshots
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: layout-shots
+          path: web/layout-shots/
+          retention-days: 14
