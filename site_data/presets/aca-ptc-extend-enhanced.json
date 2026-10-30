@@ -72,10 +72,10 @@
       },
       {
         "year": 2032,
-        "revenue_effect": -38.59223006412801,
+        "revenue_effect": -38.592230064128,
         "behavioral_offset": -0.0,
         "dynamic_feedback": 0.0,
-        "final_effect": 38.59223006412801,
+        "final_effect": 38.592230064128,
         "debt_service": null,
         "dynamic_effect": null
       },
@@ -216,18 +216,18 @@
       },
       {
         "year": 2032,
-        "revenue_effect": -38.59223006412801,
+        "revenue_effect": -38.592230064128,
         "behavioral_offset": -0.0,
-        "dynamic_feedback": 1.5820433821550022,
-        "final_effect": 38.59223006412801,
+        "dynamic_feedback": 1.582043382155002,
+        "final_effect": 38.592230064128,
         "debt_service": 9.635919266693122,
-        "dynamic_effect": 46.64610594866613
+        "dynamic_effect": 46.646105948666126
       },
       {
         "year": 2033,
         "revenue_effect": -40.13591926669313,
         "behavioral_offset": -0.0,
-        "dynamic_feedback": 1.0962359443500078,
+        "dynamic_feedback": 1.0962359443500076,
         "final_effect": 40.13591926669313,
         "debt_service": 11.241356037360847,
         "dynamic_effect": 50.28103935970397
@@ -245,7 +245,7 @@
         "year": 2035,
         "revenue_effect": -43.411010278855294,
         "behavioral_offset": -0.0,
-        "dynamic_feedback": 0.5129959054541571,
+        "dynamic_feedback": 0.512995905454157,
         "final_effect": 43.411010278855294,
         "debt_service": 14.647450690009494,
         "dynamic_effect": 57.54546506341063

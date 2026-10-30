@@ -35,8 +35,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.034765359749534964,
-            "new_etr": 0.034765359749534964
+            "baseline_etr": 0.03476535974953495,
+            "new_etr": 0.03476535974953495
           },
           {
             "name": "Middle Quintile",
@@ -61,8 +61,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.09863288962190417,
-            "new_etr": 0.09863288962190417
+            "baseline_etr": 0.09863288962190418,
+            "new_etr": 0.09863288962190418
           },
           {
             "name": "Top Quintile",
@@ -83,7 +83,7 @@
         "engine": "microsim",
         "unit": "tax_unit",
         "year": 2026,
-        "total_tax_change_billions": 31.351201763303063,
+        "total_tax_change_billions": 31.35120176330307,
         "pct_with_increase": 1.7179368557163164,
         "pct_with_decrease": 0.0,
         "groups": [
@@ -123,8 +123,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.0005939159222174335,
-            "new_etr": 0.0005939159222174335
+            "baseline_etr": 0.0005939159222174334,
+            "new_etr": 0.0005939159222174334
           },
           {
             "name": "4th Decile",
@@ -209,8 +209,8 @@
             "floor": 220000.0,
             "ceiling": null,
             "returns_millions": 11.276004,
-            "avg_tax_change": 2780.3465702452095,
-            "pct_of_income": 0.6251734500183764,
+            "avg_tax_change": 2780.34657024521,
+            "pct_of_income": 0.6251734500183767,
             "share_of_total": 1.0,
             "pct_with_increase": 24.468266734136037,
             "pct_with_decrease": 0.0,
@@ -223,7 +223,7 @@
         "engine": "microsim",
         "unit": "tax_unit",
         "year": 2026,
-        "total_tax_change_billions": 31.35120176330306,
+        "total_tax_change_billions": 31.351201763303067,
         "pct_with_increase": 1.717936961617532,
         "pct_with_decrease": 0.0,
         "groups": [
@@ -263,8 +263,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": -0.02689196814042297,
-            "new_etr": -0.02689196814042297
+            "baseline_etr": -0.026891968140422964,
+            "new_etr": -0.026891968140422964
           },
           {
             "name": "$30K-$40K",
@@ -276,8 +276,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.001454175630983771,
-            "new_etr": 0.001454175630983771
+            "baseline_etr": 0.00145417563098377,
+            "new_etr": 0.00145417563098377
           },
           {
             "name": "$40K-$50K",
@@ -289,8 +289,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.030809883358346574,
-            "new_etr": 0.030809883358346574
+            "baseline_etr": 0.030809883358346567,
+            "new_etr": 0.030809883358346567
           },
           {
             "name": "$50K-$75K",
@@ -328,8 +328,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.10296852608261947,
-            "new_etr": 0.10296852608261947
+            "baseline_etr": 0.10296852608261944,
+            "new_etr": 0.10296852608261944
           },
           {
             "name": "$200K-$500K",
@@ -338,7 +338,7 @@
             "returns_millions": 10.955818,
             "avg_tax_change": 16.70427964591618,
             "pct_of_income": 0.00692797796666744,
-            "share_of_total": 0.005837385408341613,
+            "share_of_total": 0.005837385408341612,
             "pct_with_increase": 3.528865723130972,
             "pct_with_decrease": 0.0,
             "baseline_etr": 0.16242973489967996,
@@ -351,7 +351,7 @@
             "returns_millions": 1.77972,
             "avg_tax_change": 4818.621465397349,
             "pct_of_income": 0.9368044150474134,
-            "share_of_total": 0.2735396575592512,
+            "share_of_total": 0.27353965755925114,
             "pct_with_increase": 91.79907522811207,
             "pct_with_decrease": 0.0,
             "baseline_etr": 0.23390735133763504,
@@ -362,9 +362,9 @@
             "floor": 1000000.0,
             "ceiling": null,
             "returns_millions": 0.799094,
-            "avg_tax_change": 28272.513271764463,
-            "pct_of_income": 1.2128784925074294,
-            "share_of_total": 0.7206229570324072,
+            "avg_tax_change": 28272.513271764466,
+            "pct_of_income": 1.2128784925074296,
+            "share_of_total": 0.7206229570324073,
             "pct_with_increase": 92.43723100518064,
             "pct_with_decrease": 0.0,
             "baseline_etr": 0.26738292189547,
@@ -490,18 +490,18 @@
       },
       {
         "model": "TPC-Microsim Pilot",
-        "ten_year_billions": -355.5813861601781,
+        "ten_year_billions": -355.5813861601782,
         "annual_billions": [
-          -35.558138616017814,
-          -35.558138616017814,
-          -35.558138616017814,
-          -35.558138616017814,
-          -35.558138616017814,
-          -35.558138616017814,
-          -35.558138616017814,
-          -35.558138616017814,
-          -35.558138616017814,
-          -35.558138616017814
+          -35.55813861601782,
+          -35.55813861601782,
+          -35.55813861601782,
+          -35.55813861601782,
+          -35.55813861601782,
+          -35.55813861601782,
+          -35.55813861601782,
+          -35.55813861601782,
+          -35.55813861601782,
+          -35.55813861601782
         ],
         "methodology": "Single-year CPS-style microsimulation with flat-horizon annualization and quintile distribution output.",
         "confidence": "pilot",
