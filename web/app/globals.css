@@ -344,3 +344,18 @@ table.sheet th.text, table.sheet td.text { text-align: left; }
   .buildtotal .big { font-size: 26px; }
   .buildtotal .note + .note { display: none; }
 }
+/* Tailor: the inputs sit in one row on a wide screen, and the result has a place before it exists. */
+.tailorform.wide { max-width: none; }
+.tailorfields { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 18px 28px; align-items: start; }
+.tailorfields .field input[type="number"], .tailorfields select { width: 100%; max-width: 16rem; box-sizing: border-box; height: 2.5rem; }
+.tailorform .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.tailorform .chips button { font-family: var(--data); font-size: 13px; padding: 2px 9px; background: none; color: var(--muted); border: 1px solid var(--rule); }
+.tailorform .chips button:hover { color: var(--ink); border-color: var(--ink); }
+.tailorform .chips button[aria-pressed="true"] { color: var(--paper); background: var(--ink); border-color: var(--ink); }
+.tailorgo { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--rule); }
+.tailorgo .note { margin: 0; }
+.tailorgo .note b { color: var(--ink); font-weight: 600; }
+.tailorout { scroll-margin-top: 16px; }
+.tailorempty { border: 1px dashed var(--rule); padding: 28px 20px; min-height: 140px; display: grid; align-content: center; color: var(--muted); }
+.tailorempty p { margin: 0; max-width: 36rem; }
+.tailorform.buttons { margin-bottom: 0; align-items: center; }
