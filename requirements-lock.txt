@@ -56,7 +56,7 @@ fredapi==0.5.2
     # via -r requirements.txt
 gitdb==4.0.12
     # via gitpython
-gitpython==3.1.60
+gitpython==3.2.1
     # via streamlit
 h11==0.16.0
     # via
@@ -66,7 +66,7 @@ httpcore==1.0.9
     # via httpx
 httpx==0.28.1
     # via anthropic
-idna==3.11
+idna==3.15
     # via
     #   anyio
     #   httpx
@@ -196,7 +196,7 @@ tenacity==9.1.4
     #   streamlit
 toml==0.10.2
     # via streamlit
-tornado==6.5.9
+tornado==6.6
     # via streamlit
 typing-extensions==4.15.0
     # via
