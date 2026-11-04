@@ -17,6 +17,7 @@ answers a different question, and exactly one of them is the active plan.
 |---|---|---|
 | [ROUTE_TO_9.md](ROUTE_TO_9.md) | The 2026-09-22 assessment (7.5/10) and six ranked priorities | **Active plan** |
 | [PRIORITY5_AND_CHARTS.md](PRIORITY5_AND_CHARTS.md) | 2026-11-04 review of outside feedback; ordered lanes for priority 5 (battery, CBO income path, donut, corporate anchor, dynamic parameters, joint Build) and the proposal charts | Sequencing under the active plan; no lane started |
+| [WORKBENCH_UX.md](WORKBENCH_UX.md) | 2026-11-04 review of an outside design brief; web lanes U1-U9 (estimate identity, compare, Build summary, working home page, exports) sequenced around Cursor's Wave 2-4 | Sequencing for the web journey; no lane started |
 | [ROUTE_TO_8_5.md](ROUTE_TO_8_5.md) | Sixteen measurable lanes toward "quotable" | Lane sequencing; nine lanes closed, Wave G under way |
 | [HIGH_STAKES_ACCURACY.md](HIGH_STAKES_ACCURACY.md) | The numbers a journalist or Hill staffer would quote | Complete — no open lane |
 | [MODELING_IMPROVEMENT.md](MODELING_IMPROVEMENT.md) | Waves 1–7: modelling the mechanism, never tuning to held-out targets | Record; §6 is the carry-over list |
