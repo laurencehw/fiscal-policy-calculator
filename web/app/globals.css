@@ -69,6 +69,9 @@ section.chart { border-top: 1px solid var(--ink); padding: 14px 0 0; display: gr
 tr[id^="bench-"] { scroll-margin-top: 16px; }
 .head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; }
 .tag { font-family: var(--label); font-size: 15px; letter-spacing: 0.06em; font-variant-caps: all-small-caps; color: var(--muted); }
+.estimatetag { display: block; max-width: 100%; line-height: 1.35; }
+.estimatetag.short { display: inline; font-size: 12px; }
+.identitynote { display: grid; gap: 4px; }
 .units { margin: -8px 0 0; font-size: 15px; color: var(--muted); }
 .big { font-family: var(--data); font-size: 15px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .big b { font-size: 28px; color: var(--ink); font-weight: 500; }
@@ -190,6 +193,7 @@ details > summary { cursor: pointer; margin-top: 16px; font-family: var(--label)
 .buildlist label.covered { color: var(--muted); cursor: default; }
 .buildname small { display: block; color: var(--muted); font-size: 13px; }
 .buildlist .fig, .buildtotal .fig { font-family: var(--data); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.buildfig { display: grid; justify-items: end; gap: 2px; }
 .buildtotal { border-top: 2px solid var(--ink); padding-top: 12px; display: grid; gap: 10px; background: var(--paper); }
 .buildtotal .big { font-size: 34px; margin: 0; }
 .buildtotal button { justify-self: start; font: inherit; font-size: 14px; background: none; border: 1px solid var(--rule); padding: 4px 12px; cursor: pointer; color: inherit; }

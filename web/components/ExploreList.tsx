@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { EstimateTag } from "@/components/EstimateTag";
 import { arrange, filterRows, scaleOf, type ExploreRow, type ExploreSort } from "@/lib/explore";
 import { money } from "@/lib/format";
+import type { EstimateIdentity } from "@/lib/identity";
 
 function Bar({ value, scale, published }: { value: number; scale: number; published?: boolean }) {
   const width = `${Math.max(1, (Math.abs(value) / scale) * 100)}%`;
@@ -16,7 +18,15 @@ function Bar({ value, scale, published }: { value: number; scale: number; publis
 }
 
 /** Explore's list: a filter box, a sort toggle, and one bar per figure on a shared scale. */
-export function ExploreList({ rows }: { rows: ExploreRow[] }) {
+export function ExploreList({
+  rows,
+  calculator,
+  published,
+}: {
+  rows: ExploreRow[];
+  calculator: EstimateIdentity;
+  published: EstimateIdentity;
+}) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ExploreSort>("topic");
   const scale = useMemo(() => scaleOf(rows), [rows]);
@@ -47,6 +57,10 @@ export function ExploreList({ rows }: { rows: ExploreRow[] }) {
         {shown.length === rows.length ? `${rows.length} proposals.` : `${shown.length} of ${rows.length} proposals.`}
         {shown.length === 0 ? " Nothing matches; try a shorter word." : null}
       </p>
+      <p className="note identitynote">
+        <EstimateTag identity={calculator} />
+        <EstimateTag identity={published} />
+      </p>
       <div className="presetgroups">
         {groups.map((group) => (
           <section key={group.area ?? "all"} className="presetgroup">
@@ -54,8 +68,12 @@ export function ExploreList({ rows }: { rows: ExploreRow[] }) {
             <ul className="presetlist explorelist">
               <li className="explorehead" aria-hidden="true">
                 <span />
-                <span className="figlabel">Calculator</span>
-                <span className="figlabel">Published</span>
+                <span className="figlabel">
+                  <EstimateTag identity={calculator} short />
+                </span>
+                <span className="figlabel">
+                  <EstimateTag identity={published} short />
+                </span>
               </li>
               {group.rows.map((row) => (
                 <li key={row.id}>

@@ -15,6 +15,7 @@ export const PAGES = [
   "/",
   "/explore",
   "/explore/tcja-full-extension",
+  "/explore/corporate-28pct",
   "/build",
   "/tailor",
   "/social-security",
@@ -78,8 +79,21 @@ async function checkPage(browser, route, viewport) {
       h1: h1 ? h1.textContent.trim() : null,
       h1Visible: !!rect && rect.width > 0 && rect.height > 0,
       wide: wide.slice(0, 5),
+      untaggedStages: [...document.querySelectorAll(".headline .stage")].filter(
+        (stage) => stage.querySelector(".v") && !stage.querySelector(".estimatetag"),
+      ).length,
+      publishedTags: [...document.querySelectorAll('.estimatetag[data-kind="published"]')].map((el) => ({
+        producer: el.getAttribute("data-producer") || "",
+        text: el.textContent || "",
+      })),
     };
   });
+  if (layout.untaggedStages) problems.push(`${layout.untaggedStages} headline figures have no estimate tag`);
+  if (route === "/explore/corporate-28pct") {
+    const named = layout.publishedTags.filter((tag) => tag.producer.includes("Treasury"));
+    if (named.length === 0) problems.push("published tag does not name Treasury");
+    if (named.some((tag) => /\bCBO\b/.test(tag.text))) problems.push("published tag names CBO");
+  }
   if (!layout.h1 || !layout.h1Visible) problems.push("no visible page title (h1)");
   if (layout.overflow > 1) {
     problems.push(`page is ${layout.overflow}px wider than the screen (${layout.wide.join(", ") || "element not found"})`);

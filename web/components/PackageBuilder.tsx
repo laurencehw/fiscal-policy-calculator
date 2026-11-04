@@ -2,18 +2,24 @@
 // Build: tick policies, see the package's ten-year list-price total. State lives
 // in ?policies=, the same parameter the Streamlit app's share links use.
 import { useEffect, useState } from "react";
+import { EstimateTag } from "@/components/EstimateTag";
 import { cleanLabel, money, shortLabel } from "@/lib/format";
+import type { EstimateIdentity } from "@/lib/identity";
 import { calculatorGap, choose, covered, fromQuery, total } from "@/lib/package";
 import type { BuildRow, ValuesArchetype } from "@/lib/types";
 
 export function PackageBuilder({
   rows,
   calculator,
+  identities,
+  packageIdentity,
   archetypes = [],
 }: {
   rows: BuildRow[];
   /** The calculator's ten-year conventional score by build id, where it scores the policy. */
   calculator: Record<string, number>;
+  identities: Record<string, { published: EstimateIdentity; model: EstimateIdentity | null }>;
+  packageIdentity: EstimateIdentity;
   archetypes?: ValuesArchetype[];
 }) {
   const [selected, setSelected] = useState<string[]>([]);
@@ -98,7 +104,14 @@ export function PackageBuilder({
               {philosophy.picks.map((p) => (
                 <li key={p.policy_id}>
                   <span className="whyname">
-                    {cleanLabel(p.label)} <span className={`fig ${p.score > 0 ? "adds" : "reduces"}`}>{money(p.score)}</span>
+                    {cleanLabel(p.label)}{" "}
+                    <span className={`fig ${p.score > 0 ? "adds" : "reduces"}`}>{money(p.score)}</span>
+                    {identities[p.policy_id] ? (
+                      <>
+                        {" "}
+                        <EstimateTag identity={identities[p.policy_id].published} short />
+                      </>
+                    ) : null}
                   </span>
                   <small>{p.why}</small>
                 </li>
@@ -130,10 +143,20 @@ export function PackageBuilder({
                       <small>
                         {r.source}, {r.source_date}
                         {by ? ` · included in ${label(by)}` : ""}
-                        {r.build_id in calculator ? <CalculatorNote id={r.build_id} published={r.score} calc={calculator[r.build_id]} /> : null}
+                        {r.build_id in calculator ? (
+                          <CalculatorNote
+                            id={r.build_id}
+                            published={r.score}
+                            calc={calculator[r.build_id]}
+                            model={identities[r.build_id]?.model ?? null}
+                          />
+                        ) : null}
                       </small>
                     </span>
-                    <span className={`fig ${r.score > 0 ? "adds" : "reduces"}`}>{money(r.score)}</span>
+                    <span className="buildfig">
+                      <span className={`fig ${r.score > 0 ? "adds" : "reduces"}`}>{money(r.score)}</span>
+                      {identities[r.build_id] ? <EstimateTag identity={identities[r.build_id].published} short /> : null}
+                    </span>
                   </label>
                 );
               })}
@@ -143,6 +166,7 @@ export function PackageBuilder({
       <aside className="buildtotal" aria-live="polite">
         <span className="eyebrow">Your package</span>
         <p className={`fig big ${sum > 0 ? "adds" : sum < 0 ? "reduces" : ""}`}>{money(sum)}</p>
+        <EstimateTag identity={packageIdentity} />
         <p className="note">
           {selected.length === 0
             ? "Tick policies to add their ten-year figures."
@@ -167,7 +191,17 @@ export function PackageBuilder({
   );
 }
 
-function CalculatorNote({ id, published, calc }: { id: string; published: number; calc: number }) {
+function CalculatorNote({
+  id,
+  published,
+  calc,
+  model,
+}: {
+  id: string;
+  published: number;
+  calc: number;
+  model: EstimateIdentity | null;
+}) {
   const { share, differs } = calculatorGap(published, calc);
   return (
     <>
@@ -175,6 +209,12 @@ function CalculatorNote({ id, published, calc }: { id: string; published: number
       <a href={`/explore/${id}`} className={differs ? "differs" : undefined}>
         calculator {money(calc)}
       </a>
+      {model ? (
+        <>
+          {" "}
+          <EstimateTag identity={model} short />
+        </>
+      ) : null}
       {differs ? (
         <span className="differs">
           {Number.isFinite(share) && Math.sign(calc) === Math.sign(published)
