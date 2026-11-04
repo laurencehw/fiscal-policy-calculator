@@ -80,6 +80,7 @@ section.chart:has(.plot[data-direct]) .legend { display: none; }
 .shield { position: absolute; inset: 0; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .foot { display: flex; flex-wrap: wrap; gap: 6px 16px; font-family: var(--label); font-size: 12px; color: var(--muted); }
+.foot button { font: inherit; font-family: var(--label); font-size: 12px; background: none; border: 0; padding: 0; color: inherit; cursor: pointer; text-decoration: underline; }
 .foot .nextrelease { flex-basis: 100%; }
 .check { color: var(--good); }
 .check.no { color: var(--warn); }
