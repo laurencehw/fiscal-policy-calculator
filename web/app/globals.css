@@ -66,6 +66,7 @@ a.stage:hover .v { color: var(--accent); }
 .family { display: grid; gap: 16px; padding-left: 16px; border-left: 2px solid var(--ink); }
 /* Charts are separated by a rule, not boxed: the data, not a card, carries the page. */
 section.chart { border-top: 1px solid var(--ink); padding: 14px 0 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-width: 0; scroll-margin-top: 16px; }
+tr[id^="bench-"] { scroll-margin-top: 16px; }
 .head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; }
 .tag { font-family: var(--label); font-size: 15px; letter-spacing: 0.06em; font-variant-caps: all-small-caps; color: var(--muted); }
 .units { margin: -8px 0 0; font-size: 15px; color: var(--muted); }
