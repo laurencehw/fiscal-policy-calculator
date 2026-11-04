@@ -441,6 +441,11 @@ class OwnRow:
     abs_pct_error: float
     official_billions: float
     caption: str
+    #: The model's figure on the scorecard row, which is scored on the
+    #: published estimate's own window and terms. It can differ from the
+    #: figure a page shows (e.g. FY2025-2034 vs the page's FY2026-2035), and
+    #: ``abs_pct_error`` is measured against this one, not the page's.
+    model_billions: float | None = None
 
 
 def own_row_for(policy_name: str | None) -> OwnRow | None:
@@ -462,6 +467,7 @@ def own_row_for(policy_name: str | None) -> OwnRow | None:
         abs_pct_error=float(badge.get("abs_pct", 0.0) or 0.0),
         official_billions=float(badge.get("official", 0.0) or 0.0),
         caption=str(badge.get("caption", "")),
+        model_billions=None if badge.get("model") is None else float(badge["model"]),
     )
 
 
@@ -496,6 +502,7 @@ class ResultCredibility:
     own_row_abs_pct_error: float | None
     own_row_official_billions: float | None
     own_row_caption: str
+    own_row_model_billions: float | None
     holdout_status: str
     limitations: list[str]
     caption: str
@@ -562,6 +569,7 @@ def get_credibility_for_result(
         own_row_abs_pct_error=None if own is None else own.abs_pct_error,
         own_row_official_billions=None if own is None else own.official_billions,
         own_row_caption="" if own is None else own.caption,
+        own_row_model_billions=None if own is None else own.model_billions,
         holdout_status=_category_holdout_status(category),
         limitations=limitations,
         caption=format_band_caption(band, point_estimate=point_estimate, reason=reason),

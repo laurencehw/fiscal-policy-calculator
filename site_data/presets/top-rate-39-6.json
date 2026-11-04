@@ -129,6 +129,7 @@
       "own_row_abs_pct_error": 21.93768179418392,
       "own_row_official_billions": -245.9,
       "own_row_caption": "Out-of-sample prediction, 21.9% from -$246B (U.S. Treasury) — pre-registered before it was scored.",
+      "own_row_model_billions": -299.84475953189826,
       "holdout_status": "calibration_reference_only",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
@@ -270,6 +271,7 @@
       "own_row_abs_pct_error": 21.93768179418392,
       "own_row_official_billions": -245.9,
       "own_row_caption": "Out-of-sample prediction, 21.9% from -$246B (U.S. Treasury) — pre-registered before it was scored.",
+      "own_row_model_billions": -299.84475953189826,
       "holdout_status": "calibration_reference_only",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",

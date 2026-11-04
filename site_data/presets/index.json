@@ -29,8 +29,8 @@
     },
     {
       "id": "corporate-28pct",
-      "name": "🏢 Biden Corporate 28% (CBO: -$1.35T)",
-      "description": "Raise corporate rate from 21% to 28%. CBO estimate: raises ~\\$1.35T over 10 years.",
+      "name": "🏢 Biden Corporate 28% (Treasury: -$1.35T)",
+      "description": "Raise corporate rate from 21% to 28%. Treasury estimate (FY2025 Green Book): raises ~\\$1.35T over 10 years.",
       "cbo_score": -1347.0,
       "cbo_source": "Treasury",
       "cbo_date": "March 2024",
@@ -47,7 +47,7 @@
     },
     {
       "id": "ctc-expansion-2021",
-      "name": "👶 Biden CTC Expansion (CBO: $1.6T)",
+      "name": "👶 Biden CTC Expansion (JCT: $1.6T)",
       "description": "Expand CTC to \\$3,600/\\$3,000 per child, fully refundable. Based on 2021 ARP expansion.",
       "cbo_score": 1600.0,
       "cbo_source": "JCT",

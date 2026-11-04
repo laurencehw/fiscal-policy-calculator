@@ -54,7 +54,7 @@ REFERENCE_REQUEST = {
     "rate_change": 0.026,
     "income_threshold": 400_000,
 }
-CORPORATE_PRESET = "🏢 Biden Corporate 28% (CBO: -$1.35T)"
+CORPORATE_PRESET = "🏢 Biden Corporate 28% (Treasury: -$1.35T)"
 SALT_PRESET = "📋 Repeal SALT Cap ($1.17T)"
 
 

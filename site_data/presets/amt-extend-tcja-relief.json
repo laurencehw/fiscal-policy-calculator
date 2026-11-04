@@ -129,6 +129,7 @@
       "own_row_abs_pct_error": 66.80197060343382,
       "own_row_official_billions": 1357.1,
       "own_row_caption": "Unfitted reconstruction, 66.8% from $1.36T (CRS R48286 Table 1 (transcribing CBO 60114/…) — no constant is fitted to this figure.",
+      "own_row_model_billions": 450.5304569407997,
       "holdout_status": "post_lock_holdout_available",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
@@ -270,6 +271,7 @@
       "own_row_abs_pct_error": 66.80197060343382,
       "own_row_official_billions": 1357.1,
       "own_row_caption": "Unfitted reconstruction, 66.8% from $1.36T (CRS R48286 Table 1 (transcribing CBO 60114/…) — no constant is fitted to this figure.",
+      "own_row_model_billions": 450.5304569407997,
       "holdout_status": "post_lock_holdout_available",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",

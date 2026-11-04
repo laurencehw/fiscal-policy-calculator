@@ -271,7 +271,7 @@ function Result({ result, input }: { result: ScoreResult; input: TailorInput }) 
           <span className="q">{result.dynamic_model ?? result.error_message ?? ""}</span>
         </div>
       </div>
-      <Checked cred={result.credibility} />
+      <Checked cred={result.credibility} point={headline} window={result.budget_window} />
       <section className="chart">
         <div className="head">
           <h2>Year by year</h2>

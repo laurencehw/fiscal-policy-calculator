@@ -60,7 +60,7 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
-      <Checked cred={c.credibility} />
+      <Checked cred={c.credibility} point={headline} window={c.budget_window} />
 
       <BaselineChart
         years={baseline().years}

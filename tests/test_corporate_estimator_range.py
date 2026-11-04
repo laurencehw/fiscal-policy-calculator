@@ -487,7 +487,7 @@ def test_biden_28_caption_reads_as_the_lane_predicted() -> None:
     captions = corporate_estimator_range_captions(
         policy,
         _score(policy),
-        "🏢 Biden Corporate 28% (CBO: -$1.35T)",
+        "🏢 Biden Corporate 28% (Treasury: -$1.35T)",
     )
     joined = " ".join(captions)
     # The scope verdict, read live from the benchmark registry.

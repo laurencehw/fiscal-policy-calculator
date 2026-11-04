@@ -94,6 +94,29 @@ def _make_bill_id(congress: int, bill_type: str, number: str) -> str:
     return f"{bill_type}-{number}-{congress}"
 
 
+#: congress.gov's path segment for each legislation type. The chamber alone is
+#: not enough: H.Con.Res. 14 lives at ``house-concurrent-resolution/14`` and
+#: ``house-bill/14`` is H.R. 14, a different measure.
+CONGRESS_GOV_PATH: dict[str, str] = {
+    "hr": "house-bill",
+    "s": "senate-bill",
+    "hres": "house-resolution",
+    "sres": "senate-resolution",
+    "hjres": "house-joint-resolution",
+    "sjres": "senate-joint-resolution",
+    "hconres": "house-concurrent-resolution",
+    "sconres": "senate-concurrent-resolution",
+}
+
+
+def congress_gov_url(congress: int, bill_type: str, number: str) -> str | None:
+    """The congress.gov page for one measure, or ``None`` for an unknown type."""
+    segment = CONGRESS_GOV_PATH.get((bill_type or "").lower())
+    if segment is None or not str(number).strip():
+        return None
+    return f"https://www.congress.gov/bill/{_ordinal(int(congress))}-congress/{segment}/{number}"
+
+
 class BillIngestor:
     """
     Fetches and parses bills from the congress.gov v3 API.
@@ -266,7 +289,7 @@ class BillIngestor:
                 subjects.append(policy_area.get("name", ""))
 
             bill_id = _make_bill_id(congress, bill_type, number)
-            congress_url = f"https://www.congress.gov/bill/{_ordinal(congress)}-congress/{chamber}-bill/{number}"
+            congress_url = congress_gov_url(congress, bill_type, number) or ""
 
             return BillMetadata(
                 bill_id=bill_id,

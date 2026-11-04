@@ -129,6 +129,7 @@
       "own_row_abs_pct_error": 36.418088900786024,
       "own_row_official_billions": -2171.1,
       "own_row_caption": "Unfitted reconstruction, 36.4% from -$2.17T (Tax Foundation (Fiscal Fact 861)) — no constant is fitted to this figure.",
+      "own_row_model_billions": -1380.4268718750345,
       "holdout_status": "not_applicable_generic",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
@@ -354,6 +355,7 @@
       "own_row_abs_pct_error": 36.418088900786024,
       "own_row_official_billions": -2171.1,
       "own_row_caption": "Unfitted reconstruction, 36.4% from -$2.17T (Tax Foundation (Fiscal Fact 861)) — no constant is fitted to this figure.",
+      "own_row_model_billions": -1380.4268718750345,
       "holdout_status": "not_applicable_generic",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",

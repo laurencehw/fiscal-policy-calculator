@@ -129,6 +129,7 @@
       "own_row_abs_pct_error": 4.730986953958636,
       "own_row_official_billions": -180.4,
       "own_row_caption": "Unfitted reconstruction, 4.7% from -$180B (Congressional Budget Office) — no constant is fitted to this figure.",
+      "own_row_model_billions": -188.9347004649414,
       "holdout_status": "not_applicable_generic",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
@@ -354,6 +355,7 @@
       "own_row_abs_pct_error": 4.730986953958636,
       "own_row_official_billions": -180.4,
       "own_row_caption": "Unfitted reconstruction, 4.7% from -$180B (Congressional Budget Office) — no constant is fitted to this figure.",
+      "own_row_model_billions": -188.9347004649414,
       "holdout_status": "not_applicable_generic",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
