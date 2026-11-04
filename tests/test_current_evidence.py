@@ -85,6 +85,15 @@ def test_the_report_agrees_with_cold_holdouts_own_summary(live_payload) -> None:
         assert live_payload["out_of_sample"][field] == summary[field], field
 
 
+def test_out_of_sample_rows_are_the_blind_cohort(report) -> None:
+    rows = report["out_of_sample_rows"]
+    assert len(rows) == report["out_of_sample"]["n"] == 44
+    assert [row["policy_id"] for row in rows] == sorted(row["policy_id"] for row in rows)
+    for row in rows:
+        assert set(row) == {"policy_id", "class", "model", "published", "error"}
+        assert row["class"] in report["out_of_sample_classes"]
+
+
 def test_the_pooled_mass_is_the_sum_of_the_class_masses(report) -> None:
     classes = report["out_of_sample_classes"].values()
     assert sum(block["n"] for block in classes) == report["out_of_sample"]["n"]
