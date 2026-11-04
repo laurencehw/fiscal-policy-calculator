@@ -23,9 +23,10 @@ export default function SocialSecurity() {
           Pick reform options and see how far they go toward keeping Social Security solvent for the next 75 years.
         </p>
         <p className="note">
-          Each option&apos;s effect is the estimate of SSA&apos;s Office of the Chief Actuary on the 2026 Trustees Report
-          baseline, transcribed, not a model estimate. The calculator only runs the trust fund ledger. Options are
-          added without interactions, as in CRFB&apos;s Reformer, so a plan&apos;s total is a rough guide, not a formal score.
+          Each option&apos;s effect is the estimate published by SSA&apos;s Office of the Chief Actuary on the 2026
+          Trustees Report baseline, which I transcribe rather than model. The calculator only runs the trust fund
+          ledger. As in CRFB&apos;s Reformer, options are added without interactions, so a plan&apos;s total is a
+          rough guide rather than a formal score.
         </p>
       </header>
 
@@ -36,14 +37,16 @@ export default function SocialSecurity() {
         This page models the combined OASDI funds (retirement plus disability), which the Trustees project to run out
         in {t.oasdi_depletion_year} with {t.oasdi_payable_pct}% of scheduled benefits payable. The retirement fund alone
         (OASI) runs out sooner, in {t.oasi_depletion}, with {t.oasi_payable_pct}% payable: a {100 - t.oasi_payable_pct}% cut.
-        That is the headline CRFB uses, so the two tools&apos; current-law dates differ by definition, not by disagreement.
+        CRFB uses the OASI date as its headline, so the two tools&apos; current-law dates differ by definition rather
+        than because of any disagreement.
       </p>
 
       <section>
         <h2>How this compares with CRFB</h2>
         <p className="note">
           CRFB&apos;s <a href={CRFB_REFORMER_URL}>Social Security Reformer</a> does not publish its option figures as a
-          table, so the comparison uses the numbers CRFB states in its posts. Gaps are reported, not tuned away.
+          table, so I compare against the numbers CRFB states in its posts. I report the gaps as they are and have not
+          tuned them away.
           CRFB&apos;s figures rest on the 2025 Trustees Report, whose 75-year deficit was smaller, so the same option
           closes a larger share there.
         </p>

@@ -22,13 +22,13 @@ const TIER_NAME: Record<Tier, string> = {
 
 const TIER_NOTE: Record<Tier, string> = {
   out_of_sample:
-    "Built bottom-up from IRS filer counts, the CBO baseline and each module's revenue arithmetic. Nothing was tuned to these targets, and each was registered before it was first scored.",
+    "These are built bottom-up from IRS filer counts, the CBO baseline and each module's revenue arithmetic. I did not tune anything to these targets, and I registered each one before it was first scored.",
   fitted:
-    "A constant in the module was chosen so the model reproduces this score. Small errors here are by construction and say little about accuracy.",
+    "I chose a constant in the module so that the model reproduces this score. Small errors here follow by construction and say little about accuracy.",
   reconstruction:
-    "Scored against a published figure no constant is fitted to. A miss here is a finding about the model.",
+    "These are scored against a published figure that no constant is fitted to, so a miss here tells us something about the model.",
   retired:
-    "The target turned out not to be a published score of this policy. The row stays on the record with the error it carried when withdrawn.",
+    "On closer reading, the target turned out not to be a published score of this policy. I keep the row on the record, with the error it carried when I withdrew it.",
 };
 
 function Benchmarks({ tier, rows }: { tier: Tier; rows: ScorecardEntry[] }) {
@@ -90,8 +90,8 @@ export default function Methods() {
         <span className="eyebrow">Methods</span>
         <h1>How the calculator works</h1>
         <p className="sentence">
-          A score is built in three steps, the way CBO and JCT build theirs. This page sets out each step, the
-          numbers it rests on, and how far the results sit from published scores.
+          I build a score in three steps, following the conventions CBO and JCT use for their own. Below I set out
+          each step and the parameters it rests on, and then turn to how far the results sit from published scores.
         </p>
       </header>
 
@@ -101,25 +101,27 @@ export default function Methods() {
           <div className="stage">
             <span className="q">1. Static</span>
             <p>
-              The direct change in revenue, holding behaviour fixed. For a rate change: the change in rate, times the
-              income above the threshold, times the number of filers it reaches. Only income above the threshold
-              counts.
+              The first step is the direct change in revenue, holding behaviour fixed. For a rate change, this is the
+              change in rate times the income above the threshold times the number of filers it reaches; only income
+              above the threshold counts.
             </p>
           </div>
           <div className="stage">
             <span className="q">2. Behaviour</span>
             <p>
-              People respond to a tax change by earning, reporting or timing income differently. For income tax the
-              offset is half the static effect times the elasticity of taxable income (0.25), which shrinks a rise
-              and a cut alike. Capital gains, corporate, trade and the other modules each carry their own response.
+              People respond to a tax change by earning, reporting or timing income differently. For the income tax I
+              set the offset at half the static effect times the elasticity of taxable income (0.25), which shrinks a
+              rise and a cut alike. The capital gains, corporate, trade and other modules each carry their own
+              response.
             </p>
           </div>
           <div className="stage">
             <span className="q">3. Economy (optional)</span>
             <p>
               The &ldquo;with economic feedback&rdquo; view runs the change through multipliers calibrated to the
-              Federal Reserve&apos;s FRB/US model, books the revenue that follows from higher or lower output, and nets
-              the interest on the extra debt. It has no long-run supply channel.
+              Federal Reserve&apos;s FRB/US model. It then books the revenue that follows from higher or lower output
+              and nets out the interest on the extra debt. There is no long-run supply channel, so this view captures
+              demand effects only.
             </p>
           </div>
         </div>
@@ -155,14 +157,14 @@ export default function Methods() {
       <section>
         <h2>How close are the numbers?</h2>
         <p>
-          There are two kinds of check, and they answer different questions, so they are never pooled into one
-          accuracy figure.
+          I check the model in two main ways. The checks answer different questions, so I never pool them into a
+          single accuracy figure.
         </p>
         <h3>Predictions nobody tuned</h3>
         <p>
-          The honest test. Across {oos.n} published scores, mostly from CBO&apos;s <em>Options for Reducing the
+          This is the more demanding test. Across {oos.n} published scores, mostly from CBO&apos;s <em>Options for Reducing the
           Deficit</em>, the calculator is off by {oos.mean_abs_error}% on average ({oos.median_abs_error}% for the
-          middle case). {share(oos, "within_15pct")} land within 15% and {share(oos, "within_25pct")} within 25%. The
+          median case). {share(oos, "within_15pct")} land within 15% and {share(oos, "within_25pct")} within 25%. The
           error depends a great deal on the kind of policy:
         </p>
         <div className="tablescroll">
@@ -189,14 +191,14 @@ export default function Methods() {
         </div>
         <h3>Reconstructions of published scores</h3>
         <p>
-          For {cal.fitted.n} policies a module constant was fitted so the model reproduces the published score. Their
-          average gap of {cal.fitted.mean_abs_error}% is low by construction. Holding in place the rows whose published
-          target was later corrected, the same group reads {cal.fitted_held_in_place.mean_abs_error}% over{" "}
+          For {cal.fitted.n} policies I fitted a constant in the relevant module so that the model reproduces the
+          published score. Their average gap of {cal.fitted.mean_abs_error}% is therefore low by construction. If I
+          hold in place the rows whose published target was later corrected, the same group reads {cal.fitted_held_in_place.mean_abs_error}% over{" "}
           {cal.fitted_held_in_place.n}.
         </p>
         <p>
-          Another {cal.reconstruction.n} policies are scored against a published figure nothing is fitted to. Their
-          average gap is {cal.reconstruction.mean_abs_error}% ({cal.reconstruction.median_abs_error}% for the middle
+          Another {cal.reconstruction.n} policies are scored against a published figure that nothing is fitted to. Their
+          average gap is {cal.reconstruction.mean_abs_error}% ({cal.reconstruction.median_abs_error}% for the median
           case).
           <br />
           With the {cal.retired_targets.n} withdrawn targets held in place at the error they carried, it is{" "}
@@ -204,8 +206,8 @@ export default function Methods() {
         </p>
         <p>
           A third check refits each fitted module without one of its targets and asks whether it can put that target
-          back. Across {loo.n} such cases the gap is {loo.mean_abs_error}% on average ({loo.not_cross_validatable} more
-          cannot be tested this way).
+          back. Across {loo.n} such cases the gap is {loo.mean_abs_error}% on average; a further{" "}
+          {loo.not_cross_validatable} cannot be tested this way.
         </p>
         <h3>Every benchmark</h3>
         {tiers.map((tier) => (
@@ -245,11 +247,11 @@ export default function Methods() {
           </li>
           <li>
             <b>Specialised, narrower:</b> the policy-area modules (corporate, trade, estate, payroll, credits and the
-            rest). Most are tuned to reproduce published scores, so agreement there is reconstruction, not
-            independent confirmation.
+            rest). Most are tuned to reproduce published scores, so agreement there reflects reconstruction
+            rather than independent confirmation.
           </li>
           <li>
-            <b>Exploratory:</b> the bill tracker&apos;s reading of bill text. Treat it as a first pass.
+            <b>Exploratory:</b> the bill tracker&apos;s reading of bill text. I would treat it as a first pass.
           </li>
         </ul>
         <p>

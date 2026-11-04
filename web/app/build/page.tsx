@@ -23,10 +23,11 @@ export default function Build() {
         <span className="eyebrow">Build</span>
         <h1>Build a package</h1>
         <p className="sentence">
-          Each policy carries a ten-year score, most of them published by CBO, JCT, Treasury or a research group;
-          the source is named under each. The figure on each row is that published list price. Where this calculator also scores the policy, its
-          conventional estimate is shown under the row, with a flag where the two are a quarter or more apart; the
-          link opens the calculator&apos;s full result. Ticking one that conflicts with another swaps them. A positive figure adds to the deficit; a negative one reduces it.
+          Each policy carries a ten-year score, most of them published by CBO, JCT, Treasury or a research group, and
+          the source is named under each. The figure on each row is that published list price. Where this calculator
+          also scores the policy, I show its conventional estimate under the row and flag cases where the two are a
+          quarter or more apart; the link opens the calculator&apos;s full result. Ticking a policy that conflicts
+          with one already ticked swaps them. A positive figure adds to the deficit and a negative one reduces it.
         </p>
       </header>
       <PackageBuilder rows={ordered} calculator={calculator} archetypes={valuesArchetypes()} />

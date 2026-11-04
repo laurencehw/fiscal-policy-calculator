@@ -59,8 +59,7 @@ export function homeSectionParagraphs(): string[] {
   return [
     m.sign_convention,
     `The baseline is CBO's ${m.baseline_vintages.join(" and ")} vintage, and the window is ${m.budget_windows.join(", ")}.`,
-    "The first figure is this calculator's conventional ten-year estimate. The second is the published score the same policy is checked against. They are different quantities. Explore lists the calculator's score. Build lists the published list price. The calculator is not retuned to make them match, and a gap is a finding rather than a rounding error.",
-    "The three examples are out-of-sample predictions. Nothing in the model was fitted to them. A fitted row, when one is shown, says so.",
+    "On each line below, the first figure is this calculator's conventional ten-year estimate and the second is the published score I check the same policy against. These are different quantities: Explore lists the calculator's score, while Build lists the published list price. I do not retune the calculator to make the two match, so where they differ the gap tells us something about the model. The three lines are out-of-sample predictions: I did not fit the model to them. A fitted row, when I show one, says so.",
   ];
 }
 
