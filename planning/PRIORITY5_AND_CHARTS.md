@@ -291,7 +291,7 @@ honest repairs:
 calibrates rate-only, or
 (b) re-anchor on Treasury's rate-only FY2022 row and move that row out of
 whatever tier it now sits in, with the cohort change disclosed.
-Both change a fitted row, and so both need sign-off. I recommend (a), because it
+**Decided 2026-11-04 by Laurence: (a).** Both change a fitted row, which is why sign-off was needed. (a) was recommended, because it
 keeps the anchor, and it makes Cursor's "name the GILTI piece" a mechanism instead
 of a residual.
 
@@ -444,7 +444,7 @@ See B7.
 |---|---|---|
 | 1 | **C1**, **C2**, **C3** (strip half), **C5**; **B1** pre-registration and new rows; **B4** memo | B1 merged (denominators locked) |
 | 2 | **B2a** (ordinary income path), **B3** (donut mechanism), **C3** scatter (after the `evidence.json` field lands) | B2a outturn merged, then the docs-sync PR |
-| 3 | **B2b** (payroll vintage), **B6** + waterfall; **B5** if Laurence picks (a) or (b) | docs-sync PR, then a re-score against the 9/10 bar |
+| 3 | **B2b** (payroll vintage), **B6** + waterfall; **B5** (option (a), decided 2026-11-04) | docs-sync PR, then a re-score against the 9/10 bar |
 | 4 | **B7** + C6; **C4**; B4's follow-up lane if the memo says the level is wrong | — |
 | Later | **B8** | its own plan |
 
