@@ -19,8 +19,9 @@ export default function GenerationsPage() {
           finds the new long-run economy and how the burden falls on people of each age.
         </p>
         <p className="note warn">
-          Model estimate with a wide uncertainty band. The results rest on long-run parameters (patience, how much people work,
-          population growth) that are uncertain, so read them as direction and rough size, not as point estimates. This model is
+          These are model estimates with a wide uncertainty band. The results rest on long-run parameters (patience, how much
+          people work, population growth) that we know only roughly, so I would read them for direction and rough size rather
+          than as point estimates. This model is
           separate from the ten-year scores on Explore and Tailor.
         </p>
       </header>
