@@ -65,10 +65,10 @@ export function PackageBuilder({
       <section className="values">
         <h2>Start from your values</h2>
         <p className="note">
-          Pick a starting philosophy and the calculator chooses a package for it. The choice is mechanical: each policy
-          carries tags for who pays, the size of government, the growth cost and the generations it falls on, and the
-          same values always give the same package. It is a starting point, not a verdict; everything stays editable
-          in the list below.
+          Pick a starting philosophy and the calculator chooses a package to match. The choice is mechanical. Each
+          policy carries tags for who pays, the size of government, the growth cost and the generations it falls on,
+          and the same values always give the same package. Treat the result as a place to start; everything stays
+          editable in the list below.
         </p>
         <div className="cards">
           {archetypes.map((a) => (
@@ -153,7 +153,7 @@ export function PackageBuilder({
         {selected.length > 1 ? (
           <p className="note">
             This is the sum of each policy&apos;s published score on its own. Policies that touch the same tax base
-            interact, so the package together can differ from the sum; this page does not measure that.
+            interact, so the package as a whole can differ from the sum. This page does not measure those interactions.
           </p>
         ) : null}
         {selected.length ? (

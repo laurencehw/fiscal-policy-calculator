@@ -18,17 +18,19 @@ export default function About() {
         <span className="eyebrow">About</span>
         <h1>About this calculator</h1>
         <p className="sentence">
-          It estimates what U.S. tax and spending proposals do to the federal budget over ten years: what a policy
-          costs, who bears it, and how much weight the number can carry.
+          The calculator estimates the effect of U.S. tax and spending proposals on the federal budget over ten
+          years. For each policy it reports the cost and who bears it, and it says how much weight the number can
+          carry.
         </p>
       </header>
 
       <section>
         <p>
-          It grew out of teaching public economics. Official scores from CBO, JCT and Treasury are the standard, but
-          they arrive as finished verdicts. This tool shows the working. Every number names its data, its method and
-          the nearest published score, and says whether the model was tuned to that score or predicted it blind. It is
-          a companion to the <a href={TEXTBOOK_URL}>Public Economics textbook</a>, and{" "}
+          I built it while teaching public economics. Official scores from CBO, JCT and Treasury are the standard
+          reference, but they arrive as finished numbers, and students rarely see how they were put together. This
+          tool tries to show the working. Each figure on the site names the data and method behind it and the nearest
+          published score, and says whether I tuned the model to that score or whether the model predicted it without
+          seeing it. The site is a companion to the <a href={TEXTBOOK_URL}>Public Economics textbook</a>, and{" "}
           <Link href="/build">Build</Link> lets you start from your values rather than from a list of policies.
         </p>
       </section>
@@ -45,7 +47,7 @@ export default function About() {
       <section>
         <h2>How to read the numbers</h2>
         <p>
-          Treat every figure as an estimate with a stated source, not an official score. Where the model predicts a
+          I would treat every figure as an estimate with a stated source rather than as an official score. Where the model predicts a
           published score it was never tuned to, it is off by {oos.mean_abs_error}% on average across {oos.n} cases,
           and the gap varies a lot by kind of policy. <Link href="/methods">Methods</Link> gives the figures for each
           kind and lists every benchmark.
