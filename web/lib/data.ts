@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { ClassroomAssignment, ClassroomIndexRow } from "./classroom";
 import type { SSData } from "./socialSecurity";
+import type { BaselineFile } from "./baseline";
 import type { BuildRow, Evidence, Manifest, ScorecardEntry, PresetFile, PresetInfo, ResultViews, ScoreResult, StatesData, TrackerIndex, TrackerRow, ValuesArchetype, YearlyEffect } from "./types";
 
 export const DATA_DIR = path.join(process.cwd(), "..", "site_data");
@@ -55,6 +56,10 @@ export function buildCatalog(): BuildRow[] {
 
 export function evidence(): Evidence {
   return read<Evidence>("validation", "evidence.json");
+}
+
+export function baseline(): BaselineFile {
+  return read<BaselineFile>("baseline.json");
 }
 
 export function scorecardEntries(): ScorecardEntry[] {
